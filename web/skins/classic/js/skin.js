@@ -98,8 +98,8 @@ function getPopupSize( tag, width, height ) {
   return popupSize;
 }
 
-function zmWindow() {
-  var zmWin = window.open( 'http://www.zoneminder.com', 'ZoneMinder' );
+function zmWindow(sub_url) {
+  var zmWin = window.open( 'https://www.zoneminder.com'+sub_url, 'ZoneMinder' );
   if ( ! zmWin ) {
     // if popup blocking is enabled, the popup won't be defined.
     console.log("Please disable popup blocking.");
@@ -217,6 +217,26 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.onchange = window[fnName];
   });
+
+  // 'data-on-input' adds an event listener for the global function in the attribute value when an input happens.
+  document.querySelectorAll("input[data-on-input]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-input");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
+    el.oninput = window[fnName];
+  });
+
+  // 'data-on-input-this' calls the global function in the attribute value with the element when an input happens.
+  document.querySelectorAll("input[data-on-input-this]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-input-this");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
+    el.onchange = window[fnName].bind(el, el);
+  });
 });
 
 function createEventPopup( eventId, eventFilter, width, height ) {
@@ -271,6 +291,9 @@ function closeWindow() {
 
 function refreshWindow() {
   window.location.reload( true );
+}
+function backWindow() {
+  window.history.back();
 }
 
 function refreshParentWindow() {

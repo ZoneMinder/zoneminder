@@ -50,7 +50,7 @@ foreach ( getEnumValues('Monitors', 'Function') as $optFunction ) {
 ?>
           </select>
           <label for="newEnabled"><?php echo translate('Enabled') ?></label>
-          <input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor->Enabled()) ) { ?> checked="checked"<?php } ?>/>
+          <input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php echo $monitor->Enabled() ?' checked="checked"' : '' ?>/>
         </p>
         <div id="contentButtons">
           <button type="submit" value="Save"><?php echo translate('Save') ?></button>

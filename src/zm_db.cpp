@@ -32,7 +32,7 @@ bool zmDbConnect() {
   // For some reason having these lines causes memory corruption and crashing on newer debian/ubuntu
 	// But they really need to be here in order to prevent a double open of mysql
   if ( zmDbConnected )  {
-    Warning("Calling zmDbConnect when already connected");
+    //Warning("Calling zmDbConnect when already connected");
     return true;
   }
 

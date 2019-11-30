@@ -19,6 +19,7 @@
 
 #include "zm.h"
 #include "zm_signal.h"
+#include "zm_utils.h"
 
 #if HAVE_LIBAVFORMAT
 
@@ -225,9 +226,10 @@ int FfmpegCamera::OpenFfmpeg() {
     Warning("Could not parse ffmpeg input options '%s'", Options().c_str());
   }
 
-  std::locale locale;
-  if ( std::toupper(mPath.substr(0, 3), locale) == "RTSP" ) {
-    // Set transport method as specified by method field, rtpUni is default
+  // Set transport method as specified by method field, rtpUni is default
+  std::string protocol = mPath.substr(0, 4);
+  string_toupper(protocol);
+  if ( protocol == "RTSP" ) {
     const std::string method = Method();
     if ( method == "rtpMulti" ) {
       ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
@@ -240,12 +242,11 @@ int FfmpegCamera::OpenFfmpeg() {
     } else {
       Warning("Unknown method (%s)", method.c_str());
     }
-    // #av_dict_set(&opts, "timeout", "10000000", 0); // in microseconds.
-
     if ( ret < 0 ) {
       Warning("Could not set rtsp_transport method '%s'", method.c_str());
     }
-  }
+  }  // end if RTSP
+  // #av_dict_set(&opts, "timeout", "10000000", 0); // in microseconds.
 
   Debug(1, "Calling avformat_open_input for %s", mPath.c_str());
 
@@ -281,8 +282,6 @@ int FfmpegCamera::OpenFfmpeg() {
   }
   av_dict_free(&opts);
 
-  Info("Stream open %s, parsing streams...", mPath.c_str());
-
 #if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
   ret = av_find_stream_info(mFormatContext);
 #else
@@ -316,8 +315,10 @@ int FfmpegCamera::OpenFfmpeg() {
       }
     }
   }  // end foreach stream
-  if ( mVideoStreamId == -1 )
-    Fatal("Unable to locate video stream in %s", mPath.c_str());
+  if ( mVideoStreamId == -1 ) {
+    Error("Unable to locate video stream in %s", mPath.c_str());
+    return -1;
+  }
 
   Debug(3, "Found video stream at index %d, audio stream at index %d",
       mVideoStreamId, mAudioStreamId);
@@ -353,7 +354,6 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   }
 
-  Debug(1, "Video Found decoder %s", mVideoCodec->name);
   zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
 
   if ( hwaccel_name != "" ) {
@@ -374,7 +374,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
 
 #if LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
-    // Get h_pix_fmt
+    // Get hw_pix_fmt
     for ( int i = 0;; i++ ) {
       const AVCodecHWConfig *config = avcodec_get_hw_config(mVideoCodec, i);
       if ( !config ) {
@@ -399,23 +399,19 @@ int FfmpegCamera::OpenFfmpeg() {
     hw_pix_fmt = find_fmt_by_hw_type(type);
 #endif
     if ( hw_pix_fmt != AV_PIX_FMT_NONE ) {
-      Debug(1, "Selected gw_pix_fmt %d %s",
-          hw_pix_fmt,
-          av_get_pix_fmt_name(hw_pix_fmt));
+      Debug(1, "Selected hw_pix_fmt %d %s",
+          hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
 
       mVideoCodecContext->get_format = get_hw_format;
 
-      Debug(1, "Creating hwdevice for %s",
-          (hwaccel_device != "" ? hwaccel_device.c_str() : ""));
       ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
           (hwaccel_device != "" ? hwaccel_device.c_str(): NULL), NULL, 0);
       if ( ret < 0 ) {
-        Error("Failed to create specified HW device.");
+        Error("Failed to create hwaccel device.");
         return -1;
       }
-      Debug(1, "Created hwdevice");
+      Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
       mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-      hwaccel = true;
       hwFrame = zm_av_frame_alloc();
     } else {
       Debug(1, "Failed to setup hwaccel.");
@@ -444,11 +440,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }
   zm_dump_codec(mVideoCodecContext);
 
-  if ( mVideoCodecContext->hwaccel != NULL ) {
-    Debug(1, "HWACCEL in use");
-  } else {
-    Debug(1, "HWACCEL not in use");
-  }
+  Debug(1, hwFrame ? "HWACCEL in use" : "HWACCEL not in use");
 
   if ( mAudioStreamId >= 0 ) {
     if ( (mAudioCodec = avcodec_find_decoder(
@@ -549,6 +541,82 @@ int FfmpegCamera::Close() {
 
   return 0;
 }  // end FfmpegCamera::Close
+
+
+int FfmpegCamera::transfer_to_image(
+    Image &image,
+    AVFrame *output_frame,
+    AVFrame *input_frame
+    ) {
+  uint8_t* directbuffer;
+
+  /* Request a writeable buffer of the target image */
+  directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+  if ( directbuffer == NULL ) {
+    Error("Failed requesting writeable buffer for the captured image.");
+    return -1;
+  }
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  int size = av_image_fill_arrays(
+      output_frame->data, output_frame->linesize,
+      directbuffer, imagePixFormat, width, height, 32);
+  if ( size < 0 ) {
+    Error("Problem setting up data pointers into image %s",
+        av_make_error_string(size).c_str());
+  }
+#else
+  avpicture_fill((AVPicture *)output_frame, directbuffer,
+      imagePixFormat, width, height);
+#endif
+#if HAVE_LIBSWSCALE
+  if ( !mConvertContext ) {
+    mConvertContext = sws_getContext(
+        input_frame->width,
+        input_frame->height,
+        (AVPixelFormat)input_frame->format,
+        width, height,
+        imagePixFormat, SWS_BICUBIC, NULL,
+        NULL, NULL);
+    if ( mConvertContext == NULL ) {
+      Error("Unable to create conversion context for %s from %s to %s",
+          mPath.c_str(),
+          av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+          av_get_pix_fmt_name(imagePixFormat)
+          );
+      return -1;
+    }
+    Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
+          input_frame->width, input_frame->height,
+          av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+          width, height,
+          av_get_pix_fmt_name(imagePixFormat)
+        );
+  }
+
+  int ret =
+      sws_scale(
+        mConvertContext, input_frame->data, input_frame->linesize,
+        0, mVideoCodecContext->height,
+        output_frame->data, output_frame->linesize);
+  if ( ret <= 0 ) {
+    Error("Unable to convert format %u %s linesize %d height %d to format %u %s linesize %d at frame %d codec %u %s : code: %d",
+        input_frame->format, av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+        input_frame->linesize, mVideoCodecContext->height,
+        imagePixFormat,
+        av_get_pix_fmt_name(imagePixFormat),
+        output_frame->linesize,
+        frameCount,
+        mVideoCodecContext->pix_fmt, av_get_pix_fmt_name(mVideoCodecContext->pix_fmt),
+        ret
+        );
+    return -1;
+  }
+#else  // HAVE_LIBSWSCALE
+  Fatal("You must compile ffmpeg with the --enable-swscale "
+      "option to use ffmpeg cameras");
+#endif  // HAVE_LIBSWSCALE
+  return 0;
+}  // end int FfmpegCamera::transfer_to_image
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   // FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);

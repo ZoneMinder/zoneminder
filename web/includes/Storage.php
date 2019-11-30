@@ -17,11 +17,11 @@ class Storage extends ZM_Object {
     'ServerId'  => 0,
     'DoDelete'  => 1,
   );
-  public static function find($parameters = array(), $options = array() ) {
+  public static function find($parameters = array(), $options = array()) {
     return ZM_Object::_find(get_class(), $parameters, $options);
   }
 
-  public static function find_one( $parameters = array(), $options = array() ) {
+  public static function find_one($parameters = array(), $options = array()) {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
@@ -46,6 +46,16 @@ class Storage extends ZM_Object {
       return 'Default';
     }
     return $this->{'Name'};
+  }
+
+  public function Events() {
+    if ( $this->{'Id'} and ! isset($this->{'Events'}) ) {
+      $this->{'Events'} = Event::find(array('StorageId'=>$this->{'Id'}));
+    }
+    if ( ! isset($this->{'Events'}) ) {
+      $this->{'Events'} = array();
+    }
+    return $this->{'Events'};
   }
 
   public function disk_usage_percent() {
@@ -105,10 +115,15 @@ class Storage extends ZM_Object {
     if ( (! array_key_exists('DiskSpace', $this)) or (!$this->{'DiskSpace'}) ) {
       $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
 
-      foreach ( Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null)) as $Event ) {
-        $Event->Storage($this); // Prevent further db hit
-        $used += $Event->DiskSpace();
-      }
+      do {
+        # Do in batches of 1000 so as to not useup all ram
+        $events = Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null), array('limit'=>1000));
+        foreach ( $events as $Event ) {
+          $Event->Storage($this); // Prevent further db hit
+          # DiskSpace will update the event
+          $used += $Event->DiskSpace();
+        } #end foreach
+      } while ( count($events) == 1000 );
       $this->{'DiskSpace'} = $used;
     }
     return $this->{'DiskSpace'};
@@ -116,7 +131,17 @@ class Storage extends ZM_Object {
 
   public function Server() {
     if ( ! array_key_exists('Server',$this) ) {
-      $this->{'Server'}= new Server($this->{'ServerId'});
+      if ( array_key_exists('ServerId', $this) ) {
+        $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
+
+        if ( !$this->{'Server'} ) {
+          if ( $this->{'ServerId'} )
+            Error('No Server record found for server id ' . $this->{'ServerId'});
+          $this->{'Server'} = new Server();
+        }
+      } else {
+        $this->{'Server'} = new Server();
+      }
     }
     return $this->{'Server'};
   }

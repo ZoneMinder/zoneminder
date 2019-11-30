@@ -10,193 +10,193 @@ if ($_REQUEST['entity'] == 'navBar') {
 }
 
 $statusData = array(
-    'system' => array(
-      'permission' => 'System',
-      'table' => 'Monitors',
-      'limit' => 1,
-      'elements' => array(
-        'MonitorCount' => array( 'sql' => 'count(*)' ),
-        'ActiveMonitorCount' => array( 'sql' => "count(if(Function != 'None',1,NULL))" ),
-        'State' => array( 'func' => 'daemonCheck()?'.translate('Running').':'.translate('Stopped') ),
-        'Load' => array( 'func' => 'getLoad()' ),
-        'Disk' => array( 'func' => 'getDiskPercent()' ),
-        ),
-      ),
-    'monitor' => array(
-      'permission' => 'Monitors',
-      'table' => 'Monitors',
-      'limit' => 1,
-      'selector' => 'Monitors.Id',
-      'elements' => array(
-        'Id' => array( 'sql' => 'Monitors.Id' ),
-        'Name' => array( 'sql' => 'Monitors.Name' ),
-        'Type' => true,
-        'Function' => true,
-        'Enabled' => true,
-        'LinkedMonitors' => true,
-        'Triggers' => true,
-        'Device' => true,
-        'Channel' => true,
-        'Format' => true,
-        'Host' => true,
-        'Port' => true,
-        'Path' => true,
-        'Width' => array( 'sql' => 'Monitors.Width' ),
-        'Height' => array( 'sql' => 'Monitors.Height' ),
-        'Palette' => true,
-        'Orientation' => true,
-        'Brightness' => true,
-        'Contrast' => true,
-        'Hue' => true,
-        'Colour' => true,
-        'EventPrefix' => true,
-        'LabelFormat' => true,
-        'LabelX' => true,
-        'LabelY' => true,
-        'LabelSize' => true,
-        'ImageBufferCount' => true,
-        'WarmupCount' => true,
-        'PreEventCount' => true,
-        'PostEventCount' => true,
-        'AlarmFrameCount' => true,
-        'SectionLength' => true,
-        'FrameSkip' => true,
-        'MotionFrameSkip' => true,
-        'MaxFPS' => true,
-        'AlarmMaxFPS' => true,
-        'FPSReportInterval' => true,
-        'RefBlendPerc' => true,
-        'Controllable' => true,
-        'ControlId' => true,
-        'ControlDevice' => true,
-        'ControlAddress' => true,
-        'AutoStopTimeout' => true,
-        'TrackMotion' => true,
-        'TrackDelay' => true,
-        'ReturnLocation' => true,
-        'ReturnDelay' => true,
-        'DefaultView' => true,
-        'DefaultRate' => true,
-        'DefaultScale' => true,
-        'WebColour' => true,
-        'Sequence' => true,
-        'MinEventId' => array( 'sql' => '(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
-        'MaxEventId' => array( 'sql' => '(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
-        'TotalEvents' => array( 'sql' => '(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
-        'Status' => array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -s' ),
-        'FrameRate' => array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -f' ),
-        ),
-      ),
-      'events' => array(
-            'permission' => 'Events',
-            'table' => 'Events',
-            'selector' => 'Events.MonitorId',
-            'elements' => array(
-              'Id' => true,
-              'Name' => true,
-              'Cause' => true,
-              'Notes' => true,
-              'StartTime' => true,
-              'StartTimeShort' => array( 'sql' => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
-              'EndTime' => true,
-              'Width' => true,
-              'Height' => true,
-              'Length' => true,
-              'Frames' => true,
-              'AlarmFrames' => true,
-              'TotScore' => true,
-              'AvgScore' => true,
-              'MaxScore' => true,
-              ),
-            ),
-      'event' => array(
-        'permission' => 'Events',
-        'table' => 'Events',
-        'limit' => 1,
-        'selector' => 'Events.Id',
-        'elements' => array(
-          'Id' => array( 'sql' => 'Events.Id' ),
-          'MonitorId' => true,
-          'MonitorName' => array('sql' => '(SELECT Monitors.Name FROM Monitors WHERE Monitors.Id = Events.MonitorId)'),
-          'Name' => true,
-          'Cause' => true,
-          'StartTime' => true,
-          'StartTimeShort' => array( 'sql' => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
-          'EndTime' => true,
-          'Width' => true,
-          'Height' => true,
-          'Length' => true,
-          'Frames' => true,
-          'DefaultVideo' => true,
-          'AlarmFrames' => true,
-          'TotScore' => true,
-          'AvgScore' => true,
-          'MaxScore' => true,
-          'Archived' => true,
-          'Videoed' => true,
-          'Uploaded' => true,
-          'Emailed' => true,
-          'Messaged' => true,
-          'Executed' => true,
-          'Notes' => true,
-          'MinFrameId' => array( 'sql' => '(SELECT min(Frames.FrameId) FROM Frames WHERE EventId=Events.Id)' ),
-          'MaxFrameId' => array( 'sql' => '(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)' ),
-          'MinFrameDelta' => array( 'sql' => '(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
-          'MaxFrameDelta' => array( 'sql' => '(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
-          ),
-        ),
-        'frames' => array(
-            'permission' => 'Events',
-            'table' => 'Frames',
-            'selector' => 'EventId',
-            'elements' => array(
-              'EventId' => true,
-              'FrameId' => true,
-              'Type' => true,
-              'Delta' => true,
-            ),
-        ),
-        'frame' => array(
-            'permission' => 'Events',
-            'table' => 'Frames',
-            'limit' => 1,
-            'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>'Events.Id' ), 'Frames.FrameId' ),
-            'elements' => array(
-              //'Id' => array( 'sql' => 'Frames.FrameId' ),
-              'FrameId' => true,
-              'EventId' => true,
-              'Type' => true,
-              'TimeStamp' => true,
-              'TimeStampShort' => array( 'sql' => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
-              'Delta' => true,
-              'Score' => true,
-              //'Image' => array( 'postFunc' => 'getFrameImage' ),
-              ),
-            ),
-        'frameimage' => array(
-            'permission' => 'Events',
-            'func' => 'getFrameImage()'
-            ),
-        'nearframe' => array(
-            'permission' => 'Events',
-            'func' => 'getNearFrame()'
-            ),
-        'nearevents' => array(
-            'permission' => 'Events',
-            'func' => 'getNearEvents()'
-            )
-        );
+  'system' => array(
+    'permission' => 'System',
+    'table' => 'Monitors',
+    'limit' => 1,
+    'elements' => array(
+      'MonitorCount' => array( 'sql' => 'count(*)' ),
+      'ActiveMonitorCount' => array( 'sql' => 'count(if(Function != \'None\',1,NULL))' ),
+      'State' => array( 'func' => 'daemonCheck()?'.translate('Running').':'.translate('Stopped') ),
+      'Load' => array( 'func' => 'getLoad()' ),
+      'Disk' => array( 'func' => 'getDiskPercent()' ),
+    ),
+  ),
+  'monitor' => array(
+    'permission' => 'Monitors',
+    'table' => 'Monitors',
+    'limit' => 1,
+    'selector' => 'Monitors.Id',
+    'elements' => array(
+      'Id' => array( 'sql' => 'Monitors.Id' ),
+      'Name' => array( 'sql' => 'Monitors.Name' ),
+      'Type' => true,
+      'Function' => true,
+      'Enabled' => true,
+      'LinkedMonitors' => true,
+      'Triggers' => true,
+      'Device' => true,
+      'Channel' => true,
+      'Format' => true,
+      'Host' => true,
+      'Port' => true,
+      'Path' => true,
+      'Width' => array( 'sql' => 'Monitors.Width' ),
+      'Height' => array( 'sql' => 'Monitors.Height' ),
+      'Palette' => true,
+      'Orientation' => true,
+      'Brightness' => true,
+      'Contrast' => true,
+      'Hue' => true,
+      'Colour' => true,
+      'EventPrefix' => true,
+      'LabelFormat' => true,
+      'LabelX' => true,
+      'LabelY' => true,
+      'LabelSize' => true,
+      'ImageBufferCount' => true,
+      'WarmupCount' => true,
+      'PreEventCount' => true,
+      'PostEventCount' => true,
+      'AlarmFrameCount' => true,
+      'SectionLength' => true,
+      'FrameSkip' => true,
+      'MotionFrameSkip' => true,
+      'MaxFPS' => true,
+      'AlarmMaxFPS' => true,
+      'FPSReportInterval' => true,
+      'RefBlendPerc' => true,
+      'Controllable' => true,
+      'ControlId' => true,
+      'ControlDevice' => true,
+      'ControlAddress' => true,
+      'AutoStopTimeout' => true,
+      'TrackMotion' => true,
+      'TrackDelay' => true,
+      'ReturnLocation' => true,
+      'ReturnDelay' => true,
+      'DefaultView' => true,
+      'DefaultRate' => true,
+      'DefaultScale' => true,
+      'WebColour' => true,
+      'Sequence' => true,
+      'MinEventId' => array( 'sql' => '(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
+      'MaxEventId' => array( 'sql' => '(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
+      'TotalEvents' => array( 'sql' => '(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
+      'Status' => array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -s' ),
+      'FrameRate' => array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -f' ),
+    ),
+  ),
+  'events' => array(
+    'permission' => 'Events',
+    'table' => 'Events',
+    'selector' => 'Events.MonitorId',
+    'elements' => array(
+      'Id' => true,
+      'Name' => true,
+      'Cause' => true,
+      'Notes' => true,
+      'StartTime' => true,
+      'StartTimeShort' => array( 'sql' => 'date_format( StartTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'EndTime' => true,
+      'Width' => true,
+      'Height' => true,
+      'Length' => true,
+      'Frames' => true,
+      'AlarmFrames' => true,
+      'TotScore' => true,
+      'AvgScore' => true,
+      'MaxScore' => true,
+    ),
+  ),
+  'event' => array(
+    'permission' => 'Events',
+    'table' => 'Events',
+    'limit' => 1,
+    'selector' => 'Events.Id',
+    'elements' => array(
+      'Id' => array( 'sql' => 'Events.Id' ),
+      'MonitorId' => true,
+      'MonitorName' => array('sql' => '(SELECT Monitors.Name FROM Monitors WHERE Monitors.Id = Events.MonitorId)'),
+      'Name' => true,
+      'Cause' => true,
+      'StartTime' => true,
+      'StartTimeShort' => array( 'sql' => 'date_format( StartTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'EndTime' => true,
+      'Width' => true,
+      'Height' => true,
+      'Length' => true,
+      'Frames' => true,
+      'DefaultVideo' => true,
+      'AlarmFrames' => true,
+      'TotScore' => true,
+      'AvgScore' => true,
+      'MaxScore' => true,
+      'Archived' => true,
+      'Videoed' => true,
+      'Uploaded' => true,
+      'Emailed' => true,
+      'Messaged' => true,
+      'Executed' => true,
+      'Notes' => true,
+      'MinFrameId' => array( 'sql' => '(SELECT min(Frames.FrameId) FROM Frames WHERE EventId=Events.Id)' ),
+      'MaxFrameId' => array( 'sql' => '(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+      'MinFrameDelta' => array( 'sql' => '(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+      'MaxFrameDelta' => array( 'sql' => '(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+    ),
+  ),
+  'frames' => array(
+    'permission' => 'Events',
+    'table' => 'Frames',
+    'selector' => 'EventId',
+    'elements' => array(
+      'EventId' => true,
+      'FrameId' => true,
+      'Type' => true,
+      'Delta' => true,
+    ),
+  ),
+  'frame' => array(
+    'permission' => 'Events',
+    'table' => 'Frames',
+    'limit' => 1,
+    'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>'Events.Id' ), 'Frames.FrameId' ),
+    'elements' => array(
+      //'Id' => array( 'sql' => 'Frames.FrameId' ),
+      'FrameId' => true,
+      'EventId' => true,
+      'Type' => true,
+      'TimeStamp' => true,
+      'TimeStampShort' => array( 'sql' => 'date_format( StartTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'Delta' => true,
+      'Score' => true,
+      //'Image' => array( 'postFunc' => 'getFrameImage' ),
+    ),
+  ),
+  'frameimage' => array(
+    'permission' => 'Events',
+    'func' => 'getFrameImage()'
+  ),
+  'nearframe' => array(
+    'permission' => 'Events',
+    'func' => 'getNearFrame()'
+  ),
+  'nearevents' => array(
+    'permission' => 'Events',
+    'func' => 'getNearEvents()'
+  )
+);
 
 function collectData() {
   global $statusData;
 
   $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
 #print_r( $entitySpec );
-  if ( !canView( $entitySpec['permission'] ) )
+  if ( !canView($entitySpec['permission']) )
     ajaxError('Unrecognised action or insufficient permissions');
 
   if ( !empty($entitySpec['func']) ) {
-    $data = eval( 'return( '.$entitySpec['func']." );" );
+    $data = eval('return('.$entitySpec['func'].');');
   } else {
     $data = array();
     $postFuncs = array();
@@ -232,7 +232,7 @@ function collectData() {
       if ( !($elementData = $lc_elements[strtolower($element)]) )
         ajaxError( 'Bad '.validJsStr($_REQUEST['entity']).' element '.$element );
       if ( isset($elementData['func']) )
-        $data[$element] = eval( 'return( '.$elementData['func']." );" );
+        $data[$element] = eval( 'return( '.$elementData['func'].' );' );
       else if ( isset($elementData['postFunc']) )
         $postFuncs[$element] = $elementData['postFunc'];
       else if ( isset($elementData['zmu']) )
@@ -249,12 +249,12 @@ function collectData() {
           $groupSql[] = $elementData['group'];
         }
       }
-    }
+    } # end foreach element
 
     if ( count($fieldSql) ) {
-      $sql = 'select '.join( ', ', $fieldSql ).' from '.$entitySpec['table'];
+      $sql = 'SELECT '.join(', ', $fieldSql).' FROM '.$entitySpec['table'];
       if ( $joinSql )
-        $sql .= ' '.join( ' ', array_unique( $joinSql ) );
+        $sql .= ' '.join(' ', array_unique($joinSql));
       if ( $id && !empty($entitySpec['selector']) ) {
         $index = 0;
         $where = array();
@@ -270,10 +270,10 @@ function collectData() {
           }
           $index++;
         }
-        $sql .= ' WHERE '.join( ' AND ', $where );
+        $sql .= ' WHERE '.join(' AND ', $where);
       }
       if ( $groupSql )
-        $sql .= ' GROUP BY '.join( ',', array_unique( $groupSql ) );
+        $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
       if ( !empty($_REQUEST['sort']) ) {
         $sql .= ' ORDER BY ';
         $sort_fields = explode(',',$_REQUEST['sort']);
@@ -335,31 +335,31 @@ if ( !isset($_REQUEST['layout']) ) {
 
 switch( $_REQUEST['layout'] ) {
   case 'xml NOT CURRENTLY SUPPORTED' :
-    {
-      header("Content-type: application/xml" );
-      echo( '<?xml version="1.0" encoding="iso-8859-1"?>'."\n" );
-      echo '<'.strtolower($_REQUEST['entity']).">\n";
+      header('Content-type: application/xml');
+      echo('<?xml version="1.0" encoding="iso-8859-1"?>
+');
+      echo '<'.strtolower($_REQUEST['entity']).'>
+';
       foreach ( $data as $key=>$value ) {
-        $key = strtolower( $key );
+        $key = strtolower($key);
         echo "<$key>".htmlentities($value)."</$key>\n";
       }
       echo '</'.strtolower($_REQUEST['entity']).">\n";
       break;
-    }
   case 'json' :
     {
       $response = array( strtolower(validJsStr($_REQUEST['entity'])) => $data );
       if ( isset($_REQUEST['loopback']) )
         $response['loopback'] = validJsStr($_REQUEST['loopback']);
-      ajaxResponse( $response );
+      ajaxResponse($response);
       break;
     }
   case 'text' :
-    {
       header('Content-type: text/plain' );
       echo join( ' ', array_values( $data ) );
       break;
-    }
+  default:
+    ZM\Error('Unsupported layout: '. $_REQUEST['layout']);
 }
 
 function getFrameImage() {

@@ -254,19 +254,19 @@ sub zmMemVerify {
   my $sd_size = zmMemRead($monitor, 'shared_data:size', 1);
   if ( $sd_size != $mem_data->{shared_data}->{size} ) {
     if ( $sd_size ) {
-      Error( "Shared data size conflict in shared_data for monitor "
+      Error( 'Shared data size conflict in shared_data for monitor '
           .$monitor->{Name}
-          .", expected "
+          .', expected '
           .$mem_data->{shared_data}->{size}
-          .", got "
+          .', got '
           .$sd_size
           );
     } else {
-      Debug( "Shared data size conflict in shared_data for monitor "
+      Debug( 'Shared data size conflict in shared_data for monitor '
           .$monitor->{Name}
-          .", expected "
+          .', expected '
           .$mem_data->{shared_data}->{size}
-          .", got ".$sd_size
+          .', got '.$sd_size
           );
     }
     return undef;
@@ -274,30 +274,30 @@ sub zmMemVerify {
   my $td_size = zmMemRead($monitor, 'trigger_data:size', 1);
   if ( $td_size != $mem_data->{trigger_data}->{size} ) {
     if ( $td_size ) {
-      Error( "Shared data size conflict in trigger_data for monitor "
+      Error( 'Shared data size conflict in trigger_data for monitor '
           .$monitor->{Name}
-          .", expected "
+          .', expected '
           .$mem_data->{triggger_data}->{size}
-          .", got "
+          .', got '
           .$td_size
           );
     } else {
-      Debug( "Shared data size conflict in trigger_data for monitor "
+      Debug( 'Shared data size conflict in trigger_data for monitor '
           .$monitor->{Name}
-          .", expected "
+          .', expected '
           .$mem_data->{triggger_data}->{size}
-          .", got "
+          .', got '
           .$td_size
           );
     }
     return undef;
   }
-  my $valid = zmMemRead($monitor, 'shared_data:valid',1);
+  my $valid = zmMemRead($monitor, 'shared_data:valid', 1);
   if ( !$valid ) {
     Error("Shared data not valid for monitor $$monitor{Id}");
     return undef;
   } else {
-    Debug("Shared data appears vaild for monitor $$monitor{Id}: $valid");
+    Debug("Shared data appears valid for monitor $$monitor{Id}: $valid");
   }
 
   return !undef;
@@ -312,54 +312,54 @@ sub zmMemRead {
   }
   my @values;
   foreach my $field ( @$fields ) {
-    my ( $section, $element ) = split( /[\/:.]/, $field );
-    Fatal( "Invalid shared data selector '$field'" ) if ( !$section || !$element );
+    my ( $section, $element ) = split(/[\/:.]/, $field);
+    Fatal("Invalid shared data selector '$field'") if ( !$section || !$element );
 
     my $offset = $mem_data->{$section}->{contents}->{$element}->{offset};
     my $type = $mem_data->{$section}->{contents}->{$element}->{type};
     my $size = $mem_data->{$section}->{contents}->{$element}->{size};
 
     if (!defined $offset || !defined $type || !defined $size) {
-        Error ("Invalid field:".$field." setting to undef and exiting zmMemRead");
-        zmMemInvalidate( $monitor );
-        return( undef );
+        Error('Invalid field:'.$field.' setting to undef and exiting zmMemRead');
+        zmMemInvalidate($monitor);
+        return undef;
     }   
 
-    my $data = zmMemGet( $monitor, $offset, $size );
+    my $data = zmMemGet($monitor, $offset, $size);
     if ( !defined($data) ) {
-      Error( "Unable to read '$field' from memory for monitor ".$monitor->{Id} );
-      zmMemInvalidate( $monitor );
-      return( undef );
+      Error("Unable to read '$field' from memory for monitor ".$monitor->{Id});
+      zmMemInvalidate($monitor);
+      return undef;
     }
     my $value;
     if ( $type eq 'long' ) {
-      ( $value ) = unpack( 'l!', $data );
+      ( $value ) = unpack('l!', $data);
     } elsif ( $type eq 'ulong' || $type eq 'size_t' ) {
-      ( $value ) = unpack( 'L!', $data );
+      ( $value ) = unpack('L!', $data);
     } elsif ( $type eq 'int64' || $type eq 'time_t64' ) {
 # The 'q' type is only available on 64bit platforms, so use native.
-      ( $value ) = unpack( 'l!', $data );
+      ( $value ) = unpack('l!', $data);
     } elsif ( $type eq 'uint64' ) {
 # The 'q' type is only available on 64bit platforms, so use native.
-      ( $value ) = unpack( 'L!', $data );
+      ( $value ) = unpack('L!', $data);
     } elsif ( $type eq 'int32' ) {
-      ( $value ) = unpack( 'l', $data );
+      ( $value ) = unpack('l', $data);
     } elsif ( $type eq 'uint32' || $type eq 'bool4' ) {
-      ( $value ) = unpack( 'L', $data );
+      ( $value ) = unpack('L', $data);
     } elsif ( $type eq 'int16' ) {
-      ( $value ) = unpack( 's', $data );
+      ( $value ) = unpack('s', $data);
     } elsif ( $type eq 'uint16' ) {
-      ( $value ) = unpack( 'S', $data );
+      ( $value ) = unpack('S', $data);
     } elsif ( $type eq 'int8' ) {
-      ( $value ) = unpack( 'c', $data );
+      ( $value ) = unpack('c', $data);
     } elsif ( $type eq 'uint8' || $type eq 'bool1' ) {
       ( $value ) = unpack( 'C', $data );
     } elsif ( $type =~ /^int8\[\d+\]$/ ) {
-      ( $value ) = unpack( 'Z'.$size, $data );
+      ( $value ) = unpack('Z'.$size, $data);
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {
-      ( $value ) = unpack( 'C'.$size, $data );
+      ( $value ) = unpack('C'.$size, $data);
     } else {
-      Error( "Unexpected type '".$type."' found for '".$field."'" );
+      Error("Unexpected type '".$type."' found for '".$field."'");
       next;
     }
     push @values, $value;
@@ -374,9 +374,9 @@ sub zmMemInvalidate {
   my $monitor = shift;
   my $mem_key = zmMemKey($monitor);
   if ( $mem_key ) {
-    zmMemDetach( $monitor );
+    zmMemDetach($monitor);
   } else {
-    print "no memkey in zmMemInvalidate\n";
+    Warning('no memkey in zmMemInvalidate');
   }
 }
 
@@ -389,14 +389,14 @@ sub zmMemWrite {
   my $field_values = shift;
   my $nocheck = shift;
 
-  if ( !($nocheck || zmMemVerify( $monitor )) ) {
-    return( undef );
+  if ( !($nocheck || zmMemVerify($monitor)) ) {
+    return undef;
   }
 
-  while ( my ( $field, $value ) = each( %$field_values ) ) {
-    my ( $section, $element ) = split( /[\/:.]/, $field );
+  while ( my ( $field, $value ) = each(%$field_values) ) {
+    my ( $section, $element ) = split(/[\/:.]/, $field);
     if ( !$section || !$element ) {
-      Fatal( "Invalid shared data selector '$field'" );
+      Fatal("Invalid shared data selector '$field'");
     }
 
     my $offset = $mem_data->{$section}->{contents}->{$element}->{offset};
@@ -405,88 +405,88 @@ sub zmMemWrite {
 
     my $data;
     if ( $type eq 'long' ) {
-      $data = pack( 'l!', $value );
+      $data = pack('l!', $value);
     } elsif ( $type eq 'ulong' || $type eq 'size_t' ) {
-      $data = pack( 'L!', $value );
+      $data = pack('L!', $value);
     } elsif ( $type eq 'int64' || $type eq 'time_t64' ) {
 # The 'q' type is only available on 64bit platforms, so use native.
-      $data = pack( 'l!', $value );
+      $data = pack('l!', $value);
     } elsif ( $type eq 'uint64' ) {
 # The 'q' type is only available on 64bit platforms, so use native.
-      $data = pack( 'L!', $value );
+      $data = pack('L!', $value);
     } elsif ( $type eq 'int32' ) {
-      $data = pack( 'l', $value );
+      $data = pack('l', $value);
     } elsif ( $type eq 'uint32' || $type eq 'bool4' ) {
-      $data = pack( 'L', $value );
+      $data = pack('L', $value);
     } elsif ( $type eq 'int16' ) {
-      $data = pack( 's', $value );
+      $data = pack('s', $value);
     } elsif ( $type eq 'uint16' ) {
-      $data = pack( 'S', $value );
+      $data = pack('S', $value);
     } elsif ( $type eq 'int8' ) {
-      $data = pack( 'c', $value );
+      $data = pack('c', $value);
     } elsif ( $type eq 'uint8' || $type eq 'bool1' ) {
-      $data = pack( 'C', $value );
+      $data = pack('C', $value);
     } elsif ( $type =~ /^int8\[\d+\]$/ ) {
-      $data = pack( 'Z'.$size, $value );
+      $data = pack('Z'.$size, $value);
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {
-      $data = pack( 'C'.$size, $value );
+      $data = pack('C'.$size, $value);
     } else {
-      Fatal( "Unexpected type \"$type\" found for \"$field\"" );
+      Fatal("Unexpected type \"$type\" found for \"$field\"");
     }
 
-    if ( !zmMemPut( $monitor, $offset, $size, $data ) ) {
-      Error( "Unable to write '$value' to '$field' in memory for monitor "
+    if ( !zmMemPut($monitor, $offset, $size, $data) ) {
+      Error("Unable to write '$value' to '$field' in memory for monitor "
           .$monitor->{Id}
           );
-      zmMemInvalidate( $monitor );
-      return( undef );
+      zmMemInvalidate($monitor);
+      return undef;
     }
   }
-  return( !undef );
+  return !undef;
 }
 
 sub zmGetMonitorState {
   my $monitor = shift;
 
-  return( zmMemRead( $monitor, 'shared_data:state' ) );
+  return zmMemRead($monitor, 'shared_data:state');
 }
 
 sub zmGetAlarmLocation {
   my $monitor = shift;
 
-  return( zmMemRead( $monitor, [ 'shared_data:alarm_x', 'shared_data:alarm_y' ] ) );
+  return zmMemRead($monitor, ['shared_data:alarm_x', 'shared_data:alarm_y']);
 }
 
 sub zmSetControlState {
   my $monitor = shift;
   my $control_state = shift;
 
-  zmMemWrite( $monitor, { 'shared_data:control_state' => $control_state } );
+  zmMemWrite($monitor, { 'shared_data:control_state' => $control_state });
 }
 
 sub zmGetControlState {
   my $monitor = shift;
 
-  return( zmMemRead( $monitor, 'shared_data:control_state' ) );
+  return zmMemRead($monitor, 'shared_data:control_state');
 }
 
 sub zmSaveControlState {
   my $monitor = shift;
   my $control_state = shift;
 
-  zmSetControlState( $monitor, freeze( $control_state ) );
+  zmSetControlState($monitor, freeze($control_state));
 }
 
 sub zmRestoreControlState {
   my $monitor = shift;
 
-  return( thaw( zmGetControlState( $monitor ) ) );
+  return thaw(zmGetControlState($monitor));
 }
 
 sub zmIsAlarmed {
   my $monitor = shift;
 
-  my $state = zmGetMonitorState( $monitor );
+  my $state = zmGetMonitorState($monitor);
 
   return( $state == STATE_ALARM );
 }
@@ -494,7 +494,7 @@ sub zmIsAlarmed {
 sub zmInAlarm {
   my $monitor = shift;
 
-  my $state = zmGetMonitorState( $monitor );
+  my $state = zmGetMonitorState($monitor);
 
   return( $state == STATE_ALARM || $state == STATE_ALERT );
 }
@@ -503,83 +503,82 @@ sub zmHasAlarmed {
   my $monitor = shift;
   my $last_event_id = shift;
 
-  my ( $state, $last_event ) = zmMemRead( $monitor, [ 'shared_data:state'
-      ,'shared_data:last_event'
-  ]
+  my ( $state, $last_event ) = zmMemRead($monitor,
+    ['shared_data:state' ,'shared_data:last_event']
   );
 
   if ( $state == STATE_ALARM || $state == STATE_ALERT ) {
-    return( $last_event );
+    return $last_event;
   } elsif( $last_event != $last_event_id ) {
-    return( $last_event );
+    return $last_event;
   }
-  return( undef );
+  return undef;
 }
 
 sub zmGetStartupTime {
-  return zmMemRead( $_[0], 'shared_data:startup_time' );
+  return zmMemRead($_[0], 'shared_data:startup_time');
 }
 
 sub zmGetLastEvent {
   my $monitor = shift;
 
-  return( zmMemRead( $monitor, 'shared_data:last_event' ) );
+  return zmMemRead($monitor, 'shared_data:last_event');
 }
 
 sub zmGetLastWriteTime {
   my $monitor = shift;
 
-  return( zmMemRead( $monitor, 'shared_data:last_write_time' ) );
+  return zmMemRead($monitor, 'shared_data:last_write_time');
 }
 
 sub zmGetLastReadTime {
   my $monitor = shift;
 
-  return( zmMemRead( $monitor, 'shared_data:last_read_time' ) );
+  return zmMemRead($monitor, 'shared_data:last_read_time');
 }
 
 sub zmGetMonitorActions {
   my $monitor = shift;
 
-  return( zmMemRead( $monitor, 'shared_data:action' ) );
+  return zmMemRead($monitor, 'shared_data:action');
 }
 
 sub zmMonitorEnable {
   my $monitor = shift;
 
-  my $action = zmMemRead( $monitor, 'shared_data:action' );
+  my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_SUSPEND;
-  zmMemWrite( $monitor, { 'shared_data:action' => $action } );
+  zmMemWrite($monitor, {'shared_data:action' => $action});
 }
 
 sub zmMonitorDisable {
   my $monitor = shift;
 
-  my $action = zmMemRead( $monitor, 'shared_data:action' );
+  my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_RESUME;
-  zmMemWrite( $monitor, { 'shared_data:action' => $action } );
+  zmMemWrite($monitor, {'shared_data:action' => $action});
 }
 
 sub zmMonitorSuspend {
   my $monitor = shift;
 
-  my $action = zmMemRead( $monitor, 'shared_data:action' );
+  my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_SUSPEND;
-  zmMemWrite( $monitor, { 'shared_data:action' => $action } );
+  zmMemWrite($monitor, {'shared_data:action' => $action});
 }
 
 sub zmMonitorResume {
   my $monitor = shift;
 
-  my $action = zmMemRead( $monitor, 'shared_data:action' );
+  my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_RESUME;
-  zmMemWrite( $monitor, { 'shared_data:action' => $action } );
+  zmMemWrite($monitor, {'shared_data:action' => $action});
 }
 
 sub zmGetTriggerState {
   my $monitor = shift;
 
-  return( zmMemRead( $monitor, 'trigger_data:trigger_state' ) );
+  return zmMemRead($monitor, 'trigger_data:trigger_state');
 }
 
 sub zmTriggerEventOn {
@@ -593,11 +592,11 @@ sub zmTriggerEventOn {
     'trigger_data:trigger_score' => $score,
     'trigger_data:trigger_cause' => $cause,
   };
-  $values->{'trigger_data:trigger_text'} = $text if ( defined($text) );
-  $values->{'trigger_data:trigger_showtext'} = $showtext if ( defined($showtext) );
+  $values->{'trigger_data:trigger_text'} = $text if defined($text);
+  $values->{'trigger_data:trigger_showtext'} = $showtext if defined($showtext);
   $values->{'trigger_data:trigger_state'} = TRIGGER_ON; # Write state last so event not read incomplete
 
-  zmMemWrite( $monitor, $values );
+  zmMemWrite($monitor, $values);
 }
 
 sub zmTriggerEventOff {
@@ -611,7 +610,7 @@ sub zmTriggerEventOff {
     'trigger_data:trigger_showtext' => '',
   };
 
-  zmMemWrite( $monitor, $values );
+  zmMemWrite($monitor, $values);
 }
 
 sub zmTriggerEventCancel {
@@ -625,7 +624,7 @@ sub zmTriggerEventCancel {
     'trigger_data:trigger_showtext' => '',
   };
 
-  zmMemWrite( $monitor, $values );
+  zmMemWrite($monitor, $values);
 }
 
 sub zmTriggerShowtext {
@@ -636,7 +635,7 @@ sub zmTriggerShowtext {
     'trigger_data:trigger_showtext' => $showtext,
   };
 
-  zmMemWrite( $monitor, $values );
+  zmMemWrite($monitor, $values);
 }
 
 1;

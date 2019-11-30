@@ -58,7 +58,7 @@ RemoteCameraRtsp::RemoteCameraRtsp(
   else if ( p_method == "rtpRtspHttp" )
     method = RtspThread::RTP_RTSP_HTTP;
   else
-    Fatal( "Unrecognised method '%s' when creating RTSP camera %d", p_method.c_str(), monitor_id );
+    Fatal("Unrecognised method '%s' when creating RTSP camera %d", p_method.c_str(), monitor_id);
 
   if ( capture ) {
     Initialise();
@@ -88,23 +88,23 @@ RemoteCameraRtsp::RemoteCameraRtsp(
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
     imagePixFormat = AV_PIX_FMT_GRAY8;
   } else {
-    Panic("Unexpected colours: %d",colours);
+    Panic("Unexpected colours: %d", colours);
   }
 } // end RemoteCameraRtsp::RemoteCameraRtsp(...)
 
 RemoteCameraRtsp::~RemoteCameraRtsp() {
-  av_frame_free( &mFrame );
-  av_frame_free( &mRawFrame );
+  av_frame_free(&mFrame);
+  av_frame_free(&mRawFrame);
   
 #if HAVE_LIBSWSCALE
   if ( mConvertContext ) {
-    sws_freeContext( mConvertContext );
+    sws_freeContext(mConvertContext);
     mConvertContext = NULL;
   }
 #endif
 
   if ( mCodecContext ) {
-     avcodec_close( mCodecContext );
+     avcodec_close(mCodecContext);
      mCodecContext = NULL; // Freed by avformat_free_context in the destructor of RtspThread class
   }
 
@@ -120,14 +120,9 @@ void RemoteCameraRtsp::Initialise() {
 
   // This allocates a buffer able to hold a raw fframe, which is a little artbitrary.  Might be nice to get some
   // decent data on how large a buffer is really needed.  I think in ffmpeg there are now some functions to do that.
-  buffer.size( max_size );
+  buffer.size(max_size);
 
-  if ( logDebugging() )
-    av_log_set_level( AV_LOG_DEBUG ); 
-  else
-    av_log_set_level( AV_LOG_QUIET ); 
-
-  av_register_all();
+  FFMPEGInit();
 
   Connect();
 }
@@ -137,11 +132,11 @@ void RemoteCameraRtsp::Terminate() {
 }
 
 int RemoteCameraRtsp::Connect() {
-  rtspThread = new RtspThread( monitor_id, method, protocol, host, port, path, auth, rtsp_describe );
+  rtspThread = new RtspThread(monitor_id, method, protocol, host, port, path, auth, rtsp_describe);
 
   rtspThread->start();
 
-  return( 0 );
+  return 0;
 }
 
 int RemoteCameraRtsp::Disconnect() {
@@ -151,18 +146,18 @@ int RemoteCameraRtsp::Disconnect() {
     delete rtspThread;
     rtspThread = 0;
   }
-  return( 0 );
+  return 0;
 }
 
 int RemoteCameraRtsp::PrimeCapture() {
-  Debug( 2, "Waiting for sources" );
+  Debug(2, "Waiting for sources");
   for ( int i = 0; i < 100 && !rtspThread->hasSources(); i++ ) {
-    usleep( 100000 );
+    usleep(100000);
   }
   if ( !rtspThread->hasSources() )
-    Fatal( "No RTSP sources" );
+    Fatal("No RTSP sources");
 
-  Debug( 2, "Got sources" );
+  Debug(2, "Got sources");
 
   mFormatContext = rtspThread->getFormatContext();
 
@@ -188,7 +183,7 @@ int RemoteCameraRtsp::PrimeCapture() {
         mVideoStreamId = i;
         continue;
       } else {
-        Debug(2, "Have another video stream." );
+        Debug(2, "Have another video stream.");
       }
     } else
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
@@ -200,7 +195,7 @@ int RemoteCameraRtsp::PrimeCapture() {
       if ( mAudioStreamId == -1 ) {
         mAudioStreamId = i;
       } else {
-        Debug(2, "Have another audio stream." );
+        Debug(2, "Have another audio stream.");
       }
     } else {
       Debug(1, "Have unknown codec type in stream %d : %d", i, mFormatContext->streams[i]->codec->codec_type);
@@ -208,9 +203,9 @@ int RemoteCameraRtsp::PrimeCapture() {
   } // end foreach stream
 
   if ( mVideoStreamId == -1 )
-    Fatal( "Unable to locate video stream" );
+    Fatal("Unable to locate video stream");
   if ( mAudioStreamId == -1 )
-    Debug( 3, "Unable to locate audio stream" );
+    Debug(3, "Unable to locate audio stream");
 
   // Get a pointer to the codec context for the video stream
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -221,17 +216,17 @@ int RemoteCameraRtsp::PrimeCapture() {
 #endif
 
   // Find the decoder for the video stream
-  mCodec = avcodec_find_decoder( mCodecContext->codec_id );
+  mCodec = avcodec_find_decoder(mCodecContext->codec_id);
   if ( mCodec == NULL )
-    Panic( "Unable to locate codec %d decoder", mCodecContext->codec_id );
+    Panic("Unable to locate codec %d decoder", mCodecContext->codec_id);
 
   // Open codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-  if ( avcodec_open( mCodecContext, mCodec ) < 0 )
+  if ( avcodec_open(mCodecContext, mCodec) < 0 )
 #else
-  if ( avcodec_open2( mCodecContext, mCodec, 0 ) < 0 )
+  if ( avcodec_open2(mCodecContext, mCodec, 0) < 0 )
 #endif
-    Panic( "Can't open codec" );
+    Panic("Can't open codec");
 
   // Allocate space for the native video frame
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
@@ -248,16 +243,16 @@ int RemoteCameraRtsp::PrimeCapture() {
 #endif
 
   if ( mRawFrame == NULL || mFrame == NULL )
-    Fatal( "Unable to allocate frame(s)");
+    Fatal("Unable to allocate frame(s)");
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  int pSize = av_image_get_buffer_size( imagePixFormat, width, height, 1 );
+  int pSize = av_image_get_buffer_size(imagePixFormat, width, height, 1);
 #else
-  int pSize = avpicture_get_size( imagePixFormat, width, height );
+  int pSize = avpicture_get_size(imagePixFormat, width, height);
 #endif
 
   if ( (unsigned int)pSize != imagesize ) {
-    Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
+    Fatal("Image size mismatch. Required: %d Available: %d", pSize, imagesize);
   }
 
 #if HAVE_LIBSWSCALE
@@ -282,17 +277,17 @@ int RemoteCameraRtsp::PrimeCapture() {
 #endif // HAVE_LIBSWSCALE
 */
 
-  return( 0 );
+  return 0;
 }
 
 int RemoteCameraRtsp::PreCapture() {
   if ( !rtspThread->isRunning() )
-    return( -1 );
+    return -1;
   if ( !rtspThread->hasSources() ) {
-    Error( "Cannot precapture, no RTP sources" );
-    return( -1 );
+    Error("Cannot precapture, no RTP sources");
+    return -1;
   }
-  return( 0 );
+  return 0;
 }
 
 int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
@@ -312,10 +307,10 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
     if ( !rtspThread->isRunning() )
       return -1;
 
-    if ( rtspThread->getFrame( buffer ) ) {
-      Debug( 3, "Read frame %d bytes", buffer.size() );
-      Debug( 4, "Address %p", buffer.head() );
-      Hexdump( 4, buffer.head(), 16 );
+    if ( rtspThread->getFrame(buffer) ) {
+      Debug(3, "Read frame %d bytes", buffer.size());
+      Debug(4, "Address %p", buffer.head());
+      Hexdump(4, buffer.head(), 16);
 
       if ( !buffer.size() )
         return -1;
@@ -341,39 +336,57 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
         Debug(3, "Not an h264 packet");
       }
 
-        // Don't need to do this... as zmPacket does it.
+      // Don't need to do this... as zmPacket does it.
       //av_init_packet( &packet );
 
-      while ( !frameComplete && buffer.size() > 0 ) {
+      while ( !frameComplete && (buffer.size() > 0) ) {
         packet->data = buffer.head();
         packet->size = buffer.size();
+        bytes += packet.size;
 
         // So I think this is the magic decode step. Result is a raw image?
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
-        int len = avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, packet );
+        int len = avcodec_decode_video2(mCodecContext, mRawFrame, &frameComplete, packet);
 #else
-        int len = avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet->data, packet->size );
+        int len = avcodec_decode_video(mCodecContext, mRawFrame, &frameComplete, packet->data, packet->size);
 #endif
         if ( len < 0 ) {
-          Error( "Error while decoding frame %d", frameCount );
-          Hexdump( Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size() );
+          Error("Error while decoding frame %d", frameCount);
+          Hexdump(Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size());
           buffer.clear();
           continue;
         }
-        Debug( 2, "Frame: %d - %d/%d", frameCount, len, buffer.size() );
+        Debug(2, "Frame: %d - %d/%d", frameCount, len, buffer.size());
         buffer -= len;
       }
       // At this point, we either have a frame or ran out of buffer. What happens if we run out of buffer?
       if ( frameComplete ) {
-        Debug( 3, "Got frame %d", frameCount );
-            
-        avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height );
+          
     #if HAVE_LIBSWSCALE
         if ( mConvertContext == NULL ) {
-          if ( sws_scale( mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize ) < 0 )
-            Fatal( "Unable to convert raw format %u to target format %u at frame %d", mCodecContext->pix_fmt, imagePixFormat, frameCount );
+          mConvertContext = sws_getContext(
+              mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt,
+              width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL);
+
+          if ( mConvertContext == NULL )
+            Fatal("Unable to create conversion context");
+
+          if (
+              ((unsigned int)mRawFrame->width != width)
+              ||
+              ((unsigned int)mRawFrame->height != height)
+             ) {
+            Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
+                width, height, mRawFrame->width, mRawFrame->height);
+          }
         }
-    #endif
+      
+        if ( sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize) < 0 )
+          Fatal("Unable to convert raw format %u to target format %u at frame %d",
+              mCodecContext->pix_fmt, imagePixFormat, frameCount );
+    #else // HAVE_LIBSWSCALE
+        Fatal("You must compile ffmpeg with the --enable-swscale option to use RTSP cameras");
+    #endif // HAVE_LIBSWSCALE
       
         frameCount++;
       } /* frame complete */

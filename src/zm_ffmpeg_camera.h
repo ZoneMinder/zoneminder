@@ -56,11 +56,9 @@ class FfmpegCamera : public Camera {
 
     AVFrame             *input_frame;         // Use to point to mRawFrame or hwFrame;
 
-    bool hwaccel;
-    AVFrame             *hwFrame;
+    AVFrame             *hwFrame; // Will also be used to indicate if hwaccel is in use
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-    DecodeContext       decode;
-  AVBufferRef *hw_device_ctx = NULL;
+    AVBufferRef *hw_device_ctx = NULL;
 #endif
 
     // Used to store the incoming packet, it will get copied when queued. 

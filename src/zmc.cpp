@@ -188,8 +188,8 @@ int main(int argc, char *argv[]) {
     snprintf(log_id_string, sizeof(log_id_string), "zmc_m%d", monitor_id);
   }
 
+  logInit(log_id_string);
   zmLoadConfig();
-
   logInit(log_id_string);
 
   hwcaps_detect();
@@ -252,7 +252,8 @@ int main(int argc, char *argv[]) {
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
-    }
+    }  // end foreach monitor
+
     // Outer primary loop, handles connection to camera
     if ( monitors[0]->PrimeCapture() < 0 ) {
       Error("Failed to prime capture of initial monitor");

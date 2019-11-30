@@ -1,5 +1,5 @@
 <?php
-xhtmlHeaders(__FILE__, translate('Login') );
+xhtmlHeaders(__FILE__, translate('Login'));
 ?>
 <body>
 <?php echo getNavBarHTML(); ?>
@@ -19,7 +19,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
         <h1><i class="material-icons md-36">account_circle</i> <?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>
 	
 				<label for="inputUsername" class="sr-only"><?php echo translate('Username') ?></label>
-				<input type="text" id="inputUsername" name="username" class="form-control" placeholder="Username" required autofocus autocomplete="username"/>
+				<input type="text" id="inputUsername" name="username" class="form-control" autocapitalize="none" placeholder="Username" required autofocus autocomplete="username"/>
 	
 				<label for="inputPassword" class="sr-only"><?php echo translate('Password') ?></label>
 				<input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required autocomplete="current-password"/>
@@ -30,10 +30,10 @@ xhtmlHeaders(__FILE__, translate('Login') );
 				&& defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
 				&& ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY)
 				{
-				echo "<div class='g-recaptcha'  data-sitekey='".ZM_OPT_GOOG_RECAPTCHA_SITEKEY."'></div>";
+				echo '<div class="g-recaptcha" data-sitekey="'.ZM_OPT_GOOG_RECAPTCHA_SITEKEY.'"></div>';
 				} ?>
 	
-				<input class="btn btn-lg btn-primary btn-block" type="submit" value="<?php echo translate('Login') ?>"/>
+				<button class="btn btn-lg btn-primary btn-block" type="submit"><?php echo translate('Login') ?></button>
 
 			</div>
 		</form>

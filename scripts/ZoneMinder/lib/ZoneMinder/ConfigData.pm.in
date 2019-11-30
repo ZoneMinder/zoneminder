@@ -162,6 +162,12 @@ our %types = (
     pattern     => qr|^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$|,
     format      => q( $1\@$2 )
   },
+  timezone => {
+    db_type     => 'string',
+    hint        => 'America/Toronto',
+    pattern      => qr|^(.+)$|,
+    format      => q($1)
+  }
 );
 
 our @options = (
@@ -181,7 +187,7 @@ our @options = (
   },
   {
     name        => 'ZM_CSS_DEFAULT',
-    default     => 'classic',
+    default     => 'base',
     description => 'Default set of css files used by web interface',
     help        => q`
       ZoneMinder allows the use of many different web interfaces, and
@@ -776,6 +782,15 @@ our @options = (
       `,
     type        => $types{string},
     category    => 'config',
+  },
+  {
+    name        => 'ZM_TIMEZONE',
+    default     =>  'UTC',
+    description => 'The timezone that php should use.',
+    help        => q`
+      This should be set equal to the system timezone of the mysql server`,
+    type  =>  $types{timezone},
+    category => 'system',
   },
   {
     name        => 'ZM_CPU_EXTENSIONS',
@@ -2748,6 +2763,15 @@ our @options = (
       `,
     type        => $types{boolean},
     category    => 'system',
+  },
+  {
+    name        => 'ZM_CSP_REPORT_URI',
+    default     =>  '',
+    description =>  'URI to report unsafe inline javascript violations to',
+    help        =>  q`
+    See https://en.wikipedia.org/wiki/Content_Security_Policy for more information.  When the browser detects unsafe inline javascript it will report it to this url, which may warn you of malicious attacks on your ZoneMinder install.`,
+    type        =>  $types{url},
+    category    =>  'system',
   },
   {
     name        => 'ZM_TELEMETRY_DATA',

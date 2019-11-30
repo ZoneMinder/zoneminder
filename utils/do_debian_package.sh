@@ -80,7 +80,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,disco,trusty"
+    DISTROS="xenial,bionic,disco,eoan,trusty"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;
@@ -120,6 +120,10 @@ else
     fi;
     if [ "$SNAPSHOT" == "NOW" ]; then
       SNAPSHOT=`date +%Y%m%d%H%M%S`;
+    else
+      if [ "$SNAPSHOT" == "CURRENT" ]; then
+        SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+      fi;
     fi;
   fi;
 fi

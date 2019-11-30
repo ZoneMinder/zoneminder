@@ -25,7 +25,7 @@ function Monitor(monitorData) {
     }
   };
 
-  this.eventHandler = function( event ) {
+  this.eventHandler = function(event) {
     console.log(event);
   };
 
@@ -210,12 +210,11 @@ function Monitor(monitorData) {
  * @param {*} element - the event data passed by onchange callback
  */
 function selectLayout(element) {
-  console.dir(element);
+  console.log(element);
   layout = $j(element).val();
 
   if ( layout_id = parseInt(layout) ) {
     layout = layouts[layout];
-    console.log(layout);
 
     for ( var i = 0, length = monitors.length; i < length; i++ ) {
       monitor = monitors[i];
@@ -255,7 +254,7 @@ function selectLayout(element) {
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
     Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
     $('scale').set('value', '');
-    $('width').set('value', '');
+    $('width').set('value', 'auto');
     for ( var i = 0, length = monitors.length; i < length; i++ ) {
       var monitor = monitors[i];
       var streamImg = $('liveStream'+monitor.id);
@@ -319,7 +318,7 @@ function changeSize() {
   Cookie.write('zmMontageScale', '', {duration: 10*365});
   Cookie.write('zmMontageWidth', width, {duration: 10*365});
   Cookie.write('zmMontageHeight', height, {duration: 10*365});
-  selectLayout('#zmMontageLayout');
+  //selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
 /**
@@ -396,6 +395,17 @@ function edit_layout(button) {
 
 function save_layout(button) {
   var form = button.form;
+  var name = form.elements['Name'].value;
+
+  if ( !name ) {
+    name = form.elements['zmMontageLayout'].options[form.elements['zmMontageLayout'].selectedIndex].text;
+  }
+
+  if ( name=='Freeform' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' ) {
+    alert('You cannot edit the built in layouts.  Please give the layout a new name.');
+    return;
+  }
+
   // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
   for ( var i = 0, length = monitors.length; i < length; i++ ) {

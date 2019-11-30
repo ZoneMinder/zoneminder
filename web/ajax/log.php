@@ -4,6 +4,62 @@
 # These are the valid columns that you can filter on.
 $filterFields = array( 'Component', 'ServerId', 'Pid', 'Level', 'File', 'Line' );
 
+function buildLogQuery($action) {
+  global $filterFields;
+
+  $minTime = isset($_REQUEST['minTime'])?$_REQUEST['minTime']:NULL;
+  $maxTime = isset($_REQUEST['maxTime'])?$_REQUEST['maxTime']:NULL;
+
+  $limit = 100;
+  if ( isset($_REQUEST['limit']) ) {
+    if ( ( !is_integer($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
+      ZM\Error('Invalid value for limit ' . $_REQUEST['limit']);
+    } else {
+      $limit = $_REQUEST['limit'];
+    }
+  }
+  $sortField = 'TimeKey';
+  if ( isset($_REQUEST['sortField']) ) {
+    if ( !in_array($_REQUEST['sortField'], $filterFields) and ( $_REQUEST['sortField'] != 'TimeKey' ) ) {
+      ZM\Error('Invalid sort field ' . $_REQUEST['sortField']);
+    } else {
+      $sortField = $_REQUEST['sortField'];
+    }
+  }
+  $sortOrder = (isset($_REQUEST['sortOrder']) and ($_REQUEST['sortOrder'] == 'asc')) ? 'asc' : 'desc';
+  $filter = isset($_REQUEST['filter']) ? $_REQUEST['filter'] : array();
+
+  $sql = $action.' FROM Logs';
+  $where = array();
+  $values = array();
+  if ( $minTime ) {
+    $where[] = 'TimeKey > ?';
+    $values[] = $minTime;
+  } elseif ( $maxTime ) {
+    $where[] = 'TimeKey < ?';
+    $values[] = $maxTime;
+  }
+
+  foreach ( $filter as $field=>$value ) {
+    if ( ! in_array($field, $filterFields) ) {
+      ZM\Error("'$field' is not in valid filter fields " . print_r($filterField,true));
+      continue;
+    }
+    if ( $field == 'Level' ){
+      $where[] = $field.' <= ?';
+      $values[] = $value;
+    } else {
+      $where[] = $field.' = ?';
+      $values[] = $value;
+    }
+  }
+  if ( count($where) )
+    $sql.= ' WHERE '.join(' AND ', $where);
+  $sql .= ' ORDER BY '.$sortField.' '.$sortOrder.' LIMIT '.$limit;
+
+  return array('sql'=>$sql, 'values'=>$values);
+}
+
 switch ( $_REQUEST['task'] ) {
   case 'create' :
   {
@@ -21,17 +77,33 @@ switch ( $_REQUEST['task'] ) {
 
       $levels = array_flip(ZM\Logger::$codes);
       if ( !isset($levels[$_POST['level']]) )
-        ZM\Panic("Unexpected logger level '".$_POST['level']."'");
+        ZM\Panic('Unexpected logger level '.$_POST['level']);
       $level = $levels[$_POST['level']];
       ZM\Logger::fetch()->logPrint($level, $string, $file, $line);
     }
     ajaxResponse();
     break;
   }
+  case 'delete' :
+  {
+    if ( !canEdit('System') )
+      ajaxError('Insufficient permissions to delete log entries');
+
+    $query = buildLogQuery('DELETE');
+    $result = dbQuery($query['sql'], $query['values']);
+    ajaxResponse( array(
+      'result'=>'Ok',
+      'deleted'=>$result->rowCount(),
+    ) );
+
+
+  }
   case 'query' :
   {
     if ( !canView('System') )
       ajaxError('Insufficient permissions to view log entries');
+    $total = dbFetchOne('SELECT count(*) AS Total FROM Logs', 'Total');
+    $query = buildLogQuery('SELECT *');
 
     $servers = ZM\Server::find();
     $servers_by_Id = array();
@@ -40,59 +112,10 @@ switch ( $_REQUEST['task'] ) {
       $servers_by_Id[$server->Id()] = $server;
     }
 
-    $minTime = isset($_REQUEST['minTime'])?$_REQUEST['minTime']:NULL;
-    $maxTime = isset($_REQUEST['maxTime'])?$_REQUEST['maxTime']:NULL;
-
-    $limit = 100;
-    if ( isset($_REQUEST['limit']) ) {
-      if ( ( !is_integer($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
-        ZM\Error('Invalid value for limit ' . $_REQUEST['limit']);
-      } else {
-        $limit = $_REQUEST['limit'];
-      }
-    }
-    $sortField = 'TimeKey';
-    if ( isset($_REQUEST['sortField']) ) {
-      if ( !in_array($_REQUEST['sortField'], $filterFields) and ( $_REQUEST['sortField'] != 'TimeKey' ) ) {
-        ZM\Error("Invalid sort field " . $_REQUEST['sortField']);
-      } else {
-        $sortField = $_REQUEST['sortField'];
-      }
-    }
-    $sortOrder = (isset($_REQUEST['sortOrder']) and ($_REQUEST['sortOrder'] == 'asc')) ? 'asc' : 'desc';
-    $filter = isset($_REQUEST['filter']) ? $_REQUEST['filter'] : array();
-
-    $total = dbFetchOne('SELECT count(*) AS Total FROM Logs', 'Total');
-    $sql = 'SELECT * FROM Logs';
-    $where = array();
-    $values = array();
-    if ( $minTime ) {
-      $where[] = 'TimeKey > ?';
-      $values[] = $minTime;
-    } elseif ( $maxTime ) {
-      $where[] = 'TimeKey < ?';
-      $values[] = $maxTime;
-    }
-
-    foreach ( $filter as $field=>$value ) {
-      if ( ! in_array($field, $filterFields) ) {
-        ZM\Error("$field is not in valid filter fields");
-        continue;
-      }
-      if ( $field == 'Level' ){
-        $where[] = $field.' <= ?';
-        $values[] = $value;
-      } else {
-        $where[] = $field.' = ?';
-        $values[] = $value;
-      }
-    }
-    $options = array();
-    if ( count($where) )
-      $sql.= ' WHERE '.join(' AND ', $where);
-    $sql .= ' ORDER BY '.$sortField.' '.$sortOrder.' LIMIT '.$limit;
     $logs = array();
-    foreach ( dbFetchAll($sql, NULL, $values) as $log ) {
+    $options = array();
+
+    foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $log ) {
 
       $log['DateTime'] = strftime('%Y-%m-%d %H:%M:%S', intval($log['TimeKey']));
       #Warning("TimeKey: " . $log['TimeKey'] . 'Intval:'.intval($log['TimeKey']).' DateTime:'.$log['DateTime']);

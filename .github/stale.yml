@@ -11,6 +11,7 @@ exemptLabels:
   - "Under Review"
   - "Bounty"
   - "bug"
+  - "Feature"
 
 # Set to true to ignore issues in a milestone (defaults to false)
 exemptMilestones: true

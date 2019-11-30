@@ -184,8 +184,8 @@ foreach ( $monitors as $m ) {
   echo "  monitorImageURL["        . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale*100), '&' )."';\n";
   echo "  monitorLoadingStageURL[" . $m->Id() . "] = '';\n";
   echo "  monitorColour["          . $m->Id() . "]=\"" . $m->WebColour() . "\";\n";
-  echo "  monitorWidth["           . $m->Id() . "]=" . $m->Width() . ";\n";
-  echo "  monitorHeight["          . $m->Id() . "]=" . $m->Height() . ";\n";
+  echo "  monitorWidth["           . $m->Id() . "]=" . $m->ViewWidth() . ";\n";
+  echo "  monitorHeight["          . $m->Id() . "]=" . $m->ViewHeight() . ";\n";
   echo "  monitorIndex["           . $m->Id() . "]=" . $numMonitors . ";\n";
   echo "  monitorServerId["        . $m->Id() . "]='" .($m->ServerId() ?  $m->ServerId() : '0'). "';\n";
   echo "  monitorName["            . $m->Id() . "]=\"" . $m->Name() . "\";\n";

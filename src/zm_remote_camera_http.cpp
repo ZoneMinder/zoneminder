@@ -1032,13 +1032,13 @@ int RemoteCameraHttp::PreCapture() {
   }
   if ( mode == SINGLE_IMAGE ) {
     if ( SendRequest() < 0 ) {
-      Error( "Unable to send request" );
+      Error("Unable to send request");
       Disconnect();
-      return( -1 );
+      return -1;
     }
   }
-  return( 0 );
-} // end int RemoteCameraHttp::PreCapture()
+  return 0;
+}  // end int RemoteCameraHttp::PreCapture()
 
 int RemoteCameraHttp::Capture( ZMPacket &packet ) {
   int content_length = GetResponse();

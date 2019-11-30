@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -29,7 +29,7 @@ use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use POSIX qw/strftime EPIPE/;
 use Socket;
-#use Data::Dumper;
+use Data::Dumper;
 use Module::Load::Conditional qw{can_load};
 
 use constant MAX_CONNECT_DELAY => 15;
@@ -40,8 +40,6 @@ $| = 1;
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
-
-logInit();
 
 my $arg_string = join(' ', @ARGV);
 
@@ -69,6 +67,7 @@ if ( !$id ) {
 }
 
 ( $id ) = $id =~ /^(\w+)$/;
+logInit($id?(id=>'zmcontrol_'.$id):());
 
 my $sock_file = $Config{ZM_PATH_SOCKS}.'/zmcontrol-'.$id.'.sock';
 Debug("zmcontrol: arg string: $arg_string sock file $sock_file");
@@ -83,7 +82,7 @@ if ( $options{command} ) {
   my $tries = 10;
   my $server_up;
   while ( $tries and ! ( $server_up = connect(CLIENT, $saddr) ) ) {
-    Debug("Failed to connect to $server_up at $sock_file");
+    Debug("Failed to connect to zmcontrol server at $sock_file");
     runCommand("zmdc.pl start zmcontrol.pl --id=$id");
     sleep 1;
     $tries -= 1;
@@ -174,14 +173,17 @@ if ( $options{command} ) {
         next if !$message;
 
         my $params = jsonDecode($message);
-        #Debug( Dumper( $params ) );
+        Debug( Dumper( $params ) );
 
         my $command = $params->{command};
-        close( CLIENT );
+        close(CLIENT);
         if ( $command eq 'quit' ) {
           last;
+        } elsif ( $command ) {
+          $control->$command($params);
+        } else {
+          Warning("No command in $message");
         }
-        $control->$command($params);
       } else {
         Fatal('Bogus descriptor');
       }

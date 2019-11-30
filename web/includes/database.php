@@ -56,7 +56,7 @@ function dbConnect() {
 
     $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-  } catch(PDOException $ex ) {
+  } catch(PDOException $ex) {
     echo 'Unable to connect to ZM db.' . $ex->getMessage();
     error_log('Unable to connect to ZM DB ' . $ex->getMessage());
     $dbConn = null;
@@ -135,7 +135,7 @@ function dbQuery($sql, $params=NULL) {
       }
 
       if ( ! $result->execute($params) ) {
-        ZM\Error("SQL: Error executing $sql: " . implode(',', $result->errorInfo()));
+        ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
         return NULL;
       }
     } else {
@@ -150,7 +150,7 @@ function dbQuery($sql, $params=NULL) {
     }
     if ( defined('ZM_DB_DEBUG') ) {
       if ( $params )
-        ZM\Logger::Debug("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount());
+        ZM\Logger::Debug("SQL: $sql " . implode(',',$params) . ' rows: '.$result->rowCount());
       else
         ZM\Logger::Debug("SQL: $sql: rows:" . $result->rowCount());
     }

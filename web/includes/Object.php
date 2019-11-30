@@ -33,21 +33,26 @@ class ZM_Object {
         }
         $cache[$row['Id']] = $this;
       }
-    } else {
-      # Set defaults
-      foreach ( $this->defaults as $k => $v ) $this->{$k} = $v;
     } # end if isset($IdOrRow)
   } # end function __construct
 
   public function __call($fn, array $args){
+    $type = (array_key_exists($fn, $this->defaults) && is_array($this->defaults[$fn])) ? $this->defaults[$fn]['type'] : 'scalar';
     if ( count($args) ) {
-      $this->{$fn} = $args[0];
+      if ( $type == 'set' and is_array($args[0]) )
+        $this->{$fn} = implode(',', $args[0]);
+      else
+        $this->{$fn} = $args[0];
     }
+
     if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
     } else {
       if ( array_key_exists($fn, $this->defaults) ) {
-        return $this->defaults{$fn};
+        if ( is_array($this->defaults[$fn]) ) {
+          return $this->defaults[$fn]['default'];
+        }
+        return $this->defaults[$fn];
       } else {
         $backTrace = debug_backtrace();
         Warning("Unknown function call Object->$fn from ".print_r($backTrace,true));
@@ -87,6 +92,7 @@ class ZM_Object {
         if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
           $sql .= ' LIMIT ' . $options['limit'];
         } else {
+          $backTrace = debug_backtrace();
           Error('Invalid value for limit('.$options['limit'].') passed to '.get_class()."::find from ".print_r($backTrace,true));
           return array();
         }
@@ -153,7 +159,10 @@ class ZM_Object {
           $this->{$k} = implode(',', $v);
         } else if ( is_string($v) ) {
           if ( $v == '' and array_key_exists($k, $this->defaults) ) {
-            $this->{$k} = $this->defaults[$k];
+            if ( is_array($this->defaults[$k]) )
+              $this->{$k} = $this->defaults[$k]['default'];
+            else 
+              $this->{$k} = $this->defaults[$k];
           } else {
             $this->{$k} = trim($v);
           }
@@ -169,10 +178,29 @@ class ZM_Object {
         }
       } # end if method_exists
     } # end foreach $data as $k=>$v
-  }
+  } # end function set($data)
 
-  public function changes( $new_values ) {
+  /* types is an array of fields telling use that the input might be a checkbox so not present in the input, but therefore has a value
+   */
+  public function changes($new_values, $defaults=null) {
     $changes = array();
+
+    if ( $defaults ) {
+      foreach ( $defaults as $field => $type ) {
+        if ( isset($new_values[$field]) ) {
+          # Will have already been handled above
+          continue;
+        }
+
+        if ( $this->defaults[$field] ) {
+          if ( is_array($this->defaults[$field]) ) {
+            $new_values[$field] = $this->defaults[$field]['default'];
+          } else {
+            $new_values[$field] = $this->defaults[$field];
+          }
+        }
+      } # end foreach default
+    }
     foreach ( $new_values as $field => $value ) {
 
       if ( method_exists($this, $field) ) {
@@ -180,7 +208,7 @@ class ZM_Object {
         Logger::Debug("Checking method $field () ".print_r($old_value,true).' => ' . print_r($value,true));
         if ( is_array($old_value) ) {
           $diff = array_recursive_diff($old_value, $value);
-          Logger::Debug("Checking method $field () diff is".print_r($diff,true));
+          Logger::Debug("Checking method $field () diff isi ".print_r($diff,true));
           if ( count($diff) ) {
             $changes[$field] = $value;
           }
@@ -188,14 +216,41 @@ class ZM_Object {
           $changes[$field] = $value;
         }
       } else if ( array_key_exists($field, $this) ) {
-        Logger::Debug("Checking field $field => ".$this->{$field} . ' ?= ' .$value);
-        if ( $this->{$field} != $value ) {
-          $changes[$field] = $value;
+        $type = (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field])) ? $this->defaults[$field]['type'] : 'scalar';
+        Logger::Debug("Checking field $field => current ".
+          (is_array($this->{$field}) ? implode(',',$this->{$field}) : $this->{$field}) . ' ?= ' .
+          (is_array($value) ? implode(',', $value) : $value)
+        );
+        if ( $type == 'set' ) {
+          $old_value = is_array($this->$field) ? $this->$field : explode(',', $this->$field);
+          $new_value = is_array($value) ? $value : explode(',', $value);
+
+          $diff = array_recursive_diff($old_value, $new_value);
+          Logger::Debug("Checking value $field () diff isi ".print_r($diff,true));
+          if ( count($diff) ) {
+            $changes[$field] = $new_value;
+          }
+
+          # Input might be a command separated string, or an array
+          
+        } else {
+          if ( $this->{$field} != $value ) {
+            $changes[$field] = $value;
+          }
         }
       } else if ( array_key_exists($field, $this->defaults) ) {
+        if ( is_array($this->defaults[$field]) ) {
+          $default = $this->defaults[$field]['default'];
+        } else {
+          $default = $this->defaults[$field];
+        }
 
-        Logger::Debug("Checking default $field => ".$this->defaults[$field] . ' ' .$value);
-        if ( $this->defaults[$field] != $value ) {
+        Logger::Debug("Checking default $field => ".
+          ( is_array($default) ? implode(',',$default) : $default).
+          ' ' .
+          ( is_array($value) ? implode(',', $value) : $value)
+        );
+        if ( $default != $value ) {
           $changes[$field] = $value;
         }
       }
@@ -210,7 +265,9 @@ class ZM_Object {
       #} else {
         #Logger::Debug("Checking default $field => $default_value not in new_values");
       #}
-    } # end foreach default 
+    } # end foreach newvalue
+
+
     return $changes;
   } # end public function changes
 
@@ -219,23 +276,39 @@ class ZM_Object {
     $table = $class::$table;
 
     if ( $new_values ) {
-      Logger::Debug("New values" . print_r($new_values,true));
+      //Logger::Debug("New values" . print_r($new_values, true));
       $this->set($new_values);
     }
 
+    $fields = array_filter(
+      $this->defaults,
+      function($v) {
+        return !( 
+          is_array($v)
+          and
+          isset($v['do_not_update'])
+          and
+          $v['do_not_update']
+        );
+      }
+    );
+    $fields = array_keys($fields);
+
     if ( $this->Id() ) {
-      $fields = array_keys($this->defaults);
-      $sql = 'UPDATE '.$table.' SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields )) . ' WHERE Id=?';
-      $values = array_map(function($field){return $this->{$field};}, $fields);
+      $sql = 'UPDATE '.$table.' SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields)).' WHERE Id=?';
+      $values = array_map(function($field){ return $this->{$field};}, $fields);
       $values[] = $this->{'Id'};
       if ( dbQuery($sql, $values) )
         return true;
     } else {
-      $fields = $this->defaults;
       unset($fields['Id']);
 
-      $sql = 'INSERT INTO '.$table.' ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, array_keys($fields))).') VALUES ('.implode(', ', array_map(function($field){return '?';}, array_values($fields))).')';
-      $values = array_map(function($field){return $this->{$field};}, array_keys($fields));
+      $sql = 'INSERT INTO '.$table.
+        ' ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
+          ') VALUES ('.
+          implode(', ', array_map(function($field){return '?';}, $fields)).')';
+
+      $values = array_map(function($field){return $this->$field();}, $fields);
       if ( dbQuery($sql, $values) ) {
         $this->{'Id'} = dbInsertId();
         return true;
@@ -252,5 +325,13 @@ class ZM_Object {
       unset($object_cache[$class][$this->{'Id'}]);
   }
 
-} # end class Sensor Action
+  public function lock() {
+    $class = get_class($this);
+    $table = $class::$table;
+    $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($this->Id()));
+    if ( !$row ) {
+      Error("Unable to lock $class record for Id=".$this->Id());
+    }
+  }
+} # end class Object
 ?>

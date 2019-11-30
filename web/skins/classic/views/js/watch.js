@@ -198,34 +198,34 @@ function getStreamCmdResponse(respObj, respText) {
         $('rate').addClass( 'hidden' );
         $('delay').addClass( 'hidden' );
         $('level').addClass( 'hidden' );
-        streamCmdPlay( false );
+        streamCmdPlay(false);
       } // end if paused or delayed
 
-      $('zoomValue').set( 'text', streamStatus.zoom );
-      if ( streamStatus.zoom == "1.0" ) {
-        setButtonState( $('zoomOutBtn'), 'unavail' );
+      $('zoomValue').set('text', streamStatus.zoom);
+      if ( streamStatus.zoom == '1.0' ) {
+        setButtonState($('zoomOutBtn'), 'unavail');
       } else {
-        setButtonState( $('zoomOutBtn'), 'inactive' );
+        setButtonState($('zoomOutBtn'), 'inactive');
       }
 
       if ( canEditMonitors ) {
         if ( streamStatus.enabled ) {
-          $('enableAlarmsLink').addClass( 'hidden' );
-          $('disableAlarmsLink').removeClass( 'hidden' );
+          $('enableAlarmsLink').addClass('hidden');
+          $('disableAlarmsLink').removeClass('hidden');
           if ( streamStatus.forced ) {
-            $('forceAlarmLink').addClass( 'hidden' );
-            $('cancelAlarmLink').removeClass( 'hidden' );
+            $('forceAlarmLink').addClass('hidden');
+            $('cancelAlarmLink').removeClass('hidden');
           } else {
-            $('forceAlarmLink').removeClass( 'hidden' );
-            $('cancelAlarmLink').addClass( 'hidden' );
+            $('forceAlarmLink').removeClass('hidden');
+            $('cancelAlarmLink').addClass('hidden');
           }
-          $('forceCancelAlarm').removeClass( 'hidden' );
+          $('forceCancelAlarm').removeClass('hidden');
         } else {
-          $('enableAlarmsLink').removeClass( 'hidden' );
-          $('disableAlarmsLink').addClass( 'hidden' );
-          $('forceCancelAlarm').addClass( 'hidden' );
+          $('enableAlarmsLink').removeClass('hidden');
+          $('disableAlarmsLink').addClass('hidden');
+          $('forceCancelAlarm').addClass('hidden');
         }
-        $('enableDisableAlarms').removeClass( 'hidden' );
+        $('enableDisableAlarms').removeClass('hidden');
       } // end if canEditMonitors
 
       if ( streamStatus.auth ) {
@@ -702,13 +702,12 @@ function handleClick( event ) {
     if ( event.shift ) {
       streamCmdPan( x, y );
     } else if ( event.event.ctrlKey ) {
-      console.log("Zooming out");
       streamCmdZoomOut();
     } else {
-      streamCmdZoomIn( x, y );
+      streamCmdZoomIn(x, y);
     }
   } else {
-    controlCmdImage( x, y );
+    controlCmdImage(x, y);
   }
 }
 
@@ -792,6 +791,9 @@ function initPage() {
     if ( window.history.length == 1 ) {
       $j('#closeControl').html('');
     }
+    document.querySelectorAll('select[name="scale"]').forEach(function(el) {
+      el.onchange = window['changeScale'];
+    });
   } else if ( monitorRefresh > 0 ) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }

@@ -19,7 +19,7 @@ checksanity () {
         exit 1
       fi
     done
-   
+
     # Verify OS & DIST environment variables have been set before calling this script
     if [ -z "${OS}" ] || [ -z "${DIST}" ]; then
         echo "ERROR: both OS and DIST environment variables must be set"
@@ -86,30 +86,8 @@ commonprep () {
         git -C packpack pull origin master
     else
         echo "Cloning packpack github repo..."
-        git clone https://github.com/packpack/packpack.git packpack
+        git clone https://github.com/zoneminder/packpack.git packpack
     fi
-
-    # Rpm builds are broken in latest packpack master. Temporarily roll back.
-    #git -C packpack checkout 7cf23ee
-
-    # Patch packpack
-    patch --dry-run --silent -f -p1 < utils/packpack/packpack-rpm.patch
-    if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/packpack-rpm.patch
-    fi
-
-    # Skip deb lintian checks to speed up the build
-    patch --dry-run --silent -f -p1 < utils/packpack/nolintian.patch
-    if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/nolintian.patch
-    fi
-
-    # fix 32bit rpm builds
-    # FIXME: breaks arm rpm builds
-    #patch --dry-run --silent -f -p1 < utils/packpack/setarch.patch
-    #if [ $? -eq 0 ]; then
-    #    patch -p1 < utils/packpack/setarch.patch
-    #fi
 
     # The rpm specfile requires we download each submodule as a tarball then manually move it into place
     # Might as well do this for Debian as well, rather than git submodule init
@@ -142,7 +120,7 @@ commonprep () {
 movecrud () {
     if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then
         echo "Crud plugin already installed..."
-    else     
+    else
         echo "Unpacking Crud plugin..."
         tar -xzf build/crud-${CRUDVER}.tar.gz
         rmdir web/api/app/Plugin/Crud
@@ -150,7 +128,7 @@ movecrud () {
     fi
     if [ -e "web/api/app/Plugin/CakePHP-Enum-Behavior/readme.md" ]; then
         echo "CakePHP-Enum-Behavior plugin already installed..."
-    else     
+    else
         echo "Unpacking CakePHP-Enum-Behavior plugin..."
         tar -xzf build/cakephp-enum-behavior-${CEBVER}.tar.gz
         rmdir web/api/app/Plugin/CakePHP-Enum-Behavior
@@ -159,8 +137,8 @@ movecrud () {
 }
 
 # previsouly part of installzm.sh
-# install the trusty deb and test zoneminder
-installtrusty () {
+# install the xenial deb and test zoneminder
+install_deb () {
 
     # Check we've got gdebi installed
     type gdebi 2>&1 > /dev/null
@@ -177,9 +155,13 @@ installtrusty () {
 
     if [ -e $pkgname ]; then
         sudo gdebi --quiet --non-interactive $pkgname
+        echo "Return code from installing $?"
         mysql -uzmuser -pzmpass zm < db/test.monitor.sql
+        echo "Return code from adding test monitor $?"
         sudo /usr/bin/zmpkg.pl start
-        sudo /usr/bin/zmfilter.pl -f purgewhenfull
+        echo "Return code from starting $?"
+        sudo /usr/bin/zmfilter.pl --filter=purgewhenfull
+        echo "Return code from running purgewhenfull $?"
     else
       echo
       echo "ERROR: The script cannot find the package $pkgname"
@@ -200,7 +182,7 @@ setrpmpkgname () {
     export RELEASE="1.${numcommits}.${thedate}git${shorthash}"
 
     checkvars
-    
+
     echo
     echo "Packpack VERSION has been set to: ${VERSION}"
     echo "Packpack RELEASE has been set to: ${RELEASE}"
@@ -219,7 +201,7 @@ setdebpkgname () {
     export RELEASE="${DIST}"
 
     checkvars
-    
+
     echo
     echo "Packpack VERSION has been set to: ${VERSION}"
     echo "Packpack RELEASE has been set to: ${RELEASE}"
@@ -241,9 +223,9 @@ setrpmchangelog () {
 setdebchangelog () {
 DATE=`date -R`
 cat <<EOF > debian/changelog
-zoneminder ($VERSION-${DIST}-1) unstable; urgency=low
-  * 
- -- Isaac Connor <iconnor@connortechnology.com>  $DATE
+zoneminder ($VERSION-${DIST}) ${DIST}; urgency=low
+  *
+ -- Isaac Connor <isaac@zoneminder.com>  $DATE
 EOF
 }
 
@@ -312,83 +294,67 @@ checksanity
 # We don't want to build packages for all supported distros after every commit
 # Only build all packages when executed via cron
 # See https://docs.travis-ci.com/user/cron-jobs/
-if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
+
+# Steps common to Redhat distros
+if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
+  if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true" ]; then
     commonprep
+    echo "Begin Redhat build..."
 
-    # Steps common to Redhat distros
-    if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
-        echo "Begin Redhat build..."
+    setrpmpkgname
 
-        setrpmpkgname
+    ln -sfT distros/redhat rpm
 
-        ln -sfT distros/redhat rpm
+    # The rpm specfile requires the Crud submodule folder to be empty
+    rm -rf web/api/app/Plugin/Crud
+    mkdir web/api/app/Plugin/Crud
 
-        # The rpm specfile requires the Crud submodule folder to be empty
-        rm -rf web/api/app/Plugin/Crud
-        mkdir web/api/app/Plugin/Crud
+    reporpm="rpmfusion-free-release"
+    dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
 
-        reporpm="rpmfusion-free-release"
-        dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
-
-        # Give our downloaded repo rpm a common name so redhat_package.mk can find it
-        if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
-            echo "Retrieving ${reporpm} repo rpm..."
-            curl $dlurl > build/external-repo.noarch.rpm
-        else
-            echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
-            echo "Download url was: $dlurl"
-            exit 1
-        fi
-
-        setrpmchangelog
-
-        echo "Starting packpack..."
-        execpackpack
-
-    # Steps common to Debian based distros
-    elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
-        echo "Begin ${OS} ${DIST} build..."
-
-        setdebpkgname
-        movecrud
-
-        if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then
-            ln -sfT distros/ubuntu1204 debian
-        elif [ "${DIST}" == "wheezy" ]; then 
-            ln -sfT distros/debian debian
-        else 
-            ln -sfT distros/ubuntu1604 debian
-        fi
-        
-        setdebchangelog
-        
-        echo "Starting packpack..."
-        execpackpack
-        
-        if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
-            installtrusty
-        fi
+    # Give our downloaded repo rpm a common name so redhat_package.mk can find it
+    if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
+      echo "Retrieving ${reporpm} repo rpm..."
+      curl $dlurl > build/external-repo.noarch.rpm
+    else
+      echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
+      echo "Download url was: $dlurl"
+      exit 1
     fi
 
-# We were not triggered via cron so just build and test trusty
-elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ]; then
-    echo "Begin Ubuntu Trusty build..."
+    setrpmchangelog
 
-    commonprep
-    setdebpkgname
-    movecrud
-
-    ln -sfT distros/ubuntu1204 debian
-
-    setdebchangelog
-    
     echo "Starting packpack..."
     execpackpack
+  fi;
+  # Steps common to Debian based distros
+elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
+  commonprep
+  echo "Begin ${OS} ${DIST} build..."
 
+  setdebpkgname
+  movecrud
+
+  if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then
+    ln -sfT distros/ubuntu1204 debian
+  elif [ "${DIST}" == "wheezy" ]; then
+    ln -sfT distros/debian debian
+  else
+    ln -sfT distros/ubuntu1604 debian
+  fi
+
+  setdebchangelog
+
+  echo "Starting packpack..."
+  execpackpack
+
+  # We were not triggered via cron so just build and test trusty
+  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "xenial" ] && [ "${ARCH}" == "x86_64" ]; then
     # If we are running inside Travis then attempt to install the deb we just built
     if [ "${TRAVIS}" == "true" ]; then
-        installtrusty
+      install_deb
     fi
+  fi
 fi
 
 exit 0

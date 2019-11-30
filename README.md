@@ -3,7 +3,7 @@ ZoneMinder
 
 [![Build Status](https://travis-ci.org/ZoneMinder/zoneminder.png)](https://travis-ci.org/ZoneMinder/zoneminder) [![Bountysource](https://api.bountysource.com/badge/team?team_id=204&style=bounties_received)](https://www.bountysource.com/teams/zoneminder/issues?utm_source=ZoneMinder&utm_medium=shield&utm_campaign=bounties_received)
 
-[![Join Slack](https://github.com/ozonesecurity/ozonebase/blob/master/img/slacksm.png?raw=true)](https://join.slack.com/t/zoneminder-chat/shared_invite/enQtNTU0NDkxMDM5NDQwLTlhZDU2MGU4MmZmN2MxOTg1MmNmNmZjZGRmY2EzMThhNGQ0MWNmZTg1ZmYzNDQ4YjliMzVmYTQ3MDc5MTkzODE)
+[![Join Slack](https://github.com/ozonesecurity/ozonebase/blob/master/img/slacksm.png?raw=true)](https://join.slack.com/t/zoneminder-chat/shared_invite/enQtNTU0NDkxMDM5NDQwLTdhZmQ5Y2M2NWQyN2JkYTBiN2ZkMzIzZGQ0MDliMTRmM2FjZWRlYzUwYTQ2MjMwMTVjMzQ1NjYxOTdmMjE2MTE)
 
 All documentation for ZoneMinder is now online at https://zoneminder.readthedocs.org
 
@@ -31,7 +31,7 @@ Better methods exist today that do much of this for you. The current development
 
 This is the recommended method to install ZoneMinder onto your system. ZoneMinder packages are maintained for the following distros:
 
-- Ubuntu via [Iconnor's PPA](https://launchpad.net/~iconnor/+archive/ubuntu/zoneminder)
+- Ubuntu via [Iconnor's PPA](https://launchpad.net/~iconnor)
 - Debian from their [default repository](https://packages.debian.org/search?searchon=names&keywords=zoneminder) 
 - RHEL/CentOS and clones via [RPM Fusion](http://rpmfusion.org)
 - Fedora via [RPM Fusion](http://rpmfusion.org)

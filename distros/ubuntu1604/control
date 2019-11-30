@@ -1,8 +1,8 @@
 Source: zoneminder
 Section: net
 Priority: optional
-Maintainer: Dmitry Smirnov <onlyjob@debian.org>
-Uploaders: Vagrant Cascadian <vagrant@debian.org>
+Maintainer: Isaac Connor <isaac@zoneminder.com>
+Uploaders: Isaac Connor <isaac@zoneminder.com>
 Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree, dh-systemd, dh-apache2
               ,cmake
               ,libx264-dev, libmp4v2-dev
@@ -10,7 +10,7 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libavcodec-dev (>= 6:10~)
               ,libavformat-dev  (>= 6:10~)
               ,libavutil-dev (>= 6:10~)
-              ,libswresample-dev
+              ,libswresample-dev | libavresample-dev
               ,libswscale-dev (>= 6:10~)
               ,ffmpeg | libav-tools
               ,net-tools
@@ -63,6 +63,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,liburi-encode-perl
         ,libwww-perl
         ,libdata-dump-perl
+        ,libdatetime-perl
         ,libclass-std-fast-perl
         ,libsoap-wsdl-perl
         ,libio-socket-multicast-perl

@@ -36,6 +36,7 @@ function xhtmlHeaders($file, $title) {
 
   $basename = basename($file, '.php');
 
+  $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
@@ -104,15 +105,18 @@ if ( $css != 'base' )
       '/css/'.$css.'/views/control.css'
     ) );
   }
-  if ( $viewCssPhpFile ) {
 ?>
   <style type="text/css">
 <?php
+  if ( $baseViewCssPhpFile ) {
+    require_once($baseViewCssPhpFile);
+  }
+  if ( $viewCssPhpFile ) {
     require_once($viewCssPhpFile);
+  }
 ?>
   </style>
 <?php
-  }
 ?>
 
   <script src="tools/mootools/mootools-core.js"></script>

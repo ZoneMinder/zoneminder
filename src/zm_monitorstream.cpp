@@ -330,10 +330,10 @@ bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
     struct timeval frameStartTime;
     gettimeofday(&frameStartTime, NULL);
     
-    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n\r\n", stdout );
-    fprintf(stdout, "Content-Length: %d\r\n", img_buffer_size);
+    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n", stdout);
+    fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size);
     if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
-      if ( ! zm_terminate )
+      if ( !zm_terminate )
         Warning("Unable to send stream frame: %s", strerror(errno));
       return false;
     }
@@ -399,7 +399,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
         break;
       case STREAM_ZIP :
 #if HAVE_ZLIB_H
-        fputs("Content-Type: image/x-rgbz\r\n",stdout);
+        fputs("Content-Type: image/x-rgbz\r\n", stdout);
         unsigned long zip_buffer_size;
         send_image->Zip(img_buffer, &zip_buffer_size);
         img_buffer_size = zip_buffer_size;
@@ -414,7 +414,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
     }
     fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size);
     if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
-      if ( !zm_terminate ){ 
+      if ( !zm_terminate ) { 
         // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
         Warning("Unable to send stream frame: %s", strerror(errno));
       }
@@ -660,14 +660,20 @@ void MonitorStream::runStream() {
 
       // have a new image to send
       int index = monitor->shared_data->last_write_index % monitor->image_buffer_count; // % shouldn't be neccessary
+#if 0 
+  // I don't know what this is about
           ZMPacket *snap = &monitor->image_buffer[index];
     if ( tvCmp(last_frame_time, *(snap->timestamp)) ) {
 
       last_read_index = monitor->shared_data->last_write_index;
       Debug(2, "index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
           index, frame_mod, frame_count, paused, delayed );
+#endif
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
         if ( !paused && !delayed ) {
+          last_read_index = monitor->shared_data->last_write_index;
+          Debug(2, "index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
+          index, frame_mod, frame_count, paused, delayed );
           // Send the next frame
           //
           ZMPacket *snap = &monitor->image_buffer[index];
@@ -684,20 +690,32 @@ void MonitorStream::runStream() {
 
           temp_read_index = temp_write_index;
         } else {
-          Debug(2, "Paused %d, delayed %d", paused, delayed);
-          double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
-          if ( actual_delta_time > 5 ) {
-            if ( paused_image ) {
-              // Send keepalive
-              Debug(2, "Sending keepalive frame because delta time %.2f > 5", actual_delta_time);
-              // Send the next frame
-              if ( !sendFrame(paused_image, &paused_timestamp) )
-                zm_terminate = true;
-            } else {
-              Debug(2, "Would have sent keepalive frame, but had no paused_image ");
-            }
+          if ( delayed && !buffered_playback ) {
+            Debug(2, "Can't delay when not buffering.");
+            delayed = false;
           }
-        }
+          if ( last_zoom != zoom ) {
+            Debug(2, "Sending 2 frames because change in zoom %d ?= %d", last_zoom, zoom);
+            if ( !sendFrame(paused_image, &paused_timestamp) )
+              zm_terminate = true;
+            if ( !sendFrame(paused_image, &paused_timestamp) )
+              zm_terminate = true;
+          } else {
+            double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
+            if ( actual_delta_time > 5 ) {
+              if ( paused_image ) {
+                // Send keepalive
+                Debug(2, "Sending keepalive frame because delta time %.2f > 5",
+                    actual_delta_time);
+                // Send the next frame
+                if ( !sendFrame(paused_image, &paused_timestamp) )
+                  zm_terminate = true;
+              } else {
+                Debug(2, "Would have sent keepalive frame, but had no paused_image ");
+              }
+            } // end if actual_delta_time > 5
+          } // end if change in zoom
+        } // end if paused or not
       } // end if should send frame
 
       if ( buffered_playback && !paused ) {
@@ -706,7 +724,12 @@ void MonitorStream::runStream() {
             int temp_index = temp_write_index%temp_image_buffer_count;
             Debug(2, "Storing frame %d", temp_index);
             if ( !temp_image_buffer[temp_index].valid ) {
-              snprintf( temp_image_buffer[temp_index].file_name, sizeof(temp_image_buffer[0].file_name), "%s/zmswap-i%05d.jpg", swap_path.c_str(), temp_index );
+              snprintf(
+                  temp_image_buffer[temp_index].file_name,
+                  sizeof(temp_image_buffer[0].file_name),
+                  "%s/zmswap-i%05d.jpg",
+                  swap_path.c_str(),
+                  temp_index);
               temp_image_buffer[temp_index].valid = true;
             }
             temp_image_buffer[temp_index].timestamp = monitor->shared_timestamps[index];

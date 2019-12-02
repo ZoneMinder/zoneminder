@@ -115,7 +115,7 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
 
       </p>
 <?php
-  $frame_url_base = '?view=frame&amp;eid='.$Event->Id().'&amp;scale='.$scale.'&amp;show='.$show.'&fid=';
+  $frame_url_base = '?view=frame&amp;eid='.$Event->Id().'&amp;scale='.$scale.'&amp;show='.$show.'&amp;fid=';
 ?>
       <p id="controls">
         <a id="firstLink" <?php echo (( $Frame->FrameId() > 1 ) ? 'href="'.$frame_url_base.$firstFid.'" class="btn-primary"' : 'class="btn-primary disabled"') ?>><?php echo translate('First') ?></a>

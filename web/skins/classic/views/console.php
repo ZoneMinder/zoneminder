@@ -181,20 +181,27 @@ getBodyTopHTML();
       <button type="button" name="addBtn" data-on-click-this="addMonitor"
       <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
       >
-      <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<?php echo translate('AddNewMonitor') ?>
+        <i class="material-icons md-18">add_circle</i>
+        &nbsp;<?php echo translate('AddNewMonitor') ?>
       </button>
       <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
       <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
       style="display:none;">
-      <span class="glyphicon glyphicon-copy"></span>&nbsp;<?php echo translate('CloneMonitor') ?>
+        <i class="material-icons md-18">copy</i>
+        &nbsp;<?php echo translate('CloneMonitor') ?>
       </button>
       <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
-      <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>
+        <i class="material-icons md-18">edit</i>
+        &nbsp;<?php echo translate('Edit') ?>
       </button>
       <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled">
-      <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
+        <i class="material-icons md-18">delete</i>
+        &nbsp;<?php echo translate('Delete') ?>
       </button>
-      <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled"><?php echo translate('Select')?></button>
+      <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled">
+        <i class="material-icons md-18">view_list</i>
+        &nbsp;<?php echo translate('Select')?>
+        </button>
 <?php
 ob_start();
 ?>
@@ -359,7 +366,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 ?>
             <td class="colEvents">
               <a <?php echo (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$eventCounts[$i]['filter']['query'].'">' : '') . 
-                  $eventCounts[$i]['totalevents'].'<br/></a>'.'<div class="small text-nowrap text-muted">'.human_filesize($eventCounts[$i]['totaldiskspace']) ?></td>
+                  $eventCounts[$i]['totalevents'].'<br/></a>'.'<div class="small text-nowrap text-muted">'.human_filesize($eventCounts[$i]['totaldiskspace']) ?></div></td>
 <?php
       }
 ?>

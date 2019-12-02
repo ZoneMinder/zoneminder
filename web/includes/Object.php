@@ -192,7 +192,7 @@ class ZM_Object {
           continue;
         }
 
-        if ( $this->defaults[$field] ) {
+        if ( isset($this->defaults[$field]) ) {
           if ( is_array($this->defaults[$field]) ) {
             $new_values[$field] = $this->defaults[$field]['default'];
           } else {

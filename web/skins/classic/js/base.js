@@ -38,7 +38,7 @@ var popupSizes = {
   'event':        {'addWidth': 108, 'minWidth': 496, 'addHeight': 230, 'minHeight': 540},
   'eventdetail':  {'width': 600, 'height': 420},
   'events':       {'width': 1220, 'height': 780},
-  'export':       {'width': 400, 'height': 340},
+  'export':       {'width': 500, 'height': 640},
   'filter':       {'width': 900, 'height': 700},
   'frame':        {'addWidth': 32, 'minWidth': 384, 'addHeight': 200},
   'frames':       {'addWidth': 600, 'addHeight': 600},

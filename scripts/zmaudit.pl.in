@@ -944,6 +944,10 @@ FROM `Frames` WHERE `EventId`=?';
   $eventcounts_day_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
   $eventcounts_week_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
   $eventcounts_month_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
+
+  my $storage_diskspace_sth = $dbh->prepare_cached('UPDATE Storage SET DiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=Storage.Id)');
+  $storage_diskspace_sth->execute() or Error("Can't execute: ".$storage_diskspace_sth->errstr());
+
   sleep($Config{ZM_AUDIT_CHECK_INTERVAL}) if $continuous;
 };
 

@@ -683,7 +683,7 @@ switch ( $tab ) {
           <td><?php echo translate('Groups'); ?></td>
           <td><select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
             echo htmlOptions(ZM\Group::get_dropdown_options(), $monitor->GroupIds());
-            ?></td>
+            ?></select></td>
         </tr>
         <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" size="6"/></td></tr>
 <?php

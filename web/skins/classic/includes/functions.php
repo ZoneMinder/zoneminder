@@ -133,8 +133,14 @@ if ( $css != 'base' )
   jQuery(document).ready(function() {
     jQuery("#flip").click(function() {
       jQuery("#panel").slideToggle("slow");
-      jQuery("#flip").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-      Cookie.write( 'zmHeaderFlip', jQuery('#flip').hasClass('glyphicon-menu-up') ? 'up' : 'down', {duration: 10*365} );
+      var flip = jQuery("#flip");
+      if ( flip.html() == 'keyboard_arrow_up' ) {
+        flip.html('keyboard_arrow_down');
+      Cookie.write('zmHeaderFlip', 'down', {duration: 10*365} );
+      } else {
+        flip.html('keyboard_arrow_up');
+        Cookie.write('zmHeaderFlip', 'up', {duration: 10*365} );
+      }
     });
   });
   var $j = jQuery.noConflict();
@@ -255,10 +261,10 @@ function getNavBarHTML($reload = null) {
 	<div class="container-fluid">
 		<div class="navbar-header">
 			<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
-				<span class="sr-only">Toggle navigation</span>
-				<span class="icon-bar"></span>
-				<span class="icon-bar"></span>
-				<span class="icon-bar"></span>
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
 			</button>
       <div class="navbar-brand">
         <a href="<?php echo validHtmlStr(ZM_HOME_URL); ?>" target="<?php echo validHtmlStr(ZM_WEB_TITLE); ?>"><?php echo ZM_HOME_CONTENT ?></a>
@@ -267,38 +273,45 @@ function getNavBarHTML($reload = null) {
 
 		<div class="collapse navbar-collapse" id="main-header-nav">
 		<ul class="nav navbar-nav">
-<?php if ( $user and $user['Username'] ) { ?>
-<?php if ( canView('Monitors') ) { ?>
+<?php
+if ( $user and $user['Username'] ) {
+  if ( canView('Monitors') ) {
+?>
 			<li><a href="?view=console"><?php echo translate('Console') ?></a></li>
-<?php } // end if canView('Monitors') ?>
-<?php if ( canView('System') ) { ?>
+<?php
+  } // end if canView('Monitors')
+  if ( canView('System') ) {
+?>
 			<li><a href="?view=options"><?php echo translate('Options') ?></a></li>
 			<li>
 <?php
-  if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
-    if ( ! ZM_RUN_AUDIT ) {
-     # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
-      if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
-        # Number of lines, instead of an interval
-        $rows = dbFetchOne('SELECT Count(*) AS Rows FROM Logs', 'Rows');
-        if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
-          dbQuery('DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
+    if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
+      if ( ! ZM_RUN_AUDIT ) {
+       # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
+        if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
+          # Number of lines, instead of an interval
+          $rows = dbFetchOne('SELECT Count(*) AS Rows FROM Logs', 'Rows');
+          if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
+            dbQuery('DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
+          }
+        } else if ( preg_match('/^\d\s*(hour|minute|day|week|month|year)$/', ZM_LOG_DATABASE_LIMIT, $matches) ) {
+          dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+        } else {
+          ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
         }
-      } else if ( preg_match('/^\d\s*(hour|minute|day|week|month|year)$/', ZM_LOG_DATABASE_LIMIT, $matches) ) {
-        dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
-      } else {
-        ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
       }
+      echo makePopupLink('?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>');
     }
-    echo makePopupLink('?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>');
-  }
-?></li>
+?>
+      </li>
 <?php
-} // end if canview(System)
-if ( ZM_OPT_X10 && canView('Devices') ) { ?>
+  } // end if canview(System)
+  if ( ZM_OPT_X10 && canView('Devices') ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
-<?php } ?>
-<li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
+<?php
+  }
+?>
+      <li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
       <li><a href="?view=filter<?php echo $filterQuery.$sortQuery.$limitQuery ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
 
 <?php 
@@ -308,31 +321,29 @@ if ( ZM_OPT_X10 && canView('Devices') ) { ?>
       <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
 <?php
    }
-   // if canview_reports
-?>
-<?php
-if ( isset($_REQUEST['filter']['Query']['terms']['attr']) ) {
-  $terms = $_REQUEST['filter']['Query']['terms'];
-  $count = 0;
-  foreach ($terms as $term) {
-    if ( $term['attr'] == 'StartDateTime' ) {
-      $count += 1;
-      if ($term['op'] == '>=') $minTime = $term['val'];
-      if ($term['op'] == '<=') $maxTime = $term['val'];
-    }
-  }
-  if ( $count == 2 ) {
-    $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
-  }
-}
+  
   if ( canView('Events') ) {
+    if ( isset($_REQUEST['filter']['Query']['terms']['attr']) ) {
+      $terms = $_REQUEST['filter']['Query']['terms'];
+      $count = 0;
+      foreach ($terms as $term) {
+        if ( $term['attr'] == 'StartDateTime' ) {
+          $count += 1;
+          if ($term['op'] == '>=') $minTime = $term['val'];
+          if ($term['op'] == '<=') $maxTime = $term['val'];
+        }
+      }
+      if ( $count == 2 ) {
+        $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
+      }
+    }
  ?>
       <li><a href="?view=montagereview<?php echo isset($montageReviewQuery)?'&fit=1'.$montageReviewQuery.'&live=0':'' ?>"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
+      <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
 <?php
   }
 ?>
-      <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
-      <li><a href="#"><span id="flip" class="glyphicon glyphicon-menu-<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up' ?> pull-right"></span></a></li>
+      <li><a href="#"><i id="flip" class="material-icons md-18 pull-right">keyboard_arrow_<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up' ?></i></a></li>
 		</ul>
 
 <div class="navbar-right">

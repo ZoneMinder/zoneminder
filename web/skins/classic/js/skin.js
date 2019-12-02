@@ -168,7 +168,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
     if ( !window[fnName] ) {
-      console.error("Nothing found to bind to " + fnName);
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
       return;
     }
     el.onclick = window[fnName].bind(el, el);
@@ -178,7 +178,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   document.querySelectorAll("a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click");
     if ( !window[fnName] ) {
-      console.error("Nothing found to bind to " + fnName);
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
       return;
     }
     el.onclick = function() {

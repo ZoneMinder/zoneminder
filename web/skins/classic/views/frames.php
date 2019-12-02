@@ -99,7 +99,7 @@ if ( !empty($page) ) {
 }
 
 $maxShortcuts = 5;
-$totalQuery = $sortQuery.'&eid='.$eid.$limitQuery.$filterQuery;
+$totalQuery = $sortQuery.'&amp;eid='.$eid.$limitQuery.$filterQuery;
 $pagination = getPagination($pages, $page, $maxShortcuts, $totalQuery);
 
 $frames = dbFetchAll($frameSql);
@@ -139,15 +139,15 @@ if ( $pages > 1 ) {
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
-        <table id="contentTable" class="major" cellspacing="0">
-          <input type="hidden" name="view" value="<?php echo $view ?>"/>
-          <input type="hidden" name="action" value=""/>
-          <input type="hidden" name="page" value="<?php echo $page ?>"/>
-          <input type="hidden" name="eid" value="<?php echo $eid ?>"/>
-          <?php echo $_REQUEST['filter']['fields'] ?>
-          <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
-          <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
-          <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
+        <input type="hidden" name="action" value=""/>
+        <input type="hidden" name="page" value="<?php echo $page ?>"/>
+        <input type="hidden" name="eid" value="<?php echo $eid ?>"/>
+        <?php echo $_REQUEST['filter']['fields'] ?>
+        <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
+        <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
+        <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
+        <table id="contentTable" class="major">
           <thead>
             <tr>
             <th class="colId"><a href="<?php echo sortHeader('FramesFrameId') ?>"><?php echo translate('Frame Id') ?><?php echo sortTag('FramesFrameId') ?></a></th>

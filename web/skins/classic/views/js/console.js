@@ -100,11 +100,11 @@ function selectMonitor(element) {
   var url = thisUrl+'?view=console';
   for ( var i = 0; i < form.elements.length; i++ ) {
     if (
-      form.elements[i].type == "checkbox"
-        &&
-        form.elements[i].name == "markMids[]"
-        &&
-        form.elements[i].checked
+      form.elements[i].type == 'checkbox'
+      &&
+      form.elements[i].name == 'markMids[]'
+      &&
+      form.elements[i].checked
     ) {
       url += '&MonitorId='+form.elements[i].value;
     }

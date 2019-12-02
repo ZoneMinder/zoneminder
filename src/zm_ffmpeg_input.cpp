@@ -102,7 +102,7 @@ int FFmpeg_Input::Open(const char *filepath) {
 } // end int FFmpeg_Input::Open( const char * filepath )
 
 AVFrame *FFmpeg_Input::get_frame(int stream_id) {
-  Debug(1, "Getting frame from stream %d", stream_id);
+  Debug(4, "Getting frame from stream %d", stream_id);
 
   int frameComplete = false;
   AVPacket packet;
@@ -138,9 +138,9 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
         frame = zm_av_frame_alloc();
       }
       ret = zm_send_packet_receive_frame(context, frame, packet);
-      if ( ret <= 0 ) {
-        Error("Unable to decode frame at frame %d: %s, continuing",
-            streams[packet.stream_index].frame_count, av_make_error_string(ret).c_str());
+      if ( ret < 0 ) {
+        Error("Unable to decode frame at frame %d: %d %s, continuing",
+            streams[packet.stream_index].frame_count, ret, av_make_error_string(ret).c_str());
         zm_av_packet_unref(&packet);
         av_frame_free(&frame);
         continue;
@@ -175,7 +175,9 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     }
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
-  } // end if ! frame
+    zm_dump_frame(frame, "Got first frame, returning it");
+    return frame;
+  } // end if !frame
 
   if ( frame->pts > seek_target ) {
     zm_dump_frame(frame, "frame->pts > seek_target, seek backwards");
@@ -192,12 +194,15 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   } // end if frame->pts > seek_target
 
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
-  if ( frame->pts <= seek_target  ) {
+  if ( frame->pts <= seek_target ) {
     zm_dump_frame(frame, "pts <= seek_target");
     while ( frame && (frame->pts < seek_target) ) {
-      if ( !get_frame(stream_id) ) 
+      if ( !get_frame(stream_id) ) {
+        Warning("Got no frame. returning nothing");
         return frame;
+      }
     }
+    zm_dump_frame(frame, "frame->pts <= seek_target, got");
     return frame;
   }
 

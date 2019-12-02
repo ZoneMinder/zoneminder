@@ -106,7 +106,7 @@ function selectMonitor(element) {
       &&
       form.elements[i].checked
     ) {
-      url += '&MonitorId='+form.elements[i].value;
+      url += '&MonitorId[]='+form.elements[i].value;
     }
   }
   window.location.replace(url);

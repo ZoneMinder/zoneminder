@@ -152,11 +152,11 @@ if ( $showControl ) {
 }
 if ( $showZones ) {
 ?>
-        <a id="ShowZones" href="?view=montage&showZones=0">Hide Zones</a>
+        <a id="ShowZones" href="?view=montage&amp;showZones=0">Hide Zones</a>
 <?php
 } else {
 ?>
-        <a id="ShowZones" href="?view=montage&showZones=1">Show Zones</a>
+        <a id="ShowZones" href="?view=montage&amp;showZones=1">Show Zones</a>
 <?php
 }
 ?>
@@ -189,7 +189,7 @@ if ( $showZones ) {
           <input type="hidden" name="Positions"/>
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
           <span id="SaveLayout" style="display:none;">
-            <input type="text" name="Name" placeholder="Enter new name for layout if desired" />
+            <input type="text" name="Name" placeholder="Enter new name for layout if desired"/>
             <button type="button" value="Save" data-on-click-this="save_layout"><?php echo translate('Save') ?></button>
             <button type="button" value="Cancel" data-on-click-this="cancel_layout"><?php echo translate('Cancel') ?></button>
           </span>

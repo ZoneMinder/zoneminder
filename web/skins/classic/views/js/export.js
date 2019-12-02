@@ -45,7 +45,6 @@ function exportProgress() {
 function exportResponse(respObj, respText) {
 
   clearInterval(exportTimer);
-  console.log("Export Timer after clearing: " + exportTimer);
   if ( respObj.result != 'Ok' ) {
     $('exportProgressTicker').set('text', respObj.message);
   } else {
@@ -82,7 +81,6 @@ function exportEvent( ) {
   $('exportProgressText').set('text', exportProgressString);
   //exportProgress();
   exportTimer = exportProgress.periodical( 500 );
-  console.log("Export Timer after starting: " + exportTimer);
 }
 
 function initPage() {

@@ -1449,7 +1449,7 @@ function sortHeader($field, $querySep='&amp;') {
   global $view;
   return implode($querySep, array(
     '?view='.$view,
-    'page=1'.$_REQUEST['filter']['query'],
+    'page=1'.(isset($_REQUEST['filter'])?$_REQUEST['filter']['query']:''),
     'sort_field='.$field,
     'sort_asc='.($_REQUEST['sort_field'] == $field ? !$_REQUEST['sort_asc'] : 0),
     'limit='.validInt($_REQUEST['limit']),
@@ -2568,5 +2568,38 @@ function array_recursive_diff($aArray1, $aArray2) {
 
   return $aReturn;
 }
+
+function html_radio($name, $values, $selected=null, $options=array(), $attrs=array()) {
+
+  $html = '';
+  if ( isset($options['default']) and ( $selected == null ) ) {
+    $selected = $options['default'];
+  } # end if
+
+  foreach ( $values as $value => $label ) {
+    if ( isset($options['container']) ) {
+      $html .= $options['container'][0];
+    }
+    $html .= sprintf('
+      <div class="form-check%7$s">
+        <label class="form-check-label radio%7$s" for="%1$s%6$s%2$s">
+        <input class="form-check-input" type="radio" name="%1$s" value="%2$s" id="%1$s%6$s%2$s" %4$s%5$s />
+        %3$s</label></div>
+        ', $name, $value, $label, ($value==$selected?' checked="checked"':''),
+        implode(' ', array_map(
+          function($attr, $value){return $attr.'="'.$value.'"';},
+          array_keys($attrs),
+          array_values($attrs)
+          ),
+          ),
+        ( isset($options['id']) ? $options['id'] : ''),
+        ( ( (!isset($options['inline'])) or $options['inline'] ) ? '-inline' : ''),
+        );
+    if ( isset($options['container']) ) {
+      $html .= $options['container'][1];
+    }
+  } # end foreach value
+  return $html;
+} # end sub html_radio
 
 ?>

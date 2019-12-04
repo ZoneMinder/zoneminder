@@ -2580,21 +2580,23 @@ function html_radio($name, $values, $selected=null, $options=array(), $attrs=arr
     if ( isset($options['container']) ) {
       $html .= $options['container'][0];
     }
+    $attributes = array_map(
+          function($attr, $value){return $attr.'="'.$value.'"';},
+          array_keys($attrs),
+          array_values($attrs)
+        );
+    $attributes_string = implode(' ', $attributes);
+
     $html .= sprintf('
       <div class="form-check%7$s">
         <label class="form-check-label radio%7$s" for="%1$s%6$s%2$s">
         <input class="form-check-input" type="radio" name="%1$s" value="%2$s" id="%1$s%6$s%2$s" %4$s%5$s />
         %3$s</label></div>
         ', $name, $value, $label, ($value==$selected?' checked="checked"':''),
-        implode(' ', array_map(
-          function($attr, $value){return $attr.'="'.$value.'"';},
-          array_keys($attrs),
-          array_values($attrs)
-          ),
-          ),
-        ( isset($options['id']) ? $options['id'] : ''),
+        $attributes_string,
+        (isset($options['id']) ? $options['id'] : ''),
         ( ( (!isset($options['inline'])) or $options['inline'] ) ? '-inline' : ''),
-        );
+      );
     if ( isset($options['container']) ) {
       $html .= $options['container'][1];
     }

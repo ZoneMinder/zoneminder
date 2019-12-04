@@ -2595,7 +2595,7 @@ function html_radio($name, $values, $selected=null, $options=array(), $attrs=arr
         ', $name, $value, $label, ($value==$selected?' checked="checked"':''),
         $attributes_string,
         (isset($options['id']) ? $options['id'] : ''),
-        ( ( (!isset($options['inline'])) or $options['inline'] ) ? '-inline' : ''),
+        ( ( (!isset($options['inline'])) or $options['inline'] ) ? '-inline' : '')
       );
     if ( isset($options['container']) ) {
       $html .= $options['container'][1];

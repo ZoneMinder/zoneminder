@@ -45,7 +45,7 @@ class ZM_Object {
         $this->{$fn} = $args[0];
     }
 
-    if ( array_key_exists($fn, $this) ) {
+    if ( property_exists($this, $fn) ) {
       return $this->{$fn};
     } else {
       if ( array_key_exists($fn, $this->defaults) ) {
@@ -140,10 +140,10 @@ class ZM_Object {
     foreach ($this->defaults as $key => $value) {
       if ( is_callable(array($this, $key)) ) {
         $json[$key] = $this->$key();
-      } else if ( array_key_exists($key, $this) ) {
+      } else if ( property_exists($this, $key) ) {
         $json[$key] = $this->{$key};
       } else {
-        $json[$key] = $this->defaults{$key};
+        $json[$key] = $this->defaults[$key];
       }
     }
     return json_encode($json);
@@ -215,7 +215,7 @@ class ZM_Object {
         } else if ( $this->$field() != $value ) {
           $changes[$field] = $value;
         }
-      } else if ( array_key_exists($field, $this) ) {
+      } else if ( property_exists($this, $field) ) {
         $type = (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field])) ? $this->defaults[$field]['type'] : 'scalar';
         Logger::Debug("Checking field $field => current ".
           (is_array($this->{$field}) ? implode(',',$this->{$field}) : $this->{$field}) . ' ?= ' .

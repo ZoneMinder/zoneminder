@@ -18,7 +18,7 @@ class Group extends ZM_Object {
   }
 
   public function delete() {
-    if ( array_key_exists('Id', $this) ) {
+    if ( property_exists($this, 'Id') ) {
       dbQuery('DELETE FROM Groups_Monitors WHERE GroupId=?', array($this->{'Id'}));
       dbQuery('UPDATE Groups SET ParentId=NULL WHERE ParentId=?', array($this->{'Id'}));
       dbQuery('DELETE FROM Groups WHERE Id=?', array($this->{'Id'}));
@@ -35,7 +35,7 @@ class Group extends ZM_Object {
     if ( isset($new) ) {
       $this->{'depth'} = $new;
     }
-    if ( !array_key_exists('depth', $this) or ($this->{'depth'} === null) ) {
+    if ( !property_exists($this, 'depth') or ($this->{'depth'} === null) ) {
       $this->{'depth'} = 0;
       if ( $this->{'ParentId'} != null ) {
         $Parent = Group::find_one(array('Id'=>$this->{'ParentId'}));
@@ -46,7 +46,7 @@ class Group extends ZM_Object {
   } // end public function depth
 
   public function MonitorIds( ) {
-    if ( ! array_key_exists('MonitorIds', $this) ) {
+    if ( ! property_exists($this, 'MonitorIds') ) {
       $this->{'MonitorIds'} = dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($this->{'Id'}));
     }
     return $this->{'MonitorIds'};

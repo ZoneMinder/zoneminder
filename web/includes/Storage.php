@@ -80,7 +80,7 @@ class Storage extends ZM_Object {
   }
 
   public function disk_total_space() {
-    if ( !array_key_exists('disk_total_space', $this) ) {
+    if ( !property_exists($this, 'disk_total_space') ) {
       $path = $this->Path();
       if ( file_exists($path) ) {
         $this->{'disk_total_space'} = disk_total_space($path);
@@ -94,7 +94,7 @@ class Storage extends ZM_Object {
 
   public function disk_used_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( ( !array_key_exists('disk_used_space', $this)) or !$this->{'disk_used_space'} ) {
+    if ( ( !property_exists($this, 'disk_used_space')) or !$this->{'disk_used_space'} ) {
       if ( $this->{'Type'} == 's3fs' ) {
         $this->{'disk_used_space'} = $this->event_disk_space();
       } else { 
@@ -112,7 +112,7 @@ class Storage extends ZM_Object {
 
   public function event_disk_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( (! array_key_exists('DiskSpace', $this)) or (!$this->{'DiskSpace'}) ) {
+    if ( (! property_exists($this, 'DiskSpace')) or (!$this->{'DiskSpace'}) ) {
       $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
 
       do {
@@ -130,8 +130,8 @@ class Storage extends ZM_Object {
   } // end function event_disk_space
 
   public function Server() {
-    if ( ! array_key_exists('Server',$this) ) {
-      if ( array_key_exists('ServerId', $this) ) {
+    if ( ! property_exists($this, 'Server') ) {
+      if ( property_exists($this, 'ServerId') ) {
         $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
 
         if ( !$this->{'Server'} ) {

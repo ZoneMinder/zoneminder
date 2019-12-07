@@ -220,19 +220,19 @@ function generateAuthHash($useRemoteAddr, $force=false) {
 function visibleMonitor($mid) {
   global $user;
 
-  return ( empty($user['MonitorIds']) || in_array($mid, explode(',', $user['MonitorIds'])) );
+  return ( $user && empty($user['MonitorIds']) || in_array($mid, explode(',', $user['MonitorIds'])) );
 }
 
 function canView($area, $mid=false) {
   global $user;
 
-  return ( ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
+  return ( $user && ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
 }
 
 function canEdit($area, $mid=false) {
   global $user;
 
-  return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
+  return ( $user && ($user[$area] == 'Edit') && ( !$mid || visibleMonitor($mid) ));
 }
 
 function userFromSession() {

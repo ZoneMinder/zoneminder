@@ -80,7 +80,7 @@ class Server extends ZM_Object {
 
   public function PathToZMS( $new = null ) {
     if ( $new != null )
-      $this{'PathToZMS'} = $new;
+      $this->{'PathToZMS'} = $new;
     if ( $this->Id() and $this->{'PathToZMS'} ) {
       return $this->{'PathToZMS'};
     } else {

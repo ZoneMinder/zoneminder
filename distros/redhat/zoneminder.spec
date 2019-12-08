@@ -411,6 +411,9 @@ EOF
 %dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
+* Sun Dec 08 2019 Isaac Connor <isaac@zoneminder.com> - 1.33.15-1
+- Bump to 1.33.15 Development
+
 * Sun Aug 11 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.14-1
 - Bump to 1.33.13 Development
 

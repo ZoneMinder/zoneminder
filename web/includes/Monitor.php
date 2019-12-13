@@ -467,8 +467,8 @@ private $status_fields = array(
     return $source;
   } // end function Source
 
-  public function UrlToIndex() {
-    return $this->Server()->UrlToIndex();
+  public function UrlToIndex($port=null) {
+    return $this->Server()->UrlToIndex($port);
     //ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
   }
 

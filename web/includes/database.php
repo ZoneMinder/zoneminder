@@ -110,16 +110,10 @@ function dbError($sql) {
 
 function dbEscape( $string ) {
   global $dbConn;
-  if ( version_compare(phpversion(), '4.3.0', '<'))
-    if ( get_magic_quotes_gpc() )
-      return $dbConn->quote(stripslashes($string));
-    else
-      return $dbConn->quote($string);
+  if ( version_compare(phpversion(), '5.4', '<=') and get_magic_quotes_gpc() ) 
+    return $dbConn->quote(stripslashes($string));
   else
-    if ( get_magic_quotes_gpc() )
-      return $dbConn->quote(stripslashes($string));
-    else
-      return $dbConn->quote($string);
+    return $dbConn->quote($string);
 }
 
 function dbQuery($sql, $params=NULL) {

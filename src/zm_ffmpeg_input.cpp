@@ -10,6 +10,7 @@ FFmpeg_Input::FFmpeg_Input() {
   FFMPEGInit();
   streams = NULL;
   frame = NULL;
+	last_seek_request = -1;
 }
 
 FFmpeg_Input::~FFmpeg_Input() {
@@ -102,7 +103,6 @@ int FFmpeg_Input::Open(const char *filepath) {
 } // end int FFmpeg_Input::Open( const char * filepath )
 
 AVFrame *FFmpeg_Input::get_frame(int stream_id) {
-  Debug(1, "Getting frame from stream %d", stream_id);
 
   int frameComplete = false;
   AVPacket packet;
@@ -144,6 +144,8 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
         zm_av_packet_unref(&packet);
         av_frame_free(&frame);
         continue;
+			} else {
+				zm_dump_frame(frame, "resulting frame");
       }
 
       frameComplete = 1;
@@ -175,9 +177,20 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     }
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
-  } // end if ! frame
+  }  // end if ! frame
 
-  if ( frame->pts > seek_target ) {
+	if ( !frame ) {
+		Warning("Unable to get frame.");
+		return NULL;
+	}
+
+  if ( 
+			(last_seek_request >= 0)
+			&&
+			(last_seek_request > seek_target ) 
+			&&
+			(frame->pts > seek_target)
+		 ) {
     zm_dump_frame(frame, "frame->pts > seek_target, seek backwards");
   // our frame must be beyond our seek target. so go backwards to before it
     if ( ( ret = av_seek_frame(input_format_context, stream_id, seek_target, 
@@ -190,6 +203,8 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     get_frame(stream_id);
     zm_dump_frame(frame, "frame->pts > seek_target, got");
   } // end if frame->pts > seek_target
+
+	last_seek_request = seek_target;
 
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
   if ( frame->pts <= seek_target  ) {

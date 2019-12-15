@@ -206,6 +206,10 @@ function dbFetch($sql, $col=false) {
 }
 
 function dbFetchNext($result, $col=false) {
+	if ( !$result ) {
+		ZM\Error("dbFetchNext called on null result.");
+		return false;
+	}
   if ( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
     return $col ? $dbRow[$col] : $dbRow;
   return false;

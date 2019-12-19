@@ -1094,6 +1094,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     for ( $i = 0; $i < count($terms); $i++ ) {
 
       $term = $terms[$i];
+ZM\Logger::Debug("Term: " . print_r($term,true));
 
       if ( isset($term['cnj']) && array_key_exists($term['cnj'], $validQueryConjunctionTypes) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($term['cnj']);
@@ -1109,6 +1110,12 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($term['attr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($term['attr'])."\"/>\n";
         switch ( $term['attr'] ) {
+					case 'AlarmedZoneId':
+						if ( $term['op'] != 'IN' ) {
+							ZM\Warning("AlarmedZoneId only supports the IN operator");
+						}
+						$filter['sql'] .= $term['val'];
+						break;
           case 'MonitorName':
             $filter['sql'] .= 'M.Name';
             break;
@@ -1226,11 +1233,15 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         $valueList = array();
         foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
           switch ( $term['attr'] ) {
+				
+						case 'AlarmedZoneId':
+							$value = '(SELECT DISTINCT ZoneId FROM Stats WHERE EventId=E.Id)';
+							break;
             case 'MonitorName':
             case 'Name':
             case 'Cause':
             case 'Notes':
-              if($term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE') {
+              if ( $term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE' ) {
                 $value = '%'.$value.'%';
               }
               $value = dbEscape($value);

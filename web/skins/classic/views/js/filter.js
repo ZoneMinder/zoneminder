@@ -30,7 +30,6 @@ function validateForm( form ) {
 
 function updateButtons(element) {
   var form = element.form;
-  console.log(element);
   if ( element.type == 'checkbox' && element.checked ) {
     form.elements['executeButton'].disabled = false;
   } else {
@@ -105,10 +104,13 @@ function submitToEvents( element ) {
   form.action = thisUrl + '?view=events';
   history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
-function submitToMontageReview( element ) {
+
+function submitToMontageReview(element) {
   var form = element.form;
   form.action = thisUrl + '?view=montagereview';
-  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+console.log($j(form).serialize());
+  window.location.assign('?view=montagereview&'+$j(form).serialize());
+  history.replaceState(null, null, '?view=montagereview&live=0&' + $j(form).serialize());
 }
 
 function submitToExport(element) {
@@ -143,7 +145,7 @@ function deleteFilter( element ) {
 }
 
 function parseRows(rows) {
-  for (var rowNum = 0; rowNum < rows.length; rowNum++) { //Each row is a term
+  for ( var rowNum = 0; rowNum < rows.length; rowNum++ ) { //Each row is a term
     var queryPrefix = 'filter[Query][terms][';
     var inputTds = rows.eq(rowNum).children();
 
@@ -158,12 +160,12 @@ function parseRows(rows) {
     }
 
     var brackets = rows.length - 2;
-    if (brackets > 0) { //add bracket select to all rows
+    if ( brackets > 0 ) { //add bracket select to all rows
       var obrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][obr]').attr('id', queryPrefix + rowNum + '][obr]');
       var cbrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cbr]').attr('id', queryPrefix + rowNum + '][cbr]');
       obrSelect.append('<option value="0"</option>');
       cbrSelect.append('<option value="0"</option>');
-      for (var i = 1; i <= brackets; i++) {//build bracket options
+      for ( var i = 1; i <= brackets; i++ ) {//build bracket options
         obrSelect.append('<option value="' + i + '">' + '('.repeat(i) + '</option>');
         cbrSelect.append('<option value="' + i + '">' + ')'.repeat(i) + '</option>');
       }
@@ -176,7 +178,7 @@ function parseRows(rows) {
       inputTds.eq(5).html('&nbsp');
     }
 
-    if (rows.length == 1) {
+    if ( rows.length == 1 ) {
       inputTds.eq(6).find(':input[value="-"]').prop('disabled', true); //enable/disable remove row button
     } else {
       inputTds.eq(6).find(':input[value="-"]').prop('disabled', false);
@@ -184,7 +186,7 @@ function parseRows(rows) {
 
     var attr = inputTds.eq(2).children().val();
 
-    if ( attr == "Archived") { //Archived types
+    if ( attr == 'Archived' ) { //Archived types
       inputTds.eq(3).html('equal to<input type="hidden" name="filter[Query][terms][' + rowNum + '][op]" value="=">');
       var archiveSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < archiveTypes.length; i++) {
@@ -192,6 +194,18 @@ function parseRows(rows) {
       }
       var archiveVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).chosen({width: "101%"});
+    } else if ( attr == 'AlarmedZoneId' ) {
+      var zoneSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+			for ( monitor_id in monitors ) {
+      	for ( zone_id in zones ) {
+					var zone = zones[zone_id];
+					if ( monitor_id == zone.MonitorId ) {
+        		zoneSelect.append('<option value="' + zone_id + '">' + (monitors[zone.MonitorId] ? monitors[zone.MonitorId].Name + ': ' : '') + zone.Name + '</option>');
+					}
+				}  // end foreach zone
+      }  // end foreach monitor
+      var zoneVal = inputTds.eq(4).children().val();
+      inputTds.eq(4).html(zoneSelect).children().val(zoneVal).chosen({width: "101%"});
     } else if ( attr.indexOf('Weekday') >= 0 ) { //Weekday selection
       var weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < weekdays.length; i++) {
@@ -222,18 +236,27 @@ function parseRows(rows) {
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
     } else if ( attr == 'MonitorName' ) { //Monitor names
       var monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      for (var key in monitors) {
-        monitorSelect.append('<option value="' + key + '">' + monitors[key] + '</option>');
+      for ( var monitor_id in monitors ) {
+        monitorSelect.append('<option value="' + monitors[monitor_id].Name + '">' + monitors[monitor_id].Name + '</option>');
       }
       var monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal);
-    } else { //Reset to regular text field and operator for everything that isn't special
+    } else {  // Reset to regular text field and operator for everything that isn't special
+if ( 0 ) {
+			// We don't actually do anything different in terms of operators. So why do it for text?
       var opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
-      for (var key in opTypes) {
-        opSelect.append('<option value="' + key + '">' + opTypes[key] + '</option>');
-      }
       var opVal = inputTds.eq(3).children().val();
-      inputTds.eq(3).html(opSelect).children().val(opVal).chosen({width: "101%"});
+			if ( ! opVal ) {
+				// Default to equals so that something gets selected
+				console.log("No value for operator. Defaulting to =");
+				opVal = '=';
+			}
+      for ( var key in opTypes ) {
+        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
+      }
+			inputTds.eq(3).html(opSelect).children().val(opVal).chosen({width: "101%"});
+}
+
       var textInput = $j('<input></input>').attr('type', 'text').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       var textVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(textInput).children().val(textVal);
@@ -253,7 +276,7 @@ function parseRows(rows) {
     term[2] = rowNum;
     inputTds.eq(2).children().eq(0).attr('name', 'filter'+stringFilter(term));
     inputTds.eq(2).children().eq(0).attr('id', 'filter'+stringFilter(term));
-  }//End for each term/row
+  }  // end foreach term/row
   history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
 }
 

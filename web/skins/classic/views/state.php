@@ -24,7 +24,7 @@ if ( !canEdit('System') ) {
 }
 ?>
 <div id="modalState" class="modal fade">
-  <form class="form-horizontal" name="contentForm" id="contentForm" method="get" action="?view=state">
+  <form class="form-horizontal" name="contentForm" method="get" action="?view=state">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">

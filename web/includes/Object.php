@@ -158,14 +158,24 @@ class ZM_Object {
 # perhaps should turn into a comma-separated string
           $this->{$k} = implode(',', $v);
         } else if ( is_string($v) ) {
-          if ( $v == '' and array_key_exists($k, $this->defaults) ) {
-            if ( is_array($this->defaults[$k]) )
+if ( 0 ) {
+# Remarking this out.  We are setting a value, not asking for a default to be set. 
+# So don't do defaults here, do them somewhere else
+          if ( ($v == null) and array_key_exists($k, $this->defaults) ) {
+Logger::Debug("$k => Have default for $v: ");
+            if ( is_array($this->defaults[$k]) ) {
               $this->{$k} = $this->defaults[$k]['default'];
-            else 
-              $this->{$k} = $this->defaults[$k];
-          } else {
-            $this->{$k} = trim($v);
+            } else {
+							$this->{$k} = $this->defaults[$k];
+							Logger::Debug("$k => Have default for $v: " . $this->{$k});
+						}
+					} else {
+						$this->{$k} = trim($v);
           }
+} else {
+						$this->{$k} = trim($v);
+}
+
         } else if ( is_integer($v) ) {
           $this->{$k} = $v;
         } else if ( is_bool($v) ) {

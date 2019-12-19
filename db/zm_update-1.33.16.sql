@@ -5,7 +5,7 @@ SET @s = (SELECT IF(
       AND column_name = 'Notes'
     ) > 0,
     "SELECT 'Column Notes already exists in Monitors'",
-    "ALTER TABLE `Monitors` ADD `Notes` TEXT NOT NULL default '' AFTER `Name`"
+    "ALTER TABLE `Monitors` ADD `Notes` TEXT AFTER `Name`"
     ));
 
 PREPARE stmt FROM @s;

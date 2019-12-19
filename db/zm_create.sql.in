@@ -434,7 +434,7 @@ DROP TABLE IF EXISTS `Monitors`;
 CREATE TABLE `Monitors` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Notes` TEXT NOT NULL default '',
+  `Notes` TEXT,
   `ServerId` int(10) unsigned,
   `StorageId`	smallint(5) unsigned default 0,
   `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket') NOT NULL default 'Local',

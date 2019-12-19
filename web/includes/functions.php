@@ -409,6 +409,11 @@ ZM\Logger::Debug("Event type: " . gettype($event));
 
   global $user;
 
+  if ( $event->Archived() ) {
+    ZM\Info('Cannot delete Archived event.');
+    return;
+  } # end if Archived
+
   if ( $user['Events'] == 'Edit' ) {
     $event->delete();
   } # CAN EDIT

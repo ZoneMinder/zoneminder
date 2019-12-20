@@ -54,7 +54,7 @@ $j(document).ready(function() {
       url: thisUrl,
       data: formData,
       dataType: 'html',
-      enocde: true
+      timeout: 0
     }).done(function(data) {
       location.reload();
     });

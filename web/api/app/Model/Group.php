@@ -77,4 +77,5 @@ class Group extends AppModel {
 			'counterQuery' => ''
 		),
   );
+  var $actsAs = array( 'Containable' );
 }

@@ -44,33 +44,25 @@ class MonitorsController extends AppController {
     } else {
       $conditions = array();
     }
-
     global $user;
     $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
     if ( $allowedMonitors ) {
       $conditions['Monitor.Id' ] = $allowedMonitors;
     }
-    $find_array = array('conditions'=>$conditions,'contain'=>array('Group'));
 
-    if ( isset($conditions['GroupId']) ) {
-      $find_array['joins'] = array(
+    $find_array = array(
+      'conditions' => &$conditions,
+      'contain'    => array('Group'),
+      'joins'      => array(
         array(
           'table' => 'Groups_Monitors',
-          'type' => 'inner',
+          'type'  => 'inner',
           'conditions' => array(
-            'Groups_Monitors.MonitorId = Monitor.Id'
+            'Groups_Monitors.MonitorId = Monitor.Id',
           ),
         ),
-        //array(
-          //'table' => 'Groups',
-          //'type' => 'inner',
-          //'conditions' => array(
-            //'Groups.Id = Groups_Monitors.GroupId',
-            //'Groups.Id' => $this->request->params['GroupId'],
-          //),
-        //)
-      );
-    }
+      )
+    );
     $monitors = $this->Monitor->find('all',$find_array);
     $this->set(array(
           'monitors' => $monitors,

@@ -51,10 +51,10 @@ class Event extends ZM_Object {
     if ( $new ) {
       $this->{'Storage'} = $new;
     }
-    if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) ) {
+    if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
       if ( isset($this->{'StorageId'}) and $this->{'StorageId'} )
         $this->{'Storage'} = Storage::find_one(array('Id'=>$this->{'StorageId'}));
-      if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) )
+      if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) )
         $this->{'Storage'} = new Storage(NULL);
     }
     return $this->{'Storage'};
@@ -64,10 +64,10 @@ class Event extends ZM_Object {
     if ( $new ) {
       $this->{'SecondaryStorage'} = $new;
     }
-    if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) ) {
+    if ( ! ( property_exists($this, 'SecondaryStorage') and $this->{'SecondaryStorage'} ) ) {
       if ( isset($this->{'SecondaryStorageId'}) and $this->{'SecondaryStorageId'} )
         $this->{'SecondaryStorage'} = Storage::find_one(array('Id'=>$this->{'SecondaryStorageId'}));
-      if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) )
+      if ( ! ( property_exists($this, 'SecondaryStorage') and $this->{'SecondaryStorage'} ) )
         $this->{'SecondaryStorage'} = new Storage(NULL);
     }
     return $this->{'SecondaryStorage'};
@@ -262,7 +262,7 @@ class Event extends ZM_Object {
     if ( is_null($new) or ( $new != '' ) ) {
       $this->{'DiskSpace'} = $new;
     }
-    if ( (!array_key_exists('DiskSpace',$this)) or (null === $this->{'DiskSpace'}) ) {
+    if ( (!property_exists($this, 'DiskSpace')) or (null === $this->{'DiskSpace'}) ) {
       $this->{'DiskSpace'} = folder_size($this->Path());
       dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
     }
@@ -298,7 +298,7 @@ class Event extends ZM_Object {
   } // end function createListThumbnail
 
   function ThumbnailWidth( ) {
-    if ( ! ( array_key_exists('ThumbnailWidth', $this) ) ) {
+    if ( ! ( property_exists($this, 'ThumbnailWidth') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
         $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
@@ -315,7 +315,7 @@ class Event extends ZM_Object {
   } // end function ThumbnailWidth
 
   function ThumbnailHeight( ) {
-    if ( ! ( array_key_exists('ThumbnailHeight', $this) ) ) {
+    if ( ! ( property_exists($this, 'ThumbnailHeight') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
         $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};

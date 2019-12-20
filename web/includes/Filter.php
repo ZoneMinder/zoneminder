@@ -39,8 +39,8 @@ class Filter extends ZM_Object {
       $this->{'Query'} = func_get_arg(0);;
       $this->{'Query_json'} = jsonEncode($this->{'Query'});
     }
-    if ( !array_key_exists('Query', $this) ) {
-      if ( array_key_exists('Query_json', $this) and $this->{'Query_json'} ) {
+    if ( !property_exists($this, 'Query') ) {
+      if ( property_exists($this, 'Query_json') and $this->{'Query_json'} ) {
         $this->{'Query'} = jsonDecode($this->{'Query_json'});
       } else {
         $this->{'Query'} = array();

@@ -46,7 +46,7 @@ var popupSizes = {
   'group':        {'width': 760, 'height': 600},
   'groups':       {'width': 540, 'height': 420},
   'image':        {'addWidth': 48, 'addHeight': 80},
-  'log':          {'width': 1080, 'height': 720},
+  'log':          {'width': 1180, 'height': 720},
   'login':        {'width': 720, 'height': 480},
   'logout':       {'width': 260, 'height': 150},
   'monitor':      {'width': 800, 'height': 780},

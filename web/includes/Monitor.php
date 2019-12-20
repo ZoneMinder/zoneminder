@@ -9,118 +9,119 @@ require_once('Storage.php');
 class Monitor extends ZM_Object {
   protected static $table = 'Monitors';
 
-protected $defaults = array(
-  'Id' => null,
-  'Name' => '',
-  'ServerId' => 0,
-  'StorageId' => 0,
-  'Type'      =>  'Ffmpeg',
-  'Function'  => 'Mocord',
-  'Enabled'   => array('type'=>'boolean','default'=>1),
-  'LinkedMonitors' => array('type'=>'set', 'default'=>null),
-  'Triggers'  =>  array('type'=>'set','default'=>''),
-  'Device'  =>  '',
-  'Channel' =>  0,
-  'Format'  =>  '0',
-  'V4LMultiBuffer'  =>  null,
-  'V4LCapturesPerFrame' =>  1,
-  'Protocol'  =>  null,
-  'Method'  =>  '',
-  'Host'  =>  null,
-  'Port'  =>  '',
-  'SubPath' =>  '',
-  'Path'  =>  null,
-  'Options' =>  null,
-  'User'  =>  null,
-  'Pass'  =>  null,
-  // These are NOT NULL default 0 in the db, but 0 is not a valid value. FIXME
-  'Width' => null,
-  'Height' => null,
-  'Colours' => 4,
-  'Palette' =>  '0',
-  'Orientation' => null,
-  'Deinterlacing' =>  0,
-  'DecoderHWAccelName'  =>  null,
-  'DecoderHWAccelDevice'  =>  null,
-  'SaveJPEGs' =>  3,
-  'VideoWriter' =>  '0',
-  'OutputCodec' =>  null,
-  'OutputContainer' => null,
-  'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
-  'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
-  'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
-  'Brightness'  =>  -1,
-  'Contrast'    =>  -1,
-  'Hue'         =>  -1,
-  'Colour'      =>  -1,
-  'EventPrefix' =>  'Event-',
-  'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
-  'LabelX'      =>  0,
-  'LabelY'      =>  0,
-  'LabelSize'   =>  1,
-  'ImageBufferCount'  =>  100,
-  'WarmupCount' =>  0,
-  'PreEventCount' =>  0,
-  'PostEventCount'  =>  0,
-  'StreamReplayBuffer'  => 0,
-  'AlarmFrameCount'     =>  1,
-  'SectionLength'       =>  600,
-  'MinSectionLength'    =>  10,
-  'FrameSkip'           =>  0,
-  'MotionFrameSkip'     =>  0,
-  'AnalysisFPSLimit'  =>  null,
-  'AnalysisUpdateDelay'  =>  0,
-  'MaxFPS' => null,
-  'AlarmMaxFPS' => null,
-  'FPSReportInterval'  =>  100,
-  'RefBlendPerc'        =>  6,
-  'AlarmRefBlendPerc'   =>  6,
-  'Controllable'        =>  array('type'=>'boolean','default'=>0),
-  'ControlId' =>  null,
-  'ControlDevice' =>  null,
-  'ControlAddress'  =>  null,
-  'AutoStopTimeout' => null,
-  'TrackMotion'     =>  array('type'=>'boolean','default'=>0),
-  'TrackDelay'      =>  null,
-  'ReturnLocation'  =>  -1,
-  'ReturnDelay'     =>  null,
-  'DefaultRate' =>  100,
-  'DefaultScale'  =>  100,
-  'SignalCheckPoints' =>  0,
-  'SignalCheckColour' =>  '#0000BE',
-  'WebColour'   =>  'red',
-  'Exif'    =>  array('type'=>'boolean','default'=>0),
-  'Sequence'  =>  null,
-  'TotalEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'TotalEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'HourEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'HourEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'DayEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'DayEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'WeekEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'WeekEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'MonthEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'MonthEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-  'ZoneCount' =>  0,
-  'Refresh' => null,
-  'DefaultCodec'  => 'auto',
-  'GroupIds'    => array('default'=>array(), 'do_not_update'=>1),
-);
-private $status_fields = array(
-  'Status'  =>  null,
-  'AnalysisFPS' => null,
-  'CaptureFPS' => null,
-  'CaptureBandwidth' => null,
-);
+  protected $defaults = array(
+    'Id' => null,
+    'Name' => '',
+    'Notes' => '',
+    'ServerId' => 0,
+    'StorageId' => 0,
+    'Type'      => 'Ffmpeg',
+    'Function'  => 'Mocord',
+    'Enabled'   => array('type'=>'boolean','default'=>1),
+    'LinkedMonitors' => array('type'=>'set', 'default'=>null),
+    'Triggers'  =>  array('type'=>'set','default'=>''),
+    'Device'  =>  '',
+    'Channel' =>  0,
+    'Format'  =>  '0',
+    'V4LMultiBuffer'  =>  null,
+    'V4LCapturesPerFrame' =>  1,
+    'Protocol'  =>  null,
+    'Method'  =>  '',
+    'Host'  =>  null,
+    'Port'  =>  '',
+    'SubPath' =>  '',
+    'Path'  =>  null,
+    'Options' =>  null,
+    'User'  =>  null,
+    'Pass'  =>  null,
+    // These are NOT NULL default 0 in the db, but 0 is not a valid value. FIXME
+    'Width' => null,
+    'Height' => null,
+    'Colours' => 4,
+    'Palette' =>  '0',
+    'Orientation' => null,
+    'Deinterlacing' =>  0,
+    'DecoderHWAccelName'  =>  null,
+    'DecoderHWAccelDevice'  =>  null,
+    'SaveJPEGs' =>  3,
+    'VideoWriter' =>  '0',
+    'OutputCodec' =>  null,
+    'OutputContainer' => null,
+    'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
+    'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
+    'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
+    'Brightness'  =>  -1,
+    'Contrast'    =>  -1,
+    'Hue'         =>  -1,
+    'Colour'      =>  -1,
+    'EventPrefix' =>  'Event-',
+    'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
+    'LabelX'      =>  0,
+    'LabelY'      =>  0,
+    'LabelSize'   =>  1,
+    'ImageBufferCount'  =>  100,
+    'WarmupCount' =>  0,
+    'PreEventCount' =>  0,
+    'PostEventCount'  =>  0,
+    'StreamReplayBuffer'  => 0,
+    'AlarmFrameCount'     =>  1,
+    'SectionLength'       =>  600,
+    'MinSectionLength'    =>  10,
+    'FrameSkip'           =>  0,
+    'MotionFrameSkip'     =>  0,
+    'AnalysisFPSLimit'  =>  null,
+    'AnalysisUpdateDelay'  =>  0,
+    'MaxFPS' => null,
+    'AlarmMaxFPS' => null,
+    'FPSReportInterval'  =>  100,
+    'RefBlendPerc'        =>  6,
+    'AlarmRefBlendPerc'   =>  6,
+    'Controllable'        =>  array('type'=>'boolean','default'=>0),
+    'ControlId' =>  null,
+    'ControlDevice' =>  null,
+    'ControlAddress'  =>  null,
+    'AutoStopTimeout' => null,
+    'TrackMotion'     =>  array('type'=>'boolean','default'=>0),
+    'TrackDelay'      =>  null,
+    'ReturnLocation'  =>  -1,
+    'ReturnDelay'     =>  null,
+    'DefaultRate' =>  100,
+    'DefaultScale'  =>  100,
+    'SignalCheckPoints' =>  0,
+    'SignalCheckColour' =>  '#0000BE',
+    'WebColour'   =>  'red',
+    'Exif'    =>  array('type'=>'boolean','default'=>0),
+    'Sequence'  =>  null,
+    'TotalEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'TotalEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'HourEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'HourEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'DayEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'DayEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'WeekEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'WeekEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'MonthEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'MonthEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+    'ZoneCount' =>  0,
+    'Refresh' => null,
+    'DefaultCodec'  => 'auto',
+    'GroupIds'    => array('default'=>array(), 'do_not_update'=>1),
+  );
+  private $status_fields = array(
+    'Status'  =>  null,
+    'AnalysisFPS' => null,
+    'CaptureFPS' => null,
+    'CaptureBandwidth' => null,
+  );
 
   public function Control() {
-    if ( !array_key_exists('Control', $this) ) {
+    if ( !property_exists($this, 'Control') ) {
       if ( $this->ControlId() )
         $this->{'Control'} = Control::find_one(array('Id'=>$this->{'ControlId'}));
 
-      if ( !(array_key_exists('Control', $this) and $this->{'Control'}) )
+      if ( !(property_exists($this, 'Control') and $this->{'Control'}) )
         $this->{'Control'} = new Control();
     }
     return $this->{'Control'};
@@ -138,7 +139,7 @@ private $status_fields = array(
         $this->{$fn} = $args[0];
       }
     }
-    if ( array_key_exists($fn, $this) ) {
+    if ( property_exists($this, $fn) ) {
       return $this->{$fn};
     } else if ( array_key_exists($fn, $this->defaults) ) {
       if ( is_array($this->defaults[$fn]) ) {
@@ -211,9 +212,9 @@ private $status_fields = array(
       $this->{'Width'} = $new;
 
     $field = ( $this->Orientation() == 'ROTATE_90' or $this->Orientation() == 'ROTATE_270' ) ? 'Height' : 'Width';
-    if ( array_key_exists($field, $this) )
+    if ( property_exists($this, $field) )
       return $this->{$field};
-    return $this->defaults{$field};
+    return $this->defaults[$field];
   } // end function Width
 
   public function ViewHeight($new=null) {
@@ -221,9 +222,9 @@ private $status_fields = array(
       $this->{'Height'} = $new;
 
     $field = ( $this->Orientation() == 'ROTATE_90' or $this->Orientation() == 'ROTATE_270' ) ?  'Width' : 'Height';
-    if ( array_key_exists($field, $this) )
+    if ( property_exists($this, $field) )
       return $this->{$field};
-    return $this->defaults{$field};
+    return $this->defaults[$field];
   } // end function Height
 
   public function SignalCheckColour($new=null) {
@@ -234,10 +235,10 @@ private $status_fields = array(
 
     // Validate that it's a valid colour (we seem to allow color names, not just hex).
     // This also helps prevent XSS.
-    if (array_key_exists($field, $this) && preg_match('/^[#0-9a-zA-Z]+$/', $this->{$field})) {
+    if ( property_exists($this, $field) && preg_match('/^[#0-9a-zA-Z]+$/', $this->{$field})) {
       return $this->{$field};
     }
-    return $this->defaults{$field};
+    return $this->defaults[$field];
   } // end function SignalCheckColour
 
   public static function find( $parameters = array(), $options = array() ) {
@@ -253,7 +254,7 @@ private $status_fields = array(
       Warning('Attempt to control a monitor with no Id');
       return;
     }
-    if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
+    if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       if ( $this->Type() == 'Local' ) {
         $zmcArgs = '-d '.$this->{'Device'};
       } else {
@@ -306,7 +307,7 @@ private $status_fields = array(
       return;
     }
 
-    if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
+    if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {
         if ( ZM_OPT_CONTROL ) {
           daemonControl('stop', 'zmtrack.pl', '-m '.$this->{'Id'});
@@ -367,8 +368,8 @@ private $status_fields = array(
       }
     }
 
-    if ( !array_key_exists('GroupIds', $this) ) {
-      if ( array_key_exists('Id', $this) and $this->{'Id'} ) {
+    if ( !property_exists($this, 'GroupIds') ) {
+      if ( property_exists($this, 'Id') and $this->{'Id'} ) {
         $this->{'GroupIds'} = dbFetchAll('SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=?', 'GroupId', array($this->{'Id'}) );
         if ( ! $this->{'GroupIds'} )
           $this->{'GroupIds'} = array();
@@ -417,7 +418,7 @@ private $status_fields = array(
     if ( $new ) {
       $this->{'Storage'} = $new;
     }
-    if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) ) {
+    if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
       $this->{'Storage'} = isset($this->{'StorageId'}) ? 
         Storage::find_one(array('Id'=>$this->{'StorageId'})) : 
           new Storage(NULL);
@@ -467,8 +468,8 @@ private $status_fields = array(
     return $source;
   } // end function Source
 
-  public function UrlToIndex() {
-    return $this->Server()->UrlToIndex();
+  public function UrlToIndex($port=null) {
+    return $this->Server()->UrlToIndex($port);
     //ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
   }
 
@@ -493,7 +494,7 @@ public function sendControlCommand($command) {
     }
   }
 
-  if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
+  if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
     # Local
     Logger::Debug('Trying to send options ' . print_r($options, true));
 

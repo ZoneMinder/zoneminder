@@ -36,7 +36,7 @@ class MonitorsController extends AppController {
  * @return void
  */
   public function index() {
-    $this->Monitor->recursive = 1;
+    $this->Monitor->recursive = 0;
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
@@ -50,28 +50,19 @@ class MonitorsController extends AppController {
       $conditions['Monitor.Id' ] = $allowedMonitors;
     }
 
-    $find_array = array('conditions'=>&$conditions,'contain'=>array('Group'));
-    if ( isset($conditions['`GroupId` ']) ) {
-      $find_array['joins'] = array(
+    $find_array = array(
+      'conditions' => &$conditions,
+      'contain'    => array('Group'),
+      'joins'      => array(
         array(
           'table' => 'Groups_Monitors',
-          'type' => 'inner',
+          'type'  => 'inner',
           'conditions' => array(
             'Groups_Monitors.MonitorId = Monitor.Id',
-            'Groups_Monitors.GroupId' => $conditions['`GroupId` ']
           ),
         ),
-        //array(
-          //'table' => 'Groups',
-          //'type' => 'inner',
-          //'conditions' => array(
-            //'Groups.Id = Groups_Monitors.GroupId',
-            //'Groups.Id' => $this->request->params['GroupId'],
-          //),
-        //)
-      );
-      unset($conditions['`GroupId` ']);
-    }
+      )
+    );
     $monitors = $this->Monitor->find('all',$find_array);
     $this->set(array(
           'monitors' => $monitors,

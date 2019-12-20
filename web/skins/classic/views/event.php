@@ -257,7 +257,12 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </p>
         <div id="replayStatus">
           <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
-          <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"><?php echo $rate/100 ?></span>x</span>
+          <span id="rate"><?php echo translate('Rate') ?>: 
+<?php 
+$rates = array( 0=>translate('Stopped'), 100 => '1x', 200=>'2x', 400=>'4x', 800=>'8x' );
+echo htmlSelect('rate', $rates, $rate, array('id'=>'rateValue'));
+?>
+<!--<span id="rateValue"><?php echo $rate/100 ?></span>x</span>-->
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>

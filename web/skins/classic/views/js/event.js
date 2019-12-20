@@ -200,6 +200,19 @@ function changeReplayMode() {
   refreshWindow();
 }
 
+function changeRate() {
+  var rate = $j('select[name="rate"]').val();
+  if ( ! rate ) {
+    pauseClicked();
+  } else {
+    if ( vid ) {
+      vid.playbackRate(rate/100);
+      Cookie.write('zmEventRate', rate, {duration: 10*365});
+    }
+  }
+}
+
+
 var streamParms = "view=request&request=stream&connkey="+connKey;
 if ( auth_hash ) {
   streamParms += '&auth='+auth_hash;
@@ -245,7 +258,7 @@ function getCmdResponse( respObj, respText ) {
   if ( streamStatus.paused == true ) {
     streamPause( );
   } else {
-    $j('#rateValue').html(streamStatus.rate);
+    $j('select[name="rate"]').val(streamStatus.rate*100);
     Cookie.write('zmEventRate', streamStatus.rate*100, {duration: 10*365});
     streamPlay( );
   }
@@ -296,7 +309,7 @@ function vjsPause() {
 
 function streamPause( ) {
   $j('#modeValue').html('Paused');
-  $j('#rateValue').html('0');
+  $j('select[name="rate"]').val('0');
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('playBtn'), 'inactive' );
   setButtonState( $('fastFwdBtn'), 'unavail' );
@@ -322,7 +335,7 @@ function vjsPlay() { //catches if we change mode programatically
   if ( intervalRewind ) {
     stopFastRev();
   }
-  $j('#rateValue').html(vid.playbackRate());
+  $j('select[name="rate"]').val(vid.playbackRate());
   Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
   streamPlay();
 }
@@ -350,7 +363,7 @@ function streamFastFwd( action ) {
     if ( rates.indexOf(vid.playbackRate()*100)-1 == -1 ) {
       setButtonState($('fastFwdBtn'), 'unavail');
     }
-    $j('#rateValue').html(vid.playbackRate());
+    $j('#rate').val(vid.playbackRate());
     Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
   } else {
     streamReq.send(streamParms+"&command="+CMD_FASTFWD);
@@ -397,7 +410,7 @@ function streamFastRev( action ) {
       setButtonState( $('fastRevBtn'), 'unavail' );
     }
     clearInterval(intervalRewind);
-    $j('#rateValue').html(-revSpeed);
+    $j('#rate').val(-revSpeed);
     Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
@@ -588,7 +601,7 @@ function getEventResponse( respObj, respText ) {
     CurEventDefVideoPath = null;
     $j('#modeValue').html('Replay');
     $j('#zoomValue').html('1');
-    $j('#rateValue').html('1');
+    $j('#rate').val('100');
     vjsPanZoom('zoomOut');
   } else {
     drawProgressBar();
@@ -1066,7 +1079,8 @@ function initPage() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
     });
 
-    if ( rate > 1 ) {
+    // rate is in % so 100 would be 1x
+    if ( rate > 0 ) {
       // rate should be 100 = 1x, etc.
       vid.playbackRate(rate/100);
     }
@@ -1091,6 +1105,9 @@ function initPage() {
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   if (scale == "auto") changeScale();
+  document.querySelectorAll('select[name="rate"]').forEach(function(el) {
+    el.onchange = window['changeRate'];
+  });
 }
 
 // Kick everything off

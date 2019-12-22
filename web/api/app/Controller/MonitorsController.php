@@ -56,7 +56,7 @@ class MonitorsController extends AppController {
       'joins'      => array(
         array(
           'table' => 'Groups_Monitors',
-          'type'  => 'inner',
+          'type'  => 'left',
           'conditions' => array(
             'Groups_Monitors.MonitorId = Monitor.Id',
           ),

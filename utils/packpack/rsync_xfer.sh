@@ -31,7 +31,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${OS}" == "debian" ] || [ "${OS}" 
     echo "Running \$(rsync -v -e 'ssh -vvv' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
     rsync -v -e 'ssh -vvv' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1
     result="$?"
-    if [ $result -eq 0 ]; then
+    if [ "$result" -eq 0 ]; then
         echo 
         echo "Files copied successfully."
         echo

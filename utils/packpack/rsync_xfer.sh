@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# We don't deploy during eslint checks, so exit immediately
+if [ "${DIST}" == "eslint" ]; then
+    exit 0
+fi
+
 # Check to see if this script has access to all the commands it needs
 for CMD in sshfs rsync find fusermount mkdir; do
   type $CMD 2>&1 > /dev/null
@@ -29,16 +34,15 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${OS}" == "debian" ] || [ "${OS}" 
     echo
 
     echo "Running \$(rsync -v -e 'ssh -vvv' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
-    rsync -v -e 'ssh -vvv' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1
-    result="$?"
-    if [ "$result" -eq 0 ]; then
+    rsync -v --ignore-missing-args -e 'ssh -vvv' build/*.{rpm,deb,dsc,tar.xz,changes} zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1
+    if [ "$?" -eq 0 ]; then
         echo 
         echo "Files copied successfully."
         echo
     else 
         echo
         echo "ERROR: Attempt to rsync to zmrepo.zoneminder.com failed!"
-        echo "The following error code was returned: $result."
+        echo "See log output for details."
         echo
         exit 99
     fi

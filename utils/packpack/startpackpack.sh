@@ -150,7 +150,7 @@ install_deb () {
       exit 1
     fi
 
-    # Install and test the zoneminder package (only) for Ubuntu Trusty
+    # Install and test the zoneminder package (only) for Ubuntu Xenial
     pkgname="build/zoneminder_${VERSION}-${RELEASE}_amd64.deb"
 
     if [ -e $pkgname ]; then
@@ -276,6 +276,8 @@ checkdeploytarget () {
         echo
         traceroute -w 2 -m 15 ${DEPLOYTARGET}
     fi
+
+    exit 97
 }
 
 ################
@@ -326,8 +328,9 @@ if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
 
     echo "Starting packpack..."
     execpackpack
-  fi;
-  # Steps common to Debian based distros
+  fi
+
+# Steps common to Debian based distros
 elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
   commonprep
   echo "Begin ${OS} ${DIST} build..."
@@ -348,14 +351,27 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   echo "Starting packpack..."
   execpackpack
 
-  # We were not triggered via cron so just build and test trusty
-  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "xenial" ] && [ "${ARCH}" == "x86_64" ]; then
-    # If we are running inside Travis then attempt to install the deb we just built
-    if [ "${TRAVIS}" == "true" ]; then
+  # Try to install and run the newly built zoneminder package
+  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "xenial" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
+      echo "Begin Deb package installation..."
       install_deb
-    fi
   fi
-fi
 
-exit 0
+# Steps common to eslint checks
+elif [ "${OS}" == "eslint" ] || [ "${DIST}" == "eslint" ]; then
+
+    # Check we've got npm installed
+    type npm 2>&1 > /dev/null
+
+    if [ $? -ne 0 ]; then
+      echo
+      echo "ERROR: The script cannot find the required command \"npm\"."
+      echo
+      exit 1
+    fi
+
+    npm install -g eslint@5.12.0 eslint-config-google@0.11.0 eslint-plugin-html@5.0.0 eslint-plugin-php-markup@0.2.5
+    echo "Begin eslint checks..."
+    eslint --ext .php,.js .
+fi
 

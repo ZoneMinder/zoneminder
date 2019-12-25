@@ -275,9 +275,9 @@ checkdeploytarget () {
         echo "*** TRACEROUTE ***"
         echo
         traceroute -w 2 -m 15 ${DEPLOYTARGET}
-    fi
 
-    exit 97
+        exit 97
+    fi
 }
 
 ################

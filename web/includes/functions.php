@@ -1090,9 +1090,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
   if ( !isset($terms) ) {
     $backTrace = debug_backtrace();
-    $file = $backTrace[1]['file'];
-    $line = $backTrace[1]['line'];
-    ZM\Warning("No terms in filter from $file:$line");
+    ZM\Warning('No terms in filter');
+    ZM\Warning(print_r($backTrace, true));
     ZM\Warning(print_r($filter, true));
   }
   if ( isset($terms) && count($terms) ) {
@@ -1329,7 +1328,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
           $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($term['val']);
           $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($term['val'])."\"/>\n";
         }
-      } // end if ( isset($term['attr']) )
+      } // end if isset($term['attr'])
       if ( isset($term['cbr']) && (string)(int)$term['cbr'] == $term['cbr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($term['cbr']);
         $filter['sql'] .= ' '.str_repeat(')', $term['cbr']).' ';
@@ -1341,6 +1340,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     if ( $saveToSession ) {
       $_SESSION['filter'] = $filter;
     }
+  } else {
+    $filter['query'] = $querySep.urlencode('filter[Query][terms]=[]');
   } // end if terms
 
   #if ( 0 ) {
@@ -2608,5 +2609,13 @@ function html_radio($name, $values, $selected=null, $options=array(), $attrs=arr
   } # end foreach value
   return $html;
 } # end sub html_radio
+
+function random_color_part() {
+    return str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT);
+}
+
+function random_color() {
+    return random_color_part() . random_color_part() . random_color_part();
+}
 
 ?>

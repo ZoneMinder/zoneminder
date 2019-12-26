@@ -113,17 +113,17 @@ function exportEventDetail($event, $exportFrames, $exportImages) {
       <table id="eventDetail">
         <tr><th scope="row"><?php echo translate('Id') ?></th><td><?php echo $event->Id() ?></td></tr>
         <tr><th scope="row"><?php echo translate('Name') ?></th><td><?php echo validHtmlStr($event->Name()) ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event->MonitorName()) ?> (<?php echo $event->MonitorId() ?>)</td></tr>
+        <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event->Monitor()->Name()) ?> (<?php echo $event->MonitorId() ?>)</td></tr>
         <tr><th scope="row"><?php echo translate('Cause') ?></th><td><?php echo validHtmlStr($event->Cause()) ?></td></tr>
         <tr><th scope="row"><?php echo translate('Notes') ?></th><td><?php echo validHtmlStr($event->Notes()) ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime()) ) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) ?></td></tr>
         <tr><th scope="row"><?php echo translate('Duration') ?></th><td><?php echo $event->Length() ?></td></tr>
         <tr><th scope="row"><?php echo translate('Frames') ?></th><td><?php echo $event->Frames() ?></td></tr>
         <tr><th scope="row"><?php echo translate('AttrAlarmFrames') ?></th><td><?php echo $event->AlarmFrames() ?></td></tr>
         <tr><th scope="row"><?php echo translate('AttrTotalScore') ?></th><td><?php echo $event->TotScore() ?></td></tr>
         <tr><th scope="row"><?php echo translate('AttrAvgScore') ?></th><td><?php echo $event->AvgScore() ?></td></tr>
         <tr><th scope="row"><?php echo translate('AttrMaxScore') ?></th><td><?php echo $event->MaxScore() ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Archived') ?></th><td><?php echo $event->Archived()?translate('Yes'):translate('No') ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Archived') ?></th><td><?php echo translate($event->Archived()?'Yes':'No') ?></td></tr>
       </table>
     </div>
   </div>
@@ -850,10 +850,10 @@ function exportEvents(
 ) {
 
   if ( !canView('Events') ) {
-    ZM\Error("You do not have permission to view events.");
+    ZM\Error('You do not have permission to view events.');
     return false;
   } else if ( empty($eids) ) {
-    ZM\Error("Attempt to export an empty list of events.");
+    ZM\Error('Attempt to export an empty list of events.');
     return false;
   }
 
@@ -863,23 +863,23 @@ function exportEvents(
   }
 
   # Ensure that we are going to be able to do this.
-  if ( ! file_exists(ZM_DIR_EXPORTS) ) {
-    if ( ! mkdir(ZM_DIR_EXPORTS) ) {
-      ZM\Fatal("Can't create exports dir at '".ZM_DIR_EXPORTS."'");
-    }
+  # TODO should ensure that permissions are restrictive
+  if ( ! ( mkdir(ZM_DIR_EXPORTS) or file_exists(ZM_DIR_EXPORTS) ) ) {
+    ZM\Fatal('Can\'t create exports dir at \''.ZM_DIR_EXPORTS.'\'');
   }
+  chmod(ZM_DIR_EXPORTS, 0700);
   $export_dir = ZM_DIR_EXPORTS.'/zmExport_'.$connkey;
 
   # Ensure that we are going to be able to do this.
-  if ( ! file_exists($export_dir) ) {
-    if ( ! mkdir($export_dir) ) {
-      ZM\Fatal("Can't create exports dir at '$export_dir'");
-    } else {
-      ZM\Logger::Debug("Successfully created dir '$export_dir'");
-    }
+  if ( ! ( mkdir($export_dir) or file_exists($export_dir) ) ) {
+    ZM\Fatal("Can't create exports dir at '$export_dir'");
+  } else {
+    ZM\Logger::Debug("Successfully created dir '$export_dir'");
   }
-  if ( !chdir($export_dir) )
+  chmod($export_dir, 0700);
+  if ( !chdir($export_dir) ) {
     ZM\Fatal("Can't chdir to $export_dir");
+  }
 
   $export_root = 'zmExport';
   $export_listFile = 'zmFileList.txt';
@@ -889,12 +889,13 @@ function exportEvents(
   if ( !is_array($eids) ) {
     $eids = array($eids);
   }
-  ZM\Logger::Debug("Eids: " . print_r($eids,true));
+  ZM\Logger::Debug('Eids: ' . print_r($eids,true));
   foreach ( $eids as $eid ) {
     $event = new ZM\Event($eid);
     $event_dir = $export_dir.'/'.$event->Id();
-    if ( !mkdir($event_dir) )
+    if ( !(mkdir($event_dir) or file_exists($event_dir) ) ) {
       ZM\Error("Can't mkdir $event_dir");
+    }
     $event_exportFileList = exportFileList($event, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc);
     ZM\Logger::Debug("File list for event $eid " . print_r($event_exportFileList, true));
     $exportFileList = array_merge($exportFileList,$event_exportFileList);
@@ -904,12 +905,12 @@ function exportEvents(
       ZM\Logger::Debug('cp -as '.$event->Path().'/../'.$file.' '.$export_dir.'/'.$file);
       exec('cp -as '.$event->Path().'/../'.$file.' '.$export_dir.'/'.$file);
     }
-  }
+  } # end foreach event
 
   // create an master image 
   if ( $exportImages ) {
     if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.js', $export_dir.'/jquery.js') )
-      ZM\Error("Failed linking jquery.js");
+      ZM\Error('Failed linking jquery.js');
     //if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/video.js', $export_dir.'/video.js') )
       //Error("Failed linking video.js");
 
@@ -960,12 +961,12 @@ function exportEvents(
 
   @unlink($archive);
   $command .= ' zmExport_' . $connkey.'/';
-  ZM\Logger::Debug("Command is $command");
   exec($command, $output, $status);
   if ( $status ) {
     ZM\Error("Command '$command' returned with status $status");
-    if ( isset($output[0]) )
-      ZM\Error("First line of output is '".$output[0]."'");
+    if ( isset($output[0]) ) {
+      ZM\Error('First line of output is \''.$output[0].'\'');
+    }
     return false;
   }
 

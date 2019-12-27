@@ -14,9 +14,14 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
-# Fedora >= 25 needs apcu backwards compatibility module
-%if 0%{?fedora} >= 25
+# Fedora needs apcu backwards compatibility module
+%if 0%{?fedora}
 %global with_apcu_bc 1
+%endif
+
+# Newer php's keep json functions in a subpackage
+%if 0%{?fedora} || 0%{?rhel} >= 8
+%global with_php_json 1
 %endif
 
 # The default for everything but el7 these days
@@ -105,7 +110,7 @@ Summary: Common files for ZoneMinder, not tied to a specific web server
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
-%{?fedora:Requires: php-json}
+%{?with_php_json:Requires: php-json}
 Requires: php-pecl-apcu
 %{?with_apcu_bc:Requires: php-pecl-apcu-bc}
 Requires: cambozola

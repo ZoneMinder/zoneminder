@@ -293,42 +293,36 @@ if [ "${TRAVIS}" == "true" ]; then
 fi
 checksanity
 
-# We don't want to build packages for all supported distros after every commit
-# Only build all packages when executed via cron
-# See https://docs.travis-ci.com/user/cron-jobs/
-
 # Steps common to Redhat distros
 if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
-  if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true" ]; then
-    commonprep
-    echo "Begin Redhat build..."
+  commonprep
+  echo "Begin Redhat build..."
 
-    setrpmpkgname
+  setrpmpkgname
 
-    ln -sfT distros/redhat rpm
+  ln -sfT distros/redhat rpm
 
-    # The rpm specfile requires the Crud submodule folder to be empty
-    rm -rf web/api/app/Plugin/Crud
-    mkdir web/api/app/Plugin/Crud
+  # The rpm specfile requires the Crud submodule folder to be empty
+  rm -rf web/api/app/Plugin/Crud
+  mkdir web/api/app/Plugin/Crud
 
-    reporpm="rpmfusion-free-release"
-    dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
+  reporpm="rpmfusion-free-release"
+  dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
 
-    # Give our downloaded repo rpm a common name so redhat_package.mk can find it
-    if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
-      echo "Retrieving ${reporpm} repo rpm..."
-      curl $dlurl > build/external-repo.noarch.rpm
-    else
-      echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
-      echo "Download url was: $dlurl"
-      exit 1
-    fi
-
-    setrpmchangelog
-
-    echo "Starting packpack..."
-    execpackpack
+  # Give our downloaded repo rpm a common name so redhat_package.mk can find it
+  if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
+    echo "Retrieving ${reporpm} repo rpm..."
+    curl $dlurl > build/external-repo.noarch.rpm
+  else
+    echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
+    echo "Download url was: $dlurl"
+    exit 1
   fi
+
+  setrpmchangelog
+
+  echo "Starting packpack..."
+  execpackpack
 
 # Steps common to Debian based distros
 elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then

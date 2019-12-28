@@ -81,7 +81,7 @@ void FFMPEGInit() {
       av_log_set_callback(log_libav_callback); 
       Info("Enabling ffmpeg logs, as LOG_DEBUG+LOG_FFMPEG are enabled in options");
     } else {
-      Info("Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor not part of your debug targets");
+      Info("Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor is not part of your debug targets");
       av_log_set_level(AV_LOG_QUIET);
     }
 #if !LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)

@@ -291,17 +291,18 @@ static void zm_log_fps(double d, const char *postfix) {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par ) {
-  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d %s) codec_tag(%d) width(%d) height(%d) bit_rate(%d) format(%d = %s)",
-    par->codec_type,
-    par->codec_id,
-    avcodec_get_name(par->codec_id),
-    par->codec_tag,
-    par->width,
-    par->height,
-    par->bit_rate,
-    par->format,
-    ((AVPixelFormat)par->format == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format))
-); 
+  Debug(1, "Dumping codecpar codec_type(%d %s) codec_id(%d %s) codec_tag(%" PRIu32 ") width(%d) height(%d) bit_rate(%" PRIu64 ") format(%d %s)",
+      par->codec_type,
+      av_get_media_type_string(par->codec_type),
+      par->codec_id,
+      avcodec_get_name(par->codec_id),
+      par->codec_tag,
+      par->width,
+      par->height,
+      par->bit_rate,
+      par->format,
+      (((AVPixelFormat)par->format == AV_PIX_FMT_NONE) ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format))
+      ); 
 }
 #endif
 

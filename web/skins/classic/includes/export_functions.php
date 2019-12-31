@@ -226,13 +226,13 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
 ?>
 <body>
 <style>
-*.horizontal_track {background-color: #bbb;width: <?php echo$event->Width()?>px;line-height: 0px;font-size: 0px;text-align: left;padding: 4px;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
-*.horizontal_slider {background-color: #666;width: 16px;height: 8px;position: relative;z-index: 2;line-height: 0;margin: 0;border: 2px solid;border-color: #999 #333 #333 #999;}
-*.horizontal_slit {background-color: #333;width: <?php echo($event->Width()-10)?>px;height: 2px;margin: 4px 4px 2px 4px;line-height: 0;position: absolute;z-index: 1;border: 1px solid;border-color: #999 #ddd #ddd #999;}
-*.vertical_track {background-color: #bbb;padding: 3px 5px 15px 5px;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
-*.vertical_slider {background-color: #666;width: 18px;height: 8px;font: 0px;text-align: left;line-height: 0px;position: relative;z-index: 1;border: 2px solid;border-color: #999 #333 #333 #999;}
-*.vertical_slit {background-color: #000;width: 2px;height: 100px;position: absolute;margin: 4px 10px 4px 10px;padding: 4px 0 1px 0;line-height: 0;font-size: 0;border: 1px solid;border-color: #666 #ccc #ccc #666;}
-*.display_holder {background-color: #bbb;color: #fff;width: 34px;height: 20px;text-align: right;padding: 0;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
+.horizontal_track {background-color: #bbb;width: <?php echo $event->Width()?>px;line-height: 0px;font-size: 0px;text-align: left;padding: 4px;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
+.horizontal_slider {background-color: #666;width: 16px;height: 8px;position: relative;z-index: 2;line-height: 0;margin: 0;border: 2px solid;border-color: #999 #333 #333 #999;}
+.horizontal_slit {background-color: #333;width: <?php echo($event->Width()-10)?>px;height: 2px;margin: 4px 4px 2px 4px;line-height: 0;position: absolute;z-index: 1;border: 1px solid;border-color: #999 #ddd #ddd #999;}
+.vertical_track {background-color: #bbb;padding: 3px 5px 15px 5px;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
+.vertical_slider {background-color: #666;width: 18px;height: 8px;font: 0px;text-align: left;line-height: 0px;position: relative;z-index: 1;border: 2px solid;border-color: #999 #333 #333 #999;}
+.vertical_slit {background-color: #000;width: 2px;height: 100px;position: absolute;margin: 4px 10px 4px 10px;padding: 4px 0 1px 0;line-height: 0;font-size: 0;border: 1px solid;border-color: #666 #ccc #ccc #666;}
+.display_holder {background-color: #bbb;color: #fff;width: 34px;height: 20px;text-align: right;padding: 0;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
 .value_display {background-color: #bbb;color: #333;width: 30px;margin: 0 2px;text-align: right;font-size: 8pt;font-face: verdana, arial, helvetica, sans-serif;font-weight: bold;line-height: 12px;border: 0;cursor: default;}
 </style>
 
@@ -247,7 +247,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
     if ( $Monitor->VideoWriter() == '2' ) {
       # Passthrough
       $Rotation = $event->Orientation();
-      if ( in_array($event->Orientation(),array('90','270')) )
+      if ( in_array($event->Orientation(),array('ROTATE_90','ROTATE_270')) )
         $Zoom = $event->Height()/$event->Width();
     }
 ?>
@@ -280,7 +280,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
 <div align="center"><div class="horizontal_track">
 	<div class="horizontal_slit">&nbsp;</div>
     <div class="horizontal_slider" id="imageslider_id" style="left: 0px;"
-        onmousedown="slide(event,'horizontal', <?php echo($event->Width()-20)?>, 1, <?php echo$listcount?>, <?php echo$listcount?>,0, 'imageslider_display_id');">&nbsp;</div>
+        onmousedown="slide(event,'horizontal', <?php echo($event->Width()-20)?>, 1, <?php echo $listcount?>, <?php echo $listcount?>,0, 'imageslider_display_id');">&nbsp;</div>
   </div>
 </div>
 <div align="center"><div class="display_holder"><input id="imageslider_display_id" class="value_display" type="text" value="0" onfocus="blur(this);"/></div></div>
@@ -618,10 +618,10 @@ function exportEventImagesMaster($eids) {
 <body>
 <h2><?php echo translate('Images') ?> Master</h2>
 <?php
-  // TODO: Should use find to make this 1 db query
-	foreach ($eids as $eid) {
+  $events = ZM\Event::find(array('Id'=>$eids));
+
+	foreach ($events as $event) {
 		//get monitor id and event id
-		$event = new ZM\Event($eid);
 		$eventMonitorId[$eid] = $event->MonitorId();
 		$eventPath[$eid] = $event->Relative_Path();
 	}
@@ -653,20 +653,18 @@ function exportEventImagesMaster($eids) {
       <div class="tab_content" id="all">
         <h2> All </h2>
 <?php
-	foreach($eids as $eid) {
-    $Event = new ZM\Event($eid);
-		eventlist_html($Event);
-	} # end foreach event id
+	foreach($events as $event) {
+		eventlist_html($event);
+	} # end foreach event
 ?>
 	</div>
 <?php
   foreach ($monitors as $monitor_id) {
 		echo "<div class=\"tab_content\" id=\"tab$monitor_id\">";
 		echo '<h2>Monitor: ' . $monitorNames[$monitor_id] . ' </h2>';
-		foreach ( $eids as $eid ) {
-			$Event = new ZM\Event($eid);
-			if ( $Event->MonitorId() == $monitor_id ) {
-				eventlist_html($Event);
+		foreach ( $events as $event ) {
+			if ( $event->MonitorId() == $monitor_id ) {
+				eventlist_html($event);
 			} # end if its the right monitor
 		} # end foreach event
 		echo '</div>';
@@ -780,7 +778,7 @@ function exportFileList($event, $exportDetail, $exportFrames, $exportImages, $ex
     }
     fwrite($fp, exportEventDetail($event, $exportFrames, $exportImages));
     fclose($fp);
-    $exportFileList[$file] = $event->Id().'/'.$file;
+    $exportFileList[$file] = $file;
   }
   if ( $exportFrames ) {
     $file = 'zmEventFrames.html';
@@ -789,7 +787,7 @@ function exportFileList($event, $exportDetail, $exportFrames, $exportImages, $ex
     }
     fwrite($fp, exportEventFrames($event, $exportDetail, $exportImages));
     fclose($fp);
-    $exportFileList[$file] = $event->Id().'/'.$file;
+    $exportFileList[$file] = $file;
   }
 
   if ( $exportImages ) {
@@ -797,7 +795,7 @@ function exportFileList($event, $exportDetail, $exportFrames, $exportImages, $ex
     $myfilelist = array();
     foreach ( $files as $file ) {
       if ( preg_match('/-(?:capture|analyse).jpg$/', $file ) ) {
-        $myfilelist[$file] = $exportFileList[$file] = $event->Id().'/'.$file;
+        $myfilelist[$file] = $exportFileList[$file] = $file;
       } else {
         $filesLeft[$file] = $file;
       }
@@ -806,12 +804,12 @@ function exportFileList($event, $exportDetail, $exportFrames, $exportImages, $ex
 
     // create an image slider
     if ( !empty($myfilelist) ) {
-      $file = $event->Id().'/zmEventImages.html';
+      $file = 'zmEventImages.html';
       if ( !($fp = fopen($file, 'w')) )
         ZM\Fatal("Can't open event images export file '$file'");
       fwrite($fp, exportEventImages($event, $exportDetail, $exportFrames, $myfilelist));
       fclose($fp);
-      $exportFileList[$file] = $event->Id().'/'.$file;
+      $exportFileList[$file] = $file;
     }
   } # end if exportImages
 
@@ -819,7 +817,7 @@ function exportFileList($event, $exportDetail, $exportFrames, $exportImages, $ex
     $filesLeft = array();
     foreach ( $files as $file ) {
       if ( preg_match('/\.(?:mpg|mpeg|mov|swf|mp4|mkv|avi|asf|3gp)$/', $file) ) {
-        $exportFileList[$file] = $event->Id().'/'.$file;
+        $exportFileList[$file] = $file;
       } else {
         $filesLeft[$file] = $file;
       }
@@ -829,7 +827,7 @@ function exportFileList($event, $exportDetail, $exportFrames, $exportImages, $ex
 
   if ( $exportMisc ) {
     foreach ( $files as $file ) {
-      $exportFileList[$file] = $event->Id().'/'.$file;
+      $exportFileList[$file] = $file;
     }
     $files = array();
   }
@@ -863,7 +861,6 @@ function exportEvents(
   }
 
   # Ensure that we are going to be able to do this.
-  # TODO should ensure that permissions are restrictive
   if ( ! ( mkdir(ZM_DIR_EXPORTS) or file_exists(ZM_DIR_EXPORTS) ) ) {
     ZM\Fatal('Can\'t create exports dir at \''.ZM_DIR_EXPORTS.'\'');
   }
@@ -900,10 +897,12 @@ function exportEvents(
     ZM\Logger::Debug("File list for event $eid " . print_r($event_exportFileList, true));
     $exportFileList = array_merge($exportFileList,$event_exportFileList);
     foreach ( $event_exportFileList as $file ) {
-     if ( preg_match('/\.html$/', $file ) )
+     if ( preg_match('/\.html$/', $file) )
         continue;
-      ZM\Logger::Debug('cp -as '.$event->Path().'/../'.$file.' '.$export_dir.'/'.$file);
-      exec('cp -as '.$event->Path().'/../'.$file.' '.$export_dir.'/'.$file);
+      #exec('cp -as '.$event->Path().'/../'.$file.' '.$export_dir.'/'.$file, $output, $return);
+      $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'/'.$file. ' 2>&1';
+      exec($cmd, $output, $return);
+      ZM\Logger::Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
     }
   } # end foreach event
 

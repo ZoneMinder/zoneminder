@@ -49,7 +49,6 @@ env:
   - SMPFLAGS=-j4 OS=ubuntu DIST=disco ARCH=i386
   - SMPFLAGS=-j4 OS=debian DIST=buster ARCH=i386
   - SMPFLAGS=-j4 OS=debian DIST=stretch ARCH=i386
-  - SMPFLAGS=-j4 OS=raspbian DIST=stretch ARCH=armhf DOCKER_REPO=knnniggett/packpack
   - SMPFLAGS=-j4 OS=eslint DIST=eslint
 
 compiler:

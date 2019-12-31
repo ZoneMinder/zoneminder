@@ -2468,7 +2468,7 @@ our @options = (
   },
   {
     name        => 'ZM_WATCH_MAX_DELAY',
-    default     => '5',
+    default     => '45',
     description => 'The maximum delay allowed since the last captured image',
     help        => q`
       The zmwatch daemon checks the image capture performance of the

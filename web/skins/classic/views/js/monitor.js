@@ -141,8 +141,8 @@ function initPage() {
 
 function change_WebColour() {
   $j('#WebSwatch').css(
-    'backgroundColor',
-    $j('input[name="newMonitor[WebColour]"]').val()
+      'backgroundColor',
+      $j('input[name="newMonitor[WebColour]"]').val()
   );
 }
 
@@ -159,7 +159,7 @@ function random_WebColour() {
   var new_colour = getRandomColour();
   $j('input[name="newMonitor[WebColour]"]').val(new_colour);
   $j('#WebSwatch').css(
-    'backgroundColor', new_colour
+      'backgroundColor', new_colour
   );
 }
 

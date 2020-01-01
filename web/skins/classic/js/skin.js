@@ -180,7 +180,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     if ( !window[fnName] ) {
       console.error("Nothing found to bind to " + fnName + " on element " + el.name);
       return;
-    } 
+    }
 
     el.onclick = function() {
       window[fnName]();

@@ -28,3 +28,4 @@ zmtelemetry\[[[:digit:]]+\]: INF \[Telemetry data uploaded successfully.\]$
 zmtelemetry\[[[:digit:]]+\]: INF \[Sending data to ZoneMinder Telemetry server.\]$
 zmtelemetry\[[[:digit:]]+\]: INF \[Collec?ting data to send to ZoneMinder Telemetry server.\]$
 web_php\[[[:digit:]]+\]: INF \[Login successful for user "[[:alnum:]]+"\]$
+zmeventnotification\[[[:digit:]]+\]: INF

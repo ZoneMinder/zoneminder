@@ -110,8 +110,6 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
               <button value="Save" type="submit"><?php echo translate('Save') ?></button>
             </div>
          </form>
-	
-
 <?php
 } else if ( $tab == 'users' ) {
 ?>
@@ -319,23 +317,28 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
       }
 
       function updateSelected() {
+        # Turn them all off, then selectively turn the checked ones back on
         dbQuery('UPDATE `Users` SET `APIEnabled`=0');
-        foreach ( $_REQUEST["tokenUids"] as $markUid ) {
-          $minTime = time();
-          dbQuery('UPDATE `Users` SET `TokenMinExpiry`=? WHERE `Id`=?', array($minTime, $markUid));
+
+        if ( isset($_REQUEST['tokenUids']) ) {
+          foreach ( $_REQUEST['tokenUids'] as $markUid ) {
+            $minTime = time();
+            dbQuery('UPDATE `Users` SET `TokenMinExpiry`=? WHERE `Id`=?', array($minTime, $markUid));
+          }
         }
-        foreach ( $_REQUEST["apiUids"] as $markUid ) {
-          dbQuery('UPDATE `Users` SET `APIEnabled`=1 WHERE `Id`=?', array($markUid));
-      
+        if ( isset($_REQUEST['apiUids']) ) {
+          foreach ( $_REQUEST['apiUids'] as $markUid ) {
+            dbQuery('UPDATE `Users` SET `APIEnabled`=1 WHERE `Id`=?', array($markUid));
+          }
         }
         echo '<span class="timedSuccessBox">'.translate('Updated').'</span>';
       }
 
-      if ( array_key_exists('revokeAllTokens',$_POST) ) {
+      if ( array_key_exists('revokeAllTokens', $_POST) ) {
         revokeAllTokens();
       }
 
-      if ( array_key_exists('updateSelected',$_POST) ) {
+      if ( array_key_exists('updateSelected', $_POST) ) {
         updateSelected();
       }
     ?>

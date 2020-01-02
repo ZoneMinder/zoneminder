@@ -63,18 +63,63 @@ sub open {
   my $self = shift;
 
   $self->loadMonitor();
-  my $user;
+  my $username;
   my $password;
+  my $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
 
   if ( $self->{Monitor}->{ControlAddress} =~ /(.*):(.*)@(.*)/ ) {
-    $user = $1;
+    $username = $1;
     $password = $2;
     $$self{address} = $3;
   }
 
   $self->{ua} = LWP::UserAgent->new;
-  $self->{ua}->credentials($$self{address}, 'Login to ' . $self->{Monitor}->{ControlDevice}, $user, $password);
+  $self->{ua}->credentials($$self{address}, $realm, $username, $password);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
+
+  # Detect REALM
+  my $res = $self->{ua}->get($$self{address}.'/cgi-bin/ptz.cgi');
+
+  if ( $res->is_success ) {
+    $self->{state} = 'open';
+    return;
+  }
+
+  if ( $res->status_line() eq '401 Unauthorized' ) {
+
+    my $headers = $res->headers();
+    foreach my $k ( keys %$headers ) {
+      Debug("Initial Header $k => $$headers{$k}");
+    }
+
+    if ( $$headers{'www-authenticate'} ) {
+      my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
+      if ( $tokens =~ /\w+="([^"]+)"/i ) {
+        if ( $realm ne $1 ) {
+          $realm = $1;
+          Debug("Changing REALM to $realm");
+          $self->{ua}->credentials($$self{address}, $realm, $username, $password);
+          $res = $self->{ua}->get($$self{address}.'/cgi-bin/ptz.cgi');
+          if ( $res->is_success() ) {
+            $self->{state} = 'open';
+            return;
+          }
+          Error('Authentication still failed after updating REALM' . $res->status_line);
+          $headers = $res->headers();
+          foreach my $k ( keys %$headers ) {
+            Debug("Initial Header $k => $$headers{$k}");
+          }  # end foreach
+        } else {
+          Error('Authentication failed, not a REALM problem');
+        }
+      } else {
+        Error('Failed to match realm in tokens');
+      } # end if
+    } else {
+      Debug('No headers line');
+    } # end if headers
+  } # end if $res->status_line() eq '401 Unauthorized'
+
   $self->{state} = 'open';
 }
 

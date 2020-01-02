@@ -179,14 +179,14 @@ if ( ! defined('ZM_SERVER_ID') ) {
 		# Use Server lookup so that it caches
 		$Server = ZM\Server::find_one(array('Name'=>ZM_SERVER_NAME));
     if ( !$Server ) {
-      Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
+      ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
     } else {
       define('ZM_SERVER_ID', $Server->Id());
     }
   } else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
 		$Server = ZM\Server::find_one(array('Name'=>ZM_SERVER_HOST));
     if ( ! $Server ) {
-      Error('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
+      ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
     } else {
       define('ZM_SERVER_ID', $Server->Id());
     }
@@ -199,7 +199,7 @@ function process_configfile($configFile) {
   if ( is_readable( $configFile ) ) {
     $configvals = array();
 
-    $cfg = fopen($configFile, 'r') or Error("Could not open config file: $configFile.");
+    $cfg = fopen($configFile, 'r') or ZM\Error("Could not open config file: $configFile.");
     while ( !feof($cfg) ) {
       $str = fgets($cfg, 256);
       if ( preg_match('/^\s*(#.*)?$/', $str) ) {
@@ -207,7 +207,7 @@ function process_configfile($configFile) {
       } else if ( preg_match( '/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $str, $matches )) {
         $configvals[$matches[1]] = $matches[2];
 			} else {
-				Error("Malformed line in config $configFile\n$str");
+				ZM\Error("Malformed line in config $configFile\n$str");
 			}
     }
     fclose($cfg);

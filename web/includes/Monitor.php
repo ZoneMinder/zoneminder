@@ -89,7 +89,7 @@ class Monitor extends ZM_Object {
     'DefaultScale'  =>  100,
     'SignalCheckPoints' =>  0,
     'SignalCheckColour' =>  '#0000BE',
-    'WebColour'   =>  'red',
+    'WebColour'   =>  '#ff0000',
     'Exif'    =>  array('type'=>'boolean','default'=>0),
     'Sequence'  =>  null,
     'TotalEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),

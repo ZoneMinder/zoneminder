@@ -54,6 +54,7 @@ if ( !$monitor ) {
     $monitor = new ZM\Monitor();
   } # end if $_REQUEST['dupID']
   $monitor->Name(translate('Monitor').'-'.$nextId);
+  $monitor->WebColour(random_colour());
 } # end if $_REQUEST['mid']
 
 if ( ZM_OPT_X10 && empty($x10Monitor) ) {
@@ -1112,15 +1113,17 @@ if ( canEdit('Control') ) {
         <tr>
           <td><?php echo translate('SignalCheckColour') ?></td>
           <td>
-            <input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>"/>
+            <input type="color" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>"/>
             <span id="SignalCheckSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($monitor->SignalCheckColour()); ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
           </td>
         </tr>
         <tr>
           <td><?php echo translate('WebColour') ?></td>
           <td>
-            <input type="text" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/>
+            <input type="color" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>"/>
             <span id="WebSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($monitor->WebColour()) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            <i class="material-icons" data-on-click="random_WebColour">sync</i> 
+
           </td>
         </tr>
         <tr>

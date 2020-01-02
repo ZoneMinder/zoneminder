@@ -128,12 +128,16 @@ class Control extends ZM_Object {
     $cmds['PresetHome'] = 'presetHome';
 
     if ( $this->CanZoom() ) {
-      if ( $this->CanZoomCon() )
+      if ( $this->CanZoomCon() ) {
         $cmds['ZoomRoot'] = 'zoomCon';
-      elseif ( $this->CanZoomRel() )
+      } else if ( $this->CanZoomRel() ) {
         $cmds['ZoomRoot'] = 'zoomRel';
-      elseif ( $this->CanZoomAbs() )
+      } else if ( $this->CanZoomAbs() ) {
         $cmds['ZoomRoot'] = 'zoomAbs';
+      } else {
+        $cmds['ZoomRoot'] = '';
+        Error('No zoom type selected. Please select Continuous, Relative, Absolute');
+      }
       $cmds['ZoomTele'] = $cmds['ZoomRoot'].'Tele';
       $cmds['ZoomWide'] = $cmds['ZoomRoot'].'Wide';
       $cmds['ZoomStop'] = 'zoomStop';
@@ -142,12 +146,16 @@ class Control extends ZM_Object {
     }
 
     if ( $this->CanFocus() ) {
-      if ( $this->CanFocusCon() )
+      if ( $this->CanFocusCon() ) {
         $cmds['FocusRoot'] = 'focusCon';
-      elseif ( $this->CanFocusRel() )
+      } else if ( $this->CanFocusRel() ) {
         $cmds['FocusRoot'] = 'focusRel';
-      elseif ( $this->CanFocusAbs() )
+      } else if ( $this->CanFocusAbs() ) {
         $cmds['FocusRoot'] = 'focusAbs';
+      } else {
+        $cmds['FocusRoot'] = '';
+        Error('No focus type selected. Please select Continuous, Relative, Absolute');
+      }
       $cmds['FocusFar'] = $cmds['FocusRoot'].'Far';
       $cmds['FocusNear'] = $cmds['FocusRoot'].'Near';
       $cmds['FocusStop'] = 'focusStop';
@@ -156,12 +164,16 @@ class Control extends ZM_Object {
     }
 
     if ( $this->CanIris() ) {
-      if ( $this->CanIrisCon() )
+      if ( $this->CanIrisCon() ) {
         $cmds['IrisRoot'] = 'irisCon';
-      elseif ( $this->CanIrisRel() )
+      } else if ( $this->CanIrisRel() ) {
         $cmds['IrisRoot'] = 'irisRel';
-      elseif ( $this->CanIrisAbs() )
+      } else if ( $this->CanIrisAbs() ) {
         $cmds['IrisRoot'] = 'irisAbs';
+      } else {
+        $cmds['IrisRoot'] = '';
+        Error('No iris type selected. Please select Continuous, Relative, Absolute');
+      }
       $cmds['IrisOpen'] = $cmds['IrisRoot'].'Open';
       $cmds['IrisClose'] = $cmds['IrisRoot'].'Close';
       $cmds['IrisStop'] = 'irisStop';
@@ -170,12 +182,16 @@ class Control extends ZM_Object {
     }
 
     if ( $this->CanWhite() ) {
-      if ( $this->CanWhiteCon() )
+      if ( $this->CanWhiteCon() ) {
         $cmds['WhiteRoot'] = 'whiteCon';
-      elseif ( $this->CanWhiteRel() )
+      } else if ( $this->CanWhiteRel() ) {
         $cmds['WhiteRoot'] = 'whiteRel';
-      elseif ( $this->CanWhiteAbs() )
+      } else if ( $this->CanWhiteAbs() ) {
         $cmds['WhiteRoot'] = 'whiteAbs';
+      } else {
+        Error('No White type selected. Please select Continuous, Relative, Absolute');
+        $cmds['WhiteRoot'] = '';
+      }
       $cmds['WhiteIn'] = $cmds['WhiteRoot'].'In';
       $cmds['WhiteOut'] = $cmds['WhiteRoot'].'Out';
       $cmds['WhiteAuto'] = 'whiteAuto';
@@ -183,12 +199,16 @@ class Control extends ZM_Object {
     }
 
     if ( $this->CanGain() ) {
-      if ( $this->CanGainCon() )
+      if ( $this->CanGainCon() ) {
         $cmds['GainRoot'] = 'gainCon';
-      elseif ( $this->CanGainRel() )
+      } else if ( $this->CanGainRel() ) {
         $cmds['GainRoot'] = 'gainRel';
-      elseif ( $this->CanGainAbs() )
+      } else if ( $this->CanGainAbs() ) {
         $cmds['GainRoot'] = 'gainAbs';
+      } else {
+        Error('No Gain type selected');
+        $cmds['GainRoot'] = '';
+      }
       $cmds['GainUp'] = $cmds['GainRoot'].'Up';
       $cmds['GainDown'] = $cmds['GainRoot'].'Down';
       $cmds['GainAuto'] = 'gainAuto';
@@ -207,6 +227,7 @@ class Control extends ZM_Object {
         $cmds['Center'] = $cmds['PresetHome'];
       } else {
         $cmds['MoveRoot'] = '';
+        Error('No move type selected. Please select Continuous, Relative, Absolute');
       }
 
       $cmds['MoveUp'] = $cmds['MoveRoot'].'Up';

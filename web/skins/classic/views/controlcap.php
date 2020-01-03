@@ -30,6 +30,7 @@ $tabs['pan'] = translate('Pan');
 $tabs['tilt'] = translate('Tilt');
 $tabs['zoom'] = translate('Zoom');
 $tabs['focus'] = translate('Focus');
+$tabs['gain'] = translate('Gain');
 $tabs['white'] = translate('White');
 $tabs['iris'] = translate('Iris');
 $tabs['presets'] = translate('Presets');

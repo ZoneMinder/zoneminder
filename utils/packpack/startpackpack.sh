@@ -30,7 +30,7 @@ checksanity () {
         ARCH="x86_64"
     fi
 
-    if [[ "${ARCH}" != "x86_64" && "${ARCH}" != "i386" && "${ARCH}" != "armhf" ]]; then
+    if [[ "${ARCH}" != "x86_64" && "${ARCH}" != "i386" && "${ARCH}" != "armhf" && "${ARCH}" != "aarch64" ]]; then
         echo
         echo "ERROR: Unsupported architecture specified \"${ARCH}\"."
         echo

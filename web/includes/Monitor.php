@@ -510,7 +510,7 @@ class Monitor extends ZM_Object {
       if ( @socket_connect($socket, $sockFile) ) {
         if ( !socket_write($socket, $optionString) ) {
           Error('Can\'t write to control socket: '.socket_strerror(socket_last_error($socket)));
-        return false;
+          return false;
         }
       } else if ( $command != 'quit' ) {
         $command = ZM_PATH_BIN.'/zmcontrol.pl '.$command.' --id='.$this->{'Id'};
@@ -544,7 +544,7 @@ class Monitor extends ZM_Object {
         }
       } catch ( Exception $e ) {
         Error("Except $e thrown trying to restart zma");
-      return false;
+        return false;
       }
     } else {
       Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');

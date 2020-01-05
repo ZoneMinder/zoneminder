@@ -29,7 +29,7 @@ var popupSizes = {
   'console':      {'width': 750, 'height': 312},
   'control':      {'width': 480, 'height': 480},
   'controlcaps':  {'width': 780, 'height': 320},
-  'controlcap':   {'width': 400, 'height': 400},
+  'controlcap':   {'width': 600, 'height': 500},
   'cycle':        {'addWidth': 32, 'minWidth': 384, 'addHeight': 62},
   'device':       {'width': 260, 'height': 150},
   'devices':      {'width': 400, 'height': 240},

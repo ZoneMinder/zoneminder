@@ -517,17 +517,17 @@ int FfmpegCamera::OpenFfmpeg() {
       Debug(1, "Selected hw_pix_fmt %d %s",
           hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
 
-      mVideoCodecContext->get_format = get_hw_format;
-
       ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
           (hwaccel_device != "" ? hwaccel_device.c_str(): NULL), NULL, 0);
       if ( ret < 0 ) {
         Error("Failed to create hwaccel device.");
-        return -1;
+        hw_pix_fmt = AV_PIX_FMT_NONE;
+      } else {
+        Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
+        mVideoCodecContext->get_format = get_hw_format;
+        mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+        hwFrame = zm_av_frame_alloc();
       }
-      Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
-      mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-      hwFrame = zm_av_frame_alloc();
     } else {
       Debug(1, "Failed to setup hwaccel.");
     }
@@ -537,7 +537,7 @@ int FfmpegCamera::OpenFfmpeg() {
 #else
     Warning("HWAccel support not compiled in.");
 #endif
-  }  // end if hwacel_name
+  }  // end if hwaccel_name
 
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)

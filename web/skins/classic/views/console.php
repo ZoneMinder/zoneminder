@@ -187,7 +187,8 @@ getBodyTopHTML();
       <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
       <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
       style="display:none;">
-        <i class="material-icons md-18">copy</i>
+        <i class="material-icons md-18">content_copy</i>
+<!--content_copy used instead of file_copy as there is a bug in material-icons -->
         &nbsp;<?php echo translate('CloneMonitor') ?>
       </button>
       <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
@@ -200,7 +201,7 @@ getBodyTopHTML();
       </button>
       <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled">
         <i class="material-icons md-18">view_list</i>
-        &nbsp;<?php echo translate('Select')?>
+        &nbsp;<?php echo translate('Select') ?>
         </button>
 <?php
 ob_start();

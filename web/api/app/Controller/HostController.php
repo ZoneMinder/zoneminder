@@ -136,7 +136,7 @@ class HostController extends AppController {
     }*/
 
     $access_issued_at = time();
-    $access_ttl = (ZM_AUTH_HASH_TTL || 2) * 3600;
+    $access_ttl = max(ZM_AUTH_HASH_TTL,1) * 3600;
 
     // by default access token will expire in 2 hrs
     // you can change it by changing the value of ZM_AUTH_HASH_TLL

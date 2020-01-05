@@ -9,7 +9,7 @@
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl git ln mkdir rmdir cat patch; do
+    for CMD in set echo curl git ln mkdir rmdir cat patch sed; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then
@@ -30,7 +30,7 @@ checksanity () {
         ARCH="x86_64"
     fi
 
-    if [[ "${ARCH}" != "x86_64" && "${ARCH}" != "i386" && "${ARCH}" != "armhf" ]]; then
+    if [[ "${ARCH}" != "x86_64" && "${ARCH}" != "i386" && "${ARCH}" != "armhf" && "${ARCH}" != "aarch64" ]]; then
         echo
         echo "ERROR: Unsupported architecture specified \"${ARCH}\"."
         echo
@@ -150,7 +150,7 @@ install_deb () {
       exit 1
     fi
 
-    # Install and test the zoneminder package (only) for Ubuntu Trusty
+    # Install and test the zoneminder package (only) for Ubuntu Xenial
     pkgname="build/zoneminder_${VERSION}-${RELEASE}_amd64.deb"
 
     if [ -e $pkgname ]; then
@@ -275,6 +275,8 @@ checkdeploytarget () {
         echo "*** TRACEROUTE ***"
         echo
         traceroute -w 2 -m 15 ${DEPLOYTARGET}
+
+        exit 97
     fi
 }
 
@@ -291,43 +293,43 @@ if [ "${TRAVIS}" == "true" ]; then
 fi
 checksanity
 
-# We don't want to build packages for all supported distros after every commit
-# Only build all packages when executed via cron
-# See https://docs.travis-ci.com/user/cron-jobs/
-
 # Steps common to Redhat distros
 if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
-  if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true" ]; then
-    commonprep
-    echo "Begin Redhat build..."
+  commonprep
+  echo "Begin Redhat build..."
 
-    setrpmpkgname
+  # Newer Redhat distros use dnf package manager rather than yum
+  if [ "${DIST}" -gt "7" ]; then
+    sed -i 's\yum\dnf\' utils/packpack/redhat_package.mk
+  fi
 
-    ln -sfT distros/redhat rpm
+  setrpmpkgname
 
-    # The rpm specfile requires the Crud submodule folder to be empty
-    rm -rf web/api/app/Plugin/Crud
-    mkdir web/api/app/Plugin/Crud
+  ln -sfT distros/redhat rpm
 
-    reporpm="rpmfusion-free-release"
-    dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
+  # The rpm specfile requires the Crud submodule folder to be empty
+  rm -rf web/api/app/Plugin/Crud
+  mkdir web/api/app/Plugin/Crud
 
-    # Give our downloaded repo rpm a common name so redhat_package.mk can find it
-    if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
-      echo "Retrieving ${reporpm} repo rpm..."
-      curl $dlurl > build/external-repo.noarch.rpm
-    else
-      echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
-      echo "Download url was: $dlurl"
-      exit 1
-    fi
+  reporpm="rpmfusion-free-release"
+  dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
 
-    setrpmchangelog
+  # Give our downloaded repo rpm a common name so redhat_package.mk can find it
+  if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
+    echo "Retrieving ${reporpm} repo rpm..."
+    curl $dlurl > build/external-repo.noarch.rpm
+  else
+    echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
+    echo "Download url was: $dlurl"
+    exit 1
+  fi
 
-    echo "Starting packpack..."
-    execpackpack
-  fi;
-  # Steps common to Debian based distros
+  setrpmchangelog
+
+  echo "Starting packpack..."
+  execpackpack
+
+# Steps common to Debian based distros
 elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
   commonprep
   echo "Begin ${OS} ${DIST} build..."
@@ -348,14 +350,27 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   echo "Starting packpack..."
   execpackpack
 
-  # We were not triggered via cron so just build and test trusty
-  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "xenial" ] && [ "${ARCH}" == "x86_64" ]; then
-    # If we are running inside Travis then attempt to install the deb we just built
-    if [ "${TRAVIS}" == "true" ]; then
+  # Try to install and run the newly built zoneminder package
+  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "xenial" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
+      echo "Begin Deb package installation..."
       install_deb
-    fi
   fi
-fi
 
-exit 0
+# Steps common to eslint checks
+elif [ "${OS}" == "eslint" ] || [ "${DIST}" == "eslint" ]; then
+
+    # Check we've got npm installed
+    type npm 2>&1 > /dev/null
+
+    if [ $? -ne 0 ]; then
+      echo
+      echo "ERROR: The script cannot find the required command \"npm\"."
+      echo
+      exit 1
+    fi
+
+    npm install -g eslint@5.12.0 eslint-config-google@0.11.0 eslint-plugin-html@5.0.0 eslint-plugin-php-markup@0.2.5
+    echo "Begin eslint checks..."
+    eslint --ext .php,.js .
+fi
 

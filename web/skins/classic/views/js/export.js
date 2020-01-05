@@ -4,7 +4,7 @@ function configureExportButton(element) {
   var form = element.form;
 
   var eventCount = 0;
-  document.querySelectorAll('input[name="eids[]"]').forEach(function(el){
+  document.querySelectorAll('input[name="eids[]"]').forEach(function(el) {
     if ( el.checked ) {
       eventCount ++;
     }
@@ -43,7 +43,6 @@ function exportProgress() {
 }
 
 function exportResponse(respObj, respText) {
-
   clearInterval(exportTimer);
   if ( respObj.result != 'Ok' ) {
     $('exportProgressTicker').set('text', respObj.message);

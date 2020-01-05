@@ -9,7 +9,7 @@
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl git ln mkdir rmdir cat patch; do
+    for CMD in set echo curl git ln mkdir rmdir cat patch sed; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then
@@ -297,6 +297,11 @@ checksanity
 if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
   commonprep
   echo "Begin Redhat build..."
+
+  # Newer Redhat distros use dnf package manager rather than yum
+  if [ "${DIST}" -gt "7" ]; then
+    sed -i 's\yum\dnf\' utils/packpack/redhat_package.mk
+  fi
 
   setrpmpkgname
 

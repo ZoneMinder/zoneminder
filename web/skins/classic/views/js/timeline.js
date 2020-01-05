@@ -67,17 +67,20 @@ function frameDataResponse( respObj, respText ) {
   zm_event['frames'][frame.FrameId] = frame;
   zm_event['frames'][frame.FrameId]['html'] = createEventHtml( zm_event, frame );
 
-  showEventData(frame.EventId, frame.FrameId);
+  showEventData(zm_event, frame.FrameId);
 }
 
-function showEventData(eventId, frameId) {
-  if ( events[eventId] ) {
-    var zm_event = events[eventId];
+function showEventData(zm_event, frameId) {
+  if ( zm_event ) {
     if ( zm_event['frames'] ) {
       if ( zm_event['frames'][frameId] ) {
-        showEventDetail( zm_event['frames'][frameId]['html'] );
+        $('instruction').addClass('hidden');
+        eventData = $('eventData'+zm_event.MonitorId);
+        eventData.empty();
+        eventData.adopt(zm_event['frames'][frameId]['html']);
+        eventData.removeClass('hidden');
         var imagePath = 'index.php?view=image&eid='+eventId+'&fid='+frameId;
-        loadEventImage(imagePath, eventId, frameId);
+        loadEventImage(imagePath, zm_event, frameId);
         return;
       } else {
         console.log('No frames for ' + frameId);
@@ -86,7 +89,7 @@ function showEventData(eventId, frameId) {
       console.log('No frames');
     }
   } else {
-    console.log('No event for ' + eventId);
+    console.log('No event');
   }
 }
 
@@ -125,25 +128,22 @@ function previewEvent(slot) {
   }
 }
 
-function loadEventImage( imagePath, eid, fid ) {
-  var eventData = $j('#eventData');
-  var imageSrc = $j('#imageSrc');
+function loadEventImage( imagePath, zm_event, fid ) {
+  var imageSrc = $('imageSrc'+zm_event.MonitorId);
 
   imageSrc.show();
-  imageSrc.attr('src', imagePath);
-  imageSrc.attr('data-event-id', eid);
-  imageSrc.attr('data-frame-id', fid);
-  imageSrc.off('click');
-  imageSrc.click(function() {
-    showEvent(this);
-  });
+  imageSrc.setProperty('src', imagePath);
+  imageSrc.setAttribute('data-event-id', zm_event.Id);
+  imageSrc.setAttribute('data-frame-id', fid);
+  imageSrc.onclick=window['showEvent'].bind(imageSrc, imageSrc);
 
-  eventData.attr('data-event-id', eid);
-  eventData.attr('data-frame-id', fid);
-  eventData.off('click');
-  eventData.click(function() {
-    showEvent(this);
-  });
+  var eventData = $('eventData'.zm_event.MonitorId);
+  if ( eventData ) {
+    eventData.removeEvent('click');
+    eventData.addEvent('click', showEvent.pass());
+  } else {
+    console.log("No eventdata area found for monitor " + zm_event.MonitorId);
+  }
 }
 
 function tlZoomBounds(event) {

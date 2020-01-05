@@ -36,12 +36,6 @@ function createEventHtml(zm_event, frame) {
   return eventHtml;
 }
 
-function showEventDetail( eventHtml ) {
-  $('instruction').addClass( 'hidden' );
-  $('eventData').empty();
-  $('eventData').adopt( eventHtml );
-  $('eventData').removeClass( 'hidden' );
-}
 
 function eventDataResponse( respObj, respText ) {
   var zm_event = respObj.event;
@@ -79,18 +73,20 @@ function frameDataResponse( respObj, respText ) {
   zm_event['frames'][frame.FrameId] = frame;
   zm_event['frames'][frame.FrameId]['html'] = createEventHtml( zm_event, frame );
 
-  showEventData(frame.EventId, frame.FrameId);
+  showEventData(zm_event, frame.FrameId);
 }
 
-function showEventData(eventId, frameId) {
-  if ( events[eventId] ) {
-    var zm_event = events[eventId];
+function showEventData(zm_event, frameId) {
+  if ( zm_event ) {
     if ( zm_event['frames'] ) {
       if ( zm_event['frames'][frameId] ) {
-        showEventDetail( zm_event['frames'][frameId]['html'] );
+        $('instruction').addClass('hidden');
+        eventData = $('eventData'+zm_event.MonitorId);
+        eventData.empty();
+        eventData.adopt(zm_event['frames'][frameId]['html']);
+        eventData.removeClass('hidden');
         var imagePath = 'index.php?view=image&eid='+eventId+'&fid='+frameId;
-        var videoName = zm_event.DefaultVideo;
-        loadEventImage( imagePath, eventId, frameId, zm_event.Width, zm_event.Height, zm_event.Frames/zm_event.Length, videoName, zm_event.Length, zm_event.StartTime, monitors[zm_event.MonitorId]);
+        loadEventImage(imagePath, zm_event, frameId);
         return;
       } else {
         console.log('No frames for ' + frameId);
@@ -99,7 +95,7 @@ function showEventData(eventId, frameId) {
       console.log('No frames');
     }
   } else {
-    console.log('No event for ' + eventId);
+    console.log('No event');
   }
 }
 
@@ -133,50 +129,28 @@ function previewEvent(slot) {
   eventId = slot.getAttribute('data-event-id');
   frameId = slot.getAttribute('data-frame-id');
   if ( events[eventId] ) {
-    showEventData(eventId, frameId);
+    showEventData(events[eventId], frameId);
   } else {
     requestFrameData(eventId, frameId);
   }
 }
 
-function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, duration, startTime, Monitor ) {
-  var vid = $('preview');
-  var imageSrc = $('imageSrc');
-  if ( videoName && vid ) {
-    vid.show();
-    imageSrc.hide();
-    var newsource=imagePath.slice(0, imagePath.lastIndexOf('/'))+'/'+videoName;
-    //console.log(newsource);
-    //console.log(sources[0].src.slice(-newsource.length));
-    if ( newsource != vid.currentSrc.slice(-newsource.length) || vid.readyState == 0 ) {
-      //console.log("loading new");
-      //it is possible to set a long source list here will that be unworkable?
-      var sources = vid.getElementsByTagName('source');
-      sources[0].src = newsource;
-      var tracks = vid.getElementsByTagName('track');
-      if (tracks.length) {
-        tracks[0].parentNode.removeChild(tracks[0]);
-      }
-      vid.load();
-      addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime);
-      vid.currentTime = fid/fps;
-    } else {
-      if ( ! vid.seeking ) {
-        vid.currentTime=fid/fps;
-      }
-    }
-  } else {
-    if ( vid ) vid.hide();
-    imageSrc.show();
-    imageSrc.setProperty('src', imagePath);
-    imageSrc.setAttribute('data-event-id', eid);
-    imageSrc.setAttribute('data-frame-id', fid);
-    imageSrc.onclick=window['showEvent'].bind(imageSrc, imageSrc);
-  }
+function loadEventImage( imagePath, zm_event, fid ) {
+  var imageSrc = $('imageSrc'+zm_event.MonitorId);
 
-  var eventData = $('eventData');
-  eventData.removeEvent('click');
-  eventData.addEvent('click', showEvent.pass());
+  imageSrc.show();
+  imageSrc.setProperty('src', imagePath);
+  imageSrc.setAttribute('data-event-id', zm_event.Id);
+  imageSrc.setAttribute('data-frame-id', fid);
+  imageSrc.onclick=window['showEvent'].bind(imageSrc, imageSrc);
+
+  var eventData = $('eventData'.zm_event.MonitorId);
+  if ( eventData ) {
+    eventData.removeEvent('click');
+    eventData.addEvent('click', showEvent.pass());
+  } else {
+    console.log("No eventdata area found for monitor " + zm_event.MonitorId);
+  }
 }
 
 function tlZoomBounds( minTime, maxTime ) {
@@ -204,4 +178,3 @@ window.addEventListener("DOMContentLoaded", function() {
     el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
   });
 });
-

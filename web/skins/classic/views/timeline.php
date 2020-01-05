@@ -494,7 +494,7 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
   } # end foreach MonitorId
 }  # end foreach x
 
-ZM\Logger::Debug(print_r( $monEventSlots,true ));
+#ZM\Logger::Debug(print_r( $monEventSlots,true ));
 //print_r( $monFrameSlots );
 //print_r( $chart );
 
@@ -683,23 +683,32 @@ xhtmlHeaders(__FILE__, translate('Timeline'));
       </div>
     </div>
     <div id="content" class="chartSize">
+      <div id="instruction">
+        <p><?php echo translate('TimelineTip1') ?></p>
+        <p><?php echo translate('TimelineTip2') ?></p>
+        <p><?php echo translate('TimelineTip3') ?></p>
+        <p><?php echo translate('TimelineTip4') ?></p>
+      </div>
       <div id="topPanel" class="graphWidth">
-        <div id="imagePanel">
-          <div id="image" class="imageHeight">
-		        <img id="imageSrc" class="imageWidth" src="graphics/transparent.png" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
-          </div>
-        </div>
-        <div id="dataPanel">
-          <div id="textPanel">
-            <div id="instruction">
-              <p><?php echo translate('TimelineTip1') ?></p>
-              <p><?php echo translate('TimelineTip2') ?></p>
-              <p><?php echo translate('TimelineTip3') ?></p>
-              <p><?php echo translate('TimelineTip4') ?></p>
-              </div>
-            <div id="eventData">
+<?php 
+foreach ( $monitors as $monitor ) {
+?>
+        <div class="monitorPanel" style="width:<?php echo 100/count($monitors); ?>%;float:left;">
+          <div class="imagePanel">
+            <div class="imageHeight image">
+              <img id="imageSrc<?php echo $monitor->Id() ?>" class="imageWidth" src="graphics/transparent.png" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
             </div>
           </div>
+          <div id="dataPanel<?php echo $monitor->Id() ?>">
+            <div id="textPanel<?php echo $monitor->Id() ?>">
+              <div id="eventData<?php echo $monitor->Id() ?>">
+              </div>
+            </div>
+          </div>
+        </div>
+<?php 
+} # end foreach monitor
+?>
           <div id="navPanel">
             <button type="button" title="<?php echo translate('PanLeft') ?>" data-on-click="tlPanLeft">
             <i class="material-icons md-18">fast_rewind</i>
@@ -711,7 +720,6 @@ xhtmlHeaders(__FILE__, translate('Timeline'));
             <i class="material-icons md-18">fast_forward</i>
             </button>
           </div>
-        </div>
       </div>
       <div id="chartPanel">
         <div id="chart" class="graphSize">

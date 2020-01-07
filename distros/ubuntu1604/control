@@ -74,7 +74,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libfile-slurp-perl
         ,mysql-client | mariadb-client | virtual-mysql-client
         ,perl-modules
-        ,php5-mysql | php-mysql, php5-gd | php-gd , php5-apcu | php-apcu , php-apc | php-apcu-bc, php-json
+        ,php5-mysql | php-mysql, php5-gd | php-gd , php5-apcu | php-apcu , php-apc | php-apcu-bc, php-json | php5-json
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip

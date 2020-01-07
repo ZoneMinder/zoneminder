@@ -27,7 +27,7 @@ echo
 echo "Target subfolder set to $targetfolder"
 echo
 
-echo "Running \$(rsync -v -e 'ssh -vvv' build/*.{rpm,deb,dsc,tar.xz,changes} zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
+echo "Running \$(rsync -v -e 'ssh -vvv' build/*.{rpm,deb,dsc,tar.xz,buildinfo,changes} zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
 rsync -v --ignore-missing-args --exclude 'external-repo.noarch.rpm' -e 'ssh -vvv' build/*.{rpm,deb,dsc,tar.xz,changes} zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1
 if [ "$?" -eq 0 ]; then
   echo 

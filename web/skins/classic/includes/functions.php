@@ -290,12 +290,12 @@ if ( $user and $user['Username'] ) {
        # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
         if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
           # Number of lines, instead of an interval
-          $rows = dbFetchOne('SELECT Count(*) AS Rows FROM Logs', 'Rows');
+          $rows = dbFetchOne('SELECT Count(*) AS `Rows` FROM `Logs`', 'Rows');
           if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
-            dbQuery('DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
+            dbQuery('DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
           }
         } else if ( preg_match('/^\d\s*(hour|minute|day|week|month|year)$/', ZM_LOG_DATABASE_LIMIT, $matches) ) {
-          dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+          dbQuery('DELETE FROM `Logs` WHERE `TimeKey` < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
         } else {
           ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
         }

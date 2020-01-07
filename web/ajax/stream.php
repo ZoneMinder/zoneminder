@@ -119,13 +119,11 @@ if ( sem_acquire($semaphore,1) !== false ) {
   switch ( $data['type'] ) {
   case MSG_DATA_WATCH :
     $data = unpack('ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced', $msg);
-    ZM\Logger::Debug('FPS: ' . $data['fps']);
     $data['fps'] = round( $data['fps'], 2 );
-    ZM\Logger::Debug('FPS: ' . $data['fps'] );
     $data['rate'] /= RATE_BASE;
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-    if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
+    if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
       $time = time();
       // Regenerate auth hash after half the lifetime of the hash
       if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
@@ -144,7 +142,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
     }
     $data['rate'] /= RATE_BASE;
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-    if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
+    if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
       $time = time();
       // Regenerate auth hash after half the lifetime of the hash
       if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {

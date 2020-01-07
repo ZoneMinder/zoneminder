@@ -520,7 +520,7 @@ int FfmpegCamera::OpenFfmpeg() {
       ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
           (hwaccel_device != "" ? hwaccel_device.c_str(): NULL), NULL, 0);
       if ( ret < 0 ) {
-        Error("Failed to create hwaccel device.");
+        Error("Failed to create hwaccel device. %s",av_make_error_string(ret).c_str());
         hw_pix_fmt = AV_PIX_FMT_NONE;
       } else {
         Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
@@ -529,7 +529,7 @@ int FfmpegCamera::OpenFfmpeg() {
         hwFrame = zm_av_frame_alloc();
       }
     } else {
-      Debug(1, "Failed to setup hwaccel.");
+      Debug(1, "Failed to find suitable hw_pix_fmt.");
     }
 #else
     Debug(1, "AVCodec not new enough for hwaccel");

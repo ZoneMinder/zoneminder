@@ -383,6 +383,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
         paused = true;
         replay_rate = ZM_RATE_BASE;
         step = -1;
+        curr_frame_id -= 1;
+        if ( curr_frame_id < 1 ) curr_frame_id = 1;
         break;
     case CMD_FASTREV :
         Debug(1, "Got FAST REV command");
@@ -904,7 +906,7 @@ void EventStream::runStream() {
         send_frame = true;
       }
     } else if ( step != 0 ) {
-      Debug(2, "Paused with step");
+      Debug(2, "Paused with step %d", step);
       // We are paused and are just stepping forward or backward one frame
       step = 0;
       send_frame = true;

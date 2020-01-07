@@ -104,7 +104,10 @@ if ( $Monitor->VideoWriter() == '2' ) {
     $Zoom = $Event->Height()/$Event->Width();
 }
 
-// These are here to figure out the next/prev event
+// These are here to figure out the next/prev event, however id there is no filter, then default to one that specifies the Monitor
+if ( !isset($_REQUEST['filter']) ) {
+  $_REQUEST['filter'] = array( 'Query'=>array('terms'=> array( array('attr' => 'MonitorId', 'op' => '=', 'val' => $Event->MonitorId() ) ) ) );
+}
 parseSort();
 parseFilter($_REQUEST['filter']);
 $filterQuery = $_REQUEST['filter']['query'];
@@ -259,8 +262,8 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
           <span id="rate"><?php echo translate('Rate') ?>: 
 <?php 
-$rates = array( 0=>translate('Stopped'), 100 => '1x', 200=>'2x', 400=>'4x', 800=>'8x' );
-echo htmlSelect('rate', $rates, $rate, array('id'=>'rateValue'));
+$rates = array( -800=>'-8x', -400=>'-4x', -200=>'-2x', -100=>'-1x', 0=>translate('Stop'), 100 => '1x', 200=>'2x', 400=>'4x', 800=>'8x' );
+echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
 <!--<span id="rateValue"><?php echo $rate/100 ?></span>x</span>-->
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>

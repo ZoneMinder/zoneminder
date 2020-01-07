@@ -59,10 +59,10 @@ class Monitor extends ZM_Object {
     'LabelX'      =>  0,
     'LabelY'      =>  0,
     'LabelSize'   =>  1,
-    'ImageBufferCount'  =>  100,
+    'ImageBufferCount'  =>  20,
     'WarmupCount' =>  0,
-    'PreEventCount' =>  0,
-    'PostEventCount'  =>  0,
+    'PreEventCount' =>  5,
+    'PostEventCount'  =>  5,
     'StreamReplayBuffer'  => 0,
     'AlarmFrameCount'     =>  1,
     'SectionLength'       =>  600,
@@ -89,7 +89,7 @@ class Monitor extends ZM_Object {
     'DefaultScale'  =>  100,
     'SignalCheckPoints' =>  0,
     'SignalCheckColour' =>  '#0000BE',
-    'WebColour'   =>  'red',
+    'WebColour'   =>  '#ff0000',
     'Exif'    =>  array('type'=>'boolean','default'=>0),
     'Sequence'  =>  null,
     'TotalEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
@@ -473,53 +473,53 @@ class Monitor extends ZM_Object {
     //ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
   }
 
-public function sendControlCommand($command) {
-  // command is generally a command option list like --command=blah but might be just the word quit
+  public function sendControlCommand($command) {
+    // command is generally a command option list like --command=blah but might be just the word quit
 
-  $options = array();
-  # Convert from a command line params to an option array
-  foreach ( explode(' ', $command) as $option ) {
-    if ( preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches) ) {
-      $options[$matches[1]] = $matches[2]?$matches[2]:1;
-    } else if ( $option != '' and $option != 'quit' ) {
-      Warning("Ignored command for zmcontrol $option in $command");
-    }
-  }
-  if ( !count($options) ) {
-    if ( $command == 'quit' ) {
-      $options['command'] = 'quit';
-    } else {
-      Warning("No commands to send to zmcontrol from $command");
-      return false;
-    }
-  }
-
-  if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
-    # Local
-    Logger::Debug('Trying to send options ' . print_r($options, true));
-
-    $optionString = jsonEncode($options);
-    Logger::Debug("Trying to send options $optionString");
-    // Either connects to running zmcontrol.pl or runs zmcontrol.pl to send the command.
-    $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
-    if ( $socket < 0 ) {
-      Error('socket_create() failed: '.socket_strerror($socket));
-      return false;
-    }
-    $sockFile = ZM_PATH_SOCKS.'/zmcontrol-'.$this->{'Id'}.'.sock';
-    if ( @socket_connect($socket, $sockFile) ) {
-      if ( !socket_write($socket, $optionString) ) {
-        Error('Can\'t write to control socket: '.socket_strerror(socket_last_error($socket)));
-      return false;
+    $options = array();
+    # Convert from a command line params to an option array
+    foreach ( explode(' ', $command) as $option ) {
+      if ( preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches) ) {
+        $options[$matches[1]] = $matches[2]?$matches[2]:1;
+      } else if ( $option != '' and $option != 'quit' ) {
+        Warning("Ignored command for zmcontrol $option in $command");
       }
-    } else if ( $command != 'quit' ) {
-      $command = ZM_PATH_BIN.'/zmcontrol.pl '.$command.' --id='.$this->{'Id'};
-
-      // Can't connect so use script
-      $ctrlOutput = exec(escapeshellcmd($command));
     }
-    socket_close($socket);
-  } else if ( $this->ServerId() ) {
+    if ( !count($options) ) {
+      if ( $command == 'quit' ) {
+        $options['command'] = 'quit';
+      } else {
+        Warning("No commands to send to zmcontrol from $command");
+        return false;
+      }
+    }
+
+    if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
+      # Local
+      Logger::Debug('Trying to send options ' . print_r($options, true));
+
+      $optionString = jsonEncode($options);
+      Logger::Debug("Trying to send options $optionString");
+      // Either connects to running zmcontrol.pl or runs zmcontrol.pl to send the command.
+      $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
+      if ( $socket < 0 ) {
+        Error('socket_create() failed: '.socket_strerror($socket));
+        return false;
+      }
+      $sockFile = ZM_PATH_SOCKS.'/zmcontrol-'.$this->{'Id'}.'.sock';
+      if ( @socket_connect($socket, $sockFile) ) {
+        if ( !socket_write($socket, $optionString) ) {
+          Error('Can\'t write to control socket: '.socket_strerror(socket_last_error($socket)));
+          return false;
+        }
+      } else if ( $command != 'quit' ) {
+        $command = ZM_PATH_BIN.'/zmcontrol.pl '.$command.' --id='.$this->{'Id'};
+
+        // Can't connect so use script
+        $ctrlOutput = exec(escapeshellcmd($command));
+      }
+      socket_close($socket);
+    } else if ( $this->ServerId() ) {
       $Server = $this->Server();
 
       $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmcontrol.json';
@@ -544,7 +544,7 @@ public function sendControlCommand($command) {
         }
       } catch ( Exception $e ) {
         Error("Except $e thrown trying to restart zma");
-      return false;
+        return false;
       }
     } else {
       Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');

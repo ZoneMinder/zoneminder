@@ -110,8 +110,6 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
               <button value="Save" type="submit"><?php echo translate('Save') ?></button>
             </div>
          </form>
-	
-
 <?php
 } else if ( $tab == 'users' ) {
 ?>
@@ -278,15 +276,10 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
               <td class="colPath"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Path()), $canEdit ) ?></td>
               <td class="colType"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Type()), $canEdit ) ?></td>
               <td class="colScheme"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Scheme()), $canEdit ) ?></td>
-              <td class="colServer"><?php
-              echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Server()->Name()), $canEdit ) ?></td>
-              <td class="colDiskSpace">
-                <?php echo
-                human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space())
-?>
-              </td>
+              <td class="colServer"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Server()->Name()), $canEdit ) ?></td>
+              <td class="colDiskSpace"><?php echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?></td>
               <td class="ColEvents"><?php echo count($Storage->Events()).' using '.human_filesize($Storage->event_disk_space()) ?></td>
-              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( count($Storage->Events()) or !$canEdit ) { ?> disabled="disabled"<?php } ?><?php echo count($Storage->Events()) ? ' title="Can\' delete as long as there are events stored here."' : ''?>/></td>
+              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( count($Storage->Events()) or !$canEdit ) { ?> disabled="disabled"<?php } ?><?php echo count($Storage->Events()) ? ' title="Can\'t delete as long as there are events stored here."' : ''?>/></td>
             </tr>
 <?php } #end foreach Server ?>
           </tbody>
@@ -319,23 +312,28 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
       }
 
       function updateSelected() {
+        # Turn them all off, then selectively turn the checked ones back on
         dbQuery('UPDATE `Users` SET `APIEnabled`=0');
-        foreach ( $_REQUEST["tokenUids"] as $markUid ) {
-          $minTime = time();
-          dbQuery('UPDATE `Users` SET `TokenMinExpiry`=? WHERE `Id`=?', array($minTime, $markUid));
+
+        if ( isset($_REQUEST['tokenUids']) ) {
+          foreach ( $_REQUEST['tokenUids'] as $markUid ) {
+            $minTime = time();
+            dbQuery('UPDATE `Users` SET `TokenMinExpiry`=? WHERE `Id`=?', array($minTime, $markUid));
+          }
         }
-        foreach ( $_REQUEST["apiUids"] as $markUid ) {
-          dbQuery('UPDATE `Users` SET `APIEnabled`=1 WHERE `Id`=?', array($markUid));
-      
+        if ( isset($_REQUEST['apiUids']) ) {
+          foreach ( $_REQUEST['apiUids'] as $markUid ) {
+            dbQuery('UPDATE `Users` SET `APIEnabled`=1 WHERE `Id`=?', array($markUid));
+          }
         }
         echo '<span class="timedSuccessBox">'.translate('Updated').'</span>';
       }
 
-      if ( array_key_exists('revokeAllTokens',$_POST) ) {
+      if ( array_key_exists('revokeAllTokens', $_POST) ) {
         revokeAllTokens();
       }
 
-      if ( array_key_exists('updateSelected',$_POST) ) {
+      if ( array_key_exists('updateSelected', $_POST) ) {
         updateSelected();
       }
     ?>

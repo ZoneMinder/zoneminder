@@ -175,12 +175,13 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   });
 
   // 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
-  document.querySelectorAll("a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
+  document.querySelectorAll("i[data-on-click], a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click");
     if ( !window[fnName] ) {
       console.error("Nothing found to bind to " + fnName + " on element " + el.name);
       return;
     }
+
     el.onclick = function() {
       window[fnName]();
     };

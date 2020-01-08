@@ -241,7 +241,6 @@ function getStreamCmdResponse(respObj, respText) {
         eventCmdParms = eventCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
         actParms = actParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
         controlParms = controlParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-
       } // end if have a new auth hash
     } // end if respObj.status
   } else {

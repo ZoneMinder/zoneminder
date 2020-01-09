@@ -940,6 +940,8 @@ function exportEvents(
   $archive = '';
   if ( $exportFormat == 'tar' ) {
     $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.tar';
+    $version = shell_exec('tar -v');
+
     $command = 'tar --create --dereference';
     if ( $exportCompressed ) {
       $archive .= '.gz';
@@ -947,8 +949,11 @@ function exportEvents(
       $exportFormat .= '.gz';
     }
     if ( $exportStructure == 'flat' ) {
-      //strip file paths if we 
-      $command .= " --xform='s#^.+/##x'";
+      if (preg_match("/BSD/i", $version)) {
+        $command .= " -s '#^.*/##'";
+      } else {
+        $command .= " --xform='s#^.+/##x'";
+      }
     }
     $command .= ' --file='.escapeshellarg($archive);
   } elseif ( $exportFormat == 'zip' ) {

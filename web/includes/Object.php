@@ -110,8 +110,9 @@ class ZM_Object {
 
   public static function _find_one($class, $parameters = array(), $options = array() ) {
     global $object_cache;
-    if ( ! isset($object_cache[$class]) )
+    if ( ! isset($object_cache[$class]) ) {
       $object_cache[$class] = array();
+    }
     $cache = &$object_cache[$class];
     if ( 
         ( count($parameters) == 1 ) and
@@ -288,6 +289,16 @@ Logger::Debug("$k => Have default for $v: ");
     if ( $new_values ) {
       //Logger::Debug("New values" . print_r($new_values, true));
       $this->set($new_values);
+    }
+
+    foreach ( $this->defaults as $field => $default ) {
+      if ( (!array_key_exists($field, $this)) or empty($this->{$field}) ) {
+        if ( is_array($default) ) {
+          $this->{$field} = $default['default'];
+        } else {
+          $this->{$field} = $default;
+        }
+      }
     }
 
     $fields = array_filter(

@@ -219,7 +219,6 @@ if ( $action == 'monitor' ) {
 
       } else {
         ZM\Error('Error saving new Monitor.');
-        $error_message = dbError($sql);
         return;
       }
     }

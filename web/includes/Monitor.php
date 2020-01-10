@@ -128,7 +128,7 @@ class Monitor extends ZM_Object {
   }
 
   public function Server() {
-    return new Server($this->{'ServerId'});
+    return Server::find_one(array('Id'=>$this->{'ServerId'}));
   }
 
   public function __call($fn, array $args){

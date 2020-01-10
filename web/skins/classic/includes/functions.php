@@ -290,12 +290,12 @@ if ( $user and $user['Username'] ) {
        # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
         if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
           # Number of lines, instead of an interval
-          $rows = dbFetchOne('SELECT Count(*) AS Rows FROM Logs', 'Rows');
+          $rows = dbFetchOne('SELECT Count(*) AS `Rows` FROM `Logs`', 'Rows');
           if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
-            dbQuery('DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
+            dbQuery('DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
           }
         } else if ( preg_match('/^\d\s*(hour|minute|day|week|month|year)$/', ZM_LOG_DATABASE_LIMIT, $matches) ) {
-          dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+          dbQuery('DELETE FROM `Logs` WHERE `TimeKey` < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
         } else {
           ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
         }
@@ -389,8 +389,8 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
       <li class="Load"><i class="material-icons md-18">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
       <i class="material-icons md-18">storage</i>
 <?php 
-  $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
-  $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
+  $connections = dbFetchOne('SHOW status WHERE variable_name=\'threads_connected\'', 'Value');
+  $max_connections = dbFetchOne('SHOW variables WHERE variable_name=\'max_connections\'', 'Value');
   $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
   echo '<li'. ( $percent_used > 90 ? ' class="warning"' : '' ).'>'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';
 ?>
@@ -398,8 +398,12 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
 <?php
   $storage_areas = ZM\Storage::find();
   $storage_paths = null;
+	$storage_areas_with_no_server_id = array();
   foreach ( $storage_areas as $area ) {
     $storage_paths[$area->Path()] = $area;
+		if ( ! $area->ServerId() ) {
+			$storage_areas_with_no_server_id[] = $area;
+		}
   }
   $func = function($S){
     $class = '';
@@ -415,9 +419,9 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
 '; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) > 4 ) 
-    $storage_areas = ZM\Storage::find( array('ServerId'=>null) );
+    $storage_areas = $storage_areas_with_no_server_id;
   if ( count($storage_areas) <= 4 )
-    echo implode( ', ', array_map ( $func, $storage_areas ) );
+    echo implode(', ', array_map($func, $storage_areas));
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>
   </ul>

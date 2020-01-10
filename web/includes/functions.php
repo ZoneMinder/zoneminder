@@ -409,6 +409,11 @@ ZM\Logger::Debug("Event type: " . gettype($event));
 
   global $user;
 
+  if ( $event->Archived() ) {
+    ZM\Info('Cannot delete Archived event.');
+    return;
+  } # end if Archived
+
   if ( $user['Events'] == 'Edit' ) {
     $event->delete();
   } # CAN EDIT
@@ -1085,9 +1090,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
   if ( !isset($terms) ) {
     $backTrace = debug_backtrace();
-    $file = $backTrace[1]['file'];
-    $line = $backTrace[1]['line'];
-    ZM\Warning("No terms in filter from $file:$line");
+    ZM\Warning('No terms in filter');
+    ZM\Warning(print_r($backTrace, true));
     ZM\Warning(print_r($filter, true));
   }
   if ( isset($terms) && count($terms) ) {
@@ -1324,7 +1328,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
           $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($term['val']);
           $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($term['val'])."\"/>\n";
         }
-      } // end if ( isset($term['attr']) )
+      } // end if isset($term['attr'])
       if ( isset($term['cbr']) && (string)(int)$term['cbr'] == $term['cbr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($term['cbr']);
         $filter['sql'] .= ' '.str_repeat(')', $term['cbr']).' ';
@@ -1336,6 +1340,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     if ( $saveToSession ) {
       $_SESSION['filter'] = $filter;
     }
+  } else {
+    $filter['query'] = $querySep.urlencode('filter[Query][terms]=[]');
   } // end if terms
 
   #if ( 0 ) {
@@ -2580,26 +2586,36 @@ function html_radio($name, $values, $selected=null, $options=array(), $attrs=arr
     if ( isset($options['container']) ) {
       $html .= $options['container'][0];
     }
+    $attributes = array_map(
+          function($attr, $value){return $attr.'="'.$value.'"';},
+          array_keys($attrs),
+          array_values($attrs)
+        );
+    $attributes_string = implode(' ', $attributes);
+
     $html .= sprintf('
       <div class="form-check%7$s">
         <label class="form-check-label radio%7$s" for="%1$s%6$s%2$s">
         <input class="form-check-input" type="radio" name="%1$s" value="%2$s" id="%1$s%6$s%2$s" %4$s%5$s />
         %3$s</label></div>
         ', $name, $value, $label, ($value==$selected?' checked="checked"':''),
-        implode(' ', array_map(
-          function($attr, $value){return $attr.'="'.$value.'"';},
-          array_keys($attrs),
-          array_values($attrs)
-          ),
-          ),
-        ( isset($options['id']) ? $options['id'] : ''),
-        ( ( (!isset($options['inline'])) or $options['inline'] ) ? '-inline' : ''),
-        );
+        $attributes_string,
+        (isset($options['id']) ? $options['id'] : ''),
+        ( ( (!isset($options['inline'])) or $options['inline'] ) ? '-inline' : '')
+      );
     if ( isset($options['container']) ) {
       $html .= $options['container'][1];
     }
   } # end foreach value
   return $html;
 } # end sub html_radio
+
+
+function random_colour() {
+  return '#'.
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT).
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT).
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT);
+}
 
 ?>

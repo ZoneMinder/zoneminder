@@ -108,6 +108,9 @@ if ( $options{command} ) {
     Fatal("Unable to load control data for monitor $id");
   }
   my $protocol = $monitor->{Protocol};
+  if ( !$protocol ) {
+    Fatal('No protocol is set in monitor. Please edit the monitor, edit control type, select the control capability and fill in the Protocol field');
+  }
 
   if ( -x $protocol ) {
     # Protocol is actually a script!

@@ -23,6 +23,7 @@
 
 use strict;
 use bytes;
+use utf8;
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
@@ -34,6 +35,7 @@ use Sys::MemInfo qw(totalmem);
 use Sys::CPU qw(cpu_count);
 use POSIX qw(strftime uname);
 use JSON::MaybeXS;
+use Encode;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -166,7 +168,7 @@ sub sendData {
   $req->header('content-length' => length($msg));
   $req->header('connection' => 'Close');
 
-  $req->content($msg);
+  $req->content(encode('UTF-8',$msg));
 
   my $resp = $ua->request($req);
   my $resp_msg = $resp->decoded_content;

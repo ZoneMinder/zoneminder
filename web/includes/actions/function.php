@@ -39,7 +39,7 @@ if ( $action == 'function' ) {
   $oldFunction = $monitor['Function'];
   $oldEnabled = $monitor['Enabled'];
   if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled ) {
-    dbQuery('UPDATE Monitors SET Function=?, Enabled=? WHERE Id=?',
+    dbQuery('UPDATE Monitors SET `Function`=?, `Enabled`=? WHERE `Id`=?',
       array($newFunction, $newEnabled, $mid));
 
     $monitor['Function'] = $newFunction;

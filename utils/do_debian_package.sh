@@ -175,7 +175,7 @@ cd ../
 
 VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
 
-if [ $VERSION == "" ]; then
+if [ -z "$VERSION" ]; then
   exit 1;
 fi;
 if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then

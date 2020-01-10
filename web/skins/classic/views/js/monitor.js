@@ -131,9 +131,36 @@ function initPage() {
   document.querySelectorAll('select[name="newMonitor[ControlId]"]').forEach(function(el) {
     el.onchange = window['loadLocations'].bind(el, el);
   });
+  document.querySelectorAll('input[name="newMonitor[WebColour]"]').forEach(function(el) {
+    el.onchange = window['change_WebColour'].bind(el);
+  });
 
 
   $j('.chosen').chosen();
 } // end function initPage()
+
+function change_WebColour() {
+  $j('#WebSwatch').css(
+      'backgroundColor',
+      $j('input[name="newMonitor[WebColour]"]').val()
+  );
+}
+
+function getRandomColour() {
+  var letters = '0123456789ABCDEF';
+  var colour = '#';
+  for (var i = 0; i < 6; i++) {
+    colour += letters[Math.floor(Math.random() * 16)];
+  }
+  return colour;
+}
+
+function random_WebColour() {
+  var new_colour = getRandomColour();
+  $j('input[name="newMonitor[WebColour]"]').val(new_colour);
+  $j('#WebSwatch').css(
+      'backgroundColor', new_colour
+  );
+}
 
 window.addEventListener('DOMContentLoaded', initPage);

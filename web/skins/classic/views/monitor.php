@@ -872,6 +872,7 @@ if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
   '1920x1080'=>'1920x1080 1080p',
   '2048x1536'=>'2048x1536 3MP',
   '2592x1944'=>'2592x1944 5MP',
+  '3840x2160'=>'3840x2160 4K UHD',
 ), $monitor->Width().'x'.$monitor->Height()
 );
 ?>

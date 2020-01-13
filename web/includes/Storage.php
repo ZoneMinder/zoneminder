@@ -58,6 +58,13 @@ class Storage extends ZM_Object {
     return $this->{'Events'};
   }
 
+	public function EventCount() {
+    if ( (! property_exists($this, 'EventCount')) or (!$this->{'EventCount'}) ) {
+      $this->{'EventCount'} = dbFetchOne('SELECT COUNT(*) AS EventCount FROM Events WHERE StorageId=?', 'EventCount', array($this->Id()));
+		}
+		return $this->{'EventCount'};
+	}
+
   public function disk_usage_percent() {
     $path = $this->Path();
     if ( ! $path ) {

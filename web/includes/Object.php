@@ -128,6 +128,11 @@ class ZM_Object {
     return $results[0];
   }
 
+  public static function _clear_cache($class) {
+    global $object_cache;
+    $object_cache[$class] = array();
+  }
+
   public static function Objects_Indexed_By_Id($class) {
     $results = array();
     foreach ( ZM_Object::_find($class, null, array('order'=>'lower(Name)')) as $Object ) {

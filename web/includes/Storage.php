@@ -116,13 +116,14 @@ class Storage extends ZM_Object {
       $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
 
       do {
-        # Do in batches of 1000 so as to not useup all ram
+        # Do in batches of 1000 so as to not useup all ram, Event will do caching though...
         $events = Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null), array('limit'=>1000));
         foreach ( $events as $Event ) {
           $Event->Storage($this); // Prevent further db hit
           # DiskSpace will update the event
           $used += $Event->DiskSpace();
         } #end foreach
+        Event::clear_cache();
       } while ( count($events) == 1000 );
       $this->{'DiskSpace'} = $used;
     }

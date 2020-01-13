@@ -387,7 +387,7 @@ class Logger {
       if ( $this->hasTerm )
         print($message."\n");
       else
-        print(preg_replace("/\n/", '<br/>', htmlspecialchars($message) ).'<br/>');
+        print(preg_replace("/\n/", '<br/>', htmlspecialchars($message)).'<br/>');
     }
 
     if ( $level <= $this->fileLevel ) {
@@ -410,9 +410,10 @@ class Logger {
     if ( $level <= $this->databaseLevel ) {
       try {
         global $dbConn;
-        $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ? )';
+        $sql = 'INSERT INTO `Logs` ( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';
         $stmt = $dbConn->prepare($sql);
-        $result = $stmt->execute(array(sprintf('%d.%06d', $time['sec'], $time['usec']), $this->id, getmypid(), $level, $code, $string, $file, $line));
+        $result = $stmt->execute(array(sprintf('%d.%06d', $time['sec'], $time['usec']), $this->id,
+          (defined('ZM_SERVER_ID') ? ZM_SERVER_ID : null), getmypid(), $level, $code, $string, $file, $line));
       } catch(PDOException $ex) {
         $this->databaseLevel = self::NOLOG;
         Error("Can't write log entry '$sql': ". $ex->getMessage());

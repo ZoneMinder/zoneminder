@@ -47,7 +47,7 @@ class Event extends ZM_Object {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
-  public static function clear_cahce() {
+  public static function clear_cache() {
     return ZM_Object::_clear_cache(get_class());
   }
 

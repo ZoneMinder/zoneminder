@@ -51,8 +51,12 @@ sub open {
   my $self = shift;
 
   $self->loadMonitor();
+	if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
+		# Has no scheme at the beginning, so won't parse as a URI
+		$self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
+	}
   my $uri = URI->new($self->{Monitor}->{ControlAddress});
-  $ADDRESS = $uri->scheme.'://'.$uri->host().$uri->path().($uri->port()?':'.$uri->port():'');
+  $ADDRESS = $uri->scheme.'://'.$uri->authority().$uri->path().($uri->port()?':'.$uri->port():'');
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;

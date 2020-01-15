@@ -57,5 +57,6 @@ if ( $action == 'Save' ) {
   }
   $view = 'none';
   $refreshParent = true;
+  $closePopup = true;
 } 
 ?>

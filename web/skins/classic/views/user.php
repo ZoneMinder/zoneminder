@@ -141,8 +141,15 @@ if ( canEdit('System') ) {
                 </select>
               </td>
             </tr>
+<?php if ( ZM_OPT_USE_API ) { ?>
+            <tr>
+              <th scope="row"><?php echo translate('APIEnabled')?></th>
+              <td><?php echo buildSelect( "newUser[APIEnabled]", $yesno ) ?></td>
+            </tr>
+
 <?php
-}
+      } // end if ZM_OPT_USE_API
+} // end if canEdit(System)
 ?>
           </tbody>
         </table>

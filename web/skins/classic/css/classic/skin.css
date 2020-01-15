@@ -324,14 +324,14 @@ th.table-th-sort span.table-th-sort-span {
     float: right;
     width: 12px;
     height: 12px;
-    background: url("/skins/classic/graphics/arrow-s-u.png") no-repeat 0 0;
+    background: url("../skins/classic/graphics/arrow-s-u.png") no-repeat 0 0;
 }
 
 th.table-th-sort-rev span.table-th-sort-span {
     float: right;
     width: 12px;
     height: 12px;
-    background: url("/skins/classic/graphics/arrow-s-d.png") no-repeat 0 0;
+    background: url("../skins/classic/graphics/arrow-s-d.png") no-repeat 0 0;
 }
 
 .table-tr-odd {
@@ -497,7 +497,7 @@ input[type=button],
 input[type=submit],
 .btn-primary,
 .btn-primary:link {
-  padding: 1px 6px;
+  padding: 0 6px 1px 6px;
   background-color: #eeeeee;
   color: #333333;
   border: 1px solid #7f7fb2;

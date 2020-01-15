@@ -1060,7 +1060,6 @@ int RemoteCameraHttp::PreCapture() {
   if ( sd < 0 ) {
     Connect();
     if ( sd < 0 ) {
-      Error("Unable to connect to camera");
       return -1;
     }
     mode = SINGLE_IMAGE;
@@ -1068,12 +1067,12 @@ int RemoteCameraHttp::PreCapture() {
   }
   if ( mode == SINGLE_IMAGE ) {
     if ( SendRequest() < 0 ) {
-      Error( "Unable to send request" );
+      Error("Unable to send request");
       Disconnect();
-      return( -1 );
+      return -1;
     }
   }
-  return( 0 );
+  return 0;
 }
 
 int RemoteCameraHttp::Capture( Image &image ) {

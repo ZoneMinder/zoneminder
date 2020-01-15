@@ -15,6 +15,10 @@ class EventsController extends AppController {
    */
   public $components = array('RequestHandler', 'Scaler', 'Image', 'Paginator');
 
+  public function beforeRender() {
+    $this->set($this->Event->enumValues());
+  }
+
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
@@ -35,6 +39,7 @@ class EventsController extends AppController {
     $this->Event->recursive = -1;
 
     global $user;
+    require_once __DIR__ .'/../../../includes/Event.php';
     $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
 
     if ( $allowedMonitors ) {
@@ -87,9 +92,13 @@ class EventsController extends AppController {
     $events = $this->Paginator->paginate('Event');
 
     // For each event, get the frameID which has the largest score
+    // also add FS path
+
     foreach ( $events as $key => $value ) {
+      $EventObj = new ZM\Event($value['Event']['Id']);
       $maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
       $events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
+      $events[$key]['Event']['FileSystemPath'] = $EventObj->Path();
     }
 
     $this->set(compact('events'));
@@ -130,6 +139,9 @@ class EventsController extends AppController {
 
     $event['Event']['fileExists'] = $this->Event->fileExists($event['Event']);
     $event['Event']['fileSize'] = $this->Event->fileSize($event['Event']);
+
+    $EventObj = new ZM\Event($id);
+    $event['Event']['FileSystemPath'] = $EventObj->Path();
 
     # Also get the previous and next events for the same monitor
     $event_monitor_neighbors = $this->Event->find('neighbors', array(

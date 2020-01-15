@@ -29,6 +29,7 @@ $tabs = array();
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
+$tabs['API'] = translate('API');
 $tabs['servers'] = translate('Servers');
 $tabs['storage'] = translate('Storage');
 $tabs['web'] = translate('Web');
@@ -51,31 +52,6 @@ else
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Options'));
-
-# Have to do this stuff up here before including header.php because fof the cookie setting
-$skin_options = array_map('basename', glob('skins/*',GLOB_ONLYDIR));
-if ( $tab == 'skins' ) {
-  $current_skin = $_COOKIE['zmSkin'];
-  $reload = false;
-  if ( isset($_GET['skin-choice']) && ( $_GET['skin-choice'] != $current_skin ) ) {
-    setcookie('zmSkin',$_GET['skin-choice'], time()+3600*24*30*12*10 );
-    //header("Location: index.php?view=options&tab=skins&reset_parent=1");
-    $reload = true;
-  }
-  $current_css = $_COOKIE['zmCSS'];
-  if ( isset($_GET['css-choice']) and ( $_GET['css-choice'] != $current_css ) ) {
-    setcookie('zmCSS',$_GET['css-choice'], time()+3600*24*30*12*10 );
-    array_map('unlink', glob(ZM_PATH_WEB.'/cache/*')); //cleanup symlinks from cache_bust
-    //header("Location: index.php?view=options&tab=skins&reset_parent=1");
-    $reload = true;
-  }
-  if ( $reload )
-    echo "<script nonce=\"$cspNonce\">if (window.opener) {
-window.opener.location.reload();
-}
-window.location.href=\"?view={$view}&tab={$tab}\";
-</script>";
-} # end if tab == skins
 
 ?>
 <body>
@@ -103,12 +79,14 @@ if ( $tab == 'skins' ) {
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
             <div class="form-group">
-              <label for="skin-choice" class="col-sm-3 control-label">SKIN</label>
+            <label for="skin" class="col-sm-3 control-label"><?php echo translate('Skin')?></label>
               <div class="col-sm-6">
-                <select name="skin-choice" class="form-control chosen">
+                <select name="skin" class="form-control chosen">
 <?php
+  # Have to do this stuff up here before including header.php because fof the cookie setting
+$skin_options = array_map('basename', glob('skins/*',GLOB_ONLYDIR));
 foreach ( $skin_options as $dir ) {
-  echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
+  echo '<option value="'.$dir.'" '.($skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 }
 ?>
                 </select>
@@ -116,12 +94,12 @@ foreach ( $skin_options as $dir ) {
               </div>
             </div>
             <div class="form-group">
-              <label for="css-choice" class="col-sm-3 control-label">CSS</label>
+              <label for="css" class="col-sm-3 control-label">CSS</label>
               <div class="col-sm-6">
-                <select name="css-choice" class="form-control chosen">
+                <select name="css" class="form-control chosen">
 <?php
-foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR)) as $dir ) {
-  echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
+foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $dir ) {
+  echo '<option value="'.$dir.'" '.($css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 }
 ?>
                 </select>
@@ -129,11 +107,10 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               </div>
             </div>
             <div id="contentButtons">
-              <button value="Save" type="submit"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+              <button value="Save" type="submit"><?php echo translate('Save') ?></button>
             </div>
          </form>
-	
-      <?php
+<?php
 } else if ( $tab == 'users' ) {
 ?>
       <form name="userForm" method="post" action="?">
@@ -154,6 +131,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <th class="colSystem"><?php echo translate('System') ?></th>
               <th class="colBandwidth"><?php echo translate('Bandwidth') ?></th>
               <th class="colMonitor"><?php echo translate('Monitor') ?></th>
+              <?php if ( ZM_OPT_USE_API ) { ?><th class="colAPIEnabled"><?php echo translate('APIEnabled') ?></th><?php } ?>
               <th class="colMark"><?php echo translate('Mark') ?></th>
             </tr>
           </thead>
@@ -189,6 +167,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colSystem"><?php echo validHtmlStr($row['System']) ?></td>
               <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bandwidth_options[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?php echo $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
+              <?php if ( ZM_OPT_USE_API ) { ?><td class="colAPIEnabled"><?php echo $row['APIEnabled']?translate('Yes'):translate('No') ?></td><?php } ?>
               <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $row['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
@@ -285,6 +264,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <th class="colScheme"><?php echo translate('StorageScheme') ?></th>
               <th class="colServer"><?php echo translate('Server') ?></th>
               <th class="colDiskSpace"><?php echo translate('DiskSpace') ?></th>
+              <th class="colEvents"><?php echo translate('Events') ?></th>
               <th class="colMark"><?php echo translate('Mark') ?></th>
             </tr>
           </thead>
@@ -296,10 +276,10 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colPath"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Path()), $canEdit ) ?></td>
               <td class="colType"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Type()), $canEdit ) ?></td>
               <td class="colScheme"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Scheme()), $canEdit ) ?></td>
-              <td class="colServer"><?php
-              echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
+              <td class="colServer"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Server()->Name()), $canEdit ) ?></td>
               <td class="colDiskSpace"><?php echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?></td>
-              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="ColEvents"><?php echo $Storage->EventCount().' using '.human_filesize($Storage->event_disk_space()) ?></td>
+              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( $Storage->EventCount() or !$canEdit ) { ?> disabled="disabled"<?php } ?><?php echo $Storage->EventCount() ? ' title="Can\'t delete as long as there are events stored here."' : ''?>/></td>
             </tr>
 <?php } #end foreach Server ?>
           </tbody>
@@ -309,13 +289,94 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
           <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
-<?php
-} else {
+
+  <?php
+  } else if ($tab == 'API') {
+  
+    $apiEnabled = dbFetchOne("SELECT Value FROM Config WHERE Name='ZM_OPT_USE_API'");
+    if ($apiEnabled['Value']!='1') {
+      echo "<div class='errorText'>APIs are disabled. To enable, please turn on OPT_USE_API in Options->System</div>";
+    }
+    else {
+  ?>
+
+    <form name="userForm" method="post" action="?">
+      <button class="pull-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
+      <button class="btn-danger pull-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
+      <br/>
+      <?php
+      function revokeAllTokens() {
+        $minTokenTime = time();
+        dbQuery('UPDATE `Users` SET `TokenMinExpiry`=?', array($minTokenTime));
+        echo '<span class="timedSuccessBox">'.translate('AllTokensRevoked').'</span>';
+      }
+
+      function updateSelected() {
+        # Turn them all off, then selectively turn the checked ones back on
+        dbQuery('UPDATE `Users` SET `APIEnabled`=0');
+
+        if ( isset($_REQUEST['tokenUids']) ) {
+          foreach ( $_REQUEST['tokenUids'] as $markUid ) {
+            $minTime = time();
+            dbQuery('UPDATE `Users` SET `TokenMinExpiry`=? WHERE `Id`=?', array($minTime, $markUid));
+          }
+        }
+        if ( isset($_REQUEST['apiUids']) ) {
+          foreach ( $_REQUEST['apiUids'] as $markUid ) {
+            dbQuery('UPDATE `Users` SET `APIEnabled`=1 WHERE `Id`=?', array($markUid));
+          }
+        }
+        echo '<span class="timedSuccessBox">'.translate('Updated').'</span>';
+      }
+
+      if ( array_key_exists('revokeAllTokens', $_POST) ) {
+        revokeAllTokens();
+      }
+
+      if ( array_key_exists('updateSelected', $_POST) ) {
+        updateSelected();
+      }
+    ?>
+      <br/><br/>
+      <input type="hidden" name="view" value="<?php echo $view ?>"/>
+      <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+      <input type="hidden" name="action" value="delete"/>
+      <table id="contentTable" class="table table-striped">
+        <thead class="thead-highlight">
+          <tr>
+            <th class="colUsername"><?php echo translate('Username') ?></th>
+            <th class="colMark"><?php echo translate('Revoke Token') ?></th>
+            <th class="colMark"><?php echo translate('API Enabled') ?></th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php
+          
+            $sql = 'SELECT * FROM Users ORDER BY Username';
+            foreach ( dbFetchAll($sql) as $row ) {
+        ?>
+                <tr>
+                  <td class="colUsername"><?php echo validHtmlStr($row['Username']) ?></td>
+                  <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $row['Id'] ?>" /></td>
+                  <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $row['Id']?>"  <?php echo $row['APIEnabled']?'checked':''?> /></td>
+                </tr>
+    <?php
+        }
+    ?>
+          </tbody>
+        </table>
+      </form>
+
+
+<?php 
+    } // API enabled
+  }  // $tab == API
+  else { 
     $config = array();
     $configCat = array();
     $configCats = array();
 
-    $result = $dbConn->query('SELECT * FROM Config ORDER BY Id ASC');
+    $result = $dbConn->query('SELECT * FROM `Config` ORDER BY `Id` ASC');
     if ( !$result )
       echo mysql_error();
     while( $row = dbFetchNext($result) ) {
@@ -328,10 +389,44 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
     }
 
     if ( $tab == 'system' ) {
-        $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join( '|', getLanguages() );
-        $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join( '|', $skin_options );
-        $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join( '|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ) );
+        $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join('|', getLanguages());
+        $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join('|', array_map('basename', glob('skins/*',GLOB_ONLYDIR)));
+        $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join('|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ));
         $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
+        function timezone_list() {
+    static $timezones = null;
+
+    if ($timezones === null) {
+        $timezones = [];
+        $offsets = [];
+        $now = new DateTime('now', new DateTimeZone('UTC'));
+
+        foreach (DateTimeZone::listIdentifiers() as $timezone) {
+            $now->setTimezone(new DateTimeZone($timezone));
+            $offsets[] = $offset = $now->getOffset();
+            $timezones[$timezone] = '(' . format_GMT_offset($offset) . ') ' . format_timezone_name($timezone);
+        }
+
+        array_multisort($offsets, $timezones);
+    }
+
+    return $timezones;
+}
+
+function format_GMT_offset($offset) {
+    $hours = intval($offset / 3600);
+    $minutes = abs(intval($offset % 3600 / 60));
+    return 'GMT' . ($offset ? sprintf('%+03d:%02d', $hours, $minutes) : '');
+}
+
+function format_timezone_name($name) {
+    $name = str_replace('/', ', ', $name);
+    $name = str_replace('_', ' ', $name);
+    $name = str_replace('St ', 'St. ', $name);
+    return $name;
+}
+        $configCats[$tab]['ZM_TIMEZONE']['Hint'] = timezone_list();
+
     }
 ?>
       <form name="optionsForm" class="form-horizontal" method="post" action="?">
@@ -339,10 +434,10 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
 <?php
-    $configCat = $configCats[$tab];
-    foreach ( $configCat as $name=>$value ) {
-        $shortName = preg_replace( '/^ZM_/', '', $name );
-        $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
+        $configCat = $configCats[$tab];
+        foreach ( $configCat as $name=>$value ) {
+          $shortName = preg_replace( '/^ZM_/', '', $name );
+          $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
             <div class="form-group">
               <label for="<?php echo $name ?>" class="col-sm-3 control-label"><?php echo $shortName ?></label>
@@ -352,19 +447,19 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 ?>
               <input type="checkbox" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
-        } elseif ( is_array( $value['Hint'] ) ) {
-          echo htmlSelect( "newConfig[$name]", $value['Hint'], $value['Value'] );
-        } elseif ( preg_match( '/\|/', $value['Hint'] ) ) {
+        } elseif ( is_array($value['Hint']) ) {
+          echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value']);
+        } elseif ( preg_match('/\|/', $value['Hint']) ) {
 ?>
 
 <?php
-            $options = explode( '|', $value['Hint'] );
-            if ( count( $options ) > 3 ) {
+            $options = explode('|', $value['Hint']);
+            if ( count($options) > 3 ) {
 ?>
                 <select class="form-control" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
 <?php
                 foreach ( $options as $option ) {
-                  if ( preg_match( '/^([^=]+)=(.+)$/', $option, $matches ) ) {
+                  if ( preg_match('/^([^=]+)=(.+)$/', $option, $matches) ) {
                     $optionLabel = $matches[1];
                     $optionValue = $matches[2];
                   } else {
@@ -379,7 +474,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 <?php
             } else {
                 foreach ( $options as $option ) {
-                  if ( preg_match( '/^([^=]+)=(.+)$/', $option ) ) {
+                  if ( preg_match('/^([^=]+)=(.+)$/', $option) ) {
                     $optionLabel = $matches[1];
                     $optionValue = $matches[2];
                   } else {
@@ -387,7 +482,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
                   }
 ?>
                 <label>
-                  <input type="radio" id="<?php echo $name.'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $optionValue ) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
+                  <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
                   <?php echo htmlspecialchars($optionLabel) ?>
                 </label>
 <?php
@@ -423,13 +518,16 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 <?php
     }
 ?>
+
         <div id="contentButtons">
-          <button type="submit" value="Save"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
         </div>
       </form>
 <?php
 }
 ?>
+
+
 
     </div><!-- end #options -->
 	</div>

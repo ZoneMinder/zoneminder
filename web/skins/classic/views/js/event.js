@@ -57,7 +57,7 @@ function setAlarmCues(data) {
 
 function renderAlarmCues(containerEl) {
   if ( !( cueFrames && cueFrames.length ) ) {
-    console.log("No cue frames for event");
+    console.log('No cue frames for event');
     return;
   }
   // This uses the Delta of the last frame to get the length of the event.  I can't help but wonder though
@@ -139,12 +139,12 @@ function setButtonState( element, butClass ) {
       element.disabled = false;
     }
   } else {
-    console.log("Element was null in setButtonState");
+    console.log('Element was null in setButtonState');
   }
 }
 
-function changeCodec(element) {
-  location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+element.value);
+function changeCodec() {
+  location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+$j('#codec').val());
 }
 
 function changeScale() {
@@ -201,6 +201,9 @@ function changeReplayMode() {
 }
 
 var streamParms = "view=request&request=stream&connkey="+connKey;
+if ( auth_hash ) {
+  streamParms += '&auth='+auth_hash;
+}
 var streamCmdTimer = null;
 
 var streamStatus = null;
@@ -208,7 +211,7 @@ var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 
 function getCmdResponse( respObj, respText ) {
-  if ( checkStreamForErrors("getCmdResponse", respObj) ) {
+  if ( checkStreamForErrors('getCmdResponse', respObj) ) {
     console.log('Got an error from getCmdResponse');
     console.log(respObj);
     console.log(respText);
@@ -268,7 +271,7 @@ function getCmdResponse( respObj, respText ) {
 }
 
 var streamReq = new Request.JSON( {
-  url: thisUrl,
+  url: monitorUrl,
   method: 'get',
   timeout: AJAX_TIMEOUT,
   link: 'chain',
@@ -310,7 +313,7 @@ function playClicked( ) {
       vjsPlay(); //handles fast forward and rewind
     }
   } else {
-    streamReq.send( streamParms+"&command="+CMD_PLAY );
+    streamReq.send(streamParms+"&command="+CMD_PLAY);
     streamPlay();
   }
 }
@@ -406,7 +409,7 @@ function streamFastRev( action ) {
       }
     }, 500); //500ms is a compromise between smooth reverse and realistic performance
   } else {
-    streamReq.send( streamParms+"&command="+CMD_FASTREV );
+    streamReq.send(streamParms+"&command="+CMD_FASTREV);
   }
 }
 
@@ -538,9 +541,9 @@ var scroll = null;
 var currEventId = null;
 var CurEventDefVideoPath = null;
 
-function getEventResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getEventResponse", respObj ) ) {
-    console.log("getEventResponse: errors" );
+function getEventResponse(respObj, respText) {
+  if ( checkStreamForErrors('getEventResponse', respObj) ) {
+    console.log('getEventResponse: errors');
     return;
   }
 
@@ -579,7 +582,7 @@ function getEventResponse( respObj, respText ) {
   //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
   if ( vid && CurEventDefVideoPath ) {
     vid.src({type: 'video/mp4', src: CurEventDefVideoPath}); //Currently mp4 is all we use
-    console.log("getEventResponse");
+    console.log('getEventResponse');
     initialAlarmCues(eventData.Id);//ajax and render, new event
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
     CurEventDefVideoPath = null;
@@ -597,6 +600,9 @@ var eventReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIM
 
 function eventQuery( eventId ) {
   var eventParms = "view=request&request=status&entity=event&id="+eventId;
+  if ( auth_hash ) {
+    eventParms += '&auth='+auth_hash;
+  }
   eventReq.send( eventParms );
 }
 
@@ -638,7 +644,7 @@ var frameBatch = 40;
 function loadEventThumb( event, frame, loadImage ) {
   var thumbImg = $('eventThumb'+frame.FrameId);
   if ( !thumbImg ) {
-    console.error( "No holder found for frame "+frame.FrameId );
+    console.error('No holder found for frame '+frame.FrameId);
     return;
   }
   var img = new Asset.image( imagePrefix+frame.EventId+"&fid="+frame.FrameId,
@@ -660,31 +666,31 @@ function loadEventThumb( event, frame, loadImage ) {
   );
 }
 
-function loadEventImage( event, frame ) {
-  console.debug( "Loading "+event.Id+"/"+frame.FrameId );
+function loadEventImage(event, frame) {
+  console.debug('Loading '+event.Id+'/'+frame.FrameId);
   var eventImg = $('eventImage');
   var thumbImg = $('eventThumb'+frame.FrameId);
-  if ( eventImg.getProperty( 'src' ) != thumbImg.getProperty( 'src' ) ) {
+  if ( eventImg.getProperty('src') != thumbImg.getProperty('src') ) {
     var eventImagePanel = $('eventImagePanel');
 
-    if ( eventImagePanel.getStyle( 'display' ) != 'none' ) {
-      var lastThumbImg = $('eventThumb'+eventImg.getProperty( 'alt' ));
+    if ( eventImagePanel.getStyle('display') != 'none' ) {
+      var lastThumbImg = $('eventThumb'+eventImg.getProperty('alt'));
       lastThumbImg.removeClass('selected');
-      lastThumbImg.setOpacity( 1.0 );
+      lastThumbImg.setOpacity(1.0);
     }
 
-    $('eventImageBar').setStyle( 'width', event.Width );
-    if ( frame.Type=='Alarm' ) {
-      $('eventImageStats').removeClass( 'hidden' );
+    $('eventImageBar').setStyle('width', event.Width);
+    if ( frame.Type == 'Alarm' ) {
+      $('eventImageStats').removeClass('hidden');
     } else {
-      $('eventImageStats').addClass( 'hidden' );
+      $('eventImageStats').addClass('hidden');
     }
-    thumbImg.addClass( 'selected' );
-    thumbImg.setOpacity( 0.5 );
+    thumbImg.addClass('selected');
+    thumbImg.setOpacity(0.5);
 
-    if ( eventImagePanel.getStyle( 'display' ) == 'none' ) {
-      eventImagePanel.setOpacity( 0 );
-      eventImagePanel.setStyle( 'display', 'inline-block' );
+    if ( eventImagePanel.getStyle('display') == 'none' ) {
+      eventImagePanel.setOpacity(0);
+      eventImagePanel.setStyle('display', 'inline-block');
       new Fx.Tween( eventImagePanel, {duration: 500, transition: Fx.Transitions.Sine} ).start( 'opacity', 0, 1 );
     }
 
@@ -696,29 +702,29 @@ function loadEventImage( event, frame ) {
       'height': $j('#eventThumbs').height() - $j('#eventImageBar').outerHeight(true)-10
     } );
 
-    $('eventImageNo').set( 'text', frame.FrameId );
+    $('eventImageNo').set('text', frame.FrameId);
     $('prevImageBtn').disabled = (frame.FrameId==1);
     $('nextImageBtn').disabled = (frame.FrameId==event.Frames);
   }
 }
 
 function hideEventImageComplete() {
-  var thumbImg = $('eventThumb'+$('eventImage').getProperty( 'alt' ));
+  var thumbImg = $('eventThumb'+$('eventImage').getProperty('alt'));
   if ( thumbImg ) {
     thumbImg.removeClass('selected');
-    thumbImg.setOpacity( 1.0 );
+    thumbImg.setOpacity(1.0);
   } else {
-    console.log("Unable to find eventThumb at " + 'eventThumb'+$('eventImage').getProperty( 'alt' ) );
+    console.log('Unable to find eventThumb at eventThumb'+$('eventImage').getProperty('alt'));
   }
   $('prevImageBtn').disabled = true;
   $('nextImageBtn').disabled = true;
-  $('eventImagePanel').setStyle( 'display', 'none' );
-  $('eventImageStats').addClass( 'hidden' );
+  $('eventImagePanel').setStyle('display', 'none');
+  $('eventImageStats').addClass('hidden');
 }
 
 function hideEventImage() {
-  if ( $('eventImagePanel').getStyle( 'display' ) != 'none' ) {
-    new Fx.Tween( $('eventImagePanel'), {duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete} ).start( 'opacity', 1, 0 );
+  if ( $('eventImagePanel').getStyle('display') != 'none' ) {
+    new Fx.Tween( $('eventImagePanel'), {duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete} ).start('opacity', 1, 0);
   }
 }
 
@@ -745,15 +751,15 @@ function resetEventStills() {
   }
 }
 
-function getFrameResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getFrameResponse", respObj ) ) {
+function getFrameResponse(respObj, respText) {
+  if ( checkStreamForErrors('getFrameResponse', respObj) ) {
     return;
   }
 
   var frame = respObj.frameimage;
 
   if ( !eventData ) {
-    console.error( "No event "+frame.EventId+" found" );
+    console.error('No event '+frame.EventId+' found');
     return;
   }
 
@@ -763,21 +769,21 @@ function getFrameResponse( respObj, respText ) {
 
   eventData['frames'][frame.FrameId] = frame;
 
-  loadEventThumb( eventData, frame, respObj.loopback=="true" );
+  loadEventThumb(eventData, frame, respObj.loopback=="true");
 }
 
 var frameReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse} );
 
 function frameQuery( eventId, frameId, loadImage ) {
   var parms = "view=request&request=status&entity=frameimage&id[0]="+eventId+"&id[1]="+frameId+"&loopback="+loadImage;
-  frameReq.send( parms );
+  frameReq.send(parms);
 }
 
 var currFrameId = null;
 
 function checkFrames( eventId, frameId, loadImage ) {
   if ( !eventData ) {
-    console.error( "No event "+eventId+" found" );
+    console.error("No event "+eventId+" found");
     return;
   }
 
@@ -798,29 +804,30 @@ function checkFrames( eventId, frameId, loadImage ) {
 
   for ( var fid = loFid; fid <= hiFid; fid++ ) {
     if ( !$('eventThumb'+fid) ) {
-      var img = new Element( 'img', {'id': 'eventThumb'+fid, 'src': 'graphics/transparent.png', 'alt': fid, 'class': 'placeholder'} );
-      img.addEvent( 'click', function() {
-        eventData['frames'][fid] = null; checkFrames( eventId, fid );
-      } );
-      frameQuery( eventId, fid, loadImage && (fid == frameId) );
-      var imgs = $('eventThumbs').getElements( 'img' );
+      var img = new Element('img', {'id': 'eventThumb'+fid, 'src': 'graphics/transparent.png', 'alt': fid, 'class': 'placeholder'});
+      img.addEvent('click', function() {
+        eventData['frames'][fid] = null;
+        checkFrames(eventId, fid);
+      });
+      frameQuery(eventId, fid, loadImage && (fid == frameId));
+      var imgs = $('eventThumbs').getElements('img');
       var injected = false;
       if ( fid < imgs.length ) {
-        img.inject( imgs[fid-1], 'before' );
+        img.inject(imgs[fid-1], 'before');
         injected = true;
       } else {
         injected = imgs.some(
             function( thumbImg, index ) {
-              if ( parseInt(img.getProperty( 'alt' )) < parseInt(thumbImg.getProperty( 'alt' )) ) {
-                img.inject( thumbImg, 'before' );
-                return ( true );
+              if ( parseInt(img.getProperty('alt')) < parseInt(thumbImg.getProperty('alt')) ) {
+                img.inject(thumbImg, 'before');
+                return true;
               }
-              return ( false );
+              return false;
             }
         );
       }
       if ( !injected ) {
-        img.inject( $('eventThumbs') );
+        img.inject($('eventThumbs'));
       }
       var scale = parseInt(img.getStyle('height'));
       img.setStyles( {
@@ -895,12 +902,15 @@ function getActResponse( respObj, respText ) {
 
 var actReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse} );
 
-function actQuery( action, parms ) {
+function actQuery(action, parms) {
   var actParms = "view=request&request=event&id="+eventData.Id+"&action="+action;
-  if ( parms != null ) {
-    actParms += "&"+Object.toQueryString( parms );
+  if ( auth_hash ) {
+    actParms += '&auth='+auth_hash;
   }
-  actReq.send( actParms );
+  if ( parms != null ) {
+    actParms += "&"+Object.toQueryString(parms);
+  }
+  actReq.send(actParms);
 }
 
 function deleteEvent() {
@@ -914,7 +924,7 @@ function deleteEvent() {
       getActResponse(respObj, respText);
       // We must wait for the deletion to happen before navigating to the next
       // event or this request will be cancelled.
-      streamNext( true );
+      streamNext(true);
     },
   });
   deleteReq.send("view=request&request=event&id="+eventData.Id+"&action=delete");
@@ -922,43 +932,43 @@ function deleteEvent() {
 
 function renameEvent() {
   var newName = $('eventName').get('value');
-  actQuery( 'rename', {eventName: newName} );
+  actQuery('rename', {eventName: newName});
 }
 
 function editEvent() {
-  createPopup( '?view=eventdetail&eid='+eventData.Id, 'zmEventDetail', 'eventdetail' );
+  createPopup('?view=eventdetail&eid='+eventData.Id, 'zmEventDetail', 'eventdetail');
 }
 
 function exportEvent() {
-  createPopup( '?view=export&eid='+eventData.Id, 'zmExport', 'export' );
+  createPopup('?view=export&eid='+eventData.Id, 'zmExport', 'export');
 }
 
 function archiveEvent() {
-  actQuery( 'archive' );
+  actQuery('archive');
 }
 
 function unarchiveEvent() {
-  actQuery( 'unarchive' );
+  actQuery('unarchive');
 }
 
 function showEventFrames() {
-  createPopup( '?view=frames&eid='+eventData.Id, 'zmFrames', 'frames', WEB_LIST_THUMB_WIDTH, WEB_LIST_THUMB_HEIGHT );
+  createPopup('?view=frames&eid='+eventData.Id, 'zmFrames', 'frames', WEB_LIST_THUMB_WIDTH, WEB_LIST_THUMB_HEIGHT);
 }
 
 function showStream() {
-  $('eventStills').addClass( 'hidden' );
-  $('eventVideo').removeClass( 'hidden' );
+  $('eventStills').addClass('hidden');
+  $('eventVideo').removeClass('hidden');
 
-  $('stillsEvent').removeClass( 'hidden' );
-  $('streamEvent').addClass( 'hidden' );
+  $('stillsEvent').removeClass('hidden');
+  $('streamEvent').addClass('hidden');
 
   streamMode = 'video';
   if (scale == 'auto') changeScale();
 }
 
 function showStills() {
-  $('eventStills').removeClass( 'hidden' );
-  $('eventVideo').addClass( 'hidden' );
+  $('eventStills').removeClass('hidden');
+  $('eventVideo').addClass('hidden');
 
   if (vid && ( vid.paused != true ) ) {
     // Pause the video
@@ -969,14 +979,14 @@ function showStills() {
     //playButton.innerHTML = "Play";
   }
 
-  $('stillsEvent').addClass( 'hidden' );
-  $('streamEvent').removeClass( 'hidden' );
+  $('stillsEvent').addClass('hidden');
+  $('streamEvent').removeClass('hidden');
 
   streamMode = 'stills';
 
   pauseClicked();
   if ( !scroll ) {
-    scroll = new Fx.Scroll( 'eventThumbs', {
+    scroll = new Fx.Scroll('eventThumbs', {
       wait: false,
       duration: 500,
       offset: {'x': 0, 'y': 0},
@@ -990,17 +1000,17 @@ function showStills() {
 
 function showFrameStats() {
   var fid = $('eventImageNo').get('text');
-  createPopup( '?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height );
+  createPopup('?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height);
 }
 
 function videoEvent() {
-  createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
+  createPopup('?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height);
 }
 
 // Called on each event load because each event can be a different width
 function drawProgressBar() {
   var barWidth = $j('#evtStream').width();
-  $j('#progressBar').css( 'width', barWidth );
+  $j('#progressBar').css('width', barWidth);
 }
 
 // Shows current stream progress.
@@ -1023,8 +1033,8 @@ function progressBarNav() {
 
 function handleClick( event ) {
   var target = event.target;
-  if (vid) {
-    if (target.id != 'videoobj') return; //ignore clicks on control bar
+  if ( vid ) {
+    if (target.id != 'videoobj') return; // ignore clicks on control bar
     var x = event.offsetX;
     var y = event.offsetY;
   } else {
@@ -1032,9 +1042,9 @@ function handleClick( event ) {
     var y = event.page.y - $(target).getTop();
   }
 
-  if (event.shift || event.shiftKey) {//handle both jquery and mootools
+  if ( event.shift || event.shiftKey ) { // handle both jquery and mootools
     streamPan(x, y);
-  } else if (vid && event.ctrlKey) { //allow zoom out by control click.  useful in fullscreen
+  } else if ( vid && event.ctrlKey ) { // allow zoom out by control click.  useful in fullscreen
     vjsPanZoom('zoomOut', x, y);
   } else {
     streamZoomIn(x, y);
@@ -1063,7 +1073,7 @@ function initPage() {
     }
   } else {
     progressBarNav();
-    streamCmdTimer = streamQuery.delay( 250 );
+    streamCmdTimer = streamQuery.delay(250);
     if ( canStreamNative ) {
       var imageFeed = $('imageFeed');
       if ( !imageFeed ) {
@@ -1073,16 +1083,16 @@ function initPage() {
         if ( !streamImg ) {
           streamImg = imageFeed.getElement('object');
         }
-        $(streamImg).addEvent( 'click', function( event ) {
-          handleClick( event );
-        } );
+        $(streamImg).addEvent('click', function(event) {
+          handleClick(event);
+        });
       }
     }
   }
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
-  if (scale == "auto") changeScale();
+  if ( scale == 'auto' ) changeScale();
 }
 
 // Kick everything off
-window.addEventListener( 'DOMContentLoaded', initPage );
+window.addEventListener('DOMContentLoaded', initPage);

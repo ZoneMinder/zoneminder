@@ -1,4 +1,4 @@
-var logParms = "view=request&request=log&task=query";
+var logParms = 'view=request&request=log&task=query';
 var logReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse} );
 var logTimer = undefined;
 var logTable = undefined;
@@ -24,6 +24,15 @@ var initialDisplayLimit = 200;
 var sortReversed = false;
 var filterFields = ['Component', 'ServerId', 'Pid', 'Level', 'File', 'Line'];
 var options = {};
+
+function escapeHtml(unsafe) {
+  return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+}
 
 function buildFetchParms( parms ) {
   var fetchParms = logParms+'&limit='+maxLogFetch;
@@ -65,15 +74,13 @@ function logResponse( respObj ) {
                 minLogTime = log.TimeKey;
               }
 
-              // Manually create table cells by setting the text since `push` will set HTML which
-              // can lead to XSS.
-              var messageCell = new Element('td');
-              messageCell.set('text', log.Message);
-
-              var fileCell = new Element('td');
-              fileCell.set('text', log.File);
-
-              var row = logTable.push( [{content: log.DateTime, properties: {style: 'white-space: nowrap'}}, log.Component, log.Server, log.Pid, log.Code, messageCell, fileCell, log.Line] );
+              var row = logTable.push([
+                {content: log.DateTime, properties: {style: 'white-space: nowrap'}},
+                log.Component, log.Server, log.Pid, log.Code,
+                escapeHtml(log.Message),
+                escapeHtml(log.File),
+                log.Line
+              ]);
 
               delete log.Message;
               row.tr.store( 'log', log );
@@ -141,7 +148,7 @@ function logResponse( respObj ) {
 
 function refreshLog() {
   options = {};
-  logTable.empty();
+  $j('#logTable tbody').empty();
   firstLoad = true;
   maxLogTime = 0;
   minLogTime = 0;
@@ -156,15 +163,26 @@ function expandLog() {
   fetchPrevLogs();
 }
 
+function clearResponse() {
+  refreshLog();
+}
+function clearError() {
+}
 function clearLog() {
   logReq.cancel();
-  minLogTime = 0;
-  logCount = 0;
-  logTimeout = maxSampleTime;
-  displayLimit = initialDisplayLimit;
-  $('displayLogs').set('text', logCount);
-  options = {};
-  logTable.empty();
+
+  var clearParms = 'view=request&request=log&task=delete';
+  var clearReq = new Request.JSON({url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: clearResponse});
+  var tbody = $(logTable).getElement('tbody');
+  var rows = tbody.getElements('tr');
+  if ( rows ) {
+    var minTime = rows[0].getElement('td').get('text');
+    clearParms += "&minTime="+encodeURIComponent(minTime);
+    var maxTime = rows[rows.length-1].getElement('td').get('text');
+    clearParms += "&maxTime="+encodeURIComponent(maxTime);
+  }
+  var form = $('logForm');
+  clearReq.send(clearParms+"&"+form.toQueryString());
 }
 
 function filterLog() {
@@ -172,9 +190,9 @@ function filterLog() {
   filterFields.each(
       function( field ) {
         var selector = $('filter['+field+']');
-        if ( ! selector ) {
+        if ( !selector ) {
           if ( window.console && window.console.log ) {
-            window.console.log("No selector found for " + field );
+            window.console.log('No selector found for ' + field);
           }
           return;
         }
@@ -208,18 +226,18 @@ function exportResponse( response ) {
 
 function exportFail( request ) {
   $('exportLog').unspin();
-  $('exportErrorText').set('text', request.status+" / "+request.statusText );
+  $('exportErrorText').set('text', request.status+' / '+request.statusText);
   $('exportError').show();
-  Error( "Export request failed: "+request.status+" / "+request.statusText );
+  Error('Export request failed: '+request.status+' / '+request.statusText);
 }
 
 function exportRequest() {
   var form = $('exportForm');
-  $('exportErrorText').set('text', "" );
+  $('exportErrorText').set('text', '');
   $('exportError').hide();
   if ( form.validate() ) {
     var exportParms = "view=request&request=log&task=export";
-    var exportReq = new Request.JSON( {url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail} );
+    var exportReq = new Request.JSON({url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail});
     var selection = form.getElement('input[name=selector]:checked').get('value');
     if ( selection == 'filter' || selection == 'current' ) {
       $$('#filters select').each(
@@ -238,7 +256,7 @@ function exportRequest() {
         exportParms += "&maxTime="+encodeURIComponent(maxTime);
       }
     }
-    exportReq.send( exportParms+"&"+form.toQueryString() );
+    exportReq.send(exportParms+"&"+form.toQueryString());
     $('exportLog').spin();
   }
 }
@@ -247,9 +265,9 @@ function updateFilterSelectors() {
   Object.each(options,
       function( values, key ) {
         var selector = $('filter['+key+']');
-        if ( ! selector ) {
+        if ( !selector ) {
           if ( window.console && window.console.log ) {
-            window.console.log("No selector found for " + key );
+            window.console.log('No selector found for ' + key);
           }
           return;
         }
@@ -293,12 +311,12 @@ function initPage() {
       }
   );
   logTable.addEvent( 'sort', function( tbody, index ) {
-    var header = tbody.getParent( 'table' ).getElement( 'thead' );
-    var columns = header.getElement( 'tr' ).getElements( 'th' );
+    var header = tbody.getParent('table').getElement('thead');
+    var columns = header.getElement('tr').getElements('th');
     var column = columns[index];
-    sortReversed = column.hasClass( 'table-th-sort-rev' );
+    sortReversed = column.hasClass('table-th-sort-rev');
     if ( logCount > displayLimit ) {
-      var rows = tbody.getElements( 'tr' );
+      var rows = tbody.getElements('tr');
       var startIndex;
       if ( sortReversed ) {
         startIndex = displayLimit;
@@ -315,12 +333,12 @@ function initPage() {
   );
   exportFormValidator = new Form.Validator.Inline($('exportForm'), {
     useTitles: true,
-    warningPrefix: "",
-    errorPrefix: ""
+    warningPrefix: '',
+    errorPrefix: ''
   });
-  new Asset.css( "css/spinner.css" );
+  new Asset.css('css/spinner.css');
   fetchNextLogs();
 }
 
 // Kick everything off
-window.addEventListener( 'DOMContentLoaded', initPage );
+window.addEventListener('DOMContentLoaded', initPage);

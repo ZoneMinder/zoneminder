@@ -10,6 +10,7 @@ configure_file(com.zoneminder.systemctl.rules.in "${CMAKE_CURRENT_BINARY_DIR}/co
 configure_file(zoneminder.service.in "${CMAKE_CURRENT_BINARY_DIR}/zoneminder.service" @ONLY)
 configure_file(zoneminder-tmpfiles.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zoneminder-tmpfiles.conf" @ONLY)
 configure_file(zoneminder.desktop.in "${CMAKE_CURRENT_BINARY_DIR}/zoneminder.desktop" @ONLY)
+configure_file(zm-sudo.in "${CMAKE_CURRENT_BINARY_DIR}/zm-sudo" @ONLY)
 
 # Do not install the misc files by default
 #install(FILES "${CMAKE_CURRENT_BINARY_DIR}/apache.conf" "${CMAKE_CURRENT_BINARY_DIR}/logrotate.conf" "${CMAKE_CURRENT_BINARY_DIR}/syslog.conf" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/misc")

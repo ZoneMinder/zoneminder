@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -104,7 +104,7 @@ while( 1 ) {
       if ( !$capture_time ) {
         my $startup_time = zmGetStartupTime($monitor);
         if ( ( $now - $startup_time ) > $Config{ZM_WATCH_MAX_DELAY} ) {
-          Info(
+          Warning(
             "Restarting capture daemon for $$monitor{Name}, no image since startup. ".
             "Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}"
           );
@@ -126,7 +126,7 @@ while( 1 ) {
         my $image_delay = $now-$capture_time;
         Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
         if ( $image_delay > $max_image_delay ) {
-          Info("Restarting capture daemon for "
+          Warning("Restarting capture daemon for "
               .$monitor->{Name}.", time since last capture $image_delay seconds ($now-$capture_time)"
               );
           $restart = 1;
@@ -173,7 +173,7 @@ while( 1 ) {
         my $image_delay = $now-$image_time;
         Debug("Monitor $monitor->{Id} last analysed $image_delay seconds ago, max is $max_image_delay");
         if ( $image_delay > $max_image_delay ) {
-          Info("Analysis daemon for $$monitor{Id} $$monitor{Name} needs restarting,"
+          Warning("Analysis daemon for $$monitor{Id} $$monitor{Name} needs restarting,"
               ." time since last analysis $image_delay seconds ($now-$image_time)"
               );
           $restart = 1;

@@ -36,20 +36,17 @@ NOTE: EL7 users should replace "dnf" with "yum" in the instructions below.
      sudo chown root:apache *.conf
      sudo chmod 640 *.conf     
 
-4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
-   timezone.  PHP will complain loudly if this is not set, or if it is set
-   incorrectly, and these complaints will show up in the zoneminder logging
-   system as errors.
+4. Manually setting the timezone in /etc/php.ini is deprecated.
 
-   If you are not sure of the proper timezone specification to use, look at
-   http://php.net/date.timezone
+   Instead, navigate to Options -> System from the ZoneMinder web console.
+   Do this after completing step 10, below.
+
+   Note that timezone errors will appear in the ZoneMinder log until this
+   has been completed.
 
 5. Disable SELinux 
 
-   We currently do not have the resources to create and maintain an accurate
-   SELinux policy for ZoneMinder on Fedora. We will gladly accept pull
-   reqeusts from anyone who wishes to do the work. In the meantime, SELinux
-   will need to be disabled or put into permissive mode.
+   SELinux must be disabled or put into permissive mode. This is not optional!
    
    To immediately disbale SELinux for the current seesion, issue the following
    from the command line:
@@ -165,4 +162,12 @@ Upgrades
 
         sudo systemctl restart httpd
 	sudo systemctl start zoneminder
+
+6. Manually setting the timezone in /etc/php.ini is deprecated.
+
+   Instead, navigate to Options -> System from the ZoneMinder web console.
+   Do this now.
+
+   Note that timezone errors will appear in the ZoneMinder log until this
+   has been completed.
 

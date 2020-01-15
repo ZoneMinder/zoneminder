@@ -42,7 +42,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
           $filter->delete();
 
       } else {
-        ZM\Error("No filter id passed when deleting");
+        ZM\Error('No filter id passed when deleting');
       }
     } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) ) {
 
@@ -50,44 +50,49 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
       $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
       $_REQUEST['filter']['Query']['limit'] = validInt($_REQUEST['filter']['Query']['limit']);
-      if ( $action == 'execute' ) {
-        $tempFilterName = '_TempFilter'.time();
-        $sql .= ' Name = \''.$tempFilterName.'\'';
-      } else {
-        $sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
-      }
-      $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']['Query']));
-      $sql .= ', AutoArchive = '.(!empty($_REQUEST['filter']['AutoArchive']) ? 1 : 0);
-      $sql .= ', AutoVideo = '. ( !empty($_REQUEST['filter']['AutoVideo']) ? 1 : 0);
-      $sql .= ', AutoUpload = '. ( !empty($_REQUEST['filter']['AutoUpload']) ? 1 : 0);
-      $sql .= ', AutoEmail = '. ( !empty($_REQUEST['filter']['AutoEmail']) ? 1 : 0);
-      $sql .= ', AutoMessage = '. ( !empty($_REQUEST['filter']['AutoMessage']) ? 1 : 0);
-      $sql .= ', AutoExecute = '. ( !empty($_REQUEST['filter']['AutoExecute']) ? 1 : 0);
-      $sql .= ', AutoExecuteCmd = '.dbEscape($_REQUEST['filter']['AutoExecuteCmd']);
-      $sql .= ', AutoDelete = '. ( !empty($_REQUEST['filter']['AutoDelete']) ? 1 : 0);
-      if ( !empty($_REQUEST['filter']['AutoMove']) ? 1 : 0) {
-        $sql .= ', AutoMove = 1, AutoMoveTo='. validInt($_REQUEST['filter']['AutoMoveTo']);
-      } else {
-        $sql .= ', AutoMove = 0'; 
-      }
-      $sql .= ', UpdateDiskSpace = '. ( !empty($_REQUEST['filter']['UpdateDiskSpace']) ? 1 : 0);
-      $sql .= ', Background = '. ( !empty($_REQUEST['filter']['Background']) ? 1 : 0);
-      $sql .= ', Concurrent = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
+      
+      $_REQUEST['filter']['AutoCopy'] = empty($_REQUEST['filter']['AutoCopy']) ? 0 : 1;
+      $_REQUEST['filter']['AutoMove'] = empty($_REQUEST['filter']['AutoMove']) ? 0 : 1;
+      $_REQUEST['filter']['AutoArchive'] = empty($_REQUEST['filter']['AutoArchive']) ? 0 : 1;
+      $_REQUEST['filter']['AutoVideo'] = empty($_REQUEST['filter']['AutoVideo']) ? 0 : 1;
+      $_REQUEST['filter']['AutoUpload'] = empty($_REQUEST['filter']['AutoUpload']) ? 0 : 1;
+      $_REQUEST['filter']['AutoEmail'] = empty($_REQUEST['filter']['AutoEmail']) ? 0 : 1;
+      $_REQUEST['filter']['AutoMessage'] = empty($_REQUEST['filter']['AutoMessage']) ? 0 : 1;
+      $_REQUEST['filter']['AutoExecute'] = empty($_REQUEST['filter']['AutoExecute']) ? 0 : 1;
+      $_REQUEST['filter']['AutoDelete'] = empty($_REQUEST['filter']['AutoDelete']) ? 0 : 1;
+      $_REQUEST['filter']['UpdateDiskSpace'] = empty($_REQUEST['filter']['UpdateDiskSpace']) ? 0 : 1;
+      $_REQUEST['filter']['Background'] = empty($_REQUEST['filter']['Background']) ? 0 : 1;
+      $_REQUEST['filter']['Concurrent'] = empty($_REQUEST['filter']['Concurrent']) ? 0 : 1;
+      $changes = $filter->changes($_REQUEST['filter']);
+      ZM\Logger::Debug('Changes: ' . print_r($changes,true));
 
       if ( $_REQUEST['Id'] and ( $action == 'Save' ) ) {
-        dbQuery('UPDATE Filters SET '.$sql.' WHERE Id=?', array($_REQUEST['Id']));
         if ( $filter->Background() )
           $filter->control('stop');
+        $filter->save($changes);
       } else {
-        dbQuery('INSERT INTO Filters SET'.$sql);
-        $_REQUEST['Id'] = dbInsertId();
-        $filter = new ZM\Filter($_REQUEST['Id']);
+
+        if ( $action == 'execute' ) {
+          if ( count($changes) ) {
+            $filter->Name('_TempFilter'.time());
+            $filter->Id(null);
+          }
+        } else if ( $action == 'SaveAs' ) {
+					$filter->Id(null);
+				}
+        $filter->save($changes);
+
+				// We update the request id so that the newly saved filter is auto-selected
+				$_REQUEST['Id'] = $filter->Id();
       }
-      if ( !empty($_REQUEST['filter']['Background']) )
+      if ( $filter->Background() )
         $filter->control('start');
 
       if ( $action == 'execute' ) {
-        executeFilter($_REQUEST['Id']);
+        $filter->execute();
+        if ( count($changes) )
+          $filter->delete();
+
         $view = 'events';
       }
 

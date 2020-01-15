@@ -55,7 +55,9 @@ class MonitorStream : public StreamBase {
     void processCommand( const CmdMsg *msg );
     void SingleImage( int scale=100 );
     void SingleImageRaw( int scale=100 );
+#ifdef HAVE_ZLIB_H
     void SingleImageZip( int scale=100 );
+#endif
 
   public:
     MonitorStream() : 

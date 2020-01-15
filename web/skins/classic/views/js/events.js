@@ -100,8 +100,9 @@ function downloadVideo( element ) {
 
 function exportEvents( element ) {
   var form = element.form;
-  form.attr('action', '?view=export');
-  form[0].elements['view'].value='export';
+  console.log(form);
+  form.action = '?view=export';
+  form.elements['view'].value='export';
   form.submit();
 }
 
@@ -145,10 +146,12 @@ if ( openFilterWindow ) {
 
 function thumbnail_onmouseover(event) {
   var img = event.target;
+  img.src = '';
   img.src = img.getAttribute('stream_src');
 }
 function thumbnail_onmouseout(event) {
   var img = event.target;
+  img.src = '';
   img.src = img.getAttribute('still_src');
 }
 

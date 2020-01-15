@@ -28,6 +28,9 @@ package ZoneMinder::Control::Netcat;
 use 5.006;
 use strict;
 use warnings;
+use MIME::Base64;
+use Digest::SHA;
+use DateTime;
 
 require ZoneMinder::Base;
 require ZoneMinder::Control;
@@ -35,6 +38,8 @@ require ZoneMinder::Control;
 our @ISA = qw(ZoneMinder::Control);
 
 our %CamParams = ();
+
+our ($profileToken, $address, $port, %identity);
 
 # ==========================================================================
 #
@@ -50,7 +55,6 @@ our %CamParams = ();
 # 
 #
 # Possible future improvements (for anyone to improve upon):
-#    - Onvif authentication
 #    - Build the SOAP commands at runtime rather than use templates
 #    - Implement previously mentioned advanced features
 #
@@ -58,9 +62,10 @@ our %CamParams = ();
 # more dependencies to ZoneMinder is always a concern.
 #
 # On ControlAddress use the format :
-#   ADDRESS:PORT
+#   [USERNAME:PASSWORD@]ADDRESS:PORT
 #   eg : 10.1.2.1:8899
 #        10.0.100.1:8899
+#        username:password@10.0.100.1:8899
 #
 # Use port 8899 for the Netcat camera
 #
@@ -79,6 +84,11 @@ sub open {
 
   $self->loadMonitor();
 
+  $profileToken = $self->{Monitor}->{ControlDevice};
+  if ($profileToken eq '') { $profileToken = '000'; }
+
+  parseControlAddress($self->{Monitor}->{ControlAddress});
+
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
@@ -86,12 +96,33 @@ sub open {
   $self->{state} = 'open';
 }
 
-sub printMsg {
-  my $self = shift;
-  my $msg = shift;
-  my $msg_len = length($msg);
+sub parseControlAddress {
+  my $controlAddress = shift;
+  my ($usernamepassword, $addressport) = split /@/, $controlAddress;
+  if ( !defined $addressport ) {
+    # If value of "Control address" does not consist of two parts, then only address is given
+    $addressport = $usernamepassword;
+  } else {
+    my ($username , $password) = split /:/, $usernamepassword;
+    %identity = (username => $username, password => $password);
+  }
+  ($address, $port) = split /:/, $addressport;
+}
 
-  Debug($msg.'['.$msg_len.']');
+sub digestBase64 {
+  my ($nonce, $date, $password) = @_;
+  my $shaGenerator = Digest::SHA->new(1);
+  $shaGenerator->add($nonce . $date . $password);
+  return encode_base64($shaGenerator->digest, '');
+}
+
+sub authentificationHeader {
+  my ($username, $password) = @_;
+  my $nonce = chr(int(rand(254))) for (0 .. 20);
+  my $nonceBase64 = encode_base64($nonce, '');
+  my $currentDate = DateTime->now()->iso8601().'Z';
+
+  return '<s:Header><Security s:mustUnderstand="1" xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><UsernameToken xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><Username>' . $username . '</Username><Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest">' . digestBase64($nonce, $currentDate, $password) . '</Password><Nonce EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary">' . $nonceBase64 . '</Nonce><Created xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">' . $currentDate . '</Created></UsernameToken></Security></s:Header>';
 }
 
 sub sendCmd {
@@ -101,12 +132,12 @@ sub sendCmd {
   my $content_type = shift;
   my $result = undef;
 
-  printMsg($cmd, 'Tx');
+  $self->printMsg($cmd, 'Tx');
 
-  my $server_endpoint = 'http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd;
+  my $server_endpoint = 'http://'.$address.':'.$port.'/'.$cmd;
   my $req = HTTP::Request->new(POST => $server_endpoint);
   $req->header('content-type' => $content_type);
-  $req->header('Host' => $self->{Monitor}->{ControlAddress});
+  $req->header('Host' => $address . ':' . $port);
   $req->header('content-length' => length($msg));
   $req->header('accept-encoding' => 'gzip, deflate');
   $req->header('connection' => 'Close');
@@ -117,7 +148,7 @@ sub sendCmd {
   if ( $res->is_success ) {
     $result = !undef;
   } else {
-    Error("After sending PTZ command, camera returned the following error:'".$res->status_line()."'");
+    Error("After sending PTZ command, camera returned the following error:'".$res->status_line()."'\nMSG:$msg\nResponse:".$res->content);
   }
   return $result;
 }
@@ -125,10 +156,10 @@ sub sendCmd {
 sub getCamParams {
   my $self = shift;
   my $msg = '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken></GetImagingSettings></s:Body></s:Envelope>';
-  my $server_endpoint = 'http://'.$self->{Monitor}->{ControlAddress}.'/onvif/imaging';
+  my $server_endpoint = 'http://'.$address.':'.$port.'/onvif/imaging';
   my $req = HTTP::Request->new(POST => $server_endpoint);
   $req->header('content-type' => 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/imaging/wsdl/GetImagingSettings"');
-  $req->header('Host' => $self->{Monitor}->{ControlAddress});
+  $req->header('Host' => $address . ':' . $port);
   $req->header('content-length' => length($msg));
   $req->header('accept-encoding' => 'gzip, deflate');
   $req->header('connection' => 'Close');
@@ -160,7 +191,7 @@ sub autoStop {
   if ( $autostop ) {
     Debug('Auto Stop');
     my $cmd = 'onvif/PTZ';
-    my $msg = '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><PanTilt>true</PanTilt><Zoom>false</Zoom></Stop></s:Body></s:Envelope>';
+    my $msg = '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><PanTilt>true</PanTilt><Zoom>false</Zoom></Stop></s:Body></s:Envelope>';
     my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
     usleep($autostop);
     $self->sendCmd($cmd, $msg, $content_type);
@@ -172,7 +203,7 @@ sub reset {
   Debug('Camera Reset');
   my $self = shift;
   my $cmd = '';
-  my $msg = '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SystemReboot xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body></s:Envelope>';
+  my $msg = '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SystemReboot xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver10/device/wsdl/SystemReboot"';
   $self->sendCmd($cmd, $msg, $content_type);
 }
@@ -182,7 +213,7 @@ sub moveConUp {
   Debug('Move Up');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><Velocity><PanTilt x="0" y="0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="0" y="0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -193,7 +224,7 @@ sub moveConDown {
   Debug('Move Down');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><Velocity><PanTilt x="0" y="-0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">'.((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '').'<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="0" y="-0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -204,7 +235,7 @@ sub moveConLeft {
   Debug('Move Left');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><Velocity><PanTilt x="-0.49" y="0" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="-0.49" y="0" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -215,7 +246,7 @@ sub moveConRight {
   Debug('Move Right');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><Velocity><PanTilt x="0.49" y="0" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="0.49" y="0" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -226,7 +257,7 @@ sub zoomConTele {
   Debug('Zoom Tele');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><Velocity><Zoom x="0.49" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><Zoom x="0.49" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -237,7 +268,7 @@ sub zoomConWide {
   Debug('Zoom Wide');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><Velocity><Zoom x="-0.49" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><Zoom x="-0.49" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -249,7 +280,7 @@ sub moveConUpRight {
   Debug('Move Diagonally Up Right');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><Velocity><PanTilt x="0.5" y="0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="0.5" y="0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -261,7 +292,7 @@ sub moveConDownRight {
   Debug('Move Diagonally Down Right');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><Velocity><PanTilt x="0.5" y="-0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="0.5" y="-0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -273,7 +304,7 @@ sub moveConUpLeft {
   Debug('Move Diagonally Up Left');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><Velocity><PanTilt x="-0.5" y="0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">'.((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '').'<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="-0.5" y="0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -285,7 +316,7 @@ sub moveConDownLeft {
   Debug('Move Diagonally Down Left');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><Velocity><PanTilt x="-0.5" y="-0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="-0.5" y="-0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -296,7 +327,7 @@ sub moveStop {
   Debug('Move Stop');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><PanTilt>true</PanTilt><Zoom>false</Zoom></Stop></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><PanTilt>true</PanTilt><Zoom>false</Zoom></Stop></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
 }
@@ -308,7 +339,7 @@ sub presetSet {
   my $preset = $self->getParam($params, 'preset');
   Debug("Set Preset $preset");
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetPreset xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><PresetToken>'.$preset.'</PresetToken></SetPreset></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetPreset xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><PresetToken>'.$preset.'</PresetToken></SetPreset></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/SetPreset"';
   $self->sendCmd($cmd, $msg, $content_type);
 }
@@ -320,7 +351,7 @@ sub presetGoto {
   my $preset = $self->getParam($params, 'preset');
   Debug("Goto Preset $preset");
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GotoPreset xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><PresetToken>'.$preset.'</PresetToken></GotoPreset></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GotoPreset xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><PresetToken>'.$preset.'</PresetToken></GotoPreset></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/GotoPreset"';
   $self->sendCmd( $cmd, $msg, $content_type );
 }
@@ -362,28 +393,27 @@ sub irisAbsOpen {
   $CamParams{Brightness} = $max if ($CamParams{Brightness} > $max);
 
   my $cmd = 'onvif/imaging';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Brightness xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Brightness}.'</Brightness></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Brightness xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Brightness}.'</Brightness></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/imaging/wsdl/SetImagingSettings"';
-  $self->sendCmd( $cmd, $msg, $content_type );
+  $self->sendCmd($cmd, $msg, $content_type);
 }
 
 # Decrease Brightness
-sub irisAbsClose
-{
-  Debug( "Iris $CamParams{Brightness}" );
+sub irisAbsClose {
+  Debug("Iris $CamParams{Brightness}");
   my $self = shift;
   my $params = shift;
   $self->getCamParams() unless($CamParams{brightness});
-  my $step = $self->getParam( $params, 'step' );
+  my $step = $self->getParam($params, 'step');
   my $min = 0;
 
   $CamParams{Brightness} -= $step;
   $CamParams{Brightness} = $min if ($CamParams{Brightness} < $min);
 
   my $cmd = 'onvif/imaging';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Brightness xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Brightness}.'</Brightness></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Brightness xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Brightness}.'</Brightness></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/imaging/wsdl/SetImagingSettings"';
-  $self->sendCmd( $cmd, $msg, $content_type );
+  $self->sendCmd($cmd, $msg, $content_type);
 }
 
 # Increase Contrast
@@ -392,15 +422,16 @@ sub whiteAbsIn {
   my $self = shift;
   my $params = shift;
   $self->getCamParams() unless($CamParams{Contrast});
-  my $step = $self->getParam( $params, 'step' );
+  my $step = $self->getParam($params, 'step');
   my $max = 100;
 
   $CamParams{Contrast} += $step;
   $CamParams{Contrast} = $max if ($CamParams{Contrast} > $max);
 
   my $cmd = 'onvif/imaging';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Contrast xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Contrast}.'</Contrast></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Contrast xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Contrast}.'</Contrast></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/imaging/wsdl/SetImagingSettings"';
+  $self->sendCmd($cmd, $msg, $content_type);
 }
 
 # Decrease Contrast
@@ -416,8 +447,9 @@ sub whiteAbsOut {
   $CamParams{Contrast} = $min if ($CamParams{Contrast} < $min);
 
   my $cmd = 'onvif/imaging';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Contrast xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Contrast}.'</Contrast></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Contrast xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Contrast}.'</Contrast></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/imaging/wsdl/SetImagingSettings"';
+  $self->sendCmd($cmd, $msg, $content_type);
 }
 
 1;

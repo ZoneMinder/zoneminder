@@ -110,15 +110,6 @@ bool StreamBase::checkCommandQueue() {
 }
 
 Image *StreamBase::prepareImage( Image *image ) {
-  static int last_scale = 0;
-  static int last_zoom = 0;
-  static int last_x = 0;
-  static int last_y = 0;
-
-  if ( !last_scale )
-    last_scale = scale;
-  if ( !last_zoom )
-    last_zoom = zoom;
 
   // Do not bother to scale zoomed in images, just crop them and let the browser scale
   // Works in FF2 but breaks FF3 which doesn't like image sizes changing in mid stream.
@@ -236,8 +227,9 @@ Image *StreamBase::prepareImage( Image *image ) {
   return image;
 }
 
-bool StreamBase::sendTextFrame( const char *frame_text ) {
-  Debug(2, "Sending text frame '%s'", frame_text);
+bool StreamBase::sendTextFrame(const char *frame_text) {
+  Debug(2, "Sending %dx%d * %d text frame '%s'",
+      monitor->Width(), monitor->Height(), scale, frame_text);
 
   Image image(monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder());
   image.Annotate(frame_text, image.centreCoord(frame_text));
@@ -261,8 +253,8 @@ bool StreamBase::sendTextFrame( const char *frame_text ) {
 
     image.EncodeJpeg(buffer, &n_bytes);
 
-    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n\r\n", stdout);
-    fprintf(stdout, "Content-Length: %d\r\n", n_bytes);
+    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n", stdout);
+    fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);
     if ( fwrite(buffer, n_bytes, 1, stdout) != 1 ) {
       Error("Unable to send stream text frame: %s", strerror(errno));
       return false;

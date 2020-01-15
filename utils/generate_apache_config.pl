@@ -102,14 +102,14 @@ Alias /zm /usr/share/zoneminder/www
 # Parameters not set here are inherited from the parent directive above.
 <Directory "/usr/share/zoneminder/www/api">
   RewriteEngine on
-  RewriteRule ^$ app/webroot/ [L]
+  RewriteRule ^\$ app/webroot/ [L]
   RewriteRule (.*) app/webroot/$1 [L]
   RewriteBase /zm/api
 </Directory>
 
 <Directory "/usr/share/zoneminder/www/api/app">
   RewriteEngine on
-  RewriteRule ^$ webroot/ [L]
+  RewriteRule ^\$ webroot/ [L]
   RewriteRule (.*) webroot/$1 [L]
   RewriteBase /zm/api
 </Directory>

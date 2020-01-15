@@ -1,7 +1,7 @@
 .ptzControls {
     vertical-align: top;
     margin: 10px auto 0;
-    width: 520px;
+    width: 90%;
 }
 
 .ptzControls::after {
@@ -28,11 +28,11 @@
 }
 
 .ptzControls .controlsPanel .arrowControl {
-    width: 40px;
+    width: 60px;
     margin: 0 4px;
 }
 
-.ptzControls .controlsPanel .arrowControl input {
+.ptzControls .controlsPanel .arrowControl button.longArrowBtn {
     display: block;
 }
 
@@ -72,10 +72,13 @@
 
 .ptzControls .controlsPanel .irisControls {
     float: right;
+    text-align: center;
 }
 
 .ptzControls .controlsPanel .whiteControls {
     float: right;
+    width: 120px;
+    text-align: center;
 }
 
 .ptzControls .controlsPanel .pantiltPanel {
@@ -90,8 +93,8 @@
     border: 1px solid #006699;
     text-align: center;
     padding: 1px;
-    width: 102px;
-    height: 102px;
+    width: 100px;
+    height: 100px;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .arrowBtn {
@@ -141,17 +144,17 @@
     margin: 5px auto;
 }
 
-.ptzControls .presetControls {
-    margin: 5px auto;
+.ptzControls .presetControls div {
+    margin: 5px 200px 5px 180px;
 }
 
-.ptzControls .presetControls input {
+.ptzControls .presetControls button {
     margin: 1px;
 }
 
-.ptzControls .presetControls input.ptzNumBtn {
+.ptzControls .presetControls button.ptzNumBtn {
     padding: 1px 2px;
-    width: 24px;
+    width: 45px;
     color: #ffffff;
     text-align: center;
 }

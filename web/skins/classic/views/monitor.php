@@ -831,13 +831,13 @@ include('_monitor_source_nvsocket.php');
 ?>
           <tr class="DecoderHWAccelName">
             <td><?php echo translate('DecoderHWAccelName') ?>
-                (<?php echo makePopupLink('?view=optionhelp&amp;option=DECODERHWACCELNAME', 'zmOptionHelp', 'optionhelp', '?') ?>)
+                (<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_DECODERHWACCELNAME', 'zmOptionHelp', 'optionhelp', '?') ?>)
             </td>
             <td><input type="text" name="newMonitor[DecoderHWAccelName]" value="<?php echo validHtmlStr($monitor->DecoderHWAccelName()) ?>"/></td>
           </tr>
           <tr class="DecoderHWAccelDevice">
             <td><?php echo translate('DecoderHWAccelDevice') ?>
-                (<?php echo makePopupLink('?view=optionhelp&amp;option=DECODERHWACCELDEVIC', 'zmOptionHelp', 'optionhelp', '?') ?>)
+                (<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_DECODERHWACCELDEVICE', 'zmOptionHelp', 'optionhelp', '?') ?>)
             </td>
             <td><input type="text" name="newMonitor[DecoderHWAccelDevice]" value="<?php echo validHtmlStr($monitor->DecoderHWAccelDevice()) ?>"/></td>
           </tr>

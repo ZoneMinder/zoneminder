@@ -362,10 +362,12 @@ class Logger {
     $code = self::$codes[$level];
 
     $time = gettimeofday();
-    $message = sprintf('%s.%06d %s[%d].%s [%s] [%s]', strftime('%x %H:%M:%S', $time['sec']), $time['usec'], $this->id, getmypid(), $code, $_SERVER['REMOTE_ADDR'], $string);
+    $message = sprintf('%s.%06d %s[%d].%s [%s] [%s]',
+      strftime('%x %H:%M:%S', $time['sec']), $time['usec'],
+      $this->id, getmypid(), $code, $_SERVER['REMOTE_ADDR'], $string);
 
     if ( is_null($file) ) {
-      if ( $this->useErrorLog || $this->databaseLevel > self::NOLOG ) {
+      if ( $this->useErrorLog || ($this->databaseLevel > self::NOLOG) ) {
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];

@@ -253,7 +253,7 @@ function parseRows(rows) {
     term[2] = rowNum;
     inputTds.eq(2).children().eq(0).attr('name', 'filter'+stringFilter(term));
     inputTds.eq(2).children().eq(0).attr('id', 'filter'+stringFilter(term));
-  }  // End for each term/row
+  } //End for each term/row
   history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
 }
 

@@ -30,7 +30,6 @@ function validateForm( form ) {
 
 function updateButtons(element) {
   var form = element.form;
-  console.log(element);
   if ( element.type == 'checkbox' && element.checked ) {
     form.elements['executeButton'].disabled = false;
   } else {
@@ -105,6 +104,7 @@ function submitToEvents( element ) {
   form.action = thisUrl + '?view=events';
   history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
+
 function submitToMontageReview( element ) {
   var form = element.form;
   form.action = thisUrl + '?view=montagereview';
@@ -143,12 +143,12 @@ function deleteFilter( element ) {
 }
 
 function parseRows(rows) {
-  for (var rowNum = 0; rowNum < rows.length; rowNum++) { //Each row is a term
+  for ( var rowNum = 0; rowNum < rows.length; rowNum++ ) { //Each row is a term
     var queryPrefix = 'filter[Query][terms][';
     var inputTds = rows.eq(rowNum).children();
 
-    if (rowNum == 0) inputTds.eq(0).html('&nbsp'); //Remove and from first term
-    if (rowNum > 0) { //add and/or to 1+
+    if ( rowNum == 0 ) inputTds.eq(0).html('&nbsp'); //Remove and from first term
+    if ( rowNum > 0 ) { //add and/or to 1+
       var cnjVal = inputTds.eq(0).children().val();
       var conjSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cnj]').attr('id', queryPrefix + rowNum + '][cnj]');
       $j.each(conjTypes, function(i) {
@@ -172,19 +172,19 @@ function parseRows(rows) {
       inputTds.eq(1).html(obrSelect).children().val(obrVal); //Set bracket contents and assign saved value
       inputTds.eq(5).html(cbrSelect).children().val(cbrVal);
     } else {
-      inputTds.eq(1).html('&nbsp'); //Blank if there aren't enough terms for brackets
+      inputTds.eq(1).html('&nbsp'); // Blank if there aren't enough terms for brackets
       inputTds.eq(5).html('&nbsp');
     }
 
-    if (rows.length == 1) {
-      inputTds.eq(6).find(':input[value="-"]').prop('disabled', true); //enable/disable remove row button
+    if ( rows.length == 1 ) {
+      inputTds.eq(6).find('button[data-on-click-this="delTerm"]').prop('disabled', true); //enable/disable remove row button
     } else {
-      inputTds.eq(6).find(':input[value="-"]').prop('disabled', false);
+      inputTds.eq(6).find('button[data-on-click-this="delTerm"]').prop('disabled', false);
     }
 
     var attr = inputTds.eq(2).children().val();
 
-    if ( attr == "Archived") { //Archived types
+    if ( attr == "Archived" ) { //Archived types
       inputTds.eq(3).html('equal to<input type="hidden" name="filter[Query][terms][' + rowNum + '][op]" value="=">');
       var archiveSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < archiveTypes.length; i++) {
@@ -253,7 +253,7 @@ function parseRows(rows) {
     term[2] = rowNum;
     inputTds.eq(2).children().eq(0).attr('name', 'filter'+stringFilter(term));
     inputTds.eq(2).children().eq(0).attr('id', 'filter'+stringFilter(term));
-  }//End for each term/row
+  }  // End for each term/row
   history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
 }
 

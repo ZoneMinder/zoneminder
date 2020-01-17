@@ -64,35 +64,12 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       $_REQUEST['filter']['Background'] = empty($_REQUEST['filter']['Background']) ? 0 : 1;
       $_REQUEST['filter']['Concurrent'] = empty($_REQUEST['filter']['Concurrent']) ? 0 : 1;
       $changes = $filter->changes($_REQUEST['filter']);
-      ZM\Logger::Debug("Changes: " . print_r($changes,true));
-
-      if ( 0 ) {
-      $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']['Query']));
-      $sql .= ', AutoArchive = '.(!empty($_REQUEST['filter']['AutoArchive']) ? 1 : 0);
-      $sql .= ', AutoVideo = '. ( !empty($_REQUEST['filter']['AutoVideo']) ? 1 : 0);
-      $sql .= ', AutoUpload = '. ( !empty($_REQUEST['filter']['AutoUpload']) ? 1 : 0);
-      $sql .= ', AutoEmail = '. ( !empty($_REQUEST['filter']['AutoEmail']) ? 1 : 0);
-      $sql .= ', AutoMessage = '. ( !empty($_REQUEST['filter']['AutoMessage']) ? 1 : 0);
-      $sql .= ', AutoExecute = '. ( !empty($_REQUEST['filter']['AutoExecute']) ? 1 : 0);
-      $sql .= ', AutoExecuteCmd = '.dbEscape($_REQUEST['filter']['AutoExecuteCmd']);
-      $sql .= ', AutoDelete = '. ( !empty($_REQUEST['filter']['AutoDelete']) ? 1 : 0);
-      if ( !empty($_REQUEST['filter']['AutoMove']) ? 1 : 0) {
-        $sql .= ', AutoMove = 1, AutoMoveTo='. validInt($_REQUEST['filter']['AutoMoveTo']);
-      } else {
-        $sql .= ', AutoMove = 0'; 
-      }
-      $sql .= ', UpdateDiskSpace = '. ( !empty($_REQUEST['filter']['UpdateDiskSpace']) ? 1 : 0);
-      $sql .= ', Background = '. ( !empty($_REQUEST['filter']['Background']) ? 1 : 0);
-      $sql .= ', Concurrent = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
-      }
+      ZM\Logger::Debug('Changes: ' . print_r($changes,true));
 
       if ( $_REQUEST['Id'] and ( $action == 'Save' ) ) {
-        if ( 0 ) {
-        dbQuery('UPDATE Filters SET '.$sql.' WHERE Id=?', array($_REQUEST['Id']));
-        }
-        $filter->save($changes);
         if ( $filter->Background() )
           $filter->control('stop');
+        $filter->save($changes);
       } else {
 
         if ( $action == 'execute' ) {

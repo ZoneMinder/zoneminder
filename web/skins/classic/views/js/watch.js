@@ -229,12 +229,18 @@ function getStreamCmdResponse(respObj, respText) {
       } // end if canEditMonitors
 
       if ( streamStatus.auth ) {
+        auth_hash = streamStatus.auth;
         console.log("Have a new auth hash" + streamStatus.auth);
         // Try to reload the image stream.
         var streamImg = $('liveStream');
         if ( streamImg ) {
           streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
         }
+        streamCmdParms = streamCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        statusCmdParms = statusCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        eventCmdParms = eventCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        actParms = actParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        controlParms = controlParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
       } // end if have a new auth hash
     } // end if respObj.status
   } else {
@@ -473,6 +479,9 @@ function getActResponse( respObj, respText ) {
 
 function deleteEvent( event, eventId ) {
   var actParms = "view=request&request=event&action=delete&id="+eventId;
+  if ( auth_hash ) {
+    actParms += '&auth='+auth_hash;
+  }
   var actReq = new Request.JSON( {
     url: thisUrl,
     method: 'post',

@@ -278,8 +278,8 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
               <td class="colScheme"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Scheme()), $canEdit ) ?></td>
               <td class="colServer"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Server()->Name()), $canEdit ) ?></td>
               <td class="colDiskSpace"><?php echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?></td>
-              <td class="ColEvents"><?php echo count($Storage->Events()).' using '.human_filesize($Storage->event_disk_space()) ?></td>
-              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( count($Storage->Events()) or !$canEdit ) { ?> disabled="disabled"<?php } ?><?php echo count($Storage->Events()) ? ' title="Can\'t delete as long as there are events stored here."' : ''?>/></td>
+              <td class="ColEvents"><?php echo $Storage->EventCount().' using '.human_filesize($Storage->event_disk_space()) ?></td>
+              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( $Storage->EventCount() or !$canEdit ) { ?> disabled="disabled"<?php } ?><?php echo $Storage->EventCount() ? ' title="Can\'t delete as long as there are events stored here."' : ''?>/></td>
             </tr>
 <?php } #end foreach Server ?>
           </tbody>

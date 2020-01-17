@@ -61,7 +61,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libjson-maybexs-perl
         ,libsys-mmap-perl [!hurd-any]
         ,liburi-encode-perl
-        ,libwww-perl
+        ,libwww-perl, liburi-perl
         ,libdata-dump-perl
         ,libdatetime-perl
         ,libclass-std-fast-perl

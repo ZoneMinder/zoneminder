@@ -61,7 +61,8 @@ class MonitorsController extends AppController {
             'Groups_Monitors.MonitorId = Monitor.Id',
           ),
         ),
-      )
+      ),
+      'group' => '`Monitor`.`Id`',
     );
     $monitors = $this->Monitor->find('all',$find_array);
     $this->set(array(

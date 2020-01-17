@@ -30,7 +30,6 @@ function xhtmlHeaders($file, $title) {
 
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
 
-  $skinJsFile = getSkinFile('js/skin.js');
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $cssJsFile = getSkinFile('js/'.$css.'.js');
 
@@ -84,7 +83,6 @@ echo output_link_if_exists( array(
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-  #'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
 )
 );
 if ( $css != 'base' )
@@ -95,8 +93,9 @@ if ( $css != 'base' )
   )
 );
 ?>
+
 <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
-  <!--Chosen can't be cache-busted because it loads sprites by relative path-->
+<!--Chosen can't be cache-busted because it loads sprites by relative path-->
 <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
   if ( $basename == 'watch' ) {
@@ -188,8 +187,14 @@ if ( $css != 'base' )
 } else {
 ?>
   <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
-<?php } ?>
+<?php }
+  if ( $css != 'base' ) {
+    $skinJsFile = getSkinFile('js/skin.js');
+ ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
+<?php
+  }
+?>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php 
   if ($basename == 'watch' or $basename == 'log' ) {

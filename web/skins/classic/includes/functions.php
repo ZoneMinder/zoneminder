@@ -188,13 +188,9 @@ if ( $css != 'base' )
 ?>
   <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
 <?php }
-  if ( $css != 'base' ) {
-    $skinJsFile = getSkinFile('js/skin.js');
- ?>
-  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-<?php
-  }
+  $skinJsFile = getSkinFile('js/skin.js');
 ?>
+  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php 
   if ($basename == 'watch' or $basename == 'log' ) {

@@ -28,7 +28,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.33.16
+Version: 1.34.0
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -416,29 +416,20 @@ EOF
 %dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
-* Sun Dec 08 2019 Isaac Connor <isaac@zoneminder.com> - 1.33.15-1
-- Bump to 1.33.15 Development
+* Sat Jan 18 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.0-1
+- 1.34.0 Release
 
-* Sun Aug 11 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.14-1
-- Bump to 1.33.13 Development
+* Tue Dec 17 2019 Leigh Scott <leigh123linux@gmail.com> - 1.32.3-5
+- Mass rebuild for x264
 
-* Sun Jul 07 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.12-1
-- Bump to 1.33.12 Development
+* Wed Aug 07 2019 Leigh Scott <leigh123linux@gmail.com> - 1.32.3-4
+- Rebuild for new ffmpeg version
 
-* Sun Jun 23 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.9-1
-- Bump to 1.33.9 Development
+* Tue Mar 12 2019 Sérgio Basto <sergio@serjux.com> - 1.32.3-3
+- Mass rebuild for x264
 
-* Tue Apr 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.8-1
-- Bump to 1.33.8 Development
-
-* Sun Apr 07 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.6-1
-- Bump to 1.33.6 Development
-
-* Sat Mar 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.4-1
-- Bump to 1.33.4 Development
-
-* Tue Dec 11 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.0-1
-- Bump to 1.33.0 Development
+* Tue Mar 05 2019 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.32.3-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
 
 * Sat Dec 08 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.3-1
 - 1.32.3 Release

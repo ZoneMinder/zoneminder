@@ -152,8 +152,6 @@ if (
   setcookie('zmCSS', $css, time()+3600*24*30*12*10);
 }
 
-# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
-# Any file/page that sets session variables must re-open it.
 
 require_once('includes/lang.php');
 
@@ -186,6 +184,8 @@ if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
 require_once('includes/auth.php');
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that sets session variables must re-open it.
 session_write_close();
 
 foreach ( getSkinIncludes('skin.php') as $includeFile ) {
@@ -242,6 +242,12 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   ZM\Logger::Debug('Redirecting to login');
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
+  if ( ! $request ) {
+    zm_session_start();
+    $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
+    ZM\Error("postLoginQuery " . $_SESSION['postLoginQuery']);
+    session_write_close();
+  }
   $request = null;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';

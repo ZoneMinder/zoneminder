@@ -110,8 +110,9 @@ class ZM_Object {
 
   public static function _find_one($class, $parameters = array(), $options = array() ) {
     global $object_cache;
-    if ( ! isset($object_cache[$class]) )
+    if ( ! isset($object_cache[$class]) ) {
       $object_cache[$class] = array();
+    }
     $cache = &$object_cache[$class];
     if ( 
         ( count($parameters) == 1 ) and
@@ -125,6 +126,11 @@ class ZM_Object {
       return;
     }
     return $results[0];
+  }
+
+  public static function _clear_cache($class) {
+    global $object_cache;
+    $object_cache[$class] = array();
   }
 
   public static function Objects_Indexed_By_Id($class) {
@@ -288,6 +294,18 @@ Logger::Debug("$k => Have default for $v: ");
     if ( $new_values ) {
       //Logger::Debug("New values" . print_r($new_values, true));
       $this->set($new_values);
+    }
+
+    # Set defaults.  Note that we only replace "" with null, not other values
+    # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
+    foreach ( $this->defaults as $field => $default ) {
+      if ( (!array_key_exists($field, $this)) or ($this->{$field} == '') ) {
+        if ( is_array($default) ) {
+          $this->{$field} = $default['default'];
+        } else if ( $default == null ) {
+          $this->{$field} = $default;
+        }
+      }
     }
 
     $fields = array_filter(

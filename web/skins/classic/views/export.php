@@ -138,7 +138,7 @@ $disk_space_total = 0;
 $event_count = 0;
 while ( $event_row = dbFetchNext($results) ) {
   $event = new ZM\Event($event_row);
-  $scale = max(reScale(SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
+  $scale = max(reScale(SCALE_BASE, $event->Monitor()->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
 ?>
           <tr<?php echo $event->Archived() ? ' class="archived"' : '' ?>>
               <td class="colId">

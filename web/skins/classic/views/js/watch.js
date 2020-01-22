@@ -44,17 +44,17 @@ function changeScale() {
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
 
-  Cookie.write( 'zmWatchScale'+monitorId, scale, {duration: 10*365} );
+  Cookie.write('zmWatchScale'+monitorId, scale, {duration: 10*365});
 
   /*Stream could be an applet so can't use moo tools*/
   var streamImg = $('liveStream'+monitorId);
   if ( streamImg ) {
-    streamImg.style.width = newWidth + "px";
-    streamImg.style.height = newHeight + "px";
+    streamImg.style.width = newWidth + 'px';
+    streamImg.style.height = newHeight + 'px';
 
     streamImg.src = streamImg.src.replace(/scale=\d+/i, 'scale='+(scale== 'auto' ? autoScale : scale));
   } else {
-    console.error("No element found for liveStream.");
+    console.error('No element found for liveStream.');
   }
 }
 
@@ -64,17 +64,17 @@ var lastAlarmState = STATE_IDLE;
 function setAlarmState( currentAlarmState ) {
   alarmState = currentAlarmState;
 
-  var stateClass = "";
+  var stateClass = '';
   if ( alarmState == STATE_ALARM ) {
-    stateClass = "alarm";
+    stateClass = 'alarm';
   } else if ( alarmState == STATE_ALERT ) {
-    stateClass = "alert";
+    stateClass = 'alert';
   }
-  $('stateValue').set( 'text', stateStrings[alarmState] );
+  $('stateValue').set('text', stateStrings[alarmState]);
   if ( stateClass ) {
-    $('stateValue').setProperty( 'class', stateClass );
+    $('stateValue').setProperty('class', stateClass);
   } else {
-    $('stateValue').removeProperty( 'class' );
+    $('stateValue').removeProperty('class');
   }
 
   var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
@@ -114,7 +114,7 @@ function setAlarmState( currentAlarmState ) {
 }
 
 if ( monitorType != 'WebSite' ) {
-  var streamCmdParms = "view=request&request=stream&connkey="+connKey;
+  var streamCmdParms = 'view=request&request=stream&connkey='+connKey;
   if ( auth_hash ) {
     streamCmdParms += '&auth='+auth_hash;
   }
@@ -141,7 +141,7 @@ function getStreamCmdFailure(xhr) {
   console.log(xhr);
 }
 function getStreamCmdResponse(respObj, respText) {
-  watchdogOk("stream");
+  watchdogOk('stream');
   if ( streamCmdTimer ) {
     streamCmdTimer = clearTimeout(streamCmdTimer);
   }
@@ -229,12 +229,18 @@ function getStreamCmdResponse(respObj, respText) {
       } // end if canEditMonitors
 
       if ( streamStatus.auth ) {
+        auth_hash = streamStatus.auth;
         console.log("Have a new auth hash" + streamStatus.auth);
         // Try to reload the image stream.
         var streamImg = $('liveStream');
         if ( streamImg ) {
           streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
         }
+        streamCmdParms = streamCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        statusCmdParms = statusCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        eventCmdParms = eventCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        actParms = actParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        controlParms = controlParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
       } // end if have a new auth hash
     } // end if respObj.status
   } else {
@@ -473,6 +479,9 @@ function getActResponse( respObj, respText ) {
 
 function deleteEvent( event, eventId ) {
   var actParms = "view=request&request=event&action=delete&id="+eventId;
+  if ( auth_hash ) {
+    actParms += '&auth='+auth_hash;
+  }
   var actReq = new Request.JSON( {
     url: thisUrl,
     method: 'post',

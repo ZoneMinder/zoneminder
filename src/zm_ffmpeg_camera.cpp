@@ -517,19 +517,19 @@ int FfmpegCamera::OpenFfmpeg() {
       Debug(1, "Selected hw_pix_fmt %d %s",
           hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
 
-      mVideoCodecContext->get_format = get_hw_format;
-
       ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
           (hwaccel_device != "" ? hwaccel_device.c_str(): NULL), NULL, 0);
       if ( ret < 0 ) {
-        Error("Failed to create hwaccel device.");
-        return -1;
+        Error("Failed to create hwaccel device. %s",av_make_error_string(ret).c_str());
+        hw_pix_fmt = AV_PIX_FMT_NONE;
+      } else {
+        Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
+        mVideoCodecContext->get_format = get_hw_format;
+        mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+        hwFrame = zm_av_frame_alloc();
       }
-      Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
-      mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-      hwFrame = zm_av_frame_alloc();
     } else {
-      Debug(1, "Failed to setup hwaccel.");
+      Debug(1, "Failed to find suitable hw_pix_fmt.");
     }
 #else
     Debug(1, "AVCodec not new enough for hwaccel");
@@ -537,7 +537,7 @@ int FfmpegCamera::OpenFfmpeg() {
 #else
     Warning("HWAccel support not compiled in.");
 #endif
-  }  // end if hwacel_name
+  }  // end if hwaccel_name
 
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
@@ -1087,6 +1087,7 @@ int FfmpegCamera::transfer_to_image(
     return -1;
   }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
   int size = av_image_fill_arrays(
       output_frame->data, output_frame->linesize,
       directbuffer, imagePixFormat, width, height, 32);
@@ -1128,8 +1129,8 @@ int FfmpegCamera::transfer_to_image(
         mConvertContext, input_frame->data, input_frame->linesize,
         0, mVideoCodecContext->height,
         output_frame->data, output_frame->linesize);
-  if ( ret <= 0 ) {
-    Error("Unable to convert format %u %s linesize %d height %d to format %u %s linesize %d at frame %d codec %u %s : code: %d",
+  if ( ret < 0 ) {
+    Error("Unable to convert format %u %s linesize %d height %d to format %u %s linesize %d at frame %d codec %u %s lines %d: code: %d",
         input_frame->format, av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
         input_frame->linesize, mVideoCodecContext->height,
         imagePixFormat,
@@ -1137,6 +1138,7 @@ int FfmpegCamera::transfer_to_image(
         output_frame->linesize,
         frameCount,
         mVideoCodecContext->pix_fmt, av_get_pix_fmt_name(mVideoCodecContext->pix_fmt),
+        mVideoCodecContext->height,
         ret
         );
     return -1;

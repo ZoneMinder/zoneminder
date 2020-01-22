@@ -30,7 +30,6 @@ function xhtmlHeaders($file, $title) {
 
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
 
-  $skinJsFile = getSkinFile('js/skin.js');
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $cssJsFile = getSkinFile('js/'.$css.'.js');
 
@@ -84,7 +83,6 @@ echo output_link_if_exists( array(
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-  #'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
 )
 );
 if ( $css != 'base' )
@@ -95,8 +93,9 @@ if ( $css != 'base' )
   )
 );
 ?>
+
 <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
-  <!--Chosen can't be cache-busted because it loads sprites by relative path-->
+<!--Chosen can't be cache-busted because it loads sprites by relative path-->
 <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
   if ( $basename == 'watch' ) {
@@ -188,7 +187,9 @@ if ( $css != 'base' )
 } else {
 ?>
   <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
-<?php } ?>
+<?php }
+  $skinJsFile = getSkinFile('js/skin.js');
+?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php 
@@ -290,12 +291,12 @@ if ( $user and $user['Username'] ) {
        # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
         if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
           # Number of lines, instead of an interval
-          $rows = dbFetchOne('SELECT Count(*) AS Rows FROM Logs', 'Rows');
+          $rows = dbFetchOne('SELECT Count(*) AS `Rows` FROM `Logs`', 'Rows');
           if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
-            dbQuery('DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
+            dbQuery('DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
           }
         } else if ( preg_match('/^\d\s*(hour|minute|day|week|month|year)$/', ZM_LOG_DATABASE_LIMIT, $matches) ) {
-          dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+          dbQuery('DELETE FROM `Logs` WHERE `TimeKey` < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
         } else {
           ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
         }

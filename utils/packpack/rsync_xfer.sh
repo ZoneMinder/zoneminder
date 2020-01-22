@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# We don't deploy during eslint checks, so exit immediately
+if [ "${DIST}" == "eslint" ]; then
+  exit 0
+fi
+
 # Check to see if this script has access to all the commands it needs
 for CMD in sshfs rsync find fusermount mkdir; do
   type $CMD 2>&1 > /dev/null
@@ -12,53 +17,26 @@ for CMD in sshfs rsync find fusermount mkdir; do
   fi
 done
 
-# We only want to deploy packages during cron events
-# See https://docs.travis-ci.com/user/cron-jobs/
-if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
+if [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
+  targetfolder="debian/master/mini-dinstall/incoming"
+else
+  targetfolder="travis"
+fi
 
-    if [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
-        targetfolder="debian/master/mini-dinstall/incoming"
-    else
-        targetfolder="travis"
-    fi
+echo
+echo "Target subfolder set to $targetfolder"
+echo
 
-    echo
-    echo "Target subfolder set to $targetfolder"
-    echo
-    if [ "${USE_SFTP}" == "yes" ]; then
-      echo "Running \$(rsync -v -e 'ssh -vvv' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
-      rsync -v -e 'ssh -vvv' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1
-      if [ $? -eq 0 ]; then
-        echo 
-        echo "Files copied successfully."
-        echo
-      else 
-        echo
-        echo "ERROR: Attempt to rsync to zmrepo.zoneminder.com failed!"
-        echo
-        exit 99
-      fi
-    else
-      mkdir -p ./zmrepo
-      ssh_mntchk="$(sshfs zmrepo@zmrepo.zoneminder.com:./ ./zmrepo -o workaround=rename,reconnect 2>&1)"
-
-      if [ -z "$ssh_mntchk" ]; then
-          echo
-          echo "Remote filesystem mounted successfully."
-          echo "Begin transfering files..."
-          echo
-
-          # Don't keep packages older than 5 days
-          find ./zmrepo/$targetfolder/ -maxdepth 1 -type f,l -mtime +5 -delete
-          rsync -vzlh --ignore-errors build/* zmrepo/$targetfolder/
-          fusermount -zu zmrepo
-      else
-          echo
-          echo "ERROR: Attempt to mount zmrepo.zoneminder.com failed!"
-          echo "sshfs gave the following error message:"
-          echo \"$ssh_mntchk\"
-          echo
-          exit 99
-      fi
-    fi
+echo "Running \$(rsync -v -e 'ssh -vvv' build/*.{rpm,deb,dsc,tar.xz,buildinfo,changes} zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
+rsync -v --ignore-missing-args --exclude 'external-repo.noarch.rpm' -e 'ssh -vvv' build/*.{rpm,deb,dsc,tar.xz,buildinfo,changes} zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1
+if [ "$?" -eq 0 ]; then
+  echo 
+  echo "Files copied successfully."
+  echo
+else 
+  echo
+  echo "ERROR: Attempt to rsync to zmrepo.zoneminder.com failed!"
+  echo "See log output for details."
+  echo
+  exit 99
 fi

@@ -409,6 +409,11 @@ ZM\Logger::Debug("Event type: " . gettype($event));
 
   global $user;
 
+  if ( $event->Archived() ) {
+    ZM\Info('Cannot delete Archived event.');
+    return;
+  } # end if Archived
+
   if ( $user['Events'] == 'Edit' ) {
     $event->delete();
   } # CAN EDIT
@@ -1082,15 +1087,10 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $validQueryConjunctionTypes = getFilterQueryConjunctionTypes();
   $StorageArea = NULL;
 
-  $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
-  if ( !isset($terms) ) {
-    $backTrace = debug_backtrace();
-    $file = $backTrace[1]['file'];
-    $line = $backTrace[1]['line'];
-    ZM\Warning("No terms in filter from $file:$line");
-    ZM\Warning(print_r($filter, true));
-  }
-  if ( isset($terms) && count($terms) ) {
+  # It is not possible to pass an empty array in the url, so we have to deal with there not being a terms field.
+  $terms = (isset($filter['Query']) and isset($filter['Query']['terms']) and is_array($filter['Query']['terms'])) ? $filter['Query']['terms'] : array();
+
+  if ( count($terms) ) {
     for ( $i = 0; $i < count($terms); $i++ ) {
 
       $term = $terms[$i];
@@ -1267,7 +1267,7 @@ ZM\Logger::Debug("Term: " . print_r($term,true));
             case 'StartDateTime':
             case 'EndDateTime':
               if ( $value != 'NULL' )
-                $value = '\''.strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) ).'\'';
+                $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
               break;
             case 'Date':
             case 'StartDate':
@@ -1335,10 +1335,10 @@ ZM\Logger::Debug("Term: " . print_r($term,true));
           $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($term['val']);
           $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($term['val'])."\"/>\n";
         }
-      } // end if ( isset($term['attr']) )
+      } // end if isset($term['attr'])
       if ( isset($term['cbr']) && (string)(int)$term['cbr'] == $term['cbr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($term['cbr']);
-        $filter['sql'] .= ' '.str_repeat(')', $term['cbr']).' ';
+        $filter['sql'] .= ' '.str_repeat(')', $term['cbr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($term['cbr'])."\"/>\n";
       }
     } // end foreach term
@@ -1347,6 +1347,9 @@ ZM\Logger::Debug("Term: " . print_r($term,true));
     if ( $saveToSession ) {
       $_SESSION['filter'] = $filter;
     }
+  } else {
+    $filter['query'] = $querySep;
+    #.urlencode('filter[Query][terms]=[]');
   } // end if terms
 
   #if ( 0 ) {
@@ -1359,7 +1362,7 @@ ZM\Logger::Debug("Term: " . print_r($term,true));
     #$filter['sql'] .= ' LIMIT ' . validInt($filter['Query']['limit']);
   #}
   #}
-}
+} // end function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;')
 
 // Please note that the filter is passed in by copy, so you need to use the return value from this function.
 //
@@ -2614,5 +2617,13 @@ function html_radio($name, $values, $selected=null, $options=array(), $attrs=arr
   } # end foreach value
   return $html;
 } # end sub html_radio
+
+
+function random_colour() {
+  return '#'.
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT).
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT).
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT);
+}
 
 ?>

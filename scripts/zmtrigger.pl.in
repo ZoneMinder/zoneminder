@@ -329,14 +329,13 @@ sub loadMonitor {
 } # end sub loadMonitor
 
 sub loadMonitors {
-  Debug('Loading monitors');
   $monitor_reload_time = time();
 
   my %new_monitors = ();
 
-  my $sql = q`SELECT * FROM Monitors
-    WHERE find_in_set( Function, 'Modect,Mocord,Nodect' )`.
-    ( $Config{ZM_SERVER_ID} ? ' AND ServerId=?' : '' )
+  my $sql = 'SELECT * FROM `Monitors`
+    WHERE find_in_set( `Function`, \'Modect,Mocord,Nodect\' )'.
+    ( $Config{ZM_SERVER_ID} ? ' AND `ServerId`=?' : '' )
     ;
   my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );

@@ -365,8 +365,22 @@ if ( ZM_OPT_EMAIL ) {
 ?>
             <p>
               <label><?php echo translate('FilterEmailEvents') ?></label>
-              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autoemail"/>
             </p>
+						<div id="EmailOptions"<?php echo $filter->AutoEmail() ? '' : ' style="display:none;"' ?>>
+							<p>
+								<label><?php echo translate('FilterEmailTo') ?></label>
+								<input type="email" name="filter[EmailTo]" value="<?php echo validHtmlStr($filter->EmailTo()) ?>" multiple/>
+							</p>
+							<p>
+								<label><?php echo translate('FilterEmailSubject') ?></label>
+								<input type="text" name="filter[EmailSubject]" value="<?php echo validHtmlStr($filter->EmailSubject()) ?>"/>
+							</p>
+							<p>
+								<label><?php echo translate('FilterEmailBody') ?></label>
+								<textarea name="filter[EmailBody]"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
+							</p>
+						</div>
 <?php
 }
 if ( ZM_OPT_MESSAGE ) {

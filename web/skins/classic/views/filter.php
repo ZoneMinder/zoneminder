@@ -365,7 +365,7 @@ if ( ZM_OPT_EMAIL ) {
 ?>
             <p>
               <label><?php echo translate('FilterEmailEvents') ?></label>
-              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autoemail"/>
+              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_AutoEmail"/>
             </p>
 						<div id="EmailOptions"<?php echo $filter->AutoEmail() ? '' : ' style="display:none;"' ?>>
 							<p>

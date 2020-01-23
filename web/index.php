@@ -245,7 +245,6 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   if ( ! $request ) {
     zm_session_start();
     $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
-    ZM\Error("postLoginQuery " . $_SESSION['postLoginQuery']);
     session_write_close();
   }
   $request = null;

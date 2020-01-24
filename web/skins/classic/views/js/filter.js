@@ -66,6 +66,15 @@ function updateButtons(element) {
   }
 }
 
+function click_AutoEmail(element) {
+  updateButtons(this);
+  if ( this.checked ) {
+    $j('#EmailOptions').show();
+  } else {
+    $j('#EmailOptions').hide();
+  }
+}
+
 function click_automove(element) {
   updateButtons(this);
   if ( this.checked ) {

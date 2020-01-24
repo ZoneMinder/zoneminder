@@ -1111,10 +1111,7 @@ ZM\Logger::Debug("Term: " . print_r($term,true));
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($term['attr'])."\"/>\n";
         switch ( $term['attr'] ) {
 					case 'AlarmedZoneId':
-						if ( $term['op'] != 'IN' ) {
-							ZM\Warning("AlarmedZoneId only supports the IN operator");
-						}
-						$filter['sql'] .= $term['val'];
+						$term['op'] = 'EXISTS';
 						break;
           case 'MonitorName':
             $filter['sql'] .= 'M.Name';
@@ -1235,7 +1232,7 @@ ZM\Logger::Debug("Term: " . print_r($term,true));
           switch ( $term['attr'] ) {
 				
 						case 'AlarmedZoneId':
-							$value = '(SELECT DISTINCT ZoneId FROM Stats WHERE EventId=E.Id)';
+							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
 							break;
             case 'MonitorName':
             case 'Name':
@@ -1272,8 +1269,11 @@ ZM\Logger::Debug("Term: " . print_r($term,true));
             case 'Date':
             case 'StartDate':
             case 'EndDate':
-              if ( $value != 'NULL' )
-                $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+							if ( $value == 'CURDATE()' or $value == 'NOW()' ) {
+								$value = 'to_days('.$value.')';
+							} else if ( $value != 'NULL' ) {
+							  $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+							}
               break;
             case 'Time':
             case 'StartTime':
@@ -1308,10 +1308,13 @@ ZM\Logger::Debug("Term: " . print_r($term,true));
             break;
           case '=[]' :
           case 'IN' :
-            $filter['sql'] .= ' in ('.join(',', $valueList).')';
+            $filter['sql'] .= ' IN ('.join(',', $valueList).')';
             break;
           case '![]' :
             $filter['sql'] .= ' not in ('.join(',', $valueList).')';
+            break;
+					case 'EXISTS' :
+						$filter['sql'] .= ' EXISTS ' .$value;
             break;
           case 'IS' :
             if ( $value == 'Odd' )  {

@@ -416,7 +416,7 @@ EOF
 %dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
-* Tue Feb 04 2020 Isaac Connor <isaac@zoneminder.com> - 1.34.2-1
+* Tue Feb 04 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.2-1
 - 1.34.2 Release
 
 * Fri Jan 31 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.1-1

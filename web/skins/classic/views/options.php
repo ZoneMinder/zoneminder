@@ -426,7 +426,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
           $name = str_replace('St ', 'St. ', $name);
           return $name;
         }
-        $configCats[$tab]['ZM_TIMEZONE']['Hint'] = array('', translate('Unset') + timezone_list();
+        $configCats[$tab]['ZM_TIMEZONE']['Hint'] = array(''=> translate('Unset')) + timezone_list();
     } # end if tab == system
 ?>
       <form name="optionsForm" class="form-horizontal" method="post" action="?">

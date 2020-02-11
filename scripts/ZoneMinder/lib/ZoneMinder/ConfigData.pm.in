@@ -785,7 +785,7 @@ our @options = (
   },
   {
     name        => 'ZM_TIMEZONE',
-    default     =>  'UTC',
+    default     =>  '',
     description => 'The timezone that php should use.',
     help        => q`
       This should be set equal to the system timezone of the mysql server`,

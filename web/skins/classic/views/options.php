@@ -393,41 +393,41 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
         $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join('|', array_map('basename', glob('skins/*',GLOB_ONLYDIR)));
         $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join('|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ));
         $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
+
         function timezone_list() {
-    static $timezones = null;
+          static $timezones = null;
 
-    if ($timezones === null) {
-        $timezones = [];
-        $offsets = [];
-        $now = new DateTime('now', new DateTimeZone('UTC'));
+          if ( $timezones === null ) {
+            $timezones = [];
+            $offsets = [];
+            $now = new DateTime('now', new DateTimeZone('UTC'));
 
-        foreach (DateTimeZone::listIdentifiers() as $timezone) {
-            $now->setTimezone(new DateTimeZone($timezone));
-            $offsets[] = $offset = $now->getOffset();
-            $timezones[$timezone] = '(' . format_GMT_offset($offset) . ') ' . format_timezone_name($timezone);
+            foreach ( DateTimeZone::listIdentifiers() as $timezone ) {
+              $now->setTimezone(new DateTimeZone($timezone));
+              $offsets[] = $offset = $now->getOffset();
+              $timezones[$timezone] = '(' . format_GMT_offset($offset) . ') ' . format_timezone_name($timezone);
+            }
+
+            array_multisort($offsets, $timezones);
+          }
+
+          return $timezones;
         }
 
-        array_multisort($offsets, $timezones);
-    }
+        function format_GMT_offset($offset) {
+          $hours = intval($offset / 3600);
+          $minutes = abs(intval($offset % 3600 / 60));
+          return 'GMT' . ($offset ? sprintf('%+03d:%02d', $hours, $minutes) : '');
+        }
 
-    return $timezones;
-}
-
-function format_GMT_offset($offset) {
-    $hours = intval($offset / 3600);
-    $minutes = abs(intval($offset % 3600 / 60));
-    return 'GMT' . ($offset ? sprintf('%+03d:%02d', $hours, $minutes) : '');
-}
-
-function format_timezone_name($name) {
-    $name = str_replace('/', ', ', $name);
-    $name = str_replace('_', ' ', $name);
-    $name = str_replace('St ', 'St. ', $name);
-    return $name;
-}
-        $configCats[$tab]['ZM_TIMEZONE']['Hint'] = timezone_list();
-
-    }
+        function format_timezone_name($name) {
+          $name = str_replace('/', ', ', $name);
+          $name = str_replace('_', ' ', $name);
+          $name = str_replace('St ', 'St. ', $name);
+          return $name;
+        }
+        $configCats[$tab]['ZM_TIMEZONE']['Hint'] = array('', translate('Unset') + timezone_list();
+    } # end if tab == system
 ?>
       <form name="optionsForm" class="form-horizontal" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>

@@ -135,16 +135,23 @@ sub sendCmd {
 
   $self->printMsg($cmd, 'Tx');
 
-  my $req = HTTP::Request->new( GET=>"http://$$self{address}/$cmd" );
-  my $res = $self->{ua}->request($req);
+  my $res = $self->{ua}->get("http://$$self{address}/$cmd");
 
   if ( $res->is_success ) {
     $result = !undef;
     # Command to camera appears successful, write Info item to log
-    Info('Camera control: \''.$res->status_line().'\' for URL '.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+    Info('Camera control: \''.$res->status_line().'\' for URL '.$$self{address}.'/'.$cmd);
     # TODO: Add code to retrieve $res->message_decode or some such. Then we could do things like check the camera status.
   } else {
-    Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+    Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{address}.'/'.$cmd);
+    $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+    if ( $res->is_success ) {
+      $result = !undef;
+      # Command to camera appears successful, write Info item to log
+      Info('Camera control: \''.$res->status_line().'\' for URL '.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+    } else {
+      Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+    }
   }
 
   return $result;

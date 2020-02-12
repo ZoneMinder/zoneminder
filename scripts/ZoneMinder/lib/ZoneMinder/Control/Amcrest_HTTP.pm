@@ -1,16 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Amcrest HTTP API Control Protocol Module, 20180214, Rev 3.0
-#
-# Change Log
-#
-# Rev 3.0:
-#  - Fixes incorrect method names
-#  - Updates control sequences to Amcrest HTTP Protocol API v 2.12
-#  - Extends control features
-#
-# Rev 2.0:
-#  - Fixed installation instructions text, no changes to functionality.
+# ZoneMinder Amcrest HTTP API Control Protocol Module
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -67,18 +57,20 @@ sub open {
   my $password;
   my $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
 
+  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   if ( $self->{Monitor}->{ControlAddress} =~ /(.*):(.*)@(.*)/ ) {
     $username = $1;
     $password = $2;
     $$self{address} = $3;
+    $self->{ua}->credentials($$self{address}, $realm, $username, $password);
+    # Testing seems to show that we need the username/password in each url as well as credentials
+    $$self{base_url} = 'http://'.$self->{Monitor}->{ControlDevice};
+    Debug("Using initial credentials for $$self{address}, $realm, $username, $password");
   }
 
-  $self->{ua} = LWP::UserAgent->new;
-  $self->{ua}->credentials($$self{address}, $realm, $username, $password);
-  $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
-
-  # Detect REALM
-  my $res = $self->{ua}->get($$self{address}.'/cgi-bin/ptz.cgi');
+  # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth
+  my $res = $self->{ua}->get($$self{base_url}.'/cgi-bin/ptz.cgi');
 
   if ( $res->is_success ) {
     $self->{state} = 'open';
@@ -94,21 +86,26 @@ sub open {
 
     if ( $$headers{'www-authenticate'} ) {
       my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
-      if ( $tokens =~ /\w+="([^"]+)"/i ) {
+      if ( $tokens =~ /realm="([^"]+)"/i ) {
         if ( $realm ne $1 ) {
           $realm = $1;
-          Debug("Changing REALM to $realm");
+          Debug("Changing REALM to ($realm)");
           $self->{ua}->credentials($$self{address}, $realm, $username, $password);
           $res = $self->{ua}->get($$self{address}.'/cgi-bin/ptz.cgi');
           if ( $res->is_success() ) {
             $self->{state} = 'open';
             return;
+          } elsif ( $res->status_line eq '400 Bad Request' ) {
+          # In testing, this second request fails with Bad Request, I assume because we didn't actually give it a command.
+            $self->{state} = 'open';
+            return;
+          } else {
+            Error('Authentication still failed after updating REALM' . $res->status_line);
+            $headers = $res->headers();
+            foreach my $k ( keys %$headers ) {
+              Debug("Header $k => $$headers{$k}");
+            }  # end foreach
           }
-          Error('Authentication still failed after updating REALM' . $res->status_line);
-          $headers = $res->headers();
-          foreach my $k ( keys %$headers ) {
-            Debug("Initial Header $k => $$headers{$k}");
-          }  # end foreach
         } else {
           Error('Authentication failed, not a REALM problem');
         }
@@ -118,9 +115,12 @@ sub open {
     } else {
       Debug('No headers line');
     } # end if headers
+  } else {
+    Error("Failed to get $$self{address}/cgi-bin/ptz.cgi ".$res->status_line());
+
   } # end if $res->status_line() eq '401 Unauthorized'
 
-  $self->{state} = 'open';
+  $self->{state} = 'closed';
 }
 
 sub close {
@@ -143,14 +143,14 @@ sub sendCmd {
     Info('Camera control: \''.$res->status_line().'\' for URL '.$$self{address}.'/'.$cmd);
     # TODO: Add code to retrieve $res->message_decode or some such. Then we could do things like check the camera status.
   } else {
-    Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{address}.'/'.$cmd);
-    $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+    # Try again
+    $res = $self->{ua}->get("http://$$self{address}/$cmd");
     if ( $res->is_success ) {
-      $result = !undef;
       # Command to camera appears successful, write Info item to log
-      Info('Camera control: \''.$res->status_line().'\' for URL '.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+      Info('Camera control: \''.$res->status_line().'\' for URL '.$$self{address}.'/'.$cmd);
     } else {
-      Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+      Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{address}.'/'.$cmd);
+      $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
     }
   }
 

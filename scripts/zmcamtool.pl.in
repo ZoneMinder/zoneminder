@@ -351,8 +351,11 @@ sub exportsql {
     }
   }
 
-  if ($ARGV[0]) {
-    $command .= qq( --where="Name = '$ARGV[0]'");
+  my $name = $ARGV[0];
+  if ($name) {
+    $name =~ /([A-Za-z0-9 -]*)/; # Only allow alphanumeric, dash and space
+    $name = $1;
+    $command .= qq( --where="Name = '$name'");
   }
 
   $command .= " zm Controls MonitorPresets";

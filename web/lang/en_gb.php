@@ -774,6 +774,7 @@ $SLANG = array(
     'TurboPanSpeed'         => 'Turbo Pan Speed',
     'TurboTiltSpeed'        => 'Turbo Tilt Speed',
     'Type'                  => 'Type',
+    'TZUnset'               => 'Unset - use value in php.ini',
     'Unarchive'             => 'Unarchive',
     'Undefined'             => 'Undefined',
     'Units'                 => 'Units',

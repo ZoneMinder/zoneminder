@@ -128,14 +128,14 @@ else
   fi;
 fi
 
+IFS='.' read -r -a VERSION_PARTS <<< "$RELEASE"
 if [ "$PPA" == "" ]; then
   if [ "$RELEASE" != "" ]; then
     # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
-    IFS='.' read -r -a VERSION <<< "$RELEASE"
-    if [ "${VERSION[0]}.${VERSION[1]}" == "1.30" ]; then
+    if [ "${VERSION_PARTS[0]}.${VERSION_PARTS[1]}" == "1.30" ]; then
       PPA="ppa:iconnor/zoneminder-stable"
     else
-      PPA="ppa:iconnor/zoneminder-${VERSION[0]}.${VERSION[1]}"
+      PPA="ppa:iconnor/zoneminder-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}"
     fi;
   else
     if [ "$BRANCH" == "" ]; then
@@ -316,7 +316,7 @@ EOF
       read -p "Do you want to upload this binary to zmrepo? (y/N)"
       if [[ $REPLY == [yY] ]]; then
         if [ "$RELEASE" != "" ]; then
-          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
+          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
             scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"

@@ -18,7 +18,16 @@ for CMD in sshfs rsync find fusermount mkdir; do
 done
 
 if [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
-  targetfolder="debian/master/mini-dinstall/incoming"
+  if [ "${RELEASE}" != "" ]; then
+    IFS='.' read -r -a VERSION_PARTS <<< "$RELEASE"
+    if [ "${VERSION_PARTS[0]}.${VERSION_PARTS[1]}" == "1.30" ]; then
+      targetfolder="debian/release/mini-dinstall/incoming"
+    else
+      targetfolder="debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming"
+    fi
+  else
+    targetfolder="debian/master/mini-dinstall/incoming"
+  fi
 else
   targetfolder="travis"
 fi

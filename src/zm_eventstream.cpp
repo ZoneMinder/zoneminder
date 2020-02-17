@@ -117,7 +117,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   snprintf(sql, sizeof(sql),
       "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartTime` ) AS StartTimestamp, "
       "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS Duration, "
-      "`DefaultVideo`, `Scheme`, `SaveJPEGs` FROM `Events` WHERE `Id` = %" PRIu64, event_id);
+      "`DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -160,6 +160,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     event_data->scheme = Storage::SHALLOW;
   }
   event_data->SaveJPEGs = dbrow[7] == NULL ? 0 : atoi(dbrow[7]);
+  event_data->Orientation = (Monitor::Orientation)(dbrow[8] == NULL ? 0 : atoi(dbrow[8]));
   mysql_free_result(result);
 
   Storage * storage = new Storage(event_data->storage_id);
@@ -703,6 +704,30 @@ Debug(1, "Loading image");
           Error("Failed getting a frame.");
           return false;
         }
+
+        // when stored as an mp4, we just have the rotation as a flag in the headers
+        // so we need to rotate it before outputting
+        if ( event_data->Orientation != Monitor::ROTATE_0 ) {
+          Debug(2, "Rotating image %d", event_data->Orientation);
+          switch ( event_data->Orientation ) {
+            case Monitor::ROTATE_0 :
+              // No action required
+              break;
+            case Monitor::ROTATE_90 :
+            case Monitor::ROTATE_180 :
+            case Monitor::ROTATE_270 :
+              image->Rotate((event_data->Orientation-1)*90);
+              break;
+            case Monitor::FLIP_HORI :
+            case Monitor::FLIP_VERT :
+              image->Flip(event_data->Orientation==Monitor::FLIP_HORI);
+              break;
+            default:
+              Error("Invalid Orientation: %d", event_data->Orientation);
+          }
+        } else {
+          Debug(2, "Not Rotating image %d", event_data->Orientation);
+        } // end if have rotation
       } else {
         Error("Unable to get a frame");
         return false;

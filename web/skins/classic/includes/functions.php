@@ -423,7 +423,14 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
     $storage_areas = $storage_areas_with_no_server_id;
   if ( count($storage_areas) <= 4 )
     echo implode(', ', array_map($func, $storage_areas));
-  echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
+  $shm_percent = getDiskPercent(ZM_PATH_MAP);
+  $class = '';
+  if ( $shm_percent > 98 ) {
+    $class = 'error';
+  } else if ( $shm_percent > 90 ) {
+    $class = 'warning';
+  }
+  echo ' <span class="'.$class.'">'.ZM_PATH_MAP.': '.$shm_percent.'%</span>';
 ?></li>
   </ul>
     <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>

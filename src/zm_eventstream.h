@@ -66,6 +66,7 @@ class EventStream : public StreamBase {
       char            video_file[PATH_MAX];
       Storage::Schemes  scheme;
       int             SaveJPEGs;
+      Monitor::Orientation Orientation;
     };
 
   protected:

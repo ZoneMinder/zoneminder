@@ -330,13 +330,22 @@ sub move {
 
 sub metadata {
   my ( $client ) = @_;
-  my $result = $client->get_endpoint('media')->GetMetadataConfigurations( { } ,, );
-  die $result if not $result;
-  print $result . "\n";
+  my $media = $client->get_endpoint('media');
+  die 'No media endpoint.' if !$media;
 
-  $result = $client->get_endpoint('media')->GetVideoAnalyticsConfigurations( { } ,, );
-  die $result if not $result;
-  print $result . "\n";
+  my $result = $media->GetMetadataConfigurations( { } ,, );
+  if ( ! $result ) {
+    print "No MetaDataConfigurations\n" if $verbose;
+  } else {
+    print $result . "\n";
+  }
+
+  $result = $media->GetVideoAnalyticsConfigurations( { } ,, );
+  if ( ! $result ) {
+    print "No VideoAnalyticsConfigurations\n" if $verbose;
+  } else {
+    print $result . "\n";
+  }
 
 #  $result = $client->get_endpoint('analytics')->GetServiceCapabilities( { } ,, );
 #  die $result if not $result;

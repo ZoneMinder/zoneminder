@@ -72,11 +72,6 @@ sub open {
     ( $username, $password ) = $uri->authority() =~ /^(.*):(.*)@(.*)$/;
 
     $$self{address} = $uri->authority().($uri->port() ? ':'.$uri->port() : '');
-    if ( $$self{address} !~ /:/ ) {
-      Debug('Adding default port to Control Address');
-      $$self{address} .= ':80';
-      $self->{Monitor}->{ControlDevice} .= ':80';
-    }
     $self->{ua}->credentials($$self{address}, $realm, $username, $password);
     # Testing seems to show that we need the username/password in each url as well as credentials
     $$self{base_url} = $self->{Monitor}->{ControlAddress};

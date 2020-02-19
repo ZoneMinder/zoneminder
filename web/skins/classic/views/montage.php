@@ -33,36 +33,44 @@ if ( isset($_REQUEST['showZones']) ) {
   }
 }
 $widths = array( 
-  ''  => 'auto',
-  160 => 160,
-  320 => 320,
-  352 => 352,
-  640 => 640,
-  1280 => 1280 );
+  'auto'  => 'auto',
+  '160px' => '160px',
+  '320px' => '320px',
+  '352px' => '352px',
+  '640px' => '640px',
+  '1280px' => '1280px' );
 
 $heights = array( 
-  ''  => 'auto',
-  240 => 240,
-  480 => 480,
+  'auto'  => 'auto',
+  '240px' => '240px',
+  '320px' => '320px',
+  '480px' => '480px',
+  '720px' => '720px',
+  '1080px' => '1080px',
 );
 
 $scale = '100';   # actual
 
-if ( isset( $_REQUEST['scale'] ) ) {
+if ( isset($_REQUEST['scale']) ) {
   $scale = validInt($_REQUEST['scale']);
-  Logger::Debug("Setting scale from request to $scale");
 } else if ( isset($_COOKIE['zmMontageScale']) ) {
   $scale = $_COOKIE['zmMontageScale'];
-  Logger::Debug("Setting scale from cookie to $scale");
 }
 
 if ( ! $scale ) 
   $scale = 100;
 
-$layouts = MontageLayout::find(NULL, array('order'=>"lower('Name')"));
+$layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
 foreach ( $layouts as $l ) {
-  $layoutsById[$l->Id()] = $l;
+  if ( $l->Name() == 'Freeform' ) {
+    $layoutsById[$l->Id()] = $l;
+    break;
+  }
+}
+foreach ( $layouts as $l ) {
+  if ( $l->Name() != "Freeform" )
+    $layoutsById[$l->Id()] = $l;
 }
 
 session_start();
@@ -70,8 +78,8 @@ session_start();
 $layout_id = '';
 if ( isset($_COOKIE['zmMontageLayout']) ) {
   $layout_id = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
-} elseif ( isset($_SESSION['zmMontageLayout']) ) {
-  $layout_id = $_SESSION['zmMontageLayout'];
+#} elseif ( isset($_SESSION['zmMontageLayout']) ) {
+  #$layout_id = $_SESSION['zmMontageLayout'];
 }
 
 $options = array();
@@ -87,15 +95,15 @@ if ( $Layout and ( $Layout->Name() != 'Freeform' ) ) {
 
 if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] ) {
   $_SESSION['zmMontageWidth'] = $options['width'] = $_COOKIE['zmMontageWidth'];
-} elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
-  $options['width'] = $_SESSION['zmMontageWidth'];
+#} elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
+  #$options['width'] = $_SESSION['zmMontageWidth'];
 } else
   $options['width'] = '';
 
 if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
   $_SESSION['zmMontageHeight'] = $options['height'] = $_COOKIE['zmMontageHeight'];
-else if ( isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight'] )
-  $options['height'] = $_SESSION['zmMontageHeight'];
+#else if ( isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight'] )
+  #$options['height'] = $_SESSION['zmMontageHeight'];
 else
   $options['height'] = '';
 
@@ -121,12 +129,12 @@ foreach( $displayMonitors as &$row ) {
     $showControl = true;
   $row['connKey'] = generateConnKey();
   if ( ! isset($widths[$row['Width']]) ) {
-    $widths[$row['Width']] = $row['Width'];
+    $widths[$row['Width'].'px'] = $row['Width'].'px';
   }
   if ( ! isset($heights[$row['Height']]) ) {
-    $heights[$row['Height']] = $row['Height'];
+    $heights[$row['Height'].'px'] = $row['Height'].'px';
   }
-  $monitors[] = new Monitor($row);
+  $monitors[] = new ZM\Monitor($row);
 } # end foreach Monitor
 
 xhtmlHeaders(__FILE__, translate('Montage'));
@@ -134,21 +142,21 @@ xhtmlHeaders(__FILE__, translate('Montage'));
 <body>
   <div id="page">
     <?php echo getNavBarHTML() ?>
-    <div id="header">
-      <div id="headerButtons">
+    <div id="header">&nbsp;&nbsp;
+      <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right" title="Toggle Filters"></span></a>
+      <div id="flipMontageHeader">
+        <div id="headerButtons">
 <?php
 if ( $showControl ) {
-?>
-        <a href="#" onclick="createPopup('?view=control', 'zmControl', 'control')"><?php echo translate('Control') ?></a>
-<?php
+  echo makePopupLink('?view=control', 'zmControl', 'control', translate('Control'));
 }
 if ( $showZones ) {
 ?>
-        <a id="ShowZones" href="<?php echo $_SERVER['PHP_SELF'].'?view=montage&showZones=0'; ?>">Hide Zones</a>
+        <a id="ShowZones" href="?view=montage&amp;showZones=0">Hide Zones</a>
 <?php
 } else {
 ?>
-        <a id="ShowZones" href="<?php echo $_SERVER['PHP_SELF'].'?view=montage&showZones=1'; ?>">Show Zones</a>
+        <a id="ShowZones" href="?view=montage&amp;showZones=1">Show Zones</a>
 <?php
 }
 ?>
@@ -163,46 +171,49 @@ if ( $showZones ) {
           <input type="hidden" name="action" value="Save"/>
 
           <span id="widthControl">
-            <label><?php echo translate('Width') ?>:</label>
+            <label><?php echo translate('Width') ?></label>
             <?php echo htmlSelect('width', $widths, $options['width'], 'changeSize(this);'); ?>
           </span>
           <span id="heightControl">
-            <label><?php echo translate('Height') ?>:</label>
+            <label><?php echo translate('Height') ?></label>
             <?php echo htmlSelect('height', $heights, $options['height'], 'changeSize(this);'); ?>
           </span>
           <span id="scaleControl">
-            <label><?php echo translate('Scale') ?>:</label>
+            <label><?php echo translate('Scale') ?></label>
             <?php echo htmlSelect('scale', $scales, $scale, 'changeScale(this);'); ?>
           </span> 
           <span id="layoutControl">
-            <label for="layout"><?php echo translate('Layout') ?>:</label>
-            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('onchange'=>'selectLayout(this);', 'id'=>'zmMontageLayout')); ?>
+            <label for="layout"><?php echo translate('Layout') ?></label>
+            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('onchange'=>'selectLayout(this);')); ?>
           </span>
           <input type="hidden" name="Positions"/>
-          <input type="button" id="EditLayout" value="<?php echo translate('EditLayout') ?>" onclick="edit_layout(this);"/>
+          <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
           <span id="SaveLayout" style="display:none;">
-            <input type="text" name="Name" placeholder="Enter new name for layout if desired" />
-            <input type="button" value="<?php echo translate('Save') ?>" onclick="save_layout(this);"/>
-            <input type="button" value="Cancel" onclick="cancel_layout(this);"/>
+            <input type="text" name="Name" placeholder="Enter new name for layout if desired"/>
+            <button type="button" value="Save" data-on-click-this="save_layout"><?php echo translate('Save') ?></button>
+            <button type="button" value="Cancel" data-on-click-this="cancel_layout"><?php echo translate('Cancel') ?></button>
           </span>
         </form>
       </div>
     </div>
-    <div id="content">
-      <div id="monitors">
+  </div>
+  <div id="content">
+    <div id="monitors">
 <?php
 foreach ( $monitors as $monitor ) {
   $connkey = $monitor->connKey(); // Minor hack
 ?>
-        <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>" style="<?php echo $options['width'] ? 'width:'.$options['width'].'px;':''?>">
+        <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>" style="<?php echo $options['width'] ? 'width:'.$options['width'].';':''?>">
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div
               id="imageFeed<?php echo $monitor->Id() ?>"
               class="imageFeed"
-              onclick="createPopup('?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
-            <?php 
+              data-monitor-id="<?php echo $monitor->Id() ?>"
+              data-width="<?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>"
+              data-height="<?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?>">
+            <?php
   $monitor_options = $options;
-  if ( $Positions ) {
+  if (0 and $Positions ) {
     $monitor_options['width'] = '100%';
     $monitor_options['height'] = '100%';
     if ( 0 ) {
@@ -220,8 +231,8 @@ foreach ( $monitors as $monitor ) {
     echo getWebSiteUrl(
       'liveStream'.$monitor->Id(),
       $monitor->Path(),
-      reScale($monitor->Width(), $scale),
-      reScale($monitor->Height(), $scale),
+      (isset($options['width']) ? $options['width'] : reScale($monitor->Width(), $scale).'px' ),
+      ( isset($options['height']) ? $options['height'] : reScale($monitor->Height(), $scale).'px' ),
       $monitor->Name()
     );
   } else {
@@ -234,17 +245,17 @@ foreach ( $monitors as $monitor ) {
       $width = $options['width'];
       if ( !$options['height'] ) {
         $scale = (int)( 100 * $options['width'] / $monitor->Width() );
-        $height = reScale($monitor->Height(), $scale);
+        $height = reScale($monitor->Height(), $scale).'px';
       }
     } else if ( $options['height'] ) {
       $height = $options['height'];
       if ( !$options['width'] ) {
         $scale = (int)( 100 * $options['height'] / $monitor->Height() );
-        $width = reScale($monitor->Width(), $scale);
+        $width = reScale($monitor->Width(), $scale).'px';
       }
     } else if ( $scale ) {
-      $width = reScale($monitor->Width(), $scale);
-      $height = reScale($monitor->Height(), $scale);
+      $width = reScale($monitor->Width(), $scale).'px';
+      $height = reScale($monitor->Height(), $scale).'px';
     } 
 
     $zones = array();
@@ -253,7 +264,6 @@ foreach ( $monitors as $monitor ) {
 
       if ( $scale ) {
         limitPoints($row['Points'], 0, 0, $monitor->Width(), $monitor->Height());
-        scalePoints($row['Points'], $scale);
       } else {
         limitPoints($row['Points'], 0, 0, 
             ( $width ? $width-1 : $monitor->Width()-1 ),
@@ -266,7 +276,7 @@ foreach ( $monitors as $monitor ) {
     } // end foreach Zone
 ?>
 
-<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: <?php echo $width ?>px; height: <?php echo $height ?>px;">
+<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: 100%; height: 100%;" viewBox="0 0 <?php echo  $monitor->Width() ?> <?php echo  $monitor->Height() ?>" preserveAspectRatio="none">
 <?php
 foreach( array_reverse($zones) as $zone ) {
   echo '<polygon points="'. $zone['AreaCoords'] .'" class="'. $zone['Type'].'" />';

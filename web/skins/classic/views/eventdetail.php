@@ -18,14 +18,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Events' ) ) {
+if ( !canEdit('Events') ) {
   $view = 'error';
   return;
 }
 if ( isset($_REQUEST['eid']) ) {
   $mode = 'single';
   $eid = validInt($_REQUEST['eid']);
-  $newEvent = dbFetchOne( 'SELECT E.* FROM Events AS E WHERE E.Id = ?', NULL, array($eid) );
+  $newEvent = dbFetchOne('SELECT E.* FROM Events AS E WHERE E.Id = ?', NULL, array($eid));
 } elseif ( isset($_REQUEST['eids']) ) {
   $mode = 'multi';
   $sql = 'SELECT E.* FROM Events AS E WHERE ';
@@ -33,10 +33,10 @@ if ( isset($_REQUEST['eid']) ) {
   $sqlValues = array();
   foreach ( $_REQUEST['eids'] as $eid ) {
     $sqlWhere[] = 'E.Id = ?';
-    $sqlValues[] = $eid;
+    $sqlValues[] = validInt($eid);
   }
-  unset( $eid );
-  $sql .= join( " or ", $sqlWhere );
+  unset($eid);
+  $sql .= join(' OR ', $sqlWhere);
   foreach( dbFetchAll( $sql, NULL, $sqlValues ) as $row ) {
     if ( !isset($newEvent) ) {
       $newEvent = $row;
@@ -74,28 +74,25 @@ if ( $mode == 'single' ) {
 ?>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="none"/>
+      <form name="contentForm" id="contentForm" method="post" action="?">
+        <input type="hidden" name="action" value="eventdetail"/>
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
 <?php
 if ( $mode == 'single' ) {
 ?>
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="action" value="eventdetail"/>
-        <input type="hidden" name="eid" value="<?php echo $eid ?>"/>
+        <input type="hidden" name="markEids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
-} elseif ( $mode = 'multi' ) {
+} else if ( $mode = 'multi' ) {
 ?>
-        <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="action" value="eventdetail"/>
 <?php
     foreach ( $_REQUEST['eids'] as $eid ) {
 ?>
-        <input type="hidden" name="markEids[]" value="<?php echo validHtmlStr($eid) ?>"/>
+        <input type="hidden" name="markEids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
     }
 }
 ?>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table id="contentTable" class="major">
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('Cause') ?></th>
@@ -108,8 +105,10 @@ if ( $mode == 'single' ) {
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <button type="submit" value="Save" <?php echo !canEdit('Events') ? ' disabled="disabled"' : '' ?>>
+          <?php echo translate('Save') ?>
+          </button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

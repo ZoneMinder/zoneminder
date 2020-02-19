@@ -42,6 +42,8 @@ struct LibvlcPrivateData
 };
 
 class LibvlcCamera : public Camera {
+  private:
+  static void log_callback( void *ptr, int level, const libvlc_log_t *ctx, const char *format, va_list vargs );
 protected:
   std::string mPath;
   std::string mMethod;
@@ -59,9 +61,9 @@ public:
   LibvlcCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
   ~LibvlcCamera();
 
-  const std::string &Path() const { return( mPath ); }
-  const std::string &Options() const { return( mOptions ); }
-  const std::string &Method() const { return( mMethod ); }
+  const std::string &Path() const { return mPath; }
+  const std::string &Options() const { return mOptions; }
+  const std::string &Method() const { return mMethod; }
 
   void Initialise();
   void Terminate();

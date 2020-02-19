@@ -5,7 +5,7 @@
 -- Add Refresh column to Monitors table
 --
 
-ALTER TABLE `zm`.`Monitors` 
+ALTER TABLE `Monitors` 
 CHANGE COLUMN `Type` `Type` ENUM('Local', 'Remote', 'File', 'Ffmpeg', 'Libvlc', 'cURL', 'WebSite') NOT NULL DEFAULT 'Local' ;
 
 SET @s = (SELECT IF(
@@ -16,7 +16,7 @@ SET @s = (SELECT IF(
     AND column_name = 'Refresh'
     ) > 0,
 "SELECT 'Column Refresh exists in Monitors'",
-"ALTER TABLE Monitors ADD `Refresh` int(10) unsigned default NULL"
+"ALTER TABLE Monitors ADD `Refresh` int(10) unsigned default NULL AFTER `ZoneCount`"
 ));
 
 PREPARE stmt FROM @s;

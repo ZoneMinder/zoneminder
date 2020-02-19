@@ -28,7 +28,7 @@ $group_id = 0;
 $max_depth = 0;
 
 $Groups = array();
-foreach ( Group::find_all( ) as $Group ) {
+foreach ( ZM\Group::find() as $Group ) {
   $Groups[$Group->Id()] = $Group;
 }
 
@@ -41,21 +41,23 @@ foreach ( $Groups as $id=>$Group ) {
   if ( $max_depth < $Group->depth() )
     $max_depth = $Group->depth();
 }
-xhtmlHeaders(__FILE__, translate('Groups') );
+xhtmlHeaders(__FILE__, translate('Groups'));
 ?>
 <body>
   <div id="page">
     <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
-      <form name="groupsForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="groupsForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="setgroup"/>
         <table id="contentTable" class="major">
           <thead class="thead-highlight">
             <tr>
-              <th class="colName" colspan="<?php echo $max_depth ?>"><?php echo translate('Name') ?></th>
+              <th class="colName" colspan="<?php echo $max_depth+1 ?>"><?php echo translate('Name') ?></th>
               <th class="colIds"><?php echo translate('Monitors') ?></th>
+<?php if ( canEdit('Groups') ) { ?>
               <th class="colSelect"><?php echo translate('Mark') ?></th>
+<?php } ?>
             </tr>
           </thead>
           <tbody>
@@ -64,33 +66,38 @@ function group_line( $Group ) {
   global $children;
   global $max_depth;
   $html = '<tr>';
-  $html .= str_repeat( '<td class="colName">&nbsp;</td>', $Group->depth() );
+  $html .= str_repeat('<td class="colName">&nbsp;</td>', $Group->depth());
   $html .= '<td class="colName" colspan="'.($max_depth-($Group->depth()-1)).'">';
   if ( canEdit('Groups') ) {
     $html .= '<a href="#" onclick="editGroup('.$Group->Id().');">'. validHtmlStr($Group->Id() . ' ' . $Group->Name()).'</a>';
   } else {
     $html .= validHtmlStr($Group->Name());
   }
-  $html .= '</td><td class="colIds">'. monitorIdsToNames( $Group->MonitorIds(), 30 ).'</td>
-                <td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" onclick="configureButtons(this);"/></td>
-              </tr>
-  ';
+  $html .= '</td><td class="colIds">'. monitorIdsToNames($Group->MonitorIds(), 30).'</td>';
+  if ( canEdit('Groups') ) {
+    $html .= '<td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" data-on-click-this="configureButtons"/></td>';
+  }
+  $html .= '</tr>';
   if ( isset( $children[$Group->Id()] ) ) {
     foreach ( $children[$Group->Id()] as $G ) {
-      $html .= group_line( $G );
+      $html .= group_line($G);
     }
   }
   return $html;
 }
 if ( isset( $children[null] ) )
   foreach ( $children[null] as $Group )
-    echo group_line( $Group );
+    echo group_line($Group);
 ?>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('New') ?>" onclick="newGroup();"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>/>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteGroup(this);" disabled="disabled"/>
+          <button type="button" value="New" data-on-click="newGroup"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>>
+          <?php echo translate('New') ?>
+          </button>
+          <button type="button" name="deleteBtn" value="Delete" data-on-click-this="deleteGroup" disabled="disabled">
+          <?php echo translate('Delete') ?>
+          </button>
         </div>
       </form>
     </div>

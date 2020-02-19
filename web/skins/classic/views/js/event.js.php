@@ -36,11 +36,13 @@ var eventData = {
     Frames: '<?php echo $Event->Frames() ?>',
     MonitorName: '<?php echo $Monitor->Name() ?>'
 };
+var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';
 
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 
 var rates = <?php echo json_encode(array_keys($rates)) ?>;
+var rate = '<?php echo $rate ?>'; // really only used when setting up initial playback rate.
 var scale = "<?php echo $scale ?>";
 var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
 
@@ -55,3 +57,6 @@ var streamMode = '<?php echo $streamMode ?>';
 //
 var deleteString = "<?php echo translate('Delete') ?>";
 var causeString = "<?php echo translate('AttrCause') ?>";
+var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
+var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
+var popup = '<?php echo $popup ?>';

@@ -62,16 +62,16 @@ Storage::Storage( unsigned int p_id ) {
 
 	if ( p_id ) {
 		char sql[ZM_SQL_SML_BUFSIZ];
-		snprintf( sql, sizeof(sql), "SELECT Id, Name, Path, Type, Scheme from Storage WHERE Id=%d", p_id );
+		snprintf(sql, sizeof(sql), "SELECT `Id`, `Name`, `Path`, `Type`, `Scheme` FROM `Storage` WHERE `Id`=%d", p_id);
 		Debug(2,"Loading Storage for %d using %s", p_id, sql );
 		zmDbRow dbrow;
-		if ( ! dbrow.fetch( sql ) ) {
-			Error( "Unable to load storage area for id %d: %s", p_id, mysql_error( &dbconn ) );
+		if ( !dbrow.fetch(sql) ) {
+			Error("Unable to load storage area for id %d: %s", p_id, mysql_error(&dbconn));
 		} else {
 			unsigned int index = 0;
-			id = atoi( dbrow[index++] );
-			strncpy( name, dbrow[index++], sizeof(name)-1 );
-			strncpy( path, dbrow[index++], sizeof(path)-1 );
+			id = atoi(dbrow[index++]);
+			strncpy(name, dbrow[index++], sizeof(name)-1);
+			strncpy(path, dbrow[index++], sizeof(path)-1);
       type_str = std::string(dbrow[index++]);
       scheme_str = std::string(dbrow[index++]);
       if ( scheme_str == "Deep" ) {
@@ -81,17 +81,17 @@ Storage::Storage( unsigned int p_id ) {
       } else {
         scheme = SHALLOW;
       }
-			Debug( 1, "Loaded Storage area %d '%s'", id, this->Name() );
+			Debug(1, "Loaded Storage area %d '%s'", id, this->Name());
 		}
 	}
-	if ( ! id ) {
+	if ( !id ) {
     if ( staticConfig.DIR_EVENTS[0] != '/' ) {
       // not using an absolute path. Make it one by appending ZM_PATH_WEB
-      snprintf( path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str( ), staticConfig.DIR_EVENTS.c_str() );
+      snprintf(path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str(), staticConfig.DIR_EVENTS.c_str());
     } else {
-      strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path)-1 );
+      strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path)-1);
     }
-		Debug(1,"No id passed to Storage constructor.  Using default path %s instead", path );
+		Debug(1,"No id passed to Storage constructor.  Using default path %s instead", path);
 		strcpy(name, "Default");
     scheme = MEDIUM;
     scheme_str = "Medium";

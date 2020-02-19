@@ -1,0 +1,179 @@
+New installs
+============
+
+1. Unless you are already using MariaDB server, you need to ensure that the
+   server is configured to start during boot and properly secured by running:
+
+     sudo dnf install mariadb-server
+     sudo systemctl enable mariadb
+     sudo systemctl start  mariadb.service
+     mysql_secure_installation
+
+2. Assuming the database is local and using the password for the root account
+   set during the previous step, you will need to create the ZoneMinder
+   database and configure a database account for ZoneMinder to use:
+
+     mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
+     mysql -uroot -p -e "grant all on zm.* to \
+                        'zmuser'@localhost identified by 'zmpass';"
+     mysqladmin -uroot -p reload
+
+   The database account credentials, zmuser/zmpass, are arbitrary. Set them to
+   anything that suits your environment.
+
+3. If you have chosen to change the zoneminder database account credentials to
+   something other than zmuser/zmpass, you must now create a config file under
+   /etc/zm/conf.d and set your credentials there. For example, create the file
+   /etc/zm/conf.d/zm-db-user.conf and add the following content to it:
+      
+     ZM_DB_USER = {username of the sql account you want to use}
+     ZM_DB_PASS = {password of the sql account you want to use}
+
+   Once the file has been saved, set proper file & ownership permissions on it:
+  
+     sudo chown root:nginx *.conf
+     sudo chmod 640 *.conf     
+
+4. Manually setting the timezone in /etc/php.ini is deprecated.
+
+   Instead, navigate to Options -> System from the ZoneMinder web console.
+   Do this after completing step 10, below.
+
+   Note that timezone errors will appear in the ZoneMinder log until this
+   has been completed.
+
+5. Disable SELinux 
+
+   We currently do not have the resources to create and maintain an accurate
+   SELinux policy for ZoneMinder on Fedora. We will gladly accept pull
+   reqeusts from anyone who wishes to do the work. In the meantime, SELinux
+   will need to be disabled or put into permissive mode.
+   
+   To immediately disbale SELinux for the current seesion, issue the following
+   from the command line:
+
+     sudo setenforce 0
+
+   To permanently disable SELinux, edit /etc/selinux/config and change the
+   SELINUX line from "enforcing" to "disabled". This change will take
+   effect after a reboot.
+
+6. Configure the web server
+
+   This package uses the HTTPS protocol by default to access the web portal,
+   using the default self signed certificate on your system.  
+
+   Inspect the web server configuration file and verify it meets your needs:
+
+     /etc/zm/www/zoneminder.conf
+
+   If you are running other web enabled services then you may need to edit
+   this file to suite. See README.https to learn about other alternatives. 
+
+   If you wish http requests to auto-redirect to https requests, then link or
+   copy /etc/zm/www/redirect.nginx.conf into /etc/nginx/default.d folder.
+
+   When in doubt, proceed with the default:
+
+     sudo ln -sf /etc/zm/www/zoneminder.nginx.conf /etc/nginx/conf.d/
+     sudo ln -sf /etc/zm/www/redirect.nginx.conf /etc/nginx/default.d/
+
+7. Edit /etc/sysconfig/fcgiwrap and set DAEMON_PROCS to the maximum number of
+   simulatneous streams the server should support. Generally, a good minimum 
+   value for this equals the total number of cameras you expect to view at the
+   same time.
+
+8. Now start the web server:
+
+     sudo systemctl enable nginx
+     sudo systemctl start nginx
+
+9. Now start zoneminder:
+
+     sudo systemctl enable zoneminder
+     sudo systemctl start zoneminder
+
+10. Optionally configure the firewall
+
+   All Redhat distros ship with the firewall enabled. That means you will not
+   be able to access the ZoneMinder web console from a remote machine until
+   changes are made to the firewall.
+
+   What follows are a set of minimal commands to allow remote access to the
+   ZoneMinder web console and also allow ZoneMinder's ONVIF discovery to
+   work. The following commands do not put any restrictions on which remote
+   machine(s) have access to the listed ports or services.
+
+     sudo firewall-cmd --permanent --zone=public --add-service=http
+     sudo firewall-cmd --permanent --zone=public --add-service=https
+     sudo firewall-cmd --permanent --zone=public --add-port=3702/udp
+     sudo firewall-cmd --reload
+
+   Additional changes to the firewall may be required, depending on your
+   security requirements and how you use the system. It is up to you to verify
+   these commands are sufficient.
+
+11. Access the ZoneMinder web console
+
+   You may now access the ZoneMinder web console from your web browser using
+   an appropriate url. Here are some examples:
+
+     http://localhost/zm (works from the local machine only)
+     http://{machine name}/zm (works only if dns is configured for your network)
+     http://{ip address}/zm
+
+Upgrades
+========
+
+1. Conf.d folder support has been added to ZoneMinder. Any custom
+   changes previously made to zm.conf must now be made in one or more custom
+   config files, created under the conf.d folder. Do this now. See 
+   /etc/zm/conf.d/README for details. Once you recreate any custom config changes
+   under the conf.d folder, they will remain in place indefinitely.
+
+2. Verify permissions of the zmuser account.
+
+   Over time, the database account permissions required for normal operation
+   have increased. Verify the zmuser database account has been granted all
+   permission to the ZoneMinder database:
+
+     mysql -uroot -p -e "show grants for zmuser@localhost;"
+
+   See step 2 of the Installation section to add missing permissions.
+   
+3. Verify the ZoneMinder Nginx configuration file in the folder 
+   /etc/zm/www. You will have a file called "zoneminder.conf" and there
+   may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file
+   exists, inspect it and merge anything new in that file with zoneminder.conf.
+   Verify the SSL REquirements meet your needs. Read README.https if necessary.
+
+   The contents of this file must be merged into your Nginx configuration.
+   See step 6 of the installation section if you have not already done this
+   during a previous upgrade.
+
+4. Upgrade the database before starting ZoneMinder.
+
+   Most upgrades can be performed by executing the following command:
+   
+     sudo zmupdate.pl
+
+   Recent versions of ZoneMinder don't require any parameters added to the 
+   zmupdate command. However, if ZoneMinder complains, you may need to call
+   zmupdate in the following manner:
+
+   sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
+
+5. Now restart nginx and php-fpm then start zoneminder:
+
+	sudo systemctl restart nginx
+	sudo systemctl restart php-fpm
+	sudo systemctl start zoneminder
+
+6. Manually setting the timezone in /etc/php.ini is deprecated.
+
+   Instead, navigate to Options -> System from the ZoneMinder web console.
+   Do this now.
+
+   Note that timezone errors will appear in the ZoneMinder log until this
+   has been completed.
+

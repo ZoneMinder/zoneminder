@@ -35,7 +35,7 @@ xhtmlHeaders(__FILE__, translate('Error') );
         <?php echo translate('ContactAdmin') ?>
       </p>
       <p>
-        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
+        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
       </p>
     </div>
   </div>

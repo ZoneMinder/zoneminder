@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -51,6 +51,8 @@ configuring upgrades etc, including on the fly upgrades.
 use strict;
 use bytes;
 use version;
+use Crypt::Eksblowfish::Bcrypt;
+use Data::Entropy::Algorithms qw(rand_bits);
 
 # ==========================================================================
 #
@@ -299,7 +301,7 @@ if ( $migrateEvents ) {
     $sth->finish();
 
     print( "Updating configuration.\n" );
-    $sql = "update Config set Value = ? where Name = 'ZM_USE_DEEP_STORAGE'";
+    $sql = "UPDATE `Config` SET `Value` = ? WHERE `Name` = 'ZM_USE_DEEP_STORAGE'";
     $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
     $res = $sth->execute( 1 ) or die( "Can't execute: ".$sth->errstr() );
     $sth->finish();
@@ -312,6 +314,7 @@ if ( $migrateEvents ) {
 if ( $freshen ) {
   print( "\nFreshening configuration in database\n" );
   migratePaths();
+  migratePasswords();
   ZoneMinder::Config::loadConfigFromDB();
   ZoneMinder::Config::saveConfigToDB();
 }
@@ -320,7 +323,7 @@ if ( $freshen ) {
 if ( $interactive ) {
 # Now check for MyISAM Tables
   my @MyISAM_Tables;
-  my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
+  my $sql = "SELECT `table_name` FROM INFORMATION_SCHEMA.TABLES WHERE `table_schema`='zm' AND `engine` = 'MyISAM'";
   my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 
@@ -338,7 +341,7 @@ if ( $interactive ) {
       $dbh->do(q|SET sql_mode='traditional'|); # Elevate warnings to errors
         print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
       foreach (@MyISAM_Tables) {
-        my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
+        my $sql = "ALTER TABLE `$_` ENGINE = InnoDB";
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
         $sth->finish();
@@ -353,8 +356,8 @@ if ( $version ) {
   $version = $detaint_version;
 
   if ( ZM_VERSION eq $version ) {
-    print( "\nDatabase already at version $version, update aborted.\n\n" );
-    exit( 0 );
+    print("\nDatabase already at version $version, update skipped.\n\n");
+    exit(0);
   }
 
   print( "\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n" );
@@ -444,7 +447,7 @@ if ( $version ) {
 # Rename the event directories and create a new symlink for the names
     chdir( EVENT_PATH );
 
-    my $sql = "select * from Monitors order by Id";
+    my $sql = "SELECT * FROM `Monitors` ORDER BY `Id`";
     my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() ) {
@@ -922,6 +925,11 @@ if ( $version ) {
     zmDbDisconnect();
     die( "Can't find upgrade from version '$version'" );
   }
+  # Re-enable the privacy popup after each upgrade
+  #my $sql = "update Config set Value = 1 where Name = 'ZM_SHOW_PRIVACY'";
+  #my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  #my $res = $sth->execute( ) or die( "Can't execute: ".$sth->errstr() );
+  #$sth->finish();
   print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n" );
 }
 zmDbDisconnect();
@@ -992,6 +1000,26 @@ sub patchDB {
   }
   print( "\nDatabase successfully upgraded to version $version.\n" );
 
+}
+
+sub migratePasswords {
+    print ("Migratings passwords, if any...\n");
+    my $sql = "select * from Users";
+    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+    while( my $user = $sth->fetchrow_hashref() ) {
+      my $scheme = substr($user->{Password}, 0, 1);
+     if ($scheme eq "*") {
+       print ("-->".$user->{Username}. " password will be migrated\n");
+       my $salt = Crypt::Eksblowfish::Bcrypt::en_base64(rand_bits(16*8));
+       my $settings = '$2a$10$'.$salt;
+       my $pass_hash = Crypt::Eksblowfish::Bcrypt::bcrypt($user->{Password},$settings);
+       my $new_pass_hash =  "-ZM-".$pass_hash;
+       $sql = "UPDATE Users SET PASSWORD=? WHERE Username=?";
+       my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+       my $res = $sth->execute($new_pass_hash, $user->{Username}) or die( "Can't execute: ".$sth->errstr() );
+     }
+    }
 }
 
 sub migratePaths {

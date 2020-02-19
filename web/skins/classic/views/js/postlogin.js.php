@@ -11,14 +11,23 @@
 (
 	function () {
 		// Append '?(GET query)' to URL if the GET query is not empty.
-		var querySuffix = "<?php
-			if (!empty($_POST["postLoginQuery"])) {
-                                parse_str($_POST["postLoginQuery"], $queryParams);
-				echo "?" . http_build_query($queryParams);
-                        }
-			?>";
+		var querySuffix = '<?php
+			if (!empty($_SESSION['postLoginQuery'])) {
+        parse_str($_SESSION['postLoginQuery'], $queryParams);
+        echo '?' . http_build_query($queryParams);
+        zm_session_start();
+        unset($_SESSION['postLoginQuery']);
+        session_write_close();
+      }
+			?>';
 
-		var newUrl = thisUrl + querySuffix;
+    if ( querySuffix == '?view=login' ) {
+      // If we didn't redirect elsewhere, then don't show login page, go to console
+      querySuffix = '?view=console';
+    }
+    var newUrl = querySuffix;
+
+console.log("Redirecting to" + newUrl + ' ' + thisUrl);
 		window.location.replace(newUrl);
 	}
 ).delay( 500 );

@@ -32,8 +32,8 @@
 StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC
   if ( vid_stream ) {
-		delete vid_stream;
-		vid_stream = NULL;
+    delete vid_stream;
+    vid_stream = NULL;
   }
 #endif
   closeComms();
@@ -54,24 +54,34 @@ bool StreamBase::loadMonitor(int monitor_id) {
 
 bool StreamBase::checkInitialised() {
   if ( !monitor ) {
-    Fatal( "Cannot stream, not initialised" );
+    Fatal("Cannot stream, not initialised");
     return false;
   }
   return true;
 }
 
 void StreamBase::updateFrameRate(double fps) {
+  frame_mod = 1;
+  if ( (fps < 0) || !fps || isinf(fps) ) {
+    Debug(1, "Zero or negative fps %f in updateFrameRate. Setting frame_mod=1 and effective_fps=0.0", fps);
+    effective_fps = 0.0;
+    base_fps = 0.0;
+    return;
+  }
   base_fps = fps;
   effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
   frame_mod = 1;
-  Debug(3, "FPS:%.2f, MXFPS:%.2f, BFPS:%.2f, EFPS:%.2f, FM:%d", fps, maxfps, base_fps, effective_fps, frame_mod);
+  Debug(3, "FPS:%.2f, MaxFPS:%.2f, BaseFPS:%.2f, EffectiveFPS:%.2f, FrameMod:%d, replay_rate(%d)",
+      fps, maxfps, base_fps, effective_fps, frame_mod, replay_rate);
   // Min frame repeat?
-  while( effective_fps > maxfps ) {
+  // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.  
+  while ( effective_fps > maxfps ) {
     effective_fps /= 2.0;
     frame_mod *= 2;
-    Debug(3, "EffectiveFPS:%.2f, FrameMod:%d", effective_fps, frame_mod);
+    Debug(3, "Changing fps to be < max %.2f EffectiveFPS:%.2f, FrameMod:%d",
+        maxfps, effective_fps, frame_mod);
   }
-}
+} // void StreamBase::updateFrameRate(double fps)
 
 bool StreamBase::checkCommandQueue() {
   if ( sd >= 0 ) {
@@ -100,15 +110,6 @@ bool StreamBase::checkCommandQueue() {
 }
 
 Image *StreamBase::prepareImage( Image *image ) {
-  static int last_scale = 0;
-  static int last_zoom = 0;
-  static int last_x = 0;
-  static int last_y = 0;
-
-  if ( !last_scale )
-    last_scale = scale;
-  if ( !last_zoom )
-    last_zoom = zoom;
 
   // Do not bother to scale zoomed in images, just crop them and let the browser scale
   // Works in FF2 but breaks FF3 which doesn't like image sizes changing in mid stream.
@@ -226,8 +227,9 @@ Image *StreamBase::prepareImage( Image *image ) {
   return image;
 }
 
-bool StreamBase::sendTextFrame( const char *frame_text ) {
-  Debug(2, "Sending text frame '%s'", frame_text);
+bool StreamBase::sendTextFrame(const char *frame_text) {
+  Debug(2, "Sending %dx%d * %d text frame '%s'",
+      monitor->Width(), monitor->Height(), scale, frame_text);
 
   Image image(monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder());
   image.Annotate(frame_text, image.centreCoord(frame_text));
@@ -251,8 +253,8 @@ bool StreamBase::sendTextFrame( const char *frame_text ) {
 
     image.EncodeJpeg(buffer, &n_bytes);
 
-    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n\r\n", stdout);
-    fprintf(stdout, "Content-Length: %d\r\n", n_bytes);
+    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n", stdout);
+    fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);
     if ( fwrite(buffer, n_bytes, 1, stdout) != 1 ) {
       Error("Unable to send stream text frame: %s", strerror(errno));
       return false;
@@ -267,32 +269,63 @@ bool StreamBase::sendTextFrame( const char *frame_text ) {
 void StreamBase::openComms() {
   if ( connkey > 0 ) {
 
-		unsigned int length = snprintf(sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", staticConfig.PATH_SOCKS.c_str(), connkey);
+    // Have to mkdir because systemd is now chrooting and the dir may not exist
+    if ( mkdir(staticConfig.PATH_SOCKS.c_str(), 0755) ) {
+      if ( errno != EEXIST ) {
+        Error("Can't mkdir ZM_PATH_SOCKS %s: %s.", staticConfig.PATH_SOCKS.c_str(), strerror(errno));
+      }
+    }
+
+    unsigned int length = snprintf(
+        sock_path_lock,
+        sizeof(sock_path_lock),
+        "%s/zms-%06d.lock",
+        staticConfig.PATH_SOCKS.c_str(),
+        connkey
+        );
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
     }
     Debug(1, "Trying to open the lock on %s", sock_path_lock);
 
+    // Under systemd, we get chrooted to something like /tmp/systemd-apache-blh/ so the dir may not exist.
+    if ( mkdir(staticConfig.PATH_SOCKS.c_str(), 0755) ) {
+      if ( errno != EEXIST ) {
+        Error("Can't mkdir %s: %s", staticConfig.PATH_SOCKS.c_str(), strerror(errno));
+        return;
+      } else {
+        Debug(3, "SOCKS dir %s already exists", staticConfig.PATH_SOCKS.c_str() );
+      }
+    } else {
+      Debug(3, "Success making SOCKS dir %s", staticConfig.PATH_SOCKS.c_str() );
+    }
+
     lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
     if ( lock_fd <= 0 ) {
-      Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno) );
+      Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno));
       lock_fd = 0;
-		} else if ( flock(lock_fd, LOCK_EX) != 0 ) {
-      Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno) );
+    } else if ( flock(lock_fd, LOCK_EX) != 0 ) {
+      Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno));
       close(lock_fd);
       lock_fd = 0;
     } else {
-      Debug( 1, "We have obtained a lock on %s fd: %d", sock_path_lock, lock_fd);
+      Debug(1, "We have obtained a lock on %s fd: %d", sock_path_lock, lock_fd);
     }
 
     sd = socket(AF_UNIX, SOCK_DGRAM, 0);
     if ( sd < 0 ) {
       Fatal("Can't create socket: %s", strerror(errno));
-		} else {
-			Debug(1, "Have socket %d", sd);
+    } else {
+      Debug(3, "Have socket %d", sd);
     }
 
-    length = snprintf(loc_sock_path, sizeof(loc_sock_path), "%s/zms-%06ds.sock", staticConfig.PATH_SOCKS.c_str(), connkey);
+    length = snprintf(
+        loc_sock_path,
+        sizeof(loc_sock_path),
+        "%s/zms-%06ds.sock",
+        staticConfig.PATH_SOCKS.c_str(),
+        connkey
+        );
     if ( length >= sizeof(loc_sock_path) ) {
       Warning("Socket path was truncated.");
       length = sizeof(loc_sock_path)-1;
@@ -305,16 +338,18 @@ void StreamBase::openComms() {
 
     strncpy(loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path));
     loc_addr.sun_family = AF_UNIX;
-		Debug(3, "Binding to %s", loc_sock_path);
-    if ( bind(sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1) < 0 ) {
+    Debug(3, "Binding to %s", loc_sock_path);
+    if ( ::bind(sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1) < 0 ) {
       Fatal("Can't bind: %s", strerror(errno));
     }
 
     snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey);
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path)-1);
     rem_addr.sun_family = AF_UNIX;
+
+    gettimeofday(&last_comm_update, NULL);
   } // end if connKey > 0
-	Debug(2, "comms open");
+  Debug(3, "comms open at %s", loc_sock_path);
 } // end void StreamBase::openComms()
 
 void StreamBase::closeComms() {

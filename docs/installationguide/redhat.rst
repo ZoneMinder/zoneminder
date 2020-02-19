@@ -101,7 +101,7 @@ Certain commands in these instructions require root privileges while other comma
 
 Set Up Your Environment
 ***********************
-Before you begin, set up an rpmbuild environment by following `this guide <http://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers.
+Before you begin, set up an rpmbuild environment by following `this guide <https://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers.
 
 In addition, make sure RPM Fusion is enabled as described in the previous section `How to Install ZoneMinder`_.  
 
@@ -158,7 +158,7 @@ The list of available Mock config files are available here:
     ls /etc/mock/*rpmfusion_free.cfg
 
 
-You choose the config file based on the desired distro (e.g. el6, el7, f20, f21) and basearch (e.g. x86, x86_64, arhmhfp). Notice that, when specifying the Mock config as a commandline parameter, you should leave off the ".cfg" filename extension.
+You choose the config file based on the desired distro (e.g. el7, f29, f30) and basearch (e.g. x86, x86_64, arhmhfp). Notice that, when specifying the Mock config as a commandline parameter, you should leave off the ".cfg" filename extension.
 
 Installation
 ************
@@ -188,8 +188,8 @@ Now clone the ZoneMinder git repository from your home folder:
 ::
 
     cd
-    git clone https://github.com/ZoneMinder/ZoneMinder
-    cd ZoneMinder
+    git clone https://github.com/ZoneMinder/zoneminder
+    cd zoneminder
 
 This will create a sub-folder called ZoneMinder, which will contain the latest development source code.
 
@@ -197,27 +197,27 @@ If you have previsouly cloned the ZoneMinder git repo and wish to update it to t
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/zoneminder
     git pull origin master
     
 Get the crud submodule tarball:
 
 ::
 
-    spectool -f -g -R -s 1 ~/ZoneMinder/distros/redhat/zoneminder.spec
+    spectool -f -g -R -s 1 ~/zoneminder/distros/redhat/zoneminder.spec
 
 At this point, you can make changes to the source code. Depending on what you want to do with those changes, you generally want to create a new branch first:
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/zoneminder
     git checkout -b mynewbranch
 
 Again, depending on what you want to do with those changes, you may want to commit your changes:
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/zoneminder
     git add .
     git commit
 
@@ -225,28 +225,28 @@ Once you have made your changes, it is time to turn your work into a new tarball
 
 ::
 
-    less ~/ZoneMinder/distros/redhat/zoneminder.spec
+    less ~/zoneminder/distros/redhat/zoneminder.spec
     
 Scroll down until you see the Version field. Note the value, which will be in the format x.xx.x. Now create the tarball with the following command:
 
 ::
 
-    cd ~\ZoneMinder
-    git archive --prefix=ZoneMinder-1.31.1/ -o ~/rpmbuild/SOURCES/zoneminder-1.31.1.tar.gz HEAD
+    cd ~/zoneminder
+    git archive --prefix=zoneminder-1.33.4/ -o ~/rpmbuild/SOURCES/zoneminder-1.33.4.tar.gz HEAD
 
-Replace "1.31.1" with the Version shown in the rpm specfile.
+Replace "1.33.4" with the Version shown in the rpm specfile.
 
 From the root of the local ZoneMinder git repo, execute the following:
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/zoneminder
     rpmbuild -bs --nodeps distros/redhat/zoneminder.spec
 
 This step will create a source rpm and it will tell you where it was saved. For example:
 
 ::
 
-    Wrote: /home/abauer/rpmbuild/SRPMS/zoneminder-1.31.1-1.fc26.src.rpm
+    Wrote: /home/abauer/rpmbuild/SRPMS/zoneminder-1.33.4-1.fc26.src.rpm
     
 Now follow the previous instructions `Build from SRPM`_ which describe how to build that source rpm into an rpm.

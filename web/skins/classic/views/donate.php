@@ -18,25 +18,24 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) )
-{
-    $view = "error";
-    return;
+if ( !canEdit('System') ) {
+  $view = 'error';
+  return;
 }
 
 $options = array( 
-    "go"      => translate('DonateYes'),
-    "hour"    => translate('DonateRemindHour'),
-    "day"     => translate('DonateRemindDay'),
-    "week"    => translate('DonateRemindWeek'),
-    "month"   => translate('DonateRemindMonth'),
-    "never"   => translate('DonateRemindNever'),
-    "already" => translate('DonateAlready'),
+  'go'      => translate('DonateYes'),
+  'hour'    => translate('DonateRemindHour'),
+  'day'     => translate('DonateRemindDay'),
+  'week'    => translate('DonateRemindWeek'),
+  'month'   => translate('DonateRemindMonth'),
+  'never'   => translate('DonateRemindNever'),
+  'already' => translate('DonateAlready'),
 );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Donate') );
+xhtmlHeaders(__FILE__, translate('Donate'));
 ?>
 <body>
   <div id="page">
@@ -45,18 +44,18 @@ xhtmlHeaders(__FILE__, translate('Donate') );
       <h1>ZoneMinder - <?php echo translate('Donate') ?></h1>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="none"/>
+      <form name="contentForm" id="contentForm" method="post" action="?">
+        <input type="hidden" name="view" value="donate"/>
         <input type="hidden" name="action" value="donate"/>
         <p>
           <?php echo translate('DonateEnticement') ?>
         </p>
         <p>
-          <?php echo buildSelect( "option", $options ); ?>
+          <?php echo buildSelect('option', $options); ?>
         </p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )">
-          <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()">
+          <button type="submit"><?php echo translate('Apply') ?></button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
         </div>
       </form>
     </div>

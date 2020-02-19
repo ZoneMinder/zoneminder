@@ -101,7 +101,7 @@ X264MP4Writer::X264MP4Writer(
     Error("Failed init swscaleobj");
     return;
   }
-    
+
   swscaleobj.SetDefaults(zm_pf, codec_pf, width, height);
 
   /* Calculate the image sizes. We will need this for parameter checking */
@@ -376,7 +376,10 @@ int X264MP4Writer::x264config() {
   x264params.b_annexb = 0;
 
   /* TODO: Setup error handler */
-  // x264params.i_log_level = X264_LOG_DEBUG;
+  if ( logDebugging() )
+    x264params.i_log_level = X264_LOG_DEBUG;
+  else
+    x264params.i_log_level = X264_LOG_NONE;
 
   /* Process user parameters (excluding preset, tune and profile) */
   for ( unsigned int i = 0; i < user_params.size(); i++ ) {
@@ -455,11 +458,12 @@ int X264MP4Writer::x264encodeloop(bool bFlush) {
 
       /* Write the sample */
       if ( !buffer.empty() ) {
+        unsigned int bufSize = buffer.size();
         if ( !MP4WriteSample(
               mp4h,
               mp4vtid,
-              buffer.extract(buffer.size()),
-              buffer.size(),
+              buffer.extract(bufSize),
+              bufSize,
               duration,
               offset,
               prevKeyframe) ) {

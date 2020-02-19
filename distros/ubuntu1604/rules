@@ -27,7 +27,7 @@ override_dh_auto_configure:
             -DZM_CGIDIR="/usr/lib/zoneminder/cgi-bin"  \
             -DZM_CACHEDIR="/var/cache/zoneminder/cache"  \
             -DZM_DIR_EVENTS="/var/cache/zoneminder/events"    \
-            -DZM_DIR_IMAGES="/var/cache/zoneminder/images"    \
+            -DZM_PATH_SHUTDOWN="/sbin/shutdown"        \
             -DZM_PATH_ZMS="/zm/cgi-bin/nph-zms"
 
 override_dh_clean:

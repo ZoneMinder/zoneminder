@@ -16,7 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -134,7 +134,7 @@ sub sendCmd
     my $server_endpoint = "http://".$host.":".$port."/$cmd";
     my $req = HTTP::Request->new( POST => $server_endpoint );
     $req->header('content-type' => $content_type);
-    $req->header('Host' => $host.":".$port);
+    $req->header('Host' => $host.':'.$port);
     $req->header('content-length' => length($msg));
     $req->header('accept-encoding' => 'gzip, deflate');
     $req->header('connection' => 'close');
@@ -145,9 +145,9 @@ sub sendCmd
     if ( $res->is_success ) {
         $result = !undef;
     } else {
-        Error( "After sending PTZ command, camera returned the following error:'".$res->status_line()."'" );
+        Error("After sending PTZ command to $server_endpoint, camera returned the following error:'".$res->status_line()."'" );
     }
-    return( $result );
+    return $result;
 }
 
 sub getCamParams

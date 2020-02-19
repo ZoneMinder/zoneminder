@@ -127,24 +127,25 @@ protected:
     uint8_t format;             /* +55   */
     uint32_t imagesize;         /* +56   */
     uint32_t epadding1;         /* +60   */
-    uint32_t epadding2;         /* +64   */
     /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
+     ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple 
+     ** of 8. Add or delete epadding's to achieve this.
      */  
-    union {                     /* +68   */
+    union {                     /* +64   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +76   */
+    union {                     /* +72  */
       time_t last_write_time;
       uint64_t extrapad2;
     };
-    union {            /* +84   */
+    union {            /* +80   */
       time_t last_read_time;
       uint64_t extrapad3;
     };
-    uint8_t control_state[256];  /* +92   */
+    uint8_t control_state[256];  /* +88   */
 
     char alarm_cause[256];
     
@@ -249,79 +250,88 @@ protected:
   Orientation     orientation;        // Whether the image has to be rotated at all
   unsigned int    deinterlacing;
   bool            videoRecording;
+  std::string     decoder_hwaccel_name;
+  std::string     decoder_hwaccel_device;
 
   int savejpegs;
   VideoWriter videowriter;
   std::string encoderparams;
   std::vector<EncoderParameter_t> encoderparamsvec;
-  bool      record_audio;      // Whether to store the audio that we receive
+  bool          record_audio;      // Whether to store the audio that we receive
 
-  int        brightness;        // The statically saved brightness of the camera
-  int        contrast;        // The statically saved contrast of the camera
-  int        hue;          // The statically saved hue of the camera
-  int        colour;          // The statically saved colour of the camera
-  char      event_prefix[64];    // The prefix applied to event names as they are created
-  char      label_format[64];    // The format of the timestamp on the images
-  Coord      label_coord;      // The coordinates of the timestamp on the images
-  int        label_size;         // Size of the timestamp on the images
-  int        image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
-  int        pre_event_buffer_count;   // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
+  int           brightness;        // The statically saved brightness of the camera
+  int           contrast;        // The statically saved contrast of the camera
+  int           hue;          // The statically saved hue of the camera
+  int           colour;          // The statically saved colour of the camera
+  char          event_prefix[64];    // The prefix applied to event names as they are created
+  char          label_format[64];    // The format of the timestamp on the images
+  Coord         label_coord;      // The coordinates of the timestamp on the images
+  int           label_size;         // Size of the timestamp on the images
+  int           image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
+  int           pre_event_buffer_count;   // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
   // value is pre_event_count + alarm_frame_count - 1
-  int        warmup_count;      // How many images to process before looking for events
-  int        pre_event_count;    // How many images to hold and prepend to an alarm event
-  int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
-  int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
-  int        section_length;      // How long events should last in continuous modes
-  bool      adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
-  int        frame_skip;        // How many frames to skip in continuous modes
-  int        motion_frame_skip;      // How many frames to skip in motion detection
-  double      analysis_fps;  // Target framerate for video analysis
+  int           warmup_count;      // How many images to process before looking for events
+  int           pre_event_count;    // How many images to hold and prepend to an alarm event
+  int           post_event_count;    // How many unalarmed images must occur before the alarm state is reset
+  struct timeval video_buffer_duration; // How long a video segment to keep in buffer (set only if analysis fps != 0 )
+  int           stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
+  int           section_length;      // How long events should last in continuous modes
+  int           min_section_length;   // Minimum event length when using event_close_mode == ALARM
+  bool          adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
+  int           frame_skip;        // How many frames to skip in continuous modes
+  int           motion_frame_skip;      // How many frames to skip in motion detection
+  double        capture_max_fps;       // Target Capture FPS
+  double        analysis_fps;  // Target framerate for video analysis
   unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
-  int        capture_delay;      // How long we wait between capture frames
-  int        alarm_capture_delay;  // How long we wait between capture frames when in alarm state
-  int        alarm_frame_count;    // How many alarm frames are required before an event is triggered
-  int        fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
-  int        ref_blend_perc;      // Percentage of new image going into reference image.
-  int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
-  bool      track_motion;      // Whether this monitor tries to track detected motion 
-  int         signal_check_points;  // Number of points in the image to check for signal
-  Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
-  bool              embed_exif; // Whether to embed Exif data into each image frame or not
+  int           capture_delay;      // How long we wait between capture frames
+  int           alarm_capture_delay;  // How long we wait between capture frames when in alarm state
+  int           alarm_frame_count;    // How many alarm frames are required before an event is triggered
+  int           fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
+  int           ref_blend_perc;      // Percentage of new image going into reference image.
+  int           alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
+  bool          track_motion;      // Whether this monitor tries to track detected motion 
+  int           signal_check_points;  // Number of points in the image to check for signal
+  Rgb           signal_check_colour;  // The colour that the camera will emit when no video signal detected
+  bool          embed_exif; // Whether to embed Exif data into each image frame or not
 
-  double      fps;
-  unsigned int  last_camera_bytes;
+  bool last_signal;
+
+  double       fps;
+  unsigned int last_camera_bytes;
   
-  Image      delta_image;
-  Image      ref_image;
-  Image       alarm_image;  // Used in creating analysis images, will be initialized in Analysis
-  Image       write_image;    // Used when creating snapshot images
+  Image        delta_image;
+  Image        ref_image;
+  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
+  Image        write_image;    // Used when creating snapshot images
+  std::string diag_path_r;
+  std::string diag_path_d;
 
   Purpose      purpose;        // What this monitor has been created to do
-  int        event_count;
-  int        image_count;
-  int        ready_count;
-  int        first_alarm_count;
-  int        last_alarm_count;
-  int        buffer_count;
-  int        prealarm_count;
-  State      state;
-  time_t      start_time;
-  time_t      last_fps_time;
-  time_t      auto_resume_time;
+  int          event_count;
+  int          image_count;
+  int          ready_count;
+  int          first_alarm_count;
+  int          last_alarm_count;
+  int          buffer_count;
+  int          prealarm_count;
+  State        state;
+  time_t       start_time;
+  time_t       last_fps_time;
+  time_t       auto_resume_time;
   unsigned int      last_motion_score;
 
   EventCloseMode  event_close_mode;
 
 #if ZM_MEM_MAPPED
-  int        map_fd;
-  char      mem_file[PATH_MAX];
+  int             map_fd;
+  char            mem_file[PATH_MAX];
 #else // ZM_MEM_MAPPED
-  int       shm_id;
+  int             shm_id;
 #endif // ZM_MEM_MAPPED
-  off_t        mem_size;
-  unsigned char  *mem_ptr;
-  SharedData    *shared_data;
-  TriggerData    *trigger_data;
+  off_t           mem_size;
+  unsigned char   *mem_ptr;
+  SharedData      *shared_data;
+  TriggerData     *trigger_data;
   VideoStoreData  *video_store_data;
 
   Snapshot    *image_buffer;
@@ -362,6 +372,8 @@ public:
     Camera *p_camera,
     int p_orientation,
     unsigned int p_deinterlacing,
+    const std::string &p_decoder_hwaccel_name,
+    const std::string &p_decoder_hwaccel_device,
     int p_savejpegs,
     VideoWriter p_videowriter,
     std::string p_encoderparams,
@@ -377,8 +389,10 @@ public:
     int p_stream_replay_buffer,
     int p_alarm_frame_count,
     int p_section_length,
+    int p_min_section_length,
     int p_frame_skip,
     int p_motion_frame_skip,
+    double p_capture_max_fps,
     double p_analysis_fps,
     unsigned int p_analysis_update_delay,
     int p_capture_delay,
@@ -452,8 +466,12 @@ public:
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
+  struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
+  void SetVideoWriterStartTime(struct timeval &t) { video_store_data->recording = t; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
+  struct timeval GetVideoBufferDuration() const { return video_buffer_duration; };
+  int GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
   Snapshot *getSnapshot() const;
@@ -461,6 +479,7 @@ public:
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
+  unsigned int GetCaptureMaxFPS() const { return capture_max_fps; }
   int GetCaptureDelay() const { return capture_delay; }
   int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;

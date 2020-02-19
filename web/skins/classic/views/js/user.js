@@ -14,13 +14,14 @@ function validateForm( form, newUser ) {
   }
   var monitorIds = new Array();
   for ( var i = 0; i < form.elements['monitorIds'].options.length; i++ ) {
-    if ( form.elements['monitorIds'].options[i].selected )
+    if ( form.elements['monitorIds'].options[i].selected ) {
       monitorIds[monitorIds.length] = form.elements['monitorIds'].options[i].value;
+    }
   }
   form.elements['newUser[MonitorIds]'].value = monitorIds.join( ',' );
   if ( errors.length ) {
     alert( errors.join( "\n" ) );
-    return( false );
+    return ( false );
   }
-  return( true );
+  return ( true );
 }

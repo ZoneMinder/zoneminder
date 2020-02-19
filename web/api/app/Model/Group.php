@@ -38,8 +38,8 @@ class Group extends AppModel {
  */
 	public $validate = array(
 		'Name' => array(
-			'notEmpty' => array(
-				'rule' => array('notEmpty'))),
+			'notBlank' => array(
+				'rule' => array('notBlank'))),
 		'Id' => array(
 			'numeric' => array(
 				'rule' => array('numeric'),
@@ -59,7 +59,7 @@ class Group extends AppModel {
  *
  * @var array
  */
-	public $hasMany = array(
+	public $hasAndBelongsToMany = array(
 		'Monitor' => array(
 			'className' => 'Monitor',
       'joinTable' =>  'Groups_Monitors',
@@ -77,4 +77,5 @@ class Group extends AppModel {
 			'counterQuery' => ''
 		),
   );
+  var $actsAs = array( 'Containable' );
 }

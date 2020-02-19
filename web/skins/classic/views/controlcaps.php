@@ -18,31 +18,30 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Control' ) )
-{
-    $view = "error";
+if ( !canView('Control') ) {
+    $view = 'error';
     return;
 }
 
-$controls = dbFetchAll( 'SELECT * FROM Controls ORDER BY Id' );
+$controls = dbFetchAll('SELECT * FROM Controls ORDER BY Name');
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('ControlCaps') );
+xhtmlHeaders(__FILE__, translate('ControlCaps'));
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
+        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo translate('ControlCaps') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return( confirmDelete( 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.\nAre you sure you wish to delete?' ) );">
+      <form name="contentForm" id="contentForm" method="get" action="?" onsubmit="return( confirmDelete( 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.\nAre you sure you wish to delete?' ) );">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table id="contentTable" class="major">
           <thead>
             <tr>
               <th class="colName"><?php echo translate('Name') ?></th>
@@ -59,20 +58,19 @@ xhtmlHeaders(__FILE__, translate('ControlCaps') );
           </thead>
           <tbody>
 <?php
-foreach( $controls as $control )
-{
+foreach( $controls as $control ) {
 ?>
             <tr>
-              <td class="colName"><?php echo makePopupLink( '?view=controlcap&amp;cid='.$control['Id'], 'zmControlCap', 'controlcap', $control['Name'], canView( 'Control' ) ) ?></td>
+              <td class="colName"><?php echo makePopupLink( '?view=controlcap&cid='.$control['Id'], 'zmControlCap', 'controlcap', validHtmlStr($control['Name']), canView( 'Control' ) ) ?></td>
               <td class="colType"><?php echo $control['Type'] ?></td>
-              <td class="colProtocol"><?php echo $control['Protocol'] ?></td>
+              <td class="colProtocol"><?php echo validHtmlStr($control['Protocol']) ?></td>
               <td class="colCanMove"><?php echo $control['CanMove']?translate('Yes'):translate('No') ?></td>
               <td class="colCanZoom"><?php echo $control['CanZoom']?translate('Yes'):translate('No') ?></td>
               <td class="colCanFocus"><?php echo $control['CanFocus']?translate('Yes'):translate('No') ?></td>
               <td class="colCanIris"><?php echo $control['CanIris']?translate('Yes'):translate('No') ?></td>
               <td class="colCanWhiteBal"><?php echo $control['CanWhite']?translate('Yes'):translate('No') ?></td>
               <td class="colHasPresets"><?php echo $control['HasHomePreset']?'H':'' ?><?php echo $control['HasPresets']?$control['NumPresets']:'0' ?></td>
-              <td class="colMark"><input type="checkbox" name="markCids[]" value="<?php echo $control['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Control' ) ) {?> disabled="disabled"<?php } ?>/></td>
+              <td class="colMark"><input type="checkbox" name="markCids[]" value="<?php echo $control['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit( 'Control' ) ) {?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
 }
@@ -80,7 +78,8 @@ foreach( $controls as $control )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('AddNewControl') ?>" onclick="createPopup( '?view=controlcap', 'zmControlCap', 'controlcap' );"<?php if ( !canEdit( 'Control' ) ) {?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
+          <?php echo makePopupButton('?view=controlcap', 'zmControlCap', 'controlcap', translate('AddNewControl'), canEdit( 'Control' )); ?>
+          <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
       </form>
     </div>

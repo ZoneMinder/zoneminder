@@ -23,25 +23,14 @@
 #ifndef ZM_USER_H
 #define ZM_USER_H
 
-#if HAVE_GNUTLS_OPENSSL_H
-#include <gnutls/openssl.h>
-#endif
-#if HAVE_GNUTLS_GNUTLS_H
-#include <gnutls/gnutls.h>
-#endif
-
-#if HAVE_GCRYPT_H
-#include <gcrypt.h>
-#elif HAVE_LIBCRYPTO
-#include <openssl/md5.h>
-#endif // HAVE_L || HAVE_LIBCRYPTO
-
+#include <string>
 #include <vector>
-class User {
-public:
-  typedef enum { PERM_NONE=1, PERM_VIEW, PERM_EDIT } Permission;
 
-protected:
+class User {
+ public:
+  typedef enum { PERM_NONE = 1, PERM_VIEW, PERM_EDIT } Permission;
+
+ protected:
   int id;
   char username[32+1];
   char password[64+1];
@@ -53,29 +42,32 @@ protected:
   Permission system;
   std::vector<int> monitor_ids;
 
-public:
+ public:
   User();
-  explicit User( MYSQL_ROW &dbrow );
+  explicit User(const MYSQL_ROW &dbrow);
   ~User();
-  User( User &u ) { Copy(u); }
-  void Copy( const User &u );
+  User(User &u) { Copy(u); }
+  void Copy(const User &u);
   User& operator=(const User &u) {
     Copy(u); return *this;
   }
 
   const int  Id() const { return id; }
-  const char *getUsername() const { return( username ); }
-  const char *getPassword() const { return( password ); }
-  bool isEnabled() const { return( enabled ); }
-  Permission getStream() const { return( stream ); }
-  Permission getEvents() const { return( events ); }
-  Permission getControl() const { return( control ); }
-  Permission getMonitors() const { return( monitors ); }
-  Permission getSystem() const { return( system ); }
-  bool canAccess( int monitor_id );
+  const char *getUsername() const { return username; }
+  const char *getPassword() const { return password; }
+  bool isEnabled() const { return enabled; }
+  Permission getStream() const { return stream; }
+  Permission getEvents() const { return events; }
+  Permission getControl() const { return control; }
+  Permission getMonitors() const { return monitors; }
+  Permission getSystem() const { return system; }
+  bool canAccess(int monitor_id);
 };
 
-User *zmLoadUser( const char *username, const char *password=0 );
-User *zmLoadAuthUser( const char *auth, bool use_remote_addr );
+User *zmLoadUser(const char *username, const char *password=0);
+User *zmLoadAuthUser(const char *auth, bool use_remote_addr);
+User *zmLoadTokenUser(std::string jwt, bool use_remote_addr);
+bool checkUser(const char *username);
+bool checkPass(const char *password);
 
 #endif // ZM_USER_H

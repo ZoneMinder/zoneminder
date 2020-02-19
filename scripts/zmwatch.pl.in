@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -78,6 +78,11 @@ my $sth = $dbh->prepare_cached($sql)
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
 
 while( 1 ) {
+  while ( ! ( $dbh and $dbh->ping() ) ) {
+    if ( ! ( $dbh = zmDbConnect() ) ) {
+      sleep($Config{ZM_WATCH_CHECK_INTERVAL});
+    }
+  }
 
   my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
     or Fatal('Can\'t execute: '.$sth->errstr());
@@ -98,8 +103,8 @@ while( 1 ) {
       Debug("Monitor $$monitor{Id} LastWriteTime is $capture_time.");
       if ( !$capture_time ) {
         my $startup_time = zmGetStartupTime($monitor);
-        if ( $now - $startup_time > $Config{ZM_WATCH_MAX_DELAY} ) {
-          Info(
+        if ( ( $now - $startup_time ) > $Config{ZM_WATCH_MAX_DELAY} ) {
+          Warning(
             "Restarting capture daemon for $$monitor{Name}, no image since startup. ".
             "Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}"
           );
@@ -111,16 +116,17 @@ while( 1 ) {
         }
       }
       if ( ! $restart ) {
-        my $max_image_delay = ( $monitor->{MaxFPS}
-            &&($monitor->{MaxFPS}>0)
-            &&($monitor->{MaxFPS}<1)
-            ) ? (3/$monitor->{MaxFPS})
-          : $Config{ZM_WATCH_MAX_DELAY}
+        my $max_image_delay = (
+          $monitor->{MaxFPS}
+          &&($monitor->{MaxFPS}>0)
+          &&($monitor->{MaxFPS}<1)
+        ) ? (3/$monitor->{MaxFPS})
+        : $Config{ZM_WATCH_MAX_DELAY}
         ;
         my $image_delay = $now-$capture_time;
         Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
         if ( $image_delay > $max_image_delay ) {
-          Info("Restarting capture daemon for "
+          Warning("Restarting capture daemon for "
               .$monitor->{Name}.", time since last capture $image_delay seconds ($now-$capture_time)"
               );
           $restart = 1;
@@ -167,7 +173,7 @@ while( 1 ) {
         my $image_delay = $now-$image_time;
         Debug("Monitor $monitor->{Id} last analysed $image_delay seconds ago, max is $max_image_delay");
         if ( $image_delay > $max_image_delay ) {
-          Info("Analysis daemon for $$monitor{Id} $$monitor{Name} needs restarting,"
+          Warning("Analysis daemon for $$monitor{Id} $$monitor{Name} needs restarting,"
               ." time since last analysis $image_delay seconds ($now-$image_time)"
               );
           $restart = 1;

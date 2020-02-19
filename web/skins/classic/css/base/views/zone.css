@@ -1,16 +1,21 @@
-#settingsPanel {
-    float: left;
-    margin: 0 2px;
+.monitor, #settingsPanel, .buttons, #zonePoints  {
+  float: left;
+  margin: 2px;
+}
+#settingsPanel,
+#zonePoints {
+	width: 600px;
 }
 
 #zoneSettings {
-    border-collapse: collapse;
+  border-collapse: collapse;
 }
 
-#zoneSettings th, #zoneSettings td {
-    border: 1px solid #7f7fb2;
-    padding: 3px;
-    text-align: left;
+#zoneSettings th,
+#zoneSettings td {
+  border: 1px solid #7f7fb2;
+  padding: 3px;
+  text-align: left;
 }
 
 #zoneSettings th[scope=row] {
@@ -21,12 +26,13 @@
 
 #definitionPanel {
     float: left;
-    margin: 0 2px;
+    margin: 2px;
     text-align: center;
 }
 
-#definitionPanel input[type=submit], #definitionPanel input[type=submit] {
-    margin: 0 4px;
+#definitionPanel input[type=submit],
+#definitionPanel input[type=submit] {
+  margin: 0 4px;
 }
 
 #imagePanel {
@@ -52,20 +58,19 @@
 }
 
 #imageFrame div {
-    background-image: url(/zm/skins/classic/graphics/point-g.png);
+    background-image: url(../skins/classic/graphics/point-g.png);
 }
 
 #imageFrame div.highlight {
-    background-image: url(/zm/skins/classic/graphics/point-o.png);
+    background-image: url(../skins/classic/graphics/point-o.png);
 }
 
 #imageFrame div.active {
-    background-image: url(../../../graphics/point-r.png);
+    background-image: url(../skins/classic/graphics/point-r.png);
 }
 
 #zonePoints {
-    margin: 8px 0;
-    border-collapse: collapse;
+	float: left;
 }
 
 #zonePoints td {
@@ -73,18 +78,22 @@
 }
 
 #zonePoints table {
-    border-collapse: collapse;
+  border-collapse: collapse;
+	width: 100%;
+}
+#zonePoints table table {
 }
 
-#zonePoints table tr.highlight {
+#zonePoints table table tr.highlight {
     background-color: #f0e68c;
 }
 
-#zonePoints table tr.active {
+#zonePoints table table tr.active {
     background-color: #ffa07a;
 }
 
-#zonePoints table th, #zonePoints table td {
+#zonePoints table table th,
+#zonePoints table table td {
     border: 1px solid #7f7fb2;
     padding: 3px;
     text-align: center;
@@ -115,4 +124,13 @@
 .Preclusive {
 	stroke: #0000FF;
 	fill: #0000FF;
+}
+
+input[name="newZone[Name]"] {
+width: 100%;
+}
+input[name="newAlarmRgbR"],
+input[name="newAlarmRgbG"],
+input[name="newAlarmRgbB"] {
+width: 30%;
 }

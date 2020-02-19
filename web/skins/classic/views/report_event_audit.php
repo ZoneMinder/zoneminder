@@ -62,7 +62,7 @@ if ( count($selected_monitor_ids) ) {
 }
 parseFilter($filter);
 $filterQuery = $filter['query'];
-Logger::Debug($filterQuery);
+ZM\Logger::Debug($filterQuery);
 
 $eventsSql = 'SELECT *,
     UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
@@ -83,12 +83,12 @@ $eventsSql .= ' ORDER BY Id ASC';
 
 $result = dbQuery($eventsSql);
 if ( !$result ) {
-  Fatal('SQL-ERR');
+  ZM\Fatal('SQL-ERR');
   return;
 }
 $EventsByMonitor = array();
 while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
-  $Event = new Event($event);
+  $Event = new ZM\Event($event);
   if ( ! isset($EventsByMonitor[$event['MonitorId']]) )
     $EventsByMonitor[$event['MonitorId']] = array( 'Events'=>array(), 'MinGap'=>0, 'MaxGap'=>0, 'FileMissing'=>array(), 'ZeroSize'=>array() );
 
@@ -113,7 +113,7 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
 
 ?>
 <body>
-  <form name="monitorForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+  <form name="monitorForm" method="get" action="?">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
@@ -147,7 +147,7 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
 <?php
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
-  $Monitor = new Monitor($monitor);
+  $Monitor = new ZM\Monitor($monitor);
   $montagereview_link = "?view=montagereview&live=0&MonitorId=". $monitor['Id'] . '&minTime='.$minTime.'&maxTime='.$maxTime;
 
   $monitor_filter = addFilterTerm(
@@ -192,9 +192,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             )
           )
         );
+    parseFilter($ZeroSize_filter);
   }
-
-
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
             <td class="colId"><a href="<?php echo $montagereview_link ?>"><?php echo $monitor['Id'] ?></a></td>
@@ -202,10 +201,10 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
               <a href="<?php echo $montagereview_link ?>"><?php echo $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
               <?php echo implode('<br/>',
                   array_map(function($group_id){
-                    $Group = new Group($group_id);
+                    $Group = new ZM\Group($group_id);
                     $Groups = $Group->Parents();
                     array_push($Groups, $Group);
-                    return implode(' &gt; ', array_map(function($Group){ return '<a href="'. ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview&GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
+                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds() ) ); 
 ?>
             </div></td>
@@ -219,7 +218,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <?php echo count($FileMissing) ?  '<a href="?view='.ZM_WEB_EVENTS_VIEW .'&amp;page=1'.$FileMissing_filter['query'].'">'.count($FileMissing).'</a>' : '0' ?>
             </td>
             <td class="colZeroSize<?php echo count($ZeroSize) ? ' errorText' : ''?>">
-            <?php echo count($ZeroSize) ? '<a href="?view='.ZM_WEB_EVENTS_VIEW .'&amp;page=1'.$ZeroSize_filter['query'].'">'.count($FileMissing).'</a>' : '0' ?>
+            <?php echo count($ZeroSize) ? '<a href="?view='.ZM_WEB_EVENTS_VIEW .'&amp;page=1'.$ZeroSize_filter['query'].'">'.count($ZeroSize).'</a>' : '0' ?>
             </td>
           </tr>
 <?php

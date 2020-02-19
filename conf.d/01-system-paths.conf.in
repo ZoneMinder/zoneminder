@@ -16,11 +16,6 @@
 # The web account user must have full read/write permission to this folder.
 ZM_DIR_EVENTS=@ZM_DIR_EVENTS@
 
-# Full path to the folder images, not directly associated with events,
-# are recorded to.
-# The web account user must have full read/write permission to this folder.
-ZM_DIR_IMAGES=@ZM_DIR_IMAGES@
-
 # Foldername under the webroot where ZoneMinder looks for optional sound files
 # to play when an alarm is detected.
 ZM_DIR_SOUNDS=@ZM_DIR_SOUNDS@
@@ -50,4 +45,4 @@ ZM_PATH_SWAP=@ZM_TMPDIR@
 
 # Full path to optional arp binary
 # ZoneMinder will find the arp binary automatically on most systems
-ZM_PATH_ARP=@ZM_PATH_ARP@
+ZM_PATH_ARP="@ZM_PATH_ARP@"

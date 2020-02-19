@@ -14,6 +14,7 @@ var eidParm = 'eid=<?php echo validInt($_REQUEST['eid']) ?>';
 ?>
 
 var exportReady = <?php echo !empty($_REQUEST['generated'])?'true':'false' ?>;
-var exportFile = '<?php echo !empty($_REQUEST['exportFile'])?validJsStr($_REQUEST['exportFile']):'' ?>';
+var exportFile = '?view=archive&type=<?php echo $exportFormat; ?>&connkey=<?php echo $connkey; ?>';
+var connkey = '<?php echo $connkey ?>';
 
 var exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';

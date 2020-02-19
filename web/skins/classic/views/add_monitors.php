@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Monitors' ) ) {
+if ( !canEdit('Monitors') ) {
   $view = 'error';
   return;
 }
@@ -33,7 +33,7 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
     <?php echo $navbar ?>
     <div id="content">
 
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <div style="position:relative;">
         <div id="results" style="position: absolute; top:0; right: 0; width: 50%; height: 100%;">
           <fieldset><legend>Results</legend>
@@ -44,11 +44,11 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
         </div>
         <div style="width:50%;position: absolute; top:0; left: 0;height: 100%;">
         <fieldset><legend>Enter by IP or URL</legend>
-<p>
-Simply enter the ip address or full url to the stream.
-It will be probed for available streams, or checked to see if it has already been entered.
-If streams are found, they will be listed in the results column. Click Add to add them.
-</p>
+          <p>
+          Simply enter the ip address or full url to the stream.
+          It will be probed for available streams, or checked to see if it has already been entered.
+          If streams are found, they will be listed in the results column. Click Add to add them.
+          </p>
           <!--<input type="text" name="newMonitor[Name]" />-->
           <input type="text" name="newMonitor[Url]" oninput="probe(this);"/>
         </fieldset>
@@ -61,8 +61,8 @@ If streams are found, they will be listed in the results column. Click Add to ad
                 <th>Group</th>
               </tr>
               <tr title="Example Data">
-                <td>Example Name MN1-30 INQ37.01</td>
-                <td>http://10.34.152.20:2001/?action=stream</td>
+                <td>Example Name Driveway</td>
+                <td>http://192.168.1.0/?action=stream</td>
                 <td>MN1</td>
               </tr>
             </table>
@@ -80,7 +80,7 @@ If streams are found, they will be listed in the results column. Click Add to ad
 ?>
               </td></tr>
 <?php
-              $servers = Server::find_all();
+              $servers = ZM\Server::find();
               $ServersById = array();
               foreach ( $servers as $S ) {
                 $ServersById[$S->Id()] = $S;
@@ -92,7 +92,7 @@ If streams are found, they will be listed in the results column. Click Add to ad
               </td></tr>
 <?php
               }
-              $storage_areas = Storage::find_all();
+              $storage_areas = ZM\Storage::find();
               $StorageById = array();
               foreach ( $storage_areas as $S ) {
                 $StorageById[$S->Id()] = $S;

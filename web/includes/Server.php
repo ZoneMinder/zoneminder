@@ -1,134 +1,138 @@
 <?php
+namespace ZM;
 require_once('database.php');
+require_once('Object.php');
 
-class Server {
-  private $defaults = array(
-    'Id'        =>  null,
-    'Name'      =>  '',
-    'Hostname'  =>  '',
-    'zmaudit'   =>  1,
-    'zmstats'   =>  1,
-    'zmtrigger' =>  0,
+
+class Server extends ZM_Object {
+  protected static $table = 'Servers';
+
+  protected $defaults = array(
+    'Id'                   => null,
+    'Name'                 => '',
+    'Protocol'             => '',
+    'Hostname'             => '',
+    'Port'                 => null,
+    'PathToIndex'          => null,
+    'PathToZMS'            => ZM_PATH_ZMS,
+    'PathToApi'            => '/zm/api',
+    'zmaudit'              => 1,
+    'zmstats'              => 1,
+    'zmtrigger'            => 0,
+    'zmeventnotification'  => 0,
   );
-  public function __construct( $IdOrRow = NULL ) {
-    $row = NULL;
-    if ( $IdOrRow ) {
-      if ( is_integer( $IdOrRow ) or ctype_digit( $IdOrRow ) ) {
-        $row = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( $IdOrRow ) );
-        if ( ! $row ) {
-          Error("Unable to load Server record for Id=" . $IdOrRow );
-        }
-      } elseif ( is_array( $IdOrRow ) ) {
-        $row = $IdOrRow;
-      }
-    } # end if isset($IdOrRow)
-    if ( $row ) {
-      foreach ($row as $k => $v) {
-        $this->{$k} = $v;
-      }
+
+  public static function find( $parameters = array(), $options = array() ) {
+    return ZM_Object::_find(get_class(), $parameters, $options);
+  }
+
+  public static function find_one( $parameters = array(), $options = array() ) {
+    return ZM_Object::_find_one(get_class(), $parameters, $options);
+  }
+
+  public function Hostname( $new = null ) {
+    if ( $new != null )
+      $this->{'Hostname'} = $new;
+
+    if ( isset( $this->{'Hostname'}) and ( $this->{'Hostname'} != '' ) ) {
+      return $this->{'Hostname'};
+    } else if ( $this->Id() ) {
+      return $this->{'Name'};
+    }
+    # This theoretically will match ipv6 addresses as well
+    if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER['HTTP_HOST'], $matches ) ) {
+      return $matches[1];
+    }
+
+    $result = explode(':', $_SERVER['HTTP_HOST']);
+    return $result[0];
+  }
+
+  public function Protocol( $new = null ) {
+    if ( $new != null )
+      $this->{'Protocol'} = $new;
+
+    if ( isset($this->{'Protocol'}) and ( $this->{'Protocol'} != '' ) ) {
+      return $this->{'Protocol'};
+    }
+
+    return  ( 
+              ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' )
+              or
+              ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ( $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ) )
+            ) ? 'https' : 'http';
+  }
+
+  public function Port( $new = '' ) {
+    if ( $new != '' )
+      $this->{'Port'} = $new;
+
+    if ( isset($this->{'Port'}) and $this->{'Port'} ) {
+      return $this->{'Port'};
+    }
+
+    if ( isset($_SERVER['HTTP_X_FORWARDED_PORT']) ) {
+      return $_SERVER['HTTP_X_FORWARDED_PORT'];
+    }
+
+    return $_SERVER['SERVER_PORT'];
+  }
+
+  public function PathToZMS( $new = null ) {
+    if ( $new != null )
+      $this->{'PathToZMS'} = $new;
+    if ( $this->Id() and $this->{'PathToZMS'} ) {
+      return $this->{'PathToZMS'};
     } else {
-      $this->{'Name'} = '';
-      $this->{'Hostname'} = '';
+      return ZM_PATH_ZMS;
     }
   }
-  public static function find_all( $parameters = null, $options = null ) {
-    $filters = array();
-    $sql = 'SELECT * FROM Servers ';
-    $values = array();
 
-    if ( $parameters ) {
-      $fields = array();
-      $sql .= 'WHERE ';
-      foreach ( $parameters as $field => $value ) {
-        if ( $value == null ) {
-          $fields[] = $field.' IS NULL';
-        } else if ( is_array( $value ) ) {
-          $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
-          $values += $value;
-
-        } else {
-          $fields[] = $field.'=?';
-          $values[] = $value;
-        }
-      }
-      $sql .= implode(' AND ', $fields );
-    }
-    if ( $options and isset($options['order']) ) {
-    $sql .= ' ORDER BY ' . $options['order'];
-    }
-    $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server');
-    foreach ( $results as $row => $obj ) {
-      $filters[] = $obj;
-    }
-    return $filters;
+  public function UrlToZMS( $port = null ) {
+    return $this->Url($port).$this->PathToZMS();
   }
 
-	public function Url() {
-		if ( $this->Id() ) {
-			return ZM_BASE_PROTOCOL . '://'. $this->Hostname();
-		} else {
-			return ZM_BASE_PROTOCOL . '://'. $_SERVER['SERVER_NAME'];
-			return '';
-		}
-	}
-	public function Hostname() {
-		if ( isset( $this->{'Hostname'} ) and ( $this->{'Hostname'} != '' ) ) {
-			return $this->{'Hostname'};
-		}
-		return $this->{'Name'};
-	}
-  public function __call($fn, array $args){
-    if ( count($args) ) {
-      $this->{$fn} = $args[0];
+	public function Url( $port = null ) {
+    if ( ! ( $this->Id() or $port ) ) {
+      # Don't specify a hostname or port, the browser will figure it out
+      return '';
     }
-    if ( array_key_exists($fn, $this) ) {
-      return $this->{$fn};
+
+    $url = $this->Protocol().'://';
+		$url .= $this->Hostname();
+    if ( $port ) {
+      $url .= ':'.$port;
     } else {
-      if ( array_key_exists( $fn, $this->defaults ) ) {
-        return $this->defaults{$fn};
-      } else {
-        $backTrace = debug_backtrace();
-        $file = $backTrace[1]['file'];
-        $line = $backTrace[1]['line'];
-        Warning( "Unknown function call Server->$fn from $file:$line" );
-      }
+      $url .= ':'.$this->Port();
     }
+    return $url;
+	}
+
+  public function PathToIndex( $new = null ) {
+    if ( $new != null )
+      $this->{'PathToIndex'} = $new;
+
+    if ( isset($this->{'PathToIndex'}) and $this->{'PathToIndex'} ) {
+      return $this->{'PathToIndex'};
+    }
+    // We can't trust PHP_SELF to not include an XSS vector. See note in skin.js.php.
+    return preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']);
   }
 
-  public static function find( $parameters = array(), $limit = NULL ) {
-    $sql = 'SELECT * FROM Servers';
-    $values = array();
-    if ( sizeof($parameters) ) {
-      $sql .= ' WHERE ' . implode( ' AND ', array_map(
-        function($v){ return $v.'=?'; },
-        array_keys( $parameters )
-        ) );
-      $values = array_values( $parameters );
-    }
-		if ( is_integer( $limit ) or ctype_digit( $limit ) ) {
-			$sql .= ' LIMIT ' . $limit;
-		} else {
-			$backTrace = debug_backtrace();
-			$file = $backTrace[1]['file'];
-			$line = $backTrace[1]['line'];
-			Error("Invalid value for limit($limit) passed to Server::find from $file:$line");
-			return;
-		}
-    $results = dbFetchAll( $sql, NULL, $values );
-    if ( $results ) {
-      return array_map( function($id){ return new Server($id); }, $results );
-    }
+  public function UrlToIndex( $port=null ) {
+    return $this->Url($port).$this->PathToIndex();
   }
-
-  public static function find_one( $parameters = array() ) {
-    $results = Server::find( $parameters, 1 );
-    if ( ! sizeof( $results ) ) {
-      return;
-    }
-    return $results[0];
+  public function UrlToApi( $port=null ) {
+    return $this->Url($port).$this->PathToApi();
   }
+  public function PathToApi( $new = null ) {
+    if ( $new != null )
+      $this->{'PathToApi'} = $new;
 
-}
+    if ( isset($this->{'PathToApi'}) and $this->{'PathToApi'} ) {
+      return $this->{'PathToApi'};
+    }
+    return '/zm/api';
+  }
+} # end class Server
 ?>

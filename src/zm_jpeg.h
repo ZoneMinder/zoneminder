@@ -38,6 +38,8 @@ struct zm_error_mgr
 
 typedef struct zm_error_mgr *zm_error_ptr;
 
+void zm_jpeg_error_silent( j_common_ptr cinfo );
+void zm_jpeg_emit_silence( j_common_ptr cinfo, int msg_level );
 void zm_jpeg_error_exit( j_common_ptr cinfo );
 void zm_jpeg_emit_message( j_common_ptr cinfo, int msg_level );
 

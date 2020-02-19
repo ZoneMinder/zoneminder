@@ -44,10 +44,10 @@ zone['Points'][<?php echo $i ?>] = { 'x': <?php echo $newZone['Points'][$i]['x']
 }
 ?>
 
-var maxX = <?php echo $monitor->Width()-1 ?>;
-var maxY = <?php echo $monitor->Height()-1 ?>;
-var monitorArea = <?php echo $monitor->Width() * $monitor->Height() ?>;
-var selfIntersecting = <?php echo $selfIntersecting?'true':'false' ?>;
+var maxX = <?php echo $monitor->ViewWidth()-1 ?>;
+var maxY = <?php echo $monitor->ViewHeight()-1 ?>;
+var monitorArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight() ?>;
+var selfIntersecting = <?php echo $selfIntersecting ? 'true' : 'false' ?>;
 
 var selfIntersectingString = '<?php echo addslashes(translate('SelfIntersecting')) ?>';
 var alarmRGBUnsetString = '<?php echo addslashes(translate('AlarmRGBUnset')) ?>';
@@ -101,7 +101,7 @@ var streamMode = "<?php echo $streamMode ?>";
 var connKey = '<?php echo $connkey ?>';
 
 var monitorId = <?php echo $monitor->Id() ?>;
-var monitorUrl = '<?php echo ( $monitor->Server()->Url() ) ?>';
+var monitorUrl = '<?php echo ( $monitor->UrlToIndex() ) ?>';
 
 var streamSrc = "<?php echo preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
 

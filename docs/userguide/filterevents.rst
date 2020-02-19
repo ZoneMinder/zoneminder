@@ -68,9 +68,13 @@ Here is what the filter window looks like
     *    %ESM%      Maximum score of the event
     *    %EP%       Path to the event
     *    %EPS%      Path to the event stream
+    *    %EPF1%     Path to the frame view for the first alarmed event image
+    *    %EPFM%     Path to the frame view for the (first) event image with the highest score
+    *    %EFMOD%    Path to image containing object detection, in frame view
     *    %EPI%      Path to the event images
-    *    %EPI1%     Path to the first alarmed event image
-    *    %EPIM%     Path to the (first) event image with the highest score
+    *    %EPI1%     Path to the first alarmed event image, suitable for use in img tags
+    *    %EPIM%     Path to the (first) event image with the highest score, suitable for use in img tags
+    *    %EIMOD%    Path to image containing object detection, suitable for use in img tags
     *    %EI1%      Attach first alarmed event image
     *    %EIM%      Attach (first) event image with the highest score
     *    %EV%       Attach event mpeg video
@@ -81,7 +85,6 @@ Here is what the filter window looks like
     *    %MEW%      Number of events for the monitor in the last week
     *    %MEM%      Number of events for the monitor in the last month
     *    %MEA%      Number of archived events for the monitor
-    *    %MOD%      Path to image containing object detection
     *    %MP%       Path to the monitor window
     *    %MPS%      Path to the monitor stream
     *    %MPI%      Path to the monitor recent image

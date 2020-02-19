@@ -29,6 +29,7 @@ use Time::HiRes qw( usleep );
 require ZoneMinder::Base;
 require ZoneMinder::Control;
 require LWP::UserAgent;
+use URI;
 
 our @ISA = qw(ZoneMinder::Control);
 
@@ -53,24 +54,28 @@ sub open {
   my $self = shift;
 
   $self->loadMonitor();
-  my $username;
-  my $password;
-  my $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
+  if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
+    # Has no scheme at the beginning, so won't parse as a URI
+    $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
+  }
+  my $uri = URI->new($self->{Monitor}->{ControlAddress});
 
   $self->{ua} = LWP::UserAgent->new;
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
-  if ( $self->{Monitor}->{ControlAddress} =~ /(.*):(.*)@(.*)/ ) {
-    $username = $1;
-    $password = $2;
-    $$self{address} = $3;
-    $self->{ua}->credentials($$self{address}, $realm, $username, $password);
+  my ( $username, $password );
+  my $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
+  if ( $self->{Monitor}->{ControlAddress} ) {
+    ( $username, $password ) = $uri->authority() =~ /^(.*):(.*)@(.*)$/;
+
+    $$self{address} = $uri->host_port();
+    $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
     # Testing seems to show that we need the username/password in each url as well as credentials
-    $$self{base_url} = 'http://'.$self->{Monitor}->{ControlDevice};
-    Debug("Using initial credentials for $$self{address}, $realm, $username, $password");
+    $$self{base_url} = $uri->canonical();
+    Debug('Using initial credentials for '.$uri->host_port().", $realm, $username, $password, base_url: $$self{base_url} auth:".$uri->authority());
   }
 
   # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth
-  my $res = $self->{ua}->get($$self{base_url}.'/cgi-bin/ptz.cgi');
+  my $res = $self->{ua}->get($$self{base_url}.'cgi-bin/ptz.cgi');
 
   if ( $res->is_success ) {
     $self->{state} = 'open';
@@ -91,7 +96,7 @@ sub open {
           $realm = $1;
           Debug("Changing REALM to ($realm)");
           $self->{ua}->credentials($$self{address}, $realm, $username, $password);
-          $res = $self->{ua}->get($$self{address}.'/cgi-bin/ptz.cgi');
+          $res = $self->{ua}->get($$self{base_url}.'cgi-bin/ptz.cgi');
           if ( $res->is_success() ) {
             $self->{state} = 'open';
             return;
@@ -116,7 +121,7 @@ sub open {
       Debug('No headers line');
     } # end if headers
   } else {
-    Error("Failed to get $$self{address}/cgi-bin/ptz.cgi ".$res->status_line());
+    Error("Failed to get $$self{base_url}cgi-bin/ptz.cgi ".$res->status_line());
 
   } # end if $res->status_line() eq '401 Unauthorized'
 
@@ -135,21 +140,21 @@ sub sendCmd {
 
   $self->printMsg($cmd, 'Tx');
 
-  my $res = $self->{ua}->get("http://$$self{address}/$cmd");
+  my $res = $self->{ua}->get($$self{base_url}.$cmd);
 
   if ( $res->is_success ) {
     $result = !undef;
     # Command to camera appears successful, write Info item to log
-    Info('Camera control: \''.$res->status_line().'\' for URL '.$$self{address}.'/'.$cmd);
+    Info('Camera control: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
     # TODO: Add code to retrieve $res->message_decode or some such. Then we could do things like check the camera status.
   } else {
     # Try again
-    $res = $self->{ua}->get("http://$$self{address}/$cmd");
+    $res = $self->{ua}->get($$self{base_url}.$cmd);
     if ( $res->is_success ) {
       # Command to camera appears successful, write Info item to log
-      Info('Camera control: \''.$res->status_line().'\' for URL '.$$self{address}.'/'.$cmd);
+      Info('Camera control 2: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
     } else {
-      Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{address}.'/'.$cmd);
+      Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
       $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
     }
   }

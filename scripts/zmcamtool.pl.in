@@ -352,8 +352,7 @@ sub exportsql {
   }
 
   my $name = $ARGV[0];
-  if ($name) {
-    $name =~ /([A-Za-z0-9 -]*)/; # Only allow alphanumeric, dash and space
+  if ($name && $name =~ /^([A-Za-z0-9 ,.&()\/\-]+)$/) { # Allow alphanumeric and " ,.&()/-"
     $name = $1;
     $command .= qq( --where="Name = '$name'");
   }

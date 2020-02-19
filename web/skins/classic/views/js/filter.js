@@ -169,18 +169,18 @@ function parseRows(rows) {
     }
 
     var brackets = rows.length - 2;
-    if ( brackets > 0 ) { //add bracket select to all rows
+    if ( brackets > 0 ) { // add bracket select to all rows
       var obrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][obr]').attr('id', queryPrefix + rowNum + '][obr]');
       var cbrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cbr]').attr('id', queryPrefix + rowNum + '][cbr]');
       obrSelect.append('<option value="0"</option>');
       cbrSelect.append('<option value="0"</option>');
-      for ( var i = 1; i <= brackets; i++ ) {//build bracket options
+      for ( var i = 1; i <= brackets; i++ ) { // build bracket options
         obrSelect.append('<option value="' + i + '">' + '('.repeat(i) + '</option>');
         cbrSelect.append('<option value="' + i + '">' + ')'.repeat(i) + '</option>');
       }
-      var obrVal = inputTds.eq(1).children().val() != undefined ? inputTds.eq(1).children().val() : 0; //Save currently selected bracket option
+      var obrVal = inputTds.eq(1).children().val() != undefined ? inputTds.eq(1).children().val() : 0; // Save currently selected bracket option
       var cbrVal = inputTds.eq(5).children().val() != undefined ? inputTds.eq(5).children().val() : 0;
-      inputTds.eq(1).html(obrSelect).children().val(obrVal); //Set bracket contents and assign saved value
+      inputTds.eq(1).html(obrSelect).children().val(obrVal); // Set bracket contents and assign saved value
       inputTds.eq(5).html(cbrSelect).children().val(cbrVal);
     } else {
       inputTds.eq(1).html('&nbsp'); // Blank if there aren't enough terms for brackets
@@ -188,7 +188,7 @@ function parseRows(rows) {
     }
 
     if ( rows.length == 1 ) {
-      inputTds.eq(6).find('button[data-on-click-this="delTerm"]').prop('disabled', true); //enable/disable remove row button
+      inputTds.eq(6).find('button[data-on-click-this="delTerm"]').prop('disabled', true); // enable/disable remove row button
     } else {
       inputTds.eq(6).find('button[data-on-click-this="delTerm"]').prop('disabled', false);
     }
@@ -304,9 +304,14 @@ function addTerm( element ) {
 			this[0].selected = 'selected';
   }).chosen({width: '101%'});
   newRow.find('input[type="text"]').val('');
-  newRow[0].querySelectorAll("button[data-on-click-this]").forEach(function attachOnClick(el) {
+  newRow[0].querySelectorAll("button[data-on-click-this]").forEach(function(el) {
     var fnName = el.getAttribute("data-on-click-this");
     el.onclick = window[fnName].bind(el, el);
+  });
+
+  newRow[0].querySelectorAll('select[data-on-change-this]').forEach(function(el) {
+    var fnName = el.getAttribute('data-on-change-this');
+    el.onchange = window[fnName].bind(el, el);
   });
 
   var rows = $j(row).parent().children();

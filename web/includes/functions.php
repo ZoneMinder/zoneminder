@@ -1094,6 +1094,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     for ( $i = 0; $i < count($terms); $i++ ) {
 
       $term = $terms[$i];
+ZM\Logger::Debug("Term: " . print_r($term,true));
 
       if ( isset($term['cnj']) && array_key_exists($term['cnj'], $validQueryConjunctionTypes) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($term['cnj']);
@@ -1109,6 +1110,9 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($term['attr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($term['attr'])."\"/>\n";
         switch ( $term['attr'] ) {
+					case 'AlarmedZoneId':
+						$term['op'] = 'EXISTS';
+						break;
           case 'MonitorName':
             $filter['sql'] .= 'M.Name';
             break;
@@ -1226,11 +1230,15 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         $valueList = array();
         foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
           switch ( $term['attr'] ) {
+				
+						case 'AlarmedZoneId':
+							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+							break;
             case 'MonitorName':
             case 'Name':
             case 'Cause':
             case 'Notes':
-              if($term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE') {
+              if ( $term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE' ) {
                 $value = '%'.$value.'%';
               }
               $value = dbEscape($value);
@@ -1261,8 +1269,11 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             case 'Date':
             case 'StartDate':
             case 'EndDate':
-              if ( $value != 'NULL' )
-                $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+							if ( $value == 'CURDATE()' or $value == 'NOW()' ) {
+								$value = 'to_days('.$value.')';
+							} else if ( $value != 'NULL' ) {
+							  $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+							}
               break;
             case 'Time':
             case 'StartTime':
@@ -1297,10 +1308,13 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             break;
           case '=[]' :
           case 'IN' :
-            $filter['sql'] .= ' in ('.join(',', $valueList).')';
+            $filter['sql'] .= ' IN ('.join(',', $valueList).')';
             break;
           case '![]' :
             $filter['sql'] .= ' not in ('.join(',', $valueList).')';
+            break;
+					case 'EXISTS' :
+						$filter['sql'] .= ' EXISTS ' .$value;
             break;
           case 'IS' :
             if ( $value == 'Odd' )  {

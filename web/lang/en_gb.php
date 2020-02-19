@@ -116,6 +116,7 @@ $SLANG = array(
     'Area'                  => 'Area',
     'AreaUnits'             => 'Area (px/%)',
     'AttrAlarmFrames'       => 'Alarm Frames',
+    'AttrAlarmedZone'       => 'Alarmed Zone',
     'AttrArchiveStatus'     => 'Archive Status',
     'AttrAvgScore'          => 'Avg. Score',
     'AttrCause'             => 'Cause',

@@ -172,7 +172,7 @@ sub interpret_messages {
 # functions
 
 sub discover {
-  my ( $soap_version ) = @_;
+  my ( $soap_version, $net_interface ) = @_;
   my @results;
 
 ## collect all responses
@@ -190,22 +190,27 @@ sub discover {
   my $uuid_gen = Data::UUID->new();
 
   if ( ( ! $soap_version ) or ( $soap_version eq '1.1' ) ) {
-  my %services;
+		my %services;
 
-    if($verbose) {
-      print "Probing for SOAP 1.1\n"
+    if ( $verbose ) {
+      print "Probing for SOAP 1.1\n";
     }
     my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
 #    no_dispatch => '1',
         });
     $svc_discover->set_soap_version('1.1');
+		if ( $net_interface ) {
+			my $transport = $svc_discover->get_transport();
+			print "Setting net interface for $transport to $net_interface\n";
+			$transport->set_net_interface($net_interface);
+		}
 
     my $uuid = $uuid_gen->create_str();
 
     my $result = $svc_discover->ProbeOp(
-        { # WSDiscovery::Types::ProbeType
-        Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
-        Scopes =>  { value => '' },
+				{ # WSDiscovery::Types::ProbeType
+				Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
+				Scopes =>  { value => '' },
         },
         WSDiscovery10::Elements::Header->new({
           Action => { value => 'http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe' },
@@ -220,14 +225,19 @@ sub discover {
   } # end if doing soap 1.1
 
   if ( ( ! $soap_version ) or ( $soap_version eq '1.2' ) ) {
-  my %services;
-    if($verbose) {
-      print "Probing for SOAP 1.2\n"
+		my %services;
+    if ( $verbose ) {
+      print "Probing for SOAP 1.2\n";
     }
     my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
 #    no_dispatch => '1',
         });
     $svc_discover->set_soap_version('1.2');
+		if ( $net_interface ) {
+			my $transport = $svc_discover->get_transport();
+			print "Setting net interface for $transport to $net_interface\n";
+			$transport->set_net_interface($net_interface);
+		}
 
 # copies of the same Probe message must have the same MessageID. 
 # This is not a copy. So we generate a new uuid.
@@ -250,7 +260,7 @@ sub discover {
     push @results, interpret_messages($svc_discover, \%services, @responses);
   } # end if doing soap 1.2
   return @results;
-}
+} # end sub discover
 
 sub profiles {
   my ( $client ) = @_;

@@ -1,0 +1,214 @@
+diff --git a/include/jwt-cpp/jwt.h b/include/jwt-cpp/jwt.h
+index ed93fd5..977e6aa 100644
+--- a/include/jwt-cpp/jwt.h
++++ b/include/jwt-cpp/jwt.h
+@@ -6,11 +6,13 @@
+ #include <chrono>
+ #include <unordered_map>
+ #include <memory>
+-#include <openssl/evp.h>
+-#include <openssl/hmac.h>
+-#include <openssl/pem.h>
+-#include <openssl/ec.h>
+-#include <openssl/err.h>
++#include <wolfssl/options.h>
++#include <wolfssl/openssl/evp.h>
++#include <wolfssl/openssl/hmac.h>
++#include <wolfssl/openssl/pem.h>
++#include <wolfssl/openssl/ec.h>
++#include <wolfssl/openssl/err.h>
++#include <wolfssl/openssl/ecdsa.h>
+ 
+ //If openssl version less than 1.1
+ #if OPENSSL_VERSION_NUMBER < 269484032
+@@ -280,7 +282,7 @@ namespace jwt {
+ 					throw signature_verification_exception("failed to verify signature: VerifyInit failed");
+ 				if (!EVP_VerifyUpdate(ctx.get(), data.data(), data.size()))
+ 					throw signature_verification_exception("failed to verify signature: VerifyUpdate failed");
+-				auto res = EVP_VerifyFinal(ctx.get(), (const unsigned char*)signature.data(), signature.size(), pkey.get());
++				auto res = EVP_VerifyFinal(ctx.get(), (unsigned char*)signature.data(), signature.size(), pkey.get());
+ 				if (res != 1)
+ 					throw signature_verification_exception("evp verify final failed: " + std::to_string(res) + " " + ERR_error_string(ERR_get_error(), NULL));
+ 			}
+@@ -342,8 +344,8 @@ namespace jwt {
+ 				if(!pkey)
+ 					throw rsa_exception("at least one of public or private key need to be present");
+ 
+-				if(EC_KEY_check_key(pkey.get()) == 0)
+-					throw ecdsa_exception("failed to load key: key is invalid");
++				//if(EC_KEY_check_key(pkey.get()) == 0)
++				//	throw ecdsa_exception("failed to load key: key is invalid");
+ 			}
+ 			/**
+ 			 * Sign jwt data
+@@ -355,7 +357,7 @@ namespace jwt {
+ 				const std::string hash = generate_hash(data);
+ 
+ 				std::unique_ptr<ECDSA_SIG, decltype(&ECDSA_SIG_free)>
+-					sig(ECDSA_do_sign((const unsigned char*)hash.data(), hash.size(), pkey.get()), ECDSA_SIG_free);
++					sig(wolfSSL_ECDSA_do_sign((const unsigned char*)hash.data(), hash.size(), pkey.get()), ECDSA_SIG_free);
+ 				if(!sig)
+ 					throw signature_generation_exception();
+ #ifdef OPENSSL10
+@@ -470,109 +472,6 @@ namespace jwt {
+ 			const size_t signature_length;
+ 		};
+ 
+-		/**
+-		 * Base class for PSS-RSA family of algorithms
+-		 */
+-		struct pss {
+-			/**
+-			 * Construct new pss algorithm
+-			 * \param public_key RSA public key in PEM format
+-			 * \param private_key RSA private key or empty string if not available. If empty, signing will always fail.
+-			 * \param public_key_password Password to decrypt public key pem.
+-			 * \param privat_key_password Password to decrypt private key pem.
+-			 * \param md Pointer to hash function
+-			 * \param name Name of the algorithm
+-			 */
+-			pss(const std::string& public_key, const std::string& private_key, const std::string& public_key_password, const std::string& private_key_password, const EVP_MD*(*md)(), const std::string& name)
+-				: md(md), alg_name(name)
+-			{
+-				if (!private_key.empty()) {
+-					pkey = helper::load_private_key_from_string(private_key, private_key_password);
+-				} else if(!public_key.empty()) {
+-					pkey = helper::load_public_key_from_string(public_key, public_key_password);
+-				} else
+-					throw rsa_exception("at least one of public or private key need to be present");
+-			}
+-			/**
+-			 * Sign jwt data
+-			 * \param data The data to sign
+-			 * \return ECDSA signature for the given data
+-			 * \throws signature_generation_exception
+-			 */
+-			std::string sign(const std::string& data) const {
+-				auto hash = this->generate_hash(data);
+-
+-				std::unique_ptr<RSA, decltype(&RSA_free)> key(EVP_PKEY_get1_RSA(pkey.get()), RSA_free);
+-				const int size = RSA_size(key.get());
+-
+-				std::string padded(size, 0x00);
+-				if (!RSA_padding_add_PKCS1_PSS_mgf1(key.get(), (unsigned char*)padded.data(), (const unsigned char*)hash.data(), md(), md(), -1))  
+-					throw signature_generation_exception("failed to create signature: RSA_padding_add_PKCS1_PSS_mgf1 failed");
+-
+-				std::string res(size, 0x00);
+-				if (RSA_private_encrypt(size, (const unsigned char*)padded.data(), (unsigned char*)res.data(), key.get(), RSA_NO_PADDING) < 0)
+-					throw signature_generation_exception("failed to create signature: RSA_private_encrypt failed");
+-				return res;
+-			}
+-			/**
+-			 * Check if signature is valid
+-			 * \param data The data to check signature against
+-			 * \param signature Signature provided by the jwt
+-			 * \throws signature_verification_exception If the provided signature does not match
+-			 */
+-			void verify(const std::string& data, const std::string& signature) const {
+-				auto hash = this->generate_hash(data);
+-
+-				std::unique_ptr<RSA, decltype(&RSA_free)> key(EVP_PKEY_get1_RSA(pkey.get()), RSA_free);
+-				const int size = RSA_size(key.get());
+-				
+-				std::string sig(size, 0x00);
+-				if(!RSA_public_decrypt(signature.size(), (const unsigned char*)signature.data(), (unsigned char*)sig.data(), key.get(), RSA_NO_PADDING))
+-					throw signature_verification_exception("Invalid signature");
+-				
+-				if(!RSA_verify_PKCS1_PSS_mgf1(key.get(), (const unsigned char*)hash.data(), md(), md(), (const unsigned char*)sig.data(), -1))
+-					throw signature_verification_exception("Invalid signature");
+-			}
+-			/**
+-			 * Returns the algorithm name provided to the constructor
+-			 * \return Algorithmname
+-			 */
+-			std::string name() const {
+-				return alg_name;
+-			}
+-		private:
+-			/**
+-			 * Hash the provided data using the hash function specified in constructor
+-			 * \param data Data to hash
+-			 * \return Hash of data
+-			 */
+-			std::string generate_hash(const std::string& data) const {
+-#ifdef OPENSSL10
+-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_destroy)> ctx(EVP_MD_CTX_create(), &EVP_MD_CTX_destroy);
+-#else
+-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+-#endif
+-				if(EVP_DigestInit(ctx.get(), md()) == 0)
+-					throw signature_generation_exception("EVP_DigestInit failed");
+-				if(EVP_DigestUpdate(ctx.get(), data.data(), data.size()) == 0)
+-					throw signature_generation_exception("EVP_DigestUpdate failed");
+-				unsigned int len = 0;
+-				std::string res;
+-				res.resize(EVP_MD_CTX_size(ctx.get()));
+-				if(EVP_DigestFinal(ctx.get(), (unsigned char*)res.data(), &len) == 0)
+-					throw signature_generation_exception("EVP_DigestFinal failed");
+-				res.resize(len);
+-				return res;
+-			}
+-			
+-			/// OpenSSL structure containing keys
+-			std::shared_ptr<EVP_PKEY> pkey;
+-			/// Hash generator function
+-			const EVP_MD*(*md)();
+-			/// Algorithmname
+-			const std::string alg_name;
+-		};
+-
+ 		/**
+ 		 * HS256 algorithm
+ 		 */
+@@ -700,51 +599,6 @@ namespace jwt {
+ 			{}
+ 		};
+ 
+-		/**
+-		 * PS256 algorithm
+-		 */
+-		struct ps256 : public pss {
+-			/**
+-			 * Construct new instance of algorithm
+-			 * \param public_key RSA public key in PEM format
+-			 * \param private_key RSA private key or empty string if not available. If empty, signing will always fail.
+-			 * \param public_key_password Password to decrypt public key pem.
+-			 * \param privat_key_password Password to decrypt private key pem.
+-			 */
+-			explicit ps256(const std::string& public_key, const std::string& private_key = "", const std::string& public_key_password = "", const std::string& private_key_password = "")
+-				: pss(public_key, private_key, public_key_password, private_key_password, EVP_sha256, "PS256")
+-			{}
+-		};
+-		/**
+-		 * PS384 algorithm
+-		 */
+-		struct ps384 : public pss {
+-			/**
+-			 * Construct new instance of algorithm
+-			 * \param public_key RSA public key in PEM format
+-			 * \param private_key RSA private key or empty string if not available. If empty, signing will always fail.
+-			 * \param public_key_password Password to decrypt public key pem.
+-			 * \param privat_key_password Password to decrypt private key pem.
+-			 */
+-			explicit ps384(const std::string& public_key, const std::string& private_key = "", const std::string& public_key_password = "", const std::string& private_key_password = "")
+-				: pss(public_key, private_key, public_key_password, private_key_password, EVP_sha384, "PS384")
+-			{}
+-		};
+-		/**
+-		 * PS512 algorithm
+-		 */
+-		struct ps512 : public pss {
+-			/**
+-			 * Construct new instance of algorithm
+-			 * \param public_key RSA public key in PEM format
+-			 * \param private_key RSA private key or empty string if not available. If empty, signing will always fail.
+-			 * \param public_key_password Password to decrypt public key pem.
+-			 * \param privat_key_password Password to decrypt private key pem.
+-			 */
+-			explicit ps512(const std::string& public_key, const std::string& private_key = "", const std::string& public_key_password = "", const std::string& private_key_password = "")
+-				: pss(public_key, private_key, public_key_password, private_key_password, EVP_sha512, "PS512")
+-			{}
+-		};
+ 	}
+ 
+ 	/**

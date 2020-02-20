@@ -347,6 +347,18 @@ else(JPEG_FOUND)
             "ZoneMinder requires jpeg but it was not found on your system")
 endif(JPEG_FOUND)
 
+# LIBJWT
+find_package(jwt)
+if(JWT_FOUND)
+	set(HAVE_LIBJWT 1)
+	list(APPEND ZM_LIB_BINS "${JWT_LIBRARIES}")
+	include_directories("${JWT_INCLUDE_DIR}")
+	set(CMKAE_REQUIRED_INCLUDES "${JWT_INCLUDE_DIR}")
+	set(optlibsfound "{optlibsfound} JWT")
+else(JWT_FOUND)
+	set(optlibsnotfound "${optlibsnotfound} JWT")
+endif(JWT_FOUND)
+
 # OpenSSL
 find_package(OpenSSL)
 if(OPENSSL_FOUND)

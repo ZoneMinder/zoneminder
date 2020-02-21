@@ -34,7 +34,7 @@ if ( version_compare(phpversion(), '4.1.0', '<') ) {
 }
 
 // Useful debugging lines for mobile devices
-if ( false ) {
+if ( true ) {
   ob_start();
   phpinfo(INFO_VARIABLES);
   $fp = fopen('/tmp/env.html', 'w+');
@@ -71,7 +71,7 @@ define('ZM_BASE_URL', '');
 
 require_once('includes/functions.php');
 if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
-  ZM\Logger::Debug("OPTIONS Method, only doing CORS");
+  ZM\Logger::Debug('OPTIONS Method, only doing CORS');
   # Add Cross domain access headers
   CORSHeaders();
   return;

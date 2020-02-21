@@ -167,8 +167,20 @@ Image::Image( const AVFrame *frame ) {
   width = frame->width;
   height = frame->height;
   pixels = width*height;
-  colours = ZM_COLOUR_RGB32;
-  subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+
+  if ( frame->format == AV_PIX_FMT_RGBA ) {
+    colours = ZM_COLOUR_RGB32;
+    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  } else if ( frame->format == AV_PIX_FMT_RGB24 ) {
+    colours = ZM_COLOUR_RGB24;
+    subpixelorder = ZM_SUBPIX_ORDER_RGB;
+  } else if ( frame->format == AV_PIX_FMT_GRAY8 ) {
+    colours = ZM_COLOUR_GRAY8;
+    subpixelorder = ZM_SUBPIX_ORDER_NONE;
+  } else {
+    Error("Unhandled frame format: %d", frame->format);
+  }
+
   size = pixels*colours;
   buffer = 0;
   holdbuffer = 0;

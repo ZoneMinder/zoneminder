@@ -762,18 +762,91 @@ insert into Users VALUES (NULL,'admin','$2b$12$NHZsm6AM2f2LQVROriz79ul3D6DnmFiZC
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full
 --
 
-insert into Filters values (NULL,'PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',
+INSERT INTO `Filters`
+  (
+    `Name`,
+    `Query_json`,
+    `AutoArchive`,
+    `AutoVideo`,
+    `AutoUpload`,
+    `AutoEmail`,
+    `EmailTo`,
+    `EmailSubject`,
+    `EmailBody`,
+    `AutoMessage`,
+    `AutoExecute`,
+    `AutoExecuteCmd`,
+    `AutoDelete`,
+    `AutoMove`,
+    `AutoMoveTo`,
+    `AutoCopy`,
+    `AutoCopyTo`,
+    `UpdateDiskSpace`,
+    `Background`,
+    `Concurrent`
+  )
+  VALUES
+  (
+    'PurgeWhenFull',
+    '{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',
+    0/*AutoArchive*/,
+    0/*AutoVideo*/,
+    0/*AutoUpload*/,
+    0/*AutoEmail*/,
+    ''/*EmailTo*/,
+    ''/*EmailSubject*/,
+    ''/*EmailBody*/,
+    0/*AutoMessage*/,
+    0/*AutoExecute*/,'',
+    1/*AutoDelete*/,
+    0/*AutoMove*/,0/*MoveTo*/,
+    0/*AutoCopy*/,0/*CopyTo*/,
+    0/*UpdateDiskSpace*/,
+    1/*Background*/,
+    0/*Concurrent*/
+  );
+INSERT INTO `Filters`
+  (
+    `Name`,
+    `Query_json`,
+    `AutoArchive`,
+    `AutoVideo`,
+    `AutoUpload`,
+    `AutoEmail`,
+    `EmailTo`,
+    `EmailSubject`,
+    `EmailBody`,
+    `AutoMessage`,
+    `AutoExecute`,
+    `AutoExecuteCmd`,
+    `AutoDelete`,
+    `AutoMove`,
+    `AutoMoveTo`,
+    `AutoCopy`,
+    `AutoCopyTo`,
+    `UpdateDiskSpace`,
+    `Background`,
+    `Concurrent`
+  )
+VALUES (
+  'Update DiskSpace',
+  '{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',
   0/*AutoArchive*/,
   0/*AutoVideo*/,
   0/*AutoUpload*/,
   0/*AutoEmail*/,
+  ''/*EmailTo*/,
+  ''/*EmailSubject*/,
+  ''/*EmailBody*/,
   0/*AutoMessage*/,
   0/*AutoExecute*/,'',
-  1/*AutoDelete*/,
+  0/*AutoDelete*/,
   0/*AutoMove*/,0/*MoveTo*/,
   0/*AutoCopy*/,0/*CopyTo*/,
-  0/*UpdateDiskSpace*/,1/*Background*/,0/*Concurrent*/);
-insert into Filters values (NULL,'Update DiskSpace','{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',0,0,0,0,0,0,'',0,0,0,0,0,1,1,0);
+  1/*UpdateDiskSpace*/,
+  1/*Background*/,
+  0/*Concurrent*/
+);
 
 --
 -- Add in some sample control protocol definitions

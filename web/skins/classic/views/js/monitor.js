@@ -68,11 +68,34 @@ function initPage() {
   // Disable form submit on enter
   $j('#contentForm input').on('keyup keypress', function(e) {
     var keyCode = e.keyCode || e.which;
-    if (keyCode === 13) {
+    if ( keyCode == 13 ) {
       e.preventDefault();
       return false;
     }
   });
+
+  document.querySelectorAll('input[name="newMonitor[MaxFPS]"]').forEach(function(el) {
+    el.oninput = el.onclick = function(e) {
+      if ( e.target.value ) {
+        console.log('showing');
+        $j('#newMonitor\\[MaxFPS\\]').show();
+      } else {
+        $j('#newMonitor\\[MaxFPS\\]').hide();
+      }
+    };
+  });
+  document.querySelectorAll('input[name="newMonitor[AlarmMaxFPS]"]').forEach(function(el) {
+    el.oninput = el.onclick = function(e) {
+      if ( e.target.value ) {
+        console.log('showing');
+        $j('#newMonitor\\[AlarmMaxFPS\\]').show();
+      } else {
+        $j('#newMonitor\\[AlarmMaxFPS\\]').hide();
+      }
+    };
+  });
+
+  $j('.chosen').chosen();
 } // end function initPage()
 
 window.addEventListener('DOMContentLoaded', initPage);

@@ -51,6 +51,8 @@ configuring upgrades etc, including on the fly upgrades.
 use strict;
 use bytes;
 use version;
+use Crypt::Eksblowfish::Bcrypt;
+use Data::Entropy::Algorithms qw(rand_bits);
 
 # ==========================================================================
 #
@@ -312,6 +314,7 @@ if ( $migrateEvents ) {
 if ( $freshen ) {
   print( "\nFreshening configuration in database\n" );
   migratePaths();
+  migratePasswords();
   ZoneMinder::Config::loadConfigFromDB();
   ZoneMinder::Config::saveConfigToDB();
 }
@@ -997,6 +1000,26 @@ sub patchDB {
   }
   print( "\nDatabase successfully upgraded to version $version.\n" );
 
+}
+
+sub migratePasswords {
+    print ("Migratings passwords, if any...\n");
+    my $sql = "select * from Users";
+    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+    while( my $user = $sth->fetchrow_hashref() ) {
+      my $scheme = substr($user->{Password}, 0, 1);
+     if ($scheme eq "*") {
+       print ("-->".$user->{Username}. " password will be migrated\n");
+       my $salt = Crypt::Eksblowfish::Bcrypt::en_base64(rand_bits(16*8));
+       my $settings = '$2a$10$'.$salt;
+       my $pass_hash = Crypt::Eksblowfish::Bcrypt::bcrypt($user->{Password},$settings);
+       my $new_pass_hash =  "-ZM-".$pass_hash;
+       $sql = "UPDATE Users SET PASSWORD=? WHERE Username=?";
+       my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+       my $res = $sth->execute($new_pass_hash, $user->{Username}) or die( "Can't execute: ".$sth->errstr() );
+     }
+    }
 }
 
 sub migratePaths {

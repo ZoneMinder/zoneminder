@@ -12,6 +12,7 @@ class Event {
 'Name',
 'MonitorId',
 'StorageId',
+'SecondaryStorageId',
 'Name',
 'Cause',
 'StartTime',
@@ -83,6 +84,19 @@ class Event {
         $this->{'Storage'} = new Storage(NULL);
     }
     return $this->{'Storage'};
+  }
+
+  public function SecondaryStorage( $new = null ) {
+    if ( $new ) {
+      $this->{'SecondaryStorage'} = $new;
+    }
+    if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) ) {
+      if ( isset($this->{'SecondaryStorageId'}) and $this->{'SecondaryStorageId'} )
+        $this->{'SecondaryStorage'} = Storage::find_one(array('Id'=>$this->{'SecondaryStorageId'}));
+      if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) )
+        $this->{'SecondaryStorage'} = new Storage(NULL);
+    }
+    return $this->{'SecondaryStorage'};
   }
 
   public function Monitor() {
@@ -580,6 +594,9 @@ class Event {
     if ( file_exists( $this->Path().'/'.$this->DefaultVideo() ) ) {
       return true;
     }
+    if ( !defined('ZM_SERVER_ID') ) {
+      return false;
+    }
     $Storage= $this->Storage();
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
@@ -624,6 +641,9 @@ class Event {
     if ( file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
       return filesize($this->Path().'/'.$this->DefaultVideo());
     }
+    if ( !defined('ZM_SERVER_ID') ) {
+      return false;
+    }
     $Storage= $this->Storage();
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
@@ -663,6 +683,35 @@ class Event {
     } # end if not local
     return 0;
   } # end public function file_size()
+
+  public function can_delete() {
+    if ( $this->Archived() ) {
+      Logger::Debug("Am archived, can't delete");
+      return false;
+    }
+    if ( !$this->EndTime() ) {
+      Logger::Debug("No EndTime can't delete");
+      return false;
+    }
+    if ( !canEdit('Events') ) {
+      Logger::Debug("No permission to edit events, can't delete");
+      return false;
+    }
+    Logger::Debug("Can delete: archived: " . $this->Archived() . " endtime: " . $this->EndTime() );
+
+    return true;
+  }
+
+  public function cant_delete_reason() {
+    if ( $this->Archived() ) {
+      return 'You cannot delete an archived event. Unarchive it first.';
+    } else if ( ! $this->EndTime() ) {
+      return 'You cannot delete an event while it is being recorded. Wait for it to finish.';
+    } else if ( ! canEdit('Events') ) {
+      return 'You do not have rights to edit Events.';
+    }
+    return 'Unknown reason';
+  }
 
 } # end class
 

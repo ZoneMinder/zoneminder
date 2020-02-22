@@ -68,25 +68,46 @@ class AppController extends Controller {
     # For use throughout the app. If not logged in, this will be null.
     global $user;
     
+   
     if ( ZM_OPT_USE_AUTH ) {
       require_once __DIR__ .'/../../../includes/auth.php';
 
       $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
       $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
-      $mAuth = $this->request->query('auth') ? $this->request->query('auth') : $this->request->data('auth');
+      $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
 
       if ( $mUser and $mPassword ) {
-        $user = userLogin($mUser, $mPassword);
+        // log (user, pass, nothashed, api based login so skip recaptcha)
+        $user = userLogin($mUser, $mPassword, false, true);
         if ( !$user ) {
-          throw new UnauthorizedException(__('User not found or incorrect password'));
+          throw new UnauthorizedException(__('Incorrect credentials or API disabled'));
           return;
         }
+      } else if ( $mToken ) {
+        // if you pass a token to login, we should only allow
+        // refresh tokens to regenerate new access and refresh tokens
+        if ( !strcasecmp($this->params->action, 'login') ) {
+          $only_allow_token_type='refresh';
+        } else {
+          // for any other methods, don't allow refresh tokens
+          // they are supposed to be infrequently used for security
+          // purposes
+          $only_allow_token_type='access';
+
+        }
+        $ret = validateToken($mToken, $only_allow_token_type, true);
+        $user = $ret[0];
+        $retstatus = $ret[1];
+        if ( !$user ) {
+          throw new UnauthorizedException(__($retstatus));
+          return;
+        } 
       } else if ( $mAuth ) {
-        $user = getAuthUser($mAuth);
-        if ( !$user ) {
-          throw new UnauthorizedException(__('Invalid Auth Key'));
-          return;
-        }
+          $user = getAuthUser($mAuth, true);
+          if ( !$user ) {
+            throw new UnauthorizedException(__('Invalid Auth Key'));
+            return;
+          }
       }
       // We need to reject methods that are not authenticated
       // besides login and logout
@@ -99,7 +120,11 @@ class AppController extends Controller {
           return;
         }
       } # end if ! login or logout
+      if ($user['APIEnabled'] == 0 ) {
+        throw new UnauthorizedException(__('API Disabled'));
+        return;
+      }
     } # end if ZM_OPT_AUTH
-   
+    // make sure populated user object has APIs enabled
   } # end function beforeFilter()
 }

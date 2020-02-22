@@ -56,6 +56,10 @@ if [ "$1" = "configure" ]; then
         if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
             echo "Creating zm db"
             cat /usr/share/zoneminder/db/zm_create.sql | mysql --defaults-file=/etc/mysql/debian.cnf
+            if [ $? -ne 0 ]; then
+              echo "Error creating db."
+              exit 1;
+            fi
             # This creates the user.
             echo "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute  on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost identified by \"${ZM_DB_PASS}\";" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
         else

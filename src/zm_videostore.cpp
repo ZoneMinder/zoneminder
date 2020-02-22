@@ -369,7 +369,6 @@ bool VideoStore::open() {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       audio_out_stream = avformat_new_stream(oc, NULL);
-      audio_out_stream->time_base = audio_in_stream->time_base;
       audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
       if ( !audio_out_ctx ) {
         Error("could not allocate codec ctx for AAC");
@@ -1248,39 +1247,12 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
   dumpPacket(audio_in_stream, ipkt, "input packet");
 
   if ( audio_out_codec ) {
-    Debug(2, "Have output codec");
-  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    if ( ! zm_receive_frame(audio_in_ctx, in_frame, *ipkt) ) {
+    if ( ( ret = zm_receive_frame(audio_in_ctx, in_frame, *ipkt) ) < 0 ) {
+      Debug(3, "Not ready to receive frame");
       return 0;
     }
 
-    if ( (ret = avcodec_receive_frame(audio_in_ctx, in_frame)) < 0 ) {
-      Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
-      return 0;
-    }
-  #else
-    /**
-     * Decode the audio frame stored in the packet.
-     * The in audio stream decoder is used to do this.
-     * If we are at the end of the file, pass an empty packet to the decoder
-     * to flush it.
-     */
-    int data_present;
-    if ( (ret = avcodec_decode_audio4(
-            audio_in_ctx, in_frame, &data_present, ipkt)) < 0 ) {
-      Error("Could not decode frame (error '%s')",
-          av_make_error_string(ret).c_str());
-      av_frame_free(&in_frame);
-      return 0;
-    }
-    if ( !data_present ) {
-      Debug(2, "Not ready to transcode a frame yet.");
-      return 0;
-    }
-  #endif
     zm_dump_frame(in_frame, "In frame from decode");
-    int frame_size = out_frame->nb_samples;
-    in_frame->pts = audio_next_pts;
 
     if ( !resample_audio() ) {
       //av_frame_unref(in_frame);
@@ -1288,73 +1260,9 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     }
 
     out_frame->pts = in_frame->pts;
-    zm_dump_frame(out_frame, "Out frame after resample");
-    // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
-    if ( out_frame->pts != AV_NOPTS_VALUE ) {
-      if ( !audio_first_pts ) {
-        audio_first_pts = out_frame->pts;
-        Debug(1, "No audio_first_pts setting to %" PRId64, audio_first_pts);
-        out_frame->pts = 0;
-      } else {
-        out_frame->pts = out_frame->pts - audio_first_pts;
-        zm_dump_frame(out_frame, "Out frame after pts adjustment");
-      }
-      //
-    } else {
-      // sending AV_NOPTS_VALUE doesn't really work but we seem to get it in ffmpeg 2.8
-      out_frame->pts = audio_next_pts;
-    }
-    audio_next_pts = out_frame->pts + out_frame->nb_samples;
 
     av_init_packet(&opkt);
-  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    if ( (ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0 ) {
-      Error("Could not send frame (error '%s')",
-          av_make_error_string(ret).c_str());
-      zm_av_packet_unref(&opkt);
-      return 0;
-    }
-
-    if ( (ret = avcodec_receive_packet(audio_out_ctx, &opkt)) < 0 ) {
-      if ( AVERROR(EAGAIN) == ret ) {
-        // The codec may need more samples than it has, perfectly valid
-        Debug(2, "Codec not ready to give us a packet");
-      } else {
-        Error("Could not recieve packet (error %d = '%s')", ret,
-            av_make_error_string(ret).c_str());
-      }
-      zm_av_packet_unref(&opkt);
-      return 0;
-    }
-  #else
-    if ( (ret = avcodec_encode_audio2(
-            audio_out_ctx, &opkt, out_frame, &data_present
-            )) < 0) {
-      Error("Could not encode frame (error '%s')",
-          av_make_error_string(ret).c_str());
-      zm_av_packet_unref(&opkt);
-      return 0;
-    }
-    if ( !data_present ) {
-      Debug(2, "Not ready to out a frame yet.");
-      zm_av_packet_unref(&opkt);
-      return 0;
-    }
-  #endif
-#if 0
-    // These should be set by encoder. They may not directly relate to ipkt due to buffering in codec.
-    opkt.duration = av_rescale_q(opkt.duration, 
-          audio_in_stream->time_base,
-          audio_out_stream->time_base);
-    opkt.pts = av_rescale_q(opkt.pts, 
-          audio_in_stream->time_base,
-          audio_out_stream->time_base);
-    opkt.dts = av_rescale_q(opkt.dts, 
-          audio_in_stream->time_base,
-          audio_out_stream->time_base);
-#endif
-    dumpPacket(audio_out_stream, &opkt, "raw opkt");
-
+    zm_send_frame(audio_out_ctx, out_frame, opkt);
   } else {
     Debug(2,"copying");
     av_init_packet(&opkt);
@@ -1458,28 +1366,9 @@ int VideoStore::resample_audio() {
         av_make_error_string(ret).c_str());
     return 0;
   }
-  zm_dump_frame(out_frame, "Out frame after convert");
 
-
-#if 0
-  // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
-  if ( out_frame->pts != AV_NOPTS_VALUE ) {
-    if ( !audio_first_pts ) {
-      audio_first_pts = out_frame->pts;
-      Debug(1, "No audio_first_pts setting to %" PRId64, audio_first_pts);
-      out_frame->pts = 0;
-    } else {
-      out_frame->pts = out_frame->pts - audio_first_pts;
-    }
-    //
-  } else {
-    // sending AV_NOPTS_VALUE doesn't really work but we seem to get it in ffmpeg 2.8
-    out_frame->pts = audio_next_pts;
-  }
-  audio_next_pts = out_frame->pts + out_frame->nb_samples;
-#endif
-
-  if ((ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples)) < 0) {
+  ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples);
+  if ( ret < 0 ) {
     Error("Could not reallocate FIFO");
     return 0;
   }
@@ -1494,7 +1383,7 @@ int VideoStore::resample_audio() {
   // Reset frame_size to output_frame_size
   int frame_size = audio_out_ctx->frame_size;
 
-  // AAC requires 1024 samples per encode.  Our input tends to be 160, so need to buffer them.
+  // AAC requires 1024 samples per encode.  Our input tends to be something else, so need to buffer them.
   if ( frame_size > av_audio_fifo_size(fifo) ) {
     return 0;
   }
@@ -1505,16 +1394,14 @@ int VideoStore::resample_audio() {
   }
   out_frame->nb_samples = frame_size;
   // resampling changes the duration because the timebase is 1/samples
+  // I think we should be dealing in codec timebases not stream
   if ( in_frame->pts != AV_NOPTS_VALUE ) {
-    out_frame->pkt_duration = av_rescale_q(
-        in_frame->pkt_duration,
-        audio_in_stream->time_base,
-        audio_out_stream->time_base);
     out_frame->pts = av_rescale_q(
         in_frame->pts,
-        audio_in_stream->time_base,
-        audio_out_stream->time_base);
+        audio_in_ctx->time_base,
+        audio_out_ctx->time_base);
   }
+  zm_dump_frame(out_frame, "Out frame after timestamp conversion");
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
   ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,

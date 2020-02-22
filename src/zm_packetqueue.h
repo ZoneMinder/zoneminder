@@ -51,11 +51,15 @@ class zm_packetqueue {
 
     bool queuePacket(ZMPacket* packet);
     ZMPacket * popPacket();
-    unsigned int clearQueue( unsigned int video_frames_to_keep, int stream_id );
-    void clearQueue( );
+    bool popVideoPacket(ZMPacket* packet);
+    bool popAudioPacket(ZMPacket* packet);
+    unsigned int clearQueue(unsigned int video_frames_to_keep, int stream_id);
+    void clearQueue();
+    void dumpQueue();
     unsigned int size();
     unsigned int get_video_packet_count();
-    void clear_unwanted_packets( timeval *recording, int mVideoStreamId );
+
+    void clear_unwanted_packets(timeval *recording, int pre_event_count, int mVideoStreamId);
     int packet_count(int stream_id);
 
     // Functions to manage the analysis frame logic

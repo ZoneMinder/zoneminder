@@ -77,6 +77,7 @@ public:
 
 User *zmLoadUser( const char *username, const char *password=0 );
 User *zmLoadAuthUser( const char *auth, bool use_remote_addr );
+User *zmLoadTokenUser( std::string jwt, bool use_remote_addr);
 bool checkUser ( const char *username);
 bool checkPass (const char *password);
 

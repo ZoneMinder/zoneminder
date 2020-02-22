@@ -106,8 +106,7 @@ public:
       const char *format_in,
       AVStream *video_in_stream,
       AVStream *audio_in_stream,
-      Monitor * p_monitor
-      );
+      Monitor * p_monitor);
 	~VideoStore();
   bool  open();
 

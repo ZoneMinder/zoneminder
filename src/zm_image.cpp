@@ -24,6 +24,7 @@
 #include "zm_rgb.h"
 #include "zm_ffmpeg.h"
 
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
 
@@ -504,8 +505,8 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
     return NULL;
   }
 
-  if ( !p_height || !p_width ) {
-    Error("WriteBuffer called with invalid width or height: %d %d",p_width,p_height);
+  if ( ! ( p_height > 0 && p_width > 0 ) ) {
+    Error("WriteBuffer called with invalid width or height: %d %d", p_width, p_height);
     return NULL;
   }
 
@@ -532,11 +533,10 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
     colours = p_colours;
     subpixelorder = p_subpixelorder;
     pixels = height*width;
-    size = newsize; 
-  }
+    size = newsize;
+  } // end if need to re-alloc buffer
 
   return buffer; 
-
 }
 
 /* Assign an existing buffer to the image instead of copying from a source buffer. The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing. */
@@ -967,7 +967,7 @@ cinfo->out_color_space = JCS_RGB;
   return( true );
 }
 
-// Multiple calling formats to permit inclusion (or not) of both quality_override and timestamp (exif), with suitable defaults.
+// Multiple calling formats to permit inclusion (or not) of non blocking, quality_override and timestamp (exif), with suitable defaults.
 // Note quality=zero means default
 
 bool Image::WriteJpeg(const char *filename, int quality_override) const {
@@ -976,33 +976,71 @@ bool Image::WriteJpeg(const char *filename, int quality_override) const {
 bool Image::WriteJpeg(const char *filename) const {
   return Image::WriteJpeg(filename, 0, (timeval){0,0});
 }
+bool Image::WriteJpeg(const char *filename, bool on_blocking_abort) const {
+  return Image::WriteJpeg(filename, 0, (timeval){0,0}, on_blocking_abort);
+}
 bool Image::WriteJpeg(const char *filename, struct timeval timestamp) const {
   return Image::WriteJpeg(filename, 0, timestamp);
 }
 
 bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval timestamp) const {
+  return Image::WriteJpeg(filename, quality_override, timestamp, false);
+}
+bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort) const {
   if ( config.colour_jpeg_files && colours == ZM_COLOUR_GRAY8 ) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-    return temp_image.WriteJpeg(filename, quality_override, timestamp);
+    return temp_image.WriteJpeg(filename, quality_override, timestamp, on_blocking_abort);
   }
   int quality = quality_override?quality_override:config.jpeg_file_quality;
 
   struct jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
+  FILE *outfile =NULL;
+  static int raw_fd = 0;
+  bool need_create_comp = false;
+  raw_fd = 0;
 
   if ( !cinfo ) {
     cinfo = writejpg_ccinfo[quality] = new jpeg_compress_struct;
     cinfo->err = jpeg_std_error( &jpg_err.pub );
-    jpg_err.pub.error_exit = zm_jpeg_error_exit;
-    jpg_err.pub.emit_message = zm_jpeg_emit_message;
     jpeg_create_compress( cinfo );
+    need_create_comp=true;
+  }
+  if (! on_blocking_abort) {
+      jpg_err.pub.error_exit = zm_jpeg_error_exit;
+      jpg_err.pub.emit_message = zm_jpeg_emit_message;
+  } else {
+    jpg_err.pub.error_exit = zm_jpeg_error_silent;
+    jpg_err.pub.emit_message = zm_jpeg_emit_silence;
+    if (setjmp( jpg_err.setjmp_buffer ) ) {
+      jpeg_abort_compress( cinfo );
+      Debug( 5, "Aborted a write mid-stream and %s and %d", (outfile == NULL) ? "closing file" : "file not opened", raw_fd );
+      if (raw_fd)
+        close(raw_fd);
+      if (outfile)
+        fclose( outfile );
+      return ( false );
+    }
+  }
+  if (need_create_comp)
+    jpeg_create_compress( cinfo );
+
+  if (! on_blocking_abort) {
+    if ( (outfile = fopen(filename, "wb")) == NULL ) {
+      Error( "Can't open %s for writing: %s", filename, strerror(errno) );
+      return false;
+    }
+  } else {
+    raw_fd = open(filename,O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    if (raw_fd < 0)
+      return ( false );
+    outfile = fdopen(raw_fd,"wb");
+    if (outfile == NULL) {
+      close(raw_fd);
+      return( false );
+    }
   }
 
-  FILE *outfile;
-  if ( (outfile = fopen(filename, "wb")) == NULL ) {
-    Error("Can't open %s: %s", filename, strerror(errno));
-    return false;
-  }
   jpeg_stdio_dest( cinfo, outfile );
 
   cinfo->image_width = width;   /* image width and height, in pixels */

@@ -99,7 +99,7 @@ function getPopupSize( tag, width, height ) {
 }
 
 function zmWindow(sub_url) {
-  var zmWin = window.open( 'https://www.zoneminder.com'+sub_url, 'ZoneMinder' );
+  var zmWin = window.open( 'https://www.zoneminder.com'+(sub_url?sub_url:''), 'ZoneMinder' );
   if ( ! zmWin ) {
     // if popup blocking is enabled, the popup won't be defined.
     console.log("Please disable popup blocking.");

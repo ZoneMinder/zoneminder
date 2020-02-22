@@ -173,12 +173,12 @@ echo output_link_if_exists( array(
   <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script src="js/logger.js"></script>
+  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php 
   if ($basename == 'watch' or $basename == 'log' ) {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
 ?>
-<script src="js/overlay.js"></script>
+    <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
 <?php } ?>
 <?php
   if ( $viewJsFile ) {
@@ -233,7 +233,12 @@ function getNavBarHTML($reload = null) {
     ob_start();
     if ( $running == null )
       $running = daemonCheck();
-    $status = $running?translate('Running'):translate('Stopped');
+    if ( $running ) {
+      $state = dbFetchOne('SELECT Name FROM States WHERE isActive=1', 'Name');
+      if ( $state == 'default' )
+        $state = '';
+    }
+    $status = $running ? ($state ? $state : translate('Running')) : translate('Stopped');
 ?>
 <div class="navbar navbar-inverse navbar-static-top">
 	<div class="container-fluid">
@@ -244,7 +249,9 @@ function getNavBarHTML($reload = null) {
 				<span class="icon-bar"></span>
 				<span class="icon-bar"></span>
 			</button>
-      <div class="navbar-brand"><a href="<?php echo validHtmlStr(ZM_HOME_URL); ?>" target="<?php echo validHtmlStr(ZM_WEB_TITLE); ?>"><?php echo ZM_HOME_CONTENT ?></a></div>
+      <div class="navbar-brand">
+        <a href="<?php echo validHtmlStr(ZM_HOME_URL); ?>" target="<?php echo validHtmlStr(ZM_WEB_TITLE); ?>"><?php echo ZM_HOME_CONTENT ?></a>
+      </div>
 		</div>
 
 		<div class="collapse navbar-collapse" id="main-header-nav">
@@ -329,7 +336,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   </p>
   <?php } ?>
 <?php } else if ( canView('System') ) { ?>
-		<p class="navbar-text"> <?php echo $status ?></p>
+		<p class="navbar-text"><?php echo $status ?></p>
 <?php } ?>
 </div>
 <?php } # end if !$user or $user['Id'] meaning logged in ?>

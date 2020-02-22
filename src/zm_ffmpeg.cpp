@@ -583,3 +583,26 @@ void zm_free_codec( AVCodecContext **ctx ) {
   } // end if 
 }
 
+void dumpPacket(AVPacket *pkt, const char *text) {
+  char b[10240];
+
+  snprintf(b, sizeof(b),
+           " pts: %" PRId64 ", dts: %" PRId64
+           ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
+           ", duration: %"
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+           PRId64
+#else
+           "d"
+#endif
+           "\n",
+           pkt->pts,
+           pkt->dts,
+           pkt->size,
+           pkt->stream_index,
+           pkt->flags,
+           pkt->flags & AV_PKT_FLAG_KEY,
+           pkt->pos,
+           pkt->duration);
+  Debug(2, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
+}

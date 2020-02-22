@@ -39,7 +39,7 @@ if ( ! empty($_REQUEST['mid']) ) {
   $monitor = new ZM\Monitor( $_REQUEST['mid'] );
   if ( $monitor and ZM_OPT_X10 )
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']));
-} 
+}
 if ( ! $monitor ) {
 
   $nextId = getTableAutoInc('Monitors');
@@ -132,19 +132,19 @@ if ( ! $monitor ) {
 
 if ( ZM_OPT_X10 && empty($x10Monitor) ) {
   $x10Monitor = array(
-      'Activation' => '',   
-      'AlarmInput' => '',   
-      'AlarmOutput' => '',   
+      'Activation' => '',
+      'AlarmInput' => '',
+      'AlarmOutput' => '',
       );
 }
 
-function fourcc( $a, $b, $c, $d ) {
-  return( ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24) );
+function fourcc($a, $b, $c, $d) {
+  return ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24);
 }
 
-if ( isset( $_REQUEST['newMonitor'] ) ) {
+if ( isset($_REQUEST['newMonitor']) ) {
   # Update the monitor object with whatever has been set so far.
-  $monitor->set( $_REQUEST['newMonitor'] );
+  $monitor->set($_REQUEST['newMonitor']);
 
   if ( ZM_OPT_X10 )
     $newX10Monitor = $_REQUEST['newX10Monitor'];
@@ -157,26 +157,27 @@ if ( isset( $_REQUEST['newMonitor'] ) ) {
 
 # What if it has less zeros?  This is not robust code.
 if ( $monitor->AnalysisFPSLimit() == '0.00' )
-  $monitor->AnalysisFPSLimit( '' );
+  $monitor->AnalysisFPSLimit('');
 if ( $monitor->MaxFPS() == '0.00' )
-  $monitor->MaxFPS( '' );
+  $monitor->MaxFPS('');
 if ( $monitor->AlarmMaxFPS() == '0.00' )
-  $monitor->AlarmMaxFPS( '' );
+  $monitor->AlarmMaxFPS('');
 
 if ( !empty($_REQUEST['preset']) ) {
   $preset = dbFetchOne( 'SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']) );
   foreach ( $preset as $name=>$value ) {
-    # Does isset handle NULL's?  I don't think this code is correct. 
+    # Does isset handle NULL's?  I don't think this code is correct.
     if ( isset($value) ) {
       $monitor->$name = $value;
     }
   }
-}
+} # end if preset
+
 if ( !empty($_REQUEST['probe']) ) {
   $probe = json_decode(base64_decode($_REQUEST['probe']));
   foreach ( $probe as $name=>$value ) {
     if ( isset($value) ) {
-      # Does isset handle NULL's?  I don't think this code is correct. 
+      # Does isset handle NULL's?  I don't think this code is correct.
       $monitor->$name = urldecode($value);
     }
   }
@@ -187,7 +188,7 @@ if ( !empty($_REQUEST['probe']) ) {
     elseif ( $monitor->Format() == 'NTSC' )
       $monitor->Format( 0x0000b000 );
   }
-}
+} # end if apply probe settings
 
 $sourceTypes = array(
     'Local'  => translate('Local'),
@@ -389,7 +390,7 @@ $orientations = array(
     '90' => translate('RotateRight'),
     '180' => translate('Inverted'),
     '270' => translate('RotateLeft'),
-    'horz' => translate('FlippedHori'),
+    'hori' => translate('FlippedHori'),
     'vert' => translate('FlippedVert')
     );
 
@@ -458,14 +459,14 @@ $codecs = array(
   'MJPEG' => translate('MJPEG'),
 );
 
-xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name()) );
+xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name()));
 getBodyTopHTML();
 ?>
   <div id="page">
     <div id="header">
 <?php
-if ( canEdit( 'Monitors' ) ) {
-  if ( isset ($_REQUEST['dupId'])) {
+if ( canEdit('Monitors') ) {
+  if ( isset($_REQUEST['dupId']) ) {
 ?>
     <div class="alert alert-info">
       Configuration cloned from Monitor: <?php echo validHtmlStr($clonedName) ?>
@@ -474,10 +475,10 @@ if ( canEdit( 'Monitors' ) ) {
   }
 ?>
     <div id="headerButtons">
-      <?php echo makePopupLink('?view=monitorprobe&mid=' . $monitor->Id(), 'zmMonitorProbe' . $monitor->Id(), 'monitorprobe', translate('Probe')); ?>
+      <?php echo makePopupLink('?view=monitorprobe&mid='.$monitor->Id(), 'zmMonitorProbe'.$monitor->Id(), 'monitorprobe', translate('Probe')); ?>
 <?php
-   if ( ZM_HAS_ONVIF ) {
-       echo makePopupLink('?view=onvifprobe&mid=' . $monitor->Id(), 'zmOnvifProbe' . $monitor->Id(), 'onvifprobe', translate('OnvifProbe'));
+  if ( ZM_HAS_ONVIF ) {
+       echo makePopupLink('?view=onvifprobe&mid='.$monitor->Id(), 'zmOnvifProbe'.$monitor->Id(), 'onvifprobe', translate('OnvifProbe'));
   }
 ?>
       <?php echo makePopupLink('?view=monitorpreset&mid=' . $monitor->Id(), 'zmMonitorPreset' . $monitor->Id(), 'monitorpreset', translate('Presets')); ?>
@@ -497,7 +498,7 @@ if ( $monitor->Type() != 'WebSite' ) {
   $tabs['storage'] = translate('Storage');
   $tabs['timestamp'] = translate('Timestamp');
   $tabs['buffers'] = translate('Buffers');
-  if ( ZM_OPT_CONTROL && canView( 'Control' ) )
+  if ( ZM_OPT_CONTROL && canView('Control') )
     $tabs['control'] = translate('Control');
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
@@ -686,7 +687,7 @@ switch ( $tab ) {
 ?>
           <tr class="Name"><td><?php echo translate('Name') ?></td><td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>" /></td></tr>
           <tr><td><?php echo translate('Server') ?></td><td>
-<?php 
+<?php
       $servers = array(''=>'None','auto'=>'Auto');
       foreach ( ZM\Server::find(NULL, array('order'=>'lower(Name)')) as $Server ) {
         $servers[$Server->Id()] = $Server->Name();
@@ -766,7 +767,7 @@ echo htmlOptions(ZM\Group::get_dropdown_options( ), $monitor->GroupIds() );
             <td><?php echo translate('RefImageBlendPct') ?></td>
             <td><select name="newMonitor[RefBlendPerc]"><?php foreach ( $fastblendopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->RefBlendPerc() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td>
           </tr>
-          <tr>  
+          <tr>
             <td><?php echo translate('AlarmRefImageBlendPct') ?></td>
             <td>
               <select name="newMonitor[AlarmRefBlendPerc]">
@@ -843,7 +844,7 @@ echo htmlOptions(ZM\Group::get_dropdown_options( ), $monitor->GroupIds() );
           </td></tr>
           <tr><td><?php echo translate('V4LCapturesPerFrame') ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo validHtmlStr($monitor->V4LCapturesPerFrame()); ?>"/></td></tr>
 <?php
-      
+
       } else if ( $monitor->Type() == 'NVSocket' ) {
 include('_monitor_source_nvsocket.php');
       } else if ( $monitor->Type() == 'Remote' ) {
@@ -897,10 +898,10 @@ if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
 </td></tr>
         <tr><td><?php echo translate('CaptureWidth') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
         <tr><td><?php echo translate('CaptureHeight') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
-        <tr><td><?php echo translate('PreserveAspect') ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
+        <tr><td><?php echo translate('PreserveAspect') ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr>
 	<tr><td><?php echo translate('Orientation') ?></td><td><?php echo htmlselect( 'newMonitor[Orientation]', $orientations, $monitor->Orientation() );?></td></tr>
 <?php
-      } 
+      }
 if ( $monitor->Type() == 'Local' ) {
 ?>
             <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo validHtmlStr($value); ?>"<?php if ( $value == $monitor->Deinterlacing()) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($name); ?></option><?php } ?></select></td></tr>
@@ -923,7 +924,7 @@ if ( $monitor->Type() == 'Local' ) {
 ?>
             <tr><td><?php echo translate('SaveJPEGs') ?></td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?php echo validHtmlStr($value); ?>"<?php if ( $value == $monitor->SaveJPEGs() ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($name); ?></option><?php } ?></select></td></tr>
             <tr><td><?php echo translate('VideoWriter') ?></td><td>
-<?php 
+<?php
 	$videowriteropts = array(
 			0 => 'Disabled',
 			);

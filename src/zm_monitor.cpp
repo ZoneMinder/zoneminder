@@ -1074,16 +1074,16 @@ Debug(3, "GetImage");
       ZMPacket *snap = &image_buffer[index];
       Image *snap_image = snap->image;
 
-      alarm_image.Assign( *snap_image );
+      alarm_image.Assign(*snap_image);
 
       //write_image.Assign( *snap_image );
 
       if ( scale != ZM_SCALE_BASE ) {
-        alarm_image.Scale( scale );
+        alarm_image.Scale(scale);
       }
 
       if ( !config.timestamp_on_capture ) {
-        TimestampImage( &alarm_image, snap->timestamp );
+        TimestampImage(&alarm_image, snap->timestamp);
       }
       image = &alarm_image;
     } else {
@@ -1091,10 +1091,10 @@ Debug(3, "GetImage");
     }
 
     static char filename[PATH_MAX];
-    snprintf( filename, sizeof(filename), "Monitor%d.jpg", id );
+    snprintf(filename, sizeof(filename), "Monitor%d.jpg", id);
     image->WriteJpeg(filename);
   } else {
-    Error( "Unable to generate image, no images in buffer" );
+    Error("Unable to generate image, no images in buffer");
   }
   return 0;
 }
@@ -1769,8 +1769,8 @@ bool Monitor::Analyse() {
                     cause += ", ";
                   cause += LINKED_CAUSE;
                 }
-                noteSet.insert(linked_monitors[i]->Name());
-                score += 50;
+              } else {
+                linked_monitors[i]->connect();
               }
             } // end foreach linked_monitor
             if ( noteSet.size() > 0 )
@@ -1908,9 +1908,8 @@ bool Monitor::Analyse() {
               }
             } else if ( config.record_event_stats && state == ALARM ) {
               for ( int i = 0; i < n_zones; i++ ) {
-                if ( zones[i]->Alarmed() ) {
-                  zones[i]->RecordStats( event );
-                }
+                if ( zones[i]->Alarmed() )
+                  zones[i]->RecordStats(event);
               } // end foreach zone
             } // analsys_images or record stats
 

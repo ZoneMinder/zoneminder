@@ -339,6 +339,7 @@ bool is_audio_context(AVCodec *);
 
 int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet );
 void dumpPacket(AVStream *, AVPacket *,const char *text="");
+void dumpPacket(AVPacket *,const char *text="");
 #ifndef HAVE_LIBSWRESAMPLE
 #ifdef HAVE_LIBAVRESAMPLE
 #define av_opt_set_channel_layout(ctx, setting, value, 0) av_opt_set_int(ctx, setting, value, 0);

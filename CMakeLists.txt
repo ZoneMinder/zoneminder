@@ -348,16 +348,14 @@ else(JPEG_FOUND)
 endif(JPEG_FOUND)
 
 # LIBJWT
-find_package(jwt)
-if(JWT_FOUND)
+find_package(LibJWT)
+if(LIBJWT_FOUND)
 	set(HAVE_LIBJWT 1)
-	list(APPEND ZM_LIB_BINS "${JWT_LIBRARIES}")
-	include_directories("${JWT_INCLUDE_DIR}")
-	set(CMKAE_REQUIRED_INCLUDES "${JWT_INCLUDE_DIR}")
-	set(optlibsfound "{optlibsfound} JWT")
-else(JWT_FOUND)
-	set(optlibsnotfound "${optlibsnotfound} JWT")
-endif(JWT_FOUND)
+	set(optlibsfound "${optlibsfound} LIBJWT")
+	list(APPEND ZM_BIN_LIBS "${LIBJWT_LIBRARY}")
+else(LIBJWT_FOUND)
+	set(optlibsnotfound "${optlibsnotfound} LIBJWT")
+endif(LIBJWT_FOUND)
 
 # OpenSSL
 find_package(OpenSSL)

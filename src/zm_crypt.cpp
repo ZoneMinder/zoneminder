@@ -4,7 +4,7 @@
 #if HAVE_LIBJWT
 #include <jwt.h>
 #else
-#include "jwt.h"
+#include "jwt_cpp.h"
 #endif
 #include <algorithm>
 #if HAVE_LIBCRYPTO
@@ -21,18 +21,19 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
   unsigned int token_issued_at = 0;
   int err = 0;
   jwt_t *jwt = nullptr;
+
   err = jwt_new(&jwt);
   if( err ) {
     Error("Unable to Allocate JWT object");
     return std::make_pair("", 0);
   }
 
-  err = jwt_set_alg(jwt, JWT_ALG_HS256, key.c_str(), key.length());
+  err = jwt_set_alg(jwt, JWT_ALG_HS256, (const unsigned char*)key.c_str(), key.length());
   if( err ) {
     jwt_free(jwt);
     Error("Error setting Algorithm for JWT decode");
     return std::make_pair("", 0);
-  s}
+  }
   
   err = jwt_decode(&jwt, jwt_token_str.c_str(), nullptr, 0);
   if( err ) {

@@ -99,10 +99,9 @@ if ( $css != 'base' )
 <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
   if ( $basename == 'watch' ) {
-    echo output_link_if_exists( array(
-      '/css/base/views/control.css',
-      '/css/'.$css.'/views/control.css'
-    ) );
+    echo output_link_if_exists(array('/css/base/views/control.css'));
+    if ( $css != 'base' )
+      echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
   }
 ?>
   <style type="text/css">

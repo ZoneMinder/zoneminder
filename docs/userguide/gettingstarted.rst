@@ -123,6 +123,8 @@ This brings up the new monitor window:
 * Let's select a protocol of RTSP and a remote method of RTP/RTSP (this is an RTSP camera)
 * Note that starting ZM 1.34, GPUs are supported. In my case, I have an NVIDIA GeForce GTX1050i. These ``cuda`` and ``cuvid`` parameters are what my system supports to use the NVIDIA hardware decoder and GPU resources. If you don't have a GPU, or don't know how to configure your ffmpeg to support it, leave it empty for now. In future, we will add a section on how to set up a GPU
 
+**NOTE**: It is entirely possible that ``cuda`` and ``cuvid`` don't work for you and you need different values. Isaac uses ``cuda`` in ``DecoderHWAccelName`` and leaves ``DecoderHWAccelDevice`` empty. Try that too.
+
 .. todo::
   add GPU docs
 

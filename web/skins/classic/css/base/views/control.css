@@ -15,7 +15,7 @@
 .ptzControls input.ptzTextBtn {
     margin-top: 2px;
 }
-.ptzControls button {
+.ptzControls .pantiltPanel button {
   border: none;
 }
 
@@ -24,7 +24,7 @@
 }
 
 .ptzControls input[type=image] {
-    border: 0px;
+    border: none;
 }
 
 .ptzControls .controlsPanel .arrowControl {
@@ -140,10 +140,7 @@
     background: url("../skins/classic/graphics/arrow-dr.png") no-repeat 0 0;
 }
 
-.ptzControls .controlsPanel .powerControls {
-    margin: 5px auto;
-}
-
+.ptzControls .controlsPanel .powerControls,
 .ptzControls .presetControls div {
     margin: 5px 200px 5px 180px;
 }
@@ -153,8 +150,5 @@
 }
 
 .ptzControls .presetControls button.ptzNumBtn {
-    padding: 1px 2px;
     width: 45px;
-    color: #ffffff;
-    text-align: center;
 }

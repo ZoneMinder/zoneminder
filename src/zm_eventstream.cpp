@@ -707,7 +707,11 @@ Debug(1, "Loading image");
 
         // when stored as an mp4, we just have the rotation as a flag in the headers
         // so we need to rotate it before outputting
-        if ( event_data->Orientation != Monitor::ROTATE_0 ) {
+        if (
+            (monitor->GetOptVideoWriter() == Monitor::H264PASSTHROUGH)
+            and
+            (event_data->Orientation != Monitor::ROTATE_0)
+            ) {
           Debug(2, "Rotating image %d", event_data->Orientation);
           switch ( event_data->Orientation ) {
             case Monitor::ROTATE_0 :

@@ -69,7 +69,7 @@ if ( !$liveMode ) {
         $frame['NextFrameId'] = $next_frames[$frame['EventId']]['Id'];
       }
       $event['FramesById'] += array($frame['Id']=>$frame);
-      $next_frames[$frame['EventId']] = $frame;
+      $next_frames[$frame['EventId']] = &$event['FramesById'][$frame['Id']];
     }
   }
 

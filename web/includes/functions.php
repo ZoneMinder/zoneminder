@@ -514,7 +514,8 @@ function htmlOptions($contents, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>';
+      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>
+';
   }
   return $options_html;
 }
@@ -770,7 +771,7 @@ function canStreamIframe() {
 
 function canStreamNative() {
   // Old versions of Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
-  return( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
+  return ( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
 }
 
 function canStreamApplet() {
@@ -902,11 +903,11 @@ function createListThumbnail($event, $overwrite=false) {
   if ( ZM_WEB_LIST_THUMB_WIDTH ) {
     $thumbWidth = ZM_WEB_LIST_THUMB_WIDTH;
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$event['Width'];
-    $thumbHeight = reScale( $event['Height'], $scale );
+    $thumbHeight = reScale($event['Height'], $scale);
   } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
     $thumbHeight = ZM_WEB_LIST_THUMB_HEIGHT;
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$event['Height'];
-    $thumbWidth = reScale( $event['Width'], $scale );
+    $thumbWidth = reScale($event['Width'], $scale);
   } else {
     ZM\Fatal('No thumbnail width or height specified, please check in Options->Web');
   }
@@ -943,12 +944,13 @@ Logger::Debug("generating Video $command: result($result outptu:(".implode("\n",
 
 # This takes more than one scale amount, so it runs through each and alters dimension.
 # I can't imagine why you would want to do that.
-function reScale( $dimension, $dummy ) {
+function reScale($dimension, $dummy) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
-    $scale = func_get_arg( $i );
-    if ( !empty($scale) && ($scale != 'auto') && ($scale != SCALE_BASE) )
+    $scale = func_get_arg($i);
+    if ( !empty($scale) && ($scale != '0') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
+    }
   }
   return $new_dimension;
 }
@@ -2296,9 +2298,15 @@ function validHtmlStr($input) {
 
 function getStreamHTML($monitor, $options = array()) {
 
-  if ( isset($options['scale']) and $options['scale'] and ($options['scale'] != 100) ) {
-    $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
-    $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+  if ( isset($options['scale']) ) {
+    if ( $options['scale'] ) {
+      $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
+      $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+    } else {
+      $options['width'] = '100%';
+      $options['height'] = '';
+      #$options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+    }
   } else {
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty

@@ -557,3 +557,16 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   autoScale = closest;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
+
+function setButtonState(element, butClass) {
+  if ( element ) {
+    element.className = butClass;
+    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
+      element.disabled = true;
+    } else {
+      element.disabled = false;
+    }
+  } else {
+    console.log('Element was null in setButtonState');
+  }
+}

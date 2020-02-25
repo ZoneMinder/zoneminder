@@ -1,9 +1,3 @@
-function setButtonState(element, butClass) {
-  if ( element ) {
-    element.className = butClass;
-    element.disabled = (butClass != 'inactive');
-  }
-}
 
 function showEvents() {
   $('ptzControls').addClass( 'hidden' );

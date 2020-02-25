@@ -130,18 +130,6 @@ function renderAlarmCues(containerEl) {
   return alarmHtml;
 }
 
-function setButtonState( element, butClass ) {
-  if ( element ) {
-    element.className = butClass;
-    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
-      element.disabled = true;
-    } else {
-      element.disabled = false;
-    }
-  } else {
-    console.log('Element was null in setButtonState');
-  }
-}
 
 function changeCodec() {
   location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+$j('#codec').val());

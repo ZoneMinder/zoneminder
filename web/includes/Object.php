@@ -299,7 +299,7 @@ Logger::Debug("$k => Have default for $v: ");
     # Set defaults.  Note that we only replace "" with null, not other values
     # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
     foreach ( $this->defaults as $field => $default ) {
-      if ( (!array_key_exists($field, $this)) or ($this->{$field} == '') ) {
+      if ( (!property_exists($this, $field)) or ($this->{$field} == '') ) {
         if ( is_array($default) ) {
           $this->{$field} = $default['default'];
         } else if ( $default == null ) {

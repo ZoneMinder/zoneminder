@@ -950,7 +950,6 @@ function reScale($dimension, $dummy) {
     $scale = func_get_arg($i);
     if ( !empty($scale) && ($scale != '0') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
-    }
   }
   return $new_dimension;
 }

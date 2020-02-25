@@ -155,12 +155,12 @@ function changeScale() {
   var eventViewer;
   var alarmCue = $j('div.alarmCue');
   var bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
-  if (streamMode == 'stills') {
+  if ( streamMode == 'stills' ) {
     eventViewer = $j('#eventThumbs');
   } else {
     eventViewer = $j(vid ? '#videoobj' : '#evtStream');
   }
-  if ( scale == "auto" ) {
+  if ( scale == '0' ) {
     var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
@@ -172,10 +172,10 @@ function changeScale() {
   }
   if ( !(streamMode == 'stills') ) {
     eventViewer.width(newWidth);
-  } //stills handles its own width
+  } // stills handles its own width
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
-    streamScale(scale == "auto" ? autoScale : scale);
+    streamScale(scale == '0' ? autoScale : scale);
     drawProgressBar();
   }
   if ( streamMode == 'stills' ) {
@@ -184,7 +184,7 @@ function changeScale() {
   } else {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
-  if ( scale == "auto" ) {
+  if ( scale == '0' ) {
     Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
   } else {
     Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365});
@@ -1091,7 +1091,7 @@ function initPage() {
   }
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
-  if ( scale == 'auto' ) changeScale();
+  if ( scale == '0' ) changeScale();
 }
 
 // Kick everything off

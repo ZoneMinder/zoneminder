@@ -1095,7 +1095,6 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     for ( $i = 0; $i < count($terms); $i++ ) {
 
       $term = $terms[$i];
-ZM\Logger::Debug("Term: " . print_r($term,true));
 
       if ( isset($term['cnj']) && array_key_exists($term['cnj'], $validQueryConjunctionTypes) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($term['cnj']);

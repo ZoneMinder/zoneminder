@@ -1006,13 +1006,11 @@ function initPage() {
       }
     }
   });
-  $j('#minTime').on("dp.change", function (e) { $j('#maxTime').data("DateTimePicker").minDate(e.date); });
-  
   $j('#maxTime').datetimepicker({
     timeFormat: "HH:mm:ss",
     dateFormat: "yy-mm-dd",
     //minDate: $j('#minTime').val(),
-    //minDate: -7,
+    minDate: -7,
     maxDate: +0,
     constrainInput: false,
     onClose: function(newDate, oldData) {

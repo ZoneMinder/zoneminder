@@ -936,6 +936,10 @@ function changeDateTime(e) {
     }
   }
 
+  // Reloading can take a while, so stop interrupts to reduce load
+  clearInterval(timerObj);
+  timerObj = null;
+
   var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
 }

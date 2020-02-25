@@ -430,7 +430,9 @@ int main(int argc, char *argv[]) {
   User *user = 0;
 
   if ( config.opt_use_auth ) {
-    if ( strcmp(config.auth_relay, "none") == 0 ) {
+    if ( jwt_token_str != "" ) {
+      user = zmLoadTokenUser(jwt_token_str, false);
+    } else if ( strcmp(config.auth_relay, "none") == 0 ) {
       if ( !username ) {
         Error("Username must be supplied");
         exit_zmu(-1);
@@ -444,12 +446,9 @@ int main(int argc, char *argv[]) {
       user = zmLoadUser(username);
     } else {
        
-      if ( !(username && password) && !auth  && (jwt_token_str=="")) {
+      if ( !(username && password) && !auth ) {
         Error("Username and password or auth/token string must be supplied");
         exit_zmu(-1);
-      }
-      if (jwt_token_str != "") {
-        user = zmLoadTokenUser(jwt_token_str, false);
       }
       if ( auth ) {
         user = zmLoadAuthUser(auth, false);

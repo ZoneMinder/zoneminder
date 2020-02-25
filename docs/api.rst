@@ -482,6 +482,7 @@ Create a Zone
   &Zone[Units]=Percent\
   &Zone[NumCoords]=4\
   &Zone[Coords]=0,0 639,0 639,479 0,479\
+  &Zone[Area]=307200\
   &Zone[AlarmRGB]=16711680\
   &Zone[CheckMethod]=Blobs\
   &Zone[MinPixelThreshold]=25\

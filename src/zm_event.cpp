@@ -418,7 +418,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     unsigned long notesLen = 0;
 
     if ( !stmt ) {
-      const char *sql = "UPDATE `Events` SET `Notes` = CONCAT(`Notes`,?) WHERE `Id` = ?";
+      const char *sql = "UPDATE `Events` SET `Notes` = ? WHERE `Id` = ?";
 
       stmt = mysql_stmt_init(&dbconn);
       if ( mysql_stmt_prepare(stmt, sql, strlen(sql)) ) {
@@ -461,7 +461,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
 
     mysql_real_escape_string(&dbconn, escapedNotes, notes.c_str(), notes.length());
 
-    snprintf(sql, sizeof(sql), "UPDATE `Events` SET `Notes` = CONCAT(`Notes`,'%s') WHERE `Id` = %" PRIu64, escapedNotes, id);
+    snprintf(sql, sizeof(sql), "UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64, escapedNotes, id);
     db_mutex.lock();
     if ( mysql_query(&dbconn, sql) ) {
       Error("Can't insert event: %s", mysql_error(&dbconn));

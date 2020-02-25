@@ -31,7 +31,7 @@ $rates = array(
 );
 
 $scales = array(
-    'auto' => translate('Scale to Fit'),
+    '0' => translate('Scale to Fit'),
     '' => translate('Fixed Width/Height'),
     '400' => '4x',
     '300' => '3x',
@@ -45,7 +45,7 @@ $scales = array(
     '12.5' => '1/8x',
 );
 
-if (isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage')) {
+if ( isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage') ) {
   unset($scales['auto']); //Remove auto on montage, use everywhere else
 } else {
   unset($scales['']); //Remove fixed on everything but montage

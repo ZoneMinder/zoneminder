@@ -33,7 +33,7 @@ function changeScale() {
   var scale = $('scale').get('value');
   var newWidth;
   var newHeight;
-  if (scale == "auto") {
+  if (scale == "0") {
     var newSize = scaleToFit(monitorWidth, monitorHeight, $j('#liveStream'+monitorId), $j('#replayStatus'));
     newWidth = newSize.width;
     newHeight = newSize.height;

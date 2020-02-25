@@ -50,7 +50,6 @@ if ( !$liveMode ) {
     $event_id = $event['Id'];
     $EventsById[$event_id] = $event;
   }
-
   $next_frames = array();
 
   if ( $result = dbQuery($framesSql) ) {
@@ -71,7 +70,7 @@ if ( !$liveMode ) {
       $event['FramesById'] += array($frame['Id']=>$frame);
       $next_frames[$frame['EventId']] = $frame;
     }
-  }
+  } // end if dbQuery
 
   $events_by_monitor_id = array();
 
@@ -203,6 +202,8 @@ echo "
 var numMonitors = $numMonitors;
 var minTimeSecs=parseInt($minTimeSecs);
 var maxTimeSecs=parseInt($maxTimeSecs);
+var minTime='$minTime';
+var maxTime='$maxTime';
 ";
 echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
 if(isset($defaultCurrentTime))

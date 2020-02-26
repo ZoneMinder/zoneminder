@@ -863,7 +863,7 @@ sub sendEmail {
           From => $Config{ZM_FROM_EMAIL},
           To => $$filter{EmailTo},
           Subject => $subject,
-          Type => (($body=~/<html>/)?'text/html':'text/plain'),
+          Type => (($body=~/<html/)?'text/html':'text/plain'),
           Data => $body
           );
 
@@ -965,7 +965,7 @@ sub sendMessage {
           From => $Config{ZM_FROM_EMAIL},
           To => $Config{ZM_MESSAGE_ADDRESS},
           Subject => $subject,
-          Type => (($body=~/<html>/)?'text/html':'text/plain'),
+          Type => (($body=~/<html/)?'text/html':'text/plain'),
           Data => $body
           );
 

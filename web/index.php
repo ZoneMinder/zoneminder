@@ -153,7 +153,6 @@ if (
 }
 
 
-require_once('includes/lang.php');
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -184,9 +183,13 @@ if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
 require_once('includes/auth.php');
+
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
 session_write_close();
+
+// lang references $user[Language] so must come after auth
+require_once('includes/lang.php');
 
 foreach ( getSkinIncludes('skin.php') as $includeFile ) {
   require_once $includeFile;

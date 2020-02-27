@@ -2297,13 +2297,12 @@ function validHtmlStr($input) {
 function getStreamHTML($monitor, $options = array()) {
 
   if ( isset($options['scale']) ) {
-    if ( $options['scale'] ) {
+    if ( $options['scale'] and ( $options['scale'] != 'auto' ) ) {
       $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
       $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
     } else {
       $options['width'] = '100%';
-      $options['height'] = '';
-      #$options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+      $options['height'] = 'auto';
     }
   } else {
     # scale is empty or 100

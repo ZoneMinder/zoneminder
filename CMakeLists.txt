@@ -545,6 +545,7 @@ if(AVCODEC_LIBRARIES)
 	check_include_file("libavcodec/avcodec.h" HAVE_LIBAVCODEC_AVCODEC_H)
 	set(optlibsfound "${optlibsfound} AVCodec")
 else(AVCODEC_LIBRARIES)
+  message(WARNING "\nWhile it should be possible to build ZM without AVCODEC the result will pretty useless.")
 	set(optlibsnotfound "${optlibsnotfound} AVCodec")
 endif(AVCODEC_LIBRARIES)
 

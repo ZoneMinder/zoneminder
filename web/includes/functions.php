@@ -2282,9 +2282,14 @@ function validHtmlStr($input) {
 
 function getStreamHTML($monitor, $options = array()) {
 
-  if ( isset($options['scale']) and $options['scale'] and ($options['scale'] != 100) ) {
-    $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
-    $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+  if ( isset($options['scale']) ) {
+    if ( $options['scale'] != 'auto' ) {
+      $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
+      $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+    } else {
+      $options['width'] = '100%';
+      $options['height'] = 'auto';
+    }
   } else {
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty

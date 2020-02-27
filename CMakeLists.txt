@@ -904,7 +904,7 @@ message(STATUS "Optional libraries not found:${optlibsnotfound}")
 
 # Run ZM configuration generator
 message(STATUS "Running ZoneMinder configuration generator")
-execute_process(COMMAND perl ./zmconfgen.pl RESULT_VARIABLE zmconfgen_result)
+execute_process(COMMAND perl ${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl RESULT_VARIABLE zmconfgen_result)
 if(zmconfgen_result EQUAL 0)
 	message(STATUS 
             "ZoneMinder configuration generator completed successfully")

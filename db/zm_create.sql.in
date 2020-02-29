@@ -896,6 +896,9 @@ INSERT INTO `Controls` VALUES (NULL,'Amcrest HTTP API','Ffmpeg','Amcrest_HTTP',0
 --
 -- Add some monitor preset values
 --
+
+INSERT into MonitorPresets VALUES (NULL,'Amcrest, IP8M-T2499EW 640x480, RTP/RTSP','Ffmpeg','rtsp',0,255,'rtsp','rtpRtsp','NULL',554,'rtsp://<username>:<password>@<ip-address>/cam/realmonitor?channel=1&subtype=1',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT into MonitorPresets VALUES (NULL,'Amcrest, IP8M-T2499EW 3840x2160, RTP/RTSP','Ffmpeg','rtsp',0,255,'rtsp','rtpRtsp','NULL',554,'rtsp://<username>:<password>@<ip-address>/cam/realmonitor?channel=1&subtype=0',NULL,3840,2160,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, mpjpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240&req_fps=5',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);

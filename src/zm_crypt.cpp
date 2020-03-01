@@ -11,6 +11,7 @@
 #include <openssl/sha.h>
 #elif HAVE_GNUTLS_GNUTLS_H
 #include <gnutls/gnutls.h>
+#include <gnutls/crypto.h>
 #endif
 #include <string.h>
 
@@ -139,6 +140,10 @@ bool verifyPassword(const char *username, const char *input_password, const char
     // MYSQL PASSWORD
     Debug(1, "%s is using an MD5 encoded password", username);
     
+    #ifndef SHA_DIGEST_LENGTH
+      #define SHA_DIGEST_LENGTH 20
+    #endif
+  
     unsigned char digest_interim[SHA_DIGEST_LENGTH];
     unsigned char digest_final[SHA_DIGEST_LENGTH];
     
@@ -156,9 +161,6 @@ bool verifyPassword(const char *username, const char *input_password, const char
     SHA1_Final (digest_final, &ctx2);
 #elif HAVE_GNUTLS_GNUTLS_H
     //get first iteration
-    #ifndef SHA_DIGEST_LENGTH
-      #define SHA_DIGEST_LENGTH 20
-    #endif
     gnutls_hash_fast(GNUTLS_DIG_SHA1, input_password, strlen(input_password), digest_interim);
     //2nd iteration
     gnutls_hash_fast(GNUTLS_DIG_SHA1, digest_interim, SHA_DIGEST_LENGTH, digest_final);

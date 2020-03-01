@@ -50,8 +50,10 @@ class HostController extends AppController {
     $cred_depr = [];
 
     if ( $username && $password ) {
+      ZM\Logger::Debug('Username and password provided, generating access and refresh tokens');
       $cred = $this->_getCredentials(true, '', $username); // generate refresh
     } else {
+      ZM\Logger::Debug('Only generating access token');
       $cred = $this->_getCredentials(false, $token); // don't generate refresh
     }
 
@@ -69,6 +71,8 @@ class HostController extends AppController {
       $cred_depr = $this->_getCredentialsDeprecated();
       $login_array['credentials'] = $cred_depr[0];
       $login_array['append_password'] = $cred_depr[1];
+    } else {
+      ZM\Logger::Debug('Legacy Auth is disabled, not generating auth= credentials');
     }
 
     $login_array['version'] = $ver[0];
@@ -108,8 +112,11 @@ class HostController extends AppController {
 
   private function _getCredentials($generate_refresh_token=false, $token='', $username='') {
 
-    if ( !ZM_OPT_USE_AUTH )
+    if ( !ZM_OPT_USE_AUTH ) {
+      ZM\Error('OPT_USE_AUTH is turned off. Tokens will be null');
       return;
+    }
+      
 
     if ( !ZM_AUTH_HASH_SECRET )
       throw new ForbiddenException(__('Please create a valid AUTH_HASH_SECRET in ZoneMinder'));

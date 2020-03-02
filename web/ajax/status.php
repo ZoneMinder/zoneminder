@@ -1,8 +1,11 @@
 <?php
-if ($_REQUEST['entity'] == 'navBar') {
-  $data  = array();
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
-    $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+if ( $_REQUEST['entity'] == 'navBar' ) {
+  $data = array();
+  if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+    $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+    if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
+      $data['auth'] = $auth_hash;
+    }
   }
   $data['message'] = getNavBarHtml('reload');
   ajaxResponse($data);

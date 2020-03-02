@@ -197,9 +197,9 @@ function getStreamCmdResponse(respObj, respText) {
 
       $('zoomValue').set('text', streamStatus.zoom);
       if ( streamStatus.zoom == '1.0' ) {
-        setButtonState($('zoomOutBtn'), 'unavail');
+        setButtonState('zoomOutBtn', 'unavail');
       } else {
-        setButtonState($('zoomOutBtn'), 'inactive');
+        setButtonState('zoomOutBtn', 'inactive');
       }
 
       if ( canEditMonitors ) {
@@ -260,107 +260,107 @@ function getStreamCmdResponse(respObj, respText) {
 }
 
 function streamCmdPause( action ) {
-  setButtonState( $('pauseBtn'), 'active' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('stopBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'inactive' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
-  setButtonState( $('fastRevBtn'), 'inactive' );
+  setButtonState('pauseBtn', 'active');
+  setButtonState('playBtn', 'inactive');
+  setButtonState('stopBtn', 'inactive');
+  setButtonState('fastFwdBtn', 'inactive');
+  setButtonState('slowFwdBtn', 'inactive');
+  setButtonState('slowRevBtn', 'inactive');
+  setButtonState('fastRevBtn', 'inactive');
   if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_PAUSE );
   }
 }
 
 function streamCmdPlay( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'active' );
+  setButtonState('pauseBtn', 'inactive');
+  setButtonState('playBtn', 'active');
   if ( streamStatus.delayed == true ) {
-    setButtonState( $('stopBtn'), 'inactive' );
-    setButtonState( $('fastFwdBtn'), 'inactive' );
-    setButtonState( $('slowFwdBtn'), 'inactive' );
-    setButtonState( $('slowRevBtn'), 'inactive' );
-    setButtonState( $('fastRevBtn'), 'inactive' );
+    setButtonState('stopBtn', 'inactive');
+    setButtonState('fastFwdBtn', 'inactive');
+    setButtonState('slowFwdBtn', 'inactive');
+    setButtonState('slowRevBtn', 'inactive');
+    setButtonState('fastRevBtn', 'inactive');
   } else {
-    setButtonState( $('stopBtn'), 'unavail' );
-    setButtonState( $('fastFwdBtn'), 'unavail' );
-    setButtonState( $('slowFwdBtn'), 'unavail' );
-    setButtonState( $('slowRevBtn'), 'unavail' );
-    setButtonState( $('fastRevBtn'), 'unavail' );
+    setButtonState('stopBtn', 'unavail');
+    setButtonState('fastFwdBtn', 'unavail');
+    setButtonState('slowFwdBtn', 'unavail');
+    setButtonState('slowRevBtn', 'unavail');
+    setButtonState('fastRevBtn', 'unavail');
   }
   if ( action ) {
-    streamCmdReq.send( streamCmdParms+"&command="+CMD_PLAY );
+    streamCmdReq.send(streamCmdParms+"&command="+CMD_PLAY);
   }
 }
 
 function streamCmdStop( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'unavail' );
-  setButtonState( $('stopBtn'), 'active' );
-  setButtonState( $('fastFwdBtn'), 'unavail' );
-  setButtonState( $('slowFwdBtn'), 'unavail' );
-  setButtonState( $('slowRevBtn'), 'unavail' );
-  setButtonState( $('fastRevBtn'), 'unavail' );
+  setButtonState('pauseBtn', 'inactive');
+  setButtonState('playBtn', 'unavail');
+  setButtonState('stopBtn', 'active');
+  setButtonState('fastFwdBtn', 'unavail');
+  setButtonState('slowFwdBtn', 'unavail');
+  setButtonState('slowRevBtn', 'unavail');
+  setButtonState('fastRevBtn', 'unavail');
   if ( action ) {
-    streamCmdReq.send( streamCmdParms+"&command="+CMD_STOP );
+    streamCmdReq.send(streamCmdParms+"&command="+CMD_STOP);
   }
-  setButtonState( $('stopBtn'), 'unavail' );
-  setButtonState( $('playBtn'), 'active' );
+  setButtonState('stopBtn', 'unavail');
+  setButtonState('playBtn', 'active');
 }
 
 function streamCmdFastFwd( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('stopBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'inactive' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
-  setButtonState( $('fastRevBtn'), 'inactive' );
+  setButtonState('pauseBtn', 'inactive');
+  setButtonState('playBtn', 'inactive');
+  setButtonState('stopBtn', 'inactive');
+  setButtonState('fastFwdBtn', 'inactive');
+  setButtonState('slowFwdBtn', 'inactive');
+  setButtonState('slowRevBtn', 'inactive');
+  setButtonState('fastRevBtn', 'inactive');
   if ( action ) {
-    streamCmdReq.send( streamCmdParms+"&command="+CMD_FASTFWD );
+    streamCmdReq.send(streamCmdParms+"&command="+CMD_FASTFWD);
   }
 }
 
 function streamCmdSlowFwd( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('stopBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'inactive' );
-  setButtonState( $('slowFwdBtn'), 'active' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
-  setButtonState( $('fastRevBtn'), 'inactive' );
+  setButtonState('pauseBtn', 'inactive');
+  setButtonState('playBtn', 'inactive');
+  setButtonState('stopBtn', 'inactive');
+  setButtonState('fastFwdBtn', 'inactive');
+  setButtonState('slowFwdBtn', 'active');
+  setButtonState('slowRevBtn', 'inactive');
+  setButtonState('fastRevBtn', 'inactive');
   if ( action ) {
-    streamCmdReq.send( streamCmdParms+"&command="+CMD_SLOWFWD );
+    streamCmdReq.send(streamCmdParms+"&command="+CMD_SLOWFWD);
   }
-  setButtonState( $('pauseBtn'), 'active' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
+  setButtonState('pauseBtn', 'active');
+  setButtonState('slowFwdBtn', 'inactive');
 }
 
 function streamCmdSlowRev( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('stopBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'inactive' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'active' );
-  setButtonState( $('fastRevBtn'), 'inactive' );
+  setButtonState('pauseBtn', 'inactive');
+  setButtonState('playBtn', 'inactive');
+  setButtonState('stopBtn', 'inactive');
+  setButtonState('fastFwdBtn', 'inactive');
+  setButtonState('slowFwdBtn', 'inactive');
+  setButtonState('slowRevBtn', 'active');
+  setButtonState('fastRevBtn', 'inactive');
   if ( action ) {
-    streamCmdReq.send( streamCmdParms+"&command="+CMD_SLOWREV );
+    streamCmdReq.send(streamCmdParms+"&command="+CMD_SLOWREV);
   }
-  setButtonState( $('pauseBtn'), 'active' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
+  setButtonState('pauseBtn', 'active');
+  setButtonState('slowRevBtn', 'inactive');
 }
 
 function streamCmdFastRev( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('stopBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'inactive' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
-  setButtonState( $('fastRevBtn'), 'inactive' );
+  setButtonState('pauseBtn', 'inactive');
+  setButtonState('playBtn', 'inactive');
+  setButtonState('stopBtn', 'inactive');
+  setButtonState('fastFwdBtn', 'inactive');
+  setButtonState('slowFwdBtn', 'inactive');
+  setButtonState('slowRevBtn', 'inactive');
+  setButtonState('fastRevBtn', 'inactive');
   if ( action ) {
-    streamCmdReq.send( streamCmdParms+"&command="+CMD_FASTREV );
+    streamCmdReq.send(streamCmdParms+"&command="+CMD_FASTREV);
   }
 }
 

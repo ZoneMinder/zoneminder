@@ -151,7 +151,7 @@ function changeScale() {
   } else {
     eventViewer = $j(vid ? '#videoobj' : '#evtStream');
   }
-  if ( scale == 'auto' ) {
+  if ( scale == '0' || scale == 'auto' ) {
     var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
@@ -163,10 +163,10 @@ function changeScale() {
   }
   if ( !(streamMode == 'stills') ) {
     eventViewer.width(newWidth);
-  } //stills handles its own width
+  } // stills handles its own width
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
-    streamScale(scale == "auto" ? autoScale : scale);
+    streamScale((scale == '0' || scale == 'auto' ) ? autoScale : scale);
     drawProgressBar();
   }
   if ( streamMode == 'stills' ) {
@@ -175,7 +175,7 @@ function changeScale() {
   } else {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
-  if ( scale == "auto" ) {
+  if ( scale = '0' || scale == 'auto' ) {
     Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
   } else {
     Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365});
@@ -209,7 +209,6 @@ function changeRate() {
         }
       }, 500); //500ms is a compromise between smooth reverse and realistic performance
     } // end if vid
-
   } else { // Forward rate
     if ( vid ) {
       vid.playbackRate(rate/100);
@@ -310,7 +309,6 @@ function pauseClicked() {
 }
 
 function streamPause( ) {
-
   $j('#modeValue').html('Paused');
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('playBtn'), 'inactive' );

@@ -645,7 +645,7 @@ function eventCmdQuery() {
   if ( eventCmdTimer ) { // avoid firing another if we are firing one
     eventCmdTimer = clearTimeout(eventCmdTimer);
   }
-  eventCmdReq.send();
+  eventCmdReq.send(eventCmdParms);
 }
 
 if ( monitorType != 'WebSite' ) {
@@ -653,7 +653,13 @@ if ( monitorType != 'WebSite' ) {
   if ( auth_hash ) {
     controlParms += '&auth='+auth_hash;
   }
-  var controlReq = new Request.JSON( {url: monitorUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getControlResponse} );
+  var controlReq = new Request.JSON( {
+    url: monitorUrl,
+    method: 'post',
+    timeout: AJAX_TIMEOUT,
+    link: 'cancel',
+    onSuccess: getControlResponse
+  } );
 }
 
 function getControlResponse(respObj, respText) {
@@ -667,7 +673,6 @@ function getControlResponse(respObj, respText) {
 }
 
 function controlCmd(button) {
-
   control = button.getAttribute('value');
   xtell = button.getAttribute('xtell');
   ytell = button.getAttribute('ytell');

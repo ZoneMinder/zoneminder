@@ -260,10 +260,12 @@ function streamCmdPause( action ) {
   setButtonState('pauseBtn', 'active');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  setButtonState('fastFwdBtn', 'inactive');
-  setButtonState('slowFwdBtn', 'inactive');
-  setButtonState('slowRevBtn', 'inactive');
-  setButtonState('fastRevBtn', 'inactive');
+  if ( monitorStreamReplayBuffer ) {
+    setButtonState('fastFwdBtn', 'inactive');
+    setButtonState('slowFwdBtn', 'inactive');
+    setButtonState('slowRevBtn', 'inactive');
+    setButtonState('fastRevBtn', 'inactive');
+  }
   if ( action ) {
     streamCmdReq.send(streamCmdParms+"&command="+CMD_PAUSE);
   }
@@ -274,16 +276,20 @@ function streamCmdPlay( action ) {
   setButtonState('playBtn', 'active');
   if ( streamStatus.delayed == true ) {
     setButtonState('stopBtn', 'inactive');
-    setButtonState('fastFwdBtn', 'inactive');
-    setButtonState('slowFwdBtn', 'inactive');
-    setButtonState('slowRevBtn', 'inactive');
-    setButtonState('fastRevBtn', 'inactive');
+    if ( monitorStreamReplayBuffer ) {
+      setButtonState('fastFwdBtn', 'inactive');
+      setButtonState('slowFwdBtn', 'inactive');
+      setButtonState('slowRevBtn', 'inactive');
+      setButtonState('fastRevBtn', 'inactive');
+    }
   } else {
     setButtonState('stopBtn', 'unavail');
-    setButtonState('fastFwdBtn', 'unavail');
-    setButtonState('slowFwdBtn', 'unavail');
-    setButtonState('slowRevBtn', 'unavail');
-    setButtonState('fastRevBtn', 'unavail');
+    if ( monitorStreamReplayBuffer ) {
+      setButtonState('fastFwdBtn', 'unavail');
+      setButtonState('slowFwdBtn', 'unavail');
+      setButtonState('slowRevBtn', 'unavail');
+      setButtonState('fastRevBtn', 'unavail');
+    }
   }
   if ( action ) {
     streamCmdReq.send(streamCmdParms+"&command="+CMD_PLAY);
@@ -294,10 +300,12 @@ function streamCmdStop( action ) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'unavail');
   setButtonState('stopBtn', 'active');
-  setButtonState('fastFwdBtn', 'unavail');
-  setButtonState('slowFwdBtn', 'unavail');
-  setButtonState('slowRevBtn', 'unavail');
-  setButtonState('fastRevBtn', 'unavail');
+  if ( monitorStreamReplayBuffer ) {
+    setButtonState('fastFwdBtn', 'unavail');
+    setButtonState('slowFwdBtn', 'unavail');
+    setButtonState('slowRevBtn', 'unavail');
+    setButtonState('fastRevBtn', 'unavail');
+  }
   if ( action ) {
     streamCmdReq.send(streamCmdParms+"&command="+CMD_STOP);
   }
@@ -309,10 +317,12 @@ function streamCmdFastFwd( action ) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  setButtonState('fastFwdBtn', 'inactive');
-  setButtonState('slowFwdBtn', 'inactive');
-  setButtonState('slowRevBtn', 'inactive');
-  setButtonState('fastRevBtn', 'inactive');
+  if ( monitorStreamReplayBuffer ) {
+    setButtonState('fastFwdBtn', 'inactive');
+    setButtonState('slowFwdBtn', 'inactive');
+    setButtonState('slowRevBtn', 'inactive');
+    setButtonState('fastRevBtn', 'inactive');
+  }
   if ( action ) {
     streamCmdReq.send(streamCmdParms+"&command="+CMD_FASTFWD);
   }
@@ -322,40 +332,50 @@ function streamCmdSlowFwd( action ) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  setButtonState('fastFwdBtn', 'inactive');
-  setButtonState('slowFwdBtn', 'active');
-  setButtonState('slowRevBtn', 'inactive');
-  setButtonState('fastRevBtn', 'inactive');
+  if ( monitorStreamReplayBuffer ) {
+    setButtonState('fastFwdBtn', 'inactive');
+    setButtonState('slowFwdBtn', 'active');
+    setButtonState('slowRevBtn', 'inactive');
+    setButtonState('fastRevBtn', 'inactive');
+  }
   if ( action ) {
     streamCmdReq.send(streamCmdParms+"&command="+CMD_SLOWFWD);
   }
   setButtonState('pauseBtn', 'active');
-  setButtonState('slowFwdBtn', 'inactive');
+  if ( monitorStreamReplayBuffer ) {
+    setButtonState('slowFwdBtn', 'inactive');
+  }
 }
 
 function streamCmdSlowRev( action ) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  setButtonState('fastFwdBtn', 'inactive');
-  setButtonState('slowFwdBtn', 'inactive');
-  setButtonState('slowRevBtn', 'active');
-  setButtonState('fastRevBtn', 'inactive');
+  if ( monitorStreamReplayBuffer ) {
+    setButtonState('fastFwdBtn', 'inactive');
+    setButtonState('slowFwdBtn', 'inactive');
+    setButtonState('slowRevBtn', 'active');
+    setButtonState('fastRevBtn', 'inactive');
+  }
   if ( action ) {
     streamCmdReq.send(streamCmdParms+"&command="+CMD_SLOWREV);
   }
   setButtonState('pauseBtn', 'active');
-  setButtonState('slowRevBtn', 'inactive');
+  if ( monitorStreamReplayBuffer ) {
+    setButtonState('slowRevBtn', 'inactive');
+  }
 }
 
 function streamCmdFastRev( action ) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
-  setButtonState('fastFwdBtn', 'inactive');
-  setButtonState('slowFwdBtn', 'inactive');
-  setButtonState('slowRevBtn', 'inactive');
-  setButtonState('fastRevBtn', 'inactive');
+  if ( monitorStreamReplayBuffer ) {
+    setButtonState('fastFwdBtn', 'inactive');
+    setButtonState('slowFwdBtn', 'inactive');
+    setButtonState('slowRevBtn', 'inactive');
+    setButtonState('fastRevBtn', 'inactive');
+  }
   if ( action ) {
     streamCmdReq.send(streamCmdParms+"&command="+CMD_FASTREV);
   }

@@ -436,8 +436,9 @@ function makeLink($url, $label, $condition=1, $options='') {
  */
 function makePopupLink($url, $winName, $winSize, $label, $condition=1, $options='') {
   // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
+  $string = '<a';
   if ( $condition ) {
-    $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false) . '"';
+    $string .= ' class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false) . '"';
     $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
     if ( is_array( $winSize ) ) {
       $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
@@ -449,7 +450,7 @@ function makePopupLink($url, $winName, $winSize, $label, $condition=1, $options=
 
     $string .= ($options ? (' ' . $options ) : '') . '>';
   } else {
-    $string .= '<a>';
+    $string .= '>';
   }
   $string .= $label;
   $string .= '</a>';
@@ -2186,7 +2187,8 @@ function ajaxError($message, $code=HTTP_STATUS_OK) {
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
     $response = array('result'=>'Error', 'message'=>$message);
-    header('Content-type: text/plain');
+    header('Content-type: application/json');
+    #header('Content-type: text/plain');
     exit(jsonEncode($response));
   }
   header("HTTP/1.0 $code $message");
@@ -2202,7 +2204,8 @@ function ajaxResponse($result=false) {
   } else if ( !empty($result) ) {
     $response['message'] = $result;
   }
-  header('Content-type: text/plain');
+  header('Content-type: application/json');
+  #header('Content-type: text/plain');
   exit(jsonEncode($response));
 }
 

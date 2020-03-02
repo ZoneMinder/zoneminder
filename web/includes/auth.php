@@ -278,9 +278,12 @@ if ( ZM_OPT_USE_AUTH ) {
         return;
       }
       $user = $ret[0];
+    } else if ( (ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER']) ) {
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+      // local user, shouldn't affect the global user
+      $user = dbFetchOne($sql, NULL, array($_SERVER['REMOTE_USER']));
     } else {
-    $user = userFromSession();
-
+      $user = userFromSession();
     }
 
     if ( !empty($user) ) {

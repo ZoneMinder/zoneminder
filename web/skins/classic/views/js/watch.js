@@ -409,7 +409,14 @@ if ( monitorType != 'WebSite' ) {
   if ( auth_hash ) {
     statusCmdParms += '&auth='+auth_hash;
   }
-  var statusCmdReq = new Request.JSON( {url: monitorUrl, method: 'get', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse} );
+  var statusCmdReq = new Request.JSON( {
+    url: monitorUrl,
+    method: 'get',
+    data: statusCmdParms,
+    timeout: AJAX_TIMEOUT,
+    link: 'cancel',
+    onSuccess: getStatusCmdResponse
+  } );
   var statusCmdTimer = null;
 }
 
@@ -644,7 +651,7 @@ function eventCmdQuery() {
   if ( eventCmdTimer ) { // avoid firing another if we are firing one
     eventCmdTimer = clearTimeout( eventCmdTimer );
   }
-  eventCmdReq.send();
+  eventCmdReq.send(eventCmdParms);
 }
 
 if ( monitorType != 'WebSite' ) {
@@ -652,7 +659,13 @@ if ( monitorType != 'WebSite' ) {
   if ( auth_hash ) {
     controlParms += '&auth='+auth_hash;
   }
-  var controlReq = new Request.JSON( {url: monitorUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getControlResponse} );
+  var controlReq = new Request.JSON( {
+    url: monitorUrl,
+    method: 'post',
+    timeout: AJAX_TIMEOUT,
+    link: 'cancel',
+    onSuccess: getControlResponse
+  } );
 }
 
 function getControlResponse( respObj, respText ) {

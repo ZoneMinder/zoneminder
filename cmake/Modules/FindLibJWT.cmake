@@ -9,7 +9,7 @@ find_path(LIBJWT_INCLUDE_DIR
   )
 
 find_library(LIBJWT_LIBRARY
-  NAMES jwt libjwt liblibjwt jwt-gnutls libjwt-gnutls liblibjjwt-gnutls
+  NAMES jwt-gnutls libjwt-gnutls liblibjwt-gnutls
   HINTS ${PC_LIBJWT_LIBDIR} ${PC_LIBJWT_LIBRARY_DIR}
   )
 

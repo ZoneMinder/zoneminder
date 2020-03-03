@@ -38,6 +38,7 @@
 #cmakedefine HAVE_LIBGCRYPT 1
 #cmakedefine HAVE_GCRYPT_H 1
 #cmakedefine HAVE_LIBGNUTLS 1
+#cmakedefine HAVE_LIBGNUTLS_OPENSSL 1
 #cmakedefine HAVE_GNUTLS_OPENSSL_H 1
 #cmakedefine HAVE_GNUTLS_GNUTLS_H 1
 #cmakedefine HAVE_LIBMYSQLCLIENT 1

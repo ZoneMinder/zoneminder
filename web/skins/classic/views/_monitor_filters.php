@@ -233,7 +233,7 @@ $html .= '</span>
       }
     }
 
-    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
+    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Id'].' '.$monitors[$i]['Name'];
 
     if ( count($selected_monitor_ids) and ! in_array($monitors[$i]['Id'], $selected_monitor_ids) ) {
       continue;

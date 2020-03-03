@@ -198,7 +198,7 @@ sub getUUID {
     $uuid = $Config{ZM_TELEMETRY_UUID} = $sth->fetchrow_array();
     $sth->finish();
 
-    $sql = q`UPDATE Config set Value = ? WHERE Name = 'ZM_TELEMETRY_UUID'`;
+    $sql = q`UPDATE Config SET Value = ? WHERE Name = 'ZM_TELEMETRY_UUID'`;
     $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
     $res = $sth->execute( "$uuid" ) or die( "Can't execute: ".$sth->errstr() );
     $sth->finish();
@@ -234,9 +234,9 @@ sub countQuery {
   my $dbh = shift;
   my $table = shift;
 
-  my $sql = "SELECT count(*) FROM $table";
-  my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+  my $sql = "SELECT count(*) FROM `$table`";
+  my $sth = $dbh->prepare_cached($sql) or die "Can't prepare '$sql': ".$dbh->errstr();
+  my $res = $sth->execute() or die 'Can\'t execute: '.$sth->errstr();
   my $count = $sth->fetchrow_array();
   $sth->finish();
 
@@ -247,7 +247,7 @@ sub countQuery {
 sub getMonitorRef {
   my $dbh = shift;
 
-  my $sql = 'SELECT Id,Name,Type,Function,Width,Height,Colours,MaxFPS,AlarmMaxFPS FROM Monitors';
+  my $sql = 'SELECT `Id`,`Name`,`Type`,`Function`,`Width`,`Height`,`Colours`,`MaxFPS`,`AlarmMaxFPS` FROM `Monitors`';
   my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
   my $arrayref = $sth->fetchall_arrayref({});

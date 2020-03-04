@@ -99,7 +99,7 @@ function getPopupSize( tag, width, height ) {
 }
 
 function zmWindow(sub_url) {
-  var zmWin = window.open( 'https://www.zoneminder.com'+sub_url, 'ZoneMinder' );
+  var zmWin = window.open( 'https://www.zoneminder.com'+(sub_url?sub_url:''), 'ZoneMinder' );
   if ( ! zmWin ) {
     // if popup blocking is enabled, the popup won't be defined.
     console.log("Please disable popup blocking.");
@@ -168,19 +168,20 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
     if ( !window[fnName] ) {
-      console.error("Nothing found to bind to " + fnName);
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
       return;
     }
     el.onclick = window[fnName].bind(el, el);
   });
 
   // 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
-  document.querySelectorAll("a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
+  document.querySelectorAll("i[data-on-click], a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click");
     if ( !window[fnName] ) {
-      console.error("Nothing found to bind to " + fnName);
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
       return;
     }
+
     el.onclick = function() {
       window[fnName]();
     };
@@ -528,4 +529,18 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   });
   autoScale = closest;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
+}
+
+function setButtonState(element_id, butClass) {
+  var element = $(element_id);
+  if ( element ) {
+    element.className = butClass;
+    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
+      element.disabled = true;
+    } else {
+      element.disabled = false;
+    }
+  } else {
+    console.log('Element was null or not found in setButtonState. id:'+element_id);
+  }
 }

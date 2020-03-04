@@ -1,8 +1,11 @@
 <?php
-if ($_REQUEST['entity'] == 'navBar') {
-  $data  = array();
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
-    $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+if ( $_REQUEST['entity'] == 'navBar' ) {
+  $data = array();
+  if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+    $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+    if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
+      $data['auth'] = $auth_hash;
+    }
   }
   $data['message'] = getNavBarHtml('reload');
   ajaxResponse($data);
@@ -83,8 +86,8 @@ $statusData = array(
       'MinEventId' => array( 'sql' => '(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
       'MaxEventId' => array( 'sql' => '(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
       'TotalEvents' => array( 'sql' => '(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
-      'Status' => array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -s' ),
-      'FrameRate' => array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -f' ),
+      'Status' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -s' ):null),
+      'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -f' ):null),
     ),
   ),
   'events' => array(
@@ -204,6 +207,7 @@ function collectData() {
     $fieldSql = array();
     $joinSql = array();
     $groupSql = array();
+    $values = array();
 
     $elements = &$entitySpec['elements'];
     $lc_elements = array_change_key_case( $elements );
@@ -258,7 +262,6 @@ function collectData() {
       if ( $id && !empty($entitySpec['selector']) ) {
         $index = 0;
         $where = array();
-        $values = array();
         foreach( $entitySpec['selector'] as $selIndex => $selector ) {
           $selectorParamName = ':selector' . $selIndex;
           if ( is_array( $selector ) ) {

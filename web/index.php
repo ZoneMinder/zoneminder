@@ -34,7 +34,7 @@ if ( version_compare(phpversion(), '4.1.0', '<') ) {
 }
 
 // Useful debugging lines for mobile devices
-if ( false ) {
+if ( true ) {
   ob_start();
   phpinfo(INFO_VARIABLES);
   $fp = fopen('/tmp/env.html', 'w+');
@@ -51,6 +51,8 @@ require_once('includes/Storage.php');
 require_once('includes/Event.php');
 require_once('includes/Group.php');
 require_once('includes/Monitor.php');
+
+$Servers = ZM\Server::find();
 
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
@@ -71,7 +73,7 @@ define('ZM_BASE_URL', '');
 
 require_once('includes/functions.php');
 if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
-  ZM\Logger::Debug("OPTIONS Method, only doing CORS");
+  ZM\Logger::Debug('OPTIONS Method, only doing CORS');
   # Add Cross domain access headers
   CORSHeaders();
   return;
@@ -152,10 +154,7 @@ if (
   setcookie('zmCSS', $css, time()+3600*24*30*12*10);
 }
 
-# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
-# Any file/page that sets session variables must re-open it.
 
-require_once('includes/lang.php');
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -186,7 +185,13 @@ if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
 require_once('includes/auth.php');
+
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that sets session variables must re-open it.
 session_write_close();
+
+// lang references $user[Language] so must come after auth
+require_once('includes/lang.php');
 
 foreach ( getSkinIncludes('skin.php') as $includeFile ) {
   require_once $includeFile;
@@ -202,7 +207,8 @@ isset($action) || $action = NULL;
 
 if ( (!$view and !$request) or ($view == 'console') ) {
   // Verify the system, php, and mysql timezones all match
-  date_default_timezone_set(ZM_TIMEZONE);
+  #if ( ZM_TIMEZONE )
+  #date_default_timezone_set(ZM_TIMEZONE);
   check_timezone();
 }
 
@@ -242,6 +248,11 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   ZM\Logger::Debug('Redirecting to login');
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
+  if ( ! $request ) {
+    zm_session_start();
+    $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
+    session_write_close();
+  }
   $request = null;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';

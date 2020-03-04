@@ -15,6 +15,10 @@ class EventsController extends AppController {
    */
   public $components = array('RequestHandler', 'Scaler', 'Image', 'Paginator');
 
+  public function beforeRender() {
+    $this->set($this->Event->enumValues());
+  }
+
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;

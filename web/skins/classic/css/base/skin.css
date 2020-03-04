@@ -701,3 +701,6 @@ li.search-choice {
   margin-bottom:5px;
 }
    
+.form-check-inline {
+  display: inline-block;
+}

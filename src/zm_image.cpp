@@ -167,8 +167,10 @@ Image::Image( const AVFrame *frame ) {
   width = frame->width;
   height = frame->height;
   pixels = width*height;
+
   colours = ZM_COLOUR_RGB32;
   subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+
   size = pixels*colours;
   buffer = 0;
   holdbuffer = 0;

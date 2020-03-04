@@ -46,7 +46,7 @@ function changeSize() {
   // Scale the frame
   monitor_frame = $j('#imageFeed');
   if ( !monitor_frame ) {
-    console.log("Error finding frame");
+    console.log('Error finding frame');
     return;
   }
   if ( width ) {
@@ -92,14 +92,20 @@ function changeScale() {
   // Scale the frame
   monitor_frame = $j('#imageFeed');
   if ( !monitor_frame ) {
-    console.log("Error finding frame");
+    console.log('Error finding frame');
     return;
   }
-  if ( newWidth ) {
-    monitor_frame.css('width', newWidth+'px');
-  }
-  if ( newHeight ) {
-    monitor_frame.css('height', newHeight+'px');
+
+  if ( scale != '0' ) {
+    if ( newWidth ) {
+      monitor_frame.css('width', newWidth+'px');
+    }
+    if ( newHeight ) {
+      monitor_frame.css('height', newHeight+'px');
+    }
+  } else {
+    monitor_frame.css('width', '100%');
+    monitor_frame.css('height', 'auto');
   }
   /*Stream could be an applet so can't use moo tools*/
   var streamImg = $j('#liveStream'+monitorData[monIdx].id)[0];
@@ -110,12 +116,22 @@ function changeScale() {
 
       //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
       src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
-      src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
-      src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);
+      if ( scale != '0' ) {
+        src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
+        src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);
+      } else {
+        src = src.replace(/width=[\.\d]+/i, 'width='+monitorData[monIdx].width);
+        src = src.replace(/height=[\.\d]+/i, 'height='+monitorData[monIdx].height);
+      }
       streamImg.src = src;
     }
-    streamImg.style.width = newWidth + 'px';
-    streamImg.style.height = newHeight + 'px';
+    if ( scale != '0' ) {
+      streamImg.style.width = newWidth+'px';
+      streamImg.style.height = newHeight+'px';
+    } else {
+      streamImg.style.width = '100%';
+      streamImg.style.height = 'auto';
+    }
   } else {
     console.log("Did not find liveStream"+monitorData[monIdx].id);
   }

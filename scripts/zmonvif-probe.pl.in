@@ -41,7 +41,7 @@ my $OPTIONS = 'v';
 
 sub HELP_MESSAGE {
   my ($fh, $pkg, $ver, $opts) = @_;
-  print $fh "Usage: " . __FILE__ . " [-v] probe <soap version>\n";
+  print $fh "Usage: " . __FILE__ . " [-v] probe <soap version> <network interface>\n";
   print $fh "       " . __FILE__ . " [-v] <command> <device URI> <soap version> <user> <password>\n";
   print $fh  <<EOF
   Commands are:
@@ -69,7 +69,7 @@ if ( !getopts($OPTIONS) ) {
 
 my $action = shift;
 
-if(!defined $action) {
+if ( ! defined $action ) {
   HELP_MESSAGE(\*STDOUT);
   exit(1);
 }
@@ -84,7 +84,8 @@ if ( defined $opt_v ) {
 
 if ( $action eq 'probe' ) {
   my $soap_version = shift;
-  ZoneMinder::ONVIF::discover($soap_version);
+	my $net_interface = shift;
+  ZoneMinder::ONVIF::discover($soap_version, $net_interface);
 } else {
 # all other actions need URI and credentials
   my $url_svc_device = shift @ARGV;

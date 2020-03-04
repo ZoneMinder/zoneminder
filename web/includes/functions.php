@@ -36,14 +36,18 @@ function noCacheHeaders() {
 }
 
 function CSPHeaders($view, $nonce) {
-  $additionalScriptSrc = '';
+  global $Servers;
+  if ( ! $Servers )
+    $Servers = ZM\Server::find();
+  
+  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Url();}, $Servers));
   switch ($view) {
     case 'login': {
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
           && ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY) {
-        $additionalScriptSrc = "https://www.google.com";
+        $additionalScriptSrc = ' https://www.google.com';
       }
       // fall through
     }
@@ -92,7 +96,9 @@ function CORSHeaders() {
 
 # The following is left for future reference/use.
     $valid = false;
-    $Servers = ZM\Server::find();
+    global $Servers;
+    if ( ! $Servers )
+      $Servers = ZM\Server::find();
     if ( sizeof($Servers) < 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
@@ -409,6 +415,11 @@ ZM\Logger::Debug("Event type: " . gettype($event));
 
   global $user;
 
+  if ( $event->Archived() ) {
+    ZM\Info('Cannot delete Archived event.');
+    return;
+  } # end if Archived
+
   if ( $user['Events'] == 'Edit' ) {
     $event->delete();
   } # CAN EDIT
@@ -431,9 +442,10 @@ function makeLink($url, $label, $condition=1, $options='') {
  */
 function makePopupLink($url, $winName, $winSize, $label, $condition=1, $options='') {
   // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
-  $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
-  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
+  $string = '<a';
   if ( $condition ) {
+    $string .= ' class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false) . '"';
+    $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
     if ( is_array( $winSize ) ) {
       $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
       $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
@@ -444,7 +456,7 @@ function makePopupLink($url, $winName, $winSize, $label, $condition=1, $options=
 
     $string .= ($options ? (' ' . $options ) : '') . '>';
   } else {
-    $string .= '<a>';
+    $string .= '>';
   }
   $string .= $label;
   $string .= '</a>';
@@ -509,7 +521,8 @@ function htmlOptions($contents, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>';
+      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>
+';
   }
   return $options_html;
 }
@@ -765,7 +778,7 @@ function canStreamIframe() {
 
 function canStreamNative() {
   // Old versions of Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
-  return( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
+  return ( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
 }
 
 function canStreamApplet() {
@@ -897,11 +910,11 @@ function createListThumbnail($event, $overwrite=false) {
   if ( ZM_WEB_LIST_THUMB_WIDTH ) {
     $thumbWidth = ZM_WEB_LIST_THUMB_WIDTH;
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$event['Width'];
-    $thumbHeight = reScale( $event['Height'], $scale );
+    $thumbHeight = reScale($event['Height'], $scale);
   } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
     $thumbHeight = ZM_WEB_LIST_THUMB_HEIGHT;
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$event['Height'];
-    $thumbWidth = reScale( $event['Width'], $scale );
+    $thumbWidth = reScale($event['Width'], $scale);
   } else {
     ZM\Fatal('No thumbnail width or height specified, please check in Options->Web');
   }
@@ -932,17 +945,17 @@ function createVideo($event, $format, $rate, $scale, $overwrite=false) {
     $command .= ' -o';
   $command = escapeshellcmd($command);
   $result = exec($command, $output, $status);
-Logger::Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
+  ZM\Logger::Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
   return $status ? '' : rtrim($result);
 }
 
 # This takes more than one scale amount, so it runs through each and alters dimension.
 # I can't imagine why you would want to do that.
-function reScale( $dimension, $dummy ) {
+function reScale($dimension, $dummy) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
-    $scale = func_get_arg( $i );
-    if ( !empty($scale) && ($scale != 'auto') && ($scale != SCALE_BASE) )
+    $scale = func_get_arg($i);
+    if ( !empty($scale) && ($scale != '0') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
   }
   return $new_dimension;
@@ -1082,15 +1095,10 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $validQueryConjunctionTypes = getFilterQueryConjunctionTypes();
   $StorageArea = NULL;
 
-  $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
-  if ( !isset($terms) ) {
-    $backTrace = debug_backtrace();
-    $file = $backTrace[1]['file'];
-    $line = $backTrace[1]['line'];
-    ZM\Warning("No terms in filter from $file:$line");
-    ZM\Warning(print_r($filter, true));
-  }
-  if ( isset($terms) && count($terms) ) {
+  # It is not possible to pass an empty array in the url, so we have to deal with there not being a terms field.
+  $terms = (isset($filter['Query']) and isset($filter['Query']['terms']) and is_array($filter['Query']['terms'])) ? $filter['Query']['terms'] : array();
+
+  if ( count($terms) ) {
     for ( $i = 0; $i < count($terms); $i++ ) {
 
       $term = $terms[$i];
@@ -1109,6 +1117,9 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($term['attr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($term['attr'])."\"/>\n";
         switch ( $term['attr'] ) {
+					case 'AlarmedZoneId':
+						$term['op'] = 'EXISTS';
+						break;
           case 'MonitorName':
             $filter['sql'] .= 'M.Name';
             break;
@@ -1226,11 +1237,15 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         $valueList = array();
         foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
           switch ( $term['attr'] ) {
+				
+						case 'AlarmedZoneId':
+							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+							break;
             case 'MonitorName':
             case 'Name':
             case 'Cause':
             case 'Notes':
-              if($term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE') {
+              if ( $term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE' ) {
                 $value = '%'.$value.'%';
               }
               $value = dbEscape($value);
@@ -1256,13 +1271,16 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             case 'StartDateTime':
             case 'EndDateTime':
               if ( $value != 'NULL' )
-                $value = '\''.strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) ).'\'';
+                $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
               break;
             case 'Date':
             case 'StartDate':
             case 'EndDate':
-              if ( $value != 'NULL' )
-                $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+							if ( $value == 'CURDATE()' or $value == 'NOW()' ) {
+								$value = 'to_days('.$value.')';
+							} else if ( $value != 'NULL' ) {
+							  $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+							}
               break;
             case 'Time':
             case 'StartTime':
@@ -1297,10 +1315,13 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             break;
           case '=[]' :
           case 'IN' :
-            $filter['sql'] .= ' in ('.join(',', $valueList).')';
+            $filter['sql'] .= ' IN ('.join(',', $valueList).')';
             break;
           case '![]' :
             $filter['sql'] .= ' not in ('.join(',', $valueList).')';
+            break;
+					case 'EXISTS' :
+						$filter['sql'] .= ' EXISTS ' .$value;
             break;
           case 'IS' :
             if ( $value == 'Odd' )  {
@@ -1324,10 +1345,10 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
           $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($term['val']);
           $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($term['val'])."\"/>\n";
         }
-      } // end if ( isset($term['attr']) )
+      } // end if isset($term['attr'])
       if ( isset($term['cbr']) && (string)(int)$term['cbr'] == $term['cbr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($term['cbr']);
-        $filter['sql'] .= ' '.str_repeat(')', $term['cbr']).' ';
+        $filter['sql'] .= ' '.str_repeat(')', $term['cbr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($term['cbr'])."\"/>\n";
       }
     } // end foreach term
@@ -1336,6 +1357,9 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     if ( $saveToSession ) {
       $_SESSION['filter'] = $filter;
     }
+  } else {
+    $filter['query'] = $querySep;
+    #.urlencode('filter[Query][terms]=[]');
   } // end if terms
 
   #if ( 0 ) {
@@ -1348,7 +1372,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     #$filter['sql'] .= ' LIMIT ' . validInt($filter['Query']['limit']);
   #}
   #}
-}
+} // end function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;')
 
 // Please note that the filter is passed in by copy, so you need to use the return value from this function.
 //
@@ -1449,7 +1473,7 @@ function sortHeader($field, $querySep='&amp;') {
   global $view;
   return implode($querySep, array(
     '?view='.$view,
-    'page=1'.$_REQUEST['filter']['query'],
+    'page=1'.(isset($_REQUEST['filter'])?$_REQUEST['filter']['query']:''),
     'sort_field='.$field,
     'sort_asc='.($_REQUEST['sort_field'] == $field ? !$_REQUEST['sort_asc'] : 0),
     'limit='.validInt($_REQUEST['limit']),
@@ -2169,7 +2193,8 @@ function ajaxError($message, $code=HTTP_STATUS_OK) {
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
     $response = array('result'=>'Error', 'message'=>$message);
-    header('Content-type: text/plain');
+    header('Content-type: application/json');
+    #header('Content-type: text/plain');
     exit(jsonEncode($response));
   }
   header("HTTP/1.0 $code $message");
@@ -2185,7 +2210,8 @@ function ajaxResponse($result=false) {
   } else if ( !empty($result) ) {
     $response['message'] = $result;
   }
-  header('Content-type: text/plain');
+  header('Content-type: application/json');
+  #header('Content-type: text/plain');
   exit(jsonEncode($response));
 }
 
@@ -2279,9 +2305,14 @@ function validHtmlStr($input) {
 
 function getStreamHTML($monitor, $options = array()) {
 
-  if ( isset($options['scale']) and $options['scale'] and ($options['scale'] != 100) ) {
-    $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
-    $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+  if ( isset($options['scale']) ) {
+    if ( $options['scale'] and ( $options['scale'] != 'auto' ) ) {
+      $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
+      $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+    } else {
+      $options['width'] = '100%';
+      $options['height'] = 'auto';
+    }
   } else {
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty
@@ -2567,6 +2598,49 @@ function array_recursive_diff($aArray1, $aArray2) {
   }
 
   return $aReturn;
+}
+
+function html_radio($name, $values, $selected=null, $options=array(), $attrs=array()) {
+
+  $html = '';
+  if ( isset($options['default']) and ( $selected == null ) ) {
+    $selected = $options['default'];
+  } # end if
+
+  foreach ( $values as $value => $label ) {
+    if ( isset($options['container']) ) {
+      $html .= $options['container'][0];
+    }
+    $attributes = array_map(
+          function($attr, $value){return $attr.'="'.$value.'"';},
+          array_keys($attrs),
+          array_values($attrs)
+        );
+    $attributes_string = implode(' ', $attributes);
+
+    $html .= sprintf('
+      <div class="form-check%7$s">
+        <label class="form-check-label radio%7$s" for="%1$s%6$s%2$s">
+        <input class="form-check-input" type="radio" name="%1$s" value="%2$s" id="%1$s%6$s%2$s" %4$s%5$s />
+        %3$s</label></div>
+        ', $name, $value, $label, ($value==$selected?' checked="checked"':''),
+        $attributes_string,
+        (isset($options['id']) ? $options['id'] : ''),
+        ( ( (!isset($options['inline'])) or $options['inline'] ) ? '-inline' : '')
+      );
+    if ( isset($options['container']) ) {
+      $html .= $options['container'][1];
+    }
+  } # end foreach value
+  return $html;
+} # end sub html_radio
+
+
+function random_colour() {
+  return '#'.
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT).
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT).
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT);
 }
 
 ?>

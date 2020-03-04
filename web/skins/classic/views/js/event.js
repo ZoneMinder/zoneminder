@@ -57,7 +57,7 @@ function setAlarmCues(data) {
 
 function renderAlarmCues(containerEl) {
   if ( !( cueFrames && cueFrames.length ) ) {
-    console.log("No cue frames for event");
+    console.log('No cue frames for event');
     return;
   }
   // This uses the Delta of the last frame to get the length of the event.  I can't help but wonder though
@@ -130,18 +130,6 @@ function renderAlarmCues(containerEl) {
   return alarmHtml;
 }
 
-function setButtonState( element, butClass ) {
-  if ( element ) {
-    element.className = butClass;
-    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
-      element.disabled = true;
-    } else {
-      element.disabled = false;
-    }
-  } else {
-    console.log("Element was null in setButtonState");
-  }
-}
 
 function changeCodec() {
   location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+$j('#codec').val());
@@ -155,12 +143,12 @@ function changeScale() {
   var eventViewer;
   var alarmCue = $j('div.alarmCue');
   var bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
-  if (streamMode == 'stills') {
+  if ( streamMode == 'stills' ) {
     eventViewer = $j('#eventThumbs');
   } else {
     eventViewer = $j(vid ? '#videoobj' : '#evtStream');
   }
-  if ( scale == "auto" ) {
+  if ( scale == '0' ) {
     var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
@@ -172,10 +160,10 @@ function changeScale() {
   }
   if ( !(streamMode == 'stills') ) {
     eventViewer.width(newWidth);
-  } //stills handles its own width
+  } // stills handles its own width
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
-    streamScale(scale == "auto" ? autoScale : scale);
+    streamScale(scale == '0' ? autoScale : scale);
     drawProgressBar();
   }
   if ( streamMode == 'stills' ) {
@@ -184,7 +172,7 @@ function changeScale() {
   } else {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
-  if ( scale == "auto" ) {
+  if ( scale == '0' ) {
     Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
   } else {
     Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365});
@@ -211,7 +199,7 @@ var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 
 function getCmdResponse( respObj, respText ) {
-  if ( checkStreamForErrors("getCmdResponse", respObj) ) {
+  if ( checkStreamForErrors('getCmdResponse', respObj) ) {
     console.log('Got an error from getCmdResponse');
     console.log(respObj);
     console.log(respText);
@@ -541,9 +529,9 @@ var scroll = null;
 var currEventId = null;
 var CurEventDefVideoPath = null;
 
-function getEventResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getEventResponse", respObj ) ) {
-    console.log("getEventResponse: errors" );
+function getEventResponse(respObj, respText) {
+  if ( checkStreamForErrors('getEventResponse', respObj) ) {
+    console.log('getEventResponse: errors');
     return;
   }
 
@@ -582,7 +570,7 @@ function getEventResponse( respObj, respText ) {
   //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
   if ( vid && CurEventDefVideoPath ) {
     vid.src({type: 'video/mp4', src: CurEventDefVideoPath}); //Currently mp4 is all we use
-    console.log("getEventResponse");
+    console.log('getEventResponse');
     initialAlarmCues(eventData.Id);//ajax and render, new event
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
     CurEventDefVideoPath = null;
@@ -644,7 +632,7 @@ var frameBatch = 40;
 function loadEventThumb( event, frame, loadImage ) {
   var thumbImg = $('eventThumb'+frame.FrameId);
   if ( !thumbImg ) {
-    console.error( "No holder found for frame "+frame.FrameId );
+    console.error('No holder found for frame '+frame.FrameId);
     return;
   }
   var img = new Asset.image( imagePrefix+frame.EventId+"&fid="+frame.FrameId,
@@ -666,31 +654,31 @@ function loadEventThumb( event, frame, loadImage ) {
   );
 }
 
-function loadEventImage( event, frame ) {
-  console.debug( "Loading "+event.Id+"/"+frame.FrameId );
+function loadEventImage(event, frame) {
+  console.debug('Loading '+event.Id+'/'+frame.FrameId);
   var eventImg = $('eventImage');
   var thumbImg = $('eventThumb'+frame.FrameId);
-  if ( eventImg.getProperty( 'src' ) != thumbImg.getProperty( 'src' ) ) {
+  if ( eventImg.getProperty('src') != thumbImg.getProperty('src') ) {
     var eventImagePanel = $('eventImagePanel');
 
-    if ( eventImagePanel.getStyle( 'display' ) != 'none' ) {
-      var lastThumbImg = $('eventThumb'+eventImg.getProperty( 'alt' ));
+    if ( eventImagePanel.getStyle('display') != 'none' ) {
+      var lastThumbImg = $('eventThumb'+eventImg.getProperty('alt'));
       lastThumbImg.removeClass('selected');
-      lastThumbImg.setOpacity( 1.0 );
+      lastThumbImg.setOpacity(1.0);
     }
 
-    $('eventImageBar').setStyle( 'width', event.Width );
-    if ( frame.Type=='Alarm' ) {
-      $('eventImageStats').removeClass( 'hidden' );
+    $('eventImageBar').setStyle('width', event.Width);
+    if ( frame.Type == 'Alarm' ) {
+      $('eventImageStats').removeClass('hidden');
     } else {
-      $('eventImageStats').addClass( 'hidden' );
+      $('eventImageStats').addClass('hidden');
     }
-    thumbImg.addClass( 'selected' );
-    thumbImg.setOpacity( 0.5 );
+    thumbImg.addClass('selected');
+    thumbImg.setOpacity(0.5);
 
-    if ( eventImagePanel.getStyle( 'display' ) == 'none' ) {
-      eventImagePanel.setOpacity( 0 );
-      eventImagePanel.setStyle( 'display', 'inline-block' );
+    if ( eventImagePanel.getStyle('display') == 'none' ) {
+      eventImagePanel.setOpacity(0);
+      eventImagePanel.setStyle('display', 'inline-block');
       new Fx.Tween( eventImagePanel, {duration: 500, transition: Fx.Transitions.Sine} ).start( 'opacity', 0, 1 );
     }
 
@@ -702,29 +690,29 @@ function loadEventImage( event, frame ) {
       'height': $j('#eventThumbs').height() - $j('#eventImageBar').outerHeight(true)-10
     } );
 
-    $('eventImageNo').set( 'text', frame.FrameId );
+    $('eventImageNo').set('text', frame.FrameId);
     $('prevImageBtn').disabled = (frame.FrameId==1);
     $('nextImageBtn').disabled = (frame.FrameId==event.Frames);
   }
 }
 
 function hideEventImageComplete() {
-  var thumbImg = $('eventThumb'+$('eventImage').getProperty( 'alt' ));
+  var thumbImg = $('eventThumb'+$('eventImage').getProperty('alt'));
   if ( thumbImg ) {
     thumbImg.removeClass('selected');
-    thumbImg.setOpacity( 1.0 );
+    thumbImg.setOpacity(1.0);
   } else {
-    console.log("Unable to find eventThumb at " + 'eventThumb'+$('eventImage').getProperty( 'alt' ) );
+    console.log('Unable to find eventThumb at eventThumb'+$('eventImage').getProperty('alt'));
   }
   $('prevImageBtn').disabled = true;
   $('nextImageBtn').disabled = true;
-  $('eventImagePanel').setStyle( 'display', 'none' );
-  $('eventImageStats').addClass( 'hidden' );
+  $('eventImagePanel').setStyle('display', 'none');
+  $('eventImageStats').addClass('hidden');
 }
 
 function hideEventImage() {
-  if ( $('eventImagePanel').getStyle( 'display' ) != 'none' ) {
-    new Fx.Tween( $('eventImagePanel'), {duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete} ).start( 'opacity', 1, 0 );
+  if ( $('eventImagePanel').getStyle('display') != 'none' ) {
+    new Fx.Tween( $('eventImagePanel'), {duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete} ).start('opacity', 1, 0);
   }
 }
 
@@ -751,15 +739,15 @@ function resetEventStills() {
   }
 }
 
-function getFrameResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getFrameResponse", respObj ) ) {
+function getFrameResponse(respObj, respText) {
+  if ( checkStreamForErrors('getFrameResponse', respObj) ) {
     return;
   }
 
   var frame = respObj.frameimage;
 
   if ( !eventData ) {
-    console.error( "No event "+frame.EventId+" found" );
+    console.error('No event '+frame.EventId+' found');
     return;
   }
 
@@ -769,21 +757,21 @@ function getFrameResponse( respObj, respText ) {
 
   eventData['frames'][frame.FrameId] = frame;
 
-  loadEventThumb( eventData, frame, respObj.loopback=="true" );
+  loadEventThumb(eventData, frame, respObj.loopback=="true");
 }
 
 var frameReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse} );
 
 function frameQuery( eventId, frameId, loadImage ) {
   var parms = "view=request&request=status&entity=frameimage&id[0]="+eventId+"&id[1]="+frameId+"&loopback="+loadImage;
-  frameReq.send( parms );
+  frameReq.send(parms);
 }
 
 var currFrameId = null;
 
 function checkFrames( eventId, frameId, loadImage ) {
   if ( !eventData ) {
-    console.error( "No event "+eventId+" found" );
+    console.error("No event "+eventId+" found");
     return;
   }
 
@@ -804,29 +792,30 @@ function checkFrames( eventId, frameId, loadImage ) {
 
   for ( var fid = loFid; fid <= hiFid; fid++ ) {
     if ( !$('eventThumb'+fid) ) {
-      var img = new Element( 'img', {'id': 'eventThumb'+fid, 'src': 'graphics/transparent.png', 'alt': fid, 'class': 'placeholder'} );
-      img.addEvent( 'click', function() {
-        eventData['frames'][fid] = null; checkFrames( eventId, fid );
-      } );
-      frameQuery( eventId, fid, loadImage && (fid == frameId) );
-      var imgs = $('eventThumbs').getElements( 'img' );
+      var img = new Element('img', {'id': 'eventThumb'+fid, 'src': 'graphics/transparent.png', 'alt': fid, 'class': 'placeholder'});
+      img.addEvent('click', function() {
+        eventData['frames'][fid] = null;
+        checkFrames(eventId, fid);
+      });
+      frameQuery(eventId, fid, loadImage && (fid == frameId));
+      var imgs = $('eventThumbs').getElements('img');
       var injected = false;
       if ( fid < imgs.length ) {
-        img.inject( imgs[fid-1], 'before' );
+        img.inject(imgs[fid-1], 'before');
         injected = true;
       } else {
         injected = imgs.some(
             function( thumbImg, index ) {
-              if ( parseInt(img.getProperty( 'alt' )) < parseInt(thumbImg.getProperty( 'alt' )) ) {
-                img.inject( thumbImg, 'before' );
-                return ( true );
+              if ( parseInt(img.getProperty('alt')) < parseInt(thumbImg.getProperty('alt')) ) {
+                img.inject(thumbImg, 'before');
+                return true;
               }
-              return ( false );
+              return false;
             }
         );
       }
       if ( !injected ) {
-        img.inject( $('eventThumbs') );
+        img.inject($('eventThumbs'));
       }
       var scale = parseInt(img.getStyle('height'));
       img.setStyles( {
@@ -923,7 +912,7 @@ function deleteEvent() {
       getActResponse(respObj, respText);
       // We must wait for the deletion to happen before navigating to the next
       // event or this request will be cancelled.
-      streamNext( true );
+      streamNext(true);
     },
   });
   deleteReq.send("view=request&request=event&id="+eventData.Id+"&action=delete");
@@ -931,43 +920,43 @@ function deleteEvent() {
 
 function renameEvent() {
   var newName = $('eventName').get('value');
-  actQuery( 'rename', {eventName: newName} );
+  actQuery('rename', {eventName: newName});
 }
 
 function editEvent() {
-  createPopup( '?view=eventdetail&eid='+eventData.Id, 'zmEventDetail', 'eventdetail' );
+  createPopup('?view=eventdetail&eid='+eventData.Id, 'zmEventDetail', 'eventdetail');
 }
 
 function exportEvent() {
-  createPopup( '?view=export&eid='+eventData.Id, 'zmExport', 'export' );
+  createPopup('?view=export&eid='+eventData.Id, 'zmExport', 'export');
 }
 
 function archiveEvent() {
-  actQuery( 'archive' );
+  actQuery('archive');
 }
 
 function unarchiveEvent() {
-  actQuery( 'unarchive' );
+  actQuery('unarchive');
 }
 
 function showEventFrames() {
-  createPopup( '?view=frames&eid='+eventData.Id, 'zmFrames', 'frames', WEB_LIST_THUMB_WIDTH, WEB_LIST_THUMB_HEIGHT );
+  createPopup('?view=frames&eid='+eventData.Id, 'zmFrames', 'frames', WEB_LIST_THUMB_WIDTH, WEB_LIST_THUMB_HEIGHT);
 }
 
 function showStream() {
-  $('eventStills').addClass( 'hidden' );
-  $('eventVideo').removeClass( 'hidden' );
+  $('eventStills').addClass('hidden');
+  $('eventVideo').removeClass('hidden');
 
-  $('stillsEvent').removeClass( 'hidden' );
-  $('streamEvent').addClass( 'hidden' );
+  $('stillsEvent').removeClass('hidden');
+  $('streamEvent').addClass('hidden');
 
   streamMode = 'video';
   if (scale == 'auto') changeScale();
 }
 
 function showStills() {
-  $('eventStills').removeClass( 'hidden' );
-  $('eventVideo').addClass( 'hidden' );
+  $('eventStills').removeClass('hidden');
+  $('eventVideo').addClass('hidden');
 
   if (vid && ( vid.paused != true ) ) {
     // Pause the video
@@ -978,14 +967,14 @@ function showStills() {
     //playButton.innerHTML = "Play";
   }
 
-  $('stillsEvent').addClass( 'hidden' );
-  $('streamEvent').removeClass( 'hidden' );
+  $('stillsEvent').addClass('hidden');
+  $('streamEvent').removeClass('hidden');
 
   streamMode = 'stills';
 
   pauseClicked();
   if ( !scroll ) {
-    scroll = new Fx.Scroll( 'eventThumbs', {
+    scroll = new Fx.Scroll('eventThumbs', {
       wait: false,
       duration: 500,
       offset: {'x': 0, 'y': 0},
@@ -999,17 +988,17 @@ function showStills() {
 
 function showFrameStats() {
   var fid = $('eventImageNo').get('text');
-  createPopup( '?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height );
+  createPopup('?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height);
 }
 
 function videoEvent() {
-  createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
+  createPopup('?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height);
 }
 
 // Called on each event load because each event can be a different width
 function drawProgressBar() {
   var barWidth = $j('#evtStream').width();
-  $j('#progressBar').css( 'width', barWidth );
+  $j('#progressBar').css('width', barWidth);
 }
 
 // Shows current stream progress.
@@ -1032,8 +1021,8 @@ function progressBarNav() {
 
 function handleClick( event ) {
   var target = event.target;
-  if (vid) {
-    if (target.id != 'videoobj') return; //ignore clicks on control bar
+  if ( vid ) {
+    if (target.id != 'videoobj') return; // ignore clicks on control bar
     var x = event.offsetX;
     var y = event.offsetY;
   } else {
@@ -1041,9 +1030,9 @@ function handleClick( event ) {
     var y = event.page.y - $(target).getTop();
   }
 
-  if (event.shift || event.shiftKey) {//handle both jquery and mootools
+  if ( event.shift || event.shiftKey ) { // handle both jquery and mootools
     streamPan(x, y);
-  } else if (vid && event.ctrlKey) { //allow zoom out by control click.  useful in fullscreen
+  } else if ( vid && event.ctrlKey ) { // allow zoom out by control click.  useful in fullscreen
     vjsPanZoom('zoomOut', x, y);
   } else {
     streamZoomIn(x, y);
@@ -1072,7 +1061,7 @@ function initPage() {
     }
   } else {
     progressBarNav();
-    streamCmdTimer = streamQuery.delay( 250 );
+    streamCmdTimer = streamQuery.delay(250);
     if ( canStreamNative ) {
       var imageFeed = $('imageFeed');
       if ( !imageFeed ) {
@@ -1082,16 +1071,16 @@ function initPage() {
         if ( !streamImg ) {
           streamImg = imageFeed.getElement('object');
         }
-        $(streamImg).addEvent( 'click', function( event ) {
-          handleClick( event );
-        } );
+        $(streamImg).addEvent('click', function(event) {
+          handleClick(event);
+        });
       }
     }
   }
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
-  if (scale == "auto") changeScale();
+  if ( scale == '0' ) changeScale();
 }
 
 // Kick everything off
-window.addEventListener( 'DOMContentLoaded', initPage );
+window.addEventListener('DOMContentLoaded', initPage);

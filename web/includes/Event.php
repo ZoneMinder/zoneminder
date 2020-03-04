@@ -47,14 +47,18 @@ class Event extends ZM_Object {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
+  public static function clear_cache() {
+    return ZM_Object::_clear_cache(get_class());
+  }
+
   public function Storage( $new = null ) {
     if ( $new ) {
       $this->{'Storage'} = $new;
     }
-    if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) ) {
+    if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
       if ( isset($this->{'StorageId'}) and $this->{'StorageId'} )
         $this->{'Storage'} = Storage::find_one(array('Id'=>$this->{'StorageId'}));
-      if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) )
+      if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) )
         $this->{'Storage'} = new Storage(NULL);
     }
     return $this->{'Storage'};
@@ -64,10 +68,10 @@ class Event extends ZM_Object {
     if ( $new ) {
       $this->{'SecondaryStorage'} = $new;
     }
-    if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) ) {
+    if ( ! ( property_exists($this, 'SecondaryStorage') and $this->{'SecondaryStorage'} ) ) {
       if ( isset($this->{'SecondaryStorageId'}) and $this->{'SecondaryStorageId'} )
         $this->{'SecondaryStorage'} = Storage::find_one(array('Id'=>$this->{'SecondaryStorageId'}));
-      if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) )
+      if ( ! ( property_exists($this, 'SecondaryStorage') and $this->{'SecondaryStorage'} ) )
         $this->{'SecondaryStorage'} = new Storage(NULL);
     }
     return $this->{'SecondaryStorage'};
@@ -262,7 +266,7 @@ class Event extends ZM_Object {
     if ( is_null($new) or ( $new != '' ) ) {
       $this->{'DiskSpace'} = $new;
     }
-    if ( (!array_key_exists('DiskSpace',$this)) or (null === $this->{'DiskSpace'}) ) {
+    if ( (!property_exists($this, 'DiskSpace')) or (null === $this->{'DiskSpace'}) ) {
       $this->{'DiskSpace'} = folder_size($this->Path());
       dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
     }
@@ -298,7 +302,7 @@ class Event extends ZM_Object {
   } // end function createListThumbnail
 
   function ThumbnailWidth( ) {
-    if ( ! ( array_key_exists('ThumbnailWidth', $this) ) ) {
+    if ( ! ( property_exists($this, 'ThumbnailWidth') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
         $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
@@ -315,7 +319,7 @@ class Event extends ZM_Object {
   } // end function ThumbnailWidth
 
   function ThumbnailHeight( ) {
-    if ( ! ( array_key_exists('ThumbnailHeight', $this) ) ) {
+    if ( ! ( property_exists($this, 'ThumbnailHeight') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
         $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
@@ -413,31 +417,27 @@ class Event extends ZM_Object {
           }
         } // end if capture file exists
       } // end if analyze file exists
-    }
+    } // end if frame or snapshot
 
     $captPath = $eventPath.'/'.$captImage;
     if ( ! file_exists($captPath) ) {
       Error("Capture file does not exist at $captPath");
     }
     
-    //echo "CI:$captImage, CP:$captPath, TCP:$captPath<br>";
-
     $analImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
     $analPath = $eventPath.'/'.$analImage;
-
-    //echo "AI:$analImage, AP:$analPath, TAP:$analPath<br>";
 
     $alarmFrame = $frame['Type']=='Alarm';
 
     $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
     $isAnalImage = $hasAnalImage && !$captureOnly;
 
-    if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists('imagecreatefromjpeg') ) {
+    if ( !ZM_WEB_SCALE_THUMBS || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
       $imagePath = $thumbPath = $isAnalImage ? $analPath : $captPath;
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;
     } else {
-      if ( version_compare( phpversion(), '4.3.10', '>=') )
+      if ( version_compare(phpversion(), '4.3.10', '>=') )
         $fraction = sprintf('%.3F', $scale/SCALE_BASE);
       else
         $fraction = sprintf('%.3f', $scale/SCALE_BASE);
@@ -455,19 +455,19 @@ class Event extends ZM_Object {
       }
 
       $thumbFile = $thumbPath;
-      if ( $overwrite || ! file_exists( $thumbFile ) || ! filesize( $thumbFile ) ) {
+      if ( $overwrite || ! file_exists($thumbFile) || ! filesize($thumbFile) ) {
         // Get new dimensions
-        list( $imageWidth, $imageHeight ) = getimagesize( $imagePath );
+        list( $imageWidth, $imageHeight ) = getimagesize($imagePath);
         $thumbWidth = $imageWidth * $fraction;
         $thumbHeight = $imageHeight * $fraction;
 
         // Resample
-        $thumbImage = imagecreatetruecolor( $thumbWidth, $thumbHeight );
-        $image = imagecreatefromjpeg( $imagePath );
-        imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
+        $thumbImage = imagecreatetruecolor($thumbWidth, $thumbHeight);
+        $image = imagecreatefromjpeg($imagePath);
+        imagecopyresampled($thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight);
 
-        if ( !imagejpeg( $thumbImage, $thumbPath ) )
-          Error( "Can't create thumbnail '$thumbPath'" );
+        if ( !imagejpeg($thumbImage, $thumbPath) )
+          Error("Can't create thumbnail '$thumbPath'");
       }
     } # Create thumbnails
 
@@ -507,11 +507,12 @@ class Event extends ZM_Object {
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
-        } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-          $url = '?user='.$_SESSION['username'];
-          $url = '?pass='.$_SESSION['password'];
-        } elseif ( ZM_AUTH_RELAY == 'none' ) {
-          $url = '?user='.$_SESSION['username'];
+        } else if ( ZM_AUTH_RELAY == 'plain' ) {
+          $url .= '?user='.$_SESSION['username'];
+          $url .= '?pass='.$_SESSION['password'];
+        } else {
+          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
+          return;
         }
       }
       Logger::Debug("sending command to $url");
@@ -550,15 +551,16 @@ class Event extends ZM_Object {
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
-      $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
+      $url = $Server->UrlToApi().'/events/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
+          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
         } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-          $url = '?user='.$_SESSION['username'];
-          $url = '?pass='.$_SESSION['password'];
-        } elseif ( ZM_AUTH_RELAY == 'none' ) {
-          $url = '?user='.$_SESSION['username'];
+          $url .= '?user='.$_SESSION['username'];
+          $url .= '?pass='.$_SESSION['password'];
+        } else {
+          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
+          return;
         }
       }
       Logger::Debug("sending command to $url");

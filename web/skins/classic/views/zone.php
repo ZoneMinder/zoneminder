@@ -69,6 +69,7 @@ if ( !isset($newZone) ) {
       'Id' => 0,
       'Name' => translate('New'),
       'Type'  =>  'Active',
+			'Units'	=>	'Pixels',
       'MonitorId' => $monitor->Id(),
       'NumCoords' => 4,
       'Coords' => sprintf('%d,%d %d,%d, %d,%d %d,%d', $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY),

@@ -58,6 +58,13 @@ class Storage extends ZM_Object {
     return $this->{'Events'};
   }
 
+	public function EventCount() {
+    if ( (! property_exists($this, 'EventCount')) or (!$this->{'EventCount'}) ) {
+      $this->{'EventCount'} = dbFetchOne('SELECT COUNT(*) AS EventCount FROM Events WHERE StorageId=?', 'EventCount', array($this->Id()));
+		}
+		return $this->{'EventCount'};
+	}
+
   public function disk_usage_percent() {
     $path = $this->Path();
     if ( ! $path ) {
@@ -80,7 +87,7 @@ class Storage extends ZM_Object {
   }
 
   public function disk_total_space() {
-    if ( !array_key_exists('disk_total_space', $this) ) {
+    if ( !property_exists($this, 'disk_total_space') ) {
       $path = $this->Path();
       if ( file_exists($path) ) {
         $this->{'disk_total_space'} = disk_total_space($path);
@@ -94,7 +101,7 @@ class Storage extends ZM_Object {
 
   public function disk_used_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( ( !array_key_exists('disk_used_space', $this)) or !$this->{'disk_used_space'} ) {
+    if ( ( !property_exists($this, 'disk_used_space')) or !$this->{'disk_used_space'} ) {
       if ( $this->{'Type'} == 's3fs' ) {
         $this->{'disk_used_space'} = $this->event_disk_space();
       } else { 
@@ -112,17 +119,18 @@ class Storage extends ZM_Object {
 
   public function event_disk_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( (! array_key_exists('DiskSpace', $this)) or (!$this->{'DiskSpace'}) ) {
+    if ( (! property_exists($this, 'DiskSpace')) or (!$this->{'DiskSpace'}) ) {
       $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
 
       do {
-        # Do in batches of 1000 so as to not useup all ram
+        # Do in batches of 1000 so as to not useup all ram, Event will do caching though...
         $events = Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null), array('limit'=>1000));
         foreach ( $events as $Event ) {
           $Event->Storage($this); // Prevent further db hit
           # DiskSpace will update the event
           $used += $Event->DiskSpace();
         } #end foreach
+        Event::clear_cache();
       } while ( count($events) == 1000 );
       $this->{'DiskSpace'} = $used;
     }
@@ -130,8 +138,8 @@ class Storage extends ZM_Object {
   } // end function event_disk_space
 
   public function Server() {
-    if ( ! array_key_exists('Server',$this) ) {
-      if ( array_key_exists('ServerId', $this) ) {
+    if ( ! property_exists($this, 'Server') ) {
+      if ( property_exists($this, 'ServerId') ) {
         $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
 
         if ( !$this->{'Server'} ) {

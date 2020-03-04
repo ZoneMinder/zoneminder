@@ -156,6 +156,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
   if ( options.mTerminalLevel != NOOPT )
     tempTerminalLevel = options.mTerminalLevel;
 
+  // DEBUG1 == 1.  So >= DEBUG1, we set to DEBUG9?! Why?
   if ( options.mDatabaseLevel != NOOPT )
     tempDatabaseLevel = options.mDatabaseLevel;
   else
@@ -359,7 +360,7 @@ Logger::Level Logger::databaseLevel(Logger::Level databaseLevel) {
   if ( databaseLevel > NOOPT ) {
     databaseLevel = limit(databaseLevel);
     if ( mDatabaseLevel != databaseLevel ) {
-      if ( databaseLevel > NOLOG && mDatabaseLevel <= NOLOG ) {
+      if ( (databaseLevel > NOLOG) && (mDatabaseLevel <= NOLOG) ) { // <= NOLOG would be NOOPT
         if ( !zmDbConnect() ) {
           databaseLevel = NOLOG;
         }
@@ -535,8 +536,11 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     fflush(stdout);
   }
   if ( level <= mFileLevel ) {
-    if ( !mLogFileFP )
+    if ( !mLogFileFP ) {
+      log_mutex.unlock();
       openFile();
+      log_mutex.lock();
+    }
     if ( mLogFileFP ) {
       fputs(logString, mLogFileFP);
       if ( mFlush )

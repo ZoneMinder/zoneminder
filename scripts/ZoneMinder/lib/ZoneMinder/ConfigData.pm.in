@@ -785,7 +785,7 @@ our @options = (
   },
   {
     name        => 'ZM_TIMEZONE',
-    default     =>  'UTC',
+    default     =>  '',
     description => 'The timezone that php should use.',
     help        => q`
       This should be set equal to the system timezone of the mysql server`,
@@ -1127,7 +1127,7 @@ our @options = (
   },
   {
     name        => 'ZM_LOG_LEVEL_FILE',
-    default     => '-5',
+    default     => '1',
     description => 'Save logging output to component files',
     help        => q`
       ZoneMinder logging is now more integrated between
@@ -1312,7 +1312,7 @@ our @options = (
   },
   {
     name        => 'ZM_LOG_DEBUG_FILE',
-    default     => '@ZM_LOGDIR@/zm_debug.log+',
+    default     => '',
     description => 'Where extra debug is output to',
     help        => q`
       This option allows you to specify a different target for debug
@@ -2213,7 +2213,7 @@ our @options = (
       that match the appropriate filters will be sent to.
       `,
     type        => $types{email},
-    category    => 'mail',
+    category    => 'hidden',
   },
   {
     name        => 'ZM_EMAIL_TEXT',
@@ -2253,7 +2253,7 @@ our @options = (
       sent for any events that match the appropriate filters.
       `,
     type        => $types{string},
-    category    => 'mail',
+    category    => 'hidden',
   },
   {
     name        => 'ZM_EMAIL_BODY',
@@ -2280,7 +2280,7 @@ our @options = (
       sent for any events that match the appropriate filters.
       `,
     type        => $types{text},
-    category    => 'mail',
+    category    => 'hidden',
   },
   {
     name        => 'ZM_OPT_MESSAGE',
@@ -2468,7 +2468,7 @@ our @options = (
   },
   {
     name        => 'ZM_WATCH_MAX_DELAY',
-    default     => '5',
+    default     => '45',
     description => 'The maximum delay allowed since the last captured image',
     help        => q`
       The zmwatch daemon checks the image capture performance of the

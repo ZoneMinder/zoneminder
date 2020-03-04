@@ -256,6 +256,20 @@ Event::~Event() {
   if ( frame_data.size() )
     WriteDbFrames();
 
+  // update frame deltas to refer to video start time which may be a few frames before event start
+  struct timeval video_offset = {0};
+  struct timeval video_start_time  = monitor->GetVideoWriterStartTime();
+  if (video_start_time.tv_sec > 0) {
+     timersub(&video_start_time, &start_time, &video_offset);
+     Debug(1, "Updating frames delta by %d sec %d usec",
+           video_offset.tv_sec, video_offset.tv_usec);
+     UpdateFramesDelta(video_offset.tv_sec + video_offset.tv_usec*1e-6);
+  }
+  else {
+     Debug(3, "Video start_time %d sec %d usec not valid -- frame deltas not updated",
+           video_start_time.tv_sec, video_start_time.tv_usec);
+  }
+
   // Should not be static because we might be multi-threaded
   char sql[ZM_SQL_LGE_BUFSIZ];
   snprintf(sql, sizeof(sql), 
@@ -553,6 +567,27 @@ void Event::WriteDbFrames() {
   }
   db_mutex.unlock();
 } // end void Event::WriteDbFrames()
+
+// Subtract an offset time from frames deltas to match with video start time
+void Event::UpdateFramesDelta(double offset) {
+  char sql[ZM_SQL_MED_BUFSIZ];
+
+  if (offset == 0.0) return;
+  // the table is set to auto update timestamp so we force it to keep current value
+  snprintf(sql, sizeof(sql),
+    "UPDATE Frames SET timestamp = timestamp, Delta = Delta - (%.4f) WHERE EventId = %" PRIu64,
+    offset, id);
+
+  db_mutex.lock();
+  if (mysql_query(&dbconn, sql)) {
+    db_mutex.unlock();
+    Error("Can't update frames: %s, sql was %s", mysql_error(&dbconn), sql);
+    return;
+  }
+  db_mutex.unlock();
+  Info("Updating frames delta by %0.2f sec to match video file", offset);
+}
+
 
 void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image) {
   if ( !timestamp.tv_sec ) {

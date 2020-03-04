@@ -41,7 +41,7 @@ function buildLogQuery($action) {
   }
 
   foreach ( $filter as $field=>$value ) {
-    if ( ! in_array($field, $filterFields) ) {
+    if ( !in_array($field, $filterFields) ) {
       ZM\Error("'$field' is not in valid filter fields " . print_r($filterField,true));
       continue;
     }
@@ -58,7 +58,7 @@ function buildLogQuery($action) {
   $sql .= ' ORDER BY '.$sortField.' '.$sortOrder.' LIMIT '.$limit;
 
   return array('sql'=>$sql, 'values'=>$values);
-}
+} # function buildLogQuery($action)
 
 switch ( $_REQUEST['task'] ) {
   case 'create' :
@@ -70,14 +70,16 @@ switch ( $_REQUEST['task'] ) {
       $string = $_POST['message'];
 
       $file = !empty($_POST['file']) ? preg_replace( '/\w+:\/\/[\w.:]+\//', '', $_POST['file'] ) : '';
-      if ( !empty( $_POST['line'] ) )
+      if ( !empty( $_POST['line'] ) ) {
         $line = validInt($_POST['line']);
-      else
+      } else {
         $line = NULL;
+      }
 
       $levels = array_flip(ZM\Logger::$codes);
-      if ( !isset($levels[$_POST['level']]) )
+      if ( !isset($levels[$_POST['level']]) ) {
         ZM\Panic('Unexpected logger level '.$_POST['level']);
+      }
       $level = $levels[$_POST['level']];
       ZM\Logger::fetch()->logPrint($level, $string, $file, $line);
     }
@@ -139,6 +141,10 @@ switch ( $_REQUEST['task'] ) {
         }
       }
       $logs[] = $log;
+    }
+
+    foreach ( $options as $field => $values ) {
+      asort($options[$field]);
     }
 
     $available = count($logs);

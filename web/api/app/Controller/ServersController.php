@@ -17,12 +17,17 @@ class ServersController extends AppController {
 
   public function beforeFilter() {
     parent::beforeFilter();
+    /*
+     * A user needs the server data to calculate how to view a monitor, and there really isn't anything sensitive in this data.
+     * So it has been decided for now to just let everyone read it.
+     
     global $user;
     $canView = (!$user) || ($user['System'] != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+     */
   }
 
 /**
@@ -34,7 +39,7 @@ class ServersController extends AppController {
     $this->Server->recursive = 0;
     
     $options = '';
-    $servers = $this->Server->find('all',$options);
+    $servers = $this->Server->find('all', $options);
 		$this->set(array(
 					'servers' => $servers,
 					'_serialize' => array('servers')
@@ -50,13 +55,13 @@ class ServersController extends AppController {
  */
   public function view($id = null) {
     $this->Server->recursive = 0;
-    if (!$this->Server->exists($id)) {
+    if ( !$this->Server->exists($id) ) {
       throw new NotFoundException(__('Invalid server'));
     }
     $restricted = '';
     
     $options = array('conditions' => array( 
-          array('Server.' . $this->Server->primaryKey => $id),
+          array('Server.'.$this->Server->primaryKey => $id),
           $restricted
           )
         );

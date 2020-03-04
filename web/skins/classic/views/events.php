@@ -191,21 +191,25 @@ while ( $event_row = dbFetchNext($results) ) {
 ?>
             <tr<?php if ($event->Archived()) echo ' class="archived"' ?>>
               <td class="colId"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$event->Id().($event->Archived()?'*':'') ?></a></td>
-              <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
+              <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a><br/>
+<?php
+							if ( $event->Emailed() )
+								echo 'Emailed ';
+?>
+							</td>
               <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
               <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
 							<?php
 # display notes as small text
-							if ($event->Notes()) {
+							if ( $event->Notes() ) {
 # if notes include detection objects, then link it to objdetect.jpg
-								if (strpos($event->Notes(),'detected:')!== false){
+								if ( strpos($event->Notes(), 'detected:') !== false ) {
 # make a link
 									echo makePopupLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', 'zmImage',
 											array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)),
-											"<div class=\"small text-nowrap text-muted\"><u>".$event->Notes()."</u></div>");
-								}
-								elseif ($event->Notes() != 'Forced Web: ') {
-									echo "<br/><div class=\"small text-nowrap text-muted\">".$event->Notes()."</div>";
+											'<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
+								} else if ( $event->Notes() != 'Forced Web: ' ) {
+									echo '<br/><div class="small text-nowrap text-muted">'.$event->Notes().'</div>';
 								}
 							}
 ?>
@@ -251,11 +255,10 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   }
   if ( ZM_WEB_LIST_THUMBS ) {
-#Logger::Debug(print_r($thumbData,true));
       echo '<td class="colThumbnail">';
-      $imgSrc = $event->getThumbnailSrc();
+      $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
       $streamSrc = $event->getStreamSrc(array(
-        'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single'));
+        'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single'), '&amp;');
 
       $imgHtml = '<img id="thumbnail'.$event->Id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($event->ThumbnailWidth()) .'px;height:'. validInt($event->ThumbnailHeight()).'px;" stream_src="'.$streamSrc.'" still_src="'.$imgSrc.'"/>';
       echo '<a href="?view=event&amp;eid='. $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$imgHtml.'</a>';

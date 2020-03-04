@@ -57,9 +57,6 @@ if ( isset($_REQUEST['scale']) ) {
   $scale = $_COOKIE['zmMontageScale'];
 }
 
-if ( ! $scale ) 
-  $scale = 100;
-
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
 foreach ( $layouts as $l ) {
@@ -107,7 +104,7 @@ if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
 else
   $options['height'] = '';
 
-if ( $scale ) 
+#if ( $scale ) 
   $options['scale'] = $scale;
 
 session_write_close();
@@ -123,7 +120,7 @@ foreach( $displayMonitors as &$row ) {
     continue;
 
   $row['Scale'] = $scale;
-  $row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+  $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
 
   if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
     $showControl = true;
@@ -152,11 +149,11 @@ if ( $showControl ) {
 }
 if ( $showZones ) {
 ?>
-        <a id="ShowZones" href="?view=montage&showZones=0">Hide Zones</a>
+        <a id="ShowZones" href="?view=montage&amp;showZones=0">Hide Zones</a>
 <?php
 } else {
 ?>
-        <a id="ShowZones" href="?view=montage&showZones=1">Show Zones</a>
+        <a id="ShowZones" href="?view=montage&amp;showZones=1">Show Zones</a>
 <?php
 }
 ?>
@@ -189,7 +186,7 @@ if ( $showZones ) {
           <input type="hidden" name="Positions"/>
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
           <span id="SaveLayout" style="display:none;">
-            <input type="text" name="Name" placeholder="Enter new name for layout if desired" />
+            <input type="text" name="Name" placeholder="Enter new name for layout if desired"/>
             <button type="button" value="Save" data-on-click-this="save_layout"><?php echo translate('Save') ?></button>
             <button type="button" value="Cancel" data-on-click-this="cancel_layout"><?php echo translate('Cancel') ?></button>
           </span>
@@ -203,7 +200,12 @@ if ( $showZones ) {
 foreach ( $monitors as $monitor ) {
   $connkey = $monitor->connKey(); // Minor hack
 ?>
-        <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>" style="<?php echo $options['width'] ? 'width:'.$options['width'].';':''?>">
+        <div
+          id="monitorFrame<?php echo $monitor->Id() ?>"
+          class="monitorFrame"
+          title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>"
+          style="<?php echo $options['width'] ? 'width:'.$options['width'].';':''?>"
+        >
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div
               id="imageFeed<?php echo $monitor->Id() ?>"

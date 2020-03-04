@@ -138,9 +138,9 @@ set(ZM_TMPDIR "/var/tmp/zm" CACHE PATH
     "Location of temporary files, default: /tmp/zm")
 set(ZM_LOGDIR "/var/log/zm" CACHE PATH 
     "Location of generated log files, default: /var/log/zm")
-set(ZM_WEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/www" CACHE PATH 
+set(ZM_WEBDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/www" CACHE PATH 
     "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
-set(ZM_CGIDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH 
+set(ZM_CGIDIR "${CMAKE_INSTALL_FULL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH 
     "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
 set(ZM_CACHEDIR "/var/cache/zoneminder" CACHE PATH 
     "Location of the web server cache busting files, default: /var/cache/zoneminder")

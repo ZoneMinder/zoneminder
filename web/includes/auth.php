@@ -123,12 +123,16 @@ function validateToken($token, $allowed_token_type='access') {
 
   // convert from stdclass to array
   $jwt_payload = json_decode(json_encode($decoded_token), true);
-
-  $type = $jwt_payload['type'];
-  if ( $type != $allowed_token_type ) {
-    ZM\Error("Token type mismatch. Expected $allowed_token_type but got $type");
-    return array(false, 'Incorrect token type');
+  if ($allowed_token_type != 'any') {
+    $type = $jwt_payload['type'];
+    if ( $type != $allowed_token_type ) {
+      ZM\Error("Token type mismatch. Expected $allowed_token_type but got $type");
+      return array(false, 'Incorrect token type');
+    }
+  } else {
+    ZM\Logger::Debug('Not comparing token types as [any] was passed');
   }
+  
   $username = $jwt_payload['user'];
   $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
   $saved_user_details = dbFetchOne($sql, NULL, array($username));
@@ -258,7 +262,10 @@ function userFromSession() {
 
 if ( ZM_OPT_USE_AUTH ) {
   if ( !empty($_REQUEST['token']) ) {
-    $ret = validateToken($_REQUEST['token'], 'access');
+    // we only need to get the username here
+    // don't know the token type. That will
+    // be checked later 
+    $ret = validateToken($_REQUEST['token'], 'any');
     $user = $ret[0];
   } else {
     // Non token based auth

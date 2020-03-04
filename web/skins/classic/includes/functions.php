@@ -352,7 +352,7 @@ if ( ZM_OPT_USE_AUTH and $user ) {
 ?>
   <p class="navbar-text">
     <i class="material-icons">account_circle</i>
-    <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>
+    <?php echo makePopupLink('?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == 'builtin')) ?>
   </p>
 <?php
 }
@@ -396,7 +396,7 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
 ?>
 	  <li><?php echo translate('Storage') ?>:
 <?php
-  $storage_areas = ZM\Storage::find();
+  $storage_areas = ZM\Storage::find(array('Enabled'=>true));
   $storage_paths = null;
 	$storage_areas_with_no_server_id = array();
   foreach ( $storage_areas as $area ) {

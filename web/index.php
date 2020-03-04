@@ -52,6 +52,8 @@ require_once('includes/Event.php');
 require_once('includes/Group.php');
 require_once('includes/Monitor.php');
 
+$Servers = ZM\Server::find();
+
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
   or

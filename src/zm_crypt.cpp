@@ -1,81 +1,12 @@
 #include "zm.h"
 #include "zm_crypt.h"
 #include "BCrypt.hpp"
-#if HAVE_LIBJWT
-#include <jwt.h>
-#else
-#include "jwt_cpp.h"
-#endif
+#include "jwt.h"
 #include <algorithm>
-#if HAVE_LIBCRYPTO
 #include <openssl/sha.h>
-#elif HAVE_GNUTLS_GNUTLS_H
-#include <gnutls/gnutls.h>
-#include <gnutls/crypto.h>
-#endif
 #include <string.h>
 
 // returns username if valid, "" if not
-#if HAVE_LIBJWT
-std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
-  std::string username = "";
-  unsigned int token_issued_at = 0;
-  int err = 0;
-  jwt_t *jwt = nullptr;
-
-  err = jwt_new(&jwt);
-  if( err ) {
-    Error("Unable to Allocate JWT object");
-    return std::make_pair("", 0);
-  }
-
-  err = jwt_set_alg(jwt, JWT_ALG_HS256, (const unsigned char*)key.c_str(), key.length());
-  if( err ) {
-    jwt_free(jwt);
-    Error("Error setting Algorithm for JWT decode");
-    return std::make_pair("", 0);
-  }
-  
-  err = jwt_decode(&jwt, jwt_token_str.c_str(), nullptr, 0);
-  if( err ) {
-    jwt_free(jwt);
-    Error("Could not decode JWT");
-    return std::make_pair("", 0);
-  }
-  
-  const char *c_type = jwt_get_grant(jwt, (const char*)"type");
-  if ( !c_type ) {
-    jwt_free(jwt);
-    Error("Missing token type. This should not happen");
-    return std::make_pair("", 0);
-  } else if ( std::string(c_type) != "access" ) {
-    jwt_free(jwt);
-    Error("Only access tokens are allowed. Please do not use refresh tokens");
-    return std::make_pair("", 0);
-  }
-
-  const char *c_username = jwt_get_grant(jwt, (const char*)"user");
-  if( !c_username ) {
-    jwt_free(jwt);
-    Error("User not found in claim");
-    return std::make_pair("", 0);
-  }
-
-  username = std::string(c_username);
-  Debug(1, "Got %s as user claim from token", username.c_str());
-  
-  token_issued_at = (unsigned int)jwt_get_grant_int(jwt, "iat");
-  if ( errno == ENOENT ) {
-    jwt_free(jwt);
-    Error("IAT not found in claim. This should not happen");
-    return std::make_pair("", 0);
-  }
-  
-  Debug(1, "Got IAT token=%u", token_issued_at);
-  jwt_free(jwt);
-  return std::make_pair(username, token_issued_at);
-}
-#else // HAVE_LIBJWT
 std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
   std::string username = "";
   unsigned int token_issued_at = 0;
@@ -127,7 +58,6 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
   }
   return std::make_pair(username, token_issued_at);
 }
-#endif // HAVE_LIBJWT
 
 bool verifyPassword(const char *username, const char *input_password, const char *db_password_hash) {
   bool password_correct = false;
@@ -140,16 +70,10 @@ bool verifyPassword(const char *username, const char *input_password, const char
     // MYSQL PASSWORD
     Debug(1, "%s is using an MD5 encoded password", username);
     
-    #ifndef SHA_DIGEST_LENGTH
-      #define SHA_DIGEST_LENGTH 20
-    #endif
-  
+    SHA_CTX ctx1, ctx2;
     unsigned char digest_interim[SHA_DIGEST_LENGTH];
     unsigned char digest_final[SHA_DIGEST_LENGTH];
-    
-#if HAVE_LIBCRYPTO
-    SHA_CTX ctx1, ctx2;
-    
+
     //get first iteration
     SHA1_Init(&ctx1);
     SHA1_Update(&ctx1, input_password, strlen(input_password));
@@ -159,15 +83,6 @@ bool verifyPassword(const char *username, const char *input_password, const char
     SHA1_Init(&ctx2);
     SHA1_Update(&ctx2, digest_interim,SHA_DIGEST_LENGTH);
     SHA1_Final (digest_final, &ctx2);
-#elif HAVE_GNUTLS_GNUTLS_H
-    //get first iteration
-    gnutls_hash_fast(GNUTLS_DIG_SHA1, input_password, strlen(input_password), digest_interim);
-    //2nd iteration
-    gnutls_hash_fast(GNUTLS_DIG_SHA1, digest_interim, SHA_DIGEST_LENGTH, digest_final);
-#else
-    Error("Authentication Error. ZoneMinder not built with GnuTLS or Openssl");
-    return false;
-#endif
 
     char final_hash[SHA_DIGEST_LENGTH * 2 +2];
     final_hash[0] = '*';

@@ -536,8 +536,11 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     fflush(stdout);
   }
   if ( level <= mFileLevel ) {
-    if ( !mLogFileFP )
+    if ( !mLogFileFP ) {
+      log_mutex.unlock();
       openFile();
+      log_mutex.lock();
+    }
     if ( mLogFileFP ) {
       fputs(logString, mLogFileFP);
       if ( mFlush )

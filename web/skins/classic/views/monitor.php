@@ -901,9 +901,12 @@ if ( $monitor->Type() == 'Local' ) {
         <?php
         if ( $monitor->Type() == 'Remote' ) {
           ?>
-            <tr id="RTSPDescribe"<?php if ( $monitor->Protocol()!= 'rtsp' ) { echo ' style="display:none;"'; } ?>><td><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE', 'zmOptionHelp', 'optionhelp', '?' ) ?>) </td><td><input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( $monitor->RTSPDescribe() ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr id="RTSPDescribe"<?php if ( $monitor->Protocol()!= 'rtsp' ) { echo ' style="display:none;"'; } ?>>
+              <td><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td><input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( $monitor->RTSPDescribe() ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
 <?php
-      }
+      } # end if monitor->Type() == 'Remote'
       break;
     }
   case 'storage' :
@@ -913,7 +916,7 @@ if ( $monitor->Type() == 'Local' ) {
             <td>
 <?php
       $storage_areas = array(0=>'Default');
-      foreach ( ZM\Storage::find(NULL, array('order'=>'lower(Name)')) as $Storage ) {
+      foreach ( ZM\Storage::find(array('Enabled'=>true), array('order'=>'lower(Name)')) as $Storage ) {
         $storage_areas[$Storage->Id()] = $Storage->Name();
       }
       echo htmlSelect('newMonitor[StorageId]', $storage_areas, $monitor->StorageId());

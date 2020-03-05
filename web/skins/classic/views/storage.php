@@ -1,7 +1,7 @@
 <?php
 //
-// ZoneMinder web user view file, $Date$, $Revision$
-// Copyright (C) 2001-2008 Philip Coombes
+// ZoneMinder web user view file
+// Copyright (C) 2020 ZoneMinder LLC
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -24,21 +24,13 @@ if ( !canEdit('System') ) {
 }
 
 if ( $_REQUEST['id'] ) {
-  if ( !($newStorage = dbFetchOne('SELECT * FROM Storage WHERE Id=?', NULL, ARRAY($_REQUEST['id'])) ) ) {
+  if ( !($newStorage = ZM\Storage::find_one(array('Id'=>$_REQUEST['id'])) ) ) {
     $view = 'error';
     return;
-    $newStorage['ServerId'] = '';
   }
 } else {
-  $newStorage = array();
-  $newStorage['Name'] = translate('NewStorage');
-  $newStorage['Path'] = '';
-  $newStorage['Type'] = 'local';
-  $newStorage['Url'] = '';
-  $newStorage['Scheme'] = 'Medium';
-  $newStorage['StorageId'] = '';
-  $newStorage['ServerId'] = '';
-  $newStorage['DoDelete'] = 1;
+  $newStorage = new Storage();
+  $newStorage->Name(translate('NewStorage'));
 }
 
 $type_options = array( 'local' => translate('Local'), 's3fs' => translate('s3fs') );
@@ -55,12 +47,12 @@ foreach ( $servers as $S ) {
 }
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Storage').' - '.$newStorage['Name']);
+xhtmlHeaders(__FILE__, translate('Storage').' - '.$newStorage->Name());
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Storage').' - '.$newStorage['Name'] ?></h2>
+      <h2><?php echo translate('Storage').' - '.$newStorage->Name() ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" method="post" action="?" class="validateFormOnSubmit">
@@ -71,33 +63,40 @@ xhtmlHeaders(__FILE__, translate('Storage').' - '.$newStorage['Name']);
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="newStorage[Name]" value="<?php echo $newStorage['Name'] ?>"/></td>
+              <td><input type="text" name="newStorage[Name]" value="<?php echo $newStorage->Name() ?>"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Path') ?></th>
-              <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage['Path'] ?>"/></td>
+              <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage->Path() ?>"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Url') ?></th>
-              <td><input type="text" name="newStorage[Url]" value="<?php echo $newStorage['Url'] ?>"/></td>
+              <td><input type="text" name="newStorage[Url]" value="<?php echo $newStorage->Url() ?>"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Server') ?></th>
-              <td><?php echo htmlSelect('newStorage[ServerId]', array(''=>'Remote / No Specific Server') + $ServersById, $newStorage['ServerId']); ?></td>
+              <td><?php echo htmlSelect('newStorage[ServerId]', array(''=>'Remote / No Specific Server') + $ServersById, $newStorage->ServerId()); ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Type') ?></th>
-              <td><?php echo htmlSelect('newStorage[Type]', $type_options, $newStorage['Type']); ?></td>
+              <td><?php echo htmlSelect('newStorage[Type]', $type_options, $newStorage->Type()); ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('StorageScheme') ?></th>
-              <td><?php echo htmlSelect('newStorage[Scheme]', $scheme_options, $newStorage['Scheme']); ?></td>
+              <td><?php echo htmlSelect('newStorage[Scheme]', $scheme_options, $newStorage->Scheme()); ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('StorageDoDelete') ?></th>
               <td>
-              <input type="radio" name="newStorage[DoDelete]" value="1"<?php echo $newStorage['DoDelete'] ? 'checked="checked"' : '' ?>/>Yes
-              <input type="radio" name="newStorage[DoDelete]" value="0"<?php echo $newStorage['DoDelete'] ? '' : 'checked="checked"' ?>/>No
+              <input type="radio" name="newStorage[DoDelete]" value="1"<?php echo $newStorage->DoDelete() ? 'checked="checked"' : '' ?>/>Yes
+              <input type="radio" name="newStorage[DoDelete]" value="0"<?php echo $newStorage->DoDelete() ? '' : 'checked="checked"' ?>/>No
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('Enabled') ?></th>
+              <td>
+              <input type="radio" name="newStorage[Enabled]" value="1"<?php echo $newStorage->Enabled() ? 'checked="checked"' : '' ?>/>Yes
+              <input type="radio" name="newStorage[Enabled]" value="0"<?php echo $newStorage->Enabled() ? '' : 'checked="checked"' ?>/>No
               </td>
             </tr>
           </tbody>

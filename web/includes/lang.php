@@ -33,7 +33,7 @@ function loadLanguage($prefix='') {
   if ( $prefix )
     $prefix = $prefix.'/';
 
-  if ( isset($user['Language']) ) {
+  if ( isset($user['Language']) and $user['Language'] ) {
     $userLangFile = $prefix.'lang/'.$user['Language'].'.php';
 
     if ( file_exists($userLangFile) ) {

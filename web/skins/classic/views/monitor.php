@@ -639,7 +639,7 @@ switch ( $tab ) {
         </tr>
         <tr>
           <td><?php echo translate('Enabled') ?></td>
-          <td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php if ( $monitor->Enabled() ) { ?> checked="checked"<?php } ?>/></td>
+          <td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php echo $monitor->Enabled() ? ' checked="checked"' : '' ?>/></td>
         </tr>
 <?php
       if ( $monitor->Type() != 'WebSite' ) {
@@ -729,8 +729,8 @@ switch ( $tab ) {
           continue;
         if ( $optCount && ($optCount%$breakCount == 0) )
           echo '</br>';
-        echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'. $optTrigger '"'. 
-          ( ( '' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"':''). '/> '. $optTrigger; 
+        echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'. $optTrigger. '"'. 
+          (( ('' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"':''). '/> '. $optTrigger; 
           $optCount ++;
       } # end foreach trigger option
       if ( !$optCount ) {

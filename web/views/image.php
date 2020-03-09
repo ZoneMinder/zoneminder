@@ -81,7 +81,7 @@ if ( empty($_REQUEST['path']) ) {
       $path = $Event->Path().'/objdetect.gif';
       if ( !file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Fatal("File $path does not exist. Please make sure store_frame_in_zm is enabled in the object detection config");
+        ZM\Fatal("File $path does not exist. You might not have enabled GIF creation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
       }
       $Frame = new ZM\Frame();
       $Frame->Id('objdetect');

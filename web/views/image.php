@@ -57,6 +57,7 @@ $filename = '';
 $Frame = null;
 $Event = null;
 $path = null;
+$image_type='image/jpeg';
 
 if ( empty($_REQUEST['path']) ) {
 
@@ -76,7 +77,16 @@ if ( empty($_REQUEST['path']) ) {
       return;
     }
 
-    if ( $_REQUEST['fid'] == 'objdetect' ) {
+    if ( $_REQUEST['fid'] == 'objdetectgif' ) {
+      $path = $Event->Path().'/objdetect.gif';
+      if ( !file_exists($path) ) {
+        header('HTTP/1.0 404 Not Found');
+        ZM\Fatal("File $path does not exist. Please make sure store_frame_in_zm is enabled in the object detection config");
+      }
+      $Frame = new ZM\Frame();
+      $Frame->Id('objdetect');
+      $image_type = 'image/gif';
+    } else if ( $_REQUEST['fid'] == 'objdetect' ) {
       $path = $Event->Path().'/objdetect.jpg';
       if ( !file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
@@ -281,7 +291,7 @@ if ( !empty($_REQUEST['height']) ) {
 if ( $errorText ) {
   ZM\Error($errorText);
 } else {
-  header('Content-type: image/jpeg');
+  header("Content-type: $image_type");
   if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
     # This is so that Save Image As give a useful filename
     if ( $Event ) {

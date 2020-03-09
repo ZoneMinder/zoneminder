@@ -151,8 +151,8 @@ class EventsController extends AppController {
     $event['Event']['PrevOfMonitor'] = $event_monitor_neighbors['prev']['Event']['Id'];
   
     $this->loadModel('Frame');
-    $event['Event']['MaxScoreFrameId'] = $this->Frame->findByEventid($id,'Id','Score DESC')['Frame']['Id'];
-    $event['Event']['AlarmFrameId'] = $this->Frame->findByEventidAndType($id,'Alarm')['Frame']['Id'];
+    $event['Event']['MaxScoreFrameId'] = $this->Frame->findByEventid($id,'FrameId',array('Score'=>'desc','FrameId'=>'asc'))['Frame']['FrameId'];
+    $event['Event']['AlarmFrameId'] = $this->Frame->findByEventidAndType($id,'Alarm')['Frame']['FrameId'];
 
     $this->set(array(
       'event' => $event,

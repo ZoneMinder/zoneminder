@@ -23,7 +23,7 @@ function generateVideoResponse( respObj, respText ) {
   window.location.replace( thisUrl+'?view='+currentView+'&eid='+eventId+'&generated='+((respObj.result=='Ok')?1:0) );
 }
 
-function generateVideo(  ) {
+function generateVideo() {
   form = $j('#contentForm')[0];
   var parms = 'view=request&request=event&action=video';
   parms += '&'+$(form).toQueryString();

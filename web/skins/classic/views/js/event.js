@@ -309,6 +309,7 @@ function pauseClicked() {
 }
 
 function streamPause( ) {
+
   $j('#modeValue').html('Paused');
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('playBtn'), 'inactive' );
@@ -1106,7 +1107,7 @@ function initPage() {
   }
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
-  if ( scale == 'auto' ) changeScale();
+  if ( scale == '0' || scale == 'auto' ) changeScale();
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
     el.onchange = window['changeRate'];
   });

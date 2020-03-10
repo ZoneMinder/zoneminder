@@ -30,7 +30,6 @@ function xhtmlHeaders($file, $title) {
 
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
 
-  $skinJsFile = getSkinFile('js/skin.js');
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $cssJsFile = getSkinFile('js/'.$css.'.js');
 
@@ -84,7 +83,6 @@ echo output_link_if_exists( array(
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-  #'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
 )
 );
 if ( $css != 'base' )
@@ -95,15 +93,15 @@ if ( $css != 'base' )
   )
 );
 ?>
+
 <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
-  <!--Chosen can't be cache-busted because it loads sprites by relative path-->
+<!--Chosen can't be cache-busted because it loads sprites by relative path-->
 <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
   if ( $basename == 'watch' ) {
-    echo output_link_if_exists( array(
-      '/css/base/views/control.css',
-      '/css/'.$css.'/views/control.css'
-    ) );
+    echo output_link_if_exists(array('/css/base/views/control.css'));
+    if ( $css != 'base' )
+      echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
   }
 ?>
   <style type="text/css">
@@ -188,7 +186,9 @@ if ( $css != 'base' )
 } else {
 ?>
   <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
-<?php } ?>
+<?php }
+  $skinJsFile = getSkinFile('js/skin.js');
+?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php 
@@ -422,7 +422,14 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
     $storage_areas = $storage_areas_with_no_server_id;
   if ( count($storage_areas) <= 4 )
     echo implode(', ', array_map($func, $storage_areas));
-  echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
+  $shm_percent = getDiskPercent(ZM_PATH_MAP);
+  $class = '';
+  if ( $shm_percent > 98 ) {
+    $class = 'error';
+  } else if ( $shm_percent > 90 ) {
+    $class = 'warning';
+  }
+  echo ' <span class="'.$class.'">'.ZM_PATH_MAP.': '.$shm_percent.'%</span>';
 ?></li>
   </ul>
     <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>

@@ -724,22 +724,19 @@ switch ( $tab ) {
       $breakCount = (int)(ceil(count($optTriggers)));
       $breakCount = min(3, $breakCount);
       $optCount = 0;
-      foreach( $optTriggers as $optTrigger ) {
-        if ( !ZM_OPT_X10 && $optTrigger == 'X10' )
+      foreach ( $optTriggers as $optTrigger ) {
+        if ( $optTrigger == 'X10' and !ZM_OPT_X10 )
           continue;
         if ( $optCount && ($optCount%$breakCount == 0) )
           echo '</br>';
-?>
-              <input type="checkbox" name="newMonitor[Triggers][]" value="<?php echo $optTrigger ?>"<?php if ( ( null !== $monitor->Triggers() ) && in_array( $optTrigger, $monitor->Triggers() ) ) { ?> checked="checked"<?php } ?>/>&nbsp;<?php echo $optTrigger ?>
-<?php
+        echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'. $optTrigger '"'. 
+          ( ( '' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"':''). '/> '. $optTrigger; 
           $optCount ++;
-        }
-        if ( !$optCount ) {
-        ?>
-          <em><?php echo translate('NoneAvailable') ?></em>
-          <?php
-        }
-      ?>
+      } # end foreach trigger option
+      if ( !$optCount ) {
+        echo '<em>'. translate('NoneAvailable') .'</em>';
+      }
+?>
         </td></tr>
         <?php
         }
@@ -774,7 +771,7 @@ switch ( $tab ) {
             <label for="newMonitor[V4LMultiBuffer]1">Yes</label>
             <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]0" value="0" <?php echo ( $monitor->V4LMultiBuffer() == '0' ? 'checked="checked"' : '' ) ?>/>
             <label for="newMonitor[V4LMultiBuffer]0">No</label>
-            <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( $monitor->V4LMultiBuffer() ? 'checked="checked"' : '' ) ?>/>
+            <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( $monitor->V4LMultiBuffer() == '' ? 'checked="checked"' : '' ) ?>/>
             <label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
           </td></tr>
           <tr><td><?php echo translate('V4LCapturesPerFrame') ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo validHtmlStr($monitor->V4LCapturesPerFrame()); ?>"/></td></tr>

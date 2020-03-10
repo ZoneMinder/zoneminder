@@ -937,7 +937,7 @@ function createVideo($event, $format, $rate, $scale, $overwrite=false) {
     $command .= ' -o';
   $command = escapeshellcmd($command);
   $result = exec($command, $output, $status);
-Logger::Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
+  ZM\Logger::Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
   return $status ? '' : rtrim($result);
 }
 
@@ -1087,14 +1087,10 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $validQueryConjunctionTypes = getFilterQueryConjunctionTypes();
   $StorageArea = NULL;
 
-  $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
-  if ( !isset($terms) ) {
-    $backTrace = debug_backtrace();
-    ZM\Warning('No terms in filter');
-    ZM\Warning(print_r($backTrace, true));
-    ZM\Warning(print_r($filter, true));
-  }
-  if ( isset($terms) && count($terms) ) {
+  # It is not possible to pass an empty array in the url, so we have to deal with there not being a terms field.
+  $terms = (isset($filter['Query']) and isset($filter['Query']['terms']) and is_array($filter['Query']['terms'])) ? $filter['Query']['terms'] : array();
+
+  if ( count($terms) ) {
     for ( $i = 0; $i < count($terms); $i++ ) {
 
       $term = $terms[$i];
@@ -1260,7 +1256,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             case 'StartDateTime':
             case 'EndDateTime':
               if ( $value != 'NULL' )
-                $value = '\''.strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) ).'\'';
+                $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
               break;
             case 'Date':
             case 'StartDate':
@@ -1331,7 +1327,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
       } // end if isset($term['attr'])
       if ( isset($term['cbr']) && (string)(int)$term['cbr'] == $term['cbr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($term['cbr']);
-        $filter['sql'] .= ' '.str_repeat(')', $term['cbr']).' ';
+        $filter['sql'] .= ' '.str_repeat(')', $term['cbr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($term['cbr'])."\"/>\n";
       }
     } // end foreach term
@@ -1341,7 +1337,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
       $_SESSION['filter'] = $filter;
     }
   } else {
-    $filter['query'] = $querySep.urlencode('filter[Query][terms]=[]');
+    $filter['query'] = $querySep;
+    #.urlencode('filter[Query][terms]=[]');
   } // end if terms
 
   #if ( 0 ) {
@@ -1354,7 +1351,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     #$filter['sql'] .= ' LIMIT ' . validInt($filter['Query']['limit']);
   #}
   #}
-}
+} // end function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;')
 
 // Please note that the filter is passed in by copy, so you need to use the return value from this function.
 //
@@ -2285,9 +2282,14 @@ function validHtmlStr($input) {
 
 function getStreamHTML($monitor, $options = array()) {
 
-  if ( isset($options['scale']) and $options['scale'] and ($options['scale'] != 100) ) {
-    $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
-    $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+  if ( isset($options['scale']) ) {
+    if ( $options['scale'] != 'auto' ) {
+      $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
+      $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+    } else {
+      $options['width'] = '100%';
+      $options['height'] = 'auto';
+    }
   } else {
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty

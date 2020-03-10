@@ -44,7 +44,12 @@ bool StreamBase::loadMonitor(int monitor_id) {
     Error("Unable to load monitor id %d for streaming", monitor_id);
     return false;
   }
-  if ( ! monitor->connect() ) {
+  if ( monitor->GetFunction() == Monitor::NONE ) {
+    Error("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
+    return false;
+  }
+
+  if ( !monitor->connect() ) {
     Error("Unable to connect to monitor id %d for streaming", monitor_id);
     return false;
   }

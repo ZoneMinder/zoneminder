@@ -145,7 +145,11 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
         av_frame_free(&frame);
         continue;
 			} else {
-				zm_dump_frame(frame, "resulting frame");
+        if ( is_video_stream(input_format_context->streams[packet.stream_index]) ) {
+          zm_dump_video_frame(frame, "resulting video frame");
+        } else {
+          zm_dump_frame(frame, "resulting frame");
+        }
       }
 
       frameComplete = 1;

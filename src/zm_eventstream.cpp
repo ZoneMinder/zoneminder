@@ -100,6 +100,7 @@ bool EventStream::loadInitialEventData(uint64_t init_event_id, unsigned int init
     if ( init_frame_id >= event_data->frame_count ) {
       Error("Invalid frame id specified. %d > %d", init_frame_id, event_data->frame_count);
       curr_stream_time = event_data->start_time;
+      curr_frame_id = 1;
     } else {
       curr_stream_time = event_data->frames[init_frame_id-1].timestamp;
       curr_frame_id = init_frame_id;
@@ -383,6 +384,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
         paused = true;
         replay_rate = ZM_RATE_BASE;
         step = -1;
+        curr_frame_id -= 1;
+        if ( curr_frame_id < 1 ) curr_frame_id = 1;
         break;
     case CMD_FASTREV :
         Debug(1, "Got FAST REV command");
@@ -932,7 +935,7 @@ void EventStream::runStream() {
         send_frame = true;
       }
     } else if ( step != 0 ) {
-      Debug(2, "Paused with step");
+      Debug(2, "Paused with step %d", step);
       // We are paused and are just stepping forward or backward one frame
       step = 0;
       send_frame = true;

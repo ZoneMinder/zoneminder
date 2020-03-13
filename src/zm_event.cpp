@@ -110,10 +110,8 @@ Event::Event(
   id = mysql_insert_id(&dbconn);
   //
 
-  /* Now update event with DefaultVideo name if applicable, so index.php
-    can read frames while the video is being recorded, since MP4 is created
-    using fragments */
-  
+  /* Update event record with DefaultVideo name if possible so image.php can extract frames 
+     if needed, while recording is in progress */
   if ( monitor->GetOptVideoWriter() != 0 ) {
     video_name[0] = 0;
     snprintf(video_name, sizeof(video_name), "%" PRIu64 "-%s", id, "video.mp4");
@@ -123,7 +121,7 @@ Event::Event(
       Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
       db_mutex.unlock();
       return;
-  }
+    }
   } else {
     Debug (1, "GetOptVideoWriter() returned 0, not updating DefaultVideo");
   }

@@ -120,9 +120,9 @@ Event::Event(
     Debug(1, "Updating inserted event with DefaultVideo=%s",video_name);
     snprintf(sql, sizeof(sql), "UPDATE Events SET DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name,id);
     if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
-    db_mutex.unlock();
-    return;
+      Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
+      db_mutex.unlock();
+      return;
   }
   } else {
     Debug (1, "GetOptVideoWriter() returned 0, not updating DefaultVideo");

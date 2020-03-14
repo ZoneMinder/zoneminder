@@ -209,7 +209,6 @@ function changeRate() {
         }
       }, 500); //500ms is a compromise between smooth reverse and realistic performance
     } // end if vid
-
   } else { // Forward rate
     if ( vid ) {
       vid.playbackRate(rate/100);
@@ -310,7 +309,6 @@ function pauseClicked() {
 }
 
 function streamPause( ) {
-
   $j('#modeValue').html('Paused');
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('playBtn'), 'inactive' );

@@ -79,33 +79,33 @@ if ( empty($_REQUEST['path']) ) {
 
     if ( $_REQUEST['fid'] == 'objdetect' ) {
         // if animation file is found, return that, else return image
-        $path_anim = $Event->Path().'/objdetect.gif';
+        $path_anim = $Event->Path().'/objdetect.mp4';
         $path_image = $Event->Path().'/objdetect.jpg';
         if ( file_exists($path_anim)) {
-          // we found the animation/gif file
+          // we found the animation file
           $path = $path_anim;
           ZM\Logger::Debug("Animation file found at $path");
-          $image_type = 'image/gif';
+          $image_type = 'video/mp4';
         } else if (file_exists($path_image)) {
-            // animation/gif not found, but image found
+            // animation not found, but image found
             ZM\Logger::Debug("Image file found at $path");
             $path = $path_image;
         } else {
-            // neither animation/gif nor image found
+            // neither animation nor image found
             header('HTTP/1.0 404 Not Found');
             ZM\Fatal("Object detection animation and image not found for this event");  
         }
         $Frame = new ZM\Frame();
         $Frame->Id('objdetect');
       } else if ( $_REQUEST['fid'] == 'objdetectanim' ) {
-        $path = $Event->Path().'/objdetect.gif';
+        $path = $Event->Path().'/objdetect.mp4';
         if ( !file_exists($path) ) {
           header('HTTP/1.0 404 Not Found');
-          ZM\Fatal("File $path does not exist. You might not have enabled GIF creation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
+          ZM\Fatal("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
         }
         $Frame = new ZM\Frame();
         $Frame->Id('objdetect');
-        $image_type = 'image/gif';
+        $image_type = 'video/mp4';
     } else if ( $_REQUEST['fid'] == 'objdetectimage' ) {
       $path = $Event->Path().'/objdetect.jpg';
       if ( !file_exists($path) ) {

@@ -57,7 +57,7 @@ $filename = '';
 $Frame = null;
 $Event = null;
 $path = null;
-$image_type='image/jpeg';
+$media_type='image/jpeg';
 
 if ( empty($_REQUEST['path']) ) {
 
@@ -86,9 +86,10 @@ if ( empty($_REQUEST['path']) ) {
           // we found the animation mp4 file
           $path = $path_anim_mp4;
           ZM\Logger::Debug("Animation file found at $path");
-          $image_type = 'video/mp4';
+          $media_type = 'video/mp4';
         } else if (file_exists($path_anim_gif)) {
           // we found the animation gif file
+          $media_type = 'image/gif';
           ZM\Logger::Debug("Animation file found at $path");
           $path = $path_anim_gif;
         } else if (file_exists($path_image)) {
@@ -108,15 +109,18 @@ if ( empty($_REQUEST['path']) ) {
           header('HTTP/1.0 404 Not Found');
           ZM\Fatal("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
           }
+        $Frame = new ZM\Frame();
+        $Frame->Id('objdetect');
+        $media_type = 'video/mp4';
       } else if ( $_REQUEST['fid'] == 'objdetect_gif' ) {
-        $path = $Event->Path().'/objdetect.mp4';
+        $path = $Event->Path().'/objdetect.gif';
         if ( !file_exists($path) ) {
           header('HTTP/1.0 404 Not Found');
           ZM\Fatal("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
       }
       $Frame = new ZM\Frame();
       $Frame->Id('objdetect');
-      $image_type = 'video/mp4';
+      $media_type = 'image/gif';
     } else if ( $_REQUEST['fid'] == 'objdetect_jpg' ) {
       $path = $Event->Path().'/objdetect.jpg';
       if ( !file_exists($path) ) {

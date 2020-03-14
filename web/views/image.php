@@ -79,15 +79,12 @@ if ( empty($_REQUEST['path']) ) {
 
     if ( $_REQUEST['fid'] == 'objdetect' ) {
         // if animation file is found, return that, else return image
-        $path_anim_mp4 = $Event->Path().'/objdetect.mp4';
+        // we are only looking for GIF or jpg here, not mp4
+        // as most often, browsers asking for this link will be expecting
+        // media types that can be rendered as <img src=>
         $path_anim_gif = $Event->Path().'/objdetect.gif';
         $path_image = $Event->Path().'/objdetect.jpg';
-        if ( file_exists($path_anim_mp4)) {
-          // we found the animation mp4 file
-          $path = $path_anim_mp4;
-          ZM\Logger::Debug("Animation file found at $path");
-          $media_type = 'video/mp4';
-        } else if (file_exists($path_anim_gif)) {
+        if (file_exists($path_anim_gif)) {
           // we found the animation gif file
           $media_type = 'image/gif';
           ZM\Logger::Debug("Animation file found at $path");
@@ -326,7 +323,7 @@ if ( !empty($_REQUEST['height']) ) {
 if ( $errorText ) {
   ZM\Error($errorText);
 } else {
-  header("Content-type: $image_type");
+  header("Content-type: $media_type");
   if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
     # This is so that Save Image As give a useful filename
     if ( $Event ) {

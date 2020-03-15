@@ -57,7 +57,7 @@ $filename = '';
 $Frame = null;
 $Event = null;
 $path = null;
-$image_type='image/jpeg';
+$media_type='image/jpeg';
 
 if ( empty($_REQUEST['path']) ) {
 
@@ -79,34 +79,46 @@ if ( empty($_REQUEST['path']) ) {
 
     if ( $_REQUEST['fid'] == 'objdetect' ) {
         // if animation file is found, return that, else return image
-        $path_anim = $Event->Path().'/objdetect.gif';
+        // we are only looking for GIF or jpg here, not mp4
+        // as most often, browsers asking for this link will be expecting
+        // media types that can be rendered as <img src=>
+        $path_anim_gif = $Event->Path().'/objdetect.gif';
         $path_image = $Event->Path().'/objdetect.jpg';
-        if ( file_exists($path_anim)) {
-          // we found the animation/gif file
-          $path = $path_anim;
+        if (file_exists($path_anim_gif)) {
+          // we found the animation gif file
+          $media_type = 'image/gif';
           ZM\Logger::Debug("Animation file found at $path");
-          $image_type = 'image/gif';
+          $path = $path_anim_gif;
         } else if (file_exists($path_image)) {
-            // animation/gif not found, but image found
+            // animation not found, but image found
             ZM\Logger::Debug("Image file found at $path");
             $path = $path_image;
         } else {
-            // neither animation/gif nor image found
+            // neither animation nor image found
             header('HTTP/1.0 404 Not Found');
             ZM\Fatal("Object detection animation and image not found for this event");  
         }
         $Frame = new ZM\Frame();
         $Frame->Id('objdetect');
-      } else if ( $_REQUEST['fid'] == 'objdetectanim' ) {
+      } else if ( $_REQUEST['fid'] == 'objdetect_mp4' ) {
+        $path = $Event->Path().'/objdetect.mp4';
+        if ( !file_exists($path) ) {
+          header('HTTP/1.0 404 Not Found');
+          ZM\Fatal("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
+          }
+        $Frame = new ZM\Frame();
+        $Frame->Id('objdetect');
+        $media_type = 'video/mp4';
+      } else if ( $_REQUEST['fid'] == 'objdetect_gif' ) {
         $path = $Event->Path().'/objdetect.gif';
         if ( !file_exists($path) ) {
           header('HTTP/1.0 404 Not Found');
-          ZM\Fatal("File $path does not exist. You might not have enabled GIF creation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
-        }
-        $Frame = new ZM\Frame();
-        $Frame->Id('objdetect');
-        $image_type = 'image/gif';
-    } else if ( $_REQUEST['fid'] == 'objdetectimage' ) {
+          ZM\Fatal("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
+      }
+      $Frame = new ZM\Frame();
+      $Frame->Id('objdetect');
+      $media_type = 'image/gif';
+    } else if ( $_REQUEST['fid'] == 'objdetect_jpg' ) {
       $path = $Event->Path().'/objdetect.jpg';
       if ( !file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
@@ -311,7 +323,7 @@ if ( !empty($_REQUEST['height']) ) {
 if ( $errorText ) {
   ZM\Error($errorText);
 } else {
-  header("Content-type: $image_type");
+  header("Content-type: $media_type");
   if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
     # This is so that Save Image As give a useful filename
     if ( $Event ) {

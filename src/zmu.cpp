@@ -708,11 +708,11 @@ int main(int argc, char *argv[]) {
     }
 
     if ( function & ZMU_LIST ) {
-      std::string sql = "select Id, Function+0 from Monitors";
+      std::string sql = "SELECT `Id`, `Function`+0 FROM `Monitors`";
       if ( !verbose ) {
-        sql += "where Function != 'None'";
+        sql += "WHERE `Function` != 'None'";
       }
-      sql += " order by Id asc";
+      sql += " ORDER BY Id ASC";
 
       if ( mysql_query(&dbconn, sql.c_str()) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));

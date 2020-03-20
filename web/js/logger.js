@@ -49,6 +49,8 @@ function logReport( level, message, file, line ) {
   /* eslint-disable no-caller */
   if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.caller && arguments.callee.caller.caller.name ) {
     message += ' - '+arguments.callee.caller.caller.name+'()';
+  } else {
+    message += new Error().stack;
   }
   /* eslint-enable no-caller */
 

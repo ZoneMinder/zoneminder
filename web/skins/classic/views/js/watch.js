@@ -48,7 +48,7 @@ function changeScale() {
 
     streamImg.src = streamImg.src.replace(/scale=\d+/i, 'scale='+(scale== 'auto' ? autoScale : scale));
   } else {
-    console.error('No element found for liveStream.');
+    console.error('No element found for liveStream'+monitorId);
   }
 }
 
@@ -742,10 +742,14 @@ function handleClick( event ) {
 
 function appletRefresh() {
   if ( streamStatus && (!streamStatus.paused && !streamStatus.delayed) ) {
-    var streamImg = $('liveStream');
-    var parent = streamImg.getParent();
-    streamImg.dispose();
-    streamImg.inject( parent );
+    var streamImg = $('liveStream'+monitorId);
+    if ( streamImg ) {
+      var parent = streamImg.getParent();
+      streamImg.dispose();
+      streamImg.inject( parent );
+    } else {
+      console.error("Nothing found for liveStream"+monitorId);
+    }
     if ( appletRefreshTime ) {
       appletRefresh.delay( appletRefreshTime*1000 );
     }
@@ -798,20 +802,24 @@ function initPage() {
     eventCmdTimer = eventCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
     watchdogCheck.pass('event').periodical(eventsRefreshTimeout*2);
 
-    if ( canStreamNative || streamMode == 'single' ) {
+    if ( canStreamNative || (streamMode == 'single') ) {
       var streamImg = $('imageFeed').getElement('img');
       if ( !streamImg ) {
         streamImg = $('imageFeed').getElement('object');
       }
-      if ( streamMode == 'single' ) {
-        streamImg.addEvent('click', fetchImage.pass(streamImg));
-        fetchImage.pass(streamImg).periodical(imageRefreshTimeout);
+      if ( !streamImg ) {
+        console.error('No streamImg found for imageFeed');
       } else {
-        streamImg.addEvent('click', function(event) {
-          handleClick(event);
-        });
-      }
-    }
+        if ( streamMode == 'single' ) {
+          streamImg.addEvent('click', fetchImage.pass(streamImg));
+          fetchImage.pass(streamImg).periodical(imageRefreshTimeout);
+        } else {
+          streamImg.addEvent('click', function(event) {
+            handleClick(event);
+          });
+        }
+      } // end if have streamImg
+    } // streamMode native or single
 
     if ( refreshApplet && appletRefreshTime ) {
       appletRefresh.delay(appletRefreshTime*1000);

@@ -178,7 +178,7 @@ if ( isset($_REQUEST['view']) )
 
 
 # Add CSP Headers
-$cspNonce = bin2hex(openssl_random_pseudo_bytes(16));
+$cspNonce = bin2hex(zm_random_bytes(16));
 
 $request = null;
 if ( isset($_REQUEST['request']) )

@@ -967,6 +967,7 @@ function initPage() {
         imagedone(this, this.monId, false);
       };
       loadImage2Monitor(monId, monitorImageURL[monId]);
+      monitorCanvasObj[monId].addEventListener('click', clickMonitor, false);
     }
   } // end foreach monitor
 
@@ -981,15 +982,6 @@ function initPage() {
 
     ctx = canvas.getContext('2d');
     drawGraph();
-  }
-  for ( i=0, len=monitorPtr.length; i < len; i += 1 ) {
-    var monitor_id = monitorPtr[i];
-    monitor_canvas = $('Monitor'+monitor_id);
-    if ( ! monitor_canvas ) {
-      console.log("No canvas found for monitor " + monitor_id);
-      continue;
-    }
-    monitor_canvas.addEventListener('click', clickMonitor, false);
   }
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw

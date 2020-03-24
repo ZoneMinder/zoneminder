@@ -27,9 +27,6 @@
 #include <string.h>
 #include <time.h>
 
-#if HAVE_GNUTLS_OPENSSL_H
-#include <gnutls/openssl.h>
-#endif
 #if HAVE_GNUTLS_GNUTLS_H
 #include <gnutls/gnutls.h>
 #endif

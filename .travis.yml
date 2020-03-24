@@ -13,7 +13,7 @@ addons:
   ssh_known_hosts: zmrepo.zoneminder.com
   apt:
     sources:
-    - sourceline: ppa:iconnor/zoneminder
+    - sourceline: ppa:iconnor/zoneminder-master
     - key_url: http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x4D0BF748776FFB04
     packages:
     - gdebi

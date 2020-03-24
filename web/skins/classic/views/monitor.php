@@ -724,22 +724,19 @@ switch ( $tab ) {
       $breakCount = (int)(ceil(count($optTriggers)));
       $breakCount = min(3, $breakCount);
       $optCount = 0;
-      foreach( $optTriggers as $optTrigger ) {
-        if ( !ZM_OPT_X10 && $optTrigger == 'X10' )
+      foreach ( $optTriggers as $optTrigger ) {
+        if ( $optTrigger == 'X10' and !ZM_OPT_X10 )
           continue;
         if ( $optCount && ($optCount%$breakCount == 0) )
           echo '</br>';
-?>
-              <input type="checkbox" name="newMonitor[Triggers][]" value="<?php echo $optTrigger ?>"<?php if ( ( null !== $monitor->Triggers() ) && in_array( $optTrigger, $monitor->Triggers() ) ) { ?> checked="checked"<?php } ?>/>&nbsp;<?php echo $optTrigger ?>
-<?php
+        echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'. $optTrigger '"'. 
+          ( ( '' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"':''). '/> '. $optTrigger; 
           $optCount ++;
-        }
-        if ( !$optCount ) {
-        ?>
-          <em><?php echo translate('NoneAvailable') ?></em>
-          <?php
-        }
-      ?>
+      } # end foreach trigger option
+      if ( !$optCount ) {
+        echo '<em>'. translate('NoneAvailable') .'</em>';
+      }
+?>
         </td></tr>
         <?php
         }

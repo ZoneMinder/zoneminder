@@ -739,14 +739,6 @@ if(HAVE_OPENSSL_MD5_H)
             "unsigned char *MD5(const unsigned char *d, size_t n, unsigned char *md)" "NULL" "openssl/md5.h" 
             HAVE_MD5_OPENSSL)
 endif(HAVE_OPENSSL_MD5_H)
-if(HAVE_GNUTLS_OPENSSL_H)
-	set(CMAKE_REQUIRED_LIBRARIES "${GNUTLS_LIBRARIES}")
-	set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
-	check_prototype_definition(
-            MD5 
-            "unsigned char *MD5 (const unsigned char *buf, unsigned long len, unsigned char *md)" "NULL" "gnutls/openssl.h" 
-            HAVE_MD5_GNUTLS)
-endif(HAVE_GNUTLS_OPENSSL_H)
 if(HAVE_GNUTLS_GNUTLS_H)
 	set(CMAKE_REQUIRED_LIBRARIES "${GNUTLS_LIBRARIES}")
 	set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
@@ -755,13 +747,13 @@ if(HAVE_GNUTLS_GNUTLS_H)
             "int gnutls_fingerprint (gnutls_digest_algorithm_t algo, const gnutls_datum_t * data, void *result, size_t * result_size)" "0" "stdlib.h;gnutls/gnutls.h" 
             HAVE_DECL_GNUTLS_FINGERPRINT)
 endif(HAVE_GNUTLS_GNUTLS_H)
-if(HAVE_MD5_OPENSSL OR HAVE_MD5_GNUTLS)
+if(HAVE_MD5_OPENSSL)
 	set(HAVE_DECL_MD5 1)
-else(HAVE_MD5_OPENSSL OR HAVE_MD5_GNUTLS)
+else(HAVE_MD5_OPENSSL)
 	message(AUTHOR_WARNING 
         "ZoneMinder requires a working MD5 function for hashed authenication but 
         none were found - hashed authenication will not be available")
-endif(HAVE_MD5_OPENSSL OR HAVE_MD5_GNUTLS)
+endif(HAVE_MD5_OPENSSL)
 # Dirty fix for zm_user only using openssl's md5 if gnutls and gcrypt are not available.
 # This needs to be fixed in zm_user.[h,cpp] but such fix will also require changes to configure.ac
 if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)

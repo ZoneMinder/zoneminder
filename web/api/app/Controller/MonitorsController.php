@@ -379,6 +379,8 @@ class MonitorsController extends AppController {
       $args = '';
       if ( $daemon == 'zmc' and $monitor['Type'] == 'Local' ) {
         $args = '-d ' . $monitor['Device'];
+      } else if ( $daemon == 'zmcontrol.pl' ) {
+        $args = '--id '.$id;
       } else {
         $args = '-m ' . $id;
       }

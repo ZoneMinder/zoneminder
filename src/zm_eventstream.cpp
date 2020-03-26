@@ -374,20 +374,20 @@ void EventStream::processCommand(const CmdMsg *msg) {
         }
         break;
     case CMD_SLOWFWD :
-        Debug(1, "Got SLOW FWD command");
         paused = true;
         replay_rate = ZM_RATE_BASE;
         step = 1;
         if ( (unsigned int)curr_frame_id < event_data->frame_count )
           curr_frame_id += 1;
+        Debug(1, "Got SLOWFWD command new frame id %d", curr_frame_id);
         break;
     case CMD_SLOWREV :
-        Debug(1, "Got SLOW REV command");
         paused = true;
         replay_rate = ZM_RATE_BASE;
         step = -1;
         curr_frame_id -= 1;
         if ( curr_frame_id < 1 ) curr_frame_id = 1;
+        Debug(1, "Got SLOWREV command new frame id %d", curr_frame_id);
         break;
     case CMD_FASTREV :
         Debug(1, "Got FAST REV command");

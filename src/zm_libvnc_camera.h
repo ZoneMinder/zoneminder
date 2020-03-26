@@ -63,3 +63,4 @@ public:
 };
 
 #endif // HAVE_LIBVNC
+#endif // ZN_LIBVNC_CAMERA_H

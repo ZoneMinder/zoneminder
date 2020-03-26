@@ -51,6 +51,7 @@
 #if HAVE_LIBCURL
 #include "zm_curl_camera.h"
 #endif // HAVE_LIBCURL
+#include "zm_libvnc_camera.h"
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
@@ -89,6 +90,7 @@ std::string CameraType_Strings[] = {
   "Ffmpeg",
   "LibVLC",
   "CURL",
+  "VNC",
 };
 
 
@@ -2332,6 +2334,23 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
 #else // HAVE_LIBCURL
     Fatal("You must have libcurl installed to use ffmpeg cameras for monitor %d", id);
 #endif // HAVE_LIBCURL
+  } else if ( type == "VNC" ) {
+    camera = new VncCamera(
+      id,
+      host.c_str(),
+      port.c_str(),
+      user.c_str(),
+      pass.c_str(),
+      width,
+      height,
+      colours,
+      brightness, 
+      contrast,
+      hue,
+      colour,
+      purpose==CAPTURE,
+      record_audio
+    );
   } else {
     Fatal("Bogus monitor type '%s' for monitor %d", type.c_str(), id);
   } // end if type

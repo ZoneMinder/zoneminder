@@ -2,6 +2,8 @@
 #include "zm_signal.h"
 #include "zm_libvnc_camera.h"
 
+#if HAVE_LIBVNC
+
 static int TAG_0;
 static int TAG_1;
 static int TAG_2;
@@ -126,3 +128,4 @@ int VncCamera::Close() {
   rfbClientCleanup(mRfb);
   return 0;
 }
+#endif

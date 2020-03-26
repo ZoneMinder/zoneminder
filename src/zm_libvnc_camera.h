@@ -6,6 +6,7 @@
 #include "zm_camera.h"
 #include "zm_thread.h"
 
+#if HAVE_LIBVNC
 #include <rfb/rfbclient.h>
 
 // Used by vnc callbacks
@@ -61,4 +62,4 @@ public:
   int Close();
 };
 
-#endif
+#endif // HAVE_LIBVNC

@@ -76,7 +76,7 @@ bool EventStream::loadInitialEventData(int monitor_id, time_t event_time) {
     curr_frame_id = 1; // curr_frame_id is 1-based
     if ( event_time >= event_data->start_time ) {
       Debug(2, "event time is after event start");
-      for (unsigned int i = 0; i < event_data->frame_count; i++ ) {
+      for ( unsigned int i = 0; i < event_data->frame_count; i++ ) {
         //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
         if ( event_data->frames[i].timestamp >= event_time ) {
           curr_frame_id = i+1;
@@ -377,6 +377,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
         paused = true;
         replay_rate = ZM_RATE_BASE;
         step = 1;
+        if ( (unsigned int)curr_frame_id < event_data->frame_count )
+          curr_frame_id += 1;
         break;
     case CMD_SLOWREV :
         Debug(1, "Got SLOW REV command");
@@ -845,19 +847,14 @@ void EventStream::runStream() {
       // commands may set send_frame to true
       while ( checkCommandQueue() && !zm_terminate ) {
         // The idea is to loop here processing all commands before proceeding.
-        Debug(1, "Have command queue");
       }
-      Debug(2, "Done command queue");
 
       // Update modified time of the socket .lock file so that we can tell which ones are stale.
       if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
         touch(sock_path_lock);
         last_comm_update = now;
       }
-    } else {
-      Debug(2, "Not checking command queue");
     }
-
 
     // Get current frame data
     FrameData *frame_data = &event_data->frames[curr_frame_id-1];
@@ -1014,7 +1011,8 @@ void EventStream::runStream() {
       curr_frame_id += step;
 
     // Detects when we hit end of event and will load the next event or previous event
-    checkEventLoaded();
+    if ( !paused )
+      checkEventLoaded();
   } // end while ! zm_terminate
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG )

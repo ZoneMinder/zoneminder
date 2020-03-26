@@ -729,12 +729,12 @@ switch ( $tab ) {
           continue;
         if ( $optCount && ($optCount%$breakCount == 0) )
           echo '</br>';
-        echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'. $optTrigger '"'. 
-          ( ( '' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"':''). '/> '. $optTrigger; 
-          $optCount ++;
+        echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'.$optTrigger.'"'. 
+          (( ('' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"' : ''). '/> '. $optTrigger; 
+        $optCount ++;
       } # end foreach trigger option
       if ( !$optCount ) {
-        echo '<em>'. translate('NoneAvailable') .'</em>';
+        echo '<em>'.translate('NoneAvailable').'</em>';
       }
 ?>
         </td></tr>

@@ -75,6 +75,7 @@ public:
     FFMPEG,
     LIBVLC,
     CURL,
+    VNC,
   } CameraType;
 
   typedef enum { 

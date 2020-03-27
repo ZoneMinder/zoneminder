@@ -13,10 +13,8 @@
 struct VncPrivateData
 {
   uint8_t *buffer;
-  uint8_t *prevBuffer; 
-  uint32_t bufferSize;
-  Mutex mutex;
-  ThreadData<bool> newImage;
+  uint8_t width; 
+  uint8_t height;
 };
 
 class VncCamera : public Camera {
@@ -26,12 +24,13 @@ protected:
   int mBpp;
   int mSpp;
   int mBps;
-  char** mOptArgvs;
+  bool mScale;
+  uint8_t *srcbuf[4], *dstbuf[4];
+  struct SwsContext *sws;
   std::string mHost;
   std::string mPort;
   std::string mUser;
   std::string mPass;
-  time_t secs;
 public:
   VncCamera(
       unsigned int p_monitor_id,

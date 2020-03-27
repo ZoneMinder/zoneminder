@@ -69,17 +69,19 @@ foreach ( $layouts as $l ) {
   }
 }
 foreach ( $layouts as $l ) {
-  if ( $l->Name() != "Freeform" )
+  if ( $l->Name() != 'Freeform' )
     $layoutsById[$l->Id()] = $l;
 }
 
-session_start();
+zm_session_start();
 
 $layout_id = '';
 if ( isset($_COOKIE['zmMontageLayout']) ) {
   $layout_id = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
-#} elseif ( isset($_SESSION['zmMontageLayout']) ) {
-  #$layout_id = $_SESSION['zmMontageLayout'];
+  ZM\Logger::Debug("Using layout $layout_id");
+} elseif ( isset($_SESSION['zmMontageLayout']) ) {
+  $layout_id = $_SESSION['zmMontageLayout'];
+  ZM\Logger::Debug("Using layout $layout_id from session");
 }
 
 $options = array();
@@ -88,6 +90,8 @@ $Positions = '';
 if ( $layout_id and is_numeric($layout_id) and isset($layoutsById[$layout_id]) ) {
   $Layout = $layoutsById[$layout_id];
   $Positions = json_decode($Layout->Positions(), true);
+} else {
+  ZM\Logger::Debug("Layout not found");
 }
 if ( $Layout and ( $Layout->Name() != 'Freeform' ) ) {
   // Use layout instead of other options

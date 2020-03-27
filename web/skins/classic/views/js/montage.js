@@ -210,7 +210,6 @@ function Monitor(monitorData) {
  * @param {*} element - the event data passed by onchange callback
  */
 function selectLayout(element) {
-  console.log(element);
   layout = $j(element).val();
 
   if ( layout_id = parseInt(layout) ) {
@@ -221,8 +220,8 @@ function selectLayout(element) {
       // Need to clear the current positioning, and apply the new
 
       monitor_frame = $j('#monitorFrame'+monitor.id);
-      if ( ! monitor_frame ) {
-        console.log("Error finding frame for " + monitor.id);
+      if ( !monitor_frame ) {
+        console.log('Error finding frame for ' + monitor.id);
         continue;
       }
 
@@ -262,6 +261,10 @@ function selectLayout(element) {
         if ( streamImg.nodeName == 'IMG' ) {
           var src = streamImg.src;
           src = src.replace(/width=[\.\d]+/i, 'width=0' );
+          if ( $j('#height').val() == 'auto' ) {
+            src = src.replace(/height=[\.\d]+/i, 'height=0' );
+            streamImg.style.height = 'auto';
+          }
           if ( src != streamImg.src ) {
             streamImg.src = '';
             streamImg.src = src;

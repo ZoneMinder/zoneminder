@@ -24,7 +24,7 @@ static char* GetPasswordCallback(rfbClient* cl){
 
 static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
   rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
-  if(credentialType != rfbCredentialTypeUser) {
+  if ( credentialType != rfbCredentialTypeUser ) {
       return NULL;
   }
 
@@ -68,7 +68,7 @@ VncCamera::VncCamera(
   mPass(pass)
 {
   Debug(2, "Host:%s Port: %s User: %s Pass:%s", mHost.c_str(), mPort.c_str(), mUser.c_str(), mPass.c_str());
-  if( capture )
+  if ( capture )
     Initialise();
 }
 
@@ -102,9 +102,18 @@ void VncCamera::Terminate() {
 
 int VncCamera::PrimeCapture() {
   Info("Priming capture from %s", mHost.c_str());
-  if(mRfb->si.framebufferWidth != width || mRfb->si.framebufferHeight != height) {
-    Info("Expected screen resolution does not match with the provided resolution, using scaling");
+  if ( mRfb->si.framebufferWidth != width || mRfb->si.framebufferHeight != height ) {
+    Info("Expected screen resolution (%dx%d) does not match the provided resolution (%dx%d), using scaling",
+        width, height, mRfb->si.framebufferWidth, mRfb->si.framebufferHeight);
     mScale = true;
+    sws = sws_getContext(
+        mRfb->si.framebufferWidth, mRfb->si.framebufferHeight, AV_PIX_FMT_RGBA, 	
+        width, height, AV_PIX_FMT_RGBA, SWS_BICUBIC,
+        NULL, NULL, NULL);
+    if ( !sws ) {
+      Error("Could not scale image");
+      return -1;
+    }
   }
   return 0;
 }
@@ -123,48 +132,39 @@ int VncCamera::Capture(Image &image) {
   int srcLineSize[4];
   int dstLineSize[4];
   int dstSize;
+
   if ( mScale ) {
-    sws = sws_getContext(
-        mRfb->si.framebufferWidth, mRfb->si.framebufferHeight, AV_PIX_FMT_RGBA, 	
-        width, height, AV_PIX_FMT_RGBA, SWS_BICUBIC,
-        NULL, NULL, NULL);
-    if ( !sws ) {
-      Error("Could not scale image");
+    uint8_t* directbuffer;
+
+    /* Request a writeable buffer of the target image */
+    directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+    if ( directbuffer == NULL ) {
+      Error("Failed requesting writeable buffer for the captured image.");
       return -1;
     }
     
-    if (av_image_fill_arrays(srcbuf, srcLineSize, mVncData.buffer, AV_PIX_FMT_RGBA,
+    if ( av_image_fill_arrays(dstbuf, dstLineSize, directbuffer, AV_PIX_FMT_RGBA,
+          width, height, 16) < 0) {
+      Error("Could not allocate dst image. Scaling failed");
+      return -1;
+    }
+
+    if ( av_image_fill_arrays(srcbuf, srcLineSize, mVncData.buffer, AV_PIX_FMT_RGBA,
           mRfb->si.framebufferWidth, mRfb->si.framebufferHeight, 16) < 0) {
-        sws_freeContext(sws);
         Error("Could not allocate source image. Scaling failed");
         return -1;
     }
     
-    if ((dstSize = av_image_alloc(dstbuf, dstLineSize, width, height, 
-          AV_PIX_FMT_RGBA, 1)) < 0) {
-        av_freep(&srcbuf[0]);
-        sws_freeContext(sws);
-        Error("Could not allocate dest image. Scaling failed");
-        return -1;
-    }
-
     sws_scale(sws, (const uint8_t* const*)srcbuf, srcLineSize, 0, mRfb->si.framebufferHeight, 
               dstbuf, dstLineSize);
     
+  } else {
+    image.Assign(width, height, colours, subpixelorder, mVncData.buffer, width * height * 4);
   }
-  else{
-    dstbuf[0] = mVncData.buffer;
-  }
-  image.Assign(width, height, colours, subpixelorder, mVncData.buffer, width * height * 4);
   return 1;
 }
 
 int VncCamera::PostCapture() {
-  if(mScale) {
-    av_freep(&srcbuf[0]);
-    av_freep(&dstbuf[0]);
-    sws_freeContext(sws);
-  }
   return 0;
 }
 
@@ -173,6 +173,15 @@ int VncCamera::CaptureAndRecord(Image &image, timeval recording, char* event_dir
 }
 
 int VncCamera::Close() {
+#if HAVE_LIBSWSCALE
+  if ( mScale ) {
+    av_freep(&srcbuf[0]);
+    av_freep(&dstbuf[0]);
+    sws_freeContext(sws);
+    sws = NULL;
+  }
+#endif
+
   rfbClientCleanup(mRfb);
   return 0;
 }

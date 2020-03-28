@@ -5,9 +5,16 @@
 #include "zm_buffer.h"
 #include "zm_camera.h"
 #include "zm_thread.h"
+#include "zm_swscale.h"
 
 #if HAVE_LIBVNC
 #include <rfb/rfbclient.h>
+
+extern "C" {
+  #include <libavutil/imgutils.h>
+  #include <libavutil/parseutils.h>
+  #include <libswscale/swscale.h>
+}
 
 // Used by vnc callbacks
 struct VncPrivateData
@@ -22,11 +29,8 @@ protected:
   rfbClient *mRfb;
   VncPrivateData mVncData;
   int mBpp;
-  int mSpp;
-  int mBps;
-  bool mScale;
-  uint8_t *srcbuf[4], *dstbuf[4];
-  struct SwsContext *sws;
+  SWScale scale;
+  AVPixelFormat mImgPixFmt;
   std::string mHost;
   std::string mPort;
   std::string mUser;

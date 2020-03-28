@@ -1,11 +1,7 @@
 #include "zm.h"
 #include "zm_signal.h"
 #include "zm_libvnc_camera.h"
-extern "C" {
-  #include <libavutil/imgutils.h>
-  #include <libavutil/parseutils.h>
-  #include <libswscale/swscale.h>
-}
+#include "zm_swscale.h"
 
 #if HAVE_LIBVNC
 
@@ -25,6 +21,7 @@ static char* GetPasswordCallback(rfbClient* cl){
 static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
   rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
   if ( credentialType != rfbCredentialTypeUser ) {
+      free(c);
       return NULL;
   }
 
@@ -68,6 +65,23 @@ VncCamera::VncCamera(
   mPass(pass)
 {
   Debug(2, "Host:%s Port: %s User: %s Pass:%s", mHost.c_str(), mPort.c_str(), mUser.c_str(), mPass.c_str());
+  
+  if ( colours == ZM_COLOUR_RGB32 ) {
+    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+    mImgPixFmt = AV_PIX_FMT_RGBA;
+    mBpp = 4;
+  } else if ( colours == ZM_COLOUR_RGB24 ) {
+    subpixelorder = ZM_SUBPIX_ORDER_RGB;
+    mImgPixFmt = AV_PIX_FMT_RGB24;
+    mBpp = 3;
+  } else if ( colours == ZM_COLOUR_GRAY8 ) {
+    subpixelorder = ZM_SUBPIX_ORDER_NONE;
+    mImgPixFmt = AV_PIX_FMT_GRAY8;
+    mBpp = 1;
+  } else {
+    Panic("Unexpected colours: %d", colours);
+  }
+
   if ( capture )
     Initialise();
 }
@@ -94,6 +108,7 @@ void VncCamera::Initialise() {
   mRfb->serverHost = strdup(mHost.c_str());
   mRfb->serverPort = atoi(mPort.c_str());
   rfbInitClient(mRfb, 0, nullptr);
+  scale.init();
 }
 
 void VncCamera::Terminate() {
@@ -102,65 +117,20 @@ void VncCamera::Terminate() {
 
 int VncCamera::PrimeCapture() {
   Info("Priming capture from %s", mHost.c_str());
-  if ( mRfb->si.framebufferWidth != width || mRfb->si.framebufferHeight != height ) {
-    Info("Expected screen resolution (%dx%d) does not match the provided resolution (%dx%d), using scaling",
-        width, height, mRfb->si.framebufferWidth, mRfb->si.framebufferHeight);
-    mScale = true;
-    sws = sws_getContext(
-        mRfb->si.framebufferWidth, mRfb->si.framebufferHeight, AV_PIX_FMT_RGBA, 	
-        width, height, AV_PIX_FMT_RGBA, SWS_BICUBIC,
-        NULL, NULL, NULL);
-    if ( !sws ) {
-      Error("Could not scale image");
-      return -1;
-    }
-  }
   return 0;
 }
 
 int VncCamera::PreCapture() {
   Debug(2, "PreCapture");
   WaitForMessage(mRfb, 500);
-  Debug(2, "After Wait ");
   rfbBool res = HandleRFBServerMessage(mRfb);
-  Debug(2, "After Handle ");
   return res == TRUE ? 1 : -1 ;
 }
 
 int VncCamera::Capture(Image &image) {
   Debug(2, "Capturing");
-  int srcLineSize[4];
-  int dstLineSize[4];
-  int dstSize;
-
-  if ( mScale ) {
-    uint8_t* directbuffer;
-
-    /* Request a writeable buffer of the target image */
-    directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-    if ( directbuffer == NULL ) {
-      Error("Failed requesting writeable buffer for the captured image.");
-      return -1;
-    }
-    
-    if ( av_image_fill_arrays(dstbuf, dstLineSize, directbuffer, AV_PIX_FMT_RGBA,
-          width, height, 16) < 0) {
-      Error("Could not allocate dst image. Scaling failed");
-      return -1;
-    }
-
-    if ( av_image_fill_arrays(srcbuf, srcLineSize, mVncData.buffer, AV_PIX_FMT_RGBA,
-          mRfb->si.framebufferWidth, mRfb->si.framebufferHeight, 16) < 0) {
-        Error("Could not allocate source image. Scaling failed");
-        return -1;
-    }
-    
-    sws_scale(sws, (const uint8_t* const*)srcbuf, srcLineSize, 0, mRfb->si.framebufferHeight, 
-              dstbuf, dstLineSize);
-    
-  } else {
-    image.Assign(width, height, colours, subpixelorder, mVncData.buffer, width * height * 4);
-  }
+  uint8_t *directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+  scale.Convert(mVncData.buffer, mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4, directbuffer, width * height * mBpp, AV_PIX_FMT_RGBA, mImgPixFmt, mRfb->si.framebufferWidth, mRfb->si.framebufferHeight, width, height);
   return 1;
 }
 
@@ -173,15 +143,6 @@ int VncCamera::CaptureAndRecord(Image &image, timeval recording, char* event_dir
 }
 
 int VncCamera::Close() {
-#if HAVE_LIBSWSCALE
-  if ( mScale ) {
-    av_freep(&srcbuf[0]);
-    av_freep(&dstbuf[0]);
-    sws_freeContext(sws);
-    sws = NULL;
-  }
-#endif
-
   rfbClientCleanup(mRfb);
   return 0;
 }

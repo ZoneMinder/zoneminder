@@ -497,6 +497,10 @@ class Monitor extends ZM_Object {
     if ( !count($options) ) {
       if ( $command == 'quit' ) {
         $options['command'] = 'quit';
+      } else if ( $command == 'start' ) {
+        $options['command'] = 'start';
+      } else if ( $command == 'stop' ) {
+        $options['command'] = 'stop';
       } else {
         Warning("No commands to send to zmcontrol from $command");
         return false;
@@ -531,7 +535,7 @@ class Monitor extends ZM_Object {
     } else if ( $this->ServerId() ) {
       $Server = $this->Server();
 
-      $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmcontrol.json';
+      $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/daemonControl/'.$this->{'Id'}.'/'.$command.'/zmcontrol.pl.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
@@ -547,12 +551,12 @@ class Monitor extends ZM_Object {
       $context = stream_context_create();
       try {
         $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */
-          Error("Error restarting zma using $url");
+        if ( $result === FALSE ) { /* Handle error */
+          Error("Error sending command using $url");
           return false;
         }
       } catch ( Exception $e ) {
-        Error("Except $e thrown trying to restart zma");
+        Error("Exception $e thrown trying to send command to $url");
         return false;
       }
     } else {

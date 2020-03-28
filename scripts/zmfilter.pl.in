@@ -829,13 +829,19 @@ sub sendEmail {
           Data => $body
           );
 ### Add the attachments
+      my $total_size = 0;
       foreach my $attachment ( @attachments ) {
-        Info("Attaching '$attachment->{path}'");
+        my $size = -s $attachment->{path};
+        $total_size += $size;
+        Info("Attaching '$attachment->{path}' which is $size bytes");
         $mail->attach(
             Path => $attachment->{path},
             Type => $attachment->{type},
             Disposition => 'attachment'
             );
+      }
+      if ( $total_size > 10*1024*1024 ) {
+        Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
 ### Send the Message
       if ( $Config{ZM_SSMTP_MAIL} ) {
@@ -860,20 +866,27 @@ sub sendEmail {
       }
     } else {
       my $mail = MIME::Entity->build(
-          From => $Config{ZM_FROM_EMAIL},
-          To => $$filter{EmailTo},
-          Subject => $subject,
-          Type => (($body=~/<html/)?'text/html':'text/plain'),
-          Data => $body
-          );
+        From => $Config{ZM_FROM_EMAIL},
+        To => $$filter{EmailTo},
+        Subject => $subject,
+        Type => (($body=~/<html/)?'text/html':'text/plain'),
+        Data => $body
+      );
 
+      my $total_size = 0;
       foreach my $attachment ( @attachments ) {
-        Info("Attaching '$attachment->{path}'");
+        my $size = -s $attachment->{path};
+        $total_size += $size;
+        Info("Attaching '$attachment->{path}' which is $size bytes");
+
         $mail->attach(
-            Path => $attachment->{path},
-            Type => $attachment->{type},
-            Encoding => 'base64'
-            );
+          Path => $attachment->{path},
+          Type => $attachment->{type},
+          Encoding => 'base64'
+        );
+      } # end foreach attachment
+      if ( $total_size > 10*1024*1024 ) {
+        Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
       $mail->smtpsend(Host => $Config{ZM_EMAIL_HOST}, MailFrom => $Config{ZM_FROM_EMAIL});
     }

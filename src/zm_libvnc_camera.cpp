@@ -110,8 +110,11 @@ int VncCamera::PrimeCapture() {
 }
 
 int VncCamera::PreCapture() {
+  Debug(2, "PreCapture");
   WaitForMessage(mRfb, 500);
+  Debug(2, "After Wait ");
   rfbBool res = HandleRFBServerMessage(mRfb);
+  Debug(2, "After Handle ");
   return res == TRUE ? 1 : -1 ;
 }
 
@@ -120,10 +123,12 @@ int VncCamera::Capture(Image &image) {
   int srcLineSize[4];
   int dstLineSize[4];
   int dstSize;
-  if(mScale) {
-    sws = sws_getContext(mRfb->si.framebufferWidth, mRfb->si.framebufferHeight, AV_PIX_FMT_RGBA, 	
-                          width, height, AV_PIX_FMT_RGBA, SWS_BICUBIC, NULL, NULL, NULL);
-    if(!sws) {
+  if ( mScale ) {
+    sws = sws_getContext(
+        mRfb->si.framebufferWidth, mRfb->si.framebufferHeight, AV_PIX_FMT_RGBA, 	
+        width, height, AV_PIX_FMT_RGBA, SWS_BICUBIC,
+        NULL, NULL, NULL);
+    if ( !sws ) {
       Error("Could not scale image");
       return -1;
     }

@@ -112,6 +112,9 @@ void VncCamera::Initialise() {
 }
 
 void VncCamera::Terminate() {
+  if(mRfb->frameBuffer)
+    free(mRfb->frameBuffer);
+  rfbClientCleanup(mRfb);
   return;
 }
 
@@ -143,7 +146,6 @@ int VncCamera::CaptureAndRecord(Image &image, timeval recording, char* event_dir
 }
 
 int VncCamera::Close() {
-  rfbClientCleanup(mRfb);
   return 0;
 }
 #endif

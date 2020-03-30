@@ -123,7 +123,8 @@ $sourceTypes = array(
     'Libvlc' => translate('Libvlc'),
     'cURL'   => 'cURL (HTTP(S) only)',
     'WebSite'=> 'Web Site',
-    'NVSocket'	=> translate('NVSocket')
+    'NVSocket'	=> translate('NVSocket'),
+    'VNC' => 'VNC'
     );
 if ( !ZM_HAS_V4L )
   unset($sourceTypes['Local']);
@@ -779,6 +780,13 @@ switch ( $tab ) {
 
       } else if ( $monitor->Type() == 'NVSocket' ) {
 include('_monitor_source_nvsocket.php');
+      } else if ( $monitor->Type() == 'VNC' ) {
+?>
+        <tr><td><?php echo translate('Host Addr') ?></td><td><input type="text" name="newMonitor[Host]" value="<?php echo validHtmlStr($monitor->Host()) ?>" size="36"/></td></tr>
+        <tr><td><?php echo translate('Host Port') ?></td><td><input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" size="6"/></td></tr>
+        <tr><td><?php echo 'Username' ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>" size="12"/></td></tr>
+        <tr><td><?php echo 'Password' ?></td><td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" size="12"/></td></tr>  
+<?php       
       } else if ( $monitor->Type() == 'Remote' ) {
 ?>
           <tr><td><?php echo translate('RemoteProtocol') ?></td><td><?php echo htmlSelect( "newMonitor[Protocol]", $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').setStyle('display','table-row');}else{\$('RTSPDescribe').hide();}" ); ?></td></tr>
@@ -811,8 +819,8 @@ include('_monitor_source_nvsocket.php');
 ?>
           <tr><td><?php echo translate('WebSiteUrl') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" size="36"/></td></tr>
           <tr><td><?php echo translate('Width') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4";"/></td></tr>
-        <tr><td><?php echo translate('Height') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4";"/></td></tr>
-        <tr><td><?php echo 'Web Site Refresh (Optional)' ?></td><td><input type="number" name="newMonitor[Refresh]" value="<?php echo validHtmlStr($monitor->Refresh()); ?>"/></td></tr>
+          <tr><td><?php echo translate('Height') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4";"/></td></tr>
+          <tr><td><?php echo 'Web Site Refresh (Optional)' ?></td><td><input type="number" name="newMonitor[Refresh]" value="<?php echo validHtmlStr($monitor->Refresh()); ?>"/></td></tr>
 <?php
       } elseif ( $monitor->Type() == 'Ffmpeg' || $monitor->Type() == 'Libvlc' ) {
 ?>

@@ -9,13 +9,6 @@
 
 #if HAVE_LIBVNC
 #include <rfb/rfbclient.h>
-
-extern "C" {
-  #include <libavutil/imgutils.h>
-  #include <libavutil/parseutils.h>
-  #include <libswscale/swscale.h>
-}
-
 // Used by vnc callbacks
 struct VncPrivateData
 {

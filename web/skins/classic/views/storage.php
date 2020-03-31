@@ -32,7 +32,7 @@ if ( $_REQUEST['id'] ) {
     return;
   }
 } else {
-  $newStorage = new Storage();
+  $newStorage = new ZM\Storage();
   $newStorage->Name(translate('NewStorage'));
 }
 

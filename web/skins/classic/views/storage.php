@@ -23,6 +23,9 @@ if ( !canEdit('System') ) {
   return;
 }
 
+require_once('includes/Server.php');
+require_once('includes/Storage.php');
+
 if ( $_REQUEST['id'] ) {
   if ( !($newStorage = ZM\Storage::find_one(array('Id'=>$_REQUEST['id'])) ) ) {
     $view = 'error';

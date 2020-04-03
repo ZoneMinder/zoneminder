@@ -26,47 +26,12 @@ function exportHeader($title) {
     <meta charset="utf-8">
     <title><?php echo $title ?></title>
     <style>
-<?php include(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/css/'.ZM_SKIN_NAME.'/export.css'); ?>
-
-ul.tabs {
-	margin: 0;
-  margin-bottom: -1px;
-	padding: 0;
-	float: left;
-	list-style: none;
-	height: 32px;
-	border-bottom: 1px solid #7f7fb2;
-	border-left: 1px solid #7f7fb2;
-	width: 100%;
-}
-ul.tabs li {
-	float: left;
-	margin: 0;
-	padding: 0;
-	height: 31px;
-	line-height: 31px;
-	border: 1px solid #7f7fb2;
-	border-left: none;
-	margin-bottom: -1px;
-	background: #fff;
-	overflow: hidden;
-	position: relative;
-}
-ul.tabs li a {
-	text-decoration: none;
-	color: #000;
-	display: block;
-	font-size: 1.2em;
-	padding: 0 20px;
-	outline: none;
-}
-ul.tabs li a:hover {
-	background: #ccc;
-}
-html ul.tabs li.active, html ul.tabs li.active a:hover  {
-	background: #dddddd;
-	border-bottom: 1px solid #e0e0e0;
-}
+<?php 
+  include(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/css/base/export.css');
+  if ( $css != 'base' ) {
+    include(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/css/'.$css.'/export.css');
+  }
+?>
     </style>
     <script src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>jquery.js"></script>
     <!--<script type="text/javascript" src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>video.js"></script>-->
@@ -96,27 +61,21 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
     </script>
   </head>
 <?php
-}
+} // end exportHeader
 
 function exportEventDetail($event, $exportFrames, $exportImages) {
   ob_start();
   exportHeader(translate('Event').' '.$event->Id());
 	
 	$otherlinks = '';
-	if ( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.translate('Frames').'</a>,';
-	if ( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.translate('Images').'</a>,';
-	$otherlinks = substr($otherlinks,0,-1);
+	if ( $exportFrames ) $otherlinks .= ' <a href="zmEventFrames.html">'.translate('Frames').'</a>,';
+	if ( $exportImages ) $otherlinks .= ' <a href="zmEventImages.html">'.translate('Images').'</a>,';
+	$otherlinks = substr($otherlinks, 0, -1);
 ?>
 <body>
-  <noscript>
-  <div style="background-color:red;color:white;font-size:x-large;">
-  <?php echo validHtmlStr(ZM_WEB_TITLE) ?> requires Javascript. Please enable Javascript in your browser for this site.
-  </div>
-  </noscript>
-
   <div id="page">
     <div id="content">
-		  <h2><?php echo translate('Event') ?>: <?php echo validHtmlStr($event->Name()) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
+		  <h2><?php echo translate('Event') .': '.validHtmlStr($event->Name()).( (!empty($otherlinks)) ? ' ('.$otherlinks.') ' : '' ) ?></h2>
       <table id="eventDetail">
         <tr><th scope="row"><?php echo translate('Id') ?></th><td><?php echo $event->Id() ?></td></tr>
         <tr><th scope="row"><?php echo translate('Name') ?></th><td><?php echo validHtmlStr($event->Name()) ?></td></tr>
@@ -148,19 +107,14 @@ function exportEventFrames($event, $exportDetail, $exportImages) {
   exportHeader(translate('Frames').' '.$event->Id());
 	
 	$otherlinks = '';
-	if ( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.translate('Event').'</a>,';
-	if ( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.translate('Images').'</a>,';
+	if ( $exportDetail ) $otherlinks .= ' <a href="zmEventDetail.html">'.translate('Event').'</a>,';
+	if ( $exportImages ) $otherlinks .= ' <a href="zmEventImages.html">'.translate('Images').'</a>,';
 	$otherlinks = substr($otherlinks, 0, -1);
 ?>
 <body>
-  <noscript>
-  <div style="background-color:red;color:white;font-size:x-large;">
-  <?php echo validHtmlStr(ZM_WEB_TITLE) ?> requires Javascript. Please enable Javascript in your browser for this site.
-  </div>
-  </noscript>
   <div id="page">
     <div id="content">
-		<h2><?php echo translate('Frames').': '.validHtmlStr($event->Name()).( (!empty($otherlinks)) ?.' ('.$otherlinks.')':'') ?></h2>
+		<h2><?php echo translate('Frames').': '.validHtmlStr($event->Name()).( (!empty($otherlinks)) ? ' ('.$otherlinks.')':'') ?></h2>
       <table id="eventFrames">
         <tr>
           <th><?php echo translate('FrameId') ?></th>
@@ -220,19 +174,19 @@ function exportEventFrames($event, $exportDetail, $exportImages) {
 </html>
 <?php
   return ob_get_clean();
-}
+} // end function exportEventFrames($event, $exportDetail, $exportImages)
 
 function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
   ob_start();
   exportHeader(translate('Images').' '.$event->Id());
 	
 	$otherlinks = '';
-	if ( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.translate('Event').'</a>,';
-	if ( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.translate('Frames').'</a>,';
+	if ( $exportDetail ) $otherlinks .= ' <a href="zmEventDetail.html">'.translate('Event').'</a>,';
+	if ( $exportFrames ) $otherlinks .= ' <a href="zmEventFrames.html">'.translate('Frames').'</a>,';
 	$otherlinks = substr($otherlinks, 0, -1);
 
 	$filelist = array_keys($myfilelist);
-	sort($filelist,SORT_NUMERIC);
+	sort($filelist, SORT_NUMERIC);
 	$slides = '"'.implode('","',$filelist).'"';
 	$listcount = count($filelist);
 ?>
@@ -267,7 +221,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
 .value_display {background-color: #bbb;color: #333;width: 30px;margin: 0 2px;text-align: right;font-size: 8pt;font-face: verdana, arial, helvetica, sans-serif;font-weight: bold;line-height: 12px;border: 0;cursor: default;}
 </style>
 
-<h2><?php echo translate('Images') .': '.validHtmlStr($event->Name()).( (!empty($otherlinks)) .' ('.$otherlinks.') ':'') ?></h2>
+<h2><?php echo translate('Images').': '.validHtmlStr($event->Name()).( (!empty($otherlinks)) ? ' ('.$otherlinks.') ' : '' ) ?></h2>
 
 <?php
   if ( $event->DefaultVideo() ) {
@@ -278,9 +232,9 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
     if ( $Monitor->VideoWriter() == '2' ) {
       # Passthrough
       $Rotation = $event->Orientation();
-      if ( in_array($event->Orientation(),array('ROTATE_90','ROTATE_270')) )
+      if ( in_array($event->Orientation(), array('ROTATE_90','ROTATE_270')) )
         $Zoom = $event->Height()/$event->Width();
-    }
+    } # end if passthrough
 ?>
     <div id="videoFeed">
       <video id="videoobj" class="video-js vjs-default-skin" style="transform: matrix(1, 0, 0, 1, 0, 0);"
@@ -613,36 +567,45 @@ else if (document.layers) window.onload=start_slider;
 </html>
 <?php
   return ob_get_clean();
-}
+} # end function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist)
 
-function eventlist_html($Event) {
-?>
-<div class="event">
-<?php 
+function eventlist_html($Event, $exportDetail, $exportFrames) {
+  $html = '<div class="event">
+';
 	if ( $Event->SaveJPEGs() ) {
-?>	
-<a href="#" onclick="switchevent('<?php echo $Event->Id(); ?>/zmEventImages.html');return false;">
-<?php if ( ZM_WEB_LIST_THUMBS ) { ?>
-<img width="<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>" src="<?php echo $Event->Id(); ?>/snapshot.jpg" alt="<?php echo $Event->Id()?>"/>
-<?php } else { echo $Event->Id(); } ?>
-</a>
-<?php
+    $html .= '<a href="#" onclick="switchevent(\''.$Event->Id().'/zmEventImages.html\');return false;">
+';
+    if ( ZM_WEB_LIST_THUMBS ) {
+      $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().'/snapshot.jpg" alt="'.$Event->Id().'"/>
+';
+    } else {
+      $html .= $Event->Id();
+    }
+    $html .= '</a><br/>
+';
 	} # end if has jpegs
 	if ( $Event->DefaultVideo() ) {
 		if ( ZM_WEB_LIST_THUMBS ) {
-?>
-	<a href="<?php echo $Event->Id().'/'.$Event->DefaultVideo() ?>">
-    <img width="<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>" src="<?php echo $Event->Id(); ?>/snapshot.jpg" alt="<?php echo $Event->Id()?>"/>
-  </a>
-<?php
+      $html .= '<a href="'.$Event->Id().'/'.$Event->DefaultVideo() .'">';
+      $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().'/snapshot.jpg" alt="'.$Event->Id().'"/>';
+      $html .= '</a><br/>
+        ';
 		}
 	}
-?>
-	</div><!--event-->
-<?php
-}
+  if ( $exportDetail ) {
+    $html .= '<a href="#" onclick="switchevent(\''.$Event->Id().'/zmEventDetail.html\');return false;">Detail</a>
+';
+  }
+  if ( $exportFrames ) {
+    $html .= '<a href="#" onclick="switchevent(\''.$Event->Id().'/zmEventFrames.html\');return false;">Frames</a>
+';
+  }
+  $html .= '</div><!--event-->
+';
+  return $html;
+} // end function eventlist_html
 
-function exportEventImagesMaster($eids) {
+function exportEventImagesMaster($eids, $exportDetail, $exportFrames) {
   ob_start();
   exportHeader(translate('Images').' Master');
 ?>
@@ -653,8 +616,8 @@ function exportEventImagesMaster($eids) {
 
 	foreach ( $events as $event ) {
 		//get monitor id and event id
-		$eventMonitorId[$eid] = $event->MonitorId();
-		$eventPath[$eid] = $event->Relative_Path();
+		$eventMonitorId[$event->Id()] = $event->MonitorId();
+		$eventPath[$event->Id()] = $event->Relative_Path();
 	}
 	
 	$monitors = array_values(array_flip(array_flip($eventMonitorId))); //unique monitors and reindex the array
@@ -662,7 +625,7 @@ function exportEventImagesMaster($eids) {
 	
 	//*
 	if ( !empty($monitors) ) {
-		$tmp = dbFetchAll('SELECT Id,Name FROM Monitors WHERE Id IN ('.implode(',', $monitors).') ');
+		$tmp = dbFetchAll('SELECT Id, Name FROM Monitors WHERE Id IN ('.implode(',', $monitors).') ');
 		foreach ( $tmp as $row ) { $monitorNames[$row['Id']] = $row['Name']; }
 	}
 	//*/
@@ -684,7 +647,7 @@ function exportEventImagesMaster($eids) {
         <h2> All </h2>
 <?php
 	foreach($events as $event) {
-		eventlist_html($event);
+		echo eventlist_html($event, $exportDetail, $exportFrames);
 	} # end foreach event
 ?>
 	    </div>
@@ -694,14 +657,15 @@ function exportEventImagesMaster($eids) {
 		echo '<h2>Monitor: '.$monitorNames[$monitor_id].'</h2>';
 		foreach ( $events as $event ) {
 			if ( $event->MonitorId() == $monitor_id ) {
-				eventlist_html($event);
+		    echo eventlist_html($event, $exportDetail, $exportFrames);
 			} # end if its the right monitor
 		} # end foreach event
 		echo '</div>';
 	} # end foreach monitor
 ?>
-    </td><td valign="top">
-      <iframe id="myframe" onload="resizeCaller();" name="myframe" src="#"
+
+</td><td valign="top">
+      <iframe id="myframe" onload="resizeCaller();" name="myframe" src="about:blank"
         scrolling="no" marginwidth="0" marginheight="0" frameborder="0"
         vspace="0" hspace="0" style="overflow:visible; width:100%; display:none">
       </iframe>
@@ -732,48 +696,66 @@ var getFFVersion=navigator.userAgent.substring(navigator.userAgent.indexOf("Fire
 var FFextraHeight=parseFloat(getFFVersion)>=0.1? 16 : 0; //extra height in px to add to iframe in FireFox 1.0+ browsers
 
 function resizeCaller() {
-	var dyniframe=new Array();
-	for (i=0; i<iframeids.length; i++){
-		if (document.getElementById) resizeIframe(iframeids[i]);
-		//reveal iframe for lower end browsers? (see var above):
-		if ( (document.all || document.getElementById) && iframehide=="no" ) {
-			var tempobj=document.all? document.all[iframeids[i]] : document.getElementById(iframeids[i]);
-			tempobj.style.display="block";
-		}
-	}
+  var dyniframe=new Array();
+  for (i=0; i<iframeids.length; i++){
+    if (document.getElementById) resizeIframe(iframeids[i]);
+    //reveal iframe for lower end browsers? (see var above):
+    if ( (document.all || document.getElementById) && iframehide=="no" ) {
+      var tempobj=document.all? document.all[iframeids[i]] : document.getElementById(iframeids[i]);
+      tempobj.style.display="block";
+    }
+  }
 }
 
 function resizeIframe(frameid) {
-	var currentfr = document.getElementById(frameid);
-	if ( currentfr && !window.opera ) {
-		currentfr.style.display = "block";
-		if ( currentfr.contentDocument && currentfr.contentDocument.body.offsetHeight ) //ns6 syntax
-			currentfr.height = currentfr.contentDocument.body.offsetHeight+FFextraHeight; 
-		else if ( currentfr.Document && currentfr.Document.body.scrollHeight ) //ie5+ syntax
-			currentfr.height = currentfr.Document.body.scrollHeight;
+  var currentfr = document.getElementById(frameid);
+  if ( currentfr && !window.opera ) {
+    currentfr.style.display = "block";
+    if ( currentfr.contentDocument && currentfr.contentDocument.body.offsetHeight ) //ns6 syntax
+      currentfr.height = currentfr.contentDocument.body.offsetHeight+FFextraHeight;
+    else if ( currentfr.Document && currentfr.Document.body.scrollHeight ) //ie5+ syntax
+      currentfr.height = currentfr.Document.body.scrollHeight;
 
     if ( currentfr.addEventListener ) {
       currentfr.addEventListener("load", readjustIframe, false);
     } else if ( currentfr.attachEvent ) {
-			currentfr.detachEvent("onload", readjustIframe); // Bug fix line
-			currentfr.attachEvent("onload", readjustIframe);
-		}
-	}
+      currentfr.detachEvent("onload", readjustIframe); // Bug fix line
+      currentfr.attachEvent("onload", readjustIframe);
+    }
+  }
 }
-
 function readjustIframe(loadevt) {
-	var crossevt = window.event ? event : loadevt;
-	var iframeroot = crossevt.currentTarget ? crossevt.currentTarget : crossevt.srcElement;
-	if (iframeroot) resizeIframe(iframeroot.id);
+  var crossevt = window.event ? event : loadevt;
+  var iframeroot = crossevt.currentTarget ? crossevt.currentTarget : crossevt.srcElement;
+  if (iframeroot) resizeIframe(iframeroot.id);
+  $('#myframe').load($('#myframe').src);
 }
 
 function loadintoIframe(iframeid, url) {
-	if (document.getElementById) document.getElementById(iframeid).src=url;
+  if (document.getElementById) document.getElementById(iframeid).src=url;
 }
 
-//if (window.addEventListener) window.addEventListener("load", resizeCaller, false)
-//else if (window.attachEvent) window.attachEvent("onload", resizeCaller)
-//else window.onload=resizeCaller
+    /*==========[tab code]==========*/
+    $(document).ready(function() {
+
+      //When page loads...
+      $(".tab_content").hide(); //Hide all content
+      $("ul.tabs li:first").addClass("active").show(); //Activate first tab
+      $(".tab_content:first").show(); //Show first tab content
+
+      //On Click Event
+      $("ul.tabs li").click(function() {
+
+        $("ul.tabs li").removeClass("active"); //Remove any "active" class
+        $(this).addClass("active"); //Add "active" class to selected tab
+        $(".tab_content").hide(); //Hide all tab content
+
+        var activeTab = $(this).find("a").attr("href"); //Find the href attribute value to identify the active tab + content
+        $(activeTab).fadeIn(); //Fade in the active ID content
+        return false;
+      });
+
+    });
     </script>
   </body>
 </html>
@@ -936,36 +918,31 @@ function exportEvents(
       ZM\Error("Can't mkdir $event_dir");
     }
     $event_exportFileList = exportFileList($event, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc);
-    ZM\Logger::Debug('File list for event '.$eid.' '.print_r($event_exportFileList, true));
     $exportFileList = array_merge($exportFileList, $event_exportFileList);
     foreach ( $event_exportFileList as $file ) {
-     if ( preg_match('/\.html$/', $file) )
-        continue;
-      #exec('cp -as '.$event->Path().'/../'.$file.' '.$export_dir.'/'.$file, $output, $return);
+     #if ( preg_match('/\.html$/', $file) )
+        #continue;
       $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'/'.$file. ' 2>&1';
       exec($cmd, $output, $return);
       ZM\Logger::Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
     } # end foreach event_exportFile
   } # end foreach event
 
-  // create an master image 
-  if ( $exportImages ) {
-    if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.js', $export_dir.'/jquery.js') )
-      ZM\Error('Failed linking jquery.js');
-    //if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/video.js', $export_dir.'/video.js') )
-      //Error("Failed linking video.js");
+  if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.js', $export_dir.'/jquery.js') )
+    ZM\Error('Failed linking jquery.js');
+  //if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/video.js', $export_dir.'/video.js') )
+    //Error("Failed linking video.js");
 
-    $html_eventMaster_file = 'zmEventImagesMaster_'.date('Ymd_His'). '.html';
-    $html_eventMaster_path = $export_dir.'/'.$html_eventMaster_file;
+  $html_eventMaster_file = 'zmEventImagesMaster.html';
+  $html_eventMaster_path = $export_dir.'/'.$html_eventMaster_file;
 
-    if ( ($fp = fopen($html_eventMaster_path, 'w')) ) {
-      fwrite($fp, exportEventImagesMaster($eids));
-      fclose($fp);
-      $exportFileList[] = $html_eventMaster_file;
-    } else {
-      ZM\Error("Can't open event images export file '$html_eventMaster_path'");
-    }
-  } // end if exportImages
+  if ( ($fp = fopen($html_eventMaster_path, 'w')) ) {
+    fwrite($fp, exportEventImagesMaster($eids, $exportDetail, $exportFrames));
+    fclose($fp);
+    $exportFileList[] = $html_eventMaster_file;
+  } else {
+    ZM\Error("Can't open event images export file '$html_eventMaster_path'");
+  }
 
   $listFile = $export_dir.'/'.$export_listFile;
   if ( !($fp = fopen($listFile, 'w')) ) {

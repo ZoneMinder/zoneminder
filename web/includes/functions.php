@@ -39,7 +39,7 @@ function CSPHeaders($view, $nonce) {
   global $Servers;
   if ( ! $Servers )
     $Servers = ZM\Server::find();
-  
+
   $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Url();}, $Servers));
   switch ($view) {
     case 'login': {
@@ -47,7 +47,7 @@ function CSPHeaders($view, $nonce) {
           && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
           && ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY) {
-        $additionalScriptSrc = ' https://www.google.com';
+        $additionalScriptSrc .= ' https://www.google.com';
       }
       // fall through
     }
@@ -2194,7 +2194,6 @@ function ajaxError($message, $code=HTTP_STATUS_OK) {
   if ( $code == HTTP_STATUS_OK ) {
     $response = array('result'=>'Error', 'message'=>$message);
     header('Content-type: application/json');
-    #header('Content-type: text/plain');
     exit(jsonEncode($response));
   }
   header("HTTP/1.0 $code $message");
@@ -2211,7 +2210,6 @@ function ajaxResponse($result=false) {
     $response['message'] = $result;
   }
   header('Content-type: application/json');
-  #header('Content-type: text/plain');
   exit(jsonEncode($response));
 }
 

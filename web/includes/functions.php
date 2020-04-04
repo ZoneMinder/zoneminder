@@ -36,14 +36,18 @@ function noCacheHeaders() {
 }
 
 function CSPHeaders($view, $nonce) {
-  $additionalScriptSrc = '';
+  global $Servers;
+  if ( ! $Servers )
+    $Servers = ZM\Server::find();
+
+  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Url();}, $Servers));
   switch ($view) {
     case 'login': {
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
           && ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY) {
-        $additionalScriptSrc = "https://www.google.com";
+        $additionalScriptSrc .= ' https://www.google.com';
       }
       // fall through
     }
@@ -92,7 +96,9 @@ function CORSHeaders() {
 
 # The following is left for future reference/use.
     $valid = false;
-    $Servers = ZM\Server::find();
+    global $Servers;
+    if ( ! $Servers )
+      $Servers = ZM\Server::find();
     if ( sizeof($Servers) < 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
@@ -2172,7 +2178,7 @@ function ajaxError($message, $code=HTTP_STATUS_OK) {
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
     $response = array('result'=>'Error', 'message'=>$message);
-    header('Content-type: text/plain');
+    header('Content-type: application/json');
     exit(jsonEncode($response));
   }
   header("HTTP/1.0 $code $message");
@@ -2188,7 +2194,7 @@ function ajaxResponse($result=false) {
   } else if ( !empty($result) ) {
     $response['message'] = $result;
   }
-  header('Content-type: text/plain');
+  header('Content-type: application/json');
   exit(jsonEncode($response));
 }
 

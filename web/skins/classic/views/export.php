@@ -101,7 +101,7 @@ if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
     $eventsSql .= $_REQUEST['filter']['sql'];
   }
   $eventsSql .= " ORDER BY $sortColumn $sortOrder";
-  if ( isset($_REQUEST['filter']['Query']['limit']) ) 
+  if ( isset($_REQUEST['filter']['Query']['limit']) )
     $eventsSql .= ' LIMIT '.validInt($_REQUEST['filter']['Query']['limit']);
 } # end if filter
 
@@ -244,30 +244,28 @@ while ( $event_row = dbFetchNext($results) ) {
   </div><!--row-->
   <button type="button" id="exportButton" name="exportButton" value="Export" disabled="disabled"><?php echo translate('Export') ?></button>
 </div><!--container-->
-<?php
-?>
-  <h2 id="exportProgress" class="<?php
-    if ( isset($_REQUEST['generated']) ) {
-      if ( $_REQUEST['generated'] )
-        echo 'infoText';
-      else 
-        echo 'errorText';
-    } else {
-      echo 'hidden warnText';
-    }
-?>">
+          <h2 id="exportProgress" class="<?php
+            if ( isset($_REQUEST['generated']) ) {
+              if ( $_REQUEST['generated'] )
+                echo 'infoText';
+              else
+                echo 'errorText';
+            } else {
+              echo 'hidden warnText';
+            }
+        ?>">
             <span id="exportProgressText">
-              <?php 
+              <?php
                 if ( isset($_REQUEST['generated']) ) {
                   if ( $_REQUEST['generated'] )
                     echo translate('ExportSucceeded');
-                  else 
+                  else
                     echo translate('ExportFailed');
                 }
             ?></span>
             <span id="exportProgressTicker"></span>
           </h2>
-          <button type="button" data-on-click-this="startDownload" <?php echo empty($_REQUEST['generated'])? ' class="hidden"' : '' ?>><?php echo translate('Download') ?></button>
+          <button type="button" data-on-click-this="startDownload"<?php echo empty($_REQUEST['generated'])? ' class="hidden"' : '' ?>><?php echo translate('Download') ?></button>
           <input type="hidden" name="exportFile" value="<?php echo isset($_REQUEST['exportFile']) ? validHtmlStr($_REQUEST['exportFile']) : '' ?>"/>
           <input type="hidden" name="generated" value="<?php echo isset($_REQUEST['generated']) ? validHtmlStr($_REQUEST['generated']) : '' ?>"/>
         </form>

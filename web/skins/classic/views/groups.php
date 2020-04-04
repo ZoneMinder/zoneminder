@@ -69,7 +69,7 @@ function group_line( $Group ) {
   $html .= str_repeat('<td class="colName">&nbsp;</td>', $Group->depth());
   $html .= '<td class="colName" colspan="'.($max_depth-($Group->depth()-1)).'">';
   if ( canEdit('Groups') ) {
-    $html .= '<a href="#" onclick="editGroup('.$Group->Id().');">'. validHtmlStr($Group->Id() . ' ' . $Group->Name()).'</a>';
+    $html .= '<a href="#" data-on-click-this="editGroup" data-group-id="'.$Group->Id().'">'.validHtmlStr($Group->Id().' '.$Group->Name()).'</a>';
   } else {
     $html .= validHtmlStr($Group->Name());
   }

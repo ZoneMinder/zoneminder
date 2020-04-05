@@ -760,6 +760,7 @@ if(HAVE_OPENSSL_MD5_H)
             "unsigned char *MD5(const unsigned char *d, size_t n, unsigned char *md)" "NULL" "openssl/md5.h" 
             HAVE_MD5_OPENSSL)
 endif(HAVE_OPENSSL_MD5_H)
+
 if(HAVE_GNUTLS_GNUTLS_H)
 	set(CMAKE_REQUIRED_LIBRARIES "${GNUTLS_LIBRARIES}")
 	set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
@@ -768,6 +769,7 @@ if(HAVE_GNUTLS_GNUTLS_H)
             "int gnutls_fingerprint (gnutls_digest_algorithm_t algo, const gnutls_datum_t * data, void *result, size_t * result_size)" "0" "stdlib.h;gnutls/gnutls.h" 
             HAVE_DECL_GNUTLS_FINGERPRINT)
 endif(HAVE_GNUTLS_GNUTLS_H)
+
 if(HAVE_MD5_OPENSSL)
 	set(HAVE_DECL_MD5 1)
 else(HAVE_MD5_OPENSSL)
@@ -775,6 +777,7 @@ else(HAVE_MD5_OPENSSL)
         "ZoneMinder requires a working MD5 function for hashed authenication but 
         none were found - hashed authenication will not be available")
 endif(HAVE_MD5_OPENSSL)
+
 # Dirty fix for zm_user only using openssl's md5 if gnutls and gcrypt are not available.
 # This needs to be fixed in zm_user.[h,cpp] but such fix will also require changes to configure.ac
 if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)

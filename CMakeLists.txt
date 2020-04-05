@@ -3,6 +3,7 @@
 # For more information and installation, see the INSTALL file
 #
 cmake_minimum_required (VERSION 2.8.7)
+cmake_policy(SET CMP0054 NEW)
 project (zoneminder)
 file (STRINGS "version" zoneminder_VERSION)
 # make API version a minor of ZM version
@@ -772,11 +773,13 @@ endif(HAVE_GNUTLS_GNUTLS_H)
 
 if(HAVE_MD5_OPENSSL)
 	set(HAVE_DECL_MD5 1)
-else(HAVE_MD5_OPENSSL)
-	message(AUTHOR_WARNING 
-        "ZoneMinder requires a working MD5 function for hashed authenication but 
-        none were found - hashed authenication will not be available")
 endif(HAVE_MD5_OPENSSL)
+
+if((NOT HAVE_MD5_OPENSSL) AND (NOT HAVE_DECL_GNUTLS_FINGERPRINT))
+	message(AUTHOR_WARNING 
+        "ZoneMinder requires a working MD5 function for hashed authentication but 
+        none were found - hashed authentication will not be available")
+endif((NOT HAVE_MD5_OPENSSL) AND (NOT HAVE_DECL_GNUTLS_FINGERPRINT))
 
 # Dirty fix for zm_user only using openssl's md5 if gnutls and gcrypt are not available.
 # This needs to be fixed in zm_user.[h,cpp] but such fix will also require changes to configure.ac

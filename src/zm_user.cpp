@@ -294,10 +294,10 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
       gnutls_datum_t md5data = { (unsigned char *)auth_key, strlen(auth_key) };
       gnutls_fingerprint( GNUTLS_DIG_MD5, &md5data, md5sum, &md5len );
 #endif
-      auth_md5[0] = '\0';
       for ( unsigned int j = 0; j < md5len; j++ ) {
-        sprintf( &auth_md5[2*j], "%02x", md5sum[j] );
+        snprintf(&auth_md5[2*j], 2, "%02x", md5sum[j]);
       }
+      auth_md5[md5len*2+1] = '\0';
       Debug( 1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key, auth_md5, auth );
 
       if ( !strcmp( auth, auth_md5 ) ) {

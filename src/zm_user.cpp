@@ -265,6 +265,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     return 0;
   }
 
+  const char * hex = "0123456789abcdef";
   while ( MYSQL_ROW dbrow = mysql_fetch_row(result) ) {
     const char *user = dbrow[1];
     const char *pass = dbrow[2];
@@ -303,10 +304,15 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
       gnutls_datum_t md5data = { (unsigned char *)auth_key, strlen(auth_key) };
       gnutls_fingerprint(GNUTLS_DIG_MD5, &md5data, md5sum, &md5len);
 #endif
-      auth_md5[0] = '\0';
+      unsigned char *md5sum_ptr = md5sum;
+      char *auth_md5_ptr = auth_md5;
+
       for ( unsigned int j = 0; j < md5len; j++ ) {
-        sprintf(&auth_md5[2*j], "%02x", md5sum[j]);
+        *auth_md5_ptr++ = hex[(*md5sum_ptr>>4)&0xf];
+        *auth_md5_ptr++ = hex[(*md5sum_ptr++)&0xf];
       }
+      *auth_md5_ptr = 0;
+
       Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'",
           auth_key, auth_md5, auth);
 

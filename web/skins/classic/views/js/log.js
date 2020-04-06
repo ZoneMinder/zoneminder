@@ -175,7 +175,7 @@ function clearLog() {
   var clearReq = new Request.JSON({url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: clearResponse});
   var tbody = $(logTable).getElement('tbody');
   var rows = tbody.getElements('tr');
-  if ( rows ) {
+  if ( rows && rows.length ) {
     var minTime = rows[0].getElement('td').get('text');
     clearParms += "&minTime="+encodeURIComponent(minTime);
     var maxTime = rows[rows.length-1].getElement('td').get('text');

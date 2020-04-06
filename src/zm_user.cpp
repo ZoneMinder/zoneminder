@@ -53,7 +53,7 @@ User::User(const MYSQL_ROW &dbrow) {
   id = atoi(dbrow[index++]);
   strncpy(username, dbrow[index++], sizeof(username)-1);
   strncpy(password, dbrow[index++], sizeof(password)-1);
-  enabled = static_cast<bool>atoi(dbrow[index++]);
+  enabled = static_cast<bool>(atoi(dbrow[index++]));
   stream = (Permission)atoi(dbrow[index++]);
   events = (Permission)atoi(dbrow[index++]);
   control = (Permission)atoi(dbrow[index++]);

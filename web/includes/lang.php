@@ -18,40 +18,52 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-function translate( $name ) {
+function translate($name) {
   global $SLANG;
-  if ( array_key_exists($name, $SLANG) )
+  // The isset is more performant
+  if ( isset($SLANG[$name]) || array_key_exists($name, $SLANG) )
     return $SLANG[$name];
   else
     return $name;
 }
 
-function loadLanguage( $prefix='' ) {
+function loadLanguage($prefix='') {
   global $user;
 
   if ( $prefix )
     $prefix = $prefix.'/';
 
-  $fallbackLangFile = $prefix.'lang/en_gb.php';
-  $systemLangFile = $prefix.'lang/'.ZM_LANG_DEFAULT.'.php';
-  if ( isset($user['Language']) )
+  if ( isset($user['Language']) and $user['Language'] ) {
     $userLangFile = $prefix.'lang/'.$user['Language'].'.php';
 
-  if ( isset($userLangFile) && file_exists($userLangFile) )
-    return $userLangFile;
-  elseif ( file_exists($systemLangFile) )
+    if ( file_exists($userLangFile) ) {
+      return $userLangFile;
+    } else {
+      ZM\Warning("User language file $userLangFile does not exist.");
+    }
+  }
+
+  $systemLangFile = $prefix.'lang/'.ZM_LANG_DEFAULT.'.php';
+  if ( file_exists($systemLangFile) ) {
     return $systemLangFile;
-  elseif ( file_exists($fallbackLangFile) )
+  } else {
+    ZM\Warning("System language file $systemLangFile does not exist.");
+  }
+
+  $fallbackLangFile = $prefix.'lang/en_gb.php';
+  if ( file_exists($fallbackLangFile) ) {
     return $fallbackLangFile;
-  else
-    return false;
+  } else {
+    ZM\Error("Default language file $fallbackLangFile does not exist.");
+  }
+  return false;
 }
 
 if ( $langFile = loadLanguage() ) {
   require_once($langFile);
   require_once('lang/default.php');
   foreach ($DLANG as $key => $value) {
-    if ( ! array_key_exists($key, $SLANG) )
+    if ( ! (isset($SLANG[$key]) || array_key_exists($key, $SLANG)) )
       $SLANG[$key] = $DLANG[$key];
   }
 }

@@ -441,14 +441,17 @@ class Monitor extends ZM_Object {
     $source = '';
     if ( $this->{'Type'} == 'Local' ) {
       $source = $this->{'Device'}.' ('.$this->{'Channel'}.')';
-    } elseif ( $this->{'Type'} == 'Remote' ) {
+    } else if ( $this->{'Type'} == 'Remote' ) {
       $source = preg_replace( '/^.*@/', '', $this->{'Host'} );
       if ( $this->{'Port'} != '80' and $this->{'Port'} != '554' ) {
         $source .= ':'.$this->{'Port'};
       }
-    } elseif ( $this->{'Type'} == 'File' || $this->{'Type'} == 'cURL' ) {
-      $source = preg_replace( '/^.*\//', '', $this->{'Path'} );
-    } elseif ( $this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite' ) {
+    } else if ( $this->{'Type'} == 'VNC' ) {
+      $source = preg_replace( '/^.*@/', '', $this->{'Host'} );
+      if ( $this->{'Port'} != '5900' ) {
+        $source .= ':'.$this->{'Port'};
+      }
+    } else if ( $this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite' ) {
       $url_parts = parse_url( $this->{'Path'} );
       if ( ZM_WEB_FILTER_SOURCE == 'Hostname' ) {
         # Filter out everything but the hostname
@@ -457,7 +460,7 @@ class Monitor extends ZM_Object {
         } else {
           $source = $this->{'Path'};
         }
-      } elseif ( ZM_WEB_FILTER_SOURCE == 'NoCredentials' ) {
+      } else if ( ZM_WEB_FILTER_SOURCE == 'NoCredentials' ) {
         # Filter out sensitive and common items
         unset($url_parts['user']);
         unset($url_parts['pass']);

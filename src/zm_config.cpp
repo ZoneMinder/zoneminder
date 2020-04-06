@@ -63,7 +63,9 @@ void zmLoadConfig() {
     closedir(configSubFolder);
   }
 
-  zmDbConnect();
+  if ( !zmDbConnect() ) {
+    Fatal("Can't connect to db. Can't continue.");
+  }
   config.Load();
   config.Assign();
 

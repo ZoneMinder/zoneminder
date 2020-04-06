@@ -48,7 +48,7 @@ if ( isset($_REQUEST['scale']) ) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmEventScaleAuto']) ) {
   // If we're using scale to fit use it on all monitors
-  $scale = 'auto';
+  $scale = '0';
 } else if ( isset($_COOKIE['zmEventScale'.$Event->MonitorId()]) ) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {
@@ -85,9 +85,9 @@ else
   $streamMode = 'video';
 
 $replayMode = '';
-if ( isset( $_REQUEST['replayMode'] ) )
+if ( isset($_REQUEST['replayMode']) )
   $replayMode = validHtmlStr($_REQUEST['replayMode']);
-if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )
+if ( isset($_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )
   $replayMode = validHtmlStr($_COOKIE['replayMode']);
 
 if ( ( ! $replayMode ) or ( ! $replayModes[$replayMode] ) ) {
@@ -104,7 +104,10 @@ if ( $Monitor->VideoWriter() == '2' ) {
     $Zoom = $Event->Height()/$Event->Width();
 }
 
-// These are here to figure out the next/prev event
+// These are here to figure out the next/prev event, however id there is no filter, then default to one that specifies the Monitor
+if ( !isset($_REQUEST['filter']) ) {
+  $_REQUEST['filter'] = array( 'Query'=>array('terms'=> array( array('attr' => 'MonitorId', 'op' => '=', 'val' => $Event->MonitorId() ) ) ) );
+}
 parseSort();
 parseFilter($_REQUEST['filter']);
 $filterQuery = $_REQUEST['filter']['query'];
@@ -122,7 +125,7 @@ xhtmlHeaders(__FILE__, translate('Event'));
     <?php if ( !$popup ) echo getNavBarHTML() ?>
     <div id="header">
 <?php 
-if ( ! $Event->Id() ) {
+if ( !$Event->Id() ) {
   echo 'Event was not found.';
 } else {
 ?>
@@ -193,9 +196,9 @@ if ( ($codec == 'MP4' || $codec == 'auto' ) && $Event->DefaultVideo() ) {
 ?>
         <div id="videoFeed">
           <video id="videoobj" class="video-js vjs-default-skin"
-            style="transform: matrix(1, 0, 0, 1, 0, 0)"
-            width="<?php echo reScale($Event->Width(), $scale) ?>"
-            height="<?php echo reScale($Event->Height(), $scale) ?>"
+            style="transform: matrix(1, 0, 0, 1, 0, 0);"
+           <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
+           <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
             data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
           >
           <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
@@ -208,7 +211,7 @@ if ( ($codec == 'MP4' || $codec == 'auto' ) && $Event->DefaultVideo() ) {
 ?>
       <div id="imageFeed">
 <?php
-if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>$scale, 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
   outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
 } else {
@@ -257,7 +260,12 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </p>
         <div id="replayStatus">
           <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
-          <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"><?php echo $rate/100 ?></span>x</span>
+          <span id="rate"><?php echo translate('Rate') ?>: 
+<?php 
+$rates = array( -800=>'-8x', -400=>'-4x', -200=>'-2x', -100=>'-1x', 0=>translate('Stop'), 100 => '1x', 200=>'2x', 400=>'4x', 800=>'8x' );
+echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
+?>
+<!--<span id="rateValue"><?php echo $rate/100 ?></span>x</span>-->
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>

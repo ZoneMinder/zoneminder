@@ -106,9 +106,9 @@ int main(int argc, const char *argv[]) {
 
     for ( int p = 0; p < parm_no; p++ ) {
       char *name = strtok(parms[p], "=");
-      char *value = strtok(NULL, "=");
+      char const *value = strtok(NULL, "=");
       if ( !value )
-        value = (char *)"";
+        value = "";
       if ( !strcmp(name, "source") ) {
         source = !strcmp(value, "event")?ZMS_EVENT:ZMS_MONITOR;
         if ( !strcmp(value, "fifo") )
@@ -127,10 +127,10 @@ int main(int argc, const char *argv[]) {
       } else if ( !strcmp(name, "time") ) {
         event_time = atoi(value);
       } else if ( !strcmp(name, "event") ) {
-        event_id = strtoull(value, (char **)NULL, 10);
+        event_id = strtoull(value, NULL, 10);
         source = ZMS_EVENT;
       } else if ( !strcmp(name, "frame") ) {
-        frame_id = strtoull(value, (char **)NULL, 10);
+        frame_id = strtoull(value, NULL, 10);
         source = ZMS_EVENT;
       } else if ( !strcmp(name, "scale") ) {
         scale = atoi(value);
@@ -159,7 +159,7 @@ int main(int argc, const char *argv[]) {
       } else if ( !strcmp(name, "buffer") ) {
         playback_buffer = atoi(value);
       } else if ( !strcmp(name, "auth") ) {
-        strncpy( auth, value, sizeof(auth)-1 );
+        strncpy(auth, value, sizeof(auth)-1);
       } else if ( !strcmp(name, "token") ) {
         jwt_token_str = value;
         Debug(1, "ZMS: JWT token found: %s", jwt_token_str.c_str());
@@ -237,11 +237,13 @@ int main(int argc, const char *argv[]) {
 
   time_t now = time(0);
   char date_string[64];
-  strftime(date_string, sizeof(date_string)-1, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now));
+  strftime(date_string, sizeof(date_string)-1,
+      "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now));
 
-  fprintf(stdout, "Last-Modified: %s\r\n", date_string);
+  fputs("Last-Modified: ", stdout);
+  fputs(date_string, stdout);
   fputs(
-      "Expires: Mon, 26 Jul 1997 05:00:00 GMT\r\n"
+      "\r\nExpires: Mon, 26 Jul 1997 05:00:00 GMT\r\n"
       "Cache-Control: no-store, no-cache, must-revalidate\r\n"
       "Cache-Control: post-check=0, pre-check=0\r\n"
       "Pragma: no-cache\r\n",
@@ -279,7 +281,9 @@ int main(int argc, const char *argv[]) {
       stream.setStreamType(MonitorStream::STREAM_MPEG);
 #else  // HAVE_LIBAVCODEC
       Error("MPEG streaming of '%s' attempted while disabled", query);
-      fprintf(stderr, "MPEG streaming is disabled.\nYou should configure with the --with-ffmpeg option and rebuild to use this functionality.\n");
+      fprintf(stderr, "MPEG streaming is disabled.\n"
+          "You should configure with the --with-ffmpeg"
+          " option and rebuild to use this functionality.\n");
       logTerm();
       zmDbClose();
       return -1;

@@ -20,9 +20,6 @@
 #ifndef ZM_EVENTSTREAM_H
 #define ZM_EVENTSTREAM_H
 
-#include <set>
-#include <map>
-
 #include "zm_image.h"
 #include "zm_stream.h"
 #include "zm_video.h"
@@ -97,7 +94,7 @@ class EventStream : public StreamBase {
   public:
     EventStream() {
       mode = DEFAULT_MODE;
-    replay_rate = DEFAULT_RATE;
+      replay_rate = DEFAULT_RATE;
 
       forceEventChange = false;
 
@@ -121,8 +118,8 @@ class EventStream : public StreamBase {
     void runStream();
     Image *getImage();
   private:
-      AVCodecContext *input_codec_context;
-      AVCodec *input_codec;
+    AVCodecContext *input_codec_context;
+    AVCodec *input_codec;
 };
 
 #endif // ZM_EVENTSTREAM_H

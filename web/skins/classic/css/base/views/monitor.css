@@ -10,7 +10,9 @@
 }
 
 textarea,
-input[name="newMonitor[Name]"] {
+input[name="newMonitor[Name]"],
+input[name="newMonitor[ControlDevice]"],
+input[name="newMonitor[ControlAddress]"] {
   width: 100%;
 }
 input[name="newMonitor[Width]"],

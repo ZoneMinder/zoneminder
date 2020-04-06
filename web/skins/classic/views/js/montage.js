@@ -334,7 +334,7 @@ function changeScale() {
   Cookie.write('zmMontageScale', scale, {duration: 10*365});
   Cookie.write('zmMontageWidth', '', {duration: 10*365});
   Cookie.write('zmMontageHeight', '', {duration: 10*365});
-  if ( !scale ) {
+  if ( scale == '' ) {
     selectLayout('#zmMontageLayout');
     return;
   }
@@ -349,8 +349,12 @@ function changeScale() {
       console.log("Error finding frame for " + monitor.id);
       continue;
     }
-    if ( newWidth ) {
-      monitor_frame.css('width', newWidth);
+    if ( scale != '0' ) {
+      if ( newWidth ) {
+        monitor_frame.css('width', newWidth);
+      }
+    } else {
+      monitor_frame.css('width', '100%');
     }
     // We don't set the frame height because it has the status bar as well
     //if ( height ) {
@@ -364,13 +368,24 @@ function changeScale() {
         streamImg.src = '';
 
         //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-        src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
-        src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
-        src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);
+        if ( scale != '0' ) {
+          src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
+          src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
+          src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);
+        } else {
+          src = src.replace(/scale=[\.\d]+/i, 'scale=100');
+          src = src.replace(/width=[\.\d]+/i, 'width='+monitorData[i].width);
+          src = src.replace(/height=[\.\d]+/i, 'height='+monitorData[i].height);
+        }
         streamImg.src = src;
       }
-      streamImg.style.width = newWidth + "px";
-      streamImg.style.height = newHeight + "px";
+      if ( scale != '0' ) {
+        streamImg.style.width = newWidth + "px";
+        streamImg.style.height = newHeight + "px";
+      } else {
+        streamImg.style.width = '100%';
+        streamImg.style.height = 'auto';
+      }
     }
   }
 }
@@ -467,6 +482,7 @@ function initPage() {
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    console.log("delay: " + delay);
     monitors[i].start(delay);
 
     var interval = monitors[i].refresh;

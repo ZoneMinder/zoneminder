@@ -57,9 +57,6 @@ if ( isset($_REQUEST['scale']) ) {
   $scale = $_COOKIE['zmMontageScale'];
 }
 
-if ( ! $scale ) 
-  $scale = 100;
-
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
 foreach ( $layouts as $l ) {
@@ -111,7 +108,7 @@ if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
 else
   $options['height'] = '';
 
-if ( $scale ) 
+#if ( $scale ) 
   $options['scale'] = $scale;
 
 session_write_close();
@@ -127,7 +124,7 @@ foreach( $displayMonitors as &$row ) {
     continue;
 
   $row['Scale'] = $scale;
-  $row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+  $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
 
   if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
     $showControl = true;
@@ -207,7 +204,12 @@ if ( $showZones ) {
 foreach ( $monitors as $monitor ) {
   $connkey = $monitor->connKey(); // Minor hack
 ?>
-        <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>" style="<?php echo $options['width'] ? 'width:'.$options['width'].';':''?>">
+        <div
+          id="monitorFrame<?php echo $monitor->Id() ?>"
+          class="monitorFrame"
+          title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>"
+          style="<?php echo $options['width'] ? 'width:'.$options['width'].';':''?>"
+        >
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div
               id="imageFeed<?php echo $monitor->Id() ?>"

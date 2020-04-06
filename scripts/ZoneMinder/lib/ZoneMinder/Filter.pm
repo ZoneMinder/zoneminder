@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Filter Module, $Date$, $Revision$
+# ZoneMinder Filter Module
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -162,7 +162,9 @@ sub Sql {
         my $value = $term->{val};
         my @value_list;
         if ( $term->{attr} ) {
-          if ( $term->{attr} =~ /^Monitor/ ) {
+					if ( $term->{attr} eq 'AlarmedZoneId' ) {
+						$term->{op} = 'EXISTS';
+          } elsif ( $term->{attr} =~ /^Monitor/ ) {
             my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
             $self->{Sql} .= 'M.'.$temp_attr_name;
           } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
@@ -214,7 +216,10 @@ sub Sql {
 
           ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
           foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
-            if ( $term->{attr} =~ /^MonitorName/ ) {
+	
+            if ( $term->{attr} eq 'AlarmedZoneId' ) {
+							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+            } elsif ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
             } elsif ( $term->{attr} =~ /ServerId/) {
               Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
@@ -256,6 +261,8 @@ sub Sql {
             } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
               if ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
+							} elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
+								$value = 'to_days('.$temp_value.')';
               } else {
                 $value = DateTimeToSQL($temp_value);
                 if ( !$value ) {
@@ -294,6 +301,8 @@ sub Sql {
             } else {
               $self->{Sql} .= " IS $value";
             }
+          } elsif ( $term->{op} eq 'EXISTS' ) {
+            $self->{Sql} .= " EXISTS $value";
           } elsif ( $term->{op} eq 'IS NOT' ) {
             $self->{Sql} .= " IS NOT $value";
           } elsif ( $term->{op} eq '=[]' ) {

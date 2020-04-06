@@ -110,7 +110,12 @@ else
   fi;
   if [ "$SNAPSHOT" == "stable" ]; then
     if [ "$BRANCH" == "" ]; then
-      BRANCH=$(git describe --tags $(git rev-list --tags --max-count=1));
+      #REV=$(git rev-list --tags --max-count=1)
+      BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
+      if [ "$BRANCH" == "" ]; then
+        echo "Unable to determine latest stable branch!"
+        exit 0;
+      fi
       echo "Latest stable branch is $BRANCH";
     fi;
   else

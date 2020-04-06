@@ -530,3 +530,17 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   autoScale = closest;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
+
+function setButtonState(element_id, butClass) {
+  var element = $(element_id);
+  if ( element ) {
+    element.className = butClass;
+    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
+      element.disabled = true;
+    } else {
+      element.disabled = false;
+    }
+  } else {
+    console.log('Element was null or not found in setButtonState. id:'+element_id);
+  }
+}

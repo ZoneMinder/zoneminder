@@ -603,6 +603,8 @@ int FfmpegCamera::OpenFfmpeg() {
     Error("Unable to allocate frame for %s", mPath.c_str());
     return -1;
   }
+  mFrame->width = width;
+  mFrame->height = height;
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   int pSize = av_image_get_buffer_size(imagePixFormat, width, height, 1);
@@ -630,20 +632,6 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
-# if 0
-  // Must get a frame first to find out the actual format returned by decoding
-  mConvertContext = sws_getContext(
-      mVideoCodecContext->width,
-      mVideoCodecContext->height,
-      mVideoCodecContext->pix_fmt,
-      width, height,
-      imagePixFormat, SWS_BICUBIC, NULL,
-      NULL, NULL);
-  if ( mConvertContext == NULL ) {
-    Error("Unable to create conversion context for %s", mPath.c_str());
-    return -1;
-  }
-#endif
 #else  // HAVE_LIBSWSCALE
   Fatal("You must compile ffmpeg with the --enable-swscale "
       "option to use ffmpeg cameras");
@@ -1090,7 +1078,9 @@ int FfmpegCamera::transfer_to_image(
   // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
   int size = av_image_fill_arrays(
       output_frame->data, output_frame->linesize,
-      directbuffer, imagePixFormat, width, height, 32);
+      directbuffer, imagePixFormat, width, height, 
+      (AV_PIX_FMT_RGBA == imagePixFormat ? 32 : 1)
+      );
   if ( size < 0 ) {
     Error("Problem setting up data pointers into image %s",
         av_make_error_string(size).c_str());
@@ -1130,12 +1120,12 @@ int FfmpegCamera::transfer_to_image(
         0, mVideoCodecContext->height,
         output_frame->data, output_frame->linesize);
   if ( ret < 0 ) {
-    Error("Unable to convert format %u %s linesize %d height %d to format %u %s linesize %d at frame %d codec %u %s lines %d: code: %d",
+    Error("Unable to convert format %u %s linesize %d,%d height %d to format %u %s linesize %d,%d at frame %d codec %u %s lines %d: code: %d",
         input_frame->format, av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
-        input_frame->linesize, mVideoCodecContext->height,
+        input_frame->linesize[0], input_frame->linesize[1], mVideoCodecContext->height,
         imagePixFormat,
         av_get_pix_fmt_name(imagePixFormat),
-        output_frame->linesize,
+        output_frame->linesize[0], output_frame->linesize[1],
         frameCount,
         mVideoCodecContext->pix_fmt, av_get_pix_fmt_name(mVideoCodecContext->pix_fmt),
         mVideoCodecContext->height,
@@ -1143,6 +1133,17 @@ int FfmpegCamera::transfer_to_image(
         );
     return -1;
   }
+    Debug(4, "Able to convert format %u %s linesize %d,%d height %d to format %u %s linesize %d,%d at frame %d codec %u %s %dx%d ",
+        input_frame->format, av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+        input_frame->linesize[0], input_frame->linesize[1], mVideoCodecContext->height,
+        imagePixFormat,
+        av_get_pix_fmt_name(imagePixFormat),
+        output_frame->linesize[0], output_frame->linesize[1],
+        frameCount,
+        mVideoCodecContext->pix_fmt, av_get_pix_fmt_name(mVideoCodecContext->pix_fmt),
+        output_frame->width,
+        output_frame->height
+        );
 #else  // HAVE_LIBSWSCALE
   Fatal("You must compile ffmpeg with the --enable-swscale "
       "option to use ffmpeg cameras");

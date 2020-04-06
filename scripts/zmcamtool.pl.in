@@ -352,9 +352,13 @@ sub exportsql {
   }
 
   my $name = $ARGV[0];
-  if ($name && $name =~ /^([A-Za-z0-9 ,.&()\/\-]+)$/) { # Allow alphanumeric and " ,.&()/-"
-    $name = $1;
-    $command .= qq( --where="Name = '$name'");
+  if ( $name ) {
+		if ( $name =~ /^([A-Za-z0-9 ,.&()\/\-]+)$/ ) { # Allow alphanumeric and " ,.&()/-"
+			$name = $1;
+			$command .= qq( --where="Name = '$name'");
+		} else {
+			print "Invalid characters in Name\n";
+		}
   }
 
   $command .= " zm Controls MonitorPresets";

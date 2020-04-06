@@ -188,6 +188,8 @@ set(ZM_NO_MMAP "OFF" CACHE BOOL
     experience problems with the shared memory. default: OFF")
 set(ZM_NO_LIBVLC "OFF" CACHE BOOL 
 "Set to ON to skip libvlc checks and force building ZM without libvlc. default: OFF")
+set(ZM_NO_LIBVNC "OFF" CACHE BOOL 
+"Set to ON to skip libvnc checks and force building ZM without libvnc. default: OFF")
 set(ZM_NO_CURL "OFF" CACHE BOOL 
     "Set to ON to skip cURL checks and force building ZM without cURL. default: OFF")
 set(ZM_NO_X10 "OFF" CACHE BOOL 
@@ -553,6 +555,7 @@ if(AVCODEC_LIBRARIES)
 	check_include_file("libavcodec/avcodec.h" HAVE_LIBAVCODEC_AVCODEC_H)
 	set(optlibsfound "${optlibsfound} AVCodec")
 else(AVCODEC_LIBRARIES)
+  message(WARNING "\nWhile it should be possible to build ZM without AVCODEC the result will pretty useless.")
 	set(optlibsnotfound "${optlibsnotfound} AVCodec")
 endif(AVCODEC_LIBRARIES)
 
@@ -673,6 +676,25 @@ if(NOT ZM_NO_LIBVLC)
 		set(optlibsnotfound "${optlibsnotfound} libVLC")
 	endif(LIBVLC_LIBRARIES)
 endif(NOT ZM_NO_LIBVLC)
+
+if(NOT ZM_NO_LIBVNC)
+	# libvncclient (using find_library and find_path)
+	find_library(LIBVNC_LIBRARIES vncclient)
+	if(LIBVNC_LIBRARIES)
+		set(HAVE_LIBVNC 1)
+		list(APPEND ZM_BIN_LIBS "${LIBVNC_LIBRARIES}")
+		find_path(LIBVNC_INCLUDE_DIR "rfb/rfb.h")
+		if(LIBVNC_INCLUDE_DIR)
+			include_directories("${LIBVNC_INCLUDE_DIR}")
+			set(CMAKE_REQUIRED_INCLUDES "${LIBVNC_INCLUDE_DIR}")
+		endif(LIBVNC_INCLUDE_DIR)
+		mark_as_advanced(FORCE LIBVNC_LIBRARIES LIBVNC_INCLUDE_DIR)
+		check_include_file("rfb/rfb.h" HAVE_RFB_RFB_H)
+		set(optlibsfound "${optlibsfound} libVNC")
+	else(LIBVNC_LIBRARIES)
+		set(optlibsnotfound "${optlibsnotfound} libVNC")
+	endif(LIBVNC_LIBRARIES)
+endif(NOT ZM_NO_LIBVNC)
 
 #find_package(Boost 1.36.0)
 #if(Boost_FOUND)
@@ -908,7 +930,7 @@ message(STATUS "Optional libraries not found:${optlibsnotfound}")
 
 # Run ZM configuration generator
 message(STATUS "Running ZoneMinder configuration generator")
-execute_process(COMMAND perl ./zmconfgen.pl RESULT_VARIABLE zmconfgen_result)
+execute_process(COMMAND perl ${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl RESULT_VARIABLE zmconfgen_result)
 if(zmconfgen_result EQUAL 0)
 	message(STATUS 
             "ZoneMinder configuration generator completed successfully")

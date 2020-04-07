@@ -45,11 +45,11 @@ foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
 }
 if ( !$filter ) {
   $filter = new ZM\Filter();
-}
 
-if ( isset($_REQUEST['filter']) ) {
-  # Update our filter object with whatever changes we have made before saving
-  #$filter->set($_REQUEST['filter']);
+  if ( isset($_REQUEST['filter']) ) {
+    # Update our filter object with whatever changes we have made before saving
+    $filter->set($_REQUEST['filter']);
+  }
 }
 
 $conjunctionTypes = getFilterQueryConjunctionTypes();

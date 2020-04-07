@@ -24,6 +24,7 @@ if ( !canView('Events') || (!empty($_REQUEST['execute']) && !canEdit('Events')) 
 }
 
 require_once('includes/Event.php');
+require_once('includes/Filter.php');
 
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
@@ -36,13 +37,21 @@ if ( $user['MonitorIds'] ) {
   $eventsSql .= ' 1';
 }
 
-parseSort();
-parseFilter($_REQUEST['filter']);
-$filterQuery = $_REQUEST['filter']['query'];
+$filter = isset($_REQUEST['filter_id']) ? new ZM\Filter($_REQUEST['filter_id']) : new ZM\Filter();
+if ( isset($_REQUEST['filter'])) {
+$filter->set($_REQUEST['filter']);
+}
+$filter->parse();
 
-if ( $_REQUEST['filter']['sql'] ) {
-  $countSql .= $_REQUEST['filter']['sql'];
-  $eventsSql .= $_REQUEST['filter']['sql'];
+parseSort();
+$filterQuery = $filter->query_string();
+ZM\Logger::Debug(print_r($filterQuery, true));
+if ( $filter->sql() ) {
+  $countSql .= $filter->sql();
+  $eventsSql .= $filter->sql();
+} else {
+ZM\Warning("No filters");
+exit;
 }
 $eventsSql .= " ORDER BY $sortColumn $sortOrder,Id $sortOrder";
 
@@ -74,14 +83,14 @@ if ( !empty($page) ) {
 }
 
 $maxShortcuts = 5;
-$pagination = getPagination($pages, $page, $maxShortcuts, $filterQuery.$sortQuery.$limitQuery);
+$pagination = getPagination($pages, $page, $maxShortcuts, $filter->query_string().$sortQuery.$limitQuery);
 
 $focusWindow = true;
 
 if ( $_POST ) {
   // I think this is basically so that a refresh doesn't repost
   ZM\Logger::Debug('Redirecting to ' . $_SERVER['REQUEST_URI']);
-  header('Location: ?view=' . $view.htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
+  header('Location: ?view=' . $view.htmlspecialchars_decode($filter->query_string()).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
   exit();
 }
 
@@ -100,6 +109,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
     <div id="header">
       <div id="info">
         <h2><?php echo sprintf($CLANG['EventCount'], $nEvents, zmVlang($VLANG['Event'], $nEvents)) ?></h2>
+				<a href="?view=filter<?php echo $filterQuery ?>"><?php echo translate('Filter')?></a>
         <a id="refreshLink" href="#"><?php echo translate('Refresh') ?></a>
       </div>
       <div id="pagination">
@@ -114,11 +124,11 @@ if ( $pagination ) {
 if ( $pages > 1 ) {
   if ( !empty($page) ) {
 ?>
-        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery.$limitQuery ?>"><?php echo translate('ViewAll') ?></a>
+        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery.$sortQuery.$limitQuery ?>"><?php echo translate('ViewAll') ?></a>
 <?php
   } else {
 ?>
-        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery.$limitQuery ?>"><?php echo translate('ViewPaged') ?></a>
+        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery.$sortQuery.$limitQuery ?>"><?php echo translate('ViewPaged') ?></a>
 <?php
   }
 }
@@ -126,7 +136,7 @@ if ( $pages > 1 ) {
       </div>
       <div id="controls">
         <a href="#" id="backLink"><?php echo translate('Back') ?></a>
-        <a id="timelineLink" href="?view=timeline<?php echo $filterQuery ?>"><?php echo translate('ShowTimeline') ?></a>
+        <a id="timelineLink" href="?view=timeline<?php echo $filter->query() ?>"><?php echo translate('ShowTimeline') ?></a>
       </div>
     </div>
     <div id="content">
@@ -134,7 +144,7 @@ if ( $pages > 1 ) {
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="page" value="<?php echo $page ?>"/>
-        <?php echo $_REQUEST['filter']['fields'] ?>
+        <?php echo $filter->fields() ?>
         <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
         <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
@@ -197,7 +207,7 @@ while ( $event_row = dbFetchNext($results) ) {
 								echo 'Emailed ';
 ?>
 							</td>
-              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
+              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit('Monitors') ) ?></td>
               <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
 							<?php
 # display notes as small text

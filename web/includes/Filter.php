@@ -39,7 +39,7 @@ class Filter extends ZM_Object {
 
   public function Query() {
     if ( func_num_args( ) ) {
-      $this->{'Query'} = func_get_arg(0);;
+      $this->{'Query'} = func_get_arg(0);
       $this->{'Query_json'} = jsonEncode($this->{'Query'});
     }
     if ( !property_exists($this, 'Query') ) {
@@ -56,6 +56,297 @@ class Filter extends ZM_Object {
     }
     return $this->{'Query'};
   }
+
+	public function parse( $querySep='&amp;') {
+
+    $filter = $this->Query();
+    Warning(print_r($filter, true));
+
+    $query = '';
+    $sql = '';
+    $fields = '';
+
+    $validQueryConjunctionTypes = getFilterQueryConjunctionTypes();
+    $StorageArea = NULL;
+
+    # It is not possible to pass an empty array in the url, so we have to deal with there not being a terms field.
+    $terms = (is_array($filter['terms'])) ? $filter['terms'] : array();
+
+    if ( count($terms) ) {
+      for ( $i = 0; $i < count($terms); $i++ ) {
+
+        $term = $terms[$i];
+
+        if ( isset($term['cnj']) && array_key_exists($term['cnj'], $validQueryConjunctionTypes) ) {
+          $query .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($term['cnj']);
+          $sql .= ' '.$term['cnj'].' ';
+          $fields .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cnj]\" value=\"".htmlspecialchars($term['cnj'])."\"/>\n";
+        }
+        if ( isset($term['obr']) && (string)(int)$term['obr'] == $term['obr'] ) {
+          $query .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($term['obr']);
+          $sql .= ' '.str_repeat('(', $term['obr']).' ';
+          $fields .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($term['obr'])."\"/>\n";
+        }
+        if ( isset($term['attr']) ) {
+          $query .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($term['attr']);
+          $fields .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($term['attr'])."\"/>\n";
+          switch ( $term['attr'] ) {
+          case 'AlarmedZoneId':
+            $term['op'] = 'EXISTS';
+            break;
+          case 'MonitorName':
+            $sql .= 'M.Name';
+            break;
+          case 'ServerId':
+          case 'MonitorServerId':
+            $sql .= 'M.ServerId';
+            break;
+          case 'StorageServerId':
+            $sql .= 'S.ServerId';
+            break;
+          case 'FilterServerId':
+            $sql .= ZM_SERVER_ID;
+            break;
+            # Unspecified start or end, so assume start, this is to support legacy filters
+          case 'DateTime':
+            $sql .= 'E.StartTime';
+            break;
+          case 'Date':
+            $sql .= 'to_days(E.StartTime)';
+            break;
+          case 'Time':
+            $sql .= 'extract(hour_second FROM E.StartTime)';
+            break;
+          case 'Weekday':
+            $sql .= 'weekday(E.StartTime)';
+            break;
+            # Starting Time
+          case 'StartDateTime':
+            $sql .= 'E.StartTime';
+            break;
+          case 'FramesEventId':
+            $sql .= 'F.EventId';
+            break;
+          case 'StartDate':
+            $sql .= 'to_days(E.StartTime)';
+            break;
+          case 'StartTime':
+            $sql .= 'extract(hour_second FROM E.StartTime)';
+            break;
+          case 'StartWeekday':
+            $sql .= 'weekday(E.StartTime)';
+            break;
+            # Ending Time
+          case 'EndDateTime':
+            $sql .= 'E.EndTime';
+            break;
+          case 'EndDate':
+            $sql .= 'to_days(E.EndTime)';
+            break;
+          case 'EndTime':
+            $sql .= 'extract(hour_second FROM E.EndTime)';
+            break;
+          case 'EndWeekday':
+            $sql .= 'weekday(E.EndTime)';
+            break;
+          case 'Id':
+          case 'Name':
+          case 'DiskSpace':
+          case 'MonitorId':
+          case 'StorageId':
+          case 'SecondaryStorageId':
+          case 'Length':
+          case 'Frames':
+          case 'AlarmFrames':
+          case 'TotScore':
+          case 'AvgScore':
+          case 'MaxScore':
+          case 'Cause':
+          case 'Notes':
+          case 'StateId':
+          case 'Archived':
+            $sql .= 'E.'.$term['attr'];
+            break;
+          case 'DiskPercent':
+            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
+            if ( ! $StorageArea ) {
+              for ( $j = 0; $j < count($terms); $j++ ) {
+                if (
+                  isset($terms[$j]['attr'])
+                  and
+                  ($terms[$j]['attr'] == 'StorageId')
+                  and
+                  isset($terms[$j]['val'])
+                ) {
+                  $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
+                  break;
+                }
+              } // end foreach remaining term
+              if ( ! $StorageArea ) $StorageArea = new ZM\Storage();
+            } // end no StorageArea found yet
+
+            $sql .= getDiskPercent($StorageArea->Path());
+            break;
+          case 'DiskBlocks':
+            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
+            if ( ! $StorageArea ) {
+              for ( $j = $i; $j < count($terms); $j++ ) {
+                if (
+                  isset($terms[$j]['attr'])
+                  and
+                  ($terms[$j]['attr'] == 'StorageId')
+                  and
+                  isset($terms[$j]['val'])
+                ) {
+                  $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
+                }
+              } // end foreach remaining term
+            } // end no StorageArea found yet
+            $sql .= getDiskBlocks( $StorageArea );
+            break;
+          case 'SystemLoad':
+            $sql .= getLoad();
+            break;
+          }
+          $valueList = array();
+          foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
+            switch ( $term['attr'] ) {
+
+            case 'AlarmedZoneId':
+              $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+              break;
+            case 'MonitorName':
+            case 'Name':
+            case 'Cause':
+            case 'Notes':
+              if ( $term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE' ) {
+                $value = '%'.$value.'%';
+              }
+              $value = dbEscape($value);
+              break;
+            case 'MonitorServerId':
+            case 'FilterServerId':
+            case 'StorageServerId':
+            case 'ServerId':
+              if ( $value == 'ZM_SERVER_ID' ) {
+                $value = ZM_SERVER_ID;
+              } else if ( $value == 'NULL' ) {
+
+              } else {
+                $value = dbEscape($value);
+              }
+              break;
+            case 'StorageId':
+              $StorageArea = ZM\Storage::find_one(array('Id'=>$value));
+              if ( $value != 'NULL' )
+                $value = dbEscape($value);
+              break;
+            case 'DateTime':
+            case 'StartDateTime':
+            case 'EndDateTime':
+              if ( $value != 'NULL' )
+                $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
+              break;
+            case 'Date':
+            case 'StartDate':
+            case 'EndDate':
+              if ( $value == 'CURDATE()' or $value == 'NOW()' ) {
+                $value = 'to_days('.$value.')';
+              } else if ( $value != 'NULL' ) {
+                $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+              }
+              break;
+            case 'Time':
+            case 'StartTime':
+            case 'EndTime':
+              if ( $value != 'NULL' )
+                $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+              break;
+            default :
+              if ( $value != 'NULL' )
+                $value = dbEscape($value);
+              break;
+            }
+            $valueList[] = $value;
+          } // end foreach value
+
+          switch ( $term['op'] ) {
+          case '=' :
+          case '!=' :
+          case '>=' :
+          case '>' :
+          case '<' :
+          case '<=' :
+          case 'LIKE' :
+          case 'NOT LIKE':
+            $sql .= ' '.$term['op'].' '. $value;
+            break;
+          case '=~' :
+            $sql .= ' regexp '.$value;
+            break;
+          case '!~' :
+            $sql .= ' not regexp '.$value;
+            break;
+          case '=[]' :
+          case 'IN' :
+            $sql .= ' IN ('.join(',', $valueList).')';
+            break;
+          case '![]' :
+            $sql .= ' not in ('.join(',', $valueList).')';
+            break;
+          case 'EXISTS' :
+            $sql .= ' EXISTS ' .$value;
+            break;
+          case 'IS' :
+            if ( $value == 'Odd' )  {
+              $sql .= ' % 2 = 1';
+            } else if ( $value == 'Even' )  {
+              $sql .= ' % 2 = 0';
+            } else {
+              $sql .= " IS $value";
+            }
+            break;
+          case 'IS NOT' :
+            $sql .= " IS NOT $value";
+            break;
+          default:
+            ZM\Warning('Invalid operator in filter: ' . print_r($term['op'], true));
+          } // end switch op
+
+          $query .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($term['op']);
+          $fields .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][op]\" value=\"".htmlspecialchars($term['op'])."\"/>\n";
+          if ( isset($term['val']) ) {
+            $query .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($term['val']);
+            $fields .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($term['val'])."\"/>\n";
+          }
+        } // end if isset($term['attr'])
+        if ( isset($term['cbr']) && (string)(int)$term['cbr'] == $term['cbr'] ) {
+          $query .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($term['cbr']);
+          $sql .= ' '.str_repeat(')', $term['cbr']);
+          $fields .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($term['cbr'])."\"/>\n";
+        }
+      } // end foreach term
+      if ( $sql )
+        $sql = ' AND ( '.$sql.' )';
+    } else {
+      $query = $querySep;
+      #.urlencode('filter[Query][terms]=[]');
+    } // end if terms
+    $this->{'query'} = $query;
+    $this->{'sql'} = $sql;
+    $this->{'fields'} = $fields;
+
+    #if ( 0 ) {
+    #// ICON I feel like these should be here, but not yet
+    #if ( isset($filter['Query']['sort_field']) ) {
+    #$sql .= ' ORDER BY ' . $filter['Query']['sort_field'] . (
+    #( $filter['Query']['sort_asc'] ? ' ASC' : ' DESC' ) );
+    #}
+    #if ( $filter['Query']['limit'] ) {
+    #$sql .= ' LIMIT ' . validInt($filter['Query']['limit']);
+    #}
+    #}
+  } // end function parse($querySep='&amp;')
 
   public static function find( $parameters = array(), $options = array() ) {
     return ZM_Object::_find(get_class(), $parameters, $options);
@@ -102,6 +393,27 @@ class Filter extends ZM_Object {
     }
     return ZM_WEB_EVENT_SORT_ORDER;
     #return $this->defaults{'sort_asc'};
+  }
+
+  public function fields() {
+    if ( !property_exists($this, 'fields') ) {
+      $this->parse();
+    }
+    return $this->{'fields'};
+  }
+
+  public function sql() {
+    if ( !property_exists($this, 'sql') ) {
+      $this->sql();
+    }
+    return $this->{'sql'};
+  }
+
+  public function query_string() {
+    if ( !property_exists($this, 'query') ) {
+      $this->query();
+    }
+    return $this->{'query'};
   }
 
   public function limit( ) {

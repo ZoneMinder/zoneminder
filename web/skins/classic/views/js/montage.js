@@ -18,6 +18,11 @@ function Monitor(monitorData) {
   this.type = monitorData.type;
   this.refresh = monitorData.refresh;
   this.start = function(delay) {
+    var stream = $j('#liveStream'+this.id)[0];
+    if ( stream ) {
+      stream.src = stream.getAttribute('data-src');
+    }
+
     if ( this.streamCmdQuery ) {
       this.streamCmdTimer = this.streamCmdQuery.delay(delay, this);
     } else {
@@ -241,8 +246,8 @@ function selectLayout(element) {
           monitor_frame.css(style, styles[style]);
           console.log("Applying " + style + ' : ' + styles[style]);
         }
-      } else {
-        console.log("No Monitor styles to apply");
+      //} else {
+        //console.log("No Monitor styles to apply");
       } // end if specific monitor style
     } // end foreach monitor
   } // end if a stored layout
@@ -478,20 +483,68 @@ function initPage() {
   }
 
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
-    monitors[i] = new Monitor(monitorData[i]);
+    var monitor = monitors[i] = new Monitor(monitorData[i]);
 
-    // Start the fps and status updates. give a random delay so that we don't assault the server
-    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-    console.log("delay: " + delay);
-    monitors[i].start(delay);
 
-    var interval = monitors[i].refresh;
+    var stream = $j('#liveStream'+monitor.id)[0];
+    isOut = isOutOfViewport(stream);
+    console.log(isOut.any+' for ' + img.id);
+    if ( !isOut.any ) {
+      // Start the fps and status updates. give a random delay so that we don't assault the server
+      var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+      console.log("delay: " + delay);
+      monitor.start(delay);
+    }
+
+    var interval = monitor.refresh;
     if ( monitors[i].type == 'WebSite' && interval > 0 ) {
       setInterval(reloadWebSite, interval*1000, i);
     }
-    monitors[i].setup_onclick();
+    monitor.setup_onclick();
   }
   selectLayout('#zmMontageLayout');
-}
+
+  //var display = $j("#monitors");
+
+  //display.scroll(on_scroll);
+  window.onscroll = on_scroll;
+  //on_scroll();
+} // endn function initPage
+
+function on_scroll() {
+
+  var avatars = $j(".imageFeed");
+  console.log("# of monitors" + avatars.length);
+  avatars.each(function (index) {
+    var img = $j(this);
+    isOut = isOutOfViewport(this);
+    console.log(isOut.any+' for ' + img.id);
+
+    if ( img.position().top < 0 ) {
+      img.css("visibility", "hidden");
+    } else {
+      img.css("visibility", "");
+    }
+  }); // end foreach avatar
+} // end function on_scsroll
+
+function isOutOfViewport(elem) {
+
+	// Get element's bounding
+	var bounding = elem.getBoundingClientRect();
+
+	// Check if it's out of the viewport on each side
+	var out = {};
+	out.top = bounding.top < 0;
+	out.left = bounding.left < 0;
+	out.bottom = bounding.bottom > (window.innerHeight || document.documentElement.clientHeight);
+	out.right = bounding.right > (window.innerWidth || document.documentElement.clientWidth);
+	out.any = out.top || out.left || out.bottom || out.right;
+	out.all = out.top && out.left && out.bottom && out.right;
+
+	return out;
+
+};
+
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);

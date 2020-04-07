@@ -356,11 +356,16 @@ sub handleMessage {
   my $connection = shift;
   my $message = shift;
 
+  #  CUA  - Axis camera send the message quoted with"
+  #  CUA  - Also Axis camera cannot save the plus sign which
+  $message =~ s/^\"//g;
+  $message =~ s/\"$//g;
+
   my ( $id, $action, $score, $cause, $text, $showtext )
     = split( /\|/, $message );
-  $score = 0 if ( !defined($score) );
-  $cause = '' if ( !defined($cause) );
-  $text = '' if ( !defined($text) );
+  $score = 0 if !defined($score);
+  $cause = '' if !defined($cause);
+  $text = '' if !defined($text);
 
   my $monitor = $monitors{$id};
   if ( !$monitor ) {
@@ -372,7 +377,7 @@ sub handleMessage {
   next if !zmMemVerify($monitor);
 
   Debug("Handling action '$action'");
-  if ( $action =~ /^(enable|disable)(?:\+(\d+))?$/ ) {
+  if ( $action =~ /^(enable|disable)(?:[\+ ](\d+))?$/ ) {
     my $state = $1;
     my $delay = $2;
     if ( $state eq 'enable' ) {

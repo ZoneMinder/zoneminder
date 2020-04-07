@@ -50,9 +50,13 @@ if ( $archivetype ) {
     $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
     ZM\Logger::Debug("downloading archive from $filename_path");
     if ( is_readable($filename_path) ) {
+      while (ob_get_level()) {
+        ZM\Logger::Debug('Clearing ob');
+        ob_end_clean();
+      }
       header("Content-type: application/$mimetype" );
       header("Content-Disposition: inline; filename=$filename");
-      header('Content-Length: ' . filesize($filename_path) );
+      header('Content-Length: '.filesize($filename_path));
       set_time_limit(0);
       if ( ! @readfile($filename_path) ) {
         ZM\Error("Error sending $filename_path");
@@ -61,11 +65,9 @@ if ( $archivetype ) {
       ZM\Error("$filename_path does not exist or is not readable.");
     }
   } else {
-    ZM\Error("Unsupported archive type specified. Supported archives are tar and zip");
+    ZM\Error('Unsupported archive type specified. Supported archives are tar and zip');
   }
 } else {
-  ZM\Error("No archive type given to archive.php. Please specify a tar or zip archive.");
+  ZM\Error('No archive type given to archive.php. Please specify a tar or zip archive.');
 }
-
 ?>
-

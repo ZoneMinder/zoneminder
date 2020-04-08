@@ -97,6 +97,18 @@ size_t data_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *u
 int progress_callback_dispatcher(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow);
 void* thread_func_dispatcher(void* object);
 
+/* Func ptrs for libcurl functions */
+CURLcode (*curl_global_init_f)(long);
+void (*curl_global_cleanup_f)(void);
+const char* (*curl_easy_strerror_f)(CURLcode);
+char* (*curl_version_f)(void);
+CURL* (*curl_easy_init_f)(void);
+CURLcode (*curl_easy_getinfo_f)(CURL* , CURLINFO, ...);
+CURLcode (*curl_easy_perform_f)(CURL*);
+CURLcode (*curl_easy_setopt_f)(CURL*, CURLoption, ...);
+void (*curl_easy_cleanup_f)(CURL*);
+
+
 #endif // HAVE_LIBCURL
 
 #endif // ZM_CURL_CAMERA_H

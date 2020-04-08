@@ -15,8 +15,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
+#include <dlfcn.h>
 #include "zm.h"
 
 #include "zm_curl_camera.h"
@@ -55,14 +56,36 @@ void cURLCamera::Initialise() {
   content_type_match_len = strlen(content_type_match);
 
   databuffer.expand(CURL_BUFFER_INITIAL_SIZE);
+  
+  void *curl_lib = dlopen("libcurl.so", 0);
+  if (!curl_lib)
+    curl_lib = dlopen("libcurl.so.3", 0);
+  if (!curl_lib)
+    curl_lib = dlopen("libcurl.so.4", 0);
+  if (!curl_lib)
+    curl_lib = dlopen("libcurl-gnutls.so.4", 0);
+  if (!curl_lib)
+    Fatal("Could not load libcurl: ", dlerror());
+
+  // Load up all required symbols here
+  *(void**) (&curl_global_init_f) = dlsym(curl_lib, "curl_global_init");
+  *(void**) (&curl_global_cleanup_f) = dlsym(curl_lib, "curl_global_cleanup");
+  *(void**) (&curl_easy_strerror_f) = dlsym(curl_lib, "curl_easy_strerror");
+  *(void**) (&curl_version_f) = dlsym(curl_lib, "curl_version");
+  *(void**) (&curl_easy_init_f) = dlsym(curl_lib, "curl_easy_init");
+  *(void**) (&curl_easy_getinfo_f) = dlsym(curl_lib, "curl_easy_getinfo");
+  *(void**) (&curl_easy_perform_f) = dlsym(curl_lib, "curl_easy_perform");
+  *(void**) (&curl_easy_setopt_f) = dlsym(curl_lib, "curl_easy_setopt");
+  *(void**) (&curl_easy_cleanup_f) = dlsym(curl_lib, "curl_easy_cleanup");
 
   /* cURL initialization */
-  CURLcode cRet = curl_global_init(CURL_GLOBAL_ALL);
+  CURLcode cRet = (*curl_global_init_f)(CURL_GLOBAL_ALL);
   if(cRet != CURLE_OK) {
-    Fatal("libcurl initialization failed: ", curl_easy_strerror(cRet));
+    Fatal("libcurl initialization failed: ", (*curl_easy_strerror_f)(cRet));
+    dlclose(curl_lib);
   }
 
-  Debug(2,"libcurl version: %s",curl_version());
+  Debug(2,"libcurl version: %s", (*curl_version_f)());
 
   /* Create the shared data mutex */
   int nRet = pthread_mutex_init(&shareddata_mutex, NULL);
@@ -102,8 +125,10 @@ void cURLCamera::Terminate() {
   pthread_mutex_destroy(&shareddata_mutex);
 
   /* cURL cleanup */
-  curl_global_cleanup();
+  (*curl_global_cleanup_f)();
 
+  if(curl_lib)
+    dlclose(curl_lib);
 }
 
 int cURLCamera::PrimeCapture() {
@@ -376,58 +401,59 @@ void* cURLCamera::thread_func() {
   long tRet;
   double dSize;
 
-  c = curl_easy_init();
+  c = (*curl_easy_init_f)();
   if(c == NULL) {
+    dlclose(curl_lib);
     Fatal("Failed getting easy handle from libcurl");
   }
 
   CURLcode cRet;
   /* Set URL */
-  cRet = curl_easy_setopt(c, CURLOPT_URL, mPath.c_str());
+  cRet = (*curl_easy_setopt_f)(c, CURLOPT_URL, mPath.c_str());
   if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl URL: %s", curl_easy_strerror(cRet));
+    Fatal("Failed setting libcurl URL: %s", *(curl_easy_strerror_f)(cRet));
   
   /* Header callback */
-  cRet = curl_easy_setopt(c, CURLOPT_HEADERFUNCTION, &header_callback_dispatcher);
+  cRet = (*curl_easy_setopt_f)(c, CURLOPT_HEADERFUNCTION, &header_callback_dispatcher);
   if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl header callback function: %s", curl_easy_strerror(cRet));
-  cRet = curl_easy_setopt(c, CURLOPT_HEADERDATA, this);
+    Fatal("Failed setting libcurl header callback function: %s", (*curl_easy_strerror_f)(cRet));
+  cRet = (*curl_easy_setopt_f)(c, CURLOPT_HEADERDATA, this);
   if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl header callback object: %s", curl_easy_strerror(cRet));
+    Fatal("Failed setting libcurl header callback object: %s", (*curl_easy_strerror_f)(cRet));
 
   /* Data callback */
-  cRet = curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, &data_callback_dispatcher);
+  cRet = (*curl_easy_setopt_f)(c, CURLOPT_WRITEFUNCTION, &data_callback_dispatcher);
   if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl data callback function: %s", curl_easy_strerror(cRet));
-  cRet = curl_easy_setopt(c, CURLOPT_WRITEDATA, this);
+    Fatal("Failed setting libcurl data callback function: %s", (*curl_easy_strerror_f)(cRet));
+  cRet = (*curl_easy_setopt_f)(c, CURLOPT_WRITEDATA, this);
   if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl data callback object: %s", curl_easy_strerror(cRet));
+    Fatal("Failed setting libcurl data callback object: %s", (*curl_easy_strerror_f)(cRet));
 
   /* Progress callback */
-  cRet = curl_easy_setopt(c, CURLOPT_NOPROGRESS, 0);
+  cRet = (*curl_easy_setopt_f)(c, CURLOPT_NOPROGRESS, 0);
   if(cRet != CURLE_OK)
-    Fatal("Failed enabling libcurl progress callback function: %s", curl_easy_strerror(cRet));  
-  cRet = curl_easy_setopt(c, CURLOPT_PROGRESSFUNCTION, &progress_callback_dispatcher);
+    Fatal("Failed enabling libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));  
+  cRet = (*curl_easy_setopt_f)(c, CURLOPT_PROGRESSFUNCTION, &progress_callback_dispatcher);
   if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl progress callback function: %s", curl_easy_strerror(cRet));
-  cRet = curl_easy_setopt(c, CURLOPT_PROGRESSDATA, this);
+    Fatal("Failed setting libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));
+  cRet = (*curl_easy_setopt_f)(c, CURLOPT_PROGRESSDATA, this);
   if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl progress callback object: %s", curl_easy_strerror(cRet));
+    Fatal("Failed setting libcurl progress callback object: %s", (*curl_easy_strerror_f)(cRet));
 
   /* Set username and password */
   if(!mUser.empty()) {
-    cRet = curl_easy_setopt(c, CURLOPT_USERNAME, mUser.c_str());
+    cRet = (*curl_easy_setopt_f)(c, CURLOPT_USERNAME, mUser.c_str());
     if(cRet != CURLE_OK)
-      Error("Failed setting username: %s", curl_easy_strerror(cRet));
+      Error("Failed setting username: %s", (*curl_easy_strerror_f)(cRet));
   }
   if(!mPass.empty()) {
-    cRet = curl_easy_setopt(c, CURLOPT_PASSWORD, mPass.c_str());
+    cRet = (*curl_easy_setopt_f)(c, CURLOPT_PASSWORD, mPass.c_str());
     if(cRet != CURLE_OK)
-      Error("Failed setting password: %s", curl_easy_strerror(cRet));
+      Error("Failed setting password: %s", (*curl_easy_strerror_f)(cRet));
   }
 
   /* Authenication preference */
-  cRet = curl_easy_setopt(c, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+  cRet = (*curl_easy_setopt_f)(c, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
   if(cRet != CURLE_OK)
     Warning("Failed setting libcurl acceptable http authenication methods: %s", curl_easy_strerror(cRet));
 
@@ -437,14 +463,14 @@ void* cURLCamera::thread_func() {
     tRet = 0;
     while(!bTerminate) {
       /* Do the work */
-      cRet = curl_easy_perform(c);
+      cRet = (*curl_easy_perform_f)(c);
 
       if(mode == MODE_SINGLE) {
         if(cRet != CURLE_OK) {
           break;
         }
         /* Attempt to get the size of the file */
-        cRet = curl_easy_getinfo(c, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &dSize);
+        cRet = (*curl_easy_getinfo_f)(c, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &dSize);
         if(cRet != CURLE_OK) {
           break;
         }
@@ -475,7 +501,7 @@ void* cURLCamera::thread_func() {
       break;
     } else if (cRet != CURLE_OK) {
       /* Some error */
-      Error("cURL Request failed: %s",curl_easy_strerror(cRet));
+      Error("cURL Request failed: %s",(*curl_easy_strerror_f)(cRet));
       if(attempt < CURL_MAXRETRY) {
         Error("Retrying.. Attempt %d of %d",attempt,CURL_MAXRETRY);
         /* Do a reset */
@@ -491,7 +517,7 @@ void* cURLCamera::thread_func() {
   }
       
   /* Cleanup */
-  curl_easy_cleanup(c);
+  (*curl_easy_cleanup)(c);
   c = NULL;
   
   return (void*)tRet;

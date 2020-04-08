@@ -480,6 +480,10 @@ class Monitor extends ZM_Object {
     return $source;
   } // end function Source
 
+  public function UrlToZMS($port=null) {
+    return $this->Server()->UrlToZMS($port).'?monitor='.$this->Id();
+  }
+
   public function UrlToIndex($port=null) {
     return $this->Server()->UrlToIndex($port);
     //ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);

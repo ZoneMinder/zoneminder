@@ -208,7 +208,7 @@ foreach ( $monitors as $monitor ) {
           id="monitorFrame<?php echo $monitor->Id() ?>"
           class="monitorFrame"
           title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>"
-          style="<?php echo $options['width'] ? 'width:'.$options['width'].';':''?>"
+          style="<?php echo ($options['width'] ? 'width:'.$options['width'].';':'').($options['height'] ? 'min-height:'.$options['height'].';':'')?>"
         >
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div

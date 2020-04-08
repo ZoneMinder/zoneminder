@@ -5,8 +5,17 @@ var requestQueue = new Request.Queue({
 
 function Monitor(monitorData) {
   this.id = monitorData.id;
+  // actual monitor size
+  this.width = monitorData.width;
+  this.height = monitorData.height;
+  // Current scaled image size
+  this.view_width = monitorData.width;
+  this.view_height = monitorData.height;
+
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
+  this.url_to_stream = monitorData.url_to_stream;
+  this.url_to_snapshot = monitorData.url_to_snapshot;
   this.status = null;
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
@@ -17,16 +26,40 @@ function Monitor(monitorData) {
   this.streamCmdTimer = null;
   this.type = monitorData.type;
   this.refresh = monitorData.refresh;
+  this.stream = document.getElementById('liveStream'+this.id);
+  this.started = false;
   this.start = function(delay) {
-    var stream = $j('#liveStream'+this.id)[0];
-    if ( stream ) {
-      stream.src = stream.getAttribute('data-src');
+    if ( this.started )
+      return;
+
+    if ( this.type == 'WebSite' && this.refresh > 0 ) {
+      setInterval(reloadWebSite, this.refresh*1000, i);
     }
+    if ( this.stream ) {
+      this.stream.src = this.stream.getAttribute('data-src');
+    } else {
+      console.log("No stream");
+
+    }
+    if ( !delay ) delay = Math.round((Math.random()+0.5)*statusRefreshTimeout);
 
     if ( this.streamCmdQuery ) {
       this.streamCmdTimer = this.streamCmdQuery.delay(delay, this);
     } else {
       console.log("No streamCmdQuery");
+    }
+    this.started = true;
+  };
+
+  this.stop = function() {
+    if ( this.started ) {
+      if ( this.streamCmdTimer ) {
+        this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+      }
+      this.started = false;
+      if ( this.stream ) {
+        this.stream.src = this.url_to_snapshot+(auth_hash?"&auth="+auth_hash:'');
+      }
     }
   };
 
@@ -51,7 +84,7 @@ function Monitor(monitorData) {
     if ( el ) el.addEventListener('click', this.onclick, false);
   };
   this.disable_onclick = function() {
-    document.getElementById('imageFeed'+this.id).removeEventListener('click', this.onclick );
+    document.getElementById('imageFeed'+this.id).removeEventListener('click', this.onclick);
   };
 
   this.setStateClass = function(element, stateClass) {
@@ -85,10 +118,10 @@ function Monitor(monitorData) {
     if ( 0 ) {
     // Requeue, but want to wait a while.
       if ( this.streamCmdTimer ) {
-        this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
+        this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
       }
       var streamCmdTimeout = 1000*statusRefreshTimeout;
-      this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this, true );
+      this.streamCmdTimer = this.streamCmdQuery.delay(streamCmdTimeout, this, true);
       requestQueue.resume();
     }
     console.log("done failure");
@@ -98,6 +131,7 @@ function Monitor(monitorData) {
     if ( this.streamCmdTimer ) {
       this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
     }
+
 
     var stream = $j('#liveStream'+this.id)[0];
 
@@ -123,7 +157,7 @@ function Monitor(monitorData) {
         this.setStateClass($('monitor'+this.id), stateClass);
 
         /*Stream could be an applet so can't use moo tools*/
-        stream.className = stateClass;
+        this.stream.className = stateClass;
 
         var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
         var wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
@@ -149,9 +183,10 @@ function Monitor(monitorData) {
         if ( this.status.auth ) {
           if ( this.status.auth != auth_hash ) {
             // Try to reload the image stream.
-            if ( stream ) {
-              stream.src = stream.src.replace(/auth=\w+/i, 'auth='+this.status.auth);
-            }
+            // DOn't need to restart the stream, zms won't give up
+            //if ( this.stream ) {
+              //tstream.src = stream.src.replace(/auth=\w+/i, 'auth='+this.status.auth);
+            //}
             console.log("Changed auth from " + auth_hash + " to " + this.status.auth);
             auth_hash = this.status.auth;
           }
@@ -160,15 +195,9 @@ function Monitor(monitorData) {
     } else {
       console.error(respObj.message);
       // Try to reload the image stream.
-      if ( stream ) {
-        if ( stream.src ) {
-          console.log('Reloading stream: ' + stream.src);
-          stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-        } else {
-        }
-      } else {
-        console.log('No stream to reload?');
-      }
+      console.log('Reloading stream');
+      this.stop();
+      this.start();
     } // end if Ok or not
 
     var streamCmdTimeout = statusRefreshTimeout;
@@ -204,7 +233,7 @@ function Monitor(monitorData) {
       onFailure: this.onFailure.bind(this),
       link: 'cancel'
     } );
-    console.log("queueing for " + this.id + " " + this.connKey + " timeout is: " + AJAX_TIMEOUT);
+    //console.log("queueing for " + this.id + " " + this.connKey + " timeout is: " + AJAX_TIMEOUT);
     requestQueue.addRequest("cmdReq"+this.id, this.streamCmdReq);
   }
 } // end function Monitor
@@ -468,6 +497,7 @@ function reloadWebSite(ndx) {
 }
 
 var monitors = new Array();
+
 function initPage() {
   jQuery(document).ready(function() {
     jQuery("#hdrbutton").click(function() {
@@ -485,62 +515,52 @@ function initPage() {
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
     var monitor = monitors[i] = new Monitor(monitorData[i]);
 
-
-    var stream = $j('#liveStream'+monitor.id)[0];
-    isOut = isOutOfViewport(stream);
-    console.log(isOut.any+' for ' + img.id);
-    if ( !isOut.any ) {
-      // Start the fps and status updates. give a random delay so that we don't assault the server
-      var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-      console.log("delay: " + delay);
-      monitor.start(delay);
-    }
-
-    var interval = monitor.refresh;
-    if ( monitors[i].type == 'WebSite' && interval > 0 ) {
-      setInterval(reloadWebSite, interval*1000, i);
-    }
     monitor.setup_onclick();
   }
   selectLayout('#zmMontageLayout');
 
-  //var display = $j("#monitors");
-
-  //display.scroll(on_scroll);
   window.onscroll = on_scroll;
-  //on_scroll();
+  on_scroll();
 } // endn function initPage
 
 function on_scroll() {
 
-  var avatars = $j(".imageFeed");
-  console.log("# of monitors" + avatars.length);
-  avatars.each(function (index) {
-    var img = $j(this);
-    isOut = isOutOfViewport(this);
-    console.log(isOut.any+' for ' + img.id);
+  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+    var monitor = monitors[i];
 
-    if ( img.position().top < 0 ) {
-      img.css("visibility", "hidden");
-    } else {
-      img.css("visibility", "");
+    isOut = isOutOfViewport(stream);
+    if ( !isOut.all ) {
+      monitor.start();
+    } else if ( monitor.started ) {
+      monitor.stop();
     }
-  }); // end foreach avatar
+  } // end foreach monitor
+
 } // end function on_scsroll
+
+$j(window).focus(on_scroll);
+
+$j(window).blur(function() {
+  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+    monitors[i].stop();
+  }
+});
 
 function isOutOfViewport(elem) {
 
-	// Get element's bounding
-	var bounding = elem.getBoundingClientRect();
+  // Get element's bounding
+  var bounding = elem.getBoundingClientRect();
+  //console.log( 'top: ' + bounding.top + ' left: ' + bounding.left + ' bottom: '+bounding.bottom + ' right: '+bounding.right);
 
-	// Check if it's out of the viewport on each side
+  // Check if it's out of the viewport on each side
 	var out = {};
-	out.top = bounding.top < 0;
-	out.left = bounding.left < 0;
-	out.bottom = bounding.bottom > (window.innerHeight || document.documentElement.clientHeight);
-	out.right = bounding.right > (window.innerWidth || document.documentElement.clientWidth);
+	out.top = (bounding.top < 0) || ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+	out.left = (bounding.left < 0) || (bounding.left > (window.innerWidth || document.documentElement.clientWidth));
+	out.bottom = (bounding.bottom > (window.innerHeight || document.documentElement.clientHeight) ) || (bounding.bottom < 0);
+	out.right = (bounding.right > (window.innerWidth || document.documentElement.clientWidth) ) || (bounding.right < 0);
 	out.any = out.top || out.left || out.bottom || out.right;
-	out.all = out.top && out.left && out.bottom && out.right;
+	out.all = (out.top && out.bottom ) || (out.left && out.right);
+  //console.log( 'top: ' + out.top + ' left: ' + out.left + ' bottom: '+out.bottom + ' right: '+out.right);
 
 	return out;
 

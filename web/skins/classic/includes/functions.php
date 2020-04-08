@@ -192,16 +192,14 @@ if ( $css != 'base' )
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php 
-  if ($basename == 'watch' or $basename == 'log' ) {
+  if ( $basename == 'watch' or $basename == 'log' ) {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
-?>
-    <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
-<?php } ?>
-<?php
+    echo '<script src="'.cache_bust('js/overlay.js').'"></script>
+';
+  }
   if ( $viewJsFile ) {
-?>
-  <script src="<?php echo cache_bust($viewJsFile) ?>"></script>
-<?php
+    echo '<script src="'.cache_bust($viewJsFile).'"></script>
+';
   }
 ?>
 </head>

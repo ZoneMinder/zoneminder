@@ -35,8 +35,9 @@ monitorData[monitorData.length] = {
   'connKey': <?php echo $monitor->connKey() ?>, 
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
-  'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
-  'onclick': function(){createPopup( '?view=watch&mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->ViewWidth(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->ViewHeight(), $monitor->PopupScale() ); ?> );},
+  'url': '<?php echo $monitor->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
+  'url_to_stream': '<?php echo $monitor->UrlToZMS(ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '').'&mode=jpeg&connkey='.$monitor->connKey() ?>',
+  'url_to_snapshot': '<?php echo $monitor->UrlToZMS(ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '').'&mode=single' ?>',
   'type': '<?php echo $monitor->Type() ?>',
   'refresh': '<?php echo $monitor->Refresh() ?>'
 };

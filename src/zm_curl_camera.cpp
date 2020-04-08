@@ -24,6 +24,19 @@
 
 #include "zm_packetqueue.h"
 
+/* Func ptrs for libcurl functions */
+static void *curl_lib = nullptr;
+static CURLcode (*curl_global_init_f)(long) = nullptr;
+static void (*curl_global_cleanup_f)(void) = nullptr;
+static const char* (*curl_easy_strerror_f)(CURLcode) = nullptr;
+static char* (*curl_version_f)(void) = nullptr;
+static CURL* (*curl_easy_init_f)(void) = nullptr;
+static CURLcode (*curl_easy_getinfo_f)(CURL* , CURLINFO, ...) = nullptr;
+static CURLcode (*curl_easy_perform_f)(CURL*) = nullptr;
+static CURLcode (*curl_easy_setopt_f)(CURL*, CURLoption, ...) = nullptr;
+static void (*curl_easy_cleanup_f)(CURL*) = nullptr;
+
+
 #if HAVE_LIBCURL
 
 #define CURL_MAXRETRY 5
@@ -57,15 +70,15 @@ void cURLCamera::Initialise() {
 
   databuffer.expand(CURL_BUFFER_INITIAL_SIZE);
   
-  void *curl_lib = dlopen("libcurl.so", 0);
+  curl_lib = dlopen("libcurl.so", RTLD_LAZY | RTLD_GLOBAL);
   if (!curl_lib)
-    curl_lib = dlopen("libcurl.so.3", 0);
+    curl_lib = dlopen("libcurl.so.3", RTLD_LAZY | RTLD_GLOBAL);
   if (!curl_lib)
-    curl_lib = dlopen("libcurl.so.4", 0);
+    curl_lib = dlopen("libcurl.so.4", RTLD_LAZY | RTLD_GLOBAL);
   if (!curl_lib)
-    curl_lib = dlopen("libcurl-gnutls.so.4", 0);
+    curl_lib = dlopen("libcurl-gnutls.so.4", RTLD_LAZY | RTLD_GLOBAL);
   if (!curl_lib)
-    Fatal("Could not load libcurl: ", dlerror());
+    Fatal("Could not load libcurl: %s", dlerror());
 
   // Load up all required symbols here
   *(void**) (&curl_global_init_f) = dlsym(curl_lib, "curl_global_init");
@@ -455,7 +468,7 @@ void* cURLCamera::thread_func() {
   /* Authenication preference */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
   if(cRet != CURLE_OK)
-    Warning("Failed setting libcurl acceptable http authenication methods: %s", curl_easy_strerror(cRet));
+    Warning("Failed setting libcurl acceptable http authenication methods: %s", (*curl_easy_strerror_f)(cRet));
 
 
   /* Work loop */
@@ -517,7 +530,7 @@ void* cURLCamera::thread_func() {
   }
       
   /* Cleanup */
-  (*curl_easy_cleanup)(c);
+  (*curl_easy_cleanup_f)(c);
   c = NULL;
   
   return (void*)tRet;

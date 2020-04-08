@@ -73,7 +73,10 @@ function logReport( level, message, file, line ) {
   if ( line ) {
     requestParms += "&line="+line;
   }
-  debugReq.send( requestParms );
+  if ( typeof auth_hash !== 'undefined' ) {
+    requestParms += "&auth="+auth_hash;
+  }
+  debugReq.send(requestParms);
 }
 
 function Panic( message ) {

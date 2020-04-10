@@ -673,7 +673,6 @@ function getControlResponse(respObj, respText) {
 }
 
 function controlCmd(button) {
-
   control = button.getAttribute('value');
   xtell = button.getAttribute('xtell');
   ytell = button.getAttribute('ytell');

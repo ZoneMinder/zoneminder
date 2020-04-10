@@ -73,7 +73,7 @@ function group_line( $Group ) {
   } else {
     $html .= validHtmlStr($Group->Name());
   }
-  $html .= '</td><td class="colIds">'. monitorIdsToNames($Group->MonitorIds(), 30).'</td>';
+  $html .= '</td><td class="colIds">'. validHtmlStr(monitorIdsToNames($Group->MonitorIds(), 30)).'</td>';
   if ( canEdit('Groups') ) {
     $html .= '<td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" data-on-click-this="configureButtons"/></td>';
   }

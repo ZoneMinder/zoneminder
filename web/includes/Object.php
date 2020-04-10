@@ -39,10 +39,13 @@ class ZM_Object {
   public function __call($fn, array $args){
     $type = (array_key_exists($fn, $this->defaults) && is_array($this->defaults[$fn])) ? $this->defaults[$fn]['type'] : 'scalar';
     if ( count($args) ) {
-      if ( $type == 'set' and is_array($args[0]) )
+      if ( $type == 'set' and is_array($args[0]) ) {
         $this->{$fn} = implode(',', $args[0]);
-      else
+      } else if ( array_key_exists($fn, $this->defaults) && is_array($this->defaults[$fn]) && isset($this->defaults[$fn]['filter_regexp']) ) {
+        $this->{$fn} = preg_replace($this->defaults[$fn]['filter_regexp'], '', $args[0]);
+      } else {
         $this->{$fn} = $args[0];
+      }
     }
 
     if ( property_exists($this, $fn) ) {
@@ -63,7 +66,7 @@ class ZM_Object {
   public static function _find($class, $parameters = null, $options = null ) {
     $table = $class::$table;
     $filters = array();
-    $sql = "SELECT * FROM `$table` ";
+    $sql = 'SELECT * FROM `'.$table.'` ';
     $values = array();
 
     if ( $parameters ) {
@@ -164,24 +167,11 @@ class ZM_Object {
 # perhaps should turn into a comma-separated string
           $this->{$k} = implode(',', $v);
         } else if ( is_string($v) ) {
-if ( 0 ) {
-# Remarking this out.  We are setting a value, not asking for a default to be set. 
-# So don't do defaults here, do them somewhere else
-          if ( ($v == null) and array_key_exists($k, $this->defaults) ) {
-Logger::Debug("$k => Have default for $v: ");
-            if ( is_array($this->defaults[$k]) ) {
-              $this->{$k} = $this->defaults[$k]['default'];
-            } else {
-							$this->{$k} = $this->defaults[$k];
-							Logger::Debug("$k => Have default for $v: " . $this->{$k});
-						}
-					} else {
+          if ( array_key_exists($k, $this->defaults) && is_array($this->defaults[$k]) && isset($this->defaults[$k]['filter_regexp']) ) {
+            $this->{$k} = preg_replace($this->defaults[$k]['filter_regexp'], '', trim($v));
+          } else {
 						$this->{$k} = trim($v);
           }
-} else {
-						$this->{$k} = trim($v);
-}
-
         } else if ( is_integer($v) ) {
           $this->{$k} = $v;
         } else if ( is_bool($v) ) {
@@ -250,6 +240,9 @@ Logger::Debug("$k => Have default for $v: ");
           # Input might be a command separated string, or an array
           
         } else {
+          if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
+            $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+          }
           if ( $this->{$field} != $value ) {
             $changes[$field] = $value;
           }
@@ -270,17 +263,6 @@ Logger::Debug("$k => Have default for $v: ");
           $changes[$field] = $value;
         }
       }
-
-        #if ( (!array_key_exists($field, $this)) or ( $this->{$field} != $new_values[$field] ) ) {
-      #Logger::Debug("Checking default $field => $default_value changes becaause" . $new_values[$field].' != '.$new_values[$field]);
-          #$changes[$field] = $new_values[$field];
-        ##} else if  {
-      #Logger::Debug("Checking default $field => $default_value changes becaause " . $new_values[$field].' != '.$new_values[$field]);
-          ##array_push( $changes, [$field=>$defaults[$field]] );
-        #}
-      #} else {
-        #Logger::Debug("Checking default $field => $default_value not in new_values");
-      #}
     } # end foreach newvalue
 
 

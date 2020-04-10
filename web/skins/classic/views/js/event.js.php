@@ -34,7 +34,7 @@ var eventData = {
     StartTime: '<?php echo $Event->StartTime() ?>',
     EndTime: '<?php echo $Event->EndTime() ?>',
     Frames: '<?php echo $Event->Frames() ?>',
-    MonitorName: '<?php echo $Monitor->Name() ?>'
+    MonitorName: '<?php echo validJsStr($Monitor->Name()) ?>'
 };
 var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';
 
@@ -46,7 +46,7 @@ var rate = '<?php echo $rate ?>'; // really only used when setting up initial pl
 var scale = "<?php echo $scale ?>";
 var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
 
-var canEditEvents = <?php echo canEdit( 'Events' )?'true':'false' ?>;
+var canEditEvents = <?php echo canEdit('Events')?'true':'false' ?>;
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
@@ -55,8 +55,8 @@ var streamMode = '<?php echo $streamMode ?>';
 //
 // Strings
 //
-var deleteString = "<?php echo translate('Delete') ?>";
-var causeString = "<?php echo translate('AttrCause') ?>";
+var deleteString = "<?php echo validJsStr(translate('Delete')) ?>";
+var causeString = "<?php echo validJsStr(translate('AttrCause')) ?>";
 var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
 var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
 var popup = '<?php echo $popup ?>';

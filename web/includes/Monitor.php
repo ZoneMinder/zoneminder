@@ -11,7 +11,7 @@ class Monitor extends ZM_Object {
 
   protected $defaults = array(
     'Id' => null,
-    'Name' => '',
+    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/'),
     'Notes' => '',
     'ServerId' => 0,
     'StorageId' => 0,

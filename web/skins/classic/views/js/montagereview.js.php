@@ -205,11 +205,11 @@ var maxTimeSecs=parseInt($maxTimeSecs);
 var minTime='$minTime';
 var maxTime='$maxTime';
 ";
-echo "var rangeTimeSecs=".($maxTimeSecs - $minTimeSecs + 1).";\n";
+echo 'var rangeTimeSecs='.($maxTimeSecs - $minTimeSecs + 1).";\n";
 if ( isset($defaultCurrentTime) )
-  echo "var currentTimeSecs=parseInt(".strtotime($defaultCurrentTime).");\n";
+  echo 'var currentTimeSecs=parseInt('.strtotime($defaultCurrentTime).");\n";
 else
-  echo "var currentTimeSecs=parseInt(".($minTimeSecs + $maxTimeSecs)/2.");\n";
+  echo 'var currentTimeSecs=parseInt('.(($minTimeSecs + $maxTimeSecs)/2).");\n";
 
 echo 'var speeds=[';
 for ( $i=0; $i < count($speeds); $i++ )

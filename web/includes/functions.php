@@ -1063,7 +1063,7 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
       $sortColumn = 'E.StartTime';
       break;
   }
-  if ( !$_REQUEST['sort_asc'] )
+  if ( !isset($_REQUEST['sort_asc']) )
     $_REQUEST['sort_asc'] = 0;
   $sortOrder = $_REQUEST['sort_asc'] ? 'asc' : 'desc';
   $sortQuery = $querySep.'sort_field='.validHtmlStr($_REQUEST['sort_field']).$querySep.'sort_asc='.validHtmlStr($_REQUEST['sort_asc']);
@@ -1230,6 +1230,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             break;
         }
         $valueList = array();
+        if ( !isset($term['val']) ) $term['val'] = '';
         foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
           switch ( $term['attr'] ) {
             case 'MonitorName':

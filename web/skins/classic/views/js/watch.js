@@ -651,8 +651,13 @@ function getControlResponse( respObj, respText ) {
   }
 }
 
-function controlCmd( control, event, xtell, ytell ) {
-  var locParms = "";
+function controlCmd(button) {
+
+  control = button.getAttribute('value');
+  xtell = button.getAttribute('xtell');
+  ytell = button.getAttribute('ytell');
+
+  var locParms = '';
   if ( event && (xtell || ytell) ) {
     console.log(event);
     var target = event.target;
@@ -668,7 +673,7 @@ function controlCmd( control, event, xtell, ytell ) {
       } else if ( xtell == 2 ) {
         xge = 2*(50 - xge);
       }
-      locParms += "&xge="+xge;
+      locParms += '&xge='+xge;
     }
     if ( ytell ) {
       var yge = parseInt( (y*100)/coords.height );
@@ -677,7 +682,7 @@ function controlCmd( control, event, xtell, ytell ) {
       } else if ( ytell == 2 ) {
         yge = 2*(50 - yge);
       }
-      locParms += "&yge="+yge;
+      locParms += '&yge='+yge;
     }
   }
   controlReq.send( controlParms+"&control="+control+locParms );

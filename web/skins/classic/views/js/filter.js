@@ -141,6 +141,11 @@ function deleteFilter( element ) {
     form.submit();
   }
 }
+var escape = document.createElement('textarea');
+function escapeHTML(html) {
+    escape.textContent = html;
+    return escape.innerHTML;
+}
 
 function parseRows(rows) {
   for ( var rowNum = 0; rowNum < rows.length; rowNum++ ) { //Each row is a term
@@ -221,8 +226,8 @@ function parseRows(rows) {
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
     } else if ( attr == 'MonitorName' ) { //Monitor names
       var monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      for (var key in monitors) {
-        monitorSelect.append('<option value="' + key + '">' + monitors[key] + '</option>');
+      for ( var monitor_id in monitors ) {
+        monitorSelect.append('<option value="' + monitors[monitor_id].Name + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
       }
       var monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal);

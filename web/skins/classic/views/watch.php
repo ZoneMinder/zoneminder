@@ -62,7 +62,7 @@ xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
   <div id="page">
   <?php if ( !$popup ) echo getNavBarHTML() ?>
     <div id="header">
-        <div id="monitorName"><?php echo $monitor->Name() ?></div>
+        <div id="monitorName"><?php echo validHtmlStr($monitor->Name()) ?></div>
         <div id="menuControls">
 <?php
 if ( canView('Control') && $monitor->Type() == 'Local' ) {

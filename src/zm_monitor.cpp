@@ -1655,7 +1655,7 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
                   name, image_count, event->Id(), event->Frames(), event->AlarmFrames());
               //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
-              if ( function != MOCORD || event_close_mode == CLOSE_ALARM ) {
+              if ( ( function != MOCORD && function != RECORD ) || event_close_mode == CLOSE_ALARM ) {
                 shared_data->state = state = IDLE;
                 Info("%s: %03d - Closing event %" PRIu64 ", alarm end%s",
                     name, image_count, event->Id(), (function==MOCORD)?", section truncated":"");

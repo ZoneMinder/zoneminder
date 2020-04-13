@@ -156,8 +156,10 @@ foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` ORDER BY lower(`Name`)
 $zones = array();
 foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones ORDER BY lower(`Name`) ASC') as $zone ) {
   if ( visibleMonitor($zone['MonitorId']) ) {
-		$zone['Name'] = validHtmlStr($monitors[$zone['MonitorId']]->Name().': '.$zone['Name']);
-    $zones[$zone['Id']] = new ZM\Zone($zone);
+    if ( isset($monitors[$zone['MonitorId']]) ) {
+      $zone['Name'] = validHtmlStr($monitors[$zone['MonitorId']]->Name().': '.$zone['Name']);
+      $zones[$zone['Id']] = new ZM\Zone($zone);
+    }
   }
 }
 

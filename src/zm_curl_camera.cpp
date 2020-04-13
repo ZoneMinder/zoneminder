@@ -71,14 +71,12 @@ void cURLCamera::Initialise() {
   databuffer.expand(CURL_BUFFER_INITIAL_SIZE);
   
   curl_lib = dlopen("libcurl.so", RTLD_LAZY | RTLD_GLOBAL);
-  if (!curl_lib)
-    curl_lib = dlopen("libcurl.so.3", RTLD_LAZY | RTLD_GLOBAL);
-  if (!curl_lib)
-    curl_lib = dlopen("libcurl.so.4", RTLD_LAZY | RTLD_GLOBAL);
-  if (!curl_lib)
+  if(!curl_lib)
     curl_lib = dlopen("libcurl-gnutls.so.4", RTLD_LAZY | RTLD_GLOBAL);
-  if (!curl_lib)
-    Fatal("Could not load libcurl: %s", dlerror());
+  if (!curl_lib) {
+    Error("Could not load libcurl: %s", dlerror());
+    return;
+  }
 
   // Load up all required symbols here
   *(void**) (&curl_global_init_f) = dlsym(curl_lib, "curl_global_init");
@@ -94,8 +92,9 @@ void cURLCamera::Initialise() {
   /* cURL initialization */
   CURLcode cRet = (*curl_global_init_f)(CURL_GLOBAL_ALL);
   if(cRet != CURLE_OK) {
-    Fatal("libcurl initialization failed: ", (*curl_easy_strerror_f)(cRet));
+    Error("libcurl initialization failed: ", (*curl_easy_strerror_f)(cRet));
     dlclose(curl_lib);
+    return;
   }
 
   Debug(2,"libcurl version: %s", (*curl_version_f)());
@@ -103,23 +102,27 @@ void cURLCamera::Initialise() {
   /* Create the shared data mutex */
   int nRet = pthread_mutex_init(&shareddata_mutex, NULL);
   if(nRet != 0) {
-    Fatal("Shared data mutex creation failed: %s",strerror(nRet));
+    Error("Shared data mutex creation failed: %s",strerror(nRet));
+    return;
   }
   /* Create the data available condition variable */
   nRet = pthread_cond_init(&data_available_cond, NULL);
   if(nRet != 0) {
-    Fatal("Data available condition variable creation failed: %s",strerror(nRet));
+    Error("Data available condition variable creation failed: %s",strerror(nRet));
+    return;
   }
   /* Create the request complete condition variable */
   nRet = pthread_cond_init(&request_complete_cond, NULL);
   if(nRet != 0) {
-    Fatal("Request complete condition variable creation failed: %s",strerror(nRet));
+    Error("Request complete condition variable creation failed: %s",strerror(nRet));
+    return;
   }
 
   /* Create the thread */
   nRet = pthread_create(&thread, NULL, thread_func_dispatcher, this);
   if(nRet != 0) {
-    Fatal("Thread creation failed: %s",strerror(nRet));
+    Error("Thread creation failed: %s",strerror(nRet));
+    return;
   }
 }
 
@@ -325,7 +328,8 @@ int cURLCamera::Capture( Image &image ) {
       }
     } else {
       /* Failed to match content-type */
-      Fatal("Unable to match Content-Type. Check URL, username and password");
+      Error("Unable to match Content-Type. Check URL, username and password");
+      return -21;
     } /* mode */
 
   } /* frameComplete loop */
@@ -417,42 +421,69 @@ void* cURLCamera::thread_func() {
   c = (*curl_easy_init_f)();
   if(c == NULL) {
     dlclose(curl_lib);
-    Fatal("Failed getting easy handle from libcurl");
+    Error("Failed getting easy handle from libcurl");
+    tRet = -51;
+    return (void*)tRet;
   }
 
   CURLcode cRet;
   /* Set URL */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_URL, mPath.c_str());
-  if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl URL: %s", *(curl_easy_strerror_f)(cRet));
+  if(cRet != CURLE_OK) {
+    Error("Failed setting libcurl URL: %s", *(curl_easy_strerror_f)(cRet));
+    tRet = -52;
+    return (void*)tRet;
+  }
   
   /* Header callback */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_HEADERFUNCTION, &header_callback_dispatcher);
-  if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl header callback function: %s", (*curl_easy_strerror_f)(cRet));
+  if(cRet != CURLE_OK) {
+    Error("Failed setting libcurl header callback function: %s", (*curl_easy_strerror_f)(cRet));
+    tRet = -53;
+    return (void*)tRet;
+  }
+  
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_HEADERDATA, this);
-  if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl header callback object: %s", (*curl_easy_strerror_f)(cRet));
-
+  if(cRet != CURLE_OK) {
+    Error("Failed setting libcurl header callback object: %s", (*curl_easy_strerror_f)(cRet));
+    tRet = -54;
+    return (void*)tRet;
+  }
   /* Data callback */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_WRITEFUNCTION, &data_callback_dispatcher);
-  if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl data callback function: %s", (*curl_easy_strerror_f)(cRet));
-  cRet = (*curl_easy_setopt_f)(c, CURLOPT_WRITEDATA, this);
-  if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl data callback object: %s", (*curl_easy_strerror_f)(cRet));
+  if(cRet != CURLE_OK) {
+    Error("Failed setting libcurl data callback function: %s", (*curl_easy_strerror_f)(cRet));
+    tRet = -55;
+    return (void*)tRet;
+  }
 
+  cRet = (*curl_easy_setopt_f)(c, CURLOPT_WRITEDATA, this);
+  if(cRet != CURLE_OK) {
+    Error("Failed setting libcurl data callback object: %s", (*curl_easy_strerror_f)(cRet));
+    tRet = -56;
+    return (void*)tRet;
+  }
   /* Progress callback */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_NOPROGRESS, 0);
-  if(cRet != CURLE_OK)
-    Fatal("Failed enabling libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));  
+  if(cRet != CURLE_OK) {
+    Error("Failed enabling libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));  
+    tRet = -57;
+    return (void*)tRet;
+  }
+  
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_PROGRESSFUNCTION, &progress_callback_dispatcher);
-  if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));
+  if(cRet != CURLE_OK) {
+    Error("Failed setting libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));
+    tRet = -58;
+    return (void*)tRet;
+  }
+  
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_PROGRESSDATA, this);
-  if(cRet != CURLE_OK)
-    Fatal("Failed setting libcurl progress callback object: %s", (*curl_easy_strerror_f)(cRet));
-
+  if(cRet != CURLE_OK) {
+    Error("Failed setting libcurl progress callback object: %s", (*curl_easy_strerror_f)(cRet));
+    tRet = -59;
+    return (void*)tRet;
+  }
   /* Set username and password */
   if(!mUser.empty()) {
     cRet = (*curl_easy_setopt_f)(c, CURLOPT_USERNAME, mUser.c_str());
@@ -493,12 +524,16 @@ void* cURLCamera::thread_func() {
         if(dSize > 0) {
           single_offsets.push_back(dSize);
         } else {
-          Fatal("Unable to get the size of the image");
+          Error("Unable to get the size of the image");
+          tRet = -60;
+          return (void*)tRet;
         }
         /* Signal the request complete condition variable */
         tRet = pthread_cond_signal(&request_complete_cond);
         if(tRet != 0) {
           Error("Failed signaling request completed condition variable: %s",strerror(tRet));
+          tRet = -61;
+          return (void*)tRet;
         }
         /* Unlock */
         unlock();

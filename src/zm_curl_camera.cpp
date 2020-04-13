@@ -24,6 +24,8 @@
 
 #include "zm_packetqueue.h"
 
+#if HAVE_LIBCURL
+
 /* Func ptrs for libcurl functions */
 static void *curl_lib = nullptr;
 static CURLcode (*curl_global_init_f)(long) = nullptr;
@@ -36,9 +38,6 @@ static CURLcode (*curl_easy_perform_f)(CURL*) = nullptr;
 static CURLcode (*curl_easy_setopt_f)(CURL*, CURLoption, ...) = nullptr;
 static void (*curl_easy_cleanup_f)(CURL*) = nullptr;
 
-
-#if HAVE_LIBCURL
-
 #define CURL_MAXRETRY 5
 #define CURL_BUFFER_INITIAL_SIZE 65536
 
@@ -46,6 +45,31 @@ const char* content_length_match = "Content-Length:";
 const char* content_type_match = "Content-Type:";
 size_t content_length_match_len;
 size_t content_type_match_len;
+
+void bind_libcurl_symbols() {
+
+  if(curl_lib)
+    return;
+
+  curl_lib = dlopen("libcurl.so", RTLD_LAZY | RTLD_GLOBAL);
+  if(!curl_lib)
+    curl_lib = dlopen("libcurl-gnutls.so.4", RTLD_LAZY | RTLD_GLOBAL);
+  if (!curl_lib) {
+    Error("Could not load libcurl: %s", dlerror());
+    return;
+  }
+
+  // Load up all required symbols here
+  *(void**) (&curl_global_init_f) = dlsym(curl_lib, "curl_global_init");
+  *(void**) (&curl_global_cleanup_f) = dlsym(curl_lib, "curl_global_cleanup");
+  *(void**) (&curl_easy_strerror_f) = dlsym(curl_lib, "curl_easy_strerror");
+  *(void**) (&curl_version_f) = dlsym(curl_lib, "curl_version");
+  *(void**) (&curl_easy_init_f) = dlsym(curl_lib, "curl_easy_init");
+  *(void**) (&curl_easy_getinfo_f) = dlsym(curl_lib, "curl_easy_getinfo");
+  *(void**) (&curl_easy_perform_f) = dlsym(curl_lib, "curl_easy_perform");
+  *(void**) (&curl_easy_setopt_f) = dlsym(curl_lib, "curl_easy_setopt");
+  *(void**) (&curl_easy_cleanup_f) = dlsym(curl_lib, "curl_easy_cleanup");
+}
 
 cURLCamera::cURLCamera( int p_id, const std::string &p_path, const std::string &p_user, const std::string &p_pass, unsigned int p_width, unsigned int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
   Camera( p_id, CURL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
@@ -70,25 +94,7 @@ void cURLCamera::Initialise() {
 
   databuffer.expand(CURL_BUFFER_INITIAL_SIZE);
   
-  curl_lib = dlopen("libcurl.so", RTLD_LAZY | RTLD_GLOBAL);
-  if(!curl_lib)
-    curl_lib = dlopen("libcurl-gnutls.so.4", RTLD_LAZY | RTLD_GLOBAL);
-  if (!curl_lib) {
-    Error("Could not load libcurl: %s", dlerror());
-    return;
-  }
-
-  // Load up all required symbols here
-  *(void**) (&curl_global_init_f) = dlsym(curl_lib, "curl_global_init");
-  *(void**) (&curl_global_cleanup_f) = dlsym(curl_lib, "curl_global_cleanup");
-  *(void**) (&curl_easy_strerror_f) = dlsym(curl_lib, "curl_easy_strerror");
-  *(void**) (&curl_version_f) = dlsym(curl_lib, "curl_version");
-  *(void**) (&curl_easy_init_f) = dlsym(curl_lib, "curl_easy_init");
-  *(void**) (&curl_easy_getinfo_f) = dlsym(curl_lib, "curl_easy_getinfo");
-  *(void**) (&curl_easy_perform_f) = dlsym(curl_lib, "curl_easy_perform");
-  *(void**) (&curl_easy_setopt_f) = dlsym(curl_lib, "curl_easy_setopt");
-  *(void**) (&curl_easy_cleanup_f) = dlsym(curl_lib, "curl_easy_cleanup");
-
+  bind_libcurl_symbols();
   /* cURL initialization */
   CURLcode cRet = (*curl_global_init_f)(CURL_GLOBAL_ALL);
   if(cRet != CURLE_OK) {

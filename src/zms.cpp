@@ -95,7 +95,7 @@ int main(int argc, const char *argv[]) {
     Debug(1, "Query: %s", query);
 
     char temp_query[1024];
-    strncpy(temp_query, query, sizeof(temp_query));
+    strncpy(temp_query, query, sizeof(temp_query)-1);
     char *q_ptr = temp_query;
     char *parms[16];  // Shouldn't be more than this
     int parm_no = 0;

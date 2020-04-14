@@ -669,15 +669,22 @@ void MonitorStream::runStream() {
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
         if ( !paused && !delayed ) {
           last_read_index = monitor->shared_data->last_write_index;
-          Debug(2, "index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
+          Debug(2, "Sending frame index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
               index, frame_mod, frame_count, paused, delayed);
           // Send the next frame
           Monitor::Snapshot *snap = &monitor->image_buffer[index];
 
-          Debug(2, "sending Frame.");
           if ( !sendFrame(snap->image, snap->timestamp) ) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
+          }
+          if ( frame_count == 0 ) {
+            // Chrome will not display the first frame until it receives another.
+            // Firefox is fine.  So just send the first frame twice.
+            if ( !sendFrame(snap->image, snap->timestamp) ) {
+              Debug(2, "sendFrame failed, quiting.");
+              zm_terminate = true;
+            }
           }
           // Perhaps we should use NOW instead.
           memcpy(
@@ -754,13 +761,13 @@ void MonitorStream::runStream() {
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
 
     unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));
-    Debug(3, "Sleeping for (%d)", sleep_time);
-
     if ( sleep_time > MAX_SLEEP_USEC ) {
       // Shouldn't sleep for long because we need to check command queue, etc.
       sleep_time = MAX_SLEEP_USEC;
+      Debug(3, "Sleeping for MAX_SLEEP_USEC %dus", sleep_time);
+    } else {
+      Debug(3, "Sleeping for %dus", sleep_time);
     }
-    Debug(3, "Sleeping for %dus", sleep_time);
     usleep(sleep_time);
     if ( ttl ) {
       if ( (now.tv_sec - stream_start_time) > ttl ) {

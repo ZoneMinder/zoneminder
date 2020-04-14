@@ -29,6 +29,7 @@
 class Monitor;
 
 #define TV_2_FLOAT( tv ) ( double((tv).tv_sec) + (double((tv).tv_usec) / 1000000.0) )
+#define BOUNDARY "ZoneMinderFrame"
 
 class StreamBase {
 public:

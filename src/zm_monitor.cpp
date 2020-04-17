@@ -1815,7 +1815,7 @@ void Monitor::Reload() {
       "`AlarmFrameCount`, `SectionLength`, `MinSectionLength`, `FrameSkip`, "
       "`MotionFrameSkip`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`, "
       "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, "
-      "`SignalCheckColour` FROM `Monitors` WHERE `Id` = '%d'", id);
+      "`SignalCheckPoints`, `SignalCheckColour` FROM `Monitors` WHERE `Id` = '%d'", id);
 
   zmDbRow *row = zmDbFetchOne(sql);
   if ( !row ) {
@@ -1861,13 +1861,8 @@ void Monitor::Reload() {
     alarm_ref_blend_perc = atoi(dbrow[index++]);
     track_motion = atoi(dbrow[index++]);
 
-    signal_check_points = dbrow[index]?atoi(dbrow[index]):0;index++;
-
-    if ( dbrow[index][0] == '#' )
-      signal_check_colour = strtol(dbrow[index]+1,0,16);
-    else
-      signal_check_colour = strtol(dbrow[index],0,16);
-    index++;
+    signal_check_points = dbrow[index]?atoi(dbrow[index]):0; index++;
+    signal_check_colour = strtol(dbrow[index][0]=='#'?dbrow[index]+1:dbrow[index], 0, 16); index++;
 
     shared_data->state = state = IDLE;
     shared_data->alarm_x = shared_data->alarm_y = -1;
@@ -1880,7 +1875,7 @@ void Monitor::Reload() {
   } // end if row
 
   ReloadZones();
-} // end void Monitor::Reload()
+}  // end void Monitor::Reload()
 
 void Monitor::ReloadZones() {
   Debug(1, "Reloading zones for monitor %s", name);
@@ -2059,20 +2054,21 @@ int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose p
 } // end int Monitor::LoadFfmpegMonitors
 #endif // HAVE_LIBAVFORMAT
 
-/*
-  std::string load_monitor_sql =
- "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, "
- "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
- "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
- "Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
- "SaveJPEGs, VideoWriter, EncoderParameters,
-"OutputCodec, Encoder, OutputContainer,"
-" RecordAudio, "
- "Brightness, Contrast, Hue, Colour, "
- "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
- "ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
- "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
- "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, SignalCheckColour FROM Monitors";
+/* For reference
+std::string load_monitor_sql =
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `LinkedMonitors`, "
+"`AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
+"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
+"`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
+"`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
+//" OutputCodec, Encoder, OutputContainer, "
+"`RecordAudio`, "
+"`Brightness`, `Contrast`, `Hue`, `Colour`, "
+"`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
+"`ImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
+"`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
+"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, `SignalCheckPoints`, `SignalCheckColour` FROM `Monitors`";
 */
 
 Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
@@ -2092,8 +2088,6 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
 
   double capture_max_fps = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
   double capture_delay = ( capture_max_fps > 0.0 ) ? int(DT_PREC_3/capture_max_fps) : 0;
-
-  Debug(1,"Capture Delay!? %.3f", capture_delay);
   unsigned int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 
   const char *device = dbrow[col]; col++;
@@ -2166,9 +2160,9 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   int ref_blend_perc = atoi(dbrow[col]); col++;
   int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
   int track_motion = atoi(dbrow[col]); col++;
+  bool embed_exif = (*dbrow[col] != '0'); col++;
   int signal_check_points = dbrow[col] ? atoi(dbrow[col]) : 0;col++;
   int signal_check_color = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
-  bool embed_exif = (*dbrow[col] != '0'); col++;
 
   Camera *camera = 0;
   if ( type == "Local" ) {

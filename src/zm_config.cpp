@@ -211,13 +211,9 @@ void process_configfile(char* configFile) {
 StaticConfig staticConfig;
 
 ConfigItem::ConfigItem(const char *p_name, const char *p_value, const char *const p_type) {
-  name = new char[strlen(p_name)+1];
-  strcpy(name, p_name);
-  value = new char[strlen(p_value)+1];
-  strcpy(value, p_value);
-  type = new char[strlen(p_type)+1];
-  strcpy(type, p_type);
-
+  name = strdup(p_name);
+  value = strdup(p_value);
+  type = strdup(p_type);
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
 
   cfg_type = CFG_UNKNOWN;
@@ -225,36 +221,31 @@ ConfigItem::ConfigItem(const char *p_name, const char *p_value, const char *cons
 }
 
 ConfigItem::ConfigItem(const ConfigItem &item) {
-  name = new char[strlen(item.name)+1];
-  strcpy(name, item.name);
-  value = new char[strlen(item.value)+1];
-  strcpy(value, item.value);
-  type = new char[strlen(item.type)+1];
-  strcpy(type, item.type);
-
+  name = strdup(item.name);
+  value = strdup(item.value);
+  type = strdup(item.type);
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
 
   accessed = false;
 }
 void ConfigItem::Copy(const ConfigItem &item) {
-  if (name) delete name;
-  name = new char[strlen(item.name)+1];
-  strcpy(name, item.name);
-  if (value) delete value;
-  value = new char[strlen(item.value)+1];
-  strcpy(value, item.value);
-  if (type) delete type;
-  type = new char[strlen(item.type)+1];
-  strcpy(type, item.type);
-
+  if (name) free(name);
+  name = strdup(item.name);
+  if (value) free(value);
+  value = strdup(item.value);
+  if (type) free(type);
+  type = strdup(item.type);
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
   accessed = false;
 }
 
 ConfigItem::~ConfigItem() {
-  delete[] name;
-  delete[] value;
-  delete[] type;
+  if(name)
+    free(name);
+  if(value)
+    free(value);
+  if(type)
+    free(type);
 }
 
 void ConfigItem::ConvertValue() const {

@@ -52,8 +52,7 @@ void Zone::Setup(
   monitor = p_monitor;
 
   id = p_id;
-  label = new char[strlen(p_label)+1];
-  strcpy( label, p_label );
+  label = strdup(p_label);
   type = p_type;
   polygon = p_polygon;
   alarm_rgb = p_alarm_rgb;
@@ -123,7 +122,7 @@ void Zone::Setup(
 } // end Zone::Setup
 
 Zone::~Zone() {
-  delete[] label;
+  free(label);
   delete image;
   delete pg_image;
   delete[] ranges;

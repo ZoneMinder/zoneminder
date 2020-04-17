@@ -459,9 +459,7 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 	}
 	
 	if ( format ) {
-		int length = strlen(format);
-		codec_and_format = new char[length+1];;
-		strcpy( codec_and_format, format );
+		codec_and_format = strdup(format);
 		format = codec_and_format;
 		codec_name = NULL;
 		char *f = strchr(codec_and_format, '/');
@@ -554,7 +552,7 @@ VideoStream::~VideoStream( ) {
 	
 	/* free format and codec_name data. */
 	if ( codec_and_format ) {
-		delete codec_and_format;
+		free( codec_and_format );
 	}
 }
 

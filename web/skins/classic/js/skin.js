@@ -454,7 +454,7 @@ function convertLabelFormat(LabelFormat, monitorName) {
   //https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
   //added %f and %N below (TODO: add %Q)
   var replacements = {
-    'a': 'ddd', 
+    'a': 'ddd',
     'A': 'dddd',
     'b': 'MMM',
     'B': 'MMMM',

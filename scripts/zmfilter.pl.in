@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -179,10 +179,10 @@ if ( $filter_name ) {
   if ( $filter_id ) {
     Info("Scanning for events using filter id '$filter_id'");
   } else {
-    Fatal("No filter_id specified");
+    Fatal('No filter_id specified');
   }
 } else {
-  Info("Scanning for events using all filters");
+  Info('Scanning for events using all filters');
 }
 
 if ( ! ( $filter_name or $filter_id ) ) {
@@ -256,7 +256,7 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     # The undef here is to make sure the Sql gets regenerated because the Filter object may be cached
     my $filter_sql = $filter->Sql(undef);
 
-    if ( ! $filter_sql ) {
+    if ( !$filter_sql ) {
       Error("Error parsing Sql. skipping filter '$db_filter->{Name}'");
       next FILTER;
     }
@@ -531,7 +531,7 @@ sub uploadArchFile {
       Debug("Adding $imageFile");
       my $member = $zip->addFile($imageFile);
       if ( !$member ) {
-        Error("Unable toto add image file $imageFile to zip archive $archLocPath");
+        Error("Unable to add image file $imageFile to zip archive $archLocPath");
         $archError = 1;
         last;
       }

@@ -21,9 +21,9 @@
 // Monitor edit actions, require a monitor id and edit permissions for that monitor
 if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
   $mid = validInt($_REQUEST['mid']);
-  if ( $action == 'zone' && isset($_REQUEST['zid']) ) {
+  if ( ($action == 'zone') && isset($_REQUEST['zid']) ) {
     $zid = validInt($_REQUEST['zid']);
-    $monitor = dbFetchOne('SELECT * FROM Monitors WHERE Id=?', NULL, array($mid));
+    $monitor = new ZM\Monitor($mid);
 
     if ( !empty($zid) ) {
       $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId=? AND Id=?', NULL, array($mid, $zid));
@@ -32,17 +32,15 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
     }
 
     if ( $_REQUEST['newZone']['Units'] == 'Percent' ) {
-      $_REQUEST['newZone']['MinAlarmPixels'] = intval(($_REQUEST['newZone']['MinAlarmPixels']*$_REQUEST['newZone']['Area'])/100);
-      $_REQUEST['newZone']['MaxAlarmPixels'] = intval(($_REQUEST['newZone']['MaxAlarmPixels']*$_REQUEST['newZone']['Area'])/100);
-      if ( isset($_REQUEST['newZone']['MinFilterPixels']) )
-        $_REQUEST['newZone']['MinFilterPixels'] = intval(($_REQUEST['newZone']['MinFilterPixels']*$_REQUEST['newZone']['Area'])/100);
-      if ( isset($_REQUEST['newZone']['MaxFilterPixels']) )
-        $_REQUEST['newZone']['MaxFilterPixels'] = intval(($_REQUEST['newZone']['MaxFilterPixels']*$_REQUEST['newZone']['Area'])/100);
-      if ( isset($_REQUEST['newZone']['MinBlobPixels']) )
-        $_REQUEST['newZone']['MinBlobPixels'] = intval(($_REQUEST['newZone']['MinBlobPixels']*$_REQUEST['newZone']['Area'])/100);
-      if ( isset($_REQUEST['newZone']['MaxBlobPixels']) )
-        $_REQUEST['newZone']['MaxBlobPixels'] = intval(($_REQUEST['newZone']['MaxBlobPixels']*$_REQUEST['newZone']['Area'])/100);
-    }
+			foreach (array(
+						'MinAlarmPixels','MaxAlarmPixels',
+						'MinFilterPixels','MaxFilterPixels',
+						'MinBlobPixels','MaxBlobPixels'
+						) as $field ) {
+				if ( isset($_REQUEST['newZone'][$field]) and $_REQUEST['newZone'][$field] )
+					$_REQUEST['newZone'][$field] = intval(($_REQUEST['newZone'][$field]*$_REQUEST['newZone']['Area'])/100);
+			}
+		}
 
     unset($_REQUEST['newZone']['Points']);
 
@@ -60,21 +58,20 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       } else {
         dbQuery('INSERT INTO Zones SET MonitorId=?, '.implode(', ', $changes), array($mid));
       }
-      if ( daemonCheck() && ($monitor['Type'] != 'WebSite') ) {
+      if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
         if ( $_REQUEST['newZone']['Type'] == 'Privacy' ) {
-          zmaControl($monitor, 'stop');
-          zmcControl($monitor, 'restart');
-          zmaControl($monitor, 'start');
+          $monitor->zmaControl('stop');
+          $monitor->zmcControl('restart');
+          $monitor->zmaControl('start');
         } else {
-          zmaControl($monitor, 'restart');
+          $monitor->zmaControl('restart');
         }
       }
-      if ( ($_REQUEST['newZone']['Type'] == 'Privacy') && $monitor['Controllable'] ) {
-        require_once('control_functions.php');
-        sendControlCommand($mid, 'quit');
+      if ( ($_REQUEST['newZone']['Type'] == 'Privacy') && $monitor->Controllable() ) {
+        $monitor->sendControlCommand('quit');
       }
       $refreshParent = true;
-    }
+    } // end if changes
     $view = 'none';
   } // end if action 
 } // end if $mid and canEdit($mid)

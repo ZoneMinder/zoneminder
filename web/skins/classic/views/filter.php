@@ -115,6 +115,8 @@ $opTypes = array(
     '![]' => translate('OpNotIn'),
     'IS'  => translate('OpIs'),
     'IS NOT'  => translate('OpIsNot'),
+    'LIKE' => translate('OpLike'),
+    'NOT LIKE' => translate('OpNotLike'),
     );
 
 $archiveTypes = array(
@@ -215,7 +217,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
   }
 ?>
               <td><?php if ( count($terms) > 2 ) { echo htmlSelect("filter[Query][terms][$i][obr]", $obracketTypes, $term['obr']); } else { ?>&nbsp;<?php } ?></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][attr]", $attrTypes, $term['attr'], 'checkValue(this);'); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][attr]", $attrTypes, $term['attr'], array('data-on-change-this'=>'checkValue')); ?></td>
 <?php
   if ( isset($term['attr']) ) {
     if ( $term['attr'] == 'Archived' ) {

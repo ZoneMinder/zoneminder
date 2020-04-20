@@ -187,8 +187,8 @@ int main(int argc, char *argv[]) {
     snprintf(log_id_string, sizeof(log_id_string), "zmc_m%d", monitor_id);
   }
 
+  logInit(log_id_string);
   zmLoadConfig();
-
   logInit(log_id_string);
 
   hwcaps_detect();
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
-    } // end foreach monitor
+    }  // end foreach monitor
 
     // Outer primary loop, handles connection to camera
     if ( monitors[0]->PrimeCapture() < 0 ) {
@@ -306,7 +306,7 @@ int main(int argc, char *argv[]) {
 
         if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
           if ( monitors[i]->PreCapture() < 0 ) {
-            Error("Failed to pre-capture monitor %d %d (%d/%d)",
+            Error("Failed to pre-capture monitor %d %s (%d/%d)",
                 monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
             monitors[i]->Close();
             result = -1;
@@ -350,7 +350,7 @@ int main(int argc, char *argv[]) {
       }
       if ( result < 0 ) {
         // Failure, try reconnecting
-				sleep(1);
+				sleep(5);
         break;
       }
     }  // end while ! zm_terminate

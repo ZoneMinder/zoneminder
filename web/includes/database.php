@@ -110,16 +110,10 @@ function dbError($sql) {
 
 function dbEscape( $string ) {
   global $dbConn;
-  if ( version_compare(phpversion(), '4.3.0', '<'))
-    if ( get_magic_quotes_gpc() )
-      return $dbConn->quote(stripslashes($string));
-    else
-      return $dbConn->quote($string);
+  if ( version_compare(phpversion(), '5.4', '<=') and get_magic_quotes_gpc() ) 
+    return $dbConn->quote(stripslashes($string));
   else
-    if ( get_magic_quotes_gpc() )
-      return $dbConn->quote(stripslashes($string));
-    else
-      return $dbConn->quote($string);
+    return $dbConn->quote($string);
 }
 
 function dbQuery($sql, $params=NULL) {
@@ -135,7 +129,7 @@ function dbQuery($sql, $params=NULL) {
       }
 
       if ( ! $result->execute($params) ) {
-        ZM\Error("SQL: Error executing $sql: " . implode(',', $result->errorInfo()));
+        ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
         return NULL;
       }
     } else {
@@ -150,7 +144,7 @@ function dbQuery($sql, $params=NULL) {
     }
     if ( defined('ZM_DB_DEBUG') ) {
       if ( $params )
-        ZM\Logger::Debug("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount());
+        ZM\Logger::Debug("SQL: $sql " . implode(',',$params) . ' rows: '.$result->rowCount());
       else
         ZM\Logger::Debug("SQL: $sql: rows:" . $result->rowCount());
     }
@@ -212,6 +206,10 @@ function dbFetch($sql, $col=false) {
 }
 
 function dbFetchNext($result, $col=false) {
+	if ( !$result ) {
+		ZM\Error("dbFetchNext called on null result.");
+		return false;
+	}
   if ( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
     return $col ? $dbRow[$col] : $dbRow;
   return false;

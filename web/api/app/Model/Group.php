@@ -59,7 +59,7 @@ class Group extends AppModel {
  *
  * @var array
  */
-	public $hasMany = array(
+	public $hasAndBelongsToMany = array(
 		'Monitor' => array(
 			'className' => 'Monitor',
       'joinTable' =>  'Groups_Monitors',
@@ -77,4 +77,5 @@ class Group extends AppModel {
 			'counterQuery' => ''
 		),
   );
+  var $actsAs = array( 'Containable' );
 }

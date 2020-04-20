@@ -16,7 +16,7 @@ module.exports = {
   }],
   "plugins": [
     "html",
-    "php-markup",
+//    "php-markup",
   ],
   "rules": {
     "camelcase": "off",

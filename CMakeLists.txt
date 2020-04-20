@@ -3,6 +3,7 @@
 # For more information and installation, see the INSTALL file
 #
 cmake_minimum_required (VERSION 2.8.7)
+cmake_policy(SET CMP0054 NEW)
 project (zoneminder)
 file (STRINGS "version" zoneminder_VERSION)
 # make API version a minor of ZM version
@@ -138,9 +139,9 @@ set(ZM_TMPDIR "/var/tmp/zm" CACHE PATH
     "Location of temporary files, default: /tmp/zm")
 set(ZM_LOGDIR "/var/log/zm" CACHE PATH 
     "Location of generated log files, default: /var/log/zm")
-set(ZM_WEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/www" CACHE PATH 
+set(ZM_WEBDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/www" CACHE PATH 
     "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
-set(ZM_CGIDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH 
+set(ZM_CGIDIR "${CMAKE_INSTALL_FULL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH 
     "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
 set(ZM_CACHEDIR "/var/cache/zoneminder" CACHE PATH 
     "Location of the web server cache busting files, default: /var/cache/zoneminder")
@@ -347,19 +348,48 @@ else(JPEG_FOUND)
             "ZoneMinder requires jpeg but it was not found on your system")
 endif(JPEG_FOUND)
 
+# LIBJWT
+find_package(LibJWT)
+if(LIBJWT_FOUND)
+	set(HAVE_LIBJWT 1)
+	set(optlibsfound "${optlibsfound} LIBJWT")
+	list(APPEND ZM_BIN_LIBS "${LIBJWT_LIBRARY}")
+else(LIBJWT_FOUND)
+	set(optlibsnotfound "${optlibsnotfound} LIBJWT")
+endif(LIBJWT_FOUND)
+
+# gnutls (using find_library and find_path)
+find_library(GNUTLS_LIBRARIES gnutls)
+if(GNUTLS_LIBRARIES)
+	set(HAVE_LIBGNUTLS 1)
+	list(APPEND ZM_BIN_LIBS "${GNUTLS_LIBRARIES}")
+	find_path(GNUTLS_INCLUDE_DIR gnutls/gnutls.h)
+	if(GNUTLS_INCLUDE_DIR)
+		include_directories("${GNUTLS_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
+	endif(GNUTLS_INCLUDE_DIR)
+	mark_as_advanced(FORCE GNUTLS_LIBRARIES GNUTLS_INCLUDE_DIR)
+	check_include_file("gnutls/gnutls.h" HAVE_GNUTLS_GNUTLS_H)
+	set(optlibsfound "${optlibsfound} GnuTLS")
+else(GNUTLS_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} GnuTLS")
+endif(GNUTLS_LIBRARIES)
+
 # OpenSSL
-find_package(OpenSSL)
-if(OPENSSL_FOUND)
-	set(HAVE_LIBOPENSSL 1)
-	set(HAVE_LIBCRYPTO 1)
-	list(APPEND ZM_BIN_LIBS "${OPENSSL_LIBRARIES}")
-	include_directories("${OPENSSL_INCLUDE_DIR}")
-	set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
-	check_include_file("openssl/md5.h" HAVE_OPENSSL_MD5_H)
-	set(optlibsfound "${optlibsfound} OpenSSL")
-else(OPENSSL_FOUND)
-	set(optlibsnotfound "${optlibsnotfound} OpenSSL")
-endif(OPENSSL_FOUND)
+if(NOT HAVE_LIBGNUTLS OR NOT HAVE_LIBJWT)
+    find_package(OpenSSL)
+    if(OPENSSL_FOUND)
+        set(HAVE_LIBOPENSSL 1)
+        set(HAVE_LIBCRYPTO 1)
+        list(APPEND ZM_BIN_LIBS "${OPENSSL_LIBRARIES}")
+        include_directories("${OPENSSL_INCLUDE_DIR}")
+        set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
+        check_include_file("openssl/md5.h" HAVE_OPENSSL_MD5_H)
+        set(optlibsfound "${optlibsfound} OpenSSL")
+    else(OPENSSL_FOUND)
+        set(optlibsnotfound "${optlibsnotfound} OpenSSL")
+    endif(OPENSSL_FOUND)
+endif(NOT HAVE_LIBGNUTLS OR NOT HAVE_LIBJWT)
 
 # pthread (using find_library and find_path)
 find_library(PTHREAD_LIBRARIES pthread)
@@ -415,28 +445,6 @@ if(GCRYPT_LIBRARIES)
 else(GCRYPT_LIBRARIES)
 	set(optlibsnotfound "${optlibsnotfound} GCrypt")
 endif(GCRYPT_LIBRARIES)
-
-# gnutls (using find_library and find_path)
-find_library(GNUTLS_LIBRARIES gnutls-openssl)
-if(NOT GNUTLS_LIBRARIES)
-    find_library(GNUTLS_LIBRARIES gnutls)
-endif(NOT GNUTLS_LIBRARIES)
-
-if(GNUTLS_LIBRARIES)
-	set(HAVE_LIBGNUTLS 1)
-	list(APPEND ZM_BIN_LIBS "${GNUTLS_LIBRARIES}")
-	find_path(GNUTLS_INCLUDE_DIR gnutls/gnutls.h)
-	if(GNUTLS_INCLUDE_DIR)
-		include_directories("${GNUTLS_INCLUDE_DIR}")
-		set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
-	endif(GNUTLS_INCLUDE_DIR)
-	mark_as_advanced(FORCE GNUTLS_LIBRARIES GNUTLS_INCLUDE_DIR)
-	check_include_file("gnutls/openssl.h" HAVE_GNUTLS_OPENSSL_H)
-	check_include_file("gnutls/gnutls.h" HAVE_GNUTLS_GNUTLS_H)
-	set(optlibsfound "${optlibsfound} GnuTLS")
-else(GNUTLS_LIBRARIES)
-	set(optlibsnotfound "${optlibsnotfound} GnuTLS")
-endif(GNUTLS_LIBRARIES)
 
 # mysqlclient (using find_library and find_path)
 find_library(MYSQLCLIENT_LIBRARIES mysqlclient PATH_SUFFIXES mysql)
@@ -731,14 +739,7 @@ if(HAVE_OPENSSL_MD5_H)
             "unsigned char *MD5(const unsigned char *d, size_t n, unsigned char *md)" "NULL" "openssl/md5.h" 
             HAVE_MD5_OPENSSL)
 endif(HAVE_OPENSSL_MD5_H)
-if(HAVE_GNUTLS_OPENSSL_H)
-	set(CMAKE_REQUIRED_LIBRARIES "${GNUTLS_LIBRARIES}")
-	set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
-	check_prototype_definition(
-            MD5 
-            "unsigned char *MD5 (const unsigned char *buf, unsigned long len, unsigned char *md)" "NULL" "gnutls/openssl.h" 
-            HAVE_MD5_GNUTLS)
-endif(HAVE_GNUTLS_OPENSSL_H)
+
 if(HAVE_GNUTLS_GNUTLS_H)
 	set(CMAKE_REQUIRED_LIBRARIES "${GNUTLS_LIBRARIES}")
 	set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
@@ -747,13 +748,17 @@ if(HAVE_GNUTLS_GNUTLS_H)
             "int gnutls_fingerprint (gnutls_digest_algorithm_t algo, const gnutls_datum_t * data, void *result, size_t * result_size)" "0" "stdlib.h;gnutls/gnutls.h" 
             HAVE_DECL_GNUTLS_FINGERPRINT)
 endif(HAVE_GNUTLS_GNUTLS_H)
-if(HAVE_MD5_OPENSSL OR HAVE_MD5_GNUTLS)
+
+if(HAVE_MD5_OPENSSL)
 	set(HAVE_DECL_MD5 1)
-else(HAVE_MD5_OPENSSL OR HAVE_MD5_GNUTLS)
+endif(HAVE_MD5_OPENSSL)
+
+if((NOT HAVE_MD5_OPENSSL) AND (NOT HAVE_DECL_GNUTLS_FINGERPRINT))
 	message(AUTHOR_WARNING 
-        "ZoneMinder requires a working MD5 function for hashed authenication but 
-        none were found - hashed authenication will not be available")
-endif(HAVE_MD5_OPENSSL OR HAVE_MD5_GNUTLS)
+        "ZoneMinder requires a working MD5 function for hashed authentication but 
+        none were found - hashed authentication will not be available")
+endif((NOT HAVE_MD5_OPENSSL) AND (NOT HAVE_DECL_GNUTLS_FINGERPRINT))
+
 # Dirty fix for zm_user only using openssl's md5 if gnutls and gcrypt are not available.
 # This needs to be fixed in zm_user.[h,cpp] but such fix will also require changes to configure.ac
 if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)

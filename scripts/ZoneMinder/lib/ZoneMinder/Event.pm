@@ -134,7 +134,7 @@ sub Path {
 
   if ( ! $$event{Path} ) {
     my $Storage = $event->Storage();
-		if ( defined $Storage->Id() ) {
+		if ( (!$$event{StorageId}) or defined $Storage->Id() ) {
 			$$event{Path} = join('/', $Storage->Path(), $event->RelativePath());
 		} else {
 			Error("Storage area for $$event{StorageId} no longer exists in db.");
@@ -409,12 +409,12 @@ sub delete_files {
     ) ) {
     my $storage_path = $Storage->Path();
 
-    if ( ! $storage_path ) {
+    if ( !$storage_path ) {
       Error("Empty storage path when deleting files for event $$event{Id} with storage id $$event{StorageId}");
       return;
     }
 
-    if ( ! $$event{MonitorId} ) {
+    if ( !$$event{MonitorId} ) {
       Error("No monitor id assigned to event $$event{Id}");
       return;
     }
@@ -450,11 +450,13 @@ sub delete_files {
           }
         };
         Error($@) if $@;
-      }
+      } # end if s3fs
       if ( !$deleted ) {
         my $command = "/bin/rm -rf $storage_path/$event_path";
         ZoneMinder::General::executeShellCommand($command);
       }
+    } else {
+      Error('No event path in delete files. ' . $event->to_string());
     } # end if event_path
 
     if ( $event->Scheme() eq 'Deep' ) {
@@ -465,6 +467,34 @@ sub delete_files {
         unlink($storage_path.'/'.$link_path) or Error("Unable to unlink '$storage_path/$link_path': $!");
       }
     } # end if Scheme eq Deep
+
+    # Now check for empty directories and delete them.
+    my @path_parts = split('/', $event_path);
+    pop @path_parts;
+    # Guaranteed the first part is the monitor id
+    Debug("Initial path_parts: @path_parts");
+    while ( @path_parts > 1 ) {
+      my $path = join('/', $storage_path, @path_parts);
+      my $dh;
+      if ( !opendir($dh, $path) ) {
+        Warning("Fail to open $path");
+        last;
+      }
+      my @dir =  readdir($dh);
+      closedir($dh);
+      if ( scalar(grep { $_ ne '.' and $_ ne '..' } @dir) == 0 ) {
+        Debug("Removing empty dir at $path");
+        if ( !rmdir $path ) {
+          Warning("Fail to rmdir $path: $!");
+          last;
+        }
+      } else {
+        Debug("Dir $path is not empty @dir");
+        last;
+      }
+      pop @path_parts;
+    } # end while path_parts
+
   } # end foreach Storage
 } # end sub delete_files
 

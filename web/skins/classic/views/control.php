@@ -26,13 +26,13 @@ if ( !canView('Control') ) {
 $params = array();
 $groupSql = '';
 if ( !empty($_REQUEST['group']) ) {
-  $groupSql = ' AND gm.GroupId = :groupid';
+  $groupSql = ' AND (m.Id IN (SELECT MonitorID FROM Groups_Monitors WHERE GroupId = :groupid))';
   $params[':groupid'] = $_REQUEST['group'];
 }
 
 $mid = !empty($_REQUEST['mid']) ? validInt($_REQUEST['mid']) : 0;
 
-$sql = "SELECT m.* FROM Monitors m INNER JOIN Groups_Monitors AS gm ON m.Id = gm.MonitorId WHERE m.Function != 'None' AND m.Controllable = 1$groupSql ORDER BY Sequence";
+$sql = "SELECT m.* FROM Monitors m WHERE m.Function != 'None' AND m.Controllable = 1$groupSql ORDER BY Sequence";
 $mids = array();
 foreach ( dbFetchAll($sql, false, $params) as $row ) {
   if ( !visibleMonitor($row['Id']) ) {

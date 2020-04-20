@@ -55,7 +55,9 @@ xhtmlHeaders(__FILE__, translate('Groups'));
             <tr>
               <th class="colName" colspan="<?php echo $max_depth+1 ?>"><?php echo translate('Name') ?></th>
               <th class="colIds"><?php echo translate('Monitors') ?></th>
+<?php if ( canEdit('Groups') ) { ?>
               <th class="colSelect"><?php echo translate('Mark') ?></th>
+<?php } ?>
             </tr>
           </thead>
           <tbody>
@@ -67,14 +69,15 @@ function group_line( $Group ) {
   $html .= str_repeat('<td class="colName">&nbsp;</td>', $Group->depth());
   $html .= '<td class="colName" colspan="'.($max_depth-($Group->depth()-1)).'">';
   if ( canEdit('Groups') ) {
-    $html .= '<a href="#" onclick="editGroup('.$Group->Id().');">'. validHtmlStr($Group->Id() . ' ' . $Group->Name()).'</a>';
+    $html .= '<a href="#" data-on-click-this="editGroup" data-group-id="'.$Group->Id().'">'.validHtmlStr($Group->Id().' '.$Group->Name()).'</a>';
   } else {
     $html .= validHtmlStr($Group->Name());
   }
-  $html .= '</td><td class="colIds">'. monitorIdsToNames($Group->MonitorIds(), 30).'</td>
-                <td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" data-on-click-this="configureButtons"/></td>
-              </tr>
-  ';
+  $html .= '</td><td class="colIds">'. monitorIdsToNames($Group->MonitorIds(), 30).'</td>';
+  if ( canEdit('Groups') ) {
+    $html .= '<td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" data-on-click-this="configureButtons"/></td>';
+  }
+  $html .= '</tr>';
   if ( isset( $children[$Group->Id()] ) ) {
     foreach ( $children[$Group->Id()] as $G ) {
       $html .= group_line($G);

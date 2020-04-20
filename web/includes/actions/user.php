@@ -37,7 +37,6 @@ if ( $action == 'user' ) {
    
     if ( $_REQUEST['newUser']['Password'] ) {
       $changes['Password'] = 'Password = '.$pass_hash;
-      ZM\Info('PASS CMD='.$changes['Password']);
     } else {
       unset($changes['Password']);
     }
@@ -46,8 +45,16 @@ if ( $action == 'user' ) {
       if ( !empty($_REQUEST['uid']) ) {
         dbQuery('UPDATE Users SET '.implode(', ', $changes).' WHERE Id = ?', array($_REQUEST['uid']));
         # If we are updating the logged in user, then update our session user data.
-        if ( $user and ( $dbUser['Username'] == $user['Username'] ) )
-          userLogin($dbUser['Username'], $dbUser['Password']);
+        if ( $user and ( $dbUser['Username'] == $user['Username'] ) ) {
+          # We are the logged in user, need to update the $user object and generate a new auth_hash
+          $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Id=?';
+          $user = dbFetchOne($sql, NULL, array($_REQUEST['uid']));
+
+          # Have to update auth hash in session
+          zm_session_start();
+          generateAuthHash(ZM_AUTH_HASH_IPS, true);
+          session_write_close();
+        }
       } else {
         dbQuery('INSERT INTO Users SET '.implode(', ', $changes));
       }
@@ -62,8 +69,8 @@ if ( $action == 'user' ) {
     $types = array();
     $changes = getFormChanges($dbUser, $_REQUEST['newUser'], $types);
 
-    if (function_exists ('password_hash')) {
-      $pass_hash = '"'.password_hash($pass, PASSWORD_BCRYPT).'"';
+    if ( function_exists('password_hash') ) {
+      $pass_hash = '"'.password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT).'"';
     } else {
       $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
       ZM\Info ('Cannot use bcrypt as you are using PHP < 5.3');
@@ -71,12 +78,19 @@ if ( $action == 'user' ) {
 
     if ( !empty($_REQUEST['newUser']['Password']) ) {
       $changes['Password'] = 'Password = '.$pass_hash;
-    }
-      
-    else
+    } else {
       unset($changes['Password']);
+    }
     if ( count($changes) ) {
       dbQuery('UPDATE Users SET '.implode(', ', $changes).' WHERE Id=?', array($uid));
+
+      # We are the logged in user, need to update the $user object and generate a new auth_hash
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Id=?';
+      $user = dbFetchOne($sql, NULL, array($uid));
+      
+      zm_session_start();
+      generateAuthHash(ZM_AUTH_HASH_IPS, true);
+      session_write_close();
       $refreshParent = true;
     }
     $view = 'none';

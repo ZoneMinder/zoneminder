@@ -40,6 +40,7 @@ StringVector split( const std::string &string, const std::string &chars, int lim
 const std::string join( const StringVector &, const char * );
 
 const std::string base64Encode( const std::string &inString );
+void string_toupper(std::string& str);
 
 int split(const char* string, const char delim, std::vector<std::string>& items);
 int pairsplit(const char* string, const char delim, std::string& name, std::string& value);

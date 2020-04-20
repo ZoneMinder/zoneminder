@@ -61,13 +61,19 @@ sub DESTROY {
 
 sub AUTOLOAD {
   my $self = shift;
-  my $class = ref($self) || Fatal("$self not object");
+  my $class = ref($self);
+  if ( !$class ) {
+    my ( $caller, undef, $line ) = caller;
+    Fatal("$self not object from $caller:$line");
+  }
+
   my $name = $AUTOLOAD;
   $name =~ s/.*://;
   if ( exists($self->{$name}) ) {
     return $self->{$name};
   }
-  Error("Can't access $name $AUTOLOAD member of object of class $class");
+  my ( $caller, undef, $line ) = caller;
+  Error("Can't access name:$name AUTOLOAD:$AUTOLOAD member of object of class $class from $caller:$line");
 }
 
 sub getKey {
@@ -131,7 +137,10 @@ sub executeCommand {
 
 sub printMsg {
   my $self = shift;
-  Fatal('No printMsg method defined for protocol '.$self->{name});
+  my $msg = shift;
+  my $msg_len = length($msg);
+
+  Debug($msg.'['.$msg_len.']');
 }
 
 1;

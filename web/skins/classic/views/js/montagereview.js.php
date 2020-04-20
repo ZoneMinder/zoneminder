@@ -18,7 +18,7 @@ var speedIndex=<?php echo $speedIndex?>;
 // for history, and fps for live, and dynamically determined (in ms)
 
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
-var playSecsperInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
+var playSecsPerInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
 var timerObj;                    // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image
@@ -50,7 +50,6 @@ if ( !$liveMode ) {
     $event_id = $event['Id'];
     $EventsById[$event_id] = $event;
   }
-
   $next_frames = array();
 
   if ( $result = dbQuery($framesSql) ) {
@@ -71,7 +70,7 @@ if ( !$liveMode ) {
       $event['FramesById'] += array($frame['Id']=>$frame);
       $next_frames[$frame['EventId']] = $frame;
     }
-  }
+  } // end if dbQuery
 
   $events_by_monitor_id = array();
 
@@ -184,8 +183,8 @@ foreach ( $monitors as $m ) {
   echo "  monitorImageURL["        . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale*100), '&' )."';\n";
   echo "  monitorLoadingStageURL[" . $m->Id() . "] = '';\n";
   echo "  monitorColour["          . $m->Id() . "]=\"" . $m->WebColour() . "\";\n";
-  echo "  monitorWidth["           . $m->Id() . "]=" . $m->Width() . ";\n";
-  echo "  monitorHeight["          . $m->Id() . "]=" . $m->Height() . ";\n";
+  echo "  monitorWidth["           . $m->Id() . "]=" . $m->ViewWidth() . ";\n";
+  echo "  monitorHeight["          . $m->Id() . "]=" . $m->ViewHeight() . ";\n";
   echo "  monitorIndex["           . $m->Id() . "]=" . $numMonitors . ";\n";
   echo "  monitorServerId["        . $m->Id() . "]='" .($m->ServerId() ?  $m->ServerId() : '0'). "';\n";
   echo "  monitorName["            . $m->Id() . "]=\"" . $m->Name() . "\";\n";
@@ -203,6 +202,8 @@ echo "
 var numMonitors = $numMonitors;
 var minTimeSecs=parseInt($minTimeSecs);
 var maxTimeSecs=parseInt($maxTimeSecs);
+var minTime='$minTime';
+var maxTime='$maxTime';
 ";
 echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
 if(isset($defaultCurrentTime))

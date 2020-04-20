@@ -1,21 +1,21 @@
 //
 // ZoneMinder Image Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 #include "zm.h"
 #include "zm_font.h"
 #include "zm_bigfont.h"
@@ -126,7 +126,7 @@ Image::Image( const char *filename ) {
   height = 0;
   pixels = 0;
   colours = 0;
-  subpixelorder = 0;  
+  subpixelorder = 0;
   size = 0;
   allocation = 0;
   buffer = 0;
@@ -279,7 +279,7 @@ void Image::Initialise() {
     fptr_blend = &std_blend;
     Debug(4,"Blend: Using standard blend function");
   }
-  
+
   __attribute__((aligned(64))) uint8_t blend1[128] = {
     86,58,54,63,149,62,209,34,148,46,186,176,9,236,193,254,113,146,228,220,123,164,92,98,9,72,67,156,63,118,96,167,
     48,224,106,176,201,245,223,219,198,50,100,31,68,77,33,76,166,90,254,128,191,82,84,32,3,171,147,248,14,196,141,179,
@@ -413,7 +413,7 @@ void Image::Initialise() {
     }
   }
 
-  /* 
+  /*
      SSSE3 deinterlacing functions were removed because they were usually equal
      or slower than the standard code (compiled with -O2 or better)
      The function is too complicated to be vectorized efficiently on SSSE3
@@ -528,7 +528,7 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
     size = newsize;
   } // end if need to re-alloc buffer
 
-  return buffer; 
+  return buffer;
 }
 
 /* Assign an existing buffer to the image instead of copying from a source buffer. The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing. */
@@ -623,7 +623,7 @@ void Image::Assign(const unsigned int p_width, const unsigned int p_height, cons
         return;
       }
     } else {
-      if ( new_size > allocation || !buffer ) { 
+      if ( new_size > allocation || !buffer ) {
         DumpImgBuffer();
         AllocImgBuffer(new_size);
       }
@@ -663,7 +663,7 @@ void Image::Assign( const Image &image ) {
         return;
       }
     } else {
-      if(new_size > allocation || !buffer) { 
+      if(new_size > allocation || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
         AllocImgBuffer(new_size);
       }
@@ -802,25 +802,25 @@ bool Image::ReadRaw( const char *filename ) {
     return false;
   }
 
-  fclose( infile );
+  fclose(infile);
 
   return true;
 }
 
-bool Image::WriteRaw( const char *filename ) const {
+bool Image::WriteRaw(const char *filename) const {
   FILE *outfile;
-  if ( (outfile = fopen( filename, "wb" )) == NULL ) {
-    Error( "Can't open %s: %s", filename, strerror(errno) );
+  if ( (outfile = fopen(filename, "wb")) == NULL ) {
+    Error("Can't open %s: %s", filename, strerror(errno));
     return false;
   }
 
   if ( fwrite( buffer, size, 1, outfile ) != 1 ) {
-    Error( "Unable to write to '%s': %s", filename, strerror(errno) );
-    fclose( outfile );
+    Error("Unable to write to '%s': %s", filename, strerror(errno));
+    fclose(outfile);
     return false;
   }
 
-  fclose( outfile );
+  fclose(outfile);
 
   return true;
 }
@@ -885,13 +885,13 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
       {
 #ifdef JCS_EXTENSIONS
         new_colours = ZM_COLOUR_RGB32;
-        if(p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+        if ( p_subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
           cinfo->out_color_space = JCS_EXT_BGRX;
           new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-        } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+        } else if ( p_subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
           cinfo->out_color_space = JCS_EXT_XRGB;
           new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-        } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+        } else if ( p_subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
           cinfo->out_color_space = JCS_EXT_XBGR;
           new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
         } else {
@@ -899,7 +899,7 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
           cinfo->out_color_space = JCS_EXT_RGBX;
           new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
         }
-        break;    
+        break;
 #else
         Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
 #endif
@@ -908,13 +908,13 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
     default:
       {
         new_colours = ZM_COLOUR_RGB24;
-        if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-#ifdef JCS_EXTENSIONS    
-          cinfo->out_color_space = JCS_EXT_BGR;  
+        if ( p_subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
+#ifdef JCS_EXTENSIONS
+          cinfo->out_color_space = JCS_EXT_BGR;
           new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
-          Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");    
-          cinfo->out_color_space = JCS_RGB;  
+          Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");
+          cinfo->out_color_space = JCS_RGB;
           new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
         } else {
@@ -933,28 +933,27 @@ cinfo->out_color_space = JCS_RGB;
       }
   }
 
-  if(WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == NULL) {
+  if ( WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == NULL ) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
-    jpeg_abort_decompress( cinfo );
-    fclose( infile );
-    return( false );
+    jpeg_abort_decompress(cinfo);
+    fclose(infile);
+    return false;
   }
 
-  jpeg_start_decompress( cinfo );
+  jpeg_start_decompress(cinfo);
 
   JSAMPROW row_pointer;  /* pointer to a single row */
   int row_stride = width * colours; /* physical row width in buffer */
-  while ( cinfo->output_scanline < cinfo->output_height )
-  {
+  while ( cinfo->output_scanline < cinfo->output_height ) {
     row_pointer = &buffer[cinfo->output_scanline * row_stride];
-    jpeg_read_scanlines( cinfo, &row_pointer, 1 );
+    jpeg_read_scanlines(cinfo, &row_pointer, 1);
   }
 
-  jpeg_finish_decompress( cinfo );
+  jpeg_finish_decompress(cinfo);
 
-  fclose( infile );
+  fclose(infile);
 
-  return( true );
+  return true;
 }
 
 // Multiple calling formats to permit inclusion (or not) of non blocking, quality_override and timestamp (exif), with suitable defaults.
@@ -977,7 +976,7 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
   return Image::WriteJpeg(filename, quality_override, timestamp, false);
 }
 bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort) const {
-  if ( config.colour_jpeg_files && colours == ZM_COLOUR_GRAY8 ) {
+  if ( config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8) ) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     return temp_image.WriteJpeg(filename, quality_override, timestamp, on_blocking_abort);
@@ -985,66 +984,63 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
   int quality = quality_override?quality_override:config.jpeg_file_quality;
 
   struct jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
-  FILE *outfile =NULL;
+  FILE *outfile = NULL;
   static int raw_fd = 0;
   bool need_create_comp = false;
   raw_fd = 0;
 
   if ( !cinfo ) {
     cinfo = writejpg_ccinfo[quality] = new jpeg_compress_struct;
-    cinfo->err = jpeg_std_error( &jpg_err.pub );
-    jpeg_create_compress( cinfo );
-    need_create_comp=true;
+    cinfo->err = jpeg_std_error(&jpg_err.pub);
+    jpeg_create_compress(cinfo);
+    need_create_comp = true;
   }
-  if (! on_blocking_abort) {
-      jpg_err.pub.error_exit = zm_jpeg_error_exit;
-      jpg_err.pub.emit_message = zm_jpeg_emit_message;
+  if ( !on_blocking_abort ) {
+    jpg_err.pub.error_exit = zm_jpeg_error_exit;
+    jpg_err.pub.emit_message = zm_jpeg_emit_message;
   } else {
     jpg_err.pub.error_exit = zm_jpeg_error_silent;
     jpg_err.pub.emit_message = zm_jpeg_emit_silence;
-    if (setjmp( jpg_err.setjmp_buffer ) ) {
-      jpeg_abort_compress( cinfo );
-      Debug( 5, "Aborted a write mid-stream and %s and %d", (outfile == NULL) ? "closing file" : "file not opened", raw_fd );
-      if (raw_fd)
+    if ( setjmp(jpg_err.setjmp_buffer) ) {
+      jpeg_abort_compress(cinfo);
+      Debug(1, "Aborted a write mid-stream and %s and %d", (outfile == NULL) ? "closing file" : "file not opened", raw_fd);
+      if ( raw_fd )
         close(raw_fd);
-      if (outfile)
-        fclose( outfile );
-      return ( false );
+      if ( outfile )
+        fclose(outfile);
+      return false;
     }
   }
-  if (need_create_comp)
-    jpeg_create_compress( cinfo );
+  if ( need_create_comp )
+    jpeg_create_compress(cinfo);
 
-  if (! on_blocking_abort) {
+  if ( !on_blocking_abort ) {
     if ( (outfile = fopen(filename, "wb")) == NULL ) {
-      Error( "Can't open %s for writing: %s", filename, strerror(errno) );
+      Error("Can't open %s for writing: %s", filename, strerror(errno));
       return false;
     }
   } else {
-    raw_fd = open(filename,O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-    if (raw_fd < 0)
-      return ( false );
-    outfile = fdopen(raw_fd,"wb");
-    if (outfile == NULL) {
+    raw_fd = open(filename, O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    if ( raw_fd < 0 )
+      return false;
+    outfile = fdopen(raw_fd, "wb");
+    if ( outfile == NULL ) {
       close(raw_fd);
-      return( false );
+      return false;
     }
   }
 
-  jpeg_stdio_dest( cinfo, outfile );
+  jpeg_stdio_dest(cinfo, outfile);
 
   cinfo->image_width = width;   /* image width and height, in pixels */
   cinfo->image_height = height;
 
-  switch(colours) {
+  switch (colours) {
     case ZM_COLOUR_GRAY8:
-      {
         cinfo->input_components = 1;
         cinfo->in_color_space = JCS_GRAYSCALE;
         break;
-      }
     case ZM_COLOUR_RGB32:
-      {
 #ifdef JCS_EXTENSIONS
         cinfo->input_components = 4;
         if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
@@ -1056,27 +1052,25 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
         } else {
           /* Assume RGBA */
           cinfo->in_color_space = JCS_EXT_RGBX;
-        }  
+        }
+        break;
 #else
         Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
-        jpeg_abort_compress( cinfo );
+        jpeg_abort_compress(cinfo);
         fclose(outfile);
         return false;
 #endif
-        break;
-      }
     case ZM_COLOUR_RGB24:
     default:
-      {
         cinfo->input_components = 3;
         if ( subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-#ifdef JCS_EXTENSIONS   
+#ifdef JCS_EXTENSIONS
           cinfo->in_color_space = JCS_EXT_BGR;
 #else
           Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
-          jpeg_abort_compress( cinfo );
+          jpeg_abort_compress(cinfo);
           fclose(outfile);
-          return false;                                          
+          return false;
 #endif
         } else {
           /* Assume RGB */
@@ -1090,16 +1084,15 @@ cinfo->out_color_space = JCS_RGB;
           cinfo->in_color_space = JCS_RGB;
         }
         break;
-      }
-  }
+  }  // end switch(colours)
 
-  jpeg_set_defaults( cinfo );
-  jpeg_set_quality( cinfo, quality, FALSE );
+  jpeg_set_defaults(cinfo);
+  jpeg_set_quality(cinfo, quality, FALSE);
   cinfo->dct_method = JDCT_FASTEST;
 
-  jpeg_start_compress( cinfo, TRUE );
+  jpeg_start_compress(cinfo, TRUE);
   if ( config.add_jpeg_comments && text[0] ) {
-    jpeg_write_marker( cinfo, JPEG_COM, (const JOCTET *)text, strlen(text) );
+    jpeg_write_marker(cinfo, JPEG_COM, (const JOCTET *)text, strlen(text));
   }
   // If we have a non-zero time (meaning a parameter was passed in), then form a simple exif segment with that time as DateTimeOriginal and SubsecTimeOriginal
   // No timestamp just leave off the exif section.
@@ -1123,14 +1116,14 @@ cinfo->out_color_space = JCS_RGB;
       0xff, 0x00 };
     memcpy(&exiftimes[EXIFTIMES_OFFSET], timebuf,EXIFTIMES_LEN);
     memcpy(&exiftimes[EXIFTIMES_MS_OFFSET], msbuf, EXIFTIMES_MS_LEN);
-    jpeg_write_marker( cinfo, EXIF_CODE, (const JOCTET *)exiftimes, sizeof(exiftimes) );
+    jpeg_write_marker(cinfo, EXIF_CODE, (const JOCTET *)exiftimes, sizeof(exiftimes));
   }
 
   JSAMPROW row_pointer;  /* pointer to a single row */
   int row_stride = cinfo->image_width * colours; /* physical row width in buffer */
   while ( cinfo->next_scanline < cinfo->image_height ) {
     row_pointer = &buffer[cinfo->next_scanline * row_stride];
-    jpeg_write_scanlines( cinfo, &row_pointer, 1 );
+    jpeg_write_scanlines(cinfo, &row_pointer, 1);
   }
 
   jpeg_finish_compress(cinfo);
@@ -1140,13 +1133,16 @@ cinfo->out_color_space = JCS_RGB;
   return true;
 }
 
-bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder)
+bool Image::DecodeJpeg(
+    const JOCTET *inbuffer,
+    int inbuffer_size,
+    unsigned int p_colours,
+    unsigned int p_subpixelorder)
 {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
   struct jpeg_decompress_struct *cinfo = decodejpg_dcinfo;
 
-  if ( !cinfo )
-  {
+  if ( !cinfo ) {
     cinfo = decodejpg_dcinfo = new jpeg_decompress_struct;
     cinfo->err = jpeg_std_error( &jpg_err.pub );
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
@@ -1154,25 +1150,24 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
     jpeg_create_decompress( cinfo );
   }
 
-  if ( setjmp( jpg_err.setjmp_buffer ) )
-  {
-    jpeg_abort_decompress( cinfo );
-    return( false );
+  if ( setjmp(jpg_err.setjmp_buffer) ) {
+    jpeg_abort_decompress(cinfo);
+    return false;
   }
 
-  zm_jpeg_mem_src( cinfo, inbuffer, inbuffer_size );
+  zm_jpeg_mem_src(cinfo, inbuffer, inbuffer_size);
 
-  jpeg_read_header( cinfo, TRUE );
+  jpeg_read_header(cinfo, TRUE);
 
-  if ( cinfo->num_components != 1 && cinfo->num_components != 3 ) {
-    Error( "Unexpected colours when reading jpeg image: %d", colours );
-    jpeg_abort_decompress( cinfo );
-    return( false );
+  if ( (cinfo->num_components != 1) && (cinfo->num_components != 3) ) {
+    Error("Unexpected colours when reading jpeg image: %d", colours);
+    jpeg_abort_decompress(cinfo);
+    return false;
   }
 
   /* Check if the image has at least one huffman table defined. If not, use the standard ones */
   /* This is required for the MJPEG capture palette of USB devices */
-  if(cinfo->dc_huff_tbl_ptrs[0] == NULL) {
+  if ( cinfo->dc_huff_tbl_ptrs[0] == NULL ) {
     zm_use_std_huff_tables(cinfo);
   }
 
@@ -1180,28 +1175,26 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
   new_height = cinfo->image_height;
 
   if ( width != new_width || height != new_height ) {
-    Debug(9,"Image dimensions differ. Old: %ux%u New: %ux%u",width,height,new_width,new_height);
+    Debug(9, "Image dimensions differ. Old: %ux%u New: %ux%u",
+        width, height, new_width, new_height);
   }
 
-  switch(p_colours) {
+  switch (p_colours) {
     case ZM_COLOUR_GRAY8:
-      {
         cinfo->out_color_space = JCS_GRAYSCALE;
         new_colours = ZM_COLOUR_GRAY8;
         new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
         break;
-      }
     case ZM_COLOUR_RGB32:
-      {
 #ifdef JCS_EXTENSIONS
         new_colours = ZM_COLOUR_RGB32;
-        if(p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+        if ( p_subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
           cinfo->out_color_space = JCS_EXT_BGRX;
           new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-        } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+        } else if ( p_subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
           cinfo->out_color_space = JCS_EXT_XRGB;
           new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-        } else if(p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+        } else if ( p_subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
           cinfo->out_color_space = JCS_EXT_XBGR;
           new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
         } else {
@@ -1209,22 +1202,20 @@ bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int 
           cinfo->out_color_space = JCS_EXT_RGBX;
           new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
         }
-        break;    
+        break;
 #else
         Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
 #endif
-      }
     case ZM_COLOUR_RGB24:
     default:
-      {
         new_colours = ZM_COLOUR_RGB24;
-        if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-#ifdef JCS_EXTENSIONS    
-          cinfo->out_color_space = JCS_EXT_BGR;  
+        if ( p_subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
+#ifdef JCS_EXTENSIONS
+          cinfo->out_color_space = JCS_EXT_BGR;
           new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
-          Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");    
-          cinfo->out_color_space = JCS_RGB;  
+          Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");
+          cinfo->out_color_space = JCS_RGB;
           new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
         } else {
@@ -1240,34 +1231,33 @@ cinfo->out_color_space = JCS_RGB;
           new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
         }
         break;
-      }
   } // end switch
 
-  if(WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == NULL) {
+  if ( WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == NULL ) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
-    jpeg_abort_decompress( cinfo );
-    return( false );
+    jpeg_abort_decompress(cinfo);
+    return false;
   }
 
-  jpeg_start_decompress( cinfo );
+  jpeg_start_decompress(cinfo);
 
   JSAMPROW row_pointer;  /* pointer to a single row */
   int row_stride = width * colours; /* physical row width in buffer */
   while ( cinfo->output_scanline < cinfo->output_height ) {
     row_pointer = &buffer[cinfo->output_scanline * row_stride];
-    jpeg_read_scanlines( cinfo, &row_pointer, 1 );
+    jpeg_read_scanlines(cinfo, &row_pointer, 1);
   }
 
-  jpeg_finish_decompress( cinfo );
+  jpeg_finish_decompress(cinfo);
 
   return true;
 }
 
-bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override ) const {
-  if ( config.colour_jpeg_files && colours == ZM_COLOUR_GRAY8 ) {
-    Image temp_image( *this );
-    temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
-    return( temp_image.EncodeJpeg( outbuffer, outbuffer_size, quality_override ) );
+bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_override) const {
+  if ( config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8) ) {
+    Image temp_image(*this);
+    temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+    return temp_image.EncodeJpeg(outbuffer, outbuffer_size, quality_override);
   }
 
   int quality = quality_override?quality_override:config.jpeg_stream_quality;
@@ -1276,56 +1266,51 @@ bool Image::EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_over
 
   if ( !cinfo ) {
     cinfo = encodejpg_ccinfo[quality] = new jpeg_compress_struct;
-    cinfo->err = jpeg_std_error( &jpg_err.pub );
+    cinfo->err = jpeg_std_error(&jpg_err.pub);
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
     jpg_err.pub.emit_message = zm_jpeg_emit_message;
-    jpeg_create_compress( cinfo );
+    jpeg_create_compress(cinfo);
   }
 
-  zm_jpeg_mem_dest( cinfo, outbuffer, outbuffer_size );
+  zm_jpeg_mem_dest(cinfo, outbuffer, outbuffer_size);
 
   cinfo->image_width = width;   /* image width and height, in pixels */
   cinfo->image_height = height;
 
-  switch(colours) {
+  switch (colours) {
     case ZM_COLOUR_GRAY8:
-      {
         cinfo->input_components = 1;
         cinfo->in_color_space = JCS_GRAYSCALE;
         break;
-      }
     case ZM_COLOUR_RGB32:
-      {
 #ifdef JCS_EXTENSIONS
         cinfo->input_components = 4;
-        if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+        if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
           cinfo->in_color_space = JCS_EXT_BGRX;
-        } else if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+        } else if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
           cinfo->in_color_space = JCS_EXT_XRGB;
-        } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+        } else if ( subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
           cinfo->in_color_space = JCS_EXT_XBGR;
         } else {
           /* Assume RGBA */
           cinfo->in_color_space = JCS_EXT_RGBX;
-        } 
+        }
+        break;
 #else
         Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
-        jpeg_abort_compress( cinfo );
-        return(false);
+        jpeg_abort_compress(cinfo);
+        return false;
 #endif
-        break;
-      }
     case ZM_COLOUR_RGB24:
     default:
-      {
         cinfo->input_components = 3;
-        if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-#ifdef JCS_EXTENSIONS   
+        if ( subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
+#ifdef JCS_EXTENSIONS
           cinfo->in_color_space = JCS_EXT_BGR;
 #else
           Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
-          jpeg_abort_compress( cinfo );
-          return(false);                                          
+          jpeg_abort_compress(cinfo);
+          return false;
 #endif
         } else {
           /* Assume RGB */
@@ -1339,23 +1324,22 @@ cinfo->out_color_space = JCS_RGB;
           cinfo->in_color_space = JCS_RGB;
         }
         break;
-      }
   } // end switch
 
-  jpeg_set_defaults( cinfo );
-  jpeg_set_quality( cinfo, quality, FALSE );
+  jpeg_set_defaults(cinfo);
+  jpeg_set_quality(cinfo, quality, FALSE);
   cinfo->dct_method = JDCT_FASTEST;
 
-  jpeg_start_compress( cinfo, TRUE );
+  jpeg_start_compress(cinfo, TRUE);
 
   JSAMPROW row_pointer;  /* pointer to a single row */
   int row_stride = cinfo->image_width * colours; /* physical row width in buffer */
   while ( cinfo->next_scanline < cinfo->image_height ) {
     row_pointer = &buffer[cinfo->next_scanline * row_stride];
-    jpeg_write_scanlines( cinfo, &row_pointer, 1 );
+    jpeg_write_scanlines(cinfo, &row_pointer, 1);
   }
 
-  jpeg_finish_compress( cinfo );
+  jpeg_finish_compress(cinfo);
 
   return true;
 }
@@ -1470,7 +1454,7 @@ void Image::Overlay( const Image &image ) {
     Colourise(image.colours, image.subpixelorder);
 
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
-    const Rgb* prsrc = (Rgb*)image.buffer; 
+    const Rgb* prsrc = (Rgb*)image.buffer;
     Rgb* prdest = (Rgb*)buffer;
 
     if ( subpixelorder == ZM_SUBPIX_ORDER_RGBA || subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
@@ -1521,7 +1505,7 @@ void Image::Overlay( const Image &image ) {
       }
       pdest += 3;
       psrc += 3;
-    } 
+    }
 
     /* RGB32 ontop of RGB24 - TO BE DONE */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB32 ) {
@@ -1561,7 +1545,7 @@ void Image::Overlay( const Image &image ) {
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB32 ) {
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
     Rgb* prdest = (Rgb*)buffer;
-    const Rgb* prsrc = (Rgb*)image.buffer; 
+    const Rgb* prsrc = (Rgb*)image.buffer;
 
     if ( image.subpixelorder == ZM_SUBPIX_ORDER_RGBA || image.subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
       /* RGB\BGR\RGBA\BGRA subpixel order - Alpha byte is last */
@@ -2035,7 +2019,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
             }
           }
         }
-      } 
+      }
 
     } else {
       Panic("Annotate called with unexpected colours: %d",colours);
@@ -2053,13 +2037,14 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
 
 void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size ) {
   char time_text[64];
-  strftime( time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime( &when ) );
+  strftime(time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime(&when));
   if ( label ) {
-    char text[64];
-    snprintf( text, sizeof(text), "%s - %s", label, time_text );
-    Annotate( text, coord, size );
+    // Assume label is max 64, + ' - ' + 64 chars of time_text
+    char text[132];
+    snprintf(text, sizeof(text), "%s - %s", label, time_text);
+    Annotate(text, coord, size);
   } else {
-    Annotate( time_text, coord, size );
+    Annotate(time_text, coord, size);
   }
 }
 
@@ -2088,7 +2073,7 @@ void Image::Colourise(const unsigned int p_reqcolours, const unsigned int p_reqs
         newpixel = (newpixel<<8) | subpixel;
         newpixel = (newpixel<<8) | subpixel;
         pdest[i] = (newpixel<<8);
-      }    
+      }
     } else {
       /* RGBA\BGRA subpixel order, alpha byte is last (mem+3) */
       for ( unsigned int i=0; i < pixels; i++ ) {
@@ -2128,7 +2113,7 @@ void Image::DeColourise() {
   size = width * height;
 
   if ( colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sseversion >= 35 ) {
-    /* Use SSSE3 functions */  
+    /* Use SSSE3 functions */
     switch (subpixelorder) {
       case ZM_SUBPIX_ORDER_BGRA:
         ssse3_convert_bgra_gray8(buffer,buffer,pixels);
@@ -2241,7 +2226,7 @@ void Image::Fill( Rgb colour, const Box *limits ) {
       Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
 
       for ( unsigned int x = lo_x; x <= (unsigned int)hi_x; x++, p++) {
-        /* Fast, copies the entire pixel in a single pass */ 
+        /* Fast, copies the entire pixel in a single pass */
         *p = colour;
       }
     }
@@ -2294,7 +2279,7 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
           *p = colour;
       }
     }
-  }  
+  }
 }
 
 /* RGB32 compatible: complete */
@@ -2469,7 +2454,7 @@ void Image::Fill( Rgb colour, int density, const Polygon &polygon ) {
         } else if ( colours == ZM_COLOUR_RGB24 ) {
           unsigned char *p = &buffer[colours*((y*width)+lo_x)];
           for ( int x = lo_x; x <= hi_x; x++, p += 3) {
-            if ( !(x%density) ) {  
+            if ( !(x%density) ) {
               RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
               GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
               BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
@@ -2675,7 +2660,7 @@ void Image::Flip( bool leftright ) {
         }
         s_ptr += line_bytes2;
       }
-    }    
+    }
   } else {
     // Vertical flip, top to bottom
     unsigned char *s_ptr = buffer+(height*line_bytes);
@@ -2883,7 +2868,7 @@ void Image::Deinterlace_Linear() {
     for (unsigned int x = 0; x < (unsigned int)width; x++) {
       *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
-      *pcurrent++ = *pabove++;  
+      *pcurrent++ = *pabove++;
       *pcurrent++ = *pabove++;
     }
   } else {
@@ -3068,7 +3053,7 @@ void Image::Deinterlace_4Field(const Image* next_image, unsigned int threshold)
 __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
   static uint32_t divider = 0;
   static uint32_t clearmask = 0;
   static double current_blendpercent = 0.0;
@@ -3361,14 +3346,14 @@ __attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col
 
   while ( result < max_ptr ) {
     *result++ = (*col1++ * opacity) + (*col2++ * divide);
-  } 
+  }
 }
 
 /************************************************* DELTA FUNCTIONS *************************************************/
 
 /* Grayscale */
 __attribute__((noinline)) void fast_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-  /* Loop unrolling is used to work on 16 bytes (16 grayscale pixels) at a time */  
+  /* Loop unrolling is used to work on 16 bytes (16 grayscale pixels) at a time */
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3392,7 +3377,7 @@ __attribute__((noinline)) void fast_delta8_gray8(const uint8_t* col1, const uint
     col1 += 16;
     col2 += 16;
     result += 16;
-  }  
+  }
 }
 
 __attribute__((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
@@ -3404,13 +3389,13 @@ __attribute__((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint8
     col1 += 1;
     col2 += 1;
     result += 1;
-  }  
+  }
 }
 
 /* RGB24: RGB */
 __attribute__((noinline)) void fast_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3439,7 +3424,7 @@ __attribute__((noinline)) void fast_delta8_rgb(const uint8_t* col1, const uint8_
 
 __attribute__((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while (result < max_ptr) {
@@ -3457,7 +3442,7 @@ __attribute__((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_t
 /* RGB24: BGR */
 __attribute__((noinline)) void fast_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3486,7 +3471,7 @@ __attribute__((noinline)) void fast_delta8_bgr(const uint8_t* col1, const uint8_
 
 __attribute__((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3504,7 +3489,7 @@ __attribute__((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t
 /* RGB32: RGBA */
 __attribute__((noinline)) void fast_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3533,7 +3518,7 @@ __attribute__((noinline)) void fast_delta8_rgba(const uint8_t* col1, const uint8
 
 __attribute__((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3551,7 +3536,7 @@ __attribute__((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_
 /* RGB32: BGRA */
 __attribute__((noinline)) void fast_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3579,7 +3564,7 @@ __attribute__((noinline)) void fast_delta8_bgra(const uint8_t* col1, const uint8
 }
 __attribute__((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3597,7 +3582,7 @@ __attribute__((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_
 /* RGB32: ARGB */
 __attribute__((noinline)) void fast_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3625,7 +3610,7 @@ __attribute__((noinline)) void fast_delta8_argb(const uint8_t* col1, const uint8
 }
 __attribute__((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3643,7 +3628,7 @@ __attribute__((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_
 /* RGB32: ABGR */
 __attribute__((noinline)) void fast_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3670,7 +3655,7 @@ __attribute__((noinline)) void fast_delta8_abgr(const uint8_t* col1, const uint8
   }
 }
 __attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-  int r,g,b;  
+  int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -3919,7 +3904,7 @@ void neon64_armv8_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t*
 __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 
   __asm__ __volatile__ (
       "sub $0x10, %0\n\t"
@@ -3950,7 +3935,7 @@ void sse2_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result
 __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 
   __asm__ __volatile__ (
       "mov $0x1F1F1F1F, %%eax\n\t"
@@ -4008,7 +3993,7 @@ void sse2_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result,
 __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 
   __asm__ __volatile__ (
       "mov $0x1F1F1F1F, %%eax\n\t"
@@ -4066,7 +4051,7 @@ void sse2_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result,
 __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 
   __asm__ __volatile__ (
       "mov $0x1F1F1F1F, %%eax\n\t"
@@ -4125,7 +4110,7 @@ void sse2_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result,
 __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 
   __asm__ __volatile__ (
       "mov $0x1F1F1F1F, %%eax\n\t"
@@ -4184,7 +4169,7 @@ void sse2_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result,
 __attribute__((noinline,__target__("ssse3")))
 #endif
 void ssse3_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, uint32_t multiplier) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 
   /* XMM0 - zero */
   /* XMM1 - col1 */
@@ -4253,7 +4238,7 @@ void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result
 
 /* RGB24 to grayscale */
 __attribute__((noinline)) void fast_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4279,7 +4264,7 @@ __attribute__((noinline)) void fast_convert_rgb_gray8(const uint8_t* col1, uint8
   }
 }
 __attribute__((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4295,7 +4280,7 @@ __attribute__((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_
 
 /* BGR24 to grayscale */
 __attribute__((noinline)) void fast_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4321,7 +4306,7 @@ __attribute__((noinline)) void fast_convert_bgr_gray8(const uint8_t* col1, uint8
   }
 }
 __attribute__((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4337,7 +4322,7 @@ __attribute__((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_
 
 /* RGBA to grayscale */
 __attribute__((noinline)) void fast_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4363,7 +4348,7 @@ __attribute__((noinline)) void fast_convert_rgba_gray8(const uint8_t* col1, uint
   }
 }
 __attribute__((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4379,7 +4364,7 @@ __attribute__((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8
 
 /* BGRA to grayscale */
 __attribute__((noinline)) void fast_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4406,7 +4391,7 @@ __attribute__((noinline)) void fast_convert_bgra_gray8(const uint8_t* col1, uint
 }
 
 __attribute__((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4421,7 +4406,7 @@ __attribute__((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8
 }
 /* ARGB to grayscale */
 __attribute__((noinline)) void fast_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4447,7 +4432,7 @@ __attribute__((noinline)) void fast_convert_argb_gray8(const uint8_t* col1, uint
   }
 }
 __attribute__((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4463,7 +4448,7 @@ __attribute__((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8
 
 /* ABGR to grayscale */
 __attribute__((noinline)) void fast_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4489,7 +4474,7 @@ __attribute__((noinline)) void fast_convert_abgr_gray8(const uint8_t* col1, uint
   }
 }
 __attribute__((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
+  unsigned int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
   while(result < max_ptr) {
@@ -4547,7 +4532,7 @@ __attribute__((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8
 __attribute__((noinline,__target__("ssse3")))
 #endif
 void ssse3_convert_rgb32_gray8(const uint8_t* col1, uint8_t* result, unsigned long count, uint32_t multiplier) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
 
   /* XMM0 - zero */
   /* XMM1 - col1 */
@@ -4609,7 +4594,7 @@ void ssse3_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned lon
 __attribute__((noinline,__target__("ssse3")))
 #endif
 void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
-#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))  
+#if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
   unsigned long i = 0;
 
   __attribute__((aligned(16))) static const uint8_t movemask1[16] = {0,2,4,6,8,10,12,14,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
@@ -4712,8 +4697,8 @@ __attribute__((noinline)) void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_t
 
 /* RGB555 to RGB24 - relocated from zm_local_camera.cpp */
 __attribute__((noinline)) void zm_convert_rgb555_rgb(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
-  for(unsigned int i=0; i < count; i++, col1 += 2, result += 3) {  
+  unsigned int r,g,b;
+  for(unsigned int i=0; i < count; i++, col1 += 2, result += 3) {
     b = ((*col1)<<3)&0xf8;
     g = (((*(col1+1))<<6)|((*col1)>>2))&0xf8;
     r = ((*(col1+1))<<1)&0xf8;
@@ -4725,8 +4710,8 @@ __attribute__((noinline)) void zm_convert_rgb555_rgb(const uint8_t* col1, uint8_
 
 /* RGB555 to RGBA - modified the one above */
 __attribute__((noinline)) void zm_convert_rgb555_rgba(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
-  for(unsigned int i=0; i < count; i++, col1 += 2, result += 4) {  
+  unsigned int r,g,b;
+  for(unsigned int i=0; i < count; i++, col1 += 2, result += 4) {
     b = ((*col1)<<3)&0xf8;
     g = (((*(col1+1))<<6)|((*col1)>>2))&0xf8;
     r = ((*(col1+1))<<1)&0xf8;
@@ -4738,8 +4723,8 @@ __attribute__((noinline)) void zm_convert_rgb555_rgba(const uint8_t* col1, uint8
 
 /* RGB565 to RGB24 - relocated from zm_local_camera.cpp */
 __attribute__((noinline)) void zm_convert_rgb565_rgb(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
-  for(unsigned int i=0; i < count; i++, col1 += 2, result += 3) {  
+  unsigned int r,g,b;
+  for(unsigned int i=0; i < count; i++, col1 += 2, result += 3) {
     b = ((*col1)<<3)&0xf8;
     g = (((*(col1+1))<<5)|((*col1)>>3))&0xfc;
     r = (*(col1+1))&0xf8;
@@ -4751,8 +4736,8 @@ __attribute__((noinline)) void zm_convert_rgb565_rgb(const uint8_t* col1, uint8_
 
 /* RGB565 to RGBA - modified the one above */
 __attribute__((noinline)) void zm_convert_rgb565_rgba(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;  
-  for(unsigned int i=0; i < count; i++, col1 += 2, result += 4) {  
+  unsigned int r,g,b;
+  for ( unsigned int i=0; i < count; i++, col1 += 2, result += 4 ) {
     b = ((*col1)<<3)&0xf8;
     g = (((*(col1+1))<<5)|((*col1)>>3))&0xfc;
     r = (*(col1+1))&0xf8;

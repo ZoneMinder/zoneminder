@@ -2,19 +2,20 @@
 namespace ZM;
 require_once('database.php');
 require_once('Event.php');
+require_once('Object.php');
 
 class Frame extends ZM_Object {
   protected static $table = 'Frames';
   protected $defaults = array(
-      'Id'            =>  null,
-      'EventId'       =>  '',
-      'FrameId'       =>  null,
-      'Type'          => 'Normal',
-      'TimeStamp'     =>  null,
-      'Delta'         =>  0,
-      'Score'         =>  0,
-      'Data_json'     =>  '',
-      );
+    'Id' => null,
+    'EventId' => 0,
+    'FrameId' => 0,
+    'Type' => 'Normal',
+    'TimeStamp' => 0,
+    'Delta' => 0.00,
+    'Score' => 0,
+    'Data_json'     =>  '',
+  );
 
   public static function find( $parameters = array(), $options = array() ) {
     return ZM_Object::_find(get_class(), $parameters, $options);
@@ -71,6 +72,5 @@ class Frame extends ZM_Object {
     }
     return $this->{'Data'};
   }
-
-} # end class
+} # end class Frame
 ?>

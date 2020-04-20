@@ -98,8 +98,8 @@ function getPopupSize( tag, width, height ) {
   return popupSize;
 }
 
-function zmWindow() {
-  var zmWin = window.open( 'http://www.zoneminder.com', 'ZoneMinder' );
+function zmWindow(sub_url) {
+  var zmWin = window.open( 'https://www.zoneminder.com'+(sub_url?sub_url:''), 'ZoneMinder' );
   if ( ! zmWin ) {
     // if popup blocking is enabled, the popup won't be defined.
     console.log("Please disable popup blocking.");
@@ -168,19 +168,20 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
     if ( !window[fnName] ) {
-      console.error("Nothing found to bind to " + fnName);
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
       return;
     }
     el.onclick = window[fnName].bind(el, el);
   });
 
   // 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
-  document.querySelectorAll("a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
+  document.querySelectorAll("i[data-on-click], a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click");
     if ( !window[fnName] ) {
-      console.error("Nothing found to bind to " + fnName);
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
       return;
     }
+
     el.onclick = function() {
       window[fnName]();
     };
@@ -216,6 +217,26 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       return;
     }
     el.onchange = window[fnName];
+  });
+
+  // 'data-on-input' adds an event listener for the global function in the attribute value when an input happens.
+  document.querySelectorAll("input[data-on-input]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-input");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
+    el.oninput = window[fnName];
+  });
+
+  // 'data-on-input-this' calls the global function in the attribute value with the element when an input happens.
+  document.querySelectorAll("input[data-on-input-this]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-input-this");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
+    el.onchange = window[fnName].bind(el, el);
   });
 });
 
@@ -271,6 +292,9 @@ function closeWindow() {
 
 function refreshWindow() {
   window.location.reload( true );
+}
+function backWindow() {
+  window.history.back();
 }
 
 function refreshParentWindow() {
@@ -429,10 +453,37 @@ function convertLabelFormat(LabelFormat, monitorName) {
   //convert label format from strftime to moment's format (modified from
   //https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
   //added %f and %N below (TODO: add %Q)
-  var replacements = {"a": 'ddd', "A": 'dddd', "b": 'MMM', "B": 'MMMM', "d": 'DD', "e": 'D', "F": 'YYYY-MM-DD', "H": 'HH', "I": 'hh', "j": 'DDDD', "k": 'H', "l": 'h', "m": 'MM', "M": 'mm', "p": 'A', "S": 'ss', "u": 'E', "w": 'd', "W": 'WW', "y": 'YY', "Y": 'YYYY', "z": 'ZZ', "Z": 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%'};
+  var replacements = {
+    'a': 'ddd', 
+    'A': 'dddd',
+    'b': 'MMM',
+    'B': 'MMMM',
+    'd': 'DD',
+    'e': 'D',
+    'F': 'YYYY-MM-DD',
+    'H': 'HH',
+    'I': 'hh',
+    'j': 'DDDD',
+    'k': 'H',
+    'l': 'h',
+    'm': 'MM',
+    'M': 'mm',
+    'p': 'A',
+    'r': 'hh:mm:ss A',
+    'S': 'ss',
+    'u': 'E',
+    'w': 'd',
+    'W': 'WW',
+    'y': 'YY',
+    'Y': 'YYYY',
+    'z': 'ZZ',
+    'Z': 'z',
+    'f': 'SS',
+    'N': '['+monitorName+']',
+    '%': '%'};
   var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
     var value = replacements[key];
-    return momentFormat.replace("%" + key, value);
+    return momentFormat.replace('%' + key, value);
   }, LabelFormat);
   return momentLabelFormat;
 }
@@ -443,7 +494,7 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
   startTime = moment(startTime);
 
-  for (var i = 0; i <= duration; i++) {
+  for ( var i = 0; i <= duration; i++ ) {
     cues[i] = {id: i, index: i, startTime: i, endTime: i+1, text: startTime.format(labelFormat)};
     startTime.add(1, 's');
   }

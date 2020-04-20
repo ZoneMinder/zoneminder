@@ -87,27 +87,38 @@ if ( isset($_GET['skin']) ) {
   $skin = 'classic';
 }
 
-$skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
+if ( ! is_dir("skins/$skin") ) {
+  $skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
 
-if ( ! in_array($skin, $skins) ) {
-  ZM\Error("Invalid skin '$skin' setting to " . $skins[0]);
-  $skin = $skins[0];
+  if ( !in_array($skin, $skins) ) {
+    ZM\Error("Invalid skin '$skin' setting to ".$skins[0]);
+    $skin = $skins[0];
+  }
 }
 
 if ( isset($_GET['css']) ) {
   $css = $_GET['css'];
-} elseif ( isset($_COOKIE['zmCSS']) ) {
+} else if ( isset($_COOKIE['zmCSS']) ) {
   $css = $_COOKIE['zmCSS'];
-} elseif ( defined('ZM_CSS_DEFAULT') ) {
+} else if ( defined('ZM_CSS_DEFAULT') ) {
   $css = ZM_CSS_DEFAULT;
 } else {
   $css = 'classic';
 }
 
-$css_skins = array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR));
-if ( !in_array($css, $css_skins) ) {
-  ZM\Error("Invalid skin css '$css' setting to " . $css_skins[0]);
-  $css = $css_skins[0];
+if ( !is_dir("skins/$skin/css/$css") ) {
+  $css_skins = array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR));
+  if ( count($css_skins) ) {
+    if ( !in_array($css, $css_skins) ) {
+      ZM\Error("Invalid skin css '$css' setting to " . $css_skins[0]);
+      $css = $css_skins[0];
+    } else {
+      $css = '';
+    }
+  } else {
+    ZM\Error("No css options found at skins/$skin/css");
+    $css = '';
+  }
 }
 
 define('ZM_BASE_PATH', dirname($_SERVER['REQUEST_URI']));
@@ -116,7 +127,7 @@ define('ZM_SKIN_NAME', $skin);
 
 $skinBase = array(); // To allow for inheritance of skins
 if ( !file_exists(ZM_SKIN_PATH) )
-  Fatal("Invalid skin '$skin'");
+  ZM\Fatal("Invalid skin '$skin'");
 $skinBase[] = $skin;
 
 zm_session_start();
@@ -125,7 +136,7 @@ if (
   !isset($_SESSION['skin']) ||
   isset($_REQUEST['skin']) ||
   !isset($_COOKIE['zmSkin']) ||
-  $_COOKIE['zmSkin'] != $skin
+  ($_COOKIE['zmSkin'] != $skin)
 ) {
   $_SESSION['skin'] = $skin;
   setcookie('zmSkin', $skin, time()+3600*24*30*12*10);
@@ -135,16 +146,13 @@ if (
   !isset($_SESSION['css']) ||
   isset($_REQUEST['css']) ||
   !isset($_COOKIE['zmCSS']) ||
-  $_COOKIE['zmCSS'] != $css
+  ($_COOKIE['zmCSS'] != $css)
 ) {
   $_SESSION['css'] = $css;
   setcookie('zmCSS', $css, time()+3600*24*30*12*10);
 }
 
-# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
-# Any file/page that sets session variables must re-open it.
 
-require_once('includes/lang.php');
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -168,14 +176,20 @@ if ( isset($_REQUEST['view']) )
 
 
 # Add CSP Headers
-$cspNonce = bin2hex(openssl_random_pseudo_bytes(16));
+$cspNonce = bin2hex(zm_random_bytes(16));
 
 $request = null;
 if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
 require_once('includes/auth.php');
+
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that sets session variables must re-open it.
 session_write_close();
+
+// lang references $user[Language] so must come after auth
+require_once('includes/lang.php');
 
 foreach ( getSkinIncludes('skin.php') as $includeFile ) {
   require_once $includeFile;
@@ -191,6 +205,8 @@ isset($action) || $action = NULL;
 
 if ( (!$view and !$request) or ($view == 'console') ) {
   // Verify the system, php, and mysql timezones all match
+  #if ( ZM_TIMEZONE )
+  #date_default_timezone_set(ZM_TIMEZONE);
   check_timezone();
 }
 
@@ -230,6 +246,11 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   ZM\Logger::Debug('Redirecting to login');
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
+  if ( ! $request ) {
+    zm_session_start();
+    $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
+    session_write_close();
+  }
   $request = null;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';

@@ -24,7 +24,7 @@ if ( !canView('Monitors') ) {
 }
 
 $mid = validInt($_REQUEST['mid']);
-$zid = !empty($_REQUEST['zid'])?validInt($_REQUEST['zid']):0;
+$zid = (!empty($_REQUEST['zid'])) ? validInt($_REQUEST['zid']) : 0;
 
 $scale = SCALE_BASE;
 
@@ -34,13 +34,13 @@ $presets = array();
 $presetNames = array();
 $presetNames[0] = translate('ChoosePreset');
 $sql = 'SELECT *, Units-1 AS UnitsIndex, CheckMethod-1 AS CheckMethodIndex FROM ZonePresets ORDER BY Id ASC';
-foreach( dbFetchAll( $sql ) as $preset ) {
+foreach ( dbFetchAll($sql) as $preset ) {
   $presetNames[$preset['Id']] = $preset['Name'];
   $presets[] = $preset;
 }
 
 $optTypes = array();
-foreach ( getEnumValues( 'Zones', 'Type' ) as $optType ) {
+foreach ( getEnumValues('Zones', 'Type') as $optType ) {
   $optTypes[$optType] = $optType;
 }
 
@@ -57,9 +57,9 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $optCheckMethod ) {
 $monitor = new ZM\Monitor( $mid );
 
 $minX = 0;
-$maxX = $monitor->Width()-1;
+$maxX = $monitor->ViewWidth()-1;
 $minY = 0;
-$maxY = $monitor->Height()-1;
+$maxY = $monitor->ViewHeight()-1;
 
 if ( !isset($newZone) ) {
   if ( $zid > 0 ) {
@@ -69,10 +69,11 @@ if ( !isset($newZone) ) {
       'Id' => 0,
       'Name' => translate('New'),
       'Type'  =>  'Active',
+			'Units'	=>	'Pixels',
       'MonitorId' => $monitor->Id(),
       'NumCoords' => 4,
       'Coords' => sprintf('%d,%d %d,%d, %d,%d %d,%d', $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY),
-      'Area' => $monitor->Width() * $monitor->Height(),
+      'Area' => $monitor->ViewWidth() * $monitor->ViewHeight(),
       'AlarmRGB' => 0xff0000,
       'CheckMethod' => 'Blobs',
       'MinPixelThreshold' => '',
@@ -91,8 +92,8 @@ if ( !isset($newZone) ) {
       'ExtendAlarmFrames' => '',
     );
   }
-  $zone['Points'] = coordsToPoints( $zone['Coords'] );
-  $zone['AreaCoords'] = preg_replace( '/\s+/', ',', $zone['Coords'] );
+  $zone['Points'] = coordsToPoints($zone['Coords']);
+  $zone['AreaCoords'] = preg_replace('/\s+/', ',', $zone['Coords']);
 
   $newZone = $zone;
 } # end if new Zone
@@ -130,151 +131,169 @@ xhtmlHeaders(__FILE__, translate('Zone'));
         <input type="hidden" name="newZone[NumCoords]" value="<?php echo count($newZone['Points']) ?>"/>
         <input type="hidden" name="newZone[Coords]" value="<?php echo $newZone['Coords'] ?>"/>
         <input type="hidden" name="newZone[Area]" value="<?php echo $newZone['Area'] ?>"/>
-        <input type="hidden" name="newZone[AlarmRGB]" value=""/>
-        <div id="settingsPanel">
-          <table id="zoneSettings">
-            <tbody>
-              <tr>
-                <th scope="row"><?php echo translate('Name') ?></th>
-                <td colspan="2"><input type="text" name="newZone[Name]" value="<?php echo $newZone['Name'] ?>" size="12"/></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('Type') ?></th>
-                <td colspan="2"><?php echo buildSelect( "newZone[Type]", $optTypes, 'applyZoneType()' ) ?></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('Preset') ?></th>
-                <td colspan="2"><?php echo buildSelect( "presetSelector", $presetNames, array( "onchange"=>"applyPreset()", "onblur"=>"this.selectedIndex=0" ) ) ?></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('Units') ?></th>
-                <td colspan="2"><?php echo buildSelect( "newZone[Units]", $optUnits, 'applyZoneUnits()' ) ?></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('ZoneAlarmColour') ?></th>
-                <td colspan="2">
-                  <input type="text" name="newAlarmRgbR" value="<?php echo ($newZone['AlarmRGB']>>16)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>
-                  /
-                  <input type="text" name="newAlarmRgbG" value="<?php echo ($newZone['AlarmRGB']>>8)&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>
-                  /
-                  <input type="text" name="newAlarmRgbB" value="<?php echo $newZone['AlarmRGB']&0xff ?>" size="3" onchange="limitRange( this, 0, 255 )"/>
-                </td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('CheckMethod') ?></th>
-                <td colspan="2"><?php echo buildSelect('newZone[CheckMethod]', $optCheckMethods, 'applyCheckMethod()' ) ?></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('ZoneMinMaxPixelThres') ?></th>
-                <td><input type="text" name="newZone[MinPixelThreshold]" value="<?php echo $newZone['MinPixelThreshold'] ?>" size="4" onchange="limitRange( this, 0, 255 )"/></td>
-                <td><input type="text" name="newZone[MaxPixelThreshold]" value="<?php echo $newZone['MaxPixelThreshold'] ?>" size="4" onchange="limitRange( this, 0, 255 )"/></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('ZoneFilterSize') ?></th>
-                <td><input type="text" name="newZone[FilterX]" value="<?php echo $newZone['FilterX'] ?>" size="4" onchange="limitFilter( this )"/></td>
-                <td><input type="text" name="newZone[FilterY]" value="<?php echo $newZone['FilterY'] ?>" size="4" onchange="limitFilter( this )"/></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('ZoneArea') ?></th>
-                <td colspan="2"><input type="text" name="newZone[TempArea]" value="<?php echo $newZone['Area'] ?>" size="7" disabled="disabled"/></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('ZoneMinMaxAlarmArea') ?></th>
-                <td><input type="text" name="newZone[MinAlarmPixels]" value="<?php echo $newZone['MinAlarmPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
-                <td><input type="text" name="newZone[MaxAlarmPixels]" value="<?php echo $newZone['MaxAlarmPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('ZoneMinMaxFiltArea') ?></th>
-                <td><input type="text" name="newZone[MinFilterPixels]" value="<?php echo $newZone['MinFilterPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
-                <td><input type="text" name="newZone[MaxFilterPixels]" value="<?php echo $newZone['MaxFilterPixels'] ?>" size="6" onchange="limitArea(this)"/></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('ZoneMinMaxBlobArea') ?></th>
-                <td><input type="text" name="newZone[MinBlobPixels]" value="<?php echo $newZone['MinBlobPixels'] ?>" size="6"/></td>
-                <td><input type="text" name="newZone[MaxBlobPixels]" value="<?php echo $newZone['MaxBlobPixels'] ?>" size="6"/></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('ZoneMinMaxBlobs') ?></th>
-                <td><input type="text" name="newZone[MinBlobs]" value="<?php echo $newZone['MinBlobs'] ?>" size="4"/></td>
-                <td><input type="text" name="newZone[MaxBlobs]" value="<?php echo $newZone['MaxBlobs'] ?>" size="4"/></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('ZoneOverloadFrames') ?></th>
-                <td colspan="2"><input type="text" name="newZone[OverloadFrames]" value="<?php echo $newZone['OverloadFrames'] ?>" size="4"/></td>
-              </tr>
-              <tr>
-                <th scope="row"><?php echo translate('ZoneExtendAlarmFrames') ?></th>
-                <td colspan="2"><input type="text" name="newZone[ExtendAlarmFrames]" value="<?php echo $newZone['ExtendAlarmFrames'] ?>" size="4"/></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <input type="hidden" name="newZone[AlarmRGB]"/>
+
         <div id="definitionPanel">
-          <div id="imagePanel">
-            <div id="imageFrame" style="position: relative; width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px;">
-                <?php echo $StreamHTML; ?>
-                <svg id="zoneSVG" class="zones" style="position: absolute; top: 0; left: 0; width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px; background: none;">
-<?php
-if ( $zone['Id'] ) {
-  $other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ? AND Id != ?', NULL, array($monitor->Id(), $zone['Id']));
-} else {
-  $other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ?', NULL, array($monitor->Id()));
-}
-if ( count($other_zones) ) {
-  $html = '';
-  foreach ( $other_zones as $other_zone ) {
-    $other_zone['AreaCoords'] = preg_replace('/\s+/', ',', $other_zone['Coords']);
-    $html .= '<polygon id="zonePoly'.$other_zone['Id'].'" points="'. $other_zone['AreaCoords'] .'" class="'. $other_zone['Type'] .'"/>';
-  }
-  echo $html;
-}
-?>
-                  <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
-                  Sorry, your browser does not support inline SVG
-                </svg>
-            </div>
-          </div>
-          <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
-          <table id="zonePoints">
-            <tbody>
-              <tr>
+					<div class="monitor">
+						<div id="imagePanel">
+							<div id="imageFrame" style="position: relative; width: <?php echo reScale($monitor->ViewWidth(), $scale) ?>px; height: <?php echo reScale($monitor->ViewHeight(), $scale) ?>px;">
+								<?php echo $StreamHTML; ?>
+								<svg id="zoneSVG" class="zones" style="position: absolute; top: 0; left: 0; width: <?php echo reScale($monitor->ViewWidth(), $scale) ?>px; height: <?php echo reScale($monitor->ViewHeight(), $scale) ?>px; background: none;">
+	<?php
+	if ( $zone['Id'] ) {
+		$other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ? AND Id != ?', NULL, array($monitor->Id(), $zone['Id']));
+	} else {
+		$other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ?', NULL, array($monitor->Id()));
+	}
+	if ( count($other_zones) ) {
+		$html = '';
+		foreach ( $other_zones as $other_zone ) {
+			$other_zone['AreaCoords'] = preg_replace('/\s+/', ',', $other_zone['Coords']);
+			$html .= '<polygon id="zonePoly'.$other_zone['Id'].'" points="'. $other_zone['AreaCoords'] .'" class="'. $other_zone['Type'] .'"/>';
+		}
+		echo $html;
+	}
+	?>
+									<polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
+									Sorry, your browser does not support inline SVG
+								</svg>
+							</div>
+						</div>
+						<div id="monitorState">
+							<?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps
+						</div>
+					</div>
+
+					<div id="settingsPanel">
+						<table id="zoneSettings">
+							<tbody>
+								<tr>
+									<th scope="row"><?php echo translate('Name') ?></th>
+									<td colspan="2"><input type="text" name="newZone[Name]" value="<?php echo $newZone['Name'] ?>"/></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('Type') ?></th>
+									<td colspan="2"><?php echo htmlSelect('newZone[Type]', $optTypes, $newZone['Type'],
+											array('onchange'=>'applyZoneType()')); ?></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('Preset') ?></th>
+									<td colspan="2">
+										<?php echo htmlSelect('presetSelector', $presetNames,
+												( isset($_REQUEST['presetSelector']) ? $_REQUEST['presetSelector'] : null),
+												array('onchange'=>'applyPreset()', 'onblur'=>'this.selectedIndex=0') )
+										?></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('Units') ?></th>
+									<td colspan="2"><?php echo htmlSelect('newZone[Units]', $optUnits, $newZone['Units'],
+											array('onchange'=>'applyZoneUnits()') ) ?></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('ZoneAlarmColour') ?></th>
+									<td colspan="2">
+										<input type="number" name="newAlarmRgbR" value="<?php echo ($newZone['AlarmRGB']>>16)&0xff ?>" size="3"/>
+										/
+										<input type="number" name="newAlarmRgbG" value="<?php echo ($newZone['AlarmRGB']>>8)&0xff ?>" size="3"/>
+										/
+										<input type="number" name="newAlarmRgbB" value="<?php echo $newZone['AlarmRGB']&0xff ?>" size="3"/>
+									</td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('CheckMethod') ?></th>
+									<td colspan="2"><?php echo htmlSelect('newZone[CheckMethod]', $optCheckMethods, $newZone['CheckMethod']); ?></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('ZoneMinMaxPixelThres') ?></th>
+									<td><input type="number" name="newZone[MinPixelThreshold]" value="<?php echo $newZone['MinPixelThreshold'] ?>" size="4"/></td>
+									<td><input type="number" name="newZone[MaxPixelThreshold]" value="<?php echo $newZone['MaxPixelThreshold'] ?>" size="4"/></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('ZoneFilterSize') ?></th>
+									<td><input type="number" name="newZone[FilterX]" value="<?php echo $newZone['FilterX'] ?>" size="4"/></td>
+									<td><input type="number" name="newZone[FilterY]" value="<?php echo $newZone['FilterY'] ?>" size="4"/></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('ZoneArea') ?></th>
+									<td colspan="2"><input type="number" name="newZone[TempArea]" value="<?php echo $newZone['Area'] ?>" size="7" disabled="disabled"/></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('ZoneMinMaxAlarmArea') ?></th>
+									<td><input type="number" name="newZone[MinAlarmPixels]" value="<?php echo $newZone['MinAlarmPixels'] ?>" size="6"/></td>
+									<td><input type="number" name="newZone[MaxAlarmPixels]" value="<?php echo $newZone['MaxAlarmPixels'] ?>" size="6"/></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('ZoneMinMaxFiltArea') ?></th>
+									<td><input type="number" name="newZone[MinFilterPixels]" value="<?php echo $newZone['MinFilterPixels'] ?>" size="6"/></td>
+									<td><input type="number" name="newZone[MaxFilterPixels]" value="<?php echo $newZone['MaxFilterPixels'] ?>" size="6"/></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('ZoneMinMaxBlobArea') ?></th>
+									<td><input type="number" name="newZone[MinBlobPixels]" value="<?php echo $newZone['MinBlobPixels'] ?>" size="6"/></td>
+									<td><input type="number" name="newZone[MaxBlobPixels]" value="<?php echo $newZone['MaxBlobPixels'] ?>" size="6"/></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('ZoneMinMaxBlobs') ?></th>
+									<td><input type="number" name="newZone[MinBlobs]" value="<?php echo $newZone['MinBlobs'] ?>" size="4"/></td>
+									<td><input type="number" name="newZone[MaxBlobs]" value="<?php echo $newZone['MaxBlobs'] ?>" size="4"/></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('ZoneOverloadFrames') ?></th>
+									<td colspan="2"><input type="number" name="newZone[OverloadFrames]" value="<?php echo $newZone['OverloadFrames'] ?>" size="4"/></td>
+								</tr>
+								<tr>
+									<th scope="row"><?php echo translate('ZoneExtendAlarmFrames') ?></th>
+									<td colspan="2"><input type="number" name="newZone[ExtendAlarmFrames]" value="<?php echo $newZone['ExtendAlarmFrames'] ?>" size="4"/></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<div id="zonePoints">
+					  <table>
+ 					 	  <tbody>
+					 		  <tr>
 <?php
 $pointCols = 2;
 for ( $i = 0; $i < $pointCols; $i++ ) {
 ?>
-                <td>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th><?php echo translate('Point') ?></th>
-                        <th><?php echo translate('X') ?></th>
-                        <th><?php echo translate('Y') ?></th>
-                        <th><?php echo translate('Action') ?></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                  </table>
-                </td>
+									<td>
+										<table>
+											<thead>
+												<tr>
+													<th><?php echo translate('Point') ?></th>
+													<th><?php echo translate('X') ?></th>
+													<th><?php echo translate('Y') ?></th>
+													<th><?php echo translate('Action') ?></th>
+												</tr>
+											</thead>
+											<tbody>
+											</tbody>
+										</table>
+									</td>
 <?php
+# I think this for horizontal filler
     if ( $i < ($pointCols-1) ) {
 ?>
-                <td>&nbsp;</td>
+									<td>&nbsp;</td>
 <?php
     }
-}
+} # end foreach pointcol
 ?>
-              </tr>
-            </tbody>
-          </table>
-          <button id="pauseBtn" type="button" data-on-click="streamCmdPauseToggle"><?php echo translate('Pause') ?></button>
-          <button type="button" id="submitBtn" name="submitBtn" value="Save" data-on-click-this="saveChanges"<?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
-          <?php echo translate('Save') ?>
-          </button>
-          <button type="button" value="Cancel" onclick="refreshParentWindow(); closeWindow();"><?php echo translate('Cancel') ?></button>
-        </div>
+								</tr>
+							</tbody>
+						</table>
+					<div class="buttons">
+						<button type="button" id="pauseBtn"><?php echo translate('Pause') ?></button>
+						<button type="button" id="saveBtn" value="Save" <?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
+						<?php echo translate('Save') ?>
+						</button>
+						<button type="button" id="cancelBtn" value="Cancel"><?php echo translate('Cancel') ?></button>
+					</div>
+					</div><!--end ZonePoints-->
+        </div><!--definitionsPanel-->
       </form>
-    </div>
-  </div>
+    </div><!--content-->
+  </div><!--page-->
 </body>
 </html>

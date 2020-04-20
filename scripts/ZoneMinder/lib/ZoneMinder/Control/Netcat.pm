@@ -109,30 +109,20 @@ sub parseControlAddress {
   ($address, $port) = split /:/, $addressport;
 }
 
-sub digestBase64
-{
+sub digestBase64 {
   my ($nonce, $date, $password) = @_;
   my $shaGenerator = Digest::SHA->new(1);
   $shaGenerator->add($nonce . $date . $password);
-  return encode_base64($shaGenerator->digest, "");
+  return encode_base64($shaGenerator->digest, '');
 }
 
 sub authentificationHeader {
   my ($username, $password) = @_;
-  my $nonce;
-  $nonce .= chr(int(rand(254))) for (0 .. 20);
+  my $nonce = chr(int(rand(254))) for (0 .. 20);
   my $nonceBase64 = encode_base64($nonce, '');
   my $currentDate = DateTime->now()->iso8601().'Z';
 
   return '<s:Header><Security s:mustUnderstand="1" xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><UsernameToken xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><Username>' . $username . '</Username><Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest">' . digestBase64($nonce, $currentDate, $password) . '</Password><Nonce EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary">' . $nonceBase64 . '</Nonce><Created xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">' . $currentDate . '</Created></UsernameToken></Security></s:Header>';
-}
-
-sub printMsg {
-  my $self = shift;
-  my $msg = shift;
-  my $msg_len = length($msg);
-
-  Debug($msg.'['.$msg_len.']');
 }
 
 sub sendCmd {
@@ -142,9 +132,9 @@ sub sendCmd {
   my $content_type = shift;
   my $result = undef;
 
-  printMsg($cmd, 'Tx');
+  $self->printMsg($cmd, 'Tx');
 
-  my $server_endpoint = 'http://' . $address . ':' . $port . "/$cmd";
+  my $server_endpoint = 'http://'.$address.':'.$port.'/'.$cmd;
   my $req = HTTP::Request->new(POST => $server_endpoint);
   $req->header('content-type' => $content_type);
   $req->header('Host' => $address . ':' . $port);
@@ -166,7 +156,7 @@ sub sendCmd {
 sub getCamParams {
   my $self = shift;
   my $msg = '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken></GetImagingSettings></s:Body></s:Envelope>';
-  my $server_endpoint = 'http://' . $address . ':' . $port . '/onvif/imaging';
+  my $server_endpoint = 'http://'.$address.':'.$port.'/onvif/imaging';
   my $req = HTTP::Request->new(POST => $server_endpoint);
   $req->header('content-type' => 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/imaging/wsdl/GetImagingSettings"');
   $req->header('Host' => $address . ':' . $port);
@@ -405,17 +395,16 @@ sub irisAbsOpen {
   my $cmd = 'onvif/imaging';
   my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Brightness xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Brightness}.'</Brightness></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/imaging/wsdl/SetImagingSettings"';
-  $self->sendCmd( $cmd, $msg, $content_type );
+  $self->sendCmd($cmd, $msg, $content_type);
 }
 
 # Decrease Brightness
-sub irisAbsClose
-{
-  Debug( "Iris $CamParams{Brightness}" );
+sub irisAbsClose {
+  Debug("Iris $CamParams{Brightness}");
   my $self = shift;
   my $params = shift;
   $self->getCamParams() unless($CamParams{brightness});
-  my $step = $self->getParam( $params, 'step' );
+  my $step = $self->getParam($params, 'step');
   my $min = 0;
 
   $CamParams{Brightness} -= $step;
@@ -424,7 +413,7 @@ sub irisAbsClose
   my $cmd = 'onvif/imaging';
   my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Brightness xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Brightness}.'</Brightness></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/imaging/wsdl/SetImagingSettings"';
-  $self->sendCmd( $cmd, $msg, $content_type );
+  $self->sendCmd($cmd, $msg, $content_type);
 }
 
 # Increase Contrast
@@ -433,7 +422,7 @@ sub whiteAbsIn {
   my $self = shift;
   my $params = shift;
   $self->getCamParams() unless($CamParams{Contrast});
-  my $step = $self->getParam( $params, 'step' );
+  my $step = $self->getParam($params, 'step');
   my $max = 100;
 
   $CamParams{Contrast} += $step;
@@ -442,6 +431,7 @@ sub whiteAbsIn {
   my $cmd = 'onvif/imaging';
   my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Contrast xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Contrast}.'</Contrast></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/imaging/wsdl/SetImagingSettings"';
+  $self->sendCmd($cmd, $msg, $content_type);
 }
 
 # Decrease Contrast
@@ -459,6 +449,7 @@ sub whiteAbsOut {
   my $cmd = 'onvif/imaging';
   my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken><ImagingSettings><Contrast xmlns="http://www.onvif.org/ver10/schema">'.$CamParams{Contrast}.'</Contrast></ImagingSettings><ForcePersistence>true</ForcePersistence></SetImagingSettings></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/imaging/wsdl/SetImagingSettings"';
+  $self->sendCmd($cmd, $msg, $content_type);
 }
 
 1;

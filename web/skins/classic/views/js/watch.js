@@ -44,17 +44,17 @@ function changeScale() {
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
 
-  Cookie.write( 'zmWatchScale'+monitorId, scale, {duration: 10*365} );
+  Cookie.write('zmWatchScale'+monitorId, scale, {duration: 10*365});
 
   /*Stream could be an applet so can't use moo tools*/
   var streamImg = $('liveStream'+monitorId);
   if ( streamImg ) {
-    streamImg.style.width = newWidth + "px";
-    streamImg.style.height = newHeight + "px";
+    streamImg.style.width = newWidth + 'px';
+    streamImg.style.height = newHeight + 'px';
 
     streamImg.src = streamImg.src.replace(/scale=\d+/i, 'scale='+(scale== 'auto' ? autoScale : scale));
   } else {
-    console.error("No element found for liveStream.");
+    console.error('No element found for liveStream'+monitorId);
   }
 }
 
@@ -64,17 +64,17 @@ var lastAlarmState = STATE_IDLE;
 function setAlarmState( currentAlarmState ) {
   alarmState = currentAlarmState;
 
-  var stateClass = "";
+  var stateClass = '';
   if ( alarmState == STATE_ALARM ) {
-    stateClass = "alarm";
+    stateClass = 'alarm';
   } else if ( alarmState == STATE_ALERT ) {
-    stateClass = "alert";
+    stateClass = 'alert';
   }
-  $('stateValue').set( 'text', stateStrings[alarmState] );
+  $('stateValue').set('text', stateStrings[alarmState]);
   if ( stateClass ) {
-    $('stateValue').setProperty( 'class', stateClass );
+    $('stateValue').setProperty('class', stateClass);
   } else {
-    $('stateValue').removeProperty( 'class' );
+    $('stateValue').removeProperty('class');
   }
 
   var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
@@ -114,7 +114,7 @@ function setAlarmState( currentAlarmState ) {
 }
 
 if ( monitorType != 'WebSite' ) {
-  var streamCmdParms = "view=request&request=stream&connkey="+connKey;
+  var streamCmdParms = 'view=request&request=stream&connkey='+connKey;
   if ( auth_hash ) {
     streamCmdParms += '&auth='+auth_hash;
   }
@@ -141,7 +141,7 @@ function getStreamCmdFailure(xhr) {
   console.log(xhr);
 }
 function getStreamCmdResponse(respObj, respText) {
-  watchdogOk("stream");
+  watchdogOk('stream');
   if ( streamCmdTimer ) {
     streamCmdTimer = clearTimeout(streamCmdTimer);
   }
@@ -198,43 +198,48 @@ function getStreamCmdResponse(respObj, respText) {
         $('rate').addClass( 'hidden' );
         $('delay').addClass( 'hidden' );
         $('level').addClass( 'hidden' );
-        streamCmdPlay( false );
+        streamCmdPlay(false);
       } // end if paused or delayed
 
-      $('zoomValue').set( 'text', streamStatus.zoom );
-      if ( streamStatus.zoom == "1.0" ) {
-        setButtonState( $('zoomOutBtn'), 'unavail' );
+      $('zoomValue').set('text', streamStatus.zoom);
+      if ( streamStatus.zoom == '1.0' ) {
+        setButtonState($('zoomOutBtn'), 'unavail');
       } else {
-        setButtonState( $('zoomOutBtn'), 'inactive' );
+        setButtonState($('zoomOutBtn'), 'inactive');
       }
 
       if ( canEditMonitors ) {
         if ( streamStatus.enabled ) {
-          $('enableAlarmsLink').addClass( 'hidden' );
-          $('disableAlarmsLink').removeClass( 'hidden' );
+          $('enableAlarmsLink').addClass('hidden');
+          $('disableAlarmsLink').removeClass('hidden');
           if ( streamStatus.forced ) {
-            $('forceAlarmLink').addClass( 'hidden' );
-            $('cancelAlarmLink').removeClass( 'hidden' );
+            $('forceAlarmLink').addClass('hidden');
+            $('cancelAlarmLink').removeClass('hidden');
           } else {
-            $('forceAlarmLink').removeClass( 'hidden' );
-            $('cancelAlarmLink').addClass( 'hidden' );
+            $('forceAlarmLink').removeClass('hidden');
+            $('cancelAlarmLink').addClass('hidden');
           }
-          $('forceCancelAlarm').removeClass( 'hidden' );
+          $('forceCancelAlarm').removeClass('hidden');
         } else {
-          $('enableAlarmsLink').removeClass( 'hidden' );
-          $('disableAlarmsLink').addClass( 'hidden' );
-          $('forceCancelAlarm').addClass( 'hidden' );
+          $('enableAlarmsLink').removeClass('hidden');
+          $('disableAlarmsLink').addClass('hidden');
+          $('forceCancelAlarm').addClass('hidden');
         }
-        $('enableDisableAlarms').removeClass( 'hidden' );
+        $('enableDisableAlarms').removeClass('hidden');
       } // end if canEditMonitors
 
       if ( streamStatus.auth ) {
+        auth_hash = streamStatus.auth;
         console.log("Have a new auth hash" + streamStatus.auth);
         // Try to reload the image stream.
         var streamImg = $('liveStream');
         if ( streamImg ) {
           streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
         }
+        streamCmdParms = streamCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        statusCmdParms = statusCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        eventCmdParms = eventCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        controlParms = controlParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
       } // end if have a new auth hash
     } // end if respObj.status
   } else {
@@ -473,6 +478,9 @@ function getActResponse( respObj, respText ) {
 
 function deleteEvent( event, eventId ) {
   var actParms = "view=request&request=event&action=delete&id="+eventId;
+  if ( auth_hash ) {
+    actParms += '&auth='+auth_hash;
+  }
   var actReq = new Request.JSON( {
     url: thisUrl,
     method: 'post',
@@ -702,22 +710,25 @@ function handleClick( event ) {
     if ( event.shift ) {
       streamCmdPan( x, y );
     } else if ( event.event.ctrlKey ) {
-      console.log("Zooming out");
       streamCmdZoomOut();
     } else {
-      streamCmdZoomIn( x, y );
+      streamCmdZoomIn(x, y);
     }
   } else {
-    controlCmdImage( x, y );
+    controlCmdImage(x, y);
   }
 }
 
 function appletRefresh() {
   if ( streamStatus && (!streamStatus.paused && !streamStatus.delayed) ) {
-    var streamImg = $('liveStream');
-    var parent = streamImg.getParent();
-    streamImg.dispose();
-    streamImg.inject( parent );
+    var streamImg = $('liveStream'+monitorId);
+    if ( streamImg ) {
+      var parent = streamImg.getParent();
+      streamImg.dispose();
+      streamImg.inject( parent );
+    } else {
+      console.error("Nothing found for liveStream"+monitorId);
+    }
     if ( appletRefreshTime ) {
       appletRefresh.delay( appletRefreshTime*1000 );
     }
@@ -759,7 +770,7 @@ function reloadWebSite() {
 
 function initPage() {
   if ( monitorType != 'WebSite' ) {
-    if ( streamMode == "single" ) {
+    if ( streamMode == 'single' ) {
       statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
       watchdogCheck.pass('status').periodical(statusRefreshTimeout*2);
     } else {
@@ -770,20 +781,24 @@ function initPage() {
     eventCmdTimer = eventCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
     watchdogCheck.pass('event').periodical(eventsRefreshTimeout*2);
 
-    if ( canStreamNative || streamMode == "single" ) {
+    if ( canStreamNative || (streamMode == 'single') ) {
       var streamImg = $('imageFeed').getElement('img');
       if ( !streamImg ) {
         streamImg = $('imageFeed').getElement('object');
       }
-      if ( streamMode == "single" ) {
-        streamImg.addEvent('click', fetchImage.pass(streamImg));
-        fetchImage.pass(streamImg).periodical(imageRefreshTimeout);
+      if ( !streamImg ) {
+        console.error('No streamImg found for imageFeed');
       } else {
-        streamImg.addEvent('click', function(event) {
-          handleClick(event);
-        });
-      }
-    }
+        if ( streamMode == 'single' ) {
+          streamImg.addEvent('click', fetchImage.pass(streamImg));
+          fetchImage.pass(streamImg).periodical(imageRefreshTimeout);
+        } else {
+          streamImg.addEvent('click', function(event) {
+            handleClick(event);
+          });
+        }
+      } // end if have streamImg
+    } // streamMode native or single
 
     if ( refreshApplet && appletRefreshTime ) {
       appletRefresh.delay(appletRefreshTime*1000);
@@ -792,6 +807,9 @@ function initPage() {
     if ( window.history.length == 1 ) {
       $j('#closeControl').html('');
     }
+    document.querySelectorAll('select[name="scale"]').forEach(function(el) {
+      el.onchange = window['changeScale'];
+    });
   } else if ( monitorRefresh > 0 ) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }

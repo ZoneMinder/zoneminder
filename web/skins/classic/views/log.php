@@ -56,41 +56,41 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
       </table>
     </div> <!--header-->
   <div id="content">
+    <form id="logForm" name="logForm" method="post" action="?">
     <div id="filters">
 
       <table class="table-condensed">
         <tr class="row">
           <td class="col">
-            <?php echo translate('Component') ?>
+            <label><?php echo translate('Component') ?></label>
             <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
           </td>
           <td class="col">
-            <?php echo translate('Server') ?>
+            <label><?php echo translate('Server') ?></label>
             <select class="form-control chosen" id="filter[ServerId]" data-on-change="filterLog"><option value="">-----</option></select>
           </td>
           <td class="col">
-            <?php echo translate('Pid') ?>
+            <label><?php echo translate('Pid') ?></label>
             <select class="form-control chosen" id="filter[Pid]" data-on-change="filterLog"><option value="">-----</option></select>
           </td>
         </tr>
         <tr class="row">
           <td class="col">
-            <?php echo translate('Level') ?>
+            <label><?php echo translate('Level') ?></label>
             <select class="form-control chosen" id="filter[Level]" data-on-change="filterLog"><option value="">---</option></select>
           </td>
           <td class="col">
-            <?php echo translate('File') ?>
+            <label><?php echo translate('File') ?></label>
             <select class="form-control chosen" id="filter[File]" data-on-change="filterLog"><option value="">------</option></select>
           </td>
           <td  class="col">
-            <?php echo translate('Line') ?>
+            <label><?php echo translate('Line') ?></label>
             <select class="form-control chosen" id="filter[Line]" data-on-change="filterLog"><option value="">----</option></select>
           </td>
         </tr>
       </table>
       <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
     </div>
-    <form name="logForm" method="post" action="?">
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
       <table id="logTable" class="major">
         <thead class="thead-highlight">
@@ -122,9 +122,12 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
         <form id="exportForm" action="" method="post">
           <fieldset>
             <legend><?php echo translate('SelectLog') ?></legend>
-            <label for="selectorAll"><?php echo translate('All') ?></label><input type="radio" id="selectorAll" name="selector" value="all"/>
-            <label for="selectorFilter"><?php echo translate('Filter') ?></label><input type="radio" id="selectorFilter" name="selector" value="filter"/>
-            <label for="selectorCurrent"><?php echo translate('Current') ?></label><input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo translate('ChooseLogSelection') ?>" data-validators="validate-one-required"/>
+            <label for="selectorAll"><?php echo translate('All') ?></label>
+            <input type="radio" id="selectorAll" name="selector" value="all"/>
+            <label for="selectorFilter"><?php echo translate('Filter') ?></label>
+            <input type="radio" id="selectorFilter" name="selector" value="filter"/>
+            <label for="selectorCurrent"><?php echo translate('Current') ?></label>
+            <input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo translate('ChooseLogSelection') ?>" data-validators="validate-one-required"/>
           </fieldset>
           <fieldset>
             <legend><?php echo translate('SelectFormat') ?></legend>

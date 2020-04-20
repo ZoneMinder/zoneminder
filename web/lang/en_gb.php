@@ -177,6 +177,7 @@ $SLANG = array(
     'BadPostEventCount'     => 'Post event image count must be an integer of zero or more',
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',
     'BadRefBlendPerc'       => 'Reference blend percentage must be a positive integer',
+    'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGs and VideoWriter are both set to disabled.  Nothing will be recorded!',
     'BadSectionLength'      => 'Section length must be an integer of 30 or more',
     'BadSignalCheckColour'  => 'Signal check colour must be a valid RGB colour string',
     'BadStreamReplayBuffer' => 'Stream replay buffer must be an integer of zero or more',
@@ -578,6 +579,8 @@ $SLANG = array(
     'OpNotMatches'          => 'does not match',
     'OpIs'                  => 'is',
     'OpIsNot'               => 'is not',
+    'OpLike'                => 'contains',
+    'OpNotLike'             => 'does not contain',
     'OptionalEncoderParam'  => 'Optional Encoder Parameters',
     'OptionHelp'            => 'Option Help',
     'OptionRestartWarning'  => 'These changes may not come into effect fully\nwhile the system is running. When you have\nfinished making your changes please ensure that\nyou restart ZoneMinder.',
@@ -593,6 +596,7 @@ $SLANG = array(
     'PanRight'              => 'Pan Right',
     'PanTilt'               => 'Pan/Tilt',
     'Parameter'             => 'Parameter',
+    'ParentGroup'           => 'Parent Group',
     'Password'              => 'Password',
     'PasswordsDifferent'    => 'The new and confirm passwords are different',
     'PathToIndex'           => 'Path To Index',
@@ -767,6 +771,7 @@ $SLANG = array(
     'TurboPanSpeed'         => 'Turbo Pan Speed',
     'TurboTiltSpeed'        => 'Turbo Tilt Speed',
     'Type'                  => 'Type',
+    'TZUnset'               => 'Unset - use value in php.ini',
     'Unarchive'             => 'Unarchive',
     'Undefined'             => 'Undefined',
     'Units'                 => 'Units',
@@ -789,6 +794,7 @@ $SLANG = array(
     'VersionRemindHour'     => 'Remind again in 1 hour',
     'VersionRemindNever'    => 'Don\'t remind about new versions',
     'VersionRemindWeek'     => 'Remind again in 1 week',
+    'VersionRemindMonth'    => 'Remind again in 1 month',
     'Version'               => 'Version',
     'ViewMatches'           => 'View Matches',
     'VideoFormat'           => 'Video Format',
@@ -977,6 +983,14 @@ $OLANG = array(
       "loglevel=debug" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)
     '
 	),
+  'OPTIONS_DECODERHWACCELNAME' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'
+    ),
+  'OPTIONS_DECODERHWACCELDEVICE' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel_device command line option.  You should only have to specify this if you have multiple GPUs.  A typical value for Intel VAAPI would be /dev/dri/renderD128.'
+    ),
     'OPTIONS_RTSPTrans' => array(
       'Help' => '
         This sets the RTSP Transport Protocol for FFmpeg.~~

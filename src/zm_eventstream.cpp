@@ -76,7 +76,7 @@ bool EventStream::loadInitialEventData(int monitor_id, time_t event_time) {
     curr_frame_id = 1; // curr_frame_id is 1-based
     if ( event_time >= event_data->start_time ) {
       Debug(2, "event time is after event start");
-      for (unsigned int i = 0; i < event_data->frame_count; i++ ) {
+      for ( unsigned int i = 0; i < event_data->frame_count; i++ ) {
         //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
         if ( event_data->frames[i].timestamp >= event_time ) {
           curr_frame_id = i+1;
@@ -117,7 +117,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   snprintf(sql, sizeof(sql),
       "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartTime` ) AS StartTimestamp, "
       "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS Duration, "
-      "`DefaultVideo`, `Scheme`, `SaveJPEGs` FROM `Events` WHERE `Id` = %" PRIu64, event_id);
+      "`DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -160,6 +160,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     event_data->scheme = Storage::SHALLOW;
   }
   event_data->SaveJPEGs = dbrow[7] == NULL ? 0 : atoi(dbrow[7]);
+  event_data->Orientation = (Monitor::Orientation)(dbrow[8] == NULL ? 0 : atoi(dbrow[8]));
   mysql_free_result(result);
 
   Storage * storage = new Storage(event_data->storage_id);
@@ -376,6 +377,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
         paused = true;
         replay_rate = ZM_RATE_BASE;
         step = 1;
+        if ( (unsigned int)curr_frame_id < event_data->frame_count )
+          curr_frame_id += 1;
         break;
     case CMD_SLOWREV :
         Debug(1, "Got SLOW REV command");
@@ -703,6 +706,34 @@ Debug(1, "Loading image");
           Error("Failed getting a frame.");
           return false;
         }
+
+        // when stored as an mp4, we just have the rotation as a flag in the headers
+        // so we need to rotate it before outputting
+        if (
+            (monitor->GetOptVideoWriter() == Monitor::H264PASSTHROUGH)
+            and
+            (event_data->Orientation != Monitor::ROTATE_0)
+            ) {
+          Debug(2, "Rotating image %d", event_data->Orientation);
+          switch ( event_data->Orientation ) {
+            case Monitor::ROTATE_0 :
+              // No action required
+              break;
+            case Monitor::ROTATE_90 :
+            case Monitor::ROTATE_180 :
+            case Monitor::ROTATE_270 :
+              image->Rotate((event_data->Orientation-1)*90);
+              break;
+            case Monitor::FLIP_HORI :
+            case Monitor::FLIP_VERT :
+              image->Flip(event_data->Orientation==Monitor::FLIP_HORI);
+              break;
+            default:
+              Error("Invalid Orientation: %d", event_data->Orientation);
+          }
+        } else {
+          Debug(2, "Not Rotating image %d", event_data->Orientation);
+        } // end if have rotation
       } else {
         Error("Unable to get a frame");
         return false;
@@ -816,19 +847,14 @@ void EventStream::runStream() {
       // commands may set send_frame to true
       while ( checkCommandQueue() && !zm_terminate ) {
         // The idea is to loop here processing all commands before proceeding.
-        Debug(1, "Have command queue");
       }
-      Debug(2, "Done command queue");
 
       // Update modified time of the socket .lock file so that we can tell which ones are stale.
       if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
         touch(sock_path_lock);
         last_comm_update = now;
       }
-    } else {
-      Debug(2, "Not checking command queue");
     }
-
 
     // Get current frame data
     FrameData *frame_data = &event_data->frames[curr_frame_id-1];
@@ -985,7 +1011,8 @@ void EventStream::runStream() {
       curr_frame_id += step;
 
     // Detects when we hit end of event and will load the next event or previous event
-    checkEventLoaded();
+    if ( !paused )
+      checkEventLoaded();
   } // end while ! zm_terminate
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG )

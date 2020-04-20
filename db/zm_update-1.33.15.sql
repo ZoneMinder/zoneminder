@@ -1,28 +1,19 @@
---
--- Add PlateRecognizer.com stuff
---
+ALTER TABLE Events MODIFY `Orientation` enum('0','90','180','270','hori','vert','ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT') NOT NULL default 'ROTATE_0';
+UPDATE Events SET Orientation='ROTATE_0' WHERE Orientation='0';
+UPDATE Events SET Orientation='ROTATE_90' WHERE Orientation='90';
+UPDATE Events SET Orientation='ROTATE_180' WHERE Orientation='180';
+UPDATE Events SET Orientation='ROTATE_270' WHERE Orientation='270';
+UPDATE Events SET Orientation='FLIP_HORI' WHERE Orientation='hori';
+UPDATE Events SET Orientation='FLIP_VERT' WHERE Orientation='vert';
 
-SET @s = (SELECT IF(
-    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
-     AND table_name = 'Filters'
-     AND column_name = 'AutoPlateRecognize'
-    ) > 0,
-"SELECT 'Column AutoPlateRecognize already exists in Filters'",
-"ALTER TABLE Filters ADD `AutoPlateRecognize` tinyint(3) unsigned NOT NULL default '0' AFTER `AutoCopy`"
-));
+ALTER TABLE Events MODIFY `Orientation` enum('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT') NOT NULL default 'ROTATE_0';
 
-PREPARE stmt FROM @s;
-EXECUTE stmt;
+ALTER TABLE Monitors MODIFY `Orientation` enum('0','90','180','270','hori','vert','ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT') NOT NULL default 'ROTATE_0';
+UPDATE Monitors SET Orientation='ROTATE_0' WHERE Orientation='0';
+UPDATE Monitors SET Orientation='ROTATE_90' WHERE Orientation='90';
+UPDATE Monitors SET Orientation='ROTATE_180' WHERE Orientation='180';
+UPDATE Monitors SET Orientation='ROTATE_270' WHERE Orientation='270';
+UPDATE Monitors SET Orientation='FLIP_HORI' WHERE Orientation='hori';
+UPDATE Monitors SET Orientation='FLIP_VERT' WHERE Orientation='vert';
 
-SET @s = (SELECT IF(
-    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
-     AND table_name = 'Frames'
-     AND column_name = 'Data_json'
-    ) > 0,
-"SELECT 'Column Data_json already exists in Frames'",
-"ALTER TABLE `Frames` ADD `Data_json` text AFTER `Score`"
-));
-
-PREPARE stmt FROM @s;
-EXECUTE stmt;
-
+ALTER TABLE Monitors MODIFY `Orientation` enum('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT') NOT NULL default 'ROTATE_0';

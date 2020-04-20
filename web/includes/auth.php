@@ -111,8 +111,6 @@ function userLogout() {
 }
 
 function validateToken($token, $allowed_token_type='access') {
-
-
   global $user;
   $key = ZM_AUTH_HASH_SECRET;
   //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
@@ -125,22 +123,21 @@ function validateToken($token, $allowed_token_type='access') {
 
   // convert from stdclass to array
   $jwt_payload = json_decode(json_encode($decoded_token), true);
-
-  $type = $jwt_payload['type'];
-  if ( $type != $allowed_token_type ) {
-    if ( $allowed_token_type == 'access' ) {
-      // give a hint that the user is not doing it right
-      ZM\Error('Please do not use refresh tokens for this operation');
+  if ($allowed_token_type != 'any') {
+    $type = $jwt_payload['type'];
+    if ( $type != $allowed_token_type ) {
+      ZM\Error("Token type mismatch. Expected $allowed_token_type but got $type");
+      return array(false, 'Incorrect token type');
     }
-    return array(false, 'Incorrect token type');
+  } else {
+    ZM\Logger::Debug('Not comparing token types as [any] was passed');
   }
-
+  
   $username = $jwt_payload['user'];
   $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
   $saved_user_details = dbFetchOne($sql, NULL, array($username));
 
   if ( $saved_user_details ) {
-
     $issuedAt =  $jwt_payload['iat'];
     $minIssuedAt = $saved_user_details['TokenMinExpiry'];
 
@@ -149,7 +146,6 @@ function validateToken($token, $allowed_token_type='access') {
       $user = null;// unset only clears the local variable
       return array(false, 'Token revoked. Please re-generate');
     }
-
     $user = $saved_user_details;
     return array($user, 'OK');
   }
@@ -228,19 +224,19 @@ function generateAuthHash($useRemoteAddr, $force=false) {
 function visibleMonitor($mid) {
   global $user;
 
-  return ( empty($user['MonitorIds']) || in_array($mid, explode(',', $user['MonitorIds'])) );
+  return ( $user && empty($user['MonitorIds']) || in_array($mid, explode(',', $user['MonitorIds'])) );
 }
 
 function canView($area, $mid=false) {
   global $user;
 
-  return ( ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
+  return ( $user && ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
 }
 
 function canEdit($area, $mid=false) {
   global $user;
 
-  return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
+  return ( $user && ($user[$area] == 'Edit') && ( !$mid || visibleMonitor($mid) ));
 }
 
 function userFromSession() {
@@ -266,12 +262,13 @@ function userFromSession() {
 
 if ( ZM_OPT_USE_AUTH ) {
   if ( !empty($_REQUEST['token']) ) {
-    $ret = validateToken($_REQUEST['token'], 'access');
+    // we only need to get the username here
+    // don't know the token type. That will
+    // be checked later 
+    $ret = validateToken($_REQUEST['token'], 'any');
     $user = $ret[0];
   } else {
     // Non token based auth
-
-    $user = userFromSession();
 
     if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
       $user = getAuthUser($_REQUEST['auth']);
@@ -288,6 +285,12 @@ if ( ZM_OPT_USE_AUTH ) {
         return;
       }
       $user = $ret[0];
+    } else if ( (ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER']) ) {
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+      // local user, shouldn't affect the global user
+      $user = dbFetchOne($sql, NULL, array($_SERVER['REMOTE_USER']));
+    } else {
+      $user = userFromSession();
     }
 
     if ( !empty($user) ) {

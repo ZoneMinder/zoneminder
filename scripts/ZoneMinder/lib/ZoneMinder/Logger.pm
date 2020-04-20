@@ -128,6 +128,7 @@ our %priorities = (
 
 our $logger;
 our $LOGFILE;
+our $do_log_rotate = 0;
 
 sub new {
   my $class = shift;
@@ -306,7 +307,7 @@ sub reinitialise {
   my $this = shift;
 
   # So if the logger is initialized, we just return.  Since the logger is NORMALLY initialized... the rest of this function never executes.
-  return unless ( $this->{initialised} );
+  return unless $this->{initialised};
 
 # Bit of a nasty hack to reopen connections to log files and the DB
   my $syslogLevel = $this->syslogLevel();
@@ -502,11 +503,14 @@ sub openFile {
     $LOGFILE->autoflush() if $this->{autoFlush};
 
     my $webUid = (getpwnam($ZoneMinder::Config::Config{ZM_WEB_USER}))[2];
+    Error("Can't get uid for $ZoneMinder::Config::Config{ZM_WEB_USER}") if ! defined $webUid;
     my $webGid = (getgrnam($ZoneMinder::Config::Config{ZM_WEB_GROUP}))[2];
+    Error("Can't get gid for $ZoneMinder::Config::Config{ZM_WEB_USER}") if ! defined $webGid;
     if ( $> == 0 ) {
-      chown( $webUid, $webGid, $this->{logFile} )
-        or Fatal("Can't change permissions on log file $$this{logFile}: $!");
-    }
+      # If we are root, we want to make sure that www-data or whatever owns the file
+      chown($webUid, $webGid, $this->{logFile} ) or
+        Error("Can't change permissions on log file $$this{logFile}: $!");
+    } # end if are root
   } else {
     $this->fileLevel(NOLOG);
     $this->termLevel(INFO);
@@ -523,6 +527,16 @@ sub logPrint {
   my $this = shift;
   my $level = shift;
   my $string = shift;
+
+  if ( $do_log_rotate ) {
+    $do_log_rotate = 0;
+    # Too heavy to do this in the signal handler,
+    # so we just set a flag and logs will be rotated on the next call to log something
+    $this->reinitialise();
+    # Don't know why this would be needed
+    #logSetSignal();
+  }
+
   my ($caller, undef, $line) = @_ ? @_ : caller;
 
   if ( $level <= $this->{effectiveLevel} ) {
@@ -609,11 +623,7 @@ sub logTerm {
 }
 
 sub logHupHandler {
-  my $savedErrno = $!;
-  return unless $logger;
-  fetch()->reinitialise();
-  logSetSignal();
-  $! = $savedErrno;
+  $do_log_rotate = 1;
 }
 
 sub logSetSignal {

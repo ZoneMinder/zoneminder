@@ -30,6 +30,7 @@ xhtmlHeaders(__FILE__, translate('Login'));
 				&& ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY)
 				{
 				echo '<div class="g-recaptcha" data-sitekey="'.ZM_OPT_GOOG_RECAPTCHA_SITEKEY.'"></div>';
+        echo '<script src="https://www.google.com/recaptcha/api.js"></script>';
 				} ?>
 	
 				<button class="btn btn-lg btn-primary btn-block" type="submit"><?php echo translate('Login') ?></button>

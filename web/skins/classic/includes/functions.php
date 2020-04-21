@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web function library, $Date: 2008-07-08 16:06:45 +0100 (Tue, 08 Jul 2008) $, $Revision: 2484 $
+// ZoneMinder web function library
 // Copyright (C) 2001-2008 Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
@@ -146,11 +146,7 @@ if ( $css != 'base' )
   </script>
   <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
 <?php
-  if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) {
-?>
-  <script src='https://www.google.com/recaptcha/api.js'></script>
-<?php
-  } else if ( $view == 'event' ) {
+  if ( $view == 'event' ) {
 ?>
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
   <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">

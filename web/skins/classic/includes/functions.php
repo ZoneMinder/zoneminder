@@ -337,33 +337,35 @@ if ( $user and $user['Username'] ) {
       <li><a href="?view=montagereview<?php echo isset($montageReviewQuery)?'&fit=1'.$montageReviewQuery.'&live=0':'' ?>"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
       <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
 <?php
-  }
+  } // end if canView(Events)
 ?>
       <li><a href="#"><i id="flip" class="material-icons md-18 pull-right">keyboard_arrow_<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up' ?></i></a></li>
 		</ul>
 
-<div class="navbar-right">
+    <div class="navbar-right">
 <?php
-if ( ZM_OPT_USE_AUTH and $user ) {
+  if ( ZM_OPT_USE_AUTH and $user ) {
 ?>
-  <p class="navbar-text">
-    <i class="material-icons">account_circle</i>
-    <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>
-  </p>
-<?php
-}
-if ( canEdit('System') ) {
+    <p class="navbar-text">
+      <i class="material-icons">account_circle</i>
+      <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>
+    </p>
+  <?php
+  }
+  if ( canEdit('System') ) {
 ?>
 		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
-  <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
-  <p class="navbar-text">
-  <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ) ?>
-  </p>
-  <?php } ?>
+    <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
+    <p class="navbar-text">
+    <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ) ?>
+    </p>
+    <?php } ?>
 <?php } else if ( canView('System') ) { ?>
 		<p class="navbar-text"><?php echo $status ?></p>
 <?php } ?>
-</div>
+  </div>
+<?php } else { # end if !$user or $user['Id'] meaning logged in ?>
+</ul>
 <?php } # end if !$user or $user['Id'] meaning logged in ?>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->

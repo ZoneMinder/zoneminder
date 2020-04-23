@@ -225,8 +225,8 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   fi;
 
   # Generate Changlog
-  if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
-    cp -Rpd distros/ubuntu1204 debian
+  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ]; then 
+    cp -Rpd distros/ubuntu2004 debian
   else 
     if [ "$DISTRO" == "wheezy" ]; then 
       cp -Rpd distros/debian debian

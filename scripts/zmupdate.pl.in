@@ -993,6 +993,7 @@ sub patchDB {
   $command .= '/zm_update-'.$version.'.sql';
 
   print("Executing '$command'\n") if logDebugging();
+  ($command ) = $ command =~ /(.*)/; # detaint
   my $output = qx($command);
   my $status = $? >> 8;
   if ( $status || logDebugging() ) {

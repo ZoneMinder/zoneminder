@@ -1,0 +1,14 @@
+## cakephp
+#replace  /usr/share/php/Cake					/usr/share/zoneminder/www/api/lib/Cake
+
+## libjs-mootools
+replace  /usr/share/javascript/mootools/mootools.js		/usr/share/zoneminder/www/tools/mootools/mootools-core.js
+replace  /usr/share/javascript/mootools/mootools.js		/usr/share/zoneminder/www/tools/mootools/mootools-core-1.3.2-nc.js
+replace  /usr/share/javascript/mootools/mootools.js		/usr/share/zoneminder/www/tools/mootools/mootools-core-1.3.2-yc.js
+replace  /usr/share/javascript/mootools/mootools-more.js	/usr/share/zoneminder/www/tools/mootools/mootools-more.js
+replace  /usr/share/javascript/mootools/mootools-more.js	/usr/share/zoneminder/www/tools/mootools/mootools-more-1.3.2.1-nc.js
+replace  /usr/share/javascript/mootools/mootools-more.js	/usr/share/zoneminder/www/tools/mootools/mootools-more-1.3.2.1-yc.js
+
+## libjs-jquery
+replace  /usr/share/javascript/jquery/jquery.min.js		/usr/share/zoneminder/www/skins/classic/js/jquery-1.4.2.min.js
+replace  /usr/share/javascript/jquery/jquery.min.js		/usr/share/zoneminder/www/skins/flat/js/jquery-1.4.2.min.js

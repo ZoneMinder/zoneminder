@@ -138,11 +138,7 @@ function validateForm( form ) {
     if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
       warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";
     }
-console.log(form.elements['newMonitor[SaveJPEGs]'].value);
-console.log(form.elements['newMonitor[VideoWriter]'].value);
-
   }
-console.log(warnings);
   if ( warnings.length ) {
     if ( !confirm(warnings.join("\n")) ) {
       return false;

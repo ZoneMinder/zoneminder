@@ -74,8 +74,8 @@ User::~User() {
 
 void User::Copy(const User &u) {
   id = u.id;
-  strncpy(username, u.username, sizeof(username)-1);
-  strncpy(password, u.password, sizeof(password)-1);
+  strncpy(username, u.username, sizeof(username));
+  strncpy(password, u.password, sizeof(password));
   enabled = u.enabled;
   stream = u.stream;
   events = u.events;
@@ -288,7 +288,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     for ( unsigned int i = 0; i < hours; i++, now -= 3600 ) {
       struct tm *now_tm = localtime(&now);
 
-      snprintf(auth_key, sizeof(auth_key), "%s%s%s%s%d%d%d%d",
+      snprintf(auth_key, sizeof(auth_key)-1, "%s%s%s%s%d%d%d%d",
         config.auth_hash_secret,
         user,
         pass,
@@ -301,7 +301,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
 #if HAVE_DECL_MD5
       MD5((unsigned char *)auth_key, strlen(auth_key), md5sum);
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
-      gnutls_datum_t md5data = { (unsigned char *)auth_key, strlen(auth_key) };
+      gnutls_datum_t md5data = { (unsigned char *)auth_key, (unsigned int)strlen(auth_key) };
       gnutls_fingerprint(GNUTLS_DIG_MD5, &md5data, md5sum, &md5len);
 #endif
       unsigned char *md5sum_ptr = md5sum;

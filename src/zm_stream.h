@@ -78,11 +78,11 @@ protected:
   bool send_objdetect;
   int connkey;
   int sd;
-  char loc_sock_path[PATH_MAX];
+  char loc_sock_path[108];
   struct sockaddr_un loc_addr;
-  char rem_sock_path[PATH_MAX];
+  char rem_sock_path[108];
   struct sockaddr_un rem_addr;
-  char sock_path_lock[PATH_MAX];
+  char sock_path_lock[108];
   int lock_fd;
   bool paused;
   int step;

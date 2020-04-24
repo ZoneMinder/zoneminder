@@ -167,10 +167,16 @@ int RemoteCameraRtsp::PrimeCapture() {
   
   // Find the first video stream. 
   for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {
-#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-    if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    AVMediaType codec_type = mFormatContext->streams[i]->codecpar->codec_type;
 #else
-    if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
+    AVMediaType codec_type = mFormatContext->streams[mAudioStreamId]->codec->codec_type;
+#endif
+
+#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+    if ( codec_type == AVMEDIA_TYPE_VIDEO )
+#else
+    if ( codec_type == CODEC_TYPE_VIDEO )
 #endif
     {
       if ( mVideoStreamId == -1 ) {
@@ -181,9 +187,9 @@ int RemoteCameraRtsp::PrimeCapture() {
       }
     } else
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-    if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO )
+    if ( codec_type == AVMEDIA_TYPE_AUDIO )
 #else
-    if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO )
+    if ( codec_type == CODEC_TYPE_AUDIO )
 #endif
     {
       if ( mAudioStreamId == -1 ) {
@@ -192,7 +198,7 @@ int RemoteCameraRtsp::PrimeCapture() {
         Debug(2, "Have another audio stream.");
       }
     } else {
-      Debug(1, "Have unknown codec type in stream %d : %d", i, mFormatContext->streams[i]->codec->codec_type);
+      Debug(1, "Have unknown codec type in stream %d : %d", i, codec_type);
     }
   } // end foreach stream
 
@@ -218,18 +224,10 @@ int RemoteCameraRtsp::PrimeCapture() {
     Panic("Can't open codec");
 
   // Allocate space for the native video frame
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-  mRawFrame = av_frame_alloc();
-#else
-  mRawFrame = avcodec_alloc_frame();
-#endif
+  mRawFrame = zm_av_frame_alloc();
 
   // Allocate space for the converted video frame
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-  mFrame = av_frame_alloc();
-#else
-  mFrame = avcodec_alloc_frame();
-#endif
+  mFrame = zm_av_frame_alloc();
 
   if ( mRawFrame == NULL || mFrame == NULL )
     Fatal("Unable to allocate frame(s)");
@@ -325,11 +323,7 @@ int RemoteCameraRtsp::Capture( Image &image ) {
         bytes += packet.size;
 
         // So I think this is the magic decode step. Result is a raw image?
-#if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
-        int len = avcodec_decode_video2(mCodecContext, mRawFrame, &frameComplete, &packet);
-#else
-        int len = avcodec_decode_video(mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size);
-#endif
+        int len = zm_send_packet_receive_frame(mCodecContext, mRawFrame, packet);
         if ( len < 0 ) {
           Error("Error while decoding frame %d", frameCount);
           Hexdump(Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size());
@@ -347,7 +341,20 @@ int RemoteCameraRtsp::Capture( Image &image ) {
          
         Debug(3, "Got frame %d", frameCount);
             
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+        // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
+        int size = av_image_fill_arrays(
+            mFrame->data, mFrame->linesize,
+            directbuffer, imagePixFormat, width, height,
+            (AV_PIX_FMT_RGBA == imagePixFormat ? 32 : 1)
+            );
+        if ( size < 0 ) {
+          Error("Problem setting up data pointers into image %s",
+              av_make_error_string(size).c_str());
+        }
+#else
         avpicture_fill((AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
+#endif
           
     #if HAVE_LIBSWSCALE
         if ( mConvertContext == NULL ) {

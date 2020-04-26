@@ -127,7 +127,7 @@ If you are using the old credentials mechanism present in v1.0, then the credent
 Key lifetime (v2.0)
 ^^^^^^^^^^^^^^^^^^^^^^
 
-In version 2.0, it is easy to know when a key will expire before you use it. You can find that out from the ``access_token_expires`` and ``refresh_token_exipres`` values (in seconds) after you decode the JWT key (there are JWT decode libraries for every language you want). You should refresh the keys before the timeout occurs, or you will not be able to use the APIs. 
+In version 2.0, it is easy to know when a key will expire before you use it. You can find that out from the ``access_token_expires`` and ``refresh_token_expires`` values (in seconds) after you decode the JWT key (there are JWT decode libraries for every language you want). You should refresh the keys before the timeout occurs, or you will not be able to use the APIs. 
 
 Understanding access/refresh tokens (v2.0)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -482,6 +482,7 @@ Create a Zone
   &Zone[Units]=Percent\
   &Zone[NumCoords]=4\
   &Zone[Coords]=0,0 639,0 639,479 0,479\
+  &Zone[Area]=307200\
   &Zone[AlarmRGB]=16711680\
   &Zone[CheckMethod]=Blobs\
   &Zone[MinPixelThreshold]=25\

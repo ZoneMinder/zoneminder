@@ -14,16 +14,21 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
-# Fedora >= 25 needs apcu backwards compatibility module
-%if 0%{?fedora} >= 25
+# Fedora needs apcu backwards compatibility module
+%if 0%{?fedora}
 %global with_apcu_bc 1
+%endif
+
+# Newer php's keep json functions in a subpackage
+%if 0%{?fedora} || 0%{?rhel} >= 8
+%global with_php_json 1
 %endif
 
 # The default for everything but el7 these days
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.33.14
+Version: 1.34.10
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -105,7 +110,7 @@ Summary: Common files for ZoneMinder, not tied to a specific web server
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
-%{?fedora:Requires: php-json}
+%{?with_php_json:Requires: php-json}
 Requires: php-pecl-apcu
 %{?with_apcu_bc:Requires: php-pecl-apcu-bc}
 Requires: cambozola
@@ -411,26 +416,26 @@ EOF
 %dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
-* Sun Aug 11 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.14-1
-- Bump to 1.33.13 Development
+* Tue Feb 04 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.2-1
+- 1.34.2 Release
 
-* Sun Jul 07 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.12-1
-- Bump to 1.33.12 Development
+* Fri Jan 31 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.1-1
+- 1.34.1 Release
 
-* Sun Jun 23 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.9-1
-- Bump to 1.33.9 Development
+* Sat Jan 18 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.0-1
+- 1.34.0 Release
 
-* Tue Apr 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.8-1
-- Bump to 1.33.8 Development
+* Tue Dec 17 2019 Leigh Scott <leigh123linux@gmail.com> - 1.32.3-5
+- Mass rebuild for x264
 
-* Sun Apr 07 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.6-1
-- Bump to 1.33.6 Development
+* Wed Aug 07 2019 Leigh Scott <leigh123linux@gmail.com> - 1.32.3-4
+- Rebuild for new ffmpeg version
 
-* Sat Mar 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.4-1
-- Bump to 1.33.4 Development
+* Tue Mar 12 2019 Sérgio Basto <sergio@serjux.com> - 1.32.3-3
+- Mass rebuild for x264
 
-* Tue Dec 11 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.0-1
-- Bump to 1.33.0 Development
+* Tue Mar 05 2019 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.32.3-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
 
 * Sat Dec 08 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.3-1
 - 1.32.3 Release

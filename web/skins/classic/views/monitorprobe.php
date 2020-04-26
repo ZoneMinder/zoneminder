@@ -247,18 +247,18 @@ function probeNetwork() {
   $arp_command = ZM_PATH_ARP;
   $result = explode(' ', $arp_command);
   if ( !is_executable($result[0]) ) {
-    ZM\Error("ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.");
-    return;
+    ZM\Error('ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.');
+    return $cameras;
   }
 
   $result = exec(escapeshellcmd($arp_command), $output, $status);
   if ( $status ) {
     ZM\Error("Unable to probe network cameras, status is '$status'");
-    return;
+    return $cameras;
   }
 
   $monitors = array();
-  foreach ( dbFetchAll("SELECT Id, Name, Host FROM Monitors WHERE Type = 'Remote' ORDER BY Host") as $monitor ) {
+  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Host` FROM `Monitors` WHERE `Type` = 'Remote' ORDER BY `Host`") as $monitor ) {
     if ( preg_match('/^(.+)@(.+)$/', $monitor['Host'], $matches) ) {
       //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
       $monitors[gethostbyname($matches[2])] = $monitor;
@@ -277,29 +277,29 @@ function probeNetwork() {
     '78:a5:dd' => array('type'=>'Wansview','probeFunc'=>'probeWansview')
   );
 
-    foreach ( $output as $line ) {
-      if ( !preg_match('/(\d+\.\d+\.\d+\.\d+).*(([0-9a-f]{2}:){5})/', $line, $matches) )
-        continue;
-      $ip = $matches[1];
-      $host = $ip;
-      $mac = $matches[2];
-      //echo "I:$ip, H:$host, M:$mac<br/>";
-      $macRoot = substr($mac,0,8);
-      if ( isset($macBases[$macRoot]) ) {
-        $macBase = $macBases[$macRoot];
-        $camera = call_user_func($macBase['probeFunc'], $ip);
-        $sourceDesc = base64_encode(serialize($camera['monitor']));
-        $sourceString = $camera['model'].' @ '.$host;
-        if ( isset($monitors[$ip]) ) {
-          $monitor = $monitors[$ip];
-          $sourceString .= ' ('.$monitor['Name'].')';
-        } else {
-          $sourceString .= ' - '.translate('Available');
-        }
-        $cameras[$sourceDesc] = $sourceString;
+  foreach ( $output as $line ) {
+    if ( !preg_match('/(\d+\.\d+\.\d+\.\d+).*(([0-9a-f]{2}:){5})/', $line, $matches) )
+      continue;
+    $ip = $matches[1];
+    $host = $ip;
+    $mac = $matches[2];
+    //echo "I:$ip, H:$host, M:$mac<br/>";
+    $macRoot = substr($mac,0,8);
+    if ( isset($macBases[$macRoot]) ) {
+      $macBase = $macBases[$macRoot];
+      $camera = call_user_func($macBase['probeFunc'], $ip);
+      $sourceDesc = base64_encode(serialize($camera['monitor']));
+      $sourceString = $camera['model'].' @ '.$host;
+      if ( isset($monitors[$ip]) ) {
+        $monitor = $monitors[$ip];
+        $sourceString .= ' ('.$monitor['Name'].')';
+      } else {
+        $sourceString .= ' - '.translate('Available');
       }
-    } # end foreach output line
-    return $cameras;
+      $cameras[$sourceDesc] = $sourceString;
+    }
+  } # end foreach output line
+  return $cameras;
 } # end function probeNetwork()
 
 $cameras = array();

@@ -172,10 +172,10 @@ function clearLog() {
   logReq.cancel();
 
   var clearParms = 'view=request&request=log&task=delete';
-  var clearReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: clearResponse} );
-  var tbody = $(logTable).getElement( 'tbody' );
-  var rows = tbody.getElements( 'tr' );
-  if ( rows ) {
+  var clearReq = new Request.JSON({url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: clearResponse});
+  var tbody = $(logTable).getElement('tbody');
+  var rows = tbody.getElements('tr');
+  if ( rows && rows.length ) {
     var minTime = rows[0].getElement('td').get('text');
     clearParms += "&minTime="+encodeURIComponent(minTime);
     var maxTime = rows[rows.length-1].getElement('td').get('text');
@@ -190,7 +190,7 @@ function filterLog() {
   filterFields.each(
       function( field ) {
         var selector = $('filter['+field+']');
-        if ( ! selector ) {
+        if ( !selector ) {
           if ( window.console && window.console.log ) {
             window.console.log('No selector found for ' + field);
           }
@@ -226,9 +226,9 @@ function exportResponse( response ) {
 
 function exportFail( request ) {
   $('exportLog').unspin();
-  $('exportErrorText').set('text', request.status+' / '+request.statusText );
+  $('exportErrorText').set('text', request.status+' / '+request.statusText);
   $('exportError').show();
-  Error('Export request failed: '+request.status+' / '+request.statusText );
+  Error('Export request failed: '+request.status+' / '+request.statusText);
 }
 
 function exportRequest() {
@@ -237,7 +237,7 @@ function exportRequest() {
   $('exportError').hide();
   if ( form.validate() ) {
     var exportParms = "view=request&request=log&task=export";
-    var exportReq = new Request.JSON( {url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail} );
+    var exportReq = new Request.JSON({url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail});
     var selection = form.getElement('input[name=selector]:checked').get('value');
     if ( selection == 'filter' || selection == 'current' ) {
       $$('#filters select').each(
@@ -256,7 +256,7 @@ function exportRequest() {
         exportParms += "&maxTime="+encodeURIComponent(maxTime);
       }
     }
-    exportReq.send( exportParms+"&"+form.toQueryString() );
+    exportReq.send(exportParms+"&"+form.toQueryString());
     $('exportLog').spin();
   }
 }
@@ -265,7 +265,7 @@ function updateFilterSelectors() {
   Object.each(options,
       function( values, key ) {
         var selector = $('filter['+key+']');
-        if ( ! selector ) {
+        if ( !selector ) {
           if ( window.console && window.console.log ) {
             window.console.log('No selector found for ' + key);
           }

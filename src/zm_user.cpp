@@ -27,9 +27,6 @@
 #include <string.h>
 #include <time.h>
 
-#if HAVE_GNUTLS_OPENSSL_H
-#include <gnutls/openssl.h>
-#endif
 #if HAVE_GNUTLS_GNUTLS_H
 #include <gnutls/gnutls.h>
 #endif
@@ -112,12 +109,13 @@ User *zmLoadUser(const char *username, const char *password) {
   snprintf(sql, sizeof(sql),
       "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`"
       " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", safer_username);
+  delete safer_username;
+  safer_username = NULL;
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     exit(mysql_errno(&dbconn)); 
   }
-  delete safer_username;
 
   MYSQL_RES *result = mysql_store_result(&dbconn);
   if ( !result ) {
@@ -125,35 +123,30 @@ User *zmLoadUser(const char *username, const char *password) {
     exit(mysql_errno(&dbconn));
   }
 
-  if ( mysql_num_rows(result) != 1 ) {
+  if ( mysql_num_rows(result) == 1 ) {
+    MYSQL_ROW dbrow = mysql_fetch_row(result);
+    User *user = new User(dbrow);
     mysql_free_result(result);
-    Warning("Unable to authenticate user %s", username);
-    return NULL;
-  }
 
-  MYSQL_ROW dbrow = mysql_fetch_row(result);
-  User *user = new User(dbrow);
+    if ( 
+        (! password )  // relay type must be none
+        ||
+        verifyPassword(username, password, user->getPassword()) ) {
+      Info("Authenticated user '%s'", user->getUsername());
+      return user;
+    } 
+  }  // end if 1 result from db
   mysql_free_result(result);
-
-  if ( !password ) {
-    // relay type must be none
-    return user;
-  }
- 
-  if ( verifyPassword(username, password, user->getPassword()) ) {
-    Info("Authenticated user '%s'", user->getUsername());
-    return user;
-  } 
 
   Warning("Unable to authenticate user %s", username);
   return NULL;
-}
+}  // end User *zmLoadUser(const char *username, const char *password)
 
-User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
+User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr) {
   std::string key = config.auth_hash_secret;
   std::string remote_addr = "";
   
-  if (use_remote_addr) {
+  if ( use_remote_addr ) {
     remote_addr = std::string(getenv( "REMOTE_ADDR" ));
     if ( remote_addr == "" ) {
       Warning( "Can't determine remote address, using null" );
@@ -162,125 +155,123 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
     key += remote_addr;
   }
 
-  Debug (1,"Inside zmLoadTokenUser, formed key=%s", key.c_str());
+  Debug(1, "Inside zmLoadTokenUser, formed key=%s", key.c_str());
 
   std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
   std::string username = ans.first;
   unsigned int iat = ans.second;
-  Debug (1,"retrieved user '%s' from token", username.c_str());
+  Debug(1, "retrieved user '%s' from token", username.c_str());
 
-  if (username != "") {
-    char sql[ZM_SQL_MED_BUFSIZ] = "";
-    snprintf(sql, sizeof(sql),
-      "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`, `TokenMinExpiry`"
-      " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", username.c_str() );
-
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't run query: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn)); 
-    }
-
-    MYSQL_RES *result = mysql_store_result(&dbconn);
-    if ( !result ) {
-      Error("Can't use query result: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
-    }
-    int n_users = mysql_num_rows(result);
-
-    if ( n_users != 1 ) {
-      mysql_free_result(result);
-      Error("Unable to authenticate user '%s'", username.c_str());
-      return NULL;
-    }
-
-    MYSQL_ROW dbrow = mysql_fetch_row(result);
-    User *user = new User(dbrow);
-    unsigned int stored_iat =  strtoul(dbrow[10], NULL,0 );
-
-    if (stored_iat > iat ) { // admin revoked tokens
-      mysql_free_result(result);
-      Error("Token was revoked for '%s'", username.c_str());
-      return NULL;
-    }
-
-    Debug (1,"Got stored expiry time of %u",stored_iat);
-    Debug (1,"Authenticated user '%s' via token", username.c_str());
-    mysql_free_result(result);
-    return user;
-
-  }
-  else {
+  if ( username == "" ) {
     return NULL;
   }
 
-}
+  char sql[ZM_SQL_MED_BUFSIZ] = "";
+  snprintf(sql, sizeof(sql),
+    "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0,"
+    " `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`, `TokenMinExpiry`"
+    " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", username.c_str());
+
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't run query: %s", mysql_error(&dbconn));
+    return NULL;
+  }
+
+  MYSQL_RES *result = mysql_store_result(&dbconn);
+  if ( !result ) {
+    Error("Can't use query result: %s", mysql_error(&dbconn));
+    return NULL;
+  }
+
+  int n_users = mysql_num_rows(result);
+  if ( n_users != 1 ) {
+    mysql_free_result(result);
+    Error("Unable to authenticate user '%s'", username.c_str());
+    return NULL;
+  }
+
+  MYSQL_ROW dbrow = mysql_fetch_row(result);
+  User *user = new User(dbrow);
+  unsigned int stored_iat = strtoul(dbrow[10], NULL, 0);
+
+  if ( stored_iat > iat ) { // admin revoked tokens
+    mysql_free_result(result);
+    Error("Token was revoked for '%s'", username.c_str());
+    return NULL;
+  }
+
+  Debug (1,"Got last token revoke time  of: %u",stored_iat);
+  Debug (1,"Authenticated user '%s' via token", username.c_str());
+  mysql_free_result(result);
+  return user;
+}  // User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr)
  
 // Function to validate an authentication string
 User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
 #if HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
 #ifdef HAVE_GCRYPT_H
   // Special initialisation for libgcrypt
-  if ( !gcry_check_version( GCRYPT_VERSION ) ) {
+  if ( !gcry_check_version(GCRYPT_VERSION) ) {
     Fatal( "Unable to initialise libgcrypt" );
   }
-  gcry_control( GCRYCTL_DISABLE_SECMEM, 0 );
-  gcry_control( GCRYCTL_INITIALIZATION_FINISHED, 0 );
+  gcry_control(GCRYCTL_DISABLE_SECMEM, 0);
+  gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
 #endif // HAVE_GCRYPT_H
 
   const char *remote_addr = "";
   if ( use_remote_addr ) {
-    remote_addr = getenv( "REMOTE_ADDR" );
+    remote_addr = getenv("REMOTE_ADDR");
     if ( !remote_addr ) {
-      Warning( "Can't determine remote address, using null" );
+      Warning("Can't determine remote address, using null");
       remote_addr = "";
     }
   }
 
-  Debug( 1, "Attempting to authenticate user from auth string '%s'", auth );
+  Debug(1, "Attempting to authenticate user from auth string '%s'", auth);
   char sql[ZM_SQL_SML_BUFSIZ] = "";
-  snprintf( sql, sizeof(sql), "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds` FROM `Users` WHERE `Enabled` = 1" );
+  snprintf(sql, sizeof(sql),
+      "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0,"
+      " `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`"
+     " FROM `Users` WHERE `Enabled` = 1");
 
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't run query: %s", mysql_error(&dbconn));
+    return NULL;
   }
 
   MYSQL_RES *result = mysql_store_result( &dbconn );
   if ( !result ) {
-    Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+    Error("Can't use query result: %s", mysql_error(&dbconn));
+    return NULL;
   }
-  int n_users = mysql_num_rows( result );
-
+  int n_users = mysql_num_rows(result);
   if ( n_users < 1 ) {
-    mysql_free_result( result );
-    Warning( "Unable to authenticate user" );
-    return( 0 );
+    mysql_free_result(result);
+    Warning("Unable to authenticate user");
+    return NULL;
   }
 
-  while( MYSQL_ROW dbrow = mysql_fetch_row( result ) ) {
+  time_t now = time(0);
+  unsigned int hours = config.auth_hash_ttl;
+  if ( ! hours ) {
+    Warning("No value set for ZM_AUTH_HASH_TTL. Defaulting to 2.");
+    hours = 2;
+  } else {
+    Debug( 1, "AUTH_HASH_TTL is %d", hours );
+  }
+  char auth_key[512] = "";
+  char auth_md5[32+1] = "";
+  size_t md5len = 16;
+  unsigned char md5sum[md5len];
+
+  while ( MYSQL_ROW dbrow = mysql_fetch_row(result) ) {
     const char *user = dbrow[1];
     const char *pass = dbrow[2];
 
-    char auth_key[512] = "";
-    char auth_md5[32+1] = "";
-    size_t md5len = 16;
-    unsigned char md5sum[md5len];
-
-    time_t now = time( 0 );
-    unsigned int hours = config.auth_hash_ttl;
-
-    if ( ! hours ) {
-      Warning("No value set for ZM_AUTH_HASH_TTL. Defaulting to 2.");
-      hours = 2;
-    } else {
-      Debug( 1, "AUTH_HASH_TTL is %d", hours );
-    }
-
     for ( unsigned int i = 0; i < hours; i++, now -= 3600 ) {
-      struct tm *now_tm = localtime( &now );
+      struct tm *now_tm = localtime(&now);
 
-      snprintf( auth_key, sizeof(auth_key), "%s%s%s%s%d%d%d%d", 
+      snprintf(auth_key, sizeof(auth_key), "%s%s%s%s%d%d%d%d", 
         config.auth_hash_secret,
         user,
         pass,
@@ -292,47 +283,48 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
       );
 
 #if HAVE_DECL_MD5
-      MD5( (unsigned char *)auth_key, strlen(auth_key), md5sum );
+      MD5((unsigned char *)auth_key, strlen(auth_key), md5sum);
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
       gnutls_datum_t md5data = { (unsigned char *)auth_key, strlen(auth_key) };
-      gnutls_fingerprint( GNUTLS_DIG_MD5, &md5data, md5sum, &md5len );
+      gnutls_fingerprint(GNUTLS_DIG_MD5, &md5data, md5sum, &md5len);
 #endif
       auth_md5[0] = '\0';
       for ( unsigned int j = 0; j < md5len; j++ ) {
-        sprintf( &auth_md5[2*j], "%02x", md5sum[j] );
+        sprintf(&auth_md5[2*j], "%02x", md5sum[j]);
       }
-      Debug( 1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key, auth_md5, auth );
+      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key, auth_md5, auth);
 
       if ( !strcmp( auth, auth_md5 ) ) {
         // We have a match
         User *user = new User( dbrow );
         Debug(1, "Authenticated user '%s'", user->getUsername() );
-        mysql_free_result( result );
-        return( user );
+        mysql_free_result(result);
+        return user;
       } else {
-        Debug(1, "No match for %s", auth );
+        Debug(1, "No match for %s", auth);
       }
     }
   }
-  mysql_free_result( result );
+  mysql_free_result(result);
 #else // HAVE_DECL_MD5
-  Error( "You need to build with gnutls or openssl installed to use hash based authentication" );
+  Error("You need to build with gnutls or openssl installed to use hash based authentication");
 #endif // HAVE_DECL_MD5
-  Debug(1, "No user found for auth_key %s", auth );
-  return 0;
-}
+  Debug(1, "No user found for auth_key %s", auth);
+  return NULL;
+}  // end User *zmLoadAuthUser(const char *auth, bool use_remote_addr)
 
 //Function to check Username length
-bool checkUser ( const char *username) {
-  if ( ! username )
+bool checkUser(const char *username) {
+  if ( !username )
     return false;
   if ( strlen(username) > 32 )
     return false;
 
   return true;
 }
+
 //Function to check password length
-bool checkPass (const char *password) {
+bool checkPass(const char *password) {
   if ( !password )
     return false;
   if ( strlen(password) > 64 )

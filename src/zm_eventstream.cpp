@@ -76,7 +76,7 @@ bool EventStream::loadInitialEventData(int monitor_id, time_t event_time) {
     curr_frame_id = 1; // curr_frame_id is 1-based
     if ( event_time >= event_data->start_time ) {
       Debug(2, "event time is after event start");
-      for (unsigned int i = 0; i < event_data->frame_count; i++ ) {
+      for ( unsigned int i = 0; i < event_data->frame_count; i++ ) {
         //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
         if ( event_data->frames[i].timestamp >= event_time ) {
           curr_frame_id = i+1;
@@ -100,6 +100,7 @@ bool EventStream::loadInitialEventData(uint64_t init_event_id, unsigned int init
     if ( init_frame_id >= event_data->frame_count ) {
       Error("Invalid frame id specified. %d > %d", init_frame_id, event_data->frame_count);
       curr_stream_time = event_data->start_time;
+      curr_frame_id = 1;
     } else {
       curr_stream_time = event_data->frames[init_frame_id-1].timestamp;
       curr_frame_id = init_frame_id;
@@ -117,7 +118,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   snprintf(sql, sizeof(sql),
       "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartTime` ) AS StartTimestamp, "
       "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS Duration, "
-      "`DefaultVideo`, `Scheme`, `SaveJPEGs` FROM `Events` WHERE `Id` = %" PRIu64, event_id);
+      "`DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -160,9 +161,25 @@ bool EventStream::loadEventData(uint64_t event_id) {
     event_data->scheme = Storage::SHALLOW;
   }
   event_data->SaveJPEGs = dbrow[7] == NULL ? 0 : atoi(dbrow[7]);
+  event_data->Orientation = (Monitor::Orientation)(dbrow[8] == NULL ? 0 : atoi(dbrow[8]));
   mysql_free_result(result);
 
-  Storage * storage = new Storage(event_data->storage_id);
+  if ( !monitor ) {
+    monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY);
+  } else if ( monitor->Id() != event_data->monitor_id ) {
+    delete monitor;
+    monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY);
+  }
+  if ( !monitor ) {
+    Fatal("Unable to load monitor id %d for streaming", event_data->monitor_id);
+  }
+
+  if ( !storage ) {
+    storage = new Storage(event_data->storage_id);
+  } else if ( storage->Id() != event_data->storage_id ) {
+    delete storage;
+    storage = new Storage(event_data->storage_id);
+  }
   const char *storage_path = storage->Path();
 
   if ( event_data->scheme == Storage::DEEP ) {
@@ -204,7 +221,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_data->event_id);
   }
-  delete storage; storage = NULL;
 
   updateFrameRate((double)event_data->frame_count/event_data->duration);
   Debug(3, "fps set by frame_count(%d)/duration(%f)",
@@ -275,7 +291,10 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   mysql_free_result(result);
 
-  if ( event_data->video_file[0] ) {
+  if ( event_data->video_file[0] || (monitor->GetOptVideoWriter() > 0) ) {
+    if ( !event_data->video_file[0] ) {
+      snprintf(event_data->video_file, sizeof(event_data->video_file), "%" PRIu64 "-%s", event_data->event_id, "video.mp4");
+    }
     std::string filepath = std::string(event_data->path) + "/" + std::string(event_data->video_file);
     //char filepath[PATH_MAX];
     //snprintf(filepath, sizeof(filepath), "%s/%s", event_data->path, event_data->video_file);
@@ -376,12 +395,16 @@ void EventStream::processCommand(const CmdMsg *msg) {
         paused = true;
         replay_rate = ZM_RATE_BASE;
         step = 1;
+        if ( (unsigned int)curr_frame_id < event_data->frame_count )
+          curr_frame_id += 1;
         break;
     case CMD_SLOWREV :
         Debug(1, "Got SLOW REV command");
         paused = true;
         replay_rate = ZM_RATE_BASE;
         step = -1;
+        curr_frame_id -= 1;
+        if ( curr_frame_id < 1 ) curr_frame_id = 1;
         break;
     case CMD_FASTREV :
         Debug(1, "Got FAST REV command");
@@ -697,9 +720,10 @@ Debug(1, "Loading image");
       } else if ( ffmpeg_input ) {
         // Get the frame from the mp4 input
         Debug(1,"Getting frame from ffmpeg");
-        AVFrame *frame;
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
-        frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), frame_data->offset );
+        AVFrame *frame = ffmpeg_input->get_frame(
+            ffmpeg_input->get_video_stream_id(),
+            frame_data->offset);
         if ( frame ) {
           image = new Image(frame);
           //av_frame_free(&frame);
@@ -707,6 +731,34 @@ Debug(1, "Loading image");
           Error("Failed getting a frame.");
           return false;
         }
+
+        // when stored as an mp4, we just have the rotation as a flag in the headers
+        // so we need to rotate it before outputting
+        if (
+            (monitor->GetOptVideoWriter() == Monitor::H264PASSTHROUGH)
+            and
+            (event_data->Orientation != Monitor::ROTATE_0)
+            ) {
+          Debug(2, "Rotating image %d", event_data->Orientation);
+          switch ( event_data->Orientation ) {
+            case Monitor::ROTATE_0 :
+              // No action required
+              break;
+            case Monitor::ROTATE_90 :
+            case Monitor::ROTATE_180 :
+            case Monitor::ROTATE_270 :
+              image->Rotate((event_data->Orientation-1)*90);
+              break;
+            case Monitor::FLIP_HORI :
+            case Monitor::FLIP_VERT :
+              image->Flip(event_data->Orientation==Monitor::FLIP_HORI);
+              break;
+            default:
+              Error("Invalid Orientation: %d", event_data->Orientation);
+          }
+        } else {
+          Debug(2, "Not Rotating image %d", event_data->Orientation);
+        } // end if have rotation
       } else {
         Error("Unable to get a frame");
         return false;
@@ -735,6 +787,10 @@ Debug(1, "Loading image");
         default:
           Fatal("Unexpected frame type %d", type);
           break;
+      }
+      if ( send_image != image ) {
+        delete send_image;
+        send_image = NULL;
       }
       delete image;
       image = NULL;
@@ -824,17 +880,13 @@ void EventStream::runStream() {
       // commands may set send_frame to true
       while ( checkCommandQueue() && !zm_terminate ) {
         // The idea is to loop here processing all commands before proceeding.
-        Debug(1, "Have command queue");
       }
-      Debug(2, "Done command queue");
 
       // Update modified time of the socket .lock file so that we can tell which ones are stale.
       if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
         touch(sock_path_lock);
         last_comm_update = now;
       }
-    } else {
-      Debug(2, "Not checking command queue");
     }
 
     // Get current frame data
@@ -851,7 +903,7 @@ void EventStream::runStream() {
         send_frame = true;
       }
     } else if ( step != 0 ) {
-      Debug(2, "Paused with step");
+      Debug(2, "Paused with step %d", step);
       // We are paused and are just stepping forward or backward one frame
       step = 0;
       send_frame = true;
@@ -990,30 +1042,30 @@ void EventStream::runStream() {
       //if ( step != 0 )// Adding 0 is cheaper than an if 0
       // curr_frame_id starts at 1 though, so we might skip the first frame?
       curr_frame_id += step;
-    } // end if !paused
 
-    // Detects when we hit end of event and will load the next event or previous event
-    if ( checkEventLoaded() ) {
-      // Have change of event
+      // Detects when we hit end of event and will load the next event or previous event
+      if ( checkEventLoaded() ) {
+        // Have change of event
 
-      // This next bit is to determine if we are in the current event time wise
-      // and whether to show an image saying how long until the next event.
-      if ( replay_rate > 0 ) {
-        // This doesn't make sense unless we have hit the end of the event.
-        time_to_event = event_data->frames[0].timestamp - curr_stream_time;
-        Debug(1, "replay rate(%d) time_to_event(%f)=frame timestamp:%f - curr_stream_time(%f)",
-            replay_rate, time_to_event,
-            event_data->frames[0].timestamp,
-            curr_stream_time);
+        // This next bit is to determine if we are in the current event time wise
+        // and whether to show an image saying how long until the next event.
+        if ( replay_rate > 0 ) {
+          // This doesn't make sense unless we have hit the end of the event.
+          time_to_event = event_data->frames[0].timestamp - curr_stream_time;
+          Debug(1, "replay rate(%d) time_to_event(%f)=frame timestamp:%f - curr_stream_time(%f)",
+              replay_rate, time_to_event,
+              event_data->frames[0].timestamp,
+              curr_stream_time);
 
-      } else if ( replay_rate < 0 ) {
-        time_to_event = curr_stream_time - event_data->frames[event_data->frame_count-1].timestamp;
-        Debug(1, "replay rate(%d) time_to_event(%f)=curr_stream_time(%f)-frame timestamp:%f",
-            replay_rate, time_to_event, curr_stream_time, event_data->frames[event_data->frame_count-1].timestamp);
-      }
+        } else if ( replay_rate < 0 ) {
+          time_to_event = curr_stream_time - event_data->frames[event_data->frame_count-1].timestamp;
+          Debug(1, "replay rate(%d) time_to_event(%f)=curr_stream_time(%f)-frame timestamp:%f",
+              replay_rate, time_to_event, curr_stream_time, event_data->frames[event_data->frame_count-1].timestamp);
+        }  // end if forward or reverse
 
-    }
-  } // end while ! zm_terminate
+      }  // end if checkEventLoaded
+    }  // end if !paused
+  }  // end while ! zm_terminate
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG )
     delete vid_stream;
@@ -1022,18 +1074,12 @@ void EventStream::runStream() {
   closeComms();
 } // void EventStream::runStream()
 
-void EventStream::setStreamStart( uint64_t init_event_id, unsigned int init_frame_id=0 ) {
+void EventStream::setStreamStart(
+    uint64_t init_event_id,
+    unsigned int init_frame_id=0) {
   loadInitialEventData(init_event_id, init_frame_id);
-  if ( !(monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY)) ) {
-    Fatal("Unable to load monitor id %d for streaming", event_data->monitor_id);
-    return;
-  }
-}
+}  // end void EventStream::setStreamStart(init_event_id,init_frame_id=0)
 
 void EventStream::setStreamStart(int monitor_id, time_t event_time) {
   loadInitialEventData(monitor_id, event_time);
-  if ( !(monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY)) ) {
-    Fatal("Unable to load monitor id %d for streaming", monitor_id);
-    return;
-  }
 }

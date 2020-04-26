@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web function library, $Date: 2008-07-08 16:06:45 +0100 (Tue, 08 Jul 2008) $, $Revision: 2484 $
+// ZoneMinder web function library
 // Copyright (C) 2001-2008 Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
@@ -30,7 +30,6 @@ function xhtmlHeaders($file, $title) {
 
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
 
-  $skinJsFile = getSkinFile('js/skin.js');
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $cssJsFile = getSkinFile('js/'.$css.'.js');
 
@@ -84,7 +83,6 @@ echo output_link_if_exists( array(
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-  #'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
 )
 );
 if ( $css != 'base' )
@@ -95,15 +93,15 @@ if ( $css != 'base' )
   )
 );
 ?>
+
 <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
-  <!--Chosen can't be cache-busted because it loads sprites by relative path-->
+<!--Chosen can't be cache-busted because it loads sprites by relative path-->
 <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
   if ( $basename == 'watch' ) {
-    echo output_link_if_exists( array(
-      '/css/base/views/control.css',
-      '/css/'.$css.'/views/control.css'
-    ) );
+    echo output_link_if_exists(array('/css/base/views/control.css'));
+    if ( $css != 'base' )
+      echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
   }
 ?>
   <style type="text/css">
@@ -119,9 +117,11 @@ if ( $css != 'base' )
 <?php
 ?>
 
+<?php if ( $basename != 'login' ) { ?>
   <script src="tools/mootools/mootools-core.js"></script>
   <script src="tools/mootools/mootools-more.js"></script>
   <script src="js/mootools.ext.js"></script>
+<?php } ?>
   <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
@@ -148,11 +148,7 @@ if ( $css != 'base' )
   </script>
   <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
 <?php
-  if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) {
-?>
-  <script src='https://www.google.com/recaptcha/api.js'></script>
-<?php
-  } else if ( $view == 'event' ) {
+  if ( $view == 'event' ) {
 ?>
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
   <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
@@ -188,7 +184,9 @@ if ( $css != 'base' )
 } else {
 ?>
   <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
-<?php } ?>
+<?php }
+  $skinJsFile = getSkinFile('js/skin.js');
+?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php 
@@ -290,12 +288,12 @@ if ( $user and $user['Username'] ) {
        # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
         if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
           # Number of lines, instead of an interval
-          $rows = dbFetchOne('SELECT Count(*) AS Rows FROM Logs', 'Rows');
+          $rows = dbFetchOne('SELECT Count(*) AS `Rows` FROM `Logs`', 'Rows');
           if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
-            dbQuery('DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
+            dbQuery('DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
           }
         } else if ( preg_match('/^\d\s*(hour|minute|day|week|month|year)$/', ZM_LOG_DATABASE_LIMIT, $matches) ) {
-          dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+          dbQuery('DELETE FROM `Logs` WHERE `TimeKey` < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
         } else {
           ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
         }
@@ -341,33 +339,35 @@ if ( $user and $user['Username'] ) {
       <li><a href="?view=montagereview<?php echo isset($montageReviewQuery)?'&fit=1'.$montageReviewQuery.'&live=0':'' ?>"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
       <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
 <?php
-  }
+  } // end if canView(Events)
 ?>
       <li><a href="#"><i id="flip" class="material-icons md-18 pull-right">keyboard_arrow_<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up' ?></i></a></li>
 		</ul>
 
-<div class="navbar-right">
+    <div class="navbar-right">
 <?php
-if ( ZM_OPT_USE_AUTH and $user ) {
+  if ( ZM_OPT_USE_AUTH and $user ) {
 ?>
-  <p class="navbar-text">
-    <i class="material-icons">account_circle</i>
-    <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>
-  </p>
-<?php
-}
-if ( canEdit('System') ) {
+    <p class="navbar-text">
+      <i class="material-icons">account_circle</i>
+      <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>
+    </p>
+  <?php
+  }
+  if ( canEdit('System') ) {
 ?>
 		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
-  <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
-  <p class="navbar-text">
-  <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ) ?>
-  </p>
-  <?php } ?>
+    <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
+    <p class="navbar-text">
+    <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ) ?>
+    </p>
+    <?php } ?>
 <?php } else if ( canView('System') ) { ?>
 		<p class="navbar-text"><?php echo $status ?></p>
 <?php } ?>
-</div>
+  </div>
+<?php } else { # end if !$user or $user['Id'] meaning logged in ?>
+</ul>
 <?php } # end if !$user or $user['Id'] meaning logged in ?>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
@@ -389,8 +389,8 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
       <li class="Load"><i class="material-icons md-18">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
       <i class="material-icons md-18">storage</i>
 <?php 
-  $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
-  $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
+  $connections = dbFetchOne('SHOW status WHERE variable_name=\'threads_connected\'', 'Value');
+  $max_connections = dbFetchOne('SHOW variables WHERE variable_name=\'max_connections\'', 'Value');
   $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
   echo '<li'. ( $percent_used > 90 ? ' class="warning"' : '' ).'>'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';
 ?>
@@ -398,8 +398,12 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
 <?php
   $storage_areas = ZM\Storage::find();
   $storage_paths = null;
+	$storage_areas_with_no_server_id = array();
   foreach ( $storage_areas as $area ) {
     $storage_paths[$area->Path()] = $area;
+		if ( ! $area->ServerId() ) {
+			$storage_areas_with_no_server_id[] = $area;
+		}
   }
   $func = function($S){
     $class = '';
@@ -415,10 +419,17 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
 '; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) > 4 ) 
-    $storage_areas = ZM\Storage::find( array('ServerId'=>null) );
+    $storage_areas = $storage_areas_with_no_server_id;
   if ( count($storage_areas) <= 4 )
-    echo implode( ', ', array_map ( $func, $storage_areas ) );
-  echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
+    echo implode(', ', array_map($func, $storage_areas));
+  $shm_percent = getDiskPercent(ZM_PATH_MAP);
+  $class = '';
+  if ( $shm_percent > 98 ) {
+    $class = 'error';
+  } else if ( $shm_percent > 90 ) {
+    $class = 'warning';
+  }
+  echo ' <span class="'.$class.'">'.ZM_PATH_MAP.': '.$shm_percent.'%</span>';
 ?></li>
   </ul>
     <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>

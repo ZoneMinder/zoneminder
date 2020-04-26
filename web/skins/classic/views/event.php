@@ -24,7 +24,7 @@ if ( !canView('Events') ) {
 }
 
 $eid = validInt($_REQUEST['eid']);
-$fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
+$fid = !empty($_REQUEST['fid']) ? validInt($_REQUEST['fid']) : 1;
 
 $Event = new ZM\Event($eid);
 if ( $user['MonitorIds'] ) {
@@ -48,7 +48,7 @@ if ( isset($_REQUEST['scale']) ) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmEventScaleAuto']) ) {
   // If we're using scale to fit use it on all monitors
-  $scale = 'auto';
+  $scale = '0';
 } else if ( isset($_COOKIE['zmEventScale'.$Event->MonitorId()]) ) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {
@@ -79,15 +79,15 @@ $replayModes = array(
   'gapless' => translate('ReplayGapless'),
 );
 
-if ( isset( $_REQUEST['streamMode'] ) )
+if ( isset($_REQUEST['streamMode']) )
   $streamMode = validHtmlStr($_REQUEST['streamMode']);
 else
   $streamMode = 'video';
 
 $replayMode = '';
-if ( isset( $_REQUEST['replayMode'] ) )
+if ( isset($_REQUEST['replayMode']) )
   $replayMode = validHtmlStr($_REQUEST['replayMode']);
-if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )
+if ( isset($_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )
   $replayMode = validHtmlStr($_COOKIE['replayMode']);
 
 if ( ( ! $replayMode ) or ( ! $replayModes[$replayMode] ) ) {
@@ -104,7 +104,16 @@ if ( $Monitor->VideoWriter() == '2' ) {
     $Zoom = $Event->Height()/$Event->Width();
 }
 
-// These are here to figure out the next/prev event
+// These are here to figure out the next/prev event, however if there is no filter, then default to one that specifies the Monitor
+if ( !isset($_REQUEST['filter']) ) {
+  $_REQUEST['filter'] = array(
+    'Query'=>array(
+      'terms'=>array(
+        array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$Event->MonitorId())
+      )
+    )
+  );
+}
 parseSort();
 parseFilter($_REQUEST['filter']);
 $filterQuery = $_REQUEST['filter']['query'];
@@ -122,22 +131,22 @@ xhtmlHeaders(__FILE__, translate('Event'));
     <?php if ( !$popup ) echo getNavBarHTML() ?>
     <div id="header">
 <?php 
-if ( ! $Event->Id() ) {
+if ( !$Event->Id() ) {
   echo 'Event was not found.';
 } else {
 ?>
       <div id="dataBar">
         <span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span>
-        <span id="dataMonitor" title="<?php echo translate('Monitor') ?>"><?php echo $Monitor->Id() . ' ' . $Monitor->Name() ?></span>
+        <span id="dataMonitor" title="<?php echo translate('Monitor') ?>"><?php echo $Monitor->Id().' '.validHtmlStr($Monitor->Name()) ?></span>
         <span id="dataCause" title="<?php echo $Event->Notes()?validHtmlStr($Event->Notes()):translate('AttrCause') ?>"><?php echo validHtmlStr($Event->Cause()) ?></span>
-        <span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime( STRF_FMT_DATETIME_SHORT, strtotime($Event->StartTime() ) ) ?></span>
+        <span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartTime())) ?></span>
         <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>
         <span id="dataFrames" title="<?php echo translate('AttrFrames').'/'.translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
         <span id="dataScore" title="<?php echo translate('AttrTotalScore').'/'.translate('AttrAvgScore').'/'.translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>
         <span id="Storage">
 <?php echo 
-  human_filesize($Event->DiskSpace(null)) . ' on ' . $Event->Storage()->Name().
-  ( $Event->SecondaryStorageId() ? ', ' . $Event->SecondaryStorage()->Name() :'' )
+  human_filesize($Event->DiskSpace(null)) . ' on ' . validHtmlStr($Event->Storage()->Name()).
+  ( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' )
 ?></span>
         <div id="closeWindow"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back();return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
       </div>
@@ -193,9 +202,9 @@ if ( ($codec == 'MP4' || $codec == 'auto' ) && $Event->DefaultVideo() ) {
 ?>
         <div id="videoFeed">
           <video id="videoobj" class="video-js vjs-default-skin"
-            style="transform: matrix(1, 0, 0, 1, 0, 0)"
-            width="<?php echo reScale($Event->Width(), $scale) ?>"
-            height="<?php echo reScale($Event->Height(), $scale) ?>"
+            style="transform: matrix(1, 0, 0, 1, 0, 0);"
+           <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
+           <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
             data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
           >
           <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
@@ -208,7 +217,7 @@ if ( ($codec == 'MP4' || $codec == 'auto' ) && $Event->DefaultVideo() ) {
 ?>
       <div id="imageFeed">
 <?php
-if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>$scale, 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
   outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
 } else {
@@ -257,7 +266,12 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </p>
         <div id="replayStatus">
           <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
-          <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"><?php echo $rate/100 ?></span>x</span>
+          <span id="rate"><?php echo translate('Rate') ?>: 
+<?php 
+$rates = array( -800=>'-8x', -400=>'-4x', -200=>'-2x', -100=>'-1x', 0=>translate('Stop'), 100 => '1x', 200=>'2x', 400=>'4x', 800=>'8x' );
+echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
+?>
+<!--<span id="rateValue"><?php echo $rate/100 ?></span>x</span>-->
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>

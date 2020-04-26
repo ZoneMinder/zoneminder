@@ -36,14 +36,18 @@ function noCacheHeaders() {
 }
 
 function CSPHeaders($view, $nonce) {
-  $additionalScriptSrc = '';
+  global $Servers;
+  if ( ! $Servers )
+    $Servers = ZM\Server::find();
+
+  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Url();}, $Servers));
   switch ($view) {
     case 'login': {
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
           && ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY) {
-        $additionalScriptSrc = "https://www.google.com";
+        $additionalScriptSrc .= ' https://www.google.com';
       }
       // fall through
     }
@@ -92,7 +96,9 @@ function CORSHeaders() {
 
 # The following is left for future reference/use.
     $valid = false;
-    $Servers = ZM\Server::find();
+    global $Servers;
+    if ( ! $Servers )
+      $Servers = ZM\Server::find();
     if ( sizeof($Servers) < 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
@@ -408,6 +414,11 @@ ZM\Logger::Debug("Event type: " . gettype($event));
   }
 
   global $user;
+
+  if ( $event->Archived() ) {
+    ZM\Info('Cannot delete Archived event.');
+    return;
+  } # end if Archived
 
   if ( $user['Events'] == 'Edit' ) {
     $event->delete();
@@ -932,7 +943,7 @@ function createVideo($event, $format, $rate, $scale, $overwrite=false) {
     $command .= ' -o';
   $command = escapeshellcmd($command);
   $result = exec($command, $output, $status);
-Logger::Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
+  ZM\Logger::Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
   return $status ? '' : rtrim($result);
 }
 
@@ -1052,7 +1063,7 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
       $sortColumn = 'E.StartTime';
       break;
   }
-  if ( !$_REQUEST['sort_asc'] )
+  if ( !isset($_REQUEST['sort_asc']) )
     $_REQUEST['sort_asc'] = 0;
   $sortOrder = $_REQUEST['sort_asc'] ? 'asc' : 'desc';
   $sortQuery = $querySep.'sort_field='.validHtmlStr($_REQUEST['sort_field']).$querySep.'sort_asc='.validHtmlStr($_REQUEST['sort_asc']);
@@ -1082,15 +1093,10 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $validQueryConjunctionTypes = getFilterQueryConjunctionTypes();
   $StorageArea = NULL;
 
-  $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
-  if ( !isset($terms) ) {
-    $backTrace = debug_backtrace();
-    $file = $backTrace[1]['file'];
-    $line = $backTrace[1]['line'];
-    ZM\Warning("No terms in filter from $file:$line");
-    ZM\Warning(print_r($filter, true));
-  }
-  if ( isset($terms) && count($terms) ) {
+  # It is not possible to pass an empty array in the url, so we have to deal with there not being a terms field.
+  $terms = (isset($filter['Query']) and isset($filter['Query']['terms']) and is_array($filter['Query']['terms'])) ? $filter['Query']['terms'] : array();
+
+  if ( count($terms) ) {
     for ( $i = 0; $i < count($terms); $i++ ) {
 
       $term = $terms[$i];
@@ -1224,6 +1230,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             break;
         }
         $valueList = array();
+        if ( !isset($term['val']) ) $term['val'] = '';
         foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
           switch ( $term['attr'] ) {
             case 'MonitorName':
@@ -1256,7 +1263,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             case 'StartDateTime':
             case 'EndDateTime':
               if ( $value != 'NULL' )
-                $value = '\''.strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) ).'\'';
+                $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
               break;
             case 'Date':
             case 'StartDate':
@@ -1324,10 +1331,10 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
           $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($term['val']);
           $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($term['val'])."\"/>\n";
         }
-      } // end if ( isset($term['attr']) )
+      } // end if isset($term['attr'])
       if ( isset($term['cbr']) && (string)(int)$term['cbr'] == $term['cbr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($term['cbr']);
-        $filter['sql'] .= ' '.str_repeat(')', $term['cbr']).' ';
+        $filter['sql'] .= ' '.str_repeat(')', $term['cbr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($term['cbr'])."\"/>\n";
       }
     } // end foreach term
@@ -1336,6 +1343,9 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     if ( $saveToSession ) {
       $_SESSION['filter'] = $filter;
     }
+  } else {
+    $filter['query'] = $querySep;
+    #.urlencode('filter[Query][terms]=[]');
   } // end if terms
 
   #if ( 0 ) {
@@ -1348,7 +1358,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     #$filter['sql'] .= ' LIMIT ' . validInt($filter['Query']['limit']);
   #}
   #}
-}
+} // end function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;')
 
 // Please note that the filter is passed in by copy, so you need to use the return value from this function.
 //
@@ -2169,7 +2179,7 @@ function ajaxError($message, $code=HTTP_STATUS_OK) {
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
     $response = array('result'=>'Error', 'message'=>$message);
-    header('Content-type: text/plain');
+    header('Content-type: application/json');
     exit(jsonEncode($response));
   }
   header("HTTP/1.0 $code $message");
@@ -2185,7 +2195,7 @@ function ajaxResponse($result=false) {
   } else if ( !empty($result) ) {
     $response['message'] = $result;
   }
-  header('Content-type: text/plain');
+  header('Content-type: application/json');
   exit(jsonEncode($response));
 }
 
@@ -2279,9 +2289,14 @@ function validHtmlStr($input) {
 
 function getStreamHTML($monitor, $options = array()) {
 
-  if ( isset($options['scale']) and $options['scale'] and ($options['scale'] != 100) ) {
-    $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
-    $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+  if ( isset($options['scale']) ) {
+    if ( $options['scale'] != 'auto' ) {
+      $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
+      $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
+    } else {
+      $options['width'] = '100%';
+      $options['height'] = 'auto';
+    }
   } else {
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty
@@ -2580,21 +2595,23 @@ function html_radio($name, $values, $selected=null, $options=array(), $attrs=arr
     if ( isset($options['container']) ) {
       $html .= $options['container'][0];
     }
+    $attributes = array_map(
+          function($attr, $value){return $attr.'="'.$value.'"';},
+          array_keys($attrs),
+          array_values($attrs)
+        );
+    $attributes_string = implode(' ', $attributes);
+
     $html .= sprintf('
       <div class="form-check%7$s">
         <label class="form-check-label radio%7$s" for="%1$s%6$s%2$s">
         <input class="form-check-input" type="radio" name="%1$s" value="%2$s" id="%1$s%6$s%2$s" %4$s%5$s />
         %3$s</label></div>
         ', $name, $value, $label, ($value==$selected?' checked="checked"':''),
-        implode(' ', array_map(
-          function($attr, $value){return $attr.'="'.$value.'"';},
-          array_keys($attrs),
-          array_values($attrs)
-          ),
-          ),
-        ( isset($options['id']) ? $options['id'] : ''),
-        ( ( (!isset($options['inline'])) or $options['inline'] ) ? '-inline' : ''),
-        );
+        $attributes_string,
+        (isset($options['id']) ? $options['id'] : ''),
+        ( ( (!isset($options['inline'])) or $options['inline'] ) ? '-inline' : '')
+      );
     if ( isset($options['container']) ) {
       $html .= $options['container'][1];
     }
@@ -2602,4 +2619,27 @@ function html_radio($name, $values, $selected=null, $options=array(), $attrs=arr
   return $html;
 } # end sub html_radio
 
+
+function random_colour() {
+  return '#'.
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT).
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT).
+    str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT);
+}
+
+function zm_random_bytes($length = 32){
+  if ( !isset($length) || intval($length) <= 8 ) {
+    $length = 32;
+  }
+  if ( function_exists('random_bytes') ) {
+    return random_bytes($length);
+  }
+  if ( function_exists('mcrypt_create_iv') ) {
+    return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+  }
+  if ( function_exists('openssl_random_pseudo_bytes') ) {
+    return openssl_random_pseudo_bytes($length);
+  }
+  ZM\Error('No random_bytes function found.');
+}
 ?>

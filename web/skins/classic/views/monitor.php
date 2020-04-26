@@ -40,8 +40,8 @@ if ( !empty($_REQUEST['mid']) ) {
   if ( $monitor and ZM_OPT_X10 )
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']));
 }
-if ( !$monitor ) {
 
+if ( !$monitor ) {
   $nextId = getTableAutoInc('Monitors');
   if ( isset($_REQUEST['dupId']) ) {
     $monitor = new ZM\Monitor($_REQUEST['dupId']);
@@ -54,6 +54,7 @@ if ( !$monitor ) {
     $monitor = new ZM\Monitor();
   } # end if $_REQUEST['dupID']
   $monitor->Name(translate('Monitor').'-'.$nextId);
+  $monitor->WebColour(random_colour());
 } # end if $_REQUEST['mid']
 
 if ( ZM_OPT_X10 && empty($x10Monitor) ) {
@@ -67,7 +68,6 @@ if ( ZM_OPT_X10 && empty($x10Monitor) ) {
 function fourcc($a, $b, $c, $d) {
   return ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24);
 }
-
 if ( isset($_REQUEST['newMonitor']) ) {
   # Update the monitor object with whatever has been set so far.
   $monitor->set($_REQUEST['newMonitor']);
@@ -367,15 +367,8 @@ $fastblendopts_alarm = array(
     );
 
 $label_size = array(
-    'Default'                                             => 1,
-    'Large'                                               => 2
-    );
-
-$savejpegopts = array(
-    'Disabled'                                            => 0,
-    'Frames only'                                         => 1,
-    'Analysis images only (if available)'                 => 2,
-    'Frames + Analysis images (if available)'             => 3,
+    1 => translate('Default'),
+    2 => translate('Large'),
     );
 
 $codecs = array(
@@ -459,8 +452,8 @@ foreach ( $tabs as $name=>$value ) {
 if ( $tab != 'general' ) {
 ?>
       <input type="hidden" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>"/>
+      <input type="hidden" name="newMonitor[Notes]" value="<?php echo validHtmlStr($monitor->Notes()) ?>"/>
       <input type="hidden" name="newMonitor[ServerId]" value="<?php echo validHtmlStr($monitor->ServerId() ) ?>"/>
-      <input type="hidden" name="newMonitor[StorageId]" value="<?= validHtmlStr($monitor->StorageId() ) ?>"/>
       <input type="hidden" name="newMonitor[LinkedMonitors]" value="<?php echo (null !== $monitor->LinkedMonitors())?validHtmlStr($monitor->LinkedMonitors()):'' ?>"/>
 <?php
 foreach ( $monitor->GroupIds() as $group_id ) {
@@ -529,6 +522,7 @@ if ( $tab != 'source' ) {
 }
 if ( $tab != 'storage' ) {
 ?>
+      <input type="hidden" name="newMonitor[StorageId]" value="<?php echo validHtmlStr($monitor->StorageId()) ?>"/>
       <input type="hidden" name="newMonitor[SaveJPEGs]" value="<?php echo validHtmlStr($monitor->SaveJPEGs()) ?>"/>
       <input type="hidden" name="newMonitor[VideoWriter]" value="<?php echo validHtmlStr($monitor->VideoWriter()) ?>"/>
       <input type="hidden" name="newMonitor[EncoderParameters]" value="<?php echo validHtmlStr($monitor->EncoderParameters()) ?>"/>
@@ -612,6 +606,10 @@ switch ( $tab ) {
             <td><?php echo translate('Name') ?></td>
             <td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>"/></td>
           </tr>
+          <tr class="Notes">
+            <td><?php echo translate('Notes') ?></td>
+            <td><textarea name="newMonitor[Notes]" rows="4"><?php echo validHtmlStr($monitor->Notes()) ?></textarea></td>
+          </tr>
           <tr>
             <td><?php echo translate('Server') ?></td><td>
 <?php
@@ -620,18 +618,6 @@ switch ( $tab ) {
         $servers[$Server->Id()] = $Server->Name();
       }
       echo htmlSelect( 'newMonitor[ServerId]', $servers, $monitor->ServerId() );
-?>
-            </td>
-          </tr>
-          <tr>
-            <td><?php echo translate('StorageArea') ?></td>
-            <td>
-<?php
-      $storage_areas = array(0=>'Default');
-      foreach ( ZM\Storage::find(NULL, array('order'=>'lower(Name)')) as $Storage ) {
-        $storage_areas[$Storage->Id()] = $Storage->Name();
-      }
-      echo htmlSelect('newMonitor[StorageId]', $storage_areas, $monitor->StorageId());
 ?>
             </td>
           </tr>
@@ -738,22 +724,19 @@ switch ( $tab ) {
       $breakCount = (int)(ceil(count($optTriggers)));
       $breakCount = min(3, $breakCount);
       $optCount = 0;
-      foreach( $optTriggers as $optTrigger ) {
-        if ( !ZM_OPT_X10 && $optTrigger == 'X10' )
+      foreach ( $optTriggers as $optTrigger ) {
+        if ( $optTrigger == 'X10' and !ZM_OPT_X10 )
           continue;
         if ( $optCount && ($optCount%$breakCount == 0) )
           echo '</br>';
+        echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'.$optTrigger.'"'. 
+          (( ('' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"' : ''). '/> '. $optTrigger; 
+        $optCount ++;
+      } # end foreach trigger option
+      if ( !$optCount ) {
+        echo '<em>'.translate('NoneAvailable').'</em>';
+      }
 ?>
-              <input type="checkbox" name="newMonitor[Triggers][]" value="<?php echo $optTrigger ?>"<?php if ( ( null !== $monitor->Triggers() ) && in_array( $optTrigger, $monitor->Triggers() ) ) { ?> checked="checked"<?php } ?>/>&nbsp;<?php echo $optTrigger ?>
-<?php
-          $optCount ++;
-        }
-        if ( !$optCount ) {
-        ?>
-          <em><?php echo translate('NoneAvailable') ?></em>
-          <?php
-        }
-      ?>
         </td></tr>
         <?php
         }
@@ -788,7 +771,7 @@ switch ( $tab ) {
             <label for="newMonitor[V4LMultiBuffer]1">Yes</label>
             <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]0" value="0" <?php echo ( $monitor->V4LMultiBuffer() == '0' ? 'checked="checked"' : '' ) ?>/>
             <label for="newMonitor[V4LMultiBuffer]0">No</label>
-            <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( $monitor->V4LMultiBuffer() ? 'checked="checked"' : '' ) ?>/>
+            <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( $monitor->V4LMultiBuffer() == '' ? 'checked="checked"' : '' ) ?>/>
             <label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
           </td></tr>
           <tr><td><?php echo translate('V4LCapturesPerFrame') ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo validHtmlStr($monitor->V4LCapturesPerFrame()); ?>"/></td></tr>
@@ -845,13 +828,13 @@ include('_monitor_source_nvsocket.php');
 ?>
           <tr class="DecoderHWAccelName">
             <td><?php echo translate('DecoderHWAccelName') ?>
-                (<?php echo makePopupLink('?view=optionhelp&amp;option=DECODERHWACCELNAME', 'zmOptionHelp', 'optionhelp', '?') ?>)
+                (<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_DECODERHWACCELNAME', 'zmOptionHelp', 'optionhelp', '?') ?>)
             </td>
             <td><input type="text" name="newMonitor[DecoderHWAccelName]" value="<?php echo validHtmlStr($monitor->DecoderHWAccelName()) ?>"/></td>
           </tr>
           <tr class="DecoderHWAccelDevice">
             <td><?php echo translate('DecoderHWAccelDevice') ?>
-                (<?php echo makePopupLink('?view=optionhelp&amp;option=DECODERHWACCELDEVIC', 'zmOptionHelp', 'optionhelp', '?') ?>)
+                (<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_DECODERHWACCELDEVICE', 'zmOptionHelp', 'optionhelp', '?') ?>)
             </td>
             <td><input type="text" name="newMonitor[DecoderHWAccelDevice]" value="<?php echo validHtmlStr($monitor->DecoderHWAccelDevice()) ?>"/></td>
           </tr>
@@ -886,6 +869,7 @@ if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
   '1920x1080'=>'1920x1080 1080p',
   '2048x1536'=>'2048x1536 3MP',
   '2592x1944'=>'2592x1944 5MP',
+  '3840x2160'=>'3840x2160 4K UHD',
 ), $monitor->Width().'x'.$monitor->Height()
 );
 ?>
@@ -921,7 +905,32 @@ if ( $monitor->Type() == 'Local' ) {
     }
   case 'storage' :
 ?>
-            <tr><td><?php echo translate('SaveJPEGs') ?></td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?php echo validHtmlStr($value); ?>"<?php if ( $value == $monitor->SaveJPEGs() ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($name); ?></option><?php } ?></select></td></tr>
+          <tr>
+            <td><?php echo translate('StorageArea') ?></td>
+            <td>
+<?php
+      $storage_areas = array(0=>'Default');
+      foreach ( ZM\Storage::find(NULL, array('order'=>'lower(Name)')) as $Storage ) {
+        $storage_areas[$Storage->Id()] = $Storage->Name();
+      }
+      echo htmlSelect('newMonitor[StorageId]', $storage_areas, $monitor->StorageId());
+?>
+            </td>
+          </tr>
+          <tr>
+            <td><?php echo translate('SaveJPEGs') ?></td>
+            <td>
+<?php
+      $savejpegopts = array(
+        0 => 'Disabled',
+        1 => 'Frames only',
+        2 => 'Analysis images only (if available)',
+        3 => 'Frames + Analysis images (if available)',
+      );
+      echo htmlSelect('newMonitor[SaveJPEGs]', $savejpegopts, $monitor->SaveJPEGs());
+?>
+             </td>
+            </tr>
             <tr><td><?php echo translate('VideoWriter') ?></td><td>
 <?php
 	$videowriteropts = array(
@@ -1102,15 +1111,17 @@ if ( canEdit('Control') ) {
         <tr>
           <td><?php echo translate('SignalCheckColour') ?></td>
           <td>
-            <input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>"/>
+            <input type="color" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>"/>
             <span id="SignalCheckSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($monitor->SignalCheckColour()); ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
           </td>
         </tr>
         <tr>
           <td><?php echo translate('WebColour') ?></td>
           <td>
-            <input type="text" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/>
+            <input type="color" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>"/>
             <span id="WebSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($monitor->WebColour()) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            <i class="material-icons" data-on-click="random_WebColour">sync</i> 
+
           </td>
         </tr>
         <tr>

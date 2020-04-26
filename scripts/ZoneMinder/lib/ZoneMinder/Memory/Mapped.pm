@@ -51,7 +51,7 @@ our %EXPORT_TAGS = (
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
 our @EXPORT = @EXPORT_OK;
 
@@ -77,17 +77,17 @@ sub zmMemAttach {
   my ( $monitor, $size ) = @_;
 
   if ( !$size ) {
-    Error("No size passed to zmMemAttach for monitor $$monitor{Id}");
+    Error('No size passed to zmMemAttach for monitor '.$$monitor{Id});
     return undef;
   }
   if ( defined($monitor->{MMapAddr}) ) {
-    Debug("zmMemAttach already attached at $monitor->{MMapAddr}");
+    Debug("zmMemAttach already attached at $monitor->{MMapAddr} for $$monitor{Id}");
     return !undef;
   }
 
   my $mmap_file = $Config{ZM_PATH_MAP}.'/zm.mmap.'.$monitor->{Id};
   if ( ! -e $mmap_file ) {
-    Error("Memory map file '$mmap_file' does not exist.  zmc might not be running.");
+    Error("Memory map file '$mmap_file' does not exist in zmMemAttach.  zmc might not be running.");
     return undef;
   }
   my $mmap_file_size = -s $mmap_file;
@@ -119,18 +119,24 @@ sub zmMemDetach {
 
   if ( $monitor->{MMap} ) {
     if ( ! munmap(${$monitor->{MMap}}) ) {
-      Warn( "Unable to munmap for monitor $$monitor{Id}\n");
+      Warn("Unable to munmap for monitor $$monitor{Id}");
     }
     delete $monitor->{MMap};
+  } else {
+    Warn("No MMap for $$monitor{Id}");
   }
   if ( $monitor->{MMapAddr} ) {
     delete $monitor->{MMapAddr};
+  } else {
+    Warn("No MMapAddr in $$monitor{Id}");
   }
   if ( $monitor->{MMapHandle} ) {
     close($monitor->{MMapHandle});
     delete $monitor->{MMapHandle};
+  } else {
+    Warn("No MMapHandle in $$monitor{Id}");
   }
-}
+} # end sub zmMemDetach
 
 sub zmMemGet {
   my $monitor = shift;
@@ -162,7 +168,7 @@ sub zmMemPut {
 }
 
 sub zmMemClean {
-  Debug("Removing memory map files");
+  Debug('Removing memory map files');
   my $mapPath = $Config{ZM_PATH_MAP}.'/zm.mmap.*';
   foreach my $mapFile( glob( $mapPath ) ) {
     ( $mapFile ) = $mapFile =~ /^(.+)$/;

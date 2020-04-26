@@ -39,13 +39,16 @@ class ZM_Object {
   public function __call($fn, array $args){
     $type = (array_key_exists($fn, $this->defaults) && is_array($this->defaults[$fn])) ? $this->defaults[$fn]['type'] : 'scalar';
     if ( count($args) ) {
-      if ( $type == 'set' and is_array($args[0]) )
+      if ( $type == 'set' and is_array($args[0]) ) {
         $this->{$fn} = implode(',', $args[0]);
-      else
+      } else if ( array_key_exists($fn, $this->defaults) && is_array($this->defaults[$fn]) && isset($this->defaults[$fn]['filter_regexp']) ) {
+        $this->{$fn} = preg_replace($this->defaults[$fn]['filter_regexp'], '', $args[0]);
+      } else {
         $this->{$fn} = $args[0];
+      }
     }
 
-    if ( array_key_exists($fn, $this) ) {
+    if ( property_exists($this, $fn) ) {
       return $this->{$fn};
     } else {
       if ( array_key_exists($fn, $this->defaults) ) {
@@ -63,7 +66,7 @@ class ZM_Object {
   public static function _find($class, $parameters = null, $options = null ) {
     $table = $class::$table;
     $filters = array();
-    $sql = "SELECT * FROM `$table` ";
+    $sql = 'SELECT * FROM `'.$table.'` ';
     $values = array();
 
     if ( $parameters ) {
@@ -110,8 +113,9 @@ class ZM_Object {
 
   public static function _find_one($class, $parameters = array(), $options = array() ) {
     global $object_cache;
-    if ( ! isset($object_cache[$class]) )
+    if ( ! isset($object_cache[$class]) ) {
       $object_cache[$class] = array();
+    }
     $cache = &$object_cache[$class];
     if ( 
         ( count($parameters) == 1 ) and
@@ -127,6 +131,11 @@ class ZM_Object {
     return $results[0];
   }
 
+  public static function _clear_cache($class) {
+    global $object_cache;
+    $object_cache[$class] = array();
+  }
+
   public static function Objects_Indexed_By_Id($class) {
     $results = array();
     foreach ( ZM_Object::_find($class, null, array('order'=>'lower(Name)')) as $Object ) {
@@ -140,10 +149,10 @@ class ZM_Object {
     foreach ($this->defaults as $key => $value) {
       if ( is_callable(array($this, $key)) ) {
         $json[$key] = $this->$key();
-      } else if ( array_key_exists($key, $this) ) {
+      } else if ( property_exists($this, $key) ) {
         $json[$key] = $this->{$key};
       } else {
-        $json[$key] = $this->defaults{$key};
+        $json[$key] = $this->defaults[$key];
       }
     }
     return json_encode($json);
@@ -158,13 +167,10 @@ class ZM_Object {
 # perhaps should turn into a comma-separated string
           $this->{$k} = implode(',', $v);
         } else if ( is_string($v) ) {
-          if ( $v == '' and array_key_exists($k, $this->defaults) ) {
-            if ( is_array($this->defaults[$k]) )
-              $this->{$k} = $this->defaults[$k]['default'];
-            else 
-              $this->{$k} = $this->defaults[$k];
+          if ( array_key_exists($k, $this->defaults) && is_array($this->defaults[$k]) && isset($this->defaults[$k]['filter_regexp']) ) {
+            $this->{$k} = preg_replace($this->defaults[$k]['filter_regexp'], '', trim($v));
           } else {
-            $this->{$k} = trim($v);
+						$this->{$k} = trim($v);
           }
         } else if ( is_integer($v) ) {
           $this->{$k} = $v;
@@ -200,7 +206,8 @@ class ZM_Object {
           }
         }
       } # end foreach default
-    }
+    } # end if defaults
+
     foreach ( $new_values as $field => $value ) {
 
       if ( method_exists($this, $field) ) {
@@ -215,7 +222,7 @@ class ZM_Object {
         } else if ( $this->$field() != $value ) {
           $changes[$field] = $value;
         }
-      } else if ( array_key_exists($field, $this) ) {
+      } else if ( property_exists($this, $field) ) {
         $type = (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field])) ? $this->defaults[$field]['type'] : 'scalar';
         Logger::Debug("Checking field $field => current ".
           (is_array($this->{$field}) ? implode(',',$this->{$field}) : $this->{$field}) . ' ?= ' .
@@ -234,6 +241,9 @@ class ZM_Object {
           # Input might be a command separated string, or an array
           
         } else {
+          if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
+            $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+          }
           if ( $this->{$field} != $value ) {
             $changes[$field] = $value;
           }
@@ -254,17 +264,6 @@ class ZM_Object {
           $changes[$field] = $value;
         }
       }
-
-        #if ( (!array_key_exists($field, $this)) or ( $this->{$field} != $new_values[$field] ) ) {
-      #Logger::Debug("Checking default $field => $default_value changes becaause" . $new_values[$field].' != '.$new_values[$field]);
-          #$changes[$field] = $new_values[$field];
-        ##} else if  {
-      #Logger::Debug("Checking default $field => $default_value changes becaause " . $new_values[$field].' != '.$new_values[$field]);
-          ##array_push( $changes, [$field=>$defaults[$field]] );
-        #}
-      #} else {
-        #Logger::Debug("Checking default $field => $default_value not in new_values");
-      #}
     } # end foreach newvalue
 
 
@@ -278,6 +277,18 @@ class ZM_Object {
     if ( $new_values ) {
       //Logger::Debug("New values" . print_r($new_values, true));
       $this->set($new_values);
+    }
+
+    # Set defaults.  Note that we only replace "" with null, not other values
+    # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
+    foreach ( $this->defaults as $field => $default ) {
+      if ( (!property_exists($this, $field)) or ($this->{$field} === '') ) {
+        if ( is_array($default) ) {
+          $this->{$field} = $default['default'];
+        } else if ( $default == null ) {
+          $this->{$field} = $default;
+        }
+      }
     }
 
     $fields = array_filter(

@@ -33,12 +33,11 @@ if ( $action == 'monitor' ) {
       if ( !$x10Monitor )
         $x10Monitor = array();
     }
-    if ( !canEdit('Monitors',$mid) ) {
+    if ( !canEdit('Monitors', $mid) ) {
       ZM\Warning('You do not have permission to edit this monitor');
       return;
     }
   } else {
-    #$monitor = array();
     if ( ZM_OPT_X10 ) {
       $x10Monitor = array();
     }
@@ -58,6 +57,7 @@ if ( $action == 'monitor' ) {
       'Enabled' => 0,
       'Exif' => 0,
       'RTSPDescribe' => 0,
+      'V4LMultiBuffer'  => '',
       'RecordAudio' => 0,
       'Method' => 'raw',
       'GroupIds'  =>  array(),
@@ -92,6 +92,9 @@ if ( $action == 'monitor' ) {
       if ( $monitor->Type() != 'WebSite' ) {
         $monitor->zmaControl('stop');
         $monitor->zmcControl('stop');
+        if ( $monitor->Controllable() ) {
+          $monitor->sendControlCommand('stop');
+        }
       }
 
       # These are used in updating zones
@@ -219,7 +222,6 @@ if ( $action == 'monitor' ) {
 
       } else {
         ZM\Error('Error saving new Monitor.');
-        $error_message = dbError($sql);
         return;
       }
     }
@@ -265,8 +267,7 @@ if ( $action == 'monitor' ) {
         $monitor->zmaControl('start');
 
       if ( $monitor->Controllable() ) {
-        require_once('includes/control_functions.php');
-        $monitor->sendControlCommand('quit');
+        $monitor->sendControlCommand('start');
       }
     }
     // really should thump zmwatch and maybe zmtrigger too.

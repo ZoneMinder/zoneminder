@@ -4,7 +4,7 @@ function configureExportButton(element) {
   var form = element.form;
 
   var eventCount = 0;
-  document.querySelectorAll('input[name="eids[]"]').forEach(function(el){
+  document.querySelectorAll('input[name="eids[]"]').forEach(function(el) {
     if ( el.checked ) {
       eventCount ++;
     }
@@ -43,7 +43,6 @@ function exportProgress() {
 }
 
 function exportResponse(respObj, respText) {
-
   clearInterval(exportTimer);
   if ( respObj.result != 'Ok' ) {
     $('exportProgressTicker').set('text', respObj.message);
@@ -66,7 +65,7 @@ function exportResponse(respObj, respText) {
   //window.location.replace( thisUrl+'?view='+currentView+'&'+eids.join('&')+'&exportFile='+respObj.exportFile+'&generated='+((respObj.result=='Ok')?1:0) );
 }
 
-function exportEvent( ) {
+function exportEvents( ) {
   var parms = 'view=event&request=event&action=export';
   parms += '&'+$('contentForm').toQueryString();
   var query = new Request.JSON( {
@@ -88,7 +87,7 @@ function initPage() {
   if ( exportReady ) {
     startDownload.pass(exportFile).delay(1500);
   }
-  document.getElementById('exportButton').addEventListener('click', exportEvent);
+  document.getElementById('exportButton').addEventListener('click', exportEvents);
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

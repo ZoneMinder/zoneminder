@@ -39,8 +39,8 @@ class Filter extends ZM_Object {
       $this->{'Query'} = func_get_arg(0);;
       $this->{'Query_json'} = jsonEncode($this->{'Query'});
     }
-    if ( !array_key_exists('Query', $this) ) {
-      if ( array_key_exists('Query_json', $this) and $this->{'Query_json'} ) {
+    if ( !property_exists($this, 'Query') ) {
+      if ( property_exists($this, 'Query_json') and $this->{'Query_json'} ) {
         $this->{'Query'} = jsonDecode($this->{'Query_json'});
       } else {
         $this->{'Query'} = array();
@@ -115,13 +115,17 @@ class Filter extends ZM_Object {
 
   public function control($command, $server_id=null) {
     $Servers = $server_id ? Server::find(array('Id'=>$server_id)) : Server::find(array('Status'=>'Running'));
-    if ( !count($Servers) and !$server_id ) {
-      # This will be the non-multi-server case
-      $Servers = array(new Server());
+    if ( !count($Servers) ) {
+      if ( !$server_id ) {
+        # This will be the non-multi-server case
+        $Servers = array(new Server());
+      } else {
+        Warning("Server not found for id $server_id");
+      }
     }
     foreach ( $Servers as $Server ) {
 
-      if ( !defined('ZM_SERVER_ID') or !$Server->Id() or ZM_SERVER_ID==$Server->Id() ) {
+      if ( (!defined('ZM_SERVER_ID')) or (!$Server->Id()) or (ZM_SERVER_ID==$Server->Id()) ) {
         # Local
         Logger::Debug("Controlling filter locally $command for server ".$Server->Id());
         daemonControl($command, 'zmfilter.pl', '--filter_id='.$this->{'Id'}.' --daemon');
@@ -139,7 +143,7 @@ class Filter extends ZM_Object {
             $url = '?user='.$_SESSION['username'];
           }
         }
-        $url .= '&view=filter&action=control&command='.$command.'&Id='.$this->Id().'&ServerId='.$Server->Id();
+        $url .= '&view=filter&object=filter&action=control&command='.$command.'&Id='.$this->Id().'&ServerId='.$Server->Id();
         Logger::Debug("sending command to $url");
         $data = array();
         if ( defined('ZM_ENABLE_CSRF_MAGIC') ) {

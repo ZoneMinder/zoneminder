@@ -95,9 +95,9 @@ sub PutCmd {
   my $self = shift;
   my $cmd = shift;
   my $content = shift;
-  my $req = HTTP::Request->new(PUT => "$self->{BaseURL}/$cmd");
+  my $req = HTTP::Request->new(PUT => $self->{BaseURL}.'/'.$cmd);
   if ( defined($content) ) {
-    $req->content_type("application/x-www-form-urlencoded; charset=UTF-8");
+    $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content('<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $content);
   }
   my $res = $self->{UA}->request($req);
@@ -135,13 +135,13 @@ sub PutCmd {
         # Check for username/password
         #
         if ( $self->{Monitor}{ControlAddress} =~ /.+:(.+)@.+/ ) {
-          Info("Check username/password is correct");
+          Info('Check username/password is correct');
         } elsif ( $self->{Monitor}{ControlAddress} =~ /^[^:]+@.+/ ) {
-          Info("No password in Control Address. Should there be one?");
+          Info('No password in Control Address. Should there be one?');
         } elsif ( $self->{Monitor}{ControlAddress} =~ /^:.+@.+/ ) {
-          Info("Password but no username in Control Address.");
+          Info('Password but no username in Control Address.');
         } else {
-          Info("Missing username and password in Control Address.");
+          Info('Missing username and password in Control Address.');
         }
         Fatal($res->status_line);
       }
@@ -382,7 +382,7 @@ sub irisRelOpen {
 sub reset {
   my $self = shift;
 
-  $self->PutCmd("ISAPI/System/reboot");
+  $self->PutCmd('ISAPI/System/reboot');
 }
 
 1;

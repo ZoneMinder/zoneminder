@@ -66,6 +66,7 @@ class EventStream : public StreamBase {
       char            video_file[PATH_MAX];
       Storage::Schemes  scheme;
       int             SaveJPEGs;
+      Monitor::Orientation Orientation;
     };
 
   protected:
@@ -82,6 +83,7 @@ class EventStream : public StreamBase {
     struct timeval start;     // clock time when started the event
 
     EventData *event_data;
+    Storage *storage;
     FFmpeg_Input  *ffmpeg_input;
 
   protected:
@@ -96,7 +98,7 @@ class EventStream : public StreamBase {
   public:
     EventStream() {
       mode = DEFAULT_MODE;
-    replay_rate = DEFAULT_RATE;
+      replay_rate = DEFAULT_RATE;
 
       forceEventChange = false;
 
@@ -104,13 +106,32 @@ class EventStream : public StreamBase {
       curr_stream_time = 0.0;
       send_frame = false;
 
-      event_data = 0;
+      event_data = NULL;
 
       // Used when loading frames from an mp4
       input_codec_context = 0;
       input_codec = 0;
 
       ffmpeg_input = NULL;
+      storage = NULL;
+    }
+    ~EventStream() {
+        if ( event_data ) {
+          delete event_data;
+          event_data = NULL;
+        }
+        if ( monitor ) {
+          delete monitor;
+          monitor = NULL;
+        }
+        if ( storage ) {
+          delete storage;
+          storage = NULL;
+        }
+        if ( ffmpeg_input ) {
+          delete ffmpeg_input;
+          ffmpeg_input = NULL;
+        }
     }
     void setStreamStart( uint64_t init_event_id, unsigned int init_frame_id );
     void setStreamStart( int monitor_id, time_t event_time );

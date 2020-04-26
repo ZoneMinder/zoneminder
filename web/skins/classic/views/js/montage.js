@@ -210,7 +210,6 @@ function Monitor(monitorData) {
  * @param {*} element - the event data passed by onchange callback
  */
 function selectLayout(element) {
-  console.log(element);
   layout = $j(element).val();
 
   if ( layout_id = parseInt(layout) ) {
@@ -221,8 +220,8 @@ function selectLayout(element) {
       // Need to clear the current positioning, and apply the new
 
       monitor_frame = $j('#monitorFrame'+monitor.id);
-      if ( ! monitor_frame ) {
-        console.log("Error finding frame for " + monitor.id);
+      if ( !monitor_frame ) {
+        console.log('Error finding frame for ' + monitor.id);
         continue;
       }
 
@@ -262,6 +261,10 @@ function selectLayout(element) {
         if ( streamImg.nodeName == 'IMG' ) {
           var src = streamImg.src;
           src = src.replace(/width=[\.\d]+/i, 'width=0' );
+          if ( $j('#height').val() == 'auto' ) {
+            src = src.replace(/height=[\.\d]+/i, 'height=0' );
+            streamImg.style.height = 'auto';
+          }
           if ( src != streamImg.src ) {
             streamImg.src = '';
             streamImg.src = src;
@@ -331,7 +334,7 @@ function changeScale() {
   Cookie.write('zmMontageScale', scale, {duration: 10*365});
   Cookie.write('zmMontageWidth', '', {duration: 10*365});
   Cookie.write('zmMontageHeight', '', {duration: 10*365});
-  if ( !scale ) {
+  if ( scale == '' ) {
     selectLayout('#zmMontageLayout');
     return;
   }
@@ -346,8 +349,12 @@ function changeScale() {
       console.log("Error finding frame for " + monitor.id);
       continue;
     }
-    if ( newWidth ) {
-      monitor_frame.css('width', newWidth);
+    if ( scale != '0' ) {
+      if ( newWidth ) {
+        monitor_frame.css('width', newWidth);
+      }
+    } else {
+      monitor_frame.css('width', '100%');
     }
     // We don't set the frame height because it has the status bar as well
     //if ( height ) {
@@ -361,13 +368,24 @@ function changeScale() {
         streamImg.src = '';
 
         //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-        src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
-        src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
-        src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);
+        if ( scale != '0' ) {
+          src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
+          src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
+          src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);
+        } else {
+          src = src.replace(/scale=[\.\d]+/i, 'scale=100');
+          src = src.replace(/width=[\.\d]+/i, 'width='+monitorData[i].width);
+          src = src.replace(/height=[\.\d]+/i, 'height='+monitorData[i].height);
+        }
         streamImg.src = src;
       }
-      streamImg.style.width = newWidth + "px";
-      streamImg.style.height = newHeight + "px";
+      if ( scale != '0' ) {
+        streamImg.style.width = newWidth + "px";
+        streamImg.style.height = newHeight + "px";
+      } else {
+        streamImg.style.width = '100%';
+        streamImg.style.height = 'auto';
+      }
     }
   }
 }

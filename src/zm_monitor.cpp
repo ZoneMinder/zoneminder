@@ -417,14 +417,14 @@ Monitor::Monitor(
 
   auto_resume_time = 0;
 
-  if ( strcmp( config.event_close_mode, "time" ) == 0 )
+  if ( strcmp(config.event_close_mode, "time") == 0 )
     event_close_mode = CLOSE_TIME;
-  else if ( strcmp( config.event_close_mode, "alarm" ) == 0 )
+  else if ( strcmp(config.event_close_mode, "alarm") == 0 )
     event_close_mode = CLOSE_ALARM;
   else
     event_close_mode = CLOSE_IDLE;
 
-  Debug( 1, "monitor purpose=%d", purpose );
+  Debug(1, "monitor purpose=%d", purpose);
 
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
@@ -444,17 +444,15 @@ Monitor::Monitor(
   storage = new Storage(storage_id);
   Debug(1, "Storage path: %s", storage->Path());
   // Should maybe store this for later use
-  char monitor_dir[PATH_MAX] = "";
+  char monitor_dir[PATH_MAX];
   snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
 
   if ( purpose == CAPTURE ) {
-    if ( mkdir(monitor_dir, 0755) ) {
-      if ( errno != EEXIST ) {
-        Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
-      }
+    if ( mkdir(monitor_dir, 0755) && ( errno != EEXIST ) ) {
+      Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
     }
 
-    if ( ! this->connect() ) {
+    if ( !this->connect() ) {
       Error("unable to connect, but doing capture");
       exit(-1);
     }
@@ -490,18 +488,14 @@ Monitor::Monitor(
     video_store_data->size = sizeof(VideoStoreData);
     //video_store_data->frameNumber = 0;
   } else if ( purpose == ANALYSIS ) {
-    if ( ! ( this->connect() && mem_ptr ) ) exit(-1);
+    if ( ! (this->connect() && mem_ptr && shared_data->valid) ) {
+      Error("Shared data not initialised by capture daemon for monitor %s", name);
+      exit(-1);
+    }
     shared_data->state = IDLE;
     shared_data->last_read_time = 0;
     shared_data->alarm_x = -1;
     shared_data->alarm_y = -1;
-  }
-
-  if ( ( ! mem_ptr ) || ! shared_data->valid ) {
-    if ( purpose != QUERY ) {
-      Error("Shared data not initialised by capture daemon for monitor %s", name);
-      exit(-1);
-    }
   }
 
   start_time = last_fps_time = time( 0 );
@@ -549,9 +543,8 @@ Monitor::Monitor(
         FifoStream::fifo_create_if_missing(diag_path_d.c_str());
       }
     }
-
-  } // end if purpose == ANALYSIS
-} // Monitor::Monitor
+  }  // end if purpose == ANALYSIS
+}  // Monitor::Monitor
 
 bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose );

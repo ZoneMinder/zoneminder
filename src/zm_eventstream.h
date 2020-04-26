@@ -81,13 +81,12 @@ class EventStream : public StreamBase {
 
     EventData *event_data;
 
-
   protected:
     bool loadEventData( uint64_t event_id );
     bool loadInitialEventData( uint64_t init_event_id, unsigned int init_frame_id );
     bool loadInitialEventData( int monitor_id, time_t event_time );
 
-    void checkEventLoaded();
+    bool checkEventLoaded();
     void processCommand( const CmdMsg *msg );
     bool sendFrame( int delta_us );
 
@@ -99,12 +98,30 @@ class EventStream : public StreamBase {
       curr_stream_time(0.0),
       send_frame(false),
       event_data(0),
-
+      storage(NULL),
       ffmpeg_input(NULL),
       // Used when loading frames from an mp4
       input_codec_context(0),
       input_codec(0)
     {}
+    ~EventStream() {
+        if ( event_data ) {
+          delete event_data;
+          event_data = NULL;
+        }
+        if ( monitor ) {
+          delete monitor;
+          monitor = NULL;
+        }
+        if ( storage ) {
+          delete storage;
+          storage = NULL;
+        }
+        if ( ffmpeg_input ) {
+          delete ffmpeg_input;
+          ffmpeg_input = NULL;
+        }
+    }
     void setStreamStart( uint64_t init_event_id, unsigned int init_frame_id );
     void setStreamStart( int monitor_id, time_t event_time );
     void setStreamMode( StreamMode p_mode ) {
@@ -113,6 +130,7 @@ class EventStream : public StreamBase {
     void runStream();
     Image *getImage();
   private:
+    Storage *storage;
     FFmpeg_Input  *ffmpeg_input;
     AVCodecContext *input_codec_context;
     AVCodec *input_codec;

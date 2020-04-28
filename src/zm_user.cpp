@@ -275,8 +275,9 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     const char *user = dbrow[1];
     const char *pass = dbrow[2];
 
-    for ( unsigned int i = 0; i < hours; i++, now -= 3600 ) {
-      struct tm *now_tm = localtime(&now);
+    time_t our_now = now;
+    for ( unsigned int i = 0; i < hours; i++, our_now -= 3600 ) {
+      struct tm *now_tm = localtime(&our_now);
 
       snprintf(auth_key, sizeof(auth_key)-1, "%s%s%s%s%d%d%d%d",
         config.auth_hash_secret,

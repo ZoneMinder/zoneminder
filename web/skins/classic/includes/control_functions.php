@@ -50,7 +50,7 @@ function controlZoom($monitor, $cmds) {
   <div class="arrowLabel"><?php echo translate('Tele') ?></div>
   <button type="button" class="longArrowBtn upBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['ZoomTele'] ?>" data-xtell="0" data-ytell="-1"></button>
   <button type="button" class="arrowCenter"<?php if ( $control->CanZoomCon() ) { ?> data-on-click-this="controlCmd" value="<?php echo $cmds['ZoomStop'] ?>"<?php } ?>><?php echo translate('Zoom') ?></button>
-  <button type="button" class="longArrowBtn downBtn" data-on-click-data="controlCmd" value="<?php echo $cmds['ZoomWide'] ?>" data-xtell="0" data-ytell="1"></button>
+  <button type="button" class="longArrowBtn downBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['ZoomWide'] ?>" data-xtell="0" data-ytell="1"></button>
   <div class="arrowLabel"><?php echo translate('Wide') ?></div>
 <?php
   if ( $control->CanAutoZoom() ) {

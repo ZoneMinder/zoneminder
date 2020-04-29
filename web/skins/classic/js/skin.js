@@ -182,8 +182,8 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       return;
     }
 
-    el.onclick = function() {
-      window[fnName]();
+    el.onclick = function(ev) {
+      window[fnName](ev);
     };
   });
 

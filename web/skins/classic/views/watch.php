@@ -46,7 +46,7 @@ if ( isset($_REQUEST['scale']) ) {
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
   $scale = $_COOKIE['zmWatchScale'.$mid];
 } else {
-  $scale = reScale(SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE);
+  $scale = $monitor->DefaultScale();
 }
 
 $connkey = generateConnKey();

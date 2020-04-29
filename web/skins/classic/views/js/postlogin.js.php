@@ -21,13 +21,13 @@
       }
 			?>';
 
-    if ( querySuffix == '?view=login' ) {
+    if ( querySuffix == '?view=login' || querySuffix == '' ) {
       // If we didn't redirect elsewhere, then don't show login page, go to console
       querySuffix = '?view=console';
     }
     var newUrl = querySuffix;
-
-console.log("Redirecting to" + newUrl + ' ' + thisUrl);
+console.log("Current location: " + window.location);
+console.log("Redirecting to (" + newUrl + ') from :' + thisUrl);
 		window.location.replace(newUrl);
 	}
 ).delay( 500 );

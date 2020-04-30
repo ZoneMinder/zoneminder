@@ -107,14 +107,18 @@ User *zmLoadUser(const char *username, const char *password) {
   mysql_real_escape_string(&dbconn, safer_username, username, username_length);
 
   snprintf(sql, sizeof(sql),
-      "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`"
-      " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", safer_username);
+      "SELECT `Id`, `Username`, `Password`, `Enabled`,"
+      " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
+      " `MonitorIds`"
+      " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1",
+      safer_username);
+  delete[] safer_username;
+  safer_username = NULL;
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     exit(mysql_errno(&dbconn)); 
   }
-  delete safer_username;
 
   MYSQL_RES *result = mysql_store_result(&dbconn);
   if ( !result ) {

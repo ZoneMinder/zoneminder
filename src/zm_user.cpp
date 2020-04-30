@@ -115,7 +115,7 @@ User *zmLoadUser(const char *username, const char *password) {
       " `MonitorIds`"
       " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1",
       safer_username);
-  delete safer_username;
+  delete[] safer_username;
   safer_username = NULL;
 
   if ( mysql_query(&dbconn, sql) ) {

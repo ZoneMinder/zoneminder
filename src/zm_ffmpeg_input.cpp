@@ -19,7 +19,7 @@ FFmpeg_Input::~FFmpeg_Input() {
       avcodec_close(streams[i].context);
       streams[i].context = NULL;
     }
-    delete streams;
+    delete[] streams;
     streams = NULL;
   }
   if ( frame ) {

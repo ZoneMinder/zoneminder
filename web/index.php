@@ -71,7 +71,7 @@ define('ZM_BASE_URL', '');
 
 require_once('includes/functions.php');
 if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
-  ZM\Logger::Debug("OPTIONS Method, only doing CORS");
+  ZM\Logger::Debug('OPTIONS Method, only doing CORS');
   # Add Cross domain access headers
   CORSHeaders();
   return;

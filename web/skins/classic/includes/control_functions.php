@@ -162,7 +162,7 @@ function controlPresets($monitor, $cmds) {
 <?php
   for ( $i = 1; $i <= $control->NumPresets(); $i++ ) {
     ?>
-      <button type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?htmlentities($labels[$i]):'' ?>" value="<?php echo $i ?>" data-on-click-this="controlCmd" value="<?php echo $cmds['PresetGoto'] ?><?php echo $i ?>"/><?php echo $i ?></button>
+      <button type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?htmlentities($labels[$i]):'' ?>"  data-on-click-this="controlCmd" value="<?php echo $cmds['PresetGoto'] ?><?php echo $i ?>"/><?php echo $i ?></button>
 <?php
   } // end foreach preset
 ?>

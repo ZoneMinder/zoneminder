@@ -604,7 +604,6 @@ bool EventStream::checkEventLoaded() {
 
       loadEventData(event_id);
 
-      Debug(2, "Current frame id = %d", curr_frame_id);
       if ( replay_rate < 0 )  // rewind
         curr_frame_id = event_data->frame_count;
       else

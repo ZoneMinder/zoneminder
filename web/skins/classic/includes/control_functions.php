@@ -55,8 +55,8 @@ function controlZoom($monitor, $cmds) {
 <?php
   if ( $control->CanAutoZoom() ) {
 ?>
-  <button type="button" class="ptzTextBtn" value="Auto" data-on-click="controlCmd" value="<?php echo $cmds['ZoomAuto'] ?>"><?php echo translate('Auto') ?></button>
-  <button type="button" class="ptzTextBtn" value="Man" data-on-click="controlCmd" value="<?php echo $cmds['ZoomMan'] ?>"><?php echo translate('Man') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['ZoomAuto'] ?>"><?php echo translate('Auto') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['ZoomMan'] ?>"><?php echo translate('Man') ?></button>
 <?php
   }
 ?>
@@ -77,8 +77,8 @@ function controlIris($monitor, $cmds) {
 <?php
   if ( $control->CanAutoIris() ) {
 ?>
-  <button type="button" class="ptzTextBtn" value="Auto" data-on-click="controlCmd" value="<?php echo $cmds['IrisAuto'] ?>"><?php echo translate('Auto') ?></button>
-  <button type="button" class="ptzTextBtn" value="Man" data-on-click="controlCmd" value="<?php echo $cmds['IrisMan'] ?>"><?php echo translate('Man') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['IrisAuto'] ?>"><?php echo translate('Auto') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['IrisMan'] ?>"><?php echo translate('Man') ?></button>
 <?php
   }
 ?>
@@ -100,8 +100,8 @@ function controlWhite($monitor, $cmds) {
 <?php
   if ( $control->CanAutoWhite() ) {
 ?>
-  <button type="button" class="ptzTextBtn" value="Auto" data-on-click="controlCmd" value="<?php echo $cmds['WhiteAuto'] ?>"><?php echo translate('Auto') ?></button>
-  <button type="button" class="ptzTextBtn" value="Man" data-on-click="controlCmd" value="<?php echo $cmds['WhiteMan'] ?>"><?php echo translate('Man') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['WhiteAuto'] ?>"><?php echo translate('Auto') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['WhiteMan'] ?>"><?php echo translate('Man') ?></button>
 <?php
   }
 ?>
@@ -162,7 +162,7 @@ function controlPresets($monitor, $cmds) {
 <?php
   for ( $i = 1; $i <= $control->NumPresets(); $i++ ) {
     ?>
-      <button type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?htmlentities($labels[$i]):'' ?>"  data-on-click-this="controlCmd" value="<?php echo $cmds['PresetGoto'] ?><?php echo $i ?>"/><?php echo $i ?></button>
+      <button type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?htmlentities($labels[$i]):'' ?>" data-on-click="controlCmd" value="<?php echo $cmds['PresetGoto'].$i ?>"/><?php echo $i ?></button>
 <?php
   } // end foreach preset
 ?>
@@ -223,9 +223,7 @@ function controlPower($monitor, $cmds) {
 
 function ptzControls($monitor) {
   $control = $monitor->Control();
-  //ZM\Error("Control: " . print_r($control,true));
   $cmds = $control->commands();
-  //ZM\Error("Cmds: " . print_r($cmds, true));
   ob_start();
 ?>
 <div class="controlsPanel">

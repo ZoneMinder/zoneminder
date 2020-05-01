@@ -164,7 +164,22 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->Orientation = (Monitor::Orientation)(dbrow[8] == NULL ? 0 : atoi(dbrow[8]));
   mysql_free_result(result);
 
-  Storage * storage = new Storage(event_data->storage_id);
+  if ( !monitor ) {
+    monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY);
+  } else if ( monitor->Id() != event_data->monitor_id ) {
+    delete monitor;
+    monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY);
+  }
+  if ( !monitor ) {
+    Fatal("Unable to load monitor id %d for streaming", event_data->monitor_id);
+  }
+
+  if ( !storage ) {
+    storage = new Storage(event_data->storage_id);
+  } else if ( storage->Id() != event_data->storage_id ) {
+    delete storage;
+    storage = new Storage(event_data->storage_id);
+  }
   const char *storage_path = storage->Path();
 
   if ( event_data->scheme == Storage::DEEP ) {
@@ -206,7 +221,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_data->event_id);
   }
-  delete storage; storage = NULL;
 
   updateFrameRate((double)event_data->frame_count/event_data->duration);
   Debug(3, "fps set by frame_count(%d)/duration(%f)",
@@ -246,7 +260,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
         event_data->frames[i-1].timestamp = last_timestamp + ((i-last_id)*frame_delta);
         event_data->frames[i-1].offset = event_data->frames[i-1].timestamp - event_data->start_time;
         event_data->frames[i-1].in_db = false;
-        Debug(3,"Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
+        Debug(3, "Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
             i,
             event_data->frames[i-1].timestamp,
             event_data->frames[i-1].offset,
@@ -308,7 +322,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
 void EventStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
   // Check for incoming command
-  switch( (MsgCommand)msg->msg_data[0] ) {
+  switch ( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
         Debug(1, "Got PAUSE command");
 
@@ -660,7 +674,8 @@ bool EventStream::sendFrame(int delta_us) {
     Image *send_image = prepareImage(&image);
 
     if ( !vid_stream ) {
-      vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
+      vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps,
+          send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
@@ -703,9 +718,10 @@ Debug(1, "Loading image");
       } else if ( ffmpeg_input ) {
         // Get the frame from the mp4 input
         Debug(1,"Getting frame from ffmpeg");
-        AVFrame *frame;
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
-        frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), frame_data->offset );
+        AVFrame *frame = ffmpeg_input->get_frame(
+            ffmpeg_input->get_video_stream_id(),
+            frame_data->offset);
         if ( frame ) {
           image = new Image(frame);
           //av_frame_free(&frame);
@@ -985,8 +1001,8 @@ void EventStream::runStream() {
       // you can calculate the relationship between now and the start
       // or calc the relationship from the last frame.  I think from the start is better as it self-corrects
 
-      if ( send_frame && type != STREAM_MPEG ) {
-        if ( delta_us > 0) {
+      if ( send_frame && (type != STREAM_MPEG) ) {
+        if ( delta_us > 0 ) {
           if ( delta_us > MAX_SLEEP_USEC ) {
             Debug(1, "Limiting sleep to %d because calculated sleep is too long %d", MAX_SLEEP_USEC, delta_us);
             delta_us = MAX_SLEEP_USEC;
@@ -1029,18 +1045,12 @@ void EventStream::runStream() {
   closeComms();
 } // void EventStream::runStream()
 
-void EventStream::setStreamStart( uint64_t init_event_id, unsigned int init_frame_id=0 ) {
+void EventStream::setStreamStart(
+    uint64_t init_event_id,
+    unsigned int init_frame_id=0) {
   loadInitialEventData(init_event_id, init_frame_id);
-  if ( !(monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY)) ) {
-    Fatal("Unable to load monitor id %d for streaming", event_data->monitor_id);
-    return;
-  }
-}
+}  // end void EventStream::setStreamStart(init_event_id,init_frame_id=0)
 
 void EventStream::setStreamStart(int monitor_id, time_t event_time) {
   loadInitialEventData(monitor_id, event_time);
-  if ( !(monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY)) ) {
-    Fatal("Unable to load monitor id %d for streaming", monitor_id);
-    return;
-  }
 }

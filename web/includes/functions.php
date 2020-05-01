@@ -442,9 +442,10 @@ function makeLink($url, $label, $condition=1, $options='') {
  */
 function makePopupLink($url, $winName, $winSize, $label, $condition=1, $options='') {
   // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
-  $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
-  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
+  $string = '<a';
   if ( $condition ) {
+    $string .= ' class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false) . '"';
+    $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
     if ( is_array( $winSize ) ) {
       $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
       $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
@@ -455,7 +456,7 @@ function makePopupLink($url, $winName, $winSize, $label, $condition=1, $options=
 
     $string .= ($options ? (' ' . $options ) : '') . '>';
   } else {
-    $string .= '<a>';
+    $string .= '>';
   }
   $string .= $label;
   $string .= '</a>';
@@ -520,7 +521,8 @@ function htmlOptions($contents, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>';
+      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>
+';
   }
   return $options_html;
 }
@@ -776,7 +778,7 @@ function canStreamIframe() {
 
 function canStreamNative() {
   // Old versions of Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
-  return( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
+  return ( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
 }
 
 function canStreamApplet() {
@@ -908,11 +910,11 @@ function createListThumbnail($event, $overwrite=false) {
   if ( ZM_WEB_LIST_THUMB_WIDTH ) {
     $thumbWidth = ZM_WEB_LIST_THUMB_WIDTH;
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$event['Width'];
-    $thumbHeight = reScale( $event['Height'], $scale );
+    $thumbHeight = reScale($event['Height'], $scale);
   } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
     $thumbHeight = ZM_WEB_LIST_THUMB_HEIGHT;
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$event['Height'];
-    $thumbWidth = reScale( $event['Width'], $scale );
+    $thumbWidth = reScale($event['Width'], $scale);
   } else {
     ZM\Fatal('No thumbnail width or height specified, please check in Options->Web');
   }
@@ -949,11 +951,11 @@ function createVideo($event, $format, $rate, $scale, $overwrite=false) {
 
 # This takes more than one scale amount, so it runs through each and alters dimension.
 # I can't imagine why you would want to do that.
-function reScale( $dimension, $dummy ) {
+function reScale($dimension, $dummy) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
-    $scale = func_get_arg( $i );
-    if ( !empty($scale) && ($scale != 'auto') && ($scale != SCALE_BASE) )
+    $scale = func_get_arg($i);
+    if ( !empty($scale) && ($scale != '0') && ($scale != 'auto') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
   }
   return $new_dimension;
@@ -1115,6 +1117,9 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($term['attr']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($term['attr'])."\"/>\n";
         switch ( $term['attr'] ) {
+					case 'AlarmedZoneId':
+						$term['op'] = 'EXISTS';
+						break;
           case 'MonitorName':
             $filter['sql'] .= 'M.Name';
             break;
@@ -1233,11 +1238,15 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         if ( !isset($term['val']) ) $term['val'] = '';
         foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
           switch ( $term['attr'] ) {
+				
+						case 'AlarmedZoneId':
+							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+							break;
             case 'MonitorName':
             case 'Name':
             case 'Cause':
             case 'Notes':
-              if($term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE') {
+              if ( $term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE' ) {
                 $value = '%'.$value.'%';
               }
               $value = dbEscape($value);
@@ -1268,8 +1277,11 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             case 'Date':
             case 'StartDate':
             case 'EndDate':
-              if ( $value != 'NULL' )
-                $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+							if ( $value == 'CURDATE()' or $value == 'NOW()' ) {
+								$value = 'to_days('.$value.')';
+							} else if ( $value != 'NULL' ) {
+							  $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+							}
               break;
             case 'Time':
             case 'StartTime':
@@ -1304,10 +1316,13 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             break;
           case '=[]' :
           case 'IN' :
-            $filter['sql'] .= ' in ('.join(',', $valueList).')';
+            $filter['sql'] .= ' IN ('.join(',', $valueList).')';
             break;
           case '![]' :
             $filter['sql'] .= ' not in ('.join(',', $valueList).')';
+            break;
+					case 'EXISTS' :
+						$filter['sql'] .= ' EXISTS ' .$value;
             break;
           case 'IS' :
             if ( $value == 'Odd' )  {
@@ -2290,7 +2305,7 @@ function validHtmlStr($input) {
 function getStreamHTML($monitor, $options = array()) {
 
   if ( isset($options['scale']) ) {
-    if ( $options['scale'] != 'auto' ) {
+    if ( $options['scale'] and ( $options['scale'] != 'auto' ) ) {
       $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
       $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
     } else {

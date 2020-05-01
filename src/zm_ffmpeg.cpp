@@ -559,6 +559,8 @@ int zm_send_packet_receive_frame(
     }
     return ret;
   }
+  // In this api the packet is always consumed, so return packet.bytes
+  return packet.size;
 # else
   int frameComplete = 0;
   while ( !frameComplete ) {
@@ -572,8 +574,8 @@ int zm_send_packet_receive_frame(
       return ret;
     }
   } // end while !frameComplete
+  return ret;
 #endif
-  return 0;
 } // end int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 
 /* Returns < 0 on error, 0 if codec not ready, 1 on success

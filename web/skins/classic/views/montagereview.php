@@ -62,6 +62,17 @@ ob_end_clean();
 $filter = array();
 if ( isset($_REQUEST['filter']) ) {
   $filter = $_REQUEST['filter'];
+
+	# Try to guess min/max time from filter
+	foreach ( $filter['Query'] as $term ) {
+		if ( $term['attr'] == 'StartDateTime' ) {
+			if ( $term['op'] == '<=' or $term['op'] == '<' ) {
+				$maxTime = $term['val'];
+			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
+				$minTime = $term['val'];
+			}
+		}
+	}
 } else {
 
   if ( isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0) ) {

@@ -53,6 +53,7 @@ public:
   int Disconnect();
   int SendRequest();
   int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
+	int GetData();
   int GetResponse();
   int PreCapture();
   int Capture( Image &image );

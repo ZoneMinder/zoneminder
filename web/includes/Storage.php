@@ -16,6 +16,7 @@ class Storage extends ZM_Object {
     'Scheme'    => 'Medium',
     'ServerId'  => 0,
     'DoDelete'  => 1,
+    'Enabled'   => 1,
   );
   public static function find($parameters = array(), $options = array()) {
     return ZM_Object::_find(get_class(), $parameters, $options);

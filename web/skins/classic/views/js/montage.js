@@ -13,6 +13,8 @@ function Monitor(monitorData) {
   this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
   if ( auth_hash ) {
     this.streamCmdParms += '&auth='+auth_hash;
+  } else if ( auth_relay ) {
+    this.streamCmdParms += '&'+auth_relay;
   }
   this.streamCmdTimer = null;
   this.type = monitorData.type;
@@ -482,6 +484,7 @@ function initPage() {
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    console.log("delay: " + delay);
     monitors[i].start(delay);
 
     var interval = monitors[i].refresh;

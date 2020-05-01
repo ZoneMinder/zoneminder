@@ -166,7 +166,7 @@ function changeScale() {
   } // stills handles its own width
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
-    streamScale((scale == '0' || scale == 'auto' ) ? autoScale : scale);
+    streamScale(scale == '0' ? autoScale : scale);
     drawProgressBar();
   }
   if ( streamMode == 'stills' ) {
@@ -175,7 +175,7 @@ function changeScale() {
   } else {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
-  if ( scale = '0' || scale == 'auto' ) {
+  if ( scale == '0' ) {
     Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
   } else {
     Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365});
@@ -309,7 +309,6 @@ function pauseClicked() {
 }
 
 function streamPause( ) {
-
   $j('#modeValue').html('Paused');
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('playBtn'), 'inactive' );

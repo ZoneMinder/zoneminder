@@ -15,10 +15,26 @@ FFmpeg_Input::FFmpeg_Input() {
 
 FFmpeg_Input::~FFmpeg_Input() {
   if ( streams ) {
-    delete streams;
+    for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
+      avcodec_close(streams[i].context);
+      streams[i].context = NULL;
+    }
+    delete[] streams;
     streams = NULL;
   }
-}
+  if ( frame ) {
+    av_frame_free(&frame);
+    frame = NULL;
+  }
+  if ( input_format_context ) {
+#if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
+    av_close_input_file(input_format_context);
+#else
+    avformat_close_input(&input_format_context);
+#endif
+    input_format_context = NULL;
+  }
+}  // end ~FFmpeg_Input()
 
 int FFmpeg_Input::Open(const char *filepath) {
 
@@ -90,6 +106,7 @@ int FFmpeg_Input::Open(const char *filepath) {
       avcodec_free_context(&streams[i].context);
 #endif
       avformat_close_input(&input_format_context);
+      input_format_context = NULL;
       return error;
     }
   } // end foreach stream
@@ -103,7 +120,6 @@ int FFmpeg_Input::Open(const char *filepath) {
 } // end int FFmpeg_Input::Open( const char * filepath )
 
 AVFrame *FFmpeg_Input::get_frame(int stream_id) {
-
   int frameComplete = false;
   AVPacket packet;
   av_init_packet(&packet);
@@ -139,8 +155,8 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       }
       ret = zm_send_packet_receive_frame(context, frame, packet);
       if ( ret < 0 ) {
-        Error("Unable to decode frame at frame %d: %s, continuing",
-            streams[packet.stream_index].frame_count, av_make_error_string(ret).c_str());
+        Error("Unable to decode frame at frame %d: %d %s, continuing",
+            streams[packet.stream_index].frame_count, ret, av_make_error_string(ret).c_str());
         zm_av_packet_unref(&packet);
         av_frame_free(&frame);
         continue;
@@ -211,15 +227,17 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
 	last_seek_request = seek_target;
 
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
-  if ( frame->pts <= seek_target  ) {
+  if ( frame->pts <= seek_target ) {
     zm_dump_frame(frame, "pts <= seek_target");
     while ( frame && (frame->pts < seek_target) ) {
-      if ( !get_frame(stream_id) ) 
+      if ( !get_frame(stream_id) ) {
+        Warning("Got no frame. returning nothing");
         return frame;
+      }
     }
+    zm_dump_frame(frame, "frame->pts <= seek_target, got");
     return frame;
   }
 
   return get_frame(stream_id);
-
-} // end AVFrame *FFmpeg_Input::get_frame( int stream_id, struct timeval at)
+}  // end AVFrame *FFmpeg_Input::get_frame( int stream_id, struct timeval at)

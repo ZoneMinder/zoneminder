@@ -196,7 +196,7 @@ my $last_action = 0;
 while( !$zm_terminate ) {
   my $now = time;
   if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
-    Debug("Reloading filters");
+    Debug('Reloading filters');
     $last_action = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
   }
@@ -699,8 +699,10 @@ sub substituteTags {
   $text =~ s/%ESM%/$Event->{MaxScore}/g;
 
   if ( $first_alarm_frame ) {
-    $text =~ s/%EPI1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
-    $text =~ s/%EPIM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPF1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPFM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPI1%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPIM%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
     if ( $attachments_ref ) {
       if ( $text =~ s/%EI1%//g ) {
         my $path = generateImage($Event, $first_alarm_frame);
@@ -748,13 +750,14 @@ sub substituteTags {
         }
       }
 
-      if ( $text =~ s/%EIMOD%//g ) {
-        $text =~ s/%EIMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+      if ( $text =~ s/%EIMOD%//g or $text =~ s/%EFMOD%//g ) {
+        $text =~ s/%EFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+        $text =~ s/%EIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
         my $path = $Event->Path().'/objdetect.jpg';
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         } else {
-          Warning('No image for EIMOD at ' . $path);
+          Warning('No image for MOD at '.$path);
         }
       }
 
@@ -796,17 +799,17 @@ sub sendEmail {
     Error('No from email address defined, not sending email');
     return 0;
   }
-  if ( ! $Config{ZM_EMAIL_ADDRESS} ) {
+  if ( ! $$filter{EmailTo} ) {
     Error('No email address defined, not sending email');
     return 0;
   }
 
   Info('Creating notification email');
 
-  my $subject = substituteTags($Config{ZM_EMAIL_SUBJECT}, $filter, $Event);
+  my $subject = substituteTags($$filter{EmailSubject}, $filter, $Event);
   return 0 if !$subject;
   my @attachments;
-  my $body = substituteTags($Config{ZM_EMAIL_BODY}, $filter, $Event, \@attachments);
+  my $body = substituteTags($$filter{EmailBody}, $filter, $Event, \@attachments);
   return 0 if !$body;
 
   Info("Sending notification email '$subject'");
@@ -816,7 +819,7 @@ sub sendEmail {
 ### Create the multipart container
       my $mail = MIME::Lite->new (
           From => $Config{ZM_FROM_EMAIL},
-          To => $Config{ZM_EMAIL_ADDRESS},
+          To => $$filter{EmailTo},
           Subject => $subject,
           Type => 'multipart/mixed'
           );
@@ -826,13 +829,19 @@ sub sendEmail {
           Data => $body
           );
 ### Add the attachments
+      my $total_size = 0;
       foreach my $attachment ( @attachments ) {
-        Info( "Attaching '$attachment->{path}'" );
+        my $size = -s $attachment->{path};
+        $total_size += $size;
+        Info("Attaching '$attachment->{path}' which is $size bytes");
         $mail->attach(
             Path => $attachment->{path},
             Type => $attachment->{type},
             Disposition => 'attachment'
             );
+      }
+      if ( $total_size > 10*1024*1024 ) {
+        Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
 ### Send the Message
       if ( $Config{ZM_SSMTP_MAIL} ) {
@@ -849,7 +858,7 @@ sub sendEmail {
           $mail->send();
         } else {
 ### Send using SSMTP
-          $mail->send('sendmail', $ssmtp_location, $Config{ZM_EMAIL_ADDRESS});
+          $mail->send('sendmail', $ssmtp_location, $$filter{EmailTo});
         }
       } else {
         MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
@@ -857,20 +866,27 @@ sub sendEmail {
       }
     } else {
       my $mail = MIME::Entity->build(
-          From => $Config{ZM_FROM_EMAIL},
-          To => $Config{ZM_EMAIL_ADDRESS},
-          Subject => $subject,
-          Type => (($body=~/<html/)?'text/html':'text/plain'),
-          Data => $body
-          );
+        From => $Config{ZM_FROM_EMAIL},
+        To => $$filter{EmailTo},
+        Subject => $subject,
+        Type => (($body=~/<html/)?'text/html':'text/plain'),
+        Data => $body
+      );
 
+      my $total_size = 0;
       foreach my $attachment ( @attachments ) {
-        Info("Attaching '$attachment->{path}'");
+        my $size = -s $attachment->{path};
+        $total_size += $size;
+        Info("Attaching '$attachment->{path}' which is $size bytes");
+
         $mail->attach(
-            Path => $attachment->{path},
-            Type => $attachment->{type},
-            Encoding => 'base64'
-            );
+          Path => $attachment->{path},
+          Type => $attachment->{type},
+          Encoding => 'base64'
+        );
+      } # end foreach attachment
+      if ( $total_size > 10*1024*1024 ) {
+        Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
       $mail->smtpsend(Host => $Config{ZM_EMAIL_HOST}, MailFrom => $Config{ZM_FROM_EMAIL});
     }

@@ -66,6 +66,15 @@ function updateButtons(element) {
   }
 }
 
+function click_AutoEmail(element) {
+  updateButtons(this);
+  if ( this.checked ) {
+    $j('#EmailOptions').show();
+  } else {
+    $j('#EmailOptions').hide();
+  }
+}
+
 function click_automove(element) {
   updateButtons(this);
   if ( this.checked ) {
@@ -105,10 +114,11 @@ function submitToEvents( element ) {
   history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
 
-function submitToMontageReview( element ) {
+function submitToMontageReview(element) {
   var form = element.form;
   form.action = thisUrl + '?view=montagereview';
-  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+  window.location.assign('?view=montagereview&'+$j(form).serialize());
+  history.replaceState(null, null, '?view=montagereview&live=0&' + $j(form).serialize());
 }
 
 function submitToExport(element) {
@@ -143,8 +153,8 @@ function deleteFilter( element ) {
 }
 var escape = document.createElement('textarea');
 function escapeHTML(html) {
-    escape.textContent = html;
-    return escape.innerHTML;
+  escape.textContent = html;
+  return escape.innerHTML;
 }
 
 function parseRows(rows) {
@@ -188,7 +198,8 @@ function parseRows(rows) {
     }
 
     var attr = inputTds.eq(2).children().val();
-    if ( attr == 'Archived' ) { // Archived types
+
+    if ( attr == 'Archived' ) { //Archived types
       inputTds.eq(3).html('equal to<input type="hidden" name="filter[Query][terms][' + rowNum + '][op]" value="=">');
       var archiveSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < archiveTypes.length; i++) {
@@ -196,6 +207,18 @@ function parseRows(rows) {
       }
       var archiveVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).chosen({width: "101%"});
+    } else if ( attr == 'AlarmedZoneId' ) {
+      var zoneSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      for ( monitor_id in monitors ) {
+        for ( zone_id in zones ) {
+          var zone = zones[zone_id];
+          if ( monitor_id == zone.MonitorId ) {
+            zoneSelect.append('<option value="' + zone_id + '">' + zone.Name + '</option>');
+          }
+        } // end foreach zone
+      } // end foreach monitor
+      var zoneVal = inputTds.eq(4).children().val();
+      inputTds.eq(4).html(zoneSelect).children().val(zoneVal).chosen({width: "101%"});
     } else if ( attr.indexOf('Weekday') >= 0 ) { //Weekday selection
       var weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < weekdays.length; i++) {
@@ -231,17 +254,24 @@ function parseRows(rows) {
       }
       var monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal);
-    } else { //Reset to regular text field and operator for everything that isn't special
-      var opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
-      for (var key in opTypes) {
-        opSelect.append('<option value="' + key + '">' + opTypes[key] + '</option>');
-      }
-      var opVal = inputTds.eq(3).children().val();
-      inputTds.eq(3).html(opSelect).children().val(opVal).chosen({width: "101%"});
+    } else { // Reset to regular text field and operator for everything that isn't special
       var textInput = $j('<input></input>').attr('type', 'text').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       var textVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(textInput).children().val(textVal);
     }
+
+    // Validate the operator
+    var opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
+    var opVal = inputTds.eq(3).children().val();
+    if ( ! opVal ) {
+      // Default to equals so that something gets selected
+      console.log("No value for operator. Defaulting to =");
+      opVal = '=';
+    }
+    for ( var key in opTypes ) {
+      opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
+    }
+    inputTds.eq(3).html(opSelect).children().val(opVal).chosen({width: "101%"});
     if ( attr.endsWith('DateTime') ) { //Start/End DateTime
       inputTds.eq(4).children().datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     } else if ( attr.endsWith('Date') ) { //Start/End Date

@@ -2213,7 +2213,7 @@ our @options = (
       that match the appropriate filters will be sent to.
       `,
     type        => $types{email},
-    category    => 'mail',
+    category    => 'hidden',
   },
   {
     name        => 'ZM_EMAIL_TEXT',
@@ -2253,7 +2253,7 @@ our @options = (
       sent for any events that match the appropriate filters.
       `,
     type        => $types{string},
-    category    => 'mail',
+    category    => 'hidden',
   },
   {
     name        => 'ZM_EMAIL_BODY',
@@ -2280,7 +2280,7 @@ our @options = (
       sent for any events that match the appropriate filters.
       `,
     type        => $types{text},
-    category    => 'mail',
+    category    => 'hidden',
   },
   {
     name        => 'ZM_OPT_MESSAGE',

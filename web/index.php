@@ -52,6 +52,9 @@ require_once('includes/Event.php');
 require_once('includes/Group.php');
 require_once('includes/Monitor.php');
 
+global $Servers;
+$Servers = ZM\Server::find();
+
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
   or
@@ -152,8 +155,6 @@ if (
   setcookie('zmCSS', $css, time()+3600*24*30*12*10);
 }
 
-
-
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
 
@@ -173,7 +174,6 @@ $view = null;
 $user = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
-
 
 # Add CSP Headers
 $cspNonce = bin2hex(zm_random_bytes(16));

@@ -106,6 +106,10 @@ class EventStream : public StreamBase {
     {}
     ~EventStream() {
         if ( event_data ) {
+          if ( event_data->frames ) {
+            delete[] event_data->frames;
+            event_data->frames = NULL;
+          }
           delete event_data;
           event_data = NULL;
         }

@@ -76,7 +76,7 @@ if ( canView('Control') && $monitor->Type() == 'Local' ) {
         <div id="closeControl"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>
 <?php
-if ( $monitor->Status() != 'Connected' ) {
+if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
   echo '<div class="warning">Monitor is not capturing. We will be unable to provide an image</div>';
 }
 ?>

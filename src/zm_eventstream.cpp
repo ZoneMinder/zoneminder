@@ -277,7 +277,10 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   mysql_free_result(result);
 
-  if ( event_data->video_file[0] ) {
+  if ( event_data->video_file[0] || (monitor->GetOptVideoWriter() > 0) ) {
+    if ( !event_data->video_file[0] ) {
+      snprintf(event_data->video_file, sizeof(event_data->video_file), "%" PRIu64 "-%s", event_data->event_id, "video.mp4");
+    }
     std::string filepath = std::string(event_data->path) + "/" + std::string(event_data->video_file);
     //char filepath[PATH_MAX];
     //snprintf(filepath, sizeof(filepath), "%s/%s", event_data->path, event_data->video_file);

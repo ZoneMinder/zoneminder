@@ -90,7 +90,7 @@ class EventStream : public StreamBase {
     bool loadInitialEventData( uint64_t init_event_id, unsigned int init_frame_id );
     bool loadInitialEventData( int monitor_id, time_t event_time );
 
-    void checkEventLoaded();
+    bool checkEventLoaded();
     void processCommand( const CmdMsg *msg );
     bool sendFrame( int delta_us );
 

@@ -543,7 +543,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
   updateFrameRate((double)event_data->frame_count/event_data->duration);
 } // void EventStream::processCommand(const CmdMsg *msg)
 
-void EventStream::checkEventLoaded() {
+bool EventStream::checkEventLoaded() {
   static char sql[ZM_SQL_SML_BUFSIZ];
 
   if ( curr_frame_id <= 0 ) {
@@ -558,7 +558,7 @@ void EventStream::checkEventLoaded() {
     // No event change required
     Debug(3, "No event change required, as curr frame %d <=> event frames %d",
         curr_frame_id, event_data->frame_count);
-    return;
+    return false;
   }
 
   // Event change required.
@@ -586,12 +586,12 @@ void EventStream::checkEventLoaded() {
 
       loadEventData(event_id);
 
-      Debug(2, "Current frame id = %d", curr_frame_id);
       if ( replay_rate < 0 )  // rewind
         curr_frame_id = event_data->frame_count;
       else
         curr_frame_id = 1;
       Debug(2, "New frame id = %d", curr_frame_id);
+      return true;
     } else {
       Debug(2, "No next event loaded using %s. Pausing", sql);
       if ( curr_frame_id <= 0 )
@@ -611,6 +611,7 @@ void EventStream::checkEventLoaded() {
       curr_frame_id = event_data->frame_count;
     paused = true;
   }
+  return false;
 } // void EventStream::checkEventLoaded()
 
 Image * EventStream::getImage( ) {

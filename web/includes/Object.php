@@ -249,7 +249,7 @@ class ZM_Object {
           }
         }
       } else if ( array_key_exists($field, $this->defaults) ) {
-        if ( is_array($this->defaults[$field]) ) {
+        if ( is_array($this->defaults[$field]) and isset($this->defaults[$field]['default']) ) {
           $default = $this->defaults[$field]['default'];
         } else {
           $default = $this->defaults[$field];

@@ -39,7 +39,7 @@ class Monitor extends ZM_Object {
     'Height' => null,
     'Colours' => 4,
     'Palette' =>  '0',
-    'Orientation' => null,
+    'Orientation' => 'ROTATE_0',
     'Deinterlacing' =>  0,
     'DecoderHWAccelName'  =>  null,
     'DecoderHWAccelDevice'  =>  null,

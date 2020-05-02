@@ -41,11 +41,17 @@ static struct CodecData codec_data[];
   int audio_in_stream_index;
 
   AVCodec *video_out_codec;
+  AVCodecContext *video_in_ctx;
   AVCodecContext *video_out_ctx;
 
   AVStream *video_in_stream;
   AVStream *audio_in_stream;
 
+  const AVCodec *audio_in_codec;
+  AVCodecContext *audio_in_ctx;
+  // The following are used when encoding the audio stream to AAC
+  AVCodec *audio_out_codec;
+  AVCodecContext *audio_out_ctx;
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
   AVPacket opkt;
   // we are transcoding
@@ -53,18 +59,10 @@ static struct CodecData codec_data[];
   AVFrame *in_frame;
   AVFrame *out_frame;
 
-  AVCodecContext *video_in_ctx;
-  const AVCodec *audio_in_codec;
-  AVCodecContext *audio_in_ctx;
-
   SWScale swscale;
   unsigned int packets_written;
   unsigned int frame_count;
 
-  // The following are used when encoding the audio stream to AAC
-  AVStream *audio_out_stream;
-  AVCodec *audio_out_codec;
-  AVCodecContext *audio_out_ctx;
 #ifdef HAVE_LIBSWRESAMPLE
   SwrContext *resample_ctx;
 #else

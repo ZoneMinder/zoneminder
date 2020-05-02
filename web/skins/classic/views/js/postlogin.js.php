@@ -11,12 +11,15 @@
 (
 	function () {
 		// Append '?(GET query)' to URL if the GET query is not empty.
-		var querySuffix = "<?php
-			if (!empty($_POST['postLoginQuery'])) {
-        parse_str($_POST['postLoginQuery'], $queryParams);
+		var querySuffix = '<?php
+			if (!empty($_SESSION['postLoginQuery'])) {
+        parse_str($_SESSION['postLoginQuery'], $queryParams);
         echo '?' . http_build_query($queryParams);
+        zm_session_start();
+        unset($_SESSION['postLoginQuery']);
+        session_write_close();
       }
-			?>";
+			?>';
 
     if ( querySuffix == '?view=login' ) {
       // If we didn't redirect elsewhere, then don't show login page, go to console

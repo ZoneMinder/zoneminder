@@ -259,6 +259,20 @@ Event::~Event() {
   if ( frame_data.size() )
     WriteDbFrames();
 
+  // update frame deltas to refer to video start time which may be a few frames before event start
+  struct timeval video_offset = {0};
+  struct timeval video_start_time  = monitor->GetVideoWriterStartTime();
+  if (video_start_time.tv_sec > 0) {
+     timersub(&video_start_time, &start_time, &video_offset);
+     Debug(1, "Updating frames delta by %d sec %d usec",
+           video_offset.tv_sec, video_offset.tv_usec);
+     UpdateFramesDelta(video_offset.tv_sec + video_offset.tv_usec*1e-6);
+  }
+  else {
+     Debug(3, "Video start_time %d sec %d usec not valid -- frame deltas not updated",
+           video_start_time.tv_sec, video_start_time.tv_usec);
+  }
+
   // Should not be static because we might be multi-threaded
   char sql[ZM_SQL_LGE_BUFSIZ];
   snprintf(sql, sizeof(sql), 
@@ -472,7 +486,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
     // neccessarily be of the motion.  But some events are less than 10 frames, 
     // so I am changing this to 1, but we should overwrite it later with a better snapshot.
     if ( frames == 1 ) {
-      WriteFrameImage(images[i], *(timestamps[i]), snapshot_file);
+      WriteFrameImage(images[i], *(timestamps[i]), snapshot_file.c_str());
     }
 
     struct DeltaTimeval delta_time;
@@ -553,6 +567,27 @@ void Event::WriteDbFrames() {
   db_mutex.unlock();
 } // end void Event::WriteDbFrames()
 
+// Subtract an offset time from frames deltas to match with video start time
+void Event::UpdateFramesDelta(double offset) {
+  char sql[ZM_SQL_MED_BUFSIZ];
+
+  if (offset == 0.0) return;
+  // the table is set to auto update timestamp so we force it to keep current value
+  snprintf(sql, sizeof(sql),
+    "UPDATE Frames SET timestamp = timestamp, Delta = Delta - (%.4f) WHERE EventId = %" PRIu64,
+    offset, id);
+
+  db_mutex.lock();
+  if (mysql_query(&dbconn, sql)) {
+    db_mutex.unlock();
+    Error("Can't update frames: %s, sql was %s", mysql_error(&dbconn), sql);
+    return;
+  }
+  db_mutex.unlock();
+  Info("Updating frames delta by %0.2f sec to match video file", offset);
+}
+
+
 void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image) {
   if ( !timestamp.tv_sec ) {
     Debug(1, "Not adding new frame, zero timestamp");
@@ -562,10 +597,6 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   frames++;
 
   bool write_to_db = false;
-  FrameType frame_type = score>0?ALARM:(score<0?BULK:NORMAL);
-  // < 0 means no motion detection is being done.
-  if ( score < 0 )
-    score = 0;
 
   if ( save_jpegs & 1 ) {
     static char event_file[PATH_MAX];
@@ -579,8 +610,13 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   // If this is the first frame, we should add a thumbnail to the event directory
   if ( (frames == 1) || (score > (int)max_score) ) {
     write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
-    WriteFrameImage(image, timestamp, snapshot_file);
+    WriteFrameImage(image, timestamp, snapshot_file.c_str());
   }
+
+  FrameType frame_type = score>0?ALARM:(score<0?BULK:NORMAL);
+  // < 0 means no motion detection is being done.
+  if ( score < 0 )
+    score = 0;
 
   // We are writing an Alarm frame
   if ( frame_type == ALARM ) {
@@ -590,17 +626,30 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
       alarm_frame_written = true;
       WriteFrameImage(image, timestamp, alarm_file.c_str());
     }
-  if ( videowriter != NULL ) {
-    WriteFrameVideo(image, timestamp, videowriter);
-  }
+    alarm_frames++;
 
-  struct DeltaTimeval delta_time;
-  DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
+    tot_score += score;
+    if ( score > (int)max_score )
+      max_score = score;
+
+    if ( alarm_image ) {
+      if ( save_jpegs & 2 ) {
+        static char event_file[PATH_MAX];
+        snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path.c_str(), frames);
+        Debug(1, "Writing analysis frame %d", frames);
+        if ( ! WriteFrameImage(alarm_image, timestamp, event_file, true) ) {
+          Error("Failed to write analysis frame image");
+        }
+      }
+    }
+  }
 
   bool db_frame = ( frame_type != BULK ) || (frames==1) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
 
     static char sql[ZM_SQL_MED_BUFSIZ];
+    struct DeltaTimeval delta_time;
+    DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
 
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
     if ( write_to_db || ( frame_data.size() > 20 ) ) {
@@ -635,23 +684,4 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
   end_time = timestamp;
 
-  // We are writing an Alarm frame
-  if ( frame_type == ALARM ) {
-    alarm_frames++;
-
-    tot_score += score;
-    if ( score > (int)max_score )
-      max_score = score;
-
-    if ( alarm_image ) {
-      if ( save_jpegs & 2 ) {
-        static char event_file[PATH_MAX];
-        snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path.c_str(), frames);
-        Debug(1, "Writing analysis frame %d", frames);
-        if ( ! WriteFrameImage(alarm_image, timestamp, event_file, true) ) {
-          Error("Failed to write analysis frame image");
-        }
-      }
-    }
-  } // end if frame_type == ALARM
 }  // end void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image)

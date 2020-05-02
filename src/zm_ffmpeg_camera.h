@@ -53,6 +53,7 @@ class FfmpegCamera : public Camera {
     AVCodec             *mAudioCodec;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
+    _AVPIXELFORMAT      imagePixFormat;
 
     AVFrame             *input_frame;         // Use to point to mRawFrame or hwFrame;
 

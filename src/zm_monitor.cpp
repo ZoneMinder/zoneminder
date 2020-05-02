@@ -288,6 +288,8 @@ Monitor::Monitor()
   orientation(ROTATE_0),
   deinterlacing(0),
   deinterlacing_value(0),
+  decoder_hwaccel_name(""),
+  decoder_hwaccel_device(""),
   videoRecording(0),
   rtsp_describe(0),
 
@@ -409,6 +411,12 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
   capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
   alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+
+  if (analysis_fps > 0.0) {
+      uint64_t usec = round(1000000*pre_event_count/analysis_fps);
+      video_buffer_duration.tv_sec = usec/1000000;
+      video_buffer_duration.tv_usec = usec % 1000000;
+  }
 
   if ( dbrow[col] )
     strncpy(device, dbrow[col], sizeof(device)-1);
@@ -545,6 +553,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   last_signal = false;
 
   camera = NULL;
+  uint64_t image_size = width * height * colours;
+
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
@@ -556,7 +566,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       sizeof(mem_size),
       sizeof(SharedData), sizeof(TriggerData), sizeof(VideoStoreData),
       (image_buffer_count*sizeof(struct timeval)),
-      image_buffer_count, camera->ImageSize(), (image_buffer_count*camera->ImageSize()),
+      image_buffer_count, image_size, (image_buffer_count*image_size),
      mem_size);
   mem_ptr = NULL;
 
@@ -582,7 +592,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     }
   }
 
-  //this0>delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
+  //this->delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
   //ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
   Debug(1, "Loaded monitor %d(%s), %d zones", id, name, n_zones);
   getCamera();
@@ -657,7 +667,7 @@ Camera * Monitor::getCamera() {
     }
 #endif // HAVE_LIBAVFORMAT
     else {
-      Error( "Unexpected remote camera protocol '%s'", protocol.c_str() );
+      Error("Unexpected remote camera protocol '%s'", protocol.c_str());
     }
   } else if ( type == FILE ) {
     camera = new FileCamera(
@@ -793,7 +803,7 @@ Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
 
 
 bool Monitor::connect() {
-  Debug(3, "Connecting to monitor.  Purpose is %d", purpose );
+  Debug(3, "Connecting to monitor.  Purpose is %d", purpose);
 #if ZM_MEM_MAPPED
   snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
   map_fd = open(mem_file, O_RDWR|O_CREAT, (mode_t)0600);

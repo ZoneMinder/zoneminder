@@ -1,22 +1,33 @@
 var exportTimer = null;
 
-function configureExportButton( element ) {
+function configureExportButton(element) {
   var form = element.form;
 
-  var checkCount = 0;
-  var radioCount = 0;
-  for ( var i = 0; i < form.elements.length; i++ ) {
-    if ( form.elements[i].type == "checkbox" && form.elements[i].checked ) {
-      checkCount++;
-    } else if ( form.elements[i].type == "radio" && form.elements[i].checked ) {
-      radioCount++;
+  var eventCount = 0;
+  document.querySelectorAll('input[name="eids[]"]').forEach(function(el) {
+    if ( el.checked ) {
+      eventCount ++;
     }
-  }
-  form.elements['exportButton'].disabled = (checkCount == 0 || radioCount == 0);
+  });
+
+  form.elements['exportButton'].disabled = (
+    eventCount &&
+    (
+      form.elements['exportDetail'].checked ||
+      form.elements['exportFrames'].checked ||
+      form.elements['exportImages'].checked ||
+      form.elements['exportVideo'].checked ||
+      form.elements['exportMisc'].checked
+    )
+    &&
+    ( form.elements['exportFormat'][0].checked || form.elements['exportFormat'][1].checked )
+    &&
+    ( form.elements['exportCompress'][0].checked || form.elements['exportCompress'][1].checked )
+  );
 }
 
 function startDownload(file) {
-  console.log("Starting download of " + file);
+  console.log('Starting download of ' + file);
   window.location.replace(file);
 }
 
@@ -32,17 +43,12 @@ function exportProgress() {
 }
 
 function exportResponse(respObj, respText) {
-  //console.log(respText);
-
-  $clear(exportTimer);
+  clearInterval(exportTimer);
   if ( respObj.result != 'Ok' ) {
     $('exportProgressTicker').set('text', respObj.message);
   } else {
     $('exportProgressTicker').set('text', exportSucceededString);
-    console.log(respObj.exportFile);
-    console.log(encodeURIComponent(respObj.exportFile));
-
-    startDownload.pass(decodeURIComponent(respObj.exportFile)).delay( 1500 );
+    startDownload.pass(decodeURIComponent(respObj.exportFile)).delay(1500);
   }
   return;
 
@@ -69,17 +75,17 @@ function exportEvent( ) {
     onSuccess: exportResponse
   } );
   query.send();
-  $('exportProgress').removeClass( 'hidden' );
-  $('exportProgress').setProperty( 'class', 'warnText' );
-  $('exportProgressText').set( 'text', exportProgressString );
-  exportProgress();
+  $('exportProgress').removeClass('hidden');
+  $('exportProgress').setProperty('class', 'warnText');
+  $('exportProgressText').set('text', exportProgressString);
+  //exportProgress();
   exportTimer = exportProgress.periodical( 500 );
 }
 
 function initPage() {
   configureExportButton( $('exportButton') );
   if ( exportReady ) {
-    startDownload.pass(exportFile).delay( 1500 );
+    startDownload.pass(exportFile).delay(1500);
   }
   document.getElementById('exportButton').addEventListener('click', exportEvent);
 }

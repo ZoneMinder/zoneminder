@@ -184,7 +184,7 @@ function tlZoomBounds( minTime, maxTime ) {
 }
 
 function tlZoomOut() {
-  location.replace('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+zoom_range);
+  location.replace('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+zoomout_range);
 }
 
 function tlPanLeft() {

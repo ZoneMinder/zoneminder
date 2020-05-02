@@ -116,6 +116,7 @@ $SLANG = array(
     'Area'                  => 'Area',
     'AreaUnits'             => 'Area (px/%)',
     'AttrAlarmFrames'       => 'Alarm Frames',
+    'AttrAlarmedZone'       => 'Alarmed Zone',
     'AttrArchiveStatus'     => 'Archive Status',
     'AttrAvgScore'          => 'Avg. Score',
     'AttrCause'             => 'Cause',
@@ -361,6 +362,9 @@ $SLANG = array(
     'FilterCopyEvents'      => 'Copy all matches',
     'FilterMoveEvents'      => 'Move all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
+    'FilterEmailTo'    			=> 'Email To',
+    'FilterEmailSubject'	  => 'Email Subject',
+    'FilterEmailBody'   	  => 'Email Body',
     'FilterExecuteEvents'   => 'Execute command on all matches',
     'FilterLog'             => 'Filter log',
     'FilterMessageEvents'   => 'Message details of all matches',
@@ -771,6 +775,7 @@ $SLANG = array(
     'TurboPanSpeed'         => 'Turbo Pan Speed',
     'TurboTiltSpeed'        => 'Turbo Tilt Speed',
     'Type'                  => 'Type',
+    'TZUnset'               => 'Unset - use value in php.ini',
     'Unarchive'             => 'Unarchive',
     'Undefined'             => 'Undefined',
     'Units'                 => 'Units',
@@ -981,6 +986,14 @@ $OLANG = array(
       "loglevel=debug" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)
     '
 	),
+  'OPTIONS_DECODERHWACCELNAME' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'
+    ),
+  'OPTIONS_DECODERHWACCELDEVICE' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel_device command line option.  You should only have to specify this if you have multiple GPUs.  A typical value for Intel VAAPI would be /dev/dri/renderD128.'
+    ),
     'OPTIONS_RTSPTrans' => array(
       'Help' => '
         This sets the RTSP Transport Protocol for FFmpeg.~~

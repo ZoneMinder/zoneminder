@@ -40,7 +40,7 @@ if ( empty($_REQUEST['mode']) ) {
 }
 
 $widths = array(
-  ''  => translate('auto'),
+  'auto'  => translate('auto'),
   '100%'  => '100%',
   '160px' => '160px',
   '320px' => '320px',
@@ -62,13 +62,11 @@ session_start();
 
 if ( isset($_REQUEST['scale']) ) {
   $options['scale'] = validInt($_REQUEST['scale']);
-  ZM\Logger::Debug('Setting scale from request to '.$options['scale']);
 } else if ( isset($_COOKIE['zmCycleScale']) ) {
   $options['scale'] = $_COOKIE['zmCycleScale'];
-  ZM\Logger::Debug('Setting scale from cookie to '.$options['scale']);
 }
 
-if ( !(isset($options['scale']) and $options['scale']) )
+if ( !isset($options['scale']) )
   $options['scale'] = 100;
 
 if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
@@ -167,7 +165,7 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
       <div class="buttons">
         <button type="button" value="&lt;" id="prevBtn" title="<?php echo translate('PreviousMonitor') ?>" class="active" data-on-click-true="cyclePrev">&lt;&lt;</button>
         <button type="button" value="||" id="pauseBtn" title="<?php echo translate('PauseCycle') ?>" class="active" data-on-click-true="cyclePause">||</button>
-        <button type="button" value="|&gt;" id="playBtn" title="<?php echo translate('PlayCycle') ?>" class="inactive" disabled="disabled" data-on-click-true="streamCmdPlay">|&gt;</button>
+        <button type="button" value="|&gt;" id="playBtn" title="<?php echo translate('PlayCycle') ?>" class="inactive" disabled="disabled" data-on-click-true="cycleStart">|&gt;</button>
         <button type="button" value="&gt;" id="nextBtn" title="<?php echo translate('NextMonitor') ?>" class="active" data-on-click-true="cycleNext">&gt;&gt;</button>
       </div>
 

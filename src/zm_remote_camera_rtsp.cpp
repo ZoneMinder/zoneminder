@@ -342,7 +342,7 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
       while ( !frameComplete && (buffer.size() > 0) ) {
         packet->data = buffer.head();
         packet->size = buffer.size();
-        bytes += packet.size;
+        bytes += packet->size;
 
         // So I think this is the magic decode step. Result is a raw image?
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)

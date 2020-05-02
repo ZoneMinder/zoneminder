@@ -56,9 +56,14 @@ select {
   width: 300px;
   text-align: right;
 }
+input[name="filter[EmailSubject]"],
+input[name="filter[EmailTo]"],
+textarea[name="filter[EmailBody]"] {
+width: 500px;
+}
 select#Id {
-min-width: 400px;
+min-width: 500px;
 }
 .Name input {
-min-width: 400px;
+min-width: 500px;
 }

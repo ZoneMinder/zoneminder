@@ -420,15 +420,15 @@ MAIN: while( $loop ) {
       Debug("Checking for Medium Scheme Events under $$Storage{Path}/$monitor_dir");
       {
         my @event_dirs = glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*");
-        Debug(qq`glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") returned ` . scalar @event_dirs . ' entries.' );
+        Debug('glob("'.$monitor_dir.'/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") returned '.(scalar @event_dirs).' entries.');
         foreach my $event_dir ( @event_dirs ) {
           if ( ! -d $event_dir ) {
-            Debug( "$event_dir is not a dir. Skipping" );
+            Debug("$event_dir is not a dir. Skipping");
             next;
           }
           my ( $date, $event_id ) = $event_dir =~ /^$monitor_dir\/(\d{4}\-\d{2}\-\d{2})\/(\d+)$/;
-          if ( ! $event_id ) {
-            Debug("Unable to parse date/event_id from $event_dir");
+          if ( !$event_id ) {
+            Debug('Unable to parse date/event_id from '.$event_dir);
             next;
           }
           my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
@@ -438,8 +438,9 @@ MAIN: while( $loop ) {
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
           $Event->Path();
+          $Event->age();
           Debug("Have event $$Event{Id} at $$Event{Path}");
-          $Event->StartTime( POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path())) ) );
+          $Event->StartTime(POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path()))));
         } # end foreach event
       }
 
@@ -466,13 +467,13 @@ MAIN: while( $loop ) {
         } # end foreach event
         chdir( $Storage->Path() );
       } # if USE_DEEP_STORAGE
-      Debug( 'Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir" );
+      Debug('Got '.int(keys(%$fs_events)).' filesystem events for monitor '.$monitor_dir);
 
       delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);
     } # end foreach monitor
 
     if ( $cleaned ) {
-      Debug("First stage cleaning done.  Restarting.");
+      Debug('First stage cleaning done.  Restarting.');
       redo MAIN;
     }
 
@@ -484,7 +485,7 @@ MAIN: while( $loop ) {
           next;
         }
         my @event_ids = keys %$fs_events;
-        Debug('Have ' .scalar @event_ids . " events for monitor $monitor_id");
+        Debug('Have ' .scalar @event_ids . ' events for monitor '.$monitor_id);
 
         foreach my $fs_event_id ( sort { $a <=> $b } keys %$fs_events ) {
 
@@ -499,8 +500,8 @@ MAIN: while( $loop ) {
             }
             my $age = $Event->age();
 
-            if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-              aud_print( "Filesystem event $fs_event_id at $$Event{Path} does not exist in database and is $age seconds old" );
+            if ( $age and ($age > $Config{ZM_AUDIT_MIN_AGE}) ) {
+              aud_print("Filesystem event $fs_event_id at $$Event{Path} does not exist in database and is $age seconds old");
               if ( confirm() ) {
                 $Event->delete_files();
                 $cleaned = 1;
@@ -586,7 +587,7 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
           } else {
             Debug("$$Event{Id} Not found at $path");
           }
-        }
+        } # end foreach Storage
         if ( $Event->Archived() ) {
           Warning("Event $$Event{Id} is Archived. Taking no further action on it.");
           next;
@@ -638,18 +639,13 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
             Info("Updating storage area on event $$Event{Id} from $$Event{StorageId} to $$fs_events{$db_event}{StorageId}");
             $Event->StorageId($$fs_events{$db_event}->StorageId());
           }
-          if ( $$fs_events{$db_event}->StartTime() ne $Event->StartTime() ) {
+          if ( ! $Event->StartTime() ) {
             Info("Updating StartTime on event $$Event{Id} from $$Event{StartTime} to $$fs_events{$db_event}{StartTime}");
-            if ( $$Event{Scheme} eq 'Deep' ) {
-              $Event->StartTime($$fs_events{$db_event}->StartTime());
-            } else {
-              $Event->StartTime($$fs_events{$db_event}->StartTime());
-            }
-            $Event->save();
+            $Event->StartTime($$fs_events{$db_event}->StartTime());
           }
 
           $Event->save();
-        }
+        } # end if Event exists in db and not in filesystem
       } # end if ! in fs_events
     } # foreach db_event
   } # end foreach db_monitor
@@ -944,6 +940,10 @@ FROM `Frames` WHERE `EventId`=?';
   $eventcounts_day_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
   $eventcounts_week_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
   $eventcounts_month_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
+
+  my $storage_diskspace_sth = $dbh->prepare_cached('UPDATE Storage SET DiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=Storage.Id)');
+  $storage_diskspace_sth->execute() or Error("Can't execute: ".$storage_diskspace_sth->errstr());
+
   sleep($Config{ZM_AUDIT_CHECK_INTERVAL}) if $continuous;
 };
 

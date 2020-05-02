@@ -23,6 +23,7 @@
 
 use strict;
 use bytes;
+use utf8;
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
@@ -34,6 +35,7 @@ use Sys::MemInfo qw(totalmem);
 use Sys::CPU qw(cpu_count);
 use POSIX qw(strftime uname);
 use JSON::MaybeXS;
+use Encode;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -166,7 +168,7 @@ sub sendData {
   $req->header('content-length' => length($msg));
   $req->header('connection' => 'Close');
 
-  $req->content($msg);
+  $req->content(encode('UTF-8',$msg));
 
   my $resp = $ua->request($req);
   my $resp_msg = $resp->decoded_content;
@@ -196,7 +198,7 @@ sub getUUID {
     $uuid = $Config{ZM_TELEMETRY_UUID} = $sth->fetchrow_array();
     $sth->finish();
 
-    $sql = q`UPDATE Config set Value = ? WHERE Name = 'ZM_TELEMETRY_UUID'`;
+    $sql = q`UPDATE Config SET Value = ? WHERE Name = 'ZM_TELEMETRY_UUID'`;
     $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
     $res = $sth->execute( "$uuid" ) or die( "Can't execute: ".$sth->errstr() );
     $sth->finish();
@@ -232,9 +234,9 @@ sub countQuery {
   my $dbh = shift;
   my $table = shift;
 
-  my $sql = "SELECT count(*) FROM $table";
-  my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+  my $sql = "SELECT count(*) FROM `$table`";
+  my $sth = $dbh->prepare_cached($sql) or die "Can't prepare '$sql': ".$dbh->errstr();
+  my $res = $sth->execute() or die 'Can\'t execute: '.$sth->errstr();
   my $count = $sth->fetchrow_array();
   $sth->finish();
 
@@ -245,7 +247,7 @@ sub countQuery {
 sub getMonitorRef {
   my $dbh = shift;
 
-  my $sql = 'SELECT Id,Name,Type,Function,Width,Height,Colours,MaxFPS,AlarmMaxFPS FROM Monitors';
+  my $sql = 'SELECT `Id`,`Name`,`Type`,`Function`,`Width`,`Height`,`Colours`,`MaxFPS`,`AlarmMaxFPS` FROM `Monitors`';
   my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
   my $arrayref = $sth->fetchall_arrayref({});

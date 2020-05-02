@@ -18,7 +18,7 @@ var speedIndex=<?php echo $speedIndex?>;
 // for history, and fps for live, and dynamically determined (in ms)
 
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
-var playSecsperInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
+var playSecsPerInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
 var timerObj;                    // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image
@@ -50,7 +50,6 @@ if ( !$liveMode ) {
     $event_id = $event['Id'];
     $EventsById[$event_id] = $event;
   }
-
   $next_frames = array();
 
   if ( $result = dbQuery($framesSql) ) {
@@ -69,9 +68,9 @@ if ( !$liveMode ) {
         $frame['NextFrameId'] = $next_frames[$frame['EventId']]['Id'];
       }
       $event['FramesById'] += array($frame['Id']=>$frame);
-      $next_frames[$frame['EventId']] = $frame;
+      $next_frames[$frame['EventId']] = &$event['FramesById'][$frame['Id']];
     }
-  }
+  } // end if dbQuery
 
   $events_by_monitor_id = array();
 
@@ -203,6 +202,8 @@ echo "
 var numMonitors = $numMonitors;
 var minTimeSecs=parseInt($minTimeSecs);
 var maxTimeSecs=parseInt($maxTimeSecs);
+var minTime='$minTime';
+var maxTime='$maxTime';
 ";
 echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
 if(isset($defaultCurrentTime))

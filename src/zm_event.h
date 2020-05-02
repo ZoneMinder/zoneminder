@@ -94,8 +94,6 @@ class Event {
     std::string snapshot_file;
     std::string alarm_file;
     VideoStore *videoStore;
-    std::string snapshot_file;
-    std::string alarm_file;
 
     VideoWriter* videowriter;
     char video_name[PATH_MAX];
@@ -137,6 +135,7 @@ class Event {
   private:
     void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );
     void WriteDbFrames();
+    void UpdateFramesDelta(double offset);
 
   public:
     static const char *getSubPath( struct tm *time ) {

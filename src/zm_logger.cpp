@@ -157,6 +157,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
   if ( options.mTerminalLevel != NOOPT )
     tempTerminalLevel = options.mTerminalLevel;
 
+  // DEBUG1 == 1.  So >= DEBUG1, we set to DEBUG9?! Why?
   if ( options.mDatabaseLevel != NOOPT )
     tempDatabaseLevel = options.mDatabaseLevel;
   else
@@ -358,7 +359,7 @@ Logger::Level Logger::databaseLevel(Logger::Level databaseLevel) {
   if ( databaseLevel > NOOPT ) {
     databaseLevel = limit(databaseLevel);
     if ( mDatabaseLevel != databaseLevel ) {
-      if ( databaseLevel > NOLOG && mDatabaseLevel <= NOLOG ) {
+      if ( (databaseLevel > NOLOG) && (mDatabaseLevel <= NOLOG) ) { // <= NOLOG would be NOOPT
         if ( !zmDbConnect() ) {
           databaseLevel = NOLOG;
         }
@@ -534,8 +535,11 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     fflush(stdout);
   }
   if ( level <= mFileLevel ) {
-    if ( !mLogFileFP )
+    if ( !mLogFileFP ) {
+      log_mutex.unlock();
       openFile();
+      log_mutex.lock();
+    }
     if ( mLogFileFP ) {
       fputs(logString, mLogFileFP);
       if ( mFlush )
@@ -553,8 +557,10 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   if ( level <= mDatabaseLevel ) {
 
     if ( !db_mutex.trylock() ) {
+      char escapedString[(strlen(syslogStart)*2)+1];
       mysql_real_escape_string(&dbconn, escapedString, syslogStart, strlen(syslogStart));
 
+      char sql[ZM_SQL_MED_BUFSIZ];
       snprintf(sql, sizeof(sql),
           "INSERT INTO `Logs` "
           "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
@@ -572,7 +578,7 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     } else {
       Level tempDatabaseLevel = mDatabaseLevel;
       databaseLevel(NOLOG);
-      Error("Can't insert log entry: sql(%s) error(%s)", sql, mysql_error(&dbconn));
+      Error("Can't insert log entry: sql(%s) error(%s)", syslogStart, mysql_error(&dbconn));
       databaseLevel(tempDatabaseLevel);
     }
     db_mutex.unlock();

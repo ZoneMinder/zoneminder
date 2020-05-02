@@ -45,7 +45,7 @@ class ZM_Object {
         $this->{$fn} = $args[0];
     }
 
-    if ( array_key_exists($fn, $this) ) {
+    if ( property_exists($this, $fn) ) {
       return $this->{$fn};
     } else {
       if ( array_key_exists($fn, $this->defaults) ) {
@@ -110,8 +110,9 @@ class ZM_Object {
 
   public static function _find_one($class, $parameters = array(), $options = array() ) {
     global $object_cache;
-    if ( ! isset($object_cache[$class]) )
+    if ( ! isset($object_cache[$class]) ) {
       $object_cache[$class] = array();
+    }
     $cache = &$object_cache[$class];
     if ( 
         ( count($parameters) == 1 ) and
@@ -127,6 +128,11 @@ class ZM_Object {
     return $results[0];
   }
 
+  public static function _clear_cache($class) {
+    global $object_cache;
+    $object_cache[$class] = array();
+  }
+
   public static function Objects_Indexed_By_Id($class) {
     $results = array();
     foreach ( ZM_Object::_find($class, null, array('order'=>'lower(Name)')) as $Object ) {
@@ -140,10 +146,10 @@ class ZM_Object {
     foreach ($this->defaults as $key => $value) {
       if ( is_callable(array($this, $key)) ) {
         $json[$key] = $this->$key();
-      } else if ( array_key_exists($key, $this) ) {
+      } else if ( property_exists($this, $key) ) {
         $json[$key] = $this->{$key};
       } else {
-        $json[$key] = $this->defaults{$key};
+        $json[$key] = $this->defaults[$key];
       }
     }
     return json_encode($json);
@@ -158,14 +164,24 @@ class ZM_Object {
 # perhaps should turn into a comma-separated string
           $this->{$k} = implode(',', $v);
         } else if ( is_string($v) ) {
-          if ( $v == '' and array_key_exists($k, $this->defaults) ) {
-            if ( is_array($this->defaults[$k]) )
+if ( 0 ) {
+# Remarking this out.  We are setting a value, not asking for a default to be set. 
+# So don't do defaults here, do them somewhere else
+          if ( ($v == null) and array_key_exists($k, $this->defaults) ) {
+Logger::Debug("$k => Have default for $v: ");
+            if ( is_array($this->defaults[$k]) ) {
               $this->{$k} = $this->defaults[$k]['default'];
-            else 
-              $this->{$k} = $this->defaults[$k];
-          } else {
-            $this->{$k} = trim($v);
+            } else {
+							$this->{$k} = $this->defaults[$k];
+							Logger::Debug("$k => Have default for $v: " . $this->{$k});
+						}
+					} else {
+						$this->{$k} = trim($v);
           }
+} else {
+						$this->{$k} = trim($v);
+}
+
         } else if ( is_integer($v) ) {
           $this->{$k} = $v;
         } else if ( is_bool($v) ) {
@@ -192,7 +208,7 @@ class ZM_Object {
           continue;
         }
 
-        if ( $this->defaults[$field] ) {
+        if ( isset($this->defaults[$field]) ) {
           if ( is_array($this->defaults[$field]) ) {
             $new_values[$field] = $this->defaults[$field]['default'];
           } else {
@@ -215,7 +231,7 @@ class ZM_Object {
         } else if ( $this->$field() != $value ) {
           $changes[$field] = $value;
         }
-      } else if ( array_key_exists($field, $this) ) {
+      } else if ( property_exists($this, $field) ) {
         $type = (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field])) ? $this->defaults[$field]['type'] : 'scalar';
         Logger::Debug("Checking field $field => current ".
           (is_array($this->{$field}) ? implode(',',$this->{$field}) : $this->{$field}) . ' ?= ' .
@@ -278,6 +294,18 @@ class ZM_Object {
     if ( $new_values ) {
       //Logger::Debug("New values" . print_r($new_values, true));
       $this->set($new_values);
+    }
+
+    # Set defaults.  Note that we only replace "" with null, not other values
+    # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
+    foreach ( $this->defaults as $field => $default ) {
+      if ( (!property_exists($this, $field)) or ($this->{$field} == '') ) {
+        if ( is_array($default) ) {
+          $this->{$field} = $default['default'];
+        } else if ( $default == null ) {
+          $this->{$field} = $default;
+        }
+      }
     }
 
     $fields = array_filter(

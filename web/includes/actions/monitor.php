@@ -33,12 +33,11 @@ if ( $action == 'monitor' ) {
       if ( !$x10Monitor )
         $x10Monitor = array();
     }
-    if ( !canEdit('Monitors',$mid) ) {
+    if ( !canEdit('Monitors', $mid) ) {
       ZM\Warning('You do not have permission to edit this monitor');
       return;
     }
   } else {
-    #$monitor = array();
     if ( ZM_OPT_X10 ) {
       $x10Monitor = array();
     }
@@ -58,6 +57,7 @@ if ( $action == 'monitor' ) {
       'Enabled' => 0,
       'Exif' => 0,
       'RTSPDescribe' => 0,
+      'V4LMultiBuffer'  => '',
       'RecordAudio' => 0,
       'Method' => 'raw',
       'GroupIds'  =>  array(),
@@ -219,7 +219,6 @@ if ( $action == 'monitor' ) {
 
       } else {
         ZM\Error('Error saving new Monitor.');
-        $error_message = dbError($sql);
         return;
       }
     }

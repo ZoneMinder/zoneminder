@@ -140,9 +140,9 @@ set(ZM_TMPDIR "/var/tmp/zm" CACHE PATH
     "Location of temporary files, default: /tmp/zm")
 set(ZM_LOGDIR "/var/log/zm" CACHE PATH 
     "Location of generated log files, default: /var/log/zm")
-set(ZM_WEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/www" CACHE PATH 
+set(ZM_WEBDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/www" CACHE PATH 
     "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
-set(ZM_CGIDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH 
+set(ZM_CGIDIR "${CMAKE_INSTALL_FULL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH 
     "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
 set(ZM_CACHEDIR "/var/cache/zoneminder" CACHE PATH 
     "Location of the web server cache busting files, default: /var/cache/zoneminder")
@@ -547,6 +547,7 @@ if(AVCODEC_LIBRARIES)
 	check_include_file("libavcodec/avcodec.h" HAVE_LIBAVCODEC_AVCODEC_H)
 	set(optlibsfound "${optlibsfound} AVCodec")
 else(AVCODEC_LIBRARIES)
+  message(WARNING "\nWhile it should be possible to build ZM without AVCODEC the result will pretty useless.")
 	set(optlibsnotfound "${optlibsnotfound} AVCodec")
 endif(AVCODEC_LIBRARIES)
 
@@ -905,7 +906,7 @@ message(STATUS "Optional libraries not found:${optlibsnotfound}")
 
 # Run ZM configuration generator
 message(STATUS "Running ZoneMinder configuration generator")
-execute_process(COMMAND perl ./zmconfgen.pl RESULT_VARIABLE zmconfgen_result)
+execute_process(COMMAND perl ${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl RESULT_VARIABLE zmconfgen_result)
 if(zmconfgen_result EQUAL 0)
 	message(STATUS 
             "ZoneMinder configuration generator completed successfully")

@@ -122,9 +122,12 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
         <form id="exportForm" action="" method="post">
           <fieldset>
             <legend><?php echo translate('SelectLog') ?></legend>
-            <label for="selectorAll"><?php echo translate('All') ?></label><input type="radio" id="selectorAll" name="selector" value="all"/>
-            <label for="selectorFilter"><?php echo translate('Filter') ?></label><input type="radio" id="selectorFilter" name="selector" value="filter"/>
-            <label for="selectorCurrent"><?php echo translate('Current') ?></label><input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo translate('ChooseLogSelection') ?>" data-validators="validate-one-required"/>
+            <label for="selectorAll"><?php echo translate('All') ?></label>
+            <input type="radio" id="selectorAll" name="selector" value="all"/>
+            <label for="selectorFilter"><?php echo translate('Filter') ?></label>
+            <input type="radio" id="selectorFilter" name="selector" value="filter"/>
+            <label for="selectorCurrent"><?php echo translate('Current') ?></label>
+            <input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo translate('ChooseLogSelection') ?>" data-validators="validate-one-required"/>
           </fieldset>
           <fieldset>
             <legend><?php echo translate('SelectFormat') ?></legend>

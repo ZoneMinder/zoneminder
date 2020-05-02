@@ -109,7 +109,7 @@ This brings up the new monitor window:
 
 * In this example, the Function is 'Modect', which means it will start recording if motion is detected on that camera feed. The parameters for what constitutes motion detected is specific in :doc:`definezone`
 
-* In Analytis FPS, we've put in 5FPS here. Note that you should not put an FPS that is greater than the camera FPS. In my case, 5FPS is sufficient for my needs
+* In Analysis FPS, we've put in 5FPS here. Note that you should not put an FPS that is greater than the camera FPS. In my case, 5FPS is sufficient for my needs
 
 .. note::
   Leave Maximum FPS and Alarm Maximum FPS **empty** if you are configuring an IP camera. In older versions of ZoneMinder, you were encouraged to put a value here, but that is no longer recommended. Infact, if you see your feed going much slower than the feed is supposed to go, or you get a lot of buffering/display issues, make sure this is empty. If you need to control camera FPS, please do it directly on the camera (via its own web interface, for example)
@@ -122,6 +122,8 @@ This brings up the new monitor window:
 
 * Let's select a protocol of RTSP and a remote method of RTP/RTSP (this is an RTSP camera)
 * Note that starting ZM 1.34, GPUs are supported. In my case, I have an NVIDIA GeForce GTX1050i. These ``cuda`` and ``cuvid`` parameters are what my system supports to use the NVIDIA hardware decoder and GPU resources. If you don't have a GPU, or don't know how to configure your ffmpeg to support it, leave it empty for now. In future, we will add a section on how to set up a GPU
+
+**NOTE**: It is entirely possible that ``cuda`` and ``cuvid`` don't work for you and you need different values. Isaac uses ``cuda`` in ``DecoderHWAccelName`` and leaves ``DecoderHWAccelDevice`` empty. Try that too.
 
 .. todo::
   add GPU docs

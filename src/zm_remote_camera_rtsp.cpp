@@ -170,7 +170,7 @@ int RemoteCameraRtsp::PrimeCapture() {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     AVMediaType codec_type = mFormatContext->streams[i]->codecpar->codec_type;
 #else
-    AVMediaType codec_type = mFormatContext->streams[mAudioStreamId]->codec->codec_type;
+    AVMediaType codec_type = mFormatContext->streams[i]->codec->codec_type;
 #endif
 
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))

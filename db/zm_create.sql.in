@@ -63,7 +63,7 @@ DROP TABLE IF EXISTS `Controls`;
 CREATE TABLE `Controls` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket','VNC') NOT NULL default 'Local',
   `Protocol` varchar(64) default NULL,
   `CanWake` tinyint(3) unsigned NOT NULL default '0',
   `CanSleep` tinyint(3) unsigned NOT NULL default '0',
@@ -406,7 +406,7 @@ DROP TABLE IF EXISTS `MonitorPresets`;
 CREATE TABLE `MonitorPresets` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket','VNC') NOT NULL default 'Local',
   `Device` tinytext,
   `Channel` tinyint(3) unsigned default NULL,
   `Format` int(10) unsigned default NULL,
@@ -440,7 +440,7 @@ CREATE TABLE `Monitors` (
   `Notes` TEXT,
   `ServerId` int(10) unsigned,
   `StorageId`	smallint(5) unsigned default 0,
-  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket','VNC') NOT NULL default 'Local',
   `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `LinkedMonitors` varchar(255),
@@ -733,13 +733,14 @@ CREATE TABLE `Storage` (
   `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
   `ServerId` int(10) unsigned,
   `DoDelete`  BOOLEAN NOT NULL DEFAULT true,
+  `Enabled`  BOOLEAN NOT NULL DEFAULT true,
 	PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '@ZM_DIR_EVENTS@', 'Default', 'local', NULL, NULL, 'Medium', 0, true );
+insert into Storage VALUES (NULL, '@ZM_DIR_EVENTS@', 'Default', 'local', NULL, NULL, 'Medium', 0, true, true );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

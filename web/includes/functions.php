@@ -39,7 +39,7 @@ function CSPHeaders($view, $nonce) {
   global $Servers;
   if ( ! $Servers )
     $Servers = ZM\Server::find();
-  
+
   $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Url();}, $Servers));
   switch ($view) {
     case 'login': {
@@ -47,7 +47,7 @@ function CSPHeaders($view, $nonce) {
           && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
           && ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY) {
-        $additionalScriptSrc = ' https://www.google.com';
+        $additionalScriptSrc .= ' https://www.google.com';
       }
       // fall through
     }
@@ -955,7 +955,7 @@ function reScale($dimension, $dummy) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
     $scale = func_get_arg($i);
-    if ( !empty($scale) && ($scale != '0') && ($scale != SCALE_BASE) )
+    if ( !empty($scale) && ($scale != '0') && ($scale != 'auto') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
   }
   return $new_dimension;
@@ -1065,7 +1065,7 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
       $sortColumn = 'E.StartTime';
       break;
   }
-  if ( !$_REQUEST['sort_asc'] )
+  if ( !isset($_REQUEST['sort_asc']) )
     $_REQUEST['sort_asc'] = 0;
   $sortOrder = $_REQUEST['sort_asc'] ? 'asc' : 'desc';
   $sortQuery = $querySep.'sort_field='.validHtmlStr($_REQUEST['sort_field']).$querySep.'sort_asc='.validHtmlStr($_REQUEST['sort_asc']);
@@ -1235,6 +1235,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             break;
         }
         $valueList = array();
+        if ( !isset($term['val']) ) $term['val'] = '';
         foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
           switch ( $term['attr'] ) {
 				
@@ -2194,7 +2195,6 @@ function ajaxError($message, $code=HTTP_STATUS_OK) {
   if ( $code == HTTP_STATUS_OK ) {
     $response = array('result'=>'Error', 'message'=>$message);
     header('Content-type: application/json');
-    #header('Content-type: text/plain');
     exit(jsonEncode($response));
   }
   header("HTTP/1.0 $code $message");
@@ -2211,7 +2211,6 @@ function ajaxResponse($result=false) {
     $response['message'] = $result;
   }
   header('Content-type: application/json');
-  #header('Content-type: text/plain');
   exit(jsonEncode($response));
 }
 
@@ -2643,4 +2642,19 @@ function random_colour() {
     str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT);
 }
 
+function zm_random_bytes($length = 32){
+  if ( !isset($length) || intval($length) <= 8 ) {
+    $length = 32;
+  }
+  if ( function_exists('random_bytes') ) {
+    return random_bytes($length);
+  }
+  if ( function_exists('mcrypt_create_iv') ) {
+    return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+  }
+  if ( function_exists('openssl_random_pseudo_bytes') ) {
+    return openssl_random_pseudo_bytes($length);
+  }
+  ZM\Error('No random_bytes function found.');
+}
 ?>

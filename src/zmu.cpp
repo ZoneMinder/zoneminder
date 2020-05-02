@@ -476,14 +476,12 @@ int main(int argc, char *argv[]) {
   } // end if auth
 
   if ( mon_id > 0 ) {
-		//fprintf(stderr,"Monitor %d\n", mon_id);
     Monitor *monitor = Monitor::Load(mon_id, function&(ZMU_QUERY|ZMU_ZONES), Monitor::QUERY);
     if ( monitor ) {
-        //fprintf(stderr,"Monitor %d(%s)\n", monitor->Id(), monitor->Name());
       if ( verbose ) {
         printf("Monitor %d(%s)\n", monitor->Id(), monitor->Name());
       }
-      if ( ! monitor->connect() ) {
+      if ( !monitor->connect() ) {
         Error("Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name());
         exit_zmu(-1);
       }
@@ -495,13 +493,13 @@ int main(int argc, char *argv[]) {
         if ( verbose ) {
           printf("Current state: %s\n", state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"));
         } else {
-          if ( have_output ) printf("%c", separator);
+          if ( have_output ) fputc(separator, stdout);
           printf("%d", state);
           have_output = true;
         }
       }
       if ( function & ZMU_TIME ) {
-        struct timeval timestamp = monitor->GetTimestamp( image_idx );
+        struct timeval timestamp = monitor->GetTimestamp(image_idx);
         if ( verbose ) {
           char timestamp_str[64] = "None";
           if ( timestamp.tv_sec )
@@ -511,7 +509,7 @@ int main(int argc, char *argv[]) {
           else
             printf("Time of image %d capture: %s.%02ld\n", image_idx, timestamp_str, timestamp.tv_usec/10000);
         } else {
-          if ( have_output ) printf("%c", separator);
+          if ( have_output ) fputc(separator, stdout);
           printf("%ld.%02ld", timestamp.tv_sec, timestamp.tv_usec/10000);
           have_output = true;
         }
@@ -520,7 +518,7 @@ int main(int argc, char *argv[]) {
         if ( verbose )
           printf("Last read index: %d\n", monitor->GetLastReadIndex());
         else {
-          if ( have_output ) printf("%c", separator);
+          if ( have_output ) fputc(separator, stdout);
           printf("%d", monitor->GetLastReadIndex());
           have_output = true;
         }
@@ -529,7 +527,7 @@ int main(int argc, char *argv[]) {
         if ( verbose ) {
           printf("Last write index: %d\n", monitor->GetLastWriteIndex());
         } else {
-          if ( have_output ) printf("%c", separator);
+          if ( have_output ) fputc(separator, stdout);
           printf("%d", monitor->GetLastWriteIndex());
           have_output = true;
         }
@@ -538,16 +536,16 @@ int main(int argc, char *argv[]) {
         if ( verbose ) {
           printf("Last event id: %" PRIu64 "\n", monitor->GetLastEventId());
         } else {
-          if ( have_output ) printf("%c", separator);
+          if ( have_output ) fputc(separator, stdout);
           printf("%" PRIu64, monitor->GetLastEventId());
           have_output = true;
         }
       }
       if ( function & ZMU_FPS ) {
-        if ( verbose )
+        if ( verbose ) {
           printf("Current capture rate: %.2f frames per second\n", monitor->GetFPS());
-        else {
-          if ( have_output ) printf("%c", separator);
+        } else {
+          if ( have_output ) fputc(separator, stdout);
           printf("%.2f", monitor->GetFPS());
           have_output = true;
         }
@@ -573,10 +571,16 @@ int main(int argc, char *argv[]) {
         if ( monitor->GetFunction() == Monitor::Function::MONITOR ) {
          printf("A Monitor in monitor mode cannot handle alarms.  Please use NoDect\n");
         } else {
-          if ( verbose )
-            printf("Forcing alarm on\n");
+          Monitor::State state = monitor->GetState();
+
+          if ( verbose ) {
+            printf("Forcing alarm on current state: %s, event %" PRIu64 "\n",
+                state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"),
+                monitor->GetLastEventId()
+                );
+          }
           monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
-          while ( (monitor->GetState() != Monitor::ALARM) && !zm_terminate ) {
+          while ( ((state = monitor->GetState()) != Monitor::ALARM) && !zm_terminate ) {
             // Wait for monitor to notice.
             usleep(1000);
           }
@@ -630,7 +634,7 @@ int main(int argc, char *argv[]) {
           else
             printf("Current brightness: %d\n", monitor->actionBrightness());
         } else {
-          if ( have_output ) printf("%c", separator);
+          if ( have_output ) fputc(separator, stdout);
           if ( brightness >= 0 )
             printf("%d", monitor->actionBrightness(brightness));
           else
@@ -645,7 +649,7 @@ int main(int argc, char *argv[]) {
           else
             printf("Current contrast: %d\n", monitor->actionContrast());
         } else {
-          if ( have_output ) printf("%c", separator);
+          if ( have_output ) fputc(separator, stdout);
           if ( contrast >= 0 )
             printf("%d", monitor->actionContrast(contrast));
           else
@@ -660,7 +664,7 @@ int main(int argc, char *argv[]) {
           else
             printf("Current hue: %d\n", monitor->actionHue());
         } else {
-          if ( have_output ) printf("%c", separator);
+          if ( have_output ) fputc(separator, stdout);
           if ( hue >= 0 )
             printf("%d", monitor->actionHue(hue));
           else
@@ -675,7 +679,7 @@ int main(int argc, char *argv[]) {
           else
             printf("Current colour: %d\n", monitor->actionColour());
         } else {
-          if ( have_output ) printf("%c", separator);
+          if ( have_output ) fputc(separator, stdout);
           if ( colour >= 0 )
             printf("%d", monitor->actionColour(colour));
           else
@@ -708,11 +712,11 @@ int main(int argc, char *argv[]) {
     }
 
     if ( function & ZMU_LIST ) {
-      std::string sql = "select Id, Function+0 from Monitors";
+      std::string sql = "SELECT `Id`, `Function`+0 FROM `Monitors`";
       if ( !verbose ) {
-        sql += "where Function != 'None'";
+        sql += "WHERE `Function` != 'None'";
       }
-      sql += " order by Id asc";
+      sql += " ORDER BY Id ASC";
 
       if ( mysql_query(&dbconn, sql.c_str()) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));

@@ -798,6 +798,7 @@ $SLANG = array(
     'VersionRemindHour'     => 'Remind again in 1 hour',
     'VersionRemindNever'    => 'Don\'t remind about new versions',
     'VersionRemindWeek'     => 'Remind again in 1 week',
+    'VersionRemindMonth'    => 'Remind again in 1 month',
     'Version'               => 'Version',
     'ViewMatches'           => 'View Matches',
     'VideoFormat'           => 'Video Format',

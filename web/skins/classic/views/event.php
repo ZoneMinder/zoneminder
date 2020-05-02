@@ -24,7 +24,7 @@ if ( !canView('Events') ) {
 }
 
 $eid = validInt($_REQUEST['eid']);
-$fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
+$fid = !empty($_REQUEST['fid']) ? validInt($_REQUEST['fid']) : 1;
 
 $Event = new ZM\Event($eid);
 if ( $user['MonitorIds'] ) {
@@ -79,7 +79,7 @@ $replayModes = array(
   'gapless' => translate('ReplayGapless'),
 );
 
-if ( isset( $_REQUEST['streamMode'] ) )
+if ( isset($_REQUEST['streamMode']) )
   $streamMode = validHtmlStr($_REQUEST['streamMode']);
 else
   $streamMode = 'video';
@@ -104,7 +104,16 @@ if ( $Monitor->VideoWriter() == '2' ) {
     $Zoom = $Event->Height()/$Event->Width();
 }
 
-// These are here to figure out the next/prev event
+// These are here to figure out the next/prev event, however if there is no filter, then default to one that specifies the Monitor
+if ( !isset($_REQUEST['filter']) ) {
+  $_REQUEST['filter'] = array(
+    'Query'=>array(
+      'terms'=>array(
+        array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$Event->MonitorId())
+      )
+    )
+  );
+}
 parseSort();
 parseFilter($_REQUEST['filter']);
 $filterQuery = $_REQUEST['filter']['query'];
@@ -128,16 +137,16 @@ if ( !$Event->Id() ) {
 ?>
       <div id="dataBar">
         <span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span>
-        <span id="dataMonitor" title="<?php echo translate('Monitor') ?>"><?php echo $Monitor->Id() . ' ' . $Monitor->Name() ?></span>
+        <span id="dataMonitor" title="<?php echo translate('Monitor') ?>"><?php echo $Monitor->Id().' '.validHtmlStr($Monitor->Name()) ?></span>
         <span id="dataCause" title="<?php echo $Event->Notes()?validHtmlStr($Event->Notes()):translate('AttrCause') ?>"><?php echo validHtmlStr($Event->Cause()) ?></span>
-        <span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime( STRF_FMT_DATETIME_SHORT, strtotime($Event->StartTime() ) ) ?></span>
+        <span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartTime())) ?></span>
         <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>
         <span id="dataFrames" title="<?php echo translate('AttrFrames').'/'.translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
         <span id="dataScore" title="<?php echo translate('AttrTotalScore').'/'.translate('AttrAvgScore').'/'.translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>
         <span id="Storage">
 <?php echo 
-  human_filesize($Event->DiskSpace(null)) . ' on ' . $Event->Storage()->Name().
-  ( $Event->SecondaryStorageId() ? ', ' . $Event->SecondaryStorage()->Name() :'' )
+  human_filesize($Event->DiskSpace(null)) . ' on ' . validHtmlStr($Event->Storage()->Name()).
+  ( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' )
 ?></span>
         <div id="closeWindow"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back();return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
       </div>
@@ -257,7 +266,12 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
         </p>
         <div id="replayStatus">
           <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
-          <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"><?php echo $rate/100 ?></span>x</span>
+          <span id="rate"><?php echo translate('Rate') ?>: 
+<?php 
+$rates = array( -800=>'-8x', -400=>'-4x', -200=>'-2x', -100=>'-1x', 0=>translate('Stop'), 100 => '1x', 200=>'2x', 400=>'4x', 800=>'8x' );
+echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
+?>
+<!--<span id="rateValue"><?php echo $rate/100 ?></span>x</span>-->
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>

@@ -71,6 +71,22 @@ var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 var imagePrefix = "<?php echo '?view=image&eid=' ?>";
 
 var auth_hash;
-<?php if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) { ?>
-auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
-<?php } ?>
+var auth_relay;
+<?php
+if ( ZM_OPT_USE_AUTH ) {
+  if ( ZM_AUTH_RELAY == 'hashed' ) {
+    echo ' auth_hash = \''.generateAuthHash(ZM_AUTH_HASH_IPS).'\';
+';
+  } else if ( ZM_AUTH_RELAY == 'plain' ) {
+    // password probably needs to be escaped
+    echo ' auth_relay=\'username='.$_SESSION['username'].'&password='.$_SESSION['password'].'\';
+';
+  } else if ( ZM_AUTH_RELAY == 'none' ) {
+    // password probably needs to be escaped
+    echo ' auth_relay=\'username='.$_SESSION['username'].'\';
+';
+  } else {
+    ZM\Error('Unknown value for ZM_AUTH_RELAY ' . ZM_AUTH_RELAY);
+  }
+}
+?>

@@ -182,8 +182,8 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       return;
     }
 
-    el.onclick = function() {
-      window[fnName]();
+    el.onclick = function(ev) {
+      window[fnName](ev);
     };
   });
 
@@ -453,10 +453,37 @@ function convertLabelFormat(LabelFormat, monitorName) {
   //convert label format from strftime to moment's format (modified from
   //https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
   //added %f and %N below (TODO: add %Q)
-  var replacements = {"a": 'ddd', "A": 'dddd', "b": 'MMM', "B": 'MMMM', "d": 'DD', "e": 'D', "F": 'YYYY-MM-DD', "H": 'HH', "I": 'hh', "j": 'DDDD', "k": 'H', "l": 'h', "m": 'MM', "M": 'mm', "p": 'A', "S": 'ss', "u": 'E', "w": 'd', "W": 'WW', "y": 'YY', "Y": 'YYYY', "z": 'ZZ', "Z": 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%'};
+  var replacements = {
+    'a': 'ddd',
+    'A': 'dddd',
+    'b': 'MMM',
+    'B': 'MMMM',
+    'd': 'DD',
+    'e': 'D',
+    'F': 'YYYY-MM-DD',
+    'H': 'HH',
+    'I': 'hh',
+    'j': 'DDDD',
+    'k': 'H',
+    'l': 'h',
+    'm': 'MM',
+    'M': 'mm',
+    'p': 'A',
+    'r': 'hh:mm:ss A',
+    'S': 'ss',
+    'u': 'E',
+    'w': 'd',
+    'W': 'WW',
+    'y': 'YY',
+    'Y': 'YYYY',
+    'z': 'ZZ',
+    'Z': 'z',
+    'f': 'SS',
+    'N': '['+monitorName+']',
+    '%': '%'};
   var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
     var value = replacements[key];
-    return momentFormat.replace("%" + key, value);
+    return momentFormat.replace('%' + key, value);
   }, LabelFormat);
   return momentLabelFormat;
 }
@@ -467,7 +494,7 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
   startTime = moment(startTime);
 
-  for (var i = 0; i <= duration; i++) {
+  for ( var i = 0; i <= duration; i++ ) {
     cues[i] = {id: i, index: i, startTime: i, endTime: i+1, text: startTime.format(labelFormat)};
     startTime.add(1, 's');
   }

@@ -212,11 +212,14 @@ if ( isset($minTime) && isset($maxTime) ) {
   if ( !isset($minTime) || !isset($maxTime) ) {
     // Dynamically determine range
     $row = dbFetchOne($rangeSql);
-
-    if ( !isset($minTime) )
-      $minTime = $row['MinTime'];
-    if ( !isset($maxTime) )
-      $maxTime = $row['MaxTime'];
+    if ( $row ) {
+      if ( !isset($minTime) )
+        $minTime = $row['MinTime'];
+      if ( !isset($maxTime) )
+        $maxTime = $row['MaxTime'];
+    } else {
+      # Errors will be reported by db functions
+    }
   }
 
   if ( empty($minTime) )
@@ -307,7 +310,7 @@ $monEventSlots = array();
 $monFrameSlots = array();
 $events_result = dbQuery($eventsSql);
 if ( !$events_result ) {
-  Fatal('SQL-ERR');
+  ZM\Fatal('SQL-ERR');
   return;
 }
 
@@ -552,7 +555,7 @@ if ( $mode == 'overlay' ) {
     $top +=  $chart['graph']['activityBarHeight']+1+$chart['graph']['eventBarHeight']+1;
   }
 } else {
-  Warning("No mode $mode");
+  ZM\Warning("No mode $mode");
 }
 
 preg_match('/^(\d+)-(\d+)-(\d+) (\d+):(\d+)/', $minTime, $startMatches);

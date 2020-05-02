@@ -1,0 +1,96 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_LDFLAGS_MAINT_APPEND += -Wl,--as-needed
+
+ifeq ($(DEB_BUILD_ARCH_OS),hurd)
+ARGS:= -DZM_NO_MMAP=ON
+endif
+
+%:
+	dh $@ --parallel --buildsystem=cmake --builddirectory=dbuild \
+            --with systemd,sphinxdoc,apache2,linktree
+
+override_dh_auto_configure:
+	dh_auto_configure -- $(ARGS)                  \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                \
+            -DCMAKE_BUILD_TYPE=Release                 \
+            -DZM_CONFIG_DIR="/etc/zm"                  \
+            -DZM_CONFIG_SUBDIR="/etc/zm/conf.d"        \
+            -DZM_RUNDIR="/var/run/zm"                  \
+            -DZM_SOCKDIR="/var/run/zm"                 \
+            -DZM_TMPDIR="/tmp/zm"                      \
+            -DZM_CGIDIR="/usr/lib/zoneminder/cgi-bin"  \
+            -DZM_CACHEDIR="/var/cache/zoneminder/cache"  \
+            -DZM_DIR_EVENTS="/var/cache/zoneminder/events"    \
+            -DZM_PATH_SHUTDOWN="/sbin/shutdown"        \
+            -DZM_PATH_ZMS="/zm/cgi-bin/nph-zms"
+
+override_dh_clean:
+	dh_clean $(MANPAGES1)
+	$(RM) -r docs/_build
+
+build-indep:
+	#$(MAKE) -C docs text
+	$(MAKE) -C docs html
+
+MANPAGES1 = dbuild/scripts/zmupdate.pl.1
+$(MANPAGES1):
+	# generate man page(s):
+	pod2man -s1 --stderr --utf8 $(patsubst %.1, %, $@) $@
+
+## reproducible build:
+LAST_CHANGE=$(shell dpkg-parsechangelog -S Date)
+BUILD_DATE=$(shell LC_ALL=C date -u "+%B %d, %Y" -d "$(LAST_CHANGE)")
+override_dh_installman: $(MANPAGES1)
+	$(MAKE) -C docs man SPHINXOPTS="-D today=\"$(BUILD_DATE)\""
+	dh_installman --language=C $(MANPAGES1)
+
+override_dh_auto_install:
+	dh_auto_install --destdir=$(CURDIR)/debian/tmp
+	# remove worthless files:
+	$(RM) -v $(CURDIR)/debian/tmp/usr/share/perl5/*/*/*/.packlist
+	$(RM) -v $(CURDIR)/debian/tmp/usr/share/perl5/*/*.in
+	# remove empty directories:
+	find $(CURDIR)/debian/tmp/usr -type d -empty -delete -printf 'removed %p\n'
+	# remove extra-license-file:
+	$(RM) -v $(CURDIR)/debian/tmp/usr/share/zoneminder/www/api/lib/Cake/LICENSE.txt
+
+override_dh_fixperms:
+	dh_fixperms
+	#
+	# As requested by the Debian Webapps Policy Manual §3.2.1
+	chown root:www-data $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
+	chmod 640 $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
+
+override_dh_systemd_start:
+	dh_systemd_start --no-start
+
+override_dh_systemd_enable:
+	dh_systemd_enable --no-enable
+
+override_dh_apache2:
+	dh_apache2 --noenable
+
+override_dh_strip:
+	[ -d "$(CURDIR)/debian/zoneminder-dbg" ] \
+        && dh_strip --dbg-package=zoneminder-dbg \
+        || dh_strip
+
+#%:
+#	dh $@ --parallel --buildsystem=autoconf --with autoreconf
+#
+#override_dh_auto_configure:
+#	dh_auto_configure -- \
+#            --sysconfdir=/etc/zm \
+#            --with-mysql=/usr \
+#            --with-webdir=/usr/share/zoneminder \
+#            --with-ffmpeg=/usr \
+#            --with-cgidir=/usr/lib/cgi-bin \
+#            --with-webuser=www-data \
+#            --with-webgroup=www-data \
+#            --enable-mmap=yes

@@ -51,8 +51,8 @@ var Overlay = new Class({
   },
   show: function() {
     this.mask.show();
-    window.addEventListener( 'resize', this.update.bind(this) );
-    window.addEventListener( 'scroll', this.update.bind(this) );
+    window.addEventListener( 'resize', this.update.bind(this), {passive: true} );
+    window.addEventListener( 'scroll', this.update.bind(this), {passive: true} );
     this.element.tween( 'opacity', [0, 1.0] );
     this.element.show();
     this.element.position();
@@ -80,8 +80,8 @@ var Overlay = new Class({
     }
     updateOverlayLoading();
     this.loading.setStyle( 'display', 'block' );
-    window.addEventListener( 'resize', this.update.bind(this) );
-    window.addEventListener( 'scroll', this.update.bind(this) );
+    window.addEventListener( 'resize', this.update.bind(this), {passive: true} );
+    window.addEventListener( 'scroll', this.update.bind(this), {passive: true} );
   },
   hideAnimation: function() {
     if ( this.loading ) {

@@ -48,6 +48,8 @@ static short *g_v_table;
 static short *g_u_table;
 static short *b_u_table;
 
+struct SwsContext *sws_convert_context = NULL;
+
 jpeg_compress_struct *Image::writejpg_ccinfo[101] = { 0 };
 jpeg_compress_struct *Image::encodejpg_ccinfo[101] = { 0 };
 jpeg_decompress_struct *Image::readjpg_dcinfo = 0;
@@ -160,7 +162,7 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
   update_function_pointers();
 }
 
-Image::Image( const AVFrame *frame ) {
+Image::Image(const AVFrame *frame) {
   AVFrame *dest_frame = zm_av_frame_alloc();
   text[0] = '\0';
 
@@ -185,26 +187,28 @@ Image::Image( const AVFrame *frame ) {
 #endif
 
 #if HAVE_LIBSWSCALE
-  struct SwsContext   *mConvertContext = sws_getContext(
+  sws_convert_context = sws_getCachedContext(
+      sws_convert_context,
       width,
       height,
       (AVPixelFormat)frame->format,
       width, height,
       AV_PIX_FMT_RGBA, SWS_BICUBIC, NULL,
       NULL, NULL);
-  if ( mConvertContext == NULL )
-    Fatal( "Unable to create conversion context" );
+  if ( sws_convert_context == NULL )
+    Fatal("Unable to create conversion context");
 
-  if ( sws_scale(mConvertContext, frame->data, frame->linesize, 0, frame->height, dest_frame->data, dest_frame->linesize) < 0 )
+  if ( sws_scale(sws_convert_context, frame->data, frame->linesize, 0, frame->height,
+        dest_frame->data, dest_frame->linesize) < 0 )
     Fatal("Unable to convert raw format %u to target format %u", frame->format, AV_PIX_FMT_RGBA);
 #else // HAVE_LIBSWSCALE
   Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE
-  av_frame_free( &dest_frame );
+  av_frame_free(&dest_frame);
   update_function_pointers();
-}
+}  // end Image::Image(const AVFrame *frame)
 
-Image::Image( const Image &p_image ) {
+Image::Image(const Image &p_image) {
   if ( !initialised )
     Initialise();
   width = p_image.width;
@@ -217,7 +221,7 @@ Image::Image( const Image &p_image ) {
   holdbuffer = 0;
   AllocImgBuffer(size);
   (*fptr_imgbufcpy)(buffer, p_image.buffer, size);
-  strncpy( text, p_image.text, sizeof(text) );
+  strncpy(text, p_image.text, sizeof(text));
   update_function_pointers();
 }
 
@@ -227,35 +231,39 @@ Image::~Image() {
 
 /* Should be called as part of program shutdown to free everything */
 void Image::Deinitialise() {
-  if ( initialised ) {
-    /*
-       delete[] y_table;
-       delete[] uv_table;
-       delete[] r_v_table;
-       delete[] g_v_table;
-       delete[] g_u_table;
-       delete[] b_u_table;
+  if ( !initialised ) return;
+  /*
+     delete[] y_table;
+     delete[] uv_table;
+     delete[] r_v_table;
+     delete[] g_v_table;
+     delete[] g_u_table;
+     delete[] b_u_table;
      */
-    initialised = false;
-    if ( readjpg_dcinfo ) {
-      jpeg_destroy_decompress( readjpg_dcinfo );
-      delete readjpg_dcinfo;
-      readjpg_dcinfo = 0;
-    }
-    if ( decodejpg_dcinfo ) {
-      jpeg_destroy_decompress( decodejpg_dcinfo );
-      delete decodejpg_dcinfo;
-      decodejpg_dcinfo = 0;
-    }
-    for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
-      if ( writejpg_ccinfo[quality] ) {
-        jpeg_destroy_compress( writejpg_ccinfo[quality] );
-        delete writejpg_ccinfo[quality];
-        writejpg_ccinfo[quality] = NULL;
-      }
-    } // end foreach quality
+  initialised = false;
+  if ( readjpg_dcinfo ) {
+    jpeg_destroy_decompress( readjpg_dcinfo );
+    delete readjpg_dcinfo;
+    readjpg_dcinfo = 0;
   }
-}
+  if ( decodejpg_dcinfo ) {
+    jpeg_destroy_decompress( decodejpg_dcinfo );
+    delete decodejpg_dcinfo;
+    decodejpg_dcinfo = 0;
+  }
+  for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
+    if ( writejpg_ccinfo[quality] ) {
+      jpeg_destroy_compress( writejpg_ccinfo[quality] );
+      delete writejpg_ccinfo[quality];
+      writejpg_ccinfo[quality] = NULL;
+    }
+  } // end foreach quality
+
+  if ( sws_convert_context ) {
+    sws_freeContext(sws_convert_context);
+    sws_convert_context = NULL;
+  }
+}  // end void Image::Deinitialise()
 
 void Image::Initialise() {
   /* Assign the blend pointer to function */
@@ -657,15 +665,16 @@ void Image::Assign( const Image &image ) {
     return;
   }
 
-  if ( !buffer || image.width != width || image.height != height || image.colours != colours || image.subpixelorder != subpixelorder) {
+  if ( !buffer || image.width != width || image.height != height
+      || image.colours != colours || image.subpixelorder != subpixelorder) {
 
-    if (holdbuffer && buffer) {
-      if (new_size > allocation) {
+    if ( holdbuffer && buffer ) {
+      if ( new_size > allocation ) {
         Error("Held buffer is undersized for assigned buffer");
         return;
       }
     } else {
-      if(new_size > allocation || !buffer) {
+      if ( new_size > allocation || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
         AllocImgBuffer(new_size);
       }

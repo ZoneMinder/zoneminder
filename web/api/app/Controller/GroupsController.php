@@ -31,7 +31,7 @@ class GroupsController extends AppController {
  * @return void
  */
 	public function index() {
-		$this->Group->recursive = 1;
+		$this->Group->recursive = -1;
 		$groups = $this->Group->find('all');
 		$this->set(array(
 			'groups' => $groups,

@@ -215,7 +215,7 @@ class Logger {
         }
       }
     }
-    return( $this->id );
+    return $this->id;
   }
 
   public function level( $level ) {

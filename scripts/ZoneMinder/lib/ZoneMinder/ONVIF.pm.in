@@ -279,19 +279,20 @@ sub profiles {
   if ( $verbose ) {
     print "Received message:\n" . $result . "\n";
   }
+  my @profiles;
 
-  my $profiles = $result->get_Profiles();
 
-  foreach my $profile ( @{ $profiles } ) {
+  foreach my $profile ( @{ $result->get_Profiles() } ) {
 
-    my $token = $profile->attr()->get_token() ;
-    my $Name = $profile->get_Name();
 
     my $VideoEncoderConfiguration = $profile->get_VideoEncoderConfiguration();
     if ( ! $VideoEncoderConfiguration ) {
       print "Unknown profile $token $Name.\n";
       next;
     }
+
+    my $token = $profile->attr()->get_token() ;
+    my $Name = $profile->get_Name();
 
 # Specification gives conflicting values for unicast stream types, try both.
 # http://www.onvif.org/onvif/ver10/media/wsdl/media.wsdl#op.GetStreamUri
@@ -310,12 +311,16 @@ sub profiles {
         next if ! $MediaUri;
         my $Uri = $MediaUri->get_Uri();
         next if ! $Uri;
+        my $Resolution = $VideoEncoderConfiguration->get_Resolution();
+        my $Width = $Resolution ? $Resolution->get_Width() : 0;
+        my $Height = $Resolution ? $Resolution->get_Height() : 0;
 
+push @profiles, {
         print join(', ', $token,
           $Name,
           $VideoEncoderConfiguration->get_Encoding(),
-          $VideoEncoderConfiguration->get_Resolution()->get_Width(),
-          $VideoEncoderConfiguration->get_Resolution()->get_Height(),
+          $Width,
+          $Height,
           $VideoEncoderConfiguration->get_RateControl()->get_FrameRateLimit(),
           $Uri,
         ) . "\n";

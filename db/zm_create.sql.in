@@ -784,6 +784,7 @@ INSERT INTO `Filters`
     `AutoCopy`,
     `AutoCopyTo`,
     `UpdateDiskSpace`,
+    `UserId`,
     `Background`,
     `Concurrent`
   )
@@ -804,6 +805,7 @@ INSERT INTO `Filters`
     0/*AutoMove*/,0/*MoveTo*/,
     0/*AutoCopy*/,0/*CopyTo*/,
     0/*UpdateDiskSpace*/,
+    1/*UserId = admin*/,
     1/*Background*/,
     0/*Concurrent*/
   );
@@ -827,6 +829,7 @@ INSERT INTO `Filters`
     `AutoCopy`,
     `AutoCopyTo`,
     `UpdateDiskSpace`,
+    `UserId`,
     `Background`,
     `Concurrent`
   )
@@ -846,6 +849,7 @@ VALUES (
   0/*AutoMove*/,0/*MoveTo*/,
   0/*AutoCopy*/,0/*CopyTo*/,
   1/*UpdateDiskSpace*/,
+  1/*UserId=admin*/,
   1/*Background*/,
   0/*Concurrent*/
 );

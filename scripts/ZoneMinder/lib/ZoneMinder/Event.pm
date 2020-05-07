@@ -352,6 +352,11 @@ sub GenerateVideo {
 sub delete {
   my $event = $_[0];
 
+  if ( !$event->canEdit() ) {
+    Warning('No permission to delete event.');
+    return 'No permission to delete event.';
+  }
+
   my $in_zmaudit = ( $0 =~ 'zmaudit.pl$');
 
   if ( ! $in_zmaudit ) {
@@ -401,6 +406,11 @@ sub delete {
 
 sub delete_files {
   my $event = shift;
+
+  if ( !$event->canEdit() ) {
+    Warning('No permission to delete event.');
+    return 'No permission to delete event.';
+  }
 
   foreach my $Storage (
     @_ ? ($_[0]) : (
@@ -570,6 +580,11 @@ sub DiskSpace {
 sub CopyTo {
   my ( $self, $NewStorage ) = @_;
 
+  if ( !$event->canEdit() ) {
+    Warning('No permission to copy event.');
+    return 'No permission to copy event.';
+  }
+
   my $OldStorage = $self->Storage(undef);
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! -e $OldPath ) {
@@ -734,8 +749,13 @@ sub CopyTo {
 } # end sub CopyTo
 
 sub MoveTo {
-
   my ( $self, $NewStorage ) = @_;
+
+  if ( !$self->canEdit() ) {
+    Warning('No permission to move event.');
+    return 'No permission to move event.';
+  }
+
   my $OldStorage = $self->Storage(undef);
 
   my $error = $self->CopyTo($NewStorage);
@@ -857,14 +877,24 @@ sub files {
 
 sub has_capture_jpegs {
 	@{$_[0]{capture_jpegs}} = grep(/^\d+\-capture\.jpg$/, $_[0]->files());
-	Debug("have " . @{$_[0]{capture_jpegs}} . " capture jpegs");
+	Debug('have ' . @{$_[0]{capture_jpegs}} . ' capture jpegs');
 	return @{$_[0]{capture_jpegs}} ? 1 : 0;
 }
 
 sub has_analyse_jpegs {
 	@{$_[0]{analyse_jpegs}} = grep(/^\d+\-analyse\.jpg$/, $_[0]->files());
-	Debug("have " . @{$_[0]{analyse_jpegs}} . " analyse jpegs");
+	Debug('have ' . @{$_[0]{analyse_jpegs}} . ' analyse jpegs');
 	return @{$_[0]{analyse_jpegs}} ? 1 : 0;
+}
+
+sub canEdit {
+  my $self = shift;
+  if ( !$ZoneMinder::user ) {
+    # No user loaded... assume running as system
+    return 1;
+  }
+  if ( !$$ZoneMinder::user{MonitorIds} ) {
+    # User has no 
 }
 
 1;

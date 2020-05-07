@@ -27,6 +27,7 @@ require_once('includes/Storage.php');
 require_once('includes/Filter.php');
 require_once('includes/Monitor.php');
 require_once('includes/Zone.php');
+require_once('includes/User.php');
 parseSort();
 
 $filterNames = array(''=>translate('ChooseFilter'));
@@ -200,6 +201,18 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
           <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" data-on-input-this="updateButtons"/>
         </p>
+<?php if ( ZM_OPT_USE_AUTH ) { ?>
+        <p><label><?php echo translate('FilterUser') ?></label>
+<?php 
+            global $user;
+echo htmlSelect('filter[UserId]',
+  ZM\User::Indexed_By_Id(),
+  //ZM\User::find(),
+  $filter->UserId() ? $filter->UserId() : $user['Id']
+); ?>
+        </p>
+<?php } ?>
+        <p>
         <table id="fieldsTable" class="filterTable">
           <tbody>
 <?php

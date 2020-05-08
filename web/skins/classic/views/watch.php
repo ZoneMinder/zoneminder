@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web watch feed view file, $Date$, $Revision$
+// ZoneMinder web watch feed view file
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -46,17 +46,16 @@ if ( isset($_REQUEST['scale']) ) {
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
   $scale = $_COOKIE['zmWatchScale'.$mid];
 } else {
-  $scale = reScale(SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE);
+  $scale = $monitor->DefaultScale();
 }
 
 $connkey = generateConnKey();
 
 $streamMode = getStreamMode();
 
-noCacheHeaders();
-
 $popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] == 1));
 
+noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 ?>
 <body>
@@ -77,7 +76,7 @@ if ( canView('Control') && $monitor->Type() == 'Local' ) {
         <div id="closeControl"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>
 <?php
-if ( $monitor->Status() != 'Connected' ) {
+if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
   echo '<div class="warning">Monitor is not capturing. We will be unable to provide an image</div>';
 }
 ?>

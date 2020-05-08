@@ -25,15 +25,15 @@ function controlFocus($monitor, $cmds) {
 ?>
 <div class="arrowControl focusControls">
   <div class="arrowLabel"><?php echo translate('Near') ?></div>
-  <button type="button" class="longArrowBtn upBtn" value="<?php echo $cmds['FocusNear'] ?>" data-on-click-this="controlCmd" data-xtell="0" data-ytell="-1"></button>
-  <button type="button" class="arrowCenter"<?php if ( $control->CanFocusCon() ) { ?> data-on-click-this="controlCmd" value="<?php echo $cmds['FocusStop'] ?>"<?php } ?>><?php echo translate('Focus') ?></button>
-  <button type="button" class="longArrowBtn downBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['FocusFar'] ?>" data-xtell="0" data-ytell="1"></button>
+  <button type="button" class="longArrowBtn upBtn" value="<?php echo $cmds['FocusNear'] ?>" data-on-click="controlCmd" data-xtell="0" data-ytell="-1"></button>
+  <button type="button" class="arrowCenter"<?php if ( $control->CanFocusCon() ) { ?> data-on-click="controlCmd" value="<?php echo $cmds['FocusStop'] ?>"<?php } ?>><?php echo translate('Focus') ?></button>
+  <button type="button" class="longArrowBtn downBtn" data-on-click="controlCmd" value="<?php echo $cmds['FocusFar'] ?>" data-xtell="0" data-ytell="1"></button>
   <div class="arrowLabel"><?php echo translate('Far') ?></div>
 <?php
   if ( $control->CanAutoFocus() ) {
 ?>
-  <button type="button" class="ptzTextBtn" value="<?php echo $cmds['FocusAuto'] ?>" data-on-click-this="controlCmd"><?php echo translate('Auto') ?></button>
-  <button type="button" class="ptzTextBtn" value="<?php echo $cmds['FocusMan'] ?>" data-on-click-this="controlCmd"><?php echo translate('Man') ?></button>
+  <button type="button" class="ptzTextBtn" value="<?php echo $cmds['FocusAuto'] ?>" data-on-click="controlCmd"><?php echo translate('Auto') ?></button>
+  <button type="button" class="ptzTextBtn" value="<?php echo $cmds['FocusMan'] ?>" data-on-click="controlCmd"><?php echo translate('Man') ?></button>
 <?php
   }
 ?>
@@ -48,15 +48,15 @@ function controlZoom($monitor, $cmds) {
 ?>
 <div class="arrowControl zoomControls">
   <div class="arrowLabel"><?php echo translate('Tele') ?></div>
-  <button type="button" class="longArrowBtn upBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['ZoomTele'] ?>" data-xtell="0" data-ytell="-1"></button>
-  <button type="button" class="arrowCenter"<?php if ( $control->CanZoomCon() ) { ?> data-on-click-this="controlCmd" value="<?php echo $cmds['ZoomStop'] ?>"<?php } ?>><?php echo translate('Zoom') ?></button>
-  <button type="button" class="longArrowBtn downBtn" data-on-click-data="controlCmd" value="<?php echo $cmds['ZoomWide'] ?>" data-xtell="0" data-ytell="1"></button>
+  <button type="button" class="longArrowBtn upBtn" data-on-click="controlCmd" value="<?php echo $cmds['ZoomTele'] ?>" data-xtell="0" data-ytell="-1"></button>
+  <button type="button" class="arrowCenter"<?php if ( $control->CanZoomCon() ) { ?> data-on-click="controlCmd" value="<?php echo $cmds['ZoomStop'] ?>"<?php } ?>><?php echo translate('Zoom') ?></button>
+  <button type="button" class="longArrowBtn downBtn" data-on-click="controlCmd" value="<?php echo $cmds['ZoomWide'] ?>" data-xtell="0" data-ytell="1"></button>
   <div class="arrowLabel"><?php echo translate('Wide') ?></div>
 <?php
   if ( $control->CanAutoZoom() ) {
 ?>
-  <button type="button" class="ptzTextBtn" value="Auto" data-on-click-this="controlCmd" value="<?php echo $cmds['ZoomAuto'] ?>"><?php echo translate('Auto') ?></button>
-  <button type="button" class="ptzTextBtn" value="Man" data-on-click-this="controlCmd" value="<?php echo $cmds['ZoomMan'] ?>"><?php echo translate('Man') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['ZoomAuto'] ?>"><?php echo translate('Auto') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['ZoomMan'] ?>"><?php echo translate('Man') ?></button>
 <?php
   }
 ?>
@@ -70,15 +70,15 @@ function controlIris($monitor, $cmds) {
 ?>
 <div class="arrowControl irisControls">
   <div class="arrowLabel"><?php echo translate('Open') ?></div>
-  <button type="button" class="longArrowBtn upBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['IrisOpen'] ?>" data-xtell="0" data-ytell="-1"></button>
-  <button type="button" class="arrowCenter"<?php if ( $control->CanIrisCon() ) { ?> data-on-click-this="controlCmd" value="<?php echo $cmds['IrisStop'] ?>"<?php } ?>><?php echo translate('Iris') ?></button>
-  <button type="button" class="longArrowBtn downBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['IrisClose'] ?>" data-xtell="0" data-ytell="1"></button>
+  <button type="button" class="longArrowBtn upBtn" data-on-click="controlCmd" value="<?php echo $cmds['IrisOpen'] ?>" data-xtell="0" data-ytell="-1"></button>
+  <button type="button" class="arrowCenter"<?php if ( $control->CanIrisCon() ) { ?> data-on-click="controlCmd" value="<?php echo $cmds['IrisStop'] ?>"<?php } ?>><?php echo translate('Iris') ?></button>
+  <button type="button" class="longArrowBtn downBtn" data-on-click="controlCmd" value="<?php echo $cmds['IrisClose'] ?>" data-xtell="0" data-ytell="1"></button>
   <div class="arrowLabel"><?php echo translate('Close') ?></div>
 <?php
   if ( $control->CanAutoIris() ) {
 ?>
-  <button type="button" class="ptzTextBtn" value="Auto" data-on-click-this="controlCmd" value="<?php echo $cmds['IrisAuto'] ?>"><?php echo translate('Auto') ?></button>
-  <button type="button" class="ptzTextBtn" value="Man" data-on-click-this="controlCmd" value="<?php echo $cmds['IrisMan'] ?>"><?php echo translate('Man') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['IrisAuto'] ?>"><?php echo translate('Auto') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['IrisMan'] ?>"><?php echo translate('Man') ?></button>
 <?php
   }
 ?>
@@ -93,15 +93,15 @@ function controlWhite($monitor, $cmds) {
 ?>
 <div class="arrowControl whiteControls">
   <div class="arrowLabel"><?php echo translate('In') ?></div>
-  <button type="button" class="longArrowBtn upBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['WhiteIn'] ?>" data-xtell="0" data-ytell="-1"></button>
-  <button type="button" class="arrowCenter"<?php if ( $control->CanWhiteCon() ) { ?> data-on-click-this="controlCmd" value="<?php echo $cmds['WhiteStop'] ?>"<?php } ?>><?php echo translate('White') ?></button>
-  <button type="button" class="longArrowBtn downBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['WhiteOut'] ?>" data-xtell="0" data-ytell="1)"></button>
+  <button type="button" class="longArrowBtn upBtn" data-on-click="controlCmd" value="<?php echo $cmds['WhiteIn'] ?>" data-xtell="0" data-ytell="-1"></button>
+  <button type="button" class="arrowCenter"<?php if ( $control->CanWhiteCon() ) { ?> data-on-click="controlCmd" value="<?php echo $cmds['WhiteStop'] ?>"<?php } ?>><?php echo translate('White') ?></button>
+  <button type="button" class="longArrowBtn downBtn" data-on-click="controlCmd" value="<?php echo $cmds['WhiteOut'] ?>" data-xtell="0" data-ytell="1)"></button>
   <div class="arrowLabel"><?php echo translate('Out') ?></div>
 <?php
   if ( $control->CanAutoWhite() ) {
 ?>
-  <button type="button" class="ptzTextBtn" value="Auto" data-on-click-this="controlCmd" value="<?php echo $cmds['WhiteAuto'] ?>"><?php echo translate('Auto') ?></button>
-  <button type="button" class="ptzTextBtn" value="Man" data-on-click-this="controlCmd" value="<?php echo $cmds['WhiteMan'] ?>"><?php echo translate('Man') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['WhiteAuto'] ?>"><?php echo translate('Auto') ?></button>
+  <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['WhiteMan'] ?>"><?php echo translate('Man') ?></button>
 <?php
   }
 ?>
@@ -122,19 +122,19 @@ function controlPanTilt($monitor, $cmds) {
   $hasTilt = $control->CanTilt();
   $hasDiag = $hasPan && $hasTilt && $control->CanMoveDiag();
 ?>
-    <button type="button" class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click-this="controlCmd" value="<?php echo $cmds['MoveUpLeft'] ?>" data-xtell="-1" data-ytell="-1"></button>
-    <button type="button" class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" data-on-click-this="controlCmd" value="<?php echo $cmds['MoveUp'] ?>" data-xtell="0" data-ytell="-1"></button>
-    <button type="button" class="arrowBtn upRightBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click-this="controlCmd" value="<?php echo $cmds['MoveUpRight'] ?>" data-xtell="1" data-ytell="-1"></button>
-    <button type="button" class="arrowBtn leftBtn<?php echo $hasPan?'':' invisible' ?>" data-on-click-this="controlCmd" value="<?php echo $cmds['MoveLeft'] ?>" data-xtell="-1" data-ytell="0"></button>
+    <button type="button" class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUpLeft'] ?>" data-xtell="-1" data-ytell="-1"></button>
+    <button type="button" class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUp'] ?>" data-xtell="0" data-ytell="-1"></button>
+    <button type="button" class="arrowBtn upRightBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUpRight'] ?>" data-xtell="1" data-ytell="-1"></button>
+    <button type="button" class="arrowBtn leftBtn<?php echo $hasPan?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveLeft'] ?>" data-xtell="-1" data-ytell="0"></button>
 <?php if ( isset($cmds['Center']) ) { ?>
-    <button type="button" class="arrowBtn centerBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['Center'] ?>"></button>
+    <button type="button" class="arrowBtn centerBtn" data-on-click="controlCmd" value="<?php echo $cmds['Center'] ?>"></button>
 <?php } else { ?>
     <button type="button" class="arrowBtn NocenterBtn"></button>
 <?php } ?>
-    <button type="button" class="arrowBtn rightBtn<?php echo $hasPan?'':' invisible' ?>" data-on-click-this="controlCmd" value="<?php echo $cmds['MoveRight'] ?>" data-xtell="1" data-ytell="0"></button>
-    <button type="button" class="arrowBtn downLeftBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click-this="controlCmd" value="<?php echo $cmds['MoveDownLeft'] ?>" data-xtell="-1" data-ytell="1"></button>
-    <button type="button" class="arrowBtn downBtn<?php echo $hasTilt?'':' invisible' ?>" data-on-click-this="controlCmd" value="<?php echo $cmds['MoveDown'] ?>" data-xtell="0" data-ytell="1"></button>
-    <button type="button" class="arrowBtn downRightBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click-this="controlCmd" value="<?php echo $cmds['MoveDownRight'] ?>" data-xtell="1" data-ytell="1"></button>
+    <button type="button" class="arrowBtn rightBtn<?php echo $hasPan?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveRight'] ?>" data-xtell="1" data-ytell="0"></button>
+    <button type="button" class="arrowBtn downLeftBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveDownLeft'] ?>" data-xtell="-1" data-ytell="1"></button>
+    <button type="button" class="arrowBtn downBtn<?php echo $hasTilt?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveDown'] ?>" data-xtell="0" data-ytell="1"></button>
+    <button type="button" class="arrowBtn downRightBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveDownRight'] ?>" data-xtell="1" data-ytell="1"></button>
   </div>
 </div>
 <?php
@@ -162,7 +162,7 @@ function controlPresets($monitor, $cmds) {
 <?php
   for ( $i = 1; $i <= $control->NumPresets(); $i++ ) {
     ?>
-      <button type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?htmlentities($labels[$i]):'' ?>" value="<?php echo $i ?>" data-on-click-this="controlCmd" value="<?php echo $cmds['PresetGoto'] ?><?php echo $i ?>"/><?php echo $i ?></button>
+      <button type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?htmlentities($labels[$i]):'' ?>" data-on-click="controlCmd" value="<?php echo $cmds['PresetGoto'].$i ?>"/><?php echo $i ?></button>
 <?php
   } // end foreach preset
 ?>
@@ -171,7 +171,7 @@ function controlPresets($monitor, $cmds) {
 <?php
   if ( $control->HasHomePreset() ) {
 ?>
-    <button type="button" class="ptzTextBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['PresetHome'] ?>"><?php echo translate('Home') ?></button>
+    <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['PresetHome'] ?>"><?php echo translate('Home') ?></button>
 <?php
   }
   if ( canEdit('Monitors') && $control->CanSetPresets() ) {
@@ -196,22 +196,22 @@ function controlPower($monitor, $cmds) {
 <?php
   if ( $control->CanWake() ) {
 ?>
-    <button type="button" class="ptzTextBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['Wake'] ?>"><?php echo translate('Wake') ?></button>
+    <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['Wake'] ?>"><?php echo translate('Wake') ?></button>
 <?php
   }
   if ( $control->CanSleep() ) {
 ?>
-    <button type="button" class="ptzTextBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['Sleep'] ?>"><?php echo translate('Sleep') ?></button>
+    <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['Sleep'] ?>"><?php echo translate('Sleep') ?></button>
 <?php
   }
   if ( $control->CanReset() ) {
 ?>
-    <button type="button" class="ptzTextBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['Reset'] ?>"><?php echo translate('Reset') ?></button>
+    <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['Reset'] ?>"><?php echo translate('Reset') ?></button>
 <?php
   }
   if ( $control->CanReboot() ) {
 ?>
-    <button type="button" class="ptzTextBtn" data-on-click-this="controlCmd" value="<?php echo $cmds['Reboot'] ?>"><?php echo translate('Reboot') ?></button>
+    <button type="button" class="ptzTextBtn" data-on-click="controlCmd" value="<?php echo $cmds['Reboot'] ?>"><?php echo translate('Reboot') ?></button>
 <?php
   }
 ?>
@@ -223,9 +223,7 @@ function controlPower($monitor, $cmds) {
 
 function ptzControls($monitor) {
   $control = $monitor->Control();
-  //ZM\Error("Control: " . print_r($control,true));
   $cmds = $control->commands();
-  //ZM\Error("Cmds: " . print_r($cmds, true));
   ob_start();
 ?>
 <div class="controlsPanel">

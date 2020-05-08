@@ -52,6 +52,9 @@ require_once('includes/Event.php');
 require_once('includes/Group.php');
 require_once('includes/Monitor.php');
 
+global $Servers;
+$Servers = ZM\Server::find();
+
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
   or
@@ -71,7 +74,7 @@ define('ZM_BASE_URL', '');
 
 require_once('includes/functions.php');
 if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
-  ZM\Logger::Debug("OPTIONS Method, only doing CORS");
+  ZM\Logger::Debug('OPTIONS Method, only doing CORS');
   # Add Cross domain access headers
   CORSHeaders();
   return;
@@ -152,8 +155,6 @@ if (
   setcookie('zmCSS', $css, time()+3600*24*30*12*10);
 }
 
-
-
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
 
@@ -173,7 +174,6 @@ $view = null;
 $user = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
-
 
 # Add CSP Headers
 $cspNonce = bin2hex(zm_random_bytes(16));

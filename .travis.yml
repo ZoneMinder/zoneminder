@@ -41,6 +41,7 @@ env:
   - SMPFLAGS=-j4 OS=ubuntu DIST=bionic DOCKER_REPO=iconzm/packpack
   - SMPFLAGS=-j4 OS=ubuntu DIST=disco DOCKER_REPO=iconzm/packpack
   - SMPFLAGS=-j4 OS=ubuntu DIST=eoan DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=focal DOCKER_REPO=iconzm/packpack
   - SMPFLAGS=-j4 OS=debian DIST=jessie DOCKER_REPO=iconzm/packpack
   - SMPFLAGS=-j4 OS=debian DIST=stretch DOCKER_REPO=iconzm/packpack
   - SMPFLAGS=-j4 OS=debian DIST=buster DOCKER_REPO=iconzm/packpack

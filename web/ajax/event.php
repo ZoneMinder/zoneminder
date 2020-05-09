@@ -1,4 +1,6 @@
 <?php
+# We use session vars in here, so we need to restart the session because we stopped it in index.php to improve concurrency.
+session_start();
 
 if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
     ajaxError( "No event id(s) supplied" );

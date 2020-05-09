@@ -25,7 +25,7 @@ if ( !canEdit( 'Monitors' ) )
 }
 $sql = "select Id,Name from MonitorPresets";
 $presets = array();
-$presets[0] = $SLANG['ChoosePreset'];
+$presets[0] = translate('ChoosePreset');
 foreach( dbFetchAll( $sql ) as $preset )
 {
     $presets[$preset['Id']] = htmlentities( $preset['Name'] );
@@ -33,25 +33,25 @@ foreach( dbFetchAll( $sql ) as $preset )
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['MonitorPreset'] );
+xhtmlHeaders(__FILE__, translate('MonitorPreset') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['MonitorPreset'] ?></h2>
+      <h2><?php echo translate('MonitorPreset') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="mid" value="<?= validNum($_REQUEST['mid']) ?>"/>
+        <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <p>
-          <?= $SLANG['MonitorPresetIntro'] ?>
+          <?php echo translate('MonitorPresetIntro') ?>
         </p>
         <p>
-          <label for="preset"><?= $SLANG['Preset'] ?></label><?= buildSelect( "preset", $presets, 'configureButtons( this )' ); ?>
+          <label for="preset"><?php echo translate('Preset') ?></label><?php echo buildSelect( "preset", $presets, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
-          <input type="submit" name="saveBtn" value="<?= $SLANG['Save'] ?>" onclick="submitPreset( this )" disabled="disabled"/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" onclick="submitPreset( this )" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

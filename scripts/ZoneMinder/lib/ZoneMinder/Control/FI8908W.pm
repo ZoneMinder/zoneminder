@@ -43,176 +43,176 @@ use ZoneMinder::Config qw(:all);
 use Time::HiRes qw( usleep );
 
 sub new
-{ 
-	my $class = shift;
-	my $id = shift;
-	my $self = ZoneMinder::Control->new( $id );
-	bless( $self, $class );
-	srand( time() );
-	return $self;
+{
+    my $class = shift;
+    my $id = shift;
+    my $self = ZoneMinder::Control->new( $id );
+    bless( $self, $class );
+    srand( time() );
+    return $self;
 }
 
 our $AUTOLOAD;
 
 sub AUTOLOAD
 {
-	my $self = shift;
-	my $class = ref($self) || croak( "$self not object" );
-	my $name = $AUTOLOAD;
-	$name =~ s/.*://;
-	if ( exists($self->{$name}) )
-	{
-		return( $self->{$name} );
-	}
-	Fatal( "Can't access $name member of object of class $class" );
+    my $self = shift;
+    my $class = ref($self) || croak( "$self not object" );
+    my $name = $AUTOLOAD;
+    $name =~ s/.*://;
+    if ( exists($self->{$name}) )
+    {
+        return( $self->{$name} );
+    }
+    Fatal( "Can't access $name member of object of class $class" );
 }
 
 sub open
 {
-	my $self = shift;
+    my $self = shift;
 
-	$self->loadMonitor();
+    $self->loadMonitor();
 
-	use LWP::UserAgent;
-	$self->{ua} = LWP::UserAgent->new;
-	$self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
+    use LWP::UserAgent;
+    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
-	$self->{state} = 'open';
+    $self->{state} = 'open';
 }
 
 sub close
 { 
-	my $self = shift;
-	$self->{state} = 'closed';
+    my $self = shift;
+    $self->{state} = 'closed';
 }
 
 sub printMsg
 {
-	my $self = shift;
-	my $msg = shift;
-	my $msg_len = length($msg);
+    my $self = shift;
+    my $msg = shift;
+    my $msg_len = length($msg);
 
-	Debug( $msg."[".$msg_len."]" );
+    Debug( $msg."[".$msg_len."]" );
 }
 
 sub sendCmd
 {
-	my $self = shift;
-	my $cmd = shift;
-	my $result = undef;
+    my $self = shift;
+    my $cmd = shift;
+    my $result = undef;
 
-	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+    my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
 
-	if ( !defined $password ) {
-		# If value of "Control device" does not consist of two parts, then only password is given and we fallback to default user:
-		$password = $user;
-		$user = 'admin';
-	}
+    if ( !defined $password ) {
+        # If value of "Control device" does not consist of two parts, then only password is given and we fallback to default user:
+        $password = $user;
+        $user = 'admin';
+    }
 
-	$cmd .= "user=$user&pwd=$password";
+    $cmd .= "user=$user&pwd=$password";
 
-	printMsg( $cmd, "Tx" );
+    printMsg( $cmd, "Tx" );
 
-	my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
-	my $res = $self->{ua}->request($req);
+    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
+    my $res = $self->{ua}->request($req);
 
-	if ( $res->is_success )
-	{
-		$result = !undef;
-	}
-	else
-	{
-		Error( "Error check failed: '".$res->status_line()."' for URL ".$req->uri() );
-	}
+    if ( $res->is_success )
+    {
+        $result = !undef;
+    }
+    else
+    {
+        Error( "Error check failed: '".$res->status_line()."' for URL ".$req->uri() );
+    }
 
-	return( $result );
+    return( $result );
 }
 
 sub reset
 {
-	my $self = shift;
-	Debug( "Camera Reset" );
-	$self->sendCmd( 'reboot.cgi?' );
+    my $self = shift;
+    Debug( "Camera Reset" );
+    $self->sendCmd( 'reboot.cgi?' );
 }
 
 #Up Arrow
 sub moveConUp
 {
-	my $self = shift;
-	Debug( "Move Up" );
-	$self->sendCmd( 'decoder_control.cgi?command=0&' );
+    my $self = shift;
+    Debug( "Move Up" );
+    $self->sendCmd( 'decoder_control.cgi?command=0&' );
 }
 
 #Down Arrow
 sub moveConDown
 {
-	my $self = shift;
-	Debug( "Move Down" );
-	$self->sendCmd( 'decoder_control.cgi?command=2&' );
+    my $self = shift;
+    Debug( "Move Down" );
+    $self->sendCmd( 'decoder_control.cgi?command=2&' );
 }
 
 #Left Arrow
 sub moveConLeft
 {
-	my $self = shift;
-	Debug( "Move Left" );
-	$self->sendCmd( 'decoder_control.cgi?command=6&' );
+    my $self = shift;
+    Debug( "Move Left" );
+    $self->sendCmd( 'decoder_control.cgi?command=6&' );
 }
 
 #Right Arrow
 sub moveConRight
 {
-	my $self = shift;
-	Debug( "Move Right" );
-	$self->sendCmd( 'decoder_control.cgi?command=4&' );
+    my $self = shift;
+    Debug( "Move Right" );
+    $self->sendCmd( 'decoder_control.cgi?command=4&' );
 }
 
 #Diagonally Up Right Arrow
 sub moveConUpRight
 {
-	my $self = shift;
-	Debug( "Move Diagonally Up Right" );
-	$self->sendCmd( 'decoder_control.cgi?command=90&' );
+    my $self = shift;
+    Debug( "Move Diagonally Up Right" );
+    $self->sendCmd( 'decoder_control.cgi?command=90&' );
 }
 
 #Diagonally Down Right Arrow
 sub moveConDownRight
 {
-	my $self = shift;
-	Debug( "Move Diagonally Down Right" );
-	$self->sendCmd( 'decoder_control.cgi?command=92&' );
+    my $self = shift;
+    Debug( "Move Diagonally Down Right" );
+    $self->sendCmd( 'decoder_control.cgi?command=92&' );
 }
 
 #Diagonally Up Left Arrow
 sub moveConUpLeft
 {
-	my $self = shift;
-	Debug( "Move Diagonally Up Left" );
-	$self->sendCmd( 'decoder_control.cgi?command=91&' );
+    my $self = shift;
+    Debug( "Move Diagonally Up Left" );
+    $self->sendCmd( 'decoder_control.cgi?command=91&' );
 }
 
 #Diagonally Down Left Arrow
 sub moveConDownLeft
 {
-	my $self = shift;
-	Debug( "Move Diagonally Down Left" );
-	$self->sendCmd( 'decoder_control.cgi?command=93&' );
+    my $self = shift;
+    Debug( "Move Diagonally Down Left" );
+    $self->sendCmd( 'decoder_control.cgi?command=93&' );
 }
 
 #Stop
 sub moveStop
 {
-	my $self = shift;
-	Debug( "Move Stop" );
-	$self->sendCmd( 'decoder_control.cgi?command=1&' );
+    my $self = shift;
+    Debug( "Move Stop" );
+    $self->sendCmd( 'decoder_control.cgi?command=1&' );
 }
 
 #Move Camera to Home Position
 sub presetHome
 {
-	my $self = shift;
-	Debug( "Home Preset" );
-	$self->sendCmd( 'decoder_control.cgi?command=25&' );
+    my $self = shift;
+    Debug( "Home Preset" );
+    $self->sendCmd( 'decoder_control.cgi?command=25&' );
 }
 
 1;
@@ -220,12 +220,17 @@ sub presetHome
 __END__
 =pod
 
+=head1 NAME
+
+ZoneMinder::Control::FI8908W - Foscam FI8908W camera control
+
 =head1 DESCRIPTION
 
-This module contains the implementation of the Foscam FI8908W / FI8918W IP camera control
-protocol.
+This module contains the implementation of the Foscam FI8908W / FI8918W IP
+camera control protocol.
 
-The module uses "Control Device" value to retrieve user and password. User and password should
-be separated by colon, e.g. user:password. If colon is not provided, then "admin" is used
-as a fallback value for the user.
+The module uses "Control Device" value to retrieve user and password. User
+and password should be separated by colon, e.g. user:password. If colon is
+not provided, then "admin" is used as a fallback value for the user.
+
 =cut

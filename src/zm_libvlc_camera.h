@@ -33,44 +33,44 @@
 // Used by libvlc callbacks
 struct LibvlcPrivateData
 {
-    uint8_t* buffer;
-    uint8_t* prevBuffer;
-    time_t prevTime;
-    uint32_t bufferSize;
-    Mutex mutex;
-    ThreadData<bool> newImage;
+  uint8_t* buffer;
+  uint8_t* prevBuffer;
+  time_t prevTime;
+  uint32_t bufferSize;
+  Mutex mutex;
+  ThreadData<bool> newImage;
 };
 
 class LibvlcCamera : public Camera
 {
 protected:
-    std::string mPath;
-    std::string mMethod;
-    std::string mOptions;
-    char **mOptArgV;
-	LibvlcPrivateData mLibvlcData;
-    std::string mTargetChroma;
-    uint8_t mBpp;
+  std::string mPath;
+  std::string mMethod;
+  std::string mOptions;
+  char **mOptArgV;
+  LibvlcPrivateData mLibvlcData;
+  std::string mTargetChroma;
+  uint8_t mBpp;
 
-    libvlc_instance_t *mLibvlcInstance;
-    libvlc_media_t *mLibvlcMedia;
-    libvlc_media_player_t *mLibvlcMediaPlayer;
+  libvlc_instance_t *mLibvlcInstance;
+  libvlc_media_t *mLibvlcMedia;
+  libvlc_media_player_t *mLibvlcMediaPlayer;
 
 public:
-	LibvlcCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
-	~LibvlcCamera();
+  LibvlcCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  ~LibvlcCamera();
 
-    const std::string &Path() const { return( mPath ); }
-    const std::string &Options() const { return( mOptions ); }
-    const std::string &Method() const { return( mMethod ); }
+  const std::string &Path() const { return( mPath ); }
+  const std::string &Options() const { return( mOptions ); }
+  const std::string &Method() const { return( mMethod ); }
 
-	void Initialise();
-	void Terminate();
+  void Initialise();
+  void Terminate();
 
-	int PrimeCapture();
-	int PreCapture();
-	int Capture( Image &image );
-	int PostCapture();
+  int PrimeCapture();
+  int PreCapture();
+  int Capture( Image &image );
+  int PostCapture();
 };
 
 #endif // HAVE_LIBVLC

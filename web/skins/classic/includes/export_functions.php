@@ -24,7 +24,7 @@ function exportHeader( $title )
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-  <title><?= $title ?></title>
+  <title><?php echo $title ?></title>
   <style type="text/css">
   <!--
 <?php include( ZM_SKIN_PATH.'/css/export.css' ); ?>
@@ -71,7 +71,7 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 }
   -->
   </style>
-   <script type="text/javascript" src="<?php echo ZM_SKIN_PATH; ?>/js/jquery-1.4.2.min.js"></script>
+   <script type="text/javascript" src="<?php echo ZM_SKIN_PATH; ?>/js/jquery.js"></script>
   <script type="text/javascript" language="javascript" charset="utf-8">
 
   /*==========[tab code]==========*/
@@ -103,14 +103,12 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 
 function exportEventDetail( $event, $exportFrames, $exportImages )
 {
-    global $SLANG;
-
     ob_start();
-    exportHeader( $SLANG['Event']." ".$event['Id'] );
+    exportHeader( translate('Event')." ".$event['Id'] );
 	
 	$otherlinks = '';
-	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.$SLANG['Frames'].'</a>,';
-	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.$SLANG['Images'].'</a>,';
+	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.translate('Frames').'</a>,';
+	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.translate('Images').'</a>,';
 	$otherlinks = substr($otherlinks,0,-1);
 
 
@@ -118,21 +116,21 @@ function exportEventDetail( $event, $exportFrames, $exportImages )
 <body>
   <div id="page">
     <div id="content">
-		<h2><?= $SLANG['Event'] ?>: <?= validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?=$otherlinks?>) <?php } ?></h2>
+		<h2><?php echo translate('Event') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
       <table id="eventDetail">
-        <tr><th scope="row"><?= $SLANG['Id'] ?></th><td><?= $event['Id'] ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['Name'] ?></th><td><?= validHtmlStr($event['Name']) ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['Monitor'] ?></th><td><?= validHtmlStr($event['MonitorName']) ?> (<?= $event['MonitorId'] ?>)</td></tr>
-        <tr><th scope="row"><?= $SLANG['Cause'] ?></th><td><?= validHtmlStr($event['Cause']) ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['Notes'] ?></th><td><?= validHtmlStr($event['Notes']) ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['Time'] ?></th><td><?= strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['Duration'] ?></th><td><?= $event['Length'] ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['Frames'] ?></th><td><?= $event['Frames'] ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['AttrAlarmFrames'] ?></th><td><?= $event['AlarmFrames'] ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['AttrTotalScore'] ?></th><td><?= $event['TotScore'] ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['AttrAvgScore'] ?></th><td><?= $event['AvgScore'] ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['AttrMaxScore'] ?></th><td><?= $event['MaxScore'] ?></td></tr>
-        <tr><th scope="row"><?= $SLANG['Archived'] ?></th><td><?= $event['Archived']?$SLANG['Yes']:$SLANG['No'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Id') ?></th><td><?php echo $event['Id'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Name') ?></th><td><?php echo validHtmlStr($event['Name']) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event['MonitorName']) ?> (<?php echo $event['MonitorId'] ?>)</td></tr>
+        <tr><th scope="row"><?php echo translate('Cause') ?></th><td><?php echo validHtmlStr($event['Cause']) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Notes') ?></th><td><?php echo validHtmlStr($event['Notes']) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Duration') ?></th><td><?php echo $event['Length'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Frames') ?></th><td><?php echo $event['Frames'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrAlarmFrames') ?></th><td><?php echo $event['AlarmFrames'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrTotalScore') ?></th><td><?php echo $event['TotScore'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrAvgScore') ?></th><td><?php echo $event['AvgScore'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrMaxScore') ?></th><td><?php echo $event['MaxScore'] ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Archived') ?></th><td><?php echo $event['Archived']?translate('Yes'):translate('No') ?></td></tr>
       </table>
     </div>
   </div>
@@ -150,30 +148,30 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
     $frames = dbFetchAll( $sql, NULL, array( $event['Id'] ) );
 
     ob_start();
-    exportHeader( $SLANG['Frames']." ".$event['Id'] );
+    exportHeader( translate('Frames')." ".$event['Id'] );
 	
 	$otherlinks = '';
-	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.$SLANG['Event'].'</a>,';
-	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.$SLANG['Images'].'</a>,';
+	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.translate('Event').'</a>,';
+	if( $exportImages ) $otherlinks .= '<a href="zmEventImages.html">'.translate('Images').'</a>,';
 	$otherlinks = substr($otherlinks,0,-1);
 
 ?>
 <body>
   <div id="page">
     <div id="content">
-		<h2><?= $SLANG['Frames'] ?>: <?= validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?=$otherlinks?>) <?php } ?></h2>
+		<h2><?php echo translate('Frames') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
       <table id="eventFrames">
         <tr>
-          <th><?= $SLANG['FrameId'] ?></th>
-          <th><?= $SLANG['Type'] ?></th>
-          <th><?= $SLANG['TimeStamp'] ?></th>
-          <th><?= $SLANG['TimeDelta'] ?></th>
-          <th><?= $SLANG['Score'] ?></th>
+          <th><?php echo translate('FrameId') ?></th>
+          <th><?php echo translate('Type') ?></th>
+          <th><?php echo translate('TimeStamp') ?></th>
+          <th><?php echo translate('TimeDelta') ?></th>
+          <th><?php echo translate('Score') ?></th>
 <?php
     if ( $exportImages )
     {
 ?>
-          <th><?= $SLANG['Image'] ?></th>
+          <th><?php echo translate('Image') ?></th>
 <?php
     }
 ?>
@@ -181,7 +179,7 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 <?php
     if ( count($frames) )
     {
-        $eventPath = mygetEventPath( $event );
+        $eventPath = ZM_DIR_EVENTS.'/'.mygetEventPath( $event );
         foreach ( $frames as $frame )
         {
             $imageFile = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
@@ -194,17 +192,17 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 
             $class = strtolower($frame['Type']);
 ?>
-        <tr class="<?= $class ?>">
-          <td><?= $frame['FrameId'] ?></td>
-          <td><?= $frame['Type'] ?></td>
-          <td><?= strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
-          <td><?= number_format( $frame['Delta'], 2 ) ?></td>
-          <td><?= $frame['Score'] ?></td>
+        <tr class="<?php echo $class ?>">
+          <td><?php echo $frame['FrameId'] ?></td>
+          <td><?php echo $frame['Type'] ?></td>
+          <td><?php echo strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
+          <td><?php echo number_format( $frame['Delta'], 2 ) ?></td>
+          <td><?php echo $frame['Score'] ?></td>
 <?php
             if ( $exportImages )
             {
 ?>
-          <td><a href="<?= $imageFile ?>" target="zmExportImage"><img src="<?= $imageFile ?>" border="0" class="thumb" alt="Frame <?= $frame['FrameId'] ?>"/></a></td>
+          <td><a href="<?php echo $imageFile ?>" target="zmExportImage"><img src="<?php echo $imageFile ?>" border="0" class="thumb" alt="Frame <?php echo $frame['FrameId'] ?>"/></a></td>
 <?php
             }
 ?>
@@ -216,7 +214,7 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
     {
 ?>
         <tr>
-          <td class="monoRow" colspan="<?= $exportImages?6:5 ?>"><?= $SLANG['NoFramesRecorded'] ?></td>
+          <td class="monoRow" colspan="<?php echo $exportImages?6:5 ?>"><?php echo translate('NoFramesRecorded') ?></td>
         </tr>
 <?php
     }
@@ -235,11 +233,11 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
     global $SLANG;
 
     ob_start();
-    exportHeader( $SLANG['Images']." ".$event['Id'] );
+    exportHeader( translate('Images')." ".$event['Id'] );
 	
 	$otherlinks = '';
-	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.$SLANG['Event'].'</a>,';
-	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.$SLANG['Frames'].'</a>,';
+	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.translate('Event').'</a>,';
+	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.translate('Frames').'</a>,';
 	$otherlinks = substr($otherlinks,0,-1);
 
 	$filelist = array_keys($myfilelist);
@@ -249,9 +247,9 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 ?>
 <body>
 <style>
-*.horizontal_track {background-color: #bbb;width: <?=$event['Width']?>px;line-height: 0px;font-size: 0px;text-align: left;padding: 4px;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
+*.horizontal_track {background-color: #bbb;width: <?php echo$event['Width']?>px;line-height: 0px;font-size: 0px;text-align: left;padding: 4px;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
 *.horizontal_slider {background-color: #666;width: 16px;height: 8px;position: relative;z-index: 2;line-height: 0;margin: 0;border: 2px solid;border-color: #999 #333 #333 #999;}
-*.horizontal_slit {background-color: #333;width: <?=($event['Width']-10)?>px;height: 2px;margin: 4px 4px 2px 4px;line-height: 0;position: absolute;z-index: 1;border: 1px solid;border-color: #999 #ddd #ddd #999;}
+*.horizontal_slit {background-color: #333;width: <?php echo($event['Width']-10)?>px;height: 2px;margin: 4px 4px 2px 4px;line-height: 0;position: absolute;z-index: 1;border: 1px solid;border-color: #999 #ddd #ddd #999;}
 *.vertical_track {background-color: #bbb;padding: 3px 5px 15px 5px;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
 *.vertical_slider {background-color: #666;width: 18px;height: 8px;font: 0px;text-align: left;line-height: 0px;position: relative;z-index: 1;border: 2px solid;border-color: #999 #333 #333 #999;}
 *.vertical_slit {background-color: #000;width: 2px;height: 100px;position: absolute;margin: 4px 10px 4px 10px;padding: 4px 0 1px 0;line-height: 0;font-size: 0;border: 1px solid;border-color: #666 #ccc #ccc #666;}
@@ -259,7 +257,7 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 .value_display {background-color: #bbb;color: #333;width: 30px;margin: 0 2px;text-align: right;font-size: 8pt;font-face: verdana, arial, helvetica, sans-serif;font-weight: bold;line-height: 12px;border: 0;cursor: default;}
 </style>
 
-<h2><?= $SLANG['Images'] ?>: <?= validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?=$otherlinks?>) <?php } ?></h2>
+<h2><?php echo translate('Images') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
 
 <ilayer id="slidensmain" width=&{slidewidth}; height=&{slideheight}; bgColor=&{slidebgcolor}; visibility=hide>
 <layer id="slidenssub" width=&{slidewidth}; left=auto top=auto></layer>
@@ -277,7 +275,7 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 <div align="center"><div class="horizontal_track" >
 	<div class="horizontal_slit" >&nbsp;</div>
     <div class="horizontal_slider" id="imageslider_id" style="left: 0px;"
-        onmousedown="slide(event,'horizontal', <?=($event['Width']-20)?>, 1, <?=$listcount?>, <?=$listcount?>,0, 'imageslider_display_id');" >&nbsp;</div>
+        onmousedown="slide(event,'horizontal', <?php echo($event['Width']-20)?>, 1, <?php echo$listcount?>, <?php echo$listcount?>,0, 'imageslider_display_id');" >&nbsp;</div>
 </div></div>
 <div align="center"><div class="display_holder" ><input id="imageslider_display_id" class="value_display" type="text" value="0" onfocus="blur(this);" /></div></div>
 
@@ -290,9 +288,9 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 * Visit http://www.dynamicdrive.com/ for full source code
 ***********************************************/
 
-var eventWidth = <?=$event['Width']?>;
-var eventHeight = <?=$event['Height']?>;
-var variableslide=[<?=$slides?>];
+var eventWidth = <?php echo$event['Width']?>;
+var eventHeight = <?php echo$event['Height']?>;
+var variableslide=[<?php echo$slides?>];
 
 //configure the below 3 variables to set the dimension/background color of the slideshow
 
@@ -593,16 +591,20 @@ function exportEventImagesMaster( $eids )
 {
     global $SLANG;
     ob_start();
-    exportHeader( $SLANG['Images'].' Master' );
+    exportHeader( translate('Images').' Master' );
 ?>
 <body>
-<h2><?= $SLANG['Images'] ?> Master</h2>
+<h2><?php echo translate('Images') ?> Master</h2>
 <?php
 	foreach ($eids as $eid) {
 		//get monitor id and event id
-		$sql = 'SELECT E.MonitorId FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
+		$sql = 'SELECT E.MonitorId, E.StartTime, E.Id
+			FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)
+			WHERE E.Id = ?
+		';
 		$event = dbFetchOne( $sql, NULL, array( $eid ) );
 		$eventMonitorId[$eid] = $event['MonitorId'];
+		$eventPath[$eid] = mygetEventPath( $event );
 	}
 	
 	$monitors = array_values(array_flip(array_flip($eventMonitorId))); //unique monitors and reindex the array
@@ -644,7 +646,7 @@ function exportEventImagesMaster( $eids )
 	<?php foreach($eids as $eid) 
 	{
 	?>
-		<div><a href="javascript:switchevent('<?php echo   $eventMonitorId[$eid].'/' . $eid; ?>/zmEventImages.html');"><?=$eid?></a></div>
+		<div><a href="javascript:switchevent('<?php echo   $eventPath[$eid]; ?>/zmEventImages.html');"><?php echo$eid?></a></div>
 		<?php
 	} 
 	?>
@@ -660,7 +662,7 @@ function exportEventImagesMaster( $eids )
 				if ($eventMonitorId[$eid] == $monitor)
 				{
 				?>	
-				<div><a href="javascript:switchevent('<?php echo   $eventMonitorId[$eid].'/' . $eid; ?>/zmEventImages.html');"><?=$eid?></a></div>	
+				<div><a href="javascript:switchevent('<?php echo   $eventPath[$eid]; ?>/zmEventImages.html');"><?php echo$eid?></a></div>
 				<?php
 				}
 			}
@@ -763,7 +765,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
     {
         $sql = 'SELECT E.Id,E.MonitorId,M.Name AS MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
         $event = dbFetchOne( $sql, NULL, array( $eid ) );
-		$eventPath =  mygetEventPath( $event );
+		$eventPath =  ZM_DIR_EVENTS.'/'.mygetEventPath( $event );
         $files = array();
         if ( $dir = opendir( $eventPath ) )
         {
@@ -956,8 +958,8 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
 function mygetEventPath( $event )
 {
     if ( ZM_USE_DEEP_STORAGE )
-        $eventPath = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
+        $eventPath = $event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
     else
-        $eventPath = ZM_DIR_EVENTS.'/'.$event['MonitorId'].'/'.$event['Id'];
+        $eventPath = $event['MonitorId'].'/'.$event['Id'];
     return( $eventPath );
 }

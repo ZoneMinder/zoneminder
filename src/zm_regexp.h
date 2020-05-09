@@ -35,29 +35,29 @@
 class RegExpr
 {
 protected:
-	pcre *regex;
-	pcre_extra *regextra;
-	int max_matches;
-	int *match_vectors;
-	mutable char **match_buffers;
-	int *match_lengths;
-	bool *match_valid;
+  pcre *regex;
+  pcre_extra *regextra;
+  int max_matches;
+  int *match_vectors;
+  mutable char **match_buffers;
+  int *match_lengths;
+  bool *match_valid;
 
 protected:
-	const char *match_string;
-	int n_matches;
-	
+  const char *match_string;
+  int n_matches;
+  
 protected:
-	bool ok;
+  bool ok;
 
 public:
-	RegExpr( const char *pattern, int cflags=0, int p_max_matches=32 );
-	~RegExpr();
-	bool Ok() const { return( ok ); }
-	int MatchCount() const { return( n_matches ); }
-	int Match( const char *subject_string, int subject_length, int flags=0 );
-	const char *MatchString( int match_index ) const;
-	int MatchLength( int match_index ) const;
+  RegExpr( const char *pattern, int cflags=0, int p_max_matches=32 );
+  ~RegExpr();
+  bool Ok() const { return( ok ); }
+  int MatchCount() const { return( n_matches ); }
+  int Match( const char *subject_string, int subject_length, int flags=0 );
+  const char *MatchString( int match_index ) const;
+  int MatchLength( int match_index ) const;
 };
 
 #endif // HAVE_LIBPCRE

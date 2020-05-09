@@ -13,7 +13,7 @@ ZoneMinder Documentation
 Welcome to ZoneMinder's documentation, the following resources are available
 
 :doc:`installationguide/index`
-  Many distrubution repos only hold older versions of ZoneMinder, current versions contain many bug fixes and updated functionality. Instructions here for installing updated packages or compiling from source.
+  Many distribution repos only hold older versions of ZoneMinder, current versions contain many bug fixes and updated functionality. Instructions here for installing updated packages or compiling from source.
 
 :doc:`userguide/index`
   Guide to setting up ZoneMinder for the first time and detailed guides for using the ZoneMinder front end.

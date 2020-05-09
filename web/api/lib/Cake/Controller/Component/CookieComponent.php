@@ -27,7 +27,6 @@ App::uses('Hash', 'Utility');
  *
  * @package       Cake.Controller.Component
  * @link http://book.cakephp.org/2.0/en/core-libraries/components/cookie.html
- *
  */
 class CookieComponent extends Component {
 
@@ -92,7 +91,7 @@ class CookieComponent extends Component {
  * Indicates that the cookie should only be transmitted over a secure HTTPS connection.
  * When set to true, the cookie will only be set if a secure connection exists.
  *
- * @var boolean
+ * @var bool
  */
 	public $secure = false;
 
@@ -112,7 +111,7 @@ class CookieComponent extends Component {
  * Set to true to make HTTP only cookies. Cookies that are HTTP only
  * are not accessible in JavaScript.
  *
- * @var boolean
+ * @var bool
  */
 	public $httpOnly = false;
 
@@ -185,7 +184,7 @@ class CookieComponent extends Component {
 /**
  * Start CookieComponent for use in the controller
  *
- * @param Controller $controller
+ * @param Controller $controller Controller instance.
  * @return void
  */
 	public function startup(Controller $controller) {
@@ -208,8 +207,8 @@ class CookieComponent extends Component {
  *
  * @param string|array $key Key for the value
  * @param mixed $value Value
- * @param boolean $encrypt Set to true to encrypt value, false otherwise
- * @param integer|string $expires Can be either the number of seconds until a cookie
+ * @param bool $encrypt Set to true to encrypt value, false otherwise
+ * @param int|string $expires Can be either the number of seconds until a cookie
  *   expires, or a strtotime compatible time offset.
  * @return void
  * @link http://book.cakephp.org/2.0/en/core-libraries/components/cookie.html#CookieComponent::write
@@ -262,7 +261,7 @@ class CookieComponent extends Component {
  * $this->Cookie->read(Name.key);
  *
  * @param string $key Key of the value to be obtained. If none specified, obtain map key => values
- * @return string or null, value for specified key
+ * @return string|null Value for specified key
  * @link http://book.cakephp.org/2.0/en/core-libraries/components/cookie.html#CookieComponent::read
  */
 	public function read($key = null) {
@@ -284,7 +283,7 @@ class CookieComponent extends Component {
 			return null;
 		}
 
-		if (!empty($names[1])) {
+		if (!empty($names[1]) && is_array($this->_values[$this->name][$key])) {
 			return Hash::get($this->_values[$this->name][$key], $names[1]);
 		}
 		return $this->_values[$this->name][$key];
@@ -293,8 +292,8 @@ class CookieComponent extends Component {
 /**
  * Returns true if given variable is set in cookie.
  *
- * @param string $var Variable name to check for
- * @return boolean True if variable is there
+ * @param string $key Variable name to check for
+ * @return bool True if variable is there
  */
 	public function check($key = null) {
 		if (empty($key)) {
@@ -400,8 +399,8 @@ class CookieComponent extends Component {
  * CookieComponent::write(string, string, boolean, 8400);
  * CookieComponent::write(string, string, boolean, '5 Days');
  *
- * @param integer|string $expires Can be either Unix timestamp, or date string
- * @return integer Unix timestamp
+ * @param int|string $expires Can be either Unix timestamp, or date string
+ * @return int Unix timestamp
  */
 	protected function _expire($expires = null) {
 		if ($expires === null) {
@@ -414,7 +413,7 @@ class CookieComponent extends Component {
 		$now = new DateTime();
 
 		if (is_int($expires) || is_numeric($expires)) {
-			return $this->_expires = $now->format('U') + intval($expires);
+			return $this->_expires = $now->format('U') + (int)$expires;
 		}
 		$now->modify($expires);
 		return $this->_expires = $now->format('U');

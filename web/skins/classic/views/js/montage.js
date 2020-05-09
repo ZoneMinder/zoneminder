@@ -1,10 +1,11 @@
 var requestQueue = new Request.Queue( { concurrent: 2 } );
 
-function Monitor( index, id, connKey )
+function Monitor( index, monitorData )
 {
     this.index = index;
-    this.id = id;
-    this.connKey = connKey;
+    this.id = monitorData.id;
+    this.connKey = monitorData.connKey;
+    this.server_url = monitorData.server_url;
     this.status = null;
     this.alarmState = STATE_IDLE;
     this.lastAlarmState = STATE_IDLE;
@@ -35,6 +36,7 @@ function Monitor( index, id, connKey )
         if ( this.streamCmdTimer )
             this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
 
+        var stream = document.getElementById( "liveStream"+this.id );
         if ( respObj.result == 'Ok' )
         {
             this.status = respObj.status;
@@ -57,7 +59,6 @@ function Monitor( index, id, connKey )
             this.setStateClass( $('monitor'+this.index), stateClass );
 
             /*Stream could be an applet so can't use moo tools*/ 
-            var stream = document.getElementById( "liveStream"+this.id );
             stream.className = stateClass;
 
             var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
@@ -90,6 +91,10 @@ function Monitor( index, id, connKey )
         else
         {
             console.error( respObj.message );
+            // Try to reload the image stream.
+            if ( stream )
+                stream.src = stream.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+
         }
         var streamCmdTimeout = statusRefreshTimeout;
         if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )
@@ -106,14 +111,14 @@ function Monitor( index, id, connKey )
         this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
     }
 
-    this.streamCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
+    this.streamCmdReq = new Request.JSON( { url: this.server_url, method: 'get', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
 
     requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
 }
 
 function selectLayout( element )
 {
-    var cssFile = skinPath+'/views/css/'+$(element).get('value');
+	var cssFile = skinPath+'/css/'+Cookie.read('zmCSS')+'/views/'+$(element).get('value');
     if ( $('dynamicStyles') )
         $('dynamicStyles').destroy();
     new Asset.css( cssFile, { id: 'dynamicStyles' } );
@@ -142,7 +147,7 @@ function initPage()
 {
     for ( var i = 0; i < monitorData.length; i++ )
     {
-        monitors[i] = new Monitor( i, monitorData[i].id, monitorData[i].connKey );
+        monitors[i] = new Monitor( i, monitorData[i] );
         var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
         monitors[i].start( delay );
     }

@@ -30,6 +30,11 @@ extern MYSQL dbconn;
 extern int zmDbConnected;
 
 void zmDbConnect();
+void zmDbClose();
+
+MYSQL_RES * zmDbFetch( const char *query );
+MYSQL_ROW zmDbFetchOne( const char *query );
+
 #ifdef __cplusplus 
 } /* extern "C" */
 #endif 

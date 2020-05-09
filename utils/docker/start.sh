@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Prepare proper amount of shared memory
+# For H.264 cameras it may be necessary to increase the amout of shared memory
+# to 2048 megabytes.
+umount /dev/shm
+mount -t tmpfs -o rw,nosuid,nodev,noexec,relatime,size=512M tmpfs /dev/shm
+
 # Start MySQL
 /usr/bin/mysqld_safe & 
 
@@ -25,7 +31,13 @@ done
 mysql -u root < db/zm_create.sql
 
 # Add the ZoneMinder DB user
-mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zm'@'localhost' identified by 'zm'"
+mysql -u root -e "grant insert,select,update,delete,lock tables,alter on zm.* to 'zmuser'@'localhost' identified by 'zmpass';"
+
+# Activate CGI
+a2enmod cgi
+
+# Activate modrewrite
+a2enmod rewrite
 
 # Restart apache
 service apache2 restart

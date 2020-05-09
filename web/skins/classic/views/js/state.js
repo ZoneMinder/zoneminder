@@ -1,5 +1,6 @@
 function checkState( element )
 {
+
     var form = element.form;
 
     var minIndex = running?2:1;
@@ -13,13 +14,24 @@ function checkState( element )
         form.saveBtn.disabled = false;
         form.deleteBtn.disabled = false;
     }
+
     if ( form.newState.value != '' )
         form.saveBtn.disabled = false;
+
+    // PP if we are in 'default' state, disable delete
+    // you can still save
+    if (element.value.toLowerCase() == 'default' )
+    {
+	form.saveBtn.disabled = false;
+ 	form.deleteBtn.disabled = true;
+    }
+
 }
 
 function saveState( element )
 {
     var form = element.form;
+
     form.view.value = currentView;
     form.action.value = 'save';
     form.submit();

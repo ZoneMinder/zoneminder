@@ -27,7 +27,7 @@ App::uses('ConnectionManager', 'Model');
  * and all of the above on arrays.
  *
  * @package       Cake.Utility
- * @deprecated    Deprecated since version 2.4
+ * @deprecated    3.0.0 Deprecated since version 2.4
  */
 class Sanitize {
 
@@ -184,7 +184,7 @@ class Sanitize {
  *
  * Will remove all `<b>`, `<p>`, and `<div>` tags from the $dirty string.
  *
- * @param string $str,... String to sanitize
+ * @param string $str String to sanitize.
  * @return string sanitized String
  */
 	public static function stripTags($str) {

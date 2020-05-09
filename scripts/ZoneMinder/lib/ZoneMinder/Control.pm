@@ -19,7 +19,7 @@
 #
 # ==========================================================================
 #
-# This module contains the base class definitions for the camera control 
+# This module contains the base class definitions for the camera control
 # protocol implementations
 #
 package ZoneMinder::Control;
@@ -45,17 +45,17 @@ our $AUTOLOAD;
 
 sub new
 {
-	my $class = shift;
-	my $id = shift;
-	my $self = {};
-	$self->{name} = "PelcoD";
+    my $class = shift;
+    my $id = shift;
+    my $self = {};
+    $self->{name} = "PelcoD";
     if ( !defined($id) )
     {
         Fatal( "No monitor defined when invoking protocol ".$self->{name} );
     }
-	$self->{id} = $id;
-	bless( $self, $class );
-	return $self;
+    $self->{id} = $id;
+    bless( $self, $class );
+    return $self;
 }
 
 sub DESTROY
@@ -64,32 +64,32 @@ sub DESTROY
 
 sub AUTOLOAD
 {
-	my $self = shift;
-	my $class = ref($self) || croak( "$self not object" );
-	my $name = $AUTOLOAD;
-	$name =~ s/.*://;
-	if ( exists($self->{$name}) )
-	{
-		return( $self->{$name} );
-	}
-	croak( "Can't access $name member of object of class $class" );
+    my $self = shift;
+    my $class = ref($self) || croak( "$self not object" );
+    my $name = $AUTOLOAD;
+    $name =~ s/.*://;
+    if ( exists($self->{$name}) )
+    {
+        return( $self->{$name} );
+    }
+    croak( "Can't access $name member of object of class $class" );
 }
 
-sub getKey()
+sub getKey
 {
-	my $self = shift;
+    my $self = shift;
     return( $self->{id} );
 }
 
 sub open
 {
-	my $self = shift;
+    my $self = shift;
     Fatal( "No open method defined for protocol ".$self->{name} );
 }
 
 sub close
 {
-	my $self = shift;
+    my $self = shift;
     Fatal( "No close method defined for protocol ".$self->{name} );
 }
 
@@ -145,9 +145,9 @@ sub executeCommand
     &{$self->{$command}}( $self, $params );
 }
 
-sub printMsg()
+sub printMsg
 {
-	my $self = shift;
+    my $self = shift;
     Fatal( "No printMsg method defined for protocol ".$self->{name} );
 }
 

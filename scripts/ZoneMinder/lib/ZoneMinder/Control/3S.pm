@@ -21,10 +21,10 @@
 #
 # This module contains the implementation of the 3S camera control
 # protocol
-#Model:					N5071
-#Hardware Version:		00
-#Firmware Version:		V1.03_STD-1
-#Firmware Build Time:	Jun 19 2012 15:28:17
+#Model:                 N5071
+#Hardware Version:      00
+#Firmware Version:      V1.03_STD-1
+#Firmware Build Time:   Jun 19 2012 15:28:17
 
 package ZoneMinder::Control::3S;
 

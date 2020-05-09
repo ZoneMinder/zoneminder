@@ -1,0 +1,30 @@
+#controls {
+    width: 80%;
+    text-align: center;
+    margin: 0 auto;
+}
+
+#controls a {
+    width: 40px;
+    margin-left: -20px;
+}
+
+#firstLink {
+    position: absolute;
+    left: 13%;
+}
+
+#prevLink {
+    position: absolute;
+    left: 37%;
+}
+
+#nextLink {
+    position: absolute;
+    left: 63%;
+}
+
+#lastLink {
+    position: absolute;
+    left: 87%;
+}

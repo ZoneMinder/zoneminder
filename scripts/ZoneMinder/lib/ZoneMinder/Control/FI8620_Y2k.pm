@@ -57,7 +57,7 @@ our @ISA = qw(ZoneMinder::Control);
 #  of the position of your mouse on the arrow.
 #  Extremity of arrow equal to fastest speed of movement
 #  Close the base of arrow to lowest speed of movement
-#  for diagonaly you can click before the begining of the arrow for low speed
+#  for diagonaly you can click before the beginning of the arrow for low speed
 #  In round center equal to stop to move
 # -You can clic directly on the image that equal to click on arrow (for the left there is a bug in zoneminder speed is inverted)
 # -Zoom Tele/Wide with time control to simulate speed because speed value do not work (buggy firmware or not implemented on this cam)
@@ -67,7 +67,7 @@ our @ISA = qw(ZoneMinder::Control);
 #  You Need to configure ZoneMinder PANSPEED & TILTSEPPED & ZOOMSPEED 1 to 63 by 1 step
 # -This Script use for login "admin" this hardcoded and your password must setup in "Control Device" section
 # -This script is compatible with the basic authentification method used by mostly new camera
-# -AutoStop function is active and you must set up value (in sec exemple 0.5) under AutoStop section
+# -AutoStop function is active and you must set up value (in sec example 0.5) under AutoStop section
 #  or you can set up to 0 for disable it but the camera never stop to move and trust me, she can move all the night...
 #  (you need to click to the center arrow for stop)
 # -"White In" to control Brightness, "auto" for restore the original value of Brightness
@@ -734,9 +734,9 @@ sub presetGoto
 __END__
 # Below is stub documentation for your module. You'd better edit it!
 
-=head1 FI8620
+=head1 NAME
 
-ZoneMinder::Database - Perl extension for FOSCAM FI8620
+ZoneMinder::Control::FI8620 - Perl extension for FOSCAM FI8620
 
 =head1 SYNOPSIS
 

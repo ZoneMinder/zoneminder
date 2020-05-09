@@ -53,25 +53,25 @@ $monitor = dbFetchOne( $sql, NULL, array( $mid ) );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Control'] );
+xhtmlHeaders(__FILE__, translate('Control') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?= $SLANG['Control'] ?></h2>
+      <h2><?php echo translate('Control') ?></h2>
       <div id="headerControl">
-        <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
-          <input type="hidden" name="view" value="<?= $view ?>"/>
-          <?= buildSelect( "mid", $mids, "this.form.submit();" ); ?>
+        <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+          <input type="hidden" name="view" value="<?php echo $view ?>"/>
+          <?php echo buildSelect( "mid", $mids, "this.form.submit();" ); ?>
         </form>
       </div>
     </div>
     <div id="content">
       <div id="ptzControls" class="ptzControls">
-<?= ptzControls( $monitor ) ?>
+<?php echo ptzControls( $monitor ) ?>
       </div>
     </div>
   </div>

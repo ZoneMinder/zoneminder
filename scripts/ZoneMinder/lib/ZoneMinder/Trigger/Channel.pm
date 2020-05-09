@@ -46,53 +46,53 @@ our $AUTOLOAD;
 
 sub new
 {
-	my $class = shift;
-	my $self = {};
-	$self->{readable} = !undef;
-	$self->{writeable} = !undef;
-	$self->{selectable} = undef;
-	$self->{state} = 'closed';
-	bless( $self, $class );
-	return $self;
+    my $class = shift;
+    my $self = {};
+    $self->{readable} = !undef;
+    $self->{writeable} = !undef;
+    $self->{selectable} = undef;
+    $self->{state} = 'closed';
+    bless( $self, $class );
+    return $self;
 }
 
 sub clone
 {
-	my $self = shift;
-	my $clone = { %$self };
-	bless $clone, ref $self;
+    my $self = shift;
+    my $clone = { %$self };
+    bless $clone, ref $self;
 }
 
-sub open()
+sub open
 {
-	my $self = shift;
-	my $class = ref($self) or croak( "Can't get class for non object $self" );
-	croak( "Abstract base class method called for object of class $class" );
+    my $self = shift;
+    my $class = ref($self) or croak( "Can't get class for non object $self" );
+    croak( "Abstract base class method called for object of class $class" );
 }
 
-sub close()
+sub close
 {
-	my $self = shift;
-	my $class = ref($self) or croak( "Can't get class for non object $self" );
-	croak( "Abstract base class method called for object of class $class" );
+    my $self = shift;
+    my $class = ref($self) or croak( "Can't get class for non object $self" );
+    croak( "Abstract base class method called for object of class $class" );
 }
 
-sub getState()
+sub getState
 {
-	my $self = shift;
-	return( $self->{state} );
+    my $self = shift;
+    return( $self->{state} );
 }
 
-sub isOpen()
+sub isOpen
 {
-	my $self = shift;
-	return( $self->{state} eq "open" );
+    my $self = shift;
+    return( $self->{state} eq "open" );
 }
 
-sub isConnected()
+sub isConnected
 {
-	my $self = shift;
-	return( $self->{state} eq "connected" );
+    my $self = shift;
+    return( $self->{state} eq "connected" );
 }
 
 sub DESTROY
@@ -101,15 +101,15 @@ sub DESTROY
 
 sub AUTOLOAD
 {
-	my $self = shift;
-	my $class = ref($self) || croak( "$self not object" );
-	my $name = $AUTOLOAD;
-	$name =~ s/.*://;
-	if ( !exists($self->{$name}) )
-	{
-		croak( "Can't access $name member of object of class $class" );
-	}
-	return( $self->{$name} );
+    my $self = shift;
+    my $class = ref($self) || croak( "$self not object" );
+    my $name = $AUTOLOAD;
+    $name =~ s/.*://;
+    if ( !exists($self->{$name}) )
+    {
+        croak( "Can't access $name member of object of class $class" );
+    }
+    return( $self->{$name} );
 }
 
 1;

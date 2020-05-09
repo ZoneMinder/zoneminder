@@ -48,23 +48,26 @@ use Fcntl;
 
 sub new
 {
-	my $class = shift;
-	my %params = @_;
-	my $self = ZoneMinder::Trigger::Channel::Handle->new;
-	$self->{path} = $params{path};
-	bless( $self, $class );
-	return $self;
+    my $class = shift;
+    my %params = @_;
+    my $self = ZoneMinder::Trigger::Channel::Handle->new;
+    $self->{path} = $params{path};
+    bless( $self, $class );
+    return $self;
 }
 
-sub open()
+sub open
 {
-	my $self = shift;
-	local *sfh;
-	#sysopen( *sfh, $conn->{path}, O_NONBLOCK|O_RDONLY ) or croak( "Can't sysopen: $!" );
-	#open( *sfh, "<".$conn->{path} ) or croak( "Can't open: $!" );
-	open( *sfh, "+<".$self->{path} ) or croak( "Can't open: $!" );
-	$self->{state} = 'open';
-	$self->{handle} = *sfh;
+    my $self = shift;
+    local *sfh;
+    #sysopen( *sfh, $conn->{path}, O_NONBLOCK|O_RDONLY ) or croak( "Can't sysopen: $!" );
+    #open( *sfh, "<".$conn->{path} ) or croak( "Can't open: $!" );
+    if ( ! open( *sfh, "+<", $self->{path} ) ) {
+		Error( "Can't open file at $$self{path}: $!" );
+		croak( "Can't open file at $$self{path}: $!" );
+	}
+    $self->{state} = 'open';
+    $self->{handle} = *sfh;
 }
 
 1;
@@ -73,7 +76,7 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Trigger::Channel::File - ZOneMinder object for a file based trigger channel
 
 =head1 SYNOPSIS
 

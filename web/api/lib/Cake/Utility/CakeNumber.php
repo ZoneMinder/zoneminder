@@ -88,7 +88,7 @@ class CakeNumber {
 /**
  * If native number_format() should be used. If >= PHP5.4
  *
- * @var boolean
+ * @var bool
  */
 	protected static $_numberFormatSupport = null;
 
@@ -96,7 +96,7 @@ class CakeNumber {
  * Formats a number with a level of precision.
  *
  * @param float $value A floating point number.
- * @param integer $precision The precision of the returned number.
+ * @param int $precision The precision of the returned number.
  * @return float Formatted float.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/number.html#NumberHelper::precision
  */
@@ -107,7 +107,7 @@ class CakeNumber {
 /**
  * Returns a formatted-for-humans file size.
  *
- * @param integer $size Size in bytes
+ * @param int $size Size in bytes
  * @return string Human readable size
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/number.html#NumberHelper::toReadableSize
  */
@@ -116,13 +116,13 @@ class CakeNumber {
 			case $size < 1024:
 				return __dn('cake', '%d Byte', '%d Bytes', $size, $size);
 			case round($size / 1024) < 1024:
-				return __d('cake', '%s KB', self::precision($size / 1024, 0));
+				return __d('cake', '%s KB', static::precision($size / 1024, 0));
 			case round($size / 1024 / 1024, 2) < 1024:
-				return __d('cake', '%s MB', self::precision($size / 1024 / 1024, 2));
+				return __d('cake', '%s MB', static::precision($size / 1024 / 1024, 2));
 			case round($size / 1024 / 1024 / 1024, 2) < 1024:
-				return __d('cake', '%s GB', self::precision($size / 1024 / 1024 / 1024, 2));
+				return __d('cake', '%s GB', static::precision($size / 1024 / 1024 / 1024, 2));
 			default:
-				return __d('cake', '%s TB', self::precision($size / 1024 / 1024 / 1024 / 1024, 2));
+				return __d('cake', '%s TB', static::precision($size / 1024 / 1024 / 1024 / 1024, 2));
 		}
 	}
 
@@ -171,7 +171,7 @@ class CakeNumber {
  * - `multiply`: Multiply the input value by 100 for decimal percentages.
  *
  * @param float $value A floating point number
- * @param integer $precision The precision of the returned number
+ * @param int $precision The precision of the returned number
  * @param array $options Options
  * @return string Percentage string
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/number.html#NumberHelper::toPercentage
@@ -181,14 +181,14 @@ class CakeNumber {
 		if ($options['multiply']) {
 			$value *= 100;
 		}
-		return self::precision($value, $precision) . '%';
+		return static::precision($value, $precision) . '%';
 	}
 
 /**
  * Formats a number into a currency format.
  *
  * @param float $value A floating point number
- * @param integer $options If integer then places, if string then before, if (,.-) then use it
+ * @param int $options If integer then places, if string then before, if (,.-) then use it
  *   or array with places and before keys
  * @return string formatted number
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/number.html#NumberHelper::format
@@ -221,8 +221,8 @@ class CakeNumber {
 			extract($options);
 		}
 
-		$value = self::_numberFormat($value, $places, '.', '');
-		$out = $before . self::_numberFormat($value, $places, $decimals, $thousands) . $after;
+		$value = static::_numberFormat($value, $places, '.', '');
+		$out = $before . static::_numberFormat($value, $places, $decimals, $thousands) . $after;
 
 		if ($escape) {
 			return h($out);
@@ -243,32 +243,32 @@ class CakeNumber {
  * - `decimals` - Decimal separator symbol ie. '.'
  *
  * @param float $value A floating point number
- * @param array $options
+ * @param array $options Options list.
  * @return string formatted delta
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/number.html#NumberHelper::formatDelta
  */
 	public static function formatDelta($value, $options = array()) {
 		$places = isset($options['places']) ? $options['places'] : 0;
-		$value = self::_numberFormat($value, $places, '.', '');
+		$value = static::_numberFormat($value, $places, '.', '');
 		$sign = $value > 0 ? '+' : '';
 		$options['before'] = isset($options['before']) ? $options['before'] . $sign : $sign;
-		return self::format($value, $options);
+		return static::format($value, $options);
 	}
 
 /**
  * Alternative number_format() to accommodate multibyte decimals and thousands < PHP 5.4
  *
- * @param float $value
- * @param integer $places
- * @param string $decimals
- * @param string $thousands
+ * @param float $value Value to format.
+ * @param int $places Decimal places to use.
+ * @param string $decimals Decimal position string.
+ * @param string $thousands Thousands separator string.
  * @return string
  */
 	protected static function _numberFormat($value, $places = 0, $decimals = '.', $thousands = ',') {
-		if (!isset(self::$_numberFormatSupport)) {
-			self::$_numberFormatSupport = version_compare(PHP_VERSION, '5.4.0', '>=');
+		if (!isset(static::$_numberFormatSupport)) {
+			static::$_numberFormatSupport = version_compare(PHP_VERSION, '5.4.0', '>=');
 		}
-		if (self::$_numberFormatSupport) {
+		if (static::$_numberFormatSupport) {
 			return number_format($value, $places, $decimals, $thousands);
 		}
 		$value = number_format($value, $places, '.', '');
@@ -315,21 +315,21 @@ class CakeNumber {
  *   By default all currencies contain utf-8 symbols and don't need this changed. If you require
  *   non HTML encoded symbols you will need to update the settings with the correct bytes.
  *
- * @param float $value
+ * @param float $value Value to format.
  * @param string $currency Shortcut to default options. Valid values are
  *   'USD', 'EUR', 'GBP', otherwise set at least 'before' and 'after' options.
- * @param array $options
+ * @param array $options Options list.
  * @return string Number formatted as a currency.
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/number.html#NumberHelper::currency
  */
 	public static function currency($value, $currency = null, $options = array()) {
-		$defaults = self::$_currencyDefaults;
+		$defaults = static::$_currencyDefaults;
 		if ($currency === null) {
-			$currency = self::defaultCurrency();
+			$currency = static::defaultCurrency();
 		}
 
-		if (isset(self::$_currencies[$currency])) {
-			$defaults = self::$_currencies[$currency];
+		if (isset(static::$_currencies[$currency])) {
+			$defaults = static::$_currencies[$currency];
 		} elseif (is_string($currency)) {
 			$options['before'] = $currency;
 		}
@@ -364,7 +364,7 @@ class CakeNumber {
 		$options[$position] = $options[$symbolKey . 'Symbol'];
 
 		$abs = abs($value);
-		$result = self::format($abs, $options);
+		$result = static::format($abs, $options);
 
 		if ($value < 0) {
 			if ($options['negative'] === '()') {
@@ -380,11 +380,11 @@ class CakeNumber {
  * Add a currency format to the Number helper. Makes reusing
  * currency formats easier.
  *
- * {{{ $number->addFormat('NOK', array('before' => 'Kr. ')); }}}
+ * ``` $number->addFormat('NOK', array('before' => 'Kr. ')); ```
  *
  * You can now use `NOK` as a shortform when formatting currency amounts.
  *
- * {{{ $number->currency($value, 'NOK'); }}}
+ * ``` $number->currency($value, 'NOK'); ```
  *
  * Added formats are merged with the defaults defined in CakeNumber::$_currencyDefaults
  * See CakeNumber::currency() for more information on the various options and their function.
@@ -396,7 +396,7 @@ class CakeNumber {
  * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/number.html#NumberHelper::addFormat
  */
 	public static function addFormat($formatName, $options) {
-		self::$_currencies[$formatName] = $options + self::$_currencyDefaults;
+		static::$_currencies[$formatName] = $options + static::$_currencyDefaults;
 	}
 
 /**
@@ -408,9 +408,9 @@ class CakeNumber {
  */
 	public static function defaultCurrency($currency = null) {
 		if ($currency) {
-			self::$_defaultCurrency = $currency;
+			static::$_defaultCurrency = $currency;
 		}
-		return self::$_defaultCurrency;
+		return static::$_defaultCurrency;
 	}
 
 }

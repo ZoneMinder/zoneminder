@@ -1,5 +1,6 @@
 <?php
 require_once( 'includes/control_functions.php' );
+require_once( 'includes/Monitor.php' );
 
 // Monitor control actions, require a monitor id and control view permissions for that monitor
 if ( empty($_REQUEST['id']) )
@@ -7,7 +8,7 @@ if ( empty($_REQUEST['id']) )
 
 if ( canView( 'Control', $_REQUEST['id'] ) )
 {
-    $monitor = dbFetchOne( 'select C.*,M.* from Monitors as M inner join Controls as C on (M.ControlId = C.Id ) where M.Id = ?', NULL, array($_REQUEST['id']) );
+    $monitor = new Monitor( $_REQUEST['id'] );
 
     $ctrlCommand = buildControlCommand( $monitor );
 
@@ -17,7 +18,7 @@ if ( canView( 'Control', $_REQUEST['id'] ) )
         if ( !$socket )
             ajaxError( "socket_create() failed: ".socket_strerror(socket_last_error()) );
 
-        $sock_file = ZM_PATH_SOCKS.'/zmcontrol-'.$monitor['Id'].'.sock';
+        $sock_file = ZM_PATH_SOCKS.'/zmcontrol-'.$monitor->Id().'.sock';
         if ( @socket_connect( $socket, $sock_file ) )
         {
             $options = array();
@@ -36,7 +37,7 @@ if ( canView( 'Control', $_REQUEST['id'] ) )
         }
         else
         {
-            $ctrlCommand .= " --id=".$monitor['Id'];
+            $ctrlCommand .= " --id=".$monitor->Id();
 
             // Can't connect so use script
             $ctrlStatus = '';

@@ -87,20 +87,20 @@ noCacheHeaders();
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['CycleWatch'] );
+xhtmlHeaders(__FILE__, translate('CycleWatch') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
 <?php if ( $mode == "stream" ) { ?>
-        <a href="?view=<?= $view ?>&amp;mode=still&amp;group=<?= $group ?>&amp;mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stills'] ?></a>
+        <a href="?view=<?php echo $view ?>&amp;mode=still&amp;group=<?php echo $group ?>&amp;mid=<?php echo $monitor['Id'] ?>"><?php echo translate('Stills') ?></a>
 <?php } else { ?>
-        <a href="?view=<?= $view ?>&amp;mode=stream&amp;group=<?= $group ?>&amp;mid=<?= $monitor['Id'] ?>"><?= $SLANG['Stream'] ?></a>
+        <a href="?view=<?php echo $view ?>&amp;mode=stream&amp;group=<?php echo $group ?>&amp;mid=<?php echo $monitor['Id'] ?>"><?php echo translate('Stream') ?></a>
 <?php } ?>
-        <a href="#" onclick="closeWindow(); return( false );"><?= $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?= $SLANG['Cycle'] ?> - <?= validHtmlStr($monitor['Name']) ?></h2>
+      <h2><?php echo translate('Cycle') ?> - <?php echo validHtmlStr($monitor['Name']) ?></h2>
     </div>
     <div id="content">
       <div id="imageFeed">

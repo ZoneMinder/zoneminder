@@ -47,21 +47,21 @@ class ConsoleOutput {
 /**
  * Raw output constant - no modification of output text.
  *
- * @var integer
+ * @var int
  */
 	const RAW = 0;
 
 /**
  * Plain output - tags will be stripped.
  *
- * @var integer
+ * @var int
  */
 	const PLAIN = 1;
 
 /**
  * Color output - Convert known tags in to ANSI color escape codes.
  *
- * @var integer
+ * @var int
  */
 	const COLOR = 2;
 
@@ -80,9 +80,17 @@ class ConsoleOutput {
 	protected $_output;
 
 /**
+ * The number of bytes last written to the output stream
+ * used when overwriting the previous message.
+ *
+ * @var int
+ */
+	protected $_lastWritten = 0;
+
+/**
  * The current output type. Manipulated with ConsoleOutput::outputAs();
  *
- * @var integer
+ * @var int
  */
 	protected $_outputAs = self::COLOR;
 
@@ -153,16 +161,19 @@ class ConsoleOutput {
 /**
  * Construct the output object.
  *
- * Checks for a pretty console environment. Ansicon allows pretty consoles
- * on windows, and is supported.
+ * Checks for a pretty console environment. Ansicon and ConEmu allows
+ * pretty consoles on Windows, and is supported.
  *
  * @param string $stream The identifier of the stream to write output to.
  */
 	public function __construct($stream = 'php://stdout') {
 		$this->_output = fopen($stream, 'w');
 
-		if (DS === '\\' && !(bool)env('ANSICON')) {
-			$this->_outputAs = self::PLAIN;
+		if ((DS === '\\' && !(bool)env('ANSICON') && env('ConEmuANSI') !== 'ON') ||
+			$stream === 'php://output' ||
+			(function_exists('posix_isatty') && !posix_isatty($this->_output))
+		) {
+			$this->_outputAs = static::PLAIN;
 		}
 	}
 
@@ -170,15 +181,44 @@ class ConsoleOutput {
  * Outputs a single or multiple messages to stdout. If no parameters
  * are passed, outputs just a newline.
  *
- * @param string|array $message A string or a an array of strings to output
- * @param integer $newlines Number of newlines to append
- * @return integer Returns the number of bytes returned from writing to stdout.
+ * @param string|array $message A string or an array of strings to output
+ * @param int $newlines Number of newlines to append
+ * @return int Returns the number of bytes returned from writing to stdout.
  */
 	public function write($message, $newlines = 1) {
 		if (is_array($message)) {
-			$message = implode(self::LF, $message);
+			$message = implode(static::LF, $message);
 		}
-		return $this->_write($this->styleText($message . str_repeat(self::LF, $newlines)));
+		return $this->_write($this->styleText($message . str_repeat(static::LF, $newlines)));
+	}
+
+/**
+ * Overwrite some already output text.
+ *
+ * Useful for building progress bars, or when you want to replace
+ * text already output to the screen with new text.
+ *
+ * **Warning** You cannot overwrite text that contains newlines.
+ *
+ * @param array|string $message The message to output.
+ * @param int $newlines Number of newlines to append.
+ * @param int|null $size The number of bytes to overwrite. Defaults to the
+ *    length of the last message output.
+ * @return void
+ */
+	public function overwrite($message, $newlines = 1, $size = null) {
+		$size = $size ?: $this->_lastWritten;
+		// Output backspaces.
+		$this->write(str_repeat("\x08", $size), 0);
+		$newBytes = $this->write($message, 0);
+		// Fill any remaining bytes with spaces.
+		$fill = $size - $newBytes;
+		if ($fill > 0) {
+			$this->write(str_repeat(' ', $fill), 0);
+		}
+		if ($newlines) {
+			$this->write("", $newlines);
+		}
 	}
 
 /**
@@ -188,11 +228,11 @@ class ConsoleOutput {
  * @return string String with color codes added.
  */
 	public function styleText($text) {
-		if ($this->_outputAs == self::RAW) {
+		if ($this->_outputAs == static::RAW) {
 			return $text;
 		}
-		if ($this->_outputAs == self::PLAIN) {
-			$tags = implode('|', array_keys(self::$_styles));
+		if ($this->_outputAs == static::PLAIN) {
+			$tags = implode('|', array_keys(static::$_styles));
 			return preg_replace('#</?(?:' . $tags . ')>#', '', $text);
 		}
 		return preg_replace_callback(
@@ -203,7 +243,7 @@ class ConsoleOutput {
 /**
  * Replace tags with color codes.
  *
- * @param array $matches.
+ * @param array $matches An array of matches to replace.
  * @return string
  */
 	protected function _replaceTags($matches) {
@@ -213,16 +253,16 @@ class ConsoleOutput {
 		}
 
 		$styleInfo = array();
-		if (!empty($style['text']) && isset(self::$_foregroundColors[$style['text']])) {
-			$styleInfo[] = self::$_foregroundColors[$style['text']];
+		if (!empty($style['text']) && isset(static::$_foregroundColors[$style['text']])) {
+			$styleInfo[] = static::$_foregroundColors[$style['text']];
 		}
-		if (!empty($style['background']) && isset(self::$_backgroundColors[$style['background']])) {
-			$styleInfo[] = self::$_backgroundColors[$style['background']];
+		if (!empty($style['background']) && isset(static::$_backgroundColors[$style['background']])) {
+			$styleInfo[] = static::$_backgroundColors[$style['background']];
 		}
 		unset($style['text'], $style['background']);
 		foreach ($style as $option => $value) {
 			if ($value) {
-				$styleInfo[] = self::$_options[$option];
+				$styleInfo[] = static::$_options[$option];
 			}
 		}
 		return "\033[" . implode($styleInfo, ';') . 'm' . $matches['text'] . "\033[0m";
@@ -232,10 +272,11 @@ class ConsoleOutput {
  * Writes a message to the output stream.
  *
  * @param string $message Message to write.
- * @return boolean success
+ * @return bool success
  */
 	protected function _write($message) {
-		return fwrite($this->_output, $message);
+		$this->_lastWritten = fwrite($this->_output, $message);
+		return $this->_lastWritten;
 	}
 
 /**
@@ -265,23 +306,23 @@ class ConsoleOutput {
  */
 	public function styles($style = null, $definition = null) {
 		if ($style === null && $definition === null) {
-			return self::$_styles;
+			return static::$_styles;
 		}
 		if (is_string($style) && $definition === null) {
-			return isset(self::$_styles[$style]) ? self::$_styles[$style] : null;
+			return isset(static::$_styles[$style]) ? static::$_styles[$style] : null;
 		}
 		if ($definition === false) {
-			unset(self::$_styles[$style]);
+			unset(static::$_styles[$style]);
 			return true;
 		}
-		self::$_styles[$style] = $definition;
+		static::$_styles[$style] = $definition;
 		return true;
 	}
 
 /**
  * Get/Set the output type to use. The output type how formatting tags are treated.
  *
- * @param integer $type The output type to use. Should be one of the class constants.
+ * @param int $type The output type to use. Should be one of the class constants.
  * @return mixed Either null or the value if getting.
  */
 	public function outputAs($type = null) {
@@ -295,7 +336,9 @@ class ConsoleOutput {
  * Clean up and close handles
  */
 	public function __destruct() {
-		fclose($this->_output);
+		if (is_resource($this->_output)) {
+			fclose($this->_output);
+		}
 	}
 
 }

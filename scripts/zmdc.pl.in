@@ -20,13 +20,30 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # ==========================================================================
-#
-# This script is the gateway for controlling the various ZoneMinder
-# daemons. All starting, stopping and restarting goes through here.
-# On the first invocation it starts up a server which subsequently
-# records what's running and what's not. Other invocations just 
-# connect to the server and pass instructions to it.
-#
+
+=head1 NAME
+
+zmdc.pl - ZoneMinder Daemon Control script
+
+=head1 SYNOPSIS
+
+ zmdc.pl {command} [daemon [options]]
+
+=head1 DESCRIPTION
+
+This script is the gateway for controlling the various ZoneMinder
+daemons. All starting, stopping and restarting goes through here.
+On the first invocation it starts up a server which subsequently
+records what's running and what's not. Other invocations just
+connect to the server and pass instructions to it.
+
+=head1 OPTIONS
+
+ {command}           - One of 'startup|shutdown|status|check|logrot' or
+                       'start|stop|restart|reload|version'.
+ [daemon [options]]  - Daemon name and options, required for second group of commands
+
+=cut
 use strict;
 use bytes;
 
@@ -49,14 +66,19 @@ use ZoneMinder;
 use POSIX;
 use Socket;
 use IO::Handle;
-use Data::Dumper;
+use autouse 'Pod::Usage'=>qw(pod2usage);
+#use Data::Dumper;
 
 use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc.sock';
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+if ( $Config{ZM_LD_PRELOAD} ) {
+  Debug("Adding ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD}");
+  $ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD};
+}
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my @daemons = (
@@ -69,33 +91,26 @@ my @daemons = (
     'zmx10.pl',
     'zmwatch.pl',
     'zmupdate.pl',
-    'zmtrack.pl'
+    'zmtrack.pl',
+    'zmtelemetry.pl'
 );
-
-sub Usage
-{   
-    print( "
-Usage: zmdc.pl <command> [daemon [options]]
-Parameters are :-
-<command>           - One of 'startup|shutdown|status|check|logrot' or
-                      'start|stop|restart|reload'.
-[daemon [options]]  - Daemon name and options, required for second group of commands
-");     
-    exit( -1 );
-}
 
 my $command = shift @ARGV;
 if( !$command )
 {
     print( STDERR "No command given\n" );
-    Usage();
+    pod2usage(-exitstatus => -1);
 }
-my $needs_daemon = $command !~ /(?:startup|shutdown|status|check|logrot)/;
+if ( $command eq 'version' ) {
+    print ZoneMinder::Base::ZM_VERSION."\n";
+    exit( 0 );
+}
+my $needs_daemon = $command !~ /(?:startup|shutdown|status|check|logrot|version)/;
 my $daemon = shift( @ARGV );
 if( $needs_daemon && !$daemon )
 {
     print( STDERR "No daemon given\n" );
-    Usage();
+    pod2usage(-exitstatus => -1);
 }
 my @args;
 
@@ -109,7 +124,7 @@ if ( $needs_daemon )
     else
     {
         print( STDERR "Invalid daemon '$daemon' specified" );
-        Usage();
+        pod2usage(-exitstatus => -1);
     }
 }
 
@@ -148,7 +163,7 @@ if ( !$server_up )
         print( "Unable to connect to server\n" );
         exit( -1 );
     }
-    # The server isn't there 
+    # The server isn't there
     print( "Starting server\n" );
     close( CLIENT );
 
@@ -214,7 +229,7 @@ use ZoneMinder;
 use POSIX;
 use Socket;
 use IO::Handle;
-use Data::Dumper;
+#use Data::Dumper;
 
 our %cmd_hash;
 our %pid_hash;
@@ -231,19 +246,24 @@ sub run
 
     logInit();
 
-    dPrint( ZoneMinder::Logger::INFO, "Server starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+    dPrint( ZoneMinder::Logger::INFO, "Server starting at "
+        .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+        ."\n"
+    );
 
-    if ( open( PID, ">".ZM_PID ) )
+    if ( open( my $PID, '>', ZM_PID ) )
     {
-        print( PID $$ );
-        close( PID );
+        print( $PID $$ );
+        close( $PID );
+	} else {
+		Error( "Can't open pid file at " . ZM_PID );
     }
 
     killAll( 1 );
 
     socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-    unlink( main::SOCK_FILE );
-    bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
+    bind( SERVER, $saddr ) or Fatal( "Can't bind to " . main::SOCK_FILE . ": $!" );
     listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
     $SIG{CHLD} = \&reaper;
@@ -350,9 +370,12 @@ sub run
             restartPending();
         }
     }
-    dPrint( ZoneMinder::Logger::INFO, "Server exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-    unlink( main::SOCK_FILE );
-    unlink( ZM_PID );
+    dPrint( ZoneMinder::Logger::INFO, "Server exiting at "
+        .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+        ."\n"
+    );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
+    unlink( ZM_PID ) or Error( "Unable to unlink " . ZM_PID .". Error message was: $!" ) if ( -e ZM_PID );
     exit();
 }
 
@@ -398,8 +421,7 @@ sub start
     my $daemon = shift;
     my @args = @_;
 
-    my $command = $daemon;
-    $command .= ' '.join( ' ', ( @args ) ) if ( @args );
+    my $command = join(' ', $daemon, @args );
     my $process = $cmd_hash{$command};
 
     if ( !$process )
@@ -409,7 +431,10 @@ sub start
     }
     elsif ( $process->{pid} && $pid_hash{$process->{pid}} )
     {
-        dPrint( ZoneMinder::Logger::INFO, "'$process->{command}' already running at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
+        dPrint( ZoneMinder::Logger::INFO, "'$process->{command}' already running at "
+            .strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) )
+            .", pid = $process->{pid}\n"
+        );
         return();
     }
 
@@ -424,7 +449,10 @@ sub start
         $process->{started} = time();
         delete( $process->{pending} );
 
-        dPrint( ZoneMinder::Logger::INFO, "'$command' starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}\n" );
+        dPrint( ZoneMinder::Logger::INFO, "'$command' starting at "
+            .strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) )
+            .", pid = $process->{pid}\n"
+        );
 
         $cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
         sigprocmask( SIG_SETMASK, $sigset ) or Fatal( "Can't restore SIGCHLD: $!" );
@@ -433,7 +461,11 @@ sub start
     {
         logReinit();
 
-        dPrint( ZoneMinder::Logger::INFO, "'".join( ' ', ( $daemon, @args ) )."' started at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
+        dPrint( ZoneMinder::Logger::INFO, "'".join( ' ', ( $daemon, @args ) )
+            ."' started at "
+            .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+            ."\n"
+        );
 
         if ( $daemon =~ /^${daemon_patt}$/ )
         {
@@ -480,54 +512,78 @@ sub start
     }
 }
 
-sub _stop
-{
-    my $final = shift;
-    my $daemon = shift;
-    my @args = @_;
+# Sends the stop signal, without waiting around to see if the process died.
+sub send_stop {
+    my ( $final, $process ) = @_;
 
-    my $command = $daemon;
-    $command .= ' '.join( ' ', ( @args ) ) if ( @args );
+    my $command = $process->{command};
+    if ( $process->{pending} ) {
+
+        delete( $cmd_hash{$command} );
+        dPrint( ZoneMinder::Logger::INFO, "Command '$command' removed from pending list at "
+            .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+            ."\n"
+        );
+        return();
+    }
+
+    my $pid = $process->{pid};
+    if ( !$pid_hash{$pid} )
+    {
+        dPrint( ZoneMinder::Logger::ERROR, "No process with command of '$command' pid $pid is running\n" );
+        return();
+    }
+
+    dPrint( ZoneMinder::Logger::INFO, "'$command' sending stop to pid $pid at "
+        .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+        ."\n"
+    );
+    $process->{keepalive} = !$final;
+    kill( 'TERM', $pid );
+    return $pid;
+} # end sub send_stop
+
+sub kill_until_dead {
+    my ( $process ) = @_;
+    # Now check it has actually gone away, if not kill -9 it
+    my $count = 0;
+    while( $process and $$process{pid} and kill( 0, $$process{pid} ) )
+    {
+        if ( $count++ > 5 )
+        {
+            dPrint( ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
+                .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+                .". Sending KILL to pid $$process{pid}\n"
+            );
+            kill( 'KILL', $$process{pid} );
+        }
+        
+        sleep( 1 );
+    }
+}
+
+sub _stop {
+    my ($final, $process ) = @_;
+
+    my $pid = send_stop( $final, $process );
+    return if ! $pid;
+    delete( $cmd_hash{$$process{command}} );
+
+    kill_until_dead( $process );
+}
+
+sub stop
+{
+    my ( $daemon, @args ) = @_;
+    my $command = join(' ', $daemon, @args );
     my $process = $cmd_hash{$command};
     if ( !$process )
     {
         dPrint( ZoneMinder::Logger::WARNING, "Can't find process with command of '$command'\n" );
         return();
     }
-    elsif ( $process->{pending} )
-    {
-        delete( $cmd_hash{$command} );
-        dPrint( ZoneMinder::Logger::INFO, "Command '$command' removed from pending list at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-        return();
-    }
 
-    my $cpid = $process->{pid};
-    if ( !$pid_hash{$cpid} )
-    {
-        dPrint( ZoneMinder::Logger::ERROR, "No process with command of '$command' is running\n" );
-        return();
-    }
-
-    dPrint( ZoneMinder::Logger::INFO, "'$daemon ".join( ' ', @args )."' stopping at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-    $process->{keepalive} = !$final;
-    kill( 'TERM', $cpid );
-    delete( $cmd_hash{$command} );
-
-    # Now check it has actually gone away, if not kill -9 it
-    my $count = 0;
-    while( $cpid && kill( 0, $cpid ) )
-    {
-        if ( $count++ > 5 )
-        {
-            kill( 'KILL', $cpid );
-        }
-        sleep( 1 );
-    }
-}
-
-sub stop
-{
-    _stop( 1, @_ );
+    _stop( 1, $process );
 }
 
 sub restart
@@ -545,7 +601,7 @@ sub restart
             my $cpid = $process->{pid};
             if ( defined($pid_hash{$cpid}) )
             {
-                _stop( 0, $daemon, @args );
+                _stop( 0, $process );
                 return;
             }
         }
@@ -606,7 +662,7 @@ sub reaper
         my $exit_signal = $status&0xfe;
         my $core_dumped = $status&0x01;
 
-        my $out_str = "'$process->{daemon} ".join( ' ', @{$process->{args}} )."' ";
+        my $out_str = "'$process->{command}' ";
         if ( $exit_signal )
         {
             if ( $exit_signal == 15 || $exit_signal == 14 ) # TERM or ALRM
@@ -645,17 +701,16 @@ sub reaper
 
         if ( $process->{keepalive} )
         {
+            # Schedule for immediate restart
+            $cmd_hash{$process->{command}} = $process;
             if ( !$process->{delay} || ($process->{runtime} > $Config{ZM_MAX_RESTART_DELAY} ) )
             {
                 #start( $process->{daemon}, @{$process->{args}} );
-                # Schedule for immediate restart
-                $cmd_hash{$process->{command}} = $process;
                 $process->{pending} = $process->{stopped};
                 $process->{delay} = 5;
             }
             else
             {
-                $cmd_hash{$process->{command}} = $process;
                 $process->{pending} = $process->{stopped}+$process->{delay};
                 $process->{delay} *= 2;
                 # Limit the start delay to 15 minutes max
@@ -685,14 +740,28 @@ sub restartPending
 
 sub shutdownAll
 {
-    foreach my $process ( values( %pid_hash ) )
-    {
-        stop( $process->{daemon}, @{$process->{args}} );
+    foreach my $pid ( keys %pid_hash ) {
+        # This is a quick fix because a SIGCHLD can happen and alter pid_hash while we are in here.
+        next if ! $pid_hash{$pid};
+        send_stop( 1, $pid_hash{$pid} );
+    }
+    foreach my $pid ( keys %pid_hash ) {
+        # This is a quick fix because a SIGCHLD can happen and alter pid_hash while we are in here.
+        next if ! $pid_hash{$pid};
+
+        my $process = $pid_hash{$pid};
+
+        kill_until_dead( $process );
+        delete( $cmd_hash{$$process{command}} );
+        delete( $pid_hash{$pid} );
     }
     killAll( 5 );
-    dPrint( ZoneMinder::Logger::INFO, "Server shutdown at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n" );
-    unlink( main::SOCK_FILE );
-    unlink( ZM_PID );
+    dPrint( ZoneMinder::Logger::INFO, "Server shutdown at "
+        .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+        ."\n"
+    );
+    unlink( main::SOCK_FILE ) or Error( "Unable to unlink " . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
+    unlink( ZM_PID ) or Error( "Unable to unlink " . ZM_PID .". Error message was: $!" ) if ( -e ZM_PID );
     close( CLIENT );
     close( SERVER );
     exit();
@@ -746,7 +815,10 @@ sub status
 
         if ( $process->{pending} )
         {
-            dPrint( ZoneMinder::Logger::DEBUG, "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
+            dPrint( ZoneMinder::Logger::DEBUG, "'$process->{command}' pending at "
+                .strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )
+                ."\n"
+            );
         }
         else
         {
@@ -757,13 +829,19 @@ sub status
                 return();
             }
         }
-        dPrint( ZoneMinder::Logger::DEBUG, "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}" );
+        dPrint( ZoneMinder::Logger::DEBUG, "'$process->{command}' running since "
+            .strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) )
+            .", pid = $process->{pid}"
+        );
     }
     else
     {
         foreach my $process ( values(%pid_hash) )
         {
-            my $out_str = "'$process->{command}' running since ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) ).", pid = $process->{pid}";
+            my $out_str = "'$process->{command}' running since "
+                .strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{started}) )
+                .", pid = $process->{pid}"
+            ;
             $out_str .= ", valid" if ( kill( 0, $process->{pid} ) );
             $out_str .= "\n";
             dPrint( ZoneMinder::Logger::DEBUG, $out_str );
@@ -772,7 +850,10 @@ sub status
         {
             if ( $process->{pending} )
             {
-                dPrint( ZoneMinder::Logger::DEBUG, "'$process->{command}' pending at ".strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )."\n" );
+                dPrint( ZoneMinder::Logger::DEBUG, "'$process->{command}' pending at "
+                    .strftime( '%y/%m/%d %H:%M:%S', localtime( $process->{pending}) )
+                    ."\n"
+                );
             }
         }
     }
@@ -782,19 +863,22 @@ sub killAll
 {
     my $delay = shift;
     sleep( $delay );
-	my $killall;
-	if ( '@HOST_OS@' eq 'BSD' ) {
-		$killall = 'killall -';
-	} else {
-		$killall = 'killall -q -s ';
-	}
-    foreach my $daemon ( @daemons ) {
-
-		my $cmd = $killall ."TERM $daemon";
-		Debug( $cmd );
-		qx( $cmd );
-	}
-	sleep( $delay );
+    my $killall;
+    if ( '@HOST_OS@' eq 'BSD' )
+    {
+        $killall = 'killall -q -';
+    } elsif ( '@HOST_OS@' eq 'solaris' ) {
+        $killall = 'pkill -';
+    } else {
+        $killall = 'killall -q -s ';
+    }
+    foreach my $daemon ( @daemons )
+    {
+        my $cmd = $killall ."TERM $daemon";
+        Debug( $cmd );
+        qx( $cmd );
+    }
+    sleep( $delay );
     foreach my $daemon ( @daemons )
     {
         my $cmd = $killall."KILL $daemon";

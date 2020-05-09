@@ -103,7 +103,8 @@ class MemcachedEngineTest extends CakeTestCase {
 			'login' => null,
 			'password' => null,
 			'groups' => array(),
-			'serialize' => 'php'
+			'serialize' => 'php',
+			'options' => array()
 		);
 		$this->assertEquals($expecting, $settings);
 	}
@@ -131,6 +132,23 @@ class MemcachedEngineTest extends CakeTestCase {
 		));
 
 		$this->assertTrue($MemcachedCompressed->getMemcached()->getOption(Memcached::OPT_COMPRESSION));
+	}
+
+/**
+ * test setting options
+ *
+ * @return void
+ */
+	public function testOptionsSetting() {
+		$memcached = new TestMemcachedEngine();
+		$memcached->init(array(
+			'engine' => 'Memcached',
+			'servers' => array('127.0.0.1:11211'),
+			'options' => array(
+				Memcached::OPT_BINARY_PROTOCOL => true
+			)
+		));
+		$this->assertEquals(1, $memcached->getMemcached()->getOption(Memcached::OPT_BINARY_PROTOCOL));
 	}
 
 /**
@@ -331,14 +349,7 @@ class MemcachedEngineTest extends CakeTestCase {
 			'password' => 'password'
 		);
 
-		$this->skipIf(
-			method_exists($Memcached->getMemcached(), 'setSaslAuthData'),
-			'Memcached extension is installed with SASL support'
-		);
-
-		$this->setExpectedException(
-			'CacheException', 'Memcached extension is not build with SASL support'
-		);
+		$this->setExpectedException('PHPUnit_Framework_Error_Warning');
 		$Memcached->init($settings);
 	}
 
@@ -390,6 +401,17 @@ class MemcachedEngineTest extends CakeTestCase {
 	}
 
 /**
+ * test domain starts with u
+ *
+ * @return void
+ */
+	public function testParseServerStringWithU() {
+		$Memcached = new TestMemcachedEngine();
+		$result = $Memcached->parseServerString('udomain.net:13211');
+		$this->assertEquals(array('udomain.net', '13211'), $result);
+	}
+
+/**
  * test non latin domains.
  *
  * @return void
@@ -411,7 +433,7 @@ class MemcachedEngineTest extends CakeTestCase {
 	public function testParseServerStringUnix() {
 		$Memcached = new TestMemcachedEngine();
 		$result = $Memcached->parseServerString('unix:///path/to/memcachedd.sock');
-		$this->assertEquals(array('unix:///path/to/memcachedd.sock', 0), $result);
+		$this->assertEquals(array('/path/to/memcachedd.sock', 0), $result);
 	}
 
 /**
@@ -689,6 +711,8 @@ class MemcachedEngineTest extends CakeTestCase {
  * @return void
  */
 	public function testLongDurationEqualToZero() {
+		$this->markTestSkipped('Cannot run as Memcached cannot be reflected');
+
 		$memcached = new TestMemcachedEngine();
 		$memcached->settings['compress'] = false;
 
@@ -772,5 +796,25 @@ class MemcachedEngineTest extends CakeTestCase {
 		$this->assertTrue(Cache::write('test_groups', 'value2', 'memcached_groups'));
 		$this->assertTrue(Cache::clearGroup('group_b', 'memcached_groups'));
 		$this->assertFalse(Cache::read('test_groups', 'memcached_groups'));
+	}
+
+/**
+ * Test add method.
+ *
+ * @return void
+ */
+	public function testAdd() {
+		Cache::set(array('duration' => 1), null, 'memcached');
+		Cache::delete('test_add_key', 'default');
+
+		$result = Cache::add('test_add_key', 'test data', 'default');
+		$this->assertTrue($result);
+
+		$expected = 'test data';
+		$result = Cache::read('test_add_key', 'default');
+		$this->assertEquals($expected, $result);
+
+		$result = Cache::add('test_add_key', 'test data 2', 'default');
+		$this->assertFalse($result);
 	}
 }

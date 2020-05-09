@@ -15,18 +15,21 @@ class ConfigsController extends AppController {
 	public $components = array('RequestHandler');
 
 /**
+ * resolves the issue of not returning all config parameters
+ * refer https://github.com/ZoneMinder/ZoneMinder/issues/953
  * index method
  *
  * @return void
- */
-	public function index() {
-		$this->Config->recursive = 0;
-		$configs = $this->Config->find('all');
-		$this->set(array(
-			'configs' => $configs,
-			'_serialize' => array('configs')
-		));
-	}
+ */      
+     public function index() {
+                $this->Config->recursive = 0;
+                $configs = $this->Config->find('all');
+                $this->set(array(
+                    'configs' => $configs,
+                    '_serialize' => array('configs')
+                ));
+        }
+
 
 /**
  * view method
@@ -43,6 +46,19 @@ class ConfigsController extends AppController {
 		$config = $this->Config->find('first', $options);
 		$this->set(array(
 			'config' => $config,
+			'_serialize' => array('config')
+		));
+	}
+
+	public function viewByName($name = null) {
+		$config = $this->Config->findByName($name, array('fields' => 'Value'));
+
+		if (!$config) {
+			throw new NotFoundException(__('Invalid config'));
+		}
+
+		$this->set(array(
+			'config' => $config['Config'],
 			'_serialize' => array('config')
 		));
 	}
@@ -88,4 +104,24 @@ class ConfigsController extends AppController {
 		} else {
 			return $this->flash(__('The config could not be deleted. Please, try again.'), array('action' => 'index'));
 		}
-	}}
+	}
+
+/**
+ * categories method
+ *
+ * return a list of distinct categories
+ */
+
+	public function categories($category = null) {
+		$categories = $this->Config->find('all', array(
+			'fields' => array('DISTINCT Config.Category'),
+			'conditions' => array('Config.Category !=' => 'hidden'),
+			'recursive' => 0
+		));
+		$this->set(array(
+			'categories' => $categories,
+			'_serialize' => array('categories')
+		));
+	}
+}
+

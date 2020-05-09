@@ -1,17 +1,22 @@
 Options
 =======
-The final area covered by the tutorial is the options and user section. If you are running in authenticated mode and don’t have system privileges then you will not see this section at all and if you are running in un-authenticated mode then no user section will be displayed.
 
 The various options you can specify are displayed in a tabbed dialog with each group of options displayed under a different heading. Each option is displayed with its name, a short description and the current value. You can also click on the ‘?’ link following each description to get a fuller explanation about each option. This is the same as you would get from zmconfig.pl. A number of option groups have a master option near the top which enables or disables the whole group so you should be aware of the state of this before modifying options and expecting them to make any difference.
 
 If you have changed the value of an option you should then ‘save’ it. A number of the option groups will then prompt you to let you know that the option(s) you have changed will require a system restart. This is not done automatically in case you will be changing many values in the same session, however once you have made all of your changes you should restart ZoneMinder as soon as possible. The reason for this is that web and some scripts will pick up the new changes immediately but some of the daemons will still be using the old values and this can lead to data inconsistency or loss.
 
-One of the options you may notice in the ‘System’ tab allows you to specify the default language for your installation of ZoneMinder. Versions 1.17.0 and later support multiple languages but rely on users to assist in creating language files for specific languages. To specify a language you will have to give the applicable code, thus for UK English this is en_gb, and for US English it would be en_us, if no language is given then UK English is assumed. Most languages will be specified in this nn_mm format and to check which languages are available look for files named zm_lang_*.php in the ZoneMinder build directory where the parts represented by the ‘*’ would be what you would enter as a language. This is slightly unwieldy and will probably be improved in future to make it easier to determine language availability. On checking which languages are available it may be that your preferred language is not currently included and if this is the case please consider doing a translation and sending it back to it may be included in future releases. All the language elements are given in the zm_lang_en_gb.php file along with a few notes to help you understand the format.
+.. toctree::
 
-As mentioned above, you may also see a ‘users’ tab in the Options area. In this section you will see a list of the current users defined on the system. You can also add or delete users from here. It is recommended you do not delete the admin user unless you have created another fully privileged user to take over the same role. Each user is defined with a name and password (which is hidden) as well as an enabled setting which you can use to temporarily enable or disable users, for example a guest user for limited time access. As well as that there is a language setting that allows you to define user specific languages. Setting a language here that is different than the system language will mean that when that user logs in they will have the web interface presented in their own language rather than the system default, if it is available. Specifying a language here is done in the same way as for the system default language described above.
-
-There are also five values that define the user permissions, these are ‘Stream’, ‘Events’, ‘Control’, ‘Monitors’ and ‘System’ Each can have values of ‘None’, ‘View’ or ‘Edit’ apart from ‘Stream’ which has no ‘Edit’ setting. These values cover access to the following areas; ‘Stream’ defines whether a user is allowed to view the ‘live’ video feeds coming from the cameras. You may wish to allow a user to view historical events only in which case this setting should be ‘none’. The ‘Events’ setting determines whether a user can view and modify or delete any retained historical events. The ‘Control’ setting allows you to indicate whether the user is able to control any Pan/Tilt/Zoom type cameras you may have on your system. The ‘Monitors’ setting specifies whether a user can see the current monitor settings and change them. Finally the ‘System’ setting determines whether a user can view or modify the system settings as a whole, such as options and users or controlling the running of the system as a whole.
-
-As well as these settings there is also a ‘Bandwidth’ setting which can be used to limit the maximum bandwidth that a user can view at and a ‘Monitor Ids’ setting that can be used for non-’System’ users to restrict them to only being able to access streams, events or monitors for the given monitors ids as a comma separated list with no spaces. If a user with ‘Monitors’ edit privileges is limited to specific monitors here they will not be able to add or delete monitors but only change the details of those they have access to. If a user has ‘System’ privileges then the ‘Monitors Ids’ setting is ignored and has no effect.’
-
-That’s pretty much is it for the tour, though there is a lot more to ZoneMinder as you will discover. You should experiment with the various settings to get the results you think are right for your requirements.
+   options/options_display
+   options/options_system
+   options/options_config
+   options/options_paths
+   options/options_web
+   options/options_images
+   options/options_logging
+   options/options_network
+   options/options_email
+   options/options_upload
+   options/options_x10
+   options/options_bw
+   options/options_users

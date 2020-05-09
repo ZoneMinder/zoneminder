@@ -20,37 +20,52 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # ==========================================================================
-#
-# This script continuously monitors the recorded events for the given
-# monitor and applies any filters which would delete and/or upload 
-# matching events
-#
+
+=head1 NAME
+
+zmcontrol.pl - ZoneMinder control script
+
+=head1 SYNOPSIS
+
+ zmcontrol.pl --id {monitor_id} --command={command} [various options]
+
+=head1 DESCRIPTION
+
+FIXME FIXME
+
+=head1 OPTIONS
+
+ --autostop          -
+ --xcoord [ arg ]    - X-coord
+ --ycoord [ arg ]    - Y-coord
+ --speed [ arg ]     - Speed
+ --step [ arg ]      -
+ --panspeed [ arg ]  -
+ --panstep [ arg ]   -
+ --tiltspeed [ arg ] -
+ --tiltstep [ arg ]  -
+ --preset [ arg ]    -
+
+=cut
 use strict;
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
 use Getopt::Long;
+use autouse 'Pod::Usage'=>qw(pod2usage);
 use POSIX qw/strftime EPIPE/;
 use Socket;
 #use Data::Dumper;
-use Module::Load;
+use Module::Load::Conditional qw{can_load};;
 
 use constant MAX_CONNECT_DELAY => 10;
 use constant MAX_COMMAND_WAIT => 1800;
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin';
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
-
-sub Usage
-{
-    print( "
-Usage: zmcontrol.pl --id <monitor_id> --command=<command> <various options>
-");
-    exit();
-}
 
 logInit();
 
@@ -59,29 +74,25 @@ my $arg_string = join( " ", @ARGV );
 my $id;
 my %options;
 
-if ( !GetOptions(
-    'id=i'=>\$id,
-    'command=s'=>\$options{command},
-    'xcoord=i'=>\$options{xcoord},
-    'ycoord=i'=>\$options{ycoord},
-    'speed=i'=>\$options{speed},
-    'step=i'=>\$options{step},
-    'panspeed=i'=>\$options{panspeed},
-    'tiltspeed=i'=>\$options{tiltspeed},
-    'panstep=i'=>\$options{panstep},
-    'tiltstep=i'=>\$options{tiltstep},
-    'preset=i'=>\$options{preset},
-    'autostop'=>\$options{autostop},
-    )
-)
-{
-    Usage();
-}
+GetOptions(
+    'id=i'          =>\$id,
+    'command=s'     =>\$options{command},
+    'xcoord=i'      =>\$options{xcoord},
+    'ycoord=i'      =>\$options{ycoord},
+    'speed=i'       =>\$options{speed},
+    'step=i'        =>\$options{step},
+    'panspeed=i'    =>\$options{panspeed},
+    'tiltspeed=i'   =>\$options{tiltspeed},
+    'panstep=i'     =>\$options{panstep},
+    'tiltstep=i'    =>\$options{tiltstep},
+    'preset=i'      =>\$options{preset},
+    'autostop'      =>\$options{autostop},
+) or pod2usage(-exitstatus => -1);
 
 if ( !$id || !$options{command} )
 {
     print( STDERR "Please give a valid monitor id and command\n" );
-    Usage();
+    pod2usage(-exitstatus => -1);
 }
 
 ( $id ) = $id =~ /^(\w+)$/;
@@ -90,13 +101,14 @@ Debug( $arg_string );
 
 my $sock_file = $Config{ZM_PATH_SOCKS}.'/zmcontrol-'.$id.'.sock';
 
-socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
+socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 )
+    or Fatal( "Can't open socket: $!" );
 
 my $saddr = sockaddr_un( $sock_file );
 my $server_up = connect( CLIENT, $saddr );
 if ( !$server_up )
 {
-    # The server isn't there 
+    # The server isn't there
     my $monitor = zmDbGetMonitorAndControl( $id );
     if ( !$monitor )
     {
@@ -129,17 +141,22 @@ if ( !$server_up )
     Info( "Starting control server $id/$protocol" );
     close( CLIENT );
 
+    if ( ! can_load( modules => { "ZoneMinder::Control::$protocol" => undef } ) ) {
+        Fatal("Can't load ZoneMinder::Control::$protocol");
+    }
+
     if ( my $cpid = fork() )
     {
         logReinit();
 
         # Parent process just sleep and fall through
-        socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or die( "Can't open socket: $!" );
+        socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 )
+            or die( "Can't open socket: $!" );
         my $attempts = 0;
         while (!connect( CLIENT, $saddr ))
         {
             $attempts++;
-            Fatal( "Can't connect: $!" ) if ($attempts > MAX_CONNECT_DELAY);
+            Fatal( "Can't connect: $! after $attempts attempts to $sock_file" ) if ($attempts > MAX_CONNECT_DELAY);
             sleep(1);
         }
     }
@@ -152,11 +169,11 @@ if ( !$server_up )
 
         logReinit();
 
-        Info( "Control server $id/$protocol starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() ) );
+        Info( "Control server $id/$protocol starting at "
+              .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+        );
 
         $0 = $0." --id $id";
-
-        load "ZoneMinder::Control::$protocol";
 
         my $control = "ZoneMinder::Control::$protocol"->new( $id );
         my $control_key = $control->getKey();
@@ -164,7 +181,8 @@ if ( !$server_up )
 
         $control->open();
 
-        socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
+        socket( SERVER, PF_UNIX, SOCK_STREAM, 0 )
+            or Fatal( "Can't open socket: $!" );
         unlink( $sock_file );
         bind( SERVER, $saddr ) or Fatal( "Can't bind: $!" );
         listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
@@ -190,8 +208,11 @@ if ( !$server_up )
                     #Debug( Dumper( $params ) );
 
                     my $command = $params->{command};
-                    $control->$command( $params );
                     close( CLIENT );
+                    if ( $command eq 'quit' ) {
+                        last;
+                    }
+                    $control->$command( $params );
                 }
                 else
                 {
@@ -215,7 +236,9 @@ if ( !$server_up )
                 last;
             }
         }
-        Info( "Control server $id/$protocol exiting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() ) );
+        Info( "Control server $id/$protocol exiting at "
+              .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+        );
         unlink( $sock_file );
         $control->close();
         exit( 0 );

@@ -48,28 +48,37 @@ use Socket;
 
 sub new
 {
-	my $class = shift;
-	my %params = @_;
-	my $self = ZoneMinder::Trigger::Channel->new;
-	$self->{selectable} = !undef;
-	$self->{path} = $params{path};
-	bless( $self, $class );
-	return $self;
+    my $class = shift;
+    my %params = @_;
+    my $self = ZoneMinder::Trigger::Channel->new;
+    $self->{selectable} = !undef;
+    $self->{path} = $params{path};
+    bless( $self, $class );
+    return $self;
 }
 
-sub open()
+sub open
 {
-	my $self = shift;
-	local *sfh;
-	unlink( $self->{path} );
-	my $saddr = sockaddr_un( $self->{path} );
-	socket( *sfh, PF_UNIX, SOCK_STREAM, 0 ) or croak( "Can't open socket: $!" );
-	bind( *sfh, $saddr ) or croak( "Can't bind: $!" );
-	listen( *sfh, SOMAXCONN ) or croak( "Can't listen: $!" );
-	$self->{handle} = *sfh;
+    my $self = shift;
+    local *sfh;
+    unlink( $self->{path} );
+    my $saddr = sockaddr_un( $self->{path} );
+    if ( ! socket( *sfh, PF_UNIX, SOCK_STREAM, 0 ) ) {
+		Error( "Can't open unix socket at $$self{path}: $!" );
+		croak( "Can't open unix socket at $$self{path}: $!" );
+	}
+    if ( ! bind( *sfh, $saddr ) ) {
+		Error( "Can't bind unix socket at $$self{path}: $!" );
+		croak( "Can't bind unix socket at $$self{path}: $!" );
+	}
+    if ( ! listen( *sfh, SOMAXCONN ) ) {
+		Error( "Can't listen: $!" );
+		croak( "Can't listen: $!" );
+	}
+    $self->{handle} = *sfh;
 }
 
-sub _spawn( $ )
+sub _spawn
 {
     my $self = shift;
     my $new_handle = shift;
@@ -79,7 +88,7 @@ sub _spawn( $ )
     return( $clone );
 }
 
-sub accept()
+sub accept
 {
     my $self = shift;
     local *cfh;
@@ -93,12 +102,11 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Trigger::Channel::Unix - Object for Unix socket channel
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Database;
-  blah blah blah
+See zmtrigger.pl 
 
 =head1 DESCRIPTION
 

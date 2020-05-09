@@ -39,33 +39,33 @@
 class User
 {
 public:
-	typedef enum { PERM_NONE=1, PERM_VIEW, PERM_EDIT } Permission;
+  typedef enum { PERM_NONE=1, PERM_VIEW, PERM_EDIT } Permission;
 
 protected:
-	char username[32+1];
-	char password[64+1];
-	bool enabled;
-	Permission stream;
-	Permission events;
-	Permission control;
-	Permission monitors;
-	Permission system;
-	int *monitor_ids;
+  char username[32+1];
+  char password[64+1];
+  bool enabled;
+  Permission stream;
+  Permission events;
+  Permission control;
+  Permission monitors;
+  Permission system;
+  int *monitor_ids;
 
 public:
-	User();
-	User( MYSQL_ROW &dbrow );
-	~User();
+  User();
+  User( MYSQL_ROW &dbrow );
+  ~User();
 
-	const char *getUsername() const { return( username ); }
-	const char *getPassword() const { return( password ); }
-	bool isEnabled() const { return( enabled ); }
-	Permission getStream() const { return( stream ); }
-	Permission getEvents() const { return( events ); }
-	Permission getControl() const { return( control ); }
-	Permission getMonitors() const { return( monitors ); }
-	Permission getSystem() const { return( system ); }
-	bool canAccess( int monitor_id );
+  const char *getUsername() const { return( username ); }
+  const char *getPassword() const { return( password ); }
+  bool isEnabled() const { return( enabled ); }
+  Permission getStream() const { return( stream ); }
+  Permission getEvents() const { return( events ); }
+  Permission getControl() const { return( control ); }
+  Permission getMonitors() const { return( monitors ); }
+  Permission getSystem() const { return( system ); }
+  bool canAccess( int monitor_id );
 };
 
 User *zmLoadUser( const char *username, const char *password=0 );

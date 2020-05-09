@@ -18,6 +18,10 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
+if ( !canView( 'Groups' ) ) {
+    $view = "error";
+    return;
+}
 
 $sql = "select * from Groups order by Name";
 $groups = array();
@@ -36,46 +40,46 @@ foreach( dbFetchAll( $sql ) as $row )
     $groups[] = $row;
 }
 
-xhtmlHeaders(__FILE__, $SLANG['Groups'] );
+xhtmlHeaders(__FILE__, translate('Groups') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['Groups'] ?></h2>
+      <h2><?php echo translate('Groups') ?></h2>
     </div>
     <div id="content">
-      <form name="groupsForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="groupsForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="setgroup"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th class="colName"><?= $SLANG['Name'] ?></th>
-              <th class="colIds"><?= $SLANG['MonitorIds'] ?></th>
-              <th class="colSelect"><?= $SLANG['Select'] ?></th>
+              <th class="colName"><?php echo translate('Name') ?></th>
+              <th class="colIds"><?php echo translate('MonitorIds') ?></th>
+              <th class="colSelect"><?php echo translate('Select') ?></th>
             </tr>
           </thead>
           <tbody>
             <tr class="highlight">
-              <td class="colName"><?= $SLANG['NoGroup'] ?></td>
-              <td class="colIds"><?= $SLANG['All'] ?></td>
-              <td class="colSelect"><input type="radio" name="gid" value="0"<?= !$selected?' checked="checked"':'' ?> onclick="configureButtons( this );"/></td>
+              <td class="colName"><?php echo translate('NoGroup') ?></td>
+              <td class="colIds"><?php echo translate('All') ?></td>
+              <td class="colSelect"><input type="radio" name="gid" value="0"<?php echo !$selected?' checked="checked"':'' ?> onclick="configureButtons( this );"/></td>
             </tr>
 <?php foreach ( $groups as $group ) { ?>
             <tr>
-              <td class="colName"><?= validHtmlStr($group['Name']) ?></td>
-              <td class="colIds"><?= monitorIdsToNames( $group['MonitorIds'], 30 ) ?></td>
-              <td class="colSelect"><input type="radio" name="gid" value="<?= $group['Id'] ?>"<?= $group['selected']?' checked="checked"':'' ?> onclick="configureButtons( this );"/></td>
+              <td class="colName"><?php echo validHtmlStr($group['Name']) ?></td>
+              <td class="colIds"><?php echo monitorIdsToNames( $group['MonitorIds'], 30 ) ?></td>
+              <td class="colSelect"><input type="radio" name="gid" value="<?php echo $group['Id'] ?>"<?php echo $group['selected']?' checked="checked"':'' ?> onclick="configureButtons( this );"/></td>
             </tr>
 <?php } ?>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?= $SLANG['Apply'] ?>"/>
-          <input type="button" value="<?= $SLANG['New'] ?>" onclick="newGroup()"<?= canEdit('System')?'':' disabled="disabled"' ?>/>
-          <input type="button" name="editBtn" value="<?= $SLANG['Edit'] ?>" onclick="editGroup( this )"<?= $selected&&canEdit('System')?'':' disabled="disabled"' ?>/>
-          <input type="button" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" onclick="deleteGroup( this )"<?= $selected&&canEdit('System')?'':' disabled="disabled"' ?>/>
-          <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow();"/>
+          <input type="submit" value="<?php echo translate('Apply') ?>"/>
+          <input type="button" value="<?php echo translate('New') ?>" onclick="newGroup()"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>/>
+          <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editGroup( this )"<?php echo $selected&&canEdit('Groups')?'':' disabled="disabled"' ?>/>
+          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteGroup( this )"<?php echo $selected&&canEdit('Groups')?'':' disabled="disabled"' ?>/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>
       </form>
     </div>

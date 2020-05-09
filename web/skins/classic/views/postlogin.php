@@ -18,15 +18,15 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 
-xhtmlHeaders(__FILE__, $SLANG['LoggingIn'] );
+xhtmlHeaders(__FILE__, translate('LoggingIn') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?= $SLANG['Login'] ?></h1>
+      <h1>ZoneMinder <?php echo translate('Login') ?></h1>
     </div>
     <div id="content">
-      <h2><?= $SLANG['LoggingIn'] ?></h2>
+      <h2><?php echo translate('LoggingIn') ?></h2>
     </div>
   </div>
 </body>

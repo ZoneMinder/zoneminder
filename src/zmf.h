@@ -22,11 +22,11 @@
 
 struct FrameHeader
 {
-	unsigned long event_id;
-    time_t event_time;
-	unsigned long frame_id;
-	bool alarm_frame;
-	unsigned long image_length;
+  unsigned long event_id;
+  time_t event_time;
+  unsigned long frame_id;
+  bool alarm_frame;
+  unsigned long image_length;
 };
 
 #endif // ZMFILE_H

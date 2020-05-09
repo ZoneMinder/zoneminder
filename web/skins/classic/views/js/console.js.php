@@ -1,4 +1,4 @@
-var consoleRefreshTimeout = <?= 1000*ZM_WEB_REFRESH_MAIN ?>;
+var consoleRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_MAIN ?>;
 
 <?php
 if ( ZM_CHECK_FOR_UPDATES && canEdit('System') && ZM_DYN_LAST_VERSION && ( verNum(ZM_VERSION) < verNum(ZM_DYN_LAST_VERSION) ) && ( verNum(ZM_DYN_CURR_VERSION) < verNum(ZM_DYN_LAST_VERSION) ) && ( ZM_DYN_NEXT_REMINDER < time() ) )
@@ -24,5 +24,9 @@ elseif ( ZM_DYN_SHOW_DONATE_REMINDER )
     }
 }
 ?>
-var showVersionPopup = <?= isset($showVersionPopup )?'true':'false' ?>;
-var showDonatePopup = <?= isset($showDonatePopup )?'true':'false' ?>;
+var showVersionPopup = <?php echo isset($showVersionPopup )?'true':'false' ?>;
+var showDonatePopup = <?php echo isset($showDonatePopup )?'true':'false' ?>;
+var translatedAddText = "<?php echo translate('AddNewMonitor') ?>";
+var translatedCloneText = "<?php echo translate('CloneMonitor') ?>";
+
+

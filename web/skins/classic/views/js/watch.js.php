@@ -1,75 +1,77 @@
 //
 // Import constants
 //
-var STATE_IDLE = <?= STATE_IDLE ?>;
-var STATE_PREALARM = <?= STATE_PREALARM ?>;
-var STATE_ALARM = <?= STATE_ALARM ?>;
-var STATE_ALERT = <?= STATE_ALERT ?>;
-var STATE_TAPE = <?= STATE_TAPE ?>;
+var STATE_IDLE = <?php echo STATE_IDLE ?>;
+var STATE_PREALARM = <?php echo STATE_PREALARM ?>;
+var STATE_ALARM = <?php echo STATE_ALARM ?>;
+var STATE_ALERT = <?php echo STATE_ALERT ?>;
+var STATE_TAPE = <?php echo STATE_TAPE ?>;
 
 var stateStrings = new Array();
-stateStrings[STATE_IDLE] = "<?= $SLANG['Idle'] ?>";
-stateStrings[STATE_PREALARM] = "<?= $SLANG['Idle'] ?>";
-stateStrings[STATE_ALARM] = "<?= $SLANG['Alarm'] ?>";
-stateStrings[STATE_ALERT] = "<?= $SLANG['Alert'] ?>";
-stateStrings[STATE_TAPE] = "<?= $SLANG['Record'] ?>";
+stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_PREALARM] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
+stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
+stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
-var deleteString = "<?= $SLANG['Delete'] ?>";
+var deleteString = "<?php echo translate('Delete') ?>";
 
-var CMD_NONE = <?= CMD_NONE ?>;
-var CMD_PAUSE = <?= CMD_PAUSE ?>;
-var CMD_PLAY = <?= CMD_PLAY ?>;
-var CMD_STOP = <?= CMD_STOP ?>;
-var CMD_FASTFWD = <?= CMD_FASTFWD ?>;
-var CMD_SLOWFWD = <?= CMD_SLOWFWD ?>;
-var CMD_SLOWREV = <?= CMD_SLOWREV ?>;
-var CMD_FASTREV = <?= CMD_FASTREV ?>;
-var CMD_ZOOMIN = <?= CMD_ZOOMIN ?>;
-var CMD_ZOOMOUT = <?= CMD_ZOOMOUT ?>;
-var CMD_PAN = <?= CMD_PAN ?>;
-var CMD_SCALE = <?= CMD_SCALE ?>;
-var CMD_PREV = <?= CMD_PREV ?>;
-var CMD_NEXT = <?= CMD_NEXT ?>;
-var CMD_SEEK = <?= CMD_SEEK ?>;
-var CMD_QUERY = <?= CMD_QUERY ?>;
+var CMD_NONE = <?php echo CMD_NONE ?>;
+var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
+var CMD_PLAY = <?php echo CMD_PLAY ?>;
+var CMD_STOP = <?php echo CMD_STOP ?>;
+var CMD_FASTFWD = <?php echo CMD_FASTFWD ?>;
+var CMD_SLOWFWD = <?php echo CMD_SLOWFWD ?>;
+var CMD_SLOWREV = <?php echo CMD_SLOWREV ?>;
+var CMD_FASTREV = <?php echo CMD_FASTREV ?>;
+var CMD_ZOOMIN = <?php echo CMD_ZOOMIN ?>;
+var CMD_ZOOMOUT = <?php echo CMD_ZOOMOUT ?>;
+var CMD_PAN = <?php echo CMD_PAN ?>;
+var CMD_SCALE = <?php echo CMD_SCALE ?>;
+var CMD_PREV = <?php echo CMD_PREV ?>;
+var CMD_NEXT = <?php echo CMD_NEXT ?>;
+var CMD_SEEK = <?php echo CMD_SEEK ?>;
+var CMD_QUERY = <?php echo CMD_QUERY ?>;
 
-var SCALE_BASE = <?= SCALE_BASE ?>;
+var SCALE_BASE = <?php echo SCALE_BASE ?>;
 
-var SOUND_ON_ALARM = <?= ZM_WEB_SOUND_ON_ALARM ?>;
-var POPUP_ON_ALARM = <?= ZM_WEB_POPUP_ON_ALARM ?>;
+var SOUND_ON_ALARM = <?php echo ZM_WEB_SOUND_ON_ALARM ?>;
+var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
 
-var streamMode = "<?= $streamMode ?>";
-var showMode = "<?= ($showPtzControls && !empty($control))?"control":"events" ?>";
+var streamMode = "<?php echo $streamMode ?>";
+var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"events" ?>";
 
-var connKey = '<?= $connkey ?>';
-var maxDisplayEvents = <?= 2 * MAX_EVENTS ?>;
+var connKey = '<?php echo $connkey ?>';
+var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 
-var monitorId = <?= $monitor['Id'] ?>;
-var monitorWidth = <?= $monitor['Width'] ?>;
-var monitorHeight = <?= $monitor['Height'] ?>;
 
-var scale = <?= $scale ?>;
+var monitorId = <?php echo $monitor->Id() ?>;
+var monitorWidth = <?php echo $monitor->Width() ?>;
+var monitorHeight = <?php echo $monitor->Height() ?>;
+var monitorUrl = '<?php echo ( $monitor->Server()->Url() ) ?>';
 
-var streamSrc = "<?= preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
+var scale = <?php echo $scale ?>;
 
-var statusRefreshTimeout = <?= 1000*ZM_WEB_REFRESH_STATUS ?>;
-var eventsRefreshTimeout = <?= 1000*ZM_WEB_REFRESH_EVENTS ?>;
-var imageRefreshTimeout = <?= 1000*ZM_WEB_REFRESH_IMAGE ?>;
+var streamSrc = "<?php echo preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
 
-var canEditMonitors = <?= canEdit( 'Monitors' )?'true':'false' ?>;
-var canStreamNative = <?= canStreamNative()?'true':'false' ?>;
+var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
+var eventsRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_EVENTS ?>;
+var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
+
+var canEditMonitors = <?php echo canEdit( 'Monitors' )?'true':'false' ?>;
+var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
 var canPlayPauseAudio = Browser.ie;
 
-<?php if ( $monitor['CanMoveMap'] ) { ?>
+<?php if ( $monitor->CanMoveMap() ) { ?>
 var imageControlMode = "moveMap";
-<?php } elseif ( $monitor['CanMoveRel'] ) { ?>
+<?php } elseif ( $monitor->CanMoveRel() ) { ?>
 var imageControlMode = "movePseudoMap";
-<?php } elseif ( $monitor['CanMoveCon'] ) { ?>
+<?php } elseif ( $monitor->CanMoveCon() ) { ?>
 var imageControlMode = "moveConMap";
 <?php } else { ?>
 var imageControlMode = null;
 <?php } ?>
 
-var refreshApplet = <?= (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
-var appletRefreshTime = <?= ZM_RELOAD_CAMBOZOLA ?>;
+var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
+var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;

@@ -26,26 +26,26 @@ class DigestAuthentication {
 /**
  * Authentication
  *
- * @param HttpSocket $http
- * @param array $authInfo
+ * @param HttpSocket $http Http socket instance.
+ * @param array &$authInfo Authentication info.
  * @return void
  * @link http://www.ietf.org/rfc/rfc2617.txt
  */
 	public static function authentication(HttpSocket $http, &$authInfo) {
 		if (isset($authInfo['user'], $authInfo['pass'])) {
-			if (!isset($authInfo['realm']) && !self::_getServerInformation($http, $authInfo)) {
+			if (!isset($authInfo['realm']) && !static::_getServerInformation($http, $authInfo)) {
 				return;
 			}
-			$http->request['header']['Authorization'] = self::_generateHeader($http, $authInfo);
+			$http->request['header']['Authorization'] = static::_generateHeader($http, $authInfo);
 		}
 	}
 
 /**
  * Retrieve information about the authentication
  *
- * @param HttpSocket $http
- * @param array $authInfo
- * @return boolean
+ * @param HttpSocket $http Http socket instance.
+ * @param array &$authInfo Authentication info.
+ * @return bool
  */
 	protected static function _getServerInformation(HttpSocket $http, &$authInfo) {
 		$originalRequest = $http->request;
@@ -70,8 +70,8 @@ class DigestAuthentication {
 /**
  * Generate the header Authorization
  *
- * @param HttpSocket $http
- * @param array $authInfo
+ * @param HttpSocket $http Http socket instance.
+ * @param array &$authInfo Authentication info.
  * @return string
  */
 	protected static function _generateHeader(HttpSocket $http, &$authInfo) {

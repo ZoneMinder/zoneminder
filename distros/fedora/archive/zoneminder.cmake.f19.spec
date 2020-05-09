@@ -72,7 +72,6 @@ too much degradation of performance.
 %build
 %cmake \
 	-DZM_TARGET_DISTRO="f19" \
-	-DZM_PERL_SUBPREFIX=`x="%{perl_vendorlib}" ; echo ${x#"%{_prefix}"}` \
 %{?_without_ffmpeg:-DZM_NO_FFMPEG=ON} \
 %{?_without_x10:-DZM_NO_X10=ON} \
 	.
@@ -141,7 +140,6 @@ fi
 # zmfix removed from zoneminder 1.26.6
 #%attr(4755,root,root) %{_bindir}/zmfix
 %{_bindir}/zmpkg.pl
-%{_bindir}/zmstreamer
 %{_bindir}/zmtrack.pl
 %{_bindir}/zmtrigger.pl
 %{_bindir}/zmu

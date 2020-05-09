@@ -16,8 +16,8 @@
 #   Rename to Wanscam
 #   Pan Left/Right switched
 #   IR On/Off switched
-#   Brightness Increase/Decrease in 16 steps 
-#   
+#   Brightness Increase/Decrease in 16 steps
+#
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License

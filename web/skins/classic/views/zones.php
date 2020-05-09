@@ -25,12 +25,7 @@ if ( !canView( 'Monitors' ) )
 }
 
 $mid = validInt($_REQUEST['mid']);
-$wd = getcwd();
-chdir( ZM_DIR_IMAGES );
-$status = exec( escapeshellcmd( getZmuCommand( " -m ".$mid." -z" ) ) );
-chdir( $wd );
-
-$monitor = dbFetchMonitor( $mid );
+$monitor = new Monitor( $mid );
 
 $zones = array();
 foreach( dbFetchAll( 'select * from Zones where MonitorId = ? order by Area desc', NULL, array($mid) ) as $row )
@@ -42,40 +37,39 @@ foreach( dbFetchAll( 'select * from Zones where MonitorId = ? order by Area desc
     }
 }
 
-$image = 'Zones'.$monitor['Id'].'.jpg';
+$connkey = generateConnKey();
 
-xhtmlHeaders(__FILE__, $SLANG['Zones'] );
+xhtmlHeaders(__FILE__, translate('Zones') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a></div>
-      <h2><?= $SLANG['Zones'] ?></h2>
+      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
+      <h2><?php echo translate('Zones') ?></h2>
     </div>
-    <div id="content">
-      <map name="zoneMap" id="zoneMap">
+    <div id="content" style="width:<?php echo $monitor->Width() ?>px; height:<?php echo $monitor->Height() ?>px; position:relative; margin: 0 auto;">
+      <?php echo getStreamHTML( $monitor ); ?>
+      <svg class="zones" width="<?php echo $monitor->Width() ?>" height="<?php echo $monitor->Height() ?>" style="position:absolute; top: 0; left: 0; background: none;">
 <?php
-foreach( array_reverse($zones) as $zone )
-{
+      foreach( array_reverse($zones) as $zone ) {
 ?>
-        <area shape="poly" alt="<?= htmlspecialchars($zone['Name']) ?>" coords="<?= $zone['AreaCoords'] ?>" href="#" onclick="createPopup( '?view=zone&amp;mid=<?= $mid ?>&amp;zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"/>
+        <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
 <?php
-}
+      } // end foreach zone
 ?>
-        <!--<area shape="default" nohref>-->
-      </map>
-      <img src="<?= ZM_DIR_IMAGES.'/'.$image ?>" alt="zones" usemap="#zoneMap" width="<?= $monitor['Width'] ?>" height="<?= $monitor['Height'] ?>" border="0"/>
-      <form name="contentForm" id="contentForm" method="get" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $view ?>"/>
+          Sorry, your browser does not support inline SVG
+        </svg>
+      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
-        <input type="hidden" name="mid" value="<?= $mid ?>"/>
+        <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>
             <tr>
-              <th class="colName"><?= $SLANG['Name'] ?></th>
-              <th class="colType"><?= $SLANG['Type'] ?></th>
-              <th class="colUnits"><?= $SLANG['AreaUnits'] ?></th>
-              <th class="colMark"><?= $SLANG['Mark'] ?></th>
+              <th class="colName"><?php echo translate('Name') ?></th>
+              <th class="colType"><?php echo translate('Type') ?></th>
+              <th class="colUnits"><?php echo translate('AreaUnits') ?></th>
+              <th class="colMark"><?php echo translate('Mark') ?></th>
             </tr>
           </thead>
           <tbody>
@@ -84,10 +78,10 @@ foreach( $zones as $zone )
 {
 ?>
             <tr>
-              <td class="colName"><a href="#" onclick="createPopup( '?view=zone&amp;mid=<?= $mid ?>&amp;zid=<?= $zone['Id'] ?>', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> ); return( false );"><?= $zone['Name'] ?></a></td>
-              <td class="colType"><?= $zone['Type'] ?></td>
-              <td class="colUnits"><?= $zone['Area'] ?>&nbsp;/&nbsp;<?= sprintf( "%.2f", ($zone['Area']*100)/($monitor['Width']*$monitor['Height']) ) ?></td>
-              <td class="colMark"><input type="checkbox" name="markZids[]" value="<?= $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colName"><a href="#" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> ); return( false );"><?php echo $zone['Name'] ?></a></td>
+              <td class="colType"><?php echo $zone['Type'] ?></td>
+              <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor->Width()*$monitor->Height()) ) ?></td>
+              <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
 }
@@ -95,8 +89,8 @@ foreach( $zones as $zone )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?= $SLANG['AddNewZone'] ?>" onclick="createPopup( '?view=zone&amp;mid=<?= $mid ?>&amp;zid=0', 'zmZone', 'zone', <?= $monitor['Width'] ?>, <?= $monitor['Height'] ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="submit" name="deleteBtn" value="<?= $SLANG['Delete'] ?>" disabled="disabled"/>
+          <input type="button" value="<?php echo translate('AddNewZone') ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
       </form>
     </div>

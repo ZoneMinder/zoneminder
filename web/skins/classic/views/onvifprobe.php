@@ -25,25 +25,16 @@ if ( !canEdit( 'Monitors' ) )
 }
 
 $cameras = array();
-$cameras[0] = $SLANG['ChooseDetectedCamera'];
+$cameras[0] = translate('ChooseDetectedCamera');
 
 
 function execONVIF( $cmd )
 {
-  my $program = ZM_PATH_BIN . "/zmonvif-probe.pl";
-  exec( escapeshellcmd("$program $cmd"), $output, $status );
-    Fatal( "Unable to probe network cameras, status is '$status'" );
+  exec( escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd"), $output, $status );
  
-  if ( $status == -1 ) {
-    Fatal( "Failed to execute: $program\n");
-  }
-  elsif ($status & 127) {
-    Fatal( "Unable to probe network cameras. Signal %d, %s coredump\n",
-           ($status & 127), ($status & 128) ? 'with' : 'without' );
-  }
-  else {
-    Fatal( "Unable to probe network cameras (%d)\n", $status >> 8 );
-  }
+  if ( $status )
+    Fatal( "Unable to probe network cameras, status is '$status'" );
+
   return $output;
 }
 
@@ -135,7 +126,7 @@ function probeProfiles( $device_ep, $soapversion, $username, $password )
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['MonitorProbe'] );
+xhtmlHeaders(__FILE__, translate('MonitorProbe') );
 
 if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
 
@@ -170,7 +161,7 @@ if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
         }
         else
         {
-            $sourceString .= " - ".$SLANG['Available'];
+            $sourceString .= " - ".translate('Available');
         }
         $cameras[$sourceDesc] = $sourceString;
     }
@@ -182,39 +173,39 @@ if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
   }
 
   if ( count($cameras) <= 0 )
-      $cameras[0] = $SLANG['NoDetectedCameras'];
+      $cameras[0] = translate('NoDetectedCameras');
 
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['MonitorProbe'] ?></h2>
+      <h2><?php echo translate('MonitorProbe') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="mid" value="<?= validNum($_REQUEST['mid']) ?>"/>
+        <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <input type="hidden" name="step" value=""/>
         <p>
-          <?= $SLANG['OnvifProbeIntro'] ?>
+          <?php echo translate('OnvifProbeIntro') ?>
         </p>
         <p>
-          <label for="probe"><?= $SLANG['DetectedCameras'] ?></label><?= buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo translate('DetectedCameras') ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
         </p>
         <p>
-          <?= $SLANG['OnvifCredentialsIntro'] ?>
+          <?php echo translate('OnvifCredentialsIntro') ?>
         </p>
         <p>
-          <label for="username"><?= $SLANG['Username'] ?></label>
+          <label for="username"><?php echo translate('Username') ?></label>
           <input type="text" name="username" value="" onChange="configureButtons( this )" />
         </p>
         <p>
-          <label for="password"><?= $SLANG['Password'] ?></label>
+          <label for="password"><?php echo translate('Password') ?></label>
           <input type="password" name="password" value=""onChange="configureButtons( this )" />
         </p>
         <div id="contentButtons">
-          <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
-          <input type="submit" name="nextBtn" value="<?= $SLANG['Next'] ?>" onclick="gotoStep2( this )" disabled="disabled"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" name="nextBtn" value="<?php echo translate('Next') ?>" onclick="gotoStep2( this )" disabled="disabled"/>
         </div>
       </form>
     </div>
@@ -253,8 +244,9 @@ else if($_REQUEST['step'] == "2")
        // copy technical details
        $monitor['Width']  = $profile['Width'];
        $monitor['Height'] = $profile['Height'];
-       $monitor['MaxFPS'] = $profile['MaxFPS'];
-       $monitor['AlarmMaxFPS'] = $profile['AlarmMaxFPS'];
+// The maxfps fields do not work for ip streams. Can re-enable if that is fixed.
+//       $monitor['MaxFPS'] = $profile['MaxFPS'];
+//       $monitor['AlarmMaxFPS'] = $profile['AlarmMaxFPS'];
        $monitor['Path'] = $profile['Path'];
 //       $sourceDesc = htmlspecialchars(serialize($monitor));
        $sourceDesc = base64_encode(serialize($monitor));
@@ -262,29 +254,29 @@ else if($_REQUEST['step'] == "2")
   }
 
   if ( count($cameras) <= 0 )
-      $cameras[0] = $SLANG['NoDetectedCameras'];
+      $cameras[0] = translate('NoDetectedCameras');
 
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['ProfileProbe'] ?></h2>
+      <h2><?php echo translate('ProfileProbe') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="mid" value="<?= validNum($_REQUEST['mid']) ?>"/>
+        <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <input type="hidden" name="step" value=""/>
         <p>
-          <?= $SLANG['ProfileProbeIntro'] ?>
+          <?php echo translate('ProfileProbeIntro') ?>
         </p>
         <p>
-          <label for="probe"><?= $SLANG['DetectedProfiles'] ?></label><?= buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
+          <label for="probe"><?php echo translate('DetectedProfiles') ?></label><?php echo buildSelect( "probe", $cameras, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
-          <input type="button" name="prevBtn" value="<?= $SLANG['Prev'] ?>" onclick="gotoStep1( this )"/>
-          <input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
-          <input type="submit" name="saveBtn" value="<?= $SLANG['Save'] ?>" onclick="submitCamera( this )" disabled="disabled"/>
+          <input type="button" name="prevBtn" value="<?php echo translate('Prev') ?>" onclick="gotoStep1( this )"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" onclick="submitCamera( this )" disabled="disabled"/>
         </div>
       </form>
     </div>

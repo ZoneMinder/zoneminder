@@ -62,6 +62,11 @@ define( "ZM_HAS_V4L1", "@ZM_HAS_V4L1@" );               // V4L1 support enabled
 define( "ZM_HAS_V4L", "@ZM_HAS_V4L@" );                 // V4L support enabled
 
 //
+// If ONVIF support has been built in
+//
+define( "ZM_HAS_ONVIF", "@ZM_HAS_ONVIF@" );             // ONVIF support enabled
+
+//
 // If PCRE dev libraries are installed
 //
 define( "ZM_PCRE", "@ZM_PCRE@" );                       // PCRE support enabled
@@ -99,6 +104,7 @@ define( "CMD_PREV", 12 );
 define( "CMD_NEXT", 13 );
 define( "CMD_SEEK", 14 );
 define( "CMD_VARPLAY", 15 );
+define( "CMD_QUIT", 17 );
 define( "CMD_QUERY", 99 );
 
 //
@@ -126,6 +132,7 @@ $GLOBALS['defaultUser'] = array(
     "Events"    => 'Edit',
     "Control"   => 'Edit',
     "Monitors"  => 'Edit',
+    "Groups"    => 'Edit',
     "Devices"   => 'Edit',
     "System"    => 'Edit',
     "MaxBandwidth" => "",
@@ -160,5 +167,26 @@ function loadConfig( $defineConsts=true )
     //print_r( $config );
     //print_r( $configCats );
 }
+
+require_once( 'logger.php' );
+// For Human-readability, user ZM_SERVER in zm.conf, and convert it here to a ZM_SERVER_ID
+if ( ! defined('ZM_SERVER_ID') ) {
+	if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
+		$server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_NAME));
+		if ( ! $server_id ) {
+			Error("Invalid Multi-Server configration detected. ZM_SERVER_NAME set to " . ZM_SERVER_NAME . " in zm.conf, but no corresponding entry found in Servers table.");
+		} else {
+			define( 'ZM_SERVER_ID', $server_id );
+		}
+	} else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
+		$server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_HOST));
+		if ( ! $server_id ) {
+			Error("Invalid Multi-Server configration detected. ZM_SERVER_HOST set to " . ZM_SERVER_HOST . " in zm.conf, but no corresponding entry found in Servers table.");
+		} else {
+			define( 'ZM_SERVER_ID', $server_id );
+		}
+	}
+}
+
 
 ?>

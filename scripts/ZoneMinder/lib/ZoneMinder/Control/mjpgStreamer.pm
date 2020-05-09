@@ -126,32 +126,32 @@ sub sendCmd
 sub Up
 {
    my $self = shift;
-   $self->moveConUp();	
+   $self->moveConUp();
 }
 
 sub Down
 {
    my $self = shift;
-   $self->moveConDown();	
+   $self->moveConDown();
 }
 
 sub Left
 {
    my $self = shift;
-   $self->moveConLeft();	
+   $self->moveConLeft();
 }
 
 sub Right
 {
    my $self = shift;
-   $self->moveConRight();	
+   $self->moveConRight();
 }
 
 
 sub reset
 {
    my $self = shift;
-   $self->cameraReset();	
+   $self->cameraReset();
 }
 
 

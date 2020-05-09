@@ -138,7 +138,7 @@ Upgrades
    has select, insert, update, and delete permission.
    
 3. You will need to upgrade the ZoneMinder database as described in the
-   manual. Only if the previous step was succesful, may you run zmupdate like
+   manual. Only if the previous step was successful, may you run zmupdate like
    so (as root):
      
      /opt/zoneminder/bin/zmupdate.pl 

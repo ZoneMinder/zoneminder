@@ -19,7 +19,7 @@
 #
 # ==========================================================================
 #
-# This module contains the common definitions and functions used by the rest 
+# This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
 package ZoneMinder::General;
@@ -76,7 +76,7 @@ use ZoneMinder::Database qw(:all);
 use POSIX;
 
 # For running general shell commands
-sub executeShellCommand( $ )
+sub executeShellCommand
 {
     my $command = shift;
     my $output = qx( $command );
@@ -90,7 +90,7 @@ sub executeShellCommand( $ )
     return( $status );
 }
 
-sub getCmdFormat()
+sub getCmdFormat
 {
     Debug( "Testing valid shell syntax\n" );
 
@@ -107,7 +107,6 @@ sub getCmdFormat()
     my $suffix = "";
     my $command = $prefix.$null_command.$suffix;
     Debug( "Testing \"$command\"\n" );
-    $command .= " > /dev/null 2>&1"; 
     my $output = qx($command);
     my $status = $? >> 8;
     if ( !$status )
@@ -162,7 +161,7 @@ our $testedShellSyntax = 0;
 our ( $cmdPrefix, $cmdSuffix );
 
 # For running ZM daemons etc
-sub runCommand( $ )
+sub runCommand
 {
     if ( !$testedShellSyntax )
     {
@@ -196,30 +195,45 @@ sub runCommand( $ )
     return( $output );
 }
 
-sub getEventPath( $ )
+sub getEventPath
 {
     my $event = shift;
 
     my $event_path = "";
     if ( $Config{ZM_USE_DEEP_STORAGE} )
     {
-        $event_path = $Config{ZM_DIR_EVENTS}.'/'.$event->{MonitorId}.'/'.strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) );
+        $event_path = $Config{ZM_DIR_EVENTS}
+                      .'/'.$event->{MonitorId}
+                      .'/'.strftime( "%y/%m/%d/%H/%M/%S",
+                                     localtime($event->{Time})
+                                   )
+        ;
     }
     else
     {
-        $event_path = $Config{ZM_DIR_EVENTS}.'/'.$event->{MonitorId}.'/'.$event->{Id};
+        $event_path = $Config{ZM_DIR_EVENTS}
+                      .'/'.$event->{MonitorId}
+                      .'/'.$event->{Id}
+        ;
     }
-    $event_path = $Config{ZM_PATH_WEB}.'/'.$event_path if ( index($Config{ZM_DIR_EVENTS},'/') != 0 );
+
+    if ( index($Config{ZM_DIR_EVENTS},'/') != 0 ){
+        $event_path = $Config{ZM_PATH_WEB}
+                      .'/'.$event_path
+        ;
+    }
     return( $event_path );
 }
 
-sub createEventPath( $ )
+sub createEventPath
 {
     #
     # WARNING assumes running from events directory
     #
     my $event = shift;
-    my $eventRootPath = ($Config{ZM_DIR_EVENTS}=~m|/|)?$Config{ZM_DIR_EVENTS}:($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
+    my $eventRootPath = ($Config{ZM_DIR_EVENTS}=~m|/|)
+                       ? $Config{ZM_DIR_EVENTS}
+                       : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
     my $eventPath = $eventRootPath.'/'.$event->{MonitorId};
 
     if ( $Config{ZM_USE_DEEP_STORAGE} )
@@ -242,7 +256,8 @@ sub createEventPath( $ )
 
         # Create event id symlink
         my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-        symlink( $timePath, $idFile ) or Fatal( "Can't symlink $idFile -> $eventPath: $!" );
+        symlink( $timePath, $idFile )
+            or Fatal( "Can't symlink $idFile -> $eventPath: $!" );
 
         makePath( $timePath, $eventPath );
         $eventPath .= '/'.$timePath;
@@ -250,8 +265,9 @@ sub createEventPath( $ )
 
         # Create empty id tag file
         $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-        open( ID_FP, ">$idFile" ) or Fatal( "Can't open $idFile: $!" );
-        close( ID_FP );
+        open( my $ID_FP, ">", $idFile )
+            or Fatal( "Can't open $idFile: $!" );
+        close( $ID_FP );
         setFileOwner( $idFile );
     }
     else
@@ -260,8 +276,9 @@ sub createEventPath( $ )
         $eventPath .= '/'.$event->{Id};
 
         my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-        open( ID_FP, ">$idFile" ) or Fatal( "Can't open $idFile: $!" );
-        close( ID_FP );
+        open( my $ID_FP, ">", $idFile )
+            or Fatal( "Can't open $idFile: $!" );
+        close( $ID_FP );
         setFileOwner( $idFile );
     }
     return( $eventPath );
@@ -272,15 +289,20 @@ use Data::Dumper;
 our $_setFileOwner = undef;
 our ( $_ownerUid, $_ownerGid );
 
-sub _checkProcessOwner()
+sub _checkProcessOwner
 {
     if ( !defined($_setFileOwner) )
     {
         my ( $processOwner ) = getpwuid( $> );
         if ( $processOwner ne $Config{ZM_WEB_USER} )
         {
-            # Not running as web user, so should be root in whch case chown the temporary directory
-            ( my $ownerName, my $ownerPass, $_ownerUid, $_ownerGid ) = getpwnam( $Config{ZM_WEB_USER} ) or Fatal( "Can't get user details for web user '".$Config{ZM_WEB_USER}."': $!" );
+            # Not running as web user, so should be root in which case chown
+            # the temporary directory
+            ( my $ownerName, my $ownerPass, $_ownerUid, $_ownerGid )
+                = getpwnam( $Config{ZM_WEB_USER} )
+                or Fatal( "Can't get user details for web user '"
+                          .$Config{ZM_WEB_USER}."': $!"
+                   );
             $_setFileOwner = 1;
         }
         else
@@ -291,19 +313,22 @@ sub _checkProcessOwner()
     return( $_setFileOwner );
 }
 
-sub setFileOwner( $ )
+sub setFileOwner
 {
     my $file = shift;
 
     if ( _checkProcessOwner() )
     {
-        chown( $_ownerUid, $_ownerGid, $file ) or Fatal( "Can't change ownership of file '$file' to '".$Config{ZM_WEB_USER}.":".$Config{ZM_WEB_GROUP}."': $!" );
+        chown( $_ownerUid, $_ownerGid, $file )
+            or Fatal( "Can't change ownership of file '$file' to '"
+                      .$Config{ZM_WEB_USER}.":".$Config{ZM_WEB_GROUP}."': $!"
+                    );
     }
 }
 
 our $_hasImageInfo = undef;
 
-sub _checkForImageInfo()
+sub _checkForImageInfo
 {
     if ( !defined($_hasImageInfo) )
     {
@@ -317,7 +342,7 @@ sub _checkForImageInfo()
     return( $_hasImageInfo );
 }
 
-sub createEvent( $;$ )
+sub createEvent
 {
     my $event = shift;
 
@@ -335,9 +360,14 @@ sub createEvent( $;$ )
     elsif ( $event->{MonitorId} )
     {
         my $sql = "select * from Monitors where Id = ?";
-        my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute( $event->{MonitorId} ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
-        $event->{monitor} = $sth->fetchrow_hashref() or Fatal( "Unable to create event, can't load monitor with id '".$event->{MonitorId}."'" );
+        my $sth = $dbh->prepare_cached( $sql )
+            or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute( $event->{MonitorId} )
+            or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
+        $event->{monitor} = $sth->fetchrow_hashref()
+            or Fatal( "Unable to create event, can't load monitor with id '"
+                      .$event->{MonitorId}."'"
+                    );
         $sth->finish();
     }
     else
@@ -358,7 +388,9 @@ sub createEvent( $;$ )
                 my $imageInfo = Image::Info::image_info( $frame->{imagePath} );
                 if ( $imageInfo->{error} )
                 {
-                    Error( "Unable to extract image info from '".$frame->{imagePath}."': ".$imageInfo->{error} );
+                    Error( "Unable to extract image info from '"
+                           .$frame->{imagePath}."': ".$imageInfo->{error}
+                    );
                 }
                 else
                 {
@@ -394,18 +426,25 @@ sub createEvent( $;$ )
         push( @values, $event->{$field} );
     }
 
-    my $sql = "insert into Events (".join(',',@fields).") values (".join(',',@formats).")";
-    my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( @values ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
+    my $sql = "INSERT INTO Events (".join(',',@fields)
+             .") VALUES (".join(',',@formats).")"
+    ;
+    my $sth = $dbh->prepare_cached( $sql )
+        or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute( @values )
+        or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
     $event->{Id} = $dbh->{mysql_insertid};
     Info( "Created event ".$event->{Id} );
 
     if ( $event->{EndTime} )
     {
-        $event->{Name} = $event->{monitor}->{EventPrefix}.$event->{Id} if ( $event->{Name} eq 'New Event' );
+        $event->{Name} = $event->{monitor}->{EventPrefix}.$event->{Id}
+            if ( $event->{Name} eq 'New Event' );
         my $sql = "update Events set Name = ? where Id = ?";
-        my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute( $event->{Name}, $event->{Id} ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
+        my $sth = $dbh->prepare_cached( $sql )
+            or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute( $event->{Name}, $event->{Id} )
+            or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
     }
 
     my $eventPath = createEventPath( $event );
@@ -428,26 +467,46 @@ sub createEvent( $;$ )
             push( @values, $frame->{$field} );
         }
 
-        my $sql = "insert into Frames (".join(',',@fields).") values (".join(',',@formats).")";
-        my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute( @values ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
+        my $sql = "insert into Frames (".join(',',@fields)
+                 .") values (".join(',',@formats).")"
+        ;
+        my $sth = $dbh->prepare_cached( $sql )
+            or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
+        my $res = $sth->execute( @values )
+            or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
         #$frame->{FrameId} = $dbh->{mysql_insertid};
         if ( $frame->{imagePath} )
         {
-            $frame->{capturePath} = sprintf( "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}."d-capture.jpg", $eventPath, $frame->{FrameId} );
-            rename( $frame->{imagePath}, $frame->{capturePath} ) or Fatal( "Can't copy ".$frame->{imagePath}." to ".$frame->{capturePath}.": $!" );
+            $frame->{capturePath} = sprintf(
+                "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}
+                ."d-capture.jpg"
+                , $eventPath
+                , $frame->{FrameId}
+            );
+            rename( $frame->{imagePath}, $frame->{capturePath} )
+                or Fatal( "Can't copy ".$frame->{imagePath}
+                         ." to ".$frame->{capturePath}.": $!"
+                        );
             setFileOwner( $frame->{capturePath} );
             if ( 0 && $Config{ZM_CREATE_ANALYSIS_IMAGES} )
             {
-                $frame->{analysePath} = sprintf( "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}."d-analyse.jpg", $eventPath, $frame->{FrameId} );
-                link( $frame->{capturePath}, $frame->{analysePath} ) or Fatal( "Can't link ".$frame->{capturePath}." to ".$frame->{analysePath}.": $!" );
+                $frame->{analysePath} = sprintf(
+                    "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}
+                    ."d-analyse.jpg"
+                    , $eventPath
+                    , $frame->{FrameId}
+                );
+                link( $frame->{capturePath}, $frame->{analysePath} )
+                    or Fatal( "Can't link ".$frame->{capturePath}
+                             ." to ".$frame->{analysePath}.": $!"
+                            );
                 setFileOwner( $frame->{analysePath} );
             }
         }
     }
 }
 
-sub addEventImage( $$ )
+sub addEventImage
 {
     my $event = shift;
     my $frame = shift;
@@ -455,7 +514,7 @@ sub addEventImage( $$ )
     # TBD
 }
 
-sub updateEvent( $ )
+sub updateEvent
 {
     my $event = shift;
 
@@ -467,7 +526,8 @@ sub updateEvent( $ )
 
     my $dbh = zmDbConnect();
 
-    $event->{Name} = $event->{monitor}->{EventPrefix}.$event->{Id} if ( $event->{Name} eq 'New Event' );
+    $event->{Name} = $event->{monitor}->{EventPrefix}.$event->{Id}
+        if ( $event->{Name} eq 'New Event' );
 
     my %formats = (
         StartTime => 'from_unixtime(?)',
@@ -484,11 +544,13 @@ sub updateEvent( $ )
     my $sql = "update Events set ".join(',',@sets)." where Id = ?";
     push( @values, $event->{Id} );
 
-    my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( @values ) or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
+    my $sth = $dbh->prepare_cached( $sql )
+        or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute( @values )
+        or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
 }
 
-sub deleteEventFiles( $;$ )
+sub deleteEventFiles
 {
     #
     # WARNING assumes running from events directory
@@ -541,7 +603,7 @@ sub deleteEventFiles( $;$ )
     }
 }
 
-sub makePath( $;$ )
+sub makePath
 {
     my $path = shift;
     my $root = shift;
@@ -585,7 +647,7 @@ sub _testJSON
     $hasJSONAny = 1 if ( $result );
 }
 
-sub _getJSONType( $ )
+sub _getJSONType
 {
     my $value = shift;
     return( 'null' ) unless( defined($value) );
@@ -596,9 +658,9 @@ sub _getJSONType( $ )
     return( 'string' );
 }
 
-sub jsonEncode( $ );
+sub jsonEncode;
 
-sub jsonEncode( $ )
+sub jsonEncode
 {
     my $value = shift;
 
@@ -649,7 +711,7 @@ sub jsonEncode( $ )
     }
 }
 
-sub jsonDecode( $ )
+sub jsonDecode
 {
     my $value = shift;
 

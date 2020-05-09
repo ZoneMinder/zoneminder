@@ -22,6 +22,8 @@ App::uses('Controller', 'Controller');
 App::uses('CacheHelper', 'View/Helper');
 App::uses('HtmlHelper', 'View/Helper');
 App::uses('ErrorHandler', 'Error');
+App::uses('CakeEventManager', 'Event');
+App::uses('CakeEventListener', 'Event');
 
 /**
  * ViewPostsController class
@@ -40,7 +42,7 @@ class ViewPostsController extends Controller {
 /**
  * uses property
  *
- * @var mixed null
+ * @var mixed
  */
 	public $uses = null;
 
@@ -163,7 +165,7 @@ class TestView extends View {
  * paths method
  *
  * @param string $plugin Optional plugin name to scan for view files.
- * @param boolean $cached Set to true to force a refresh of view paths.
+ * @param bool $cached Set to true to force a refresh of view paths.
  * @return array paths
  */
 	public function paths($plugin = null, $cached = true) {
@@ -236,6 +238,61 @@ class TestObjectWithToString {
  * An object without the magic method __toString() for testing with view blocks.
  */
 class TestObjectWithoutToString {
+}
+
+/**
+ * Class TestViewEventListener
+ *
+ * An event listener to test cakePHP events
+ */
+class TestViewEventListener implements CakeEventListener {
+
+/**
+ * type of view before rendering has occurred
+ *
+ * @var string
+ */
+	public $beforeRenderViewType;
+
+/**
+ * type of view after rendering has occurred
+ *
+ * @var string
+ */
+	public $afterRenderViewType;
+
+/**
+ * implementedEvents method
+ *
+ * @return array
+ */
+	public function implementedEvents() {
+		return array(
+				'View.beforeRender' => 'beforeRender',
+				'View.afterRender' => 'afterRender'
+				);
+	}
+
+/**
+ * beforeRender method
+ *
+ * @param CakeEvent $event the event being sent
+ * @return void
+ */
+	public function beforeRender($event) {
+		$this->beforeRenderViewType = $event->subject()->getCurrentType();
+	}
+
+/**
+ * afterRender method
+ *
+ * @param CakeEvent $event the event being sent
+ * @return void
+ */
+	public function afterRender($event) {
+		$this->afterRenderViewType = $event->subject()->getCurrentType();
+	}
+
 }
 
 /**
@@ -336,6 +393,26 @@ class ViewTest extends CakeTestCase {
 		$expected = CAKE . 'Test' . DS . 'test_app' . DS . 'View' . DS . 'Layouts' . DS . 'Emails' . DS . 'html' . DS . 'default.ctp';
 		$result = $ThemeView->getLayoutFileName();
 		$this->assertEquals($expected, $result);
+	}
+
+/**
+ * Test that plugin files with absolute file paths are scoped
+ * to the plugin and do now allow any file path.
+ *
+ * @expectedException MissingViewException
+ * @return void
+ */
+	public function testPluginGetTemplateAbsoluteFail() {
+		$this->Controller->viewPath = 'Pages';
+		$this->Controller->action = 'display';
+		$this->Controller->params['pass'] = array('home');
+
+		$view = new TestThemeView($this->Controller);
+		$expected = CAKE . 'Test' . DS . 'test_app' . DS . 'Plugin' . DS . 'Company' . DS . 'TestPluginThree' . DS . 'View' . DS . 'Pages' . DS . 'index.ctp';
+		$result = $view->getViewFileName('Company/TestPluginThree./Pages/index');
+		$this->assertPathEquals($expected, $result);
+
+		$view->getViewFileName('Company/TestPluginThree./etc/passwd');
 	}
 
 /**
@@ -809,6 +886,30 @@ class ViewTest extends CakeTestCase {
 	}
 
 /**
+ * Test element events
+ *
+ * @return void
+ */
+	public function testViewEvent() {
+		$View = new View($this->PostsController);
+		$View->autoLayout = false;
+		$listener = new TestViewEventListener();
+
+		$View->getEventManager()->attach($listener);
+
+		$View->render('index');
+		$this->assertEquals(View::TYPE_VIEW, $listener->beforeRenderViewType);
+		$this->assertEquals(View::TYPE_VIEW, $listener->afterRenderViewType);
+
+		$this->assertEquals($View->getCurrentType(), View::TYPE_VIEW);
+		$View->element('test_element', array(), array('callbacks' => true));
+		$this->assertEquals($View->getCurrentType(), View::TYPE_VIEW);
+
+		$this->assertEquals(View::TYPE_ELEMENT, $listener->beforeRenderViewType);
+		$this->assertEquals(View::TYPE_ELEMENT, $listener->afterRenderViewType);
+	}
+
+/**
  * Test __get allowing access to helpers.
  *
  * @return void
@@ -1020,7 +1121,7 @@ class ViewTest extends CakeTestCase {
 		$this->PostsController->set('url', 'flash');
 		$this->PostsController->set('message', 'yo what up');
 		$this->PostsController->set('pause', 3);
-		$this->PostsController->set('page_title', 'yo what up');
+		$this->PostsController->set('pageTitle', 'yo what up');
 
 		$View = new TestView($this->PostsController);
 		$result = $View->render(false, 'flash');
@@ -1342,6 +1443,17 @@ class ViewTest extends CakeTestCase {
 		$this->View->assign('test', '');
 		$result = $this->View->fetch('test', 'This should not be returned');
 		$this->assertSame('', $result);
+	}
+
+/**
+ * Test checking a block's existance.
+ *
+ * @return void
+ */
+	public function testBlockExist() {
+		$this->assertFalse($this->View->exists('test'));
+		$this->View->assign('test', 'Block content');
+		$this->assertTrue($this->View->exists('test'));
 	}
 
 /**

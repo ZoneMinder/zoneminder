@@ -1,7 +1,7 @@
 # ==========================================================================
 #
 # Perl WS-Discovery implementation
-# Copyright (C) Jan M. Hochstein
+# Copyright (C) 2014  Jan M. Hochstein
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -61,16 +61,19 @@ sub _notify_response
 }
 
 sub send_multi() {
-  my ($self, $address, $port, $data) = @_;
+  my ($self, $address, $port, $utf8_string) = @_;
 
   my $destination = $address . ':' . $port;
   my $socket = IO::Socket::Multicast->new(PROTO => 'udp', 
       LocalPort=>$port, PeerAddr=>$destination, ReuseAddr=>1)
       
       or die 'Cannot open multicast socket to ' . ${address} . ':' . ${port};
+
+  my $bytes = $utf8_string;
+  utf8::encode($bytes);
       
   $socket->mcast_ttl(1);
-  $socket->send($data);
+  $socket->send($bytes);
 }
 
 sub receive_multi() {

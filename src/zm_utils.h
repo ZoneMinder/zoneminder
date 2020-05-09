@@ -46,12 +46,12 @@ int pairsplit(const char* string, const char delim, std::string& name, std::stri
 
 inline int max( int a, int b )
 {
-    return( a>=b?a:b );
+  return( a>=b?a:b );
 }
 
 inline int min( int a, int b )
 {
-    return( a<=b?a:b );
+  return( a<=b?a:b );
 }
 
 void ssedetect();

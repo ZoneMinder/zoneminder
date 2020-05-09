@@ -19,7 +19,7 @@
 #
 # ==========================================================================
 #
-# This module contains the common definitions and functions used by the rest 
+# This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
 package ZoneMinder::Base;
@@ -38,7 +38,7 @@ use constant ZM_VERSION => "@VERSION@";
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 
-# This allows declaration	use ZoneMinder ':all';
+# This allows declaration  use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = ( 'all' => [ qw(ZM_VERSION) ] );
@@ -62,7 +62,11 @@ ZoneMinder::Base - Base perl module for ZoneMinder
 
 =head1 DESCRIPTION
 
-This module is the base module for the rest of the ZoneMinder modules. It is included by each of the other modules but serves no purpose other than to propagate the perl module version amongst the other modules. You will never need to use this module directly but if you write new ZoneMinder modules they should include it.
+This module is the base module for the rest of the ZoneMinder modules. It
+is included by each of the other modules but serves no purpose other than
+to propagate the perl module version amongst the other modules. You will
+never need to use this module directly but if you write new ZoneMinder
+modules they should include it.
 
 =head2 EXPORT
 

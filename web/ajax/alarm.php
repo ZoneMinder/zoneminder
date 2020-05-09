@@ -1,5 +1,4 @@
 <?php
-
 define( "MSG_TIMEOUT", 2.0 );
 define( "MSG_DATA_SIZE", 4+256 );
 
@@ -35,8 +34,7 @@ if ( canEdit( 'Monitors' ) )
         }
     }
     ajaxResponse( exec( escapeshellcmd( $zmuCommand ) ) );
+} else {
+  ajaxError( 'Insufficient permissions' );
 }
-
-ajaxError( 'Unrecognised action or insufficient permissions' );
-
 ?>

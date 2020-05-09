@@ -31,12 +31,12 @@ $refresh = ZM_WEB_REFRESH_STATUS;
 $url = '?view='.$view;
 noCacheHeaders();
 
-xhtmlHeaders(__FILE__, $SLANG['Status'] );
+xhtmlHeaders(__FILE__, translate('Status') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['Status'] ?></h2>
+      <h2><?php echo translate('Status') ?></h2>
     </div>
     <div id="content">
       <table id="contentTable" class="major" cellspacing="0">
@@ -50,7 +50,7 @@ if ( $row = array_shift( $output ) )
     foreach ( preg_split( "/\s+/", $row ) as $col )
     {
 ?>
-            <th><?= $col ?></th>
+            <th><?php echo $col ?></th>
 <?php
     }
 ?>
@@ -69,7 +69,7 @@ foreach ( $output as $row )
     foreach ( preg_split( "/\s+/", $row ) as $col )
     {
 ?>
-            <td><?= $col ?></td>
+            <td><?php echo $col ?></td>
 <?php
     }
 ?>

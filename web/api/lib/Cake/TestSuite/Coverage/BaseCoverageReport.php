@@ -19,6 +19,9 @@
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
+App::uses('Inflector', 'Utility');
+App::uses('CakePlugin', 'Core');
+
 /**
  * Abstract class for common CoverageReport methods.
  * Provides several template methods for custom output.
@@ -102,7 +105,7 @@ abstract class BaseCoverageReport {
 		if ($this->appTest) {
 			$path .= APP_DIR . DS;
 		} elseif ($this->pluginTest) {
-			$path = App::pluginPath($this->pluginTest);
+			$path = CakePlugin::path($this->pluginTest);
 		} else {
 			$path = CAKE;
 		}
@@ -134,8 +137,8 @@ abstract class BaseCoverageReport {
  * 3.5 uses -1 for uncovered, and -2 for dead.
  * 3.6 uses array() for uncovered and null for dead.
  *
- * @param array $fileLines
- * @param array $coverageData
+ * @param array $fileLines The lines in the file.
+ * @param array $coverageData The raw coverage data.
  * @return array Array of covered, total lines.
  */
 	protected function _calculateCoveredLines($fileLines, $coverageData) {

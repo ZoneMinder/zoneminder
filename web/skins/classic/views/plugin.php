@@ -42,7 +42,7 @@ $plugin_path = dirname(ZM_PLUGINS_CONFIG_PATH)."/".$plugin;
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Plugin'] );
+xhtmlHeaders(__FILE__, translate('Plugin') );
 
 
 $pluginOptions=array(
@@ -103,25 +103,25 @@ function pLang($name)
 <body>
   <div id="page">
     <div id="header">
-      <h2><?= $SLANG['Monitor'] ?> <?= $monitor['Name'] ?> - <?= $SLANG['Zone'] ?> <?= $newZone['Name'] ?> - <?= $SLANG['Plugin'] ?> <?= $plugin ?></h2>
+      <h2><?php echo translate('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo translate('Plugin') ?> <?php echo $plugin ?></h2>
     </div>
     <div id="content">
-      <form name="pluginForm" id="pluginForm" method="post" action="<?= $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="<?= $view ?>"/>
+      <form name="pluginForm" id="pluginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="plugin"/>
-        <input type="hidden" name="mid" value="<?= $mid ?>"/>
-        <input type="hidden" name="zid" value="<?= $zid ?>"/>
-        <input type="hidden" name="pl" value="<?= $plugin ?>"/>
+        <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
+        <input type="hidden" name="zid" value="<?php echo $zid ?>"/>
+        <input type="hidden" name="pl" value="<?php echo $plugin ?>"/>
 
         <div id="settingsPanel">
           <table id="pluginSettings" cellspacing="0">
             <tbody>
-<?
+<?php
 foreach($pluginOptions as $name => $popt)
 {
    ?>
-            <tr><th scope="row"><?= pLang($name) ?></th>     
-   <?
+            <tr><th scope="row"><?php echo pLang($name) ?></th>     
+   <?php
    switch($popt['Type'])
    {
       case "checkbox":
@@ -131,21 +131,21 @@ foreach($pluginOptions as $name => $popt)
          $pchoices=explode(',',$popt['Choices']);
             ?>
                <td colspan="2">
-                  <select name="pluginOpt[<?= $popt['Name'] ?>]" id="pluginOpt[<?= $popt['Name'] ?>]">
-            <?
+                  <select name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]">
+            <?php
             foreach($pchoices as $pchoice)
             {
                $psel="";
                if($popt['Value']==$pchoice)
                   $psel="selected";
                ?>
-                     <option value="<?= $pchoice ?>" <?= $psel ?>><?= pLang($pchoice) ?></option>
-               <?
+                     <option value="<?php echo $pchoice ?>" <?php echo $psel ?>><?php echo pLang($pchoice) ?></option>
+               <?php
             }
             ?>
                </td>
                   </select>
-         <?
+         <?php
          break;
       case "text":
       default:
@@ -153,12 +153,12 @@ foreach($pluginOptions as $name => $popt)
    }
    ?>
             </tr>
-   <?
+   <?php
 }
 ?>
             </tbody>
           </table>
-          <input type="submit" id="submitBtn" name="submitBtn" value="<?= $SLANG['Save'] ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?= $SLANG['Cancel'] ?>" onclick="closeWindow()"/>
+          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

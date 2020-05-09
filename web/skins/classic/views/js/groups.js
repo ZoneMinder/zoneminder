@@ -33,7 +33,7 @@ function deleteGroup( element )
 
 function configureButtons( element )
 {
-    if ( canEditSystem )
+    if ( canEditGroups )
     {
         var form = element.form;
         if ( element.checked )

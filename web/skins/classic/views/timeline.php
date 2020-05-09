@@ -147,7 +147,7 @@ $eventsSql = "select E.Id,E.Name,E.StartTime,E.EndTime,E.Length,E.Frames,E.MaxSc
 
 if ( !empty($user['MonitorIds']) )
 {
-    $monFilterSql = " and M.Id in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
+    $monFilterSql = ' AND M.Id IN ('.$user['MonitorIds'].')';
 
     $rangeSql .= $monFilterSql;
     $eventsSql .= $monFilterSql;
@@ -671,8 +671,6 @@ else
 
 function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomClass=false )
 {
-    global $SLANG;
-
     ob_start();
     $labelCount = 0;
     $lastTick = 0;
@@ -705,19 +703,19 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
                 if ( $labelClass )
                 {
 ?>
-            <div class="<?= $labelClass ?>" style="left: <?= $x-25 ?>px;"><?= strftime( $scale['label'], $timeOffset ); ?></div>
+            <div class="<?php echo $labelClass ?>" style="left: <?php echo $x-25 ?>px;"><?php echo strftime( $scale['label'], $timeOffset ); ?></div>
 <?php
                 }
                 if ( $tickClass )
                 {
 ?>
-            <div class="<?= $tickClass ?>" style="left: <?= $x ?>px;"></div>
+            <div class="<?php echo $tickClass ?>" style="left: <?php echo $x ?>px;"></div>
 <?php
                 }
                 if ( $gridClass )
                 {
 ?>
-            <div class="<?= $gridClass ?>" style="left: <?= $x ?>px;"></div>
+            <div class="<?php echo $gridClass ?>" style="left: <?php echo $x ?>px;"></div>
 <?php
                 }
                 if ( $scale['name'] != 'second' && $zoomClass )
@@ -725,7 +723,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
                     $zoomMinTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
                     $zoomMaxTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-            <div class="<?= $zoomClass ?>" style="left: <?= $lastTick-1 ?>px; width: <?= $i-$lastTick ?>px;" title="<?= $SLANG['ZoomIn'] ?>" onclick="tlZoomBounds( '<?= $zoomMinTime ?>', '<?= $zoomMaxTime ?>' )"></div>
+            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
 <?php
                 }
                 $lastTick = $i;
@@ -738,7 +736,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
         $zoomMinTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
         $zoomMaxTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-            <div class="<?= $zoomClass ?>" style="left: <?= $lastTick-1 ?>px; width: <?= $i-$lastTick ?>px;" title="<?= $SLANG['ZoomIn'] ?>" onclick="tlZoomBounds( '<?= $zoomMinTime ?>', '<?= $zoomMaxTime ?>' )"></div>
+            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
 <?php
     }
 ?>
@@ -760,19 +758,19 @@ function drawYGrid( $chart, $scale, $labelClass, $tickClass, $gridClass )
         if ( $labelClass )
         {
 ?>
-            <div class="<?= $labelClass ?>" style="top: <?= $chart['graph']['height']-($y+8) ?>px;"><?= $label ?></div>
+            <div class="<?php echo $labelClass ?>" style="top: <?php echo $chart['graph']['height']-($y+8) ?>px;"><?php echo $label ?></div>
 <?php
         }
         if ( $tickClass )
         {
 ?>
-            <div class="<?= $tickClass ?>" style="top: <?= $chart['graph']['height']-($y+2) ?>px;"></div>
+            <div class="<?php echo $tickClass ?>" style="top: <?php echo $chart['graph']['height']-($y+2) ?>px;"></div>
 <?php
         }
         if ( $gridClass )
         {
 ?>
-            <div class="<?= $gridClass ?>" style="top: <?= $chart['graph']['height']-($y+2) ?>px;<?= $i <= 0?' border-top: solid 1px black;':'' ?>"></div>
+            <div class="<?php echo $gridClass ?>" style="top: <?php echo $chart['graph']['height']-($y+2) ?>px;<?php echo $i <= 0?' border-top: solid 1px black;':'' ?>"></div>
 <?php
         }
     }
@@ -799,37 +797,37 @@ function getSlotShowEventBehaviour( $slot )
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Timeline'] );
+xhtmlHeaders(__FILE__, translate('Timeline') );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <?= makePopupLink( '?view=events&amp;page=1'.htmlspecialchars($filterQuery), 'zmEvents', 'events', $SLANG['List'], canView( 'Events' ) ) ?>
-        <a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a>
+        <?php echo makePopupLink( '?view=events&amp;page=1'.htmlspecialchars($filterQuery), 'zmEvents', 'events', translate('List'), canView( 'Events' ) ) ?>
+        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?= $SLANG['Timeline'] ?></h2>
+      <h2><?php echo translate('Timeline') ?></h2>
     </div>
     <div id="content" class="chartSize">
       <div id="topPanel" class="graphWidth">
         <div id="imagePanel">
-          <div id="image" class="imageHeight"><img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?= $SLANG['ViewEvent'] ?>" title="<?= $SLANG['ViewEvent'] ?>"/></div>
+          <div id="image" class="imageHeight"><img id="imageSrc" class="imageWidth" src="graphics/transparent.gif" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/></div>
         </div>
         <div id="dataPanel">
           <div id="textPanel">
             <div id="instruction">
-              <p><?= $SLANG['TimelineTip1'] ?></p>
-              <p><?= $SLANG['TimelineTip2'] ?></p>
-              <p><?= $SLANG['TimelineTip3'] ?></p>
-              <p><?= $SLANG['TimelineTip4'] ?></p>
+              <p><?php echo translate('TimelineTip1') ?></p>
+              <p><?php echo translate('TimelineTip2') ?></p>
+              <p><?php echo translate('TimelineTip3') ?></p>
+              <p><?php echo translate('TimelineTip4') ?></p>
               </div>
             <div id="eventData">
             </div>
           </div>
           <div id="navPanel">
-            <input type="button" title="<?= $SLANG['PanLeft'] ?>" value="&lt;&lt;" onclick="tlPan( '<?= $minTime ?>', '<?= $range ?>' )"/>
-            <input type="button" title="<?= $SLANG['ZoomOut'] ?>" value="&ndash;" onclick="tlZoomRange( '<?= $midTime ?>', '<?= (int)($range*$majXScale['zoomout']) ?>' )"/>
-            <input type="button" title="<?= $SLANG['PanRight'] ?>" value="&gt;&gt;" onclick="tlPan( '<?= $maxTime ?>', '<?= $range ?>' )"/>
+            <input type="button" title="<?php echo translate('PanLeft') ?>" value="&lt;&lt;" onclick="tlPan( '<?php echo $minTime ?>', '<?php echo $range ?>' )"/>
+            <input type="button" title="<?php echo translate('ZoomOut') ?>" value="&ndash;" onclick="tlZoomRange( '<?php echo $midTime ?>', '<?php echo (int)($range*$majXScale['zoomout']) ?>' )"/>
+            <input type="button" title="<?php echo translate('PanRight') ?>" value="&gt;&gt;" onclick="tlPan( '<?php echo $maxTime ?>', '<?php echo $range ?>' )"/>
           </div>
         </div>
       </div>
@@ -870,7 +868,7 @@ if ( $mode == "overlay" )
                 );
             }
 ?>
-            <div class="activity monitorColour<?= $slot['event']['MonitorId'] ?>" style="left: <?= $index ?>px; height: <?= $slotHeight ?>px;" <?= join( " ", $behaviours ) ?>></div>
+            <div class="activity monitorColour<?php echo $slot['event']['MonitorId'] ?>" style="left: <?php echo $index ?>px; height: <?php echo $slotHeight ?>px;" <?php echo join( " ", $behaviours ) ?>></div>
 <?php
         }
     }
@@ -883,7 +881,7 @@ elseif ( $mode == "split" )
     foreach( array_keys($monFrameSlots) as $monitorId )
     {
 ?>
-          <div id="activity<?= $monitorId ?>">
+          <div id="activity<?php echo $monitorId ?>">
 <?php
         unset( $currFrameSlots );
         $currFrameSlots = &$monFrameSlots[$monitorId];
@@ -908,7 +906,7 @@ elseif ( $mode == "split" )
                 );
             }
     ?>
-            <div class="activity activity<?= $slot['event']['MonitorId'] ?>" style="left: <?= $index ?>px; height: <?= $slotHeight ?>px;" <?= join( " ", $behaviours ) ?>></div>
+            <div class="activity activity<?php echo $slot['event']['MonitorId'] ?>" style="left: <?php echo $index ?>px; height: <?php echo $slotHeight ?>px;" <?php echo join( " ", $behaviours ) ?>></div>
     <?php
         }
 ?>
@@ -919,7 +917,7 @@ elseif ( $mode == "split" )
 foreach( array_keys($monEventSlots) as $monitorId )
 {
 ?>
-          <div id="events<?= $monitorId ?>" class="events eventsSize eventsPos<?= $monitorId ?>">
+          <div id="events<?php echo $monitorId ?>" class="events eventsSize eventsPos<?php echo $monitorId ?>">
 <?php
     unset( $currEventSlots );
     $currEventSlots = &$monEventSlots[$monitorId];
@@ -944,7 +942,7 @@ foreach( array_keys($monEventSlots) as $monitorId )
                 );
             }
 ?>
-            <div class="event eventsHeight monitorColour<?= $monitorId ?>" style="left: <?= $i ?>px; width: <?= $slot['width'] ?>px;" <?= join( " ", $behaviours ) ?>></div>
+            <div class="event eventsHeight monitorColour<?php echo $monitorId ?>" style="left: <?php echo $i ?>px; width: <?php echo $slot['width'] ?>px;" <?php echo join( " ", $behaviours ) ?>></div>
 <?php
         }
     }
@@ -961,12 +959,12 @@ foreach( array_keys($monEventSlots) as $monitorId )
 foreach( array_keys($monEventSlots) as $monitorId )
 {
 ?>
-          <span class="keyEntry"><?= $monitors[$monitorId]['Name'] ?><img id="keyBox<?= $monitorId ?>" class="keyBox monitorColour<?= $monitorId ?>" src="graphics/transparent.gif" alt="<?= $monitors[$monitorId]['Name'] ?>"/></span>
+          <span class="keyEntry"><?php echo $monitors[$monitorId]['Name'] ?><img id="keyBox<?php echo $monitorId ?>" class="keyBox monitorColour<?php echo $monitorId ?>" src="graphics/transparent.gif" alt="<?php echo $monitors[$monitorId]['Name'] ?>"/></span>
 <?php
 }
 ?>
         </div>
-        <div id="range"><?= $title ?></div>
+        <div id="range"><?php echo $title ?></div>
       </div>
     </div>
   </div>

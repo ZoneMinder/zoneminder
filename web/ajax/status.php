@@ -8,7 +8,7 @@ $statusData = array(
         "elements" => array(
             "MonitorCount" => array( "sql" => "count(*)" ),
             "ActiveMonitorCount" => array( "sql" => "count(if(Function != 'None',1,NULL))" ),
-            "State" => array( "func" => "daemonCheck()?".$SLANG['Running'].":".$SLANG['Stopped'] ),
+            "State" => array( "func" => "daemonCheck()?".translate('Running').":".translate('Stopped') ),
             "Load" => array( "func" => "getLoad()" ),
             "Disk" => array( "func" => "getDiskPercent()" ),
         ),
@@ -44,6 +44,7 @@ $statusData = array(
             "LabelFormat" => true,
             "LabelX" => true,
             "LabelY" => true,
+            "LabelSize" => true,
             "ImageBufferCount" => true,
             "WarmupCount" => true,
             "PreEventCount" => true,

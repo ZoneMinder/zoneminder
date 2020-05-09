@@ -32,30 +32,38 @@
 #include <openssl/md5.h>
 #endif // HAVE_GCRYPT_H || HAVE_LIBCRYPTO
 
-class Authenticator
-{
-public:
-    typedef enum { AUTH_UNDEFINED, AUTH_BASIC, AUTH_DIGEST } RtspAuthMethod;
-    Authenticator(std::string &username, std::string password);
-    virtual ~Authenticator();
-    void reset();
+namespace zm { 
 
-    std::string realm() { return fRealm; }
-    std::string nonce() { return fNonce; }
-    std::string username() { return fUsername; }
-    
-    std::string computeDigestResponse( std::string &cmd, std::string &url );
-    void authHandleHeader( std::string headerData );
-    std::string getAuthHeader( std::string method, std::string path );
-    
+enum AuthMethod { AUTH_UNDEFINED = 0, AUTH_BASIC = 1, AUTH_DIGEST = 2 };
+class Authenticator {
+public:
+  Authenticator(std::string &username, std::string password);
+  virtual ~Authenticator();
+  void reset();
+
+  std::string realm() { return fRealm; }
+  std::string nonce() { return fNonce; }
+  std::string username() { return fUsername; }
+  AuthMethod  auth_method() const { return fAuthMethod; } 
+  
+  std::string computeDigestResponse( std::string &cmd, std::string &url );
+  void authHandleHeader( std::string headerData );
+  std::string getAuthHeader( std::string method, std::string path );
+  void checkAuthResponse(std::string &response);
+  
 private:
   std::string password() { return fPassword; }
-  RtspAuthMethod fAuthMethod;
+  AuthMethod fAuthMethod;
   std::string fRealm; 
   std::string fNonce;
+  std::string fCnonce;
+  std::string fQop;
   std::string fUsername; 
   std::string fPassword;
   std::string quote( std::string src );
+  int nc;
 };
+
+} // namespace zm
 
 #endif // ZM_RTSP_AUTH_H

@@ -1,0 +1,8 @@
+Document: zoneminder-doc
+Title: Zoneminder documentation
+Abstract: This document describes how to use Zoneminder.
+Section: System/Administration
+
+Format: HTML
+Index: /usr/share/doc/zoneminder-doc/html/index.html
+Files: /usr/share/doc/zoneminder-doc/html/*

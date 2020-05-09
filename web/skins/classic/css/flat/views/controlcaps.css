@@ -1,0 +1,3 @@
+#content table.major .colCanMove, #content table.major .colCanZoom, #content table.major .colCanFocus, #content table.major .colCanIris, #content table.major .colCanWhiteBal, #content table.major .colHasPresets {
+    text-align: center;
+}

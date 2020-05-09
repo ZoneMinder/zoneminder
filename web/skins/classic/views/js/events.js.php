@@ -1,13 +1,13 @@
-//var openFilterWindow = <?= $_REQUEST['filter']?'true':'false' ?>;
+//var openFilterWindow = <?php echo $_REQUEST['filter']?'true':'false' ?>;
 var openFilterWindow = false;
 
-var archivedEvents = <?= !empty($archived)?'true':'false' ?>;
-var unarchivedEvents = <?= !empty($unarchived)?'true':'false' ?>;
+var archivedEvents = <?php echo !empty($archived)?'true':'false' ?>;
+var unarchivedEvents = <?php echo !empty($unarchived)?'true':'false' ?>;
 
-var filterQuery = '<?= isset($filterQuery)?validJsStr($filterQuery):'' ?>';
-var sortQuery = '<?= isset($sortQuery)?validJsStr($sortQuery):'' ?>';
+var filterQuery = '<?php echo isset($filterQuery)?validJsStr($filterQuery):'' ?>';
+var sortQuery = '<?php echo isset($sortQuery)?validJsStr($sortQuery):'' ?>';
 
-var maxWidth = <?= $maxWidth?$maxWidth:0 ?>;
-var maxHeight = <?= $maxHeight?$maxHeight:0 ?>;
+var maxWidth = <?php echo $maxWidth?$maxWidth:0 ?>;
+var maxHeight = <?php echo $maxHeight?$maxHeight:0 ?>;
 
-var confirmDeleteEventsString = "<?= addslashes($SLANG['ConfirmDeleteEvents']) ?>";
+var confirmDeleteEventsString = "<?php echo addslashes(translate('ConfirmDeleteEvents')) ?>";

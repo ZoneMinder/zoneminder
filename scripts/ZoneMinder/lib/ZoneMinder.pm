@@ -36,34 +36,42 @@ use ZoneMinder::General qw(:all);
 use ZoneMinder::Database qw(:all);
 use ZoneMinder::Memory qw(:all);
 
-our @ISA = qw(Exporter ZoneMinder::Base ZoneMinder::Config ZoneMinder::Logger ZoneMinder::General ZoneMinder::Database ZoneMinder::Memory);
+our @ISA = qw(
+    Exporter
+    ZoneMinder::Base
+    ZoneMinder::Config
+    ZoneMinder::Logger
+    ZoneMinder::General
+    ZoneMinder::Database
+    ZoneMinder::Memory
+);
 
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 
-# This allows declaration	use ZoneMinder ':all';
+# This allows declaration   use ZoneMinder ':all';
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
-	'base' => [ 
-		@ZoneMinder::Base::EXPORT_OK
-	],
-	'config' => [ 
-		@ZoneMinder::Config::EXPORT_OK
-	],
-	'debug' => [ 
-		@ZoneMinder::Logger::EXPORT_OK
-	],
-	'general' => [ 
-		@ZoneMinder::General::EXPORT_OK
-	],
-	'database' => [ 
-		@ZoneMinder::Database::EXPORT_OK
-	],
-	'memory' => [ 
-		@ZoneMinder::Memory::EXPORT_OK
-	],
+    'base' => [ 
+        @ZoneMinder::Base::EXPORT_OK
+    ],
+    'config' => [ 
+        @ZoneMinder::Config::EXPORT_OK
+    ],
+    'debug' => [ 
+        @ZoneMinder::Logger::EXPORT_OK
+    ],
+    'general' => [ 
+        @ZoneMinder::General::EXPORT_OK
+    ],
+    'database' => [ 
+        @ZoneMinder::Database::EXPORT_OK
+    ],
+    'memory' => [ 
+        @ZoneMinder::Memory::EXPORT_OK
+    ],
 );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 

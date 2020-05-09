@@ -20,22 +20,22 @@
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, $SLANG['Error'] );
+xhtmlHeaders(__FILE__, translate('Error') );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?= $SLANG['Error'] ?></h1>
+      <h1>ZoneMinder <?php echo translate('Error') ?></h1>
     </div>
     <div id="content">
       <p>
-        <?= $SLANG['YouNoPerms'] ?>
+        <?php echo translate('YouNoPerms') ?>
       </p>
       <p>
-        <?= $SLANG['ContactAdmin'] ?>
+        <?php echo translate('ContactAdmin') ?>
       </p>
       <p>
-        <a href="#" onclick="closeWindow();"><?= $SLANG['Close'] ?></a>
+        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
       </p>
     </div>
   </div>

@@ -199,8 +199,8 @@ class DbConfigTask extends AppShell {
 /**
  * Output verification message and bake if it looks good
  *
- * @param array $config
- * @return boolean True if user says it looks good, false otherwise
+ * @param array $config The config data.
+ * @return bool True if user says it looks good, false otherwise
  */
 	protected function _verify($config) {
 		$config += $this->_defaultConfig;
@@ -247,7 +247,7 @@ class DbConfigTask extends AppShell {
  * Assembles and writes database.php
  *
  * @param array $configs Configuration settings to use
- * @return boolean Success
+ * @return bool Success
  */
 	public function bake($configs) {
 		if (!is_dir($this->path)) {
@@ -296,7 +296,7 @@ class DbConfigTask extends AppShell {
 
 		foreach ($oldConfigs as $key => $oldConfig) {
 			foreach ($configs as $config) {
-				if ($oldConfig['name'] == $config['name']) {
+				if ($oldConfig['name'] === $config['name']) {
 					unset($oldConfigs[$key]);
 				}
 			}

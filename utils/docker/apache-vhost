@@ -6,8 +6,7 @@
         <Directory "/usr/lib/cgi-bin">
                 AllowOverride None
                 Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
-                Order allow,deny
-                Allow from all
+		require all granted
         </Directory>
 
 </VirtualHost>

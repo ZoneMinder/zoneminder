@@ -1,5 +1,6 @@
 configure
 config.h.in
+config.h.in~
 autom4te.cache
 aclocal.m4
 depcomp
@@ -12,7 +13,7 @@ scripts/ZoneMinder/blib
 Makefile.in
 Makefile
 docs/_build
-
+compile
 config.guess
 config.h
 config.log
@@ -24,6 +25,12 @@ misc/com.zoneminder.systemctl.policy
 misc/com.zoneminder.systemctl.rules
 misc/logrotate.conf
 misc/syslog.conf
+onvif/modules/MYMETA.json
+onvif/modules/MYMETA.yml
+onvif/proxy/MYMETA.json
+onvif/proxy/MYMETA.yml
+scripts/ZoneMinder/Makefile.old
+scripts/ZoneMinder/MYMETA.json
 scripts/ZoneMinder/MYMETA.yml
 scripts/ZoneMinder/lib/ZoneMinder/Base.pm
 scripts/ZoneMinder/lib/ZoneMinder/Config.pm
@@ -56,7 +63,6 @@ src/zma
 src/zmc
 src/zmf
 src/zms
-src/zmstreamer
 src/zmu
 web/includes/config.php
 zm.conf

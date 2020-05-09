@@ -25,7 +25,7 @@ $rates = array(
     "1000" => "10x",
     "400" => "4x",
     "200" => "2x",
-    "100" => $SLANG['Real'],
+    "100" => translate('Real'),
     "50" => "1/2x",
     "25" => "1/4x",
 );
@@ -35,17 +35,18 @@ $scales = array(
     "300" => "3x",
     "200" => "2x",
     "150" => "1.5x",
-    "100" => $SLANG['Actual'],
+    "100" => translate('Actual'),
     "75" => "3/4x",
     "50" => "1/2x",
     "33" => "1/3x",
     "25" => "1/4x",
+    "12.5" => "1/8x",
 );
 
 $bwArray = array(
-    "high" => $SLANG['High'],
-    "medium" => $SLANG['Medium'],
-    "low" => $SLANG['Low']
+    "high" => translate('High'),
+    "medium" => translate('Medium'),
+    "low" => translate('Low')
 );
 
 switch ( $_COOKIE['zmBandwidth'] )

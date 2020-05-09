@@ -44,40 +44,40 @@ use ZoneMinder::Logger qw(:all);
 
 sub new
 {
-	my $class = shift;
-	my $path = shift;
-	my $self = ZoneMinder::Trigger::Connection->new( @_ );
-	bless( $self, $class );
-	return $self;
+    my $class = shift;
+    my $path = shift;
+    my $self = ZoneMinder::Trigger::Connection->new( @_ );
+    bless( $self, $class );
+    return $self;
 }
 
 sub getMessages
 {
-	my $self = shift;
-	my $buffer = $self->{channel}->read();
+    my $self = shift;
+    my $buffer = $self->{channel}->read();
 
-	return( undef ) if ( !defined($buffer) );
+    return( undef ) if ( !defined($buffer) );
 
-	Debug( "Handling buffer '$buffer'\n" );
-	my @messages = grep { s/-/|/g; 1; } split( /\r?\n/, $buffer );
-	return( \@messages );
+    Debug( "Handling buffer '$buffer'\n" );
+    my @messages = grep { s/-/|/g; 1; } split( /\r?\n/, $buffer );
+    return( \@messages );
 }
 
 sub putMessages
 {
-	my $self = shift;
-	my $messages = shift;
+    my $self = shift;
+    my $messages = shift;
 
-	if ( @$messages )
-	{
-		my $buffer = join( "\n", grep{ s/\|/-/; 1; } @$messages );
-		$buffer .= "\n";
-		if ( !$self->{channel}->write( $buffer ) )
-		{
-			Error( "Unable to write buffer '".$buffer." to connection ".$self->{name}." (".$self->fileno().")\n" );
-		}
-	}
-	return( undef );
+    if ( @$messages )
+    {
+        my $buffer = join( "\n", grep{ s/\|/-/; 1; } @$messages );
+        $buffer .= "\n";
+        if ( !$self->{channel}->write( $buffer ) )
+        {
+            Error( "Unable to write buffer '".$buffer." to connection ".$self->{name}." (".$self->fileno().")\n" );
+        }
+    }
+    return( undef );
 }
 
 1;

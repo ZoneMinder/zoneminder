@@ -1,0 +1,56 @@
+#logSummary {
+    margin: 4px auto 0;
+    border-collapse: collapse;
+}
+
+#logSummary tr {
+    margin: 0;
+    padding: 0;
+}
+
+#logSummary td {
+    border: 1px solid #8f8fc2;
+    padding: 0 6px;
+    text-align: center;
+    font-size: 10px;
+    line-height: 15px;
+}
+
+tr.log-fat td {
+    color: #222222;
+    background-color:#ffcccc;
+    font-weight: bold;
+}
+
+tr.log-err td {
+    color: #222222;
+    background-color:#ffcccc;
+}
+
+tr.log-war td {
+    color: #222222;
+    background-color: #ffe4b5;
+}
+
+tr.log-dbg td {
+    color: #666666;
+    font-style: italic;
+}
+
+#exportLog label {
+    vertical-align: middle;
+}
+
+#exportLog input[type=radio] {
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+#exportError {
+    display: none;
+    color: #dc143c;
+    margin-bottom: 8px;
+}
+
+#exportErrorText {
+}

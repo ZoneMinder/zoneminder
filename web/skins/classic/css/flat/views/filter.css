@@ -1,0 +1,25 @@
+#filterSelector {
+}
+
+table.filterTable {
+    width: 100%;
+}
+
+#fieldsTable td {
+    height: 16px;
+}
+
+#fieldsTable input[type=button] {
+    width: 1.6em;
+    margin-left: 2px;
+    text-align: center;
+}
+
+#sortTable input[type=text] {
+    margin-right: 4px;
+}
+
+#actionsTable input[type=text] {
+    margin-left: 4px;
+}
+

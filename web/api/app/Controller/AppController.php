@@ -18,8 +18,8 @@
  * @since         CakePHP(tm) v 0.2.9
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
-
 App::uses('Controller', 'Controller');
+App::uses('CrudControllerTrait', 'Crud.Lib');
 
 /**
  * Application Controller
@@ -31,4 +31,90 @@ App::uses('Controller', 'Controller');
  * @link		http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  */
 class AppController extends Controller {
+	use CrudControllerTrait;
+
+	public $components = [
+		'Session', //  We are going to use SessionHelper to check PHP session vars
+		'RequestHandler',
+		'Crud.Crud' => [
+			'actions' => [
+				'index' => 'Crud.Index',
+				'add'   => 'Crud.Add',
+				'edit'  => 'Crud.Edit',
+				'view'  => 'Crud.View',
+				'keyvalue' => 'Crud.List',
+				'category' => 'Crud.Category'
+			],
+			'listeners' => ['Api', 'ApiTransformation']
+		]
+	];
+
+	// Global beforeFilter function
+	//Zoneminder sets the username session variable
+	// to the logged in user. If this variable is set
+	// then you are logged in
+	// its pretty simple to extend this to also check
+	// for role and deny API access in future 
+	// Also checking to do this only if ZM_OPT_USE_AUTH is on
+	public function beforeFilter() {
+		$this->loadModel('Config');
+		
+        	$options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_API'));
+	 	$config = $this->Config->find('first', $options);
+        	$zmOptApi = $config['Config']['Value'];
+
+		if ($zmOptApi !='1')
+		{
+        		 throw new UnauthorizedException(__('API Disabled'));
+        	 	return; 
+		}
+		
+        	$options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
+	 	$config = $this->Config->find('first', $options);
+        	$zmOptAuth = $config['Config']['Value'];
+        	if (!$this->Session->Read('user.Username') && ($zmOptAuth=='1'))
+        	{       
+        		 throw new UnauthorizedException(__('Not Authenticated'));
+        	 	return; 
+        	}     
+		else
+		{
+			$this->loadModel('User');
+			$loggedinUser = $this->Session->Read('user.Username');
+			$isEnabled = $this->Session->Read('user.Enabled');
+			// this will likely never happen as if its
+			// not enabled, login will fail and Not Auth will be returned
+			// however, keeping this here for now
+			if ($isEnabled != "1" && $zmOptAuth=="1")
+			{
+				throw new UnauthorizedException(__('User is not enabled'));
+				return;
+			}
+
+			if ($zmOptAuth=='1')
+			{
+				$options = array ('conditions' => array ('User.Username' => $loggedinUser));
+				$userMonitors = $this->User->find('first', $options);
+				$this->Session->Write('allowedMonitors',$userMonitors['User']['MonitorIds']);
+				$this->Session->Write('streamPermission',$userMonitors['User']['Stream']);
+				$this->Session->Write('eventPermission',$userMonitors['User']['Events']);
+				$this->Session->Write('controlPermission',$userMonitors['User']['Control']);
+				$this->Session->Write('systemPermission',$userMonitors['User']['System']);
+				$this->Session->Write('monitorPermission',$userMonitors['User']['Monitors']);
+			}
+			else // if auth is not on, you can do everything
+			{
+				//$userMonitors = $this->User->find('first', $options);
+				$this->Session->Write('allowedMonitors','');
+				$this->Session->Write('streamPermission','View');
+				$this->Session->Write('eventPermission','Edit');
+				$this->Session->Write('controlPermission','Edit');
+				$this->Session->Write('systemPermission','Edit');
+				$this->Session->Write('monitorPermission','Edit');
+			}
+		}
+		
+		
+    }
+
 }

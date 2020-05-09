@@ -1,7 +1,5 @@
 <?php
 /**
- *
- *
  * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
  * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
  *
@@ -28,7 +26,7 @@ class CakeEvent {
 /**
  * Name of the event
  *
- * @var string $name
+ * @var string
  */
 	protected $_name = null;
 
@@ -42,21 +40,21 @@ class CakeEvent {
 /**
  * Custom data for the method that receives the event
  *
- * @var mixed $data
+ * @var mixed
  */
 	public $data = null;
 
 /**
  * Property used to retain the result value of the event listeners
  *
- * @var mixed $result
+ * @var mixed
  */
 	public $result = null;
 
 /**
  * Flags an event as stopped or not, default is false
  *
- * @var boolean
+ * @var bool
  */
 	protected $_stopped = false;
 
@@ -69,11 +67,10 @@ class CakeEvent {
  *
  * ## Examples of usage:
  *
- * {{{
+ * ```
  *	$event = new CakeEvent('Order.afterBuy', $this, array('buyer' => $userData));
  *	$event = new CakeEvent('User.afterRegister', $UserModel);
- * }}}
- *
+ * ```
  */
 	public function __construct($name, $subject = null, $data = null) {
 		$this->_name = $name;
@@ -84,7 +81,7 @@ class CakeEvent {
 /**
  * Dynamically returns the name and subject if accessed directly
  *
- * @param string $attribute
+ * @param string $attribute Attribute name.
  * @return mixed
  */
 	public function __get($attribute) {
@@ -105,7 +102,7 @@ class CakeEvent {
 /**
  * Returns the subject of this event
  *
- * @return string
+ * @return object
  */
 	public function subject() {
 		return $this->_subject;
@@ -123,7 +120,7 @@ class CakeEvent {
 /**
  * Check if the event is stopped
  *
- * @return boolean True if the event is stopped
+ * @return bool True if the event is stopped
  */
 	public function isStopped() {
 		return $this->_stopped;

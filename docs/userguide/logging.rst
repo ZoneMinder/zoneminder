@@ -19,24 +19,33 @@ The syslog service uses the concept of priorities and facilities where the forme
 
 So armed with the knowledge of the priority and facility of a message, the syslog.conf file can be amended to handle messages however you like.
 
-So to ensure that all ZoneMinder messages go to a specific log file you can add the following line near the top of your syslog.conf file::
+So to ensure that all ZoneMinder messages go to a specific log file you can add the following line near the top of your syslog.conf file:
 
-  <pre># Save ZoneMinder messages to zm.log
-  local1.*                        /var/log/zm/zm.log</pre>
+::
 
-which will ensure that all messages produced with the local1 facility are routed to fhe /var/log/zm/zm.log file. However this does not necessarily prevent them also going into the standard system log. To do this you will need to modify the line that determines which messages are logged to this file. This may look something like::
+  # Save ZoneMinder messages to zm.log
+  local1.*                        /var/log/zm/zm.log
 
-  <pre># Log anything (except mail) of level info or higher.
+which will ensure that all messages produced with the local1 facility are routed to fhe /var/log/zm/zm.log file. However this does not necessarily prevent them also going into the standard system log. To do this you will need to modify the line that determines which messages are logged to this file. This may look something like:
+
+::
+
+  # Log anything (except mail) of level info or higher.
   # Don't log private authentication messages!
-  *.info;mail.none;news.none;authpriv.none;cron.none      /var/log/messages</pre>
+  *.info;mail.none;news.none;authpriv.none;cron.none      /var/log/messages
 
-by default. To remove ZoneMinder messages altogether from this file you can modify this line to look like::
+by default. To remove ZoneMinder messages altogether from this file you can modify this line to look like:
 
-  <pre>*.info;local1.!*;mail.none;news.none;authpriv.none;cron.none     /var/log/messages</pre>
+::
 
-which instructs syslog to ignore any messages from the local1 facility. If however you still want warnings and errors to occur in the system log file, you could change it to::
+  *.info;local1.!*;mail.none;news.none;authpriv.none;cron.none     /var/log/messages
 
-  <pre>*.info;local1.!*;local1.warning;mail.none;news.none;authpriv.none;cron.none     /var/log/messages</pre>
+which instructs syslog to ignore any messages from the local1 facility. If however you still want warnings and errors to occur in the system log file, you could change it to:
+
+::
+
+
+  *.info;local1.!*;local1.warning;mail.none;news.none;authpriv.none;cron.none     /var/log/messages
 
 which follows the ignore instruction with a further one to indicate that any messages with a facility of local1 and a priority of warning or above should still go into the file.
 
@@ -50,15 +59,17 @@ Once you have debug being logged you can modify the level by sending USR1 and US
 
 If you wish to run a binary directly from the command line to test specific functionality or scenarios, you can set the ZM_DBG_LEVEL and ZM_DBG_LOG environment variables to set the level and log file of the debug you wish to see, and the ZM_DBG_PRINT environment variable to 1 to output the debug directly to your terminal.
 
-All ZoneMinder logs can now be rotated by logrotate. A sample logrotate config file is shown below.::
+All ZoneMinder logs can now be rotated by logrotate. A sample logrotate config file is shown below:
 
-  <pre>/var/log/zm/*.log {
+::
+
+  /var/log/zm/*.log {
       missingok
       notifempty
       sharedscripts
       postrotate
           /usr/local/bin/zmpkg.pl logrot 2> /dev/null > /dev/null || true
       endscript
-  }</pre>
+  }
 
 

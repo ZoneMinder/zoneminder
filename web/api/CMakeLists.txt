@@ -10,3 +10,6 @@ configure_file(app/Config/database.php.default "${CMAKE_CURRENT_BINARY_DIR}/app/
 
 # Configure core.php
 configure_file(app/Config/core.php.default "${CMAKE_CURRENT_BINARY_DIR}/app/Config/core.php" @ONLY)
+
+# Configure bootstrap.php
+configure_file(app/Config/bootstrap.php.in "${CMAKE_CURRENT_BINARY_DIR}/app/Config/bootstrap.php" @ONLY)

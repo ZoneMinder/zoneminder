@@ -2,4 +2,5 @@
     RewriteEngine on
     RewriteRule    ^$    webroot/    [L]
     RewriteRule    (.*) webroot/$1    [L]
+    RewriteBase /zm/api
 </IfModule>

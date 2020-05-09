@@ -3,7 +3,15 @@ Defining Monitors
 
 To use ZoneMinder properly you need to define at least one Monitor. Essentially, a monitor is associated with a camera and can continually check it for motion detection and such like.
 
-There are a small number of camera setups that ZoneMinder knows about and which can be accessed by clicking on the ‘Presets’ link. Selecting one of the presets will fill in the monitor configuration with appropriate values but you will still need to enter others and confirm the preset settings.
+You can access the monitor window by clicking on the "Add New Monitor" button, or by clicking on the "Source" column of a predefined monitor.
+
+.. image:: images/definemonitor-monitor.png
+   :width: 600px
+
+There are a small number of camera setups that ZoneMinder knows about and which can be accessed by clicking on the ‘Presets’ link. Selecting one of the presets will fill in the monitor configuration with appropriate values but you will still need to enter others and confirm the preset settings. Here is an example of the presets window:
+
+.. image:: images/definemonitor-preset.png
+   :width: 600px
 
 The options are divided into a set of tabs to make it easier to edit. You do not have to ‘save’ to change to different tab so you can make all the changes you require and then click ‘Save’ at the end. The individual options are explained in a little more detail below,
 
@@ -13,18 +21,21 @@ Monitor Tab
 Name 
     The name for your monitor. This should be made up of alphanumeric characters (a-z,A-Z,0-9) and hyphen (-) and underscore(_) only. Whitespace is not allowed. 
 
+Server
+    Multi-Server implementation allows the ability to define multiple ZoneMinder servers sharing a single database. When servers are configured this setting allows you nominate the server for each monitor.
+
 Source Type 
     This determines whether the camera is a local one attached to a physical video or USB port on your machine, a remote network camera or an image source that is represented by a file (for instance periodically downloaded from a alternate location). Choosing one or the other affects which set of options are shown in the Source tab. 
 
 Function 
     This essentially defines what the monitor is doing. This can be one of the following; 
 
-        None – The monitor is currently disabled. No streams can be viewed or events generated. Nothing is recorded.
-        Monitor – The monitor is only available for live streaming. No image analysis is done so no alarms or events will be generated, and nothing will be recorded.
-        Modect – or MOtion DEteCTtion. All captured images will be analysed and events generated with recorded video where motion is detected.
-        Record – The monitor will be continuously recorded. Events of a fixed-length will be generated regardless of motion, analogous to a conventional time-lapse video recorder. No motion detection takes place in this mode.
-        Mocord – The monitor will be continuously recorded, with any motion being highlighted within those events.
-        Nodect – or No DEteCTtion. This is a special mode designed to be used with external triggers. In Nodect no motion detection takes place but events are recorded if external triggers require it. 
+        * None – The monitor is currently disabled. No streams can be viewed or events generated. Nothing is recorded.
+        * Monitor – The monitor is only available for live streaming. No image analysis is done so no alarms or events will be generated, and nothing will be recorded.
+        * Modect – or MOtion DEteCTtion. All captured images will be analysed and events generated with recorded video where motion is detected.
+        * Record – The monitor will be continuously recorded. Events of a fixed-length will be generated regardless of motion, analogous to a conventional time-lapse video recorder. No motion detection takes place in this mode.
+        * Mocord – The monitor will be continuously recorded, with any motion being highlighted within those events.
+        * Nodect – or No DEteCTtion. This is a special mode designed to be used with external triggers. In Nodect no motion detection takes place but events are recorded if external triggers require it. 
 
     Generally speaking it is best to choose ‘Monitor’ as an initial setting here. 
 
@@ -169,12 +180,12 @@ Note: This tab and its options will only appear if you have indicated that your 
 X10 Activation String 
     The contents of this field determine when a monitor starts and/or stops being active when running in ‘Triggered; mode and with X10 triggers. The format of this string is as follows, 
 
-        n : If you simply enter a number then the monitor will be activated when an X10 ON signal for that unit code is detected and will be deactivated when an OFF signal is detected.
-        !n : This inverts the previous mode, e.g. !5 means that the monitor is activated when an OFF signal for unit code 5 is detected and deactivated by an ON.
-        n+ : Entering a unit code followed by + means that the monitor is activated on receipt of a ON signal for that unit code but will ignore the OFF signal and as such will not be deactivated by this instruction. If you prepend a '!' as per the previous definition it similarly inverts the mode, i.e. the ON signal deactivates the monitor.
-        n+<seconds> : As per the previous mode except that the monitor will deactivate itself after the given number of seconds.
-        n- : Entering a unit code followed by - means that the monitor is deactivated on receipt of a OFF signal for that unit code but will ignore the ON signal and as such will not be activated by this instruction. If you prepend a '!' as per the previous definition it similarly inverts the mode, i.e. the OFF signal activates the monitor.
-        n-<seconds> : As per the previous mode except that the monitor will activate itself after the given number of seconds. 
+        * n : If you simply enter a number then the monitor will be activated when an X10 ON signal for that unit code is detected and will be deactivated when an OFF signal is detected.
+        * !n : This inverts the previous mode, e.g. !5 means that the monitor is activated when an OFF signal for unit code 5 is detected and deactivated by an ON.
+        * n+ : Entering a unit code followed by + means that the monitor is activated on receipt of a ON signal for that unit code but will ignore the OFF signal and as such will not be deactivated by this instruction. If you prepend a '!' as per the previous definition it similarly inverts the mode, i.e. the ON signal deactivates the monitor.
+        * n+<seconds> : As per the previous mode except that the monitor will deactivate itself after the given number of seconds.
+        * n- : Entering a unit code followed by - means that the monitor is deactivated on receipt of a OFF signal for that unit code but will ignore the ON signal and as such will not be activated by this instruction. If you prepend a '!' as per the previous definition it similarly inverts the mode, i.e. the OFF signal activates the monitor.
+        * n-<seconds> : As per the previous mode except that the monitor will activate itself after the given number of seconds. 
 
     You can also combine several of these expressions to by separating them with a comma to create multiple circumstances of activation. However for now leave this blank. 
 

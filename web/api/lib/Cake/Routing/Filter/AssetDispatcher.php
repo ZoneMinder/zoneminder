@@ -28,7 +28,7 @@ class AssetDispatcher extends DispatcherFilter {
  * Default priority for all methods in this filter
  * This filter should run before the request gets parsed by router
  *
- * @var integer
+ * @var int
  */
 	public $priority = 9;
 
@@ -42,7 +42,7 @@ class AssetDispatcher extends DispatcherFilter {
 	public function beforeDispatch(CakeEvent $event) {
 		$url = urldecode($event->data['request']->url);
 		if (strpos($url, '..') !== false || strpos($url, '.') === false) {
-			return;
+			return null;
 		}
 
 		if ($result = $this->_filterAsset($event)) {
@@ -51,18 +51,11 @@ class AssetDispatcher extends DispatcherFilter {
 		}
 
 		$assetFile = $this->_getAssetFile($url);
-		if ($assetFile === null) {
+		if ($assetFile === null || !file_exists($assetFile)) {
 			return null;
 		}
-
 		$response = $event->data['response'];
 		$event->stopPropagation();
-
-		if (!file_exists($assetFile)) {
-			$response->statusCode(404);
-			$response->send();
-			return $response;
-		}
 
 		$response->modified(filemtime($assetFile));
 		if ($response->checkNotModified($event->data['request'])) {
@@ -71,6 +64,7 @@ class AssetDispatcher extends DispatcherFilter {
 
 		$pathSegments = explode('.', $url);
 		$ext = array_pop($pathSegments);
+
 		$this->_deliverAsset($response, $assetFile, $ext);
 		return $response;
 	}
@@ -114,7 +108,7 @@ class AssetDispatcher extends DispatcherFilter {
 /**
  * Builds asset file path based off url
  *
- * @param string $url
+ * @param string $url URL
  * @return string Absolute path for asset file
  */
 	protected function _getAssetFile($url) {
@@ -147,7 +141,7 @@ class AssetDispatcher extends DispatcherFilter {
 	protected function _deliverAsset(CakeResponse $response, $assetFile, $ext) {
 		ob_start();
 		$compressionEnabled = Configure::read('Asset.compress') && $response->compress();
-		if ($response->type($ext) == $ext) {
+		if ($response->type($ext) === $ext) {
 			$contentType = 'application/octet-stream';
 			$agent = env('HTTP_USER_AGENT');
 			if (preg_match('%Opera(/| )([0-9].[0-9]{1,2})%', $agent) || preg_match('/MSIE ([0-9].[0-9]{1,2})/', $agent)) {
@@ -155,12 +149,11 @@ class AssetDispatcher extends DispatcherFilter {
 			}
 			$response->type($contentType);
 		}
-		if (!$compressionEnabled) {
-			$response->header('Content-Length', filesize($assetFile));
-		}
+		$response->length(false);
 		$response->cache(filemtime($assetFile));
 		$response->send();
 		ob_clean();
+
 		if ($ext === 'css' || $ext === 'js') {
 			include $assetFile;
 		} else {

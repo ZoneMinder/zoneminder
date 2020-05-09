@@ -1,0 +1,8 @@
+@ZM_LOGDIR@/*.log {
+    missingok
+    notifempty
+    sharedscripts
+    postrotate
+        @BINDIR@/zmpkg.pl logrot 2> /dev/null > /dev/null || :
+    endscript
+}

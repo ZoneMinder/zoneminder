@@ -411,21 +411,6 @@ sub daemon_main {
 sub start_daemon {
   my ($localip, $localport, $zm) = @_;
 
-=comment
-    ### deserializer
-    my $event_svc = $client->get_endpoint('events');
-    my $deserializer = $event_svc->get_deserializer();
-
-    if(! $deserializer) {
-      $deserializer = SOAP::WSDL::Factory::Deserializer->get_deserializer({
-        soap_version => $event_svc->get_soap_version(),
-        %{ $event_svc->get_deserializer_args() },
-      });
-    }
-    # set class resolver if serializer supports it
-    $deserializer->set_class_resolver( $event_svc->get_class_resolver() )
-        if ( $deserializer->can('set_class_resolver') );
-=cut
   ### daemon
   my $daemon = SOAP::Transport::HTTP::Daemon->new(
     LocalAddr => $localip,

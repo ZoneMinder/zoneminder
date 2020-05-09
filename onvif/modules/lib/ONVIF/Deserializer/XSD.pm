@@ -33,31 +33,12 @@ use ONVIF::Deserializer::MessageParser;
 
 use SOAP::WSDL::Factory::Deserializer;
 
-### support for SOAP::Lite #####
-
-=comment
-use overload '%{}' => \&myhash;
-
-my %context_of;
-
-sub myhash {
-  my ($self, $other, $swap) = @_;
-  return { '_context' => $context_of{ident $self} };
-}
-=cut
-
-################################
-
 SOAP::WSDL::Factory::Deserializer->register('1.1', __PACKAGE__ );
 SOAP::WSDL::Factory::Deserializer->register('1.2', __PACKAGE__ );
 
 ## we get the soap version from the message parser
 my %soap_version_of :ATTR( :default<()>);
 
-<<<<<<< HEAD
-=======
-
->>>>>>> master
 sub soap_version {
   my ($self) = @_;
   if($SOAP::WSDL::Deserializer::XSD::parser_of{ident $self}) {

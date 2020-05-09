@@ -916,11 +916,6 @@ add_subdirectory(web)
 add_subdirectory(misc)
 add_subdirectory(onvif)
 
-# Enable ONVIF support
-if(ZM_ONVIF)
-	add_subdirectory(onvif)
-endif(ZM_ONVIF)
-
 # Process distro subdirectories
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
 	add_subdirectory(distros/redhat)

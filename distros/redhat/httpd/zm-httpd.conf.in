@@ -1,0 +1,8 @@
+# Additional config directives for ZoneMinder with Apache web server
+
+[Unit]
+After=httpd.service
+
+[Service]
+User=@WEB_USER@
+Group=@WEB_GROUP@

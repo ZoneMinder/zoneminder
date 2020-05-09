@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_LOCAL_CAMERA_H
@@ -23,6 +23,7 @@
 #include "zm.h"
 #include "zm_camera.h"
 #include "zm_image.h"
+#include "zm_packetqueue.h"
 
 #if ZM_HAS_V4L
 
@@ -52,31 +53,31 @@ class LocalCamera : public Camera
 {
 protected:
 #if ZM_HAS_V4L2
-  struct V4L2MappedBuffer
-  {
-    void  *start;
-    size_t  length;
-  };
+    struct V4L2MappedBuffer
+    {
+        void    *start;
+        size_t  length;
+    };
 
-  struct V4L2Data
-  {
-    v4l2_cropcap    cropcap;
-    v4l2_crop       crop;
-    v4l2_format     fmt;
-    v4l2_requestbuffers reqbufs;
-    V4L2MappedBuffer  *buffers;
-    v4l2_buffer     *bufptr;
-  };
+    struct V4L2Data
+    {
+        v4l2_cropcap        cropcap;
+        v4l2_crop           crop;
+        v4l2_format         fmt;
+        v4l2_requestbuffers reqbufs;
+        V4L2MappedBuffer    *buffers;
+        v4l2_buffer         *bufptr;
+    };
 #endif // ZM_HAS_V4L2
 
 #if ZM_HAS_V4L1
-  struct V4L1Data
-  {
-    int active_frame;
-    video_mbuf frames;
-    video_mmap *buffers;
-    unsigned char *bufptr;
-  };
+    struct V4L1Data
+    {
+        int active_frame;
+        video_mbuf frames;
+        video_mmap *buffers;
+        unsigned char *bufptr;
+    };
 #endif // ZM_HAS_V4L1
 
 protected:
@@ -104,24 +105,42 @@ protected:
   unsigned int v4l_captures_per_frame;
 
 #if ZM_HAS_V4L2
-  static V4L2Data     v4l2_data;
+  static V4L2Data         v4l2_data;
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
-  static V4L1Data     v4l1_data;
+  static V4L1Data         v4l1_data;
 #endif // ZM_HAS_V4L1
 
 #if HAVE_LIBSWSCALE
-  static AVFrame    **capturePictures;
-  _AVPIXELFORMAT       imagePixFormat;
-  _AVPIXELFORMAT       capturePixFormat;
+  static AVFrame      **capturePictures;
+  _AVPIXELFORMAT         imagePixFormat;
+  _AVPIXELFORMAT         capturePixFormat;
   struct SwsContext   *imgConversionContext;
-  AVFrame         *tmpPicture;  
+  AVFrame             *tmpPicture;    
 #endif // HAVE_LIBSWSCALE
 
-  static LocalCamera    *last_camera;
+  static LocalCamera      *last_camera;
 
 public:
-  LocalCamera( int p_id, const std::string &device, int p_channel, int p_format, bool v4lmultibuffer, unsigned int v4lcapturesperframe, const std::string &p_method, int p_width, int p_height, int p_colours, int p_palette, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, unsigned int p_extras = 0);
+  LocalCamera(
+    int p_id,
+    const std::string &device,
+    int p_channel,
+    int p_format,
+    bool v4lmultibuffer,
+    unsigned int v4lcapturesperframe,
+    const std::string &p_method,
+    int p_width,
+    int p_height,
+    int p_colours,
+    int p_palette,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio,
+    unsigned int p_extras = 0);
   ~LocalCamera();
 
   void Initialise();
@@ -143,6 +162,8 @@ public:
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
+  int Close() { return 0; };
 
   static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
 };

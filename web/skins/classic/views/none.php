@@ -15,31 +15,28 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
-$skinJsFile = getSkinFile( 'js/skin.js' );
+  global $cspNonce;
+$skinJsPhpFile = getSkinFile('js/skin.js.php');
+$skinJsFile = getSkinFile('js/skin.js');
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <title><?php echo ZM_WEB_TITLE_PREFIX ?></title>
-  <script type="text/javascript">
+  <meta charset="utf-8">
+  <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX); ?></title>
+  <script nonce="<?php echo $cspNonce ?>">
 <?php
-require_once( $skinJsPhpFile );
+require_once($skinJsPhpFile);
 ?>
   </script>
-
-  <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
-  <script type="text/javascript">
+  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
+  <script nonce="<?php echo $cspNonce ?>">
 <?php
 if ( !$debug )
-{
-?>
-    closeWindow();
-<?php
-}
+    echo 'closeWindow();';
 ?>
   </script>
 </head>

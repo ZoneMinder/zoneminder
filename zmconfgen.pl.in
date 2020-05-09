@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!@PERL_EXECUTABLE@ -w
 #
 # ==========================================================================
 #
@@ -17,7 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -25,13 +25,13 @@
 #
 
 use strict;
-use lib './scripts/ZoneMinder/lib';
+use lib '@CMAKE_CURRENT_BINARY_DIR@/scripts/ZoneMinder/lib';
 use ZoneMinder::ConfigData qw/:data/;
 
 $| = 1;
 
-my $config_header = "src/zm_config_defines.h";
-my $config_sql = "db/zm_create.sql";
+my $config_header = '@CMAKE_CURRENT_BINARY_DIR@/src/zm_config_defines.h';
+my $config_sql = '@CMAKE_CURRENT_BINARY_DIR@/db/zm_create.sql';
 
 generateConfigFiles();
 

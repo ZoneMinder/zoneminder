@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 $focusWindow = true;
@@ -25,24 +25,21 @@ xhtmlHeaders(__FILE__, translate('Logout') );
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?php echo translate('Logout') ?></h1>
+      <h1><?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Logout') ?></h1>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="action" value="logout"/>
-        <input type="hidden" name="view" value="login"/>
+        <input type="hidden" name="view" value="logout"/>
         <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
         <p>
           <input type="submit" value="<?php echo translate('Logout') ?>"/>
 <?php
-if ( ZM_USER_SELF_EDIT )
-{
-?>
-          <input type="button" value="<?php echo translate('Config') ?>" onclick="createPopup( '?view=user&amp;uid=<?php echo $user['Id'] ?>', 'zmUser', 'user' );"/>
-<?php
+if ( ZM_USER_SELF_EDIT ) {
+  echo makePopupButton('?view=user&uid=' . $user['Id'], 'zmUser', 'user', translate('Config'));
 }
 ?>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </p>
       </form>
     </div>

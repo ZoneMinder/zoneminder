@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -272,7 +272,11 @@ sub _initialize {
             #
             $_method =~s{\.}{__}xg;
             $_method =~s{\-}{_}xg;
-            $list->[-1]->$_method( $current );
+            if ( $list->[-1]->can( $_method ) ) {
+              $list->[-1]->$_method( $current );
+              #} else {
+              #print ( "ERror " . $list->[-1] . " cannot $_method\n" );
+            }
 
             $current = pop @$list;          # step up in object hierarchy
 

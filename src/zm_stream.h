@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_STREAM_H
@@ -29,14 +29,15 @@
 class Monitor;
 
 #define TV_2_FLOAT( tv ) ( double((tv).tv_sec) + (double((tv).tv_usec) / 1000000.0) )
+#define BOUNDARY "ZoneMinderFrame"
 
-class StreamBase
-{
+class StreamBase {
 public:
   typedef enum { STREAM_JPEG, STREAM_RAW, STREAM_ZIP, STREAM_SINGLE, STREAM_MPEG } StreamType;
 
 protected:
   static const int MAX_STREAM_DELAY = 5; // Seconds
+  static const int MAX_SLEEP_USEC = 500000; // .5 Seconds
 
   static const StreamType DEFAULT_TYPE = STREAM_JPEG;
   enum { DEFAULT_RATE=ZM_RATE_BASE };
@@ -66,26 +67,28 @@ protected:
   const char *format;
   int replay_rate;
   int scale;
+  int last_scale;
   int zoom;
+  int last_zoom;
   double maxfps;
   int bitrate;
+  unsigned short last_x, last_y;
   unsigned short x, y;
-
-protected:
+  bool send_analysis;
+  bool send_objdetect;
   int connkey;
   int sd;
-  char loc_sock_path[PATH_MAX];
+  char loc_sock_path[108];
   struct sockaddr_un loc_addr;
-  char rem_sock_path[PATH_MAX];
+  char rem_sock_path[108];
   struct sockaddr_un rem_addr;
-  char sock_path_lock[PATH_MAX];
+  char sock_path_lock[108];
   int lock_fd;
-
-protected:
   bool paused;
   int step;
 
   struct timeval now;
+  struct timeval last_comm_update;
 
   double base_fps;
   double effective_fps;
@@ -110,30 +113,35 @@ protected:
   virtual void processCommand( const CmdMsg *msg )=0;
 
 public:
-  StreamBase()
-  {
-    monitor = 0;
+  StreamBase(): 
+    monitor(0),
+    type(DEFAULT_TYPE),
+    format(""),
+    replay_rate(DEFAULT_RATE),
+    scale(DEFAULT_SCALE),
+    last_scale(DEFAULT_SCALE),
+    zoom(DEFAULT_ZOOM),
+    last_zoom(DEFAULT_ZOOM),
+    maxfps(DEFAULT_MAXFPS),
+    bitrate(DEFAULT_BITRATE),
+    last_x(0),
+    last_y(0),
+    x(0),
+    y(0),
+    send_analysis(false),
+    send_objdetect(false),
+    connkey(0),
+    sd(-1),
+    lock_fd(0),
+    paused(false),
+    step(0)
 
-    type = DEFAULT_TYPE;
-    format = "";
-    replay_rate = DEFAULT_RATE;
-    scale = DEFAULT_SCALE;
-    zoom = DEFAULT_ZOOM;
-    maxfps = DEFAULT_MAXFPS;
-    bitrate = DEFAULT_BITRATE;
-
-    paused = false;
-    step = 0;
-    x = 0;
-    y = 0;
-
-    connkey = 0;
-    sd = -1;
-    lock_fd = 0;
+    {
     memset( &loc_sock_path, 0, sizeof(loc_sock_path) );
     memset( &loc_addr, 0, sizeof(loc_addr) );
     memset( &rem_sock_path, 0, sizeof(rem_sock_path) );
     memset( &rem_addr, 0, sizeof(rem_addr) );
+    memset( &sock_path_lock, 0, sizeof(sock_path_lock) );
 
     base_fps = 0.0;
     effective_fps = 0.0;
@@ -142,35 +150,34 @@ public:
 #if HAVE_LIBAVCODEC   
     vid_stream = 0;
 #endif // HAVE_LIBAVCODEC   
+    last_frame_sent = 0.0;
+    last_frame_timestamp = (struct timeval){0};
+    msg = { 0, { 0 } };
   }
   virtual ~StreamBase();
 
-  void setStreamType( StreamType p_type )
-  {
+  void setStreamType( StreamType p_type ) {
     type = p_type;
   }
-  void setStreamFormat( const char *p_format )
-  {
+  void setStreamFormat( const char *p_format ) {
     format = p_format;
   }
-  void setStreamScale( int p_scale )
-  {
+  void setStreamScale( int p_scale ) {
     scale = p_scale;
+    if ( ! scale )
+      scale = DEFAULT_SCALE;
   }
-  void setStreamReplayRate( int p_rate )
-  {
+  void setStreamReplayRate( int p_rate ) {
+    Debug(2,"Setting replay_rate %d", p_rate);
     replay_rate = p_rate;
   }
-  void setStreamMaxFPS( double p_maxfps )
-  {
+  void setStreamMaxFPS( double p_maxfps ) {
     maxfps = p_maxfps;
   }
-  void setStreamBitrate( int p_bitrate )
-  {
+  void setStreamBitrate( int p_bitrate ) {
     bitrate = p_bitrate;
   }
-  void setStreamQueue( int p_connkey )
-  {
+  void setStreamQueue( int p_connkey ) {
     connkey = p_connkey;
   }
   virtual void openComms();

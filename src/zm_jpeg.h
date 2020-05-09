@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */  
 
 #include <setjmp.h>
@@ -29,7 +29,7 @@
 
 extern "C"
 {
-/* Stuff for overriden error handlers */
+/* Stuff for overridden error handlers */
 struct zm_error_mgr
 {
   struct jpeg_error_mgr pub;
@@ -38,6 +38,8 @@ struct zm_error_mgr
 
 typedef struct zm_error_mgr *zm_error_ptr;
 
+void zm_jpeg_error_silent( j_common_ptr cinfo );
+void zm_jpeg_emit_silence( j_common_ptr cinfo, int msg_level );
 void zm_jpeg_error_exit( j_common_ptr cinfo );
 void zm_jpeg_emit_message( j_common_ptr cinfo, int msg_level );
 

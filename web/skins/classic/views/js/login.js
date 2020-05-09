@@ -1,1 +1,5 @@
-window.addEvent( 'domready', function() { $('loginForm').elements['username'].focus() } );
+window.addEventListener( 'DOMContentLoaded', function() {
+  if ( failed == true ) {
+    $('loginError').removeClass( 'hidden' );
+  }
+} );

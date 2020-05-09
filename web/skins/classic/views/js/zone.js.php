@@ -1,7 +1,6 @@
 var presets = new Object();
 <?php
-foreach ( $presets as $preset )
-{
+foreach ( $presets as $preset ) {
 ?>
 presets[<?php echo $preset['Id'] ?>] = {
     'UnitsIndex': <?php echo $preset['UnitsIndex'] ?>,
@@ -38,17 +37,17 @@ var zone = {
 
 zone['Points'] = new Array();
 <?php
-for ( $i = 0; $i < count($newZone['Points']); $i++ )
-{
+for ( $i = 0; $i < count($newZone['Points']); $i++ ) {
 ?>
 zone['Points'][<?php echo $i ?>] = { 'x': <?php echo $newZone['Points'][$i]['x'] ?>, 'y': <?php echo $newZone['Points'][$i]['y'] ?> };
 <?php
 }
 ?>
 
-var maxX = <?php echo $monitor->Width()-1 ?>;
-var maxY = <?php echo $monitor->Height()-1 ?>;
-var selfIntersecting = <?php echo $selfIntersecting?'true':'false' ?>;
+var maxX = <?php echo $monitor->ViewWidth()-1 ?>;
+var maxY = <?php echo $monitor->ViewHeight()-1 ?>;
+var monitorArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight() ?>;
+var selfIntersecting = <?php echo $selfIntersecting ? 'true' : 'false' ?>;
 
 var selfIntersectingString = '<?php echo addslashes(translate('SelfIntersecting')) ?>';
 var alarmRGBUnsetString = '<?php echo addslashes(translate('AlarmRGBUnset')) ?>';
@@ -102,7 +101,7 @@ var streamMode = "<?php echo $streamMode ?>";
 var connKey = '<?php echo $connkey ?>';
 
 var monitorId = <?php echo $monitor->Id() ?>;
-var monitorUrl = '<?php echo ( $monitor->Server()->Url() ) ?>';
+var monitorUrl = '<?php echo ( $monitor->UrlToIndex() ) ?>';
 
 var streamSrc = "<?php echo preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
 

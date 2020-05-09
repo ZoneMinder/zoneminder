@@ -16,6 +16,7 @@ configure_file(lib/ZoneMinder/Base.pm.in "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMi
 configure_file(lib/ZoneMinder/Config.pm.in "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Config.pm" @ONLY)
 configure_file(lib/ZoneMinder/Memory.pm.in "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Memory.pm" @ONLY)
 configure_file(lib/ZoneMinder/ConfigData.pm.in "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/ConfigData.pm" @ONLY)
+configure_file(lib/ZoneMinder/ONVIF.pm.in "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/ONVIF.pm" @ONLY)
 
 if(CMAKE_VERBOSE_MAKEFILE)
 	set(MAKEMAKER_NOECHO_COMMAND "")

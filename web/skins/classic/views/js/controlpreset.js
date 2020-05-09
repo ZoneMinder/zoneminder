@@ -1,14 +1,12 @@
-function updateLabel()
-{
-    var presetIndex = $('contentForm').preset.getValue();
-    if ( labels[presetIndex] )
-    {
-        $('contentForm').newLabel.value = labels[presetIndex];
-    }
-    else
-    {
-        $('contentForm').newLabel.value = "";
-    }
-}
+function updateLabel() {
+  var form = $('contentForm');
+  var preset_ddm = form.elements['preset'];
 
-window.addEvent( 'domready', updateLabel );
+  var presetIndex = preset_ddm[preset_ddm.selectedIndex].value;
+  if ( labels[presetIndex] ) {
+    form.newLabel.value = labels[presetIndex];
+  } else {
+    form.newLabel.value = '';
+  }
+}
+window.addEventListener('DOMContentLoaded', updateLabel);

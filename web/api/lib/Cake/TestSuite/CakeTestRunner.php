@@ -2,20 +2,20 @@
 /**
  * TestRunner for CakePHP Test suite.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         CakePHP(tm) v 2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
-if (!defined('__PHPUNIT_PHAR__')) {
+if (!class_exists('PHPUnit_TextUI_TestRunner')) {
 	require_once 'PHPUnit/TextUI/TestRunner.php';
 }
 
@@ -44,15 +44,20 @@ class CakeTestRunner extends PHPUnit_TextUI_TestRunner {
  *
  * @param PHPUnit_Framework_Test $suite The test suite to run
  * @param array $arguments The CLI arguments
+ * @param bool $exit Exits by default or returns the results
  * @return void
  */
-	public function doRun(PHPUnit_Framework_Test $suite, array $arguments = array()) {
+	public function doRun(PHPUnit_Framework_Test $suite, array $arguments = array(), $exit = true) {
 		if (isset($arguments['printer'])) {
 			static::$versionStringPrinted = true;
 		}
 
 		$fixture = $this->_getFixtureManager($arguments);
-		foreach ($suite->getIterator() as $test) {
+		$iterator = $suite->getIterator();
+		if ($iterator instanceof RecursiveIterator) {
+			$iterator = new RecursiveIteratorIterator($iterator);
+		}
+		foreach ($iterator as $test) {
 			if ($test instanceof CakeTestCase) {
 				$fixture->fixturize($test);
 				$test->fixtureManager = $fixture;
@@ -92,7 +97,7 @@ class CakeTestRunner extends PHPUnit_TextUI_TestRunner {
  * @throws RuntimeException When fixture manager class cannot be loaded.
  */
 	protected function _getFixtureManager($arguments) {
-		if (isset($arguments['fixtureManager'])) {
+		if (!empty($arguments['fixtureManager'])) {
 			App::uses($arguments['fixtureManager'], 'TestSuite');
 			if (class_exists($arguments['fixtureManager'])) {
 				return new $arguments['fixtureManager'];

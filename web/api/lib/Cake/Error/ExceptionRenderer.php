@@ -5,24 +5,27 @@
  * Provides Exception rendering features. Which allow exceptions to be rendered
  * as HTML pages.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Error
  * @since         CakePHP(tm) v 2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Sanitize', 'Utility');
+App::uses('Dispatcher', 'Routing');
 App::uses('Router', 'Routing');
-App::uses('CakeResponse', 'Network');
 App::uses('Controller', 'Controller');
+App::uses('CakeRequest', 'Network');
+App::uses('CakeResponse', 'Network');
+App::uses('CakeEvent', 'Event');
 
 /**
  * Exception Renderer.
@@ -287,7 +290,7 @@ class ExceptionRenderer {
 	protected function _outputMessage($template) {
 		try {
 			$this->controller->render($template);
-			$this->controller->afterFilter();
+			$this->_shutdown();
 			$this->controller->response->send();
 		} catch (MissingViewException $e) {
 			$attributes = $e->getAttributes();
@@ -325,6 +328,25 @@ class ExceptionRenderer {
 		$this->controller->response->body($view->render($template, 'error'));
 		$this->controller->response->type('html');
 		$this->controller->response->send();
+	}
+
+/**
+ * Run the shutdown events.
+ *
+ * Triggers the afterFilter and afterDispatch events.
+ *
+ * @return void
+ */
+	protected function _shutdown() {
+		$afterFilterEvent = new CakeEvent('Controller.shutdown', $this->controller);
+		$this->controller->getEventManager()->dispatch($afterFilterEvent);
+
+		$Dispatcher = new Dispatcher();
+		$afterDispatchEvent = new CakeEvent('Dispatcher.afterDispatch', $Dispatcher, array(
+			'request' => $this->controller->request,
+			'response' => $this->controller->response
+		));
+		$Dispatcher->getEventManager()->dispatch($afterDispatchEvent);
 	}
 
 }

@@ -775,7 +775,7 @@ of the corresponding class can be passed instead of the marked hash ref.
 You may pass any combination of objects, hash and list refs to these
 methods, as long as you meet the structure.
 
-List items (i.e. multiple occurences) are not displayed in the synopsis.
+List items (i.e. multiple occurrences) are not displayed in the synopsis.
 You may generally pass a list ref of hash refs (or objects) instead of a hash
 ref - this may result in invalid XML if used improperly, though. Note that
 SOAP::WSDL always expects list references at maximum depth position.
@@ -830,7 +830,7 @@ Returns a L<ONVIF::PTZ::Elements::SetPresetResponse|ONVIF::PTZ::Elements::SetPre
 
 =head3 RemovePreset
 
-Operation to remove a PTZ preset for the Node in the selected profile. The operation is supported if the PresetPosition capability exists for teh Node in the selected profile. 
+Operation to remove a PTZ preset for the Node in the selected profile. The operation is supported if the PresetPosition capability exists for the Node in the selected profile. 
 
 Returns a L<ONVIF::PTZ::Elements::RemovePresetResponse|ONVIF::PTZ::Elements::RemovePresetResponse> object.
 
@@ -1136,7 +1136,7 @@ Returns a L<ONVIF::PTZ::Elements::ModifyPresetTourResponse|ONVIF::PTZ::Elements:
         CurrentTourSpot =>  { # ONVIF::PTZ::Types::PTZPresetTourSpot
           PresetDetail =>           { # ONVIF::PTZ::Types::PTZPresetTourPresetDetail
             # One of the following elements.
-            # No occurance checks yet, so be sure to pass just one...
+            # No occurrence checks yet, so be sure to pass just one...
             PresetToken => $some_value, # ReferenceToken
             Home =>  $some_value, # boolean
             PTZPosition =>  { # ONVIF::PTZ::Types::PTZVector
@@ -1168,7 +1168,7 @@ Returns a L<ONVIF::PTZ::Elements::ModifyPresetTourResponse|ONVIF::PTZ::Elements:
       TourSpot =>  { # ONVIF::PTZ::Types::PTZPresetTourSpot
         PresetDetail =>         { # ONVIF::PTZ::Types::PTZPresetTourPresetDetail
           # One of the following elements.
-          # No occurance checks yet, so be sure to pass just one...
+          # No occurrence checks yet, so be sure to pass just one...
           PresetToken => $some_value, # ReferenceToken
           Home =>  $some_value, # boolean
           PTZPosition =>  { # ONVIF::PTZ::Types::PTZVector

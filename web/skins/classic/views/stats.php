@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Events' ) )
@@ -43,7 +43,7 @@ xhtmlHeaders(__FILE__, translate('Stats')." - ".$eid." - ".$fid );
       <h2><?php echo translate('Stats') ?> - <?php echo $eid ?> - <?php echo $fid ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>

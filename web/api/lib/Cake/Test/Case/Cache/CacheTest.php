@@ -2,18 +2,18 @@
 /**
  * CacheTest file
  *
- * CakePHP(tm) Tests <http://book.cakephp.org/2.0/en/development/testing.html>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/2.0/en/development/testing.html>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.Cache
  * @since         CakePHP(tm) v 1.2.0.5432
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Cache', 'Cache');
@@ -537,5 +537,66 @@ class CacheTest extends CakeTestCase {
 
 		$result = Cache::add('test_add_key', 'test data 2', 'default');
 		$this->assertFalse($result);
+	}
+
+/**
+ * Test engine method.
+ *
+ *  Success, default engine.
+ *
+ * @return void
+ */
+	public function testEngineSuccess() {
+		$actual = Cache::engine();
+		$this->assertInstanceOf('CacheEngine', $actual);
+
+		$actual = Cache::engine('default');
+		$this->assertInstanceOf('CacheEngine', $actual);
+	}
+
+/**
+ * Test engine method.
+ *
+ *  Success, memcached engine.
+ *
+ * @return void
+ */
+	public function testEngineSuccessMemcached() {
+		$this->skipIf(!class_exists('Memcached'), 'Memcached is not installed or configured properly.');
+
+		// @codingStandardsIgnoreStart
+		$socket = @fsockopen('127.0.0.1', 11211, $errno, $errstr, 1);
+		// @codingStandardsIgnoreEnd
+		$this->skipIf(!$socket, 'Memcached is not running.');
+		fclose($socket);
+
+		Cache::config('memcached', array(
+			'engine' => 'Memcached',
+			'prefix' => 'cake_',
+			'duration' => 3600
+		));
+
+		$actual = Cache::engine('memcached');
+		$this->assertInstanceOf('MemcachedEngine', $actual);
+
+		$this->assertTrue($actual->add('test_add_key', 'test data', 10));
+		$this->assertFalse($actual->add('test_add_key', 'test data', 10));
+		$this->assertTrue($actual->delete('test_add_key'));
+	}
+
+/**
+ * Test engine method.
+ *
+ *  Failure.
+ *
+ * @return void
+ */
+	public function testEngineFailure() {
+		$actual = Cache::engine('some_config_that_does_not_exist');
+		$this->assertNull($actual);
+
+		Configure::write('Cache.disable', true);
+		$actual = Cache::engine();
+		$this->assertNull($actual);
 	}
 }

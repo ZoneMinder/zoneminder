@@ -15,23 +15,22 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'System' ) )
-{
-    $view = "error";
-    return;
+if ( !canView('System') ) {
+  $view = 'error';
+  return;
 }
 
-$zmuCommand = getZmuCommand( " --list" );
-$result = exec( escapeshellcmd( $zmuCommand ), $output );
+$zmuCommand = getZmuCommand(' --list');
+$result = exec(escapeshellcmd($zmuCommand), $output);
 
 $refresh = ZM_WEB_REFRESH_STATUS;
 $url = '?view='.$view;
 noCacheHeaders();
 
-xhtmlHeaders(__FILE__, translate('Status') );
+xhtmlHeaders(__FILE__, translate('Status'));
 ?>
 <body>
   <div id="page">
@@ -39,20 +38,18 @@ xhtmlHeaders(__FILE__, translate('Status') );
       <h2><?php echo translate('Status') ?></h2>
     </div>
     <div id="content">
-      <table id="contentTable" class="major" cellspacing="0">
+      <table id="contentTable" class="major">
 <?php
-if ( $row = array_shift( $output ) )
-{
+if ( $row = array_shift($output) ) {
 ?>
         <thead>
           <tr>
 <?php
-    foreach ( preg_split( "/\s+/", $row ) as $col )
-    {
+  foreach ( preg_split('/\s+/', $row) as $col ) {
 ?>
             <th><?php echo $col ?></th>
 <?php
-    }
+  }
 ?>
           </tr>
         </thead>
@@ -61,17 +58,15 @@ if ( $row = array_shift( $output ) )
 ?>
         <tbody>
 <?php
-foreach ( $output as $row )
-{
+foreach ( $output as $row ) {
 ?>
           <tr>
 <?php
-    foreach ( preg_split( "/\s+/", $row ) as $col )
-    {
+  foreach ( preg_split('/\s+/', $row) as $col ) {
 ?>
             <td><?php echo $col ?></td>
 <?php
-    }
+  }
 ?>
           </tr>
 <?php

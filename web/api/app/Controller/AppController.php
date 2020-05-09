@@ -27,94 +27,131 @@ App::uses('CrudControllerTrait', 'Crud.Lib');
  * Add your application-wide methods in the class below, your controllers
  * will inherit them.
  *
- * @package		app.Controller
- * @link		http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
+ * @package   app.Controller
+ * @link    http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  */
 class AppController extends Controller {
-	use CrudControllerTrait;
+  use CrudControllerTrait;
 
-	public $components = [
-		'Session', //  We are going to use SessionHelper to check PHP session vars
-		'RequestHandler',
-		'Crud.Crud' => [
-			'actions' => [
-				'index' => 'Crud.Index',
-				'add'   => 'Crud.Add',
-				'edit'  => 'Crud.Edit',
-				'view'  => 'Crud.View',
-				'keyvalue' => 'Crud.List',
-				'category' => 'Crud.Category'
-			],
-			'listeners' => ['Api', 'ApiTransformation']
-		]
-	];
+  public $components = [
+    'RequestHandler',
+    'Crud.Crud' => [
+      'actions' => [
+        'index' => 'Crud.Index',
+        'add'   => 'Crud.Add',
+        'edit'  => 'Crud.Edit',
+        'view'  => 'Crud.View',
+        'keyvalue' => 'Crud.List',
+        'category' => 'Crud.Category'
+      ],
+      'listeners' => ['Api', 'ApiTransformation']
+    #],
+    #'DebugKit.Toolbar' => [
+    #  'bootstrap' => true, 'routes' => true
+    ]
+  ];
 
-	// Global beforeFilter function
-	//Zoneminder sets the username session variable
-	// to the logged in user. If this variable is set
-	// then you are logged in
-	// its pretty simple to extend this to also check
-	// for role and deny API access in future 
-	// Also checking to do this only if ZM_OPT_USE_AUTH is on
-	public function beforeFilter() {
-		$this->loadModel('Config');
-		
-        	$options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_API'));
-	 	$config = $this->Config->find('first', $options);
-        	$zmOptApi = $config['Config']['Value'];
+  // Global beforeFilter function
+  //Zoneminder sets the username session variable
+  // to the logged in user. If this variable is set
+  // then you are logged in
+  // its pretty simple to extend this to also check
+  // for role and deny API access in future 
+  // Also checking to do this only if ZM_OPT_USE_AUTH is on
+  public function beforeFilter() {
+    if ( ! ZM_OPT_USE_API ) {
+      throw new UnauthorizedException(__('API Disabled'));
+      return; 
+    } 
 
-		if ($zmOptApi !='1')
-		{
-        		 throw new UnauthorizedException(__('API Disabled'));
-        	 	return; 
-		}
-		
-        	$options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
-	 	$config = $this->Config->find('first', $options);
-        	$zmOptAuth = $config['Config']['Value'];
-        	if (!$this->Session->Read('user.Username') && ($zmOptAuth=='1'))
-        	{       
-        		 throw new UnauthorizedException(__('Not Authenticated'));
-        	 	return; 
-        	}     
-		else
-		{
-			$this->loadModel('User');
-			$loggedinUser = $this->Session->Read('user.Username');
-			$isEnabled = $this->Session->Read('user.Enabled');
-			// this will likely never happen as if its
-			// not enabled, login will fail and Not Auth will be returned
-			// however, keeping this here for now
-			if ($isEnabled != "1" && $zmOptAuth=="1")
-			{
-				throw new UnauthorizedException(__('User is not enabled'));
-				return;
-			}
+    # For use throughout the app. If not logged in, this will be null.
+    global $user;
+   
+    if ( ZM_OPT_USE_AUTH ) {
+      # This will auto-login if username=&password= are set, or auth=
+      require_once __DIR__ .'/../../../includes/auth.php';
 
-			if ($zmOptAuth=='1')
-			{
-				$options = array ('conditions' => array ('User.Username' => $loggedinUser));
-				$userMonitors = $this->User->find('first', $options);
-				$this->Session->Write('allowedMonitors',$userMonitors['User']['MonitorIds']);
-				$this->Session->Write('streamPermission',$userMonitors['User']['Stream']);
-				$this->Session->Write('eventPermission',$userMonitors['User']['Events']);
-				$this->Session->Write('controlPermission',$userMonitors['User']['Control']);
-				$this->Session->Write('systemPermission',$userMonitors['User']['System']);
-				$this->Session->Write('monitorPermission',$userMonitors['User']['Monitors']);
-			}
-			else // if auth is not on, you can do everything
-			{
-				//$userMonitors = $this->User->find('first', $options);
-				$this->Session->Write('allowedMonitors','');
-				$this->Session->Write('streamPermission','View');
-				$this->Session->Write('eventPermission','Edit');
-				$this->Session->Write('controlPermission','Edit');
-				$this->Session->Write('systemPermission','Edit');
-				$this->Session->Write('monitorPermission','Edit');
-			}
-		}
-		
-		
-    }
+      if ( ZM_OPT_USE_LEGACY_API_AUTH or !strcasecmp($this->params->action, 'login') ) {
+        # This is here because historically we allowed user=&pass= in the api. web-ui auth uses username=&password=
+        $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
+        $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+        if ( $username and $password ) {
+          $ret = validateUser($username, $password);
+          $user = $ret[0];
+          $retstatus = $ret[1];
+          if ( !$user ) {
+            throw new UnauthorizedException(__($retstatus));
+            return;
+          } 
+          ZM\Info("Login successful for user \"$username\"");
+        }
+      }
 
+      if ( ZM_OPT_USE_LEGACY_API_AUTH ) {
+        require_once __DIR__ .'/../../../includes/session.php';
+        $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
+        if ( $stateful ) {
+          zm_session_start();
+          $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
+          $_SESSION['username'] = $user['Username'];
+          if ( ZM_AUTH_RELAY == 'plain' ) {
+            // Need to save this in session, can't use the value in User because it is hashed
+            $_SESSION['password'] = $_REQUEST['password'];
+          }
+          generateAuthHash(ZM_AUTH_HASH_IPS);
+          session_write_close();
+        } else if ( $_COOKIE['ZMSESSID'] and !$user ) {
+          # Have a cookie set, try to load user by session
+          if ( ! is_session_started() )
+            zm_session_start();
+
+          ZM\Logger::Debug(print_r($_SESSION, true));
+          $user = userFromSession();
+          session_write_close();
+        }
+      }
+
+      # NON LEGACY, token based access
+      $token = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
+      if ( $token ) {
+        // if you pass a token to login, we should only allow
+        // refresh tokens to regenerate new access and refresh tokens
+        if ( !strcasecmp($this->params->action, 'login') ) {
+          $only_allow_token_type = 'refresh';
+        } else {
+          // for any other methods, don't allow refresh tokens
+          // they are supposed to be infrequently used for security
+          // purposes
+          $only_allow_token_type = 'access';
+        }
+        $ret = validateToken($token, $only_allow_token_type, true);
+        $user = $ret[0];
+        $retstatus = $ret[1];
+        if ( !$user ) {
+          throw new UnauthorizedException(__($retstatus));
+          return;
+        } 
+      } # end if token
+
+      if ( $user and ( $user['APIEnabled'] != 1 ) ) {
+        ZM\Error('API disabled for: '.$user['Username']);
+        throw new UnauthorizedException(__('API disabled for: '.$user['Username']));
+        $user = null;
+      }
+
+      // We need to reject methods that are not authenticated
+      // besides login and logout
+      if ( strcasecmp($this->params->action, 'logout') ) {
+        if ( !( $user and $user['Username'] ) ) {
+          throw new UnauthorizedException(__('Not Authenticated'));
+          return;
+        } else if ( !( $user and $user['Enabled'] ) ) {
+          throw new UnauthorizedException(__('User is not enabled'));
+          return;
+        }
+      } # end if ! login or logout
+
+    } # end if ZM_OPT_AUTH
+    // make sure populated user object has APIs enabled
+  } # end function beforeFilter()
 }

@@ -2,16 +2,41 @@
 }
 
 table.filterTable {
-    width: 100%;
+    margin: 0 auto;
+}
+
+#fieldsTable td:first-child {
+    width: 4em;
+}
+
+#fieldsTable td:nth-child(3) {
+    width: 11.5em;
+}
+
+#fieldsTable td:nth-child(4) {
+    width: 15em;
 }
 
 #fieldsTable td {
-    height: 16px;
+    padding: 0 3px;
+}
+
+select {
+    vertical-align: middle;
+    padding: 2px;
+    border: 1px solid #8f8fc2;
+    border-radius: 5px;
+    background: -webkit-gradient(linear,left top,left bottom,color-stop(20%,#555),color-stop(50%,#464646),color-stop(52%,#444),to(#545454));
+    background: linear-gradient(#555 20%,#464646 50%,#444 52%,#545454 100%);
+    background-color: #444444;
+    background-clip: padding-box;
+    color: #eee;
 }
 
 #fieldsTable input[type=button] {
-    width: 1.6em;
+    width: 1.8em;
     margin-left: 2px;
+    padding: 5px;
     text-align: center;
 }
 
@@ -23,3 +48,10 @@ table.filterTable {
     margin-left: 4px;
 }
 
+#actionsTable p {
+  text-align: left;
+}
+#actionsTable label {
+  width: 300px;
+  text-align: right;
+}

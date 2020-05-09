@@ -15,11 +15,13 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 if ( empty($_COOKIE['zmBandwidth']) )
-    $_COOKIE['zmBandwidth'] = "low";
+  $_COOKIE['zmBandwidth'] = ZM_BANDWIDTH_DEFAULT;
+if ( empty($_COOKIE['zmBandwidth']) )
+  $_COOKIE['zmBandwidth'] = 'low';
 
 //ini_set( "magic_quotes_gpc", "Off" );
 
@@ -27,40 +29,30 @@ if ( empty($_COOKIE['zmBandwidth']) )
 //if ( $skinLangFile = loadLanguage( ZM_SKIN_PATH ) )
     //require_once( $skinLangFile );
 
-foreach ( getSkinIncludes( 'includes/config.php' ) as $includeFile )
-    require_once $includeFile;
+foreach ( getSkinIncludes('includes/config.php') as $includeFile )
+  require_once $includeFile;
 
-foreach ( getSkinIncludes( 'includes/functions.php' ) as $includeFile )
-    require_once $includeFile;
+foreach ( getSkinIncludes('includes/functions.php') as $includeFile )
+  require_once $includeFile;
 
-if ( empty($view) )
-    $view = isset($user)?'console':'login';
-
-if ( !isset($user) && ZM_OPT_USE_AUTH && ZM_AUTH_TYPE == "remote" && !empty( $_SERVER['REMOTE_USER']) )
-{
-     $view = "postlogin";
-     $action = "login";
-     $_REQUEST['username'] = $_SERVER['REMOTE_USER'];
+if ( empty($view) ) {
+  $view = isset($user)?'console':'login';
 }
 
-if ( isset($user) )
-{
-    // Bandwidth Limiter
-    if ( !empty($user['MaxBandwidth']) )
-    {
-        if ( $user['MaxBandwidth'] == "low" )
-        {
-            $_COOKIE['zmBandwidth'] = "low";
-        }
-        elseif ( $user['MaxBandwidth'] == "medium" && $_COOKIE['zmBandwidth'] == "high" )
-        {
-            $_COOKIE['zmBandwidth'] = "medium";
-        }
+
+if ( isset($user) ) {
+  // Bandwidth Limiter
+  if ( !empty($user['MaxBandwidth']) ) {
+    if ( $user['MaxBandwidth'] == 'low' ) {
+      $_COOKIE['zmBandwidth'] = 'low';
+    } elseif ( $user['MaxBandwidth'] == 'medium' && $_COOKIE['zmBandwidth'] == 'high' ) {
+      $_COOKIE['zmBandwidth'] = 'medium';
     }
+  }
 }
 
 // If there are additional actions
 foreach ( getSkinIncludes( 'includes/actions.php' ) as $includeFile )
-    require_once $includeFile; 
+  require_once $includeFile; 
 
 ?>

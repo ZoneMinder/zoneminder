@@ -1,0 +1,27 @@
+HTTPS is now the default
+========================
+
+By default, ZoneMinder will use the certifciate created when the mod_ssl
+pacakge was installed on your system. 
+
+Since the certificate is self-signed, you will get a warning from your browser
+the first time you access the web portal. This is normal.
+
+This is not intended to be an all encompasing solution for everyone. ZoneMinder
+will work just fine over HTTPS the way it is currently configured. However,
+here are a couple of considerations you may want to take to improve your
+experience.
+
+1. Install a fully signed certificate from letsencrypt, using certbot. See the
+   certbot site for more information. This free service is very easy to set up.
+   https://certbot.eff.org/all-instructions/  
+
+2. Create your own certificate. The CentOS wiki has a guide that describes how
+   to do this: https://wiki.centos.org/HowTos/Https . Additionally, Googling 
+   "centos certificate" reveals many articles on the subject.
+
+3. When using Apache, you can turn off HTTPS entirely by simply commenting
+   out the SSLRequireSSL directives found in
+   /etc/zm/www/zoneminder.apache.conf. You should also comment out the
+   HTTP -> HTTPS Rewrite rule.
+

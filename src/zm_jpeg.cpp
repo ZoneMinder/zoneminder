@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */ 
 
 #include "zm_jpeg.h"
@@ -29,6 +29,13 @@ extern "C"
 #define MAX_JPEG_ERRS 25
 
 static int jpeg_err_count = 0;
+
+void zm_jpeg_error_silent( j_common_ptr cinfo ){
+  zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
+  longjmp( zmerr->setjmp_buffer, 1 );
+}
+void zm_jpeg_emit_silence( j_common_ptr cinfo, int msg_level ){
+}
 
 void zm_jpeg_error_exit( j_common_ptr cinfo )
 {
@@ -276,8 +283,7 @@ static boolean fill_input_buffer (j_decompress_ptr cinfo)
   memcpy( src->buffer, src->inbuffer, (size_t) src->inbuffer_size );
   nbytes = src->inbuffer_size;
 
-  if ( nbytes <= 0 )
-  {
+  if ( nbytes == 0 ) {
     if ( src->start_of_data )  /* Treat empty input file as fatal error */
       ERREXIT(cinfo, JERR_INPUT_EMPTY);
     WARNMS(cinfo, JWRN_JPEG_EOF);

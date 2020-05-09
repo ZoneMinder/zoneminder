@@ -18,18 +18,21 @@ override_dh_auto_configure:
 		-DZM_TMPDIR=/var/tmp/zm \
 		-DZM_LOGDIR=/var/log/zm \
 		-DZM_WEBDIR=/usr/share/zoneminder/www \
-		-DZM_CONTENTDIR=/var/cache/zoneminder \
 		-DZM_CGIDIR=/usr/lib/zoneminder/cgi-bin \
 		-DZM_WEB_USER=www-data \
 		-DZM_WEB_GROUP=www-data \
-		-DCMAKE_INSTALL_SYSCONFDIR=etc/zm
+    -DZM_CONFIG_SUBDIR="/etc/zm/conf.d" \
+		-DZM_CONFIG_DIR="/etc/zm" \
+    -DZM_DIR_EVENTS="/var/cache/zoneminder/events"    \
+    -DZM_PATH_SHUTDOWN="/sbin/shutdown"               \
+    -DZM_PATH_ZMS="/zm/cgi-bin/nph-zms"
 
 override_dh_auto_install:
 	dh_auto_install --buildsystem=cmake
 	install -D -m 0644 debian/apache.conf  $(INSTDIR)/etc/zm/apache.conf
-	rm $(INSTDIR)/usr/share/zoneminder/api/lib/Cake/LICENSE.txt
-	rm $(INSTDIR)/usr/share/zoneminder/api/.gitignore
-	rm -r $(INSTDIR)/usr/share/zoneminder/api/lib/Cake/Test
+	rm -f $(INSTDIR)/usr/share/zoneminder/www/api/lib/Cake/LICENSE.txt
+	rm -f $(INSTDIR)/usr/share/zoneminder/www/api/.gitignore
+	rm -rf $(INSTDIR)/usr/share/zoneminder/www/api/lib/Cake/Test
 
 override_dh_auto_test:
 	# do not run tests...

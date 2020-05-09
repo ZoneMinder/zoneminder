@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -46,31 +46,6 @@ use Time::HiRes qw( usleep );
 use constant SYNC => 0xff;
 use constant COMMAND_GAP => 100000; # In ms
 
-sub new
-{
-    my $class = shift;
-    my $id = shift;
-    my $self = ZoneMinder::Control->new( $id );
-    bless( $self, $class );
-    srand( time() );
-    return $self;
-}
-
-our $AUTOLOAD;
-
-sub AUTOLOAD
-{
-    my $self = shift;
-    my $class = ref($self) || croak( "$self not object" );
-    my $name = $AUTOLOAD;
-    $name =~ s/.*://;
-    if ( exists($self->{$name}) )
-    {
-        return( $self->{$name} );
-    }
-    Fatal( "Can't access $name member of object of class $class" );
-}
-
 sub open
 {
     my $self = shift;
@@ -91,8 +66,7 @@ sub open
     $self->{state} = 'open';
 }
 
-sub close
-{
+sub close {
     my $self = shift;
     $self->{state} = 'closed';
     $self->{port}->close();

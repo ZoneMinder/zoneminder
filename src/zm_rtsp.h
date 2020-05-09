@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_RTSP_H
@@ -31,8 +31,7 @@
 #include <set>
 #include <map>
 
-class RtspThread : public Thread
-{
+class RtspThread : public Thread {
 public:
   typedef enum { RTP_UNICAST, RTP_MULTICAST, RTP_RTSP, RTP_RTSP_HTTP } RtspMethod;
   typedef enum { UNDEFINED, UNICAST, MULTICAST } RtspDist;

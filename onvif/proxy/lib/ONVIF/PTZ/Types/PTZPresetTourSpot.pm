@@ -115,7 +115,7 @@ Constructor. The following data structure may be passed to new():
  { # ONVIF::PTZ::Types::PTZPresetTourSpot
    PresetDetail =>    { # ONVIF::PTZ::Types::PTZPresetTourPresetDetail
      # One of the following elements.
-     # No occurance checks yet, so be sure to pass just one...
+     # No occurrence checks yet, so be sure to pass just one...
      PresetToken => $some_value, # ReferenceToken
      Home =>  $some_value, # boolean
      PTZPosition =>  { # ONVIF::PTZ::Types::PTZVector

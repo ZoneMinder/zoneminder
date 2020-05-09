@@ -25,15 +25,13 @@ sub GetServices {
         soap_action => 'http://www.onvif.org/ver10/device/wsdl/GetServices',
         style => 'document',
         body => {
-            
-
-           'use'            => 'literal',
+            use             => 'literal',
             namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
             encodingStyle   => '',
             parts           =>  [qw( ONVIF::Device::Elements::GetServices )],
         },
         header => {
-            
+ 
         },
         headerfault => {
             
@@ -50,9 +48,7 @@ sub GetServiceCapabilities {
         soap_action => 'http://www.onvif.org/ver10/device/wsdl/GetServiceCapabilities',
         style => 'document',
         body => {
-            
-
-           'use'            => 'literal',
+            use             => 'literal',
             namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
             encodingStyle   => '',
             parts           =>  [qw( ONVIF::Device::Elements::GetServiceCapabilities )],
@@ -2205,7 +2201,7 @@ of the corresponding class can be passed instead of the marked hash ref.
 You may pass any combination of objects, hash and list refs to these
 methods, as long as you meet the structure.
 
-List items (i.e. multiple occurences) are not displayed in the synopsis.
+List items (i.e. multiple occurrences) are not displayed in the synopsis.
 You may generally pass a list ref of hash refs (or objects) instead of a hash
 ref - this may result in invalid XML if used improperly, though. Note that
 SOAP::WSDL always expects list references at maximum depth position.
@@ -2358,7 +2354,7 @@ Returns a L<ONVIF::Device::Elements::GetSystemLogResponse|ONVIF::Device::Element
 
 =head3 GetSystemSupportInformation
 
-This operation gets arbitary device diagnostics information from the device.
+This operation gets arbitrary device diagnostics information from the device.
 
 Returns a L<ONVIF::Device::Elements::GetSystemSupportInformationResponse|ONVIF::Device::Elements::GetSystemSupportInformationResponse> object.
 
@@ -2602,7 +2598,7 @@ Returns a L<ONVIF::Device::Elements::GetHostnameResponse|ONVIF::Device::Elements
 
 =head3 SetHostname
 
-A device shall accept string formated according to RFC 1123 section 2.1 or alternatively to RFC 952, other string shall be considered as invalid strings. 
+A device shall accept string formatted according to RFC 1123 section 2.1 or alternatively to RFC 952, other string shall be considered as invalid strings.
 
 Returns a L<ONVIF::Device::Elements::SetHostnameResponse|ONVIF::Device::Elements::SetHostnameResponse> object.
 
@@ -3059,7 +3055,7 @@ Returns a L<ONVIF::Device::Elements::SetClientCertificateModeResponse|ONVIF::Dev
 
 =head3 GetRelayOutputs
 
- This method has been depricated with version 2.0. Refer to the DeviceIO service.
+ This method has been deprecated with version 2.0. Refer to the DeviceIO service.
 
 Returns a L<ONVIF::Device::Elements::GetRelayOutputsResponse|ONVIF::Device::Elements::GetRelayOutputsResponse> object.
 
@@ -3069,7 +3065,7 @@ Returns a L<ONVIF::Device::Elements::GetRelayOutputsResponse|ONVIF::Device::Elem
 
 =head3 SetRelayOutputSettings
 
-This method has been depricated with version 2.0. Refer to the DeviceIO service.
+This method has been deprecated with version 2.0. Refer to the DeviceIO service.
 
 Returns a L<ONVIF::Device::Elements::SetRelayOutputSettingsResponse|ONVIF::Device::Elements::SetRelayOutputSettingsResponse> object.
 
@@ -3085,7 +3081,7 @@ Returns a L<ONVIF::Device::Elements::SetRelayOutputSettingsResponse|ONVIF::Devic
 
 =head3 SetRelayOutputState
 
-This method has been depricated with version 2.0. Refer to the DeviceIO service.
+This method has been deprecated with version 2.0. Refer to the DeviceIO service.
 
 Returns a L<ONVIF::Device::Elements::SetRelayOutputStateResponse|ONVIF::Device::Elements::SetRelayOutputStateResponse> object.
 

@@ -114,10 +114,10 @@ Constructor. The following data structure may be passed to new():
 
  { # ONVIF::Media::Types::MetadataStream
    # One of the following elements.
-   # No occurance checks yet, so be sure to pass just one...
+   # No occurrence checks yet, so be sure to pass just one...
    VideoAnalytics =>    { # ONVIF::Media::Types::VideoAnalyticsStream
      # One of the following elements.
-     # No occurance checks yet, so be sure to pass just one...
+     # No occurrence checks yet, so be sure to pass just one...
      Frame =>  { # ONVIF::Media::Types::Frame
        PTZStatus =>  { # ONVIF::Media::Types::PTZStatus
          Position =>  { # ONVIF::Media::Types::PTZVector
@@ -220,7 +220,7 @@ Constructor. The following data structure may be passed to new():
    },
    PTZ =>    { # ONVIF::Media::Types::PTZStream
      # One of the following elements.
-     # No occurance checks yet, so be sure to pass just one...
+     # No occurrence checks yet, so be sure to pass just one...
      PTZStatus =>  { # ONVIF::Media::Types::PTZStatus
        Position =>  { # ONVIF::Media::Types::PTZVector
          PanTilt => ,

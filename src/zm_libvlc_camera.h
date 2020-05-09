@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */  
 
 #ifndef ZM_LIBVLC_CAMERA_H
@@ -41,8 +41,9 @@ struct LibvlcPrivateData
   ThreadData<bool> newImage;
 };
 
-class LibvlcCamera : public Camera
-{
+class LibvlcCamera : public Camera {
+  private:
+  static void log_callback( void *ptr, int level, const libvlc_log_t *ctx, const char *format, va_list vargs );
 protected:
   std::string mPath;
   std::string mMethod;
@@ -57,12 +58,12 @@ protected:
   libvlc_media_player_t *mLibvlcMediaPlayer;
 
 public:
-  LibvlcCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  LibvlcCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
   ~LibvlcCamera();
 
-  const std::string &Path() const { return( mPath ); }
-  const std::string &Options() const { return( mOptions ); }
-  const std::string &Method() const { return( mMethod ); }
+  const std::string &Path() const { return mPath; }
+  const std::string &Options() const { return mOptions; }
+  const std::string &Method() const { return mMethod; }
 
   void Initialise();
   void Terminate();
@@ -70,7 +71,9 @@ public:
   int PrimeCapture();
   int PreCapture();
   int Capture( Image &image );
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
   int PostCapture();
+  int Close() { return 0; };
 };
 
 #endif // HAVE_LIBVLC

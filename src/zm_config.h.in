@@ -14,18 +14,22 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_CONFIG_H
 #define ZM_CONFIG_H
 
+#if !defined(PATH_MAX)
+#define PATH_MAX 1024
+#endif
 #include "config.h"
 #include "zm_config_defines.h"
 
 #include <string>
 
 #define ZM_CONFIG        "@ZM_CONFIG@"  // Path to config file
+#define ZM_CONFIG_SUBDIR "@ZM_CONFIG_SUBDIR@"  // Path to the ZoneMinder config subfolder
 #define ZM_VERSION        "@VERSION@"  // ZoneMinder Version
 
 #define ZM_HAS_V4L1       @ZM_HAS_V4L1@
@@ -58,29 +62,44 @@
 
 extern void zmLoadConfig();
 
-struct StaticConfig
-{
+extern void process_configfile( char* configFile );
+
+struct StaticConfig {
   std::string DB_HOST;
   std::string DB_NAME;
   std::string DB_USER;
   std::string DB_PASS;
+  std::string DB_SSL_CA_CERT;
+  std::string DB_SSL_CLIENT_KEY;
+  std::string DB_SSL_CLIENT_CERT;
   std::string PATH_WEB;
   std::string SERVER_NAME;
   unsigned int SERVER_ID;
+  std::string DIR_EVENTS;
+  std::string DIR_SOUNDS;
+  std::string DIR_EXPORTS;
+  std::string PATH_ZMS;
+  std::string PATH_MAP;
+  std::string PATH_SOCKS;
+  std::string PATH_LOGS;
+  std::string PATH_SWAP;
+  std::string PATH_ARP;
+  char    capture_file_format[PATH_MAX];
+  char    analyse_file_format[PATH_MAX];
+  char    general_file_format[PATH_MAX];
+  char    video_file_format[PATH_MAX];
 };
 
 extern StaticConfig staticConfig;
 
-class ConfigItem
-{
+class ConfigItem {
 private:
   char *name;
   char *value;
   char *type;
 
-  mutable enum { CFG_BOOLEAN, CFG_INTEGER, CFG_DECIMAL, CFG_STRING } cfg_type;
-  mutable union
-  {
+  mutable enum { CFG_UNKNOWN, CFG_BOOLEAN, CFG_INTEGER, CFG_DECIMAL, CFG_STRING } cfg_type;
+  mutable union {
     bool boolean_value;
     int integer_value;
     double decimal_value;
@@ -89,34 +108,34 @@ private:
   mutable bool accessed;
 
 public:
-  ConfigItem( const char *p_name, const char *p_value, const char *const p_type );
+  ConfigItem(const char *p_name, const char *p_value, const char *const p_type);
+  ConfigItem(const ConfigItem &);
   ~ConfigItem();
+  void Copy(const ConfigItem&);
   void ConvertValue() const;
   bool BooleanValue() const;
   int IntegerValue() const;
   double DecimalValue() const;
   const char *StringValue() const;
 
-  inline operator bool() const
-  {
-    return( BooleanValue() );
+  ConfigItem &operator=(const ConfigItem item) {
+    Copy(item);return *this;
   }
-  inline operator int() const
-  {
-    return( IntegerValue() );
+  inline operator bool() const {
+    return BooleanValue();
   }
-  inline operator double() const
-  {
-    return( DecimalValue() );
+  inline operator int() const {
+    return IntegerValue();
   }
-  inline operator const char *() const
-  {
-    return( StringValue() );
+  inline operator double() const {
+    return DecimalValue();
+  }
+  inline operator const char *() const {
+    return StringValue();
   }
 };
 
-class Config
-{
+class Config {
 public:
   ZM_CFG_DECLARE_LIST
 

@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -42,8 +42,9 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # will save memory.
 our %EXPORT_TAGS = (
     'functions' => [ qw(
-    ) ]
-);
+      CpuLoad
+      ) ]
+    );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
@@ -65,47 +66,58 @@ use ZoneMinder::Database qw(:all);
 use POSIX;
 
 sub new {
-    my ( $parent, $id, $data ) = @_;
+  my ( $parent, $id, $data ) = @_;
 
-	my $self = {};
-	bless $self, $parent;
-	if ( ( $$self{Id} = $id ) or $data ) {
+  my $self = {};
+  bless $self, $parent;
+  if ( ( $$self{Id} = $id ) or $data ) {
 #$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
-		$self->load( $data );
-	}
-	return $self;
+    $self->load( $data );
+  }
+  return $self;
 } # end sub new
 
 sub load {
-	my ( $self, $data ) = @_;
-	my $type = ref $self;
-	if ( ! $data ) {
+  my ( $self, $data ) = @_;
+  my $type = ref $self;
+  if ( ! $data ) {
 #$log->debug("Object::load Loading from db $type");
-		$data = $ZoneMinder::Database::dbh->selectrow_hashref( 'SELECT * FROM Servers WHERE Id=?', {}, $$self{Id} );
-		if ( ! $data ) {
-			if ( $ZoneMinder::Database::dbh->errstr ) {
-				Error( "Failure to load Server record for $$self{id}: Reason: " . $ZoneMinder::Database::dbh->errstr );
-			} # end if
-		} # end if
-	} # end if ! $data
-	if ( $data and %$data ) {
-		@$self{keys %$data} = values %$data;
-	} # end if
+    $data = $ZoneMinder::Database::dbh->selectrow_hashref( 'SELECT * FROM Servers WHERE Id=?', {}, $$self{Id} );
+    if ( ! $data ) {
+      if ( $ZoneMinder::Database::dbh->errstr ) {
+        Error( "Failure to load Server record for $$self{id}: Reason: " . $ZoneMinder::Database::dbh->errstr );
+      } # end if
+    } # end if
+  } # end if ! $data
+  if ( $data and %$data ) {
+    @$self{keys %$data} = values %$data;
+  } # end if
 } # end sub load
 
 sub Name {
-	if ( @_ > 1 ) {
-		$_[0]{Name} = $_[1];
-	}
-	return $_[0]{Name};
+  if ( @_ > 1 ) {
+    $_[0]{Name} = $_[1];
+  }
+  return $_[0]{Name};
 } # end sub Name
 
 sub Hostname {
-	if ( @_ > 1 ) {
-		$_[0]{Hostname} = $_[1];
-	}
-	return $_[0]{Hostname};
+  if ( @_ > 1 ) {
+    $_[0]{Hostname} = $_[1];
+  }
+  return $_[0]{Hostname};
 } # end sub Hostname
+
+sub CpuLoad {
+  my $output = qx(uptime);
+  my @sysloads = split ', ', (split ': ', $output)[-1];
+
+  if (join(', ',@sysloads) =~ /(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*$/) {
+    return @sysloads;
+  }
+
+  return (undef, undef, undef);
+} # end sub CpuLoad
 
 1;
 __END__
@@ -117,8 +129,8 @@ ZoneMinder::Database - Perl extension for blah blah blah
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Server;
-  blah blah blah
+use ZoneMinder::Server;
+blah blah blah
 
 =head1 DESCRIPTION
 

@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #include "zm.h"
@@ -31,13 +31,15 @@ bool zm_terminate = false;
 
 RETSIGTYPE zm_hup_handler(int signal)
 {
-	Info("Got signal %d (%s), reloading", signal, strsignal(signal));
+  // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.
+	//Info("Got signal %d (%s), reloading", signal, strsignal(signal));
 	zm_reload = true;
 }
 
 RETSIGTYPE zm_term_handler(int signal)
 {
-	Info("Got signal %d (%s), exiting", signal, strsignal(signal));
+  // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.
+	//Info("Got signal %d (%s), exiting", signal, strsignal(signal));
 	zm_terminate = true;
 }
 
@@ -63,13 +65,13 @@ RETSIGTYPE zm_die_handler(int signal)
 		ucontext_t *uc = (ucontext_t *) context;
 		cr2 = info->si_addr;
     #if defined(__x86_64__)
-	    #ifdef __FreeBSD_kernel__
+	    #if defined(__FreeBSD_kernel__) || defined(__FreeBSD__) 
 		ip = (void *)(uc->uc_mcontext.mc_rip);
 	    #else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_RIP]);
 	    #endif
     #else
-	    #ifdef __FreeBSD_kernel__
+	    #if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
 		ip = (void *)(uc->uc_mcontext.mc_eip);
 	    #else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_EIP]);

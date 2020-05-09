@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 //#include "zm_logger.h"
@@ -22,10 +22,21 @@
 #include "zm_utils.h"
 
 #include <string.h>
+#include <algorithm>
 #include <stdio.h>
 #include <stdarg.h>
+#include <fcntl.h> /* Definition of AT_* constants */
+#include <sys/stat.h>
+#if defined(__arm__)
+#include <sys/auxv.h>
+#endif
+
+#ifdef HAVE_CURL_CURL_H
+#include <curl/curl.h>
+#endif
 
 unsigned int sseversion = 0;
+unsigned int neonversion = 0;
 
 std::string trimSet(std::string str, std::string trimset) {
   // Trim Both leading and trailing sets
@@ -41,8 +52,7 @@ std::string trimSet(std::string str, std::string trimset) {
     return str.substr( startpos, endpos-startpos+1 );
 }
 
-std::string trimSpaces(std::string str)
-{
+std::string trimSpaces(const std::string &str) {
   return trimSet(str, " \t");
 }
 
@@ -72,7 +82,7 @@ const std::string stringtf( const char *format, ... )
   return( tempString );
 }
 
-const std::string stringtf( const std::string &format, ... )
+const std::string stringtf( const std::string format, ... )
 {
   va_list ap;
   char tempBuffer[8192];
@@ -87,26 +97,22 @@ const std::string stringtf( const std::string &format, ... )
   return( tempString );
 }
 
-bool startsWith( const std::string &haystack, const std::string &needle )
-{
-  return( haystack.substr( 0, needle.length() ) == needle );
+bool startsWith(const std::string &haystack, const std::string &needle) {
+  return( haystack.substr(0, needle.length()) == needle );
 }
 
-StringVector split( const std::string &string, const std::string chars, int limit )
-{
+StringVector split(const std::string &string, const std::string &chars, int limit) {
   StringVector stringVector;
   std::string tempString = string;
   std::string::size_type startIndex = 0;
   std::string::size_type endIndex = 0;
 
   //Info( "Looking for '%s' in '%s', limit %d", chars.c_str(), string.c_str(), limit );
-  do
-  {
+  do {
     // Find delimiters
     endIndex = string.find_first_of( chars, startIndex );
     //Info( "Got endIndex at %d", endIndex );
-    if ( endIndex > 0 )
-    {
+    if ( endIndex > 0 ) {
       //Info( "Adding '%s'", string.substr( startIndex, endIndex-startIndex ).c_str() );
       stringVector.push_back( string.substr( startIndex, endIndex-startIndex ) );
     }
@@ -114,8 +120,7 @@ StringVector split( const std::string &string, const std::string chars, int limi
       break;
     // Find non-delimiters
     startIndex = tempString.find_first_not_of( chars, endIndex );
-    if ( limit && (stringVector.size() == (unsigned int)(limit-1)) )
-    {
+    if ( limit && (stringVector.size() == (unsigned int)(limit-1)) ) {
       stringVector.push_back( string.substr( startIndex ) );
       break;
     }
@@ -123,22 +128,21 @@ StringVector split( const std::string &string, const std::string chars, int limi
   } while ( startIndex != std::string::npos );
   //Info( "Finished with %d strings", stringVector.size() );
 
-  return( stringVector );
+  return stringVector;
 }
 
-const std::string join(const StringVector v, const char * delim ) {
+const std::string join(const StringVector &v, const char * delim=",") {
   std::stringstream ss;
 
-  for(size_t i = 0; i < v.size(); ++i) {
-    if(i != 0)
-      ss << ",";
+  for (size_t i = 0; i < v.size(); ++i) {
+    if ( i != 0 )
+      ss << delim;
     ss << v[i];
   }
   return ss.str();
 }
 
-const std::string base64Encode( const std::string &inString )
-{
+const std::string base64Encode(const std::string &inString) {
   static char base64_table[64] = { '\0' };
 
   if ( !base64_table[0] )
@@ -201,10 +205,9 @@ int split(const char* string, const char delim, std::vector<std::string>& items)
     return -2;
 
   std::string str(string);
-  size_t pos;
   
   while(true) {
-    pos = str.find(delim);
+    size_t pos = str.find(delim);
     items.push_back(str.substr(0, pos));
     str.erase(0, pos+1);
 
@@ -234,30 +237,59 @@ int pairsplit(const char* string, const char delim, std::string& name, std::stri
   return 0;
 }
 
-/* Sets sse_version  */
-void ssedetect() {
+/* Detect special hardware features, such as SIMD instruction sets */
+void hwcaps_detect() {
+  neonversion = 0;
+  sseversion = 0;
 #if (defined(__i386__) || defined(__x86_64__))
   /* x86 or x86-64 processor */
-  uint32_t r_edx, r_ecx;
-  
+  uint32_t r_edx, r_ecx, r_ebx;
+
+#ifdef __x86_64__
   __asm__ __volatile__(
-#if defined(__i386__)
-    "pushl %%ebx;\n\t"
-#endif
+  "push %%rbx\n\t"
+  "mov $0x0,%%ecx\n\t"
+  "mov $0x7,%%eax\n\t"
+  "cpuid\n\t"
+  "push %%rbx\n\t"
   "mov $0x1,%%eax\n\t"
   "cpuid\n\t"
-#if defined(__i386__)
-    "popl %%ebx;\n\t"
-#endif
-  : "=d" (r_edx), "=c" (r_ecx)
+  "pop %%rax\n\t"
+  "pop %%rbx\n\t"
+  : "=d" (r_edx), "=c" (r_ecx), "=a" (r_ebx)
   :
-  : "%eax"
-#if !defined(__i386__)
-       , "%ebx"
-#endif
+  :
   );
-  
-  if (r_ecx & 0x00000200) {
+#else
+  __asm__ __volatile__(
+  "push %%ebx\n\t"
+  "mov $0x0,%%ecx\n\t"
+  "mov $0x7,%%eax\n\t"
+  "cpuid\n\t"
+  "push %%ebx\n\t"
+  "mov $0x1,%%eax\n\t"
+  "cpuid\n\t"
+  "pop %%eax\n\t"
+  "pop %%ebx\n\t"
+  : "=d" (r_edx), "=c" (r_ecx), "=a" (r_ebx)
+  :
+  :
+  );
+#endif
+
+  if (r_ebx & 0x00000020) {
+    sseversion = 52; /* AVX2 */
+    Debug(1,"Detected a x86\\x86-64 processor with AVX2");
+  } else if (r_ecx & 0x10000000) {
+    sseversion = 51; /* AVX */
+    Debug(1,"Detected a x86\\x86-64 processor with AVX");
+  } else if (r_ecx & 0x00100000) {
+    sseversion = 42; /* SSE4.2 */
+    Debug(1,"Detected a x86\\x86-64 processor with SSE4.2");
+  } else if (r_ecx & 0x00080000) {
+    sseversion = 41; /* SSE4.1 */
+    Debug(1,"Detected a x86\\x86-64 processor with SSE4.1");
+  } else if (r_ecx & 0x00000200) {
     sseversion = 35; /* SSSE3 */
     Debug(1,"Detected a x86\\x86-64 processor with SSSE3");
   } else if (r_ecx & 0x00000001) {
@@ -272,12 +304,25 @@ void ssedetect() {
   } else {
     sseversion = 0;
     Debug(1,"Detected a x86\\x86-64 processor");
+  } 
+#elif defined(__arm__)
+  // ARM processor in 32bit mode
+  // To see if it supports NEON, we need to get that information from the kernel
+  unsigned long auxval = getauxval(AT_HWCAP);
+  if (auxval & HWCAP_ARM_NEON) {
+    Debug(1,"Detected ARM (AArch32) processor with Neon");
+    neonversion = 1;
+  } else {
+    Debug(1,"Detected ARM (AArch32) processor");
   }
-  
+#elif defined(__aarch64__)
+  // ARM processor in 64bit mode
+  // Neon is mandatory, no need to check for it
+  neonversion = 1;
+  Debug(1,"Detected ARM (AArch64) processor with Neon");
 #else
-  /* Non x86 or x86-64 processor, SSE2 is not available */
-  Debug(1,"Detected a non x86\\x86-64 processor");
-  sseversion = 0;
+  // Unknown processor
+  Debug(1,"Detected unknown processor architecture");
 #endif
 }
 
@@ -342,6 +387,74 @@ void timespec_diff(struct timespec *start, struct timespec *end, struct timespec
   } else {
     diff->tv_sec = end->tv_sec-start->tv_sec;
     diff->tv_nsec = end->tv_nsec-start->tv_nsec;
+  }
+}
+
+char *timeval_to_string( struct timeval tv ) {
+  time_t nowtime;
+  struct tm *nowtm;
+  static char tmbuf[20], buf[28];
+
+  nowtime = tv.tv_sec;
+  nowtm = localtime(&nowtime);
+  strftime(tmbuf, sizeof tmbuf, "%Y-%m-%d %H:%M:%S", nowtm);
+  snprintf(buf, sizeof buf-1, "%s.%06ld", tmbuf, tv.tv_usec);
+  return buf;
+}
+
+std::string UriDecode( const std::string &encoded ) {
+  char a, b;
+  const char *src = encoded.c_str();
+  std::string retbuf;
+  retbuf.resize(encoded.length() + 1);
+  char *dst = &retbuf[0];
+  while (*src) {
+    if ((*src == '%') && ((a = src[1]) && (b = src[2])) && (isxdigit(a) && isxdigit(b))) {
+      if (a >= 'a')
+        a -= 'a'-'A';
+      if (a >= 'A')
+        a -= ('A' - 10);
+      else
+        a -= '0';
+      if (b >= 'a')
+        b -= 'a'-'A';
+      if (b >= 'A')
+        b -= ('A' - 10);
+      else
+        b -= '0';
+      *dst++ = 16*a+b;
+      src+=3;
+    } else if (*src == '+') {
+      *dst++ = ' ';
+      src++;
+    } else {
+      *dst++ = *src++;
+    }
+  }
+  *dst++ = '\0';
+  return retbuf;
+}
+
+void string_toupper( std::string& str) {
+  std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+}
+
+void touch(const char *pathname) {
+  int fd = open(pathname,
+      O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK,
+      0666);
+  if ( fd < 0 ) {
+    // Couldn't open that path.
+    Error("Couldn't open() path %s in touch", pathname);
+    return;
+  }
+  int rc = utimensat(AT_FDCWD,
+      pathname,
+      nullptr,
+      0);
+  if ( rc ) {
+    Error("Couldn't utimensat() path %s in touch", pathname);
+    return;
   }
 }
 

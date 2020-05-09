@@ -2,18 +2,18 @@
 /**
  * Parses the request URL into controller, action, and parameters.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Routing
  * @since         CakePHP(tm) v 0.2.9
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('CakeRequest', 'Network');
@@ -523,6 +523,7 @@ class Router {
  * - 'id' - The regular expression fragment to use when matching IDs. By default, matches
  *    integer values and UUIDs.
  * - 'prefix' - URL prefix to use for the generated routes. Defaults to '/'.
+ * - 'connectOptions' – Custom options for connecting the routes.
  *
  * @param string|array $controller A controller name or array of controller names (i.e. "Posts" or "ListItems")
  * @param array $options Options to use when generating REST routes
@@ -664,7 +665,7 @@ class Router {
  * created later in the request.
  *
  * Nested requests will create a stack of requests. You can remove requests using
- * Router::popRequest(). This is done automatically when using Object::requestAction().
+ * Router::popRequest(). This is done automatically when using CakeObject::requestAction().
  *
  * Will accept either a CakeRequest object or an array of arrays. Support for
  * accepting arrays may be removed in the future.
@@ -1087,6 +1088,40 @@ class Router {
 	}
 
 /**
+ * Reverses a parsed parameter array into an array.
+ *
+ * Works similarly to Router::url(), but since parsed URL's contain additional
+ * 'pass' and 'named' as well as 'url.url' keys. Those keys need to be specially
+ * handled in order to reverse a params array into a string URL.
+ *
+ * This will strip out 'autoRender', 'bare', 'requested', and 'return' param names as those
+ * are used for CakePHP internals and should not normally be part of an output URL.
+ *
+ * @param CakeRequest|array $params The params array or CakeRequest object that needs to be reversed.
+ * @return array The URL array ready to be used for redirect or HTML link.
+ */
+	public static function reverseToArray($params) {
+		if ($params instanceof CakeRequest) {
+			$url = $params->query;
+			$params = $params->params;
+		} else {
+			$url = $params['url'];
+		}
+		$pass = isset($params['pass']) ? $params['pass'] : array();
+		$named = isset($params['named']) ? $params['named'] : array();
+		unset(
+			$params['pass'], $params['named'], $params['paging'], $params['models'], $params['url'], $url['url'],
+			$params['autoRender'], $params['bare'], $params['requested'], $params['return'],
+			$params['_Token']
+		);
+		$params = array_merge($params, $pass, $named);
+		if (!empty($url)) {
+			$params['?'] = $url;
+		}
+		return $params;
+	}
+
+/**
  * Reverses a parsed parameter array into a string.
  *
  * Works similarly to Router::url(), but since parsed URL's contain additional
@@ -1102,24 +1137,7 @@ class Router {
  * @return string The string that is the reversed result of the array
  */
 	public static function reverse($params, $full = false) {
-		if ($params instanceof CakeRequest) {
-			$url = $params->query;
-			$params = $params->params;
-		} else {
-			$url = $params['url'];
-		}
-		$pass = isset($params['pass']) ? $params['pass'] : array();
-		$named = isset($params['named']) ? $params['named'] : array();
-
-		unset(
-			$params['pass'], $params['named'], $params['paging'], $params['models'], $params['url'], $url['url'],
-			$params['autoRender'], $params['bare'], $params['requested'], $params['return'],
-			$params['_Token']
-		);
-		$params = array_merge($params, $pass, $named);
-		if (!empty($url)) {
-			$params['?'] = $url;
-		}
+		$params = Router::reverseToArray($params, $full);
 		return Router::url($params, $full);
 	}
 
@@ -1263,7 +1281,7 @@ class Router {
  */
 	protected static function _loadRoutes() {
 		static::$initialized = true;
-		include APP . 'Config' . DS . 'routes.php';
+		include CONFIG . 'routes.php';
 	}
 
 }

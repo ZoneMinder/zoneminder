@@ -1,0 +1,5 @@
+D @ZM_TMPDIR@ 0755 nginx nginx
+D @ZM_SOCKDIR@ 0755 nginx nginx
+D @ZM_CACHEDIR@ 0755 nginx nginx
+d @ZM_DIR_EVENTS@ 0755 nginx nginx
+

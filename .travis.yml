@@ -1,48 +1,75 @@
 language: cpp
 sudo: required
-dist: trusty
+dist: xenial
+git:
+  depth: 9999999
 notifications:
-  irc: "chat.freenode.net#zoneminder-dev"
+  irc: chat.freenode.net#zoneminder-dev
 branches:
   except:
-    - modern
+  - modern
+cache: ccache
 addons:
-  sauce_connect:
-    username: "zoneminder"
-    access_key: "046ec7c1-c598-4e7e-949a-f86e725d1722"
-env:
-  global:
-    - LD_LIBRARY_PATH="/usr/local/lib:/opt/libjpeg-turbo/lib:$LD_LIBRARY_PATH"
-    - DEB_HOST_GNU_TYPE=$(dpkg-architecture -qDEB_HOST_GNU_TYPE)
-    - DEB_BUILD_GNU_TYPE=$(dpkg-architecture -qDEB_BUILD_GNU_TYPE)
-    - CFLAGS="-DZM_FFMPEG_CVS -DHAVE_LIBCRYPTO -I/usr/local/include"
-    - CXXFLAGS="$CFLAGS"
-  matrix:
-    - ZM_BUILDMETHOD=cmake
-compiler:
-  - gcc
-  - clang
-before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -y -qq libpolkit-gobject-1-dev zlib1g-dev apache2 mysql-server php5 php5-mysql build-essential libmysqlclient-dev libssl-dev libbz2-dev libpcre3-dev libdbi-perl libarchive-zip-perl libdate-manip-perl libdevice-serialport-perl libmime-perl libwww-perl libdbd-mysql-perl libsys-mmap-perl yasm automake autoconf cmake libjpeg-turbo8-dev apache2-mpm-prefork libapache2-mod-php5 php5-cli libtheora-dev libvorbis-dev libvpx-dev libx264-dev libvlccore-dev libvlc-dev 2>&1 > /dev/null 
+  ssh_known_hosts: zmrepo.zoneminder.com
+  apt:
+    sources:
+    - sourceline: ppa:iconnor/zoneminder-master
+    - key_url: http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x4D0BF748776FFB04
+    packages:
+    - gdebi
+    - yum-utils
+    - patch
+    - git
+    - curl
+    - sshfs
+    - sed
+    - binfmt-support
+    - qemu
+    - qemu-user-static
+    - dnsutils
+    - traceroute
 install:
-  - git clone -b n3.0 --depth=1 git://source.ffmpeg.org/ffmpeg.git
-  - cd ffmpeg
-  - ./configure --enable-shared --enable-swscale --enable-gpl  --enable-libx264 --enable-libvpx --enable-libvorbis --enable-libtheora 
-  - make -j `grep processor /proc/cpuinfo|wc -l` 
-  - sudo make install 
-  - sudo make install-libs
-before_script:
-  - cd $TRAVIS_BUILD_DIR
-  - mysql -uroot -e "CREATE DATABASE IF NOT EXISTS zm"
-  - mysql -uroot -e "GRANT ALL ON zm.* TO 'zmuser'@'localhost' IDENTIFIED BY 'zmpass'";
-  - mysql -uroot -e "FLUSH PRIVILEGES"
+  - update-binfmts --enable qemu-arm
+
+env:
+  - SMPFLAGS=-j4 OS=el DIST=7
+  - SMPFLAGS=-j4 OS=el DIST=8 DOCKER_REPO=knnniggett/packpack
+  - SMPFLAGS=-j4 OS=fedora DIST=30
+  - SMPFLAGS=-j4 OS=fedora DIST=31
+  - SMPFLAGS=-j4 OS=ubuntu DIST=trusty DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=xenial DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=bionic DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=disco DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=eoan DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=focal DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=debian DIST=jessie DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=debian DIST=stretch DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=debian DIST=buster DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=trusty ARCH=i386
+  - SMPFLAGS=-j4 OS=ubuntu DIST=xenial ARCH=i386
+  - SMPFLAGS=-j4 OS=ubuntu DIST=disco ARCH=i386
+  - SMPFLAGS=-j4 OS=debian DIST=buster ARCH=i386
+  - SMPFLAGS=-j4 OS=debian DIST=stretch ARCH=i386
+  - SMPFLAGS=-j4 OS=eslint DIST=eslint
+
+compiler:
+- gcc
+services:
+- mysql
+- docker
+
 script:
-  - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then cmake -DCMAKE_INSTALL_PREFIX="/usr"; fi
-  - make
-  - sudo make install
-  - if [ "$ZM_BUILDMETHOD" = "cmake" ]; then sudo ./zmlinkcontent.sh; fi
-  - mysql -uzmuser -pzmpass < db/zm_create.sql
-  - mysql -uzmuser -pzmpass zm < db/test.monitor.sql
-  - sudo zmpkg.pl start
-  - sudo zmfilter.pl -f purgewhenfull
+- utils/packpack/startpackpack.sh
+
+before_deploy:
+- openssl aes-256-cbc -K $encrypted_62a62750aa73_key -iv $encrypted_62a62750aa73_iv -in ./utils/packpack/deploy_rsa.enc -out /tmp/deploy_rsa -d
+- eval "$(ssh-agent -s)"
+- chmod 600 /tmp/deploy_rsa
+- ssh-add /tmp/deploy_rsa
+
+deploy:
+  provider: script
+  skip_cleanup: true
+  script: utils/packpack/rsync_xfer.sh
+  on:
+    branch: master

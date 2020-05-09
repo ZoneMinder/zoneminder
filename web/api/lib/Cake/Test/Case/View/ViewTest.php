@@ -2,18 +2,18 @@
 /**
  * ViewTest file
  *
- * CakePHP(tm) Tests <http://book.cakephp.org/2.0/en/development/testing.html>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/2.0/en/development/testing.html>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.View
  * @since         CakePHP(tm) v 1.2.0.4206
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('View', 'View');
@@ -220,7 +220,7 @@ class TestBeforeAfterHelper extends Helper {
 }
 
 /**
- * Class TestObjectWithToString
+ * TestObjectWithToString
  *
  * An object with the magic method __toString() for testing with view blocks.
  */
@@ -233,7 +233,7 @@ class TestObjectWithToString {
 }
 
 /**
- * Class TestObjectWithoutToString
+ * TestObjectWithoutToString
  *
  * An object without the magic method __toString() for testing with view blocks.
  */
@@ -241,7 +241,7 @@ class TestObjectWithoutToString {
 }
 
 /**
- * Class TestViewEventListener
+ * TestViewEventListener
  *
  * An event listener to test cakePHP events
  */
@@ -625,9 +625,16 @@ class ViewTest extends CakeTestCase {
 		$this->Controller->params['pass'] = array('home');
 
 		$View = new TestView($this->Controller);
-		ob_start();
 		$View->getViewFileName('does_not_exist');
+	}
 
+/**
+ * Test for missing theme views
+ *
+ * @expectedException MissingViewException
+ * @return void
+ */
+	public function testMissingThemeView() {
 		$this->ThemeController->plugin = null;
 		$this->ThemeController->name = 'Pages';
 		$this->ThemeController->viewPath = 'Pages';
@@ -653,10 +660,16 @@ class ViewTest extends CakeTestCase {
 		$this->Controller->layout = 'whatever';
 
 		$View = new TestView($this->Controller);
-		ob_start();
 		$View->getLayoutFileName();
-		ob_get_clean();
+	}
 
+/**
+ * Test for missing theme layouts
+ *
+ * @expectedException MissingLayoutException
+ * @return void
+ */
+	public function testMissingThemeLayout() {
 		$this->ThemeController->plugin = null;
 		$this->ThemeController->name = 'Posts';
 		$this->ThemeController->viewPath = 'posts';
@@ -1460,7 +1473,6 @@ class ViewTest extends CakeTestCase {
  * Test setting a block's content to null
  *
  * @return void
- * @link https://cakephp.lighthouseapp.com/projects/42648/tickets/3938-this-redirectthis-auth-redirecturl-broken
  */
 	public function testBlockSetNull() {
 		$this->View->assign('testWithNull', null);
@@ -1513,7 +1525,6 @@ class ViewTest extends CakeTestCase {
 	public static function blockValueProvider() {
 		return array(
 			'string' => array('A string value'),
-			'null' => array(null),
 			'decimal' => array(1.23456),
 			'object with __toString' => array(new TestObjectWithToString()),
 		);
@@ -1632,26 +1643,33 @@ class ViewTest extends CakeTestCase {
 /**
  * Test that starting the same block twice throws an exception
  *
- * @expectedException CakeException
  * @return void
  */
 	public function testStartBlocksTwice() {
-		$this->View->start('first');
-		echo 'In first ';
-		$this->View->start('second');
-		echo 'In second';
-		$this->View->start('first');
+		try {
+			$this->View->start('first');
+			$this->View->start('first');
+			$this->fail('No exception');
+		} catch (CakeException $e) {
+			ob_end_clean();
+			$this->assertTrue(true);
+		}
 	}
 
 /**
  * Test that an exception gets thrown when you leave a block open at the end
  * of a view.
  *
- * @expectedException CakeException
  * @return void
  */
 	public function testExceptionOnOpenBlock() {
-		$this->View->render('open_block');
+		try {
+			$this->View->render('open_block');
+			$this->fail('No exception');
+		} catch (CakeException $e) {
+			ob_end_clean();
+			$this->assertContains('The "no_close" block was left open', $e->getMessage());
+		}
 	}
 
 /**
@@ -1674,23 +1692,33 @@ TEXT;
 /**
  * Make sure that extending the current view with itself causes an exception
  *
- * @expectedException LogicException
  * @return void
  */
 	public function testExtendSelf() {
-		$this->View->layout = false;
-		$this->View->render('extend_self');
+		try {
+			$this->View->layout = false;
+			$this->View->render('extend_self');
+			$this->fail('No exception');
+		} catch (LogicException $e) {
+			ob_end_clean();
+			$this->assertContains('cannot have views extend themselves', $e->getMessage());
+		}
 	}
 
 /**
  * Make sure that extending in a loop causes an exception
  *
- * @expectedException LogicException
  * @return void
  */
 	public function testExtendLoop() {
-		$this->View->layout = false;
-		$this->View->render('extend_loop');
+		try {
+			$this->View->layout = false;
+			$this->View->render('extend_loop');
+			$this->fail('No exception');
+		} catch (LogicException $e) {
+			ob_end_clean();
+			$this->assertContains('cannot have views extend in a loop', $e->getMessage());
+		}
 	}
 
 /**
@@ -1714,12 +1742,18 @@ TEXT;
 /**
  * Extending an element which doesn't exist should throw a missing view exception
  *
- * @expectedException LogicException
  * @return void
  */
 	public function testExtendMissingElement() {
-		$this->View->layout = false;
-		$this->View->render('extend_missing_element');
+		try {
+			$this->View->layout = false;
+			$this->View->render('extend_missing_element');
+			$this->fail('No exception');
+		} catch (LogicException $e) {
+			ob_end_clean();
+			ob_end_clean();
+			$this->assertContains('element', $e->getMessage());
+		}
 	}
 
 /**

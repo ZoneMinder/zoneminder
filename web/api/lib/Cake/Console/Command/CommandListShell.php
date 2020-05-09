@@ -1,17 +1,17 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP Project
  * @package       Cake.Console.Command
  * @since         CakePHP v 2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('AppShell', 'Console/Command');
@@ -54,6 +54,7 @@ class CommandListShell extends AppShell {
 			$this->out(" -working: " . rtrim(APP, DS));
 			$this->out(" -root: " . rtrim(ROOT, DS));
 			$this->out(" -core: " . rtrim(CORE_PATH, DS));
+			$this->out(" -webroot: " . rtrim(WWW_ROOT, DS));
 			$this->out("");
 			$this->out(__d('cake_console', "<info>Changing Paths:</info>"), 2);
 			$this->out(__d('cake_console', "Your working path should be the same as your application path. To change your path use the '-app' param."));

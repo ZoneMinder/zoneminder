@@ -1,0 +1,10 @@
+--- a/packpack/pack/rpm.mk	2017-05-10 09:53:38.797616947 -0500
++++ b/packpack/pack/rpm.mk	2017-05-10 09:59:26.744409073 -0500
+@@ -26,7 +26,6 @@
+ 		-e 's/Source0:\([ ]*\).*/Source0: $(TARBALL)/' \
+ 		-e 's/%setup.*/%setup -q -n $(PRODUCT)-$(VERSION)/' \
+                 -re 's/(%autosetup.*)( -n \S*)(.*)/\1\3/' \
+-		-e '0,/%autosetup.*/ s/%autosetup.*/%autosetup -n $(PRODUCT)-$(VERSION)/' \
+                 -e '/%changelog/a\* $(THEDATE) $(CHANGELOG_NAME) <$(CHANGELOG_EMAIL)> - $(VERSION)-$(RELEASE)\n\- $(CHANGELOG_TEXT)\n' \
+ 		-i $@.tmp
+ 	grep -F "Version: $(VERSION)" $@.tmp && \

@@ -14,17 +14,15 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#if !defined(PATH_MAX)
-#define PATH_MAX 1024
-#endif
 
 #ifndef ZM_H
 #define ZM_H
 
 #include "zm_config.h"
+#include "zm_signal.h"
 #ifdef SOLARIS
 #undef DEFAULT_TYPE  // pthread defines this which breaks StreamType DEFAULT_TYPE
 #include <string.h>  // define strerror() and friends

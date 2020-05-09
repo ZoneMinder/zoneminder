@@ -15,18 +15,18 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 ?>
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE html>
 <html>
 <?php
 if ( !empty($refreshParent) )
 {
 ?>
 <head>
-<script type="text/javascript">
+<script nonce="<?php echo $cspNonce;?>">
 //self.onerror = function() { return( true ); }
 opener.location.reload(true);
 </script>
@@ -34,4 +34,5 @@ opener.location.reload(true);
 <?php
 }
 ?>
+<body></body>
 </html>

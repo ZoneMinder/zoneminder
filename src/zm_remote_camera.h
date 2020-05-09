@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_REMOTE_CAMERA_H
@@ -27,13 +27,15 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <arpa/inet.h>
+
+#define SOCKET_BUF_SIZE 8192
 
 //
 // Class representing 'remote' cameras, i.e. those which are
 // accessed over a network connection.
 //
-class RemoteCamera : public Camera
-{
+class RemoteCamera : public Camera {
 protected:
   std::string  protocol;
   std::string  host;
@@ -43,6 +45,7 @@ protected:
   std::string  username;
   std::string  password;
   std::string  auth64;
+  struct addrinfo *hp;
 
   // Reworked authentication system
   // First try without authentication, even if we have a username and password
@@ -51,11 +54,24 @@ protected:
   // subsequent requests can set the required authentication header.
   bool mNeedAuth;
   zm::Authenticator* mAuthenticator;
-protected:
-  struct addrinfo *hp;
 
 public:
-  RemoteCamera( int p_id, const std::string &p_proto, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  RemoteCamera(
+    unsigned int p_monitor_id,
+    const std::string &p_proto,
+    const std::string &p_host,
+    const std::string &p_port,
+    const std::string &p_path,
+    int p_width,
+    int p_height,
+    int p_colours,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio
+  );
   virtual ~RemoteCamera();
 
   const std::string &Protocol() const { return( protocol ); }
@@ -70,9 +86,12 @@ public:
   virtual void Terminate() = 0;
   virtual int Connect() = 0;
   virtual int Disconnect() = 0;
-  virtual int PreCapture() = 0;
+  virtual int PreCapture() { return 0; };
+  virtual int PrimeCapture() { return 0; };
   virtual int Capture( Image &image ) = 0;
   virtual int PostCapture() = 0;
+  virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory )=0;
+  int Read( int fd, char*buf, int size );
 };
 
 #endif // ZM_REMOTE_CAMERA_H

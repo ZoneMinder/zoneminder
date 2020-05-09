@@ -2,18 +2,18 @@
 /**
  * DbAclTest file.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Test.Case.Controller.Component.Acl
  * @since         CakePHP(tm) v 2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ComponentCollection', 'Controller');
@@ -429,15 +429,58 @@ class DbAclTest extends CakeTestCase {
  * @return void
  */
 	public function testInherit() {
-		//parent doesn't have access inherit should still deny
+		// parent doesn't have access inherit should still deny
 		$this->assertFalse($this->Acl->check('Milton', 'smash', 'delete'));
 		$this->Acl->inherit('Milton', 'smash', 'delete');
 		$this->assertFalse($this->Acl->check('Milton', 'smash', 'delete'));
 
-		//inherit parent
+		// inherit parent
 		$this->assertFalse($this->Acl->check('Milton', 'smash', 'read'));
 		$this->Acl->inherit('Milton', 'smash', 'read');
 		$this->assertTrue($this->Acl->check('Milton', 'smash', 'read'));
+	}
+
+/**
+ * test inherit from deny method
+ *
+ * @return void
+ */
+	public function testInheritParentDeny() {
+		$this->Acl->Aco->create(array('parent_id' => null, 'alias' => 'world'));
+		$this->Acl->Aco->save();
+
+		$this->Acl->Aco->create(array('parent_id' => $this->Acl->Aco->id, 'alias' => 'town'));
+		$this->Acl->Aco->save();
+
+		$this->Acl->Aco->create(array('parent_id' => null, 'alias' => 'bizzaro_world'));
+		$this->Acl->Aco->save();
+
+		$this->Acl->Aco->create(array('parent_id' => $this->Acl->Aco->id, 'alias' => 'bizzaro_town'));
+		$this->Acl->Aco->save();
+
+		$this->Acl->Aro->create(array('parent_id' => null, 'alias' => 'Jane'));
+		$this->Acl->Aro->save();
+
+		// Setup deny on create for parent
+		$this->Acl->allow('Jane', 'world', '*');
+		$this->Acl->deny('Jane', 'world', 'create');
+
+		// Setup inherit and specify allow for create on child.
+		$this->Acl->inherit('Jane', 'town', '*');
+		$this->Acl->allow('Jane', 'town', 'create');
+
+		// Setup deny on create for parent
+		$this->Acl->deny('Jane', 'bizzaro_world', '*');
+		$this->Acl->allow('Jane', 'bizzaro_world', 'create');
+
+		// Setup inherit.
+		$this->Acl->inherit('Jane', 'bizzaro_town', '*');
+
+		$this->assertTrue($this->Acl->check('Jane', 'town', 'create'), 'Should have access due to override');
+		$this->assertTrue($this->Acl->check('Jane', 'town', '*'), 'Should have access due to inherit');
+
+		$this->assertTrue($this->Acl->check('Jane', 'bizzaro_town', 'create'), 'Should have access due explicit allow');
+		$this->assertFalse($this->Acl->check('Jane', 'bizzaro_town', '*'), 'Should not have access due to inherit');
 	}
 
 /**

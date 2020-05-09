@@ -14,7 +14,7 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */ 
 
 #include <string.h>
@@ -49,7 +49,10 @@ RegExpr::RegExpr( const char *pattern, int flags, int p_max_matches ) : max_matc
     memset( match_lengths, 0, sizeof(*match_lengths)*max_matches );
     match_valid = new bool[max_matches];
     memset( match_valid, 0, sizeof(*match_valid)*max_matches );
+  } else {
+    match_vectors = NULL;
   }
+  match_string = "";
   n_matches = 0;
 }
 

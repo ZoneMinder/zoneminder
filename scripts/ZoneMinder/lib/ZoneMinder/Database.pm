@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -41,17 +41,18 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
-    'functions' => [ qw(
-        zmDbConnect
-        zmDbDisconnect
-        zmDbGetMonitors
-        zmDbGetMonitor
-        zmDbGetMonitorAndControl
-    ) ]
-);
+    functions => [ qw(
+      zmDbConnect
+      zmDbDisconnect
+      zmDbGetMonitors
+      zmDbGetMonitor
+      zmDbGetMonitorAndControl
+      zmDbDo
+      ) ]
+    );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
 our @EXPORT = qw();
 
@@ -64,52 +65,70 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # ==========================================================================
 
 use ZoneMinder::Logger qw(:all);
-use ZoneMinder::Config qw(:all);
 
-use Carp;
+require ZoneMinder::Config;
 
 our $dbh = undef;
 
-sub zmDbConnect
-{
-    my $force = shift;
-    if ( $force )
-    {
-         zmDbDisconnect();
-    }
-    if ( !defined( $dbh ) )
-    {
-        my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+sub zmDbConnect {
+  my $force = shift;
+  if ( $force ) {
+    zmDbDisconnect();
+  }
+  my $options = shift;
 
-        if ( defined($port) )
-        {
-            $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                                .";host=".$host
-                                .";port=".$port
-                                , $Config{ZM_DB_USER}
-                                , $Config{ZM_DB_PASS}
-            );
-        }
-        else
-        {
-            $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-                                .";host=".$Config{ZM_DB_HOST}
-                                , $Config{ZM_DB_USER}
-                                , $Config{ZM_DB_PASS}
-            );
-        }
-        $dbh->trace( 0 );
-    }
-    return( $dbh );
-}
+  if ( ( !defined($dbh) ) or ! $dbh->ping() ) {
+    my ( $host, $portOrSocket ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+    my $socket;
 
-sub zmDbDisconnect
-{
-    if ( defined( $dbh ) )
-    {
-        $dbh->disconnect();
-        $dbh = undef;
+    if ( defined($portOrSocket) ) {
+      if ( $portOrSocket =~ /^\// ) {
+        $socket = ';mysql_socket='.$portOrSocket;
+      } else {
+        $socket = ';host='.$host.';port='.$portOrSocket;
+      }
+    } else {
+      $socket = ';host='.$ZoneMinder::Config::Config{ZM_DB_HOST}; 
     }
+
+    my $sslOptions = '';
+    if ( $ZoneMinder::Config::Config{ZM_DB_SSL_CA_CERT} ) {
+      $sslOptions = join(';', '',
+          'mysql_ssl=1',
+          'mysql_ssl_ca_file='.$ZoneMinder::Config::Config{ZM_DB_SSL_CA_CERT},
+          'mysql_ssl_client_key='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_KEY},
+          'mysql_ssl_client_cert='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_CERT}
+          );
+    }
+
+    eval {
+      $dbh = DBI->connect(
+        'DBI:mysql:database='.$ZoneMinder::Config::Config{ZM_DB_NAME}
+        .$socket . $sslOptions . ($options?join(';', '', map { $_.'='.$$options{$_} } keys %{$options} ) : '')
+        , $ZoneMinder::Config::Config{ZM_DB_USER}
+        , $ZoneMinder::Config::Config{ZM_DB_PASS}
+        );
+    };
+    if ( !$dbh or $@ ) {
+      Error("Error reconnecting to db: errstr:$DBI::errstr error val:$@");
+    } else {
+      $dbh->{AutoCommit} = 1;
+      Fatal('Can\'t set AutoCommit on in database connection')
+        unless $dbh->{AutoCommit};
+      $dbh->{mysql_auto_reconnect} = 1;
+      Fatal('Can\'t set mysql_auto_reconnect on in database connection')
+        unless $dbh->{mysql_auto_reconnect};
+      $dbh->trace( 0 );
+    } # end if success connecting
+  } # end if ! connected
+  return $dbh;
+} # end sub zmDbConnect
+
+sub zmDbDisconnect {
+  if ( defined($dbh) ) {
+    $dbh->disconnect() or Error('Error disconnecting db? ' . $dbh->errstr());
+    $dbh = undef;
+  }
 }
 
 use constant DB_MON_ALL => 0; # All monitors
@@ -119,139 +138,170 @@ use constant DB_MON_MOTION => 3; # All monitors that are doing motion detection
 use constant DB_MON_RECORD => 4; # All monitors that are doing unconditional recording
 use constant DB_MON_PASSIVE => 5; # All monitors that are in nodect state
 
-sub zmDbGetMonitors
-{
-    zmDbConnect();
+sub zmDbGetMonitors {
+  zmDbConnect();
 
-    my $function = shift || DB_MON_ALL;
-    my $sql = "select * from Monitors";
+  my $function = shift || DB_MON_ALL;
+  my $sql = 'SELECT * FROM Monitors';
 
-    if ( $function )
-    {
-        if ( $function == DB_MON_CAPT )
-        {
-            $sql .= " where Function >= 'Monitor'";
-        }
-        elsif ( $function == DB_MON_ACTIVE )
-        {
-            $sql .= " where Function > 'Monitor'";
-        }
-        elsif ( $function == DB_MON_MOTION )
-        {
-            $sql .= " where Function = 'Modect' or Function = 'Mocord'";
-        }
-        elsif ( $function == DB_MON_RECORD )
-        {
-            $sql .= " where Function = 'Record' or Function = 'Mocord'";
-        }
-        elsif ( $function == DB_MON_PASSIVE )
-        {
-            $sql .= " where Function = 'Nodect'";
-        }
+  if ( $function ) {
+    if ( $function == DB_MON_CAPT ) {
+      $sql .= " where Function >= 'Monitor'";
+    } elsif ( $function == DB_MON_ACTIVE ) {
+      $sql .= " where Function > 'Monitor'";
+    } elsif ( $function == DB_MON_MOTION ) {
+      $sql .= " where Function = 'Modect' or Function = 'Mocord'";
+    } elsif ( $function == DB_MON_RECORD ) {
+      $sql .= " where Function = 'Record' or Function = 'Mocord'";
+    } elsif ( $function == DB_MON_PASSIVE ) {
+      $sql .= " where Function = 'Nodect'";
     }
-    my $sth = $dbh->prepare_cached( $sql )
-        or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute()
-        or croak( "Can't execute '$sql': ".$sth->errstr() );
+  }
+  my $sth = $dbh->prepare_cached( $sql );
+  if ( ! $sth ) {
+    Error("Can't prepare '$sql': ".$dbh->errstr());
+    return undef;
+  }
+  my $res = $sth->execute();
+  if ( ! $res ) {
+    Error("Can't execute '$sql': ".$sth->errstr());
+    return undef;
+  }
 
-    my @monitors;
-    while( my $monitor = $sth->fetchrow_hashref() )
-    {
-        push( @monitors, $monitor );
-    }
-    $sth->finish();
-    return( \@monitors );
+  my @monitors;
+  while( my $monitor = $sth->fetchrow_hashref() ) {
+    push( @monitors, $monitor );
+  }
+  $sth->finish();
+  return \@monitors;
 }
 
-sub zmDbGetMonitor
-{
-    zmDbConnect();
+sub zmSQLExecute {
+  my $sql = shift;
 
-    my $id = shift;
-
-    return( undef ) if ( !defined($id) );
-
-    my $sql = "select * from Monitors where Id = ?";
-    my $sth = $dbh->prepare_cached( $sql )
-        or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $id )
-        or croak( "Can't execute '$sql': ".$sth->errstr() );
-    my $monitor = $sth->fetchrow_hashref();
-
-    return( $monitor );
+  my $sth = $dbh->prepare_cached( $sql );
+  if ( ! $sth ) {
+    Error("Can't prepare '$sql': ".$dbh->errstr());
+    return undef;
+  }
+  my $res = $sth->execute( @_ );
+  if ( ! $res ) {
+    Error("Can't execute '$sql': ".$sth->errstr());
+    return undef;
+  }
+  return 1;
 }
 
-sub zmDbGetMonitorAndControl
-{
-    zmDbConnect();
+sub zmDbGetMonitor {
+  zmDbConnect();
 
-    my $id = shift;
+  my $id = shift;
 
-    return( undef ) if ( !defined($id) );
+  if ( !defined($id) ) {
+    Error('Undefined id in zmDbgetMonitor');
+    return undef ;
+  }
 
-    my $sql = "SELECT C.*,M.*,C.Protocol
-               FROM Monitors as M
-               INNER JOIN Controls as C on (M.ControlId = C.Id)
-               WHERE M.Id = ?"
+  my $sql = 'SELECT * FROM Monitors WHERE Id = ?';
+  my $sth = $dbh->prepare_cached($sql);
+  if ( !$sth ) {
+    Error("Can't prepare '$sql': ".$dbh->errstr());
+    return undef;
+  }
+  my $res = $sth->execute($id);
+  if ( !$res ) {
+    Error("Can't execute '$sql': ".$sth->errstr());
+    return undef;
+  }
+  my $monitor = $sth->fetchrow_hashref();
+  $sth->finish();
+  return $monitor;
+}
+
+sub zmDbGetMonitorAndControl {
+  zmDbConnect();
+
+  my $id = shift;
+
+  return undef if !defined($id);
+
+  my $sql = 'SELECT C.*,M.*,C.Protocol
+    FROM Monitors as M
+    INNER JOIN Controls as C on (M.ControlId = C.Id)
+    WHERE M.Id = ?'
     ;
-    my $sth = $dbh->prepare_cached( $sql )
-        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $id )
-        or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-    my $monitor = $sth->fetchrow_hashref();
+  my $sth = $dbh->prepare_cached($sql);
+  if ( !$sth ) {
+    Error("Can't prepare '$sql': ".$dbh->errstr());
+    return undef;
+  }
+  my $res = $sth->execute( $id );
+  if ( !$res ) {
+    Error("Can't execute '$sql': ".$sth->errstr());
+    return undef;
+  }
+  my $monitor = $sth->fetchrow_hashref();
+  $sth->finish();
+  return $monitor;
+}
 
-    return( $monitor );
+sub start_transaction {
+	my $d = shift;
+	$d = $dbh if ! $d;
+	my $ac = $d->{AutoCommit};
+	$d->{AutoCommit} = 0;
+	return $ac;
+} # end sub start_transaction
+
+sub end_transaction {
+  my ( $d, $ac ) = @_;
+  if ( ! defined $ac ) {
+    Error("Undefined ac");
+  }
+	$d = $dbh if ! $d;
+	if ( $ac ) {
+		$d->commit();
+	} # end if
+	$d->{AutoCommit} = $ac;
+} # end sub end_transaction
+
+# Basic execution of $dbh->do but with some pretty logging of the sql on error.
+# Returns 1 on success, 0 on error
+sub zmDbDo {
+	my $sql = shift;
+	if ( ! $dbh->do($sql, undef, @_) ) {
+		$sql =~ s/\?/'%s'/;
+		Error(sprintf("Failed $sql :", @_).$dbh->errstr());
+    return 0;
+	}
+  return 1;
 }
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Database - Perl module containing database functions used in ZM
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Database;
-  blah blah blah
+use ZoneMinder::Database;
 
 =head1 DESCRIPTION
 
-Stub documentation for ZoneMinder, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
-
-Blah blah blah.
 
 =head2 EXPORT
 
-None by default.
-
-
-
-=head1 SEE ALSO
-
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+zmDbConnect
+zmDbDisconnect
+zmDbGetMonitors
+zmDbGetMonitor
+zmDbGetMonitorAndControl
+zmDbDo
 
 =head1 AUTHOR
 
 Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2001-2008  Philip Coombes
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
-
 
 =cut

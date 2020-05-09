@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_CURL_CAMERA_H
@@ -39,8 +39,7 @@
 // Class representing 'curl' cameras, i.e. those which are
 // accessed using the curl library
 //
-class cURLCamera : public Camera
-{
+class cURLCamera : public Camera {
 protected:
   typedef enum {MODE_UNSET, MODE_SINGLE, MODE_STREAM} mode_t;
 
@@ -65,7 +64,7 @@ protected:
   pthread_cond_t request_complete_cond;
 
 public:
-  cURLCamera( int p_id, const std::string &path, const std::string &username, const std::string &password,  int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  cURLCamera( int p_id, const std::string &path, const std::string &username, const std::string &password, unsigned int p_width, unsigned int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
   ~cURLCamera();
 
   const std::string &Path() const { return( mPath ); }
@@ -74,11 +73,13 @@ public:
 
   void Initialise();
   void Terminate();
+  int Close() { return 0; };
 
   int PrimeCapture();
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
+  int CaptureAndRecord( Image &image, struct timeval recording, char* event_directory );
 
   size_t data_callback(void *buffer, size_t size, size_t nmemb, void *userdata);
   size_t header_callback(void *buffer, size_t size, size_t nmemb, void *userdata);
@@ -87,10 +88,6 @@ public:
   void* thread_func();
   int lock();
   int unlock();
-
-private:
-  int nRet;
-  CURLcode cRet;
 
 };
 

@@ -1,0 +1,19 @@
+conf.d/README
+
+Any changes to ZoneMinder's configuration should be made here in this folder,
+rather than directly editing the default zm.conf file.
+
+ZoneMinder will process each file in this folder with a ".conf" extension.
+Each "Var = Value" pair, in each config file, will be loaded into ZoneMinder's
+running configuration, overriding any variables with the same name found in the 
+default zm.conf file.
+
+After creating a custom config file, don't forget to set the proper file and
+owner permission on it. For example, this is typically what you should do after
+saving the config file to disk:
+
+    sudo chown root:apache *.conf
+    sudo chmod 640 *.conf
+
+Substitute "apache" with the name of the web server user account on your system.
+

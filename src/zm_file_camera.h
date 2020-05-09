@@ -14,7 +14,7 @@
 // 
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
 #ifndef ZM_FILE_CAMERA_H
@@ -23,6 +23,7 @@
 #include "zm_camera.h"
 #include "zm_buffer.h"
 #include "zm_regexp.h"
+#include "zm_packetqueue.h"
 
 #include <sys/param.h>
 
@@ -30,13 +31,12 @@
 // Class representing 'file' cameras, i.e. those which are
 // accessed using a single file which contains the latest jpeg data
 //
-class FileCamera : public Camera
-{
+class FileCamera : public Camera {
 protected:
   char path[PATH_MAX];
 
 public:
-  FileCamera( int p_id, const char *p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  FileCamera( int p_id, const char *p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
   ~FileCamera();
 
   const char *Path() const { return( path ); }
@@ -46,6 +46,8 @@ public:
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
+int Close() { return 0; };
 };
 
 #endif // ZM_FILE_CAMERA_H

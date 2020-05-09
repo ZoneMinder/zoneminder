@@ -1,81 +1,82 @@
-# CMakeLists.txt for the Redhat/CentOS Target Distro.
+# CMakeLists.txt for the Redhat Target Distros.
+
+#
+# General strategy is to configure and install all files specific to Apache and Nginx
+# Then let the rpm specfile sort them into the appropriate sub-package
+#
 
 # Display a message to show the RHEL build options are being processed.
-message([STATUS] "Starting RHEL Build Options" ...)
+if(ZM_TARGET_DISTRO MATCHES "^el")
+    message([STATUS] "Starting RHEL Build Options" ...)
+elseif(ZM_TARGET_DISTRO MATCHES "^fc")
+    message([STATUS] "Starting Fedora Build Options" ...)
+else(ZM_TARGET_DISTRO MATCHES "^el")
+    message([WARNING] "Unknown Build Option Detected" ...)
+endif(ZM_TARGET_DISTRO MATCHES "^el")
 
-# Create the zoneminder service file
-if(ZM_TARGET_DISTRO STREQUAL "el7")
-	configure_file(zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
-	configure_file(zoneminder.el7.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el7.conf @ONLY)
-	configure_file(zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmpfiles @ONLY)
-	configure_file(zoneminder.el7.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el7.logrotate @ONLY)
-else(ZM_TARGET_DISTRO STREQUAL "el7")
-	configure_file(zoneminder.sysvinit.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.sysvinit @ONLY)
-	configure_file(zoneminder.el6.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el6.logrotate @ONLY)
-	configure_file(zoneminder.el6.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.el6.conf @ONLY)
-endif(ZM_TARGET_DISTRO STREQUAL "el7")
+#
+# CONFIGURE STAGE
+#
 
-# Download jscalendar & move files into position
-file(DOWNLOAD http://iweb.dl.sourceforge.net/project/jscalendar/jscalendar/1.0/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip LOG jsc_log STATUS download_jsc)
-#message(STATUS "Log of jscalender script was: ${jsc_log}")
-if(download_jsc EQUAL 0)
-	message(STATUS "Jscalander successfully downloaded.  Installing...")
-	execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} ERROR_VARIABLE unzip_jsc)
-	message(STATUS "Status of jscalender script was: ${unzip_jsc}")
-else(download_jsc EQUAL 0)
-	message(STATUS "Unable to download optional jscalander. Skipping...")
-endif(download_jsc EQUAL 0)
+# Configure the common zoneminder files
+configure_file(common/zoneminder.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.logrotate @ONLY)
+configure_file(common/zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
+file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events temp)
 
-# Cambozola is now packaged in zmrepo
-# Download cambozola & move files into position
-#file(DOWNLOAD http://www.andywilcock.com/code/cambozola/cambozola-0.931.tar.gz ${CMAKE_CURRENT_SOURCE_DIR}/cambozola-0.931.tar.gz STATUS download_camb)
-#if(download_camb EQUAL 0)
-#	message(STATUS "Cambozola successfully downloaded.  Installing...")
-#	execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cambozola.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} ERROR_VARIABLE untar_camb)
-#	message(STATUS "Status of cambozola script was: ${untar_camb}")
-#else(download_camb EQUAL 0)
-#	message(STATUS "Unable to download optional Cambozola. Skipping...")
-#endif(download_camb EQUAL 0)
+# Configure the Apache zoneminder files
+configure_file(httpd/zm-httpd.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zm-httpd.conf @ONLY)
+configure_file(httpd/zoneminder.httpd.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.httpd.conf @ONLY)
+configure_file(httpd/zoneminder.httpd.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.httpd.tmpfiles.conf @ONLY)
+configure_file(httpd/com.zoneminder.systemctl.rules.httpd.in ${CMAKE_CURRENT_SOURCE_DIR}/com.zoneminder.systemctl.rules.httpd @ONLY)
 
-# Create several empty folders
-file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events images temp)
+# Configure the Nginx zoneminder files
+configure_file(nginx/zm-nginx.conf ${CMAKE_CURRENT_SOURCE_DIR}/zm-nginx.conf COPYONLY)
+configure_file(nginx/zoneminder.nginx.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.nginx.conf @ONLY)
+configure_file(nginx/redirect.nginx.conf ${CMAKE_CURRENT_SOURCE_DIR}/redirect.nginx.conf COPYONLY)
+configure_file(nginx/zoneminder.nginx.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.nginx.tmpfiles.conf @ONLY)
+configure_file(nginx/zm-web-user.conf ${CMAKE_CURRENT_SOURCE_DIR}/zm-web-user.conf COPYONLY)
+configure_file(nginx/zoneminder.php-fpm.conf ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.php-fpm.conf COPYONLY)
+configure_file(nginx/com.zoneminder.systemctl.rules.nginx ${CMAKE_CURRENT_SOURCE_DIR}/com.zoneminder.systemctl.rules.nginx COPYONLY)
 
-# Install the empty folders
-#install(DIRECTORY run DESTINATION /var DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_WRITE GROUP_READ GROUP_EXECUTE WORLD_WRITE WORLD_READ WORLD_EXECUTE)
+#
+# INSTALLATION STAGE
+#
+
+
+# Install the common zoneminder files
+install(FILES zoneminder.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zoneminder.service DESTINATION /usr/lib/systemd/system PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+
 install(DIRECTORY sock swap DESTINATION /var/lib/zoneminder DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY zoneminder DESTINATION /var/log DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(DIRECTORY zoneminder DESTINATION /run DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(DIRECTORY zoneminder DESTINATION /var/run DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(DIRECTORY zoneminder DESTINATION /var/cache DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY zoneminder-upload DESTINATION /var/spool DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(DIRECTORY events images temp DESTINATION /var/lib/zoneminder DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(DIRECTORY events temp DESTINATION /var/lib/zoneminder DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
-# Create symlinks
-install(CODE "execute_process(COMMAND ln -sf ../../../../var/lib/zoneminder/events \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/events\")")
-install(CODE "execute_process(COMMAND ln -sf ../../../../var/lib/zoneminder/images \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/images\")")
-install(CODE "execute_process(COMMAND ln -sf ../../../../var/lib/zoneminder/temp \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/temp\")")
+# Install the Apache zoneminder files
+install(FILES zm-httpd.conf DESTINATION /usr/lib/systemd/system/zoneminder.service.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zoneminder.httpd.conf DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zoneminder.httpd.tmpfiles.conf DESTINATION /usr/lib/tmpfiles.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES com.zoneminder.systemctl.rules.httpd DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+
+# Install the Nginx zoneminder files
+install(FILES zm-nginx.conf DESTINATION /usr/lib/systemd/system/zoneminder.service.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zoneminder.nginx.conf DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES redirect.nginx.conf DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zoneminder.nginx.tmpfiles.conf DESTINATION /usr/lib/tmpfiles.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES com.zoneminder.systemctl.rules.nginx DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zm-web-user.conf DESTINATION /etc/zm/conf.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zoneminder.php-fpm.conf DESTINATION /etc/php-fpm.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+
+# Miscellaneous
+
+# Symlink the cake php temp folder to the ZoneMinder temp folder
 install(CODE "execute_process(COMMAND ln -sf ../../../../../../var/lib/zoneminder/temp \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/api/app/tmp\")")
 
-# Link to Cambozola, which is now packaged in zmrepo
+# Link to Cambozola
 install(CODE "execute_process(COMMAND ln -sf ../../java/cambozola.jar \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/cambozola.jar\")")
 
-# Install auxiliary files required to run zoneminder on CentOS
-install(FILES redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/sounds PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-if(ZM_TARGET_DISTRO STREQUAL "el7")
-	install(FILES zoneminder.el7.conf DESTINATION /etc/httpd/conf.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-	install(FILES zoneminder.el7.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-	install(FILES zoneminder.service DESTINATION /usr/lib/systemd/system PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-	install(FILES ../../misc/zoneminder-tmpfiles.conf DESTINATION /etc/tmpfiles.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-else(ZM_TARGET_DISTRO STREQUAL "el7")
-	install(FILES zoneminder.el6.conf DESTINATION /etc/httpd/conf.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-	install(FILES zoneminder.el6.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-	install(FILES zoneminder.sysvinit DESTINATION /etc/rc.d/init.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-endif(ZM_TARGET_DISTRO STREQUAL "el7")
+# Install auxiliary files
+install(FILES common/redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/sounds PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
-# Install jscalendar
-if(unzip_jsc STREQUAL "")
-	install(DIRECTORY jscalendar-1.0/ DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/tools/jscalendar)
-endif(unzip_jsc STREQUAL "")
-
-# Install cambozola
-if(untar_camb STREQUAL "")
-	install(FILES cambozola-0.931/dist/cambozola.jar DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www)
-endif(untar_camb STREQUAL "")

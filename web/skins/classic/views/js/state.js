@@ -1,55 +1,62 @@
-function checkState( element )
-{
+$j(document).ready(function() {
+  // Enable or disable the Delete button depending on the selected run state
+  $j("#runState").change(function() {
+    runstate = $j(this).val();
 
-    var form = element.form;
-
-    var minIndex = running?2:1;
-    if ( form.runState.selectedIndex < minIndex )
-    {
-        form.saveBtn.disabled = true;
-        form.deleteBtn.disabled = true;
+    if ( (runstate == 'stop') || (runstate == 'restart') || (runstate == 'start') || (runstate == 'default') ) {
+      $j("#btnDelete").prop("disabled", true);
+    } else {
+      $j("#btnDelete").prop("disabled", false);
     }
-    else
-    {
-        form.saveBtn.disabled = false;
-        form.deleteBtn.disabled = false;
+  });
+
+  // Enable or disable the Save button when entering a new state
+  $j("#newState").keyup(function() {
+    length = $j(this).val().length;
+    if ( length < 1 ) {
+      $j("#btnSave").prop("disabled", true);
+    } else {
+      $j("#btnSave").prop("disabled", false);
     }
+  });
 
-    if ( form.newState.value != '' )
-        form.saveBtn.disabled = false;
 
-    // PP if we are in 'default' state, disable delete
-    // you can still save
-    if (element.value.toLowerCase() == 'default' )
-    {
-	form.saveBtn.disabled = false;
- 	form.deleteBtn.disabled = true;
-    }
+  // Delete a state
+  $j("#btnDelete").click(function() {
+    stateStuff('delete', $j("#runState").val());
+  });
 
-}
 
-function saveState( element )
-{
-    var form = element.form;
+  // Save a new state
+  $j("#btnSave").click(function() {
+    stateStuff('save', undefined, $j("#newState").val());
+  });
 
-    form.view.value = currentView;
-    form.action.value = 'save';
-    form.submit();
-}
+  // Change state
+  $j("#btnApply").click(function() {
+    stateStuff('state', $j("#runState").val());
+  });
 
-function deleteState( element )
-{
-    var form = element.form;
-    form.view.value = currentView;
-    form.action.value = 'delete';
-    form.submit();
-}
+  function stateStuff(action, runState, newState) {
+    // the state action will redirect to console
+    var formData = {
+      'view': 'state',
+      'action': action,
+      'apply': 1,
+      'runState': runState,
+      'newState': newState
+    };
 
-if ( applying )
-{
-    function submitForm()
-    {
-        $('contentForm').submit();
-    }
-    window.addEvent( 'domready', function() { submitForm.delay( 1000 ); } );
-}
+    $j("#pleasewait").toggleClass("hidden");
+
+    $j.ajax({
+      type: 'POST',
+      url: thisUrl,
+      data: formData,
+      dataType: 'html',
+      timeout: 0
+    }).done(function(data) {
+      location.reload();
+    });
+  }
+});

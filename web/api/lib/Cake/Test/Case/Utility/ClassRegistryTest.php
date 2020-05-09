@@ -2,18 +2,18 @@
 /**
  * ClassRegistryTest file
  *
- * CakePHP(tm) Tests <http://book.cakephp.org/2.0/en/development/testing.html>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/2.0/en/development/testing.html>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.Utility
  * @since         CakePHP(tm) v 1.2.0.5432
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ClassRegistry', 'Utility');
@@ -147,7 +147,7 @@ class ClassRegistryTest extends CakeTestCase {
 		$this->assertSame($Tag, $TagCopy);
 
 		$NewTag = ClassRegistry::init(array('class' => 'RegisterArticleTag', 'alias' => 'NewTag'));
-		$this->assertInstanceOf('RegisterArticleTag', $Tag);
+		$this->assertInstanceOf('RegisterArticleTag', $NewTag);
 
 		$NewTagCopy = ClassRegistry::init(array('class' => 'RegisterArticleTag', 'alias' => 'NewTag'));
 
@@ -180,6 +180,35 @@ class ClassRegistryTest extends CakeTestCase {
 		$this->assertNotEquals($Category->alias, $ParentCategory->alias);
 		$this->assertEquals('RegisterCategory', $Category->alias);
 		$this->assertEquals('ParentCategory', $ParentCategory->alias);
+	}
+
+/**
+ * Test that init() can make models with alias set properly
+ *
+ * @return void
+ */
+	public function testAddModelWithAlias() {
+		$tag = ClassRegistry::init(array('class' => 'RegisterArticleTag', 'alias' => 'NewTag'));
+		$this->assertInstanceOf('RegisterArticleTag', $tag);
+		$this->assertSame('NewTag', $tag->alias);
+		$this->assertSame('RegisterArticleTag', $tag->name);
+
+		$newTag = ClassRegistry::init(array('class' => 'RegisterArticleTag', 'alias' => 'OtherTag'));
+		$this->assertInstanceOf('RegisterArticleTag', $tag);
+		$this->assertSame('OtherTag', $newTag->alias);
+		$this->assertSame('RegisterArticleTag', $newTag->name);
+	}
+
+/**
+ * Test that init() can make the Aco models with alias set properly
+ *
+ * @return void
+ */
+	public function testAddModelWithAliasAco() {
+		$aco = ClassRegistry::init(array('class' => 'Aco', 'alias' => 'CustomAco'));
+		$this->assertInstanceOf('Aco', $aco);
+		$this->assertSame('Aco', $aco->name);
+		$this->assertSame('CustomAco', $aco->alias);
 	}
 
 /**

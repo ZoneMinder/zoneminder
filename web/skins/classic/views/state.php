@@ -18,13 +18,17 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) ) {
+if ( !canEdit('System') ) {
   $view = 'error';
   return;
 }
 ?>
 <div id="modalState" class="modal fade">
-  <form class="form-horizontal" name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+  <form class="form-horizontal" name="contentForm" method="get" action="?view=state">
+    <input type="hidden" name="view" value="state"/>
+    <input type="hidden" name="action" value="state"/>
+    <input type="hidden" name="apply" value="1"/>
+
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -32,9 +36,6 @@ if ( !canEdit( 'System' ) ) {
           <h2 class="modal-title"><?php echo translate('RunState') ?></h2>
         </div>
         <div class="modal-body">
-          <input type="hidden" name="view" value="<?php echo $view ?>"/>
-          <input type="hidden" name="action" value="state"/>
-          <input type="hidden" name="apply" value="1"/>
 
 	        <div class="form-group">
 	          <label for="runState" class="col-sm-3 control-label">Change State</label>
@@ -51,10 +52,12 @@ if ( $running ) {
                 <option value="start" selected="selected"><?php echo translate('Start') ?></option>
 <?php
 }
-$states = dbFetchAll( 'SELECT * FROM States' );
+$states = dbFetchAll('SELECT * FROM States');
 foreach ( $states as $state ) {
 ?>
-                <option value="<?php echo $state['Name'] ?>"><?php echo $state['Name'] ?></option>
+                <option value="<?php echo validHtmlStr($state['Name']) ?>" <?php echo $state['IsActive'] ? 'selected="selected"' : '' ?>>
+                <?php echo validHtmlStr($state['Name']); ?>
+                </option>
 <?php
 }
 ?>

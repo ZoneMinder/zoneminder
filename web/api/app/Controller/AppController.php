@@ -34,7 +34,6 @@ class AppController extends Controller {
   use CrudControllerTrait;
 
   public $components = [
-    'Session', //  We are going to use SessionHelper to check PHP session vars
     'RequestHandler',
     'Crud.Crud' => [
       'actions' => [
@@ -67,28 +66,79 @@ class AppController extends Controller {
 
     # For use throughout the app. If not logged in, this will be null.
     global $user;
-    $user = $this->Session->read('user');
-    
+   
     if ( ZM_OPT_USE_AUTH ) {
-      require_once '../../../includes/auth.php';
+      # This will auto-login if username=&password= are set, or auth=
+      require_once __DIR__ .'/../../../includes/auth.php';
 
-      $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
-      $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
-      $mAuth = $this->request->query('auth') ? $this->request->query('auth') : $this->request->data('auth');
-
-      if ( $mUser and $mPassword ) {
-        $user = userLogin($mUser, $mPassword);
-        if ( !$user ) {
-          throw new UnauthorizedException(__('User not found or incorrect password'));
-          return;
-        }
-      } else if ( $mAuth ) {
-        $user = getAuthUser($mAuth);
-        if ( !$user ) {
-          throw new UnauthorizedException(__('Invalid Auth Key'));
-          return;
+      if ( ZM_OPT_USE_LEGACY_API_AUTH or !strcasecmp($this->params->action, 'login') ) {
+        # This is here because historically we allowed user=&pass= in the api. web-ui auth uses username=&password=
+        $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
+        $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+        if ( $username and $password ) {
+          $ret = validateUser($username, $password);
+          $user = $ret[0];
+          $retstatus = $ret[1];
+          if ( !$user ) {
+            throw new UnauthorizedException(__($retstatus));
+            return;
+          } 
+          ZM\Info("Login successful for user \"$username\"");
         }
       }
+
+      if ( ZM_OPT_USE_LEGACY_API_AUTH ) {
+        require_once __DIR__ .'/../../../includes/session.php';
+        $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
+        if ( $stateful ) {
+          zm_session_start();
+          $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
+          $_SESSION['username'] = $user['Username'];
+          if ( ZM_AUTH_RELAY == 'plain' ) {
+            // Need to save this in session, can't use the value in User because it is hashed
+            $_SESSION['password'] = $_REQUEST['password'];
+          }
+          generateAuthHash(ZM_AUTH_HASH_IPS);
+          session_write_close();
+        } else if ( $_COOKIE['ZMSESSID'] and !$user ) {
+          # Have a cookie set, try to load user by session
+          if ( ! is_session_started() )
+            zm_session_start();
+
+          ZM\Logger::Debug(print_r($_SESSION, true));
+          $user = userFromSession();
+          session_write_close();
+        }
+      }
+
+      # NON LEGACY, token based access
+      $token = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
+      if ( $token ) {
+        // if you pass a token to login, we should only allow
+        // refresh tokens to regenerate new access and refresh tokens
+        if ( !strcasecmp($this->params->action, 'login') ) {
+          $only_allow_token_type = 'refresh';
+        } else {
+          // for any other methods, don't allow refresh tokens
+          // they are supposed to be infrequently used for security
+          // purposes
+          $only_allow_token_type = 'access';
+        }
+        $ret = validateToken($token, $only_allow_token_type, true);
+        $user = $ret[0];
+        $retstatus = $ret[1];
+        if ( !$user ) {
+          throw new UnauthorizedException(__($retstatus));
+          return;
+        } 
+      } # end if token
+
+      if ( $user and ( $user['APIEnabled'] != 1 ) ) {
+        ZM\Error('API disabled for: '.$user['Username']);
+        throw new UnauthorizedException(__('API disabled for: '.$user['Username']));
+        $user = null;
+      }
+
       // We need to reject methods that are not authenticated
       // besides login and logout
       if ( strcasecmp($this->params->action, 'logout') ) {
@@ -100,7 +150,8 @@ class AppController extends Controller {
           return;
         }
       } # end if ! login or logout
+
     } # end if ZM_OPT_AUTH
-   
+    // make sure populated user object has APIs enabled
   } # end function beforeFilter()
 }

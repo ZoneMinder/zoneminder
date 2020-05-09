@@ -27,7 +27,7 @@
 #include "zm_videostore.h"
 #include "zm_packetqueue.h"
 
-#if HAVE_AVUTIL_HWCONTEXT_H
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
 typedef struct DecodeContext {
       AVBufferRef *hw_device_ref;
 } DecodeContext;
@@ -41,6 +41,8 @@ class FfmpegCamera : public Camera {
     std::string         mPath;
     std::string         mMethod;
     std::string         mOptions;
+    std::string         hwaccel_name;
+    std::string         hwaccel_device;
 
     int frameCount;    
 
@@ -55,18 +57,12 @@ class FfmpegCamera : public Camera {
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
     _AVPIXELFORMAT      imagePixFormat;
+    AVFrame             *input_frame;         // Use to point to mRawFrame or hwFrame;
 
-    bool hwaccel;
-#if HAVE_AVUTIL_HWCONTEXT_H
-    AVFrame             *hwFrame;
-    DecodeContext       decode;
+    AVFrame             *hwFrame; // Will also be used to indicate if hwaccel is in use
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+    AVBufferRef *hw_device_ctx = NULL;
 #endif
-
-    // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
-    int64_t audio_last_pts;
-    int64_t audio_last_dts;
-    int64_t video_last_pts;
-    int64_t video_last_dts;
 
     // Used to store the incoming packet, it will get copied when queued. 
     // We only ever need one at a time, so instead of constantly allocating
@@ -79,32 +75,49 @@ class FfmpegCamera : public Camera {
 #endif // HAVE_LIBAVFORMAT
 
     VideoStore          *videoStore;
-    zm_packetqueue      packetqueue;
+    zm_packetqueue      *packetqueue;
     bool                have_video_keyframe;
 
 #if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;
 #endif
 
-    int64_t             startTime;
+    int                 error_count;
 
   public:
-    FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+    FfmpegCamera(
+        int p_id,
+        const std::string &path,
+        const std::string &p_method,
+        const std::string &p_options,
+        int p_width,
+        int p_height,
+        int p_colours,
+        int p_brightness,
+        int p_contrast,
+        int p_hue,
+        int p_colour,
+        bool p_capture,
+        bool p_record_audio,
+        const std::string &p_hwaccel_name,
+        const std::string &p_hwaccel_device
+        );
     ~FfmpegCamera();
 
-    const std::string &Path() const { return( mPath ); }
-    const std::string &Options() const { return( mOptions ); } 
-    const std::string &Method() const { return( mMethod ); }
+    const std::string &Path() const { return mPath; }
+    const std::string &Options() const { return mOptions; } 
+    const std::string &Method() const { return mMethod; }
 
     void Initialise();
     void Terminate();
-
-    static int FfmpegInterruptCallback(void*ctx);
 
     int PrimeCapture();
     int PreCapture();
     int Capture( Image &image );
     int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
     int PostCapture();
+  private:
+    static int FfmpegInterruptCallback(void*ctx);
+    int transfer_to_image(Image &i, AVFrame *output_frame, AVFrame *input_frame);
 };
 #endif // ZM_FFMPEG_CAMERA_H

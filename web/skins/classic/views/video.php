@@ -27,27 +27,25 @@ require_once('includes/Event.php');
 
 $eid = validInt($_REQUEST['eid']);
 
-$sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
-$sql_values = array($eid);
+$event = new ZM\Event($eid);
 
-if ( $user['MonitorIds'] ) {
-  $monitor_ids = explode(',', $user['MonitorIds']);
-  $sql .= ' AND MonitorId IN ('.implode(',', array_fill(0,count($monitor_ids),'?')).')';
-  $sql_values = array_merge($sql_values, $monitor_ids);
+if ( ! canView('Monitors', $event->MonitorId() ) ) {
+  $view = 'error';
+  return;
 }
-$event = dbFetchOne($sql, NULL, $sql_values);
 
+$monitor = $event->Monitor();
 if ( isset($_REQUEST['rate']) )
   $rate = validInt($_REQUEST['rate']);
 else
-  $rate = reScale(RATE_BASE, $event['DefaultRate'], ZM_WEB_DEFAULT_RATE);
+  $rate = reScale(RATE_BASE, $monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE);
+
 if ( isset($_REQUEST['scale']) )
   $scale = validInt($_REQUEST['scale']);
 else
-  $scale = reScale(SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
+  $scale = reScale(SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE);
 
-$Event = new Event($event['Id']);
-$eventPath = $Event->Path();
+$event_path = $event->Path();
 
 $videoFormats = array();
 $ffmpegFormats = preg_split('/\s+/', ZM_FFMPEG_FORMATS);
@@ -63,9 +61,9 @@ foreach ( $ffmpegFormats as $ffmpegFormat ) {
 }
 
 $videoFiles = array();
-if ( $dir = opendir($eventPath) ) {
+if ( $dir = opendir($event_path) ) {
   while ( ($file = readdir($dir)) !== false ) {
-    $file = $eventPath.'/'.$file;
+    $file = $event_path.'/'.$file;
     if ( is_file($file) ) {
       if ( preg_match('/\.(?:'.join('|', $videoFormats).')$/', $file) ) {
         $videoFiles[] = $file;
@@ -85,6 +83,7 @@ if ( isset($_REQUEST['downloadIndex']) ) {
   // can't be output buffering, as this file might be large
   ob_end_clean();
   $downloadIndex = validInt($_REQUEST['downloadIndex']);
+  ZM\Error("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
   header('Pragma: public');
   header('Expires: 0');
   header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
@@ -106,7 +105,7 @@ xhtmlHeaders(__FILE__, translate('Video'));
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
+        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo translate('Video') ?></h2>
     </div>
@@ -123,8 +122,8 @@ if ( isset($_REQUEST['showIndex']) ) {
 <?php
 } else {
 ?>
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="id" value="<?php echo $event['Id'] ?>"/>
+      <form name="contentForm" id="contentForm" method="post" action="?">
+        <input type="hidden" name="id" value="<?php echo $event->Id() ?>"/>
         <table id="contentTable" class="minor">
           <tbody>
             <tr>
@@ -145,7 +144,9 @@ if ( isset($_REQUEST['showIndex']) ) {
             </tr>
           </tbody>
         </table>
-        <input type="button" value="<?php echo translate('GenerateVideo') ?>" onclick="generateVideo(this.form);"<?php if ( !ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>/>
+        <button type="button" data-on-click="generateVideo"<?php if ( !ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>>
+        <?php echo translate('GenerateVideo') ?>
+        </button>
       </form>
 <?php
   if ( isset($_REQUEST['generated']) ) {
@@ -200,20 +201,27 @@ if ( isset($_REQUEST['showIndex']) ) {
         } elseif ( preg_match('/^S(.+)$/', $matches[3], $temp_matches) ) {
           $scaleText = $temp_matches[1];
         }
-        $width = $scale?reScale($event['Width'], $scale):$event['Width'];
-        $height = $scale?reScale($event['Height'], $scale):$event['Height'];
+        $width = $scale?reScale($event->Width(), $scale):$event->Width();
+        $height = $scale?reScale($event->Height(), $scale):$event->Height();
 ?>
         <tr>
           <td><?php echo $matches[4] ?></td>
           <td><?php echo filesize($file) ?></td>
           <td><?php echo $rateText ?></td>
           <td><?php echo $scaleText ?></td>
-          <td><?php echo makePopupLink('?view='.$view.'&amp;eid='.$event['Id'].'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, 'zmVideo'.$event['Id'].'-'.$scale, array( 'videoview', $width, $height ), translate('View') ); ?>&nbsp;/&nbsp;<a href="<?php echo substr( $file, strlen(ZM_DIR_EVENTS)+1 ) ?>" onclick="downloadVideo( <?php echo $index ?> ); return( false );"><?php echo translate('Download') ?></a>&nbsp;/&nbsp;<a href="#" onclick="deleteVideo( <?php echo $index ?> ); return( false );"><?php echo translate('Delete') ?></a></td>
+          <td>
+            <?php echo makePopupLink('?view='.$view.'&amp;eid='.$event->Id().'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, 'zmVideo'.$event->Id().'-'.$scale, array('videoview', $width, $height), translate('View') ); ?>
+            &nbsp;/&nbsp;
+            <a href="#"
+ data-on-click-this="downloadVideo" data-file-index="<?php echo $index ?>"><?php echo translate('Download') ?></a>
+            &nbsp;/&nbsp;
+            <a href="#" data-on-click-this="deleteVideo" data-file-index="<?php echo $index ?>"><?php echo translate('Delete') ?></a>
+          </td>
         </tr>
 <?php
         $index++;
-      }
-    }
+      } # end if filesize
+    } # end foreach videoFile
 ?>
         </tbody>
       </table>

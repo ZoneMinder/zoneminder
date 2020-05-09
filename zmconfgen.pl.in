@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!@PERL_EXECUTABLE@ -w
 #
 # ==========================================================================
 #
@@ -25,13 +25,13 @@
 #
 
 use strict;
-use lib './scripts/ZoneMinder/lib';
+use lib '@CMAKE_CURRENT_BINARY_DIR@/scripts/ZoneMinder/lib';
 use ZoneMinder::ConfigData qw/:data/;
 
 $| = 1;
 
-my $config_header = "src/zm_config_defines.h";
-my $config_sql = "db/zm_create.sql";
+my $config_header = '@CMAKE_CURRENT_BINARY_DIR@/src/zm_config_defines.h';
+my $config_sql = '@CMAKE_CURRENT_BINARY_DIR@/db/zm_create.sql';
 
 generateConfigFiles();
 

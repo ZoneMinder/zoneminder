@@ -29,23 +29,27 @@
 extern "C" {
 #include <libavformat/avformat.h>
 }
-
 class zm_packetqueue {
 public:
-    zm_packetqueue();
+    zm_packetqueue(int max_stream_id);
     virtual ~zm_packetqueue();
-    bool queuePacket( AVPacket* packet, struct timeval *timestamp );
-    bool queuePacket( ZMPacket* packet );
-    bool queuePacket( AVPacket* packet );
-    ZMPacket * popPacket( );
+    bool queuePacket(AVPacket* packet, struct timeval *timestamp);
+    bool queuePacket(ZMPacket* packet);
+    bool queuePacket(AVPacket* packet);
+    ZMPacket * popPacket();
     bool popVideoPacket(ZMPacket* packet);
     bool popAudioPacket(ZMPacket* packet);
-    unsigned int clearQueue( unsigned int video_frames_to_keep, int stream_id );
-    void clearQueue( );
+    unsigned int clearQueue(unsigned int video_frames_to_keep, int stream_id);
+    unsigned int clearQueue(struct timeval *duration, int streamid);
+    void clearQueue();
+    void dumpQueue();
     unsigned int size();
-    void clear_unwanted_packets( timeval *recording, int mVideoStreamId );
+    void clear_unwanted_packets(timeval *recording, int pre_event_count, int mVideoStreamId);
+    int packet_count(int stream_id);
 private:
     std::list<ZMPacket *>    pktQueue;
+    int max_stream_id;
+    int *packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
 
 };
 

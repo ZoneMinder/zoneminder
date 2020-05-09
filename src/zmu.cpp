@@ -138,6 +138,7 @@ void Usage(int status=-1) {
 			"  -U, --username <username>    : When running in authenticated mode the username and\n" 
 			"  -P, --password <password>    : password combination of the given user\n" 
 			"  -A, --auth <authentication>  : Pass authentication hash string instead of user details\n"
+      "  -T, --token <token>  : Pass JWT token string instead of user details\n"
 	 "", stderr );
 
   exit(status);
@@ -242,6 +243,7 @@ int main(int argc, char *argv[]) {
     {"username", 1, 0, 'U'},
     {"password", 1, 0, 'P'},
     {"auth", 1, 0, 'A'},
+    {"token", 1, 0, 'T'},
     {"version", 1, 0, 'V'},
     {"help", 0, 0, 'h'},
     {"list", 0, 0, 'l'},
@@ -263,6 +265,7 @@ int main(int argc, char *argv[]) {
   char *username = 0;
   char *password = 0;
   char *auth = 0;
+  std::string jwt_token_str = "";
 #if ZM_HAS_V4L
 #if ZM_HAS_V4L2
     int v4lVersion = 2;
@@ -273,7 +276,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:V:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:V:T:", long_options, &option_index);
     if ( c == -1 ) {
       break;
     }
@@ -378,6 +381,9 @@ int main(int argc, char *argv[]) {
       case 'A':
         auth = optarg;
         break;
+      case 'T':
+        jwt_token_str = std::string(optarg);
+        break;
 #if ZM_HAS_V4L
 			case 'V':
 				v4lVersion = (atoi(optarg)==1)?1:2;
@@ -394,7 +400,7 @@ int main(int argc, char *argv[]) {
         //fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
         break;
     }
-  }
+  } // end getopt loop
 
   if ( optind < argc ) {
     fprintf(stderr, "Extraneous options, ");
@@ -424,53 +430,58 @@ int main(int argc, char *argv[]) {
   User *user = 0;
 
   if ( config.opt_use_auth ) {
-    if ( strcmp(config.auth_relay, "none") == 0 ) {
+    if ( jwt_token_str != "" ) {
+      user = zmLoadTokenUser(jwt_token_str, false);
+    } else if ( strcmp(config.auth_relay, "none") == 0 ) {
       if ( !username ) {
-        fprintf(stderr, "Error, username must be supplied\n");
+        Error("Username must be supplied");
         exit_zmu(-1);
       }
 
-      if ( username ) {
-        user = zmLoadUser(username);
+      if ( !checkUser(username)) {
+        Error("Username greater than allowed 32 characters");
+        exit_zmu(-1);
       }
+
+      user = zmLoadUser(username);
     } else {
+       
       if ( !(username && password) && !auth ) {
-        fprintf(stderr, "Error, username and password or auth string must be supplied\n");
+        Error("Username and password or auth/token string must be supplied");
         exit_zmu(-1);
       }
-
-      //if ( strcmp( config.auth_relay, "hashed" ) == 0 )
-      {
-        if ( auth ) {
-          user = zmLoadAuthUser(auth, false);
-        }
+      if ( auth ) {
+        user = zmLoadAuthUser(auth, false);
       }
-      //else if ( strcmp( config.auth_relay, "plain" ) == 0 )
-      {
-        if ( username && password ) {
-          user = zmLoadUser(username, password);
+      if ( username && password ) {
+        if ( !checkUser(username)) {
+          Error("username greater than allowed 32 characters");
+          exit_zmu(-1);
         }
-      }
-    }
+        if ( !checkPass(password)) {
+          Error("password greater than allowed 64 characters");
+          exit_zmu(-1);
+        }
+        user = zmLoadUser(username, password);
+      } // end if username && password
+    } // end if relay or not
     if ( !user ) {
-      fprintf(stderr, "Error, unable to authenticate user\n");
-      return exit_zmu(-1);
+      Error("Unable to authenticate user");
+      exit_zmu(-1);
     }
 		if ( !ValidateAccess(user, mon_id, function) ) {
-			fprintf(stderr, "Error, insufficient privileges for requested action\n");
+			Error("Insufficient privileges for requested action");
 			exit_zmu(-1);
 		}
   } // end if auth
 
   if ( mon_id > 0 ) {
-		//fprintf(stderr,"Monitor %d\n", mon_id);
     Monitor *monitor = Monitor::Load(mon_id, function&(ZMU_QUERY|ZMU_ZONES), Monitor::QUERY);
     if ( monitor ) {
-        //fprintf(stderr,"Monitor %d(%s)\n", monitor->Id(), monitor->Name());
       if ( verbose ) {
         printf("Monitor %d(%s)\n", monitor->Id(), monitor->Name());
       }
-      if ( ! monitor->connect() ) {
+      if ( !monitor->connect() ) {
         Error("Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name());
         exit_zmu(-1);
       }
@@ -482,240 +493,250 @@ int main(int argc, char *argv[]) {
         if ( verbose ) {
           printf("Current state: %s\n", state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"));
         } else {
-          if ( have_output ) printf("%c", separator);
+          if ( have_output ) fputc(separator, stdout);
           printf("%d", state);
           have_output = true;
         }
       }
       if ( function & ZMU_TIME ) {
-        struct timeval timestamp = monitor->GetTimestamp( image_idx );
+        struct timeval timestamp = monitor->GetTimestamp(image_idx);
         if ( verbose ) {
           char timestamp_str[64] = "None";
           if ( timestamp.tv_sec )
-            strftime( timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime( &timestamp.tv_sec ) );
+            strftime(timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime(&timestamp.tv_sec));
           if ( image_idx == -1 )
-            printf( "Time of last image capture: %s.%02ld\n", timestamp_str, timestamp.tv_usec/10000 );
+            printf("Time of last image capture: %s.%02ld\n", timestamp_str, timestamp.tv_usec/10000);
           else
-            printf( "Time of image %d capture: %s.%02ld\n", image_idx, timestamp_str, timestamp.tv_usec/10000 );
+            printf("Time of image %d capture: %s.%02ld\n", image_idx, timestamp_str, timestamp.tv_usec/10000);
         } else {
-          if ( have_output ) printf( "%c", separator );
-          printf( "%ld.%02ld", timestamp.tv_sec, timestamp.tv_usec/10000 );
+          if ( have_output ) fputc(separator, stdout);
+          printf("%ld.%02ld", timestamp.tv_sec, timestamp.tv_usec/10000);
           have_output = true;
         }
       }
       if ( function & ZMU_READ_IDX ) {
         if ( verbose )
-          printf( "Last read index: %d\n", monitor->GetLastReadIndex() );
+          printf("Last read index: %d\n", monitor->GetLastReadIndex());
         else {
-          if ( have_output ) printf( "%c", separator );
-          printf( "%d", monitor->GetLastReadIndex() );
+          if ( have_output ) fputc(separator, stdout);
+          printf("%d", monitor->GetLastReadIndex());
           have_output = true;
         }
       }
       if ( function & ZMU_WRITE_IDX ) {
-        if ( verbose )
-          printf( "Last write index: %d\n", monitor->GetLastWriteIndex() );
-        else {
-          if ( have_output ) printf( "%c", separator );
-          printf( "%d", monitor->GetLastWriteIndex() );
+        if ( verbose ) {
+          printf("Last write index: %d\n", monitor->GetLastWriteIndex());
+        } else {
+          if ( have_output ) fputc(separator, stdout);
+          printf("%d", monitor->GetLastWriteIndex());
           have_output = true;
         }
       }
       if ( function & ZMU_EVENT ) {
-        if ( verbose )
-          printf( "Last event id: %" PRIu64 "\n", monitor->GetLastEventId() );
-        else {
-          if ( have_output ) printf( "%c", separator );
-          printf( "%" PRIu64, monitor->GetLastEventId() );
+        if ( verbose ) {
+          printf("Last event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        } else {
+          if ( have_output ) fputc(separator, stdout);
+          printf("%" PRIu64, monitor->GetLastEventId());
           have_output = true;
         }
       }
       if ( function & ZMU_FPS ) {
-        if ( verbose )
-          printf( "Current capture rate: %.2f frames per second\n", monitor->GetFPS() );
-        else {
-          if ( have_output ) printf( "%c", separator );
-          printf( "%.2f", monitor->GetFPS() );
+        if ( verbose ) {
+          printf("Current capture rate: %.2f frames per second\n", monitor->GetFPS());
+        } else {
+          if ( have_output ) fputc(separator, stdout);
+          printf("%.2f", monitor->GetFPS());
           have_output = true;
         }
       }
       if ( function & ZMU_IMAGE ) {
         if ( verbose ) {
           if ( image_idx == -1 )
-            printf( "Dumping last image captured to Monitor%d.jpg", monitor->Id() );
+            printf("Dumping last image captured to Monitor%d.jpg", monitor->Id());
           else
-            printf( "Dumping buffer image %d to Monitor%d.jpg", image_idx, monitor->Id() );
+            printf("Dumping buffer image %d to Monitor%d.jpg", image_idx, monitor->Id());
           if ( scale != -1 )
-            printf( ", scaling by %d%%", scale );
-          printf( "\n" );
+            printf(", scaling by %d%%", scale);
+          printf("\n");
         }
-        monitor->GetImage( image_idx, scale>0?scale:100 );
+        monitor->GetImage(image_idx, scale>0?scale:100);
       }
       if ( function & ZMU_ZONES ) {
         if ( verbose )
-          printf( "Dumping zone image to Zones%d.jpg\n", monitor->Id() );
-        monitor->DumpZoneImage( zoneString );
+          printf("Dumping zone image to Zones%d.jpg\n", monitor->Id());
+        monitor->DumpZoneImage(zoneString);
       }
       if ( function & ZMU_ALARM ) {
-        if ( verbose )
-          printf( "Forcing alarm on\n" );
-        monitor->ForceAlarmOn( config.forced_alarm_score, "Forced Web" );
-        while ( monitor->GetState() != Monitor::ALARM ) {
-          // Wait for monitor to notice.
-          usleep(1000);
-        }
-        printf( "Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId() );
+        if ( monitor->GetFunction() == Monitor::Function::MONITOR ) {
+         printf("A Monitor in monitor mode cannot handle alarms.  Please use NoDect\n");
+        } else {
+          Monitor::State state = monitor->GetState();
+
+          if ( verbose ) {
+            printf("Forcing alarm on current state: %s, event %" PRIu64 "\n",
+                state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"),
+                monitor->GetLastEventId()
+                );
+          }
+          monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
+          while ( ((state = monitor->GetState()) != Monitor::ALARM) && !zm_terminate ) {
+            // Wait for monitor to notice.
+            usleep(1000);
+          }
+          printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        } // end if ! MONITOR
       }
       if ( function & ZMU_NOALARM ) {
         if ( verbose )
-          printf( "Forcing alarm off\n" );
+          printf("Forcing alarm off\n");
         monitor->ForceAlarmOff();
       }
       if ( function & ZMU_CANCEL ) {
         if ( verbose )
-          printf( "Cancelling forced alarm on/off\n" );
+          printf("Cancelling forced alarm on/off\n");
         monitor->CancelForced();
       }
       if ( function & ZMU_RELOAD ) {
         if ( verbose )
-          printf( "Reloading monitor settings\n" );
+          printf("Reloading monitor settings\n");
         monitor->actionReload();
       }
       if ( function & ZMU_ENABLE ) {
         if ( verbose )
-          printf( "Enabling event generation\n" );
+          printf("Enabling event generation\n");
         monitor->actionEnable();
       }
       if ( function & ZMU_DISABLE ) {
         if ( verbose )
-          printf( "Disabling event generation\n" );
+          printf("Disabling event generation\n");
         monitor->actionDisable();
       }
       if ( function & ZMU_SUSPEND ) {
         if ( verbose )
-          printf( "Suspending event generation\n" );
+          printf("Suspending event generation\n");
         monitor->actionSuspend();
       }
       if ( function & ZMU_RESUME ) {
         if ( verbose )
-          printf( "Resuming event generation\n" );
+          printf("Resuming event generation\n");
         monitor->actionResume();
       }
       if ( function & ZMU_QUERY ) {
         char monString[16382] = "";
-        monitor->DumpSettings( monString, verbose );
-        printf( "%s\n", monString );
+        monitor->DumpSettings(monString, verbose);
+        printf("%s\n", monString);
       }
       if ( function & ZMU_BRIGHTNESS ) {
         if ( verbose ) {
           if ( brightness >= 0 )
-            printf( "New brightness: %d\n", monitor->actionBrightness( brightness ) );
+            printf("New brightness: %d\n", monitor->actionBrightness(brightness));
           else
-            printf( "Current brightness: %d\n", monitor->actionBrightness() );
+            printf("Current brightness: %d\n", monitor->actionBrightness());
         } else {
-          if ( have_output ) printf( "%c", separator );
+          if ( have_output ) fputc(separator, stdout);
           if ( brightness >= 0 )
-            printf( "%d", monitor->actionBrightness( brightness ) );
+            printf("%d", monitor->actionBrightness(brightness));
           else
-            printf( "%d", monitor->actionBrightness() );
+            printf("%d", monitor->actionBrightness());
           have_output = true;
         }
       }
       if ( function & ZMU_CONTRAST ) {
         if ( verbose ) {
           if ( contrast >= 0 )
-            printf( "New brightness: %d\n", monitor->actionContrast( contrast ) );
+            printf("New brightness: %d\n", monitor->actionContrast(contrast));
           else
-            printf( "Current contrast: %d\n", monitor->actionContrast() );
+            printf("Current contrast: %d\n", monitor->actionContrast());
         } else {
-          if ( have_output ) printf( "%c", separator );
+          if ( have_output ) fputc(separator, stdout);
           if ( contrast >= 0 )
-            printf( "%d", monitor->actionContrast( contrast ) );
+            printf("%d", monitor->actionContrast(contrast));
           else
-            printf( "%d", monitor->actionContrast() );
+            printf("%d", monitor->actionContrast());
           have_output = true;
         }
       }
       if ( function & ZMU_HUE ) {
         if ( verbose ) {
           if ( hue >= 0 )
-            printf( "New hue: %d\n", monitor->actionHue( hue ) );
+            printf("New hue: %d\n", monitor->actionHue(hue));
           else
-            printf( "Current hue: %d\n", monitor->actionHue() );
+            printf("Current hue: %d\n", monitor->actionHue());
         } else {
-          if ( have_output ) printf( "%c", separator );
+          if ( have_output ) fputc(separator, stdout);
           if ( hue >= 0 )
-            printf( "%d", monitor->actionHue( hue ) );
+            printf("%d", monitor->actionHue(hue));
           else
-            printf( "%d", monitor->actionHue() );
+            printf("%d", monitor->actionHue());
           have_output = true;
         }
       }
       if ( function & ZMU_COLOUR ) {
         if ( verbose ) {
           if ( colour >= 0 )
-            printf( "New colour: %d\n", monitor->actionColour( colour ) );
+            printf("New colour: %d\n", monitor->actionColour(colour));
           else
-            printf( "Current colour: %d\n", monitor->actionColour() );
+            printf("Current colour: %d\n", monitor->actionColour());
         } else {
-          if ( have_output ) printf( "%c", separator );
+          if ( have_output ) fputc(separator, stdout);
           if ( colour >= 0 )
-            printf( "%d", monitor->actionColour( colour ) );
+            printf("%d", monitor->actionColour(colour));
           else
-            printf( "%d", monitor->actionColour() );
+            printf("%d", monitor->actionColour());
           have_output = true;
         }
       }
       if ( have_output ) {
-        printf( "\n" );
+        printf("\n");
       }
       if ( !function ) {
         Usage();
       }
       delete monitor;
     } else {
-      fprintf(stderr, "Error, invalid monitor id %d\n", mon_id);
+      Error("Invalid monitor id %d", mon_id);
       exit_zmu(-1);
     }
   } else {
     if ( function & ZMU_QUERY ) {
 #if ZM_HAS_V4L
 			char vidString[0x10000] = "";
-			bool ok = LocalCamera::GetCurrentSettings( device, vidString, v4lVersion, verbose );
-			printf( "%s", vidString );
-			exit_zmu( ok?0:-1 );
+			bool ok = LocalCamera::GetCurrentSettings(device, vidString, v4lVersion, verbose);
+			printf("%s", vidString);
+			exit_zmu(ok ? 0 : -1);
 #else // ZM_HAS_V4L
-			fprintf( stderr, "Error, video4linux is required for device querying\n" );
-      exit_zmu( -1 );
+			Error("Video4linux is required for device querying");
+      exit_zmu(-1);
 #endif // ZM_HAS_V4L
     }
 
     if ( function & ZMU_LIST ) {
-      std::string sql = "select Id, Function+0 from Monitors";
+      std::string sql = "SELECT `Id`, `Function`+0 FROM `Monitors`";
       if ( !verbose ) {
-        sql += "where Function != 'None'";
+        sql += "WHERE `Function` != 'None'";
       }
-      sql += " order by Id asc";
+      sql += " ORDER BY Id ASC";
 
-      if ( mysql_query( &dbconn, sql.c_str() ) ) {
-        Error( "Can't run query: %s", mysql_error( &dbconn ) );
-        exit_zmu( mysql_errno( &dbconn ) );
+      if ( mysql_query(&dbconn, sql.c_str()) ) {
+        Error("Can't run query: %s", mysql_error(&dbconn));
+        exit_zmu(mysql_errno(&dbconn));
       }
 
-      MYSQL_RES *result = mysql_store_result( &dbconn );
+      MYSQL_RES *result = mysql_store_result(&dbconn);
       if ( !result ) {
-        Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-        exit_zmu( mysql_errno( &dbconn ) );
+        Error("Can't use query result: %s", mysql_error(&dbconn));
+        exit_zmu(mysql_errno(&dbconn));
       }
-      Debug( 1, "Got %d monitors", mysql_num_rows( result ) );
+      Debug(1, "Got %d monitors", mysql_num_rows(result));
 
-      printf( "%4s%5s%6s%9s%14s%6s%6s%8s%8s\n", "Id", "Func", "State", "TrgState", "LastImgTim", "RdIdx", "WrIdx", "LastEvt", "FrmRate" );
-      for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ ) {
+      printf("%4s%5s%6s%9s%14s%6s%6s%8s%8s\n", "Id", "Func", "State", "TrgState", "LastImgTim", "RdIdx", "WrIdx", "LastEvt", "FrmRate");
+      for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
         int mon_id = atoi(dbrow[0]);
         int function = atoi(dbrow[1]);
-        if ( !user || user->canAccess( mon_id ) ) {
+        if ( !user || user->canAccess(mon_id) ) {
           if ( function > 1 ) {
-            Monitor *monitor = Monitor::Load( mon_id, false, Monitor::QUERY );
+            Monitor *monitor = Monitor::Load(mon_id, false, Monitor::QUERY);
             if ( monitor && monitor->connect() ) {
               struct timeval tv = monitor->GetTimestamp();
               printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8" PRIu64 "%8.2f\n",
@@ -733,7 +754,7 @@ int main(int argc, char *argv[]) {
             }
           } else {
             struct timeval tv = { 0, 0 };
-            printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
+            printf("%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
               mon_id,
               function,
               0,
@@ -744,11 +765,11 @@ int main(int argc, char *argv[]) {
               0,
               0.0
             );
-          }
-        }
-      }
-      mysql_free_result( result );
-    }
+          } // end if function filter
+        } // endif !user || canAccess(mon_id)
+      } // end foreach row
+      mysql_free_result(result);
+    } // end if function && ZMU_LIST
   }
   delete user;
 

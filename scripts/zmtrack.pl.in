@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -77,11 +77,11 @@ my $mid = 0;
 GetOptions( 'monitor=s'=>\$mid )
     or pod2usage(-exitstatus => -1);
 
-logInit();
-logSetSignal();
-
 my ( $detaint_mid ) = $mid =~ /^(\d+)$/;
 $mid = $detaint_mid;
+
+logInit($mid?(id=>'zmtrack_m'.$mid):());
+logSetSignal();
 
 print( "Tracker daemon $mid (experimental) starting at "
        .strftime( '%y/%m/%d %H:%M:%S', localtime() )
@@ -90,146 +90,122 @@ print( "Tracker daemon $mid (experimental) starting at "
 
 my $dbh = zmDbConnect();
 
-my $sql = "SELECT C.*,M.* FROM Monitors as M
+my $sql = 'SELECT C.*,M.* FROM Monitors as M
            LEFT JOIN Controls as C on M.ControlId = C.Id
-           WHERE M.Id = ?"
+           WHERE M.Id = ?'
 ;
 my $sth = $dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+    or Fatal("Can't prepare '$sql': ".$dbh->errstr());
 
 my $res = $sth->execute( $mid )
-    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+    or Fatal("Can't execute '$sql': ".$sth->errstr());
 my $monitor = $sth->fetchrow_hashref();
 
-if ( !$monitor )
-{
-    print( "Can't find monitor '$mid'\n" );
-    exit( -1 );
+if ( !$monitor ) {
+  Fatal("Can't find monitor '$mid'");
 }
-if ( !$monitor->{Controllable} )
-{
-    print( "Monitor '$mid' is not controllable\n" );
-    exit( -1 );
+if ( !$monitor->{Controllable} ) {
+  Fatal("Monitor '$mid' is not controllable");
 }
-if ( !$monitor->{TrackMotion} )
-{
-    print( "Monitor '$mid' is not configured to track motion\n" );
-    exit( -1 );
+if ( !$monitor->{TrackMotion} ) {
+  Fatal("Monitor '$mid' is not configured to track motion");
 }
 
-if ( !$monitor->{CanMoveMap} )
-{
-    print( "Monitor '$mid' cannot move in map mode" );
-    if ( $monitor->{CanMoveRel} )
-    {
-        print( ", falling back to pseudo map mode\n" );
-    }
-    else
-    {
-        print( "\n" );
-        exit( -1 );
-    }
+if ( !$monitor->{CanMoveMap} ) {
+  if ( $monitor->{CanMoveRel} ) {
+    Warning("Monitor '$mid' cannot move in map mode, falling back to pseudo map mode");
+  } else {
+    Fatal("Monitor '$mid' cannot move in map mode");
+  }
 }
 
-Debug( "Found monitor for id '$monitor'\n" );
-exit( -1 ) if ( !zmMemVerify( $monitor ) );
+Debug("Found monitor for id '$monitor'");
+exit(-1) if !zmMemVerify($monitor);
 
-sub Suspend
-{
-    my $monitor = shift;
-    zmMonitorSuspend( $monitor );
+sub Suspend {
+  my $monitor = shift;
+  zmMonitorSuspend($monitor);
 }
 
-sub Resume
-{
-    my $monitor = shift;
-    sleep( $monitor->{TrackDelay} );
-    zmMonitorResume( $monitor );
+sub Resume {
+  my $monitor = shift;
+  sleep($monitor->{TrackDelay});
+  zmMonitorResume($monitor);
 }
 
-sub Track
-{
-    my $monitor = shift;
-    my ( $x, $y ) = @_;
-    my ( $detaint_x ) = $x =~ /^(\d+)$/; $x = $detaint_x;
-    my ( $detaint_y ) = $y =~ /^(\d+)$/; $y = $detaint_y;
+sub Track {
+  my $monitor = shift;
+  my ( $x, $y ) = @_;
+  my ( $detaint_x ) = $x =~ /^(\d+)$/; $x = $detaint_x;
+  my ( $detaint_y ) = $y =~ /^(\d+)$/; $y = $detaint_y;
 
-    my $ctrlCommand = $Config{ZM_PATH_BIN}
-                      ."/zmcontrol.pl -i "
-                      .$monitor->{Id}
+  my $ctrlCommand = $Config{ZM_PATH_BIN}
+  .'/zmcontrol.pl -i '
+  .$monitor->{Id}
+  ;
+  $ctrlCommand .= ' --command='
+  .( $monitor->{CanMoveMap} ? 'moveMap'
+    : 'movePseudoMap'
+  )
+  ." --xcoord=$x --ycoord=$y"
+  ;
+  executeShellCommand($ctrlCommand);
+}
+
+sub Return {
+  my $monitor = shift;
+
+  my $ctrlCommand = $Config{ZM_PATH_BIN}
+  .'/zmcontrol.pl -i '
+  .$monitor->{Id}
+  ;
+  if ( $monitor->{ReturnLocation} > 0 ) {
+    $ctrlCommand .= ' --command=presetGoto --preset='
+    .$monitor->{ReturnLocation}
     ;
-    $ctrlCommand .= " --command="
-                    .( $monitor->{CanMoveMap} ? "moveMap"
-                                              : "movePseudoMap"
-                     )
-                    ." --xcoord=$x --ycoord=$y"
-    ;
-    executeShellCommand( $ctrlCommand );
-}
-
-sub Return
-{
-    my $monitor = shift;
-
-    my $ctrlCommand = $Config{ZM_PATH_BIN}
-                      ."/zmcontrol.pl -i "
-                      .$monitor->{Id}
-    ;
-    if ( $monitor->{ReturnLocation} > 0 )
-    {
-        $ctrlCommand .= " --command=presetGoto --preset="
-                        .$monitor->{ReturnLocation}
-        ;
-    }
-    else
-    {
-        $ctrlCommand .= " --command=presetHome";
-    }
-    executeShellCommand( $ctrlCommand );
+  } else {
+    $ctrlCommand .= ' --command=presetHome';
+  }
+  executeShellCommand($ctrlCommand);
 }
 
 my $last_alarm = 0;
-if ( ($monitor->{ReturnLocation} >= 0) )
-{
-    Suspend( $monitor );
-    Return( $monitor );
-    Resume( $monitor );
+if ( ($monitor->{ReturnLocation} >= 0) ) {
+  Suspend($monitor);
+  Return($monitor);
+  Resume($monitor);
 }
 
 my $alarmed = undef;
-while( 1 )
-{
-    if ( zmIsAlarmed( $monitor ) )
-    {
-        my ( $alarm_x, $alarm_y ) = zmGetAlarmLocation( $monitor );
-        if ( $alarm_x >= 0 && $alarm_y >= 0 )
-        {
-            Debug( "Got alarm at $alarm_x, $alarm_y\n" );
-            Suspend( $monitor );
-            Track( $monitor, $alarm_x, $alarm_y );
-            Resume( $monitor );
-            $last_alarm = time();
-            $alarmed = !undef;
-        }
+while( 1 ) {
+  if ( zmIsAlarmed($monitor) ) {
+    my ( $alarm_x, $alarm_y ) = zmGetAlarmLocation($monitor);
+    if ( $alarm_x >= 0 && $alarm_y >= 0 ) {
+      Debug("Got alarm at $alarm_x, $alarm_y");
+      Suspend($monitor);
+      Track($monitor, $alarm_x, $alarm_y);
+      Resume($monitor);
+      $last_alarm = time();
+      $alarmed = !undef;
     }
-    else
-    {
-        if ( logDebugging() && $alarmed )
-        {
-            print( "Left alarm state\n" );
-            $alarmed = undef;
-        }
-        if ( ($monitor->{ReturnLocation} >= 0)
-             && ($last_alarm > 0)
-             && ((time()-$last_alarm) > $monitor->{ReturnDelay})
-        )
-        {
-            Debug( "Returning to location ".$monitor->{ReturnLocation}."\n" );
-            Suspend( $monitor );
-            Return( $monitor );
-            Resume( $monitor );
-            $last_alarm = 0;
-        }
+  } else {
+    if ( logDebugging() && $alarmed ) {
+      Info('Left alarm state');
+      $alarmed = undef;
     }
-    usleep( SLEEP_TIME );
+    if ( ($monitor->{ReturnLocation} >= 0)
+      && ($last_alarm > 0)
+      && ((time()-$last_alarm) > $monitor->{ReturnDelay})
+    ) {
+      Debug("Returning to location ".$monitor->{ReturnLocation});
+      Suspend($monitor);
+      Return($monitor);
+      Resume($monitor);
+      $last_alarm = 0;
+    }
+  }
+  usleep(SLEEP_TIME);
 }
+
+1;
+__END__

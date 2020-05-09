@@ -1,21 +1,20 @@
-function selectMonitors() {
-  createPopup( '?view=monitorselect&callForm=groupForm&callField=newGroup[MonitorIds]', 'zmMonitors', 'monitorselect' );
-}
-
-if ( refreshParent ) {
-  opener.location.reload(true);
-}
-
-function configureButtons( element ) {
-  if ( canEditGroups ) {
-    var form = element.form;
-    var disabled = false;
-
-    if ( form.elements['newGroup[Name]'].value == '' ) {
-      disabled = true;
-    } 
-    form.saveBtn.disabled = disabled;
+function configureButtons() {
+  var form = $j('#groupForm')[0];
+  if ( !form ) {
+    console.log("No groupForm found");
+    return;
   }
+  if ( !canEditGroups ) {
+    console.log("Cannot edit groups");
+    form.elements['action'].disabled = disabled;
+    return;
+  }
+  var disabled = false;
+
+  if ( form.elements['newGroup[Name]'].value == '' ) {
+    disabled = true;
+  }
+  form.elements['action'].disabled = disabled;
 }
 
 window.focus();

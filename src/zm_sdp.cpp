@@ -26,17 +26,17 @@
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
 SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {
   { 0, "PCMU",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_PCM_MULAW,  8000,  1 },
-  { 3, "GSM",  AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
+  { 3, "GSM",    AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
   { 4, "G723",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
   { 5, "DVI4",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
   { 6, "DVI4",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     16000, 1 },
-  { 7, "LPC",  AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
+  { 7, "LPC",    AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
   { 8, "PCMA",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_PCM_ALAW,   8000,  1 },
   { 9, "G722",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
   { 10, "L16",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_PCM_S16BE,  44100, 2 },
   { 11, "L16",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_PCM_S16BE,  44100, 1 },
   { 12, "QCELP", AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_QCELP,    8000,  1 },
-  { 13, "CN",  AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
+  { 13, "CN",    AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
   { 14, "MPA",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_MP2,    -1,  -1 },
   { 14, "MPA",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_MP3,    -1,  -1 },
   { 15, "G728",  AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
@@ -45,36 +45,36 @@ SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {
   { 18, "G729",  AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_NONE,     8000,  1 },
   { 25, "CelB",  AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_NONE,     90000, -1 },
   { 26, "JPEG",  AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_MJPEG,    90000, -1 },
-  { 28, "nv",  AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_NONE,     90000, -1 },
+  { 28, "nv",    AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_NONE,     90000, -1 },
   { 31, "H261",  AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_H261,     90000, -1 },
   { 32, "MPV",   AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_MPEG1VIDEO, 90000, -1 },
   { 32, "MPV",   AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_MPEG2VIDEO, 90000, -1 },
   { 33, "MP2T",  AVMEDIA_TYPE_DATA,  AV_CODEC_ID_MPEG2TS,  90000, -1 },
   { 34, "H263",  AVMEDIA_TYPE_VIDEO,   AV_CODEC_ID_H263,     90000, -1 },
-  { -1, "",    AVMEDIA_TYPE_UNKNOWN, AV_CODEC_ID_NONE,     -1,  -1 }
+  { -1, "",      AVMEDIA_TYPE_UNKNOWN, AV_CODEC_ID_NONE,     -1,  -1 }
 };
 
 SessionDescriptor::DynamicPayloadDesc SessionDescriptor::smDynamicPayloads[] = {
-  { "MP4V-ES", AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_MPEG4 },
-  { "mpeg4-generic", AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AAC },
-  { "H264", AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_H264 },
-  { "AMR", AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AMR_NB },
+  { "MP4V-ES",            AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_MPEG4 },
+  { "mpeg4-generic",      AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AAC },
+  { "H264",               AVMEDIA_TYPE_VIDEO, AV_CODEC_ID_H264 },
+  { "AMR",                AVMEDIA_TYPE_AUDIO, AV_CODEC_ID_AMR_NB },
   { "vnd.onvif.metadata", AVMEDIA_TYPE_DATA, AV_CODEC_ID_NONE }
 };
 #else
 SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {
   { 0, "PCMU",   CODEC_TYPE_AUDIO,   CODEC_ID_PCM_MULAW,  8001,  1 },
-  { 3, "GSM",  CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
+  { 3, "GSM",    CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
   { 4, "G723",   CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
   { 5, "DVI4",   CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
   { 6, "DVI4",   CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     16000, 1 },
-  { 7, "LPC",  CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
+  { 7, "LPC",    CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
   { 8, "PCMA",   CODEC_TYPE_AUDIO,   CODEC_ID_PCM_ALAW,   8000,  1 },
   { 9, "G722",   CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
   { 10, "L16",   CODEC_TYPE_AUDIO,   CODEC_ID_PCM_S16BE,  44100, 2 },
   { 11, "L16",   CODEC_TYPE_AUDIO,   CODEC_ID_PCM_S16BE,  44100, 1 },
   { 12, "QCELP", CODEC_TYPE_AUDIO,   CODEC_ID_QCELP,    8000,  1 },
-  { 13, "CN",  CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
+  { 13, "CN",    CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
   { 14, "MPA",   CODEC_TYPE_AUDIO,   CODEC_ID_MP2,    -1,  -1 },
   { 14, "MPA",   CODEC_TYPE_AUDIO,   CODEC_ID_MP3,    -1,  -1 },
   { 15, "G728",  CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
@@ -83,7 +83,7 @@ SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {
   { 18, "G729",  CODEC_TYPE_AUDIO,   CODEC_ID_NONE,     8000,  1 },
   { 25, "CelB",  CODEC_TYPE_VIDEO,   CODEC_ID_NONE,     90000, -1 },
   { 26, "JPEG",  CODEC_TYPE_VIDEO,   CODEC_ID_MJPEG,    90000, -1 },
-  { 28, "nv",  CODEC_TYPE_VIDEO,   CODEC_ID_NONE,     90000, -1 },
+  { 28, "nv",    CODEC_TYPE_VIDEO,   CODEC_ID_NONE,     90000, -1 },
   { 31, "H261",  CODEC_TYPE_VIDEO,   CODEC_ID_H261,     90000, -1 },
   { 32, "MPV",   CODEC_TYPE_VIDEO,   CODEC_ID_MPEG1VIDEO, 90000, -1 },
   { 32, "MPV",   CODEC_TYPE_VIDEO,   CODEC_ID_MPEG2VIDEO, 90000, -1 },
@@ -105,7 +105,7 @@ SessionDescriptor::ConnInfo::ConnInfo( const std::string &connInfo ) :
   mTtl( 16 ),
   mNoAddresses( 0 )
 {
-  StringVector tokens = split( connInfo, " " );
+  StringVector tokens = split(connInfo, " ");
   if ( tokens.size() < 3 )
     throw Exception( "Unable to parse SDP connection info from '"+connInfo+"'" );
   mNetworkType = tokens[0];
@@ -136,7 +136,12 @@ SessionDescriptor::BandInfo::BandInfo( const std::string &bandInfo ) :
   mValue = atoi(tokens[1].c_str());
 }
 
-SessionDescriptor::MediaDescriptor::MediaDescriptor( const std::string &type, int port, int numPorts, const std::string &transport, int payloadType ) :
+SessionDescriptor::MediaDescriptor::MediaDescriptor(
+    const std::string &type,
+    int port,
+    int numPorts,
+    const std::string &transport,
+    int payloadType ) :
   mType( type ),
   mPort( port ),
   mNumPorts( numPorts ),
@@ -164,14 +169,13 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
     if ( line.empty() )
       break;
 
-    Debug( 3, "Processing SDP line '%s'", line.c_str() );
+    Debug(3, "Processing SDP line '%s'", line.c_str());
     const char sdpType = line[0];
     if ( line[1] != '=' )
-      throw Exception( "Invalid SDP format at '"+line+"'" );
+      throw Exception("Invalid SDP format at '"+line+"'");
 
-    line.erase( 0, 2 );
-    switch( sdpType )
-    {
+    line.erase(0, 2);
+    switch( sdpType ) {
       case 'v' :
         mVersion = line;
         break;
@@ -204,19 +208,13 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
         mAttributes.push_back( line );
         StringVector tokens = split( line, ":", 2 );
         std::string attrName = tokens[0];
-        if ( currMedia )
-        {
-          if ( attrName == "control" )
-          {
+        if ( currMedia ) {
+          if ( attrName == "control" ) {
             if ( tokens.size() < 2 )
               throw Exception( "Unable to parse SDP control attribute '"+line+"' for media '"+currMedia->getType()+"'" );
             currMedia->setControlUrl( tokens[1] );
-          }
-          else if ( attrName == "range" )
-          {
-          }
-          else if ( attrName == "rtpmap" )
-          {
+          } else if ( attrName == "range" ) {
+          } else if ( attrName == "rtpmap" ) {
             // a=rtpmap:96 MP4V-ES/90000
             if ( tokens.size() < 2 )
               throw Exception( "Unable to parse SDP rtpmap attribute '"+line+"' for media '"+currMedia->getType()+"'" );
@@ -226,53 +224,46 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
               throw Exception( stringtf( "Payload type mismatch, expected %d, got %d in '%s'", currMedia->getPayloadType(), payloadType, line.c_str() ) );
             std::string payloadDesc = attrTokens[1];
             //currMedia->setPayloadType( payloadType );
-            if ( attrTokens.size() > 1 )
-            {
+            if ( attrTokens.size() > 1 ) {
               StringVector payloadTokens = split( attrTokens[1], "/" );
               std::string payloadDesc = payloadTokens[0];
               int payloadClock = atoi(payloadTokens[1].c_str());
               currMedia->setPayloadDesc( payloadDesc );
               currMedia->setClock( payloadClock );
             }
-          }
-          else if ( attrName == "framesize" )
-          {
+          } else if ( attrName == "framesize" ) {
             // a=framesize:96 320-240
             if ( tokens.size() < 2 )
-              throw Exception( "Unable to parse SDP framesize attribute '"+line+"' for media '"+currMedia->getType()+"'" );
-            StringVector attrTokens = split( tokens[1], " " );
+              throw Exception("Unable to parse SDP framesize attribute '"+line+"' for media '"+currMedia->getType()+"'");
+            StringVector attrTokens = split(tokens[1], " ");
             int payloadType = atoi(attrTokens[0].c_str());
             if ( payloadType != currMedia->getPayloadType() )
-              throw Exception( stringtf( "Payload type mismatch, expected %d, got %d in '%s'", currMedia->getPayloadType(), payloadType, line.c_str() ) );
+              throw Exception( stringtf("Payload type mismatch, expected %d, got %d in '%s'",
+                    currMedia->getPayloadType(), payloadType, line.c_str()));
             //currMedia->setPayloadType( payloadType );
-            StringVector sizeTokens = split( attrTokens[1], "-" );
+            StringVector sizeTokens = split(attrTokens[1], "-");
             int width = atoi(sizeTokens[0].c_str());
             int height = atoi(sizeTokens[1].c_str());
-            currMedia->setFrameSize( width, height );
-          }
-          else if ( attrName == "framerate" )
-          {
+            currMedia->setFrameSize(width, height);
+          } else if ( attrName == "framerate" ) {
             // a=framerate:5.0
             if ( tokens.size() < 2 )
-              throw Exception( "Unable to parse SDP framerate attribute '"+line+"' for media '"+currMedia->getType()+"'" );
+              throw Exception("Unable to parse SDP framerate attribute '"+line+"' for media '"+currMedia->getType()+"'");
             double frameRate = atof(tokens[1].c_str());
-            currMedia->setFrameRate( frameRate );
-          }
-          else if ( attrName == "fmtp" )
-          {
+            currMedia->setFrameRate(frameRate);
+          } else if ( attrName == "fmtp" ) {
             // a=fmtp:96 profile-level-id=247; config=000001B0F7000001B509000001000000012008D48D8803250F042D14440F
             if ( tokens.size() < 2 )
-              throw Exception( "Unable to parse SDP fmtp attribute '"+line+"' for media '"+currMedia->getType()+"'" );
-            StringVector attrTokens = split( tokens[1], " ", 2 );
+              throw Exception("Unable to parse SDP fmtp attribute '"+line+"' for media '"+currMedia->getType()+"'");
+            StringVector attrTokens = split(tokens[1], " ", 2);
             int payloadType = atoi(attrTokens[0].c_str());
             if ( payloadType != currMedia->getPayloadType() )
-              throw Exception( stringtf( "Payload type mismatch, expected %d, got %d in '%s'", currMedia->getPayloadType(), payloadType, line.c_str() ) );
+              throw Exception(stringtf("Payload type mismatch, expected %d, got %d in '%s'",
+                    currMedia->getPayloadType(), payloadType, line.c_str()));
             //currMedia->setPayloadType( payloadType );
-            if ( attrTokens.size() > 1 )
-            {
+            if ( attrTokens.size() > 1 ) {
               StringVector attr2Tokens = split( attrTokens[1], "; " );
-              for ( unsigned int i = 0; i < attr2Tokens.size(); i++ )
-              {
+              for ( unsigned int i = 0; i < attr2Tokens.size(); i++ ) {
                 StringVector attr3Tokens = split( attr2Tokens[i], "=" );
                 //Info( "Name = %s, Value = %s", attr3Tokens[0].c_str(), attr3Tokens[1].c_str() );
                 if ( attr3Tokens[0] == "profile-level-id" ) {
@@ -292,40 +283,39 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
           } else if ( attrName == "mpeg4-esid" ) {
             // a=mpeg4-esid:201
           } else {
-            Debug( 3, "Ignoring SDP attribute '%s' for media '%s'", line.c_str(), currMedia->getType().c_str() )
+            Debug(3, "Ignoring SDP attribute '%s' for media '%s'", line.c_str(), currMedia->getType().c_str());
           }
         } else {
-          Debug( 3, "Ignoring general SDP attribute '%s'", line.c_str() );
+          Debug(3, "Ignoring general SDP attribute '%s'", line.c_str());
         }
         break;
       }
       case 'm' :
       {
-        StringVector tokens = split( line, " " );
+        StringVector tokens = split(line, " ");
         if ( tokens.size() < 4 )
-          throw Exception( "Can't parse SDP media description '"+line+"'" );
+          throw Exception("Can't parse SDP media description '"+line+"'");
         std::string mediaType = tokens[0];
         if ( mediaType != "audio" && mediaType != "video"  && mediaType != "application" )
-          throw Exception( "Unsupported media type '"+mediaType+"' in SDP media attribute '"+line+"'" );
-        StringVector portTokens = split( tokens[1], "/" );
+          throw Exception("Unsupported media type '"+mediaType+"' in SDP media attribute '"+line+"'");
+        StringVector portTokens = split(tokens[1], "/");
         int mediaPort = atoi(portTokens[0].c_str());
         int mediaNumPorts = 1;
         if ( portTokens.size() > 1 )
           mediaNumPorts = atoi(portTokens[1].c_str());
         std::string mediaTransport = tokens[2];
         if ( mediaTransport != "RTP/AVP" )
-          throw Exception( "Unsupported media transport '"+mediaTransport+"' in SDP media attribute '"+line+"'" );
+          throw Exception("Unsupported media transport '"+mediaTransport+"' in SDP media attribute '"+line+"'");
         int payloadType = atoi(tokens[3].c_str());
-        currMedia = new MediaDescriptor( mediaType, mediaPort, mediaNumPorts, mediaTransport, payloadType );
-        mMediaList.push_back( currMedia );
+        currMedia = new MediaDescriptor(mediaType, mediaPort, mediaNumPorts, mediaTransport, payloadType);
+        mMediaList.push_back(currMedia);
         break;
       }
-    }
-  }
+    } // end switch
+  } // end foreach line
 }
 
-SessionDescriptor::~SessionDescriptor()
-{
+SessionDescriptor::~SessionDescriptor() {
   if ( mConnInfo )
     delete mConnInfo;
   if ( mBandInfo )
@@ -334,11 +324,14 @@ SessionDescriptor::~SessionDescriptor()
     delete mMediaList[i];
 }
 
-AVFormatContext *SessionDescriptor::generateFormatContext() const
-{
+AVFormatContext *SessionDescriptor::generateFormatContext() const {
   AVFormatContext *formatContext = avformat_alloc_context();
 
-  strncpy( formatContext->filename, mUrl.c_str(), sizeof(formatContext->filename) );
+#if (LIBAVFORMAT_VERSION_CHECK(58, 12, 0, 0, 100))
+  formatContext->url = av_strdup(mUrl.c_str());
+#else
+  strncpy(formatContext->filename, mUrl.c_str(), sizeof(formatContext->filename));
+#endif
 /*
   if ( mName.length() )
     strncpy( formatContext->title, mName.c_str(), sizeof(formatContext->title) );
@@ -349,35 +342,40 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
   for ( unsigned int i = 0; i < mMediaList.size(); i++ ) {
     const MediaDescriptor *mediaDesc = mMediaList[i];
 #if !LIBAVFORMAT_VERSION_CHECK(53, 10, 0, 17, 0)
-    AVStream *stream = av_new_stream( formatContext, i );
+    AVStream *stream = av_new_stream(formatContext, i);
 #else
-    AVStream *stream = avformat_new_stream( formatContext, NULL );
+    AVStream *stream = avformat_new_stream(formatContext, NULL);
     stream->id = i;
 #endif
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     AVCodecContext *codec_context = avcodec_alloc_context3(NULL);
     avcodec_parameters_to_context(codec_context, stream->codecpar);
+    stream->codec = codec_context;
 #else
     AVCodecContext *codec_context = stream->codec;
 #endif
 
-    Debug( 1, "Looking for codec for %s payload type %d / %s",  mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
+    std::string type = mediaDesc->getType();
+    Debug(1, "Looking for codec for %s payload type %d / %s",
+        type.c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str());
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-    if ( mediaDesc->getType() == "video" )
+    if ( type == "video" )
       codec_context->codec_type = AVMEDIA_TYPE_VIDEO;
-    else if ( mediaDesc->getType() == "audio" )
+    else if ( type == "audio" )
       codec_context->codec_type = AVMEDIA_TYPE_AUDIO;
-    else if ( mediaDesc->getType() == "application" )
+    else if ( type == "application" )
       codec_context->codec_type = AVMEDIA_TYPE_DATA;
 #else
-    if ( mediaDesc->getType() == "video" )
+    if ( type == "video" )
       codec_context->codec_type = CODEC_TYPE_VIDEO;
-    else if ( mediaDesc->getType() == "audio" )
+    else if ( type == "audio" )
       codec_context->codec_type = CODEC_TYPE_AUDIO;
-    else if ( mediaDesc->getType() == "application" )
+    else if ( type == "application" )
       codec_context->codec_type = CODEC_TYPE_DATA;
 #endif
+    else
+      Warning("Unknown media_type %s", type.c_str());
 
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
     std::string codec_name;
@@ -388,9 +386,9 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
         if ( smStaticPayloads[i].payloadType == mediaDesc->getPayloadType() ) {
           Debug( 1, "Got static payload type %d, %s", smStaticPayloads[i].payloadType, smStaticPayloads[i].payloadName );
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
-          codec_name = std::string( smStaticPayloads[i].payloadName );
+          codec_name = std::string(smStaticPayloads[i].payloadName);
 #else
-          strncpy( codec_context->codec_name, smStaticPayloads[i].payloadName, sizeof(codec_context->codec_name) );;
+          strncpy(codec_context->codec_name, smStaticPayloads[i].payloadName, sizeof(codec_context->codec_name));
 #endif
           codec_context->codec_type = smStaticPayloads[i].codecType;
           codec_context->codec_id = smStaticPayloads[i].codecId;
@@ -402,11 +400,11 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
       // Look in dynamic table
       for ( unsigned int i = 0; i < (sizeof(smDynamicPayloads)/sizeof(*smDynamicPayloads)); i++ ) {
         if ( smDynamicPayloads[i].payloadName == mediaDesc->getPayloadDesc() ) {
-          Debug( 1, "Got dynamic payload type %d, %s", mediaDesc->getPayloadType(), smDynamicPayloads[i].payloadName );
+          Debug(1, "Got dynamic payload type %d, %s", mediaDesc->getPayloadType(), smDynamicPayloads[i].payloadName);
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
-          codec_name = std::string( smStaticPayloads[i].payloadName );
+          codec_name = std::string(smStaticPayloads[i].payloadName);
 #else
-          strncpy( codec_context->codec_name, smDynamicPayloads[i].payloadName, sizeof(codec_context->codec_name) );;
+          strncpy(codec_context->codec_name, smDynamicPayloads[i].payloadName, sizeof(codec_context->codec_name));
 #endif
           codec_context->codec_type = smDynamicPayloads[i].codecType;
           codec_context->codec_id = smDynamicPayloads[i].codecId;
@@ -414,7 +412,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
           break;
         }
       }
-    }
+    } /// end if static or dynamic
 
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
     if ( codec_name.empty() )
@@ -422,7 +420,8 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
     if ( !stream->codec->codec_name[0] )
 #endif
     {
-      Warning( "Can't find payload details for %s payload type %d, name %s", mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
+      Warning( "Can't find payload details for %s payload type %d, name %s",
+          mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
       //return( 0 );
     }
     if ( mediaDesc->getWidth() )
@@ -445,11 +444,11 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
 
         while (*value && *value != ','
              && (dst - base64packet) < (long)(sizeof(base64packet)) - 1) {
-            *dst++ = *value++;
+          *dst++ = *value++;
         }
         *dst++ = '\0';
 
-        if (*value == ',')
+        if ( *value == ',' )
           value++;
 
         packet_size= av_base64_decode(decoded_packet, (const char *)base64packet, (int)sizeof(decoded_packet));
@@ -464,23 +463,23 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
                        FF_INPUT_BUFFER_PADDING_SIZE
 #endif
 );
-          if(dest) {
-              if(codec_context->extradata_size) {
-                // av_realloc?
+          if ( dest ) {
+            if ( codec_context->extradata_size ) {
+              // av_realloc?
               memcpy(dest, codec_context->extradata, codec_context->extradata_size);
-                av_free(codec_context->extradata);
-              }
+              av_free(codec_context->extradata);
+            }
 
-              memcpy(dest+codec_context->extradata_size, start_sequence, sizeof(start_sequence));
-              memcpy(dest+codec_context->extradata_size+sizeof(start_sequence), decoded_packet, packet_size);
-              memset(dest+codec_context->extradata_size+sizeof(start_sequence)+
-                     packet_size, 0,
+            memcpy(dest+codec_context->extradata_size, start_sequence, sizeof(start_sequence));
+            memcpy(dest+codec_context->extradata_size+sizeof(start_sequence), decoded_packet, packet_size);
+            memset(dest+codec_context->extradata_size+sizeof(start_sequence)+
+                packet_size, 0,
 #if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
-                       AV_INPUT_BUFFER_PADDING_SIZE
+                AV_INPUT_BUFFER_PADDING_SIZE
 #else
-                       FF_INPUT_BUFFER_PADDING_SIZE
+                FF_INPUT_BUFFER_PADDING_SIZE
 #endif
-);
+                );
 
               codec_context->extradata= dest;
               codec_context->extradata_size+= sizeof(start_sequence)+packet_size;
@@ -493,7 +492,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
     }
   }
 
-  return( formatContext );
+  return formatContext;
 }
 
 #endif // HAVE_LIBAVFORMAT

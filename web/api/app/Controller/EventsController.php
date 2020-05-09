@@ -15,6 +15,10 @@ class EventsController extends AppController {
    */
   public $components = array('RequestHandler', 'Scaler', 'Image', 'Paginator');
 
+  public function beforeRender() {
+    $this->set($this->Event->enumValues());
+  }
+
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
@@ -35,6 +39,7 @@ class EventsController extends AppController {
     $this->Event->recursive = -1;
 
     global $user;
+    require_once __DIR__ .'/../../../includes/Event.php';
     $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
 
     if ( $allowedMonitors ) {
@@ -44,9 +49,8 @@ class EventsController extends AppController {
     }
 
     if ( $this->request->params['named'] ) {
-      //$this->FilterComponent = $this->Components->load('Filter');
-      //$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
-      $conditions = $this->request->params['named'];
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
     } else {
       $conditions = array();
     }
@@ -88,9 +92,13 @@ class EventsController extends AppController {
     $events = $this->Paginator->paginate('Event');
 
     // For each event, get the frameID which has the largest score
+    // also add FS path
+
     foreach ( $events as $key => $value ) {
+      $EventObj = new ZM\Event($value['Event']['Id']);
       $maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
       $events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
+      $events[$key]['Event']['FileSystemPath'] = $EventObj->Path();
     }
 
     $this->set(compact('events'));
@@ -132,18 +140,25 @@ class EventsController extends AppController {
     $event['Event']['fileExists'] = $this->Event->fileExists($event['Event']);
     $event['Event']['fileSize'] = $this->Event->fileSize($event['Event']);
 
+    $EventObj = new ZM\Event($id);
+    $event['Event']['FileSystemPath'] = $EventObj->Path();
+
     # Also get the previous and next events for the same monitor
     $event_monitor_neighbors = $this->Event->find('neighbors', array(
       'conditions'=>array('Event.MonitorId'=>$event['Event']['MonitorId'])
     ));
     $event['Event']['NextOfMonitor'] = $event_monitor_neighbors['next']['Event']['Id'];
     $event['Event']['PrevOfMonitor'] = $event_monitor_neighbors['prev']['Event']['Id'];
+  
+    $this->loadModel('Frame');
+    $event['Event']['MaxScoreFrameId'] = $this->Frame->findByEventid($id,'FrameId',array('Score'=>'desc','FrameId'=>'asc'))['Frame']['FrameId'];
+    $event['Event']['AlarmFrameId'] = $this->Frame->findByEventidAndType($id,'Alarm')['Frame']['FrameId'];
 
     $this->set(array(
       'event' => $event,
       '_serialize' => array('event')
     ));
-  }
+  } // end function view
 
 
   /**
@@ -234,17 +249,33 @@ class EventsController extends AppController {
 
   public function search() {
     $this->Event->recursive = -1;
+    // Unmodified conditions to pass to find()
+    $find_conditions = array();
+    // Conditions to be filtered by buildFilter
     $conditions = array();
 
     foreach ($this->params['named'] as $param_name => $value) {
-      // Transform params into mysql
-      if ( preg_match('/interval/i', $value, $matches) ) {
-        $condition = array("$param_name >= (date_sub(now(), $value))");
+      // Transform params into conditions
+      if ( preg_match('/^\s?interval\s?/i', $value) ) {
+        if (preg_match('/^[a-z0-9]+$/i', $param_name) !== 1) {
+          throw new Exception('Invalid field name: ' . $param_name);
+        }
+        $matches = NULL;
+        $value = preg_replace('/^\s?interval\s?/i', '', $value);
+        if (preg_match('/^(?P<expr>[ -.:0-9\']+)\s+(?P<unit>[_a-z]+)$/i', trim($value), $matches) !== 1) {
+          throw new Exception('Invalid interval: ' . $value);
+        }
+        $expr = trim($matches['expr']);
+        $unit = trim($matches['unit']);
+        array_push($find_conditions, "$param_name >= DATE_SUB(NOW(), INTERVAL $expr $unit)");
       } else {
-        $condition = array($param_name => $value);
+        $conditions[$param_name] = $value;
       }
-      array_push($conditions, $condition);
     }
+
+    $this->FilterComponent = $this->Components->load('Filter');
+    $conditions = $this->FilterComponent->buildFilter($conditions);
+    array_push($conditions, $find_conditions);
 
     $results = $this->Event->find('all', array(
       'conditions' => $conditions
@@ -261,18 +292,35 @@ class EventsController extends AppController {
   // consoleEvents/1 hour/AlarmFrames >=: 1/AlarmFrames <=: 20.json
 
   public function consoleEvents($interval = null) {
+    $matches = NULL;
+    // https://dev.mysql.com/doc/refman/5.5/en/expressions.html#temporal-intervals
+    // Examples: `'1-1' YEAR_MONTH`, `'-1 10' DAY_HOUR`, `'1.999999' SECOND_MICROSECOND`
+    if (preg_match('/^(?P<expr>[ -.:0-9\']+)\s+(?P<unit>[_a-z]+)$/i', trim($interval), $matches) !== 1) {
+      throw new Exception('Invalid interval: ' . $interval);
+    }
+    $expr = trim($matches['expr']);
+    $unit = trim($matches['unit']);
+
     $this->Event->recursive = -1;
     $results = array();
-
-    $moreconditions = '';
-    foreach ($this->request->params['named'] as $name => $param) {
-      $moreconditions = $moreconditions . ' AND '.$name.$param;
-    }  
-
-    $query = $this->Event->query("SELECT MonitorId, COUNT(*) AS Count FROM Events WHERE (StartTime >= (DATE_SUB(NOW(), interval $interval)) $moreconditions) GROUP BY MonitorId;");
+    $this->FilterComponent = $this->Components->load('Filter');
+    if ( $this->request->params['named'] ) {
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+    } else {
+      $conditions = array();
+    } 
+    array_push($conditions, array("StartTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
+    $query = $this->Event->find('all', array(
+                                             'fields' => array(
+                                                               'MonitorId',
+                                                               'COUNT(*) AS Count',
+                                                               ),
+                                             'conditions' => $conditions,
+                                             'group' => 'MonitorId',
+    ));
 
     foreach ($query as $result) {
-      $results[$result['Events']['MonitorId']] = $result[0]['Count'];
+      $results[$result['Event']['MonitorId']] = $result[0]['Count'];
     }
 
     $this->set(array(
@@ -318,7 +366,6 @@ class EventsController extends AppController {
           'ZM_WEB_LIST_THUMB_WIDTH',
           'ZM_WEB_LIST_THUMB_HEIGHT',
           'ZM_EVENT_IMAGE_DIGITS',
-          'ZM_DIR_IMAGES',
           $thumbs,
           'ZM_DIR_EVENTS'
         )

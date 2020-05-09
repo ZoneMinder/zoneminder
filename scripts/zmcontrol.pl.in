@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -29,8 +29,8 @@ use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use POSIX qw/strftime EPIPE/;
 use Socket;
-#use Data::Dumper;
-use Module::Load::Conditional qw{can_load};;
+use Data::Dumper;
+use Module::Load::Conditional qw{can_load};
 
 use constant MAX_CONNECT_DELAY => 15;
 use constant MAX_COMMAND_WAIT => 1800;
@@ -41,9 +41,7 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-logInit();
-
-my $arg_string = join( " ", @ARGV );
+my $arg_string = join(' ', @ARGV);
 
 my $id;
 my %options;
@@ -63,29 +61,56 @@ GetOptions(
   'autostop'      =>\$options{autostop},
 ) or pod2usage(-exitstatus => -1);
 
-if ( !$id || !$options{command} ) {
-  print( STDERR "Please give a valid monitor id and command\n" );
+if ( !$id ) {
+  print(STDERR "Please give a valid monitor id\n");
   pod2usage(-exitstatus => -1);
 }
 
 ( $id ) = $id =~ /^(\w+)$/;
-
-Debug("zmcontrol: arg string: $arg_string");
+logInit($id?(id=>'zmcontrol_'.$id):());
 
 my $sock_file = $Config{ZM_PATH_SOCKS}.'/zmcontrol-'.$id.'.sock';
+Debug("zmcontrol: arg string: $arg_string sock file $sock_file");
 
-socket(CLIENT, PF_UNIX, SOCK_STREAM, 0)
-  or Fatal("Can't open socket: $!");
+socket(CLIENT, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
 
 my $saddr = sockaddr_un($sock_file);
-my $server_up = connect(CLIENT, $saddr);
-if ( !$server_up ) {
+
+if ( $options{command} ) {
+  # Have a command, so we are the client, connect to the server and send it.
+
+  my $tries = 10;
+  my $server_up;
+  while ( $tries and ! ( $server_up = connect(CLIENT, $saddr) ) ) {
+    Debug("Failed to connect to zmcontrol server at $sock_file");
+    runCommand("zmdc.pl start zmcontrol.pl --id=$id");
+    sleep 1;
+    $tries -= 1;
+  }
+  if ( $server_up ) {
+    # The server is there, connect to it
+    #print( "Writing commands\n" );
+    CLIENT->autoflush();
+
+    if ( $options{command} ) {
+      my $message = jsonEncode(\%options);
+      print(CLIENT $message);
+    }
+    shutdown(CLIENT, 1);
+  } else {
+    Error("Unable to connect to zmcontrol server at $sock_file");
+  }
+} else {
+
   # The server isn't there
   my $monitor = zmDbGetMonitorAndControl($id);
   if ( !$monitor ) {
     Fatal("Unable to load control data for monitor $id");
   }
   my $protocol = $monitor->{Protocol};
+  if ( !$protocol ) {
+    Fatal('No protocol is set in monitor. Please edit the monitor, edit control type, select the control capability and fill in the Protocol field');
+  }
 
   if ( -x $protocol ) {
     # Protocol is actually a script!
@@ -113,97 +138,75 @@ if ( !$server_up ) {
     Fatal("Can't load ZoneMinder::Control::$protocol\n$Module::Load::Conditional::ERROR");
   }
 
-  if ( my $cpid = fork() ) {
-    logReinit();
+  Info("Control server $id/$protocol starting at "
+    .strftime('%y/%m/%d %H:%M:%S', localtime())
+  );
 
-    # Parent process just sleep and fall through
-    socket(CLIENT, PF_UNIX, SOCK_STREAM, 0)
-      or die("Can't open socket: $!");
-    my $attempts = 0;
-    while ( !connect(CLIENT, $saddr) ) {
-      $attempts++;
-      Fatal("Can't connect: $! after $attempts attempts to $sock_file") if $attempts > MAX_CONNECT_DELAY;
-      sleep(1);
-    }
-  } elsif ( defined($cpid) ) {
-    close(STDOUT);
-    close(STDERR);
+  $0 = $0." --id=$id";
 
-    setpgrp();
+  my $control = "ZoneMinder::Control::$protocol"->new($id);
+  my $control_key = $control->getKey();
+  $control->loadMonitor();
 
-    logReinit();
+  $control->open();
 
-    Info("Control server $id/$protocol starting at "
-      .strftime('%y/%m/%d %H:%M:%S', localtime())
-    );
+  # If we have a command when starting up, then do it.
+  if ( $options{command} ) {
+    my $command = $options{command};
+    $control->$command(\%options);
+  }
 
-    $0 = $0." --id $id";
+  socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
+  unlink($sock_file);
+  bind(SERVER, $saddr) or Fatal("Can't bind: $!");
+  listen(SERVER, SOMAXCONN) or Fatal("Can't listen: $!");
 
-    my $control = "ZoneMinder::Control::$protocol"->new($id);
-    my $control_key = $control->getKey();
-    $control->loadMonitor();
+  my $rin = '';
+  vec( $rin, fileno(SERVER), 1 ) = 1;
+  my $win = $rin;
+  my $ein = $win;
+  my $timeout = MAX_COMMAND_WAIT;
+  while( 1 ) {
+    my $nfound = select(my $rout = $rin, undef, undef, $timeout);
+    if ( $nfound > 0 ) {
+      if ( vec( $rout, fileno(SERVER), 1 ) ) {
+        my $paddr = accept(CLIENT, SERVER);
+        my $message = <CLIENT>;
 
-    $control->open();
+        next if !$message;
 
-    socket(SERVER, PF_UNIX, SOCK_STREAM, 0)
-      or Fatal("Can't open socket: $!");
-    unlink($sock_file);
-    bind(SERVER, $saddr) or Fatal("Can't bind: $!");
-    listen(SERVER, SOMAXCONN) or Fatal("Can't listen: $!");
+        my $params = jsonDecode($message);
+        Debug( Dumper( $params ) );
 
-    my $rin = '';
-    vec( $rin, fileno(SERVER), 1 ) = 1;
-    my $win = $rin;
-    my $ein = $win;
-    my $timeout = MAX_COMMAND_WAIT;
-    while( 1 ) {
-      my $nfound = select(my $rout = $rin, undef, undef, $timeout);
-      if ( $nfound > 0 ) {
-        if ( vec( $rout, fileno(SERVER), 1 ) ) {
-          my $paddr = accept(CLIENT, SERVER);
-          my $message = <CLIENT>;
-
-          next if !$message;
-
-          my $params = jsonDecode($message);
-          #Debug( Dumper( $params ) );
-
-          my $command = $params->{command};
-          close( CLIENT );
-          if ( $command eq 'quit' ) {
-            last;
-          }
+        my $command = $params->{command};
+        close(CLIENT);
+        if ( $command eq 'quit' ) {
+          last;
+        } elsif ( $command ) {
           $control->$command($params);
         } else {
-          Fatal('Bogus descriptor');
-        }
-      } elsif ( $nfound < 0 ) {
-        if ( $! == EPIPE ) {
-          Error("Can't select: $!");
-        } else {
-          Fatal("Can't select: $!");
+          Warning("No command in $message");
         }
       } else {
-        #print( "Select timed out\n" );
-        last;
+        Fatal('Bogus descriptor');
       }
-    } # end while forever
-    Info("Control server $id/$protocol exiting");
-    unlink($sock_file);
-    $control->close();
-    exit(0);
-  } else {
-    Fatal("Can't fork: $!");
-  }
+    } elsif ( $nfound < 0 ) {
+      if ( $! == EPIPE ) {
+        Error("Can't select: $!");
+      } else {
+        Fatal("Can't select: $!");
+      }
+    } else {
+      #print( "Select timed out\n" );
+      last;
+    }
+  } # end while forever
+  Info("Control server $id/$protocol exiting");
+  unlink($sock_file);
+  $control->close();
+  exit(0);
 } # end if !server up
 
-# The server is there, connect to it
-#print( "Writing commands\n" );
-CLIENT->autoflush();
-
-my $message = jsonEncode(\%options);
-print(CLIENT $message);
-shutdown(CLIENT, 1);
 
 exit(0);
 
@@ -216,7 +219,7 @@ zmcontrol.pl - ZoneMinder control script
 
 =head1 SYNOPSIS
 
- zmcontrol.pl --id {monitor_id} --command={command} [various options]
+ zmcontrol.pl --id {monitor_id} [--command={command}] [various options]
 
 =head1 DESCRIPTION
 

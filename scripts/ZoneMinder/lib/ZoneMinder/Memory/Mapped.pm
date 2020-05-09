@@ -51,7 +51,7 @@ our %EXPORT_TAGS = (
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
 our @EXPORT = @EXPORT_OK;
 
@@ -75,67 +75,68 @@ sub zmMemKey {
 
 sub zmMemAttach {
   my ( $monitor, $size ) = @_;
-  if ( ! $size ) {
-    Error( "No size passed to zmMemAttach for monitor $$monitor{Id}\n" );
+
+  if ( !$size ) {
+    Error('No size passed to zmMemAttach for monitor '.$$monitor{Id});
     return undef;
   }
-  if ( !defined($monitor->{MMapAddr}) ) {
-
-    my $mmap_file = $Config{ZM_PATH_MAP}.'/zm.mmap.'.$monitor->{Id};
-    if ( ! -e $mmap_file ) {
-      Error( sprintf( "Memory map file '%s' does not exist.  zmc might not be running."
-            , $mmap_file
-            )
-          );
-      return undef;
-    }
-    my $mmap_file_size = -s $mmap_file;
-
-    if ( $mmap_file_size < $size ) {
-      Error( sprintf( "Memory map file '%s' should have been %d but was instead %d"
-            , $mmap_file
-            , $size
-            , $mmap_file_size
-            )
-          );
-      return undef;
-    }
-    my $MMAP;
-    if ( !open( $MMAP, '+<', $mmap_file ) ) {
-      Error( sprintf( "Can't open memory map file '%s': $!", $mmap_file ) );
-      return undef;
-    }
-    my $mmap = undef;
-    my $mmap_addr = mmap( $mmap, $size, PROT_READ|PROT_WRITE, MAP_SHARED, $MMAP );
-    if ( !$mmap_addr || !$mmap ) {
-      Error( sprintf( "Can't mmap to file '%s': $!\n", $mmap_file ) );
-      close( $MMAP );
-      return undef;
-    }
-    $monitor->{MMapHandle} = $MMAP;
-    $monitor->{MMapAddr} = $mmap_addr;
-    $monitor->{MMap} = \$mmap;
+  if ( defined($monitor->{MMapAddr}) ) {
+    Debug("zmMemAttach already attached at $monitor->{MMapAddr} for $$monitor{Id}");
+    return !undef;
   }
+
+  my $mmap_file = $Config{ZM_PATH_MAP}.'/zm.mmap.'.$monitor->{Id};
+  if ( ! -e $mmap_file ) {
+    Error("Memory map file '$mmap_file' does not exist in zmMemAttach.  zmc might not be running.");
+    return undef;
+  }
+  my $mmap_file_size = -s $mmap_file;
+
+  if ( $mmap_file_size < $size ) {
+    Error("Memory map file '$mmap_file' should have been $size but was instead $mmap_file_size");
+    return undef;
+  }
+  my $MMAP;
+  if ( !open($MMAP, '+<', $mmap_file) ) {
+    Error("Can't open memory map file '$mmap_file': $!");
+    return undef;
+  }
+  my $mmap = undef;
+  my $mmap_addr = mmap($mmap, $size, PROT_READ|PROT_WRITE, MAP_SHARED, $MMAP);
+  if ( !$mmap_addr || !$mmap ) {
+    Error("Can't mmap to file '$mmap_file': $!");
+    close($MMAP);
+    return undef;
+  }
+  $monitor->{MMapHandle} = $MMAP;
+  $monitor->{MMapAddr} = $mmap_addr;
+  $monitor->{MMap} = \$mmap;
   return !undef;
-}
+} # end sub zmMemAttach
 
 sub zmMemDetach {
   my $monitor = shift;
 
   if ( $monitor->{MMap} ) {
-    if ( ! munmap( ${$monitor->{MMap}} ) ) {
-      Warn( "Unable to munmap for monitor $$monitor{Id}\n");
+    if ( ! munmap(${$monitor->{MMap}}) ) {
+      Warn("Unable to munmap for monitor $$monitor{Id}");
     }
     delete $monitor->{MMap};
+  } else {
+    Warn("No MMap for $$monitor{Id}");
   }
   if ( $monitor->{MMapAddr} ) {
     delete $monitor->{MMapAddr};
+  } else {
+    Warn("No MMapAddr in $$monitor{Id}");
   }
   if ( $monitor->{MMapHandle} ) {
-    close( $monitor->{MMapHandle} );
+    close($monitor->{MMapHandle});
     delete $monitor->{MMapHandle};
+  } else {
+    Warn("No MMapHandle in $$monitor{Id}");
   }
-}
+} # end sub zmMemDetach
 
 sub zmMemGet {
   my $monitor = shift;
@@ -144,13 +145,10 @@ sub zmMemGet {
 
   my $mmap = $monitor->{MMap};
   if ( !$mmap || !$$mmap ) {
-    Error( sprintf( "Can't read from mapped memory for monitor '%d', gone away?"
-          , $monitor->{Id}
-          )
-        );
+    Error("Can't read from mapped memory for monitor '$$monitor{Id}', gone away?");
     return undef;
   }
-  my $data = substr( $$mmap, $offset, $size );
+  my $data = substr($$mmap, $offset, $size);
   return $data;
 }
 
@@ -162,23 +160,20 @@ sub zmMemPut {
 
   my $mmap = $monitor->{MMap};
   if ( !$mmap || !$$mmap ) {
-    Error( sprintf( "Can't write mapped memory for monitor '%d', gone away?"
-          , $monitor->{Id}
-          )
-        );
-    return( undef );
+    Error("Can't write mapped memory for monitor '$$monitor{Id}', gone away?");
+    return undef;
   }
-  substr( $$mmap, $offset, $size ) = $data;
-  return( !undef );
+  substr($$mmap, $offset, $size) = $data;
+  return !undef;
 }
 
 sub zmMemClean {
-  Debug( "Removing memory map files\n" );
+  Debug('Removing memory map files');
   my $mapPath = $Config{ZM_PATH_MAP}.'/zm.mmap.*';
   foreach my $mapFile( glob( $mapPath ) ) {
     ( $mapFile ) = $mapFile =~ /^(.+)$/;
-    Debug( "Removing memory map file '$mapFile'\n" );
-    unlink( $mapFile );
+    Debug("Removing memory map file '$mapFile'");
+    unlink($mapFile);
   }
 }
 

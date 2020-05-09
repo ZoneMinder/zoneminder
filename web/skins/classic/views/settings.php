@@ -18,33 +18,32 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Control' ) )
-{
-    $view = "error";
-    return;
+if ( !canView('Control') ) {
+  $view = 'error';
+  return;
 }
-$monitor = dbFetchMonitor( $_REQUEST['mid'] );
+$monitor = ZM\Monitor::find_one(array('Id'=>$_REQUEST['mid']));
 
-$zmuCommand = getZmuCommand( " -m ".escapeshellarg($_REQUEST['mid'])." -B -C -H -O" );
+$zmuCommand = getZmuCommand(' -m '.escapeshellarg($_REQUEST['mid']).' -B -C -H -O');
 $zmuOutput = exec( $zmuCommand );
-list( $brightness, $contrast, $hue, $colour ) = explode( ' ', $zmuOutput );
+list($brightness, $contrast, $hue, $colour) = explode(' ', $zmuOutput);
 
-$monitor['Brightness'] = $brightness;
-$monitor['Contrast'] = $contrast;
-$monitor['Hue'] = $hue;
-$monitor['Colour'] = $colour;
+$monitor->Brightness() = $brightness;
+$monitor->Contrast() = $contrast;
+$monitor->Hue() = $hue;
+$monitor->Colour() = $colour;
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, validHtmlStr($monitor['Name'])." - ".translate('Settings') );
+xhtmlHeaders(__FILE__, validHtmlStr($monitor->Name()).' - '.translate('Settings'));
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo validHtmlStr($monitor['Name']) ?> - <?php echo translate('Settings') ?></h2>
+      <h2><?php echo validHtmlStr($monitor->Name()) ?> - <?php echo translate('Settings') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="settings"/>
         <input type="hidden" name="mid" value="<?php echo validInt($_REQUEST['mid']) ?>"/>
@@ -52,24 +51,25 @@ xhtmlHeaders(__FILE__, validHtmlStr($monitor['Name'])." - ".translate('Settings'
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('Brightness') ?></th>
-              <td><input type="text" name="newBrightness" value="<?php echo $monitor['Brightness'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td><input type="number" name="newBrightness" value="<?php echo $monitor->Brightness() ?>" <?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Contrast') ?></th>
-              <td><input type="text" name="newContrast" value="<?php echo $monitor['Contrast'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td><input type="number" name="newContrast" value="<?php echo $monitor->Contrast() ?>" <?php  echo canView('Control') ? '' : ' disabled="disabled"' ?>/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Hue') ?></th>
-              <td><input type="text" name="newHue" value="<?php echo $monitor['Hue'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td><input type="number" name="newHue" value="<?php echo $monitor->Hue() ?>" <?php echo canView('Control') ? '' : ' disabled="disabled"' ?>/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Colour') ?></th>
-              <td><input type="text" name="newColour" value="<?php echo $monitor['Colour'] ?>" size="8"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td><input type="number" name="newColour" value="<?php echo $monitor->Colour() ?>" <?php echo canView('Control') ? '' : ' disabled="disabled"' ?>/></td>
             </tr>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
+          <button type="submit" value="Save"<?php echo canView('Control') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <button type="button" value="Close" data-on-click="closeWindow"/><?php echo translate('Close') ?></button>
         </div>
       </form>
     </div>

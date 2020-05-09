@@ -56,9 +56,9 @@ extern imgbufcpy_fptr_t fptr_imgbufcpy;
 
 /* Should be called from Image class functions */
 inline static uint8_t* AllocBuffer(size_t p_bufsize) {
-	uint8_t* buffer = (uint8_t*)zm_mallocaligned(64,p_bufsize);
+	uint8_t* buffer = (uint8_t*)zm_mallocaligned(64, p_bufsize);
 	if ( buffer == NULL )
-		Fatal("Memory allocation failed: %s",strerror(errno));
+		Fatal("Memory allocation failed: %s", strerror(errno));
 	
 	return buffer;
 }
@@ -75,7 +75,7 @@ inline static void DumpBuffer(uint8_t* buffer, int buffertype) {
 			av_free(buffer);
 		*/
     } else {
-      Error( "Unknown buffer type in DumpBuffer(%d)", buffertype );
+      Error("Unknown buffer type in DumpBuffer(%d)", buffertype);
     } 
 	}
 }
@@ -86,6 +86,19 @@ inline static void DumpBuffer(uint8_t* buffer, int buffertype) {
 // camera in raw form.
 //
 class Image {
+  private:
+    delta_fptr_t delta8_rgb;
+    delta_fptr_t delta8_bgr;
+    delta_fptr_t delta8_rgba;
+    delta_fptr_t delta8_bgra;
+    delta_fptr_t delta8_argb;
+    delta_fptr_t delta8_abgr;
+    delta_fptr_t delta8_gray8;
+
+    // Per object function pointer that we can set once we know the image dimensions
+    blend_fptr_t blend;
+
+    void update_function_pointers();
 protected:
 
 	struct Edge {
@@ -108,7 +121,7 @@ protected:
 	};
 	
 	inline void DumpImgBuffer() {
-		DumpBuffer(buffer,buffertype);
+		DumpBuffer(buffer, buffertype);
 		buffer = NULL;
 		allocation = 0;
 	}
@@ -205,9 +218,12 @@ public:
 	bool ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
 
 	bool WriteJpeg ( const char *filename) const;
+	bool WriteJpeg ( const char *filename, bool on_blocking_abort) const;	
   bool WriteJpeg ( const char *filename, int quality_override ) const;
   bool WriteJpeg ( const char *filename, struct timeval timestamp ) const;
   bool WriteJpeg ( const char *filename, int quality_override, struct timeval timestamp ) const;
+  bool WriteJpeg ( const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort ) const;
+  
 
 	bool DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
 	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;
@@ -275,6 +291,14 @@ void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, 
 void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 
+void fast_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+
 void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void neon32_armv7_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void neon32_armv7_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
@@ -303,6 +327,15 @@ void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long 
 void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+
+void fast_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+
 void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);

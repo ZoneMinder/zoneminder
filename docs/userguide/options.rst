@@ -5,13 +5,16 @@ The various options you can specify are displayed in a tabbed dialog with each g
 
 If you have changed the value of an option you should then ‘save’ it. A number of the option groups will then prompt you to let you know that the option(s) you have changed will require a system restart. This is not done automatically in case you will be changing many values in the same session, however once you have made all of your changes you should restart ZoneMinder as soon as possible. The reason for this is that web and some scripts will pick up the new changes immediately but some of the daemons will still be using the old values and this can lead to data inconsistency or loss.
 
+.. note:: If you are looking for ``Options->Paths`` documentation, it was moved to a configuration file starting ZoneMinder 1.32. See :ref:`here <replacement_for_options_path>`.
+
 .. toctree::
 
    options/options_display
    options/options_system
    options/options_config
+   options/options_api
    options/options_servers
-   options/options_paths
+   options/options_storage
    options/options_web
    options/options_images
    options/options_logging

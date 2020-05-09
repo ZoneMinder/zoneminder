@@ -35,7 +35,7 @@ class Camera;
 //
 class Camera {
 protected:
-  typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC } SourceType;
+  typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC, VNC_SRC } SourceType;
 
   unsigned int  monitor_id;
   Monitor *     monitor; // Null on instantiation, set as soon as possible.
@@ -45,7 +45,7 @@ protected:
   unsigned int  colours;
   unsigned int  subpixelorder;
   unsigned int  pixels;
-  unsigned int  imagesize;
+  unsigned long long imagesize;
   int           brightness;
   int           hue;
   int           colour;
@@ -68,12 +68,13 @@ public:
   bool IsFfmpeg() const { return type == FFMPEG_SRC; }
   bool IsLibvlc() const { return type == LIBVLC_SRC; }
   bool IscURL() const { return type == CURL_SRC; }
+  bool IsVNC() const { return type == VNC_SRC; }
   unsigned int Width() const { return width; }
   unsigned int Height() const { return height; }
   unsigned int Colours() const { return colours; }
   unsigned int SubpixelOrder() const { return subpixelorder; }
   unsigned int Pixels() const { return pixels; }
-  unsigned int ImageSize() const { return imagesize; }
+  unsigned long long ImageSize() const { return imagesize; }
   unsigned int Bytes() const { return bytes; };
 
   virtual int Brightness( int/*p_brightness*/=-1 ) { return -1; }

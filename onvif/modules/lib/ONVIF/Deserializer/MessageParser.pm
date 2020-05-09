@@ -274,8 +274,8 @@ sub _initialize {
             $_method =~s{\-}{_}xg;
             if ( $list->[-1]->can( $_method ) ) {
               $list->[-1]->$_method( $current );
-            } else {
-              print ( "ERror " . $list->[-1] . " cannot $_method\n" );
+              #} else {
+              #print ( "ERror " . $list->[-1] . " cannot $_method\n" );
             }
 
             $current = pop @$list;          # step up in object hierarchy

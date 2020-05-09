@@ -48,8 +48,8 @@ xhtmlHeaders(__FILE__, translate('SetPreset') );
       <h2><?php echo translate('SetPreset') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="none"/>
+      <form name="contentForm" id="contentForm" method="post" action="?">
+        <input type="hidden" name="view" value="control"/>
         <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
         <input type="hidden" name="action" value="control"/>
         <input type="hidden" name="control" value="presetSet"/>
@@ -57,11 +57,11 @@ xhtmlHeaders(__FILE__, translate('SetPreset') );
         <p><?php echo buildSelect('preset', $presets, 'updateLabel()' ) ?></p>
         <p>
           <label for="newLabel"><?php echo translate('NewLabel') ?></label>
-          <input type="text" name="newLabel" id="newLabel" value="" size="16"/>
+          <input type="text" name="newLabel" id="newLabel" value=""/>
         </p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <button type="submit" value="Save"><?php echo translate('Save') ?></button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

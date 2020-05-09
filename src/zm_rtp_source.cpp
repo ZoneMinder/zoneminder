@@ -26,7 +26,17 @@
 
 #if HAVE_LIBAVCODEC
 
-RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime, _AVCODECID codecId ) :
+RtpSource::RtpSource(
+    int id,
+    const std::string &localHost,
+    int localPortBase,
+    const std::string &remoteHost,
+    int remotePortBase,
+    uint32_t ssrc,
+    uint16_t seq,
+    uint32_t rtpClock,
+    uint32_t rtpTime,
+    _AVCODECID codecId ) :
   mId( id ),
   mSsrc( ssrc ),
   mLocalHost( localHost ),
@@ -65,13 +75,12 @@ RtpSource::RtpSource( int id, const std::string &localHost, int localPortBase, c
   mLastSrTimeNtp = tvZero();
   mLastSrTimeRtp = 0;
 
-  if(mCodecId != AV_CODEC_ID_H264 && mCodecId != AV_CODEC_ID_MPEG4)
-    Warning( "The device is using a codec that may not be supported. Do not be surprised if things don't work." );
+  if ( mCodecId != AV_CODEC_ID_H264 && mCodecId != AV_CODEC_ID_MPEG4 )
+    Warning("The device is using a codec (%d) that may not be supported. Do not be surprised if things don't work.", mCodecId);
 }
 
-void RtpSource::init( uint16_t seq )
-{
-  Debug( 3, "Initialising sequence" );
+void RtpSource::init( uint16_t seq ) {
+  Debug(3, "Initialising sequence");
   mBaseSeq = seq;
   mMaxSeq = seq;
   mBadSeq = RTP_SEQ_MOD + 1;  // so seq == mBadSeq is false
@@ -84,77 +93,58 @@ void RtpSource::init( uint16_t seq )
   mTransit = 0;
 }
 
-bool RtpSource::updateSeq( uint16_t seq )
-{
+bool RtpSource::updateSeq( uint16_t seq ) {
   uint16_t uDelta = seq - mMaxSeq;
 
   // Source is not valid until MIN_SEQUENTIAL packets with
   // sequential sequence numbers have been received.
   Debug( 5, "Seq: %d", seq );
 
-  if ( mProbation)
-  {
+  if ( mProbation) {
     // packet is in sequence
-    if ( seq == mMaxSeq + 1)
-    {
+    if ( seq == mMaxSeq + 1) {
       Debug( 3, "Sequence in probation %d, in sequence", mProbation );
       mProbation--;
       mMaxSeq = seq;
-      if ( mProbation == 0 )
-      {
+      if ( mProbation == 0 ) {
         init( seq );
         mReceivedPackets++;
         return( true );
       }
-    }
-    else
-    {
+    } else {
       Warning( "Sequence in probation %d, out of sequence", mProbation );
       mProbation = MIN_SEQUENTIAL - 1;
       mMaxSeq = seq;
       return( false );
     }
     return( true );
-  }
-  else if ( uDelta < MAX_DROPOUT )
-  {
-    if ( uDelta == 1 )
-    {
+  } else if ( uDelta < MAX_DROPOUT ) {
+    if ( uDelta == 1 ) {
       Debug( 4, "Packet in sequence, gap %d", uDelta );
-    }
-    else
-    {
+    } else {
       Warning( "Packet in sequence, gap %d", uDelta );
     }
 
     // in order, with permissible gap
-    if ( seq < mMaxSeq )
-    {
+    if ( seq < mMaxSeq ) {
       // Sequence number wrapped - count another 64K cycle.
       mCycles += RTP_SEQ_MOD;
     }
     mMaxSeq = seq;
-  }
-  else if ( uDelta <= RTP_SEQ_MOD - MAX_MISORDER )
-  {
+  } else if ( uDelta <= RTP_SEQ_MOD - MAX_MISORDER ) {
     Warning( "Packet out of sequence, gap %d", uDelta );
     // the sequence number made a very large jump
-    if ( seq == mBadSeq )
-    {
+    if ( seq == mBadSeq ) {
       Debug( 3, "Restarting sequence" );
       // Two sequential packets -- assume that the other side
       // restarted without telling us so just re-sync
       // (i.e., pretend this was the first packet).
       init( seq );
-    }
-    else
-    {
+    } else {
       mBadSeq = (seq + 1) & (RTP_SEQ_MOD-1);
       return( false );
     }
-  }
-  else
-  {
+  } else {
     Warning( "Packet duplicate or reordered, gap %d", uDelta );
     // duplicate or reordered packet
     return( false );
@@ -163,10 +153,8 @@ bool RtpSource::updateSeq( uint16_t seq )
   return( uDelta==1?true:false );
 }
 
-void RtpSource::updateJitter( const RtpDataHeader *header )
-{
-  if ( mRtpFactor > 0 )
-  {
+void RtpSource::updateJitter( const RtpDataHeader *header ) {
+  if ( mRtpFactor > 0 ) {
     Debug( 5, "Delta rtp = %.6f", tvDiffSec( mBaseTimeReal ) );
     uint32_t localTimeRtp = mBaseTimeRtp + uint32_t( tvDiffSec( mBaseTimeReal ) * mRtpFactor );
     Debug( 5, "Local RTP time = %x", localTimeRtp );
@@ -174,8 +162,7 @@ void RtpSource::updateJitter( const RtpDataHeader *header )
     uint32_t packetTransit = localTimeRtp - ntohl(header->timestampN);
     Debug( 5, "Packet transit RTP time = %x", packetTransit );
 
-    if ( mTransit > 0 )
-    {
+    if ( mTransit > 0 ) {
       // Jitter
       int d = packetTransit - mTransit;
       Debug( 5, "Jitter D = %d", d );
@@ -185,28 +172,22 @@ void RtpSource::updateJitter( const RtpDataHeader *header )
       mJitter += d - ((mJitter + 8) >> 4);
     }
     mTransit = packetTransit;
-  }
-  else
-  {
+  } else {
     mJitter = 0;
   }
   Debug( 5, "RTP Jitter: %d", mJitter );
 }
 
-void RtpSource::updateRtcpData( uint32_t ntpTimeSecs, uint32_t ntpTimeFrac, uint32_t rtpTime )
-{
+void RtpSource::updateRtcpData( uint32_t ntpTimeSecs, uint32_t ntpTimeFrac, uint32_t rtpTime ) {
   struct timeval ntpTime = tvMake( ntpTimeSecs, suseconds_t((USEC_PER_SEC*(ntpTimeFrac>>16))/(1<<16)) );
 
   Debug( 5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime );
 
-  if ( mBaseTimeNtp.tv_sec == 0 )
-  {
+  if ( mBaseTimeNtp.tv_sec == 0 ) {
     mBaseTimeReal = tvNow();
     mBaseTimeNtp = ntpTime;
     mBaseTimeRtp = rtpTime;
-  }
-  else if ( !mRtpClock )
-  {
+  } else if ( !mRtpClock ) {
     Debug( 5, "lastSrNtpTime: %ld.%06ld, rtpTime: %x", mLastSrTimeNtp.tv_sec, mLastSrTimeNtp.tv_usec, rtpTime );
     Debug( 5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime );
 
@@ -227,8 +208,7 @@ void RtpSource::updateRtcpData( uint32_t ntpTimeSecs, uint32_t ntpTimeFrac, uint
   mLastSrTimeRtp = rtpTime;
 }
 
-void RtpSource::updateRtcpStats()
-{
+void RtpSource::updateRtcpStats() {
   uint32_t extendedMax = mCycles + mMaxSeq;
   mExpectedPackets = extendedMax - mBaseSeq + 1;
 
@@ -255,8 +235,7 @@ void RtpSource::updateRtcpStats()
   Debug( 5, "Lost fraction = %d", mLostFraction );
 }
 
-bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
-{
+bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen ) {
   const RtpDataHeader *rtpHeader;
   rtpHeader = (RtpDataHeader *)packet;
   int rtpHeaderSize = 12 + rtpHeader->cc * 4;
@@ -269,39 +248,29 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
   //  that there is no marker bit by changing the number of bits in the payload type field.
   bool thisM = rtpHeader->m || h264FragmentEnd;
 
-  if ( updateSeq( ntohs(rtpHeader->seqN) ) )
-  {
+  if ( updateSeq( ntohs(rtpHeader->seqN) ) ) {
     Hexdump( 4, packet+rtpHeaderSize, 16 );
 
-    if ( mFrameGood )
-    {
+    if ( mFrameGood ) {
       int extraHeader = 0;
 
-      if( mCodecId == AV_CODEC_ID_H264 )
-      {
+      if ( mCodecId == AV_CODEC_ID_H264 ) {
         int nalType = (packet[rtpHeaderSize] & 0x1f);
         Debug( 3, "Have H264 frame: nal type is %d", nalType );
 
-        switch (nalType)
-        {
+        switch (nalType) {
           case 24: // STAP-A
-            {
               extraHeader = 2;
               break;
-            }
           case 25: // STAP-B
           case 26: // MTAP-16
           case 27: // MTAP-24
-            {
               extraHeader = 3;
               break;
-            }
             // FU-A and FU-B
           case 28: case 29:
-            {
               // Is this NAL the first NAL in fragmentation sequence
-              if ( packet[rtpHeaderSize+1] & 0x80 )
-              {
+              if ( packet[rtpHeaderSize+1] & 0x80 ) {
                 // Now we will form new header of frame
                 mFrame.append( "\x0\x0\x1\x0", 4 );
                 // Reconstruct NAL header from FU headers
@@ -311,17 +280,14 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
 
               extraHeader = 2;
               break;
-            }
           default: 
-            {
               Debug(3, "Unhandled nalType %d", nalType );
-            }
         }
 
         // Append NAL frame start code
         if ( !mFrame.size() )
           mFrame.append( "\x0\x0\x1", 3 );
-      }
+      } // end if H264
       mFrame.append( packet+rtpHeaderSize+extraHeader, packetLen-rtpHeaderSize-extraHeader ); 
     } else {
       Debug( 3, "NOT H264 frame: type is %d", mCodecId );
@@ -329,16 +295,13 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
 
     Hexdump( 4, mFrame.head(), 16 );
 
-    if ( thisM )
-    {
-      if ( mFrameGood )
-      {
+    if ( thisM ) {
+      if ( mFrameGood ) {
         Debug( 3, "Got new frame %d, %d bytes", mFrameCount, mFrame.size() );
 
         mFrameProcessed.setValueImmediate( false );
         mFrameReady.updateValueSignal( true );
-        if ( !mFrameProcessed.getValueImmediate() )
-        {
+        if ( !mFrameProcessed.getValueImmediate() ) {
           // What is the point of this for loop? Is it just me, or will it call getUpdatedValue once or twice? Could it not be better written as
           // if ( ! mFrameProcessed.getUpdatedValue( 1 ) && mFrameProcessed.getUpdatedValue( 1 ) ) return false;
 
@@ -347,55 +310,44 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen )
               return( false );
         }
         mFrameCount++;
-      }
-      else
-      {
+      } else {
         Warning( "Discarding incomplete frame %d, %d bytes", mFrameCount, mFrame.size() );
       }
       mFrame.clear();
     }
-  }
-  else
-  {
-    if ( mFrame.size() )
-    {
+  } else {
+    if ( mFrame.size() ) {
       Warning( "Discarding partial frame %d, %d bytes", mFrameCount, mFrame.size() );
-    }
-    else
-    {
+    } else {
       Warning( "Discarding frame %d", mFrameCount );
     }
     mFrameGood = false;
     mFrame.clear();
   }
-  if ( thisM )
-  {
+  if ( thisM ) {
     mFrameGood = true;
     prevM = true;
-  }
-  else
+  } else
     prevM = false;
 
-  updateJitter( rtpHeader );
+  updateJitter(rtpHeader);
 
-  return( true );
+  return true;
 }
 
-bool RtpSource::getFrame( Buffer &buffer )
-{
-  Debug( 3, "Getting frame" );
-  if ( !mFrameReady.getValueImmediate() )
-  {
+bool RtpSource::getFrame( Buffer &buffer ) {
+  if ( !mFrameReady.getValueImmediate() ) {
+    Debug(3, "Getting frame but not ready");
     // Allow for a couple of spurious returns
-    for ( int count = 0; !mFrameReady.getUpdatedValue( 1 ); count++ )
+    for ( int count = 0; !mFrameReady.getUpdatedValue(1); count++ )
       if ( count > 1 )
-        return( false );
+        return false;
   }
   buffer = mFrame;
-  mFrameReady.setValueImmediate( false );
-  mFrameProcessed.updateValueSignal( true );
-  Debug( 4, "Copied %d bytes", buffer.size() );
-  return( true );
+  mFrameReady.setValueImmediate(false);
+  mFrameProcessed.updateValueSignal(true);
+  Debug(4, "Copied %d bytes", buffer.size());
+  return true;
 }
 
 #endif // HAVE_LIBAVCODEC

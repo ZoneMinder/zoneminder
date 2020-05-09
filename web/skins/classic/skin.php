@@ -29,20 +29,16 @@ if ( empty($_COOKIE['zmBandwidth']) )
 //if ( $skinLangFile = loadLanguage( ZM_SKIN_PATH ) )
     //require_once( $skinLangFile );
 
-foreach ( getSkinIncludes( 'includes/config.php' ) as $includeFile )
+foreach ( getSkinIncludes('includes/config.php') as $includeFile )
   require_once $includeFile;
 
-foreach ( getSkinIncludes( 'includes/functions.php' ) as $includeFile )
+foreach ( getSkinIncludes('includes/functions.php') as $includeFile )
   require_once $includeFile;
 
-if ( empty($view) )
+if ( empty($view) ) {
   $view = isset($user)?'console':'login';
-
-if ( !isset($user) && ZM_OPT_USE_AUTH && ZM_AUTH_TYPE == 'remote' && !empty( $_SERVER['REMOTE_USER']) ) {
-  $view = 'postlogin';
-  $action = 'login';
-  $_REQUEST['username'] = $_SERVER['REMOTE_USER'];
 }
+
 
 if ( isset($user) ) {
   // Bandwidth Limiter

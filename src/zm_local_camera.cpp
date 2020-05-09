@@ -55,7 +55,7 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette)
      
 #if ZM_HAS_V4L2
   if ( v4l_version == 2 ) {
-    switch( palette ) {
+    switch ( palette ) {
 #if defined(V4L2_PIX_FMT_RGB444) && defined(AV_PIX_FMT_RGB444)
       case V4L2_PIX_FMT_RGB444 :
         pixFormat = AV_PIX_FMT_RGB444;
@@ -745,12 +745,12 @@ void LocalCamera::Initialise() {
 
     Debug(4,
         " v4l2_data.fmt.type = %08x\n"
-        " v4l2_data.fmt.fmt.pix.width = %08x\n"
-        " v4l2_data.fmt.fmt.pix.height = %08x\n"
+        " v4l2_data.fmt.fmt.pix.width = %d\n"
+        " v4l2_data.fmt.fmt.pix.height = %d\n"
         " v4l2_data.fmt.fmt.pix.pixelformat = %08x\n"
         " v4l2_data.fmt.fmt.pix.field = %08x\n"
-        " v4l2_data.fmt.fmt.pix.bytesperline = %08x\n"
-        " v4l2_data.fmt.fmt.pix.sizeimage = %08x\n"
+        " v4l2_data.fmt.fmt.pix.bytesperline = %d\n"
+        " v4l2_data.fmt.fmt.pix.sizeimage = %d\n"
         " v4l2_data.fmt.fmt.pix.colorspace = %08x\n"
         " v4l2_data.fmt.fmt.pix.priv = %08x\n"
         , v4l2_data.fmt.type
@@ -788,12 +788,12 @@ void LocalCamera::Initialise() {
     /* Note VIDIOC_S_FMT may change width and height. */
     Debug(4,
         " v4l2_data.fmt.type = %08x\n"
-        " v4l2_data.fmt.fmt.pix.width = %08x\n"
-        " v4l2_data.fmt.fmt.pix.height = %08x\n"
+        " v4l2_data.fmt.fmt.pix.width = %d\n"
+        " v4l2_data.fmt.fmt.pix.height = %d\n"
         " v4l2_data.fmt.fmt.pix.pixelformat = %08x\n"
         " v4l2_data.fmt.fmt.pix.field = %08x\n"
-        " v4l2_data.fmt.fmt.pix.bytesperline = %08x\n"
-        " v4l2_data.fmt.fmt.pix.sizeimage = %08x\n"
+        " v4l2_data.fmt.fmt.pix.bytesperline = %d\n"
+        " v4l2_data.fmt.fmt.pix.sizeimage = %d\n"
         " v4l2_data.fmt.fmt.pix.colorspace = %08x\n"
         " v4l2_data.fmt.fmt.pix.priv = %08x\n"
         , v4l2_data.fmt.type
@@ -942,6 +942,7 @@ void LocalCamera::Initialise() {
     v4l2_std_id stdId;
 
     memset(&input, 0, sizeof(input));
+    input.index = channel;
 
     if ( vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0 ) {
       Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
@@ -952,8 +953,8 @@ void LocalCamera::Initialise() {
     }
 
     stdId = standard;
-    if ( (input.std != V4L2_STD_UNKNOWN) && vidioctl( vid_fd, VIDIOC_S_STD, &stdId ) < 0 )   {
-      Fatal("Failed to set video standard %d: %s", standard, strerror(errno));
+    if ( (input.std != V4L2_STD_UNKNOWN) && (vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0) )   {
+      Fatal("Failed to set video standard %d: %d %s", standard, errno, strerror(errno));
     }
 
     Contrast(contrast);

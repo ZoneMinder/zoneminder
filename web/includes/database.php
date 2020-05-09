@@ -2,25 +2,25 @@
 //
 // ZoneMinder web database interface file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
-define( 'DB_LOG_OFF', 0 );
-define( 'DB_LOG_ONLY', 1 );
-define( 'DB_LOG_DEBUG', 2 );
+define('DB_LOG_OFF', 0);
+define('DB_LOG_ONLY', 1);
+define('DB_LOG_DEBUG', 2);
 
 $GLOBALS['dbLogLevel'] = DB_LOG_OFF;
 
@@ -29,10 +29,10 @@ $GLOBALS['dbConn'] = false;
 function dbConnect() {
   global $dbConn;
 
-  if (strpos(ZM_DB_HOST, ':')) {
+  if ( strpos(ZM_DB_HOST, ':') ) {
     // Host variable may carry a port or socket.
     list($host, $portOrSocket) = explode(':', ZM_DB_HOST, 2);
-    if (ctype_digit($portOrSocket)) {
+    if ( ctype_digit($portOrSocket) ) {
       $socket = ':host='.$host . ';port='.$portOrSocket;
     } else {
       $socket = ':unix_socket='.$portOrSocket;
@@ -43,22 +43,22 @@ function dbConnect() {
 
   try {
     $dbOptions = null;
-    if ( defined( 'ZM_DB_SSL_CA_CERT' ) and ZM_DB_SSL_CA_CERT ) {
+    if ( defined('ZM_DB_SSL_CA_CERT') and ZM_DB_SSL_CA_CERT ) {
       $dbOptions = array(
         PDO::MYSQL_ATTR_SSL_CA   => ZM_DB_SSL_CA_CERT,
         PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
         PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
       );
-      $dbConn = new PDO( ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS, $dbOptions );
+      $dbConn = new PDO(ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
     } else {
-      $dbConn = new PDO( ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS );
+      $dbConn = new PDO(ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS);
     }
 
     $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-  } catch(PDOException $ex ) {
+  } catch(PDOException $ex) {
     echo 'Unable to connect to ZM db.' . $ex->getMessage();
-    error_log('Unable to connect to ZM DB ' . $ex->getMessage() );
+    error_log('Unable to connect to ZM DB ' . $ex->getMessage());
     $dbConn = null;
   }
 }
@@ -89,198 +89,197 @@ function dbDebug() {
   dbLogDebug();
 }
 
-function dbLog( $sql, $update=false ) {
+function dbLog($sql, $update=false) {
   global $dbLogLevel;
   $noExecute = $update && ($dbLogLevel >= DB_LOG_DEBUG);
   if ( $dbLogLevel > DB_LOG_OFF )
-    Logger::Debug( "SQL-LOG: $sql".($noExecute?" (not executed)":"") );
+    ZM\Logger::Debug( "SQL-LOG: $sql".($noExecute?' (not executed)':'') );
   return( $noExecute );
 }
 
-function dbError( $sql ) {
+function dbError($sql) {
   global $dbConn;
   $error = $dbConn->errorInfo();
   if ( ! $error[0] )
     return '';
 
   $message = "SQL-ERR '".implode("\n",$dbConn->errorInfo())."', statement was '".$sql."'";
-  Error($message);
+  ZM\Error($message);
   return $message;
 }
 
 function dbEscape( $string ) {
   global $dbConn;
-  if ( version_compare( phpversion(), '4.3.0', '<') )
-    if ( get_magic_quotes_gpc() )
-      return( $dbConn->quote( stripslashes( $string ) ) );
-    else
-      return( $dbConn->quote( $string ) );
+  if ( version_compare(phpversion(), '5.4', '<=') and get_magic_quotes_gpc() ) 
+    return $dbConn->quote(stripslashes($string));
   else
-    if ( get_magic_quotes_gpc() )
-      return( $dbConn->quote( stripslashes( $string ) ) );
-    else
-      return( $dbConn->quote( $string ) );
+    return $dbConn->quote($string);
 }
 
-function dbQuery( $sql, $params=NULL ) {
+function dbQuery($sql, $params=NULL) {
   global $dbConn;
-  if ( dbLog( $sql, true ) )
+  if ( dbLog($sql, true) )
     return;
   $result = NULL;
   try {
     if ( isset($params) ) {
-      if ( ! $result = $dbConn->prepare( $sql ) ) {
-        Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+      if ( ! $result = $dbConn->prepare($sql) ) {
+        ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
         return NULL;
       }
 
-      if ( ! $result->execute( $params ) ) {
-        Error("SQL: Error executing $sql: " . implode(',', $result->errorInfo() ) );
+      if ( ! $result->execute($params) ) {
+        ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
         return NULL;
       }
     } else {
       if ( defined('ZM_DB_DEBUG') ) {
-				Logger::Debug("SQL: $sql values:" . ($params?implode(',',$params):'') );
+				ZM\Logger::Debug("SQL: $sql values:" . ($params?implode(',',$params):''));
       }
       $result = $dbConn->query($sql);
       if ( ! $result ) {
-        Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
         return NULL;
       }
     }
     if ( defined('ZM_DB_DEBUG') ) {
       if ( $params )
-        Logger::Debug("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount() );
+        ZM\Logger::Debug("SQL: $sql " . implode(',',$params) . ' rows: '.$result->rowCount());
       else
-        Logger::Debug("SQL: $sql: rows:" . $result->rowCount()  );
+        ZM\Logger::Debug("SQL: $sql: rows:" . $result->rowCount());
     }
   } catch(PDOException $e) {
-    Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):'') );
+    ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));
     return NULL;
   }
   return $result;
 }
 
-function dbFetchOne( $sql, $col=false, $params=NULL ) {
-  $result = dbQuery( $sql, $params );
-  if ( ! $result ) {
-    Error( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" . ( $params ? 'params: ' . join(',',$params) : '' ) );
+function dbFetchOne($sql, $col=false, $params=NULL) {
+  $result = dbQuery($sql, $params);
+  if ( !$result ) {
+    ZM\Error("SQL-ERR dbFetchOne no result, statement was '".$sql."'".($params ? 'params: ' . join(',',$params) : ''));
     return false;
   }
-  if ( ! $result->rowCount() ) {
+  if ( !$result->rowCount() ) {
     # No rows is not an error
     return false;
   }
 
-  if ( $result && $dbRow = $result->fetch(PDO::FETCH_ASSOC) ) {
+  if ( $result && ($dbRow = $result->fetch(PDO::FETCH_ASSOC)) ) {
     if ( $col ) {
       if ( ! array_key_exists($col, $dbRow) ) {
-        Warning("$col does not exist in the returned row " . print_r($dbRow, true));
+        ZM\Warning("$col does not exist in the returned row " . print_r($dbRow, true));
+        return false;
       }
       return $dbRow[$col];
-    } 
+    }
     return $dbRow;
   }
   return false;
 }
 
-function dbFetchAll( $sql, $col=false, $params=NULL ) {
-  $result = dbQuery( $sql, $params );
+function dbFetchAll($sql, $col=false, $params=NULL) {
+  $result = dbQuery($sql, $params);
   if ( ! $result ) {
-    Error( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" . ( $params ? 'params: ' .join(',', $params) : '' ) );
+    ZM\Error("SQL-ERR dbFetchAll no result, statement was '".$sql."'".($params ? 'params: '.join(',', $params) : ''));
     return false;
   }
 
   $dbRows = array();
-  while( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
-    $dbRows[] = $col?$dbRow[$col]:$dbRow;
+  while ( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
+    $dbRows[] = $col ? $dbRow[$col] : $dbRow;
   return $dbRows;
 }
 
-function dbFetchAssoc( $sql, $indexCol, $dataCol=false ) {
-  $result = dbQuery( $sql );
+function dbFetchAssoc($sql, $indexCol, $dataCol=false) {
+  $result = dbQuery($sql);
 
   $dbRows = array();
-  while( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
-    $dbRows[$dbRow[$indexCol]] = $dataCol?$dbRow[$dataCol]:$dbRow;
-  return( $dbRows );
+  while( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
+    $dbRows[$dbRow[$indexCol]] = $dataCol ? $dbRow[$dataCol] : $dbRow;
+  return $dbRows;
 }
 
-function dbFetch( $sql, $col=false ) {
-  return( dbFetchAll( $sql, $col ) );
+function dbFetch($sql, $col=false) {
+  return dbFetchAll($sql, $col);
 }
 
-function dbFetchNext( $result, $col=false ) {
-  if ( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
-    return( $col?$dbRow[$col]:$dbRow );
-  return( false );
+function dbFetchNext($result, $col=false) {
+	if ( !$result ) {
+		ZM\Error("dbFetchNext called on null result.");
+		return false;
+	}
+  if ( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
+    return $col ? $dbRow[$col] : $dbRow;
+  return false;
 }
 
 function dbNumRows( $sql ) {
-  $result = dbQuery( $sql );
-  return( $result->rowCount() );
+  $result = dbQuery($sql);
+  return $result->rowCount();
 }
 
 function dbInsertId() {
   global $dbConn;
-  return( $dbConn->lastInsertId() );
+  return $dbConn->lastInsertId();
 }
 
-function getEnumValues( $table, $column ) {
-  $row = dbFetchOne( "describe $table $column" );
-  preg_match_all( "/'([^']+)'/", $row['Type'], $matches );
-  return( $matches[1] );
+function getEnumValues($table, $column) {
+  $row = dbFetchOne("DESCRIBE `$table` `$column`");
+  preg_match_all("/'([^']+)'/", $row['Type'], $matches);
+  return $matches[1];
 }
 
-function getSetValues( $table, $column ) {
-  return( getEnumValues( $table, $column ) );
+function getSetValues($table, $column) {
+  return getEnumValues($table, $column);
 }
 
-function getUniqueValues( $table, $column, $asString=1 ) {
+function getUniqueValues($table, $column, $asString=1) {
   $values = array();
-  $sql =  "select distinct $column from $table where (not isnull($column) and $column != '') order by $column";
-  foreach( dbFetchAll( $sql ) as $row ) {
+  $sql =  "SELECT DISTINCT `$column` FROM `$table` WHERE (NOT isnull(`$column`) AND `$column` != '') ORDER BY `$column`";
+  foreach ( dbFetchAll($sql) as $row ) {
     if ( $asString )
       $values[$row[$column]] = $row[$column];
     else
       $values[] = $row[$column];
   }
-  return( $values );  
-}               
+  return $values;
+}
 
 function getTableColumns( $table, $asString=1 ) {
   $columns = array();
-  $sql = "describe $table";
-  foreach( dbFetchAll( $sql ) as $row ) {
+  $sql = "DESCRIBE `$table`";
+  foreach ( dbFetchAll($sql) as $row ) {
     if ( $asString )
       $columns[$row['Field']] = $row['Type'];
     else
       $columns[] = $row['Type'];
   }
-  return( $columns );  
-}               
+  return $columns;
+}
 
 function getTableAutoInc( $table ) {
-  $row = dbFetchOne( 'show table status where Name=?', NULL, array($table) );
-  return( $row['Auto_increment'] );
+  $row = dbFetchOne('SHOW TABLE status WHERE Name=?', NULL, array($table));
+  return $row['Auto_increment'];
 }
 
 function getTableDescription( $table, $asString=1 ) {
   $columns = array();
-  foreach( dbFetchAll( "describe $table" ) as $row ) {
+  foreach( dbFetchAll("DESCRIBE `$table`") as $row ) {
     $desc = array(
         'name' => $row['Field'],
         'required' => ($row['Null']=='NO')?true:false,
         'default' => $row['Default'],
         'db' => $row,
         );
-    if ( preg_match( "/^varchar\((\d+)\)$/", $row['Type'], $matches ) ) {
+    if ( preg_match('/^varchar\((\d+)\)$/', $row['Type'], $matches) ) {
       $desc['type'] = 'text';
       $desc['typeAttrib'] = 'varchar';
       $desc['maxLength'] = $matches[1];
-    } elseif ( preg_match( "/^(\w+)?text$/", $row['Type'], $matches ) ) {
+    } elseif ( preg_match('/^(\w+)?text$/', $row['Type'], $matches) ) {
       $desc['type'] = 'text';
-      if (!empty($matches[1]) )
+      if ( !empty($matches[1]) )
         $desc['typeAttrib'] = $matches[1];
       switch ( $matches[1] ) {
         case 'tiny' :
@@ -294,15 +293,15 @@ function getTableDescription( $table, $asString=1 ) {
           //$desc['minLength'] = -128;
           break;
         default :
-          Error( "Unexpected text qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
+          ZM\Error("Unexpected text qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'");
           break;
       }
-    } elseif ( preg_match( "/^(enum|set)\((.*)\)$/", $row['Type'], $matches ) ) {
+    } elseif ( preg_match('/^(enum|set)\((.*)\)$/', $row['Type'], $matches) ) {
       $desc['type'] = 'text';
       $desc['typeAttrib'] = $matches[1];
-      preg_match_all( "/'([^']+)'/", $matches[2], $matches );
+      preg_match_all("/'([^']+)'/", $matches[2], $matches);
       $desc['values'] = $matches[1];
-    } elseif ( preg_match( "/^(\w+)?int\(\d+\)(?:\s+(unsigned))?$/", $row['Type'], $matches ) ) {
+    } elseif ( preg_match('/^(\w+)?int\(\d+\)(?:\s+(unsigned))?$/', $row['Type'], $matches) ) {
       $desc['type'] = 'integer';
       switch ( $matches[1] ) {
         case 'tiny' :
@@ -326,7 +325,7 @@ function getTableDescription( $table, $asString=1 ) {
           //$desc['maxValue'] = 127;
           break;
         default :
-          Error( "Unexpected integer qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
+          ZM\Error("Unexpected integer qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'");
           break;
       }
       if ( !empty($matches[1]) )
@@ -335,7 +334,7 @@ function getTableDescription( $table, $asString=1 ) {
         $desc['maxValue'] += (-$desc['minValue']);
         $desc['minValue'] = 0;
       }
-    } elseif ( preg_match( "/^(?:decimal|numeric)\((\d+)(?:,(\d+))?\)(?:\s+(unsigned))?$/", $row['Type'], $matches ) ) {
+    } elseif ( preg_match('/^(?:decimal|numeric)\((\d+)(?:,(\d+))?\)(?:\s+(unsigned))?$/', $row['Type'], $matches) ) {
       $desc['type'] = 'fixed';
       $desc['range'] = $matches[1];
       if ( isset($matches[2]) )
@@ -343,7 +342,7 @@ function getTableDescription( $table, $asString=1 ) {
       else
         $desc['precision'] = 0;
       $desc['unsigned'] = ( isset($matches[3]) && $matches[3] == 'unsigned' );
-    } elseif ( preg_match( "/^(datetime|timestamp|date|time)$/", $row['Type'], $matches ) ) {
+    } elseif ( preg_match('/^(datetime|timestamp|date|time)$/', $row['Type'], $matches) ) {
       $desc['type'] = 'datetime';
       switch ( $desc['typeAttrib'] = $matches[1] ) {
         case 'datetime' :
@@ -361,7 +360,7 @@ function getTableDescription( $table, $asString=1 ) {
           break;
       }
     } else {
-      Error( "Can't parse database type '".$row['Type']."' found for field '".$row['Field']."' in table '".$table."'" );
+      ZM\Error("Can't parse database type '".$row['Type']."' found for field '".$row['Field']."' in table '".$table."'");
     }
 
     if ( $asString )
@@ -369,15 +368,6 @@ function getTableDescription( $table, $asString=1 ) {
     else
       $columns[] = $desc;
   }
-  return( $columns );  
-}               
-
-function dbFetchMonitor( $mid ) {
-  return( dbFetchOne( 'select * from Monitors where Id = ?', NULL, array($mid) ) );
+  return $columns;
 }
-
-function dbFetchGroup( $gid ) {
-  return( dbFetchOne( 'select * from Groups where Id = ?', NULL, array($gid) ) );
-}
-
 ?>

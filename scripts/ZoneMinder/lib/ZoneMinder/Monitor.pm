@@ -36,20 +36,172 @@ require ZoneMinder::Server;
 #our @ISA = qw(Exporter ZoneMinder::Base);
 use parent qw(ZoneMinder::Object);
 
-# ==========================================================================
-#
-# General Utility Functions
-#
-# ==========================================================================
-
-use ZoneMinder::Config qw(:all);
-use ZoneMinder::Logger qw(:all);
-use ZoneMinder::Database qw(:all);
-
-use POSIX;
-use vars qw/ $table $primary_key /;
+use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
 $table = 'Monitors';
-$primary_key = 'Id';
+$serial = $primary_key = 'Id';
+%fields = map { $_ => $_ } qw(
+  Id
+  Name
+  Notes
+  ServerId
+  StorageId
+  Type
+  Function
+  Enabled
+  LinkedMonitors
+  Triggers
+  Device
+  Channel
+  Format
+  V4LMultiBuffer
+  V4LCapturesPerFrame
+  Protocol
+  Method
+  Host
+  Port
+  SubPath
+  Path
+  Options
+  User
+  Pass
+  Width
+  Height
+  Colours
+  Palette
+  Orientation
+  Deinterlacing
+  DecoderHWAccelName
+  DecoderHWAccelDevice
+  SaveJPEGs
+  VideoWriter
+  OutputCodec
+  OutputContainer
+  EncoderParameters
+  RecordAudio
+  RTSPDescribe
+  Brightness
+  Contrast
+  Hue
+  Colour
+  EventPrefix
+  LabelFormat
+  LabelX
+  LabelY
+  LabelSize
+  ImageBufferCount
+  WarmupCount
+  PreEventCount
+  PostEventCount
+  StreamReplayBuffer
+  AlarmFrameCount
+  SectionLength
+  MinSectionLength
+  FrameSkip
+  MotionFrameSkip
+  AnalysisFPSLimit
+  AnalysisUpdateDelay
+  MaxFPS
+  AlarmMaxFPS
+  FPSReportInterval
+  RefBlendPerc
+  AlarmRefBlendPerc
+  Controllable
+  ControlId
+  ControlDevice
+  ControlAddress
+  AutoStopTimeout
+  TrackMotion
+  TrackDelay
+  ReturnLocation
+  ReturnDelay
+  DefaultRate
+  DefaultScale
+  SignalCheckPoints
+  SignalCheckColour
+  WebColour
+  Exif
+  Sequence
+  );
+
+%defaults = (
+    ServerId => 0,
+    StorageId => 0,
+    Type      => 'Ffmpeg',
+    Function  => 'Mocord',
+    Enabled   => 1,
+    LinkedMonitors => undef,
+    Device  =>  '',
+    Channel =>  0,
+    Format  =>  0,
+    V4LMultiBuffer  =>  undef,
+    V4LCapturesPerFrame =>  1,
+    Protocol  =>  undef,
+    Method  =>  '',
+    Host  =>  undef,
+    Port  =>  '',
+    SubPath =>  '',
+    Path  =>  undef,
+    Options =>  undef,
+    User  =>  undef,
+    Pass  =>  undef,
+    Width => undef,
+    Height => undef,
+    Colours => 4,
+    Palette =>  0,
+    Orientation => undef,
+    Deinterlacing =>  0,
+    DecoderHWAccelName  =>  undef,
+    DecoderHWAccelDevice  =>  undef,
+    SaveJPEGs =>  3,
+    VideoWriter =>  0,
+    OutputCodec =>  undef,
+    OutputContainer => undef,
+    EncoderParameters => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
+    RecordAudio=>0,
+    RTSPDescribe=>0,
+    Brightness  =>  -1,
+    Contrast    =>  -1,
+    Hue         =>  -1,
+    Colour      =>  -1,
+    EventPrefix =>  'Event-',
+    LabelFormat => '%N - %d/%m/%y %H:%M:%S',
+    LabelX      =>  0,
+    LabelY      =>  0,
+    LabelSize   =>  1,
+    ImageBufferCount =>  20,
+    WarmupCount =>  0,
+    PreEventCount =>  5,
+    PostEventCount  =>  5,
+    StreamReplayBuffer  => 0,
+    AlarmFrameCount     =>  1,
+    SectionLength      =>  600,
+    MinSectionLength    =>  10,
+    FrameSkip           =>  0,
+    MotionFrameSkip     =>  0,
+    AnalysisFPSLimit  =>  undef,
+    AnalysisUpdateDelay  =>  0,
+    MaxFPS => undef,
+    AlarmMaxFPS => undef,
+    FPSReportInterval  =>  100,
+    RefBlendPerc        =>  6,
+    AlarmRefBlendPerc   =>  6,
+    Controllable        =>  0,
+    ControlId =>  undef,
+    ControlDevice =>  undef,
+    ControlAddress  =>  undef,
+    AutoStopTimeout => undef,
+    TrackMotion     =>  0,
+    TrackDelay      =>  undef,
+    ReturnLocation  =>  -1,
+    ReturnDelay     =>  undef,
+    DefaultRate =>  100,
+    DefaultScale  =>  100,
+    SignalCheckPoints =>  0,
+    SignalCheckColour =>  '#0000BE',
+    WebColour   =>  '#ff0000',
+    Exif    =>  0,
+    Sequence  =>  undef,
+    );
 
 sub Server {
 	return new ZoneMinder::Server( $_[0]{ServerId} );

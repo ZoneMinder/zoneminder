@@ -34,7 +34,7 @@ function probeV4L() {
 
   $result = exec(escapeshellcmd($command), $output, $status);
   if ( $status ) {
-    Error("Unable to probe local cameras, status is '$status'");
+    ZM\Error("Unable to probe local cameras using $command, status is '$status' " . implode("\n",$output));
     return $cameras;
   }
 
@@ -47,7 +47,7 @@ function probeV4L() {
   $preferredFormats = array('BGR3', 'RGB3', 'YUYV', 'UYVY', 'JPEG', 'MJPG', '422P', 'YU12', 'GREY');
   foreach ( $output as $line ) {
     if ( !preg_match('/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches) )
-      Fatal("Can't parse command output '$line'");
+      ZM\Fatal("Can't parse command output '$line'");
     $standards = explode('/',$deviceMatches[2]);
     $preferredStandard = false;
     foreach ( $preferredStandards as $standard ) {
@@ -74,7 +74,7 @@ function probeV4L() {
     $inputs = array();
     for ( $i = 0; $i < $deviceMatches[4]; $i++ ) {
       if ( !preg_match('/i'.$i.':([^|]+)\|i'.$i.'T:([^|]+)\|/', $deviceMatches[5], $inputMatches) )
-        Fatal("Can't parse input '".$deviceMatches[5]."'");
+        ZM\Fatal("Can't parse input '".$deviceMatches[5]."'");
       if ( $inputMatches[2] == 'Camera' ) {
         $input = array(
           'index' => $i,
@@ -247,18 +247,18 @@ function probeNetwork() {
   $arp_command = ZM_PATH_ARP;
   $result = explode(' ', $arp_command);
   if ( !is_executable($result[0]) ) {
-    Error("ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.");
-    return;
+    ZM\Error('ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.');
+    return $cameras;
   }
 
   $result = exec(escapeshellcmd($arp_command), $output, $status);
   if ( $status ) {
-    Error("Unable to probe network cameras, status is '$status'");
-    return;
+    ZM\Error("Unable to probe network cameras, status is '$status'");
+    return $cameras;
   }
 
   $monitors = array();
-  foreach ( dbFetchAll("SELECT Id, Name, Host FROM Monitors WHERE Type = 'Remote' ORDER BY Host") as $monitor ) {
+  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Host` FROM `Monitors` WHERE `Type` = 'Remote' ORDER BY `Host`") as $monitor ) {
     if ( preg_match('/^(.+)@(.+)$/', $monitor['Host'], $matches) ) {
       //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
       $monitors[gethostbyname($matches[2])] = $monitor;
@@ -277,29 +277,29 @@ function probeNetwork() {
     '78:a5:dd' => array('type'=>'Wansview','probeFunc'=>'probeWansview')
   );
 
-    foreach ( $output as $line ) {
-      if ( !preg_match('/(\d+\.\d+\.\d+\.\d+).*(([0-9a-f]{2}:){5})/', $line, $matches) )
-        continue;
-      $ip = $matches[1];
-      $host = $ip;
-      $mac = $matches[2];
-      //echo "I:$ip, H:$host, M:$mac<br/>";
-      $macRoot = substr($mac,0,8);
-      if ( isset($macBases[$macRoot]) ) {
-        $macBase = $macBases[$macRoot];
-        $camera = call_user_func($macBase['probeFunc'], $ip);
-        $sourceDesc = base64_encode(serialize($camera['monitor']));
-        $sourceString = $camera['model'].' @ '.$host;
-        if ( isset($monitors[$ip]) ) {
-          $monitor = $monitors[$ip];
-          $sourceString .= ' ('.$monitor['Name'].')';
-        } else {
-          $sourceString .= ' - '.translate('Available');
-        }
-        $cameras[$sourceDesc] = $sourceString;
+  foreach ( $output as $line ) {
+    if ( !preg_match('/(\d+\.\d+\.\d+\.\d+).*(([0-9a-f]{2}:){5})/', $line, $matches) )
+      continue;
+    $ip = $matches[1];
+    $host = $ip;
+    $mac = $matches[2];
+    //echo "I:$ip, H:$host, M:$mac<br/>";
+    $macRoot = substr($mac,0,8);
+    if ( isset($macBases[$macRoot]) ) {
+      $macBase = $macBases[$macRoot];
+      $camera = call_user_func($macBase['probeFunc'], $ip);
+      $sourceDesc = base64_encode(serialize($camera['monitor']));
+      $sourceString = $camera['model'].' @ '.$host;
+      if ( isset($monitors[$ip]) ) {
+        $monitor = $monitors[$ip];
+        $sourceString .= ' ('.$monitor['Name'].')';
+      } else {
+        $sourceString .= ' - '.translate('Available');
       }
-    } # end foreach output line
-    return $cameras;
+      $cameras[$sourceDesc] = $sourceString;
+    }
+  } # end foreach output line
+  return $cameras;
 } # end function probeNetwork()
 
 $cameras = array();
@@ -322,7 +322,7 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
       <h2><?php echo translate('MonitorProbe') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <p>
@@ -333,9 +333,9 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
           <?php echo buildSelect('probe', $cameras, 'configureButtons(this)'); ?>
         </p>
         <div id="contentButtons">
-        <button type="button" name="saveBtn" value="Save" onclick="submitCamera(this);" disabled="disabled">
+        <button type="button" name="saveBtn" value="Save" data-on-click-this="submitCamera" disabled="disabled">
         <?php echo translate('Save') ?></button>
-        <button type="button" onclick="closeWindow();"><?php echo translate('Cancel') ?></button>
+        <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

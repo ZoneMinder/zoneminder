@@ -187,8 +187,8 @@ int main(int argc, char *argv[]) {
     snprintf(log_id_string, sizeof(log_id_string), "zmc_m%d", monitor_id);
   }
 
+  logInit(log_id_string);
   zmLoadConfig();
-
   logInit(log_id_string);
 
   hwcaps_detect();
@@ -234,6 +234,8 @@ int main(int argc, char *argv[]) {
 
   int result = 0;
 
+  int prime_capture_log_count = 0;
+
   while ( !zm_terminate ) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
@@ -247,20 +249,18 @@ int main(int argc, char *argv[]) {
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
-    }
+    }  // end foreach monitor
+
     // Outer primary loop, handles connection to camera
     if ( monitors[0]->PrimeCapture() < 0 ) {
-      Error("Failed to prime capture of initial monitor");
+      if ( prime_capture_log_count % 60 ) {
+        Error("Failed to prime capture of initial monitor");
+      } else {
+        Debug(1, "Failed to prime capture of initial monitor");
+      }
+      prime_capture_log_count ++;
       sleep(10);
       continue;
-    }
-    for ( int i = 0; i < n_monitors; i++ ) {
-      snprintf(sql, sizeof(sql),
-          "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')",
-          monitors[i]->Id());
-      if ( mysql_query(&dbconn, sql) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-      }
     }
 
     int *capture_delays = new int[n_monitors];
@@ -271,12 +271,18 @@ int main(int argc, char *argv[]) {
       last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
       capture_delays[i] = monitors[i]->GetCaptureDelay();
       alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
-    }
+      snprintf(sql, sizeof(sql),
+          "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')",
+          monitors[i]->Id());
+      if ( mysql_query(&dbconn, sql) ) {
+        Error("Can't run query: %s", mysql_error(&dbconn));
+      }
+    } // end foreach monitor
 
     struct timeval now;
     struct DeltaTimeval delta_time;
     while ( !zm_terminate ) {
-      sigprocmask(SIG_BLOCK, &block_set, 0);
+      //sigprocmask(SIG_BLOCK, &block_set, 0);
       for ( int i = 0; i < n_monitors; i++ ) {
         long min_delay = MAXINT;
 
@@ -300,7 +306,7 @@ int main(int argc, char *argv[]) {
 
         if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
           if ( monitors[i]->PreCapture() < 0 ) {
-            Error("Failed to pre-capture monitor %d %d (%d/%d)",
+            Error("Failed to pre-capture monitor %d %s (%d/%d)",
                 monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
             monitors[i]->Close();
             result = -1;
@@ -333,7 +339,7 @@ int main(int argc, char *argv[]) {
         }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
 
       }  // end foreach n_monitors
-      sigprocmask(SIG_UNBLOCK, &block_set, 0);
+      //sigprocmask(SIG_UNBLOCK, &block_set, 0);
       if ( zm_reload ) {
         for ( int i = 0; i < n_monitors; i++ ) {
           monitors[i]->Reload();
@@ -344,6 +350,7 @@ int main(int argc, char *argv[]) {
       }
       if ( result < 0 ) {
         // Failure, try reconnecting
+				sleep(5);
         break;
       }
     }  // end while ! zm_terminate

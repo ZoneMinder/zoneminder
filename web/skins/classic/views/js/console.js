@@ -22,7 +22,7 @@ function setButtonStates( element ) {
     form.deleteBtn.disabled = false;
     form.selectBtn.disabled = false;
     if ( checked == 1 ) {
-      $j(form.cloneBtn).css('display','inline');
+      $j(form.cloneBtn).css('display', 'inline');
     } else {
       form.cloneBtn.hide();
     }
@@ -39,9 +39,7 @@ function addMonitor(element) {
 }
 
 function cloneMonitor(element) {
-
   var form = element.form;
-  var dupParam;
   var monitorId=-1;
   // get the value of the first checkbox
   for ( var i = 0; i < form.elements.length; i++ ) {
@@ -66,7 +64,7 @@ function editMonitor( element ) {
   var monitorIds = Array();
 
   for ( var i = 0; i < form.elements.length; i++ ) {
-    if ( 
+    if (
       form.elements[i].type == "checkbox"
       &&
       form.elements[i].name == "markMids[]"
@@ -80,10 +78,13 @@ function editMonitor( element ) {
       //break;
     }
   } // end foreach checkboxes
-  if ( monitorIds.length == 1 )
-        createPopup( '?view=monitor&mid='+monitorIds[0], 'zmMonitor'+monitorIds[0], 'monitor' );
-  else if ( monitorIds.length > 1 ) 
-        createPopup( '?view=monitors&'+(monitorIds.map(function(mid){return 'mids[]='+mid;}).join('&')), 'zmMonitors', 'monitors' );
+  if ( monitorIds.length == 1 ) {
+    createPopup( '?view=monitor&mid='+monitorIds[0], 'zmMonitor'+monitorIds[0], 'monitor' );
+  } else if ( monitorIds.length > 1 ) {
+    createPopup( '?view=monitors&'+(monitorIds.map(function(mid) {
+      return 'mids[]='+mid;
+    }).join('&')), 'zmMonitors', 'monitors' );
+  }
 }
 
 function deleteMonitor( element ) {
@@ -99,13 +100,13 @@ function selectMonitor(element) {
   var url = thisUrl+'?view=console';
   for ( var i = 0; i < form.elements.length; i++ ) {
     if (
-        form.elements[i].type == "checkbox"
-        &&
-        form.elements[i].name == "markMids[]"
-        &&
-        form.elements[i].checked
-       ) {
-      url += '&MonitorId='+form.elements[i].value;
+      form.elements[i].type == 'checkbox'
+      &&
+      form.elements[i].name == 'markMids[]'
+      &&
+      form.elements[i].checked
+    ) {
+      url += '&MonitorId[]='+form.elements[i].value;
     }
   }
   window.location.replace(url);
@@ -116,18 +117,20 @@ function reloadWindow() {
 }
 
 function initPage() {
-  reloadWindow.periodical( consoleRefreshTimeout );
-  if ( showVersionPopup )
-    createPopup( '?view=version', 'zmVersion', 'version' );
-  if ( showDonatePopup )
-    createPopup( '?view=donate', 'zmDonate', 'donate' );
+  reloadWindow.periodical(consoleRefreshTimeout);
+  if ( showVersionPopup ) {
+    createPopup('?view=version', 'zmVersion', 'version');
+  }
+  if ( showDonatePopup ) {
+    createPopup('?view=donate', 'zmDonate', 'donate');
+  }
 
   // Makes table sortable
   $j( function() {
     $j( "#consoleTableBody" ).sortable({
-        handle: ".glyphicon-sort",
-        update: applySort,
-        axis:'Y' } );
+      handle: ".sort",
+      update: applySort,
+      axis: 'Y'} );
     $j( "#consoleTableBody" ).disableSelection();
   } );
 }
@@ -135,12 +138,12 @@ function initPage() {
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
   var ajax = new Request.JSON( {
-      url: 'index.php?request=console',
-      data: { monitor_ids: monitor_ids, action: 'sort' },
-      method: 'post',
-      timeout: AJAX_TIMEOUT
-      } );
+    url: 'index.php?request=console',
+    data: {monitor_ids: monitor_ids, action: 'sort'},
+    method: 'post',
+    timeout: AJAX_TIMEOUT
+  } );
   ajax.send();
 } // end function applySort(event,ui)
 
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

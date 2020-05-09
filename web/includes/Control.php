@@ -1,10 +1,14 @@
 <?php
-require_once( 'database.php' );
-require_once( 'Server.php' );
+namespace ZM;
 
-class Control {
+require_once('database.php');
+require_once('Object.php');
 
-private $defaults = array(
+class Control extends ZM_Object {
+  protected static $table = 'Controls';
+
+  protected $defaults = array(
+    'Id'  =>  null,
     'CanMove' => 0,
     'CanMoveDiag' => 0,
     'CanMoveMap' => 0,
@@ -13,6 +17,7 @@ private $defaults = array(
     'CanMoveCon' => 0,
     'CanPan' => 0,
     'CanReset' => 0,
+    'CanReboot' =>  0,
     'CanSleep' => 0,
     'CanWake' => 0,
     'MinPanRange' => NULL,
@@ -102,153 +107,139 @@ private $defaults = array(
     'Protocol' => NULL
     );
 
-  public function __construct( $IdOrRow = NULL ) {
-    if ( $IdOrRow ) {
-      $row = NULL;
-      if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-        $row = dbFetchOne( 'SELECT * FROM Controls WHERE Id=?', NULL, array( $IdOrRow ) );
-        if ( ! $row ) {
-          Error("Unable to load Control record for Id=" . $IdOrRow );
-        }
-      } elseif ( is_array( $IdOrRow ) ) {
-        $row = $IdOrRow;
-      } else {
-        Error("Unknown argument passed to Control Constructor ($IdOrRow)");
-        return;
-      }
-
-      if ( $row ) {
-        foreach ($row as $k => $v) {
-          $this->{$k} = $v;
-        }
-      } else {
-        Error('No row for Control ' . $IdOrRow );
-      }
-    } # end if isset($IdOrRow)
-  } // end function __construct
-
-  public function __call($fn, array $args){
-    if ( count($args) ) {
-      $this->{$fn} = $args[0];
-    }
-    if ( array_key_exists($fn, $this) ) {
-      return $this->{$fn};
-        #array_unshift($args, $this);
-        #call_user_func_array( $this->{$fn}, $args);
-		} else {
-      if ( array_key_exists($fn, $this->control_fields) ) {
-        return $this->control_fields{$fn};
-      } else if ( array_key_exists( $fn, $this->defaults ) ) {
-        return $this->defaults{$fn};
-      } else {
-        $backTrace = debug_backtrace();
-        $file = $backTrace[1]['file'];
-        $line = $backTrace[1]['line'];
-        Warning( "Unknown function call Control->$fn from $file:$line" );
-      }
-    }
+  public static function find( $parameters = array(), $options = array() ) {
+    return ZM_Object::_find(get_class(), $parameters, $options);
   }
 
-  public function set( $data ) {
-    foreach ($data as $k => $v) {
-      if ( is_array( $v ) ) {
-        # perhaps should turn into a comma-separated string
-        $this->{$k} = implode(',',$v);
-      } else if ( is_string( $v ) ) {
-        $this->{$k} = trim( $v );
-      } else if ( is_integer( $v ) ) {
-        $this->{$k} = $v;
-      } else if ( is_bool( $v ) ) {
-        $this->{$k} = $v;
+  public static function find_one( $parameters = array(), $options = array() ) {
+    return ZM_Object::_find_one(get_class(), $parameters, $options);
+  }
+
+  public function commands() {
+    $cmds = array();
+
+    $cmds['Wake'] = 'wake';
+    $cmds['Sleep'] = 'sleep';
+    $cmds['Reset'] = 'reset';
+    $cmds['Reboot'] = 'reboot';
+
+    $cmds['PresetSet'] = 'presetSet';
+    $cmds['PresetGoto'] = 'presetGoto';
+    $cmds['PresetHome'] = 'presetHome';
+
+    if ( $this->CanZoom() ) {
+      if ( $this->CanZoomCon() ) {
+        $cmds['ZoomRoot'] = 'zoomCon';
+      } else if ( $this->CanZoomRel() ) {
+        $cmds['ZoomRoot'] = 'zoomRel';
+      } else if ( $this->CanZoomAbs() ) {
+        $cmds['ZoomRoot'] = 'zoomAbs';
       } else {
-        Error( "Unknown type $k => $v of var " . gettype( $v ) );
-        $this->{$k} = $v;
+        $cmds['ZoomRoot'] = '';
+        Error('No zoom type selected. Please select Continuous, Relative, Absolute');
       }
+      $cmds['ZoomTele'] = $cmds['ZoomRoot'].'Tele';
+      $cmds['ZoomWide'] = $cmds['ZoomRoot'].'Wide';
+      $cmds['ZoomStop'] = 'zoomStop';
+      $cmds['ZoomAuto'] = 'zoomAuto';
+      $cmds['ZoomMan'] = 'zoomMan';
     }
-  }
-  public static function find( $parameters = null, $options = null ) {
-    $sql = 'SELECT * FROM Controls ';
-    $values = array();
 
-    if ( $parameters ) {
-      $fields = array();
-      $sql .= 'WHERE ';
-      foreach ( $parameters as $field => $value ) {
-        if ( $value == null ) {
-          $fields[] = $field.' IS NULL';
-        } else if ( is_array( $value ) ) {
-          $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
-          $values += $value;
-
-        } else {
-          $fields[] = $field.'=?';
-          $values[] = $value;
-        }
+    if ( $this->CanFocus() ) {
+      if ( $this->CanFocusCon() ) {
+        $cmds['FocusRoot'] = 'focusCon';
+      } else if ( $this->CanFocusRel() ) {
+        $cmds['FocusRoot'] = 'focusRel';
+      } else if ( $this->CanFocusAbs() ) {
+        $cmds['FocusRoot'] = 'focusAbs';
+      } else {
+        $cmds['FocusRoot'] = '';
+        Error('No focus type selected. Please select Continuous, Relative, Absolute');
       }
-      $sql .= implode(' AND ', $fields );
+      $cmds['FocusFar'] = $cmds['FocusRoot'].'Far';
+      $cmds['FocusNear'] = $cmds['FocusRoot'].'Near';
+      $cmds['FocusStop'] = 'focusStop';
+      $cmds['FocusAuto'] = 'focusAuto';
+      $cmds['FocusMan'] = 'focusMan';
     }
-    if ( $options ) {
-      if ( isset($options['order']) ) {
-        $sql .= ' ORDER BY ' . $options['order'];
+
+    if ( $this->CanIris() ) {
+      if ( $this->CanIrisCon() ) {
+        $cmds['IrisRoot'] = 'irisCon';
+      } else if ( $this->CanIrisRel() ) {
+        $cmds['IrisRoot'] = 'irisRel';
+      } else if ( $this->CanIrisAbs() ) {
+        $cmds['IrisRoot'] = 'irisAbs';
+      } else {
+        $cmds['IrisRoot'] = '';
+        Error('No iris type selected. Please select Continuous, Relative, Absolute');
       }
-      if ( isset($options['limit']) ) {
-        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $options['limit'];
-        } else {
-          $backTrace = debug_backtrace();
-          $file = $backTrace[1]['file'];
-          $line = $backTrace[1]['line'];
-          Error("Invalid value for limit(".$options['limit'].") passed to Control::find from $file:$line");
-          return;
-        }
+      $cmds['IrisOpen'] = $cmds['IrisRoot'].'Open';
+      $cmds['IrisClose'] = $cmds['IrisRoot'].'Close';
+      $cmds['IrisStop'] = 'irisStop';
+      $cmds['IrisAuto'] = 'irisAuto';
+      $cmds['IrisMan'] = 'irisMan';
+    }
+
+    if ( $this->CanWhite() ) {
+      if ( $this->CanWhiteCon() ) {
+        $cmds['WhiteRoot'] = 'whiteCon';
+      } else if ( $this->CanWhiteRel() ) {
+        $cmds['WhiteRoot'] = 'whiteRel';
+      } else if ( $this->CanWhiteAbs() ) {
+        $cmds['WhiteRoot'] = 'whiteAbs';
+      } else {
+        Error('No White type selected. Please select Continuous, Relative, Absolute');
+        $cmds['WhiteRoot'] = '';
       }
+      $cmds['WhiteIn'] = $cmds['WhiteRoot'].'In';
+      $cmds['WhiteOut'] = $cmds['WhiteRoot'].'Out';
+      $cmds['WhiteAuto'] = 'whiteAuto';
+      $cmds['WhiteMan'] = 'whiteMan';
     }
-    $controls = array();
-    $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Control');
-    foreach ( $results as $row => $obj ) {
-      $controls[] = $obj;
-    }
-    return $controls;
-  }
 
-  public static function find_one( $parameters = array() ) {
-    $results = Control::find( $parameters, array('limit'=>1) );
-    if ( ! sizeof($results) ) {
-      return;
-    }
-    return $results[0];
-  }
-
-  public function save( $new_values = null ) {
-
-    if ( $new_values ) {
-      foreach ( $new_values as $k=>$v ) {
-        $this->{$k} = $v;
+    if ( $this->CanGain() ) {
+      if ( $this->CanGainCon() ) {
+        $cmds['GainRoot'] = 'gainCon';
+      } else if ( $this->CanGainRel() ) {
+        $cmds['GainRoot'] = 'gainRel';
+      } else if ( $this->CanGainAbs() ) {
+        $cmds['GainRoot'] = 'gainAbs';
+      } else {
+        Error('No Gain type selected');
+        $cmds['GainRoot'] = '';
       }
+      $cmds['GainUp'] = $cmds['GainRoot'].'Up';
+      $cmds['GainDown'] = $cmds['GainRoot'].'Down';
+      $cmds['GainAuto'] = 'gainAuto';
+      $cmds['GainMan'] = 'gainMan';
     }
-    // Set default values
-    foreach ( $this->defaults as $k=>$v ) {
-      if ( ( ! array_key_exists( $k, $this ) ) or ( $this->{$k} == '' ) ) {
-        $this->{$k} = $v;
+
+    if ( $this->CanMove() ) {
+      if ( $this->CanMoveCon() ) {
+        $cmds['MoveRoot'] = 'moveCon';
+        $cmds['Center'] = 'moveStop';
+      } elseif ( $this->CanMoveRel() ) {
+        $cmds['MoveRoot'] = 'moveRel';
+        $cmds['Center'] = $cmds['PresetHome'];
+      } elseif ( $this->CanMoveAbs() ) {
+        $cmds['MoveRoot'] = 'moveAbs';
+        $cmds['Center'] = $cmds['PresetHome'];
+      } else {
+        $cmds['MoveRoot'] = '';
+        Error('No move type selected. Please select Continuous, Relative, Absolute');
       }
-    }
-    
-    $fields = array_keys( $this->defaults );
 
-    if ( array_key_exists( 'Id', $this ) ) {
-      $sql = 'UPDATE Controls SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . ' WHERE Id=?';
-      $values = array_map( function($field){return $this->{$field};}, $fields );
-      $values[] = $this->{'Id'};
-      dbQuery( $sql, $values );
-    } else {
-      $sql = 'INSERT INTO Controls SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . '';
-      $values = array_map( function($field){return $this->{$field};}, $fields );
-      dbQuery( $sql, $values );
-      $this->{'Id'} = dbInsertId();
+      $cmds['MoveUp'] = $cmds['MoveRoot'].'Up';
+      $cmds['MoveDown'] = $cmds['MoveRoot'].'Down';
+      $cmds['MoveLeft'] = $cmds['MoveRoot'].'Left';
+      $cmds['MoveRight'] = $cmds['MoveRoot'].'Right';
+      $cmds['MoveUpLeft'] = $cmds['MoveRoot'].'UpLeft';
+      $cmds['MoveUpRight'] = $cmds['MoveRoot'].'UpRight';
+      $cmds['MoveDownLeft'] = $cmds['MoveRoot'].'DownLeft';
+      $cmds['MoveDownRight'] = $cmds['MoveRoot'].'DownRight';
     }
-  } // end function save
-
+    return $cmds;
+  } // end public function commands
 } // end class Control
 ?>

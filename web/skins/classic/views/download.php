@@ -24,18 +24,19 @@ if ( !canView('Events') ) {
 }
 
 $total_size = 0;
-if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
-  $eventsSql = 'SELECT E.Id,E.DiskSpace FROM Events as E WHERE 1';
+if ( isset($_SESSION['montageReviewFilter']) and !isset($_REQUEST['eids']) ) {
+  # Handles montageReview filter
+  $eventsSql = 'SELECT E.Id, E.DiskSpace FROM Events AS E WHERE 1';
   $eventsSql .= $_SESSION['montageReviewFilter']['sql'];
   $results = dbQuery($eventsSql);
   $eids = [];
   while ( $event_row = dbFetchNext( $results ) ) {
-    array_push($eids, 'eids[]='.$event_row['Id']);
+    array_push($eids, $event_row['Id']);
     $total_size += $event_row['DiskSpace'];
   }
   $_REQUEST['eids'] = $eids;
   if ( ! count($eids) ) {
-    Error("No events found for download using $eventsSql");
+    ZM\Error("No events found for download using $eventsSql");
   } 
   #session_start();
   #unset($_SESSION['montageReviewFilter']);
@@ -44,43 +45,65 @@ if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
 #Logger::Debug("NO montageReviewFilter");
 }
 
-$focusWindow = true;
+$exportFormat = '';
+if ( isset($_REQUEST['exportFormat']) ) {
+  if ( !in_array($_REQUEST['exportFormat'], array('zip', 'tar')) ) {
+    ZM\Error('Invalid exportFormat: '.$_REQUEST['exportFormat']);
+  } else {
+    $exportFormat = $_REQUEST['exportFormat'];
+  }
+}
 
-xhtmlHeaders(__FILE__, translate('Download') );
+if ( !empty($_REQUEST['eid']) ) {
+  $Event = new ZM\Event($_REQUEST['eid']);
+  if ( !$Event->Id ) {
+    Error('Invalid event id');
+  }
+}
+
+$focusWindow = true;
+$connkey = isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : generateConnKey();
+
+xhtmlHeaders(__FILE__, translate('Download'));
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
+        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo translate('Download') ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="connkey" value="<?php echo $connkey; ?>"/>
 <?php
 if ( !empty($_REQUEST['eid']) ) {
 ?>
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
     <?php
-    $Event = new Event( $_REQUEST['eid'] );
-    echo 'Downloading event ' . $_REQUEST['eid'] . ' Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
+    $Event = new ZM\Event($_REQUEST['eid']);
+    echo 'Downloading event ' . $Event->Id . '. Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
 } else if ( !empty($_REQUEST['eids']) ) {
     $total_size = 0;
     foreach ( $_REQUEST['eids'] as $eid ) {
-        $Event = new Event($eid);
-        $total_size += $Event->DiskSpace();
+      if ( ! validInt($eid) ) {
+        ZM\Warning("Invalid event id in eids[] $eid");
+        continue;
+      }
+      $Event = new ZM\Event($eid);
+      $total_size += $Event->DiskSpace();
 ?>
         <input type="hidden" name="eids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
     }
-    unset( $eid );
+    unset($eid);
     echo "Downloading " . count($_REQUEST['eids']) . ' events.  Resulting file should be approximately ' . human_filesize($total_size);
 } else {
     echo '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
 }
 ?>
-        <table id="contentTable" class="minor" cellspacing="0">
+        <table id="contentTable" class="minor">
           <tbody>
             <tr>
               <td><input type="hidden" name="exportVideo" value="1"/></td>
@@ -88,15 +111,18 @@ if ( !empty($_REQUEST['eid']) ) {
             <tr>
               <th scope="row"><?php echo translate('ExportFormat') ?></th>
               <td>
-                <input type="radio" id="exportFormatTar" name="exportFormat" value="tar" onclick="configureExportButton(this)"/>
+                <input type="radio" id="exportFormatTar" name="exportFormat" value="tar"/>
                 <label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>
-                <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked" onclick="configureExportButton(this);"/>
+                <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked"/>
                 <label for="exportFormatZip"><?php echo translate('ExportFormatZip') ?></label>
               </td>
             </tr>
           </tbody>
         </table>
-        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('GenerateDownload') ?>" onclick="exportEvent(this.form);" />
+        <button type="button" id="exportButton" name="exportButton" value="GenerateDownload">
+ <!--data-on-click-this="exportEvent">-->
+        <?php echo translate('GenerateDownload') ?>
+        </button>
       </form>
     </div>
 <?php
@@ -117,7 +143,7 @@ if ( !empty($_REQUEST['eid']) ) {
     }
     if ( !empty($_REQUEST['generated']) ) {
 ?>
-      <h3 id="downloadLink"><a href="<?php echo validHtmlStr($_REQUEST['exportFile']) ?>"><?php echo translate('Download') ?></a></h3>
+      <h3 id="downloadLink"><a href="?view=archive&amp;type=<?php echo $exportFormat; ?>"><?php echo translate('Download') ?></a></h3>
 <?php
     }
 ?>

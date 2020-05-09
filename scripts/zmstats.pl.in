@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 use strict;
 use bytes;
 
@@ -18,9 +18,7 @@ use constant START_DELAY => 30; # To give everything else time to start
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
-use POSIX;
 use DBI;
-use autouse 'Data::Dumper'=>qw(Dumper);
 
 $| = 1;
 
@@ -31,15 +29,15 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 logInit();
 logSetSignal();
 
-Info("Stats Daemon starting in ".START_DELAY." seconds");
+Info('Stats Daemon starting in '.START_DELAY.' seconds');
 sleep(START_DELAY);
 
 my $dbh = zmDbConnect();
 
 while( 1 ) {
   while ( ! ( $dbh and $dbh->ping() ) ) {
-    Info("Reconnecting to db");
-    if ( ! ( $dbh = zmDbConnect() ) ) {
+    Info('Reconnecting to db');
+    if ( !($dbh = zmDbConnect()) ) {
       #What we do here is not that important, so just skip this interval
       sleep($Config{ZM_STATS_UPDATE_INTERVAL});
     }
@@ -53,7 +51,7 @@ while( 1 ) {
   sleep($Config{ZM_STATS_UPDATE_INTERVAL});
 } # end while (1)
 
-Info("Stats Daemon exiting");
+Info('Stats Daemon exiting');
 exit();
 1;
 __END__

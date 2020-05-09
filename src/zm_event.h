@@ -86,9 +86,12 @@ class Event {
     bool            videoEvent;
     int        frames;
     int        alarm_frames;
+    bool alarm_frame_written;
     unsigned int  tot_score;
     unsigned int  max_score;
     char      path[PATH_MAX];
+    char snapshot_file[PATH_MAX];
+    char alarm_file[PATH_MAX];
     VideoWriter* videowriter;
     FILE* timecodes_fd;
     char video_name[PATH_MAX];
@@ -129,6 +132,7 @@ class Event {
   private:
     void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );
     void WriteDbFrames();
+    void UpdateFramesDelta(double offset);
 
   public:
     static const char *getSubPath( struct tm *time ) {

@@ -45,7 +45,7 @@ sub open {
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
-  $self->{ua}->agent('ZoneMinder Control Agent/'.$ZoneMinder::Base::ZM_VERSION);
+  $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
   #   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
   Debug ( "sendCmd credentials control address:'".$ADDRESS
@@ -100,14 +100,6 @@ sub open {
   } # end if $res->status_line() eq '401 Unauthorized'
 } # end sub open
 
-sub printMsg {
-  my $self = shift;
-  my $msg = shift;
-  my $msg_len = length($msg);
-
-  Debug($msg.'['.$msg_len.']');
-}
-
 sub sendCmd {
 
   # This routine is used for all moving, which are all GET commands...
@@ -120,6 +112,7 @@ sub sendCmd {
 
   Debug('sendCmd command: ' . $url);
   if ( $res->is_success ) {
+    Debug($res->content);
     return !undef;
   }
   Error("Error check failed: '".$res->status_line()."' cmd:'".$cmd."'");
@@ -155,6 +148,7 @@ sub sendCmdPost {
   Debug("sendCmdPost credentials control to: $PROTOCOL$ADDRESS$url realm:'" . $REALM . "'  username:'" . $USERNAME . "' password:'".$PASSWORD."'");
 
   if ( $res->is_success ) {
+    Debug($res->content);
     return !undef;
   }
   Error("sendCmdPost Error check failed: '".$res->status_line()."' cmd:");

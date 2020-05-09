@@ -33,9 +33,9 @@ $configFile = ZM_CONFIG;
 $localConfigFile = basename($configFile);
 if ( file_exists( $localConfigFile ) && filesize( $localConfigFile ) > 0 ) {
   if ( php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) )
-    print( "Warning, overriding installed $localConfigFile file with local copy\n" );
+    print("Warning, overriding installed $localConfigFile file with local copy\n");
   else
-    error_log( "Warning, overriding installed $localConfigFile file with local copy" );
+    error_log("Warning, overriding installed $localConfigFile file with local copy");
   $configFile = $localConfigFile;
 }
 
@@ -49,19 +49,19 @@ if ( is_dir($configSubFolder) ) {
   if ( is_readable($configSubFolder) ) {
     foreach ( glob("$configSubFolder/*.conf") as $filename ) {
       //error_log("processing $filename");
-      $configvals = array_replace($configvals, process_configfile($filename) );
+      $configvals = array_replace($configvals, process_configfile($filename));
     }
   } else {
-    error_log( "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on $configSubFolder." );
+    error_log("WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on $configSubFolder.");
   }
 } else {
-  error_log( "WARNING: ZoneMinder configuration subfolder found but is not a directory. Check $configSubFolder." );
+  error_log("WARNING: ZoneMinder configuration subfolder found but is not a directory. Check $configSubFolder.");
 }
 
 # Now that our array our finalized, define each key => value
 # pair in the array as a constant
-foreach( $configvals as $key => $value) {
-  define( $key, $value );
+foreach ( $configvals as $key => $value ) {
+  define($key, $value);
 }
 
 //
@@ -135,10 +135,10 @@ define( 'SCALE_BASE', 100 );                            // The additional scalin
 define( 'STRF_FMT_DATETIME_DB', '%Y-%m-%d %H:%M:%S' );      // Strftime format for database queries, don't change
 define( 'MYSQL_FMT_DATETIME_SHORT', '%y/%m/%d %H:%i:%S' );  // MySQL date_format shorter format for dates with time
 
-require_once( 'database.php' );
-require_once( 'logger.php' );
+require_once('database.php');
+require_once('logger.php');
 loadConfig();
-Logger::fetch()->initialise();
+ZM\Logger::fetch()->initialise();
 
 $GLOBALS['defaultUser'] = array(
   'Username'  => 'admin',
@@ -158,68 +158,64 @@ $GLOBALS['defaultUser'] = array(
 
 function loadConfig( $defineConsts=true ) {
   global $config;
-  global $configCats;
   global $dbConn;
 
   $config = array();
-  $configCat = array();
 
-  $result = $dbConn->query( 'select * from Config order by Id asc' );
+  $result = $dbConn->query('SELECT Name,Value FROM Config');
   if ( !$result )
     echo mysql_error();
-  $monitors = array();
-  while( $row = dbFetchNext( $result ) ) {
+  while( $row = dbFetchNext($result) ) {
     if ( $defineConsts )
-      define( $row['Name'], $row['Value'] );
+      define($row['Name'], $row['Value']);
     $config[$row['Name']] = $row;
-    if ( !($configCat = &$configCats[$row['Category']]) ) {
-      $configCats[$row['Category']] = array();
-      $configCat = &$configCats[$row['Category']];
-    }
-    $configCat[$row['Name']] = $row;
   }
-  //print_r( $config );
-  //print_r( $configCats );
-}
+} # end function loadConfig
 
 // For Human-readability, use ZM_SERVER_HOST or ZM_SERVER_NAME in zm.conf, and convert it here to a ZM_SERVER_ID
 if ( ! defined('ZM_SERVER_ID') ) {
+	require_once('Server.php');
   if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
-    $server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_NAME));
-    if ( ! $server_id ) {
-      Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
+		# Use Server lookup so that it caches
+		$Server = ZM\Server::find_one(array('Name'=>ZM_SERVER_NAME));
+    if ( !$Server ) {
+      ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
     } else {
-      define( 'ZM_SERVER_ID', $server_id );
+      define('ZM_SERVER_ID', $Server->Id());
     }
   } else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
-    $server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_HOST));
-    if ( ! $server_id ) {
-      Error('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
+		$Server = ZM\Server::find_one(array('Name'=>ZM_SERVER_HOST));
+    if ( ! $Server ) {
+      ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
     } else {
-      define( 'ZM_SERVER_ID', $server_id );
+      define('ZM_SERVER_ID', $Server->Id());
     }
   }
 }
+
+if ( defined('ZM_TIMEZONE') and ZM_TIMEZONE )
+  ini_set('date.timezone', ZM_TIMEZONE);
 
 function process_configfile($configFile) {
   if ( is_readable( $configFile ) ) {
     $configvals = array();
 
-    $cfg = fopen( $configFile, 'r') or Error("Could not open config file: $configFile.");
+    $cfg = fopen($configFile, 'r') or ZM\Error("Could not open config file: $configFile.");
     while ( !feof($cfg) ) {
-      $str = fgets( $cfg, 256 );
-      if ( preg_match( '/^\s*$/', $str ))
+      $str = fgets($cfg, 256);
+      if ( preg_match('/^\s*(#.*)?$/', $str) ) {
         continue;
-      elseif ( preg_match( '/^\s*#/', $str ))
-        continue;
-      elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $str, $matches ))
+      } else if ( preg_match( '/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $str, $matches )) {
         $configvals[$matches[1]] = $matches[2];
+			} else {
+				ZM\Error("Malformed line in config $configFile\n$str");
+			}
     }
-    fclose( $cfg );
-    return( $configvals );
+    fclose($cfg);
+    return $configvals;
   } else {
-    error_log( "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $configFile." );
-    return( false );
+    error_log("WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $configFile.");
+    return false;
   }
 }
 

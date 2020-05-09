@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Filter Module, $Date$, $Revision$
+# ZoneMinder Filter Module
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -30,6 +30,7 @@ use warnings;
 
 require ZoneMinder::Base;
 require Date::Manip;
+require POSIX;
 
 use parent qw(ZoneMinder::Object);
 
@@ -47,8 +48,6 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 require ZoneMinder::Storage;
 require ZoneMinder::Server;
-
-use POSIX;
 
 sub Name {
   if ( @_ > 1 ) {
@@ -73,15 +72,15 @@ sub find {
   $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
   $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
 
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-  my $res = $sth->execute( @sql_values )
-    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+  my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
+    or Fatal("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
+  my $res = $sth->execute(@sql_values)
+    or Fatal("Can't execute '$sql': ".$sth->errstr());
 
   my @results;
 
   while( my $db_filter = $sth->fetchrow_hashref() ) {
-    my $filter = new ZoneMinder::Filter( $$db_filter{Id}, $db_filter );
+    my $filter = new ZoneMinder::Filter($$db_filter{Id}, $db_filter);
     push @results, $filter;
   } # end while
   $sth->finish();
@@ -99,7 +98,7 @@ sub Execute {
   my $sql = $self->Sql(undef);
 
   if ( $self->{HasDiskPercent} ) {
-		my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () );
+		my $disk_percent = getDiskPercent($$self{Storage} ? $$self{Storage}->Path() : ());
     $sql =~ s/zmDiskPercent/$disk_percent/g;
   }
   if ( $self->{HasDiskBlocks} ) {
@@ -112,16 +111,16 @@ sub Execute {
   }
 
   Debug("Filter::Execute SQL ($sql)");
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+  my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
+    or Fatal("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
   my $res = $sth->execute();
   if ( !$res ) {
-    Error( "Can't execute filter '$sql', ignoring: ".$sth->errstr() );
+    Error("Can't execute filter '$sql', ignoring: ".$sth->errstr());
     return;
   }
   my @results;
 
-  while( my $event = $sth->fetchrow_hashref() ) {
+  while ( my $event = $sth->fetchrow_hashref() ) {
     push @results, $event;
   }
   $sth->finish();
@@ -132,8 +131,14 @@ sub Execute {
 sub Sql {
   my $self = shift;
   $$self{Sql} = shift if @_;
-  if ( ! $$self{Sql} ) {
-    my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query});
+  if ( !$$self{Sql} ) {
+    $self->{Sql} = '';
+    if ( !$self->{Query_json} ) {
+      Warning('No query in Filter!');
+      return;
+    }
+
+    my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query_json});
     my $sql = 'SELECT E.*,
        unix_timestamp(E.StartTime) as Time,
        M.Name as MonitorName,
@@ -143,21 +148,23 @@ sub Sql {
          INNER JOIN Monitors as M on M.Id = E.MonitorId
          LEFT JOIN Storage as S on S.Id = E.StorageId
          ';
-    $self->{Sql} = '';
 
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
 
-        if ( exists($term->{cnj}) ) {
+        # See getFilterQueryConjunctionTypes()
+        if ( exists($term->{cnj}) and $term->{cnj} =~ /^(and|or)$/ ) {
           $self->{Sql} .= ' '.$term->{cnj}.' ';
         }
         if ( exists($term->{obr}) ) {
-          $self->{Sql} .= ' '.str_repeat( '(', $term->{obr} ).' ';
+          $self->{Sql} .= ' '.str_repeat('(', $term->{obr}).' ';
         }
         my $value = $term->{val};
         my @value_list;
         if ( $term->{attr} ) {
-          if ( $term->{attr} =~ /^Monitor/ ) {
+					if ( $term->{attr} eq 'AlarmedZoneId' ) {
+						$term->{op} = 'EXISTS';
+          } elsif ( $term->{attr} =~ /^Monitor/ ) {
             my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
             $self->{Sql} .= 'M.'.$temp_attr_name;
           } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
@@ -177,7 +184,7 @@ sub Sql {
             $self->{Sql} .= 'to_days( E.StartTime )';
           } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' ) {
             $self->{Sql} .= 'extract( hour_second from E.StartTime )';
-          } elsif ( $term->{attr} eq 'Weekday' ) {
+          } elsif ( $term->{attr} eq 'Weekday' or $term->{attr} eq 'StartWeekday' ) {
             $self->{Sql} .= 'weekday( E.StartTime )';
 
 # EndTIme options
@@ -209,37 +216,44 @@ sub Sql {
 
           ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
           foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
-            if ( $term->{attr} =~ /^MonitorName/ ) {
+	
+            if ( $term->{attr} eq 'AlarmedZoneId' ) {
+							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+            } elsif ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
             } elsif ( $term->{attr} =~ /ServerId/) {
               Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what
-                $$self{Server} = new ZoneMinder::Server( $ZoneMinder::Config::Config{ZM_SERVER_ID} );
+                $$self{Server} = new ZoneMinder::Server($ZoneMinder::Config::Config{ZM_SERVER_ID});
               } elsif ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
               } else {
                 $value = "'$temp_value'";
                 # This gets used later, I forget for what
-                $$self{Server} = new ZoneMinder::Server( $temp_value );
+                $$self{Server} = new ZoneMinder::Server($temp_value);
               }
 						} elsif ( $term->{attr} eq 'StorageId' ) {
 							$value = "'$temp_value'";
-							$$self{Storage} = new ZoneMinder::Storage( $temp_value );
+							$$self{Storage} = new ZoneMinder::Storage($temp_value);
             } elsif ( $term->{attr} eq 'Name'
                 || $term->{attr} eq 'Cause'
                 || $term->{attr} eq 'Notes'
                 ) {
+                if ( $term->{op} eq 'LIKE'
+                || $term->{op} eq 'NOT LIKE'
+                ) {
+                $temp_value = '%'.$temp_value.'%' if $temp_value !~ /%/;
+                }
               $value = "'$temp_value'";
             } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
               if ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
               } else {
-                $value = DateTimeToSQL( $temp_value );
+                $value = DateTimeToSQL($temp_value);
                 if ( !$value ) {
-                  Error( "Error parsing date/time '$temp_value', "
-                      ."skipping filter '$self->{Name}'\n" );
+                  Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
                   return;
                 }
                 $value = "'$value'";
@@ -247,11 +261,12 @@ sub Sql {
             } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
               if ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
+							} elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
+								$value = 'to_days('.$temp_value.')';
               } else {
-                $value = DateTimeToSQL( $temp_value );
+                $value = DateTimeToSQL($temp_value);
                 if ( !$value ) {
-                  Error( "Error parsing date/time '$temp_value', "
-                      ."skipping filter '$self->{Name}'\n" );
+                  Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
                   return;
                 }
                 $value = "to_days( '$value' )";
@@ -260,10 +275,9 @@ sub Sql {
               if ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
               } else {
-                $value = DateTimeToSQL( $temp_value );
+                $value = DateTimeToSQL($temp_value);
                 if ( !$value ) {
-                  Error( "Error parsing date/time '$temp_value', "
-                      ."skipping filter '$self->{Name}'\n" );
+                  Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
                   return;
                 }
                 $value = "extract( hour_second from '$value' )";
@@ -271,7 +285,7 @@ sub Sql {
             } else {
               $value = $temp_value;
             }
-            push( @value_list, $value );
+            push @value_list, $value;
           } # end foreach temp_value
         } # end if has an attr
         if ( $term->{op} ) {
@@ -287,18 +301,24 @@ sub Sql {
             } else {
               $self->{Sql} .= " IS $value";
             }
+          } elsif ( $term->{op} eq 'EXISTS' ) {
+            $self->{Sql} .= " EXISTS $value";
           } elsif ( $term->{op} eq 'IS NOT' ) {
             $self->{Sql} .= " IS NOT $value";
           } elsif ( $term->{op} eq '=[]' ) {
-            $self->{Sql} .= " in (".join( ",", @value_list ).")";
+            $self->{Sql} .= ' IN ('.join(',', @value_list).')';
           } elsif ( $term->{op} eq '!~' ) {
-            $self->{Sql} .= " not in (".join( ",", @value_list ).")";
+            $self->{Sql} .= ' NOT IN ('.join(',', @value_list).')';
+          } elsif ( $term->{op} eq 'LIKE' ) {
+            $self->{Sql} .= " LIKE $value";
+          } elsif ( $term->{op} eq 'NOT LIKE' ) {
+            $self->{Sql} .= " NOT LIKE $value";
           } else {
-            $self->{Sql} .= ' '.$term->{op}." $value";
+            $self->{Sql} .= ' '.$term->{op}.' '.$value;
           }
         } # end if has an operator
         if ( exists($term->{cbr}) ) {
-          $self->{Sql} .= ' '.str_repeat( ")", $term->{cbr} )." ";
+          $self->{Sql} .= ' '.str_repeat(')', $term->{cbr}).' ';
         }
       } # end foreach term
     } # end if terms
@@ -320,22 +340,22 @@ sub Sql {
     # Don't do this, it prevents re-generation and concatenation.
     # If the file already exists, then the video won't be re-recreated
     if ( $self->{AutoVideo} ) {
-      push @auto_terms, "E.Videoed = 0";
+      push @auto_terms, 'E.Videoed = 0';
     }
     if ( $self->{AutoUpload} ) {
-      push @auto_terms, "E.Uploaded = 0";
+      push @auto_terms, 'E.Uploaded = 0';
     }
     if ( $self->{AutoEmail} ) {
-      push @auto_terms, "E.Emailed = 0";
+      push @auto_terms, 'E.Emailed = 0';
     }
     if ( $self->{AutoMessage} ) {
-      push @auto_terms, "E.Messaged = 0";
+      push @auto_terms, 'E.Messaged = 0';
     }
     if ( $self->{AutoExecute} ) {
-      push @auto_terms, "E.Executed = 0";
+      push @auto_terms, 'E.Executed = 0';
     }
     if ( @auto_terms ) {
-      $sql .= " and ( ".join( ' or ', @auto_terms )." )";
+      $sql .= ' AND ( '.join(' or ', @auto_terms).' )';
     }
     if ( !$filter_expr->{sort_field} ) {
       $filter_expr->{sort_field} = 'StartTime';
@@ -369,10 +389,10 @@ sub Sql {
     } else {
       $sort_column = 'E.StartTime';
     }
-    my $sort_order = $filter_expr->{sort_asc}?'asc':'desc';
-    $sql .= ' order by '.$sort_column." ".$sort_order;
+    my $sort_order = $filter_expr->{sort_asc} ? 'ASC' : 'DESC';
+    $sql .= ' ORDER BY '.$sort_column." ".$sort_order;
     if ( $filter_expr->{limit} ) {
-      $sql .= " limit 0,".$filter_expr->{limit};
+      $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }
     $self->{Sql} = $sql;
   } # end if has Sql
@@ -386,7 +406,7 @@ sub getDiskPercent {
   if ( $df =~ /\s(\d+)%/ms ) {
     $space = $1;
   }
-  return( $space );
+  return $space;
 }
 
 sub getDiskBlocks {
@@ -396,7 +416,7 @@ sub getDiskBlocks {
   if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms ) {
     $space = $1;
   }
-  return( $space );
+  return $space;
 }
 
 sub getLoad {
@@ -405,9 +425,9 @@ sub getLoad {
   my $load = -1;
   if ( $uptime =~ /load average:\s+([\d.]+)/ms ) {
     $load = $1;
-    Info( "Load: $load" );
+    Info("Load: $load");
   }
-  return( $load );
+  return $load;
 }
 
 #
@@ -415,7 +435,7 @@ sub getLoad {
 #
 sub strtotime {
   my $dt_str = shift;
-  return( Date::Manip::UnixDate( $dt_str, '%s' ) );
+  return Date::Manip::UnixDate($dt_str, '%s');
 }
 
 #
@@ -424,18 +444,18 @@ sub strtotime {
 sub str_repeat {
   my $string = shift;
   my $count = shift;
-  return( ${string}x${count} );
+  return ${string}x${count};
 }
 
 # Formats a date into MySQL format
 sub DateTimeToSQL {
   my $dt_str = shift;
-  my $dt_val = strtotime( $dt_str );
+  my $dt_val = strtotime($dt_str);
   if ( !$dt_val ) {
-    Error( "Unable to parse date string '$dt_str'\n" );
-    return( undef );
+    Error("Unable to parse date string '$dt_str'");
+    return undef;
   }
-  return( strftime( "%Y-%m-%d %H:%M:%S", localtime( $dt_val ) ) );
+  return POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime($dt_val));
 }
 
 1;

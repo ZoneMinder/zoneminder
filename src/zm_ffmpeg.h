@@ -24,6 +24,14 @@
 
 extern "C" {
 
+#ifdef HAVE_LIBSWRESAMPLE
+  #include "libswresample/swresample.h"
+#else
+  #ifdef HAVE_LIBAVRESAMPLE
+    #include "libavresample/avresample.h"
+  #endif
+#endif
+
 // AVUTIL
 #if HAVE_LIBAVUTIL_AVUTIL_H
 #include "libavutil/avassert.h"
@@ -31,6 +39,7 @@ extern "C" {
 #include <libavutil/base64.h>
 #include <libavutil/mathematics.h>
 #include <libavutil/avstring.h>
+#include "libavutil/audio_fifo.h"
 
 /* LIBAVUTIL_VERSION_CHECK checks for the right version of libav and FFmpeg
  * The original source is vlc (in modules/codec/avcodec/avcommon_compat.h)
@@ -199,6 +208,7 @@ extern "C" {
 
 /* A single function to initialize ffmpeg, to avoid multiple initializations */		
 void FFMPEGInit();
+void FFMPEGDeInit();
 
 #if HAVE_LIBAVUTIL
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
@@ -294,9 +304,44 @@ static av_always_inline av_const int64_t av_clip64_c(int64_t a, int64_t amin, in
 #endif
 
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output);
-void zm_dump_codec ( const AVCodecContext *codec );
+void zm_dump_codec(const AVCodecContext *codec);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-void zm_dump_codecpar ( const AVCodecParameters *par );
+void zm_dump_codecpar(const AVCodecParameters *par);
+#endif
+#define zm_dump_frame(frame, text) Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d" \
+      " duration %" PRId64 \
+      " layout %d pts %" PRId64, \
+      text, \
+      frame->format, \
+      av_get_sample_fmt_name((AVSampleFormat)frame->format), \
+      frame->sample_rate, \
+      frame->nb_samples, \
+      0, 0, \
+      frame->channel_layout, \
+      frame->pts \
+      );
+
+#if LIBAVUTIL_VERSION_CHECK(54, 4, 0, 74, 100)
+#define zm_dump_video_frame(frame,text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%d pts: %" PRId64, \
+      text, \
+      frame->format, \
+      av_get_pix_fmt_name((AVPixelFormat)frame->format), \
+      frame->width, \
+      frame->height, \
+      frame->linesize[0], frame->linesize[1], \
+      frame->pts \
+      );
+
+#else
+#define zm_dump_video_frame(frame,text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%d pts: %" PRId64, \
+      text, \
+      frame->format, \
+      "unsupported", \
+      frame->width, \
+      frame->height, \
+      frame->linesize[0], frame->linesize[1], \
+      frame->pts \
+      );
 #endif
 
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
@@ -305,6 +350,9 @@ void zm_dump_codecpar ( const AVCodecParameters *par );
 #else
     unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src );
     #define zm_av_packet_unref( packet ) av_free_packet( packet )
+    const char *avcodec_get_name(AVCodecID id);
+
+    void av_packet_rescale_ts(AVPacket *pkt, AVRational src_tb, AVRational dst_tb);
 #endif
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
       #define zm_avcodec_decode_video( context, rawFrame, frameComplete, packet ) avcodec_decode_video2( context, rawFrame, frameComplete, packet )
@@ -324,8 +372,47 @@ void zm_dump_codecpar ( const AVCodecParameters *par );
 
 int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
 
-bool is_video_stream( AVStream * stream );
-bool is_audio_stream( AVStream * stream );
-int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet );
-void dumpPacket(AVPacket *,const char *text="DEBUG");
+bool is_video_stream(AVStream *);
+bool is_audio_stream(AVStream *);
+bool is_video_context(AVCodec *);
+bool is_audio_context(AVCodec *);
+
+int zm_receive_packet(AVCodecContext *context, AVPacket &packet);
+
+int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
+int zm_send_frame_receive_packet(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
+
+void dumpPacket(AVStream *, AVPacket *,const char *text="");
+void dumpPacket(AVPacket *,const char *text="");
+void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRational src_tb, const AVRational dst_tb);
+
+#if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
+int zm_resample_audio(
+#if defined(HAVE_LIBSWRESAMPLE)
+    SwrContext *resample_ctx,
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
+    AVAudioResampleContext *resample_ctx,
+#endif
+#endif
+    AVFrame *in_frame,
+    AVFrame *out_frame
+    );
+int zm_resample_get_delay(
+#if defined(HAVE_LIBSWRESAMPLE)
+    SwrContext *resample_ctx,
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
+    AVAudioResampleContext *resample_ctx,
+#endif
+#endif
+    int time_base
+    );
+
+#endif
+
+int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame);
+int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame);
+
+
 #endif // ZM_FFMPEG_H

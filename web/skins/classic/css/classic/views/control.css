@@ -1,7 +1,7 @@
 .ptzControls {
     vertical-align: top;
     margin: 10px auto 0;
-    width: 500px;
+    width: 90%;
 }
 
 .ptzControls::after {
@@ -25,7 +25,7 @@
 }
 
 .ptzControls .controlsPanel .arrowControl {
-    width: 40px;
+    width: 70px;
     margin: 0 4px;
 }
 
@@ -115,7 +115,7 @@
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .centerBtn {
-    background: url("../skins/classic/graphics/graphics/center.png") no-repeat 0 0;
+    background: url("../skins/classic/graphics/center.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .rightBtn {
@@ -134,22 +134,18 @@
     background: url("../skins/classic/graphics/arrow-dr.png") no-repeat 0 0;
 }
 
-.ptzControls .controlsPanel .powerControls {
-    margin: 5px auto;
-}
-
+.ptzControls .controlsPanel .powerControls,
 .ptzControls .presetControls {
-    margin: 5px auto;
+    margin: 5px 200px 5px 180px;
 }
 
 .ptzControls .presetControls input {
     margin: 1px;
 }
 
-.ptzControls .presetControls input.ptzNumBtn {
-    padding: 1px 2px;
-    width: 24px;
-    color: #ffffff;
-    text-align: center;
+.ptzControls .presetControls button.ptzNumBtn {
+  /*
     background-color: #016A9D;
+    */
+  border: 1px solid #7f7fb2;
 }

@@ -21,7 +21,7 @@ endif(ZM_TARGET_DISTRO MATCHES "^el")
 # Configure the common zoneminder files
 configure_file(common/zoneminder.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.logrotate @ONLY)
 configure_file(common/zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
-file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events images temp)
+file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events temp)
 
 # Configure the Apache zoneminder files
 configure_file(httpd/zm-httpd.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zm-httpd.conf @ONLY)
@@ -52,7 +52,7 @@ install(DIRECTORY zoneminder DESTINATION /var/log DIRECTORY_PERMISSIONS OWNER_WR
 install(DIRECTORY zoneminder DESTINATION /var/run DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY zoneminder DESTINATION /var/cache DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY zoneminder-upload DESTINATION /var/spool DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(DIRECTORY events images temp DESTINATION /var/lib/zoneminder DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(DIRECTORY events temp DESTINATION /var/lib/zoneminder DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 # Install the Apache zoneminder files
 install(FILES zm-httpd.conf DESTINATION /usr/lib/systemd/system/zoneminder.service.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)

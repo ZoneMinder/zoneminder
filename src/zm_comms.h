@@ -20,6 +20,7 @@
 #ifndef ZM_COMMS_H
 #define ZM_COMMS_H
 
+#include "zm_logger.h"
 #include "zm_exception.h"
 
 #include <string.h>

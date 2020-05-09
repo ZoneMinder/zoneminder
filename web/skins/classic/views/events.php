@@ -28,9 +28,9 @@ require_once('includes/Event.php');
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
-	$user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
-	$countSql .= $user_monitor_ids;
-	$eventsSql .= $user_monitor_ids;
+  $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
+  $countSql .= $user_monitor_ids;
+  $eventsSql .= $user_monitor_ids;
 } else {
   $countSql .= ' 1';
   $eventsSql .= ' 1';
@@ -79,11 +79,13 @@ $pagination = getPagination($pages, $page, $maxShortcuts, $filterQuery.$sortQuer
 $focusWindow = true;
 
 if ( $_POST ) {
-  header('Location: ' . $_SERVER['REQUEST_URI'].htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
+  // I think this is basically so that a refresh doesn't repost
+  ZM\Logger::Debug('Redirecting to ' . $_SERVER['REQUEST_URI']);
+  header('Location: ?view=' . $view.htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
   exit();
 }
 
-$storage_areas = Storage::find();
+$storage_areas = ZM\Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
@@ -98,7 +100,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
     <div id="header">
       <div id="info">
         <h2><?php echo sprintf($CLANG['EventCount'], $nEvents, zmVlang($VLANG['Event'], $nEvents)) ?></h2>
-        <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
+        <a id="refreshLink" href="#"><?php echo translate('Refresh') ?></a>
       </div>
       <div id="pagination">
 <?php
@@ -123,7 +125,7 @@ if ( $pages > 1 ) {
 ?>
       </div>
       <div id="controls">
-        <a href="#" onclick="window.history.back();return false;"><?php echo translate('Back') ?></a>
+        <a href="#" id="backLink"><?php echo translate('Back') ?></a>
         <a id="timelineLink" href="?view=timeline<?php echo $filterQuery ?>"><?php echo translate('ShowTimeline') ?></a>
       </div>
     </div>
@@ -144,7 +146,7 @@ $disk_space_total = 0;
 
 $results = dbQuery($eventsSql);
 while ( $event_row = dbFetchNext($results) ) {
-  $event = new Event($event_row);
+  $event = new ZM\Event($event_row);
   if ( $event_row['Archived'] )
     $archived = true;
   else
@@ -181,24 +183,47 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
     }
 ?>
-              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'markEids');"/></th>
+              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="eids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
             </tr>
 <?php
   }
   $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
             <tr<?php if ($event->Archived()) echo ' class="archived"' ?>>
-              <td class="colId"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1"> '.$event->Id().($event->Archived()?'*':'') ?></a></td>
-              <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1"> '.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
-              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->Monitorid(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
+              <td class="colId"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$event->Id().($event->Archived()?'*':'') ?></a></td>
+              <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a><br/>
+<?php
+							if ( $event->Emailed() )
+								echo 'Emailed ';
+?>
+							</td>
+              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
               <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
-                    <?php if ($event->Notes() && ($event->Notes() != 'Forced Web: ')) echo "<br/><div class=\"small text-nowrap text-muted\">".$event->Notes()."</div>" ?></td>
+							<?php
+# display notes as small text
+							if ( $event->Notes() ) {
+# if notes include detection objects, then link it to objdetect.jpg
+								if ( strpos($event->Notes(), 'detected:') !== false ) {
+# make a link
+									echo makePopupLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', 'zmImage',
+											array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)),
+											'<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
+								} else if ( $event->Notes() != 'Forced Web: ' ) {
+									echo '<br/><div class="small text-nowrap text-muted">'.$event->Notes().'</div>';
+								}
+							}
+?>
+              </td>
               <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) . 
 ( $event->EndTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) : '' ) ?>
               </td>
               <td class="colDuration"><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
-              <td class="colFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->Frames() ) ?></td>
-              <td class="colAlarmFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->AlarmFrames() ) ?></td>
+              <td class="colFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 
+              ( ZM_WEB_LIST_THUMBS ? array('frames', ZM_WEB_LIST_THUMB_WIDTH, ZM_WEB_LIST_THUMB_HEIGHT) : 'frames'),
+              $event->Frames() ) ?></td>
+              <td class="colAlarmFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames',
+              ( ZM_WEB_LIST_THUMBS ? array('frames', ZM_WEB_LIST_THUMB_WIDTH, ZM_WEB_LIST_THUMB_HEIGHT) : 'frames'),
+              $event->AlarmFrames() ) ?></td>
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
               <td class="colMaxScore"><?php echo makePopupLink(
@@ -208,7 +233,18 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   if ( count($storage_areas) > 1 ) { 
 ?>
-              <td class="colStorage"><?php echo isset($StorageById[$event->StorageId()]) ? $StorageById[$event->StorageId()]->Name() : '' ?></td>
+              <td class="colStorage">
+<?php
+    if ( $event->StorageId() ) {
+      echo isset($StorageById[$event->StorageId()]) ? $StorageById[$event->StorageId()]->Name() : 'Unknown Storage Id: '.$event->StorageId();
+    } else {
+      echo 'Default';
+    }
+    if ( $event->SecondaryStorageId() ) {
+      echo '<br/>'.(isset($StorageById[$event->SecondaryStorageId()]) ? $StorageById[$event->SecondaryStorageId()]->Name() : 'Unknown Storage Id '.$event->SecondaryStorageId());
+    }
+ ?>
+</td>
           
 <?php
   }
@@ -219,18 +255,17 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   }
   if ( ZM_WEB_LIST_THUMBS ) {
-#Logger::Debug(print_r($thumbData,true));
       echo '<td class="colThumbnail">';
-      $imgSrc = $event->getThumbnailSrc();
+      $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
       $streamSrc = $event->getStreamSrc(array(
-        'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single'));
+        'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
 
-      $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($event->ThumbnailWidth()) .'px;height:'. validInt($event->ThumbnailHeight()).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
+      $imgHtml = '<img id="thumbnail'.$event->Id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($event->ThumbnailWidth()) .'px;height:'. validInt($event->ThumbnailHeight()).'px;" stream_src="'.$streamSrc.'" still_src="'.$imgSrc.'"/>';
       echo '<a href="?view=event&amp;eid='. $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$imgHtml.'</a>';
       echo '</td>';
   } // end if ZM_WEB_LIST_THUMBS
 ?>
-              <td class="colMark"><input type="checkbox" name="markEids[]" value="<?php echo $event->Id() ?>" onclick="configureButton(this, 'markEids');"/></td>
+              <td class="colMark"><input type="checkbox" name="eids[]" value="<?php echo $event->Id() ?>"/></td>
             </tr>
 <?php
 }
@@ -272,33 +307,34 @@ if ( $pagination ) {
 }
 ?>
         <div id="contentButtons">
-          <button type="button" name="viewBtn" value="View" onclick="viewEvents(this, 'markEids');" disabled="disabled">
+          <button type="button" name="viewBtn" value="View" data-on-click-this="viewEvents" disabled="disabled">
           <?php echo translate('View') ?>
           </button>
-          <button type="button" name="archiveBtn" value="Archive" onclick="archiveEvents(this, 'markEids')" disabled="disabled">
+          <button type="button" name="archiveBtn" value="Archive" data-on-click-this="archiveEvents" disabled="disabled">
           <?php echo translate('Archive') ?>
           </button>
-          <button type="button" name="unarchiveBtn" value="Unarchive" onclick="unarchiveEvents(this, 'markEids');" disabled="disabled">
+          <button type="button" name="unarchiveBtn" value="Unarchive" data-on-click-this="unarchiveEvents" disabled="disabled">
           <?php echo translate('Unarchive') ?>
           </button>
-          <button type="button" name="editBtn" value="Edit" onclick="editEvents(this, 'markEids')" disabled="disabled">
+          <button type="button" name="editBtn" value="Edit" data-on-click-this="editEvents" disabled="disabled">
           <?php echo translate('Edit') ?>
           </button>
-          <button type="button" name="exportBtn" value="Export" onclick="exportEvents(this, 'markEids')" disabled="disabled">
+          <button type="button" name="exportBtn" value="Export" data-on-click-this="exportEvents" disabled="disabled">
           <?php echo translate('Export') ?>
           </button>
-          <button type="button" name="downloadBtn" value="DownloadVideo" onclick="downloadVideo(this, 'markEids')" disabled="disabled">
+          <button type="button" name="downloadBtn" value="DownloadVideo" data-on-click-this="downloadVideo" disabled="disabled">
           <?php echo translate('DownloadVideo') ?>
           </button>
-          <button type="button" name="deleteBtn" value="Delete" onclick="deleteEvents(this, 'markEids');" disabled="disabled">
+          <button type="button" name="deleteBtn" value="Delete" data-on-click-this="deleteEvents" disabled="disabled">
           <?php echo translate('Delete') ?>
           </button>
         </div>
       </form>
     </div>
   </div>
-<script type="text/javascript">
+<script nonce="<?php echo $cspNonce;?>">
   // These are defined in the .js.php but need to be updated down here.
+// This might be better done by selecting through the dom for the archived class
   archivedEvents = <?php echo !empty($archived)?'true':'false' ?>;
   unarchivedEvents = <?php echo !empty($unarchived)?'true':'false' ?>;
 </script>

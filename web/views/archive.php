@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder file view file, $Date: 2008-09-29 14:15:13 +0100 (Mon, 29 Sep 2008) $, $Revision: 2640 $
+// ZoneMinder file view file
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -23,13 +23,20 @@ if ( !canView('Events') ) {
   return;
 }
 
-$archivetype = $_REQUEST['type'];
+$archivetype = isset($_REQUEST['type']) ? $_REQUEST['type'] : '';
+if ( !$archivetype ) {
+  ZM\Error('No archive type given to archive.php. Please specify a tar or zip archive.');
+  return;
+}
 
-if ( $archivetype ) {
-  switch ($archivetype) {
-  case 'tar':
+switch ($archivetype) {
+  case 'tar.gz':
     $mimetype = 'gzip';
     $file_ext = 'tar.gz';
+    break;
+  case 'tar':
+    $mimetype = 'tar';
+    $file_ext = 'tar';
     break;
   case 'zip':
     $mimetype = 'zip';
@@ -38,30 +45,29 @@ if ( $archivetype ) {
   default:
     $mimetype = NULL;
     $file_ext = NULL;
-  }
-
-  if ( $mimetype ) {
-    $filename = "zmExport.$file_ext";
-    $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
-    Logger::Debug("downloading archive from $filename_path");
-    if ( is_readable($filename_path) ) {
-      ob_clean();
-      header("Content-type: application/$mimetype" );
-      header("Content-Disposition: inline; filename=$filename");
-      header('Content-Length: ' . filesize($filename_path) );
-      set_time_limit(0);
-      if ( ! @readfile( $filename_path ) ) {
-        Error("Error sending $filename_path");
-      }
-    } else {
-      Error("$filename_path does not exist or is not readable.");
-    }
-  } else {
-    Error("Unsupported archive type specified. Supported archives are tar and zip");
-  }
-} else {
-  Error("No archive type given to archive.php. Please specify a tar or zip archive.");
 }
 
-?>
+if ( !$mimetype ) {
+  ZM\Error('Unsupported archive type specified. Supported archives are tar and zip');
+  return;
+}
 
+$connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
+$filename = "zmExport_$connkey.$file_ext";
+$filename_path = ZM_DIR_EXPORTS.'/'.$filename;
+ZM\Logger::Debug("downloading archive from $filename_path");
+if ( is_readable($filename_path) ) {
+  while (ob_get_level()) {
+    ob_end_clean();
+  }
+  header("Content-type: application/$mimetype");
+  header("Content-Disposition: inline; filename=$filename");
+  header('Content-Length: '.filesize($filename_path));
+  set_time_limit(0);
+  if ( !@readfile($filename_path) ) {
+    ZM\Error("Error sending $filename_path");
+  }
+} else {
+  ZM\Error($filename_path.' does not exist or is not readable.');
+}
+?>

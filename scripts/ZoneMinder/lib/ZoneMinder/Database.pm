@@ -65,7 +65,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 # ==========================================================================
 
 use ZoneMinder::Logger qw(:all);
-use ZoneMinder::Config qw(:all);
+
+require ZoneMinder::Config;
 
 our $dbh = undef;
 
@@ -87,25 +88,25 @@ sub zmDbConnect {
         $socket = ';host='.$host.';port='.$portOrSocket;
       }
     } else {
-      $socket = ';host='.$Config{ZM_DB_HOST}; 
+      $socket = ';host='.$ZoneMinder::Config::Config{ZM_DB_HOST}; 
     }
 
     my $sslOptions = '';
-    if ( $Config{ZM_DB_SSL_CA_CERT} ) {
-      $sslOptions = join(';','',
+    if ( $ZoneMinder::Config::Config{ZM_DB_SSL_CA_CERT} ) {
+      $sslOptions = join(';', '',
           'mysql_ssl=1',
-          'mysql_ssl_ca_file='.$Config{ZM_DB_SSL_CA_CERT},
-          'mysql_ssl_client_key='.$Config{ZM_DB_SSL_CLIENT_KEY},
-          'mysql_ssl_client_cert='.$Config{ZM_DB_SSL_CLIENT_CERT}
+          'mysql_ssl_ca_file='.$ZoneMinder::Config::Config{ZM_DB_SSL_CA_CERT},
+          'mysql_ssl_client_key='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_KEY},
+          'mysql_ssl_client_cert='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_CERT}
           );
     }
 
     eval {
       $dbh = DBI->connect(
-        'DBI:mysql:database='.$Config{ZM_DB_NAME}
+        'DBI:mysql:database='.$ZoneMinder::Config::Config{ZM_DB_NAME}
         .$socket . $sslOptions . ($options?join(';', '', map { $_.'='.$$options{$_} } keys %{$options} ) : '')
-        , $Config{ZM_DB_USER}
-        , $Config{ZM_DB_PASS}
+        , $ZoneMinder::Config::Config{ZM_DB_USER}
+        , $ZoneMinder::Config::Config{ZM_DB_PASS}
         );
     };
     if ( !$dbh or $@ ) {
@@ -124,7 +125,7 @@ sub zmDbConnect {
 } # end sub zmDbConnect
 
 sub zmDbDisconnect {
-  if ( defined( $dbh ) ) {
+  if ( defined($dbh) ) {
     $dbh->disconnect() or Error('Error disconnecting db? ' . $dbh->errstr());
     $dbh = undef;
   }
@@ -213,6 +214,7 @@ sub zmDbGetMonitor {
     return undef;
   }
   my $monitor = $sth->fetchrow_hashref();
+  $sth->finish();
   return $monitor;
 }
 
@@ -239,6 +241,7 @@ sub zmDbGetMonitorAndControl {
     return undef;
   }
   my $monitor = $sth->fetchrow_hashref();
+  $sth->finish();
   return $monitor;
 }
 

@@ -1,6 +1,6 @@
 language: cpp
 sudo: required
-dist: trusty
+dist: xenial
 git:
   depth: 9999999
 notifications:
@@ -13,7 +13,7 @@ addons:
   ssh_known_hosts: zmrepo.zoneminder.com
   apt:
     sources:
-    - sourceline: ppa:iconnor/zoneminder
+    - sourceline: ppa:iconnor/zoneminder-master
     - key_url: http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x4D0BF748776FFB04
     packages:
     - gdebi
@@ -32,24 +32,31 @@ install:
   - update-binfmts --enable qemu-arm
 
 env:
-  global:
-  - SMPFLAGS=-j4
-  matrix:
-  - OS=el DIST=7
-  - OS=fedora DIST=27 DOCKER_REPO=knnniggett/packpack
-  - OS=fedora DIST=28 DOCKER_REPO=knnniggett/packpack
-  - OS=fedora DIST=29 DOCKER_REPO=knnniggett/packpack
-  - OS=ubuntu DIST=trusty
-  - OS=ubuntu DIST=xenial
-  - OS=ubuntu DIST=trusty ARCH=i386
-  - OS=ubuntu DIST=xenial ARCH=i386
-  - OS=raspbian DIST=stretch ARCH=armhf DOCKER_REPO=knnniggett/packpack
+  - SMPFLAGS=-j4 OS=el DIST=7
+  - SMPFLAGS=-j4 OS=el DIST=8 DOCKER_REPO=knnniggett/packpack
+  - SMPFLAGS=-j4 OS=fedora DIST=30
+  - SMPFLAGS=-j4 OS=fedora DIST=31
+  - SMPFLAGS=-j4 OS=ubuntu DIST=trusty DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=xenial DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=bionic DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=disco DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=eoan DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=debian DIST=jessie DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=debian DIST=stretch DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=debian DIST=buster DOCKER_REPO=iconzm/packpack
+  - SMPFLAGS=-j4 OS=ubuntu DIST=trusty ARCH=i386
+  - SMPFLAGS=-j4 OS=ubuntu DIST=xenial ARCH=i386
+  - SMPFLAGS=-j4 OS=ubuntu DIST=disco ARCH=i386
+  - SMPFLAGS=-j4 OS=debian DIST=buster ARCH=i386
+  - SMPFLAGS=-j4 OS=debian DIST=stretch ARCH=i386
+  - SMPFLAGS=-j4 OS=eslint DIST=eslint
 
 compiler:
 - gcc
 services:
 - mysql
 - docker
+
 script:
 - utils/packpack/startpackpack.sh
 
@@ -65,4 +72,3 @@ deploy:
   script: utils/packpack/rsync_xfer.sh
   on:
     branch: master
-

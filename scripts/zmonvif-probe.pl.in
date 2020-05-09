@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!@PERL_EXECUTABLE@ -w
 use strict;
 #
 # ==========================================================================
@@ -37,12 +37,11 @@ $Getopt::Std::STANDARD_HELP_VERSION = 1;
 
 our ($opt_v);
 
-my $OPTIONS = "v";
+my $OPTIONS = 'v';
 
-sub HELP_MESSAGE
-{
+sub HELP_MESSAGE {
   my ($fh, $pkg, $ver, $opts) = @_;
-  print $fh "Usage: " . __FILE__ . " [-v] probe <soap version>\n";
+  print $fh "Usage: " . __FILE__ . " [-v] probe <soap version> <network interface>\n";
   print $fh "       " . __FILE__ . " [-v] <command> <device URI> <soap version> <user> <password>\n";
   print $fh  <<EOF
   Commands are:
@@ -70,7 +69,7 @@ if ( !getopts($OPTIONS) ) {
 
 my $action = shift;
 
-if(!defined $action) {
+if ( ! defined $action ) {
   HELP_MESSAGE(\*STDOUT);
   exit(1);
 }
@@ -79,11 +78,14 @@ if(!defined $action) {
 require ZoneMinder::ONVIF;
 if ( defined $opt_v ) {
   $ZoneMinder::ONVIF::verbose = 1;
+} else {
+  $ZoneMinder::ONVIF::verbose = 0;
 }
 
-if ( $action eq "probe" ) {
+if ( $action eq 'probe' ) {
   my $soap_version = shift;
-  ZoneMinder::ONVIF::discover($soap_version);
+	my $net_interface = shift;
+  ZoneMinder::ONVIF::discover($soap_version, $net_interface);
 } else {
 # all other actions need URI and credentials
   my $url_svc_device = shift @ARGV;
@@ -92,23 +94,22 @@ if ( $action eq "probe" ) {
   my $password = @ARGV ? shift @ARGV: '';
 
   my $client = ONVIF::Client->new( { 
-      'url_svc_device' => $url_svc_device, 
-      'soap_version' => $soap_version } );
+      url_svc_device => $url_svc_device, 
+      soap_version => $soap_version } );
 
   $client->set_credentials($username, $password, 1);
   
   $client->create_services();
 
-  
-  if ( $action eq "profiles" ) {
+  if ( $action eq 'profiles' ) {
     ZoneMinder::ONVIF::profiles($client);
-  } elsif( $action eq "move" ) {
+  } elsif( $action eq 'move' ) {
     my $dir = shift;
     ZoneMinder::ONVIF::move($client, $dir);
-  } elsif ( $action eq "metadata" ) {
+  } elsif ( $action eq 'metadata' ) {
     ZoneMinder::ONVIF::metadata($client);
   } else {
-    print("Error: Unknown command\"$action\"");
+    print("Error: Unknown command \"$action\"");
     exit(1);
   }
 }
@@ -152,4 +153,3 @@ zmonvif-probe.pl - ZoneMinder ONVIF probing tool
  -v, --version              - Print the installed version of ZoneMinder
 
 =cut
-

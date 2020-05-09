@@ -1,7 +1,7 @@
 .ptzControls {
     vertical-align: top;
     margin: 10px auto 0;
-    width: 520px;
+    width: 90%;
 }
 
 .ptzControls::after {
@@ -15,21 +15,24 @@
 .ptzControls input.ptzTextBtn {
     margin-top: 2px;
 }
+.ptzControls .pantiltPanel button {
+  border: none;
+}
 
 .ptzControls .controlsPanel {
     margin: 0 auto;
 }
 
 .ptzControls input[type=image] {
-    border: 0px;
+    border: none;
 }
 
 .ptzControls .controlsPanel .arrowControl {
-    width: 40px;
+    width: 60px;
     margin: 0 4px;
 }
 
-.ptzControls .controlsPanel .arrowControl input {
+.ptzControls .controlsPanel .arrowControl button.longArrowBtn {
     display: block;
 }
 
@@ -69,10 +72,13 @@
 
 .ptzControls .controlsPanel .irisControls {
     float: right;
+    text-align: center;
 }
 
 .ptzControls .controlsPanel .whiteControls {
     float: right;
+    width: 120px;
+    text-align: center;
 }
 
 .ptzControls .controlsPanel .pantiltPanel {
@@ -87,8 +93,8 @@
     border: 1px solid #006699;
     text-align: center;
     padding: 1px;
-    width: 102px;
-    height: 102px;
+    width: 100px;
+    height: 100px;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .arrowBtn {
@@ -134,21 +140,15 @@
     background: url("../skins/classic/graphics/arrow-dr.png") no-repeat 0 0;
 }
 
-.ptzControls .controlsPanel .powerControls {
-    margin: 5px auto;
+.ptzControls .controlsPanel .powerControls,
+.ptzControls .presetControls div {
+    margin: 5px 200px 5px 180px;
 }
 
-.ptzControls .presetControls {
-    margin: 5px auto;
-}
-
-.ptzControls .presetControls input {
+.ptzControls .presetControls button {
     margin: 1px;
 }
 
-.ptzControls .presetControls input.ptzNumBtn {
-    padding: 1px 2px;
-    width: 24px;
-    color: #ffffff;
-    text-align: center;
+.ptzControls .presetControls button.ptzNumBtn {
+    width: 45px;
 }

@@ -1,6 +1,6 @@
 <?php
 
-$defaultMonitor = new Monitor();
+$defaultMonitor = new ZM\Monitor();
 $defaultMonitor->set(array(
   'StorageId' =>  1,
   'ServerId'  =>  'auto',
@@ -19,11 +19,11 @@ function probe( &$url_bits ) {
 
     $cam_list_html = file_get_contents('http://'.$url_bits['host'].':5000/monitoring/');
     if ( $cam_list_html ) {
-      Logger::Debug("Have content at port 5000/monitoring");
+      ZM\Logger::Debug("Have content at port 5000/monitoring");
       $matches_count = preg_match_all(
           '/<a href="http:\/\/([.[:digit:]]+):([[:digit:]]+)\/\?action=stream" target="_blank">([^<]+)<\/a>/',
           $cam_list_html, $cam_list );
-      Logger::Debug(print_r($cam_list,true));
+      ZM\Logger::Debug(print_r($cam_list,true));
     }
     if ( $matches_count ) {
       for( $index = 0; $index < $matches_count; $index ++ ) {
@@ -33,10 +33,10 @@ function probe( &$url_bits ) {
         if ( ! isset($new_stream['scheme'] ) )
           $new_stream['scheme'] = 'http';
         $available_streams[] = $new_stream;          
-Logger::Debug("Have new stream " . print_r($new_stream,true) );
+ZM\Logger::Debug("Have new stream " . print_r($new_stream,true) );
       }
     } else {
-      Info('No matches');
+      ZM\Info('No matches');
     }
 if ( 0 ) {
     // No port given, do a port scan
@@ -46,18 +46,18 @@ if ( 0 ) {
           SOL_SOCKET,  // socket level
           SO_SNDTIMEO, // timeout option
           array(
-            "sec"=>0, // Timeout in seconds
-            "usec"=>500  // I assume timeout in microseconds
+            'sec'=>0, // Timeout in seconds
+            'usec'=>500  // I assume timeout in microseconds
             )
           );
       $new_stream = null;
-Info("Testing connection to " . $url_bits['host'].':'.$port);
+      Info('Testing connection to '.$url_bits['host'].':'.$port);
       if ( socket_connect( $socket, $url_bits['host'], $port ) ) {
         $new_stream = $url_bits; // make a copy
         $new_stream['port'] = $port;
       } else {
         socket_close($socket); 
-        Info("No connection to ".$url_bits['host'] . " on port $port");
+        ZM\Info('No connection to '.$url_bits['host'].' on port '.$port);
         continue;
       }
       if ( $new_stream ) {
@@ -65,7 +65,7 @@ Info("Testing connection to " . $url_bits['host'].':'.$port);
           $new_stream['scheme'] = 'http';
         $url = unparse_url($new_stream, array('path'=>'/', 'query'=>'action=snapshot'));
         list($width, $height, $type, $attr) = getimagesize( $url );
-        Info("Got $width x $height from $url");
+        ZM\Info("Got $width x $height from $url");
         $new_stream['Width'] = $width;
         $new_stream['Height'] = $height;
 
@@ -92,10 +92,10 @@ Info("Testing connection to " . $url_bits['host'].':'.$port);
   }
   foreach ( $available_streams as &$stream ) {
     # check for existence in db.
-    $stream['url'] = unparse_url( $stream, array('path'=>'/','query'=>'action=stream') );
-    $monitors = Monitor::find( array('Path'=>$stream['url']) );
+    $stream['url'] = unparse_url($stream, array('path'=>'/','query'=>'action=stream'));
+    $monitors = ZM\Monitor::find(array('Path'=>$stream['url']));
     if ( count($monitors) ) {
-      Info("Found monitors matching " . $stream['url'] );
+      ZM\Info('Found monitors matching ' . $stream['url'] );
       $stream['Monitor'] = $monitors[0];
       if ( isset( $stream['Width'] ) and ( $stream['Monitor']->Width() != $stream['Width'] ) ) {
         $stream['Warning'] .= 'Monitor width ('.$stream['Monitor']->Width().') and stream width ('.$stream['Width'].") do not match!\n";
@@ -106,11 +106,11 @@ Info("Testing connection to " . $url_bits['host'].':'.$port);
     } else {
       $stream['Monitor'] = clone $defaultMonitor;
       if ( isset($stream['Width']) ) {
-        $stream['Monitor']->Width( $stream['Width'] );
-        $stream['Monitor']->Height( $stream['Height'] );
+        $stream['Monitor']->Width($stream['Width']);
+        $stream['Monitor']->Height($stream['Height']);
       }
       if ( isset($stream['Name']) ) {
-        $stream['Monitor']->Name( $stream['Name'] );
+        $stream['Monitor']->Name($stream['Name']);
       }
     } // Monitor found or not
   } // end foreach Stream
@@ -121,23 +121,23 @@ Info("Testing connection to " . $url_bits['host'].':'.$port);
   return $available_streams;
 } // end function probe
 
-if ( canEdit( 'Monitors' ) ) {
+if ( canEdit('Monitors') ) {
     switch ( $_REQUEST['action'] ) {
       case 'probe' :
         {
         $available_streams = array();
         $url_bits = null;
-        if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $_REQUEST['url'] ) ) {
-          $url_bits = array( 'host'=>$_REQUEST['url'] );
+        if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $_REQUEST['url']) ) {
+          $url_bits = array('host'=>$_REQUEST['url']);
         } else {
-          $url_bits = parse_url( $_REQUEST['url'] );
+          $url_bits = parse_url($_REQUEST['url']);
         }
 
 if ( 0 ) {
         // Shortcut test
-        $monitors = Monitor::find( array('Path'=>$_REQUEST['url']) );
+        $monitors = ZM\Monitor::find( array('Path'=>$_REQUEST['url']) );
         if ( count( $monitors ) ) {
-          Info("Monitor found for " . $_REQUEST['url']);
+          ZM\Info("Monitor found for " . $_REQUEST['url']);
           $url_bits['url'] = $_REQUEST['url'];
           $url_bits['Monitor'] = $monitors[0];
           $available_stream[] = $url_bits;
@@ -147,13 +147,13 @@ if ( 0 ) {
 }
 
         if ( ! $url_bits ) {
-          ajaxError("The given URL was too malformed to parse.");
+          ajaxError('The given URL was too malformed to parse.');
           return;
         }
 
-        $available_streams = probe( $url_bits );
+        $available_streams = probe($url_bits);
 
-        ajaxResponse( array('Streams'=>$available_streams) );
+        ajaxResponse(array('Streams'=>$available_streams));
         return;
       } // end case url_probe
       case 'import':
@@ -161,33 +161,33 @@ if ( 0 ) {
 
         $file = $_FILES['import_file'];
 
-        if ($file["error"] > 0) {
-          ajaxError($file["error"]);
+        if ( $file['error'] > 0 ) {
+          ajaxError($file['error']);
           return;
         } else {
-          $filename = $file["name"];
+          $filename = $file['name'];
 
-        $available_streams = array();
+          $available_streams = array();
           $row = 1;
-          if (($handle = fopen($file['tmp_name'], 'r')) !== FALSE) {
-            while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+          if ( ($handle = fopen($file['tmp_name'], 'r')) !== FALSE ) {
+            while ( ($data = fgetcsv($handle, 1000, ',')) !== FALSE ) {
               $name = $data[0];
               $url = $data[1];
               $group = $data[2];
-              Info("Have the following line data $name $url $group");
+              ZM\Info("Have the following line data $name $url $group");
 
               $url_bits = null;
               if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $url) ) {
-                $url_bits = array( 'host'=>$url, 'scheme'=>'http' );
+                $url_bits = array('host'=>$url, 'scheme'=>'http');
               } else {
-                $url_bits = parse_url( $url );
+                $url_bits = parse_url($url);
               }
               if ( ! $url_bits ) {
-                Info("Bad url, skipping line $name $url $group");
+                ZM\Info("Bad url, skipping line $name $url $group");
                 continue;
               }
 
-              $available_streams += probe( $url_bits );
+              $available_streams += probe($url_bits);
 
               //$url_bits['url'] = unparse_url( $url_bits );
               //$url_bits['Monitor'] = $defaultMonitor;
@@ -197,23 +197,19 @@ if ( 0 ) {
               
             } // end while rows
             fclose($handle);
-            ajaxResponse( array('Streams'=>$available_streams) );
+            ajaxResponse(array('Streams'=>$available_streams));
           } else {
-            ajaxError("Uploaded file does not exist");
+            ajaxError('Uploaded file does not exist');
             return;
           }
-
         }
       } // end case import
       default:
-      {
-        Warning("unknown action " . $_REQUEST['action'] );
-      } // end ddcase default
-    }
+        ZM\Warning('unknown action '.$_REQUEST['action']);
+    } // end switch action
 } else {
-  Warning("Cannot edit monitors" );
+  ZM\Warning('Cannot edit monitors');
 }
 
-ajaxError( 'Unrecognised action or insufficient permissions' );
-
+ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user ' . $user['Username']);
 ?>

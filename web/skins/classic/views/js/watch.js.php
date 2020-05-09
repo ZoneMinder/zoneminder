@@ -44,13 +44,13 @@ var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"eve
 var connKey = '<?php echo $connkey ?>';
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 
-
 var monitorId = <?php echo $monitor->Id() ?>;
-var monitorWidth = <?php echo $monitor->Width() ?>;
-var monitorHeight = <?php echo $monitor->Height() ?>;
-var monitorUrl = '<?php echo $monitor->UrlToIndex(); ?>';
-var monitorType = '<?php echo ( $monitor->Type() ) ?>';
-var monitorRefresh = '<?php echo ( $monitor->Refresh() ) ?>';
+var monitorWidth = <?php echo $monitor->ViewWidth() ?>;
+var monitorHeight = <?php echo $monitor->ViewHeight() ?>;
+var monitorUrl = '<?php echo $monitor->UrlToIndex() ?>';
+var monitorType = '<?php echo $monitor->Type() ?>';
+var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
+var monitorStreamReplayBuffer = <?php echo $monitor->StreamReplayBuffer() ?>;
 
 var scale = '<?php echo $scale ?>';
 
@@ -63,11 +63,13 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
 var canPlayPauseAudio = Browser.ie;
 
-<?php if ( $monitor->CanMoveMap() ) { ?>
+<?php 
+  $control = $monitor->Control();
+  if ( $control->CanMoveMap() ) { ?>
 var imageControlMode = "moveMap";
-<?php } elseif ( $monitor->CanMoveRel() ) { ?>
+<?php } elseif ( $control->CanMoveRel() ) { ?>
 var imageControlMode = "movePseudoMap";
-<?php } elseif ( $monitor->CanMoveCon() ) { ?>
+<?php } elseif ( $control->CanMoveCon() ) { ?>
 var imageControlMode = "moveConMap";
 <?php } else { ?>
 var imageControlMode = null;

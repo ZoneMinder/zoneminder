@@ -46,53 +46,54 @@ bool RtspThread::sendCommand( std::string message ) {
   message += stringtf( "CSeq: %d\r\n\r\n", ++mSeq );
   Debug( 2, "Sending RTSP message: %s", message.c_str() );
   if ( mMethod == RTP_RTSP_HTTP ) {
-    message = base64Encode( message );
-    Debug( 2, "Sending encoded RTSP message: %s", message.c_str() );
-    if ( mRtspSocket2.send( message.c_str(), message.size() ) != (int)message.length() ) {
-      Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
-      return( false );
+    message = base64Encode(message);
+    Debug(2, "Sending encoded RTSP message: %s", message.c_str());
+    if ( mRtspSocket2.send(message.c_str(), message.size()) != (int)message.length() ) {
+      Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
+      return false;
     }
   } else {
-    if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() ) {
-      Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
-      return( false );
+    if ( mRtspSocket.send(message.c_str(), message.size()) != (int)message.length() ) {
+      Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
+      return false;
     }
   }
-  return( true );
+  return true;
 }
 
 bool RtspThread::recvResponse( std::string &response ) {
   if ( mRtspSocket.recv( response ) < 0 )
-    Error( "Recv failed; %s", strerror(errno) );
-  Debug( 2, "Received RTSP response: %s (%zd bytes)", response.c_str(), response.size() );
+    Error("Recv failed; %s", strerror(errno));
+  Debug(2, "Received RTSP response: %s (%zd bytes)", response.c_str(), response.size());
   float respVer = 0;
   respCode = -1;
   char respText[ZM_NETWORK_BUFSIZ];
-  if ( sscanf( response.c_str(), "RTSP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 ) {
+  if ( sscanf(response.c_str(), "RTSP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText) != 3 ) {
     if ( isalnum(response[0]) ) {
-      Error( "Response parse failure in '%s'", response.c_str() );
+      Error("Response parse failure in '%s'", response.c_str());
     } else {
-      Error( "Response parse failure, %zd bytes follow", response.size() );
+      Error("Response parse failure, %zd bytes follow", response.size());
       if ( response.size() )
         Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
     }
-    return( false );
+    return false;
   }
-  if ( respCode == 401) {
+  if ( respCode == 401 ) {
     Debug( 2, "Got 401 access denied response code, check WWW-Authenticate header and retry");
     mAuthenticator->checkAuthResponse(response);
     mNeedAuth = true;
-    return( false );
+    return false;
   } else if ( respCode != 200 ) {
-    Error( "Unexpected response code %d, text is '%s'", respCode, respText );
-    return( false );
+    Error("Unexpected response code %d, text is '%s'", respCode, respText);
+    return false;
   }
-  return( true );
-}
+  return true;
+} // end RtspThread::recResponse
 
 int RtspThread::requestPorts() {
   if ( !smMinDataPort ) {
     char sql[ZM_SQL_SML_BUFSIZ];
+    //FIXME Why not load specifically by Id?  This will get ineffeicient with a lot of monitors
     strncpy( sql, "select Id from Monitors where Function != 'None' and Type = 'Remote' and Protocol = 'rtsp' and Method = 'rtpUni' order by Id asc", sizeof(sql) );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -107,7 +108,7 @@ int RtspThread::requestPorts() {
     int nMonitors = mysql_num_rows( result );
     int position = 0;
     if ( nMonitors ) {
-      for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ ) {
+      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
         int id = atoi(dbrow[0]);
         if ( mId == id ) {
           position = i;
@@ -126,22 +127,30 @@ int RtspThread::requestPorts() {
     Debug( 2, "Assigned RTP port range is %d-%d", smMinDataPort, smMaxDataPort );
   }
   for ( int i = smMinDataPort; i <= smMaxDataPort; i++ ) {
-    PortSet::const_iterator iter = smAssignedPorts.find( i );
+    PortSet::const_iterator iter = smAssignedPorts.find(i);
     if ( iter == smAssignedPorts.end() ) {
-      smAssignedPorts.insert( i );
-      return( i );
+      smAssignedPorts.insert(i);
+      return i;
     }
   }
-  Panic( "Can assign RTP port, no ports left in pool" );
-  return( -1 );
+  Panic("Can assign RTP port, no ports left in pool");
+  return -1;
 }
 
 void RtspThread::releasePorts( int port ) {
   if ( port > 0 )
-    smAssignedPorts.erase( port );
+    smAssignedPorts.erase(port);
 }
 
-RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth, bool rtsp_describe) :
+RtspThread::RtspThread(
+    int id,
+    RtspMethod method,
+    const std::string &protocol,
+    const std::string &host,
+    const std::string &port,
+    const std::string &path,
+    const std::string &auth,
+    bool rtsp_describe) :
   mId( id ),
   mMethod( method ),
   mProtocol( protocol ),
@@ -168,10 +177,10 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
 
   mSsrc = rand();
 
-  Debug( 2, "RTSP Local SSRC is %x", mSsrc );
+  Debug(2, "RTSP Local SSRC is %x", mSsrc);
 
   if ( mMethod == RTP_RTSP_HTTP )
-    mHttpSession = stringtf( "%d", rand() );
+    mHttpSession = stringtf("%d", rand());
   
   mNeedAuth = false;
   StringVector parts = split(auth,":");
@@ -216,8 +225,8 @@ int RtspThread::run() {
   
   bool authTried = false; 
   if ( mMethod == RTP_RTSP_HTTP ) {
-    if ( !mRtspSocket2.connect( mHost.c_str(), mPort.c_str() ) )
-      Fatal( "Unable to connect auxiliary RTSP/HTTP socket" );
+    if ( !mRtspSocket2.connect(mHost.c_str(), mPort.c_str()) )
+      Fatal("Unable to connect auxiliary RTSP/HTTP socket");
     //Select select( 0.25 );
     //select.addReader( &mRtspSocket2 );
     //while ( select.wait() )
@@ -240,15 +249,15 @@ int RtspThread::run() {
       message += "\r\n";
       Debug( 2, "Sending HTTP message: %s", message.c_str() );
       if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() ) {
-        Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
-        return( -1 );
+        Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
+        return -1;
       }
       if ( mRtspSocket.recv( response ) < 0 ) {
-        Error( "Recv failed; %s", strerror(errno) );
-        return( -1 );
+        Error("Recv failed; %s", strerror(errno));
+        return -1;
       }
     
-      Debug( 2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size() );
+      Debug(2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size());
       float respVer = 0;
       respCode = -1;
       if ( sscanf( response.c_str(), "HTTP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 ) {
@@ -259,25 +268,25 @@ int RtspThread::run() {
           if ( response.size() )
             Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
         }
-        return( -1 );
+        return -1;
       }
       // If Server requests authentication, check WWW-Authenticate header and fill required fields
       // for requested authentication method
-      if (respCode == 401 && !authTried) {
+      if ( respCode == 401 && !authTried ) {
         mNeedAuth = true;
         mAuthenticator->checkAuthResponse(response);
         Debug(2, "Processed 401 response");
         mRtspSocket.close();
-        if ( !mRtspSocket.connect( mHost.c_str(), mPort.c_str() ) )
-          Fatal( "Unable to reconnect RTSP socket" );
+        if ( !mRtspSocket.connect(mHost.c_str(), mPort.c_str()) )
+          Fatal("Unable to reconnect RTSP socket");
         Debug(2, "connection should be reopened now");
       }
       
     } while (respCode == 401 && !authTried);  
     
     if ( respCode != 200 ) {
-      Error( "Unexpected response code %d, text is '%s'", respCode, respText );
-      return( -1 );
+      Error("Unexpected response code %d, text is '%s'", respCode, respText);
+      return -1;
     }
 
     message = "POST "+mPath+" HTTP/1.0\r\n";
@@ -300,25 +309,25 @@ int RtspThread::run() {
   // Request supported RTSP commands by the server
   message = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
   if ( !sendCommand( message ) )
-    return( -1 );
+    return -1;
 
   // A negative return here may indicate auth failure, but we will have setup the auth mechanisms so we need to retry.
-  if ( !recvResponse( response ) ) {
+  if ( !recvResponse(response) ) {
     if ( mNeedAuth ) {
       Debug( 2, "Resending OPTIONS due to possible auth requirement" );
-      if ( !sendCommand( message ) )
-        return( -1 );
-      if ( !recvResponse( response ) )
-        return( -1 );
+      if ( !sendCommand(message) )
+        return -1;
+      if ( !recvResponse(response) )
+        return -1;
     } else {
-      return( -1 );
+      return -1;
     }
   } // end if failed response maybe due to auth
 
   char publicLine[256] = "";
-  StringVector lines = split( response, "\r\n" );
+  StringVector lines = split(response, "\r\n");
   for ( size_t i = 0; i < lines.size(); i++ )
-    sscanf( lines[i].c_str(), "Public: %[^\r\n]\r\n", publicLine );
+    sscanf(lines[i].c_str(), "Public: %[^\r\n]\r\n", publicLine);
 
   // Check if the server supports the GET_PARAMETER command
   // If yes, it is likely that the server will request this command as a keepalive message
@@ -331,44 +340,45 @@ int RtspThread::run() {
   do {
     if (mNeedAuth)
       authTried = true;
-    sendCommand( message );
-    sleep( 1 );
-    res = recvResponse( response );
-    if (!res && respCode==401)
+    sendCommand(message);
+    // FIXME WHy sleep 1?
+    sleep(1);
+    res = recvResponse(response);
+    if ( !res && respCode==401 )
       mNeedAuth = true;
   } while (!res && respCode==401 && !authTried);
 
   const std::string endOfHeaders = "\r\n\r\n";
-  size_t sdpStart = response.find( endOfHeaders );
-  if( sdpStart == std::string::npos )
-    return( -1 );
+  size_t sdpStart = response.find(endOfHeaders);
+  if ( sdpStart == std::string::npos )
+    return -1;
 
   if ( mRtspDescribe ) {
-    std::string DescHeader = response.substr( 0,sdpStart );
-    Debug( 1, "Processing DESCRIBE response header '%s'", DescHeader.c_str() );
+    std::string DescHeader = response.substr(0, sdpStart);
+    Debug(1, "Processing DESCRIBE response header '%s'", DescHeader.c_str());
 
-    lines = split( DescHeader, "\r\n" );
+    lines = split(DescHeader, "\r\n");
     for ( size_t i = 0; i < lines.size(); i++ ) {
-        // If the device sends us a url value for Content-Base in the response header, we should use that instead
-        if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) ) {
-            mUrl = trimSpaces( lines[i].substr( 13 ) );
-            Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
-            break;
-          }
+      // If the device sends us a url value for Content-Base in the response header, we should use that instead
+      if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) ) {
+        mUrl = trimSpaces( lines[i].substr( 13 ) );
+        Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
+        break;
       }
-  }
+    } // end foreach line
+  } // end if mRtspDescribe
 
   sdpStart += endOfHeaders.length();
 
-  std::string sdp = response.substr( sdpStart );
-  Debug( 1, "Processing SDP '%s'", sdp.c_str() );
+  std::string sdp = response.substr(sdpStart);
+  Debug(1, "Processing SDP '%s'", sdp.c_str());
 
   try {
     mSessDesc = new SessionDescriptor( mUrl, sdp );
     mFormatContext = mSessDesc->generateFormatContext();
   } catch( const Exception &e ) {
     Error( e.getMessage().c_str() );
-    return( -1 );
+    return -1;
   }
 
 #if 0
@@ -672,51 +682,36 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
               Hexdump( 4, (char *)buffer, 16 );
               rtpDataThread.recvPacket( buffer+4, len );
               Debug( 4, "Received" );
-            }
-            else if ( channel == remoteChannels[1] )
-            {
+            } else if ( channel == remoteChannels[1] ) {
 //              len = ntohs( *((unsigned short *)(buffer+2)) );
 //              Debug( 4, "Got %d bytes on control channel %d", nBytes, channel );
               Debug( 4, "Got %d bytes on control channel %d, packet length is %d", buffer.size(), channel, len );
               Hexdump( 4, (char *)buffer, 16 );
               rtpCtrlThread.recvPackets( buffer+4, len );
-            }
-            else
-            {
+            } else {
               Error( "Unexpected channel selector %d in RTSP interleaved data", buffer[1] );
               buffer.clear();
               break;
             }
             buffer.consume( len+4 );
             nBytes -= len+4;
-          }
-          else
-          {
-            if ( keepaliveResponse.compare( 0, keepaliveResponse.size(), (char *)buffer, keepaliveResponse.size() ) == 0 )
-            {
+          } else {
+            if ( keepaliveResponse.compare( 0, keepaliveResponse.size(), (char *)buffer, keepaliveResponse.size() ) == 0 ) {
               Debug( 4, "Got keepalive response '%s'", (char *)buffer );
               //buffer.consume( keepaliveResponse.size() );
-              if ( char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) )
-              {
+              if ( char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) ) {
                 int discardBytes = charPtr-(char *)buffer;
                 buffer -= discardBytes;
-              }
-              else
-              {
+              } else {
                 buffer.clear();
               }
-            }
-            else
-            {
-              if ( char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) )
-              {
+            } else {
+              if ( char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) ) {
                 int discardBytes = charPtr-(char *)buffer;
                 Warning( "Unexpected format RTSP interleaved data, resyncing by %d bytes", discardBytes );
                 Hexdump( -1, (char *)buffer, discardBytes );
                 buffer -= discardBytes;
-              }
-              else
-              {
+              } else {
                 Warning( "Unexpected format RTSP interleaved data, dumping %d bytes", buffer.size() );
                 Hexdump( -1, (char *)buffer, 32 );
                 buffer.clear();
@@ -764,16 +759,14 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
       rtpDataThread.start();
       rtpCtrlThread.start();
 
-      while( !mStop )
-      {
+      while ( !mStop ) {
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        if ( sendKeepalive && (timeout > 0) && ((time(NULL)-lastKeepalive) > (timeout-5)) )
-        {
+        if ( sendKeepalive && (timeout > 0) && ((time(NULL)-lastKeepalive) > (timeout-5)) ) {
           if ( !sendCommand( message ) )
-            return( -1 );
+            return -1;
           lastKeepalive = time(NULL);
         }
-        usleep( 100000 );
+        usleep(100000);
       }
 #if 0
       message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
@@ -783,10 +776,10 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
         return( -1 );
 #endif
       message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
-      if ( !sendCommand( message ) )
-        return( -1 );
-      if ( !recvResponse( response ) )
-        return( -1 );
+      if ( !sendCommand(message) )
+        return -1;
+      if ( !recvResponse(response) )
+        return -1;
 
       rtpDataThread.stop();
       rtpCtrlThread.stop();
@@ -801,13 +794,11 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
       break;
     }
     default:
-    {
-      Panic( "Got unexpected method %d", mMethod );
+      Panic("Got unexpected method %d", mMethod);
       break;
-    }
   }
 
-  return( 0 );
+  return 0;
 }
 
 #endif // HAVE_LIBAVFORMAT

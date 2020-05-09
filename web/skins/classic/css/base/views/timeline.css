@@ -48,20 +48,24 @@
 }
 
 #topPanel #image {
-    float: right;
     margin: 0 auto;
-    width: 90%;
     text-align: right;
     margin-right: 2px;
     background-color: #eeeeee;
     border: 1px solid #c8c8c8;
+    position: relative;
+    width: 100%;
 }
 
 #topPanel #image img {
-    float: left;
-    top: 0px;
-    background-color: #f8f8f8;
-    width: 100%;
+    width: auto;
+    max-width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
 
 #topPanel #dataPanel {
@@ -97,6 +101,7 @@
 }
 
 #chartPanel {
+  clear: both;
     position: relative;
     margin: 0 auto;
 }
@@ -110,22 +115,25 @@
 
 #chartPanel #activity {
     position: absolute;
+    top: 0;
+    left: 0;
     text-align: center;
-    left: 0px;
     border-bottom: 1px solid #cccccc;
+    width: 100%;
 }
 
-#chartPanel #activity div.activity {
+#chartPanel div.activity {
     position: absolute;
-    bottom: 0px;
+    bottom: 0;
     z-index: 3;
-    width: 1px;
+    width: 0.17%;
 }
 
 #chartPanel .events {
     position: absolute;
     text-align: center;
-    left: 0px;
+    left: 0;
+    width: 100%;
     background-color: #fcfcfc;
     border-bottom: 1px solid black;
 }
@@ -159,8 +167,9 @@
 span.keyEntry {
 }
 
-img.keyBox {
+div.keyBox {
     position: relative;
+  display: inline-block;
     border: 1px solid black;
     width: 16px;
     height: 16px;

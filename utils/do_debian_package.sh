@@ -30,6 +30,10 @@ case $i in
     INTERACTIVE="${i#*=}"
     shift # past argument=value
     ;;
+    -p=*|--ppa=*)
+    PPA="${i#*=}"
+    shift # past argument=value
+    ;;
     -r=*|--release=*)
     RELEASE="${i#*=}"
     shift
@@ -76,7 +80,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,cosmic,disco,trusty"
+    DISTROS="xenial,bionic,eoan,focal"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;
@@ -106,7 +110,12 @@ else
   fi;
   if [ "$SNAPSHOT" == "stable" ]; then
     if [ "$BRANCH" == "" ]; then
-      BRANCH=$(git describe --tags $(git rev-list --tags --max-count=1));
+      #REV=$(git rev-list --tags --max-count=1)
+      BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
+      if [ "$BRANCH" == "" ]; then
+        echo "Unable to determine latest stable branch!"
+        exit 0;
+      fi
       echo "Latest stable branch is $BRANCH";
     fi;
   else
@@ -116,20 +125,29 @@ else
     fi;
     if [ "$SNAPSHOT" == "NOW" ]; then
       SNAPSHOT=`date +%Y%m%d%H%M%S`;
+    else
+      if [ "$SNAPSHOT" == "CURRENT" ]; then
+        SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+      fi;
     fi;
   fi;
 fi
 
-PPA="";
-if [ "$RELEASE" != "" ]; then
-  # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
-  IFS='.' read -r -a VERSION <<< "$RELEASE"
-  PPA="ppa:iconnor/zoneminder-${VERSION[0]}.${VERSION[1]}"
-else
-  if [ "$BRANCH" == "" ]; then
-    PPA="ppa:iconnor/zoneminder-master";
-  else 
-    PPA="ppa:iconnor/zoneminder-$BRANCH";
+IFS='.' read -r -a VERSION_PARTS <<< "$RELEASE"
+if [ "$PPA" == "" ]; then
+  if [ "$RELEASE" != "" ]; then
+    # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
+    if [ "${VERSION_PARTS[0]}.${VERSION_PARTS[1]}" == "1.30" ]; then
+      PPA="ppa:iconnor/zoneminder-stable"
+    else
+      PPA="ppa:iconnor/zoneminder-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}"
+    fi;
+  else
+    if [ "$BRANCH" == "" ]; then
+      PPA="ppa:iconnor/zoneminder-master";
+    else
+      PPA="ppa:iconnor/zoneminder-$BRANCH";
+    fi;
   fi;
 fi;
 
@@ -162,7 +180,7 @@ cd ../
 
 VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
 
-if [ $VERSION == "" ]; then
+if [ -z "$VERSION" ]; then
   exit 1;
 fi;
 if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
@@ -207,8 +225,8 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   fi;
 
   # Generate Changlog
-  if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
-    cp -Rpd distros/ubuntu1204 debian
+  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ]; then 
+    cp -Rpd distros/ubuntu2004 debian
   else 
     if [ "$DISTRO" == "wheezy" ]; then 
       cp -Rpd distros/debian debian
@@ -303,7 +321,7 @@ EOF
       read -p "Do you want to upload this binary to zmrepo? (y/N)"
       if [[ $REPLY == [yY] ]]; then
         if [ "$RELEASE" != "" ]; then
-          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
+          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
             scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
@@ -322,6 +340,9 @@ EOF
       if [[ "$REPLY" == [yY] ]]; then
         dput $PPA $SC
       fi;
+    else
+      echo "dputting to $PPA";
+      dput $PPA $SC
     fi;
   fi;
 done; # foreach distro
@@ -333,5 +354,3 @@ if [ "$INTERACTIVE" != "no" ]; then
 else 
   rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted";
 fi
-
-

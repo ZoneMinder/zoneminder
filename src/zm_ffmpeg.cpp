@@ -21,21 +21,80 @@
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
 #include "zm_rgb.h"
+extern "C" {
+#include "libavutil/pixdesc.h"
+}
 
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
+void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
+  Logger *log = Logger::fetch();
+  int log_level = 0;
+  if ( level == AV_LOG_QUIET ) { // -8
+    log_level = Logger::NOLOG;
+  } else if ( level == AV_LOG_PANIC ) { //0
+    log_level = Logger::PANIC;
+  } else if ( level == AV_LOG_FATAL ) { // 8
+    log_level = Logger::FATAL;
+  } else if ( level == AV_LOG_ERROR ) { // 16
+    log_level = Logger::WARNING; // ffmpeg outputs a lot of errors that don't really affect anything.
+    //log_level = Logger::ERROR;
+  } else if ( level == AV_LOG_WARNING ) { //24
+    log_level = Logger::INFO;
+    //log_level = Logger::WARNING;
+  } else if ( level == AV_LOG_INFO ) { //32
+    log_level = Logger::DEBUG1;
+    //log_level = Logger::INFO;
+  } else if ( level == AV_LOG_VERBOSE ) { //40
+    log_level = Logger::DEBUG2;
+  } else if ( level == AV_LOG_DEBUG ) { //48
+    log_level = Logger::DEBUG3;
+#ifdef AV_LOG_TRACE
+  } else if ( level == AV_LOG_TRACE ) {
+    log_level = Logger::DEBUG8;
+#endif
+#ifdef AV_LOG_MAX_OFFSET
+  } else if ( level == AV_LOG_MAX_OFFSET ) {
+    log_level = Logger::DEBUG9;
+#endif
+  } else {
+    Error("Unknown log level %d", level);
+  }
+
+  if ( log ) {
+    char logString[8192];
+    vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
+    int length = strlen(logString);
+    // ffmpeg logs have a carriage return, so replace it with terminator
+    logString[length-1] = 0;
+    log->logPrint(false, __FILE__, __LINE__, log_level, logString);
+  }
+}
+
+static bool bInit = false;
+
 void FFMPEGInit() {
-  static bool bInit = false;
 
   if ( !bInit ) {
-    //if ( logDebugging() )
-      //av_log_set_level( AV_LOG_DEBUG ); 
-    //else
-      av_log_set_level( AV_LOG_QUIET ); 
+    if ( logDebugging()  && config.log_ffmpeg ) {
+      av_log_set_level(AV_LOG_DEBUG);
+      av_log_set_callback(log_libav_callback); 
+      Info("Enabling ffmpeg logs, as LOG_DEBUG+LOG_FFMPEG are enabled in options");
+    } else {
+      Info("Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor is not part of your debug targets");
+      av_log_set_level(AV_LOG_QUIET);
+    }
+#if !LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
     av_register_all();
+#endif
     avformat_network_init();
     bInit = true;
   }
+}
+
+void FFMPEGDeInit() {
+  avformat_network_deinit();
+  bInit = false;
 }
 
 #if HAVE_LIBAVUTIL
@@ -232,64 +291,84 @@ static void zm_log_fps(double d, const char *postfix) {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par ) {
-  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d) bit_rate(%d) format(%d = %s)", 
-    par->codec_type,
-    par->codec_id,
-    par->codec_tag,
-    par->width,
-    par->height,
-    par->bit_rate,
-    par->format,
-    ((AVPixelFormat)par->format == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format))
-); 
+  Debug(1, "Dumping codecpar codec_type(%d %s) codec_id(%d %s) codec_tag(%" PRIu32 ") width(%d) height(%d) bit_rate(%" PRIu64 ") format(%d %s)",
+      par->codec_type,
+      av_get_media_type_string(par->codec_type),
+      par->codec_id,
+      avcodec_get_name(par->codec_id),
+      par->codec_tag,
+      par->width,
+      par->height,
+      par->bit_rate,
+      par->format,
+      (((AVPixelFormat)par->format == AV_PIX_FMT_NONE) ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format))
+      ); 
 }
 #endif
 
 void zm_dump_codec(const AVCodecContext *codec) {
-  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d) width(%d) height(%d)  timebase(%d/%d) format(%s)",
+  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d %s) width(%d) height(%d)  timebase(%d/%d) format(%s) "
+      "gop_size %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d",
     codec->codec_type,
     codec->codec_id,
+    avcodec_get_name(codec->codec_id),
     codec->width,
     codec->height,
     codec->time_base.num,
     codec->time_base.den,
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt))
+    (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt)),
 #else
-    "unsupported on avconv"
+    "unsupported on avconv",
 #endif
-); 
+    codec->gop_size,
+    codec->max_b_frames,
+    codec->me_cmp,
+    codec->me_range,
+    codec->qmin,
+    codec->qmax
+    );
 }
 
 /* "user interface" functions */
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output) {
-  char buf[256];
   Debug(1, "Dumping stream index i(%d) index(%d)", i, index );
   int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
   AVStream *st = ic->streams[i];
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
-
-  Debug(1, "    Stream #%d:%d", index, i);
-
-  /* the pid is an important information, so we display it */
-  /* XXX: add a generic system */
-  if (flags & AVFMT_SHOW_IDS)
-    Debug(1, "[0x%x]", st->id);
-  if (lang)
-    Debug(1, "(%s)", lang->value);
-  Debug(1, ", frames:%d, timebase: %d/%d", st->codec_info_nb_frames, st->time_base.num, st->time_base.den);
-  avcodec_string(buf, sizeof(buf), st->codec, is_output);
-  Debug(1, ": %s", buf);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   AVCodecParameters *codec = st->codecpar;
 #else
   AVCodecContext *codec = st->codec;
 #endif
 
-  if (st->sample_aspect_ratio.num && // default
-      av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)) {
+  Debug(1, "    Stream #%d:%d", index, i);
+
+  /* the pid is an important information, so we display it */
+  /* XXX: add a generic system */
+  if (flags & AVFMT_SHOW_IDS)
+    Debug(1, "ids [0x%x]", st->id);
+  if (lang)
+    Debug(1, "language (%s)", lang->value);
+  Debug(1, "frames:%d, frame_size:%d stream timebase: %d/%d",
+      st->codec_info_nb_frames, codec->frame_size,
+      st->time_base.num, st->time_base.den
+      );
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  Debug(1, "codec: %s", avcodec_get_name(st->codecpar->codec_id));
+#else
+  char buf[256];
+  avcodec_string(buf, sizeof(buf), st->codec, is_output);
+  Debug(1, "codec: %s", buf);
+#endif
+
+  if ( st->sample_aspect_ratio.num && // default
+      av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)
+      ) {
     AVRational display_aspect_ratio;
-    av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
+    av_reduce(&display_aspect_ratio.num,
+        &display_aspect_ratio.den,
         codec->width  * (int64_t)st->sample_aspect_ratio.num,
         codec->height * (int64_t)st->sample_aspect_ratio.den,
         1024 * 1024);
@@ -298,20 +377,14 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
         display_aspect_ratio.num, display_aspect_ratio.den);
   }
 
-  if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+  if ( codec->codec_type == AVMEDIA_TYPE_VIDEO ) {
     int fps = st->avg_frame_rate.den && st->avg_frame_rate.num;
     int tbn = st->time_base.den && st->time_base.num;
-    int tbc = st->codec->time_base.den && st->codec->time_base.num;
-
-    if (fps || tbn || tbc)
-      Debug(3, "\n" );
 
     if (fps)
-      zm_log_fps(av_q2d(st->avg_frame_rate), tbn || tbc ? "fps, " : "fps");
+      zm_log_fps(av_q2d(st->avg_frame_rate), "fps");
     if (tbn)
-      zm_log_fps(1 / av_q2d(st->time_base), tbc ? "stream tb numerator , " : "stream tb numerator");
-    if (tbc)
-      zm_log_fps(1 / av_q2d(st->codec->time_base), "codec time base:");
+      zm_log_fps(1 / av_q2d(st->time_base), "stream tb numerator");
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)
@@ -334,7 +407,6 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, " (visual impaired)");
   if (st->disposition & AV_DISPOSITION_CLEAN_EFFECTS)
     Debug(1, " (clean effects)");
-  Debug(1, "\n");
 
   //dump_metadata(NULL, st->metadata, "    ");
 
@@ -359,7 +431,40 @@ unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src ) {
   av_new_packet(dst,src->size);
   memcpy(dst->data, src->data, src->size);
   dst->flags = src->flags;
+  dst->pts = src->pts;
+  dst->dts = src->dts;
+  dst->duration = src->duration;
+  dst->stream_index = src->stream_index;
   return 0;
+}
+const char *avcodec_get_name(enum AVCodecID id) {
+  const AVCodecDescriptor *cd;
+  if ( id == AV_CODEC_ID_NONE)
+    return "none";
+  cd = avcodec_descriptor_get(id);
+  if (cd)
+    return cd->name;
+  AVCodec *codec;
+  codec = avcodec_find_decoder(id);
+  if (codec) 
+    return codec->name;
+  codec = avcodec_find_encoder(id);
+  if (codec)
+    return codec->name;
+  return "unknown codec";
+}
+
+void av_packet_rescale_ts(
+    AVPacket *pkt,
+    AVRational src_tb,
+    AVRational dst_tb
+    ) {
+  if ( pkt->pts != AV_NOPTS_VALUE)
+    pkt->pts = av_rescale_q(pkt->pts, src_tb, dst_tb);
+  if ( pkt->dts != AV_NOPTS_VALUE)
+    pkt->dts = av_rescale_q(pkt->dts, src_tb, dst_tb);
+  if ( pkt->duration != AV_NOPTS_VALUE)
+    pkt->duration = av_rescale_q(pkt->duration, src_tb, dst_tb);
 }
 #endif
 
@@ -378,6 +483,14 @@ bool is_video_stream( AVStream * stream ) {
   return false;
 }
 
+bool is_video_context( AVCodecContext *codec_context ) {
+  return
+  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+      ( codec_context->codec_type == AVMEDIA_TYPE_VIDEO );
+  #else
+      ( codec_context->codec_type == CODEC_TYPE_VIDEO );
+  #endif
+}
 
 bool is_audio_stream( AVStream * stream ) {
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -394,55 +507,129 @@ bool is_audio_stream( AVStream * stream ) {
   return false;
 }
 
-int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet ) {
-  int ret;
+bool is_audio_context( AVCodecContext *codec_context ) {
+  return
+  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+      ( codec_context->codec_type == AVMEDIA_TYPE_AUDIO );
+  #else
+      ( codec_context->codec_type == CODEC_TYPE_AUDIO );
+  #endif
+}
+
+int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  if ( (ret = avcodec_send_packet(context, &packet)) < 0  ) {
-    Error( "Unable to send packet %s, continuing",
-       av_make_error_string(ret).c_str() );
+  int ret = avcodec_receive_packet(context, &packet);
+  if ( ret < 0 ) {
+    if ( AVERROR_EOF != ret ) {
+      Error("Error encoding (%d) (%s)", ret,
+          av_err2str(ret));
+    }
     return 0;
   }
-
-#if HAVE_AVUTIL_HWCONTEXT_H
-  if ( hwaccel ) {
-    if ( (ret = avcodec_receive_frame(context, hwFrame)) < 0 ) {
-      Error( "Unable to receive frame %d: %s, continuing", streams[packet.stream_index].frame_count,
-         av_make_error_string(ret).c_str() );
-      return 0;
-    }
-    if ( (ret = av_hwframe_transfer_data(frame, hwFrame, 0)) < 0 ) {
-      Error( "Unable to transfer frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count,
-          av_make_error_string(ret).c_str() );
-      return 0;
-    }
-  } else {
-#endif
-    if ( (ret = avcodec_receive_frame(context, frame)) < 0 ) {
-      Error( "Unable to send packet %s, continuing", av_make_error_string(ret).c_str() );
-      return 0;
-    }
-#if HAVE_AVUTIL_HWCONTEXT_H
+  return 1;
+#else
+  int got_packet = 0;
+  int ret = avcodec_encode_audio2(context, &packet, NULL, &got_packet);
+  if ( ret < 0 ) {
+    Error("Error encoding (%d) (%s)", ret, av_err2str(ret));
   }
+  return got_packet;
 #endif
+}  // end int zm_receive_packet(AVCodecContext *context, AVPacket &packet)
 
+int zm_send_packet_receive_frame(
+    AVCodecContext *context,
+    AVFrame *frame,
+    AVPacket &packet) {
+  int ret;
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  if ( (ret = avcodec_send_packet(context, &packet)) < 0 ) {
+    Error("Unable to send packet %s, continuing",
+       av_make_error_string(ret).c_str());
+    return ret;
+  }
+
+  if ( (ret = avcodec_receive_frame(context, frame)) < 0 ) {
+    if ( AVERROR(EAGAIN) == ret ) {
+      // The codec may need more samples than it has, perfectly valid
+      Debug(2, "Codec not ready to give us a frame");
+    } else {
+      Error("Could not recieve frame (error %d = '%s')", ret,
+          av_make_error_string(ret).c_str());
+    }
+    return ret;
+  }
+  // In this api the packet is always consumed, so return packet.bytes
+  return packet.size;
 # else
   int frameComplete = 0;
   while ( !frameComplete ) {
-    if ( (ret = zm_avcodec_decode_video( context, frame, &frameComplete, &packet )) < 0 ) {
-      Error( "Unable to decode frame at frame: %s, continuing",
-          av_make_error_string(ret).c_str() );
+    if ( is_video_context(context) ) {
+      ret = zm_avcodec_decode_video(context, frame, &frameComplete, &packet);
+    } else {
+      ret = avcodec_decode_audio4(context, frame, &frameComplete, &packet);
+    }
+    if ( ret < 0 ) {
+      Error("Unable to decode frame: %s", av_make_error_string(ret).c_str());
+      return ret;
+    }
+  } // end while !frameComplete
+  return ret;
+#endif
+} // end int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
+
+/* Returns < 0 on error, 0 if codec not ready, 1 on success
+ */
+int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
+  int ret;
+  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    if ( (ret = avcodec_send_frame(ctx, frame)) < 0 ) {
+      Error("Could not send frame (error '%s')",
+            av_make_error_string(ret).c_str());
+      return ret;
+    }
+
+    if ( (ret = avcodec_receive_packet(ctx, &packet)) < 0 ) {
+      if ( AVERROR(EAGAIN) == ret ) {
+        // The codec may need more samples than it has, perfectly valid
+        Debug(2, "Codec not ready to give us a packet");
+        return 0;
+      } else {
+        Error("Could not recieve packet (error %d = '%s')", ret,
+              av_make_error_string(ret).c_str());
+      }
+      zm_av_packet_unref(&packet);
+      return ret;
+    }
+  #else
+    int data_present;
+    if ( (ret = avcodec_encode_audio2(
+            ctx, &packet, frame, &data_present)) < 0 ) {
+      Error("Could not encode frame (error '%s')",
+            av_make_error_string(ret).c_str());
+      zm_av_packet_unref(&packet);
+      return ret;
+    }
+    if ( !data_present ) {
+      Debug(2, "Not ready to out a frame yet.");
+      zm_av_packet_unref(&packet);
       return 0;
     }
-  }
-#endif
+  #endif
   return 1;
-} // end int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet )
-void dumpPacket(AVPacket *pkt, const char *text) {
+}  // end int zm_send_frame_receive_packet
+
+void dumpPacket(AVStream *stream, AVPacket *pkt, const char *text) {
   char b[10240];
 
+  double pts_time = (double)av_rescale_q(pkt->pts,
+      stream->time_base,
+      AV_TIME_BASE_Q
+      ) / AV_TIME_BASE;
+
   snprintf(b, sizeof(b),
-           " pts: %" PRId64 ", dts: %" PRId64
-           ", data: %p, size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
+           " pts: %" PRId64 "=%f, dts: %" PRId64
+           ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
            ", duration: %" 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
            PRId64
@@ -451,8 +638,8 @@ void dumpPacket(AVPacket *pkt, const char *text) {
 #endif
            "\n",
            pkt->pts, 
+           pts_time,
            pkt->dts,
-           pkt->data,
            pkt->size,
            pkt->stream_index,
            pkt->flags,
@@ -461,3 +648,149 @@ void dumpPacket(AVPacket *pkt, const char *text) {
            pkt->duration);
   Debug(2, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
 }
+
+void dumpPacket(AVPacket *pkt, const char *text) {
+  char b[10240];
+
+  snprintf(b, sizeof(b),
+           " pts: %" PRId64 ", dts: %" PRId64
+           ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
+           ", duration: %"
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+           PRId64
+#else
+           "d"
+#endif
+           "\n",
+           pkt->pts,
+           pkt->dts,
+           pkt->size,
+           pkt->stream_index,
+           pkt->flags,
+           pkt->flags & AV_PKT_FLAG_KEY,
+           pkt->pos,
+           pkt->duration);
+  Debug(2, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
+}
+
+void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRational src_tb, const AVRational dst_tb) {
+  opkt->pts = ipkt->pts;
+  opkt->dts = ipkt->dts;
+  opkt->duration = ipkt->duration;
+  av_packet_rescale_ts(opkt, src_tb, dst_tb);
+}
+
+#if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
+int zm_resample_audio(
+#if defined(HAVE_LIBSWRESAMPLE)
+    SwrContext *resample_ctx,
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
+    AVAudioResampleContext *resample_ctx,
+#endif
+#endif
+    AVFrame *in_frame,
+    AVFrame *out_frame
+    ) {
+#if defined(HAVE_LIBSWRESAMPLE)
+  if ( in_frame ) {
+    // Resample the in_frame into the audioSampleBuffer until we process the whole
+    // decoded data. Note: pts does not survive resampling or converting
+    Debug(2, "Converting %d to %d samples using swresample",
+        in_frame->nb_samples, out_frame->nb_samples);
+  } else {
+    Debug(2, "Sending NULL frame to flush resampler");
+  }
+  int ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
+  if ( ret < 0 ) {
+    Error("Could not resample frame (error '%s')",
+        av_make_error_string(ret).c_str());
+    return 0;
+  }
+  Debug(3,"swr_get_delay %d",
+      swr_get_delay(resample_ctx, out_frame->sample_rate));
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
+  if ( ! in_frame ) {
+    Error("Flushing resampler not supported by AVRESAMPLE");
+    return 0;
+  }
+  int ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
+                            0, in_frame->nb_samples);
+  if ( ret < 0 ) {
+    Error("Could not resample frame (error '%s')",
+        av_make_error_string(ret).c_str());
+    return 0;
+  }
+  int samples_available = avresample_available(resample_ctx);
+  if ( samples_available < out_frame->nb_samples ) {
+    Debug(1, "Not enough samples yet (%d)", samples_available);
+    return 0;
+  }
+
+  // Read a frame audio data from the resample fifo
+  if ( avresample_read(resample_ctx, out_frame->data, out_frame->nb_samples) !=
+      out_frame->nb_samples) {
+    Warning("Error reading resampled audio.");
+    return 0;
+  }
+#endif
+#endif
+  zm_dump_frame(out_frame, "Out frame after resample");
+  return 1;
+}
+
+int zm_resample_get_delay(
+#if defined(HAVE_LIBSWRESAMPLE)
+        SwrContext *resample_ctx,
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
+        AVAudioResampleContext *resample_ctx,
+#endif
+#endif
+        int time_base
+    ) { 
+#if defined(HAVE_LIBSWRESAMPLE)
+  return swr_get_delay(resample_ctx, time_base);
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
+  return avresample_available(resample_ctx);
+#endif
+#endif
+}
+#endif
+
+int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame) {
+  int ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + frame->nb_samples);
+  if ( ret < 0 ) {
+    Error("Could not reallocate FIFO to %d samples",
+        av_audio_fifo_size(fifo) + frame->nb_samples);
+    return 0;
+  }
+  /** Store the new samples in the FIFO buffer. */
+  ret = av_audio_fifo_write(fifo, (void **)frame->data, frame->nb_samples);
+  if ( ret < frame->nb_samples ) {
+    Error("Could not write data to FIFO. %d written, expecting %d. Reason %s",
+        ret, frame->nb_samples, av_make_error_string(ret).c_str());
+    return 0;
+  }
+  return 1;
+}
+
+int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame) {
+  // AAC requires 1024 samples per encode.  Our input tends to be something else, so need to buffer them.
+  if ( frame->nb_samples > av_audio_fifo_size(fifo) ) {
+    Debug(1, "Not enough samples in fifo for AAC codec frame_size %d > fifo size %d",
+         frame->nb_samples, av_audio_fifo_size(fifo));
+    return 0;
+  }
+
+  if ( av_audio_fifo_read(fifo, (void **)frame->data, frame->nb_samples) < frame->nb_samples ) {
+    Error("Could not read data from FIFO");
+    return 0;
+  }
+//out_frame->nb_samples = frame_size;
+  zm_dump_frame(frame, "Out frame after fifo read");
+  return 1;
+}
+

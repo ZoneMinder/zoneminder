@@ -1,9 +1,12 @@
 <?php
+namespace ZM;
 require_once('database.php');
+require_once('Event.php');
+require_once('Object.php');
 
-$storage_cache = array();
-class Storage {
-  private $defaults = array(
+class Storage extends ZM_Object {
+  protected static $table = 'Storage';
+  protected $defaults = array(
     'Id'        => null,
     'Path'      => '',
     'Name'      => '',
@@ -13,36 +16,18 @@ class Storage {
     'Scheme'    => 'Medium',
     'ServerId'  => 0,
     'DoDelete'  => 1,
+    'Enabled'   => 1,
   );
+  public static function find($parameters = array(), $options = array()) {
+    return ZM_Object::_find(get_class(), $parameters, $options);
+  }
 
-  public function __construct( $IdOrRow = NULL ) {
-    global $storage_cache;
-    
-    $row = NULL;
-    if ( $IdOrRow ) {
-      if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
-        $row = dbFetchOne('SELECT * FROM Storage WHERE Id=?', NULL, array($IdOrRow));
-        if ( ! $row ) {
-          Error('Unable to load Storage record for Id=' . $IdOrRow);
-        }
-      } else if ( is_array($IdOrRow) ) {
-        $row = $IdOrRow;
-      }
-    }
-    if ( $row ) {
-      foreach ($row as $k => $v) {
-        $this->{$k} = $v;
-      }
-      $storage_cache[$row['Id']] = $this;
-    } else {
-      $this->{'Name'} = '';
-      $this->{'Path'} = '';
-      $this->{'Type'} = 'local';
-    }
+  public static function find_one($parameters = array(), $options = array()) {
+    return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
   public function Path() {
-    if ( isset( $this->{'Path'} ) and ( $this->{'Path'} != '' ) ) {
+    if ( isset($this->{'Path'}) and ( $this->{'Path'} != '' ) ) {
       return $this->{'Path'};
     } else if ( ! isset($this->{'Id'}) ) {
       $path = ZM_DIR_EVENTS;
@@ -56,7 +41,7 @@ class Storage {
     return $this->{'Name'};
   }
   public function Name() {
-    if ( isset( $this->{'Name'} ) and ( $this->{'Name'} != '' ) ) {
+    if ( isset($this->{'Name'}) and ( $this->{'Name'} != '' ) ) {
       return $this->{'Name'};
     } else if ( ! isset($this->{'Id'}) ) {
       return 'Default';
@@ -64,92 +49,22 @@ class Storage {
     return $this->{'Name'};
   }
 
-  public function __call( $fn, array $args= NULL ) {
-    if ( count($args) ) {
-      $this->{$fn} = $args[0];
+  public function Events() {
+    if ( $this->{'Id'} and ! isset($this->{'Events'}) ) {
+      $this->{'Events'} = Event::find(array('StorageId'=>$this->{'Id'}));
     }
-    if ( array_key_exists($fn, $this) )
-      return $this->{$fn};
-        
-    if ( array_key_exists( $fn, $this->defaults ) )
-      return $this->defaults{$fn};
-
-    $backTrace = debug_backtrace();
-    $file = $backTrace[0]['file'];
-    $line = $backTrace[0]['line'];
-    Warning("Unknown function call Storage->$fn from $file:$line");
-    $file = $backTrace[1]['file'];
-    $line = $backTrace[1]['line'];
-    Warning("Unknown function call Storage->$fn from $file:$line");
+    if ( ! isset($this->{'Events'}) ) {
+      $this->{'Events'} = array();
+    }
+    return $this->{'Events'};
   }
 
-  public static function find_one( $parameters = null, $options = null ) {
-    global $storage_cache;
-    if ( 
-        ( count($parameters) == 1 ) and
-        isset($parameters['Id']) and
-        isset($storage_cache[$parameters['Id']]) ) {
-      return $storage_cache[$parameters['Id']];
-    }
-
-    $results = Storage::find($parameters, $options);
-    if ( count($results) > 1 ) {
-      Error("Storage Returned more than 1");
-      return $results[0];
-    } else if ( count($results) ) {
-      return $results[0];
-    } else {
-      return null;
-    }
-  }
-  public static function find( $parameters = null, $options = null ) {
-    $sql = 'SELECT * FROM Storage ';
-    $values = array();
-
-    if ( $parameters ) {
-      $fields = array();
-      $sql .= 'WHERE ';
-      foreach ( $parameters as $field => $value ) {
-        if ( $value == null ) {
-          $fields[] = $field.' IS NULL';
-        } else if ( is_array($value) ) {
-          $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
-          $values += $value;
-
-        } else {
-          $fields[] = $field.'=?';
-          $values[] = $value;
-        }
-      }
-      $sql .= implode(' AND ', $fields);
-    } # end if parameters
-    if ( $options ) {
-      if ( isset($options['order']) ) {
-        $sql .= ' ORDER BY ' . $options['order'];
-      } # end if options
-      if ( isset($options['limit']) ) {
-        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $option['limit'];
-        } else {
-          $backTrace = debug_backtrace();
-          $file = $backTrace[1]['file'];
-          $line = $backTrace[1]['line'];
-          Error("Invalid value for limit(".$options['limit'].") passed to Control::find from $file:$line");
-          return array();
-        }
-      } # end if limit
-    } # end if options
-    $storage_areas = array();
-    $result = dbQuery($sql, $values);
-    if ( $result ) {
-      $results = $result->fetchALL();
-      foreach ( $results as $row ) {
-        $storage_areas[] = new Storage($row);
-      }
-    }
-    return $storage_areas;
-  } # end find()
+	public function EventCount() {
+    if ( (! property_exists($this, 'EventCount')) or (!$this->{'EventCount'}) ) {
+      $this->{'EventCount'} = dbFetchOne('SELECT COUNT(*) AS EventCount FROM Events WHERE StorageId=?', 'EventCount', array($this->Id()));
+		}
+		return $this->{'EventCount'};
+	}
 
   public function disk_usage_percent() {
     $path = $this->Path();
@@ -163,17 +78,17 @@ class Storage {
       
     $total = $this->disk_total_space();
     if ( ! $total ) {
-      Error('disk_total_space returned false for ' . $path );
+      Error('disk_total_space returned false for ' . $path);
       return 0;
     }
     $used = $this->disk_used_space();
-    $usage = round( ($used / $total) * 100);
+    $usage = round(($used / $total) * 100);
     //Logger::Debug("Used $usage = round( ( $used / $total ) * 100 )");
     return $usage;
   }
 
   public function disk_total_space() {
-    if ( !array_key_exists('disk_total_space', $this) ) {
+    if ( !property_exists($this, 'disk_total_space') ) {
       $path = $this->Path();
       if ( file_exists($path) ) {
         $this->{'disk_total_space'} = disk_total_space($path);
@@ -187,7 +102,7 @@ class Storage {
 
   public function disk_used_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( ( !array_key_exists('disk_used_space', $this)) or !$this->{'disk_used_space'} ) {
+    if ( ( !property_exists($this, 'disk_used_space')) or !$this->{'disk_used_space'} ) {
       if ( $this->{'Type'} == 's3fs' ) {
         $this->{'disk_used_space'} = $this->event_disk_space();
       } else { 
@@ -205,23 +120,40 @@ class Storage {
 
   public function event_disk_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( (! array_key_exists('DiskSpace', $this)) or (!$this->{'DiskSpace'}) ) {
-      $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
+    if ( (! property_exists($this, 'DiskSpace')) or (!$this->{'DiskSpace'}) ) {
+      $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
 
-      foreach ( Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null)) as $Event ) {
-        $Event->Storage($this); // Prevent further db hit
-        $used += $Event->DiskSpace();
-      }
+      do {
+        # Do in batches of 1000 so as to not useup all ram, Event will do caching though...
+        $events = Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null), array('limit'=>1000));
+        foreach ( $events as $Event ) {
+          $Event->Storage($this); // Prevent further db hit
+          # DiskSpace will update the event
+          $used += $Event->DiskSpace();
+        } #end foreach
+        Event::clear_cache();
+      } while ( count($events) == 1000 );
       $this->{'DiskSpace'} = $used;
     }
     return $this->{'DiskSpace'};
   } // end function event_disk_space
 
   public function Server() {
-    if ( ! array_key_exists('Server',$this) ) {
-      $this->{'Server'}= new Server( $this->{'ServerId'} );
+    if ( ! property_exists($this, 'Server') ) {
+      if ( property_exists($this, 'ServerId') ) {
+        $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
+
+        if ( !$this->{'Server'} ) {
+          if ( $this->{'ServerId'} )
+            Error('No Server record found for server id ' . $this->{'ServerId'});
+          $this->{'Server'} = new Server();
+        }
+      } else {
+        $this->{'Server'} = new Server();
+      }
     }
     return $this->{'Server'};
   }
-}
+
+} // end class Storage
 ?>

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -51,6 +51,8 @@ configuring upgrades etc, including on the fly upgrades.
 use strict;
 use bytes;
 use version;
+use Crypt::Eksblowfish::Bcrypt;
+use Data::Entropy::Algorithms qw(rand_bits);
 
 # ==========================================================================
 #
@@ -299,7 +301,7 @@ if ( $migrateEvents ) {
     $sth->finish();
 
     print( "Updating configuration.\n" );
-    $sql = "update Config set Value = ? where Name = 'ZM_USE_DEEP_STORAGE'";
+    $sql = "UPDATE `Config` SET `Value` = ? WHERE `Name` = 'ZM_USE_DEEP_STORAGE'";
     $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
     $res = $sth->execute( 1 ) or die( "Can't execute: ".$sth->errstr() );
     $sth->finish();
@@ -312,6 +314,7 @@ if ( $migrateEvents ) {
 if ( $freshen ) {
   print( "\nFreshening configuration in database\n" );
   migratePaths();
+  migratePasswords();
   ZoneMinder::Config::loadConfigFromDB();
   ZoneMinder::Config::saveConfigToDB();
 }
@@ -320,7 +323,7 @@ if ( $freshen ) {
 if ( $interactive ) {
 # Now check for MyISAM Tables
   my @MyISAM_Tables;
-  my $sql = "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='zm' AND engine = 'MyISAM'";
+  my $sql = "SELECT `table_name` FROM INFORMATION_SCHEMA.TABLES WHERE `table_schema`='zm' AND `engine` = 'MyISAM'";
   my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
 
@@ -338,7 +341,7 @@ if ( $interactive ) {
       $dbh->do(q|SET sql_mode='traditional'|); # Elevate warnings to errors
         print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
       foreach (@MyISAM_Tables) {
-        my $sql = "ALTER TABLE $_ ENGINE = InnoDB";
+        my $sql = "ALTER TABLE `$_` ENGINE = InnoDB";
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
         $sth->finish();
@@ -444,7 +447,7 @@ if ( $version ) {
 # Rename the event directories and create a new symlink for the names
     chdir( EVENT_PATH );
 
-    my $sql = "select * from Monitors order by Id";
+    my $sql = "SELECT * FROM `Monitors` ORDER BY `Id`";
     my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() ) {
@@ -844,9 +847,9 @@ if ( $version ) {
     }
     $cascade = !undef;
   }
-  if ( $cascade || $version eq "1.24.4" ) {
+  if ( $cascade || $version eq '1.24.4' ) {
 # Patch the database
-    patchDB( $dbh, "1.24.4" );
+    patchDB($dbh, '1.24.4');
 
 # Copy the FTP specific values to the new general config
     my $fetchSql = "select * from Config where Name like 'ZM_UPLOAD_FTP_%'";
@@ -860,12 +863,12 @@ if ( $version ) {
     }
     $cascade = !undef;
   }
-  if ( $cascade || $version lt "1.26.0" ) {
-    my $sth = $dbh->prepare_cached( 'select * from Monitors LIMIT 0,1' );
+  if ( $cascade || $version lt '1.26.0' ) {
+    my $sth = $dbh->prepare_cached('SELECT * FROM Monitors LIMIT 0,1');
     die "Error: " . $dbh->errstr . "\n" unless ($sth);
     die "Error: " . $sth->errstr . "\n" unless ($sth->execute);
 
-    my $columns = $sth->{'NAME'};
+    my $columns = $sth->{NAME};
     if ( ! grep(/^Colours$/, @$columns ) ) {
       $dbh->do(q{alter table Monitors add column `Colours` tinyint(3) unsigned NOT NULL default '1' after `Height`;});
     } # end if
@@ -895,72 +898,76 @@ if ( $version ) {
       die "Should have found upgrade scripts at $updateDir\n";
     } # end if
 
+    my $sql = "UPDATE `Config` SET `Value` = ? WHERE `Name` = 'ZM_DYN_DB_VERSION'";
+    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+
     foreach my $patch ( @files ) {
       my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
 #PP make sure we use version compare 
-      if ( version->parse('v' . $v) > version->parse('v' . $version) ) {
-        print( "Upgrading DB to $v from $version\n" );
-        patchDB( $dbh, $v );
-  my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
-  my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
-  $sth->finish();
+      if ( version->parse('v'.$v) > version->parse('v'.$version) ) {
+        print("Upgrading DB to $v from $version\n");
+        if ( patchDB($dbh, $v) ) {
+          my $res = $sth->execute($version) or die( "Can't execute: ".$sth->errstr() );
+        }
         #patchDB_using_do( $dbh, $version, $updateDir.'/'.$patch );
       } # end if newer version
     } # end foreach patchfile
+
+    $sth->finish();
     $cascade = !undef;
   } # end if
 
   if ( $cascade ) {
-    my $installed_version = ZM_VERSION;
-    my $sql = 'update Config set Value = ? where Name = ?';
+    # This is basically here so that we don't need zm-update-blah.sql files for versions without db changes
+    my $sql = 'UPDATE `Config` SET `Value` = ? WHERE `Name` = ?';
     my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( "$installed_version", 'ZM_DYN_DB_VERSION' ) or die( "Can't execute: ".$sth->errstr() );
-    $res = $sth->execute( "$installed_version", 'ZM_DYN_CURR_VERSION' ) or die( "Can't execute: ".$sth->errstr() );
+    $sth->execute(ZM_VERSION, 'ZM_DYN_DB_VERSION') or die( "Can't execute: ".$sth->errstr() );
+    $sth->execute(ZM_VERSION, 'ZM_DYN_CURR_VERSION') or die( "Can't execute: ".$sth->errstr() );
     $sth->finish();
   } else {
     zmDbDisconnect();
     die( "Can't find upgrade from version '$version'" );
   }
   # Re-enable the privacy popup after each upgrade
-  my $sql = "update Config set Value = 1 where Name = 'ZM_SHOW_PRIVACY'";
-  my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute( ) or die( "Can't execute: ".$sth->errstr() );
-  $sth->finish();
-  print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n" );
-}
+  #my $sql = "update Config set Value = 1 where Name = 'ZM_SHOW_PRIVACY'";
+  #my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  #my $res = $sth->execute( ) or die( "Can't execute: ".$sth->errstr() );
+  #$sth->finish();
+  print("\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n");
+} # end if version
+
 zmDbDisconnect();
-exit( 0 );
+exit(0);
 
 sub patchDB_using_do {
   my ( $dbh, $version, $file ) = @_;
 
-  open( my $fh, '<', $file ) or die "Unable to open $file $!";
+  open(my $fh, '<', $file) or die "Unable to open $file $!";
   $/ = undef;
   my $sql = <$fh>;
   close $fh;
   if ( $sql ) {
-    $dbh->{'AutoCommit'} = 0;
+    $dbh->{AutoCommit} = 0;
     $dbh->do($sql);
     if ( $dbh->errstr() ) {
       $dbh->rollback();
-      die "Error: " . $dbh->errstr(). ".  Rolled back.\n";		
+      die 'Error: '.$dbh->errstr().".  Rolled back.\n";		
     } # end if error
 
-    my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
-    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
+    my $sql = 'UPDATE `Config` SET `Value` = ? WHERE `Name` = \'ZM_DYN_DB_VERSION\'';
+    my $sth = $dbh->prepare_cached($sql) or die "Can't prepare '$sql': ".$dbh->errstr();
+    my $res = $sth->execute($version) or die 'Can\'t execute: '.$sth->errstr();
     $sth->finish();
 
-    $dbh->{'AutoCommit'} = 1;
+    $dbh->{AutoCommit} = 1;
   } else {
     Warning("Empty db update file at $file");
   }
-}
+} # end sub patchDB_using_do
+
 sub patchDB {
   my $dbh = shift;
   my $version = shift;
-
 
   my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
   my $command = 'mysql';
@@ -985,19 +992,38 @@ sub patchDB {
   }
   $command .= '/zm_update-'.$version.'.sql';
 
-  print( "Executing '$command'\n" ) if ( logDebugging() );
+  print("Executing '$command'\n") if logDebugging();
   my $output = qx($command);
   my $status = $? >> 8;
   if ( $status || logDebugging() ) {
-    chomp( $output );
-    print( "Output: $output\n" );
+    chomp($output);
+    print("Output: $output\n");
   }
   if ( $status ) {
-    die( "Command '$command' exited with status: $status\n" );
+    die("Command '$command' exited with status: $status\n");
   }
-  print( "\nDatabase successfully upgraded to version $version.\n" );
+  print("\nDatabase successfully upgraded to version $version.\n");
+} # end sub patchDB
 
-}
+sub migratePasswords {
+  print ("Migratings passwords, if any...\n");
+  my $sql = 'SELECT * FROM `Users`';
+  my $sth = $dbh->prepare_cached($sql) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute() or die("Can't execute: ".$sth->errstr());
+  while( my $user = $sth->fetchrow_hashref() ) {
+    my $scheme = substr($user->{Password}, 0, 1);
+    if ($scheme eq '*') {
+      print ('-->'.$user->{Username}." password will be migrated\n");
+      my $salt = Crypt::Eksblowfish::Bcrypt::en_base64(rand_bits(16*8));
+      my $settings = '$2a$10$'.$salt;
+      my $pass_hash = Crypt::Eksblowfish::Bcrypt::bcrypt($user->{Password},$settings);
+      my $new_pass_hash = '-ZM-'.$pass_hash;
+      $sql = 'UPDATE Users SET `Password`=? WHERE `Username`=?';
+      my $sth = $dbh->prepare_cached($sql) or die("Can't prepare '$sql': ".$dbh->errstr());
+      my $res = $sth->execute($new_pass_hash, $user->{Username}) or die("Can't execute: ".$sth->errstr());
+    }
+  }
+} # end sub migratePasswords
 
 sub migratePaths {
 

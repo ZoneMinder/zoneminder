@@ -76,9 +76,9 @@ my $monitor_reload_time = 0;
 
 # this does not work on all architectures
 my @EXTRA_SOCK_OPTS = (
-    'ReuseAddr' => '1',
-#    'ReusePort' => '1',
-#    'Blocking'  => '0',
+  'ReuseAddr' => '1',
+  #    'ReusePort' => '1',
+  #    'Blocking'  => '0',
 );
 
 
@@ -86,19 +86,17 @@ my @EXTRA_SOCK_OPTS = (
 # signal handling
 
 sub handler { # 1st argument is signal name
-  my($sig) = @_;
-  Error( "Caught a SIG$sig -- shutting down\n" );
+  my ($sig) = @_;
+  Error("Caught a SIG$sig -- shutting down");
   confess();
-  if(defined $daemon_pid){
-    kill($daemon_pid);
-  }
+  kill($daemon_pid) if defined $daemon_pid;
   exit(0);
 }
 
-$SIG{'INT'} = \&handler;
-$SIG{'HUP'} = \&handler;
-$SIG{'QUIT'} = \&handler;
-$SIG{'TERM'} = \&handler;
+$SIG{INT} = \&handler;
+$SIG{HUP} = \&handler;
+$SIG{QUIT} = \&handler;
+$SIG{TERM} = \&handler;
 $SIG{__DIE__} = \&handler;
 
 # =========================================================================
@@ -107,23 +105,21 @@ $SIG{__DIE__} = \&handler;
 use Data::Hexdumper qw(hexdump);
 #use Devel::Peek;
 
-sub dump_mapped
-{
+sub dump_mapped {
   my ($monitor) = @_;
-  
-  if(!zmMemVerify($monitor)) {
+
+  if ( !zmMemVerify($monitor) ) {
     print "Error: Mapped memory not accessible\n";
   }
   my $mmap = $monitor->{MMap};
-  print "Size: " . $ZoneMinder::Memory::mem_size ."\n";
-  printf("Mapped at %x\n", $monitor->{MMapAddr}); 
-#  Dump($mmap);
-  if($mmap && $$mmap )
-  {
+  print 'Size: '.$ZoneMinder::Memory::mem_size ."\n";
+  printf("Mapped at %x\n", $monitor->{MMapAddr});
+  #  Dump($mmap);
+  if ( $mmap && $$mmap ) {
     print hexdump(
       data           => $$mmap, # what to dump
       output_format  => '  %4a : %S %S %S %S %S %S %S %S         : %d',
-#      start_position => 336,   # start at this offset ...
+      #      start_position => 336,   # start at this offset ...
       end_position   => 400    # ... and end at this offset
     );
   }
@@ -134,8 +130,7 @@ sub dump_mapped
 # =========================================================================
 # internal methods
 
-sub xs_duration
-{
+sub xs_duration {
   use integer;
   my ($seconds) = @_;
   my $s = $seconds % 60;
@@ -171,10 +166,10 @@ sub xs_duration
 ## make this a singleton ?
 {
   package _ZoneMinder;
-  
+
   use strict;
   use bytes;
-  
+
   use base qw(Class::Std::Fast);
 
   use DBI;
@@ -182,147 +177,129 @@ sub xs_duration
   use Time::HiRes qw( usleep );
   use ZoneMinder;
 
-
-#  my %monitors = ();
+  #  my %monitors = ();
   my $dbh;
   my %monitors_of; #   :ATTR(:name<monitors> :default<{}>);
 
-
-  sub init
-  {
+  sub init {
     $dbh = zmDbConnect();
   }
 
-  sub monitors
-  {
+  sub monitors {
     my ($self) = @_;
     return $monitors_of{ident $self}?%{ $monitors_of{ident $self} }:undef;
   }
 
-  sub set_monitors
-  {
+  sub set_monitors {
     my ($self, %monitors_par) = @_;
     $monitors_of{ident $self} = \%monitors_par;
   }
 
-## TODO: remember to refresh this in all threads (daemon is forked)
-  sub loadMonitors
-  {
+  ## TODO: remember to refresh this in all threads (daemon is forked)
+  sub loadMonitors {
     my ($self) = @_;
-	  Info( "Loading monitors\n" );
-	  $monitor_reload_time = time();
+    Info("Loading monitors");
+    $monitor_reload_time = time();
 
-	  my %new_monitors = ();
+    my %new_monitors = ();
 
-  #	my $sql = "select * from Monitors where find_in_set( Function, 'Modect,Mocord,Nodect,ExtDect' )>0 and ConfigType='ONVIF'";
-	  my $sql = "select * from Monitors where ConfigType='ONVIF'";
-	  my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-	  my $res = $sth->execute() or Fatal( "Can't execute: ".$sth->errstr() );
-	  while( my $monitor = $sth->fetchrow_hashref() )
-	  {
-      if(!defined $script) {
-		    if ( !zmMemVerify( $monitor ) )  { # Check shared memory ok
-          zmMemInvalidate( $monitor );
-          next if ( !zmMemVerify( $monitor ) );
+    #	my $sql = "select * from Monitors where find_in_set( Function, 'Modect,Mocord,Nodect,ExtDect' )>0 and ConfigType='ONVIF'";
+    my $sql = "SELECT * FROM Monitors WHERE ConfigType='ONVIF'";
+    my $sth = $dbh->prepare_cached($sql) or Fatal("Can't prepare '$sql': ".$dbh->errstr());
+    my $res = $sth->execute() or Fatal("Can't execute: ".$sth->errstr());
+    while ( my $monitor = $sth->fetchrow_hashref() ) {
+      if ( !defined $script ) {
+        if ( !zmMemVerify($monitor) ) { # Check shared memory ok
+          zmMemInvalidate($monitor);
+          next if !zmMemVerify($monitor);
         }
       }
-    
-      Info( "Monitor URL: " .$monitor->{ConfigURL} ."\n" );
+
+      Info('Monitor URL: '.$monitor->{ConfigURL});
 
       ## set up ONVIF client for monitor
-      next if( ! $monitor->{ConfigURL} );
+      next if ! $monitor->{ConfigURL};
 
       my $soap_version;
-      if($monitor->{ConfigOptions} =~ /SOAP1([12])/) {
+      if ( $monitor->{ConfigOptions} =~ /SOAP1([12])/ ) {
         $soap_version = "1.$1";
+      } else {
+        $soap_version = '1.1';
       }
-      else {
-        $soap_version = "1.1";
-      }
-      my $client = ONVIF::Client->new( { 
-        'url_svc_device' => $monitor->{ConfigURL}, 
-        'soap_version' => $soap_version } );
+      my $client = ONVIF::Client->new( {
+          url_svc_device => $monitor->{ConfigURL},
+          soap_version => $soap_version } );
 
-      if($monitor->{User}) {
+      if ( $monitor->{User} ) {
         $client->set_credentials($monitor->{User}, $monitor->{Pass}, 0);
       }
 
       $client->create_services();
       $monitor->{onvif_client} = $client;
 
-		  $new_monitors{$monitor->{Id}} = $monitor;
-	  }
-	  $self->set_monitors(%new_monitors);
+      $new_monitors{$monitor->{Id}} = $monitor;
+    } # end foreach monitor
+    $self->set_monitors(%new_monitors);
   }
 
-  sub freeMonitors
-  {
+  sub freeMonitors {
     my ($self) = @_;
     my %monitors = $self->monitors();
-	  foreach my $monitor ( values(%monitors) )
-    {
+    foreach my $monitor ( values %monitors ) {
       # Free up any used memory handle
-      zmMemInvalidate( $monitor );
+      zmMemInvalidate($monitor);
     }
   }
 
-  sub eventOn
-  {
+  sub eventOn {
     my ($self, $monitorId, $score, $cause, $text, $showtext) = @_;
-  #	Info( "Trigger '$trigger'\n" );
-    Info( "On: $monitorId, $score, $cause, $text, $showtext\n" );
-    my %monitors = $self->monitors();
-    my $monitor = $monitors{$monitorId};
-    if(defined $script) {
-#      eval {
-        system($script, 'On', $monitor->{Name}, $monitor->{Path}, $cause);
-        # this goes to "stopped" in ffmpeg when executed from shell - why?
-#      }
-    }
-    else {
-      # encode() ensures that no utf-8 is written to mmap'ed memory.
-      zmTriggerEventOn( $monitor, $score, encode("utf-8", $cause), encode("utf-8", $text) );
-      zmTriggerShowtext( $monitor, encode("utf-8", $showtext) ) if defined($showtext);
-#      main::dump_mapped($monitor);
-    }
-  }
-
-  sub eventOff
-  {
-    my ($self, $monitorId, $score, $cause, $text, $showtext) = @_;
-    Info( "Off: $monitorId, $score, $cause, $text, $showtext\n" );
-    my %monitors = $self->monitors();
-    my $monitor = $monitors{$monitorId};
-    if(defined $script) {
-#      eval {
-        system($script, 'Off', $monitor->{Name}, $monitor->{Path}, $cause);
-#      }
-    }
-    else {
-      my $last_event = zmGetLastEvent( $monitor );
-      zmTriggerEventOff( $monitor );
-      # encode() ensures that no utf-8 is written to mmap'ed memory.
-	    zmTriggerShowtext( $monitor, encode("utf-8", $showtext) ) if defined($showtext);
     #	Info( "Trigger '$trigger'\n" );
-      # Wait til it's finished
-      while( zmInAlarm( $monitor ) && ($last_event == zmGetLastEvent( $monitor )) )
-      {
-         # Tenth of a second
-         usleep( 100000 );
-      }
-	    zmTriggerEventCancel( $monitor );
-  #    main::dump_mapped($monitor);
+    Info("On: $monitorId, $score, $cause, $text, $showtext");
+    my %monitors = $self->monitors();
+    my $monitor = $monitors{$monitorId};
+    if ( defined $script ) {
+      #      eval {
+      system($script, 'On', $monitor->{Name}, $monitor->{Path}, $cause);
+      # this goes to "stopped" in ffmpeg when executed from shell - why?
+      #      }
+    } else {
+      # encode() ensures that no utf-8 is written to mmap'ed memory.
+      zmTriggerEventOn($monitor, $score, encode('utf-8', $cause), encode('utf-8', $text));
+      zmTriggerShowtext($monitor, encode('utf-8', $showtext)) if defined($showtext);
+      #      main::dump_mapped($monitor);
     }
   }
 
-}
+  sub eventOff {
+    my ($self, $monitorId, $score, $cause, $text, $showtext) = @_;
+    Info("Off: $monitorId, $score, $cause, $text, $showtext");
+    my %monitors = $self->monitors();
+    my $monitor = $monitors{$monitorId};
+    if ( defined $script ) {
+      #      eval {
+      system($script, 'Off', $monitor->{Name}, $monitor->{Path}, $cause);
+      #      }
+    } else {
+      my $last_event = zmGetLastEvent($monitor);
+      zmTriggerEventOff($monitor);
+      # encode() ensures that no utf-8 is written to mmap'ed memory.
+      zmTriggerShowtext($monitor, encode('utf-8', $showtext) ) if defined($showtext);
+      #	Info( "Trigger '$trigger'\n" );
+      # Wait til it's finished
+      while ( zmInAlarm($monitor) && ($last_event == zmGetLastEvent($monitor)) ) {
+        # Tenth of a second
+        usleep(100000);
+      }
+      zmTriggerEventCancel($monitor);
+      #    main::dump_mapped($monitor);
+    }
+  }
+}  # end package _ZoneMinder
 # =========================================================================
 ### (experimental) send email
 
-sub send_picture_email
-{
-  
-#  'ffmpeg -i "rtsp://admin:admin123@192.168.0.70:554/Streaming/Channels/1?transportmode=mcast&profile=Profile_1" -y -frames 1 -vf scale=1024:-1 /tmp/pic2.jpg'
+sub send_picture_email {
+  #  'ffmpeg -i "rtsp://admin:admin123@192.168.0.70:554/Streaming/Channels/1?transportmode=mcast&profile=Profile_1" -y -frames 1 -vf scale=1024:-1 /tmp/pic2.jpg'
 }
 
 # =========================================================================
@@ -336,109 +313,102 @@ $SOAP::Constants::DO_NOT_CHECK_MUSTUNDERSTAND = 1;
   use strict;
   use bytes;
   use base qw(Class::Std::Fast SOAP::Server::Parameters);
- 
+
   use ZoneMinder;
- 
+
   my $zm;
 
   sub BUILD {
     my ($self, $ident, $arg_ref) = @_;
-#    $zm_of{$ident} = check_name( $arg_ref->{zm} );
+    #    $zm_of{$ident} = check_name( $arg_ref->{zm} );
     $zm = $arg_ref->{zm};
   }
 
   #
   # called on http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer/Notify
   #
-  sub Notify
-  {
+  sub Notify {
     my ($self, $unknown, $som) = @_;
-    Debug( "### Notify\n" );
+    Debug('### Notify');
     my $req = $som->context->request;
-#    Data::Dump::dump($req);
+    #    Data::Dump::dump($req);
     my $id = 0;
-    if($req->uri->path =~ m|/ref_(.*)/|) {
+    if ( $req->uri->path =~ m|/ref_(.*)/| ) {
       $id = $1;
+    } else {
+      Warn('Unknown URL '.$req->uri->path.' called by event');
+      return ();
     }
-    else {
-      Warn( "Unknown URL ". $req->uri->path . " called by event\n" );
-      return ( );
-    }
-#    Data::Dump::dump($som);
-    my $action = $som->valueof("/Envelope/Header/Action");
-    Debug( "  Action = ". $action ."\n" );
-    my $msg = $som->match("/Envelope/Body/Notify/NotificationMessage");
-    my $topic = $msg->valueof("Topic");
-    my $msg2  = $msg->match("Message/Message");
-#    Data::Dump::dump($msg2->current());
+    #    Data::Dump::dump($som);
+    my $action = $som->valueof('/Envelope/Header/Action');
+    Debug('  Action = '.$action);
+    my $msg = $som->match('/Envelope/Body/Notify/NotificationMessage');
+    my $topic = $msg->valueof('Topic');
+    my $msg2  = $msg->match('Message/Message');
+    #    Data::Dump::dump($msg2->current());
     my $time = $msg2->dataof()->attr->{'UtcTime'};
-    
+
     my (%source, %data);
     foreach my $item ($msg2->dataof('Source/SimpleItem')) {
       $source{$item->attr->{Name}} = $item->attr->{Value};
-#      print $item->attr->{Name} ."=>". $item->attr->{Value} ."\n";
+      #      print $item->attr->{Name} ."=>". $item->attr->{Value} ."\n";
     }
     foreach my $item ($msg2->dataof('Data/SimpleItem')) {
       $data{$item->attr->{Name}} = $item->attr->{Value};
     }
-    Debug( "Ref=$id, Topic=$topic, $time, Rule=$source{Rule}, isMotion=$data{IsMotion}\n" );
-    if(lc($data{IsMotion}) eq "true") {
+    Debug("Ref=$id, Topic=$topic, $time, Rule=$source{Rule}, isMotion=$data{IsMotion}");
+    if ( lc($data{IsMotion}) eq 'true' ) {
       $zm->eventOn($id, 100, $source{Rule}, $time);
-    }
-    elsif(lc($data{IsMotion}) eq "false") {
+    } elsif ( lc($data{IsMotion}) eq 'false' ) {
       $zm->eventOff($id, 100, $source{Rule}, $time);
     }
-    return ( );  # @results
+    return ();
   }
-}
+} # end Consumer
 
 # =========================================================================
 
-sub daemon_main
-{
+sub daemon_main {
   my ($daemon) = @_;
-  
-#  $daemon->handle();
 
-# improve responsiveness with multiple clients (cameras)
+  #  $daemon->handle();
+
+  # improve responsiveness with multiple clients (cameras)
   my $d = $daemon->{_daemon};
   my $select = IO::Select->new();
   $select->add($d);
-  while ($select->count()) {
+  while ($select->count() ) {
     my @ready = $select->can_read();  # blocks
     foreach my $connection (@ready) {
-      if ($connection == $d) {
-        # on the daemon accept and add the connection 
+      if ( $connection == $d ) {
+        # on the daemon accept and add the connection
         my $client = $connection->accept();
         $select->add($client);
-      }
-      else {
+      } else {
         # it's a client connection
         my $request = $connection->get_request();
-        if ($request) {
+        if ( $request ) {
           # process the request (taken from SOAP::Transport::HTTP::Daemon->handle() )
           $daemon->request($request);
           $daemon->SOAP::Transport::HTTP::Server::handle();
           eval {
-              local $SIG{PIPE} = sub { print( "SIGPIPE\n" ) };  # die?
-              $connection->send_response( $daemon->response );
+            local $SIG{PIPE} = sub { print("SIGPIPE\n") };  # die?
+            $connection->send_response( $daemon->response );
           };
-          if ($@ && $@ !~ /^SIGPIPE/) {
-              print( $@ );  # die?
+          if ( $@ && $@ !~ /^SIGPIPE/ ) {
+            print($@);  # die?
           }
-        }
-        else {
+        } else {
           # connection was closed by the client
           $select->remove($connection);
           $connection->close();  # is this necessary?
         }
-      }
-    }
-  }
-}
+      } # end if new connection or existing
+    } # end foreach connection
+  } # end while select->count
+} # end sub daemon_main
 
-sub start_daemon
-{
+sub start_daemon {
   my ($localip, $localport, $zm) = @_;
 
 =comment
@@ -456,39 +426,38 @@ sub start_daemon
     $deserializer->set_class_resolver( $event_svc->get_class_resolver() )
         if ( $deserializer->can('set_class_resolver') );
 =cut
-    ### daemon
-    my $daemon = SOAP::Transport::HTTP::Daemon->new(
-        'LocalAddr' => $localip, 
-        'LocalPort' => $localport,
-#        'deserializer' => $deserializer,
-        @EXTRA_SOCK_OPTS
-    );
+  ### daemon
+  my $daemon = SOAP::Transport::HTTP::Daemon->new(
+    LocalAddr => $localip,
+    LocalPort => $localport,
+    #        'deserializer' => $deserializer,
+    @EXTRA_SOCK_OPTS
+  );
 
-    ## handling
+  ## handling
 
-    # we only handle one method
-    $daemon->on_dispatch( sub {
-      return ( "http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer", "Notify" );
+  # we only handle one method
+  $daemon->on_dispatch( sub {
+      return ( 'http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer', 'Notify' );
     });
-  
- 	$daemon_pid = fork();
+
+  $daemon_pid = fork();
   die "fork() failed: $!" unless defined $daemon_pid;
-  if ($daemon_pid) {
-  
+  if ( $daemon_pid ) {
+
     # this is a new process --> use new name and log file
-    $0 = "$0 [http-daemon]";
-    logInit( 'id' => "zmonvif-trigger-httpd" );
+    $0 = $0.' [http-daemon]';
+    logInit('id' => 'zmonvif-trigger-httpd');
     logSetSignal();
-  
+
     # $zm is copied and the mmap'ed regions still exist
-    my $consumer = _Consumer->new({'zm' => $zm});
+    my $consumer = _Consumer->new({zm => $zm});
     $daemon->dispatch_with({
-#       "http://docs.oasis-open.org/wsn/bw-2" => $consumer,
-       "http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer"  => $consumer,
-    });
+        #       "http://docs.oasis-open.org/wsn/bw-2" => $consumer,
+        "http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer"  => $consumer,
+      });
     daemon_main($daemon);
-  }
-  else {
+  } else {
     return $daemon;
   }
 }
@@ -503,76 +472,70 @@ require WSNotification::Elements::MessageContent;
 require WSNotification::Types::AbsoluteOrRelativeTimeType;
 require WSNotification::Types::AttributedURIType;
 
-
-sub subscribe
-{
+sub subscribe {
   my ($client, $localaddr, $topic_str, $duration, $ref_id) = @_;
 
-# for debugging:  
-#  $client->get_endpoint('events')->no_dispatch(1);
+  # for debugging:
+  #  $client->get_endpoint('events')->no_dispatch(1);
 
   my $result = $client->get_endpoint('events')->Subscribe( {
-    ConsumerReference =>  { # WSNotification::Types::EndpointReferenceType
-      Address =>  { value => 'http://' . $localaddr . '/ref_'. $ref_id . '/' },
-#      ReferenceParameters =>  { # WSNotification::Types::ReferenceParametersType
-#      },
-#      Metadata =>  { # WSNotification::Types::MetadataType
-#      },
-    },
-    Filter =>  { # WSNotification::Types::FilterType
-       TopicExpression => { # WSNotification::Types::TopicExpressionType
-         xmlattr => { 
-           Dialect => "http://www.onvif.org/ver10/tev/topicExpression/ConcreteSet",
-        },
-        value => $topic_str,
+      ConsumerReference =>  { # WSNotification::Types::EndpointReferenceType
+        Address =>  { value => 'http://' . $localaddr . '/ref_'. $ref_id . '/' },
+        #      ReferenceParameters =>  { # WSNotification::Types::ReferenceParametersType
+        #      },
+        #      Metadata =>  { # WSNotification::Types::MetadataType
+        #      },
       },
-#      MessageContent =>  { # WSNotification::Types::QueryExpressionType
-#      },      
-    },
-    InitialTerminationTime => xs_duration($duration), # AbsoluteOrRelativeTimeType
-#    SubscriptionPolicy =>  {
-#    },
-  },,
- );
+      Filter =>  { # WSNotification::Types::FilterType
+        TopicExpression => { # WSNotification::Types::TopicExpressionType
+          xmlattr => {
+            Dialect => "http://www.onvif.org/ver10/tev/topicExpression/ConcreteSet",
+          },
+          value => $topic_str,
+        },
+        #      MessageContent =>  { # WSNotification::Types::QueryExpressionType
+        #      },
+      },
+      InitialTerminationTime => xs_duration($duration), # AbsoluteOrRelativeTimeType
+      #    SubscriptionPolicy =>  {
+      #    },
+    },,
+  );
 
   die $result if not $result;
-# print $result . "\n";
+  # print $result . "\n";
 
-### build Subscription Manager
+  ### build Subscription Manager
   my $submgr_addr = $result->get_SubscriptionReference()->get_Address()->get_value();
-  Info( "Subscription Manager at $submgr_addr\n" );
-    
+  Info("Subscription Manager at $submgr_addr");
+
   my $serializer = $client->service('device', 'ep')->get_serializer();
-  
+
   my $submgr_svc = WSNotification::Interfaces::WSBaseNotificationSender::SubscriptionManagerPort->new({
-    serializer => $serializer,
-    proxy => $submgr_addr,
-  });
+      serializer => $serializer,
+      proxy => $submgr_addr,
+    });
 
   return $submgr_svc;
-}
+} # end sub subscribe
 
-sub unsubscribe
-{
+sub unsubscribe {
   my ($submgr_svc) = @_;
-  
+
   $submgr_svc->Unsubscribe( { },, );
 }
 
-sub renew
-{
+sub renew {
   my ($submgr_svc, $duration) = @_;
-  
-  my $result = $submgr_svc->Renew( { 
+
+  my $result = $submgr_svc->Renew( {
       TerminationTime => xs_duration($duration), # AbsoluteOrRelativeTimeType
-    },, 
+    },,
   );
   die $result if not $result;
 }
 
-
-sub events
-{
+sub events {
   my ($localip, $localport) = @_;
 
   my $zm = _ZoneMinder->new();
@@ -581,96 +544,91 @@ sub events
 
   my %monitors = $zm->monitors();
   my $monitor_count = scalar keys(%monitors);
-  if($monitor_count == 0) {
-    Warn("No active ONVIF monitors found. Exiting\n");
+  if ( $monitor_count == 0 ) {
+    Warn('No active ONVIF monitors found. Exiting');
     return;
   }
-  else {
-    Debug( "Found $monitor_count active ONVIF monitors\n" );
-  }
-  
-  Info( "ONVIF Trigger daemon starting\n" );
+  Debug("Found $monitor_count active ONVIF monitors");
+  Info('ONVIF Trigger daemon starting');
 
-  if(!defined $localip) {
+  if ( !defined $localip ) {
     $localip = '192.168.0.2';
     $localport = '0';
   }
 
-    # re-use local address/port
-#   @LWP::Protocol::http::EXTRA_SOCK_OPTS =
-    *LWP::Protocol::http::_extra_sock_opts = sub 
-    {
-#      print "### extra_sock_opts ########################################\n";
-      @EXTRA_SOCK_OPTS;
-    };
+  # re-use local address/port
+  #   @LWP::Protocol::http::EXTRA_SOCK_OPTS =
+  *LWP::Protocol::http::_extra_sock_opts = sub {
+    #      print "### extra_sock_opts ########################################\n";
+    @EXTRA_SOCK_OPTS;
+  };
 
-#*LWP::Protocol::http::_check_sock = sub 
-#{
-#    my($self, $req, $sock) = @_;
-#    print "### check_sock ########################################\n";
-#    dump($sock);
-#};
+  #*LWP::Protocol::http::_check_sock = sub
+  #{
+  #    my($self, $req, $sock) = @_;
+  #    print "### check_sock ########################################\n";
+  #    dump($sock);
+  #};
 
-    my $daemon = start_daemon($localip, $localport, $zm);
-    my $port = $daemon->url;
-    $port =~ s|^.*:||;
-    $port =~ s|/.*$||;
-    my $localaddr = $localip . ':' . $port;
-    
-    Info( "Daemon uses local address " . $localaddr ."\n" );
+  my $daemon = start_daemon($localip, $localport, $zm);
+  my $port = $daemon->url;
+  $port =~ s|^.*:||;
+  $port =~ s|/.*$||;
+  my $localaddr = $localip . ':' . $port;
 
-    # This value is passed as the LocalAddr argument to IO::Socket::INET.
-    my $transport = SOAP::Transport::HTTP::Client->new( 
-#      'local_address' => $localaddr );     ## REUSE port
-       'local_address' => $localip );    
-  
-    foreach my $monitor (values(%monitors)) {
-    
-      my $client = $monitor->{onvif_client};
-      my $event_svc = $client->get_endpoint('events');
-      $event_svc->set_transport($transport);
-#      print "Sending from local address " . 
-#        $event_svc->get_transport()->local_address . "\n";
+  Info('Daemon uses local address '.$localaddr);
 
-      my $submgr_svc = subscribe(
-            $client, $localaddr, 'tns1:RuleEngine//.', 
-            SUBSCRIPTION_RENEW_INTERVAL, $monitor->{Id});
-    
-      if(!$submgr_svc) {
-        Warn( "Subscription failed for monitor #" .$monitor->{Id} ."\n" );
-        next;
-      }
-    
-      $monitor->{submgr_svc} = $submgr_svc;
+  # This value is passed as the LocalAddr argument to IO::Socket::INET.
+  my $transport = SOAP::Transport::HTTP::Client->new(
+    #      'local_address' => $localaddr );     ## REUSE port
+    local_address => $localip );
+
+  foreach my $monitor (values(%monitors)) {
+
+    my $client = $monitor->{onvif_client};
+    my $event_svc = $client->get_endpoint('events');
+    $event_svc->set_transport($transport);
+    #      print "Sending from local address " .
+    #        $event_svc->get_transport()->local_address . "\n";
+
+    my $submgr_svc = subscribe(
+      $client, $localaddr, 'tns1:RuleEngine//.',
+      SUBSCRIPTION_RENEW_INTERVAL, $monitor->{Id});
+
+    if ( !$submgr_svc ) {
+      Warn( "Subscription failed for monitor #" .$monitor->{Id} ."\n" );
+      next;
     }
-    
-    while(1) {
-      Info( "Sleeping for " . (SUBSCRIPTION_RENEW_INTERVAL - SUBSCRIPTION_RENEW_EARLY) . " seconds\n" );
-      sleep(SUBSCRIPTION_RENEW_INTERVAL - SUBSCRIPTION_RENEW_EARLY);
-      Info( "Renewal\n" );
-      my %monitors = $zm->monitors();
-      foreach my $monitor (values(%monitors)) {
-        if(defined $monitor->{submgr_svc}) {
-          renew($monitor->{submgr_svc}, SUBSCRIPTION_RENEW_INTERVAL + SUBSCRIPTION_RENEW_EARLY);
-        }
-      }
-    };
-    
-    Info( "ONVIF Trigger daemon exited\n" );
 
-    %monitors = $zm->monitors();
+    $monitor->{submgr_svc} = $submgr_svc;
+  } # end foreach monitor
+
+  while (1) {
+    Info('Sleeping for ' . (SUBSCRIPTION_RENEW_INTERVAL - SUBSCRIPTION_RENEW_EARLY).' seconds');
+    sleep(SUBSCRIPTION_RENEW_INTERVAL - SUBSCRIPTION_RENEW_EARLY);
+    Info('Renewal');
+    my %monitors = $zm->monitors();
     foreach my $monitor (values(%monitors)) {
-      if(defined $monitor->{submgr_svc}) {
-         unsubscribe($monitor->{submgr_svc});
+      if ( defined $monitor->{submgr_svc} ) {
+        renew($monitor->{submgr_svc}, SUBSCRIPTION_RENEW_INTERVAL + SUBSCRIPTION_RENEW_EARLY);
       }
     }
+  };
+
+  Info('ONVIF Trigger daemon exited');
+
+  %monitors = $zm->monitors();
+  foreach my $monitor (values(%monitors)) {
+    if ( defined $monitor->{submgr_svc} ) {
+      unsubscribe($monitor->{submgr_svc});
+    }
+  }
 }
 
 # ========================================================================
 # options processing
 
-sub HELP_MESSAGE
-{
+sub HELP_MESSAGE {
   my ($fh, $pkg, $ver, $opts) = @_;
   print $fh "Usage: " . __FILE__ . " <parameters>\n";
   print $fh  <<EOF
@@ -683,7 +641,7 @@ EOF
 
 # ========================================================================
 # MAIN
-  
+
 my ($localaddr, $localip, $localport);
 
 # canonicalize command name
@@ -693,25 +651,22 @@ $0 = $command;
 logInit();
 logSetSignal();
 
-if(!GetOptions(
-      'local-addr|l=s'    => \$localaddr,
-      'script|s=s'        => \$script,
-      'verbose|v=s'       => \$verbose,
-      )) {
+if ( !GetOptions(
+    'local-addr|l=s'    => \$localaddr,
+    'script|s=s'        => \$script,
+    'verbose|v=s'       => \$verbose,
+  )) {
   HELP_MESSAGE(\*STDOUT);
   exit(1);
 }
 
-if(defined $localaddr) {
-  if($localaddr =~ /(.*):(.*)/)
-  {
+if ( defined $localaddr ) {
+  if ( $localaddr =~ /(.*):(.*)/ ) {
     ($localip, $localport) = ($1, $2);
-  }
-  else {
+  } else {
     $localip = $localaddr;
     $localport = '0';
   }
 }
-{
-  events($localip, $localport);
-}
+
+events($localip, $localport);

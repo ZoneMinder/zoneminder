@@ -185,16 +185,12 @@ sub discover {
     push @responses, $response;
   };
 
-## try both soap versions
-
   my $uuid_gen = Data::UUID->new();
 
   if ( ( ! $soap_version ) or ( $soap_version eq '1.1' ) ) {
 		my %services;
 
-    if ( $verbose ) {
-      print "Probing for SOAP 1.1\n";
-    }
+    print "Probing for SOAP 1.1\n" if $verbose;
     my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
 #    no_dispatch => '1',
         });
@@ -218,7 +214,7 @@ sub discover {
           To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
           })
         );
-    print $result . "\n" if $verbose;
+    print $result."\n" if $verbose;
 
     push @results, interpret_messages($svc_discover, \%services, @responses);
     @responses = ();
@@ -226,9 +222,7 @@ sub discover {
 
   if ( ( ! $soap_version ) or ( $soap_version eq '1.2' ) ) {
 		my %services;
-    if ( $verbose ) {
-      print "Probing for SOAP 1.2\n";
-    }
+    print "Probing for SOAP 1.2\n" if $verbose;
     my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
 #    no_dispatch => '1',
         });
@@ -256,7 +250,7 @@ sub discover {
           To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
           })
         );
-    print $result . "\n" if $verbose;
+    print $result."\n" if $verbose;
     push @results, interpret_messages($svc_discover, \%services, @responses);
   } # end if doing soap 1.2
   return @results;
@@ -281,18 +275,15 @@ sub profiles {
   }
   my @profiles;
 
-
   foreach my $profile ( @{ $result->get_Profiles() } ) {
-
+    my $token = $profile->attr()->get_token() ;
+    my $Name = $profile->get_Name();
 
     my $VideoEncoderConfiguration = $profile->get_VideoEncoderConfiguration();
     if ( ! $VideoEncoderConfiguration ) {
-      print "Unknown profile $token $Name.\n";
+      print "No VideoEncoderConfiguration in profile $token $Name.\n";
       next;
     }
-
-    my $token = $profile->attr()->get_token() ;
-    my $Name = $profile->get_Name();
 
 # Specification gives conflicting values for unicast stream types, try both.
 # http://www.onvif.org/onvif/ver10/media/wsdl/media.wsdl#op.GetStreamUri
@@ -305,25 +296,25 @@ sub profiles {
             },
           },
           ProfileToken => $token, # ReferenceToken
-          } );
-        next if ! ( $StreamUri and $StreamUri->can('get_MediaUri') );
-        my $MediaUri = $StreamUri->get_MediaUri();
-        next if ! $MediaUri;
-        my $Uri = $MediaUri->get_Uri();
-        next if ! $Uri;
-        my $Resolution = $VideoEncoderConfiguration->get_Resolution();
-        my $Width = $Resolution ? $Resolution->get_Width() : 0;
-        my $Height = $Resolution ? $Resolution->get_Height() : 0;
+        } );
+      next if ! ( $StreamUri and $StreamUri->can('get_MediaUri') );
+      my $MediaUri = $StreamUri->get_MediaUri();
+      next if ! $MediaUri;
+      my $Uri = $MediaUri->get_Uri();
+      next if ! $Uri;
+      my $Resolution = $VideoEncoderConfiguration->get_Resolution();
+      my $Width = $Resolution ? $Resolution->get_Width() : 0;
+      my $Height = $Resolution ? $Resolution->get_Height() : 0;
 
-push @profiles, {
-        print join(', ', $token,
-          $Name,
-          $VideoEncoderConfiguration->get_Encoding(),
-          $Width,
-          $Height,
-          $VideoEncoderConfiguration->get_RateControl()->get_FrameRateLimit(),
-          $Uri,
-        ) . "\n";
+      push @profiles, [
+        $token,
+        $Name,
+        $VideoEncoderConfiguration->get_Encoding(),
+        $Width,
+        $Height,
+        $VideoEncoderConfiguration->get_RateControl()->get_FrameRateLimit(),
+        $Uri,
+      ];
     } # end foreach streamtype
 
   } # end foreach profile

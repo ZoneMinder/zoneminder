@@ -336,7 +336,7 @@ $SOAP::Constants::DO_NOT_CHECK_MUSTUNDERSTAND = 1;
     if ( $req->uri->path =~ m|/ref_(.*)/| ) {
       $id = $1;
     } else {
-      Warn('Unknown URL '.$req->uri->path.' called by event');
+      Warning('Unknown URL '.$req->uri->path.' called by event');
       return ();
     }
     #    Data::Dump::dump($som);
@@ -530,7 +530,7 @@ sub events {
   my %monitors = $zm->monitors();
   my $monitor_count = scalar keys(%monitors);
   if ( $monitor_count == 0 ) {
-    Warn('No active ONVIF monitors found. Exiting');
+    Warning('No active ONVIF monitors found. Exiting');
     return;
   }
   Debug("Found $monitor_count active ONVIF monitors");
@@ -581,7 +581,7 @@ sub events {
       SUBSCRIPTION_RENEW_INTERVAL, $monitor->{Id});
 
     if ( !$submgr_svc ) {
-      Warn( "Subscription failed for monitor #" .$monitor->{Id} ."\n" );
+      Warning('Subscription failed for monitor #'.$monitor->{Id});
       next;
     }
 
@@ -633,7 +633,7 @@ my ($localaddr, $localip, $localport);
 my $command = $0;
 $0 = $command;
 
-logInit();
+logInit(id=>$command);
 logSetSignal();
 
 if ( !GetOptions(
@@ -655,3 +655,27 @@ if ( defined $localaddr ) {
 }
 
 events($localip, $localport);
+
+1;
+__END__
+
+=head1 NAME
+
+zmonvif-trigger.pl - ZoneMinder ONVIF trigger daemon
+
+=head1 SYNOPSIS
+
+ zmonfig-trigger.pl [-v] [-s] [-l=]
+
+
+=head1 DESCRIPTION
+
+
+=head1 OPTIONS
+
+    local-addr    - local address to bind to
+    script|s=s   - script to run
+    verbose|v=s  - increase verbosity
+
+=cut
+

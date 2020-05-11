@@ -490,7 +490,7 @@ sub closeSyslog {
 sub logFile {
   my $this = shift;
   my $logFile = shift;
-  if ( $logFile =~ /^(.+)\+$/ ) {
+  if ( $logFile and ( $logFile =~ /^(.+)\+$/ ) ) {
     $this->{logFile} = $1.'.'.$$;
   } else {
     $this->{logFile} = $logFile;

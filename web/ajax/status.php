@@ -283,7 +283,7 @@ function collectData() {
         $sort_fields = explode(',',$_REQUEST['sort']);
         foreach ( $sort_fields as $sort_field ) {
           
-          preg_match('/^(\w+)\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
+          preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
           if ( count($matches) ) {
             if ( in_array($matches[1], $fieldSql) ) {
               $sql .= $matches[1];

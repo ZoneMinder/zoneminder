@@ -1,7 +1,7 @@
 <?php
 
 namespace ZM;
-require_once( 'config.php' );
+require_once('config.php');
 
 class Logger {
   private static $instance;
@@ -70,7 +70,7 @@ class Logger {
     $this->terminate();
   }
 
-  public function initialise( $options=array() ) {
+  public function initialise($options=array()) {
     if ( !empty($options['id']) )
       $this->id = $options['id'];
 
@@ -237,31 +237,31 @@ class Logger {
         $this->effectiveLevel = $this->level;
       if ( !$this->hasTerm ) {
         if ( $lastLevel < self::DEBUG && $this->level >= self::DEBUG ) {
-          $this->savedErrorReporting = error_reporting( E_ALL );
-          $this->savedDisplayErrors = ini_set( 'display_errors', true );
+          $this->savedErrorReporting = error_reporting(E_ALL);
+          $this->savedDisplayErrors = ini_set('display_errors', true);
         } elseif ( $lastLevel >= self::DEBUG && $this->level < self::DEBUG ) {
-          error_reporting( $this->savedErrorReporting );
-          ini_set( 'display_errors', $this->savedDisplayErrors );
+          error_reporting($this->savedErrorReporting);
+          ini_set('display_errors', $this->savedDisplayErrors);
         }
       }
     }
-    return( $this->level );
+    return $this->level;
   }
 
   public function debugOn() {
     return( $this->effectiveLevel >= self::DEBUG );
   }
 
-  public function termLevel( $termLevel ) {
+  public function termLevel($termLevel) {
     if ( isset($termLevel) ) {
       $termLevel = $this->limit($termLevel);
       if ( $this->termLevel != $termLevel )
         $this->termLevel = $termLevel;
     }
-    return( $this->termLevel );
+    return $this->termLevel;
   }
 
-  public function databaseLevel( $databaseLevel=NULL ) {
+  public function databaseLevel($databaseLevel=NULL) {
     if ( !is_null($databaseLevel) ) {
       $databaseLevel = $this->limit($databaseLevel);
       if ( $this->databaseLevel != $databaseLevel ) {
@@ -269,7 +269,7 @@ class Logger {
         if ( $this->databaseLevel > self::NOLOG ) {
           if ( (include_once 'database.php') === FALSE ) {
             $this->databaseLevel = self::NOLOG;
-            Warning( 'Unable to write log entries to DB, database.php not found' );
+            Warning('Unable to write log entries to DB, database.php not found');
           }
         }
       }
@@ -277,7 +277,7 @@ class Logger {
     return $this->databaseLevel;
   }
 
-  public function fileLevel( $fileLevel ) {
+  public function fileLevel($fileLevel) {
     if ( isset($fileLevel) ) {
       $fileLevel = $this->limit($fileLevel);
       if ( $this->fileLevel != $fileLevel ) {
@@ -291,14 +291,14 @@ class Logger {
     return $this->fileLevel;
   }
 
-  public function weblogLevel( $weblogLevel ) {
+  public function weblogLevel($weblogLevel) {
     if ( isset($weblogLevel) ) {
       $weblogLevel = $this->limit($weblogLevel);
       if ( $this->weblogLevel != $weblogLevel ) {
         if ( $weblogLevel > self::NOLOG && $this->weblogLevel <= self::NOLOG ) {
-          $this->savedLogErrors = ini_set( 'log_errors', true );
+          $this->savedLogErrors = ini_set('log_errors', true);
         } elseif ( $weblogLevel <= self::NOLOG && $this->weblogLevel > self::NOLOG ) {
-          ini_set( 'log_errors', $this->savedLogErrors );
+          ini_set('log_errors', $this->savedLogErrors);
         }
         $this->weblogLevel = $weblogLevel;
       }
@@ -306,7 +306,7 @@ class Logger {
     return $this->weblogLevel;
   }
 
-  public function syslogLevel( $syslogLevel ) {
+  public function syslogLevel($syslogLevel) {
     if ( isset($syslogLevel) ) {
       $syslogLevel = $this->limit($syslogLevel);
       if ( $this->syslogLevel != $syslogLevel ) {
@@ -353,7 +353,7 @@ class Logger {
       fclose($this->logFd);
   }
 
-  public function logPrint( $level, $string, $file=NULL, $line=NULL ) {
+  public function logPrint($level, $string, $file=NULL, $line=NULL) {
     if ( $level > $this->effectiveLevel ) {
       return;
     }
@@ -375,21 +375,21 @@ class Logger {
           $rootPath = getcwd();
         else
           $rootPath = $_SERVER['DOCUMENT_ROOT'];
-        $file = preg_replace('/^'.addcslashes($rootPath,'/').'\/?/', '', $file);
+        $file = preg_replace('/^'.addcslashes($rootPath, '/').'\/?/', '', $file);
       }
     }
 
     if ( $this->useErrorLog ) {
       $message .= ' at '.$file.' line '.$line;
-    } else {
-      $message = $message;
     }
 
     if ( $level <= $this->termLevel ) {
-      if ( $this->hasTerm )
+      if ( $this->hasTerm ) {
         print($message."\n");
-      else
-        print(preg_replace("/\n/", '<br/>', htmlspecialchars($message)).'<br/>');
+      } else {
+        // Didn't we already replace all newlines with spaces above?
+        print(preg_replace('/\n/', '<br/>', htmlspecialchars($message)).'<br/>');
+      }
     }
 
     if ( $level <= $this->fileLevel ) {
@@ -402,6 +402,9 @@ class Logger {
         }
       } else if ( $this->logFd ) {
         fprintf($this->logFd, $message."\n");
+      } else {
+        $this->fileLevel = self::NOLOG;
+        Error('No logFd but have fileLevel logging!?');
       }
     }
 

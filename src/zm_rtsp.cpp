@@ -34,17 +34,17 @@
 
 int RtspThread::smMinDataPort = 0;
 int RtspThread::smMaxDataPort = 0;
-RtspThread::PortSet  RtspThread::smAssignedPorts;
+RtspThread::PortSet RtspThread::smAssignedPorts;
 
-bool RtspThread::sendCommand( std::string message ) {
+bool RtspThread::sendCommand(std::string message) {
   if ( mNeedAuth ) {
-    StringVector parts = split( message, " " );
-    if (parts.size() > 1)
+    StringVector parts = split(message, " ");
+    if ( parts.size() > 1 )
       message += mAuthenticator->getAuthHeader(parts[0], parts[1]);
   }
-  message += stringtf( "User-Agent: ZoneMinder/%s\r\n", ZM_VERSION );
-  message += stringtf( "CSeq: %d\r\n\r\n", ++mSeq );
-  Debug( 2, "Sending RTSP message: %s", message.c_str() );
+  message += stringtf("User-Agent: ZoneMinder/%s\r\n", ZM_VERSION);
+  message += stringtf("CSeq: %d\r\n\r\n", ++mSeq);
+  Debug(2, "Sending RTSP message: %s", message.c_str());
   if ( mMethod == RTP_RTSP_HTTP ) {
     message = base64Encode(message);
     Debug(2, "Sending encoded RTSP message: %s", message.c_str());
@@ -61,8 +61,8 @@ bool RtspThread::sendCommand( std::string message ) {
   return true;
 }
 
-bool RtspThread::recvResponse( std::string &response ) {
-  if ( mRtspSocket.recv( response ) < 0 )
+bool RtspThread::recvResponse(std::string &response) {
+  if ( mRtspSocket.recv(response) < 0 )
     Error("Recv failed; %s", strerror(errno));
   Debug(2, "Received RTSP response: %s (%zd bytes)", response.c_str(), response.size());
   float respVer = 0;
@@ -74,12 +74,12 @@ bool RtspThread::recvResponse( std::string &response ) {
     } else {
       Error("Response parse failure, %zd bytes follow", response.size());
       if ( response.size() )
-        Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
+        Hexdump(Logger::ERROR, response.data(), min(response.size(),16));
     }
     return false;
   }
   if ( respCode == 401 ) {
-    Debug( 2, "Got 401 access denied response code, check WWW-Authenticate header and retry");
+    Debug(2, "Got 401 access denied response code, check WWW-Authenticate header and retry");
     mAuthenticator->checkAuthResponse(response);
     mNeedAuth = true;
     return false;
@@ -88,24 +88,24 @@ bool RtspThread::recvResponse( std::string &response ) {
     return false;
   }
   return true;
-} // end RtspThread::recResponse
+}  // end RtspThread::recvResponse
 
 int RtspThread::requestPorts() {
   if ( !smMinDataPort ) {
     char sql[ZM_SQL_SML_BUFSIZ];
     //FIXME Why not load specifically by Id?  This will get ineffeicient with a lot of monitors
-    strncpy( sql, "select Id from Monitors where Function != 'None' and Type = 'Remote' and Protocol = 'rtsp' and Method = 'rtpUni' order by Id asc", sizeof(sql) );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't run query: %s", mysql_error( &dbconn ) );
-      exit( mysql_errno( &dbconn ) );
+    strncpy(sql, "SELECT `Id` FROM `Monitors` WHERE `Function` != 'None' AND `Type` = 'Remote' AND `Protocol` = 'rtsp' AND `Method` = 'rtpUni' ORDER BY `Id` ASC", sizeof(sql));
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't run query: %s", mysql_error(&dbconn));
+      exit(mysql_errno(&dbconn));
     }
 
-    MYSQL_RES *result = mysql_store_result( &dbconn );
+    MYSQL_RES *result = mysql_store_result(&dbconn);
     if ( !result ) {
-      Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-      exit( mysql_errno( &dbconn ) );
+      Error("Can't use query result: %s", mysql_error(&dbconn));
+      exit(mysql_errno(&dbconn));
     }
-    int nMonitors = mysql_num_rows( result );
+    int nMonitors = mysql_num_rows(result);
     int position = 0;
     if ( nMonitors ) {
       for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
@@ -124,7 +124,7 @@ int RtspThread::requestPorts() {
     int portRange = int(((config.max_rtp_port-config.min_rtp_port)+1)/nMonitors);
     smMinDataPort = config.min_rtp_port + (position * portRange);
     smMaxDataPort = smMinDataPort + portRange - 1;
-    Debug( 2, "Assigned RTP port range is %d-%d", smMinDataPort, smMaxDataPort );
+    Debug(2, "Assigned RTP port range is %d-%d", smMinDataPort, smMaxDataPort);
   }
   for ( int i = smMinDataPort; i <= smMaxDataPort; i++ ) {
     PortSet::const_iterator iter = smAssignedPorts.find(i);
@@ -137,7 +137,7 @@ int RtspThread::requestPorts() {
   return -1;
 }
 
-void RtspThread::releasePorts( int port ) {
+void RtspThread::releasePorts(int port) {
   if ( port > 0 )
     smAssignedPorts.erase(port);
 }
@@ -151,21 +151,21 @@ RtspThread::RtspThread(
     const std::string &path,
     const std::string &auth,
     bool rtsp_describe) :
-  mId( id ),
-  mMethod( method ),
-  mProtocol( protocol ),
-  mHost( host ),
-  mPort( port ),
-  mPath( path ),
-  mRtspDescribe( rtsp_describe ),
-  mSessDesc( 0 ),
-  mFormatContext( 0 ),
-  mSeq( 0 ),
-  mSession( 0 ),
-  mSsrc( 0 ),
-  mDist( UNDEFINED ),
-  mRtpTime( 0 ),
-  mStop( false )
+  mId(id),
+  mMethod(method),
+  mProtocol(protocol),
+  mHost(host),
+  mPort(port),
+  mPath(path),
+  mRtspDescribe(rtsp_describe),
+  mSessDesc(0),
+  mFormatContext(0),
+  mSeq(0),
+  mSession(0),
+  mSsrc(0),
+  mDist(UNDEFINED),
+  mRtpTime(0),
+  mStop(false)
 {
   mUrl = mProtocol+"://"+mHost+":"+mPort;
   if ( !mPath.empty() ) {
@@ -177,14 +177,15 @@ RtspThread::RtspThread(
 
   mSsrc = rand();
 
-  Debug(2, "RTSP Local SSRC is %x", mSsrc);
+  Debug(2, "RTSP Local SSRC is %x, url is %s", mSsrc, mUrl.c_str());
 
   if ( mMethod == RTP_RTSP_HTTP )
     mHttpSession = stringtf("%d", rand());
   
   mNeedAuth = false;
-  StringVector parts = split(auth,":");
-  if (parts.size() > 1) 
+  StringVector parts = split(auth, ":");
+  Debug(2, "# of auth parts %d", parts.size());
+  if ( parts.size() > 1 ) 
     mAuthenticator = new zm::Authenticator(parts[0], parts[1]);
   else
     mAuthenticator = new zm::Authenticator(parts[0], "");
@@ -193,9 +194,9 @@ RtspThread::RtspThread(
 RtspThread::~RtspThread() {
   if ( mFormatContext ) {
 #if LIBAVFORMAT_VERSION_CHECK(52, 96, 0, 96, 0)
-    avformat_free_context( mFormatContext );
+    avformat_free_context(mFormatContext);
 #else
-    av_free_format_context( mFormatContext );
+    av_free_format_context(mFormatContext);
 #endif
     mFormatContext = NULL;
   }
@@ -204,16 +205,17 @@ RtspThread::~RtspThread() {
     mSessDesc = NULL;
   }
   delete mAuthenticator;
+  mAuthenticator = NULL;
 }
 
 int RtspThread::run() {
   std::string message;
   std::string response;
 
-  response.reserve( ZM_NETWORK_BUFSIZ );
+  response.reserve(ZM_NETWORK_BUFSIZ);
 
-  if ( !mRtspSocket.connect( mHost.c_str(), mPort.c_str() ) )
-    Fatal( "Unable to connect RTSP socket" );
+  if ( !mRtspSocket.connect(mHost.c_str(), mPort.c_str()) )
+    Fatal("Unable to connect RTSP socket");
   //Select select( 0.25 );
   //select.addReader( &mRtspSocket );
   //while ( select.wait() )
@@ -221,7 +223,6 @@ int RtspThread::run() {
     //mRtspSocket.recv( response );
     //Debug( 4, "Drained %d bytes from RTSP socket", response.size() );
   //}
-
   
   bool authTried = false; 
   if ( mMethod == RTP_RTSP_HTTP ) {
@@ -245,14 +246,13 @@ int RtspThread::run() {
         message += mAuthenticator->getAuthHeader("GET", mPath);
         authTried = true;
       }
-      message += "Accept: application/x-rtsp-tunnelled\r\n";
-      message += "\r\n";
-      Debug( 2, "Sending HTTP message: %s", message.c_str() );
-      if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() ) {
+      message += "Accept: application/x-rtsp-tunnelled\r\n\r\n";
+      Debug(2, "Sending HTTP message: %s", message.c_str());
+      if ( mRtspSocket.send(message.c_str(), message.size()) != (int)message.length() ) {
         Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
         return -1;
       }
-      if ( mRtspSocket.recv( response ) < 0 ) {
+      if ( mRtspSocket.recv(response) < 0 ) {
         Error("Recv failed; %s", strerror(errno));
         return -1;
       }
@@ -260,13 +260,13 @@ int RtspThread::run() {
       Debug(2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size());
       float respVer = 0;
       respCode = -1;
-      if ( sscanf( response.c_str(), "HTTP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 ) {
+      if ( sscanf(response.c_str(), "HTTP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText) != 3 ) {
         if ( isalnum(response[0]) ) {
-          Error( "Response parse failure in '%s'", response.c_str() );
+          Error("Response parse failure in '%s'", response.c_str());
         } else {
-          Error( "Response parse failure, %zd bytes follow", response.size() );
+          Error("Response parse failure, %zd bytes follow", response.size());
           if ( response.size() )
-            Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
+            Hexdump(Logger::ERROR, response.data(), min(response.size(),16));
         }
         return -1;
       }
@@ -296,25 +296,25 @@ int RtspThread::run() {
     message += "Content-Length: 32767\r\n";
     message += "Content-Type: application/x-rtsp-tunnelled\r\n";
     message += "\r\n";
-    Debug( 2, "Sending HTTP message: %s", message.c_str() );
-    if ( mRtspSocket2.send( message.c_str(), message.size() ) != (int)message.length() ) {
-      Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
-      return( -1 );
+    Debug(2, "Sending HTTP message: %s", message.c_str());
+    if ( mRtspSocket2.send(message.c_str(), message.size()) != (int)message.length() ) {
+      Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
+      return -1;
     }
-  }
+  }  // end if ( mMethod == RTP_RTSP_HTTP )
 
   std::string localHost = "";
   int localPorts[2] = { 0, 0 };
 
   // Request supported RTSP commands by the server
   message = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
-  if ( !sendCommand( message ) )
+  if ( !sendCommand(message) )
     return -1;
 
   // A negative return here may indicate auth failure, but we will have setup the auth mechanisms so we need to retry.
   if ( !recvResponse(response) ) {
     if ( mNeedAuth ) {
-      Debug( 2, "Resending OPTIONS due to possible auth requirement" );
+      Debug(2, "Resending OPTIONS due to possible auth requirement");
       if ( !sendCommand(message) )
         return -1;
       if ( !recvResponse(response) )
@@ -338,11 +338,11 @@ int RtspThread::run() {
   message = "DESCRIBE "+mUrl+" RTSP/1.0\r\n";
   bool res;
   do {
-    if (mNeedAuth)
+    if ( mNeedAuth )
       authTried = true;
     sendCommand(message);
-    // FIXME WHy sleep 1?
-    sleep(1);
+    // FIXME Why sleep 1?
+    usleep(10000);
     res = recvResponse(response);
     if ( !res && respCode==401 )
       mNeedAuth = true;
@@ -600,7 +600,8 @@ int RtspThread::run() {
       while( !mStop ) {
         now = time(NULL);
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+        Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d",
+            sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
         if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) ) {
           if ( !sendCommand( message ) )
             return( -1 );
@@ -678,22 +679,21 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
               break;
             }
             if ( channel == remoteChannels[0] ) {
-              Debug( 4, "Got %d bytes on data channel %d, packet length is %d", buffer.size(), channel, len );
-              Hexdump( 4, (char *)buffer, 16 );
-              rtpDataThread.recvPacket( buffer+4, len );
-              Debug( 4, "Received" );
+              Debug(4, "Got %d bytes on data channel %d, packet length is %d", buffer.size(), channel, len);
+              Hexdump(4, (char *)buffer, 16);
+              rtpDataThread.recvPacket(buffer+4, len);
             } else if ( channel == remoteChannels[1] ) {
 //              len = ntohs( *((unsigned short *)(buffer+2)) );
 //              Debug( 4, "Got %d bytes on control channel %d", nBytes, channel );
-              Debug( 4, "Got %d bytes on control channel %d, packet length is %d", buffer.size(), channel, len );
-              Hexdump( 4, (char *)buffer, 16 );
-              rtpCtrlThread.recvPackets( buffer+4, len );
+              Debug(4, "Got %d bytes on control channel %d, packet length is %d", buffer.size(), channel, len);
+              Hexdump(4, (char *)buffer, 16);
+              rtpCtrlThread.recvPackets(buffer+4, len);
             } else {
-              Error( "Unexpected channel selector %d in RTSP interleaved data", buffer[1] );
+              Error("Unexpected channel selector %d in RTSP interleaved data", buffer[1]);
               buffer.clear();
               break;
             }
-            buffer.consume( len+4 );
+            buffer.consume(len+4);
             nBytes -= len+4;
           } else {
             if ( keepaliveResponse.compare( 0, keepaliveResponse.size(), (char *)buffer, keepaliveResponse.size() ) == 0 ) {

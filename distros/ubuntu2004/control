@@ -46,7 +46,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
         ,libmp4v2-2, libx264-155
         ,libswscale5
-        ,libswresample4
+        ,libswresample3
         ,ffmpeg
         ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl

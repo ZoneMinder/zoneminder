@@ -372,10 +372,10 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 
 int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
 
-bool is_video_stream(AVStream *);
-bool is_audio_stream(AVStream *);
-bool is_video_context(AVCodec *);
-bool is_audio_context(AVCodec *);
+bool is_video_stream(const AVStream *);
+bool is_audio_stream(const AVStream *);
+bool is_video_context(const AVCodec *);
+bool is_audio_context(const AVCodec *);
 
 int zm_receive_packet(AVCodecContext *context, AVPacket &packet);
 

@@ -116,25 +116,32 @@ Condition::~Condition() {
 
 void Condition::wait() {
   // Locking done outside of this function
-  if ( pthread_cond_wait( &mCondition, mMutex.getMutex() ) < 0 )
-    throw ThreadException( stringtf( "Unable to wait pthread condition: %s", strerror(errno) ) );
+  if ( pthread_cond_wait(&mCondition, mMutex.getMutex()) < 0 )
+    throw ThreadException(stringtf("Unable to wait pthread condition: %s", strerror(errno)));
 }
 
-bool Condition::wait( int secs ) {
+bool Condition::wait(int secs) {
   // Locking done outside of this function
-  Debug( 8, "Waiting for %d seconds", secs );
-  struct timespec timeout = getTimeout( secs );
-  if ( pthread_cond_timedwait( &mCondition, mMutex.getMutex(), &timeout ) < 0 && errno != ETIMEDOUT )
-    throw ThreadException( stringtf( "Unable to timedwait pthread condition: %s", strerror(errno) ) );
-  return( errno != ETIMEDOUT );
+  Debug(8, "Waiting for %d seconds", secs);
+  struct timespec timeout = getTimeout(secs);
+  if (
+      ( pthread_cond_timedwait(&mCondition, mMutex.getMutex(), &timeout) < 0 )
+      &&
+     ( errno != ETIMEDOUT ) 
+     )
+    throw ThreadException(stringtf("Unable to timedwait pthread condition: %s", strerror(errno)));
+  return errno != ETIMEDOUT;
 }
 
 bool Condition::wait( double secs ) {
   // Locking done outside of this function
   struct timespec timeout = getTimeout( secs );
-  if ( pthread_cond_timedwait( &mCondition, mMutex.getMutex(), &timeout ) < 0 && errno != ETIMEDOUT )
+  if (
+      (pthread_cond_timedwait( &mCondition, mMutex.getMutex(), &timeout ) < 0)
+      &&
+      (errno != ETIMEDOUT) )
     throw ThreadException( stringtf( "Unable to timedwait pthread condition: %s", strerror(errno) ) );
-  return( errno != ETIMEDOUT );
+  return errno != ETIMEDOUT;
 }
 
 void Condition::signal() {
@@ -177,11 +184,11 @@ template <class T> const T ThreadData<T>::getUpdatedValue(double secs) const {
   mMutex.lock();
   mChanged = false;
   //do {
-    mCondition.wait( secs );
+    mCondition.wait(secs);
   //} while ( !mChanged );
   const T valueCopy = mValue;
   mMutex.unlock();
-  Debug(9, "Got value update, %p", this );
+  Debug(9, "Got value update, %p", this);
   return valueCopy;
 }
 

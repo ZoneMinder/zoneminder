@@ -102,7 +102,19 @@ if ( $action eq 'probe' ) {
   $client->create_services();
 
   if ( $action eq 'profiles' ) {
-    ZoneMinder::ONVIF::profiles($client);
+    my @profiles = ZoneMinder::ONVIF::profiles($client);
+    foreach my $profile ( @profiles ) {
+        my ( $token, $name, $encoding, $width, $height, $frame_rate_limit, $uri ) = @{$profile};
+        print join(', ', $token,
+          $name,
+          $encoding,
+          $width,
+          $height,
+          $frame_rate_limit,
+          $uri,
+        ) . "\n";
+
+    } # end foreach profile
   } elsif( $action eq 'move' ) {
     my $dir = shift;
     ZoneMinder::ONVIF::move($client, $dir);

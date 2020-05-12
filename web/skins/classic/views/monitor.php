@@ -495,13 +495,12 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $monitor->Type() != 'Local') ) {
       <input type="hidden" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo validHtmlStr($monitor->V4LCapturesPerFrame()) ?>"/>
 <?php
 }
-if ( $tab != 'config' ) {
+if ( $tab != 'onvif' ) {
 ?>
-        <input type="hidden" name="newMonitor[ConfigType]" value="<?php echo validHtmlStr($monitor->ConfigType()) ?>"/>
-        <input type="hidden" name="newMonitor[ConfigURL]" value="<?php echo validHtmlStr($monitor->ConfigURL()) ?>"/>
-        <input type="hidden" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
-        <input type="hidden" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
-        <input type="hidden" name="newMonitor[ConfigOptions]" value="<?php echo validHtmlStr($monitor->ConfigOptions()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_User()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/>
 <?php
 }
 if ( $tab != 'source' || $monitor->Type()!= 'Remote' ) {
@@ -759,28 +758,24 @@ switch ( $tab ) {
         }
         break;
     }
-    case 'config' :
+    case 'onvif' :
     {
 ?>
-            <tr>
-              <td><?php echo translate('ConfigType') ?></td>
-              <td><?php echo htmlSelect('newMonitor[ConfigType]', $configTypes, $monitor->ConfigType(), "submitTab('$tab')"); ?></td>
-            </tr>
             <tr>  
-              <td><?php echo translate('ConfigURL') ?></td>
-              <td><input type="text" name="newMonitor[ConfigURL]" value="<?php echo validHtmlStr($monitor->ConfigURL()) ?>"/></td>
+              <td><?php echo translate('ONVIF_URL') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/></td>
             </tr>
             <tr>
               <td><?php echo translate('Username') ?></td>
-              <td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/></td>
+              <td><input type="text" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>"/></td>
             </tr>
             <tr>
               <td><?php echo translate('Password') ?></td>
-              <td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/></td>
+              <td><input type="text" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/></td>
             </tr>
             <tr>
-              <td><?php echo translate('ConfigOptions') ?></td>
-              <td><input type="text" name="newMonitor[ConfigOptions]" value="<?php echo validHtmlStr($monitor->ConfigOptions()) ?>"/></td>
+              <td><?php echo translate('ONVIF_Options') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/></td>
             </tr>
 <?php
         break;

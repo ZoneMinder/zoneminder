@@ -271,11 +271,19 @@ sub profiles {
     return;
   }
   if ( $verbose ) {
-    print "Received message:\n" . $result . "\n";
+    use XML::LibXML;
+    my $dom = XML::LibXML->load_xml(string=>$result);
+    print "Received message:\n" . $dom->toString(1) . "\n";
   }
+  my @Profiles = @{ $result->get_Profiles() };
+  if ( !@Profiles ) {
+    print "No profiles returned from get_Profiles\n";
+    return;
+  }
+  print "Number of profiles found: " .(scalar @Profiles)."\n" if $verbose;
   my @profiles;
 
-  foreach my $profile ( @{ $result->get_Profiles() } ) {
+  foreach my $profile ( @Profiles ) {
     my $token = $profile->attr()->get_token() ;
     my $Name = $profile->get_Name();
 
@@ -297,11 +305,20 @@ sub profiles {
           },
           ProfileToken => $token, # ReferenceToken
         } );
-      next if ! ( $StreamUri and $StreamUri->can('get_MediaUri') );
+      if ( ! ( $StreamUri and $StreamUri->can('get_MediaUri') ) ) {
+        print "No StreamUri or no MediaUri on profile $Name of type $streamtype\n" if $verbose;
+        next;
+      }
       my $MediaUri = $StreamUri->get_MediaUri();
-      next if ! $MediaUri;
+      if ( ! $MediaUri ) {
+        print "No MediaUri in profile $Name of type $streamtype\n";
+        next;
+      }
       my $Uri = $MediaUri->get_Uri();
-      next if ! $Uri;
+      if ( ! $Uri ) {
+        print "No Uri in profile $Name of type $streamtype\n";
+        next;
+      }
       my $Resolution = $VideoEncoderConfiguration->get_Resolution();
       my $Width = $Resolution ? $Resolution->get_Width() : 0;
       my $Height = $Resolution ? $Resolution->get_Height() : 0;

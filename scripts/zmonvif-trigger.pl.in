@@ -204,7 +204,7 @@ sub xs_duration {
     my %new_monitors = ();
 
     #	my $sql = "select * from Monitors where find_in_set( Function, 'Modect,Mocord,Nodect,ExtDect' )>0 and ConfigType='ONVIF'";
-    my $sql = "SELECT * FROM Monitors WHERE ConfigType='ONVIF'";
+    my $sql = "SELECT * FROM Monitors WHERE ONVIF_URL != ''";
     my $sth = $dbh->prepare_cached($sql) or Fatal("Can't prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute() or Fatal("Can't execute: ".$sth->errstr());
     while ( my $monitor = $sth->fetchrow_hashref() ) {
@@ -215,23 +215,23 @@ sub xs_duration {
         }
       }
 
-      Info('Monitor URL: '.$monitor->{ConfigURL});
+      Info('Monitor URL: '.$monitor->{ONVIF_URL});
 
       ## set up ONVIF client for monitor
-      next if ! $monitor->{ConfigURL};
+      next if ! $monitor->{ONVIF_URL};
 
       my $soap_version;
-      if ( $monitor->{ConfigOptions} =~ /SOAP1([12])/ ) {
+      if ( $monitor->{ONVIF_Options} =~ /SOAP1([12])/ ) {
         $soap_version = "1.$1";
       } else {
         $soap_version = '1.1';
       }
       my $client = ONVIF::Client->new( {
-          url_svc_device => $monitor->{ConfigURL},
+          url_svc_device => $monitor->{ONVIF_URL},
           soap_version => $soap_version } );
 
-      if ( $monitor->{User} ) {
-        $client->set_credentials($monitor->{User}, $monitor->{Pass}, 0);
+      if ( $monitor->{ONVIF_Username} ) {
+        $client->set_credentials($monitor->{ONVIF_Username}, $monitor->{ONVIF_Password}, 0);
       }
 
       $client->create_services();
@@ -240,7 +240,7 @@ sub xs_duration {
       $new_monitors{$monitor->{Id}} = $monitor;
     } # end foreach monitor
     $self->set_monitors(%new_monitors);
-  }
+  } # end foreach db monitor
 
   sub freeMonitors {
     my ($self) = @_;

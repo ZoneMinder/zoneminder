@@ -419,6 +419,7 @@ if ( canEdit('Monitors') ) {
 $tabs = array();
 $tabs['general'] = translate('General');
 $tabs['source'] = translate('Source');
+$tabs["config"] = translate('MetaConfig');
 if ( $monitor->Type() != 'WebSite' ) {
   $tabs['storage'] = translate('Storage');
   $tabs['timestamp'] = translate('Timestamp');
@@ -496,11 +497,11 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $monitor->Type() != 'Local') ) {
 }
 if ( $tab != 'config' ) {
 ?>
-        <input type="hidden" name="newMonitor[ConfigType]" value="<?php echo validHtmlStr($newMonitor['ConfigType']) ?>"/>
-        <input type="hidden" name="newMonitor[ConfigURL]" value="<?php echo validHtmlStr($newMonitor['ConfigURL']) ?>"/>
-        <input type="hidden" name="newMonitor[User]" value="<?php echo validHtmlStr($newMonitor['User']) ?>"/>
-        <input type="hidden" name="newMonitor[Pass]" value="<?php echo validHtmlStr($newMonitor['Pass']) ?>"/>
-        <input type="hidden" name="newMonitor[ConfigOptions]" value="<?php echo validHtmlStr($newMonitor['ConfigOptions']) ?>"/>
+        <input type="hidden" name="newMonitor[ConfigType]" value="<?php echo validHtmlStr($monitor->ConfigType()) ?>"/>
+        <input type="hidden" name="newMonitor[ConfigURL]" value="<?php echo validHtmlStr($monitor->ConfigURL()) ?>"/>
+        <input type="hidden" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
+        <input type="hidden" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+        <input type="hidden" name="newMonitor[ConfigOptions]" value="<?php echo validHtmlStr($monitor->ConfigOptions()) ?>"/>
 <?php
 }
 if ( $tab != 'source' || $monitor->Type()!= 'Remote' ) {
@@ -763,23 +764,23 @@ switch ( $tab ) {
 ?>
             <tr>
               <td><?php echo translate('ConfigType') ?></td>
-              <td><?php echo htmlSelect('newMonitor[ConfigType]', $configTypes, "submitTab('$tab')"); ?></td>
+              <td><?php echo htmlSelect('newMonitor[ConfigType]', $configTypes, $monitor->ConfigType(), "submitTab('$tab')"); ?></td>
             </tr>
             <tr>  
               <td><?php echo translate('ConfigURL') ?></td>
-              <td><input type="text" name="newMonitor[ConfigURL]" value="<?php echo validHtmlStr($newMonitor['ConfigURL']) ?>"/></td>
+              <td><input type="text" name="newMonitor[ConfigURL]" value="<?php echo validHtmlStr($monitor->ConfigURL()) ?>"/></td>
             </tr>
             <tr>
               <td><?php echo translate('Username') ?></td>
-              <td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($newMonitor['User']) ?>"/></td>
+              <td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/></td>
             </tr>
             <tr>
               <td><?php echo translate('Password') ?></td>
-              <td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($newMonitor['Pass']) ?>"/></td>
+              <td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/></td>
             </tr>
             <tr>
               <td><?php echo translate('ConfigOptions') ?></td>
-              <td><input type="text" name="newMonitor[ConfigOptions]" value="<?php echo validHtmlStr($newMonitor['ConfigOptions']) ?>"/></td>
+              <td><input type="text" name="newMonitor[ConfigOptions]" value="<?php echo validHtmlStr($monitor->ConfigOptions()) ?>"/></td>
             </tr>
 <?php
         break;

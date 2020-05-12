@@ -432,20 +432,20 @@ sub start_daemon {
 
     # this is a new process --> use new name and log file
     $0 = $0.' [http-daemon]';
-    logInit('id' => 'zmonvif-trigger-httpd');
+    logInit(id => 'zmonvif-trigger-httpd');
     logSetSignal();
 
     # $zm is copied and the mmap'ed regions still exist
     my $consumer = _Consumer->new({zm => $zm});
     $daemon->dispatch_with({
         #       "http://docs.oasis-open.org/wsn/bw-2" => $consumer,
-        "http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer"  => $consumer,
+        'http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer' => $consumer,
       });
     daemon_main($daemon);
   } else {
     return $daemon;
   }
-}
+} # end sub start_daemon
 
 require WSNotification::Elements::Subscribe;
 require WSNotification::Types::EndpointReferenceType;
@@ -537,8 +537,8 @@ sub events {
   Info('ONVIF Trigger daemon starting');
 
   if ( !defined $localip ) {
-    $localip = '192.168.0.2';
-    $localport = '0';
+    #$localip = '192.168.0.2';
+    #$localport = '0';
   }
 
   # re-use local address/port
@@ -608,7 +608,7 @@ sub events {
       unsubscribe($monitor->{submgr_svc});
     }
   }
-}
+} # end sub events
 
 # ========================================================================
 # options processing
@@ -633,7 +633,8 @@ my ($localaddr, $localip, $localport);
 my $command = $0;
 $0 = $command;
 
-logInit(id=>$command);
+print("Init Log $command\n");
+logInit(id=>'zm_onvif-trigger');
 logSetSignal();
 
 if ( !GetOptions(

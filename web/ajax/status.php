@@ -288,7 +288,7 @@ function collectData() {
             if ( in_array($matches[1], $fieldSql) ) {
               $sql .= $matches[1];
             } else {
-              ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field);
+              ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field));
             }
             if ( count($matches) > 2 ) {
               $sql .= ' '.strtoupper($matches[2]);

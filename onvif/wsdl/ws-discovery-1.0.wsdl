@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+Copyright Notice
+
+(c) 2004-2005 Microsoft Corporation, Inc. All rights reserved.
+
+Permission to copy, display, perform, modify and distribute the 
+WS-Discovery Specification (the "Specification", which includes 
+WSDL and schema documents), and to authorize others to do the 
+foregoing, in any medium without fee or royalty is hereby granted 
+for the purpose of developing and evaluating the Specification.
+
+BEA Systems, Canon, Intel, Microsoft, and webMethods, Inc. 
+(collectively, the "Co-Developers") each agree to grant a license 
+to third parties, under royalty-free and other reasonable, 
+non-discriminatory terms and conditions, to their respective 
+essential Licensed Claims, which reasonable, non-discriminatory 
+terms and conditions may include, for example, but are not limited 
+to, an affirmation  of the obligation to grant reciprocal licenses 
+under any of the licensee's patents that are necessary to implement 
+the Specification.  
+
+DISCLAIMERS:
+
+THE SPECIFICATION IS PROVIDED "AS IS," AND THE CO-DEVELOPERS MAKE 
+NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, INCLUDING, 
+BUT NOT LIMITED TO, WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+PARTICULAR PURPOSE, NON-INFRINGEMENT, OR TITLE; THAT THE CONTENTS 
+OF THE SPECIFICATION ARE SUITABLE FOR ANY PURPOSE; NOR THAT THE 
+IMPLEMENTATION OF SUCH CONTENTS WILL NOT INFRINGE ANY THIRD PARTY 
+PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+
+THE CO-DEVELOPERS WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, 
+SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF ANY 
+USE OF THE SPECIFICATION OR THE PERFORMANCE OR IMPLEMENTATION OF 
+THE CONTENTS THEREOF.
+
+You may remove these disclaimers from your modified versions of the 
+Specification provided that you effectively disclaim all warranties 
+and liabilities on behalf of all Co-developers and any copyright 
+holders in the copies of any such modified versions you distribute.
+
+The name and trademarks of the Co-developers may NOT be used in any 
+manner, including advertising or publicity pertaining to the 
+Specification or its contents without specific, written prior 
+permission. Title to copyright in the Specification will at all 
+times remain with Microsoft.
+
+No other rights are granted by implication, estoppel or otherwise.
+
+-->
+<wsdl:definitions
+    targetNamespace="http://schemas.xmlsoap.org/ws/2005/04/discovery"
+    xmlns:tns="http://schemas.xmlsoap.org/ws/2005/04/discovery"
+    xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" 
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" >
+
+  <wsdl:types>
+    <xs:schema>
+      <xs:import
+          namespace="http://schemas.xmlsoap.org/ws/2005/04/discovery"
+    schemaLocation
+    ="file:wsdl/ws-discovery-1.0.xsd"
+          />
+    </xs:schema>
+  </wsdl:types>
+
+  <wsdl:message name="HelloMsg" >
+    <wsdl:part name="body" element="tns:Hello" />
+  </wsdl:message>
+
+  <wsdl:message name="ByeMsg" >
+    <wsdl:part name="body" element="tns:Bye" />
+  </wsdl:message>
+
+  <wsdl:message name="ProbeMsg" >
+    <wsdl:part name="body" element="tns:Probe" />
+  </wsdl:message>
+
+  <wsdl:message name="ProbeMatchMsg" >
+    <wsdl:part name="body" element="tns:ProbeMatches" />
+  </wsdl:message>
+
+  <wsdl:message name="ResolveMsg" >
+    <wsdl:part name="body" element="tns:Resolve" />
+  </wsdl:message>
+
+  <wsdl:message name="ResolveMatchMsg" >
+    <wsdl:part name="body" element="tns:ResolveMatches" />
+  </wsdl:message>
+
+  <wsdl:portType name="TargetService" >
+    <wsdl:operation name="HelloOp" >
+      <wsdl:output message="tns:HelloMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/Hello"
+      />
+    </wsdl:operation>
+    <wsdl:operation name="ByeOp" >
+      <wsdl:output message="tns:ByeMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/Bye"
+      />
+    </wsdl:operation>
+    <wsdl:operation name="ProbeOp" >
+      <wsdl:input message="tns:ProbeMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe"
+      />
+    </wsdl:operation>
+    <wsdl:operation name="ProbeMatchOp" >
+      <wsdl:output message="tns:ProbeMatchMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/ProbeMatches"
+      />
+    </wsdl:operation>
+    <wsdl:operation name="ResolveOp" >
+      <wsdl:input message="tns:ResolveMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/Resolve"
+      />
+    </wsdl:operation>
+    <wsdl:operation name="ResolveMatchOp" >
+      <wsdl:output message="tns:ResolveMatchMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/ResolveMatches"
+      />
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <!-- If this portType is included in EndpointReference/Types, it
+       indicates the Target Service is a Discovery Proxy. Discovery
+       Proxies also implement tns:TargetService and optionally other
+       message exchanges defined elsewhere.
+  -->
+  <wsdl:portType name="DiscoveryProxy">
+     <wsdl:operation name="HelloOp" >
+      <wsdl:input message="tns:HelloMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/Hello"
+      />
+    </wsdl:operation>
+    <wsdl:operation name="ByeOp" >
+      <wsdl:input message="tns:ByeMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/Bye"
+      />
+    </wsdl:operation>
+    <wsdl:operation name="ProbeOp" >
+      <wsdl:input message="tns:ProbeMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe"
+      />
+      <wsdl:output message="tns:ProbeMatchMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/ProbeMatches"
+      />
+    </wsdl:operation>
+    <wsdl:operation name="ResolveOp" >
+      <wsdl:input message="tns:ResolveMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/Resolve"
+      />
+      <wsdl:output message="tns:ResolveMatchMsg"
+      wsa:Action
+      ="http://schemas.xmlsoap.org/ws/2005/04/discovery/ResolveMatches"
+      />
+    </wsdl:operation>
+  </wsdl:portType>
+  
+</wsdl:definitions>

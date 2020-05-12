@@ -246,7 +246,7 @@ function collectData() {
         if ( isset($elementData['sql']) )
           $fieldSql[] = $elementData['sql'].' as '.$element;
         else
-          $fieldSql[] = '`'.$element.'`';
+          $fieldSql[] = $element;
         if ( isset($elementData['table']) && isset($elementData['join']) ) {
           $joinSql[] = 'left join '.$elementData['table'].' on '.$elementData['join'];
         }
@@ -258,14 +258,15 @@ function collectData() {
 
     if ( count($fieldSql) ) {
       $sql = 'SELECT '.join(', ', $fieldSql).' FROM '.$entitySpec['table'];
+      #$sql = 'SELECT '.join(', ', array_map($fieldSql, function($f){return '`'.$f.'`';})).' FROM '.$entitySpec['table'];
       if ( $joinSql )
         $sql .= ' '.join(' ', array_unique($joinSql));
       if ( $id && !empty($entitySpec['selector']) ) {
         $index = 0;
         $where = array();
-        foreach( $entitySpec['selector'] as $selIndex => $selector ) {
+        foreach ( $entitySpec['selector'] as $selIndex => $selector ) {
           $selectorParamName = ':selector' . $selIndex;
-          if ( is_array( $selector ) ) {
+          if ( is_array($selector) ) {
             $where[] = $selector['selector'].' = '.$selectorParamName;
             $values[$selectorParamName] = validInt($id[$index]);
           } else {
@@ -280,15 +281,15 @@ function collectData() {
         $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
       if ( !empty($_REQUEST['sort']) ) {
         $sql .= ' ORDER BY ';
-        $sort_fields = explode(',',$_REQUEST['sort']);
+        $sort_fields = explode(',', $_REQUEST['sort']);
         foreach ( $sort_fields as $sort_field ) {
           
-          preg_match('/^(\w+)\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
+          preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
           if ( count($matches) ) {
             if ( in_array($matches[1], $fieldSql) ) {
               $sql .= $matches[1];
             } else {
-              ZM\Error('Sort field ' . $matches[1] . ' not in SQL Fields');
+              ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field));
             }
             if ( count($matches) > 2 ) {
               $sql .= ' '.strtoupper($matches[2]);

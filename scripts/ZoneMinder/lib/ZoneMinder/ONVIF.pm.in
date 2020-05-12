@@ -339,6 +339,7 @@ sub profiles {
 #
 # use message parser without schema validation ???
 #
+  return @profiles;
 
 } # end sub profiles
 

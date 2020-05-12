@@ -257,7 +257,8 @@ function collectData() {
     } # end foreach element
 
     if ( count($fieldSql) ) {
-      $sql = 'SELECT '.join(', ', array_map($fieldSql, function($f){return '`'.$f.'`';})).' FROM '.$entitySpec['table'];
+      $sql = 'SELECT '.join(', ', $fieldSql).' FROM '.$entitySpec['table'];
+      #$sql = 'SELECT '.join(', ', array_map($fieldSql, function($f){return '`'.$f.'`';})).' FROM '.$entitySpec['table'];
       if ( $joinSql )
         $sql .= ' '.join(' ', array_unique($joinSql));
       if ( $id && !empty($entitySpec['selector']) ) {

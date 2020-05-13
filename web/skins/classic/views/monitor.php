@@ -492,7 +492,7 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $monitor->Type() != 'Local') ) {
 if ( $tab != 'onvif' ) {
 ?>
         <input type="hidden" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/>
-        <input type="hidden" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_User()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>"/>
         <input type="hidden" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
         <input type="hidden" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/>
 <?php

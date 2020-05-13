@@ -169,12 +169,6 @@ if ( !ZM_PCRE )
   // Currently unsupported
 unset($httpMethods['jpegTags']);
 
-$configTypes = array(
-    'None'  => translate('None'),
-    'ONVIF' => 'ONVIF',
-    'PSIA'  => 'PSIA',
-);
-
 if ( ZM_HAS_V4L1 ) {
   $v4l1DeviceFormats = array(
       'PAL'   => 0,
@@ -419,7 +413,7 @@ if ( canEdit('Monitors') ) {
 $tabs = array();
 $tabs['general'] = translate('General');
 $tabs['source'] = translate('Source');
-$tabs["config"] = translate('MetaConfig');
+$tabs['onvif'] = translate('ONVIF');
 if ( $monitor->Type() != 'WebSite' ) {
   $tabs['storage'] = translate('Storage');
   $tabs['timestamp'] = translate('Timestamp');

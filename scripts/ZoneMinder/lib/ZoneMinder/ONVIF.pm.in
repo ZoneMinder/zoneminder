@@ -202,9 +202,9 @@ sub discover {
 						 Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
 					 ) : (
 						 xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl', },
-						 Types => 'dn:NetworkVideoTransmitter', # QNameListType
 					 )
 				),
+						 Types => 'dn:NetworkVideoTransmitter', # QNameListType
 				Scopes =>  { value => '' },
         },
         WSDiscovery10::Elements::Header->new({

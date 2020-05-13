@@ -417,14 +417,14 @@ Monitor::Monitor(
 
   auto_resume_time = 0;
 
-  if ( strcmp( config.event_close_mode, "time" ) == 0 )
+  if ( strcmp(config.event_close_mode, "time") == 0 )
     event_close_mode = CLOSE_TIME;
-  else if ( strcmp( config.event_close_mode, "alarm" ) == 0 )
+  else if ( strcmp(config.event_close_mode, "alarm") == 0 )
     event_close_mode = CLOSE_ALARM;
   else
     event_close_mode = CLOSE_IDLE;
 
-  Debug( 1, "monitor purpose=%d", purpose );
+  Debug(1, "monitor purpose=%d", purpose);
 
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
@@ -444,17 +444,15 @@ Monitor::Monitor(
   storage = new Storage(storage_id);
   Debug(1, "Storage path: %s", storage->Path());
   // Should maybe store this for later use
-  char monitor_dir[PATH_MAX] = "";
+  char monitor_dir[PATH_MAX];
   snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
 
   if ( purpose == CAPTURE ) {
-    if ( mkdir(monitor_dir, 0755) ) {
-      if ( errno != EEXIST ) {
-        Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
-      }
+    if ( mkdir(monitor_dir, 0755) && ( errno != EEXIST ) ) {
+      Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
     }
 
-    if ( ! this->connect() ) {
+    if ( !this->connect() ) {
       Error("unable to connect, but doing capture");
       exit(-1);
     }
@@ -490,18 +488,14 @@ Monitor::Monitor(
     video_store_data->size = sizeof(VideoStoreData);
     //video_store_data->frameNumber = 0;
   } else if ( purpose == ANALYSIS ) {
-    if ( ! ( this->connect() && mem_ptr ) ) exit(-1);
+    if ( ! (this->connect() && mem_ptr && shared_data->valid) ) {
+      Error("Shared data not initialised by capture daemon for monitor %s", name);
+      exit(-1);
+    }
     shared_data->state = IDLE;
     shared_data->last_read_time = 0;
     shared_data->alarm_x = -1;
     shared_data->alarm_y = -1;
-  }
-
-  if ( ( ! mem_ptr ) || ! shared_data->valid ) {
-    if ( purpose != QUERY ) {
-      Error("Shared data not initialised by capture daemon for monitor %s", name);
-      exit(-1);
-    }
   }
 
   start_time = last_fps_time = time( 0 );
@@ -549,9 +543,8 @@ Monitor::Monitor(
         FifoStream::fifo_create_if_missing(diag_path_d.c_str());
       }
     }
-
-  } // end if purpose == ANALYSIS
-} // Monitor::Monitor
+  }  // end if purpose == ANALYSIS
+}  // Monitor::Monitor
 
 bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose );
@@ -1659,7 +1652,7 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
                   name, image_count, event->Id(), event->Frames(), event->AlarmFrames());
               //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
-              if ( function != MOCORD || event_close_mode == CLOSE_ALARM ) {
+              if ( ( function != MOCORD && function != RECORD ) || event_close_mode == CLOSE_ALARM ) {
                 shared_data->state = state = IDLE;
                 Info("%s: %03d - Closing event %" PRIu64 ", alarm end%s",
                     name, image_count, event->Id(), (function==MOCORD)?", section truncated":"");
@@ -1819,7 +1812,7 @@ void Monitor::Reload() {
       "`AlarmFrameCount`, `SectionLength`, `MinSectionLength`, `FrameSkip`, "
       "`MotionFrameSkip`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`, "
       "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, "
-      "`SignalCheckColour` FROM `Monitors` WHERE `Id` = '%d'", id);
+      "`SignalCheckPoints`, `SignalCheckColour` FROM `Monitors` WHERE `Id` = '%d'", id);
 
   zmDbRow *row = zmDbFetchOne(sql);
   if ( !row ) {
@@ -1865,13 +1858,8 @@ void Monitor::Reload() {
     alarm_ref_blend_perc = atoi(dbrow[index++]);
     track_motion = atoi(dbrow[index++]);
 
-    signal_check_points = dbrow[index]?atoi(dbrow[index]):0;index++;
-
-    if ( dbrow[index][0] == '#' )
-      signal_check_colour = strtol(dbrow[index]+1,0,16);
-    else
-      signal_check_colour = strtol(dbrow[index],0,16);
-    index++;
+    signal_check_points = dbrow[index]?atoi(dbrow[index]):0; index++;
+    signal_check_colour = strtol(dbrow[index][0]=='#'?dbrow[index]+1:dbrow[index], 0, 16); index++;
 
     shared_data->state = state = IDLE;
     shared_data->alarm_x = shared_data->alarm_y = -1;
@@ -1884,7 +1872,7 @@ void Monitor::Reload() {
   } // end if row
 
   ReloadZones();
-} // end void Monitor::Reload()
+}  // end void Monitor::Reload()
 
 void Monitor::ReloadZones() {
   Debug(1, "Reloading zones for monitor %s", name);
@@ -2063,20 +2051,21 @@ int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose p
 } // end int Monitor::LoadFfmpegMonitors
 #endif // HAVE_LIBAVFORMAT
 
-/*
-  std::string load_monitor_sql =
- "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, "
- "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
- "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
- "Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
- "SaveJPEGs, VideoWriter, EncoderParameters,
-"OutputCodec, Encoder, OutputContainer,"
-" RecordAudio, "
- "Brightness, Contrast, Hue, Colour, "
- "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
- "ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
- "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
- "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, SignalCheckColour FROM Monitors";
+/* For reference
+std::string load_monitor_sql =
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `LinkedMonitors`, "
+"`AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
+"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
+"`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
+"`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
+//" OutputCodec, Encoder, OutputContainer, "
+"`RecordAudio`, "
+"`Brightness`, `Contrast`, `Hue`, `Colour`, "
+"`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
+"`ImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
+"`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
+"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, `SignalCheckPoints`, `SignalCheckColour` FROM `Monitors`";
 */
 
 Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
@@ -2096,8 +2085,6 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
 
   double capture_max_fps = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
   double capture_delay = ( capture_max_fps > 0.0 ) ? int(DT_PREC_3/capture_max_fps) : 0;
-
-  Debug(1,"Capture Delay!? %.3f", capture_delay);
   unsigned int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 
   const char *device = dbrow[col]; col++;
@@ -2170,9 +2157,9 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   int ref_blend_perc = atoi(dbrow[col]); col++;
   int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
   int track_motion = atoi(dbrow[col]); col++;
+  bool embed_exif = (*dbrow[col] != '0'); col++;
   int signal_check_points = dbrow[col] ? atoi(dbrow[col]) : 0;col++;
   int signal_check_color = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
-  bool embed_exif = (*dbrow[col] != '0'); col++;
 
   Camera *camera = 0;
   if ( type == "Local" ) {

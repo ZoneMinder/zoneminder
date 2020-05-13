@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web function library, $Date: 2008-07-08 16:06:45 +0100 (Tue, 08 Jul 2008) $, $Revision: 2484 $
+// ZoneMinder web function library
 // Copyright (C) 2001-2008 Philip Coombes
 // 
 // This program is free software; you can redistribute it and/or
@@ -117,9 +117,11 @@ if ( $css != 'base' )
 <?php
 ?>
 
+<?php if ( $basename != 'login' ) { ?>
   <script src="tools/mootools/mootools-core.js"></script>
   <script src="tools/mootools/mootools-more.js"></script>
   <script src="js/mootools.ext.js"></script>
+<?php } ?>
   <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
@@ -146,11 +148,7 @@ if ( $css != 'base' )
   </script>
   <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
 <?php
-  if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) {
-?>
-  <script src='https://www.google.com/recaptcha/api.js'></script>
-<?php
-  } else if ( $view == 'event' ) {
+  if ( $view == 'event' ) {
 ?>
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
   <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
@@ -341,33 +339,35 @@ if ( $user and $user['Username'] ) {
       <li><a href="?view=montagereview<?php echo isset($montageReviewQuery)?'&fit=1'.$montageReviewQuery.'&live=0':'' ?>"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
       <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
 <?php
-  }
+  } // end if canView(Events)
 ?>
       <li><a href="#"><i id="flip" class="material-icons md-18 pull-right">keyboard_arrow_<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up' ?></i></a></li>
 		</ul>
 
-<div class="navbar-right">
+    <div class="navbar-right">
 <?php
-if ( ZM_OPT_USE_AUTH and $user ) {
+  if ( ZM_OPT_USE_AUTH and $user ) {
 ?>
-  <p class="navbar-text">
-    <i class="material-icons">account_circle</i>
-    <?php echo makePopupLink('?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == 'builtin')) ?>
-  </p>
-<?php
-}
-if ( canEdit('System') ) {
+    <p class="navbar-text">
+      <i class="material-icons">account_circle</i>
+      <?php echo makePopupLink('?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == 'builtin') ) ?>
+    </p>
+  <?php
+  }
+  if ( canEdit('System') ) {
 ?>
 		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
-  <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
-  <p class="navbar-text">
-  <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ) ?>
-  </p>
-  <?php } ?>
+    <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
+    <p class="navbar-text">
+    <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ) ?>
+    </p>
+    <?php } ?>
 <?php } else if ( canView('System') ) { ?>
 		<p class="navbar-text"><?php echo $status ?></p>
 <?php } ?>
-</div>
+  </div>
+<?php } else { # end if !$user or $user['Id'] meaning logged in ?>
+</ul>
 <?php } # end if !$user or $user['Id'] meaning logged in ?>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->

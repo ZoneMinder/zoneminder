@@ -468,7 +468,7 @@ void av_packet_rescale_ts(
 }
 #endif
 
-bool is_video_stream( AVStream * stream ) {
+bool is_video_stream(const AVStream * stream) {
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       if ( stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ) {
   #else
@@ -480,10 +480,14 @@ bool is_video_stream( AVStream * stream ) {
   #endif
     return true;
   }
+  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      Debug(2, "Not a video type %d != %d", stream->codecpar->codec_type, AVMEDIA_TYPE_VIDEO);
+  #endif
+
   return false;
 }
 
-bool is_video_context( AVCodecContext *codec_context ) {
+bool is_video_context(const AVCodecContext *codec_context ) {
   return
   #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
       ( codec_context->codec_type == AVMEDIA_TYPE_VIDEO );
@@ -492,7 +496,7 @@ bool is_video_context( AVCodecContext *codec_context ) {
   #endif
 }
 
-bool is_audio_stream( AVStream * stream ) {
+bool is_audio_stream(const AVStream * stream ) {
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       if ( stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO ) {
   #else
@@ -507,7 +511,7 @@ bool is_audio_stream( AVStream * stream ) {
   return false;
 }
 
-bool is_audio_context( AVCodecContext *codec_context ) {
+bool is_audio_context(const AVCodecContext *codec_context ) {
   return
   #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
       ( codec_context->codec_type == AVMEDIA_TYPE_AUDIO );
@@ -559,6 +563,8 @@ int zm_send_packet_receive_frame(
     }
     return ret;
   }
+  // In this api the packet is always consumed, so return packet.bytes
+  return packet.size;
 # else
   int frameComplete = 0;
   while ( !frameComplete ) {
@@ -572,8 +578,8 @@ int zm_send_packet_receive_frame(
       return ret;
     }
   } // end while !frameComplete
+  return ret;
 #endif
-  return 0;
 } // end int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 
 /* Returns < 0 on error, 0 if codec not ready, 1 on success

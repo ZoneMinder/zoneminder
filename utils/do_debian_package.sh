@@ -80,7 +80,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,disco,eoan,focal,trusty"
+    DISTROS="xenial,bionic,eoan,focal"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;
@@ -225,8 +225,8 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   fi;
 
   # Generate Changlog
-  if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
-    cp -Rpd distros/ubuntu1204 debian
+  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ]; then 
+    cp -Rpd distros/ubuntu2004 debian
   else 
     if [ "$DISTRO" == "wheezy" ]; then 
       cp -Rpd distros/debian debian

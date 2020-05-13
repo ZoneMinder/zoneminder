@@ -20,6 +20,10 @@ class Monitor extends ZM_Object {
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
+    'ONVIF_URL' =>  '',
+    'ONVIF_Username'  =>  '',
+    'ONVIF_Password'  =>  '',
+    'ONVIF_Options'   =>  '',
     'Device'  =>  '',
     'Channel' =>  0,
     'Format'  =>  '0',
@@ -39,7 +43,7 @@ class Monitor extends ZM_Object {
     'Height' => null,
     'Colours' => 4,
     'Palette' =>  '0',
-    'Orientation' => null,
+    'Orientation' => 'ROTATE_0',
     'Deinterlacing' =>  0,
     'DecoderHWAccelName'  =>  null,
     'DecoderHWAccelDevice'  =>  null,
@@ -498,12 +502,16 @@ class Monitor extends ZM_Object {
       }
     }
     if ( !count($options) ) {
-      if ( $command == 'quit' ) {
-        $options['command'] = 'quit';
-      } else if ( $command == 'start' ) {
-        $options['command'] = 'start';
-      } else if ( $command == 'stop' ) {
-        $options['command'] = 'stop';
+
+      if ( $command == 'quit' or $command == 'start' or $command == 'stop' ) {
+        # These are special as we now run zmcontrol as a daemon through zmdc.
+        $status = daemonStatus('zmcontrol.pl', array('--id', $this->{'Id'}));
+        Logger::Debug("Current status $status");
+        if ( $status or ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) ) {
+          daemonControl($command, 'zmcontrol.pl', '--id '.$this->{'Id'});
+          return;
+        }
+        $options['command'] = $command;
       } else {
         Warning("No commands to send to zmcontrol from $command");
         return false;
@@ -541,12 +549,12 @@ class Monitor extends ZM_Object {
       $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/daemonControl/'.$this->{'Id'}.'/'.$command.'/zmcontrol.pl.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
+          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
         } else if ( ZM_AUTH_RELAY == 'plain' ) {
-          $url = '?user='.$_SESSION['username'];
-          $url = '?pass='.$_SESSION['password'];
+          $url .= '?user='.$_SESSION['username'];
+          $url .= '?pass='.$_SESSION['password'];
         } else if ( ZM_AUTH_RELAY == 'none' ) {
-          $url = '?user='.$_SESSION['username'];
+          $url .= '?user='.$_SESSION['username'];
         }
       }
       Logger::Debug("sending command to $url");

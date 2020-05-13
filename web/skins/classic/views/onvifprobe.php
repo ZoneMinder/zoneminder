@@ -62,6 +62,8 @@ function probeCameras($localIp) {
               'Type'     => 'Ffmpeg',
               'Host'     => $device_ep,
               'SOAP'     => $soapversion,
+                        'ConfigURL' => $device_ep,
+                        'ConfigOptions' => 'SOAP' . $soapversion,
               ),
             );
         foreach ( preg_split('|,\s*|', $matches[3]) as $attr_val ) {

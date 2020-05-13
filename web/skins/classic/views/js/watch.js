@@ -546,42 +546,62 @@ function getEventCmdResponse( respObj, respText ) {
     } );
 
     for ( var i = 0; i < dbEvents.length; i++ ) {
-      var event = dbEvents[i];
-      var row = $('event'+event.Id);
+      var zm_event = dbEvents[i];
+      var row = $('event'+zm_event.Id);
       var newEvent = (row == null ? true : false);
       if ( newEvent ) {
-        row = new Element( 'tr', {'id': 'event'+event.Id} );
-        new Element( 'td', {'class': 'colId'} ).inject( row );
-        new Element( 'td', {'class': 'colName'} ).inject( row );
-        new Element( 'td', {'class': 'colTime'} ).inject( row );
-        new Element( 'td', {'class': 'colSecs'} ).inject( row );
-        new Element( 'td', {'class': 'colFrames'} ).inject( row );
-        new Element( 'td', {'class': 'colScore'} ).inject( row );
-        new Element( 'td', {'class': 'colDelete'} ).inject( row );
+        row = new Element('tr', {'id': 'event'+zm_event.Id});
+        new Element('td', {'class': 'colId'}).inject(row);
+        new Element('td', {'class': 'colName'}).inject(row);
+        new Element('td', {'class': 'colTime'}).inject(row);
+        new Element('td', {'class': 'colSecs'}).inject(row);
+        new Element('td', {'class': 'colFrames'}).inject(row);
+        new Element('td', {'class': 'colScore'}).inject(row);
+        new Element('td', {'class': 'colDelete'}).inject(row);
 
-        var link = new Element( 'a', {'href': '#', 'events': {'click': createEventPopup.pass( [event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height] )}});
-        link.set( 'text', event.Id );
-        link.inject( row.getElement( 'td.colId' ) );
+        var link = new Element('a', {
+          'href': '#',
+          'events': {
+            'click': createEventPopup.pass( [
+              zm_event.Id,
+              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1',
+              zm_event.Width,
+              zm_event.Height
+            ] )
+          }
+        });
+        link.set('text', zm_event.Id);
+        link.inject(row.getElement('td.colId'));
 
-        link = new Element( 'a', {'href': '#', 'events': {'click': createEventPopup.pass( [event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height] )}});
-        link.set( 'text', event.Name );
-        link.inject( row.getElement( 'td.colName' ) );
+        link = new Element('a', {
+          'href': '#',
+          'events': {
+            'click': createEventPopup.pass( [
+              zm_event.Id,
+              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1',
+              zm_event.Width,
+              zm_event.Height
+            ] )
+          }
+        });
+        link.set('text', zm_event.Name);
+        link.inject(row.getElement('td.colName'));
 
-        row.getElement( 'td.colTime' ).set( 'text', event.StartTime );
-        row.getElement( 'td.colSecs' ).set( 'text', event.Length );
+        row.getElement('td.colTime').set('text', zm_event.StartTime);
+        row.getElement('td.colSecs').set('text', zm_event.Length);
 
-        link = new Element( 'a', {'href': '#', 'events': {'click': createFramesPopup.pass( [event.Id, event.Width, event.Height] )}});
-        link.set( 'text', event.Frames+'/'+event.AlarmFrames );
-        link.inject( row.getElement( 'td.colFrames' ) );
+        link = new Element('a', {'href': '#', 'events': {'click': createFramesPopup.pass( [zm_event.Id, zm_event.Width, zm_event.Height] )}});
+        link.set('text', zm_event.Frames+'/'+zm_event.AlarmFrames);
+        link.inject(row.getElement('td.colFrames'));
 
-        link = new Element( 'a', {'href': '#', 'events': {'click': createFramePopup.pass( [event.Id, '0', event.Width, event.Height] )}});
-        link.set( 'text', event.AvgScore+'/'+event.MaxScore );
-        link.inject( row.getElement( 'td.colScore' ) );
+        link = new Element('a', {'href': '#', 'events': {'click': createFramePopup.pass( [zm_event.Id, '0', zm_event.Width, zm_event.Height] )}});
+        link.set('text', zm_event.AvgScore+'/'+zm_event.MaxScore);
+        link.inject(row.getElement('td.colScore'));
 
-        link = new Element( 'button', {
+        link = new Element('button', {
           'type': 'button',
           'title': deleteString,
-          'data-event-id': event.Id,
+          'data-event-id': zm_event.Id,
           'events': {
             'click': function(e) {
               var event_id = e.target.getAttribute('data-event-id');
@@ -608,14 +628,14 @@ function getEventCmdResponse( respObj, respText ) {
           }
         }
       } else {
-        row.getElement('td.colName a').set('text', event.Name);
-        row.getElement('td.colSecs').set('text', event.Length);
-        row.getElement('td.colFrames a').set('text', event.Frames+'/'+event.AlarmFrames);
-        row.getElement('td.colScore a').set('text', event.AvgScore+'/'+event.MaxScore);
+        row.getElement('td.colName a').set('text', zm_event.Name);
+        row.getElement('td.colSecs').set('text', zm_event.Length);
+        row.getElement('td.colFrames a').set('text', zm_event.Frames+'/'+zm_event.AlarmFrames);
+        row.getElement('td.colScore a').set('text', zm_event.AvgScore+'/'+zm_event.MaxScore);
         row.removeClass('recent');
       }
       row.addClass('updated');
-    }
+    } // end foreach event
 
     var rows = $(eventListBody).getElements('tr');
     for ( var i = 0; i < rows.length; i++ ) {
@@ -631,7 +651,7 @@ function getEventCmdResponse( respObj, respText ) {
     }
   } else {
     checkStreamForErrors('getEventCmdResponse', respObj);
-  }
+  } // end if objresult == ok
 
   var eventCmdTimeout = eventsRefreshTimeout;
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
@@ -672,7 +692,8 @@ function getControlResponse(respObj, respText) {
   }
 }
 
-function controlCmd(button) {
+function controlCmd(event) {
+  button = event.target;
   control = button.getAttribute('value');
   xtell = button.getAttribute('xtell');
   ytell = button.getAttribute('ytell');
@@ -687,7 +708,7 @@ function controlCmd(button) {
     var y = event.pageY - coords.top;
 
     if ( xtell ) {
-      var xge = parseInt( (x*100)/coords.width );
+      var xge = parseInt((x*100)/coords.width);
       if ( xtell == -1 ) {
         xge = 100 - xge;
       } else if ( xtell == 2 ) {
@@ -696,7 +717,7 @@ function controlCmd(button) {
       locParms += '&xge='+xge;
     }
     if ( ytell ) {
-      var yge = parseInt( (y*100)/coords.height );
+      var yge = parseInt((y*100)/coords.height);
       if ( ytell == -1 ) {
         yge = 100 - yge;
       } else if ( ytell == 2 ) {

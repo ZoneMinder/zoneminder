@@ -46,7 +46,7 @@ if ( isset($_REQUEST['scale']) ) {
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
   $scale = $_COOKIE['zmWatchScale'.$mid];
 } else {
-  $scale = reScale(SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE);
+  $scale = $monitor->DefaultScale();
 }
 
 $connkey = generateConnKey();
@@ -71,12 +71,12 @@ if ( canView('Control') && $monitor->Type() == 'Local' ) {
 <?php
 }
 ?>
-          <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo htmlSelect('scale', $scales, $scale); ?></div>
+          <div id="scaleControl"><?php echo translate('Scale').': '.htmlSelect('scale', $scales, $scale); ?></div>
         </div>
         <div id="closeControl"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>
 <?php
-if ( $monitor->Status() != 'Connected' ) {
+if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
   echo '<div class="warning">Monitor is not capturing. We will be unable to provide an image</div>';
 }
 ?>

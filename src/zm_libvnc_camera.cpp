@@ -1,3 +1,4 @@
+#include <dlfcn.h>
 #include "zm.h"
 #include "zm_signal.h"
 #include "zm_libvnc_camera.h"
@@ -8,14 +9,41 @@
 static int TAG_0;
 static int TAG_1;
 static int TAG_2;
+static void *libvnc_lib = nullptr;
+static void *(*rfbClientGetClientData_f)(rfbClient*, void*) = nullptr;
+static rfbClient *(*rfbGetClient_f)(int, int, int) = nullptr;
+static void (*rfbClientSetClientData_f)(rfbClient*, void*, void*) = nullptr;
+static rfbBool (*rfbInitClient_f)(rfbClient*, int*, char**) = nullptr;
+static void (*rfbClientCleanup_f)(rfbClient*) = nullptr;
+static int (*WaitForMessage_f)(rfbClient*, unsigned int) = nullptr;
+static rfbBool (*HandleRFBServerMessage_f)(rfbClient*) = nullptr;
+
+void bind_libvnc_symbols() {
+  if(libvnc_lib != nullptr) // Safe-check
+    return;
+  
+  libvnc_lib = dlopen("libvncclient.so", RTLD_LAZY | RTLD_GLOBAL);
+  if(!libvnc_lib){
+    Error("Error loading libvlc: %s", dlerror());
+    return;
+  }
+
+  *(void**) (&rfbClientGetClientData_f) = dlsym(libvnc_lib, "rfbClientGetClientData");
+  *(void**) (&rfbGetClient_f) = dlsym(libvnc_lib, "rfbGetClient");
+  *(void**) (&rfbClientSetClientData_f) = dlsym(libvnc_lib, "rfbClientSetClientData");
+  *(void**) (&rfbInitClient_f) = dlsym(libvnc_lib, "rfbInitClient");
+  *(void**) (&rfbClientCleanup_f) = dlsym(libvnc_lib, "rfbClientCleanup");
+  *(void**) (&WaitForMessage_f) = dlsym(libvnc_lib, "WaitForMessage");
+  *(void**) (&HandleRFBServerMessage_f) = dlsym(libvnc_lib, "HandleRFBServerMessage");
+}
 
 static void GotFrameBufferUpdateCallback(rfbClient *rfb, int x, int y, int w, int h){
-  VncPrivateData *data = (VncPrivateData *)rfbClientGetClientData(rfb, &TAG_0);
+  VncPrivateData *data = (VncPrivateData *)(*rfbClientGetClientData_f)(rfb, &TAG_0);
   data->buffer = rfb->frameBuffer;
 }
 
 static char* GetPasswordCallback(rfbClient* cl){
-  return strdup((const char *)rfbClientGetClientData(cl, &TAG_1));
+  return strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
 }
 
 static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
@@ -25,8 +53,8 @@ static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
       return NULL;
   }
 
-  c->userCredential.password = strdup((const char *)rfbClientGetClientData(cl, &TAG_1));
-  c->userCredential.username = strdup((const char *)rfbClientGetClientData(cl, &TAG_2));
+  c->userCredential.password = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
+  c->userCredential.username = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_2));
   return c;
 }
 
@@ -94,11 +122,12 @@ VncCamera::~VncCamera() {
 
 void VncCamera::Initialise() {
   Debug(2, "Initializing Client");
-  mRfb = rfbGetClient(8, 3, 4);
+  bind_libvnc_symbols();
+  mRfb = (*rfbGetClient_f)(8, 3, 4);
   
-  rfbClientSetClientData(mRfb, &TAG_0, &mVncData);
-  rfbClientSetClientData(mRfb, &TAG_1, (void *)mPass.c_str());
-  rfbClientSetClientData(mRfb, &TAG_2, (void *)mUser.c_str());
+  (*rfbClientSetClientData_f)(mRfb, &TAG_0, &mVncData);
+  (*rfbClientSetClientData_f)(mRfb, &TAG_1, (void *)mPass.c_str());
+  (*rfbClientSetClientData_f)(mRfb, &TAG_2, (void *)mUser.c_str());
 
   mRfb->GotFrameBufferUpdate = GotFrameBufferUpdateCallback;
   mRfb->GetPassword = GetPasswordCallback;
@@ -107,14 +136,14 @@ void VncCamera::Initialise() {
   mRfb->programName = "Zoneminder VNC Monitor";
   mRfb->serverHost = strdup(mHost.c_str());
   mRfb->serverPort = atoi(mPort.c_str());
-  rfbInitClient(mRfb, 0, nullptr);
+  (*rfbInitClient_f)(mRfb, 0, nullptr);
   scale.init();
 }
 
 void VncCamera::Terminate() {
   if(mRfb->frameBuffer)
     free(mRfb->frameBuffer);
-  rfbClientCleanup(mRfb);
+  (*rfbClientCleanup_f)(mRfb);
   return;
 }
 
@@ -125,8 +154,8 @@ int VncCamera::PrimeCapture() {
 
 int VncCamera::PreCapture() {
   Debug(2, "PreCapture");
-  WaitForMessage(mRfb, 500);
-  rfbBool res = HandleRFBServerMessage(mRfb);
+  (*WaitForMessage_f)(mRfb, 500);
+  rfbBool res = (*HandleRFBServerMessage_f)(mRfb);
   return res == TRUE ? 1 : -1 ;
 }
 

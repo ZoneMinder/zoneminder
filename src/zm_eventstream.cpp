@@ -164,7 +164,22 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->Orientation = (Monitor::Orientation)(dbrow[8] == NULL ? 0 : atoi(dbrow[8]));
   mysql_free_result(result);
 
-  Storage * storage = new Storage(event_data->storage_id);
+  if ( !monitor ) {
+    monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY);
+  } else if ( monitor->Id() != event_data->monitor_id ) {
+    delete monitor;
+    monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY);
+  }
+  if ( !monitor ) {
+    Fatal("Unable to load monitor id %d for streaming", event_data->monitor_id);
+  }
+
+  if ( !storage ) {
+    storage = new Storage(event_data->storage_id);
+  } else if ( storage->Id() != event_data->storage_id ) {
+    delete storage;
+    storage = new Storage(event_data->storage_id);
+  }
   const char *storage_path = storage->Path();
 
   if ( event_data->scheme == Storage::DEEP ) {
@@ -206,7 +221,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_data->event_id);
   }
-  delete storage; storage = NULL;
 
   updateFrameRate((double)event_data->frame_count/event_data->duration);
   Debug(3, "fps set by frame_count(%d)/duration(%f)",
@@ -246,7 +260,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
         event_data->frames[i-1].timestamp = last_timestamp + ((i-last_id)*frame_delta);
         event_data->frames[i-1].offset = event_data->frames[i-1].timestamp - event_data->start_time;
         event_data->frames[i-1].in_db = false;
-        Debug(3,"Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
+        Debug(3, "Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
             i,
             event_data->frames[i-1].timestamp,
             event_data->frames[i-1].offset,
@@ -262,7 +276,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     last_id = id;
     last_delta = delta;
     last_timestamp = event_data->frames[id-1].timestamp;
-    Debug(4, "Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
+    Debug(3, "Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
         id,
         event_data->frames[id-1].timestamp,
         event_data->frames[id-1].offset,
@@ -277,7 +291,10 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   mysql_free_result(result);
 
-  if ( event_data->video_file[0] ) {
+  if ( event_data->video_file[0] || (monitor->GetOptVideoWriter() > 0) ) {
+    if ( !event_data->video_file[0] ) {
+      snprintf(event_data->video_file, sizeof(event_data->video_file), "%" PRIu64 "-%s", event_data->event_id, "video.mp4");
+    }
     std::string filepath = std::string(event_data->path) + "/" + std::string(event_data->video_file);
     //char filepath[PATH_MAX];
     //snprintf(filepath, sizeof(filepath), "%s/%s", event_data->path, event_data->video_file);
@@ -305,7 +322,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
 void EventStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
   // Check for incoming command
-  switch( (MsgCommand)msg->msg_data[0] ) {
+  switch ( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
         Debug(1, "Got PAUSE command");
 
@@ -504,6 +521,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
         // Do nothing, for now
         break;
   }
+
   struct {
     uint64_t event_id;
     int progress;
@@ -541,9 +559,9 @@ void EventStream::processCommand(const CmdMsg *msg) {
     exit(0);
 
   updateFrameRate((double)event_data->frame_count/event_data->duration);
-} // void EventStream::processCommand(const CmdMsg *msg)
+}  // void EventStream::processCommand(const CmdMsg *msg)
 
-void EventStream::checkEventLoaded() {
+bool EventStream::checkEventLoaded() {
   static char sql[ZM_SQL_SML_BUFSIZ];
 
   if ( curr_frame_id <= 0 ) {
@@ -558,7 +576,7 @@ void EventStream::checkEventLoaded() {
     // No event change required
     Debug(3, "No event change required, as curr frame %d <=> event frames %d",
         curr_frame_id, event_data->frame_count);
-    return;
+    return false;
   }
 
   // Event change required.
@@ -586,12 +604,12 @@ void EventStream::checkEventLoaded() {
 
       loadEventData(event_id);
 
-      Debug(2, "Current frame id = %d", curr_frame_id);
       if ( replay_rate < 0 )  // rewind
         curr_frame_id = event_data->frame_count;
       else
         curr_frame_id = 1;
       Debug(2, "New frame id = %d", curr_frame_id);
+      return true;
     } else {
       Debug(2, "No next event loaded using %s. Pausing", sql);
       if ( curr_frame_id <= 0 )
@@ -600,7 +618,7 @@ void EventStream::checkEventLoaded() {
         curr_frame_id = event_data->frame_count;
       paused = true;
       sendTextFrame("No more event data found");
-    } // end if found a new event or not
+    }  // end if found a new event or not
     mysql_free_result(result);
     forceEventChange = false;
   } else {
@@ -611,7 +629,8 @@ void EventStream::checkEventLoaded() {
       curr_frame_id = event_data->frame_count;
     paused = true;
   }
-} // void EventStream::checkEventLoaded()
+  return false;
+}  // void EventStream::checkEventLoaded()
 
 Image * EventStream::getImage( ) {
   static char filepath[PATH_MAX];
@@ -656,7 +675,8 @@ bool EventStream::sendFrame(int delta_us) {
     Image *send_image = prepareImage(&image);
 
     if ( !vid_stream ) {
-      vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
+      vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps,
+          send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
@@ -699,9 +719,10 @@ Debug(1, "Loading image");
       } else if ( ffmpeg_input ) {
         // Get the frame from the mp4 input
         Debug(1,"Getting frame from ffmpeg");
-        AVFrame *frame;
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
-        frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), frame_data->offset );
+        AVFrame *frame = ffmpeg_input->get_frame(
+            ffmpeg_input->get_video_stream_id(),
+            frame_data->offset);
         if ( frame ) {
           image = new Image(frame);
           //av_frame_free(&frame);
@@ -765,6 +786,10 @@ Debug(1, "Loading image");
         default:
           Fatal("Unexpected frame type %d", type);
           break;
+      }
+      if ( send_image != image ) {
+        delete send_image;
+        send_image = NULL;
       }
       delete image;
       image = NULL;
@@ -839,6 +864,10 @@ void EventStream::runStream() {
   updateFrameRate((double)event_data->frame_count/event_data->duration);
   gettimeofday(&start, NULL);
   uint64_t start_usec = start.tv_sec * 1000000 + start.tv_usec;
+  uint64_t last_frame_offset = 0;
+
+  bool in_event = true;
+  double time_to_event = 0;
 
   while ( !zm_terminate ) {
     gettimeofday(&now, NULL);
@@ -862,73 +891,14 @@ void EventStream::runStream() {
     // Get current frame data
     FrameData *frame_data = &event_data->frames[curr_frame_id-1];
 
-    //Info( "cst:%.2f", curr_stream_time );
-    //Info( "cfid:%d", curr_frame_id );
-    //Info( "fdt:%d", frame_data->timestamp );
     if ( !paused ) {
-      Debug(3, "Not paused at frame %d", curr_frame_id);
-
-      // This next bit is to determine if we are in the current event time wise
-      // and whether to show an image saying how long until the next event.
-      bool in_event = true;
-      double time_to_event = 0;
-      if ( replay_rate > 0 ) {
-        time_to_event = event_data->frames[0].timestamp - curr_stream_time;
-        if ( time_to_event > 0 )
-          in_event = false;
-      } else if ( replay_rate < 0 ) {
-        time_to_event = curr_stream_time - event_data->frames[event_data->frame_count-1].timestamp;
-        if ( time_to_event > 0 )
-          in_event = false;
-      }
-      Debug(1, "replay rate(%d) in_event(%d) time_to_event(%f)=curr_stream_time(%f)-frame timestamp:%f",
-          replay_rate, in_event, time_to_event, curr_stream_time, event_data->frames[event_data->frame_count-1].timestamp);
-      if ( !in_event ) {
-        double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
-        Debug(1, "Ctual delta time = %f = %f - %f", actual_delta_time , TV_2_FLOAT(now) , last_frame_sent);
-        // > 1 second
-        if ( actual_delta_time > 1 ) {
-          Debug(1, "Sending time to next event frame");
-          static char frame_text[64];
-          snprintf(frame_text, sizeof(frame_text), "Time to next event = %d seconds", (int)time_to_event);
-          if ( !sendTextFrame(frame_text) )
-            zm_terminate = true;
-        } else {
-          Debug(1, "Not Sending time to next event frame because actual delta time is %f", actual_delta_time);
-        }
-        //else
-        //{
-        // FIXME ICON But we are not paused.  We are somehow still in the event?
-          double sleep_time = (replay_rate>0?1:-1) * ((1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000));
-          //double sleep_time = (replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
-          //// ZM_RATE_BASE == 100, and 1x replay_rate is 100
-          //double sleep_time = ((replay_rate/ZM_RATE_BASE) * STREAM_PAUSE_WAIT)/1000000;
-          if ( ! sleep_time ) {
-            sleep_time += STREAM_PAUSE_WAIT/1000000;
-          }
-          curr_stream_time += sleep_time;
-          Debug(2, "Sleeping (%dus) because we are not at the next event yet, adding %f", STREAM_PAUSE_WAIT, sleep_time);
-          usleep(STREAM_PAUSE_WAIT);
-          
-          //curr_stream_time += (1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
-        //}
-        continue;
-      } // end if !in_event
-
       // Figure out if we should send this frame
-      Debug(3, "cur_frame_id (%d-1) mod frame_mod(%d)", curr_frame_id, frame_mod);
+      Debug(3, "not paused at cur_frame_id (%d-1) mod frame_mod(%d)", curr_frame_id, frame_mod);
       // If we are streaming and this frame is due to be sent
       // frame mod defaults to 1 and if we are going faster than max_fps will get multiplied by 2
       // so if it is 2, then we send every other frame, if is it 4 then every fourth frame, etc.
+ 
       if ( (frame_mod == 1) || (((curr_frame_id-1)%frame_mod) == 0) ) {
-        delta_us = (unsigned int)(frame_data->delta * 1000000);
-        Debug(3, "frame delta %uus ", delta_us);
-        // if effective > base we should speed up frame delivery
-        delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
-        Debug(3, "delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
-        // but must not exceed maxfps
-        delta_us = max(delta_us, 1000000 / maxfps);
-        Debug(3, "delta %u = base_fps(%f)/effective fps(%f) from 30fps", delta_us, base_fps, effective_fps);
         send_frame = true;
       }
     } else if ( step != 0 ) {
@@ -937,16 +907,48 @@ void EventStream::runStream() {
       step = 0;
       send_frame = true;
     } else if ( !send_frame ) {
-      // We are paused, not stepping and doing nothing
+      // We are paused, not stepping and doing nothing, meaning that comms didn't set send_frame to true
       double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
       if ( actual_delta_time > MAX_STREAM_DELAY ) {
         // Send keepalive
         Debug(2, "Sending keepalive frame");
         send_frame = true;
-      //} else {
-        //Debug(2, "Not Sending keepalive frame");
       }
-    } // end if streaming stepping or doing nothing
+    }  // end if streaming stepping or doing nothing
+
+    // time_to_event > 0 means that we are not in the event
+    if ( time_to_event > 0 ) {
+      double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
+      Debug(1, "Actual delta time = %f = %f - %f", actual_delta_time, TV_2_FLOAT(now), last_frame_sent);
+      // > 1 second
+      if ( actual_delta_time > 1 ) {
+        Debug(1, "Sending time to next event frame");
+        static char frame_text[64];
+        snprintf(frame_text, sizeof(frame_text), "Time to next event = %d seconds", (int)time_to_event);
+        if ( !sendTextFrame(frame_text) )
+          zm_terminate = true;
+      } else {
+        Debug(1, "Not Sending time to next event frame because actual delta time is %f", actual_delta_time);
+      }
+      //else
+      //{
+      // FIXME ICON But we are not paused.  We are somehow still in the event?
+      double sleep_time = (replay_rate>0?1:-1) * ((1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000));
+      //double sleep_time = (replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
+      //// ZM_RATE_BASE == 100, and 1x replay_rate is 100
+      //double sleep_time = ((replay_rate/ZM_RATE_BASE) * STREAM_PAUSE_WAIT)/1000000;
+      if ( !sleep_time ) {
+        sleep_time += STREAM_PAUSE_WAIT/1000000;
+      }
+      curr_stream_time += sleep_time;
+      time_to_event -= sleep_time;
+      Debug(2, "Sleeping (%dus) because we are not at the next event yet, adding %f", STREAM_PAUSE_WAIT, sleep_time);
+      usleep(STREAM_PAUSE_WAIT);
+
+      //curr_stream_time += (1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
+      //}
+      continue;
+    } // end if !in_event
 
     if ( send_frame ) {
       if ( !sendFrame(delta_us) ) {
@@ -958,6 +960,17 @@ void EventStream::runStream() {
     curr_stream_time = frame_data->timestamp;
 
     if ( !paused ) {
+
+      // delta is since the last frame
+      delta_us = (unsigned int)(frame_data->delta * 1000000);
+      Debug(3, "frame delta %uus ", delta_us);
+      // if effective > base we should speed up frame delivery
+      delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
+      Debug(3, "delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
+      // but must not exceed maxfps
+      delta_us = max(delta_us, 1000000/maxfps);
+      Debug(3, "delta %u = base_fps(%f)/effective fps(%f) from 30fps", delta_us, base_fps, effective_fps);
+
       // +/- 1? What if we are skipping frames?
       curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;
       // sending the frame may have taken some time, so reload now
@@ -965,7 +978,12 @@ void EventStream::runStream() {
       uint64_t now_usec = (now.tv_sec * 1000000 + now.tv_usec);
 
       // we incremented by replay_rate, so might have jumped past frame_count
-      if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id >= event_data->frame_count) ) {
+      if ( (mode == MODE_SINGLE) && (
+            (curr_frame_id < 1 )
+            ||
+            ((unsigned int)curr_frame_id >= event_data->frame_count) 
+            )
+         ) {
         Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
         curr_frame_id = 1;
         // Have to reset start_usec to now when replaying
@@ -980,9 +998,21 @@ void EventStream::runStream() {
       // There are two ways to go about this, not sure which is correct.
       // you can calculate the relationship between now and the start
       // or calc the relationship from the last frame.  I think from the start is better as it self-corrects
+      //
+      if ( last_frame_offset ) {
+        // We assume that we are going forward and the next frame is in the future.
+        delta_us = frame_data->offset * 1000000 - (now_usec-start_usec);
+       // - (now_usec - start_usec);
+        Debug(2, "New delta_us now %" PRIu64 " - start %" PRIu64 " = %d offset %" PRId64 " - elapsed = %dusec",
+            now_usec, start_usec, now_usec-start_usec, frame_data->offset * 1000000, delta_us);
+      } else {
+        Debug(2, "No last frame_offset, no sleep");
+        delta_us = 0;
+      }
+      last_frame_offset = frame_data->offset * 1000000;
 
-      if ( send_frame && type != STREAM_MPEG ) {
-        if ( delta_us > 0) {
+      if ( send_frame && (type != STREAM_MPEG) ) {
+        if ( delta_us > 0 ) {
           if ( delta_us > MAX_SLEEP_USEC ) {
             Debug(1, "Limiting sleep to %d because calculated sleep is too long %d", MAX_SLEEP_USEC, delta_us);
             delta_us = MAX_SLEEP_USEC;
@@ -1007,16 +1037,34 @@ void EventStream::runStream() {
         }
         usleep(delta_us);
       }
-    } // end if !paused
-
-    //if ( step != 0 )// Adding 0 is cheaper than an if 0
-    // curr_frame_id starts at 1 though, so we might skip the first frame?
+      // We are paused, so might be stepping
+      //if ( step != 0 )// Adding 0 is cheaper than an if 0
+      // curr_frame_id starts at 1 though, so we might skip the first frame?
       curr_frame_id += step;
 
-    // Detects when we hit end of event and will load the next event or previous event
-    if ( !paused )
-      checkEventLoaded();
-  } // end while ! zm_terminate
+      // Detects when we hit end of event and will load the next event or previous event
+      if ( checkEventLoaded() ) {
+        // Have change of event
+
+        // This next bit is to determine if we are in the current event time wise
+        // and whether to show an image saying how long until the next event.
+        if ( replay_rate > 0 ) {
+          // This doesn't make sense unless we have hit the end of the event.
+          time_to_event = event_data->frames[0].timestamp - curr_stream_time;
+          Debug(1, "replay rate(%d) time_to_event(%f)=frame timestamp:%f - curr_stream_time(%f)",
+              replay_rate, time_to_event,
+              event_data->frames[0].timestamp,
+              curr_stream_time);
+
+        } else if ( replay_rate < 0 ) {
+          time_to_event = curr_stream_time - event_data->frames[event_data->frame_count-1].timestamp;
+          Debug(1, "replay rate(%d) time_to_event(%f)=curr_stream_time(%f)-frame timestamp:%f",
+              replay_rate, time_to_event, curr_stream_time, event_data->frames[event_data->frame_count-1].timestamp);
+        }  // end if forward or reverse
+
+      }  // end if checkEventLoaded
+    }  // end if !paused
+  }  // end while ! zm_terminate
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG )
     delete vid_stream;
@@ -1025,18 +1073,12 @@ void EventStream::runStream() {
   closeComms();
 } // void EventStream::runStream()
 
-void EventStream::setStreamStart( uint64_t init_event_id, unsigned int init_frame_id=0 ) {
+void EventStream::setStreamStart(
+    uint64_t init_event_id,
+    unsigned int init_frame_id=0) {
   loadInitialEventData(init_event_id, init_frame_id);
-  if ( !(monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY)) ) {
-    Fatal("Unable to load monitor id %d for streaming", event_data->monitor_id);
-    return;
-  }
-}
+}  // end void EventStream::setStreamStart(init_event_id,init_frame_id=0)
 
 void EventStream::setStreamStart(int monitor_id, time_t event_time) {
   loadInitialEventData(monitor_id, event_time);
-  if ( !(monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY)) ) {
-    Fatal("Unable to load monitor id %d for streaming", monitor_id);
-    return;
-  }
 }

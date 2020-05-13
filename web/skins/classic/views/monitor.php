@@ -169,6 +169,12 @@ if ( !ZM_PCRE )
   // Currently unsupported
 unset($httpMethods['jpegTags']);
 
+$configTypes = array(
+    'None'  => translate('None'),
+    'ONVIF' => 'ONVIF',
+    'PSIA'  => 'PSIA',
+);
+
 if ( ZM_HAS_V4L1 ) {
   $v4l1DeviceFormats = array(
       'PAL'   => 0,
@@ -413,6 +419,7 @@ if ( canEdit('Monitors') ) {
 $tabs = array();
 $tabs['general'] = translate('General');
 $tabs['source'] = translate('Source');
+$tabs["config"] = translate('MetaConfig');
 if ( $monitor->Type() != 'WebSite' ) {
   $tabs['storage'] = translate('Storage');
   $tabs['timestamp'] = translate('Timestamp');
@@ -486,6 +493,14 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $monitor->Type() != 'Local') ) {
       <input type="hidden" name="newMonitor[Palette]" value="<?php echo validHtmlStr($monitor->Palette()) ?>"/>
       <input type="hidden" name="newMonitor[V4LMultiBuffer]" value="<?php echo validHtmlStr($monitor->V4LMultiBuffer()) ?>"/>
       <input type="hidden" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo validHtmlStr($monitor->V4LCapturesPerFrame()) ?>"/>
+<?php
+}
+if ( $tab != 'onvif' ) {
+?>
+        <input type="hidden" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_User()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/>
 <?php
 }
 if ( $tab != 'source' || $monitor->Type()!= 'Remote' ) {
@@ -743,7 +758,29 @@ switch ( $tab ) {
         }
         break;
     }
-  case 'source' :
+    case 'onvif' :
+    {
+?>
+            <tr>  
+              <td><?php echo translate('ONVIF_URL') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/></td>
+            </tr>
+            <tr>
+              <td><?php echo translate('Username') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>"/></td>
+            </tr>
+            <tr>
+              <td><?php echo translate('Password') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/></td>
+            </tr>
+            <tr>
+              <td><?php echo translate('ONVIF_Options') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/></td>
+            </tr>
+<?php
+        break;
+    }
+    case 'source' :
     {
       if ( ZM_HAS_V4L && $monitor->Type() == 'Local' ) {
 ?>

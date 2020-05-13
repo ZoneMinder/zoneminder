@@ -1,0 +1,89 @@
+#! /bin/sh
+
+set +e
+
+if [ "$1" = "configure" ]; then
+    
+  . /etc/zm/zm.conf
+  for CONFFILE in /etc/zm/conf.d/*.conf; do
+    . "$CONFFILE"
+  done
+  
+  # The logs can contain passwords, etc... so by setting group root, only www-data can read them, not people in the www-data group
+  chown www-data:root /var/log/zm
+  chown www-data:www-data /var/lib/zm
+  if [ -z "$2" ]; then
+    chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
+  fi
+  if [ ! -e "/etc/apache2/mods-enabled/cgi.load" ] && [ "$(command -v a2enmod)" != "" ]; then
+    echo "The cgi module is not enabled in apache2.  I am enabling it using a2enmod cgi."
+    a2enmod cgi
+  fi
+
+  if [ "$ZM_DB_HOST" = "localhost" ]; then
+
+    if [ -e "/lib/systemd/system/mysql.service" ] || [ -e "/lib/systemd/system/mariadb.service" ] || [ -e "/etc/init.d/mysql" ]; then
+      # Ensure zoneminder is stopped
+      deb-systemd-invoke stop zoneminder.service || exit $?
+          
+      #
+      # Get mysql started if it isn't running
+      #
+      
+      if [ -e "/lib/systemd/system/mariadb.service" ]; then
+        DBSERVICE="mariadb.service"
+      else
+        DBSERVICE="mysql.service"
+      fi
+      echo "Detected db service is $DBSERVICE"
+      if systemctl is-failed --quiet $DBSERVICE; then
+        echo "$DBSERVICE is in a failed state; it will not be started."
+        echo "If you have already resolved the problem preventing $DBSERVICE from running,"
+        echo "run sudo systemctl restart $DBSERVICE then run sudo dpkg-reconfigure zoneminder."
+        exit 1
+      fi
+      
+      if ! systemctl is-active --quiet mysql.service mariadb.service; then
+        # Due to /etc/init.d service autogeneration, mysql.service always returns the status of mariadb.service
+        # However, mariadb.service will not return the status of mysql.service.
+        deb-systemd-invoke start $DBSERVICE
+      fi
+      
+      # Make sure systemctl status exit code is 0; i.e. the DB is running
+      if systemctl is-active --quiet "$DBSERVICE"; then
+        mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
+        # test if database if already present...
+        if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
+            echo "Creating zm db"
+            cat /usr/share/zoneminder/db/zm_create.sql | mysql --defaults-file=/etc/mysql/debian.cnf
+            if [ $? -ne 0 ]; then
+              echo "Error creating db."
+              exit 1;
+            fi
+            # This creates the user.
+            echo "CREATE USER '${ZM_DB_USER}'@localhost IDENTIFIED BY '${ZM_DB_PASS}';" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+        fi
+        echo "Updating permissions"
+        echo "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute  on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+
+        zmupdate.pl --nointeractive
+        zmupdate.pl --nointeractive -f
+
+        # Add any new PTZ control configurations to the database (will not overwrite)
+        zmcamtool.pl --import >/dev/null 2>&1
+        echo "Done Updating; starting ZoneMinder."
+      else
+        echo 'NOTE: MySQL/MariaDB not running; please start mysql and run dpkg-reconfigure zoneminder when it is running.'
+      fi
+    else
+      echo 'MySQL/MariaDB not found; assuming remote server.'
+    fi
+
+  else
+    echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
+  fi
+  deb-systemd-invoke restart zoneminder.service
+
+fi
+
+#DEBHELPER#

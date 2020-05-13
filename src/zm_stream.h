@@ -29,6 +29,7 @@
 class Monitor;
 
 #define TV_2_FLOAT( tv ) ( double((tv).tv_sec) + (double((tv).tv_usec) / 1000000.0) )
+#define BOUNDARY "ZoneMinderFrame"
 
 class StreamBase {
 public:
@@ -73,18 +74,16 @@ protected:
   int bitrate;
   unsigned short last_x, last_y;
   unsigned short x, y;
-
-protected:
+  bool send_analysis;
+  bool send_objdetect;
   int connkey;
   int sd;
-  char loc_sock_path[PATH_MAX];
+  char loc_sock_path[108];
   struct sockaddr_un loc_addr;
-  char rem_sock_path[PATH_MAX];
+  char rem_sock_path[108];
   struct sockaddr_un rem_addr;
-  char sock_path_lock[PATH_MAX];
+  char sock_path_lock[108];
   int lock_fd;
-
-protected:
   bool paused;
   int step;
 
@@ -114,25 +113,30 @@ protected:
   virtual void processCommand( const CmdMsg *msg )=0;
 
 public:
-  StreamBase() {
-    monitor = 0;
+  StreamBase(): 
+    monitor(0),
+    type(DEFAULT_TYPE),
+    format(""),
+    replay_rate(DEFAULT_RATE),
+    scale(DEFAULT_SCALE),
+    last_scale(DEFAULT_SCALE),
+    zoom(DEFAULT_ZOOM),
+    last_zoom(DEFAULT_ZOOM),
+    maxfps(DEFAULT_MAXFPS),
+    bitrate(DEFAULT_BITRATE),
+    last_x(0),
+    last_y(0),
+    x(0),
+    y(0),
+    send_analysis(false),
+    send_objdetect(false),
+    connkey(0),
+    sd(-1),
+    lock_fd(0),
+    paused(false),
+    step(0)
 
-    type = DEFAULT_TYPE;
-    format = "";
-    replay_rate = DEFAULT_RATE;
-    last_scale = scale = DEFAULT_SCALE;
-    last_zoom = zoom = DEFAULT_ZOOM;
-    maxfps = DEFAULT_MAXFPS;
-    bitrate = DEFAULT_BITRATE;
-
-    paused = false;
-    step = 0;
-    last_x = x = 0;
-    last_y = y = 0;
-
-    connkey = 0;
-    sd = -1;
-    lock_fd = 0;
+    {
     memset( &loc_sock_path, 0, sizeof(loc_sock_path) );
     memset( &loc_addr, 0, sizeof(loc_addr) );
     memset( &rem_sock_path, 0, sizeof(rem_sock_path) );

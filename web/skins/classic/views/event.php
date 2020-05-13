@@ -24,7 +24,7 @@ if ( !canView('Events') ) {
 }
 
 $eid = validInt($_REQUEST['eid']);
-$fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
+$fid = !empty($_REQUEST['fid']) ? validInt($_REQUEST['fid']) : 1;
 
 $Event = new ZM\Event($eid);
 if ( $user['MonitorIds'] ) {
@@ -79,7 +79,7 @@ $replayModes = array(
   'gapless' => translate('ReplayGapless'),
 );
 
-if ( isset( $_REQUEST['streamMode'] ) )
+if ( isset($_REQUEST['streamMode']) )
   $streamMode = validHtmlStr($_REQUEST['streamMode']);
 else
   $streamMode = 'video';
@@ -104,9 +104,15 @@ if ( $Monitor->VideoWriter() == '2' ) {
     $Zoom = $Event->Height()/$Event->Width();
 }
 
-// These are here to figure out the next/prev event, however id there is no filter, then default to one that specifies the Monitor
+// These are here to figure out the next/prev event, however if there is no filter, then default to one that specifies the Monitor
 if ( !isset($_REQUEST['filter']) ) {
-  $_REQUEST['filter'] = array( 'Query'=>array('terms'=> array( array('attr' => 'MonitorId', 'op' => '=', 'val' => $Event->MonitorId() ) ) ) );
+  $_REQUEST['filter'] = array(
+    'Query'=>array(
+      'terms'=>array(
+        array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$Event->MonitorId())
+      )
+    )
+  );
 }
 parseSort();
 parseFilter($_REQUEST['filter']);

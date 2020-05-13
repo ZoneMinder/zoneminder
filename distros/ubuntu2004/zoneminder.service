@@ -1,0 +1,23 @@
+# ZoneMinder systemd unit file
+# This file is intended to work with Debian distributions
+
+[Unit]
+Description=ZoneMinder CCTV recording and surveillance system
+After=network.target mysql.service
+# Remarked out so that it will start ZM on machines that don't have mysql installed
+#Requires=mysql.service
+
+[Service]
+#User=www-data
+Type=forking
+ExecStart=/usr/bin/zmpkg.pl start
+ExecReload=/usr/bin/zmpkg.pl restart
+ExecStop=/usr/bin/zmpkg.pl stop
+PIDFile=/run/zm/zm.pid
+Restart=always
+RestartSec=10
+Environment=TZ=:/etc/localtime
+TimeoutSec=600
+
+[Install]
+WantedBy=multi-user.target

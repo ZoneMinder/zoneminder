@@ -1,7 +1,0 @@
-version=3
-
-opts=\
-repacksuffix=+dfsg,\
-dversionmangle=s{\+dfsg\d*}{},\
- https://github.com/ZoneMinder/ZoneMinder/releases \
-  .*/ZoneMinder/archive/v(.*).tar.gz

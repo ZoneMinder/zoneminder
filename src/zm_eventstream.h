@@ -80,35 +80,51 @@ class EventStream : public StreamBase {
     struct timeval start;     // clock time when started the event
 
     EventData *event_data;
-    FFmpeg_Input  *ffmpeg_input;
 
   protected:
     bool loadEventData( uint64_t event_id );
     bool loadInitialEventData( uint64_t init_event_id, unsigned int init_frame_id );
     bool loadInitialEventData( int monitor_id, time_t event_time );
 
-    void checkEventLoaded();
+    bool checkEventLoaded();
     void processCommand( const CmdMsg *msg );
     bool sendFrame( int delta_us );
 
   public:
-    EventStream() {
-      mode = DEFAULT_MODE;
-      replay_rate = DEFAULT_RATE;
-
-      forceEventChange = false;
-
-      curr_frame_id = 0;
-      curr_stream_time = 0.0;
-      send_frame = false;
-
-      event_data = 0;
-
+    EventStream() :
+      mode(DEFAULT_MODE),
+      forceEventChange(false),
+      curr_frame_id(0),
+      curr_stream_time(0.0),
+      send_frame(false),
+      event_data(0),
+      storage(NULL),
+      ffmpeg_input(NULL),
       // Used when loading frames from an mp4
-      input_codec_context = 0;
-      input_codec = 0;
-
-      ffmpeg_input = NULL;
+      input_codec_context(0),
+      input_codec(0)
+    {}
+    ~EventStream() {
+        if ( event_data ) {
+          if ( event_data->frames ) {
+            delete[] event_data->frames;
+            event_data->frames = NULL;
+          }
+          delete event_data;
+          event_data = NULL;
+        }
+        if ( monitor ) {
+          delete monitor;
+          monitor = NULL;
+        }
+        if ( storage ) {
+          delete storage;
+          storage = NULL;
+        }
+        if ( ffmpeg_input ) {
+          delete ffmpeg_input;
+          ffmpeg_input = NULL;
+        }
     }
     void setStreamStart( uint64_t init_event_id, unsigned int init_frame_id );
     void setStreamStart( int monitor_id, time_t event_time );
@@ -118,6 +134,8 @@ class EventStream : public StreamBase {
     void runStream();
     Image *getImage();
   private:
+    Storage *storage;
+    FFmpeg_Input  *ffmpeg_input;
     AVCodecContext *input_codec_context;
     AVCodec *input_codec;
 };

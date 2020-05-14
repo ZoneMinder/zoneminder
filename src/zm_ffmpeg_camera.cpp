@@ -975,10 +975,12 @@ int FfmpegCamera::CaptureAndRecord(
             Error("Error count over 100, going to close and re-open stream");
             return -1;
           }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
           if ( (ret == AVERROR_INVALIDDATA ) && (hw_pix_fmt != AV_PIX_FMT_NONE) ) {
             use_hwaccel = false;
             return -1;
           }
+#endif
         }
         zm_av_packet_unref(&packet);
         continue;

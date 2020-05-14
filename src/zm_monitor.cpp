@@ -555,14 +555,18 @@ bool Monitor::connect() {
   snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
   map_fd = open(mem_file, O_RDWR|O_CREAT, (mode_t)0600);
   if ( map_fd < 0 ) {
-    Fatal("Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno));
+    Error("Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno));
+    return false;
   } else {
     Debug(3, "Success opening mmap file at (%s)", mem_file);
   }
 
   struct stat map_stat;
-  if ( fstat(map_fd, &map_stat) < 0 )
-    Fatal("Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno));
+  if ( fstat(map_fd, &map_stat) < 0 ) {
+    Error("Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno));
+    close(map_fd);
+    return false;
+  }
 
   if ( map_stat.st_size != mem_size ) {
     if ( purpose == CAPTURE ) {

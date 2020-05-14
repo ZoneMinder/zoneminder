@@ -81,10 +81,11 @@ bool zmDbConnect() {
 void zmDbClose() {
   if ( zmDbConnected ) {
     db_mutex.lock();
-    mysql_close( &dbconn );
+    mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()
-    mysql_library_end();
+    // We get segfaults and a hang when we call this.  So just don't.
+    //mysql_library_end();
     zmDbConnected = false;
     db_mutex.unlock();
   }
@@ -96,6 +97,12 @@ MYSQL_RES * zmDbFetch(const char * query) {
     return NULL;
   }
   db_mutex.lock();
+  // Might have been disconnected while we waited for the lock
+  if ( !zmDbConnected ) {
+    db_mutex.unlock();
+    Error("Not connected.");
+    return NULL;
+  }
 
   if ( mysql_query(&dbconn, query) ) {
     db_mutex.unlock();

@@ -169,12 +169,6 @@ if ( !ZM_PCRE )
   // Currently unsupported
 unset($httpMethods['jpegTags']);
 
-$configTypes = array(
-    'None'  => translate('None'),
-    'ONVIF' => 'ONVIF',
-    'PSIA'  => 'PSIA',
-);
-
 if ( ZM_HAS_V4L1 ) {
   $v4l1DeviceFormats = array(
       'PAL'   => 0,
@@ -419,7 +413,7 @@ if ( canEdit('Monitors') ) {
 $tabs = array();
 $tabs['general'] = translate('General');
 $tabs['source'] = translate('Source');
-$tabs["config"] = translate('MetaConfig');
+$tabs['onvif'] = translate('ONVIF');
 if ( $monitor->Type() != 'WebSite' ) {
   $tabs['storage'] = translate('Storage');
   $tabs['timestamp'] = translate('Timestamp');
@@ -498,7 +492,7 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $monitor->Type() != 'Local') ) {
 if ( $tab != 'onvif' ) {
 ?>
         <input type="hidden" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/>
-        <input type="hidden" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_User()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>"/>
         <input type="hidden" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
         <input type="hidden" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/>
 <?php

@@ -39,16 +39,18 @@ function probeV4L() {
   }
 
   $monitors = array();
-  foreach ( dbFetchAll("SELECT Id, Name, Device,Channel FROM Monitors WHERE Type = 'Local' ORDER BY Device, Channel" ) as $monitor )
+  foreach ( dbFetchAll("SELECT Id, Name, Device, Channel FROM Monitors WHERE Type = 'Local' ORDER BY Device, Channel" ) as $monitor )
     $monitors[$monitor['Device'].':'.$monitor['Channel']] = $monitor;
 
   $devices = array();
   $preferredStandards = array('PAL', 'NTSC');
   $preferredFormats = array('BGR3', 'RGB3', 'YUYV', 'UYVY', 'JPEG', 'MJPG', '422P', 'YU12', 'GREY');
   foreach ( $output as $line ) {
-    if ( !preg_match('/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches) )
-      ZM\Fatal("Can't parse command output '$line'");
-    $standards = explode('/',$deviceMatches[2]);
+    if ( !preg_match('/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches) ) {
+      ZM\Error("Can't parse command output '$line'");
+      continue;
+    }
+    $standards = explode('/', $deviceMatches[2]);
     $preferredStandard = false;
     foreach ( $preferredStandards as $standard ) {
       if ( in_array( $standard, $standards ) ) {
@@ -56,7 +58,7 @@ function probeV4L() {
         break;
       }
     }
-    $formats = explode('/',$deviceMatches[3]);
+    $formats = explode('/', $deviceMatches[3]);
     $preferredFormat = false;
     foreach ( $preferredFormats as $format ) {
       if ( in_array($format, $formats) ) {
@@ -73,8 +75,10 @@ function probeV4L() {
     );
     $inputs = array();
     for ( $i = 0; $i < $deviceMatches[4]; $i++ ) {
-      if ( !preg_match('/i'.$i.':([^|]+)\|i'.$i.'T:([^|]+)\|/', $deviceMatches[5], $inputMatches) )
-        ZM\Fatal("Can't parse input '".$deviceMatches[5]."'");
+      if ( !preg_match('/i'.$i.':([^|]+)\|i'.$i.'T:([^|]+)\|/', $deviceMatches[5], $inputMatches) ) {
+        ZM\Error("Can't parse input '".$deviceMatches[5]."'");
+        continue;
+      }
       if ( $inputMatches[2] == 'Camera' ) {
         $input = array(
           'index' => $i,
@@ -101,7 +105,7 @@ function probeV4L() {
           $inputMonitor['Colours'] = 1;
           $inputMonitor['SignalCheckColour'] = '#000023';
         }
-        $inputDesc = base64_encode(serialize($inputMonitor));
+        $inputDesc = base64_encode(json_encode($inputMonitor));
         $inputString = $deviceMatches[1].', chan '.$i.($input['free']?(' - '.translate('Available')):(' ('.$monitors[$input['id']]['Name'].')'));
         $inputs[] = $input;
         $cameras[$inputDesc] = $inputString;
@@ -288,7 +292,7 @@ function probeNetwork() {
     if ( isset($macBases[$macRoot]) ) {
       $macBase = $macBases[$macRoot];
       $camera = call_user_func($macBase['probeFunc'], $ip);
-      $sourceDesc = base64_encode(serialize($camera['monitor']));
+      $sourceDesc = base64_encode(json_encode($camera['monitor']));
       $sourceString = $camera['model'].' @ '.$host;
       if ( isset($monitors[$ip]) ) {
         $monitor = $monitors[$ip];
@@ -330,7 +334,7 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
         </p>
         <p>
           <label for="probe"><?php echo translate('DetectedCameras') ?></label>
-          <?php echo buildSelect('probe', $cameras, 'configureButtons(this)'); ?>
+          <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons(this)')); ?>
         </p>
         <div id="contentButtons">
         <button type="button" name="saveBtn" value="Save" data-on-click-this="submitCamera" disabled="disabled">

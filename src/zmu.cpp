@@ -198,7 +198,6 @@ bool ValidateAccess(User *user, int mon_id, int function) {
 
 void exit_zmu(int exit_code) {
   logTerm();
-  printf("closing db\n");
   zmDbClose();
 
   exit(exit_code);

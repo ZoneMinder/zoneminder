@@ -179,7 +179,10 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
   eventData.addEvent('click', showEvent.pass());
 }
 
-function tlZoomBounds( minTime, maxTime ) {
+function tlZoomBounds(event) {
+  var target = event.target;
+  var minTime = target.getAttribute('data-zoom-min-time');
+  var maxTime = target.getAttribute('data-zoom-max-time');
   location.replace('?view='+currentView+filterQuery+'&minTime='+minTime+'&maxTime='+maxTime);
 }
 

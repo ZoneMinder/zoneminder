@@ -36,14 +36,14 @@ function createEventHtml(zm_event, frame) {
   return eventHtml;
 }
 
-function showEventDetail( eventHtml ) {
-  $('instruction').addClass( 'hidden' );
+function showEventDetail(eventHtml) {
+  $('instruction').addClass('hidden');
   $('eventData').empty();
-  $('eventData').adopt( eventHtml );
-  $('eventData').removeClass( 'hidden' );
+  $('eventData').adopt(eventHtml);
+  $('eventData').removeClass('hidden');
 }
 
-function eventDataResponse( respObj, respText ) {
+function eventDataResponse(respObj, respText) {
   var zm_event = respObj.event;
   if ( !zm_event ) {
     console.log('Null event');
@@ -197,14 +197,18 @@ function tlPanRight() {
   location.replace('?view='+currentView+filterQuery+'&midTime='+maxTime+'&range='+range);
 }
 
-window.addEventListener("DOMContentLoaded", function() {
-  document.querySelectorAll("div.event").forEach(function(el) {
+window.addEventListener('DOMContentLoaded', function() {
+  // These look like the code in skin.js, but that code doesn't select for divs.
+  document.querySelectorAll('div.event').forEach(function(el) {
     el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
     el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
   });
-  document.querySelectorAll("div.activity").forEach(function(el) {
+  document.querySelectorAll('div.activity').forEach(function(el) {
     el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
     el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
+  });
+  document.querySelectorAll('div.zoom').forEach(function(el) {
+    el.onclick = function(ev) { window[el.getAttribute('data-on-click')](ev); };
   });
 });
 

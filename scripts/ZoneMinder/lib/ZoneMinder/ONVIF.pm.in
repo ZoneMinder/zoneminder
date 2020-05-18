@@ -163,7 +163,7 @@ sub interpret_messages {
 # functions
 
 sub discover {
-  my ($soap_version, $net_interface) = @_;
+  my ($soap_versions, $net_interface) = @_;
   my @results;
 
 ## collect all responses
@@ -178,7 +178,7 @@ sub discover {
 
   my $uuid_gen = Data::UUID->new();
 
-  foreach my $version ( $soap_version ? ( $soap_version ) : ( '1.1', '1.2') ) {
+  foreach my $version ( $soap_versions ? ( split(',',$soap_versions) ) : ( '1.1', '1.2') ) {
 		my %services;
 
     print "Probing for SOAP $version\n" if $verbose;

@@ -212,7 +212,8 @@ function Monitor(monitorData) {
  * @param {*} element - the event data passed by onchange callback
  */
 function selectLayout(element) {
-  layout = $j(element).val();
+  var ddm = $j('#zmMontageLayout');
+  layout = ddm.val();
 
   if ( layout_id = parseInt(layout) ) {
     layout = layouts[layout];
@@ -231,6 +232,7 @@ function selectLayout(element) {
       if ( layout.Positions['default'] ) {
         styles = layout.Positions['default'];
         for ( style in styles ) {
+          console.log("Applying " + style + ' ' + styles[style]);
           monitor_frame.css(style, styles[style]);
         }
       } else {
@@ -241,7 +243,6 @@ function selectLayout(element) {
         styles = layout.Positions['mId'+monitor.id];
         for ( style in styles ) {
           monitor_frame.css(style, styles[style]);
-          console.log("Applying " + style + ' : ' + styles[style]);
         }
       } else {
         console.log("No Monitor styles to apply");

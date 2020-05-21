@@ -424,7 +424,7 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
     echo implode(', ', array_map($func, $storage_areas));
   $shm_percent = getDiskPercent(ZM_PATH_MAP);
   $shm_total_space = disk_total_space(ZM_PATH_MAP);
-  $shm_used = $dhm_total_space - $disk_free_space(ZM_PATH_MAP);
+  $shm_used = $shm_total_space - disk_free_space(ZM_PATH_MAP);
 
   $class = '';
   if ( $shm_percent > 98 ) {

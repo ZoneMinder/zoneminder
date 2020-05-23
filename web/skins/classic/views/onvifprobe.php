@@ -36,9 +36,10 @@ function execONVIF($cmd) {
 
   if ( $status ) {
     $html_output = implode('<br/>', $output);
-    ZM\Fatal("Unable to probe network cameras, status is '$status'. Output was:<br/><br/>
-        $html_output<br/><br/>
-        Please the following command from a command line for more information:<br/><br/>$shell_command"
+    ZM\Error("Unable to probe network cameras, status is '$status'. Output was:
+        $html_output
+        Please run the following command from a command line for more information:
+        $shell_command"
         );
   } else {
     ZM\Logger::Debug('Results from probe: '.implode('<br/>', $output));
@@ -49,7 +50,8 @@ function execONVIF($cmd) {
 
 function probeCameras($localIp) {
   $cameras = array();
-  if ( $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? isset($_REQUEST['interface'] : '' )) ) {
+  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? ' '.isset($_REQUEST['interface']) : '' ));
+  if ( $lines ) {
     foreach ( $lines as $line ) {
       $line = rtrim($line);
       if ( preg_match('|^(.+),(.+),\s\((.*)\)$|', $line, $matches) ) {

@@ -285,7 +285,7 @@ function getCmdResponse( respObj, respText ) {
     }
   } // end if haev a new auth hash
 
-  streamCmdTimer = streamQuery.delay( streamTimeout ); //Timeout is refresh rate for progressBox and time display
+  streamCmdTimer = streamQuery.delay(streamTimeout); //Timeout is refresh rate for progressBox and time display
 }
 
 var streamReq = new Request.JSON( {

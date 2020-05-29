@@ -635,7 +635,7 @@ function getEventCmdResponse( respObj, respText ) {
         row.removeClass('recent');
       }
       row.addClass('updated');
-    }  // end foreach event
+    } // end foreach event
 
     var rows = $(eventListBody).getElements('tr');
     for ( var i = 0; i < rows.length; i++ ) {
@@ -651,7 +651,7 @@ function getEventCmdResponse( respObj, respText ) {
     }
   } else {
     checkStreamForErrors('getEventCmdResponse', respObj);
-  }  // end if objresult == ok
+  } // end if objresult == ok
 
   var eventCmdTimeout = eventsRefreshTimeout;
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {

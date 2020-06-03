@@ -205,6 +205,7 @@ getBodyTopHTML();
 <?php
 ob_start();
 ?>
+	<div class="table-responsive">
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>
@@ -390,9 +391,10 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php if ( canEdit('Monitors') ) { ?>
             <td class="colMark"></td>
 <?php } ?>
-          </tr>
+         </tr>
         </tfoot>
-      </table>
+        </table>
+	  </div>
     </div>
   </form>
 <?php xhtmlFooter() ?>

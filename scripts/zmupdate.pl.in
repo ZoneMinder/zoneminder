@@ -121,6 +121,8 @@ GetOptions(
 my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
 $Config{ZM_DB_USER} = $dbUser;
 $Config{ZM_DB_PASS} = $dbPass;
+# we escape dbpass with single quotes so that $ in the password has no effect, but dbpass could have a ' in it.
+$dbPass =~ s/'/\\'/g;
 
 if ( ! ($check || $freshen || $rename || $zoneFix || $migrateEvents || $version) ) {
   if ( $Config{ZM_DYN_DB_VERSION} ) {
@@ -384,21 +386,21 @@ if ( $version ) {
       my $command = 'mysqldump';
       if ( defined($portOrSocket) ) {
         if ( $portOrSocket =~ /^\// ) {
-          $command .= " -S".$portOrSocket;
+          $command .= ' -S'.$portOrSocket;
         } else {
-          $command .= " -h".$host." -P".$portOrSocket;
+          $command .= ' -h'.$host.' -P'.$portOrSocket;
         }
       } else {
-        $command .= " -h".$host; 
+        $command .= ' -h'.$host; 
       }
       if ( $dbUser ) {
         $command .= ' -u'.$dbUser;
-        $command .= ' -p"'.$dbPass.'"' if $dbPass;
+        $command .= ' -p\''.$dbPass.'\'' if $dbPass;
       }
-      my $backup = "@ZM_TMPDIR@/".$Config{ZM_DB_NAME}."-".$version.".dump";
-      $command .= " --add-drop-table --databases ".$Config{ZM_DB_NAME}." > ".$backup;
-      print( "Creating backup to $backup. This may take several minutes.\n" );
-      print( "Executing '$command'\n" ) if ( logDebugging() );
+      my $backup = '@ZM_TMPDIR@/'.$Config{ZM_DB_NAME}.'-'.$version.'.dump';
+      $command .= ' --add-drop-table --databases '.$Config{ZM_DB_NAME}.' > '.$backup;
+      print("Creating backup to $backup. This may take several minutes.\n");
+      print("Executing '$command'\n") if logDebugging();
       my $output = qx($command);
       my $status = $? >> 8;
       if ( $status || logDebugging() ) {
@@ -982,7 +984,7 @@ sub patchDB {
   }
   if ( $dbUser ) {
     $command .= ' -u'.$dbUser;
-    $command .= ' -p"'.$dbPass.'"' if $dbPass;
+    $command .= ' -p\''.$dbPass.'\'' if $dbPass;
   }
   $command .= ' '.$Config{ZM_DB_NAME}.' < ';
   if ( $updateDir ) {

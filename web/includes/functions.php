@@ -1484,15 +1484,15 @@ function getLoad() {
 function getDiskPercent($path = ZM_DIR_EVENTS) {
   $total = disk_total_space($path);
   if ( $total === false ) {
-    Error('disk_total_space returned false. Verify the web account user has access to ' . $path);
+    ZM\Error('disk_total_space returned false. Verify the web account user has access to ' . $path);
     return 0;
   } elseif ( $total == 0 ) {
-    Error('disk_total_space indicates the following path has a filesystem size of zero bytes ' . $path);
+    ZM\Error('disk_total_space indicates the following path has a filesystem size of zero bytes ' . $path);
     return 100;
   }
   $free = disk_free_space($path);
   if ( $free === false ) {
-    Error('disk_free_space returned false. Verify the web account user has access to ' . $path);
+    ZM\Error('disk_free_space returned false. Verify the web account user has access to ' . $path);
   }
   $space = round((($total - $free) / $total) * 100);
   return $space;
@@ -2048,7 +2048,7 @@ function logState() {
       if ( $count['Level'] <= ZM\Logger::PANIC )
         $count['Level'] = ZM\Logger::FATAL;
       if ( !($levelCount = $levelCounts[$count['Level']]) ) {
-        Error('Unexpected Log level '.$count['Level']);
+        ZM\Error('Unexpected Log level '.$count['Level']);
         next;
       }
       if ( $levelCount[1] && $count['LevelCount'] >= $levelCount[1] ) {

@@ -970,7 +970,7 @@ sub patchDB {
   my $dbh = shift;
   my $version = shift;
 
-  my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+  my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ ) if $Config{ZM_DB_HOST};
   my $command = 'mysql';
   if ( defined($portOrSocket) ) {
     if ( $portOrSocket =~ /^\// ) {
@@ -978,7 +978,7 @@ sub patchDB {
     } else {
       $command .= ' -h'.$host.' -P'.$portOrSocket;
     }
-  } else {
+  } elsif ( $host ) {
     $command .= ' -h'.$host;
   }
   if ( $dbUser ) {

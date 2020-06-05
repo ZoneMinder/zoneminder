@@ -695,12 +695,11 @@ function getControlResponse(respObj, respText) {
 function controlCmd(event) {
   button = event.target;
   control = button.getAttribute('value');
-  xtell = button.getAttribute('xtell');
-  ytell = button.getAttribute('ytell');
+  xtell = button.getAttribute('data-xtell');
+  ytell = button.getAttribute('data-ytell');
 
   var locParms = '';
   if ( event && (xtell || ytell) ) {
-    console.log(event);
     var target = event.target;
     var coords = $(target).getCoordinates();
 
@@ -849,7 +848,7 @@ function initPage() {
     if ( refreshApplet && appletRefreshTime ) {
       appletRefresh.delay(appletRefreshTime*1000);
     }
-    if ( scale == 'auto' ) changeScale();
+    if ( scale == '0' || scale == 'auto' ) changeScale();
     if ( window.history.length == 1 ) {
       $j('#closeControl').html('');
     }

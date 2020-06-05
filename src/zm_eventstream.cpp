@@ -714,11 +714,9 @@ bool EventStream::sendFrame(int delta_us) {
       Image *image = NULL;
 
       if ( filepath[0] ) {
-Debug(1, "Loading image");
         image = new Image(filepath);
       } else if ( ffmpeg_input ) {
         // Get the frame from the mp4 input
-        Debug(1,"Getting frame from ffmpeg");
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
         AVFrame *frame = ffmpeg_input->get_frame(
             ffmpeg_input->get_video_stream_id(),
@@ -767,7 +765,11 @@ Debug(1, "Loading image");
 
       switch ( type ) {
         case STREAM_JPEG :
-          send_image->EncodeJpeg(img_buffer, &img_buffer_size);
+          if ( send_image->EncodeJpeg(img_buffer, &img_buffer_size) ) {
+            Debug(1, "encoded JPEG");
+          } else {
+            // Failed
+          }
           break;
         case STREAM_ZIP :
 #if HAVE_ZLIB_H
@@ -786,10 +788,6 @@ Debug(1, "Loading image");
         default:
           Fatal("Unexpected frame type %d", type);
           break;
-      }
-      if ( send_image != image ) {
-        delete send_image;
-        send_image = NULL;
       }
       delete image;
       image = NULL;
@@ -815,7 +813,7 @@ Debug(1, "Loading image");
       fprintf(stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size);
       if ( zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size ) {
         /* sendfile() failed, use standard way instead */
-        img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
+        img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
         if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
           fclose(fdj); /* Close the file handle */
           Error("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));

@@ -116,7 +116,7 @@ sub getParam {
   } elsif ( defined($default) ) {
     return $default;
   }
-  Fatal("Missing mandatory parameter '$name'");
+  Error("Missing mandatory parameter '$name'");
 }
 
 sub executeCommand {

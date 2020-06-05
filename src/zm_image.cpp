@@ -1905,11 +1905,11 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
 /* RGB32 compatible: complete */
 void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour )
 {
-  strncpy( text, p_text, sizeof(text)-1 );
+  strncpy(text, p_text, sizeof(text)-1);
 
   unsigned int index = 0;
   unsigned int line_no = 0;
-  unsigned int text_len = strlen( text );
+  unsigned int text_len = strlen(text);
   unsigned int line_len = 0;
   const char *line = text;
 
@@ -1928,10 +1928,10 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
   const bool bg_trans = (bg_colour == RGB_TRANSPARENT);
 
   int zm_text_bitmask = 0x80;
-  if (size == 2)
+  if ( size == 2 )
     zm_text_bitmask = 0x8000;
 
-  while ( (index < text_len) && (line_len = strcspn( line, "\n" )) ) {
+  while ( (index < text_len) && (line_len = strcspn(line, "\n")) ) {
 
     unsigned int line_width = line_len * ZM_CHAR_WIDTH * size;
 
@@ -1967,10 +1967,19 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
           int f;
-          if (size == 2)
+          if ( size == 2 ) {
+            if ( (line[c] * ZM_CHAR_HEIGHT * size) + r > sizeof(bigfontdata) ) {
+              Warning("Unsupported character %c in %s", line[c], line);
+              continue;
+            }
             f = bigfontdata[(line[c] * ZM_CHAR_HEIGHT * size) + r];
-          else
+          } else {
+            if ( (line[c] * ZM_CHAR_HEIGHT) + r > sizeof(fontdata) ) {
+              Warning("Unsupported character %c in %s", line[c], line);
+              continue;
+            }
             f = fontdata[(line[c] * ZM_CHAR_HEIGHT) + r];
+          }
           for ( unsigned int i = 0; i < (ZM_CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ ) {
             if ( f & (zm_text_bitmask >> i) ) {
               if ( !fg_trans )
@@ -1989,10 +1998,19 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
           int f;
-          if (size == 2)
+          if ( size == 2 ) {
+            if ( (line[c] * ZM_CHAR_HEIGHT * size) + r > sizeof(bigfontdata) ) {
+              Warning("Unsupported character %c in %s", line[c], line);
+              continue;
+            }
             f = bigfontdata[(line[c] * ZM_CHAR_HEIGHT * size) + r];
-          else
+          } else {
+            if ( (line[c] * ZM_CHAR_HEIGHT) + r > sizeof(fontdata) ) {
+              Warning("Unsupported character %c in %s", line[c], line);
+              continue;
+            }
             f = fontdata[(line[c] * ZM_CHAR_HEIGHT) + r];
+          }
           for ( unsigned int i = 0; i < (ZM_CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr += colours ) {
             if ( f & (zm_text_bitmask >> i) ) {
               if ( !fg_trans ) {
@@ -2016,10 +2034,19 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
         Rgb* temp_ptr = (Rgb*)ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
           int f;
-          if (size == 2)
+          if ( size == 2 ) {
+            if ( (line[c] * ZM_CHAR_HEIGHT * size) + r > sizeof(bigfontdata) ) {
+              Warning("Unsupported character %c in %s", line[c], line);
+              continue;
+            }
             f = bigfontdata[(line[c] * ZM_CHAR_HEIGHT * size) + r];
-          else
+          } else {
+            if ( (line[c] * ZM_CHAR_HEIGHT) + r > sizeof(fontdata) ) {
+              Warning("Unsupported character %c in %s", line[c], line);
+              continue;
+            }
             f = fontdata[(line[c] * ZM_CHAR_HEIGHT) + r];
+          }
           for ( unsigned int i = 0; i < (ZM_CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ ) {
             if ( f & (zm_text_bitmask >> i) ) {
               if ( !fg_trans ) {

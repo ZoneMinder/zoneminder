@@ -169,12 +169,6 @@ if ( !ZM_PCRE )
   // Currently unsupported
 unset($httpMethods['jpegTags']);
 
-$configTypes = array(
-    'None'  => translate('None'),
-    'ONVIF' => 'ONVIF',
-    'PSIA'  => 'PSIA',
-);
-
 if ( ZM_HAS_V4L1 ) {
   $v4l1DeviceFormats = array(
       'PAL'   => 0,
@@ -327,31 +321,31 @@ $orientations = array(
     );
 
 $deinterlaceopts = array(
-    'Disabled'                                            => 0x00000000,
-    'Four field motion adaptive - Soft'                   => 0x00001E04, /* 30 change */
-    'Four field motion adaptive - Medium'                 => 0x00001404, /* 20 change */
-    'Four field motion adaptive - Hard'                   => 0x00000A04, /* 10 change */
-    'Discard'                                             => 0x00000001,
-    'Linear'                                              => 0x00000002,
-    'Blend'                                               => 0x00000003,
-    'Blend (25%)'                                         => 0x00000205
-    );
+  0x00000000 => 'Disabled',
+  0x00001E04 => 'Four field motion adaptive - Soft', /* 30 change */
+  0x00001404 => 'Four field motion adaptive - Medium', /* 20 change */
+  0x00000A04 => 'Four field motion adaptive - Hard', /* 10 change */
+  0x00000001 => 'Discard',
+  0x00000002 => 'Linear',
+  0x00000003 => 'Blend',
+  0x00000205 => 'Blend (25%)',
+);
 
 $deinterlaceopts_v4l2 = array(
-    'Disabled'                                            => 0x00000000,
-    'Four field motion adaptive - Soft'                   => 0x00001E04, /* 30 change */
-    'Four field motion adaptive - Medium'                 => 0x00001404, /* 20 change */
-    'Four field motion adaptive - Hard'                   => 0x00000A04, /* 10 change */
-    'Discard'                                             => 0x00000001,
-    'Linear'                                              => 0x00000002,
-    'Blend'                                               => 0x00000003,
-    'Blend (25%)'                                         => 0x00000205,
-    'V4L2: Capture top field only'                        => 0x02000000,
-    'V4L2: Capture bottom field only'                     => 0x03000000,
-    'V4L2: Alternate fields (Bob)'                        => 0x07000000,
-    'V4L2: Progressive'                                   => 0x01000000,
-    'V4L2: Interlaced'                                    => 0x04000000
-    );
+  0x00000000 => 'Disabled',
+  0x00001E04 => 'Four field motion adaptive - Soft',   /* 30 change */
+  0x00001404 => 'Four field motion adaptive - Medium', /* 20 change */
+  0x00000A04 => 'Four field motion adaptive - Hard',   /* 10 change */
+  0x00000001 => 'Discard',
+  0x00000002 => 'Linear',
+  0x00000003 => 'Blend',
+  0x00000205 => 'Blend (25%)',
+  0x02000000 => 'V4L2: Capture top field only',
+  0x03000000 => 'V4L2: Capture bottom field only',
+  0x07000000 => 'V4L2: Alternate fields (Bob)',
+  0x01000000 => 'V4L2: Progressive',
+  0x04000000 => 'V4L2: Interlaced',
+);
 
 $fastblendopts = array(
     'No blending'                                         => 0,
@@ -419,7 +413,7 @@ if ( canEdit('Monitors') ) {
 $tabs = array();
 $tabs['general'] = translate('General');
 $tabs['source'] = translate('Source');
-$tabs["config"] = translate('MetaConfig');
+$tabs['onvif'] = translate('ONVIF');
 if ( $monitor->Type() != 'WebSite' ) {
   $tabs['storage'] = translate('Storage');
   $tabs['timestamp'] = translate('Timestamp');
@@ -498,7 +492,7 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $monitor->Type() != 'Local') ) {
 if ( $tab != 'onvif' ) {
 ?>
         <input type="hidden" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/>
-        <input type="hidden" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_User()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>"/>
         <input type="hidden" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
         <input type="hidden" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/>
 <?php
@@ -745,8 +739,8 @@ switch ( $tab ) {
           continue;
         if ( $optCount && ($optCount%$breakCount == 0) )
           echo '</br>';
-        echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'.$optTrigger.'"'. 
-          (( ('' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"' : ''). '/> '. $optTrigger; 
+        echo '<input type="checkbox" name="newMonitor[Triggers][]" value="'.$optTrigger.'"'.
+          (( ('' !== $monitor->Triggers()) && in_array($optTrigger, $monitor->Triggers()) ) ? ' checked="checked"' : ''). '/> '. $optTrigger;
         $optCount ++;
       } # end foreach trigger option
       if ( !$optCount ) {
@@ -761,7 +755,7 @@ switch ( $tab ) {
     case 'onvif' :
     {
 ?>
-            <tr>  
+            <tr>
               <td><?php echo translate('ONVIF_URL') ?></td>
               <td><input type="text" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/></td>
             </tr>
@@ -835,7 +829,7 @@ include('_monitor_source_nvsocket.php');
           <td><?php echo translate('Password') ?></td>
           <td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/></td>
         </tr>
-<?php       
+<?php
       } else if ( $monitor->Type() == 'Remote' ) {
 ?>
           <tr><td><?php echo translate('RemoteProtocol') ?></td><td><?php echo htmlSelect( "newMonitor[Protocol]", $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').setStyle('display','table-row');}else{\$('RTSPDescribe').hide();}" ); ?></td></tr>
@@ -844,7 +838,7 @@ include('_monitor_source_nvsocket.php');
           <tr>
             <td><?php echo translate('RemoteMethod') ?></td>
             <td>
-<?php 
+<?php
         if ( !$monitor->Protocol() || $monitor->Protocol() == 'http' ) {
           echo htmlSelect('newMonitor[Method]', $httpMethods, $monitor->Method() );
         } else {
@@ -1112,7 +1106,7 @@ include('_monitor_source_nvsocket.php');
             </tr>
             <tr>
               <td><?php echo translate('ControlType') ?></td>
-              <td><?php echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId()); 
+              <td><?php echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId());
 if ( canEdit('Control') ) {
   echo '&nbsp;'.makePopupLink('?view=controlcaps', 'zmControlCaps', 'controlcaps', translate('Edit'));
 }
@@ -1140,7 +1134,7 @@ if ( canEdit('Control') ) {
             </tr>
             <tr>
               <td><?php echo translate('ReturnLocation') ?></td>
-              <td><?php 
+              <td><?php
       $return_options = array(
           '-1' => translate('None'),
           '0' => translate('Home'),
@@ -1242,7 +1236,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <td>
             <input type="color" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>"/>
             <span id="WebSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($monitor->WebColour()) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
-            <i class="material-icons" data-on-click="random_WebColour">sync</i> 
+            <i class="material-icons" data-on-click="random_WebColour">sync</i>
 
           </td>
         </tr>

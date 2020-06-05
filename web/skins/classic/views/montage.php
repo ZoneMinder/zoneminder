@@ -75,10 +75,8 @@ zm_session_start();
 $layout_id = '';
 if ( isset($_COOKIE['zmMontageLayout']) ) {
   $layout_id = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
-  ZM\Logger::Debug("Using layout $layout_id");
 } elseif ( isset($_SESSION['zmMontageLayout']) ) {
   $layout_id = $_SESSION['zmMontageLayout'];
-  ZM\Logger::Debug("Using layout $layout_id from session");
 }
 
 $options = array();
@@ -88,7 +86,7 @@ if ( $layout_id and is_numeric($layout_id) and isset($layoutsById[$layout_id]) )
   $Layout = $layoutsById[$layout_id];
   $Positions = json_decode($Layout->Positions(), true);
 } else {
-  ZM\Logger::Debug("Layout not found");
+  ZM\Logger::Debug('Layout not found');
 }
 if ( $Layout and ( $Layout->Name() != 'Freeform' ) ) {
   // Use layout instead of other options
@@ -185,7 +183,7 @@ if ( $showZones ) {
           </span> 
           <span id="layoutControl">
             <label for="layout"><?php echo translate('Layout') ?></label>
-            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('data-on-change-this'=>'selectLayout')); ?>
+            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('data-on-change'=>'selectLayout')); ?>
           </span>
           <input type="hidden" name="Positions"/>
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>

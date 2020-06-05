@@ -210,7 +210,7 @@ sub initialise( @ ) {
   if ( my $logFile = $this->getTargettedEnv('LOG_FILE') ) {
     $tempLogFile = $logFile;
   }
-  ($tempLogFile) = $tempLogFile =~ /^([\w\.\/]+)$/;
+  ($tempLogFile) = $tempLogFile =~ /^([_\-\w\.\/]+)$/;
 
   my $tempLevel = INFO;
   my $tempTermLevel = $this->{termLevel};
@@ -456,9 +456,9 @@ sub fileLevel {
   if ( defined($fileLevel) ) {
     $fileLevel = $this->limit($fileLevel);
     # The filename might have changed, so always close and re-open
-    $this->closeFile() if ( $this->{fileLevel} > NOLOG );
+    $this->closeFile() if $this->{fileLevel} > NOLOG;
     $this->{fileLevel} = $fileLevel;
-    $this->openFile() if ( $this->{fileLevel} > NOLOG );
+    $this->openFile() if $this->{fileLevel} > NOLOG;
   }
   return $this->{fileLevel};
 }
@@ -499,6 +499,7 @@ sub logFile {
 
 sub openFile {
   my $this = shift;
+	
   if ( open($LOGFILE, '>>', $this->{logFile}) ) {
     $LOGFILE->autoflush() if $this->{autoFlush};
 
@@ -519,7 +520,6 @@ sub openFile {
 }
 
 sub closeFile {
-  #my $this = shift;
   close($LOGFILE) if fileno($LOGFILE);
 }
 

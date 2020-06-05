@@ -39,11 +39,9 @@ our %EXPORT_TAGS = (
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
 our @EXPORT = qw();
-
-our $VERSION = $ZoneMinder::Base::VERSION;
 
 use Data::UUID;
 
@@ -60,6 +58,9 @@ require WSDiscovery::TransportUDP;
 
 sub deserialize_message {
   my ($wsdl_client, $response) = @_;
+  if ( ! $response ) {
+    return;
+  }
 
 # copied and adapted from SOAP::WSDL::Client
 
@@ -74,20 +75,16 @@ sub deserialize_message {
   }
 # set class resolver if serializer supports it
   $deserializer->set_class_resolver( $wsdl_client->get_class_resolver() )
-    if ( $deserializer->can('set_class_resolver') );
+    if $deserializer->can('set_class_resolver');
 
 # Try deserializing response - there may be some,
-# even if transport did not succeed (got a 500 response)
-  if ( ! $response ) {
-    return;
-  }
-
+# even if transport did not succeed (got a 500 response) 
 # as our faults are false, returning a success marker is the only
 # reliable way of determining whether the deserializer succeeded.
 # Custom deserializers may return an empty list, or undef,
 # and $@ is not guaranteed to be undefined.
   my ($success, $result_body, $result_header) = eval {
-    (1, $deserializer->deserialize( $response ));
+    (1, $deserializer->deserialize($response));
   }; 
   if ( defined $success ) {
     return wantarray
@@ -110,10 +107,7 @@ sub interpret_messages {
 
   my @results;
   foreach my $response ( @responses ) {
-
-    if ( $verbose ) {
-      print "Received message:\n" . $response . "\n";
-    }
+		print "Received message:\n" . $response . "\n" if $verbose;
 
     my $result = deserialize_message($svc_discover, $response);
     if ( not $result ) {
@@ -151,17 +145,16 @@ sub interpret_messages {
     foreach my $scope (split ' ', $scopes) {
       if ( $scope =~ m|onvif://www\.onvif\.org/(.+)/(.*)| ) {
         my ($attr, $value) = ($1,$2);
-        if ( 0 < $count ++) {
-          print ', ';
-        }
+			print ', ' if 0 < $count ++;
         print $attr . '=\'' . $value . '\'';
         $scopes{$attr} = $value;
       }
     }
     print ")\n";
-    push @results, { xaddr=>$xaddr,
+    push @results, {
+			xaddr					=> $xaddr,
       soap_version  => $svc_discover->get_soap_version(),
-      scopes  =>  \%scopes,
+      scopes 				=> \%scopes,
     };
   }
   return @results;
@@ -170,7 +163,7 @@ sub interpret_messages {
 # functions
 
 sub discover {
-  my ( $soap_version, $net_interface ) = @_;
+  my ($soap_versions, $net_interface) = @_;
   my @results;
 
 ## collect all responses
@@ -185,7 +178,7 @@ sub discover {
 
   my $uuid_gen = Data::UUID->new();
 
-  foreach my $version ( $soap_version ? ( $soap_version ) : ( '1.1', '1.2') ) {
+  foreach my $version ( $soap_versions ? ( split(',',$soap_versions) ) : ( '1.1', '1.2') ) {
 		my %services;
 
     print "Probing for SOAP $version\n" if $verbose;
@@ -195,7 +188,7 @@ sub discover {
     $svc_discover->set_soap_version($version);
 		if ( $net_interface ) {
 			my $transport = $svc_discover->get_transport();
-			print "Setting net interface for $transport to $net_interface\n";
+			print "Setting net interface for $transport to $net_interface\n" if $verbose;
 			$transport->set_net_interface($net_interface);
 		}
 
@@ -203,7 +196,15 @@ sub discover {
 
     my $result = $svc_discover->ProbeOp(
 				{ # WSDiscovery::Types::ProbeType
-				Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
+				(
+				 ($version eq '1.1') ?
+				   (
+						 Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
+					 ) : (
+						 xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl', },
+					 )
+				),
+						 Types => 'dn:NetworkVideoTransmitter', # QNameListType
 				Scopes =>  { value => '' },
         },
         WSDiscovery10::Elements::Header->new({
@@ -215,22 +216,23 @@ sub discover {
     print $result."\n" if $verbose;
 
     push @results, interpret_messages($svc_discover, \%services, @responses);
+		@responses = ();
   } # end foreach version
 
   return @results;
 } # end sub discover
 
 sub profiles {
-  my ( $client ) = @_;
+  my ($client) = @_;
 
   my $media = $client->get_endpoint('media');
-  if ( ! $media ) {
+  if ( !$media ) {
     print "No media endpoint for client.\n";
     return;
   }
 
   my $result = $media->GetProfiles( { } ,, );
-  if ( ! $result ) {
+  if ( !$result ) {
     print "No result from GetProfiles.\n";
     return;
   }
@@ -244,7 +246,7 @@ sub profiles {
     print "No profiles returned from get_Profiles\n";
     return;
   }
-  print "Number of profiles found: " .(scalar @Profiles)."\n" if $verbose;
+  print 'Number of profiles found: ' .(scalar @Profiles)."\n" if $verbose;
   my @profiles;
 
   foreach my $profile ( @Profiles ) {
@@ -339,12 +341,12 @@ sub move {
 } # end sub move
 
 sub metadata {
-  my ( $client ) = @_;
+  my ($client) = @_;
   my $media = $client->get_endpoint('media');
   die 'No media endpoint.' if !$media;
 
   my $result = $media->GetMetadataConfigurations( { } ,, );
-  if ( ! $result ) {
+  if ( !$result ) {
     print "No MetaDataConfigurations\n" if $verbose;
   } else {
     print $result . "\n";
@@ -362,8 +364,6 @@ sub metadata {
 #  print $result . "\n";
 
 }
-
-
 
 1;
 __END__

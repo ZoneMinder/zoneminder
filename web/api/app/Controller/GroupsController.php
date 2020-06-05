@@ -170,5 +170,23 @@ class GroupsController extends AppController {
         array('action' => 'index')
       );
 		}
-	} // end function delete
+  } // end function delete
+  
+  // returns monitor associations
+  public function associations() {
+    $this->Group->recursive = -1;
+    $groups = $this->Group->find('all', array(
+                                        'contain'=> array(
+                                          'Monitor' => array(
+                                            'fields'=>array('Id','Name')
+                                          )
+                                        )
+                                      )
+                                );
+            $this->set(array(
+                    'groups' => $groups,
+                    '_serialize' => array('groups')
+            ));
+  } // end associations
+
 } // end class GroupController

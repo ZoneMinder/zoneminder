@@ -671,8 +671,9 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   if ( db_frame ) {
     static char sql[ZM_SQL_MED_BUFSIZ];
 
+    // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
-    if ( write_to_db || ( frame_data.size() > 20 ) ) {
+    if ( write_to_db || (frame_data.size() > (int)monitor->get_fps()) ) {
       Debug(1, "Adding %d frames to DB", frame_data.size());
       WriteDbFrames();
       last_db_frame = frames;

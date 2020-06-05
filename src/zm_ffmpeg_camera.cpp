@@ -148,6 +148,7 @@ FfmpegCamera::FfmpegCamera(
   have_video_keyframe = false;
   packetqueue = NULL;
   error_count = 0;
+  use_hwaccel = true;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   hwFrame = NULL;
   hw_device_ctx = NULL;
@@ -471,7 +472,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
 
-  if ( hwaccel_name != "" ) {
+  if ( use_hwaccel && (hwaccel_name != "") ) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     // 3.2 doesn't seem to have all the bits in place, so let's require 3.3 and up
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
@@ -503,8 +504,9 @@ int FfmpegCamera::OpenFfmpeg() {
         hw_pix_fmt = config->pix_fmt;
         break;
       } else {
-        Debug(1, "decoder %s hwConfig doesn't match our type: %s, pix_fmt %s.",
+        Debug(1, "decoder %s hwConfig doesn't match our type: %s != %s, pix_fmt %s.",
             mVideoCodec->name,
+            av_hwdevice_get_type_name(type),
             av_hwdevice_get_type_name(config->device_type),
             av_get_pix_fmt_name(config->pix_fmt)
             );
@@ -973,6 +975,12 @@ int FfmpegCamera::CaptureAndRecord(
             Error("Error count over 100, going to close and re-open stream");
             return -1;
           }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+          if ( (ret == AVERROR_INVALIDDATA ) && (hw_pix_fmt != AV_PIX_FMT_NONE) ) {
+            use_hwaccel = false;
+            return -1;
+          }
+#endif
         }
         zm_av_packet_unref(&packet);
         continue;

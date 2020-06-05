@@ -25,20 +25,26 @@ define('DB_LOG_DEBUG', 2);
 $GLOBALS['dbLogLevel'] = DB_LOG_OFF;
 
 $GLOBALS['dbConn'] = false;
+require_once('logger.php');
 
 function dbConnect() {
   global $dbConn;
 
-  if ( strpos(ZM_DB_HOST, ':') ) {
-    // Host variable may carry a port or socket.
-    list($host, $portOrSocket) = explode(':', ZM_DB_HOST, 2);
-    if ( ctype_digit($portOrSocket) ) {
-      $socket = ':host='.$host . ';port='.$portOrSocket;
+  $socket = '';
+  if ( ZM_DB_HOST ) {
+    if ( strpos(ZM_DB_HOST, ':') ) {
+      // Host variable may carry a port or socket.
+      list($host, $portOrSocket) = explode(':', ZM_DB_HOST, 2);
+      if ( ctype_digit($portOrSocket) ) {
+        $socket = ':host='.$host . ';port='.$portOrSocket.';';
+      } else {
+        $socket = ':unix_socket='.$portOrSocket.';';
+      }
     } else {
-      $socket = ':unix_socket='.$portOrSocket;
+      $socket = ':host='.ZM_DB_HOST.';';
     }
   } else {
-    $socket = ':host='.ZM_DB_HOST;
+    $socket = ':host=localhost;';
   }
 
   try {
@@ -49,9 +55,9 @@ function dbConnect() {
         PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
         PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
       );
-      $dbConn = new PDO(ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
+      $dbConn = new PDO(ZM_DB_TYPE.$socket.'dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
     } else {
-      $dbConn = new PDO(ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS);
+      $dbConn = new PDO(ZM_DB_TYPE.$socket.'dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS);
     }
 
     $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
@@ -61,9 +67,12 @@ function dbConnect() {
     error_log('Unable to connect to ZM DB ' . $ex->getMessage());
     $dbConn = null;
   }
-}
+  return $dbConn;
+}  // end function dbConnect
 
-dbConnect();
+if ( !dbConnect() ) {
+  ZM\Fatal("Failed db connection to $socket");
+}
 
 function dbDisconnect() {
   global $dbConn;

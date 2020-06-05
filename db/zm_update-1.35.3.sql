@@ -1,12 +1,2 @@
-
-SET @s = (SELECT IF(
-    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
-     AND table_name = 'Filters'
-     AND column_name = 'UserId'
-    ) > 0,
-"SELECT 'Column UserId already exists in Filters'",
-"ALTER TABLE `Filters` ADD `UserId`  int(10) unsigned AFTER `Name`"
-));
-
-PREPARE stmt FROM @s;
-EXECUTE stmt;
+SELECT 'ALTERING Frames.Id to a BIGINT.  This could take a long time.';
+ALTER TABLE Frames MODIFY Id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT;

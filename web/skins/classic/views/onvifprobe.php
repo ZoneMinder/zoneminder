@@ -29,16 +29,17 @@ $cameras[0] = translate('ChooseDetectedCamera');
 $profiles = array();
 $profiles[0] = translate('ChooseDetectedProfile');
 
-function execONVIF( $cmd ) {
+function execONVIF($cmd) {
   $shell_command = escapeshellcmd(ZM_PATH_BIN . "/zmonvif-probe.pl $cmd");
 
-  exec( $shell_command, $output, $status );
+  exec($shell_command, $output, $status);
 
   if ( $status ) {
-    $html_output = implode( '<br/>', $output );
-    ZM\Fatal( "Unable to probe network cameras, status is '$status'. Output was:<br/><br/>
-        $html_output<br/><br/>
-        Please the following command from a command line for more information:<br/><br/>$shell_command"
+    $html_output = implode('<br/>', $output);
+    ZM\Error("Unable to probe network cameras, status is '$status'. Output was:
+        $html_output
+        Please run the following command from a command line for more information:
+        $shell_command"
         );
   } else {
     ZM\Logger::Debug('Results from probe: '.implode('<br/>', $output));
@@ -49,7 +50,8 @@ function execONVIF( $cmd ) {
 
 function probeCameras($localIp) {
   $cameras = array();
-  if ( $lines = @execONVIF('probe') ) {
+  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? ' '.isset($_REQUEST['interface']) : '' ));
+  if ( $lines ) {
     foreach ( $lines as $line ) {
       $line = rtrim($line);
       if ( preg_match('|^(.+),(.+),\s\((.*)\)$|', $line, $matches) ) {
@@ -62,18 +64,23 @@ function probeCameras($localIp) {
               'Type'     => 'Ffmpeg',
               'Host'     => $device_ep,
               'SOAP'     => $soapversion,
+              'ConfigURL' => $device_ep,
+              'ConfigOptions' => 'SOAP' . $soapversion,
+              'Notes'     =>  '',
               ),
             );
         foreach ( preg_split('|,\s*|', $matches[3]) as $attr_val ) {
           if ( preg_match('|(.+)=\'(.*)\'|', $attr_val, $tokens) ) {
             if ( $tokens[1] == 'hardware' ) {
               $camera['model'] = $tokens[2];
-            } elseif ( $tokens[1] == 'name' ) {
+            } else if ( $tokens[1] == 'name' ) {
               $camera['monitor']['Name'] = $tokens[2];
-            } elseif ( $tokens[1] == 'location' ) {
-              //                      $camera['location'] = $tokens[2];
+            } else if ( $tokens[1] == 'type' ) {
+            } else if ( $tokens[1] == 'location' or $tokens[1] == 'location/city' or $tokens[1] == 'location/country' ) {
+              $camera['monitor']['Notes'] .= $tokens[1].'='.$tokens[2]."\n";
+              // $camera['location'] = $tokens[2];
             } else {
-              ZM\Logger::Debug('Unknown token ' . $tokens[1]);
+              ZM\Logger::Debug('Unknown token '.$tokens[1].' = '.$tokens[2]);
             }
           }
         } // end foreach token
@@ -163,6 +170,48 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
         <p>
           <?php echo translate('OnvifProbeIntro') ?>
         </p>
+        <p><label for="interface"><?php echo translate('Interface') ?></label>
+          <?php 
+  $interfaces = array();
+  $default_interface = null;
+
+  exec('ip link', $output, $status);
+  if ( $status ) {
+    $html_output = implode('<br/>', $output);
+    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+  } else {
+    foreach ( $output as $line ) {
+      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
+        if ( $matches[1] != 'lo' ) {
+          $interfaces[$matches[1]] = $matches[1];
+        } else {
+          ZM\Logger::Debug("No match for $line");
+        }
+      }
+    }
+  }
+  $routes = array();
+  exec('ip route', $output, $status);
+  if ( $status ) {
+    $html_output = implode('<br/>', $output);
+    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+  } else {
+    foreach ( $output as $line ) {
+      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
+        $default_interface = $matches[1];
+      } else if ( preg_match('/^([.\/[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
+        $interfaces[$matches[2]] .= ' ' . $matches[1];
+      }
+    } # end foreach line of output
+  }
+
+  echo htmlSelect('interface', $interfaces, 
+    (isset($_REQUEST['interface']) ? $_REQUEST['interface'] : $default_interface),
+    array('data-on-change-this'=>'changeInterface') );
+
+?>
+        </p>
+<div id="DetectedCameras">
         <p>
           <label for="probe"><?php echo translate('DetectedCameras') ?></label>
           <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons')); ?>
@@ -178,6 +227,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
           <label for="Password"><?php echo translate('Password') ?></label>
           <input type="password" name="Password" data-on-change-this="configureButtons"/>
         </p>
+</div>
         <div id="contentButtons">
           <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
           <button type="button" name="nextBtn" data-on-click-this="gotoStep2" disabled="disabled"><?php echo translate('Next') ?></button>

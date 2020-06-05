@@ -56,21 +56,20 @@ void Authenticator::reset() {
   fAuthMethod = AUTH_UNDEFINED;
 }
 
-void Authenticator::authHandleHeader(std::string headerData) 
-{
+void Authenticator::authHandleHeader(std::string headerData) {
   const char* basic_match = "Basic ";
   const char* digest_match = "Digest ";
   size_t digest_match_len = strlen(digest_match);
   
   // Check if basic auth
-  if ( strncasecmp(headerData.c_str(),basic_match,strlen(basic_match)) == 0 ) {
+  if ( strncasecmp(headerData.c_str(), basic_match, strlen(basic_match)) == 0 ) {
     fAuthMethod = AUTH_BASIC;
     Debug(2, "Set authMethod to Basic");
   } 
   // Check if digest auth
-  else if (strncasecmp( headerData.c_str(),digest_match,digest_match_len ) == 0) {
+  else if ( strncasecmp(headerData.c_str(), digest_match, digest_match_len) == 0) {
     fAuthMethod = AUTH_DIGEST;
-    Debug( 2, "Set authMethod to Digest");
+    Debug(2, "Set authMethod to Digest");
     StringVector subparts = split(headerData.substr(digest_match_len, headerData.length() - digest_match_len), ",");
     // subparts are key="value"
     for ( size_t i = 0; i < subparts.size(); i++ ) {
@@ -92,7 +91,7 @@ void Authenticator::authHandleHeader(std::string headerData)
     Debug(2, "Auth data completed. User: %s, realm: %s, nonce: %s, qop: %s",
 				username().c_str(), fRealm.c_str(), fNonce.c_str(), fQop.c_str());
   }
-}
+}  // end void Authenticator::authHandleHeader(std::string headerData)
 
 std::string Authenticator::quote( const std::string &src ) {
   return replaceAll(replaceAll(src, "\\", "\\\\"), "\"", "\\\"");
@@ -100,13 +99,13 @@ std::string Authenticator::quote( const std::string &src ) {
 
 std::string Authenticator::getAuthHeader(std::string method, std::string uri) {
   std::string result = "Authorization: ";
-  if (fAuthMethod == AUTH_BASIC) {
-    result += "Basic " + base64Encode( username() + ":" + password() );
-  } else if (fAuthMethod == AUTH_DIGEST) {
+  if ( fAuthMethod == AUTH_BASIC ) {
+    result += "Basic " + base64Encode(username() + ":" + password());
+  } else if ( fAuthMethod == AUTH_DIGEST ) {
     result += std::string("Digest ") + 
           "username=\"" + quote(username()) + "\", realm=\"" + quote(realm()) + "\", " +
           "nonce=\"" + quote(nonce()) + "\", uri=\"" + quote(uri) + "\"";
-    if ( ! fQop.empty() ) {
+    if ( !fQop.empty() ) {
       result += ", qop=" + fQop;
       result += ", nc=" + stringtf("%08x",nc);
       result += ", cnonce=\"" + fCnonce + "\"";
@@ -203,21 +202,21 @@ void Authenticator::checkAuthResponse(std::string &response) {
 
   for ( size_t i = 0; i < lines.size(); i++ ) {
     // stop at end of headers
-    if (lines[i].length()==0)
+    if ( lines[i].length() == 0 )
       break;
 
-    if (strncasecmp(lines[i].c_str(),authenticate_match,authenticate_match_len) == 0) {
+    if ( strncasecmp(lines[i].c_str(), authenticate_match, authenticate_match_len) == 0 ) {
       authLine = lines[i];
-      Debug( 2, "Found auth line at %d", i);
-      break;
+      Debug(2, "Found auth line at %d:", i);
+      //break;
     }
   }
-  if (!authLine.empty()) {
-    Debug( 2, "Analyze auth line %s", authLine.c_str());
-    authHandleHeader( trimSpaces(authLine.substr(authenticate_match_len,authLine.length()-authenticate_match_len)) );
+  if ( !authLine.empty() ) {
+    Debug(2, "Analyze auth line %s", authLine.c_str());
+    authHandleHeader(trimSpaces(authLine.substr(authenticate_match_len, authLine.length()-authenticate_match_len)));
   } else {
-    Debug( 2, "Didn't find auth line in %s", authLine.c_str());
+    Debug(2, "Didn't find auth line in %s", authLine.c_str());
   }
-}
+}  // end void Authenticator::checkAuthResponse(std::string &response)
 
 } // namespace zm

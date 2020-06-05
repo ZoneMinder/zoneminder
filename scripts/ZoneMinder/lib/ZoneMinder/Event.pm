@@ -894,8 +894,14 @@ sub canEdit {
     return 1;
   }
   if ( !$$ZoneMinder::user{MonitorIds} ) {
-    # User has no 
-}
+    # User has no monitor limitations
+    return 1;
+  }
+  if ( $$ZoneMinder::user{Events} eq 'Edit' ) {
+    return 1; 
+  }
+  return 0;
+} # end sub canEdit
 
 1;
 __END__

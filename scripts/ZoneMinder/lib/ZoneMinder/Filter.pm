@@ -324,14 +324,9 @@ sub Sql {
     } # end if terms
 
     if ( $self->{Sql} ) {
-      if ( $self->{AutoMessage} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
-        $sql .= ' WHERE ( '.$self->{Sql}.' )';
-      } else {
-# Only include closed events (events with valid EndTime)
-        $sql .= ' WHERE (E.EndTime IS NOT NULL) AND ( '.$self->{Sql}.' )';
-      }
+      $sql .= ' WHERE ( '.$self->{Sql}.' )';
     }
     my @auto_terms;
     if ( $self->{AutoArchive} ) {

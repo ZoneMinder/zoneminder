@@ -400,8 +400,8 @@ if ( $version ) {
       my $backup = '@ZM_TMPDIR@/'.$Config{ZM_DB_NAME}.'-'.$version.'.dump';
       $command .= ' --add-drop-table --databases '.$Config{ZM_DB_NAME}.' > '.$backup;
       print("Creating backup to $backup. This may take several minutes.\n");
-      print("Executing '$command'\n") if logDebugging();
       ($command) = $command =~ /(.*)/; # detaint
+      print("Executing '$command'\n") if logDebugging();
       my $output = qx($command);
       my $status = $? >> 8;
       if ( $status || logDebugging() ) {

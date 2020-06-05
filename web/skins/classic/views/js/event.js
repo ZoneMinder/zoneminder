@@ -308,7 +308,7 @@ function pauseClicked() {
   streamPause();
 }
 
-function streamPause( ) {
+function streamPause() {
   $j('#modeValue').html('Paused');
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('playBtn'), 'inactive' );

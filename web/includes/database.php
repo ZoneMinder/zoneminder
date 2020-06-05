@@ -30,22 +30,23 @@ require_once('logger.php');
 function dbConnect() {
   global $dbConn;
 
-  $socket = '';
+  $dsn = ZM_DB_TYPE;
   if ( ZM_DB_HOST ) {
     if ( strpos(ZM_DB_HOST, ':') ) {
       // Host variable may carry a port or socket.
       list($host, $portOrSocket) = explode(':', ZM_DB_HOST, 2);
       if ( ctype_digit($portOrSocket) ) {
-        $socket = ':host='.$host . ';port='.$portOrSocket.';';
+        $dsn .= ':host='.$host.';port='.$portOrSocket.';';
       } else {
-        $socket = ':unix_socket='.$portOrSocket.';';
+        $dsn .= ':unix_socket='.$portOrSocket.';';
       }
     } else {
-      $socket = ':host='.ZM_DB_HOST.';';
+      $dsn .= ':host='.ZM_DB_HOST.';';
     }
   } else {
-    $socket = ':host=localhost;';
+    $dsn .= ':host=localhost;';
   }
+  $dsn .= 'dbname='.ZM_DB_NAME;
 
   try {
     $dbOptions = null;
@@ -55,15 +56,15 @@ function dbConnect() {
         PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
         PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
       );
-      $dbConn = new PDO(ZM_DB_TYPE.$socket.'dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
+      $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
     } else {
-      $dbConn = new PDO(ZM_DB_TYPE.$socket.'dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS);
+      $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS);
     }
 
     $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   } catch(PDOException $ex) {
-    echo 'Unable to connect to ZM db.' . $ex->getMessage();
+    echo "Unable to connect to ZM db using dsn $dsn host".ZM_DB_HOST.' user: ('.ZM_DB_USER.') password ('.ZM_DB_PASS.': '.$ex->getMessage();
     error_log('Unable to connect to ZM DB ' . $ex->getMessage());
     $dbConn = null;
   }
@@ -71,7 +72,7 @@ function dbConnect() {
 }  // end function dbConnect
 
 if ( !dbConnect() ) {
-  ZM\Fatal("Failed db connection to $socket");
+  ZM\Fatal('Failed db connection');
 }
 
 function dbDisconnect() {

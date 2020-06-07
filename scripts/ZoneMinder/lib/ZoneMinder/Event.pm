@@ -580,7 +580,7 @@ sub DiskSpace {
 sub CopyTo {
   my ( $self, $NewStorage ) = @_;
 
-  if ( !$event->canEdit() ) {
+  if ( !$self->canEdit() ) {
     Warning('No permission to copy event.');
     return 'No permission to copy event.';
   }

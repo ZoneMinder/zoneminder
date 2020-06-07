@@ -13,6 +13,7 @@ Time and computers move on. We do not have the resources to support every ancien
 
 ## Reporting a Vulnerability
 
-Since sometimes security vulnerabilities can be sensitive, you can just email me at isaac@zoneminder.com.
+Since sometimes security vulnerabilities can be sensitive, you can just email me at craztloka@gmail.com.
 If it's not such a big deal, by all means, create an issue here on github
 
+Keep in mind that not all is as it seems:

@@ -329,8 +329,8 @@ if ( $interactive ) {
 # Now check for MyISAM Tables
   my @MyISAM_Tables;
   my $sql = "SELECT `table_name` FROM INFORMATION_SCHEMA.TABLES WHERE `table_schema`='zm' AND `engine` = 'MyISAM'";
-  my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+  my $sth = $dbh->prepare_cached($sql) or die("Can't prepare '$sql': ".$dbh->errstr());
+  my $res = $sth->execute() or die("Can't execute: ".$sth->errstr());
 
   while( my $dbTable = $sth->fetchrow() ) {
     push @MyISAM_Tables, $dbTable;

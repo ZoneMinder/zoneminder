@@ -28,7 +28,9 @@ our %EXPORT_TAGS = (
       makePath
       jsonEncode
       jsonDecode
-      status
+      systemStatus
+      packageControl
+      daemonControl
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -553,7 +555,7 @@ sub daemonControl {
 }
 
 sub systemStatus {
-  my $command = shift;
+  my $command = $Config{ZM_PATH_BIN}.'/zmdc.pl check';
   my $output = qx($command);
   my $status = $? >> 8;
   if ( $status || logDebugging() ) {
@@ -575,7 +577,6 @@ ZoneMinder::General - Utility Functions for ZoneMinder
 =head1 SYNOPSIS
 
 use ZoneMinder::General;
-blah blah blah
 
 =head1 DESCRIPTION
 
@@ -594,6 +595,9 @@ of the ZoneMinder scripts
       makePath
       jsonEncode
       jsonDecode
+      packageControl
+      daemonControl
+      systemStatus
       ) ]
 
 

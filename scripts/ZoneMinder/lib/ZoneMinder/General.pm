@@ -28,6 +28,7 @@ our %EXPORT_TAGS = (
       makePath
       jsonEncode
       jsonDecode
+      status
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -529,6 +530,38 @@ sub jsonDecode {
   my $result = eval $out;
   Fatal($@) if $@;
   return $result;
+}
+
+sub packageControl {
+  my $command = shift;
+  my $string = $Config{ZM_PATH_BIN}.'/zmpkg.pl '.$command;
+  $string .= ' 2>/dev/null >&- <&- >/dev/null';
+  executeShellCommand($string);
+}
+
+sub daemonControl {
+  my ($command, $daemon, $args) = @_;
+  my $string = $Config{ZM_PATH_BIN}.'/zmdc.pl '.$command;
+  if ( $daemon ) {
+    $string .= ' ' . $daemon;
+    if ( $args ) {
+      $string .= ' ' . $args;
+    }
+  }
+  #$string .= ' 2>/dev/null >&- <&- >/dev/null';
+  executeShellCommand($string);
+}
+
+sub systemStatus {
+  my $command = shift;
+  my $output = qx($command);
+  my $status = $? >> 8;
+  if ( $status || logDebugging() ) {
+    $output = '' if !defined($output);
+    chomp($output);
+    Debug("Command: $command Output: $output");
+  }
+  return $output;
 }
 
 1;

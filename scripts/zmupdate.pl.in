@@ -377,16 +377,6 @@ if ( $version ) {
   }
 
   my $start_zm = 0;
-  if ( (systemStatus() eq 'running') and $interactive ) { 
-    print "\nZoneMinder system appears to be running.  While not strictly required, it is advised to stop ZM during the update process. Would you like to stop ZM now? [Yn]:";
-    my $response = <STDIN>;
-    chomp($response);
-    if ( $response !~ /Yy/ ) {
-      packageControl('stop');
-      $start_zm = 1;
-    }
-  }
-
   print("\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n");
   if ( $interactive ) {
     if ( $Config{ZM_DYN_DB_VERSION} && ($Config{ZM_DYN_DB_VERSION} ne $version) ) {
@@ -394,11 +384,18 @@ if ( $version ) {
       my $response = <STDIN>;
     }
 
-    print("\nPlease ensure that ZoneMinder is stopped on your system prior to upgrading the database.\nPress enter to continue or ctrl-C to stop : ");
-    my $response = <STDIN>;
+    if ( systemStatus() eq 'running' ) { 
+      print"\nZoneMinder system appears to be running.  While not strictly required, it is advised to stop ZM during the update process. Would you like to stop ZM now? [Yn]:";
+      my $response = <STDIN>;
+      chomp($response);
+      if ( $response !~ /Yy/ ) {
+        packageControl('stop');
+        $start_zm = 1;
+      }
+    }
 
     print("\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file in @ZM_TMPDIR@ if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : ");
-    $response = <STDIN>;
+    my $response = <STDIN>;
     chomp($response);
     while ( $response !~ /^[yYnN]$/ ) {
       print("Please press 'y' for a backup or 'n' to continue only : ");

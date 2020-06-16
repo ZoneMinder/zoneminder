@@ -96,12 +96,14 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
   if ( $lines = @execONVIF("profiles $device_ep $soapversion $username $password") ) {
     foreach ( $lines as $line ) {
       $line = rtrim( $line );
-      if ( preg_match('|^(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+)\s*$|', $line, $matches) ) {
-        $stream_uri = $matches[7];
+
+      if ( preg_match('|^([^,]+),\s*([^,]+),\s*([^,]+),\s*(\d+),\s*(\d+),\s*(\d+),\s*([^,]+),\s*(.+)\s*$|', $line, $matches) ) {
+        $stream_uri = $matches[8];
         // add user@pass to URI
         if ( preg_match('|^(\S+://)(.+)$|', $stream_uri, $tokens) ) {
           $stream_uri = $tokens[1].$username.':'.$password.'@'.$tokens[2];
         }
+	ZM\Warning(print_r($matches,1));
 
         $profile = array(  # 'monitor' part of camera
             'Type'        => 'Ffmpeg',
@@ -113,6 +115,7 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
             'Profile'     => $matches[1],
             'Name'        => $matches[2],
             'Encoding'    => $matches[3],
+	    'Transport'	  => $matches[7],
             );
         $profiles[] = $profile;
       } else {
@@ -261,10 +264,17 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
     $monitor = $camera['monitor'];
 
     $sourceString = "${profile['Name']} : ${profile['Encoding']}" .
-      " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps)";
+      " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps ${profile['Transport']})";
     // copy technical details
     $monitor['Width']  = $profile['Width'];
     $monitor['Height'] = $profile['Height'];
+    if ( $profile['Transport'] == 'RTP-Multicast' ) {
+	    $monitor['Method'] = 'rtpMulti';
+    } else if ( $profile['Transport'] == 'RTP-Unicast' ) {
+	    $monitor['Method'] = 'rtpUni';
+    } else {
+	    $monitor['Method'] = 'rtpRtsp';
+    }
     // The maxfps fields do not work for ip streams. Can re-enable if that is fixed.
     //       $monitor['MaxFPS'] = $profile['MaxFPS'];
     //       $monitor['AlarmMaxFPS'] = $profile['AlarmMaxFPS'];

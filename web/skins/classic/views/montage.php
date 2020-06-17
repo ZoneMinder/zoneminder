@@ -151,11 +151,11 @@ if ( $showControl ) {
 }
 if ( $showZones ) {
 ?>
-        <a id="ShowZones" href="?view=montage&amp;showZones=0">Hide Zones</a>
+  <a id="HideZones" href="?view=montage&amp;showZones=0"><?php echo translate('Hide Zones')?></a>
 <?php
 } else {
 ?>
-        <a id="ShowZones" href="?view=montage&amp;showZones=1">Show Zones</a>
+  <a id="ShowZones" href="?view=montage&amp;showZones=1"><?php echo translate('Show Zones')?></a>
 <?php
 }
 ?>

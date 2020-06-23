@@ -220,7 +220,7 @@ protected:
       }
 
       inline bool isConnected() const {   
-        return( connected );
+        return connected && shared_data->valid;
       }
       inline time_t getLastConnectTime() const {
         return( last_connect_time );

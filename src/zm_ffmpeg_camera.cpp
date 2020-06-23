@@ -980,10 +980,12 @@ int FfmpegCamera::CaptureAndRecord(
             return -1;
           }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
           if ( (ret == AVERROR_INVALIDDATA ) && (hw_pix_fmt != AV_PIX_FMT_NONE) ) {
             use_hwaccel = false;
             return -1;
           }
+#endif
 #endif
         }
         zm_av_packet_unref(&packet);

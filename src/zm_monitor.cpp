@@ -131,12 +131,12 @@ Monitor::MonitorLink::~MonitorLink() {
 }
 
 bool Monitor::MonitorLink::connect() {
-  if ( !last_connect_time || (time( 0 ) - last_connect_time) > 60 ) {
+  if ( !last_connect_time || (time( 0 ) - last_connect_time) > ZM_MAX_RESTART_DELAY ) {
     last_connect_time = time( 0 );
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
-    Debug( 1, "link.mem.size=%d", mem_size );
+    Debug(1, "link.mem.size=%d", mem_size);
 #if ZM_MEM_MAPPED
     map_fd = open( mem_file, O_RDWR, (mode_t)0600 );
     if ( map_fd < 0 ) {
@@ -1488,6 +1488,7 @@ bool Monitor::Analyse() {
                   score += 50;
                 }
               } else {
+                Debug(1, "Linked monitor %d %d is not connected. Connecting.", i, linked_monitors[i]->Id());
                 linked_monitors[i]->connect();
               }
             } // end foreach linked_monit

@@ -840,9 +840,15 @@ function daemonStatus($daemon, $args=false) {
   initDaemonStatus();
 
   $string = $daemon;
-  if ( $args )
-    $string .= ' ' . $args;
-  return( strpos($daemon_status, "'$string' running") !== false );
+  if ( $args ) {
+		if ( is_array($args) ) {
+			$string .= join(' ', $args);
+ZM\Warning("daemonStatus args: $string");
+		} else {
+			$string .= ' ' . $args;
+		}
+	}
+  return ( strpos($daemon_status, "'$string' running") !== false );
 }
 
 function zmcStatus($monitor) {

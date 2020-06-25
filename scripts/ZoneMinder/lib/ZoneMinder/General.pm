@@ -28,6 +28,9 @@ our %EXPORT_TAGS = (
       makePath
       jsonEncode
       jsonDecode
+      systemStatus
+      packageControl
+      daemonControl
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -531,6 +534,38 @@ sub jsonDecode {
   return $result;
 }
 
+sub packageControl {
+  my $command = shift;
+  my $string = $Config{ZM_PATH_BIN}.'/zmpkg.pl '.$command;
+  $string .= ' 2>/dev/null >&- <&- >/dev/null';
+  executeShellCommand($string);
+}
+
+sub daemonControl {
+  my ($command, $daemon, $args) = @_;
+  my $string = $Config{ZM_PATH_BIN}.'/zmdc.pl '.$command;
+  if ( $daemon ) {
+    $string .= ' ' . $daemon;
+    if ( $args ) {
+      $string .= ' ' . $args;
+    }
+  }
+  #$string .= ' 2>/dev/null >&- <&- >/dev/null';
+  executeShellCommand($string);
+}
+
+sub systemStatus {
+  my $command = $Config{ZM_PATH_BIN}.'/zmdc.pl check';
+  my $output = qx($command);
+  my $status = $? >> 8;
+  if ( $status || logDebugging() ) {
+    $output = '' if !defined($output);
+    chomp($output);
+    Debug("Command: $command Output: $output");
+  }
+  return $output;
+}
+
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!
@@ -542,7 +577,6 @@ ZoneMinder::General - Utility Functions for ZoneMinder
 =head1 SYNOPSIS
 
 use ZoneMinder::General;
-blah blah blah
 
 =head1 DESCRIPTION
 
@@ -561,6 +595,9 @@ of the ZoneMinder scripts
       makePath
       jsonEncode
       jsonDecode
+      packageControl
+      daemonControl
+      systemStatus
       ) ]
 
 

@@ -179,12 +179,16 @@ function toPixels(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((field.value*maxValue)/100);
   }
+  field.setAttribute('step', 1);
+  field.setAttribute('max', monitorArea);
 }
 
 function toPercent(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((100*100*field.value)/maxValue)/100;
   }
+  field.setAttribute('step', 0.01);
+  field.setAttribute('max', 100);
 }
 
 function applyZoneUnits() {
@@ -384,7 +388,7 @@ function saveChanges(element) {
   if ( validateForm(form) ) {
     submitForm(form);
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
-      alert( 'Capture process for this monitor will be restarted for the Privacy zone changes to take effect.' );
+      alert('Capture process for this monitor will be restarted for the Privacy zone changes to take effect.');
     }
     return true;
   }

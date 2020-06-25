@@ -376,6 +376,7 @@ $SLANG = array(
     'Filters'               => 'Filters',
     'FilterUnset'           => 'You must specify a filter width and height',
     'FilterUploadEvents'    => 'Upload all matches',
+    'FilterUser'            => 'User to run filter as',
     'FilterVideoEvents'     => 'Create video for all matches',
     'First'                 => 'First',
     'FlippedHori'           => 'Flipped Horizontally',

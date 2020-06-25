@@ -83,7 +83,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libssl | libssl1.0.0 | libssl1.1
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
-        ,libvncclient1
+        ,libvncclient1|libvncclient0
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
            ,mysql-server | mariadb-server | virtual-mysql-server

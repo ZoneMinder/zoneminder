@@ -100,14 +100,17 @@ class Logger {
       $tempDatabaseLevel = $options['databaseLevel'];
     else
       $tempDatabaseLevel = ZM_LOG_LEVEL_DATABASE;
+
     if ( isset($options['fileLevel']) )
       $tempFileLevel = $options['fileLevel'];
     else
       $tempFileLevel = ZM_LOG_LEVEL_FILE;
+
     if ( isset($options['weblogLevel']) )
       $tempWeblogLevel = $options['weblogLevel'];
     else
       $tempWeblogLevel = ZM_LOG_LEVEL_WEBLOG;
+
     if ( isset($options['syslogLevel']) )
       $tempSyslogLevel = $options['syslogLevel'];
     else

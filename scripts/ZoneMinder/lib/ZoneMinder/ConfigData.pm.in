@@ -252,7 +252,7 @@ our @options = (
       authentication which passes an independently authentication
       'remote' user via http. In this case ZoneMinder would use the
       supplied user without additional authentication provided such a
-      user is configured ion ZoneMinder.
+      user is configured in ZoneMinder.
       `,
     requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
     type        => {

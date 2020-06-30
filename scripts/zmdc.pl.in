@@ -301,13 +301,14 @@ sub run {
   my $timeout = 1;
   my $secs_count = 0;
 
-  while( !$zm_terminate ) {
+  while ( !$zm_terminate ) {
     
     if ( $Config{ZM_SERVER_ID} ) {
       if ( ! ( $secs_count % 60 ) ) {
         while ( (!$zm_terminate) and !($dbh and $dbh->ping()) ) {
           Warning("Not connected to db ($dbh)".($dbh?' ping('.$dbh->ping().')':''). ($DBI::errstr?" errstr($DBI::errstr)":'').' Reconnecting');
           $dbh = zmDbConnect();
+          sleep 10 if !$dbh;
         }
         last if $zm_terminate;
 

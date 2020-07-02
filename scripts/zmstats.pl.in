@@ -48,6 +48,49 @@ while( 1 ) {
   $dbh->do('DELETE FROM Events_Week WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 week)') or Error($dbh->errstr());
   $dbh->do('DELETE FROM Events_Month WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 month)') or Error($dbh->errstr());
 
+  # Prune the Logs table if required
+  if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {
+    if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ ) {
+      # Number of rows
+      my $selectLogRowCountSql = 'SELECT count(*) AS `Rows` FROM `Logs`';
+      my $selectLogRowCountSth = $dbh->prepare_cached( $selectLogRowCountSql )
+        or Fatal("Can't prepare '$selectLogRowCountSql': ".$dbh->errstr());
+      my $res = $selectLogRowCountSth->execute()
+        or Fatal("Can't execute: ".$selectLogRowCountSth->errstr());
+      my $row = $selectLogRowCountSth->fetchrow_hashref();
+      my $logRows = $row->{Rows};
+      if ( $logRows > $Config{ZM_LOG_DATABASE_LIMIT} ) {
+        my $deleteLogByRowsSql = 'DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?';
+        my $deleteLogByRowsSth = $dbh->prepare_cached( $deleteLogByRowsSql )
+          or Fatal("Can't prepare '$deleteLogByRowsSql': ".$dbh->errstr());
+        $res = $deleteLogByRowsSth->execute( $logRows - $Config{ZM_LOG_DATABASE_LIMIT} )
+          or Fatal("Can't execute: ".$deleteLogByRowsSth->errstr());
+        if ( $deleteLogByRowsSth->rows() ) {
+          Debug('Deleted '.$deleteLogByRowsSth->rows().' log table entries by count');
+        }
+      }
+    } else {
+      # Time of record
+
+      # 7 days is invalid.  We need to remove the s
+      if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^(.*)s$/ ) {
+        $Config{ZM_LOG_DATABASE_LIMIT} = $1;
+      }
+      my $deleted_rows;
+      do {
+        my $deleteLogByTimeSql =
+        'DELETE FROM `Logs`
+        WHERE `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 100';
+        my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql )
+          or Fatal("Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr());
+        my $res = $deleteLogByTimeSth->execute()
+          or Fatal("Can't execute: ".$deleteLogByTimeSth->errstr());
+        $deleted_rows = $deleteLogByTimeSth->rows();
+        Debug("Deleted $deleted_rows log table entries by time");
+      } while ( $deleted_rows );
+    }
+  } # end if ZM_LOG_DATABASE_LIMIT
+
   sleep($Config{ZM_STATS_UPDATE_INTERVAL});
 } # end while (1)
 

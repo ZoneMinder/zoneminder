@@ -21,7 +21,7 @@
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
 
-if ( !canView('Monitors') ) {
+if ( !canEdit('Monitors', empty($_REQUEST['mid'])?0:$_REQUEST['mid']) ) {
   $view = 'error';
   return;
 }

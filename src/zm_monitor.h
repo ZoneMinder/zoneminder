@@ -140,19 +140,19 @@ protected:
     };
     union {                     /* +72   */
       time_t zmc_heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
-      uint64_t extrapad1;
+      uint64_t extrapad2;
     };
     union {                     /* +80   */
       time_t zma_heartbeat_time;			/* Constantly updated by zma.  Used to determine if the process is alive or hung or dead */
-      uint64_t extrapad1;
+      uint64_t extrapad3;
     };
     union {                     /* +88  */
       time_t last_write_time;
-      uint64_t extrapad2;
+      uint64_t extrapad4;
     };
     union {                     /* +96  */
       time_t last_read_time;
-      uint64_t extrapad3;
+      uint64_t extrapad5;
     };
     uint8_t control_state[256];  /* +104   */
 

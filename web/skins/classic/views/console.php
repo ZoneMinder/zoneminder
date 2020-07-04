@@ -178,7 +178,7 @@ getBodyTopHTML();
 
     <div class="container-fluid">
       <button type="button" name="addBtn" data-on-click-this="addMonitor"
-      <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+      <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
       >
         <i class="material-icons md-18">add_circle</i>
         &nbsp;<?php echo translate('AddNewMonitor') ?>

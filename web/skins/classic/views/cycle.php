@@ -58,18 +58,20 @@ $heights = array(
   '1080px'  =>  '1080px',
 );
 
-session_start();
 
 $monIdx = 0;
 $monitors = array();
 $monitor = NULL;
-foreach ( $displayMonitors as &$row ) {
+foreach( $displayMonitors as &$row ) {
   if ( $row['Function'] == 'None' )
     continue;
   if ( isset($_REQUEST['mid']) && ($row['Id'] == $_REQUEST['mid']) )
     $monIdx = count($monitors);
 
-  if ( !isset($widths[$row['Width'].'px']) ) {
+  $row['ScaledWidth'] = reScale($row['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
+  $row['ScaledHeight'] = reScale($row['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
+  $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
+   if ( !isset($widths[$row['Width'].'px']) ) {
     $widths[$row['Width'].'px'] = $row['Width'].'px';
   }
   if ( ! isset($heights[$row['Height'].'px']) ) {
@@ -80,12 +82,16 @@ foreach ( $displayMonitors as &$row ) {
   unset($row);
 } # end foreach Monitor
 
-
 if ( $monitors ) {
   $monitor = $monitors[$monIdx];
   $nextMid = $monIdx==(count($monitors)-1)?$monitors[0]->Id():$monitors[$monIdx+1]->Id();
 }
+if ( !$monitor ) {
+  ZM\Error('There was no monitor to display.');
+}
 $options['connkey'] = generateConnKey();
+
+session_start();
 
 if ( isset($_REQUEST['scale']) ) {
   $options['scale'] = validInt($_REQUEST['scale']);
@@ -102,15 +108,18 @@ if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
   $_SESSION['zmCycleWidth'] = $options['width'] = $_COOKIE['zmCycleWidth'];
 #} elseif ( isset($_SESSION['zmCycleWidth']) and $_SESSION['zmCycleWidth'] ) {
   #$options['width'] = $_SESSION['zmCycleWidth'];
-} else
+} else {
   $options['width'] = '';
+}
 
-if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] )
+if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] ) {
   $_SESSION['zmCycleHeight'] = $options['height'] = $_COOKIE['zmCycleHeight'];
 #else if ( isset($_SESSION['zmCycleHeight']) and $_SESSION['zmCycleHeight'] )
   #$options['height'] = $_SESSION['zmCycleHeight'];
-else
+} else {
   $options['height'] = '';
+}
+
 session_write_close();
 
 ZM\Logger::Debug(print_r($options,true));

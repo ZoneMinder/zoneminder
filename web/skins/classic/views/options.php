@@ -139,36 +139,37 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
 <?php
     $sql = 'SELECT * FROM Monitors ORDER BY Sequence ASC';
     $monitors = array();
-    foreach( dbFetchAll($sql) as $monitor ) {
+    foreach ( dbFetchAll($sql) as $monitor ) {
       $monitors[$monitor['Id']] = $monitor;
     }
 
     $sql = 'SELECT * FROM Users ORDER BY Username';
-    foreach( dbFetchAll($sql) as $row ) {
+    foreach ( dbFetchAll($sql) as $user_row ) {
       $userMonitors = array();
-      if ( !empty($row['MonitorIds']) ) {
-        foreach ( explode(',', $row['MonitorIds']) as $monitorId ) {
+      if ( !empty($user_row['MonitorIds']) ) {
+        foreach ( explode(',', $user_row['MonitorIds']) as $monitorId ) {
           // A deleted monitor will cause an error since we don't update 
           // the user monitors list on monitor delete
-          if ( ! isset($monitors[$monitorId]) ) continue;
+          if ( !isset($monitors[$monitorId]) ) continue;
           $userMonitors[] = $monitors[$monitorId]['Name'];
         }
       }
+      ZM\Logger::Debug("monitors: ".$user_row['Username'] . ' ' . $user_row['MonitorIds']. ' :' . print_r($userMonitors, true));
 ?>
             <tr>
-              <td class="colUsername"><?php echo makePopupLink('?view=user&amp;uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), $canEdit) ?></td>
-              <td class="colLanguage"><?php echo $row['Language']?validHtmlStr($row['Language']):'default' ?></td>
-              <td class="colEnabled"><?php echo $row['Enabled']?translate('Yes'):translate('No') ?></td>
-              <td class="colStream"><?php echo validHtmlStr($row['Stream']) ?></td>
-              <td class="colEvents"><?php echo validHtmlStr($row['Events']) ?></td>
-              <td class="colControl"><?php echo validHtmlStr($row['Control']) ?></td>
-              <td class="colMonitors"><?php echo validHtmlStr($row['Monitors']) ?></td>
-              <td class="colGroups"><?php echo validHtmlStr($row['Groups']) ?></td>
-              <td class="colSystem"><?php echo validHtmlStr($row['System']) ?></td>
-              <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bandwidth_options[$row['MaxBandwidth']]:'&nbsp;' ?></td>
-              <td class="colMonitor"><?php echo $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
-              <?php if ( ZM_OPT_USE_API ) { ?><td class="colAPIEnabled"><?php echo $row['APIEnabled']?translate('Yes'):translate('No') ?></td><?php } ?>
-              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $row['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colUsername"><?php echo makePopupLink('?view=user&amp;uid='.$user_row['Id'], 'zmUser', 'user', validHtmlStr($user_row['Username']).($user['Username']==$user_row['Username']?'*':''), $canEdit) ?></td>
+              <td class="colLanguage"><?php echo $user_row['Language']?validHtmlStr($user_row['Language']):'default' ?></td>
+              <td class="colEnabled"><?php echo translate($user_row['Enabled']?'Yes':'No') ?></td>
+              <td class="colStream"><?php echo validHtmlStr($user_row['Stream']) ?></td>
+              <td class="colEvents"><?php echo validHtmlStr($user_row['Events']) ?></td>
+              <td class="colControl"><?php echo validHtmlStr($user_row['Control']) ?></td>
+              <td class="colMonitors"><?php echo validHtmlStr($user_row['Monitors']) ?></td>
+              <td class="colGroups"><?php echo validHtmlStr($user_row['Groups']) ?></td>
+              <td class="colSystem"><?php echo validHtmlStr($user_row['System']) ?></td>
+              <td class="colBandwidth"><?php echo $user_row['MaxBandwidth']?$bandwidth_options[$user_row['MaxBandwidth']]:'&nbsp;' ?></td>
+              <td class="colMonitor"><?php echo count($userMonitors)?(join(', ', $userMonitors)):'&nbsp;' ?></td>
+              <?php if ( ZM_OPT_USE_API ) { ?><td class="colAPIEnabled"><?php echo translate($user_row['APIEnabled']?'Yes':'No') ?></td><?php } ?>
+              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $user_row['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
     }
@@ -351,7 +352,6 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
         </thead>
         <tbody>
         <?php
-          
             $sql = 'SELECT * FROM Users ORDER BY Username';
             foreach ( dbFetchAll($sql) as $row ) {
         ?>
@@ -379,7 +379,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
     $result = $dbConn->query('SELECT * FROM `Config` ORDER BY `Id` ASC');
     if ( !$result )
       echo mysql_error();
-    while( $row = dbFetchNext($result) ) {
+    while ( $row = dbFetchNext($result) ) {
       $config[$row['Name']] = $row;
       if ( !($configCat = &$configCats[$row['Category']]) ) {
         $configCats[$row['Category']] = array();

@@ -18,12 +18,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Monitors') ) {
+$mid = empty($_REQUEST['mid']) ? 0 : validInt($_REQUEST['mid']);
+if ( !($mid and canEdit('Monitors', $mid)) ) {
   $view = 'error';
   return;
 }
 
-$mid = validInt($_REQUEST['mid']);
 $zid = (!empty($_REQUEST['zid'])) ? validInt($_REQUEST['zid']) : 0;
 
 $scale = SCALE_BASE;

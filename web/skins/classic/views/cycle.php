@@ -60,10 +60,39 @@ $heights = array(
 
 session_start();
 
+$monIdx = 0;
+$monitors = array();
+$monitor = NULL;
+foreach ( $displayMonitors as &$row ) {
+  if ( $row['Function'] == 'None' )
+    continue;
+  if ( isset($_REQUEST['mid']) && ($row['Id'] == $_REQUEST['mid']) )
+    $monIdx = count($monitors);
+
+  if ( !isset($widths[$row['Width'].'px']) ) {
+    $widths[$row['Width'].'px'] = $row['Width'].'px';
+  }
+  if ( ! isset($heights[$row['Height'].'px']) ) {
+    $heights[$row['Height'].'px'] = $row['Height'].'px';
+  }
+
+  $monitors[] = new ZM\Monitor($row);
+  unset($row);
+} # end foreach Monitor
+
+
+if ( $monitors ) {
+  $monitor = $monitors[$monIdx];
+  $nextMid = $monIdx==(count($monitors)-1)?$monitors[0]->Id():$monitors[$monIdx+1]->Id();
+}
+$options['connkey'] = generateConnKey();
+
 if ( isset($_REQUEST['scale']) ) {
   $options['scale'] = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmCycleScale']) ) {
   $options['scale'] = $_COOKIE['zmCycleScale'];
+} else if ( $monitor ) {
+  $options['scale'] = $monitor->DefaultScale();
 }
 
 if ( !isset($options['scale']) )
@@ -82,37 +111,7 @@ if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] )
   #$options['height'] = $_SESSION['zmCycleHeight'];
 else
   $options['height'] = '';
-
 session_write_close();
-
-$monIdx = 0;
-$monitors = array();
-$monitor = NULL;
-foreach( $displayMonitors as &$row ) {
-  if ( $row['Function'] == 'None' )
-    continue;
-  if ( isset($_REQUEST['mid']) && ($row['Id'] == $_REQUEST['mid']) )
-    $monIdx = count($monitors);
-
-  $row['ScaledWidth'] = reScale($row['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
-  $row['ScaledHeight'] = reScale($row['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
-  $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
-   if ( !isset($widths[$row['Width'].'px']) ) {
-    $widths[$row['Width'].'px'] = $row['Width'].'px';
-  }
-  if ( ! isset($heights[$row['Height'].'px']) ) {
-    $heights[$row['Height'].'px'] = $row['Height'].'px';
-  }
-
-  $row['connKey'] = generateConnKey();
-  $monitors[] = new ZM\Monitor($row);
-  unset($row);
-} # end foreach Monitor
-
-if ( $monitors ) {
-  $monitor = $monitors[$monIdx];
-  $nextMid = $monIdx==(count($monitors)-1)?$monitors[0]->Id():$monitors[$monIdx+1]->Id();
-}
 
 ZM\Logger::Debug(print_r($options,true));
 
@@ -151,7 +150,19 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
         </span>
       </div>
     </div>
-    <div id="content">
+  <div class="container-fluid">
+    <div class="row" id="content">
+<div class="col-sm-2 sidebar">
+        <ul class="nav nav-pills nav-stacked">
+<?php
+foreach ( $monitors as $m ) {
+          echo '<li'.( $m->Id() == $monitor->Id() ? ' class="active"' : '' ).'><a href="?view=cycle&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+}
+?>
+        </ul>
+      </div>
+      <div class="col-sm-10 col-sm-offset-2">
+
       <div id="imageFeed">
       <?php 
         if ( $monitor ) {
@@ -169,6 +180,7 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
         <button type="button" value="&gt;" id="nextBtn" title="<?php echo translate('NextMonitor') ?>" class="active" data-on-click-true="cycleNext">&gt;&gt;</button>
       </div>
 
+    </div>
     </div>
   </div>
 <?php xhtmlFooter() ?>

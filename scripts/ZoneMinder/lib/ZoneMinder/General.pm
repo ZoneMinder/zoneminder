@@ -345,7 +345,7 @@ sub createEvent {
             ." to ".$frame->{capturePath}.": $!"
             );
       setFileOwner( $frame->{capturePath} );
-      if ( 0 && $Config{ZM_CREATE_ANALYSIS_IMAGES} ) {
+      if ( $event->{SaveJPEGs} > 1 ) {
         $frame->{analysePath} = sprintf(
             "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}
             ."d-analyse.jpg"

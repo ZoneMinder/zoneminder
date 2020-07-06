@@ -349,6 +349,7 @@ EOF
 %{_bindir}/zmpkg.pl
 %{_bindir}/zmtrack.pl
 %{_bindir}/zmtrigger.pl
+%{_bindir}/zmonvif-zmtrigger.pl
 %{_bindir}/zmu
 %{_bindir}/zmupdate.pl
 %{_bindir}/zmvideo.pl

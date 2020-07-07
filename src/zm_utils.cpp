@@ -44,7 +44,7 @@ std::string trimSet(std::string str, std::string trimset) {
   size_t endpos = str.find_last_not_of(trimset); // Find the first character position from reverse af
  
   // if all spaces or empty return an empty string
-  if ( ( std::string::npos == startpos ) || ( std::string::npos == endpos) ) {
+  if ( ( std::string::npos == startpos ) || ( std::string::npos == endpos ) )
     return std::string("");
   return str.substr(startpos, endpos-startpos+1);
 }

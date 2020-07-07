@@ -212,8 +212,8 @@ xhtmlHeaders(__FILE__, translate('Zone'));
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneMinMaxPixelThres') ?></th>
-									<td><input type="number" name="newZone[MinPixelThreshold]" value="<?php echo $newZone['MinPixelThreshold'] ?>"/></td>
-									<td><input type="number" name="newZone[MaxPixelThreshold]" value="<?php echo $newZone['MaxPixelThreshold'] ?>"/></td>
+									<td><input type="number" name="newZone[MinPixelThreshold]" value="<?php echo $newZone['MinPixelThreshold'] ?>" min="0" max="255"/></td>
+									<td><input type="number" name="newZone[MaxPixelThreshold]" value="<?php echo $newZone['MaxPixelThreshold'] ?>" min="0" max="255"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneFilterSize') ?></th>

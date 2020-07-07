@@ -499,34 +499,6 @@ function setAlarmState( currentAlarmState ) {
   } else {
     $('stateValue').removeProperty('class');
   }
-
-  var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
-  var wasAlarmed = ( lastAlarmState == STATE_ALARM || lastAlarmState == STATE_ALERT );
-
-  var newAlarm = ( isAlarmed && !wasAlarmed );
-  var oldAlarm = ( !isAlarmed && wasAlarmed );
-
-  if ( newAlarm ) {
-    if ( SOUND_ON_ALARM ) {
-      // Enable the alarm sound
-      if ( !canPlayPauseAudio ) {
-        $('alarmSound').removeClass('hidden');
-      } else {
-        $('MediaPlayer').Play();
-      }
-    }
-  }
-  if ( SOUND_ON_ALARM ) {
-    if ( oldAlarm ) {
-      // Disable alarm sound
-      if ( !canPlayPauseAudio ) {
-        $('alarmSound').addClass('hidden');
-      } else {
-        $('MediaPlayer').Stop();
-      }
-    }
-  }
-  lastAlarmState = alarmState;
 }
 
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;

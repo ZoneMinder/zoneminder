@@ -1680,7 +1680,7 @@ bool Monitor::Analyse() {
 
         if ( state != IDLE ) {
           if ( state == PREALARM || state == ALARM ) {
-            if ( config.create_analysis_images ) {
+            if ( savejpegs > 1 ) {
               bool got_anal_image = false;
               alarm_image.Assign(*snap_image);
               for ( int i = 0; i < n_zones; i++ ) {
@@ -1718,7 +1718,7 @@ bool Monitor::Analyse() {
                   }
                 } // end if  config.record_event_stats
               }
-            } // end if config.create_analysis_images 
+            } // end if savejpegs > 1 
 
             if ( event ) {
               if ( noteSetMap.size() > 0 )

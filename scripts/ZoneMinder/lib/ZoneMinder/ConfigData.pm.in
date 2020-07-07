@@ -2636,22 +2636,6 @@ our @options = (
     category    => 'hidden',
   },
   {
-    name        => 'ZM_CREATE_ANALYSIS_IMAGES',
-    default     => 'yes',
-    description => 'Create analysed alarm images with motion outlined',
-    help        => q`
-      By default during an alarm ZoneMinder records both the raw
-      captured image and one that has been analysed and had areas
-      where motion was detected outlined. This can be very useful
-      during zone configuration or in analysing why events occurred.
-      However it also incurs some overhead and in a stable system may
-      no longer be necessary. This parameter allows you to switch the
-      generation of these images off.
-      `,
-    type        => $types{boolean},
-    category    => 'config',
-  },
-  {
     name        => 'ZM_WEIGHTED_ALARM_CENTRES',
     default     => 'no',
     description => 'Use a weighted algorithm to calculate the centre of an alarm',

@@ -63,31 +63,31 @@ static enum AVPixelFormat get_hw_format(
 }
 #if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
 static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
-    enum AVPixelFormat fmt;
-    switch (type) {
+  enum AVPixelFormat fmt;
+  switch (type) {
     case AV_HWDEVICE_TYPE_VAAPI:
-        fmt = AV_PIX_FMT_VAAPI;
-        break;
+      fmt = AV_PIX_FMT_VAAPI;
+      break;
     case AV_HWDEVICE_TYPE_DXVA2:
-        fmt = AV_PIX_FMT_DXVA2_VLD;
-        break;
+      fmt = AV_PIX_FMT_DXVA2_VLD;
+      break;
     case AV_HWDEVICE_TYPE_D3D11VA:
-        fmt = AV_PIX_FMT_D3D11;
-        break;
+      fmt = AV_PIX_FMT_D3D11;
+      break;
     case AV_HWDEVICE_TYPE_VDPAU:
-        fmt = AV_PIX_FMT_VDPAU;
-        break;
+      fmt = AV_PIX_FMT_VDPAU;
+      break;
     case AV_HWDEVICE_TYPE_CUDA:
-        fmt = AV_PIX_FMT_CUDA;
-        break;
+      fmt = AV_PIX_FMT_CUDA;
+      break;
     case AV_HWDEVICE_TYPE_VIDEOTOOLBOX:
-        fmt = AV_PIX_FMT_VIDEOTOOLBOX;
-        break;
+      fmt = AV_PIX_FMT_VIDEOTOOLBOX;
+      break;
     default:
-        fmt = AV_PIX_FMT_NONE;
-        break;
-    }
-    return fmt;
+      fmt = AV_PIX_FMT_NONE;
+      break;
+  }
+  return fmt;
 }
 #endif
 #endif
@@ -174,6 +174,20 @@ FfmpegCamera::FfmpegCamera(
   } else {
     Panic("Unexpected colours: %d", colours);
   }
+
+  // sws_scale needs 32bit aligned width and an extra 16 bytes padding, so recalculate imagesize, which was width*height*bytes_per_pixel
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  alignment = 32;
+  imagesize = av_image_get_buffer_size(imagePixFormat, width, height, alignment);
+  // av_image_get_linesize isn't aligned, so we have to do that.
+  linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), alignment);
+#else
+  alignment = 1;
+  linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), alignment);
+  imagesize = avpicture_get_size(imagePixFormat, width, height);
+#endif
+
+  Debug(1, "ffmpegcamera: width %d height %d linesize %d colours %d imagesize %d", width, height, linesize, colours, imagesize);
 }  // FfmpegCamera::FfmpegCamera
 
 FfmpegCamera::~FfmpegCamera() {
@@ -608,16 +622,6 @@ int FfmpegCamera::OpenFfmpeg() {
   mFrame->width = width;
   mFrame->height = height;
 
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  int pSize = av_image_get_buffer_size(imagePixFormat, width, height, 1);
-#else
-  int pSize = avpicture_get_size(imagePixFormat, width, height);
-#endif
-
-  if ( (unsigned int)pSize != imagesize ) {
-    Error("Image size mismatch. Required: %d Available: %d", pSize, imagesize);
-    return -1;
-  }
 
 #if HAVE_LIBSWSCALE
   if ( !sws_isSupportedInput(mVideoCodecContext->pix_fmt) ) {
@@ -1089,11 +1093,18 @@ int FfmpegCamera::transfer_to_image(
   int size = av_image_fill_arrays(
       output_frame->data, output_frame->linesize,
       directbuffer, imagePixFormat, width, height, 
-      (AV_PIX_FMT_RGBA == imagePixFormat ? 32 : 1)
+      alignment
       );
   if ( size < 0 ) {
     Error("Problem setting up data pointers into image %s",
         av_make_error_string(size).c_str());
+  } else {
+    Debug(4, "av_image_fill_array %dx%d alignment: %d = %d, buffer size is %d",
+        width, height, alignment, size, image.Size());
+  }
+  Debug(1, "ffmpegcamera: width %d height %d linesize %d colours %d imagesize %d", width, height, linesize, colours, imagesize);
+  if ( linesize != (unsigned int)output_frame->linesize[0] ) {
+    Error("Bad linesize expected %d got %d", linesize, output_frame->linesize[0]);
   }
 #else
   avpicture_fill((AVPicture *)output_frame, directbuffer,

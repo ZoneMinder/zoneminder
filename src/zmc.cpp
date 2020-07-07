@@ -259,7 +259,8 @@ int main(int argc, char *argv[]) {
         Debug(1, "Failed to prime capture of initial monitor");
       }
       prime_capture_log_count ++;
-      sleep(10);
+      if ( !zm_terminate )
+        sleep(10);
       continue;
     }
 

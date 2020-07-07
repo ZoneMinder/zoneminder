@@ -357,6 +357,7 @@ EOF
 %{_bindir}/zmtelemetry.pl
 %{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl
+%{_bindir}/zmonvif-trigger.pl
 %{_bindir}/zmstats.pl
 %{_bindir}/zmrecover.pl
 

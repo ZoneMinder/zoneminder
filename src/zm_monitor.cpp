@@ -602,7 +602,7 @@ bool Monitor::connect() {
   if ( mem_ptr == MAP_FAILED )
     Fatal("Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
   if ( mem_ptr == NULL ) {
-    Error("mmap gave a null address:");
+    Error("mmap gave a NULL address:");
   } else {
     Debug(3, "mmapped to %p", mem_ptr);
   }
@@ -1695,17 +1695,10 @@ bool Monitor::Analyse() {
                 } // end if zone is alarmed
               } // end foreach zone
 
-              if ( got_anal_image ) {
-                if ( state == PREALARM )
-                  Event::AddPreAlarmFrame(snap_image, *timestamp, score, &alarm_image);
-                else
-                  event->AddFrame(snap_image, *timestamp, score, &alarm_image);
-              } else {
-                if ( state == PREALARM )
-                  Event::AddPreAlarmFrame(snap_image, *timestamp, score);
-                else
-                  event->AddFrame(snap_image, *timestamp, score);
-              }
+              if ( state == PREALARM )
+                Event::AddPreAlarmFrame(snap_image, *timestamp, score, (got_anal_image?&alarm_image:NULL));
+              else
+                event->AddFrame(snap_image, *timestamp, score, (got_anal_image?&alarm_image:NULL));
             } else {
               // Not doing alarm frame storage
               if ( state == PREALARM ) {
@@ -1741,7 +1734,6 @@ bool Monitor::Analyse() {
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();
-
               }
             } // end if event
 

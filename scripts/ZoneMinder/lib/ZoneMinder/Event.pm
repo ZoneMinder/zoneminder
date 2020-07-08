@@ -363,7 +363,7 @@ sub delete {
       return;
     }
     if ( !($event->Storage()->Path() and -e $event->Storage()->Path()) ) {
-      Warning('Not deleting event because storage path doesn\'t exist');
+      Warning('Not deleting event because storage path ('.$event->Storage()->Path().') doesn\'t exist');
       return;
     }
   }

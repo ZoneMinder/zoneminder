@@ -505,7 +505,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                         ||
                         (max_blob_pixels && bs->count > max_blob_pixels)
                        ) {
-                      if ( config.create_analysis_images || config.record_diag_images ) {
+                      if ( ( monitor->GetOptSaveJPEGs() > 1 ) || config.record_diag_images ) {
                         for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ ) {
                           spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
                           for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ ) {
@@ -574,7 +574,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         BlobStats *bs = &blob_stats[i];
         if ( bs->count ) {
           if ( (min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels) ) {
-            if ( config.create_analysis_images || config.record_diag_images ) {
+            if ( ( monitor->GetOptSaveJPEGs() > 1 ) || config.record_diag_images ) {
               for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ ) {
                 spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
                 for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ ) {
@@ -702,7 +702,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       alarm_centre = alarm_box.Centre();
     }
 
-    if ( (type < PRECLUSIVE) && (check_method >= BLOBS) && config.create_analysis_images ) {
+    if ( (type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1) ) {
 
       // First mask out anything we don't want
       for ( unsigned int y = lo_y; y <= hi_y; y++ ) {

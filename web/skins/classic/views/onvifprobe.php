@@ -36,9 +36,10 @@ function execONVIF($cmd) {
 
   if ( $status ) {
     $html_output = implode('<br/>', $output);
-    ZM\Fatal("Unable to probe network cameras, status is '$status'. Output was:<br/><br/>
-        $html_output<br/><br/>
-        Please the following command from a command line for more information:<br/><br/>$shell_command"
+    ZM\Error("Unable to probe network cameras, status is '$status'. Output was:
+        $html_output
+        Please run the following command from a command line for more information:
+        $shell_command"
         );
   } else {
     ZM\Logger::Debug('Results from probe: '.implode('<br/>', $output));
@@ -49,7 +50,8 @@ function execONVIF($cmd) {
 
 function probeCameras($localIp) {
   $cameras = array();
-  if ( $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? isset($_REQUEST['interface'] : '' )) ) {
+  $lines = @execONVIF('probe 1.1,1.2'.(isset($_REQUEST['interface']) ? ' '.isset($_REQUEST['interface']) : '' ));
+  if ( $lines ) {
     foreach ( $lines as $line ) {
       $line = rtrim($line);
       if ( preg_match('|^(.+),(.+),\s\((.*)\)$|', $line, $matches) ) {
@@ -94,12 +96,14 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
   if ( $lines = @execONVIF("profiles $device_ep $soapversion $username $password") ) {
     foreach ( $lines as $line ) {
       $line = rtrim( $line );
-      if ( preg_match('|^(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+)\s*$|', $line, $matches) ) {
-        $stream_uri = $matches[7];
+
+      if ( preg_match('|^([^,]+),\s*([^,]+),\s*([^,]+),\s*(\d+),\s*(\d+),\s*(\d+),\s*([^,]+),\s*(.+)\s*$|', $line, $matches) ) {
+        $stream_uri = $matches[8];
         // add user@pass to URI
         if ( preg_match('|^(\S+://)(.+)$|', $stream_uri, $tokens) ) {
           $stream_uri = $tokens[1].$username.':'.$password.'@'.$tokens[2];
         }
+	ZM\Warning(print_r($matches,1));
 
         $profile = array(  # 'monitor' part of camera
             'Type'        => 'Ffmpeg',
@@ -111,6 +115,7 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
             'Profile'     => $matches[1],
             'Name'        => $matches[2],
             'Encoding'    => $matches[3],
+	    'Transport'	  => $matches[7],
             );
         $profiles[] = $profile;
       } else {
@@ -259,10 +264,17 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
     $monitor = $camera['monitor'];
 
     $sourceString = "${profile['Name']} : ${profile['Encoding']}" .
-      " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps)";
+      " (${profile['Width']}x${profile['Height']} @ ${profile['MaxFPS']}fps ${profile['Transport']})";
     // copy technical details
     $monitor['Width']  = $profile['Width'];
     $monitor['Height'] = $profile['Height'];
+    if ( $profile['Transport'] == 'RTP-Multicast' ) {
+	    $monitor['Method'] = 'rtpMulti';
+    } else if ( $profile['Transport'] == 'RTP-Unicast' ) {
+	    $monitor['Method'] = 'rtpUni';
+    } else {
+	    $monitor['Method'] = 'rtpRtsp';
+    }
     // The maxfps fields do not work for ip streams. Can re-enable if that is fixed.
     //       $monitor['MaxFPS'] = $profile['MaxFPS'];
     //       $monitor['AlarmMaxFPS'] = $profile['AlarmMaxFPS'];

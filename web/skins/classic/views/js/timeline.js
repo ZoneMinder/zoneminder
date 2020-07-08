@@ -208,7 +208,9 @@ window.addEventListener('DOMContentLoaded', function() {
     el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
   });
   document.querySelectorAll('div.zoom').forEach(function(el) {
-    el.onclick = function(ev) { window[el.getAttribute('data-on-click')](ev); };
+    el.onclick = function(ev) {
+      window[el.getAttribute('data-on-click')](ev);
+    };
   });
 });
 

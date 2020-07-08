@@ -133,6 +133,7 @@ sub sendCmd {
   my $result = undef;
 
   $self->printMsg($cmd, 'Tx');
+  $self->printMsg($msg, 'Tx');
 
   my $server_endpoint = 'http://'.$address.':'.$port.'/'.$cmd;
   my $req = HTTP::Request->new(POST => $server_endpoint);
@@ -147,6 +148,7 @@ sub sendCmd {
 
   if ( $res->is_success ) {
     $result = !undef;
+Debug("Result: " . $res->content());
   } else {
     Error("After sending PTZ command, camera returned the following error:'".$res->status_line()."'\nMSG:$msg\nResponse:".$res->content);
   }
@@ -208,12 +210,56 @@ sub reset {
   $self->sendCmd($cmd, $msg, $content_type);
 }
 
+sub moveMap {
+  my $self = shift;
+  my $params = shift;
+  my $x = $self->getParam($params,'xcoord');
+  my $y = $self->getParam($params,'ycoord');
+  Debug("Move map to $x x $y");
+
+  my $cmd = 'onvif/PTZ';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <AbsoluteMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $profileToken . '</ProfileToken>
+    <Position><PanTilt x="'.$x.'" y="'.$y.'" xmlns="http://www.onvif.org/ver10/schema"/></Position>
+    <Speed><Zoom x="1" xmlns="http://www.onvif.org/ver10/schema"/></Speed>
+    </AbsoluteMove></s:Body></s:Envelope>';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  $self->sendCmd($cmd, $msg, $content_type);
+}
+
+sub moveRel {
+  my $self = shift;
+  my $params = shift;
+  my $x = $self->getParam($params,'xcoord');
+  my $speed = $self->getParam($params,'speed');
+  my $y = $self->getParam($params,'ycoord');
+  Debug("Move rel to $x x $y");
+
+  my $cmd = 'onvif/PTZ';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <RelativeMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $profileToken . '</ProfileToken>
+    <Translation>
+    <PanTilt x="'.$x.'" y="'.$y.'" xmlns="http://www.onvif.org/ver10/schema" space="http://www.onvif.org/ver10/tptz/PanTiltSpaces/PositionGenericSpace"/>
+    <Zoom x="1"/>
+    </Translation>
+    <!--<Speed><Zoom x="'.$speed.'" xmlns="http://www.onvif.org/ver10/schema" space="http://www.onvif.org/ver10/tptz/PanTiltSpaces/PositionGenericSpace"/></Speed>_-->
+    </RelativeMove></s:Body></s:Envelope>';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  $self->sendCmd($cmd, $msg, $content_type);
+}
+
 #Up Arrow
 sub moveConUp {
   Debug('Move Up');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="0" y="0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+    <ProfileToken>' . $profileToken . '</ProfileToken>
+    <Velocity><PanTilt x="0" y="0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity>
+   </ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});

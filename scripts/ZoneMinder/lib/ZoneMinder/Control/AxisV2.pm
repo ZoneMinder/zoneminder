@@ -45,7 +45,7 @@ use ZoneMinder::Config qw(:all);
 use Time::HiRes qw( usleep );
 use URI;
 
-our $ADDRESS;
+our $uri;
 
 sub open {
   my $self = shift;
@@ -55,8 +55,7 @@ sub open {
 		# Has no scheme at the beginning, so won't parse as a URI
 		$self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
 	}
-  my $uri = URI->new($self->{Monitor}->{ControlAddress});
-  $ADDRESS = $uri->scheme.'://'.$uri->authority().$uri->path().($uri->port()?':'.$uri->port():'');
+  $uri = URI->new($self->{Monitor}->{ControlAddress});
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
@@ -65,14 +64,21 @@ sub open {
   $self->{state} = 'closed';
 
   my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
+  
+  $uri->userinfo(undef);
+
   my $realm = $self->{Monitor}->{ControlDevice};
 
-  $self->{ua}->credentials($ADDRESS, $realm, $username, $password);
+  $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+  my $url = '/axis-cgi/param.cgi?action=list&group=Properties.PTZ.PTZ';
 
   # test auth
-  my $res = $self->{ua}->get($ADDRESS.'/cgi/ptdc.cgi');
+  my $res = $self->{ua}->get($uri->canonical().$url);
 
   if ( $res->is_success ) {
+    if ( $res->content() ne "Properties.PTZ.PTZ=yes\n" ) {
+      Warning('Response suggests that camera doesn\'t support PTZ. Content:('.$res->content().')');
+    }
     $self->{state} = 'open';
     return;
   }
@@ -85,23 +91,18 @@ sub open {
     }
 
     if ( $$headers{'www-authenticate'} ) {
-      Debug('Authenticating');
       my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
       if ( $tokens =~ /\w+="([^"]+)"/i ) {
         if ( $realm ne $1 ) {
           $realm = $1;
-          Debug("Changing REALM to $realm");
-          $self->{ua}->credentials($host, $realm, $username, $password);
-          $res = $self->{ua}->get($ADDRESS);
+          $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+          $res = $self->{ua}->get($uri->canonical().$url);
           if ( $res->is_success() ) {
+            Info("Auth succeeded after setting realm to $realm.  You can set this value in the Control Device field to speed up connections and remove these log entries.");
             $self->{state} = 'open';
             return;
           }
-          Error('Authentication still failed after updating REALM'.$res->status_line);
-          $headers = $res->headers();
-          foreach my $k ( keys %$headers ) {
-            Debug("Initial Header $k => $$headers{$k}");
-          }  # end foreach
+          Error('Authentication still failed after updating REALM status: '.$res->status_line);
         } else {
           Error('Authentication failed, not a REALM problem');
         }
@@ -111,6 +112,8 @@ sub open {
     } else {
       Debug('No headers line');
     } # end if headers
+  } else {
+    Warning('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
   } # end if $res->status_line() eq '401 Unauthorized'
 } # end sub open
 
@@ -120,11 +123,11 @@ sub sendCmd {
 
   $self->printMsg($cmd, 'Tx');
 
-  my $url = $ADDRESS.$cmd;
+  my $url = $uri->canonical().$cmd;
   my $res = $self->{ua}->get($url);
 
   if ( $res->is_success ) {
-    Debug('sndCmd command: ' . $url . ' content: '.$res->content);
+    Debug('sndCmd command: '.$url.' content: '.$res->content);
     return !undef;
   }
 

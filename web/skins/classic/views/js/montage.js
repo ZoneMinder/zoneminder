@@ -297,8 +297,8 @@ function changeSize() {
       console.log("Error finding frame for " + monitor.id);
       continue;
     }
-      monitor_frame.css('width', ( width ? width+'px' : 'auto') );
-      monitor_frame.css('height', ( height ? height+'px' : 'auto') );
+    monitor_frame.css('width', ( width ? width+'px' : 'auto') );
+    monitor_frame.css('height', ( height ? height+'px' : 'auto') );
 
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $('liveStream'+monitor.id);

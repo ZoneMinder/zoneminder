@@ -14,7 +14,7 @@ function validateForm( form, newUser ) {
   }
   if ( errors.length ) {
     alert(errors.join("\n"));
-    return  false;
+    return false;
   }
   return true;
 }

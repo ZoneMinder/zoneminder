@@ -146,15 +146,15 @@ sub zmDbGetMonitors {
 
   if ( $function ) {
     if ( $function == DB_MON_CAPT ) {
-      $sql .= " where Function >= 'Monitor'";
+      $sql .= " where `Function` >= 'Monitor'";
     } elsif ( $function == DB_MON_ACTIVE ) {
-      $sql .= " where Function > 'Monitor'";
+      $sql .= " where `Function` > 'Monitor'";
     } elsif ( $function == DB_MON_MOTION ) {
-      $sql .= " where Function = 'Modect' or Function = 'Mocord'";
+      $sql .= " where `Function` = 'Modect' or Function = 'Mocord'";
     } elsif ( $function == DB_MON_RECORD ) {
-      $sql .= " where Function = 'Record' or Function = 'Mocord'";
+      $sql .= " where `Function` = 'Record' or Function = 'Mocord'";
     } elsif ( $function == DB_MON_PASSIVE ) {
-      $sql .= " where Function = 'Nodect'";
+      $sql .= " where `Function` = 'Nodect'";
     }
   }
   my $sth = $dbh->prepare_cached( $sql );

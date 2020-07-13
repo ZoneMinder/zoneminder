@@ -201,6 +201,11 @@ class Monitor extends ZM_Object {
     if ( ZM_RAND_STREAM ) {
       $args['rand'] = time();
     }
+    foreach ( array('scale','height','width') as $int_arg )  {
+      if ( isset($args[$int_arg]) and (!is_int($args[$int_arg]) or !$args[$int_arg] ) ) {
+        unset($args[$int_arg]);
+      }
+    }
 
     $streamSrc .= '?'.http_build_query($args, '', $querySep);
 

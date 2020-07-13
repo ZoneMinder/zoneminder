@@ -162,6 +162,8 @@ our $mem_data = {
     imagesize        => { type=>'uint32', seq=>$mem_seq++ },
     epadding1        => { type=>'uint32', seq=>$mem_seq++ },
     startup_time     => { type=>'time_t64', seq=>$mem_seq++ },
+    zmc_heartbeat_time  => { type=>'time_t64', seq=>$mem_seq++ },
+    zma_heartbeat_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
     control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },

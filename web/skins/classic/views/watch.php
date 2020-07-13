@@ -151,7 +151,7 @@ if ( $streamMode == 'jpeg' ) {
 } // end if streamMode==jpeg
 ?>
       </div>
-      <div id="replayStatus"<?php echo $streamMode=="single"?' class="hidden"':'' ?>>
+      <div id="replayStatus"<?php echo $streamMode=="single" ? ' class="hidden"' : '' ?>>
         <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue"></span></span>
         <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"></span>x</span>
         <span id="delay"><?php echo translate('Delay') ?>: <span id="delayValue"></span>s</span>

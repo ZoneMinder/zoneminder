@@ -26,8 +26,6 @@ if ( !($mid and canEdit('Monitors', $mid)) ) {
 
 $zid = (!empty($_REQUEST['zid'])) ? validInt($_REQUEST['zid']) : 0;
 
-$scale = SCALE_BASE;
-
 $hicolor = '0x00ff00'; // Green
 
 $presets = array();
@@ -45,16 +43,25 @@ foreach ( getEnumValues('Zones', 'Type') as $optType ) {
 }
 
 $optUnits = array();
-foreach ( getEnumValues( 'Zones', 'Units' ) as $optUnit ) {
+foreach ( getEnumValues('Zones', 'Units') as $optUnit ) {
   $optUnits[$optUnit] = $optUnit;
 }
 
 $optCheckMethods = array();
-foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $optCheckMethod ) {
+foreach ( getEnumValues('Zones', 'CheckMethod') as $optCheckMethod ) {
   $optCheckMethods[$optCheckMethod] = $optCheckMethod;
 }
 
-$monitor = new ZM\Monitor( $mid );
+$monitor = new ZM\Monitor($mid);
+
+if ( isset($_REQUEST['scale']) ) {
+  $scale = validInt($_REQUEST['scale']);
+} else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
+  $scale = $_COOKIE['zmWatchScale'.$mid];
+} else {
+  $scale = $monitor->DefaultScale();
+}
+ZM\Error("Scale $scale");
 
 $minX = 0;
 $maxX = $monitor->ViewWidth()-1;
@@ -63,7 +70,7 @@ $maxY = $monitor->ViewHeight()-1;
 
 if ( !isset($newZone) ) {
   if ( $zid > 0 ) {
-    $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array($monitor->Id(), $zid));
+    $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId=? AND Id=?', NULL, array($monitor->Id(), $zid));
   } else {
     $zone = array(
       'Id' => 0,
@@ -110,17 +117,19 @@ $selfIntersecting = isSelfIntersecting($newZone['Points']);
 
 $focusWindow = true;
 $connkey = generateConnKey();
-$streamSrc = '';
-$streamMode = '';
 # Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
 $StreamHTML = getStreamHTML($monitor, array('scale'=>$scale));
+
+# So I'm thinking now that 50% of screen real-estate with a minimum of 640px. 
+# scale should be floor(whatever that width is/actual width)
+# So we need javascript to figure out browser width, figure out scale and then activate the stream.  
 
 xhtmlHeaders(__FILE__, translate('Zone'));
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Monitor') ?> <?php echo $monitor->Name() ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?></h2>
+      <h2><?php echo translate('Monitor').' '.$monitor->Name().' - '.translate('Zone').' '.$newZone['Name'] ?></h2>
     </div>
     <div id="content">
       <form name="zoneForm" id="zoneForm" method="post" action="?" onkeypress="return event.keyCode != 13;">
@@ -136,9 +145,9 @@ xhtmlHeaders(__FILE__, translate('Zone'));
         <div id="definitionPanel">
 					<div class="monitor">
 						<div id="imagePanel">
-							<div id="imageFrame" style="position: relative; width: <?php echo reScale($monitor->ViewWidth(), $scale) ?>px; height: <?php echo reScale($monitor->ViewHeight(), $scale) ?>px;">
+							<div id="imageFrame">
 								<?php echo $StreamHTML; ?>
-								<svg id="zoneSVG" class="zones" style="position: absolute; top: 0; left: 0; width: <?php echo reScale($monitor->ViewWidth(), $scale) ?>px; height: <?php echo reScale($monitor->ViewHeight(), $scale) ?>px; background: none;">
+                <svg id="zoneSVG" class="zones" width="100%" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" style="position:absolute; top: 0; left: 0; background: none;">
 	<?php
 	if ( $zone['Id'] ) {
 		$other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ? AND Id != ?', NULL, array($monitor->Id(), $zone['Id']));

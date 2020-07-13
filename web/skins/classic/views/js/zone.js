@@ -245,13 +245,13 @@ function limitArea(field) {
 }
 
 function highlightOn(point) {
-  var index = point.getAttribute('data-index');
+  var index = point.getAttribute('data-point-index');
   $('row'+index).addClass('highlight');
   $('point'+index).addClass('highlight');
 }
 
 function highlightOff(point) {
-  var index = point.getAttribute('data-index');
+  var index = point.getAttribute('data-point-index');
   $('row'+index).removeClass('highlight');
   $('point'+index).removeClass('highlight');
 }
@@ -410,7 +410,7 @@ function drawZonePoints() {
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var div = new Element('div', {
       'id': 'point'+i,
-      'data-index': i,
+      'data-point-index': i,
       'class': 'zonePoint',
       'title': 'Point '+(i+1),
       'styles': {
@@ -418,10 +418,8 @@ function drawZonePoints() {
         'top': zone['Points'][i].y
       }
     });
-    //div.addEvent('mouseover', highlightOn.pass(i));
     div.onmouseover = window['highlightOn'].bind(div, div);
     div.onmouseout = window['highlightOff'].bind(div, div);
-    div.addEvent('mouseout', highlightOff.pass(i));
     div.inject($('imageFrame'));
     div.makeDraggable( {
       'container': $('imageFrame'),
@@ -439,7 +437,8 @@ function drawZonePoints() {
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var row;
     row = new Element('tr', {'id': 'row'+i});
-    row.addEvents({'mouseover': highlightOn.pass(i), 'mouseout': highlightOff.pass(i)});
+    row.onmouseover = window['highlightOn'].bind(div, div);
+    row.onmouseout = window['highlightOff'].bind(div, div);
     var cell = new Element('td');
     cell.set('text', i+1);
     cell.inject(row);

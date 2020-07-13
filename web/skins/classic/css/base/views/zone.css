@@ -45,7 +45,12 @@
  * the extreme edges of the imageFrame. */
 #imageFrame {
     position: relative;
+    width: 50%;
+    min-width: 640px;
     padding: 0 3px 3px 0; /* Compensate for negative margins in the markers just below. */
+}
+#imageFrame img {
+  width: 100%;
 }
 
 #imageFrame div {

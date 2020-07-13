@@ -2290,13 +2290,13 @@ function validHtmlStr($input) {
 function getStreamHTML($monitor, $options = array()) {
 
   if ( isset($options['scale']) ) {
-    if ( $options['scale'] != 'auto' && $options['scale'] != '0' and $options['scale'] != '' ) {
+    if ( $options['scale'] != 'auto' && $options['scale'] != '0' and $options['scale'] != '' and $options['scale'] != 0 ) {
       ZM\Logger::Debug("Setting dimensions from scale:".$options['scale']);
       $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
       $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
     } else {
-      $options['width'] = '100%';
-      $options['height'] = 'auto';
+      $options['width'] = 'auto';
+      $options['height'] = '100%';
     }
   } else {
     # scale is empty or 100

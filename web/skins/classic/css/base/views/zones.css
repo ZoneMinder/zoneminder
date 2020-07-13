@@ -20,18 +20,18 @@
 }
 
 #zones, .ZonesImage {
+  position: relative;
+  width: 50%;
+  min-width: 500px;
 	float: left;
 }
-#zones {
-  width: 500px;
-}
 .ZonesImage img {
-top:0;
-left:0;
-position: relative;
+  top:0;
+  left:0;
+  position: relative;
 }
 
 #content {
-width: 100%;
+width: 97%;
 position: relative;
 }

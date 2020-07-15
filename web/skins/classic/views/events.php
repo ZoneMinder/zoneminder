@@ -106,7 +106,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
 <?php
 if ( $pagination ) {
 ?>
-        <h2 class="pagination"><?php echo $pagination ?></h2>
+        <h2 class="pagination hidden-xs"><?php echo $pagination ?></h2>
 <?php
 }
 ?>
@@ -138,6 +138,7 @@ if ( $pages > 1 ) {
         <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
         <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
+		<div class="table-responsive">
         <table id="contentTable" class="major">
           <tbody>
 <?php
@@ -299,6 +300,7 @@ while ( $event_row = dbFetchNext($results) ) {
   }
 ?>
         </table>
+		</div>
 <?php
 if ( $pagination ) {
 ?>

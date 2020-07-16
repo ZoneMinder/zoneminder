@@ -572,7 +572,9 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
   return buffer;
 }
 
-/* Assign an existing buffer to the image instead of copying from a source buffer. The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing. */
+/* Assign an existing buffer to the image instead of copying from a source buffer.
+   The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing.
+*/
 void Image::AssignDirect(
     const unsigned int p_width,
     const unsigned int p_height,
@@ -581,6 +583,7 @@ void Image::AssignDirect(
     uint8_t *new_buffer,
     const size_t buffer_size,
     const int p_buffertype) {
+
   if ( new_buffer == NULL ) {
     Error("Attempt to directly assign buffer from a NULL pointer");
     return;
@@ -640,7 +643,6 @@ void Image::AssignDirect(
     buffertype = p_buffertype;
     buffer = new_buffer;
   }
-Debug(1, "In assign direct");
 }
 
 void Image::Assign(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size) {

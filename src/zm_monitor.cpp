@@ -1407,9 +1407,6 @@ bool Monitor::Analyse() {
           score += trigger_data->trigger_score;
           Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
           if ( !event ) {
-            // How could it have a length already?
-            //if ( cause.length() )
-              //cause += ", ";
             cause += trigger_data->trigger_cause;
           }
           Event::StringSet noteSet;
@@ -1517,7 +1514,6 @@ bool Monitor::Analyse() {
             } // end if event
 
             if ( !event ) {
-
               // Create event
               event = new Event(this, *timestamp, "Continuous", noteSetMap, videoRecording);
               shared_data->last_event = event->Id();
@@ -1531,7 +1527,6 @@ bool Monitor::Analyse() {
               if ( state == IDLE ) {
                 shared_data->state = state = TAPE;
               }
-
             } // end if ! event
           } // end if function == RECORD || function == MOCORD)
         } // end if !signal_change && signal
@@ -1555,7 +1550,6 @@ bool Monitor::Analyse() {
                 );
             }
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) ) {
-              shared_data->state = state = ALARM;
               // lets construct alarm cause. It will contain cause + names of zones alarmed
               std::string alarm_cause = "";
               for ( int i=0; i < n_zones; i++ ) {
@@ -1613,6 +1607,7 @@ bool Monitor::Analyse() {
                   event = new Event(this, *(image_buffer[pre_index].timestamp), cause, noteSetMap);
                 } // end if analysis_fps && pre_event_count
 
+                shared_data->state = state = ALARM;
                 shared_data->last_event = event->Id();
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());

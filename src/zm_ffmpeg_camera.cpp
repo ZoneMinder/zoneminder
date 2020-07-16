@@ -208,12 +208,12 @@ void FfmpegCamera::Terminate() {
 
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
-    Info("Priming capture from %s, Closing", mPath.c_str());
+    Debug(1, "Priming capture from %s, Closing", mPath.c_str());
     Close();
   }
   mVideoStreamId = -1;
   mAudioStreamId = -1;
-  Info("Priming capture from %s", mPath.c_str());
+  Debug(1, "Priming capture from %s", mPath.c_str());
 
   return OpenFfmpeg();
 }

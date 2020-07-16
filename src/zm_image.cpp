@@ -572,8 +572,18 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
   return buffer;
 }
 
-/* Assign an existing buffer to the image instead of copying from a source buffer. The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing. */
-void Image::AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype) {
+/* Assign an existing buffer to the image instead of copying from a source buffer.
+   The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing.
+*/
+void Image::AssignDirect(
+    const unsigned int p_width,
+    const unsigned int p_height,
+    const unsigned int p_colours,
+    const unsigned int p_subpixelorder,
+    uint8_t *new_buffer,
+    const size_t buffer_size,
+    const int p_buffertype) {
+
   if ( new_buffer == NULL ) {
     Error("Attempt to directly assign buffer from a NULL pointer");
     return;
@@ -605,6 +615,7 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
       width = p_width;
       height = p_height;
       colours = p_colours;
+      linesize = width*colours;
       subpixelorder = p_subpixelorder;
       pixels = height*width;
       size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
@@ -623,6 +634,7 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
     width = p_width;
     height = p_height;
     colours = p_colours;
+    linesize = width*colours;
     subpixelorder = p_subpixelorder;
     pixels = height*width;
     size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
@@ -631,7 +643,6 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
     buffertype = p_buffertype;
     buffer = new_buffer;
   }
-Debug(1, "In assign direct");
 }
 
 void Image::Assign(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size) {
@@ -2735,7 +2746,7 @@ void Image::Flip( bool leftright ) {
 
 void Image::Scale( unsigned int factor ) {
   if ( !factor ) {
-    Error( "Bogus scale factor %d found", factor );
+    Error("Bogus scale factor %d found", factor);
     return;
   }
   if ( factor == ZM_SCALE_BASE ) {
@@ -2745,6 +2756,7 @@ void Image::Scale( unsigned int factor ) {
   unsigned int new_width = (width*factor)/ZM_SCALE_BASE;
   unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
 
+  // Why larger than we need?
   size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
 
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
@@ -2819,10 +2831,8 @@ void Image::Scale( unsigned int factor ) {
     }
     new_width = last_w_index;
     new_height = last_h_index;
-  }
-
+  }  // end foreach line
   AssignDirect( new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
-
 }
 
 void Image::Deinterlace_Discard() {

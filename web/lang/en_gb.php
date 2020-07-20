@@ -87,6 +87,7 @@ $SLANG = array(
     'Actual'                => 'Actual',
     'AddNewControl'         => 'Add New Control',
     'AddNewMonitor'         => 'Add',
+    'AddMonitorDisabled'    => 'Your user is not allowed to add a new monitor',
     'AddNewServer'          => 'Add New Server',
     'AddNewStorage'         => 'Add New Storage',
     'AddNewUser'            => 'Add New User',

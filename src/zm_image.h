@@ -152,9 +152,11 @@ protected:
 	static struct zm_error_mgr jpg_err;
 
 	unsigned int width;
+	unsigned int linesize;
 	unsigned int height;
 	unsigned int pixels;
 	unsigned int colours;
+  unsigned int padding;
 	unsigned int size;
 	unsigned int subpixelorder;
 	unsigned long allocation;
@@ -166,14 +168,17 @@ protected:
 public:
 	Image();
 	explicit Image( const char *filename );
-	Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0);
+	Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
+	Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
 	explicit Image( const Image &p_image );
   explicit Image( const AVFrame *frame );
+
 	~Image();
 	static void Initialise();
 	static void Deinitialise();
 
 	inline unsigned int Width() const { return width; }
+	inline unsigned int LineSize() const { return linesize; }
 	inline unsigned int Height() const { return height; }
 	inline unsigned int Pixels() const { return pixels; }
 	inline unsigned int Colours() const { return colours; }
@@ -182,7 +187,7 @@ public:
 	
 	/* Internal buffer should not be modified from functions outside of this class */
 	inline const uint8_t* Buffer() const { return buffer; }
-	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return &buffer[colours*((y*width)+x)]; }
+	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return &buffer[(y*linesize)+x]; }
 	/* Request writeable buffer */
 	uint8_t* WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder);
 	
@@ -193,7 +198,7 @@ public:
     if ( !holdbuffer )
       DumpImgBuffer();
 
-    width = height = colours = size = pixels = subpixelorder = 0;
+    width = linesize = height = colours = size = pixels = subpixelorder = 0;
 	}
 	
 	void Assign( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size);

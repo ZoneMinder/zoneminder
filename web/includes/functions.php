@@ -2,21 +2,21 @@
 //
 // ZoneMinder web function library, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 // Compatibility functions
 if ( version_compare(phpversion(), '4.3.0', '<') ) {
@@ -299,7 +299,7 @@ function outputHelperStream($id, $src, $width, $height, $title='') {
 }
 function getHelperStream($id, $src, $width, $height, $title='') {
     return '<object type="application/x-java-applet" id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
-    archive="'. ZM_PATH_CAMBOZOLA .'" 
+    archive="'. ZM_PATH_CAMBOZOLA .'"
     align="middle"
     width="'. $width .'"
     height="'. $height .'"
@@ -1244,7 +1244,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         if ( !isset($term['val']) ) $term['val'] = '';
         foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
           switch ( $term['attr'] ) {
-				
+
 						case 'AlarmedZoneId':
 							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
 							break;
@@ -1386,7 +1386,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 function addFilterTerm($filter, $position, $term=false) {
   if ( $position < 0 )
     $position = 0;
-  
+
   if ( !isset($filter['Query']['terms']) )
     $filter['Query']['terms'] = array();
   else if ( $position > count($filter['Query']['terms']) )
@@ -1578,7 +1578,7 @@ function systemStats() {
 function getcpus() {
 
   if ( is_readable('/proc/cpuinfo') ) { # Works on Linux
-    preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches); 
+    preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches);
     $num_cpus = count($matches[0]);
   } else { # Works on BSD
     $matches = explode(':', shell_exec('sysctl hw.ncpu'));
@@ -1588,8 +1588,8 @@ function getcpus() {
   return $num_cpus;
 }
 
-// Function to fix a problem whereby the built in PHP session handling 
-// features want to put the sid as a hidden field after the form or 
+// Function to fix a problem whereby the built in PHP session handling
+// features want to put the sid as a hidden field after the form or
 // fieldset tag, neither of which will work with strict XHTML Basic.
 function sidField() {
   if ( SID ) {
@@ -1684,7 +1684,7 @@ function linesIntersect($line1, $line2) {
         return false;
       }
     } elseif ( $b1 == $b2 ) {
-      // Colinear, must overlap due to box check, intersect? 
+      // Colinear, must overlap due to box check, intersect?
       if ( $debug ) echo 'Intersecting, colinear<br>';
       return true;
     } else {
@@ -1692,7 +1692,7 @@ function linesIntersect($line1, $line2) {
       if ( $debug ) echo 'Not intersecting, parallel<br>';
       return false;
     }
-  } elseif ( !$dx1 ) { // Line 1 is vertical 
+  } elseif ( !$dx1 ) { // Line 1 is vertical
     $y = ( $m2 * $line1[0]['x'] ) * $b2;
     if ( $y >= $min_y1 && $y <= $max_y1 ) {
       if ( $debug ) echo "Intersecting, at y $y<br>";
@@ -1701,7 +1701,7 @@ function linesIntersect($line1, $line2) {
       if ( $debug ) echo "Not intersecting, out of range at y $y<br>";
       return false;
     }
-  } elseif ( !$dx2 ) { // Line 2 is vertical 
+  } elseif ( !$dx2 ) { // Line 2 is vertical
     $y = ( $m1 * $line2[0]['x'] ) * $b1;
     if ( $y >= $min_y2 && $y <= $max_y2 ) {
       if ( $debug ) echo "Intersecting, at y $y<br>";
@@ -1712,7 +1712,7 @@ function linesIntersect($line1, $line2) {
     }
   } else { // Both lines are vertical
     if ( $line1[0]['x'] == $line2[0]['x'] ) {
-      // Colinear, must overlap due to box check, intersect? 
+      // Colinear, must overlap due to box check, intersect?
       if ( $debug ) echo 'Intersecting, vertical, colinear<br>';
       return true;
     } else {
@@ -2169,7 +2169,7 @@ function jsonDecode($value) {
       } else if ( $value[$i] == ':' ) {
         $out .= '=>';
       } else {
-        $out .= $value[$i];         
+        $out .= $value[$i];
       }
     } else if ( !$unescape ) {
       if ( $value[$i] == '\\' )
@@ -2311,7 +2311,8 @@ function validHtmlStr($input) {
 function getStreamHTML($monitor, $options = array()) {
 
   if ( isset($options['scale']) ) {
-    if ( $options['scale'] and ( $options['scale'] != 'auto' ) ) {
+    if ( $options['scale'] != 'auto' && $options['scale'] != '0' and $options['scale'] != '' ) {
+      ZM\Logger::Debug("Setting dimensions from scale:".$options['scale']);
       $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
       $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
     } else {
@@ -2363,8 +2364,8 @@ function getStreamHTML($monitor, $options = array()) {
       return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
     elseif ( canStreamApplet() )
       // Helper, empty widths and heights really don't work.
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, 
-          $options['width'] ? $options['width'] : $monitor->ViewWidth(), 
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
+          $options['width'] ? $options['width'] : $monitor->ViewWidth(),
           $options['height'] ? $options['height'] : $monitor->ViewHeight(),
           $monitor->Name());
   } else {
@@ -2423,8 +2424,8 @@ function check_timezone() {
     'TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),\'%H%i\')'
   ));
 
-  #Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20 
-                 #PHP timezone offset determine to be: $php_tzoffset,\x20 
+  #Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20
+                 #PHP timezone offset determine to be: $php_tzoffset,\x20
                  #Mysql timezone offset determine to be: $mysql_tzoffset
                #");
 
@@ -2439,7 +2440,7 @@ function check_timezone() {
 
 }
 
-function unparse_url($parsed_url, $substitutions = array() ) { 
+function unparse_url($parsed_url, $substitutions = array() ) {
   $fields = array('scheme','host','port','user','pass','path','query','fragment');
 
   foreach ( $fields as $field ) {
@@ -2447,16 +2448,16 @@ function unparse_url($parsed_url, $substitutions = array() ) {
       $parsed_url[$field] = $substitutions[$field];
     }
   }
-  $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : ''; 
-  $host     = isset($parsed_url['host']) ? $parsed_url['host'] : ''; 
-  $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : ''; 
-  $user     = isset($parsed_url['user']) ? $parsed_url['user'] : ''; 
-  $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : ''; 
-  $pass     = ($user || $pass) ? "$pass@" : ''; 
-  $path     = isset($parsed_url['path']) ? $parsed_url['path'] : ''; 
-  $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : ''; 
-  $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : ''; 
-  return "$scheme$user$pass$host$port$path$query$fragment"; 
+  $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : '';
+  $host     = isset($parsed_url['host']) ? $parsed_url['host'] : '';
+  $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
+  $user     = isset($parsed_url['user']) ? $parsed_url['user'] : '';
+  $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : '';
+  $pass     = ($user || $pass) ? $pass.'@' : '';
+  $path     = isset($parsed_url['path']) ? $parsed_url['path'] : '';
+  $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
+  $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : '';
+  return $scheme.$user.$pass.$host.$port.$path.$query.$fragment;
 }
 
 // PP - POST request handler for PHP which does not need extensions

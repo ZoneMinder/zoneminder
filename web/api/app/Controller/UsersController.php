@@ -36,12 +36,6 @@ class UsersController extends AppController {
  * @return void
  */
 	public function view($id = null) {
-		$this->loadModel('Config');
-		$configs = $this->Config->find('list', array(
-			'fields' => array('Name', 'Value'),
-			'conditions' => array('Name' => array('ZM_DIR_EVENTS'))
-		));
-
 		$this->User->recursive = 1;
 		if (!$this->User->exists($id)) {
 			throw new NotFoundException(__('Invalid user'));
@@ -86,16 +80,16 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 
-		if ($this->request->is('post') || $this->request->is('put')) {
-			if ($this->User->save($this->request->data)) {
+		if ( $this->request->is('post') || $this->request->is('put') ) {
+			if ( $this->User->save($this->request->data) ) {
 				$message = 'Saved';
 			} else {
 				$message = 'Error';
 			}
 		} else {
-            $this->request->data = $this->User->read(null, $id);
-            unset($this->request->data['User']['password']);
-        }
+      $this->request->data = $this->User->read(null, $id);
+      unset($this->request->data['User']['password']);
+    }
 
 		$this->set(array(
 			'message' => $message,
@@ -112,11 +106,11 @@ class UsersController extends AppController {
  */
 	public function delete($id = null) {
 		$this->User->id = $id;
-		if (!$this->User->exists()) {
+		if ( !$this->User->exists() ) {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$this->request->allowMethod('post', 'delete');
-		if ($this->User->delete()) {
+		if ( $this->User->delete() ) {
 			$message = 'The user has been deleted.';
 		} else {
 			$message = 'The user could not be deleted. Please, try again.';
@@ -127,29 +121,18 @@ class UsersController extends AppController {
 		));
 	}
 
-    public function beforeFilter() {
-        parent::beforeFilter();
+  public function beforeFilter() {
+    parent::beforeFilter();
 
-		$this->loadModel('Config');
-		$configs = $this->Config->find('list', array(
-			'fields' => array('Name', 'Value'),
-			'conditions' => array('Name' => array('ZM_OPT_USE_AUTH'))
-		));
-		if ( $configs['ZM_OPT_USE_AUTH'] ) {
-        $this->Auth->allow('add','logout');
-		} else {
-		$this->Auth->allow();
-		}
+    if ( ZM_OPT_USE_AUTH ) {
+      $this->Auth->allow('add', 'logout');
+    } else {
+      $this->Auth->allow();
     }
+  }
 
 	public function login() {
-		$this->loadModel('Config');
-		$configs = $this->Config->find('list', array(
-			'fields' => array('Name', 'Value'),
-			'conditions' => array('Name' => array('ZM_OPT_USE_AUTH'))
-		));
-
-		if ( ! $configs['ZM_OPT_USE_AUTH'] ) {
+		if ( !ZM_OPT_USE_AUTH ) {
 			$this->set(array(
 						'message' => 'Login is not required.',
 						'_serialize' => array('message')
@@ -157,8 +140,8 @@ class UsersController extends AppController {
 			return;
 		}
 
-		if ($this->request->is('post')) {
-			if ($this->Auth->login()) {
+		if ( $this->request->is('post') ) {
+			if ( $this->Auth->login() ) {
 				return $this->redirect($this->Auth->redirectUrl());
 			}
 			$this->Session->setFlash(__('Invalid username or password, try again'));
@@ -168,5 +151,4 @@ class UsersController extends AppController {
 	public function logout() {
 		return $this->redirect($this->Auth->logout());
 	}
-
 }

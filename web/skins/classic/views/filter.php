@@ -145,7 +145,7 @@ foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Servers` ORDER BY lower(`Name`) 
 $monitors = array();
 foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` ORDER BY lower(`Name`) ASC') as $monitor ) {
   if ( visibleMonitor($monitor['Id']) ) {
-    $monitors[$monitor['Name']] = validHtmlStr($monitor['Name']);
+    $monitors[$monitor['Name']] = $monitor;
   }
 }
 

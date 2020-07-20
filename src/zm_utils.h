@@ -59,7 +59,7 @@ void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes);
 void timespec_diff(struct timespec *start, struct timespec *end, struct timespec *diff);
 
 void hwcaps_detect();
-extern unsigned int sseversion;
+extern unsigned int sse_version;
 extern unsigned int neonversion;
 
 char *timeval_to_string( struct timeval tv );

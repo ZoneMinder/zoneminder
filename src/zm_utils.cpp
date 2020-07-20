@@ -35,7 +35,7 @@
 #include <curl/curl.h>
 #endif
 
-unsigned int sseversion = 0;
+unsigned int sse_version = 0;
 unsigned int neonversion = 0;
 
 std::string trimSet(std::string str, std::string trimset) {
@@ -227,7 +227,7 @@ int pairsplit(const char* string, const char delim, std::string& name, std::stri
 /* Detect special hardware features, such as SIMD instruction sets */
 void hwcaps_detect() {
   neonversion = 0;
-  sseversion = 0;
+  sse_version = 0;
 #if (defined(__i386__) || defined(__x86_64__))
   /* x86 or x86-64 processor */
   uint32_t r_edx, r_ecx, r_ebx;
@@ -265,31 +265,31 @@ void hwcaps_detect() {
 #endif
 
   if ( r_ebx & 0x00000020 ) {
-    sseversion = 52; /* AVX2 */
+    sse_version = 52; /* AVX2 */
     Debug(1, "Detected a x86\\x86-64 processor with AVX2");
   } else if ( r_ecx & 0x10000000 ) {
-    sseversion = 51; /* AVX */
+    sse_version = 51; /* AVX */
     Debug(1, "Detected a x86\\x86-64 processor with AVX");
   } else if ( r_ecx & 0x00100000 ) {
-    sseversion = 42; /* SSE4.2 */
+    sse_version = 42; /* SSE4.2 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE4.2");
   } else if ( r_ecx & 0x00080000 ) {
-    sseversion = 41; /* SSE4.1 */
+    sse_version = 41; /* SSE4.1 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE4.1");
   } else if ( r_ecx & 0x00000200 ) {
-    sseversion = 35; /* SSSE3 */
+    sse_version = 35; /* SSSE3 */
     Debug(1,"Detected a x86\\x86-64 processor with SSSE3");
   } else if ( r_ecx & 0x00000001 ) {
-    sseversion = 30; /* SSE3 */
+    sse_version = 30; /* SSE3 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE3");
   } else if ( r_edx & 0x04000000 ) {
-    sseversion = 20; /* SSE2 */
+    sse_version = 20; /* SSE2 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE2");
   } else if ( r_edx & 0x02000000 ) {
-    sseversion = 10; /* SSE */
+    sse_version = 10; /* SSE */
     Debug(1, "Detected a x86\\x86-64 processor with SSE");
   } else {
-    sseversion = 0;
+    sse_version = 0;
     Debug(1, "Detected a x86\\x86-64 processor");
   } 
 #elif defined(__arm__)

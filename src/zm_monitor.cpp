@@ -1539,7 +1539,7 @@ bool Monitor::Analyse() {
                 && (event_close_mode == CLOSE_ALARM)
                 && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
                ) {
-              Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
+              Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
                   name, image_count, event->Id());
               closeEvent();
             } else if ( event ) {

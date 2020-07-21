@@ -110,20 +110,6 @@ Event::Event(
   }
   id = mysql_insert_id(&dbconn);
 
-  /* Update event record with DefaultVideo name if possible so image.php can extract frames 
-     if needed, while recording is in progress */
-  if ( monitor->GetOptVideoWriter() != 0 ) {
-    video_name = stringtf("%" PRIu64 "-%s", id, "video.mp4");
-    Debug(1, "Updating inserted event with DefaultVideo=%s", video_name.c_str());
-    snprintf(sql, sizeof(sql), "UPDATE Events SET DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
-      db_mutex.unlock();
-      return;
-    }
-  } else {
-    Debug (1, "GetOptVideoWriter() returned 0, not updating DefaultVideo");
-  }
   db_mutex.unlock();
   if ( untimedEvent ) {
     Warning("Event %d has zero time, setting to current", id);
@@ -196,10 +182,11 @@ Event::Event(
 
     // Create empty id tag file
     id_file = stringtf("%s/.%" PRIu64, path.c_str(), id);
-    if ( FILE *id_fp = fopen(id_file.c_str(), "w") )
+    if ( FILE *id_fp = fopen(id_file.c_str(), "w") ) {
       fclose(id_fp);
-    else
+    } else {
       Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
+		}
   } // deep storage or not
 
   last_db_frame = 0;
@@ -212,8 +199,15 @@ Event::Event(
   /* Save as video */
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
-    video_file = path + video_name;
-    Debug(1, "Writing video file to %s", video_file.c_str());
+    video_name = stringtf("%" PRIu64 "-%s", id, "video.mp4");
+    snprintf(sql, sizeof(sql), "UPDATE Events SET DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
+      db_mutex.unlock();
+      return;
+    }
+    video_file = path + "/" + video_name;
+			Debug(1, "Writing video file to %s", video_file.c_str());
 
     /* X264 MP4 video writer */
     if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
@@ -225,17 +219,17 @@ Event::Event(
 #else
       Error("ZoneMinder was not compiled with the X264 MP4 video writer, check dependencies (x264 and mp4v2)");
 #endif
-    }
 
-    if ( videowriter != NULL ) {
-      /* Open the video stream */
-      int nRet = videowriter->Open();
-      if ( nRet != 0 ) {
-        Error("Failed opening video stream");
-        delete videowriter;
-        videowriter = NULL;
-      }
-    }
+			if ( videowriter != NULL ) {
+				/* Open the video stream */
+				int nRet = videowriter->Open();
+				if ( nRet != 0 ) {
+					Error("Failed opening video stream");
+					delete videowriter;
+					videowriter = NULL;
+				}
+			}
+		}
   } else {
     /* No video object */
     videowriter = NULL;

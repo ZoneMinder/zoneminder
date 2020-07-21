@@ -53,11 +53,12 @@ Camera::Camera(
     video_stream(NULL),
     bytes(0)
 {
+  linesize = width * colours;
   pixels = width * height;
-  imagesize = pixels * colours;
+  imagesize = height * linesize;
 
-  Debug(2,"New camera id: %d width: %d height: %d colours: %d subpixelorder: %d capture: %d",
-      monitor_id, width, height, colours, subpixelorder, capture);
+  Debug(2, "New camera id: %d width: %d line size: %d height: %d colours: %d subpixelorder: %d capture: %d",
+      monitor_id, width, linesize, height, colours, subpixelorder, capture);
 
   monitor = NULL;
 }

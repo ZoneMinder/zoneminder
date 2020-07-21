@@ -282,6 +282,7 @@ DROP TABLE IF EXISTS `Filters`;
 CREATE TABLE `Filters` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
+  `UserId`  int(10) unsigned,
   `Query_json` text NOT NULL,
   `AutoArchive` tinyint(3) unsigned NOT NULL default '0',
   `AutoVideo` tinyint(3) unsigned NOT NULL default '0',
@@ -445,6 +446,10 @@ CREATE TABLE `Monitors` (
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `LinkedMonitors` varchar(255),
   `Triggers` set('X10') NOT NULL default '',
+  `ONVIF_URL` VARCHAR(255) NOT NULL DEFAULT '',
+  `ONVIF_Username` VARCHAR(64) NOT NULL DEFAULT '',
+  `ONVIF_Password` VARCHAR(64) NOT NULL DEFAULT '',
+  `ONVIF_Options` VARCHAR(64) NOT NULL DEFAULT '',
   `Device` tinytext NOT NULL default '',
   `Channel` tinyint(3) unsigned NOT NULL default '0',
   `Format` int(10) unsigned NOT NULL default '0',
@@ -784,6 +789,7 @@ INSERT INTO `Filters`
     `AutoCopy`,
     `AutoCopyTo`,
     `UpdateDiskSpace`,
+    `UserId`,
     `Background`,
     `Concurrent`
   )
@@ -804,6 +810,7 @@ INSERT INTO `Filters`
     0/*AutoMove*/,0/*MoveTo*/,
     0/*AutoCopy*/,0/*CopyTo*/,
     0/*UpdateDiskSpace*/,
+    1/*UserId = admin*/,
     1/*Background*/,
     0/*Concurrent*/
   );
@@ -827,6 +834,7 @@ INSERT INTO `Filters`
     `AutoCopy`,
     `AutoCopyTo`,
     `UpdateDiskSpace`,
+    `UserId`,
     `Background`,
     `Concurrent`
   )
@@ -846,6 +854,7 @@ VALUES (
   0/*AutoMove*/,0/*MoveTo*/,
   0/*AutoCopy*/,0/*CopyTo*/,
   1/*UpdateDiskSpace*/,
+  1/*UserId=admin*/,
   1/*Background*/,
   0/*Concurrent*/
 );

@@ -176,7 +176,7 @@ getBodyTopHTML();
 
     <div class="container-fluid">
       <button type="button" name="addBtn" data-on-click-this="addMonitor"
-      <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+      <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
       >
         <i class="material-icons md-18">add_circle</i>
         &nbsp;<?php echo translate('AddNewMonitor') ?>
@@ -203,6 +203,7 @@ getBodyTopHTML();
 <?php
 ob_start();
 ?>
+	<div class="table-responsive">
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>
@@ -388,9 +389,10 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php if ( canEdit('Monitors') ) { ?>
             <td class="colMark"></td>
 <?php } ?>
-          </tr>
+         </tr>
         </tfoot>
-      </table>
+        </table>
+	  </div>
     </div>
   </form>
 <?php xhtmlFooter() ?>

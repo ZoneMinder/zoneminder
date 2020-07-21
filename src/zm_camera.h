@@ -42,6 +42,7 @@ protected:
   Monitor *     monitor; // Null on instantiation, set as soon as possible.
   SourceType    type;
   unsigned int  width;
+  unsigned int  linesize;
   unsigned int  height;
   unsigned int  colours;
   unsigned int  subpixelorder;
@@ -89,6 +90,7 @@ public:
   bool IscURL() const { return type == CURL_SRC; }
   bool IsVNC() const { return type == VNC_SRC; }
   unsigned int Width() const { return width; }
+  unsigned int LineSize() const { return linesize; }
   unsigned int Height() const { return height; }
   unsigned int Colours() const { return colours; }
   unsigned int SubpixelOrder() const { return subpixelorder; }

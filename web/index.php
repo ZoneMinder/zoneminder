@@ -52,6 +52,14 @@ require_once('includes/Event.php');
 require_once('includes/Group.php');
 require_once('includes/Monitor.php');
 
+// Useful debugging lines for mobile devices
+if ( ZM\Logger::fetch()->debugOn() ) {
+  ob_start();
+  phpinfo(INFO_VARIABLES);
+  ZM\Logger::Debug(ob_get_contents());
+  ob_end_clean();
+}
+
 global $Servers;
 $Servers = ZM\Server::find();
 

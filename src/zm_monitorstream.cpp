@@ -389,6 +389,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
     struct timeval frameStartTime;
     gettimeofday(&frameStartTime, NULL);
 
+    fputs("--ZoneMinderFrame\r\n", stdout);
     switch( type ) {
       case STREAM_JPEG :
         send_image->EncodeJpeg(img_buffer, &img_buffer_size);

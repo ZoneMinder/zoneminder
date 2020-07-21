@@ -916,11 +916,7 @@ add_subdirectory(scripts)
 add_subdirectory(db)
 add_subdirectory(web)
 add_subdirectory(misc)
-
-# Enable ONVIF support
-if(ZM_ONVIF)
-	add_subdirectory(onvif)
-endif(ZM_ONVIF)
+add_subdirectory(onvif)
 
 # Process distro subdirectories
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))

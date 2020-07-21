@@ -160,7 +160,7 @@ if ( !$server_up ) {
     use ZoneMinder::Server qw(CpuLoad);
     if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
           'NotRunning', &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
-      Error("Failed Updating status of Server record to Not RUnning for Id=$Config{ZM_SERVER_ID}" . $dbh->errstr());
+      Error('Failed Updating status of Server record to Not Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
     }
   }
 # Server is not up.  Some commands can still be handled
@@ -173,7 +173,7 @@ if ( !$server_up ) {
     print("stopped\n");
     exit();
   } elsif ( $command ne 'startup' ) {
-    print('Unable to connect to server using socket at ' . SOCK_FILE . "\n");
+    print('Unable to connect to server using socket at '.SOCK_FILE."\n");
     exit(-1);
   }
 
@@ -189,10 +189,10 @@ if ( !$server_up ) {
 
     socket(CLIENT, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
     my $attempts = 0;
-    while( !connect(CLIENT, $saddr) ) {
+    while ( !connect(CLIENT, $saddr) ) {
       $attempts++;
-      Debug('Waiting for zmdc.pl server process at '.SOCK_FILE.", attempt $attempts");
-      Fatal("Can't connect: $!") if $attempts > MAX_CONNECT_DELAY;
+      Debug('Waiting for zmdc.pl server process at '.SOCK_FILE.', attempt '.$attempts);
+      Fatal('Can\'t connect to zmdc.pl server process at '.SOCK_FILE.': '.$!) if $attempts > MAX_CONNECT_DELAY;
       usleep(200000);
     } # end while
   } elsif ( defined($cpid) ) {
@@ -255,13 +255,13 @@ sub run {
     close($PID);
   } else {
     # Log not initialized at this point so use die instead
-    die "Can't open pid file at ".ZM_PID."\n";
+    die 'Can\'t open pid file at '.ZM_PID."\n";
   }
 
   my $fd = 0;
 
   # This also closes dbh and CLIENT and SERVER
-  while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
+  while ( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
     POSIX::close($fd++);
   }
 
@@ -301,13 +301,14 @@ sub run {
   my $timeout = 1;
   my $secs_count = 0;
 
-  while( !$zm_terminate ) {
+  while ( !$zm_terminate ) {
     
     if ( $Config{ZM_SERVER_ID} ) {
       if ( ! ( $secs_count % 60 ) ) {
         while ( (!$zm_terminate) and !($dbh and $dbh->ping()) ) {
           Warning("Not connected to db ($dbh)".($dbh?' ping('.$dbh->ping().')':''). ($DBI::errstr?" errstr($DBI::errstr)":'').' Reconnecting');
           $dbh = zmDbConnect();
+          sleep 10 if !$dbh;
         }
         last if $zm_terminate;
 

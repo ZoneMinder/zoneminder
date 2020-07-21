@@ -94,7 +94,7 @@ private:
   ThreadData<bool> mFrameProcessed;
 
 private:
-  void init( uint16_t seq );
+  void init(uint16_t seq);
 
 public:
   RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime, _AVCODECID codecId );

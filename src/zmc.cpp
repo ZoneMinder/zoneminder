@@ -256,8 +256,14 @@ int main(int argc, char *argv[]) {
 
     // Outer primary loop, handles connection to camera
     if ( monitors[0]->PrimeCapture() < 0 ) {
-      Error("Failed to prime capture of initial monitor");
-      sleep(10);
+      if ( prime_capture_log_count % 60 ) {
+        Error("Failed to prime capture of initial monitor");
+      } else {
+        Debug(1, "Failed to prime capture of initial monitor");
+      }
+      prime_capture_log_count ++;
+      if ( !zm_terminate )
+        sleep(10);
       continue;
     }
     for ( int i = 0; i < n_monitors; i++ ) {

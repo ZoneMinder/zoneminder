@@ -198,8 +198,7 @@ void LibvlcCamera::Terminate() {
 }
 
 int LibvlcCamera::PrimeCapture() {
-  Info("Priming capture from %s", mPath.c_str());
-  Info("Libvlc Version %s", (*libvlc_get_version_f)());
+  Debug(1, "Priming capture from %s, libvlc version %s", mPath.c_str(), (*libvlc_get_version_f)());
 
   StringVector opVect = split(Options(), ",");
 

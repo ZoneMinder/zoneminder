@@ -46,6 +46,8 @@ class FfmpegCamera : public Camera {
     std::string         hwaccel_device;
 
     int frameCount;    
+  
+    int alignment;      /* ffmpeg wants line sizes to be 32bit aligned.  Especially 4.3+ */
 
 #if HAVE_LIBAVFORMAT
     AVFormatContext     *mFormatContext;
@@ -58,6 +60,7 @@ class FfmpegCamera : public Camera {
     AVFrame             *input_frame;         // Use to point to mRawFrame or hwFrame;
 
     AVFrame             *hwFrame; // Will also be used to indicate if hwaccel is in use
+    bool                use_hwaccel; //will default to on if hwaccel specified, will get turned off if there is a failure
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     AVBufferRef *hw_device_ctx = NULL;
 #endif

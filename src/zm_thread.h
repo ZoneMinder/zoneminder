@@ -57,7 +57,9 @@ private:
   pthread_t pid() { return( pthread_self() ); }
 #endif
 public:
-  explicit ThreadException( const std::string &message ) : Exception( stringtf("(%d) ", (long int)pid())+message ) {
+  explicit ThreadException(const std::string &message) :
+    Exception(stringtf("(%d) ", (long int)pid())+message)
+  {
   }
 };
 
@@ -169,38 +171,36 @@ private:
   mutable Condition mCondition;
 
 public:
-  __attribute__((used)) ThreadData() : mValue(0), mCondition( mMutex ) {
+  __attribute__((used)) ThreadData() :
+    mValue(0), mCondition(mMutex)
+  {
     mChanged = false;
   }
-  explicit __attribute__((used)) ThreadData( T value ) : mValue( value ), mCondition( mMutex ) {
+  explicit __attribute__((used)) ThreadData(T value) :
+    mValue(value), mCondition(mMutex) {
     mChanged = false;
   }
-  //~ThreadData() {}
 
-  __attribute__((used)) operator T() const
-  {
-    return( getValue() );
+  __attribute__((used)) operator T() const {
+    return getValue();
   }
-  __attribute__((used)) const T operator=( const T value )
-  {
-    return( setValue( value ) );
+  __attribute__((used)) const T operator=( const T value ) {
+    return setValue(value);
   }
 
-  __attribute__((used)) const T getValueImmediate() const
-  {
-    return( mValue );
+  __attribute__((used)) const T getValueImmediate() const {
+    return mValue;
   }
-  __attribute__((used)) T setValueImmediate( const T value )
-  {
-    return( mValue = value );
+  __attribute__((used)) T setValueImmediate( const T value ) {
+    return mValue = value;
   }
   __attribute__((used)) const T getValue() const;
   __attribute__((used)) T setValue( const T value );
   __attribute__((used)) const T getUpdatedValue() const;
-  __attribute__((used)) const T getUpdatedValue( double secs ) const;
-  __attribute__((used)) const T getUpdatedValue( int secs ) const;
-  __attribute__((used)) void updateValueSignal( const T value );
-  __attribute__((used)) void updateValueBroadcast( const T value );
+  __attribute__((used)) const T getUpdatedValue(double secs) const;
+  __attribute__((used)) const T getUpdatedValue(int secs) const;
+  __attribute__((used)) void updateValueSignal(const T value);
+  __attribute__((used)) void updateValueBroadcast(const T value);
 };
 
 class Thread {

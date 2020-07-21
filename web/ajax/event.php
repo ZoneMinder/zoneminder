@@ -1,5 +1,5 @@
 <?php
-ini_set('display_errors','0');
+ini_set('display_errors', '0');
 
 if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
   ajaxError('No event id(s) supplied');
@@ -28,8 +28,8 @@ if ( canView('Events') ) {
     $ok = true;
     break;
   case 'deleteVideo' :
-    unlink( $videoFiles[$_REQUEST['id']] );
-    unset( $videoFiles[$_REQUEST['id']] );
+    unlink($videoFiles[$_REQUEST['id']]);
+    unset($videoFiles[$_REQUEST['id']]);
     ajaxResponse();
     break;
   case 'export' :
@@ -110,7 +110,11 @@ if ( canView('Events') ) {
       false#,#Compress
       #$exportStructure
     ) ) {
-      ajaxResponse(array('exportFile'=>$exportFile,'exportFormat'=>$exportFormat, 'connkey'=>(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'')));
+    ajaxResponse(array(
+      'exportFile'=>$exportFile,
+      'exportFormat'=>$exportFormat,
+      'connkey'=>(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'')
+    ));
     } else {
       ajaxError('Export Failed');
     }
@@ -145,7 +149,7 @@ if ( canEdit('Events') ) {
     break;
   case 'delete' :
     $Event = new ZM\Event($_REQUEST['id']);
-    if ( ! $Event->Id() ) {
+    if ( !$Event->Id() ) {
       ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
     } else {
       $Event->delete();

@@ -864,10 +864,6 @@ $OLANG = array(
         'Prompt' => "&#206;nregistrare imagini intermediare de diagnosticare, foarte lent",
         'Help' => "Pe l&#226;ng&#259; faptul c&#259; se pot &#238;nregistra statisticile evenimentelor se pot deasemenea &#238;nregistra imagini intermediare de diagnosticare care afi&#351;eaz&#259; rezultatele diferitelor verific&#259;ri care au loc c&#226;nd se &#238;ncearc&#259; determinarea unei posibile alarme. Aceste imagini sunt generate pentru fiecare cadru, zon&#259; &#351;i alarm&#259;, deci impactul asupra performan&#355;ei va fi foarte mare. Activa&#355;i aceast&#259; op&#355;iune doar pentru depanare sau analiz&#259; &#351;i nu uita&#355;i s&#259; o dezactiva&#355;i."
     ),
-    'CREATE_ANALYSIS_IMAGES' => array(
-        'Prompt' => "Creaz&#259; imagini analizate cu marcaje ale mi&#351;c&#259;rii",
-        'Help' => "Implicit, &#238;n cazul unei alarme, ZoneMinder &#238;nregistreaz&#259; at&#226;t imaginile neprelucrate c&#226;t &#351;i cele ce au fost analizate &#351;i au zone marcate unde a fost detectat&#259; mi&#351;care. Acest lucru poate fi foarte folositor la configurarea zonelor sau &#238;n analiza evenimentelor. Acest parametru permite oprirea &#238;nregistr&#259;rii imaginilor cu zone de mi&#351;care marcate."
-    ),
     'OPT_CONTROL' => array(
         'Prompt' => "Suport camere controlabile (rotire/&#238;nclinare/zoom)",
         'Help' => "ZoneMinder include suport limitat pentru camere controlabile. Sunt incluse c&#226;teva protocoale mostr&#259; &#351;i pot fi ad&#259;ugate cu u&#351;urin&#355;&#259; &#351;i altele. Dac&#259; vre&#355;i s&#259; controla&#355;i camerele prin intermediul ZoneMinder selecta&#355;i aceast&#259; op&#355;iune."

@@ -138,15 +138,23 @@ protected:
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +72  */
-      time_t last_write_time;
+    union {                     /* +72   */
+      time_t zmc_heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {            /* +80   */
-      time_t last_read_time;
+    union {                     /* +80   */
+      time_t zma_heartbeat_time;			/* Constantly updated by zma.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad3;
     };
-    uint8_t control_state[256];  /* +88   */
+    union {                     /* +88  */
+      time_t last_write_time;
+      uint64_t extrapad4;
+    };
+    union {                     /* +96  */
+      time_t last_read_time;
+      uint64_t extrapad5;
+    };
+    uint8_t control_state[256];  /* +104   */
 
     char alarm_cause[256];
     
@@ -210,21 +218,21 @@ protected:
     uint64_t   last_event;
 
     public:
-      MonitorLink( int p_id, const char *p_name );
+      MonitorLink(int p_id, const char *p_name);
       ~MonitorLink();
 
       inline int Id() const {
         return id;
       }
       inline const char *Name() const {
-        return( name );
+        return name;
       }
 
       inline bool isConnected() const {   
-        return( connected );
+        return connected && shared_data->valid;
       }
       inline time_t getLastConnectTime() const {
-        return( last_connect_time );
+        return last_connect_time;
       }
 
       bool connect();
@@ -415,8 +423,9 @@ public:
   void AddPrivacyBitmask( Zone *p_zones[] );
 
   bool connect();
+
   inline int ShmValid() const {
-    return( shared_data->valid );
+    return shared_data->valid;
   }
 
   inline int Id() const {
@@ -547,6 +556,9 @@ public:
 #if HAVE_LIBAVCODEC
   //void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC
+  double get_fps( ) const {
+    return fps;
+  }
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

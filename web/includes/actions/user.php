@@ -18,27 +18,36 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( $action == 'user' ) {
+if ( $action == 'Save' ) {
   if ( canEdit('System') ) {
-    if ( !empty($_REQUEST['uid']) )
+    if ( !empty($_REQUEST['uid']) ) {
       $dbUser = dbFetchOne('SELECT * FROM Users WHERE Id=?', NULL, array($_REQUEST['uid']));
-    else
+    } else {
       $dbUser = array();
+    }
 
     $types = array();
+    if ( isset($_REQUEST['newUser']['MonitorIds']) and is_array($_REQUEST['newUser']['MonitorIds']) )
+      $_REQUEST['newUser']['MonitorIds'] = implode(',', $_REQUEST['newUser']['MonitorIds']);
+    if ( !$_REQUEST['newUser']['Password'] )
+      unset($_REQUEST['newUser']['Password']);
+
     $changes = getFormChanges($dbUser, $_REQUEST['newUser'], $types);
 
-    if ( function_exists('password_hash') ) {
-      $pass_hash = '"'.password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT).'"';
-    } else {
-      $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
-      ZM\Info('Cannot use bcrypt as you are using PHP < 5.3');
-    }
-   
-    if ( $_REQUEST['newUser']['Password'] ) {
-      $changes['Password'] = 'Password = '.$pass_hash;
-    } else {
-      unset($changes['Password']);
+    
+    if ( isset($_REQUEST['newUser']['Password']) ) {
+      if ( function_exists('password_hash') ) {
+        $pass_hash = '"'.password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT).'"';
+      } else {
+        $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
+        ZM\Info('Cannot use bcrypt as you are using PHP < 5.3');
+      }
+
+      if ( $_REQUEST['newUser']['Password'] ) {
+        $changes['Password'] = 'Password = '.$pass_hash;
+      } else {
+        unset($changes['Password']);
+      }
     }
 
     if ( count($changes) ) {

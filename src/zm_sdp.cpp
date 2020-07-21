@@ -376,6 +376,9 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 #endif
     else
       Warning("Unknown media_type %s", type.c_str());
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      stream->codecpar->codec_type = codec_context->codec_type;
+#endif
 
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
     std::string codec_name;

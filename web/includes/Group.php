@@ -19,9 +19,9 @@ class Group extends ZM_Object {
 
   public function delete() {
     if ( property_exists($this, 'Id') ) {
-      dbQuery('DELETE FROM Groups_Monitors WHERE GroupId=?', array($this->{'Id'}));
-      dbQuery('UPDATE Groups SET ParentId=NULL WHERE ParentId=?', array($this->{'Id'}));
-      dbQuery('DELETE FROM Groups WHERE Id=?', array($this->{'Id'}));
+      dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($this->{'Id'}));
+      dbQuery('UPDATE `Groups` SET `ParentId`=NULL WHERE `ParentId`=?', array($this->{'Id'}));
+      dbQuery('DELETE FROM `Groups` WHERE Id=?', array($this->{'Id'}));
       if ( isset($_COOKIE['zmGroup']) ) {
         if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
           unset($_COOKIE['zmGroup']);
@@ -47,7 +47,7 @@ class Group extends ZM_Object {
 
   public function MonitorIds( ) {
     if ( ! property_exists($this, 'MonitorIds') ) {
-      $this->{'MonitorIds'} = dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($this->{'Id'}));
+      $this->{'MonitorIds'} = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($this->{'Id'}));
     }
     return $this->{'MonitorIds'};
   }
@@ -65,7 +65,7 @@ class Group extends ZM_Object {
       session_write_close();
     }
 
-    return htmlSelect( 'GroupId[]', Group::get_dropdown_options(), isset($_SESSION['GroupId'])?$_SESSION['GroupId']:null, array(
+    return htmlSelect('GroupId[]', Group::get_dropdown_options(), isset($_SESSION['GroupId'])?$_SESSION['GroupId']:null, array(
           'data-on-change' => 'submitThisForm',
           'class'=>'chosen',
           'multiple'=>'multiple',

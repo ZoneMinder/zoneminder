@@ -3,8 +3,6 @@ App::uses('AppModel', 'Model');
 /**
  * User Model
  *
- * @property Monitor $Monitor
- * @property Frame $Frame
  */
 class User extends AppModel {
 
@@ -53,14 +51,6 @@ class User extends AppModel {
  * @var array
  */
 	public $belongsTo = array(
-		/*'Monitor' => array(
-			'className' => 'Monitor',
-			'foreignKey' => 'MonitorId',
-			'conditions' => '',
-			'fields' => '',
-			'order' => ''
-		)
-*/
 	);
 
 /**
@@ -69,21 +59,6 @@ class User extends AppModel {
  * @var array
  */
 	public $hasMany = array(
-/*
-		'Frame' => array(
-			'className' => 'Frame',
-			'foreignKey' => 'UserId',
-			'dependent' => true,
-			'conditions' => '',
-			'fields' => '',
-			'order' => '',
-			'limit' => '',
-			'offset' => '',
-			'exclusive' => '',
-			'finderQuery' => '',
-			'counterQuery' => ''
-		)
-*/
 	);
 
 }

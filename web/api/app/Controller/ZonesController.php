@@ -40,6 +40,7 @@ class ZonesController extends AppController {
       '_serialize' => array('zones')
     ));
   }
+
   public function index() {
     $this->Zone->recursive = -1;
 
@@ -63,23 +64,43 @@ class ZonesController extends AppController {
    * @return void
    */
   public function add() {
-    if ( $this->request->is('post') ) {
 
-      global $user;
-      $canEdit = (!$user) || $user['Monitors'] == 'Edit';
-      if ( !$canEdit ) {
-        throw new UnauthorizedException(__('Insufficient Privileges'));
-        return;
-      }
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+      return;
+    }
 
-      $this->Zone->create();
-      if ( $this->Zone->save($this->request->data) ) {
-        return $this->flash(__('The zone has been saved.'), array('action' => 'index'));
+    global $user;
+    $canEdit = (!$user) || $user['Monitors'] == 'Edit';
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
+    $zone = null;
+
+    $this->Zone->create();
+    $zone = $this->Zone->save($this->request->data);
+    if ( $zone ) {
+      require_once __DIR__ .'/../../../includes/Monitor.php';
+      $monitor = new ZM\Monitor($zone['Zone']['MonitorId']);
+      $monitor->zmaControl('restart');
+      $message = 'Saved';
+      //$zone = $this->Zone->find('first', array('conditions' => array( array('Zone.' . $this->Zone->primaryKey => $this->Zone),
+    } else {
+      $message = 'Error: ';
+      // if there is a validation message, use it
+      if ( !$this->Zone->validates() ) {
+        $message = $this->Zone->validationErrors;
       }
     }
-    $monitors = $this->Zone->Monitor->find('list');
-    $this->set(compact('monitors'));
-  }
+
+    $this->set(array(
+      'message' => $message,
+      'zone' => $zone,
+      '_serialize' => array('message','zone')
+    ));
+  } // end function add()
 
   /**
    * edit method

@@ -148,7 +148,7 @@ void VncCamera::Terminate() {
 }
 
 int VncCamera::PrimeCapture() {
-  Info("Priming capture from %s", mHost.c_str());
+  Debug(1, "Priming capture from %s", mHost.c_str());
   return 0;
 }
 

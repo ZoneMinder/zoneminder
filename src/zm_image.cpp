@@ -299,7 +299,7 @@ void Image::Deinitialise() {
 void Image::Initialise() {
   /* Assign the blend pointer to function */
   if ( config.fast_image_blends ) {
-    if ( config.cpu_extensions && sseversion >= 20 ) {
+    if ( config.cpu_extensions && sse_version >= 20 ) {
       fptr_blend = &sse2_fastblend; /* SSE2 fast blend */
       Debug(4, "Blend: Using SSE2 fast blend function");
     } else if ( config.cpu_extensions && neonversion >= 1 ) {
@@ -356,22 +356,22 @@ void Image::Initialise() {
 
   /* Assign the delta functions */
   if ( config.cpu_extensions ) {
-    if ( sseversion >= 35 ) {
+    if ( sse_version >= 35 ) {
       /* SSSE3 available */
       fptr_delta8_rgba = &ssse3_delta8_rgba;
       fptr_delta8_bgra = &ssse3_delta8_bgra;
       fptr_delta8_argb = &ssse3_delta8_argb;
       fptr_delta8_abgr = &ssse3_delta8_abgr;
       fptr_delta8_gray8 = &sse2_delta8_gray8;
-      Debug(4,"Delta: Using SSSE3 delta functions");
-    } else if ( sseversion >= 20 ) {
+      Debug(4, "Delta: Using SSSE3 delta functions");
+    } else if ( sse_version >= 20 ) {
       /* SSE2 available */
       fptr_delta8_rgba = &sse2_delta8_rgba;
       fptr_delta8_bgra = &sse2_delta8_bgra;
       fptr_delta8_argb = &sse2_delta8_argb;
       fptr_delta8_abgr = &sse2_delta8_abgr;
       fptr_delta8_gray8 = &sse2_delta8_gray8;
-      Debug(4,"Delta: Using SSE2 delta functions");
+      Debug(4, "Delta: Using SSE2 delta functions");
     } else if ( neonversion >= 1 ) {
       /* ARM Neon available */
 #if defined(__aarch64__)
@@ -380,14 +380,14 @@ void Image::Initialise() {
       fptr_delta8_argb = &neon64_armv8_delta8_argb;
       fptr_delta8_abgr = &neon64_armv8_delta8_abgr;
       fptr_delta8_gray8 = &neon64_armv8_delta8_gray8;
-      Debug(4,"Delta: Using ARM Neon (AArch64) delta functions");
+      Debug(4, "Delta: Using ARM Neon (AArch64) delta functions");
 #elif defined(__arm__)
       fptr_delta8_rgba = &neon32_armv7_delta8_rgba;
       fptr_delta8_bgra = &neon32_armv7_delta8_bgra;
       fptr_delta8_argb = &neon32_armv7_delta8_argb;
       fptr_delta8_abgr = &neon32_armv7_delta8_abgr;
       fptr_delta8_gray8 = &neon32_armv7_delta8_gray8;
-      Debug(4,"Delta: Using ARM Neon (AArch32) delta functions");
+      Debug(4, "Delta: Using ARM Neon (AArch32) delta functions");
 #else
       Panic("Bug: Non ARM platform but neon present");
 #endif
@@ -464,11 +464,11 @@ void Image::Initialise() {
   fptr_deinterlace_4field_argb = &std_deinterlace_4field_argb;
   fptr_deinterlace_4field_abgr = &std_deinterlace_4field_abgr;
   fptr_deinterlace_4field_gray8 = &std_deinterlace_4field_gray8;
-  Debug(4,"Deinterlace: Using standard functions");
+  Debug(4, "Deinterlace: Using standard functions");
 
 #if defined(__i386__) && !defined(__x86_64__)
   /* Use SSE2 aligned memory copy? */
-  if ( config.cpu_extensions && sseversion >= 20 ) {
+  if ( config.cpu_extensions && sse_version >= 20 ) {
     fptr_imgbufcpy = &sse2_aligned_memcpy;
     Debug(4, "Image buffer copy: Using SSE2 aligned memcpy");
   } else {
@@ -480,52 +480,12 @@ void Image::Initialise() {
   Debug(4, "Image buffer copy: Using standard memcpy");
 #endif
 
-  /* Code below relocated from zm_local_camera */
-  Debug(3, "Setting up static colour tables");
-
   y_table = y_table_global;
   uv_table = uv_table_global;
   r_v_table = r_v_table_global;
   g_v_table = g_v_table_global;
   g_u_table = g_u_table_global;
   b_u_table = b_u_table_global;
-  /*
-     y_table = new unsigned char[256];
-     for ( int i = 0; i <= 255; i++ )
-     {
-     unsigned char c = i;
-     if ( c <= 16 )
-     y_table[c] = 0;
-     else if ( c >= 235 )
-     y_table[c] = 255;
-     else
-     y_table[c] = (255*(c-16))/219;
-     }
-
-     uv_table = new signed char[256];
-     for ( int i = 0; i <= 255; i++ )
-     {
-     unsigned char c = i;
-     if ( c <= 16 )
-     uv_table[c] = -127;
-     else if ( c >= 240 )
-     uv_table[c] = 127;
-     else
-     uv_table[c] = (127*(c-128))/112;
-     }
-
-     r_v_table = new short[255];
-     g_v_table = new short[255];
-     g_u_table = new short[255];
-     b_u_table = new short[255];
-     for ( int i = 0; i < 255; i++ )
-     {
-     r_v_table[i] = (1402*(i-128))/1000;
-     g_u_table[i] = (344*(i-128))/1000;
-     g_v_table[i] = (714*(i-128))/1000;
-     b_u_table[i] = (1772*(i-128))/1000;
-     }
-   */
 
   initialised = true;
 }
@@ -572,8 +532,18 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
   return buffer;
 }
 
-/* Assign an existing buffer to the image instead of copying from a source buffer. The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing. */
-void Image::AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype) {
+/* Assign an existing buffer to the image instead of copying from a source buffer.
+   The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing.
+*/
+void Image::AssignDirect(
+    const unsigned int p_width,
+    const unsigned int p_height,
+    const unsigned int p_colours,
+    const unsigned int p_subpixelorder,
+    uint8_t *new_buffer,
+    const size_t buffer_size,
+    const int p_buffertype) {
+
   if ( new_buffer == NULL ) {
     Error("Attempt to directly assign buffer from a NULL pointer");
     return;
@@ -605,6 +575,7 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
       width = p_width;
       height = p_height;
       colours = p_colours;
+      linesize = width*colours;
       subpixelorder = p_subpixelorder;
       pixels = height*width;
       size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
@@ -623,6 +594,7 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
     width = p_width;
     height = p_height;
     colours = p_colours;
+    linesize = width*colours;
     subpixelorder = p_subpixelorder;
     pixels = height*width;
     size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
@@ -631,7 +603,6 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
     buffertype = p_buffertype;
     buffer = new_buffer;
   }
-Debug(1, "In assign direct");
 }
 
 void Image::Assign(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size) {
@@ -2168,7 +2139,7 @@ void Image::DeColourise() {
   subpixelorder = ZM_SUBPIX_ORDER_NONE;
   size = width * height;
 
-  if ( colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sseversion >= 35 ) {
+  if ( colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sse_version >= 35 ) {
     /* Use SSSE3 functions */
     switch (subpixelorder) {
       case ZM_SUBPIX_ORDER_BGRA:
@@ -2735,7 +2706,7 @@ void Image::Flip( bool leftright ) {
 
 void Image::Scale( unsigned int factor ) {
   if ( !factor ) {
-    Error( "Bogus scale factor %d found", factor );
+    Error("Bogus scale factor %d found", factor);
     return;
   }
   if ( factor == ZM_SCALE_BASE ) {
@@ -2745,6 +2716,7 @@ void Image::Scale( unsigned int factor ) {
   unsigned int new_width = (width*factor)/ZM_SCALE_BASE;
   unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
 
+  // Why larger than we need?
   size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
 
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
@@ -2819,10 +2791,8 @@ void Image::Scale( unsigned int factor ) {
     }
     new_width = last_w_index;
     new_height = last_h_index;
-  }
-
+  }  // end foreach line
   AssignDirect( new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
-
 }
 
 void Image::Deinterlace_Discard() {

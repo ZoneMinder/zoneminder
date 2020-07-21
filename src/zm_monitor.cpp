@@ -1537,13 +1537,14 @@ bool Monitor::Analyse() {
                 && (!event->AlarmFrames())
                 && (event_close_mode == CLOSE_ALARM)
                 && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+								&& ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) )
                ) {
               Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
                   name, image_count, event->Id());
               closeEvent();
             } else if ( event ) {
 							// This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-							Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d",
+							Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d min",
 									Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
 									( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
 									);
@@ -1629,11 +1630,13 @@ bool Monitor::Analyse() {
                     }
                   }
                   event->AddFrames(pre_event_images, images, timestamps);
-                }
+                }  // end if pre_event_images
+
                 if ( alarm_frame_count ) {
+Debug(1, "alarm frame count so SavePreAlarmFrames");
                   event->SavePreAlarmFrames();
                 }
-              }
+              } // end if event
             } else if ( state != PREALARM ) {
               Info("%s: %03d - Gone into prealarm state", name, image_count);
               shared_data->state = state = PREALARM;
@@ -1672,10 +1675,11 @@ bool Monitor::Analyse() {
             } else {
               shared_data->state = state = TAPE;
             }
-          }
-          if ( Event::PreAlarmCount() )
-            Event::EmptyPreAlarmFrames();
-        } // end if score or not
+						// Not in PREALARM state anymore, can clear PreAlarmCount
+						if ( Event::PreAlarmCount() )
+							Event::EmptyPreAlarmFrames();
+					}
+				} // end if score or not
 
         if ( state != IDLE ) {
           if ( state == PREALARM || state == ALARM ) {

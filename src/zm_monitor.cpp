@@ -727,9 +727,11 @@ Monitor::~Monitor() {
         }
         delete[] pre_event_buffer;
       }
+			if ( Event::PreAlarmCount() )
+				Event::EmptyPreAlarmFrames();
     } else if ( purpose == CAPTURE ) {
       shared_data->valid = false;
-      memset( mem_ptr, 0, mem_size );
+      memset(mem_ptr, 0, mem_size);
     }
 
 #if ZM_MEM_MAPPED
@@ -1540,17 +1542,17 @@ bool Monitor::Analyse() {
                   name, image_count, event->Id());
               closeEvent();
             } else if ( event ) {
-            // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-            Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d",
-                Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
-                ( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
-                );
-            }
-            if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) ) {
-              // lets construct alarm cause. It will contain cause + names of zones alarmed
-              std::string alarm_cause = "";
-              for ( int i=0; i < n_zones; i++ ) {
-                if ( zones[i]->Alarmed() ) {
+							// This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
+							Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d",
+									Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
+									( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
+									);
+						}
+						if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) ) {
+							// lets construct alarm cause. It will contain cause + names of zones alarmed
+							std::string alarm_cause = "";
+							for ( int i=0; i < n_zones; i++ ) {
+								if ( zones[i]->Alarmed() ) {
                   alarm_cause = alarm_cause + "," + std::string(zones[i]->Label());
                 }
               }
@@ -1691,10 +1693,11 @@ bool Monitor::Analyse() {
                 } // end if zone is alarmed
               } // end foreach zone
 
-              if ( state == PREALARM )
+              if ( state == PREALARM ) {
                 Event::AddPreAlarmFrame(snap_image, *timestamp, score, (got_anal_image?&alarm_image:NULL));
-              else
-                event->AddFrame(snap_image, *timestamp, score, (got_anal_image?&alarm_image:NULL));
+              } else {
+								event->AddFrame(snap_image, *timestamp, score, (got_anal_image?&alarm_image:NULL));
+							}
             } else {
               // Not doing alarm frame storage
               if ( state == PREALARM ) {

@@ -556,8 +556,8 @@ public:
 #if HAVE_LIBAVCODEC
   //void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC
-  double get_fps( ) const {
-    return fps;
+  double get_capture_fps( ) const {
+    return capture_fps;
   }
 };
 

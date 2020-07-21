@@ -235,6 +235,8 @@ int main(int argc, char *argv[]) {
 
   int result = 0;
 
+  int prime_capture_log_count = 0;
+
   while ( !zm_terminate ) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];

@@ -89,15 +89,17 @@ class Event {
     bool alarm_frame_written;
     unsigned int  tot_score;
     unsigned int  max_score;
-    char      path[PATH_MAX];
-    char snapshot_file[PATH_MAX];
-    char alarm_file[PATH_MAX];
+		std::string path;
+    std::string snapshot_file;
+    std::string alarm_file;
+
     VideoWriter* videowriter;
     FILE* timecodes_fd;
-    char video_name[PATH_MAX];
-    char video_file[PATH_MAX];
-    char timecodes_name[PATH_MAX];
-    char timecodes_file[PATH_MAX];
+    std::string video_name;
+    std::string video_file;
+
+    std::string timecodes_name;
+    std::string timecodes_file;
     int        last_db_frame;
     Storage::Schemes  scheme;
 
@@ -137,15 +139,15 @@ class Event {
   public:
     static const char *getSubPath( struct tm *time ) {
       static char subpath[PATH_MAX] = "";
-      snprintf( subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec );
-      return( subpath );
+      snprintf(subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec);
+      return subpath;
     }
     static const char *getSubPath( time_t *time ) {
       return Event::getSubPath( localtime( time ) );
     }
 
-    char* getEventFile(void) {
-      return video_file;
+    const char* getEventFile(void) {
+      return video_file.c_str();
     }
 
   public:
@@ -155,12 +157,14 @@ class Event {
     static void EmptyPreAlarmFrames() {
       while ( pre_alarm_count > 0 ) {
 				int i = pre_alarm_count - 1;
+Debug(1, "EmptyreAlarmFrame: %d", i);
 				delete pre_alarm_data[i].image;
 				pre_alarm_data[i].image = NULL;
 				if ( pre_alarm_data[i].alarm_frame ) {
 					delete pre_alarm_data[i].alarm_frame;
 					pre_alarm_data[i].alarm_frame = NULL;
 				}
+				pre_alarm_count--;
 			}
       pre_alarm_count = 0;
     }
@@ -174,6 +178,7 @@ class Event {
       pre_alarm_count++;
     }
     void SavePreAlarmFrames() {
+Debug(1, "SavePreAlarmFrame: %d", pre_alarm_count);
       for ( int i = 0; i < pre_alarm_count; i++ ) {
         AddFrame(
 						pre_alarm_data[i].image,

@@ -301,7 +301,7 @@ sub zmMemVerify {
   }
 
   return !undef;
-}
+} # end sub zmMemVerify
 
 sub zmMemRead {
   my $monitor = shift;
@@ -375,10 +375,8 @@ sub zmMemInvalidate {
   my $mem_key = zmMemKey($monitor);
   if ( $mem_key ) {
     zmMemDetach($monitor);
-  } else {
-    Warning('no memkey in zmMemInvalidate');
   }
-}
+} # end sub zmMemInvalidate
 
 sub zmMemTidy {
   zmMemClean();
@@ -504,10 +502,10 @@ sub zmHasAlarmed {
   my $last_event_id = shift;
 
   my ( $state, $last_event ) = zmMemRead($monitor,
-    ['shared_data:state' ,'shared_data:last_event']
+    ['shared_data:state', 'shared_data:last_event']
   );
 
-  if ( $state == STATE_ALARM || $state == STATE_ALERT ) {
+  if ( $state == STATE_ALARM or $state == STATE_ALERT ) {
     return $last_event;
   } elsif( $last_event != $last_event_id ) {
     return $last_event;

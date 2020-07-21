@@ -92,6 +92,9 @@ if ( $action == 'monitor' ) {
       if ( $monitor->Type() != 'WebSite' ) {
         $monitor->zmaControl('stop');
         $monitor->zmcControl('stop');
+        if ( $monitor->Controllable() ) {
+          $monitor->sendControlCommand('stop');
+        }
       }
 
       # These are used in updating zones
@@ -264,8 +267,7 @@ if ( $action == 'monitor' ) {
         $monitor->zmaControl('start');
 
       if ( $monitor->Controllable() ) {
-        require_once('includes/control_functions.php');
-        $monitor->sendControlCommand('quit');
+        $monitor->sendControlCommand('start');
       }
     }
     // really should thump zmwatch and maybe zmtrigger too.

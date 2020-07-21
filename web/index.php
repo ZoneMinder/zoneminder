@@ -34,7 +34,7 @@ if ( version_compare(phpversion(), '4.1.0', '<') ) {
 }
 
 // Useful debugging lines for mobile devices
-if ( true ) {
+if ( false ) {
   ob_start();
   phpinfo(INFO_VARIABLES);
   $fp = fopen('/tmp/env.html', 'w+');
@@ -52,6 +52,7 @@ require_once('includes/Event.php');
 require_once('includes/Group.php');
 require_once('includes/Monitor.php');
 
+global $Servers;
 $Servers = ZM\Server::find();
 
 if (
@@ -154,8 +155,6 @@ if (
   setcookie('zmCSS', $css, time()+3600*24*30*12*10);
 }
 
-
-
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
 
@@ -176,9 +175,8 @@ $user = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
 
-
 # Add CSP Headers
-$cspNonce = bin2hex(openssl_random_pseudo_bytes(16));
+$cspNonce = bin2hex(zm_random_bytes(16));
 
 $request = null;
 if ( isset($_REQUEST['request']) )

@@ -95,7 +95,7 @@ int main(int argc, const char *argv[]) {
     Debug(1, "Query: %s", query);
 
     char temp_query[1024];
-    strncpy(temp_query, query, sizeof(temp_query));
+    strncpy(temp_query, query, sizeof(temp_query)-1);
     char *q_ptr = temp_query;
     char *parms[16];  // Shouldn't be more than this
     int parm_no = 0;
@@ -184,7 +184,7 @@ int main(int argc, const char *argv[]) {
   logInit(log_id_string);
 
   if ( config.opt_use_auth ) {
-    User *user = 0;
+    User *user = NULL;
 
     if ( jwt_token_str != "" ) {
       // user = zmLoadTokenUser(jwt_token_str, config.auth_hash_ips);
@@ -195,19 +195,11 @@ int main(int argc, const char *argv[]) {
       } else {
         Error("Bad username");
       }
-
     } else {
-      // if ( strcmp( config.auth_relay, "hashed" ) == 0 )
-      {
-        if ( *auth ) {
-          user = zmLoadAuthUser(auth, config.auth_hash_ips);
-        }
-      }
-      // else if ( strcmp( config.auth_relay, "plain" ) == 0 )
-      {
-        if ( username.length() && password.length() ) {
-          user = zmLoadUser(username.c_str(), password.c_str());
-        }
+      if ( *auth ) {
+        user = zmLoadAuthUser(auth, config.auth_hash_ips);
+      } else if ( username.length() && password.length() ) {
+        user = zmLoadUser(username.c_str(), password.c_str());
       }
     }
     if ( !user ) {
@@ -218,11 +210,15 @@ int main(int argc, const char *argv[]) {
       return 0;
     }
     if ( !ValidateAccess(user, monitor_id) ) {
+      delete user;
+      user = NULL;
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
       logTerm();
       zmDbClose();
       return 0;
     }
+    delete user;
+    user = NULL;
   }  // end if config.opt_use_auth
 
   hwcaps_detect();
@@ -336,5 +332,5 @@ int main(int argc, const char *argv[]) {
   logTerm();
   zmDbClose();
 
-  return(0);
+  return 0;
 }

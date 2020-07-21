@@ -113,6 +113,23 @@ Event::Event(
     return;
   }
   id = mysql_insert_id(&dbconn);
+  //
+
+  /* Update event record with DefaultVideo name if possible so image.php can extract frames 
+     if needed, while recording is in progress */
+  if ( monitor->GetOptVideoWriter() != 0 ) {
+    video_name[0] = 0;
+    snprintf(video_name, sizeof(video_name), "%" PRIu64 "-%s", id, "video.mp4");
+    Debug(1, "Updating inserted event with DefaultVideo=%s",video_name);
+    snprintf(sql, sizeof(sql), "UPDATE Events SET DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name,id);
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
+      db_mutex.unlock();
+      return;
+    }
+  } else {
+    Debug (1, "GetOptVideoWriter() returned 0, not updating DefaultVideo");
+  }
   db_mutex.unlock();
   if ( untimedEvent ) {
     Warning("Event %d has zero time, setting to current", id);

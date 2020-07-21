@@ -53,7 +53,7 @@ void Zone::Setup(
 
   id = p_id;
   label = new char[strlen(p_label)+1];
-  strcpy( label, p_label );
+  strcpy(label, p_label);
   type = p_type;
   polygon = p_polygon;
   alarm_rgb = p_alarm_rgb;
@@ -89,10 +89,10 @@ void Zone::Setup(
   overload_count = 0;
   extend_alarm_count = 0;
 
-  pg_image = new Image( monitor->Width(), monitor->Height(), 1, ZM_SUBPIX_ORDER_NONE );
+  pg_image = new Image(monitor->Width(), monitor->Height(), 1, ZM_SUBPIX_ORDER_NONE);
   pg_image->Clear();
-  pg_image->Fill( 0xff, polygon );
-  pg_image->Outline( 0xff, polygon );
+  pg_image->Fill(0xff, polygon);
+  pg_image->Outline(0xff, polygon);
 
   ranges = new Range[monitor->Height()];
   for ( unsigned int y = 0; y < monitor->Height(); y++ ) {
@@ -113,8 +113,10 @@ void Zone::Setup(
   }
 
   if ( config.record_diag_images ) {
-    snprintf(diag_path, sizeof(diag_path), config.record_diag_images_fifo ? "%s/diagpipe-%d-poly.jpg" : "%s/diag-%d-poly.jpg", monitor->getStorage()->Path(), id);
-    if (config.record_diag_images_fifo)
+    snprintf(diag_path, sizeof(diag_path),
+        config.record_diag_images_fifo ? "%s/diagpipe-%d-poly.jpg" : "%s/diag-%d-poly.jpg",
+        monitor->getStorage()->Path(), id);
+    if ( config.record_diag_images_fifo )
       FifoStream::fifo_create_if_missing(diag_path);
     pg_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
   } else {

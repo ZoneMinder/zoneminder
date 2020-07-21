@@ -45,6 +45,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $help = 0;
 my $force = 0;
+my $show = 0;
 # Interval between version checks
 my $interval;
 my $version;
@@ -52,11 +53,20 @@ my $version;
 GetOptions(
   force     => \$force,
   help      => \$help,
+  show      => \$show,
   interval  => \$interval,
   version   => \$version
 );
 if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");
+  exit(0);
+}
+if ($show) {
+  my %telemetry;
+  my $dbh = zmDbConnect();
+  collectData($dbh, \%telemetry);
+  my $result = jsonEncode(\%telemetry);
+  print ($result);
   exit(0);
 }
 if ( $help ) {
@@ -89,21 +99,9 @@ while( 1 ) {
     my $dbh = zmDbConnect();
 # Build the telemetry hash
 # We should keep *BSD systems in mind when calling system commands
+    
     my %telemetry;
-    $telemetry{uuid} = getUUID($dbh);
-    @telemetry{qw(city region country latitude longitude)} = getGeo();
-    $telemetry{timestamp} = strftime('%Y-%m-%dT%H:%M:%S%z', localtime());
-    $telemetry{monitor_count} = countQuery($dbh,'Monitors');
-    $telemetry{event_count} = countQuery($dbh,'Events');
-    $telemetry{architecture} = runSysCmd('uname -p');
-    ($telemetry{kernel}, $telemetry{distro}, $telemetry{version}) = getDistro();
-    $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;
-    $telemetry{system_memory} = totalmem();
-    $telemetry{processor_count} = cpu_count();
-    $telemetry{monitors} = getMonitorRef($dbh);
-
-    Info('Sending data to ZoneMinder Telemetry server.');
-
+    collectData($dbh,\%telemetry);
     my $result = jsonEncode(\%telemetry);
 
     if ( sendData($result) ) {
@@ -125,6 +123,24 @@ print 'ZoneMinder Telemetry Agent exiting at '.strftime('%y/%m/%d %H:%M:%S', loc
 ###############
 # SUBROUTINES #
 ###############
+
+# collect data to send
+sub collectData {
+  my $dbh = shift;
+  my $telemetry = shift;
+  $telemetry->{uuid} = getUUID($dbh);
+  ($telemetry->{city},$telemetry->{region},$telemetry->{country},$telemetry->{latitude},$telemetry->{longitude})=getGeo();
+  $telemetry->{timestamp} = strftime('%Y-%m-%dT%H:%M:%S%z', localtime());
+  $telemetry->{monitor_count} = countQuery($dbh,'Monitors');
+  $telemetry->{event_count} = countQuery($dbh,'Events');
+  $telemetry->{architecture} = runSysCmd('uname -p');
+  ($telemetry->{kernel}, $telemetry->{distro}, $telemetry->{version}) = getDistro();
+  $telemetry->{zm_version} = ZoneMinder::Base::ZM_VERSION;
+  $telemetry->{system_memory} = totalmem();
+  $telemetry->{processor_count} = cpu_count();
+  $telemetry->{use_event_server} = $Config{ZM_OPT_USE_EVENTNOTIFICATION};
+  $telemetry->{monitors} = getMonitorRef($dbh);
+}
 
 # Find, verify, then run the supplied system command
 sub runSysCmd {
@@ -365,7 +381,7 @@ zmtelemetry.pl - Send usage information to the ZoneMinder development team
 
 =head1 SYNOPSIS
 
- zmtelemetry.pl [--force] [--help] [--interval=seconds] [--version]
+ zmtelemetry.pl [--force] [--help] [--show] [--interval=seconds] [--version]
 
 =head1 DESCRIPTION
 
@@ -382,6 +398,7 @@ console under Options.
  --force        Force the script to upload it's data instead of waiting
                 for the defined interval since last upload.
  --help         Display usage information
+ --show         Displays telemetry data that is sent to zoneminder
  --interval     Override the default configured interval since last upload. 
                 The value should be given in seconds, but can be an expression
                 such as 24*60*60.

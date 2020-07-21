@@ -40,7 +40,7 @@ bool zmDbConnect() {
     Error("Can't initialise database connection: %s", mysql_error(&dbconn));
     return false;
   }
-  my_bool reconnect = 1;
+  bool reconnect = 1;
   if ( mysql_options(&dbconn, MYSQL_OPT_RECONNECT, &reconnect) )
     Error("Can't set database auto reconnect option: %s", mysql_error(&dbconn));
   if ( !staticConfig.DB_SSL_CA_CERT.empty() )

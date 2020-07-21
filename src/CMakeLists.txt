@@ -27,6 +27,7 @@ set(ZM_BIN_SRC_FILES
  zm_image.cpp
  zm_jpeg.cpp
  zm_libvlc_camera.cpp
+ zm_libvnc_camera.cpp
  zm_local_camera.cpp
  zm_monitor.cpp
  zm_monitorstream.cpp

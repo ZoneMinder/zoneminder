@@ -1,5 +1,5 @@
 <?php
-error_reporting(E_ERROR);
+ini_set('display_errors','0');
 
 if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
   ajaxError('No event id(s) supplied');
@@ -155,5 +155,5 @@ if ( canEdit('Events') ) {
   } // end switch action
 } // end if canEdit('Events')
 
-ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user ' . $user['Username']);
+ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user '.$user['Username']);
 ?>

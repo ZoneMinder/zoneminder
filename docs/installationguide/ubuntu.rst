@@ -42,7 +42,7 @@ guide you with a quick search.
 
     ::
 
-        add-apt-repository ppa:iconnor/zoneminder-1.32
+        add-apt-repository ppa:iconnor/zoneminder-1.34
 
 Update repo and upgrade.
 

@@ -51,6 +51,9 @@
 #if HAVE_LIBCURL
 #include "zm_curl_camera.h"
 #endif // HAVE_LIBCURL
+#if HAVE_LIBVNC
+#include "zm_libvnc_camera.h"
+#endif // HAVE_LIBVNC
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
@@ -88,8 +91,9 @@ std::string CameraType_Strings[] = {
   "File",
   "Ffmpeg",
   "LibVLC",
-  "cURL",
   "NVSOCKET",
+  "CURL",
+  "VNC",
 };
 
 Monitor::MonitorLink::MonitorLink(int p_id, const char *p_name) :
@@ -555,6 +559,15 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   camera = NULL;
   uint64_t image_size = width * height * colours;
 
+  if ( strcmp(config.event_close_mode, "time") == 0 )
+    event_close_mode = CLOSE_TIME;
+  else if ( strcmp(config.event_close_mode, "alarm") == 0 )
+    event_close_mode = CLOSE_ALARM;
+  else
+    event_close_mode = CLOSE_IDLE;
+
+  Debug(1, "monitor purpose=%d", purpose);
+
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
@@ -577,13 +590,11 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
 // maybe unneeded
   // Should maybe store this for later use
-  char monitor_dir[PATH_MAX] = "";
+  char monitor_dir[PATH_MAX];
   snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
   if ( purpose == CAPTURE ) {
-    if ( mkdir(monitor_dir, 0755) ) {
-      if ( errno != EEXIST ) {
-        Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
-      }
+    if ( mkdir(monitor_dir, 0755) && ( errno != EEXIST ) ) {
+      Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
     }
   } else if ( purpose == ANALYSIS ) {
     if ( config.record_diag_images ) {
@@ -800,7 +811,6 @@ Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
 
   return monitor;
 } // end Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose)
-
 
 bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose);
@@ -2071,10 +2081,10 @@ void Monitor::Reload() {
     ready_count = image_count+warmup_count;
 
     delete row;
-  } // end if row
+  }  // end if row
 
   ReloadZones();
-} // void Monitor::Reload()
+}  // end void Monitor::Reload()
 
 void Monitor::ReloadZones() {
   Debug(1, "Reloading zones for monitor %s", name);
@@ -2315,8 +2325,8 @@ int Monitor::Capture() {
           packet->packet.stream_index, video_stream_id, packetqueue->video_packet_count, ( event ? 1 : 0 ) );
 
       if ( packet->packet.stream_index != video_stream_id ) {
-        Debug(2, "Have audio packet (%d) != videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
-            packet->packet.stream_index, video_stream_id, packetqueue->video_packet_count, ( event ? 1 : 0 ) );
+//Debug(2, "Have audio packet (%d) != videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
+ //           packet->packet.stream_index, video_stream_id, packetqueue->video_packet_count, ( event ? 1 : 0 ) );
         // Only queue if we have some video packets in there. Should push this logic into packetqueue
         //mutex.lock();
         if ( packetqueue->video_packet_count || event ) {

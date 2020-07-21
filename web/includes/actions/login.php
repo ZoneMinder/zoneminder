@@ -29,8 +29,13 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
     && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
     && ZM_OPT_USE_GOOG_RECAPTCHA
     && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY
-    && ZM_OPT_GOOG_RECAPTCHA_SITEKEY )
-  {
+    && ZM_OPT_GOOG_RECAPTCHA_SITEKEY
+  ) {
+    if ( !isset($_REQUEST['g-recaptcha-response']) ) {
+      ZM\Error('reCaptcha authentication failed. No g-recpatcha-response in REQUEST: ');
+      unset($user); // unset should be ok here because we aren't in a function
+      return;
+    }
     $url = 'https://www.google.com/recaptcha/api/siteverify';
     $fields = array (
       'secret'    => ZM_OPT_GOOG_RECAPTCHA_SECRETKEY,

@@ -123,9 +123,7 @@ bool VideoStore::open() {
 
   if ( video_in_stream ) {
     video_in_stream_index = video_in_stream->index;
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     video_in_ctx = avcodec_alloc_context3(NULL);
-    Debug(2, "copy to video_in_context");
     ret = avcodec_parameters_to_context(video_in_ctx, video_in_stream->codecpar);
     if ( ret < 0 ) {
       Error("Couldn't copy params to context");
@@ -133,181 +131,167 @@ bool VideoStore::open() {
     } else {
       zm_dump_codecpar(video_in_stream->codecpar);
     }
-#else
-    video_in_ctx = video_in_stream->codec;
-    Debug(2,"Copied video context from input stream");
-    zm_dump_codec(video_in_ctx);
-#endif
-  } else {
-    // FIXME delete?
-    Debug(2, "No input ctx");
-    video_in_ctx = avcodec_alloc_context3(NULL);
-    video_in_stream_index = 0;
-  }
 
-  video_out_ctx = avcodec_alloc_context3(NULL);
-  if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
+    video_out_ctx = avcodec_alloc_context3(NULL);
+    if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
-    video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+      video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 #else
-    video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+      video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 #endif
-  }
-  if ( !video_out_ctx->codec_tag ) {
-    video_out_ctx->codec_tag =
+    }
+    if ( !video_out_ctx->codec_tag ) {
+      video_out_ctx->codec_tag =
         av_codec_get_tag(oc->oformat->codec_tag, video_in_ctx->codec_id);
-    Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
-  }
-  int wanted_codec = monitor->OutputCodec();
-  if ( !wanted_codec ) {
-    // default to h264
-    wanted_codec = AV_CODEC_ID_H264;
-  }
-  max_stream_index = video_out_stream->index;
+      Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
+    }
+    int wanted_codec = monitor->OutputCodec();
+    if ( !wanted_codec ) {
+      // default to h264
+      Debug(2, "Defaulting to H264");
+      wanted_codec = AV_CODEC_ID_H264;
+    }
+
+  //max_stream_index = video_out_stream->index;
 
   // FIXME Should check that we are set to passthrough.  Might be same codec, but want privacy overlays
-  if ( video_in_stream && ( video_in_ctx->codec_id == wanted_codec ) ) {
-    // Copy params from instream to ctx
+    if ( video_in_ctx->codec_id == wanted_codec ) {
+      // Copy params from instream to ctx
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
+      ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
 #else
-    ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
+      ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
 #endif
-    if ( ret < 0 ) {
-      Error("Could not initialize ctx parameteres");
-      return false;
-    }
-    //video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-    video_out_ctx->time_base = video_in_ctx->time_base;
-    // Fix deprecated formats
-    switch ( video_out_ctx->pix_fmt ) {
-      case AV_PIX_FMT_YUVJ422P  :
-        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV422P;
-        break;
-      case AV_PIX_FMT_YUVJ444P   :
-        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV444P;
-        break;
-      case AV_PIX_FMT_YUVJ440P :
-        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
-        break;
-      case AV_PIX_FMT_NONE :
-      case AV_PIX_FMT_YUVJ420P :
-      default:
-        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-        break;
-    }
-    // Only set orientation if doing passthrough, otherwise the frame image will be rotated
-    Monitor::Orientation orientation = monitor->getOrientation();
-    if ( orientation ) {
-      Debug(3, "Have orientation");
-      if ( orientation == Monitor::ROTATE_0 ) {
-      } else if ( orientation == Monitor::ROTATE_90 ) {
-        ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
-        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-      } else if ( orientation == Monitor::ROTATE_180 ) {
-        ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
-        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-      } else if ( orientation == Monitor::ROTATE_270 ) {
-        ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
-        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-      } else {
-        Warning("Unsupported Orientation(%d)", orientation);
-      }
-    } // end if orientation
-  } else { // Either no video in or not the desired codec
-    for ( unsigned int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++ ) {
-      if ( codec_data[i].codec_id != monitor->OutputCodec() )
-        continue;
-
-      video_out_codec = avcodec_find_encoder_by_name(codec_data[i].codec_name);
-      if ( ! video_out_codec ) {
-        Debug(1, "Didn't find encoder for %s", codec_data[i].codec_name);
-        continue;
-      }
-
-      video_out_ctx->pix_fmt = codec_data[i].pix_fmt;
-      video_out_ctx->level = 32;
-
-      // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
-      video_out_ctx->width = monitor->Width();
-      video_out_ctx->height = monitor->Height();
-      video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
-
-      // Just copy them from the in, no reason to choose different
-      video_out_ctx->time_base = video_in_ctx->time_base;
-      if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
-        Debug(2,"No timebase found in video in context, defaulting to Q");
-        video_out_ctx->time_base = AV_TIME_BASE_Q;
-      }	
-      video_out_stream->time_base =  video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
-
-      if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
-        video_out_ctx->max_b_frames = 1;
-        if ( video_out_ctx->priv_data ) {
-          //av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
-          //av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
-        } else {
-          Debug(2, "Not setting priv_data");
-        }
-      } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO ) {
-        /* just for testing, we also add B frames */
-        video_out_ctx->max_b_frames = 2;
-      } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG1VIDEO ) {
-        /* Needed to avoid using macroblocks in which some coeffs overflow.
-         * This does not happen with normal video, it just happens here as
-         * the motion of the chroma plane does not match the luma plane. */
-        video_out_ctx->mb_decision = 2;
-      }
-
-      AVDictionary *opts = 0;
-      std::string Options = monitor->GetEncoderOptions();
-      ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
       if ( ret < 0 ) {
-        Warning("Could not parse ffmpeg encoder options list '%s'\n", Options.c_str());
-      } else {
+        Error("Could not initialize ctx parameters");
+        return false;
+      }
+      //video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
+      video_out_ctx->time_base = video_in_ctx->time_base;
+      // Fix deprecated formats
+      switch ( video_out_ctx->pix_fmt ) {
+        case AV_PIX_FMT_YUVJ422P  :
+          video_out_ctx->pix_fmt = AV_PIX_FMT_YUV422P;
+          break;
+        case AV_PIX_FMT_YUVJ444P   :
+          video_out_ctx->pix_fmt = AV_PIX_FMT_YUV444P;
+          break;
+        case AV_PIX_FMT_YUVJ440P :
+          video_out_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
+          break;
+        case AV_PIX_FMT_NONE :
+        case AV_PIX_FMT_YUVJ420P :
+        default:
+          video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+          break;
+      }
+      // Only set orientation if doing passthrough, otherwise the frame image will be rotated
+      Monitor::Orientation orientation = monitor->getOrientation();
+      if ( orientation ) {
+        Debug(3, "Have orientation");
+        if ( orientation == Monitor::ROTATE_0 ) {
+        } else if ( orientation == Monitor::ROTATE_90 ) {
+          ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
+          if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+        } else if ( orientation == Monitor::ROTATE_180 ) {
+          ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
+          if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+        } else if ( orientation == Monitor::ROTATE_270 ) {
+          ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
+          if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+        } else {
+          Warning("Unsupported Orientation(%d)", orientation);
+        }
+      } // end if orientation
+    } else { // Either no video in or not the desired codec
+      for ( unsigned int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++ ) {
+        if ( codec_data[i].codec_id != monitor->OutputCodec() )
+          continue;
+
+        video_out_codec = avcodec_find_encoder_by_name(codec_data[i].codec_name);
+        if ( ! video_out_codec ) {
+          Debug(1, "Didn't find encoder for %s", codec_data[i].codec_name);
+          continue;
+        }
+
+        video_out_ctx->pix_fmt = codec_data[i].pix_fmt;
+        video_out_ctx->level = 32;
+
+        // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
+        video_out_ctx->width = monitor->Width();
+        video_out_ctx->height = monitor->Height();
+        video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+
+        // Just copy them from the in, no reason to choose different
+        video_out_ctx->time_base = video_in_ctx->time_base;
+        if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+          Debug(2,"No timebase found in video in context, defaulting to Q");
+          video_out_ctx->time_base = AV_TIME_BASE_Q;
+        }	
+        video_out_stream->time_base =  video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
+
+        if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
+          video_out_ctx->max_b_frames = 1;
+          if ( video_out_ctx->priv_data ) {
+            //av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
+            //av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
+          } else {
+            Debug(2, "Not setting priv_data");
+          }
+        } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO ) {
+          /* just for testing, we also add B frames */
+          video_out_ctx->max_b_frames = 2;
+        } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG1VIDEO ) {
+          /* Needed to avoid using macroblocks in which some coeffs overflow.
+           * This does not happen with normal video, it just happens here as
+           * the motion of the chroma plane does not match the luma plane. */
+          video_out_ctx->mb_decision = 2;
+        }
+
+        AVDictionary *opts = 0;
+        std::string Options = monitor->GetEncoderOptions();
+        ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
+        if ( ret < 0 ) {
+          Warning("Could not parse ffmpeg encoder options list '%s'\n", Options.c_str());
+        } else {
+          AVDictionaryEntry *e = NULL;
+          while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+            Debug(3, "Encoder Option %s=%s", e->key, e->value);
+          }
+        }
+
+        if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
+          Warning("Can't open video codec (%s) %s",
+              video_out_codec->name,
+              av_make_error_string(ret).c_str()
+              );
+          video_out_codec = NULL;
+        }
+
         AVDictionaryEntry *e = NULL;
         while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-          Debug(3, "Encoder Option %s=%s", e->key, e->value);
+          Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
         }
-      }
+        av_dict_free(&opts);
+        if ( video_out_codec ) break;
 
-      if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
-        Warning("Can't open video codec (%s) %s",
-            video_out_codec->name,
-            av_make_error_string(ret).c_str()
-            );
-        video_out_codec = NULL;
-      }
+      } // end foreach codec
 
-      AVDictionaryEntry *e = NULL;
-      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
-      }
-      av_dict_free(&opts);
-      if ( video_out_codec ) break;
-
-    } // end foreach codec
-
-    if ( !video_out_codec ) {
-      Error("Can't open video codec!");
+      if ( !video_out_codec ) {
+        Error("Can't open video codec!");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      // We allocate and copy in newer ffmpeg, so need to free it
-      avcodec_free_context(&video_out_ctx);
+        // We allocate and copy in newer ffmpeg, so need to free it
+        avcodec_free_context(&video_out_ctx);
 #endif
-      video_out_ctx = NULL;
+        video_out_ctx = NULL;
 
-      return false;
-    } // end if can't open codec
+        return false;
+      } // end if can't open codec
 
-    Debug(2, "Sucess opening codec");
+      Debug(2, "Sucess opening codec");
 
-  } // end if copying or transcoding
-
-  if ( !video_out_ctx->codec_tag ) {
-    video_out_ctx->codec_tag =
-      av_codec_get_tag(oc->oformat->codec_tag, video_out_ctx->codec_id);
-    Debug(2, "No codec_tag, setting to h264 ? ");
-  }
+    } // end if copying or transcoding
+  }  // end if video_in_stream
 
   video_out_stream = avformat_new_stream(oc, video_out_codec);
   if ( !video_out_stream ) {
@@ -342,6 +326,7 @@ bool VideoStore::open() {
   audio_first_dts = 0;
 
   if ( audio_in_stream ) {
+    Debug(2, "Have audio_in_stream");
     audio_in_stream_index = audio_in_stream->index;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     audio_in_ctx = avcodec_alloc_context3(NULL);
@@ -470,7 +455,7 @@ bool VideoStore::open() {
   AVDictionary *opts = NULL;
   // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
   // Shiboleth reports that this may break seeking in mp4 before it downloads
-  //av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
+  av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
   // av_dict_set(&opts, "movflags",
   // "frag_keyframe+empty_moov+default_base_moof", 0);
   if ( (ret = avformat_write_header(oc, &opts)) < 0 ) {

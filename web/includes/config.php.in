@@ -193,7 +193,7 @@ if ( ! defined('ZM_SERVER_ID') ) {
   }
 }
 
-if ( ZM_TIMEZONE ) 
+if ( defined('ZM_TIMEZONE') and ZM_TIMEZONE )
   ini_set('date.timezone', ZM_TIMEZONE);
 
 function process_configfile($configFile) {

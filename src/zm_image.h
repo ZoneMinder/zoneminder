@@ -122,7 +122,7 @@ protected:
 	};
 	
 	inline void DumpImgBuffer() {
-		DumpBuffer(buffer,buffertype);
+		DumpBuffer(buffer, buffertype);
 		buffer = NULL;
 		allocation = 0;
 	}

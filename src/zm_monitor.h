@@ -80,6 +80,7 @@ public:
     LIBVLC,
     CURL,
     NVSOCKET,
+    VNC,
   } CameraType;
 
   typedef enum {

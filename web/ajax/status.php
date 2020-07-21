@@ -96,6 +96,7 @@ $statusData = array(
     'selector' => 'Events.MonitorId',
     'elements' => array(
       'Id' => true,
+      'MonitorId' => true,
       'Name' => true,
       'Cause' => true,
       'Notes' => true,

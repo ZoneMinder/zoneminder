@@ -153,28 +153,34 @@ class Event {
       return pre_alarm_count;
     }
     static void EmptyPreAlarmFrames() {
-      if ( pre_alarm_count > 0 ) {
-        for ( int i = 0; i < MAX_PRE_ALARM_FRAMES; i++ ) {
-          delete pre_alarm_data[i].image;
-          delete pre_alarm_data[i].alarm_frame;
-        }
-        memset( pre_alarm_data, 0, sizeof(pre_alarm_data) );
-      }
+      while ( pre_alarm_count > 0 ) {
+				int i = pre_alarm_count - 1;
+				delete pre_alarm_data[i].image;
+				pre_alarm_data[i].image = NULL;
+				if ( pre_alarm_data[i].alarm_frame ) {
+					delete pre_alarm_data[i].alarm_frame;
+					pre_alarm_data[i].alarm_frame = NULL;
+				}
+			}
       pre_alarm_count = 0;
     }
-    static void AddPreAlarmFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL ) {
-      pre_alarm_data[pre_alarm_count].image = new Image( *image );
+    static void AddPreAlarmFrame(Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL) {
+      pre_alarm_data[pre_alarm_count].image = new Image(*image);
       pre_alarm_data[pre_alarm_count].timestamp = timestamp;
       pre_alarm_data[pre_alarm_count].score = score;
       if ( alarm_frame ) {
-        pre_alarm_data[pre_alarm_count].alarm_frame = new Image( *alarm_frame );
+        pre_alarm_data[pre_alarm_count].alarm_frame = new Image(*alarm_frame);
       }
       pre_alarm_count++;
     }
     void SavePreAlarmFrames() {
       for ( int i = 0; i < pre_alarm_count; i++ ) {
-        AddFrame( pre_alarm_data[i].image, pre_alarm_data[i].timestamp, pre_alarm_data[i].score, pre_alarm_data[i].alarm_frame );
-      }
+        AddFrame(
+						pre_alarm_data[i].image,
+						pre_alarm_data[i].timestamp,
+						pre_alarm_data[i].score,
+						pre_alarm_data[i].alarm_frame);
+			}
       EmptyPreAlarmFrames();
     }
 };

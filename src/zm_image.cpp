@@ -192,13 +192,13 @@ Image::Image( int p_width, int p_linesize, int p_height, int p_colours, int p_su
 }
 
 Image::Image(const AVFrame *frame) {
-  AVFrame *dest_frame = zm_av_frame_alloc();
   text[0] = '\0';
   width = frame->width;
   linesize = frame->linesize[0];
   height = frame->height;
   pixels = width*height;
 
+  // FIXME
   colours = ZM_COLOUR_RGB32;
   subpixelorder = ZM_SUBPIX_ORDER_RGBA;
 
@@ -206,10 +206,10 @@ Image::Image(const AVFrame *frame) {
   buffer = 0;
   holdbuffer = 0;
   AllocImgBuffer(size);
-  this->Assign( frame );
+  this->Assign(frame);
 }
 
-void Image::Assign( const AVFrame *frame ) {
+void Image::Assign(const AVFrame *frame) {
 /* Assume the dimensions etc are correct. FIXME */
 
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
@@ -1889,9 +1889,15 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
 }
 
 /* RGB32 compatible: complete */
-void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour )
-{
+void Image::Annotate(
+    const char *p_text,
+    const Coord &coord,
+    const unsigned int size,
+    const Rgb fg_colour,
+    const Rgb bg_colour) {
+  Debug(1, "text %s", p_text);
   strncpy(text, p_text, sizeof(text)-1);
+  Debug(1, "text %s", text);
 
   unsigned int index = 0;
   unsigned int line_no = 0;
@@ -2046,7 +2052,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
       }
 
     } else {
-      Panic("Annotate called with unexpected colours: %d",colours);
+      Error("Annotate called with unexpected colours: %d", colours);
       return;
     }
 

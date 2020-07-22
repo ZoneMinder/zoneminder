@@ -900,7 +900,7 @@ bool Monitor::connect() {
   for ( int i = 0; i < image_buffer_count; i++ ) {
     image_buffer[i].image_index = i;
     image_buffer[i].timestamp = &(shared_timestamps[i]);
-    image_buffer[i].image = new Image( width, camera->LineSize(), height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
+    image_buffer[i].image = new Image(width, camera->LineSize(), height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
     image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
   if ( deinterlacing_value == 4 ) {
@@ -2273,17 +2273,20 @@ int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose p
 int Monitor::Capture() {
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
-  unsigned int index = 0;
-  //image_count % image_buffer_count;
+  // I think was starting to work towards not using the buffer. So only ever use the first image.
+  // Let's not do this for now.
+  unsigned int index = image_count % image_buffer_count;
 
-  ZMPacket *packet = new ZMPacket();
-  packet->timestamp = image_buffer[index].timestamp;
-  packet->image_index = image_count;
+  ZMPacket *packet = &image_buffer[index];
+  //new ZMPacket();
+  //packet->timestamp = image_buffer[index].timestamp;
+  //packet->image_index = image_count;
 
   //&image_buffer[index];
   packet->lock();
   packet->reset();
   Image* capture_image = packet->image;
+  Debug(1, "capture image: %d x %d linesize: %d", capture_image->Width(), capture_image->Height(), capture_image->LineSize());
   int captureResult = 0;
 
   if ( deinterlacing_value == 4 ) {

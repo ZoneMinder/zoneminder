@@ -122,7 +122,7 @@ Image::Image() {
   blend = fptr_blend;
 }
 
-Image::Image( const char *filename ) {
+Image::Image(const char *filename) {
   if ( !initialised )
     Initialise();
   width = 0;
@@ -141,7 +141,7 @@ Image::Image( const char *filename ) {
   update_function_pointers();
 }
 
-Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) {
+Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) {
   if ( !initialised )
     Initialise();
   width = p_width;
@@ -166,7 +166,7 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
   update_function_pointers();
 }
 
-Image::Image( int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) {
+Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) {
   if ( !initialised )
     Initialise();
   width = p_width;
@@ -263,14 +263,6 @@ Image::~Image() {
 /* Should be called as part of program shutdown to free everything */
 void Image::Deinitialise() {
   if ( !initialised ) return;
-  /*
-     delete[] y_table;
-     delete[] uv_table;
-     delete[] r_v_table;
-     delete[] g_v_table;
-     delete[] g_u_table;
-     delete[] b_u_table;
-     */
   initialised = false;
   if ( readjpg_dcinfo ) {
     jpeg_destroy_decompress( readjpg_dcinfo );
@@ -345,7 +337,7 @@ void Image::Initialise() {
   (*fptr_blend)(blend1,blend2,blendres,128,12.0);
 
   /* Compare results with expected results */
-  for ( int i=0; i < 128; i ++ ) {
+  for ( int i=0; i < 128; i++ ) {
     if ( abs(blendexp[i] - blendres[i]) > 3 ) {
       Panic("Blend function failed self-test: Results differ from the expected results. Column %u Expected %u Got %u",i,blendexp[i],blendres[i]);
     }
@@ -445,7 +437,7 @@ void Image::Initialise() {
   }
 
   /* Run the delta8 RGBA function */
-  (*fptr_delta8_rgba)(delta8_1,delta8_2,delta8_rgba_res,32);
+  (*fptr_delta8_rgba)(delta8_1,delta8_2,delta8_rgba_res, 32);
 
   /* Compare results with expected results */
   for ( int i=0; i < 32; i++ ) {
@@ -491,9 +483,17 @@ void Image::Initialise() {
 }
 
 /* Requests a writeable buffer to the image. This is safer than buffer() because this way we can guarantee that a buffer of required size exists */
-uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder) {
+uint8_t* Image::WriteBuffer(
+    const unsigned int p_width,
+    const unsigned int p_height,
+    const unsigned int p_colours,
+    const unsigned int p_subpixelorder) {
 
-  if ( p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32 ) {
+  if ( p_colours != ZM_COLOUR_GRAY8
+      &&
+      p_colours != ZM_COLOUR_RGB24
+      &&
+      p_colours != ZM_COLOUR_RGB32 ) {
     Error("WriteBuffer called with unexpected colours: %d", p_colours);
     return NULL;
   }
@@ -605,7 +605,13 @@ void Image::AssignDirect(
   }
 }
 
-void Image::Assign(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size) {
+void Image::Assign(
+    const unsigned int p_width,
+    const unsigned int p_height,
+    const unsigned int p_colours,
+    const unsigned int p_subpixelorder,
+    const uint8_t* new_buffer,
+    const size_t buffer_size) {
   unsigned int new_size = (p_width * p_height) * p_colours;
 
   if ( new_buffer == NULL ) {
@@ -652,24 +658,30 @@ void Image::Assign(const unsigned int p_width, const unsigned int p_height, cons
 
   if ( new_buffer != buffer )
     (*fptr_imgbufcpy)(buffer, new_buffer, size);
-Debug(1,"Assign");
 }
 
-void Image::Assign( const Image &image ) {
-  unsigned int new_size = (image.width * image.height) * image.colours;
+void Image::Assign(const Image &image) {
+  unsigned int new_size = image.height * image.linesize;
 
   if ( image.buffer == NULL ) {
     Error("Attempt to assign image with an empty buffer");
     return;
   }
 
-  if ( image.colours != ZM_COLOUR_GRAY8 && image.colours != ZM_COLOUR_RGB24 && image.colours != ZM_COLOUR_RGB32 ) {
-    Error("Attempt to assign image with unexpected colours per pixel: %d",image.colours);
+  if ( image.colours != ZM_COLOUR_GRAY8
+      &&
+      image.colours != ZM_COLOUR_RGB24
+      &&
+      image.colours != ZM_COLOUR_RGB32 ) {
+    Error("Attempt to assign image with unexpected colours per pixel: %d", image.colours);
     return;
   }
 
-  if ( !buffer || image.width != width || image.height != height
-      || image.colours != colours || image.subpixelorder != subpixelorder) {
+  if ( !buffer
+      || image.width != width || image.height != height
+      || image.colours != colours || image.subpixelorder != subpixelorder
+      || image.linesize != linesize
+      ) {
 
     if ( holdbuffer && buffer ) {
       if ( new_size > allocation ) {
@@ -689,13 +701,19 @@ void Image::Assign( const Image &image ) {
     colours = image.colours;
     subpixelorder = image.subpixelorder;
     size = new_size;
+    linesize = image.linesize;
   }
 
   if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
 
-Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits ) {
+Image *Image::HighlightEdges(
+    Rgb colour,
+    unsigned int p_colours,
+    unsigned int p_subpixelorder,
+    const Box *limits
+    ) {
   if ( colours != ZM_COLOUR_GRAY8 ) {
     Panic("Attempt to highlight image edges when colours = %d", colours);
   }
@@ -704,7 +722,7 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
   colour = rgb_convert(colour, p_subpixelorder);
 
   /* Create a new image of the target format */
-  Image *high_image = new Image( width, height, p_colours, p_subpixelorder );
+  Image *high_image = new Image(width, height, p_colours, p_subpixelorder);
   uint8_t* high_buff = high_image->WriteBuffer(width, height, p_colours, p_subpixelorder);
 
   /* Set image to all black */
@@ -722,10 +740,13 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
         bool edge = false;
         if ( *p ) {
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
+#if 0
           if ( !edge && x > 0 && !*(p-1) ) edge = true;
           if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
           if ( !edge && y > 0 && !*(p-width) ) edge = true;
           if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
+#endif
         }
         if ( edge ) {
           *phigh = colour;
@@ -739,10 +760,13 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh += 3 ) {
         bool edge = false;
         if ( *p ) {
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
+#if 0
           if ( !edge && x > 0 && !*(p-1) ) edge = true;
           if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
           if ( !edge && y > 0 && !*(p-width) ) edge = true;
           if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
+#endif
         }
         if ( edge ) {
           RED_PTR_RGBA(phigh) = RED_VAL_RGBA(colour);
@@ -758,10 +782,13 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
       for ( unsigned int x = lo_x; x <= hi_x; x++, p++, phigh++ ) {
         bool edge = false;
         if ( *p ) {
+          edge = (x > 0 && !*(p-1)) || (x < (width-1) && !*(p+1)) || (y > 0 && !*(p-width)) || (y < (height-1) && !*(p+width));
+#if 0
           if ( !edge && x > 0 && !*(p-1) ) edge = true;
           if ( !edge && x < (width-1) && !*(p+1) ) edge = true;
           if ( !edge && y > 0 && !*(p-width) ) edge = true;
           if ( !edge && y < (height-1) && !*(p+width) ) edge = true;
+#endif
         }
         if ( edge ) {
           *phigh = colour;
@@ -773,9 +800,9 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
   return high_image;
 }
 
-bool Image::ReadRaw( const char *filename ) {
+bool Image::ReadRaw(const char *filename) {
   FILE *infile;
-  if ( (infile = fopen( filename, "rb" )) == NULL ) {
+  if ( (infile = fopen(filename, "rb")) == NULL ) {
     Error("Can't open %s: %s", filename, strerror(errno));
     return false;
   }
@@ -1760,7 +1787,7 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
   return result;
 }
 
-/* New function to allow buffer re-using instead of allocationg memory for the delta image every time */
+/* New function to allow buffer re-using instead of allocating memory for the delta image every time */
 void Image::Delta( const Image &image, Image* targetimage) const {
 #ifdef ZM_IMAGE_PROFILING
   struct timespec start,end,diff;
@@ -3471,7 +3498,7 @@ __attribute__((noinline)) void fast_delta8_bgr(const uint8_t* col1, const uint8_
   int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
-  while(result < max_ptr) {
+  while (result < max_ptr) {
     b = abs(col1[0] - col2[0]);
     g = abs(col1[1] - col2[1]);
     r = abs(col1[2] - col2[2]);
@@ -3500,7 +3527,7 @@ __attribute__((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t
   int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
-  while(result < max_ptr) {
+  while (result < max_ptr) {
     b = abs(col1[0] - col2[0]);
     g = abs(col1[1] - col2[1]);
     r = abs(col1[2] - col2[2]);
@@ -3518,7 +3545,7 @@ __attribute__((noinline)) void fast_delta8_rgba(const uint8_t* col1, const uint8
   int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
-  while(result < max_ptr) {
+  while (result < max_ptr) {
     r = abs(col1[0] - col2[0]);
     g = abs(col1[1] - col2[1]);
     b = abs(col1[2] - col2[2]);
@@ -3547,7 +3574,7 @@ __attribute__((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_
   int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
-  while(result < max_ptr) {
+  while (result < max_ptr) {
     r = abs(col1[0] - col2[0]);
     g = abs(col1[1] - col2[1]);
     b = abs(col1[2] - col2[2]);
@@ -3565,7 +3592,7 @@ __attribute__((noinline)) void fast_delta8_bgra(const uint8_t* col1, const uint8
   int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
-  while(result < max_ptr) {
+  while (result < max_ptr) {
     b = abs(col1[0] - col2[0]);
     g = abs(col1[1] - col2[1]);
     r = abs(col1[2] - col2[2]);
@@ -3593,7 +3620,7 @@ __attribute__((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_
   int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
-  while(result < max_ptr) {
+  while (result < max_ptr) {
     b = abs(col1[0] - col2[0]);
     g = abs(col1[1] - col2[1]);
     r = abs(col1[2] - col2[2]);
@@ -3611,7 +3638,7 @@ __attribute__((noinline)) void fast_delta8_argb(const uint8_t* col1, const uint8
   int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
-  while(result < max_ptr) {
+  while (result < max_ptr) {
     r = abs(col1[1] - col2[1]);
     g = abs(col1[2] - col2[2]);
     b = abs(col1[3] - col2[3]);
@@ -3634,12 +3661,13 @@ __attribute__((noinline)) void fast_delta8_argb(const uint8_t* col1, const uint8
     result += 4;
   }
 }
+
 __attribute__((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
   int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
-  while(result < max_ptr) {
+  while (result < max_ptr) {
     r = abs(col1[1] - col2[1]);
     g = abs(col1[2] - col2[2]);
     b = abs(col1[3] - col2[3]);
@@ -3657,7 +3685,7 @@ __attribute__((noinline)) void fast_delta8_abgr(const uint8_t* col1, const uint8
   int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
-  while(result < max_ptr) {
+  while (result < max_ptr) {
     b = abs(col1[1] - col2[1]);
     g = abs(col1[2] - col2[2]);
     r = abs(col1[3] - col2[3]);
@@ -3684,7 +3712,7 @@ __attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_
   int r,g,b;
   const uint8_t* const max_ptr = result + count;
 
-  while(result < max_ptr) {
+  while (result < max_ptr) {
     b = abs(col1[1] - col2[1]);
     g = abs(col1[2] - col2[2]);
     r = abs(col1[3] - col2[3]);

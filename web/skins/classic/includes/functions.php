@@ -256,21 +256,21 @@ function getNavBarHTML($reload = null) {
     $status = $running ? ($state ? $state : translate('Running')) : translate('Stopped');
 ?>
 <div class="navbar navbar-inverse navbar-static-top">
-	<div class="container-fluid">
-		<div class="navbar-header">
-			<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
-			</button>
+      </button>
       <div class="navbar-brand">
         <a href="<?php echo validHtmlStr(ZM_HOME_URL); ?>" target="<?php echo validHtmlStr(ZM_WEB_TITLE); ?>"><?php echo ZM_HOME_CONTENT ?></a>
       </div>
-		</div>
+    </div>
 
-		<div class="collapse navbar-collapse" id="main-header-nav">
-		<ul class="nav navbar-nav">
+    <div class="collapse navbar-collapse" id="main-header-nav">
+      <ul class="nav navbar-nav">
 <?php
 if ( $user and $user['Username'] ) {
   if ( canView('Monitors') ) {
@@ -378,34 +378,52 @@ if ( $user and $user['Username'] ) {
 if ( (!ZM_OPT_USE_AUTH) or $user ) {
   if ($reload == 'reload') ob_start();
 ?>
-	<div id="reload" class="container-fluid reduced-text">
+  <div id="reload" class="container-fluid reduced-text">
     <div id="Bandwidth" class="pull-left">
-      <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
+      <?php echo getBandwidthHTML($bandwidth_options,$user) ?>
     </div>
     <div id="Version" class="pull-right">
-      <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit('System') ) ?>
+      <?php echo getZMVersionHTML($versionClass) ?>
     </div>
     <ul class="list-inline">
-      <li class="Load"><i class="material-icons md-18">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-      <i class="material-icons md-18">storage</i>
-<?php 
+      <?php echo getSysLoadHTML() ?>
+      <?php echo getDbConHTML() ?>
+      <?php echo getStorageHTML() ?>
+      <?php echo getShmHTML() ?>
+    </ul>
+    <?php echo getConsoleBannerHTML() ?>
+  </div><!-- End .footer/reload -->
+<?php
+  if ($reload == 'reload') return ob_get_clean();
+} // end if (!ZM_OPT_USE_AUTH) or $user )
+?>
+  </div>
+</div><!-- End .navbar .navbar-default -->
+<?php
+  return ob_get_clean();
+} // end function getNavBarHTML()
+
+function getSysLoadHTML() {
+
+  echo '<li class="Load">';
+  echo '<i class="material-icons md-18">trending_up</i>';
+  echo '&nbsp;'.translate('Load').':'.getLoad();
+  echo '</li>';
+}
+
+function getDbConHTML() {
   $connections = dbFetchOne('SHOW status WHERE variable_name=\'threads_connected\'', 'Value');
   $max_connections = dbFetchOne('SHOW variables WHERE variable_name=\'max_connections\'', 'Value');
   $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
-  echo '<li'. ( $percent_used > 90 ? ' class="warning"' : '' ).'>'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';
-?>
-	  <li><?php echo translate('Storage') ?>:
-<?php
-  $storage_areas = ZM\Storage::find(array('Enabled'=>true));
-  $storage_paths = null;
-	$storage_areas_with_no_server_id = array();
-  foreach ( $storage_areas as $area ) {
-    $storage_paths[$area->Path()] = $area;
-		if ( ! $area->ServerId() ) {
-			$storage_areas_with_no_server_id[] = $area;
-		}
-  }
-  $func = function($S){
+  $class = $percent_used > 90 ? 'warning' : '';
+
+  echo '<i class="material-icons md-18">storage</i>';
+  echo '<li class="'. $class .'">'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';   
+}
+
+function getStorageHTML() {
+
+  $func = function($S) {
     $class = '';
     if ( $S->disk_usage_percent() > 98 ) {
       $class = 'error';
@@ -414,14 +432,31 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
+    return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>';
+  };
 
-    return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>
-'; };
-  #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
-  if ( count($storage_areas) > 4 ) 
+  $storage_areas = ZM\Storage::find(array('Enabled'=>true));
+  $num_storage_areas = count($storage_areas);
+  $storage_paths = null;
+  $storage_areas_with_no_server_id = array();
+  foreach ( $storage_areas as $area ) {
+    $storage_paths[$area->Path()] = $area;
+    if ( ! $area->ServerId() ) {
+      $storage_areas_with_no_server_id[] = $area;
+    }
+  }
+
+  echo '<li>'.translate('Storage').':';
+
+  if ( $num_storage_areas > 4 ) {
     $storage_areas = $storage_areas_with_no_server_id;
-  if ( count($storage_areas) <= 4 )
+  } else {
     echo implode(', ', array_map($func, $storage_areas));
+  }
+  echo '</li>';
+}
+
+function getShmHTML() {
   $shm_percent = getDiskPercent(ZM_PATH_MAP);
   $shm_total_space = disk_total_space(ZM_PATH_MAP);
   $shm_used = $shm_total_space - disk_free_space(ZM_PATH_MAP);
@@ -433,21 +468,24 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
     $class = 'warning';
   }
   echo ' <span class="'.$class.'" title="' . human_filesize($shm_used).' of '.human_filesize($shm_total_space).'">'.ZM_PATH_MAP.': '.$shm_percent.'%</span>';
-?></li>
-  </ul>
-    <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>
-        <h3 id="development"><?php echo validHtmlStr(ZM_WEB_CONSOLE_BANNER); ?></h3>
-    <?php } ?>	
-<!-- End .footer/reload --></div>
-<?php
-  if ($reload == 'reload') return ob_get_clean();
-} // end if (!ZM_OPT_USE_AUTH) or $user )
-?>
-  </div>
-</div><!-- End .navbar .navbar-default -->
-<?php
-  return ob_get_clean();
-} // end function getNavBarHTML()
+}
+
+function getConsoleBannerHTML() {
+
+  if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) {
+    echo '<h3 id="development">'.validHtmlStr(ZM_WEB_CONSOLE_BANNER).'</h3>';
+  }
+}
+
+function getBandwidthHTML($bandwidth_options,$user) {
+
+  echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' ));
+}
+
+function getZMVersionHTML($versionClass) {
+
+  echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit('System') );
+}
 
 function xhtmlFooter() {
   global $cspNonce;

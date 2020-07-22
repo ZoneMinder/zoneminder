@@ -270,28 +270,20 @@ Image::~Image() {
 /* Should be called as part of program shutdown to free everything */
 void Image::Deinitialise() {
   if ( !initialised ) return;
-  /*
-     delete[] y_table;
-     delete[] uv_table;
-     delete[] r_v_table;
-     delete[] g_v_table;
-     delete[] g_u_table;
-     delete[] b_u_table;
-     */
   initialised = false;
   if ( readjpg_dcinfo ) {
-    jpeg_destroy_decompress( readjpg_dcinfo );
+    jpeg_destroy_decompress(readjpg_dcinfo);
     delete readjpg_dcinfo;
-    readjpg_dcinfo = 0;
+    readjpg_dcinfo = NULL;
   }
   if ( decodejpg_dcinfo ) {
-    jpeg_destroy_decompress( decodejpg_dcinfo );
+    jpeg_destroy_decompress(decodejpg_dcinfo);
     delete decodejpg_dcinfo;
-    decodejpg_dcinfo = 0;
+    decodejpg_dcinfo = NULL;
   }
   for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
     if ( writejpg_ccinfo[quality] ) {
-      jpeg_destroy_compress( writejpg_ccinfo[quality] );
+      jpeg_destroy_compress(writejpg_ccinfo[quality]);
       delete writejpg_ccinfo[quality];
       writejpg_ccinfo[quality] = NULL;
     }
@@ -993,14 +985,12 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
   struct jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
   FILE *outfile = NULL;
   static int raw_fd = 0;
-  bool need_create_comp = false;
   raw_fd = 0;
 
   if ( !cinfo ) {
     cinfo = writejpg_ccinfo[quality] = new jpeg_compress_struct;
     cinfo->err = jpeg_std_error(&jpg_err.pub);
     jpeg_create_compress(cinfo);
-    need_create_comp = true;
   }
   if ( !on_blocking_abort ) {
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
@@ -1018,8 +1008,6 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
       return false;
     }
   }
-  if ( need_create_comp )
-    jpeg_create_compress(cinfo);
 
   if ( !on_blocking_abort ) {
     if ( (outfile = fopen(filename, "wb")) == NULL ) {
@@ -2842,7 +2830,6 @@ void Image::Deinterlace_Discard() {
   } else {
     Error("Deinterlace called with unexpected colours: %d", colours);
   }
-
 }
 
 void Image::Deinterlace_Linear() {

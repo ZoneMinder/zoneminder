@@ -779,7 +779,7 @@ void LocalCamera::Initialise() {
       }
     } else {        
       if ( vidioctl(vid_fd, VIDIOC_S_FMT, &v4l2_data.fmt) < 0 ) {
-        Fatal("Failed to set video format: %s", strerror(errno));
+        Error("Failed to set video format: %s", strerror(errno));
       }
     }
 

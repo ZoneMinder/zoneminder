@@ -96,8 +96,8 @@ class Event {
     VideoStore *videoStore;
 
     VideoWriter* videowriter;
-    char video_name[PATH_MAX];
-    char video_file[PATH_MAX];
+    std::string video_name;
+    std::string video_file;
     int        last_db_frame;
     bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.
     Storage::Schemes  scheme;
@@ -140,15 +140,15 @@ class Event {
   public:
     static const char *getSubPath( struct tm *time ) {
       static char subpath[PATH_MAX] = "";
-      snprintf( subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec );
-      return( subpath );
+      snprintf(subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec);
+      return subpath;
     }
     static const char *getSubPath( time_t *time ) {
       return Event::getSubPath( localtime( time ) );
     }
 
-    char* getEventFile(void) {
-      return video_file;
+    const char* getEventFile(void) {
+      return video_file.c_str();
     }
 
   public:
@@ -156,28 +156,37 @@ class Event {
       return pre_alarm_count;
     }
     static void EmptyPreAlarmFrames() {
-      if ( pre_alarm_count > 0 ) {
-        for ( int i = 0; i < MAX_PRE_ALARM_FRAMES; i++ ) {
-          delete pre_alarm_data[i].image;
-          delete pre_alarm_data[i].alarm_frame;
-        }
-        memset( pre_alarm_data, 0, sizeof(pre_alarm_data) );
-      }
+      while ( pre_alarm_count > 0 ) {
+				int i = pre_alarm_count - 1;
+Debug(1, "EmptyreAlarmFrame: %d", i);
+				delete pre_alarm_data[i].image;
+				pre_alarm_data[i].image = NULL;
+				if ( pre_alarm_data[i].alarm_frame ) {
+					delete pre_alarm_data[i].alarm_frame;
+					pre_alarm_data[i].alarm_frame = NULL;
+				}
+				pre_alarm_count--;
+			}
       pre_alarm_count = 0;
     }
-    static void AddPreAlarmFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL ) {
-      pre_alarm_data[pre_alarm_count].image = new Image( *image );
+    static void AddPreAlarmFrame(Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL) {
+      pre_alarm_data[pre_alarm_count].image = new Image(*image);
       pre_alarm_data[pre_alarm_count].timestamp = timestamp;
       pre_alarm_data[pre_alarm_count].score = score;
       if ( alarm_frame ) {
-        pre_alarm_data[pre_alarm_count].alarm_frame = new Image( *alarm_frame );
+        pre_alarm_data[pre_alarm_count].alarm_frame = new Image(*alarm_frame);
       }
       pre_alarm_count++;
     }
     void SavePreAlarmFrames() {
+Debug(1, "SavePreAlarmFrame: %d", pre_alarm_count);
       for ( int i = 0; i < pre_alarm_count; i++ ) {
-        AddFrame( pre_alarm_data[i].image, pre_alarm_data[i].timestamp, pre_alarm_data[i].score, pre_alarm_data[i].alarm_frame );
-      }
+        AddFrame(
+						pre_alarm_data[i].image,
+						pre_alarm_data[i].timestamp,
+						pre_alarm_data[i].score,
+						pre_alarm_data[i].alarm_frame);
+			}
       EmptyPreAlarmFrames();
     }
 };

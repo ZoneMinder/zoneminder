@@ -78,7 +78,9 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
   // We signal on every packet because someday we may analyze sound
   Debug(2,"Signalling");
   condition->signal();
+  Debug(2," after Signalling");
   mutex.unlock();
+  Debug(2," after unlock");
 
 	return true;
 } // end bool zm_packetqueue::queuePacket(ZMPacket* zm_packet)

@@ -281,7 +281,7 @@ Monitor::Monitor()
   //pass
   //path
  //device 
- palette(0),
+  palette(0),
   channel(0),
   format(0),
 
@@ -350,7 +350,7 @@ Monitor::Monitor()
   else
     event_close_mode = CLOSE_IDLE;
 
-  start_time = last_fps_time = time( 0 );
+  start_time = last_fps_time = time(0);
   event = 0;
   last_section_mod = 0;
 
@@ -416,7 +416,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
   alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 
-  if (analysis_fps > 0.0) {
+  if ( analysis_fps > 0.0 ) {
       uint64_t usec = round(1000000*pre_event_count/analysis_fps);
       video_buffer_duration.tv_sec = usec/1000000;
       video_buffer_duration.tv_usec = usec % 1000000;
@@ -590,16 +590,15 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
 // maybe unneeded
   // Should maybe store this for later use
-  char monitor_dir[PATH_MAX];
-  snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
+  std::string monitor_dir = stringtf("%s/%d", storage->Path(), id);
   if ( purpose == CAPTURE ) {
-    if ( mkdir(monitor_dir, 0755) && ( errno != EEXIST ) ) {
-      Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
+    if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
+      Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
     }
   } else if ( purpose == ANALYSIS ) {
     if ( config.record_diag_images ) {
-      diag_path_r = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
-      diag_path_d = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
+      diag_path_r = monitor_dir + "/diag-r.jpg";
+      diag_path_d = monitor_dir + "/diag-d.jpg";
     }
   }
 
@@ -1106,7 +1105,7 @@ Monitor::State Monitor::GetState() const {
   return (State)shared_data->state;
 }
 
-int Monitor::GetImage( int index, int scale ) {
+int Monitor::GetImage(int index, int scale) {
   if ( index < 0 || index > image_buffer_count ) {
     index = shared_data->last_write_index;
   }
@@ -1875,13 +1874,14 @@ bool Monitor::Analyse() {
                   && (!event->AlarmFrames())
                   && (event_close_mode == CLOSE_ALARM)
                   && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+                  && ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) )
                  ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
                     name, image_count, event->Id());
                 closeEvent();
               } else if ( event ) {
                 // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-                Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d",
+                Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d min",
                     Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
                     ( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
                     );
@@ -1911,9 +1911,9 @@ bool Monitor::Analyse() {
                   shared_data->state = state = ALARM;
 
                   Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name, image_count, event->Id());
-
                 }
                 if ( alarm_frame_count ) {
+Debug(1, "alarm frame count so SavePreAlarmFrames");
                   event->SavePreAlarmFrames();
                 }
               } else if ( state != PREALARM ) {
@@ -2305,7 +2305,7 @@ int Monitor::Capture() {
     captureResult = camera->Capture(*packet);
     gettimeofday(packet->timestamp, NULL);
     if ( captureResult < 0 ) {
-      Debug(2,"failed capture");
+      Debug(2, "failed capture");
       // Unable to capture image for temporary reason
       // Fake a signal loss image
       Rgb signalcolor;
@@ -2392,6 +2392,7 @@ int Monitor::Capture() {
       }
 
       if ( orientation != ROTATE_0 ) {
+        Debug(2, "Doing rotation");
         switch ( orientation ) {
           case ROTATE_0 :
             // No action required
@@ -2412,13 +2413,16 @@ int Monitor::Capture() {
         capture_image->MaskPrivacy(privacy_bitmask);
 
       if ( config.timestamp_on_capture ) {
+        Debug(1, "Timestamping");
         TimestampImage(capture_image, packet->timestamp);
       }
 
       shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
+        Debug(1, "signal check points? %d", signal_check_points);
       shared_data->last_write_index = index;
       shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
       image_count++;
+      Debug(2, "Unlocking packet");
       packet->unlock();
 
       if ( fps_report_interval && ( !(image_count%fps_report_interval) || image_count == 5 ) ) {
@@ -2478,13 +2482,13 @@ int Monitor::Capture() {
   return captureResult;
 } // end Monitor::Capture
 
-void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) const {
+void Monitor::TimestampImage(Image *ts_image, const struct timeval *ts_time) const {
   if ( !label_format[0] )
     return;
 
   // Expand the strftime macros first
   char label_time_text[256];
-  strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time->tv_sec ) );
+  strftime(label_time_text, sizeof(label_time_text), label_format, localtime(&ts_time->tv_sec));
 
   char label_text[1024];
   const char *s_ptr = label_time_text;
@@ -2494,15 +2498,15 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
       bool found_macro = false;
       switch ( *(s_ptr+1) ) {
         case 'N' :
-          d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", name );
+          d_ptr += snprintf(d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", name);
           found_macro = true;
           break;
         case 'Q' :
-          d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", trigger_data->trigger_showtext );
+          d_ptr += snprintf(d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", trigger_data->trigger_showtext);
           found_macro = true;
           break;
         case 'f' :
-          d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time->tv_usec/10000 );
+          d_ptr += snprintf(d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time->tv_usec/10000);
           found_macro = true;
           break;
       }
@@ -2514,7 +2518,9 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
     *d_ptr++ = *s_ptr++;
   } // end while
   *d_ptr = '\0';
+  Debug(2, "annotating %s", label_text);
   ts_image->Annotate(label_text, label_coord, label_size);
+  Debug(2, "done annotating %s", label_text);
 } // end void Monitor::TimestampImage
 
 bool Monitor::closeEvent() {

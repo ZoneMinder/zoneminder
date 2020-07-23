@@ -495,7 +495,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
     frames++;
 
     if ( monitor->GetOptSaveJPEGs() & 1 ) {
-			std::string event_file = stringtf(staticConfig.capture_file_format, path, frames);
+			std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
       Debug(1, "Writing pre-capture frame %d", frames);
       WriteFrameImage(images[i], *(timestamps[i]), event_file.c_str());
     }
@@ -606,8 +606,8 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     score = 0;
 
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
-    std::string event_file = stringtf(staticConfig.capture_file_format, path, frames);
-    Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
+    std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
+    Debug(1, "Writing capture frame %d to %s using %s %d %s", frames, event_file.c_str());
     if ( !WriteFrameImage(image, timestamp, event_file.c_str()) ) {
       Error("Failed to write frame image");
     }
@@ -635,7 +635,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
     if ( alarm_image ) {
       if ( monitor->GetOptSaveJPEGs() & 2 ) {
-        std::string event_file = stringtf(staticConfig.analyse_file_format, path, frames);
+        std::string event_file = stringtf(staticConfig.analyse_file_format, path.c_str(), frames);
         Debug(1, "Writing analysis frame %d", frames);
         if ( ! WriteFrameImage(alarm_image, timestamp, event_file.c_str(), true) ) {
           Error("Failed to write analysis frame image");
@@ -657,7 +657,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
-    if ( write_to_db || (frame_data.size() > (unsigned int)monitor->get_fps()) ) {
+    if ( write_to_db || ( monitor->get_fps() && (frame_data.size() > (unsigned int)monitor->get_fps())) ) {
       Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > fps %d",
 					frame_data.size(), write_to_db, (unsigned int)monitor->get_fps());
       WriteDbFrames();

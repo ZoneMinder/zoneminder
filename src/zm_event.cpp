@@ -607,7 +607,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
     std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
-    Debug(1, "Writing capture frame %d to %s using %s %d %s", frames, event_file.c_str());
+    Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
     if ( !WriteFrameImage(image, timestamp, event_file.c_str()) ) {
       Error("Failed to write frame image");
     }

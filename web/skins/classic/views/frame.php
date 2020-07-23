@@ -50,19 +50,19 @@ $lastFid = $maxFid;
 
 $alarmFrame = $Frame->Type() == 'Alarm';
 
-if ( isset( $_REQUEST['scale'] ) ) {
+if ( isset($_REQUEST['scale']) ) {
   $scale = validNum($_REQUEST['scale']);
-} else if ( isset( $_COOKIE['zmWatchScale'.$Monitor->Id()] ) ) {
+} else if ( isset($_COOKIE['zmWatchScale'.$Monitor->Id()]) ) {
   $scale = validNum($_COOKIE['zmWatchScale'.$Monitor->Id()]);
-} else if ( isset( $_COOKIE['zmWatchScale'] ) ) {
+} else if ( isset($_COOKIE['zmWatchScale']) ) {
   $scale = validNum($_COOKIE['zmWatchScale']);
 } else {
   $scale = max(reScale(SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
 }
-$scale = $scale ?: 'auto';
+$scale = $scale ? $scale : 0;
 
-$imageData = $Event->getImageSrc( $frame, $scale, 0 );
-if ( ! $imageData ) {
+$imageData = $Event->getImageSrc($frame, $scale, 0);
+if ( !$imageData ) {
   ZM\Error("No data found for Event $eid frame $fid");
   $imageData = array();
 }
@@ -89,10 +89,10 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
     <form>
       <div id="headerButtons">
         <?php if ( ZM_RECORD_EVENT_STATS && $alarmFrame ) { echo makePopupLink( '?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$Frame->FrameId(), 'zmStats', 'stats', translate('Stats') ); } ?>
-        <?php if ( canEdit( 'Events' ) ) { ?><a href="?view=none&amp;action=delete&amp;markEid=<?php echo $Event->Id() ?>"><?php echo translate('Delete') ?></a><?php } ?>
+        <?php if ( canEdit('Events') ) { ?><a href="?view=none&amp;action=delete&amp;markEid=<?php echo $Event->Id() ?>"><?php echo translate('Delete') ?></a><?php } ?>
         <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
       </div>
-      <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect('scale', $scales); ?></div>
+      <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo htmlSelect('scale', $scales, $scale); ?></div>
       <h2><?php echo translate('Frame') ?> <?php echo $Event->Id().'-'.$Frame->FrameId().' ('.$Frame->Score().')' ?></h2>
       <input type="hidden" name="base_width" id="base_width" value="<?php echo $Event->Width(); ?>"/>
       <input type="hidden" name="base_height" id="base_height" value="<?php echo $Event->Height(); ?>"/>
@@ -100,7 +100,6 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
     </div>
     <div id="content">
       <p id="image">
-
 <?php if ( $imageData['hasAnalImage'] ) {
  echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%d&amp;show=%s">', $Event->Id(), $Frame->FrameId(), $scale, ( $show=='anal'?'capt':'anal' ) );
 } ?>

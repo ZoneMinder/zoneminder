@@ -176,6 +176,7 @@ Debug(1, "EmptyreAlarmFrame: %d", i);
         pre_alarm_data[pre_alarm_count].alarm_frame = new Image(*alarm_frame);
       }
       pre_alarm_count++;
+Debug(1, "PreAlarmFrame icount now at: %d", pre_alarm_count);
     }
     void SavePreAlarmFrames() {
 Debug(1, "SavePreAlarmFrame: %d", pre_alarm_count);

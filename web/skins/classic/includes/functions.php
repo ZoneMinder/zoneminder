@@ -254,6 +254,7 @@ function getNavBarHTML($reload = null) {
         $state = '';
     }
     $status = $running ? ($state ? $state : translate('Running')) : translate('Stopped');
+
 ?>
 <div class="navbar navbar-inverse navbar-static-top">
   <div class="container-fluid">
@@ -265,14 +266,15 @@ function getNavBarHTML($reload = null) {
         <span class="icon-bar"></span>
       </button>
       <div class="navbar-brand">
-        <a href="<?php echo validHtmlStr(ZM_HOME_URL); ?>" target="<?php echo validHtmlStr(ZM_WEB_TITLE); ?>"><?php echo ZM_HOME_CONTENT ?></a>
+        <?php echo getNavBrandHTML(); ?>
       </div>
     </div>
     <div class="collapse navbar-collapse" id="main-header-nav">
       <ul class="nav navbar-nav">
 <?php
-// *** Build the navigation bar menu items ***
-if ( $user and $user['Username'] ) {
+
+  // *** Build the navigation bar menu items ***
+  if ( $user and $user['Username'] ) {
         echo getConsoleHTML();
         echo getOptionsHTML();
         echo getLogHTML();
@@ -284,28 +286,31 @@ if ( $user and $user['Username'] ) {
         echo getMontageReviewHTML();
         echo getRprtEvntAuditHTML();
         echo getHeaderFlipHTML();
-?>           
-      </ul>
-      <div class="navbar-right">
-        <?php
-        echo getAcctCircleHTML($user);
-        echo getStatusBtnHTML($status);
-        ?>
-      </div>
 
-<?php } else { # end if !$user or $user['Id'] meaning logged in ?>
-</ul>
-<?php } # end if !$user or $user['Id'] meaning logged in ?>
-		</div><!-- End .navbar-collapse -->
-	</div> <!-- End .container-fluid -->
+        echo '</ul>';
+
+        echo '<div class="navbar-right">';
+          echo getAcctCircleHTML($user);
+          echo getStatusBtnHTML($status);
+        echo '</div>';
+
+  } else { # end if $user and $user['Username']
+        echo '</ul>';
+  } # end if $user and $user['Username']
+
+?>
+    </div><!-- End .navbar-collapse -->
+  </div> <!-- End .container-fluid -->
   <div id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
+
 } //end reload null.  Runs on full page load
 
 if ( (!ZM_OPT_USE_AUTH) or $user ) {
   if ($reload == 'reload') ob_start();
+
+// *** Build the statistics shown on the navigation bar ***
 ?>
-<!-- *** Build the statistics shown on the navigation bar ***  -->
   <div id="reload" class="container-fluid reduced-text">
     <div id="Bandwidth" class="pull-left">
       <?php echo getBandwidthHTML($bandwidth_options,$user) ?>
@@ -326,6 +331,7 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
 <?php
   if ($reload == 'reload') return ob_get_clean();
 } // end if (!ZM_OPT_USE_AUTH) or $user )
+
 ?>
   </div>
 </div><!-- End .navbar .navbar-default -->
@@ -420,6 +426,11 @@ function getBandwidthHTML($bandwidth_options,$user) {
 // Returns the html representing the version of ZoneMinder
 function getZMVersionHTML($versionClass) {
   echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit('System') );
+}
+
+// Returns the html representing the ZoneMinder logo
+function getNavBrandHTML() {
+  echo '<a href="' .validHtmlStr(ZM_HOME_URL). '" target="' .validHtmlStr(ZM_WEB_TITLE). '">' .ZM_HOME_CONTENT. '</a>';
 }
 
 // Returns the html representing the Console menu item

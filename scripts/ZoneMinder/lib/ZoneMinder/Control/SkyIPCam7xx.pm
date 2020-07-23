@@ -82,6 +82,13 @@ sub sendCmd {
   return $result;
 }
 
+sub reboot {
+  my $self = shift;
+  Debug('Camera Rebot');
+  my $cmd = '/admin/reboot.cgi?type=0';
+  $self->sendCmd($cmd);
+}
+
 sub reset {
   my $self = shift;
   Debug('Camera Reset');

@@ -106,17 +106,17 @@ std::vector<std::string> split(const std::string &s, char delim) {
   return elems;
 }
 
-Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) :
-  id( p_id ),
+Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
+  id(p_id),
   shared_data(NULL),
   trigger_data(NULL),
   video_store_data(NULL)
 {
-  strncpy( name, p_name, sizeof(name)-1 );
+  strncpy(name, p_name, sizeof(name)-1);
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
-  snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id );
+  snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
 #else // ZM_MEM_MAPPED
   shm_id = 0;
 #endif // ZM_MEM_MAPPED
@@ -276,7 +276,7 @@ bool Monitor::MonitorLink::hasAlarmed() {
 }
 
 Monitor::Monitor(
-  int p_id,
+  unsigned int p_id,
   const char *p_name,
   const unsigned int p_server_id,
   const unsigned int p_storage_id,

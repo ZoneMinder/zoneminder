@@ -218,10 +218,10 @@ protected:
     uint64_t   last_event;
 
     public:
-      MonitorLink(int p_id, const char *p_name);
+      MonitorLink(unsigned int p_id, const char *p_name);
       ~MonitorLink();
 
-      inline int Id() const {
+      inline unsigned int Id() const {
         return id;
       }
       inline const char *Name() const {
@@ -366,12 +366,12 @@ protected:
   std::vector<Group *> groups;
 
 public:
-  explicit Monitor( int p_id );
+  explicit Monitor(unsigned int p_id);
 
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
   Monitor( 
-    int p_id,
+    unsigned int p_id,
     const char *p_name,
     unsigned int p_server_id,
     unsigned int p_storage_id,
@@ -428,7 +428,7 @@ public:
     return shared_data->valid;
   }
 
-  inline int Id() const {
+  inline unsigned int Id() const {
     return id;
   }
   inline const char *Name() const {

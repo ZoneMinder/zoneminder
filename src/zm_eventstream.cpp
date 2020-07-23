@@ -187,13 +187,13 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
     if ( storage_path[0] == '/' )
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d",
+          "%s/%d/%02d/%02d/%02d/%02d/%02d/%02d",
           storage_path, event_data->monitor_id,
           event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday,
           event_time->tm_hour, event_time->tm_min, event_time->tm_sec);
     else
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d",
+          "%s/%s/%d/%02d/%02d/%02d/%02d/%02d/%02d",
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday,
           event_time->tm_hour, event_time->tm_min, event_time->tm_sec);
@@ -201,23 +201,23 @@ bool EventStream::loadEventData(uint64_t event_id) {
     struct tm *event_time = localtime(&event_data->start_time);
     if ( storage_path[0] == '/' )
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%ld/%04d-%02d-%02d/%" PRIu64,
+          "%s/%d/%04d-%02d-%02d/%" PRIu64,
           storage_path, event_data->monitor_id,
           event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday,
           event_data->event_id);
     else
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%s/%ld/%04d-%02d-%02d/%" PRIu64,
+          "%s/%s/%d/%04d-%02d-%02d/%" PRIu64,
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, 
           event_data->event_id);
 
   } else {
     if ( storage_path[0] == '/' )
-      snprintf(event_data->path, sizeof(event_data->path), "%s/%ld/%" PRIu64,
+      snprintf(event_data->path, sizeof(event_data->path), "%s/%d/%" PRIu64,
           storage_path, event_data->monitor_id, event_data->event_id);
     else
-      snprintf(event_data->path, sizeof(event_data->path), "%s/%s/%ld/%" PRIu64, 
+      snprintf(event_data->path, sizeof(event_data->path), "%s/%s/%d/%" PRIu64, 
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_data->event_id);
   }
@@ -566,11 +566,11 @@ bool EventStream::checkEventLoaded() {
 
   if ( curr_frame_id <= 0 ) {
     snprintf(sql, sizeof(sql),
-        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %ld AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
+        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
         event_data->monitor_id, event_data->event_id);
   } else if ( (unsigned int)curr_frame_id > event_data->frame_count ) {
     snprintf(sql, sizeof(sql),
-        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %ld AND `Id` > %" PRIu64 " ORDER BY `Id` ASC LIMIT 1",
+        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` > %" PRIu64 " ORDER BY `Id` ASC LIMIT 1",
         event_data->monitor_id, event_data->event_id);
   } else {
     // No event change required

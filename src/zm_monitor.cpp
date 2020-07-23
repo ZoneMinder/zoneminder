@@ -1549,6 +1549,7 @@ bool Monitor::Analyse() {
 									( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
 									);
 						}
+
 						if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) ) {
 							// lets construct alarm cause. It will contain cause + names of zones alarmed
 							std::string alarm_cause = "";
@@ -1607,7 +1608,6 @@ bool Monitor::Analyse() {
                   event = new Event(this, *(image_buffer[pre_index].timestamp), cause, noteSetMap);
                 } // end if analysis_fps && pre_event_count
 
-                shared_data->state = state = ALARM;
                 shared_data->last_event = event->Id();
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
@@ -1632,11 +1632,12 @@ bool Monitor::Analyse() {
                   event->AddFrames(pre_event_images, images, timestamps);
                 }  // end if pre_event_images
 
-                if ( alarm_frame_count ) {
+                if ( ( alarm_frame_count > 1 ) && Event::PreAlarmCount() ) {
 Debug(1, "alarm frame count so SavePreAlarmFrames");
                   event->SavePreAlarmFrames();
                 }
               } // end if event
+              shared_data->state = state = ALARM;
             } else if ( state != PREALARM ) {
               Info("%s: %03d - Gone into prealarm state", name, image_count);
               shared_data->state = state = PREALARM;

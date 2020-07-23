@@ -504,6 +504,7 @@ uint8_t* Image::WriteBuffer(
   }
 
   if ( p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder ) {
+
     unsigned int newsize = (p_width * p_height) * p_colours;
 
     if ( buffer == NULL ) {
@@ -524,6 +525,7 @@ uint8_t* Image::WriteBuffer(
     width = p_width;
     height = p_height;
     colours = p_colours;
+    linesize = p_width * p_colours;
     subpixelorder = p_subpixelorder;
     pixels = height*width;
     size = newsize;
@@ -897,16 +899,13 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
     Debug(9, "Image dimensions differ. Old: %ux%u New: %ux%u", width, height, new_width, new_height);
   }
 
-  switch (p_colours) {
+  switch ( p_colours ) {
     case ZM_COLOUR_GRAY8:
-      {
         cinfo->out_color_space = JCS_GRAYSCALE;
         new_colours = ZM_COLOUR_GRAY8;
         new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
         break;
-      }
     case ZM_COLOUR_RGB32:
-      {
 #ifdef JCS_EXTENSIONS
         new_colours = ZM_COLOUR_RGB32;
         if ( p_subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
@@ -927,10 +926,8 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
 #else
         Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
 #endif
-      }
     case ZM_COLOUR_RGB24:
     default:
-      {
         new_colours = ZM_COLOUR_RGB24;
         if ( p_subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
 #ifdef JCS_EXTENSIONS
@@ -954,8 +951,7 @@ cinfo->out_color_space = JCS_RGB;
           new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
         }
         break;
-      }
-  }
+  }  // end switch p_colours
 
   if ( WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == NULL ) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
@@ -2727,7 +2723,7 @@ void Image::Flip( bool leftright ) {
 
 }
 
-void Image::Scale( unsigned int factor ) {
+void Image::Scale(unsigned int factor) {
   if ( !factor ) {
     Error("Bogus scale factor %d found", factor);
     return;
@@ -2787,7 +2783,7 @@ void Image::Scale( unsigned int factor ) {
     unsigned int last_h_index = 0;
     unsigned int last_w_index = 0;
     unsigned int h_index;
-    for ( unsigned int y = 0; y < (unsigned int)height; y++ ) {
+    for ( unsigned int y = 0; y < height; y++ ) {
       h_count += factor;
       h_index = h_count/ZM_SCALE_BASE;
       if ( h_index > last_h_index ) {
@@ -2796,7 +2792,7 @@ void Image::Scale( unsigned int factor ) {
         last_w_index = 0;
 
         unsigned char *ps = &buffer[y*wc];
-        for ( unsigned int x = 0; x < (unsigned int)width; x++ ) {
+        for ( unsigned int x = 0; x < width; x++ ) {
           w_count += factor;
           w_index = w_count/ZM_SCALE_BASE;
 
@@ -2815,7 +2811,7 @@ void Image::Scale( unsigned int factor ) {
     new_width = last_w_index;
     new_height = last_h_index;
   }  // end foreach line
-  AssignDirect( new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
+  AssignDirect(new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
 }
 
 void Image::Deinterlace_Discard() {

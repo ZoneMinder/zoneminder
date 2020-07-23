@@ -495,7 +495,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
     frames++;
 
     if ( monitor->GetOptSaveJPEGs() & 1 ) {
-			std::string event_file = stringtf(staticConfig.capture_file_format, path, frames);
+			std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
       Debug(1, "Writing pre-capture frame %d", frames);
       WriteFrameImage(images[i], *(timestamps[i]), event_file.c_str());
     }
@@ -606,7 +606,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     score = 0;
 
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
-    std::string event_file = stringtf(staticConfig.capture_file_format, path, frames);
+    std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
     Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
     if ( !WriteFrameImage(image, timestamp, event_file.c_str()) ) {
       Error("Failed to write frame image");

@@ -268,104 +268,31 @@ function getNavBarHTML($reload = null) {
         <a href="<?php echo validHtmlStr(ZM_HOME_URL); ?>" target="<?php echo validHtmlStr(ZM_WEB_TITLE); ?>"><?php echo ZM_HOME_CONTENT ?></a>
       </div>
     </div>
-
     <div class="collapse navbar-collapse" id="main-header-nav">
       <ul class="nav navbar-nav">
 <?php
+// *** Build the navigation bar menu items ***
 if ( $user and $user['Username'] ) {
-  if ( canView('Monitors') ) {
-?>
-			<li><a href="?view=console"><?php echo translate('Console') ?></a></li>
-<?php
-  } // end if canView('Monitors')
-  if ( canView('System') ) {
-?>
-			<li><a href="?view=options"><?php echo translate('Options') ?></a></li>
-			<li>
-<?php
-    if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
-      if ( ! ZM_RUN_AUDIT ) {
-       # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
-        if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
-          # Number of lines, instead of an interval
-          $rows = dbFetchOne('SELECT Count(*) AS `Rows` FROM `Logs`', 'Rows');
-          if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
-            dbQuery('DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
-          }
-        } else if ( preg_match('/^\d\s*(hour|minute|day|week|month|year)$/', ZM_LOG_DATABASE_LIMIT, $matches) ) {
-          dbQuery('DELETE FROM `Logs` WHERE `TimeKey` < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
-        } else {
-          ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
-        }
-      }
-      echo makePopupLink('?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>');
-    }
-?>
-      </li>
-<?php
-  } // end if canview(System)
-  if ( ZM_OPT_X10 && canView('Devices') ) { ?>
-			<li><a href="?view=devices">Devices</a></li>
-<?php
-  }
-?>
-      <li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
-      <li><a href="?view=filter<?php echo $filterQuery.$sortQuery.$limitQuery ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
+        echo getConsoleHTML();
+        echo getOptionsHTML();
+        echo getLogHTML();
+        echo getDevicesHTML();
+        echo getGroupsHTML();
+        echo getFilterHTML();
+        echo getCycleHTML();
+        echo getMontageHTML();
+        echo getMontageReviewHTML();
+        echo getRprtEvntAuditHTML();
+        echo getHeaderFlipHTML();
+?>           
+      </ul>
+      <div class="navbar-right">
+        <?php
+        echo getAcctCircleHTML($user);
+        echo getStatusBtnHTML($status);
+        ?>
+      </div>
 
-<?php 
-  if ( canView('Stream') ) {
-?>
-      <li><a href="?view=cycle"<?php echo $view=='cycle'?' class="selected"':''?>><?php echo translate('Cycle') ?></a></li>
-      <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
-<?php
-   }
-  
-  if ( canView('Events') ) {
-    if ( isset($_REQUEST['filter']['Query']['terms']['attr']) ) {
-      $terms = $_REQUEST['filter']['Query']['terms'];
-      $count = 0;
-      foreach ($terms as $term) {
-        if ( $term['attr'] == 'StartDateTime' ) {
-          $count += 1;
-          if ($term['op'] == '>=') $minTime = $term['val'];
-          if ($term['op'] == '<=') $maxTime = $term['val'];
-        }
-      }
-      if ( $count == 2 ) {
-        $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
-      }
-    }
- ?>
-      <li><a href="?view=montagereview<?php echo isset($montageReviewQuery)?'&fit=1'.$montageReviewQuery.'&live=0':'' ?>"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
-      <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
-<?php
-  } // end if canView(Events)
-?>
-      <li><a href="#"><i id="flip" class="material-icons md-18 pull-right">keyboard_arrow_<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up' ?></i></a></li>
-		</ul>
-
-    <div class="navbar-right">
-<?php
-  if ( ZM_OPT_USE_AUTH and $user ) {
-?>
-    <p class="navbar-text">
-      <i class="material-icons">account_circle</i>
-      <?php echo makePopupLink('?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == 'builtin') ) ?>
-    </p>
-  <?php
-  }
-  if ( canEdit('System') ) {
-?>
-		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
-    <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
-    <p class="navbar-text">
-    <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ) ?>
-    </p>
-    <?php } ?>
-<?php } else if ( canView('System') ) { ?>
-		<p class="navbar-text"><?php echo $status ?></p>
-<?php } ?>
-  </div>
 <?php } else { # end if !$user or $user['Id'] meaning logged in ?>
 </ul>
 <?php } # end if !$user or $user['Id'] meaning logged in ?>
@@ -378,6 +305,7 @@ if ( $user and $user['Username'] ) {
 if ( (!ZM_OPT_USE_AUTH) or $user ) {
   if ($reload == 'reload') ob_start();
 ?>
+<!-- *** Build the statistics shown on the navigation bar ***  -->
   <div id="reload" class="container-fluid reduced-text">
     <div id="Bandwidth" class="pull-left">
       <?php echo getBandwidthHTML($bandwidth_options,$user) ?>
@@ -386,10 +314,12 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
       <?php echo getZMVersionHTML($versionClass) ?>
     </div>
     <ul class="list-inline">
-      <?php echo getSysLoadHTML() ?>
-      <?php echo getDbConHTML() ?>
-      <?php echo getStorageHTML() ?>
-      <?php echo getShmHTML() ?>
+      <?php
+      echo getSysLoadHTML();
+      echo getDbConHTML();
+      echo getStorageHTML();
+      echo getShmHTML();
+      ?>
     </ul>
     <?php echo getConsoleBannerHTML() ?>
   </div><!-- End .footer/reload -->
@@ -403,6 +333,7 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
   return ob_get_clean();
 } // end function getNavBarHTML()
 
+// Returns the html representing the current unix style system load
 function getSysLoadHTML() {
 
   echo '<li class="Load">';
@@ -411,6 +342,7 @@ function getSysLoadHTML() {
   echo '</li>';
 }
 
+// Returns the html representing the current number of connections made to the database
 function getDbConHTML() {
   $connections = dbFetchOne('SHOW status WHERE variable_name=\'threads_connected\'', 'Value');
   $max_connections = dbFetchOne('SHOW variables WHERE variable_name=\'max_connections\'', 'Value');
@@ -421,6 +353,7 @@ function getDbConHTML() {
   echo '<li class="'. $class .'">'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';   
 }
 
+// Returns the html representing up to 4 storage areas and their current capacity
 function getStorageHTML() {
 
   $func = function($S) {
@@ -456,6 +389,7 @@ function getStorageHTML() {
   echo '</li>';
 }
 
+// Returns the html representing the current capacity of mapped memory filesystem (usually /dev/shm)
 function getShmHTML() {
   $shm_percent = getDiskPercent(ZM_PATH_MAP);
   $shm_total_space = disk_total_space(ZM_PATH_MAP);
@@ -470,6 +404,7 @@ function getShmHTML() {
   echo ' <span class="'.$class.'" title="' . human_filesize($shm_used).' of '.human_filesize($shm_total_space).'">'.ZM_PATH_MAP.': '.$shm_percent.'%</span>';
 }
 
+// Returns the html representing the optional web console banner text
 function getConsoleBannerHTML() {
 
   if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) {
@@ -477,14 +412,151 @@ function getConsoleBannerHTML() {
   }
 }
 
+// Returns the html representing the current high,medium,low bandwidth setting
 function getBandwidthHTML($bandwidth_options,$user) {
-
   echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' ));
 }
 
+// Returns the html representing the version of ZoneMinder
 function getZMVersionHTML($versionClass) {
-
   echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit('System') );
+}
+
+// Returns the html representing the Console menu item
+function getConsoleHTML() {
+  if ( canView('Monitors') ) {
+    echo '<li><a href="?view=console">'.translate('Console').'</a></li>';
+  }
+}
+
+// Returns the html representing the Options menu item
+function getOptionsHTML() {
+  if ( canView('System') ) {
+    echo '<li><a href="?view=options">'.translate('Options').'</a></li>';
+  }
+}
+
+// Returns the html representing the Log menu item
+function getLogHTML() {
+  if ( canView('System') ) {
+    if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
+      if ( ! ZM_RUN_AUDIT ) {
+       # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
+        if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
+          # Number of lines, instead of an interval
+          $rows = dbFetchOne('SELECT Count(*) AS `Rows` FROM `Logs`', 'Rows');
+          if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
+            dbQuery('DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
+          }
+        } else if ( preg_match('/^\d\s*(hour|minute|day|week|month|year)$/', ZM_LOG_DATABASE_LIMIT, $matches) ) {
+          dbQuery('DELETE FROM `Logs` WHERE `TimeKey` < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+        } else {
+          ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
+        }
+      }
+      echo '<li>'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span></li>');
+    }
+  }
+}
+
+// Returns the html representing the X10 Devices menu item
+function getDevicesHTML() {
+  if ( ZM_OPT_X10 && canView('Devices') ) {
+    echo '<li><a href="?view=devices">Devices</a></li>';
+  }
+}
+
+// Returns the html representing the Groups menu item
+function getGroupsHTML() {
+  $class = $view == 'groups' ? 'selected' : '';
+  echo '<li><a href="?view=groups" class="' .$class. '">'. translate('Groups') .'</a></li>';
+}
+
+// Returns the html representing the Filter menu item
+function getFilterHTML() {
+  $class = $view == 'filter' ? 'selected' : '';
+  echo '<li><a href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'" class="'.$class.'">'.translate('Filters').'</a></li>';
+}
+
+// Returns the html representing the Cycle menu item
+function getCycleHTML() {
+  if ( canView('Stream') ) {
+    $class = $view == 'cycle' ? 'selected' : '';
+    echo '<li><a href="?view=cycle" class="' .$class. '">' .translate('Cycle'). '</a></li>';
+  }
+}
+
+// Returns the html representing the Montage menu item
+function getMontageHTML() {
+  if ( canView('Stream') ) {
+    $class = $view == 'cycle' ? 'selected' : '';
+    echo '<li><a href="?view=montage" class="' .$class. '">' .translate('Montage'). '</a></li>';
+  }
+}
+
+// Returns the html representing the MontageReview menu item
+function getMontageReviewHTML() {
+  if ( canView('Events') ) {
+    if ( isset($_REQUEST['filter']['Query']['terms']['attr']) ) {
+      $terms = $_REQUEST['filter']['Query']['terms'];
+      $count = 0;
+      foreach ($terms as $term) {
+        if ( $term['attr'] == 'StartDateTime' ) {
+          $count += 1;
+          if ($term['op'] == '>=') $minTime = $term['val'];
+          if ($term['op'] == '<=') $maxTime = $term['val'];
+        }
+      }
+      if ( $count == 2 ) {
+        $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
+      }
+    }
+    $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
+    $class = $view == 'montagereview' ? 'selected' : '';
+    echo '<li><a href="?view=montagereview' .$live. '" class="' .$class. '">' .translate('MontageReview'). '</a></li>';
+  }
+}
+
+// Returns the html representing the Audit Events Report menu item
+function getRprtEvntAuditHTML() {
+  if ( canView('Events') ) {
+    $class = $view == 'report_event_audit' ? 'selected' : '';
+    echo '<li><a href="?view=report_event_audit class="' .$class. '">' .translate('ReportEventAudit'). '</a></li>';
+  }
+}
+
+// Returns the html representing the header collapse toggle menu item
+function getHeaderFlipHTML() {
+  $header = ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up';
+  echo '<li><a href="#"><i id="flip" class="material-icons md-18 pull-right">keyboard_arrow_' .$header. '</i></a></li>';
+}
+
+// Returns the html representing the logged in user name and avatar
+function getAcctCircleHTML($user=null) {
+  if ( ZM_OPT_USE_AUTH and $user ) {
+    echo '<p class="navbar-text">';
+      echo '<i class="material-icons">account_circle</i>';
+      echo makePopupLink('?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == 'builtin') );
+    echo '</p>';
+  }
+}
+
+// Returns the html representing the runtime status button
+function getStatusBtnHTML($status) {
+  if ( canEdit('System') ) {
+    echo '<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState">' .$status. '</button>';
+
+    if ( ZM_SYSTEM_SHUTDOWN ) {
+      echo '<p class="navbar-text">';
+      echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' );
+      echo '</p>';
+     } 
+
+  } else if ( canView('System') ) {
+    echo '<p class="navbar-text">';
+    echo $status;
+    echo '</p>';
+  }
 }
 
 function xhtmlFooter() {

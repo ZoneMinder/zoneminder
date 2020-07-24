@@ -196,14 +196,20 @@ Image::Image(const AVFrame *frame) {
   text[0] = '\0';
 
   width = frame->width;
-  linesize = frame->linesize[0];
   height = frame->height;
   pixels = width*height;
-
   colours = ZM_COLOUR_RGB32;
   subpixelorder = ZM_SUBPIX_ORDER_RGBA;
 
-  size = linesize * height;
+  #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  size = av_image_get_buffer_size(AV_PIX_FMT_RGBA, width, height, 32);
+  // av_image_get_linesize isn't aligned, so we have to do that.
+  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 32);
+#else
+  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 1);
+  size = avpicture_get_size(AV_PIX_FMT_RGBA, width, height);
+#endif
+
   buffer = 0;
   holdbuffer = 0;
   AllocImgBuffer(size);
@@ -577,14 +583,15 @@ void Image::AssignDirect(
       width = p_width;
       height = p_height;
       colours = p_colours;
-      linesize = width*colours;
+      linesize = width * colours;
       subpixelorder = p_subpixelorder;
       pixels = height*width;
       size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
 
       /* Copy into the held buffer */
-      if ( new_buffer != buffer )
+      if ( new_buffer != buffer ) {
         (*fptr_imgbufcpy)(buffer, new_buffer, size);
+      }
 
       /* Free the new buffer */
       DumpBuffer(new_buffer, p_buffertype);
@@ -962,11 +969,10 @@ cinfo->out_color_space = JCS_RGB;
 
   jpeg_start_decompress(cinfo);
 
-  JSAMPROW row_pointer;  /* pointer to a single row */
-  int row_stride = width * colours; /* physical row width in buffer */
+  JSAMPROW row_pointer = buffer;
   while ( cinfo->output_scanline < cinfo->output_height ) {
-    row_pointer = &buffer[cinfo->output_scanline * row_stride];
     jpeg_read_scanlines(cinfo, &row_pointer, 1);
+    row_pointer += linesize;
   }
 
   jpeg_finish_decompress(cinfo);
@@ -1060,13 +1066,16 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
     case ZM_COLOUR_RGB32:
 #ifdef JCS_EXTENSIONS
         cinfo->input_components = 4;
-        if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
+        if ( subpixelorder == ZM_SUBPIX_ORDER_RGBA ) {
+          cinfo->in_color_space = JCS_EXT_RGBX;
+        } else if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
           cinfo->in_color_space = JCS_EXT_BGRX;
         } else if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
           cinfo->in_color_space = JCS_EXT_XRGB;
         } else if ( subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
           cinfo->in_color_space = JCS_EXT_XBGR;
         } else {
+          Warning("Unknwon subpixelorder %d", subpixelorder);
           /* Assume RGBA */
           cinfo->in_color_space = JCS_EXT_RGBX;
         }
@@ -1137,14 +1146,11 @@ cinfo->out_color_space = JCS_RGB;
   }
 
   JSAMPROW row_pointer;  /* pointer to a single row */
-  //cinfo->image_width * colours; /* physical row width in buffer */
   while ( cinfo->next_scanline < cinfo->image_height ) {
-    row_pointer = &buffer[cinfo->next_scanline * linesize];
     jpeg_write_scanlines(cinfo, &row_pointer, 1);
+    row_pointer += linesize;
   }
-
   jpeg_finish_compress(cinfo);
-
   fclose(outfile);
 
   return true;
@@ -1258,11 +1264,10 @@ cinfo->out_color_space = JCS_RGB;
 
   jpeg_start_decompress(cinfo);
 
-  JSAMPROW row_pointer;  /* pointer to a single row */
-  int row_stride = width * colours; /* physical row width in buffer */
+  JSAMPROW row_pointer = buffer;  /* pointer to a single row */
   while ( cinfo->output_scanline < cinfo->output_height ) {
-    row_pointer = &buffer[cinfo->output_scanline * row_stride];
     jpeg_read_scanlines(cinfo, &row_pointer, 1);
+    row_pointer += linesize;
   }
 
   jpeg_finish_decompress(cinfo);
@@ -1294,7 +1299,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_overr
   cinfo->image_width = width;   /* image width and height, in pixels */
   cinfo->image_height = height;
 
-  switch (colours) {
+  switch ( colours ) {
     case ZM_COLOUR_GRAY8:
         cinfo->input_components = 1;
         cinfo->in_color_space = JCS_GRAYSCALE;
@@ -1302,13 +1307,16 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_overr
     case ZM_COLOUR_RGB32:
 #ifdef JCS_EXTENSIONS
         cinfo->input_components = 4;
-        if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
+        if ( subpixelorder == ZM_SUBPIX_ORDER_RGBA ) {
+          cinfo->in_color_space = JCS_EXT_RGBX;
+        } else if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
           cinfo->in_color_space = JCS_EXT_BGRX;
         } else if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
           cinfo->in_color_space = JCS_EXT_XRGB;
         } else if ( subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
           cinfo->in_color_space = JCS_EXT_XBGR;
         } else {
+          Warning("unknown subpixelorder %d", subpixelorder);
           /* Assume RGBA */
           cinfo->in_color_space = JCS_EXT_RGBX;
         }
@@ -1349,11 +1357,10 @@ cinfo->out_color_space = JCS_RGB;
 
   jpeg_start_compress(cinfo, TRUE);
 
-  JSAMPROW row_pointer;  /* pointer to a single row */
-  int row_stride = linesize; /* physical row width in buffer */
+  JSAMPROW row_pointer = buffer;
   while ( cinfo->next_scanline < cinfo->image_height ) {
-    row_pointer = &buffer[cinfo->next_scanline * row_stride];
     jpeg_write_scanlines(cinfo, &row_pointer, 1);
+    row_pointer += linesize;
   }
 
   jpeg_finish_compress(cinfo);
@@ -1638,7 +1645,6 @@ void Image::Overlay( const Image &image, unsigned int x, unsigned int y ) {
   } else {
     Error("Overlay called with unexpected colours: %d", colours);
   }
-  Debug(1, "Overlay");
 }  // end void Image::Overlay( const Image &image, unsigned int x, unsigned int y )
 
 void Image::Blend( const Image &image, int transparency ) {
@@ -2351,9 +2357,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
 
     double grad;
 
-    //Debug( 9, "dx: %.2lf, dy: %.2lf", dx, dy );
     if ( fabs(dx) <= fabs(dy) ) {
-      //Debug( 9, "dx <= dy" );
       if ( y1 != y2 )
         grad = dx/dy;
       else
@@ -2363,9 +2367,7 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
       int y, yinc = (y1<y2)?1:-1;
       grad *= yinc;
       if ( colours == ZM_COLOUR_GRAY8 ) {
-        //Debug( 9, "x1:%d, x2:%d, y1:%d, y2:%d, gr:%.2f", x1, x2, y1, y2, grad );
         for ( x = x1, y = y1; y != y2; y += yinc, x += grad ) {
-          //Debug( 9, "x:%.2f, y:%d", x, y );
           buffer[(y*width)+int(round(x))] = colour;
         }
       } else if ( colours == ZM_COLOUR_RGB24 ) {
@@ -2452,7 +2454,8 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
 #ifndef ZM_DBG_OFF
   if ( logLevel() >= Logger::DEBUG9 ) {
     for ( int i = 0; i < n_global_edges; i++ ) {
-      Debug( 9, "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f", i, global_edges[i].min_y, global_edges[i].max_y, global_edges[i].min_x, global_edges[i]._1_m );
+      Debug(9, "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f",
+          i, global_edges[i].min_y, global_edges[i].max_y, global_edges[i].min_x, global_edges[i]._1_m);
     }
   }
 #endif
@@ -2475,11 +2478,12 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
         break;
       }
     }
-    qsort( active_edges, n_active_edges, sizeof(*active_edges), Edge::CompareX );
+    qsort(active_edges, n_active_edges, sizeof(*active_edges), Edge::CompareX);
 #ifndef ZM_DBG_OFF
     if ( logLevel() >= Logger::DEBUG9 ) {
       for ( int i = 0; i < n_active_edges; i++ ) {
-        Debug( 9, "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f", y, i, active_edges[i].min_y, active_edges[i].max_y, active_edges[i].min_x, active_edges[i]._1_m );
+        Debug(9, "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f",
+            y, i, active_edges[i].min_y, active_edges[i].max_y, active_edges[i].min_x, active_edges[i]._1_m );
       }
     }
 #endif
@@ -2520,7 +2524,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
     for ( int i = n_active_edges-1; i >= 0; i-- ) {
       if ( y >= active_edges[i].max_y ) {
         // Or >= as per sheets
-        Debug( 9, "Deleting active_edge" );
+        Debug(9, "Deleting active_edge");
         if ( i < (n_active_edges-1) ) {
           //memcpy( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
           memmove( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
@@ -2533,8 +2537,8 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   } while ( n_global_edges || n_active_edges );
 }
 
-void Image::Fill( Rgb colour, const Polygon &polygon ) {
-  Fill( colour, 1, polygon );
+void Image::Fill(Rgb colour, const Polygon &polygon) {
+  Fill(colour, 1, polygon);
 }
 
 void Image::Rotate(int angle) {
@@ -2543,7 +2547,6 @@ void Image::Rotate(int angle) {
   if ( !angle || angle%90 ) {
     return;
   }
-
   unsigned int new_height = height;
   unsigned int new_width = width;
   uint8_t* rotate_buffer = AllocBuffer(size);
@@ -2706,9 +2709,9 @@ void Image::Flip( bool leftright ) {
     unsigned char *s_ptr = buffer+(height*line_bytes);
     unsigned char *d_ptr = flip_buffer;
 
-    while( s_ptr > buffer ) {
+    while ( s_ptr > buffer ) {
       s_ptr -= line_bytes;
-      memcpy( d_ptr, s_ptr, line_bytes );
+      memcpy(d_ptr, s_ptr, line_bytes);
       d_ptr += line_bytes;
     }
   }

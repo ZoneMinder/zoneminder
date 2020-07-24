@@ -320,7 +320,7 @@ __attribute__((noinline,__target__("sse2")))
 #endif
 void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
-  if(bytes > 128) {
+  if ( bytes > 128 ) {
     unsigned int remainder = bytes % 128;
     const uint8_t* lastsrc = (uint8_t*)src + (bytes - remainder);
 
@@ -362,7 +362,7 @@ void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
   }
 #else
   /* Non x86\x86-64 platform, use memcpy */
-  memcpy(dest,src,bytes);
+  memcpy(dest, src, bytes);
 #endif
   return dest;
 }

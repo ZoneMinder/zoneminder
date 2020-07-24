@@ -605,7 +605,7 @@ void Image::AssignDirect(
     buffertype = p_buffertype;
     buffer = new_buffer;
   }
-}
+}  // end void Image::AssignDirect
 
 void Image::Assign(
     const unsigned int p_width,
@@ -980,16 +980,16 @@ cinfo->out_color_space = JCS_RGB;
 // Note quality=zero means default
 
 bool Image::WriteJpeg(const char *filename, int quality_override) const {
-  return Image::WriteJpeg(filename, quality_override, (timeval){0,0});
+  return Image::WriteJpeg(filename, quality_override, (timeval){0,0}, false);
 }
 bool Image::WriteJpeg(const char *filename) const {
-  return Image::WriteJpeg(filename, 0, (timeval){0,0});
+  return Image::WriteJpeg(filename, 0, (timeval){0,0}, false);
 }
 bool Image::WriteJpeg(const char *filename, bool on_blocking_abort) const {
   return Image::WriteJpeg(filename, 0, (timeval){0,0}, on_blocking_abort);
 }
 bool Image::WriteJpeg(const char *filename, struct timeval timestamp) const {
-  return Image::WriteJpeg(filename, 0, timestamp);
+  return Image::WriteJpeg(filename, 0, timestamp, false);
 }
 
 bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval timestamp) const {
@@ -1137,10 +1137,9 @@ cinfo->out_color_space = JCS_RGB;
   }
 
   JSAMPROW row_pointer;  /* pointer to a single row */
-  int row_stride = linesize;
   //cinfo->image_width * colours; /* physical row width in buffer */
   while ( cinfo->next_scanline < cinfo->image_height ) {
-    row_pointer = &buffer[cinfo->next_scanline * row_stride];
+    row_pointer = &buffer[cinfo->next_scanline * linesize];
     jpeg_write_scanlines(cinfo, &row_pointer, 1);
   }
 
@@ -1683,7 +1682,7 @@ void Image::Blend( const Image &image, int transparency ) {
   AssignDirect(width, height, colours, subpixelorder, new_buffer, size, ZM_BUFTYPE_ZM);
 }
 
-Image *Image::Merge( unsigned int n_images, Image *images[] ) {
+Image *Image::Merge(unsigned int n_images, Image *images[]) {
   if ( n_images == 1 ) return new Image(*images[0]);
 
   unsigned int width = images[0]->width;
@@ -1712,7 +1711,7 @@ Image *Image::Merge( unsigned int n_images, Image *images[] ) {
   return result;
 }
 
-Image *Image::Merge( unsigned int n_images, Image *images[], double weight ) {
+Image *Image::Merge(unsigned int n_images, Image *images[], double weight) {
   if ( n_images == 1 ) return new Image(*images[0]);
 
   unsigned int width = images[0]->width;
@@ -1725,7 +1724,7 @@ Image *Image::Merge( unsigned int n_images, Image *images[], double weight ) {
     }
   }
 
-  Image *result = new Image( *images[0] );
+  Image *result = new Image(*images[0]);
   unsigned int size = result->size;
   double factor = 1.0*weight;
   for ( unsigned int i = 1; i < n_images; i++ ) {
@@ -1754,7 +1753,7 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
     }
   }
 
-  Image *result = new Image( width, height, images[0]->colours, images[0]->subpixelorder );
+  Image *result = new Image(width, height, images[0]->colours, images[0]->subpixelorder);
   unsigned int size = result->size;
   for ( unsigned int c = 0; c < colours; c++ ) {
     unsigned int ref_colour_rgb = RGB_VAL(ref_colour,c);
@@ -2538,15 +2537,10 @@ void Image::Fill( Rgb colour, const Polygon &polygon ) {
   Fill( colour, 1, polygon );
 }
 
-/* RGB32 compatible: complete */
-void Image::Rotate( int angle ) {
-
+void Image::Rotate(int angle) {
   angle %= 360;
 
-  if ( !angle ) {
-    return;
-  }
-  if ( angle%90 ) {
+  if ( !angle || angle%90 ) {
     return;
   }
 
@@ -2554,7 +2548,7 @@ void Image::Rotate( int angle ) {
   unsigned int new_width = width;
   uint8_t* rotate_buffer = AllocBuffer(size);
 
-  switch( angle ) {
+  switch ( angle ) {
     case 90 :
       {
         new_height = width;
@@ -2573,17 +2567,17 @@ void Image::Rotate( int angle ) {
           }
         } else if ( colours == ZM_COLOUR_RGB32 ) {
           Rgb* s_rptr = (Rgb*)s_ptr;
-          for ( unsigned int i = new_width; i > 0; i-- ) {
+          for ( unsigned int i = new_width; i; i-- ) {
             Rgb* d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
-            for ( unsigned int j = new_height; j > 0; j-- ) {
+            for ( unsigned int j = new_height; j; j-- ) {
               *d_rptr = *s_rptr++;
               d_rptr += new_width;
             }
           }
         } else /* Assume RGB24 */ {
-          for ( unsigned int i = new_width; i > 0; i-- ) {
+          for ( unsigned int i = new_width; i; i-- ) {
             unsigned char *d_ptr = rotate_buffer+((i-1)*3);
-            for ( unsigned int j = new_height; j > 0; j-- ) {
+            for ( unsigned int j = new_height; j; j-- ) {
               *d_ptr = *s_ptr++;
               *(d_ptr+1) = *s_ptr++;
               *(d_ptr+2) = *s_ptr++;
@@ -2662,8 +2656,8 @@ void Image::Rotate( int angle ) {
       }
   }
 
-  AssignDirect( new_width, new_height, colours, subpixelorder, rotate_buffer, size, ZM_BUFTYPE_ZM);
-}
+  AssignDirect(new_width, new_height, colours, subpixelorder, rotate_buffer, size, ZM_BUFTYPE_ZM);
+}  // void Image::Rotate(int angle)
 
 /* RGB32 compatible: complete */
 void Image::Flip( bool leftright ) {
@@ -2719,8 +2713,7 @@ void Image::Flip( bool leftright ) {
     }
   }
 
-  AssignDirect( width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
-
+  AssignDirect(width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
 }
 
 void Image::Scale(unsigned int factor) {

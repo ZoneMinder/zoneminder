@@ -668,8 +668,6 @@ void MonitorStream::runStream() {
               index, frame_mod, frame_count, paused, delayed);
           // Send the next frame
           Monitor::Snapshot *snap = &monitor->image_buffer[index];
-          Image *image = snap->image;
-          Debug(1, "snap dimensions %dx%d %d colours %d linesize", image->Width(), image->Height(), image->Colours(), image->LineSize());
 
           if ( !sendFrame(snap->image, snap->timestamp) ) {
             Debug(2, "sendFrame failed, quiting.");

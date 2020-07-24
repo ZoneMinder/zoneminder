@@ -530,7 +530,7 @@ Monitor::Monitor(
       sleep(1);
     }
 
-    ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(),
+    ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
         image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
     adaptive_skip = true;
 
@@ -632,10 +632,10 @@ bool Monitor::connect() {
   image_buffer = new Snapshot[image_buffer_count];
   for ( int i = 0; i < image_buffer_count; i++ ) {
     image_buffer[i].timestamp = &(shared_timestamps[i]);
-    image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
+    image_buffer[i].image = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
     image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-  if ( (deinterlacing & 0xff) == 4) {
+  if ( (deinterlacing & 0xff) == 4 ) {
     /* Four field motion adaptive deinterlacing in use */
     /* Allocate a buffer for the next image */
     next_buffer.image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());

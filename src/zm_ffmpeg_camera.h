@@ -84,6 +84,7 @@ class FfmpegCamera : public Camera {
 #if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;
 #endif
+    uint8_t *frame_buffer;
 
     int                 error_count;
 

@@ -1145,7 +1145,7 @@ cinfo->out_color_space = JCS_RGB;
     jpeg_write_marker(cinfo, EXIF_CODE, (const JOCTET *)exiftimes, sizeof(exiftimes));
   }
 
-  JSAMPROW row_pointer;  /* pointer to a single row */
+  JSAMPROW row_pointer = buffer;  /* pointer to a single row */
   while ( cinfo->next_scanline < cinfo->image_height ) {
     jpeg_write_scanlines(cinfo, &row_pointer, 1);
     row_pointer += linesize;

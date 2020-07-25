@@ -50,6 +50,15 @@ function xhtmlHeaders($file, $title) {
         $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
       }
     }
+    $html[] = ''; // So we ge a trailing \n
+    return implode("\n", $html);
+  }
+  
+  function output_cache_busted_stylesheet_links($files) {
+    $html = array();
+    foreach ( $files as $file ) {
+        $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
+    }
     return implode("\n", $html);
   }
 ?>
@@ -58,10 +67,10 @@ function xhtmlHeaders($file, $title) {
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX); ?> - <?php echo validHtmlStr($title) ?></title>
 <?php
-if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
+if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
   echo "
   <link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
   <link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
@@ -72,12 +81,12 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
 ';
 }
-?>
-  <link rel="stylesheet" href="css/reset.css" type="text/css"/>
-  <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
-  <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
-  
-<?php 
+echo output_cache_busted_stylesheet_links(array(
+  'css/reset.css',
+  'css/overlay.css',
+  'css/bootstrap.min.css',
+));
+
 echo output_link_if_exists( array(
   'css/base/skin.css',
   'css/base/views/'.$basename.'.css',

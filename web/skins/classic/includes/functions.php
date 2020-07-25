@@ -256,52 +256,49 @@ function getNavBarHTML($reload = null) {
     $status = $running ? ($state ? $state : translate('Running')) : translate('Stopped');
 
 ?>
-<div class="navbar navbar-inverse navbar-static-top">
-  <div class="container-fluid">
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <div class="navbar-brand">
-        <?php echo getNavBrandHTML(); ?>
-      </div>
+<div class="fixed-top container-fluid p-0 p-0">
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row">
+
+    <div class="navbar-brand justify-content-start">
+      <?php echo getNavBrandHTML() ?>
     </div>
+
+    <!-- the Navigation Bar Hamburger Button   -->
+    <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
+      <span class="sr-only">Toggle navigation</span>
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
     <div class="collapse navbar-collapse" id="main-header-nav">
-      <ul class="nav navbar-nav">
 <?php
 
   // *** Build the navigation bar menu items ***
   if ( $user and $user['Username'] ) {
-        echo getConsoleHTML();
-        echo getOptionsHTML();
-        echo getLogHTML();
-        echo getDevicesHTML();
-        echo getGroupsHTML();
-        echo getFilterHTML();
-        echo getCycleHTML();
-        echo getMontageHTML();
-        echo getMontageReviewHTML();
-        echo getRprtEvntAuditHTML();
-        echo getHeaderFlipHTML();
-
+        echo '<ul class="navbar-nav justify-content-center">';
+          echo getConsoleHTML();
+          echo getOptionsHTML();
+          echo getLogHTML();
+          echo getDevicesHTML();
+          echo getGroupsHTML();
+          echo getFilterHTML();
+          echo getCycleHTML();
+          echo getMontageHTML();
+          echo getMontageReviewHTML();
+          echo getRprtEvntAuditHTML();
+          echo getHeaderFlipHTML();
         echo '</ul>';
 
-        echo '<div class="navbar-right">';
+        echo '<ul class="nav navbar-nav justify-content-end">';
           echo getAcctCircleHTML($user);
           echo getStatusBtnHTML($status);
-        echo '</div>';
-
-  } else { # end if $user and $user['Username']
         echo '</ul>';
-  } # end if $user and $user['Username']
-
+  }
 ?>
-    </div><!-- End .navbar-collapse -->
-  </div> <!-- End .container-fluid -->
-  <div id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
+    </div>
+  </nav><!-- End First Navbar -->
+
+  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
+    <div class="container-fluid" id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
 
 } //end reload null.  Runs on full page load
@@ -311,14 +308,13 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
 
 // *** Build the statistics shown on the navigation bar ***
 ?>
-  <div id="reload" class="container-fluid reduced-text">
-    <div id="Bandwidth" class="pull-left">
+  <div id="reload" class="container-fluid">
+
+    <ul id="Bandwidth" class="navbar-nav justify-content-start">
       <?php echo getBandwidthHTML($bandwidth_options,$user) ?>
-    </div>
-    <div id="Version" class="pull-right">
-      <?php echo getZMVersionHTML($versionClass) ?>
-    </div>
-    <ul class="list-inline">
+    </ul>
+    
+    <ul class="navbar-nav justify-content-center">
       <?php
       echo getSysLoadHTML();
       echo getDbConHTML();
@@ -326,25 +322,33 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
       echo getShmHTML();
       ?>
     </ul>
+
+    <ul id="Version" class="nav navbar-nav justify-content-end">
+      <?php echo getZMVersionHTML($versionClass) ?>
+    </ul>
+
+  </div>
+
     <?php echo getConsoleBannerHTML() ?>
-  </div><!-- End .footer/reload -->
+
+    </div>
+  </nav><!-- End Second Navbar -->
+</div>
+
 <?php
   if ($reload == 'reload') return ob_get_clean();
+
 } // end if (!ZM_OPT_USE_AUTH) or $user )
 
-?>
-  </div>
-</div><!-- End .navbar .navbar-default -->
-<?php
   return ob_get_clean();
 } // end function getNavBarHTML()
 
 // Returns the html representing the current unix style system load
 function getSysLoadHTML() {
 
-  echo '<li class="Load">';
+  echo '<li class="Load nav-item mx-2">';
   echo '<i class="material-icons md-18">trending_up</i>';
-  echo '&nbsp;'.translate('Load').':'.getLoad();
+  echo '&nbsp;'.translate('Load').': '.getLoad();
   echo '</li>';
 }
 
@@ -355,8 +359,10 @@ function getDbConHTML() {
   $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
   $class = $percent_used > 90 ? 'warning' : '';
 
-  echo '<i class="material-icons md-18">storage</i>';
-  echo '<li class="'. $class .'">'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';   
+  echo '<li class="'. $class .' nav-item mx-2">';
+  echo '<i class="material-icons md-18 mr-1">storage</i>';
+  echo translate('DB').': '.$connections.'/'.$max_connections;   
+  echo '</li>';
 }
 
 // Returns the html representing up to 4 storage areas and their current capacity
@@ -371,7 +377,7 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>';
+    return '<span class="ml-1'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
@@ -385,7 +391,7 @@ function getStorageHTML() {
     }
   }
 
-  echo '<li>'.translate('Storage').':';
+  echo '<li class="nav-item mx-2">'.translate('Storage').':';
 
   if ( $num_storage_areas > 4 ) {
     $storage_areas = $storage_areas_with_no_server_id;
@@ -407,7 +413,7 @@ function getShmHTML() {
   } else if ( $shm_percent > 90 ) {
     $class = 'warning';
   }
-  echo ' <span class="'.$class.'" title="' . human_filesize($shm_used).' of '.human_filesize($shm_total_space).'">'.ZM_PATH_MAP.': '.$shm_percent.'%</span>';
+  echo ' <li class="'.$class.' nav-item" title="' . human_filesize($shm_used).' of '.human_filesize($shm_total_space).'">'.ZM_PATH_MAP.': '.$shm_percent.'%</li>';
 }
 
 // Returns the html representing the optional web console banner text
@@ -420,12 +426,12 @@ function getConsoleBannerHTML() {
 
 // Returns the html representing the current high,medium,low bandwidth setting
 function getBandwidthHTML($bandwidth_options,$user) {
-  echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' ));
+  echo '<li class="nav-item">'.makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' )).'</li>';
 }
 
 // Returns the html representing the version of ZoneMinder
 function getZMVersionHTML($versionClass) {
-  echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit('System') );
+  echo '<li class="nav-item">'.makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit('System') ).'</li>';
 }
 
 // Returns the html representing the ZoneMinder logo
@@ -436,14 +442,14 @@ function getNavBrandHTML() {
 // Returns the html representing the Console menu item
 function getConsoleHTML() {
   if ( canView('Monitors') ) {
-    echo '<li><a href="?view=console">'.translate('Console').'</a></li>';
+    echo '<li class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>';
   }
 }
 
 // Returns the html representing the Options menu item
 function getOptionsHTML() {
   if ( canView('System') ) {
-    echo '<li><a href="?view=options">'.translate('Options').'</a></li>';
+    echo '<li class="nav-item"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>';
   }
 }
 
@@ -465,7 +471,7 @@ function getLogHTML() {
           ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
         }
       }
-      echo '<li>'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span></li>');
+      echo '<li class="nav-item">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.logState().'">'.translate('Log').'</span></li>');
     }
   }
 }
@@ -473,7 +479,7 @@ function getLogHTML() {
 // Returns the html representing the X10 Devices menu item
 function getDevicesHTML() {
   if ( ZM_OPT_X10 && canView('Devices') ) {
-    echo '<li><a href="?view=devices">Devices</a></li>';
+    echo '<li class="nav-item"><a class="nav-link" href="?view=devices">Devices</a></li>';
   }
 }
 
@@ -481,7 +487,7 @@ function getDevicesHTML() {
 function getGroupsHTML() {
   global $view;
   $class = $view == 'groups' ? 'selected' : '';
-  echo '<li><a href="?view=groups" class="' .$class. '">'. translate('Groups') .'</a></li>';
+  echo '<li class="nav-item"><a class="nav-link" href="?view=groups" class="' .$class. '">'. translate('Groups') .'</a></li>';
 }
 
 // Returns the html representing the Filter menu item
@@ -492,7 +498,7 @@ function getFilterHTML() {
   global $limitQuery;
 
   $class = $view == 'filter' ? 'selected' : '';
-  echo '<li><a href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'" class="'.$class.'">'.translate('Filters').'</a></li>';
+  echo '<li class="nav-item"><a class="nav-link" href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'" class="'.$class.'">'.translate('Filters').'</a></li>';
 }
 
 // Returns the html representing the Cycle menu item
@@ -500,7 +506,7 @@ function getCycleHTML() {
   global $view;
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? 'selected' : '';
-    echo '<li><a href="?view=cycle" class="' .$class. '">' .translate('Cycle'). '</a></li>';
+    echo '<li class="nav-item"><a class="nav-link" href="?view=cycle" class="' .$class. '">' .translate('Cycle'). '</a></li>';
   }
 }
 
@@ -509,7 +515,7 @@ function getMontageHTML() {
   global $view;
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? 'selected' : '';
-    echo '<li><a href="?view=montage" class="' .$class. '">' .translate('Montage'). '</a></li>';
+    echo '<li class="nav-item"><a class="nav-link" href="?view=montage" class="' .$class. '">' .translate('Montage'). '</a></li>';
   }
 }
 
@@ -533,7 +539,7 @@ function getMontageReviewHTML() {
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
     $class = $view == 'montagereview' ? 'selected' : '';
-    echo '<li><a href="?view=montagereview' .$live. '" class="' .$class. '">' .translate('MontageReview'). '</a></li>';
+    echo '<li class="nav-item"><a class="nav-link" href="?view=montagereview' .$live. '" class="' .$class. '">' .translate('MontageReview'). '</a></li>';
   }
 }
 
@@ -542,14 +548,14 @@ function getRprtEvntAuditHTML() {
   global $view;
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? 'selected' : '';
-    echo '<li><a href="?view=report_event_audit class="' .$class. '">' .translate('ReportEventAudit'). '</a></li>';
+    echo '<li class="nav-item"><a class="nav-link" href="?view=report_event_audit" class="' .$class. '">' .translate('ReportEventAudit'). '</a></li>';
   }
 }
 
 // Returns the html representing the header collapse toggle menu item
 function getHeaderFlipHTML() {
   $header = ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up';
-  echo '<li><a href="#"><i id="flip" class="material-icons md-18 pull-right">keyboard_arrow_' .$header. '</i></a></li>';
+  echo '<li class="nav-item"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18">keyboard_arrow_' .$header. '</i></a></li>';
 }
 
 // Returns the html representing the logged in user name and avatar
@@ -565,7 +571,11 @@ function getAcctCircleHTML($user=null) {
 // Returns the html representing the runtime status button
 function getStatusBtnHTML($status) {
   if ( canEdit('System') ) {
-    echo '<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState">' .$status. '</button>';
+    echo '<li class="nav-item">';
+    echo '<form class="form-inline">';
+    echo '<button type="button" class="mx-3 btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState">' .$status. '</button>';
+    echo '</form>';
+    echo '</li>';
 
     if ( ZM_SYSTEM_SHUTDOWN ) {
       echo '<p class="navbar-text">';

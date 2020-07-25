@@ -58,28 +58,28 @@ xhtmlHeaders(__FILE__, translate('Options'));
   <?php echo getNavBarHTML(); ?>
   <div class="container-fluid">
     <div class="row">
-      <div class="col-sm-2 sidebar">
-        <ul class="nav nav-pills nav-stacked">
+      <nav id="sidebar" style="background-color:#f5f5f5">
+        <ul class="nav nav-pills flex-sm-column blockquote">
 <?php
 foreach ( $tabs as $name=>$value ) {
 ?>
-          <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
+          <li class="nav-item"><a <?php echo $tab == $name ? ' class="nav-link active"' : ' class="nav-link"' ?> href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
 }
 ?>
         </ul>
-      </div>
+      </nav>
       <div class="col-sm-10 col-sm-offset-2">
         <br/>
         <div id="options">
 <?php 
 if ( $tab == 'skins' ) {
 ?>
-          <form name="optionsForm" class="form-horizontal" method="get" action="?">
+          <form name="optionsForm" class="" method="get" action="?">
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-            <div class="form-group">
-            <label for="skin" class="col-sm-3 control-label"><?php echo translate('Skin')?></label>
+            <div class="form-group row">
+            <label for="skin" class="col-sm-3 col-form-label"><?php echo translate('Skin')?></label>
               <div class="col-sm-6">
                 <select name="skin" class="form-control chosen">
 <?php
@@ -90,11 +90,11 @@ foreach ( $skin_options as $dir ) {
 }
 ?>
                 </select>
-                <span class="help-block"><?php echo translate('SkinDescription'); ?></span>
+                <span class="form-text"><?php echo translate('SkinDescription'); ?></span>
               </div>
             </div>
-            <div class="form-group">
-              <label for="css" class="col-sm-3 control-label">CSS</label>
+            <div class="form-group row">
+              <label for="css" class="col-sm-3 col-form-label">CSS</label>
               <div class="col-sm-6">
                 <select name="css" class="form-control chosen">
 <?php
@@ -103,7 +103,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
 }
 ?>
                 </select>
-                <span class="help-block"><?php echo translate('CSSDescription'); ?></span>
+                <span class="form-text"><?php echo translate('CSSDescription'); ?></span>
               </div>
             </div>
             <div id="contentButtons">
@@ -302,8 +302,8 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
   ?>
 
     <form name="userForm" method="post" action="?">
-      <button class="pull-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
-      <button class="btn-danger pull-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
+      <button class="float-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
+      <button class="btn-danger float-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
       <br/>
       <?php
       function revokeAllTokens() {
@@ -429,7 +429,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
         $configCats[$tab]['ZM_TIMEZONE']['Hint'] = array(''=> translate('TZUnset')) + timezone_list();
     } # end if tab == system
 ?>
-      <form name="optionsForm" class="form-horizontal" method="post" action="?">
+      <form name="optionsForm" class="" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
@@ -439,8 +439,8 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
           $shortName = preg_replace( '/^ZM_/', '', $name );
           $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
-            <div class="form-group">
-              <label for="<?php echo $name ?>" class="col-sm-3 control-label"><?php echo $shortName ?></label>
+            <div class="form-group form-row">
+              <label for="<?php echo $name ?>" class="col-sm-3 control-label form-control-sm font-weight-bold text-right"><?php echo $shortName ?></label>
               <div class="col-sm-6">
 <?php   
         if ( $value['Type'] == 'boolean' ) {
@@ -456,7 +456,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
             $options = explode('|', $value['Hint']);
             if ( count($options) > 3 ) {
 ?>
-                <select class="form-control" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
+                <select class="form-control form-control-lg" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
 <?php
                 foreach ( $options as $option ) {
                   if ( preg_match('/^([^=]+)=(.+)$/', $option, $matches) ) {
@@ -481,7 +481,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
                     $optionLabel = $optionValue = $option;
                   }
 ?>
-                <label>
+                <label class="font-weight-bold  form-control-sm">
                   <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
                   <?php echo htmlspecialchars($optionLabel) ?>
                 </label>
@@ -492,27 +492,27 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
 <?php
         } else if ( $value['Type'] == 'text' ) {
 ?>
-              <textarea class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" rows="5" cols="40"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo validHtmlStr($value['Value']) ?></textarea>
+              <textarea class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" rows="5" cols="40"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo validHtmlStr($value['Value']) ?></textarea>
 <?php
         } else if ( $value['Type'] == 'integer' ) {
 ?>
-              <input type="number" class="form-control small" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="number" class="form-control form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else if ( $value['Type'] == 'hexadecimal' ) {
 ?>
-              <input type="text" class="form-control medium" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else if ( $value['Type'] == 'decimal' ) {
 ?>
-              <input type="text" class="form-control small" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else {
 ?>
-              <input type="text" class="form-control large" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         }
 ?>
-              <span class="help-block"><?php echo validHtmlStr($optionPromptText) ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</span>
+              <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText) ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</span>
 	    </div><!-- End .col-sm-9 -->
             </div><!-- End .form-group -->
 <?php

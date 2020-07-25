@@ -277,10 +277,6 @@ class ZM_Object {
           $default = $this->defaults[$field];
         }
 
-          ( is_array($default) ? implode(',',$default) : $default).
-          ' ' .
-          ( is_array($value) ? implode(',', $value) : $value)
-        );
         if ( $default != $value ) {
           $changes[$field] = $value;
         }

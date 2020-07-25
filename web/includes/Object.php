@@ -42,7 +42,13 @@ class ZM_Object {
       if ( $type == 'set' and is_array($args[0]) ) {
         $this->{$fn} = implode(',', $args[0]);
       } else if ( array_key_exists($fn, $this->defaults) && is_array($this->defaults[$fn]) && isset($this->defaults[$fn]['filter_regexp']) ) {
-        $this->{$fn} = preg_replace($this->defaults[$fn]['filter_regexp'], '', $args[0]);
+        if ( is_array($this->defaults[$fn]['filter_regexp']) ) {
+          foreach ( $this->defaults[$fn]['filter_regexp'] as $regexp ) {
+            $this->{$fn} = preg_replace($regexp, '', $args[0]);
+          }
+        } else {
+          $this->{$fn} = preg_replace($this->defaults[$fn]['filter_regexp'], '', $args[0]);
+        }
       } else {
         $this->{$fn} = $args[0];
       }
@@ -168,9 +174,15 @@ class ZM_Object {
           $this->{$k} = implode(',', $v);
         } else if ( is_string($v) ) {
           if ( array_key_exists($k, $this->defaults) && is_array($this->defaults[$k]) && isset($this->defaults[$k]['filter_regexp']) ) {
-            $this->{$k} = preg_replace($this->defaults[$k]['filter_regexp'], '', trim($v));
+            if ( is_array($this->defaults[$k]['filter_regexp']) ) {
+              foreach ( $this->defaults[$k]['filter_regexp'] as $regexp ) {
+                $this->{$k} = preg_replace($regexp, '', $trim($v));
+              }
+            } else {
+              $this->{$k} = preg_replace($this->defaults[$k]['filter_regexp'], '', trim($v));
+            }
           } else {
-						$this->{$k} = trim($v);
+            $this->{$k} = trim($v);
           }
         } else if ( is_integer($v) ) {
           $this->{$k} = $v;
@@ -239,10 +251,16 @@ class ZM_Object {
           }
 
           # Input might be a command separated string, or an array
-          
+
         } else {
           if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
-            $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+            if ( is_array($this->defaults[$field]['filter_regexp']) ) {
+              foreach ( $this->defaults[$field]['filter_regexp'] as $regexp ) {
+                $this->{$field} = preg_replace($regexp, '', trim($value));
+              }
+            } else {
+              $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+            }
           }
           if ( $this->{$field} != $value ) {
             $changes[$field] = $value;

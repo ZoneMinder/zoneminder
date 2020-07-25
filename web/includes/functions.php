@@ -585,14 +585,14 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
   if ( !$types )
     $types = array();
 
-  foreach( $newValues as $key=>$value ) {
+  foreach ( $newValues as $key=>$value ) {
     if ( $columns && !isset($columns[$key]) )
       continue;
 
     if ( !isset($types[$key]) )
       $types[$key] = false;
 
-    switch( $types[$key] ) {
+    switch ( $types[$key] ) {
       case 'set' :
           if ( is_array($newValues[$key]) ) {
             if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
@@ -669,6 +669,7 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
           break;
     } // end switch
   } // end foreach newvalues
+
   foreach ( $values as $key=>$value ) {
     if ( !empty($columns[$key]) ) {
       if ( !empty($types[$key]) ) {

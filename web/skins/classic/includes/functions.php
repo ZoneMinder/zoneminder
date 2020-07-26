@@ -366,7 +366,7 @@ function getDbConHTML() {
   $connections = dbFetchOne('SHOW status WHERE variable_name=\'threads_connected\'', 'Value');
   $max_connections = dbFetchOne('SHOW variables WHERE variable_name=\'max_connections\'', 'Value');
   $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
-  $class = $percent_used > 90 ? 'warning' : '';
+  $class = $percent_used > 90 ? 'text-warning' : '';
 
   echo '<li class="'. $class .' nav-item mx-2">';
   echo '<i class="material-icons md-18 mr-1">storage</i>';
@@ -380,9 +380,9 @@ function getStorageHTML() {
   $func = function($S) {
     $class = '';
     if ( $S->disk_usage_percent() > 98 ) {
-      $class = 'error';
+      $class = 'text-danger';
     } else if ( $S->disk_usage_percent() > 90 ) {
-      $class = 'warning';
+      $class = 'text-warning';
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
@@ -418,9 +418,9 @@ function getShmHTML() {
 
   $class = '';
   if ( $shm_percent > 98 ) {
-    $class = 'error';
+    $class = 'text-danger';
   } else if ( $shm_percent > 90 ) {
-    $class = 'warning';
+    $class = 'text-warning';
   }
   echo ' <li class="'.$class.' nav-item" title="' . human_filesize($shm_used).' of '.human_filesize($shm_total_space).'">'.ZM_PATH_MAP.': '.$shm_percent.'%</li>';
 }
@@ -480,7 +480,9 @@ function getLogHTML() {
           ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
         }
       }
-      echo '<li class="nav-item">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.logState().'">'.translate('Log').'</span></li>');
+      $logstate = logState();
+      $class = $logstate == 'ok' ? 'text-succss' : $logstate == 'alert' ? 'text-warning' : $logstate == 'alarm' ? 'text-danger' : '';
+      echo '<li class="nav-item">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span></li>');
     }
   }
 }

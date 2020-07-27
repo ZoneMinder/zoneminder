@@ -159,11 +159,11 @@ if ( $show_storage_areas ) $left_columns += 1;
 xhtmlHeaders(__FILE__, translate('Console'));
 getBodyTopHTML();
 ?>
+  <?php echo $navbar ?>
   <form name="monitorForm" method="get" action="?">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
-    <?php echo $navbar ?>
     <div class="filterBar"><?php echo $filterbar ?></div>
     <div class="statusBreakdown">
 <?php

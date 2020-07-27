@@ -283,7 +283,7 @@ function getNavBarHTML($reload = null) {
 
   // *** Build the navigation bar menu items ***
   if ( $user and $user['Username'] ) {
-        echo '<ul class="navbar-nav justify-content-center">';
+        echo '<ul class="navbar-nav justify-content-center w-100">';
           echo getConsoleHTML();
           echo getOptionsHTML();
           echo getLogHTML();
@@ -297,7 +297,7 @@ function getNavBarHTML($reload = null) {
           echo getHeaderFlipHTML();
         echo '</ul>';
 
-        echo '<ul class="nav navbar-nav justify-content-end">';
+        echo '<ul class="nav navbar-nav justify-content-end flex-grow-1">';
           echo getAcctCircleHTML($user);
           echo getStatusBtnHTML($status);
         echo '</ul>';

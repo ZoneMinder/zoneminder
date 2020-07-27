@@ -273,10 +273,12 @@ function getNavBarHTML($reload = null) {
     </div>
 
     <!-- the Navigation Bar Hamburger Button   -->
-    <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
-      <span class="sr-only">Toggle navigation</span>
-      <span class="navbar-toggler-icon"></span>
-    </button>
+    <div class="nav justify-content-end flex-grow-1">
+      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="navbar-toggler-icon"></span>
+      </button>
+   </div>
 
     <div class="collapse navbar-collapse" id="main-header-nav">
 <?php

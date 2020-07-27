@@ -47,7 +47,7 @@ $html =
 '
 <div class="controlHeader">
   <!-- Used to submit the form with the enter key -->
-  <input type="submit" class="hide"/>
+  <input type="submit" class="d-none"/>
   <input type="hidden" name="filtering" value=""/>
 ';
 

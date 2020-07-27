@@ -166,7 +166,7 @@ class ZM_Object {
 
   public function set($data) {
     foreach ( $data as $field => $value ) {
-      if ( method_exists($this, $field) and is_callable($this, $field) ) {
+      if ( is_callable(array($this, $field)) ) {
         $this->{$field}($value);
       } else {
         if ( is_array($value) ) {

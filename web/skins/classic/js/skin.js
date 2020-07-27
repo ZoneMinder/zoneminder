@@ -397,6 +397,10 @@ function submitTab(evt) {
 }
 
 function submitThisForm() {
+  if ( ! this.form ) {
+    console.log("No this.form.  element with onchange is not in a form");
+    return;
+  }
   this.form.submit();
 }
 

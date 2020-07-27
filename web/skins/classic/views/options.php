@@ -63,7 +63,7 @@ xhtmlHeaders(__FILE__, translate('Options'));
 <?php
 foreach ( $tabs as $name=>$value ) {
 ?>
-          <li class="nav-item"><a <?php echo $tab == $name ? ' class="nav-link active"' : ' class="nav-link"' ?> href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
+          <li class="nav-item"><a class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
 }
 ?>
@@ -75,7 +75,7 @@ foreach ( $tabs as $name=>$value ) {
 <?php 
 if ( $tab == 'skins' ) {
 ?>
-          <form name="optionsForm" class="" method="get" action="?">
+          <form name="optionsForm" method="get" action="?">
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
             <div class="form-group row">
@@ -84,7 +84,7 @@ if ( $tab == 'skins' ) {
                 <select name="skin" class="form-control chosen">
 <?php
   # Have to do this stuff up here before including header.php because fof the cookie setting
-$skin_options = array_map('basename', glob('skins/*',GLOB_ONLYDIR));
+$skin_options = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
 foreach ( $skin_options as $dir ) {
   echo '<option value="'.$dir.'" '.($skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 }
@@ -98,7 +98,7 @@ foreach ( $skin_options as $dir ) {
               <div class="col-sm-6">
                 <select name="css" class="form-control chosen">
 <?php
-foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $dir ) {
+foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $dir ) {
   echo '<option value="'.$dir.'" '.($css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 }
 ?>

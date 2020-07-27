@@ -234,10 +234,9 @@ function getBodyTopHTML() {
 
 function getNavBarHTML($reload = null) {
   # Provide a facility to turn off the headers if you put navbar=0 into the url
-  if ( isset($_REQUEST['navbar']) and $_REQUEST['navbar']=='0' )
+  if ( isset($_REQUEST['navbar']) and $_REQUEST['navbar'] == '0' )
     return '';
 
-  $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
   global $running;
   global $user;
   global $bandwidth_options;
@@ -311,45 +310,44 @@ function getNavBarHTML($reload = null) {
   <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
     <div class="container-fluid" id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
+  } // end reload null.  Runs on full page load
 
-} //end reload null.  Runs on full page load
-
-if ( (!ZM_OPT_USE_AUTH) or $user ) {
-  if ($reload == 'reload') ob_start();
+  if ( (!ZM_OPT_USE_AUTH) or $user ) {
+    if ($reload == 'reload') ob_start();
 
 // *** Build the statistics shown on the navigation bar ***
 ?>
-  <div id="reload" class="container-fluid">
+      <div id="reload" class="container-fluid">
+        <ul id="Bandwidth" class="navbar-nav justify-content-start">
+          <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
+        </ul>
+        
+        <ul class="navbar-nav justify-content-center">
+          <?php
+          echo getSysLoadHTML();
+          echo getDbConHTML();
+          echo getStorageHTML();
+          echo getShmHTML();
+          ?>
+        </ul>
 
-    <ul id="Bandwidth" class="navbar-nav justify-content-start">
-      <?php echo getBandwidthHTML($bandwidth_options,$user) ?>
-    </ul>
-    
-    <ul class="navbar-nav justify-content-center">
-      <?php
-      echo getSysLoadHTML();
-      echo getDbConHTML();
-      echo getStorageHTML();
-      echo getShmHTML();
-      ?>
-    </ul>
-
-    <ul id="Version" class="nav navbar-nav justify-content-end">
-      <?php echo getZMVersionHTML($versionClass) ?>
-    </ul>
-
-  </div>
-
-    <?php echo getConsoleBannerHTML() ?>
-
-    </div>
+        <ul id="Version" class="nav navbar-nav justify-content-end">
+    <?php 
+          $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
+          echo getZMVersionHTML($versionClass);
+    ?>
+        </ul>
+      </div>
+      <?php echo getConsoleBannerHTML() ?>
+<?php
+  } // end if (!ZM_OPT_USE_AUTH) or $user )
+  if ( $reload === null ) {
+?>
+    </div><!--panel-->
   </nav><!-- End Second Navbar -->
 </div>
-
 <?php
-  if ($reload == 'reload') return ob_get_clean();
-
-} // end if (!ZM_OPT_USE_AUTH) or $user )
+  } // end if full page or reload
 
   return ob_get_clean();
 } // end function getNavBarHTML()
@@ -483,7 +481,7 @@ function getLogHTML() {
         }
       }
       $logstate = logState();
-      $class = $logstate == 'ok' ? 'text-succss' : $logstate == 'alert' ? 'text-warning' : $logstate == 'alarm' ? 'text-danger' : '';
+      $class = ($logstate == 'ok') ? 'text-succss' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
       echo '<li class="nav-item">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span></li>').PHP_EOL;
     }
   }

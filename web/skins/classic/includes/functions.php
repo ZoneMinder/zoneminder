@@ -285,7 +285,7 @@ function getNavBarHTML($reload = null) {
 
   // *** Build the navigation bar menu items ***
   if ( $user and $user['Username'] ) {
-        echo '<ul class="navbar-nav justify-content-center w-100">';
+        echo '<ul class="navbar-nav justify-content-center">';
           echo getConsoleHTML();
           echo getOptionsHTML();
           echo getLogHTML();

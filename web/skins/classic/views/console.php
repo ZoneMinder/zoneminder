@@ -164,7 +164,9 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
-    <div class="filterBar"><?php echo $filterbar ?></div>
+    <div class="filterBar" id="fbpanel"<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down' ) ? ' style="display:none;"' : '' ?>>
+      <?php echo $filterbar ?>
+    </div>
     <div class="statusBreakdown">
 <?php
   $html = '';
@@ -202,6 +204,8 @@ getBodyTopHTML();
         <i class="material-icons md-18">view_list</i>
         &nbsp;<?php echo translate('Select') ?>
         </button>
+        
+        &nbsp;<a href="#"><i id="fbflip" class="material-icons md-18">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
 <?php
 ob_start();
 ?>

@@ -1146,7 +1146,7 @@ if ( canEdit('Control') ) {
             </tr>
             <tr>
               <td><?php echo translate('ControlAddress') ?></td>
-              <td><input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($monitor->AutoStopTimeout()) ? : 'user:port@ip' ?>"/></td>
+              <td><input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($monitor->ControlAddress()) ? : 'user:port@ip' ?>"/></td>
             </tr>
             <tr>
               <td><?php echo translate('AutoStopTimeout') ?></td>

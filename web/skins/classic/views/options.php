@@ -59,7 +59,7 @@ xhtmlHeaders(__FILE__, translate('Options'));
   <div class="container-fluid">
     <div class="row flex-nowrap">
       <nav id="sidebar" style="background-color:#f5f5f5">
-        <ul class="nav nav-pills flex-sm-column blockquote">
+        <ul class="nav nav-pills flex-column blockquote">
 <?php
 foreach ( $tabs as $name=>$value ) {
 ?>

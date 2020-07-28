@@ -167,7 +167,9 @@ getBodyTopHTML();
     <div class="filterBar" id="fbpanel"<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down' ) ? ' style="display:none;"' : '' ?>>
       <?php echo $filterbar ?>
     </div>
-    <div class="statusBreakdown">
+
+    <div class="container-fluid pt-2">    
+      <div class="statusBreakdown float-left">
 <?php
   $html = '';
   foreach ( array_keys($status_counts) as $status ) {
@@ -176,9 +178,8 @@ getBodyTopHTML();
   }
   echo $html;
 ?>
-    </div>
+      </div>
 
-    <div class="container-fluid">
       <button type="button" name="addBtn" data-on-click-this="addMonitor"
       <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
       >
@@ -209,7 +210,7 @@ getBodyTopHTML();
 <?php
 ob_start();
 ?>
-	<div class="table-responsive">
+	<div class="table-responsive pt-2">
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>

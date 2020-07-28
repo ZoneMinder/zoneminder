@@ -280,7 +280,7 @@ function getNavBarHTML($reload = null) {
 <div class="fixed-top container-fluid p-0 p-0">
   <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row">
 
-    <div class="navbar-brand justify-content-start">
+    <div class="navbar-brand justify-content-start align-self-start">
       <?php echo getNavBrandHTML() ?>
     </div>
 
@@ -311,7 +311,7 @@ function getNavBarHTML($reload = null) {
           echo getHeaderFlipHTML();
         echo '</ul>';
 
-        echo '<ul class="nav navbar-nav justify-content-end flex-grow-1">';
+        echo '<ul class="nav navbar-nav justify-content-end align-self-start flex-grow-1">';
           echo getAcctCircleHTML($user);
           echo getStatusBtnHTML($status);
         echo '</ul>';

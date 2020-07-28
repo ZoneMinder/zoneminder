@@ -151,6 +151,19 @@ if ( $css != 'base' )
         Cookie.write('zmHeaderFlip', 'up', {duration: 10*365} );
       }
     });
+    jQuery("#fbflip").click(function() {
+      jQuery("#fbpanel").slideToggle("slow");
+      var fbflip = jQuery("#fbflip");
+      if ( fbflip.html() == 'keyboard_arrow_up' ) {
+        fbflip.html('keyboard_arrow_down');
+      Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365} );
+      } else {
+        fbflip.html('keyboard_arrow_up');
+        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365} );
+        jQuery('.chosen').chosen("destroy");
+        jQuery('.chosen').chosen();
+      }
+    });
   });
   var $j = jQuery.noConflict();
   // $j is now an alias to the jQuery function; creating the new alias is optional.

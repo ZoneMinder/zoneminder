@@ -57,7 +57,7 @@ xhtmlHeaders(__FILE__, translate('Options'));
 <body>
   <?php echo getNavBarHTML(); ?>
   <div class="container-fluid">
-    <div class="row">
+    <div class="row flex-nowrap">
       <nav id="sidebar" style="background-color:#f5f5f5">
         <ul class="nav nav-pills flex-sm-column blockquote">
 <?php

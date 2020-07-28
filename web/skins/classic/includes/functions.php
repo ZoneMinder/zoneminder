@@ -160,6 +160,8 @@ if ( $css != 'base' )
       } else {
         fbflip.html('keyboard_arrow_up');
         Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365} );
+        jQuery('.chosen').chosen("destroy");
+        jQuery('.chosen').chosen();
       }
     });
   });

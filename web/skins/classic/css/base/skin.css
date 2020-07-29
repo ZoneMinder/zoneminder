@@ -663,7 +663,7 @@ margin-left: 0;
   border-radius: 0;
 }
 
-nav#sidebar.nav {
+ul.nav.nav-pills.flex-column {
   background-color: #f5f5f5; 
 }
 

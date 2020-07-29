@@ -379,11 +379,11 @@ function getDbConHTML() {
   $connections = dbFetchOne('SHOW status WHERE variable_name=\'threads_connected\'', 'Value');
   $max_connections = dbFetchOne('SHOW variables WHERE variable_name=\'max_connections\'', 'Value');
   $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
-  $class = $percent_used > 90 ? 'text-warning' : '';
+  $class = ( $percent_used > 90 ) ? 'text-warning' : '';
 
-  echo '<li class="'. $class .' nav-item mx-2">'.PHP_EOL;
+  echo '<li class="nav-item mx-2 ' .$class. '">'.PHP_EOL;
   echo '<i class="material-icons md-18 mr-1">storage</i>'.PHP_EOL;
-  echo translate('DB').': '.$connections.'/'.$max_connections.PHP_EOL;   
+  echo translate('DB'). ': ' .$connections. '/' .$max_connections.PHP_EOL;   
   echo '</li>'.PHP_EOL;
 }
 

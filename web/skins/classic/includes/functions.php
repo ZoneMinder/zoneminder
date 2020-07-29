@@ -435,7 +435,7 @@ function getShmHTML() {
   } else if ( $shm_percent > 90 ) {
     $class = 'text-warning';
   }
-  echo ' <li class="'.$class.' nav-item" title="' . human_filesize($shm_used).' of '.human_filesize($shm_total_space).'">'.ZM_PATH_MAP.': '.$shm_percent.'%</li>'.PHP_EOL;
+  echo ' <li class="nav-item ' .$class. '" title="' .human_filesize($shm_used). ' of ' .human_filesize($shm_total_space). '">' .ZM_PATH_MAP. ': '.$shm_percent.'%</li>'.PHP_EOL;
 }
 
 // Returns the html representing the optional web console banner text

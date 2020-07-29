@@ -662,6 +662,11 @@ margin-left: 0;
 .nav-pills > li > a {
   border-radius: 0;
 }
+
+nav#sidebar.nav {
+  background-color: #f5f5f5; 
+}
+
 .chosen-container {
 text-align: left;
 }

@@ -58,7 +58,7 @@ xhtmlHeaders(__FILE__, translate('Options'));
   <?php echo getNavBarHTML(); ?>
   <div class="container-fluid">
     <div class="row flex-nowrap">
-      <nav id="sidebar" style="background-color:#f5f5f5">
+      <nav id="sidebar">
         <ul class="nav nav-pills flex-column">
 <?php
 foreach ( $tabs as $name=>$value ) {

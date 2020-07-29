@@ -2073,7 +2073,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
       }
 
     } else {
-      Panic("Annotate called with unexpected colours: %d",colours);
+      Error("Annotate called with unexpected colours: %d", colours);
       return;
     }
 

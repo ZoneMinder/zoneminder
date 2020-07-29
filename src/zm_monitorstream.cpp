@@ -328,11 +328,12 @@ bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
     struct timeval frameStartTime;
     gettimeofday(&frameStartTime, NULL);
 
-    fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout);
-    fprintf(stdout, "Content-Length: %d\r\n"
-        "X-Timestamp: %d.%06d\r\n"
-        "\r\n", img_buffer_size, (int)timestamp->tv_sec, (int)timestamp->tv_usec);
-    if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+    if (
+        (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %d.%06d\r\n\r\n",
+                     img_buffer_size, (int)timestamp->tv_sec, (int)timestamp->tv_usec))
+        ||
+        (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
+       ) {
       if ( !zm_terminate )
         Warning("Unable to send stream frame: %s", strerror(errno));
       return false;
@@ -413,10 +414,12 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
         Error("Unexpected frame type %d", type);
         return false;
     }
-    fprintf(stdout, "Content-Length: %d\r\n"
-        "X-Timestamp: %d.%06d\r\n"
-        "\r\n", img_buffer_size, (int)timestamp->tv_sec, (int)timestamp->tv_usec);
-    if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+    if (
+        ( 0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %d.%06d\r\n\r\n",
+                      img_buffer_size, (int)timestamp->tv_sec, (int)timestamp->tv_usec) )
+        ||
+        (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
+       ) {
       if ( !zm_terminate ) {
         // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
         Warning("Unable to send stream frame: %s", strerror(errno));

@@ -63,7 +63,7 @@ xhtmlHeaders(__FILE__, translate('Options'));
 <?php
 foreach ( $tabs as $name=>$value ) {
 ?>
-          <li class="nav-item"><a class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
+          <li class="nav-item form-control-sm my-1"><a class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
 }
 ?>

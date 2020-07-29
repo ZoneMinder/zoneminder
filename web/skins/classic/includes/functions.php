@@ -151,6 +151,19 @@ if ( $css != 'base' )
         Cookie.write('zmHeaderFlip', 'up', {duration: 10*365} );
       }
     });
+    jQuery("#fbflip").click(function() {
+      jQuery("#fbpanel").slideToggle("slow");
+      var fbflip = jQuery("#fbflip");
+      if ( fbflip.html() == 'keyboard_arrow_up' ) {
+        fbflip.html('keyboard_arrow_down');
+      Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365} );
+      } else {
+        fbflip.html('keyboard_arrow_up');
+        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365} );
+        jQuery('.chosen').chosen("destroy");
+        jQuery('.chosen').chosen();
+      }
+    });
   });
   var $j = jQuery.noConflict();
   // $j is now an alias to the jQuery function; creating the new alias is optional.
@@ -267,7 +280,7 @@ function getNavBarHTML($reload = null) {
 <div class="fixed-top container-fluid p-0 p-0">
   <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row">
 
-    <div class="navbar-brand justify-content-start">
+    <div class="navbar-brand justify-content-start align-self-start">
       <?php echo getNavBrandHTML() ?>
     </div>
 
@@ -298,7 +311,7 @@ function getNavBarHTML($reload = null) {
           echo getHeaderFlipHTML();
         echo '</ul>';
 
-        echo '<ul class="nav navbar-nav justify-content-end flex-grow-1">';
+        echo '<ul class="nav navbar-nav justify-content-end align-self-start flex-grow-1">';
           echo getAcctCircleHTML($user);
           echo getStatusBtnHTML($status);
         echo '</ul>';
@@ -366,11 +379,11 @@ function getDbConHTML() {
   $connections = dbFetchOne('SHOW status WHERE variable_name=\'threads_connected\'', 'Value');
   $max_connections = dbFetchOne('SHOW variables WHERE variable_name=\'max_connections\'', 'Value');
   $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
-  $class = $percent_used > 90 ? 'text-warning' : '';
+  $class = ( $percent_used > 90 ) ? 'text-warning' : '';
 
-  echo '<li class="'. $class .' nav-item mx-2">'.PHP_EOL;
+  echo '<li class="nav-item mx-2 ' .$class. '">'.PHP_EOL;
   echo '<i class="material-icons md-18 mr-1">storage</i>'.PHP_EOL;
-  echo translate('DB').': '.$connections.'/'.$max_connections.PHP_EOL;   
+  echo translate('DB'). ': ' .$connections. '/' .$max_connections.PHP_EOL;   
   echo '</li>'.PHP_EOL;
 }
 
@@ -386,7 +399,7 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<span class="ml-1'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>';
+    return '<span class="ml-1 '.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
@@ -422,7 +435,7 @@ function getShmHTML() {
   } else if ( $shm_percent > 90 ) {
     $class = 'text-warning';
   }
-  echo ' <li class="'.$class.' nav-item" title="' . human_filesize($shm_used).' of '.human_filesize($shm_total_space).'">'.ZM_PATH_MAP.': '.$shm_percent.'%</li>'.PHP_EOL;
+  echo ' <li class="nav-item ' .$class. '" title="' .human_filesize($shm_used). ' of ' .human_filesize($shm_total_space). '">' .ZM_PATH_MAP. ': '.$shm_percent.'%</li>'.PHP_EOL;
 }
 
 // Returns the html representing the optional web console banner text
@@ -481,7 +494,7 @@ function getLogHTML() {
         }
       }
       $logstate = logState();
-      $class = ($logstate == 'ok') ? 'text-succss' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
+      $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
       echo '<li class="nav-item">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span></li>').PHP_EOL;
     }
   }

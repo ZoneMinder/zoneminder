@@ -57,13 +57,13 @@ xhtmlHeaders(__FILE__, translate('Options'));
 <body>
   <?php echo getNavBarHTML(); ?>
   <div class="container-fluid">
-    <div class="row">
-      <nav id="sidebar" style="background-color:#f5f5f5">
-        <ul class="nav nav-pills flex-sm-column blockquote">
+    <div class="row flex-nowrap">
+      <nav id="sidebar">
+        <ul class="nav nav-pills flex-column">
 <?php
 foreach ( $tabs as $name=>$value ) {
 ?>
-          <li class="nav-item"><a class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
+          <li class="nav-item form-control-sm my-1"><a class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
 }
 ?>
@@ -456,7 +456,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
             $options = explode('|', $value['Hint']);
             if ( count($options) > 3 ) {
 ?>
-                <select class="form-control form-control-lg" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
+                <select class="form-control form-control-sm" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
 <?php
                 foreach ( $options as $option ) {
                   if ( preg_match('/^([^=]+)=(.+)$/', $option, $matches) ) {

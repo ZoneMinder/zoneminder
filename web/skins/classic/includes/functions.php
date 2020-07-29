@@ -585,7 +585,7 @@ function getHeaderFlipHTML() {
 // Returns the html representing the logged in user name and avatar
 function getAcctCircleHTML($user=null) {
   if ( ZM_OPT_USE_AUTH and $user ) {
-    echo '<p class="navbar-text">'.PHP_EOL;
+    echo '<p class="navbar-text mx-3">'.PHP_EOL;
       echo '<i class="material-icons">account_circle</i>';
       echo makePopupLink('?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == 'builtin') ).PHP_EOL;
     echo '</p>'.PHP_EOL;

@@ -494,7 +494,7 @@ function getLogHTML() {
         }
       }
       $logstate = logState();
-      $class = ($logstate == 'ok') ? 'text-succss' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
+      $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
       echo '<li class="nav-item">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span></li>').PHP_EOL;
     }
   }

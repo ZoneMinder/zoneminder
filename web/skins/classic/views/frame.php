@@ -26,16 +26,17 @@ if ( !canView('Events') ) {
 require_once('includes/Frame.php');
 
 $eid = validInt($_REQUEST['eid']);
-if ( !empty($_REQUEST['fid']) )
-  $fid = validInt($_REQUEST['fid']);
+$fid = empty($_REQUEST['fid']) ? 0 : validInt($_REQUEST['fid']);
 
 $Event = new ZM\Event($eid);
 $Monitor = $Event->Monitor();
 
+# This is kinda weird.. so if we pass fid=0 or some other non-integer, then it loads max score
+# perhaps we should consider being explicit, like fid = maxscore
 if ( !empty($fid) ) {
   $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
-  if ( !($frame = dbFetchOne( $sql, NULL, array($eid, $fid) )) )
-    $frame = array( 'EventId'=>$eid, 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0 );
+  if ( !($frame = dbFetchOne($sql, NULL, array($eid, $fid))) )
+    $frame = array('EventId'=>$eid, 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0);
 } else {
   $frame = dbFetchOne('SELECT * FROM Frames WHERE EventId = ? AND Score = ?', NULL, array($eid, $Event->MaxScore()));
 }

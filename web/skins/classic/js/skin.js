@@ -236,7 +236,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       console.error("Nothing found to bind to " + fnName);
       return;
     }
-    el.onchange = window[fnName].bind(el, el);
+    el.oninput = window[fnName].bind(el, el);
   });
 });
 

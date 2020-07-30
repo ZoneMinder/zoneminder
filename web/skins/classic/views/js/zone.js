@@ -450,9 +450,9 @@ function drawZonePoints() {
       'name': 'newZone[Points]['+i+'][x]',
       'value': zone['Points'][i].x,
       'type': 'number',
-      'min' : '0',
-      'max' : maxX,
-      'data-point-index' : i
+      'min': '0',
+      'max': maxX,
+      'data-point-index': i
     });
     input.oninput = window['updateX'].bind(input, input);
     input.inject(cell);
@@ -464,9 +464,9 @@ function drawZonePoints() {
       'name': 'newZone[Points]['+i+'][y]',
       'value': zone['Points'][i].y,
       'type': 'number',
-      'min' : '0',
-      'max' : maxY,
-      'data-point-index' : i
+      'min': '0',
+      'max': maxY,
+      'data-point-index': i
     } );
     input.oninput = window['updateY'].bind(input, input);
     input.inject(cell);

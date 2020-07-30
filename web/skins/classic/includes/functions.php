@@ -267,14 +267,7 @@ function getNavBarHTML($reload = null) {
   }
   if ( $reload === null ) {
     ob_start();
-    if ( $running == null )
-      $running = daemonCheck();
-    if ( $running ) {
-      $state = dbFetchOne('SELECT Name FROM States WHERE isActive=1', 'Name');
-      if ( $state == 'default' )
-        $state = '';
-    }
-    $status = $running ? ($state ? $state : translate('Running')) : translate('Stopped');
+    $status = runtimeStatus($running);
 
 ?>
 <div class="fixed-top container-fluid p-0 p-0">
@@ -302,12 +295,12 @@ function getNavBarHTML($reload = null) {
           echo getOptionsHTML();
           echo getLogHTML();
           echo getDevicesHTML();
-          echo getGroupsHTML();
-          echo getFilterHTML();
-          echo getCycleHTML();
-          echo getMontageHTML();
-          echo getMontageReviewHTML();
-          echo getRprtEvntAuditHTML();
+          echo getGroupsHTML($view);
+          echo getFilterHTML($view,$filterQuery,$sortQuery,$limitQuery);
+          echo getCycleHTML($view);
+          echo getMontageHTML($view);
+          echo getMontageReviewHTML($view);
+          echo getRprtEvntAuditHTML($view);
           echo getHeaderFlipHTML();
         echo '</ul>';
 
@@ -507,26 +500,19 @@ function getDevicesHTML() {
 }
 
 // Returns the html representing the Groups menu item
-function getGroupsHTML() {
-  global $view;
+function getGroupsHTML($view) {
   $class = $view == 'groups' ? 'selected' : '';
   echo '<li class="nav-item"><a class="nav-link" href="?view=groups" class="' .$class. '">'. translate('Groups') .'</a></li>'.PHP_EOL;
 }
 
 // Returns the html representing the Filter menu item
-function getFilterHTML() {
-  global $view;
-  global $filterQuery;
-  global $sortQuery;
-  global $limitQuery;
-
+function getFilterHTML($view,$filterQuery,$sortQuery,$limitQuery) {
   $class = $view == 'filter' ? 'selected' : '';
   echo '<li class="nav-item"><a class="nav-link" href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'" class="'.$class.'">'.translate('Filters').'</a></li>'.PHP_EOL;
 }
 
 // Returns the html representing the Cycle menu item
-function getCycleHTML() {
-  global $view;
+function getCycleHTML($view) {
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? 'selected' : '';
     echo '<li class="nav-item"><a class="nav-link" href="?view=cycle" class="' .$class. '">' .translate('Cycle'). '</a></li>'.PHP_EOL;
@@ -534,8 +520,7 @@ function getCycleHTML() {
 }
 
 // Returns the html representing the Montage menu item
-function getMontageHTML() {
-  global $view;
+function getMontageHTML($view) {
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? 'selected' : '';
     echo '<li class="nav-item"><a class="nav-link" href="?view=montage" class="' .$class. '">' .translate('Montage'). '</a></li>'.PHP_EOL;
@@ -543,8 +528,7 @@ function getMontageHTML() {
 }
 
 // Returns the html representing the MontageReview menu item
-function getMontageReviewHTML() {
-  global $view;
+function getMontageReviewHTML($view) {
   if ( canView('Events') ) {
     if ( isset($_REQUEST['filter']['Query']['terms']['attr']) ) {
       $terms = $_REQUEST['filter']['Query']['terms'];
@@ -567,8 +551,7 @@ function getMontageReviewHTML() {
 }
 
 // Returns the html representing the Audit Events Report menu item
-function getRprtEvntAuditHTML() {
-  global $view;
+function getRprtEvntAuditHTML($view) {
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? 'selected' : '';
     echo '<li class="nav-item"><a class="nav-link" href="?view=report_event_audit" class="' .$class. '">' .translate('ReportEventAudit'). '</a></li>'.PHP_EOL;
@@ -613,11 +596,22 @@ function getStatusBtnHTML($status) {
   }
 }
 
+function runtimeStatus($running=null) {
+  if ( $running == null )
+    $running = daemonCheck();
+  if ( $running ) {
+    $state = dbFetchOne('SELECT Name FROM States WHERE isActive=1', 'Name');
+    if ( $state == 'default' )
+      $state = '';
+  }
+
+  return $running ? ($state ? $state : translate('Running')) : translate('Stopped');
+}
+
 function xhtmlFooter() {
   global $cspNonce;
   global $view;
   global $skin;
-  global $running;
   if ( canEdit('System') ) {
     include("skins/$skin/views/state.php");
   }

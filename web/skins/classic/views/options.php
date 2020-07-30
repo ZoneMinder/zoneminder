@@ -440,8 +440,8 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
           $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
             <div class="form-group form-row">
-              <label for="<?php echo $name ?>" class="col-sm-3 control-label form-control-sm font-weight-bold text-right"><?php echo $shortName ?></label>
-              <div class="col-sm-6">
+              <label for="<?php echo $name ?>" class="col-md-4 control-label form-control-sm font-weight-bold text-md-right"><?php echo $shortName ?></label>
+              <div class="col-md-6">
 <?php   
         if ( $value['Type'] == 'boolean' ) {
 ?>

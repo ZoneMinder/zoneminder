@@ -265,6 +265,20 @@ function getNavBarHTML($reload = null) {
     parseFilter($_REQUEST['filter']);
     $filterQuery = $_REQUEST['filter']['query'];
   }
+
+  $zm_navbar_style = "normal"; // TO-DO: create ZM_NAVBAR_STYLE config item
+  if ( $zm_navbar_style == "normal" ) {
+    echo getNormalNavBarHTML($reload,$running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery);
+  } else {
+    echo getCollapsedNavBarHTML($reload,$running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery);
+  }
+
+  if ( $reload === null ) return ob_get_clean();
+}
+
+// The legacy navigation bar that collapses into a pulldown menu on small screens.
+function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
+
   if ( $reload === null ) {
     ob_start();
     $status = runtimeStatus($running);
@@ -353,9 +367,14 @@ function getNavBarHTML($reload = null) {
   </nav><!-- End Second Navbar -->
 </div>
 <?php
+} // end function getNormalNavBarHTML()
 
-  if ( $reload === null ) return ob_get_clean();
-} // end function getNavBarHTML()
+// A new, slimmer navigation bar, permananlty collapsed into a dropdown
+function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
+//
+// TO-DO: Put code here for new collapsed nav bar
+//
+} // End function getCollapsedNavBarHTML
 
 // Returns the html representing the current unix style system load
 function getSysLoadHTML() {

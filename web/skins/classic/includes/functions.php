@@ -354,15 +354,14 @@ function getNavBarHTML($reload = null) {
       <?php echo getConsoleBannerHTML() ?>
 <?php
   } // end if (!ZM_OPT_USE_AUTH) or $user )
-  if ( $reload === null ) {
+
 ?>
-    </div><!--panel-->
+    </div><!-- End Collapsible Panel -->
   </nav><!-- End Second Navbar -->
 </div>
 <?php
-  } // end if full page or reload
 
-  return ob_get_clean();
+  if ( $reload === null ) return ob_get_clean();
 } // end function getNavBarHTML()
 
 // Returns the html representing the current unix style system load

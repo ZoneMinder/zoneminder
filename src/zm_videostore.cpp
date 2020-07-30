@@ -422,14 +422,6 @@ bool VideoStore::open() {
     Warning("Could not parse ffmpeg output options '%s'", option_string.c_str());
   }
 
-  AVDictionaryEntry *e = NULL;
-  while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-    Debug(1, "Encoder Option %s=>%s", e->key, e->value);
-    if ( !e->value ) {
-      av_dict_set(&opts, e->key, NULL, 0);
-    }
-  }
-
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", NULL, AV_DICT_MATCH_CASE);
   if ( !movflags_entry ) {
     Debug(1, "setting movflags to frag_keyframe+empty_moov");
@@ -442,12 +434,17 @@ bool VideoStore::open() {
     Debug(1, "using movflags %s", movflags_entry->value);
   }
   if ( (ret = avformat_write_header(oc, &opts)) < 0 ) {
-    // if ((ret = avformat_write_header(oc, &opts)) < 0) {
-    Warning("Unable to set movflags to frag_custom+dash+delay_moov");
-    /* Write the stream header, if any. */
+    Warning("Unable to set movflags trying with defaults.");
     ret = avformat_write_header(oc, NULL);
-  } else if (av_dict_count(opts) != 0) {
-    Warning("some options not set");
+  } else if ( av_dict_count(opts) != 0 ) {
+    Info("some options not used, turn on debugging for a list.");
+    AVDictionaryEntry *e = NULL;
+    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+      Debug(1, "Encoder Option %s=>%s", e->key, e->value);
+      if ( !e->value ) {
+        av_dict_set(&opts, e->key, NULL, 0);
+      }
+    }
   }
   if ( opts ) av_dict_free(&opts);
   if ( ret < 0 ) {

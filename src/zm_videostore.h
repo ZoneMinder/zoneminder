@@ -19,7 +19,6 @@ extern "C"  {
 
 class VideoStore {
 private:
-
   AVOutputFormat *out_format;
   AVFormatContext *oc;
 
@@ -30,6 +29,7 @@ private:
   AVStream *video_in_stream;
 
   AVStream *audio_in_stream;
+  Monitor *monitor;
 
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
   AVPacket opkt;

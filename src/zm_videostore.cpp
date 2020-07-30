@@ -37,11 +37,12 @@ VideoStore::VideoStore(
     const char *format_in,
     AVStream *p_video_in_stream,
     AVStream *p_audio_in_stream,
-    Monitor *monitor
+    Monitor *p_monitor
     ) {
 
   video_in_stream = p_video_in_stream;
   audio_in_stream = p_audio_in_stream;
+  monitor = p_monitor;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   //video_in_ctx = avcodec_alloc_context3(NULL);
@@ -213,11 +214,18 @@ VideoStore::VideoStore(
   }
 
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
+#if 0
+# This is commented out because we are only doing passthrough right now
   /* I'm not entirely sure that this is a good idea.  We may have to do it someday but really only when transcoding
    * * think what I was trying to achieve here was to have zm_dump_codecpar output nice info
    * */
-#if 0
+
   AVDictionary *opts = 0;
+  ret = av_dict_parse_string(&opts, monitor->GetOptEncoderParams().c_str(), "=", ",", 0);
+  if ( ret < 0 ) {
+    Warning("Could not parse ffmpeg encoder options '%s'", monitor->GetOptEncoderParams().c_str());
+  }
+
   if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
     Warning("Can't open video codec (%s) %s",
         video_out_codec->name,
@@ -404,14 +412,35 @@ bool VideoStore::open() {
   }
 
   zm_dump_stream_format(oc, 0, 0, 1);
-  if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
+  if ( audio_out_stream ) zm_dump_stream_format(oc, 1, 0, 1);
 
   AVDictionary *opts = NULL;
-  // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
-  // Shiboleth reports that this may break seeking in mp4 before it downloads
-  av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
-  // av_dict_set(&opts, "movflags",
-  // "frag_keyframe+empty_moov+default_base_moof", 0);
+
+  std::string option_string = monitor->GetOptEncoderParams();
+  ret = av_dict_parse_string(&opts, option_string.c_str(), "=", ",\n", 0);
+  if ( ret < 0 ) {
+    Warning("Could not parse ffmpeg output options '%s'", option_string.c_str());
+  }
+
+  AVDictionaryEntry *e = NULL;
+  while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+    Debug(1, "Encoder Option %s=>%s", e->key, e->value);
+    if ( !e->value ) {
+      av_dict_set(&opts, e->key, NULL, 0);
+    }
+  }
+
+  const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", NULL, AV_DICT_MATCH_CASE);
+  if ( !movflags_entry ) {
+    Debug(1, "setting movflags to frag_keyframe+empty_moov");
+    // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+    // Shiboleth reports that this may break seeking in mp4 before it downloads
+    av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
+    // av_dict_set(&opts, "movflags",
+    // "frag_keyframe+empty_moov+default_base_moof", 0);
+  } else {
+    Debug(1, "using movflags %s", movflags_entry->value);
+  }
   if ( (ret = avformat_write_header(oc, &opts)) < 0 ) {
     // if ((ret = avformat_write_header(oc, &opts)) < 0) {
     Warning("Unable to set movflags to frag_custom+dash+delay_moov");

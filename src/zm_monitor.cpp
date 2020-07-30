@@ -379,6 +379,7 @@ Monitor::Monitor(
 
   strncpy(event_prefix, p_event_prefix, sizeof(event_prefix)-1);
   strncpy(label_format, p_label_format, sizeof(label_format)-1);
+  Debug(1, "encoder params %s", encoderparams.c_str());
 
   // Change \n to actual line feeds
   char *token_ptr = label_format;

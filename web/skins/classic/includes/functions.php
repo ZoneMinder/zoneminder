@@ -304,7 +304,7 @@ function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $
 
   // *** Build the navigation bar menu items ***
   if ( $user and $user['Username'] ) {
-        echo '<ul class="navbar-nav justify-content-center">';
+        echo '<ul class="navbar-nav align-self-start justify-content-center">';
           echo getConsoleHTML();
           echo getOptionsHTML();
           echo getLogHTML();

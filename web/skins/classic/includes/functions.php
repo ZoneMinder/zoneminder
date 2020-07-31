@@ -352,10 +352,7 @@ function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $
         </ul>
 
         <ul id="Version" class="nav navbar-nav justify-content-end">
-    <?php 
-          $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
-          echo getZMVersionHTML($versionClass);
-    ?>
+          <?php echo getZMVersionHTML() ?>
         </ul>
       </div>
       <?php echo getConsoleBannerHTML() ?>
@@ -463,8 +460,9 @@ function getBandwidthHTML($bandwidth_options,$user) {
 }
 
 // Returns the html representing the version of ZoneMinder
-function getZMVersionHTML($versionClass) {
-  echo '<li class="nav-item">'.makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit('System') ).'</li>'.PHP_EOL;
+function getZMVersionHTML() {
+  $class = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'text-danger':'';
+  echo '<li class="nav-item">' .makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version ' .$class. '">v' .ZM_VERSION. '</span>', canEdit('System') ). '</li>'.PHP_EOL;
 }
 
 // Returns the html representing the ZoneMinder logo

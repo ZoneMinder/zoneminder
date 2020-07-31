@@ -1514,6 +1514,26 @@ our @options = (
     category    => 'logging',
   },
   {
+    name        => 'ZM_WEB_NAVBAR_TYPE',
+    default     => 'normal',
+    description => 'Style of the web console navigation bar',
+    help        => q`
+      Choose between different navigation bar styles for the web
+      console. The "normal" style has a menu across the top, which
+      collapses to a pull down menu on small screens. The "collapsed"
+      style is collapsed all the time. Instead of a menu across the
+      top, menu items are accessed from the drop down menu on the
+      right.
+      `,
+    type        => {
+      db_type     => 'string',
+      hint        => 'normal|collapsed',
+      pattern     => qr|^([nc])|i,
+      format      => q( ($1 =~ /^n/) ? 'normal' : 'collapsed' )
+    },
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_TITLE',
     default     => 'ZoneMinder',
     description => 'The title displayed wherever the site references itself.',

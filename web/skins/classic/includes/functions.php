@@ -372,6 +372,11 @@ function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $
 // A new, slimmer navigation bar, permanently collapsed into a dropdown
 //
 function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
+
+  if ( $reload === null ) {
+    ob_start();
+    $status = runtimeStatus($running);
+
   ?>
 
   <nav class="navbar navbar-fixed-top navbar-dark bg-dark px-1 flex-nowrap">
@@ -383,13 +388,13 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
     <nav class="navbar navbar-expand-md align-self-start px-0">
     <ul class="nav navbar-nav list-group px-0">
     <?php
-    if ( $reload === null ) {
-      ob_start();
-      $status = runtimeStatus($running);
+  } // end reload null.  Runs on full page load
 
-    // *** Build the statistics shown on the navigation bar ***
+  // *** Build the statistics shown on the navigation bar ***
+  if ( (!ZM_OPT_USE_AUTH) or $user ) {
+    if ($reload == 'reload') ob_start();
     ?>
-    <div class="collapse navbar-collapse px-0">
+    <div id="reload" class="collapse navbar-collapse px-0">
 
       <ul id="Version" class="pr-2">
         <?php echo getZMVersionHTML() ?>
@@ -408,7 +413,10 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
 
     </div>
 
-<?php } ?> <!-- end reload null.  Runs on full page load -->
+<?php 
+  } // end if (!ZM_OPT_USE_AUTH) or $user )
+  if ( $reload === null ) {
+?> 
     </nav>
 
         <ul class="list-group list-group-horizontal ml-auto">
@@ -420,10 +428,12 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
       </ul>
 
     <!-- the Navigation Bar Hamburger Button   -->
+    <?php if ( (!ZM_OPT_USE_AUTH) or $user ) { ?>
       <button type="button" class="navbar-toggler" data-toggle="dropdown" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon"></span>
       </button>
+    <?php } ?>
 
   <?php echo getConsoleBannerHTML() ?>
 
@@ -449,6 +459,7 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
   </nav>
 
   <?php
+  } // end reload null.  Runs on full page load
 } // End function getCollapsedNavBarHTML
 
 // Returns the html representing the current unix style system load

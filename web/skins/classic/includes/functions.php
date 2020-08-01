@@ -165,11 +165,11 @@ if ( $css != 'base' )
       }
     });
     jQuery(document).click(function(event) {
-      var target = jQuery(event.target);
-      var _mobileMenuOpen = jQuery("#main-header-nav").hasClass("show");
-      if (_mobileMenuOpen === true && !target.hasClass("navbar-toggler")) {
-        jQuery("button.navbar-toggler").click();
-      }
+            var target = jQuery(event.target);
+            var _mobileMenuOpen = jQuery("#main-header-nav").hasClass("show");
+            if (_mobileMenuOpen === true && !target.hasClass("navbar-toggler")) {
+                jQuery("button.navbar-toggler").click();
+            }
     });
   });
   var $j = jQuery.noConflict();
@@ -273,13 +273,15 @@ function getNavBarHTML($reload = null) {
     $filterQuery = $_REQUEST['filter']['query'];
   }
 
+  if ( $reload === null ) ob_start();
+  
   if ( ZM_WEB_NAVBAR_TYPE == "normal" ) {
     echo getNormalNavBarHTML($reload,$running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery);
   } else {
     echo getCollapsedNavBarHTML($reload,$running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery);
   }
 
-  if ( $reload === null ) return ob_get_clean();
+  return ob_get_clean();
 }
 
 //
@@ -288,7 +290,6 @@ function getNavBarHTML($reload = null) {
 function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
 
   if ( $reload === null ) {
-    ob_start();
     $status = runtimeStatus($running);
 
 ?>
@@ -366,7 +367,7 @@ function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $
       <?php echo getConsoleBannerHTML() ?>
 <?php
   } // end if (!ZM_OPT_USE_AUTH) or $user )
-
+  if ($reload == 'reload') return ob_get_clean();
 ?>
     </div><!-- End Collapsible Panel -->
   </nav><!-- End Second Navbar -->
@@ -381,7 +382,6 @@ function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $
 function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
 
   if ( $reload === null ) {
-    ob_start();
     $status = runtimeStatus($running);
 
   ?>
@@ -422,6 +422,7 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
 
 <?php 
   } // end if (!ZM_OPT_USE_AUTH) or $user )
+  if ($reload == 'reload') return ob_get_clean();
   if ( $reload === null ) {
 ?> 
     </nav>
@@ -436,7 +437,7 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
 
     <!-- the Navigation Bar Hamburger Button   -->
     <?php if ( (!ZM_OPT_USE_AUTH) or $user ) { ?>
-      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
+      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-haspopup="true" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon"></span>
       </button>

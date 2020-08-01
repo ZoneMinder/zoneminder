@@ -11,7 +11,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// GNU General Public License for more details.table-re
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
@@ -210,7 +210,7 @@ getBodyTopHTML();
 <?php
 ob_start();
 ?>
-	<div class="table-responsive pt-2">
+	<div class="table-responsive-sm pt-2">
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>

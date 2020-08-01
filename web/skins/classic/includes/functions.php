@@ -165,11 +165,11 @@ if ( $css != 'base' )
       }
     });
     jQuery(document).click(function(event) {
-            var target = jQuery(event.target);
-            var _mobileMenuOpen = jQuery("#main-header-nav").hasClass("show");
-            if (_mobileMenuOpen === true && !target.hasClass("navbar-toggler")) {
-                jQuery("button.navbar-toggler").click();
-            }
+      var target = jQuery(event.target);
+      var _mobileMenuOpen = jQuery("#main-header-nav").hasClass("show");
+      if (_mobileMenuOpen === true && !target.hasClass("navbar-toggler")) {
+        jQuery("button.navbar-toggler").click();
+      }
     });
   });
   var $j = jQuery.noConflict();

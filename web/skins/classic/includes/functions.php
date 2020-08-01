@@ -164,6 +164,13 @@ if ( $css != 'base' )
         jQuery('.chosen').chosen();
       }
     });
+    jQuery(document).click(function(event) {
+      var target = jQuery(event.target);
+      var _mobileMenuOpen = jQuery("#main-header-nav").hasClass("show");
+      if (_mobileMenuOpen === true && !target.hasClass("navbar-toggler")) {
+        jQuery("button.navbar-toggler").click();
+      }
+    });
   });
   var $j = jQuery.noConflict();
   // $j is now an alias to the jQuery function; creating the new alias is optional.
@@ -429,7 +436,7 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
 
     <!-- the Navigation Bar Hamburger Button   -->
     <?php if ( (!ZM_OPT_USE_AUTH) or $user ) { ?>
-      <button type="button" class="navbar-toggler" data-toggle="dropdown" data-target="#main-header-nav" aria-expanded="false">
+      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon"></span>
       </button>

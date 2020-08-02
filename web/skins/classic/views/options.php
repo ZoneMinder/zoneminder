@@ -56,10 +56,10 @@ xhtmlHeaders(__FILE__, translate('Options'));
 ?>
 <body>
   <?php echo getNavBarHTML(); ?>
-  <div class="container-fluid">
-    <div class="row flex-nowrap">
-      <nav id="sidebar">
-        <ul class="nav nav-pills flex-column">
+  <div class="container-fluid h-100">
+    <div class="row flex-nowrap h-100">
+      <nav id="sidebar h-100">
+        <ul class="nav nav-pills flex-column h-100">
 <?php
 foreach ( $tabs as $name=>$value ) {
 ?>
@@ -69,7 +69,7 @@ foreach ( $tabs as $name=>$value ) {
 ?>
         </ul>
       </nav>
-      <div class="col-sm-10 col-sm-offset-2">
+      <div class="col-sm-10 col-sm-offset-2 h-100">
         <br/>
         <div id="options">
 <?php 
@@ -440,7 +440,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
           $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
             <div class="form-group form-row">
-              <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><small><strong><?php echo $shortName ?></strong></small></label>
+              <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
               <div class="col-md">
 <?php   
         if ( $value['Type'] == 'boolean' ) {

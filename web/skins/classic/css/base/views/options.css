@@ -26,3 +26,7 @@ input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SITEKEY]"],
 input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SECRETKEY]"] {
   width: 100%;
 }
+
+#options label {
+  font-weight: bold;
+}

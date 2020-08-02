@@ -292,7 +292,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filter
   $status = runtimeStatus($running);
 
 ?>
-<div class="fixed-top container-fluid p-0 p-0">
+<div class="fixed-top container-fluid p-0">
   <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row">
 
     <div class="navbar-brand justify-content-start align-self-start">
@@ -361,12 +361,15 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filter
           <?php echo getZMVersionHTML() ?>
         </ul>
       </div>
-      <?php echo getConsoleBannerHTML() ?>
 <?php
   } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
     </div><!-- End Collapsible Panel -->
   </nav><!-- End Second Navbar -->
+  
+  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
+    <?php echo getConsoleBannerHTML() ?>
+  </nav><!-- End Third Navbar -->
 </div>
 <?php
 } // end function getNormalNavBarHTML()
@@ -380,8 +383,8 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $fil
   $status = runtimeStatus($running);
 
   ?>
-
-  <nav class="navbar navbar-fixed-top navbar-dark bg-dark px-1 flex-nowrap">
+  <div class="fixed-top container-fluid p-0">
+  <nav class="navbar navbar-dark bg-dark px-1 flex-nowrap">
 
     <div class="navbar-brand align-self-start px-0">
       <?php echo getNavBrandHTML() ?>
@@ -434,8 +437,6 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $fil
       </button>
     <?php } ?>
 
-  <?php echo getConsoleBannerHTML() ?>
-
   <div style="background-color:#485460" class="dropdown-menu dropdown-menu-right px-3" id="main-header-nav">
     <?php
     if ( $user and $user['Username'] ) {
@@ -455,8 +456,13 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $fil
     ?>
   </div>
 
-  </nav>
+  </nav><!-- End First Navbar -->
 
+  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
+    <?php echo getConsoleBannerHTML() ?>
+  </nav><!-- End Second Navbar -->
+  </div>
+  
   <?php
 } // End function getCollapsedNavBarHTML
 
@@ -552,7 +558,7 @@ function getConsoleBannerHTML() {
   $result='';
 
   if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) {
-    $result .= '<h3 id="getConsoleBannerHTML">'.validHtmlStr(ZM_WEB_CONSOLE_BANNER).'</h3>';
+    $result .= '<h2 id="getConsoleBannerHTML">'.validHtmlStr(ZM_WEB_CONSOLE_BANNER).'</h2>';
   }
   
   return $result;

@@ -338,12 +338,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
         auth_hash = data.auth;
       }
     }
-    // TO-DO: just interate through all the keys instead
-    if ( $j('#getBandwidthHTML').length ) $j('#getBandwidthHTML').replaceWith(data.getBandwidthHTML);
-    if ( $j('#getSysLoadHTML').length ) $j('#getSysLoadHTML').replaceWith(data.getSysLoadHTML);
-    if ( $j('#getDbConHTML').length ) $j('#getDbConHTML').replaceWith(data.getDbConHTML);
-    if ( $j('#getStorageHTML').length ) $j('#getStorageHTML').replaceWith(data.getStorageHTML);
-    if ( $j('#getShmHTML').length ) $j('#getShmHTML').replaceWith(data.getShmHTML);
+    // iterate through all the keys then update each element id with the same name
+    for (var key of Object.keys(data)) {
+      if ( key == "auth" ) continue;
+      if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
+    }
+
   }
 }
 

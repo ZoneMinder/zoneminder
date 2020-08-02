@@ -7,17 +7,13 @@ function zm_session_start() {
 
   $currentCookieParams = session_get_cookie_params(); 
   $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
+  $currentCookieParams['httponly'] = true;
+  $currentCookieParams['samesite'] = 'Strict';
 
-  session_set_cookie_params( 
-    $currentCookieParams['lifetime'],
-    $currentCookieParams['path'],
-    $currentCookieParams['domain'],
-    $currentCookieParams['secure'],
-    true
-  );
+  session_set_cookie_params( $currentCookieParams);
 
   ini_set('session.name', 'ZMSESSID');
-  ZM\Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1) name:'.session_name());
+  ZM\Logger::Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
 
   session_start();
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking

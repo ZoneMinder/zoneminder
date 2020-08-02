@@ -343,7 +343,6 @@ if ( currentView != 'none' && currentView != 'login' ) {
       if ( key == "auth" ) continue;
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
     }
-
   }
 }
 

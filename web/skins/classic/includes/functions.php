@@ -601,7 +601,7 @@ function getLogHTML() {
       }
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
-      echo '<li class="nav-item dropdown">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span></li>').PHP_EOL;
+      echo '<li class="nav-item dropdown">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span>').'</li>'.PHP_EOL;
     }
   }
 }
@@ -615,29 +615,29 @@ function getDevicesHTML() {
 
 // Returns the html representing the Groups menu item
 function getGroupsHTML($view) {
-  $class = $view == 'groups' ? 'selected' : '';
-  echo '<li class="nav-item dropdown"><a class="nav-link" href="?view=groups" class="' .$class. '">'. translate('Groups') .'</a></li>'.PHP_EOL;
+  $class = $view == 'groups' ? ' selected' : '';
+  echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
 }
 
 // Returns the html representing the Filter menu item
 function getFilterHTML($view,$filterQuery,$sortQuery,$limitQuery) {
-  $class = $view == 'filter' ? 'selected' : '';
-  echo '<li class="nav-item dropdown"><a class="nav-link" href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'" class="'.$class.'">'.translate('Filters').'</a></li>'.PHP_EOL;
+  $class = $view == 'filter' ? ' selected' : '';
+  echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'">'.translate('Filters').'</a></li>'.PHP_EOL;
 }
 
 // Returns the html representing the Cycle menu item
 function getCycleHTML($view) {
   if ( canView('Stream') ) {
-    $class = $view == 'cycle' ? 'selected' : '';
-    echo '<li class="nav-item dropdown"><a class="nav-link" href="?view=cycle" class="' .$class. '">' .translate('Cycle'). '</a></li>'.PHP_EOL;
+    $class = $view == 'cycle' ? ' selected' : '';
+    echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=cycle">' .translate('Cycle'). '</a></li>'.PHP_EOL;
   }
 }
 
 // Returns the html representing the Montage menu item
 function getMontageHTML($view) {
   if ( canView('Stream') ) {
-    $class = $view == 'cycle' ? 'selected' : '';
-    echo '<li class="nav-item dropdown"><a class="nav-link" href="?view=montage" class="' .$class. '">' .translate('Montage'). '</a></li>'.PHP_EOL;
+    $class = $view == 'cycle' ? ' selected' : '';
+    echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
 }
 
@@ -659,16 +659,16 @@ function getMontageReviewHTML($view) {
       }
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
-    $class = $view == 'montagereview' ? 'selected' : '';
-    echo '<li class="nav-item dropdown"><a class="nav-link" href="?view=montagereview' .$live. '" class="' .$class. '">' .translate('MontageReview'). '</a></li>'.PHP_EOL;
+    $class = $view == 'montagereview' ? ' selected' : '';
+    echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
   }
 }
 
 // Returns the html representing the Audit Events Report menu item
 function getRprtEvntAuditHTML($view) {
   if ( canView('Events') ) {
-    $class = $view == 'report_event_audit' ? 'selected' : '';
-    echo '<li class="nav-item dropdown"><a class="nav-link" href="?view=report_event_audit" class="' .$class. '">' .translate('ReportEventAudit'). '</a></li>'.PHP_EOL;
+    $class = $view == 'report_event_audit' ? ' selected' : '';
+    echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
   }
 }
 

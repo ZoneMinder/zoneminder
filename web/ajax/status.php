@@ -1,5 +1,6 @@
 <?php
 if ( $_REQUEST['entity'] == 'navBar' ) {
+  global $bandwidth_options, $user;
   $data = array();
   if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
     $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
@@ -7,7 +8,14 @@ if ( $_REQUEST['entity'] == 'navBar' ) {
       $data['auth'] = $auth_hash;
     }
   }
-  $data['message'] = getNavBarHtml('reload');
+  // Each widget on the navbar has its own function
+  // Call the functions we want to dynamically update
+  $data['getBandwidthHTML'] = getBandwidthHTML($bandwidth_options, $user);
+  $data['getSysLoadHTML'] = getSysLoadHTML();
+  $data['getDbConHTML'] = getDbConHTML();
+  $data['getStorageHTML'] = getStorageHTML();
+  $data['getShmHTML'] = getShmHTML();
+
   ajaxResponse($data);
   return;
 }

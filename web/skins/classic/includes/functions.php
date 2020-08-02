@@ -252,7 +252,7 @@ function getBodyTopHTML() {
   }
 } // end function getBodyTopHTML
 
-function getNavBarHTML($reload = null) {
+function getNavBarHTML() {
   # Provide a facility to turn off the headers if you put navbar=0 into the url
   if ( isset($_REQUEST['navbar']) and $_REQUEST['navbar'] == '0' )
     return '';
@@ -273,12 +273,12 @@ function getNavBarHTML($reload = null) {
     $filterQuery = $_REQUEST['filter']['query'];
   }
 
-  if ( $reload === null ) ob_start();
+  ob_start();
   
   if ( ZM_WEB_NAVBAR_TYPE == "normal" ) {
-    echo getNormalNavBarHTML($reload,$running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery);
+    echo getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery);
   } else {
-    echo getCollapsedNavBarHTML($reload,$running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery);
+    echo getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery);
   }
 
   return ob_get_clean();
@@ -287,10 +287,9 @@ function getNavBarHTML($reload = null) {
 //
 // The legacy navigation bar that collapses into a pulldown menu on small screens.
 //
-function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
+function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
 
-  if ( $reload === null ) {
-    $status = runtimeStatus($running);
+  $status = runtimeStatus($running);
 
 ?>
 <div class="fixed-top container-fluid p-0 p-0">
@@ -339,10 +338,8 @@ function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $
   <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
     <div class="container-fluid" id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
-  } // end reload null.  Runs on full page load
 
   if ( (!ZM_OPT_USE_AUTH) or $user ) {
-    if ($reload == 'reload') ob_start();
 
 // *** Build the statistics shown on the navigation bar ***
 ?>
@@ -367,7 +364,6 @@ function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $
       <?php echo getConsoleBannerHTML() ?>
 <?php
   } // end if (!ZM_OPT_USE_AUTH) or $user )
-  if ($reload == 'reload') return ob_get_clean();
 ?>
     </div><!-- End Collapsible Panel -->
   </nav><!-- End Second Navbar -->
@@ -379,10 +375,9 @@ function getNormalNavBarHTML($reload=null,$running, $user, $bandwidth_options, $
 //
 // A new, slimmer navigation bar, permanently collapsed into a dropdown
 //
-function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
+function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
 
-  if ( $reload === null ) {
-    $status = runtimeStatus($running);
+  $status = runtimeStatus($running);
 
   ?>
 
@@ -395,11 +390,9 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
     <nav class="navbar navbar-expand-md align-self-start px-0">
     <ul class="nav navbar-nav list-group px-0">
     <?php
-  } // end reload null.  Runs on full page load
 
   // *** Build the statistics shown on the navigation bar ***
   if ( (!ZM_OPT_USE_AUTH) or $user ) {
-    if ($reload == 'reload') ob_start();
     ?>
     <div id="reload" class="collapse navbar-collapse px-0">
 
@@ -422,8 +415,6 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
 
 <?php 
   } // end if (!ZM_OPT_USE_AUTH) or $user )
-  if ($reload == 'reload') return ob_get_clean();
-  if ( $reload === null ) {
 ?> 
     </nav>
 
@@ -467,7 +458,6 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
   </nav>
 
   <?php
-  } // end reload null.  Runs on full page load
 } // End function getCollapsedNavBarHTML
 
 // Returns the html representing the current unix style system load
@@ -512,7 +502,7 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<span class="ml-1 ' .$class. '" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>';
+    return '<span class="ml-1 '.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
@@ -640,7 +630,7 @@ function getLogHTML() {
       }
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
-      $result .= '<li id="getLogHTML" class="nav-item dropdown">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link ' .$class. '">'.translate('Log').'</span>').'</li>'.PHP_EOL;
+      $result .= '<li id="getLogHTML" class="nav-item dropdown">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span>').'</li>'.PHP_EOL;
     }
   }
   
@@ -663,7 +653,7 @@ function getGroupsHTML($view) {
   $result='';
   
   $class = $view == 'groups' ? ' selected' : '';
-  $result .= '<li id="getGroupsHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
+  $result .= '<li id="getGroupsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
   
   return $result;
 }
@@ -673,7 +663,7 @@ function getFilterHTML($view,$filterQuery,$sortQuery,$limitQuery) {
   $result='';
   
   $class = $view == 'filter' ? ' selected' : '';
-  $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'">'.translate('Filters').'</a></li>'.PHP_EOL;
+  $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'">'.translate('Filters').'</a></li>'.PHP_EOL;
   
   return $result;
 }
@@ -684,7 +674,7 @@ function getCycleHTML($view) {
   
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? ' selected' : '';
-    $result .= '<li id="getCycleHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=cycle">' .translate('Cycle'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getCycleHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=cycle">' .translate('Cycle'). '</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -696,7 +686,7 @@ function getMontageHTML($view) {
   
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? ' selected' : '';
-    $result .= '<li id="getMontageHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getMontageHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -723,7 +713,7 @@ function getMontageReviewHTML($view) {
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
     $class = $view == 'montagereview' ? ' selected' : '';
-    $result .= '<li id="getMontageReviewHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getMontageReviewHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -735,7 +725,7 @@ function getRprtEvntAuditHTML($view) {
   
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? ' selected' : '';
-    $result .= '<li id="getRprtEvntAuditHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getRprtEvntAuditHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
   }
   
   return $result;

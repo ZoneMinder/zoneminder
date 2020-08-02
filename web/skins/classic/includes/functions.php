@@ -472,28 +472,36 @@ function getCollapsedNavBarHTML($reload=null, $running, $user, $bandwidth_option
 
 // Returns the html representing the current unix style system load
 function getSysLoadHTML() {
+  $result='';
 
-  echo '<li class="Load nav-item mx-2">'.PHP_EOL;
-  echo '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
-  echo '&nbsp;'.translate('Load').': '.getLoad().PHP_EOL;
-  echo '</li>'.PHP_EOL;
+  $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
+  $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
+  $result .= '&nbsp;'.translate('Load').': '.getLoad().PHP_EOL;
+  $result .= '</li>'.PHP_EOL;
+  
+  return $result;
 }
 
 // Returns the html representing the current number of connections made to the database
 function getDbConHTML() {
+  $result='';
+  
   $connections = dbFetchOne('SHOW status WHERE variable_name=\'threads_connected\'', 'Value');
   $max_connections = dbFetchOne('SHOW variables WHERE variable_name=\'max_connections\'', 'Value');
   $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
   $class = ( $percent_used > 90 ) ? 'text-warning' : '';
 
-  echo '<li class="nav-item dropdown mx-2 ' .$class. '">'.PHP_EOL;
-  echo '<i class="material-icons md-18 mr-1">storage</i>'.PHP_EOL;
-  echo translate('DB'). ': ' .$connections. '/' .$max_connections.PHP_EOL;   
-  echo '</li>'.PHP_EOL;
+  $result .= '<li id="getDbConHTML" class="nav-item dropdown mx-2 ' .$class. '">'.PHP_EOL;
+  $result .= '<i class="material-icons md-18 mr-1">storage</i>'.PHP_EOL;
+  $result .= translate('DB'). ': ' .$connections. '/' .$max_connections.PHP_EOL;   
+  $result .= '</li>'.PHP_EOL;
+  
+  return $result;
 }
 
 // Returns the html representing up to 4 storage areas and their current capacity
 function getStorageHTML() {
+  $result='';
 
   $func = function($S) {
     $class = '';
@@ -504,7 +512,7 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<span class="ml-1 '.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>';
+    return '<span class="ml-1 ' .$class. '" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
@@ -518,18 +526,22 @@ function getStorageHTML() {
     }
   }
 
-  echo '<li class="nav-item dropdown mx-2">'.translate('Storage').':';
+  $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.translate('Storage').':';
 
   if ( $num_storage_areas > 4 ) {
     $storage_areas = $storage_areas_with_no_server_id;
   } else {
-    echo implode(', ', array_map($func, $storage_areas));
+    $result .= implode(', ', array_map($func, $storage_areas));
   }
-  echo '</li>'.PHP_EOL;
+  $result .= '</li>'.PHP_EOL;
+  
+  return $result;
 }
 
 // Returns the html representing the current capacity of mapped memory filesystem (usually /dev/shm)
 function getShmHTML() {
+  $result='';
+  
   $shm_percent = getDiskPercent(ZM_PATH_MAP);
   $shm_total_space = disk_total_space(ZM_PATH_MAP);
   $shm_used = $shm_total_space - disk_free_space(ZM_PATH_MAP);
@@ -540,49 +552,76 @@ function getShmHTML() {
   } else if ( $shm_percent > 90 ) {
     $class = 'text-warning';
   }
-  echo ' <li class="nav-item dropdown ' .$class. '" title="' .human_filesize($shm_used). ' of ' .human_filesize($shm_total_space). '">' .ZM_PATH_MAP. ': '.$shm_percent.'%</li>'.PHP_EOL;
+  $result .= ' <li id="getShmHTML" class="nav-item dropdown ' .$class. '" title="' .human_filesize($shm_used). ' of ' .human_filesize($shm_total_space). '">' .ZM_PATH_MAP. ': '.$shm_percent.'%</li>'.PHP_EOL;
+  
+  return $result;
 }
 
 // Returns the html representing the optional web console banner text
 function getConsoleBannerHTML() {
+  $result='';
 
   if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) {
-    echo '<h3 id="development">'.validHtmlStr(ZM_WEB_CONSOLE_BANNER).'</h3>';
+    $result .= '<h3 id="getConsoleBannerHTML">'.validHtmlStr(ZM_WEB_CONSOLE_BANNER).'</h3>';
   }
+  
+  return $result;
 }
 
 // Returns the html representing the current high,medium,low bandwidth setting
 function getBandwidthHTML($bandwidth_options,$user) {
-  echo '<li class="nav-item dropdown">'.makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' )).'</li>'.PHP_EOL;
+  $result='';
+  
+  $result .= '<li id="getBandwidthHTML" class="nav-item dropdown">'.makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' )).'</li>'.PHP_EOL;
+  
+  return $result;
 }
 
 // Returns the html representing the version of ZoneMinder
 function getZMVersionHTML() {
+  $result='';
+  
   $class = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'text-danger':'';
-  echo '<li class="nav-item dropdown">' .makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version ' .$class. '">v' .ZM_VERSION. '</span>', canEdit('System') ). '</li>'.PHP_EOL;
+  $result .= '<li id="getZMVersionHTML" class="nav-item dropdown">' .makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version ' .$class. '">v' .ZM_VERSION. '</span>', canEdit('System') ). '</li>'.PHP_EOL;
+  
+  return $result;
 }
 
 // Returns the html representing the ZoneMinder logo
 function getNavBrandHTML() {
-  echo '<a href="' .validHtmlStr(ZM_HOME_URL). '" target="' .validHtmlStr(ZM_WEB_TITLE). '">' .ZM_HOME_CONTENT. '</a>'.PHP_EOL;
+  $result='';
+  
+  $result .= '<a id="getNavBrandHTML" href="' .validHtmlStr(ZM_HOME_URL). '" target="' .validHtmlStr(ZM_WEB_TITLE). '">' .ZM_HOME_CONTENT. '</a>'.PHP_EOL;
+  
+  return $result;
 }
 
 // Returns the html representing the Console menu item
 function getConsoleHTML() {
+  $result='';
+  
   if ( canView('Monitors') ) {
-    echo '<li class="nav-item dropdown"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getConsoleHTML" class="nav-item dropdown"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
+  
+  return $result;
 }
 
 // Returns the html representing the Options menu item
 function getOptionsHTML() {
+  $result='';
+  
   if ( canView('System') ) {
-    echo '<li class="nav-item dropdown"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getOptionsHTML" class="nav-item dropdown"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
   }
+  
+  return $result;
 }
 
 // Returns the html representing the Log menu item
 function getLogHTML() {
+  $result='';
+  
   if ( canView('System') ) {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       if ( ! ZM_RUN_AUDIT ) {
@@ -601,48 +640,72 @@ function getLogHTML() {
       }
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
-      echo '<li class="nav-item dropdown">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span>').'</li>'.PHP_EOL;
+      $result .= '<li id="getLogHTML" class="nav-item dropdown">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link ' .$class. '">'.translate('Log').'</span>').'</li>'.PHP_EOL;
     }
   }
+  
+  return $result;
 }
 
 // Returns the html representing the X10 Devices menu item
 function getDevicesHTML() {
+  $result='';
+  
   if ( ZM_OPT_X10 && canView('Devices') ) {
-    echo '<li class="nav-item dropdown"><a class="nav-link" href="?view=devices">Devices</a></li>'.PHP_EOL;
+    $result .= '<li id="getDevicesHTML" class="nav-item dropdown"><a class="nav-link" href="?view=devices">Devices</a></li>'.PHP_EOL;
   }
+  
+  return $result;
 }
 
 // Returns the html representing the Groups menu item
 function getGroupsHTML($view) {
+  $result='';
+  
   $class = $view == 'groups' ? ' selected' : '';
-  echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
+  $result .= '<li id="getGroupsHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
+  
+  return $result;
 }
 
 // Returns the html representing the Filter menu item
 function getFilterHTML($view,$filterQuery,$sortQuery,$limitQuery) {
+  $result='';
+  
   $class = $view == 'filter' ? ' selected' : '';
-  echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'">'.translate('Filters').'</a></li>'.PHP_EOL;
+  $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'">'.translate('Filters').'</a></li>'.PHP_EOL;
+  
+  return $result;
 }
 
 // Returns the html representing the Cycle menu item
 function getCycleHTML($view) {
+  $result='';
+  
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? ' selected' : '';
-    echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=cycle">' .translate('Cycle'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getCycleHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=cycle">' .translate('Cycle'). '</a></li>'.PHP_EOL;
   }
+  
+  return $result;
 }
 
 // Returns the html representing the Montage menu item
 function getMontageHTML($view) {
+  $result='';
+  
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? ' selected' : '';
-    echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getMontageHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
+  
+  return $result;
 }
 
 // Returns the html representing the MontageReview menu item
 function getMontageReviewHTML($view) {
+  $result='';
+  
   if ( canView('Events') ) {
     if ( isset($_REQUEST['filter']['Query']['terms']['attr']) ) {
       $terms = $_REQUEST['filter']['Query']['terms'];
@@ -660,54 +723,72 @@ function getMontageReviewHTML($view) {
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
     $class = $view == 'montagereview' ? ' selected' : '';
-    echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getMontageReviewHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
   }
+  
+  return $result;
 }
 
 // Returns the html representing the Audit Events Report menu item
 function getRprtEvntAuditHTML($view) {
+  $result='';
+  
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? ' selected' : '';
-    echo '<li class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getRprtEvntAuditHTML" class="nav-item dropdown"><a class="nav-link' .$class. '" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
   }
+  
+  return $result;
 }
 
 // Returns the html representing the header collapse toggle menu item
 function getHeaderFlipHTML() {
+  $result='';
+  
   $header = ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up';
-  echo '<li class="nav-item dropdown"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
+  $result .= '<li id="getHeaderFlipHTML" class="nav-item dropdown"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
+  
+  return $result;
 }
 
 // Returns the html representing the logged in user name and avatar
 function getAcctCircleHTML($user=null) {
+  $result='';
+  
   if ( ZM_OPT_USE_AUTH and $user ) {
-    echo '<p class="navbar-text mr-2">'.PHP_EOL;
-      echo '<i class="material-icons">account_circle</i>';
-      echo makePopupLink('?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == 'builtin') ).PHP_EOL;
-    echo '</p>'.PHP_EOL;
+    $result .= '<p id="getAcctCircleHTML" class="navbar-text mr-2">'.PHP_EOL;
+      $result .= '<i class="material-icons">account_circle</i>';
+      $result .= makePopupLink('?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == 'builtin') ).PHP_EOL;
+    $result .= '</p>'.PHP_EOL;
   }
+  
+  return $result;
 }
 
 // Returns the html representing the runtime status button
 function getStatusBtnHTML($status) {
+  $result='';
+  
   if ( canEdit('System') ) {
-    //echo '<li class="nav-item dropdown">'.PHP_EOL;
-    echo '<form class="form-inline">'.PHP_EOL;
-    echo '<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState">' .$status. '</button>'.PHP_EOL;
-    echo '</form>'.PHP_EOL;
-    //echo '</li>'.PHP_EOL;
+    //$result .= '<li class="nav-item dropdown">'.PHP_EOL;
+    $result .= '<form id="getStatusBtnHTML" class="form-inline">'.PHP_EOL;
+    $result .= '<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState">' .$status. '</button>'.PHP_EOL;
+    $result .= '</form>'.PHP_EOL;
+    //$result .= '</li>'.PHP_EOL;
 
     if ( ZM_SYSTEM_SHUTDOWN ) {
-      echo '<p class="navbar-text">'.PHP_EOL;
-      echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ).PHP_EOL;
-      echo '</p>'.PHP_EOL;
+      $result .= '<p class="navbar-text">'.PHP_EOL;
+      $result .= makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ).PHP_EOL;
+      $result .= '</p>'.PHP_EOL;
      } 
 
   } else if ( canView('System') ) {
-    echo '<p class="navbar-text">'.PHP_EOL;
-    echo $status.PHP_EOL;
-    echo '</p>'.PHP_EOL;
+    $result .= '<p id="getStatusBtnHTML" class="navbar-text">'.PHP_EOL;
+    $result .= $status.PHP_EOL;
+    $result .= '</p>'.PHP_EOL;
   }
+  
+  return $result;
 }
 
 function runtimeStatus($running=null) {

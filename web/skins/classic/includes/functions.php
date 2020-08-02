@@ -354,6 +354,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filter
           echo getDbConHTML();
           echo getStorageHTML();
           echo getShmHTML();
+          echo getLogIconHTML();
           ?>
         </ul>
 
@@ -412,6 +413,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $fil
         echo getDbConHTML();
         echo getStorageHTML();
         echo getShmHTML();
+        echo getLogIconHTML();
         ?>
 
     </div>
@@ -637,6 +639,21 @@ function getLogHTML() {
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
       $result .= '<li id="getLogHTML" class="nav-item dropdown">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span>').'</li>'.PHP_EOL;
+    }
+  }
+  
+  return $result;
+}
+
+// Returns the html representing the log icon
+function getLogIconHTML() {
+  $result='';
+  
+  if ( canView('System') ) {
+    if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
+      $logstate = logState();
+      $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
+      $result .= '<li id="getLogIconHTML" class="nav-item dropdown">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').'</li>'.PHP_EOL;
     }
   }
   

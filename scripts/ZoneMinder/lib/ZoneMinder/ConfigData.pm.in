@@ -1581,7 +1581,7 @@ our @options = (
   {
     name        => 'ZM_HOME_ABOUT',
     default     => 'yes',
-    description => 'Whether enable the ZoneMinder About menu.',
+    description => 'Whether to enable the ZoneMinder About menu.',
     help        => q`
       When enabled, the ZoneMinder logo in the top left corner of the
       navigation bar becomes a menu with links to: the ZoneMinder

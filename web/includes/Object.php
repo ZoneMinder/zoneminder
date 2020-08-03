@@ -166,7 +166,7 @@ class ZM_Object {
 
   public function set($data) {
     foreach ( $data as $field => $value ) {
-      if ( is_callable(array($this, $field)) ) {
+      if ( method_exists($this, $field) and is_callable($this, $field) ) {
         $this->{$field}($value);
       } else {
         if ( is_array($value) ) {
@@ -174,9 +174,9 @@ class ZM_Object {
           $this->{$field} = implode(',', $value);
         } else if ( is_string($value) ) {
           if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
-            if ( is_array($this->defaults[$feild]['filter_regexp']) ) {
+            if ( is_array($this->defaults[$field]['filter_regexp']) ) {
               foreach ( $this->defaults[$field]['filter_regexp'] as $regexp ) {
-                $this->{$field} = preg_replace($regexp, '', $trim($value));
+                $this->{$field} = preg_replace($regexp, '', trim($value));
               }
             } else {
               $this->{$field} = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));

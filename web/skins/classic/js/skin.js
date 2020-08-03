@@ -341,6 +341,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // iterate through all the keys then update each element id with the same name
     for (var key of Object.keys(data)) {
       if ( key == "auth" ) continue;
+      if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
     }
   }

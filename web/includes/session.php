@@ -1,31 +1,33 @@
 <?php
 // ZM session start function support timestamp management
 function zm_session_start() {
-  // Make sure use_strict_mode is enabled.
-  // use_strict_mode is mandatory for security reasons.
-  ini_set('session.use_strict_mode', 1);
 
-  $currentCookieParams = session_get_cookie_params(); 
-  $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
-  $currentCookieParams['httponly'] = true;
-  $currentCookieParams['samesite'] = 'Strict';
+  if ( ini_get('session.name') != 'ZMSESSID' ) {
+    // Make sure use_strict_mode is enabled.
+    // use_strict_mode is mandatory for security reasons.
+    ini_set('session.use_strict_mode', 1);
 
-  session_set_cookie_params( $currentCookieParams);
+    $currentCookieParams = session_get_cookie_params(); 
+    $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
+    $currentCookieParams['httponly'] = true;
+    $currentCookieParams['samesite'] = 'Strict';
 
-  ini_set('session.name', 'ZMSESSID');
-  ZM\Logger::Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
+    session_set_cookie_params($currentCookieParams);
 
+    ini_set('session.name', 'ZMSESSID');
+    ZM\Logger::Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
+  }
   session_start();
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
   $now = time();
   // Do not allow to use expired session ID
   if ( !empty($_SESSION['last_time']) && ($_SESSION['last_time'] < ($now - 180)) ) {
-    ZM\Info('Destroying session due to timeout. ');
+    ZM\Info('Destroying session due to timeout.');
     session_destroy();
     session_start();
   } else if ( !empty($_SESSION['generated_at']) ) {
     if ( $_SESSION['generated_at']<($now-(ZM_COOKIE_LIFETIME/2)) ) {
-      ZM\Logger::Debug("Regenerating session because generated_at " . $_SESSION['generated_at'] . ' < ' . $now . '-'.ZM_COOKIE_LIFETIME.'/2 = '.($now-ZM_COOKIE_LIFETIME/2));
+      ZM\Logger::Debug('Regenerating session because generated_at ' . $_SESSION['generated_at'] . ' < ' . $now . '-'.ZM_COOKIE_LIFETIME.'/2 = '.($now-ZM_COOKIE_LIFETIME/2));
       zm_session_regenerate_id();
     }
   }

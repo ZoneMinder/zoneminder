@@ -1579,6 +1579,20 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_HOME_ABOUT',
+    default     => 'yes',
+    description => 'Whether enable the ZoneMinder About menu.',
+    help        => q`
+      When enabled, the ZoneMinder logo in the top left corner of the
+      navigation bar becomes a menu with links to: the ZoneMinder
+      website, ZoneMinder Documentation, and the ZoneMinder forum.
+      End users wishing to rebrand their system may want to disable this
+      as the menu items are currently hard coded.
+      `,
+    type        => $types{boolean},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_CONSOLE_BANNER',
     default     => '',
     description => 'Arbitrary text message near the top of the console',

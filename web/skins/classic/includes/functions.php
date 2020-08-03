@@ -39,8 +39,6 @@ function xhtmlHeaders($file, $title) {
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 
-  extract($GLOBALS, EXTR_OVERWRITE);
-
   function output_link_if_exists($files) {
     global $skin;
     $html = array();
@@ -50,7 +48,7 @@ function xhtmlHeaders($file, $title) {
       }
     }
     $html[] = ''; // So we ge a trailing \n
-    return implode("\n", $html);
+    return implode(PHP_EOL, $html);
   }
   
   function output_cache_busted_stylesheet_links($files) {
@@ -59,7 +57,7 @@ function xhtmlHeaders($file, $title) {
         $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
     }
     $html[] = ''; // So we ge a trailing \n
-    return implode("\n", $html);
+    return implode(PHP_EOL, $html);
   }
 ?>
 <!DOCTYPE html>

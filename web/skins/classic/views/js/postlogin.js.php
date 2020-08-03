@@ -1,6 +1,4 @@
 <?php
-  //error_reporting(0);
-  //ini_set('display_errors', 'stderr');
 // $thisUrl is the base URL used to access ZoneMinder.
 //
 // If the user attempts to access a privileged view but is not logged in, then he may

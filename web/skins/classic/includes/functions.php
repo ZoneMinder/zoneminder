@@ -140,17 +140,17 @@ if ( $css != 'base' )
     var mootoolsLoaded = (typeof MooTools != 'undefined');
     if (bootstrapLoaded && mootoolsLoaded) {
       Element.implement({
-        hide: function () {
+        hide: function() {
           return this;
         },
-        show: function (v) {
+        show: function(v) {
           return this;
         },
-        slide: function (v) {
+        slide: function(v) {
           return this;
         }
       });
-    }        
+    }
     jQuery("#flip").click(function() {
       jQuery("#panel").slideToggle("slow");
       var flip = jQuery("#flip");

@@ -709,3 +709,7 @@ li.search-choice {
 .form-check-inline {
   display: inline-block;
 }
+
+#dropdown_storage {
+background-color:#485460;
+}

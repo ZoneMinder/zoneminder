@@ -535,16 +535,16 @@ function getStorageHTML() {
     if ( $area->disk_usage_percent() > 90 ) $full_warning++;    
   } 
   
-  $class='';
+  $class = '';
   if ( $full_error ) {
     $class = 'text-danger'; 
   } else if ( $full_warning ) {
     $class = 'text-warning'; 
   }
   
-  $result .= '<li id="getStorageHTML" class="nav-item dropdown ' .$class. '">'.PHP_EOL;
-  $result .= '<a class="dropdown-toggle mr-2" href="#" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Stor</a>'.PHP_EOL;
-  $result .= '<div style="background-color:#485460" class="dropdown-menu" id="dropdown01" aria-labelledby="dropdown01">'.PHP_EOL;
+  $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
+  $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
+  $result .= '<div class="dropdown-menu" id="dropdown_storage" aria-labelledby="dropdown_storage">'.PHP_EOL;
   
   foreach ( $storage_areas as $area ) {  
     $result .= $func($area).PHP_EOL;

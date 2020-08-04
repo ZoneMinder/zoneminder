@@ -153,7 +153,7 @@ class ZM_Object {
   public function to_json() {
     $json = array();
     foreach ($this->defaults as $key => $value) {
-      if ( is_callable(array($this, $key)) ) {
+      if ( is_callable(array($this, $key), false) ) {
         $json[$key] = $this->$key();
       } else if ( property_exists($this, $key) ) {
         $json[$key] = $this->{$key};
@@ -166,8 +166,8 @@ class ZM_Object {
 
   public function set($data) {
     foreach ( $data as $field => $value ) {
-      if ( method_exists($this, $field) and is_callable($this, $field) ) {
-        $this->{$field}($value);
+      if ( method_exists($this, $field) and is_callable(array($this, $field), false) ) {
+        $this->$field($value);
       } else {
         if ( is_array($value) ) {
 # perhaps should turn into a comma-separated string

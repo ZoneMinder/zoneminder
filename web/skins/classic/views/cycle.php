@@ -161,11 +161,11 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
     </div>
   <div class="container-fluid">
     <div class="row" id="content">
-<div class="col-sm-2 sidebar">
-        <ul class="nav nav-pills nav-stacked">
+      <div class="col-sm-2 sidebar">
+        <ul class="nav flex-column">
 <?php
 foreach ( $monitors as $m ) {
-          echo '<li'.( $m->Id() == $monitor->Id() ? ' class="active"' : '' ).'><a href="?view=cycle&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+          echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
 }
 ?>
         </ul>

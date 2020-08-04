@@ -174,7 +174,7 @@ xhtmlHeaders(__FILE__, translate('EventFilter'));
         <input type="hidden" name="view" value="filter"/>
         <hr/>
         <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>
-<?php
+          <?php
 if ( count($filterNames) > 1 ) {
    echo htmlSelect('Id', $filterNames, $filter->Id(), array('data-on-change-this'=>'selectFilter'));
 } else {
@@ -194,16 +194,16 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <input type="hidden" name="object" value="filter"/>
 
         <hr/>
-        <?php if ( $filter->Id() ) { ?>
+<?php if ( $filter->Id() ) { ?>
         <p class="Id"><label><?php echo translate('Id') ?></label><?php echo $filter->Id() ?></p>
-        <?php } ?>
+<?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
           <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" data-on-input-this="updateButtons"/>
         </p>
 <?php if ( ZM_OPT_USE_AUTH ) { ?>
         <p><label><?php echo translate('FilterUser') ?></label>
-<?php 
+          <?php 
             global $user;
 echo htmlSelect('filter[UserId]',
   ZM\User::Indexed_By_Id(),

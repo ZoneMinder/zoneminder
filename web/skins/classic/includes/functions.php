@@ -522,7 +522,7 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<a class="dropdown-item '.$class.'" title="'.$title.'" href="?view=options&tab=storage">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</a>';
+    return '<a class="dropdown-item '.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</a>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));

@@ -141,17 +141,17 @@ if ( $css != 'base' )
     var mootoolsLoaded = (typeof MooTools != 'undefined');
     if (bootstrapLoaded && mootoolsLoaded) {
       Element.implement({
-        hide: function () {
+        hide: function() {
           return this;
         },
-        show: function (v) {
+        show: function(v) {
           return this;
         },
-        slide: function (v) {
+        slide: function(v) {
           return this;
         }
       });
-    }        
+    }
     jQuery("#flip").click(function() {
       jQuery("#panel").slideToggle("slow");
       var flip = jQuery("#flip");
@@ -607,11 +607,20 @@ function getZMVersionHTML() {
   return $result;
 }
 
-// Returns the html representing the ZoneMinder logo
+// Returns the html representing the ZoneMinder logo and about menu
 function getNavBrandHTML() {
   $result = '';
-  
+
+  if ( ZM_HOME_ABOUT ) {
+  $result .= '<a id="getNavBrandHTML" class="dropdown" data-toggle="dropdown" href="#">ZoneMinder</a>'.PHP_EOL;
+    $result .= '<ul style="background-color:#485460" class="dropdown-menu">'.PHP_EOL;
+      $result .= '<li><a class="dropdown-item" href="https://zoneminder.com/" target="_blank">ZoneMinder</a></li>'.PHP_EOL;
+      $result .= '<li><a class="dropdown-item" href="https://zoneminder.readthedocs.io/en/stable/" target="_blank">Documentation</a></li>'.PHP_EOL;
+      $result .= '<li><a class="dropdown-item" href="https://forums.zoneminder.com/" target="_blank">Support</a></li>'.PHP_EOL;
+    $result .= '</ul>'.PHP_EOL;
+  } else {
   $result .= '<a id="getNavBrandHTML" href="' .validHtmlStr(ZM_HOME_URL). '" target="' .validHtmlStr(ZM_WEB_TITLE). '">' .ZM_HOME_CONTENT. '</a>'.PHP_EOL;
+  }
   
   return $result;
 }

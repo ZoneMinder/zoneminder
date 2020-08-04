@@ -212,10 +212,10 @@ mv -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Beh
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
         .
 
-%make_build
+%cmake3_build
 
 %install
-%make_install
+%cmake3_install
 
 desktop-file-install					\
 	--dir %{buildroot}%{_datadir}/applications	\

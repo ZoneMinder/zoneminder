@@ -19,9 +19,12 @@
 // 
 
 function xhtmlHeaders($file, $title) {
+  ob_start();
+
   global $css;
   global $skin;
   global $view;
+  global $cspNonce;
 
   # This idea is that we always include the classic css files, 
   # and then any different skin only needs to contain things that are different.
@@ -242,6 +245,7 @@ if ( $css != 'base' )
 ?>
 </head>
 <?php
+  echo ob_get_clean();
 } // end function xhtmlHeaders( $file, $title )
 
 // Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.

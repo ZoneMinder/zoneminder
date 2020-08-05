@@ -1189,7 +1189,7 @@ int FfmpegCamera::transfer_to_image(
     for ( int i = 0; i < output_frame->height; i++ ) {
       memcpy(image_buffer_ptr, buffer, row_size);
       image_buffer_ptr += row_size;
-      buffer += row_size;
+      buffer += output_frame->linesize[0];
     }
   }
   return 0;

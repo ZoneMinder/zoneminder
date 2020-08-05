@@ -875,7 +875,6 @@ configure_file(zmlinkcontent.sh.in "${CMAKE_CURRENT_BINARY_DIR}/zmlinkcontent.sh
 
 # Create a target for man pages
 include(Pod2Man)
-ADD_MANPAGE_TARGET()
 
 # Process subdirectories
 

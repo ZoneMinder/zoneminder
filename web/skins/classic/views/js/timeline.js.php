@@ -1,3 +1,7 @@
+<?php
+  global $filterQuery;
+  global $monitors;
+?>
 var filterQuery = '<?php echo validJsStr($filterQuery) ?>';
 
 <?php

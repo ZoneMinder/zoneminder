@@ -254,7 +254,7 @@ function collectData() {
         if ( isset($elementData['sql']) )
           $fieldSql[] = $elementData['sql'].' as '.$element;
         else
-          $fieldSql[] = $element;
+          $fieldSql[] = '`'.$element.'`';
         if ( isset($elementData['table']) && isset($elementData['join']) ) {
           $joinSql[] = 'left join '.$elementData['table'].' on '.$elementData['join'];
         }
@@ -294,7 +294,7 @@ function collectData() {
           
           preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
           if ( count($matches) ) {
-            if ( in_array($matches[1], $fieldSql) ) {
+            if ( in_array($matches[1], $fieldSql) or  in_array('`'.$matches[1].'`', $fieldSql) ) {
               $sql .= $matches[1];
             } else {
               ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field));

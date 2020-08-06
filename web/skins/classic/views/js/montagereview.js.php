@@ -16,6 +16,8 @@ global $maxTimeSecs;
 global $minTime;
 global $maxTime;
 global $monitors;
+global $eventsSql;
+global $framesSql;
 ?>
 
 var currentScale=<?php echo $defaultScale?>;
@@ -52,7 +54,7 @@ $maxScore = 0;
 if ( !$liveMode ) {
   $result = dbQuery($eventsSql);
   if ( !$result ) {
-    Fatal('SQL-ERR');
+    ZM\Fatal('SQL-ERR');
     return;
   }
 

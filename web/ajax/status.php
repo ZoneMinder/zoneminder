@@ -285,7 +285,7 @@ function collectData() {
           
           preg_match('/^(\w+)\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
           if ( count($matches) ) {
-            if ( in_array($matches[1], $fieldSql) ) {
+            if ( in_array($matches[1], $fieldSql) or  in_array('`'.$matches[1].'`', $fieldSql) ) {
               $sql .= $matches[1];
             } else {
               ZM\Error('Sort field ' . $matches[1] . ' not in SQL Fields');

@@ -450,6 +450,7 @@ function drawZonePoints() {
       'name': 'newZone[Points]['+i+'][x]',
       'value': zone['Points'][i].x,
       'type': 'number',
+      'class': 'ZonePoint',
       'min': '0',
       'max': maxX,
       'data-point-index': i
@@ -464,6 +465,7 @@ function drawZonePoints() {
       'name': 'newZone[Points]['+i+'][y]',
       'value': zone['Points'][i].y,
       'type': 'number',
+      'class': 'ZonePoint',
       'min': '0',
       'max': maxY,
       'data-point-index': i

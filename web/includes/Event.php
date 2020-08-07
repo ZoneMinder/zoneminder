@@ -262,7 +262,7 @@ class Event extends ZM_Object {
     return $streamSrc;
   } // end function getStreamSrc
 
-  function DiskSpace( $new='' ) {
+  function DiskSpace( $new=null ) {
     if ( is_null($new) or ( $new != '' ) ) {
       $this->{'DiskSpace'} = $new;
     }

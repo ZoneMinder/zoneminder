@@ -158,7 +158,6 @@ class Event {
     static void EmptyPreAlarmFrames() {
       while ( pre_alarm_count > 0 ) {
 				int i = pre_alarm_count - 1;
-Debug(1, "EmptyreAlarmFrame: %d", i);
 				delete pre_alarm_data[i].image;
 				pre_alarm_data[i].image = NULL;
 				if ( pre_alarm_data[i].alarm_frame ) {
@@ -179,7 +178,6 @@ Debug(1, "EmptyreAlarmFrame: %d", i);
       pre_alarm_count++;
     }
     void SavePreAlarmFrames() {
-Debug(1, "SavePreAlarmFrame: %d", pre_alarm_count);
       for ( int i = 0; i < pre_alarm_count; i++ ) {
         AddFrame(
 						pre_alarm_data[i].image,

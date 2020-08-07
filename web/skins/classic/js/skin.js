@@ -236,7 +236,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       console.error("Nothing found to bind to " + fnName);
       return;
     }
-    el.onchange = window[fnName].bind(el, el);
+    el.oninput = window[fnName].bind(el, el);
   });
 });
 
@@ -338,7 +338,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
         auth_hash = data.auth;
       }
     }
-    $j('#reload').replaceWith(data.message);
+    // iterate through all the keys then update each element id with the same name
+    for (var key of Object.keys(data)) {
+      if ( key == "auth" ) continue;
+      if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
+      if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
+    }
   }
 }
 
@@ -397,6 +402,10 @@ function submitTab(evt) {
 }
 
 function submitThisForm() {
+  if ( ! this.form ) {
+    console.log("No this.form.  element with onchange is not in a form");
+    return;
+  }
   this.form.submit();
 }
 

@@ -60,7 +60,7 @@ Add the following to the bottom of the file
 ::
 
     # ZoneMinder repository
-    deb https://zmrepo.zoneminder.com/debian/release-1.34 stretch/
+    deb https://zmrepo.zoneminder.com/debian/release-1.34 buster/
 
 CTRL+o and <Enter> to save
 CTRL+x to exit

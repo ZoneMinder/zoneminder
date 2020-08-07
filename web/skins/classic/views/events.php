@@ -68,9 +68,9 @@ if ( !empty($page) ) {
     $limitLeft = $limit - $limitStart;
     $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
   }
-  $eventsSql .= " limit $limitStart, $limitAmount";
+  $eventsSql .= " LIMIT $limitStart, $limitAmount";
 } elseif ( !empty($limit) ) {
-  $eventsSql .= ' limit 0, '.$limit;
+  $eventsSql .= ' LIMIT 0, '.$limit;
 }
 
 $maxShortcuts = 5;

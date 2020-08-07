@@ -585,14 +585,14 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
   if ( !$types )
     $types = array();
 
-  foreach( $newValues as $key=>$value ) {
+  foreach ( $newValues as $key=>$value ) {
     if ( $columns && !isset($columns[$key]) )
       continue;
 
     if ( !isset($types[$key]) )
       $types[$key] = false;
 
-    switch( $types[$key] ) {
+    switch ( $types[$key] ) {
       case 'set' :
           if ( is_array($newValues[$key]) ) {
             if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
@@ -669,6 +669,7 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
           break;
     } // end switch
   } // end foreach newvalues
+
   foreach ( $values as $key=>$value ) {
     if ( !empty($columns[$key]) ) {
       if ( !empty($types[$key]) ) {
@@ -2096,18 +2097,23 @@ function isVector(&$array) {
 
 function checkJsonError($value) {
   if ( function_exists('json_last_error') ) {
-    $value = var_export($value,true);
-    switch( json_last_error() ) {
+    $value = var_export($value, true);
+    switch ( json_last_error() ) {
       case JSON_ERROR_DEPTH :
-        ZM\Fatal("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        ZM\Error("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        break;
       case JSON_ERROR_CTRL_CHAR :
-        ZM\Fatal("Unable to decode JSON string '$value', unexpected control character found");
+        ZM\Error("Unable to decode JSON string '$value', unexpected control character found");
+        break;
       case JSON_ERROR_STATE_MISMATCH :
-        ZM\Fatal("Unable to decode JSON string '$value', invalid or malformed JSON");
+        ZM\Error("Unable to decode JSON string '$value', invalid or malformed JSON");
+        break;
       case JSON_ERROR_SYNTAX :
-        ZM\Fatal("Unable to decode JSON string '$value', syntax error");
+        ZM\Error("Unable to decode JSON string '$value', syntax error");
+        break;
       default :
-        ZM\Fatal("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        ZM\Error("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        break;
       case JSON_ERROR_NONE:
         break;
     }

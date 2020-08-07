@@ -206,16 +206,20 @@ mv -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Beh
 ./utils/zmeditconfigdata.sh ZM_OPT_FAST_DELETE no
 
 %build
+# Disable LTO due to top level asm
+# See https://fedoraproject.org/wiki/LTOByDefault
+%define _lto_cflags %{nil}
+
 %cmake3 \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
         .
 
-%make_build
+%cmake3_build
 
 %install
-%make_install
+%cmake3_install
 
 desktop-file-install					\
 	--dir %{buildroot}%{_datadir}/applications	\

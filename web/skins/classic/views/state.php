@@ -17,29 +17,33 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+global $running;
 
 if ( !canEdit('System') ) {
   $view = 'error';
   return;
 }
 ?>
-<div id="modalState" class="modal fade">
-  <form class="form-horizontal" name="contentForm" method="get" action="?view=state">
-    <input type="hidden" name="view" value="state"/>
-    <input type="hidden" name="action" value="state"/>
-    <input type="hidden" name="apply" value="1"/>
-
-    <div class="modal-dialog">
+<div id="modalState" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="ModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
       <div class="modal-content">
+
         <div class="modal-header">
-	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h2 class="modal-title"><?php echo translate('RunState') ?></h2>
+	        <button type="button" class="btn" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+          <h5 class="modal-title w-100 text-center" id="ModalCenterTitle"><?php echo translate('RunState') ?></h5>
         </div>
+
         <div class="modal-body">
+          <form class="" name="contentForm" method="get" action="?view=state">
+           <input type="hidden" name="view" value="state"/>
+           <input type="hidden" name="action" value="state"/>
+           <input type="hidden" name="apply" value="1"/>
 
 	        <div class="form-group">
-	          <label for="runState" class="col-sm-3 control-label">Change State</label>
-	          <div class="col-sm-9">
+	          <label for="runState" class="col-md-3 col-form-label float-left">Change State</label>
+	          <div class="col-md-9">
               <select id="runState" name="runState" class="form-control">
 <?php 
 if ( $running ) {
@@ -62,14 +66,15 @@ foreach ( $states as $state ) {
 }
 ?>
               </select>
-	          </div><!--col-sm-9-->
+	          </div><!--col-md-9-->
 	        </div><!--form-group-->
 	        <div class="form-group">
-            <label for="newState" class="col-sm-3 control-label"><?php echo translate('NewState') ?></label>
-		        <div class="col-sm-9">
+            <label for="newState" class="col-md-3 col-form-label float-left"><?php echo translate('NewState') ?></label>
+		        <div class="col-md-9">
               <input class="form-control" type="text" id="newState"/>
 		        </div>
 	        </div>
+          </form>
         </div> <!-- modal-body -->
         <div class="modal-footer">
           <button class="btn btn-primary" type="button" id="btnApply"><?php echo translate('Apply') ?></button>
@@ -79,5 +84,4 @@ foreach ( $states as $state ) {
 	      </div><!-- footer -->
       </div> <!-- content -->
     </div> <!-- dialog -->
-  </form>
 </div> <!-- state -->

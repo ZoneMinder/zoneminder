@@ -169,7 +169,7 @@ protected:
 
 public:
 	Image();
-	explicit Image( const char *filename );
+	explicit Image(const char *filename);
 	Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
 	Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
 	explicit Image( const Image &p_image );
@@ -222,19 +222,32 @@ public:
     width = linesize = height = colours = size = pixels = subpixelorder = 0;
 	}
 	
-	void Assign( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size);
-	void Assign( const Image &image );
-  void Assign( const AVFrame *frame );
-	void AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype);
+	void Assign(
+      unsigned int p_width,
+      unsigned int p_height,
+      unsigned int p_colours,
+      unsigned int p_subpixelorder,
+      const uint8_t* new_buffer,
+      const size_t buffer_size);
+	void Assign(const Image &image);
+  void Assign(const AVFrame *frame);
+	void AssignDirect(
+      const unsigned int p_width,
+      const unsigned int p_height,
+      const unsigned int p_colours,
+      const unsigned int p_subpixelorder,
+      uint8_t *new_buffer,
+      const size_t buffer_size,
+      const int p_buffertype);
 
-	inline void CopyBuffer( const Image &image ) {
+	inline void CopyBuffer(const Image &image) {
 		Assign(image);
 	}
-	inline Image &operator=( const Image &image ) {
+	inline Image &operator=(const Image &image) {
 		Assign(image);
 		return *this;
 	}
-	inline Image &operator=( const unsigned char *new_buffer ) {
+	inline Image &operator=(const unsigned char *new_buffer) {
 		(*fptr_imgbufcpy)(buffer, new_buffer, size);
 		return *this;
 	}

@@ -97,10 +97,10 @@ void zmLoadConfig() {
     }
 
     if ( staticConfig.SERVER_ID ) {
-        Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
-    } else {
-        Debug(3, "Single server configuration assumed because no Server ID or Name was specified.");
-    }
+			Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
+		} else {
+			Debug(3, "Single server configuration assumed because no Server ID or Name was specified.");
+		}
   }
 
   snprintf(staticConfig.capture_file_format, sizeof(staticConfig.capture_file_format), "%%s/%%0%dd-capture.jpg", config.event_image_digits);

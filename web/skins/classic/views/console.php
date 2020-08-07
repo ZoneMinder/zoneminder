@@ -157,13 +157,17 @@ if ( $show_storage_areas ) $left_columns += 1;
 xhtmlHeaders(__FILE__, translate('Console'));
 getBodyTopHTML();
 ?>
+  <?php echo $navbar ?>
   <form name="monitorForm" method="get" action="?">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
-    <?php echo $navbar ?>
-    <div class="filterBar"><?php echo $filterbar ?></div>
-    <div class="statusBreakdown">
+    <div class="filterBar" id="fbpanel"<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down' ) ? ' style="display:none;"' : '' ?>>
+      <?php echo $filterbar ?>
+    </div>
+
+    <div class="container-fluid pt-2">    
+      <div class="statusBreakdown float-left">
 <?php
   $html = '';
   foreach ( array_keys($status_counts) as $status ) {
@@ -172,9 +176,8 @@ getBodyTopHTML();
   }
   echo $html;
 ?>
-    </div>
+      </div>
 
-    <div class="container-fluid">
       <button type="button" name="addBtn" data-on-click-this="addMonitor"
       <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
       >
@@ -200,10 +203,12 @@ getBodyTopHTML();
         <i class="material-icons md-18">view_list</i>
         &nbsp;<?php echo translate('Select') ?>
         </button>
+        
+        &nbsp;<a href="#"><i id="fbflip" class="material-icons md-18">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
 <?php
 ob_start();
 ?>
-	<div class="table-responsive">
+	<div class="table-responsive-sm pt-2">
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>

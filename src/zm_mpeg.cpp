@@ -40,16 +40,7 @@ VideoStream::MimeData VideoStream::mime_data[] = {
 };
 
 void VideoStream::Initialise( ) {
-	if ( logDebugging() ) {
-    av_log_set_level( AV_LOG_DEBUG );
-  } else {
-    av_log_set_level( AV_LOG_QUIET );
-  }
-
-	av_register_all( );
-#if LIBAVFORMAT_VERSION_CHECK(53, 13, 0, 19, 0)
-	avformat_network_init();
-#endif
+  FFMPEGInit();
 	initialised = true;
 }
 
@@ -57,23 +48,23 @@ void VideoStream::SetupFormat( ) {
 	/* allocate the output media context */
 	ofc = NULL;
 #if (LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 2, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
-	avformat_alloc_output_context2( &ofc, NULL, format, filename );
+	avformat_alloc_output_context2(&ofc, NULL, format, filename);
 #else
-	AVFormatContext *s= avformat_alloc_context();
-	if(!s) {
-		Fatal( "avformat_alloc_context failed %d \"%s\"", (size_t)ofc, av_err2str((size_t)ofc) );
+	AVFormatContext *s = avformat_alloc_context();
+	if ( !s ) {
+		Fatal("avformat_alloc_context failed %d \"%s\"", (size_t)ofc, av_err2str((size_t)ofc));
     return;
 	}
 
 	AVOutputFormat *oformat;
-	if (format) {
+	if ( format ) {
 #if LIBAVFORMAT_VERSION_CHECK(52, 45, 0, 45, 0)
 		oformat = av_guess_format(format, NULL, NULL);
 #else
 		oformat = guess_format(format, NULL, NULL);
 #endif
-		if (!oformat) {
-			Fatal( "Requested output format '%s' is not a suitable output format", format );
+		if ( !oformat ) {
+			Fatal("Requested output format '%s' is not a suitable output format", format);
 		}
 	} else {
 #if LIBAVFORMAT_VERSION_CHECK(52, 45, 0, 45, 0)
@@ -81,40 +72,40 @@ void VideoStream::SetupFormat( ) {
 #else
 		oformat = guess_format(NULL, filename, NULL);
 #endif
-		if (!oformat) {
-			Fatal( "Unable to find a suitable output format for '%s'", format );
+		if ( !oformat ) {
+			Fatal("Unable to find a suitable output format for '%s'", format);
 		}
 	}
 	s->oformat = oformat;
 	
-	if (s->oformat->priv_data_size > 0) {
+	if ( s->oformat->priv_data_size > 0 ) {
 		s->priv_data = av_mallocz(s->oformat->priv_data_size);
 		if ( !(s->priv_data) ) {
-			Fatal( "Could not allocate private data for output format." );
+			Fatal("Could not allocate private data for output format.");
 		}
 #if LIBAVFORMAT_VERSION_CHECK(52, 92, 0, 92, 0)
-		if (s->oformat->priv_class) {
+		if ( s->oformat->priv_class ) {
 			*(const AVClass**)s->priv_data = s->oformat->priv_class;
 			av_opt_set_defaults(s->priv_data);
 		}
 #endif
 	} else {
-    Debug(1,"No allocating priv_data");
+    Debug(1, "No allocating priv_data");
 		s->priv_data = NULL;
 	}
 	
 	if ( filename ) {
-		snprintf( s->filename, sizeof(s->filename), "%s", filename );
+		snprintf(s->filename, sizeof(s->filename), "%s", filename);
 	}
 	
 	ofc = s;
 #endif
 	if ( !ofc ) {
-		Fatal( "avformat_alloc_..._context failed: %d", ofc );
+		Fatal("avformat_alloc_..._context failed: %d", ofc);
 	}
 
 	of = ofc->oformat;
-	Debug( 1, "Using output format: %s (%s)", of->name, of->long_name );
+	Debug(1, "Using output format: %s (%s)", of->name, of->long_name);
 }
 
 void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate ) {
@@ -130,13 +121,13 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	    }
 	    break;
 	  case ZM_COLOUR_RGB32:
-	    if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+	    if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
 	      /* ARGB subpixel order */
 	      pf = AV_PIX_FMT_ARGB;
-	    } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+	    } else if ( subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
 	      /* ABGR subpixel order */
 	      pf = AV_PIX_FMT_ABGR;
-	    } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+	    } else if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
 	      /* BGRA subpixel order */
 	      pf = AV_PIX_FMT_BGRA;
 	    } else {
@@ -152,7 +143,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	    break;
 	}
 
-	if ( strcmp( "rtp", of->name ) == 0 ) {
+	if ( strcmp("rtp", of->name) == 0 ) {
 		// RTP must have a packet_size.
 		// Not sure what this value should be really...
 		ofc->packet_size = width*height;
@@ -169,12 +160,12 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
     AVCodec *a = avcodec_find_encoder_by_name(codec_name);
     if ( a ) {
       codec_id = a->id;
-      Debug( 1, "Using codec \"%s\"", codec_name );
+      Debug(1, "Using codec \"%s\"", codec_name);
     } else {
 #if (LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
-      Debug( 1, "Could not find codec \"%s\". Using default \"%s\"", codec_name, avcodec_get_name( codec_id ) );
+      Debug(1, "Could not find codec \"%s\". Using default \"%s\"", codec_name, avcodec_get_name(codec_id));
 #else
-      Debug( 1, "Could not find codec \"%s\". Using default \"%d\"", codec_name, codec_id );
+      Debug(1, "Could not find codec \"%s\". Using default \"%d\"", codec_name, codec_id);
 #endif
     }
 	}
@@ -183,19 +174,19 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	   and initialize the codecs */
 	ost = NULL;
 	if ( codec_id != AV_CODEC_ID_NONE ) {
-		codec = avcodec_find_encoder( codec_id );
+		codec = avcodec_find_encoder(codec_id);
 		if ( !codec ) {
 #if (LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
-			Fatal( "Could not find encoder for '%s'", avcodec_get_name( codec_id ) );
+			Fatal("Could not find encoder for '%s'", avcodec_get_name(codec_id));
 #else
-			Fatal( "Could not find encoder for '%d'", codec_id );
+			Fatal("Could not find encoder for '%d'", codec_id);
 #endif
 		}
 
 #if (LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
-		Debug( 1, "Found encoder for '%s'", avcodec_get_name( codec_id ) );
+		Debug(1, "Found encoder for '%s'", avcodec_get_name(codec_id));
 #else
-		Debug( 1, "Found encoder for '%d'", codec_id );
+		Debug(1, "Found encoder for '%d'", codec_id);
 #endif
 
 #if LIBAVFORMAT_VERSION_CHECK(53, 10, 0, 17, 0)

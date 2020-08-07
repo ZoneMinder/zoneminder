@@ -1104,8 +1104,10 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               </td>
             </tr>
             <tr>
-              <td><?php echo translate('OptionalEncoderParam') ?></td>
-              <td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea></td>
+              <td><?php echo translate('OptionalEncoderParam') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_ENCODER_PARAMETERS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td>
+              <textarea name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
+              </td>
             </tr>
             <tr><td><?php echo translate('RecordAudio') ?></td><td>
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
@@ -1191,7 +1193,7 @@ if ( canEdit('Control') ) {
             </tr>
             <tr>
               <td><?php echo translate('ControlAddress') ?></td>
-              <td><input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($monitor->ControlAddress()) ?>"/></td>
+              <td><input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($monitor->ControlAddress()) ? : 'user:port@ip' ?>"/></td>
             </tr>
             <tr>
               <td><?php echo translate('AutoStopTimeout') ?></td>

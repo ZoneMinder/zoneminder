@@ -1,3 +1,14 @@
+<?php
+  global $presets;
+  global $zone;
+  global $newZone;
+  global $monitor;
+  global $selfIntersecting;
+  global $streamMode;
+  global $connkey;
+  global $streamSrc;
+?>
+
 var presets = new Object();
 <?php
 foreach ( $presets as $preset ) {
@@ -21,7 +32,7 @@ presets[<?php echo $preset['Id'] ?>] = {
     'ExtendAlarmFrames': '<?php echo $preset['ExtendAlarmFrames'] ?>'
 };
 <?php
-}
+} # end foreach preset
 ?>
 
 var zone = {

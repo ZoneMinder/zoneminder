@@ -6,13 +6,14 @@
 // will save the GET request via the postLoginQuery variable.  After logging in, this
 // view receives the postLoginQuery via the login form submission, and we can then
 // redirect the user to his original intended destination by appending it to the URL.
+//
 ?>
 
-(
+$j(
 	function () {
 		// Append '?(GET query)' to URL if the GET query is not empty.
 		var querySuffix = '<?php
-			if (!empty($_SESSION['postLoginQuery'])) {
+			if ( !empty($_SESSION['postLoginQuery']) ) {
         parse_str($_SESSION['postLoginQuery'], $queryParams);
         echo '?' . http_build_query($queryParams);
         zm_session_start();

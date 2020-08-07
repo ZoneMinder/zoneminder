@@ -96,7 +96,7 @@ std::string CameraType_Strings[] = {
   "VNC",
 };
 
-Monitor::MonitorLink::MonitorLink(int p_id, const char *p_name) :
+Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
   id(p_id),
   shared_data(NULL),
   trigger_data(NULL),
@@ -900,7 +900,7 @@ bool Monitor::connect() {
   for ( int i = 0; i < image_buffer_count; i++ ) {
     image_buffer[i].image_index = i;
     image_buffer[i].timestamp = &(shared_timestamps[i]);
-    image_buffer[i].image = new Image(width, camera->LineSize(), height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
+    image_buffer[i].image = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
     image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
   if ( deinterlacing_value == 4 ) {
@@ -1629,7 +1629,7 @@ void Monitor::CheckAction() {
   if ( auto_resume_time && (now.tv_sec >= auto_resume_time) ) {
     Info("Auto resuming at count %d", image_count);
     shared_data->active = true;
-    ref_image = *(image_buffer[shared_data->last_write_index].image);
+    ref_image.Assign(*(image_buffer[shared_data->last_write_index].image));
     ready_count = image_count+(warmup_count/2);
     auto_resume_time = 0;
   }
@@ -1727,6 +1727,7 @@ bool Monitor::Analyse() {
         } // end if trigger_on
 
         if ( signal_change ) {
+          Debug(1, "Signal change");
           const char *signalText;
           if ( !signal ) {
             signalText = "Lost";
@@ -1754,8 +1755,7 @@ bool Monitor::Analyse() {
           noteSetMap[SIGNAL_CAUSE] = noteSet;
           shared_data->state = state = IDLE;
           shared_data->active = signal;
-          ref_image = *snap_image;
-
+          ref_image.Assign(*snap_image);
         }// else 
 
         if ( signal ) {
@@ -1767,8 +1767,8 @@ bool Monitor::Analyse() {
               if ( snap->image ) {
 
                 // Get new score.
-                Debug(3,"before DetectMotion packet index is %d", snap->image_index);
-                motion_score = DetectMotion( *snap_image, zoneSet );
+                Debug(3, "before DetectMotion packet index is %d", snap->image_index);
+                motion_score = DetectMotion(*snap_image, zoneSet);
 
                 Debug(3, "After motion detection, last_motion_score(%d), new motion score(%d)", last_motion_score, motion_score);
               } else {
@@ -2785,7 +2785,7 @@ Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 // Wait for camera to get an image, and then assign it as the base reference image. So this should be done as the first task in the analysis thread startup.
 void Monitor::get_ref_image() {
-  ZMPacket * snap;
+  ZMPacket *snap;
   while ( ( (!( snap = packetqueue->get_analysis_packet()))
     || ( snap->packet.stream_index != video_stream_id ) )
     && !zm_terminate) {
@@ -2797,7 +2797,7 @@ void Monitor::get_ref_image() {
     return;
 
   ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(), snap->image->Buffer(), camera->ImageSize());
-  Debug(2,"Have image about to unlock");
+  Debug(2, "Have ref image about to unlock");
   snap->unlock();
 }
 

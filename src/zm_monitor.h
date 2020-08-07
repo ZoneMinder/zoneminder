@@ -216,10 +216,10 @@ protected:
     uint64_t   last_event_id;
 
     public:
-      MonitorLink(int p_id, const char *p_name);
+      MonitorLink(unsigned int p_id, const char *p_name);
       ~MonitorLink();
 
-      inline int Id() const { return id; }
+      inline unsigned int Id() const { return id; }
       inline const char *Name() const { return name; }
 
       inline bool isConnected() const { return connected && shared_data->valid; }
@@ -393,7 +393,7 @@ protected:
 
 public:
   explicit Monitor();
-  explicit Monitor(int p_id);
+  explicit Monitor(unsigned int p_id);
 
   ~Monitor();
 
@@ -407,7 +407,7 @@ public:
   }
   Camera *getCamera();
 
-  inline int Id() const { return id; }
+  inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name; }
   inline Storage *getStorage() {
     if ( ! storage ) {
@@ -463,7 +463,7 @@ public:
 
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
+  //const std::vector<EncoderParameter_t>* GetEncoderParams() const { return &encoderparamsvec; }
   const std::string &GetEncoderOptions() const { return encoderparams; }
   const int OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }

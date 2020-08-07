@@ -588,8 +588,8 @@ int RemoteCameraHttp::GetResponse() {
     static char *content_type_header;
     static char *boundary_header;
     static char *authenticate_header;
-    static char subcontent_length_header[32];
-    static char subcontent_type_header[64];
+    static char subcontent_length_header[33];
+    static char subcontent_type_header[65];
 
     static char http_version[16];
     static char status_code[16];
@@ -860,25 +860,37 @@ int RemoteCameraHttp::GetResponse() {
                 }
               }
 
-              Debug( 6, "%d: %s", subheader_len, subheader_ptr );
+              Debug(6, "%d: %s", subheader_len, subheader_ptr);
 
-              if ( (crlf = mempbrk( subheader_ptr, "\r\n", subheader_len )) ) {
+              if ( (crlf = mempbrk(subheader_ptr, "\r\n", subheader_len)) ) {
                 //subheaders[n_subheaders++] = subheader_ptr;
                 n_subheaders++;
 
-                if ( !boundary_header && (strncasecmp( subheader_ptr, content_boundary, content_boundary_len ) == 0) ) {
+                if ( !boundary_header && (strncasecmp(subheader_ptr, content_boundary, content_boundary_len) == 0) ) {
                   boundary_header = subheader_ptr;
-                  Debug( 4, "Got boundary subheader '%s'", subheader_ptr );
-                } else if ( !subcontent_length_header[0] && (strncasecmp( subheader_ptr, content_length_match, content_length_match_len) == 0) ) {
-                  strncpy( subcontent_length_header, subheader_ptr+content_length_match_len, sizeof(subcontent_length_header) );
-                  *(subcontent_length_header+strcspn( subcontent_length_header, "\r\n" )) = '\0';
-                  Debug( 4, "Got content length subheader '%s'", subcontent_length_header );
+                  Debug(4, "Got boundary subheader '%s'", subheader_ptr);
+                } else if (
+                    !subcontent_length_header[0]
+                    &&
+                    (strncasecmp(subheader_ptr, content_length_match, content_length_match_len) == 0)
+                    ) {
+                  strncpy(
+                      subcontent_length_header,
+                      subheader_ptr+content_length_match_len,
+                      sizeof(subcontent_length_header)-1
+                      );
+                  *(subcontent_length_header+strcspn(subcontent_length_header, "\r\n")) = '\0';
+                  Debug(4, "Got content length subheader '%s'", subcontent_length_header);
                 } else if ( !subcontent_type_header[0] && (strncasecmp( subheader_ptr, content_type_match, content_type_match_len) == 0) ) {
-                  strncpy( subcontent_type_header, subheader_ptr+content_type_match_len, sizeof(subcontent_type_header) );
-                  *(subcontent_type_header+strcspn( subcontent_type_header, "\r\n" )) = '\0';
-                  Debug( 4, "Got content type subheader '%s'", subcontent_type_header );
+                  strncpy(
+                      subcontent_type_header,
+                      subheader_ptr+content_type_match_len,
+                      sizeof(subcontent_type_header)-1
+                      );
+                  *(subcontent_type_header+strcspn(subcontent_type_header, "\r\n")) = '\0';
+                  Debug(4, "Got content type subheader '%s'", subcontent_type_header);
                 } else {
-                  Debug( 6, "Got ignored subheader '%s' found", subheader_ptr );
+                  Debug(6, "Got ignored subheader '%s' found", subheader_ptr);
                 }
                 subheader_ptr = crlf;
                 subheader_len -= buffer.consume( subheader_ptr-(char *)buffer );

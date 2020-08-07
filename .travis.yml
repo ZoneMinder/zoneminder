@@ -45,11 +45,6 @@ env:
   - SMPFLAGS=-j4 OS=debian DIST=jessie DOCKER_REPO=iconzm/packpack
   - SMPFLAGS=-j4 OS=debian DIST=stretch DOCKER_REPO=iconzm/packpack
   - SMPFLAGS=-j4 OS=debian DIST=buster DOCKER_REPO=iconzm/packpack
-  - SMPFLAGS=-j4 OS=ubuntu DIST=trusty ARCH=i386
-  - SMPFLAGS=-j4 OS=ubuntu DIST=xenial ARCH=i386
-  - SMPFLAGS=-j4 OS=ubuntu DIST=disco ARCH=i386
-  - SMPFLAGS=-j4 OS=debian DIST=buster ARCH=i386
-  - SMPFLAGS=-j4 OS=debian DIST=stretch ARCH=i386
   - SMPFLAGS=-j4 OS=eslint DIST=eslint
 
 compiler:

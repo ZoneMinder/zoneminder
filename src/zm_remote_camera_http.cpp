@@ -1069,6 +1069,18 @@ int RemoteCameraHttp::GetResponse() {
   return( 0 );
 }
 
+int RemoteCameraHttp::PrimeCapture() {
+  if ( sd < 0 ) {
+    Connect();
+    if ( sd < 0 ) {
+      return -1;
+    }
+    mode = SINGLE_IMAGE;
+    buffer.clear();
+  }
+  return 0;
+}
+
 int RemoteCameraHttp::PreCapture() {
   if ( sd < 0 ) {
     Connect();

@@ -21,7 +21,6 @@
 // This file should only contain static JavaScript and no php.
 // Use skin.js.php for JavaScript that need pre-processing
 //
-
 var popupOptions = "resizable,scrollbars,status=no,toolbar=yes";
 
 function checkSize() {
@@ -313,9 +312,62 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
+    // Trigger autorefresh of the widget bar stats on the navbar
     if ( $j('.navbar').length ) {
       setInterval(getNavBar, navBarRefresh);
     }
+    // Workaround Bootstrap-Mootools conflict
+    var bootstrapLoaded = (typeof $j().carousel == 'function');
+    var mootoolsLoaded = (typeof MooTools != 'undefined');
+    if (bootstrapLoaded && mootoolsLoaded) {
+      Element.implement({
+        hide: function() {
+          return this;
+        },
+        show: function(v) {
+          return this;
+        },
+        slide: function(v) {
+          return this;
+        }
+      });
+    }
+    // Update zmBandwidth cookie when the user makes a selection from the dropdown
+    bwClickFunction();
+    // Manage the widget bar minimize chevron
+    $j("#flip").click(function() {
+      $j("#panel").slideToggle("slow");
+      var flip = $j("#flip");
+      if ( flip.html() == 'keyboard_arrow_up' ) {
+        flip.html('keyboard_arrow_down');
+      Cookie.write('zmHeaderFlip', 'down', {duration: 10*365} );
+      } else {
+        flip.html('keyboard_arrow_up');
+        Cookie.write('zmHeaderFlip', 'up', {duration: 10*365} );
+      }
+    });
+    // Manage the web console filter bar minimize chevron
+    $j("#fbflip").click(function() {
+      $j("#fbpanel").slideToggle("slow");
+      var fbflip = $j("#fbflip");
+      if ( fbflip.html() == 'keyboard_arrow_up' ) {
+        fbflip.html('keyboard_arrow_down');
+      Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365} );
+      } else {
+        fbflip.html('keyboard_arrow_up');
+        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365} );
+        $j('.chosen').chosen("destroy");
+        $j('.chosen').chosen();
+      }
+    });
+    // Autoclose the hamburger button if the end user clicks outside the button
+    $j(document).click(function(event) {
+      var target = $j(event.target);
+      var _mobileMenuOpen = $j("#main-header-nav").hasClass("show");
+      if (_mobileMenuOpen === true && !target.hasClass("navbar-toggler")) {
+        $j("button.navbar-toggler").click();
+      }
+    });
   });
 
   function getNavBar() {
@@ -343,13 +395,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       if ( key == "auth" ) continue;
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
-      if ( key == 'getBandwidthHTML' ) {
-        jQuery("#dropdown_bandwidth a").click(function() {
-          var bwval = jQuery(this).data('pdsa-dropdown-val');
-          setCookie("zmBandwidth", bwval, 3600);
-          getNavBar();
-        });
-      }
+      if ( key == 'getBandwidthHTML' ) bwClickFunction();
     }
   }
 }
@@ -600,4 +646,12 @@ function setCookie(name, value, days) {
 
 function delCookie(name) {
   document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
+
+function bwClickFunction() {
+  $j("#dropdown_bandwidth a").click(function() {
+    var bwval = $j(this).data('pdsa-dropdown-val');
+    setCookie("zmBandwidth", bwval, 3600);
+    getNavBar();
+  });
 }

@@ -134,64 +134,7 @@ if ( $css != 'base' )
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
   <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
-  <script nonce="<?php echo $cspNonce; ?>">
-  jQuery(document).ready(function() {
-    // Workaround Bootstrap-Mootools conflict
-    var bootstrapLoaded = (typeof jQuery().carousel == 'function');
-    var mootoolsLoaded = (typeof MooTools != 'undefined');
-    if (bootstrapLoaded && mootoolsLoaded) {
-      Element.implement({
-        hide: function() {
-          return this;
-        },
-        show: function(v) {
-          return this;
-        },
-        slide: function(v) {
-          return this;
-        }
-      });
-    }
-    jQuery("#dropdown_bandwidth a").click(function() {
-      var bwval = jQuery(this).data('pdsa-dropdown-val');
-      setCookie("zmBandwidth", bwval, 3600);
-      getNavBar();
-    });
-    jQuery("#flip").click(function() {
-      jQuery("#panel").slideToggle("slow");
-      var flip = jQuery("#flip");
-      if ( flip.html() == 'keyboard_arrow_up' ) {
-        flip.html('keyboard_arrow_down');
-      Cookie.write('zmHeaderFlip', 'down', {duration: 10*365} );
-      } else {
-        flip.html('keyboard_arrow_up');
-        Cookie.write('zmHeaderFlip', 'up', {duration: 10*365} );
-      }
-    });
-    jQuery("#fbflip").click(function() {
-      jQuery("#fbpanel").slideToggle("slow");
-      var fbflip = jQuery("#fbflip");
-      if ( fbflip.html() == 'keyboard_arrow_up' ) {
-        fbflip.html('keyboard_arrow_down');
-      Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365} );
-      } else {
-        fbflip.html('keyboard_arrow_up');
-        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365} );
-        jQuery('.chosen').chosen("destroy");
-        jQuery('.chosen').chosen();
-      }
-    });
-    jQuery(document).click(function(event) {
-      var target = jQuery(event.target);
-      var _mobileMenuOpen = jQuery("#main-header-nav").hasClass("show");
-      if (_mobileMenuOpen === true && !target.hasClass("navbar-toggler")) {
-        jQuery("button.navbar-toggler").click();
-      }
-    });
-  });
-  var $j = jQuery.noConflict();
-  // $j is now an alias to the jQuery function; creating the new alias is optional.
-  </script>
+  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
   <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
 <?php
   if ( $view == 'event' ) {

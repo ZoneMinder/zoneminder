@@ -340,7 +340,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
-      Cookie.write('zmHeaderFlip', 'down', {duration: 10*365} );
+        Cookie.write('zmHeaderFlip', 'down', {duration: 10*365} );
       } else {
         flip.html('keyboard_arrow_up');
         Cookie.write('zmHeaderFlip', 'up', {duration: 10*365} );
@@ -352,7 +352,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var fbflip = $j("#fbflip");
       if ( fbflip.html() == 'keyboard_arrow_up' ) {
         fbflip.html('keyboard_arrow_down');
-      Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365} );
+        Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365} );
       } else {
         fbflip.html('keyboard_arrow_up');
         Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365} );

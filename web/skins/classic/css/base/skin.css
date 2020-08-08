@@ -710,6 +710,7 @@ li.search-choice {
   display: inline-block;
 }
 
-#dropdown_storage {
+#dropdown_storage,
+#dropdown_bandwidth {
 background-color:#485460;
 }

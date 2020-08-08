@@ -152,6 +152,11 @@ if ( $css != 'base' )
         }
       });
     }
+    jQuery("#dropdown_bandwidth a").click(function() {
+      var bwval = jQuery(this).data('pdsa-dropdown-val');
+      setCookie("zmBandwidth",bwval,3600);
+      getNavBar();
+    });      
     jQuery("#flip").click(function() {
       jQuery("#panel").slideToggle("slow");
       var flip = jQuery("#flip");
@@ -587,11 +592,28 @@ function getConsoleBannerHTML() {
 // Returns the html representing the current high,medium,low bandwidth setting
 function getBandwidthHTML($bandwidth_options, $user) {
   $result = '';
-  
-  $result .= '<li id="getBandwidthHTML" class="nav-item dropdown">'.
-    makePopupLink('?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' )).
-    '</li>'.PHP_EOL;
-  
+
+  # Limit available options to what are available in user
+  if ( $user && !empty($user['MaxBandwidth']) ) {
+    if ( $user['MaxBandwidth'] == 'low' ) {
+      unset($bandwidth_options['high']);
+      unset($bandwidth_options['medium']);
+    } else if ( $user['MaxBandwidth'] == 'medium' ) {
+      unset($bandwidth_options['high']);
+    }
+  }
+
+  $result .= '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
+  $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
+
+  $result .= '<div class="dropdown-menu" id="dropdown_bandwidth" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
+    $result .= '<a data-pdsa-dropdown-val="high" class="dropdown-item" href="#">' .translate('High'). '</a>'.PHP_EOL;
+    $result .= '<a data-pdsa-dropdown-val="medium" class="dropdown-item" href="#">' .translate('Medium'). '</a>'.PHP_EOL;
+    $result .= '<a data-pdsa-dropdown-val="low" class="dropdown-item" href="#">' .translate('Low'). '</a>'.PHP_EOL;    
+  $result .= '</div>'.PHP_EOL;
+
+  $result .= '</li>'.PHP_EOL;
+    
   return $result;
 }
 

@@ -154,9 +154,9 @@ if ( $css != 'base' )
     }
     jQuery("#dropdown_bandwidth a").click(function() {
       var bwval = jQuery(this).data('pdsa-dropdown-val');
-      setCookie("zmBandwidth",bwval,3600);
+      setCookie("zmBandwidth", bwval, 3600);
       getNavBar();
-    });      
+    });
     jQuery("#flip").click(function() {
       jQuery("#panel").slideToggle("slow");
       var flip = jQuery("#flip");

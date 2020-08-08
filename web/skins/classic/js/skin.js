@@ -346,9 +346,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
       if ( key == 'getBandwidthHTML' ) {
         jQuery("#dropdown_bandwidth a").click(function() {
           var bwval = jQuery(this).data('pdsa-dropdown-val');
-          setCookie("zmBandwidth",bwval,3600);
+          setCookie("zmBandwidth", bwval, 3600);
           getNavBar();
-        });      
+        });
       }
     }
   }

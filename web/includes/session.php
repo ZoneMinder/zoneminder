@@ -16,7 +16,7 @@ function zm_session_start() {
         $currentCookieParams['path'],
         $currentCookieParams['domain'],
         $currentCookieParams['secure'],
-        $currentCookieParams['httponly'],
+        $currentCookieParams['httponly']
       );
     } else {
       # samesite was introduced in 7.3.0

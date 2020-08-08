@@ -343,6 +343,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
       if ( key == "auth" ) continue;
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
+      if ( key == 'getBandwidthHTML' ) {
+        jQuery("#dropdown_bandwidth a").click(function() {
+          var bwval = jQuery(this).data('pdsa-dropdown-val');
+          setCookie("zmBandwidth",bwval,3600);
+          getNavBar();
+        });      
+      }
     }
   }
 }

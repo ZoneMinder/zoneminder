@@ -334,6 +334,8 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
     // Update zmBandwidth cookie when the user makes a selection from the dropdown
     bwClickFunction();
+    // Update update reminders when the user makes a selection from the dropdown
+    reminderClickFunction();
     // Manage the widget bar minimize chevron
     $j("#flip").click(function() {
       $j("#panel").slideToggle("slow");
@@ -653,5 +655,12 @@ function bwClickFunction() {
     var bwval = $j(this).data('pdsa-dropdown-val');
     setCookie("zmBandwidth", bwval, 3600);
     getNavBar();
+  });
+}
+
+function reminderClickFunction() {
+  $j("#dropdown_reminder a").click(function() {
+    var option = $j(this).data('pdsa-dropdown-val');
+    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option);
   });
 }

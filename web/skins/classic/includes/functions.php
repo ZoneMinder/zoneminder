@@ -563,24 +563,37 @@ function getBandwidthHTML($bandwidth_options, $user) {
 // Returns the html representing the version of ZoneMinder
 function getZMVersionHTML() {
   $result = '';
+  $content = '';
   
   if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) ) {  // Must upgrade before proceeding
     $class = 'text-danger';
     $tt_text = translate('RunLocalUpdate');
-  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) ) { // No update needed
+    $content = 'v'.ZM_VERSION.PHP_EOL;
+  } else if ( false ) { // No update needed
     $class = ''; // Don't change the text color under normal conditions
     $tt_text = translate('UpdateNotNecessary');
-  } else { // An update is available
+    $content = 'v'.ZM_VERSION.PHP_EOL;
+  } else if ( canEdit('System') ) { // An update is available and the user is an administrator
     $class = 'text-warning';
     $tt_text = translate('UpdateAvailable');
+    $content = '<a class="dropdown ' .$class. '" data-toggle="dropdown" href="#">v' .ZM_VERSION. '</a>'.PHP_EOL;
+    $content .= '<div class="dropdown-menu" id="dropdown_reminder" aria-labelledby="dropdown_reminder">'.PHP_EOL;  
+      $content .= '<h6 class="dropdown-header">' .translate('UpdateAvailable'). '</h6>'.PHP_EOL;
+      $content .= '<a class="dropdown-item" data-pdsa-dropdown-val="ignore" href="#">' .translate('VersionIgnore'). '</a>'.PHP_EOL;
+      $content .= '<a class="dropdown-item" data-pdsa-dropdown-val="hour" href="#">' .translate('VersionRemindHour'). '</a>'.PHP_EOL;
+      $content .= '<a class="dropdown-item" data-pdsa-dropdown-val="day" href="#">' .translate('VersionRemindDay'). '</a>'.PHP_EOL;
+      $content .= '<a class="dropdown-item" data-pdsa-dropdown-val="week" href="#">' .translate('VersionRemindWeek'). '</a>'.PHP_EOL;
+      $content .= '<a class="dropdown-item" data-pdsa-dropdown-val="month" href="#">' .translate('VersionRemindMonth'). '</a>'.PHP_EOL;
+      $content .= '<a class="dropdown-item" data-pdsa-dropdown-val="never" href="#">' .translate('VersionRemindNever'). '</a>'.PHP_EOL;  
+    $content .= '</div>'.PHP_EOL;
+  } else { // An update is available and the user is NOT an administrator
+    $class = 'text-warning';
+    $tt_text = translate('UpdateAvailable');
+    $content = 'v'.ZM_VERSION.PHP_EOL;
   }
 
-//
-// TO-DO: Click to open an overlay, which allows the administrator to delay the next update notice
-//
-  
   $result .= '<li id="getZMVersionHTML" class="nav-item dropdown ' .$class. '" data-placement="bottom" data-placement="bottom" title="' .$tt_text. '">'.PHP_EOL; 
-  $result .= 'v'.ZM_VERSION.PHP_EOL;
+  $result .= $content;
   $result .= '</li>'.PHP_EOL;
   
   return $result;

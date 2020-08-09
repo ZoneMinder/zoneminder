@@ -662,6 +662,6 @@ function reminderClickFunction() {
   $j("#dropdown_reminder a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
     $j.getJSON(thisUrl + '?view=version&action=version&option=' + option);
-		window.location.reload(true); //Do a full refresh to update ZM_DYN_LAST_VERSION
+    window.location.reload(true); //Do a full refresh to update ZM_DYN_LAST_VERSION
   });
 }

@@ -564,10 +564,24 @@ function getBandwidthHTML($bandwidth_options, $user) {
 function getZMVersionHTML() {
   $result = '';
   
-  $class = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'text-danger':'';
-  $result .= '<li id="getZMVersionHTML" class="nav-item dropdown mx-2">'.
-    makePopupLink('?view=version', 'zmVersion', 'version', '<span class="version ' .$class. '">v' .ZM_VERSION. '</span>', canEdit('System')).
-    '</li>'.PHP_EOL;
+  if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) ) {  // Must upgrade before proceeding
+    $class = 'text-danger';
+    $tt_text = translate('RunLocalUpdate');
+  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) ) { // No update needed
+    $class = ''; // Don't change the text color under normal conditions
+    $tt_text = translate('UpdateNotNecessary');
+  } else { // An update is available
+    $class = 'text-warning';
+    $tt_text = translate('UpdateAvailable');
+  }
+
+//
+// TO-DO: Click to open an overlay, which allows the administrator to delay the next update notice
+//
+  
+  $result .= '<li id="getZMVersionHTML" class="nav-item dropdown ' .$class. '" data-placement="bottom" data-placement="bottom" title="' .$tt_text. '">'.PHP_EOL; 
+  $result .= 'v'.ZM_VERSION.PHP_EOL;
+  $result .= '</li>'.PHP_EOL;
   
   return $result;
 }

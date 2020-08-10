@@ -178,8 +178,7 @@ function applyPreset() {
 function toPixels(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((field.value*maxValue)/100);
-    if ( field.value > maxValue )
-      field.value = maxValue;
+    if ( field.value > maxValue ) field.value = maxValue;
   }
   field.setAttribute('step', 1);
   field.setAttribute('max', maxValue);

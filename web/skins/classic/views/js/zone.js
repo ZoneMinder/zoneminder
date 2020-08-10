@@ -178,14 +178,20 @@ function applyPreset() {
 function toPixels(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((field.value*maxValue)/100);
+    if ( field.value > maxValue )
+      field.value = maxValue;
   }
   field.setAttribute('step', 1);
-  field.setAttribute('max', monitorArea);
+  field.setAttribute('max', maxValue);
 }
 
+// maxValue is the max Pixels value which is normally the max area
 function toPercent(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((100*100*field.value)/maxValue)/100;
+    if ( field.value > 100 ) {
+      field.value = 100;
+    }
   }
   field.setAttribute('step', 0.01);
   field.setAttribute('max', 100);
@@ -312,9 +318,7 @@ function updateActivePoint(index) {
   $('newZone[Points]['+index+'][y]').value = y;
   zone['Points'][index].x = x;
   zone['Points'][index].y = y;
-  console.log('hello');
   var Point = $('zonePoly').points.getItem(index);
-  console.log('hello');
   Point.x = x;
   Point.y = y;
   updateArea();
@@ -678,7 +682,6 @@ var watchdogFunctions = {
 //Make sure the various refreshes are still taking effect
 function watchdogCheck(type) {
   if ( watchdogInactive[type] ) {
-    console.log("Detected streamWatch of type: " + type + " stopped, restarting");
     watchdogFunctions[type]();
     watchdogInactive[type] = false;
   } else {

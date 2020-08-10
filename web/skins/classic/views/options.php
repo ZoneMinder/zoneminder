@@ -69,7 +69,7 @@ foreach ( $tabs as $name=>$value ) {
 ?>
         </ul>
       </nav>
-      <div class="container-fluid col-sm-offset-2 h-100">
+      <div class="container-fluid col-sm-offset-2 h-100 pr-0">
         <br/>
         <div id="options">
 <?php 

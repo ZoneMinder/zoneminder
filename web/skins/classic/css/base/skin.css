@@ -711,6 +711,7 @@ li.search-choice {
 }
 
 #dropdown_storage,
+#dropdown_reminder,
 #dropdown_bandwidth {
 background-color:#485460;
 }

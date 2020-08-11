@@ -220,14 +220,19 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   fi;
 
   # Generate Changlog
-  if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
+  if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]
+  then
     cp -Rpd distros/ubuntu1204 debian
-  else 
-    if [ "$DISTRO" == "wheezy" ]; then 
-      cp -Rpd distros/debian debian
-    else 
-      cp -Rpd distros/ubuntu1604 debian
-    fi;
+
+  elif [ "$DISTRO" == "wheezy" ]
+  then
+    cp -Rpd distros/debian debian
+
+  elif [ "$DISTRO" == "beowulf" ]
+  then
+    cp -Rpd distros/beowulf debian
+  else
+    cp -Rpd distros/ubuntu1604 debian
   fi;
 
   if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then

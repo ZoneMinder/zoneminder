@@ -1608,7 +1608,6 @@ bool Monitor::Analyse() {
                   event = new Event(this, *(image_buffer[pre_index].timestamp), cause, noteSetMap);
                 } // end if analysis_fps && pre_event_count
 
-                shared_data->state = state = ALARM;
                 shared_data->last_event = event->Id();
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
@@ -1636,6 +1635,7 @@ bool Monitor::Analyse() {
                   event->SavePreAlarmFrames();
                 }
               }
+              shared_data->state = state = ALARM;
             } else if ( state != PREALARM ) {
               Info("%s: %03d - Gone into prealarm state", name, image_count);
               shared_data->state = state = PREALARM;

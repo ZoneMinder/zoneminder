@@ -28,10 +28,10 @@ $zmuCommand = getZmuCommand(' -m '.escapeshellarg($_REQUEST['mid']).' -B -C -H -
 $zmuOutput = exec( $zmuCommand );
 list($brightness, $contrast, $hue, $colour) = explode(' ', $zmuOutput);
 
-$monitor->Brightness() = $brightness;
-$monitor->Contrast() = $contrast;
-$monitor->Hue() = $hue;
-$monitor->Colour() = $colour;
+$monitor->Brightness($brightness);
+$monitor->Contrast($contrast);
+$monitor->Hue($hue);
+$monitor->Colour($colour);
 
 $focusWindow = true;
 

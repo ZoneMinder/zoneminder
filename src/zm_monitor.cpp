@@ -1634,7 +1634,7 @@ bool Monitor::Analyse() {
                 }  // end if pre_event_images
 
                 if ( ( alarm_frame_count > 1 ) && Event::PreAlarmCount() ) {
-Debug(1, "alarm frame count so SavePreAlarmFrames");
+                  Debug(1, "alarm frame count so SavePreAlarmFrames");
                   event->SavePreAlarmFrames();
                 }
               } // end if event

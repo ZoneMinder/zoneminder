@@ -40,7 +40,7 @@ function CSPHeaders($view, $nonce) {
   if ( ! $Servers )
     $Servers = ZM\Server::find();
 
-  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Url();}, $Servers));
+  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
   switch ($view) {
     case 'login': {
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')

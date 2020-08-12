@@ -138,7 +138,7 @@ if ( $pages > 1 ) {
         <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
         <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
-		<div class="table-responsive">
+		<div class="table-responsive-sm">
         <table id="contentTable" class="major">
           <tbody>
 <?php

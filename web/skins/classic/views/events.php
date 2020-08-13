@@ -256,7 +256,7 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   }
   if ( ZM_WEB_LIST_THUMBS ) {
-      echo '<td class="colThumbnail px-1">';
+      echo '<td class="colThumbnail px-1 zoom">';
       $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
       $streamSrc = $event->getStreamSrc(array(
         'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');

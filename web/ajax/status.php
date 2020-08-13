@@ -1,5 +1,6 @@
 <?php
 if ( $_REQUEST['entity'] == 'navBar' ) {
+  global $bandwidth_options, $user;
   $data = array();
   if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
     $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
@@ -7,7 +8,14 @@ if ( $_REQUEST['entity'] == 'navBar' ) {
       $data['auth'] = $auth_hash;
     }
   }
-  $data['message'] = getNavBarHtml('reload');
+  // Each widget on the navbar has its own function
+  // Call the functions we want to dynamically update
+  $data['getBandwidthHTML'] = getBandwidthHTML($bandwidth_options, $user);
+  $data['getSysLoadHTML'] = getSysLoadHTML();
+  $data['getDbConHTML'] = getDbConHTML();
+  $data['getStorageHTML'] = getStorageHTML();
+  $data['getShmHTML'] = getShmHTML();
+
   ajaxResponse($data);
   return;
 }
@@ -246,7 +254,7 @@ function collectData() {
         if ( isset($elementData['sql']) )
           $fieldSql[] = $elementData['sql'].' as '.$element;
         else
-          $fieldSql[] = $element;
+          $fieldSql[] = '`'.$element.'`';
         if ( isset($elementData['table']) && isset($elementData['join']) ) {
           $joinSql[] = 'left join '.$elementData['table'].' on '.$elementData['join'];
         }
@@ -286,7 +294,7 @@ function collectData() {
           
           preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
           if ( count($matches) ) {
-            if ( in_array($matches[1], $fieldSql) ) {
+            if ( in_array($matches[1], $fieldSql) or  in_array('`'.$matches[1].'`', $fieldSql) ) {
               $sql .= $matches[1];
             } else {
               ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field));

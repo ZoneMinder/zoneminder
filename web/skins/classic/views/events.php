@@ -68,9 +68,9 @@ if ( !empty($page) ) {
     $limitLeft = $limit - $limitStart;
     $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
   }
-  $eventsSql .= " limit $limitStart, $limitAmount";
+  $eventsSql .= " LIMIT $limitStart, $limitAmount";
 } elseif ( !empty($limit) ) {
-  $eventsSql .= ' limit 0, '.$limit;
+  $eventsSql .= ' LIMIT 0, '.$limit;
 }
 
 $maxShortcuts = 5;
@@ -138,7 +138,7 @@ if ( $pages > 1 ) {
         <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
         <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
-		<div class="table-responsive">
+        <div class="table-responsive-sm">
         <table id="contentTable" class="major">
           <tbody>
 <?php
@@ -157,34 +157,35 @@ while ( $event_row = dbFetchNext($results) ) {
 ?>
             <tr>
               <th class="colId"><a href="<?php echo sortHeader('Id') ?>"><?php echo translate('Id') ?><?php echo sortTag('Id') ?></a></th>
-              <th class="colName"><a href="<?php echo sortHeader('Name') ?>"><?php echo translate('Name') ?><?php echo sortTag('Name') ?></a></th>
-              <th class="colMonitor"><a href="<?php echo sortHeader('MonitorName') ?>"><?php echo translate('Monitor') ?><?php echo sortTag('MonitorName') ?></a></th>
-              <th class="colCause"><a href="<?php echo sortHeader('Cause') ?>"><?php echo translate('Cause') ?><?php echo sortTag('Cause') ?></a></th>
-              <th class="colTime"><a href="<?php echo sortHeader('StartTime') ?>"><?php echo translate('Time') ?><?php echo sortTag('StartTime') ?></a></th>
-              <th class="colDuration"><a href="<?php echo sortHeader('Length') ?>"><?php echo translate('Duration') ?><?php echo sortTag('Length') ?></a></th>
-              <th class="colFrames"><a href="<?php echo sortHeader('Frames') ?>"><?php echo translate('Frames') ?><?php echo sortTag('Frames') ?></a></th>
-              <th class="colAlarmFrames"><a href="<?php echo sortHeader('AlarmFrames') ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag('AlarmFrames') ?></a></th>
-              <th class="colTotScore"><a href="<?php echo sortHeader('TotScore') ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag('TotScore') ?></a></th>
-              <th class="colAvgScore"><a href="<?php echo sortHeader('AvgScore') ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag('AvgScore') ?></a></th>
-              <th class="colMaxScore"><a href="<?php echo sortHeader('MaxScore') ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag('MaxScore') ?></a></th>
+              <th class="colName px-1"><a href="<?php echo sortHeader('Name') ?>"><?php echo translate('Name') ?><?php echo sortTag('Name') ?></a></th>
+              <th class="colMonitor px-1"><a href="<?php echo sortHeader('MonitorName') ?>"><?php echo translate('Monitor') ?><?php echo sortTag('MonitorName') ?></a></th>
+              <th class="colCause px-1"><a href="<?php echo sortHeader('Cause') ?>"><?php echo translate('Cause') ?><?php echo sortTag('Cause') ?></a></th>
+              <th class="colStartTime px-1"><a href="<?php echo sortHeader('StartTime') ?>"><?php echo translate('AttrStartTime') ?><?php echo sortTag('StartTime') ?></a></th>
+              <th class="colEndTime px-1"><a href="<?php echo sortHeader('EndTime') ?>"><?php echo translate('AttrEndTime') ?><?php echo sortTag('EndTime') ?></a></th>
+              <th class="colDuration px-1"><a href="<?php echo sortHeader('Length') ?>"><?php echo translate('Duration') ?><?php echo sortTag('Length') ?></a></th>
+              <th class="colFrames px-1"><a href="<?php echo sortHeader('Frames') ?>"><?php echo translate('Frames') ?><?php echo sortTag('Frames') ?></a></th>
+              <th class="colAlarmFrames px-1"><a href="<?php echo sortHeader('AlarmFrames') ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag('AlarmFrames') ?></a></th>
+              <th class="colTotScore px-1"><a href="<?php echo sortHeader('TotScore') ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag('TotScore') ?></a></th>
+              <th class="colAvgScore px-1"><a href="<?php echo sortHeader('AvgScore') ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag('AvgScore') ?></a></th>
+              <th class="colMaxScore px-1"><a href="<?php echo sortHeader('MaxScore') ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag('MaxScore') ?></a></th>
 <?php
     if ( count($storage_areas) > 1 ) { 
 ?>
-              <th class="colStorage"><?php echo translate('Storage') ?></th>
+              <th class="colStorage px-1"><?php echo translate('Storage') ?></th>
 <?php
     }
     if ( ZM_WEB_EVENT_DISK_SPACE ) {
 ?>
-              <th class="colDiskSpace"><a href="<?php echo sortHeader('DiskSpace') ?>"><?php echo translate('DiskSpace') ?><?php echo sortTag('DiskSpace') ?></a></th>
+              <th class="colDiskSpace px-1"><a href="<?php echo sortHeader('DiskSpace') ?>"><?php echo translate('DiskSpace') ?><?php echo sortTag('DiskSpace') ?></a></th>
 <?php
     }
     if ( ZM_WEB_LIST_THUMBS ) {
 ?>
-              <th class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
+              <th class="colThumbnail px-1"><?php echo translate('Thumbnail') ?></th>
 <?php
     }
 ?>
-              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="eids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
+              <th class="colMark px-1"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="eids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
             </tr>
 <?php
   }
@@ -192,14 +193,14 @@ while ( $event_row = dbFetchNext($results) ) {
 ?>
             <tr<?php if ($event->Archived()) echo ' class="archived"' ?>>
               <td class="colId"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$event->Id().($event->Archived()?'*':'') ?></a></td>
-              <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a><br/>
+              <td class="colName px-1"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a><br/>
 <?php
 							if ( $event->Emailed() )
 								echo 'Emailed ';
 ?>
 							</td>
-              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
-              <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
+              <td class="colMonitorName px-1"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
+              <td class="colCause px-1"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
 							<?php
 # display notes as small text
 							if ( $event->Notes() ) {
@@ -215,26 +216,25 @@ while ( $event_row = dbFetchNext($results) ) {
 							}
 ?>
               </td>
-              <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) . 
-( $event->EndTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) : '' ) ?>
-              </td>
-              <td class="colDuration"><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
-              <td class="colFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 
+              <td class="colTime text-wrap px-1"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) ?></td>
+              <td class="colTime text-wrap px-1"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) ?></td>
+              <td class="colDuration px-1"><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
+              <td class="colFrames px-1"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 
               ( ZM_WEB_LIST_THUMBS ? array('frames', ZM_WEB_LIST_THUMB_WIDTH, ZM_WEB_LIST_THUMB_HEIGHT) : 'frames'),
               $event->Frames() ) ?></td>
-              <td class="colAlarmFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames',
+              <td class="colAlarmFrames px-1"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames',
               ( ZM_WEB_LIST_THUMBS ? array('frames', ZM_WEB_LIST_THUMB_WIDTH, ZM_WEB_LIST_THUMB_HEIGHT) : 'frames'),
               $event->AlarmFrames() ) ?></td>
-              <td class="colTotScore"><?php echo $event->TotScore() ?></td>
-              <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
-              <td class="colMaxScore"><?php echo makePopupLink(
+              <td class="colTotScore px-1"><?php echo $event->TotScore() ?></td>
+              <td class="colAvgScore px-1"><?php echo $event->AvgScore() ?></td>
+              <td class="colMaxScore px-1"><?php echo makePopupLink(
                 '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage',
                 array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)), $event->MaxScore()
               ); ?></td>
 <?php
   if ( count($storage_areas) > 1 ) { 
 ?>
-              <td class="colStorage">
+              <td class="colStorage px-1">
 <?php
     if ( $event->StorageId() ) {
       echo isset($StorageById[$event->StorageId()]) ? $StorageById[$event->StorageId()]->Name() : 'Unknown Storage Id: '.$event->StorageId();
@@ -252,11 +252,11 @@ while ( $event_row = dbFetchNext($results) ) {
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
     $disk_space_total += $event->DiskSpace();
 ?>
-              <td class="colDiskSpace"><?php echo human_filesize($event->DiskSpace()) ?></td>
+              <td class="colDiskSpace px-1"><?php echo human_filesize($event->DiskSpace()) ?></td>
 <?php
   }
   if ( ZM_WEB_LIST_THUMBS ) {
-      echo '<td class="colThumbnail">';
+      echo '<td class="colThumbnail px-1">';
       $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
       $streamSrc = $event->getStreamSrc(array(
         'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
@@ -266,7 +266,7 @@ while ( $event_row = dbFetchNext($results) ) {
       echo '</td>';
   } // end if ZM_WEB_LIST_THUMBS
 ?>
-              <td class="colMark"><input type="checkbox" name="eids[]" value="<?php echo $event->Id() ?>"/></td>
+              <td class="colMark px-1"><input type="checkbox" name="eids[]" value="<?php echo $event->Id() ?>"/></td>
             </tr>
 <?php
 }

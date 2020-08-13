@@ -1,3 +1,16 @@
+<?php
+  global $filterQuery;
+  global $sortQuery;
+  global $conjunctionTypes;
+  global $opTypes;
+  global $archiveTypes;
+  global $weekdays;
+  global $states;
+  global $servers;
+  global $storageareas;
+  global $monitors;
+  global $zones;
+?>
 var filterQuery = '<?php echo isset($filterQuery) ? validJsStr(htmlspecialchars_decode($filterQuery)) : '' ?>';
 var sortQuery = '<?php echo isset($sortQuery) ? validJsStr(htmlspecialchars_decode($sortQuery)) : '' ?>';
 

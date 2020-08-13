@@ -1,3 +1,9 @@
+<?php
+  global $monIdx;
+  global $nextMid;
+  global $options;
+  global $monitors;
+?>
 var monIdx = '<?php echo $monIdx; ?>';
 var nextMid = "<?php echo isset($nextMid)?$nextMid:'' ?>";
 var mode = "<?php echo $options['mode'] ?>";

@@ -217,8 +217,8 @@ xhtmlHeaders(__FILE__, translate('Zone'));
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneFilterSize') ?></th>
-									<td><input type="number" name="newZone[FilterX]" value="<?php echo $newZone['FilterX'] ?>"/></td>
-									<td><input type="number" name="newZone[FilterY]" value="<?php echo $newZone['FilterY'] ?>"/></td>
+									<td><input type="number" name="newZone[FilterX]" value="<?php echo $newZone['FilterX'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[FilterY]" value="<?php echo $newZone['FilterY'] ?>" min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneArea') ?></th>

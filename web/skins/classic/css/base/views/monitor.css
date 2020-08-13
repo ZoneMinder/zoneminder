@@ -11,6 +11,7 @@
 
 textarea,
 input[name="newMonitor[Name]"],
+input[name="newMonitor[LabelFormat]"],
 input[name="newMonitor[ControlDevice]"],
 input[name="newMonitor[ControlAddress]"] {
   width: 100%;

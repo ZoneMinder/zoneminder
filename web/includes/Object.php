@@ -153,7 +153,7 @@ class ZM_Object {
   public function to_json() {
     $json = array();
     foreach ($this->defaults as $key => $value) {
-      if ( is_callable(array($this, $key)) ) {
+      if ( is_callable(array($this, $key), false) ) {
         $json[$key] = $this->$key();
       } else if ( property_exists($this, $key) ) {
         $json[$key] = $this->{$key};
@@ -166,17 +166,17 @@ class ZM_Object {
 
   public function set($data) {
     foreach ( $data as $field => $value ) {
-      if ( is_callable(array($this, $field)) ) {
-        $this->{$field}($value);
+      if ( method_exists($this, $field) and is_callable(array($this, $field), false) ) {
+        $this->$field($value);
       } else {
         if ( is_array($value) ) {
 # perhaps should turn into a comma-separated string
           $this->{$field} = implode(',', $value);
         } else if ( is_string($value) ) {
           if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
-            if ( is_array($this->defaults[$feild]['filter_regexp']) ) {
+            if ( is_array($this->defaults[$field]['filter_regexp']) ) {
               foreach ( $this->defaults[$field]['filter_regexp'] as $regexp ) {
-                $this->{$field} = preg_replace($regexp, '', $trim($value));
+                $this->{$field} = preg_replace($regexp, '', trim($value));
               }
             } else {
               $this->{$field} = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));

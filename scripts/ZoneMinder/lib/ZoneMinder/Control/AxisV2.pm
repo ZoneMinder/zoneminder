@@ -113,7 +113,7 @@ sub open {
       Debug('No headers line');
     } # end if headers
   } else {
-    Warning('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
+    Debug('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
   } # end if $res->status_line() eq '401 Unauthorized'
 } # end sub open
 

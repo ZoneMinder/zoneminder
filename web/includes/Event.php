@@ -262,13 +262,18 @@ class Event extends ZM_Object {
     return $streamSrc;
   } // end function getStreamSrc
 
+  # The new='' is to so that if we pass null, we reset the value of DiskSpace.
+  # '' is not a valid DiskSpace so that tells us that nothing was passed whereas null (unknown) is.
   function DiskSpace( $new='' ) {
     if ( is_null($new) or ( $new != '' ) ) {
       $this->{'DiskSpace'} = $new;
     }
     if ( (!property_exists($this, 'DiskSpace')) or (null === $this->{'DiskSpace'}) ) {
       $this->{'DiskSpace'} = folder_size($this->Path());
-      dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
+      if ( $this->{'EndTime'} ) {
+        # Finished events shouldn't grow in size much so we can commit it to the db.
+        dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
+      }
     }
     return $this->{'DiskSpace'};
   }

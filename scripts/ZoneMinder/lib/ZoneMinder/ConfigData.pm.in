@@ -1514,6 +1514,26 @@ our @options = (
     category    => 'logging',
   },
   {
+    name        => 'ZM_WEB_NAVBAR_TYPE',
+    default     => 'normal',
+    description => 'Style of the web console navigation bar',
+    help        => q`
+      Choose between different navigation bar styles for the web
+      console. The "normal" style has a menu across the top, which
+      collapses to a pull down menu on small screens. The "collapsed"
+      style is collapsed all the time. Instead of a menu across the
+      top, menu items are accessed from the drop down menu on the
+      right.
+      `,
+    type        => {
+      db_type     => 'string',
+      hint        => 'normal|collapsed',
+      pattern     => qr|^([nc])|i,
+      format      => q( ($1 =~ /^n/) ? 'normal' : 'collapsed' )
+    },
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_TITLE',
     default     => 'ZoneMinder',
     description => 'The title displayed wherever the site references itself.',
@@ -1556,6 +1576,20 @@ our @options = (
       You may wish to set this to empty if you are using css to put a background image on it.
       `,
     type        => $types{string},
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_HOME_ABOUT',
+    default     => 'yes',
+    description => 'Whether to enable the ZoneMinder About menu.',
+    help        => q`
+      When enabled, the ZoneMinder logo in the top left corner of the
+      navigation bar becomes a menu with links to: the ZoneMinder
+      website, ZoneMinder Documentation, and the ZoneMinder forum.
+      End users wishing to rebrand their system may want to disable this
+      as the menu items are currently hard coded.
+      `,
+    type        => $types{boolean},
     category    => 'web',
   },
   {

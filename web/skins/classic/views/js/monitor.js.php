@@ -157,6 +157,7 @@ function updateMethods(element) {
   switch ( element.value ) {
     case 'http' :
       <?php
+        global $httpMethods;
         foreach( $httpMethods as $value=>$label ) {
           ?>
             methodSelector.options[methodSelector.options.length] = new Option("<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>");
@@ -168,6 +169,7 @@ function updateMethods(element) {
           break;
     case 'rtsp' :
       <?php
+        global $rtspMethods;
         foreach( $rtspMethods as $value=>$label ) {
           ?>
             methodSelector.options[methodSelector.options.length] = new Option( "<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>" );

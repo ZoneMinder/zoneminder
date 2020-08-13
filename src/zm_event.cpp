@@ -213,9 +213,11 @@ Event::Event(
     if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
 #if ZM_HAVE_VIDEOWRITER_X264MP4
       videowriter = new X264MP4Writer(video_file.c_str(),
-					monitor->Width(), monitor->Height(),
-					monitor->Colours(), monitor->SubpixelOrder(),
-					monitor->GetOptEncoderParams());
+          monitor->Width(),
+          monitor->Height(),
+          monitor->Colours(),
+          monitor->SubpixelOrder(),
+					monitor->GetOptEncoderParamsVec());
 #else
       Error("ZoneMinder was not compiled with the X264 MP4 video writer, check dependencies (x264 and mp4v2)");
 #endif
@@ -279,7 +281,7 @@ Event::~Event() {
   // Should not be static because we might be multi-threaded
   char sql[ZM_SQL_LGE_BUFSIZ];
   snprintf(sql, sizeof(sql), 
-      "UPDATE Events SET Name='%s %" PRIu64 "', EndTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
       monitor->EventPrefix(), id, end_time.tv_sec,
       delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
       frames, alarm_frames,

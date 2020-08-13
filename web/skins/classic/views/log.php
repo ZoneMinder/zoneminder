@@ -25,94 +25,83 @@ if ( !canView('System') ) {
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('SystemLog') );
+xhtmlHeaders(__FILE__, translate('SystemLog'));
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <table class="table">
-     	  <tr class="row">
-          <td class="col text-center">
-		        <div id="logSummary">
-            <?php echo translate('State') ?>: <span id="logState"></span>/
-            <?php echo translate('Total') ?>: <span id="totalLogs"></span>/
-            <?php echo translate('Available') ?>: <span id="availLogs"></span>/
-            <?php echo translate('Displaying') ?>: <span id="displayLogs"></span>/
-            <?php echo translate('Updated') ?>: <span id="lastUpdate"></span>
-            </div>
-          </td>
-        </tr>
-        <tr class="row">
-	        <td class="col text-center">
-            <div class="btn-group">
-              <button type="button" data-on-click="expandLog"><?php echo translate('More') ?></button>
-              <button type="button" data-on-click="clearLog"><?php echo translate('Clear') ?></button>
-              <button type="button" data-on-click="refreshLog"><?php echo translate('Refresh') ?></button>
-              <button type="button" data-on-click="exportLog"><?php echo translate('Export') ?></button>
-              <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
-            </div> <!--btn-->
-          </td>
-        </tr>
-      </table>
-    </div> <!--header-->
-  <div id="content">
-    <form id="logForm" name="logForm" method="post" action="?">
-    <div id="filters">
-
-      <table class="table-condensed">
-        <tr class="row">
-          <td class="col">
-            <label><?php echo translate('Component') ?></label>
-            <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
-          </td>
-          <td class="col">
-            <label><?php echo translate('Server') ?></label>
-            <select class="form-control chosen" id="filter[ServerId]" data-on-change="filterLog"><option value="">-----</option></select>
-          </td>
-          <td class="col">
-            <label><?php echo translate('Pid') ?></label>
-            <select class="form-control chosen" id="filter[Pid]" data-on-change="filterLog"><option value="">-----</option></select>
-          </td>
-        </tr>
-        <tr class="row">
-          <td class="col">
-            <label><?php echo translate('Level') ?></label>
-            <select class="form-control chosen" id="filter[Level]" data-on-change="filterLog"><option value="">---</option></select>
-          </td>
-          <td class="col">
-            <label><?php echo translate('File') ?></label>
-            <select class="form-control chosen" id="filter[File]" data-on-change="filterLog"><option value="">------</option></select>
-          </td>
-          <td  class="col">
-            <label><?php echo translate('Line') ?></label>
-            <select class="form-control chosen" id="filter[Line]" data-on-change="filterLog"><option value="">----</option></select>
-          </td>
-        </tr>
-      </table>
-      <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
-    </div>
-      <input type="hidden" name="view" value="<?php echo $view ?>"/>
-      <table id="logTable" class="major">
-        <thead class="thead-highlight">
-          <tr>
-            <th><?php echo translate('DateTime') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Component') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Server') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Pid') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Level') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Message') ?></th>
-            <th class="table-th-nosort"><?php echo translate('File') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Line') ?></th>
-          </tr>
-        </thead>
-        <tbody>
-        </tbody>
-      </table>
-      <div id="contentButtons">
+      <div id="logSummary" class="text-center">
+      <?php echo translate('State') ?>: <span id="logState"></span>/
+      <?php echo translate('Total') ?>: <span id="totalLogs"></span>/
+      <?php echo translate('Available') ?>: <span id="availLogs"></span>/
+      <?php echo translate('Displaying') ?>: <span id="displayLogs"></span>/
+      <?php echo translate('Updated') ?>: <span id="lastUpdate"></span>
       </div>
-    </form>
-  </div>
+      <div class="btn-toolbar text-center">
+<div class="btn-group">
+        <button type="button" data-on-click="expandLog"><?php echo translate('More') ?></button>
+        <button type="button" data-on-click="clearLog"><?php echo translate('Clear') ?></button>
+        <button type="button" data-on-click="refreshLog"><?php echo translate('Refresh') ?></button>
+        <button type="button" data-on-click="exportLog"><?php echo translate('Export') ?></button>
+          <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
 </div>
+<div class="btn-group pull-right">
+        <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
+        </div>
+      </div> <!--btn-->
+    </div> <!--header-->
+    <div id="content">
+      <form id="logForm" name="logForm" method="post" action="?">
+        <div class="container" id="filters">
+          <div class="row">
+            <div class="col">
+              <label><?php echo translate('Component') ?></label>
+              <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
+            </div>
+            <div class="col">
+              <label><?php echo translate('Server') ?></label>
+              <select class="form-control chosen" id="filter[ServerId]" data-on-change="filterLog"><option value="">-----</option></select>
+            </div>
+            <div class="col">
+              <label><?php echo translate('Pid') ?></label>
+              <select class="form-control chosen" id="filter[Pid]" data-on-change="filterLog"><option value="">-----</option></select>
+            </div>
+            <div class="col">
+              <label><?php echo translate('Level') ?></label>
+              <select class="form-control chosen" id="filter[Level]" data-on-change="filterLog"><option value="">---</option></select>
+            </div>
+            <div class="col">
+              <label><?php echo translate('File') ?></label>
+              <select class="form-control chosen" id="filter[File]" data-on-change="filterLog"><option value="">------</option></select>
+            </div>
+            <div class="col">
+              <label><?php echo translate('Line') ?></label>
+              <select class="form-control chosen" id="filter[Line]" data-on-change="filterLog"><option value="">----</option></select>
+            </div>
+          </div><!--row-->
+        </div><!--container-->
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
+        <table id="logTable" class="major">
+          <thead class="thead-highlight">
+            <tr>
+              <th><?php echo translate('DateTime') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Component') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Server') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Pid') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Level') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Message') ?></th>
+              <th class="table-th-nosort"><?php echo translate('File') ?></th>
+              <th class="table-th-nosort"><?php echo translate('Line') ?></th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+        <div id="contentButtons">
+        </div>
+      </div><!--content-->
+    </form>
+  </div><!--page-->
   <div id="exportLog" class="overlay">
     <div class="overlayHeader">
       <div class="overlayTitle"><?php echo translate('ExportLog') ?></div>
@@ -142,8 +131,8 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
           <button type="button" id="exportButton" value="Export" data-on-click="exportRequest"><?php echo translate('Export') ?></button>
           <button type="button" value="Cancel" class="overlayCloser"><?php echo translate('Cancel') ?></button>
         </form>
-      </div>
-    </div>
-  </div>
+      </div><!--overlayContent-->
+    </div><!--overlaybody-->
+  </div><!-- exportLog-->
 </body>
 </html>

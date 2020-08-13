@@ -1,3 +1,12 @@
+<?php
+  global $filterQuery;
+  global $monitors;
+  global $minTime;
+  global $midTime;
+  global $maxTime;
+  global $range;
+  global $majXScale;
+?>
 var filterQuery = '<?php echo validJsStr($filterQuery) ?>';
 
 <?php

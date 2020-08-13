@@ -40,7 +40,7 @@ function CSPHeaders($view, $nonce) {
   if ( ! $Servers )
     $Servers = ZM\Server::find();
 
-  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Url();}, $Servers));
+  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
   switch ($view) {
     case 'login': {
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
@@ -2232,8 +2232,8 @@ function generateConnKey() {
 
 function detaintPath($path) {
   // Remove any absolute paths, or relative ones that want to go up
-  $path = preg_replace('/\.(?:\.+[\\/][\\/]*)+/', '', $path);
-  $path = preg_replace('/^[\\/]+/', '', $path);
+  $path = str_replace('../', '', $path);
+  $path = ltrim($path, '/');
   return $path;
 }
 
@@ -2242,7 +2242,7 @@ function cache_bust($file) {
   # To defeat caching.  Should probably use md5 hash
   $parts = pathinfo($file);
   global $css;
-  $dirname = preg_replace('/\//', '_', $parts['dirname']);
+  $dirname = str_replace('/', '_', $parts['dirname']);
   $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
   if ( file_exists(ZM_DIR_CACHE.'/'.$cacheFile) or symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile) ) {
     return 'cache/'.$cacheFile;
@@ -2256,7 +2256,7 @@ function getSkinFile($file) {
   global $skinBase;
   $skinFile = false;
   foreach ( $skinBase as $skin ) {
-    $tempSkinFile = detaintPath('skins'.'/'.$skin.'/'.$file);
+    $tempSkinFile = detaintPath('skins/'.$skin.'/'.$file);
     if ( file_exists($tempSkinFile) )
       $skinFile = $tempSkinFile;
   }
@@ -2267,7 +2267,7 @@ function getSkinIncludes($file, $includeBase=false, $asOverride=false) {
   global $skinBase;
   $skinFile = false;
   foreach ( $skinBase as $skin ) {
-    $tempSkinFile = detaintPath('skins'.'/'.$skin.'/'.$file);
+    $tempSkinFile = detaintPath('skins/'.$skin.'/'.$file);
     if ( file_exists($tempSkinFile) )
       $skinFile = $tempSkinFile;
   }

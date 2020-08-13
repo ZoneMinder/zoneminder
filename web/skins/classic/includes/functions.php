@@ -173,7 +173,8 @@ if ( $css != 'base' )
 } else {
 ?>
   <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
-<?php }
+<?php
+  }
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
@@ -492,7 +493,7 @@ function getStorageHTML() {
   
   $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
   $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
-  $result .= '<div class="dropdown-menu" id="dropdown_storage" aria-labelledby="dropdown_storage">'.PHP_EOL;
+  $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
   
   foreach ( $storage_areas as $area ) {  
     $result .= $func($area).PHP_EOL;
@@ -534,7 +535,6 @@ function getConsoleBannerHTML() {
 
 // Returns the html representing the current high,medium,low bandwidth setting
 function getBandwidthHTML($bandwidth_options, $user) {
-  $result = '';
 
   # Limit available options to what are available in user
   if ( $user && !empty($user['MaxBandwidth']) ) {
@@ -546,13 +546,18 @@ function getBandwidthHTML($bandwidth_options, $user) {
     }
   }
 
-  $result .= '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-  $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
+  $result = '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
+  $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
 
-  $result .= '<div class="dropdown-menu" id="dropdown_bandwidth" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
-    $result .= '<a data-pdsa-dropdown-val="high" class="dropdown-item" href="#">' .translate('High'). '</a>'.PHP_EOL;
-    $result .= '<a data-pdsa-dropdown-val="medium" class="dropdown-item" href="#">' .translate('Medium'). '</a>'.PHP_EOL;
+  $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
+  if ( count($bandwidth_options) > 1 ) {
+    if ( isset($bandwidth_options['high']) )
+      $result .= '<a data-pdsa-dropdown-val="high" class="dropdown-item" href="#">' .translate('High'). '</a>'.PHP_EOL;
+    if ( isset($bandwidth_options['medium']) )
+      $result .= '<a data-pdsa-dropdown-val="medium" class="dropdown-item" href="#">' .translate('Medium'). '</a>'.PHP_EOL;
+    # low is theoretically always available
     $result .= '<a data-pdsa-dropdown-val="low" class="dropdown-item" href="#">' .translate('Low'). '</a>'.PHP_EOL;    
+  }
   $result .= '</div>'.PHP_EOL;
 
   $result .= '</li>'.PHP_EOL;
@@ -576,8 +581,8 @@ function getZMVersionHTML() {
   } else if ( canEdit('System') ) { // An update is available and the user is an administrator
     $class = 'text-warning';
     $tt_text = translate('UpdateAvailable');
-    $content = '<a class="dropdown ' .$class. '" data-toggle="dropdown" href="#">v' .ZM_VERSION. '</a>'.PHP_EOL;
-    $content .= '<div class="dropdown-menu" id="dropdown_reminder" aria-labelledby="dropdown_reminder">'.PHP_EOL;  
+    $content = '<a class="dropdown ' .$class. '" data-toggle="dropdown" href="#" id="dropdown_reminder">v' .ZM_VERSION. '</a>'.PHP_EOL;
+    $content .= '<div class="dropdown-menu" aria-labelledby="dropdown_reminder">'.PHP_EOL;  
       $content .= '<h6 class="dropdown-header">' .translate('UpdateAvailable'). '</h6>'.PHP_EOL;
       $content .= '<a class="dropdown-item" data-pdsa-dropdown-val="ignore" href="#">' .translate('VersionIgnore'). '</a>'.PHP_EOL;
       $content .= '<a class="dropdown-item" data-pdsa-dropdown-val="hour" href="#">' .translate('VersionRemindHour'). '</a>'.PHP_EOL;
@@ -592,7 +597,7 @@ function getZMVersionHTML() {
     $content = 'v'.ZM_VERSION.PHP_EOL;
   }
 
-  $result .= '<li id="getZMVersionHTML" class="nav-item dropdown ' .$class. '" data-placement="bottom" data-placement="bottom" title="' .$tt_text. '">'.PHP_EOL; 
+  $result .= '<li id="getZMVersionHTML" class="nav-item dropdown ' .$class. '" data-placement="bottom" title="' .$tt_text. '">'.PHP_EOL; 
   $result .= $content;
   $result .= '</li>'.PHP_EOL;
   

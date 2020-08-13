@@ -710,8 +710,8 @@ li.search-choice {
   display: inline-block;
 }
 
-#dropdown_storage,
-#dropdown_reminder,
-#dropdown_bandwidth {
+#dropdown_storage+div,
+#dropdown_reminder+div,
+#dropdown_bandwidth+div {
 background-color:#485460;
 }

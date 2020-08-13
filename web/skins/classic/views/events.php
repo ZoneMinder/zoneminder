@@ -138,7 +138,7 @@ if ( $pages > 1 ) {
         <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
         <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
-		<div class="table-responsive-sm">
+        <div class="table-responsive-sm">
         <table id="contentTable" class="major">
           <tbody>
 <?php
@@ -160,7 +160,8 @@ while ( $event_row = dbFetchNext($results) ) {
               <th class="colName"><a href="<?php echo sortHeader('Name') ?>"><?php echo translate('Name') ?><?php echo sortTag('Name') ?></a></th>
               <th class="colMonitor"><a href="<?php echo sortHeader('MonitorName') ?>"><?php echo translate('Monitor') ?><?php echo sortTag('MonitorName') ?></a></th>
               <th class="colCause"><a href="<?php echo sortHeader('Cause') ?>"><?php echo translate('Cause') ?><?php echo sortTag('Cause') ?></a></th>
-              <th class="colTime"><a href="<?php echo sortHeader('StartTime') ?>"><?php echo translate('Time') ?><?php echo sortTag('StartTime') ?></a></th>
+              <th class="colStartTime"><a href="<?php echo sortHeader('StartTime') ?>"><?php echo translate('AttrStartTime') ?><?php echo sortTag('StartTime') ?></a></th>
+              <th class="colEndTime"><a href="<?php echo sortHeader('EndTime') ?>"><?php echo translate('AttrEndTime') ?><?php echo sortTag('EndTime') ?></a></th>
               <th class="colDuration"><a href="<?php echo sortHeader('Length') ?>"><?php echo translate('Duration') ?><?php echo sortTag('Length') ?></a></th>
               <th class="colFrames"><a href="<?php echo sortHeader('Frames') ?>"><?php echo translate('Frames') ?><?php echo sortTag('Frames') ?></a></th>
               <th class="colAlarmFrames"><a href="<?php echo sortHeader('AlarmFrames') ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag('AlarmFrames') ?></a></th>
@@ -215,9 +216,8 @@ while ( $event_row = dbFetchNext($results) ) {
 							}
 ?>
               </td>
-              <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) . 
-( $event->EndTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) : '' ) ?>
-              </td>
+              <td class="colTime text-wrap"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) ?></td>
+              <td class="colTime text-wrap"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) ?></td>
               <td class="colDuration"><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
               <td class="colFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 
               ( ZM_WEB_LIST_THUMBS ? array('frames', ZM_WEB_LIST_THUMB_WIDTH, ZM_WEB_LIST_THUMB_HEIGHT) : 'frames'),

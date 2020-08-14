@@ -497,7 +497,7 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
   } # end foreach MonitorId
 }  # end foreach x
 
-ZM\Logger::Debug(print_r( $monEventSlots,true ));
+//ZM\Logger::Debug(print_r( $monEventSlots,true ));
 //print_r( $monFrameSlots );
 //print_r( $chart );
 

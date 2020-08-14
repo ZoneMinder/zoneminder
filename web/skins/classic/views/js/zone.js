@@ -178,13 +178,22 @@ function applyPreset() {
 function toPixels(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((field.value*maxValue)/100);
+    if ( field.value > maxValue ) field.value = maxValue;
   }
+  field.setAttribute('step', 1);
+  field.setAttribute('max', maxValue);
 }
 
+// maxValue is the max Pixels value which is normally the max area
 function toPercent(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((100*100*field.value)/maxValue)/100;
+    if ( field.value > 100 ) {
+      field.value = 100;
+    }
   }
+  field.setAttribute('step', 0.01);
+  field.setAttribute('max', 100);
 }
 
 function applyZoneUnits() {
@@ -240,12 +249,14 @@ function limitArea(field) {
   limitRange(field, minValue, maxValue);
 }
 
-function highlightOn(index) {
+function highlightOn(point) {
+  var index = point.getAttribute('data-index');
   $('row'+index).addClass('highlight');
   $('point'+index).addClass('highlight');
 }
 
-function highlightOff(index) {
+function highlightOff(point) {
+  var index = point.getAttribute('data-index');
   $('row'+index).removeClass('highlight');
   $('point'+index).removeClass('highlight');
 }
@@ -307,8 +318,8 @@ function updateActivePoint(index) {
   zone['Points'][index].x = x;
   zone['Points'][index].y = y;
   var Point = $('zonePoly').points.getItem(index);
-  Point.x =x;
-  Point.y =y;
+  Point.x = x;
+  Point.y = y;
   updateArea();
 }
 
@@ -349,15 +360,17 @@ function updateArea( ) {
   } else if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
     form.elements['newZone[TempArea]'].value = area;
   } else {
-    alert("Unknown units: " + form.elements['newZone[Units]'].value);
+    alert('Unknown units: ' + form.elements['newZone[Units]'].value);
   }
 }
 
-function updateX(index) {
-  limitPointValue($('newZone[Points]['+index+'][x]'), 0, maxX);
+function updateX(input) {
+  index = input.getAttribute('data-point-index');
+
+  limitPointValue(input, 0, maxX);
 
   var point = $('point'+index);
-  var x = $('newZone[Points]['+index+'][x]').get('value');
+  var x = input.value;
 
   point.setStyle('left', x+'px');
   zone['Points'][index].x = x;
@@ -366,11 +379,12 @@ function updateX(index) {
   updateArea();
 }
 
-function updateY(index) {
-  limitPointValue($('newZone[Points]['+index+'][y]'), 0, maxY);
+function updateY(input) {
+  index = input.getAttribute('data-point-index');
+  limitPointValue(input, 0, maxY);
 
   var point = $('point'+index);
-  var y = $('newZone[Points]['+index+'][y]').get('value');
+  var y = input.value;
 
   point.setStyle('top', y+'px');
   zone['Points'][index].y = y;
@@ -384,7 +398,7 @@ function saveChanges(element) {
   if ( validateForm(form) ) {
     submitForm(form);
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
-      alert( 'Capture process for this monitor will be restarted for the Privacy zone changes to take effect.' );
+      alert('Capture process for this monitor will be restarted for the Privacy zone changes to take effect.');
     }
     return true;
   }
@@ -399,6 +413,7 @@ function drawZonePoints() {
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var div = new Element('div', {
       'id': 'point'+i,
+      'data-index': i,
       'class': 'zonePoint',
       'title': 'Point '+(i+1),
       'styles': {
@@ -406,7 +421,9 @@ function drawZonePoints() {
         'top': zone['Points'][i].y
       }
     });
-    div.addEvent('mouseover', highlightOn.pass(i));
+    //div.addEvent('mouseover', highlightOn.pass(i));
+    div.onmouseover = window['highlightOn'].bind(div, div);
+    div.onmouseout = window['highlightOff'].bind(div, div);
     div.addEvent('mouseout', highlightOff.pass(i));
     div.inject($('imageFrame'));
     div.makeDraggable( {
@@ -435,9 +452,13 @@ function drawZonePoints() {
       'id': 'newZone[Points]['+i+'][x]',
       'name': 'newZone[Points]['+i+'][x]',
       'value': zone['Points'][i].x,
-      'size': 5
+      'type': 'number',
+      'class': 'ZonePoint',
+      'min': '0',
+      'max': maxX,
+      'data-point-index': i
     });
-    input.addEvent('input', updateX.pass(i));
+    input.oninput = window['updateX'].bind(input, input);
     input.inject(cell);
     cell.inject(row);
 
@@ -446,9 +467,13 @@ function drawZonePoints() {
       'id': 'newZone[Points]['+i+'][y]',
       'name': 'newZone[Points]['+i+'][y]',
       'value': zone['Points'][i].y,
-      'size': 5
+      'type': 'number',
+      'class': 'ZonePoint',
+      'min': '0',
+      'max': maxY,
+      'data-point-index': i
     } );
-    input.addEvent('input', updateY.pass(i));
+    input.oninput = window['updateY'].bind(input, input);
     input.inject(cell);
     cell.inject(row);
 
@@ -495,34 +520,6 @@ function setAlarmState( currentAlarmState ) {
   } else {
     $('stateValue').removeProperty('class');
   }
-
-  var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
-  var wasAlarmed = ( lastAlarmState == STATE_ALARM || lastAlarmState == STATE_ALERT );
-
-  var newAlarm = ( isAlarmed && !wasAlarmed );
-  var oldAlarm = ( !isAlarmed && wasAlarmed );
-
-  if ( newAlarm ) {
-    if ( SOUND_ON_ALARM ) {
-      // Enable the alarm sound
-      if ( !canPlayPauseAudio ) {
-        $('alarmSound').removeClass('hidden');
-      } else {
-        $('MediaPlayer').Play();
-      }
-    }
-  }
-  if ( SOUND_ON_ALARM ) {
-    if ( oldAlarm ) {
-      // Disable alarm sound
-      if ( !canPlayPauseAudio ) {
-        $('alarmSound').addClass('hidden');
-      } else {
-        $('MediaPlayer').Stop();
-      }
-    }
-  }
-  lastAlarmState = alarmState;
 }
 
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;
@@ -684,7 +681,6 @@ var watchdogFunctions = {
 //Make sure the various refreshes are still taking effect
 function watchdogCheck(type) {
   if ( watchdogInactive[type] ) {
-    console.log("Detected streamWatch of type: " + type + " stopped, restarting");
     watchdogFunctions[type]();
     watchdogInactive[type] = false;
   } else {

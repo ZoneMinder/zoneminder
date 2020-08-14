@@ -1,3 +1,10 @@
+<?php 
+  global $streamMode;
+  global $showPtzControls;
+  global $connkey;
+  global $monitor;
+  global $scale;
+?>
 //
 // Import constants
 //

@@ -18,26 +18,26 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$selfEdit = ZM_USER_SELF_EDIT && $_REQUEST['uid'] == $user['Id'];
+$selfEdit = ZM_USER_SELF_EDIT && ($_REQUEST['uid'] == $user['Id']);
 
 if ( !canEdit('System') && !$selfEdit ) {
   $view = 'error';
   return;
 }
 
+require('includes/User.php');
+
 if ( $_REQUEST['uid'] ) {
-	if ( !($newUser = dbFetchOne('SELECT * FROM Users WHERE Id = ?', NULL, ARRAY($_REQUEST['uid']))) ) {
+	if ( !($newUser = new ZM\User($_REQUEST['uid'])) ) {
 		$view = 'error';
 		return;
 	}
 } else {
-	$newUser = array();
-	$newUser['Username'] = translate('NewUser');
-	$newUser['Enabled'] = 1;
-	$newUser['MonitorIds'] = '';
+  $newUser = new ZM\User();
+	$newUser->Username(translate('NewUser'));
 }
 
-$monitorIds = array_flip(explode(',', $newUser['MonitorIds']));
+$monitorIds = array_flip(explode(',', $newUser->MonitorIds()));
 
 $yesno = array( 0=>translate('No'), 1=>translate('Yes') );
 $nv = array( 'None'=>translate('None'), 'View'=>translate('View') );
@@ -45,27 +45,26 @@ $nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>tran
 $bandwidths = array_merge( array( ''=>'' ), $bandwidth_options );
 $langs = array_merge( array( ''=>'' ), getLanguages() );
 
-$sql = 'SELECT Id,Name FROM Monitors ORDER BY Sequence ASC';
+$sql = 'SELECT Id, Name FROM Monitors ORDER BY Sequence ASC';
 $monitors = array();
-foreach( dbFetchAll($sql) as $monitor ) {
-  $monitors[] = $monitor;
+foreach ( dbFetchAll($sql) as $monitor ) {
+  if ( visibleMonitor($monitor['Id']) ) {
+    $monitors[$monitor['Id']] = $monitor;
+  }
 }
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('User').' - '.$newUser['Username']);
+xhtmlHeaders(__FILE__, translate('User').' - '.$newUser->Username());
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('User').' - '.validHtmlStr($newUser['Username']); ?></h2>
+      <h2><?php echo translate('User').' - '.validHtmlStr($newUser->Username()); ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="post" action="?" onsubmit="return validateForm( this, <?php echo empty($newUser['Password'])?'true':'false' ?> )">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="action" value="user"/>
+      <form id="contentForm" name="contentForm" method="post" action="?view=user">
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($_REQUEST['uid']) ?>"/>
-        <input type="hidden" name="newUser[MonitorIds]" value="<?php echo validHtmlStr($newUser['MonitorIds']); ?>"/>
         <table id="contentTable" class="major">
           <tbody>
 <?php
@@ -73,7 +72,7 @@ if ( canEdit('System') ) {
 ?>
             <tr>
               <th scope="row"><?php echo translate('Username') ?></th>
-              <td><input type="text" name="newUser[Username]" value="<?php echo validHtmlStr($newUser['Username']); ?>"/></td>
+              <td><input type="text" name="newUser[Username]" value="<?php echo validHtmlStr($newUser->Username()); ?>"<?php echo $newUser->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
             </tr>
 <?php
 }
@@ -88,63 +87,53 @@ if ( canEdit('System') ) {
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Language') ?></th>
-              <td><?php echo buildSelect( "newUser[Language]", $langs ) ?></td>
+              <td><?php echo htmlSelect('newUser[Language]', $langs, $newUser->Language()) ?></td>
             </tr>
 <?php
-if ( canEdit('System') ) {
+if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
 ?>
             <tr>
               <th scope="row"><?php echo translate('Enabled') ?></th>
-              <td><?php echo buildSelect( "newUser[Enabled]", $yesno ) ?></td>
+              <td><?php echo htmlSelect('newUser[Enabled]', $yesno, $newUser->Enabled()) ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Stream') ?></th>
-              <td><?php echo buildSelect( "newUser[Stream]", $nv ) ?></td>
+              <td><?php echo htmlSelect('newUser[Stream]', $nv, $newUser->Stream()) ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Events') ?></th>
-              <td><?php echo buildSelect( "newUser[Events]", $nve ) ?></td>
+              <td><?php echo htmlSelect('newUser[Events]', $nve, $newUser->Events()) ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Control') ?></th>
-              <td><?php echo buildSelect( "newUser[Control]", $nve ) ?></td>
+              <td><?php echo htmlSelect('newUser[Control]', $nve, $newUser->Control()) ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Monitors') ?></th>
-              <td><?php echo buildSelect( "newUser[Monitors]", $nve ) ?></td>
+              <td><?php echo htmlSelect('newUser[Monitors]', $nve, $newUser->Monitors()) ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Groups') ?></th>
-              <td><?php echo buildSelect( "newUser[Groups]", $nve ) ?></td>
+              <td><?php echo htmlSelect('newUser[Groups]', $nve, $newUser->Groups()) ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('System') ?></th>
-              <td><?php echo buildSelect( "newUser[System]", $nve ) ?></td>
+              <td><?php echo htmlSelect('newUser[System]', $nve, $newUser->System()) ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('MaxBandwidth') ?></th>
-              <td><?php echo buildSelect( "newUser[MaxBandwidth]", $bandwidths ) ?></td>
+              <td><?php echo htmlSelect('newUser[MaxBandwidth]', $bandwidths, $newUser->MaxBandwidth()) ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('RestrictedMonitors') ?></th>
               <td>
-                <select name="monitorIds" size="4" multiple="multiple">
-<?php
-    foreach ( $monitors as $monitor ) {
-      if ( visibleMonitor($monitor['Id']) ) {
-?>
-                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists($monitor['Id'], $monitorIds) ) { ?> selected="selected"<?php } ?>><?php echo htmlentities($monitor['Name']) ?></option>
-<?php
-      }
-    }
-?>
-                </select>
+<?php echo htmlSelect('newUser[MonitorIds][]', $monitors, explode(',', $newUser->MonitorIds()), array('multiple'=>'multiple')); ?>
               </td>
             </tr>
 <?php if ( ZM_OPT_USE_API ) { ?>
             <tr>
               <th scope="row"><?php echo translate('APIEnabled')?></th>
-              <td><?php echo buildSelect( "newUser[APIEnabled]", $yesno ) ?></td>
+              <td><?php echo htmlSelect('newUser[APIEnabled]', $yesno, $newUser->APIEnabled()) ?></td>
             </tr>
 
 <?php
@@ -154,7 +143,7 @@ if ( canEdit('System') ) {
           </tbody>
         </table>
         <div id="contentButtons">
-          <button type="submit" value="Save"><?php echo translate('Save') ?></button>
+          <button type="submit" name="action" value="Save"><?php echo translate('Save') ?></button>
           <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>

@@ -747,9 +747,11 @@ function fetchImage( streamImage ) {
 }
 
 function handleClick( event ) {
-  var target = event.target;
-  var x = event.page.x - $(target).getLeft();
-  var y = event.page.y - $(target).getTop();
+  var $target = $(event.target);
+  var scaleX = parseInt(monitorWidth / $target.getWidth());
+  var scaleY = parseInt(monitorHeight / $target.getHeight());
+  var x = (event.page.x - $target.getLeft()) * scaleX;
+  var y = (event.page.y - $target.getTop()) * scaleY;
 
   if ( showMode == 'events' || !imageControlMode ) {
     if ( event.shift ) {

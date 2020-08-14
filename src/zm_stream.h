@@ -104,13 +104,13 @@ protected:
   CmdMsg msg;
 
 protected:
-  bool loadMonitor( int monitor_id );
+  bool loadMonitor(int monitor_id);
   bool checkInitialised();
-  void updateFrameRate( double fps );
-  Image *prepareImage( Image *image );
-  bool sendTextFrame( const char *text );
+  void updateFrameRate(double fps);
+  Image *prepareImage(Image *image);
+  bool sendTextFrame(const char *text);
   bool checkCommandQueue();
-  virtual void processCommand( const CmdMsg *msg )=0;
+  virtual void processCommand(const CmdMsg *msg)=0;
 
 public:
   StreamBase(): 
@@ -135,13 +135,12 @@ public:
     lock_fd(0),
     paused(false),
     step(0)
-
     {
-    memset( &loc_sock_path, 0, sizeof(loc_sock_path) );
-    memset( &loc_addr, 0, sizeof(loc_addr) );
-    memset( &rem_sock_path, 0, sizeof(rem_sock_path) );
-    memset( &rem_addr, 0, sizeof(rem_addr) );
-    memset( &sock_path_lock, 0, sizeof(sock_path_lock) );
+    memset(&loc_sock_path, 0, sizeof(loc_sock_path));
+    memset(&loc_addr, 0, sizeof(loc_addr));
+    memset(&rem_sock_path, 0, sizeof(rem_sock_path));
+    memset(&rem_addr, 0, sizeof(rem_addr));
+    memset(&sock_path_lock, 0, sizeof(sock_path_lock));
 
     base_fps = 0.0;
     effective_fps = 0.0;
@@ -156,28 +155,28 @@ public:
   }
   virtual ~StreamBase();
 
-  void setStreamType( StreamType p_type ) {
+  void setStreamType(StreamType p_type) {
     type = p_type;
   }
-  void setStreamFormat( const char *p_format ) {
+  void setStreamFormat(const char *p_format) {
     format = p_format;
   }
-  void setStreamScale( int p_scale ) {
+  void setStreamScale(int p_scale) {
     scale = p_scale;
-    if ( ! scale )
+    if ( !scale )
       scale = DEFAULT_SCALE;
   }
-  void setStreamReplayRate( int p_rate ) {
-    Debug(2,"Setting replay_rate %d", p_rate);
+  void setStreamReplayRate(int p_rate) {
+    Debug(2, "Setting replay_rate %d", p_rate);
     replay_rate = p_rate;
   }
-  void setStreamMaxFPS( double p_maxfps ) {
+  void setStreamMaxFPS(double p_maxfps) {
     maxfps = p_maxfps;
   }
-  void setStreamBitrate( int p_bitrate ) {
+  void setStreamBitrate(int p_bitrate) {
     bitrate = p_bitrate;
   }
-  void setStreamQueue( int p_connkey ) {
+  void setStreamQueue(int p_connkey) {
     connkey = p_connkey;
   }
   virtual void openComms();

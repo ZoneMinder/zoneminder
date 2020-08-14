@@ -85,8 +85,6 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
 				// We update the request id so that the newly saved filter is auto-selected
 				$_REQUEST['Id'] = $filter->Id();
       }
-      if ( $filter->Background() )
-        $filter->control('start');
 
       if ( $action == 'execute' ) {
         $filter->execute();
@@ -94,6 +92,8 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
           $filter->delete();
 
         $view = 'events';
+      } else if ( $filter->Background() ) {
+        $filter->control('start');
       }
 
     } else if ( $action == 'control' ) {

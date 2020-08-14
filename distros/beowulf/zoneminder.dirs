@@ -1,0 +1,9 @@
+var/log/zm
+var/lib/zm
+var/cache/zoneminder/events
+var/cache/zoneminder/images
+var/cache/zoneminder/temp
+var/cache/zoneminder/cache
+usr/share/zoneminder/db
+etc/zm/
+etc/zm/conf.d

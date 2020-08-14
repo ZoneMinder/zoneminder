@@ -106,17 +106,17 @@ std::vector<std::string> split(const std::string &s, char delim) {
   return elems;
 }
 
-Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) :
-  id( p_id ),
+Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
+  id(p_id),
   shared_data(NULL),
   trigger_data(NULL),
   video_store_data(NULL)
 {
-  strncpy( name, p_name, sizeof(name)-1 );
+  strncpy(name, p_name, sizeof(name)-1);
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
-  snprintf( mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id );
+  snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
 #else // ZM_MEM_MAPPED
   shm_id = 0;
 #endif // ZM_MEM_MAPPED
@@ -135,61 +135,61 @@ Monitor::MonitorLink::~MonitorLink() {
 }
 
 bool Monitor::MonitorLink::connect() {
-  if ( !last_connect_time || (time( 0 ) - last_connect_time) > 60 ) {
-    last_connect_time = time( 0 );
+  if ( !last_connect_time || (time(0) - last_connect_time) > 60 ) {
+    last_connect_time = time(0);
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
-    Debug( 1, "link.mem.size=%d", mem_size );
+    Debug(1, "link.mem.size=%d", mem_size);
 #if ZM_MEM_MAPPED
-    map_fd = open( mem_file, O_RDWR, (mode_t)0600 );
+    map_fd = open(mem_file, O_RDWR, (mode_t)0600);
     if ( map_fd < 0 ) {
-      Debug( 3, "Can't open linked memory map file %s: %s", mem_file, strerror(errno) );
+      Debug(3, "Can't open linked memory map file %s: %s", mem_file, strerror(errno));
       disconnect();
-      return( false );
+      return false;
     }
     while ( map_fd <= 2 ) {
       int new_map_fd = dup(map_fd);
-      Warning( "Got one of the stdio fds for our mmap handle. map_fd was %d, new one is %d", map_fd, new_map_fd );
+      Warning("Got one of the stdio fds for our mmap handle. map_fd was %d, new one is %d", map_fd, new_map_fd);
       close(map_fd);
       map_fd = new_map_fd;
     }
 
     struct stat map_stat;
-    if ( fstat( map_fd, &map_stat ) < 0 ) {
-      Error( "Can't stat linked memory map file %s: %s", mem_file, strerror(errno) );
+    if ( fstat(map_fd, &map_stat) < 0 ) {
+      Error("Can't stat linked memory map file %s: %s", mem_file, strerror(errno));
       disconnect();
-      return( false );
+      return false;
     }
 
     if ( map_stat.st_size == 0 ) {
-      Error( "Linked memory map file %s is empty: %s", mem_file, strerror(errno) );
+      Error("Linked memory map file %s is empty: %s", mem_file, strerror(errno));
       disconnect();
-      return( false );
+      return false;
     } else if ( map_stat.st_size < mem_size ) {
-      Error( "Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size );
+      Error("Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size);
       disconnect();
-      return( false );
+      return false;
     }
 
-    mem_ptr = (unsigned char *)mmap( NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0 );
+    mem_ptr = (unsigned char *)mmap(NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
     if ( mem_ptr == MAP_FAILED ) {
-      Error( "Can't map file %s (%d bytes) to memory: %s", mem_file, mem_size, strerror(errno) );
+      Error("Can't map file %s (%d bytes) to memory: %s", mem_file, mem_size, strerror(errno));
       disconnect();
-      return( false );
+      return false;
     }
 #else // ZM_MEM_MAPPED
     shm_id = shmget( (config.shm_key&0xffff0000)|id, mem_size, 0700 );
     if ( shm_id < 0 ) {
-      Debug( 3, "Can't shmget link memory: %s", strerror(errno) );
+      Debug(3, "Can't shmget link memory: %s", strerror(errno );
       connected = false;
-      return( false );
+      return false;
     }
-    mem_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
+    mem_ptr = (unsigned char *)shmat(shm_id, 0, 0);
     if ( mem_ptr < (void *)0 ) {
-      Debug( 3, "Can't shmat link memory: %s", strerror(errno) );
+      Debug(3, "Can't shmat link memory: %s", strerror(errno));
       connected = false;
-      return( false );
+      return false;
     }
 #endif // ZM_MEM_MAPPED
 
@@ -197,18 +197,18 @@ bool Monitor::MonitorLink::connect() {
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
 
     if ( !shared_data->valid ) {
-      Debug( 3, "Linked memory not initialised by capture daemon" );
+      Debug(3, "Linked memory not initialised by capture daemon");
       disconnect();
-      return( false );
+      return false;
     }
 
     last_state = shared_data->state;
     last_event = shared_data->last_event;
     connected = true;
 
-    return( true );
+    return true;
   }
-  return( false );
+  return false;
 }
 
 bool Monitor::MonitorLink::disconnect() {
@@ -276,7 +276,7 @@ bool Monitor::MonitorLink::hasAlarmed() {
 }
 
 Monitor::Monitor(
-  int p_id,
+  unsigned int p_id,
   const char *p_name,
   const unsigned int p_server_id,
   const unsigned int p_storage_id,
@@ -383,6 +383,7 @@ Monitor::Monitor(
 
   strncpy(event_prefix, p_event_prefix, sizeof(event_prefix)-1);
   strncpy(label_format, p_label_format, sizeof(label_format)-1);
+  Debug(1, "encoder params %s", encoderparams.c_str());
 
   // Change \n to actual line feeds
   char *token_ptr = label_format;
@@ -529,7 +530,8 @@ Monitor::Monitor(
           shared_data->last_write_index, shared_data->last_write_time );
       sleep(1);
     }
-    ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(),
+
+    ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
         image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
     adaptive_skip = true;
 
@@ -538,7 +540,7 @@ Monitor::Monitor(
     if ( config.record_diag_images ) {
       diag_path_r = stringtf(config.record_diag_images_fifo ? "%s/%d/diagpipe-r.jpg" : "%s/%d/diag-r.jpg", storage->Path(), id);
       diag_path_d = stringtf(config.record_diag_images_fifo ? "%s/%d/diagpipe-d.jpg" : "%s/%d/diag-d.jpg", storage->Path(), id);
-      if (config.record_diag_images_fifo){
+      if ( config.record_diag_images_fifo ) {
         FifoStream::fifo_create_if_missing(diag_path_r.c_str());
         FifoStream::fifo_create_if_missing(diag_path_d.c_str());
       }
@@ -602,7 +604,7 @@ bool Monitor::connect() {
   if ( mem_ptr == MAP_FAILED )
     Fatal("Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
   if ( mem_ptr == NULL ) {
-    Error("mmap gave a null address:");
+    Error("mmap gave a NULL address:");
   } else {
     Debug(3, "mmapped to %p", mem_ptr);
   }
@@ -631,13 +633,13 @@ bool Monitor::connect() {
   image_buffer = new Snapshot[image_buffer_count];
   for ( int i = 0; i < image_buffer_count; i++ ) {
     image_buffer[i].timestamp = &(shared_timestamps[i]);
-    image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
+    image_buffer[i].image = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
     image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-  if ( (deinterlacing & 0xff) == 4) {
+  if ( (deinterlacing & 0xff) == 4 ) {
     /* Four field motion adaptive deinterlacing in use */
     /* Allocate a buffer for the next image */
-    next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+    next_buffer.image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
     next_buffer.timestamp = new struct timeval;
   }
   if ( purpose == ANALYSIS ) {
@@ -726,9 +728,11 @@ Monitor::~Monitor() {
         }
         delete[] pre_event_buffer;
       }
+			if ( Event::PreAlarmCount() )
+				Event::EmptyPreAlarmFrames();
     } else if ( purpose == CAPTURE ) {
       shared_data->valid = false;
-      memset( mem_ptr, 0, mem_size );
+      memset(mem_ptr, 0, mem_size);
     }
 
 #if ZM_MEM_MAPPED
@@ -1403,9 +1407,6 @@ bool Monitor::Analyse() {
           score += trigger_data->trigger_score;
           Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
           if ( !event ) {
-            // How could it have a length already?
-            //if ( cause.length() )
-              //cause += ", ";
             cause += trigger_data->trigger_cause;
           }
           Event::StringSet noteSet;
@@ -1485,6 +1486,7 @@ bool Monitor::Analyse() {
                   score += 50;
                 }
               } else {
+                Debug(1, "Linked monitor %d %d is not connected. Connecting.", i, linked_monitors[i]->Id());
                 linked_monitors[i]->connect();
               }
             } // end foreach linked_monit
@@ -1499,7 +1501,7 @@ bool Monitor::Analyse() {
 
               if ( section_length
                   && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                  && ( (event_close_mode != CLOSE_TIME) || ! ( timestamp->tv_sec % section_length ) ) 
+                  && ( (function == MOCORD && (event_close_mode != CLOSE_TIME)) || ! ( timestamp->tv_sec % section_length ) ) 
                  ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
                     name, image_count, event->Id(),
@@ -1512,7 +1514,6 @@ bool Monitor::Analyse() {
             } // end if event
 
             if ( !event ) {
-
               // Create event
               event = new Event(this, *timestamp, "Continuous", noteSetMap, videoRecording);
               shared_data->last_event = event->Id();
@@ -1526,7 +1527,6 @@ bool Monitor::Analyse() {
               if ( state == IDLE ) {
                 shared_data->state = state = TAPE;
               }
-
             } // end if ! event
           } // end if function == RECORD || function == MOCORD)
         } // end if !signal_change && signal
@@ -1538,23 +1538,24 @@ bool Monitor::Analyse() {
                 && (!event->AlarmFrames())
                 && (event_close_mode == CLOSE_ALARM)
                 && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+								&& ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) )
                ) {
-              Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
+              Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
                   name, image_count, event->Id());
               closeEvent();
             } else if ( event ) {
-            // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-            Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d",
-                Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
-                ( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
-                );
-            }
-            if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) ) {
-              shared_data->state = state = ALARM;
-              // lets construct alarm cause. It will contain cause + names of zones alarmed
-              std::string alarm_cause = "";
-              for ( int i=0; i < n_zones; i++ ) {
-                if ( zones[i]->Alarmed() ) {
+							// This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
+							Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d min",
+									Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
+									( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
+									);
+						}
+
+						if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) ) {
+							// lets construct alarm cause. It will contain cause + names of zones alarmed
+							std::string alarm_cause = "";
+							for ( int i=0; i < n_zones; i++ ) {
+								if ( zones[i]->Alarmed() ) {
                   alarm_cause = alarm_cause + "," + std::string(zones[i]->Label());
                 }
               }
@@ -1630,11 +1631,14 @@ bool Monitor::Analyse() {
                     }
                   }
                   event->AddFrames(pre_event_images, images, timestamps);
-                }
-                if ( alarm_frame_count ) {
+                }  // end if pre_event_images
+
+                if ( ( alarm_frame_count > 1 ) && Event::PreAlarmCount() ) {
+                  Debug(1, "alarm frame count so SavePreAlarmFrames");
                   event->SavePreAlarmFrames();
                 }
-              }
+              } // end if event
+              shared_data->state = state = ALARM;
             } else if ( state != PREALARM ) {
               Info("%s: %03d - Gone into prealarm state", name, image_count);
               shared_data->state = state = PREALARM;
@@ -1673,14 +1677,15 @@ bool Monitor::Analyse() {
             } else {
               shared_data->state = state = TAPE;
             }
-          }
-          if ( Event::PreAlarmCount() )
-            Event::EmptyPreAlarmFrames();
-        } // end if score or not
+						// Not in PREALARM state anymore, can clear PreAlarmCount
+						if ( Event::PreAlarmCount() )
+							Event::EmptyPreAlarmFrames();
+					}
+				} // end if score or not
 
         if ( state != IDLE ) {
           if ( state == PREALARM || state == ALARM ) {
-            if ( config.create_analysis_images ) {
+            if ( savejpegs > 1 ) {
               bool got_anal_image = false;
               alarm_image.Assign(*snap_image);
               for ( int i = 0; i < n_zones; i++ ) {
@@ -1694,17 +1699,11 @@ bool Monitor::Analyse() {
                 } // end if zone is alarmed
               } // end foreach zone
 
-              if ( got_anal_image ) {
-                if ( state == PREALARM )
-                  Event::AddPreAlarmFrame(snap_image, *timestamp, score, &alarm_image);
-                else
-                  event->AddFrame(snap_image, *timestamp, score, &alarm_image);
+              if ( state == PREALARM ) {
+                Event::AddPreAlarmFrame(snap_image, *timestamp, score, (got_anal_image?&alarm_image:NULL));
               } else {
-                if ( state == PREALARM )
-                  Event::AddPreAlarmFrame(snap_image, *timestamp, score);
-                else
-                  event->AddFrame(snap_image, *timestamp, score);
-              }
+								event->AddFrame(snap_image, *timestamp, score, (got_anal_image?&alarm_image:NULL));
+							}
             } else {
               // Not doing alarm frame storage
               if ( state == PREALARM ) {
@@ -1718,7 +1717,7 @@ bool Monitor::Analyse() {
                   }
                 } // end if  config.record_event_stats
               }
-            } // end if config.create_analysis_images 
+            } // end if savejpegs > 1 
 
             if ( event ) {
               if ( noteSetMap.size() > 0 )
@@ -1740,7 +1739,6 @@ bool Monitor::Analyse() {
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();
-
               }
             } // end if event
 
@@ -2516,7 +2514,7 @@ int Monitor::Capture() {
 
     if ( capture_image->Size() > camera->ImageSize() ) {
       Error("Captured image %d does not match expected size %d check width, height and colour depth",
-          capture_image->Size(),camera->ImageSize() );
+          capture_image->Size(), camera->ImageSize() );
       return -1;
     }
 

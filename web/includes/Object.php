@@ -42,7 +42,13 @@ class ZM_Object {
       if ( $type == 'set' and is_array($args[0]) ) {
         $this->{$fn} = implode(',', $args[0]);
       } else if ( array_key_exists($fn, $this->defaults) && is_array($this->defaults[$fn]) && isset($this->defaults[$fn]['filter_regexp']) ) {
-        $this->{$fn} = preg_replace($this->defaults[$fn]['filter_regexp'], '', $args[0]);
+        if ( is_array($this->defaults[$fn]['filter_regexp']) ) {
+          foreach ( $this->defaults[$fn]['filter_regexp'] as $regexp ) {
+            $this->{$fn} = preg_replace($regexp, '', $args[0]);
+          }
+        } else {
+          $this->{$fn} = preg_replace($this->defaults[$fn]['filter_regexp'], '', $args[0]);
+        }
       } else {
         $this->{$fn} = $args[0];
       }
@@ -147,7 +153,7 @@ class ZM_Object {
   public function to_json() {
     $json = array();
     foreach ($this->defaults as $key => $value) {
-      if ( is_callable(array($this, $key)) ) {
+      if ( is_callable(array($this, $key), false) ) {
         $json[$key] = $this->$key();
       } else if ( property_exists($this, $key) ) {
         $json[$key] = $this->{$key};
@@ -159,31 +165,37 @@ class ZM_Object {
   }
 
   public function set($data) {
-    foreach ( $data as $k => $v ) {
-      if ( method_exists($this, $k) ) {
-        $this->{$k}($v);
+    foreach ( $data as $field => $value ) {
+      if ( method_exists($this, $field) and is_callable(array($this, $field), false) ) {
+        $this->$field($value);
       } else {
-        if ( is_array($v) ) {
+        if ( is_array($value) ) {
 # perhaps should turn into a comma-separated string
-          $this->{$k} = implode(',', $v);
-        } else if ( is_string($v) ) {
-          if ( array_key_exists($k, $this->defaults) && is_array($this->defaults[$k]) && isset($this->defaults[$k]['filter_regexp']) ) {
-            $this->{$k} = preg_replace($this->defaults[$k]['filter_regexp'], '', trim($v));
+          $this->{$field} = implode(',', $value);
+        } else if ( is_string($value) ) {
+          if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
+            if ( is_array($this->defaults[$field]['filter_regexp']) ) {
+              foreach ( $this->defaults[$field]['filter_regexp'] as $regexp ) {
+                $this->{$field} = preg_replace($regexp, '', trim($value));
+              }
+            } else {
+              $this->{$field} = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+            }
           } else {
-						$this->{$k} = trim($v);
+            $this->{$field} = trim($value);
           }
-        } else if ( is_integer($v) ) {
-          $this->{$k} = $v;
-        } else if ( is_bool($v) ) {
-          $this->{$k} = $v;
-        } else if ( is_null($v) ) {
-          $this->{$k} = $v;
+        } else if ( is_integer($value) ) {
+          $this->{$field} = $value;
+        } else if ( is_bool($value) ) {
+          $this->{$field} = $value;
+        } else if ( is_null($value) ) {
+          $this->{$field} = $value;
         } else {
-          Error("Unknown type $k => $v of var " . gettype($v));
-          $this->{$k} = $v;
+          Error("Unknown type $field => $value of var " . gettype($value));
+          $this->{$field} = $value;
         }
       } # end if method_exists
-    } # end foreach $data as $k=>$v
+    } # end foreach $data as $field=>$value
   } # end function set($data)
 
   /* types is an array of fields telling use that the input might be a checkbox so not present in the input, but therefore has a value
@@ -211,11 +223,20 @@ class ZM_Object {
     foreach ( $new_values as $field => $value ) {
 
       if ( method_exists($this, $field) ) {
+
+        if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
+          if ( is_array($this->defaults[$field]['filter_regexp']) ) {
+            foreach ( $this->defaults[$field]['filter_regexp'] as $regexp ) {
+              $value = preg_replace($regexp, '', trim($value));
+            }
+          } else {
+            $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+          }
+        }
+
         $old_value = $this->$field();
-        Logger::Debug("Checking method $field () ".print_r($old_value,true).' => ' . print_r($value,true));
         if ( is_array($old_value) ) {
           $diff = array_recursive_diff($old_value, $value);
-          Logger::Debug("Checking method $field () diff isi ".print_r($diff,true));
           if ( count($diff) ) {
             $changes[$field] = $value;
           }
@@ -224,25 +245,26 @@ class ZM_Object {
         }
       } else if ( property_exists($this, $field) ) {
         $type = (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field])) ? $this->defaults[$field]['type'] : 'scalar';
-        Logger::Debug("Checking field $field => current ".
-          (is_array($this->{$field}) ? implode(',',$this->{$field}) : $this->{$field}) . ' ?= ' .
-          (is_array($value) ? implode(',', $value) : $value)
-        );
         if ( $type == 'set' ) {
           $old_value = is_array($this->$field) ? $this->$field : explode(',', $this->$field);
           $new_value = is_array($value) ? $value : explode(',', $value);
 
           $diff = array_recursive_diff($old_value, $new_value);
-          Logger::Debug("Checking value $field () diff isi ".print_r($diff,true));
           if ( count($diff) ) {
             $changes[$field] = $new_value;
           }
 
           # Input might be a command separated string, or an array
-          
+
         } else {
           if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
-            $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+            if ( is_array($this->defaults[$field]['filter_regexp']) ) {
+              foreach ( $this->defaults[$field]['filter_regexp'] as $regexp ) {
+                $value = preg_replace($regexp, '', trim($value));
+              }
+            } else {
+              $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+            }
           }
           if ( $this->{$field} != $value ) {
             $changes[$field] = $value;
@@ -255,11 +277,6 @@ class ZM_Object {
           $default = $this->defaults[$field];
         }
 
-        Logger::Debug("Checking default $field => ".
-          ( is_array($default) ? implode(',',$default) : $default).
-          ' ' .
-          ( is_array($value) ? implode(',', $value) : $value)
-        );
         if ( $default != $value ) {
           $changes[$field] = $value;
         }
@@ -275,7 +292,6 @@ class ZM_Object {
     $table = $class::$table;
 
     if ( $new_values ) {
-      //Logger::Debug("New values" . print_r($new_values, true));
       $this->set($new_values);
     }
 
@@ -306,7 +322,7 @@ class ZM_Object {
     $fields = array_keys($fields);
 
     if ( $this->Id() ) {
-      $sql = 'UPDATE '.$table.' SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields)).' WHERE Id=?';
+      $sql = 'UPDATE `'.$table.'` SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields)).' WHERE Id=?';
       $values = array_map(function($field){ return $this->{$field};}, $fields);
       $values[] = $this->{'Id'};
       if ( dbQuery($sql, $values) )
@@ -314,8 +330,8 @@ class ZM_Object {
     } else {
       unset($fields['Id']);
 
-      $sql = 'INSERT INTO '.$table.
-        ' ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
+      $sql = 'INSERT INTO `'.$table.
+        '` ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
           ') VALUES ('.
           implode(', ', array_map(function($field){return '?';}, $fields)).')';
 
@@ -331,7 +347,7 @@ class ZM_Object {
   public function delete() {
     $class = get_class($this);
     $table = $class::$table;
-    dbQuery("DELETE FROM $table WHERE Id=?", array($this->{'Id'}));
+    dbQuery("DELETE FROM `$table` WHERE Id=?", array($this->{'Id'}));
     if ( isset($object_cache[$class]) and isset($object_cache[$class][$this->{'Id'}]) )
       unset($object_cache[$class][$this->{'Id'}]);
   }

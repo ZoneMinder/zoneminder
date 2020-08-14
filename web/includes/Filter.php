@@ -24,6 +24,7 @@ class Filter extends ZM_Object {
     'AutoCopy'        =>  0,
     'AutoCopyTo'      =>  0,
     'UpdateDiskSpace' =>  0,
+    'UserId'          =>  0,
     'Background'      =>  0,
     'Concurrent'      =>  0,
     'Query_json'      =>  '',

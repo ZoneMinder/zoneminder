@@ -87,6 +87,7 @@ $SLANG = array(
     'Actual'                => 'Actual',
     'AddNewControl'         => 'Add New Control',
     'AddNewMonitor'         => 'Add',
+    'AddMonitorDisabled'    => 'Your user is not allowed to add a new monitor',
     'AddNewServer'          => 'Add New Server',
     'AddNewStorage'         => 'Add New Storage',
     'AddNewUser'            => 'Add New User',
@@ -376,6 +377,7 @@ $SLANG = array(
     'Filters'               => 'Filters',
     'FilterUnset'           => 'You must specify a filter width and height',
     'FilterUploadEvents'    => 'Upload all matches',
+    'FilterUser'            => 'User to run filter as',
     'FilterVideoEvents'     => 'Create video for all matches',
     'First'                 => 'First',
     'FlippedHori'           => 'Flipped Horizontally',
@@ -991,6 +993,18 @@ $OLANG = array(
       "loglevel=debug" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)
     '
 	),
+  'OPTIONS_ENCODER_PARAMETERS' => array(
+    'Help' => '
+    Parameters passed to the encoding codec. name=value separated by either , or newline.~~
+    For example to changing quality, use the crf option.  1 is best, 51 is worst 23 is default.~~
+~~
+    crf=23~~
+    ~~
+    You might want to alter the movflags value to support different behaviours. Some people have troubles viewing videos due to the frag_keyframe option, but that option is supposed to allow viewing of incomplete events. See 
+    [https://ffmpeg.org/ffmpeg-formats.html](https://ffmpeg.org/ffmpeg-formats.html)
+    for more information.  ZoneMinder\'s default is frag_keyframe,empty_moov~~
+    ',
+  ),
   'OPTIONS_DECODERHWACCELNAME' => array(
     'Help' => '
     This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'

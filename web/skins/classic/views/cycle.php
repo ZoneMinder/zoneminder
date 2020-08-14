@@ -58,32 +58,6 @@ $heights = array(
   '1080px'  =>  '1080px',
 );
 
-session_start();
-
-if ( isset($_REQUEST['scale']) ) {
-  $options['scale'] = validInt($_REQUEST['scale']);
-} else if ( isset($_COOKIE['zmCycleScale']) ) {
-  $options['scale'] = $_COOKIE['zmCycleScale'];
-}
-
-if ( !isset($options['scale']) )
-  $options['scale'] = 100;
-
-if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
-  $_SESSION['zmCycleWidth'] = $options['width'] = $_COOKIE['zmCycleWidth'];
-#} elseif ( isset($_SESSION['zmCycleWidth']) and $_SESSION['zmCycleWidth'] ) {
-  #$options['width'] = $_SESSION['zmCycleWidth'];
-} else
-  $options['width'] = '';
-
-if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] )
-  $_SESSION['zmCycleHeight'] = $options['height'] = $_COOKIE['zmCycleHeight'];
-#else if ( isset($_SESSION['zmCycleHeight']) and $_SESSION['zmCycleHeight'] )
-  #$options['height'] = $_SESSION['zmCycleHeight'];
-else
-  $options['height'] = '';
-
-session_write_close();
 
 $monIdx = 0;
 $monitors = array();
@@ -104,7 +78,6 @@ foreach( $displayMonitors as &$row ) {
     $heights[$row['Height'].'px'] = $row['Height'].'px';
   }
 
-  $row['connKey'] = generateConnKey();
   $monitors[] = new ZM\Monitor($row);
   unset($row);
 } # end foreach Monitor
@@ -113,6 +86,41 @@ if ( $monitors ) {
   $monitor = $monitors[$monIdx];
   $nextMid = $monIdx==(count($monitors)-1)?$monitors[0]->Id():$monitors[$monIdx+1]->Id();
 }
+if ( !$monitor ) {
+  ZM\Error('There was no monitor to display.');
+}
+$options['connkey'] = generateConnKey();
+
+session_start();
+
+if ( isset($_REQUEST['scale']) ) {
+  $options['scale'] = validInt($_REQUEST['scale']);
+} else if ( isset($_COOKIE['zmCycleScale']) ) {
+  $options['scale'] = $_COOKIE['zmCycleScale'];
+} else if ( $monitor ) {
+  $options['scale'] = $monitor->DefaultScale();
+}
+
+if ( !isset($options['scale']) )
+  $options['scale'] = 100;
+
+if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
+  $_SESSION['zmCycleWidth'] = $options['width'] = $_COOKIE['zmCycleWidth'];
+#} elseif ( isset($_SESSION['zmCycleWidth']) and $_SESSION['zmCycleWidth'] ) {
+  #$options['width'] = $_SESSION['zmCycleWidth'];
+} else {
+  $options['width'] = '';
+}
+
+if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] ) {
+  $_SESSION['zmCycleHeight'] = $options['height'] = $_COOKIE['zmCycleHeight'];
+#else if ( isset($_SESSION['zmCycleHeight']) and $_SESSION['zmCycleHeight'] )
+  #$options['height'] = $_SESSION['zmCycleHeight'];
+} else {
+  $options['height'] = '';
+}
+
+session_write_close();
 
 ZM\Logger::Debug(print_r($options,true));
 
@@ -151,7 +159,19 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
         </span>
       </div>
     </div>
-    <div id="content">
+  <div class="container-fluid">
+    <div class="row" id="content">
+      <div class="col-sm-2 sidebar">
+        <ul class="nav flex-column">
+<?php
+foreach ( $monitors as $m ) {
+          echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+}
+?>
+        </ul>
+      </div>
+      <div class="col-sm-10 col-sm-offset-2">
+
       <div id="imageFeed">
       <?php 
         if ( $monitor ) {
@@ -169,6 +189,7 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
         <button type="button" value="&gt;" id="nextBtn" title="<?php echo translate('NextMonitor') ?>" class="active" data-on-click-true="cycleNext">&gt;&gt;</button>
       </div>
 
+    </div>
     </div>
   </div>
 <?php xhtmlFooter() ?>

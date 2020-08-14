@@ -2,21 +2,21 @@
 //
 // ZoneMinder web function library, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 // Compatibility functions
 if ( version_compare(phpversion(), '4.3.0', '<') ) {
@@ -40,7 +40,7 @@ function CSPHeaders($view, $nonce) {
   if ( ! $Servers )
     $Servers = ZM\Server::find();
 
-  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Url();}, $Servers));
+  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
   switch ($view) {
     case 'login': {
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
@@ -299,7 +299,7 @@ function outputHelperStream($id, $src, $width, $height, $title='') {
 }
 function getHelperStream($id, $src, $width, $height, $title='') {
     return '<object type="application/x-java-applet" id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
-    archive="'. ZM_PATH_CAMBOZOLA .'" 
+    archive="'. ZM_PATH_CAMBOZOLA .'"
     align="middle"
     width="'. $width .'"
     height="'. $height .'"
@@ -585,14 +585,14 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
   if ( !$types )
     $types = array();
 
-  foreach( $newValues as $key=>$value ) {
+  foreach ( $newValues as $key=>$value ) {
     if ( $columns && !isset($columns[$key]) )
       continue;
 
     if ( !isset($types[$key]) )
       $types[$key] = false;
 
-    switch( $types[$key] ) {
+    switch ( $types[$key] ) {
       case 'set' :
           if ( is_array($newValues[$key]) ) {
             if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
@@ -669,6 +669,7 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
           break;
     } // end switch
   } // end foreach newvalues
+
   foreach ( $values as $key=>$value ) {
     if ( !empty($columns[$key]) ) {
       if ( !empty($types[$key]) ) {
@@ -842,9 +843,15 @@ function daemonStatus($daemon, $args=false) {
   initDaemonStatus();
 
   $string = $daemon;
-  if ( $args )
-    $string .= ' ' . $args;
-  return( strpos($daemon_status, "'$string' running") !== false );
+  if ( $args ) {
+		if ( is_array($args) ) {
+			$string .= join(' ', $args);
+ZM\Warning("daemonStatus args: $string");
+		} else {
+			$string .= ' ' . $args;
+		}
+	}
+  return ( strpos($daemon_status, "'$string' running") !== false );
 }
 
 function zmcStatus($monitor) {
@@ -1238,7 +1245,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         if ( !isset($term['val']) ) $term['val'] = '';
         foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
           switch ( $term['attr'] ) {
-				
+
 						case 'AlarmedZoneId':
 							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
 							break;
@@ -1380,7 +1387,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 function addFilterTerm($filter, $position, $term=false) {
   if ( $position < 0 )
     $position = 0;
-  
+
   if ( !isset($filter['Query']['terms']) )
     $filter['Query']['terms'] = array();
   else if ( $position > count($filter['Query']['terms']) )
@@ -1572,7 +1579,7 @@ function systemStats() {
 function getcpus() {
 
   if ( is_readable('/proc/cpuinfo') ) { # Works on Linux
-    preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches); 
+    preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches);
     $num_cpus = count($matches[0]);
   } else { # Works on BSD
     $matches = explode(':', shell_exec('sysctl hw.ncpu'));
@@ -1582,8 +1589,8 @@ function getcpus() {
   return $num_cpus;
 }
 
-// Function to fix a problem whereby the built in PHP session handling 
-// features want to put the sid as a hidden field after the form or 
+// Function to fix a problem whereby the built in PHP session handling
+// features want to put the sid as a hidden field after the form or
 // fieldset tag, neither of which will work with strict XHTML Basic.
 function sidField() {
   if ( SID ) {
@@ -1678,7 +1685,7 @@ function linesIntersect($line1, $line2) {
         return false;
       }
     } elseif ( $b1 == $b2 ) {
-      // Colinear, must overlap due to box check, intersect? 
+      // Colinear, must overlap due to box check, intersect?
       if ( $debug ) echo 'Intersecting, colinear<br>';
       return true;
     } else {
@@ -1686,7 +1693,7 @@ function linesIntersect($line1, $line2) {
       if ( $debug ) echo 'Not intersecting, parallel<br>';
       return false;
     }
-  } elseif ( !$dx1 ) { // Line 1 is vertical 
+  } elseif ( !$dx1 ) { // Line 1 is vertical
     $y = ( $m2 * $line1[0]['x'] ) * $b2;
     if ( $y >= $min_y1 && $y <= $max_y1 ) {
       if ( $debug ) echo "Intersecting, at y $y<br>";
@@ -1695,7 +1702,7 @@ function linesIntersect($line1, $line2) {
       if ( $debug ) echo "Not intersecting, out of range at y $y<br>";
       return false;
     }
-  } elseif ( !$dx2 ) { // Line 2 is vertical 
+  } elseif ( !$dx2 ) { // Line 2 is vertical
     $y = ( $m1 * $line2[0]['x'] ) * $b1;
     if ( $y >= $min_y2 && $y <= $max_y2 ) {
       if ( $debug ) echo "Intersecting, at y $y<br>";
@@ -1706,7 +1713,7 @@ function linesIntersect($line1, $line2) {
     }
   } else { // Both lines are vertical
     if ( $line1[0]['x'] == $line2[0]['x'] ) {
-      // Colinear, must overlap due to box check, intersect? 
+      // Colinear, must overlap due to box check, intersect?
       if ( $debug ) echo 'Intersecting, vertical, colinear<br>';
       return true;
     } else {
@@ -2090,18 +2097,23 @@ function isVector(&$array) {
 
 function checkJsonError($value) {
   if ( function_exists('json_last_error') ) {
-    $value = var_export($value,true);
-    switch( json_last_error() ) {
+    $value = var_export($value, true);
+    switch ( json_last_error() ) {
       case JSON_ERROR_DEPTH :
-        ZM\Fatal("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        ZM\Error("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        break;
       case JSON_ERROR_CTRL_CHAR :
-        ZM\Fatal("Unable to decode JSON string '$value', unexpected control character found");
+        ZM\Error("Unable to decode JSON string '$value', unexpected control character found");
+        break;
       case JSON_ERROR_STATE_MISMATCH :
-        ZM\Fatal("Unable to decode JSON string '$value', invalid or malformed JSON");
+        ZM\Error("Unable to decode JSON string '$value', invalid or malformed JSON");
+        break;
       case JSON_ERROR_SYNTAX :
-        ZM\Fatal("Unable to decode JSON string '$value', syntax error");
+        ZM\Error("Unable to decode JSON string '$value', syntax error");
+        break;
       default :
-        ZM\Fatal("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        ZM\Error("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        break;
       case JSON_ERROR_NONE:
         break;
     }
@@ -2163,7 +2175,7 @@ function jsonDecode($value) {
       } else if ( $value[$i] == ':' ) {
         $out .= '=>';
       } else {
-        $out .= $value[$i];         
+        $out .= $value[$i];
       }
     } else if ( !$unescape ) {
       if ( $value[$i] == '\\' )
@@ -2220,8 +2232,8 @@ function generateConnKey() {
 
 function detaintPath($path) {
   // Remove any absolute paths, or relative ones that want to go up
-  $path = preg_replace('/\.(?:\.+[\\/][\\/]*)+/', '', $path);
-  $path = preg_replace('/^[\\/]+/', '', $path);
+  $path = str_replace('../', '', $path);
+  $path = ltrim($path, '/');
   return $path;
 }
 
@@ -2230,7 +2242,7 @@ function cache_bust($file) {
   # To defeat caching.  Should probably use md5 hash
   $parts = pathinfo($file);
   global $css;
-  $dirname = preg_replace('/\//', '_', $parts['dirname']);
+  $dirname = str_replace('/', '_', $parts['dirname']);
   $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
   if ( file_exists(ZM_DIR_CACHE.'/'.$cacheFile) or symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile) ) {
     return 'cache/'.$cacheFile;
@@ -2244,7 +2256,7 @@ function getSkinFile($file) {
   global $skinBase;
   $skinFile = false;
   foreach ( $skinBase as $skin ) {
-    $tempSkinFile = detaintPath('skins'.'/'.$skin.'/'.$file);
+    $tempSkinFile = detaintPath('skins/'.$skin.'/'.$file);
     if ( file_exists($tempSkinFile) )
       $skinFile = $tempSkinFile;
   }
@@ -2255,7 +2267,7 @@ function getSkinIncludes($file, $includeBase=false, $asOverride=false) {
   global $skinBase;
   $skinFile = false;
   foreach ( $skinBase as $skin ) {
-    $tempSkinFile = detaintPath('skins'.'/'.$skin.'/'.$file);
+    $tempSkinFile = detaintPath('skins/'.$skin.'/'.$file);
     if ( file_exists($tempSkinFile) )
       $skinFile = $tempSkinFile;
   }
@@ -2305,7 +2317,8 @@ function validHtmlStr($input) {
 function getStreamHTML($monitor, $options = array()) {
 
   if ( isset($options['scale']) ) {
-    if ( $options['scale'] and ( $options['scale'] != 'auto' ) ) {
+    if ( $options['scale'] != 'auto' && $options['scale'] != '0' and $options['scale'] != '' ) {
+      ZM\Logger::Debug("Setting dimensions from scale:".$options['scale']);
       $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
       $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
     } else {
@@ -2357,8 +2370,8 @@ function getStreamHTML($monitor, $options = array()) {
       return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
     elseif ( canStreamApplet() )
       // Helper, empty widths and heights really don't work.
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, 
-          $options['width'] ? $options['width'] : $monitor->ViewWidth(), 
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
+          $options['width'] ? $options['width'] : $monitor->ViewWidth(),
           $options['height'] ? $options['height'] : $monitor->ViewHeight(),
           $monitor->Name());
   } else {
@@ -2417,8 +2430,8 @@ function check_timezone() {
     'TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),\'%H%i\')'
   ));
 
-  #Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20 
-                 #PHP timezone offset determine to be: $php_tzoffset,\x20 
+  #Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20
+                 #PHP timezone offset determine to be: $php_tzoffset,\x20
                  #Mysql timezone offset determine to be: $mysql_tzoffset
                #");
 
@@ -2433,7 +2446,7 @@ function check_timezone() {
 
 }
 
-function unparse_url($parsed_url, $substitutions = array() ) { 
+function unparse_url($parsed_url, $substitutions = array() ) {
   $fields = array('scheme','host','port','user','pass','path','query','fragment');
 
   foreach ( $fields as $field ) {
@@ -2441,16 +2454,16 @@ function unparse_url($parsed_url, $substitutions = array() ) {
       $parsed_url[$field] = $substitutions[$field];
     }
   }
-  $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : ''; 
-  $host     = isset($parsed_url['host']) ? $parsed_url['host'] : ''; 
-  $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : ''; 
-  $user     = isset($parsed_url['user']) ? $parsed_url['user'] : ''; 
-  $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : ''; 
-  $pass     = ($user || $pass) ? "$pass@" : ''; 
-  $path     = isset($parsed_url['path']) ? $parsed_url['path'] : ''; 
-  $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : ''; 
-  $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : ''; 
-  return "$scheme$user$pass$host$port$path$query$fragment"; 
+  $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : '';
+  $host     = isset($parsed_url['host']) ? $parsed_url['host'] : '';
+  $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
+  $user     = isset($parsed_url['user']) ? $parsed_url['user'] : '';
+  $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : '';
+  $pass     = ($user || $pass) ? $pass.'@' : '';
+  $path     = isset($parsed_url['path']) ? $parsed_url['path'] : '';
+  $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
+  $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : '';
+  return $scheme.$user.$pass.$host.$port.$path.$query.$fragment;
 }
 
 // PP - POST request handler for PHP which does not need extensions

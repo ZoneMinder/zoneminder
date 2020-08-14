@@ -18,12 +18,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Monitors') ) {
+$mid = empty($_REQUEST['mid']) ? 0 : validInt($_REQUEST['mid']);
+if ( !($mid and canEdit('Monitors', $mid)) ) {
   $view = 'error';
   return;
 }
 
-$mid = validInt($_REQUEST['mid']);
 $monitor = new ZM\Monitor($mid);
 # ViewWidth() and ViewHeight() are already rotated
 $minX = 0;
@@ -62,7 +62,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>
-          <polygon points="<?php echo $zone['AreaCoords'] ?>" class="popup-link <?php echo $zone['Type']?>" onclick="streamCmdQuit(true); return false;"
+          <polygon points="<?php echo $zone['AreaCoords'] ?>" class="popup-link <?php echo $zone['Type']?>" data-on-click-true="streamCmdQuit"
                    data-url="?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>"
                    data-window-name="zmZone<?php echo $zone['Id'] ?>"
                    data-window-tag="zone"

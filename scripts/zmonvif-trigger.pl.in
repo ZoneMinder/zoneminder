@@ -102,7 +102,7 @@ $SIG{__DIE__} = \&handler;
 # =========================================================================
 # Debug
 
-use Data::Hexdumper qw(hexdump);
+#use Data::Hexdumper qw(hexdump);
 #use Devel::Peek;
 
 sub dump_mapped {
@@ -116,12 +116,12 @@ sub dump_mapped {
   printf("Mapped at %x\n", $monitor->{MMapAddr});
   #  Dump($mmap);
   if ( $mmap && $$mmap ) {
-    print hexdump(
-      data           => $$mmap, # what to dump
-      output_format  => '  %4a : %S %S %S %S %S %S %S %S         : %d',
-      #      start_position => 336,   # start at this offset ...
-      end_position   => 400    # ... and end at this offset
-    );
+    #print hexdump(
+    #data           => $$mmap, # what to dump
+    #output_format  => '  %4a : %S %S %S %S %S %S %S %S         : %d',
+    ##      start_position => 336,   # start at this offset ...
+    #end_position   => 400    # ... and end at this offset
+    #);
   }
 }
 

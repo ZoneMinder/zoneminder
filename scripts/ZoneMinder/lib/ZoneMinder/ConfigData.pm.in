@@ -252,7 +252,7 @@ our @options = (
       authentication which passes an independently authentication
       'remote' user via http. In this case ZoneMinder would use the
       supplied user without additional authentication provided such a
-      user is configured ion ZoneMinder.
+      user is configured in ZoneMinder.
       `,
     requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
     type        => {
@@ -1514,6 +1514,26 @@ our @options = (
     category    => 'logging',
   },
   {
+    name        => 'ZM_WEB_NAVBAR_TYPE',
+    default     => 'normal',
+    description => 'Style of the web console navigation bar',
+    help        => q`
+      Choose between different navigation bar styles for the web
+      console. The "normal" style has a menu across the top, which
+      collapses to a pull down menu on small screens. The "collapsed"
+      style is collapsed all the time. Instead of a menu across the
+      top, menu items are accessed from the drop down menu on the
+      right.
+      `,
+    type        => {
+      db_type     => 'string',
+      hint        => 'normal|collapsed',
+      pattern     => qr|^([nc])|i,
+      format      => q( ($1 =~ /^n/) ? 'normal' : 'collapsed' )
+    },
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_TITLE',
     default     => 'ZoneMinder',
     description => 'The title displayed wherever the site references itself.',
@@ -1556,6 +1576,20 @@ our @options = (
       You may wish to set this to empty if you are using css to put a background image on it.
       `,
     type        => $types{string},
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_HOME_ABOUT',
+    default     => 'yes',
+    description => 'Whether to enable the ZoneMinder About menu.',
+    help        => q`
+      When enabled, the ZoneMinder logo in the top left corner of the
+      navigation bar becomes a menu with links to: the ZoneMinder
+      website, ZoneMinder Documentation, and the ZoneMinder forum.
+      End users wishing to rebrand their system may want to disable this
+      as the menu items are currently hard coded.
+      `,
+    type        => $types{boolean},
     category    => 'web',
   },
   {
@@ -2634,22 +2668,6 @@ our @options = (
       `,
     type        => $types{boolean},
     category    => 'hidden',
-  },
-  {
-    name        => 'ZM_CREATE_ANALYSIS_IMAGES',
-    default     => 'yes',
-    description => 'Create analysed alarm images with motion outlined',
-    help        => q`
-      By default during an alarm ZoneMinder records both the raw
-      captured image and one that has been analysed and had areas
-      where motion was detected outlined. This can be very useful
-      during zone configuration or in analysing why events occurred.
-      However it also incurs some overhead and in a stable system may
-      no longer be necessary. This parameter allows you to switch the
-      generation of these images off.
-      `,
-    type        => $types{boolean},
-    category    => 'config',
   },
   {
     name        => 'ZM_WEIGHTED_ALARM_CENTRES',

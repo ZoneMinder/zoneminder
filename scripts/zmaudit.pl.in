@@ -1059,6 +1059,7 @@ sub delete_empty_directories {
   } 
 } # end sub delete_empty_directories
 
+# The idea is that the youngest file in the event directory gives us the event starttime
 sub time_of_youngest_file {
   my $dir = shift;
 
@@ -1067,14 +1068,13 @@ sub time_of_youngest_file {
     return;
   }
   my $youngest = (stat($dir))[9];
-  Debug("stat of $dir is $youngest");
+  Debug("stat of dir $dir is $youngest");
   foreach my $file ( readdir( DIR ) ) {
     next if $file =~ /^\./;
     $_ = (stat($dir))[9];
     $youngest = $_ if $_ and ( $_ < $youngest );
-    #Debug("stat of $dir is $_ < $youngest");
+    Debug("Found younger file $file at $youngest");
   }
-  Debug("stat of $dir is $youngest");
   return $youngest;
 } # end sub time_of_youngest_file
 

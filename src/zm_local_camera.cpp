@@ -504,7 +504,7 @@ LocalCamera::LocalCamera(
           subpixelorder = ZM_SUBPIX_ORDER_NONE;
         } else if ( palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_GRAY8 ) {
           /* Fast YUYV->Grayscale conversion by extracting the Y channel */
-          if ( config.cpu_extensions && sseversion >= 35 ) {
+          if ( config.cpu_extensions && sse_version >= 35 ) {
             conversion_fptr = &ssse3_convert_yuyv_gray8;
             Debug(2,"Using SSSE3 YUYV->grayscale fast conversion");
           } else {
@@ -616,7 +616,7 @@ LocalCamera::LocalCamera(
           }
         } else if ( (palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422) && colours == ZM_COLOUR_GRAY8 ) {
           /* Fast YUYV->Grayscale conversion by extracting the Y channel */
-          if ( config.cpu_extensions && sseversion >= 35 ) {
+          if ( config.cpu_extensions && sse_version >= 35 ) {
             conversion_fptr = &ssse3_convert_yuyv_gray8;
             Debug(2,"Using SSSE3 YUYV->grayscale fast conversion");
           } else {
@@ -1274,56 +1274,62 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
 #define capString(test,prefix,yesString,noString,capability) \
   (test) ? (prefix yesString " " capability "\n") : (prefix noString " " capability "\n")
 
-bool LocalCamera::GetCurrentSettings( const char *device, char *output, int version, bool verbose ) {
+bool LocalCamera::GetCurrentSettings(const char *device, char *output, int version, bool verbose) {
   output[0] = 0;
+  char *output_ptr = output;
 
   char queryDevice[PATH_MAX] = "";
   int devIndex = 0;
   do {
-    if ( device )
+    if ( device ) {
       strncpy(queryDevice, device, sizeof(queryDevice)-1);
-    else
+    } else {
       sprintf(queryDevice, "/dev/video%d", devIndex);
+    }
 
     if ( (vid_fd = open(queryDevice, O_RDWR)) <= 0 ) {
       if ( device ) {
         Error("Failed to open video device %s: %s", queryDevice, strerror(errno));
         if ( verbose )
-          sprintf(output+strlen(output), "Error, failed to open video device %s: %s\n",
+          output_ptr += sprintf(output_ptr, "Error, failed to open video device %s: %s\n",
               queryDevice, strerror(errno));
         else
-          sprintf(output+strlen(output), "error%d\n", errno);
+          output_ptr += sprintf(output_ptr, "error%d\n", errno);
         return false;
       } else {
         return true;
       }
     }
-    if ( verbose )
-      sprintf(output+strlen(output), "Video Device: %s\n", queryDevice);
-    else
-      sprintf(output+strlen(output), "d:%s|", queryDevice);
+    if ( verbose ) {
+      output_ptr += sprintf(output_ptr, "Video Device: %s\n", queryDevice);
+    } else {
+      output_ptr += sprintf(output_ptr, "d:%s|", queryDevice);
+    }
 
 #if ZM_HAS_V4L2
     if ( version == 2 ) {
       struct v4l2_capability vid_cap;
       if ( vidioctl(vid_fd, VIDIOC_QUERYCAP, &vid_cap) < 0 ) {
         Error("Failed to query video device: %s", strerror(errno));
-        if ( verbose )
-          sprintf(output, "Error, failed to query video capabilities %s: %s\n",
+        if ( verbose ) {
+          output_ptr += sprintf(output_ptr, "Error, failed to query video capabilities %s: %s\n",
               queryDevice, strerror(errno));
-        else
-          sprintf(output, "error%d\n", errno);
-        return false;
+        } else {
+          output_ptr += sprintf(output_ptr, "error%d\n", errno);
+        }
+        if ( device )
+          return false;
       }
 
       if ( verbose ) {
-        sprintf(output+strlen(output), "General Capabilities\n");
-        sprintf(output+strlen(output), "  Driver: %s\n", vid_cap.driver);
-        sprintf(output+strlen(output), "  Card: %s\n", vid_cap.card);
-        sprintf(output+strlen(output), "  Bus: %s\n", vid_cap.bus_info);
-        sprintf(output+strlen(output), "  Version: %u.%u.%u\n",
-            (vid_cap.version>>16)&0xff, (vid_cap.version>>8)&0xff, vid_cap.version&0xff);
-        sprintf(output+strlen(output), "  Type: 0x%x\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+        output_ptr += sprintf(output_ptr, "General Capabilities\n"
+            "  Driver: %s\n"
+            "  Card: %s\n"
+            "  Bus: %s\n"
+            "  Version: %u.%u.%u\n"
+            "  Type: 0x%x\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+            vid_cap.driver, vid_cap.card, vid_cap.bus_info,
+            (vid_cap.version>>16)&0xff, (vid_cap.version>>8)&0xff, vid_cap.version&0xff,
             vid_cap.capabilities,
             capString(vid_cap.capabilities&V4L2_CAP_VIDEO_CAPTURE,         "    ", "Supports", "Does not support", "video capture (X)"),
             capString(vid_cap.capabilities&V4L2_CAP_VIDEO_OUTPUT,          "    ", "Supports", "Does not support", "video output"),
@@ -1345,17 +1351,16 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
             capString(vid_cap.capabilities&V4L2_CAP_STREAMING,             "    ", "Supports", "Does not support", "streaming i/o (X)")
             );
       } else {
-        sprintf(output+strlen(output), "D:%s|", vid_cap.driver);
-        sprintf(output+strlen(output), "C:%s|", vid_cap.card);
-        sprintf(output+strlen(output), "B:%s|", vid_cap.bus_info);
-        sprintf(output+strlen(output), "V:%u.%u.%u|", (vid_cap.version>>16)&0xff, (vid_cap.version>>8)&0xff, vid_cap.version&0xff);
-        sprintf(output+strlen(output), "T:0x%x|", vid_cap.capabilities);
+        output_ptr += sprintf(output_ptr, "D:%s|C:%s|B:%s|V:%u.%u.%u|T:0x%x|"
+            , vid_cap.driver
+            , vid_cap.card
+            , vid_cap.bus_info
+            , (vid_cap.version>>16)&0xff, (vid_cap.version>>8)&0xff, vid_cap.version&0xff
+            , vid_cap.capabilities);
       }
 
-      if ( verbose )
-        sprintf(output+strlen(output), "    Standards:\n");
-      else
-        sprintf(output+strlen(output), "S:");
+      output_ptr += sprintf(output_ptr, verbose ? "    Standards:\n" : "S:");
+
       struct v4l2_standard standard;
       int standardIndex = 0;
       do {
@@ -1370,25 +1375,20 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           } else {
             Error("Failed to enumerate standard %d: %d %s", standard.index, errno, strerror(errno));
             if ( verbose )
-              sprintf(output, "Error, failed to enumerate standard %d: %d %s\n", standard.index, errno, strerror(errno));
+              output_ptr += sprintf(output_ptr, "Error, failed to enumerate standard %d: %d %s\n", standard.index, errno, strerror(errno));
             else
-              sprintf(output, "error%d\n", errno);
+              output_ptr += sprintf(output_ptr, "error%d\n", errno);
+            // Why return? Why not continue trying other things?
             return false;
           }
         }
-        if ( verbose )
-          sprintf(output+strlen(output), "      %s\n", standard.name);
-        else
-          sprintf(output+strlen(output), "%s/", standard.name);
-      }
-      while ( standardIndex++ >= 0 );
-      if ( !verbose && output[strlen(output)-1] == '/')
-        output[strlen(output)-1] = '|';
+        output_ptr += sprintf(output_ptr, (verbose ? "      %s\n" : "%s/"), standard.name);
+      } while ( standardIndex++ >= 0 );
 
-      if ( verbose )
-        sprintf(output+strlen(output), "  Formats:\n");
-      else
-        sprintf(output+strlen(output), "F:");
+      if ( !verbose && (*(output_ptr-1) == '/') )
+        *(output_ptr-1) = '|';
+
+      output_ptr += sprintf(output_ptr, verbose ? "  Formats:\n" : "F:");
       struct v4l2_fmtdesc format;
       int formatIndex = 0;
       do {
@@ -1403,15 +1403,15 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           } else {
             Error("Failed to enumerate format %d: %s", format.index, strerror(errno));
             if ( verbose )
-              sprintf(output, "Error, failed to enumerate format %d: %s\n", format.index, strerror(errno));
+              output_ptr += sprintf(output_ptr, "Error, failed to enumerate format %d: %s\n", format.index, strerror(errno));
             else
-              sprintf(output, "error%d\n", errno);
+              output_ptr += sprintf(output_ptr, "error%d\n", errno);
             return false;
           }
         }
         if ( verbose )
-          sprintf(
-              output+strlen(output),
+          output_ptr += sprintf(
+              output_ptr,
               "  %s (0x%02hhx%02hhx%02hhx%02hhx)\n",
               format.description,
               (format.pixelformat>>24)&0xff,
@@ -1419,33 +1419,34 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
               (format.pixelformat>>8)&0xff,
               format.pixelformat&0xff);
         else
-          sprintf(
-              output+strlen(output),
+          output_ptr += sprintf(
+              output_ptr,
               "0x%02hhx%02hhx%02hhx%02hhx/",
               (format.pixelformat>>24)&0xff,
               (format.pixelformat>>16)&0xff,
               (format.pixelformat>>8)&0xff,
               (format.pixelformat)&0xff);
       } while ( formatIndex++ >= 0 );
+
       if ( !verbose )
-        output[strlen(output)-1] = '|';
+        *(output_ptr-1) = '|';
       else 
-        sprintf(output+strlen(output), "Crop Capabilities\n");
+        output_ptr += sprintf(output_ptr, "Crop Capabilities\n");
 
       struct v4l2_cropcap cropcap;
       memset(&cropcap, 0, sizeof(cropcap));
       cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-      if ( vidioctl( vid_fd, VIDIOC_CROPCAP, &cropcap ) < 0 ) {
+      if ( vidioctl(vid_fd, VIDIOC_CROPCAP, &cropcap) < 0 ) {
         if ( errno != EINVAL ) {
           /* Failed querying crop capability, write error to the log and continue as if crop is not supported */
           Error("Failed to query crop capabilities: %s", strerror(errno));
         }
 
         if ( verbose ) {
-          sprintf(output+strlen(output), "  Cropping is not supported\n");
+          output_ptr += sprintf(output_ptr, "  Cropping is not supported\n");
         } else {
           /* Send fake crop bounds to not confuse things parsing this, such as monitor probe */
-          sprintf(output+strlen(output), "B:%dx%d|",0,0);
+          output_ptr += sprintf(output_ptr, "B:%dx%d|", 0, 0);
         }
       } else {
         struct v4l2_crop crop;
@@ -1459,19 +1460,23 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           }
 
           if ( verbose ) {
-            sprintf(output+strlen(output), "  Cropping is not supported\n");
+            output_ptr += sprintf(output_ptr, "  Cropping is not supported\n");
           } else {
             /* Send fake crop bounds to not confuse things parsing this, such as monitor probe */
-            sprintf(output+strlen(output), "B:%dx%d|",0,0); 
+            output_ptr += sprintf(output_ptr, "B:%dx%d|",0,0); 
           }
         } else {
           /* Cropping supported */
           if ( verbose ) {
-            sprintf(output+strlen(output), "  Bounds: %d x %d\n", cropcap.bounds.width, cropcap.bounds.height);
-            sprintf(output+strlen(output), "  Default: %d x %d\n", cropcap.defrect.width, cropcap.defrect.height);
-            sprintf(output+strlen(output), "  Current: %d x %d\n", crop.c.width, crop.c.height);
+            output_ptr += sprintf(output_ptr,
+                "  Bounds: %d x %d\n"
+                "  Default: %d x %d\n"
+                "  Current: %d x %d\n"
+                , cropcap.bounds.width, cropcap.bounds.height
+                , cropcap.defrect.width, cropcap.defrect.height
+                , crop.c.width, crop.c.height);
           } else {
-            sprintf(output+strlen(output), "B:%dx%d|", cropcap.bounds.width, cropcap.bounds.height);
+            output_ptr += sprintf(output_ptr, "B:%dx%d|", cropcap.bounds.width, cropcap.bounds.height);
           }
         }
       } /* Crop code */
@@ -1488,17 +1493,14 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           } 
           Error("Failed to enumerate input %d: %s", input.index, strerror(errno));
           if ( verbose )
-            sprintf(output, "Error, failed to enumerate input %d: %s\n", input.index, strerror(errno));
+            output_ptr += sprintf(output_ptr, "Error, failed to enumerate input %d: %s\n", input.index, strerror(errno));
           else
-            sprintf(output, "error%d\n", errno);
+            output_ptr += sprintf(output_ptr, "error%d\n", errno);
           return false;
         }
       } while ( inputIndex++ >= 0 );
 
-      if ( verbose )
-        sprintf(output+strlen(output), "Inputs: %d\n", inputIndex);
-      else
-        sprintf(output+strlen(output), "I:%d|", inputIndex);
+      output_ptr += sprintf(output_ptr, verbose?"Inputs: %d\n":"I:%d|", inputIndex);
 
       inputIndex = 0;
       do {
@@ -1512,65 +1514,84 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           }
           Error("Failed to enumerate input %d: %s", input.index, strerror(errno));
           if ( verbose )
-            sprintf(output, "Error, failed to enumerate input %d: %s\n", input.index, strerror(errno));
+            output_ptr += sprintf(output_ptr, "Error, failed to enumerate input %d: %s\n", input.index, strerror(errno));
           else
-            sprintf(output, "error%d\n", errno);
+            output_ptr += sprintf(output_ptr, "error%d\n", errno);
           return false;
         }
 
         if ( vidioctl(vid_fd, VIDIOC_S_INPUT, &input.index) < 0 ) {
           Error("Failed to set video input %d: %s", input.index, strerror(errno));
           if ( verbose )
-            sprintf(output, "Error, failed to switch to input %d: %s\n", input.index, strerror(errno));
+            output_ptr += sprintf(output_ptr, "Error, failed to switch to input %d: %s\n", input.index, strerror(errno));
           else
-            sprintf(output, "error%d\n", errno);
+            output_ptr += sprintf(output_ptr, "error%d\n", errno);
           return false;
         }
 
         if ( verbose ) {
-          sprintf( output+strlen(output), "  Input %d\n", input.index );
-          sprintf( output+strlen(output), "    Name: %s\n", input.name );
-          sprintf( output+strlen(output), "    Type: %s\n", input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown") );
-          sprintf( output+strlen(output), "    Audioset: %08x\n", input.audioset );
-          sprintf( output+strlen(output), "    Standards: 0x%llx\n", input.std );
+          output_ptr += sprintf( output,
+              "  Input %d\n"
+              "    Name: %s\n"
+              "    Type: %s\n"
+              "    Audioset: %08x\n"
+              "    Standards: 0x%llx\n"
+              , input.index
+              , input.name
+              , input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown")
+              , input.audioset
+              , input.std );
         } else {
-          sprintf( output+strlen(output), "i%d:%s|", input.index, input.name );
-          sprintf( output+strlen(output), "i%dT:%s|", input.index, input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown") );
-          sprintf( output+strlen(output), "i%dS:%llx|", input.index, input.std );
+          output_ptr += sprintf( output_ptr, "i%d:%s|i%dT:%s|i%dS:%llx|"
+              , input.index, input.name
+              , input.index, input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown")
+              , input.index, input.std);
         }
 
         if ( verbose ) {
-          sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_POWER, "Power ", "off", "on", " (X)" ) );
-          sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_SIGNAL, "Signal ", "not detected", "detected", " (X)" ) );
-          sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_COLOR, "Colour Signal ", "not detected", "detected", "" ) );
-          sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_H_LOCK, "Horizontal Lock ", "not detected", "detected", "" ) );
+          output_ptr += sprintf( output_ptr, "    %s    %s    %s    %s"
+              , capString(input.status&V4L2_IN_ST_NO_POWER, "Power ", "off", "on", " (X)")
+              , capString(input.status&V4L2_IN_ST_NO_SIGNAL, "Signal ", "not detected", "detected", " (X)")
+              , capString(input.status&V4L2_IN_ST_NO_COLOR, "Colour Signal ", "not detected", "detected", "")
+              , capString(input.status&V4L2_IN_ST_NO_H_LOCK, "Horizontal Lock ", "not detected", "detected", ""));
         } else {
-          sprintf( output+strlen(output), "i%dSP:%d|", input.index, (input.status&V4L2_IN_ST_NO_POWER)?0:1 );
-          sprintf( output+strlen(output), "i%dSS:%d|", input.index, (input.status&V4L2_IN_ST_NO_SIGNAL)?0:1 );
-          sprintf( output+strlen(output), "i%dSC:%d|", input.index, (input.status&V4L2_IN_ST_NO_COLOR)?0:1 );
-          sprintf( output+strlen(output), "i%dHP:%d|", input.index, (input.status&V4L2_IN_ST_NO_H_LOCK)?0:1 );
+          output_ptr += sprintf( output_ptr, "i%dSP:%d|i%dSS:%d|i%dSC:%d|i%dHP:%d|"
+              , input.index, (input.status&V4L2_IN_ST_NO_POWER)?0:1
+              , input.index, (input.status&V4L2_IN_ST_NO_SIGNAL)?0:1
+              , input.index, (input.status&V4L2_IN_ST_NO_COLOR)?0:1
+              , input.index, (input.status&V4L2_IN_ST_NO_H_LOCK)?0:1 );
         }
       } while ( inputIndex++ >= 0 );
       if ( !verbose )
-        output[strlen(output)-1] = '\n';
+        *(output_ptr-1) = '\n';
     }
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
     if ( version == 1 ) {
       struct video_capability vid_cap;
-      memset( &vid_cap, 0, sizeof(video_capability) );
-      if ( ioctl( vid_fd, VIDIOCGCAP, &vid_cap ) < 0 ) {
-        Error( "Failed to get video capabilities: %s", strerror(errno) );
+      memset(&vid_cap, 0, sizeof(video_capability));
+      if ( ioctl(vid_fd, VIDIOCGCAP, &vid_cap) < 0 ) {
+        Error("Failed to get video capabilities: %s", strerror(errno));
         if ( verbose )
-          sprintf( output, "Error, failed to get video capabilities %s: %s\n", queryDevice, strerror(errno) );
+          output_ptr += sprintf(output_ptr,
+              "Error, failed to get video capabilities %s: %s\n",
+              queryDevice, strerror(errno));
         else
-          sprintf( output, "error%d\n", errno );
-        return( false );
+          output_ptr += sprintf(output_ptr, "error%d\n", errno);
+        return false;
       }
       if ( verbose ) {
-        sprintf( output+strlen(output), "Video Capabilities\n" );
-        sprintf( output+strlen(output), "  Name: %s\n", vid_cap.name );
-        sprintf( output+strlen(output), "  Type: %d\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s", vid_cap.type,
+        output_ptr += sprintf( output_ptr, "Video Capabilities\n" 
+            "  Name: %s\n"
+            "  Type: %d\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
+            "  Video Channels: %d\n"
+            "  Audio Channels: %d\n"
+            "  Maximum Width: %d\n"
+            "  Maximum Height: %d\n"
+            "  Minimum Width: %d\n"
+            "  Minimum Height: %d\n",
+            vid_cap.name,
+            vid_cap.type,
             (vid_cap.type&VID_TYPE_CAPTURE)?"    Can capture\n":"",
             (vid_cap.type&VID_TYPE_TUNER)?"    Can tune\n":"",
             (vid_cap.type&VID_TYPE_TELETEXT)?"    Does teletext\n":"",
@@ -1584,63 +1605,72 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
             (vid_cap.type&VID_TYPE_MPEG_DECODER)?"    Can decode MPEG streams\n":"",
             (vid_cap.type&VID_TYPE_MPEG_ENCODER)?"    Can encode MPEG streams\n":"",
             (vid_cap.type&VID_TYPE_MJPEG_DECODER)?"    Can decode MJPEG streams\n":"",
-            (vid_cap.type&VID_TYPE_MJPEG_ENCODER)?"    Can encode MJPEG streams\n":""
-            );
-        sprintf( output+strlen(output), "  Video Channels: %d\n", vid_cap.channels );
-        sprintf( output+strlen(output), "  Audio Channels: %d\n", vid_cap.audios );
-        sprintf( output+strlen(output), "  Maximum Width: %d\n", vid_cap.maxwidth );
-        sprintf( output+strlen(output), "  Maximum Height: %d\n", vid_cap.maxheight );
-        sprintf( output+strlen(output), "  Minimum Width: %d\n", vid_cap.minwidth );
-        sprintf( output+strlen(output), "  Minimum Height: %d\n", vid_cap.minheight );
-      }
-      else
-      {
-        sprintf( output+strlen(output), "N:%s|", vid_cap.name );
-        sprintf( output+strlen(output), "T:%d|", vid_cap.type );
-        sprintf( output+strlen(output), "nC:%d|", vid_cap.channels );
-        sprintf( output+strlen(output), "nA:%d|", vid_cap.audios );
-        sprintf( output+strlen(output), "mxW:%d|", vid_cap.maxwidth );
-        sprintf( output+strlen(output), "mxH:%d|", vid_cap.maxheight );
-        sprintf( output+strlen(output), "mnW:%d|", vid_cap.minwidth );
-        sprintf( output+strlen(output), "mnH:%d|", vid_cap.minheight );
+            (vid_cap.type&VID_TYPE_MJPEG_ENCODER)?"    Can encode MJPEG streams\n":"",
+            vid_cap.channels,
+            vid_cap.audios,
+            vid_cap.maxwidth,
+            vid_cap.maxheight,
+            vid_cap.minwidth,
+            vid_cap.minheight );
+      } else {
+        output_ptr += sprintf(output_ptr, "N:%s|T:%d|nC:%d|nA:%d|mxW:%d|mxH:%d|mnW:%d|mnH:%d|"
+            , vid_cap.name
+            , vid_cap.type
+            , vid_cap.channels
+            , vid_cap.audios
+            , vid_cap.maxwidth
+            , vid_cap.maxheight
+            , vid_cap.minwidth
+            , vid_cap.minheight);
       }
 
       struct video_window vid_win;
-      memset( &vid_win, 0, sizeof(video_window) );
-      if ( ioctl( vid_fd, VIDIOCGWIN, &vid_win ) < 0 ) {
-        Error( "Failed to get window attributes: %s", strerror(errno) );
+      memset(&vid_win, 0, sizeof(video_window));
+      if ( ioctl(vid_fd, VIDIOCGWIN, &vid_win) < 0 ) {
+        Error("Failed to get window attributes: %s", strerror(errno));
         if ( verbose )
-          sprintf( output, "Error, failed to get window attributes: %s\n", strerror(errno) );
+          output_ptr += sprintf(output_ptr, "Error, failed to get window attributes: %s\n", strerror(errno));
         else
-          sprintf( output, "error%d\n", errno );
+          output_ptr += sprintf(output_ptr, "error%d\n", errno);
         return false;
       }
       if ( verbose ) {
-        sprintf( output+strlen(output), "Window Attributes\n" );
-        sprintf( output+strlen(output), "  X Offset: %d\n", vid_win.x );
-        sprintf( output+strlen(output), "  Y Offset: %d\n", vid_win.y );
-        sprintf( output+strlen(output), "  Width: %d\n", vid_win.width );
-        sprintf( output+strlen(output), "  Height: %d\n", vid_win.height );
+        output_ptr += sprintf(output_ptr,
+            "Window Attributes\n"
+            "  X Offset: %d\n"
+            "  Y Offset: %d\n"
+            "  Width: %d\n"
+            "  Height: %d\n"
+            , vid_win.x
+            , vid_win.y
+            , vid_win.width
+            , vid_win.height );
       } else {
-        sprintf( output+strlen(output), "X:%d|", vid_win.x );
-        sprintf( output+strlen(output), "Y:%d|", vid_win.y );
-        sprintf( output+strlen(output), "W:%d|", vid_win.width );
-        sprintf( output+strlen(output), "H:%d|", vid_win.height );
+        output_ptr += sprintf(output_ptr, "X:%d|Y:%d|W:%d|H:%d|",
+         vid_win.height, vid_win.x, vid_win.y, vid_win.width);
       }
 
       struct video_picture vid_pic;
-      memset( &vid_pic, 0, sizeof(video_picture) );
-      if ( ioctl( vid_fd, VIDIOCGPICT, &vid_pic ) < 0 ) {
-        Error( "Failed to get picture attributes: %s", strerror(errno) );
+      memset(&vid_pic, 0, sizeof(video_picture));
+      if ( ioctl(vid_fd, VIDIOCGPICT, &vid_pic) < 0 ) {
+        Error("Failed to get picture attributes: %s", strerror(errno));
         if ( verbose )
-          sprintf( output, "Error, failed to get picture attributes: %s\n", strerror(errno) );
+          output_ptr += sprintf(output_ptr, "Error, failed to get picture attributes: %s\n", strerror(errno));
         else
-          sprintf( output, "error%d\n", errno );
+          output_ptr += sprintf(output_ptr, "error%d\n", errno);
         return false;
       }
       if ( verbose ) {
-        sprintf( output+strlen(output), "Picture Attributes\n" );
-        sprintf( output+strlen(output), "  Palette: %d - %s\n", vid_pic.palette, 
+        output_ptr += sprintf(output_ptr,
+            "Picture Attributes\n" 
+            "  Palette: %d - %s\n"
+            "  Colour Depth: %d\n"
+            "  Brightness: %d\n"
+            "  Hue: %d\n"
+            "  Colour :%d\n"
+            "  Contrast: %d\n"
+            "  Whiteness: %d\n"
+            , vid_pic.palette, 
             vid_pic.palette==VIDEO_PALETTE_GREY?"Linear greyscale":(
               vid_pic.palette==VIDEO_PALETTE_HI240?"High 240 cube (BT848)":(
                 vid_pic.palette==VIDEO_PALETTE_RGB565?"565 16 bit RGB":(
@@ -1659,66 +1689,77 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
                                           vid_pic.palette==VIDEO_PALETTE_YUV411P?"YUV 4:1:1 Planar":(
                                             vid_pic.palette==VIDEO_PALETTE_YUV420P?"YUV 4:2:0 Planar":(
                                               vid_pic.palette==VIDEO_PALETTE_YUV410P?"YUV 4:1:0 Planar":"Unknown"
-                                              ))))))))))))))))));
-        sprintf( output+strlen(output), "  Colour Depth: %d\n", vid_pic.depth );
-        sprintf( output+strlen(output), "  Brightness: %d\n", vid_pic.brightness );
-        sprintf( output+strlen(output), "  Hue: %d\n", vid_pic.hue );
-        sprintf( output+strlen(output), "  Colour :%d\n", vid_pic.colour );
-        sprintf( output+strlen(output), "  Contrast: %d\n", vid_pic.contrast );
-        sprintf( output+strlen(output), "  Whiteness: %d\n", vid_pic.whiteness );
+                                              ))))))))))))))))),
+            vid_pic.depth,
+            vid_pic.brightness,
+            vid_pic.hue,
+            vid_pic.colour,
+            vid_pic.contrast,
+            vid_pic.whiteness
+        );
       } else {
-        sprintf( output+strlen(output), "P:%d|", vid_pic.palette );
-        sprintf( output+strlen(output), "D:%d|", vid_pic.depth );
-        sprintf( output+strlen(output), "B:%d|", vid_pic.brightness );
-        sprintf( output+strlen(output), "h:%d|", vid_pic.hue );
-        sprintf( output+strlen(output), "Cl:%d|", vid_pic.colour );
-        sprintf( output+strlen(output), "Cn:%d|", vid_pic.contrast );
-        sprintf( output+strlen(output), "w:%d|", vid_pic.whiteness );
+        output_ptr += sprintf(output_ptr, "P:%d|D:%d|B:%d|h:%d|Cl:%d|Cn:%d|w:%d|",
+            vid_pic.palette,
+            vid_pic.depth,
+            vid_pic.brightness,
+            vid_pic.hue,
+            vid_pic.colour,
+            vid_pic.contrast,
+            vid_pic.whiteness
+            );
       }
 
       for ( int chan = 0; chan < vid_cap.channels; chan++ ) {
         struct video_channel vid_src;
-        memset( &vid_src, 0, sizeof(video_channel) );
+        memset(&vid_src, 0, sizeof(video_channel));
         vid_src.channel = chan;
-        if ( ioctl( vid_fd, VIDIOCGCHAN, &vid_src ) < 0 ) {
-          Error( "Failed to get channel %d attributes: %s", chan, strerror(errno) );
+        if ( ioctl(vid_fd, VIDIOCGCHAN, &vid_src) < 0 ) {
+          Error("Failed to get channel %d attributes: %s", chan, strerror(errno));
           if ( verbose )
-            sprintf( output, "Error, failed to get channel %d attributes: %s\n", chan, strerror(errno) );
+            output_ptr += sprintf(output_ptr, "Error, failed to get channel %d attributes: %s\n", chan, strerror(errno));
           else
-            sprintf( output, "error%d\n", errno );
+            output_ptr += sprintf(output_ptr, "error%d\n", errno);
           return false;
         }
         if ( verbose ) {
-          sprintf( output+strlen(output), "Channel %d Attributes\n", chan );
-          sprintf( output+strlen(output), "  Name: %s\n", vid_src.name );
-          sprintf( output+strlen(output), "  Channel: %d\n", vid_src.channel );
-          sprintf( output+strlen(output), "  Flags: %d\n%s%s", vid_src.flags,
-              (vid_src.flags&VIDEO_VC_TUNER)?"    Channel has a tuner\n":"",
-              (vid_src.flags&VIDEO_VC_AUDIO)?"    Channel has audio\n":""
-              );
-          sprintf( output+strlen(output), "  Type: %d - %s\n", vid_src.type,
+          output_ptr += sprintf(output_ptr,
+              "Channel %d Attributes\n"
+              "  Name: %s\n"
+              "  Channel: %d\n"
+              "  Flags: %d\n%s%s"
+          "  Type: %d - %s\n"
+          "  Format: %d - %s\n"
+              , chan 
+              , vid_src.name
+              , vid_src.channel
+              , vid_src.flags
+              , (vid_src.flags&VIDEO_VC_TUNER)?"    Channel has a tuner\n":""
+              , (vid_src.flags&VIDEO_VC_AUDIO)?"    Channel has audio\n":""
+              , vid_src.type,
               vid_src.type==VIDEO_TYPE_TV?"TV":(
                 vid_src.type==VIDEO_TYPE_CAMERA?"Camera":"Unknown"
-                ));
-          sprintf( output+strlen(output), "  Format: %d - %s\n", vid_src.norm,
+                )
+            , vid_src.norm,
               vid_src.norm==VIDEO_MODE_PAL?"PAL":(
                 vid_src.norm==VIDEO_MODE_NTSC?"NTSC":(
                   vid_src.norm==VIDEO_MODE_SECAM?"SECAM":(
                     vid_src.norm==VIDEO_MODE_AUTO?"AUTO":"Unknown"
                     ))));
         } else {
-          sprintf( output+strlen(output), "n%d:%s|", chan, vid_src.name );
-          sprintf( output+strlen(output), "C%d:%d|", chan, vid_src.channel );
-          sprintf( output+strlen(output), "Fl%d:%x|", chan, vid_src.flags );
-          sprintf( output+strlen(output), "T%d:%d|", chan, vid_src.type );
-          sprintf( output+strlen(output), "F%d:%d%s|", chan, vid_src.norm, chan==(vid_cap.channels-1)?"":"," );
+          output_ptr += sprintf(output_ptr, "n%d:%s|C%d:%d|Fl%d:%x|T%d:%d|F%d:%d%s|"
+              , chan, vid_src.name
+              , chan, vid_src.channel
+              , chan, vid_src.flags 
+              , chan, vid_src.type 
+              , chan, vid_src.norm, chan==(vid_cap.channels-1)?"":","
+              );
         }
       }
       if ( !verbose )
-        output[strlen(output)-1] = '\n';
+        *output_ptr = '\n';
     }
 #endif // ZM_HAS_V4L1
-    close( vid_fd );
+    close(vid_fd);
     if ( device )
       break;
   } while ( ++devIndex < 32 );

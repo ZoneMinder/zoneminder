@@ -187,13 +187,13 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
     if ( storage_path[0] == '/' )
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d",
+          "%s/%d/%02d/%02d/%02d/%02d/%02d/%02d",
           storage_path, event_data->monitor_id,
           event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday,
           event_time->tm_hour, event_time->tm_min, event_time->tm_sec);
     else
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d",
+          "%s/%s/%d/%02d/%02d/%02d/%02d/%02d/%02d",
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday,
           event_time->tm_hour, event_time->tm_min, event_time->tm_sec);
@@ -201,23 +201,23 @@ bool EventStream::loadEventData(uint64_t event_id) {
     struct tm *event_time = localtime(&event_data->start_time);
     if ( storage_path[0] == '/' )
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%ld/%04d-%02d-%02d/%" PRIu64,
+          "%s/%d/%04d-%02d-%02d/%" PRIu64,
           storage_path, event_data->monitor_id,
           event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday,
           event_data->event_id);
     else
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%s/%ld/%04d-%02d-%02d/%" PRIu64,
+          "%s/%s/%d/%04d-%02d-%02d/%" PRIu64,
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, 
           event_data->event_id);
 
   } else {
     if ( storage_path[0] == '/' )
-      snprintf(event_data->path, sizeof(event_data->path), "%s/%ld/%" PRIu64,
+      snprintf(event_data->path, sizeof(event_data->path), "%s/%d/%" PRIu64,
           storage_path, event_data->monitor_id, event_data->event_id);
     else
-      snprintf(event_data->path, sizeof(event_data->path), "%s/%s/%ld/%" PRIu64, 
+      snprintf(event_data->path, sizeof(event_data->path), "%s/%s/%d/%" PRIu64, 
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_data->event_id);
   }
@@ -566,11 +566,11 @@ bool EventStream::checkEventLoaded() {
 
   if ( curr_frame_id <= 0 ) {
     snprintf(sql, sizeof(sql),
-        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %ld AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
+        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
         event_data->monitor_id, event_data->event_id);
   } else if ( (unsigned int)curr_frame_id > event_data->frame_count ) {
     snprintf(sql, sizeof(sql),
-        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %ld AND `Id` > %" PRIu64 " ORDER BY `Id` ASC LIMIT 1",
+        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` > %" PRIu64 " ORDER BY `Id` ASC LIMIT 1",
         event_data->monitor_id, event_data->event_id);
   } else {
     // No event change required
@@ -810,29 +810,38 @@ bool EventStream::sendFrame(int delta_us) {
 
     if ( send_raw ) {
 #if HAVE_SENDFILE
-      fprintf(stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size);
+      if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size) ) {
+        fclose(fdj); /* Close the file handle */
+        Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+        return false;
+      }
       if ( zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size ) {
         /* sendfile() failed, use standard way instead */
         img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
         if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
           fclose(fdj); /* Close the file handle */
-          Error("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+          Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
           return false;
         }
       }
 #else
-      fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size);
-      if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+      if ( 
+          (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) )
+          ||
+          ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 )
+         ) {
         fclose(fdj); /* Close the file handle */
-        Error("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+        Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
         return false;
       }
 #endif
       fclose(fdj); /* Close the file handle */
     } else {
       Debug(3, "Content length: %d", img_buffer_size);
-      fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size);
-      if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+      if ( 
+          (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) )
+          ||
+          ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) )  {
         Error("Unable to send stream frame: %s", strerror(errno));
         return false;
       }

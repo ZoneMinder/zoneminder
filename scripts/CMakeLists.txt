@@ -30,10 +30,10 @@ configure_file(zm.in "${CMAKE_CURRENT_BINARY_DIR}/zm" @ONLY)
 #configure_file(zmeventdump.in zmeventdump @ONLY)
 
 # Generate man files for the perl scripts destined for the bin folder
-file(GLOB perlscripts "*.pl")
+file(GLOB perlscripts "${CMAKE_CURRENT_BINARY_DIR}/*.pl")
 FOREACH(PERLSCRIPT ${perlscripts})
     get_filename_component(PERLSCRIPTNAME ${PERLSCRIPT} NAME)
-    POD2MAN(${PERLSCRIPT} zoneminder-${PERLSCRIPTNAME} 8 ${ZM_MANPAGE_DEST_PREFIX})
+    POD2MAN(${PERLSCRIPT} ${PERLSCRIPTNAME} 8 ${ZM_MANPAGE_DEST_PREFIX})
 ENDFOREACH(PERLSCRIPT ${perlscripts})
 
 # Install the perl scripts

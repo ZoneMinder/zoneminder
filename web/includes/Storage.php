@@ -8,7 +8,7 @@ class Storage extends ZM_Object {
   protected static $table = 'Storage';
   protected $defaults = array(
     'Id'        => null,
-    'Path'      => '',
+    'Path'      => array('type'=>'text','filter_regexp'=>array('/[^\w\-\.\(\)\:\/ ]/','/\/$/')),
     'Name'      => '',
     'Type'      => 'local',
     'Url'       => '',
@@ -26,7 +26,8 @@ class Storage extends ZM_Object {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
-  public function Path() {
+  public function Path($new=null) {
+    if ( $new ) $this->{'Path'} = $new;
     if ( isset($this->{'Path'}) and ( $this->{'Path'} != '' ) ) {
       return $this->{'Path'};
     } else if ( ! isset($this->{'Id'}) ) {
@@ -40,7 +41,9 @@ class Storage extends ZM_Object {
     }
     return $this->{'Name'};
   }
-  public function Name() {
+  public function Name($new=null) {
+    if ( $new )
+      $this->{'Name'} = $new;
     if ( isset($this->{'Name'}) and ( $this->{'Name'} != '' ) ) {
       return $this->{'Name'};
     } else if ( ! isset($this->{'Id'}) ) {

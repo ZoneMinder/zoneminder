@@ -159,13 +159,17 @@ if ( $show_storage_areas ) $left_columns += 1;
 xhtmlHeaders(__FILE__, translate('Console'));
 getBodyTopHTML();
 ?>
+  <?php echo $navbar ?>
   <form name="monitorForm" method="get" action="?">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
-    <?php echo $navbar ?>
-    <div class="filterBar"><?php echo $filterbar ?></div>
-    <div class="statusBreakdown">
+    <div class="filterBar" id="fbpanel"<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down' ) ? ' style="display:none;"' : '' ?>>
+      <?php echo $filterbar ?>
+    </div>
+
+    <div class="container-fluid pt-2">    
+      <div class="statusBreakdown float-left">
 <?php
   $html = '';
   foreach ( array_keys($status_counts) as $status ) {
@@ -174,11 +178,10 @@ getBodyTopHTML();
   }
   echo $html;
 ?>
-    </div>
+      </div>
 
-    <div class="container-fluid">
       <button type="button" name="addBtn" data-on-click-this="addMonitor"
-      <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+      <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
       >
         <i class="material-icons md-18">add_circle</i>
         &nbsp;<?php echo translate('AddNewMonitor') ?>
@@ -202,10 +205,12 @@ getBodyTopHTML();
         <i class="material-icons md-18">view_list</i>
         &nbsp;<?php echo translate('Select') ?>
         </button>
+        
+        &nbsp;<a href="#"><i id="fbflip" class="material-icons md-18">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
 <?php
 ob_start();
 ?>
-	<div class="table-responsive">
+	<div class="table-responsive-sm pt-2">
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>
@@ -322,7 +327,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.validHtmlStr($Monitor->Source()).'</span>', canEdit('Monitors') ).'</td>';
   if ( $show_storage_areas ) {
 ?>
-            <td class="colStorage"><?php if ( isset($StorageById[$monitor['StorageId']]) ) { echo validHtmlStr($StorageById[$monitor['StorageId']]->Name()); } ?></td>
+            <td class="colStorage"><?php echo isset($StorageById[$monitor['StorageId']]) ? validHtmlStr($StorageById[$monitor['StorageId']]->Name()) : ($monitor['StorageId']?'<span class="error">Deleted '.$monitor['StorageId'].'</span>' : '') ?></td>
 <?php
   }
 

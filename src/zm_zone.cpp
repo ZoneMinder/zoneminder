@@ -122,7 +122,7 @@ void Zone::Setup(
   } else {
     diag_path[0] = 0;
   }
-} // end Zone::Setup
+}  // end Zone::Setup
 
 Zone::~Zone() {
   delete[] label;
@@ -131,7 +131,7 @@ Zone::~Zone() {
   delete[] ranges;
 }
 
-void Zone::RecordStats( const Event *event ) {
+void Zone::RecordStats(const Event *event) {
   static char sql[ZM_SQL_MED_BUFSIZ];
   db_mutex.lock();
   snprintf(sql, sizeof(sql),
@@ -142,7 +142,7 @@ void Zone::RecordStats( const Event *event ) {
     Error("Can't insert event stats: %s", mysql_error(&dbconn));
   }
   db_mutex.unlock();
-} // end void Zone::RecordStats( const Event *event )
+}  // end void Zone::RecordStats( const Event *event )
 
 bool Zone::CheckOverloadCount() {
   if ( overload_count ) {
@@ -151,40 +151,40 @@ bool Zone::CheckOverloadCount() {
     return false;
   }
   return true;
-} // end bool Zone::CheckOverloadCount()
+}  // end bool Zone::CheckOverloadCount()
 
 void Zone::SetScore(unsigned int nScore) {
   score = nScore;
-} // end void Zone::SetScore(unsigned int nScore)
+}  // end void Zone::SetScore(unsigned int nScore)
 
 void Zone::SetAlarmImage(const Image* srcImage) {
   delete image;
   image = new Image(*srcImage);
-} // end void Zone::SetAlarmImage( const Image* srcImage )
+}  // end void Zone::SetAlarmImage( const Image* srcImage )
 
 int Zone::GetOverloadCount() {
   return overload_count;
-} // end int Zone::GetOverloadCount()
+}  // end int Zone::GetOverloadCount()
 
 void Zone::SetOverloadCount(int nOverCount) {
   overload_count = nOverCount;
-} // end void Zone::SetOverloadCount(int nOverCount )
+}  // end void Zone::SetOverloadCount(int nOverCount )
 
 int Zone::GetOverloadFrames() {
   return overload_frames;
-} // end int Zone::GetOverloadFrames
+}  // end int Zone::GetOverloadFrames
 
 int Zone::GetExtendAlarmCount() {
   return extend_alarm_count;
-} // end int Zone::GetExtendAlarmCount()
+}  // end int Zone::GetExtendAlarmCount()
 
 void Zone::SetExtendAlarmCount(int nExtendAlarmCount) {
   extend_alarm_count = nExtendAlarmCount;
-} // end void Zone::SetExtendAlarmCount( int nExtendAlarmCount )
+}  // end void Zone::SetExtendAlarmCount( int nExtendAlarmCount )
 
 int Zone::GetExtendAlarmFrames() {
   return extend_alarm_frames;
-} // end int Zone::GetExtendAlarmFrames()
+}  // end int Zone::GetExtendAlarmFrames()
 
 bool Zone::CheckExtendAlarmCount() {
   Info("ExtendAlarm count: %d, ExtendAlarm frames: %d", extend_alarm_count, extend_alarm_frames);
@@ -194,7 +194,7 @@ bool Zone::CheckExtendAlarmCount() {
     return true;
   }
   return false;
-} // end bool Zone::CheckExtendAlarmCount
+}  // end bool Zone::CheckExtendAlarmCount
 
 bool Zone::CheckAlarms(const Image *delta_image) {
   ResetStats();
@@ -229,7 +229,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   Debug(4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label, lo_y, hi_y);
 
-  /* if(config.cpu_extensions && sseversion >= 20) {
+  /* if(config.cpu_extensions && sse_version >= 20) {
      sse2_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
      } else {
      std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
@@ -505,7 +505,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                         ||
                         (max_blob_pixels && bs->count > max_blob_pixels)
                        ) {
-                      if ( config.create_analysis_images || config.record_diag_images ) {
+                      if ( ( monitor->GetOptSaveJPEGs() > 1 ) || config.record_diag_images ) {
                         for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ ) {
                           spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
                           for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ ) {
@@ -574,7 +574,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         BlobStats *bs = &blob_stats[i];
         if ( bs->count ) {
           if ( (min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels) ) {
-            if ( config.create_analysis_images || config.record_diag_images ) {
+            if ( ( monitor->GetOptSaveJPEGs() > 1 ) || config.record_diag_images ) {
               for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ ) {
                 spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
                 for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ ) {
@@ -702,7 +702,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       alarm_centre = alarm_box.Centre();
     }
 
-    if ( (type < PRECLUSIVE) && (check_method >= BLOBS) && config.create_analysis_images ) {
+    if ( (type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1) ) {
 
       // First mask out anything we don't want
       for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
@@ -984,10 +984,14 @@ bool Zone::DumpSettings(char *output, bool /*verbose*/) {
   sprintf( output+strlen(output), "  Max Blob Pixels : %d\n", max_blob_pixels );
   sprintf( output+strlen(output), "  Min Blobs : %d\n", min_blobs );
   sprintf( output+strlen(output), "  Max Blobs : %d\n", max_blobs );
-  return( true );
+  return true;
 }
 
-void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum) {
+void Zone::std_alarmedpixels(
+    Image* pdiff_image,
+    const Image* ppoly_image,
+    unsigned int* pixel_count,
+    unsigned int* pixel_sum) {
   uint32_t pixelsalarmed = 0;
   uint32_t pixelsdifference = 0;
   uint8_t calc_max_pixel_threshold = 255;

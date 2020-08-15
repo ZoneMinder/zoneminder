@@ -136,7 +136,7 @@ $j(document).ready(function() {
   var downloadBtn = $j('#downloadBtn');
   var deleteBtn = $j('#deleteBtn');
   var table = $j('#eventTable');
-  table.bootstrapTable('hideColumn', 'Archived')
+  table.bootstrapTable('hideColumn', 'Archived');
   table.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',
   function() {

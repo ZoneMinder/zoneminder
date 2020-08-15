@@ -82,8 +82,8 @@ sub Execute {
   my $self = $_[0];
   my $sql = $self->Sql(undef);
 
-  if ( @{$$self{PreConditions}} ) {
-    foreach my $term ( @{$$self{PreConditions}} ) {
+  if ( @{$$self{PreSQLConditions}} ) {
+    foreach my $term ( @{$$self{PreSQLConditions}} ) {
       if ( $$term{attr} eq 'DiskPercent' ) {
       }
     }
@@ -116,10 +116,22 @@ sub Execute {
   }
   $sth->finish();
   Debug('Loaded ' . @results . ' events for filter '.$$self{Name}.' using query ('.$sql.')"');
-  if ( $self->{HasNonSqlConditions} ) {
-  }
+  if ( $self->{PostSQLConditions} ) {
+    my @filtered_events;
+    foreach my $term ( @{$$self{PostSQLConditions}} ) {
+      if ( $$term{attr} eq 'ExistsInFileSystem' ) {
+        foreach my $row ( @results ) {
+          my $event = new ZoneMinder::Event($row);
+          if ( -e $event->Path() ) {
+            push @filtered_events, $row;
+          }
+        }
+      }
+    } # end foreach term
+    @results = @filtered_events;
+  } # end if has PostSQLConditions
   return @results;
-}
+} # end sub Execute
 
 sub Sql {
   my $self = shift;

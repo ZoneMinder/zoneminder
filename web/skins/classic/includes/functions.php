@@ -85,7 +85,7 @@ if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
 echo output_cache_busted_stylesheet_links(array(
   'css/reset.css',
   'css/overlay.css',
-  'css/bootstrap.min.css',
+  'css/font-awesome.min.css',
   'css/bootstrap.min.css',
   'css/bootstrap-table.min.css',
 ));

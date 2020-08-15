@@ -86,6 +86,8 @@ echo output_cache_busted_stylesheet_links(array(
   'css/reset.css',
   'css/overlay.css',
   'css/bootstrap.min.css',
+  'css/bootstrap.min.css',
+  'css/bootstrap-table.min.css',
 ));
 
 echo output_link_if_exists(array(
@@ -130,6 +132,8 @@ if ( $css != 'base' )
   <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table.min.js"></script>  
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
   <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 

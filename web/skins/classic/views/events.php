@@ -25,31 +25,32 @@ if ( !canView('Events') || (!empty($_REQUEST['execute']) && !canEdit('Events')) 
 
 require_once('includes/Event.php');
 
-$countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
   $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
-  $countSql .= $user_monitor_ids;
   $eventsSql .= $user_monitor_ids;
 } else {
-  $countSql .= ' 1';
   $eventsSql .= ' 1';
 }
 
 parseSort();
-parseFilter($_REQUEST['filter']);
-$filterQuery = $_REQUEST['filter']['query'];
 
-if ( $_REQUEST['filter']['sql'] ) {
-  $countSql .= $_REQUEST['filter']['sql'];
-  $eventsSql .= $_REQUEST['filter']['sql'];
+$filter = parseFilter($_REQUEST['filter']);
+$filterQuery = $filter['query'];
+ZM\Logger::Debug("Filter ".print_r($filter, true));
+
+if ( $filter['sql'] ) {
+  $eventsSql .= $filter['sql'];
 }
-$eventsSql .= " ORDER BY $sortColumn $sortOrder,Id $sortOrder";
+$eventsSql .= " ORDER BY $sortColumn $sortOrder";
+if ( $sortColumn != 'E.Id' ) $eventsSql .= ",E.Id $sortOrder";
 
 $page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 0;
 $limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : 0;
+$limit = 9;
 
-$nEvents = dbFetchOne($countSql, 'EventCount');
+$results = dbQuery($eventsSql);
+$nEvents = $results->rowCount();
 if ( !empty($limit) && $nEvents > $limit ) {
   $nEvents = $limit;
 }
@@ -62,14 +63,14 @@ if ( !empty($page) ) {
     $page = $pages;
 
   $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
-  if ( empty( $limit ) ) {
+  if ( empty($limit) ) {
     $limitAmount = ZM_WEB_EVENTS_PER_PAGE;
   } else {
     $limitLeft = $limit - $limitStart;
     $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
   }
   $eventsSql .= " LIMIT $limitStart, $limitAmount";
-} elseif ( !empty($limit) ) {
+} else if ( !empty($limit) ) {
   $eventsSql .= ' LIMIT 0, '.$limit;
 }
 
@@ -134,7 +135,7 @@ if ( $pages > 1 ) {
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="page" value="<?php echo $page ?>"/>
-        <?php echo $_REQUEST['filter']['fields'] ?>
+        <?php echo $filter['fields'] ?>
         <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
         <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
@@ -145,9 +146,24 @@ if ( $pages > 1 ) {
 $count = 0;
 $disk_space_total = 0;
 
-$results = dbQuery($eventsSql);
 while ( $event_row = dbFetchNext($results) ) {
   $event = new ZM\Event($event_row);
+
+  if ( count($filter['PostSQLConditions']) ) {
+    ZM\Logger::Debug("Has post conditions" . count($filter['PostSQLConditions']));
+    $failed = false;
+    foreach ( $filter['PostSQLConditions'] as $term ) {
+      if ( !$term->test($event) ) {
+ZM\Logger::Debug("failed"); 
+        $failed = true;
+        break;
+      }
+    }
+    if ( $failed ) continue;
+  } else {
+    ZM\Logger::Debug("Has no post conditions");
+  } # end if PostSQLConditions
+
   if ( $event_row['Archived'] )
     $archived = true;
   else

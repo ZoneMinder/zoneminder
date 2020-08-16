@@ -38,13 +38,19 @@ function initPage() {
   var deleteBtn = $j('#deleteBtn');
   var table = $j('#eventTable');
 
+  // Init the bootstrap-table
   $j('#eventTable').bootstrapTable();
-  table.bootstrapTable('hideColumn', 'Archived');
-  table.bootstrapTable('hideColumn', 'Emailed');
+
+  // Hide these columns on first run when no cookie is saved
+  if ( !getCookie("zmEventsTable.bs.table.columns") ) {
+    table.bootstrapTable('hideColumn', 'Archived');
+    table.bootstrapTable('hideColumn', 'Emailed');
+  }
+  
+  // enable or disable buttons based on current selection and user rights
   table.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',
   function() {
-    // enable or disable buttons based on current selection and user rights
     viewBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
     archiveBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
     unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEditEvents);

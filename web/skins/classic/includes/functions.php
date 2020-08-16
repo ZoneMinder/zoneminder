@@ -223,24 +223,13 @@ function getNavBarHTML() {
   global $user;
   global $bandwidth_options;
   global $view;
-  global $filterQuery;
-  global $sortQuery;
-  global $limitQuery;
-
-  if ( !$sortQuery ) {
-    parseSort();
-  }
-  if ( (!$filterQuery) and isset($_REQUEST['filter']) ) {
-    parseFilter($_REQUEST['filter']);
-    $filterQuery = $_REQUEST['filter']['query'];
-  }
 
   ob_start();
   
   if ( ZM_WEB_NAVBAR_TYPE == "normal" ) {
-    echo getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery);
+    echo getNormalNavBarHTML($running, $user, $bandwidth_options, $view);
   } else {
-    echo getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery);
+    echo getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view);
   }
 
   return ob_get_clean();
@@ -249,7 +238,7 @@ function getNavBarHTML() {
 //
 // The legacy navigation bar that collapses into a pulldown menu on small screens.
 //
-function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
+function getNormalNavBarHTML($running, $user, $bandwidth_options, $view) {
 
   $status = runtimeStatus($running);
 
@@ -280,7 +269,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filter
           echo getLogHTML();
           echo getDevicesHTML();
           echo getGroupsHTML($view);
-          echo getFilterHTML($view, $filterQuery, $sortQuery, $limitQuery);
+          echo getFilterHTML($view);
           echo getCycleHTML($view);
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
@@ -340,7 +329,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filter
 //
 // A new, slimmer navigation bar, permanently collapsed into a dropdown
 //
-function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery) {
+function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view) {
 
   $status = runtimeStatus($running);
 
@@ -409,7 +398,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $fil
           echo getLogHTML();
           echo getDevicesHTML();
           echo getGroupsHTML($view);
-          echo getFilterHTML($view,$filterQuery,$sortQuery,$limitQuery);
+          echo getFilterHTML($view);
           echo getCycleHTML($view);
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
@@ -698,11 +687,11 @@ function getGroupsHTML($view) {
 }
 
 // Returns the html representing the Filter menu item
-function getFilterHTML($view, $filterQuery, $sortQuery, $limitQuery) {
+function getFilterHTML($view) {
   $result = '';
   
   $class = $view == 'filter' ? ' selected' : '';
-  $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'">'.translate('Filters').'</a></li>'.PHP_EOL;
+  $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;
   
   return $result;
 }

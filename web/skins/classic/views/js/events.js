@@ -1,10 +1,3 @@
-function closeWindows() {
-  window.close();
-  // This is a hack. The only way to close an existing window is to try and open it!
-  var filterWindow = window.open( thisUrl+'?view=none', 'zmFilter', 'width=1,height=1' );
-  filterWindow.close();
-}
-
 function thumbnail_onmouseover(event) {
   var img = event.target;
   img.src = '';
@@ -17,6 +10,7 @@ function thumbnail_onmouseout(event) {
   img.src = img.getAttribute('still_src');
 }
 
+// Returns the event id's of the selected rows
 function getIdSelections() {
   var table = $j('#eventTable');
 
@@ -25,6 +19,7 @@ function getIdSelections() {
   });
 }
 
+// Returns a boolen to indicate at least one selected row is archived
 function getArchivedSelections() {
   var table = $j('#eventTable');
   var selection = $j.map(table.bootstrapTable('getSelections'), function(row) {
@@ -34,6 +29,29 @@ function getArchivedSelections() {
 }
 
 function initPage() {
+  var viewBtn = $j('#viewBtn');
+  var archiveBtn = $j('#archiveBtn');
+  var unarchiveBtn = $j('#unarchiveBtn');
+  var editBtn = $j('#editBtn');
+  var exportBtn = $j('#exportBtn');
+  var downloadBtn = $j('#downloadBtn');
+  var deleteBtn = $j('#deleteBtn');
+  var table = $j('#eventTable');
+
+  $j('#eventTable').bootstrapTable();
+  table.bootstrapTable('hideColumn', 'Archived');
+  table.on('check.bs.table uncheck.bs.table ' +
+  'check-all.bs.table uncheck-all.bs.table',
+  function() {
+    // enable or disable buttons based on current selection and user rights
+    viewBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
+    archiveBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
+    unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEditEvents);
+    editBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
+    exportBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
+    downloadBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
+    deleteBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
+  });
   if ( window.history.length == 1 ) {
     $j('#controls').children().eq(0).html('');
   }
@@ -41,10 +59,12 @@ function initPage() {
     this.addEventListener('mouseover', thumbnail_onmouseover, false);
     this.addEventListener('mouseout', thumbnail_onmouseout, false);
   });
+  // Manage the Refresh link
   document.getElementById("refreshLink").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
   });
+  // Manage the BACK link
   document.getElementById("backLink").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();
     window.history.back();
@@ -128,24 +148,4 @@ function initPage() {
 
 $j(document).ready(function() {
   initPage();
-  var viewBtn = $j('#viewBtn');
-  var archiveBtn = $j('#archiveBtn');
-  var unarchiveBtn = $j('#unarchiveBtn');
-  var editBtn = $j('#editBtn');
-  var exportBtn = $j('#exportBtn');
-  var downloadBtn = $j('#downloadBtn');
-  var deleteBtn = $j('#deleteBtn');
-  var table = $j('#eventTable');
-  table.bootstrapTable('hideColumn', 'Archived');
-  table.on('check.bs.table uncheck.bs.table ' +
-  'check-all.bs.table uncheck-all.bs.table',
-  function() {
-    viewBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
-    archiveBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
-    unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEditEvents);
-    editBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
-    exportBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
-    downloadBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
-    deleteBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
-  });
 });

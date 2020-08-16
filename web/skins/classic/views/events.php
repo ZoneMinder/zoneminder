@@ -145,7 +145,7 @@ while ( $event_row = dbFetchNext($results) ) {
 ?>
             <!-- Row styling is handled by bootstrap-tables -->
             <tr>
-              <th data-sortable="false" data-field="toggleCheck" data-field="state" data-checkbox="true" name="toggleCheck" value="1" data-checkbox-name="eids[]" data-on-click-this="updateFormCheckboxesByName"></th>            
+              <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
               <th data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
               <th data-sortable="true" data-field="Name"><?php echo translate('Name') ?></th>
               <th data-sortable="true" data-field="Archived"><?php echo translate('Archived') ?></th>

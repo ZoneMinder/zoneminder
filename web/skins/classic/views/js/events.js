@@ -59,15 +59,20 @@ function initPage() {
     this.addEventListener('mouseover', thumbnail_onmouseover, false);
     this.addEventListener('mouseout', thumbnail_onmouseout, false);
   });
-  // Manage the Refresh link
-  document.getElementById("refreshLink").addEventListener("click", function onRefreshClick(evt) {
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
   });
-  // Manage the BACK link
-  document.getElementById("backLink").addEventListener("click", function onBackClick(evt) {
+  // Manage the TIMELINE Button
+  document.getElementById("tlineBtn").addEventListener("click", function onTlineClick(evt) {
     evt.preventDefault();
-    window.history.back();
+    window.location.assign('?view=timeline'+filterQuery);
   });
   // Manage the VIEW button
   document.getElementById("viewBtn").addEventListener("click", function onViewClick(evt) {

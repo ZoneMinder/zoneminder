@@ -97,22 +97,22 @@ xhtmlHeaders(__FILE__, translate('Events') );
 <body>
   <div id="page">
     <?php echo getNavBarHTML() ?>
-    <div id="header">
-        <a id="refreshLink" href="#"><?php echo translate('Refresh') ?></a>
-        <a id="timelineLink" href="?view=timeline<?php echo $filterQuery ?>"><?php echo translate('ShowTimeline') ?></a>
-        <a href="#" id="backLink"><?php echo translate('Back') ?></a>
-    </div>
-    
+
+    <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
-      <button id="viewBtn" class="btn btn-primary btn-sm" disabled><i class="fa fa-binoculars"></i> View</button>
-      <button id="archiveBtn" class="btn btn-primary btn-sm" disabled><i class="fa fa-archive"></i> Archive</button>
-      <button id="unarchiveBtn" class="btn btn-primary btn-sm" disabled><i class="fa fa-file-archive-o"></i> Unarchive</button>
-      <button id="editBtn" class="btn btn-primary btn-sm" disabled><i class="fa fa-pencil"></i> Edit</button>
-      <button id="exportBtn" class="btn btn-primary btn-sm" disabled><i class="fa fa-external-link"></i> Export</button>
-      <button id="downloadBtn" class="btn btn-primary btn-sm" disabled><i class="fa fa-download"></i> Download Video</button>
-      <button id="deleteBtn" class="btn btn-danger btn-sm" disabled><i class="fa fa-trash"></i> Delete</button>
+      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" ><i class="fa fa-arrow-left"></i></button>
+      <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+      <button id="tlineBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ShowTimeline') ?>" ><i class="fa fa-history"></i></button>
+      <button id="viewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('View') ?>" disabled><i class="fa fa-binoculars"></i></button>
+      <button id="archiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Archive') ?>" disabled><i class="fa fa-archive"></i></button>
+      <button id="unarchiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Unarchive') ?>" disabled><i class="fa fa-file-archive-o"></i></button>
+      <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
+      <button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>" disabled><i class="fa fa-external-link"></i></button>
+      <button id="downloadBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DownloadVideo') ?>" disabled><i class="fa fa-download"></i></button>
+      <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
     </div>
 
+    <!-- Table styling handled by bootstrap-tables -->
     <div class="table-responsive-sm p-3">
       <table
         id="eventTable"
@@ -120,7 +120,8 @@ xhtmlHeaders(__FILE__, translate('Events') );
         data-pagination="true"
         data-search="true"
         data-cookie="true"
-        data-cookie-id-table="zmEventTable"
+        data-cookie-id-table="zmEventsTable"
+        data-cookie-expire="2y"
         data-click-to-select="true"
         data-remember-order="true"
         data-show-columns="true"
@@ -139,13 +140,10 @@ $disk_space_total = 0;
 $results = dbQuery($eventsSql);
 while ( $event_row = dbFetchNext($results) ) {
   $event = new ZM\Event($event_row);
-  if ( $event_row['Archived'] )
-    $archived = true;
-  else
-    $unarchived = true;
 
   if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
 ?>
+            <!-- Row styling is handled by bootstrap-tables -->
             <tr>
               <th data-sortable="false" data-field="toggleCheck" data-field="state" data-checkbox="true" name="toggleCheck" value="1" data-checkbox-name="eids[]" data-on-click-this="updateFormCheckboxesByName"></th>            
               <th data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
@@ -297,11 +295,5 @@ while ( $event_row = dbFetchNext($results) ) {
         </table>
       </div>       
   </div>
-<script nonce="<?php echo $cspNonce;?>">
-  // These are defined in the .js.php but need to be updated down here.
-// This might be better done by selecting through the dom for the archived class
-  archivedEvents = <?php echo !empty($archived)?'true':'false' ?>;
-  unarchivedEvents = <?php echo !empty($unarchived)?'true':'false' ?>;
-</script>
 </body>
 </html>

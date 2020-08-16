@@ -576,6 +576,13 @@ input[type=submit],
     text-align: center;
 }
 
+.btn-normal,
+.btn-normal:link {
+    color: #fff;
+    background-color: #3498db;
+    border: 1px solid #3498db;
+}
+
 button:hover,
 input[type=button]:hover,
 input[type=submit]:hover,

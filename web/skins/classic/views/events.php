@@ -191,8 +191,8 @@ while ( $event_row = dbFetchNext($results) ) {
               <td><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name())?></a>
               <?php 
               $archived = ( $event->Archived() ) ? translate('Archived') : '';
-              $emailed = ( $event->Emailed() ) ? translate('Emailed') : '';
-              echo '<br/><div class="small text-nowrap text-muted">'.$emailed.' '.$archived.'</div>';
+              $emailed = ( $event->Emailed() ) ? ' '.translate('Emailed') : '';
+              echo '<br/><div class="small text-nowrap text-muted">'.$archived.$emailed.'</div>';
               ?>
               </td>
 

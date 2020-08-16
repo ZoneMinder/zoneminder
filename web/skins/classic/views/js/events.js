@@ -46,7 +46,7 @@ function initPage() {
     table.bootstrapTable('hideColumn', 'Archived');
     table.bootstrapTable('hideColumn', 'Emailed');
   }
-  
+
   // enable or disable buttons based on current selection and user rights
   table.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',

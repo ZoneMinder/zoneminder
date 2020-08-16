@@ -88,7 +88,7 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?view=events&action=archive&eids_json='+JSON.stringify(selections));
+    $j.getJSON(thisUrl + '?view=events&action=archive&eids[]='+selections.join('&eids[]='));
     window.location.reload(true);
   });
   // Manage the UNARCHIVE button
@@ -101,7 +101,7 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?view=events&action=unarchive&eids_json='+JSON.stringify(selections));
+    $j.getJSON(thisUrl + '?view=events&action=unarchive&eids[]='+selections.join('&eids[]='));
 
     if ( openFilterWindow ) {
       //opener.location.reload(true);

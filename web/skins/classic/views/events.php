@@ -149,6 +149,7 @@ while ( $event_row = dbFetchNext($results) ) {
               <th data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
               <th data-sortable="true" data-field="Name"><?php echo translate('Name') ?></th>
               <th data-sortable="true" data-field="Archived"><?php echo translate('Archived') ?></th>
+              <th data-sortable="true" data-field="Emailed"><?php echo translate('Emailed') ?></th>
               <th data-sortable="true" data-field="Monitor"><?php echo translate('Monitor') ?></th>
               <th data-sortable="true" data-field="Cause"><?php echo translate('Cause') ?></th>
               <th data-sortable="true" data-field="AttrStartTime"><?php echo translate('AttrStartTime') ?></th>
@@ -186,30 +187,36 @@ while ( $event_row = dbFetchNext($results) ) {
             <tr<?php echo ( $event->Archived() ) ? ' class="archived"' : '' ?>>
               <td data-checkbox="true"></td>            
               <td><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$event->Id() ?></a></td>
-              <td><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a><br/>
-<?php
-							if ( $event->Emailed() )
-								echo 'Emailed ';
-?>
-							</td>
-              <td><?php echo ( $event->Archived() ) ? 'Yes' : 'No' ?></td>
-              <td><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
-              <td><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
-							<?php
-# display notes as small text
-							if ( $event->Notes() ) {
-# if notes include detection objects, then link it to objdetect.jpg
-								if ( strpos($event->Notes(), 'detected:') !== false ) {
-# make a link
-									echo makePopupLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', 'zmImage',
-											array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)),
-											'<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
-								} else if ( $event->Notes() != 'Forced Web: ' ) {
-									echo '<br/><div class="small text-nowrap text-muted">'.$event->Notes().'</div>';
-								}
-							}
-?>
+
+              <td><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a>
+              <?php 
+              $archived = ( $event->Archived() ) ? translate('Archived') : '';
+              $emailed = ( $event->Emailed() ) ? translate('Emailed') : '';
+              echo '<br/><div class="small text-nowrap text-muted">'.$emailed.' '.$archived.'</div>';
+              ?>
               </td>
+
+              <td class="text-center"><?php echo ( $event->Archived() ) ? 'Yes' : 'No' ?></td>
+              <td class="text-center"><?php echo ( $event->Emailed() ) ? 'Yes' : 'No' ?></td>
+              <td><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
+
+              <td><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
+              <?php
+              # display notes as small text
+              if ( $event->Notes() ) {
+                # if notes include detection objects, then link it to objdetect.jpg
+                if ( strpos($event->Notes(), 'detected:') !== false ) {
+                  # make a link
+                  echo makePopupLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', 'zmImage',
+                  array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)),
+                  '<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
+                } else if ( $event->Notes() != 'Forced Web: ' ) {
+                  echo '<br/><div class="small text-nowrap text-muted">'.$event->Notes().'</div>';
+                }
+              }
+              ?>
+              </td>
+              
               <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) ?></td>
               <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) ?></td>
               <td><?php echo gmdate("H:i:s", $event->Length() ) ?></td>

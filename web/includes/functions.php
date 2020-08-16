@@ -17,6 +17,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+//
+require_once('FilterTerm.php');
 
 // Compatibility functions
 if ( version_compare(phpversion(), '4.3.0', '<') ) {
@@ -1087,119 +1089,40 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
   }
 }
 
-function getFilterQueryConjunctionTypes() {
-  return array(
-               'and' => translate('ConjAnd'),
-               'or'  => translate('ConjOr')
-               );
-}
-
+# Historically this function has just modified the passed in filter array.
+# This would normally be $_REQUEST['filter'];  We don't like modifying 
+# request parameters. For now we will keep this behaviour, but note that we 
+# now return the resulting array and other code should by modified to use that.
+#
+# Please note that I will be removing the savetosession code as well.
 function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $filter['query'] = '';
   $filter['sql'] = '';
   $filter['fields'] = '';
+  $filter['PostSQLConditions'] = array();
 
-  $validQueryConjunctionTypes = getFilterQueryConjunctionTypes();
   $StorageArea = NULL;
 
   # It is not possible to pass an empty array in the url, so we have to deal with there not being a terms field.
   $terms = (isset($filter['Query']) and isset($filter['Query']['terms']) and is_array($filter['Query']['terms'])) ? $filter['Query']['terms'] : array();
 
-  if ( count($terms) ) {
-    for ( $i = 0; $i < count($terms); $i++ ) {
+  if ( !count($terms) ) {
+    ZM\Logger::Warning('No terms');
+    $filter['query'] = $querySep;
+    return;
+  }
+  for ( $i = 0; $i < count($terms); $i++ ) {
+    $term = new ZM\FilterTerm($terms[$i], $i);
+    if ( $term->is_post_sql() ) {
+      $filter['PostSQLConditions'][] = $term;
+      continue;
+    } 
 
-      $term = $terms[$i];
+    $filter['query'] .= $term->querystring($querySep);
+    $filter['sql'] .= $term->sql();
+    $filter['fields'] .= $term->hidden_fields_string();
 
-      if ( isset($term['cnj']) && array_key_exists($term['cnj'], $validQueryConjunctionTypes) ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($term['cnj']);
-        $filter['sql'] .= ' '.$term['cnj'].' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cnj]\" value=\"".htmlspecialchars($term['cnj'])."\"/>\n";
-      }
-      if ( isset($term['obr']) && (string)(int)$term['obr'] == $term['obr'] ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($term['obr']);
-        $filter['sql'] .= ' '.str_repeat('(', $term['obr']).' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($term['obr'])."\"/>\n";
-      }
-      if ( isset($term['attr']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($term['attr']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($term['attr'])."\"/>\n";
-        switch ( $term['attr'] ) {
-					case 'AlarmedZoneId':
-						$term['op'] = 'EXISTS';
-						break;
-          case 'MonitorName':
-            $filter['sql'] .= 'M.Name';
-            break;
-          case 'ServerId':
-          case 'MonitorServerId':
-            $filter['sql'] .= 'M.ServerId';
-            break;
-          case 'StorageServerId':
-            $filter['sql'] .= 'S.ServerId';
-            break;
-          case 'FilterServerId':
-            $filter['sql'] .= ZM_SERVER_ID;
-            break;
-# Unspecified start or end, so assume start, this is to support legacy filters
-          case 'DateTime':
-            $filter['sql'] .= 'E.StartTime';
-            break;
-          case 'Date':
-            $filter['sql'] .= 'to_days(E.StartTime)';
-            break;
-          case 'Time':
-            $filter['sql'] .= 'extract(hour_second FROM E.StartTime)';
-            break;
-          case 'Weekday':
-            $filter['sql'] .= 'weekday(E.StartTime)';
-            break;
-# Starting Time
-          case 'StartDateTime':
-            $filter['sql'] .= 'E.StartTime';
-            break;
-          case 'FramesEventId':
-            $filter['sql'] .= 'F.EventId';
-            break;
-          case 'StartDate':
-            $filter['sql'] .= 'to_days(E.StartTime)';
-            break;
-          case 'StartTime':
-            $filter['sql'] .= 'extract(hour_second FROM E.StartTime)';
-            break;
-          case 'StartWeekday':
-            $filter['sql'] .= 'weekday(E.StartTime)';
-            break;
-# Ending Time
-          case 'EndDateTime':
-            $filter['sql'] .= 'E.EndTime';
-            break;
-          case 'EndDate':
-            $filter['sql'] .= 'to_days(E.EndTime)';
-            break;
-          case 'EndTime':
-            $filter['sql'] .= 'extract(hour_second FROM E.EndTime)';
-            break;
-          case 'EndWeekday':
-            $filter['sql'] .= 'weekday(E.EndTime)';
-            break;
-          case 'Id':
-          case 'Name':
-          case 'DiskSpace':
-          case 'MonitorId':
-          case 'StorageId':
-          case 'SecondaryStorageId':
-          case 'Length':
-          case 'Frames':
-          case 'AlarmFrames':
-          case 'TotScore':
-          case 'AvgScore':
-          case 'MaxScore':
-          case 'Cause':
-          case 'Notes':
-          case 'StateId':
-          case 'Archived':
-            $filter['sql'] .= 'E.'.$term['attr'];
-            break;
+      /*
           case 'DiskPercent':
             // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
             if ( ! $StorageArea ) {
@@ -1240,135 +1163,15 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
           case 'SystemLoad':
             $filter['sql'] .= getLoad();
             break;
-        }
-        $valueList = array();
-        if ( !isset($term['val']) ) $term['val'] = '';
-        foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
-          switch ( $term['attr'] ) {
+        } # end switch attr
+       */
+  } // end foreach term
 
-						case 'AlarmedZoneId':
-							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
-							break;
-            case 'MonitorName':
-            case 'Name':
-            case 'Cause':
-            case 'Notes':
-              if ( $term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE' ) {
-                $value = '%'.$value.'%';
-              }
-              $value = dbEscape($value);
-              break;
-            case 'MonitorServerId':
-            case 'FilterServerId':
-            case 'StorageServerId':
-            case 'ServerId':
-              if ( $value == 'ZM_SERVER_ID' ) {
-                $value = ZM_SERVER_ID;
-              } else if ( $value == 'NULL' ) {
-
-              } else {
-                $value = dbEscape($value);
-              }
-              break;
-            case 'StorageId':
-              $StorageArea = ZM\Storage::find_one(array('Id'=>$value));
-              if ( $value != 'NULL' )
-                $value = dbEscape($value);
-              break;
-            case 'DateTime':
-            case 'StartDateTime':
-            case 'EndDateTime':
-              if ( $value != 'NULL' )
-                $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
-              break;
-            case 'Date':
-            case 'StartDate':
-            case 'EndDate':
-							if ( $value == 'CURDATE()' or $value == 'NOW()' ) {
-								$value = 'to_days('.$value.')';
-							} else if ( $value != 'NULL' ) {
-							  $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
-							}
-              break;
-            case 'Time':
-            case 'StartTime':
-            case 'EndTime':
-              if ( $value != 'NULL' )
-              $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
-              break;
-            default :
-              if ( $value != 'NULL' )
-                $value = dbEscape($value);
-              break;
-          }
-          $valueList[] = $value;
-        } // end foreach value
-
-        switch ( $term['op'] ) {
-          case '=' :
-          case '!=' :
-          case '>=' :
-          case '>' :
-          case '<' :
-          case '<=' :
-          case 'LIKE' :
-          case 'NOT LIKE':
-            $filter['sql'] .= ' '.$term['op'].' '. $value;
-            break;
-          case '=~' :
-            $filter['sql'] .= ' regexp '.$value;
-            break;
-          case '!~' :
-            $filter['sql'] .= ' not regexp '.$value;
-            break;
-          case '=[]' :
-          case 'IN' :
-            $filter['sql'] .= ' IN ('.join(',', $valueList).')';
-            break;
-          case '![]' :
-            $filter['sql'] .= ' not in ('.join(',', $valueList).')';
-            break;
-					case 'EXISTS' :
-						$filter['sql'] .= ' EXISTS ' .$value;
-            break;
-          case 'IS' :
-            if ( $value == 'Odd' )  {
-              $filter['sql'] .= ' % 2 = 1';
-            } else if ( $value == 'Even' )  {
-              $filter['sql'] .= ' % 2 = 0';
-            } else {
-              $filter['sql'] .= " IS $value";
-            }
-            break;
-          case 'IS NOT' :
-            $filter['sql'] .= " IS NOT $value";
-            break;
-          default:
-            ZM\Warning('Invalid operator in filter: ' . print_r($term['op'], true));
-        } // end switch op
-
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($term['op']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][op]\" value=\"".htmlspecialchars($term['op'])."\"/>\n";
-        if ( isset($term['val']) ) {
-          $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($term['val']);
-          $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($term['val'])."\"/>\n";
-        }
-      } // end if isset($term['attr'])
-      if ( isset($term['cbr']) && (string)(int)$term['cbr'] == $term['cbr'] ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($term['cbr']);
-        $filter['sql'] .= ' '.str_repeat(')', $term['cbr']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($term['cbr'])."\"/>\n";
-      }
-    } // end foreach term
-    if ( $filter['sql'] )
-      $filter['sql'] = ' AND ( '.$filter['sql'].' )';
-    if ( $saveToSession ) {
-      $_SESSION['filter'] = $filter;
-    }
-  } else {
-    $filter['query'] = $querySep;
-    #.urlencode('filter[Query][terms]=[]');
-  } // end if terms
+  if ( $filter['sql'] )
+    $filter['sql'] = ' AND ( '.$filter['sql'].' )';
+  if ( $saveToSession ) {
+    $_SESSION['filter'] = $filter;
+  }
 
   #if ( 0 ) {
     #// ICON I feel like these should be here, but not yet
@@ -1380,6 +1183,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     #$filter['sql'] .= ' LIMIT ' . validInt($filter['Query']['limit']);
   #}
   #}
+  return $filter;
 } // end function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;')
 
 // Please note that the filter is passed in by copy, so you need to use the return value from this function.

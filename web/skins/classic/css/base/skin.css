@@ -708,6 +708,10 @@ li.search-choice {
 .gi-4x{font-size: 4em;}
 .gi-5x{font-size: 5em;}
 
+.fa:hover{
+  color: black;
+}
+
 .filterBar {
   margin-top:5px;
   margin-bottom:5px;
@@ -730,6 +734,7 @@ background-color:#485460;
 }
 
 .zoom:hover {
-  transform: scale(5); /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
+  transform-origin: 70% 50%;
+  transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
 }
 

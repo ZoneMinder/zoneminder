@@ -36,7 +36,7 @@ if ( $user['MonitorIds'] ) {
 parseSort();
 
 $filter = parseFilter($_REQUEST['filter']);
-$filterQuery = $filter['query'];
+$filterQuery = $filter['querystring'];
 ZM\Logger::Debug("Filter ".print_r($filter, true));
 
 if ( $filter['sql'] ) {
@@ -55,8 +55,24 @@ if ( $_POST ) {
   exit();
 }
 
-$results = dbQuery($eventsSql);
-$nEvents = $results->rowCount();
+$failed = false;
+if ( count($filter['pre_sql_conditions']) ) {
+  foreach ( $filter['pre_sql_conditions'] as $term ) {
+    if ( !$term->test() ) {
+      $failed = true;
+      break;
+    }
+  }
+} # end if pre_sql_conditions
+if ( $failed ) {
+  ZM\Logger::Debug("Pre conditions failed, not doing sql");
+}
+
+$results = $failed ? null : dbQuery($eventsSql);
+
+$nEvents = $results ? $results->rowCount() : 0;
+ZM\Logger::Debug("Pre conditions succeeded sql return $nEvents events");
+
 if ( !empty($limit) && ($nEvents > $limit) ) {
   $nEvents = $limit;
 }
@@ -135,26 +151,6 @@ xhtmlHeaders(__FILE__, translate('Events'));
         style="display:none;"
       >
         <thead>
-<?php
-$count = 0;
-$disk_space_total = 0;
-
-while ( $event_row = dbFetchNext($results) ) {
-  $event = new ZM\Event($event_row);
-
-  if ( count($filter['PostSQLConditions']) ) {
-    $failed = false;
-    foreach ( $filter['PostSQLConditions'] as $term ) {
-      if ( !$term->test($event) ) {
-        $failed = true;
-        break;
-      }
-    }
-    if ( $failed ) continue;
-  } # end if PostSQLConditions
-
-  if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
-?>
             <!-- Row styling is handled by bootstrap-tables -->
             <tr>
               <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
@@ -193,8 +189,28 @@ while ( $event_row = dbFetchNext($results) ) {
            </thead>
            <tbody>
 <?php
-  }
-  $scale = max(reScale(SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
+$count = 0;
+$disk_space_total = 0;
+if ( $results ) {
+
+  while ( $event_row = dbFetchNext($results) ) {
+    $event = new ZM\Event($event_row);
+
+    if ( count($filter['post_sql_conditions']) ) {
+      $failed = false;
+      foreach ( $filter['post_sql_conditions'] as $term ) {
+        if ( !$term->test($event) ) {
+          $failed = true;
+          break;
+        }
+      }
+      if ( $failed ) {
+        ZM\Logger::Debug("Failed post conditions");
+        continue;
+      }
+    } # end if PostSQLConditions
+
+    $scale = max(reScale(SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
 ?>
             <tr<?php echo $event->Archived() ? ' class="archived"' : '' ?>>
               <td data-checkbox="true"></td>            
@@ -285,6 +301,7 @@ while ( $event_row = dbFetchNext($results) ) {
 ?>
           </tbody>
 <?php
+} # end if $results
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
 ?>
           <tfoot>

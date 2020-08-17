@@ -117,6 +117,7 @@ xhtmlHeaders(__FILE__, translate('Events'));
         id="eventTable"
         data-toggle="table"
         data-pagination="true"
+        data-show-pagination-switch="true"
         data-search="true"
         data-cookie="true"
         data-cookie-id-table="zmEventsTable"

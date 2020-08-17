@@ -69,6 +69,14 @@ class Storage extends ZM_Object {
 		return $this->{'EventCount'};
 	}
 
+  public function disk_used_blocks() {
+    $df = shell_exec('df '.escapeshellarg($this->Path()));
+    $space = -1;
+    if ( preg_match('/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches) )
+      $space = $matches[1];
+    return $space;
+  }
+
   public function disk_usage_percent() {
     $path = $this->Path();
     if ( ! $path ) {
@@ -106,7 +114,7 @@ class Storage extends ZM_Object {
   public function disk_used_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
     if ( ( !property_exists($this, 'disk_used_space')) or !$this->{'disk_used_space'} ) {
-      if ( $this->{'Type'} == 's3fs' ) {
+      if ( $this->Type() == 's3fs' ) {
         $this->{'disk_used_space'} = $this->event_disk_space();
       } else { 
         $path = $this->Path();

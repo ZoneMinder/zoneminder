@@ -38,8 +38,21 @@ function initPage() {
   var deleteBtn = $j('#deleteBtn');
   var table = $j('#eventTable');
 
+  // Define the icons used in the bootstrap-table top-right toolbar
+  var icons = {
+    paginationSwitchDown: 'fa-caret-square-o-down',
+    paginationSwitchUp: 'fa-caret-square-o-up',
+    refresh: 'fa-sync',
+    toggleOff: 'fa-toggle-off',
+    toggleOn: 'fa-toggle-on',
+    columns: 'fa-th-list',
+    fullscreen: 'fa-arrows-alt',
+    detailOpen: 'fa-plus',
+    detailClose: 'fa-minus'
+  }
+  
   // Init the bootstrap-table
-  table.bootstrapTable();
+  table.bootstrapTable('destroy').bootstrapTable({ icons: icons });
 
   // Hide these columns on first run when no cookie is saved
   if ( !getCookie("zmEventsTable.bs.table.columns") ) {

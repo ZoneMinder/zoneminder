@@ -1226,12 +1226,14 @@ function sortHeader($field, $querySep='&amp;') {
   ));
 }
 
-function sortTag( $field ) {
-  if ( $_REQUEST['sort_field'] == $field )
-    if ( $_REQUEST['sort_asc'] )
-      return '(^)';
-    else
-      return '(v)';
+function sortTag($field) {
+  if ( isset($_REQUEST['sort_field']) ) {
+    if ( $_REQUEST['sort_field'] == $field )
+      if ( $_REQUEST['sort_asc'] )
+        return '(^)';
+      else
+        return '(v)';
+  }
   return false;
 }
 

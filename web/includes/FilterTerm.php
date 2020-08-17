@@ -14,6 +14,7 @@ function getFilterQueryConjunctionTypes() {
 }
 
 class FilterTerm {
+  public $filter;
   public $index;
   public $attr;
   public $op;
@@ -24,7 +25,8 @@ class FilterTerm {
   public $cbr;
 
 
-  public function __construct($term = NULL, $index=0) {
+  public function __construct($filter = null, $term = NULL, $index=0) {
+    $this->filter = $filter;
     $validConjunctionTypes = getFilterQueryConjunctionTypes();
 
     $this->index = $index;
@@ -35,7 +37,7 @@ class FilterTerm {
       if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
       $this->cnj = $term['cnj'];
       } else {
-        Warning('Invalid cnj ' . $term['cnj'] . ' in ' . print_r($term, true));
+        Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
       }
     }
 
@@ -295,7 +297,7 @@ class FilterTerm {
     return $query;
   } # end public function querystring
 
-  public function hidden_fields_string() {
+  public function hidden_fields() {
     $html ='';
     if ( $this->cnj )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cnj]" value="'.$this->cnj.'"/>'.PHP_EOL;
@@ -311,26 +313,91 @@ class FilterTerm {
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cbr]" value="'.$this->cbr.'"/>'.PHP_EOL;
 
     return $html;
-  } # end public function hidden_field_string
+  } # end public function hiddens_fields
 
-  public function test($event) {
-    if ( $this->attr == 'ExistsInFileSystem' ) {
-      if ( 
-        ($this->op == 'IS' and $this->val == 'True')
-        or
-        ($this->op == 'IS NOT' and $this->val == 'False')
-      ) {
-        return file_exists($event->Path());
+  public function test($event=null) {
+    if ( !isset($event) ) {
+      # Is a Pre Condition
+      if ( $this->attr == 'DiskPercent' ) {
+        # The logic on this is really ugly.  We are going to treat it as an OR
+        foreach ( $this->filter->get_StorageAreas() as $storage ) {
+          $string_to_eval = 'return $storage->disk_usage_percent() '.$this->op.' '.$this->val.';';
+          try {
+            $ret = eval($string_to_eval);
+            Logger::Debug("Evalled $string_to_eval = $ret");
+            if ( $ret )
+              return true;
+          } catch ( Throwable $t ) {
+            Error('Failed evaluating '.$string_to_eval);
+            return false;
+          }
+        } # end foreach Storage Area
+      } else if ( $this->attr == 'SystemLoad' ) {
+        $string_to_eval = 'return getLoad() '.$this->op.' '.$this->val.';';
+        try {
+          $ret = eval($string_to_eval);
+          Logger::Debug("Evalled $string_to_eval = $ret");
+          if ( $ret )
+            return true;
+        } catch ( Throwable $t ) {
+          Error('Failed evaluating '.$string_to_eval);
+          return false;
+        }
       } else {
-        return !file_exists($event->Path());
+        Error('testing unsupported pre term ' . $this->attr);
+      }
+    } else {
+      # Is a Post Condition 
+      if ( $this->attr == 'ExistsInFileSystem' ) {
+        if ( 
+          ($this->op == 'IS' and $this->val == 'True')
+          or
+          ($this->op == 'IS NOT' and $this->val == 'False')
+        ) {
+          return file_exists($event->Path());
+        } else {
+          return !file_exists($event->Path());
+        }
+      } else if ( $this->attr == 'DiskPercent' ) {
+        $string_to_eval = 'return $event->Storage()->disk_usage_percent() '.$this->op.' '.$this->val.';';
+        try {
+          $ret = eval($string_to_eval);
+          Logger::Debug("Evalled $string_to_eval = $ret");
+          if ( $ret )
+            return true;
+        } catch ( Throwable $t ) {
+          Error('Failed evaluating '.$string_to_eval);
+          return false;
+        }
+      } else if ( $this->attr == 'DiskBlocks' ) {
+        $string_to_eval = 'return $event->Storage()->disk_usage_blocks() '.$this->op.' '.$this->val.';';
+        try {
+          $ret = eval($string_to_eval);
+          Logger::Debug("Evalled $string_to_eval = $ret");
+          if ( $ret )
+            return true;
+        } catch ( Throwable $t ) {
+          Error('Failed evaluating '.$string_to_eval);
+          return false;
+        }
+      } else {
+        Error('testing unsupported post term ' . $this->attr);
       }
     }
-    Error("testing not supported term");
     return false;
   }
   
+  public function is_pre_sql() {
+    if ( $this->attr == 'DiskPercent' ) {
+        return true;
+    }
+    return false;
+  }
+
   public function is_post_sql() {
     if ( $this->attr == 'ExistsInFileSystem' ) {
+        return true;
+    } else if ( $this->attr == 'DiskPercent' ) {
         return true;
     }
     return false;

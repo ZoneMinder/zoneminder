@@ -18,6 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 //
+require_once('Filter.php');
 require_once('FilterTerm.php');
 
 // Compatibility functions
@@ -1096,91 +1097,23 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
 #
 # Please note that I will be removing the savetosession code as well.
 function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
-  $filter['query'] = '';
-  $filter['sql'] = '';
-  $filter['fields'] = '';
-  $filter['PostSQLConditions'] = array();
 
-  $StorageArea = NULL;
+  $Filter = ZM\Filter::parse($filter, $querySep);
 
-  # It is not possible to pass an empty array in the url, so we have to deal with there not being a terms field.
-  $terms = (isset($filter['Query']) and isset($filter['Query']['terms']) and is_array($filter['Query']['terms'])) ? $filter['Query']['terms'] : array();
-
-  if ( !count($terms) ) {
-    ZM\Logger::Warning('No terms');
-    $filter['query'] = $querySep;
-    return;
-  }
-  for ( $i = 0; $i < count($terms); $i++ ) {
-    $term = new ZM\FilterTerm($terms[$i], $i);
-    if ( $term->is_post_sql() ) {
-      $filter['PostSQLConditions'][] = $term;
-      continue;
-    } 
-
-    $filter['query'] .= $term->querystring($querySep);
-    $filter['sql'] .= $term->sql();
-    $filter['fields'] .= $term->hidden_fields_string();
-
-      /*
-          case 'DiskPercent':
-            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
-            if ( ! $StorageArea ) {
-              for ( $j = 0; $j < count($terms); $j++ ) {
-                if (
-                  isset($terms[$j]['attr'])
-                  and
-                  ($terms[$j]['attr'] == 'StorageId')
-                  and
-                  isset($terms[$j]['val'])
-                ) {
-                  $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
-                  break;
-                }
-              } // end foreach remaining term
-              if ( ! $StorageArea ) $StorageArea = new ZM\Storage();
-            } // end no StorageArea found yet
-
-            $filter['sql'] .= getDiskPercent($StorageArea->Path());
-            break;
-          case 'DiskBlocks':
-            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
-            if ( ! $StorageArea ) {
-              for ( $j = $i; $j < count($terms); $j++ ) {
-                if (
-                  isset($terms[$j]['attr'])
-                  and
-                  ($terms[$j]['attr'] == 'StorageId')
-                  and
-                  isset($terms[$j]['val'])
-                ) {
-                  $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
-                }
-              } // end foreach remaining term
-            } // end no StorageArea found yet
-            $filter['sql'] .= getDiskBlocks( $StorageArea );
-            break;
-          case 'SystemLoad':
-            $filter['sql'] .= getLoad();
-            break;
-        } # end switch attr
-       */
-  } // end foreach term
+  $filter['sql'] = $Filter->sql();
+  $filter['querystring'] = $Filter->querystring();
+  $filter['hidden_fields'] = $Filter->hidden_fields();
+  $filter['pre_sql_conditions'] = $Filter->pre_sql_conditions();
+  $filter['post_sql_conditions'] = $Filter->post_sql_conditions();
 
   if ( $filter['sql'] )
     $filter['sql'] = ' AND ( '.$filter['sql'].' )';
-  if ( $saveToSession ) {
-    $_SESSION['filter'] = $filter;
-  }
 
   #if ( 0 ) {
     #// ICON I feel like these should be here, but not yet
   #if ( isset($filter['Query']['sort_field']) ) {
     #$filter['sql'] .= ' ORDER BY ' . $filter['Query']['sort_field'] . (
       #( $filter['Query']['sort_asc'] ? ' ASC' : ' DESC' ) );
-  #}
-  #if ( $filter['Query']['limit'] ) {
-    #$filter['sql'] .= ' LIMIT ' . validInt($filter['Query']['limit']);
   #}
   #}
   return $filter;
@@ -1324,9 +1257,8 @@ function getDiskPercent($path = ZM_DIR_EVENTS) {
   return $space;
 }
 
-function getDiskBlocks() {
-  if ( !$StorageArea ) $StorageArea = new ZM\Storage();
-  $df = shell_exec('df '.escapeshellarg($StorageArea->Path()));
+function getDiskBlocks($path = ZM_DIR_EVENTS) {
+  $df = shell_exec('df '.escapeshellarg($path));
   $space = -1;
   if ( preg_match('/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches) )
     $space = $matches[1];

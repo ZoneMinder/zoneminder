@@ -49,10 +49,10 @@ function initPage() {
     fullscreen: 'fa-arrows-alt',
     detailOpen: 'fa-plus',
     detailClose: 'fa-minus'
-  }
-  
+  };
+
   // Init the bootstrap-table
-  $j('#eventTable').bootstrapTable('destroy').bootstrapTable({ icons: icons });
+  $j('#eventTable').bootstrapTable('destroy').bootstrapTable({icons: icons});
 
   // Hide these columns on first run when no cookie is saved
   if ( !getCookie("zmEventsTable.bs.table.columns") ) {

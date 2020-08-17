@@ -314,9 +314,7 @@ class FilterTerm {
   } # end public function hidden_field_string
 
   public function test($event) {
-    Logger::Debug("Testing PostSQLcondtion");
     if ( $this->attr == 'ExistsInFileSystem' ) {
-      Logger::Debug("file exists?! " . file_exists($event->Path()) );
       if ( 
         ($this->op == 'IS' and $this->val == 'True')
         or

@@ -27,6 +27,7 @@ function exportHeader($title) {
     <title><?php echo $title ?></title>
     <style>
 <?php 
+  global $css;
   include(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/css/base/export.css');
   if ( $css != 'base' ) {
     include(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/css/'.$css.'/export.css');

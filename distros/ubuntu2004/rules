@@ -23,7 +23,7 @@ override_dh_auto_configure:
             -DZM_CONFIG_SUBDIR="/etc/zm/conf.d"        \
             -DZM_RUNDIR="/run/zm"                  \
             -DZM_SOCKDIR="/run/zm"                 \
-            -DZM_TMPDIR="/tmp/zm"                      \
+            -DZM_TMPDIR="/var/tmp/zm"                      \
             -DZM_CGIDIR="/usr/lib/zoneminder/cgi-bin"  \
             -DZM_CACHEDIR="/var/cache/zoneminder/cache"  \
             -DZM_DIR_EVENTS="/var/cache/zoneminder/events"    \

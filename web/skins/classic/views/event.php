@@ -134,6 +134,9 @@ xhtmlHeaders(__FILE__, translate('Event'));
 if ( !$Event->Id() ) {
   echo 'Event was not found.';
 } else {
+  if ( !file_exists($Event->Path()) ) {
+    echo '<div class="error">Event was not found at '.$Event->Path().'.  It is unlikely that playback will be possible.</div>';
+  }
 ?>
       <div id="dataBar">
         <span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span>
@@ -148,7 +151,7 @@ if ( !$Event->Id() ) {
   human_filesize($Event->DiskSpace(null)) . ' on ' . validHtmlStr($Event->Storage()->Name()).
   ( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' )
 ?></span>
-        <div id="closeWindow"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back();return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+        <div id="closeWindow"><a href="#" data-on-click="<?php echo $popup ? 'window.close()' : 'window.history.back();return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
       </div>
       <div id="menuBar1">
         <div id="nameControl">

@@ -106,7 +106,7 @@ if ( ! is_dir("skins/$skin") ) {
     $skin = $skins[0];
   }
 }
-
+global $css;
 if ( isset($_GET['css']) ) {
   $css = $_GET['css'];
 } else if ( isset($_COOKIE['zmCSS']) ) {

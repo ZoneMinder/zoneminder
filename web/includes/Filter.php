@@ -275,6 +275,37 @@ class Filter extends ZM_Object {
     return $status;
   }
 
+  public function test_pre_sql_conditions() {
+    if ( !count($this->pre_sql_conditions()) ) {
+      return true;
+    } # end if pre_sql_conditions
+
+    $failed = false;
+    foreach ( $this->pre_sql_conditions() as $term ) {
+      if ( !$term->test() ) {
+        $failed = true;
+        break;
+      }
+    }
+    return $failed;
+  }
+
+  public function test_post_sql_conditions($event) {
+    if ( !count($this->post_sql_conditions()) ) {
+      return true;
+    } # end if pre_sql_conditions
+
+    $failed = true;
+    foreach ( $this->post_sql_conditions() as $term ) {
+      if ( !$term->test($event) ) {
+        $failed = false;
+        break;
+      }
+    }
+    return $failed;
+  }
+
+
 } # end class Filter
 
 ?>

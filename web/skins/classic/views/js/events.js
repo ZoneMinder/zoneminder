@@ -38,12 +38,19 @@ function initPage() {
   var deleteBtn = $j('#deleteBtn');
   var table = $j('#eventTable');
 
+  // Init the bootstrap-table
   $j('#eventTable').bootstrapTable();
-  table.bootstrapTable('hideColumn', 'Archived');
+
+  // Hide these columns on first run when no cookie is saved
+  if ( !getCookie("zmEventsTable.bs.table.columns") ) {
+    table.bootstrapTable('hideColumn', 'Archived');
+    table.bootstrapTable('hideColumn', 'Emailed');
+  }
+
+  // enable or disable buttons based on current selection and user rights
   table.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',
   function() {
-    // enable or disable buttons based on current selection and user rights
     viewBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
     archiveBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
     unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEditEvents);
@@ -59,15 +66,20 @@ function initPage() {
     this.addEventListener('mouseover', thumbnail_onmouseover, false);
     this.addEventListener('mouseout', thumbnail_onmouseout, false);
   });
-  // Manage the Refresh link
-  document.getElementById("refreshLink").addEventListener("click", function onRefreshClick(evt) {
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
   });
-  // Manage the BACK link
-  document.getElementById("backLink").addEventListener("click", function onBackClick(evt) {
+  // Manage the TIMELINE Button
+  document.getElementById("tlineBtn").addEventListener("click", function onTlineClick(evt) {
     evt.preventDefault();
-    window.history.back();
+    window.location.assign('?view=timeline'+filterQuery);
   });
   // Manage the VIEW button
   document.getElementById("viewBtn").addEventListener("click", function onViewClick(evt) {
@@ -82,7 +94,7 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?view=events&action=archive&eids_json='+JSON.stringify(selections));
+    $j.getJSON(thisUrl + '?view=events&action=archive&eids[]='+selections.join('&eids[]='));
     window.location.reload(true);
   });
   // Manage the UNARCHIVE button
@@ -95,7 +107,7 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?view=events&action=unarchive&eids_json='+JSON.stringify(selections));
+    $j.getJSON(thisUrl + '?view=events&action=unarchive&eids[]='+selections.join('&eids[]='));
 
     if ( openFilterWindow ) {
       //opener.location.reload(true);

@@ -708,6 +708,10 @@ li.search-choice {
 .gi-4x{font-size: 4em;}
 .gi-5x{font-size: 5em;}
 
+.fa:hover{
+  color: black;
+}
+
 .filterBar {
   margin-top:5px;
   margin-bottom:5px;

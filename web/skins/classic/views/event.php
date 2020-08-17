@@ -23,6 +23,9 @@ if ( !canView('Events') ) {
   return;
 }
 
+require_once('includes/Event.php');
+require_once('includes/Filter.php');
+
 $eid = validInt($_REQUEST['eid']);
 $fid = !empty($_REQUEST['fid']) ? validInt($_REQUEST['fid']) : 1;
 
@@ -115,8 +118,8 @@ if ( !isset($_REQUEST['filter']) ) {
   );
 }
 parseSort();
-parseFilter($_REQUEST['filter']);
-$filterQuery = $_REQUEST['filter']['query'];
+$filter = ZM\Filter::parse($_REQUEST['filter']);
+$filterQuery = $filter->querystring();
 
 $connkey = generateConnKey();
 

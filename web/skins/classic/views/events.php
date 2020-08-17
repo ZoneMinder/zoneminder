@@ -24,6 +24,7 @@ if ( !canView('Events') || (!empty($_REQUEST['execute']) && !canEdit('Events')) 
 }
 
 require_once('includes/Event.php');
+require_once('includes/Filter.php');
 
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
@@ -35,12 +36,12 @@ if ( $user['MonitorIds'] ) {
 
 parseSort();
 
-$filter = parseFilter($_REQUEST['filter']);
-$filterQuery = $filter['querystring'];
+$filter = ZM\Filter::parse($_REQUEST['filter']);
+$filterQuery = $filter->querystring();
 ZM\Logger::Debug("Filter ".print_r($filter, true));
 
-if ( $filter['sql'] ) {
-  $eventsSql .= $filter['sql'];
+if ( $filter->sql() ) {
+  $eventsSql .= ' AND ('.$filter->sql().')';
 }
 $eventsSql .= " ORDER BY $sortColumn $sortOrder";
 if ( $sortColumn != 'E.Id' ) $eventsSql .= ',E.Id '.$sortOrder;
@@ -55,15 +56,7 @@ if ( $_POST ) {
   exit();
 }
 
-$failed = false;
-if ( count($filter['pre_sql_conditions']) ) {
-  foreach ( $filter['pre_sql_conditions'] as $term ) {
-    if ( !$term->test() ) {
-      $failed = true;
-      break;
-    }
-  }
-} # end if pre_sql_conditions
+$failed = !$filter->test_pre_sql_conditions();
 if ( $failed ) {
   ZM\Logger::Debug("Pre conditions failed, not doing sql");
 }
@@ -196,19 +189,10 @@ if ( $results ) {
   while ( $event_row = dbFetchNext($results) ) {
     $event = new ZM\Event($event_row);
 
-    if ( count($filter['post_sql_conditions']) ) {
-      $failed = false;
-      foreach ( $filter['post_sql_conditions'] as $term ) {
-        if ( !$term->test($event) ) {
-          $failed = true;
-          break;
-        }
-      }
-      if ( $failed ) {
-        ZM\Logger::Debug("Failed post conditions");
-        continue;
-      }
-    } # end if PostSQLConditions
+    if ( !$filter->test_post_sql_conditions($event) ) {
+      ZM\Logger::Debug("Failed post conditions");
+      continue;
+    }
 
     $scale = max(reScale(SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
 ?>

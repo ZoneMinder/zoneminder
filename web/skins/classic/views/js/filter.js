@@ -46,7 +46,6 @@ function validateForm( form ) {
     if ( ! have_endtime_term ) {
       return confirm('You don\'t have an EndTime term in your filter.  This will match recordings that are still in progress and so the UpdateDiskSpace action will be a waste of time and resources.  Ideally you should have an EndTime IS NOT NULL term.  Do you want to continue?');
     }
-    
   } else if ( form.elements['filter[Background]'].checked ) {
     if ( ! (
       form.elements['filter[AutoArchive]'].checked

@@ -163,11 +163,7 @@ function initPage() {
       return;
     }
 
-    var modal = $j('#deleteConfirm');
-    var selections = getIdSelections();
-
     evt.preventDefault();
-    modal.find('.modal-body p').text('You are about to delete '+selections.length+' events. Are you sure?');
     $j('#deleteConfirm').modal('show');
   });
 

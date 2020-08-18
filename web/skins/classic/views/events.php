@@ -315,7 +315,7 @@ while ( $event_row = dbFetchNext($results) ) {
         </button>
       </div>
       <div class="modal-body">
-        <p>Populaed by Javascript</p>
+        <p><?php echo translate('ConfirmDeleteEvents') ?></p>
       </div>
       <div class="modal-footer">
         <button id="delCancelBtn" type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>

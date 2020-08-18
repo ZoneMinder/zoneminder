@@ -88,7 +88,7 @@ function initPage() {
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();
-    window.history.back();
+    if ( document.referrer.length ) window.history.back();
   });
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {

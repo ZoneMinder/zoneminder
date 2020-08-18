@@ -32,10 +32,14 @@ Version: 1.35.5
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
-# Mootools is inder the MIT license: http://mootools.net/
+# Mootools is under the MIT license: http://mootools.net/
+# jQuery is under the MIT license: https://jquery.org/license/
 # CakePHP is under the MIT license: https://github.com/cakephp/cakephp
 # Crud is under the MIT license: https://github.com/FriendsOfCake/crud
 # CakePHP-Enum-Behavior is under the MIT license: https://github.com/asper/CakePHP-Enum-Behavior
+# Bootstrap is under the MIT license: https://getbootstrap.com/docs/4.5/about/license/
+# Bootstrap-table is under the MIT license: https://bootstrap-table.com/docs/about/license/
+# font-awesome is under CC-BY license: https://fontawesome.com/license/free
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 

@@ -81,10 +81,10 @@ function initPage() {
   });
   // Setup the thumbnail video animation
   initThumbAnimation();
-  
+
   // Some toolbar events break the thumbnail animation, so re-init eventlistener
   table.on('all.bs.table', initThumbAnimation);
-  
+
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();

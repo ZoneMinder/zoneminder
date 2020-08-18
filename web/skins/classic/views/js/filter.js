@@ -22,8 +22,52 @@ function validateForm(form) {
   }
   var numbers_reg = /\D/;
   if ( numbers_reg.test(form.elements['filter[Query][limit]'].value) ) {
-    alert("There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty.");
+    alert('There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty.');
     return false;
+  }
+  if ( form.elements['filter[AutoDelete]'].checked ) {
+    // if Delete action is Enabled should also have an unarchived term
+    var have_archivestatus_term = false;
+    for ( var i = 0; i < rows.length; i++ ) {
+      if ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'Archived' ) {
+        have_archivestatus_term = true;
+      }
+    }
+    if ( ! have_archivestatus_term ) {
+      return confirm('You have enabled deleting events but do not have a term referencing the archived status of the event.  This filter may delete events that you want to save! Are you sure?');
+    }
+  } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
+    var have_endtime_term = false;
+    for ( var i = 0; i < rows.length; i++ ) {
+      if ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' ) {
+        have_endtime_term = true;
+      }
+    }
+    if ( ! have_endtime_term ) {
+      return confirm('You don\'t have an EndTime term in your filter.  This will match recordings that are still in progress and so the UpdateDiskSpace action will be a waste of time and resources.  Ideally you should have an EndTime IS NOT NULL term.  Do you want to continue?');
+    }
+  } else if ( form.elements['filter[Background]'].checked ) {
+    if ( ! (
+      form.elements['filter[AutoArchive]'].checked
+      ||
+      form.elements['filter[UpdateDiskSpace]'].checked
+      ||
+      form.elements['filter[AutoVideo]'].checked
+      ||
+      form.elements['filter[AutoEmail]'].checked
+      ||
+      form.elements['filter[AutoMessage]'].checked
+      ||
+      form.elements['filter[AutoExecute]'].checked
+      ||
+      form.elements['filter[AutoDelete]'].checked
+      ||
+      form.elements['filter[AutoCopy]'].checked
+      ||
+      form.elements['filter[AutoMove]'].checked
+    ) ) {
+      alert('You have chosen to run this filter in the background but not selected any actions.');
+    }
   }
   return true;
 }

@@ -10,6 +10,13 @@ function thumbnail_onmouseout(event) {
   img.src = img.getAttribute('still_src');
 }
 
+function initThumbAnimation() {
+  $j('.colThumbnail img').each(function() {
+    this.addEventListener('mouseover', thumbnail_onmouseover, false);
+    this.addEventListener('mouseout', thumbnail_onmouseout, false);
+  });
+}
+
 // Returns the event id's of the selected rows
 function getIdSelections() {
   var table = $j('#eventTable');
@@ -49,10 +56,10 @@ function initPage() {
     fullscreen: 'fa-arrows-alt',
     detailOpen: 'fa-plus',
     detailClose: 'fa-minus'
-  }
-  
+  };
+
   // Init the bootstrap-table
-  table.bootstrapTable('destroy').bootstrapTable({ icons: icons });
+  table.bootstrapTable('destroy').bootstrapTable({icons: icons});
 
   // Hide these columns on first run when no cookie is saved
   if ( !getCookie("zmEventsTable.bs.table.columns") ) {
@@ -74,17 +81,16 @@ function initPage() {
     downloadBtn.prop('disabled', !(selections.length && canViewEvents));
     deleteBtn.prop('disabled', !(selections.length && canEditEvents));
   });
-  if ( window.history.length == 1 ) {
-    $j('#controls').children().eq(0).html('');
-  }
-  $j('.colThumbnail img').each(function() {
-    this.addEventListener('mouseover', thumbnail_onmouseover, false);
-    this.addEventListener('mouseout', thumbnail_onmouseout, false);
-  });
+  // Setup the thumbnail video animation
+  initThumbAnimation();
+
+  // Some toolbar events break the thumbnail animation, so re-init eventlistener
+  table.on('all.bs.table', initThumbAnimation);
+
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();
-    window.history.back();
+    if ( document.referrer.length ) window.history.back();
   });
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
@@ -166,12 +172,30 @@ function initPage() {
       return;
     }
 
+    evt.preventDefault();
+    $j('#deleteConfirm').modal('show');
+  });
+
+  // Manage the DELETE CONFIRMATION modal button
+  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
+    if ( ! canEditEvents ) {
+      alert("You do not have permission to delete events.");
+      return;
+    }
+
     var selections = getIdSelections();
 
     evt.preventDefault();
     $j.getJSON(thisUrl + '?view=events&action=delete&eids[]='+selections.join('&eids[]='));
     window.location.reload(true);
   });
+
+  // Manage the CANCEL modal button
+  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
+    $j('#deleteConfirm').modal('hide');
+  });
+
+  // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
 }
 

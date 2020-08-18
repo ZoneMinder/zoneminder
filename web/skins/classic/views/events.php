@@ -127,6 +127,7 @@ xhtmlHeaders(__FILE__, translate('Events'));
         data-toggle="table"
         data-pagination="true"
         data-show-pagination-switch="true"
+        data-page-list="[10, 25, 50, 100, 200, All]"
         data-search="true"
         data-cookie="true"
         data-cookie-id-table="zmEventsTable"
@@ -140,6 +141,7 @@ xhtmlHeaders(__FILE__, translate('Events'));
         data-click-to-select="true"
         data-maintain-meta-data="true"
         data-mobile-responsive="true"
+        data-buttons-class="btn btn-normal"
         class="table-sm table-borderless"
         style="display:none;"
       >
@@ -315,5 +317,27 @@ if ( $results ) {
         </table>
       </div>       
   </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirm" class="modal fade" class="modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete Confirmation</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p><?php echo translate('ConfirmDeleteEvents') ?></p>
+      </div>
+      <div class="modal-footer">
+        <button id="delCancelBtn" type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
+        <button id ="delConfirmBtn" type="button" class="btn btn-danger"><?php echo translate('Delete') ?></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -10,6 +10,13 @@ function thumbnail_onmouseout(event) {
   img.src = img.getAttribute('still_src');
 }
 
+function initThumbAnimation() {
+  $j('.colThumbnail img').each(function() {
+    this.addEventListener('mouseover', thumbnail_onmouseover, false);
+    this.addEventListener('mouseout', thumbnail_onmouseout, false);
+  });
+}
+
 // Returns the event id's of the selected rows
 function getIdSelections() {
   var table = $j('#eventTable');
@@ -72,13 +79,12 @@ function initPage() {
     downloadBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
     deleteBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
   });
-  if ( window.history.length == 1 ) {
-    $j('#controls').children().eq(0).html('');
-  }
-  $j('.colThumbnail img').each(function() {
-    this.addEventListener('mouseover', thumbnail_onmouseover, false);
-    this.addEventListener('mouseout', thumbnail_onmouseout, false);
-  });
+  // Setup the thumbnail video animation
+  initThumbAnimation();
+  
+  // Some toolbar events break the thumbnail animation, so re-init eventlistener
+  table.on('all.bs.table', initThumbAnimation);
+  
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();

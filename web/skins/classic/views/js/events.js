@@ -163,11 +163,31 @@ function initPage() {
       return;
     }
 
+    var modal = $j('#deleteConfirm');
+    var selections = getIdSelections();
+
+    evt.preventDefault();
+    modal.find('.modal-body p').text('You are about to delete '+selections.length+' events. Are you sure?');
+    $j('#deleteConfirm').modal('show');
+  });
+
+  // Manage the DELETE CONFIRMATION modal button
+  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
+    if ( ! canEditEvents ) {
+      alert("You do not have permission to delete events.");
+      return;
+    }
+
     var selections = getIdSelections();
 
     evt.preventDefault();
     $j.getJSON(thisUrl + '?view=events&action=delete&eids[]='+selections.join('&eids[]='));
     window.location.reload(true);
+  });
+
+  // Manage the CANCEL modal button
+  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
+    $j('#deleteConfirm').modal('hide');
   });
 }
 

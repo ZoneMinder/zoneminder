@@ -119,6 +119,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
         data-toggle="table"
         data-pagination="true"
         data-show-pagination-switch="true"
+        data-page-list="[10, 25, 50, 100, 200, All]"
         data-search="true"
         data-cookie="true"
         data-cookie-id-table="zmEventsTable"

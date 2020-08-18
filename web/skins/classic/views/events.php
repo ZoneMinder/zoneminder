@@ -132,6 +132,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
         data-click-to-select="true"
         data-maintain-meta-data="true"
         data-mobile-responsive="true"
+        data-buttons-class="btn btn-normal"
         class="table-sm table-borderless">
         <thead>
 <?php

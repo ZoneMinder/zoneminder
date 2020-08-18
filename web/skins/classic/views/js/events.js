@@ -36,6 +36,7 @@ function getArchivedSelections() {
 }
 
 function initPage() {
+  var backBtn = $j('#backBtn');
   var viewBtn = $j('#viewBtn');
   var archiveBtn = $j('#archiveBtn');
   var unarchiveBtn = $j('#unarchiveBtn');
@@ -79,6 +80,10 @@ function initPage() {
     downloadBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
     deleteBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
   });
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+
   // Setup the thumbnail video animation
   initThumbAnimation();
 
@@ -88,18 +93,21 @@ function initPage() {
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();
-    if ( document.referrer.length ) window.history.back();
+    window.history.back();
   });
+
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
   });
+
   // Manage the TIMELINE Button
   document.getElementById("tlineBtn").addEventListener("click", function onTlineClick(evt) {
     evt.preventDefault();
     window.location.assign('?view=timeline'+filterQuery);
   });
+
   // Manage the VIEW button
   document.getElementById("viewBtn").addEventListener("click", function onViewClick(evt) {
     var selections = getIdSelections();
@@ -108,6 +116,7 @@ function initPage() {
     var filter = '&filter[Query][terms][0][attr]=Id&filter[Query][terms][0][op]=%3D%5B%5D&filter[Query][terms][0][val]='+selections.join('%2C');
     window.location.href = thisUrl+'?view=event&eid='+selections[0]+filter+sortQuery+'&page=1&play=1';
   });
+
   // Manage the ARCHIVE button
   document.getElementById("archiveBtn").addEventListener("click", function onArchiveClick(evt) {
     var selections = getIdSelections();
@@ -116,6 +125,7 @@ function initPage() {
     $j.getJSON(thisUrl + '?view=events&action=archive&eids[]='+selections.join('&eids[]='));
     window.location.reload(true);
   });
+
   // Manage the UNARCHIVE button
   document.getElementById("unarchiveBtn").addEventListener("click", function onUnarchiveClick(evt) {
     if ( ! canEditEvents ) {
@@ -136,6 +146,7 @@ function initPage() {
       window.location.reload(true);
     }
   });
+
   // Manage the EDIT button
   document.getElementById("editBtn").addEventListener("click", function onEditClick(evt) {
     if ( ! canEditEvents ) {
@@ -148,6 +159,7 @@ function initPage() {
     evt.preventDefault();
     createPopup('?view=eventdetail&eids[]='+selections.join('&eids[]='), 'zmEventDetail', 'eventdetail');
   });
+
   // Manage the EXPORT button
   document.getElementById("exportBtn").addEventListener("click", function onExportClick(evt) {
     var selections = getIdSelections();
@@ -155,6 +167,7 @@ function initPage() {
     evt.preventDefault();
     window.location.assign('?view=export&eids[]='+selections.join('&eids[]='));
   });
+
   // Manage the DOWNLOAD VIDEO button
   document.getElementById("downloadBtn").addEventListener("click", function onDownloadClick(evt) {
     var selections = getIdSelections();
@@ -162,6 +175,7 @@ function initPage() {
     evt.preventDefault();
     createPopup('?view=download&eids[]='+selections.join('&eids[]='), 'zmDownload', 'download');
   });
+
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
     if ( ! canEditEvents ) {

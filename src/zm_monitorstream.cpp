@@ -334,7 +334,7 @@ bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
         ||
         (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
        ) {
-      if ( !zm_terminate )
+      if ( !zm_terminate && errno != EPIPE )
         Warning("Unable to send stream frame: %s", strerror(errno));
       return false;
     }
@@ -420,7 +420,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
         ||
         (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
        ) {
-      if ( !zm_terminate ) {
+      if ( !zm_terminate && errno != EPIPE ) {
         // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
         Warning("Unable to send stream frame: %s", strerror(errno));
       }

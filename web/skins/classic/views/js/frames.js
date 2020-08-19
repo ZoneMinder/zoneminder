@@ -19,7 +19,7 @@ function initPage() {
   table.bootstrapTable('destroy').bootstrapTable({icons: icons});
 
   backBtn.prop('disabled', !document.referrer.length);
-  
+
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();

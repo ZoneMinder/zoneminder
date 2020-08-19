@@ -24,12 +24,14 @@ if ( !canView('Events') ) {
 }
 
 require_once('includes/Frame.php');
+require_once('includes/Filter.php');
+
 $eid = validInt($_REQUEST['eid']);
 $Event = new ZM\Event($eid);
 $Monitor = $Event->Monitor();
 
 $countSql = 'SELECT COUNT(*) AS FrameCount FROM Frames AS F WHERE 1 ';
-$frameSql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames AS F WHERE 1 ';
+$frameSql = 'SELECT *, unix_timestamp(TimeStamp) AS UnixTimeStamp FROM Frames AS F WHERE 1 ';
 
 // override the sort_field handling in parseSort for frames
 if ( empty($_REQUEST['sort_field']) )
@@ -38,7 +40,7 @@ if ( empty($_REQUEST['sort_field']) )
 if ( !isset($_REQUEST['sort_asc']) )
   $_REQUEST['sort_asc'] = true;
 
-if ( ! isset($_REQUEST['filter'])){
+if ( !isset($_REQUEST['filter'])){
   // generate a dummy filter from the eid for pagination
   $_REQUEST['filter'] = array('Query' => array( 'terms' => array( ) ) );
   $_REQUEST['filter'] = addFilterTerm(
@@ -49,12 +51,12 @@ if ( ! isset($_REQUEST['filter'])){
 }
 
 parseSort();
-parseFilter($_REQUEST['filter']);
-$filterQuery = $_REQUEST['filter']['query'];
+$filter = ZM\Filter::parse($_REQUEST['filter']);
+$filterQuery = $filter->querystring();
 
-if ( $_REQUEST['filter']['sql'] ) {
-  $countSql .= $_REQUEST['filter']['sql'];
-  $frameSql .= $_REQUEST['filter']['sql'];
+if ( $filter->sql() ) {
+  $countSql .= ' AND ('.$filter->sql().')';
+  $frameSql .= ' AND ('.$filter->sql().')';
 }
 
 $frameSql .= " ORDER BY $sortColumn $sortOrder,Id $sortOrder";
@@ -93,9 +95,9 @@ if ( !empty($page) ) {
     $limitLeft = $limit - $limitStart;
     $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
   }
-  $frameSql .= " limit $limitStart, $limitAmount";
-} elseif ( !empty($limit) ) {
-  $frameSql .= ' limit 0, '.$limit;
+  $frameSql .= " LIMIT $limitStart, $limitAmount";
+} else if ( !empty($limit) ) {
+  $frameSql .= ' LIMIT 0, '.$limit;
 }
 
 $maxShortcuts = 5;
@@ -143,7 +145,7 @@ if ( $pages > 1 ) {
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="page" value="<?php echo $page ?>"/>
         <input type="hidden" name="eid" value="<?php echo $eid ?>"/>
-        <?php echo $_REQUEST['filter']['fields'] ?>
+        <?php echo $filter->hidden_fields() ?>
         <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
         <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
@@ -184,7 +186,7 @@ if ( count($frames) ) {
               ?></td>
               <td class="colType"><?php echo $frame['Type'] ?></td>
               <td class="colTimeStamp"><?php echo strftime(STRF_FMT_TIME, $frame['UnixTimeStamp']) ?></td>
-              <td class="colTimeDelta"><?php echo number_format( $frame['Delta'], 2 ) ?></td>
+              <td class="colTimeDelta"><?php echo number_format($frame['Delta'], 2) ?></td>
 <?php
     if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') ) {
 ?>
@@ -197,11 +199,19 @@ if ( count($frames) ) {
     }
     if ( ZM_WEB_LIST_THUMBS ) {
 ?>
-              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage', array('image', $Event->Width(), $Event->Height()), '<img src="?view=image&amp;fid='.$Frame->Id().'&amp;'.
-(ZM_WEB_LIST_THUMB_WIDTH?'width='.ZM_WEB_LIST_THUMB_WIDTH.'&amp;':'').
-(ZM_WEB_LIST_THUMB_HEIGHT?'height='.ZM_WEB_LIST_THUMB_HEIGHT.'&amp;':'').'filename='.$Event->MonitorId().'_'.$frame['EventId'].'_'.$frame['FrameId'].'.jpg" '.
-(ZM_WEB_LIST_THUMB_WIDTH?'width="'.ZM_WEB_LIST_THUMB_WIDTH.'" ':'').
-(ZM_WEB_LIST_THUMB_HEIGHT?'height="'.ZM_WEB_LIST_THUMB_HEIGHT.'" ':'').' alt="'.$frame['FrameId'].'"/>' ) ?></td>
+  <td class="colThumbnail">
+<?php echo makePopupLink(
+  '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'],
+  'zmImage',
+  array('image', $Event->Width(), $Event->Height()),
+  '<img src="?view=image&amp;fid='.$Frame->Id().'&amp;'.
+    (ZM_WEB_LIST_THUMB_WIDTH?'width='.ZM_WEB_LIST_THUMB_WIDTH.'&amp;':'').
+    (ZM_WEB_LIST_THUMB_HEIGHT?'height='.ZM_WEB_LIST_THUMB_HEIGHT.'&amp;':'').
+    'filename='.$Event->MonitorId().'_'.$frame['EventId'].'_'.$frame['FrameId'].'.jpg" '.
+    (ZM_WEB_LIST_THUMB_WIDTH?'width="'.ZM_WEB_LIST_THUMB_WIDTH.'" ':'').
+    (ZM_WEB_LIST_THUMB_HEIGHT?'height="'.ZM_WEB_LIST_THUMB_HEIGHT.'" ':'').
+    ' alt="'.$frame['FrameId'].'"/>'
+) ?></td>
 <?php
     }
 ?>
@@ -226,7 +236,6 @@ if ( $pagination ) {
 <?php
 }
 ?>
-
         <div id="contentButtons">
         </div>
       </form>

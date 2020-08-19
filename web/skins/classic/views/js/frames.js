@@ -17,6 +17,11 @@ function initThumbAnimation() {
   });
 }
 
+function gotoFrame(e, row, element) {
+  //alert('?view=frame&eid='+row.EventId+'&fid='+row.FramesId)
+  window.location.assign('?view=frame&eid='+row.EventId+'&fid='+row.FramesId);
+}
+
 function initPage() {
   var backBtn = $j('#backBtn');
   var table = $j('#framesTable');
@@ -37,6 +42,11 @@ function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable('destroy').bootstrapTable({icons: icons});
 
+  // Hide these columns on first run when no cookie is saved
+  if ( !getCookie("zmFramesTable.bs.table.columns") ) {
+    table.bootstrapTable('hideColumn', 'FrameId');
+  }
+
   // Disable the back button if there is nothing to go back to
   backBtn.prop('disabled', !document.referrer.length);
 
@@ -46,12 +56,14 @@ function initPage() {
   // Some toolbar events break the thumbnail animation, so re-init eventlistener
   table.on('all.bs.table', initThumbAnimation);
 
+  // Load the associated frame image when the user clicks on a row
+  table.on('click-row.bs.table', gotoFrame);
+
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();
     window.history.back();
   });
-
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();

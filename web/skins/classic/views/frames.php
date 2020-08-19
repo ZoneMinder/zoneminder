@@ -142,7 +142,8 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
         <thead>
           <!-- Row styling is handled by bootstrap-tables -->
           <tr>
-            <th data-align="center" data-sortable="true" data-field="FramesId"><?php echo translate('Frame Id') ?></th>
+            <th data-align="center" data-sortable="false" data-field="EventId"><?php echo translate('EventId') ?></th>
+            <th data-align="center" data-sortable="true" data-field="FramesId"><?php echo translate('FrameId') ?></th>
             <th data-align="center" data-sortable="true" data-field="FramesType"><?php echo translate('Type') ?></th>
             <th data-align="center" data-sortable="true" data-field="FramesTimeStamp"><?php echo translate('TimeStamp') ?></th>
             <th data-align="center" data-sortable="true" data-field="FramesDelta"><?php echo translate('TimeDelta') ?></th>
@@ -150,7 +151,7 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
 <?php
         if ( ZM_WEB_LIST_THUMBS ) {
 ?>
-            <th data-align="center" data-sortable="true" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+            <th data-align="center" data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php
         }
 ?>
@@ -163,15 +164,8 @@ if ( count($frames) ) {
     $Frame = new ZM\Frame($frame);
 ?>
             <tr<?php echo ( strtolower($frame['Type']) == "alarm" ) ? ' class="alarm"' : '' ?>>
-              <td><?php echo makePopupLink(
-                '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage',
-                array(
-                  'frame',
-                  ($scale ? $Event->Width()*$scale/100 : $Event->Width()),
-                  ($scale ? $Event->Height()*$scale/100 : $Event->Height())
-                ),
-                $frame['FrameId'])
-              ?></td>
+              <td><?php echo $frame['EventId'] ?></td>
+              <td><?php echo $frame['FrameId'] ?></td>
               <td><?php echo $frame['Type'] ?></td>
               <td><?php echo strftime(STRF_FMT_TIME, $frame['UnixTimeStamp']) ?></td>
               <td><?php echo number_format( $frame['Delta'], 2 ) ?></td>
@@ -194,7 +188,7 @@ if ( count($frames) ) {
       $full_img_src = join('&amp;', array_filter(array($base_img_src, $thmb_fn)));
       $frame_src = '?view=frame&amp;eid=' .$Event->Id(). '&amp;fid=' .$frame['FrameId'];
       
-      echo '<td class="colThumbnail zoom"><a href="' .$frame_src. '"><img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '"></a></td>'.PHP_EOL;
+      echo '<td class="colThumbnail zoom"><img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '"></td>'.PHP_EOL;
     }
 ?>
             </tr>

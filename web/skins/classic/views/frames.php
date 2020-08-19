@@ -150,7 +150,7 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
 <?php
         if ( ZM_WEB_LIST_THUMBS ) {
 ?>
-            <th data-align="center" data-sortable="true" data-field="Thumbnail" class="zoom"><?php echo translate('Thumbnail') ?></th>
+            <th data-align="center" data-sortable="true" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php
         }
 ?>
@@ -162,7 +162,7 @@ if ( count($frames) ) {
   foreach ( $frames as $frame ) {
     $Frame = new ZM\Frame($frame);
 ?>
-            <tr<?php echo ( strtolower($frame['Type']) == "alarm" ) ? ' class="text-center alarm"' : ' class="text-center"' ?>>
+            <tr<?php echo ( strtolower($frame['Type']) == "alarm" ) ? ' class="alarm"' : '' ?>>
               <td><?php echo makePopupLink(
                 '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage',
                 array(
@@ -186,13 +186,15 @@ if ( count($frames) ) {
 <?php
     }
     if ( ZM_WEB_LIST_THUMBS ) {
-?>
-              <td><?php echo makePopupLink( '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage', array('image', $Event->Width(), $Event->Height()), '<img src="?view=image&amp;fid='.$Frame->Id().'&amp;'.
-(ZM_WEB_LIST_THUMB_WIDTH?'width='.ZM_WEB_LIST_THUMB_WIDTH.'&amp;':'').
-(ZM_WEB_LIST_THUMB_HEIGHT?'height='.ZM_WEB_LIST_THUMB_HEIGHT.'&amp;':'').'filename='.$Event->MonitorId().'_'.$frame['EventId'].'_'.$frame['FrameId'].'.jpg" '.
-(ZM_WEB_LIST_THUMB_WIDTH?'width="'.ZM_WEB_LIST_THUMB_WIDTH.'" ':'').
-(ZM_WEB_LIST_THUMB_HEIGHT?'height="'.ZM_WEB_LIST_THUMB_HEIGHT.'" ':'').' alt="'.$frame['FrameId'].'"/>' ) ?></td>
-<?php
+      $base_img_src = '?view=image&amp;fid=' .$Frame->Id();
+      $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';
+      $thmb_height = ZM_WEB_LIST_THUMB_HEIGHT ? 'height='.ZM_WEB_LIST_THUMB_HEIGHT : '';
+      $thmb_fn = 'filename=' .$Event->MonitorId(). '_' .$frame['EventId']. '_' .$frame['FrameId']. '.jpg';
+      $img_src = join('&amp;', array_filter(array($base_img_src, $thmb_width, $thmb_height, $thmb_fn)));
+      $full_img_src = join('&amp;', array_filter(array($base_img_src, $thmb_fn)));
+      $frame_src = '?view=frame&amp;eid=' .$Event->Id(). '&amp;fid=' .$frame['FrameId'];
+      
+      echo '<td class="colThumbnail zoom"><a href="' .$frame_src. '"><img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '"></a></td>'.PHP_EOL;
     }
 ?>
             </tr>

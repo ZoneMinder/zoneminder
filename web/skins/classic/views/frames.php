@@ -142,11 +142,11 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
         <thead>
           <!-- Row styling is handled by bootstrap-tables -->
           <tr>
-            <th data-align="center" data-sortable="true" data-field="FramesId"><a href="<?php echo sortHeader('FramesFrameId') ?>"><?php echo translate('Frame Id') ?></a></th>
-            <th data-align="center" data-sortable="true" data-field="FramesType"><a href="<?php echo sortHeader('FramesType') ?>"><?php echo translate('Type') ?></a></th>
-            <th data-align="center" data-sortable="true" data-field="FramesTimeStamp"><a href="<?php echo sortHeader('FramesTimeStamp') ?>"><?php echo translate('TimeStamp') ?></a></th>
-            <th data-align="center" data-sortable="true" data-field="FramesDelta"><a href="<?php echo sortHeader('FramesDelta') ?>"><?php echo translate('TimeDelta') ?></a></th>
-            <th data-align="center" data-sortable="true" data-field="FramesScore"><a href="<?php echo sortHeader('FramesScore') ?>"><?php echo translate('Score') ?></a></th>
+            <th data-align="center" data-sortable="true" data-field="FramesId"><?php echo translate('Frame Id') ?></th>
+            <th data-align="center" data-sortable="true" data-field="FramesType"><?php echo translate('Type') ?></th>
+            <th data-align="center" data-sortable="true" data-field="FramesTimeStamp"><?php echo translate('TimeStamp') ?></th>
+            <th data-align="center" data-sortable="true" data-field="FramesDelta"><?php echo translate('TimeDelta') ?></th>
+            <th data-align="center" data-sortable="true" data-field="FramesScore"><?php echo translate('Score') ?></th>
 <?php
         if ( ZM_WEB_LIST_THUMBS ) {
 ?>

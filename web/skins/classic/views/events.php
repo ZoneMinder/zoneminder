@@ -202,7 +202,6 @@ while ( $event_row = dbFetchNext($results) ) {
               <td class="text-center"><?php echo ( $event->Archived() ) ? 'Yes' : 'No' ?></td>
               <td class="text-center"><?php echo ( $event->Emailed() ) ? 'Yes' : 'No' ?></td>
               <td><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
-
               <td><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
               <?php
               # display notes as small text
@@ -223,12 +222,8 @@ while ( $event_row = dbFetchNext($results) ) {
               <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) ?></td>
               <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) ?></td>
               <td><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
-              <td><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 
-              ( ZM_WEB_LIST_THUMBS ? array('frames', ZM_WEB_LIST_THUMB_WIDTH, ZM_WEB_LIST_THUMB_HEIGHT) : 'frames'),
-              $event->Frames() ) ?></td>
-              <td><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames',
-              ( ZM_WEB_LIST_THUMBS ? array('frames', ZM_WEB_LIST_THUMB_WIDTH, ZM_WEB_LIST_THUMB_HEIGHT) : 'frames'),
-              $event->AlarmFrames() ) ?></td>
+              <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->Frames() ?></a></td>
+              <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->AlarmFrames() ?></a></td>
               <td><?php echo $event->TotScore() ?></td>
               <td><?php echo $event->AvgScore() ?></td>
               <td><?php echo makePopupLink(

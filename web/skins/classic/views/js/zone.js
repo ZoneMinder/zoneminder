@@ -312,9 +312,7 @@ function updateActivePoint(index) {
   $('newZone[Points]['+index+'][y]').value = y;
   zone['Points'][index].x = x;
   zone['Points'][index].y = y;
-  console.log('hello');
   var Point = $('zonePoly').points.getItem(index);
-  console.log('hello');
   Point.x = x;
   Point.y = y;
   updateArea();

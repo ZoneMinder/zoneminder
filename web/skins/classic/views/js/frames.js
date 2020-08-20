@@ -17,9 +17,16 @@ function initThumbAnimation() {
   });
 }
 
-function gotoFrame(e, row, element) {
-  //alert('?view=frame&eid='+row.EventId+'&fid='+row.FramesId)
-  window.location.assign('?view=frame&eid='+row.EventId+'&fid='+row.FramesId);
+function processClicks(event, field, value, row, $element) {
+  if ( field == 'FramesScore' ) {
+    if ( value > 0 ) {
+      window.location.assign('?view=stats&eid='+row.EventId+'&fid='+row.FramesId);
+    } else {
+      alert("No statistics available");
+    }
+  } else {
+    window.location.assign('?view=frame&eid='+row.EventId+'&fid='+row.FramesId);
+  }
 }
 
 function initPage() {
@@ -57,7 +64,7 @@ function initPage() {
   table.on('all.bs.table', initThumbAnimation);
 
   // Load the associated frame image when the user clicks on a row
-  table.on('click-row.bs.table', gotoFrame);
+  table.on('click-cell.bs.table', processClicks);
 
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {

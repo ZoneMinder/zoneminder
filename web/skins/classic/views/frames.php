@@ -169,16 +169,8 @@ if ( count($frames) ) {
               <td><?php echo $frame['Type'] ?></td>
               <td><?php echo strftime(STRF_FMT_TIME, $frame['UnixTimeStamp']) ?></td>
               <td><?php echo number_format( $frame['Delta'], 2 ) ?></td>
-<?php
-    if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') ) {
-?>
-              <td><?php echo makePopupLink('?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score']) ?></td>
-<?php
-    } else {
-?> 
               <td><?php echo $frame['Score'] ?></td>
 <?php
-    }
     if ( ZM_WEB_LIST_THUMBS ) {
       $base_img_src = '?view=image&amp;fid=' .$Frame->Id();
       $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';

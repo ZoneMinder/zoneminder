@@ -724,7 +724,11 @@ li.search-choice {
 #dropdown_storage+div,
 #dropdown_reminder+div,
 #dropdown_bandwidth+div {
-background-color:#485460;
+  background-color:#485460;
+}
+
+#framesTable td:hover {
+    cursor: pointer;
 }
 
 .zoom {

@@ -109,7 +109,7 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
 ?>
 <body>
-  <div id="page" class="container-fluid">
+  <div id="page" class="container-fluid p-0">
     <?php echo getNavBarHTML() ?>
 
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->

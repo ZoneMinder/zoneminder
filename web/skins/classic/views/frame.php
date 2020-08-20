@@ -86,6 +86,7 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
 ?>
 <body>
   <div id="page">
+    <?php echo getNavBarHTML() ?>
     <div id="header">
     <form>
       <div id="headerButtons">

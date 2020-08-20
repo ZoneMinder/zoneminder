@@ -842,7 +842,8 @@ bool EventStream::sendFrame(int delta_us) {
           (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) )
           ||
           ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) )  {
-        Error("Unable to send stream frame: %s", strerror(errno));
+        if ( errno != EPIPE )
+          Error("Unable to send stream frame: %s", strerror(errno));
         return false;
       }
     }  // end if send_raw or not

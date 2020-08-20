@@ -61,10 +61,10 @@ if [ "$1" = "configure" ]; then
               exit 1;
             fi
             # This creates the user.
-            echo "CREATE USER '${ZM_DB_USER}'@localhost IDENTIFIED BY '${ZM_DB_PASS}';" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+            echo "CREATE USER '${ZM_DB_USER}'@${ZM_DB_HOST} IDENTIFIED BY '${ZM_DB_PASS}';" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
         fi
         echo "Updating permissions"
-        echo "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute  on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+        echo "GRANT LOCK tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine,trigger,execute ON ${ZM_DB_NAME}.* TO '${ZM_DB_USER}'@${ZM_DB_HOST};" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 
         zmupdate.pl --nointeractive
         zmupdate.pl --nointeractive -f

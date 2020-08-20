@@ -815,10 +815,10 @@ switch ( $tab ) {
             <td><?php echo translate('DeviceFormat') ?></td>
             <td><?php echo htmlSelect('newMonitor[Format]', $v4l2DeviceFormats, $monitor->Format()); ?></td>
           </tr>
-	  <tr>
-<td><?php echo translate('CapturePalette') ?></td>
+         <tr>
+            <td><?php echo translate('CapturePalette') ?></td>
             <td><?php echo htmlSelect('newMonitor[Palette]', $v4l2LocalPalettes, $monitor->Palette()); ?></td>
-	</tr>
+          </tr>
 <?php
         }
 ?>

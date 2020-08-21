@@ -37,6 +37,7 @@ function initPage() {
   var icons = {
     paginationSwitchDown: 'fa-caret-square-o-down',
     paginationSwitchUp: 'fa-caret-square-o-up',
+    export: 'fa-download',
     refresh: 'fa-sync',
     toggleOff: 'fa-toggle-off',
     toggleOn: 'fa-toggle-on',

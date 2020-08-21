@@ -132,6 +132,7 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
         data-cookie-expire="2y"
         data-remember-order="true"
         data-show-columns="true"
+        data-show-export="true"
         data-toolbar="#toolbar"
         data-show-fullscreen="true"
         data-maintain-meta-data="true"

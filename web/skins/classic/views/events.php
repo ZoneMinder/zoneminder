@@ -127,6 +127,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
         data-click-to-select="true"
         data-remember-order="true"
         data-show-columns="true"
+        data-show-export="true"
         data-uncheckAll="true"
         data-toolbar="#toolbar"
         data-show-fullscreen="true"

@@ -82,7 +82,7 @@ require ZoneMinder::Database;
   # update the Config hash with those values
   if ( ZM_CONFIG_SUBDIR and -d ZM_CONFIG_SUBDIR ) {
     if ( -R ZM_CONFIG_SUBDIR ) {
-      foreach my $filename ( sort { $a cmp $b } glob ZM_CONFIG_SUBDIR.'/*.conf' ) {
+      foreach my $filename (glob ZM_CONFIG_SUBDIR.'/*.conf' ) {
         process_configfile($filename);
       }
     } else {

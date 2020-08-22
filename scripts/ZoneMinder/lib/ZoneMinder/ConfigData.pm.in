@@ -4043,7 +4043,6 @@ sub initialiseConfig {
     } else {
       $option->{value} = '';
     }
-#next if ( $option->{category} eq 'hidden' );
     $option->{id} = $option_id++;
   }
   $configInitialised = 1;

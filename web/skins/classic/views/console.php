@@ -284,7 +284,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php
   }
   $imgHTML='';
-  if ( ZM_WEB_LIST_THUMBS ) {
+if ( ZM_WEB_LIST_THUMBS  &&  $monitor['Status'] = 'Running' && $running ) {
     $options = array();
     $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
     $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT;

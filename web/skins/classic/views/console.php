@@ -284,7 +284,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php
   }
   $imgHTML='';
-  if ( ZM_WEB_LIST_THUMBS ) {
+  if ( ZM_WEB_LIST_THUMBS  &&  $monitor['Status'] == 'Connected' && $running ) {
     $options = array();
     $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
     $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT;
@@ -296,14 +296,14 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
     $thmbHeight = ( $options['height'] ) ? 'width:'.$options['height'].'px;' : '';
     
-    $imgHTML = '<img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style='
-                .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"/>';
+    $imgHTML = '<div class="colThumbnail zoom-right"><img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style='
+                .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"/></div>';
   }
 ?>
             <td class="colName">
             <i class="material-icons md-18 <?php echo $dot_class ?>">lens</i>
               <a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . validHtmlStr($monitor['Name']) ?></a><br/>
-              <div class="colThumbnail zoom-right"><?php echo ( $monitor['Status'] = 'Running' ) ? $imgHTML : '' ?></div>
+              <?php echo $imgHTML ?>
               <div class="small text-nowrap text-muted">
 
               <?php echo implode('<br/>',

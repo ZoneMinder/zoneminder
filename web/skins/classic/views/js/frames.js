@@ -29,6 +29,10 @@ function processClicks(event, field, value, row, $element) {
   }
 }
 
+function detailFormatter(index, row, element) {
+  return $j(element).html($j('#contentStatsTable'+index).clone(true).show());
+}
+
 function initPage() {
   var backBtn = $j('#backBtn');
   var table = $j('#framesTable');
@@ -54,6 +58,9 @@ function initPage() {
   if ( !getCookie("zmFramesTable.bs.table.columns") ) {
     table.bootstrapTable('hideColumn', 'FrameId');
   }
+
+  // Hide the stats tables on init
+  $j(".contentStatsTable").hide();
 
   // Disable the back button if there is nothing to go back to
   backBtn.prop('disabled', !document.referrer.length);

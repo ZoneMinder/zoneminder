@@ -35,7 +35,7 @@ xhtmlHeaders(__FILE__, translate('Stats')." - ".$eid." - ".$fid );
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a>
+        <a href="#" id="backLnk"><?php echo translate('Back') ?></a>
       </div>
       <h2><?php echo translate('Stats') ?> - <?php echo $eid ?> - <?php echo $fid ?></h2>
     </div>

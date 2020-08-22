@@ -298,6 +298,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     
     $imgHTML = '<img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style='
                 .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"/>';
+  }
 ?>
             <td class="colName">
             <i class="material-icons md-18 <?php echo $dot_class ?>">lens</i>

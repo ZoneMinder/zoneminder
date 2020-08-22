@@ -95,9 +95,8 @@ xhtmlHeaders(__FILE__, translate('Events') );
 
 ?>
 <body>
-  <div id="page">
-    <?php echo getNavBarHTML() ?>
-
+  <?php echo getNavBarHTML() ?>
+  <div id="page" class="container-fluid p-3">
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
@@ -113,7 +112,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
     </div>
 
     <!-- Table styling handled by bootstrap-tables -->
-    <div class="table-responsive-sm p-3">
+    <div class="row justify-content-center">
       <table
         id="eventTable"
         data-toggle="table"

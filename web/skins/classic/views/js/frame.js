@@ -42,8 +42,6 @@ document.addEventListener('DOMContentLoaded', function onDCL() {
 
 function initPage() {
   var backBtn = $j('#backBtn');
-  var refreshBtn = $j('#refreshBtn');
-  var statsBtn = $j('#statsBtn');
 
   if ( scale == '0' || scale == 'auto' ) changeScale();
 
@@ -64,7 +62,6 @@ function initPage() {
 
   // Manage the STATS button
   document.getElementById("statsBtn").addEventListener("click", function onViewClick(evt) {
-
     evt.preventDefault();
     window.location.href = thisUrl+'?view=stats&eid='+eid+'&fid='+fid;
   });

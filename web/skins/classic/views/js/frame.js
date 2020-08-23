@@ -68,8 +68,6 @@ function initPage() {
     evt.preventDefault();
     window.location.href = thisUrl+'?view=stats&eid='+eid+'&fid='+fid;
   });
-
-
 }
 
 $j(document).ready(function() {

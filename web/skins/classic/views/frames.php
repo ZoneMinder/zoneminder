@@ -145,16 +145,16 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
         <thead>
           <!-- Row styling is handled by bootstrap-tables -->
           <tr>
-            <th data-align="center" data-sortable="false" data-field="EventId"><?php echo translate('EventId') ?></th>
-            <th data-align="center" data-sortable="true" data-field="FramesId"><?php echo translate('FrameId') ?></th>
-            <th data-align="center" data-sortable="true" data-field="FramesType"><?php echo translate('Type') ?></th>
-            <th data-align="center" data-sortable="true" data-field="FramesTimeStamp"><?php echo translate('TimeStamp') ?></th>
-            <th data-align="center" data-sortable="true" data-field="FramesDelta"><?php echo translate('TimeDelta') ?></th>
-            <th data-align="center" data-sortable="true" data-field="FramesScore"><?php echo translate('Score') ?></th>
+            <th class="px-3" data-align="center" data-sortable="false" data-field="EventId"><?php echo translate('EventId') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesId"><?php echo translate('FrameId') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesType"><?php echo translate('Type') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesTimeStamp"><?php echo translate('TimeStamp') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesDelta"><?php echo translate('TimeDelta') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesScore"><?php echo translate('Score') ?></th>
 <?php
         if ( ZM_WEB_LIST_THUMBS ) {
 ?>
-            <th data-align="center" data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+            <th class="px-3" data-align="center" data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php
         }
 ?>

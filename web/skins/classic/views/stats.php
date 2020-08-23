@@ -34,13 +34,14 @@ xhtmlHeaders(__FILE__, translate('Stats')." - ".$eid." - ".$fid );
 <body>
   <?php echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-        <a href="#" id="backLnk"><?php echo translate('Back') ?></a>
-      </div>
-      <h2><?php echo translate('Stats') ?> - <?php echo $eid ?> - <?php echo $fid ?></h2>
+
+    <!-- Toolbar button placement and styling handled by bootstrap-tables -->
+    <div id="toolbar">
+      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+      <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
     </div>
-    <div id="content">
+
+    <div id="content" class="row justify-content-center">
       <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <?php include('_stats_table.php'); ?>

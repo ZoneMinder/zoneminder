@@ -109,9 +109,8 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
 ?>
 <body>
-  <div id="page" class="container-fluid p-0">
-    <?php echo getNavBarHTML() ?>
-
+  <?php echo getNavBarHTML() ?>
+  <div id="page" class="container-fluid p-3">
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
@@ -138,6 +137,9 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
         data-maintain-meta-data="true"
         data-mobile-responsive="true"
         data-buttons-class="btn btn-normal"
+        data-detail-view="true"
+        data-detail-formatter="detailFormatter"
+        data-show-toggle="true"
         class="table-sm table-borderless">
 
         <thead>
@@ -199,5 +201,16 @@ if ( count($frames) ) {
         </table>
       </div>
   </div>
+<!-- Load the statistics for each frame -->
+<!-- This content gets hidden on init and only revailed on detail view -->
+<?php
+$row = 0;
+if ( count($frames) ) foreach ( $frames as $frame ) {
+  $eid = $frame['EventId'];
+  $fid = $frame['FrameId'];
+  include('_stats_table.php');
+  $row++;
+}
+?>
 </body>
 </html>

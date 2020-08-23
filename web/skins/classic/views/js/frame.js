@@ -39,3 +39,15 @@ if ( !scale ) {
 document.addEventListener('DOMContentLoaded', function onDCL() {
   document.getElementById('scale').addEventListener('change', changeScale);
 });
+
+function initPage() {
+  // Manage the BACK button
+  document.getElementById("backLnk").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+}
+
+$j(document).ready(function() {
+  initPage();
+});

@@ -1,6 +1,6 @@
 function initPage() {
   var backBtn = $j('#backBtn');
-  
+
   // Disable the back button if there is nothing to go back to
   backBtn.prop('disabled', !document.referrer.length);
 

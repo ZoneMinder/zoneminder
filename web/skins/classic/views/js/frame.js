@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', function onDCL() {
 });
 
 function initPage() {
+  if ( scale == '0' || scale == 'auto' ) changeScale();
+
   // Manage the BACK button
   document.getElementById("backLnk").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();

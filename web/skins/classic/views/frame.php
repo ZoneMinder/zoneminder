@@ -90,7 +90,7 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
     <div id="header">
     <form>
       <div id="headerButtons">
-        <?php if ( ZM_RECORD_EVENT_STATS && $alarmFrame ) { echo makePopupLink( '?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$Frame->FrameId(), 'zmStats', 'stats', translate('Stats') ); } ?>
+        <?php echo ( ZM_RECORD_EVENT_STATS && $alarmFrame ) ? '<a href="?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$Frame->FrameId().'">'.translate('Stats').'</a>' : '' ?>
         <?php if ( canEdit('Events') ) { ?><a href="?view=none&amp;action=delete&amp;markEid=<?php echo $Event->Id() ?>"><?php echo translate('Delete') ?></a><?php } ?>
         <a href="#" id="backLnk"><?php echo translate('Back') ?></a>
       </div>

@@ -32,6 +32,7 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Stats')." - ".$eid." - ".$fid );
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
     <div id="header">
       <div id="headerButtons">

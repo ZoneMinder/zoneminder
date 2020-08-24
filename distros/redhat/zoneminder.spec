@@ -27,6 +27,9 @@
 # The default for everything but el7 these days
 %global _hardened_build 1
 
+%undefine __cmake_in_source_build
+%undefine __cmake3_in_source_build
+
 Name: zoneminder
 Version: 1.35.6
 Release: 1%{?dist}
@@ -217,8 +220,7 @@ mv -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Beh
 %cmake3 \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
-        -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
-        .
+        -DZM_TARGET_DISTRO="%{zmtargetdistro}"
 
 %cmake3_build
 

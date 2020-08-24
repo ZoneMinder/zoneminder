@@ -19,11 +19,7 @@ function initThumbAnimation() {
 
 function processClicks(event, field, value, row, $element) {
   if ( field == 'FramesScore' ) {
-    if ( value > 0 ) {
       window.location.assign('?view=stats&eid='+row.EventId+'&fid='+row.FramesId);
-    } else {
-      alert("No statistics available");
-    }
   } else {
     window.location.assign('?view=frame&eid='+row.EventId+'&fid='+row.FramesId);
   }

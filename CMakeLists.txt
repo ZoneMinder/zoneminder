@@ -14,18 +14,6 @@ message( SEND_ERROR "The git submodules are not available. Please run
 git submodule update --init --recursive")
 endif( NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php" )
 
-# CMake does not allow out-of-source build if CMakeCache.exists 
-# in the source folder. Abort and notify the user
-if(
-    (NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)) 
-    AND (EXISTS "${CMAKE_SOURCE_DIR}/CMakeCache.txt"))
-        message(FATAL_ERROR " You are attempting to do an out-of-source build, 
-            but a cmake cache file for an in-source build exists. Please delete 
-            the file CMakeCache.txt from the source folder to proceed.")
-endif(
-    (NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)) 
-    AND (EXISTS "${CMAKE_SOURCE_DIR}/CMakeCache.txt"))
-
 # Default build type. To change the build type, 
 # use the CMAKE_BUILD_TYPE configuration option.
 if(NOT CMAKE_BUILD_TYPE)
@@ -107,6 +95,7 @@ IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
 ENDIF (CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 # Modules that we need:
+include (CheckBuildDir)
 include (GNUInstallDirs)
 include (CheckIncludeFile)
 include (CheckIncludeFiles)

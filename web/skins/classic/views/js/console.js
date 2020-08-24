@@ -140,7 +140,7 @@ function initPage() {
     createPopup('?view=version', 'zmVersion', 'version');
   }
   if ( showDonatePopup ) {
-    createPopup('?view=donate', 'zmDonate', 'donate');
+    $j('#donate').modal('show');
   }
 
   // Makes table sortable

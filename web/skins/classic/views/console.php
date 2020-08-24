@@ -294,10 +294,12 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $streamSrc = $Monitor->getStreamSrc(array('scale'=>$scale));
 
     $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
-    $thmbHeight = ( $options['height'] ) ? 'width:'.$options['height'].'px;' : '';
+    $thmbHeight = ( $options['height'] ) ? 'height:'.$options['height'].'px;' : '';
     
-    $imgHTML = '<div class="colThumbnail zoom-right"><img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style='
-                .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"/></div>';
+    $imgHTML = '<div class="colThumbnail zoom-right"><a';
+    $imgHTML .= $stream_available ? ' href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>';
+    $imgHTML .= '<img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style="'
+                .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"/></a></div>';
   }
 ?>
             <td class="colName">

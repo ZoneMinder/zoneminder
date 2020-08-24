@@ -286,18 +286,24 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $imgHTML='';
   if ( ZM_WEB_LIST_THUMBS  &&  $monitor['Status'] == 'Connected' && $running ) {
     $options = array();
+    $ratio_factor = $Monitor->Height()/ $Monitor->Width();
     $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
-    $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT;
+    $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
     $options['mode'] = 'single';
 
     $stillSrc = $Monitor->getStreamSrc($options);
     $streamSrc = $Monitor->getStreamSrc(array('scale'=>$scale));
 
     $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
-    $thmbHeight = ( $options['height'] ) ? 'width:'.$options['height'].'px;' : '';
+    $thmbHeight = ( $options['height'] ) ? 'height:'.$options['height'].'px;' : '';
     
-    $imgHTML = '<div class="colThumbnail zoom-right"><img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style='
-                .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"/></div>';
+    $imgHTML = '<div class="colThumbnail zoom-right"><a';
+    $imgHTML .= $stream_available ? ' href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>';
+    $imgHTML .= '<img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style="'
+      .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"'.
+      ($options['width'] ? ' width="'.$options['width'].'"' : '' ).
+      ($options['height'] ? ' height="'.$options['height'].'"' : '' ).
+      '/></a></div>';
   }
 ?>
             <td class="colName">

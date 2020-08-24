@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -o pipefail
+
 # packpack setup file for the ZoneMinder project
 # Written by Andrew Bauer
 
@@ -249,6 +252,13 @@ execpackpack () {
         fi
     else
         packpack/packpack $parms
+    fi
+
+    if [ $? -ne 0 ]; then
+      echo
+      echo "ERROR: An error occurred while executing packpack."
+      echo
+      exit 1
     fi
 }
 

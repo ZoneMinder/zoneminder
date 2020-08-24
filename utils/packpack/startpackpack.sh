@@ -136,7 +136,6 @@ movecrud () {
     fi
 }
 
-# previsouly part of installzm.sh
 # install the xenial deb and test zoneminder
 install_deb () {
 

@@ -111,108 +111,82 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
 ?>
 <body>
-  <div id="page">
-    <div id="header">
-      <div id="headerButtons"><a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a></div>
-      <h2><?php echo translate('Frames') ?> - <?php echo $Event->Id() ?></h2>
-      <div id="pagination">
-<?php
-if ( $pagination ) {
-?>
-        <h2 class="pagination"><?php echo $pagination ?></h2>
-<?php
-}
-?>
-<?php
-if ( $pages > 1 ) {
-  if ( !empty($page) ) {
-?>
-        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $totalQuery ?>"><?php echo translate('ViewAll') ?></a>
-<?php
-  } else {
-?>
-        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $totalQuery ?>"><?php echo translate('ViewPaged') ?></a>
-<?php
-  }
-}
-?>
-      </div>      
+  <?php echo getNavBarHTML() ?>
+  <div id="page" class="container-fluid p-3">
+    <!-- Toolbar button placement and styling handled by bootstrap-tables -->
+    <div id="toolbar">
+      <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+      <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
     </div>
-    <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="?">
-        <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="action" value=""/>
-        <input type="hidden" name="page" value="<?php echo $page ?>"/>
-        <input type="hidden" name="eid" value="<?php echo $eid ?>"/>
-        <?php echo $filter->hidden_fields() ?>
-        <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
-        <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
-        <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
-        <table id="contentTable" class="major">
-          <thead>
-            <tr>
-            <th class="colId"><a href="<?php echo sortHeader('FramesFrameId') ?>"><?php echo translate('Frame Id') ?><?php echo sortTag('FramesFrameId') ?></a></th>
-            <th class="colType"><a href="<?php echo sortHeader('FramesType') ?>"><?php echo translate('Type') ?><?php echo sortTag('FramesType') ?></a></th>
-            <th class="colTimeStamp"><a href="<?php echo sortHeader('FramesTimeStamp') ?>"><?php echo translate('TimeStamp') ?><?php echo sortTag('FramesTimeStamp') ?></a></th>
-            <th class="colTimeDelta"><a href="<?php echo sortHeader('FramesDelta') ?>"><?php echo translate('TimeDelta') ?><?php echo sortTag('FramesDelta') ?></a></th>
-            <th class="colScore"><a href="<?php echo sortHeader('FramesScore') ?>"><?php echo translate('Score') ?><?php echo sortTag('FramesScore') ?></a></th>
+
+    <!-- Table styling handled by bootstrap-tables -->
+    <div class="row justify-content-center">      
+      <table
+        id="framesTable"
+        data-toggle="table"
+        data-pagination="true"
+        data-show-pagination-switch="true"
+        data-page-list="[10, 25, 50, 100, 200, All]"
+        data-search="true"
+        data-cookie="true"
+        data-cookie-id-table="zmFramesTable"
+        data-cookie-expire="2y"
+        data-remember-order="true"
+        data-show-columns="true"
+        data-show-export="true"
+        data-toolbar="#toolbar"
+        data-show-fullscreen="true"
+        data-maintain-meta-data="true"
+        data-mobile-responsive="true"
+        data-buttons-class="btn btn-normal"
+        data-detail-view="true"
+        data-detail-formatter="detailFormatter"
+        data-show-toggle="true"
+        class="table-sm table-borderless">
+
+        <thead>
+          <!-- Row styling is handled by bootstrap-tables -->
+          <tr>
+            <th class="px-3" data-align="center" data-sortable="false" data-field="EventId"><?php echo translate('EventId') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesId"><?php echo translate('FrameId') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesType"><?php echo translate('Type') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesTimeStamp"><?php echo translate('TimeStamp') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesDelta"><?php echo translate('TimeDelta') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesScore"><?php echo translate('Score') ?></th>
+>>>>>>> master
 <?php
         if ( ZM_WEB_LIST_THUMBS ) {
 ?>
-              <th class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
+            <th class="px-3" data-align="center" data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php
         }
 ?>
-            </tr>
-          </thead>
-          <tbody>
+          </tr>
+        </thead>
+        <tbody>
 <?php
 if ( count($frames) ) {
   foreach ( $frames as $frame ) {
     $Frame = new ZM\Frame($frame);
-
-    $class = strtolower($frame['Type']);
 ?>
-            <tr class="<?php echo $class ?>">
-              <td class="colId"><?php echo makePopupLink(
-                '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage',
-                array(
-                  'frame',
-                  ($scale ? $Event->Width()*$scale/100 : $Event->Width()),
-                  ($scale ? $Event->Height()*$scale/100 : $Event->Height())
-                ),
-                $frame['FrameId'])
-              ?></td>
-              <td class="colType"><?php echo $frame['Type'] ?></td>
-              <td class="colTimeStamp"><?php echo strftime(STRF_FMT_TIME, $frame['UnixTimeStamp']) ?></td>
-              <td class="colTimeDelta"><?php echo number_format($frame['Delta'], 2) ?></td>
+            <tr class="<?php echo strtolower($frame['Type']) ?>">
+              <td><?php echo $frame['EventId'] ?></td>
+              <td><?php echo $frame['FrameId'] ?></td>
+              <td><?php echo $frame['Type'] ?></td>
+              <td><?php echo strftime(STRF_FMT_TIME, $frame['UnixTimeStamp']) ?></td>
+              <td><?php echo number_format( $frame['Delta'], 2 ) ?></td>
+              <td><?php echo $frame['Score'] ?></td>
 <?php
-    if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') ) {
-?>
-              <td class="colScore"><?php echo makePopupLink('?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score']) ?></td>
-<?php
-    } else {
-?> 
-              <td class="colScore"><?php echo $frame['Score'] ?></td>
-<?php
-    }
     if ( ZM_WEB_LIST_THUMBS ) {
-?>
-  <td class="colThumbnail">
-<?php echo makePopupLink(
-  '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'],
-  'zmImage',
-  array('image', $Event->Width(), $Event->Height()),
-  '<img src="?view=image&amp;fid='.$Frame->Id().'&amp;'.
-    (ZM_WEB_LIST_THUMB_WIDTH?'width='.ZM_WEB_LIST_THUMB_WIDTH.'&amp;':'').
-    (ZM_WEB_LIST_THUMB_HEIGHT?'height='.ZM_WEB_LIST_THUMB_HEIGHT.'&amp;':'').
-    'filename='.$Event->MonitorId().'_'.$frame['EventId'].'_'.$frame['FrameId'].'.jpg" '.
-    (ZM_WEB_LIST_THUMB_WIDTH?'width="'.ZM_WEB_LIST_THUMB_WIDTH.'" ':'').
-    (ZM_WEB_LIST_THUMB_HEIGHT?'height="'.ZM_WEB_LIST_THUMB_HEIGHT.'" ':'').
-    ' alt="'.$frame['FrameId'].'"/>'
-) ?></td>
-<?php
+      $base_img_src = '?view=image&amp;fid=' .$Frame->Id();
+      $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';
+      $thmb_height = ZM_WEB_LIST_THUMB_HEIGHT ? 'height='.ZM_WEB_LIST_THUMB_HEIGHT : '';
+      $thmb_fn = 'filename=' .$Event->MonitorId(). '_' .$frame['EventId']. '_' .$frame['FrameId']. '.jpg';
+      $img_src = join('&amp;', array_filter(array($base_img_src, $thmb_width, $thmb_height, $thmb_fn)));
+      $full_img_src = join('&amp;', array_filter(array($base_img_src, $thmb_fn)));
+      $frame_src = '?view=frame&amp;eid=' .$Event->Id(). '&amp;fid=' .$frame['FrameId'];
+      
+      echo '<td class="colThumbnail zoom"><img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '"></td>'.PHP_EOL;
     }
 ?>
             </tr>
@@ -228,18 +202,18 @@ if ( count($frames) ) {
 ?>
           </tbody>
         </table>
-
+      </div>
+  </div>
+<!-- Load the statistics for each frame -->
+<!-- This content gets hidden on init and only revailed on detail view -->
 <?php
-if ( $pagination ) {
-?>
-        <h3 class="pagination"><?php echo $pagination ?></h3>
-<?php
+$row = 0;
+if ( count($frames) ) foreach ( $frames as $frame ) {
+  $eid = $frame['EventId'];
+  $fid = $frame['FrameId'];
+  include('_stats_table.php');
+  $row++;
 }
 ?>
-        <div id="contentButtons">
-        </div>
-      </form>
-    </div>
-  </div>
-</body>
+  </body>
 </html>

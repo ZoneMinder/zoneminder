@@ -249,14 +249,12 @@ function limitArea(field) {
   limitRange(field, minValue, maxValue);
 }
 
-function highlightOn(point) {
-  var index = point.getAttribute('data-index');
+function highlightOn(index) {
   $('row'+index).addClass('highlight');
   $('point'+index).addClass('highlight');
 }
 
-function highlightOff(point) {
-  var index = point.getAttribute('data-index');
+function highlightOff(index) {
   $('row'+index).removeClass('highlight');
   $('point'+index).removeClass('highlight');
 }
@@ -328,17 +326,15 @@ function addPoint(index) {
   if ( index >= (zone['Points'].length-1) ) {
     nextIndex = 0;
   }
+
   var newX = parseInt(Math.round((zone['Points'][index]['x']+zone['Points'][nextIndex]['x'])/2));
   var newY = parseInt(Math.round((zone['Points'][index]['y']+zone['Points'][nextIndex]['y'])/2));
   if ( nextIndex == 0 ) {
     zone['Points'][zone['Points'].length] = {'x': newX, 'y': newY};
   } else {
-    zone['Points'].splice( nextIndex, 0, {'x': newX, 'y': newY} );
+    zone['Points'].splice(nextIndex, 0, {'x': newX, 'y': newY});
   }
   drawZonePoints();
-  // drawZonePoints calls updateZoneImage
-  //updateZoneImage();
-  //setActivePoint( nextIndex );
 }
 
 function delPoint(index) {
@@ -421,10 +417,9 @@ function drawZonePoints() {
         'top': zone['Points'][i].y
       }
     });
-    //div.addEvent('mouseover', highlightOn.pass(i));
-    div.onmouseover = window['highlightOn'].bind(div, div);
-    div.onmouseout = window['highlightOff'].bind(div, div);
+    div.addEvent('mouseover', highlightOn.pass(i));
     div.addEvent('mouseout', highlightOff.pass(i));
+
     div.inject($('imageFrame'));
     div.makeDraggable( {
       'container': $('imageFrame'),
@@ -493,7 +488,7 @@ function drawZonePoints() {
     cell.inject(row);
 
     row.inject(tables[i%tables.length].getElement('tbody'));
-  }
+  } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();
 }

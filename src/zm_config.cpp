@@ -36,8 +36,7 @@
 void zmLoadConfig() {
 
   // Process name, value pairs from the main config file first
-  char configFile[PATH_MAX] = ZM_CONFIG;
-  process_configfile(configFile);
+  process_configfile(ZM_CONFIG);
 
   // Search for user created config files. If one or more are found then
   // update the Config hash with those values

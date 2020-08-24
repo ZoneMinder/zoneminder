@@ -1,3 +1,21 @@
+function thumbnail_onmouseover(event) {
+  var img = event.target;
+  img.src = '';
+  img.src = img.getAttribute('stream_src');
+}
+
+function thumbnail_onmouseout(event) {
+  var img = event.target;
+  img.src = '';
+  img.src = img.getAttribute('still_src');
+}
+
+function initThumbAnimation() {
+  $j('.colThumbnail img').each(function() {
+    this.addEventListener('mouseover', thumbnail_onmouseover, false);
+    this.addEventListener('mouseout', thumbnail_onmouseout, false);
+  });
+}
 
 function setButtonStates( element ) {
   var form = element.form;
@@ -133,6 +151,9 @@ function initPage() {
       axis: 'Y'} );
     $j( "#consoleTableBody" ).disableSelection();
   } );
+
+  // Setup the thumbnail video animation
+  initThumbAnimation();
 }
 
 function applySort(event, ui) {

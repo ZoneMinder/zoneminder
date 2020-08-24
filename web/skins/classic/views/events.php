@@ -104,12 +104,11 @@ xhtmlHeaders(__FILE__, translate('Events'));
 
 ?>
 <body>
-  <div id="page">
-    <?php echo getNavBarHTML() ?>
-
+  <?php echo getNavBarHTML() ?>
+  <div id="page" class="container-fluid p-3">
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
-      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" ><i class="fa fa-arrow-left"></i></button>
+      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       <button id="tlineBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ShowTimeline') ?>" ><i class="fa fa-history"></i></button>
       <button id="viewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('View') ?>" disabled><i class="fa fa-binoculars"></i></button>
@@ -120,8 +119,9 @@ xhtmlHeaders(__FILE__, translate('Events'));
       <button id="downloadBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DownloadVideo') ?>" disabled><i class="fa fa-download"></i></button>
       <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
     </div>
-    <!-- Table styling handled by bootstrap-tables. Initially hidden until rendering done -->
-    <div class="table-responsive-sm p-3">
+
+    <!-- Table styling handled by bootstrap-tables -->
+    <div class="row justify-content-center">
       <table
         id="eventTable"
         data-toggle="table"
@@ -135,6 +135,7 @@ xhtmlHeaders(__FILE__, translate('Events'));
         data-click-to-select="true"
         data-remember-order="true"
         data-show-columns="true"
+        data-show-export="true"
         data-uncheckAll="true"
         data-toolbar="#toolbar"
         data-show-fullscreen="true"
@@ -213,7 +214,6 @@ if ( $results ) {
               <td class="text-center"><?php echo ( $event->Archived() ) ? 'Yes' : 'No' ?></td>
               <td class="text-center"><?php echo ( $event->Emailed() ) ? 'Yes' : 'No' ?></td>
               <td><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
-
               <td><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
               <?php
               # display notes as small text
@@ -233,13 +233,9 @@ if ( $results ) {
               
               <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) ?></td>
               <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime())) ?></td>
-              <td><?php echo gmdate('H:i:s', $event->Length()) ?></td>
-              <td><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 
-              ( ZM_WEB_LIST_THUMBS ? array('frames', ZM_WEB_LIST_THUMB_WIDTH, ZM_WEB_LIST_THUMB_HEIGHT) : 'frames'),
-              $event->Frames() ) ?></td>
-              <td><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames',
-              ( ZM_WEB_LIST_THUMBS ? array('frames', ZM_WEB_LIST_THUMB_WIDTH, ZM_WEB_LIST_THUMB_HEIGHT) : 'frames'),
-              $event->AlarmFrames() ) ?></td>
+              <td><?php echo gmdate('H:i:s', $event->Length() ) ?></td>
+              <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->Frames() ?></a></td>
+              <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->AlarmFrames() ?></a></td>
               <td><?php echo $event->TotScore() ?></td>
               <td><?php echo $event->AvgScore() ?></td>
               <td><?php echo makePopupLink(

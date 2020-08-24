@@ -283,10 +283,27 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colId"><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Id'] ?></a></td>
 <?php
   }
+  $imgHTML='';
+  if ( ZM_WEB_LIST_THUMBS  &&  $monitor['Status'] == 'Connected' && $running ) {
+    $options = array();
+    $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
+    $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT;
+    $options['mode'] = 'single';
+
+    $stillSrc = $Monitor->getStreamSrc($options);
+    $streamSrc = $Monitor->getStreamSrc(array('scale'=>$scale));
+
+    $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
+    $thmbHeight = ( $options['height'] ) ? 'width:'.$options['height'].'px;' : '';
+    
+    $imgHTML = '<div class="colThumbnail zoom-right"><img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style='
+                .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"/></div>';
+  }
 ?>
             <td class="colName">
             <i class="material-icons md-18 <?php echo $dot_class ?>">lens</i>
               <a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . validHtmlStr($monitor['Name']) ?></a><br/>
+              <?php echo $imgHTML ?>
               <div class="small text-nowrap text-muted">
 
               <?php echo implode('<br/>',

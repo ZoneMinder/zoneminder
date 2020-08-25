@@ -64,3 +64,4 @@ deploy:
   script: utils/packpack/rsync_xfer.sh
   on:
     branch: master
+    condition: fork = false

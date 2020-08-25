@@ -67,7 +67,7 @@ xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 <?php
 if ( canView('Control') && $monitor->Type() == 'Local' ) {
 ?>
-          <div id="settingsControl"><?php echo makePopupLink('?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"') ?></div>
+          <div id="settingsControl"><?php echo makePopupLink($monitor->UrlToIndex().'?view=settings&amp;mid='.$monitor->Id().'&amp;'.get_auth_relay(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"') ?></div>
 <?php
 }
 ?>

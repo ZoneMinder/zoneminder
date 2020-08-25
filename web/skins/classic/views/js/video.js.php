@@ -1,3 +1,6 @@
+<?php
+  global $event;
+?>
 var eventId = '<?php echo $event->Id() ?>';
 
 var videoGenSuccessString = '<?php echo addslashes(translate('VideoGenSucceeded')) ?>';

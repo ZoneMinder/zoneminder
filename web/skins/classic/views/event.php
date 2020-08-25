@@ -58,7 +58,7 @@ if ( isset($_REQUEST['scale']) ) {
 $codec = 'auto';
 if ( isset($_REQUEST['codec']) ) {
   $codec = $_REQUEST['codec'];
-  session_start();
+  zm_session_start();
   $_SESSION['zmEventCodec'.$Event->MonitorId()] = $codec;
   session_write_close();
 } else if ( isset($_SESSION['zmEventCodec'.$Event->MonitorId()]) ) {

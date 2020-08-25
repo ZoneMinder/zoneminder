@@ -91,7 +91,7 @@ if ( !$monitor ) {
 }
 $options['connkey'] = generateConnKey();
 
-session_start();
+zm_session_start();
 
 if ( isset($_REQUEST['scale']) ) {
   $options['scale'] = validInt($_REQUEST['scale']);

@@ -34,7 +34,7 @@ protected:
   unsigned char *mTail;
 
 public:
-  Buffer() : mStorage( 0 ), mAllocation( 0 ), mSize( 0 ), mHead( 0 ), mTail( 0 ) {
+  Buffer() : mStorage( nullptr ), mAllocation( 0 ), mSize( 0 ), mHead( nullptr ), mTail( nullptr ) {
   }
   explicit Buffer( unsigned int pSize ) : mAllocation( pSize ), mSize( 0 ) {
     mHead = mStorage = new unsigned char[mAllocation];

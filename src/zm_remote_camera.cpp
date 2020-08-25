@@ -44,20 +44,20 @@ RemoteCamera::RemoteCamera(
     path( p_path ),
     hp( 0 ),
     mNeedAuth(false),
-    mAuthenticator(NULL)
+    mAuthenticator(nullptr)
 {
     if ( path[0] != '/' )
         path = '/'+path;
 }
 
 RemoteCamera::~RemoteCamera() {
-  if ( hp != NULL ) {
+  if ( hp != nullptr ) {
     freeaddrinfo(hp);
-    hp = NULL;
+    hp = nullptr;
   }
 	if ( mAuthenticator ) {
 		delete mAuthenticator;
-		mAuthenticator = NULL;
+		mAuthenticator = nullptr;
 	}
 }
 
@@ -99,9 +99,9 @@ void RemoteCamera::Initialise() {
   if ( ret != 0 ) {
     Fatal( "Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret) );
   }
-  struct addrinfo *p = NULL;
+  struct addrinfo *p = nullptr;
   int addr_count = 0;
-  for ( p = hp; p != NULL; p = p->ai_next ) {
+  for ( p = hp; p != nullptr; p = p->ai_next ) {
     addr_count++;
   }
   Debug(1, "%d addresses returned", addr_count);

@@ -83,7 +83,7 @@ void Zone::Setup(
   alarm_blobs = 0;
   min_blob_size = 0;
   max_blob_size = 0;
-  image = 0;
+  image = nullptr;
   score = 0;
 
   overload_count = 0;

@@ -50,7 +50,7 @@ static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
   rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
   if ( credentialType != rfbCredentialTypeUser ) {
       free(c);
-      return NULL;
+      return nullptr;
   }
 
   c->userCredential.password = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));

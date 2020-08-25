@@ -91,7 +91,7 @@ if ( !$monitor ) {
   ZM\Error('There was no monitor to display.');
 }
 
-session_start();
+zm_session_start();
 
 if ( isset($_REQUEST['scale']) ) {
   $options['scale'] = validInt($_REQUEST['scale']);

@@ -157,7 +157,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
       ZM\Logger::Debug("monitors: ".$user_row['Username'] . ' ' . $user_row['MonitorIds']. ' :' . print_r($userMonitors, true));
 ?>
             <tr>
-              <td class="colUsername"><?php echo makePopupLink('?view=user&amp;uid='.$user_row['Id'], 'zmUser', 'user', validHtmlStr($user_row['Username']).($user['Username']==$user_row['Username']?'*':''), $canEdit) ?></td>
+              <td class="colUsername"><?php echo makeLink('?view=user&amp;uid='.$user_row['Id'], validHtmlStr($user_row['Username']).($user['Username']==$user_row['Username']?'*':''), $canEdit) ?></td>
               <td class="colLanguage"><?php echo $user_row['Language']?validHtmlStr($user_row['Language']):'default' ?></td>
               <td class="colEnabled"><?php echo translate($user_row['Enabled']?'Yes':'No') ?></td>
               <td class="colStream"><?php echo validHtmlStr($user_row['Stream']) ?></td>

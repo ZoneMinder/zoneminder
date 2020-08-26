@@ -229,13 +229,25 @@ function getNavBarHTML() {
   global $user;
   global $bandwidth_options;
   global $view;
+  global $filterQuery;
+  global $sortQuery;
+  global $limitQuery;
+  global $skin;
+
+  if ( !$sortQuery ) {
+    parseSort();
+  }
+  if ( (!$filterQuery) and isset($_REQUEST['filter']) ) {
+    parseFilter($_REQUEST['filter']);
+    $filterQuery = $_REQUEST['filter']['query'];
+  }
 
   ob_start();
   
   if ( ZM_WEB_NAVBAR_TYPE == "normal" ) {
-    echo getNormalNavBarHTML($running, $user, $bandwidth_options, $view);
+    echo getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery, $skin);
   } else {
-    echo getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view);
+    echo getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery, $skin);
   }
 
   return ob_get_clean();
@@ -244,7 +256,7 @@ function getNavBarHTML() {
 //
 // The legacy navigation bar that collapses into a pulldown menu on small screens.
 //
-function getNormalNavBarHTML($running, $user, $bandwidth_options, $view) {
+function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery, $skin) {
 
   $status = runtimeStatus($running);
 
@@ -275,7 +287,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view) {
           echo getLogHTML();
           echo getDevicesHTML();
           echo getGroupsHTML($view);
-          echo getFilterHTML($view);
+          echo getFilterHTML($view, $filterQuery, $sortQuery, $limitQuery);
           echo getCycleHTML($view);
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
@@ -284,7 +296,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view) {
         echo '</ul>';
 
         echo '<ul class="nav navbar-nav justify-content-end align-self-start flex-grow-1">';
-          echo getAcctCircleHTML($user);
+          echo getAcctCircleHTML($skin, $user);
           echo getStatusBtnHTML($status);
         echo '</ul>';
   }
@@ -335,7 +347,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view) {
 //
 // A new, slimmer navigation bar, permanently collapsed into a dropdown
 //
-function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view) {
+function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $filterQuery, $sortQuery, $limitQuery, $skin) {
 
   $status = runtimeStatus($running);
 
@@ -381,7 +393,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view) {
 
         <ul class="list-group list-group-horizontal ml-auto">
         <?php
-        echo getAcctCircleHTML($user);
+        echo getAcctCircleHTML($skin, $user);
         echo getStatusBtnHTML($status);
         ?>
         </ul>
@@ -404,7 +416,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view) {
           echo getLogHTML();
           echo getDevicesHTML();
           echo getGroupsHTML($view);
-          echo getFilterHTML($view);
+          echo getFilterHTML($view,$filterQuery,$sortQuery,$limitQuery);
           echo getCycleHTML($view);
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
@@ -693,11 +705,11 @@ function getGroupsHTML($view) {
 }
 
 // Returns the html representing the Filter menu item
-function getFilterHTML($view) {
+function getFilterHTML($view, $filterQuery, $sortQuery, $limitQuery) {
   $result = '';
   
   $class = $view == 'filter' ? ' selected' : '';
-  $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;
+  $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter'.$filterQuery.$sortQuery.$limitQuery.'">'.translate('Filters').'</a></li>'.PHP_EOL;
   
   return $result;
 }
@@ -776,14 +788,15 @@ function getHeaderFlipHTML() {
 }
 
 // Returns the html representing the logged in user name and avatar
-function getAcctCircleHTML($user=null) {
+function getAcctCircleHTML($skin, $user=null) {
+  // Include Logout modal
+  include("skins/$skin/views/logout.php");
   $result = '';
   
   if ( ZM_OPT_USE_AUTH and $user ) {
     $result .= '<p id="getAcctCircleHTML" class="navbar-text mr-2">'.PHP_EOL;
-    $result .= makePopupLink('?view=logout', 'zmLogout', 'logout',
-      '<i class="material-icons">account_circle</i> '.  $user['Username'],
-      (ZM_AUTH_TYPE == 'builtin') ).PHP_EOL;
+    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  $user['Username'],
+      (ZM_AUTH_TYPE == 'builtin'), 'data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</p>'.PHP_EOL;
   }
   

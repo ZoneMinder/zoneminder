@@ -20,4 +20,4 @@
 #include "zm.h"
 
 /* This is our argv[0], we need it for backtrace */
-const char* self = 0;
+const char* self = nullptr;

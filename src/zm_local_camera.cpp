@@ -302,10 +302,10 @@ LocalCamera::V4L1Data LocalCamera::v4l1_data;
 #endif // ZM_HAS_V4L1
 
 #if HAVE_LIBSWSCALE
-AVFrame **LocalCamera::capturePictures = 0;
+AVFrame **LocalCamera::capturePictures = nullptr;
 #endif // HAVE_LIBSWSCALE
 
-LocalCamera *LocalCamera::last_camera = NULL;
+LocalCamera *LocalCamera::last_camera = nullptr;
 
 LocalCamera::LocalCamera(
   int p_id,
@@ -673,14 +673,14 @@ LocalCamera::LocalCamera(
       Fatal("Image size mismatch. Required: %d Available: %u", pSize, imagesize);
     }
 
-    imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL);
+    imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, nullptr, nullptr, nullptr);
 
     if ( !imgConversionContext ) {
       Fatal("Unable to initialise image scaling context");
     }
   } else {
-    tmpPicture = NULL;
-    imgConversionContext = NULL;
+    tmpPicture = nullptr;
+    imgConversionContext = nullptr;
   }
 #endif
 } // end LocalCamera::LocalCamera
@@ -693,7 +693,7 @@ LocalCamera::~LocalCamera() {
   /* Clean up swscale stuff */
   if ( capture && conversion_type == 1 ) {
     sws_freeContext(imgConversionContext);
-    imgConversionContext = NULL;
+    imgConversionContext = nullptr;
 
     av_frame_free(&tmpPicture);
   }
@@ -898,7 +898,7 @@ void LocalCamera::Initialise() {
         Fatal("Unable to query video buffer: %s", strerror(errno));
 
       v4l2_data.buffers[i].length = vid_buf.length;
-      v4l2_data.buffers[i].start = mmap(NULL, vid_buf.length, PROT_READ|PROT_WRITE, MAP_SHARED, vid_fd, vid_buf.m.offset);
+      v4l2_data.buffers[i].start = mmap(nullptr, vid_buf.length, PROT_READ|PROT_WRITE, MAP_SHARED, vid_fd, vid_buf.m.offset);
 
       if ( v4l2_data.buffers[i].start == MAP_FAILED )
         Fatal("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
@@ -1991,7 +1991,7 @@ int LocalCamera::PrimeCapture() {
       if ( vidioctl(vid_fd, VIDIOC_QBUF, &vid_buf) < 0 )
         Fatal("Failed to queue buffer %d: %s", frame, strerror(errno));
     }
-    v4l2_data.bufptr = NULL;
+    v4l2_data.bufptr = nullptr;
 
     Debug(3, "Starting video stream");
     //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -2023,7 +2023,7 @@ int LocalCamera::PreCapture() {
 
 int LocalCamera::Capture(Image &image) {
   Debug(3, "Capturing");
-  static uint8_t* buffer = NULL;
+  static uint8_t* buffer = nullptr;
   int buffer_bytesused = 0;
   int capture_frame = -1;
 
@@ -2116,7 +2116,7 @@ int LocalCamera::Capture(Image &image) {
 
     /* Request a writeable buffer of the target image */
     uint8_t* directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-    if ( directbuffer == NULL ) {
+    if ( directbuffer == nullptr ) {
       Error("Failed requesting writeable buffer for the captured image.");
       return -1;
     }

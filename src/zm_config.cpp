@@ -110,11 +110,11 @@ void zmLoadConfig() {
 void process_configfile(char const *configFile) {
   FILE *cfg;
   char line[512];
-  if ( (cfg = fopen(configFile, "r")) == NULL ) {
+  if ( (cfg = fopen(configFile, "r")) == nullptr ) {
     Fatal("Can't open %s: %s", configFile, strerror(errno));
     return;
   }
-  while ( fgets(line, sizeof(line), cfg) != NULL ) {
+  while ( fgets(line, sizeof(line), cfg) != nullptr ) {
     char *line_ptr = line;
 
     // Trim off any cr/lf line endings
@@ -259,16 +259,16 @@ ConfigItem::~ConfigItem() {
 void ConfigItem::ConvertValue() const {
   if ( !strcmp( type, "boolean" ) ) {
     cfg_type = CFG_BOOLEAN;
-    cfg_value.boolean_value = (bool)strtol(value, 0, 0);
+    cfg_value.boolean_value = (bool)strtol(value, nullptr, 0);
   } else if ( !strcmp(type, "integer") ) {
     cfg_type = CFG_INTEGER;
-    cfg_value.integer_value = strtol(value, 0, 10);
+    cfg_value.integer_value = strtol(value, nullptr, 10);
   } else if ( !strcmp(type, "hexadecimal") ) {
     cfg_type = CFG_INTEGER;
-    cfg_value.integer_value = strtol(value, 0, 16);
+    cfg_value.integer_value = strtol(value, nullptr, 16);
   } else if ( !strcmp(type, "decimal") ) {
     cfg_type = CFG_DECIMAL;
-    cfg_value.decimal_value = strtod(value, 0);
+    cfg_value.decimal_value = strtod(value, nullptr);
   } else {
     cfg_type = CFG_STRING;
     cfg_value.string_value = value;
@@ -333,10 +333,10 @@ Config::~Config() {
   if ( items ) {
     for ( int i = 0; i < n_items; i++ ) {
       delete items[i];
-      items[i] = NULL;
+      items[i] = nullptr;
     }
     delete[] items;
-    items = NULL;
+    items = nullptr;
   }
 }
 

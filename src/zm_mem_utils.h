@@ -27,15 +27,15 @@ inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {
   uint8_t* retptr;
 #if HAVE_POSIX_MEMALIGN
   if ( posix_memalign((void**)&retptr,reqalignment,reqsize) != 0 )
-    return NULL;
+    return nullptr;
   
   return retptr;
 #else
   uint8_t* alloc;
   retptr = (uint8_t*)malloc(reqsize+reqalignment+sizeof(void*));
   
-  if ( retptr == NULL )
-    return NULL;
+  if ( retptr == nullptr )
+    return nullptr;
   
   alloc = retptr + sizeof(void*);
   
@@ -60,7 +60,7 @@ inline void zm_freealigned(void* ptr) {
 
 inline char *mempbrk(const char *s, const char *accept, size_t limit) {
   if ( limit == 0 || !s || !accept || !*accept )
-    return 0;
+    return nullptr;
 
   unsigned int i,j;
   size_t acc_len = strlen(accept);
@@ -72,12 +72,12 @@ inline char *mempbrk(const char *s, const char *accept, size_t limit) {
       }
     }
   }
-  return 0;
+  return nullptr;
 }
 
 inline char *memstr(const char *s, const char *n, size_t limit) {
   if ( limit == 0 || !s || !n )
-    return 0;
+    return nullptr;
 
   if ( !*n )
     return (char *)s;
@@ -97,7 +97,7 @@ inline char *memstr(const char *s, const char *n, size_t limit) {
         break;
     }
   }
-  return 0;
+  return nullptr;
 }
 
 inline size_t memspn(const char *s, const char *accept, size_t limit) {

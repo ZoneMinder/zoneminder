@@ -22,42 +22,35 @@ if ( !canEdit('Monitors') ) {
   $view = 'error';
   return;
 }
-
-$monitor = ZM\Monitor::find_one(array('Id'=>$_REQUEST['mid']));
-
-$focusWindow = true;
-
-xhtmlHeaders(__FILE__, translate('Function').' - '.validHtmlStr($monitor->Name()));
 ?>
-<body>
-  <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Function').' - '.validHtmlStr($monitor->Name()) ?></h2>
-    </div>
-    <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="?">
-        <input type="hidden" name="view" value="function"/>
-        <input type="hidden" name="action" value="function"/>
-        <input type="hidden" name="mid" value="<?php echo $monitor->Id() ?>"/>
+
+<div id="modalFunction-<?php echo $Monitor->Id() ?>" class="modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><?php echo translate('Function').' - '.validHtmlStr($Monitor->Name()) ?></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
         <p>
-          <select name="newFunction">
-<?php
-foreach ( getEnumValues('Monitors', 'Function') as $optFunction ) {
-?>
-            <option value="<?php echo $optFunction ?>"<?php if ( $optFunction == $monitor->Function() ) { ?> selected="selected"<?php } ?>><?php echo translate('Fn'.$optFunction) ?></option>
-<?php
-}
-?>
+          <select name="newFunction" id="funcSelect-<?php echo $monitor['Id'] ?>">
+            <?php
+            foreach ( getEnumValues('Monitors', 'Function') as $optFunction ) {
+              $selected = ( $optFunction == $Monitor->Function() ) ? ' selected="selected"' : '';
+              echo '<option value="' .$optFunction. '"'. $selected. '>' .translate('Fn'.$optFunction). '</option>'.PHP_EOL;
+            }
+            ?>
           </select>
           <label for="newEnabled"><?php echo translate('Enabled') ?></label>
-          <input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php echo $monitor->Enabled() ?' checked="checked"' : '' ?>/>
+          <input type="checkbox" name="newEnabled" id="newEnabled-<?php echo $monitor['Id'] ?>" value="1"<?php echo $Monitor->Enabled() ?' checked="checked"' : '' ?>/>
         </p>
-        <div id="contentButtons">
-          <button type="submit" value="Save"><?php echo translate('Save') ?></button>
-          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
-        </div>
-      </form>
+      </div>
+      <div class="modal-footer">
+        <button data-mid="<?php echo $monitor['Id'] ?>" type="button" class="funcSaveBtn btn btn-primary"><?php echo translate('Save') ?></button>
+        <button data-mid="<?php echo $monitor['Id'] ?>" type="button" class="funcCancelBtn btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
+      </div>
     </div>
   </div>
-</body>
-</html>
+</div>

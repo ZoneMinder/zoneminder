@@ -244,7 +244,7 @@ echo $table_head;
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
   $Monitor = new ZM\Monitor($monitor);
-
+  include('function.php');
   if ( $monitor_i and ( $monitor_i % 100 == 0 ) ) {
     echo '</table>';
     echo $table_head;
@@ -325,7 +325,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 ?>
             </div></td>
             <td class="colFunction">
-              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$function_class.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', <span class="disabledText">disabled</span>' : '' ) .'</span>', canEdit('Monitors') ) ?><br/>
+              <a class="functionLnk <?php echo $function_class ?>" data-mid="<?php echo $monitor['Id'] ?>" id="functionLnk-<?php echo $monitor['Id'] ?>" href="#"><?php echo translate('Fn'.$monitor['Function']) ?></a><br/>
               <?php echo translate('Status'.$monitor['Status']) ?><br/>
               <div class="small text-nowrap text-muted">
 <?php 

@@ -310,7 +310,6 @@ function parseRows(rows) {
       var val = inputTds.eq(4).children().val();
       if ( ! val ) val = 'false'; // default to the first option false
       inputTds.eq(4).html(select).children().val(val);
-    
     } else { // Reset to regular text field and operator for everything that isn't special
       var textInput = $j('<input></input>').attr('type', 'text').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       var textVal = inputTds.eq(4).children().val();

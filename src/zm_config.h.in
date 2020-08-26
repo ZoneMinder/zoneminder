@@ -62,7 +62,7 @@
 
 extern void zmLoadConfig();
 
-extern void process_configfile( char* configFile );
+extern void process_configfile(char const *configFile);
 
 struct StaticConfig {
   std::string DB_HOST;

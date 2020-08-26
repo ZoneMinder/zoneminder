@@ -1077,6 +1077,12 @@ function initPage() {
     vid.on('click', function(event) {
       handleClick(event);
     });
+    vid.on('volumechange', function() {
+      Cookie.write('volume', vid.volume(), {duration: 10*365});
+    });
+    if ( Cookie.read('volume') != null ) {
+      vid.volume(Cookie.read('volume'));
+    }
     vid.on('timeupdate', function() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
     });

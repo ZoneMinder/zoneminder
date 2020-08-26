@@ -23,7 +23,7 @@ $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
-session_start();
+zm_session_start();
 foreach ( array('GroupId','Function','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var ) {
   if ( isset($_REQUEST[$var]) ) {
     if ( $_REQUEST[$var] != '' ) {

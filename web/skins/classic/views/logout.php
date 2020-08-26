@@ -36,7 +36,7 @@ xhtmlHeaders(__FILE__, translate('Logout') );
           <input type="submit" value="<?php echo translate('Logout') ?>"/>
 <?php
 if ( ZM_USER_SELF_EDIT ) {
-  echo makePopupButton('?view=user&uid=' . $user['Id'], 'zmUser', 'user', translate('Config'));
+  echo makeLink('?view=user&uid=' . $user['Id'], translate('Config'));
 }
 ?>
           <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>

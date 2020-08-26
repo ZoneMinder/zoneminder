@@ -153,10 +153,7 @@ function dbQuery($sql, $params=NULL) {
       }
     }
     if ( defined('ZM_DB_DEBUG') ) {
-      if ( $params )
-        ZM\Logger::Debug("SQL: $sql " . implode(',',$params) . ' rows: '.$result->rowCount());
-      else
-        ZM\Logger::Debug("SQL: $sql: rows:" . $result->rowCount());
+      ZM\Logger::Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
     }
   } catch(PDOException $e) {
     ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));

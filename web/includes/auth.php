@@ -260,6 +260,22 @@ function userFromSession() {
   return $user;
 }
 
+function get_auth_relay() {
+  if ( ZM_OPT_USE_AUTH ) {
+    if ( ZM_AUTH_RELAY == 'hashed' ) {
+      return 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+    } else if ( ZM_AUTH_RELAY == 'plain' ) {
+      // password probably needs to be escaped
+      return 'username='.$_SESSION['username'].'&password='.urlencode($_SESSION['password']);
+    } else if ( ZM_AUTH_RELAY == 'none' ) {
+      return 'username='.$_SESSION['username'];
+    } else {
+      ZM\Error('Unknown value for ZM_AUTH_RELAY ' . ZM_AUTH_RELAY);
+    }
+  }
+  return '';
+} // end function get_auth_relay
+
 if ( ZM_OPT_USE_AUTH ) {
   if ( !empty($_REQUEST['token']) ) {
     // we only need to get the username here

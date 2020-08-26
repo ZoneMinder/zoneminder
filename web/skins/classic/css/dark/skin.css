@@ -528,12 +528,18 @@ input[type=submit]:disabled,
   margin-left: 0;
 }
 
+.table {
+  width: 100%;
+  margin-bottom: 1rem;
+  color: #eeeeee;
+}
+
 .table-striped > tbody > tr:nth-of-type(2n+1) {
   background-color: #333333;
 }
 
-.table-hover>tbody>tr:hover {
-  background-color: #444444;
+.table-hover > tbody > tr:hover {
+  background-color: orange;
 }
 
 .nav-pills>li.active>a, .nav-pills>li.active>a:focus, .nav-pills>li.active>a:hover {

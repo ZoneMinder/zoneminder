@@ -107,7 +107,7 @@ void zmLoadConfig() {
   snprintf(staticConfig.video_file_format, sizeof(staticConfig.video_file_format), "%%s/%%s");
 }
 
-void process_configfile(char* configFile) {
+void process_configfile(char const *configFile) {
   FILE *cfg;
   char line[512];
   if ( (cfg = fopen(configFile, "r")) == NULL ) {

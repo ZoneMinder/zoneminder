@@ -59,7 +59,7 @@ var popupSizes = {
   'options':      {'width': 1000, 'height': 660},
   'preset':       {'width': 300, 'height': 220},
   'server':       {'width': 600, 'height': 405},
-  'settings':     {'width': 220, 'height': 235},
+  'settings':     {'width': 250, 'height': 335},
   'shutdown':     {'width': 400, 'height': 400},
   'state':        {'width': 400, 'height': 170},
   'stats':        {'width': 840, 'height': 200},

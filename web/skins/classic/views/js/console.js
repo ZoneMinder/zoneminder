@@ -135,14 +135,12 @@ function reloadWindow() {
 }
 
 function initPage() {
-
   $j('.functionLnk').click(function(evt) {
     if ( ! canEditEvents ) {
       alert("You do not have permission to change monitor function.");
       return;
     }
     var mid = evt.currentTarget.getAttribute("data-mid");
-    
     evt.preventDefault();
     $j('#modalFunction-'+mid).modal('show');
   });
@@ -170,7 +168,6 @@ function initPage() {
   // Manage the CANCEL modal buttons
   $j('.funcCancelBtn').click(function(evt) {
     var mid = evt.currentTarget.getAttribute("data-mid");
-    
     evt.preventDefault();
     $j('#modalFunction-'+mid).modal('hide');
   });
@@ -180,12 +177,10 @@ function initPage() {
     var mid = evt.currentTarget.getAttribute("data-mid");
     var newFunc = $j("#funcSelect-"+mid).val();
     var newEnabled = $j('#newEnabled-'+mid).is(':checked') ? 1 : 0;
-    
     evt.preventDefault();
     $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled);
     window.location.reload(true);
   });
-
 }
 
 function applySort(event, ui) {

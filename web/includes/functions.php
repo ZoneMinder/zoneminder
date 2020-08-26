@@ -849,7 +849,6 @@ function daemonStatus($daemon, $args=false) {
   if ( $args ) {
 		if ( is_array($args) ) {
 			$string .= join(' ', $args);
-ZM\Warning("daemonStatus args: $string");
 		} else {
 			$string .= ' ' . $args;
 		}
@@ -2052,28 +2051,51 @@ function validHtmlStr($input) {
   return htmlspecialchars($input, ENT_QUOTES);
 }
 
+/* options['width'] is the desired view width not necessarily the image width requested.
+ * It can be % in which case we us it to set the scale
+ * It can be px in which case we can use it to calculate the scale
+ * Same width height.  If both are set we should calculate the smaller resulting scale
+ */
 function getStreamHTML($monitor, $options = array()) {
+  ZM\Warning(print_r($options, true));
 
-  if ( isset($options['scale']) ) {
-    if ( $options['scale'] != 'auto' && $options['scale'] != '0' and $options['scale'] != '' ) {
-      ZM\Logger::Debug("Setting dimensions from scale:".$options['scale']);
+  if ( isset($options['scale']) and $options['scale'] != '' ) {
+    if ( $options['scale'] != 'auto' && $options['scale'] != '0' ) {
+      ZM\Warning("Setting dimensions from scale:".$options['scale']);
       $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
       $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
-    } else {
+    } else if ( ! ( isset($options['width']) or isset($options['height']) ) ) {
       $options['width'] = '100%';
       $options['height'] = 'auto';
     }
   } else {
+    $options['scale'] = 100;
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty
     if ( ! ( isset($options['width']) and $options['width'] ) ) {
-      $options['width'] = $monitor->ViewWidth().'px';
-      if ( ! ( isset($options['height']) and $options['height'] ) ) {
+      # Havn't specified width.  If we specified height, then we should
+      # use a width that keeps the aspect ratio, otherwise no scaling, 
+      # no dimensions, so assume the dimensions of the Monitor
+
+      if ( ! (isset($options['height']) and $options['height']) ) {
+        $options['width'] = $monitor->ViewWidth().'px';
         $options['height'] = $monitor->ViewHeight().'px';
       }
-    } else if ( ! isset($options['height']) ) {
-      $options['height'] = '';
-    }
+    } else {
+      ZM\Warning("Have width ".$options['width']);
+      if ( preg_match('/^(\d+)px$/', $options['width'], $matches) ) {
+        $scale = intval(100*$matches[1]/$monitor->ViewWidth());
+        ZM\Warning("Scale is $scale");
+        if ( $scale < $options['scale'] )
+          $options['scale'] = $scale;
+      } else if ( preg_match('/^(\d+)%$/', $options['width'], $matches) ) {
+        $scale = intval($matches[1]);
+        if ( $scale < $options['scale'] )
+          $options['scale'] = $scale;
+      } else {
+        Warning("Invalid value for width: ".$options['width']);
+      }
+    } 
   }
   if ( ! isset($options['mode'] ) ) {
     $options['mode'] = 'stream';

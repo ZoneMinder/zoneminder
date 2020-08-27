@@ -68,6 +68,8 @@ function loadLocations( element ) {
 }
 
 function initPage() {
+  var backBtn = $j('#backBtn');
+
   //var protocolSelector = $('contentForm').elements['newMonitor[Protocol]'];
   //if ( $(protocolSelector).getTag() == 'select' )
   //updateMethods( $(protocolSelector) );
@@ -135,8 +137,22 @@ function initPage() {
     el.onchange = window['change_WebColour'].bind(el);
   });
 
-
   $j('.chosen').chosen();
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
 } // end function initPage()
 
 function change_WebColour() {

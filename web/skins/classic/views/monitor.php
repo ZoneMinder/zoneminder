@@ -384,7 +384,14 @@ getBodyTopHTML();
 echo getNavBarHTML();
 ?>
   <div id="page">
-    <div id="header">
+    <div class="d-flex flex-row justify-content-between px-3 py-1">
+    
+      <div class="" id="toolbar" >
+        <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+      </div>
+      
+    <h2><?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor->Name()) ?><?php if ( $monitor->Id() ) { ?> (<?php echo $monitor->Id()?>)<?php } ?></h2>
 <?php
 if ( canEdit('Monitors') ) {
   if ( isset($_REQUEST['dupId']) ) {
@@ -395,19 +402,19 @@ if ( canEdit('Monitors') ) {
 <?php
   }
 ?>
-    <div id="headerButtons">
-      <?php echo makePopupLink('?view=monitorprobe&mid='.$monitor->Id(), 'zmMonitorProbe'.$monitor->Id(), 'monitorprobe', translate('Probe')); ?>
+    <div id="">
+      <?php echo makeLink('?view=monitorprobe&mid='.$monitor->Id(), translate('Probe')); ?>
 <?php
   if ( ZM_HAS_ONVIF ) {
-       echo makePopupLink('?view=onvifprobe&mid='.$monitor->Id(), 'zmOnvifProbe'.$monitor->Id(), 'onvifprobe', translate('OnvifProbe'));
+       echo makeLink('?view=onvifprobe&mid='.$monitor->Id(), translate('OnvifProbe'));
   }
 ?>
-      <?php echo makePopupLink('?view=monitorpreset&mid=' . $monitor->Id(), 'zmMonitorPreset' . $monitor->Id(), 'monitorpreset', translate('Presets')); ?>
+      <?php echo makeLink('?view=monitorpreset&mid=' . $monitor->Id(), translate('Presets')); ?>
     </div>
 <?php
 } // end if canEdit('Monitors')
 ?>
-    <h2><?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor->Name()) ?><?php if ( $monitor->Id() ) { ?> (<?php echo $monitor->Id()?>)<?php } ?></h2>
+    
   </div>
   <div id="content">
     <ul class="tabList">

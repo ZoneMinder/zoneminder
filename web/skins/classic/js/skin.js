@@ -369,10 +369,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
         mfbflip.html('keyboard_arrow_down');
-        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365} );
+        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365} );
       } else {
         mfbflip.html('keyboard_arrow_up');
-        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365} );
+        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365} );
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }

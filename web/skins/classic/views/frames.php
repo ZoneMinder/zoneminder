@@ -146,22 +146,20 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
 
         <thead>
           <!-- Row styling is handled by bootstrap-tables -->
-          <tr>
-            <th class="px-3" data-align="center" data-sortable="false" data-field="EventId"><?php echo translate('EventId') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesId"><?php echo translate('FrameId') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesType"><?php echo translate('Type') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesTimeStamp"><?php echo translate('TimeStamp') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesDelta"><?php echo translate('TimeDelta') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesScore"><?php echo translate('Score') ?></th>
->>>>>>> master
+            <tr>
+            <th class="colId"><a href="<?php echo sortHeader('FramesFrameId') ?>"><?php echo translate('Frame Id') ?><?php echo sortTag('FramesFrameId') ?></a></th>
+            <th class="colType"><a href="<?php echo sortHeader('FramesType') ?>"><?php echo translate('Type') ?><?php echo sortTag('FramesType') ?></a></th>
+            <th class="colTimeStamp"><a href="<?php echo sortHeader('FramesTimeStamp') ?>"><?php echo translate('TimeStamp') ?><?php echo sortTag('FramesTimeStamp') ?></a></th>
+            <th class="colTimeDelta"><a href="<?php echo sortHeader('FramesDelta') ?>"><?php echo translate('TimeDelta') ?><?php echo sortTag('FramesDelta') ?></a></th>
+            <th class="colScore"><a href="<?php echo sortHeader('FramesScore') ?>"><?php echo translate('Score') ?><?php echo sortTag('FramesScore') ?></a></th>
 <?php
         if ( ZM_WEB_LIST_THUMBS ) {
 ?>
-            <th class="px-3" data-align="center" data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+              <th class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
 <?php
         }
 ?>
-          </tr>
+            </tr>
         </thead>
         <tbody>
 <?php

@@ -82,7 +82,7 @@ sub Execute {
   my $self = $_[0];
   my $sql = $self->Sql(undef);
 
-  if ( @{$$self{PreSQLConditions}} ) {
+  if ( $$self{PreSQLConditions} and @{$$self{PreSQLConditions}} ) {
     foreach my $term ( @{$$self{PreSQLConditions}} ) {
       if ( $$term{attr} eq 'DiskPercent' ) {
       }

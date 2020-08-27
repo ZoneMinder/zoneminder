@@ -38,7 +38,6 @@ $filter = isset($_REQUEST['filter_id']) ? new ZM\Filter($_REQUEST['filter_id']) 
 if ( isset($_REQUEST['filter'])) {
   $filter->set($_REQUEST['filter']);
 }
-$filter->parse();
 
 parseSort();
 

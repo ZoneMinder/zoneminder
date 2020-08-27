@@ -259,28 +259,39 @@ function selectLayout(element) {
     Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
     $('scale').set('value', '');
     $('width').set('value', '0');
-    for ( var i = 0, length = monitors.length; i < length; i++ ) {
-      var monitor = monitors[i];
-      var streamImg = $('liveStream'+monitor.id);
-      if ( streamImg ) {
-        if ( streamImg.nodeName == 'IMG' ) {
-          var src = streamImg.src;
-          src = src.replace(/width=[\.\d]+/i, 'width=0' );
-          if ( $j('#height').val() == '0' ) {
-            src = src.replace(/height=[\.\d]+/i, 'height=0' );
-            streamImg.style.height = 'auto';
-          }
-          if ( src != streamImg.src ) {
-            streamImg.src = '';
-            streamImg.src = src;
-          }
-        } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
-          // APPLET's and OBJECTS need to be re-initialized
-        }
-        streamImg.style.width = '100%';
-      }
-    } // end foreach monitor
+  } else {
+    // Is freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
   }
+  var width = parseInt($('width').get('value'));
+  var height = parseInt($('height').get('value'));
+  var scale = $('scale').get('value');
+  if ( scale ) {
+  } else if ( width ) {
+    scale = parseInt(100*width/monitor.width);
+  } else if ( height ) {
+    scale = parseInt(100*height/monitor.height);
+  }
+
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+    var monitor = monitors[i];
+    var streamImg = $('liveStream'+monitor.id);
+    if ( streamImg ) {
+      if ( streamImg.nodeName == 'IMG' ) {
+        var src = streamImg.src;
+        src = src.replace(/scale=\d*/i, 'scale='+scale);
+        if ( height == '0' ) {
+          streamImg.style.height = 'auto';
+        }
+        if ( src != streamImg.src ) {
+          streamImg.src = '';
+          streamImg.src = src;
+        }
+      } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
+        // APPLET's and OBJECTS need to be re-initialized
+      }
+      streamImg.style.width = '100%';
+    }
+  } // end foreach monitor
 } // end function selectLayout(element)
 
 /**

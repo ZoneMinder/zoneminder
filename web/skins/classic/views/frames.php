@@ -153,7 +153,6 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
             <th class="px-3" data-align="center" data-sortable="true" data-field="FramesTimeStamp"><?php echo translate('TimeStamp') ?></th>
             <th class="px-3" data-align="center" data-sortable="true" data-field="FramesDelta"><?php echo translate('TimeDelta') ?></th>
             <th class="px-3" data-align="center" data-sortable="true" data-field="FramesScore"><?php echo translate('Score') ?></th>
->>>>>>> master
 <?php
         if ( ZM_WEB_LIST_THUMBS ) {
 ?>

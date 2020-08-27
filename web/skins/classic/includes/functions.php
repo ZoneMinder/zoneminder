@@ -88,6 +88,7 @@ echo output_cache_busted_stylesheet_links(array(
   'css/font-awesome.min.css',
   'css/bootstrap.min.css',
   'css/bootstrap-table.min.css',
+  'css/bootstrap-table-page-jump-to.min.css',
 ));
 
 echo output_link_if_exists(array(
@@ -135,6 +136,7 @@ if ( $css != 'base' )
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-table.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/tableExport.min.js"></script> 
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-export.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-page-jump-to.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
   <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>

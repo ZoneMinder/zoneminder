@@ -143,6 +143,7 @@ xhtmlHeaders(__FILE__, translate('Events'));
         data-maintain-meta-data="true"
         data-mobile-responsive="true"
         data-buttons-class="btn btn-normal"
+        data-show-jump-to="true"
         class="table-sm table-borderless"
         style="display:none;"
       >

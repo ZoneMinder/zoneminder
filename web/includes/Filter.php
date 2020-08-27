@@ -197,27 +197,6 @@ class Filter extends ZM_Object {
     #return $this->defaults{'sort_asc'};
   }
 
-  public function fields() {
-    if ( !property_exists($this, 'fields') ) {
-      $this->parse();
-    }
-    return $this->{'fields'};
-  }
-
-  public function sql() {
-    if ( !property_exists($this, 'sql') ) {
-      $this->sql();
-    }
-    return $this->{'sql'};
-  }
-
-  public function query_string() {
-    if ( !property_exists($this, 'query') ) {
-      $this->query();
-    }
-    return $this->{'query'};
-  }
-
   public function limit( ) {
     if ( func_num_args( ) ) {
       $Query = $this->Query();

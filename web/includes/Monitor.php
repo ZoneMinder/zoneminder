@@ -214,6 +214,10 @@ class Monitor extends ZM_Object {
         $args['scale'] = intval((100*intval($args['height']))/$this->ViewHeight());
       }
     }
+    if ( isset($args['width']) )
+      unset($args['width']);
+    if ( isset($args['height']) )
+      unset($args['height']);
 
     $streamSrc .= '?'.http_build_query($args, '', $querySep);
 

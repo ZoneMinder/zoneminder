@@ -198,14 +198,14 @@ RtspThread::~RtspThread() {
 #else
     av_free_format_context(mFormatContext);
 #endif
-    mFormatContext = NULL;
+    mFormatContext = nullptr;
   }
   if ( mSessDesc ) {
     delete mSessDesc;
-    mSessDesc = NULL;
+    mSessDesc = nullptr;
   }
   delete mAuthenticator;
-  mAuthenticator = NULL;
+  mAuthenticator = nullptr;
 }
 
 int RtspThread::run() {
@@ -387,7 +387,7 @@ int RtspThread::run() {
   if ( !mAuth.empty() )
     authUrl.insert( authUrl.find( "://" )+3, mAuth+"@" );
 
-  if ( av_open_input_file( &mFormatContext, authUrl.c_str(), NULL, 0, NULL ) != 0 )
+  if ( av_open_input_file( &mFormatContext, authUrl.c_str(), nullptr, 0, nullptr ) != 0 )
   {
     Error( "Unable to open input '%s'", authUrl.c_str() );
     return( -1 );
@@ -499,26 +499,26 @@ int RtspThread::run() {
       method = "RTP/UNICAST";
       StringVector subparts = split( parts[i], "=" );
       StringVector ports = split( subparts[1], "-" );
-      remotePorts[0] = strtol( ports[0].c_str(), NULL, 10 );
-      remotePorts[1] = strtol( ports[1].c_str(), NULL, 10 );
+      remotePorts[0] = strtol( ports[0].c_str(), nullptr, 10 );
+      remotePorts[1] = strtol( ports[1].c_str(), nullptr, 10 );
     } else if ( startsWith( parts[i], "interleaved=" ) ) {
       method = "RTP/RTSP";
       StringVector subparts = split( parts[i], "=" );
       StringVector channels = split( subparts[1], "-" );
-      remoteChannels[0] = strtol( channels[0].c_str(), NULL, 10 );
-      remoteChannels[1] = strtol( channels[1].c_str(), NULL, 10 );
+      remoteChannels[0] = strtol( channels[0].c_str(), nullptr, 10 );
+      remoteChannels[1] = strtol( channels[1].c_str(), nullptr, 10 );
     } else if ( startsWith( parts[i], "port=" ) ) {
       method = "RTP/MULTICAST";
       StringVector subparts = split( parts[i], "=" );
       StringVector ports = split( subparts[1], "-" );
-      localPorts[0] = strtol( ports[0].c_str(), NULL, 10 );
-      localPorts[1] = strtol( ports[1].c_str(), NULL, 10 );
+      localPorts[0] = strtol( ports[0].c_str(), nullptr, 10 );
+      localPorts[1] = strtol( ports[1].c_str(), nullptr, 10 );
     } else if ( startsWith( parts[i], "destination=" ) ) {
       StringVector subparts = split( parts[i], "=" );
       localHost = subparts[1];
     } else if ( startsWith( parts[i], "ssrc=" ) ) {
       StringVector subparts = split( parts[i], "=" );
-      ssrc = strtoll( subparts[1].c_str(), NULL, 16 );
+      ssrc = strtoll( subparts[1].c_str(), nullptr, 16 );
     }
   }
 
@@ -568,10 +568,10 @@ int RtspThread::run() {
         for ( size_t j = 0; j < parts.size(); j++ ) {
           if ( startsWith( parts[j], "seq=" ) ) {
             StringVector subparts = split( parts[j], "=" );
-            seq = strtol( subparts[1].c_str(), NULL, 10 );
+            seq = strtol( subparts[1].c_str(), nullptr, 10 );
           } else if ( startsWith( parts[j], "rtptime=" ) ) {
             StringVector subparts = split( parts[j], "=" );
-            rtpTime = strtol( subparts[1].c_str(), NULL, 10 );
+            rtpTime = strtol( subparts[1].c_str(), nullptr, 10 );
           }
         }
       break;
@@ -582,7 +582,7 @@ int RtspThread::run() {
   Debug( 2, "RTSP Seq is %d", seq );
   Debug( 2, "RTSP Rtptime is %ld", rtpTime );
 
-  time_t lastKeepalive = time(NULL);
+  time_t lastKeepalive = time(nullptr);
   time_t now;
   message = "GET_PARAMETER "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
 
@@ -598,7 +598,7 @@ int RtspThread::run() {
       rtpCtrlThread.start();
 
       while( !mStop ) {
-        now = time(NULL);
+        now = time(nullptr);
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
         Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d",
             sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
@@ -721,7 +721,7 @@ int RtspThread::run() {
         }
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
         // FIXME: Is this really necessary when using tcp ?
-        now = time(NULL);
+        now = time(nullptr);
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
 Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
         if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
@@ -761,10 +761,10 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
 
       while ( !mStop ) {
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        if ( sendKeepalive && (timeout > 0) && ((time(NULL)-lastKeepalive) > (timeout-5)) ) {
+        if ( sendKeepalive && (timeout > 0) && ((time(nullptr)-lastKeepalive) > (timeout-5)) ) {
           if ( !sendCommand( message ) )
             return -1;
-          lastKeepalive = time(NULL);
+          lastKeepalive = time(nullptr);
         }
         usleep(100000);
       }

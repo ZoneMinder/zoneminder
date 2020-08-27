@@ -17,32 +17,28 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-
-$focusWindow = true;
-
-xhtmlHeaders(__FILE__, translate('Logout') );
+global $CLANG;
 ?>
-<body>
-  <div id="page">
-    <div id="header">
-      <h1><?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Logout') ?></h1>
-    </div>
-    <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="?">
-        <input type="hidden" name="action" value="logout"/>
-        <input type="hidden" name="view" value="logout"/>
+<div id="modalLogout" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Logout') ?></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
         <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
-        <p>
-          <input type="submit" value="<?php echo translate('Logout') ?>"/>
-<?php
-if ( ZM_USER_SELF_EDIT ) {
-  echo makePopupButton('?view=user&uid=' . $user['Id'], 'zmUser', 'user', translate('Config'));
-}
-?>
-          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
-        </p>
-      </form>
+      </div>
+      <div class="modal-footer">
+        <form name="contentForm" id="contentForm" method="post" action="?">
+          <input type="hidden" name="view" value="logout"/>
+          <button type="submit" name="action" value="logout"><?php echo translate('Logout') ?></button>
+          <?php if ( ZM_USER_SELF_EDIT ) echo '<button type="submit" name="action" value="config">'.translate('Config').'</button>'.PHP_EOL; ?>
+          <button type="button" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
+        </form>
+      </div>
     </div>
   </div>
-</body>
-</html>
+</div>

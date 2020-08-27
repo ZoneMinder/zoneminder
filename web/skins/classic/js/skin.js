@@ -362,6 +362,21 @@ if ( currentView != 'none' && currentView != 'login' ) {
         $j('.chosen').chosen();
       }
     });
+
+    // Manage the web console filter bar minimize chevron
+    $j("#mfbflip").click(function() {
+      $j("#mfbpanel").slideToggle("slow");
+      var mfbflip = $j("#mfbflip");
+      if ( mfbflip.html() == 'keyboard_arrow_up' ) {
+        mfbflip.html('keyboard_arrow_down');
+        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365} );
+      } else {
+        mfbflip.html('keyboard_arrow_up');
+        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365} );
+        $j('.chosen').chosen("destroy");
+        $j('.chosen').chosen();
+      }
+    });
     // Autoclose the hamburger button if the end user clicks outside the button
     $j(document).click(function(event) {
       var target = $j(event.target);

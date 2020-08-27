@@ -22,7 +22,7 @@ function getIdSelections() {
   var table = $j('#eventTable');
 
   return $j.map(table.bootstrapTable('getSelections'), function(row) {
-    return row.Id.replace(/(<([^>]+)>)/gi, ""); // strip the html from the element before sending
+    return row.Id.replace(/(<([^>]+)>)/gi, ''); // strip the html from the element before sending
   });
 }
 
@@ -50,6 +50,7 @@ function initPage() {
   var icons = {
     paginationSwitchDown: 'fa-caret-square-o-down',
     paginationSwitchUp: 'fa-caret-square-o-up',
+    export: 'fa-download',
     refresh: 'fa-sync',
     toggleOff: 'fa-toggle-off',
     toggleOn: 'fa-toggle-on',
@@ -72,13 +73,15 @@ function initPage() {
   table.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',
   function() {
-    viewBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
-    archiveBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
+    selections = table.bootstrapTable('getSelections');
+
+    viewBtn.prop('disabled', !(selections.length && canViewEvents));
+    archiveBtn.prop('disabled', !(selections.length && canEditEvents));
     unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEditEvents);
-    editBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
-    exportBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
-    downloadBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canViewEvents));
-    deleteBtn.prop('disabled', !(table.bootstrapTable('getSelections').length && canEditEvents));
+    editBtn.prop('disabled', !(selections.length && canEditEvents));
+    exportBtn.prop('disabled', !(selections.length && canViewEvents));
+    downloadBtn.prop('disabled', !(selections.length && canViewEvents));
+    deleteBtn.prop('disabled', !(selections.length && canEditEvents));
   });
 
   // Don't enable the back button if there is no previous zm page to go back to
@@ -134,6 +137,7 @@ function initPage() {
     }
 
     var selections = getIdSelections();
+    console.log(selections);
 
     evt.preventDefault();
     $j.getJSON(thisUrl + '?view=events&action=unarchive&eids[]='+selections.join('&eids[]='));
@@ -205,6 +209,9 @@ function initPage() {
   document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
     $j('#deleteConfirm').modal('hide');
   });
+
+  // The table is initially given a hidden style, so now that we are done rendering, show it
+  table.show();
 }
 
 $j(document).ready(function() {

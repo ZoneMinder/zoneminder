@@ -19,14 +19,14 @@ function initThumbAnimation() {
 
 function processClicks(event, field, value, row, $element) {
   if ( field == 'FramesScore' ) {
-    if ( value > 0 ) {
-      window.location.assign('?view=stats&eid='+row.EventId+'&fid='+row.FramesId);
-    } else {
-      alert("No statistics available");
-    }
+    window.location.assign('?view=stats&eid='+row.EventId+'&fid='+row.FramesId);
   } else {
     window.location.assign('?view=frame&eid='+row.EventId+'&fid='+row.FramesId);
   }
+}
+
+function detailFormatter(index, row, element) {
+  return $j(element).html($j('#contentStatsTable'+index).clone(true).show());
 }
 
 function initPage() {
@@ -37,6 +37,7 @@ function initPage() {
   var icons = {
     paginationSwitchDown: 'fa-caret-square-o-down',
     paginationSwitchUp: 'fa-caret-square-o-up',
+    export: 'fa-download',
     refresh: 'fa-sync',
     toggleOff: 'fa-toggle-off',
     toggleOn: 'fa-toggle-on',
@@ -53,6 +54,9 @@ function initPage() {
   if ( !getCookie("zmFramesTable.bs.table.columns") ) {
     table.bootstrapTable('hideColumn', 'FrameId');
   }
+
+  // Hide the stats tables on init
+  $j(".contentStatsTable").hide();
 
   // Disable the back button if there is nothing to go back to
   backBtn.prop('disabled', !document.referrer.length);

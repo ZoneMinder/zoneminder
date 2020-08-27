@@ -244,7 +244,7 @@ echo $table_head;
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
   $Monitor = new ZM\Monitor($monitor);
-
+  include('function.php');
   if ( $monitor_i and ( $monitor_i % 100 == 0 ) ) {
     echo '</table>';
     echo $table_head;
@@ -283,10 +283,34 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colId"><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Id'] ?></a></td>
 <?php
   }
+  $imgHTML='';
+  if ( ZM_WEB_LIST_THUMBS && ($monitor['Status'] == 'Connected') && $running ) {
+    $options = array();
+    $ratio_factor = $Monitor->Height() / $Monitor->Width();
+    $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
+    $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
+    $options['scale'] = intval(100*ZM_WEB_LIST_THUMB_WIDTH / $Monitor->Width());
+    $options['mode'] = 'single';
+
+    $stillSrc = $Monitor->getStreamSrc($options);
+    $streamSrc = $Monitor->getStreamSrc(array('scale'=>$options['scale']*5));
+
+    $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
+    $thmbHeight = ( $options['height'] ) ? 'height:'.$options['height'].'px;' : '';
+    
+    $imgHTML = '<div class="colThumbnail zoom-right"><a';
+    $imgHTML .= $stream_available ? ' href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>';
+    $imgHTML .= '<img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style="'
+      .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"'.
+      ($options['width'] ? ' width="'.$options['width'].'"' : '' ).
+      ($options['height'] ? ' height="'.$options['height'].'"' : '' ).
+      '/></a></div>';
+  }
 ?>
             <td class="colName">
             <i class="material-icons md-18 <?php echo $dot_class ?>">lens</i>
               <a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . validHtmlStr($monitor['Name']) ?></a><br/>
+              <?php echo $imgHTML ?>
               <div class="small text-nowrap text-muted">
 
               <?php echo implode('<br/>',
@@ -301,7 +325,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 ?>
             </div></td>
             <td class="colFunction">
-              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$function_class.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', <span class="disabledText">disabled</span>' : '' ) .'</span>', canEdit('Monitors') ) ?><br/>
+              <a class="functionLnk <?php echo $function_class ?>" data-mid="<?php echo $monitor['Id'] ?>" id="functionLnk-<?php echo $monitor['Id'] ?>" href="#"><?php echo translate('Fn'.$monitor['Function']) ?></a><br/>
               <?php echo translate('Status'.$monitor['Status']) ?><br/>
               <div class="small text-nowrap text-muted">
 <?php 
@@ -324,7 +348,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new ZM\Server($monitor['ServerId']); echo validHtmlStr($Server->Name()); ?></td>
 <?php
   }
-  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.validHtmlStr($Monitor->Source()).'</span>', canEdit('Monitors') ).'</td>';
+  echo '<td class="colSource">'. makeLink( '?view=monitor&amp;mid='.$monitor['Id'], '<span class="'.$source_class.'">'.validHtmlStr($Monitor->Source()).'</span>', canEdit('Monitors') ).'</td>';
   if ( $show_storage_areas ) {
 ?>
             <td class="colStorage"><?php echo isset($StorageById[$monitor['StorageId']]) ? validHtmlStr($StorageById[$monitor['StorageId']]->Name()) : ($monitor['StorageId']?'<span class="error">Deleted '.$monitor['StorageId'].'</span>' : '') ?></td>
@@ -333,7 +357,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 
       foreach ( array_keys($eventCounts) as $i ) {
 ?>
-            <td class="colEvents"><a <?php echo (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'].'">'  : '') . 
+            <td class="colEvents"><a <?php echo (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['querystring'].'">'  : '') . 
                 $monitor[$i.'Events'] . '<br/></a><div class="small text-nowrap text-muted">' . human_filesize($monitor[$i.'EventDiskSpace']) ?></div></td>
 <?php
   }
@@ -384,7 +408,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 ?>
             <td class="colEvents">
               <a <?php echo
-              (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['query'].'">' : '') . 
+              (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '') . 
               $eventCounts[$i]['totalevents'].'</a><br/>
               <div class="small text-nowrap text-muted">'.human_filesize($eventCounts[$i]['totaldiskspace'])
             ?></div>
@@ -402,4 +426,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 	  </div>
     </div>
   </form>
-<?php xhtmlFooter() ?>
+<?php
+xhtmlFooter();
+// Include Donate Modal
+include('donate.php');
+?>

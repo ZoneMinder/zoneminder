@@ -53,8 +53,8 @@ RETSIGTYPE zm_die_handler(int signal)
 #if (defined(__i386__) || defined(__x86_64__))
 	// Get more information if available
   #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
-	void *ip = 0;
-	void *cr2 = 0;
+	void *ip = nullptr;
+	void *cr2 = nullptr;
 	if (info && context) {
 
 		Debug(1,

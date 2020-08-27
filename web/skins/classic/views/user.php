@@ -58,81 +58,80 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('User').' - '.$newUser->Username());
 ?>
 <body>
+<?php echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
       <h2><?php echo translate('User').' - '.validHtmlStr($newUser->Username()); ?></h2>
-    </div>
-    <div id="content">
+    <div id="content" class="row justify-content-center">
       <form id="contentForm" name="contentForm" method="post" action="?view=user">
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($_REQUEST['uid']) ?>"/>
-        <table id="contentTable" class="major">
+        <table id="contentTable" class="table">
           <tbody>
 <?php
 if ( canEdit('System') ) {
 ?>
             <tr>
-              <th scope="row"><?php echo translate('Username') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('Username') ?></th>
               <td><input type="text" name="newUser[Username]" value="<?php echo validHtmlStr($newUser->Username()); ?>"<?php echo $newUser->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
             </tr>
 <?php
 }
 ?>
             <tr>
-              <th scope="row"><?php echo translate('NewPassword') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('NewPassword') ?></th>
               <td><input type="password" name="newUser[Password]" autocomplete="new-password"/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('ConfirmPassword') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('ConfirmPassword') ?></th>
               <td><input type="password" name="conf_password" autocomplete="new-password"/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('Language') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('Language') ?></th>
               <td><?php echo htmlSelect('newUser[Language]', $langs, $newUser->Language()) ?></td>
             </tr>
 <?php
 if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
 ?>
             <tr>
-              <th scope="row"><?php echo translate('Enabled') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('Enabled') ?></th>
               <td><?php echo htmlSelect('newUser[Enabled]', $yesno, $newUser->Enabled()) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('Stream') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('Stream') ?></th>
               <td><?php echo htmlSelect('newUser[Stream]', $nv, $newUser->Stream()) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('Events') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('Events') ?></th>
               <td><?php echo htmlSelect('newUser[Events]', $nve, $newUser->Events()) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('Control') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('Control') ?></th>
               <td><?php echo htmlSelect('newUser[Control]', $nve, $newUser->Control()) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('Monitors') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('Monitors') ?></th>
               <td><?php echo htmlSelect('newUser[Monitors]', $nve, $newUser->Monitors()) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('Groups') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('Groups') ?></th>
               <td><?php echo htmlSelect('newUser[Groups]', $nve, $newUser->Groups()) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('System') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('System') ?></th>
               <td><?php echo htmlSelect('newUser[System]', $nve, $newUser->System()) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('MaxBandwidth') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('MaxBandwidth') ?></th>
               <td><?php echo htmlSelect('newUser[MaxBandwidth]', $bandwidths, $newUser->MaxBandwidth()) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('RestrictedMonitors') ?></th>
+              <th class="text-right" scope="row"><?php echo translate('RestrictedMonitors') ?></th>
               <td>
 <?php echo htmlSelect('newUser[MonitorIds][]', $monitors, explode(',', $newUser->MonitorIds()), array('multiple'=>'multiple')); ?>
               </td>
             </tr>
 <?php if ( ZM_OPT_USE_API ) { ?>
             <tr>
-              <th scope="row"><?php echo translate('APIEnabled')?></th>
+              <th class="text-right" scope="row"><?php echo translate('APIEnabled')?></th>
               <td><?php echo htmlSelect('newUser[APIEnabled]', $yesno, $newUser->APIEnabled()) ?></td>
             </tr>
 

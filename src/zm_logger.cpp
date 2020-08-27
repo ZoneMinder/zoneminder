@@ -38,7 +38,7 @@
 #endif
 
 bool Logger::smInitialised = false;
-Logger *Logger::smInstance = NULL;
+Logger *Logger::smInstance = nullptr;
 
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
@@ -74,7 +74,7 @@ Logger::Logger() :
   mDbConnected(false),
   mLogPath(staticConfig.PATH_LOGS.c_str()),
   //mLogFile( mLogPath+"/"+mId+".log" ),
-  mLogFileFP(NULL),
+  mLogFileFP(nullptr),
   mHasTerminal(false),
   mFlush(false) {
 
@@ -413,7 +413,7 @@ void Logger::logFile(const std::string &logFile) {
 
 void Logger::openFile() {
   if ( mLogFile.size() ) {
-   if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == (FILE *)NULL ) {
+   if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == nullptr ) {
     mFileLevel = NOLOG;
     Error("fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno));
    }
@@ -426,10 +426,10 @@ void Logger::closeFile() {
   if ( mLogFileFP ) {
     fflush(mLogFileFP);
     if ( fclose(mLogFileFP) < 0 ) {
-      mLogFileFP = (FILE *)NULL;
+      mLogFileFP = nullptr;
       Error("fclose(), error = %s", strerror(errno));
     }
-    mLogFileFP = (FILE *)NULL;
+    mLogFileFP = nullptr;
   }
 }
 
@@ -464,7 +464,7 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   if ( level < PANIC || level > DEBUG9 )
     Panic("Invalid logger level %d", level);
 
-  gettimeofday(&timeVal, NULL);
+  gettimeofday(&timeVal, nullptr);
 
 #if 0
   if ( logRuntime ) {
@@ -604,7 +604,7 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
 void logInit(const char *name, const Logger::Options &options) {
   if ( Logger::smInstance ) {
     delete Logger::smInstance;
-    Logger::smInstance = NULL;
+    Logger::smInstance = nullptr;
   }
 
   Logger::smInstance = new Logger();
@@ -614,6 +614,6 @@ void logInit(const char *name, const Logger::Options &options) {
 void logTerm() {
   if ( Logger::smInstance ) {
     delete Logger::smInstance;
-    Logger::smInstance = NULL;
+    Logger::smInstance = nullptr;
   }
 }

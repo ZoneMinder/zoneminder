@@ -476,6 +476,15 @@ th.table-th-sort-rev span.table-th-sort-span {
     color: white;
     font-weight: 300;
 }
+#header:after {
+  content: ".";
+  display: block;
+  height: 0;
+    font-size: 0;
+  clear: both;
+  visibility: hidden;
+}
+
 
 #header h2 {
     left: 0;
@@ -742,3 +751,18 @@ li.search-choice {
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
 }
 
+.zoom-right {
+  padding: 0px;
+  transition: transform .2s; /* Animation */
+  margin: 0 auto;
+}
+
+.zoom-right:hover {
+  transform-origin: 0% 50%;
+  transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
+}
+
+a.flip {
+  float: right;
+  margin-right: -20px;
+}

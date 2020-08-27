@@ -1,3 +1,6 @@
+<?php
+  global $labels;
+?>
 var labels = new Array();
 <?php
 foreach ( $labels as $index=>$label ) {

@@ -148,7 +148,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   event_data->monitor_id = atoi(dbrow[0]);
   event_data->storage_id = dbrow[1] ? atoi(dbrow[1]) : 0;
-  event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[2]);
+  event_data->frame_count = dbrow[2] == nullptr ? 0 : atoi(dbrow[2]);
   event_data->start_time = atoi(dbrow[3]);
   event_data->duration = dbrow[4] ? atof(dbrow[4]) : 0.0;
   strncpy(event_data->video_file, dbrow[5], sizeof(event_data->video_file)-1);
@@ -160,8 +160,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   } else {
     event_data->scheme = Storage::SHALLOW;
   }
-  event_data->SaveJPEGs = dbrow[7] == NULL ? 0 : atoi(dbrow[7]);
-  event_data->Orientation = (Monitor::Orientation)(dbrow[8] == NULL ? 0 : atoi(dbrow[8]));
+  event_data->SaveJPEGs = dbrow[7] == nullptr ? 0 : atoi(dbrow[7]);
+  event_data->Orientation = (Monitor::Orientation)(dbrow[8] == nullptr ? 0 : atoi(dbrow[8]));
   mysql_free_result(result);
 
   if ( !monitor ) {
@@ -303,7 +303,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     if ( 0 > ffmpeg_input->Open(filepath.c_str()) ) {
       Warning("Unable to open ffmpeg_input %s", filepath.c_str());
       delete ffmpeg_input;
-      ffmpeg_input = NULL;
+      ffmpeg_input = nullptr;
     }
   }
 
@@ -646,7 +646,7 @@ bool EventStream::sendFrame(int delta_us) {
 
   static char filepath[PATH_MAX];
   static struct stat filestat;
-  FILE *fdj = NULL;
+  FILE *fdj = nullptr;
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
@@ -711,7 +711,7 @@ bool EventStream::sendFrame(int delta_us) {
       img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
 #endif
     } else {
-      Image *image = NULL;
+      Image *image = nullptr;
 
       if ( filepath[0] ) {
         image = new Image(filepath);
@@ -790,7 +790,7 @@ bool EventStream::sendFrame(int delta_us) {
           break;
       }
       delete image;
-      image = NULL;
+      image = nullptr;
     } // end if send_raw or not
 
     switch ( type ) {
@@ -870,7 +870,7 @@ void EventStream::runStream() {
 
   Debug(3, "frame rate is: (%f)", (double)event_data->frame_count/event_data->duration);
   updateFrameRate((double)event_data->frame_count/event_data->duration);
-  gettimeofday(&start, NULL);
+  gettimeofday(&start, nullptr);
   uint64_t start_usec = start.tv_sec * 1000000 + start.tv_usec;
   uint64_t last_frame_offset = 0;
 
@@ -878,7 +878,7 @@ void EventStream::runStream() {
   double time_to_event = 0;
 
   while ( !zm_terminate ) {
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     int delta_us = 0;
     send_frame = false;
@@ -982,7 +982,7 @@ void EventStream::runStream() {
       // +/- 1? What if we are skipping frames?
       curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;
       // sending the frame may have taken some time, so reload now
-      gettimeofday(&now, NULL);
+      gettimeofday(&now, nullptr);
       uint64_t now_usec = (now.tv_sec * 1000000 + now.tv_usec);
 
       // we incremented by replay_rate, so might have jumped past frame_count

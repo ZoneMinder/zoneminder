@@ -7,6 +7,8 @@ function Monitor(monitorData) {
   this.id = monitorData.id;
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
+  this.width = monitorData.width;
+  this.height = monitorData.height;
   this.status = null;
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
@@ -256,29 +258,40 @@ function selectLayout(element) {
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
     Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
     $('scale').set('value', '');
-    $('width').set('value', 'auto');
-    for ( var i = 0, length = monitors.length; i < length; i++ ) {
-      var monitor = monitors[i];
-      var streamImg = $('liveStream'+monitor.id);
-      if ( streamImg ) {
-        if ( streamImg.nodeName == 'IMG' ) {
-          var src = streamImg.src;
-          src = src.replace(/width=[\.\d]+/i, 'width=0' );
-          if ( $j('#height').val() == 'auto' ) {
-            src = src.replace(/height=[\.\d]+/i, 'height=0' );
-            streamImg.style.height = 'auto';
-          }
-          if ( src != streamImg.src ) {
-            streamImg.src = '';
-            streamImg.src = src;
-          }
-        } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
-          // APPLET's and OBJECTS need to be re-initialized
-        }
-        streamImg.style.width = '100%';
-      }
-    } // end foreach monitor
+    $('width').set('value', '0');
+  } else {
+    // Is freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
   }
+  var width = parseInt($('width').get('value'));
+  var height = parseInt($('height').get('value'));
+  var scale = $('scale').get('value');
+  if ( scale ) {
+  } else if ( width ) {
+    scale = parseInt(100*width/monitor.width);
+  } else if ( height ) {
+    scale = parseInt(100*height/monitor.height);
+  }
+
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+    var monitor = monitors[i];
+    var streamImg = $('liveStream'+monitor.id);
+    if ( streamImg ) {
+      if ( streamImg.nodeName == 'IMG' ) {
+        var src = streamImg.src;
+        src = src.replace(/scale=\d*/i, 'scale='+scale);
+        if ( height == '0' ) {
+          streamImg.style.height = 'auto';
+        }
+        if ( src != streamImg.src ) {
+          streamImg.src = '';
+          streamImg.src = src;
+        }
+      } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
+        // APPLET's and OBJECTS need to be re-initialized
+      }
+      streamImg.style.width = '100%';
+    }
+  } // end foreach monitor
 } // end function selectLayout(element)
 
 /**
@@ -306,8 +319,15 @@ function changeSize() {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
         streamImg.src = '';
-        src = src.replace(/width=[\.\d]+/i, 'width='+width);
-        src = src.replace(/height=[\.\d]+/i, 'height='+height);
+        var scale = 100;
+        if ( width ) {
+          scale = parseInt(100*width/monitor.width);
+        } else if ( height ) {
+          scale = parseInt(100*height/monitor.height);
+        }
+        // Note zms ignores width and height
+        src = src.replace(/scale=\d*/i, 'scale='+scale);
+
         src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         streamImg.src = src;
       }
@@ -320,6 +340,7 @@ function changeSize() {
   Cookie.write('zmMontageScale', '', {duration: 10*365});
   Cookie.write('zmMontageWidth', width, {duration: 10*365});
   Cookie.write('zmMontageHeight', height, {duration: 10*365});
+  jQuery("#zmMontageLayout option:selected").removeAttr("selected");
   //selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
@@ -328,8 +349,8 @@ function changeSize() {
  */
 function changeScale() {
   var scale = $('scale').get('value');
-  $('width').set('value', 'auto');
-  $('height').set('value', 'auto');
+  $('width').set('value', '0'); //auto
+  $('height').set('value', '0'); //auto
   Cookie.write('zmMontageScale', scale, {duration: 10*365});
   Cookie.write('zmMontageWidth', '', {duration: 10*365});
   Cookie.write('zmMontageHeight', '', {duration: 10*365});
@@ -369,12 +390,8 @@ function changeScale() {
         //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
         if ( scale != '0' ) {
           src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
-          src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
-          src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);
         } else {
           src = src.replace(/scale=[\.\d]+/i, 'scale=100');
-          src = src.replace(/width=[\.\d]+/i, 'width='+monitorData[i].width);
-          src = src.replace(/height=[\.\d]+/i, 'height='+monitorData[i].height);
         }
         streamImg.src = src;
       }
@@ -385,8 +402,8 @@ function changeScale() {
         streamImg.style.width = '100%';
         streamImg.style.height = 'auto';
       }
-    }
-  }
+    } // end if StreamImg
+  } // end foreach Monitor
 }
 
 function toGrid(value) {

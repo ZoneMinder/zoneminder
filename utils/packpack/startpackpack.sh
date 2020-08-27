@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -o pipefail
+
 # packpack setup file for the ZoneMinder project
 # Written by Andrew Bauer
 
@@ -250,6 +253,13 @@ execpackpack () {
     else
         packpack/packpack $parms
     fi
+
+    if [ $? -ne 0 ]; then
+      echo
+      echo "ERROR: An error occurred while executing packpack."
+      echo
+      exit 1
+    fi
 }
 
 # Check for connectivity with the deploy target host
@@ -337,10 +347,10 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   setdebpkgname
   movecrud
 
-  if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then
-    ln -sfT distros/ubuntu1204 debian
-  elif [ "${DIST}" == "wheezy" ]; then
-    ln -sfT distros/debian debian
+  if [ "${DIST}" == "focal" ] || [ "${DIST}" == "buster" ]; then
+    ln -sfT distros/ubuntu2004 debian
+  elif [ "${DIST}" == "beowulf" ]; then
+    ln -sfT distros/beowulf debian
   else
     ln -sfT distros/ubuntu1604 debian
   fi

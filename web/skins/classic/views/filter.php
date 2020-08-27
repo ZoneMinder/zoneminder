@@ -25,6 +25,7 @@ if ( !canView('Events') ) {
 require_once('includes/Object.php');
 require_once('includes/Storage.php');
 require_once('includes/Filter.php');
+require_once('includes/FilterTerm.php');
 require_once('includes/Monitor.php');
 require_once('includes/Zone.php');
 require_once('includes/User.php');
@@ -53,7 +54,7 @@ if ( !$filter ) {
   }
 }
 
-$conjunctionTypes = getFilterQueryConjunctionTypes();
+$conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
 $obracketTypes = array();
 $cbracketTypes = array();
 
@@ -83,6 +84,7 @@ $attrTypes = array(
     'EndDate'        => translate('AttrEndDate'),
     'EndTime'        => translate('AttrEndTime'),
     'EndWeekday'     => translate('AttrEndWeekday'),
+    'ExistsInFileSystem'  => translate('ExistsInFileSystem'),
     'FilterServerId'     => translate('AttrFilterServer'),
     'Frames'      => translate('AttrFrames'),
     'Id'          => translate('AttrId'),
@@ -122,11 +124,20 @@ $opTypes = array(
     'LIKE' => translate('OpLike'),
     'NOT LIKE' => translate('OpNotLike'),
     );
+$is_isnot_opTypes = array(
+  'IS'  => translate('OpIs'),
+  'IS NOT'  => translate('OpIsNot'),
+);
 
 $archiveTypes = array(
-    '0' => translate('ArchUnarchived'),
-    '1' => translate('ArchArchived')
-    );
+  '0' => translate('ArchUnarchived'),
+  '1' => translate('ArchArchived')
+);
+
+$booleanValues = array(
+  'false' => translate('False'),
+  'true' => translate('True')
+);
 
 $focusWindow = true;
 
@@ -275,6 +286,11 @@ for ( $i=0; $i < count($terms); $i++ ) {
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
                 <script nonce="<?php echo $cspNonce;?>">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: false}); </script>
               </td>
+<?php
+    } elseif ( $term['attr'] == 'ExistsInFileSystem' ) {
+?>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op']); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val']); ?></td>
 <?php
     } elseif ( $term['attr'] == 'StateId' ) {
 ?>
@@ -459,7 +475,7 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <button type="submit" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
+          <button type="button" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
           <button type="button" data-on-click-this="submitToMontageReview"><?php echo translate('ViewMatches') ?></button>
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
           <button type="button" name="executeButton" id="executeButton" data-on-click-this="executeFilter"><?php echo translate('Execute') ?></button>

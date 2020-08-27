@@ -381,6 +381,7 @@ $codecs = array(
 
 xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name()));
 getBodyTopHTML();
+echo getNavBarHTML();
 ?>
   <div id="page">
     <div id="header">

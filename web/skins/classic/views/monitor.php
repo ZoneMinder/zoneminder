@@ -383,7 +383,7 @@ xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name())
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
-  <div id="page">
+  <div id="page" class="container-fluid">
     <div class="d-flex flex-row justify-content-between px-3 py-1">
     
       <div class="" id="toolbar" >
@@ -416,8 +416,9 @@ if ( canEdit('Monitors') ) {
 ?>
     
   </div>
-  <div id="content">
-    <ul class="tabList">
+  <div id="" class="row flex-nowrap">
+    <nav id="">
+    <ul class="pillList nav nav-pills flex-column h-100">
 <?php
 $tabs = array();
 $tabs['general'] = translate('General');
@@ -440,19 +441,14 @@ else
   $tab = 'general';
 
 foreach ( $tabs as $name=>$value ) {
-  if ( $tab == $name ) {
 ?>
-      <li class="active"><?php echo $value ?></li>
+    <li class="nav-item form-control-sm my-1"><a data-toggle="pill" data-tab-name="<?php echo $name ?>" class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="#"><?php echo $value ?></a></li>
 <?php
-  } else {
-?>
-      <li><a href="#" data-tab-name="<?php echo $name ?>"><?php echo $value ?></a></li>
-<?php
-  }
 }
   ?>
     </ul>
-    <div class="clear"></div>
+    </nav>
+    <div class="container-fluid col-sm-offset-2 pr-0">
     <form name="contentForm" id="contentForm" method="post" action="?">
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
       <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
@@ -1295,6 +1291,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <button type="button" id="cancelBtn"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
+    </div>
     </div>
     </div>
   </body>

@@ -80,7 +80,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,eoan,focal,trusty"
+    DISTROS="xenial,bionic,focal"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;
@@ -110,7 +110,12 @@ else
   fi;
   if [ "$SNAPSHOT" == "stable" ]; then
     if [ "$BRANCH" == "" ]; then
-      BRANCH=$(git describe --tags $(git rev-list --tags --max-count=1));
+      #REV=$(git rev-list --tags --max-count=1)
+      BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
+      if [ "$BRANCH" == "" ]; then
+        echo "Unable to determine latest stable branch!"
+        exit 0;
+      fi
       echo "Latest stable branch is $BRANCH";
     fi;
   else
@@ -220,14 +225,13 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   fi;
 
   # Generate Changlog
-  if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
-    cp -Rpd distros/ubuntu1204 debian
-  else 
-    if [ "$DISTRO" == "wheezy" ]; then 
-      cp -Rpd distros/debian debian
-    else 
-      cp -Rpd distros/ubuntu1604 debian
-    fi;
+  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ]; then 
+    cp -Rpd distros/ubuntu2004 debian
+  elif [ "$DISTRO" == "beowulf" ]
+  then
+    cp -Rpd distros/beowulf debian
+  else
+    cp -Rpd distros/ubuntu1604 debian
   fi;
 
   if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then

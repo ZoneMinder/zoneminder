@@ -76,9 +76,9 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
 } // end bool MonitorStream::checkSwapPath( const char *path, bool create_path )
 
 void MonitorStream::processCommand(const CmdMsg *msg) {
-  Debug( 2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] );
+  Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
   // Check for incoming command
-  switch( (MsgCommand)msg->msg_data[0] ) {
+  switch ( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
       Debug(1, "Got PAUSE command");
       paused = true;
@@ -315,7 +315,7 @@ bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
     int img_buffer_size = 0;
     static unsigned char img_buffer[ZM_MAX_IMAGE_SIZE];
 
-    FILE *fdj = NULL;
+    FILE *fdj = nullptr;
     if ( (fdj = fopen(filepath, "r")) ) {
       img_buffer_size = fread(img_buffer, 1, sizeof(img_buffer), fdj);
       fclose(fdj);
@@ -326,20 +326,23 @@ bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
 
     // Calculate how long it takes to actually send the frame
     struct timeval frameStartTime;
-    gettimeofday(&frameStartTime, NULL);
+    gettimeofday(&frameStartTime, nullptr);
 
-    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n", stdout);
-    fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size);
-    if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+    if (
+        (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %d.%06d\r\n\r\n",
+                     img_buffer_size, (int)timestamp->tv_sec, (int)timestamp->tv_usec))
+        ||
+        (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
+       ) {
       if ( !zm_terminate )
         Warning("Unable to send stream frame: %s", strerror(errno));
       return false;
     }
-    fputs("\r\n\r\n", stdout);
+    fputs("\r\n", stdout);
     fflush(stdout);
 
     struct timeval frameEndTime;
-    gettimeofday(&frameEndTime, NULL);
+    gettimeofday(&frameEndTime, nullptr);
 
     int frameSendTime = tvDiffMsec(frameStartTime, frameEndTime);
     if ( frameSendTime > 1000/maxfps ) {
@@ -359,6 +362,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
   if ( !config.timestamp_on_capture && timestamp )
     monitor->TimestampImage(send_image, timestamp);
 
+  fputs("--" BOUNDARY "\r\n", stdout);
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG ) {
     if ( !vid_stream ) {
@@ -382,7 +386,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
 
     // Calculate how long it takes to actually send the frame
     struct timeval frameStartTime;
-    gettimeofday(&frameStartTime, NULL);
+    gettimeofday(&frameStartTime, nullptr);
 
     fputs("--ZoneMinderFrame\r\n", stdout);
     switch ( type ) {
@@ -402,27 +406,31 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
         send_image->Zip(img_buffer, &zip_buffer_size);
         img_buffer_size = zip_buffer_size;
 #else
-          Error("zlib is required for zipped images. Falling back to raw image");
-          type = STREAM_RAW;
+        Error("zlib is required for zipped images. Falling back to raw image");
+        type = STREAM_RAW;
 #endif // HAVE_ZLIB_H
         break;
       default :
         Error("Unexpected frame type %d", type);
         return false;
     }
-    fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size);
-    if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+    if (
+        ( 0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %d.%06d\r\n\r\n",
+                      img_buffer_size, (int)timestamp->tv_sec, (int)timestamp->tv_usec) )
+        ||
+        (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
+       ) {
       if ( !zm_terminate ) {
         // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
         Warning("Unable to send stream frame: %s", strerror(errno));
       }
       return false;
     }
-    fputs("\r\n\r\n", stdout);
+    fputs("\r\n", stdout);
     fflush(stdout);
 
     struct timeval frameEndTime;
-    gettimeofday(&frameEndTime, NULL);
+    gettimeofday(&frameEndTime, nullptr);
 
     int frameSendTime = tvDiffMsec(frameStartTime, frameEndTime);
     if ( frameSendTime > 1000/maxfps ) {
@@ -452,7 +460,7 @@ void MonitorStream::runStream() {
   updateFrameRate(monitor->GetFPS());
 
   if ( type == STREAM_JPEG )
-    fputs("Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n", stdout);
+    fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
   unsigned int last_read_index = monitor->image_buffer_count;
@@ -462,7 +470,7 @@ void MonitorStream::runStream() {
 
   frame_count = 0;
 
-  temp_image_buffer = 0;
+  temp_image_buffer = nullptr;
   temp_image_buffer_count = playback_buffer;
   temp_read_index = temp_image_buffer_count;
   temp_write_index = temp_image_buffer_count;
@@ -471,7 +479,7 @@ void MonitorStream::runStream() {
   bool buffered_playback = false;
 
   // Last image and timestamp when paused, will be resent occasionally to prevent timeout
-  Image *paused_image = NULL;
+  Image *paused_image = nullptr;
   struct timeval paused_timestamp;
 
   if ( connkey && ( playback_buffer > 0 ) ) {
@@ -479,8 +487,8 @@ void MonitorStream::runStream() {
     const int max_swap_len_suffix = 15;
 
     int swap_path_length = staticConfig.PATH_SWAP.length() + 1; // +1 for NULL terminator
-    int subfolder1_length = snprintf(NULL, 0, "/zmswap-m%d", monitor->Id()) + 1;
-    int subfolder2_length = snprintf(NULL, 0, "/zmswap-q%06d", connkey) + 1;
+    int subfolder1_length = snprintf(nullptr, 0, "/zmswap-m%d", monitor->Id()) + 1;
+    int subfolder2_length = snprintf(nullptr, 0, "/zmswap-q%06d", connkey) + 1;
     int total_swap_path_length = swap_path_length + subfolder1_length + subfolder2_length;
 
     if ( total_swap_path_length + max_swap_len_suffix > PATH_MAX ) {
@@ -516,22 +524,12 @@ void MonitorStream::runStream() {
     Debug(2, "Not using playback_buffer");
   } // end if connkey  & playback_buffer
 
-  float max_secs_since_last_sent_frame = 10.0; //should be > keep alive amount (5 secs)
   // if MaxFPS < 0 as in 1/60 = 0.017 then we won't get another frame for 60 sec.
   double capture_fps = monitor->GetFPS();
   double capture_max_fps = monitor->GetCaptureMaxFPS();
   if ( capture_max_fps && ( capture_fps > capture_max_fps ) ) {
     Debug(1, "Using %.3f for fps instead of current fps %.3f", capture_max_fps, capture_fps);
     capture_fps = capture_max_fps;
-  }
-
-  if ( capture_fps < 1 ) {
-    max_secs_since_last_sent_frame = 10/capture_fps;
-    Debug(1, "Adjusting max_secs_since_last_sent_frame to %.2f from current fps %.2f",
-        max_secs_since_last_sent_frame, monitor->GetFPS());
-  } else {
-    Debug(1, "Not Adjusting max_secs_since_last_sent_frame to %.2f from current fps %.2f",
-        max_secs_since_last_sent_frame, monitor->GetFPS());
   }
 
   while ( !zm_terminate ) {
@@ -547,7 +545,7 @@ void MonitorStream::runStream() {
       break;
     }
 
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     bool was_paused = paused;
     if ( connkey ) {
@@ -573,7 +571,7 @@ void MonitorStream::runStream() {
     } else if ( paused_image ) {
       Debug(1, "Clearing paused_image");
       delete paused_image;
-      paused_image = NULL;
+      paused_image = nullptr;
     }
 
     if ( buffered_playback && delayed ) {
@@ -669,15 +667,22 @@ void MonitorStream::runStream() {
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
         if ( !paused && !delayed ) {
           last_read_index = monitor->shared_data->last_write_index;
-          Debug(2, "index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
+          Debug(2, "Sending frame index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
               index, frame_mod, frame_count, paused, delayed);
           // Send the next frame
           Monitor::Snapshot *snap = &monitor->image_buffer[index];
 
-          Debug(2, "sending Frame.");
           if ( !sendFrame(snap->image, snap->timestamp) ) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
+          }
+          if ( frame_count == 0 ) {
+            // Chrome will not display the first frame until it receives another.
+            // Firefox is fine.  So just send the first frame twice.
+            if ( !sendFrame(snap->image, snap->timestamp) ) {
+              Debug(2, "sendFrame failed, quiting.");
+              zm_terminate = true;
+            }
           }
           // Perhaps we should use NOW instead.
           memcpy(
@@ -754,13 +759,13 @@ void MonitorStream::runStream() {
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
 
     unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));
-    Debug(3, "Sleeping for (%d)", sleep_time);
-
     if ( sleep_time > MAX_SLEEP_USEC ) {
       // Shouldn't sleep for long because we need to check command queue, etc.
       sleep_time = MAX_SLEEP_USEC;
+      Debug(3, "Sleeping for MAX_SLEEP_USEC %dus", sleep_time);
+    } else {
+      Debug(3, "Sleeping for %dus", sleep_time);
     }
-    Debug(3, "Sleeping for %dus", sleep_time);
     usleep(sleep_time);
     if ( ttl ) {
       if ( (now.tv_sec - stream_start_time) > ttl ) {
@@ -773,14 +778,6 @@ void MonitorStream::runStream() {
       last_frame_sent = now.tv_sec;
       Warning("no last_frame_sent.  Shouldn't happen. frame_mod was (%d) frame_count (%d)",
           frame_mod, frame_count);
-    } else if (
-        (!paused)
-        &&
-        ( (TV_2_FLOAT(now) - last_frame_sent) > max_secs_since_last_sent_frame )
-        ) {
-      Error("Terminating, last frame sent time %f secs more than maximum of %f",
-          TV_2_FLOAT(now) - last_frame_sent, max_secs_since_last_sent_frame);
-      break;
     }
   } // end while
 

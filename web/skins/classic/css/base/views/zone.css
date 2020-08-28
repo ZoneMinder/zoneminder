@@ -4,11 +4,13 @@
 }
 #settingsPanel,
 #zonePoints {
-	width: 600px;
+	max-width: 600px;
+  width: 50%;
 }
 
 #zoneSettings {
   border-collapse: collapse;
+  width: 100%;
 }
 
 #zoneSettings th,
@@ -137,5 +139,22 @@ width: 100%;
 input[name="newAlarmRgbR"],
 input[name="newAlarmRgbG"],
 input[name="newAlarmRgbB"] {
-width: 30%;
+width: 25%;
+}
+input[name="newZone[MinPixelThreshold]"],
+input[name="newZone[MaxPixelThreshold]"],
+input[name="newZone[FilterX]"],
+input[name="newZone[FilterY]"],
+input[name="newZone[MinFilterPixels]"],
+input[name="newZone[MaxFilterPixels]"],
+input[name="newZone[MinBlobPixels]"],
+input[name="newZone[MaxBlobPixels]"],
+input[name="newZone[MinBlobs]"],
+input[name="newZone[MaxBlobs]"],
+input[name="newZone[MinAlarmPixels]"],
+input[name="newZone[MaxAlarmPixels]"] {
+  width: 90px;
+}
+input.ZonePoint {
+    width: 75px;
 }

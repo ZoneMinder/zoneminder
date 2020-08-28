@@ -497,7 +497,7 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
   } # end foreach MonitorId
 }  # end foreach x
 
-ZM\Logger::Debug(print_r( $monEventSlots,true ));
+//ZM\Logger::Debug(print_r( $monEventSlots,true ));
 //print_r( $monFrameSlots );
 //print_r( $chart );
 
@@ -673,18 +673,17 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Timeline'));
 ?>
 <body>
-  <div id="page">
   <?php echo getNavBarHTML() ?>
-    <div id="header">
-      <div id="info">
-        <h2><?php echo translate('Timeline') ?></h2>
-        <a id="refreshLink" href="#" data-on-click="refreshWindow"><?php echo translate('Refresh') ?></a>
+  <div id="page p-0">
+    <div class="d-flex p-1">
+      <div class="mr-auto" id="toolbar" >
+        <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button id="listBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('List') ?>" ><i class="fa fa-list"></i></button>
       </div>
-      <div id="headerButtons">
-        <a href="#" data-on-click="backWindow"><?php echo translate('Back') ?></a>
-        <a href="?view=events&amp;page=1<?php echo htmlspecialchars($filterQuery) ?>"><?php echo translate('List') ?></a>
-      </div>
+      <h2 class="align-self-end"><?php echo translate('Timeline') ?></h2>
     </div>
+    
     <div id="content" class="chartSize">
       <div id="topPanel" class="graphWidth">
         <div id="imagePanel">

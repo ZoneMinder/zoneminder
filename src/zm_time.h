@@ -86,7 +86,7 @@ inline int tvDiffUsec( struct timeval first, struct timeval last )
 inline int tvDiffUsec( struct timeval first )
 {
   struct timeval now;
-  gettimeofday( &now, NULL );
+  gettimeofday( &now, nullptr );
   return( tvDiffUsec( first, now ) );
 }
 
@@ -98,7 +98,7 @@ inline int tvDiffMsec( struct timeval first, struct timeval last )
 inline int tvDiffMsec( struct timeval first )
 {
   struct timeval now;
-  gettimeofday( &now, NULL );
+  gettimeofday( &now, nullptr );
   return( tvDiffMsec( first, now ) );
 }
 
@@ -110,7 +110,7 @@ inline double tvDiffSec( struct timeval first, struct timeval last )
 inline double tvDiffSec( struct timeval first )
 {
   struct timeval now;
-  gettimeofday( &now, NULL );
+  gettimeofday( &now, nullptr );
   return( tvDiffSec( first, now ) );
 }
 
@@ -146,7 +146,7 @@ inline int tvEq( struct timeval t1, struct timeval t2 )
 inline struct timeval tvNow( void )
 {
   struct timeval t;
-  gettimeofday( &t, NULL );
+  gettimeofday( &t, nullptr );
   return( t );
 }
 

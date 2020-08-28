@@ -2,12 +2,12 @@ function selectFilter(element) {
   element.form.submit();
 }
 
-function validateForm( form ) {
+function validateForm(form) {
   var rows = $j(form).find('tbody').eq(0).find('tr');
   var obrCount = 0;
   var cbrCount = 0;
   for ( var i = 0; i < rows.length; i++ ) {
-    if (rows.length > 2) {
+    if ( rows.length > 2 ) {
       obrCount += parseInt(form.elements['filter[Query][terms][' + i + '][obr]'].value);
       cbrCount += parseInt(form.elements['filter[Query][terms][' + i + '][cbr]'].value);
     }
@@ -22,8 +22,52 @@ function validateForm( form ) {
   }
   var numbers_reg = /\D/;
   if ( numbers_reg.test(form.elements['filter[Query][limit]'].value) ) {
-    alert("There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty.");
+    alert('There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty.');
     return false;
+  }
+  if ( form.elements['filter[AutoDelete]'].checked ) {
+    // if Delete action is Enabled should also have an unarchived term
+    var have_archivestatus_term = false;
+    for ( var i = 0; i < rows.length; i++ ) {
+      if ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'Archived' ) {
+        have_archivestatus_term = true;
+      }
+    }
+    if ( ! have_archivestatus_term ) {
+      return confirm('You have enabled deleting events but do not have a term referencing the archived status of the event.  This filter may delete events that you want to save! Are you sure?');
+    }
+  } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
+    var have_endtime_term = false;
+    for ( var i = 0; i < rows.length; i++ ) {
+      if ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' ) {
+        have_endtime_term = true;
+      }
+    }
+    if ( ! have_endtime_term ) {
+      return confirm('You don\'t have an EndTime term in your filter.  This will match recordings that are still in progress and so the UpdateDiskSpace action will be a waste of time and resources.  Ideally you should have an EndTime IS NOT NULL term.  Do you want to continue?');
+    }
+  } else if ( form.elements['filter[Background]'].checked ) {
+    if ( ! (
+      form.elements['filter[AutoArchive]'].checked
+      ||
+      form.elements['filter[UpdateDiskSpace]'].checked
+      ||
+      form.elements['filter[AutoVideo]'].checked
+      ||
+      form.elements['filter[AutoEmail]'].checked
+      ||
+      form.elements['filter[AutoMessage]'].checked
+      ||
+      form.elements['filter[AutoExecute]'].checked
+      ||
+      form.elements['filter[AutoDelete]'].checked
+      ||
+      form.elements['filter[AutoCopy]'].checked
+      ||
+      form.elements['filter[AutoMove]'].checked
+    ) ) {
+      alert('You have chosen to run this filter in the background but not selected any actions.');
+    }
   }
   return true;
 }
@@ -66,6 +110,15 @@ function updateButtons(element) {
   }
 }
 
+function click_AutoEmail(element) {
+  updateButtons(this);
+  if ( this.checked ) {
+    $j('#EmailOptions').show();
+  } else {
+    $j('#EmailOptions').hide();
+  }
+}
+
 function click_automove(element) {
   updateButtons(this);
   if ( this.checked ) {
@@ -99,16 +152,21 @@ function resetFilter( element ) {
   $j('#contentForm')[0].reset();
 }
 
-function submitToEvents( element ) {
+function submitToEvents(element) {
   var form = element.form;
-  form.action = thisUrl + '?view=events';
-  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+  //form.action = '?view=events';
+  //form.submit();
+  //console.log(form);
+  //console.log($j(form).serialize());
+  //history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+  window.location.assign('?view=events&'+$j(form).serialize());
 }
 
-function submitToMontageReview( element ) {
+function submitToMontageReview(element) {
   var form = element.form;
   form.action = thisUrl + '?view=montagereview';
-  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+  window.location.assign('?view=montagereview&'+$j(form).serialize());
+  history.replaceState(null, null, '?view=montagereview&live=0&' + $j(form).serialize());
 }
 
 function submitToExport(element) {
@@ -188,7 +246,8 @@ function parseRows(rows) {
     }
 
     var attr = inputTds.eq(2).children().val();
-    if ( attr == 'Archived' ) { // Archived types
+
+    if ( attr == 'Archived' ) { //Archived types
       inputTds.eq(3).html('equal to<input type="hidden" name="filter[Query][terms][' + rowNum + '][op]" value="=">');
       var archiveSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < archiveTypes.length; i++) {
@@ -196,6 +255,18 @@ function parseRows(rows) {
       }
       var archiveVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).chosen({width: "101%"});
+    } else if ( attr == 'AlarmedZoneId' ) {
+      var zoneSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      for ( monitor_id in monitors ) {
+        for ( zone_id in zones ) {
+          var zone = zones[zone_id];
+          if ( monitor_id == zone.MonitorId ) {
+            zoneSelect.append('<option value="' + zone_id + '">' + zone.Name + '</option>');
+          }
+        } // end foreach zone
+      } // end foreach monitor
+      var zoneVal = inputTds.eq(4).children().val();
+      inputTds.eq(4).html(zoneSelect).children().val(zoneVal).chosen({width: "101%"});
     } else if ( attr.indexOf('Weekday') >= 0 ) { //Weekday selection
       var weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < weekdays.length; i++) {
@@ -231,17 +302,42 @@ function parseRows(rows) {
       }
       var monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal);
-    } else { //Reset to regular text field and operator for everything that isn't special
-      var opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
-      for (var key in opTypes) {
-        opSelect.append('<option value="' + key + '">' + opTypes[key] + '</option>');
+    } else if ( attr == 'ExistsInFileSystem' ) {
+      var select = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      for ( var booleanVal in booleanValues ) {
+        select.append('<option value="' + booleanVal + '">' + escapeHTML(booleanValues[booleanVal]) + '</option>');
       }
-      var opVal = inputTds.eq(3).children().val();
-      inputTds.eq(3).html(opSelect).children().val(opVal).chosen({width: "101%"});
+      var val = inputTds.eq(4).children().val();
+      if ( ! val ) val = 'false'; // default to the first option false
+      inputTds.eq(4).html(select).children().val(val);
+    } else { // Reset to regular text field and operator for everything that isn't special
       var textInput = $j('<input></input>').attr('type', 'text').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       var textVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(textInput).children().val(textVal);
     }
+
+    // Validate the operator
+    var opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
+    var opVal = inputTds.eq(3).children().val();
+    if ( attr == 'ExistsInFileSystem' ) {
+      if ( ! opVal ) {
+        // Default to equals so that something gets selected
+        opVal = 'IS';
+      }
+      for ( var key of ['IS', 'IS NOT'] ) {
+        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
+      }
+    } else {
+      if ( ! opVal ) {
+        // Default to equals so that something gets selected
+        console.log("No value for operator. Defaulting to =");
+        opVal = '=';
+      }
+      for ( var key in opTypes ) {
+        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
+      }
+    }
+    inputTds.eq(3).html(opSelect).children().val(opVal).chosen({width: "101%"});
     if ( attr.endsWith('DateTime') ) { //Start/End DateTime
       inputTds.eq(4).children().datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     } else if ( attr.endsWith('Date') ) { //Start/End Date
@@ -259,7 +355,7 @@ function parseRows(rows) {
     inputTds.eq(2).children().eq(0).attr('id', 'filter'+stringFilter(term));
   } //End for each term/row
   history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
-}
+} // parseRows
 
 function stringFilter(term) {
   var termString = '';

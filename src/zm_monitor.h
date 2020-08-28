@@ -75,6 +75,7 @@ public:
     FFMPEG,
     LIBVLC,
     CURL,
+    VNC,
   } CameraType;
 
   typedef enum { 
@@ -137,15 +138,23 @@ protected:
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +72  */
-      time_t last_write_time;
+    union {                     /* +72   */
+      time_t zmc_heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {            /* +80   */
-      time_t last_read_time;
+    union {                     /* +80   */
+      time_t zma_heartbeat_time;			/* Constantly updated by zma.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad3;
     };
-    uint8_t control_state[256];  /* +88   */
+    union {                     /* +88  */
+      time_t last_write_time;
+      uint64_t extrapad4;
+    };
+    union {                     /* +96  */
+      time_t last_read_time;
+      uint64_t extrapad5;
+    };
+    uint8_t control_state[256];  /* +104   */
 
     char alarm_cause[256];
     
@@ -209,21 +218,21 @@ protected:
     uint64_t   last_event;
 
     public:
-      MonitorLink( int p_id, const char *p_name );
+      MonitorLink(unsigned int p_id, const char *p_name);
       ~MonitorLink();
 
-      inline int Id() const {
+      inline unsigned int Id() const {
         return id;
       }
       inline const char *Name() const {
-        return( name );
+        return name;
       }
 
       inline bool isConnected() const {   
         return connected && shared_data->valid;
       }
       inline time_t getLastConnectTime() const {
-        return( last_connect_time );
+        return last_connect_time;
       }
 
       bool connect();
@@ -357,12 +366,12 @@ protected:
   std::vector<Group *> groups;
 
 public:
-  explicit Monitor( int p_id );
+  explicit Monitor(unsigned int p_id);
 
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
   Monitor( 
-    int p_id,
+    unsigned int p_id,
     const char *p_name,
     unsigned int p_server_id,
     unsigned int p_storage_id,
@@ -414,11 +423,12 @@ public:
   void AddPrivacyBitmask( Zone *p_zones[] );
 
   bool connect();
+
   inline int ShmValid() const {
-    return( shared_data->valid );
+    return shared_data->valid;
   }
 
-  inline int Id() const {
+  inline unsigned int Id() const {
     return id;
   }
   inline const char *Name() const {
@@ -463,7 +473,8 @@ public:
     
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
+  const std::vector<EncoderParameter_t>* GetOptEncoderParamsVec() const { return &encoderparamsvec; }
+  const std::string GetOptEncoderParams() const { return encoderparams; }
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
   struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
@@ -546,6 +557,9 @@ public:
 #if HAVE_LIBAVCODEC
   //void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC
+  double get_fps( ) const {
+    return fps;
+  }
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

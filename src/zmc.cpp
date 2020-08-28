@@ -90,7 +90,7 @@ void Usage() {
 int main(int argc, char *argv[]) {
   self = argv[0];
 
-  srand(getpid() * time(0));
+  srand(getpid() * time(nullptr));
 
   const char *device = "";
   const char *protocol = "";
@@ -101,16 +101,16 @@ int main(int argc, char *argv[]) {
   int monitor_id = -1;
 
   static struct option long_options[] = {
-    {"device", 1, 0, 'd'},
-    {"protocol", 1, 0, 'r'},
-    {"host", 1, 0, 'H'},
-    {"port", 1, 0, 'P'},
-    {"path", 1, 0, 'p'},
-    {"file", 1, 0, 'f'},
-    {"monitor", 1, 0, 'm'},
-    {"help", 0, 0, 'h'},
-    {"version", 0, 0, 'v'},
-    {0, 0, 0, 0}
+    {"device", 1, nullptr, 'd'},
+    {"protocol", 1, nullptr, 'r'},
+    {"host", 1, nullptr, 'H'},
+    {"port", 1, nullptr, 'P'},
+    {"path", 1, nullptr, 'p'},
+    {"file", 1, nullptr, 'f'},
+    {"monitor", 1, nullptr, 'm'},
+    {"help", 0, nullptr, 'h'},
+    {"version", 0, nullptr, 'v'},
+    {nullptr, 0, nullptr, 0}
   };
 
   while (1) {
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
 
   hwcaps_detect();
 
-  Monitor **monitors = 0;
+  Monitor **monitors = nullptr;
   int n_monitors = 0;
 #if ZM_HAS_V4L
   if ( device[0] ) {
@@ -240,7 +240,7 @@ int main(int argc, char *argv[]) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
     for ( int i = 0; i < n_monitors; i++ ) {
-      time_t now = (time_t)time(NULL);
+      time_t now = (time_t)time(nullptr);
       monitors[i]->setStartupTime(now);
 
       snprintf(sql, sizeof(sql),
@@ -287,7 +287,7 @@ int main(int argc, char *argv[]) {
       for ( int i = 0; i < n_monitors; i++ ) {
         long min_delay = MAXINT;
 
-        gettimeofday(&now, NULL);
+        gettimeofday(&now, nullptr);
         for ( int j = 0; j < n_monitors; j++ ) {
           if ( last_capture_times[j].tv_sec ) {
             DELTA_TIMEVAL(delta_time, now, last_capture_times[j], DT_PREC_3);
@@ -329,14 +329,14 @@ int main(int argc, char *argv[]) {
           }
 
           if ( next_delays[i] > 0 ) {
-            gettimeofday(&now, NULL);
+            gettimeofday(&now, nullptr);
             DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
             long sleep_time = next_delays[i]-delta_time.delta;
             if ( sleep_time > 0 ) {
               usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
             }
           }
-          gettimeofday(&(last_capture_times[i]), NULL);
+          gettimeofday(&(last_capture_times[i]), nullptr);
         }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
 
       }  // end foreach n_monitors

@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Filter Module, $Date$, $Revision$
+# ZoneMinder Filter Module
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -49,53 +49,45 @@ use ZoneMinder::Database qw(:all);
 require ZoneMinder::Storage;
 require ZoneMinder::Server;
 
-sub Name {
-  if ( @_ > 1 ) {
-    $_[0]{Name} = $_[1];
-  }
-  return $_[0]{Name};
-} # end sub Path
+use vars qw/ $table $primary_key %fields /;
+$table = 'Users';
+$primary_key = 'Id';
 
-sub find {
-  shift if $_[0] eq 'ZoneMinder::Filter';
-  my %sql_filters = @_;
-
-  my $sql = 'SELECT * FROM Filters';
-  my @sql_filters;
-  my @sql_values;
-
-  if ( exists $sql_filters{Name} ) {
-    push @sql_filters , ' Name = ? ';
-    push @sql_values, $sql_filters{Name};
-  }
-
-  $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
-  $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
-
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
-    or Fatal("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
-  my $res = $sth->execute(@sql_values)
-    or Fatal("Can't execute '$sql': ".$sth->errstr());
-
-  my @results;
-
-  while( my $db_filter = $sth->fetchrow_hashref() ) {
-    my $filter = new ZoneMinder::Filter($$db_filter{Id}, $db_filter);
-    push @results, $filter;
-  } # end while
-  $sth->finish();
-
-  return @results;
-}
-
-sub find_one {
-  my @results = find(@_);
-  return $results[0] if @results;
-}
+%fields = map { $_ => $_ } qw(
+Id
+Name
+Query_json
+AutoArchive
+AutoVideo
+AutoUpload
+AutoEmail
+EmailTo
+EmailSubject
+EmailBody
+AutoMessage
+AutoExecute
+AutoExecuteCmd
+AutoDelete
+AutoMove
+AutoMoveTo
+AutoCopy
+AutoCopyTo
+UpdateDiskSpace
+UserId
+Background
+Concurrent
+);
 
 sub Execute {
   my $self = $_[0];
   my $sql = $self->Sql(undef);
+
+  if ( $$self{PreSQLConditions} and @{$$self{PreSQLConditions}} ) {
+    foreach my $term ( @{$$self{PreSQLConditions}} ) {
+      if ( $$term{attr} eq 'DiskPercent' ) {
+      }
+    }
+  }
 
   if ( $self->{HasDiskPercent} ) {
 		my $disk_percent = getDiskPercent($$self{Storage} ? $$self{Storage}->Path() : ());
@@ -119,14 +111,27 @@ sub Execute {
     return;
   }
   my @results;
-
   while ( my $event = $sth->fetchrow_hashref() ) {
     push @results, $event;
   }
   $sth->finish();
-  Debug('Loaded ' . @results . " events for filter $_[0]{Name} using query ($sql)");
+  Debug('Loaded ' . @results . ' events for filter '.$$self{Name}.' using query ('.$sql.')"');
+  if ( $self->{PostSQLConditions} ) {
+    my @filtered_events;
+    foreach my $term ( @{$$self{PostSQLConditions}} ) {
+      if ( $$term{attr} eq 'ExistsInFileSystem' ) {
+        foreach my $row ( @results ) {
+          my $event = new ZoneMinder::Event($row);
+          if ( -e $event->Path() ) {
+            push @filtered_events, $row;
+          }
+        }
+      }
+    } # end foreach term
+    @results = @filtered_events;
+  } # end if has PostSQLConditions
   return @results;
-}
+} # end sub Execute
 
 sub Sql {
   my $self = shift;
@@ -162,7 +167,9 @@ sub Sql {
         my $value = $term->{val};
         my @value_list;
         if ( $term->{attr} ) {
-          if ( $term->{attr} =~ /^Monitor/ ) {
+					if ( $term->{attr} eq 'AlarmedZoneId' ) {
+						$term->{op} = 'EXISTS';
+          } elsif ( $term->{attr} =~ /^Monitor/ ) {
             my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
             $self->{Sql} .= 'M.'.$temp_attr_name;
           } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
@@ -196,25 +203,33 @@ sub Sql {
             $self->{Sql} .= "weekday( E.EndTime )";
 
 # 
+          } elsif ( $term->{attr} eq 'EventExists' ) {
+            push @{$self->{PreConditions}}, $term;
           } elsif ( $term->{attr} eq 'DiskSpace' ) {
             $self->{Sql} .= 'E.DiskSpace';
-            $self->{HasDiskPercent} = !undef;
+            push @{$self->{PostConditions}}, $term;
           } elsif ( $term->{attr} eq 'DiskPercent' ) {
             $self->{Sql} .= 'zmDiskPercent';
             $self->{HasDiskPercent} = !undef;
+            $self->{HasPreCondition} = !undef;
           } elsif ( $term->{attr} eq 'DiskBlocks' ) {
             $self->{Sql} .= 'zmDiskBlocks';
             $self->{HasDiskBlocks} = !undef;
+            $self->{HasPreCondition} = !undef;
           } elsif ( $term->{attr} eq 'SystemLoad' ) {
             $self->{Sql} .= 'zmSystemLoad';
             $self->{HasSystemLoad} = !undef;
+            $self->{HasPreCondition} = !undef;
           } else {
             $self->{Sql} .= 'E.'.$term->{attr};
           }
 
           ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
           foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
-            if ( $term->{attr} =~ /^MonitorName/ ) {
+	
+            if ( $term->{attr} eq 'AlarmedZoneId' ) {
+							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+            } elsif ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
             } elsif ( $term->{attr} =~ /ServerId/) {
               Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
@@ -256,6 +271,8 @@ sub Sql {
             } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
               if ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
+							} elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
+								$value = 'to_days('.$temp_value.')';
               } else {
                 $value = DateTimeToSQL($temp_value);
                 if ( !$value ) {
@@ -294,6 +311,8 @@ sub Sql {
             } else {
               $self->{Sql} .= " IS $value";
             }
+          } elsif ( $term->{op} eq 'EXISTS' ) {
+            $self->{Sql} .= " EXISTS $value";
           } elsif ( $term->{op} eq 'IS NOT' ) {
             $self->{Sql} .= " IS NOT $value";
           } elsif ( $term->{op} eq '=[]' ) {
@@ -315,14 +334,9 @@ sub Sql {
     } # end if terms
 
     if ( $self->{Sql} ) {
-      if ( $self->{AutoMessage} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
-        $sql .= ' WHERE ( '.$self->{Sql}.' )';
-      } else {
-# Only include closed events (events with valid EndTime)
-        $sql .= ' WHERE (E.EndTime IS NOT NULL) AND ( '.$self->{Sql}.' )';
-      }
+      $sql .= ' WHERE ( '.$self->{Sql}.' )';
     }
     my @auto_terms;
     if ( $self->{AutoArchive} ) {
@@ -447,6 +461,15 @@ sub DateTimeToSQL {
     return undef;
   }
   return POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime($dt_val));
+}
+
+sub User {
+  my $self = shift;
+  $$self{User} = shift if @_;
+  if ( ! $$self{User} and $$self{UserId} ) {
+    $$self{User} = ZoneMinder::User->find_one(Id=>$$self{UserId});
+  }
+  return $$self{User};
 }
 
 1;

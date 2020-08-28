@@ -33,6 +33,7 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libssl-dev
               ,libcrypt-eksblowfish-perl
               ,libdata-entropy-perl
+              ,libvncserver-dev
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -82,6 +83,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libssl | libssl1.0.0 | libssl1.1
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
+        ,libvncclient1|libvncclient0
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
            ,mysql-server | mariadb-server | virtual-mysql-server

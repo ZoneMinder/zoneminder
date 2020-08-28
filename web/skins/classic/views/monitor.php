@@ -123,7 +123,8 @@ $sourceTypes = array(
     'Libvlc' => translate('Libvlc'),
     'cURL'   => 'cURL (HTTP(S) only)',
     'WebSite'=> 'Web Site',
-    'NVSocket'	=> translate('NVSocket')
+    'NVSocket'	=> translate('NVSocket'),
+    'VNC' => translate('VNC'),
     );
 if ( !ZM_HAS_V4L )
   unset($sourceTypes['Local']);
@@ -413,6 +414,7 @@ if ( canEdit('Monitors') ) {
 $tabs = array();
 $tabs['general'] = translate('General');
 $tabs['source'] = translate('Source');
+$tabs['onvif'] = translate('ONVIF');
 if ( $monitor->Type() != 'WebSite' ) {
   $tabs['storage'] = translate('Storage');
   $tabs['timestamp'] = translate('Timestamp');
@@ -486,6 +488,14 @@ if ( ZM_HAS_V4L && ($tab != 'source' || $monitor->Type() != 'Local') ) {
       <input type="hidden" name="newMonitor[Palette]" value="<?php echo validHtmlStr($monitor->Palette()) ?>"/>
       <input type="hidden" name="newMonitor[V4LMultiBuffer]" value="<?php echo validHtmlStr($monitor->V4LMultiBuffer()) ?>"/>
       <input type="hidden" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo validHtmlStr($monitor->V4LCapturesPerFrame()) ?>"/>
+<?php
+}
+if ( $tab != 'onvif' ) {
+?>
+        <input type="hidden" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
+        <input type="hidden" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/>
 <?php
 }
 if ( $tab != 'source' || $monitor->Type()!= 'Remote' ) {
@@ -640,7 +650,7 @@ switch ( $tab ) {
         </tr>
         <tr>
           <td><?php echo translate('Enabled') ?></td>
-          <td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php if ( $monitor->Enabled() ) { ?> checked="checked"<?php } ?>/></td>
+          <td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php echo $monitor->Enabled() ? ' checked="checked"' : '' ?>/></td>
         </tr>
 <?php
       if ( $monitor->Type() != 'WebSite' ) {
@@ -748,7 +758,29 @@ switch ( $tab ) {
         }
         break;
     }
-  case 'source' :
+    case 'onvif' :
+    {
+?>
+            <tr>
+              <td><?php echo translate('ONVIF_URL') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/></td>
+            </tr>
+            <tr>
+              <td><?php echo translate('Username') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>"/></td>
+            </tr>
+            <tr>
+              <td><?php echo translate('Password') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/></td>
+            </tr>
+            <tr>
+              <td><?php echo translate('ONVIF_Options') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/></td>
+            </tr>
+<?php
+        break;
+    }
+    case 'source' :
     {
       if ( ZM_HAS_V4L && $monitor->Type() == 'Local' ) {
 ?>
@@ -775,9 +807,18 @@ switch ( $tab ) {
 <?php
         } else {
 ?>
-          <tr><td><?php echo translate('DeviceChannel') ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l2DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Channel()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-          <tr><td><?php echo translate('DeviceFormat') ?></td><td><select name="newMonitor[Format]"><?php foreach ( $v4l2DeviceFormats as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Format()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-          <tr><td><?php echo translate('CapturePalette') ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l2LocalPalettes as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Palette()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+          <tr>
+            <td><?php echo translate('DeviceChannel') ?></td>
+            <td><?php echo htmlSelect('newMonitor[Channel]', $v4l2DeviceChannels, $monitor->Channel()); ?></td>
+          </tr>
+          <tr>
+            <td><?php echo translate('DeviceFormat') ?></td>
+            <td><?php echo htmlSelect('newMonitor[Format]', $v4l2DeviceFormats, $monitor->Format()); ?></td>
+          </tr>
+         <tr>
+            <td><?php echo translate('CapturePalette') ?></td>
+            <td><?php echo htmlSelect('newMonitor[Palette]', $v4l2LocalPalettes, $monitor->Palette()); ?></td>
+          </tr>
 <?php
         }
 ?>
@@ -797,6 +838,25 @@ switch ( $tab ) {
 
       } else if ( $monitor->Type() == 'NVSocket' ) {
 include('_monitor_source_nvsocket.php');
+      } else if ( $monitor->Type() == 'VNC' ) {
+?>
+        <tr>
+          <td><?php echo translate('RemoteHostName') ?></td>
+          <td><input type="text" name="newMonitor[Host]" value="<?php echo validHtmlStr($monitor->Host()) ?>"/></td>
+        </tr>
+        <tr>
+          <td><?php echo translate('RemoteHostPort') ?></td>
+          <td><input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" size="6"/></td>
+        </tr>
+        <tr>
+          <td><?php echo translate('Username') ?></td>
+          <td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/></td>
+        </tr>
+        <tr>
+          <td><?php echo translate('Password') ?></td>
+          <td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/></td>
+        </tr>
+<?php
       } else if ( $monitor->Type() == 'Remote' ) {
 ?>
           <tr>
@@ -947,9 +1007,12 @@ include('_monitor_source_nvsocket.php');
         }
         if ( $monitor->Type() == 'Remote' ) {
           ?>
-            <tr id="RTSPDescribe"<?php if ( $monitor->Protocol()!= 'rtsp' ) { echo ' style="display:none;"'; } ?>><td><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE', 'zmOptionHelp', 'optionhelp', '?' ) ?>) </td><td><input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( $monitor->RTSPDescribe() ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr id="RTSPDescribe"<?php if ( $monitor->Protocol()!= 'rtsp' ) { echo ' style="display:none;"'; } ?>>
+              <td><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td><input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( $monitor->RTSPDescribe() ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
 <?php
-      }
+      } # end if monitor->Type() == 'Remote'
       break;
     }
   case 'storage' :
@@ -959,7 +1022,7 @@ include('_monitor_source_nvsocket.php');
             <td>
 <?php
       $storage_areas = array(0=>'Default');
-      foreach ( ZM\Storage::find(NULL, array('order'=>'lower(Name)')) as $Storage ) {
+      foreach ( ZM\Storage::find(array('Enabled'=>true), array('order'=>'lower(Name)')) as $Storage ) {
         $storage_areas[$Storage->Id()] = $Storage->Name();
       }
       echo htmlSelect('newMonitor[StorageId]', $storage_areas, $monitor->StorageId());
@@ -997,8 +1060,11 @@ include('_monitor_source_nvsocket.php');
 ?>
             </td></tr>
             <tr>
-              <td><?php echo translate('OptionalEncoderParam') ?></td>
-              <td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea></td></tr>
+              <td><?php echo translate('OptionalEncoderParam') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_ENCODER_PARAMETERS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td>
+              <textarea name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
+              </td>
+            </tr>
             <tr><td><?php echo translate('RecordAudio') ?></td><td>
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
               <input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/>
@@ -1083,7 +1149,7 @@ if ( canEdit('Control') ) {
             </tr>
             <tr>
               <td><?php echo translate('ControlAddress') ?></td>
-              <td><input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($monitor->ControlAddress()) ?>"/></td>
+              <td><input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($monitor->ControlAddress()) ? : 'user:port@ip' ?>"/></td>
             </tr>
             <tr>
               <td><?php echo translate('AutoStopTimeout') ?></td>

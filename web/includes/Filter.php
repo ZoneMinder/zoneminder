@@ -11,6 +11,9 @@ class Filter extends ZM_Object {
     'AutoExecute'     =>  0,
     'AutoExecuteCmd'  =>  0,
     'AutoEmail'       =>  0,
+		'EmailTo'					=>	'',
+		'EmailSubject'		=>	'',
+		'EmailBody'				=>	'',
     'AutoDelete'      =>  0,
     'AutoArchive'     =>  0,
     'AutoVideo'       =>  0,
@@ -21,14 +24,107 @@ class Filter extends ZM_Object {
     'AutoCopy'        =>  0,
     'AutoCopyTo'      =>  0,
     'UpdateDiskSpace' =>  0,
+    'UserId'          =>  0,
     'Background'      =>  0,
     'Concurrent'      =>  0,
     'Query_json'      =>  '',
   );
 
+  protected $_querystring;
+  protected $_sql;
+  protected $_hidden_fields;
+  public $_pre_sql_conditions;
+  public $_post_sql_conditions;
+  protected $_Terms;
+
+  public function sql() {
+    if ( ! isset($this->_sql) ) {
+      foreach ( $this->FilterTerms() as $term ) {
+        if ( ! ($term->is_pre_sql() or $term->is_post_sql()) )
+          $this->_sql .= $term->sql();
+      } # end foreach term
+    }
+    return $this->_sql;
+  }
+
+  public function querystring() {
+    if ( ! isset($this->_querystring) ) {
+      foreach ( $this->FilterTerms() as $term ) {
+        $this->_querystring .= $term->querystring();
+      } # end foreach term
+    }
+    return $this->_querystring;
+  }
+
+  public function hidden_fields() {
+    if ( ! isset($this->_hidden_fields) ) {
+      foreach ( $this->FilterTerms() as $term ) {
+        $this->_hidden_fields .= $term->hidden_fields();
+      } # end foreach term
+    }
+    return $this->_hidden_fields;
+  }
+
+  public function pre_sql_conditions() {
+    if ( ! isset($this->_pre_sql_conditions) ) {
+      $this->_pre_sql_conditions = array();
+      foreach ( $this->FilterTerms() as $term ) {
+        if ( $term->is_pre_sql() )
+          $this->_pre_sql_conditions[] = $term;
+      } # end foreach term
+    }
+    return $this->_pre_sql_conditions;
+  }
+
+  public function post_sql_conditions() {
+
+    if ( ! isset($this->_post_sql_conditions) ) {
+      $this->_post_sql_conditions = array();
+      foreach ( $this->FilterTerms() as $term ) {
+        if ( $term->is_post_sql() )
+          $this->_post_sql_conditions[] = $term;
+      } # end foreach term
+    }
+    return $this->_post_sql_conditions;
+  }
+
+  public function FilterTerms() { 
+    if ( ! isset($this->Terms) ) {
+      $this->Terms = array();
+      $_terms = $this->terms();
+      for ( $i = 0; $i < count($_terms); $i++ ) {
+        $term = new FilterTerm($this, $_terms[$i], $i);
+        $this->Terms[] = $term;
+      } # end foreach term
+    }
+    return $this->Terms;
+  }
+
+  public static function parse($new_filter, $querySep='&amp;') {
+    $filter = new Filter();
+    $filter->Query($new_filter['Query']);
+    return $filter;
+  }
+
+  # If no storage areas are specified in the terms, then return all
+  public function get_StorageAreas() {
+    $storage_ids = array();
+    foreach ( $this->Terms as $term ) {
+      if ( $term->attr == 'StorageId' ) {
+        # TODO handle other operators like !=
+        $storage_ids[] = $term->value;
+      }
+    }
+    if ( count($storage_ids) ) {
+      return Storage::find(array('Id'=>$storage_ids));
+    } else {
+      return Storage::find();
+    }
+  } # end function get_StorageAreas
+
   public function Query_json() {
     if ( func_num_args( ) ) {
-      $this->{'Query_json'} = func_get_arg(0);;
+      $this->{'Query_json'} = func_get_arg(0);
       $this->{'Query'} = jsonDecode($this->{'Query_json'});
     }
     return $this->{'Query_json'};
@@ -36,7 +132,7 @@ class Filter extends ZM_Object {
 
   public function Query() {
     if ( func_num_args( ) ) {
-      $this->{'Query'} = func_get_arg(0);;
+      $this->{'Query'} = func_get_arg(0);
       $this->{'Query_json'} = jsonEncode($this->{'Query'});
     }
     if ( !property_exists($this, 'Query') ) {
@@ -178,6 +274,37 @@ class Filter extends ZM_Object {
     Logger::Debug("$command status:$status output:".implode("\n", $output));
     return $status;
   }
+
+  public function test_pre_sql_conditions() {
+    if ( !count($this->pre_sql_conditions()) ) {
+      return true;
+    } # end if pre_sql_conditions
+
+    $failed = false;
+    foreach ( $this->pre_sql_conditions() as $term ) {
+      if ( !$term->test() ) {
+        $failed = true;
+        break;
+      }
+    }
+    return $failed;
+  }
+
+  public function test_post_sql_conditions($event) {
+    if ( !count($this->post_sql_conditions()) ) {
+      return true;
+    } # end if pre_sql_conditions
+
+    $failed = true;
+    foreach ( $this->post_sql_conditions() as $term ) {
+      if ( !$term->test($event) ) {
+        $failed = false;
+        break;
+      }
+    }
+    return $failed;
+  }
+
 
 } # end class Filter
 

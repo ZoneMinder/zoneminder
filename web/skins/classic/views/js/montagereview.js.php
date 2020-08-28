@@ -4,6 +4,20 @@ $TimeZone = new DateTimeZone( ini_get('date.timezone') );
 $now = new DateTime('now', $TimeZone);
 $offset = $TimeZone->getOffset($now);
 echo $offset.'; // '.floor($offset / 3600).' hours ';
+
+global $defaultScale;
+global $liveMode;
+global $fitMode;
+global $speeds;
+global $speedIndex;
+global $initialDisplayInterval;
+global $minTimeSecs;
+global $maxTimeSecs;
+global $minTime;
+global $maxTime;
+global $monitors;
+global $eventsSql;
+global $framesSql;
 ?>
 
 var currentScale=<?php echo $defaultScale?>;
@@ -40,7 +54,7 @@ $maxScore = 0;
 if ( !$liveMode ) {
   $result = dbQuery($eventsSql);
   if ( !$result ) {
-    Fatal('SQL-ERR');
+    ZM\Fatal('SQL-ERR');
     return;
   }
 
@@ -146,7 +160,6 @@ foreach ( ZM\Server::find() as $Server ) {
   echo 'Servers[' . $Server->Id() . '] = new Server(' . $Server->to_json(). ");\n";
 }
 
-
 echo '
 var monitorName = [];
 var monitorLoading = [];
@@ -167,8 +180,8 @@ var monitorCanvasCtx = [];
 var monitorPtr = []; // monitorName[monitorPtr[0]] is first monitor
 ';
 
-$numMonitors=0;  // this array is indexed by the monitor ID for faster access later, so it may be sparse
-$avgArea=floatval(0);  // Calculations the normalizing scale
+$numMonitors = 0;  // this array is indexed by the monitor ID for faster access later, so it may be sparse
+$avgArea = floatval(0);  // Calculations the normalizing scale
 
 foreach ( $monitors as $m ) {
   $avgArea = $avgArea + floatval($m->Width() * $m->Height());

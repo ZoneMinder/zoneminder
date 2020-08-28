@@ -142,9 +142,14 @@ xhtmlHeaders(__FILE__, translate('Montage'));
 <body>
   <div id="page">
     <?php echo getNavBarHTML() ?>
-    <div id="header">&nbsp;&nbsp;
-      <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right" title="Toggle Filters"></span></a>
-      <div id="flipMontageHeader">
+    <div id="header">
+<?php
+    $html = '';
+    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'up')) ? 'down' : 'up';
+    $html .= '<a class="flip" href="#"><i id="mfbflip" class="material-icons md-18">keyboard_arrow_' .$flip. '</i></a>'.PHP_EOL;
+    $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
+    echo $html;
+?>
         <div id="headerButtons">
 <?php
 if ( $showControl ) {
@@ -152,11 +157,11 @@ if ( $showControl ) {
 }
 if ( $showZones ) {
 ?>
-        <a id="ShowZones" href="?view=montage&amp;showZones=0">Hide Zones</a>
+  <a id="HideZones" href="?view=montage&amp;showZones=0"><?php echo translate('Hide Zones')?></a>
 <?php
 } else {
 ?>
-        <a id="ShowZones" href="?view=montage&amp;showZones=1">Show Zones</a>
+  <a id="ShowZones" href="?view=montage&amp;showZones=1"><?php echo translate('Show Zones')?></a>
 <?php
 }
 ?>
@@ -166,7 +171,7 @@ if ( $showZones ) {
         <?php echo $filterbar ?>
       </form>
       <div id="sizeControl">
-        <form action="index.php?view=montage" method="post">
+        <form action="?view=montage" method="post">
           <input type="hidden" name="object" value="MontageLayout"/>
           <input type="hidden" name="action" value="Save"/>
 
@@ -222,20 +227,7 @@ foreach ( $monitors as $monitor ) {
   $monitor_options['height'] = $monitor_options['height']?$monitor_options['height'].'px' : null;
   $monitor_options['connkey'] = $monitor->connKey();
 
-  ZM\Logger::Debug("Options: " . print_r($monitor_options,true));
-  if (0 and $Positions ) {
-    $monitor_options['width'] = '100%';
-    $monitor_options['height'] = '100%';
-    if ( 0 ) {
-    if ( isset($Positions[$monitor->Id()]) ) {
-      $monitor_options = array();
-      #$monitor_options = $Positions[$monitor->Id()];
-    } else if ( isset($Positions['default']) ) {
-      $monitor_options = array();
-      #$monitor_options = $Positions['default'];
-    }
-    }
-  }
+  #ZM\Warning('Options: ' . print_r($monitor_options,true));
 
   if ( $monitor->Type() == 'WebSite' ) {
     echo getWebSiteUrl(

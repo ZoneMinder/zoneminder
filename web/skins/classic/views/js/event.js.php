@@ -1,3 +1,15 @@
+<?php
+  global $connkey;
+  global $Event;
+  global $Monitor;
+  global $filterQuery;
+  global $sortQuery;
+  global $rates;
+  global $rate;
+  global $scale;
+  global $streamMode;
+  global $popup;
+?>
 //
 // Import constants
 //

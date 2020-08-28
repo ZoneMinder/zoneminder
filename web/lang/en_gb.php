@@ -117,6 +117,7 @@ $SLANG = array(
     'Area'                  => 'Area',
     'AreaUnits'             => 'Area (px/%)',
     'AttrAlarmFrames'       => 'Alarm Frames',
+    'AttrAlarmedZone'       => 'Alarmed Zone',
     'AttrArchiveStatus'     => 'Archive Status',
     'AttrAvgScore'          => 'Avg. Score',
     'AttrCause'             => 'Cause',
@@ -255,7 +256,10 @@ $SLANG = array(
     'Command'               => 'Command',
     'ConcurrentFilter'      => 'Run filter concurrently',
     'Config'                => 'Config',
+    'ConfigOptions'         => 'ConfigOptions',
+    'ConfigType'            => 'Config Type',
     'ConfiguredFor'         => 'Configured for',
+    'ConfigURL'             => 'Config Base URL',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
     'ConfirmPassword'       => 'Confirm Password',
     'ConjAnd'               => 'and',
@@ -339,6 +343,7 @@ $SLANG = array(
     'Export'                => 'Export',
     'DownloadVideo'         => 'Download Video',
     'GenerateDownload'      => 'Generate Download',
+    'ExistsInFileSystem'    => 'Exists In File System',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
     'ExportFormatTar'       => 'Tar',
@@ -362,6 +367,9 @@ $SLANG = array(
     'FilterCopyEvents'      => 'Copy all matches',
     'FilterMoveEvents'      => 'Move all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
+    'FilterEmailTo'    			=> 'Email To',
+    'FilterEmailSubject'	  => 'Email Subject',
+    'FilterEmailBody'   	  => 'Email Body',
     'FilterExecuteEvents'   => 'Execute command on all matches',
     'FilterLog'             => 'Filter log',
     'FilterMessageEvents'   => 'Message details of all matches',
@@ -370,6 +378,7 @@ $SLANG = array(
     'Filters'               => 'Filters',
     'FilterUnset'           => 'You must specify a filter width and height',
     'FilterUploadEvents'    => 'Upload all matches',
+    'FilterUser'            => 'User to run filter as',
     'FilterVideoEvents'     => 'Create video for all matches',
     'First'                 => 'First',
     'FlippedHori'           => 'Flipped Horizontally',
@@ -380,6 +389,7 @@ $SLANG = array(
     'FnRecord'              => 'Record',            // Added 2013.08.16.
     'FnMocord'              => 'Mocord',            // Added 2013.08.16.
     'FnNodect'              => 'Nodect',            // Added 2013.08.16.
+    'FnExtdect'             => 'Extdect',           // Added 2014.12.14.
     'Focus'                 => 'Focus',
     'ForceAlarm'            => 'Force Alarm',
     'Format'                => 'Format',
@@ -483,6 +493,7 @@ $SLANG = array(
     'MaxZoomStep'           => 'Max Zoom Step',
     'MediumBW'              => 'Medium&nbsp;B/W',
     'Medium'                => 'Medium',
+    'MetaConfig'            => 'Meta Config',
     'MinAlarmAreaLtMax'     => 'Minimum alarm area should be less than maximum',
     'MinAlarmAreaUnset'     => 'You must specify the minimum alarm pixel count',
     'MinBlobAreaLtMax'      => 'Minimum blob area should be less than maximum',
@@ -811,7 +822,6 @@ $SLANG = array(
     'ViewEvent'             => 'View Event',
     'ViewPaged'             => 'View Paged',
     'View'                  => 'View',
-	'V4L'					=> 'V4L',
 	'V4LCapturesPerFrame'	=> 'Captures Per Frame',
 	'V4LMultiBuffer'		=> 'Multi Buffering',
     'Wake'                  => 'Wake',
@@ -984,6 +994,18 @@ $OLANG = array(
       "loglevel=debug" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)
     '
 	),
+  'OPTIONS_ENCODER_PARAMETERS' => array(
+    'Help' => '
+    Parameters passed to the encoding codec. name=value separated by either , or newline.~~
+    For example to changing quality, use the crf option.  1 is best, 51 is worst 23 is default.~~
+~~
+    crf=23~~
+    ~~
+    You might want to alter the movflags value to support different behaviours. Some people have troubles viewing videos due to the frag_keyframe option, but that option is supposed to allow viewing of incomplete events. See 
+    [https://ffmpeg.org/ffmpeg-formats.html](https://ffmpeg.org/ffmpeg-formats.html)
+    for more information.  ZoneMinder\'s default is frag_keyframe,empty_moov~~
+    ',
+  ),
   'OPTIONS_DECODERHWACCELNAME' => array(
     'Help' => '
     This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'

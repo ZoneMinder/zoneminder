@@ -178,14 +178,19 @@ function applyPreset() {
 function toPixels(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((field.value*maxValue)/100);
+    if ( field.value > maxValue ) field.value = maxValue;
   }
   field.setAttribute('step', 1);
-  field.setAttribute('max', monitorArea);
+  field.setAttribute('max', maxValue);
 }
 
+// maxValue is the max Pixels value which is normally the max area
 function toPercent(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((100*100*field.value)/maxValue)/100;
+    if ( field.value > 100 ) {
+      field.value = 100;
+    }
   }
   field.setAttribute('step', 0.01);
   field.setAttribute('max', 100);
@@ -244,14 +249,12 @@ function limitArea(field) {
   limitRange(field, minValue, maxValue);
 }
 
-function highlightOn(point) {
-  var index = point.getAttribute('data-point-index');
+function highlightOn(index) {
   $('row'+index).addClass('highlight');
   $('point'+index).addClass('highlight');
 }
 
-function highlightOff(point) {
-  var index = point.getAttribute('data-point-index');
+function highlightOff(index) {
   $('row'+index).removeClass('highlight');
   $('point'+index).removeClass('highlight');
 }
@@ -312,9 +315,7 @@ function updateActivePoint(index) {
   $('newZone[Points]['+index+'][y]').value = y;
   zone['Points'][index].x = x;
   zone['Points'][index].y = y;
-  console.log('hello');
   var Point = $('zonePoly').points.getItem(index);
-  console.log('hello');
   Point.x = x;
   Point.y = y;
   updateArea();
@@ -325,17 +326,15 @@ function addPoint(index) {
   if ( index >= (zone['Points'].length-1) ) {
     nextIndex = 0;
   }
+
   var newX = parseInt(Math.round((zone['Points'][index]['x']+zone['Points'][nextIndex]['x'])/2));
   var newY = parseInt(Math.round((zone['Points'][index]['y']+zone['Points'][nextIndex]['y'])/2));
   if ( nextIndex == 0 ) {
     zone['Points'][zone['Points'].length] = {'x': newX, 'y': newY};
   } else {
-    zone['Points'].splice( nextIndex, 0, {'x': newX, 'y': newY} );
+    zone['Points'].splice(nextIndex, 0, {'x': newX, 'y': newY});
   }
   drawZonePoints();
-  // drawZonePoints calls updateZoneImage
-  //updateZoneImage();
-  //setActivePoint( nextIndex );
 }
 
 function delPoint(index) {
@@ -418,8 +417,8 @@ function drawZonePoints() {
         'top': zone['Points'][i].y
       }
     });
-    div.onmouseover = window['highlightOn'].bind(div, div);
-    div.onmouseout = window['highlightOff'].bind(div, div);
+    div.addEvent('mouseover', highlightOn.pass(i));
+    div.addEvent('mouseout', highlightOff.pass(i));
     div.inject($('imageFrame'));
     div.makeDraggable( {
       'container': $('imageFrame'),
@@ -449,9 +448,10 @@ function drawZonePoints() {
       'name': 'newZone[Points]['+i+'][x]',
       'value': zone['Points'][i].x,
       'type': 'number',
-      'min' : '0',
-      'max' : maxX,
-      'data-point-index' : i
+      'class': 'ZonePoint',
+      'min': '0',
+      'max': maxX,
+      'data-point-index': i
     });
     input.oninput = window['updateX'].bind(input, input);
     input.inject(cell);
@@ -463,9 +463,10 @@ function drawZonePoints() {
       'name': 'newZone[Points]['+i+'][y]',
       'value': zone['Points'][i].y,
       'type': 'number',
-      'min' : '0',
-      'max' : maxY,
-      'data-point-index' : i
+      'class': 'ZonePoint',
+      'min': '0',
+      'max': maxY,
+      'data-point-index': i
     } );
     input.oninput = window['updateY'].bind(input, input);
     input.inject(cell);
@@ -487,7 +488,7 @@ function drawZonePoints() {
     cell.inject(row);
 
     row.inject(tables[i%tables.length].getElement('tbody'));
-  }
+  } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();
 }
@@ -675,7 +676,6 @@ var watchdogFunctions = {
 //Make sure the various refreshes are still taking effect
 function watchdogCheck(type) {
   if ( watchdogInactive[type] ) {
-    console.log("Detected streamWatch of type: " + type + " stopped, restarting");
     watchdogFunctions[type]();
     watchdogInactive[type] = false;
   } else {

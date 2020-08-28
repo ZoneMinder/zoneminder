@@ -17,67 +17,68 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+global $running;
 
 if ( !canEdit('System') ) {
   $view = 'error';
   return;
 }
-?>
-<div id="modalState" class="modal fade">
-  <form class="form-horizontal" name="contentForm" method="get" action="?view=state">
-    <input type="hidden" name="view" value="state"/>
-    <input type="hidden" name="action" value="state"/>
-    <input type="hidden" name="apply" value="1"/>
 
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h2 class="modal-title"><?php echo translate('RunState') ?></h2>
-        </div>
-        <div class="modal-body">
-
-	        <div class="form-group">
-	          <label for="runState" class="col-sm-3 control-label">Change State</label>
-	          <div class="col-sm-9">
-              <select id="runState" name="runState" class="form-control">
-<?php 
+$content = '';
 if ( $running ) {
-?>
-                <option value="stop" selected="selected"><?php echo translate('Stop') ?></option>
-                <option value="restart"><?php echo translate('Restart') ?></option>
-<?php
+  $content .= '<option value="stop" selected="selected">' .translate('Stop'). '</option>'.PHP_EOL;
+  $content .= '<option value="restart">' .translate('Restart'). '</option>'.PHP_EOL;
 } else {
-?>
-                <option value="start" selected="selected"><?php echo translate('Start') ?></option>
-<?php
+  $content .= '<option value="start" selected="selected">' .translate('Start'). '</option>'.PHP_EOL;
 }
+
 $states = dbFetchAll('SELECT * FROM States');
 foreach ( $states as $state ) {
-?>
-                <option value="<?php echo validHtmlStr($state['Name']) ?>" <?php echo $state['IsActive'] ? 'selected="selected"' : '' ?>>
-                <?php echo validHtmlStr($state['Name']); ?>
-                </option>
-<?php
+  $selected = $state['IsActive'] ? 'selected="selected"' : '';
+  
+  $content .= '<option value="' .validHtmlStr($state["Name"]). '" ' .$selected. '>'.PHP_EOL;
+  $content .= validHtmlStr($state['Name']).PHP_EOL;
+  $content .= '</option>'.PHP_EOL;
 }
+
 ?>
-              </select>
-	          </div><!--col-sm-9-->
-	        </div><!--form-group-->
-	        <div class="form-group">
-            <label for="newState" class="col-sm-3 control-label"><?php echo translate('NewState') ?></label>
-		        <div class="col-sm-9">
-              <input class="form-control" type="text" id="newState"/>
-		        </div>
-	        </div>
-        </div> <!-- modal-body -->
-        <div class="modal-footer">
-          <button class="btn btn-primary" type="button" id="btnApply"><?php echo translate('Apply') ?></button>
-          <button class="btn btn-primary" type="button" id="btnSave" disabled><?php echo translate('Save') ?></button>
-          <button class="btn btn-danger" type="button" id="btnDelete" disabled><?php echo translate('Delete') ?></button>
-          <p class="pull-left hidden" id="pleasewait"><?php echo translate('PleaseWait') ?></p>
-	      </div><!-- footer -->
-      </div> <!-- content -->
-    </div> <!-- dialog -->
-  </form>
-</div> <!-- state -->
+<div id="modalState" class="modal fade" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Run State</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+          <form class="" name="contentForm" method="get" action="?view=state">
+            <input type="hidden" name="view" value="state"/>
+            <input type="hidden" name="action" value="state"/>
+            <input type="hidden" name="apply" value="1"/>
+            <div class="form-group">
+              <label for="runState" class="col-md-3 col-form-label float-left">Change State</label>
+              <div class="col-md-9">
+                <select id="runState" name="runState" class="form-control">
+                  <?php echo $content ?>
+                </select>
+              </div><!--col-md-9-->
+            </div><!--form-group-->
+            <div class="form-group">
+              <label for="newState" class="col-md-3 col-form-label float-left"><?php echo translate('NewState') ?></label>
+                <div class="col-md-9">
+                  <input class="form-control" type="text" id="newState"/>
+                </div>
+            </div>
+          </form>        
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" type="button" id="btnApply"><?php echo translate('Apply') ?></button>
+        <button class="btn btn-primary" type="button" id="btnSave" disabled><?php echo translate('Save') ?></button>
+        <button class="btn btn-danger" type="button" id="btnDelete" disabled><?php echo translate('Delete') ?></button>
+        <p class="pull-left hidden" id="pleasewait"><?php echo translate('PleaseWait') ?></p>
+      </div>
+    </div>
+  </div>
+</div>
+

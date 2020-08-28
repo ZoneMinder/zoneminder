@@ -192,7 +192,7 @@ void zm_jpeg_mem_dest (j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_s
    * manager serially with the same JPEG object, because their private object
    * sizes may be different.  Caveat programmer.
    */
-  if ( cinfo->dest == NULL )
+  if ( cinfo->dest == nullptr )
   {
     /* first time for this JPEG object? */
     cinfo->dest = (struct jpeg_destination_mgr *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, SIZEOF(mem_destination_mgr));
@@ -369,7 +369,7 @@ void zm_jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuff
    * This makes it unsafe to use this manager and a different source
    * manager serially with the same JPEG object.  Caveat programmer.
    */
-  if ( cinfo->src == NULL )
+  if ( cinfo->src == nullptr )
   {
       /* first time for this JPEG object? */
     cinfo->src = (struct jpeg_source_mgr *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, SIZEOF(mem_source_mgr));
@@ -396,7 +396,7 @@ void zm_jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuff
   src->inbuffer = (JOCTET *)inbuffer;
   src->inbuffer_size = inbuffer_size;
   src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
-  src->pub.next_input_byte = NULL; /* until buffer loaded */
+  src->pub.next_input_byte = nullptr; /* until buffer loaded */
 }
 
 void zm_use_std_huff_tables( j_decompress_ptr cinfo ) {

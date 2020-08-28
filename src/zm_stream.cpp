@@ -33,7 +33,7 @@ StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC
   if ( vid_stream ) {
     delete vid_stream;
-    vid_stream = NULL;
+    vid_stream = nullptr;
   }
 #endif
   closeComms();
@@ -351,7 +351,7 @@ void StreamBase::openComms() {
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
-    gettimeofday(&last_comm_update, NULL);
+    gettimeofday(&last_comm_update, nullptr);
   } // end if connKey > 0
   Debug(3, "comms open at %s", loc_sock_path);
 } // end void StreamBase::openComms()

@@ -211,45 +211,45 @@ int main(int argc, char *argv[]) {
 
   self = argv[0];
 
-  srand(getpid() * time(0));
+  srand(getpid() * time(nullptr));
 
   static struct option long_options[] = {
-    {"device", 2, 0, 'd'},
-    {"monitor", 1, 0, 'm'},
-    {"verbose", 0, 0, 'v'},
-    {"image", 2, 0, 'i'},
-    {"scale", 1, 0, 'S'},
-    {"timestamp", 2, 0, 't'},
-    {"state", 0, 0, 's'},
-    {"brightness", 2, 0, 'B'},
-    {"contrast", 2, 0, 'C'},
-    {"hue", 2, 0, 'H'},
-    {"contrast", 2, 0, 'O'},
-    {"read_index", 0, 0, 'R'},
-    {"write_index", 0, 0, 'W'},
-    {"event", 0, 0, 'e'},
-    {"fps", 0, 0, 'f'},
-    {"zones", 2, 0, 'z'},
-    {"alarm", 0, 0, 'a'},
-    {"noalarm", 0, 0, 'n'},
-    {"cancel", 0, 0, 'c'},
-    {"reload", 0, 0, 'L'},
-    {"enable", 0, 0, 'E'},
-    {"disable", 0, 0, 'D'},
-    {"suspend", 0, 0, 'u'},
-    {"resume", 0, 0, 'r'},
-    {"query", 0, 0, 'q'},
-    {"username", 1, 0, 'U'},
-    {"password", 1, 0, 'P'},
-    {"auth", 1, 0, 'A'},
-    {"token", 1, 0, 'T'},
-    {"version", 1, 0, 'V'},
-    {"help", 0, 0, 'h'},
-    {"list", 0, 0, 'l'},
-    {0, 0, 0, 0}
+    {"device", 2, nullptr, 'd'},
+    {"monitor", 1, nullptr, 'm'},
+    {"verbose", 0, nullptr, 'v'},
+    {"image", 2, nullptr, 'i'},
+    {"scale", 1, nullptr, 'S'},
+    {"timestamp", 2, nullptr, 't'},
+    {"state", 0, nullptr, 's'},
+    {"brightness", 2, nullptr, 'B'},
+    {"contrast", 2, nullptr, 'C'},
+    {"hue", 2, nullptr, 'H'},
+    {"contrast", 2, nullptr, 'O'},
+    {"read_index", 0, nullptr, 'R'},
+    {"write_index", 0, nullptr, 'W'},
+    {"event", 0, nullptr, 'e'},
+    {"fps", 0, nullptr, 'f'},
+    {"zones", 2, nullptr, 'z'},
+    {"alarm", 0, nullptr, 'a'},
+    {"noalarm", 0, nullptr, 'n'},
+    {"cancel", 0, nullptr, 'c'},
+    {"reload", 0, nullptr, 'L'},
+    {"enable", 0, nullptr, 'E'},
+    {"disable", 0, nullptr, 'D'},
+    {"suspend", 0, nullptr, 'u'},
+    {"resume", 0, nullptr, 'r'},
+    {"query", 0, nullptr, 'q'},
+    {"username", 1, nullptr, 'U'},
+    {"password", 1, nullptr, 'P'},
+    {"auth", 1, nullptr, 'A'},
+    {"token", 1, nullptr, 'T'},
+    {"version", 1, nullptr, 'V'},
+    {"help", 0, nullptr, 'h'},
+    {"list", 0, nullptr, 'l'},
+    {nullptr, 0, nullptr, 0}
   };
 
-  const char *device = 0;
+  const char *device = nullptr;
   int mon_id = 0;
   bool verbose = false;
   int function = ZMU_BOGUS;
@@ -260,10 +260,10 @@ int main(int argc, char *argv[]) {
   int contrast = -1;
   int hue = -1;
   int colour = -1;
-  char *zoneString = 0;
-  char *username = 0;
-  char *password = 0;
-  char *auth = 0;
+  char *zoneString = nullptr;
+  char *username = nullptr;
+  char *password = nullptr;
+  char *auth = nullptr;
   std::string jwt_token_str = "";
 #if ZM_HAS_V4L
 #if ZM_HAS_V4L2
@@ -487,7 +487,7 @@ int main(int argc, char *argv[]) {
     if ( !monitor->connect() ) {
       Error("Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name());
       delete monitor;
-      monitor = NULL;
+      monitor = nullptr;
       exit_zmu(-1);
     }
 
@@ -701,7 +701,7 @@ int main(int argc, char *argv[]) {
       Usage();
     }
     delete monitor;
-    monitor = NULL;
+    monitor = nullptr;
   } else { // non monitor functions
     if ( function & ZMU_QUERY ) {
 #if ZM_HAS_V4L
@@ -716,7 +716,7 @@ int main(int argc, char *argv[]) {
     }
 
     if ( function & ZMU_LIST ) {
-      std::string sql = "SELECT Id, `Function`+0 FROM Monitors";
+      std::string sql = "SELECT `Id`, `Function`+0 FROM `Monitors`";
       if ( !verbose ) {
         sql += "WHERE `Function` != 'None'";
       }

@@ -24,7 +24,7 @@
 #include "zm_swscale.h"
 
 #if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
-SWScale::SWScale() : gotdefaults(false), swscale_ctx(NULL), input_avframe(NULL), output_avframe(NULL) {
+SWScale::SWScale() : gotdefaults(false), swscale_ctx(nullptr), input_avframe(nullptr), output_avframe(nullptr) {
   Debug(4,"SWScale object created");
 
 }
@@ -36,7 +36,7 @@ bool SWScale::init() {
 #else
   input_avframe = avcodec_alloc_frame();
 #endif
-  if ( input_avframe == NULL ) {
+  if ( input_avframe == nullptr ) {
     Error("Failed allocating AVFrame for the input");
     return false;
   }
@@ -47,7 +47,7 @@ bool SWScale::init() {
 #else
   output_avframe = avcodec_alloc_frame();
 #endif
-  if ( output_avframe == NULL ) {
+  if ( output_avframe == nullptr ) {
     Error("Failed allocating AVFrame for the output");
     return false;
   }
@@ -65,7 +65,7 @@ SWScale::~SWScale() {
 
   if ( swscale_ctx ) {
     sws_freeContext(swscale_ctx);
-    swscale_ctx = NULL;
+    swscale_ctx = nullptr;
   }
 
   Debug(4,"SWScale object destroyed");
@@ -84,9 +84,9 @@ int SWScale::SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, 
   return 0;
 }
 
-int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
+int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height, unsigned int new_width, unsigned int new_height) {
   /* Parameter checking */
-  if(in_buffer == NULL || out_buffer == NULL) {
+  if(in_buffer == nullptr || out_buffer == nullptr) {
     Error("NULL Input or output buffer");
     return -1;
   }
@@ -94,7 +94,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   //    Error("Invalid input or output pixel formats");
   //    return -2;
   //  }
-  if (!width || !height) {
+  if (!width || !height || !new_height || !new_width) {
     Error("Invalid width or height");
     return -3;
   }
@@ -111,7 +111,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 
   /* Check the buffer sizes */
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  size_t insize = av_image_get_buffer_size(in_pf, width, height,1);
+  size_t insize = av_image_get_buffer_size(in_pf, width, height, 1);
 #else
   size_t insize = avpicture_get_size(in_pf, width, height);
 #endif
@@ -120,9 +120,9 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
     return -4;
   }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  size_t outsize = av_image_get_buffer_size(out_pf, width, height,1);
+  size_t outsize = av_image_get_buffer_size(out_pf, new_width, new_height, 1);
 #else
-  size_t outsize = avpicture_get_size(out_pf, width, height);
+  size_t outsize = avpicture_get_size(out_pf, new_width, new_height);
 #endif
 
   if(outsize < out_buffer_size) {
@@ -131,8 +131,8 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   }
 
   /* Get the context */
-  swscale_ctx = sws_getCachedContext( swscale_ctx, width, height, in_pf, width, height, out_pf, SWS_FAST_BILINEAR, NULL, NULL, NULL );
-  if(swscale_ctx == NULL) {
+  swscale_ctx = sws_getCachedContext( swscale_ctx, width, height, in_pf, new_width, new_height, out_pf, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr );
+  if(swscale_ctx == nullptr) {
     Error("Failed getting swscale context");
     return -6;
   }
@@ -150,10 +150,10 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   if (av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
-                           out_buffer, out_pf, width, height, 1) <= 0) {
+                           out_buffer, out_pf, new_width, new_height, 1) <= 0) {
 #else
-  if (avpicture_fill((AVPicture*) output_avframe, out_buffer, out_pf, width,
-                     height) <= 0) {
+  if (avpicture_fill((AVPicture*) output_avframe, out_buffer, out_pf, new_width,
+                     new_height) <= 0) {
 #endif
     Error("Failed filling output frame with output buffer");
     return -8;
@@ -166,6 +166,10 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   }
 
   return 0;
+}
+
+int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
+  return Convert(in_buffer, in_buffer_size, out_buffer, out_buffer_size, in_pf, out_pf, width, height, width, height);
 }
 
 int SWScale::Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {

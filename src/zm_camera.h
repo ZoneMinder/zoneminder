@@ -35,7 +35,7 @@ class Camera;
 //
 class Camera {
 protected:
-  typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC } SourceType;
+  typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC, VNC_SRC } SourceType;
 
   unsigned int  monitor_id;
   Monitor *     monitor; // Null on instantiation, set as soon as possible.
@@ -69,6 +69,7 @@ public:
   bool IsFfmpeg() const { return type == FFMPEG_SRC; }
   bool IsLibvlc() const { return type == LIBVLC_SRC; }
   bool IscURL() const { return type == CURL_SRC; }
+  bool IsVNC() const { return type == VNC_SRC; }
   unsigned int Width() const { return width; }
   unsigned int LineSize() const { return linesize; }
   unsigned int Height() const { return height; }

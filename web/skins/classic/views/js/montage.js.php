@@ -28,6 +28,7 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
 var monitorData = new Array();
 <?php
+global $monitors;
 foreach ( $monitors as $monitor ) {
 ?>
 monitorData[monitorData.length] = { 
@@ -46,9 +47,10 @@ monitorData[monitorData.length] = {
 layouts = new Array();
 layouts[0] = {}; // reserved, should hold which fields to clear when transitioning
 <?php
+global $layouts;
 foreach ( $layouts as $layout ) {
 ?>
-layouts[<?php echo $layout->Id() ?>] = {"Name":"<?php echo $layout->Name()?>","Positions":<?php echo $layout->Positions() ?>};
+layouts[<?php echo $layout->Id() ?>] = {"Name":"<?php echo $layout->Name()?>","Positions":<?php echo json_decode($layout->Positions())?$layout->Positions():'{}' ?>};
 <?php
 } // end foreach layout
 ?>

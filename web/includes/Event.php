@@ -58,8 +58,10 @@ class Event extends ZM_Object {
     if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
       if ( isset($this->{'StorageId'}) and $this->{'StorageId'} )
         $this->{'Storage'} = Storage::find_one(array('Id'=>$this->{'StorageId'}));
-      if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) )
+      if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
         $this->{'Storage'} = new Storage(NULL);
+        $this->{'Storage'}->Scheme($this->{'Scheme'});
+      }
     }
     return $this->{'Storage'};
   }
@@ -262,13 +264,18 @@ class Event extends ZM_Object {
     return $streamSrc;
   } // end function getStreamSrc
 
+  # The new='' is to so that if we pass null, we reset the value of DiskSpace.
+  # '' is not a valid DiskSpace so that tells us that nothing was passed whereas null (unknown) is.
   function DiskSpace( $new='' ) {
     if ( is_null($new) or ( $new != '' ) ) {
       $this->{'DiskSpace'} = $new;
     }
     if ( (!property_exists($this, 'DiskSpace')) or (null === $this->{'DiskSpace'}) ) {
       $this->{'DiskSpace'} = folder_size($this->Path());
-      dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
+      if ( $this->{'EndTime'} ) {
+        # Finished events shouldn't grow in size much so we can commit it to the db.
+        dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
+      }
     }
     return $this->{'DiskSpace'};
   }
@@ -380,54 +387,54 @@ class Event extends ZM_Object {
     $Event = $this;
     $eventPath = $Event->Path();
 
-    if ( $frame and ! is_array($frame) ) {
+    if ( $frame and !is_array($frame) ) {
       # Must be an Id
       Logger::Debug("Assuming that $frame is an Id");
-      $frame = array( 'FrameId'=>$frame, 'Type'=>'', 'Delta'=>0 );
+      $frame = array('FrameId'=>$frame, 'Type'=>'', 'Delta'=>0);
     }
 
-    if ( ( ! $frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
+    if ( ( !$frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
       # No frame specified, so look for a snapshot to use
       $captImage = 'snapshot.jpg';
-      Logger::Debug("Frame not specified, using snapshot");
-      $frame = array('FrameId'=>'snapshot', 'Type'=>'','Delta'=>0);
+      Logger::Debug('Frame not specified, using snapshot');
+      $frame = array('FrameId'=>'snapshot', 'Type'=>'', 'Delta'=>0);
     } else {
-      $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId'] );
+      $captImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId']);
       if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
-        $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId'] );
-        if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
+        $captImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId']);
+        if ( !file_exists($eventPath.'/'.$captImage) ) {
           # Generate the frame JPG
           if ( $Event->DefaultVideo() ) {
             $videoPath = $eventPath.'/'.$Event->DefaultVideo();
 
-            if ( ! file_exists( $videoPath ) ) {
-              Error("Event claims to have a video file, but it does not seem to exist at $videoPath" );
+            if ( !file_exists($videoPath) ) {
+              Error('Event claims to have a video file, but it does not seem to exist at '.$videoPath);
               return '';
             } 
               
             #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
             $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captImage;
-            Logger::Debug( "Running $command" );
+            Logger::Debug('Running '.$command);
             $output = array();
             $retval = 0;
-            exec( $command, $output, $retval );
+            exec($command, $output, $retval);
             Logger::Debug("Retval: $retval, output: " . implode("\n", $output));
           } else {
-            Error("Can't create frame images from video because there is no video file for event ".$Event->Id().' at ' .$Event->Path() );
+            Error('Can\'t create frame images from video because there is no video file for event '.$Event->Id().' at ' .$Event->Path());
           }
         } // end if capture file exists
       } // end if analyze file exists
     } // end if frame or snapshot
 
     $captPath = $eventPath.'/'.$captImage;
-    if ( ! file_exists($captPath) ) {
-      Error("Capture file does not exist at $captPath");
+    if ( !file_exists($captPath) ) {
+      Error('Capture file does not exist at '.$captPath);
     }
     
     $analImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
     $analPath = $eventPath.'/'.$analImage;
 
-    $alarmFrame = $frame['Type']=='Alarm';
+    $alarmFrame = $frame['Type'] == 'Alarm';
 
     $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
     $isAnalImage = $hasAnalImage && !$captureOnly;
@@ -443,8 +450,8 @@ class Event extends ZM_Object {
         $fraction = sprintf('%.3f', $scale/SCALE_BASE);
       $scale = (int)round($scale);
 
-      $thumbCaptPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $captPath );
-      $thumbAnalPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $analPath );
+      $thumbCaptPath = preg_replace('/\.jpg$/', "-$scale.jpg", $captPath);
+      $thumbAnalPath = preg_replace('/\.jpg$/', "-$scale.jpg", $analPath);
 
       if ( $isAnalImage ) {
         $imagePath = $analPath;
@@ -457,7 +464,7 @@ class Event extends ZM_Object {
       $thumbFile = $thumbPath;
       if ( $overwrite || ! file_exists($thumbFile) || ! filesize($thumbFile) ) {
         // Get new dimensions
-        list( $imageWidth, $imageHeight ) = getimagesize($imagePath);
+        list($imageWidth, $imageHeight) = getimagesize($imagePath);
         $thumbWidth = $imageWidth * $fraction;
         $thumbHeight = $imageHeight * $fraction;
 
@@ -484,7 +491,7 @@ class Event extends ZM_Object {
         );
 
     return $imageData;
-  }
+  } # getImageSrc
 
   public function link_to($text=null) {
     if ( !$text )

@@ -100,10 +100,13 @@ class Server extends ZM_Object {
 
     $url = $this->Protocol().'://';
 		$url .= $this->Hostname();
-    if ( $port ) {
-      $url .= ':'.$port;
+    if ( !$port ) {
+      $port = $this->Port();
+    }
+    if ( $this->Protocol() == 'https' and $port == 443 ) {
+    } else if ( $this->Protocol() == 'http' and $port == 80 ) {
     } else {
-      $url .= ':'.$this->Port();
+      $url .= ':'.$port;
     }
     return $url;
 	}

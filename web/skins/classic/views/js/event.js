@@ -166,7 +166,7 @@ function changeScale() {
   } // stills handles its own width
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
-    streamScale((scale == '0' || scale == 'auto' ) ? autoScale : scale);
+    streamScale(scale == '0' ? autoScale : scale);
     drawProgressBar();
   }
   if ( streamMode == 'stills' ) {
@@ -175,7 +175,7 @@ function changeScale() {
   } else {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
-  if ( scale = '0' || scale == 'auto' ) {
+  if ( scale == '0' ) {
     Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
   } else {
     Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365});
@@ -285,7 +285,7 @@ function getCmdResponse( respObj, respText ) {
     }
   } // end if haev a new auth hash
 
-  streamCmdTimer = streamQuery.delay( streamTimeout ); //Timeout is refresh rate for progressBox and time display
+  streamCmdTimer = streamQuery.delay(streamTimeout); //Timeout is refresh rate for progressBox and time display
 }
 
 var streamReq = new Request.JSON( {
@@ -1077,6 +1077,12 @@ function initPage() {
     vid.on('click', function(event) {
       handleClick(event);
     });
+    vid.on('volumechange', function() {
+      Cookie.write('volume', vid.volume(), {duration: 10*365});
+    });
+    if ( Cookie.read('volume') != null ) {
+      vid.volume(Cookie.read('volume'));
+    }
     vid.on('timeupdate', function() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
     });

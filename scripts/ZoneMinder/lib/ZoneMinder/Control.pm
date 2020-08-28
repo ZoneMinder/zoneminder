@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Base Control Module, $Date$, $Revision$
+# ZoneMinder Base Control Module
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -46,13 +46,13 @@ our $AUTOLOAD;
 sub new {
   my $class = shift;
   my $id = shift;
+  if ( !defined($id) ) {
+    Fatal('No monitor defined when invoking protocol '.$class);
+  }
   my $self = {};
   $self->{name} = $class;
-  if ( !defined($id) ) {
-    Fatal('No monitor defined when invoking protocol '.$self->{name});
-  }
   $self->{id} = $id;
-  bless( $self, $class );
+  bless($self, $class);
   return $self;
 }
 
@@ -78,7 +78,7 @@ sub AUTOLOAD {
 
 sub getKey {
   my $self = shift;
-  return( $self->{id} );
+  return $self->{id};
 }
 
 sub open {

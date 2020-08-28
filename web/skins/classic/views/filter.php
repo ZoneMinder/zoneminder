@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web filter view file, $Date$, $Revision$
+// ZoneMinder web filter view file
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -25,6 +25,10 @@ if ( !canView('Events') ) {
 require_once('includes/Object.php');
 require_once('includes/Storage.php');
 require_once('includes/Filter.php');
+require_once('includes/FilterTerm.php');
+require_once('includes/Monitor.php');
+require_once('includes/Zone.php');
+require_once('includes/User.php');
 parseSort();
 
 $filterNames = array(''=>translate('ChooseFilter'));
@@ -50,7 +54,7 @@ if ( isset($_REQUEST['filter']) ) {
   #$filter->set($_REQUEST['filter']);
 }
 
-$conjunctionTypes = getFilterQueryConjunctionTypes();
+$conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
 $obracketTypes = array();
 $cbracketTypes = array();
 
@@ -69,6 +73,7 @@ if ( count($terms) ) {
 
 $attrTypes = array(
     'AlarmFrames' => translate('AttrAlarmFrames'),
+		'AlarmedZoneId'	=>	translate('AttrAlarmedZone'),
     'Archived'    => translate('AttrArchiveStatus'),
     'AvgScore'    => translate('AttrAvgScore'),
     'Cause'       => translate('AttrCause'),
@@ -78,17 +83,18 @@ $attrTypes = array(
     'EndDateTime'    => translate('AttrEndDateTime'),
     'EndDate'        => translate('AttrEndDate'),
     'EndTime'        => translate('AttrEndTime'),
+    'EndWeekday'     => translate('AttrEndWeekday'),
+    'ExistsInFileSystem'  => translate('ExistsInFileSystem'),
     'FilterServerId'     => translate('AttrFilterServer'),
     'Frames'      => translate('AttrFrames'),
-    'EndWeekday'     => translate('AttrEndWeekday'),
     'Id'          => translate('AttrId'),
     'Length'      => translate('AttrDuration'),
-    'Name'        => translate('AttrName'),
-    'Notes'       => translate('AttrNotes'),
     'MaxScore'    => translate('AttrMaxScore'),
     'MonitorId'   => translate('AttrMonitorId'),
     'MonitorName' => translate('AttrMonitorName'),
     'MonitorServerId'    => translate('AttrMonitorServer'),
+    'Name'        => translate('AttrName'),
+    'Notes'       => translate('AttrNotes'),
     'SecondaryStorageId'   => translate('AttrSecondaryStorageArea'),
     'ServerId'           => translate('AttrMonitorServer'),
     'StartDateTime'    => translate('AttrStartDateTime'),
@@ -118,11 +124,20 @@ $opTypes = array(
     'LIKE' => translate('OpLike'),
     'NOT LIKE' => translate('OpNotLike'),
     );
+$is_isnot_opTypes = array(
+  'IS'  => translate('OpIs'),
+  'IS NOT'  => translate('OpIsNot'),
+);
 
 $archiveTypes = array(
-    '0' => translate('ArchUnarchived'),
-    '1' => translate('ArchArchived')
-    );
+  '0' => translate('ArchUnarchived'),
+  '1' => translate('ArchArchived')
+);
+
+$booleanValues = array(
+  'false' => translate('False'),
+  'true' => translate('True')
+);
 
 $focusWindow = true;
 
@@ -143,13 +158,24 @@ foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Servers` ORDER BY lower(`Name`) 
   $servers[$server['Id']] = validHtmlStr($server['Name']);
 }
 $monitors = array();
+$monitor_names = array();
 foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` ORDER BY lower(`Name`) ASC') as $monitor ) {
   if ( visibleMonitor($monitor['Id']) ) {
-    $monitors[$monitor['Name']] = validHtmlStr($monitor['Name']);
+    $monitors[$monitor['Id']] = new ZM\Monitor($monitor);
+		$monitor_names[] = validHtmlStr($monitor['Name']);
+  }
+}
+$zones = array();
+foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones ORDER BY lower(`Name`) ASC') as $zone ) {
+  if ( visibleMonitor($zone['MonitorId']) ) {
+    if ( isset($monitors[$zone['MonitorId']]) ) {
+      $zone['Name'] = validHtmlStr($monitors[$zone['MonitorId']]->Name().': '.$zone['Name']);
+      $zones[$zone['Id']] = new ZM\Zone($zone);
+    }
   }
 }
 
-xhtmlHeaders(__FILE__, translate('EventFilter') );
+xhtmlHeaders(__FILE__, translate('EventFilter'));
 ?>
 <body>
   <div id="page">
@@ -159,7 +185,7 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
         <input type="hidden" name="view" value="filter"/>
         <hr/>
         <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>
-<?php
+          <?php
 if ( count($filterNames) > 1 ) {
    echo htmlSelect('Id', $filterNames, $filter->Id(), array('data-on-change-this'=>'selectFilter'));
 } else {
@@ -179,13 +205,25 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <input type="hidden" name="object" value="filter"/>
 
         <hr/>
-        <?php if ( $filter->Id() ) { ?>
+<?php if ( $filter->Id() ) { ?>
         <p class="Id"><label><?php echo translate('Id') ?></label><?php echo $filter->Id() ?></p>
-        <?php } ?>
+<?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
           <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" data-on-input-this="updateButtons"/>
         </p>
+<?php if ( ZM_OPT_USE_AUTH ) { ?>
+        <p><label><?php echo translate('FilterUser') ?></label>
+          <?php 
+            global $user;
+echo htmlSelect('filter[UserId]',
+  ZM\User::Indexed_By_Id(),
+  //ZM\User::find(),
+  $filter->UserId() ? $filter->UserId() : $user['Id']
+); ?>
+        </p>
+<?php } ?>
+        <p>
         <table id="fieldsTable" class="filterTable">
           <tbody>
 <?php
@@ -249,6 +287,11 @@ for ( $i=0; $i < count($terms); $i++ ) {
                 <script nonce="<?php echo $cspNonce;?>">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: false}); </script>
               </td>
 <?php
+    } elseif ( $term['attr'] == 'ExistsInFileSystem' ) {
+?>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op']); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val']); ?></td>
+<?php
     } elseif ( $term['attr'] == 'StateId' ) {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
@@ -259,10 +302,15 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $weekdays, $term['val']); ?></td>
 <?php
-    } elseif ( $term['attr'] == 'MonitorName' ) {
+    } elseif ( $term['attr'] == 'Monitor' ) {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $monitors, $term['val']); ?></td>
+<?php
+    } elseif ( $term['attr'] == 'MonitorName' ) {
+?>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val']); ?></td>
 <?php
     } elseif ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
 ?>
@@ -273,6 +321,11 @@ for ( $i=0; $i < count($terms); $i++ ) {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']); ?></td>
+<?php
+    } elseif ( $term['attr'] == 'AlarmedZoneId' ) {
+?>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val']); ?></td>
 <?php
     } else {
 ?>
@@ -365,8 +418,22 @@ if ( ZM_OPT_EMAIL ) {
 ?>
             <p>
               <label><?php echo translate('FilterEmailEvents') ?></label>
-              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_AutoEmail"/>
             </p>
+						<div id="EmailOptions"<?php echo $filter->AutoEmail() ? '' : ' style="display:none;"' ?>>
+							<p>
+								<label><?php echo translate('FilterEmailTo') ?></label>
+								<input type="email" name="filter[EmailTo]" value="<?php echo validHtmlStr($filter->EmailTo()) ?>" multiple/>
+							</p>
+							<p>
+								<label><?php echo translate('FilterEmailSubject') ?></label>
+								<input type="text" name="filter[EmailSubject]" value="<?php echo validHtmlStr($filter->EmailSubject()) ?>"/>
+							</p>
+							<p>
+								<label><?php echo translate('FilterEmailBody') ?></label>
+								<textarea name="filter[EmailBody]"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
+							</p>
+						</div>
 <?php
 }
 if ( ZM_OPT_MESSAGE ) {
@@ -408,8 +475,8 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <button type="submit" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
-          <!--<button type="submit" data-on-click-this="submitToMontageReview"><?php echo translate('ViewMatches') ?></button>-->
+          <button type="button" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
+          <button type="button" data-on-click-this="submitToMontageReview"><?php echo translate('ViewMatches') ?></button>
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
           <button type="button" name="executeButton" id="executeButton" data-on-click-this="executeFilter"><?php echo translate('Execute') ?></button>
 <?php 

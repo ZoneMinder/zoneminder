@@ -214,3 +214,30 @@ window.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+function initPage() {
+  var backBtn = $j('#backBtn');
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+  // Manage the LIST Button
+  document.getElementById("listBtn").addEventListener("click", function onListClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=events'+filterQuery);
+  });
+}
+
+$j(document).ready(function() {
+  initPage();
+});

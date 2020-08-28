@@ -33,3 +33,7 @@ function configureButtons(element) {
     form.saveBtn.disabled = (form.probe.selectedIndex==0);
   }
 }
+
+function changeInterface(element) {
+  gotoStep1(element);
+}

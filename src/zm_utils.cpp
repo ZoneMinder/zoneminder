@@ -35,7 +35,7 @@
 #include <curl/curl.h>
 #endif
 
-unsigned int sseversion = 0;
+unsigned int sse_version = 0;
 unsigned int neonversion = 0;
 
 std::string trimSet(std::string str, std::string trimset) {
@@ -185,7 +185,7 @@ const std::string base64Encode(const std::string &inString) {
 }
 
 int split(const char* string, const char delim, std::vector<std::string>& items) {
-  if ( string == NULL )
+  if ( string == nullptr )
     return -1;
 
   if ( string[0] == 0 )
@@ -206,7 +206,7 @@ int split(const char* string, const char delim, std::vector<std::string>& items)
 }
 
 int pairsplit(const char* string, const char delim, std::string& name, std::string& value) {
-  if ( string == NULL )
+  if ( string == nullptr )
     return -1;
 
   if ( string[0] == 0 )
@@ -227,7 +227,7 @@ int pairsplit(const char* string, const char delim, std::string& name, std::stri
 /* Detect special hardware features, such as SIMD instruction sets */
 void hwcaps_detect() {
   neonversion = 0;
-  sseversion = 0;
+  sse_version = 0;
 #if (defined(__i386__) || defined(__x86_64__))
   /* x86 or x86-64 processor */
   uint32_t r_edx, r_ecx, r_ebx;
@@ -265,31 +265,31 @@ void hwcaps_detect() {
 #endif
 
   if ( r_ebx & 0x00000020 ) {
-    sseversion = 52; /* AVX2 */
+    sse_version = 52; /* AVX2 */
     Debug(1, "Detected a x86\\x86-64 processor with AVX2");
   } else if ( r_ecx & 0x10000000 ) {
-    sseversion = 51; /* AVX */
+    sse_version = 51; /* AVX */
     Debug(1, "Detected a x86\\x86-64 processor with AVX");
   } else if ( r_ecx & 0x00100000 ) {
-    sseversion = 42; /* SSE4.2 */
+    sse_version = 42; /* SSE4.2 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE4.2");
   } else if ( r_ecx & 0x00080000 ) {
-    sseversion = 41; /* SSE4.1 */
+    sse_version = 41; /* SSE4.1 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE4.1");
   } else if ( r_ecx & 0x00000200 ) {
-    sseversion = 35; /* SSSE3 */
+    sse_version = 35; /* SSSE3 */
     Debug(1,"Detected a x86\\x86-64 processor with SSSE3");
   } else if ( r_ecx & 0x00000001 ) {
-    sseversion = 30; /* SSE3 */
+    sse_version = 30; /* SSE3 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE3");
   } else if ( r_edx & 0x04000000 ) {
-    sseversion = 20; /* SSE2 */
+    sse_version = 20; /* SSE2 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE2");
   } else if ( r_edx & 0x02000000 ) {
-    sseversion = 10; /* SSE */
+    sse_version = 10; /* SSE */
     Debug(1, "Detected a x86\\x86-64 processor with SSE");
   } else {
-    sseversion = 0;
+    sse_version = 0;
     Debug(1, "Detected a x86\\x86-64 processor");
   } 
 #elif defined(__arm__)
@@ -320,7 +320,7 @@ __attribute__((noinline,__target__("sse2")))
 #endif
 void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
-  if(bytes > 128) {
+  if ( bytes > 128 ) {
     unsigned int remainder = bytes % 128;
     const uint8_t* lastsrc = (uint8_t*)src + (bytes - remainder);
 
@@ -362,7 +362,7 @@ void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
   }
 #else
   /* Non x86\x86-64 platform, use memcpy */
-  memcpy(dest,src,bytes);
+  memcpy(dest, src, bytes);
 #endif
   return dest;
 }
@@ -390,18 +390,36 @@ char *timeval_to_string( struct timeval tv ) {
 }
 
 std::string UriDecode( const std::string &encoded ) {
-#ifdef HAVE_LIBCURL 
-  CURL *curl = curl_easy_init();
-    int outlength;
-    char *cres = curl_easy_unescape(curl, encoded.c_str(), encoded.length(), &outlength);
-    std::string res(cres, cres + outlength);
-    curl_free(cres);
-    curl_easy_cleanup(curl);
-    return res;
-#else
-Warning("ZM Compiled without LIBCURL.  UriDecoding not implemented.");
-  return encoded;
-#endif
+  char a, b;
+  const char *src = encoded.c_str();
+  std::string retbuf;
+  retbuf.resize(encoded.length() + 1);
+  char *dst = &retbuf[0];
+  while (*src) {
+    if ((*src == '%') && ((a = src[1]) && (b = src[2])) && (isxdigit(a) && isxdigit(b))) {
+      if (a >= 'a')
+        a -= 'a'-'A';
+      if (a >= 'A')
+        a -= ('A' - 10);
+      else
+        a -= '0';
+      if (b >= 'a')
+        b -= 'a'-'A';
+      if (b >= 'A')
+        b -= ('A' - 10);
+      else
+        b -= '0';
+      *dst++ = 16*a+b;
+      src+=3;
+    } else if (*src == '+') {
+      *dst++ = ' ';
+      src++;
+    } else {
+      *dst++ = *src++;
+    }
+  }
+  *dst++ = '\0';
+  return retbuf;
 }
 
 void string_toupper( std::string& str) {

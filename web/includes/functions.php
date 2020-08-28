@@ -2,21 +2,24 @@
 //
 // ZoneMinder web function library, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
+//
+require_once('Filter.php');
+require_once('FilterTerm.php');
 
 // Compatibility functions
 if ( version_compare(phpversion(), '4.3.0', '<') ) {
@@ -40,7 +43,7 @@ function CSPHeaders($view, $nonce) {
   if ( ! $Servers )
     $Servers = ZM\Server::find();
 
-  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Url();}, $Servers));
+  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
   switch ($view) {
     case 'login': {
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
@@ -299,7 +302,7 @@ function outputHelperStream($id, $src, $width, $height, $title='') {
 }
 function getHelperStream($id, $src, $width, $height, $title='') {
     return '<object type="application/x-java-applet" id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
-    archive="'. ZM_PATH_CAMBOZOLA .'" 
+    archive="'. ZM_PATH_CAMBOZOLA .'"
     align="middle"
     width="'. $width .'"
     height="'. $height .'"
@@ -442,9 +445,10 @@ function makeLink($url, $label, $condition=1, $options='') {
  */
 function makePopupLink($url, $winName, $winSize, $label, $condition=1, $options='') {
   // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
-  $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
-  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
+  $string = '<a';
   if ( $condition ) {
+    $string .= ' class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false) . '"';
+    $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
     if ( is_array( $winSize ) ) {
       $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
       $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
@@ -455,7 +459,7 @@ function makePopupLink($url, $winName, $winSize, $label, $condition=1, $options=
 
     $string .= ($options ? (' ' . $options ) : '') . '>';
   } else {
-    $string .= '<a>';
+    $string .= '>';
   }
   $string .= $label;
   $string .= '</a>';
@@ -520,7 +524,8 @@ function htmlOptions($contents, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>';
+      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>
+';
   }
   return $options_html;
 }
@@ -583,14 +588,14 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
   if ( !$types )
     $types = array();
 
-  foreach( $newValues as $key=>$value ) {
+  foreach ( $newValues as $key=>$value ) {
     if ( $columns && !isset($columns[$key]) )
       continue;
 
     if ( !isset($types[$key]) )
       $types[$key] = false;
 
-    switch( $types[$key] ) {
+    switch ( $types[$key] ) {
       case 'set' :
           if ( is_array($newValues[$key]) ) {
             if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
@@ -667,6 +672,7 @@ function getFormChanges($values, $newValues, $types=false, $columns=false) {
           break;
     } // end switch
   } // end foreach newvalues
+
   foreach ( $values as $key=>$value ) {
     if ( !empty($columns[$key]) ) {
       if ( !empty($types[$key]) ) {
@@ -776,7 +782,7 @@ function canStreamIframe() {
 
 function canStreamNative() {
   // Old versions of Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
-  return( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
+  return ( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
 }
 
 function canStreamApplet() {
@@ -840,9 +846,14 @@ function daemonStatus($daemon, $args=false) {
   initDaemonStatus();
 
   $string = $daemon;
-  if ( $args )
-    $string .= ' ' . $args;
-  return( strpos($daemon_status, "'$string' running") !== false );
+  if ( $args ) {
+		if ( is_array($args) ) {
+			$string .= join(' ', $args);
+		} else {
+			$string .= ' ' . $args;
+		}
+	}
+  return ( strpos($daemon_status, "'$string' running") !== false );
 }
 
 function zmcStatus($monitor) {
@@ -908,11 +919,11 @@ function createListThumbnail($event, $overwrite=false) {
   if ( ZM_WEB_LIST_THUMB_WIDTH ) {
     $thumbWidth = ZM_WEB_LIST_THUMB_WIDTH;
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$event['Width'];
-    $thumbHeight = reScale( $event['Height'], $scale );
+    $thumbHeight = reScale($event['Height'], $scale);
   } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
     $thumbHeight = ZM_WEB_LIST_THUMB_HEIGHT;
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$event['Height'];
-    $thumbWidth = reScale( $event['Width'], $scale );
+    $thumbWidth = reScale($event['Width'], $scale);
   } else {
     ZM\Fatal('No thumbnail width or height specified, please check in Options->Web');
   }
@@ -949,11 +960,11 @@ function createVideo($event, $format, $rate, $scale, $overwrite=false) {
 
 # This takes more than one scale amount, so it runs through each and alters dimension.
 # I can't imagine why you would want to do that.
-function reScale( $dimension, $dummy ) {
+function reScale($dimension, $dummy) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
-    $scale = func_get_arg( $i );
-    if ( !empty($scale) && ($scale != 'auto') && ($scale != SCALE_BASE) )
+    $scale = func_get_arg($i);
+    if ( !empty($scale) && ($scale != '0') && ($scale != 'auto') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
   }
   return $new_dimension;
@@ -1078,275 +1089,24 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
   }
 }
 
-function getFilterQueryConjunctionTypes() {
-  return array(
-               'and' => translate('ConjAnd'),
-               'or'  => translate('ConjOr')
-               );
-}
-
+# Historically this function has just modified the passed in filter array.
+# This would normally be $_REQUEST['filter'];  We don't like modifying 
+# request parameters. For now we will keep this behaviour, but note that we 
+# now return the resulting array and other code should by modified to use that.
+#
+# Please note that I will be removing the savetosession code as well.
 function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
-  $filter['query'] = '';
-  $filter['sql'] = '';
-  $filter['fields'] = '';
 
-  $validQueryConjunctionTypes = getFilterQueryConjunctionTypes();
-  $StorageArea = NULL;
+  $Filter = ZM\Filter::parse($filter, $querySep);
 
-  # It is not possible to pass an empty array in the url, so we have to deal with there not being a terms field.
-  $terms = (isset($filter['Query']) and isset($filter['Query']['terms']) and is_array($filter['Query']['terms'])) ? $filter['Query']['terms'] : array();
+  $filter['sql'] = $Filter->sql();
+  $filter['querystring'] = $Filter->querystring();
+  $filter['hidden_fields'] = $Filter->hidden_fields();
+  $filter['pre_sql_conditions'] = $Filter->pre_sql_conditions();
+  $filter['post_sql_conditions'] = $Filter->post_sql_conditions();
 
-  if ( count($terms) ) {
-    for ( $i = 0; $i < count($terms); $i++ ) {
-
-      $term = $terms[$i];
-
-      if ( isset($term['cnj']) && array_key_exists($term['cnj'], $validQueryConjunctionTypes) ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($term['cnj']);
-        $filter['sql'] .= ' '.$term['cnj'].' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cnj]\" value=\"".htmlspecialchars($term['cnj'])."\"/>\n";
-      }
-      if ( isset($term['obr']) && (string)(int)$term['obr'] == $term['obr'] ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($term['obr']);
-        $filter['sql'] .= ' '.str_repeat('(', $term['obr']).' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($term['obr'])."\"/>\n";
-      }
-      if ( isset($term['attr']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($term['attr']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($term['attr'])."\"/>\n";
-        switch ( $term['attr'] ) {
-          case 'MonitorName':
-            $filter['sql'] .= 'M.Name';
-            break;
-          case 'ServerId':
-          case 'MonitorServerId':
-            $filter['sql'] .= 'M.ServerId';
-            break;
-          case 'StorageServerId':
-            $filter['sql'] .= 'S.ServerId';
-            break;
-          case 'FilterServerId':
-            $filter['sql'] .= ZM_SERVER_ID;
-            break;
-# Unspecified start or end, so assume start, this is to support legacy filters
-          case 'DateTime':
-            $filter['sql'] .= 'E.StartTime';
-            break;
-          case 'Date':
-            $filter['sql'] .= 'to_days(E.StartTime)';
-            break;
-          case 'Time':
-            $filter['sql'] .= 'extract(hour_second FROM E.StartTime)';
-            break;
-          case 'Weekday':
-            $filter['sql'] .= 'weekday(E.StartTime)';
-            break;
-# Starting Time
-          case 'StartDateTime':
-            $filter['sql'] .= 'E.StartTime';
-            break;
-          case 'FramesEventId':
-            $filter['sql'] .= 'F.EventId';
-            break;
-          case 'StartDate':
-            $filter['sql'] .= 'to_days(E.StartTime)';
-            break;
-          case 'StartTime':
-            $filter['sql'] .= 'extract(hour_second FROM E.StartTime)';
-            break;
-          case 'StartWeekday':
-            $filter['sql'] .= 'weekday(E.StartTime)';
-            break;
-# Ending Time
-          case 'EndDateTime':
-            $filter['sql'] .= 'E.EndTime';
-            break;
-          case 'EndDate':
-            $filter['sql'] .= 'to_days(E.EndTime)';
-            break;
-          case 'EndTime':
-            $filter['sql'] .= 'extract(hour_second FROM E.EndTime)';
-            break;
-          case 'EndWeekday':
-            $filter['sql'] .= 'weekday(E.EndTime)';
-            break;
-          case 'Id':
-          case 'Name':
-          case 'DiskSpace':
-          case 'MonitorId':
-          case 'StorageId':
-          case 'SecondaryStorageId':
-          case 'Length':
-          case 'Frames':
-          case 'AlarmFrames':
-          case 'TotScore':
-          case 'AvgScore':
-          case 'MaxScore':
-          case 'Cause':
-          case 'Notes':
-          case 'StateId':
-          case 'Archived':
-            $filter['sql'] .= 'E.'.$term['attr'];
-            break;
-          case 'DiskPercent':
-            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
-            if ( ! $StorageArea ) {
-              for ( $j = 0; $j < count($terms); $j++ ) {
-                if (
-                  isset($terms[$j]['attr'])
-                  and
-                  ($terms[$j]['attr'] == 'StorageId')
-                  and
-                  isset($terms[$j]['val'])
-                ) {
-                  $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
-                  break;
-                }
-              } // end foreach remaining term
-              if ( ! $StorageArea ) $StorageArea = new ZM\Storage();
-            } // end no StorageArea found yet
-
-            $filter['sql'] .= getDiskPercent($StorageArea->Path());
-            break;
-          case 'DiskBlocks':
-            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
-            if ( ! $StorageArea ) {
-              for ( $j = $i; $j < count($terms); $j++ ) {
-                if (
-                  isset($terms[$j]['attr'])
-                  and
-                  ($terms[$j]['attr'] == 'StorageId')
-                  and
-                  isset($terms[$j]['val'])
-                ) {
-                  $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
-                }
-              } // end foreach remaining term
-            } // end no StorageArea found yet
-            $filter['sql'] .= getDiskBlocks( $StorageArea );
-            break;
-          case 'SystemLoad':
-            $filter['sql'] .= getLoad();
-            break;
-        }
-        $valueList = array();
-        if ( !isset($term['val']) ) $term['val'] = '';
-        foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
-          switch ( $term['attr'] ) {
-            case 'MonitorName':
-            case 'Name':
-            case 'Cause':
-            case 'Notes':
-              if($term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE') {
-                $value = '%'.$value.'%';
-              }
-              $value = dbEscape($value);
-              break;
-            case 'MonitorServerId':
-            case 'FilterServerId':
-            case 'StorageServerId':
-            case 'ServerId':
-              if ( $value == 'ZM_SERVER_ID' ) {
-                $value = ZM_SERVER_ID;
-              } else if ( $value == 'NULL' ) {
-
-              } else {
-                $value = dbEscape($value);
-              }
-              break;
-            case 'StorageId':
-              $StorageArea = ZM\Storage::find_one(array('Id'=>$value));
-              if ( $value != 'NULL' )
-                $value = dbEscape($value);
-              break;
-            case 'DateTime':
-            case 'StartDateTime':
-            case 'EndDateTime':
-              if ( $value != 'NULL' )
-                $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
-              break;
-            case 'Date':
-            case 'StartDate':
-            case 'EndDate':
-              if ( $value != 'NULL' )
-                $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
-              break;
-            case 'Time':
-            case 'StartTime':
-            case 'EndTime':
-              if ( $value != 'NULL' )
-              $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
-              break;
-            default :
-              if ( $value != 'NULL' )
-                $value = dbEscape($value);
-              break;
-          }
-          $valueList[] = $value;
-        } // end foreach value
-
-        switch ( $term['op'] ) {
-          case '=' :
-          case '!=' :
-          case '>=' :
-          case '>' :
-          case '<' :
-          case '<=' :
-          case 'LIKE' :
-          case 'NOT LIKE':
-            $filter['sql'] .= ' '.$term['op'].' '. $value;
-            break;
-          case '=~' :
-            $filter['sql'] .= ' regexp '.$value;
-            break;
-          case '!~' :
-            $filter['sql'] .= ' not regexp '.$value;
-            break;
-          case '=[]' :
-          case 'IN' :
-            $filter['sql'] .= ' in ('.join(',', $valueList).')';
-            break;
-          case '![]' :
-            $filter['sql'] .= ' not in ('.join(',', $valueList).')';
-            break;
-          case 'IS' :
-            if ( $value == 'Odd' )  {
-              $filter['sql'] .= ' % 2 = 1';
-            } else if ( $value == 'Even' )  {
-              $filter['sql'] .= ' % 2 = 0';
-            } else {
-              $filter['sql'] .= " IS $value";
-            }
-            break;
-          case 'IS NOT' :
-            $filter['sql'] .= " IS NOT $value";
-            break;
-          default:
-            ZM\Warning('Invalid operator in filter: ' . print_r($term['op'], true));
-        } // end switch op
-
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($term['op']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][op]\" value=\"".htmlspecialchars($term['op'])."\"/>\n";
-        if ( isset($term['val']) ) {
-          $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($term['val']);
-          $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($term['val'])."\"/>\n";
-        }
-      } // end if isset($term['attr'])
-      if ( isset($term['cbr']) && (string)(int)$term['cbr'] == $term['cbr'] ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($term['cbr']);
-        $filter['sql'] .= ' '.str_repeat(')', $term['cbr']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($term['cbr'])."\"/>\n";
-      }
-    } // end foreach term
-    if ( $filter['sql'] )
-      $filter['sql'] = ' AND ( '.$filter['sql'].' )';
-    if ( $saveToSession ) {
-      $_SESSION['filter'] = $filter;
-    }
-  } else {
-    $filter['query'] = $querySep;
-    #.urlencode('filter[Query][terms]=[]');
-  } // end if terms
+  if ( $filter['sql'] )
+    $filter['sql'] = ' AND ( '.$filter['sql'].' )';
 
   #if ( 0 ) {
     #// ICON I feel like these should be here, but not yet
@@ -1354,10 +1114,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     #$filter['sql'] .= ' ORDER BY ' . $filter['Query']['sort_field'] . (
       #( $filter['Query']['sort_asc'] ? ' ASC' : ' DESC' ) );
   #}
-  #if ( $filter['Query']['limit'] ) {
-    #$filter['sql'] .= ' LIMIT ' . validInt($filter['Query']['limit']);
   #}
-  #}
+  return $filter;
 } // end function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;')
 
 // Please note that the filter is passed in by copy, so you need to use the return value from this function.
@@ -1365,7 +1123,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 function addFilterTerm($filter, $position, $term=false) {
   if ( $position < 0 )
     $position = 0;
-  
+
   if ( !isset($filter['Query']['terms']) )
     $filter['Query']['terms'] = array();
   else if ( $position > count($filter['Query']['terms']) )
@@ -1467,12 +1225,14 @@ function sortHeader($field, $querySep='&amp;') {
   ));
 }
 
-function sortTag( $field ) {
-  if ( $_REQUEST['sort_field'] == $field )
-    if ( $_REQUEST['sort_asc'] )
-      return '(^)';
-    else
-      return '(v)';
+function sortTag($field) {
+  if ( isset($_REQUEST['sort_field']) ) {
+    if ( $_REQUEST['sort_field'] == $field )
+      if ( $_REQUEST['sort_asc'] )
+        return '(^)';
+      else
+        return '(v)';
+  }
   return false;
 }
 
@@ -1498,9 +1258,8 @@ function getDiskPercent($path = ZM_DIR_EVENTS) {
   return $space;
 }
 
-function getDiskBlocks() {
-  if ( !$StorageArea ) $StorageArea = new ZM\Storage();
-  $df = shell_exec('df '.escapeshellarg($StorageArea->Path()));
+function getDiskBlocks($path = ZM_DIR_EVENTS) {
+  $df = shell_exec('df '.escapeshellarg($path));
   $space = -1;
   if ( preg_match('/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches) )
     $space = $matches[1];
@@ -1557,7 +1316,7 @@ function systemStats() {
 function getcpus() {
 
   if ( is_readable('/proc/cpuinfo') ) { # Works on Linux
-    preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches); 
+    preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches);
     $num_cpus = count($matches[0]);
   } else { # Works on BSD
     $matches = explode(':', shell_exec('sysctl hw.ncpu'));
@@ -1567,8 +1326,8 @@ function getcpus() {
   return $num_cpus;
 }
 
-// Function to fix a problem whereby the built in PHP session handling 
-// features want to put the sid as a hidden field after the form or 
+// Function to fix a problem whereby the built in PHP session handling
+// features want to put the sid as a hidden field after the form or
 // fieldset tag, neither of which will work with strict XHTML Basic.
 function sidField() {
   if ( SID ) {
@@ -1663,7 +1422,7 @@ function linesIntersect($line1, $line2) {
         return false;
       }
     } elseif ( $b1 == $b2 ) {
-      // Colinear, must overlap due to box check, intersect? 
+      // Colinear, must overlap due to box check, intersect?
       if ( $debug ) echo 'Intersecting, colinear<br>';
       return true;
     } else {
@@ -1671,7 +1430,7 @@ function linesIntersect($line1, $line2) {
       if ( $debug ) echo 'Not intersecting, parallel<br>';
       return false;
     }
-  } elseif ( !$dx1 ) { // Line 1 is vertical 
+  } elseif ( !$dx1 ) { // Line 1 is vertical
     $y = ( $m2 * $line1[0]['x'] ) * $b2;
     if ( $y >= $min_y1 && $y <= $max_y1 ) {
       if ( $debug ) echo "Intersecting, at y $y<br>";
@@ -1680,7 +1439,7 @@ function linesIntersect($line1, $line2) {
       if ( $debug ) echo "Not intersecting, out of range at y $y<br>";
       return false;
     }
-  } elseif ( !$dx2 ) { // Line 2 is vertical 
+  } elseif ( !$dx2 ) { // Line 2 is vertical
     $y = ( $m1 * $line2[0]['x'] ) * $b1;
     if ( $y >= $min_y2 && $y <= $max_y2 ) {
       if ( $debug ) echo "Intersecting, at y $y<br>";
@@ -1691,7 +1450,7 @@ function linesIntersect($line1, $line2) {
     }
   } else { // Both lines are vertical
     if ( $line1[0]['x'] == $line2[0]['x'] ) {
-      // Colinear, must overlap due to box check, intersect? 
+      // Colinear, must overlap due to box check, intersect?
       if ( $debug ) echo 'Intersecting, vertical, colinear<br>';
       return true;
     } else {
@@ -2075,18 +1834,23 @@ function isVector(&$array) {
 
 function checkJsonError($value) {
   if ( function_exists('json_last_error') ) {
-    $value = var_export($value,true);
-    switch( json_last_error() ) {
+    $value = var_export($value, true);
+    switch ( json_last_error() ) {
       case JSON_ERROR_DEPTH :
-        ZM\Fatal("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        ZM\Error("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        break;
       case JSON_ERROR_CTRL_CHAR :
-        ZM\Fatal("Unable to decode JSON string '$value', unexpected control character found");
+        ZM\Error("Unable to decode JSON string '$value', unexpected control character found");
+        break;
       case JSON_ERROR_STATE_MISMATCH :
-        ZM\Fatal("Unable to decode JSON string '$value', invalid or malformed JSON");
+        ZM\Error("Unable to decode JSON string '$value', invalid or malformed JSON");
+        break;
       case JSON_ERROR_SYNTAX :
-        ZM\Fatal("Unable to decode JSON string '$value', syntax error");
+        ZM\Error("Unable to decode JSON string '$value', syntax error");
+        break;
       default :
-        ZM\Fatal("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        ZM\Error("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        break;
       case JSON_ERROR_NONE:
         break;
     }
@@ -2148,7 +1912,7 @@ function jsonDecode($value) {
       } else if ( $value[$i] == ':' ) {
         $out .= '=>';
       } else {
-        $out .= $value[$i];         
+        $out .= $value[$i];
       }
     } else if ( !$unescape ) {
       if ( $value[$i] == '\\' )
@@ -2205,8 +1969,8 @@ function generateConnKey() {
 
 function detaintPath($path) {
   // Remove any absolute paths, or relative ones that want to go up
-  $path = preg_replace('/\.(?:\.+[\\/][\\/]*)+/', '', $path);
-  $path = preg_replace('/^[\\/]+/', '', $path);
+  $path = str_replace('../', '', $path);
+  $path = ltrim($path, '/');
   return $path;
 }
 
@@ -2215,7 +1979,7 @@ function cache_bust($file) {
   # To defeat caching.  Should probably use md5 hash
   $parts = pathinfo($file);
   global $css;
-  $dirname = preg_replace('/\//', '_', $parts['dirname']);
+  $dirname = str_replace('/', '_', $parts['dirname']);
   $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
   if ( file_exists(ZM_DIR_CACHE.'/'.$cacheFile) or symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile) ) {
     return 'cache/'.$cacheFile;
@@ -2229,7 +1993,7 @@ function getSkinFile($file) {
   global $skinBase;
   $skinFile = false;
   foreach ( $skinBase as $skin ) {
-    $tempSkinFile = detaintPath('skins'.'/'.$skin.'/'.$file);
+    $tempSkinFile = detaintPath('skins/'.$skin.'/'.$file);
     if ( file_exists($tempSkinFile) )
       $skinFile = $tempSkinFile;
   }
@@ -2240,7 +2004,7 @@ function getSkinIncludes($file, $includeBase=false, $asOverride=false) {
   global $skinBase;
   $skinFile = false;
   foreach ( $skinBase as $skin ) {
-    $tempSkinFile = detaintPath('skins'.'/'.$skin.'/'.$file);
+    $tempSkinFile = detaintPath('skins/'.$skin.'/'.$file);
     if ( file_exists($tempSkinFile) )
       $skinFile = $tempSkinFile;
   }
@@ -2287,28 +2051,50 @@ function validHtmlStr($input) {
   return htmlspecialchars($input, ENT_QUOTES);
 }
 
+/* options['width'] is the desired view width not necessarily the image width requested.
+ * It can be % in which case we us it to set the scale
+ * It can be px in which case we can use it to calculate the scale
+ * Same width height.  If both are set we should calculate the smaller resulting scale
+ */
 function getStreamHTML($monitor, $options = array()) {
 
-  if ( isset($options['scale']) ) {
-    if ( $options['scale'] != 'auto' && $options['scale'] != '0' and $options['scale'] != '' and $options['scale'] != 0 ) {
-      ZM\Logger::Debug("Setting dimensions from scale:".$options['scale']);
+  if ( isset($options['scale']) and $options['scale'] != '' ) {
+    if ( $options['scale'] != 'auto' && $options['scale'] != '0' ) {
+      ZM\Warning("Setting dimensions from scale:".$options['scale']);
       $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
       $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
-    } else {
-      $options['width'] = 'auto';
-      $options['height'] = '100%';
+    } else if ( ! ( isset($options['width']) or isset($options['height']) ) ) {
+      $options['width'] = '100%';
+      $options['height'] = 'auto';
     }
   } else {
+    $options['scale'] = 100;
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty
     if ( ! ( isset($options['width']) and $options['width'] ) ) {
-      $options['width'] = $monitor->ViewWidth().'px';
-      if ( ! ( isset($options['height']) and $options['height'] ) ) {
+      # Havn't specified width.  If we specified height, then we should
+      # use a width that keeps the aspect ratio, otherwise no scaling, 
+      # no dimensions, so assume the dimensions of the Monitor
+
+      if ( ! (isset($options['height']) and $options['height']) ) {
+        $options['width'] = $monitor->ViewWidth().'px';
         $options['height'] = $monitor->ViewHeight().'px';
       }
-    } else if ( ! isset($options['height']) ) {
-      $options['height'] = '';
-    }
+    } else {
+      ZM\Warning("Have width ".$options['width']);
+      if ( preg_match('/^(\d+)px$/', $options['width'], $matches) ) {
+        $scale = intval(100*$matches[1]/$monitor->ViewWidth());
+        ZM\Warning("Scale is $scale");
+        if ( $scale < $options['scale'] )
+          $options['scale'] = $scale;
+      } else if ( preg_match('/^(\d+)%$/', $options['width'], $matches) ) {
+        $scale = intval($matches[1]);
+        if ( $scale < $options['scale'] )
+          $options['scale'] = $scale;
+      } else {
+        Warning("Invalid value for width: ".$options['width']);
+      }
+    } 
   }
   if ( ! isset($options['mode'] ) ) {
     $options['mode'] = 'stream';
@@ -2343,8 +2129,8 @@ function getStreamHTML($monitor, $options = array()) {
       return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
     elseif ( canStreamApplet() )
       // Helper, empty widths and heights really don't work.
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, 
-          $options['width'] ? $options['width'] : $monitor->ViewWidth(), 
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
+          $options['width'] ? $options['width'] : $monitor->ViewWidth(),
           $options['height'] ? $options['height'] : $monitor->ViewHeight(),
           $monitor->Name());
   } else {
@@ -2403,8 +2189,8 @@ function check_timezone() {
     'TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),\'%H%i\')'
   ));
 
-  #Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20 
-                 #PHP timezone offset determine to be: $php_tzoffset,\x20 
+  #Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20
+                 #PHP timezone offset determine to be: $php_tzoffset,\x20
                  #Mysql timezone offset determine to be: $mysql_tzoffset
                #");
 
@@ -2419,7 +2205,7 @@ function check_timezone() {
 
 }
 
-function unparse_url($parsed_url, $substitutions = array() ) { 
+function unparse_url($parsed_url, $substitutions = array() ) {
   $fields = array('scheme','host','port','user','pass','path','query','fragment');
 
   foreach ( $fields as $field ) {
@@ -2427,16 +2213,16 @@ function unparse_url($parsed_url, $substitutions = array() ) {
       $parsed_url[$field] = $substitutions[$field];
     }
   }
-  $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : ''; 
-  $host     = isset($parsed_url['host']) ? $parsed_url['host'] : ''; 
-  $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : ''; 
-  $user     = isset($parsed_url['user']) ? $parsed_url['user'] : ''; 
-  $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : ''; 
-  $pass     = ($user || $pass) ? "$pass@" : ''; 
-  $path     = isset($parsed_url['path']) ? $parsed_url['path'] : ''; 
-  $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : ''; 
-  $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : ''; 
-  return "$scheme$user$pass$host$port$path$query$fragment"; 
+  $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : '';
+  $host     = isset($parsed_url['host']) ? $parsed_url['host'] : '';
+  $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
+  $user     = isset($parsed_url['user']) ? $parsed_url['user'] : '';
+  $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : '';
+  $pass     = ($user || $pass) ? $pass.'@' : '';
+  $path     = isset($parsed_url['path']) ? $parsed_url['path'] : '';
+  $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
+  $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : '';
+  return $scheme.$user.$pass.$host.$port.$path.$query.$fragment;
 }
 
 // PP - POST request handler for PHP which does not need extensions

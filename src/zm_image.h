@@ -57,7 +57,7 @@ extern imgbufcpy_fptr_t fptr_imgbufcpy;
 /* Should be called from Image class functions */
 inline static uint8_t* AllocBuffer(size_t p_bufsize) {
 	uint8_t* buffer = (uint8_t*)zm_mallocaligned(64, p_bufsize);
-	if ( buffer == NULL )
+	if ( buffer == nullptr )
 		Fatal("Memory allocation failed: %s", strerror(errno));
 	
 	return buffer;
@@ -122,7 +122,7 @@ protected:
 	
 	inline void DumpImgBuffer() {
 		DumpBuffer(buffer, buffertype);
-		buffer = NULL;
+		buffer = nullptr;
 		allocation = 0;
 	}
 	
@@ -167,7 +167,7 @@ protected:
 
 public:
 	Image();
-	explicit Image( const char *filename );
+	explicit Image(const char *filename);
 	Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
 	Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
 	explicit Image( const Image &p_image );
@@ -201,18 +201,31 @@ public:
     width = linesize = height = colours = size = pixels = subpixelorder = 0;
 	}
 	
-	void Assign( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size);
-	void Assign( const Image &image );
-	void AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype);
+	void Assign(
+      unsigned int p_width,
+      unsigned int p_height,
+      unsigned int p_colours,
+      unsigned int p_subpixelorder,
+      const uint8_t* new_buffer,
+      const size_t buffer_size);
+	void Assign(const Image &image);
+	void AssignDirect(
+      const unsigned int p_width,
+      const unsigned int p_height,
+      const unsigned int p_colours,
+      const unsigned int p_subpixelorder,
+      uint8_t *new_buffer,
+      const size_t buffer_size,
+      const int p_buffertype);
 
-	inline void CopyBuffer( const Image &image ) {
+	inline void CopyBuffer(const Image &image) {
 		Assign(image);
 	}
-	inline Image &operator=( const Image &image ) {
+	inline Image &operator=(const Image &image) {
 		Assign(image);
 		return *this;
 	}
-	inline Image &operator=( const unsigned char *new_buffer ) {
+	inline Image &operator=(const unsigned char *new_buffer) {
 		(*fptr_imgbufcpy)(buffer, new_buffer, size);
 		return *this;
 	}

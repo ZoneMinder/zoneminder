@@ -152,16 +152,16 @@ SessionDescriptor::MediaDescriptor::MediaDescriptor(
   mWidth( 0 ),
   mHeight( 0 ),
   mSprops( "" ),
-  mConnInfo( 0 )
+  mConnInfo( nullptr )
 {
 }
 
 SessionDescriptor::SessionDescriptor( const std::string &url, const std::string &sdp ) : 
   mUrl( url ),
-  mConnInfo( 0 ),
-  mBandInfo( 0 )
+  mConnInfo( nullptr ),
+  mBandInfo( nullptr )
 {
-  MediaDescriptor *currMedia = 0;
+  MediaDescriptor *currMedia = nullptr;
 
   StringVector lines = split( sdp, "\r\n" );
   for ( StringVector::const_iterator iter = lines.begin(); iter != lines.end(); ++iter ) {
@@ -344,12 +344,12 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 10, 0, 17, 0)
     AVStream *stream = av_new_stream(formatContext, i);
 #else
-    AVStream *stream = avformat_new_stream(formatContext, NULL);
+    AVStream *stream = avformat_new_stream(formatContext, nullptr);
     stream->id = i;
 #endif
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    AVCodecContext *codec_context = avcodec_alloc_context3(NULL);
+    AVCodecContext *codec_context = avcodec_alloc_context3(nullptr);
     avcodec_parameters_to_context(codec_context, stream->codecpar);
     stream->codec = codec_context;
 #else
@@ -376,6 +376,9 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 #endif
     else
       Warning("Unknown media_type %s", type.c_str());
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      stream->codecpar->codec_type = codec_context->codec_type;
+#endif
 
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
     std::string codec_name;
@@ -431,7 +434,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
     if ( codec_context->codec_id == AV_CODEC_ID_H264 && mediaDesc->getSprops().size()) {
       uint8_t start_sequence[]= { 0, 0, 1 };
       codec_context->extradata_size= 0;
-      codec_context->extradata= NULL;
+      codec_context->extradata= nullptr;
       char pvalue[1024], *value = pvalue;
     
       strcpy(pvalue, mediaDesc->getSprops().c_str());

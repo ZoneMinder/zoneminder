@@ -141,6 +141,11 @@ class ZM_Object {
     global $object_cache;
     $object_cache[$class] = array();
   }
+  public function _remove_from_cache($class, $object) {
+    global $object_cache;
+    unset($object_cache[$class][$object->Id()]);
+    Logger::Debug("Unsset $class " . $object->Id() . " " . count($object_cache[$class]));
+  }
 
   public static function Objects_Indexed_By_Id($class) {
     $results = array();

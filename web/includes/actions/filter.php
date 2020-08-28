@@ -95,6 +95,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       } else if ( $filter->Background() ) {
         $filter->control('start');
       }
+      $redirect = '?view=filter&Id='.$filter->Id();
 
     } else if ( $action == 'control' ) {
       if ( $_REQUEST['command'] == 'start'

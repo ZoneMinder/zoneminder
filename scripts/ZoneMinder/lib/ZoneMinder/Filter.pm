@@ -203,11 +203,10 @@ sub Sql {
             $self->{Sql} .= "weekday( E.EndTime )";
 
 # 
-          } elsif ( $term->{attr} eq 'EventExists' ) {
-            push @{$self->{PreConditions}}, $term;
+          } elsif ( $term->{attr} eq 'ExistsInFileSystem' ) {
+            push @{$self->{PostSQLConditions}}, $term;
           } elsif ( $term->{attr} eq 'DiskSpace' ) {
             $self->{Sql} .= 'E.DiskSpace';
-            push @{$self->{PostConditions}}, $term;
           } elsif ( $term->{attr} eq 'DiskPercent' ) {
             $self->{Sql} .= 'zmDiskPercent';
             $self->{HasDiskPercent} = !undef;

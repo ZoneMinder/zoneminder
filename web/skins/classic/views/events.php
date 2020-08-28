@@ -58,7 +58,7 @@ if ( $_POST ) {
 
 $failed = !$filter->test_pre_sql_conditions();
 if ( $failed ) {
-  ZM\Logger::Debug("Pre conditions failed, not doing sql");
+  ZM\Logger::Debug('Pre conditions failed, not doing sql');
 }
 
 $results = $failed ? null : dbQuery($eventsSql);
@@ -189,14 +189,22 @@ xhtmlHeaders(__FILE__, translate('Events'));
 $count = 0;
 $disk_space_total = 0;
 if ( $results ) {
+  $events = array();
 
   while ( $event_row = dbFetchNext($results) ) {
     $event = new ZM\Event($event_row);
 
     if ( !$filter->test_post_sql_conditions($event) ) {
-      ZM\Logger::Debug("Failed post conditions");
+      $event->remove_from_cache();
       continue;
     }
+    $events[] = $event;
+    if ( $limit and (count($events) > $limit) ) {
+      break;
+    }
+    ZM\Logger::Debug("Have " . count($events) . " events, limit $limit");
+  }
+  foreach ( $events as $event ) {
 
     $scale = max(reScale(SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
 ?>
@@ -280,7 +288,7 @@ if ( $results ) {
 ?>
             </tr>
 <?php
-}
+} # end foreach row
 ?>
           </tbody>
 <?php

@@ -142,6 +142,7 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
         data-detail-view="true"
         data-detail-formatter="detailFormatter"
         data-show-toggle="true"
+        data-show-jump-to="true"
         class="table-sm table-borderless">
 
         <thead>

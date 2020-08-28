@@ -32,7 +32,7 @@ global $CLANG;
         <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
       </div>
       <div class="modal-footer">
-        <form name="contentForm" id="contentForm" method="post" action="?">
+        <form name="logoutForm" id="logoutForm" method="post" action="?">
           <input type="hidden" name="view" value="logout"/>
           <button type="submit" name="action" value="logout"><?php echo translate('Logout') ?></button>
           <?php if ( ZM_USER_SELF_EDIT ) echo '<button type="submit" name="action" value="config">'.translate('Config').'</button>'.PHP_EOL; ?>

@@ -53,7 +53,7 @@ function setButtonStates( element ) {
 }
 
 function addMonitor(element) {
-  createPopup( '?view=monitor', 'zmMonitor0', 'monitor' );
+  window.location.assign('?view=monitor');
 }
 
 function cloneMonitor(element) {
@@ -73,7 +73,7 @@ function cloneMonitor(element) {
     }
   } // end foreach element
   if ( monitorId != -1 ) {
-    createPopup( '?view=monitor&dupId='+monitorId, 'zmMonitor0', 'monitor' );
+    window.location.assign('?view=monitor&dupId='+monitorId);
   }
 }
 
@@ -97,11 +97,11 @@ function editMonitor( element ) {
     }
   } // end foreach checkboxes
   if ( monitorIds.length == 1 ) {
-    createPopup( '?view=monitor&mid='+monitorIds[0], 'zmMonitor'+monitorIds[0], 'monitor' );
+    window.location.assign('?view=monitor&mid='+monitorIds[0]);
   } else if ( monitorIds.length > 1 ) {
-    createPopup( '?view=monitors&'+(monitorIds.map(function(mid) {
+    window.location.assign( '?view=monitors&'+(monitorIds.map(function(mid) {
       return 'mids[]='+mid;
-    }).join('&')), 'zmMonitors', 'monitors' );
+    }).join('&')));
   }
 }
 
@@ -147,7 +147,7 @@ function initPage() {
 
   reloadWindow.periodical(consoleRefreshTimeout);
   if ( showVersionPopup ) {
-    createPopup('?view=version', 'zmVersion', 'version');
+    window.location.assign('?view=version');
   }
   if ( showDonatePopup ) {
     $j('#donate').modal('show');

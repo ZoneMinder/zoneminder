@@ -164,13 +164,13 @@ class FilterTerm {
     case 'IS' :
       # Odd will be replaced with 1
       # Even will be replaced with 0
-      if ( $this->value == 'Odd' or $this->value == 'Even' )  {
+      if ( $this->val == 'Odd' or $this->val == 'Even' )  {
         return ' % 2 = ';
       } else {
         return ' IS ';
       }
     case 'IS NOT' :
-      if ( $this->value == 'Odd' or $this->value == 'Even' )  {
+      if ( $this->val == 'Odd' or $this->val == 'Even' )  {
         return ' % 2 = ';
       }
       return ' IS NOT ';
@@ -182,7 +182,7 @@ class FilterTerm {
   /* Some terms don't have related SQL */
   public function sql() {
     if ( $this->attr == 'ExistsInFileSystem' ) {
-      return '';
+      return '1';
     }
 
     $sql = '';

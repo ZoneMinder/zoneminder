@@ -384,40 +384,9 @@ getBodyTopHTML();
 echo getNavBarHTML();
 ?>
   <div id="page" class="container-fluid">
-    <div class="d-flex flex-row justify-content-between px-3 py-1">
-    
-      <div class="" id="toolbar" >
-        <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
-        <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-      </div>
-      
-    <h2><?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor->Name()) ?><?php if ( $monitor->Id() ) { ?> (<?php echo $monitor->Id()?>)<?php } ?></h2>
-<?php
-if ( canEdit('Monitors') ) {
-  if ( isset($_REQUEST['dupId']) ) {
-?>
-    <div class="alert alert-info">
-      Configuration cloned from Monitor: <?php echo validHtmlStr($clonedName) ?>
-    </div>
-<?php
-  }
-?>
-    <div id="">
-      <?php echo makeLink('?view=monitorprobe&mid='.$monitor->Id(), translate('Probe')); ?>
-<?php
-  if ( ZM_HAS_ONVIF ) {
-       echo makeLink('?view=onvifprobe&mid='.$monitor->Id(), translate('OnvifProbe'));
-  }
-?>
-      <?php echo makeLink('?view=monitorpreset&mid=' . $monitor->Id(), translate('Presets')); ?>
-    </div>
-<?php
-} // end if canEdit('Monitors')
-?>
-    
-  </div>
+
   <div id="" class="row flex-nowrap">
-    <nav id="">
+    <nav id="">  <!-- BEGIN PILL LIST -->
     <ul class="pillList nav nav-pills flex-column h-100">
 <?php
 $tabs = array();
@@ -447,8 +416,43 @@ foreach ( $tabs as $name=>$value ) {
 }
   ?>
     </ul>
-    </nav>
-    <div class="container-fluid col-sm-offset-2 pr-0">
+    </nav> <!-- END PILL LIST -->
+
+<div class="d-flex flex-column col-sm-offset-2 container-fluid">
+    <!-- BEGIN MINI HEADER -->
+    <div class="d-flex flex-row justify-content-between px-3 py-1">
+      <div class="" id="toolbar" >
+        <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+      </div>
+      
+    <h2><?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor->Name()) ?><?php if ( $monitor->Id() ) { ?> (<?php echo $monitor->Id()?>)<?php } ?></h2>
+<?php
+if ( canEdit('Monitors') ) {
+  if ( isset($_REQUEST['dupId']) ) {
+?>
+    <div class="alert alert-info">
+      Configuration cloned from Monitor: <?php echo validHtmlStr($clonedName) ?>
+    </div>
+<?php
+  }
+?>
+    <div id="">
+      <?php echo makeLink('?view=monitorprobe&mid='.$monitor->Id(), translate('Probe')); ?>
+<?php
+  if ( ZM_HAS_ONVIF ) {
+       echo makeLink('?view=onvifprobe&mid='.$monitor->Id(), translate('OnvifProbe'));
+  }
+?>
+      <?php echo makeLink('?view=monitorpreset&mid=' . $monitor->Id(), translate('Presets')); ?>
+    </div>
+<?php
+} // end if canEdit('Monitors')
+?>
+  </div>
+
+    <!-- BEGIN ITEM LIST -->
+    <div class="d-flex flex-row container-fluid pr-0">
     <form name="contentForm" id="contentForm" method="post" action="?">
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
       <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
@@ -1286,11 +1290,12 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 ?>
           </tbody>
         </table>
-        <div id="contentButtons">
+        <div id="contentButtons" class="pr-3">
           <button type="submit" value="Save"<?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
           <button type="button" id="cancelBtn"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
+    </div>
     </div>
     </div>
     </div>

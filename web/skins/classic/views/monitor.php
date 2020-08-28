@@ -438,13 +438,9 @@ if ( canEdit('Monitors') ) {
   }
 ?>
     <div id="">
-      <?php echo makeLink('?view=monitorprobe&mid='.$monitor->Id(), translate('Probe')); ?>
-<?php
-  if ( ZM_HAS_ONVIF ) {
-       echo makeLink('?view=onvifprobe&mid='.$monitor->Id(), translate('OnvifProbe'));
-  }
-?>
-      <?php echo makeLink('?view=monitorpreset&mid=' . $monitor->Id(), translate('Presets')); ?>
+      <button id="probeBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Probe') ?>" ><i class="fa fa-rss-square"></i></button>
+      <button id="onvifBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('OnvifProbe') ?>" ><i class="fa fa-rss"></i></button>
+      <button id="presetBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Presets') ?>" ><i class="fa fa-list-ol"></i></button>
     </div>
 <?php
 } // end if canEdit('Monitors')

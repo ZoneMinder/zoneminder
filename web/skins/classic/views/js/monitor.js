@@ -69,6 +69,7 @@ function loadLocations( element ) {
 
 function initPage() {
   var backBtn = $j('#backBtn');
+  var onvifBtn = $j('#onvifBtn');
 
   //var protocolSelector = $('contentForm').elements['newMonitor[Protocol]'];
   //if ( $(protocolSelector).getTag() == 'select' )
@@ -152,6 +153,39 @@ function initPage() {
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
+  });
+
+  // Manage the PROBE button
+  $j('#probeBtn').click(function(evt) {
+    var mid = evt.currentTarget.getAttribute("data-mid");
+    evt.preventDefault();
+
+    //FIX-ME: MAKE THIS A MODAL
+    //$j('#modalFunction-'+mid).modal('show');
+    window.location.assign('?view=monitorprobe&mid='+mid);
+  });
+
+  // Manage the ONVIF button
+  $j('#onvifBtn').click(function(evt) {
+    var mid = evt.currentTarget.getAttribute("data-mid");
+    evt.preventDefault();
+
+    //FIX-ME: MAKE THIS A MODAL
+    //$j('#modalFunction-'+mid).modal('show');
+    window.location.assign('?view=onvifprobe&mid='+mid);
+  });
+
+  // Don't enable the onvif button if there is no previous zm page to go back to
+  onvifBtn.prop('disabled', !hasOnvif);
+
+  // Manage the PRESET button
+  $j('#presetBtn').click(function(evt) {
+    var mid = evt.currentTarget.getAttribute("data-mid");
+    evt.preventDefault();
+
+    //FIX-ME: MAKE THIS A MODAL
+    //$j('#modalFunction-'+mid).modal('show');
+    window.location.assign('?view=monitorpreset&mid='+mid);
   });
 
   // Manage the CANCEL Button

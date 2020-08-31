@@ -164,6 +164,12 @@ xhtmlHeaders(__FILE__, translate('Zone'));
 	}
 	?>
 									<polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
+<?php 
+  for ( $i = 0 ; $i < count($zone['Points']); $i ++ ) {
+    $point = $zone['Points'][$i];
+    echo '<circle cx="'.$point['x'].'" cy="'.$point['y'].'" r="10" class="zonePoint" id="point'.$i.'" />'.PHP_EOL;
+  }
+?>
 									Sorry, your browser does not support inline SVG
 								</svg>
 							</div>

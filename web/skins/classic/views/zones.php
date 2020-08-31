@@ -18,31 +18,21 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$mid = empty($_REQUEST['mid']) ? 0 : validInt($_REQUEST['mid']);
-if ( !($mid and canEdit('Monitors', $mid)) ) {
+$mids = null;
+if ( isset($_REQUEST['mid']) ) {
+  $mids = array();
+  $mids[] = validInt($_REQUEST['mid']);
+} else if ( isset($_REQUEST['mids']) ) {
+  $mids = $_REQUEST['mids'];
+} else {
+  $mids = dbFetchAll('SELECT Id FROM Monitors'.($user['MonitorIds'] ? 'WHERE Id IN ('.$user['MonitorIds'].')' : ''), 'Id');
+}
+
+if ( !($mids and count($mids)) ) {
   $view = 'error';
   return;
 }
-
-$monitor = new ZM\Monitor($mid);
-# ViewWidth() and ViewHeight() are already rotated
-$minX = 0;
-$maxX = $monitor->ViewWidth()-1;
-$minY = 0;
-$maxY = $monitor->ViewHeight()-1;
-
-$zones = array();
-foreach ( dbFetchAll('SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($mid)) as $row ) {
-  $row['Points'] = coordsToPoints($row['Coords']);
-
-  limitPoints($row['Points'], $minX, $minY, $maxX, $maxY);
-  $row['Coords'] = pointsToCoords($row['Points']);
-  $row['AreaCoords'] = preg_replace('/\s+/', ',', $row['Coords']);
-  $zones[] = $row;
-}
-
-$connkey = generateConnKey();
-$options = array('scale'=>$monitor->DefaultScale());
+$monitors = ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Monitor', array('Id'=>$mids));
 
 xhtmlHeaders(__FILE__, translate('Zones'));
 ?>
@@ -56,15 +46,37 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
-        <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
+<?php
+  foreach ( $mids as $mid ) {
+    $monitor = $monitors[$mid];
+    # ViewWidth() and ViewHeight() are already rotated
+    $minX = 0;
+    $maxX = $monitor->ViewWidth()-1;
+    $minY = 0;
+    $maxY = $monitor->ViewHeight()-1;
+
+    $zones = array();
+    foreach ( dbFetchAll('SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($mid)) as $row ) {
+      $row['Points'] = coordsToPoints($row['Coords']);
+
+      limitPoints($row['Points'], $minX, $minY, $maxX, $maxY);
+      $row['Coords'] = pointsToCoords($row['Points']);
+      $row['AreaCoords'] = preg_replace('/\s+/', ',', $row['Coords']);
+      $zones[] = $row;
+    }
+
+    $connkey = generateConnKey();
+    $options = array('width'=>'100%', 'height'=>'auto');
+?>
+    <div class="Monitor">
+        <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
         <div class="ZonesImage">
-        <?php echo getStreamHTML($monitor, $options); ?>
-        <svg class="zones" width="100%" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>"
-          style="position:absolute; top: 0; left: 0; background: none;">
+          <?php echo getStreamHTML($monitor, $options); ?>
+          <svg class="zones" width="100%" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>
-          <polygon points="<?php echo $zone['AreaCoords'] ?>" class="popup-link <?php echo $zone['Type']?>" data-on-click-true="streamCmdQuit"
+            <polygon points="<?php echo $zone['AreaCoords'] ?>" class="popup-link <?php echo $zone['Type']?>" data-on-click-true="streamCmdQuit"
                    data-url="?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>"
                    data-window-name="zmZone<?php echo $zone['Id'] ?>"
                    data-window-tag="zone"
@@ -77,7 +89,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
           Sorry, your browser does not support inline SVG
         </svg>
         </div>
-				<div id="zones">
+				<div class="zones">
 					<table id="zonesTable" class="major">
 						<thead>
 							<tr>
@@ -107,6 +119,11 @@ xhtmlHeaders(__FILE__, translate('Zones'));
             <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
 					</div>
 				</div><!--zones-->
+<br class="clear"/>
+      </div><!--Monitor-->
+<?php 
+  } # end foreach monitor
+?>
       </form>
     </div>
   </div>

@@ -35,14 +35,7 @@ if ( !canEdit('Monitors') ) {
       </div>
       <div class="modal-body">
         <p>
-          <select name="newFunction" id="funcSelect-<?php echo $monitor['Id'] ?>">
-            <?php
-            foreach ( getEnumValues('Monitors', 'Function') as $optFunction ) {
-              $selected = ( $optFunction == $Monitor->Function() ) ? ' selected="selected"' : '';
-              echo '<option value="' .$optFunction. '"'. $selected. '>' .translate('Fn'.$optFunction). '</option>'.PHP_EOL;
-            }
-            ?>
-          </select>
+          <?php echo htmlSelect('newFunction', ZM\getMonitorFunctionTypes(), $Monitor->Function(), array('id'=>'funcSelect-'.$monitor['Id'])) ?>
           <label for="newEnabled"><?php echo translate('Enabled') ?></label>
           <input type="checkbox" name="newEnabled" id="newEnabled-<?php echo $monitor['Id'] ?>" value="1"<?php echo $Monitor->Enabled() ?' checked="checked"' : '' ?>/>
         </p>

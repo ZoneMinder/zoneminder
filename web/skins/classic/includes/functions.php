@@ -461,6 +461,7 @@ function getStorageHTML() {
   $result='';
 
   $func = function($S) {
+    ZM\Logger::Debug("disk_usage for " . $S->Name());
     $class = '';
     if ( $S->disk_usage_percent() > 98 ) {
       $class = 'text-danger';

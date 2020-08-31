@@ -1,4 +1,5 @@
 var optControl = <?php echo ZM_OPT_CONTROL ?>;
+var hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
 var defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
 
 <?php

@@ -201,7 +201,7 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?view=events&action=delete&eids[]='+selections.join('&eids[]='));
+    $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='));
     window.location.reload(true);
   });
 

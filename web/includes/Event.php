@@ -50,6 +50,9 @@ class Event extends ZM_Object {
   public static function clear_cache() {
     return ZM_Object::_clear_cache(get_class());
   }
+  public function remove_from_cache() {
+    return ZM_Object::_remove_from_cache(get_class(), $this);
+  }
 
   public function Storage( $new = null ) {
     if ( $new ) {

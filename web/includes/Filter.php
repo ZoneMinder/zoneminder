@@ -40,8 +40,11 @@ class Filter extends ZM_Object {
   public function sql() {
     if ( ! isset($this->_sql) ) {
       foreach ( $this->FilterTerms() as $term ) {
-        if ( ! ($term->is_pre_sql() or $term->is_post_sql()) )
+        #if ( ! ($term->is_pre_sql() or $term->is_post_sql()) ) {
           $this->_sql .= $term->sql();
+        #} else {
+          #$this->_sql .= '1';
+        #}
       } # end foreach term
     }
     return $this->_sql;

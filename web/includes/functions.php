@@ -2057,7 +2057,6 @@ function validHtmlStr($input) {
  * Same width height.  If both are set we should calculate the smaller resulting scale
  */
 function getStreamHTML($monitor, $options = array()) {
-  ZM\Warning(print_r($options, true));
 
   if ( isset($options['scale']) and $options['scale'] != '' ) {
     if ( $options['scale'] != 'auto' && $options['scale'] != '0' ) {

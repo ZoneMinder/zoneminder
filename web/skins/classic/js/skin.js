@@ -159,7 +159,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     });
   });
 
-  document.querySelectorAll(".tabList a").forEach(function addOnClick(el) {
+  document.querySelectorAll(".pillList a").forEach(function addOnClick(el) {
     el.addEventListener("click", submitTab);
   });
 

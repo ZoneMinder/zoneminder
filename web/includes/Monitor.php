@@ -5,6 +5,22 @@ require_once('Server.php');
 require_once('Object.php');
 require_once('Control.php');
 require_once('Storage.php');
+require_once('Group.php');
+
+$FunctionTypes = null;
+
+function getMonitorFunctionTypes() {
+  if ( !isset($FunctionTypes ) ) {
+    $FunctionTypes = array(
+      'None'    => translate('FnNone'),
+      'Monitor' => translate('FnMonitor'),
+      'Modect'  => translate('FnModect'),
+      'Record'  => translate('FnMocord'),
+      'Nodect'  => translate('FnNodect')
+    );
+  }
+  return $FunctionTypes;
+}
 
 class Monitor extends ZM_Object {
   protected static $table = 'Monitors';
@@ -589,6 +605,15 @@ class Monitor extends ZM_Object {
     } // end if we are on the recording server
     return true;
   } // end function sendControlCommand($mid, $command)
+
+  function Groups($new='') {
+    if ( $new != '' )
+      $this->Groups = $new;
+    if ( !property_exists($this, 'Groups') ) {
+      $this->Groups = Group::find(array('Id'=>$this->GroupIds()));
+    }
+    return $this->Groups;
+  }
 
 } // end class Monitor
 ?>

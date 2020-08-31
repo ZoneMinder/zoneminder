@@ -73,6 +73,7 @@ class FilterTerm {
         $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
         break;
       case 'ExistsInFileSystem':
+        $value = '';
         break;
       case 'MonitorName':
       case 'Name':
@@ -139,6 +140,10 @@ class FilterTerm {
     if ( $this->attr == 'AlarmZoneId' ) {
       return ' EXISTS ';
     }
+    if ( $this->attr == 'ExistsInFileSystem' ) {
+      return '';
+    }
+
 
     switch ( $this->op ) {
     case '=' :
@@ -181,9 +186,6 @@ class FilterTerm {
 
   /* Some terms don't have related SQL */
   public function sql() {
-    if ( $this->attr == 'ExistsInFileSystem' ) {
-      return '1';
-    }
 
     $sql = '';
     if ( isset($this->cnj) ) {
@@ -194,6 +196,9 @@ class FilterTerm {
     }
 
     switch ( $this->attr ) {
+    case 'ExistsInFileSystem':
+      $sql .= 'TRUE /*'.$this->attr.'*/';
+      break;
     case 'MonitorName':
       $sql .= 'M.Name';
       break;
@@ -318,6 +323,7 @@ class FilterTerm {
   public function test($event=null) {
     if ( !isset($event) ) {
       # Is a Pre Condition
+      Logger::Debug("Testing " . $this->attr);
       if ( $this->attr == 'DiskPercent' ) {
         # The logic on this is really ugly.  We are going to treat it as an OR
         foreach ( $this->filter->get_StorageAreas() as $storage ) {
@@ -336,7 +342,7 @@ class FilterTerm {
         $string_to_eval = 'return getLoad() '.$this->op.' '.$this->val.';';
         try {
           $ret = eval($string_to_eval);
-          Logger::Debug("Evalled $string_to_eval = $ret");
+          Logger::Debug("Evaled $string_to_eval = $ret");
           if ( $ret )
             return true;
         } catch ( Throwable $t ) {

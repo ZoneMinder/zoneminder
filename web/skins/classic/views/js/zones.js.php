@@ -1,8 +1,10 @@
 <?php
-  global $connkey;
-  global $monitor;
+  global $monitors;
 ?>
-var connKey = '<?php echo $connkey ?>';
-var monitorUrl = '<?php echo ( $monitor->UrlToIndex() ) ?>';
+var monitors = new Array();
+<?php
+  foreach ( $monitors as $monitor ) {
+    echo 'monitors['.$monitor->Id().'] = '.json_encode($monitor).';'.PHP_EOL;
+  }
+?>
 var CMD_QUIT = <?php echo CMD_QUIT ?>;
-

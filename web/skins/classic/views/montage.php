@@ -280,7 +280,7 @@ foreach ( $monitors as $monitor ) {
 
 <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: 100%; height: 100%;" viewBox="0 0 <?php echo $monitor->ViewWidth() ?> <?php echo $monitor->ViewHeight() ?>" preserveAspectRatio="none">
 <?php
-foreach( array_reverse($zones) as $zone ) {
+foreach ( array_reverse($zones) as $zone ) {
   echo '<polygon points="'. $zone['AreaCoords'] .'" class="'. $zone['Type'].'" />';
 } // end foreach zone
 ?>
@@ -305,4 +305,5 @@ foreach( array_reverse($zones) as $zone ) {
       </div>
     </div>
   </div>
+  <script src="<?php echo cache_bust('/js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

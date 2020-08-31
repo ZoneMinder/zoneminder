@@ -19,7 +19,7 @@
 	fill: #0000FF;
 }
 
-#zones, .ZonesImage {
+.zones, .ZonesImage {
   position: relative;
   width: 50%;
   min-width: 500px;
@@ -30,8 +30,24 @@
   left:0;
   position: relative;
 }
+.ZonesImage svg {
+  position:absolute;
+  top: 0;
+  left: 0;
+  background: none;
+  width: 100%;
+}
 
 #content {
 width: 97%;
 position: relative;
+}
+
+.Monitor:after {
+  content: ".";
+  display: block;
+  height: 0;
+    font-size: 0;
+  clear: both;
+  visibility: hidden;
 }

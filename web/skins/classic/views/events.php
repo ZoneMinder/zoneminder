@@ -199,7 +199,7 @@ if ( $results ) {
       continue;
     }
     $events[] = $event;
-    if ( $limit and (count($events) > $limit) ) {
+    if ( $limit and (count($events) >= $limit) ) {
       break;
     }
     ZM\Logger::Debug("Have " . count($events) . " events, limit $limit");

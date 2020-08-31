@@ -158,3 +158,8 @@ input[name="newZone[MaxAlarmPixels]"] {
 input.ZonePoint {
     width: 75px;
 }
+svg circle {
+  fill: green;
+  border: 1px solid black;
+    overflow: show;
+}

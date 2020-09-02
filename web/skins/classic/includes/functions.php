@@ -111,7 +111,7 @@ if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
   }
 ?>
-  <style type="text/css">
+  <style>
 <?php
   if ( $baseViewCssPhpFile ) {
     require_once($baseViewCssPhpFile);

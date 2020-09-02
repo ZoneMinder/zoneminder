@@ -305,5 +305,5 @@ foreach ( array_reverse($zones) as $zone ) {
       </div>
     </div>
   </div>
-  <script src="<?php echo cache_bust('/js/MonitorStream.js') ?>"></script>
+  <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

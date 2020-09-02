@@ -1295,5 +1295,4 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
     </div>
     </div>
     </div>
-  </body>
-</html>
+<?php xhtmlFooter() ?>

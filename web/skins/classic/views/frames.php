@@ -215,5 +215,4 @@ if ( count($frames) ) foreach ( $frames as $frame ) {
   $row++;
 }
 ?>
-  </body>
-</html>
+<?php xhtmlFooter() ?>

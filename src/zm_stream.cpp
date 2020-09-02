@@ -37,9 +37,17 @@ StreamBase::~StreamBase() {
   }
 #endif
   closeComms();
+  if ( monitor ) {
+    delete monitor;
+    monitor = NULL;
+  }
 }
 
-bool StreamBase::loadMonitor(int monitor_id) {
+bool StreamBase::loadMonitor(int p_monitor_id) {
+  monitor_id = p_monitor_id;
+  if ( monitor )
+    delete monitor;
+
   if ( !(monitor = Monitor::Load(monitor_id, false, Monitor::QUERY)) ) {
     Error("Unable to load monitor id %d for streaming", monitor_id);
     return false;
@@ -59,7 +67,15 @@ bool StreamBase::loadMonitor(int monitor_id) {
 
 bool StreamBase::checkInitialised() {
   if ( !monitor ) {
-    Fatal("Cannot stream, not initialised");
+    Error("Cannot stream, not initialised");
+    return false;
+  }
+  if ( monitor->GetFunction() == Monitor::NONE ) {
+    Error("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
+    return false;
+  }
+  if ( !monitor->ShmValid() ) {
+    Error("Monitor shm is not connected");
     return false;
   }
   return true;
@@ -248,7 +264,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
-    /* double pts = */ vid_stream->EncodeFrame( image.Buffer(), image.Size() );
+    /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
   } else
 #endif // HAVE_LIBAVCODEC
   {
@@ -257,13 +273,15 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
 
     image.EncodeJpeg(buffer, &n_bytes);
 
-    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n", stdout);
+    fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout);
     fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);
     if ( fwrite(buffer, n_bytes, 1, stdout) != 1 ) {
       Error("Unable to send stream text frame: %s", strerror(errno));
       return false;
+    } else {
+      Debug(1, "Sent %d bytes", n_bytes);
     }
-    fputs("\r\n\r\n",stdout);
+    fputs("\r\n\r\n", stdout);
     fflush(stdout);
   }
   last_frame_sent = TV_2_FLOAT(now);

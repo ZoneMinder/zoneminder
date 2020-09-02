@@ -215,8 +215,8 @@ class Monitor extends ZM_Object {
         $args['user'] = $_SESSION['username'];
       }
     }
-    if ( ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) && !empty($GLOBALS['connkey']) ) {
-      $args['connkey'] = $GLOBALS['connkey'];
+    if ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) {
+      $args['connkey'] = $this->connKey();
     }
     if ( ZM_RAND_STREAM ) {
       $args['rand'] = time();
@@ -613,6 +613,18 @@ class Monitor extends ZM_Object {
       $this->Groups = Group::find(array('Id'=>$this->GroupIds()));
     }
     return $this->Groups;
+  }
+  function connKey($new='') {
+    if ( $new )
+      $this->connKey = $new;
+    if ( !isset($this->connKey) ) {
+      if ( !empty($GLOBALS['connkey']) ) {
+        $this->connKey = $GLOBALS['connkey'];
+      } else {
+        $this->connKey = generateConnKey();
+      }
+    }
+    return $this->connKey;
   }
 
 } // end class Monitor

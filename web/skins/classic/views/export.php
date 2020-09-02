@@ -269,5 +269,4 @@ while ( $event_row = dbFetchNext($results) ) {
         </form>
       </div>
     </div>
-  </body>
-</html>
+<?php xhtmlFooter() ?>

@@ -388,7 +388,6 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
     struct timeval frameStartTime;
     gettimeofday(&frameStartTime, nullptr);
 
-    fputs("--ZoneMinderFrame\r\n", stdout);
     switch ( type ) {
       case STREAM_JPEG :
         send_image->EncodeJpeg(img_buffer, &img_buffer_size);
@@ -452,15 +451,20 @@ void MonitorStream::runStream() {
 
   openComms();
 
+  if ( type == STREAM_JPEG )
+    fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
+
   if ( !checkInitialised() ) {
     Error("Not initialized");
-    return;
+    while ( !(loadMonitor(monitor_id) || zm_terminate) ) {
+      sendTextFrame("Not connected");
+      if ( connkey )
+        checkCommandQueue();
+      sleep(1);
+    }
   }
 
   updateFrameRate(monitor->GetFPS());
-
-  if ( type == STREAM_JPEG )
-    fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
   unsigned int last_read_index = monitor->image_buffer_count;

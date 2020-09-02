@@ -278,8 +278,6 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     if ( fwrite(buffer, n_bytes, 1, stdout) != 1 ) {
       Error("Unable to send stream text frame: %s", strerror(errno));
       return false;
-    } else {
-      Debug(1, "Sent %d bytes", n_bytes);
     }
     fputs("\r\n\r\n", stdout);
     fflush(stdout);

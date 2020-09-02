@@ -266,7 +266,6 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   $request = null;
 }
 
-CSPHeaders($view, $cspNonce);
 
 if ( $redirect ) {
   ZM\Logger::Debug("Redirecting to $redirect");
@@ -284,6 +283,7 @@ if ( $request ) {
 }
 
 if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
+  ob_start();
   foreach ( $includeFiles as $includeFile ) {
     if ( !file_exists($includeFile) )
       ZM\Fatal("View '$view' does not exist");
@@ -297,6 +297,9 @@ if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
     foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
       require_once $includeFile;
   }
+
+  CSPHeaders($view, $cspNonce);
+  ob_end_flush();
 }
 // If the view is missing or the view still returned error with the user logged in,
 // then it is not recoverable.

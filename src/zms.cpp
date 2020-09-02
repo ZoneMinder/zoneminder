@@ -253,14 +253,7 @@ int main(int argc, const char *argv[]) {
     stream.setStreamTTL(ttl);
     stream.setStreamQueue(connkey);
     stream.setStreamBuffer(playback_buffer);
-    if ( !stream.setStreamStart(monitor_id) ) {
-      Error("Unable to connect to zmc process for monitor %d", monitor_id);
-      fprintf(stderr, "Unable to connect to zmc process. "
-         " Please ensure that it is running.");
-      logTerm();
-      zmDbClose();
-      return -1;
-    }
+    stream.setStreamStart(monitor_id);
 
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType(MonitorStream::STREAM_JPEG);

@@ -18,12 +18,53 @@ function MonitorStream(monitorData) {
   this.type = monitorData.type;
   this.refresh = monitorData.refresh;
   this.start = function(delay) {
+    // Step 1 make sure we are streaming instead of a static image
+    var stream = $j('#liveStream'+this.id)[0];
+    if ( ! stream ) {
+      console.log('No live stream');
+      return;
+    }
+    src = stream.src.replace(/mode=single/i, 'mode=jpeg');
+    if ( -1 == src.search('connkey') ) {
+      src += '&connkey='+this.connKey;
+    }
+    if ( stream.src != src ) {
+      console.log("Setting to streaming");
+      stream.src = '';
+      stream.src = src;
+    }
+
     if ( this.streamCmdQuery ) {
       this.streamCmdTimer = this.streamCmdQuery.delay(delay, this);
     } else {
       console.log("No streamCmdQuery");
     }
+
+    console.log("queueing for " + this.id + " " + this.connKey + " timeout is: " + AJAX_TIMEOUT);
+    requestQueue.addRequest("cmdReq"+this.id, this.streamCmdReq);
   };
+  this.stop = function() {
+    if ( 0 ) {
+      var stream = $j('#liveStream'+this.id)[0];
+      if ( ! stream ) {
+        console.log('No live stream');
+        return;
+      }
+      src = stream.src.replace(/mode=jpeg/i, 'mode=single');
+      if ( stream.src != src ) {
+        console.log("Setting to stopped");
+        stream.src = '';
+        stream.src = src;
+      }
+    }
+    this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_STOP);
+  };
+  this.pause = function() {
+    this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_PAUSE);
+  }
+  this.play = function() {
+    this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_PLAY);
+  }
 
   this.eventHandler = function(event) {
     console.log(event);
@@ -50,6 +91,8 @@ function MonitorStream(monitorData) {
   };
 
   this.setStateClass = function(element, stateClass) {
+    if ( !element )
+      return;
     if ( !element.hasClass( stateClass ) ) {
       if ( stateClass != 'alarm' ) {
         element.removeClass('alarm');
@@ -73,9 +116,9 @@ function MonitorStream(monitorData) {
   this.onFailure = function(xhr) {
     console.log('onFailure: ' + this.connKey);
     console.log(xhr);
-    if ( ! requestQueue.hasNext("cmdReq"+this.id) ) {
-      console.log("Not requeuing because there is one already");
-      requestQueue.addRequest("cmdReq"+this.id, this.streamCmdReq);
+    if ( ! requestQueue.hasNext('cmdReq'+this.id) ) {
+      console.log('Not requeuing because there is one already');
+      requestQueue.addRequest('cmdReq'+this.id, this.streamCmdReq);
     }
     if ( 0 ) {
     // Requeue, but want to wait a while.
@@ -83,42 +126,59 @@ function MonitorStream(monitorData) {
         this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
       }
       var streamCmdTimeout = 1000*statusRefreshTimeout;
-      this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this, true );
+      this.streamCmdTimer = this.streamCmdQuery.delay(streamCmdTimeout, this, true);
       requestQueue.resume();
     }
-    console.log("done failure");
+    console.log('done failure');
   };
 
   this.getStreamCmdResponse = function(respObj, respText) {
     if ( this.streamCmdTimer ) {
-      this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
+      this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
     }
 
     var stream = $j('#liveStream'+this.id)[0];
+    if ( ! stream ) {
+      console.log('No live stream');
+      return;
+    }
 
     if ( respObj.result == 'Ok' ) {
       if ( respObj.status ) {
         this.status = respObj.status;
         this.alarmState = this.status.state;
 
-        var stateClass = "";
+        var stateClass = '';
         if ( this.alarmState == STATE_ALARM ) {
-          stateClass = "alarm";
+          stateClass = 'alarm';
         } else if ( this.alarmState == STATE_ALERT ) {
-          stateClass = "alert";
+          stateClass = 'alert';
         } else {
-          stateClass = "idle";
+          stateClass = 'idle';
         }
 
-        if ( (!COMPACT_MONTAGE) && (this.type != 'WebSite') ) {
-          $('fpsValue'+this.id).set('text', this.status.fps);
-          $('stateValue'+this.id).set('text', stateStrings[this.alarmState]);
-          this.setStateClass($('monitorState'+this.id), stateClass);
+        if ( (
+          (typeof COMPACT_MONTAGE === 'undefined')
+          ||
+          !COMPACT_MONTAGE)
+          && (this.type != 'WebSite')
+        ) {
+          fpsValue = $('fpsValue'+this.id);
+          if ( fpsValue )
+            fpsValue.set('text', this.status.fps);
+          stateValue = $('stateValue'+this.id);
+          if ( stateValue )
+            stateValue.set('text', stateStrings[this.alarmState]);
+
+          monitorState = $('monitorState'+this.id);
+          if ( monitorState )
+            this.setStateClass(monitorState, stateClass);
         }
+
         this.setStateClass($('monitor'+this.id), stateClass);
 
         /*Stream could be an applet so can't use moo tools*/
-        stream.className = stateClass;
+        //stream.parentNode().className = stateClass;
 
         var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
         var wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
@@ -131,7 +191,7 @@ function MonitorStream(monitorData) {
             // Enable the alarm sound
             $('alarmSound').removeClass('hidden');
           }
-          if ( POPUP_ON_ALARM ) {
+          if ( (typeof POPUP_ON_ALARM !== 'undefined') && POPUP_ON_ALARM ) {
             windowToFront();
           }
         }
@@ -158,7 +218,12 @@ function MonitorStream(monitorData) {
       if ( stream ) {
         if ( stream.src ) {
           console.log('Reloading stream: ' + stream.src);
-          stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+          src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+          if ( src != stream.src ) {
+            stream.src = src;
+          } else {
+            console.log("Failed to update rand on stream src");
+          }
         } else {
         }
       } else {
@@ -179,12 +244,12 @@ function MonitorStream(monitorData) {
 
   this.streamCmdQuery = function(resent) {
     if ( resent ) {
-      console.log(this.connKey+": timeout: Resending");
+      console.log(this.connKey+': timeout: Resending');
       this.streamCmdReq.cancel();
     }
     //console.log("Starting CmdQuery for " + this.connKey );
     if ( this.type != 'WebSite' ) {
-      this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_QUERY);
+      this.streamCmdReq.send(this.streamCmdParms+'&command='+CMD_QUERY);
     }
   };
 
@@ -199,7 +264,5 @@ function MonitorStream(monitorData) {
       onFailure: this.onFailure.bind(this),
       link: 'cancel'
     } );
-    console.log("queueing for " + this.id + " " + this.connKey + " timeout is: " + AJAX_TIMEOUT);
-    requestQueue.addRequest("cmdReq"+this.id, this.streamCmdReq);
   }
 } // end function MonitorStream

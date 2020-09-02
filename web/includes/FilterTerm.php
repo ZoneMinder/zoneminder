@@ -274,7 +274,7 @@ class FilterTerm {
     }
     $sql .= $this->sql_operator();
     $values = $this->sql_values();
-    if ( count($values) > 1 ) {
+    if ( (count($values) > 1) or ($this->op == 'IN') or ($this->op == 'NOT IN') ) {
       $sql .= '('.join(',', $values).')';
     } else {
       $sql .= $values[0];

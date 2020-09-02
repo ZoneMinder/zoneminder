@@ -691,7 +691,7 @@ bool EventStream::sendFrame(int delta_us) {
 
     bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE)) && filepath[0];
 
-    fprintf(stdout, "--ZoneMinderFrame\r\n");
+    fprintf(stdout, "--" BOUNDARY "\r\n");
 
     if ( (type != STREAM_JPEG) || (!filepath[0]) )
       send_raw = false;
@@ -861,7 +861,7 @@ void EventStream::runStream() {
   checkInitialised();
 
   if ( type == STREAM_JPEG )
-    fputs("Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n", stdout);
+    fputs("Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   if ( !event_data ) {
     sendTextFrame("No event data found");

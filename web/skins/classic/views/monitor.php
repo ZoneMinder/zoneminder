@@ -385,8 +385,8 @@ echo getNavBarHTML();
 ?>
   <div id="page" class="container-fluid">
 
-  <div id="" class="row flex-nowrap">
-    <nav id="">  <!-- BEGIN PILL LIST -->
+  <div class="row flex-nowrap">
+    <nav>  <!-- BEGIN PILL LIST -->
     <ul class="pillList nav nav-pills flex-column h-100">
 <?php
 $tabs = array();
@@ -437,7 +437,7 @@ if ( canEdit('Monitors') ) {
 <?php
   }
 ?>
-    <div id="">
+    <div>
       <button id="probeBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Probe') ?>" ><i class="fa fa-rss-square"></i></button>
       <button id="onvifBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('OnvifProbe') ?>" ><i class="fa fa-rss"></i></button>
       <button id="presetBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Presets') ?>" ><i class="fa fa-list-ol"></i></button>

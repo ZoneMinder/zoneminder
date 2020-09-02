@@ -222,11 +222,11 @@ ZM\Logger::Debug("View: $view Request: $request Action: $action User: " . ( isse
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
-  ( $view != 'view_video' ) &&
-  ( $view != 'image' ) &&
+  ( $view != 'view_video' ) && // only video no html
+  ( $view != 'image' ) && // view=image doesn't return html, just image data.
   ( $request != 'control' ) && 
-  ( $view != 'frames' ) && 
-  ( $view != 'archive' )
+  //( $view != 'frames' ) &&  // big html can overflow ob
+  ( $view != 'archive' ) // returns data
 ) {
   require_once('includes/csrf/csrf-magic.php');
   #ZM\Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");

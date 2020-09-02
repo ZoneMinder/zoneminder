@@ -18,23 +18,22 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) )
-{
-    $view = "error";
-    return;
+if ( !canView('Events') ) {
+  $view = 'error';
+  return;
 }
 
-if ( !isset($row) ) $row='';
+if ( !isset($row) ) $row = '';
 
 $sql = 'SELECT S.*,E.*,Z.Name AS ZoneName,Z.Units,Z.Area,M.Name AS MonitorName FROM Stats AS S LEFT JOIN Events AS E ON S.EventId = E.Id LEFT JOIN Zones AS Z ON S.ZoneId = Z.Id LEFT JOIN Monitors AS M ON E.MonitorId = M.Id WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
-$stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
+$stats = dbFetchAll($sql, NULL, array($eid, $fid));
 
 ?>
 <table id="contentStatsTable<?php echo $row ?>"
   data-toggle="table"
   data-toolbar="#toolbar"
   class="table-sm table-borderless contentStatsTable"
-  cellspacing="0">
+  >
 
   <caption><?php echo translate('Stats') ?> - <?php echo $eid ?> - <?php echo $fid ?></caption>
   <thead>
@@ -53,10 +52,8 @@ $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
 
   <tbody>
 <?php
-if ( count($stats) )
-{
-    foreach ( $stats as $stat )
-    {
+if ( count($stats) ) {
+    foreach ( $stats as $stat ) {
 ?>
     <tr>
       <td class="colZone"><?php echo validHtmlStr($stat['ZoneName']) ?></td>
@@ -83,9 +80,9 @@ if ( $stat['Blobs'] > 1 ) {
     }
 } else {
 ?>
-            <tr>
-              <td class="rowNoStats" colspan="9"><?php echo translate('NoStatisticsRecorded') ?></td>
-            </tr>
+    <tr>
+      <td class="rowNoStats" colspan="9"><?php echo translate('NoStatisticsRecorded') ?></td>
+    </tr>
 <?php
 }
 ?>

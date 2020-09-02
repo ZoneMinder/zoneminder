@@ -228,5 +228,4 @@ if ( ZM_WEB_SOUND_ON_ALARM ) {
 ?>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

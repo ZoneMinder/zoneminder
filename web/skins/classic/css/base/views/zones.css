@@ -31,11 +31,12 @@
   position: relative;
 }
 .ZonesImage svg {
+  width: 100%;
   position:absolute;
   top: 0;
   left: 0;
+  right: 0;
   background: none;
-  width: 100%;
 }
 
 #content {

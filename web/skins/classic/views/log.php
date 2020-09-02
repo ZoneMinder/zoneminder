@@ -134,5 +134,4 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       </div><!--overlayContent-->
     </div><!--overlaybody-->
   </div><!-- exportLog-->
-</body>
-</html>
+<?php xhtmlFooter() ?>

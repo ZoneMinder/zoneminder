@@ -58,6 +58,18 @@ zone['Points'][<?php echo $i ?>] = { 'x': <?php echo $newZone['Points'][$i]['x']
 var maxX = <?php echo $monitor->ViewWidth()-1 ?>;
 var maxY = <?php echo $monitor->ViewHeight()-1 ?>;
 var monitorArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight() ?>;
+
+var monitorData = new Array();
+monitorData[monitorData.length] = {
+  'id': <?php echo $monitor->Id() ?>,
+  'connKey': <?php echo $monitor->connKey() ?>,
+  'width': <?php echo $monitor->ViewWidth() ?>,
+  'height':<?php echo $monitor->ViewHeight() ?>,
+  'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
+  'type': '<?php echo $monitor->Type() ?>',
+  'refresh': '<?php echo $monitor->Refresh() ?>'
+};
+
 var selfIntersecting = <?php echo $selfIntersecting ? 'true' : 'false' ?>;
 
 var selfIntersectingString = '<?php echo addslashes(translate('SelfIntersecting')) ?>';

@@ -54,15 +54,6 @@ foreach ( getEnumValues('Zones', 'CheckMethod') as $optCheckMethod ) {
 
 $monitor = new ZM\Monitor($mid);
 
-if ( isset($_REQUEST['scale']) ) {
-  $scale = validInt($_REQUEST['scale']);
-} else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
-  $scale = $_COOKIE['zmWatchScale'.$mid];
-} else {
-  $scale = $monitor->DefaultScale();
-}
-ZM\Error("Scale $scale");
-
 $minX = 0;
 $maxX = $monitor->ViewWidth()-1;
 $minY = 0;
@@ -116,9 +107,9 @@ $newZone['AreaCoords'] = preg_replace('/\s+/', ',', $newZone['Coords']);
 $selfIntersecting = isSelfIntersecting($newZone['Points']);
 
 $focusWindow = true;
-$connkey = generateConnKey();
 # Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
-$StreamHTML = getStreamHTML($monitor, array('scale'=>$scale));
+$monitor->connKey();
+$StreamHTML = getStreamHTML($monitor, array('mode'=>'single'));
 
 # So I'm thinking now that 50% of screen real-estate with a minimum of 640px. 
 # scale should be floor(whatever that width is/actual width)
@@ -143,41 +134,41 @@ xhtmlHeaders(__FILE__, translate('Zone'));
         <input type="hidden" name="newZone[AlarmRGB]"/>
 
         <div id="definitionPanel">
-					<div class="monitor">
-						<div id="imagePanel">
-							<div id="imageFrame">
-								<?php echo $StreamHTML; ?>
-                <svg id="zoneSVG" class="zones" width="100%" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" style="position:absolute; top: 0; left: 0; background: none;">
-	<?php
-	if ( $zone['Id'] ) {
-		$other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ? AND Id != ?', NULL, array($monitor->Id(), $zone['Id']));
-	} else {
-		$other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ?', NULL, array($monitor->Id()));
-	}
-	if ( count($other_zones) ) {
-		$html = '';
-		foreach ( $other_zones as $other_zone ) {
-			$other_zone['AreaCoords'] = preg_replace('/\s+/', ',', $other_zone['Coords']);
-			$html .= '<polygon id="zonePoly'.$other_zone['Id'].'" points="'. $other_zone['AreaCoords'] .'" class="'. $other_zone['Type'] .'"/>';
-		}
-		echo $html;
-	}
-	?>
-									<polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
-<?php 
-  for ( $i = 0 ; $i < count($zone['Points']); $i ++ ) {
-    $point = $zone['Points'][$i];
-    echo '<circle cx="'.$point['x'].'" cy="'.$point['y'].'" r="10" class="zonePoint" id="point'.$i.'" />'.PHP_EOL;
+				  <div id="imagePanel">
+            <div id="imageFrame">
+              <?php echo $StreamHTML; ?>
+              <svg id="zoneSVG" class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
+<?php
+if ( $zone['Id'] ) {
+  $other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ? AND Id != ?', NULL, array($monitor->Id(), $zone['Id']));
+} else {
+  $other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ?', NULL, array($monitor->Id()));
+}
+if ( count($other_zones) ) {
+  $html = '';
+  foreach ( $other_zones as $other_zone ) {
+    $other_zone['AreaCoords'] = preg_replace('/\s+/', ',', $other_zone['Coords']);
+    $html .= '<polygon id="zonePoly'.$other_zone['Id'].'" points="'. $other_zone['AreaCoords'] .'" class="'. $other_zone['Type'] .'"/>';
   }
+  echo $html;
+}
 ?>
-									Sorry, your browser does not support inline SVG
-								</svg>
-							</div>
-						</div>
-						<div id="monitorState">
-							<?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps
-						</div>
-					</div>
+                <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
+                Sorry, your browser does not support inline SVG
+              </svg>
+            </div><?php # imageFrame?>
+            <div id="monitorState">
+              <?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps
+            </div>
+            <div id="StreamControlButtons">
+              <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>">
+                <i class="material-icons md-18">pause</i>
+              </button>
+              <button type="button" id="playBtn" title="<?php echo translate('Play') ?>">
+                <i class="material-icons md-18">play_arrow</i>
+              </button>
+            </div>
+          </div><!--imagePanel-->
 
 					<div id="settingsPanel">
 						<table id="zoneSettings">
@@ -306,7 +297,6 @@ for ( $i = 0; $i < $pointCols; $i++ ) {
 							</tbody>
 						</table>
 					<div class="buttons">
-						<button type="button" id="pauseBtn"><?php echo translate('Pause') ?></button>
 						<button type="button" id="saveBtn" value="Save" <?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
 						<?php echo translate('Save') ?>
 						</button>
@@ -317,5 +307,5 @@ for ( $i = 0; $i < $pointCols; $i++ ) {
       </form>
     </div><!--content-->
   </div><!--page-->
-</body>
-</html>
+  <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
+<?php xhtmlFooter() ?>

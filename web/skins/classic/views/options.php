@@ -58,7 +58,7 @@ xhtmlHeaders(__FILE__, translate('Options'));
   <?php echo getNavBarHTML(); ?>
   <div class="container-fluid h-100">
     <div class="row flex-nowrap h-100">
-      <nav id="sidebar h-100">
+      <nav id="sidebar" class="h-100">
         <ul class="nav nav-pills flex-column h-100">
 <?php
 foreach ( $tabs as $name=>$value ) {

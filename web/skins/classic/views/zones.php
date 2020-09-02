@@ -49,6 +49,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 <?php
   foreach ( $mids as $mid ) {
     $monitor = $monitors[$mid];
+    $monitor->connKey();
     # ViewWidth() and ViewHeight() are already rotated
     $minX = 0;
     $maxX = $monitor->ViewWidth()-1;
@@ -65,14 +66,13 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       $zones[] = $row;
     }
 
-    $connkey = generateConnKey();
     $options = array('width'=>'100%', 'height'=>'auto');
 ?>
     <div class="Monitor">
         <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
         <div class="ZonesImage">
           <?php echo getStreamHTML($monitor, $options); ?>
-          <svg class="zones" width="100%" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
+          <svg class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>
@@ -127,4 +127,5 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       </form>
     </div>
   </div>
+  <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

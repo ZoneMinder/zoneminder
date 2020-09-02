@@ -1,8 +1,7 @@
 var requestQueue = new Request.Queue({
   concurrent: monitorData.length,
   stopOnFailure: false
-}
-
+});
 /**
  * called when the layoutControl select element is changed, or the page
  * is rendered

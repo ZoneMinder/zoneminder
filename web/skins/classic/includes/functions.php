@@ -25,6 +25,7 @@ function xhtmlHeaders($file, $title) {
   global $skin;
   global $view;
   global $cspNonce;
+  global $basename;
 
   # This idea is that we always include the classic css files, 
   # and then any different skin only needs to contain things that are different.
@@ -32,15 +33,11 @@ function xhtmlHeaders($file, $title) {
 
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
 
-  $skinJsPhpFile = getSkinFile('js/skin.js.php');
-  $cssJsFile = getSkinFile('js/'.$css.'.js');
 
   $basename = basename($file, '.php');
 
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
-  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
-  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 
   function output_link_if_exists($files) {
     global $skin;
@@ -125,81 +122,6 @@ if ( $css != 'base' )
 ?>
   </style>
 
-<?php if ( $basename != 'login' and $basename != 'postlogin' ) { ?>
-  <script src="tools/mootools/mootools-core.js"></script>
-  <script src="tools/mootools/mootools-more.js"></script>
-  <script src="js/mootools.ext.js"></script>
-<?php } ?>
-  <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/tableExport.min.js"></script> 
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-export.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-page-jump-to.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
-  <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
-
-  <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
-  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
-  <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
-<?php
-  if ( $view == 'event' ) {
-?>
-  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
-  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
-  <script src="./js/videojs.zoomrotate.js"></script>
-<?php
-  }
-?>
-  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
-<?php
-  if ( $skinJsPhpFile ) {
-?>
-  <script nonce="<?php echo $cspNonce; ?>">
-<?php
-    require_once( $skinJsPhpFile );
-?>
-  </script>
-<?php
-  }
-  if ( $viewJsPhpFile ) {
-?>
-  <script nonce="<?php echo $cspNonce; ?>">
-<?php
-    require_once( $viewJsPhpFile );
-?>
-  </script>
-<?php
-  }
-	if ( $cssJsFile ) {
-?>
-  <script src="<?php echo cache_bust($cssJsFile) ?>"></script>
-<?php
-} else {
-?>
-  <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
-<?php
-  }
-  $skinJsFile = getSkinFile('js/skin.js');
-?>
-  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
-<?php 
-  if ($basename == 'watch' or $basename == 'log' ) {
-  // This is used in the log popup for the export function. Not sure if it's used anywhere else
-?>
-    <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
-<?php } ?>
-<?php
-  if ( $viewJsFile ) {
-?>
-  <script src="<?php echo cache_bust($viewJsFile) ?>"></script>
-<?php
-  }
-?>
 </head>
 <?php
   echo ob_get_clean();
@@ -834,13 +756,88 @@ function runtimeStatus($running=null) {
 }
 
 function xhtmlFooter() {
+  global $css;
   global $cspNonce;
   global $view;
   global $skin;
+  global $basename;
   if ( canEdit('System') ) {
     include("skins/$skin/views/state.php");
   }
+  $skinJsPhpFile = getSkinFile('js/skin.js.php');
+  $cssJsFile = getSkinFile('js/'.$css.'.js');
+  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
+  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 ?>
+<?php if ( $basename != 'login' and $basename != 'postlogin' ) { ?>
+  <script src="tools/mootools/mootools-core.js"></script>
+  <script src="tools/mootools/mootools-more.js"></script>
+  <script src="js/mootools.ext.js"></script>
+<?php } ?>
+  <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/tableExport.min.js"></script> 
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-export.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-page-jump-to.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
+  <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
+
+  <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
+  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
+  <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
+<?php
+  if ( $view == 'event' ) {
+?>
+  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
+  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
+  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
+  <script src="./js/videojs.zoomrotate.js"></script>
+<?php
+  }
+?>
+  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
+<?php
+?>
+  <script nonce="<?php echo $cspNonce; ?>">
+<?php
+  if ( $skinJsPhpFile ) {
+    require_once( $skinJsPhpFile );
+  }
+  if ( $viewJsPhpFile ) {
+    require_once( $viewJsPhpFile );
+  }
+?>
+  </script>
+<?php
+	if ( $cssJsFile ) {
+?>
+  <script src="<?php echo cache_bust($cssJsFile) ?>"></script>
+<?php
+  } else {
+?>
+  <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
+<?php
+  }
+  if ( $viewJsFile ) {
+?>
+  <script src="<?php echo cache_bust($viewJsFile) ?>"></script>
+<?php
+  } else {
+    ZM\Error("No view JS FILE?");
+  }
+  $skinJsFile = getSkinFile('js/skin.js');
+?>
+  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
+  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
+<?php 
+  if ($basename == 'watch' or $basename == 'log' ) {
+  // This is used in the log popup for the export function. Not sure if it's used anywhere else
+?>
+    <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
+<?php } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

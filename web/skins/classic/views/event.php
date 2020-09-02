@@ -322,5 +322,4 @@ echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
     </div><!--content-->
   </div><!--page-->
-</body>
-</html>
+<?php xhtmlFooter() ?>

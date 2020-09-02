@@ -2077,8 +2077,9 @@ function getStreamHTML($monitor, $options = array()) {
       # no dimensions, so assume the dimensions of the Monitor
 
       if ( ! (isset($options['height']) and $options['height']) ) {
-        $options['width'] = $monitor->ViewWidth().'px';
-        $options['height'] = $monitor->ViewHeight().'px';
+        # If we havn't specified any scale or dimensions, then we must be using CSS to scale it in a dynamic way. Can't make any assumptions.
+        #$options['width'] = $monitor->ViewWidth().'px';
+        #$options['height'] = $monitor->ViewHeight().'px';
       }
     } else {
       ZM\Warning("Have width ".$options['width']);

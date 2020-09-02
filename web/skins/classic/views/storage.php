@@ -111,5 +111,4 @@ xhtmlHeaders(__FILE__, translate('Storage').' - '.$newStorage->Name());
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

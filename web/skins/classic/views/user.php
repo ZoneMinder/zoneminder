@@ -148,5 +148,4 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

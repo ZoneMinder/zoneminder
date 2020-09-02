@@ -76,5 +76,4 @@ xhtmlHeaders(__FILE__, validHtmlStr($monitor->Name()).' - '.translate('Settings'
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

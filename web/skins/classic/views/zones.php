@@ -127,5 +127,4 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

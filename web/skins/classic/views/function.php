@@ -24,26 +24,29 @@ if ( !canEdit('Monitors') ) {
 }
 ?>
 
-<div id="modalFunction-<?php echo $Monitor->Id() ?>" class="modal" tabindex="-1">
+<div id="modalFunction" class="modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
+<form id="function_form" action="?view=function&action=function" method="post">
+  <input type="hidden" name="mid"/>
       <div class="modal-header">
-        <h5 class="modal-title"><?php echo translate('Function').' - '.validHtmlStr($Monitor->Name()) ?></h5>
+        <h5 class="modal-title"><?php echo translate('Function') ?> - <span id="function_monitor_name"></span></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
       <div class="modal-body">
         <p>
-          <?php echo htmlSelect('newFunction', ZM\getMonitorFunctionTypes(), $Monitor->Function(), array('id'=>'funcSelect-'.$monitor['Id'])) ?>
+          <?php echo htmlSelect('newFunction', ZM\getMonitorFunctionTypes(), null, array('id'=>'newFunction')); ?>
           <label for="newEnabled"><?php echo translate('Enabled') ?></label>
-          <input type="checkbox" name="newEnabled" id="newEnabled-<?php echo $monitor['Id'] ?>" value="1"<?php echo $Monitor->Enabled() ?' checked="checked"' : '' ?>/>
+          <input type="checkbox" name="newEnabled" id="newEnabled" value="1"/>
         </p>
       </div>
       <div class="modal-footer">
-        <button data-mid="<?php echo $monitor['Id'] ?>" type="button" class="funcSaveBtn btn btn-primary"><?php echo translate('Save') ?></button>
-        <button data-mid="<?php echo $monitor['Id'] ?>" type="button" class="funcCancelBtn btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
+        <button type="button" class="funcSaveBtn btn btn-primary"><?php echo translate('Save') ?></button>
+        <button type="button" class="funcCancelBtn btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
       </div>
+</form>
     </div>
   </div>
 </div>

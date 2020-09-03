@@ -249,11 +249,12 @@ ob_start();
 $table_head = ob_get_contents();
 ob_end_clean();
 echo $table_head;
+$monitors = array();
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
   $Monitor = new ZM\Monitor($monitor);
+  $monitors[] = $Monitor;
   $Monitor->GroupIds(isset($group_ids_by_monitor_id[$Monitor->Id()]) ? $group_ids_by_monitor_id[$Monitor->Id()] : array());
-  include('function.php');
   if ( $monitor_i and ( $monitor_i % 100 == 0 ) ) {
     echo '</table>';
     echo $table_head;
@@ -432,11 +433,12 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
          </tr>
         </tfoot>
         </table>
-	  </div>
+	    </div>
     </div>
   </form>
 <?php
-xhtmlFooter();
-// Include Donate Modal
-include('donate.php');
+  include('function.php');
+  // Include Donate Modal
+  include('donate.php');
+  xhtmlFooter();
 ?>

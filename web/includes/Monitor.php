@@ -16,6 +16,7 @@ function getMonitorFunctionTypes() {
       'Monitor' => translate('FnMonitor'),
       'Modect'  => translate('FnModect'),
       'Record'  => translate('FnMocord'),
+      'Mocord'  => translate('FnMocord'),
       'Nodect'  => translate('FnNodect')
     );
   }

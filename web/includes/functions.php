@@ -496,13 +496,13 @@ function htmlSelect($name, $contents, $values, $behaviours=false) {
     }
   }
 
-  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions($contents, $values).'</select>';
+  return "<select name=\"$name\" $behaviourText>".htmlOptions($contents, $values).'</select>';
 }
 
-function htmlOptions($contents, $values) {
+function htmlOptions($options, $values) {
   $options_html = '';
-
-  foreach ( $contents as $value=>$option ) {
+  $has_selected = false;
+  foreach ( $options as $value=>$option ) {
     $disabled = 0;
     $text = '';
     if ( is_array($option) ) {
@@ -521,14 +521,19 @@ function htmlOptions($contents, $values) {
       $text = $option;
     }
     $selected = is_array($values) ? in_array($value, $values) : !strcmp($value, $values);
+    $has_selected = (!$has_selected) && $selected;
+
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>
 ';
+  } # end foreach options
+  if ( $values and ! $has_selected ) {
+    ZM\Warning("Specified value $values not in contents: ".print_r($options, true));
   }
   return $options_html;
-}
+} # end function htmlOptions
 
 function truncText($text, $length, $deslash=1) {
   return preg_replace('/^(.{'.$length.',}?)\b.*$/', '\\1&hellip;', ($deslash?stripslashes($text):$text));

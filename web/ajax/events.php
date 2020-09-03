@@ -26,6 +26,8 @@ if ( canEdit('Events') ) {
       $event = new ZM\Event($eid);
       if ( !$event->Id() ) {
         $message[] = array($eid=>'Event not found.');
+      } else if ( $event->Archived() ) {
+        $message[] = array($eid=>'Event is archived, cannot delete it.');
       } else {
         $event->delete();
       }

@@ -135,15 +135,6 @@ function reloadWindow() {
 }
 
 function initPage() {
-  $j('.functionLnk').click(function(evt) {
-    if ( ! canEditEvents ) {
-      alert("You do not have permission to change monitor function.");
-      return;
-    }
-    var mid = evt.currentTarget.getAttribute("data-mid");
-    evt.preventDefault();
-    $j('#modalFunction-'+mid).modal('show');
-  });
 
   reloadWindow.periodical(consoleRefreshTimeout);
   if ( showVersionPopup ) {
@@ -165,19 +156,44 @@ function initPage() {
   // Setup the thumbnail video animation
   initThumbAnimation();
 
+  $j('.functionLnk').click(function(evt) {
+    evt.preventDefault();
+    if ( !canEditEvents ) {
+      alert('You do not have permission to change monitor function.');
+      return;
+    }
+    var mid = evt.currentTarget.getAttribute('data-mid');
+    monitor = monitors[mid];
+    if ( !monitor ) {
+      console.error("No monitor found for mid " + mid);
+      return;
+    }
+
+    var function_form = document.getElementById('function_form');
+    if ( !function_form ) {
+      console.error("Unable to find form with id function_form");
+      return;
+    }
+    function_form.elements['newFunction'].value = monitor.Function;
+    function_form.elements['newEnabled'].checked = monitor.Enabled;
+    function_form.elements['mid'].value = mid;
+    document.getElementById('function_monitor_name').innerHTML = monitor.Name;;
+
+    $j('#modalFunction').modal('show');
+  });
   // Manage the CANCEL modal buttons
   $j('.funcCancelBtn').click(function(evt) {
-    var mid = evt.currentTarget.getAttribute("data-mid");
     evt.preventDefault();
-    $j('#modalFunction-'+mid).modal('hide');
+    $j('#modalFunction').modal('hide');
   });
 
   // Manage the SAVE modal buttons
   $j('.funcSaveBtn').click(function(evt) {
-    var mid = evt.currentTarget.getAttribute("data-mid");
-    var newFunc = $j("#funcSelect-"+mid).val();
-    var newEnabled = $j('#newEnabled-'+mid).is(':checked') ? 1 : 0;
     evt.preventDefault();
+    var form = evt.currentTarget.form;
+    var mid = form.elements['mid'].value;
+    var newFunc = $j('#newFunction').val();
+    var newEnabled = $j('#newEnabled').is(':checked') ? 1 : 0;
     $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled);
     window.location.reload(true);
   });

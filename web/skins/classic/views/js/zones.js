@@ -4,7 +4,6 @@ var requestQueue = new Request.Queue({
   stopOnFailure: false
 });
 function streamCmdQuit( ) {
-  fo
   if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_QUIT );
   }

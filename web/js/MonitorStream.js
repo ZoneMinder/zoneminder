@@ -61,10 +61,10 @@ function MonitorStream(monitorData) {
   };
   this.pause = function() {
     this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_PAUSE);
-  }
+  };
   this.play = function() {
     this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_PLAY);
-  }
+  };
 
   this.eventHandler = function(event) {
     console.log(event);
@@ -91,8 +91,9 @@ function MonitorStream(monitorData) {
   };
 
   this.setStateClass = function(element, stateClass) {
-    if ( !element )
+    if ( !element ) {
       return;
+    }
     if ( !element.hasClass( stateClass ) ) {
       if ( stateClass != 'alarm' ) {
         element.removeClass('alarm');
@@ -158,21 +159,23 @@ function MonitorStream(monitorData) {
         }
 
         if ( (
-          (typeof COMPACT_MONTAGE === 'undefined')
-          ||
-          !COMPACT_MONTAGE)
-          && (this.type != 'WebSite')
+          (typeof COMPACT_MONTAGE === 'undefined') ||
+          !COMPACT_MONTAGE) &&
+          (this.type != 'WebSite')
         ) {
           fpsValue = $('fpsValue'+this.id);
-          if ( fpsValue )
+          if ( fpsValue ) {
             fpsValue.set('text', this.status.fps);
+          }
           stateValue = $('stateValue'+this.id);
-          if ( stateValue )
+          if ( stateValue ) {
             stateValue.set('text', stateStrings[this.alarmState]);
+          }
 
           monitorState = $('monitorState'+this.id);
-          if ( monitorState )
+          if ( monitorState ) {
             this.setStateClass(monitorState, stateClass);
+          }
         }
 
         this.setStateClass($('monitor'+this.id), stateClass);

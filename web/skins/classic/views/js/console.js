@@ -22,8 +22,7 @@ function setButtonStates( element ) {
   var checked = 0;
   for ( var i=0; i < form.elements.length; i++ ) {
     if (
-      form.elements[i].type=="checkbox"
-      &&
+      form.elements[i].type=="checkbox" &&
       form.elements[i].name=="markMids[]"
     ) {
       var tr = $j(form.elements[i]).closest("tr");
@@ -62,10 +61,8 @@ function cloneMonitor(element) {
   // get the value of the first checkbox
   for ( var i = 0; i < form.elements.length; i++ ) {
     if (
-      form.elements[i].type == "checkbox"
-      &&
-      form.elements[i].name == "markMids[]"
-      &&
+      form.elements[i].type == "checkbox" &&
+      form.elements[i].name == "markMids[]" &&
       form.elements[i].checked
     ) {
       monitorId = form.elements[i].value;
@@ -83,10 +80,8 @@ function editMonitor( element ) {
 
   for ( var i = 0; i < form.elements.length; i++ ) {
     if (
-      form.elements[i].type == "checkbox"
-      &&
-      form.elements[i].name == "markMids[]"
-      &&
+      form.elements[i].type == "checkbox" &&
+      form.elements[i].name == "markMids[]" &&
       form.elements[i].checked
     ) {
       monitorIds.push( form.elements[i].value );
@@ -118,10 +113,8 @@ function selectMonitor(element) {
   var url = thisUrl+'?view=console';
   for ( var i = 0; i < form.elements.length; i++ ) {
     if (
-      form.elements[i].type == 'checkbox'
-      &&
-      form.elements[i].name == 'markMids[]'
-      &&
+      form.elements[i].type == 'checkbox' &&
+      form.elements[i].name == 'markMids[]' &&
       form.elements[i].checked
     ) {
       url += '&MonitorId[]='+form.elements[i].value;
@@ -135,7 +128,6 @@ function reloadWindow() {
 }
 
 function initPage() {
-
   reloadWindow.periodical(consoleRefreshTimeout);
   if ( showVersionPopup ) {
     window.location.assign('?view=version');
@@ -177,7 +169,7 @@ function initPage() {
     function_form.elements['newFunction'].value = monitor.Function;
     function_form.elements['newEnabled'].checked = monitor.Enabled;
     function_form.elements['mid'].value = mid;
-    document.getElementById('function_monitor_name').innerHTML = monitor.Name;;
+    document.getElementById('function_monitor_name').innerHTML = monitor.Name;
 
     $j('#modalFunction').modal('show');
   });

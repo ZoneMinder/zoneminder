@@ -290,8 +290,6 @@ function getCoordString() {
 function updateZoneImage() {
   var imageFrame = $('imageFrame');
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-  var padding_left = style.paddingLeft.toInt();
-  var padding_top = style.paddingTop.toInt();
 
   scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
   var SVG = $('zoneSVG');
@@ -301,7 +299,7 @@ function updateZoneImage() {
     var Point = SVG.createSVGPoint();
     Point.x = zone['Points'][i].x;
     //+ 2*padding_left;
-    Point.y = zone['Points'][i].y;// + 2*padding_top; 
+    Point.y = zone['Points'][i].y;// + 2*padding_top;
     Poly.points.appendItem(Point);
   }
 }
@@ -444,7 +442,7 @@ function drawZonePoints() {
   console.log("Scale = width: " + imageFrame.clientWidth);
 
   for ( var i = 0; i < zone['Points'].length; i++ ) {
-  console.log("scale: " + scale + " x " + zone['Points'][i].x + " = " + Math.round(zone['Points'][i].x * scale));
+    console.log("scale: " + scale + " x " + zone['Points'][i].x + " = " + Math.round(zone['Points'][i].x * scale));
     var div = new Element('div', {
       'id': 'point'+i,
       'data-point-index': i,
@@ -474,8 +472,8 @@ function drawZonePoints() {
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var row;
     row = new Element('tr', {'id': 'row'+i});
-      row.addEvent('mouseover', highlightOn.pass(i));
-      row.addEvent('mouseout', highlightOff.pass(i));
+    row.addEvent('mouseover', highlightOn.pass(i));
+    row.addEvent('mouseout', highlightOff.pass(i));
     //row.onmouseover = highlightOn.pass(i)
     //row.onmouseout = window['highlightOff'].bind(div, div);
     var cell = new Element('td');
@@ -664,16 +662,16 @@ function initPage() {
   }
 
   document.querySelectorAll('#imageFrame img').forEach(function(el) {
-    el.addEventListener("load", imageLoadEvent, { passive: true });
+    el.addEventListener("load", imageLoadEvent, {passive: true});
   });
-  window.addEventListener("resize", drawZonePoints, { passive: true });
+  window.addEventListener("resize", drawZonePoints, {passive: true});
 } // initPage
 
 function imageLoadEvent() {
   // We only need this event on the first image load to set dimensions.
   // Turn it off after it has been called.
   document.querySelectorAll('#imageFrame img').forEach(function(el) {
-    el.removeEventListener("load", imageLoadEvent, { passive: true });
+    el.removeEventListener("load", imageLoadEvent, {passive: true});
   });
   drawZonePoints();
 }

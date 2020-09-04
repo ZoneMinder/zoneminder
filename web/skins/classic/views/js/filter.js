@@ -48,22 +48,14 @@ function validateForm(form) {
     }
   } else if ( form.elements['filter[Background]'].checked ) {
     if ( ! (
-      form.elements['filter[AutoArchive]'].checked
-      ||
-      form.elements['filter[UpdateDiskSpace]'].checked
-      ||
-      form.elements['filter[AutoVideo]'].checked
-      ||
-      form.elements['filter[AutoEmail]'].checked
-      ||
-      form.elements['filter[AutoMessage]'].checked
-      ||
-      form.elements['filter[AutoExecute]'].checked
-      ||
-      form.elements['filter[AutoDelete]'].checked
-      ||
-      form.elements['filter[AutoCopy]'].checked
-      ||
+      form.elements['filter[AutoArchive]'].checked ||
+      form.elements['filter[UpdateDiskSpace]'].checked ||
+      form.elements['filter[AutoVideo]'].checked ||
+      form.elements['filter[AutoEmail]'].checked ||
+      form.elements['filter[AutoMessage]'].checked ||
+      form.elements['filter[AutoExecute]'].checked ||
+      form.elements['filter[AutoDelete]'].checked ||
+      form.elements['filter[AutoCopy]'].checked ||
       form.elements['filter[AutoMove]'].checked
     ) ) {
       alert('You have chosen to run this filter in the background but not selected any actions.');

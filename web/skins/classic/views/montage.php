@@ -49,13 +49,6 @@ $heights = array(
   '1080' => '1080px',
 );
 
-$scale = '100';   # actual
-
-if ( isset($_REQUEST['scale']) ) {
-  $scale = validInt($_REQUEST['scale']);
-} else if ( isset($_COOKIE['zmMontageScale']) ) {
-  $scale = validInt($_COOKIE['zmMontageScale']);
-}
 
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
@@ -96,8 +89,9 @@ if ( isset($_COOKIE['zmMontageWidth']) ) {
   $_SESSION['zmMontageWidth'] = $options['width'] = validInt($_COOKIE['zmMontageWidth']);
 #} elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
   #$options['width'] = $_SESSION['zmMontageWidth'];
-} else
+} else {
   $options['width'] = 0;
+}
 
 if ( isset($_COOKIE['zmMontageHeight']) ) {
   $_SESSION['zmMontageHeight'] = $options['height'] = validInt($_COOKIE['zmMontageHeight']);
@@ -107,8 +101,14 @@ if ( isset($_COOKIE['zmMontageHeight']) ) {
   $options['height'] = 0;
 }
 
-#if ( $scale ) 
-  $options['scale'] = $scale;
+$scale = '100';   # actual
+
+if ( isset($_REQUEST['scale']) ) {
+  $scale = validInt($_REQUEST['scale']);
+} else if ( isset($_COOKIE['zmMontageScale']) ) {
+  $scale = validInt($_COOKIE['zmMontageScale']);
+}
+$options['scale'] = $scale;
 
 session_write_close();
 
@@ -118,7 +118,7 @@ $filterbar = ob_get_contents();
 ob_end_clean();
 
 $monitors = array();
-foreach( $displayMonitors as &$row ) {
+foreach ( $displayMonitors as &$row ) {
   if ( $row['Function'] == 'None' )
     continue;
 
@@ -127,7 +127,6 @@ foreach( $displayMonitors as &$row ) {
 
   if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
     $showControl = true;
-  $row['connKey'] = generateConnKey();
   if ( ! isset($widths[$row['Width']]) ) {
     $widths[$row['Width']] = $row['Width'].'px';
   }

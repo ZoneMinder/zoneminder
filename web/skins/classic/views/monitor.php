@@ -379,6 +379,8 @@ $codecs = array(
   'MJPEG' => translate('MJPEG'),
 );
 
+$controls = ZM\Control::find(null, array('order'=>'lower(Name)'));
+
 xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name()));
 getBodyTopHTML();
 echo getNavBarHTML();
@@ -1141,11 +1143,19 @@ include('_monitor_source_nvsocket.php');
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('ControlType') ?></td>
-              <td><?php echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId());
-if ( canEdit('Control') ) {
-  echo '&nbsp;'.makePopupLink('?view=controlcaps', 'zmControlCaps', 'controlcaps', translate('Edit'));
-}
-?></td>
+              <td>
+<?php 
+                  $controlTypes = array(''=>translate('None'));
+                  foreach ( $controls as $control ) {
+                    $controlTypes[$control->Id()] = $control->Name();
+                  }
+
+                  echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId());
+                  if ( canEdit('Control') ) {
+                    echo '&nbsp;'.makePopupLink('?view=controlcaps', 'zmControlCaps', 'controlcaps', translate('Edit'));
+                  }
+?>
+              </td>
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('ControlDevice') ?></td>

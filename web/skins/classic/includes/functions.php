@@ -825,8 +825,6 @@ function xhtmlFooter() {
 ?>
   <script src="<?php echo cache_bust($viewJsFile) ?>"></script>
 <?php
-  } else {
-    ZM\Error("No view JS FILE?");
   }
   $skinJsFile = getSkinFile('js/skin.js');
 ?>

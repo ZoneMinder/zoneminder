@@ -189,15 +189,15 @@ if ( canEdit('Events') ) {
         <div id="exportEvent"><button type="button" data-on-click="exportEvent"><?php echo translate('Export') ?></button></div>
         <div id="replayControl">
           <label for="replayMode"><?php echo translate('Replay') ?></label>
-          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode')); ?>
+          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode')); ?>
         </div>
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>
-          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale')); ?>
+          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
         </div>
         <div id="codecControl">
           <label for="codec"><?php echo translate('Codec') ?></label>
-          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec')); ?>
+          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
         </div>
       </div>
     </div>

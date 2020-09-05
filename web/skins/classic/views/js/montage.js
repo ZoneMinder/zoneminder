@@ -50,7 +50,7 @@ function selectLayout(element) {
   }
   Cookie.write('zmMontageLayout', layout_id, {duration: 10*365});
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
-    Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
+    Cookie.write('zmMontageScale', '', {duration: 10*365});
     $('scale').set('value', '');
     $('width').set('value', '0');
   } else {
@@ -59,15 +59,17 @@ function selectLayout(element) {
   var width = parseInt($('width').get('value'));
   var height = parseInt($('height').get('value'));
   var scale = $('scale').get('value');
-  if ( scale ) {
-  } else if ( width ) {
-    scale = parseInt(100*width/monitor.width);
-  } else if ( height ) {
-    scale = parseInt(100*height/monitor.height);
-  }
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
+
+    if ( scale ) {
+      stream_scale = scale;
+    } else if ( width ) {
+      stream_scale = parseInt(100*width/monitor.width);
+    } else if ( height ) {
+      stream_scale = parseInt(100*height/monitor.height);
+    }
     var streamImg = $('liveStream'+monitor.id);
     if ( streamImg ) {
       if ( streamImg.nodeName == 'IMG' ) {

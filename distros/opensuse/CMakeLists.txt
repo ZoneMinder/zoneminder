@@ -8,16 +8,6 @@ SET(zmgid_final www)
 SET(webroot /srv/www/htdocs)
 SET(zm_webdir ${webroot}/zoneminder)
 
-# Download jscalendar & move files into position
-file(DOWNLOAD http://downloads.sourceforge.net/jscalendar/jscalendar-1.0.zip ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar-1.0.zip STATUS download_jsc)
-if(download_jsc EQUAL 0)
-message(STATUS "Jscalander successfully downloaded.  Installing...")
-execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/jscalendar.sh WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} ERROR_VARIABLE unzip_jsc)
-message(STATUS "Status of jscalender script was: ${unzip_jsc}")
-else(download_jsc EQUAL 0)
-message(STATUS "Unable to download optional jscalander. Skipping...")
-endif(download_jsc EQUAL 0)
-
 # Create several empty folders
 file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events images temp)
 
@@ -45,7 +35,3 @@ install(FILES zoneminder.tmpfiles DESTINATION /etc/tmpfiles.d RENAME zoneminder.
 install(FILES redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/sounds PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(FILES zoneminder.service DESTINATION /usr/lib/systemd/system PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 
-# Install jscalendar
-if(unzip_jsc STREQUAL "")
-install(DIRECTORY jscalendar-1.0/ DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/tools/jscalendar)
-endif(unzip_jsc STREQUAL "")

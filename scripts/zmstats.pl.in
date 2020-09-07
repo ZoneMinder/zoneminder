@@ -1,0 +1,136 @@
+#!@PERL_EXECUTABLE@ -wT
+use strict;
+use bytes;
+
+# ==========================================================================
+#
+# These are the elements you can edit to suit your installation
+#
+# ==========================================================================
+
+use constant START_DELAY => 30; # To give everything else time to start
+
+# ==========================================================================
+#
+# Don't change anything below here
+#
+# ==========================================================================
+
+@EXTRA_PERL_LIB@
+use ZoneMinder;
+use DBI;
+
+$| = 1;
+
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
+logInit();
+logSetSignal();
+
+Info('Stats Daemon starting in '.START_DELAY.' seconds');
+sleep(START_DELAY);
+
+my $dbh = zmDbConnect();
+
+while( 1 ) {
+  while ( ! ( $dbh and $dbh->ping() ) ) {
+    Info('Reconnecting to db');
+    if ( !($dbh = zmDbConnect()) ) {
+      #What we do here is not that important, so just skip this interval
+      sleep($Config{ZM_STATS_UPDATE_INTERVAL});
+    }
+  }
+
+  $dbh->do('DELETE FROM Events_Hour WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 hour)') or Error($dbh->errstr());
+  $dbh->do('DELETE FROM Events_Day WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 day)') or Error($dbh->errstr());
+  $dbh->do('DELETE FROM Events_Week WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 week)') or Error($dbh->errstr());
+  $dbh->do('DELETE FROM Events_Month WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 month)') or Error($dbh->errstr());
+
+  # Prune the Logs table if required
+  if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {
+    if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ ) {
+      # Number of rows
+      my $selectLogRowCountSql = 'SELECT count(*) AS `Rows` FROM `Logs`';
+      my $selectLogRowCountSth = $dbh->prepare_cached( $selectLogRowCountSql )
+        or Fatal("Can't prepare '$selectLogRowCountSql': ".$dbh->errstr());
+      my $res = $selectLogRowCountSth->execute()
+        or Fatal("Can't execute: ".$selectLogRowCountSth->errstr());
+      my $row = $selectLogRowCountSth->fetchrow_hashref();
+      my $logRows = $row->{Rows};
+      if ( $logRows > $Config{ZM_LOG_DATABASE_LIMIT} ) {
+        my $deleteLogByRowsSql = 'DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?';
+        my $deleteLogByRowsSth = $dbh->prepare_cached( $deleteLogByRowsSql )
+          or Fatal("Can't prepare '$deleteLogByRowsSql': ".$dbh->errstr());
+        $res = $deleteLogByRowsSth->execute( $logRows - $Config{ZM_LOG_DATABASE_LIMIT} )
+          or Fatal("Can't execute: ".$deleteLogByRowsSth->errstr());
+        if ( $deleteLogByRowsSth->rows() ) {
+          Debug('Deleted '.$deleteLogByRowsSth->rows().' log table entries by count');
+        }
+      }
+    } else {
+      # Time of record
+
+      # 7 days is invalid.  We need to remove the s
+      if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^(.*)s$/ ) {
+        $Config{ZM_LOG_DATABASE_LIMIT} = $1;
+      }
+      my $deleted_rows;
+      do {
+        my $deleteLogByTimeSql =
+        'DELETE FROM `Logs`
+        WHERE `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 100';
+        my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql )
+          or Fatal("Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr());
+        my $res = $deleteLogByTimeSth->execute()
+          or Fatal("Can't execute: ".$deleteLogByTimeSth->errstr());
+        $deleted_rows = $deleteLogByTimeSth->rows();
+        Debug("Deleted $deleted_rows log table entries by time");
+      } while ( $deleted_rows );
+    }
+  } # end if ZM_LOG_DATABASE_LIMIT
+
+  sleep($Config{ZM_STATS_UPDATE_INTERVAL});
+} # end while (1)
+
+Info('Stats Daemon exiting');
+exit();
+1;
+__END__
+
+#
+# ==========================================================================
+#
+# ZoneMinder WatchDog Script, $Date$, $Revision$
+# Copyright (C) 2001-2008 Philip Coombes
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# ==========================================================================
+
+=head1 NAME
+
+zmstats.pl - ZoneMinder Stats Updating Script
+
+=head1 SYNOPSIS
+
+zmstats.pl
+
+=head1 DESCRIPTION
+
+This does background updating various stats in the db like event counts, diskspace, etc.
+
+=cut

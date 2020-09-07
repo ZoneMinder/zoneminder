@@ -56,9 +56,9 @@ extern imgbufcpy_fptr_t fptr_imgbufcpy;
 
 /* Should be called from Image class functions */
 inline static uint8_t* AllocBuffer(size_t p_bufsize) {
-	uint8_t* buffer = (uint8_t*)zm_mallocaligned(64,p_bufsize);
-	if ( buffer == NULL )
-		Fatal("Memory allocation failed: %s",strerror(errno));
+	uint8_t* buffer = (uint8_t*)zm_mallocaligned(64, p_bufsize);
+	if ( buffer == nullptr )
+		Fatal("Memory allocation failed: %s", strerror(errno));
 	
 	return buffer;
 }
@@ -75,7 +75,7 @@ inline static void DumpBuffer(uint8_t* buffer, int buffertype) {
 			av_free(buffer);
 		*/
     } else {
-      Error( "Unknown buffer type in DumpBuffer(%d)", buffertype );
+      Error("Unknown buffer type in DumpBuffer(%d)", buffertype);
     } 
 	}
 }
@@ -86,6 +86,19 @@ inline static void DumpBuffer(uint8_t* buffer, int buffertype) {
 // camera in raw form.
 //
 class Image {
+  private:
+    delta_fptr_t delta8_rgb;
+    delta_fptr_t delta8_bgr;
+    delta_fptr_t delta8_rgba;
+    delta_fptr_t delta8_bgra;
+    delta_fptr_t delta8_argb;
+    delta_fptr_t delta8_abgr;
+    delta_fptr_t delta8_gray8;
+
+    // Per object function pointer that we can set once we know the image dimensions
+    blend_fptr_t blend;
+
+    void update_function_pointers();
 protected:
 
 	struct Edge {
@@ -95,21 +108,21 @@ protected:
 		double _1_m;
 
 		static int CompareYX( const void *p1, const void *p2 ) {
-			const Edge *e1 = (const Edge *)p1, *e2 = (const Edge *)p2;
+			const Edge *e1 = reinterpret_cast<const Edge *>(p1), *e2 = reinterpret_cast<const Edge *>(p2);
 			if ( e1->min_y == e2->min_y )
 				return( int(e1->min_x - e2->min_x) );
 			else
 				return( int(e1->min_y - e2->min_y) );
 		}
 		static int CompareX( const void *p1, const void *p2 ) {
-			const Edge *e1 = (const Edge *)p1, *e2 = (const Edge *)p2;
+			const Edge *e1 = reinterpret_cast<const Edge *>(p1), *e2 = reinterpret_cast<const Edge *>(p2);
 			return( int(e1->min_x - e2->min_x) );
 		}
 	};
 	
 	inline void DumpImgBuffer() {
-		DumpBuffer(buffer,buffertype);
-		buffer = NULL;
+		DumpBuffer(buffer, buffertype);
+		buffer = nullptr;
 		allocation = 0;
 	}
 	
@@ -139,9 +152,11 @@ protected:
 	static struct zm_error_mgr jpg_err;
 
 	unsigned int width;
+	unsigned int linesize;
 	unsigned int height;
 	unsigned int pixels;
 	unsigned int colours;
+  unsigned int padding;
 	unsigned int size;
 	unsigned int subpixelorder;
 	unsigned long allocation;
@@ -152,24 +167,27 @@ protected:
 
 public:
 	Image();
-	Image( const char *filename );
-	Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0);
-	Image( const Image &p_image );
-  Image( const AVFrame *frame );
+	explicit Image(const char *filename);
+	Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
+	Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
+	explicit Image( const Image &p_image );
+  explicit Image( const AVFrame *frame );
+
 	~Image();
 	static void Initialise();
 	static void Deinitialise();
 
-	inline unsigned int Width() const { return( width ); }
-	inline unsigned int Height() const { return( height ); }
-	inline unsigned int Pixels() const { return( pixels ); }
-	inline unsigned int Colours() const { return( colours ); }
-	inline unsigned int SubpixelOrder() const { return( subpixelorder ); }
-	inline unsigned int Size() const { return( size ); }
+	inline unsigned int Width() const { return width; }
+	inline unsigned int LineSize() const { return linesize; }
+	inline unsigned int Height() const { return height; }
+	inline unsigned int Pixels() const { return pixels; }
+	inline unsigned int Colours() const { return colours; }
+	inline unsigned int SubpixelOrder() const { return subpixelorder; }
+	inline unsigned int Size() const { return size; }
 	
 	/* Internal buffer should not be modified from functions outside of this class */
-	inline const uint8_t* Buffer() const { return( buffer ); }
-	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return( &buffer[colours*((y*width)+x)] ); }
+	inline const uint8_t* Buffer() const { return buffer; }
+	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return &buffer[(y*linesize)+x]; }
 	/* Request writeable buffer */
 	uint8_t* WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder);
 	
@@ -180,23 +198,36 @@ public:
     if ( !holdbuffer )
       DumpImgBuffer();
 
-    width = height = colours = size = pixels = subpixelorder = 0;
+    width = linesize = height = colours = size = pixels = subpixelorder = 0;
 	}
 	
-	void Assign( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size);
-	void Assign( const Image &image );
-	void AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype);
+	void Assign(
+      unsigned int p_width,
+      unsigned int p_height,
+      unsigned int p_colours,
+      unsigned int p_subpixelorder,
+      const uint8_t* new_buffer,
+      const size_t buffer_size);
+	void Assign(const Image &image);
+	void AssignDirect(
+      const unsigned int p_width,
+      const unsigned int p_height,
+      const unsigned int p_colours,
+      const unsigned int p_subpixelorder,
+      uint8_t *new_buffer,
+      const size_t buffer_size,
+      const int p_buffertype);
 
-	inline void CopyBuffer( const Image &image ) {
+	inline void CopyBuffer(const Image &image) {
 		Assign(image);
 	}
-	inline Image &operator=( const Image &image ) {
+	inline Image &operator=(const Image &image) {
 		Assign(image);
 		return *this;
 	}
-	inline Image &operator=( const unsigned char *new_buffer ) {
+	inline Image &operator=(const unsigned char *new_buffer) {
 		(*fptr_imgbufcpy)(buffer, new_buffer, size);
-		return( *this );
+		return *this;
 	}
 
 	bool ReadRaw( const char *filename );
@@ -205,9 +236,12 @@ public:
 	bool ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
 
 	bool WriteJpeg ( const char *filename) const;
+	bool WriteJpeg ( const char *filename, bool on_blocking_abort) const;	
   bool WriteJpeg ( const char *filename, int quality_override ) const;
   bool WriteJpeg ( const char *filename, struct timeval timestamp ) const;
   bool WriteJpeg ( const char *filename, int quality_override, struct timeval timestamp ) const;
+  bool WriteJpeg ( const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort ) const;
+  
 
 	bool DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
 	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;
@@ -274,6 +308,15 @@ void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, 
 void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+
+void fast_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+
 void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void neon32_armv7_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void neon32_armv7_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
@@ -302,6 +345,15 @@ void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long 
 void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+
+void fast_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+
 void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);

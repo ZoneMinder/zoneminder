@@ -1,23 +1,23 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Utility
  * @since         CakePHP(tm) v 2.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Hash', 'Utility');
 
 /**
- * Class HashTest
+ * HashTest
  *
  * @package       Cake.Utility
  */
@@ -230,13 +230,29 @@ class HashTest extends CakeTestCase {
 	}
 
 /**
+ * Test that get() can extract '' key data.
+ *
+ * @return void
+ */
+	public function testGetEmptyKey() {
+		$data = array(
+			true => 'true value',
+			false => 'false value',
+			'' => 'some value',
+		);
+		$this->assertSame($data[''], Hash::get($data, ''));
+		$this->assertSame($data[false], Hash::get($data, false));
+		$this->assertSame($data[true], Hash::get($data, true));
+	}
+
+/**
  * Test get() with an invalid path
  *
  * @expectedException InvalidArgumentException
  * @return void
  */
 	public function testGetInvalidPath() {
-		Hash::get(array('one' => 'two'), true);
+		Hash::get(array('one' => 'two'), new StdClass());
 	}
 
 /**
@@ -639,8 +655,21 @@ class HashTest extends CakeTestCase {
  * @return void
  */
 	public function testFilter() {
-		$result = Hash::filter(array('0', false, true, 0, array('one thing', 'I can tell you', 'is you got to be', false)));
-		$expected = array('0', 2 => true, 3 => 0, 4 => array('one thing', 'I can tell you', 'is you got to be'));
+		$result = Hash::filter(array(
+			'0',
+			false,
+			true,
+			0,
+			0.0,
+			array('one thing', 'I can tell you', 'is you got to be', false)
+		));
+		$expected = array(
+			'0',
+			2 => true,
+			3 => 0,
+			4 => 0.0,
+			5 => array('one thing', 'I can tell you', 'is you got to be')
+		);
 		$this->assertSame($expected, $result);
 
 		$result = Hash::filter(array(1, array(false)));
@@ -1327,7 +1356,7 @@ class HashTest extends CakeTestCase {
 		);
 		$this->assertEquals($expected, $result);
 
-		$result = Hash::sort($items, '{n}.Item.image', 'asc', array('type' => 'natural', 'ignoreCase' => true));
+		$result = Hash::sort($items, '{n}.Item.image', 'asc', array('type' => 'NATURAL', 'ignoreCase' => true));
 		$expected = array(
 			array('Item' => array('image' => 'img1.jpg')),
 			array('Item' => array('image' => 'img2.jpg')),
@@ -1358,6 +1387,38 @@ class HashTest extends CakeTestCase {
 		);
 		$sorted = Hash::sort($a, '{n}.Person.name', 'asc', 'natural');
 		$this->assertEquals($sorted, $b);
+	}
+
+/**
+ * Test sort() with locale option.
+ *
+ * @return void
+ */
+	public function testSortLocale() {
+		// get the current locale
+		$oldLocale = setlocale(LC_COLLATE, '0');
+
+		$updated = setlocale(LC_COLLATE, 'de_DE.utf8');
+		$this->skipIf($updated === false, 'Could not set locale to de_DE.utf8, skipping test.');
+
+		$items = array(
+			array('Item' => array('entry' => 'Übergabe')),
+			array('Item' => array('entry' => 'Ostfriesland')),
+			array('Item' => array('entry' => 'Äpfel')),
+			array('Item' => array('entry' => 'Apfel')),
+		);
+
+		$result = Hash::sort($items, '{n}.Item.entry', 'asc', 'locale');
+		$expected = array(
+			array('Item' => array('entry' => 'Apfel')),
+			array('Item' => array('entry' => 'Äpfel')),
+			array('Item' => array('entry' => 'Ostfriesland')),
+			array('Item' => array('entry' => 'Übergabe')),
+		);
+		$this->assertEquals($expected, $result);
+
+		// change to the original locale
+		setlocale(LC_COLLATE, $oldLocale);
 	}
 
 /**
@@ -1469,6 +1530,58 @@ class HashTest extends CakeTestCase {
 	}
 
 /**
+ * Test sorting on a nested key that is sometimes undefined.
+ *
+ * @return void
+ */
+	public function testSortSparse() {
+		$data = array(
+			array(
+				'id' => 1,
+				'title' => 'element 1',
+				'extra' => 1,
+			),
+			array(
+				'id' => 2,
+				'title' => 'element 2',
+				'extra' => 2,
+			),
+			array(
+				'id' => 3,
+				'title' => 'element 3',
+			),
+			array(
+				'id' => 4,
+				'title' => 'element 4',
+				'extra' => 4,
+			)
+		);
+		$result = Hash::sort($data, '{n}.extra', 'desc', 'natural');
+		$expected = array(
+			array(
+				'id' => 4,
+				'title' => 'element 4',
+				'extra' => 4,
+			),
+			array(
+				'id' => 2,
+				'title' => 'element 2',
+				'extra' => 2,
+			),
+			array(
+				'id' => 1,
+				'title' => 'element 1',
+				'extra' => 1,
+			),
+			array(
+				'id' => 3,
+				'title' => 'element 3',
+			),
+		);
+		$this->assertSame($expected, $result);
+	}
+
+/**
  * Test insert()
  *
  * @return void
@@ -1530,6 +1643,17 @@ class HashTest extends CakeTestCase {
 			1 => array('Item' => array('id' => 2, 'title' => 'second', 'test' => 2)),
 			2 => array('Item' => array('id' => 3, 'title' => 'third')),
 			3 => array('Item' => array('id' => 4, 'title' => 'fourth', 'test' => 2)),
+			4 => array('Item' => array('id' => 5, 'title' => 'fifth')),
+		);
+		$this->assertEquals($expected, $result);
+
+		$data[3]['testable'] = true;
+		$result = Hash::insert($data, '{n}[testable].Item[id=/\b2|\b4/].test', 2);
+		$expected = array(
+			0 => array('Item' => array('id' => 1, 'title' => 'first')),
+			1 => array('Item' => array('id' => 2, 'title' => 'second')),
+			2 => array('Item' => array('id' => 3, 'title' => 'third')),
+			3 => array('Item' => array('id' => 4, 'title' => 'fourth', 'test' => 2), 'testable' => true),
 			4 => array('Item' => array('id' => 5, 'title' => 'fifth')),
 		);
 		$this->assertEquals($expected, $result);
@@ -1625,6 +1749,43 @@ class HashTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 		$result = Hash::remove($array, '{n}.{n}.part');
 		$this->assertEquals($expected, $result);
+
+		$array = array(
+			'foo' => 'string',
+		);
+		$expected = $array;
+		$result = Hash::remove($array, 'foo.bar');
+		$this->assertEquals($expected, $result);
+
+		$array = array(
+			'foo' => 'string',
+			'bar' => array(
+				0 => 'a',
+				1 => 'b',
+			),
+		);
+		$expected = array(
+			'foo' => 'string',
+			'bar' => array(
+				1 => 'b',
+			),
+		);
+		$result = Hash::remove($array, '{s}.0');
+		$this->assertEquals($expected, $result);
+
+		$array = array(
+			'foo' => array(
+				0 => 'a',
+				1 => 'b',
+			),
+		);
+		$expected = array(
+			'foo' => array(
+				1 => 'b',
+			),
+		);
+		$result = Hash::remove($array, 'foo[1=b].0');
+		$this->assertEquals($expected, $result);
 	}
 
 /**
@@ -1657,6 +1818,17 @@ class HashTest extends CakeTestCase {
 		$expected = array(
 			0 => array('Item' => array('id' => 1, 'title' => 'first')),
 			2 => array('Item' => array('id' => 3, 'title' => 'third')),
+			4 => array('Item' => array('id' => 5, 'title' => 'fifth')),
+		);
+		$this->assertEquals($expected, $result);
+
+		$data[3]['testable'] = true;
+		$result = Hash::remove($data, '{n}[testable].Item[id=/\b2|\b4/].title');
+		$expected = array(
+			0 => array('Item' => array('id' => 1, 'title' => 'first')),
+			1 => array('Item' => array('id' => 2, 'title' => 'second')),
+			2 => array('Item' => array('id' => 3, 'title' => 'third')),
+			3 => array('Item' => array('id' => 4), 'testable' => true),
 			4 => array('Item' => array('id' => 5, 'title' => 'fifth')),
 		);
 		$this->assertEquals($expected, $result);

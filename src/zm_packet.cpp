@@ -25,14 +25,18 @@
 using namespace std;
 
 ZMPacket::ZMPacket( AVPacket *p ) {
+  frame = nullptr;
+  image = nullptr;
   av_init_packet( &packet );
   if ( zm_av_packet_ref( &packet, p ) < 0 ) {
     Error("error refing packet");
 	}
-  gettimeofday( &timestamp, NULL );
+  gettimeofday( &timestamp, nullptr );
 }
 
 ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
+  frame = nullptr;
+  image = nullptr;
   av_init_packet( &packet );
   if ( zm_av_packet_ref( &packet, p ) < 0 ) {
     Error("error refing packet");

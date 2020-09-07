@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -o pipefail
+
 # packpack setup file for the ZoneMinder project
 # Written by Andrew Bauer
 
@@ -9,7 +12,7 @@
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl git ln mkdir rmdir cat patch; do
+    for CMD in set echo curl git ln mkdir rmdir cat patch sed; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then
@@ -20,19 +23,6 @@ checksanity () {
       fi
     done
 
-    if [ "${OS}" == "el" ] && [ "${DIST}" == "6" ]; then
-        type repoquery 2>&1 > /dev/null
-    
-        if [ $? -ne 0 ]; then
-            echo
-            echo "ERROR: The script cannot find the required command \"reqoquery\"."
-            echo "This command is required in order to build ZoneMinder on el6."
-            echo "Please install the \"yum-utils\" package then try again."
-            echo
-            exit 1
-        fi
-    fi
-    
     # Verify OS & DIST environment variables have been set before calling this script
     if [ -z "${OS}" ] || [ -z "${DIST}" ]; then
         echo "ERROR: both OS and DIST environment variables must be set"
@@ -43,7 +33,7 @@ checksanity () {
         ARCH="x86_64"
     fi
 
-    if [[ "${ARCH}" != "x86_64" && "${ARCH}" != "i386" && "${ARCH}" != "armhf" ]]; then
+    if [[ "${ARCH}" != "x86_64" && "${ARCH}" != "i386" && "${ARCH}" != "armhf" && "${ARCH}" != "aarch64" ]]; then
         echo
         echo "ERROR: Unsupported architecture specified \"${ARCH}\"."
         echo
@@ -99,45 +89,59 @@ commonprep () {
         git -C packpack pull origin master
     else
         echo "Cloning packpack github repo..."
-        git clone https://github.com/packpack/packpack.git packpack
+        git clone https://github.com/zoneminder/packpack.git packpack
     fi
 
-    # Patch packpack
-    patch --dry-run --silent -f -p1 < utils/packpack/packpack-rpm.patch
-    if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/packpack-rpm.patch
-    fi
-
-    # The rpm specfile requires we download the tarball and manually move it into place
+    # The rpm specfile requires we download each submodule as a tarball then manually move it into place
     # Might as well do this for Debian as well, rather than git submodule init
-    CRUDVER="3.0.10"
+    CRUDVER="3.1.0-zm"
     if [ -e "build/crud-${CRUDVER}.tar.gz" ]; then
         echo "Found existing Crud ${CRUDVER} tarball..."
     else
         echo "Retrieving Crud ${CRUDVER} submodule..."
-        curl -L https://github.com/FriendsOfCake/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
+        curl -L https://github.com/ZoneMinder/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
         if [ $? -ne 0 ]; then
             echo "ERROR: Crud tarball retreival failed..."
             exit 1
         fi
     fi
+
+    CEBVER="1.0-zm"
+    if [ -e "build/cakephp-enum-behavior-${CEBVER}.tar.gz" ]; then
+        echo "Found existing CakePHP-Enum-Behavior ${CEBVER} tarball..."
+    else
+        echo "Retrieving CakePHP-Enum-Behavior ${CEBVER} submodule..."
+        curl -L https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/${CEBVER}.tar.gz > build/cakephp-enum-behavior-${CEBVER}.tar.gz
+        if [ $? -ne 0 ]; then
+            echo "ERROR: CakePHP-Enum-Behavior tarball retreival failed..."
+            exit 1
+        fi
+    fi
 }
 
-# Uncompress the Crud tarball and move it into place
+# Uncompress the submodule tarballs and move them into place
 movecrud () {
     if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then
         echo "Crud plugin already installed..."
-    else     
+    else
         echo "Unpacking Crud plugin..."
         tar -xzf build/crud-${CRUDVER}.tar.gz
         rmdir web/api/app/Plugin/Crud
         mv -f crud-${CRUDVER} web/api/app/Plugin/Crud
     fi
+    if [ -e "web/api/app/Plugin/CakePHP-Enum-Behavior/readme.md" ]; then
+        echo "CakePHP-Enum-Behavior plugin already installed..."
+    else
+        echo "Unpacking CakePHP-Enum-Behavior plugin..."
+        tar -xzf build/cakephp-enum-behavior-${CEBVER}.tar.gz
+        rmdir web/api/app/Plugin/CakePHP-Enum-Behavior
+        mv -f CakePHP-Enum-Behavior-${CEBVER} web/api/app/Plugin/CakePHP-Enum-Behavior
+    fi
 }
 
 # previsouly part of installzm.sh
-# install the trusty deb and test zoneminder
-installtrusty () {
+# install the xenial deb and test zoneminder
+install_deb () {
 
     # Check we've got gdebi installed
     type gdebi 2>&1 > /dev/null
@@ -149,14 +153,18 @@ installtrusty () {
       exit 1
     fi
 
-    # Install and test the zoneminder package (only) for Ubuntu Trusty
+    # Install and test the zoneminder package (only) for Ubuntu Xenial
     pkgname="build/zoneminder_${VERSION}-${RELEASE}_amd64.deb"
 
     if [ -e $pkgname ]; then
         sudo gdebi --quiet --non-interactive $pkgname
+        echo "Return code from installing $?"
         mysql -uzmuser -pzmpass zm < db/test.monitor.sql
+        echo "Return code from adding test monitor $?"
         sudo /usr/bin/zmpkg.pl start
-        sudo /usr/bin/zmfilter.pl -f purgewhenfull
+        echo "Return code from starting $?"
+        sudo /usr/bin/zmfilter.pl --filter=purgewhenfull
+        echo "Return code from running purgewhenfull $?"
     else
       echo
       echo "ERROR: The script cannot find the package $pkgname"
@@ -177,7 +185,7 @@ setrpmpkgname () {
     export RELEASE="1.${numcommits}.${thedate}git${shorthash}"
 
     checkvars
-    
+
     echo
     echo "Packpack VERSION has been set to: ${VERSION}"
     echo "Packpack RELEASE has been set to: ${RELEASE}"
@@ -196,7 +204,7 @@ setdebpkgname () {
     export RELEASE="${DIST}"
 
     checkvars
-    
+
     echo
     echo "Packpack VERSION has been set to: ${VERSION}"
     echo "Packpack RELEASE has been set to: ${RELEASE}"
@@ -218,9 +226,9 @@ setrpmchangelog () {
 setdebchangelog () {
 DATE=`date -R`
 cat <<EOF > debian/changelog
-zoneminder ($VERSION-${DIST}-1) unstable; urgency=low
-  * 
- -- Isaac Connor <iconnor@connortechnology.com>  $DATE
+zoneminder ($VERSION-${DIST}) ${DIST}; urgency=low
+  *
+ -- Isaac Connor <isaac@zoneminder.com>  $DATE
 EOF
 }
 
@@ -234,13 +242,51 @@ execpackpack () {
     fi
 
     if [ "${TRAVIS}" == "true"  ]; then
-        utils/packpack/heartbeat.sh &
-        mypid=$!
-        packpack/packpack $parms > buildlog.txt 2>&1
-        kill $mypid
-        tail -n 3000 buildlog.txt | grep -v ONVIF
+        # Travis will fail the build if the output gets too long
+        # To mitigate that, use grep to filter out some of the noise
+        if [ "${ARCH}" != "armhf" ]; then
+            packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
+        else
+            # Travis never ceases to amaze. For the case of arm emulation, Travis fails the build due to too little output over a 10 minute period. Facepalm.
+            packpack/packpack $parms | grep -Ev '^(-- Installing:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
+        fi
     else
         packpack/packpack $parms
+    fi
+
+    if [ $? -ne 0 ]; then
+      echo
+      echo "ERROR: An error occurred while executing packpack."
+      echo
+      exit 1
+    fi
+}
+
+# Check for connectivity with the deploy target host
+checkdeploytarget () {
+    echo
+    echo "Checking Internet connectivity with the deploy host ${DEPLOYTARGET}"
+    echo
+
+    ping -c 1 ${DEPLOYTARGET}
+
+    if [  $? -ne 0 ]; then
+        echo
+        echo "*** WARNING: THERE WAS A PROBLEM CONNECTING TO THE DEPLOY HOST ***"
+        echo
+        echo "Printing additional diagnostic information..."
+
+        echo
+        echo "*** NSLOOKUP ***"
+        echo
+        nslookup ${DEPLOYTARGET}
+
+        echo
+        echo "*** TRACEROUTE ***"
+        echo
+        traceroute -w 2 -m 15 ${DEPLOYTARGET}
+
+        exit 97
     fi
 }
 
@@ -248,97 +294,93 @@ execpackpack () {
 # MAIN PROGRAM #
 ################
 
+# Set the hostname we will deploy packages to
+DEPLOYTARGET="zmrepo.zoneminder.com"
+
+# If we are running inside Travis then verify we can connect to the target host machine
+if [ "${TRAVIS}" == "true" ]; then
+    checkdeploytarget
+fi
 checksanity
 
-# We don't want to build packages for all supported distros after every commit
-# Only build all packages when executed via cron
-# See https://docs.travis-ci.com/user/cron-jobs/
-if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
-    commonprep
+# Steps common to Redhat distros
+if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
+  commonprep
+  echo "Begin Redhat build..."
 
-    # Steps common to Redhat distros
-    if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
-        echo "Begin Redhat build..."
+  # Newer Redhat distros use dnf package manager rather than yum
+  if [ "${DIST}" -gt "7" ]; then
+    sed -i 's\yum\dnf\' utils/packpack/redhat_package.mk
+  fi
 
-        setrpmpkgname
+  setrpmpkgname
 
-        ln -sfT distros/redhat rpm
+  ln -sfT distros/redhat rpm
 
-        # The rpm specfile requires the Crud submodule folder to be empty
-        rm -rf web/api/app/Plugin/Crud
-        mkdir web/api/app/Plugin/Crud
+  # The rpm specfile requires the Crud submodule folder to be empty
+  rm -rf web/api/app/Plugin/Crud
+  mkdir web/api/app/Plugin/Crud
 
-        # We use zmrepo to build el6 only. All other redhat distros use rpm fusion
-        if [ "${OS}" == "el" ] && [ "${DIST}" == "6" ]; then
-            baseurl="https://zmrepo.zoneminder.com/el/${DIST}/x86_64/"
-            reporpm="zmrepo"
-            # Let repoquery determine the full url and filename to the latest zmrepo package
-            dlurl=`repoquery --archlist=noarch --repofrompath=zmpackpack,${baseurl} --repoid=zmpackpack --qf="%{location}" ${reporpm} 2> /dev/null`
-        else
-            reporpm="rpmfusion-free-release"
-            dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
-        fi
+  reporpm="rpmfusion-free-release"
+  dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
 
-        # Give our downloaded repo rpm a common name so redhat_package.mk can find it
-        if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
-            echo "Retrieving ${reporpm} repo rpm..."gd
-            curl $dlurl > build/external-repo.noarch.rpm
-        else
-            echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
-            echo "Download url was: $dlurl"
-            exit 1
-        fi
+  # Give our downloaded repo rpm a common name so redhat_package.mk can find it
+  if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
+    echo "Retrieving ${reporpm} repo rpm..."
+    curl $dlurl > build/external-repo.noarch.rpm
+  else
+    echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
+    echo "Download url was: $dlurl"
+    exit 1
+  fi
 
-        setrpmchangelog
+  setrpmchangelog
 
-        echo "Starting packpack..."
-        execpackpack
+  echo "Starting packpack..."
+  execpackpack
 
-    # Steps common to Debian based distros
-    elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
-        echo "Begin ${OS} ${DIST} build..."
+# Steps common to Debian based distros
+elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
+  commonprep
+  echo "Begin ${OS} ${DIST} build..."
 
-        setdebpkgname
-        movecrud
+  setdebpkgname
+  movecrud
 
-        if [ "${DIST}" == "trusty" ] || [ "${DIST}" == "precise" ]; then
-            ln -sfT distros/ubuntu1204 debian
-        elif [ "${DIST}" == "wheezy" ]; then 
-            ln -sfT distros/debian debian
-        else 
-            ln -sfT distros/ubuntu1604 debian
-        fi
-        
-        setdebchangelog
-        
-        echo "Starting packpack..."
-        execpackpack
-        
-        if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
-            installtrusty
-        fi
+  if [ "${DIST}" == "focal" ] || [ "${DIST}" == "buster" ]; then
+    ln -sfT distros/ubuntu2004 debian
+  elif [ "${DIST}" == "beowulf" ]; then
+    ln -sfT distros/beowulf debian
+  else
+    ln -sfT distros/ubuntu1604 debian
+  fi
+
+  setdebchangelog
+
+  echo "Starting packpack..."
+  execpackpack
+
+  # Try to install and run the newly built zoneminder package
+  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "xenial" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
+      echo "Begin Deb package installation..."
+      install_deb
+  fi
+
+# Steps common to eslint checks
+elif [ "${OS}" == "eslint" ] || [ "${DIST}" == "eslint" ]; then
+
+    # Check we've got npm installed
+    type npm 2>&1 > /dev/null
+
+    if [ $? -ne 0 ]; then
+      echo
+      echo "ERROR: The script cannot find the required command \"npm\"."
+      echo
+      exit 1
     fi
 
-# We were not triggered via cron so just build and test trusty
-elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ]; then
-    echo "Begin Ubuntu Trusty build..."
-
-    commonprep
-    setdebpkgname
-    movecrud
-
-    ln -sfT distros/ubuntu1204 debian
-
-    setdebchangelog
-    
-    echo "Starting packpack..."
-    execpackpack
-
-    # If we are running inside Travis then attempt to install the deb we just built
-    if [ "${TRAVIS}" == "true" ]; then
-        installtrusty
-    fi
+    npm install -g eslint@5.12.0 eslint-config-google@0.11.0 eslint-plugin-html@5.0.0 eslint-plugin-php-markup@0.2.5
+    echo "Begin eslint checks..."
+    eslint --ext .php,.js .
 fi
-
-exit 0
 

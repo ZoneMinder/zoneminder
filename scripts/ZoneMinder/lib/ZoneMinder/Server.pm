@@ -42,6 +42,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # will save memory.
 our %EXPORT_TAGS = (
     'functions' => [ qw(
+      CpuLoad
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -106,6 +107,17 @@ sub Hostname {
   }
   return $_[0]{Hostname};
 } # end sub Hostname
+
+sub CpuLoad {
+  my $output = qx(uptime);
+  my @sysloads = split ', ', (split ': ', $output)[-1];
+
+  if (join(', ',@sysloads) =~ /(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*$/) {
+    return @sysloads;
+  }
+
+  return (undef, undef, undef);
+} # end sub CpuLoad
 
 1;
 __END__

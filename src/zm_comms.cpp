@@ -42,11 +42,10 @@
 #include <sys/filio.h> // define FIONREAD
 #endif
 
-int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )
-{
+int CommsBase::readV( int iovcnt, /* const void *, int, */ ... ) {
   va_list arg_ptr;
-  //struct iovec iov[iovcnt];
-  struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
+  struct iovec iov[iovcnt];
+  //struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
 
   va_start( arg_ptr, iovcnt );
   for ( int i = 0; i < iovcnt; i++ )
@@ -62,11 +61,10 @@ int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )
   return( nBytes );
 }
 
-int CommsBase::writeV( int iovcnt, /* const void *, int, */ ... )
-{
+int CommsBase::writeV( int iovcnt, /* const void *, int, */ ... ) {
   va_list arg_ptr;
-  //struct iovec iov[iovcnt];
-  struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
+  struct iovec iov[iovcnt];
+  //struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
 
   va_start( arg_ptr, iovcnt );
   for ( int i = 0; i < iovcnt; i++ )
@@ -144,13 +142,13 @@ SockAddr *SockAddr::newSockAddr( const struct sockaddr &addr, socklen_t len )
     return( new SockAddrUnix( (const struct sockaddr_un *)&addr ) );
   }
   Error( "Unable to create new SockAddr from addr family %d with size %d", addr.sa_family, len );
-  return( 0 );
+  return nullptr;
 }
 
 SockAddr *SockAddr::newSockAddr( const SockAddr *addr )
 {
   if ( !addr )
-    return( 0 );
+    return nullptr;
 
   if ( addr->getDomain() == AF_INET )
   {
@@ -161,7 +159,7 @@ SockAddr *SockAddr::newSockAddr( const SockAddr *addr )
     return( new SockAddrUnix( *(SockAddrUnix *)addr ) );
   }
   Error( "Unable to create new SockAddr from addr family %d", addr->getDomain() );
-  return( 0 );
+  return nullptr;
 }
 
 SockAddrInet::SockAddrInet() : SockAddr( (struct sockaddr *)&mAddrIn )
@@ -172,14 +170,14 @@ bool SockAddrInet::resolve( const char *host, const char *serv, const char *prot
 {
   memset( &mAddrIn, 0, sizeof(mAddrIn) );
 
-  struct hostent *hostent=0;
+  struct hostent *hostent=nullptr;
   if ( !(hostent = ::gethostbyname( host ) ) )
   {
     Error( "gethostbyname( %s ), h_errno = %d", host, h_errno );
     return( false );
   }
 
-  struct servent *servent=0;
+  struct servent *servent=nullptr;
   if ( !(servent = ::getservbyname( serv, proto ) ) )
   {
     Error( "getservbyname( %s ), errno = %d, error = %s", serv, errno, strerror(errno) );
@@ -197,7 +195,7 @@ bool SockAddrInet::resolve( const char *host, int port, const char *proto )
 {
   memset( &mAddrIn, 0, sizeof(mAddrIn) );
 
-  struct hostent *hostent=0;
+  struct hostent *hostent=nullptr;
   if ( !(hostent = ::gethostbyname( host ) ) )
   {
     Error( "gethostbyname( %s ), h_errno = %d", host, h_errno );
@@ -214,7 +212,7 @@ bool SockAddrInet::resolve( const char *serv, const char *proto )
 {
   memset( &mAddrIn, 0, sizeof(mAddrIn) );
 
-  struct servent *servent=0;
+  struct servent *servent=nullptr;
   if ( !(servent = ::getservbyname( serv, proto ) ) )
   {
     Error( "getservbyname( %s ), errno = %d, error = %s", serv, errno, strerror(errno) );
@@ -543,7 +541,7 @@ bool InetSocket::connect( const char *host, const char *serv )
      * If socket(2) (or connect(2)) fails, we (close the socket
      * and) try the next address. */
 
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
+    for (rp = result; rp != nullptr; rp = rp->ai_next) {
         if (mSd != -1) {
             if (::connect(mSd, rp->ai_addr, rp->ai_addrlen) != -1)
                 break;                  /* Success */
@@ -576,13 +574,13 @@ bool InetSocket::connect( const char *host, const char *serv )
         ::close(mSd);
     }
 
-    if (rp == NULL) {               /* No address succeeded */
+    freeaddrinfo(result);   /* No longer needed */
+
+    if (rp == nullptr) {               /* No address succeeded */
         Error( "connect(), Could not connect" );
         mAddressFamily = AF_UNSPEC;
         return( false );
     }
-
-    freeaddrinfo(result);   /* No longer needed */
 
     mState = CONNECTED;
 
@@ -609,9 +607,9 @@ bool InetSocket::bind( const char * host, const char * serv )
     hints.ai_socktype = getType();
     hints.ai_flags = AI_PASSIVE;    /* For wildcard IP address */
     hints.ai_protocol = 0;          /* Any protocol */
-    hints.ai_canonname = NULL;
-    hints.ai_addr = NULL;
-    hints.ai_next = NULL;
+    hints.ai_canonname = nullptr;
+    hints.ai_addr = nullptr;
+    hints.ai_next = nullptr;
 
     s = getaddrinfo(host, serv, &hints, &result);
     if (s != 0) {
@@ -623,7 +621,7 @@ bool InetSocket::bind( const char * host, const char * serv )
     * Try each address until we successfully bind(2).
     * If socket(2) (or bind(2)) fails, we (close the socket
     * and) try the next address. */
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
+    for (rp = result; rp != nullptr; rp = rp->ai_next) {
         memset(&buf, 0, sizeof(buf));
         if (rp->ai_family == AF_INET) {
             inet_ntop(AF_INET, &((struct sockaddr_in *)rp->ai_addr)->sin_addr, buf, sizeof(buf)-1);
@@ -647,7 +645,7 @@ bool InetSocket::bind( const char * host, const char * serv )
         mSd = -1;
     }
 
-    if (rp == NULL) {               /* No address succeeded */
+    if (rp == nullptr) {               /* No address succeeded */
         Error( "bind(), Could not bind" );
         return( false );
     }
@@ -659,7 +657,7 @@ bool InetSocket::bind( const char * host, const char * serv )
 
 bool InetSocket::bind( const char * serv )
 {
-    return bind( NULL, serv);
+    return bind( nullptr, serv);
 }
 
 bool InetSocket::bind( const char * host, int port )
@@ -675,7 +673,7 @@ bool InetSocket::bind( int port )
     char serv[8];
     snprintf(serv, sizeof(serv), "%d", port);
 
-    return bind( NULL, serv );
+    return bind( nullptr, serv );
 }
 
 bool TcpInetServer::listen()
@@ -691,7 +689,7 @@ bool TcpInetServer::accept()
 bool TcpInetServer::accept( TcpInetSocket *&newSocket )
 {
   int newSd = -1;
-  newSocket = 0;
+  newSocket = nullptr;
 
   if ( !Socket::accept( newSd ) )
     return( false );
@@ -704,7 +702,7 @@ bool TcpInetServer::accept( TcpInetSocket *&newSocket )
 bool TcpUnixServer::accept( TcpUnixSocket *&newSocket )
 {
   int newSd = -1;
-  newSocket = 0;
+  newSocket = nullptr;
 
   if ( !Socket::accept( newSd ) )
     return( false );
@@ -761,10 +759,10 @@ void Select::clearTimeout()
 void Select::calcMaxFd()
 {
   mMaxFd = -1;
-  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter )
     if ( (*iter)->getMaxDesc() > mMaxFd )
       mMaxFd = (*iter)->getMaxDesc();
-  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter )
     if ( (*iter)->getMaxDesc() > mMaxFd )
       mMaxFd = (*iter)->getMaxDesc();
 }
@@ -832,22 +830,22 @@ void Select::clearWriters()
 int Select::wait()
 {
   struct timeval tempTimeout = mTimeout;
-  struct timeval *selectTimeout = mHasTimeout?&tempTimeout:NULL;
+  struct timeval *selectTimeout = mHasTimeout?&tempTimeout:nullptr;
 
   fd_set rfds;
   fd_set wfds;
 
   mReadable.clear();
   FD_ZERO(&rfds);
-  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter )
     FD_SET((*iter)->getReadDesc(),&rfds);
 
   mWriteable.clear();
   FD_ZERO(&wfds);
-  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter )
     FD_SET((*iter)->getWriteDesc(),&wfds);
 
-  int nFound = select( mMaxFd+1, &rfds, &wfds, NULL, selectTimeout );
+  int nFound = select( mMaxFd+1, &rfds, &wfds, nullptr, selectTimeout );
   if( nFound == 0 )
   {
     Debug( 1, "Select timed out" );
@@ -858,10 +856,10 @@ int Select::wait()
   }
   else
   {
-    for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+    for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter )
       if ( FD_ISSET((*iter)->getReadDesc(),&rfds) )
         mReadable.push_back( *iter );
-    for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+    for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter )
       if ( FD_ISSET((*iter)->getWriteDesc(),&rfds) )
         mWriteable.push_back( *iter );
   }

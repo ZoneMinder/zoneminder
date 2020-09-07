@@ -19,9 +19,6 @@
 #ifndef ZM_RTSP_AUTH_H
 #define ZM_RTSP_AUTH_H
 
-#if HAVE_GNUTLS_OPENSSL_H
-#include <gnutls/openssl.h>
-#endif
 #if HAVE_GNUTLS_GNUTLS_H
 #include <gnutls/gnutls.h>
 #endif
@@ -37,7 +34,7 @@ namespace zm {
 enum AuthMethod { AUTH_UNDEFINED = 0, AUTH_BASIC = 1, AUTH_DIGEST = 2 };
 class Authenticator {
 public:
-  Authenticator(std::string &username, std::string password);
+  Authenticator(const std::string &username, const std::string &password);
   virtual ~Authenticator();
   void reset();
 
@@ -60,7 +57,7 @@ private:
   std::string fQop;
   std::string fUsername; 
   std::string fPassword;
-  std::string quote( std::string src );
+  std::string quote( const std::string &src );
   int nc;
 };
 

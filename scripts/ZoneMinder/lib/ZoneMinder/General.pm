@@ -1,27 +1,3 @@
-# ==========================================================================
-#
-# ZoneMinder General Utility Module, $Date$, $Revision$
-# Copyright (C) 2001-2008  Philip Coombes
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-#
-# ==========================================================================
-#
-# This module contains the common definitions and functions used by the rest
-# of the ZoneMinder scripts
-#
 package ZoneMinder::General;
 
 use 5.006;
@@ -42,23 +18,24 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
 # will save memory.
 our %EXPORT_TAGS = (
-    'functions' => [ qw(
+    functions => [ qw(
       executeShellCommand
       getCmdFormat
       runCommand
       setFileOwner
-      getEventPath
       createEventPath
       createEvent
-      deleteEventFiles
       makePath
       jsonEncode
       jsonDecode
+      systemStatus
+      packageControl
+      daemonControl
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
 our @EXPORT = qw();
 
@@ -79,77 +56,77 @@ use POSIX;
 # For running general shell commands
 sub executeShellCommand {
   my $command = shift;
-  my $output = qx( $command );
+  my $output = qx($command);
   my $status = $? >> 8;
   if ( $status || logDebugging() ) {
-    Debug( "Command: $command\n" );
-    chomp( $output );
-    Debug( "Output: $output\n" );
+    $output = '' if !defined($output);
+    chomp($output);
+    Debug("Command: $command Output: $output");
   }
-  return( $status );
+  return $status;
 }
 
 sub getCmdFormat {
-  Debug( "Testing valid shell syntax\n" );
+  Debug('Testing valid shell syntax');
 
   my ( $name ) = getpwuid( $> );
   if ( $name eq $Config{ZM_WEB_USER} ) {
-    Debug( "Running as '$name', su commands not needed\n" );
-    return( "" );
+    Debug("Running as '$name', su commands not needed");
+    return '';
   }
 
-  my $null_command = "true";
+  my $null_command = 'true';
 
-  my $prefix = "sudo -u ".$Config{ZM_WEB_USER}." ";
-  my $suffix = "";
+  my $prefix = 'sudo -u '.$Config{ZM_WEB_USER}.' ';
+  my $suffix = '';
   my $command = $prefix.$null_command.$suffix;
-  Debug( "Testing \"$command\"\n" );
+  Debug("Testing \"$command\"");
   my $output = qx($command 2>&1);
   my $status = $? >> 8;
   $output //= $!;
   
   if ( !$status ) {
-    Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+    Debug("Test ok, using format \"$prefix<command>$suffix\"");
     return( $prefix, $suffix );
   } else {
     chomp( $output );
-    Debug( "Test failed, '$output'\n" );
+    Debug("Test failed, '$output'");
 
-    $prefix = "su ".$Config{ZM_WEB_USER}." --shell=/bin/sh --command='";
-    $suffix = "'";
+    $prefix = 'su '.$Config{ZM_WEB_USER}.q` --shell=/bin/sh --command='`;
+    $suffix = q`'`;
     $command = $prefix.$null_command.$suffix;
-    Debug( "Testing \"$command\"\n" );
+    Debug("Testing \"$command\"");
     my $output = qx($command 2>&1);
     my $status = $? >> 8;
     $output //= $!;
     
     if ( !$status ) {
-      Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+      Debug("Test ok, using format \"$prefix<command>$suffix\"");
       return( $prefix, $suffix );
     } else {
-      chomp( $output );
-      Debug( "Test failed, '$output'\n" );
+      chomp($output);
+      Debug("Test failed, '$output'");
 
-      $prefix = "su ".$Config{ZM_WEB_USER}." -c '";
-      $suffix = "'";
+      $prefix = 'su '.$Config{ZM_WEB_USER}.' -c \'';
+      $suffix = '\'';
       $command = $prefix.$null_command.$suffix;
-      Debug( "Testing \"$command\"\n" );
+      Debug("Testing \"$command\"");
       $output = qx($command 2>&1);
       $status = $? >> 8;
       $output //= $!;
       
       if ( !$status ) {
-        Debug( "Test ok, using format \"$prefix<command>$suffix\"\n" );
+        Debug("Test ok, using format \"$prefix<command>$suffix\"");
         return( $prefix, $suffix );
       } else {
-        chomp( $output );
-        Debug( "Test failed, '$output'\n" );
+        chomp($output);
+        Debug("Test failed, '$output'");
       }
     }
   }
-  Error( "Unable to find valid 'su' syntax\n" );
-  exit( -1 );
-}
+  Error('Unable to find valid su syntax');
+  exit -1;
+} # end sub getCmdFormat
 
 our $testedShellSyntax = 0;
 our ( $cmdPrefix, $cmdSuffix );
@@ -163,89 +140,32 @@ sub runCommand {
   }
 
   my $command = shift;
-  $command = $Config{ZM_PATH_BIN}."/".$command;
+  $command = $Config{ZM_PATH_BIN}.'/'.$command;
   if ( $cmdPrefix ) {
     $command = $cmdPrefix.$command.$cmdSuffix;
   }
-  Debug( "Command: $command\n" );
+  Debug("Command: $command");
   my $output = qx($command);
   my $status = $? >> 8;
-  chomp( $output );
+  chomp($output);
   if ( $status || logDebugging() ) {
     if ( $status ) {
-      Error( "Unable to run \"$command\", output is \"$output\"\n" );
-      exit( -1 );
+      Error("Unable to run \"$command\", output is \"$output\", status is $status");
     } else {
-      Debug( "Output: $output\n" );
+      Debug("Output: $output");
     }
   }
-  return( $output );
-}
-
-sub getEventPath {
-  my $event = shift;
-
-  my $Storage = new ZoneMinder::Storage( $$event{StorageId} );
-  my $event_path = join( '/', 
-      $Storage->Path(),
-      $event->{MonitorId},
-      ( $Config{ZM_USE_DEEP_STORAGE} ? strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) ) : $event->{Id} ),
-      );
-
-  return( $event_path );
-}
+  return $output;
+} # end sub runCommand
 
 sub createEventPath {
-#
-# WARNING assumes running from events directory
-#
   my $event = shift;
-  my $Storage = new ZoneMinder::Storage( $$event{Id} );
-  my $eventPath = $Storage->Path() . '/'.$event->{MonitorId};
+  my $eventPath = $event->Path();
+  $event->createPath();
+  $event->createIdFile();
+  $event->createLinkPath();
 
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    my @startTime = localtime( $event->{StartTime} );
-
-    my @datetimeParts = ();
-    $datetimeParts[0] = sprintf( "%02d", $startTime[5]-100 );
-    $datetimeParts[1] = sprintf( "%02d", $startTime[4]+1 );
-    $datetimeParts[2] = sprintf( "%02d", $startTime[3] );
-    $datetimeParts[3] = sprintf( "%02d", $startTime[2] );
-    $datetimeParts[4] = sprintf( "%02d", $startTime[1] );
-    $datetimeParts[5] = sprintf( "%02d", $startTime[0] );
-
-    my $datePath = join('/',@datetimeParts[0..2]);
-    my $timePath = join('/',@datetimeParts[3..5]);
-
-    makePath( $datePath, $eventPath );
-    $eventPath .= '/'.$datePath;
-
-# Create event id symlink
-    my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-    symlink( $timePath, $idFile )
-      or Fatal( "Can't symlink $idFile -> $eventPath: $!" );
-
-    makePath( $timePath, $eventPath );
-    $eventPath .= '/'.$timePath;
-    setFileOwner( $idFile ); # Must come after directory has been created
-
-# Create empty id tag file
-      $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-    open( my $ID_FP, ">", $idFile )
-      or Fatal( "Can't open $idFile: $!" );
-    close( $ID_FP );
-    setFileOwner( $idFile );
-  } else {
-    makePath( $event->{Id}, $eventPath );
-    $eventPath .= '/'.$event->{Id};
-
-    my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-    open( my $ID_FP, ">", $idFile )
-      or Fatal( "Can't open $idFile: $!" );
-    close( $ID_FP );
-    setFileOwner( $idFile );
-  }
-  return( $eventPath );
+  return $eventPath;
 }
 
 use Data::Dumper;
@@ -269,16 +189,16 @@ sub _checkProcessOwner {
       $_setFileOwner = 0;
     }
   }
-  return( $_setFileOwner );
+  return $_setFileOwner;
 }
 
 sub setFileOwner {
   my $file = shift;
 
   if ( _checkProcessOwner() ) {
-    chown( $_ownerUid, $_ownerGid, $file )
-      or Fatal( "Can't change ownership of file '$file' to '"
-          .$Config{ZM_WEB_USER}.":".$Config{ZM_WEB_GROUP}."': $!"
+    chown($_ownerUid, $_ownerGid, $file)
+      or Fatal("Can't change ownership of file '$file' to '"
+          .$Config{ZM_WEB_USER}.':'.$Config{ZM_WEB_GROUP}."': $!"
           );
   }
 }
@@ -293,13 +213,13 @@ sub _checkForImageInfo {
     };
     $_hasImageInfo = $@?0:1;
   }
-  return( $_hasImageInfo );
+  return $_hasImageInfo;
 }
 
 sub createEvent {
   my $event = shift;
 
-  Debug( "Creating event" );
+  Debug('Creating event');
 #print( Dumper( $event )."\n" );
 
   _checkForImageInfo();
@@ -425,7 +345,7 @@ sub createEvent {
             ." to ".$frame->{capturePath}.": $!"
             );
       setFileOwner( $frame->{capturePath} );
-      if ( 0 && $Config{ZM_CREATE_ANALYSIS_IMAGES} ) {
+      if ( $event->{SaveJPEGs} > 1 ) {
         $frame->{analysePath} = sprintf(
             "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}
             ."d-analyse.jpg"
@@ -482,53 +402,6 @@ sub updateEvent {
     or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
 }
 
-sub deleteEventFiles {
-#
-# WARNING assumes running from events directory
-#
-  my $event_id = shift;
-  my $monitor_id = shift;
-  $monitor_id = '*' if ( !defined($monitor_id) );
-
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    my $link_path = $monitor_id."/*/*/*/.".$event_id;
-#Debug( "LP1:$link_path" );
-    my @links = glob($link_path);
-#Debug( "L:".$links[0].": $!" );
-    if ( @links ) {
-      ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
-#Debug( "LP2:$link_path" );
-
-        ( my $day_path = $link_path ) =~ s/\.\d+//;
-#Debug( "DP:$day_path" );
-      my $event_path = $day_path.readlink( $link_path );
-      ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-#Debug( "EP:$event_path" );
-        my $command = "/bin/rm -rf ".$event_path;
-#Debug( "C:$command" );
-      executeShellCommand( $command );
-
-      unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
-      my @path_parts = split( /\//, $event_path );
-      for ( my $i = int(@path_parts)-2; $i >= 1; $i-- ) {
-        my $delete_path = join( '/', @path_parts[0..$i] );
-#Debug( "DP$i:$delete_path" );
-        my @has_files = glob( $delete_path."/*" );
-#Debug( "HF1:".$has_files[0] ) if ( @has_files );
-        last if ( @has_files );
-        @has_files = glob( $delete_path."/.[0-9]*" );
-#Debug( "HF2:".$has_files[0] ) if ( @has_files );
-        last if ( @has_files );
-        my $command = "/bin/rm -rf ".$delete_path;
-        executeShellCommand( $command );
-      }
-    }
-  } else {
-    my $command = "/bin/rm -rf $monitor_id/$event_id";
-    executeShellCommand( $command );
-  }
-}
-
 sub makePath {
   my $path = shift;
   my $root = shift;
@@ -558,8 +431,8 @@ our $hasJSONAny = 0;
 sub _testJSON {
   return if ( $testedJSON );
   my $result = eval {
-    require JSON::Any;
-    JSON::Any->import();
+    require JSON::MaybeXS;
+    JSON::MaybeXS->import();
   };
   $testedJSON = 1;
   $hasJSONAny = 1 if ( $result );
@@ -567,12 +440,12 @@ sub _testJSON {
 
 sub _getJSONType {
   my $value = shift;
-  return( 'null' ) unless( defined($value) );
-  return( 'integer' ) if ( $value =~ /^\d+$/ );
-  return( 'double' ) if ( $value =~ /^\d+$/ );
-  return( 'hash' ) if ( ref($value) eq 'HASH' );
-  return( 'array' ) if ( ref($value) eq 'ARRAY' );
-  return( 'string' );
+  return 'null' unless defined($value);
+  return 'integer' if $value =~ /^\d+$/;
+  return 'double' if $value =~ /^\d+$/;
+  return 'hash' if ref($value) eq 'HASH';
+  return 'array' if ref($value) eq 'ARRAY';
+  return 'string';
 }
 
 sub jsonEncode;
@@ -582,7 +455,7 @@ sub jsonEncode {
 
   _testJSON();
   if ( $hasJSONAny ) {
-    my $string = eval { JSON::Any->objToJson( $value ) };
+    my $string = eval { JSON::MaybeXS->encode_json( $value ) };
     Fatal( "Unable to encode object to JSON: $@" ) unless( $string );
     return( $string );
   }
@@ -617,15 +490,15 @@ sub jsonDecode {
 
   _testJSON();
   if ( $hasJSONAny ) {
-    my $object = eval { JSON::Any->jsonToObj( $value ) };
-    Fatal( "Unable to decode JSON string '$value': $@" ) unless( $object );
-    return( $object );
+    my $object = eval { JSON::MaybeXS->decode_json($value) };
+    Fatal("Unable to decode JSON string '$value': $@") unless $object;
+    return $object;
   }
 
   my $comment = 0;
   my $unescape = 0;
   my $out = '';
-  my @chars = split( //, $value );
+  my @chars = split(//, $value);
   for ( my $i = 0; $i < @chars; $i++ ) {
     if ( !$comment ) {
       if ( $chars[$i] eq ':' ) {
@@ -655,10 +528,42 @@ sub jsonDecode {
   $out =~ s/=>null/=>undef/g;
   $out =~ s/`/'/g;
   $out =~ s/qx/qq/g;
-  ( $out ) = $out =~ m/^({.+})$/; # Detaint and check it's a valid object syntax
-    my $result = eval $out;
-  Fatal( $@ ) if ( $@ );
-  return( $result );
+  ( $out ) = $out =~ m/^(\{.+\})$/; # Detaint and check it's a valid object syntax
+  my $result = eval $out;
+  Fatal($@) if $@;
+  return $result;
+}
+
+sub packageControl {
+  my $command = shift;
+  my $string = $Config{ZM_PATH_BIN}.'/zmpkg.pl '.$command;
+  $string .= ' 2>/dev/null >&- <&- >/dev/null';
+  executeShellCommand($string);
+}
+
+sub daemonControl {
+  my ($command, $daemon, $args) = @_;
+  my $string = $Config{ZM_PATH_BIN}.'/zmdc.pl '.$command;
+  if ( $daemon ) {
+    $string .= ' ' . $daemon;
+    if ( $args ) {
+      $string .= ' ' . $args;
+    }
+  }
+  #$string .= ' 2>/dev/null >&- <&- >/dev/null';
+  executeShellCommand($string);
+}
+
+sub systemStatus {
+  my $command = $Config{ZM_PATH_BIN}.'/zmdc.pl check';
+  my $output = qx($command);
+  my $status = $? >> 8;
+  if ( $status || logDebugging() ) {
+    $output = '' if !defined($output);
+    chomp($output);
+    Debug("Command: $command Output: $output");
+  }
+  return $output;
 }
 
 1;
@@ -667,37 +572,34 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::General - Utility Functions for ZoneMinder
 
 =head1 SYNOPSIS
 
-use ZoneMinder::Database;
-blah blah blah
+use ZoneMinder::General;
 
 =head1 DESCRIPTION
 
-Stub documentation for ZoneMinder, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
-
-Blah blah blah.
+This module contains the common definitions and functions used by the rest
+of the ZoneMinder scripts
 
 =head2 EXPORT
 
-None by default.
+    functions => [ qw(
+      executeShellCommand
+      getCmdFormat
+      runCommand
+      setFileOwner
+      createEventPath
+      createEvent
+      makePath
+      jsonEncode
+      jsonDecode
+      packageControl
+      daemonControl
+      systemStatus
+      ) ]
 
-
-
-=head1 SEE ALSO
-
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-    in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
 
 =head1 AUTHOR
 
@@ -707,9 +609,18 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
 
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 =cut

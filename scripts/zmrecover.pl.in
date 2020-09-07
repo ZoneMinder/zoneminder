@@ -1,0 +1,491 @@
+#!@PERL_EXECUTABLE@ -wT
+
+use strict;
+use bytes;
+
+# ==========================================================================
+#
+# These are the elements you can edit to suit your installation
+#
+# ==========================================================================
+
+use constant RECOVER_TAG => '(r)'; # Tag to append to event name when recovered
+use constant RECOVER_TEXT => 'Recovered.'; # Text to append to event notes when recovered
+
+# ==========================================================================
+#
+# You shouldn't need to change anything from here downwards
+#
+# ==========================================================================
+
+@EXTRA_PERL_LIB@
+use ZoneMinder;
+use DBI;
+use POSIX;
+use File::Find;
+use Time::HiRes qw/gettimeofday/;
+use Getopt::Long;
+use autouse 'Pod::Usage'=>qw(pod2usage);
+
+use constant ZM_RECOVER_PID => '@ZM_RUNDIR@/zmrecover.pid';
+
+
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
+my $report = 0;
+my $interactive = 1;
+my $monitor_id = 0;
+my $version;
+my $force = 0;
+my $server_id = undef;
+my $storage_id = undef;
+
+logInit();
+
+GetOptions(
+    force          =>\$force,
+    'interactive=i' =>\$interactive,
+    'monitor_id=i' =>\$monitor_id,
+    report         =>\$report,
+    'server_id=i'  =>\$server_id,
+    'storage_id=i' =>\$storage_id,
+    version        =>\$version
+    ) or pod2usage(-exitstatus => -1);
+
+if ( $version ) {
+  print( ZoneMinder::Base::ZM_VERSION . "\n");
+  exit(0);
+}
+if ( ($report + $interactive) > 1 ) {
+  print( STDERR "Error, only one option may be specified\n" );
+  pod2usage(-exitstatus => -1);
+}
+
+if ( -e ZM_RECOVER_PID ) {
+  local $/ = undef;
+  open FILE, ZM_RECOVER_PID or die "Couldn't open file: $!";
+  binmode FILE;
+  my $pid = <FILE>;
+  close FILE;
+  if ( $force ) {
+    Error("zmrecover.pl appears to already be running at pid $pid. Continuing." );
+  } else {
+    Fatal("zmrecover.pl appears to already be running at pid $pid. If not, please delete " . 
+      ZM_RECOVER_PID . " or use the --force command line option." );
+  }
+} # end if ZM_RECOVER_PID exists
+
+if ( open(my $PID, '>', ZM_RECOVER_PID) ) {
+  print($PID $$);
+  close($PID);
+} else {
+  Error( "Can't open pid file at " . ZM_PID );
+}
+
+sub HupHandler {
+  Info('Received HUP, reloading');
+  &ZoneMinder::Logger::logHupHandler();
+}
+sub TermHandler {
+  Info('Received TERM, exiting');
+  Term();
+}
+sub Term {
+  unlink ZM_RECOVER_PID;
+  exit(0);
+}
+$SIG{HUP} = \&HupHandler;
+$SIG{TERM} = \&TermHandler;
+$SIG{INT} = \&TermHandler;
+
+my $dbh = zmDbConnect();
+if ( ! $dbh ) {
+  Error('Unable to connect to database');
+  Term();
+} # end if
+
+$| = 1;
+
+require ZoneMinder::Monitor;
+require ZoneMinder::Storage;
+require ZoneMinder::Event;
+
+
+my @Storage_Areas;
+if ( defined $storage_id ) {
+  @Storage_Areas = ZoneMinder::Storage->find( Id=>$storage_id );
+  if ( !@Storage_Areas ) {
+    Error("No Storage Area found with Id $storage_id");
+    Term();
+  }
+  Info("Recovering from Storage Area $Storage_Areas[0]{Id} $Storage_Areas[0]{Name} at $Storage_Areas[0]{Path}");
+} elsif ( $server_id ) {
+  @Storage_Areas = ZoneMinder::Storage->find( ServerId => $server_id );
+  if ( ! @Storage_Areas ) {
+    Error("No Storage Area found with ServerId =" . $server_id);
+    Term();
+  }
+  foreach my $Storage ( @Storage_Areas ) {
+    Info('Recovering from ' . $Storage->Name() . ' at ' . $Storage->Path() . ' on ' . $Storage->Server()->Name() );
+  }
+} else {
+  @Storage_Areas = ZoneMinder::Storage->find();
+  Info("Recovering from All Storage Areas");
+}
+
+my @Monitors = ZoneMinder::Monitor->find();
+Debug("@Monitors");
+  foreach my $Monitor ( @Monitors ) {
+    Debug("Monitor " . $Monitor->to_string() )
+  }
+  my %Monitors = map { $$_{Id} => $_ } @Monitors;
+  #ZoneMinder::Monitor->find(
+  
+  #  ($monitor_id ? ( Id=>$monitor_id ) : () ),
+  
+  #);
+  Debug("Found " . (keys %Monitors) . " monitors");
+  foreach my $id ( keys %Monitors ) {
+    Debug("Monitor $id $Monitors{$id}{Name}");
+  }
+
+  foreach my $Storage ( @Storage_Areas ) {
+    Debug('Checking events in ' . $Storage->Path() );
+    if ( ! chdir($Storage->Path()) ) {
+      Error('Unable to change dir to ' . $Storage->Path());
+      next;
+    } # end if
+
+    # Please note that this glob will take all files beginning with a digit. 
+    foreach my $monitor ( glob('[0-9]*') ) {
+      if ( $monitor =~ /\D/ ) {
+        Debug("Weird non digit characters in $monitor");
+        next;
+      }
+      # De-taint
+      ( my $monitor_dir ) = ( $monitor =~ /^(\d+)$/ );
+      if ( $monitor_id and ( $monitor_id != $monitor_dir ) ) {
+        Debug("Skipping monitor $monitor_dir because we are only interested in monitor $monitor_id");
+        next;
+      }
+      if ( ! $Monitors{$monitor_dir} ) {
+        Warning("There is no monitor in the database for $$Storage{Path}/$monitor_dir. Skipping it.");
+        next;
+      }
+      my $Monitor = $Monitors{$monitor_dir};
+
+      Debug("Found filesystem monitor '$monitor_dir'");
+
+      {
+        my @day_dirs = glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]");
+        Debug(qq`Checking for Deep Events under $$Storage{Path} using glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]") returned `. scalar @day_dirs . ' days with events');
+        foreach my $day_dir ( @day_dirs ) {
+          Debug("Checking day dir $day_dir");
+          ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
+          if ( !chdir($day_dir) ) {
+            Error("Can't chdir to '$$Storage{Path}/$day_dir': $!");
+            next;
+          }
+          if ( ! opendir(DIR, '.') ) {
+            Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
+            next;
+          }
+          my %event_ids_by_path;
+
+          my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
+          Debug('Have ' . (scalar @event_links) . ' event links');
+          closedir(DIR);
+
+          my $count = 0;
+          foreach my $event_link ( @event_links ) {
+            # Event links start with a period and consist of the digits of the event id.
+            # Anything else is not an event link
+            my ($event_id) = $event_link =~ /^\.(\d+)$/;
+            if ( !$event_id ) {
+              Warning("Non-event link found $event_link in $day_dir, skipping");
+              next;
+            }
+            Debug("Checking link $event_link");
+            #Event path is hour/minute/sec
+            my $event_path = readlink($event_link);
+
+            if ( !($event_path and -e $event_path) ) {
+              Warning("Event link $day_dir/$event_link does not point to valid target at $event_path");
+              next;
+            } 
+            if ( ! ZoneMinder::Event->find_one(Id=>$event_id) ) {
+              Info("Event not found in db for event data found at $$Storage{Path}/$day_dir/$event_path with Id=$event_id");
+              if ( confirm() ) {
+                my $Event = new ZoneMinder::Event();
+                $$Event{Id} = $event_id;
+                $$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_path);
+                $$Event{RelativePath} = join('/', $day_dir, $event_path);
+                $$Event{Scheme} = 'Deep';
+                $$Event{Name} = "Event $event_id recovered";
+                $Event->MonitorId( $monitor_dir );
+                $Event->StorageId( $Storage->Id() );
+                $Event->DiskSpace( undef );
+                $Event->Width( $Monitor->Width() );
+                $Event->Height( $Monitor->Height() );
+                $Event->Orientation( $Monitor->Orientation() );
+                $Event->recover_timestamps();
+                if ( $$Event{StartTime} ) {
+                  $Event->save({}, 1);
+                  Info("Event resurrected as " . $Event->to_string() );
+                } else {
+                  Warning("Unable to determine starttime. Not resurrecting this event.");
+                }
+                next;
+              } # end if resurrection
+            } # event path exists
+          } # end foreach event_link
+            
+          # Now check for events that have lost their link. We can determine event Id from .mp4
+          
+          my @time_dirs = glob('[0-9][0-9]/[0-9][0-9]/[0-9][0-9]');
+          foreach my $event_dir ( @time_dirs ) {
+            Debug("Checking time dir $event_dir");
+            ( $event_dir ) = ( $event_dir =~ /^(.*)$/ ); # De-taint
+
+            my $event_id = undef;
+
+            if ( ! opendir(DIR, $event_dir) ) {
+              Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
+              next;
+            }
+            my @contents = readdir( DIR );
+            Debug('Have ' . @contents . " files in $day_dir/$event_dir");
+            closedir(DIR);
+
+            my @mp4_files = grep( /^\d+\-video.mp4$/, @contents);
+            foreach my $mp4_file ( @mp4_files ) {
+              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.mp4$/;
+              if ( $id ) {
+                $event_id = $id;
+                Debug("Got event id from mp4 file $mp4_file => $event_id");
+                last;
+              }
+            } # end foreach mp4
+            
+            if ( ! $event_id ) {
+              # Look for .id file
+              my @hidden_files = grep( /^\.\d+$/, @contents);
+              Debug('Have ' . @hidden_files . ' hidden files');
+              if ( @hidden_files ) {
+                ( $event_id ) = $hidden_files[0] =~ /^.(\d+)$/;
+              }
+            }
+
+            if ( $event_id and ! ZoneMinder::Event->find_one(Id=>$event_id) ) {
+              Info("Event not found in db for event data found at $$Storage{Path}/$monitor_dir/$day_dir/$event_dir");
+              if ( confirm() ) {
+                my $Event = new ZoneMinder::Event();
+                $$Event{Id} = $event_id;
+                $$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_dir);
+                $$Event{RelativePath} = join('/', $day_dir, $event_dir);
+                $$Event{Scheme} = 'Deep';
+                $$Event{Name} = "Event $event_id recovered";
+                $Event->MonitorId( $monitor_dir );
+                $Event->Width( $Monitor->Width() );
+                $Event->Height( $Monitor->Height() );
+                $Event->Orientation( $Monitor->Orientation() );
+                $Event->StorageId( $Storage->Id() );
+                $Event->DiskSpace( undef );
+                $Event->recover_timestamps();
+                if ( $$Event{StartTime} ) {
+                  $Event->save({}, 1);
+                  Info("Event resurrected as " . $Event->to_string() );
+                } else {
+                  Warning("Unable to determine starttime. Not resurrecting this event.");
+                }
+                next;
+              }
+            } # end if event found
+
+            # Search in db for given timestamp?
+            
+            my ( undef, $year, $month, $day ) = split('/', $day_dir);
+            $year += 2000;
+            my ( $hour, $minute, $second ) = split('/', $event_dir);
+            my $StartTime =sprintf('%.4d-%.2d-%.2d %.2d:%.2d:%.2d', $year, $month, $day, $hour, $minute, $second);
+            my $Event = ZoneMinder::Event->find_one(
+              MonitorId=>$monitor_dir,
+              StartTime=>$StartTime,
+            );
+            if ( $Event ) {
+              Debug("Found event matching starttime on monitor $monitor_dir at $StartTime: " . $Event->to_string());
+              next;
+            }
+
+          } # end foreach event_dir without link
+          chdir( $Storage->Path() );
+        } # end foreach day dir
+      }
+
+      Debug("Checking for Medium Scheme Events under $$Storage{Path}/$monitor_dir");
+      {
+        my @event_dirs = glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*");
+        Debug(qq`glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") returned ` . scalar @event_dirs . " entries." );
+        foreach my $event_dir ( @event_dirs ) {
+          if ( ! -d $event_dir ) {
+            Debug("$event_dir is not a dir. Skipping");
+            next;
+          }
+          my ( $date, $event_id ) = $event_dir =~ /^$monitor_dir\/(\d{4}\-\d{2}\-\d{2})\/(\d+)$/;
+          if ( !$event_id ) {
+            Debug("Unable to parse date/event_id from $event_dir");
+            next;
+          }
+
+          my $Event = ZoneMinder::Event->find_one(Id=>$event_id);
+          if ( $Event ) {
+            Debug('Found event in the db, moving on.');
+            next;
+          }
+          $Event = new ZoneMinder::Event();
+          $$Event{Id} = $event_id;
+          $$Event{Path} = join('/', $Storage->Path(), $event_dir );
+          Info("Have event $$Event{Id} at $$Event{Path}");
+          if ( confirm() ) {
+            $$Event{Scheme} = 'Medium';
+            $$Event{RelativePath} = $event_dir;
+            $$Event{Name} = "Event $event_id recovered";
+            $Event->MonitorId( $monitor_dir );
+            $Event->Width( $Monitor->Width() );
+            $Event->Height( $Monitor->Height() );
+            $Event->Orientation( $Monitor->Orientation() );
+            $Event->StorageId( $Storage->Id() );
+            $Event->recover_timestamps();
+            if ( $$Event{StartTime} ) {
+              $Event->save({}, 1);
+              Info("Event resurrected as " . $Event->to_string() );
+            } else {
+              Warning("Unable to determine starttime. Not resurrecting this event.");
+            }
+          }
+        } # end foreach event
+      } # end search for Medium
+
+      # Shallow
+      Debug("Checking for ShallowScheme Events under $$Storage{Path}/$monitor_dir");
+      if ( ! chdir($monitor_dir) ) {
+        Error("Can't chdir directory '$$Storage{Path}/$monitor_dir': $!");
+        next;
+      }
+      if ( ! opendir(DIR, '.') ) {
+        Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
+        next;
+      }
+      my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
+      closedir(DIR);
+      foreach my $event ( @temp_events ) {
+        my $Event = ZoneMinder::Event->find_one(Id=>$event);
+        if ( $Event ) {
+          Debug("Found an event in db for $event");
+          next;
+        }
+        $Event = new ZoneMinder::Event();
+        $$Event{Id} = $event;
+        $$Event{Path} = join('/', $Storage->Path(), $event );
+        Info("Have event $$Event{Id} at $$Event{Path}");
+        if ( confirm() ) {
+          $$Event{Scheme} = 'Shallow';
+          $$Event{Name} = "Event $event recovered";
+          #$$Event{Path} = $event_path;
+          $Event->MonitorId( $monitor_dir );
+          $Event->Width( $Monitor->Width() );
+          $Event->Height( $Monitor->Height() );
+          $Event->Orientation( $Monitor->Orientation() );
+          $Event->StorageId( $Storage->Id() );
+          $Event->recover_timestamps();
+          if ( $$Event{StartTime} ) {
+            $Event->save({}, 1);
+            Info("Event resurrected as " . $Event->to_string() );
+          } else {
+            Warning("Unable to determine starttime. Not resurrecting this event.");
+          }
+        }
+      } # end foreach event
+      chdir( $Storage->Path() );
+    } # end foreach monitor
+
+  } # end foreach Storage Area
+
+Term();
+
+sub confirm {
+  my $prompt = shift || 'resurrect';
+  my $action = shift || 'resurrecting';
+
+  my $yesno = 0;
+  if ( $report ) {
+    print( "\n" );
+  } elsif ( $interactive ) {
+    print(", $prompt Y/n/q: ");
+    my $char = <>;
+    chomp( $char );
+    if ( $char eq 'q' ) {
+      Term();
+    }
+    if ( !$char ) {
+      $char = 'y';
+    }
+    $yesno = ( $char =~ /[yY]/ );
+  } else {
+    Info($action);
+    $yesno = 1;
+  }
+  return $yesno;
+}
+
+1;
+__END__
+
+=head1 NAME
+
+zmrecover.pl - ZoneMinder event file system and database recovery checker
+
+=head1 SYNOPSIS
+
+ zmrecover.pl [-r,-report|-i,-interactive]
+
+=head1 DESCRIPTION
+
+This script checks for consistency between the event filesystem and
+the database. If events are found in one and not the other they are
+deleted (optionally). Additionally any monitor event directories that
+do not correspond to a database monitor are similarly disposed of.
+However monitors in the database that don't have a directory are left
+alone as this is valid if they are newly created and have no events
+yet.
+
+=head1 OPTIONS
+
+ -i, --interactive          - Ask before applying any changes
+ -m, --monitor_id           - Only consider the given monitor
+ -r, --report               - Just report don't actually do anything
+ -s, --storage_id           - Specify a storage area to recover instead of all
+ -v, --version              - Print the installed version of ZoneMinder
+
+=head1 COPYRIGHT
+
+ZoneMinder Recover Script
+Copyright (C) 2018 ZoneMinder LLC
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+=cut

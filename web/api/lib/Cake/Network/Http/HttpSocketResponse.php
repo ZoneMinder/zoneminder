@@ -2,17 +2,17 @@
 /**
  * HTTP Response from HttpSocket.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         CakePHP(tm) v 2.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -259,7 +259,7 @@ class HttpSocketResponse implements ArrayAccess {
  * Parses an array based header.
  *
  * @param array $header Header as an indexed array (field => value)
- * @return array Parsed header
+ * @return array|bool Parsed header
  */
 	protected function _parseHeader($header) {
 		if (is_array($header)) {
@@ -268,18 +268,28 @@ class HttpSocketResponse implements ArrayAccess {
 			return false;
 		}
 
-		preg_match_all("/(.+):(.+)(?:(?<![\t ])\r\n|\$)/Uis", $header, $matches, PREG_SET_ORDER);
+		preg_match_all("/(.+):(.+)(?:\r\n|\$)/Uis", $header, $matches, PREG_SET_ORDER);
+		$lines = explode("\r\n", $header);
 
 		$header = array();
-		foreach ($matches as $match) {
-			list(, $field, $value) = $match;
+		foreach ($lines as $line) {
+			if (strlen($line) === 0) {
+				continue;
+			}
+			$continuation = false;
+			$first = substr($line, 0, 1);
+
+			// Multi-line header
+			if ($first === ' ' || $first === "\t") {
+				$value .= preg_replace("/\s+/", ' ', $line);
+				$continuation = true;
+			} elseif (strpos($line, ':') !== false) {
+				list($field, $value) = explode(':', $line, 2);
+				$field = $this->_unescapeToken($field);
+			}
 
 			$value = trim($value);
-			$value = preg_replace("/[\t ]\r\n/", "\r\n", $value);
-
-			$field = $this->_unescapeToken($field);
-
-			if (!isset($header[$field])) {
+			if (!isset($header[$field]) || $continuation) {
 				$header[$field] = $value;
 			} else {
 				$header[$field] = array_merge((array)$header[$field], (array)$value);
@@ -309,7 +319,11 @@ class HttpSocketResponse implements ArrayAccess {
 				$parts = preg_split('/\;[ \t]*/', $cookie);
 			}
 
-			list($name, $value) = explode('=', array_shift($parts), 2);
+			$nameParts = explode('=', array_shift($parts), 2);
+			if (count($nameParts) < 2) {
+				$nameParts = array('', $nameParts[0]);
+			}
+			list($name, $value) = $nameParts;
 			$cookies[$name] = compact('value');
 
 			foreach ($parts as $part) {

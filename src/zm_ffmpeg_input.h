@@ -22,17 +22,13 @@ class FFmpeg_Input {
     int Open( const char *filename );
     int Close();
     AVFrame *get_frame( int stream_id=-1 );
+    AVFrame *get_frame( int stream_id, double at );
     int get_video_stream_id() {
       return video_stream_id;
     }
     int get_audio_stream_id() {
       return audio_stream_id;
     }
-
-    AVPacket *  read_packet();
-    int         read_packet( AVPacket *packet );
-    AVFrame *   decode_packet( AVPacket *packet );
-    int         decode_packet( AVPacket *packet, AVFrame *frame );
 
   private:
     typedef struct {
@@ -41,10 +37,12 @@ class FFmpeg_Input {
         int frame_count;
     } stream;
 
-    stream streams[2];
+    stream *streams;
     int video_stream_id;
     int audio_stream_id;
     AVFormatContext *input_format_context;
+    AVFrame *frame;
+		int64_t last_seek_request;
 };
 
 #endif

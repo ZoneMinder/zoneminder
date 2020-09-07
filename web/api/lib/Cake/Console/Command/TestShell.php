@@ -4,17 +4,17 @@
  *
  * This Shell allows the running of test suites via the cake command line
  *
- * CakePHP(tm) Tests <http://book.cakephp.org/2.0/en/development/testing.html>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/2.0/en/development/testing.html>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html
  * @since         CakePHP(tm) v 1.2.0.4433
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Shell', 'Console');
@@ -71,6 +71,9 @@ class TestShell extends Shell {
 		))->addOption('coverage-clover', array(
 			'help' => __d('cake_console', '<file> Write code coverage data in Clover XML format.'),
 			'default' => false
+		))->addOption('coverage-text', array(
+			'help' => __d('cake_console', 'Output code coverage report in Text format.'),
+			'boolean' => true
 		))->addOption('testdox-html', array(
 			'help' => __d('cake_console', '<file> Write agile documentation in HTML format to file.'),
 			'default' => false
@@ -152,6 +155,7 @@ class TestShell extends Shell {
 			'default' => false
 		))->addOption('directive', array(
 			'help' => __d('cake_console', 'key[=value] Sets a php.ini value.'),
+			'short' => 'd',
 			'default' => false
 		))->addOption('fixture', array(
 			'help' => __d('cake_console', 'Choose a custom fixture manager.')
@@ -234,7 +238,11 @@ class TestShell extends Shell {
 			if ($value === false) {
 				continue;
 			}
-			$options[] = '--' . $param;
+			if ($param === 'directive') {
+				$options[] = '-d';
+			} else {
+				$options[] = '--' . $param;
+			}
 			if (is_string($value)) {
 				$options[] = $value;
 			}

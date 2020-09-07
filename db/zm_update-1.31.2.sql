@@ -2,6 +2,7 @@
 -- Update Filters table to have a Concurrent Column
 --
 
+SELECT 'Checking for Concurrent in Filters';
 SET @s = (SELECT IF(
   (SELECT COUNT(*)
   FROM INFORMATION_SCHEMA.COLUMNS
@@ -15,4 +16,3 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
-

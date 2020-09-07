@@ -45,9 +45,7 @@ The following notes are based on real problems which have occurred by those who 
 How to Install ZoneMinder
 -------------------------
 
-These instructions apply to all redhat distros and compatible clones, except for RHEL/CentOS 6.
-
-ZoneMinder releases are now being hosted at RPM Fusion. New users should navigate the `RPM Fusion site <https://rpmfusion.org>`_ then follow the instructions to enable that repo. RHEL/CentOS users must also navaigate to the `EPEL Site <https://fedoraproject.org/wiki/EPEL>`_ and enable that repo as well. Once enabled, install ZoneMinder from the commandline:
+ZoneMinder releases are now being hosted at RPM Fusion. New users should navigate the `RPM Fusion site <https://rpmfusion.org>`__ then follow the instructions to enable that repo. RHEL/CentOS users must also navaigate to the `EPEL Site <https://fedoraproject.org/wiki/EPEL>`_ and enable that repo as well. Once enabled, install ZoneMinder from the commandline:
 
 ::
 
@@ -55,14 +53,7 @@ ZoneMinder releases are now being hosted at RPM Fusion. New users should navigat
 
 Note that RHEL/CentOS 7 users should use yum instead of dnf.
 
-Once ZoneMinder has been installed, it is critically important that you read the README file under /usr/share/doc/zoneminder. ZoneMinder will not run without completing the steps outlined in the README.
-
-How to Install ZoneMinder on RHEL/CentOS 6
-------------------------------------------
-
-We continue to encounter build problems, caused by the age of this distro. It is unforuntate, but we can see the writing on the wall. We do not have a date set, but the end of the line for this distros is near. 
-
-Please be advised that we do not recommend any new ZoneMinder installations using CentOS 6. However, for the time being, ZoneMinder rpms will continue to be hosted at `zmrepo <https://www.zoneminder.com>`_. 
+Once ZoneMinder has been installed, it is critically important that you read the README file under /usr/share/doc/zoneminder-common. ZoneMinder will not run without completing the steps outlined in the README.
 
 How to Install Nightly Development Builds
 -----------------------------------------
@@ -74,9 +65,9 @@ The feedback we get from those who use these development packages is extremely h
 How to Change from Zmrepo to RPM Fusion
 ---------------------------------------
 
-As mentioned above, the place to get the latest ZoneMinder release is now `RPM Fusion <https://rpmfusion.org>`_. If you are currently using ZoneMinder release packages from Zmrepo, then the following steps will change you over to RPM Fusion:
+As mentioned above, the place to get the latest ZoneMinder release is now `RPM Fusion <https://rpmfusion.org>`__. If you are currently using ZoneMinder release packages from Zmrepo, then the following steps will change you over to RPM Fusion:
 
-- Navigate to the `RPM Fusion site <https://rpmfusion.org>`_ and enable RPM Fusion on your system
+- Navigate to the `RPM Fusion site <https://rpmfusion.org>`__ and enable RPM Fusion on your system
 - Now issue the following from the command line:
 
 ::
@@ -110,7 +101,7 @@ Certain commands in these instructions require root privileges while other comma
 
 Set Up Your Environment
 ***********************
-Before you begin, set up an rpmbuild environment by following `this guide <http://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers.
+Before you begin, set up an rpmbuild environment by following `this guide <https://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers.
 
 In addition, make sure RPM Fusion is enabled as described in the previous section `How to Install ZoneMinder`_.  
 
@@ -132,7 +123,7 @@ Your build environment is now set up.
 
 Build from SRPM
 ***************
-To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <https://rpmfusion.org/>`_. If instead you wish to rebuild the latest source rpm from our master branch then browse the `Zmrepo site <http://zmrepo.zoneminder.com/>`_.
+To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <https://rpmfusion.org/>`__. If instead you wish to rebuild the latest source rpm from our master branch then browse the `Zmrepo site <http://zmrepo.zoneminder.com/>`_.
 
 For this example, I'll use one of the source rpms from zmrepo:   
 
@@ -167,7 +158,7 @@ The list of available Mock config files are available here:
     ls /etc/mock/*rpmfusion_free.cfg
 
 
-You choose the config file based on the desired distro (e.g. el6, el7, f20, f21) and basearch (e.g. x86, x86_64, arhmhfp). Notice that, when specifying the Mock config as a commandline parameter, you should leave off the ".cfg" filename extension.
+You choose the config file based on the desired distro (e.g. el7, f29, f30) and basearch (e.g. x86, x86_64, arhmhfp). Notice that, when specifying the Mock config as a commandline parameter, you should leave off the ".cfg" filename extension.
 
 Installation
 ************
@@ -197,36 +188,36 @@ Now clone the ZoneMinder git repository from your home folder:
 ::
 
     cd
-    git clone https://github.com/ZoneMinder/ZoneMinder
-    cd ZoneMinder
+    git clone https://github.com/ZoneMinder/zoneminder
+    cd zoneminder
 
-This will create a sub-folder called ZoneMinder, which will contain the latest development source code.
+This will create a sub-folder called zoneminder, which will contain the latest development source code.
 
 If you have previsouly cloned the ZoneMinder git repo and wish to update it to the most recent, then issue these commands instead:
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/zoneminder
     git pull origin master
     
 Get the crud submodule tarball:
 
 ::
 
-    spectool -f -g -R -s 1 ~/ZoneMinder/distros/redhat/zoneminder.spec
+    spectool -f -g -R -s 1 ~/zoneminder/distros/redhat/zoneminder.spec
 
 At this point, you can make changes to the source code. Depending on what you want to do with those changes, you generally want to create a new branch first:
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/zoneminder
     git checkout -b mynewbranch
 
 Again, depending on what you want to do with those changes, you may want to commit your changes:
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/zoneminder
     git add .
     git commit
 
@@ -234,28 +225,28 @@ Once you have made your changes, it is time to turn your work into a new tarball
 
 ::
 
-    less ~/ZoneMinder/distros/redhat/zoneminder.spec
+    less ~/zoneminder/distros/redhat/zoneminder.spec
     
 Scroll down until you see the Version field. Note the value, which will be in the format x.xx.x. Now create the tarball with the following command:
 
 ::
 
-    cd ~\ZoneMinder
-    git archive --prefix=ZoneMinder-1.31.1/ -o ~/rpmbuild/SOURCES/zoneminder-1.31.1.tar.gz HEAD
+    cd ~/zoneminder
+    git archive --prefix=zoneminder-1.33.4/ -o ~/rpmbuild/SOURCES/zoneminder-1.33.4.tar.gz HEAD
 
-Replace "1.31.1" with the Version shown in the rpm specfile.
+Replace "1.33.4" with the Version shown in the rpm specfile.
 
 From the root of the local ZoneMinder git repo, execute the following:
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/zoneminder
     rpmbuild -bs --nodeps distros/redhat/zoneminder.spec
 
 This step will create a source rpm and it will tell you where it was saved. For example:
 
 ::
 
-    Wrote: /home/abauer/rpmbuild/SRPMS/zoneminder-1.31.1-1.fc26.src.rpm
+    Wrote: /home/abauer/rpmbuild/SRPMS/zoneminder-1.33.4-1.fc26.src.rpm
     
 Now follow the previous instructions `Build from SRPM`_ which describe how to build that source rpm into an rpm.

@@ -2,18 +2,18 @@
 /**
  * Schema database management for CakePHP.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Model
  * @since         CakePHP(tm) v 1.2.0.5550
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Model', 'Model');
@@ -26,7 +26,7 @@ App::uses('File', 'Utility');
  *
  * @package       Cake.Model
  */
-class CakeSchema extends Object {
+class CakeSchema extends CakeObject {
 
 /**
  * Name of the schema.
@@ -90,7 +90,7 @@ class CakeSchema extends Object {
 		}
 
 		if (empty($options['path'])) {
-			$this->path = APP . 'Config' . DS . 'Schema';
+			$this->path = CONFIG . 'Schema';
 		}
 
 		$options = array_merge(get_object_vars($this), $options);
@@ -151,7 +151,7 @@ class CakeSchema extends Object {
  * Reads database and creates schema tables.
  *
  * @param array $options Schema object properties.
- * @return array Set of name and tables.
+ * @return array|bool Set of name and tables.
  */
 	public function load($options = array()) {
 		if (is_string($options)) {
@@ -159,14 +159,12 @@ class CakeSchema extends Object {
 		}
 
 		$this->build($options);
-		extract(get_object_vars($this));
+		$class = $this->name . 'Schema';
 
-		$class = $name . 'Schema';
-
-		if (!class_exists($class) && !$this->_requireFile($path, $file)) {
+		if (!class_exists($class) && !$this->_requireFile($this->path, $this->file)) {
 			$class = Inflector::camelize(Inflector::slug(Configure::read('App.dir'))) . 'Schema';
 			if (!class_exists($class)) {
-				$this->_requireFile($path, $file);
+				$this->_requireFile($this->path, $this->file);
 			}
 		}
 
@@ -190,15 +188,15 @@ class CakeSchema extends Object {
  * @return array Array indexed by name and tables.
  */
 	public function read($options = array()) {
-		extract(array_merge(
+		$options = array_merge(
 			array(
 				'connection' => $this->connection,
 				'name' => $this->name,
 				'models' => true,
 			),
 			$options
-		));
-		$db = ConnectionManager::getDataSource($connection);
+		);
+		$db = ConnectionManager::getDataSource($options['connection']);
 
 		if (isset($this->plugin)) {
 			App::uses($this->plugin . 'AppModel', $this->plugin . '.Model');
@@ -212,16 +210,16 @@ class CakeSchema extends Object {
 			$prefix = $db->config['prefix'];
 		}
 
-		if (!is_array($models) && $models !== false) {
+		if (!is_array($options['models']) && $options['models'] !== false) {
 			if (isset($this->plugin)) {
-				$models = App::objects($this->plugin . '.Model', null, false);
+				$options['models'] = App::objects($this->plugin . '.Model', null, false);
 			} else {
-				$models = App::objects('Model');
+				$options['models'] = App::objects('Model');
 			}
 		}
 
-		if (is_array($models)) {
-			foreach ($models as $model) {
+		if (is_array($options['models'])) {
+			foreach ($options['models'] as $model) {
 				$importModel = $model;
 				$plugin = null;
 				if ($model === 'AppModel') {
@@ -242,12 +240,12 @@ class CakeSchema extends Object {
 				}
 
 				$vars = get_class_vars($model);
-				if (empty($vars['useDbConfig']) || $vars['useDbConfig'] != $connection) {
+				if (empty($vars['useDbConfig']) || $vars['useDbConfig'] != $options['connection']) {
 					continue;
 				}
 
 				try {
-					$Object = ClassRegistry::init(array('class' => $model, 'ds' => $connection));
+					$Object = ClassRegistry::init(array('class' => $model, 'ds' => $options['connection']));
 				} catch (CakeException $e) {
 					continue;
 				}
@@ -310,7 +308,7 @@ class CakeSchema extends Object {
 					$table = $this->_noPrefixTable($prefix, $table);
 				}
 				$Object = new AppModel(array(
-					'name' => Inflector::classify($table), 'table' => $table, 'ds' => $connection
+					'name' => Inflector::classify($table), 'table' => $table, 'ds' => $options['connection']
 				));
 
 				$systemTables = array(
@@ -323,7 +321,7 @@ class CakeSchema extends Object {
 					$tables[$Object->table] = $this->_columns($Object);
 					$tables[$Object->table]['indexes'] = $db->index($Object);
 					$tables[$Object->table]['tableParameters'] = $db->readTableParameters($fulltable);
-				} elseif ($models === false) {
+				} elseif ($options['models'] === false) {
 					$tables[$table] = $this->_columns($Object);
 					$tables[$table]['indexes'] = $db->index($Object);
 					$tables[$table]['tableParameters'] = $db->readTableParameters($fulltable);
@@ -336,7 +334,7 @@ class CakeSchema extends Object {
 		}
 
 		ksort($tables);
-		return compact('name', 'tables');
+		return array('name' => $options['name'], 'tables' => $tables);
 	}
 
 /**
@@ -357,38 +355,38 @@ class CakeSchema extends Object {
 			unset($object);
 		}
 
-		extract(array_merge(
+		$options = array_merge(
 			get_object_vars($this), $options
-		));
+		);
 
-		$out = "class {$name}Schema extends CakeSchema {\n\n";
+		$out = "class {$options['name']}Schema extends CakeSchema {\n\n";
 
-		if ($path !== $this->path) {
-			$out .= "\tpublic \$path = '{$path}';\n\n";
+		if ($options['path'] !== $this->path) {
+			$out .= "\tpublic \$path = '{$options['path']}';\n\n";
 		}
 
-		if ($file !== $this->file) {
-			$out .= "\tpublic \$file = '{$file}';\n\n";
+		if ($options['file'] !== $this->file) {
+			$out .= "\tpublic \$file = '{$options['file']}';\n\n";
 		}
 
-		if ($connection !== 'default') {
-			$out .= "\tpublic \$connection = '{$connection}';\n\n";
+		if ($options['connection'] !== 'default') {
+			$out .= "\tpublic \$connection = '{$options['connection']}';\n\n";
 		}
 
 		$out .= "\tpublic function before(\$event = array()) {\n\t\treturn true;\n\t}\n\n\tpublic function after(\$event = array()) {\n\t}\n\n";
 
-		if (empty($tables)) {
+		if (empty($options['tables'])) {
 			$this->read();
 		}
 
-		foreach ($tables as $table => $fields) {
+		foreach ($options['tables'] as $table => $fields) {
 			if (!is_numeric($table) && $table !== 'missing') {
 				$out .= $this->generateTable($table, $fields);
 			}
 		}
 		$out .= "}\n";
 
-		$file = new File($path . DS . $file, true);
+		$file = new File($options['path'] . DS . $options['file'], true);
 		$content = "<?php \n{$out}";
 		if ($file->write($content)) {
 			return $content;
@@ -405,8 +403,14 @@ class CakeSchema extends Object {
  * @param string $table Table name you want returned.
  * @param array $fields Array of field information to generate the table with.
  * @return string Variable declaration for a schema class.
+ * @throws Exception
  */
 	public function generateTable($table, $fields) {
+		// Valid var name regex (http://www.php.net/manual/en/language.variables.basics.php)
+		if (!preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $table)) {
+			throw new Exception("Invalid table name '{$table}'");
+		}
+
 		$out = "\tpublic \${$table} = array(\n";
 		if (is_array($fields)) {
 			$cols = array();
@@ -487,6 +491,9 @@ class CakeSchema extends Object {
 			foreach ($fields as $field => $value) {
 				if (!empty($old[$table][$field])) {
 					$diff = $this->_arrayDiffAssoc($value, $old[$table][$field]);
+					if (empty($diff)) {
+						$diff = $this->_arrayDiffAssoc($old[$table][$field], $value);
+					}
 					if (!empty($diff) && $field !== 'indexes' && $field !== 'tableParameters') {
 						$tables[$table]['change'][$field] = $value;
 					}
@@ -604,9 +611,17 @@ class CakeSchema extends Object {
 		$db = $Obj->getDataSource();
 		$fields = $Obj->schema(true);
 
+		$hasPrimaryAlready = false;
+		foreach ($fields as $value) {
+			if (isset($value['key']) && $value['key'] === 'primary') {
+				$hasPrimaryAlready = true;
+				break;
+			}
+		}
+
 		$columns = array();
 		foreach ($fields as $name => $value) {
-			if ($Obj->primaryKey === $name) {
+			if ($Obj->primaryKey === $name && !$hasPrimaryAlready && !isset($value['key'])) {
 				$value['key'] = 'primary';
 			}
 			if (!isset($db->columns[$value['type']])) {

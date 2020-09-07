@@ -30,6 +30,7 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
+
 use ZoneMinder::ConfigData qw(:all);
 
 our @ISA = qw(Exporter ZoneMinder::Base);
@@ -57,81 +58,60 @@ our %EXPORT_TAGS = (
 push( @{$EXPORT_TAGS{config}}, @EXPORT_CONFIG );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = @{ $EXPORT_TAGS{all} };
 
 our @EXPORT = qw();
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
-use constant ZM_PID => "@ZM_PID@"; # Path to the ZoneMinder run pid file
-use constant ZM_CONFIG => "@ZM_CONFIG@"; # Path to the ZoneMinder config file
-use constant ZM_CONFIG_SUBDIR => "@ZM_CONFIG_SUBDIR@"; # Path to the ZoneMinder config subfolder
+use constant ZM_PID => '@ZM_PID@'; # Path to the ZoneMinder run pid file
+use constant ZM_CONFIG => '@ZM_CONFIG@'; # Path to the ZoneMinder config file
+use constant ZM_CONFIG_SUBDIR => '@ZM_CONFIG_SUBDIR@'; # Path to the ZoneMinder config subfolder
 
 use Carp;
+require ZoneMinder::Database;
 
 # Load the config from the database into the symbol table
 BEGIN {
+require ZoneMinder::Database;
 
   # Process name, value pairs from the main config file first
-  my $config_file = ZM_CONFIG;
-  process_configfile($config_file);
+  process_configfile(ZM_CONFIG);
 
   # Search for user created config files. If one or more are found then
   # update the Config hash with those values
-  if ( -d ZM_CONFIG_SUBDIR ) {
-      if ( -R ZM_CONFIG_SUBDIR ) {
-          foreach my $filename ( glob ZM_CONFIG_SUBDIR."/*.conf" ) {
-              process_configfile($filename);
-          }
-      } else {
-          print( STDERR "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on ".ZM_CONFIG_SUBDIR.".\n" );
+  if ( ZM_CONFIG_SUBDIR and -d ZM_CONFIG_SUBDIR ) {
+    if ( -R ZM_CONFIG_SUBDIR ) {
+      foreach my $filename (glob ZM_CONFIG_SUBDIR.'/*.conf' ) {
+        process_configfile($filename);
       }
-  }
-
-  use DBI;
-  my $socket;
-  my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-
-  if ( defined($portOrSocket) ) {
-    if ( $portOrSocket =~ /^\// ) {
-      $socket = ";mysql_socket=".$portOrSocket;
     } else {
-      $socket = ";host=".$host.";port=".$portOrSocket;
+      print(STDERR 'WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.ZM_CONFIG_SUBDIR.".\n");
     }
-  } else {
-    $socket = ";host=".$Config{ZM_DB_HOST}; 
   }
-  my $sslOptions = "";
-  if ( $Config{ZM_DB_SSL_CA_CERT} ) {
-    $sslOptions = ';'.join(';',
-        "mysql_ssl=1",
-        "mysql_ssl_ca_file=".$Config{ZM_DB_SSL_CA_CERT},
-        "mysql_ssl_client_key=".$Config{ZM_DB_SSL_CLIENT_KEY},
-        "mysql_ssl_client_cert=".$Config{ZM_DB_SSL_CLIENT_CERT}
-        );
-  }
-  my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-      .$socket.$sslOptions
-      , $Config{ZM_DB_USER}
-      , $Config{ZM_DB_PASS}
-      ) or croak( "Can't connect to db" );
-  my $sql = 'select * from Config';
-  my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
-  while( my $config = $sth->fetchrow_hashref() ) {
+
+	my $dbh = ZoneMinder::Database::zmDbConnect();
+  die "Unable to connect to DB. ZM Cannot continue.\n" if !$dbh;
+
+  my $sql = 'SELECT Name,Value FROM Config';
+  my $sth = $dbh->prepare_cached($sql) or croak("Can't prepare '$sql': ".$dbh->errstr());
+  my $res = $sth->execute() or croak("Can't execute: ".$sth->errstr());
+  while ( my $config = $sth->fetchrow_hashref() ) {
+    # If already defined skip it because we want the values in /etc/zm.conf to override the values in Config Table
+    next if exists $Config{$config->{Name}};
     $Config{$config->{Name}} = $config->{Value};
   }
   $sth->finish();
-#$dbh->disconnect();
-  if ( ! exists $Config{ZM_SERVER_ID} ) {
+  
+  if ( !$Config{ZM_SERVER_ID} ) {
     $Config{ZM_SERVER_ID} = undef;
-    $sth = $dbh->prepare_cached( 'SELECT * FROM Servers WHERE Name=?' );
+    $sth = $dbh->prepare_cached('SELECT * FROM Servers WHERE Name=?');
     if ( $Config{ZM_SERVER_NAME} ) {
-      $res = $sth->execute( $Config{ZM_SERVER_NAME} );
+      $res = $sth->execute($Config{ZM_SERVER_NAME});
       my $result = $sth->fetchrow_hashref();
       $Config{ZM_SERVER_ID} = $$result{Id};
     } elsif ( $Config{ZM_SERVER_HOST} ) {
-      $res = $sth->execute( $Config{ZM_SERVER_HOST} );
+      $res = $sth->execute($Config{ZM_SERVER_HOST});
       my $result = $sth->fetchrow_hashref();
       $Config{ZM_SERVER_ID} = $$result{Id};
     }
@@ -140,36 +120,41 @@ BEGIN {
 
   # This subroutine must be inside the BEGIN block
   sub process_configfile {
-      my $config_file = shift;
+    my $config_file = shift;
 
-      if ( -R $config_file ) {
-          open( my $CONFIG, "<", $config_file )
-              or croak( "Can't open config file '$config_file': $!" );
-          foreach my $str ( <$CONFIG> ) {
-              next if ( $str =~ /^\s*$/ );
-              next if ( $str =~ /^\s*#/ );
-              my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
-              if ( ! $name ) {
-                  print( STDERR "Warning, bad line in $config_file: $str\n" );
-                  next;
-              } # end if
-              $name =~ tr/a-z/A-Z/;
-              $Config{$name} = $value;
-          }
-          close( $CONFIG );
-      } else {
-          print( STDERR "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $config_file\n" );
-      }
-  }
+    if ( ! -R $config_file ) {
+      print(STDERR "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $config_file\n");
+      return;
+    }
+    open( my $CONFIG, '<', $config_file )
+      or croak("Can't open config file '$config_file': $!");
+    foreach my $str ( <$CONFIG> ) {
+      next if ( $str =~ /^\s*$/ );
+      next if ( $str =~ /^\s*#/ );
+      my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
+      if ( !$name ) {
+        print(STDERR "Warning, bad line in $config_file: $str\n");
+        next;
+      } # end if
+      $name = uc $name;
+      #if ( !$ZoneMinder::ConfigData::options_hash{$name} ) {
+      #print(STDERR "Warning, unknown config option name $name in $config_file\n");
+      #} else {
+      #print(STDERR "Warning, known config option name $name in $config_file\n");
+      #}
+      $Config{$name} = $value;
+    } # end foreach config line
+    close($CONFIG);
+  } # end sub process_configfile
 
 } # end BEGIN
 
 sub loadConfigFromDB {
-  print( "Loading config from DB" );
+  print('Loading config from DB');
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
-    print( "Error: unable to load options from database: $DBI::errstr\n" );
-    return( 0 );
+    print("Error: unable to load options from database: $DBI::errstr\n");
+    return(0);
   }
   my $sql = "select * from Config";
   my $sth = $dbh->prepare_cached( $sql )
@@ -179,16 +164,16 @@ sub loadConfigFromDB {
   my $option_count = 0;
   while( my $config = $sth->fetchrow_hashref() ) {
     my ( $name, $value ) = ( $config->{Name}, $config->{Value} );
-#print( "Name = '$name'\n" );
+    #print( "Name = '$name'\n" );
     my $option = $options_hash{$name};
     if ( !$option ) {
       warn( "No option '$name' found, removing.\n" );
       next;
     }
-#next if ( $option->{category} eq 'hidden' );
+    #next if ( $option->{category} eq 'hidden' );
     if ( defined($value) ) {
       if ( $option->{type} == $types{boolean} ) {
-        $option->{value} = $value?"yes":"no";
+        $option->{value} = $value?'yes':'no';
       } else {
         $option->{value} = $value;
       }
@@ -201,7 +186,7 @@ sub loadConfigFromDB {
 } # end sub loadConfigFromDB
 
 sub saveConfigToDB {
-  print( "Saving config to DB " . @options . " entries\n" );
+  print( 'Saving config to DB ' . @options . " entries\n" );
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
     print( "Error: unable to save options to database: $DBI::errstr\n" );
@@ -214,7 +199,7 @@ sub saveConfigToDB {
   $dbh->do('LOCK TABLE Config WRITE')
     or croak( "Can't lock Config table: " . $dbh->errstr() );
 
-  my $sql = "delete from Config";
+  my $sql = 'DELETE FROM Config';
   my $res = $dbh->do( $sql )
     or croak( "Can't do '$sql': ".$dbh->errstr() );
 
@@ -222,14 +207,14 @@ sub saveConfigToDB {
   my $sth = $dbh->prepare_cached( $sql )
     or croak( "Can't prepare '$sql': ".$dbh->errstr() );
   foreach my $option ( @options ) {
-#next if ( $option->{category} eq 'hidden' );
-#print( $option->{name}."\n" ) if ( !$option->{category} );
+    #next if ( $option->{category} eq 'hidden' );
+    #print( $option->{name}."\n" ) if ( !$option->{category} );
     $option->{db_type} = $option->{type}->{db_type};
     $option->{db_hint} = $option->{type}->{hint};
     $option->{db_pattern} = $option->{type}->{pattern};
     $option->{db_format} = $option->{type}->{format};
-    if ( $option->{db_type} eq "boolean" ) {
-      $option->{db_value} = ($option->{value} eq "yes") ? "1" : "0";
+    if ( $option->{db_type} eq 'boolean' ) {
+      $option->{db_value} = ($option->{value} eq 'yes') ? '1' : '0';
     } else {
       $option->{db_value} = $option->{value};
     }
@@ -237,7 +222,7 @@ sub saveConfigToDB {
       $option->{db_requires} = join( ";",
           map {
             my $value = $_->{value};
-            $value = ($value eq "yes") ? 1 : 0 if ( $options_hash{$_->{name}}->{db_type} eq "boolean" );
+            $value = ($value eq 'yes') ? 1 : 0 if ( $options_hash{$_->{name}}->{db_type} eq 'boolean' );
             ( "$_->{name}=$value" )
           } @$requires
           );
@@ -256,7 +241,7 @@ sub saveConfigToDB {
         $option->{category},
         $option->{readonly} ? 1 : 0,
         $option->{db_requires}
-        ) or croak( "Can't execute: ".$sth->errstr() );
+        ) or croak("Can't execute when updating config entry $$option{name}: ".$sth->errstr() );
   } # end foreach option
   $sth->finish();
 
@@ -307,6 +292,8 @@ Saves configuration held in memory to the database. The act of loading and
 saving configuration is a convenient way to ensure that the configuration
 held in the database corresponds with the most recent definitions and that
 all components are using the same set of configuration.
+
+=back
 
 =head2 EXPORT
 

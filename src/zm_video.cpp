@@ -57,7 +57,7 @@ int VideoWriter::Reset(const char* new_path) {
   /* Common variables reset */
 
   /* If there is a new path, use it */
-  if ( new_path != NULL ) {
+  if ( new_path != nullptr ) {
     path = new_path;
   }
 
@@ -97,6 +97,11 @@ X264MP4Writer::X264MP4Writer(
   }
   codec_pf = AV_PIX_FMT_YUV420P;
 
+  if ( ! swscaleobj.init() ) {
+    Error("Failed init swscaleobj");
+    return;
+  }
+
   swscaleobj.SetDefaults(zm_pf, codec_pf, width, height);
 
   /* Calculate the image sizes. We will need this for parameter checking */
@@ -111,7 +116,7 @@ X264MP4Writer::X264MP4Writer(
   }
 
   /* If supplied with user parameters to the encoder, copy them */
-  if ( p_user_params != NULL ) {
+  if ( p_user_params != nullptr ) {
     user_params = *p_user_params;
   }
 
@@ -139,7 +144,7 @@ X264MP4Writer::~X264MP4Writer() {
 int X264MP4Writer::Open() {
   /* Open the encoder */
   x264enc = x264_encoder_open(&x264params);
-  if ( x264enc == NULL ) {
+  if ( x264enc == nullptr ) {
     Error("Failed opening x264 encoder");
     return -1;
   }
@@ -211,7 +216,9 @@ int X264MP4Writer::Open() {
 int X264MP4Writer::Close() {
   /* Flush all pending frames */
   for ( int i = (x264_encoder_delayed_frames(x264enc) + 1); i > 0; i-- ) {
-    x264encodeloop(true);
+Debug(1,"Encoding delayed frame");
+    if ( x264encodeloop(true) < 0 )
+      break;
   }
 
   /* Close the encoder */
@@ -220,6 +227,7 @@ int X264MP4Writer::Close() {
   /* Close MP4 handle */
   MP4Close(mp4h);
 
+  Debug(1,"Optimising");
   /* Required for proper HTTP streaming */
   MP4Optimize((path + ".incomplete").c_str(), path.c_str());
 
@@ -228,7 +236,7 @@ int X264MP4Writer::Close() {
 
   bOpen = false;
 
-  Debug(7, "Video closed. Total frames: %d", frame_count);
+  Debug(1, "Video closed. Total frames: %d", frame_count);
 
   return 0;
 }
@@ -261,7 +269,7 @@ int X264MP4Writer::Encode(
     const size_t data_size,
     const unsigned int frame_time) {
   /* Parameter checking */
-  if ( data == NULL ) {
+  if ( data == nullptr ) {
     Error("NULL buffer");
     return -1;
   }
@@ -368,7 +376,10 @@ int X264MP4Writer::x264config() {
   x264params.b_annexb = 0;
 
   /* TODO: Setup error handler */
-  // x264params.i_log_level = X264_LOG_DEBUG;
+  if ( logDebugging() )
+    x264params.i_log_level = X264_LOG_DEBUG;
+  else
+    x264params.i_log_level = X264_LOG_NONE;
 
   /* Process user parameters (excluding preset, tune and profile) */
   for ( unsigned int i = 0; i < user_params.size(); i++ ) {
@@ -401,19 +412,19 @@ int X264MP4Writer::x264config() {
   return 0;
 }
 
-void X264MP4Writer::x264encodeloop(bool bFlush) {
+int X264MP4Writer::x264encodeloop(bool bFlush) {
   x264_nal_t* nals;
   int i_nals;
   int frame_size;
 
   if ( bFlush ) {
-    frame_size = x264_encoder_encode(x264enc, &nals, &i_nals, NULL, &x264picout);
+    frame_size = x264_encoder_encode(x264enc, &nals, &i_nals, nullptr, &x264picout);
   } else {
     frame_size = x264_encoder_encode(x264enc, &nals, &i_nals, &x264picin, &x264picout);
   }
 
   if ( frame_size > 0 || bFlush ) {
-    Debug(8, "x264 Frame: %d PTS: %d DTS: %d Size: %d\n",
+    Debug(1, "x264 Frame: %d PTS: %d DTS: %d Size: %d\n",
         frame_count, x264picout.i_pts, x264picout.i_dts, frame_size);
 
     /* Handle the previous frame */
@@ -447,11 +458,12 @@ void X264MP4Writer::x264encodeloop(bool bFlush) {
 
       /* Write the sample */
       if ( !buffer.empty() ) {
+        unsigned int bufSize = buffer.size();
         if ( !MP4WriteSample(
               mp4h,
               mp4vtid,
-              buffer.extract(buffer.size()),
-              buffer.size(),
+              buffer.extract(bufSize),
+              bufSize,
               duration,
               offset,
               prevKeyframe) ) {
@@ -490,11 +502,12 @@ void X264MP4Writer::x264encodeloop(bool bFlush) {
     }
 
   } else if ( frame_size == 0 ) {
-    Debug(7, "x264 encode returned zero. Delayed frames: %d",
+    Debug(1, "x264 encode returned zero. Delayed frames: %d",
         x264_encoder_delayed_frames(x264enc));
   } else {
     Error("x264 encode failed: %d", frame_size);
   }
+  return frame_size;
 }
 #endif  // ZM_VIDEOWRITER_X264MP4
 
@@ -502,12 +515,12 @@ int ParseEncoderParameters(
     const char* str,
     std::vector<EncoderParameter_t>* vec
     ) {
-  if ( vec == NULL ) {
+  if ( vec == nullptr ) {
     Error("NULL Encoder parameters vector pointer");
     return -1;
   }
 
-  if ( str == NULL ) {
+  if ( str == nullptr ) {
     Error("NULL Encoder parameters string");
     return -2;
   }

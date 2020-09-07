@@ -30,6 +30,13 @@ extern "C"
 
 static int jpeg_err_count = 0;
 
+void zm_jpeg_error_silent( j_common_ptr cinfo ){
+  zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
+  longjmp( zmerr->setjmp_buffer, 1 );
+}
+void zm_jpeg_emit_silence( j_common_ptr cinfo, int msg_level ){
+}
+
 void zm_jpeg_error_exit( j_common_ptr cinfo )
 {
   static char buffer[JMSG_LENGTH_MAX];
@@ -185,7 +192,7 @@ void zm_jpeg_mem_dest (j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_s
    * manager serially with the same JPEG object, because their private object
    * sizes may be different.  Caveat programmer.
    */
-  if ( cinfo->dest == NULL )
+  if ( cinfo->dest == nullptr )
   {
     /* first time for this JPEG object? */
     cinfo->dest = (struct jpeg_destination_mgr *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, SIZEOF(mem_destination_mgr));
@@ -276,8 +283,7 @@ static boolean fill_input_buffer (j_decompress_ptr cinfo)
   memcpy( src->buffer, src->inbuffer, (size_t) src->inbuffer_size );
   nbytes = src->inbuffer_size;
 
-  if ( nbytes <= 0 )
-  {
+  if ( nbytes == 0 ) {
     if ( src->start_of_data )  /* Treat empty input file as fatal error */
       ERREXIT(cinfo, JERR_INPUT_EMPTY);
     WARNMS(cinfo, JWRN_JPEG_EOF);
@@ -363,7 +369,7 @@ void zm_jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuff
    * This makes it unsafe to use this manager and a different source
    * manager serially with the same JPEG object.  Caveat programmer.
    */
-  if ( cinfo->src == NULL )
+  if ( cinfo->src == nullptr )
   {
       /* first time for this JPEG object? */
     cinfo->src = (struct jpeg_source_mgr *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, SIZEOF(mem_source_mgr));
@@ -390,7 +396,7 @@ void zm_jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuff
   src->inbuffer = (JOCTET *)inbuffer;
   src->inbuffer_size = inbuffer_size;
   src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
-  src->pub.next_input_byte = NULL; /* until buffer loaded */
+  src->pub.next_input_byte = nullptr; /* until buffer loaded */
 }
 
 void zm_use_std_huff_tables( j_decompress_ptr cinfo ) {

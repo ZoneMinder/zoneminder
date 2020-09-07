@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # ==========================================================================
 #
@@ -30,6 +30,7 @@ use warnings;
 
 require ZoneMinder::Base;
 require ZoneMinder::Object;
+require ZoneMinder::Server;
 
 use parent qw(Exporter ZoneMinder::Object);
 
@@ -45,68 +46,47 @@ use ZoneMinder::Database qw(:all);
 
 use POSIX;
 
-use vars qw/ $table $primary_key /;
+use vars qw/ $table $primary_key %fields/;
 $table = 'Storage';
 $primary_key = 'Id';
 #__PACKAGE__->table('Storage');
 #__PACKAGE__->primary_key('Id');
+%fields = map { $_ => $_ } qw( Id Name Path DoDelete ServerId Type Url DiskSpace Scheme );
 
-sub find {
-    shift if $_[0] eq 'ZoneMinder::Storage';
-    my %sql_filters = @_;
-
-    my $sql = 'SELECT * FROM Storage';
-    my @sql_filters;
-    my @sql_values;
-
-    if ( exists $sql_filters{Name} ) {
-        push @sql_filters , ' Name = ? ';
-        push @sql_values, $sql_filters{Name};
-    }
-    if ( exists $sql_filters{ServerId} ) {
-	    push @sql_filters, ' Id IN ( SELECT StorageId FROM Monitors WHERE ServerId=? )';
-	    push @sql_values, $sql_filters{ServerId};
-    }
-
-
-    $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
-    $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
-
-    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-        or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-    my $res = $sth->execute( @sql_values )
-            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-    my @results;
-
-    while( my $db_filter = $sth->fetchrow_hashref() ) {
-        my $filter = new ZoneMinder::Storage( $$db_filter{Id}, $db_filter );
-        push @results, $filter;
-    } # end while
-    return @results;
-}
-
-sub find_one {
-    my @results = find(@_);
-    return $results[0] if @results;
-}
 
 sub Path {
-	if ( @_ > 1 ) {
-		$_[0]{Path} = $_[1];
-	}
-	if ( ! ( $_[0]{Id} or $_[0]{Path} ) ) {
-		$_[0]{Path} = ($Config{ZM_DIR_EVENTS}=~/^\//) ? $Config{ZM_DIR_EVENTS} : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS})
-	}
-	return $_[0]{Path};
+  if ( @_ > 1 ) {
+    $_[0]{Path} = $_[1];
+  }
+  if ( ! ( $_[0]{Id} or $_[0]{Path} ) ) {
+    $_[0]{Path} = ($Config{ZM_DIR_EVENTS}=~/^\//) ? $Config{ZM_DIR_EVENTS} : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS})
+  }
+  return $_[0]{Path};
 } # end sub Path
 
 sub Name {
-	if ( @_ > 1 ) {
-		$_[0]{Name} = $_[1];
-	}
-	return $_[0]{Name};
+  if ( @_ > 1 ) {
+    $_[0]{Name} = $_[1];
+  }
+  return $_[0]{Name};
 } # end sub Path
+
+sub DoDelete {
+  my $self = shift;
+  $$self{DoDelete} = shift if @_;
+  if ( ! defined $$self{DoDelete} ) {
+    $$self{DoDelete} = 1;
+  }
+  return $$self{DoDelete};
+}
+
+sub Server {
+  my $self = shift;
+  if ( ! $$self{Server} ) {
+    $$self{Server} = new ZoneMinder::Server( $$self{ServerId} );
+  }
+  return $$self{Server};
+}
 
 1;
 __END__

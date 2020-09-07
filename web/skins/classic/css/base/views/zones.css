@@ -1,0 +1,54 @@
+.zones polygon {
+	fill-opacity: 0.25;
+	stroke-width: 2px;
+}
+.Active {
+	stroke: #ff0000;
+	fill: #ff0000;
+}
+.Inclusive {
+	stroke: #FFA500;
+	fill: #FFA500;
+}
+.Exclusive {
+	stroke: #800080;
+	fill: #800080;
+}
+.Preclusive {
+	stroke: #0000FF;
+	fill: #0000FF;
+}
+
+.zones, .ZonesImage {
+  position: relative;
+  width: 50%;
+  min-width: 500px;
+	float: left;
+}
+.ZonesImage img {
+  top:0;
+  left:0;
+  position: relative;
+}
+.ZonesImage svg {
+  width: 100%;
+  position:absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: none;
+}
+
+#content {
+width: 97%;
+position: relative;
+}
+
+.Monitor:after {
+  content: ".";
+  display: block;
+  height: 0;
+    font-size: 0;
+  clear: both;
+  visibility: hidden;
+}

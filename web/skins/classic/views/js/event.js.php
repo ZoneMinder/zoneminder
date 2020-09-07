@@ -1,3 +1,15 @@
+<?php
+  global $connkey;
+  global $Event;
+  global $Monitor;
+  global $filterQuery;
+  global $sortQuery;
+  global $rates;
+  global $rate;
+  global $scale;
+  global $streamMode;
+  global $popup;
+?>
 //
 // Import constants
 //
@@ -30,20 +42,33 @@ var eventData = {
     MonitorId: '<?php echo $Event->MonitorId() ?>',
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
-    Length: '<?php echo $Event->Length() ?>'
+    Length: '<?php echo $Event->Length() ?>',
+    StartTime: '<?php echo $Event->StartTime() ?>',
+    EndTime: '<?php echo $Event->EndTime() ?>',
+    Frames: '<?php echo $Event->Frames() ?>',
+    MonitorName: '<?php echo validJsStr($Monitor->Name()) ?>'
 };
+var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';
 
-var filterQuery = '<?php echo isset($filterQuery)?validJsStr($filterQuery):'' ?>';
-var sortQuery = '<?php echo isset($sortQuery)?validJsStr($sortQuery):'' ?>';
+var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
+var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 
-var scale = <?php echo $scale ?>;
-var canEditEvents = <?php echo canEdit( 'Events' )?'true':'false' ?>;
+var rates = <?php echo json_encode(array_keys($rates)) ?>;
+var rate = '<?php echo $rate ?>'; // really only used when setting up initial playback rate.
+var scale = "<?php echo $scale ?>";
+var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
+
+var canEditEvents = <?php echo canEdit('Events')?'true':'false' ?>;
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
+var streamMode = '<?php echo $streamMode ?>';
 
 //
 // Strings
 //
-var deleteString = "<?php echo translate('Delete') ?>";
-var causeString = "<?php echo translate('AttrCause') ?>";
+var deleteString = "<?php echo validJsStr(translate('Delete')) ?>";
+var causeString = "<?php echo validJsStr(translate('AttrCause')) ?>";
+var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
+var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
+var popup = '<?php echo $popup ?>';

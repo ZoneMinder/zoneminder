@@ -1,0 +1,39 @@
+.archived {
+    background-color: #ffc107;;
+}
+
+#contentTable.major .colTime {
+    white-space: nowrap;
+}
+
+#contentTable.major .colId, #contentTable.major .colDuration, #contentTable.major .colFrames, #contentTable.major .colAlarmFrames, #contentTable.major .colTotScore, #contentTable.major .colMaxScore, #contentTable.major .colAvgScore {
+    text-align: center;
+}
+
+#contentTable.major td.colDuration {
+    text-align: right;
+    padding-right: 8px;
+}
+
+#header {
+    display: flex;
+    justify-content: space-between;
+}
+
+#header h2, #header a {
+    line-height: 1.1;
+    margin:5px 0 0 0;
+}
+
+#header #info, #header #pagination, #header #controls {
+    display: flex;
+    flex-direction: column;
+}
+
+#header #controls {
+    align-items: flex-end;
+}
+
+#header #pagination {
+    align-items: center;
+}

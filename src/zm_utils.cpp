@@ -22,8 +22,11 @@
 #include "zm_utils.h"
 
 #include <string.h>
+#include <algorithm>
 #include <stdio.h>
 #include <stdarg.h>
+#include <fcntl.h> /* Definition of AT_* constants */
+#include <sys/stat.h>
 #if defined(__arm__)
 #include <sys/auxv.h>
 #endif
@@ -32,7 +35,7 @@
 #include <curl/curl.h>
 #endif
 
-unsigned int sseversion = 0;
+unsigned int sse_version = 0;
 unsigned int neonversion = 0;
 
 std::string trimSet(std::string str, std::string trimset) {
@@ -41,80 +44,70 @@ std::string trimSet(std::string str, std::string trimset) {
   size_t endpos = str.find_last_not_of(trimset); // Find the first character position from reverse af
  
   // if all spaces or empty return an empty string
-  if(( std::string::npos == startpos ) || ( std::string::npos == endpos))
-  {
+  if ( ( std::string::npos == startpos ) || ( std::string::npos == endpos ) )
     return std::string("");
-  }
-  else
-    return str.substr( startpos, endpos-startpos+1 );
+  return str.substr(startpos, endpos-startpos+1);
 }
 
-std::string trimSpaces(std::string str)
-{
+std::string trimSpaces(const std::string &str) {
   return trimSet(str, " \t");
 }
 
 std::string replaceAll(std::string str, std::string from, std::string to) {
-  if(from.empty())
+  if ( from.empty() )
     return str;
   size_t start_pos = 0;
-  while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+  while ( (start_pos = str.find(from, start_pos)) != std::string::npos ) {
     str.replace(start_pos, from.length(), to);
     start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
   }
   return str;
 }
 
-const std::string stringtf( const char *format, ... )
-{
+const std::string stringtf( const char *format, ... ) {
   va_list ap;
   char tempBuffer[8192];
   std::string tempString;
 
-  va_start(ap, format );
-  vsnprintf( tempBuffer, sizeof(tempBuffer), format , ap );
+  va_start(ap, format);
+  vsnprintf(tempBuffer, sizeof(tempBuffer), format , ap);
   va_end(ap);
 
   tempString = tempBuffer;
 
-  return( tempString );
+  return tempString;
 }
 
-const std::string stringtf( const std::string &format, ... )
-{
+const std::string stringtf(const std::string format, ...) {
   va_list ap;
   char tempBuffer[8192];
   std::string tempString;
 
-  va_start(ap, format );
-  vsnprintf( tempBuffer, sizeof(tempBuffer), format.c_str() , ap );
+  va_start(ap, format);
+  vsnprintf(tempBuffer, sizeof(tempBuffer), format.c_str(), ap);
   va_end(ap);
 
   tempString = tempBuffer;
 
-  return( tempString );
+  return tempString;
 }
 
-bool startsWith( const std::string &haystack, const std::string &needle )
-{
-  return( haystack.substr( 0, needle.length() ) == needle );
+bool startsWith(const std::string &haystack, const std::string &needle) {
+  return ( haystack.substr(0, needle.length()) == needle );
 }
 
-StringVector split( const std::string &string, const std::string chars, int limit )
-{
+StringVector split(const std::string &string, const std::string &chars, int limit) {
   StringVector stringVector;
   std::string tempString = string;
   std::string::size_type startIndex = 0;
   std::string::size_type endIndex = 0;
 
   //Info( "Looking for '%s' in '%s', limit %d", chars.c_str(), string.c_str(), limit );
-  do
-  {
+  do {
     // Find delimiters
     endIndex = string.find_first_of( chars, startIndex );
     //Info( "Got endIndex at %d", endIndex );
-    if ( endIndex > 0 )
-    {
+    if ( endIndex > 0 ) {
       //Info( "Adding '%s'", string.substr( startIndex, endIndex-startIndex ).c_str() );
       stringVector.push_back( string.substr( startIndex, endIndex-startIndex ) );
     }
@@ -122,8 +115,7 @@ StringVector split( const std::string &string, const std::string chars, int limi
       break;
     // Find non-delimiters
     startIndex = tempString.find_first_not_of( chars, endIndex );
-    if ( limit && (stringVector.size() == (unsigned int)(limit-1)) )
-    {
+    if ( limit && (stringVector.size() == (unsigned int)(limit-1)) ) {
       stringVector.push_back( string.substr( startIndex ) );
       break;
     }
@@ -131,26 +123,24 @@ StringVector split( const std::string &string, const std::string chars, int limi
   } while ( startIndex != std::string::npos );
   //Info( "Finished with %d strings", stringVector.size() );
 
-  return( stringVector );
+  return stringVector;
 }
 
-const std::string join(const StringVector v, const char * delim ) {
+const std::string join(const StringVector &v, const char * delim=",") {
   std::stringstream ss;
 
-  for(size_t i = 0; i < v.size(); ++i) {
-    if(i != 0)
-      ss << ",";
+  for (size_t i = 0; i < v.size(); ++i) {
+    if ( i != 0 )
+      ss << delim;
     ss << v[i];
   }
   return ss.str();
 }
 
-const std::string base64Encode( const std::string &inString )
-{
+const std::string base64Encode(const std::string &inString) {
   static char base64_table[64] = { '\0' };
 
-  if ( !base64_table[0] )
-  {
+  if ( !base64_table[0] ) {
     int i = 0;
     for ( char c = 'A'; c <= 'Z'; c++ )
       base64_table[i++] = c;
@@ -163,60 +153,52 @@ const std::string base64Encode( const std::string &inString )
   }
 
   std::string outString;
-  outString.reserve( 2 * inString.size() );
+  outString.reserve(2 * inString.size());
 
   const char *inPtr = inString.c_str();
-  while( *inPtr )
-  {
+  while ( *inPtr ) {
     unsigned char selection = *inPtr >> 2;
     unsigned char remainder = (*inPtr++ & 0x03) << 4;
     outString += base64_table[selection];
 
-    if ( *inPtr )
-    {
+    if ( *inPtr ) {
       selection = remainder | (*inPtr >> 4);
       remainder = (*inPtr++ & 0x0f) << 2;
       outString += base64_table[selection];
     
-      if ( *inPtr )
-      {
+      if ( *inPtr ) {
         selection = remainder | (*inPtr >> 6);
         outString += base64_table[selection];
         selection = (*inPtr++ & 0x3f);
         outString += base64_table[selection];
-      }
-      else
-      {
+      } else {
         outString += base64_table[remainder];
         outString += '=';
       }
-    }
-    else
-    {
+    } else {
       outString += base64_table[remainder];
       outString += '=';
       outString += '=';
     }
   }
-  return( outString );
+  return outString;
 }
 
 int split(const char* string, const char delim, std::vector<std::string>& items) {
-  if(string == NULL)
+  if ( string == nullptr )
     return -1;
 
-  if(string[0] == 0)
+  if ( string[0] == 0 )
     return -2;
 
   std::string str(string);
-  size_t pos;
   
-  while(true) {
-    pos = str.find(delim);
+  while ( true ) {
+    size_t pos = str.find(delim);
     items.push_back(str.substr(0, pos));
     str.erase(0, pos+1);
 
-    if(pos == std::string::npos)
+    if ( pos == std::string::npos )
       break;
   }
 
@@ -224,16 +206,16 @@ int split(const char* string, const char delim, std::vector<std::string>& items)
 }
 
 int pairsplit(const char* string, const char delim, std::string& name, std::string& value) {
-  if(string == NULL)
+  if ( string == nullptr )
     return -1;
 
-  if(string[0] == 0)
+  if ( string[0] == 0 )
     return -2;
 
   std::string str(string);
   size_t pos = str.find(delim);
 
-  if(pos == std::string::npos || pos == 0 || pos >= str.length())
+  if ( pos == std::string::npos || pos == 0 || pos >= str.length() )
     return -3;
 
   name = str.substr(0, pos);
@@ -245,7 +227,7 @@ int pairsplit(const char* string, const char delim, std::string& name, std::stri
 /* Detect special hardware features, such as SIMD instruction sets */
 void hwcaps_detect() {
   neonversion = 0;
-  sseversion = 0;
+  sse_version = 0;
 #if (defined(__i386__) || defined(__x86_64__))
   /* x86 or x86-64 processor */
   uint32_t r_edx, r_ecx, r_ebx;
@@ -282,33 +264,33 @@ void hwcaps_detect() {
   );
 #endif
 
-  if (r_ebx & 0x00000020) {
-    sseversion = 52; /* AVX2 */
-    Debug(1,"Detected a x86\\x86-64 processor with AVX2");
-  } else if (r_ecx & 0x10000000) {
-    sseversion = 51; /* AVX */
-    Debug(1,"Detected a x86\\x86-64 processor with AVX");
-  } else if (r_ecx & 0x00100000) {
-    sseversion = 42; /* SSE4.2 */
-    Debug(1,"Detected a x86\\x86-64 processor with SSE4.2");
-  } else if (r_ecx & 0x00080000) {
-    sseversion = 41; /* SSE4.1 */
-    Debug(1,"Detected a x86\\x86-64 processor with SSE4.1");
-  } else if (r_ecx & 0x00000200) {
-    sseversion = 35; /* SSSE3 */
+  if ( r_ebx & 0x00000020 ) {
+    sse_version = 52; /* AVX2 */
+    Debug(1, "Detected a x86\\x86-64 processor with AVX2");
+  } else if ( r_ecx & 0x10000000 ) {
+    sse_version = 51; /* AVX */
+    Debug(1, "Detected a x86\\x86-64 processor with AVX");
+  } else if ( r_ecx & 0x00100000 ) {
+    sse_version = 42; /* SSE4.2 */
+    Debug(1, "Detected a x86\\x86-64 processor with SSE4.2");
+  } else if ( r_ecx & 0x00080000 ) {
+    sse_version = 41; /* SSE4.1 */
+    Debug(1, "Detected a x86\\x86-64 processor with SSE4.1");
+  } else if ( r_ecx & 0x00000200 ) {
+    sse_version = 35; /* SSSE3 */
     Debug(1,"Detected a x86\\x86-64 processor with SSSE3");
-  } else if (r_ecx & 0x00000001) {
-    sseversion = 30; /* SSE3 */
-    Debug(1,"Detected a x86\\x86-64 processor with SSE3");
-  } else if (r_edx & 0x04000000) {
-    sseversion = 20; /* SSE2 */
-    Debug(1,"Detected a x86\\x86-64 processor with SSE2");
-  } else if (r_edx & 0x02000000) {
-    sseversion = 10; /* SSE */
-    Debug(1,"Detected a x86\\x86-64 processor with SSE");
+  } else if ( r_ecx & 0x00000001 ) {
+    sse_version = 30; /* SSE3 */
+    Debug(1, "Detected a x86\\x86-64 processor with SSE3");
+  } else if ( r_edx & 0x04000000 ) {
+    sse_version = 20; /* SSE2 */
+    Debug(1, "Detected a x86\\x86-64 processor with SSE2");
+  } else if ( r_edx & 0x02000000 ) {
+    sse_version = 10; /* SSE */
+    Debug(1, "Detected a x86\\x86-64 processor with SSE");
   } else {
-    sseversion = 0;
-    Debug(1,"Detected a x86\\x86-64 processor");
+    sse_version = 0;
+    Debug(1, "Detected a x86\\x86-64 processor");
   } 
 #elif defined(__arm__)
   // ARM processor in 32bit mode
@@ -338,7 +320,7 @@ __attribute__((noinline,__target__("sse2")))
 #endif
 void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
-  if(bytes > 128) {
+  if ( bytes > 128 ) {
     unsigned int remainder = bytes % 128;
     const uint8_t* lastsrc = (uint8_t*)src + (bytes - remainder);
 
@@ -380,7 +362,7 @@ void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
   }
 #else
   /* Non x86\x86-64 platform, use memcpy */
-  memcpy(dest,src,bytes);
+  memcpy(dest, src, bytes);
 #endif
   return dest;
 }
@@ -398,27 +380,68 @@ void timespec_diff(struct timespec *start, struct timespec *end, struct timespec
 char *timeval_to_string( struct timeval tv ) {
   time_t nowtime;
   struct tm *nowtm;
-  static char tmbuf[64], buf[64];
+  static char tmbuf[20], buf[28];
 
   nowtime = tv.tv_sec;
   nowtm = localtime(&nowtime);
   strftime(tmbuf, sizeof tmbuf, "%Y-%m-%d %H:%M:%S", nowtm);
-  snprintf(buf, sizeof buf, "%s.%06ld", tmbuf, tv.tv_usec);
+  snprintf(buf, sizeof buf-1, "%s.%06ld", tmbuf, tv.tv_usec);
   return buf;
 }
 
 std::string UriDecode( const std::string &encoded ) {
-#ifdef HAVE_LIBCURL 
-  CURL *curl = curl_easy_init();
-    int outlength;
-    char *cres = curl_easy_unescape(curl, encoded.c_str(), encoded.length(), &outlength);
-    std::string res(cres, cres + outlength);
-    curl_free(cres);
-    curl_easy_cleanup(curl);
-    return res;
-#else
-Warning("ZM Compiled without LIBCURL.  UriDecoding not implemented.");
-  return encoded;
-#endif
+  char a, b;
+  const char *src = encoded.c_str();
+  std::string retbuf;
+  retbuf.resize(encoded.length() + 1);
+  char *dst = &retbuf[0];
+  while (*src) {
+    if ((*src == '%') && ((a = src[1]) && (b = src[2])) && (isxdigit(a) && isxdigit(b))) {
+      if (a >= 'a')
+        a -= 'a'-'A';
+      if (a >= 'A')
+        a -= ('A' - 10);
+      else
+        a -= '0';
+      if (b >= 'a')
+        b -= 'a'-'A';
+      if (b >= 'A')
+        b -= ('A' - 10);
+      else
+        b -= '0';
+      *dst++ = 16*a+b;
+      src+=3;
+    } else if (*src == '+') {
+      *dst++ = ' ';
+      src++;
+    } else {
+      *dst++ = *src++;
+    }
+  }
+  *dst++ = '\0';
+  return retbuf;
+}
+
+void string_toupper( std::string& str) {
+  std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+}
+
+void touch(const char *pathname) {
+  int fd = open(pathname,
+      O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK,
+      0666);
+  if ( fd < 0 ) {
+    // Couldn't open that path.
+    Error("Couldn't open() path %s in touch", pathname);
+    return;
+  }
+  int rc = utimensat(AT_FDCWD,
+      pathname,
+      nullptr,
+      0);
+  if ( rc ) {
+    Error("Couldn't utimensat() path %s in touch", pathname);
+    return;
+  }
 }
 

@@ -30,16 +30,18 @@
 #endif // HAVE_SYS_SYSCALL_H
 #include <mysql/mysql.h>
 
+#include "zm_thread.h"
+
 class Logger {
 public:
   enum { 
     NOOPT=-6,
-    NOLOG,
-    PANIC,
-    FATAL,
-    ERROR,
-    WARNING,
-    INFO,
+    NOLOG, // -5
+    PANIC, // -4
+    FATAL, // -3
+    ERROR, // -2
+    WARNING, // -1
+    INFO, // 0
     DEBUG1,
     DEBUG2,
     DEBUG3,
@@ -56,10 +58,9 @@ public:
   typedef std::map<Level,std::string> StringMap;
   typedef std::map<Level,int> IntMap;
 
-  class Options
-  {
+  class Options {
   public:
-    int mTermLevel;
+    int mTerminalLevel;
     int mDatabaseLevel;
     int mFileLevel;
     int mSyslogLevel;
@@ -67,14 +68,20 @@ public:
     std::string mLogPath;
     std::string mLogFile;
 
-  public:
-    Options( Level termLevel=NOOPT, Level databaseLevel=NOOPT, Level fileLevel=NOOPT, Level syslogLevel=NOOPT, const std::string &logPath=".", const std::string &logFile="" ) :
-      mTermLevel( termLevel ),
-      mDatabaseLevel( databaseLevel ),
-      mFileLevel( fileLevel ),
-      mSyslogLevel( syslogLevel ),
-      mLogPath( logPath ),
-      mLogFile( logFile )
+    Options(
+        Level terminalLevel=NOOPT,
+        Level databaseLevel=NOOPT,
+        Level fileLevel=NOOPT,
+        Level syslogLevel=NOOPT,
+        const std::string &logPath=".",
+        const std::string &logFile=""
+        ) :
+      mTerminalLevel(terminalLevel),
+      mDatabaseLevel(databaseLevel),
+      mFileLevel(fileLevel),
+      mSyslogLevel(syslogLevel),
+      mLogPath(logPath),
+      mLogFile(logFile)
     {
     }
   };
@@ -83,101 +90,90 @@ private:
   static bool smInitialised;
   static Logger *smInstance;
 
+  RecursiveMutex log_mutex;
+
   static StringMap smCodes;
   static IntMap smSyslogPriorities;
 
-private:
   bool mInitialised;
 
   std::string mId;
   std::string mIdRoot;
   std::string mIdArgs;
 
-  Level mLevel;       // Level that is currently in operation
-  Level mTermLevel;     // Maximum level output via terminal
-  Level mDatabaseLevel;   // Maximum level output via database
-  Level mFileLevel;     // Maximum level output via file
-  Level mSyslogLevel;   // Maximum level output via syslog
-  Level mEffectiveLevel;  // Level optimised to take account of maxima
+  Level mLevel;             // Level that is currently in operation
+  Level mTerminalLevel;     // Maximum level output via terminal
+  Level mDatabaseLevel;     // Maximum level output via database
+  Level mFileLevel;         // Maximum level output via file
+  Level mSyslogLevel;       // Maximum level output via syslog
+  Level mEffectiveLevel;    // Level optimised to take account of maxima
 
   bool mDbConnected;
-  MYSQL mDbConnection;
+
   std::string mLogPath;
   std::string mLogFile;
   FILE *mLogFileFP;
 
-  bool mHasTerm;
+  bool mHasTerminal;
   bool mFlush;
-
-private:
-  static void usrHandler( int sig );
-
-public:
-  friend void logInit( const char *name, const Options &options );
-  friend void logTerm();
-
-  static Logger *fetch()
-  {
-    if ( !smInstance )
-    {
-      smInstance = new Logger();
-      Options options;
-      smInstance->initialise( "undef", options );
-    }
-    return( smInstance );
-  }
 
 private:
   Logger();
   ~Logger();
 
-public:
-  void initialise( const std::string &id, const Options &options );
-  void terminate();
-
-private:
-  int limit( int level )
-  {
+  int limit(int level) {
     if ( level > DEBUG9 )
-      return( DEBUG9 );
+      return DEBUG9;
     if ( level < NOLOG )
-      return( NOLOG );
-    return( level );
+      return NOLOG;
+    return level;
   }
 
-  bool boolEnv( const std::string &name, bool defaultValue=false );
-  int intEnv( const std::string &name, bool defaultValue=0 );
-  std::string strEnv( const std::string &name, const std::string defaultValue="" );
-  char *getTargettedEnv( const std::string &name );
+  bool boolEnv(const std::string &name, bool defaultValue=false);
+  int intEnv(const std::string &name, bool defaultValue=0);
+  std::string strEnv(const std::string &name, const std::string &defaultValue="");
+  char *getTargettedEnv(const std::string &name);
 
   void loadEnv();
+  static void usrHandler(int sig);
 
 public:
-  const std::string &id() const
-  {
-    return( mId );
+  friend void logInit(const char *name, const Options &options);
+  friend void logTerm();
+
+  static Logger *fetch() {
+    if ( !smInstance ) {
+      smInstance = new Logger();
+      Options options;
+      smInstance->initialise("undef", options);
+    }
+    return smInstance;
   }
 
-  const std::string &id( const std::string &id );
+  void initialise(const std::string &id, const Options &options);
+  void terminate();
 
-  Level level() const
-  {
-    return( mLevel );
-  }
-  Level level( Level=NOOPT );
-
-  bool debugOn()
-  {
-    return( mEffectiveLevel >= DEBUG1 );
+  const std::string &id(const std::string &id);
+  const std::string &id() const {
+    return mId;
   }
 
-  Level termLevel( Level=NOOPT );
-  Level databaseLevel( Level=NOOPT );
-  Level fileLevel( Level=NOOPT );
-  Level syslogLevel( Level=NOOPT );
+  Level level() const {
+    return mLevel;
+  }
+  Level level(Level=NOOPT);
+
+  bool debugOn() {
+    return mEffectiveLevel >= DEBUG1;
+  }
+
+  Level terminalLevel(Level=NOOPT);
+  Level databaseLevel(Level=NOOPT);
+  Level fileLevel(Level=NOOPT);
+  Level syslogLevel(Level=NOOPT);
 
 private:
-  void logFile( const std::string &logFile );
+  void logFile(const std::string &logFile);
   void openFile();
   void closeFile();
   void openSyslog();
@@ -185,26 +181,19 @@ private:
   void closeDatabase();
 
 public:
-  void logPrint( bool hex, const char * const filepath, const int line, const int level, const char *fstring, ... );
+  void logPrint(bool hex, const char * const filepath, const int line, const int level, const char *fstring, ...);
 };
 
-void logInit( const char *name, const Logger::Options &options=Logger::Options() );
+void logInit(const char *name, const Logger::Options &options=Logger::Options());
 void logTerm();
-inline const std::string &logId()
-{
-  return( Logger::fetch()->id() );
+inline const std::string &logId() {
+  return Logger::fetch()->id();
 }
-inline Logger::Level logLevel()
-{
-  return( Logger::fetch()->level() );
+inline Logger::Level logLevel() {
+  return Logger::fetch()->level();
 }
-inline void logCapLevel( Logger::Level level )
-{
-  Logger::fetch()->level( level );
-}
-inline Logger::Level logDebugging()
-{
-  return( Logger::fetch()->debugOn() );
+inline Logger::Level logDebugging() {
+  return Logger::fetch()->debugOn();
 }
 
 #define logPrintf(logLevel,params...)  {\

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -173,6 +173,12 @@ my $cwd = getcwd;
 
 my $video_name;
 my @event_ids;
+
+# Fail if the path to a valid ffmpeg binary is not set
+if ( ! -x $Config{ZM_PATH_FFMPEG} ) {
+    Fatal("Ffmpeg binary not found or not executable. Verify ZM_PATH_FFMPEG points to ffmpeg, avconv, or a compatible binary.");
+}
+
 if ( $event_id ) {
   @event_ids = ( $event_id );
 
@@ -197,8 +203,6 @@ my $sql = " SELECT (SELECT max(Delta) FROM Frames WHERE EventId=Events.Id)-(SELE
    Events.*,
    unix_timestamp(Events.StartTime) as Time,
    M.Name as MonitorName,
-   M.Width as MonitorWidth,
-   M.Height as MonitorHeight,
    M.Palette
    FROM Events
    INNER JOIN Monitors as M on Events.MonitorId = M.Id

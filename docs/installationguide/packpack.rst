@@ -1,5 +1,7 @@
-All Distros - A Simpler Way to Build ZoneMinder
+All Distros - A Docker Way to Build ZoneMinder
 ===============================================
+
+.. note:: If you are looking for an easy way to run ZoneMinder and not interested in building your own docker image, please refer to :doc:`easydocker`.
 
 .. contents::
 
@@ -27,6 +29,8 @@ Procedure
 
 - If the desired distro does not appear in either list, then unfortuantely you cannot use the procedure described here.
 
+- If the desired distro architecture is arm, refer to `Appendix A - Enable Qemu On the Host`_ to enable qemu emulation on your amd64 host machine.
+
 **Step 2:** Install Docker.
 
 You need to have a working installation of Docker so head over to the `Docker site <https://docs.docker.com/engine/installation/>`_ and get it working. Before continuing to the next step, verify you can run the Docker "Hello World" container as a normal user. To run a Docker container as a normal user, issue the following:
@@ -44,7 +48,7 @@ Clone the ZoneMinder project if you have not done so already.
 
 ::
 
-	git clone ZoneMinder
+	git clone https://github.com/ZoneMinder/ZoneMinder
         cd ZoneMinder
 
 Alternatively, if you have already cloned the repo and wish to update it, do the following.
@@ -99,7 +103,27 @@ For advanced users who really want to go out into uncharted waters, it is theore
 
 Building arm packages in this manner has not been tested by us, however.
 
+Appendix A - Enable Qemu On the Host
+------------------------------------
 
+If you intend to build ZoneMinder packages for arm on an amd64 host, then Debian users can following these steps to enable transparent Qemu emulation:
 
+::
 
+	sudo apt-get install binfmt-support qemu qemu-user-static
 
+Verify arm emulation is enabled by issuing:
+
+::
+
+	sudo update-binfmts --enable qemu-arm
+
+You may get a message stating emulation for this processor is already enabled. 
+
+More testing needs to be done for Redhat distros but it appears Fedora users can just run:
+
+::
+
+	sudo systemctl start systemd-binfmt
+
+.. todo:: Verify the details behind enabling qemu emulation on redhat distros. Pull requests are welcome.

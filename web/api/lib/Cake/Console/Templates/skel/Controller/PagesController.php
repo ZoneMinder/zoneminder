@@ -4,7 +4,7 @@
  *
  * This file will render views from views/pages/
  *
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       app.Controller
  * @since         CakePHP(tm) v 0.2.9
  */
@@ -17,7 +17,7 @@ App::uses('AppController', 'Controller');
  * Override this controller by placing a copy in controllers directory of an application
  *
  * @package       app.Controller
- * @link http://book.cakephp.org/2.0/en/controllers/pages-controller.html
+ * @link https://book.cakephp.org/2.0/en/controllers/pages-controller.html
  */
 class PagesController extends AppController {
 
@@ -32,6 +32,7 @@ class PagesController extends AppController {
  * Displays a view
  *
  * @return void
+ * @throws ForbiddenException When a directory traversal attempt.
  * @throws NotFoundException When the view file could not be found
  *   or MissingViewException in debug mode.
  */
@@ -41,6 +42,9 @@ class PagesController extends AppController {
 		$count = count($path);
 		if (!$count) {
 			return $this->redirect('/');
+		}
+		if (in_array('..', $path, true) || in_array('.', $path, true)) {
+			throw new ForbiddenException();
 		}
 		$page = $subpage = $title_for_layout = null;
 

@@ -29,12 +29,13 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#define SOCKET_BUF_SIZE 8192
+
 //
 // Class representing 'remote' cameras, i.e. those which are
 // accessed over a network connection.
 //
-class RemoteCamera : public Camera
-{
+class RemoteCamera : public Camera {
 protected:
   std::string  protocol;
   std::string  host;
@@ -44,6 +45,7 @@ protected:
   std::string  username;
   std::string  password;
   std::string  auth64;
+  struct addrinfo *hp;
 
   // Reworked authentication system
   // First try without authentication, even if we have a username and password
@@ -52,8 +54,6 @@ protected:
   // subsequent requests can set the required authentication header.
   bool mNeedAuth;
   zm::Authenticator* mAuthenticator;
-protected:
-  struct addrinfo *hp;
 
 public:
   RemoteCamera(
@@ -86,10 +86,12 @@ public:
   virtual void Terminate() = 0;
   virtual int Connect() = 0;
   virtual int Disconnect() = 0;
-  virtual int PreCapture() = 0;
+  virtual int PreCapture() { return 0; };
+  virtual int PrimeCapture() { return 0; };
   virtual int Capture( Image &image ) = 0;
   virtual int PostCapture() = 0;
   virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory )=0;
+  int Read( int fd, char*buf, int size );
 };
 
 #endif // ZM_REMOTE_CAMERA_H

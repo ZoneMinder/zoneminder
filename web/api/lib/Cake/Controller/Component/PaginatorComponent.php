@@ -2,18 +2,18 @@
 /**
  * Paginator Component
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Controller.Component
  * @since         CakePHP(tm) v 2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Component', 'Controller');
@@ -66,7 +66,7 @@ App::uses('Hash', 'Utility');
  * Would paginate using the `find('popular')` method.
  *
  * @package       Cake.Controller.Component
- * @link http://book.cakephp.org/2.0/en/core-libraries/components/pagination.html
+ * @link https://book.cakephp.org/2.0/en/core-libraries/components/pagination.html
  */
 class PaginatorComponent extends Component {
 
@@ -80,6 +80,21 @@ class PaginatorComponent extends Component {
  * - `paramType` What type of parameters you want pagination to use?
  *      - `named` Use named parameters / routed parameters.
  *      - `querystring` Use query string parameters.
+ * - `queryScope` By using request parameter scopes you can paginate multiple queries in the same controller action.
+ *
+ * ```
+ * $paginator->paginate = array(
+ *	'Article' => array('queryScope' => 'articles'),
+ *	'Tag' => array('queryScope' => 'tags'),
+ * );
+ * ```
+ *
+ * Each of the above queries will use different query string parameter sets
+ * for pagination data. An example URL paginating both results would be:
+ *
+ * ```
+ * /dashboard/articles[page]:1/tags[page]:2
+ * ```
  *
  * @var array
  */
@@ -87,7 +102,8 @@ class PaginatorComponent extends Component {
 		'page' => 1,
 		'limit' => 20,
 		'maxLimit' => 100,
-		'paramType' => 'named'
+		'paramType' => 'named',
+		'queryScope' => null
 	);
 
 /**
@@ -225,7 +241,8 @@ class PaginatorComponent extends Component {
 			'order' => $order,
 			'limit' => $limit,
 			'options' => Hash::diff($options, $defaults),
-			'paramType' => $options['paramType']
+			'paramType' => $options['paramType'],
+			'queryScope' => $options['queryScope'],
 		);
 
 		if (!isset($this->Controller->request['paging'])) {
@@ -317,6 +334,9 @@ class PaginatorComponent extends Component {
 				$request = $this->Controller->request->query;
 				break;
 		}
+		if ($defaults['queryScope']) {
+			$request = Hash::get($request, $defaults['queryScope'], array());
+		}
 		$request = array_intersect_key($request, array_flip($this->whitelist));
 		return array_merge($defaults, $request);
 	}
@@ -337,7 +357,8 @@ class PaginatorComponent extends Component {
 			'page' => 1,
 			'limit' => 20,
 			'maxLimit' => 100,
-			'paramType' => 'named'
+			'paramType' => 'named',
+			'queryScope' => null
 		);
 		return $defaults;
 	}
@@ -382,13 +403,13 @@ class PaginatorComponent extends Component {
 			}
 			return $options;
 		}
-
 		if (!empty($options['order']) && is_array($options['order'])) {
 			$order = array();
 			foreach ($options['order'] as $key => $value) {
 				if (is_int($key)) {
-					$key = $value;
-					$value = 'asc';
+					$field = explode(' ', $value);
+					$key = $field[0];
+					$value = count($field) === 2 ? trim($field[1]) : 'asc';
 				}
 				$field = $key;
 				$alias = $object->alias;

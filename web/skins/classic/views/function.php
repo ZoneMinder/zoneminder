@@ -18,45 +18,35 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Monitors' ) ) {
-    $view = 'error';
-    return;
+if ( !canEdit('Monitors') ) {
+  $view = 'error';
+  return;
 }
-
-$monitor = dbFetchMonitor( $_REQUEST['mid'] );
-
-$focusWindow = true;
-
-xhtmlHeaders(__FILE__, translate('Function')." - ".validHtmlStr($monitor['Name']) );
 ?>
-<body>
-  <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Function')." - ".validHtmlStr($monitor['Name']) ?></h2>
-    </div>
-    <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="action" value="function"/>
-        <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
+
+<div id="modalFunction" class="modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+<form id="function_form" action="?view=function&action=function" method="post">
+  <input type="hidden" name="mid"/>
+      <div class="modal-header">
+        <h5 class="modal-title"><?php echo translate('Function') ?> - <span id="function_monitor_name"></span></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
         <p>
-          <select name="newFunction">
-<?php
-foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction ) {
-?>
-            <option value="<?php echo $optFunction ?>"<?php if ( $optFunction == $monitor['Function'] ) { ?> selected="selected"<?php } ?>><?php echo translate('Fn'.$optFunction) ?></option>
-<?php
-}
-?>
-          </select>
-          <label for="newEnabled"><?php echo translate('Enabled') ?></label><input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
+          <?php echo htmlSelect('newFunction', ZM\getMonitorFunctionTypes(), null, array('id'=>'newFunction')); ?>
+          <label for="newEnabled"><?php echo translate('Enabled') ?></label>
+          <input type="checkbox" name="newEnabled" id="newEnabled" value="1"/>
         </p>
-        <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
-        </div>
-      </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="funcSaveBtn btn btn-primary"><?php echo translate('Save') ?></button>
+        <button type="button" class="funcCancelBtn btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
+      </div>
+</form>
     </div>
   </div>
-</body>
-</html>
+</div>

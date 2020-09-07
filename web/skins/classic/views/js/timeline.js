@@ -1,10 +1,11 @@
 var events = {};
 
-function showEvent( eid, fid, width, height ) {    
+function showEvent(e) {
+  eid = e.getAttribute('data-event-id');
+  fid = e.getAttribute('data-frame-id');
   var url = '?view=event&eid='+eid+'&fid='+fid;
   url += filterQuery;
-  var pop=createPopup( url, 'zmEvent', 'event', width, height );
-  pop.vid=$('preview');
+  window.location.href = url;
 
   //video element is blocking video elements elsewhere in chrome possible interaction with mouseover event?
   //FIXME unless an exact cause can be determined should store all video controls and do something to the other controls when we want to load a new video seek etc or whatever may block
@@ -14,68 +15,109 @@ function showEvent( eid, fid, width, height ) {
   vid.pause();*/
 }
 
-function createEventHtml( event, frame ) {
-  var eventHtml = new Element( 'div' );
+function createEventHtml(zm_event, frame) {
+  var eventHtml = new Element('div');
 
-  if ( event.Archived > 0 )
-    eventHtml.addClass( 'archived' );
+  if ( zm_event.Archived > 0 ) {
+    eventHtml.addClass('archived');
+  }
 
-  new Element( 'p' ).inject( eventHtml ).set( 'text', monitors[event.MonitorId].Name );
-  new Element( 'p' ).inject( eventHtml ).set( 'text', event.Name+(frame?("("+frame.FrameId+")"):"") );
-  new Element( 'p' ).inject( eventHtml ).set( 'text', event.StartTime+" - "+event.Length+"s" );
-  new Element( 'p' ).inject( eventHtml ).set( 'text', event.Cause );
-  if ( event.Notes )
-    new Element( 'p' ).inject( eventHtml ).set( 'text', event.Notes );
-  if ( event.Archived > 0 )
-    new Element( 'p' ).inject( eventHtml ).set( 'text', archivedString );
+  new Element('p').inject(eventHtml).set('text', monitors[zm_event.MonitorId].Name);
+  new Element('p').inject(eventHtml).set('text', zm_event.Name+(frame?('('+frame.FrameId+')'):''));
+  new Element('p').inject(eventHtml).set('text', zm_event.StartTime+' - '+zm_event.Length+'s');
+  new Element('p').inject(eventHtml).set('text', zm_event.Cause);
+  if ( zm_event.Notes ) {
+    new Element('p').inject(eventHtml).set('text', zm_event.Notes);
+  }
+  if ( zm_event.Archived > 0 ) {
+    new Element('p').inject(eventHtml).set( 'text', archivedString);
+  }
 
-  return( eventHtml );
+  return eventHtml;
 }
 
-function showEventDetail( eventHtml ) {
-  $('instruction').addClass( 'hidden' );
+function showEventDetail(eventHtml) {
+  $('instruction').addClass('hidden');
   $('eventData').empty();
-  $('eventData').adopt( eventHtml );
-  $('eventData').removeClass( 'hidden' );
+  $('eventData').adopt(eventHtml);
+  $('eventData').removeClass('hidden');
 }
 
-function eventDataResponse( respObj, respText ) {
-  var event = respObj.event;
-  if ( !event ) {
-    console.log( "Null event" );
+function eventDataResponse(respObj, respText) {
+  var zm_event = respObj.event;
+  if ( !zm_event ) {
+    console.log('Null event');
     return;
   }
-  events[event.Id] = event;
+  events[zm_event.Id] = zm_event;
 
   if ( respObj.loopback ) {
-    requestFrameData( event.Id, respObj.loopback );
+    requestFrameData(zm_event.Id, respObj.loopback);
   }
 }
 
 function frameDataResponse( respObj, respText ) {
   var frame = respObj.frameimage;
   if ( !frame.FrameId ) {
-    console.log( "Null frame" );
+    console.log('Null frame');
     return;
   }
 
-  var event = events[frame.EventId];
-  if ( !event ) {
-    console.error( "No event "+frame.eventId+" found" );
+  var zm_event = events[frame.EventId];
+  if ( !zm_event ) {
+    console.error('No event '+frame.eventId+' found');
     return;
   }
 
-  if ( !event['frames'] )
-    event['frames'] = new Object();
+  if ( !zm_event['frames'] ) {
+    console.log("No frames data in event response");
+    console.log(zm_event);
+    console.log(respObj);
+    zm_event['frames'] = {};
+  }
 
-  event['frames'][frame.FrameId] = frame;
-  event['frames'][frame.FrameId]['html'] = createEventHtml( event, frame );
+  zm_event['frames'][frame.FrameId] = frame;
+  zm_event['frames'][frame.FrameId]['html'] = createEventHtml( zm_event, frame );
 
-  previewEvent(frame.EventId, frame.FrameId);
+  showEventData(frame.EventId, frame.FrameId);
 }
 
-var eventQuery = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: eventDataResponse } );
-var frameQuery = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: frameDataResponse } );
+function showEventData(eventId, frameId) {
+  if ( events[eventId] ) {
+    var zm_event = events[eventId];
+    if ( zm_event['frames'] ) {
+      if ( zm_event['frames'][frameId] ) {
+        showEventDetail( zm_event['frames'][frameId]['html'] );
+        var imagePath = 'index.php?view=image&eid='+eventId+'&fid='+frameId;
+        var videoName = zm_event.DefaultVideo;
+        loadEventImage( imagePath, eventId, frameId, zm_event.Width, zm_event.Height, zm_event.Frames/zm_event.Length, videoName, zm_event.Length, zm_event.StartTime, monitors[zm_event.MonitorId]);
+        return;
+      } else {
+        console.log('No frames for ' + frameId);
+      }
+    } else {
+      console.log('No frames');
+    }
+  } else {
+    console.log('No event for ' + eventId);
+  }
+}
+
+var eventQuery = new Request.JSON({
+  url: thisUrl,
+  method: 'get',
+  timeout: AJAX_TIMEOUT,
+  link: 'cancel',
+  onSuccess: eventDataResponse
+});
+
+var frameQuery = new Request.JSON({
+  url: thisUrl,
+  method: 'get',
+  timeout: AJAX_TIMEOUT,
+  link: 'cancel',
+  onSuccess: frameDataResponse
+});
 
 function requestFrameData( eventId, frameId ) {
   if ( !events[eventId] ) {
@@ -87,70 +129,115 @@ function requestFrameData( eventId, frameId ) {
   }
 }
 
-function previewEvent( eventId, frameId ) {
-
+function previewEvent(slot) {
+  eventId = slot.getAttribute('data-event-id');
+  frameId = slot.getAttribute('data-frame-id');
   if ( events[eventId] ) {
-    var event = events[eventId];
-    if ( event['frames'] ) {
-      if ( event['frames'][frameId] ) {
-        showEventDetail( event['frames'][frameId]['html'] );
-        var imagePath = '/index.php?view=image&eid='+eventId+'&fid='+frameId;
-        var videoName = event.DefaultVideo;
-        loadEventImage( imagePath, eventId, frameId, event.Width, event.Height, event.Frames/event.Length, videoName, event.Length, event.StartTime, monitors[event.MonitorId]);
-        return;
-      }
-    }
+    showEventData(eventId, frameId);
+  } else {
+    requestFrameData(eventId, frameId);
   }
-  requestFrameData( eventId, frameId );
 }
 
 function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, duration, startTime, Monitor ) {
-  var vid= $('preview');
+  var vid = $('preview');
   var imageSrc = $('imageSrc');
   if ( videoName && vid ) {
     vid.show();
     imageSrc.hide();
-    var newsource=imagePath.slice(0,imagePath.lastIndexOf('/'))+"/"+videoName;
+    var newsource=imagePath.slice(0, imagePath.lastIndexOf('/'))+'/'+videoName;
     //console.log(newsource);
     //console.log(sources[0].src.slice(-newsource.length));
     if ( newsource != vid.currentSrc.slice(-newsource.length) || vid.readyState == 0 ) {
       //console.log("loading new");
       //it is possible to set a long source list here will that be unworkable?
       var sources = vid.getElementsByTagName('source');
-      sources[0].src=newsource;
+      sources[0].src = newsource;
       var tracks = vid.getElementsByTagName('track');
-      if(tracks.length){
+      if (tracks.length) {
         tracks[0].parentNode.removeChild(tracks[0]);
       }
       vid.load();
-      addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime)
-        vid.currentTime = fid/fps;
+      addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime);
+      vid.currentTime = fid/fps;
     } else {
-      if ( ! vid.seeking )
+      if ( ! vid.seeking ) {
         vid.currentTime=fid/fps;
+      }
     }
   } else {
     if ( vid ) vid.hide();
     imageSrc.show();
-    imageSrc.setProperty( 'src', imagePath );
-    imageSrc.removeEvent( 'click' );
-    imageSrc.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
+    imageSrc.setProperty('src', imagePath);
+    imageSrc.setAttribute('data-event-id', eid);
+    imageSrc.setAttribute('data-frame-id', fid);
+    imageSrc.onclick=window['showEvent'].bind(imageSrc, imageSrc);
   }
 
   var eventData = $('eventData');
-  eventData.removeEvent( 'click' );
-  eventData.addEvent( 'click', showEvent.pass( [eid, fid, width, height] ) );
+  eventData.removeEvent('click');
+  eventData.addEvent('click', showEvent.pass());
 }
 
-function tlZoomBounds( minTime, maxTime ) {
-  console.log( "Zooming" );
-  window.location = '?view='+currentView+filterQuery+'&minTime='+minTime+'&maxTime='+maxTime;
+function tlZoomBounds(event) {
+  var target = event.target;
+  var minTime = target.getAttribute('data-zoom-min-time');
+  var maxTime = target.getAttribute('data-zoom-max-time');
+  location.replace('?view='+currentView+filterQuery+'&minTime='+minTime+'&maxTime='+maxTime);
 }
 
-function tlZoomRange( midTime, range ) {
-  window.location = '?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range;
+function tlZoomOut() {
+  location.replace('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+zoomout_range);
 }
 
-function tlPan( midTime, range ) {
-  window.location = '?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range;
+function tlPanLeft() {
+  location.replace('?view='+currentView+filterQuery+'&midTime='+minTime+'&range='+range);
 }
+function tlPanRight() {
+  location.replace('?view='+currentView+filterQuery+'&midTime='+maxTime+'&range='+range);
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  // These look like the code in skin.js, but that code doesn't select for divs.
+  document.querySelectorAll('div.event').forEach(function(el) {
+    el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
+    el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
+  });
+  document.querySelectorAll('div.activity').forEach(function(el) {
+    el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
+    el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
+  });
+  document.querySelectorAll('div.zoom').forEach(function(el) {
+    el.onclick = function(ev) {
+      window[el.getAttribute('data-on-click')](ev);
+    };
+  });
+});
+
+function initPage() {
+  var backBtn = $j('#backBtn');
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+  // Manage the LIST Button
+  document.getElementById("listBtn").addEventListener("click", function onListClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=events'+filterQuery);
+  });
+}
+
+$j(document).ready(function() {
+  initPage();
+});

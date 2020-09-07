@@ -8,10 +8,7 @@ Filters allow you to define complex conditions with associated actions in ZoneMi
 
 And many more.
 
-The filter window can be accessed from various views, one of which is to simply tap on the filter button in the main web view:
-
-.. image:: images/filter-button.png
-	:width: 600px
+The filter window can be accessed by tapping on the top level filter menu
 
 You can use the filter window to create your own filters or to modify existing ones. You can even save your favourite filters to re-use at a future date. Filtering itself is fairly simple; you first choose how many expressions you'd like your filter to contain. Changing this value will cause the window to redraw with a corresponding row for each expression. You then select what you want to filter on and how the expressions relate by choosing whether they are 'and' or 'or' relationships. For filters comprised of many expressions you will also get the option to bracket parts of the filter to ensure you can express it as desired. Then if you like choose how you want your results sorted and whether you want to limit the amount of events displayed.
 
@@ -22,62 +19,78 @@ Here is what the filter window looks like
 	:width: 800px
 
 * *A*: This is a dropdown list where you can select pre-defined filters. You will notice that ZoneMinder comes with a PurgeWhenFull filter that is configured to delete events if you reach 95% of disk space. 
-* *B* and *C*: This is where you specify conditions that need to match before the filter is executed. You use the "+" and "-" buttons to add/delete conditions
-* *D*: This is where you specify what needs to happen when the conditions match:
+* *B*: If you are creating a new filter, you can type in a name for your filter here
+* *C*: This is where you specify conditions that need to match before the filter is executed. You use the "+" and "-" buttons to add/delete conditions
+* *D*: This allows you to perform sorting and limiting operations on the output before you take an action
+* *E*: This is where you specify what needs to happen when the conditions match:
+
 	* Archive all matches: sets the archive field to 1 in the Database for the matched events. 
 	  Think of 'archiving' as grouping them under a special category - you can view archived 
 	  events later and also make sure archived events don't get deleted, for example
-	* Email details of all matches: Sends an email to the configured address with details about the event. 
-	  The email can be customized as per TBD
-	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguents to the command, the last argument will be the absolute path to the event, preceeded by replacement arguents. eg: /usr/bin/script.sh %MN% will excecute as /usr/bin/script.sh MonitorName /path/to/event.
-	* Delete all matches: Deletes all the matched events
-* *E*: Use 'Submit' to 'test' your matching conditions. This will just match and show you what filters match. Use 'Execute' to actually execute the action after matching your conditions. Use 'Save' to save the filter for future use and 'Reset' to clear your settings
+  
+    .. todo ::
+      fill in what update used disk space, copy all matches, move all matches do. For the "create video" filter, put in more details on how it works, any dependencies etc.
 
-.. NOTE:: More details on filter conditions:
+  * Update used disk space:
+  * Create video for all matches: creates a video file of all the events that match 
+  * Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguents to the command, the last argument will be the absolute path to the event, preceeded by replacement arguents. eg: /usr/bin/script.sh %MN% will excecute as /usr/bin/script.sh MonitorName /path/to/event.
+	* Delete all matches: Deletes all the matched events.
+  * Copy all matches:
+  * Move all matches:
+  * Run filter in background:  When checked, ZoneMinder will make sure the filter is checked regularly. For example, if you want to be notified of new events by email, you should make sure this is checked. Filters that are configured to run in the background have a “*” next to it.
+  * Run filter concurrently: Allows this filter to run in its own thread thereby letting other filters run in parallel.
+
+* *F*: Use 'List Matches' to 'test' your matching conditions. This will just match and show you what filters match. Use 'Execute' to actually execute the action after matching your conditions. Use 'Save' to save the filter for future use and 'Reset' to clear your settings
+
+.. note:: More details on filter conditions:
 
 	There are several different elements to an event that you can filter on, some of which require further explanation. These are as follows, 
 	* 'Date/Time' which must evaluate to a date and a time together, 
 	* 'Date' and 'Time' which are variants which may only contain the relevant subsets of this, 
 	* 'Weekday' which as expected is a day of the week.
 
-	All of the preceding elements take a very flexible free format of dates and time based on the PHP strtotime function (http://www.php.net/manual/en/function.strtotime.php). This allows values such as 'last Wednesday' etc to be entered. We recommend acquainting yourself with this function to see what the allowed formats are. However automated filters are run in perl and so are parsed by the Date::Manip package. Not all date formats are available in both so if you are saved your filter to do automatic deletions or other tasks you should make sure that the date and time format you use is compatible with both methods. The safest type of format to use is ‘-3 day’ or similar with easily parseable numbers and units are in English.
+	All of the preceding elements take a very flexible free format of dates and time based on the PHP strtotime function (https://www.php.net/manual/en/function.strtotime.php). This allows values such as 'last Wednesday' etc to be entered. We recommend acquainting yourself with this function to see what the allowed formats are. However automated filters are run in perl and so are parsed by the Date::Manip package. Not all date formats are available in both so if you are saved your filter to do automatic deletions or other tasks you should make sure that the date and time format you use is compatible with both methods. The safest type of format to use is ‘-3 day’ or similar with easily parseable numbers and units are in English.
 
 	The other things you can filter on are all fairly self explanatory, except perhaps for 'Archived' which you can use to include or exclude Archived events. In general you'll probably do most filtering on un-archived events. There are also two elements, Disk Blocks and Disk Percent which don’t directly relate to the events themselves but to the disk partition on which the events are stored. These allow you to specify an amount of disk usage either in blocks or in percentage as returned by the ‘df’ command. They relate to the amount of disk space used and not the amount left free. Once your filter is specified, clicking 'submit' will filter the events according to your specification. As the disk based elements are not event related directly if you create a filter and include the term ‘DiskPercent > 95’ then if your current disk usage is over that amount when you submit the filter then all events will be listed whereas if it is less then none at all will. As such the disk related terms will tend to be used mostly for automatic filters (see below). If you have created a filter you want to keep, you can name it and save it by clicking 'Save'.
 
 	If you do this then the subsequent dialog will also allow you specify whether you want this filter automatically applied in order to delete events or upload events via ftp to another server and mail notifications of events to one or more email accounts. Emails and messages (essentially small emails intended for mobile phones or pagers) have a format defined in the Options screen, and may include a variety of tokens that can be substituted for various details of the event that caused them. This includes links to the event view or the filter as well as the option of attaching images or videos to the email itself. Be aware that tokens that represent links may require you to log in to access the actual page, and sometimes may function differently when viewed outside of the general ZoneMinder context. The tokens you can use are as follows.
 
-	*    %EI%           Id of the event
-	*    %EN%          Name of the event
-	*    %EC%          Cause of the event
-	*    %ED%          Event description
-	*    %ET%          Time of the event
-	*    %EL%          Length of the event
-	*    %EF%          Number of frames in the event
-	*    %EFA%        Number of alarm frames in the event
-	*    %EST%        Total score of the event
-	*    %ESA%       Average score of the event
-	*    %ESM%       Maximum score of the event
-	*    %EP%          Path to the event
-	*    %EPS%       Path to the event stream
-	*    %EPI%         Path to the event images
-	*    %EPI1%       Path to the first alarmed event image
-	*    %EPIM%      Path to the (first) event image with the highest score
-	*    %EI1%         Attach first alarmed event image
-	*    %EIM%        Attach (first) event image with the highest score
-	*    %EV%          Attach event mpeg video
-	*    %MN%         Name of the monitor
-	*    %MET%       Total number of events for the monitor
-	*    %MEH%       Number of events for the monitor in the last hour
-	*    %MED%       Number of events for the monitor in the last day
-	*    %MEW%      Number of events for the monitor in the last week
-	*    %MEM%      Number of events for the monitor in the last month
-	*    %MEA%       Number of archived events for the monitor
-	*    %MP%         Path to the monitor window
-	*    %MPS%       Path to the monitor stream
-	*    %MPI%        Path to the monitor recent image
-	*    %FN%          Name of the current filter that matched
-	*    %FP%          Path to the current filter that matched
-	*    %ZP%          Path to your ZoneMinder console
+    *    %EI%       Id of the event
+    *    %EN%       Name of the event
+    *    %EC%       Cause of the event
+    *    %ED%       Event description
+    *    %ET%       Time of the event
+    *    %EL%       Length of the event
+    *    %EF%       Number of frames in the event
+    *    %EFA%      Number of alarm frames in the event
+    *    %EST%      Total score of the event
+    *    %ESA%      Average score of the event
+    *    %ESM%      Maximum score of the event
+    *    %EP%       Path to the event
+    *    %EPS%      Path to the event stream
+    *    %EPF1%     Path to the frame view for the first alarmed event image
+    *    %EPFM%     Path to the frame view for the (first) event image with the highest score
+    *    %EFMOD%    Path to image containing object detection, in frame view
+    *    %EPI%      Path to the event images
+    *    %EPI1%     Path to the first alarmed event image, suitable for use in img tags
+    *    %EPIM%     Path to the (first) event image with the highest score, suitable for use in img tags
+    *    %EIMOD%    Path to image containing object detection, suitable for use in img tags
+    *    %EI1%      Attach first alarmed event image
+    *    %EIM%      Attach (first) event image with the highest score
+    *    %EV%       Attach event mpeg video
+    *    %MN%       Name of the monitor
+    *    %MET%      Total number of events for the monitor
+    *    %MEH%      Number of events for the monitor in the last hour
+    *    %MED%      Number of events for the monitor in the last day
+    *    %MEW%      Number of events for the monitor in the last week
+    *    %MEM%      Number of events for the monitor in the last month
+    *    %MEA%      Number of archived events for the monitor
+    *    %MP%       Path to the monitor window
+    *    %MPS%      Path to the monitor stream
+    *    %MPI%      Path to the monitor recent image
+    *    %FN%       Name of the current filter that matched
+    *    %FP%       Path to the current filter that matched
+    *    %ZP%       Path to your ZoneMinder console
 
 	Finally you can also specify a script which is run on each matched event. This script should be readable and executable by your web server user. It will get run once per event and the relative path to the directory containing the event in question. Normally this will be of the form <MonitorName>/<EventId> so from this path you can derive both the monitor name and event id and perform any action you wish. Note that arbitrary commands are not allowed to be specified in the filter, for security the only thing it may contain is the full path to an executable. What that contains is entirely up to you however.
 
@@ -87,15 +100,8 @@ Here is what the filter window looks like
 Saving filters
 -----------------
 
-.. image:: images/filter-save.png
-    :width: 400px
-
 When saving filters, if you want the filter to run in the background make sure you select the "Run filter in background" option. When checked, ZoneMinder will make sure the filter is checked regularly. For example, if you want to be notified of new events by email, you should make sure this is checked. Filters that are configured to run in the background have a "*" next to it.
 
-For example:
-
-.. image:: images/filter-choosefilter.png
-    :width: 400px
 
 How filters actually work
 --------------------------

@@ -1,3 +1,4 @@
+
 /*
  * ZoneMinder Base Stylesheet, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
@@ -63,16 +64,8 @@ p {
     font-weight: normal;
 }
 
-th {
-    font-weight: bold;
-    color: #016A9d;
-}
 
-a:link {
-    color: #7f7fb2;
-    text-decoration: none;
-}
-
+a:link,
 a:visited {
     color: #7f7fb2;
     text-decoration: none;
@@ -83,11 +76,17 @@ a:hover {
     text-decoration: underline;
 }
 
+th, th a {
+    font-weight: bold;
+    color: #016A9d;
+}
+
 input,textarea,select,button {
     border: 1px #7f7fb2 solid;
     font-family: inherit;
     font-size: 100%;
-    color: #333333;
+    color: #333333;  
+    background-color: #eeeeee;
 }
 
 input[type=text], input[type=password], textarea {
@@ -98,9 +97,6 @@ input.noborder {
     border: 0;
 }
 
-input[disabled] {
-    color: #888888;
-}
 
 img {
   display: inline-block;
@@ -328,14 +324,14 @@ th.table-th-sort span.table-th-sort-span {
     float: right;
     width: 12px;
     height: 12px;
-    background: url("/skins/classic/graphics/arrow-s-u.png") no-repeat 0 0;
+    background: url("../skins/classic/graphics/arrow-s-u.png") no-repeat 0 0;
 }
 
 th.table-th-sort-rev span.table-th-sort-span {
     float: right;
     width: 12px;
     height: 12px;
-    background: url("/skins/classic/graphics/arrow-s-d.png") no-repeat 0 0;
+    background: url("../skins/classic/graphics/arrow-s-d.png") no-repeat 0 0;
 }
 
 .table-tr-odd {
@@ -352,9 +348,11 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #header {
     width: 100%;
-    line-height: 24px;
-    margin: 8px auto;
+    margin: 0 auto 4px auto;
+    line-height: 1;
     text-align: left;
+    padding: 3px 0;
+    border-bottom: 1px solid #555555;
 }
 
 #header h2 {
@@ -374,17 +372,13 @@ th.table-th-sort-rev span.table-th-sort-span {
     float: right;
 }
 
-#headerButtons a {
-    margin-left: 8px;
-}
-
 #headerButtons input {
     margin-left: 4px;
 }
 
 #content {
     width: 96%;
-    margin: 8px auto;
+    margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
 }
@@ -410,11 +404,17 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 */
 
-#content > input[type=submit], #content > input[type=button], #content > button {
+#content > input[type=submit],
+#content > input[type=button],
+#content > button,
+#content > .btn-primary {
     margin-top: 8px;
 }
 
-#content table input[type=submit], #content table input[type=button], #content table button {
+#content table input[type=submit],
+#content table input[type=button],
+#content table button,
+#content table .btn-primary {
     margin-top: 0;
 }
 
@@ -423,6 +423,7 @@ th.table-th-sort-rev span.table-th-sort-span {
     float: right;
 }
 
+#contentButtons button,
 #contentButtons input {
     margin-left: 8px;
     margin-bottom: 4px;
@@ -489,4 +490,45 @@ margin-left: 0px;
 
 .nav-pills > li > a {
 	border-radius: 0;
+}
+
+.nav-pills .nav-link.active, .nav-pills .show>.nav-link {
+  background-color: #337ab7;
+}
+
+button,
+input[type=button],
+input[type=submit],
+.btn-primary,
+.btn-primary:link {
+  padding: 0 6px 1px 6px;
+  background-color: #eeeeee;
+  color: #333333;
+  border: 1px solid #7f7fb2;
+  font-weight: 200;
+  cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
+  font-family: inherit;
+  font-size: 100%;
+}
+
+button:hover,
+input[type=button]:hover,
+input[type=submit]:hover,
+.btn-primary:hover {
+  background-color: #e1e1e1;
+  color: #000000;
+}
+
+button:disabled,
+input[disabled],
+input[type=button]:disabled,
+input[type=submit]:disabled,
+.btn-primary:disabled {
+    color: #888888;
+  /*
+  background-color: #aaaaaa;
+  */
+  border-color: #bbbbbb;
 }

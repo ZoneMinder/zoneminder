@@ -830,7 +830,7 @@ Returns a L<ONVIF::PTZ::Elements::SetPresetResponse|ONVIF::PTZ::Elements::SetPre
 
 =head3 RemovePreset
 
-Operation to remove a PTZ preset for the Node in the selected profile. The operation is supported if the PresetPosition capability exists for teh Node in the selected profile. 
+Operation to remove a PTZ preset for the Node in the selected profile. The operation is supported if the PresetPosition capability exists for the Node in the selected profile. 
 
 Returns a L<ONVIF::PTZ::Elements::RemovePresetResponse|ONVIF::PTZ::Elements::RemovePresetResponse> object.
 

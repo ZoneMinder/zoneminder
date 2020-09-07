@@ -3,6 +3,7 @@
 --
 -- Add StateId Column to Events.
 --
+SELECT 'Checkfor StateId IN Events';
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*)

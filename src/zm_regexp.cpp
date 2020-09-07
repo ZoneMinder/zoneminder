@@ -24,7 +24,7 @@
 
 #if HAVE_LIBPCRE
 
-RegExpr::RegExpr( const char *pattern, int flags, int p_max_matches ) : max_matches( p_max_matches ), match_buffers( 0 ), match_lengths( 0 ), match_valid( 0 )
+RegExpr::RegExpr( const char *pattern, int flags, int p_max_matches ) : max_matches( p_max_matches ), match_buffers( nullptr ), match_lengths( nullptr ), match_valid( nullptr )
 {
   const char *errstr;
   int erroffset = 0;
@@ -49,7 +49,10 @@ RegExpr::RegExpr( const char *pattern, int flags, int p_max_matches ) : max_matc
     memset( match_lengths, 0, sizeof(*match_lengths)*max_matches );
     match_valid = new bool[max_matches];
     memset( match_valid, 0, sizeof(*match_valid)*max_matches );
+  } else {
+    match_vectors = nullptr;
   }
+  match_string = "";
   n_matches = 0;
 }
 

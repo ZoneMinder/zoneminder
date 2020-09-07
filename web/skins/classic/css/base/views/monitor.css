@@ -1,0 +1,44 @@
+.swatch {
+    border: 1px solid black;
+    margin-left: 3px;
+    padding: 0px;
+}
+
+.SourceOptions input,
+.SourcePath input {
+  width: 100%;
+}
+
+textarea,
+input[name="newMonitor[Name]"],
+input[name="newMonitor[LabelFormat]"],
+input[name="newMonitor[ControlDevice]"],
+input[name="newMonitor[ControlAddress]"] {
+  width: 100%;
+}
+input[name="newMonitor[AnalysisFPSLimit]"],
+input[name="newMonitor[MaxFPS]"],
+input[name="newMonitor[AlarmMaxFPS]"],
+input[name="newMonitor[V4LCapturesPerFrame]"]{
+    width: 60px;
+}
+input[name="newMonitor[Port]"],
+input[name="newMonitor[Refresh]"],
+input[name="newMonitor[LabelX]"],
+input[name="newMonitor[LabelY]"],
+input[name="newMonitor[ImageBufferCount]"],
+input[name="newMonitor[WarmupCount]"],
+input[name="newMonitor[PreEventCount]"],
+input[name="newMonitor[PostEventCount]"],
+input[name="newMonitor[StreamReplayBuffer]"],
+input[name="newMonitor[AlarmFrameCount]"],
+input[name="newMonitor[AutoStopTimeout]"],
+input[name="newMonitor[TrackDelay]"],
+input[name="newMonitor[ReturnDelay]"],
+input[name="newMonitor[Width]"],
+input[name="newMonitor[Height]"] {
+  width: 80px;
+}
+select.chosen {
+  width: 100%;
+}

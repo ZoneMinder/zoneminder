@@ -1,17 +1,17 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Controller
  * @since         CakePHP(tm) v 1.2
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ComponentCollection', 'Controller');
@@ -34,10 +34,10 @@ App::uses('ComponentCollection', 'Controller');
  * - `beforeRedirect()` - Fired before a redirect() is done.
  *
  * @package       Cake.Controller
- * @link          http://book.cakephp.org/2.0/en/controllers/components.html
+ * @link          https://book.cakephp.org/2.0/en/controllers/components.html
  * @see Controller::$components
  */
-class Component extends Object {
+class Component extends CakeObject {
 
 /**
  * Component collection class used to lazy load components.
@@ -90,7 +90,7 @@ class Component extends Object {
  */
 	public function __get($name) {
 		if (isset($this->_componentMap[$name]) && !isset($this->{$name})) {
-			$settings = array('enabled' => false) + (array)$this->_componentMap[$name]['settings'];
+			$settings = (array)$this->_componentMap[$name]['settings'] + array('enabled' => false);
 			$this->{$name} = $this->_Collection->load($this->_componentMap[$name]['class'], $settings);
 		}
 		if (isset($this->{$name})) {
@@ -103,7 +103,7 @@ class Component extends Object {
  *
  * @param Controller $controller Controller with components to initialize
  * @return void
- * @link http://book.cakephp.org/2.0/en/controllers/components.html#Component::initialize
+ * @link https://book.cakephp.org/2.0/en/controllers/components.html#Component::initialize
  */
 	public function initialize(Controller $controller) {
 	}
@@ -113,7 +113,7 @@ class Component extends Object {
  *
  * @param Controller $controller Controller with components to startup
  * @return void
- * @link http://book.cakephp.org/2.0/en/controllers/components.html#Component::startup
+ * @link https://book.cakephp.org/2.0/en/controllers/components.html#Component::startup
  */
 	public function startup(Controller $controller) {
 	}
@@ -124,7 +124,7 @@ class Component extends Object {
  *
  * @param Controller $controller Controller with components to beforeRender
  * @return void
- * @link http://book.cakephp.org/2.0/en/controllers/components.html#Component::beforeRender
+ * @link https://book.cakephp.org/2.0/en/controllers/components.html#Component::beforeRender
  */
 	public function beforeRender(Controller $controller) {
 	}
@@ -134,7 +134,7 @@ class Component extends Object {
  *
  * @param Controller $controller Controller with components to shutdown
  * @return void
- * @link http://book.cakephp.org/2.0/en/controllers/components.html#Component::shutdown
+ * @link https://book.cakephp.org/2.0/en/controllers/components.html#Component::shutdown
  */
 	public function shutdown(Controller $controller) {
 	}
@@ -156,7 +156,7 @@ class Component extends Object {
  * @param int $status The status code of the redirect
  * @param bool $exit Will the script exit.
  * @return array|null Either an array or null.
- * @link http://book.cakephp.org/2.0/en/controllers/components.html#Component::beforeRedirect
+ * @link https://book.cakephp.org/2.0/en/controllers/components.html#Component::beforeRedirect
  */
 	public function beforeRedirect(Controller $controller, $url, $status = null, $exit = true) {
 	}

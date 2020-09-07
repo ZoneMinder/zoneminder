@@ -306,7 +306,7 @@ class ZM_Object {
     $fields = array_keys($fields);
 
     if ( $this->Id() ) {
-      $sql = 'UPDATE '.$table.' SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields)).' WHERE Id=?';
+      $sql = 'UPDATE `'.$table.'` SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields)).' WHERE Id=?';
       $values = array_map(function($field){ return $this->{$field};}, $fields);
       $values[] = $this->{'Id'};
       if ( dbQuery($sql, $values) )
@@ -314,8 +314,8 @@ class ZM_Object {
     } else {
       unset($fields['Id']);
 
-      $sql = 'INSERT INTO '.$table.
-        ' ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
+      $sql = 'INSERT INTO `'.$table.
+        '` ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
           ') VALUES ('.
           implode(', ', array_map(function($field){return '?';}, $fields)).')';
 

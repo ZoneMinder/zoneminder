@@ -702,9 +702,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
-  if (event_data->SaveJPEGs & 1) {
-    filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
-  } else if (event_data->SaveJPEGs & 2) {
+  if ((frame_type == FRAME_ANALYSIS) && (event_data->SaveJPEGs & 2)) {
     filepath = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
     if (stat(filepath.c_str(), &filestat) < 0) {
       Debug(1, "analyze file %s not found will try to stream from other", filepath.c_str());
@@ -714,7 +712,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         filepath = "";
       }
     }
-  } else if ( !ffmpeg_input ) {
+  } else if (event_data->SaveJPEGs & 1) {
+    filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+  } else if (!ffmpeg_input) {
     Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
     return false;
   }
@@ -991,45 +991,51 @@ void EventStream::runStream() {
         // Have to reset start to now when replaying
         start = now;
       }
-      frame_data = &event_data->frames[curr_frame_id-1];
 
-      // frame_data->delta is the time since last frame as a float in seconds
-      // but what if we are skipping frames? We need the distance from the last frame sent
-      // Also, what about reverse? needs to be absolute value
+      if ((unsigned int)curr_frame_id <= event_data->frame_count) {
+        frame_data = &event_data->frames[curr_frame_id-1];
 
-      // There are two ways to go about this, not sure which is correct.
-      // you can calculate the relationship between now and the start
-      // or calc the relationship from the last frame.  I think from the start is better as it self-corrects
-      //
-      if (last_frame_offset != Seconds(0)) {
-        // We assume that we are going forward and the next frame is in the future.
-        delta = std::chrono::duration_cast<Microseconds>(frame_data->offset - (now - start));
+        // frame_data->delta is the time since last frame as a float in seconds
+        // but what if we are skipping frames? We need the distance from the last frame sent
+        // Also, what about reverse? needs to be absolute value
 
-        Debug(2, "New delta: now - start = %" PRIu64 " us offset %" PRIi64 " us- elapsed = %" PRIu64 " us",
-              static_cast<int64>(std::chrono::duration_cast<Microseconds>(now - start).count()),
-              static_cast<int64>(std::chrono::duration_cast<Microseconds>(frame_data->offset).count()),
-              static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
-      } else {
-        Debug(2, "No last frame_offset, no sleep");
-        delta = Seconds(0);
-      }
-      last_frame_offset = frame_data->offset;
+        // There are two ways to go about this, not sure which is correct.
+        // you can calculate the relationship between now and the start
+        // or calc the relationship from the last frame.  I think from the start is better as it self-corrects
+        //
+        if (last_frame_offset != Seconds(0)) {
+          // We assume that we are going forward and the next frame is in the future.
+          delta = std::chrono::duration_cast<Microseconds>(frame_data->offset - (now - start));
 
-      if (send_frame && type != STREAM_MPEG) {
-        if (delta != Seconds(0)) {
-          if (delta > MAX_SLEEP) {
-            Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long: %" PRIi64" us",
+          Debug(2, "New delta: now - start = %" PRIu64 " us offset %" PRIi64 " us- elapsed = %" PRIu64 " us",
+                static_cast<int64>(std::chrono::duration_cast<Microseconds>(now - start).count()),
+                static_cast<int64>(std::chrono::duration_cast<Microseconds>(frame_data->offset).count()),
+                static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
+        } else {
+          Debug(2, "No last frame_offset, no sleep");
+          delta = Seconds(0);
+        }
+        last_frame_offset = frame_data->offset;
+
+        if (send_frame && type != STREAM_MPEG) {
+          if (delta != Seconds(0)) {
+            if (delta > MAX_SLEEP) {
+              Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long: %" PRIi64" us",
                   static_cast<int64>(std::chrono::duration_cast<Milliseconds>(MAX_SLEEP).count()),
                   static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
-            delta = MAX_SLEEP;
-          }
+              delta = MAX_SLEEP;
+            }
 
-          std::this_thread::sleep_for(delta);
-          Debug(3, "Done sleeping: %" PRIi64 " us",
+            std::this_thread::sleep_for(delta);
+            Debug(3, "Done sleeping: %" PRIi64 " us",
                 static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
-        }
-      }
+          }
+        } // end if need to sleep
+      } else {
+        Debug(1, "invalid curr_frame_id %ld !< %lu", curr_frame_id, event_data->frame_count);
+      }  // end if not at end of event
     } else {
+      // Paused
       delta = std::chrono::duration_cast<Microseconds>(FPSeconds(
           ZM_RATE_BASE / ((base_fps ? base_fps : 1) * (replay_rate ? abs(replay_rate * 2) : 2))));
 
@@ -1088,11 +1094,6 @@ void EventStream::runStream() {
 } // end void EventStream::runStream()
 
 bool EventStream::send_file(const std::string &filepath) {
-  static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
-
-  int img_buffer_size = 0;
-  uint8_t *img_buffer = temp_img_buffer;
-
   FILE *fdj = nullptr;
   fdj = fopen(filepath.c_str(), "rb");
   if ( !fdj ) {
@@ -1122,10 +1123,16 @@ bool EventStream::send_file(const std::string &filepath) {
     // Success
     fclose(fdj); /* Close the file handle */
     return true;
+  } else {
+    Debug(1, "Failed to sendfile?");
   }
   Warning("Unable to send raw frame %ld: %s rc %d", curr_frame_id, strerror(errno), rc);
 #endif
-  img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
+
+  static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
+
+  uint8_t *img_buffer = temp_img_buffer;
+  int img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
   fclose(fdj); /* Close the file handle */
   if ( !img_buffer_size ) {
     Info("Unable to read raw frame %ld: %s", curr_frame_id, strerror(errno));

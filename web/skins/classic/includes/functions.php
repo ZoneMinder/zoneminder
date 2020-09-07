@@ -380,10 +380,9 @@ function getDbConHTML() {
 
 // Returns an html dropdown showing capacity of all storage areas
 function getStorageHTML() {
-  $result='';
+  $result = '';
 
   $func = function($S) {
-    ZM\Logger::Debug("disk_usage for " . $S->Name());
     $class = '';
     if ( $S->disk_usage_percent() > 98 ) {
       $class = 'text-danger';

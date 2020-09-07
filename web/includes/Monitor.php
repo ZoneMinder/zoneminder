@@ -201,6 +201,11 @@ class Monitor extends ZM_Object {
     if ( ZM_RAND_STREAM ) {
       $args['rand'] = time();
     }
+    foreach ( array('scale') as $int_arg )  {
+      if ( isset($args[$int_arg]) and (!is_numeric($args[$int_arg]) or !$args[$int_arg] ) ) {
+        unset($args[$int_arg]);
+      }
+    }
 
     $streamSrc .= '?'.http_build_query($args, '', $querySep);
 
@@ -293,12 +298,12 @@ class Monitor extends ZM_Object {
           return;
         }
       }
-      Logger::Debug("sending command to $url");
+      Logger::Debug('sending command to '.$url);
 
       $context  = stream_context_create();
       try {
         $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */ 
+        if ( $result === FALSE ) { /* Handle error */ 
           Error("Error restarting zmc using $url");
         }
       } catch ( Exception $e ) {
@@ -310,14 +315,15 @@ class Monitor extends ZM_Object {
   } // end function zmcControl
 
   function zmaControl($mode=false) {
-    if ( ! $this->{'Id'} ) {
+    if ( !$this->{'Id'} ) {
       Warning('Attempt to control a monitor with no Id');
       return;
     }
 
     if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {
-        if ( ZM_OPT_CONTROL ) {
+        if ( ZM_OPT_CONTROL && $this->Controllable() && $this->TrackMotion() && 
+          ( $this->{'Function'} == 'Modect' || $this->{'Function'} == 'Mocord' ) ) {
           daemonControl('stop', 'zmtrack.pl', '-m '.$this->{'Id'});
         }
         daemonControl('stop', 'zma', '-m '.$this->{'Id'});
@@ -340,7 +346,7 @@ class Monitor extends ZM_Object {
     } else if ( $this->ServerId() ) {
       $Server = $this->Server();
 
-      $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zma.json';
+      $url = $Server->UrlToApi().'/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zma.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
@@ -354,10 +360,10 @@ class Monitor extends ZM_Object {
       }
       Logger::Debug("sending command to $url");
 
-      $context  = stream_context_create();
+      $context = stream_context_create();
       try {
         $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */
+        if ( $result === FALSE ) { /* Handle error */
           Error("Error restarting zma using $url");
         }
       } catch ( Exception $e ) {
@@ -490,12 +496,11 @@ class Monitor extends ZM_Object {
     foreach ( explode(' ', $command) as $option ) {
       if ( preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches) ) {
         $options[$matches[1]] = $matches[2]?$matches[2]:1;
-      } else if ( $option != '' and $option != 'quit' ) {
+      } else if ( $option != '' and $option != 'quit' and $option != 'start' and $option != 'stop' ) {
         Warning("Ignored command for zmcontrol $option in $command");
       }
     }
     if ( !count($options) ) {
-
       if ( $command == 'quit' or $command == 'start' or $command == 'stop' ) {
         # These are special as we now run zmcontrol as a daemon through zmdc.
         $status = daemonStatus('zmcontrol.pl', array('--id', $this->{'Id'}));
@@ -539,7 +544,7 @@ class Monitor extends ZM_Object {
     } else if ( $this->ServerId() ) {
       $Server = $this->Server();
 
-      $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/daemonControl/'.$this->{'Id'}.'/'.$command.'/zmcontrol.pl.json';
+      $url = $Server->UrlToApi().'/monitors/daemonControl/'.$this->{'Id'}.'/'.$command.'/zmcontrol.pl.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);

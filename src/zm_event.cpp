@@ -206,7 +206,12 @@ Event::Event(
     /* X264 MP4 video writer */
     if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
 #if ZM_HAVE_VIDEOWRITER_X264MP4
-      videowriter = new X264MP4Writer(video_file, monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder(), monitor->GetOptEncoderParams());
+      videowriter = new X264MP4Writer(video_file,
+          monitor->Width(),
+          monitor->Height(),
+          monitor->Colours(),
+          monitor->SubpixelOrder(),
+					monitor->GetOptEncoderParamsVec());
 #else
       Error("ZoneMinder was not compiled with the X264 MP4 video writer, check dependencies (x264 and mp4v2)");
 #endif

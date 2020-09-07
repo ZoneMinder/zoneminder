@@ -45,6 +45,8 @@ class FfmpegCamera : public Camera {
     std::string         hwaccel_device;
 
     int frameCount;    
+  
+    int alignment;      /* ffmpeg wants line sizes to be 32bit aligned.  Especially 4.3+ */
 
 #if HAVE_LIBAVFORMAT
     AVFormatContext     *mFormatContext;

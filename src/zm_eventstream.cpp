@@ -807,29 +807,38 @@ Debug(1, "Loading image");
 
     if ( send_raw ) {
 #if HAVE_SENDFILE
-      fprintf(stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size);
+      if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size) ) {
+        fclose(fdj); /* Close the file handle */
+        Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+        return false;
+      }
       if ( zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size ) {
         /* sendfile() failed, use standard way instead */
-        img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
+        img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
         if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
           fclose(fdj); /* Close the file handle */
-          Error("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+          Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
           return false;
         }
       }
 #else
-      fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size);
-      if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+      if ( 
+          (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) )
+          ||
+          ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 )
+         ) {
         fclose(fdj); /* Close the file handle */
-        Error("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+        Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
         return false;
       }
 #endif
       fclose(fdj); /* Close the file handle */
     } else {
       Debug(3, "Content length: %d", img_buffer_size);
-      fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size);
-      if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+      if ( 
+          (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) )
+          ||
+          ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) )  {
         Error("Unable to send stream frame: %s", strerror(errno));
         return false;
       }

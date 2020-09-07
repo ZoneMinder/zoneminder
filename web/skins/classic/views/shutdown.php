@@ -33,15 +33,23 @@ xhtmlHeaders(__FILE__, translate('Shutdown').' '.translate('Restart'));
       <h2><?php echo translate('Shutdown').' '.translate('Restart') ?></h2>
     </div>
     <div id="content">
+<?php
+  if ( !defined('ZM_PATH_SHUTDOWN') or ZM_PATH_SHUTDOWN == '' ) {
+      echo '<div class="error">ZM_PATH_SHUTDOWN is not defined. This is normally configured in /etc/zm/conf.d/01-system-paths.conf</div>';
+  } else if ( !file_exists(ZM_PATH_SHUTDOWN) ) {
+      echo '<div class="error">Path does not exist for ZM_PATH_SHUTDOWN. Current value is '.ZM_PATH_SHUTDOWN.'</div>';
+  } else {
+?>
+  
       <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="shutdown"/>
 <?php
-  if ( isset($output) ) {
-    echo '<p>'.implode('<br/>', $output).'</p>';
-  }
-  if ( isset($_POST['when']) and ($_POST['when'] != 'NOW') and ($action != 'cancel') ) {
-    echo '<p>You may cancel this shutdown by clicking '.translate('Cancel').'</p>';
-  }
+    if ( isset($output) ) {
+      echo '<p>'.implode('<br/>', $output).'</p>';
+    }
+    if ( isset($_POST['when']) and ($_POST['when'] != 'NOW') and ($action != 'cancel') ) {
+      echo '<p>You may cancel this shutdown by clicking '.translate('Cancel').'</p>';
+    }
 ?>
         <p class="warning"><h2>Warning</h2>
           This command will either shutdown or restart all ZoneMinder Servers<br/>
@@ -52,17 +60,20 @@ xhtmlHeaders(__FILE__, translate('Shutdown').' '.translate('Restart'));
         </p>
         <div id="contentButtons">
 <?php 
-  if ( isset($_POST['when']) and ($_POST['when'] != 'NOW') and ($action != 'cancel') ) {
+    if ( isset($_POST['when']) and ($_POST['when'] != 'NOW') and ($action != 'cancel') ) {
 ?>
           <button type="submit" name="action" value="cancel"><?php echo translate('Cancel') ?></button>
 <?php 
-  }
+    }
 ?>
           <button type="submit" name="action" value="restart"><?php echo translate('Restart') ?></button>
           <button type="submit" name="action" value="shutdown"><?php echo translate('Shutdown') ?></button>
           <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
         </div>
       </form>
+<?php 
+  } # end if PATH_SHUTDOWN looks value
+?>
     </div>
   </div>
 </body>

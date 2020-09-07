@@ -220,7 +220,7 @@ protected:
       }
 
       inline bool isConnected() const {   
-        return( connected );
+        return connected && shared_data->valid;
       }
       inline time_t getLastConnectTime() const {
         return( last_connect_time );
@@ -463,7 +463,8 @@ public:
     
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
+  const std::vector<EncoderParameter_t>* GetOptEncoderParamsVec() const { return &encoderparamsvec; }
+  const std::string GetOptEncoderParams() const { return encoderparams; }
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
   struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }

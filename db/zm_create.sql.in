@@ -476,7 +476,7 @@ CREATE TABLE `Monitors` (
   `Hue` mediumint(7) NOT NULL default '-1',
   `Colour` mediumint(7) NOT NULL default '-1',
   `EventPrefix` varchar(32) NOT NULL default 'Event-',
-  `LabelFormat` varchar(64) default '%N - %y/%m/%d %H:%M:%S',
+  `LabelFormat` varchar(64),
   `LabelX` smallint(5) unsigned NOT NULL default '0',
   `LabelY` smallint(5) unsigned NOT NULL default '0',
   `LabelSize` smallint(5) unsigned NOT NULL DEFAULT '1',

@@ -777,7 +777,6 @@ int main(int argc, char *argv[]) {
   } // end if monitor id or not
   delete user;
 
-  printf("Exiting");
   exit_zmu(0);
   return 0;
 }  // end int main()

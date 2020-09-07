@@ -69,9 +69,9 @@ sub sendCmd {
 
   my $result = undef;
 
-  printMsg($cmd, 'Tx');
+  $self->printMsg($cmd, 'Tx');
 
-  my $req = HTTP::Request->new( POST=>"http://$self->{Monitor}->{ControlAddress}/$cgi.cgi" );
+  my $req = HTTP::Request->new(POST=>"http://$self->{Monitor}->{ControlAddress}/$cgi.cgi");
   $req->content($cmd);
   my $res = $self->{ua}->request($req);
 

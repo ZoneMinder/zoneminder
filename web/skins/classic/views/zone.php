@@ -18,12 +18,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Monitors') ) {
+$mid = empty($_REQUEST['mid']) ? 0 : validInt($_REQUEST['mid']);
+if ( !($mid and canEdit('Monitors', $mid)) ) {
   $view = 'error';
   return;
 }
 
-$mid = validInt($_REQUEST['mid']);
 $zid = (!empty($_REQUEST['zid'])) ? validInt($_REQUEST['zid']) : 0;
 
 $scale = SCALE_BASE;
@@ -174,29 +174,36 @@ xhtmlHeaders(__FILE__, translate('Zone'));
 								<tr>
 									<th scope="row"><?php echo translate('Type') ?></th>
 									<td colspan="2"><?php echo htmlSelect('newZone[Type]', $optTypes, $newZone['Type'],
-											array('onchange'=>'applyZoneType()')); ?></td>
+											array('data-on-change'=>'applyZoneType')); ?></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('Preset') ?></th>
 									<td colspan="2">
 										<?php echo htmlSelect('presetSelector', $presetNames,
 												( isset($_REQUEST['presetSelector']) ? $_REQUEST['presetSelector'] : null),
-												array('onchange'=>'applyPreset()', 'onblur'=>'this.selectedIndex=0') )
+												array('data-on-change'=>'applyPreset', 'onblur'=>'this.selectedIndex=0') )
 										?></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('Units') ?></th>
-									<td colspan="2"><?php echo htmlSelect('newZone[Units]', $optUnits, $newZone['Units'],
-											array('onchange'=>'applyZoneUnits()') ) ?></td>
+                  <td colspan="2">
+<?php
+                        echo htmlSelect('newZone[Units]', $optUnits, $newZone['Units'],
+                        array('data-on-change'=>'applyZoneUnits')
+                        );
+                        # Used later for number inputs
+                        $step = $newZone['Units'] == 'Percent' ? ' step="0.01" max="100"' : '';
+?>
+                  </td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneAlarmColour') ?></th>
 									<td colspan="2">
-										<input type="number" name="newAlarmRgbR" value="<?php echo ($newZone['AlarmRGB']>>16)&0xff ?>" size="3"/>
+										<input type="number" name="newAlarmRgbR" value="<?php echo ($newZone['AlarmRGB']>>16)&0xff ?>" min="0" max="255"/>
 										/
-										<input type="number" name="newAlarmRgbG" value="<?php echo ($newZone['AlarmRGB']>>8)&0xff ?>" size="3"/>
+										<input type="number" name="newAlarmRgbG" value="<?php echo ($newZone['AlarmRGB']>>8)&0xff ?>" min="0" max="255"/>
 										/
-										<input type="number" name="newAlarmRgbB" value="<?php echo $newZone['AlarmRGB']&0xff ?>" size="3"/>
+										<input type="number" name="newAlarmRgbB" value="<?php echo $newZone['AlarmRGB']&0xff ?>" min="0" max="255"/>
 									</td>
 								</tr>
 								<tr>
@@ -205,45 +212,45 @@ xhtmlHeaders(__FILE__, translate('Zone'));
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneMinMaxPixelThres') ?></th>
-									<td><input type="number" name="newZone[MinPixelThreshold]" value="<?php echo $newZone['MinPixelThreshold'] ?>" size="4"/></td>
-									<td><input type="number" name="newZone[MaxPixelThreshold]" value="<?php echo $newZone['MaxPixelThreshold'] ?>" size="4"/></td>
+									<td><input type="number" name="newZone[MinPixelThreshold]" value="<?php echo $newZone['MinPixelThreshold'] ?>" min="0" max="255"/></td>
+									<td><input type="number" name="newZone[MaxPixelThreshold]" value="<?php echo $newZone['MaxPixelThreshold'] ?>" min="0" max="255"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneFilterSize') ?></th>
-									<td><input type="number" name="newZone[FilterX]" value="<?php echo $newZone['FilterX'] ?>" size="4"/></td>
-									<td><input type="number" name="newZone[FilterY]" value="<?php echo $newZone['FilterY'] ?>" size="4"/></td>
+									<td><input type="number" name="newZone[FilterX]" value="<?php echo $newZone['FilterX'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[FilterY]" value="<?php echo $newZone['FilterY'] ?>" min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneArea') ?></th>
-									<td colspan="2"><input type="number" name="newZone[TempArea]" value="<?php echo $newZone['Area'] ?>" size="7" disabled="disabled"/></td>
+									<td colspan="2"><input type="number" name="newZone[TempArea]" value="<?php echo $newZone['Area'] ?>" disabled="disabled"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneMinMaxAlarmArea') ?></th>
-									<td><input type="number" name="newZone[MinAlarmPixels]" value="<?php echo $newZone['MinAlarmPixels'] ?>" size="6"/></td>
-									<td><input type="number" name="newZone[MaxAlarmPixels]" value="<?php echo $newZone['MaxAlarmPixels'] ?>" size="6"/></td>
+                  <td><input type="number" name="newZone[MinAlarmPixels]" value="<?php echo $newZone['MinAlarmPixels'] ?>"<?php echo $step ?> min="0"/></td>
+									<td><input type="number" name="newZone[MaxAlarmPixels]" value="<?php echo $newZone['MaxAlarmPixels'] ?>"<?php echo $step ?> min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneMinMaxFiltArea') ?></th>
-									<td><input type="number" name="newZone[MinFilterPixels]" value="<?php echo $newZone['MinFilterPixels'] ?>" size="6"/></td>
-									<td><input type="number" name="newZone[MaxFilterPixels]" value="<?php echo $newZone['MaxFilterPixels'] ?>" size="6"/></td>
+									<td><input type="number" name="newZone[MinFilterPixels]" value="<?php echo $newZone['MinFilterPixels'] ?>"<?php echo $step ?> min="0"/></td>
+									<td><input type="number" name="newZone[MaxFilterPixels]" value="<?php echo $newZone['MaxFilterPixels'] ?>"<?php echo $step ?> min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneMinMaxBlobArea') ?></th>
-									<td><input type="number" name="newZone[MinBlobPixels]" value="<?php echo $newZone['MinBlobPixels'] ?>" size="6"/></td>
-									<td><input type="number" name="newZone[MaxBlobPixels]" value="<?php echo $newZone['MaxBlobPixels'] ?>" size="6"/></td>
+									<td><input type="number" name="newZone[MinBlobPixels]" value="<?php echo $newZone['MinBlobPixels'] ?>"<?php echo $step ?> min="0"/></td>
+									<td><input type="number" name="newZone[MaxBlobPixels]" value="<?php echo $newZone['MaxBlobPixels'] ?>"<?php echo $step ?> min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneMinMaxBlobs') ?></th>
-									<td><input type="number" name="newZone[MinBlobs]" value="<?php echo $newZone['MinBlobs'] ?>" size="4"/></td>
-									<td><input type="number" name="newZone[MaxBlobs]" value="<?php echo $newZone['MaxBlobs'] ?>" size="4"/></td>
+									<td><input type="number" name="newZone[MinBlobs]" value="<?php echo $newZone['MinBlobs'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[MaxBlobs]" value="<?php echo $newZone['MaxBlobs'] ?>" min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneOverloadFrames') ?></th>
-									<td colspan="2"><input type="number" name="newZone[OverloadFrames]" value="<?php echo $newZone['OverloadFrames'] ?>" size="4"/></td>
+									<td colspan="2"><input type="number" name="newZone[OverloadFrames]" value="<?php echo $newZone['OverloadFrames'] ?>" min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneExtendAlarmFrames') ?></th>
-									<td colspan="2"><input type="number" name="newZone[ExtendAlarmFrames]" value="<?php echo $newZone['ExtendAlarmFrames'] ?>" size="4"/></td>
+									<td colspan="2"><input type="number" name="newZone[ExtendAlarmFrames]" value="<?php echo $newZone['ExtendAlarmFrames'] ?>" min="0"/></td>
 								</tr>
 							</tbody>
 						</table>

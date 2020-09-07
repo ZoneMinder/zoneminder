@@ -11,7 +11,7 @@ int zm_sendfile(int out_fd, int in_fd, off_t *offset, size_t size) {
   int err;
 
   err = sendfile(out_fd, in_fd, offset, size);
-  if (err < 0)
+  if ( err < 0 )
     return -errno;
 
   return err;

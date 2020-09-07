@@ -161,7 +161,7 @@ function changeScale() {
     newWidth = eventData.Width * scale / SCALE_BASE;
     newHeight = eventData.Height * scale / SCALE_BASE;
   }
-  if ( !(streamMode == 'stills') ) {
+  if ( streamMode != 'stills' ) {
     eventViewer.width(newWidth);
   } // stills handles its own width
   eventViewer.height(newHeight);
@@ -181,7 +181,7 @@ function changeScale() {
     Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365});
     Cookie.dispose('zmEventScaleAuto');
   }
-}
+} // end function changeScale
 
 function changeReplayMode() {
   var replayMode = $('replayMode').get('value');

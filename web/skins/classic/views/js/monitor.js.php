@@ -7,9 +7,7 @@ if ( ZM_OPT_CONTROL ) {
 ?>
 var controlOptions = new Object();
 <?php
-  # Temporary workaround to show all ptz control types regardless of monitor source type
-  #    $sql = "select * from Controls where Type = '".$newMonitor['Type']."'";
-  $sql = 'SELECT `Id`,`Name`,`HasHomePreset`,`NumPresets` FROM `Controls` ORDER BY lower(`Name`)';
+  global $controls;
   foreach ( $controls as $control ) {
     echo '
 controlOptions['.$control->Id().'] = new Array();

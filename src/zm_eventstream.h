@@ -134,6 +134,8 @@ class EventStream : public StreamBase {
     void runStream();
     Image *getImage();
   private:
+    bool send_file( const char *file_path );
+    bool send_buffer( uint8_t * buffer, int size );
     Storage *storage;
     FFmpeg_Input  *ffmpeg_input;
     AVCodecContext *input_codec_context;

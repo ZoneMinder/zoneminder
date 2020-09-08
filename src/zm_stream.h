@@ -159,6 +159,13 @@ public:
 
   void setStreamType(StreamType p_type) {
     type = p_type;
+#if ! HAVE_ZLIB_H
+    if ( type == STREAM_ZIP ) {
+      Error("zlib is required for zipped images. Falling back to raw image");
+      type = STREAM_RAW;
+    }
+#endif
+
   }
   void setStreamFormat(const char *p_format) {
     format = p_format;

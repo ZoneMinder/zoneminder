@@ -79,6 +79,7 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
 
 void MonitorStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
+  Debug(2, "CMD_ANALYZE_ON %d", CMD_ANALYZE_ON);
   // Check for incoming command
   switch ( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
@@ -242,6 +243,14 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     case CMD_QUIT :
       Info("User initiated exit - CMD_QUIT");
       zm_terminate = true;
+      break;
+    case CMD_ANALYZE_ON : 
+      frame_type = FRAME_ANALYSIS;
+      Debug(1, "ANALYSIS on");
+      break;
+    case CMD_ANALYZE_OFF : 
+      frame_type = FRAME_NORMAL;
+      Debug(1, "ANALYSIS off");
       break;
     case CMD_QUERY :
       Debug(1, "Got QUERY command, sending STATUS");
@@ -713,9 +722,19 @@ void MonitorStream::runStream() {
           // Perhaps we should use NOW instead. 
           last_frame_timestamp =
               SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
-          Image *image = monitor->image_buffer[index];
 
-          if (!sendFrame(image, last_frame_timestamp)) {
+          Image *send_image = nullptr;
+          if ( ( frame_type == FRAME_ANALYSIS ) && ( monitor->GetOptSaveJPEGs() & 2 ) ) {
+            send_image = monitor->GetAlarmImage();
+            if ( !send_image ) {
+              Debug(1, "Falling back");
+              send_image = monitor->image_buffer[index];
+            }
+          } else {
+            send_image = monitor->image_buffer[index];
+          }
+
+          if (!sendFrame(send_image, last_frame_timestamp)) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
             break;

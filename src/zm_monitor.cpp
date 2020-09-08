@@ -233,7 +233,7 @@ bool Monitor::MonitorLink::connect() {
     return true;
   }
   return false;
-} // end bool Monitor::MonitorLink::connect()
+}  // end bool Monitor::MonitorLink::connect()
 
 bool Monitor::MonitorLink::disconnect() {
   if (connected) {
@@ -665,8 +665,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
-       + (image_buffer_count * sizeof(struct timeval))
-       + (image_buffer_count * image_size)
+       + (image_buffer_count*sizeof(struct timeval))
+       + (image_buffer_count*camera->ImageSize())
+       + camera->ImageSize() // alarm_image
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1,
@@ -1022,6 +1023,8 @@ bool Monitor::connect() {
     image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
+  alarm_image.AssignDirect(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[image_buffer_count*camera->ImageSize()]));
+  alarm_image.HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   Debug(3, "Allocated %zu %zu image buffers", image_buffer.capacity(), image_buffer.size());
 
   if (purpose == CAPTURE) {
@@ -1217,6 +1220,14 @@ void Monitor::AddPrivacyBitmask() {
     privacy_bitmask = privacy_image->Buffer();
 }
 
+Monitor::State Monitor::GetState() const {
+  return (State)shared_data->state;
+}
+
+Image &Monitor::GetAlarmImage() {
+  return alarm_image;
+}
+
 int Monitor::GetImage(int32_t index, int scale) {
   if (index < 0 || index > image_buffer_count) {
     Debug(1, "Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
@@ -1231,26 +1242,23 @@ int Monitor::GetImage(int32_t index, int scale) {
     return 0;
   }
 
-  Image *image;
+  std::string filename = stringtf("Monitor%u.jpg", id);
   // If we are going to be modifying the snapshot before writing, then we need to copy it
   if ((scale != ZM_SCALE_BASE) || (!config.timestamp_on_capture)) {
-    alarm_image.Assign(*image_buffer[index]);
+    Image image;
+    image.Assign(*image_buffer[index]);
 
     if (scale != ZM_SCALE_BASE) {
-      alarm_image.Scale(scale);
+      image.Scale(scale);
     }
 
     if (!config.timestamp_on_capture) {
-      TimestampImage(&alarm_image, SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
+      TimestampImage(&image, SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
     }
-    image = &alarm_image;
+    return image.WriteJpeg(filename);
   } else {
-    image = image_buffer[index];
+    return image_buffer[index]->WriteJpeg(filename);
   }
-
-  std::string filename = stringtf("Monitor%u.jpg", id);
-  image->WriteJpeg(filename);
-  return 1;
 }
 
 ZMPacket *Monitor::getSnapshot(int index) const {
@@ -2121,6 +2129,7 @@ bool Monitor::Analyse() {
                 shared_data->state = state = TAPE;
               }
             }
+<<<<<<< HEAD
           } else if (state == PREALARM) {
             // Back to IDLE
             shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
@@ -2163,6 +2172,79 @@ bool Monitor::Analyse() {
                 if (!snap->analysis_image)
                   snap->analysis_image = new Image(*(snap->image));
                 snap->analysis_image->Overlay(*(zone.AlarmImage()));
+=======
+          } // end if ALARM or ALERT
+
+          if ( state == PREALARM ) {
+            if ( function != MOCORD ) {
+              shared_data->state = state = IDLE;
+            } else {
+              shared_data->state = state = TAPE;
+            }
+						// Not in PREALARM state anymore, can clear PreAlarmCount
+						if ( Event::PreAlarmCount() )
+							Event::EmptyPreAlarmFrames();
+					}
+				} // end if score or not
+
+        if ( state != IDLE ) {
+          if ( state == PREALARM || state == ALARM ) {
+            if ( savejpegs > 1 ) {
+              bool got_anal_image = false;
+              Debug(1, "Assigning alarm image");
+              alarm_image->Assign(*snap_image);
+              for ( int i = 0; i < n_zones; i++ ) {
+                if ( zones[i]->Alarmed() ) {
+                  if ( zones[i]->AlarmImage() ) {
+                    alarm_image->Overlay(*(zones[i]->AlarmImage()));
+                    got_anal_image = true;
+                  }
+                  if ( config.record_event_stats && (state == ALARM) )
+                    zones[i]->RecordStats(event);
+                } // end if zone is alarmed
+              } // end foreach zone
+
+              if ( state == PREALARM ) {
+                Event::AddPreAlarmFrame(snap_image, *timestamp, score, (got_anal_image?alarm_image:nullptr));
+              } else {
+								event->AddFrame(snap_image, *timestamp, score, (got_anal_image?alarm_image:nullptr));
+							}
+            } else {
+              // Not doing alarm frame storage
+              if ( state == PREALARM ) {
+                Event::AddPreAlarmFrame(snap_image, *timestamp, score);
+              } else {
+                event->AddFrame(snap_image, *timestamp, score);
+                if ( config.record_event_stats ) {
+                  for ( int i = 0; i < n_zones; i++ ) {
+                    if ( zones[i]->Alarmed() )
+                      zones[i]->RecordStats(event);
+                  }
+                } // end if  config.record_event_stats
+              }
+            } // end if savejpegs > 1 
+
+            if ( event ) {
+              if ( noteSetMap.size() > 0 )
+                event->updateNotes(noteSetMap);
+
+              if ( section_length
+                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                  && ! (image_count % fps_report_interval)
+                 ) {
+                Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
+                    name, image_count, event->Id(),
+                    timestamp->tv_sec, video_store_data->recording.tv_sec,
+                    timestamp->tv_sec - video_store_data->recording.tv_sec,
+                    section_length
+                    );
+                closeEvent();
+                event = new Event(this, *timestamp, cause, noteSetMap);
+                shared_data->last_event = event->Id();
+                //set up video store data
+                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                video_store_data->recording = event->StartTime();
+>>>>>>> 89ff8a7fc (Include alarm_image in shared_mem)
               }
             }  // end if zone is alarmed
           }  // end foreach zone

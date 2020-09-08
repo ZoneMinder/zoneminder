@@ -567,6 +567,7 @@ public:
   const std::string &getONVIF_Password() const { return onvif_password; };
   const std::string &getONVIF_Options() const { return onvif_options; };
 
+  Image *GetAlarmImage();
   int GetImage(int32_t index=-1, int scale=100);
   ZMPacket *getSnapshot( int index=-1 ) const;
   SystemTimePoint GetTimestamp(int index = -1) const;

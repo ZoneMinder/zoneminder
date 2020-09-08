@@ -1023,7 +1023,11 @@ bool Monitor::connect() {
     image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-  alarm_image.AssignDirect(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[image_buffer_count*camera->ImageSize()]));
+  alarm_image.AssignDirect(width, height, camera->Colours(), camera->SubpixelOrder(),
+      &(shared_images[image_buffer_count*camera->ImageSize()]),
+        camera->ImageSize(),
+        ZM_BUFTYPE_DONTFREE
+        );
   alarm_image.HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   Debug(3, "Allocated %zu %zu image buffers", image_buffer.capacity(), image_buffer.size());
 
@@ -1220,12 +1224,8 @@ void Monitor::AddPrivacyBitmask() {
     privacy_bitmask = privacy_image->Buffer();
 }
 
-Monitor::State Monitor::GetState() const {
-  return (State)shared_data->state;
-}
-
-Image &Monitor::GetAlarmImage() {
-  return alarm_image;
+Image *Monitor::GetAlarmImage() {
+  return &alarm_image;
 }
 
 int Monitor::GetImage(int32_t index, int scale) {
@@ -2129,7 +2129,6 @@ bool Monitor::Analyse() {
                 shared_data->state = state = TAPE;
               }
             }
-<<<<<<< HEAD
           } else if (state == PREALARM) {
             // Back to IDLE
             shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
@@ -2161,7 +2160,7 @@ bool Monitor::Analyse() {
                   snap->analysis_image->Overlay(*(zone.AlarmImage()));
               } // end if zone is alarmed
             } // end foreach zone
-            alarm_image.Assign(snap->analysis_imageimage);
+            alarm_image.Assign(*snap->analysis_image);
           } // end if savejpegs
 
           // incremement pre alarm image count

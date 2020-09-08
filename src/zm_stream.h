@@ -90,6 +90,8 @@ protected:
     CMD_GET_IMAGE,
     CMD_QUIT,
     CMD_MAXFPS,
+    CMD_ANALYZE_ON,
+    CMD_ANALYZE_OFF,
     CMD_QUERY=99
   } MsgCommand;
 

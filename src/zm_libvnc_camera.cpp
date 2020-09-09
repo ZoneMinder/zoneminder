@@ -19,12 +19,12 @@ static int (*WaitForMessage_f)(rfbClient*, unsigned int) = nullptr;
 static rfbBool (*HandleRFBServerMessage_f)(rfbClient*) = nullptr;
 
 void bind_libvnc_symbols() {
-  if(libvnc_lib != nullptr) // Safe-check
+  if ( libvnc_lib != nullptr ) // Safe-check
     return;
   
   libvnc_lib = dlopen("libvncclient.so", RTLD_LAZY | RTLD_GLOBAL);
-  if(!libvnc_lib){
-    Error("Error loading libvlc: %s", dlerror());
+  if ( !libvnc_lib ) {
+    Error("Error loading libvncclient: %s", dlerror());
     return;
   }
 
@@ -49,8 +49,8 @@ static char* GetPasswordCallback(rfbClient* cl){
 static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
   rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
   if ( credentialType != rfbCredentialTypeUser ) {
-      free(c);
-      return nullptr;
+    free(c);
+    return nullptr;
   }
 
   c->userCredential.password = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
@@ -116,7 +116,7 @@ VncCamera::VncCamera(
 
 
 VncCamera::~VncCamera() {
-  if( capture )
+  if ( capture )
     Terminate();
 }
 
@@ -136,12 +136,11 @@ void VncCamera::Initialise() {
   mRfb->programName = "Zoneminder VNC Monitor";
   mRfb->serverHost = strdup(mHost.c_str());
   mRfb->serverPort = atoi(mPort.c_str());
-  (*rfbInitClient_f)(mRfb, 0, nullptr);
   scale.init();
 }
 
 void VncCamera::Terminate() {
-  if(mRfb->frameBuffer)
+  if ( mRfb->frameBuffer )
     free(mRfb->frameBuffer);
   (*rfbClientCleanup_f)(mRfb);
   return;
@@ -149,20 +148,38 @@ void VncCamera::Terminate() {
 
 int VncCamera::PrimeCapture() {
   Debug(1, "Priming capture from %s", mHost.c_str());
+  if ( ! (*rfbInitClient_f)(mRfb, 0, nullptr) ) {
+    return -1; 
+  }
   return 0;
 }
 
 int VncCamera::PreCapture() {
   Debug(2, "PreCapture");
-  (*WaitForMessage_f)(mRfb, 500);
+  int rc = (*WaitForMessage_f)(mRfb, 500);
+  if ( rc < 0 ) {
+    return -1;
+  } else if ( !rc ) {
+    return rc;
+  }
   rfbBool res = (*HandleRFBServerMessage_f)(mRfb);
-  return res == TRUE ? 1 : -1 ;
+  return res == TRUE ? 1 : -1;
 }
 
 int VncCamera::Capture(Image &image) {
   Debug(2, "Capturing");
   uint8_t *directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-  scale.Convert(mVncData.buffer, mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4, directbuffer, width * height * mBpp, AV_PIX_FMT_RGBA, mImgPixFmt, mRfb->si.framebufferWidth, mRfb->si.framebufferHeight, width, height);
+  scale.Convert(
+      mVncData.buffer,
+      mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4,
+      directbuffer,
+      width * height * mBpp,
+      AV_PIX_FMT_RGBA,
+      mImgPixFmt,
+      mRfb->si.framebufferWidth,
+      mRfb->si.framebufferHeight,
+      width,
+      height);
   return 1;
 }
 

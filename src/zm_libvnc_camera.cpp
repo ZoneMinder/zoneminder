@@ -136,7 +136,6 @@ void VncCamera::Initialise() {
   mRfb->programName = "Zoneminder VNC Monitor";
   mRfb->serverHost = strdup(mHost.c_str());
   mRfb->serverPort = atoi(mPort.c_str());
-  (*rfbInitClient_f)(mRfb, 0, nullptr);
   scale.init();
 }
 
@@ -149,12 +148,20 @@ void VncCamera::Terminate() {
 
 int VncCamera::PrimeCapture() {
   Debug(1, "Priming capture from %s", mHost.c_str());
+  if ( ! (*rfbInitClient_f)(mRfb, 0, nullptr) ) {
+    return -1; 
+  }
   return 0;
 }
 
 int VncCamera::PreCapture() {
   Debug(2, "PreCapture");
-  (*WaitForMessage_f)(mRfb, 500);
+  int rc = (*WaitForMessage_f)(mRfb, 500);
+  if ( rc < 0 ) {
+    return -1;
+  } else if ( !rc ) {
+    return rc;
+  }
   rfbBool res = (*HandleRFBServerMessage_f)(mRfb);
   return res == TRUE ? 1 : -1;
 }

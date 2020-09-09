@@ -393,6 +393,7 @@ function init() {
   $j('#Id').chosen();
   $j('#fieldsTable select').not("[name$='br\\]'], [name$='cnj\\]']").chosen({width: '101%'}); //Every select except brackets/and
   $j("#sortTable [name$='sort_field\\]']").chosen();
+  parseRows($j('#fieldsTable tbody').children());
 }
 
 window.addEventListener( 'DOMContentLoaded', init );

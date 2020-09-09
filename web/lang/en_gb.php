@@ -343,6 +343,7 @@ $SLANG = array(
     'Export'                => 'Export',
     'DownloadVideo'         => 'Download Video',
     'GenerateDownload'      => 'Generate Download',
+    'ExistsInFileSystem'    => 'Exists In File System',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
     'ExportFormatTar'       => 'Tar',

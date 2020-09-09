@@ -61,7 +61,7 @@ protected:
       min_x = 0;
       max_x = 0;
       n_edges = 0;
-      edges = 0;
+      edges = nullptr;
     }
     ~Slice() {
       delete edges;
@@ -83,7 +83,7 @@ protected:
   void calcCentre();
 
 public:
-  inline Polygon() : n_coords(0), coords(0), area(0), edges(0), slices(0) {
+  inline Polygon() : n_coords(0), coords(nullptr), area(0), edges(nullptr), slices(nullptr) {
   }
   Polygon(int p_n_coords, const Coord *p_coords);
   Polygon(const Polygon &p_polygon);

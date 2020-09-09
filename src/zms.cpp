@@ -53,7 +53,7 @@ bool ValidateAccess(User *user, int mon_id) {
 int main(int argc, const char *argv[], char **envp) {
   self = argv[0];
 
-  srand(getpid() * time(0));
+  srand(getpid() * time(nullptr));
 
   enum { ZMS_UNKNOWN, ZMS_MONITOR, ZMS_EVENT, ZMS_FIFO } source = ZMS_UNKNOWN;
   enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } mode = ZMS_JPEG;
@@ -105,12 +105,12 @@ int main(int argc, const char *argv[], char **envp) {
     int parm_no = 0;
     while ( (parm_no < 16) && (parms[parm_no] = strtok(q_ptr, "&")) ) {
       parm_no++;
-      q_ptr = NULL;
+      q_ptr = nullptr;
     }
 
     for ( int p = 0; p < parm_no; p++ ) {
       char *name = strtok(parms[p], "=");
-      char const *value = strtok(NULL, "=");
+      char const *value = strtok(nullptr, "=");
       if ( !value )
         value = "";
       if ( !strcmp(name, "source") ) {
@@ -131,10 +131,10 @@ int main(int argc, const char *argv[], char **envp) {
       } else if ( !strcmp(name, "time") ) {
         event_time = atoi(value);
       } else if ( !strcmp(name, "event") ) {
-        event_id = strtoull(value, NULL, 10);
+        event_id = strtoull(value, nullptr, 10);
         source = ZMS_EVENT;
       } else if ( !strcmp(name, "frame") ) {
-        frame_id = strtoull(value, NULL, 10);
+        frame_id = strtoull(value, nullptr, 10);
         source = ZMS_EVENT;
       } else if ( !strcmp(name, "scale") ) {
         scale = atoi(value);
@@ -188,7 +188,7 @@ int main(int argc, const char *argv[], char **envp) {
   logInit(log_id_string);
 
   if ( config.opt_use_auth ) {
-    User *user = NULL;
+    User *user = nullptr;
 
     if ( jwt_token_str != "" ) {
       // user = zmLoadTokenUser(jwt_token_str, config.auth_hash_ips);
@@ -217,27 +217,27 @@ int main(int argc, const char *argv[], char **envp) {
     }
     if ( !ValidateAccess(user, monitor_id) ) {
       delete user;
-      user = NULL;
+      user = nullptr;
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
       logTerm();
       zmDbClose();
       return 0;
     }
     delete user;
-    user = NULL;
+    user = nullptr;
   }  // end if config.opt_use_auth
 
   hwcaps_detect();
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
-  setbuf(stdout, 0);
+  setbuf(stdout, nullptr);
   if ( nph ) {
     fputs("HTTP/1.0 200 OK\r\n", stdout);
   }
   fprintf(stdout, "Server: ZoneMinder Video Server/%s\r\n", ZM_VERSION);
 
-  time_t now = time(0);
+  time_t now = time(nullptr);
   char date_string[64];
   strftime(date_string, sizeof(date_string)-1,
       "%a, %d %b %Y %H:%M:%S GMT", gmtime(&now));
@@ -259,14 +259,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamTTL(ttl);
     stream.setStreamQueue(connkey);
     stream.setStreamBuffer(playback_buffer);
-    if ( !stream.setStreamStart(monitor_id) ) {
-      Error("Unable to connect to zmc process for monitor %d", monitor_id);
-      fprintf(stderr, "Unable to connect to zmc process. "
-         " Please ensure that it is running.");
-      logTerm();
-      zmDbClose();
-      return -1;
-    }
+    stream.setStreamStart(monitor_id);
 
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType(MonitorStream::STREAM_JPEG);

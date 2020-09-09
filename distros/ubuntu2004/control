@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Isaac Connor <isaac@zoneminder.com>
 Uploaders: Isaac Connor <isaac@zoneminder.com>
-Build-Depends: debhelper, dh-systemd, sphinx-doc, dh-linktree, dh-systemd, dh-apache2
+Build-Depends: debhelper, dh-systemd, sphinx-doc, python3-sphinx, dh-linktree, dh-systemd, dh-apache2
               ,cmake
               ,libx264-dev, libmp4v2-dev
               ,libavdevice-dev

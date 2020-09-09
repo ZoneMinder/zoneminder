@@ -67,11 +67,11 @@ xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 <?php
 if ( canView('Control') && $monitor->Type() == 'Local' ) {
 ?>
-          <div id="settingsControl"><?php echo makePopupLink($monitor->Server()->UrlToIndex().'?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"') ?></div>
+          <div id="settingsControl"><?php echo makePopupLink($monitor->UrlToIndex().'?view=settings&amp;mid='.$monitor->Id().'&amp;'.get_auth_relay(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"') ?></div>
 <?php
 }
 ?>
-          <div id="scaleControl"><?php echo translate('Scale').': '.htmlSelect('scale', $scales, $scale); ?></div>
+          <div id="scaleControl"><?php echo translate('Scale').': '.htmlSelect('scale', $scales, $scale, array('id'=>'scale')); ?></div>
         </div>
         <div id="closeControl"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>
@@ -151,7 +151,7 @@ if ( $streamMode == 'jpeg' ) {
 } // end if streamMode==jpeg
 ?>
       </div>
-      <div id="replayStatus"<?php echo $streamMode=="single"?' class="hidden"':'' ?>>
+      <div id="replayStatus"<?php echo $streamMode=="single" ? ' class="hidden"' : '' ?>>
         <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue"></span></span>
         <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"></span>x</span>
         <span id="delay"><?php echo translate('Delay') ?>: <span id="delayValue"></span>s</span>
@@ -228,5 +228,4 @@ if ( ZM_WEB_SOUND_ON_ALARM ) {
 ?>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

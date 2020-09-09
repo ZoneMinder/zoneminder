@@ -76,5 +76,4 @@ foreach ( $output as $row ) {
       </table>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

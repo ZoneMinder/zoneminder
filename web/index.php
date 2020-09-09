@@ -53,7 +53,7 @@ require_once('includes/Group.php');
 require_once('includes/Monitor.php');
 
 // Useful debugging lines for mobile devices
-if ( ZM\Logger::fetch()->debugOn() ) {
+if ( 0 and ZM\Logger::fetch()->debugOn() ) {
   ob_start();
   phpinfo(INFO_VARIABLES);
   ZM\Logger::Debug(ob_get_contents());
@@ -222,11 +222,11 @@ ZM\Logger::Debug("View: $view Request: $request Action: $action User: " . ( isse
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
-  ( $view != 'view_video' ) &&
-  ( $view != 'image' ) &&
+  ( $view != 'view_video' ) && // only video no html
+  ( $view != 'image' ) && // view=image doesn't return html, just image data.
   ( $request != 'control' ) && 
-  ( $view != 'frames' ) && 
-  ( $view != 'archive' )
+  //( $view != 'frames' ) &&  // big html can overflow ob
+  ( $view != 'archive' ) // returns data
 ) {
   require_once('includes/csrf/csrf-magic.php');
   #ZM\Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
@@ -266,7 +266,6 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   $request = null;
 }
 
-CSPHeaders($view, $cspNonce);
 
 if ( $redirect ) {
   ZM\Logger::Debug("Redirecting to $redirect");
@@ -284,6 +283,7 @@ if ( $request ) {
 }
 
 if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
+  ob_start();
   foreach ( $includeFiles as $includeFile ) {
     if ( !file_exists($includeFile) )
       ZM\Fatal("View '$view' does not exist");
@@ -297,6 +297,9 @@ if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
     foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
       require_once $includeFile;
   }
+
+  CSPHeaders($view, $cspNonce);
+  ob_end_flush();
 }
 // If the view is missing or the view still returned error with the user logged in,
 // then it is not recoverable.

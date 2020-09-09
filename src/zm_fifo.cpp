@@ -30,13 +30,13 @@
 #include "zm_fifo.h"
 #define RAW_BUFFER 512
 static bool zm_fifodbg_inited = false;
-FILE *zm_fifodbg_log_fd = 0;
+FILE *zm_fifodbg_log_fd = nullptr;
 char zm_fifodbg_log[PATH_MAX] = "";
 
 static bool zmFifoDbgOpen() {
   if ( zm_fifodbg_log_fd )
     fclose(zm_fifodbg_log_fd);
-  zm_fifodbg_log_fd = NULL;
+  zm_fifodbg_log_fd = nullptr;
   signal(SIGPIPE, SIG_IGN);
   FifoStream::fifo_create_if_missing(zm_fifodbg_log);
   int fd = open(zm_fifodbg_log, O_WRONLY|O_NONBLOCK|O_TRUNC);
@@ -48,7 +48,7 @@ static bool zmFifoDbgOpen() {
     return false;
   }
   zm_fifodbg_log_fd = fdopen(fd, "wb");
-  if ( zm_fifodbg_log_fd == NULL ) {
+  if ( zm_fifodbg_log_fd == nullptr ) {
     close(fd);
     return false;
   }
@@ -95,7 +95,7 @@ void zmFifoDbgOutput(
   int res = fwrite(dbg_string, dbg_ptr-dbg_string, 1, zm_fifodbg_log_fd);
   if ( res != 1 ) {
     fclose(zm_fifodbg_log_fd);
-    zm_fifodbg_log_fd = NULL;
+    zm_fifodbg_log_fd = nullptr;
   } else {
     fflush(zm_fifodbg_log_fd);
   }
@@ -249,7 +249,7 @@ void FifoStream::runStream() {
   }
 
   while ( !zm_terminate ) {
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
     checkCommandQueue();
     if ( stream_type == MJPEG ) {
       if ( !sendMJEGFrames() )

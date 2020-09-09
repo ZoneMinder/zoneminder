@@ -211,7 +211,7 @@ public:
   MediaDescriptor *getStream( int index )
   {
     if ( index < 0 || (unsigned int)index >= mMediaList.size() )
-      return( 0 );
+      return nullptr;
     return( mMediaList[index] );
   }
 

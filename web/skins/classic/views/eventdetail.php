@@ -113,5 +113,4 @@ if ( $mode == 'single' ) {
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

@@ -141,10 +141,15 @@ class ZM_Object {
     global $object_cache;
     $object_cache[$class] = array();
   }
+  public function _remove_from_cache($class, $object) {
+    global $object_cache;
+    unset($object_cache[$class][$object->Id()]);
+    Logger::Debug("Unsset $class " . $object->Id() . " " . count($object_cache[$class]));
+  }
 
-  public static function Objects_Indexed_By_Id($class) {
+  public static function Objects_Indexed_By_Id($class, $params=null) {
     $results = array();
-    foreach ( ZM_Object::_find($class, null, array('order'=>'lower(Name)')) as $Object ) {
+    foreach ( ZM_Object::_find($class, $params, array('order'=>'lower(Name)')) as $Object ) {
       $results[$Object->Id()] = $Object;
     }
     return $results;

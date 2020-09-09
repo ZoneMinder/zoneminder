@@ -69,5 +69,4 @@ xhtmlHeaders(__FILE__, translate('Privacy'));
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

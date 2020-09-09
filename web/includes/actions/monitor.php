@@ -272,9 +272,8 @@ if ( $action == 'monitor' ) {
     }
     // really should thump zmwatch and maybe zmtrigger too.
     //daemonControl( 'restart', 'zmwatch.pl' );
-    $refreshParent = true;
   } // end if restart
-  $view = 'none';
+  $view = 'console';
 } else {
   ZM\Warning("Unknown action $action in Monitor");
 } // end if action == Delete

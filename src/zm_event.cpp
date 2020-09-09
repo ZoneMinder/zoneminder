@@ -55,7 +55,7 @@ Event::Event(
   cause(p_cause),
   noteSetMap(p_noteSetMap),
   videoEvent(p_videoEvent),
-  videowriter(NULL)
+  videowriter(nullptr)
 {
 
   std::string notes;
@@ -222,19 +222,19 @@ Event::Event(
       Error("ZoneMinder was not compiled with the X264 MP4 video writer, check dependencies (x264 and mp4v2)");
 #endif
 
-			if ( videowriter != NULL ) {
+			if ( videowriter != nullptr ) {
 				/* Open the video stream */
 				int nRet = videowriter->Open();
 				if ( nRet != 0 ) {
 					Error("Failed opening video stream");
 					delete videowriter;
-					videowriter = NULL;
+					videowriter = nullptr;
 				}
 			}
 		}
   } else {
     /* No video object */
-    videowriter = NULL;
+    videowriter = nullptr;
   }
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
@@ -242,13 +242,13 @@ Event::~Event() {
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
 
   /* Close the video file */
-  if ( videowriter != NULL ) {
+  if ( videowriter != nullptr ) {
     int nRet = videowriter->Close();
     if ( nRet != 0 ) {
       Error("Failed closing video stream");
     }
     delete videowriter;
-    videowriter = NULL;
+    videowriter = nullptr;
   }
 
   struct DeltaTimeval delta_time;
@@ -347,7 +347,7 @@ bool Event::WriteFrameVideo(
   Image ts_image;
 
   /* Checking for invalid parameters */
-  if ( videow == NULL ) {
+  if ( videow == nullptr ) {
     Error("NULL Video object");
     return false;
   }
@@ -509,7 +509,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
       WriteFrameImage(images[i], *(timestamps[i]), snapshot_file.c_str());
     }
 
-    if ( videowriter != NULL ) {
+    if ( videowriter != nullptr ) {
       WriteFrameVideo(images[i], *(timestamps[i]), videowriter);
     }
 
@@ -646,7 +646,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     }
   } // end if frame_type == ALARM
 
-  if ( videowriter != NULL ) {
+  if ( videowriter != nullptr ) {
     WriteFrameVideo(image, timestamp, videowriter);
   }
 

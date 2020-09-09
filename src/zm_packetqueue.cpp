@@ -32,7 +32,7 @@ zm_packetqueue::zm_packetqueue( int p_max_stream_id ) {
 zm_packetqueue::~zm_packetqueue() {
   clearQueue();
   delete[] packet_counts;
-  packet_counts = NULL;
+  packet_counts = nullptr;
 }
 
 bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
@@ -116,7 +116,7 @@ bool zm_packetqueue::queuePacket(AVPacket* av_packet) {
 
 ZMPacket* zm_packetqueue::popPacket( ) {
 	if ( pktQueue.empty() ) {
-		return NULL;
+		return nullptr;
 	}
 
 	ZMPacket *packet = pktQueue.front();
@@ -137,7 +137,7 @@ unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_
   }
 
   std::list<ZMPacket *>::reverse_iterator it;
-  ZMPacket *packet = NULL;
+  ZMPacket *packet = nullptr;
 
   for ( it = pktQueue.rbegin(); it != pktQueue.rend() && frames_to_keep; ++it ) {
     ZMPacket *zm_packet = *it;
@@ -186,13 +186,13 @@ unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_
 
     delete_count += 1;
   }    
-  packet = NULL; // tidy up for valgrind
+  packet = nullptr; // tidy up for valgrind
   Debug(3, "Deleted %d packets, %d remaining", delete_count, pktQueue.size());
   return delete_count; 
 } // end unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream_id )
 
 void zm_packetqueue::clearQueue() {
-  ZMPacket *packet = NULL;
+  ZMPacket *packet = nullptr;
   int delete_count = 0;
 	while ( !pktQueue.empty() ) {
     packet = pktQueue.front();
@@ -256,7 +256,7 @@ unsigned int zm_packetqueue::clearQueue(struct timeval *duration, int streamId) 
   }
 
   unsigned int deleted_frames = 0;
-  ZMPacket *zm_packet = NULL;
+  ZMPacket *zm_packet = nullptr;
   while (distance(it, pktQueue.rend()) > 1) {
     zm_packet = pktQueue.front();
     pktQueue.pop_front();
@@ -264,7 +264,7 @@ unsigned int zm_packetqueue::clearQueue(struct timeval *duration, int streamId) 
     delete zm_packet;
     deleted_frames += 1;
   }
-  zm_packet = NULL;
+  zm_packet = nullptr;
   Debug(3, "Deleted %d frames", deleted_frames);
 
   return deleted_frames;
@@ -366,7 +366,7 @@ void zm_packetqueue::clear_unwanted_packets(
       pktQueue.size() );
 
   unsigned int deleted_frames = 0;
-  ZMPacket *packet = NULL;
+  ZMPacket *packet = nullptr;
   while ( distance(it, pktQueue.rend()) > 1 ) {
   //while ( pktQueue.rend() != it ) {
     packet = pktQueue.front();
@@ -375,7 +375,7 @@ void zm_packetqueue::clear_unwanted_packets(
     delete packet;
     deleted_frames += 1;
   }
-  packet = NULL; // tidy up for valgrind
+  packet = nullptr; // tidy up for valgrind
 
   zm_packet = pktQueue.front();
   av_packet = &(zm_packet->packet);

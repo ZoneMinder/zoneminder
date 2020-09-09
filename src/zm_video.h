@@ -81,7 +81,7 @@ public:
 	virtual int Encode(const Image* img, const unsigned int frame_time) = 0;
 	virtual int Open() = 0;
 	virtual int Close() = 0;
-	virtual int Reset(const char* new_path = NULL);
+	virtual int Reset(const char* new_path = nullptr);
 	
 	const char* GetContainer() const {
 		return container.c_str();
@@ -160,13 +160,13 @@ protected:
 
 
 public:
-	X264MP4Writer(const char* p_path, const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, const std::vector<EncoderParameter_t>* p_user_params = NULL);
+	X264MP4Writer(const char* p_path, const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, const std::vector<EncoderParameter_t>* p_user_params = nullptr);
 	~X264MP4Writer();
 	int Encode(const uint8_t* data, const size_t data_size, const unsigned int frame_time);
 	int Encode(const Image* img, const unsigned int frame_time);
 	int Open();
 	int Close();
-	int Reset(const char* new_path = NULL);
+	int Reset(const char* new_path = nullptr);
 	
 };
 #endif // HAVE_LIBX264 && HAVE_LIBMP4V2 && HAVE_LIBAVUTIL && HAVE_LIBSWSCALE

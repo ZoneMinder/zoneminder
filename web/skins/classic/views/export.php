@@ -85,20 +85,18 @@ if ( $user['MonitorIds'] ) {
 }
 
 if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
-  ZM\Logger::Debug('Loading events by single eid');
   $eventsSql .= ' AND E.Id=?';
   $eventsValues[] = $_REQUEST['eid'];
-} elseif ( isset($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
-  ZM\Logger::Debug('Loading events by eids');
+} else if ( isset($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
   $eventsSql .= ' AND E.Id IN ('.implode(',', array_map(function(){return '?';}, $_REQUEST['eids'])). ')';
   $eventsValues += $_REQUEST['eids'];
 } else if ( isset($_REQUEST['filter']) ) {
   parseSort();
-  parseFilter($_REQUEST['filter']);
-  $filterQuery = $_REQUEST['filter']['query'];
+  $filter = Filter::parse($_REQUEST['filter']);
+  $filterQuery = $filter->querystring();
 
-  if ( $_REQUEST['filter']['sql'] ) {
-    $eventsSql .= $_REQUEST['filter']['sql'];
+  if ( $filter->sql() ) {
+    $eventsSql .= $filter->sql();
   }
   $eventsSql .= " ORDER BY $sortColumn $sortOrder";
   if ( isset($_REQUEST['filter']['Query']['limit']) )
@@ -271,5 +269,4 @@ while ( $event_row = dbFetchNext($results) ) {
         </form>
       </div>
     </div>
-  </body>
-</html>
+<?php xhtmlFooter() ?>

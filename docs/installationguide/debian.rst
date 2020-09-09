@@ -43,7 +43,7 @@ trigger their installation manually.
 
 ::
 
-    sudo apt install apache2 mysql-server
+    sudo apt install apache2 default-mysql-server
 
 **Step 4:** Add ZoneMinder's Package repository to your apt sources
 
@@ -51,24 +51,28 @@ ZoneMinder's Debian packages are not included in Debian's official package
 repositories. To be able to install ZoneMinder with APT, you have to edit the
 list of apt sources and add ZoneMinder's repository.
 
-::
-
-    sudo nano /etc/apt/sources.list
-
-Add the following to the bottom of the file
+Add the following to the /etc/apt/sources.list.d/zoneminder.list file
 
 ::
 
     # ZoneMinder repository
     deb https://zmrepo.zoneminder.com/debian/release-1.34 buster/
 
-CTRL+o and <Enter> to save
-CTRL+x to exit
+You can do this using:
+
+::
+    echo "deb https://zmrepo.zoneminder.com/debian/release-1.34 buster/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 
 Because ZoneMinder's package repository provides a secure connection through HTTPS, apt must be enabled for HTTPS.
 ::
 
     sudo apt install apt-transport-https
+
+Ensure you have gnupg installed before importing the apt key in the following step.
+::
+
+    sudo apt install gnupg
+
 
 Finally, download the GPG key for ZoneMinder's repository:
 ::
@@ -107,7 +111,7 @@ required apache modules.
 ::
 
     sudo a2enconf zoneminder
-    sudo a2enmod rewrite
+    sudo a2enmod rewrite # this is enabled by default
     sudo a2enmod cgi # this is done automatically when installing the package. Redo this command manually only for troubleshooting.
 
 
@@ -116,12 +120,12 @@ required apache modules.
 Automated way:
 ::
 
-    sudo sed -i "s/;date.timezone =/date.timezone = $(sed 's/\//\\\//' /etc/timezone)/g" /etc/php/7.0/apache2/php.ini
+    sudo sed -i "s/;date.timezone =/date.timezone = $(sed 's/\//\\\//' /etc/timezone)/g" /etc/php/7.*/apache2/php.ini
 
 Manual way
 ::
 
-    sudo nano /etc/php/7.0/apache2/php.ini
+    sudo nano /etc/php/7.*/apache2/php.ini
 
 Search for [Date] (Ctrl + w then type Date and press Enter) and change
 date.timezone for your time zone. Don't forget to remove the ; from in front

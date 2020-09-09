@@ -57,7 +57,7 @@ int VideoWriter::Reset(const char* new_path) {
   /* Common variables reset */
 
   /* If there is a new path, use it */
-  if ( new_path != NULL ) {
+  if ( new_path != nullptr ) {
     path = new_path;
   }
 
@@ -116,7 +116,7 @@ X264MP4Writer::X264MP4Writer(
   }
 
   /* If supplied with user parameters to the encoder, copy them */
-  if ( p_user_params != NULL ) {
+  if ( p_user_params != nullptr ) {
     user_params = *p_user_params;
   }
 
@@ -144,7 +144,7 @@ X264MP4Writer::~X264MP4Writer() {
 int X264MP4Writer::Open() {
   /* Open the encoder */
   x264enc = x264_encoder_open(&x264params);
-  if ( x264enc == NULL ) {
+  if ( x264enc == nullptr ) {
     Error("Failed opening x264 encoder");
     return -1;
   }
@@ -269,7 +269,7 @@ int X264MP4Writer::Encode(
     const size_t data_size,
     const unsigned int frame_time) {
   /* Parameter checking */
-  if ( data == NULL ) {
+  if ( data == nullptr ) {
     Error("NULL buffer");
     return -1;
   }
@@ -418,7 +418,7 @@ int X264MP4Writer::x264encodeloop(bool bFlush) {
   int frame_size;
 
   if ( bFlush ) {
-    frame_size = x264_encoder_encode(x264enc, &nals, &i_nals, NULL, &x264picout);
+    frame_size = x264_encoder_encode(x264enc, &nals, &i_nals, nullptr, &x264picout);
   } else {
     frame_size = x264_encoder_encode(x264enc, &nals, &i_nals, &x264picin, &x264picout);
   }
@@ -515,12 +515,12 @@ int ParseEncoderParameters(
     const char* str,
     std::vector<EncoderParameter_t>* vec
     ) {
-  if ( vec == NULL ) {
+  if ( vec == nullptr ) {
     Error("NULL Encoder parameters vector pointer");
     return -1;
   }
 
-  if ( str == NULL ) {
+  if ( str == nullptr ) {
     Error("NULL Encoder parameters string");
     return -2;
   }

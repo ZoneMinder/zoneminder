@@ -102,5 +102,4 @@ if ( isset( $children[null] ) )
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

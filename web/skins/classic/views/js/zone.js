@@ -5,6 +5,7 @@ var cancelBtn = $j('#cancelBtn');
 var backBtn = $j('#backBtn');
 var refreshBtn = $j('#refreshBtn');
 var monitors = [];
+var analyze_frames = true;
 
 function validateForm( form ) {
   var errors = [];
@@ -566,6 +567,7 @@ function watchdogCheck(type) {
 function watchdogOk(type) {
   watchdogInactive[type] = false;
 }
+
 function presetSelectorBlur() {
   this.selectedIndex = 0;
 }
@@ -654,6 +656,21 @@ function initPage() {
     el.onclick = function() {
       window.location.reload(true);
     };
+  }
+
+  if ( el = $('analyzeBtn') ) {
+    $('analyzeBtn').onclick = function() {
+      console.log(analyze_frames);
+      analyze_frames = !analyze_frames;
+      if ( analyze_frames ) {
+        $('analyzeBtn').classList.add('disabled');
+      } else {
+        $('analyzeBtn').classList.remove('disabled');
+      }
+      for ( var i = 0, length = monitors.length; i < length; i++ ) {
+        monitors[i].show_analyze_frames(analyze_frames);
+      }
+    }
   }
 
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {

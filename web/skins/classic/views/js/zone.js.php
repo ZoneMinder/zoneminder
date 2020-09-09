@@ -97,6 +97,8 @@ var deleteString = "<?php echo translate('Delete') ?>";
 var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
 var CMD_PLAY = <?php echo CMD_PLAY ?>;
 var CMD_STOP = <?php echo CMD_STOP ?>;
+var CMD_ANALYZE_ON = <?php echo CMD_ANALYZE_ON ?>;
+var CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;
 var CMD_QUERY = <?php echo CMD_QUERY ?>;
 
 var SCALE_BASE = <?php echo SCALE_BASE ?>;

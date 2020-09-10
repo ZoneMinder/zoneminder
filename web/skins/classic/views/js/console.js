@@ -167,7 +167,7 @@ function initPage() {
       return;
     }
     function_form.elements['newFunction'].value = monitor.Function;
-    function_form.elements['newEnabled'].checked = monitor.Enabled;
+    function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
     function_form.elements['mid'].value = mid;
     document.getElementById('function_monitor_name').innerHTML = monitor.Name;
 
@@ -186,8 +186,9 @@ function initPage() {
     var mid = form.elements['mid'].value;
     var newFunc = $j('#newFunction').val();
     var newEnabled = $j('#newEnabled').is(':checked') ? 1 : 0;
-    $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled);
-    window.location.reload(true);
+    $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled, function() {
+      window.location.reload(true);
+    });
   });
 }
 

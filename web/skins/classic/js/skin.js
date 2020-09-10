@@ -388,17 +388,16 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Manage the optionhelp links
     $j(".optionhelp").click(function(evt) {
       $j.getJSON(thisUrl + '?request=modal&modal=optionhelp&ohndx=' + evt.target.id)
-        .done(optionhelpModal)
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+          .done(optionhelpModal)
+          .fail(function(jqxhr, textStatus, error) {
+            console.log("Request Failed: " + textStatus + ", " + error);
+            console.log("Response Text: " + jqxhr.responseText);
+          });
     });
   });
 
   // Manage the modal html we received after user clicks help link
   function optionhelpModal(data) {
-
     if ( $j('#optionhelp').length ) {
       $j('#optionhelp').replaceWith(data.html);
     } else {

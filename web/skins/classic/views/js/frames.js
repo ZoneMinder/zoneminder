@@ -52,7 +52,7 @@ function initPage() {
 
   // Hide these columns on first run when no cookie is saved
   if ( !getCookie("zmFramesTable.bs.table.columns") ) {
-    table.bootstrapTable('hideColumn', 'FrameId');
+    table.bootstrapTable('hideColumn', 'EventId');
   }
 
   // Hide the stats tables on init

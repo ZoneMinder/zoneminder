@@ -438,6 +438,13 @@ function makeLink($url, $label, $condition=1, $options='') {
   return $string;
 }
 
+//Make it slightly easier to create a link to help text modal
+function makeHelpLink($ohndx) {
+  $string = '<a id="' .$ohndx. '" class="optionhelp" href="#">?</a>';
+
+  return $string;
+}
+
 /**
  * $label must be already escaped. It can't be done here since it sometimes contains HTML tags.
  */

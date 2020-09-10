@@ -490,7 +490,9 @@ Monitor::Monitor(
     //video_store_data->frameNumber = 0;
   } else if ( purpose == ANALYSIS ) {
     if ( ! (this->connect() && mem_ptr && shared_data->valid) ) {
-      Error("Shared data not initialised by capture daemon for monitor %s", name);
+      if ( Enabled() ) {
+        Error("Shared data not initialised by capture daemon for monitor %s", name);
+      }
       exit(-1);
     }
     shared_data->state = IDLE;
@@ -550,6 +552,10 @@ Monitor::Monitor(
 
 bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose );
+  if ( !Enabled() ) {
+    Debug(3, "Monitor is disabled");
+    return false;
+  }
 #if ZM_MEM_MAPPED
   snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
   map_fd = open(mem_file, O_RDWR|O_CREAT, (mode_t)0600);

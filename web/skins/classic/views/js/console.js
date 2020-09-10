@@ -186,8 +186,9 @@ function initPage() {
     var mid = form.elements['mid'].value;
     var newFunc = $j('#newFunction').val();
     var newEnabled = $j('#newEnabled').is(':checked') ? 1 : 0;
-    $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled);
-    window.location.reload(true);
+    $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled, function() {
+      window.location.reload(true);
+    });
   });
 }
 

@@ -79,14 +79,12 @@ function CSPHeaders($view, $nonce) {
     case 'storage':
     case 'version': {
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      // 'unsafe-inline' is only for backwards compatibility with browsers which
-      // only support CSP 1 (with no nonce-* support).
-      header("Content-Security-Policy: script-src 'unsafe-inline' 'self' 'nonce-$nonce' $additionalScriptSrc");
+      header("Content-Security-Policy: script-src 'self' 'nonce-$nonce' $additionalScriptSrc");
       break;
     }
     default: {
       // Use Report-Only mode on all other pages.
-      header("Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self' 'nonce-$nonce' $additionalScriptSrc;".
+      header("Content-Security-Policy-Report-Only: script-src 'self' 'nonce-$nonce' $additionalScriptSrc;".
         (ZM_CSP_REPORT_URI ? ' report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;

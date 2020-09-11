@@ -53,7 +53,7 @@ function initialAlarmCues(eventId) {
       .fail(function(jqxhr, textStatus, error) {
         console.log("Request Failed: " + textStatus + ", " + error);
         console.log("Response Text: " + jqxhr.responseText);
-      });  
+      });
 }
 
 function setAlarmCues(data) {

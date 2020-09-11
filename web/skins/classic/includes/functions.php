@@ -762,7 +762,7 @@ function getOptionHelpHTML($optionHelpIndex, $OLANG) {
   if ( !empty($OLANG[$optionHelpIndex]) ) {
     $optionHelpText = $OLANG[$optionHelpIndex]['Help'];
   } else {
-    $optionHelpText = dbFetchOne('SELECT Help FROM Config WHERE Name=?', 'Help', array($ZMoptionHelpIndex));
+    $optionHelpText = dbFetchOne('SELECT Help FROM Config WHERE Name=?', 'Help', array($optionHelpIndex));
   }
   $optionHelpText = validHtmlStr($optionHelpText);
   $optionHelpText = preg_replace('/~~/', '<br/>', $optionHelpText );

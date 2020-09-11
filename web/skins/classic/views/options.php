@@ -512,7 +512,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
 <?php
         }
 ?>
-              <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText) ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</span>
+              <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>
 	    </div><!-- End .col-sm-9 -->
             </div><!-- End .form-group -->
 <?php

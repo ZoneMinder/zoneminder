@@ -16,10 +16,10 @@ if ( canEdit('Events') ) {
     switch ( $_REQUEST['action'] ) {
     case 'archive' :
     case 'unarchive' :
-      $archiveVal = ($_REQUEST['action'] == 'archive')?1:0;
+      $archiveVal = ($_REQUEST['action'] == 'archive') ? 1 : 0;
       dbQuery(
         'UPDATE Events SET Archived = ? WHERE Id = ?',
-        array($archiveVal, $_REQUEST['id'])
+        array($archiveVal, $eid)
       );
       break;
     case 'delete' :

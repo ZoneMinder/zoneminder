@@ -416,6 +416,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
           if ( textStatus != "timeout" ) {
           // The idea is that this should only fail due to auth, so reload the page
           // which should go to login if it can't stay logged in.
@@ -711,7 +712,11 @@ function bwClickFunction() {
 function reminderClickFunction() {
   $j("#dropdown_reminder a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
-    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option);
-    window.location.reload(true); //Do a full refresh to update ZM_DYN_LAST_VERSION
+    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
+        .done(window.location.reload(true)) //Do a full refresh to update ZM_DYN_LAST_VERSION
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
   });
 }

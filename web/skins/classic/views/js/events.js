@@ -125,8 +125,12 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?view=events&action=archive&eids[]='+selections.join('&eids[]='));
-    window.location.reload(true);
+    $j.getJSON(thisUrl + '?request=events&action=archive&eids[]='+selections.join('&eids[]='))
+        .done(window.location.reload(true))
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
   });
 
   // Manage the UNARCHIVE button
@@ -140,7 +144,12 @@ function initPage() {
     console.log(selections);
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?view=events&action=unarchive&eids[]='+selections.join('&eids[]='));
+    $j.getJSON(thisUrl + '?request=events&action=unarchive&eids[]='+selections.join('&eids[]='))
+        .done(window.location.reload(true))
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
 
     if ( openFilterWindow ) {
       //opener.location.reload(true);
@@ -201,8 +210,12 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='));
-    window.location.reload(true);
+    $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='))
+        .done(window.location.reload(true))
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
   });
 
   // Manage the CANCEL modal button

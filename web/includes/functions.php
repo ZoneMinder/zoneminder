@@ -438,7 +438,7 @@ function makeLink($url, $label, $condition=1, $options='') {
 
 //Make it slightly easier to create a link to help text modal
 function makeHelpLink($ohndx) {
-  $string = '<a id="' .$ohndx. '" class="optionhelp" href="#">?</a>';
+  $string = '&nbsp;(<a id="' .$ohndx. '" class="optionhelp" href="#">?</a>)';
 
   return $string;
 }

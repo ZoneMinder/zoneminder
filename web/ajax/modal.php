@@ -8,6 +8,7 @@
 
 if ( empty($_REQUEST['modal']) ) ajaxError('Modal Name Not Provided');
 
+global $OLANG;
 $modal = validJsStr($_REQUEST['modal']);
 $data = array();
 
@@ -22,7 +23,7 @@ if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
 switch ( $modal ) {
   case 'optionhelp' :
     if ( empty($_REQUEST['ohndx']) ) ajaxError('Option Help Index Not Provided');
-    $data['html'] = getOptionHelpHTML($_REQUEST['ohndx']);
+    $data['html'] = getOptionHelpHTML($_REQUEST['ohndx'], $OLANG);
     break;
   default :
     // Maybe don't need both

@@ -755,8 +755,7 @@ function runtimeStatus($running=null) {
 }
 
 // Returns the modal html representing the selected Option Help item
-function getOptionHelpHTML($optionHelpIndex) {
-  global $OLANG;
+function getOptionHelpHTML($optionHelpIndex, $OLANG) {
   $result = '';
   $ZMoptionHelpIndex = 'ZM_'.$optionHelpIndex;
   

@@ -50,3 +50,4 @@ xhtmlHeaders(__FILE__, translate('Stats')." - ".$eid." - ".$fid );
   </div>
 </body>
 </html>
+<?php xhtmlFooter() ?>

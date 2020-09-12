@@ -44,7 +44,7 @@ xhtmlHeaders(__FILE__, translate('Stats')." - ".$eid." - ".$fid );
     <div id="content" class="row justify-content-center">
       <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
-        <?php include('_stats_table.php'); ?>
+        <?php echo getStatsTableHTML($eid, $fid) ?>
       </form>
     </div>
   </div>

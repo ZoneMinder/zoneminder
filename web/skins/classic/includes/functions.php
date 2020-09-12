@@ -817,6 +817,67 @@ function getENoPermHTML() {
   return $result;
 }
 
+function getStatsTableHTML($eid, $fid, $row='') {
+  if ( !canView('Events') ) return;
+  $result = '';
+  
+  $sql = 'SELECT S.*,E.*,Z.Name AS ZoneName,Z.Units,Z.Area,M.Name AS MonitorName FROM Stats AS S LEFT JOIN Events AS E ON S.EventId = E.Id LEFT JOIN Zones AS Z ON S.ZoneId = Z.Id LEFT JOIN Monitors AS M ON E.MonitorId = M.Id WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
+  $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
+  
+  $result .= '<table id="contentStatsTable' .$row. '"'.PHP_EOL;
+    $result .= 'data-toggle="table"'.PHP_EOL;
+    $result .= 'data-toolbar="#toolbar"'.PHP_EOL;
+    $result .= 'class="table-sm table-borderless contentStatsTable"'.PHP_EOL;
+    $result .= 'cellspacing="0">'.PHP_EOL;
+    
+    $result .= '<caption>' .translate('Stats'). ' - ' .$eid. ' - ' .$fid. '</caption>'.PHP_EOL;
+    $result .= '<thead>'.PHP_EOL;
+      $result .= '<tr>'.PHP_EOL;
+        $result .= '<th class="colZone font-weight-bold" data-align="center">' .translate('Zone'). '</th>'.PHP_EOL;
+        $result .= '<th class="colPixelDiff font-weight-bold" data-align="center">' .translate('PixelDiff'). '</th>'.PHP_EOL;
+        $result .= '<th class="colAlarmPx font-weight-bold" data-align="center">' .translate('AlarmPx'). '</th>'.PHP_EOL;
+        $result .= '<th class="colFilterPx font-weight-bold" data-align="center">' .translate('FilterPx'). '</th>'.PHP_EOL;
+        $result .= '<th class="colBlobPx font-weight-bold" data-align="center">' .translate('BlobPx'). '</th>'.PHP_EOL;
+        $result .= '<th class="colBlobs font-weight-bold" data-align="center">' .translate('Blobs'). '</th>'.PHP_EOL;
+        $result .= '<th class="colBlobSizes font-weight-bold" data-align="center">' .translate('BlobSizes'). '</th>'.PHP_EOL;
+        $result .= '<th class="colAlarmLimits font-weight-bold" data-align="center">' .translate('AlarmLimits'). '</th>'.PHP_EOL;
+        $result .= '<th class="colScore font-weight-bold" data-align="center">' .translate('Score'). '</th>'.PHP_EOL;
+      $result .= '</tr>'.PHP_EOL;
+    $result .= '</thead>'.PHP_EOL;
+
+    $result .= '<tbody>'.PHP_EOL;
+    
+    if ( count($stats) ) {
+      foreach ( $stats as $stat ) {
+        $result .= '<tr>'.PHP_EOL;
+          $result .= '<td class="colZone">' .validHtmlStr($stat['ZoneName']). '</td>'.PHP_EOL;
+          $result .= '<td class="colPixelDiff">' .validHtmlStr($stat['PixelDiff']). '</td>'.PHP_EOL;
+          $result .= '<td class="colAlarmPx">' .sprintf( "%d (%d%%)", $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']) ). '</td>'.PHP_EOL;
+          $result .= '<td class="colFilterPx">' .sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']) ).'</td>'.PHP_EOL;
+          $result .= '<td class="colBlobPx">' .sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']) ). '</td>'.PHP_EOL;
+          $result .= '<td class="colBlobs">' .validHtmlStr($stat['Blobs']). '</td>'.PHP_EOL;
+          
+          if ( $stat['Blobs'] > 1 ) {
+            $result .= '<td class="colBlobSizes">' .sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']) ). '</td>'.PHP_EOL;
+          } else {
+            $result .= '<td class="colBlobSizes">' .sprintf( "%d (%d%%)", $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$stat['Area'] ). '</td>'.PHP_EOL;
+          }
+          
+          $result .= '<td class="colAlarmLimits">' .validHtmlStr($stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY']). '</td>'.PHP_EOL;
+          $result .= '<td class="colScore">' .$stat['Score']. '</td>'.PHP_EOL;
+      }
+    } else {
+      $result .= '<tr>'.PHP_EOL;
+        $result .= '<td class="rowNoStats" colspan="9">' .translate('NoStatisticsRecorded'). '</td>'.PHP_EOL;
+      $result .= '</tr>'.PHP_EOL;
+    }
+
+    $result .= '</tbody>'.PHP_EOL;
+  $result .= '</table>'.PHP_EOL;
+  
+  return $result;
+}
+
 function xhtmlFooter() {
   global $css;
   global $cspNonce;

@@ -790,6 +790,33 @@ function getOptionHelpHTML($optionHelpIndex, $OLANG) {
   return $result;
 }
 
+// Return an Error No Permissions Modal
+function getENoPermHTML() {
+  $result = '';
+
+  $result .= '<div id="ENoPerm" class="modal fade" id="staticBackdrop" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
+    $result .= '<div class="modal-dialog">'.PHP_EOL;
+      $result .= '<div class="modal-content">'.PHP_EOL;
+        $result .= '<div class="modal-header">'.PHP_EOL;
+          $result .= '<h5 class="modal-title" id="staticBackdropLabel">ZoneMinder ' .translate('Error'). '</h5>'.PHP_EOL;
+          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
+            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
+          $result .= '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-body">'.PHP_EOL;
+          $result .= '<p>' .translate('YouNoPerms'). '</p>'.PHP_EOL;
+          $result .= '<p>' .translate('ContactAdmin'). '</p>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-footer">'.PHP_EOL;
+          $result .= '<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+      $result .= '</div>'.PHP_EOL;
+    $result .= '</div>'.PHP_EOL;
+  $result .= '</div>'.PHP_EOL;
+
+  return $result;
+}
+
 function xhtmlFooter() {
   global $css;
   global $cspNonce;

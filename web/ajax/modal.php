@@ -25,6 +25,9 @@ switch ( $modal ) {
     if ( empty($_REQUEST['ohndx']) ) ajaxError('Option Help Index Not Provided');
     $data['html'] = getOptionHelpHTML($_REQUEST['ohndx'], $OLANG);
     break;
+  case 'enoperm' :
+    $data['html'] = getENoPermHTML();
+    break;
   default :
     // Maybe don't need both
     ZM\Warning('Unknown modal '.$modal);

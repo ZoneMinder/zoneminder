@@ -213,7 +213,7 @@ $row = 0;
 if ( count($frames) ) foreach ( $frames as $frame ) {
   $eid = $frame['EventId'];
   $fid = $frame['FrameId'];
-  include('_stats_table.php');
+  echo getStatsTableHTML($eid, $fid, $row);
   $row++;
 }
 ?>

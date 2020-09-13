@@ -206,15 +206,4 @@ if ( count($frames) ) {
         </table>
       </div>
   </div>
-<!-- Load the statistics for each frame -->
-<!-- This content gets hidden on init and only revailed on detail view -->
-<?php
-$row = 0;
-if ( count($frames) ) foreach ( $frames as $frame ) {
-  $eid = $frame['EventId'];
-  $fid = $frame['FrameId'];
-  echo getStatsTableHTML($eid, $fid, $row);
-  $row++;
-}
-?>
 <?php xhtmlFooter() ?>

@@ -56,7 +56,7 @@ function manageDelConfirmModalBtns() {
   // Manage the DELETE CONFIRMATION modal button
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
     if ( ! canEditEvents ) {
-      alert("You do not have permission to delete events.");
+      enoperm();
       return;
     }
 
@@ -181,7 +181,7 @@ function initPage() {
   // Manage the UNARCHIVE button
   document.getElementById("unarchiveBtn").addEventListener("click", function onUnarchiveClick(evt) {
     if ( ! canEditEvents ) {
-      alert("You do not have permission to Unarchive events.");
+      enoperm();
       return;
     }
 
@@ -208,7 +208,7 @@ function initPage() {
   // Manage the EDIT button
   document.getElementById("editBtn").addEventListener("click", function onEditClick(evt) {
     if ( ! canEditEvents ) {
-      alert("You do not have permission to edit events.");
+      enoperm();
       return;
     }
 
@@ -237,7 +237,7 @@ function initPage() {
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
     if ( ! canEditEvents ) {
-      alert("You do not have permission to delete events.");
+      enoperm();
       return;
     }
 

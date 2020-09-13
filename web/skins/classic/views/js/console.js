@@ -151,7 +151,7 @@ function initPage() {
   $j('.functionLnk').click(function(evt) {
     evt.preventDefault();
     if ( !canEditEvents ) {
-      alert('You do not have permission to change monitor function.');
+      enoperm();
       return;
     }
     var mid = evt.currentTarget.getAttribute('data-mid');

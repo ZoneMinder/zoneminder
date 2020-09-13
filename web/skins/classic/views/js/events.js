@@ -173,7 +173,10 @@ function initPage() {
 
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&action=archive&eids[]='+selections.join('&eids[]='))
-        .done(window.location.reload(true))
+        .done( function(data) {
+          $j('#eventTable').bootstrapTable('refresh');
+          window.location.reload(true);
+        })
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
           console.log("Response Text: " + jqxhr.responseText);
@@ -192,7 +195,10 @@ function initPage() {
 
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&action=unarchive&eids[]='+selections.join('&eids[]='))
-        .done(window.location.reload(true))
+        .done( function(data) {
+          $j('#eventTable').bootstrapTable('refresh');
+          window.location.reload(true);
+        })
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
           console.log("Response Text: " + jqxhr.responseText);

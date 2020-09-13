@@ -35,6 +35,48 @@ function getArchivedSelections() {
   return selection.includes("Yes");
 }
 
+// Load the Delete Confirmation Modal HTML via Ajax call
+function getDelConfirmModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+      .done(function(data) {
+        if ( $j('#deleteConfirm').length ) {
+          $j('#deleteConfirm').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        manageDelConfirmModalBtns();
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
+}
+
+function manageDelConfirmModalBtns() {
+  // Manage the DELETE CONFIRMATION modal button
+  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
+    if ( ! canEditEvents ) {
+      alert("You do not have permission to delete events.");
+      return;
+    }
+
+    var selections = getIdSelections();
+
+    evt.preventDefault();
+    $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='))
+        .done(window.location.reload(true))
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
+  });
+
+  // Manage the CANCEL modal button
+  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
+    $j('#deleteConfirm').modal('hide');
+  });
+}
+
 function initPage() {
   var backBtn = $j('#backBtn');
   var viewBtn = $j('#viewBtn');
@@ -45,6 +87,9 @@ function initPage() {
   var downloadBtn = $j('#downloadBtn');
   var deleteBtn = $j('#deleteBtn');
   var table = $j('#eventTable');
+
+  // Load the delete confirmation modal into the DOM
+  getDelConfirmModal();
 
   // Define the icons used in the bootstrap-table top-right toolbar
   var icons = {
@@ -198,29 +243,6 @@ function initPage() {
 
     evt.preventDefault();
     $j('#deleteConfirm').modal('show');
-  });
-
-  // Manage the DELETE CONFIRMATION modal button
-  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEditEvents ) {
-      alert("You do not have permission to delete events.");
-      return;
-    }
-
-    var selections = getIdSelections();
-
-    evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='))
-        .done(window.location.reload(true))
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
-  });
-
-  // Manage the CANCEL modal button
-  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
-    $j('#deleteConfirm').modal('hide');
   });
 
   // The table is initially given a hidden style, so now that we are done rendering, show it

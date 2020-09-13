@@ -28,6 +28,9 @@ switch ( $modal ) {
   case 'enoperm' :
     $data['html'] = getENoPermHTML();
     break;
+  case 'delconfirm' :
+    $data['html'] = getDelConfirmHTML();
+    break;
   default :
     // Maybe don't need both
     ZM\Warning('Unknown modal '.$modal);

@@ -720,3 +720,25 @@ function reminderClickFunction() {
         });
   });
 }
+
+// Load then show the "You No Permission" error modal
+function enoperm() {
+  $j.getJSON(thisUrl + '?request=modal&modal=enoperm')
+      .done(function(data) {
+        if ( $j('#ENoPerm').length ) {
+          $j('#ENoPerm').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#ENoPerm').modal('show');
+
+        // Manage the CLOSE optionhelp modal button
+        document.getElementById("enpCloseBtn").addEventListener("click", function onENPCloseClick(evt) {
+          $j('#ENoPerm').modal('hide');
+        });
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
+}

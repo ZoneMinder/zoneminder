@@ -808,7 +808,7 @@ function getENoPermHTML() {
           $result .= '<p>' .translate('ContactAdmin'). '</p>'.PHP_EOL;
         $result .= '</div>'.PHP_EOL;
         $result .= '<div class="modal-footer">'.PHP_EOL;
-          $result .= '<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>'.PHP_EOL;
+          $result .= '<button type="button" id="enpCloseBtn" class="btn btn-secondary" data-dismiss="modal">Close</button>'.PHP_EOL;
         $result .= '</div>'.PHP_EOL;
       $result .= '</div>'.PHP_EOL;
     $result .= '</div>'.PHP_EOL;

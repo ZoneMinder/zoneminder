@@ -961,7 +961,7 @@ function getStorageModalHTML($sid) {
           $result .= '<input type="hidden" name="view" value="storage"/>'.PHP_EOL;
           $result .= '<input type="hidden" name="object" value="storage"/>'.PHP_EOL;
           $result .= '<input type="hidden" name="id" value="' .validHtmlStr($sid). '"/>'.PHP_EOL;
-          $result .= '<table id="contentTable" class="major">'.PHP_EOL;
+          $result .= '<table id="contentTable" class="major table-sm">'.PHP_EOL;
             $result .= '<tbody>'.PHP_EOL;
               $result .= '<tr>'.PHP_EOL;
                 $result .= '<th class="text-right pr-3" scope="row">' .translate('Name'). '</th>'.PHP_EOL;

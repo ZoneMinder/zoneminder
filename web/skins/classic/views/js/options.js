@@ -34,9 +34,9 @@ function enableStorageModal() {
 
 function initPage() {
   var NewStorageBtn = $j('#NewStorageBtn');
-  
+
   if ( canEditSystem ) enableStorageModal();
-  
+
   NewStorageBtn.prop('disabled', !canEditSystem);
 }
 

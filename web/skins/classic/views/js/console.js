@@ -151,7 +151,7 @@ function initPage() {
   $j('.functionLnk').click(function(evt) {
     evt.preventDefault();
     if ( !canEditEvents ) {
-      alert('You do not have permission to change monitor function.');
+      enoperm();
       return;
     }
     var mid = evt.currentTarget.getAttribute('data-mid');
@@ -186,9 +186,12 @@ function initPage() {
     var mid = form.elements['mid'].value;
     var newFunc = $j('#newFunction').val();
     var newEnabled = $j('#newEnabled').is(':checked') ? 1 : 0;
-    $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled, function() {
-      window.location.reload(true);
-    });
+    $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled)
+        .done(window.location.reload(true))
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
   });
 }
 

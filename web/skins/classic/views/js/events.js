@@ -35,6 +35,50 @@ function getArchivedSelections() {
   return selection.includes("Yes");
 }
 
+// Load the Delete Confirmation Modal HTML via Ajax call
+function getDelConfirmModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+      .done(function(data) {
+        if ( $j('#deleteConfirm').length ) {
+          $j('#deleteConfirm').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        manageDelConfirmModalBtns();
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
+}
+
+function manageDelConfirmModalBtns() {
+  // Manage the DELETE CONFIRMATION modal button
+  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
+    if ( ! canEditEvents ) {
+      enoperm();
+      return;
+    }
+
+    var selections = getIdSelections();
+
+    evt.preventDefault();
+    $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='))
+        .done( function(data) {
+          $j('#eventTable').bootstrapTable('refresh');
+        })
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
+  });
+
+  // Manage the CANCEL modal button
+  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
+    $j('#deleteConfirm').modal('hide');
+  });
+}
+
 function initPage() {
   var backBtn = $j('#backBtn');
   var viewBtn = $j('#viewBtn');
@@ -45,6 +89,9 @@ function initPage() {
   var downloadBtn = $j('#downloadBtn');
   var deleteBtn = $j('#deleteBtn');
   var table = $j('#eventTable');
+
+  // Load the delete confirmation modal into the DOM
+  getDelConfirmModal();
 
   // Define the icons used in the bootstrap-table top-right toolbar
   var icons = {
@@ -125,14 +172,21 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?view=events&action=archive&eids[]='+selections.join('&eids[]='));
-    window.location.reload(true);
+    $j.getJSON(thisUrl + '?request=events&action=archive&eids[]='+selections.join('&eids[]='))
+        .done( function(data) {
+          $j('#eventTable').bootstrapTable('refresh');
+          window.location.reload(true);
+        })
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
   });
 
   // Manage the UNARCHIVE button
   document.getElementById("unarchiveBtn").addEventListener("click", function onUnarchiveClick(evt) {
     if ( ! canEditEvents ) {
-      alert("You do not have permission to Unarchive events.");
+      enoperm();
       return;
     }
 
@@ -140,7 +194,15 @@ function initPage() {
     console.log(selections);
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?view=events&action=unarchive&eids[]='+selections.join('&eids[]='));
+    $j.getJSON(thisUrl + '?request=events&action=unarchive&eids[]='+selections.join('&eids[]='))
+        .done( function(data) {
+          $j('#eventTable').bootstrapTable('refresh');
+          window.location.reload(true);
+        })
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
 
     if ( openFilterWindow ) {
       //opener.location.reload(true);
@@ -154,7 +216,7 @@ function initPage() {
   // Manage the EDIT button
   document.getElementById("editBtn").addEventListener("click", function onEditClick(evt) {
     if ( ! canEditEvents ) {
-      alert("You do not have permission to edit events.");
+      enoperm();
       return;
     }
 
@@ -183,31 +245,12 @@ function initPage() {
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
     if ( ! canEditEvents ) {
-      alert("You do not have permission to delete events.");
+      enoperm();
       return;
     }
 
     evt.preventDefault();
     $j('#deleteConfirm').modal('show');
-  });
-
-  // Manage the DELETE CONFIRMATION modal button
-  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEditEvents ) {
-      alert("You do not have permission to delete events.");
-      return;
-    }
-
-    var selections = getIdSelections();
-
-    evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='));
-    window.location.reload(true);
-  });
-
-  // Manage the CANCEL modal button
-  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
-    $j('#deleteConfirm').modal('hide');
   });
 
   // The table is initially given a hidden style, so now that we are done rendering, show it

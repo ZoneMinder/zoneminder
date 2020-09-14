@@ -25,6 +25,16 @@ switch ( $modal ) {
     if ( empty($_REQUEST['ohndx']) ) ajaxError('Option Help Index Not Provided');
     $data['html'] = getOptionHelpHTML($_REQUEST['ohndx'], $OLANG);
     break;
+  case 'enoperm' :
+    $data['html'] = getENoPermHTML();
+    break;
+  case 'delconfirm' :
+    $data['html'] = getDelConfirmHTML();
+    break;
+  case 'storage' :
+    if ( !isset($_REQUEST['id']) ) ajaxError('Storage Id Not Provided');
+    $data['html'] = getStorageModalHTML($_REQUEST['id']);
+    break;
   default :
     // Maybe don't need both
     ZM\Warning('Unknown modal '.$modal);

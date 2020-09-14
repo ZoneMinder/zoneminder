@@ -25,10 +25,18 @@ function processClicks(event, field, value, row, $element) {
   }
 }
 
-function detailFormatter(index, row, element) {
-  return $j(element).html($j('#contentStatsTable'+index).clone(true).show());
+// This function handles when the user clicks a "+" link to retrieve stats for a frame
+function detailFormatter(index, row, $detail) {
+  $detail.html('Please wait. Loading from ajax request...');
+  $j.get(thisUrl + '?request=stats&eid=' + row.EventId + '&fid=' + row.FrameId + '&row=' + index)
+      .done(function(data) {
+        $detail.html(data.html);
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
 }
-
 function initPage() {
   var backBtn = $j('#backBtn');
   var table = $j('#framesTable');

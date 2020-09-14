@@ -24,7 +24,7 @@ if ( !canEdit('System') ) {
   return;
 }
 
-if ( $action == 'Save' ) {
+if ( $action == 'save' ) {
   $storage = new ZM\Storage($_REQUEST['id']);
 
   $changes = $storage->changes($_REQUEST['newStorage']);
@@ -33,7 +33,7 @@ if ( $action == 'Save' ) {
     $storage->save($changes);
     $refreshParent = true;
   }
-  $view = 'none';
+  $redirect = '?view=options&tab=storage';
 } else {
   ZM\Error("Unknown action $action in saving Storage");
 }

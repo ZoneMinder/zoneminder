@@ -31,6 +31,10 @@ switch ( $modal ) {
   case 'delconfirm' :
     $data['html'] = getDelConfirmHTML();
     break;
+  case 'storage' :
+    if ( !isset($_REQUEST['id']) ) ajaxError('Storage Id Not Provided');
+    $data['html'] = getStorageModalHTML($_REQUEST['id']);
+    break;
   default :
     // Maybe don't need both
     ZM\Warning('Unknown modal '.$modal);

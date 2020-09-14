@@ -196,7 +196,7 @@ class Filter extends ZM_Object {
     if ( isset( $this->Query()['sort_asc'] ) ) {
       return $this->{'Query'}['sort_asc'];
     }
-    return ZM_WEB_EVENT_SORT_ORDER;
+    return ZM_WEB_EVENT_SORT_ORDER == 'asc' ? 1 : 0;
     #return $this->defaults{'sort_asc'};
   }
 

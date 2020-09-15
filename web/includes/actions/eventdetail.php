@@ -41,7 +41,6 @@ if ( $action == 'eventdetail' ) {
     );
   }
   $dbConn->commit();
-  $refreshParent = true;
-  $closePopup = true;
+  $redirect = $_SERVER['HTTP_REFERER'];
 }
 ?>

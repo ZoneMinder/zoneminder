@@ -1021,7 +1021,7 @@ function getEventDetailHTML($eid='', $eids='') {
   $inputs = '';
   $disabled = 'disabled="disabled"';
   $null = '';
-
+  
   if ( !canEdit('Events') ) return;
 
   // We have to manually insert the csrf key into the form when using a modal generated via ajax call
@@ -1031,22 +1031,23 @@ function getEventDetailHTML($eid='', $eids='') {
     $csrf_input = '';
   }
 
-  if ( isset($eid) ){ // Single Event Mode
-    $title = translate('Event').' '.$eid.PHP_EOL;
-    $inputs .= '<input type="hidden" name="markEids[]" value="' .validInt($eid). '"/>'.PHP_EOL;
+  if ( $eid ){ // Single Event Mode
     $eid = validInt($eid);
+    $title = translate('Event').' '.$eid.PHP_EOL;
+    $inputs .= '<input type="hidden" name="markEids[]" value="' .$eid. '"/>'.PHP_EOL;
     $newEvent = dbFetchOne('SELECT E.* FROM Events AS E WHERE E.Id = ?', NULL, array($eid));
 
-  } elseif ( isset($eids) ) { // Multi Event Mode
+  } elseif ( $eids ) { // Multi Event Mode
 
     $title = translate('Events');
     $sql = 'SELECT E.* FROM Events AS E WHERE ';
     $sqlWhere = array();
     $sqlValues = array();
     foreach ( $eids as $eid ) {
-      $inputs .= '<input type="hidden" name="markEids[]" value="' .validInt($eid). '"/>'.PHP_EOL;
+      $eid = validInt($eid);
+      $inputs .= '<input type="hidden" name="markEids[]" value="' .$eid. '"/>'.PHP_EOL;
       $sqlWhere[] = 'E.Id = ?';
-      $sqlValues[] = validInt($eid);
+      $sqlValues[] = $eid;
     }
     unset($eid);
     $sql .= join(' OR ', $sqlWhere);
@@ -1064,8 +1065,8 @@ function getEventDetailHTML($eid='', $eids='') {
   } else { // Event Mode not specified - should we really proceed if neither eid nor eids is set?
     $title = translate('Events');
   }
-
-  $result .= '<div class="modal fade" id="staticBackdrop" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
+  
+  $result .= '<div class="modal fade" id="eventDetailModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
     $result .= '<div class="modal-dialog">'.PHP_EOL;
       $result .= '<div class="modal-content">'.PHP_EOL;
         $result .= '<div class="modal-header">'.PHP_EOL;
@@ -1075,26 +1076,26 @@ function getEventDetailHTML($eid='', $eids='') {
           $result .= '</button>'.PHP_EOL;
         $result .= '</div>'.PHP_EOL;
         $result .= '<div class="modal-body">'.PHP_EOL;
-          $result .= '<form name="contentForm" id="contentForm" method="post" action="?">'.PHP_EOL;
+          $result .= '<form name="contentForm" id="eventDetailForm" method="post" action="?view=eventdetail&action=eventdetail">'.PHP_EOL;
             $result .= $csrf_input;
             $result .= '<input type="hidden" name="action" value="eventdetail"/>'.PHP_EOL;
             $result .= '<input type="hidden" name="view" value="eventdetail"/>'.PHP_EOL;
             $result .= $inputs;
-            $result .= '<table id="contentTable" class="major">'.PHP_EOL;
+            $result .= '<table id="contentTable" class="table-sm">'.PHP_EOL;
               $result .= '<tbody>'.PHP_EOL;
                 $result .= '<tr>'.PHP_EOL;
                   $result .= '<th scope="row">' .translate('Cause'). '</th>'.PHP_EOL;
                   $result .= '<td><input type="text" name="newEvent[Cause]" value="' .validHtmlStr($newEvent['Cause']). '" size="32"/></td>'.PHP_EOL;
                 $result .= '</tr>'.PHP_EOL;
                 $result .= '<tr>'.PHP_EOL;
-                  $result .= '<th scope="row">' .translate('Notes'). '</th>'.PHP_EOL;
-                  $result .= '<td><textarea name="newEvent[Notes]" rows="6" cols="50">' .validHtmlStr($newEvent['Notes']). '</textarea></td>'.PHP_EOL;
+                  $result .= '<th scope="row" class="align-middle">' .translate('Notes'). '</th>'.PHP_EOL;
+                  $result .= '<td><textarea name="newEvent[Notes]" rows="6" cols="33">' .validHtmlStr($newEvent['Notes']). '</textarea></td>'.PHP_EOL;
                 $result .= '</tr>'.PHP_EOL;
               $result .= '</tbody>'.PHP_EOL;
             $result .= '</table>'.PHP_EOL;
         $result .= '</div>'.PHP_EOL;
         $result .= '<div class="modal-footer">'.PHP_EOL;
-          $result .= '<button type="submit" class="btn btn-primary" value="save" ' .( !canEdit('Events') ? $disabled : $null ). '>' .translate('Save'). '</button>'.PHP_EOL;
+          $result .= '<button type="submit" name="action" id="eventDetailSaveBtn" class="btn btn-primary" value="save" ' .( !canEdit('Events') ? $disabled : $null ). '>' .translate('Save'). '</button>'.PHP_EOL;
           $result .= '<button type="button" class="btn btn-secondary" data-dismiss="modal">' .translate('Cancel'). '</button>'.PHP_EOL;
         $result .= '</div>'.PHP_EOL;
         $result .= '</form>'.PHP_EOL;

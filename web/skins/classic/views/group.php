@@ -127,5 +127,4 @@ echo htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('da
     </div>
   </div>
   <script nonce="<?php echo $cspNonce;?>">$j('.chosen').chosen();</script>
-</body>
-</html>
+<?php xhtmlFooter() ?>

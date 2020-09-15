@@ -135,6 +135,10 @@ class Event extends ZM_Object {
       Error('Event delete on event with empty Id');
       return;
     }
+    if ( $this->{'Archived'} ) {
+      Error('Cannot delete an Archived event.');
+      return;
+    }
     if ( ZM_OPT_FAST_DELETE ) {
       dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
       return;

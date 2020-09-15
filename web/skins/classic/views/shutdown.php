@@ -76,5 +76,4 @@ xhtmlHeaders(__FILE__, translate('Shutdown').' '.translate('Restart'));
 ?>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

@@ -50,7 +50,7 @@ bool ValidateAccess(User *user, int mon_id) {
   return allowed;
 }
 
-int main(int argc, const char *argv[]) {
+int main(int argc, const char *argv[], char **envp) {
   self = argv[0];
 
   srand(getpid() * time(nullptr));
@@ -89,6 +89,10 @@ int main(int argc, const char *argv[]) {
   zmLoadConfig();
   char log_id_string[32] = "zms";
   logInit(log_id_string);
+  for (char **env = envp; *env != 0; env++) {
+    char *thisEnv = *env;
+    Debug(1, "env: %s", thisEnv);
+  }
 
   const char *query = getenv("QUERY_STRING");
   if ( query ) {
@@ -204,7 +208,9 @@ int main(int argc, const char *argv[]) {
     }
     if ( !user ) {
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
-      Error("Unable to authenticate user");
+
+      const char *referer = getenv("HTTP_REFERER");
+      Error("Unable to authenticate user from %s", referer);
       logTerm();
       zmDbClose();
       return 0;
@@ -253,14 +259,7 @@ int main(int argc, const char *argv[]) {
     stream.setStreamTTL(ttl);
     stream.setStreamQueue(connkey);
     stream.setStreamBuffer(playback_buffer);
-    if ( !stream.setStreamStart(monitor_id) ) {
-      Error("Unable to connect to zmc process for monitor %d", monitor_id);
-      fprintf(stderr, "Unable to connect to zmc process. "
-         " Please ensure that it is running.");
-      logTerm();
-      zmDbClose();
-      return -1;
-    }
+    stream.setStreamStart(monitor_id);
 
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType(MonitorStream::STREAM_JPEG);

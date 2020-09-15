@@ -18,17 +18,25 @@ function initThumbAnimation() {
 }
 
 function processClicks(event, field, value, row, $element) {
-  if ( field == 'FramesScore' ) {
-    window.location.assign('?view=stats&eid='+row.EventId+'&fid='+row.FramesId);
+  if ( field == 'FrameScore' ) {
+    window.location.assign('?view=stats&eid='+row.EventId+'&fid='+row.FrameId);
   } else {
-    window.location.assign('?view=frame&eid='+row.EventId+'&fid='+row.FramesId);
+    window.location.assign('?view=frame&eid='+row.EventId+'&fid='+row.FrameId);
   }
 }
 
-function detailFormatter(index, row, element) {
-  return $j(element).html($j('#contentStatsTable'+index).clone(true).show());
+// This function handles when the user clicks a "+" link to retrieve stats for a frame
+function detailFormatter(index, row, $detail) {
+  $detail.html('Please wait. Loading from ajax request...');
+  $j.get(thisUrl + '?request=stats&eid=' + row.EventId + '&fid=' + row.FrameId + '&row=' + index)
+      .done(function(data) {
+        $detail.html(data.html);
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
 }
-
 function initPage() {
   var backBtn = $j('#backBtn');
   var table = $j('#framesTable');
@@ -52,7 +60,7 @@ function initPage() {
 
   // Hide these columns on first run when no cookie is saved
   if ( !getCookie("zmFramesTable.bs.table.columns") ) {
-    table.bootstrapTable('hideColumn', 'FrameId');
+    table.bootstrapTable('hideColumn', 'EventId');
   }
 
   // Hide the stats tables on init

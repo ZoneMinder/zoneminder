@@ -88,6 +88,7 @@ public:
   } Orientation;
 
   typedef enum {
+    UNKNOWN,
     IDLE,
     PREALARM,
     ALARM,
@@ -425,7 +426,7 @@ public:
   bool connect();
 
   inline int ShmValid() const {
-    return shared_data->valid;
+    return shared_data && shared_data->valid;
   }
 
   inline unsigned int Id() const {

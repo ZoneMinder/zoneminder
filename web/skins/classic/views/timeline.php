@@ -811,5 +811,4 @@ foreach( array_keys($monEventSlots) as $monitorId ) {
       </div>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

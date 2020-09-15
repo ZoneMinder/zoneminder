@@ -41,7 +41,7 @@ var popupSizes = {
   'export':       {'width': 500, 'height': 640},
   'filter':       {'width': 900, 'height': 700},
   'frame':        {'addWidth': 32, 'minWidth': 384, 'addHeight': 200},
-  'frames':       {'addWidth': 600, 'addHeight': 600},
+  'frames':       {'addWidth': 800, 'addHeight': 600},
   'function':     {'width': 350, 'height': 260},
   'group':        {'width': 760, 'height': 600},
   'groups':       {'width': 540, 'height': 420},

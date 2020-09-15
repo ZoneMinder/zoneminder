@@ -155,5 +155,4 @@ if ( file_exists($rImagePath) ) {
 <?php } ?>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

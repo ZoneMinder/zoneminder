@@ -58,7 +58,7 @@ xhtmlHeaders(__FILE__, translate('Options'));
   <?php echo getNavBarHTML(); ?>
   <div class="container-fluid h-100">
     <div class="row flex-nowrap h-100">
-      <nav id="sidebar h-100">
+      <nav id="sidebar" class="h-100">
         <ul class="nav nav-pills flex-column h-100">
 <?php
 foreach ( $tabs as $name=>$value ) {
@@ -272,12 +272,12 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
           <tbody>
 <?php foreach( ZM\Storage::find( null, array('order'=>'lower(Name)') ) as $Storage ) { ?>
             <tr>
-              <td class="colId"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Id()), $canEdit ) ?></td>
-              <td class="colName"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
-              <td class="colPath"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Path()), $canEdit ) ?></td>
-              <td class="colType"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Type()), $canEdit ) ?></td>
-              <td class="colScheme"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Scheme()), $canEdit ) ?></td>
-              <td class="colServer"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Server()->Name()), $canEdit ) ?></td>
+              <td class="colId"><?php echo makeLink('#', validHtmlStr($Storage->Id()), $canEdit, 'class="storageCol" data-sid="'.$Storage->Id().'"' ) ?></td>
+              <td class="colName"><?php echo makeLink('#', validHtmlStr($Storage->Name()), $canEdit, 'class="storageCol" data-sid="'.$Storage->Id().'"' ) ?></td>
+              <td class="colPath"><?php echo makeLink('#', validHtmlStr($Storage->Path()), $canEdit, 'class="storageCol" data-sid="'.$Storage->Id().'"' ) ?></td>
+              <td class="colType"><?php echo makeLink('#', validHtmlStr($Storage->Type()), $canEdit, 'class="storageCol" data-sid="'.$Storage->Id().'"' ) ?></td>
+              <td class="colScheme"><?php echo makeLink('#', validHtmlStr($Storage->Scheme()), $canEdit, 'class="storageCol" data-sid="'.$Storage->Id().'"' ) ?></td>
+              <td class="colServer"><?php echo makeLink('#', validHtmlStr($Storage->Server()->Name()), $canEdit, 'class="storageCol" data-sid="'.$Storage->Id().'"' ) ?></td>
               <td class="colDiskSpace"><?php echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?></td>
               <td class="ColEvents"><?php echo $Storage->EventCount().' using '.human_filesize($Storage->event_disk_space()) ?></td>
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( $Storage->EventCount() or !$canEdit ) { ?> disabled="disabled"<?php } ?><?php echo $Storage->EventCount() ? ' title="Can\'t delete as long as there are events stored here."' : ''?>/></td>
@@ -286,7 +286,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
           </tbody>
         </table>
         <div id="contentButtons">
-          <?php echo makePopupButton('?view=storage&id=0', 'zmStorage', 'storage', translate('AddNewStorage'), canEdit('System')); ?>
+          <button type="button" id="NewStorageBtn" value="<?php echo translate('AddNewStorage') ?>" disabled="disabled"><?php echo translate('AddNewStorage') ?></button>
           <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
@@ -512,7 +512,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
 <?php
         }
 ?>
-              <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText) ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</span>
+              <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>
 	    </div><!-- End .col-sm-9 -->
             </div><!-- End .form-group -->
 <?php

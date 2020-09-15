@@ -29,5 +29,4 @@ xhtmlHeaders(__FILE__, translate('LoggingIn'));
       <h2><?php echo translate('LoggingIn') ?></h2>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

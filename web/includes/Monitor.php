@@ -5,6 +5,23 @@ require_once('Server.php');
 require_once('Object.php');
 require_once('Control.php');
 require_once('Storage.php');
+require_once('Group.php');
+
+$FunctionTypes = null;
+
+function getMonitorFunctionTypes() {
+  if ( !isset($FunctionTypes ) ) {
+    $FunctionTypes = array(
+      'None'    => translate('FnNone'),
+      'Monitor' => translate('FnMonitor'),
+      'Modect'  => translate('FnModect'),
+      'Record'  => translate('FnRecord'),
+      'Mocord'  => translate('FnMocord'),
+      'Nodect'  => translate('FnNodect')
+    );
+  }
+  return $FunctionTypes;
+}
 
 class Monitor extends ZM_Object {
   protected static $table = 'Monitors';
@@ -199,8 +216,8 @@ class Monitor extends ZM_Object {
         $args['user'] = $_SESSION['username'];
       }
     }
-    if ( ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) && !empty($GLOBALS['connkey']) ) {
-      $args['connkey'] = $GLOBALS['connkey'];
+    if ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) {
+      $args['connkey'] = $this->connKey();
     }
     if ( ZM_RAND_STREAM ) {
       $args['rand'] = time();
@@ -589,6 +606,27 @@ class Monitor extends ZM_Object {
     } // end if we are on the recording server
     return true;
   } // end function sendControlCommand($mid, $command)
+
+  function Groups($new='') {
+    if ( $new != '' )
+      $this->Groups = $new;
+    if ( !property_exists($this, 'Groups') ) {
+      $this->Groups = Group::find(array('Id'=>$this->GroupIds()));
+    }
+    return $this->Groups;
+  }
+  function connKey($new='') {
+    if ( $new )
+      $this->connKey = $new;
+    if ( !isset($this->connKey) ) {
+      if ( !empty($GLOBALS['connkey']) ) {
+        $this->connKey = $GLOBALS['connkey'];
+      } else {
+        $this->connKey = generateConnKey();
+      }
+    }
+    return $this->connKey;
+  }
 
 } // end class Monitor
 ?>

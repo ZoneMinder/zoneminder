@@ -131,7 +131,7 @@ class Storage extends ZM_Object {
 
   public function event_disk_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( (! property_exists($this, 'DiskSpace')) or (!$this->{'DiskSpace'}) ) {
+    if ( (! property_exists($this, 'DiskSpace')) or (!isset($this->{'DiskSpace'})) ) {
       $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
 
       do {

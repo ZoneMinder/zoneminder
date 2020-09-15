@@ -84,5 +84,4 @@ foreach( $controls as $control ) {
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

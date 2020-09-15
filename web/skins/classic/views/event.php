@@ -154,7 +154,7 @@ if ( !$Event->Id() ) {
   human_filesize($Event->DiskSpace(null)) . ' on ' . validHtmlStr($Event->Storage()->Name()).
   ( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' )
 ?></span>
-        <div id="closeWindow"><a href="#" data-on-click="<?php echo $popup ? 'window.close()' : 'window.history.back();return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+        <div id="closeWindow"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
       </div>
       <div id="menuBar1">
         <div id="nameControl">
@@ -189,15 +189,15 @@ if ( canEdit('Events') ) {
         <div id="exportEvent"><button type="button" data-on-click="exportEvent"><?php echo translate('Export') ?></button></div>
         <div id="replayControl">
           <label for="replayMode"><?php echo translate('Replay') ?></label>
-          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode')); ?>
+          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode')); ?>
         </div>
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>
-          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale')); ?>
+          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
         </div>
         <div id="codecControl">
           <label for="codec"><?php echo translate('Codec') ?></label>
-          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec')); ?>
+          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
         </div>
       </div>
     </div>
@@ -322,5 +322,4 @@ echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
     </div><!--content-->
   </div><!--page-->
-</body>
-</html>
+<?php xhtmlFooter() ?>

@@ -44,26 +44,18 @@ function validateForm(form) {
       }
     }
     if ( ! have_endtime_term ) {
-      return confirm('You don\'t have an EndTime term in your filter.  This will match recordings that are still in progress and so the UpdateDiskSpace action will be a waste of time and resources.  Ideally you should have an EndTime IS NOT NULL term.  Do you want to continue?');
+      return confirm('You don\'t have an EndTime term in your filter.  This might match recordings that are still in progress and so the UpdateDiskSpace action will be a waste of time and resources.  Ideally you should have an EndTime IS NOT NULL term.  Do you want to continue?');
     }
   } else if ( form.elements['filter[Background]'].checked ) {
     if ( ! (
-      form.elements['filter[AutoArchive]'].checked
-      ||
-      form.elements['filter[UpdateDiskSpace]'].checked
-      ||
-      form.elements['filter[AutoVideo]'].checked
-      ||
-      form.elements['filter[AutoEmail]'].checked
-      ||
-      form.elements['filter[AutoMessage]'].checked
-      ||
-      form.elements['filter[AutoExecute]'].checked
-      ||
-      form.elements['filter[AutoDelete]'].checked
-      ||
-      form.elements['filter[AutoCopy]'].checked
-      ||
+      form.elements['filter[AutoArchive]'].checked ||
+      form.elements['filter[UpdateDiskSpace]'].checked ||
+      form.elements['filter[AutoVideo]'].checked ||
+      form.elements['filter[AutoEmail]'].checked ||
+      form.elements['filter[AutoMessage]'].checked ||
+      form.elements['filter[AutoExecute]'].checked ||
+      form.elements['filter[AutoDelete]'].checked ||
+      form.elements['filter[AutoCopy]'].checked ||
       form.elements['filter[AutoMove]'].checked
     ) ) {
       alert('You have chosen to run this filter in the background but not selected any actions.');
@@ -401,6 +393,7 @@ function init() {
   $j('#Id').chosen();
   $j('#fieldsTable select').not("[name$='br\\]'], [name$='cnj\\]']").chosen({width: '101%'}); //Every select except brackets/and
   $j("#sortTable [name$='sort_field\\]']").chosen();
+  parseRows($j('#fieldsTable tbody').children());
 }
 
 window.addEventListener( 'DOMContentLoaded', init );

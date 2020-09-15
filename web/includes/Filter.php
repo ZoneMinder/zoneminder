@@ -9,7 +9,7 @@ class Filter extends ZM_Object {
     'Id'              =>  null,
     'Name'            =>  '',
     'AutoExecute'     =>  0,
-    'AutoExecuteCmd'  =>  0,
+    'AutoExecuteCmd'  =>  '',
     'AutoEmail'       =>  0,
 		'EmailTo'					=>	'',
 		'EmailSubject'		=>	'',

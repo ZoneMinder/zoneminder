@@ -385,13 +385,38 @@ if ( currentView != 'none' && currentView != 'login' ) {
         $j("button.navbar-toggler").click();
       }
     });
+    // Manage the optionhelp links
+    $j(".optionhelp").click(function(evt) {
+      $j.getJSON(thisUrl + '?request=modal&modal=optionhelp&ohndx=' + evt.target.id)
+          .done(optionhelpModal)
+          .fail(function(jqxhr, textStatus, error) {
+            console.log("Request Failed: " + textStatus + ", " + error);
+            console.log("Response Text: " + jqxhr.responseText);
+          });
+    });
   });
+
+  // Manage the modal html we received after user clicks help link
+  function optionhelpModal(data) {
+    if ( $j('#optionhelp').length ) {
+      $j('#optionhelp').replaceWith(data.html);
+    } else {
+      $j("body").append(data.html);
+    }
+    $j('#optionhelp').modal('show');
+
+    // Manage the CLOSE optionhelp modal button
+    document.getElementById("ohCloseBtn").addEventListener("click", function onOhCloseClick(evt) {
+      $j('#optionhelp').modal('hide');
+    });
+  }
 
   function getNavBar() {
     $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar')
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
           if ( textStatus != "timeout" ) {
           // The idea is that this should only fail due to auth, so reload the page
           // which should go to login if it can't stay logged in.
@@ -687,7 +712,33 @@ function bwClickFunction() {
 function reminderClickFunction() {
   $j("#dropdown_reminder a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
-    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option);
-    window.location.reload(true); //Do a full refresh to update ZM_DYN_LAST_VERSION
+    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
+        .done(window.location.reload(true)) //Do a full refresh to update ZM_DYN_LAST_VERSION
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
   });
+}
+
+// Load then show the "You No Permission" error modal
+function enoperm() {
+  $j.getJSON(thisUrl + '?request=modal&modal=enoperm')
+      .done(function(data) {
+        if ( $j('#ENoPerm').length ) {
+          $j('#ENoPerm').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#ENoPerm').modal('show');
+
+        // Manage the CLOSE optionhelp modal button
+        document.getElementById("enpCloseBtn").addEventListener("click", function onENPCloseClick(evt) {
+          $j('#ENoPerm').modal('hide');
+        });
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
 }

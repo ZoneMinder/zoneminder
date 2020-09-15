@@ -251,20 +251,29 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   } status_data;
 
   status_data.id = monitor->Id();
-  status_data.fps = monitor->GetFPS();
-  status_data.state = monitor->shared_data->state;
-  if ( playback_buffer > 0 )
-    status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
-  else
+  if ( ! monitor->ShmValid() ) {
+    status_data.fps = 0.0;
+    status_data.state = Monitor::UNKNOWN;
+    //status_data.enabled = monitor->shared_data->active;
+    status_data.enabled = false;
+    status_data.forced = false;
     status_data.buffer_level = 0;
+  } else {
+    status_data.fps = monitor->GetFPS();
+    status_data.state = monitor->shared_data->state;
+    //status_data.enabled = monitor->shared_data->active;
+    status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
+    status_data.forced = monitor->trigger_data->trigger_state==Monitor::TRIGGER_ON;
+    if ( playback_buffer > 0 )
+      status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
+    else
+      status_data.buffer_level = 0;
+  }
   status_data.delayed = delayed;
   status_data.paused = paused;
   status_data.rate = replay_rate;
-  status_data.delay = TV_2_FLOAT( now ) - TV_2_FLOAT( last_frame_timestamp );
+  status_data.delay = TV_2_FLOAT(now) - TV_2_FLOAT(last_frame_timestamp);
   status_data.zoom = zoom;
-  //status_data.enabled = monitor->shared_data->active;
-  status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
-  status_data.forced = monitor->trigger_data->trigger_state==Monitor::TRIGGER_ON;
   Debug(2, "Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
     status_data.buffer_level,
     status_data.delayed,
@@ -291,12 +300,13 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
 
   // quit after sending a status, if this was a quit request
   if ( (MsgCommand)msg->msg_data[0]==CMD_QUIT ) {
-    Debug(2,"Quitting");
-    exit(0);
+    zm_terminate = true;
+    Debug(2, "Quitting");
+    return;
   }
 
-  Debug(2,"Updating framerate");
-  updateFrameRate(monitor->GetFPS());
+  //Debug(2,"Updating framerate");
+  //updateFrameRate(monitor->GetFPS());
 } // end void MonitorStream::processCommand(const CmdMsg *msg)
 
 bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
@@ -388,7 +398,6 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
     struct timeval frameStartTime;
     gettimeofday(&frameStartTime, nullptr);
 
-    fputs("--ZoneMinderFrame\r\n", stdout);
     switch ( type ) {
       case STREAM_JPEG :
         send_image->EncodeJpeg(img_buffer, &img_buffer_size);
@@ -452,15 +461,22 @@ void MonitorStream::runStream() {
 
   openComms();
 
+  if ( type == STREAM_JPEG )
+    fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
+
   if ( !checkInitialised() ) {
     Error("Not initialized");
-    return;
+    while ( !(loadMonitor(monitor_id) || zm_terminate) ) {
+      sendTextFrame("Not connected");
+      if ( connkey )
+        checkCommandQueue();
+      sleep(1);
+    }
+    if ( zm_terminate )
+      return;
   }
 
   updateFrameRate(monitor->GetFPS());
-
-  if ( type == STREAM_JPEG )
-    fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
   unsigned int last_read_index = monitor->image_buffer_count;

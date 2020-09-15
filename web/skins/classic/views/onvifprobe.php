@@ -130,7 +130,8 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('MonitorProbe') );
+xhtmlHeaders(__FILE__, translate('MonitorProbe'));
+getBodyTopHTML();
 
 if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
 
@@ -160,7 +161,6 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
     $cameras[0] = translate('NoDetectedCameras');
 
 ?>
-<body>
   <div id="page">
     <div id="header">
       <h2><?php echo translate('MonitorProbe') ?></h2>
@@ -238,7 +238,6 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
       </form>
     </div>
   </div>
-</body>
 <?php
 
 //==== STEP 2 ============================================================
@@ -288,7 +287,6 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
     $profiles[0] = translate('NoDetectedProfiles');
 
 ?>
-<body>
   <div id="page">
     <div id="header">
       <h2><?php echo translate('ProfileProbe') ?></h2>
@@ -313,8 +311,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
       </form>
     </div>
   </div>
-</body>
 <?php
 } // end if step 1 or 2
 ?>
-</html>
+<?php xhtmlFooter() ?>

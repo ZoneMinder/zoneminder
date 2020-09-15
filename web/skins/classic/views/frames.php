@@ -40,9 +40,9 @@ if ( empty($_REQUEST['sort_field']) )
 if ( !isset($_REQUEST['sort_asc']) )
   $_REQUEST['sort_asc'] = true;
 
-if ( !isset($_REQUEST['filter'])){
+if ( !isset($_REQUEST['filter']) ) {
   // generate a dummy filter from the eid for pagination
-  $_REQUEST['filter'] = array('Query' => array( 'terms' => array( ) ) );
+  $_REQUEST['filter'] = array('Query' => array('terms' => array()));
   $_REQUEST['filter'] = addFilterTerm(
     $_REQUEST['filter'],
     0,
@@ -59,13 +59,15 @@ if ( $filter->sql() ) {
   $frameSql .= ' AND ('.$filter->sql().')';
 }
 
-$frameSql .= " ORDER BY $sortColumn $sortOrder,Id $sortOrder";
+$frameSql .= " ORDER BY $sortColumn $sortOrder";
+if ( $sortColumn != 'Id' )
+  $frameSql .= ',Id '.$sortOrder;
 
-if ( isset( $_REQUEST['scale'] ) ) {
+if ( isset($_REQUEST['scale']) ) {
   $scale = validNum($_REQUEST['scale']);
-} else if ( isset( $_COOKIE['zmWatchScale'.$Monitor->Id()] ) ) {
+} else if ( isset($_COOKIE['zmWatchScale'.$Monitor->Id()]) ) {
   $scale = validNum($_COOKIE['zmWatchScale'.$Monitor->Id()]);
-} else if ( isset( $_COOKIE['zmWatchScale'] ) ) {
+} else if ( isset($_COOKIE['zmWatchScale']) ) {
   $scale = validNum($_COOKIE['zmWatchScale']);
 } else {
   $scale = max(reScale(SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
@@ -149,11 +151,11 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
           <!-- Row styling is handled by bootstrap-tables -->
           <tr>
             <th class="px-3" data-align="center" data-sortable="false" data-field="EventId"><?php echo translate('EventId') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesId"><?php echo translate('FrameId') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesType"><?php echo translate('Type') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesTimeStamp"><?php echo translate('TimeStamp') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesDelta"><?php echo translate('TimeDelta') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FramesScore"><?php echo translate('Score') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FrameId"><?php echo translate('FrameId') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FrameType"><?php echo translate('Type') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FrameTimeStamp"><?php echo translate('TimeStamp') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FrameDelta"><?php echo translate('TimeDelta') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="FrameScore"><?php echo translate('Score') ?></th>
 <?php
         if ( ZM_WEB_LIST_THUMBS ) {
 ?>
@@ -187,7 +189,7 @@ if ( count($frames) ) {
       $frame_src = '?view=frame&amp;eid=' .$Event->Id(). '&amp;fid=' .$frame['FrameId'];
       
       echo '<td class="colThumbnail zoom"><img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '"></td>'.PHP_EOL;
-    }
+		}
 ?>
             </tr>
 <?php
@@ -204,16 +206,4 @@ if ( count($frames) ) {
         </table>
       </div>
   </div>
-<!-- Load the statistics for each frame -->
-<!-- This content gets hidden on init and only revailed on detail view -->
-<?php
-$row = 0;
-if ( count($frames) ) foreach ( $frames as $frame ) {
-  $eid = $frame['EventId'];
-  $fid = $frame['FrameId'];
-  include('_stats_table.php');
-  $row++;
-}
-?>
-  </body>
-</html>
+<?php xhtmlFooter() ?>

@@ -38,20 +38,21 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       <?php echo translate('Updated') ?>: <span id="lastUpdate"></span>
       </div>
       <div class="btn-toolbar text-center">
-<div class="btn-group">
-        <button type="button" data-on-click="expandLog"><?php echo translate('More') ?></button>
-        <button type="button" data-on-click="clearLog"><?php echo translate('Clear') ?></button>
-        <button type="button" data-on-click="refreshLog"><?php echo translate('Refresh') ?></button>
-        <button type="button" data-on-click="exportLog"><?php echo translate('Export') ?></button>
+        <div class="btn-group">
+          <button type="button" data-on-click="expandLog"><?php echo translate('More') ?></button>
+          <button type="button" data-on-click="clearLog"><?php echo translate('Clear') ?></button>
+          <button type="button" data-on-click="refreshLog"><?php echo translate('Refresh') ?></button>
+          <button type="button" data-on-click="exportLog"><?php echo translate('Export') ?></button>
           <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
-</div>
-<div class="btn-group pull-right">
-        <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
+        </div>
+        <div class="btn-group pull-right">
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
         </div>
       </div> <!--btn-->
     </div> <!--header-->
     <div id="content">
       <form id="logForm" name="logForm" method="post" action="?">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <div class="container" id="filters">
           <div class="row">
             <div class="col">
@@ -80,7 +81,6 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
             </div>
           </div><!--row-->
         </div><!--container-->
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <table id="logTable" class="major">
           <thead class="thead-highlight">
             <tr>
@@ -97,10 +97,8 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
           <tbody>
           </tbody>
         </table>
-        <div id="contentButtons">
-        </div>
-      </div><!--content-->
-    </form>
+      </form>
+    </div><!--content-->
   </div><!--page-->
   <div id="exportLog" class="overlay">
     <div class="overlayHeader">
@@ -134,5 +132,4 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       </div><!--overlayContent-->
     </div><!--overlaybody-->
   </div><!-- exportLog-->
-</body>
-</html>
+<?php xhtmlFooter() ?>

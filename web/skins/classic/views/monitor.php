@@ -379,14 +379,16 @@ $codecs = array(
   'MJPEG' => translate('MJPEG'),
 );
 
+$controls = ZM\Control::find(null, array('order'=>'lower(Name)'));
+
 xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name()));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
   <div id="page" class="container-fluid">
 
-  <div id="" class="row flex-nowrap">
-    <nav id="">  <!-- BEGIN PILL LIST -->
+  <div class="row flex-nowrap">
+    <nav>  <!-- BEGIN PILL LIST -->
     <ul class="pillList nav nav-pills flex-column h-100">
 <?php
 $tabs = array();
@@ -437,7 +439,7 @@ if ( canEdit('Monitors') ) {
 <?php
   }
 ?>
-    <div id="">
+    <div>
       <button id="probeBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Probe') ?>" ><i class="fa fa-rss-square"></i></button>
       <button id="onvifBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('OnvifProbe') ?>" ><i class="fa fa-rss"></i></button>
       <button id="presetBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Presets') ?>" ><i class="fa fa-list-ol"></i></button>
@@ -660,7 +662,7 @@ switch ( $tab ) {
       if ( $monitor->Type() != 'WebSite' ) {
 ?>
         <tr>
-          <td class="text-right pr-3"><?php echo translate('LinkedMonitors') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_LINKED_MONITORS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+          <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
           <td>
 <?php
       $monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Sequence ASC');
@@ -694,14 +696,14 @@ switch ( $tab ) {
       if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
 ?>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('MaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td class="text-right pr-3"><?php echo translate('MaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></td>
               <td>
                 <input type="number" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" min="0" step="any"/>
                 <span id="newMonitor[MaxFPS]" style="color:red;<?php echo $monitor->MaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
               </td>
             </tr>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('AlarmMaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td class="text-right pr-3"><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></td>
               <td>
                 <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
                 <span id="newMonitor[AlarmMaxFPS]" style="color:red;<?php echo $monitor->AlarmMaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
@@ -919,14 +921,12 @@ include('_monitor_source_nvsocket.php');
             <td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" /></td>
           </tr>
           <tr>
-            <td class="text-right pr-3"><?php
- echo translate('RemoteMethod');
- echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_RTSPTrans', 'zmOptionHelp', 'optionhelp', '?' );
-?>)</td>
+            <td class="text-right pr-3">
+              <?php echo translate('RemoteMethod'); echo makeHelpLink('OPTIONS_RTSPTrans') ?></td>
             <td><?php echo htmlSelect('newMonitor[Method]', $rtspFFMpegMethods, $monitor->Method()) ?></td>
           </tr>
           <tr class="SourceOptions">
-            <td class="text-right pr-3"><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_'.strtoupper($monitor->Type()), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+            <td class="text-right pr-3"><?php echo translate('Options'); echo makeHelpLink('OPTIONS_'.strtoupper($monitor->Type())) ?></td>
             <td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options()) ?>"/></td>
           </tr>
 <?php
@@ -934,14 +934,14 @@ include('_monitor_source_nvsocket.php');
       if ( $monitor->Type() == 'Ffmpeg' ) {
 ?>
           <tr class="DecoderHWAccelName">
-            <td class="text-right pr-3"><?php echo translate('DecoderHWAccelName') ?>
-                (<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_DECODERHWACCELNAME', 'zmOptionHelp', 'optionhelp', '?') ?>)
+            <td class="text-right pr-3">
+              <?php echo translate('DecoderHWAccelName'); echo makeHelpLink('OPTIONS_DECODERHWACCELNAME') ?>
             </td>
             <td><input type="text" name="newMonitor[DecoderHWAccelName]" value="<?php echo validHtmlStr($monitor->DecoderHWAccelName()) ?>"/></td>
           </tr>
           <tr class="DecoderHWAccelDevice">
             <td class="text-right pr-3"><?php echo translate('DecoderHWAccelDevice') ?>
-                (<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_DECODERHWACCELDEVICE', 'zmOptionHelp', 'optionhelp', '?') ?>)
+                <?php echo makeHelpLink('OPTIONS_DECODERHWACCELDEVICE') ?>
             </td>
             <td><input type="text" name="newMonitor[DecoderHWAccelDevice]" value="<?php echo validHtmlStr($monitor->DecoderHWAccelDevice()) ?>"/></td>
           </tr>
@@ -1012,7 +1012,7 @@ include('_monitor_source_nvsocket.php');
         if ( $monitor->Type() == 'Remote' ) {
           ?>
             <tr id="RTSPDescribe"<?php if ( $monitor->Protocol()!= 'rtsp' ) { echo ' style="display:none;"'; } ?>>
-              <td class="text-right pr-3"><?php echo translate('RTSPDescribe') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_RTSPDESCRIBE', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td class="text-right pr-3"><?php echo translate('RTSPDescribe'); echo makeHelpLink('OPTIONS_RTSPDESCRIBE') ?></td>
               <td><input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( $monitor->RTSPDescribe() ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
 <?php
@@ -1064,7 +1064,7 @@ include('_monitor_source_nvsocket.php');
 ?>
             </td></tr>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('OptionalEncoderParam') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_ENCODER_PARAMETERS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+              <td class="text-right pr-3"><?php echo translate('OptionalEncoderParam'); echo makeHelpLink('OPTIONS_ENCODER_PARAMETERS') ?></td>
               <td>
               <textarea name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
               </td>
@@ -1141,11 +1141,19 @@ include('_monitor_source_nvsocket.php');
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('ControlType') ?></td>
-              <td><?php echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId());
-if ( canEdit('Control') ) {
-  echo '&nbsp;'.makePopupLink('?view=controlcaps', 'zmControlCaps', 'controlcaps', translate('Edit'));
-}
-?></td>
+              <td>
+<?php 
+                  $controlTypes = array(''=>translate('None'));
+                  foreach ( $controls as $control ) {
+                    $controlTypes[$control->Id()] = $control->Name();
+                  }
+
+                  echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId());
+                  if ( canEdit('Control') ) {
+                    echo '&nbsp;'.makePopupLink('?view=controlcaps', 'zmControlCaps', 'controlcaps', translate('Edit'));
+                  }
+?>
+              </td>
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('ControlDevice') ?></td>
@@ -1276,7 +1284,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           </td>
         </tr>
         <tr>
-          <td class="text-right pr-3"><?php echo translate('Exif') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_EXIF', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+          <td class="text-right pr-3"><?php echo translate('Exif'); echo makeHelpLink('OPTIONS_EXIF') ?></td>
           <td><input type="checkbox" name="newMonitor[Exif]" value="1"<?php if ( $monitor->Exif() ) { ?> checked="checked"<?php } ?>/></td>
         </tr>
 <?php
@@ -1295,5 +1303,4 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
     </div>
     </div>
     </div>
-  </body>
-</html>
+<?php xhtmlFooter() ?>

@@ -148,5 +148,4 @@ if ( !empty($_REQUEST['eid']) ) {
     }
 ?>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

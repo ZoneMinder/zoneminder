@@ -16,16 +16,18 @@ if ( canEdit('Events') ) {
     switch ( $_REQUEST['action'] ) {
     case 'archive' :
     case 'unarchive' :
-      $archiveVal = ($_REQUEST['action'] == 'archive')?1:0;
+      $archiveVal = ($_REQUEST['action'] == 'archive') ? 1 : 0;
       dbQuery(
         'UPDATE Events SET Archived = ? WHERE Id = ?',
-        array($archiveVal, $_REQUEST['id'])
+        array($archiveVal, $eid)
       );
       break;
     case 'delete' :
       $event = new ZM\Event($eid);
       if ( !$event->Id() ) {
         $message[] = array($eid=>'Event not found.');
+      } else if ( $event->Archived() ) {
+        $message[] = array($eid=>'Event is archived, cannot delete it.');
       } else {
         $event->delete();
       }

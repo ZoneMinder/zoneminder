@@ -49,13 +49,6 @@ $heights = array(
   '1080' => '1080px',
 );
 
-$scale = '100';   # actual
-
-if ( isset($_REQUEST['scale']) ) {
-  $scale = validInt($_REQUEST['scale']);
-} else if ( isset($_COOKIE['zmMontageScale']) ) {
-  $scale = validInt($_COOKIE['zmMontageScale']);
-}
 
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
@@ -96,8 +89,9 @@ if ( isset($_COOKIE['zmMontageWidth']) ) {
   $_SESSION['zmMontageWidth'] = $options['width'] = validInt($_COOKIE['zmMontageWidth']);
 #} elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
   #$options['width'] = $_SESSION['zmMontageWidth'];
-} else
+} else {
   $options['width'] = 0;
+}
 
 if ( isset($_COOKIE['zmMontageHeight']) ) {
   $_SESSION['zmMontageHeight'] = $options['height'] = validInt($_COOKIE['zmMontageHeight']);
@@ -107,8 +101,14 @@ if ( isset($_COOKIE['zmMontageHeight']) ) {
   $options['height'] = 0;
 }
 
-#if ( $scale ) 
-  $options['scale'] = $scale;
+$scale = '100';   # actual
+
+if ( isset($_REQUEST['scale']) ) {
+  $scale = validInt($_REQUEST['scale']);
+} else if ( isset($_COOKIE['zmMontageScale']) ) {
+  $scale = validInt($_COOKIE['zmMontageScale']);
+}
+$options['scale'] = $scale;
 
 session_write_close();
 
@@ -118,7 +118,7 @@ $filterbar = ob_get_contents();
 ob_end_clean();
 
 $monitors = array();
-foreach( $displayMonitors as &$row ) {
+foreach ( $displayMonitors as &$row ) {
   if ( $row['Function'] == 'None' )
     continue;
 
@@ -127,7 +127,6 @@ foreach( $displayMonitors as &$row ) {
 
   if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
     $showControl = true;
-  $row['connKey'] = generateConnKey();
   if ( ! isset($widths[$row['Width']]) ) {
     $widths[$row['Width']] = $row['Width'].'px';
   }
@@ -177,19 +176,19 @@ if ( $showZones ) {
 
           <span id="widthControl">
             <label><?php echo translate('Width') ?></label>
-            <?php echo htmlSelect('width', $widths, $options['width'], array('data-on-change-this'=>'changeSize')); ?>
+            <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change-this'=>'changeSize')); ?>
           </span>
           <span id="heightControl">
             <label><?php echo translate('Height') ?></label>
-            <?php echo htmlSelect('height', $heights, $options['height'], array('data-on-change-this'=>'changeSize')); ?>
+            <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change-this'=>'changeSize')); ?>
           </span>
           <span id="scaleControl">
             <label><?php echo translate('Scale') ?></label>
-            <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change-this'=>'changeScale')); ?>
+            <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale')); ?>
           </span> 
           <span id="layoutControl">
             <label for="layout"><?php echo translate('Layout') ?></label>
-            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('data-on-change'=>'selectLayout')); ?>
+            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout')); ?>
           </span>
           <input type="hidden" name="Positions"/>
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
@@ -280,7 +279,7 @@ foreach ( $monitors as $monitor ) {
 
 <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: 100%; height: 100%;" viewBox="0 0 <?php echo $monitor->ViewWidth() ?> <?php echo $monitor->ViewHeight() ?>" preserveAspectRatio="none">
 <?php
-foreach( array_reverse($zones) as $zone ) {
+foreach ( array_reverse($zones) as $zone ) {
   echo '<polygon points="'. $zone['AreaCoords'] .'" class="'. $zone['Type'].'" />';
 } // end foreach zone
 ?>
@@ -305,4 +304,5 @@ foreach( array_reverse($zones) as $zone ) {
       </div>
     </div>
   </div>
+  <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

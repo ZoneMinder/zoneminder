@@ -175,7 +175,6 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
 
   } // end while ! frameComplete
   return frame;
-
 } //  end AVFrame *FFmpeg_Input::get_frame
 
 AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {

@@ -344,5 +344,4 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

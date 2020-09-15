@@ -94,6 +94,7 @@ $eventCounts = array(
   ),
 );
 
+require_once('includes/Group_Monitor.php');
 
 $navbar = getNavBarHTML();
 ob_start();
@@ -106,6 +107,13 @@ $maxWidth = 0;
 $maxHeight = 0;
 $zoneCount = 0;
 $total_capturing_bandwidth=0;
+
+$group_ids_by_monitor_id = array();
+foreach ( ZM\Group_Monitor::find(array('MonitorId'=>$selected_monitor_ids)) as $GM ) {
+  if ( !isset($group_ids_by_monitor_id[$GM->MonitorId()]) )
+    $group_ids_by_monitor_id[$GM->MonitorId()] = array();
+  $group_ids_by_monitor_id[$GM->MonitorId()][] = $GM->GroupId();
+}
 
 $status_counts = array();
 for ( $i = 0; $i < count($displayMonitors); $i++ ) {
@@ -230,7 +238,7 @@ ob_start();
         echo '<th class="colEvents">'. $eventCounts[$j]['title'] .'</th>';
       }
 ?>
-            <th class="colZones"><?php echo translate('Zones') ?></th>
+            <th class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
 <?php if ( canEdit('Monitors') ) { ?>
             <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markMids[]" data-on-click-this="updateFormCheckboxesByName"/> <?php echo translate('All') ?></th>
 <?php } ?>
@@ -241,10 +249,12 @@ ob_start();
 $table_head = ob_get_contents();
 ob_end_clean();
 echo $table_head;
+$monitors = array();
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
   $Monitor = new ZM\Monitor($monitor);
-  include('function.php');
+  $monitors[] = $Monitor;
+  $Monitor->GroupIds(isset($group_ids_by_monitor_id[$Monitor->Id()]) ? $group_ids_by_monitor_id[$Monitor->Id()] : array());
   if ( $monitor_i and ( $monitor_i % 100 == 0 ) ) {
     echo '</table>';
     echo $table_head;
@@ -423,11 +433,12 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
          </tr>
         </tfoot>
         </table>
-	  </div>
+	    </div>
     </div>
   </form>
 <?php
-xhtmlFooter();
-// Include Donate Modal
-include('donate.php');
+  include('function.php');
+  // Include Donate Modal
+  include('donate.php');
+  xhtmlFooter();
 ?>

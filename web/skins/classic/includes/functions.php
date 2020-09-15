@@ -25,6 +25,7 @@ function xhtmlHeaders($file, $title) {
   global $skin;
   global $view;
   global $cspNonce;
+  global $basename;
 
   # This idea is that we always include the classic css files, 
   # and then any different skin only needs to contain things that are different.
@@ -32,15 +33,11 @@ function xhtmlHeaders($file, $title) {
 
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
 
-  $skinJsPhpFile = getSkinFile('js/skin.js.php');
-  $cssJsFile = getSkinFile('js/'.$css.'.js');
 
   $basename = basename($file, '.php');
 
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
-  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
-  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 
   function output_link_if_exists($files) {
     global $skin;
@@ -114,7 +111,7 @@ if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
   }
 ?>
-  <style type="text/css">
+  <style>
 <?php
   if ( $baseViewCssPhpFile ) {
     require_once($baseViewCssPhpFile);
@@ -125,81 +122,6 @@ if ( $css != 'base' )
 ?>
   </style>
 
-<?php if ( $basename != 'login' and $basename != 'postlogin' ) { ?>
-  <script src="tools/mootools/mootools-core.js"></script>
-  <script src="tools/mootools/mootools-more.js"></script>
-  <script src="js/mootools.ext.js"></script>
-<?php } ?>
-  <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/tableExport.min.js"></script> 
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-export.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-page-jump-to.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
-  <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
-
-  <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
-  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
-  <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
-<?php
-  if ( $view == 'event' ) {
-?>
-  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
-  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
-  <script src="./js/videojs.zoomrotate.js"></script>
-<?php
-  }
-?>
-  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
-<?php
-  if ( $skinJsPhpFile ) {
-?>
-  <script nonce="<?php echo $cspNonce; ?>">
-<?php
-    require_once( $skinJsPhpFile );
-?>
-  </script>
-<?php
-  }
-  if ( $viewJsPhpFile ) {
-?>
-  <script nonce="<?php echo $cspNonce; ?>">
-<?php
-    require_once( $viewJsPhpFile );
-?>
-  </script>
-<?php
-  }
-	if ( $cssJsFile ) {
-?>
-  <script src="<?php echo cache_bust($cssJsFile) ?>"></script>
-<?php
-} else {
-?>
-  <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
-<?php
-  }
-  $skinJsFile = getSkinFile('js/skin.js');
-?>
-  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
-<?php 
-  if ($basename == 'watch' or $basename == 'log' ) {
-  // This is used in the log popup for the export function. Not sure if it's used anywhere else
-?>
-    <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
-<?php } ?>
-<?php
-  if ( $viewJsFile ) {
-?>
-  <script src="<?php echo cache_bust($viewJsFile) ?>"></script>
-<?php
-  }
-?>
 </head>
 <?php
   echo ob_get_clean();
@@ -458,7 +380,7 @@ function getDbConHTML() {
 
 // Returns an html dropdown showing capacity of all storage areas
 function getStorageHTML() {
-  $result='';
+  $result = '';
 
   $func = function($S) {
     $class = '';
@@ -832,14 +754,438 @@ function runtimeStatus($running=null) {
   return $running ? ($state ? $state : translate('Running')) : translate('Stopped');
 }
 
+// Returns the modal html representing the selected Option Help item
+function getOptionHelpHTML($optionHelpIndex, $OLANG) {
+  $result = '';
+  $ZMoptionHelpIndex = 'ZM_'.$optionHelpIndex;
+  
+  if ( !empty($OLANG[$optionHelpIndex]) ) {
+    $optionHelpText = $OLANG[$optionHelpIndex]['Help'];
+  } else {
+    $optionHelpText = dbFetchOne('SELECT Help FROM Config WHERE Name=?', 'Help', array($optionHelpIndex));
+  }
+  $optionHelpText = validHtmlStr($optionHelpText);
+  $optionHelpText = preg_replace('/~~/', '<br/>', $optionHelpText );
+  $optionHelpText = preg_replace('/\[(.+)\]\((.+)\)/', '<a href="$2" target="_blank">$1</a>', $optionHelpText);
+
+  $result .= '<div id="optionhelp" class="modal" tabindex="-1" role="dialog">'.PHP_EOL;
+    $result .= '<div class="modal-dialog" role="document">'.PHP_EOL;
+      $result .= '<div class="modal-content">'.PHP_EOL;
+        $result .= '<div class="modal-header">'.PHP_EOL;
+          $result .= '<h5 class="modal-title">' .translate('OptionHelp'). '</h5>'.PHP_EOL;
+          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
+            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
+          $result .= '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-body">'.PHP_EOL;
+          $result .= '<h3>' .validHtmlStr($optionHelpIndex). '</h3>'.PHP_EOL;
+          $result .= '<p class="textblock">' .$optionHelpText. '</p>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-footer">'.PHP_EOL;
+          $result .= '<button type="button" id="ohCloseBtn" class="btn btn-secondary" data-dismiss="modal">Close</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+      $result .= '</div>'.PHP_EOL;
+    $result .= '</div>'.PHP_EOL;
+  $result .= '</div>'.PHP_EOL;
+  return $result;
+}
+
+// Return an Error No Permissions Modal
+function getENoPermHTML() {
+  $result = '';
+
+  $result .= '<div id="ENoPerm" class="modal fade" id="staticBackdrop" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
+    $result .= '<div class="modal-dialog">'.PHP_EOL;
+      $result .= '<div class="modal-content">'.PHP_EOL;
+        $result .= '<div class="modal-header">'.PHP_EOL;
+          $result .= '<h5 class="modal-title" id="staticBackdropLabel">ZoneMinder ' .translate('Error'). '</h5>'.PHP_EOL;
+          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
+            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
+          $result .= '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-body">'.PHP_EOL;
+          $result .= '<p>' .translate('YouNoPerms'). '</p>'.PHP_EOL;
+          $result .= '<p>' .translate('ContactAdmin'). '</p>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-footer">'.PHP_EOL;
+          $result .= '<button type="button" id="enpCloseBtn" class="btn btn-secondary" data-dismiss="modal">Close</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+      $result .= '</div>'.PHP_EOL;
+    $result .= '</div>'.PHP_EOL;
+  $result .= '</div>'.PHP_EOL;
+
+  return $result;
+}
+
+function getStatsTableHTML($eid, $fid, $row='') {
+  if ( !canView('Events') ) return;
+  $result = '';
+  
+  $sql = 'SELECT S.*,E.*,Z.Name AS ZoneName,Z.Units,Z.Area,M.Name AS MonitorName FROM Stats AS S LEFT JOIN Events AS E ON S.EventId = E.Id LEFT JOIN Zones AS Z ON S.ZoneId = Z.Id LEFT JOIN Monitors AS M ON E.MonitorId = M.Id WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
+  $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
+  
+  $result .= '<table id="contentStatsTable' .$row. '"'.PHP_EOL;
+    $result .= 'data-toggle="table"'.PHP_EOL;
+    $result .= 'data-toolbar="#toolbar"'.PHP_EOL;
+    $result .= 'class="table-sm table-borderless contentStatsTable"'.PHP_EOL;
+    $result .= 'cellspacing="0">'.PHP_EOL;
+    
+    $result .= '<caption>' .translate('Stats'). ' - ' .$eid. ' - ' .$fid. '</caption>'.PHP_EOL;
+    $result .= '<thead>'.PHP_EOL;
+      $result .= '<tr>'.PHP_EOL;
+        $result .= '<th class="colZone font-weight-bold" data-align="center">' .translate('Zone'). '</th>'.PHP_EOL;
+        $result .= '<th class="colPixelDiff font-weight-bold" data-align="center">' .translate('PixelDiff'). '</th>'.PHP_EOL;
+        $result .= '<th class="colAlarmPx font-weight-bold" data-align="center">' .translate('AlarmPx'). '</th>'.PHP_EOL;
+        $result .= '<th class="colFilterPx font-weight-bold" data-align="center">' .translate('FilterPx'). '</th>'.PHP_EOL;
+        $result .= '<th class="colBlobPx font-weight-bold" data-align="center">' .translate('BlobPx'). '</th>'.PHP_EOL;
+        $result .= '<th class="colBlobs font-weight-bold" data-align="center">' .translate('Blobs'). '</th>'.PHP_EOL;
+        $result .= '<th class="colBlobSizes font-weight-bold" data-align="center">' .translate('BlobSizes'). '</th>'.PHP_EOL;
+        $result .= '<th class="colAlarmLimits font-weight-bold" data-align="center">' .translate('AlarmLimits'). '</th>'.PHP_EOL;
+        $result .= '<th class="colScore font-weight-bold" data-align="center">' .translate('Score'). '</th>'.PHP_EOL;
+      $result .= '</tr>'.PHP_EOL;
+    $result .= '</thead>'.PHP_EOL;
+
+    $result .= '<tbody>'.PHP_EOL;
+    
+    if ( count($stats) ) {
+      foreach ( $stats as $stat ) {
+        $result .= '<tr>'.PHP_EOL;
+          $result .= '<td class="colZone">' .validHtmlStr($stat['ZoneName']). '</td>'.PHP_EOL;
+          $result .= '<td class="colPixelDiff">' .validHtmlStr($stat['PixelDiff']). '</td>'.PHP_EOL;
+          $result .= '<td class="colAlarmPx">' .sprintf( "%d (%d%%)", $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']) ). '</td>'.PHP_EOL;
+          $result .= '<td class="colFilterPx">' .sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']) ).'</td>'.PHP_EOL;
+          $result .= '<td class="colBlobPx">' .sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']) ). '</td>'.PHP_EOL;
+          $result .= '<td class="colBlobs">' .validHtmlStr($stat['Blobs']). '</td>'.PHP_EOL;
+          
+          if ( $stat['Blobs'] > 1 ) {
+            $result .= '<td class="colBlobSizes">' .sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']) ). '</td>'.PHP_EOL;
+          } else {
+            $result .= '<td class="colBlobSizes">' .sprintf( "%d (%d%%)", $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$stat['Area'] ). '</td>'.PHP_EOL;
+          }
+          
+          $result .= '<td class="colAlarmLimits">' .validHtmlStr($stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY']). '</td>'.PHP_EOL;
+          $result .= '<td class="colScore">' .$stat['Score']. '</td>'.PHP_EOL;
+      }
+    } else {
+      $result .= '<tr>'.PHP_EOL;
+        $result .= '<td class="rowNoStats" colspan="9">' .translate('NoStatisticsRecorded'). '</td>'.PHP_EOL;
+      $result .= '</tr>'.PHP_EOL;
+    }
+
+    $result .= '</tbody>'.PHP_EOL;
+  $result .= '</table>'.PHP_EOL;
+  
+  return $result;
+}
+
+// This is the HTML representing the Delete confirmation modal on the Events page
+function getDelConfirmHTML() {
+  $result = '';
+  
+  $result .= '<div id="deleteConfirm" class="modal fade" class="modal" tabindex="-1">'.PHP_EOL;
+    $result .= '<div class="modal-dialog">'.PHP_EOL;
+      $result .= '<div class="modal-content">'.PHP_EOL;
+        $result .= '<div class="modal-header">'.PHP_EOL;
+          $result .= '<h5 class="modal-title">Delete Confirmation</h5>'.PHP_EOL;
+          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
+            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
+          $result .= '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-body">'.PHP_EOL;
+          $result .= '<p>' .translate('ConfirmDeleteEvents'). '</p>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-footer">'.PHP_EOL;
+          $result .= '<button id="delCancelBtn" type="button" class="btn btn-secondary" data-dismiss="modal">' .translate('Cancel'). '</button>'.PHP_EOL;
+          $result .= '<button id ="delConfirmBtn" type="button" class="btn btn-danger">' .translate('Delete'). '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+      $result .= '</div>'.PHP_EOL;
+    $result .= '</div>'.PHP_EOL;
+  $result .= '</div>'.PHP_EOL;
+  
+  return $result;
+}
+
+function getStorageModalHTML($sid) {
+  $result = '';
+  $null = '';
+  $checked = 'checked="checked"';
+  
+  if ( !canEdit('System') ) return;
+
+  require_once('includes/Server.php');
+  require_once('includes/Storage.php');
+
+  if ( $_REQUEST['id'] ) {
+    if ( !($newStorage = ZM\Storage::find_one(array('Id'=>$sid)) ) ) {
+      // Perhaps do something different here, rather than return nothing
+      return;
+    }
+  } else {
+    $newStorage = new ZM\Storage();
+    $newStorage->Name(translate('NewStorage'));
+  }
+
+  $type_options = array( 'local' => translate('Local'), 's3fs' => translate('s3fs') );
+  $scheme_options = array(
+    'Deep' => translate('Deep'),
+    'Medium' => translate('Medium'),
+    'Shallow' => translate('Shallow'),
+  );
+
+  $servers = ZM\Server::find( null, array('order'=>'lower(Name)') );
+  $ServersById = array();
+  foreach ( $servers as $S ) {
+    $ServersById[$S->Id()] = $S;
+  }
+
+  // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+  if ( isset($GLOBALS['csrf']['key']) ) {
+    $csrf_input = '<input type="hidden" name="__csrf_magic" value="key:' .csrf_hash($GLOBALS['csrf']['key']). '" />'.PHP_EOL;
+  } else {
+    $csrf_input = '';
+  }
+
+  $result .= '<div class="modal fade" id="storageModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
+    $result .= '<div class="modal-dialog">'.PHP_EOL;
+      $result .= '<div class="modal-content">'.PHP_EOL;
+        $result .= '<div class="modal-header">'.PHP_EOL;
+          $result .= '<h5 class="modal-title" id="staticBackdropLabel">' .translate('Storage').' - '.$newStorage->Name(). '</h5>'.PHP_EOL;
+          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
+            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
+          $result .= '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-body">'.PHP_EOL;
+        $result .= '<form id="storageModalForm" name="contentForm" method="post" action="?view=storage&action=save" class="validateFormOnSubmit">'.PHP_EOL;
+          // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+          $result .= $csrf_input;
+          $result .= '<input type="hidden" name="view" value="storage"/>'.PHP_EOL;
+          $result .= '<input type="hidden" name="object" value="storage"/>'.PHP_EOL;
+          $result .= '<input type="hidden" name="id" value="' .validHtmlStr($sid). '"/>'.PHP_EOL;
+          $result .= '<table id="contentTable" class="major table-sm">'.PHP_EOL;
+            $result .= '<tbody>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th class="text-right pr-3" scope="row">' .translate('Name'). '</th>'.PHP_EOL;
+                $result .= '<td><input type="text" name="newStorage[Name]" value="' .$newStorage->Name(). '"/></td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th class="text-right pr-3" scope="row">' .translate('Path'). '</th>'.PHP_EOL;
+                $result .= '<td><input type="text" name="newStorage[Path]" value="' .$newStorage->Path(). '"/></td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th class="text-right pr-3" scope="row">' .translate('Url'). '</th>'.PHP_EOL;
+                $result .= '<td><input type="text" name="newStorage[Url]" value="' .$newStorage->Url(). '"/></td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th class="text-right pr-3" scope="row">' .translate('Server'). '</th>'.PHP_EOL;
+                $result .= '<td>' .htmlSelect('newStorage[ServerId]', array(''=>'Remote / No Specific Server') + $ServersById, $newStorage->ServerId()). '</td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th class="text-right pr-3" scope="row">' .translate('Type'). '</th>'.PHP_EOL;
+                $result .= '<td>' .htmlSelect('newStorage[Type]', $type_options, $newStorage->Type()). '</td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th class="text-right pr-3" scope="row">' .translate('StorageScheme'). '</th>'.PHP_EOL;
+                $result .= '<td>' .htmlSelect('newStorage[Scheme]', $scheme_options, $newStorage->Scheme()). '</td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th class="text-right pr-3" scope="row">' .translate('StorageDoDelete'). '</th>'.PHP_EOL;
+                $result .= '<td>'.PHP_EOL;
+                $result .= '<input type="radio" name="newStorage[DoDelete]" value="1" ' .($newStorage->DoDelete() ? $checked : $null). '>Yes'.PHP_EOL;
+                $result .= '<input type="radio" name="newStorage[DoDelete]" value="0" ' .($newStorage->DoDelete() ? $null : $checked). '>No'.PHP_EOL;
+                $result .= '</td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th class="text-right pr-3" scope="row">' .translate('Enabled'). '</th>'.PHP_EOL;
+                $result .= '<td>'.PHP_EOL;
+                $result .= '<input type="radio" name="newStorage[Enabled]" value="1" ' .($newStorage->Enabled() ? $checked : $null). '>Yes'.PHP_EOL;
+                $result .= '<input type="radio" name="newStorage[Enabled]" value="0" ' .($newStorage->Enabled() ? $null : $checked). '>No'.PHP_EOL;
+                $result .= '</td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+            $result .= '</tbody>'.PHP_EOL;
+          $result .= '</table>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-footer">'.PHP_EOL;
+          $result .= '<button name="action" id="storageSubmitBtn" type="submit" class="btn btn-primary" value="Save">' .translate('Save'). '</button>'.PHP_EOL;
+          $result .= '<button type="button" class="btn btn-secondary" data-dismiss="modal">' .translate('Cancel'). '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+      $result .= '</form>'.PHP_EOL;
+      $result .= '</div>'.PHP_EOL;
+    $result .= '</div>'.PHP_EOL;
+  $result .= '</div>'.PHP_EOL;
+
+  return $result;
+}
+
+function getEventDetailHTML($eid='', $eids='') {
+  $result = '';
+  $inputs = '';
+  $disabled = 'disabled="disabled"';
+  $null = '';
+
+  if ( !canEdit('Events') ) return;
+
+  // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+  if ( isset($GLOBALS['csrf']['key']) ) {
+    $csrf_input = '<input type="hidden" name="__csrf_magic" value="key:' .csrf_hash($GLOBALS['csrf']['key']). '" />'.PHP_EOL;
+  } else {
+    $csrf_input = '';
+  }
+
+  if ( isset($eid) ){ // Single Event Mode
+    $title = translate('Event').' '.$eid.PHP_EOL;
+    $inputs .= '<input type="hidden" name="markEids[]" value="' .validInt($eid). '"/>'.PHP_EOL;
+    $eid = validInt($eid);
+    $newEvent = dbFetchOne('SELECT E.* FROM Events AS E WHERE E.Id = ?', NULL, array($eid));
+
+  } elseif ( isset($eids) ) { // Multi Event Mode
+
+    $title = translate('Events');
+    $sql = 'SELECT E.* FROM Events AS E WHERE ';
+    $sqlWhere = array();
+    $sqlValues = array();
+    foreach ( $eids as $eid ) {
+      $inputs .= '<input type="hidden" name="markEids[]" value="' .validInt($eid). '"/>'.PHP_EOL;
+      $sqlWhere[] = 'E.Id = ?';
+      $sqlValues[] = validInt($eid);
+    }
+    unset($eid);
+    $sql .= join(' OR ', $sqlWhere);
+    foreach( dbFetchAll( $sql, NULL, $sqlValues ) as $row ) {
+      if ( !isset($newEvent) ) {
+        $newEvent = $row;
+      } else {
+        if ( $newEvent['Cause'] && $newEvent['Cause'] != $row['Cause'] )
+          $newEvent['Cause'] = '';
+        if ( $newEvent['Notes'] && $newEvent['Notes'] != $row['Notes'] )
+          $newEvent['Notes'] = '';
+      }
+    }
+
+  } else { // Event Mode not specified - should we really proceed if neither eid nor eids is set?
+    $title = translate('Events');
+  }
+
+  $result .= '<div class="modal fade" id="staticBackdrop" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
+    $result .= '<div class="modal-dialog">'.PHP_EOL;
+      $result .= '<div class="modal-content">'.PHP_EOL;
+        $result .= '<div class="modal-header">'.PHP_EOL;
+          $result .= '<h5 class="modal-title" id="staticBackdropLabel">' .$title. '</h5>'.PHP_EOL;
+          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
+            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
+          $result .= '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-body">'.PHP_EOL;
+          $result .= '<form name="contentForm" id="contentForm" method="post" action="?">'.PHP_EOL;
+            $result .= $csrf_input;
+            $result .= '<input type="hidden" name="action" value="eventdetail"/>'.PHP_EOL;
+            $result .= '<input type="hidden" name="view" value="eventdetail"/>'.PHP_EOL;
+            $result .= $inputs;
+            $result .= '<table id="contentTable" class="major">'.PHP_EOL;
+              $result .= '<tbody>'.PHP_EOL;
+                $result .= '<tr>'.PHP_EOL;
+                  $result .= '<th scope="row">' .translate('Cause'). '</th>'.PHP_EOL;
+                  $result .= '<td><input type="text" name="newEvent[Cause]" value="' .validHtmlStr($newEvent['Cause']). '" size="32"/></td>'.PHP_EOL;
+                $result .= '</tr>'.PHP_EOL;
+                $result .= '<tr>'.PHP_EOL;
+                  $result .= '<th scope="row">' .translate('Notes'). '</th>'.PHP_EOL;
+                  $result .= '<td><textarea name="newEvent[Notes]" rows="6" cols="50">' .validHtmlStr($newEvent['Notes']). '</textarea></td>'.PHP_EOL;
+                $result .= '</tr>'.PHP_EOL;
+              $result .= '</tbody>'.PHP_EOL;
+            $result .= '</table>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-footer">'.PHP_EOL;
+          $result .= '<button type="submit" class="btn btn-primary" value="save" ' .( !canEdit('Events') ? $disabled : $null ). '>' .translate('Save'). '</button>'.PHP_EOL;
+          $result .= '<button type="button" class="btn btn-secondary" data-dismiss="modal">' .translate('Cancel'). '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '</form>'.PHP_EOL;
+      $result .= '</div>'.PHP_EOL;
+    $result .= '</div>'.PHP_EOL;
+  $result .= '</div>'.PHP_EOL;
+
+  return $result;
+}
+
 function xhtmlFooter() {
+  global $css;
   global $cspNonce;
   global $view;
   global $skin;
+  global $basename;
   if ( canEdit('System') ) {
     include("skins/$skin/views/state.php");
   }
+  $skinJsPhpFile = getSkinFile('js/skin.js.php');
+  $cssJsFile = getSkinFile('js/'.$css.'.js');
+  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
+  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 ?>
+<?php if ( $basename != 'login' and $basename != 'postlogin' ) { ?>
+  <script src="tools/mootools/mootools-core.js"></script>
+  <script src="tools/mootools/mootools-more.js"></script>
+  <script src="js/mootools.ext.js"></script>
+<?php } ?>
+  <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/tableExport.min.js"></script> 
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-export.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-page-jump-to.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
+  <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
+
+  <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
+  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
+  <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
+<?php
+  if ( $view == 'event' ) {
+?>
+  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
+  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
+  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
+  <script src="./js/videojs.zoomrotate.js"></script>
+<?php
+  }
+?>
+  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
+<?php
+?>
+  <script nonce="<?php echo $cspNonce; ?>">
+<?php
+  if ( $skinJsPhpFile ) {
+    require_once( $skinJsPhpFile );
+  }
+  if ( $viewJsPhpFile ) {
+    require_once( $viewJsPhpFile );
+  }
+?>
+  </script>
+<?php
+	if ( $cssJsFile ) {
+?>
+  <script src="<?php echo cache_bust($cssJsFile) ?>"></script>
+<?php
+  } else {
+?>
+  <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
+<?php
+  }
+  if ( $viewJsFile ) {
+?>
+  <script src="<?php echo cache_bust($viewJsFile) ?>"></script>
+<?php
+  }
+  $skinJsFile = getSkinFile('js/skin.js');
+?>
+  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
+  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
+<?php 
+  if ($basename == 'watch' or $basename == 'log' ) {
+  // This is used in the log popup for the export function. Not sure if it's used anywhere else
+?>
+    <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
+<?php } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

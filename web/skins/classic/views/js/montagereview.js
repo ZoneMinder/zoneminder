@@ -48,8 +48,7 @@ function evaluateLoadTimes() {
 function getFrame(monId, time, last_Frame) {
   if ( last_Frame ) {
     if (
-      (last_Frame.TimeStampSecs <= time)
-      &&
+      (last_Frame.TimeStampSecs <= time) &&
       (last_Frame.EndTimeStampSecs >= time)
     ) {
       return last_Frame;
@@ -104,12 +103,11 @@ function getFrame(monId, time, last_Frame) {
         continue;
       }
       if (
-        e.FramesById[frame_id].TimeStampSecs == time
-          || (
-            e.FramesById[frame_id].TimeStampSecs < time
-            && (
-              (!e.FramesById[frame_id].NextTimeStampSecs) // only if event.EndTime is null
-             ||
+        e.FramesById[frame_id].TimeStampSecs == time ||
+          (
+            e.FramesById[frame_id].TimeStampSecs < time &&
+            (
+              (!e.FramesById[frame_id].NextTimeStampSecs) || // only if event.EndTime is null
              (e.FramesById[frame_id].NextTimeStampSecs > time)
             )
           )

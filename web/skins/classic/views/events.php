@@ -230,8 +230,7 @@ if ( $results ) {
               <td class="text-center"><?php echo ( $event->Archived() ) ? 'Yes' : 'No' ?></td>
               <td class="text-center"><?php echo ( $event->Emailed() ) ? 'Yes' : 'No' ?></td>
               <td><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
-              <td><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
-              <?php
+              <td><?php echo makeLink( '#', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid=' .$event->Id(). '"') ?>              <?php
               # display notes as small text
               if ( $event->Notes() ) {
                 # if notes include detection objects, then link it to objdetect.jpg

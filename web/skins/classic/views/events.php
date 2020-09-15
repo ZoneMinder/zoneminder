@@ -97,7 +97,6 @@ if ( !empty($page) ) {
 }
 
 $maxShortcuts = 5;
-$pagination = getPagination($pages, $page, $maxShortcuts, $filter->query_string().$sortQuery.$limitQuery);
 
 $focusWindow = true;
 
@@ -229,17 +228,15 @@ if ( $results ) {
 
               <td class="text-center"><?php echo ( $event->Archived() ) ? 'Yes' : 'No' ?></td>
               <td class="text-center"><?php echo ( $event->Emailed() ) ? 'Yes' : 'No' ?></td>
-              <td><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
-              <td><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
+              <td><?php echo makeLink( '?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
+              <td><?php echo makeLink( '#', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid=' .$event->Id(). '"') ?>
               <?php
               # display notes as small text
               if ( $event->Notes() ) {
                 # if notes include detection objects, then link it to objdetect.jpg
                 if ( strpos($event->Notes(), 'detected:') !== false ) {
                   # make a link
-                  echo makePopupLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', 'zmImage',
-                  array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)),
-                  '<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
+                  echo makeLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', '<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
                 } else if ( $event->Notes() != 'Forced Web: ' ) {
                   echo '<br/><div class="small text-nowrap text-muted">'.$event->Notes().'</div>';
                 }
@@ -254,10 +251,7 @@ if ( $results ) {
               <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->AlarmFrames() ?></a></td>
               <td><?php echo $event->TotScore() ?></td>
               <td><?php echo $event->AvgScore() ?></td>
-              <td><?php echo makePopupLink(
-                '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage',
-                array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)), $event->MaxScore()
-              ); ?></td>
+              <td><?php echo makeLink('?view=frame&amp;eid='.$event->Id().'&amp;fid=0', $event->MaxScore()); ?></td>
 <?php
   if ( count($storage_areas) > 1 ) { 
 ?>

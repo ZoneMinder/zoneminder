@@ -145,19 +145,17 @@ while ( $event_row = dbFetchNext($results) ) {
                 <a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery ?>&amp;page=1"><?php echo $event->Id().($event->Archived()?'*':'') ?></a>
               </td>
               <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery ?>&amp;page=1"><?php echo validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
-              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
+              <td class="colMonitorName"><?php echo makeLink( '?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
               <td class="colCause"><?php echo makeLink( '#', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid=' .$event->Id(). '"') ?></td>
               <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) .
 ( $event->EndTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) : '' ) ?>
               </td>
               <td class="colDuration"><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
-              <td class="colFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->Frames() ) ?></td>
-              <td class="colAlarmFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->AlarmFrames() ) ?></td>
+              <td class="colFrames"><?php echo makeLink( '?view=frames&amp;eid='.$event->Id(), $event->Frames() ) ?></td>
+              <td class="colAlarmFrames"><?php echo makeLink( '?view=frames&amp;eid='.$event->Id(), $event->AlarmFrames() ) ?></td>
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
-              <td class="colMaxScore"><?php echo
- $event->MaxScore();
- #makePopupLink('?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)), $event->MaxScore()) ?></td>
+              <td class="colMaxScore"><?php echo $event->MaxScore() ?></td>
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
     $disk_space_total += $event->DiskSpace();

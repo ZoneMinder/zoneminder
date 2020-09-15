@@ -938,13 +938,6 @@ function getStorageModalHTML($sid) {
     $ServersById[$S->Id()] = $S;
   }
 
-  // We have to manually insert the csrf key into the form when using a modal generated via ajax call
-  if ( isset($GLOBALS['csrf']['key']) ) {
-    $csrf_input = '<input type="hidden" name="__csrf_magic" value="key:' .csrf_hash($GLOBALS['csrf']['key']). '" />'.PHP_EOL;
-  } else {
-    $csrf_input = '';
-  }
-
   $result .= '<div class="modal fade" id="storageModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
     $result .= '<div class="modal-dialog">'.PHP_EOL;
       $result .= '<div class="modal-content">'.PHP_EOL;
@@ -957,7 +950,7 @@ function getStorageModalHTML($sid) {
         $result .= '<div class="modal-body">'.PHP_EOL;
         $result .= '<form id="storageModalForm" name="contentForm" method="post" action="?view=storage&action=save" class="validateFormOnSubmit">'.PHP_EOL;
           // We have to manually insert the csrf key into the form when using a modal generated via ajax call
-          $result .= $csrf_input;
+          $result .= getCSRFinputHTML();
           $result .= '<input type="hidden" name="view" value="storage"/>'.PHP_EOL;
           $result .= '<input type="hidden" name="object" value="storage"/>'.PHP_EOL;
           $result .= '<input type="hidden" name="id" value="' .validHtmlStr($sid). '"/>'.PHP_EOL;
@@ -1024,13 +1017,6 @@ function getEventDetailHTML($eid='', $eids='') {
   
   if ( !canEdit('Events') ) return;
 
-  // We have to manually insert the csrf key into the form when using a modal generated via ajax call
-  if ( isset($GLOBALS['csrf']['key']) ) {
-    $csrf_input = '<input type="hidden" name="__csrf_magic" value="key:' .csrf_hash($GLOBALS['csrf']['key']). '" />'.PHP_EOL;
-  } else {
-    $csrf_input = '';
-  }
-
   if ( $eid ){ // Single Event Mode
     $eid = validInt($eid);
     $title = translate('Event').' '.$eid.PHP_EOL;
@@ -1077,7 +1063,8 @@ function getEventDetailHTML($eid='', $eids='') {
         $result .= '</div>'.PHP_EOL;
         $result .= '<div class="modal-body">'.PHP_EOL;
           $result .= '<form name="contentForm" id="eventDetailForm" method="post" action="?view=eventdetail&action=eventdetail">'.PHP_EOL;
-            $result .= $csrf_input;
+            // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+            $result .= getCSRFinputHTML();
             $result .= '<input type="hidden" name="action" value="eventdetail"/>'.PHP_EOL;
             $result .= '<input type="hidden" name="view" value="eventdetail"/>'.PHP_EOL;
             $result .= $inputs;
@@ -1103,6 +1090,17 @@ function getEventDetailHTML($eid='', $eids='') {
     $result .= '</div>'.PHP_EOL;
   $result .= '</div>'.PHP_EOL;
 
+  return $result;
+}
+
+// Use this function to manually insert the csrf key into the form when using a modal generated via ajax call
+function getCSRFinputHTML() {
+  if ( isset($GLOBALS['csrf']['key']) ) {
+    $result = '<input type="hidden" name="__csrf_magic" value="key:' .csrf_hash($GLOBALS['csrf']['key']). '" />'.PHP_EOL;
+  } else {
+    $result = '';
+  }
+  
   return $result;
 }
 

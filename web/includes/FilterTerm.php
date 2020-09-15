@@ -50,7 +50,7 @@ class FilterTerm {
     }
     if ( isset($term['cbr']) ) {
       if ( (string)(int)$term['cbr'] == $term['cbr'] ) {
-        $this->obr = $term['cbr'];
+        $this->cbr = $term['cbr'];
       } else {
         Warning('Invalid cbr ' . $term['cbr'] . ' in ' . print_r($term, true));
       }

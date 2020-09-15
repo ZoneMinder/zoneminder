@@ -35,6 +35,11 @@ switch ( $modal ) {
     if ( !isset($_REQUEST['id']) ) ajaxError('Storage Id Not Provided');
     $data['html'] = getStorageModalHTML($_REQUEST['id']);
     break;
+  case 'eventdetail' :
+    $eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
+    $eids = isset($_REQUEST['eids']) ? $_REQUEST['eids'] : '';
+    $data['html'] = getEventDetailHTML($eid, $eids);
+    break;
   default :
     // Maybe don't need both
     ZM\Warning('Unknown modal '.$modal);

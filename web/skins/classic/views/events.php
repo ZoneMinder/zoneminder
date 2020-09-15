@@ -34,14 +34,21 @@ if ( $user['MonitorIds'] ) {
   $eventsSql .= ' 1';
 }
 
+$filter = isset($_REQUEST['filter_id']) ? new ZM\Filter($_REQUEST['filter_id']) : new ZM\Filter();
+if ( isset($_REQUEST['filter'])) {
+  $filter->set($_REQUEST['filter']);
+}
+
 parseSort();
 
-$filter = ZM\Filter::parse($_REQUEST['filter']);
 $filterQuery = $filter->querystring();
 ZM\Logger::Debug("Filter ".print_r($filter, true));
 
 if ( $filter->sql() ) {
   $eventsSql .= ' AND ('.$filter->sql().')';
+} else {
+  ZM\Warning('No filters');
+  exit;
 }
 $eventsSql .= " ORDER BY $sortColumn $sortOrder";
 if ( $sortColumn != 'E.Id' ) $eventsSql .= ',E.Id '.$sortOrder;
@@ -90,7 +97,7 @@ if ( !empty($page) ) {
 }
 
 $maxShortcuts = 5;
-$pagination = getPagination($pages, $page, $maxShortcuts, $filterQuery.$sortQuery.$limitQuery);
+$pagination = getPagination($pages, $page, $maxShortcuts, $filter->query_string().$sortQuery.$limitQuery);
 
 $focusWindow = true;
 

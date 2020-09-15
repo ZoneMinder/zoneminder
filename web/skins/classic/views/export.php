@@ -157,7 +157,6 @@ while ( $event_row = dbFetchNext($results) ) {
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
               <td class="colMaxScore"><?php echo
  $event->MaxScore();
- #makePopupLink('?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)), $event->MaxScore()) ?></td>
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
     $disk_space_total += $event->DiskSpace();

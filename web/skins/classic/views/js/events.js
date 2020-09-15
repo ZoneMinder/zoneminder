@@ -79,6 +79,27 @@ function manageDelConfirmModalBtns() {
   });
 }
 
+function getEventDetailModal(eid) {
+  $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]=' + eid)
+  .done(function(data) {
+    if ( $j('#eventDetailModal').length ) {
+      $j('#eventDetailModal').replaceWith(data.html);
+    } else {
+      $j("body").append(data.html);
+    }
+    $j('#eventDetailModal').modal('show');
+    // Manage the Save button
+    $j('#eventDetailSaveBtn').click(function(evt) {
+      evt.preventDefault();
+      $j('#eventDetailForm').submit();
+    });
+  })
+  .fail(function(jqxhr, textStatus, error) {
+    console.log("Request Failed: " + textStatus + ", " + error);
+    console.log("Response Text: " + jqxhr.responseText);
+  });
+}
+
 function initPage() {
   var backBtn = $j('#backBtn');
   var viewBtn = $j('#viewBtn');
@@ -268,6 +289,13 @@ function initPage() {
 
     evt.preventDefault();
     $j('#deleteConfirm').modal('show');
+  });
+
+  // Manage the eventdetail links in the events list
+  $j(".eDetailLink").click(function(evt) {
+    evt.preventDefault();
+    var eid = $j(this).data('eid');
+    getEventDetailModal(eid);
   });
 
   // The table is initially given a hidden style, so now that we are done rendering, show it

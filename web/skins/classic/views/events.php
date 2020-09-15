@@ -254,10 +254,7 @@ if ( $results ) {
               <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->AlarmFrames() ?></a></td>
               <td><?php echo $event->TotScore() ?></td>
               <td><?php echo $event->AvgScore() ?></td>
-              <td><?php echo makePopupLink(
-                '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage',
-                array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)), $event->MaxScore()
-              ); ?></td>
+              <td><?php echo makeLink('?view=frame&amp;eid='.$event->Id().'&amp;fid=0', $event->MaxScore()); ?></td>
 <?php
   if ( count($storage_areas) > 1 ) { 
 ?>

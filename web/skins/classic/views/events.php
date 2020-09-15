@@ -97,7 +97,7 @@ if ( !empty($page) ) {
 }
 
 $maxShortcuts = 5;
-$pagination = getPagination($pages, $page, $maxShortcuts, $filter->query_string().$sortQuery.$limitQuery);
+$pagination = getPagination($pages, $page, $maxShortcuts, $filter->querystring().$sortQuery.$limitQuery);
 
 $focusWindow = true;
 

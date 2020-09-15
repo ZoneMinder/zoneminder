@@ -237,9 +237,7 @@ if ( $results ) {
                 # if notes include detection objects, then link it to objdetect.jpg
                 if ( strpos($event->Notes(), 'detected:') !== false ) {
                   # make a link
-                  echo makePopupLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', 'zmImage',
-                  array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)),
-                  '<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
+                  echo makeLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', '<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
                 } else if ( $event->Notes() != 'Forced Web: ' ) {
                   echo '<br/><div class="small text-nowrap text-muted">'.$event->Notes().'</div>';
                 }

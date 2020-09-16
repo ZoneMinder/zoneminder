@@ -28,6 +28,7 @@ addons:
     - qemu-user-static
     - dnsutils
     - traceroute
+    - libseccomp2
 install:
   - update-binfmts --enable qemu-arm
 

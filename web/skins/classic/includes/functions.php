@@ -798,7 +798,7 @@ function getENoPermHTML() {
     $result .= '<div class="modal-dialog">'.PHP_EOL;
       $result .= '<div class="modal-content">'.PHP_EOL;
         $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title" id="staticBackdropLabel">ZoneMinder ' .translate('Error'). '</h5>'.PHP_EOL;
+          $result .= '<h5 class="modal-title">ZoneMinder ' .translate('Error'). '</h5>'.PHP_EOL;
           $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
             $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
           $result .= '</button>'.PHP_EOL;
@@ -942,7 +942,7 @@ function getStorageModalHTML($sid) {
     $result .= '<div class="modal-dialog">'.PHP_EOL;
       $result .= '<div class="modal-content">'.PHP_EOL;
         $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title" id="staticBackdropLabel">' .translate('Storage').' - '.$newStorage->Name(). '</h5>'.PHP_EOL;
+          $result .= '<h5 class="modal-title">' .translate('Storage').' - '.$newStorage->Name(). '</h5>'.PHP_EOL;
           $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
             $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
           $result .= '</button>'.PHP_EOL;
@@ -954,7 +954,7 @@ function getStorageModalHTML($sid) {
           $result .= '<input type="hidden" name="view" value="storage"/>'.PHP_EOL;
           $result .= '<input type="hidden" name="object" value="storage"/>'.PHP_EOL;
           $result .= '<input type="hidden" name="id" value="' .validHtmlStr($sid). '"/>'.PHP_EOL;
-          $result .= '<table id="contentTable" class="major table-sm">'.PHP_EOL;
+          $result .= '<table class="major table-sm">'.PHP_EOL;
             $result .= '<tbody>'.PHP_EOL;
               $result .= '<tr>'.PHP_EOL;
                 $result .= '<th class="text-right pr-3" scope="row">' .translate('Name'). '</th>'.PHP_EOL;
@@ -1056,7 +1056,7 @@ function getEventDetailHTML($eid='', $eids='') {
     $result .= '<div class="modal-dialog">'.PHP_EOL;
       $result .= '<div class="modal-content">'.PHP_EOL;
         $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title" id="staticBackdropLabel">' .$title. '</h5>'.PHP_EOL;
+          $result .= '<h5 class="modal-title">' .$title. '</h5>'.PHP_EOL;
           $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
             $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
           $result .= '</button>'.PHP_EOL;
@@ -1068,7 +1068,7 @@ function getEventDetailHTML($eid='', $eids='') {
             $result .= '<input type="hidden" name="action" value="eventdetail"/>'.PHP_EOL;
             $result .= '<input type="hidden" name="view" value="eventdetail"/>'.PHP_EOL;
             $result .= $inputs;
-            $result .= '<table id="contentTable" class="table-sm">'.PHP_EOL;
+            $result .= '<table class="table-sm">'.PHP_EOL;
               $result .= '<tbody>'.PHP_EOL;
                 $result .= '<tr>'.PHP_EOL;
                   $result .= '<th scope="row">' .translate('Cause'). '</th>'.PHP_EOL;
@@ -1101,6 +1101,104 @@ function getCSRFinputHTML() {
     $result = '';
   }
   
+  return $result;
+}
+
+function getServerModalHTML($sid) {
+  $result = '';
+  $checked = ' checked="checked"';
+  $null = '';
+
+  if ( !canEdit('System') ) return;
+
+  $Server = new ZM\Server($sid);
+  if ( $sid and ! $Server->Id() ) return;
+
+  $result .= '<div class="modal fade" id="ServerModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
+    $result .= '<div class="modal-dialog">'.PHP_EOL;
+      $result .= '<div class="modal-content">'.PHP_EOL;
+        $result .= '<div class="modal-header">'.PHP_EOL;
+          $result .= '<h5 class="modal-title">' .translate('Server').' - '.$Server->Name(). '</h5>'.PHP_EOL;
+          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
+            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
+          $result .= '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-body">'.PHP_EOL;
+        $result .= '<form name="contentForm" method="post" action="?view=server&action=save" class="validateFormOnSubmit">'.PHP_EOL;
+          // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+          $result .= getCSRFinputHTML();
+          $result .= '<input type="hidden" name="view" value="server"/>'.PHP_EOL;
+          $result .= '<input type="hidden" name="object" value="server"/>'.PHP_EOL;
+          $result .= '<input type="hidden" name="id" value="' .validHtmlStr($_REQUEST['id']). '"/>'.PHP_EOL;
+          $result .= '<table class="table-sm">'.PHP_EOL;
+            $result .= '<tbody>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('Name'). '</th>'.PHP_EOL;
+                $result .= '<td><input type="text" name="newServer[Name]" value="' .$Server->Name(). '"/></td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('Protocol'). '</th>'.PHP_EOL;
+                $result .= '<td><input type="text" name="newServer[Protocol]" value="' .$Server->Protocol(). '"/></td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('Hostname'). '</th>'.PHP_EOL;
+                $result .= '<td><input type="text" name="newServer[Hostname]" value="' .$Server->Hostname(). '"/></td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('Port'). '</th>'.PHP_EOL;
+                $result .= '<td><input type="number" name="newServer[Port]" value="' .$Server->Port(). '"/></td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('PathToIndex'). '</th>'.PHP_EOL;
+                $result .= '<td><input type="text" name="newServer[PathToIndex]" value="' .$Server->PathToIndex(). '"/></td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('PathToZMS'). '</th>'.PHP_EOL;
+                $result .= '<td><input type="text" name="newServer[PathToZMS]" value="' .$Server->PathToZMS(). '"/></td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('PathToApi'). '</th>'.PHP_EOL;
+                $result .= '<td><input type="text" name="newServer[PathToApi]" value="' .$Server->PathToApi(). '"/></td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('RunStats'). '</th>'.PHP_EOL;
+                $result .= '<td>'.PHP_EOL;
+                  $result .= '<input type="radio" name="newServer[zmstats]" value="1"' .($Server->zmstats() ? $checked : $null). '/> Yes'.PHP_EOL;
+                  $result .= '<input type="radio" name="newServer[zmstats]" value="0"' .($Server->zmstats() ? $null : $checked). '/> No'.PHP_EOL;
+                $result .= '</td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('RunAudit'). '</th>'.PHP_EOL;
+                $result .= '<td>'.PHP_EOL;
+                  $result .= '<input type="radio" name="newServer[zmaudit]" value="1"' .($Server->zmaudit() ? $checked : $null). '/> Yes'.PHP_EOL;
+                  $result .= '<input type="radio" name="newServer[zmaudit]" value="0"' .($Server->zmaudit() ? $null : $checked). '/> No'.PHP_EOL;
+                $result .= '</td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('RunTrigger'). '</th>'.PHP_EOL;
+                $result .= '<td>'.PHP_EOL;
+                  $result .= '<input type="radio" name="newServer[zmtrigger]" value="1"' .($Server->zmtrigger() ? $checked : $null). '/> Yes'.PHP_EOL;
+                  $result .= '<input type="radio" name="newServer[zmtrigger]" value="0"' .($Server->zmtrigger() ? $null : $checked). '/> No'.PHP_EOL;
+                $result .= '</td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+              $result .= '<tr>'.PHP_EOL;
+                $result .= '<th scope="row">' .translate('RunEventNotification'). '</th>'.PHP_EOL;
+                $result .= '<td>'.PHP_EOL;
+                  $result .= '<input type="radio" name="newServer[zmeventnotification]" value="1"' .($Server->zmeventnotification() ? $checked : $null). '/> Yes'.PHP_EOL;
+                  $result .= '<input type="radio" name="newServer[zmeventnotification]" value="0"' .($Server->zmeventnotification() ? $null : $checked). '/> No'.PHP_EOL;
+                $result .= '</td>'.PHP_EOL;
+              $result .= '</tr>'.PHP_EOL;
+            $result .= '</tbody>'.PHP_EOL;
+          $result .= '</table>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+        $result .= '<div class="modal-footer">'.PHP_EOL;
+          $result .= '<button name="action" id="serverSubmitBtn" type="submit" class="btn btn-primary" value="Save">' .translate('Save'). '</button>'.PHP_EOL;
+          $result .= '<button type="button" class="btn btn-secondary" data-dismiss="modal">' .translate('Cancel'). '</button>'.PHP_EOL;
+        $result .= '</div>'.PHP_EOL;
+      $result .= '</div>'.PHP_EOL;
+    $result .= '</div>'.PHP_EOL;
+  $result .= '</div>'.PHP_EOL;
+
   return $result;
 }
 

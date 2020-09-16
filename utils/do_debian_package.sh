@@ -156,10 +156,14 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
   if [ -d "${GITHUB_FORK}_ZoneMinder.git" ]; then
     echo "Using local clone ${GITHUB_FORK}_ZoneMinder.git to pull from."
     cd "${GITHUB_FORK}_ZoneMinder.git"
-    echo "git pull..."
-    git pull
+    echo "git fetch..."
+    git fetch
     echo "git checkout $BRANCH"
     git checkout $BRANCH
+    if [ $? -ne 0 ]; then
+      echo "Failed to switch to branch."
+      exit 1;
+    fi;
     echo "git pull..."
     git pull
     cd ../

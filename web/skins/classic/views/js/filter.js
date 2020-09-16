@@ -39,12 +39,19 @@ function validateForm(form) {
   } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
     var have_endtime_term = false;
     for ( var i = 0; i < rows.length; i++ ) {
-      if ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' ) {
+      if (
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' )
+        ||
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndTime' )
+        ||
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDate' )
+      ) {
         have_endtime_term = true;
+        break;
       }
     }
     if ( ! have_endtime_term ) {
-      return confirm('You don\'t have an EndTime term in your filter.  This might match recordings that are still in progress and so the UpdateDiskSpace action will be a waste of time and resources.  Ideally you should have an EndTime IS NOT NULL term.  Do you want to continue?');
+      return confirm('You don\'t have an End Date/Time term in your filter.  This might match recordings that are still in progress and so the UpdateDiskSpace action will be a waste of time and resources.  Ideally you should have an End Date/Time IS NOT NULL term.  Do you want to continue?');
     }
   } else if ( form.elements['filter[Background]'].checked ) {
     if ( ! (

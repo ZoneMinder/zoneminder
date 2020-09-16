@@ -294,6 +294,8 @@ function updateFilterSelectors() {
         if ( filter[key] ) {
           selector.set('value', filter[key]);
         }
+        $j(selector).chosen('destroy');
+        $j(selector).chosen();
       }
   );
 }

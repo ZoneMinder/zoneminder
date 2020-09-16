@@ -1,6 +1,6 @@
 language: cpp
 sudo: required
-dist: xenial
+dist: bionic
 git:
   depth: 9999999
 notifications:
@@ -28,7 +28,6 @@ addons:
     - qemu-user-static
     - dnsutils
     - traceroute
-    - libseccomp2
 install:
   - update-binfmts --enable qemu-arm
 

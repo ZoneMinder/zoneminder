@@ -82,23 +82,23 @@ function exportEvents( ) {
 
 function getEventDetailModal(eid) {
   $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]=' + eid)
-  .done(function(data) {
-    if ( $j('#eventDetailModal').length ) {
-      $j('#eventDetailModal').replaceWith(data.html);
-    } else {
-      $j("body").append(data.html);
-    }
-    $j('#eventDetailModal').modal('show');
-    // Manage the Save button
-    $j('#eventDetailSaveBtn').click(function(evt) {
-      evt.preventDefault();
-      $j('#eventDetailForm').submit();
-    });
-  })
-  .fail(function(jqxhr, textStatus, error) {
-    console.log("Request Failed: " + textStatus + ", " + error);
-    console.log("Response Text: " + jqxhr.responseText);
-  });
+      .done(function(data) {
+        if ( $j('#eventDetailModal').length ) {
+          $j('#eventDetailModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#eventDetailModal').modal('show');
+        // Manage the Save button
+        $j('#eventDetailSaveBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#eventDetailForm').submit();
+        });
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
 }
 
 function initPage() {

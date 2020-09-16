@@ -35,6 +35,10 @@ switch ( $modal ) {
     if ( !isset($_REQUEST['id']) ) ajaxError('Storage Id Not Provided');
     $data['html'] = getStorageModalHTML($_REQUEST['id']);
     break;
+  case 'server' :
+    if ( !isset($_REQUEST['id']) ) ajaxError('Storage Id Not Provided');
+    $data['html'] = getServerModalHTML($_REQUEST['id']);
+    break;
   case 'eventdetail' :
     $eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
     $eids = isset($_REQUEST['eids']) ? $_REQUEST['eids'] : '';

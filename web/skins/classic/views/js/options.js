@@ -1,3 +1,37 @@
+// Load the Server Modal HTML via Ajax call
+function getServerModal(sid) {
+  $j.getJSON(thisUrl + '?request=modal&modal=server&id=' + sid)
+      .done(function(data) {
+        if ( $j('#ServerModal').length ) {
+          $j('#ServerModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#ServerModal').modal('show');
+        // Manage the Save button
+        $j('#serverSubmitBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#serverModalForm').submit();
+        });
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
+}
+
+function enableServerModal() {
+  $j(".serverCol").click(function(evt) {
+    evt.preventDefault();
+    var sid = $j(this).data('sid');
+    getServerModal(sid);
+  });
+  $j('#NewServerBtn').click(function(evt) {
+    evt.preventDefault();
+    getServerModal(0);
+  });
+}
+
 // Load the Storage Modal HTML via Ajax call
 function getStorageModal(sid) {
   $j.getJSON(thisUrl + '?request=modal&modal=storage&id=' + sid)
@@ -34,10 +68,13 @@ function enableStorageModal() {
 
 function initPage() {
   var NewStorageBtn = $j('#NewStorageBtn');
+  var NewServerBtn = $j('#NewServerBtn');
 
   if ( canEditSystem ) enableStorageModal();
+  if ( canEditSystem ) enableServerModal();
 
   NewStorageBtn.prop('disabled', !canEditSystem);
+  NewServerBtn.prop('disabled', !canEditSystem);
 }
 
 $j(document).ready(function() {

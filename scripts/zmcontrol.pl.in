@@ -49,9 +49,9 @@ my %options;
 GetOptions(
   'id=i'          =>\$id,
   'command=s'     =>\$options{command},
-  'xcoord=i'      =>\$options{xcoord},
-  'ycoord=i'      =>\$options{ycoord},
-  'speed=i'       =>\$options{speed},
+  'xcoord=f'      =>\$options{xcoord},
+  'ycoord=f'      =>\$options{ycoord},
+  'speed=f'       =>\$options{speed},
   'step=i'        =>\$options{step},
   'panspeed=i'    =>\$options{panspeed},
   'tiltspeed=i'   =>\$options{tiltspeed},

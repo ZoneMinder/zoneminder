@@ -7,7 +7,7 @@ function validateForm( form ) {
   var obrCount = 0;
   var cbrCount = 0;
   for ( var i = 0; i < rows.length; i++ ) {
-    if (rows.length > 2) {
+    if ( rows.length > 2 ) {
       obrCount += parseInt(form.elements['filter[Query][terms][' + i + '][obr]'].value);
       cbrCount += parseInt(form.elements['filter[Query][terms][' + i + '][cbr]'].value);
     }
@@ -22,8 +22,42 @@ function validateForm( form ) {
   }
   var numbers_reg = /\D/;
   if ( numbers_reg.test(form.elements['filter[Query][limit]'].value) ) {
-    alert("There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty.");
+    alert('There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty.');
     return false;
+  }
+  if ( form.elements['filter[AutoDelete]'].checked ) {
+    // if Delete action is Enabled should also have an unarchived term
+    var have_archivestatus_term = false;
+    for ( var i = 0; i < rows.length; i++ ) {
+      if ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'Archived' ) {
+        have_archivestatus_term = true;
+      }
+    }
+    if ( ! have_archivestatus_term ) {
+      return confirm('You have enabled deleting events but do not have a term referencing the archived status of the event.  This filter may delete events that you want to save! Are you sure?');
+    }
+  } else if ( form.elements['filter[Background]'].checked ) {
+    if ( ! (
+      form.elements['filter[AutoArchive]'].checked
+      ||
+      form.elements['filter[UpdateDiskSpace]'].checked
+      ||
+      form.elements['filter[AutoVideo]'].checked
+      ||
+      form.elements['filter[AutoEmail]'].checked
+      ||
+      form.elements['filter[AutoMessage]'].checked
+      ||
+      form.elements['filter[AutoExecute]'].checked
+      ||
+      form.elements['filter[AutoDelete]'].checked
+      ||
+      form.elements['filter[AutoCopy]'].checked
+      ||
+      form.elements['filter[AutoMove]'].checked
+    ) ) {
+      alert('You have chosen to run this filter in the background but not selected any actions.');
+    }
   }
   return true;
 }
@@ -143,8 +177,8 @@ function deleteFilter( element ) {
 }
 var escape = document.createElement('textarea');
 function escapeHTML(html) {
-    escape.textContent = html;
-    return escape.innerHTML;
+  escape.textContent = html;
+  return escape.innerHTML;
 }
 
 function parseRows(rows) {

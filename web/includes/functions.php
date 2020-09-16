@@ -40,7 +40,7 @@ function CSPHeaders($view, $nonce) {
   if ( ! $Servers )
     $Servers = ZM\Server::find();
 
-  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Url();}, $Servers));
+  $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
   switch ($view) {
     case 'login': {
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
@@ -840,9 +840,15 @@ function daemonStatus($daemon, $args=false) {
   initDaemonStatus();
 
   $string = $daemon;
-  if ( $args )
-    $string .= ' ' . $args;
-  return( strpos($daemon_status, "'$string' running") !== false );
+  if ( $args ) {
+		if ( is_array($args) ) {
+			$string .= join(' ', $args);
+ZM\Warning("daemonStatus args: $string");
+		} else {
+			$string .= ' ' . $args;
+		}
+	}
+  return ( strpos($daemon_status, "'$string' running") !== false );
 }
 
 function zmcStatus($monitor) {
@@ -1484,15 +1490,15 @@ function getLoad() {
 function getDiskPercent($path = ZM_DIR_EVENTS) {
   $total = disk_total_space($path);
   if ( $total === false ) {
-    Error('disk_total_space returned false. Verify the web account user has access to ' . $path);
+    ZM\Error('disk_total_space returned false. Verify the web account user has access to ' . $path);
     return 0;
   } elseif ( $total == 0 ) {
-    Error('disk_total_space indicates the following path has a filesystem size of zero bytes ' . $path);
+    ZM\Error('disk_total_space indicates the following path has a filesystem size of zero bytes ' . $path);
     return 100;
   }
   $free = disk_free_space($path);
   if ( $free === false ) {
-    Error('disk_free_space returned false. Verify the web account user has access to ' . $path);
+    ZM\Error('disk_free_space returned false. Verify the web account user has access to ' . $path);
   }
   $space = round((($total - $free) / $total) * 100);
   return $space;
@@ -2048,7 +2054,7 @@ function logState() {
       if ( $count['Level'] <= ZM\Logger::PANIC )
         $count['Level'] = ZM\Logger::FATAL;
       if ( !($levelCount = $levelCounts[$count['Level']]) ) {
-        Error('Unexpected Log level '.$count['Level']);
+        ZM\Error('Unexpected Log level '.$count['Level']);
         next;
       }
       if ( $levelCount[1] && $count['LevelCount'] >= $levelCount[1] ) {
@@ -2075,18 +2081,23 @@ function isVector(&$array) {
 
 function checkJsonError($value) {
   if ( function_exists('json_last_error') ) {
-    $value = var_export($value,true);
-    switch( json_last_error() ) {
+    $value = var_export($value, true);
+    switch ( json_last_error() ) {
       case JSON_ERROR_DEPTH :
-        ZM\Fatal("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        ZM\Error("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        break;
       case JSON_ERROR_CTRL_CHAR :
-        ZM\Fatal("Unable to decode JSON string '$value', unexpected control character found");
+        ZM\Error("Unable to decode JSON string '$value', unexpected control character found");
+        break;
       case JSON_ERROR_STATE_MISMATCH :
-        ZM\Fatal("Unable to decode JSON string '$value', invalid or malformed JSON");
+        ZM\Error("Unable to decode JSON string '$value', invalid or malformed JSON");
+        break;
       case JSON_ERROR_SYNTAX :
-        ZM\Fatal("Unable to decode JSON string '$value', syntax error");
+        ZM\Error("Unable to decode JSON string '$value', syntax error");
+        break;
       default :
-        ZM\Fatal("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        ZM\Error("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        break;
       case JSON_ERROR_NONE:
         break;
     }
@@ -2290,7 +2301,8 @@ function validHtmlStr($input) {
 function getStreamHTML($monitor, $options = array()) {
 
   if ( isset($options['scale']) ) {
-    if ( $options['scale'] != 'auto' && $options['scale'] != '0' ) {
+    if ( $options['scale'] != 'auto' && $options['scale'] != '0' and $options['scale'] != '' ) {
+      ZM\Logger::Debug("Setting dimensions from scale:".$options['scale']);
       $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
       $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
     } else {

@@ -504,7 +504,7 @@ LocalCamera::LocalCamera(
           subpixelorder = ZM_SUBPIX_ORDER_NONE;
         } else if ( palette == V4L2_PIX_FMT_YUYV && colours == ZM_COLOUR_GRAY8 ) {
           /* Fast YUYV->Grayscale conversion by extracting the Y channel */
-          if ( config.cpu_extensions && sseversion >= 35 ) {
+          if ( config.cpu_extensions && sse_version >= 35 ) {
             conversion_fptr = &ssse3_convert_yuyv_gray8;
             Debug(2,"Using SSSE3 YUYV->grayscale fast conversion");
           } else {
@@ -616,7 +616,7 @@ LocalCamera::LocalCamera(
           }
         } else if ( (palette == VIDEO_PALETTE_YUYV || palette == VIDEO_PALETTE_YUV422) && colours == ZM_COLOUR_GRAY8 ) {
           /* Fast YUYV->Grayscale conversion by extracting the Y channel */
-          if ( config.cpu_extensions && sseversion >= 35 ) {
+          if ( config.cpu_extensions && sse_version >= 35 ) {
             conversion_fptr = &ssse3_convert_yuyv_gray8;
             Debug(2,"Using SSSE3 YUYV->grayscale fast conversion");
           } else {

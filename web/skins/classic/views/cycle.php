@@ -58,32 +58,6 @@ $heights = array(
   '1080px'  =>  '1080px',
 );
 
-session_start();
-
-if ( isset($_REQUEST['scale']) ) {
-  $options['scale'] = validInt($_REQUEST['scale']);
-} else if ( isset($_COOKIE['zmCycleScale']) ) {
-  $options['scale'] = $_COOKIE['zmCycleScale'];
-}
-
-if ( !isset($options['scale']) )
-  $options['scale'] = 100;
-
-if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
-  $_SESSION['zmCycleWidth'] = $options['width'] = $_COOKIE['zmCycleWidth'];
-#} elseif ( isset($_SESSION['zmCycleWidth']) and $_SESSION['zmCycleWidth'] ) {
-  #$options['width'] = $_SESSION['zmCycleWidth'];
-} else
-  $options['width'] = '';
-
-if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] )
-  $_SESSION['zmCycleHeight'] = $options['height'] = $_COOKIE['zmCycleHeight'];
-#else if ( isset($_SESSION['zmCycleHeight']) and $_SESSION['zmCycleHeight'] )
-  #$options['height'] = $_SESSION['zmCycleHeight'];
-else
-  $options['height'] = '';
-
-session_write_close();
 
 $monIdx = 0;
 $monitors = array();
@@ -113,6 +87,40 @@ if ( $monitors ) {
   $monitor = $monitors[$monIdx];
   $nextMid = $monIdx==(count($monitors)-1)?$monitors[0]->Id():$monitors[$monIdx+1]->Id();
 }
+if ( !$monitor ) {
+  ZM\Error('There was no monitor to display.');
+}
+
+zm_session_start();
+
+if ( isset($_REQUEST['scale']) ) {
+  $options['scale'] = validInt($_REQUEST['scale']);
+} else if ( isset($_COOKIE['zmCycleScale']) ) {
+  $options['scale'] = $_COOKIE['zmCycleScale'];
+} else if ( $monitor ) {
+  $options['scale'] = $monitor->DefaultScale();
+}
+
+if ( !isset($options['scale']) )
+  $options['scale'] = 100;
+
+if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
+  $_SESSION['zmCycleWidth'] = $options['width'] = $_COOKIE['zmCycleWidth'];
+#} elseif ( isset($_SESSION['zmCycleWidth']) and $_SESSION['zmCycleWidth'] ) {
+  #$options['width'] = $_SESSION['zmCycleWidth'];
+} else {
+  $options['width'] = '';
+}
+
+if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] ) {
+  $_SESSION['zmCycleHeight'] = $options['height'] = $_COOKIE['zmCycleHeight'];
+#else if ( isset($_SESSION['zmCycleHeight']) and $_SESSION['zmCycleHeight'] )
+  #$options['height'] = $_SESSION['zmCycleHeight'];
+} else {
+  $options['height'] = '';
+}
+
+session_write_close();
 
 ZM\Logger::Debug(print_r($options,true));
 

@@ -227,7 +227,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   Debug(4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label, lo_y, hi_y);
 
-  /* if(config.cpu_extensions && sseversion >= 20) {
+  /* if(config.cpu_extensions && sse_version >= 20) {
      sse2_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
      } else {
      std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);

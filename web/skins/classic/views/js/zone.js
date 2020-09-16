@@ -178,13 +178,23 @@ function applyPreset() {
 function toPixels(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((field.value*maxValue)/100);
+    if ( field.value > maxValue )
+      field.value = maxValue;
   }
+  field.setAttribute('step', 1);
+  field.setAttribute('max', maxValue);
 }
 
+// maxValue is the max Pixels value which is normally the max area
 function toPercent(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((100*100*field.value)/maxValue)/100;
+    if ( field.value > 100 ) {
+      field.value = 100;
+    }
   }
+  field.setAttribute('step', 0.01);
+  field.setAttribute('max', 100);
 }
 
 function applyZoneUnits() {
@@ -307,8 +317,8 @@ function updateActivePoint(index) {
   zone['Points'][index].x = x;
   zone['Points'][index].y = y;
   var Point = $('zonePoly').points.getItem(index);
-  Point.x =x;
-  Point.y =y;
+  Point.x = x;
+  Point.y = y;
   updateArea();
 }
 
@@ -317,17 +327,15 @@ function addPoint(index) {
   if ( index >= (zone['Points'].length-1) ) {
     nextIndex = 0;
   }
+
   var newX = parseInt(Math.round((zone['Points'][index]['x']+zone['Points'][nextIndex]['x'])/2));
   var newY = parseInt(Math.round((zone['Points'][index]['y']+zone['Points'][nextIndex]['y'])/2));
   if ( nextIndex == 0 ) {
     zone['Points'][zone['Points'].length] = {'x': newX, 'y': newY};
   } else {
-    zone['Points'].splice( nextIndex, 0, {'x': newX, 'y': newY} );
+    zone['Points'].splice(nextIndex, 0, {'x': newX, 'y': newY});
   }
   drawZonePoints();
-  // drawZonePoints calls updateZoneImage
-  //updateZoneImage();
-  //setActivePoint( nextIndex );
 }
 
 function delPoint(index) {
@@ -349,15 +357,17 @@ function updateArea( ) {
   } else if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
     form.elements['newZone[TempArea]'].value = area;
   } else {
-    alert("Unknown units: " + form.elements['newZone[Units]'].value);
+    alert('Unknown units: ' + form.elements['newZone[Units]'].value);
   }
 }
 
-function updateX(index) {
-  limitPointValue($('newZone[Points]['+index+'][x]'), 0, maxX);
+function updateX(input) {
+  index = input.getAttribute('data-point-index');
+
+  limitPointValue(input, 0, maxX);
 
   var point = $('point'+index);
-  var x = $('newZone[Points]['+index+'][x]').get('value');
+  var x = input.value;
 
   point.setStyle('left', x+'px');
   zone['Points'][index].x = x;
@@ -366,11 +376,12 @@ function updateX(index) {
   updateArea();
 }
 
-function updateY(index) {
-  limitPointValue($('newZone[Points]['+index+'][y]'), 0, maxY);
+function updateY(input) {
+  index = input.getAttribute('data-point-index');
+  limitPointValue(input, 0, maxY);
 
   var point = $('point'+index);
-  var y = $('newZone[Points]['+index+'][y]').get('value');
+  var y = input.value;
 
   point.setStyle('top', y+'px');
   zone['Points'][index].y = y;
@@ -384,7 +395,7 @@ function saveChanges(element) {
   if ( validateForm(form) ) {
     submitForm(form);
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
-      alert( 'Capture process for this monitor will be restarted for the Privacy zone changes to take effect.' );
+      alert('Capture process for this monitor will be restarted for the Privacy zone changes to take effect.');
     }
     return true;
   }
@@ -399,6 +410,7 @@ function drawZonePoints() {
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var div = new Element('div', {
       'id': 'point'+i,
+      'data-index': i,
       'class': 'zonePoint',
       'title': 'Point '+(i+1),
       'styles': {
@@ -408,6 +420,7 @@ function drawZonePoints() {
     });
     div.addEvent('mouseover', highlightOn.pass(i));
     div.addEvent('mouseout', highlightOff.pass(i));
+
     div.inject($('imageFrame'));
     div.makeDraggable( {
       'container': $('imageFrame'),
@@ -435,9 +448,13 @@ function drawZonePoints() {
       'id': 'newZone[Points]['+i+'][x]',
       'name': 'newZone[Points]['+i+'][x]',
       'value': zone['Points'][i].x,
-      'size': 5
+      'type': 'number',
+      'class': 'ZonePoint',
+      'min': '0',
+      'max': maxX,
+      'data-point-index': i
     });
-    input.addEvent('input', updateX.pass(i));
+    input.oninput = window['updateX'].bind(input, input);
     input.inject(cell);
     cell.inject(row);
 
@@ -446,9 +463,13 @@ function drawZonePoints() {
       'id': 'newZone[Points]['+i+'][y]',
       'name': 'newZone[Points]['+i+'][y]',
       'value': zone['Points'][i].y,
-      'size': 5
+      'type': 'number',
+      'class': 'ZonePoint',
+      'min': '0',
+      'max': maxY,
+      'data-point-index': i
     } );
-    input.addEvent('input', updateY.pass(i));
+    input.oninput = window['updateY'].bind(input, input);
     input.inject(cell);
     cell.inject(row);
 
@@ -468,7 +489,7 @@ function drawZonePoints() {
     cell.inject(row);
 
     row.inject(tables[i%tables.length].getElement('tbody'));
-  }
+  } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();
 }
@@ -495,34 +516,6 @@ function setAlarmState( currentAlarmState ) {
   } else {
     $('stateValue').removeProperty('class');
   }
-
-  var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
-  var wasAlarmed = ( lastAlarmState == STATE_ALARM || lastAlarmState == STATE_ALERT );
-
-  var newAlarm = ( isAlarmed && !wasAlarmed );
-  var oldAlarm = ( !isAlarmed && wasAlarmed );
-
-  if ( newAlarm ) {
-    if ( SOUND_ON_ALARM ) {
-      // Enable the alarm sound
-      if ( !canPlayPauseAudio ) {
-        $('alarmSound').removeClass('hidden');
-      } else {
-        $('MediaPlayer').Play();
-      }
-    }
-  }
-  if ( SOUND_ON_ALARM ) {
-    if ( oldAlarm ) {
-      // Disable alarm sound
-      if ( !canPlayPauseAudio ) {
-        $('alarmSound').addClass('hidden');
-      } else {
-        $('MediaPlayer').Stop();
-      }
-    }
-  }
-  lastAlarmState = alarmState;
 }
 
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;
@@ -684,7 +677,6 @@ var watchdogFunctions = {
 //Make sure the various refreshes are still taking effect
 function watchdogCheck(type) {
   if ( watchdogInactive[type] ) {
-    console.log("Detected streamWatch of type: " + type + " stopped, restarting");
     watchdogFunctions[type]();
     watchdogInactive[type] = false;
   } else {

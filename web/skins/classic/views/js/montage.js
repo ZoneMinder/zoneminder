@@ -212,7 +212,8 @@ function Monitor(monitorData) {
  * @param {*} element - the event data passed by onchange callback
  */
 function selectLayout(element) {
-  layout = $j(element).val();
+  var ddm = $j('#zmMontageLayout');
+  layout = ddm.val();
 
   if ( layout_id = parseInt(layout) ) {
     layout = layouts[layout];
@@ -231,6 +232,7 @@ function selectLayout(element) {
       if ( layout.Positions['default'] ) {
         styles = layout.Positions['default'];
         for ( style in styles ) {
+          console.log("Applying " + style + ' ' + styles[style]);
           monitor_frame.css(style, styles[style]);
         }
       } else {
@@ -241,7 +243,6 @@ function selectLayout(element) {
         styles = layout.Positions['mId'+monitor.id];
         for ( style in styles ) {
           monitor_frame.css(style, styles[style]);
-          console.log("Applying " + style + ' : ' + styles[style]);
         }
       } else {
         console.log("No Monitor styles to apply");
@@ -284,8 +285,8 @@ function selectLayout(element) {
  * called when the widthControl|heightControl select elements are changed
  */
 function changeSize() {
-  var width = $('width').get('value');
-  var height = $('height').get('value');
+  var width = parseInt($('width').get('value'));
+  var height = parseInt($('height').get('value'));
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
@@ -296,12 +297,8 @@ function changeSize() {
       console.log("Error finding frame for " + monitor.id);
       continue;
     }
-    if ( width ) {
-      monitor_frame.css('width', width);
-    }
-    if ( height ) {
-      monitor_frame.css('height', height);
-    }
+    monitor_frame.css('width', ( width ? width+'px' : 'auto'));
+    monitor_frame.css('height', ( height ? height+'px' : 'auto'));
 
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $('liveStream'+monitor.id);
@@ -314,8 +311,8 @@ function changeSize() {
         src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         streamImg.src = src;
       }
-      streamImg.style.width = width ? width : null;
-      streamImg.style.height = height ? height : null;
+      streamImg.style.width = width ? width+'px' : null;
+      streamImg.style.height = height ? height+'px' : null;
       //streamImg.style.height = '';
     }
   }
@@ -382,8 +379,8 @@ function changeScale() {
         streamImg.src = src;
       }
       if ( scale != '0' ) {
-        streamImg.style.width = newWidth + "px";
-        streamImg.style.height = newHeight + "px";
+        streamImg.style.width = newWidth + 'px';
+        streamImg.style.height = newHeight + 'px';
       } else {
         streamImg.style.width = '100%';
         streamImg.style.height = 'auto';

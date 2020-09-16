@@ -143,10 +143,10 @@ sub PutCmd {
         } else {
           Info('Missing username and password in Control Address.');
         }
-        Fatal($res->status_line);
+        Error($res->status_line);
       }
     } else {
-      Fatal($res->status_line);
+      Error($res->status_line);
     }
   } # end unless res->is_success
 } # end sub putCmd

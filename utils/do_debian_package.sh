@@ -331,7 +331,7 @@ EOF
 
     dput="Y";
     if [ "$INTERACTIVE" != "no" ]; then
-      read -p "Ready to dput $SC to $PPA ? Y/N...";
+      read -p "Ready to dput $SC to $PPA ? Y/n...";
       if [[ "$REPLY" == [yY] ]]; then
         dput $PPA $SC
       fi;

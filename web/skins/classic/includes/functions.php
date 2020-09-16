@@ -798,7 +798,7 @@ function getENoPermHTML() {
     $result .= '<div class="modal-dialog">'.PHP_EOL;
       $result .= '<div class="modal-content">'.PHP_EOL;
         $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title" id="staticBackdropLabel">ZoneMinder ' .translate('Error'). '</h5>'.PHP_EOL;
+          $result .= '<h5 class="modal-title">ZoneMinder ' .translate('Error'). '</h5>'.PHP_EOL;
           $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
             $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
           $result .= '</button>'.PHP_EOL;
@@ -942,7 +942,7 @@ function getStorageModalHTML($sid) {
     $result .= '<div class="modal-dialog">'.PHP_EOL;
       $result .= '<div class="modal-content">'.PHP_EOL;
         $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title" id="staticBackdropLabel">' .translate('Storage').' - '.$newStorage->Name(). '</h5>'.PHP_EOL;
+          $result .= '<h5 class="modal-title">' .translate('Storage').' - '.$newStorage->Name(). '</h5>'.PHP_EOL;
           $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
             $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
           $result .= '</button>'.PHP_EOL;
@@ -954,7 +954,7 @@ function getStorageModalHTML($sid) {
           $result .= '<input type="hidden" name="view" value="storage"/>'.PHP_EOL;
           $result .= '<input type="hidden" name="object" value="storage"/>'.PHP_EOL;
           $result .= '<input type="hidden" name="id" value="' .validHtmlStr($sid). '"/>'.PHP_EOL;
-          $result .= '<table id="contentTable" class="major table-sm">'.PHP_EOL;
+          $result .= '<table class="major table-sm">'.PHP_EOL;
             $result .= '<tbody>'.PHP_EOL;
               $result .= '<tr>'.PHP_EOL;
                 $result .= '<th class="text-right pr-3" scope="row">' .translate('Name'). '</th>'.PHP_EOL;
@@ -1056,7 +1056,7 @@ function getEventDetailHTML($eid='', $eids='') {
     $result .= '<div class="modal-dialog">'.PHP_EOL;
       $result .= '<div class="modal-content">'.PHP_EOL;
         $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title" id="staticBackdropLabel">' .$title. '</h5>'.PHP_EOL;
+          $result .= '<h5 class="modal-title">' .$title. '</h5>'.PHP_EOL;
           $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
             $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
           $result .= '</button>'.PHP_EOL;
@@ -1068,7 +1068,7 @@ function getEventDetailHTML($eid='', $eids='') {
             $result .= '<input type="hidden" name="action" value="eventdetail"/>'.PHP_EOL;
             $result .= '<input type="hidden" name="view" value="eventdetail"/>'.PHP_EOL;
             $result .= $inputs;
-            $result .= '<table id="contentTable" class="table-sm">'.PHP_EOL;
+            $result .= '<table class="table-sm">'.PHP_EOL;
               $result .= '<tbody>'.PHP_EOL;
                 $result .= '<tr>'.PHP_EOL;
                   $result .= '<th scope="row">' .translate('Cause'). '</th>'.PHP_EOL;
@@ -1118,7 +1118,7 @@ function getServerModalHTML($sid) {
     $result .= '<div class="modal-dialog">'.PHP_EOL;
       $result .= '<div class="modal-content">'.PHP_EOL;
         $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title" id="staticBackdropLabel">' .translate('Server').' - '.$Server->Name(). '</h5>'.PHP_EOL;
+          $result .= '<h5 class="modal-title">' .translate('Server').' - '.$Server->Name(). '</h5>'.PHP_EOL;
           $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
             $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
           $result .= '</button>'.PHP_EOL;
@@ -1130,7 +1130,7 @@ function getServerModalHTML($sid) {
           $result .= '<input type="hidden" name="view" value="server"/>'.PHP_EOL;
           $result .= '<input type="hidden" name="object" value="server"/>'.PHP_EOL;
           $result .= '<input type="hidden" name="id" value="' .validHtmlStr($_REQUEST['id']). '"/>'.PHP_EOL;
-          $result .= '<table id="contentTable" class="table-sm">'.PHP_EOL;
+          $result .= '<table class="table-sm">'.PHP_EOL;
             $result .= '<tbody>'.PHP_EOL;
               $result .= '<tr>'.PHP_EOL;
                 $result .= '<th scope="row">' .translate('Name'). '</th>'.PHP_EOL;

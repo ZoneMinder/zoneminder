@@ -66,6 +66,7 @@ function manageDelConfirmModalBtns() {
     $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
+			    window.location.reload(true);
         })
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);

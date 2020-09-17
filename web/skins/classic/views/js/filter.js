@@ -395,6 +395,50 @@ function delTerm( element ) {
   parseRows(rows);
 }
 
+function debugFilter() {
+  getModal('filterdebug');
+}
+
+// Load the Delete Confirmation Modal HTML via Ajax call
+function getModal(id) {
+  $j.getJSON(thisUrl + '?request=modal&modal='+id+'&fid='+filterid)
+      .done(function(data) {
+        if ( !data ) {
+          console.error("Get modal returned no data");
+          return;
+        }
+
+        if ( $j('#'+id).length ) {
+          console.log("replacing");
+          $j('#'+id).replaceWith(data.html);
+        } else {
+          console.log("Adding to body"+data.html);
+          $j('body').append(data.html);
+        }
+        manageModalBtns(id);
+        modal = $j('#'+id+'Modal');
+        if ( ! modal.length ) {
+          console.log("No modal found");
+        }
+        $j('#'+id+'Modal').modal('show');
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
+}
+
+function manageModalBtns(id) {
+  console.log(id);
+  // Manage the CANCEL modal button
+  var cancelBtn = document.getElementById(id+"CancelBtn");
+  if ( cancelBtn ) {
+    document.getElementById(id+"CancelBtn").addEventListener("click", function onCancelClick(evt) {
+      $j('#'+id).modal('hide');
+    });
+  }
+}
+
 function init() {
   updateButtons( $('executeButton') );
   $j('#Id').chosen();

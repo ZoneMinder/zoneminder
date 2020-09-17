@@ -80,6 +80,7 @@ $attrTypes = array(
     'DiskBlocks'  => translate('AttrDiskBlocks'),
     'DiskPercent' => translate('AttrDiskPercent'),
     'DiskSpace'   => translate('AttrDiskSpace'),
+    'EventDiskSpace'   => translate('AttrEventDiskSpace'),
     'EndDateTime'    => translate('AttrEndDateTime'),
     'EndDate'        => translate('AttrEndDate'),
     'EndTime'        => translate('AttrEndTime'),
@@ -489,6 +490,7 @@ if ( canEdit('Events') ) {
   }
 }
 ?>
+          <button type="button" value="Debug" data-on-click-this="debugFilter"><?php echo translate('Debug') ?></button>
           <button type="button" value="Reset" data-on-click-this="resetFilter"><?php echo translate('Reset') ?></button>
         </div>
       </form>

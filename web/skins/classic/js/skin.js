@@ -426,6 +426,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function setNavBar(data) {
+    if ( !data ) {
+      console.error("No data in setNavBar");
+      return;
+    }
     if ( data.auth ) {
       if ( data.auth != auth_hash ) {
         // Update authentication token.

@@ -25,7 +25,7 @@ New installs
 
 3. Copy the file /usr/share/zoneminder/db/zm_create.sql from one of the ZoneMinder Servers to the machine targeted as the Database Server.
 
-4. Install mysql/mariadb server onto the Database Server.
+4. Install mariadb server onto the Database Server.
 
 5. It is advised to run "mysql_secure_installation" to help secure the server.
 
@@ -48,6 +48,12 @@ Note that these commands are just an example and might not be secure enough for 
 
 NOTE: The location of this folder varies by distro. This folder is often found under "/var/lib/zoneminder/events" for RedHat based distros and "/var/cache/zoneminder/events" for Debain based distros. This folder is NOT a Symbolic Link!
 
-10. Open your browser and point it to the web console on any of the ZoneMinder Servers (they will all be the same). Open Options, click the Servers tab,and populate this screen with all of your ZoneMinder Servers. Each server has a field for its name and its hostname. The name is what you used for ZM_SERVER_HOST in step 2. The hostname is the network name or ip address ZoneMinder should use.
+10. On systemd-based servers NOT running mariadb, make a copy of the systemd unit file for zoneminder in "/etc/systemd/system/" and remove the Requires=mariadb.service line:
 
-11. When creating a new Monitor, remember to select the server the camera will be assigned to from the Server drop down box.
+::
+
+  sed '/Requires=mariadb.service/d' /usr/lib/systemd/system/zoneminder.service > /etc/systemd/system/zoneminder.service
+
+11. Open your browser and point it to the web console on any of the ZoneMinder Servers (they will all be the same). Open Options, click the Servers tab,and populate this screen with all of your ZoneMinder Servers. Each server has a field for its name and its hostname. The name is what you used for ZM_SERVER_HOST in step 2. The hostname is the network name or ip address ZoneMinder should use.
+
+12. When creating a new Monitor, remember to select the server the camera will be assigned to from the Server drop down box.

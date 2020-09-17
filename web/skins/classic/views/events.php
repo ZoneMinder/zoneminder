@@ -42,7 +42,7 @@ if ( isset($_REQUEST['filter'])) {
 parseSort();
 
 $filterQuery = $filter->querystring();
-ZM\Logger::Debug("Filter ".print_r($filter, true));
+ZM\Logger::Debug('Filter '.print_r($filter, true));
 
 if ( $filter->sql() ) {
   $eventsSql .= ' AND ('.$filter->sql().')';
@@ -50,7 +50,7 @@ if ( $filter->sql() ) {
   ZM\Warning('No filters');
   exit;
 }
-$eventsSql .= " ORDER BY $sortColumn $sortOrder";
+$eventsSql .= ' ORDER BY '.$sortColumn.' '.$sortOrder;
 if ( $sortColumn != 'E.Id' ) $eventsSql .= ',E.Id '.$sortOrder;
 
 $page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 0;
@@ -71,6 +71,10 @@ if ( $failed ) {
 $results = $failed ? null : dbQuery($eventsSql);
 
 $nEvents = $results ? $results->rowCount() : 0;
+if ( ! $results ) {
+  global $error_message;
+  $error_message = dbError($eventsSql);
+} 
 ZM\Logger::Debug("Pre conditions succeeded sql return $nEvents events");
 
 if ( !empty($limit) && ($nEvents > $limit) ) {
@@ -91,7 +95,7 @@ if ( !empty($page) ) {
     $limitLeft = $limit - $limitStart;
     $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
   }
-  $eventsSql .= " LIMIT $limitStart, $limitAmount";
+  $eventsSql .= ' LIMIT '.$limitStart.', '.$limitAmount;
 } else if ( !empty($limit) ) {
   $eventsSql .= ' LIMIT 0, '.$limit;
 }
@@ -107,9 +111,9 @@ foreach ( $storage_areas as $S ) {
 }
 
 xhtmlHeaders(__FILE__, translate('Events'));
+getBodyTopHTML();
 
 ?>
-<body>
   <?php echo getNavBarHTML() ?>
   <div id="page" class="container-fluid p-3">
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->

@@ -5,20 +5,14 @@
 // 3) Create a $j.getJSON Ajax call in js with the right parameters to retrieve the modal
 // 4) Open the modal with $j('#myModal').modal('show')
 // 
+// Should only report json
+error_reporting(0);
 
 if ( empty($_REQUEST['modal']) ) ajaxError('Modal Name Not Provided');
 
 global $OLANG;
 $modal = validJsStr($_REQUEST['modal']);
 $data = array();
-
-// Not sure if this is required
-if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
-  $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
-  if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
-    $data['auth'] = $auth_hash;
-  }
-}
 
 switch ( $modal ) {
   case 'optionhelp' :
@@ -45,11 +39,17 @@ switch ( $modal ) {
     $data['html'] = getEventDetailHTML($eid, $eids);
     break;
   default :
-    // Maybe don't need both
-    ZM\Warning('Unknown modal '.$modal);
-    ajaxError("Unknown modal '".$modal."'");
-    return;
-}
+    ZM\Logger::Debug("Including modals/$modal.php");
+    # Shouldn't be necessary but at the moment we have last .conf file contents
+    ob_start();
+    @$result = include('modals/'.$modal.'.php');
+    $data['html'] = ob_get_contents();
+    ob_end_clean();
+    if ( !$result ) {
+      ajaxError("Unknown modal '".$modal."'");
+      return;
+    }
+} # end switch $modal
 
 ajaxResponse($data);
 return;

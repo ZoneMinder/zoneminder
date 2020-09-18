@@ -5,14 +5,10 @@ if ( empty($_REQUEST['modal']) ) {
   return;
 }
 
-//global $OLANG;
 $modal = validJsStr($_REQUEST['modal']);
 $data = array();
 
 switch ( $modal ) {
-  case 'enoperm' :
-    $data['html'] = getENoPermHTML();
-    break;
   case 'delconfirm' :
     $data['html'] = getDelConfirmHTML();
     break;

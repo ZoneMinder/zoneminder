@@ -1,24 +1,15 @@
 <?php
-// HOW TO IMPLEMENT A NEW MODAL
-// 1) Create a function in skins/classic/includes/functions that returns the desired modal HTML
-// 2) Add a new entry to the switch case below that calls the new HTML function
-// 3) Create a $j.getJSON Ajax call in js with the right parameters to retrieve the modal
-// 4) Open the modal with $j('#myModal').modal('show')
-// 
-// Should only report json
-error_reporting(0);
 
-if ( empty($_REQUEST['modal']) ) ajaxError('Modal Name Not Provided');
+if ( empty($_REQUEST['modal']) ) {
+  ajaxError('Modal Name Not Provided');
+  return;
+}
 
-global $OLANG;
+//global $OLANG;
 $modal = validJsStr($_REQUEST['modal']);
 $data = array();
 
 switch ( $modal ) {
-  case 'optionhelp' :
-    if ( empty($_REQUEST['ohndx']) ) ajaxError('Option Help Index Not Provided');
-    $data['html'] = getOptionHelpHTML($_REQUEST['ohndx'], $OLANG);
-    break;
   case 'enoperm' :
     $data['html'] = getENoPermHTML();
     break;

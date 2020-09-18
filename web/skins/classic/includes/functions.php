@@ -754,42 +754,6 @@ function runtimeStatus($running=null) {
   return $running ? ($state ? $state : translate('Running')) : translate('Stopped');
 }
 
-// Returns the modal html representing the selected Option Help item
-function getOptionHelpHTML($optionHelpIndex, $OLANG) {
-  $result = '';
-  $ZMoptionHelpIndex = 'ZM_'.$optionHelpIndex;
-  
-  if ( !empty($OLANG[$optionHelpIndex]) ) {
-    $optionHelpText = $OLANG[$optionHelpIndex]['Help'];
-  } else {
-    $optionHelpText = dbFetchOne('SELECT Help FROM Config WHERE Name=?', 'Help', array($optionHelpIndex));
-  }
-  $optionHelpText = validHtmlStr($optionHelpText);
-  $optionHelpText = preg_replace('/~~/', '<br/>', $optionHelpText );
-  $optionHelpText = preg_replace('/\[(.+)\]\((.+)\)/', '<a href="$2" target="_blank">$1</a>', $optionHelpText);
-
-  $result .= '<div id="optionhelp" class="modal" tabindex="-1" role="dialog">'.PHP_EOL;
-    $result .= '<div class="modal-dialog" role="document">'.PHP_EOL;
-      $result .= '<div class="modal-content">'.PHP_EOL;
-        $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title">' .translate('OptionHelp'). '</h5>'.PHP_EOL;
-          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
-            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
-          $result .= '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-body">'.PHP_EOL;
-          $result .= '<h3>' .validHtmlStr($optionHelpIndex). '</h3>'.PHP_EOL;
-          $result .= '<p class="textblock">' .$optionHelpText. '</p>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-footer">'.PHP_EOL;
-          $result .= '<button type="button" id="ohCloseBtn" class="btn btn-secondary" data-dismiss="modal">Close</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-      $result .= '</div>'.PHP_EOL;
-    $result .= '</div>'.PHP_EOL;
-  $result .= '</div>'.PHP_EOL;
-  return $result;
-}
-
 // Return an Error No Permissions Modal
 function getENoPermHTML() {
   $result = '';

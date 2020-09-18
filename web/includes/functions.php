@@ -2148,7 +2148,10 @@ function getStreamHTML($monitor, $options = array()) {
     }
     $options['mode'] = 'single';
     $streamSrc = $monitor->getStreamSrc($options);
-    return getImageStill('liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
+    return getImageStill('liveStream'.$monitor->Id(), $streamSrc,
+      (isset($options['width']) ? $options['width'] : null),
+      (isset($options['height']) ? $options['height'] : null),
+      $monitor->Name());
   }
 } // end function getStreamHTML
 

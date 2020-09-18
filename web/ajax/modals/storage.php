@@ -55,7 +55,7 @@
         ?>
         <input type="hidden" name="view" value="storage"/>
         <input type="hidden" name="object" value="storage"/>
-        <input type="hidden" name="id" value="' .validHtmlStr($sid). '"/>
+        <input type="hidden" name="id" value="<?php echo validHtmlStr($sid) ?>"/>
         <table class="major table-sm">
           <tbody>
             <tr>

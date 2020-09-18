@@ -9,10 +9,6 @@ $modal = validJsStr($_REQUEST['modal']);
 $data = array();
 
 switch ( $modal ) {
-  case 'storage' :
-    if ( !isset($_REQUEST['id']) ) ajaxError('Storage Id Not Provided');
-    $data['html'] = getStorageModalHTML($_REQUEST['id']);
-    break;
   case 'server' :
     if ( !isset($_REQUEST['id']) ) ajaxError('Storage Id Not Provided');
     $data['html'] = getServerModalHTML($_REQUEST['id']);

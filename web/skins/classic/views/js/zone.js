@@ -560,6 +560,9 @@ function watchdogCheck(type) {
 function watchdogOk(type) {
   watchdogInactive[type] = false;
 }
+function presetSelectorBlur() {
+  this.selectedIndex = 0;
+}
 
 var monitors = new Array();
 
@@ -569,6 +572,7 @@ function initPage() {
   //form.elements['newZone[Name]'].disabled = true;
   //form.elements['newZone[Type]'].disabled = true;
   form.presetSelector.disabled = true;
+  form.presetSelector.onblur = window['presetSelectorBlur'].bind(form.presetSelector, form.presetSelector);
   //form.elements['newZone[Units]'].disabled = true;
   if ( CheckMethod = form.elements['newZone[CheckMethod]'] ) {
     CheckMethod.disabled = true;

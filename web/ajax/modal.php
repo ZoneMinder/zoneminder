@@ -9,9 +9,6 @@ $modal = validJsStr($_REQUEST['modal']);
 $data = array();
 
 switch ( $modal ) {
-  case 'delconfirm' :
-    $data['html'] = getDelConfirmHTML();
-    break;
   case 'storage' :
     if ( !isset($_REQUEST['id']) ) ajaxError('Storage Id Not Provided');
     $data['html'] = getStorageModalHTML($_REQUEST['id']);

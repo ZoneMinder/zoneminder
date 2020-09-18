@@ -815,33 +815,6 @@ function getStatsTableHTML($eid, $fid, $row='') {
   return $result;
 }
 
-// This is the HTML representing the Delete confirmation modal on the Events page
-function getDelConfirmHTML() {
-  $result = '';
-  
-  $result .= '<div id="deleteConfirm" class="modal fade" class="modal" tabindex="-1">'.PHP_EOL;
-    $result .= '<div class="modal-dialog">'.PHP_EOL;
-      $result .= '<div class="modal-content">'.PHP_EOL;
-        $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title">Delete Confirmation</h5>'.PHP_EOL;
-          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
-            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
-          $result .= '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-body">'.PHP_EOL;
-          $result .= '<p>' .translate('ConfirmDeleteEvents'). '</p>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-footer">'.PHP_EOL;
-          $result .= '<button id="delCancelBtn" type="button" class="btn btn-secondary" data-dismiss="modal">' .translate('Cancel'). '</button>'.PHP_EOL;
-          $result .= '<button id ="delConfirmBtn" type="button" class="btn btn-danger">' .translate('Delete'). '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-      $result .= '</div>'.PHP_EOL;
-    $result .= '</div>'.PHP_EOL;
-  $result .= '</div>'.PHP_EOL;
-  
-  return $result;
-}
-
 function getStorageModalHTML($sid) {
   $result = '';
   $null = '';

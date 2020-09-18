@@ -628,5 +628,9 @@ class Monitor extends ZM_Object {
     return $this->connKey;
   }
 
+  function canEdit() {
+    global $user;
+    return ( $user && ($user['Monitors'] == 'Edit') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
+  }
 } // end class Monitor
 ?>

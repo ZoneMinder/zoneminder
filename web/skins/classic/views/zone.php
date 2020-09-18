@@ -123,7 +123,7 @@ xhtmlHeaders(__FILE__, translate('Zone'));
       <h2><?php echo translate('Monitor').' '.$monitor->Name().' - '.translate('Zone').' '.$newZone['Name'] ?></h2>
     </div>
     <div id="content">
-      <form name="zoneForm" id="zoneForm" method="post" action="?" onkeypress="return event.keyCode != 13;">
+      <form name="zoneForm" id="zoneForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="zone"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
@@ -180,14 +180,14 @@ if ( count($other_zones) ) {
 								<tr>
 									<th scope="row"><?php echo translate('Type') ?></th>
 									<td colspan="2"><?php echo htmlSelect('newZone[Type]', $optTypes, $newZone['Type'],
-											array('data-on-change'=>'applyZoneType')); ?></td>
+											array('data-on-change'=>'applyZoneType', 'id'=>'newZone[Type]')); ?></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('Preset') ?></th>
 									<td colspan="2">
 										<?php echo htmlSelect('presetSelector', $presetNames,
 												( isset($_REQUEST['presetSelector']) ? $_REQUEST['presetSelector'] : null),
-												array('data-on-change'=>'applyPreset', 'onblur'=>'this.selectedIndex=0') )
+												array('data-on-change'=>'applyPreset', 'id'=>'presetSelector') )
 										?></td>
 								</tr>
 								<tr>
@@ -195,7 +195,7 @@ if ( count($other_zones) ) {
                   <td colspan="2">
 <?php
                         echo htmlSelect('newZone[Units]', $optUnits, $newZone['Units'],
-                        array('data-on-change'=>'applyZoneUnits')
+                        array('data-on-change'=>'applyZoneUnits', 'id'=>'newZone[Units]')
                         );
                         # Used later for number inputs
                         $step = $newZone['Units'] == 'Percent' ? ' step="0.01" max="100"' : '';

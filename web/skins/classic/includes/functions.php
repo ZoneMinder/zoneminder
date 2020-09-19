@@ -702,8 +702,6 @@ function getHeaderFlipHTML() {
 
 // Returns the html representing the logged in user name and avatar
 function getAcctCircleHTML($skin, $user=null) {
-  // Include Logout modal
-  include("skins/$skin/views/logout.php");
   $result = '';
   
   if ( ZM_OPT_USE_AUTH and $user ) {

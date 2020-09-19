@@ -33,6 +33,10 @@ global $CLANG;
       </div>
       <div class="modal-footer">
         <form name="logoutForm" id="logoutForm" method="post" action="?">
+          <?php
+          // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+          echo getCSRFinputHTML();
+          ?>
           <input type="hidden" name="view" value="logout"/>
           <button type="submit" name="action" value="logout"><?php echo translate('Logout') ?></button>
           <?php if ( ZM_USER_SELF_EDIT ) echo '<button type="submit" name="action" value="config">'.translate('Config').'</button>'.PHP_EOL; ?>

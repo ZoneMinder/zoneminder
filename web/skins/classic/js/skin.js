@@ -312,6 +312,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
+    // Load the lgoout modal into the dom
+    getLogoutModal();
+
     // Trigger autorefresh of the widget bar stats on the navbar
     if ( $j('.navbar').length ) {
       setInterval(getNavBar, navBarRefresh);
@@ -740,6 +743,21 @@ function enoperm() {
         document.getElementById("enpCloseBtn").addEventListener("click", function onENPCloseClick(evt) {
           $j('#ENoPerm').modal('hide');
         });
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
+}
+
+function getLogoutModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=logout')
+      .done(function(data) {
+        if ( $j('#modalLogout').length ) {
+          $j('#modalLogout').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
       })
       .fail(function(jqxhr, textStatus, error) {
         console.log("Request Failed: " + textStatus + ", " + error);

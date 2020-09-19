@@ -133,7 +133,24 @@ function initPage() {
     window.location.assign('?view=version');
   }
   if ( showDonatePopup ) {
-    $j('#donate').modal('show');
+    $j.getJSON(thisUrl + '?request=modal&modal=donate')
+        .done(function(data) {
+          if ( $j('#donate').length ) {
+            $j('#donate').replaceWith(data.html);
+          } else {
+            $j("body").append(data.html);
+          }
+          $j('#donate').modal('show');
+          // Manage the Apply button
+          $j('#donateApplyBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#donateForm').submit();
+          });
+        })
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText);
+        });
   }
 
   // Makes table sortable

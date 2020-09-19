@@ -438,7 +438,5 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   </form>
 <?php
   include('function.php');
-  // Include Donate Modal
-  include('donate.php');
   xhtmlFooter();
 ?>

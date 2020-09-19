@@ -165,16 +165,6 @@ function manageFunctionModal() {
   $j('.funcSaveBtn').click(function(evt) {
     evt.preventDefault();
     $j('#function_form').submit();
-    //var form = evt.currentTarget.form;
-    //var mid = form.elements['mid'].value;
-    //var newFunc = $j('#newFunction').val();
-    //var newEnabled = $j('#newEnabled').is(':checked') ? 1 : 0;
-    //$j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled)
-        //.done(window.location.reload(true))
-        //.fail(function(jqxhr, textStatus, error) {
-          //console.log("Request Failed: " + textStatus + ", " + error);
-          //console.log("Response Text: " + jqxhr.responseText);
-        //});
   });
 }
 

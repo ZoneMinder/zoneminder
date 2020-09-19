@@ -28,6 +28,7 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('SystemLog'));
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
     <div id="header">
       <div id="logSummary" class="text-center">
@@ -37,17 +38,12 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       <?php echo translate('Displaying') ?>: <span id="displayLogs"></span>/
       <?php echo translate('Updated') ?>: <span id="lastUpdate"></span>
       </div>
-      <div class="btn-toolbar text-center">
-        <div class="btn-group">
-          <button type="button" data-on-click="expandLog"><?php echo translate('More') ?></button>
-          <button type="button" data-on-click="clearLog"><?php echo translate('Clear') ?></button>
-          <button type="button" data-on-click="refreshLog"><?php echo translate('Refresh') ?></button>
-          <button type="button" data-on-click="exportLog"><?php echo translate('Export') ?></button>
-          <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
-        </div>
-        <div class="btn-group pull-right">
-          <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
-        </div>
+      <div class="btn-toolbar justify-content-center py-1">
+        <button type="button" data-on-click="expandLog"><?php echo translate('More') ?></button>
+        <button type="button" data-on-click="clearLog"><?php echo translate('Clear') ?></button>
+        <button type="button" data-on-click="refreshLog"><?php echo translate('Refresh') ?></button>
+        <button type="button" data-on-click="exportLog"><?php echo translate('Export') ?></button>
+        <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
       </div> <!--btn-->
     </div> <!--header-->
     <div id="content">

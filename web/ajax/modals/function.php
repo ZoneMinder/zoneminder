@@ -18,17 +18,18 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit('Monitors') ) {
-  $view = 'error';
-  return;
-}
-?>
+if ( !canEdit('Monitors') ) return;
 
+?>
 <div id="modalFunction" class="modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-<form id="function_form" action="?view=function&action=function" method="post">
-  <input type="hidden" name="mid"/>
+    <form id="function_form" action="?view=function&action=function" method="post">
+      <?php
+      // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+      echo getCSRFinputHTML();
+      ?>
+      <input type="hidden" name="mid"/>
       <div class="modal-header">
         <h5 class="modal-title"><?php echo translate('Function') ?> - <span id="function_monitor_name"></span></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -46,7 +47,7 @@ if ( !canEdit('Monitors') ) {
         <button type="button" class="funcSaveBtn btn btn-primary"><?php echo translate('Save') ?></button>
         <button type="button" class="funcCancelBtn btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
       </div>
-</form>
+    </form>
     </div>
   </div>
 </div>

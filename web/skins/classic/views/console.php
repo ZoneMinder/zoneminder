@@ -437,6 +437,5 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     </div>
   </form>
 <?php
-  include('function.php');
   xhtmlFooter();
 ?>

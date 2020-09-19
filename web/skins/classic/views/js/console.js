@@ -127,6 +127,57 @@ function reloadWindow() {
   window.location.replace( thisUrl );
 }
 
+// Manage the the Function modal and its buttons
+function manageFunctionModal() {
+  $j('.functionLnk').click(function(evt) {
+    evt.preventDefault();
+    if ( !canEditEvents ) {
+      enoperm();
+      return;
+    }
+    var mid = evt.currentTarget.getAttribute('data-mid');
+    monitor = monitors[mid];
+    if ( !monitor ) {
+      console.error("No monitor found for mid " + mid);
+      return;
+    }
+
+    var function_form = document.getElementById('function_form');
+    if ( !function_form ) {
+      console.error("Unable to find form with id function_form");
+      return;
+    }
+    function_form.elements['newFunction'].value = monitor.Function;
+    function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
+    function_form.elements['mid'].value = mid;
+    document.getElementById('function_monitor_name').innerHTML = monitor.Name;
+
+    $j('#modalFunction').modal('show');
+  });
+
+  // Manage the CANCEL modal buttons
+  $j('.funcCancelBtn').click(function(evt) {
+    evt.preventDefault();
+    $j('#modalFunction').modal('hide');
+  });
+
+  // Manage the SAVE modal buttons
+  $j('.funcSaveBtn').click(function(evt) {
+    evt.preventDefault();
+    $j('#function_form').submit();
+    //var form = evt.currentTarget.form;
+    //var mid = form.elements['mid'].value;
+    //var newFunc = $j('#newFunction').val();
+    //var newEnabled = $j('#newEnabled').is(':checked') ? 1 : 0;
+    //$j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled)
+        //.done(window.location.reload(true))
+        //.fail(function(jqxhr, textStatus, error) {
+          //console.log("Request Failed: " + textStatus + ", " + error);
+          //console.log("Response Text: " + jqxhr.responseText);
+        //});
+  });
+}
+
 function initPage() {
   reloadWindow.periodical(consoleRefreshTimeout);
   if ( showVersionPopup ) {
@@ -165,51 +216,21 @@ function initPage() {
   // Setup the thumbnail video animation
   initThumbAnimation();
 
-  $j('.functionLnk').click(function(evt) {
-    evt.preventDefault();
-    if ( !canEditEvents ) {
-      enoperm();
-      return;
-    }
-    var mid = evt.currentTarget.getAttribute('data-mid');
-    monitor = monitors[mid];
-    if ( !monitor ) {
-      console.error("No monitor found for mid " + mid);
-      return;
-    }
-
-    var function_form = document.getElementById('function_form');
-    if ( !function_form ) {
-      console.error("Unable to find form with id function_form");
-      return;
-    }
-    function_form.elements['newFunction'].value = monitor.Function;
-    function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
-    function_form.elements['mid'].value = mid;
-    document.getElementById('function_monitor_name').innerHTML = monitor.Name;
-
-    $j('#modalFunction').modal('show');
-  });
-  // Manage the CANCEL modal buttons
-  $j('.funcCancelBtn').click(function(evt) {
-    evt.preventDefault();
-    $j('#modalFunction').modal('hide');
-  });
-
-  // Manage the SAVE modal buttons
-  $j('.funcSaveBtn').click(function(evt) {
-    evt.preventDefault();
-    var form = evt.currentTarget.form;
-    var mid = form.elements['mid'].value;
-    var newFunc = $j('#newFunction').val();
-    var newEnabled = $j('#newEnabled').is(':checked') ? 1 : 0;
-    $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled)
-        .done(window.location.reload(true))
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
-  });
+  // Load the Function modal on page load
+  $j.getJSON(thisUrl + '?request=modal&modal=function')
+      .done(function(data) {
+        if ( $j('#modalFunction').length ) {
+          $j('#modalFunction').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        // Manage the Function modal
+        manageFunctionModal();
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
 }
 
 function applySort(event, ui) {

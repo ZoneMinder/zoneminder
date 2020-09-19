@@ -721,7 +721,7 @@ function getStatusBtnHTML($status) {
   if ( canEdit('System') ) {
     //$result .= '<li class="nav-item dropdown">'.PHP_EOL;
     $result .= '<form id="getStatusBtnHTML" class="form-inline">'.PHP_EOL;
-    $result .= '<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState">' .$status. '</button>'.PHP_EOL;
+    $result .= '<button type="button" class="btn btn-default navbar-btn" id="stateModalBtn">' .$status. '</button>'.PHP_EOL;
     $result .= '</form>'.PHP_EOL;
     //$result .= '</li>'.PHP_EOL;
 
@@ -830,9 +830,6 @@ function xhtmlFooter() {
   global $view;
   global $skin;
   global $basename;
-  if ( canEdit('System') ) {
-    include("skins/$skin/views/state.php");
-  }
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $cssJsFile = getSkinFile('js/'.$css.'.js');
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
@@ -856,7 +853,6 @@ function xhtmlFooter() {
 
   <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
   <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
-  <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
 <?php
   if ( $view == 'event' ) {
 ?>

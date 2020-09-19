@@ -312,8 +312,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
-    // Load the lgoout modal into the dom
+    // Load the Logout and State modals into the dom
     getLogoutModal();
+    if ( canEditSystem ) $j('#stateModalBtn').click(getStateModal);
 
     // Trigger autorefresh of the widget bar stats on the navbar
     if ( $j('.navbar').length ) {
@@ -763,4 +764,84 @@ function getLogoutModal() {
         console.log("Request Failed: " + textStatus + ", " + error);
         console.log("Response Text: " + jqxhr.responseText);
       });
+}
+
+function getStateModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=state')
+      .done(function(data) {
+        if ( $j('#modalState').length ) {
+          $j('#modalState').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#modalState').modal('show');
+        manageStateModalBtns();
+      })
+      .fail(function(jqxhr, textStatus, error) {
+        console.log("Request Failed: " + textStatus + ", " + error);
+        console.log("Response Text: " + jqxhr.responseText);
+      });
+}
+
+function manageStateModalBtns() {
+  // Enable or disable the Delete button depending on the selected run state
+  $j("#runState").change(function() {
+    runstate = $j(this).val();
+
+    if ( (runstate == 'stop') || (runstate == 'restart') || (runstate == 'start') || (runstate == 'default') ) {
+      $j("#btnDelete").prop("disabled", true);
+    } else {
+      $j("#btnDelete").prop("disabled", false);
+    }
+  });
+
+  // Enable or disable the Save button when entering a new state
+  $j("#newState").keyup(function() {
+    length = $j(this).val().length;
+    if ( length < 1 ) {
+      $j("#btnSave").prop("disabled", true);
+    } else {
+      $j("#btnSave").prop("disabled", false);
+    }
+  });
+
+
+  // Delete a state
+  $j("#btnDelete").click(function() {
+    stateStuff('delete', $j("#runState").val());
+  });
+
+
+  // Save a new state
+  $j("#btnSave").click(function() {
+    stateStuff('save', undefined, $j("#newState").val());
+  });
+
+  // Change state
+  $j("#btnApply").click(function() {
+    stateStuff('state', $j("#runState").val());
+  });
+}
+
+function stateStuff(action, runState, newState) {
+  // the state action will redirect to console
+  var formData = {
+    'view': 'state',
+    'action': action,
+    'apply': 1,
+    'runState': runState,
+    'newState': newState
+  };
+
+  $j("#pleasewait").toggleClass("hidden");
+
+  $j.ajax({
+    type: 'POST',
+    url: thisUrl,
+    data: formData,
+    dataType: 'html',
+    timeout: 0
+  }).done(function(data) {
+    location.reload();
+  });
 }

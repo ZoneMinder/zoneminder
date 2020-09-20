@@ -188,10 +188,7 @@ function initPage() {
             $j('#donateForm').submit();
           });
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
   }
 
   // Makes table sortable
@@ -217,10 +214,7 @@ function initPage() {
         // Manage the Function modal
         manageFunctionModal();
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function applySort(event, ui) {

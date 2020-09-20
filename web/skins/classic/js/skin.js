@@ -393,10 +393,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
     $j(".optionhelp").click(function(evt) {
       $j.getJSON(thisUrl + '?request=modal&modal=optionhelp&ohndx=' + evt.target.id)
           .done(optionhelpModal)
-          .fail(function(jqxhr, textStatus, error) {
-            console.log("Request Failed: " + textStatus + ", " + error);
-            console.log("Response Text: " + jqxhr.responseText);
-          });
+          .fail(logAjaxFail);
     });
   });
 
@@ -420,7 +417,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
+          console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, ''));
           if ( textStatus != "timeout" ) {
           // The idea is that this should only fail due to auth, so reload the page
           // which should go to login if it can't stay logged in.
@@ -722,10 +719,7 @@ function reminderClickFunction() {
     var option = $j(this).data('pdsa-dropdown-val');
     $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
         .done(window.location.reload(true)) //Do a full refresh to update ZM_DYN_LAST_VERSION
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
   });
 }
 
@@ -745,10 +739,7 @@ function enoperm() {
           $j('#ENoPerm').modal('hide');
         });
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function getLogoutModal() {
@@ -760,10 +751,7 @@ function getLogoutModal() {
           $j("body").append(data.html);
         }
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function getStateModal() {
@@ -777,10 +765,7 @@ function getStateModal() {
         $j('#modalState').modal('show');
         manageStateModalBtns();
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function manageStateModalBtns() {
@@ -844,4 +829,9 @@ function stateStuff(action, runState, newState) {
   }).done(function(data) {
     location.reload();
   });
+}
+
+function logAjaxFail(jqxhr, textStatus, error) {
+  console.log("Request Failed: " + textStatus + ", " + error);
+  console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, '')); // strip any html from the response
 }

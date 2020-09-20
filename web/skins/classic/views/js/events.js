@@ -46,10 +46,7 @@ function getDelConfirmModal() {
         }
         manageDelConfirmModalBtns();
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 // Manage the DELETE CONFIRMATION modal button
@@ -68,10 +65,7 @@ function manageDelConfirmModalBtns() {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
   });
 
   // Manage the CANCEL modal button
@@ -95,10 +89,7 @@ function getEventDetailModal(eid) {
           $j('#eventDetailForm').submit();
         });
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function initPage() {
@@ -199,10 +190,7 @@ function initPage() {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
   });
 
   // Manage the UNARCHIVE button
@@ -221,10 +209,7 @@ function initPage() {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
 
     if ( openFilterWindow ) {
       //opener.location.reload(true);
@@ -259,10 +244,7 @@ function initPage() {
             $j('#eventDetailForm').submit();
           });
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
   });
 
   // Manage the EXPORT button

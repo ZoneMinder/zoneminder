@@ -88,7 +88,7 @@ public:
   } Orientation;
 
   typedef enum {
-    UNKNOWN,
+    UNKNOWN=-1,
     IDLE,
     PREALARM,
     ALARM,

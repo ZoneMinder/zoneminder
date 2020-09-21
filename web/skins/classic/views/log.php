@@ -96,36 +96,4 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       </form>
     </div><!--content-->
   </div><!--page-->
-  <div id="exportLog" class="overlay">
-    <div class="overlayHeader">
-      <div class="overlayTitle"><?php echo translate('ExportLog') ?></div>
-    </div>
-    <div class="overlayBody">
-      <div class="overlayContent">
-        <form id="exportForm" action="" method="post">
-          <fieldset>
-            <legend><?php echo translate('SelectLog') ?></legend>
-            <label for="selectorAll"><?php echo translate('All') ?></label>
-            <input type="radio" id="selectorAll" name="selector" value="all"/>
-            <label for="selectorFilter"><?php echo translate('Filter') ?></label>
-            <input type="radio" id="selectorFilter" name="selector" value="filter"/>
-            <label for="selectorCurrent"><?php echo translate('Current') ?></label>
-            <input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo translate('ChooseLogSelection') ?>" data-validators="validate-one-required"/>
-          </fieldset>
-          <fieldset>
-            <legend><?php echo translate('SelectFormat') ?></legend>
-            <label for="formatText">TXT</label><input type="radio" id="formatText" name="format" value="text"/>
-            <label for="formatTSV">TSV</label><input type="radio" id="formatTSV" name="format" value="tsv"/>
-            <label for="formatXML">HTML</label><input type="radio" id="formatHTML" name="format" value="html"/>
-            <label for="formatXML">XML</label><input type="radio" id="formatXML" name="format" value="xml" title="<?php echo translate('ChooseLogFormat') ?>" class="validate-one-required"/>
-          </fieldset>
-          <div id="exportError">
-            <?php echo translate('ExportFailed') ?>: <span id="exportErrorText"></span>
-          </div>
-          <button type="button" id="exportButton" value="Export" data-on-click="exportRequest"><?php echo translate('Export') ?></button>
-          <button type="button" value="Cancel" class="overlayCloser"><?php echo translate('Cancel') ?></button>
-        </form>
-      </div><!--overlayContent-->
-    </div><!--overlaybody-->
-  </div><!-- exportLog-->
 <?php xhtmlFooter() ?>

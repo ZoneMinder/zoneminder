@@ -422,10 +422,7 @@ function getModal(id) {
         }
         $j('#'+id+'Modal').modal('show');
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function manageModalBtns(id) {

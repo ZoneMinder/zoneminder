@@ -50,10 +50,7 @@ var cueFrames = null; //make cueFrames available even if we don't send another a
 
 function initialAlarmCues(eventId) {
   $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues) //get frames data for alarmCues and inserts into html
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function setAlarmCues(data) {

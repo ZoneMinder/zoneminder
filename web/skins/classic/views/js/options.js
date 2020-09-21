@@ -14,10 +14,7 @@ function getServerModal(sid) {
           $j('#serverModalForm').submit();
         });
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function enableServerModal() {
@@ -48,10 +45,7 @@ function getStorageModal(sid) {
           $j('#storageModalForm').submit();
         });
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function enableStorageModal() {

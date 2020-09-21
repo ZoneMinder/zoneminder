@@ -80,8 +80,8 @@ the following steps.  While step 3 is optional, it is preferred.
 
 1. Fork the repo
 2. Open an issue at our [GitHub Issues Tracker](https://github.com/ZoneMinder/ZoneMinder/issues).
-   Describe the bug that you've found, or the feature which you're asking for.
-   Jot down the issue number (e.g. 456)
+   Follow the issue template to describe the bug or security issue you found. Please note feature
+   requests or questions should be posted in our user forum or Slack channel.
 3. Create your feature branch (`git checkout -b 456-my-new-feature`)
 4. Commit your changes (`git commit -am 'Added some feature'`)
    It is preferred that you 'commit early and often' instead of bunching all

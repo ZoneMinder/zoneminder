@@ -32,10 +32,7 @@ function detailFormatter(index, row, $detail) {
       .done(function(data) {
         $detail.html(data.html);
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 function initPage() {
   var backBtn = $j('#backBtn');

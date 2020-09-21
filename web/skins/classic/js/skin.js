@@ -835,3 +835,49 @@ function logAjaxFail(jqxhr, textStatus, error) {
   console.log("Request Failed: " + textStatus + ", " + error);
   console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, '')); // strip any html from the response
 }
+
+// Load the Modal HTML via Ajax call
+function getModal(id) {
+  $j.getJSON(thisUrl + '?request=modal&modal='+id)
+      .done(function(data) {
+        if ( !data ) {
+          console.error("Get modal returned no data");
+          return;
+        }
+
+        if ( $j('#'+id).length ) {
+          $j('#'+id).replaceWith(data.html);
+        } else {
+          $j('body').append(data.html);
+        }
+        manageModalBtns(id);
+        modal = $j('#'+id+'Modal');
+        if ( ! modal.length ) {
+          console.log('No modal found');
+        }
+        $j('#'+id+'Modal').modal('show');
+      })
+      .fail(logAjaxFail);
+}
+
+function manageModalBtns(id) {
+  // Manage the CANCEL modal button
+  var cancelBtn = document.getElementById(id+"CancelBtn");
+  if ( cancelBtn ) {
+    document.getElementById(id+"CancelBtn").addEventListener('click', function onCancelClick(evt) {
+      $j('#'+id).modal('hide');
+    });
+  }
+  // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
+  document.querySelectorAll('#'+id+'Modal button[data-on-click]').forEach(function attachOnClick(el) {
+    var fnName = el.getAttribute('data-on-click');
+    if ( !window[fnName] ) {
+      console.error('Nothing found to bind to ' + fnName + ' on element ' + el.name);
+      return;
+    } else {
+      console.log("Setting onclick for " + el.name);
+    }
+    el.onclick = window[fnName].bind(el, el);
+  });
+}
+

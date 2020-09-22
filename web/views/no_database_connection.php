@@ -44,7 +44,9 @@ echo $error_message;
     </div>
   </div>
   <script>
-    document.getElementById('reloadButton').addEventListener("click", function () { location.reload(); });
+    document.getElementById('reloadButton').addEventListener("click", function() {
+      location.reload();
+    });
 
     var countdown = 30; // seconds
     function timerCountdown() {

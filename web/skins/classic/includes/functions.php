@@ -848,6 +848,8 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-export.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-page-jump-to.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-toolbar.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-auto-refresh.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 

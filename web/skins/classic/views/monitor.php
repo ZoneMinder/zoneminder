@@ -1100,7 +1100,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
             <?php echo translate('seconds')?>
           </td></tr>
         <tr>
-          <td class="text-right pr-3"<?php echo translate('FPSReportInterval') ?></td>
+          <td class="text-right pr-3"><?php echo translate('FPSReportInterval') ?></td>
           <td>
             <input type="number" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>" min="0"/>
             <?php echo translate('frames')?>

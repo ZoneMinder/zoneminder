@@ -70,10 +70,11 @@ Docker is a system to run applications inside isolated containers. ZoneMinder, a
 Dockerfile contained in this repository. However, there is still work needed to ensure that the main ZM features work 
 properly and are documented. 
 
-## Contribution Model and  Development
+## Contribution Model and Development
 
 * Source hosted at [GitHub](https://github.com/ZoneMinder/ZoneMinder/)
-* Report issues/questions/feature requests on [GitHub Issues](https://github.com/ZoneMinder/ZoneMinder/issues)
+* Report issues at [GitHub Issues](https://github.com/ZoneMinder/ZoneMinder/issues)
+* Questions/feature requests in [Slack](https://zoneminder-chat.slack.com/) or [forums](https://forums.zoneminder.com)
 
 Pull requests are very welcome!  If you would like to contribute, please follow
 the following steps.  While step 3 is optional, it is preferred.

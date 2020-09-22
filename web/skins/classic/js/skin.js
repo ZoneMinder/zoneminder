@@ -881,3 +881,15 @@ function manageModalBtns(id) {
   });
 }
 
+function human_filesize(size, precision = 2) {
+  var units = Array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
+  var step = 1024;
+  var i = 0;
+  while ((size / step) > 0.9) {
+    size = size / step;
+    i++;
+  }
+  return (Math.round(size*(10^precision))/(10^precision))+units[i];
+}
+
+

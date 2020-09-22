@@ -460,9 +460,8 @@ if ( canEdit('Monitors') ) {
 
     <!-- BEGIN ITEM LIST -->
     <div class="d-flex flex-row container-fluid pr-0">
-    <form name="contentForm" id="contentForm" method="post" action="?">
-      <input type="hidden" name="view" value="<?php echo $view ?>"/>
-      <input type="hidden" name="action" value="monitor"/>
+    <form name="contentForm" id="contentForm" method="post" action="?view=monitor">
+      <input type="hidden" name="tab" value="<?php echo $tab?>"/>
       <input type="hidden" name="mid" value="<?php echo $monitor->Id()?>"/>
       <input type="hidden" name="origMethod" value="<?php echo ( null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
 <div class="tab-content" id="pills-tabContent">
@@ -1158,7 +1157,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 ?>
 </div><!--tab-content-->
         <div id="contentButtons" class="pr-3">
-          <button type="submit" value="Save"<?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <button type="submit" name="action" value="save"<?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
           <button type="button" id="cancelBtn"><?php echo translate('Cancel') ?></button>
         </div>
       </form>

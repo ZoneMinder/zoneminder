@@ -137,6 +137,13 @@ function initPage() {
   document.querySelectorAll('input[name="newMonitor[WebColour]"]').forEach(function(el) {
     el.onchange = window['change_WebColour'].bind(el);
   });
+  document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
+    el.onchange = function() {
+      var form = document.getElementById('contentForm');
+      form.tab.value = 'general';
+      form.submit();
+    };
+  });
 
   $j('.chosen').chosen();
 

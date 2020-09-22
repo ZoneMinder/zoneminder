@@ -24,7 +24,7 @@ if ( ! canEdit('Monitors') ) {
   return;
 }
 
-if ( $action == 'monitor' ) {
+if ( $action == 'save' ) {
   $mid = 0;
   if ( !empty($_REQUEST['mid']) ) {
     $mid = validInt($_REQUEST['mid']);

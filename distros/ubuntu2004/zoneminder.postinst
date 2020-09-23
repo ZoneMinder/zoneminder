@@ -122,11 +122,10 @@ else
   echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
 fi
 
-echo "Starting ZoneMinder."
 if [ $SYSTEMD -eq 1 ]; then
   deb-systemd-invoke restart zoneminder.service
 else
-  service zoneminder start || true
+  #service zoneminder start || true
 fi
 
 #DEBHELPER#

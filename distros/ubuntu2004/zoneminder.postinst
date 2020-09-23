@@ -20,11 +20,19 @@ if [ "$1" = "configure" ]; then
     a2enmod cgi
   fi
 
+  SYSTEMD=0
+  if [ -e "/run/systemd/system" ]; then
+    SYSTEMD=1
+    # Ensure zoneminder is stopped
+    deb-systemd-invoke stop zoneminder.service || exit $?
+  else
+    # Ensure zoneminder is stopped
+    invoke-rc.d zoneminder stop || true
+  fi
+
   if [ "$ZM_DB_HOST" = "localhost" ]; then
 
-    if [ -e "/lib/systemd/system/mysql.service" ] || [ -e "/lib/systemd/system/mariadb.service" ] || [ -e "/etc/init.d/mysql" ]; then
-      # Ensure zoneminder is stopped
-      deb-systemd-invoke stop zoneminder.service || exit $?
+    if [ -e "/lib/systemd/system/mysql.service" ] || [ -e "/lib/systemd/system/mariadb.service" ]; then
           
       #
       # Get mysql started if it isn't running
@@ -72,8 +80,37 @@ if [ "$1" = "configure" ]; then
         # Add any new PTZ control configurations to the database (will not overwrite)
         zmcamtool.pl --import >/dev/null 2>&1
         echo "Done Updating; starting ZoneMinder."
-      else
-        echo 'NOTE: MySQL/MariaDB not running; please start mysql and run dpkg-reconfigure zoneminder when it is running.'
+      elif [ -e "/etc/init.d/mysql" ]; then
+        #
+        # Get mysql started if it isn't
+        #
+        if ! $(/etc/init.d/mysql status >/dev/null 2>&1); then
+          invoke-rc.d mysql start
+        fi
+        if $(/etc/init.d/mysql status >/dev/null 2>&1); then
+          mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
+          # test if database if already present...
+          if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
+            cat /usr/share/zoneminder/db/zm_create.sql | mysql --defaults-file=/etc/mysql/debian.cnf
+            if [ $? -ne 0 ]; then
+              echo "Error creating db."
+              exit 1;
+            fi
+            # This creates the user.
+            echo "grant lock tables, alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost identified by \"${ZM_DB_PASS}\";" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+          else
+            echo "grant lock tables, alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+          fi
+        else
+          echo 'NOTE: MySQL/MariaDB not running; please start mysql and run dpkg-reconfigure zoneminder when it is running.'
+        fi
+
+        zmupdate.pl --nointeractive
+        zmupdate.pl --nointeractive -f
+
+        # Add any new PTZ control configurations to the database (will not overwrite)
+        zmcamtool.pl --import >/dev/null 2>&1
+        echo "Done Updating; starting ZoneMinder."
       fi
     else
       echo 'MySQL/MariaDB not found; assuming remote server.'
@@ -82,8 +119,13 @@ if [ "$1" = "configure" ]; then
   else
     echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
   fi
-  deb-systemd-invoke restart zoneminder.service
 
-fi
+  if [ $SYSTEMD -eq 1 ]; then
+    deb-systemd-invoke restart zoneminder.service
+  else
+    invoke-rc.d zoneminder start || true
+  fi
+
+  fi
 
 #DEBHELPER#

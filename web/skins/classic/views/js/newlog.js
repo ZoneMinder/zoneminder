@@ -1,9 +1,9 @@
 var table = $j('#logTable');
- 
+
 /*
 This is the format of the json object sent by bootstrap-table
 
-var params = 
+var params =
 {
 "type":"get",
 "data":
@@ -41,7 +41,7 @@ function updateHeaderStats(data) {
   var startRow = ( (pageNum - 1 ) * pageSize ) + 1;
   var stopRow = pageNum * pageSize;
   var newClass = (data.logstate == 'ok') ? 'text-success' : (data.logstate == 'alert' ? 'text-warning' : ((data.logstate == 'alarm' ? 'text-danger' : '')));
-  
+
   $j('#logState').text(data.logstate);
   $j('#logState').removeClass('text-success');
   $j('#logState').removeClass('text-warning');
@@ -79,7 +79,7 @@ function initPage() {
   // Assign inf, err, fat, dbg color classes to the rows in the table
   table.on('post-body.bs.table', function(data) {
     $j('#logTable tr').each(function(ndx, row) {
-      var row = $j(row)
+      var row = $j(row);
       var level = row.find('td:eq(4)').text();
 
       if (( level == 'FAT' ) || ( level == 'PNC' )) {
@@ -88,7 +88,7 @@ function initPage() {
       } else if ( level == 'ERR' ) {
         row.addClass('bg-danger');
       } else if ( level == 'WAR' ) {
-        row.addClass('bg-warning');      
+        row.addClass('bg-warning');
       } else if ( level == 'DBG' ) {
         row.addClass('bg-info');
       }

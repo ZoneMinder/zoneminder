@@ -124,7 +124,7 @@ fi
 
 if [ $SYSTEMD -eq 1 ]; then
   deb-systemd-invoke restart zoneminder.service
-else
+#else
   #service zoneminder start || true
 fi
 

@@ -134,7 +134,6 @@ getBodyTopHTML();
     <div class="row justify-content-center">
       <table
         id="eventTable"
-        data-toggle="table"
         data-pagination="true"
         data-show-pagination-switch="true"
         data-page-list="[10, 25, 50, 100, 200, All]"

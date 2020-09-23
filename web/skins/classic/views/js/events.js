@@ -121,7 +121,7 @@ function initPage() {
   };
 
   // Init the bootstrap-table
-  table.bootstrapTable('destroy').bootstrapTable({icons: icons});
+  table.bootstrapTable({icons: icons});
 
   // Hide these columns on first run when no cookie is saved
   if ( !getCookie("zmEventsTable.bs.table.columns") ) {

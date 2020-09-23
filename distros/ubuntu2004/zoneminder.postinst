@@ -67,7 +67,7 @@ if [ "$1" = "configure" ]; then
 
   if [ "$ZM_DB_HOST" = "localhost" ]; then
 
-    if [ $SYSTEMD -eq 1 ] && [ -e "/lib/systemd/system/mysql.service" ] || [ -e "/lib/systemd/system/mariadb.service" ]; then
+    if [ $SYSTEMD -eq 1 ] && ([ -e "/lib/systemd/system/mysql.service" ] || [ -e "/lib/systemd/system/mariadb.service" ]); then
       #
       # Get mysql started if it isn't running
       #

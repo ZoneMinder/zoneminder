@@ -28,14 +28,11 @@ var params =
 // Called by bootstrap-table to retrieve zm log data
 function ajaxRequest(params) {
   $j.getJSON(thisUrl + '?view=request&request=newlog&task=query', params.data)
-      .done(function(res) {
-        //console.log('total: ' + res.total);
-        //console.log('totalNotFiltered: ' + res.totalNotFiltered);
-        console.log(JSON.stringify(params));
+      .done(function(data) {
+        //console.log('Ajax parameters: ' + JSON.stringify(params));
         // rearrange the result into what bootstrap-table expects
-        var data = {total: res.total, totalNotFiltered: res.totalNotFiltered, rows: res.rows};
-        params.success(data);
-        updateHeaderStats(res);
+        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: data.rows});
+        updateHeaderStats(data);
       })
       .fail(logAjaxFail);
 }

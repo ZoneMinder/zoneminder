@@ -23,6 +23,22 @@
 //
 var popupOptions = "resizable,scrollbars,status=no,toolbar=yes";
 
+// Globally define the icons used in the bootstrap-table top-right toolbar
+var icons = {
+  paginationSwitchDown: 'fa-caret-square-o-down',
+  paginationSwitchUp: 'fa-caret-square-o-up',
+  export: 'fa-download',
+  refresh: 'fa-retweet',
+  autoRefresh: 'fa-clock-o',
+  advancedSearchIcon: 'fa-chevron-down',
+  toggleOff: 'fa-toggle-off',
+  toggleOn: 'fa-toggle-on',
+  columns: 'fa-th-list',
+  fullscreen: 'fa-arrows-alt',
+  detailOpen: 'fa-plus',
+  detailClose: 'fa-minus'
+};
+
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {

@@ -13,6 +13,11 @@ var params =
   "order":"asc",
   "offset":0,
   "limit":25
+  "filter":
+    {
+    "message":"some advanced search text"
+    "level":"some more advanced search text"
+    }
   },
 "cache":true,
 "contentType":"application/json",
@@ -56,22 +61,6 @@ function updateHeaderStats(data) {
 
 function initPage() {
   var backBtn = $j('#backBtn');
-
-  // Define the icons used in the bootstrap-table top-right toolbar
-  var icons = {
-    paginationSwitchDown: 'fa-caret-square-o-down',
-    paginationSwitchUp: 'fa-caret-square-o-up',
-    export: 'fa-download',
-    refresh: 'fa-refresh',
-    autoRefresh: 'fa-clock-o',
-    advancedSearchIcon: 'fa-chevron-down',
-    toggleOff: 'fa-toggle-off',
-    toggleOn: 'fa-toggle-on',
-    columns: 'fa-th-list',
-    fullscreen: 'fa-arrows-alt',
-    detailOpen: 'fa-plus',
-    detailClose: 'fa-minus'
-  };
 
   // Init the bootstrap-table with custom icons
   table.bootstrapTable({icons: icons});

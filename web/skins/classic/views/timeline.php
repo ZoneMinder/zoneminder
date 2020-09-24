@@ -142,8 +142,11 @@ if ( !empty($user['MonitorIds']) ) {
 }
 
 $tree = false;
-if ( isset($_REQUEST['filter']) )
-  $tree = parseFilterToTree($_REQUEST['filter']['Query']);
+if ( isset($_REQUEST['filter']) ) {
+  $filter =  ZM\Filter::parse($_REQUEST['filter']);
+  $tree = $filter->tree();
+  ZM\Warning("Parse tree: " . print_r($tree,true));
+}
 
 if ( isset($_REQUEST['range']) )
   $range = validHtmlStr($_REQUEST['range']);

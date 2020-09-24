@@ -29,10 +29,6 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
   <?php echo getNavBarHTML() ?>
   <div id="page" class="px-3">
 
-    <div> <!-- DELETE ME -->
-      <h3>UNDER CONSTRUTION - This view is not yet fully functional</h3>
-    </div>
-
     <div id="logSummary" class="text-center">
       <?php echo translate('State') ?>:&nbsp;<span id="logState"></span>&nbsp;-&nbsp;
       <?php echo translate('Total') ?>:&nbsp;<span id="totalLogs"></span>&nbsp;-&nbsp;

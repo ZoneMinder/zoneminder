@@ -71,7 +71,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       data-auto-refresh="true"
       data-auto-refresh-silent="true"
       data-show-refresh="true"
-      data-auto-refresh-interval="2"
+      data-auto-refresh-interval="5"
     >
       <thead class="thead-highlight">
         <tr>

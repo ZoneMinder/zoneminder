@@ -77,6 +77,7 @@ function initPage() {
         row.addClass('bg-warning');
       } else if ( level == 'DBG' ) {
         row.addClass('bg-info');
+        row.addClass('font-italic');
       }
     });
   });

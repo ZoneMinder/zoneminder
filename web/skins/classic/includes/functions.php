@@ -50,11 +50,23 @@ function xhtmlHeaders($file, $title) {
     $html[] = ''; // So we ge a trailing \n
     return implode(PHP_EOL, $html);
   }
+  function output_script_if_exists($files) {
+    global $skin;
+    $html = array();
+    foreach ( $files as $file ) {
+        $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
+    }
+    $html[] = ''; // So we ge a trailing \n
+    return implode(PHP_EOL, $html);
+  }
   
   function output_cache_busted_stylesheet_links($files) {
     $html = array();
     foreach ( $files as $file ) {
         $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
+    }
+    if ( ! count($html) ) {
+      ZM\Warning("No files found for $files");
     }
     $html[] = ''; // So we ge a trailing \n
     return implode(PHP_EOL, $html);
@@ -109,6 +121,8 @@ if ( $css != 'base' )
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
+  } else if ( $basename == 'monitor' ) {
+      echo output_link_if_exists(array('/js/leaflet/leaflet.css'));
   }
 ?>
   <style>
@@ -902,7 +916,10 @@ function xhtmlFooter() {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
 ?>
     <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
-<?php } ?>
+<?php
+  } else if ( $basename == 'monitor' ) {
+    echo output_script_if_exists(array('js/leaflet/leaflet.js'));
+  } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

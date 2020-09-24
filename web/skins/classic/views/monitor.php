@@ -404,6 +404,7 @@ if ( $monitor->Type() != 'WebSite' ) {
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
   $tabs['misc'] = translate('Misc');
+  $tabs['location'] = translate('Location');
 }
 
 if ( isset($_REQUEST['tab']) )
@@ -1151,6 +1152,25 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 <?php
         break;
     }
+  case 'location':
+?>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('Latitude') ?></td>
+          <td><input type="number" name="newMonitor[Latitude]" step="any" value="<?php echo $monitor->Latitude() ?>" min="-90" max="90"/></td>
+        </tr>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('Longitude') ?></td>
+          <td><input type="number" name="newMonitor[Longitude]" step="any" value="<?php echo $monitor->Longitude() ?>" min="-180" max="180"/></td>
+        </tr>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('Longitude') ?></td>
+          <td><button type="button" data-on-click="getLocation"><?php echo translate('GetCurrentLocation') ?></button></td>
+</tr>
+            
+<?php
+    break;
+  default :
+    ZM\Error("Unknown tab $tab");
 } // end switch tab
 ?>
           </tbody>

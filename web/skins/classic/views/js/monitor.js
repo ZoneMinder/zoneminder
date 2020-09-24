@@ -241,5 +241,19 @@ function update_estimated_ram_use() {
 
   document.getElementById('estimated_ram_use').innerHTML = human_filesize(buffer_count * width * height * colours, 0);
 }
+function updateLatitudeAndLongitude(latitude,longitude) {
+  var form = document.getElementById('contentForm');
+  form.elements['newMonitor[Latitude]'].value = latitude;
+  form.elements['newMonitor[Longitude]'].value = longitude;
+}
+function getLocation() {
+  if('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      updateLatitudeAndLongitude(position.coords.latitude, position.coords.longitude);
+    });
+  } else {
+    console.log("Geolocation not available");
+  }
+}
 
 window.addEventListener('DOMContentLoaded', initPage);

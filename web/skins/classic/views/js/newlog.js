@@ -13,6 +13,11 @@ var params =
   "order":"asc",
   "offset":0,
   "limit":25
+  "filter":
+    {
+    "message":"some advanced search text"
+    "level":"some more advanced search text"
+    }
   },
 "cache":true,
 "contentType":"application/json",
@@ -23,14 +28,11 @@ var params =
 // Called by bootstrap-table to retrieve zm log data
 function ajaxRequest(params) {
   $j.getJSON(thisUrl + '?view=request&request=newlog&task=query', params.data)
-      .done(function(res) {
-        //console.log('total: ' + res.total);
-        //console.log('totalNotFiltered: ' + res.totalNotFiltered);
-        console.log(JSON.stringify(params));
+      .done(function(data) {
+        //console.log('Ajax parameters: ' + JSON.stringify(params));
         // rearrange the result into what bootstrap-table expects
-        var data = {total: res.total, totalNotFiltered: res.totalNotFiltered, rows: res.rows};
-        params.success(data);
-        updateHeaderStats(res);
+        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: data.rows});
+        updateHeaderStats(data);
       })
       .fail(logAjaxFail);
 }
@@ -57,22 +59,6 @@ function updateHeaderStats(data) {
 function initPage() {
   var backBtn = $j('#backBtn');
 
-  // Define the icons used in the bootstrap-table top-right toolbar
-  var icons = {
-    paginationSwitchDown: 'fa-caret-square-o-down',
-    paginationSwitchUp: 'fa-caret-square-o-up',
-    export: 'fa-download',
-    refresh: 'fa-refresh',
-    autoRefresh: 'fa-clock-o',
-    advancedSearchIcon: 'fa-chevron-down',
-    toggleOff: 'fa-toggle-off',
-    toggleOn: 'fa-toggle-on',
-    columns: 'fa-th-list',
-    fullscreen: 'fa-arrows-alt',
-    detailOpen: 'fa-plus',
-    detailClose: 'fa-minus'
-  };
-
   // Init the bootstrap-table with custom icons
   table.bootstrapTable({icons: icons});
 
@@ -91,6 +77,7 @@ function initPage() {
         row.addClass('bg-warning');
       } else if ( level == 'DBG' ) {
         row.addClass('bg-info');
+        row.addClass('font-italic');
       }
     });
   });

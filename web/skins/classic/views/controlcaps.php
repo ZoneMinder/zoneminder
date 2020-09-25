@@ -30,12 +30,16 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('ControlCaps'));
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
+    <div class="w-100 py-1">
+      <div class="float-left pl-3">
+        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       </div>
-      <h2><?php echo translate('ControlCaps') ?></h2>
+      <div class="w-100 pt-2">
+        <h2><?php echo translate('ControlCaps') ?></h2>
+      </div>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="?" onsubmit="return( confirmDelete( 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.\nAre you sure you wish to delete?' ) );">

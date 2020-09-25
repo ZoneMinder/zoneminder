@@ -37,11 +37,8 @@ $monitors = ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Monitor', array('Id'=>$mids)
 xhtmlHeaders(__FILE__, translate('Zones'));
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
-      <div id="headerButtons"><a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a></div>
-      <h2><?php echo translate('Zones') ?></h2>
-    </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>

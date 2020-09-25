@@ -39,22 +39,30 @@ function xhtmlHeaders($file, $title) {
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
 
-  function output_link_if_exists($files) {
+  function output_link_if_exists($files, $cache_bust=true) {
     global $skin;
     $html = array();
     foreach ( $files as $file ) {
       if ( getSkinFile($file) ) {
+        if ( $cache_bust ) {
         $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
+        } else  {
+        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
+        }
       }
     }
     $html[] = ''; // So we ge a trailing \n
     return implode(PHP_EOL, $html);
   }
-  function output_script_if_exists($files) {
+  function output_script_if_exists($files, $cache_bust=true) {
     global $skin;
     $html = array();
     foreach ( $files as $file ) {
+      if ( $cache_bust ) {
         $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
+      } else {
+        $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
+      }
     }
     $html[] = ''; // So we ge a trailing \n
     return implode(PHP_EOL, $html);
@@ -122,7 +130,7 @@ if ( $css != 'base' )
     if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
   } else if ( $basename == 'monitor' ) {
-      echo output_link_if_exists(array('/js/leaflet/leaflet.css'));
+      echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);
   }
 ?>
   <style>
@@ -918,7 +926,7 @@ function xhtmlFooter() {
     <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
 <?php
   } else if ( $basename == 'monitor' ) {
-    echo output_script_if_exists(array('js/leaflet/leaflet.js'));
+    echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
   } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>

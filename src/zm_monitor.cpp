@@ -1670,7 +1670,7 @@ bool Monitor::Analyse() {
   // last_read_index is the last analysis
 
   if ( !Enabled() ) {
-    Warning("Shouldn't be doing Analyze when not Enabled");
+    Warning("Shouldn't be doing Analyse when not Enabled");
     return false;
   }
 
@@ -2004,7 +2004,7 @@ Debug(1, "alarm frame count so SavePreAlarmFrames");
         } // end if signal
 
       } else {
-        Debug(3,"Not ready?");
+        Debug(3, "Not ready?");
         snap->unlock();
         return false;
       }
@@ -2027,14 +2027,15 @@ Debug(1, "alarm frame count so SavePreAlarmFrames");
       // Only loop until we hit the analysis index
       while ( ( queued_packet = packetqueue->popPacket() ) ) {
         if ( snap == queued_packet ) {
-          Debug(2,"adding snap packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written );
+          // We already have it locked
+          Debug(2, "adding snap packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written );
           event->AddPacket(queued_packet);
           // Pop may have already incrememented it
           //packetqueue->increment_analysis_it();
           break;
         } else {
           queued_packet->lock();
-          Debug(2,"adding queued packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written );
+          Debug(2, "adding queued packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written );
           event->AddPacket(queued_packet);
           queued_packet->unlock();
         }
@@ -2047,6 +2048,7 @@ Debug(1, "alarm frame count so SavePreAlarmFrames");
       } // end while write out queued_packets
       queued_packet = NULL;
     } else {
+      Debug(1, "Incrementing analysis_it beacuse no event");
       packetqueue->increment_analysis_it();
     }
 
@@ -2059,7 +2061,7 @@ Debug(1, "alarm frame count so SavePreAlarmFrames");
   if ( packets_processed > 0 )
     return true;
   return false;
-} // end Monitor::Analyze
+} // end Monitor::Analyse
 
 void Monitor::Reload() {
   Debug(1, "Reloading monitor %s", name);
@@ -2342,13 +2344,12 @@ int Monitor::Capture() {
 #else
           packet->codec_type = camera->get_AudioStream()->codec->codec_type;
 #endif
-          Debug(2, "Queueing packet");
+          Debug(2, "Queueing audio packet");
           packetqueue->queuePacket(packet);
         }
         // Don't update last_write_index because that is used for live streaming
         //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
         
-        //mutex.unlock();
         packet->unlock();
         return 1;
       }

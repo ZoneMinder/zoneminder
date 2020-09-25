@@ -37,7 +37,7 @@ if ( !scale ) {
 }
 
 document.addEventListener('DOMContentLoaded', function onDCL() {
-  document.getElementById('scale').addEventListener('change', changeScale);
+  document.getElementById('scaleControl').addEventListener('change', changeScale);
 });
 
 function initPage() {

@@ -89,9 +89,9 @@ ZMPacket* zm_packetqueue::popPacket( ) {
 	if ( pktQueue.empty() ) {
 		return NULL;
 	}
-  Debug(2,"Mutex locking");
+  Debug(2, "poPacket Mutex locking");
   mutex.lock();
-  Debug(2,"Have Mutex lock");
+  Debug(2, "Have Mutex lock");
 
 	ZMPacket *packet = pktQueue.front();
   if ( *analysis_it == packet )
@@ -102,7 +102,7 @@ ZMPacket* zm_packetqueue::popPacket( ) {
     video_packet_count -= 1;
     if ( video_packet_count ) {
       // There is another video packet, so it must be the next one
-      Debug(2,"Incrementing first video packet index was (%d)", first_video_packet_index);
+      Debug(2, "Incrementing first video packet index was (%d)", first_video_packet_index);
       first_video_packet_index += 1;
       first_video_packet_index %= max_video_packet_count;
     } else {
@@ -114,7 +114,7 @@ ZMPacket* zm_packetqueue::popPacket( ) {
 
   // Should we lock the packet?
 	return packet;
-}
+} // popPacket
 
 unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_id) {
   
@@ -328,9 +328,9 @@ ZMPacket *zm_packetqueue::get_analysis_packet() {
 //Debug(2, "Distance from head: (%d)", std::distance( pktQueue.begin(), analysis_it ) );
   //Debug(2, "Distance from end: (%d)", std::distance( analysis_it, pktQueue.end() ) );
   ZMPacket *p = *analysis_it;
-  Debug(2,"analysis_packet image_index: %d, about to lock packet", p->image_index);
+  Debug(2, "get_analysis_packet image_index: %d, about to lock packet", p->image_index);
   p->lock();
-  Debug(2, "Locked packet, unlocking mutex");
+  Debug(2, "Locked packet, unlocking packetqueue mutex");
   mutex.unlock();
 
   return p;

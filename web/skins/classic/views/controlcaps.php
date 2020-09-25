@@ -65,7 +65,7 @@ xhtmlHeaders(__FILE__, translate('ControlCaps'));
 foreach( $controls as $control ) {
 ?>
             <tr>
-              <td class="colName"><?php echo makePopupLink( '?view=controlcap&cid='.$control['Id'], 'zmControlCap', 'controlcap', validHtmlStr($control['Name']), canView( 'Control' ) ) ?></td>
+              <td class="colName"><?php echo makeLink( '?view=controlcap&cid='.$control['Id'], validHtmlStr($control['Name']), canView( 'Control' ) ) ?></td>
               <td class="colType"><?php echo $control['Type'] ?></td>
               <td class="colProtocol"><?php echo validHtmlStr($control['Protocol']) ?></td>
               <td class="colCanMove"><?php echo $control['CanMove']?translate('Yes'):translate('No') ?></td>
@@ -82,7 +82,7 @@ foreach( $controls as $control ) {
           </tbody>
         </table>
         <div id="contentButtons">
-          <?php echo makePopupButton('?view=controlcap', 'zmControlCap', 'controlcap', translate('AddNewControl'), canEdit( 'Control' )); ?>
+          <?php echo makeButton('?view=controlcap', 'AddNewControl', canEdit( 'Control' )); ?>
           <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
       </form>

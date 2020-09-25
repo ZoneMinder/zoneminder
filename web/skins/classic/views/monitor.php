@@ -1011,7 +1011,7 @@ include('_monitor_source_nvsocket.php');
 
                   echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId());
                   if ( canEdit('Control') ) {
-                    echo '&nbsp;'.makePopupLink('?view=controlcaps', 'zmControlCaps', 'controlcaps', translate('Edit'));
+                    echo '&nbsp;'.makeLink('?view=controlcaps', 'zmControlCaps', 'controlcaps', translate('Edit'));
                   }
 ?>
               </td>

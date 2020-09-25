@@ -1,3 +1,9 @@
+// Manage the Add New Control button
+function AddNewControl(el) {
+  url = el.getAttribute('data-url');
+  window.location.assign(url);
+}
+
 function initPage() {
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {

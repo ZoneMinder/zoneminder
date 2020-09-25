@@ -118,6 +118,7 @@ $StreamHTML = getStreamHTML($monitor, array('mode'=>'single'));
 xhtmlHeaders(__FILE__, translate('Zone'));
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
     <div id="header">
       <h2><?php echo translate('Monitor').' '.$monitor->Name().' - '.translate('Zone').' '.$newZone['Name'] ?></h2>

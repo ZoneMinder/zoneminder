@@ -9,6 +9,12 @@ function streamCmdQuit( ) {
   }
 }
 
+// Manage the Add New Zone button
+function AddNewZone(el) {
+  url = el.getAttribute('data-url');
+  window.location.assign(url);
+}
+
 var monitors = new Array();
 
 function initPage() {

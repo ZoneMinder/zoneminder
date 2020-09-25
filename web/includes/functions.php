@@ -487,6 +487,16 @@ function makePopupButton($url, $winName, $winSize, $buttonValue, $condition=1, $
   return $string;
 }
 
+function makeButton($url, $buttonValue, $condition=1, $options='') {
+  $string = '<button type="button" data-on-click-this="'.$buttonValue.'"';
+  $string .= ' data-url="' .$url. '"';
+  if (!$condition) {
+    $string .= ' disabled="disabled"';
+  }
+  $string .= ($options ? (' ' . $options) : '') . '/>'.translate($buttonValue).'</button>'.PHP_EOL;
+  return $string;
+}
+
 function htmlSelect($name, $contents, $values, $behaviours=false) {
   $behaviourText = '';
   if ( !empty($behaviours) ) {

@@ -101,7 +101,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 	foreach( $zones as $zone ) {
 	?>
 							<tr>
-								<td class="colName"><?php echo makePopupLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], 'zmZone', array('zone', $monitor->ViewWidth(), $monitor->ViewHeight()), validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"'); ?></td>
+								<td class="colName"><?php echo makeLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"'); ?></td>
 								<td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
 								<td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf('%.2f', ($zone['Area']*100)/($monitor->ViewWidth()*$monitor->ViewHeight()) ) ?></td>
 								<td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit('Monitors') ) { ?> disabled="disabled"<?php } ?>/></td>
@@ -111,10 +111,10 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 	?>
 						</tbody>
 					</table>
-					<div id="contentButtons">
-						<?php echo makePopupButton('?view=zone&mid='.$mid.'&zid=0', 'zmZone', array('zone', $monitor->ViewWidth(), $monitor->ViewHeight()), translate('AddNewZone'), canEdit('Monitors')); ?>
-            <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
-					</div>
+                                     <div id="contentButtons">
+                                       <?php echo makeButton('?view=zone&mid='.$mid.'&zid=0', 'AddNewZone', canEdit('Monitors')); ?>
+                                       <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+                                     </div>
 				</div><!--zones-->
 <br class="clear"/>
       </div><!--Monitor-->

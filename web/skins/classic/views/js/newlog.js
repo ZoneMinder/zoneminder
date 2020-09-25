@@ -69,15 +69,13 @@ function initPage() {
       var level = row.find('td:eq(4)').text();
 
       if (( level == 'FAT' ) || ( level == 'PNC' )) {
-        row.addClass('bg-danger');
-        row.addClass('font-weight-bold');
+        row.addClass('log-fat');
       } else if ( level == 'ERR' ) {
-        row.addClass('bg-danger');
+        row.addClass('log-err');
       } else if ( level == 'WAR' ) {
-        row.addClass('bg-warning');
+        row.addClass('log-war');
       } else if ( level == 'DBG' ) {
-        row.addClass('bg-info');
-        row.addClass('font-italic');
+        row.addClass('log-dbg');
       }
     });
   });

@@ -1165,7 +1165,10 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         <tr>
           <td class="text-right pr-3"><?php echo translate('Longitude') ?></td>
           <td><button type="button" data-on-click="getLocation"><?php echo translate('GetCurrentLocation') ?></button></td>
-</tr>
+        </tr>
+        <tr>
+          <td colspan="2"><div id="LocationMap" style="height: 500px; width: 500px;"></div></td>
+        </tr>
             
 <?php
     break;

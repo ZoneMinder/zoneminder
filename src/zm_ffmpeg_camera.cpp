@@ -297,6 +297,7 @@ int FfmpegCamera::OpenFfmpeg() {
   mFormatContext->interrupt_callback.opaque = this;
 
   ret = avformat_open_input(&mFormatContext, mPath.c_str(), NULL, &opts);
+  Debug(1, "Have %d from open_input", ret);
   if ( ret != 0 )
 #endif
   {
@@ -320,6 +321,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }
   av_dict_free(&opts);
 
+  Debug(1, "Finding stream info");
 #if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
   ret = av_find_stream_info(mFormatContext);
 #else

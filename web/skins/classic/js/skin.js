@@ -175,6 +175,22 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     });
   });
 
+  document.querySelectorAll(".zmlink").forEach(function(el) {
+    el.addEventListener("click", function onClick(evt) {
+      var el = this;
+      var url;
+      if ( el.hasAttribute("href") ) {
+        // <a>
+        url = el.getAttribute("href");
+      } else {
+        // buttons
+        url = el.getAttribute("data-url");
+      }
+      evt.preventDefault();
+      window.location.assign(url);
+    });
+  });
+
   document.querySelectorAll(".pillList a").forEach(function addOnClick(el) {
     el.addEventListener("click", submitTab);
   });

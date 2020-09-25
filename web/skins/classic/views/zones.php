@@ -73,13 +73,11 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>
-            <polygon points="<?php echo $zone['AreaCoords'] ?>" class="popup-link <?php echo $zone['Type']?>" data-on-click-true="streamCmdQuit"
-                   data-url="?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>"
-                   data-window-name="zmZone<?php echo $zone['Id'] ?>"
-                   data-window-tag="zone"
-                   data-window-width="<?php echo $monitor->ViewWidth() ?>"
-                   data-window-height="<?php echo $monitor->ViewHeight() ?>"
-									 />
+            <polygon points="<?php echo $zone['AreaCoords'] ?>"
+                     class="zmlink <?php echo $zone['Type']?>"
+                     data-on-click-true="streamCmdQuit"
+                     data-url="?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>"
+            />
 <?php
       } // end foreach zone
 ?>

@@ -321,6 +321,7 @@ $SLANG = array(
     'DuplicateMonitorName'  => 'Duplicate Monitor Name',
     'Duration'              => 'Duration',
     'Edit'                  => 'Edit',
+    'EditControl'           => 'Edit Control',
     'EditLayout'            => 'Edit Layout',
     'Email'                 => 'Email',
     'EnableAlarms'          => 'Enable Alarms',

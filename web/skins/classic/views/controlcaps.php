@@ -32,32 +32,45 @@ xhtmlHeaders(__FILE__, translate('ControlCaps'));
 <body>
   <?php echo getNavBarHTML() ?>
   <div id="page">
-    <div class="w-100 py-1">
-      <div class="float-left pl-3">
-        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
-        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-      </div>
-      <div class="w-100 pt-2">
-        <h2><?php echo translate('ControlCaps') ?></h2>
-      </div>
+
+    <!-- Toolbar button placement and styling handled by bootstrap-tables -->
+    <div id="toolbar">
+      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+      <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+      <button id="addNewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('AddNewControl') ?>" data-on-click-this="addNewControl" data-url="?view=controlcap"><i class="fa fa-plus"></i></button>
+      <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('EditControl') ?>" data-on-click-this="editControl" data-url="?view=controlcap&cid=" disabled><i class="fa fa-pencil"></i></button>
+      <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
     </div>
+
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="?" onsubmit="return( confirmDelete( 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.\nAre you sure you wish to delete?' ) );">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="action" value="delete"/>
-        <table id="contentTable" class="major">
+        <table
+          id="controlTable"
+          class="table-sm table-borderless"
+          data-search="true"
+          data-cookie="true"
+          data-cookie-id-table="zmControlTable"
+          data-cookie-expire="2y"
+          data-remember-order="true"
+          data-click-to-select="true"
+          data-maintain-meta-data="true"
+          data-mobile-responsive="true"
+          data-buttons-class="btn btn-normal"
+          data-toolbar="#toolbar"
+          data-show-columns="true"
+        >
           <thead>
             <tr>
-              <th class="colName"><?php echo translate('Name') ?></th>
-              <th class="colType"><?php echo translate('Type') ?></th>
-              <th class="colProtocol"><?php echo translate('Protocol') ?></th>
-              <th class="colCanMove"><?php echo translate('CanMove') ?></th>
-              <th class="colCanZoom"><?php echo translate('CanZoom') ?></th>
-              <th class="colCanFocus"><?php echo translate('CanFocus') ?></th>
-              <th class="colCanIris"><?php echo translate('CanIris') ?></th>
-              <th class="colCanWhiteBal"><?php echo translate('CanWhiteBal') ?></th>
-              <th class="colHasPresets"><?php echo translate('HasPresets') ?></th>
-              <th class="colMark"><?php echo translate('Mark') ?></th>
+              <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
+              <th class="colId" data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
+              <th class="colName" data-sortable="true" data-field="Name"><?php echo translate('Name') ?></th>
+              <th class="colType" data-sortable="true" data-field="Type"><?php echo translate('Type') ?></th>
+              <th class="colProtocol" data-sortable="true" data-field="Protocol"><?php echo translate('Protocol') ?></th>
+              <th class="colCanMove" data-sortable="true" data-field="CanMove"><?php echo translate('CanMove') ?></th>
+              <th class="colCanZoom" data-sortable="true" data-field="CanZoom"><?php echo translate('CanZoom') ?></th>
+              <th class="colCanFocus" data-sortable="true" data-field="CanFocus"><?php echo translate('CanFocus') ?></th>
+              <th class="colCanIris" data-sortable="true" data-field="CanIris"><?php echo translate('CanIris') ?></th>
+              <th class="colCanWhiteBal" data-sortable="true" data-field="CanWhiteBal"><?php echo translate('CanWhiteBal') ?></th>
+              <th class="colHasPresets" data-sortable="true" data-field="HasPresets"><?php echo translate('HasPresets') ?></th>
             </tr>
           </thead>
           <tbody>
@@ -65,7 +78,9 @@ xhtmlHeaders(__FILE__, translate('ControlCaps'));
 foreach( $controls as $control ) {
 ?>
             <tr>
-              <td class="colName"><?php echo makeLink( '?view=controlcap&cid='.$control['Id'], validHtmlStr($control['Name']), canView( 'Control' ) ) ?></td>
+              <td class="colMark" data-checkbox="true"></td>
+              <td class="colId"><?php echo $control['Id'] ?></td>
+              <td class="colName"><?php echo $control['Name'] ?></td>
               <td class="colType"><?php echo $control['Type'] ?></td>
               <td class="colProtocol"><?php echo validHtmlStr($control['Protocol']) ?></td>
               <td class="colCanMove"><?php echo $control['CanMove']?translate('Yes'):translate('No') ?></td>
@@ -74,18 +89,12 @@ foreach( $controls as $control ) {
               <td class="colCanIris"><?php echo $control['CanIris']?translate('Yes'):translate('No') ?></td>
               <td class="colCanWhiteBal"><?php echo $control['CanWhite']?translate('Yes'):translate('No') ?></td>
               <td class="colHasPresets"><?php echo $control['HasHomePreset']?'H':'' ?><?php echo $control['HasPresets']?$control['NumPresets']:'0' ?></td>
-              <td class="colMark"><input type="checkbox" name="markCids[]" value="<?php echo $control['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit( 'Control' ) ) {?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
 }
 ?>
           </tbody>
         </table>
-        <div id="contentButtons">
-          <?php echo makeButton('?view=controlcap', 'AddNewControl', canEdit( 'Control' )); ?>
-          <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
-        </div>
-      </form>
     </div>
   </div>
 <?php xhtmlFooter() ?>

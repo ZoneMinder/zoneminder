@@ -64,9 +64,13 @@ function initPage() {
 
   // Assign inf, err, fat, dbg color classes to the rows in the table
   table.on('post-body.bs.table', function(data) {
+    var lvl_ndx = $j('#logTable tr th').filter(function() {
+      return $j(this).text().trim() == 'Level';
+    }).index();
+
     $j('#logTable tr').each(function(ndx, row) {
       var row = $j(row);
-      var level = row.find('td:eq(4)').text();
+      var level = row.find('td').eq(lvl_ndx).text().trim();
 
       if (( level == 'FAT' ) || ( level == 'PNC' )) {
         row.addClass('log-fat');

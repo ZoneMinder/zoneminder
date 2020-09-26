@@ -123,6 +123,12 @@ function initPage() {
     evt.preventDefault();
     window.location.reload(true);
   });
+
+  // Manage the CANCEL Button
+  document.getElementById("cancelBtn").addEventListener("click", function onCancelClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=controlcaps');
+  });
 }
 
 $j(document).ready(function() {

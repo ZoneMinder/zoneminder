@@ -488,7 +488,7 @@ switch ( $tab ) {
         </table>
         <div id="contentButtons">
           <button type="submit" value="Save"<?php if ( !canEdit( 'Control' ) ) { ?> disabled="disabled"<?php } ?>><?php echo translate('Save') ?></button>
-          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
+          <button type="button" id="cancelBtn"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

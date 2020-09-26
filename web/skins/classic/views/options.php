@@ -43,6 +43,7 @@ $tabs['highband'] = translate('HighBW');
 $tabs['medband'] = translate('MediumBW');
 $tabs['lowband'] = translate('LowBW');
 $tabs['users'] = translate('Users');
+$tabs['control'] = translate('Control');
 
 if ( isset($_REQUEST['tab']) )
   $tab = validHtmlStr($_REQUEST['tab']);
@@ -182,6 +183,14 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
         </div>
       </form>
       <?php
+} else if ( $tab == 'control' ) {
+      if ( canView('Control') ) {
+        $redirect = '?view=controlcaps';
+      } else {
+        $redirect = '?view=error';
+      }
+      // Have to do this 
+      header('Location: '.$redirect);
 } else if ( $tab == 'servers' ) {
       ?>
       <form name="serversForm" method="post" action="?">

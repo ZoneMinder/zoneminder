@@ -18,7 +18,7 @@ function addNewControl(el) {
 // Manage the Edit Control button
 function editControl(el) {
   var selection = getIdSelections();
-  
+
   url = el.getAttribute('data-url');
   window.location.assign(url+selection);
 }
@@ -65,7 +65,6 @@ function manageDelConfirmModalBtns() {
 }
 
 function initPage() {
-
   // enable or disable buttons based on current selection and user rights
   table.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',

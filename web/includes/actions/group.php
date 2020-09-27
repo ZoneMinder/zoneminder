@@ -46,5 +46,4 @@ if ( $action == 'save' ) {
   }
   $redirect = '?view=groups';
 }
-ZM\Warning('group action was called');
 ?>

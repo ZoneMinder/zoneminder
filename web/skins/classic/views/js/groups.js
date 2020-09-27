@@ -1,4 +1,4 @@
-// Manage the NEW Group button 
+// Manage the NEW Group button
 function newGroup() {
   $j.getJSON(thisUrl + '?request=modal&modal=group')
       .done(function(data) {

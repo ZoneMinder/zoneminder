@@ -104,11 +104,27 @@ function initPage() {
     startDownload.pass(exportFile).delay(1500);
   }
   document.getElementById('exportButton').addEventListener('click', exportEvents);
+
   // Manage the eventdetail link in the export list
   $j(".eDetailLink").click(function(evt) {
     evt.preventDefault();
     var eid = $j(this).data('eid');
     getEventDetailModal(eid);
+  });
+
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  $j('#backBtn').prop('disabled', !document.referrer.length);
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
   });
 }
 

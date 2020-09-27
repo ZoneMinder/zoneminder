@@ -955,7 +955,7 @@ function editEvent() {
 }
 
 function exportEvent() {
-  createPopup('?view=export&eid='+eventData.Id, 'zmExport', 'export');
+  window.location.assign('?view=export&eid='+eventData.Id);
 }
 
 function archiveEvent() {

@@ -950,7 +950,7 @@ function renameEvent() {
   actQuery('rename', {eventName: newName});
 }
 
-// Manage the EDIT button 
+// Manage the EDIT button
 function editEvent() {
   $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eid='+eventData.Id)
       .done(function(data) {

@@ -967,7 +967,7 @@ function unarchiveEvent() {
 }
 
 function showEventFrames() {
-  createPopup('?view=frames&eid='+eventData.Id, 'zmFrames', 'frames', WEB_LIST_THUMB_WIDTH, WEB_LIST_THUMB_HEIGHT);
+  window.location.assign('?view=frames&eid='+eventData.Id);
 }
 
 function showStream() {
@@ -1015,7 +1015,7 @@ function showStills() {
 
 function showFrameStats() {
   var fid = $('eventImageNo').get('text');
-  createPopup('?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height);
+  window.location.assign('?view=stats&eid='+eventData.Id+'&fid='+fid);
 }
 
 function videoEvent() {

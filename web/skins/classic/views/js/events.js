@@ -197,13 +197,7 @@ function initPage() {
         })
         .fail(logAjaxFail);
 
-    if ( openFilterWindow ) {
-      //opener.location.reload(true);
-      createPopup( '?view=filter&page='+thisPage+filterQuery, 'zmFilter', 'filter' );
-      location.replace( '?view='+currentView+'&page='+thisPage+filterQuery );
-    } else {
-      window.location.reload(true);
-    }
+    window.location.reload(true);
   });
 
   // Manage the EDIT button

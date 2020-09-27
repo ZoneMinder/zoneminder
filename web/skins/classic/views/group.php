@@ -18,53 +18,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit('Groups') ) {
-  $view = 'error';
-  return;
-}
-
-if ( !empty($_REQUEST['gid']) ) {
-  $newGroup = new ZM\Group($_REQUEST['gid']);
-} else {
-  $newGroup = new ZM\Group();
-}
-
-xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
-?>
-<body>
-  <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Group') ?> - <?php echo validHtmlStr($newGroup->Name()); ?></h2>
-    </div>
-    <div id="content">
-      <form id="groupForm" name="groupForm" method="post" action="?">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="gid" value="<?php echo $newGroup->Id() ?>"/>
-        <table id="contentTable" class="major">
-          <tbody>
-            <tr>
-              <th scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" data-on-input="configureButtons"/></td>
-            </tr>
-            <tr>
-              <th scope="row"><?php echo translate('ParentGroup') ?></th>
-              <td>
-<?php
-$Groups = array();
-foreach ( ZM\Group::find() as $Group ) {
-  $Groups[$Group->Id()] = $Group;
-}
-
-# This  array is indexed by parent_id
-$children = array();
-
-foreach ( $Groups as $id=>$Group ) {
-  if ( $Group->ParentId() != null ) {
-    if ( ! isset( $children[$Group->ParentId()] ) )
-      $children[$Group->ParentId()] = array();
-    $children[$Group->ParentId()][] = $Group;
-  }
-}
+//
+// DEFINE SUPPORTING FUNCTIONS
+//
 
 function get_Id( $G ) {
   return $G->Id();
@@ -85,33 +41,95 @@ function get_children($Group) {
   return $kids;
 }
 
-$kids = get_children($newGroup);
-if ( $newGroup->Id() )
-  $kids[] = $newGroup->Id();
-$sql = 'SELECT Id,Name FROM `Groups`'.(count($kids)?' WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids)).')' : '').' ORDER BY Name';
-$options = array(''=>'None');
-foreach ( dbFetchAll($sql, null, $kids) as $option ) {
-  $options[$option['Id']] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()) . $option['Name'];
+function parentGrpSelect($newGroup) {
+  $Groups = array();
+  foreach ( ZM\Group::find() as $Group ) {
+    $Groups[$Group->Id()] = $Group;
+  }
+
+  # This  array is indexed by parent_id
+  $children = array();
+
+  foreach ( $Groups as $id=>$Group ) {
+    if ( $Group->ParentId() != null ) {
+      if ( ! isset( $children[$Group->ParentId()] ) )
+        $children[$Group->ParentId()] = array();
+      $children[$Group->ParentId()][] = $Group;
+    }
+  }
+
+  $kids = get_children($newGroup);
+  if ( $newGroup->Id() )
+    $kids[] = $newGroup->Id();
+  $sql = 'SELECT Id,Name FROM `Groups`'.(count($kids)?' WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids)).')' : '').' ORDER BY Name';
+  $options = array(''=>'None');
+
+  foreach ( dbFetchAll($sql, null, $kids) as $option ) {
+    $options[$option['Id']] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()) . $option['Name'];
+  }
+
+  return htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('data-on-change'=>'configureButtons'));
 }
-echo htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('data-on-change'=>'configureButtons'));
+
+function monitorList($newGroup) {
+  $result = '';
+
+  $monitors = dbFetchAll('SELECT Id,Name FROM Monitors ORDER BY Sequence ASC');
+  $monitorIds = $newGroup->MonitorIds();
+  foreach ( $monitors as $monitor ) {
+    if ( visibleMonitor($monitor['Id']) ) {
+      $result .= '<option value="' .$monitor['Id']. '"' .( in_array( $monitor['Id'], $monitorIds ) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;
+    }
+  }
+  
+  return $result;
+}
+
+//
+// INITIAL SANITY CHECKS
+//
+
+if ( !canEdit('Groups') ) {
+  $view = 'error';
+  return;
+}
+
+if ( !empty($_REQUEST['gid']) ) {
+  $newGroup = new ZM\Group($_REQUEST['gid']);
+} else {
+  $newGroup = new ZM\Group();
+}
+
+//
+// BEGIN HTML
+//
+
+xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
 ?>
-              </td>
+<body>
+  <div id="page">
+    <div id="header">
+      <h2><?php echo translate('Group') ?> - <?php echo validHtmlStr($newGroup->Name()); ?></h2>
+    </div>
+    <div id="content">
+      <form id="groupForm" name="groupForm" method="post" action="?">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
+        <input type="hidden" name="gid" value="<?php echo $newGroup->Id() ?>"/>
+        <table id="contentTable" class="major">
+          <tbody>
+            <tr>
+              <th scope="row"><?php echo translate('Name') ?></th>
+              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" data-on-input="configureButtons"/></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('ParentGroup') ?></th>
+              <td><?php echo parentGrpSelect($newGroup) ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Monitor') ?></th>
               <td>
                 <select name="newGroup[MonitorIds][]" class="chosen" multiple="multiple" data-on-change="configureButtons">
-<?php
-  $monitors = dbFetchAll('SELECT Id,Name FROM Monitors ORDER BY Sequence ASC');
-  $monitorIds = $newGroup->MonitorIds();
-  foreach ( $monitors as $monitor ) {
-    if ( visibleMonitor($monitor['Id']) ) {
-?>
-                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( in_array( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($monitor['Name']) ?></option>
-<?php
-    }
-  }
-?>
+                  <?php echo monitorList($newGroup) ?>
                 </select>
               </td>
             </tr>

@@ -950,8 +950,23 @@ function renameEvent() {
   actQuery('rename', {eventName: newName});
 }
 
+// Manage the EDIT button 
 function editEvent() {
-  createPopup('?view=eventdetail&eid='+eventData.Id, 'zmEventDetail', 'eventdetail');
+  $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eid='+eventData.Id)
+      .done(function(data) {
+        if ( $j('#eventDetailModal').length ) {
+          $j('#eventDetailModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#eventDetailModal').modal('show');
+        // Manage the Save button
+        $j('#eventDetailSaveBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#eventDetailForm').submit();
+        });
+      })
+      .fail(logAjaxFail);
 }
 
 function exportEvent() {

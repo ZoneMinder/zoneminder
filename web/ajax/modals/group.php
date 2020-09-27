@@ -1,22 +1,5 @@
 <?php
-//
-// ZoneMinder web group detail view file, $Date$, $Revision$
-// Copyright (C) 2001-2008 Philip Coombes
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
+// This is the HTML representing the Group modal accessed from the Groups (plural) view
 
 //
 // DEFINE SUPPORTING FUNCTIONS
@@ -68,7 +51,7 @@ function parentGrpSelect($newGroup) {
     $options[$option['Id']] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()) . $option['Name'];
   }
 
-  return htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('data-on-change'=>'configureButtons'));
+  return htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('data-on-change'=>'configModalBtns'));
 }
 
 function monitorList($newGroup) {
@@ -103,46 +86,50 @@ if ( !empty($_REQUEST['gid']) ) {
 //
 // BEGIN HTML
 //
-
-xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
 ?>
-<body>
-  <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Group') ?> - <?php echo validHtmlStr($newGroup->Name()); ?></h2>
-    </div>
-    <div id="content">
-      <form id="groupForm" name="groupForm" method="post" action="?">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
+<div id="groupModal" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><?php echo translate('Group').($newGroup->Name() ? ' - ' .validHtmlStr($newGroup->Name()) : '') ?></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+      <form id="groupForm" name="groupForm" method="post" action="?view=group&action=save">
+        <?php
+        // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+        echo getCSRFinputHTML();
+        ?>
+        <input type="hidden" name="view" value="group"/>
         <input type="hidden" name="gid" value="<?php echo $newGroup->Id() ?>"/>
-        <table id="contentTable" class="major">
+        <table id="groupModalTable" class="table-sm table-borderless">
           <tbody>
             <tr>
-              <th scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" data-on-input="configureButtons"/></td>
+              <th class="text-right pr-3" scope="row"><?php echo translate('Name') ?></th>
+              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" data-on-input="configModalBtns"/></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('ParentGroup') ?></th>
+              <th class="text-right pr-3" scope="row"><?php echo translate('ParentGroup') ?></th>
               <td><?php echo parentGrpSelect($newGroup) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('Monitor') ?></th>
+              <th class="text-right pr-3" scope="row"><?php echo translate('Monitor') ?></th>
               <td>
-                <select name="newGroup[MonitorIds][]" class="chosen" multiple="multiple" data-on-change="configureButtons">
+                <select name="newGroup[MonitorIds][]" class="chosen" multiple="multiple" data-on-change="configModalBtns">
                   <?php echo monitorList($newGroup) ?>
                 </select>
               </td>
             </tr>
           </tbody>
         </table>
-        <div id="contentButtons">
-          <button type="submit" name="action" value="Save"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>>
-          <?php echo translate('Save') ?>
-          </button>
-          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
-        </div>
-      </form>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary" name="action" id="grpModalSaveBtn" value="save"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>><?php echo translate('Save') ?></button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
+      </div>
+    </form>
     </div>
   </div>
-  <script nonce="<?php echo $cspNonce;?>">$j('.chosen').chosen();</script>
-<?php xhtmlFooter() ?>
+</div>

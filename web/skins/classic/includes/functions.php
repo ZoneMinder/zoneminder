@@ -58,10 +58,18 @@ function xhtmlHeaders($file, $title) {
     global $skin;
     $html = array();
     foreach ( $files as $file ) {
-      if ( $cache_bust ) {
-        $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
-      } else {
-        $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
+      if ( file_exists('skins/'.$skin.'/'.$file) ) {
+        if ( $cache_bust ) {
+          $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
+        } else {
+          $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
+        }
+      } else if ( file_exists($file) ) {
+        if ( $cache_bust ) {
+          $html[] = '<script src="'.cache_bust($file).'"></script>';
+        } else {
+          $html[] = '<script src="'.$file.'"></script>';
+        }
       }
     }
     $html[] = ''; // So we ge a trailing \n
@@ -865,17 +873,19 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/tableExport.min.js"></script> 
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-export.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-page-jump-to.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-toolbar.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-auto-refresh.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
-
-  <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
+<?php echo output_script_if_exists(array(
+  'js/bootstrap-table.min.js',
+  'js/tableExport.min.js',
+  'js/bootstrap-table-export.min.js',
+  'js/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-cookie.min.js',
+  'js/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-auto-refresh.min.js',
+  'js/chosen/chosen.jquery.min.js',
+  'js/dateTimePicker/jquery-ui-timepicker-addon.js',
+  'js/Server.js',
+), true );
+?>
   <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
 <?php
   if ( $view == 'event' ) {

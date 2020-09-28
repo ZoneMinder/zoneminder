@@ -242,17 +242,21 @@ if ( empty($_REQUEST['path']) ) {
         header('HTTP/1.0 404 Not Found');
         ZM\Fatal("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
       }
-      $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path;
+      $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path . ' 2>&1';
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
       ZM\Logger::Debug("Running $command");
       $output = array();
       $retval = 0;
-      exec( $command, $output, $retval );
+      exec($command, $output, $retval);
       ZM\Logger::Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
-      if ( ! file_exists( $path ) ) {
+      if ( ! file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Fatal('Can\'t create frame images from video for this event '.$Event->DefaultVideo() );
+        ZM\Fatal('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
+
+Command was: '.$command.'
+
+Output was: '.implode(PHP_EOL,$output) );
       }
       # Generating an image file will use up more disk space, so update the Event record.
       $Event->DiskSpace(null);

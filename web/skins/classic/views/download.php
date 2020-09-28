@@ -147,6 +147,6 @@ xhtmlHeaders(__FILE__, translate('Download'));
         </button>
       </form>
     </div>
-    <?php getGeneratedHTML($generated) ?>
+    <?php echo getGeneratedHTML($generated) ?>
   </div>
 <?php xhtmlFooter() ?>

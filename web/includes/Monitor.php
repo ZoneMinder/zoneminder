@@ -129,6 +129,8 @@ class Monitor extends ZM_Object {
     'Refresh' => null,
     'DefaultCodec'  => 'auto',
     'GroupIds'    => array('default'=>array(), 'do_not_update'=>1),
+    'Latitude'  =>  null,
+    'Longitude' =>  null,
   );
   private $status_fields = array(
     'Status'  =>  null,

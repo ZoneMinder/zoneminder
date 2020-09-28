@@ -203,6 +203,33 @@ function initPage() {
     evt.preventDefault();
     window.location.assign('?view=console');
   });
+
+  if ( ZM_OPT_USE_GEOLOCATION ) {
+    if ( window.L ) {
+      var form = document.getElementById('contentForm');
+      var latitude = form.elements['newMonitor[Latitude]'].value;
+      var longitude = form.elements['newMonitor[Longitude]'].value;
+      console.log("lat: " + latitude + ', long:'+longitude);
+      map = L.map('LocationMap', {
+        center: L.latLng(latitude, longitude),
+        zoom: 13,
+        onclick: function() {
+          alert('click');
+        }
+      });
+      L.tileLayer(ZM_OPT_GEOLOCATION_TILE_PROVIDER, {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
+      }).addTo(map);
+      L.marker([latitude, longitude]).addTo(map);
+    } else {
+      console.log('Location turned on but leaflet not installed.');
+    }
+  } // end if ZM_OPT_USE_GEOLOCATION
 } // end function initPage()
 
 function change_WebColour() {
@@ -240,6 +267,21 @@ function update_estimated_ram_use() {
   console.log(colours);
 
   document.getElementById('estimated_ram_use').innerHTML = human_filesize(buffer_count * width * height * colours, 0);
+}
+
+function updateLatitudeAndLongitude(latitude, longitude) {
+  var form = document.getElementById('contentForm');
+  form.elements['newMonitor[Latitude]'].value = latitude;
+  form.elements['newMonitor[Longitude]'].value = longitude;
+}
+function getLocation() {
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      updateLatitudeAndLongitude(position.coords.latitude, position.coords.longitude);
+    });
+  } else {
+    console.log("Geolocation not available");
+  }
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

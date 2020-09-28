@@ -18,23 +18,77 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+function getDLEventHTML($eid, $eids) {
+  $result = '';
+
+  if ( !empty($eid) ) {
+    $result .= '<input type="hidden" name="id" value="' .validInt($eid). '"/>'.PHP_EOL;
+
+    $Event = new ZM\Event($eid);
+    if ( !$Event->Id() ) {
+      ZM\Error('Invalid event id');
+      $result .= '<div class="error">Invalid event id</div>'.PHP_EOL;
+    } else {
+      $result .= 'Downloading event ' . $Event->Id . '. Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() ).PHP_EOL;
+    }
+  } else if ( !empty($eids) ) {
+    $total_size = 0;
+    foreach ( $eids as $eid ) {
+      if ( !validInt($eid) ) {
+        ZM\Warning("Invalid event id in eids[] $eid");
+        continue;
+      }
+      $Event = new ZM\Event($eid);
+      $total_size += $Event->DiskSpace();
+      $result .= '<input type="hidden" name="eids[]" value="' .validInt($eid). '"/>'.PHP_EOL;
+    }
+    unset($eid);
+    $result .= 'Downloading ' . count($eids) . ' events.  Resulting file should be approximately ' . human_filesize($total_size).PHP_EOL;
+  } else {
+    $result .= '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
+  }
+  
+  return $result;
+}
+
+function getGeneratedHTML($generated) {
+  $result = '';
+
+  if ( $generated = '' ) {
+      $result .= '<h2 id="exportProgress" class="hidden warnText">'.PHP_EOL;
+        $result .= '<span id="exportProgressText">' .translate('Exporting'). '</span>'.PHP_EOL;
+        $result .= '<span id="exportProgressTicker"></span>'.PHP_EOL;
+      $result .= '</h2>'.PHP_EOL;
+  } else {
+      $result .= '<h2 id="exportProgress" class="' .($generated ? 'infoText' : 'errorText').'">'.PHP_EOL;
+        $result .= '<span id="exportProgressText">' .($generated ? translate('ExportSucceeded'):translate('ExportFailed')). '</span>'.PHP_EOL;
+        $result .= '<span id="exportProgressTicker"></span>'.PHP_EOL;
+      $result .= '</h2>'.PHP_EOL;
+  }
+  if ( $generated ) {
+      $result .= '<h3 id="downloadLink"><a href="?view=archive&amp;type=' .$exportFormat. '">' .translate('Download'). '</a></h3>'.PHP_EOL;
+  }
+}
+
 if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
 
+$eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
+$eids = isset($_REQUEST['eids']) ? $_REQUEST['eids'] : array();
+$generated = isset($_REQUEST['generated']) ? $_REQUEST['generated'] : '';
+
 $total_size = 0;
-if ( isset($_SESSION['montageReviewFilter']) and !isset($_REQUEST['eids']) ) {
+if ( isset($_SESSION['montageReviewFilter']) and !$eids ) {
   # Handles montageReview filter
   $eventsSql = 'SELECT E.Id, E.DiskSpace FROM Events AS E WHERE 1';
   $eventsSql .= $_SESSION['montageReviewFilter']['sql'];
   $results = dbQuery($eventsSql);
-  $eids = [];
   while ( $event_row = dbFetchNext( $results ) ) {
     array_push($eids, $event_row['Id']);
     $total_size += $event_row['DiskSpace'];
   }
-  $_REQUEST['eids'] = $eids;
   if ( ! count($eids) ) {
     ZM\Error("No events found for download using $eventsSql");
   } 
@@ -70,37 +124,7 @@ xhtmlHeaders(__FILE__, translate('Download'));
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="connkey" value="<?php echo $connkey; ?>"/>
-<?php
-if ( !empty($_REQUEST['eid']) ) {
-?>
-        <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
-    <?php
-    $Event = new ZM\Event($_REQUEST['eid']);
-    if ( !$Event->Id() ) {
-      ZM\Error('Invalid event id');
-      echo '<div class="error">Invalid event id</div>';
-    } else {
-      echo 'Downloading event ' . $Event->Id . '. Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
-    }
-} else if ( !empty($_REQUEST['eids']) ) {
-    $total_size = 0;
-    foreach ( $_REQUEST['eids'] as $eid ) {
-      if ( ! validInt($eid) ) {
-        ZM\Warning("Invalid event id in eids[] $eid");
-        continue;
-      }
-      $Event = new ZM\Event($eid);
-      $total_size += $Event->DiskSpace();
-?>
-        <input type="hidden" name="eids[]" value="<?php echo validInt($eid) ?>"/>
-<?php
-    }
-    unset($eid);
-    echo "Downloading " . count($_REQUEST['eids']) . ' events.  Resulting file should be approximately ' . human_filesize($total_size);
-} else {
-    echo '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
-}
-?>
+        <?php echo getDLEventHTML($eid, $eids) ?>
         <table id="contentTable" class="minor">
           <tbody>
             <tr>
@@ -118,32 +142,11 @@ if ( !empty($_REQUEST['eid']) ) {
           </tbody>
         </table>
         <button type="button" id="exportButton" name="exportButton" value="GenerateDownload">
- <!--data-on-click-this="exportEvent">-->
+        <!--data-on-click-this="exportEvent">-->
         <?php echo translate('GenerateDownload') ?>
         </button>
       </form>
     </div>
-<?php
-    if ( isset($_REQUEST['generated']) ) {
-?>
-      <h2 id="exportProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>">
-        <span id="exportProgressText"><?php echo $_REQUEST['generated']?translate('ExportSucceeded'):translate('ExportFailed') ?></span>
-        <span id="exportProgressTicker"></span>
-      </h2>
-<?php
-    } else {
-?>
-      <h2 id="exportProgress" class="hidden warnText">
-        <span id="exportProgressText"><?php echo translate('Exporting') ?></span>
-        <span id="exportProgressTicker"></span>
-      </h2>
-<?php
-    }
-    if ( !empty($_REQUEST['generated']) ) {
-?>
-      <h3 id="downloadLink"><a href="?view=archive&amp;type=<?php echo $exportFormat; ?>"><?php echo translate('Download') ?></a></h3>
-<?php
-    }
-?>
+    <?php getGeneratedHTML($generated) ?>
   </div>
 <?php xhtmlFooter() ?>

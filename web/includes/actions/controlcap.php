@@ -89,7 +89,6 @@ if ( $action == 'controlcap' ) {
 
   //$changes = getFormChanges( $control, $_REQUEST['newControl'], $types, $columns );
   $Control->save($_REQUEST['newControl']);
-  $refreshParent = true;
-  $view = 'none';
+  $redirect = '?view=controlcaps';
 } // end if action
 ?>

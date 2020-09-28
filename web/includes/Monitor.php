@@ -567,7 +567,7 @@ class Monitor extends ZM_Object {
           return false;
         }
       } else if ( $command != 'quit' ) {
-        $command = ZM_PATH_BIN.'/zmcontrol.pl '.$command.' --id='.$this->{'Id'};
+        $command = ZM_PATH_BIN.'/zmcontrol.pl '.$command.' --id '.$this->{'Id'};
 
         // Can't connect so use script
         $ctrlOutput = exec(escapeshellcmd($command));
@@ -628,5 +628,9 @@ class Monitor extends ZM_Object {
     return $this->connKey;
   }
 
+  function canEdit() {
+    global $user;
+    return ( $user && ($user['Monitors'] == 'Edit') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
+  }
 } // end class Monitor
 ?>

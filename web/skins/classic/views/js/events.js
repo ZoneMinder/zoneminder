@@ -46,14 +46,11 @@ function getDelConfirmModal() {
         }
         manageDelConfirmModalBtns();
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
+// Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
-  // Manage the DELETE CONFIRMATION modal button
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
     if ( ! canEditEvents ) {
       enoperm();
@@ -66,11 +63,9 @@ function manageDelConfirmModalBtns() {
     $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
+          window.location.reload(true);
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
   });
 
   // Manage the CANCEL modal button
@@ -81,23 +76,20 @@ function manageDelConfirmModalBtns() {
 
 function getEventDetailModal(eid) {
   $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]=' + eid)
-  .done(function(data) {
-    if ( $j('#eventDetailModal').length ) {
-      $j('#eventDetailModal').replaceWith(data.html);
-    } else {
-      $j("body").append(data.html);
-    }
-    $j('#eventDetailModal').modal('show');
-    // Manage the Save button
-    $j('#eventDetailSaveBtn').click(function(evt) {
-      evt.preventDefault();
-      $j('#eventDetailForm').submit();
-    });
-  })
-  .fail(function(jqxhr, textStatus, error) {
-    console.log("Request Failed: " + textStatus + ", " + error);
-    console.log("Response Text: " + jqxhr.responseText);
-  });
+      .done(function(data) {
+        if ( $j('#eventDetailModal').length ) {
+          $j('#eventDetailModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#eventDetailModal').modal('show');
+        // Manage the Save button
+        $j('#eventDetailSaveBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#eventDetailForm').submit();
+        });
+      })
+      .fail(logAjaxFail);
 }
 
 function initPage() {
@@ -114,22 +106,8 @@ function initPage() {
   // Load the delete confirmation modal into the DOM
   getDelConfirmModal();
 
-  // Define the icons used in the bootstrap-table top-right toolbar
-  var icons = {
-    paginationSwitchDown: 'fa-caret-square-o-down',
-    paginationSwitchUp: 'fa-caret-square-o-up',
-    export: 'fa-download',
-    refresh: 'fa-sync',
-    toggleOff: 'fa-toggle-off',
-    toggleOn: 'fa-toggle-on',
-    columns: 'fa-th-list',
-    fullscreen: 'fa-arrows-alt',
-    detailOpen: 'fa-plus',
-    detailClose: 'fa-minus'
-  };
-
   // Init the bootstrap-table
-  table.bootstrapTable('destroy').bootstrapTable({icons: icons});
+  table.bootstrapTable({icons: icons});
 
   // Hide these columns on first run when no cookie is saved
   if ( !getCookie("zmEventsTable.bs.table.columns") ) {
@@ -198,10 +176,7 @@ function initPage() {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
   });
 
   // Manage the UNARCHIVE button
@@ -220,18 +195,9 @@ function initPage() {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
 
-    if ( openFilterWindow ) {
-      //opener.location.reload(true);
-      createPopup( '?view=filter&page='+thisPage+filterQuery, 'zmFilter', 'filter' );
-      location.replace( '?view='+currentView+'&page='+thisPage+filterQuery );
-    } else {
-      window.location.reload(true);
-    }
+    window.location.reload(true);
   });
 
   // Manage the EDIT button
@@ -245,23 +211,20 @@ function initPage() {
 
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]='+selections.join('&eids[]='))
-    .done(function(data) {
-      if ( $j('#eventDetailModal').length ) {
-        $j('#eventDetailModal').replaceWith(data.html);
-      } else {
-        $j("body").append(data.html);
-      }
-      $j('#eventDetailModal').modal('show');
-      // Manage the Save button
-      $j('#eventDetailSaveBtn').click(function(evt) {
-        evt.preventDefault();
-        $j('#eventDetailForm').submit();
-      });
-    })
-    .fail(function(jqxhr, textStatus, error) {
-      console.log("Request Failed: " + textStatus + ", " + error);
-      console.log("Response Text: " + jqxhr.responseText);
-    });
+        .done(function(data) {
+          if ( $j('#eventDetailModal').length ) {
+            $j('#eventDetailModal').replaceWith(data.html);
+          } else {
+            $j("body").append(data.html);
+          }
+          $j('#eventDetailModal').modal('show');
+          // Manage the Save button
+          $j('#eventDetailSaveBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#eventDetailForm').submit();
+          });
+        })
+        .fail(logAjaxFail);
   });
 
   // Manage the EXPORT button

@@ -13,6 +13,8 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+UPDATE `Events` SET `SaveJPEGs`=(SELECT `SaveJPEGs` FROM `Monitors` WHERE Monitors.Id = MonitorId)  WHERE `SaveJPEGs` IS NULL;
+
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
      AND table_name = 'Storage'

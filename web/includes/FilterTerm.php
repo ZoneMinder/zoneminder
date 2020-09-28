@@ -61,7 +61,7 @@ class FilterTerm {
   public function sql_values() {
     $values = array();
     if ( !isset($this->val) ) {
-      Logger::Warning("No value in term ");
+      Logger::Warning('No value in term'.$this->attr);
       return $values;
     }
 
@@ -75,6 +75,10 @@ class FilterTerm {
       case 'ExistsInFileSystem':
         $value = '';
         break;
+      case 'DiskSpace':
+        $value = '';
+        break;
+      case 'MonitorName':
       case 'MonitorName':
       case 'Name':
       case 'Cause':
@@ -137,10 +141,11 @@ class FilterTerm {
   } # end function sql_values
 
   public function sql_operator() {
-    if ( $this->attr == 'AlarmZoneId' ) {
+    switch ( $this->attr ) {
+    case 'AlarmZoneId':
       return ' EXISTS ';
-    }
-    if ( $this->attr == 'ExistsInFileSystem' ) {
+    case 'ExistsInFileSystem':
+    case 'DiskSpace':
       return '';
     }
 
@@ -197,6 +202,7 @@ class FilterTerm {
 
     switch ( $this->attr ) {
     case 'ExistsInFileSystem':
+    case 'DiskSpace':
       $sql .= 'TRUE /*'.$this->attr.'*/';
       break;
     case 'MonitorName':
@@ -256,7 +262,7 @@ class FilterTerm {
       break;
     case 'Id':
     case 'Name':
-    case 'DiskSpace':
+    case 'EventDiskSpace':
     case 'MonitorId':
     case 'StorageId':
     case 'SecondaryStorageId':

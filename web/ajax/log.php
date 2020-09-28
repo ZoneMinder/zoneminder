@@ -185,7 +185,7 @@ switch ( $_REQUEST['task'] ) {
       $Servers = ZM\Server::find();
     $servers_by_Id = array();
     # There is probably a better way to do this.
-    foreach ( $servers as $server ) {
+    foreach ( $Servers as $server ) {
       $servers_by_Id[$server->Id()] = $server;
     }
 
@@ -245,6 +245,9 @@ switch ( $_REQUEST['task'] ) {
     }
     $exportKey = substr(md5(rand()), 0, 8);
     $exportFile = 'zm-log.'.$exportExt;
+
+    // mkdir will generate a warning if it exists, but that is ok
+    error_reporting(0);
     if ( ! ( mkdir(ZM_DIR_EXPORTS) || file_exists(ZM_DIR_EXPORTS) ) ) {
       ZM\Fatal('Can\'t create exports dir at \''.ZM_DIR_EXPORTS.'\'');
     }
@@ -371,8 +374,16 @@ switch ( $_REQUEST['task'] ) {
             <'.strtolower($field).'>'.htmlspecialchars($value).'</'.strtolower($field).'>
             </filter>' );
         fwrite( $exportFP, 
-          '  <columns>
-          <column field="datetime">'.translate('DateTime').'</column><column field="component">'.translate('Component').'</column><column field="'.translate('Server').'</column><column field="pid">'.translate('Pid').'</column><column field="level">'.translate('Level').'</column><column field="message">'.translate('Message').'</column><column field="file">'.translate('File').'</column><column field="line">'.translate('Line').'</column>
+          '
+          <columns>
+            <column field="datetime">'.translate('DateTime').'</column>
+            <column field="component">'.translate('Component').'</column>
+            <column field="server">'.translate('Server').'</column>
+            <column field="pid">'.translate('Pid').'</column>
+            <column field="level">'.translate('Level').'</column>
+            <column field="message">'.translate('Message').'</column>
+            <column field="file">'.translate('File').'</column>
+            <column field="line">'.translate('Line').'</column>
           </columns>
           <logs count="'.count($logs).'">
           ' );

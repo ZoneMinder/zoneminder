@@ -23,6 +23,22 @@
 //
 var popupOptions = "resizable,scrollbars,status=no,toolbar=yes";
 
+// Globally define the icons used in the bootstrap-table top-right toolbar
+var icons = {
+  paginationSwitchDown: 'fa-caret-square-o-down',
+  paginationSwitchUp: 'fa-caret-square-o-up',
+  export: 'fa-download',
+  refresh: 'fa-retweet',
+  autoRefresh: 'fa-clock-o',
+  advancedSearchIcon: 'fa-chevron-down',
+  toggleOff: 'fa-toggle-off',
+  toggleOn: 'fa-toggle-on',
+  columns: 'fa-th-list',
+  fullscreen: 'fa-arrows-alt',
+  detailOpen: 'fa-plus',
+  detailClose: 'fa-minus'
+};
+
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {
@@ -156,6 +172,22 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       var height = el.getAttribute("data-window-height");
       evt.preventDefault();
       createPopup(url, name, tag, width, height);
+    });
+  });
+
+  document.querySelectorAll(".zmlink").forEach(function(el) {
+    el.addEventListener("click", function onClick(evt) {
+      var el = this;
+      var url;
+      if ( el.hasAttribute("href") ) {
+        // <a>
+        url = el.getAttribute("href");
+      } else {
+        // buttons
+        url = el.getAttribute("data-url");
+      }
+      evt.preventDefault();
+      window.location.assign(url);
     });
   });
 
@@ -312,6 +344,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
+    // Load the Logout and State modals into the dom
+    getLogoutModal();
+    if ( canEditSystem ) $j('#stateModalBtn').click(getStateModal);
+
     // Trigger autorefresh of the widget bar stats on the navbar
     if ( $j('.navbar').length ) {
       setInterval(getNavBar, navBarRefresh);
@@ -389,10 +425,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
     $j(".optionhelp").click(function(evt) {
       $j.getJSON(thisUrl + '?request=modal&modal=optionhelp&ohndx=' + evt.target.id)
           .done(optionhelpModal)
-          .fail(function(jqxhr, textStatus, error) {
-            console.log("Request Failed: " + textStatus + ", " + error);
-            console.log("Response Text: " + jqxhr.responseText);
-          });
+          .fail(logAjaxFail);
     });
   });
 
@@ -416,7 +449,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
+          console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, ''));
           if ( textStatus != "timeout" ) {
           // The idea is that this should only fail due to auth, so reload the page
           // which should go to login if it can't stay logged in.
@@ -426,6 +459,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function setNavBar(data) {
+    if ( !data ) {
+      console.error("No data in setNavBar");
+      return;
+    }
     if ( data.auth ) {
       if ( data.auth != auth_hash ) {
         // Update authentication token.
@@ -714,10 +751,7 @@ function reminderClickFunction() {
     var option = $j(this).data('pdsa-dropdown-val');
     $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
         .done(window.location.reload(true)) //Do a full refresh to update ZM_DYN_LAST_VERSION
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
   });
 }
 
@@ -737,8 +771,157 @@ function enoperm() {
           $j('#ENoPerm').modal('hide');
         });
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
+
+function getLogoutModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=logout')
+      .done(function(data) {
+        if ( $j('#modalLogout').length ) {
+          $j('#modalLogout').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+      })
+      .fail(logAjaxFail);
+}
+
+function getStateModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=state')
+      .done(function(data) {
+        if ( $j('#modalState').length ) {
+          $j('#modalState').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#modalState').modal('show');
+        manageStateModalBtns();
+      })
+      .fail(logAjaxFail);
+}
+
+function manageStateModalBtns() {
+  // Enable or disable the Delete button depending on the selected run state
+  $j("#runState").change(function() {
+    runstate = $j(this).val();
+
+    if ( (runstate == 'stop') || (runstate == 'restart') || (runstate == 'start') || (runstate == 'default') ) {
+      $j("#btnDelete").prop("disabled", true);
+    } else {
+      $j("#btnDelete").prop("disabled", false);
+    }
+  });
+
+  // Enable or disable the Save button when entering a new state
+  $j("#newState").keyup(function() {
+    length = $j(this).val().length;
+    if ( length < 1 ) {
+      $j("#btnSave").prop("disabled", true);
+    } else {
+      $j("#btnSave").prop("disabled", false);
+    }
+  });
+
+
+  // Delete a state
+  $j("#btnDelete").click(function() {
+    stateStuff('delete', $j("#runState").val());
+  });
+
+
+  // Save a new state
+  $j("#btnSave").click(function() {
+    stateStuff('save', undefined, $j("#newState").val());
+  });
+
+  // Change state
+  $j("#btnApply").click(function() {
+    stateStuff('state', $j("#runState").val());
+  });
+}
+
+function stateStuff(action, runState, newState) {
+  // the state action will redirect to console
+  var formData = {
+    'view': 'state',
+    'action': action,
+    'apply': 1,
+    'runState': runState,
+    'newState': newState
+  };
+
+  $j("#pleasewait").toggleClass("hidden");
+
+  $j.ajax({
+    type: 'POST',
+    url: thisUrl,
+    data: formData,
+    dataType: 'html',
+    timeout: 0
+  }).done(function(data) {
+    location.reload();
+  });
+}
+
+function logAjaxFail(jqxhr, textStatus, error) {
+  console.log("Request Failed: " + textStatus + ", " + error);
+  console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, '')); // strip any html from the response
+}
+
+// Load the Modal HTML via Ajax call
+function getModal(id) {
+  $j.getJSON(thisUrl + '?request=modal&modal='+id)
+      .done(function(data) {
+        if ( !data ) {
+          console.error("Get modal returned no data");
+          return;
+        }
+
+        if ( $j('#'+id).length ) {
+          $j('#'+id).replaceWith(data.html);
+        } else {
+          $j('body').append(data.html);
+        }
+        manageModalBtns(id);
+        modal = $j('#'+id+'Modal');
+        if ( ! modal.length ) {
+          console.log('No modal found');
+        }
+        $j('#'+id+'Modal').modal('show');
+      })
+      .fail(logAjaxFail);
+}
+
+function manageModalBtns(id) {
+  // Manage the CANCEL modal button
+  var cancelBtn = document.getElementById(id+"CancelBtn");
+  if ( cancelBtn ) {
+    document.getElementById(id+"CancelBtn").addEventListener('click', function onCancelClick(evt) {
+      $j('#'+id).modal('hide');
+    });
+  }
+  // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
+  document.querySelectorAll('#'+id+'Modal button[data-on-click]').forEach(function attachOnClick(el) {
+    var fnName = el.getAttribute('data-on-click');
+    if ( !window[fnName] ) {
+      console.error('Nothing found to bind to ' + fnName + ' on element ' + el.name);
+      return;
+    } else {
+      console.log("Setting onclick for " + el.name);
+    }
+    el.onclick = window[fnName].bind(el, el);
+  });
+}
+
+function human_filesize(size, precision = 2) {
+  var units = Array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
+  var step = 1024;
+  var i = 0;
+  while ((size / step) > 0.9) {
+    size = size / step;
+    i++;
+  }
+  return (Math.round(size*(10^precision))/(10^precision))+units[i];
+}
+
+

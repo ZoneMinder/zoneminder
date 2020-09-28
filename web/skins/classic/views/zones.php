@@ -37,10 +37,16 @@ $monitors = ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Monitor', array('Id'=>$mids)
 xhtmlHeaders(__FILE__, translate('Zones'));
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
-      <div id="headerButtons"><a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a></div>
-      <h2><?php echo translate('Zones') ?></h2>
+    <div class="w-100 py-1">
+      <div class="float-left pl-3">
+        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+      </div>
+      <div class="w-100 pt-2">
+        <h2><?php echo translate('Zones') ?></h2>
+      </div>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="?">
@@ -76,13 +82,11 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>
-            <polygon points="<?php echo $zone['AreaCoords'] ?>" class="popup-link <?php echo $zone['Type']?>" data-on-click-true="streamCmdQuit"
-                   data-url="?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>"
-                   data-window-name="zmZone<?php echo $zone['Id'] ?>"
-                   data-window-tag="zone"
-                   data-window-width="<?php echo $monitor->ViewWidth() ?>"
-                   data-window-height="<?php echo $monitor->ViewHeight() ?>"
-									 />
+            <polygon points="<?php echo $zone['AreaCoords'] ?>"
+                     class="zmlink <?php echo $zone['Type']?>"
+                     data-on-click-true="streamCmdQuit"
+                     data-url="?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>"
+            />
 <?php
       } // end foreach zone
 ?>
@@ -104,7 +108,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 	foreach( $zones as $zone ) {
 	?>
 							<tr>
-								<td class="colName"><?php echo makePopupLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], 'zmZone', array('zone', $monitor->ViewWidth(), $monitor->ViewHeight()), validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"'); ?></td>
+								<td class="colName"><?php echo makeLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"'); ?></td>
 								<td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
 								<td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf('%.2f', ($zone['Area']*100)/($monitor->ViewWidth()*$monitor->ViewHeight()) ) ?></td>
 								<td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit('Monitors') ) { ?> disabled="disabled"<?php } ?>/></td>
@@ -114,10 +118,10 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 	?>
 						</tbody>
 					</table>
-					<div id="contentButtons">
-						<?php echo makePopupButton('?view=zone&mid='.$mid.'&zid=0', 'zmZone', array('zone', $monitor->ViewWidth(), $monitor->ViewHeight()), translate('AddNewZone'), canEdit('Monitors')); ?>
-            <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
-					</div>
+                                     <div id="contentButtons">
+                                       <?php echo makeButton('?view=zone&mid='.$mid.'&zid=0', 'AddNewZone', canEdit('Monitors')); ?>
+                                       <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+                                     </div>
 				</div><!--zones-->
 <br class="clear"/>
       </div><!--Monitor-->

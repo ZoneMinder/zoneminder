@@ -572,7 +572,7 @@ function getLogHTML() {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
-      $result .= '<li id="getLogHTML" class="nav-item dropdown mx-2">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span>').'</li>'.PHP_EOL;
+      $result .= '<li id="getLogHTML" class="nav-item dropdown mx-2">'.makeLink('?view=log', '<span class="nav-link '.$class.'">'.translate('Log').'</span>').'</li>'.PHP_EOL;
     }
   }
   
@@ -588,7 +588,7 @@ function getLogIconHTML() {
       $logstate = logState();
       $class = ( $logstate == 'alert' ) ? 'text-warning' : (( $logstate == 'alarm' ) ? 'text-danger' : '');
       $result .= '<li id="getLogIconHTML" class="nav-item dropdown">'.
-        makePopupLink('?view=log', 'zmLog', 'log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
+        makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
         '</li>'.PHP_EOL;
     }
   }
@@ -702,8 +702,6 @@ function getHeaderFlipHTML() {
 
 // Returns the html representing the logged in user name and avatar
 function getAcctCircleHTML($skin, $user=null) {
-  // Include Logout modal
-  include("skins/$skin/views/logout.php");
   $result = '';
   
   if ( ZM_OPT_USE_AUTH and $user ) {
@@ -723,7 +721,7 @@ function getStatusBtnHTML($status) {
   if ( canEdit('System') ) {
     //$result .= '<li class="nav-item dropdown">'.PHP_EOL;
     $result .= '<form id="getStatusBtnHTML" class="form-inline">'.PHP_EOL;
-    $result .= '<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState">' .$status. '</button>'.PHP_EOL;
+    $result .= '<button type="button" class="btn btn-default navbar-btn" id="stateModalBtn">' .$status. '</button>'.PHP_EOL;
     $result .= '</form>'.PHP_EOL;
     //$result .= '</li>'.PHP_EOL;
 
@@ -752,69 +750,6 @@ function runtimeStatus($running=null) {
   }
 
   return $running ? ($state ? $state : translate('Running')) : translate('Stopped');
-}
-
-// Returns the modal html representing the selected Option Help item
-function getOptionHelpHTML($optionHelpIndex, $OLANG) {
-  $result = '';
-  $ZMoptionHelpIndex = 'ZM_'.$optionHelpIndex;
-  
-  if ( !empty($OLANG[$optionHelpIndex]) ) {
-    $optionHelpText = $OLANG[$optionHelpIndex]['Help'];
-  } else {
-    $optionHelpText = dbFetchOne('SELECT Help FROM Config WHERE Name=?', 'Help', array($optionHelpIndex));
-  }
-  $optionHelpText = validHtmlStr($optionHelpText);
-  $optionHelpText = preg_replace('/~~/', '<br/>', $optionHelpText );
-  $optionHelpText = preg_replace('/\[(.+)\]\((.+)\)/', '<a href="$2" target="_blank">$1</a>', $optionHelpText);
-
-  $result .= '<div id="optionhelp" class="modal" tabindex="-1" role="dialog">'.PHP_EOL;
-    $result .= '<div class="modal-dialog" role="document">'.PHP_EOL;
-      $result .= '<div class="modal-content">'.PHP_EOL;
-        $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title">' .translate('OptionHelp'). '</h5>'.PHP_EOL;
-          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
-            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
-          $result .= '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-body">'.PHP_EOL;
-          $result .= '<h3>' .validHtmlStr($optionHelpIndex). '</h3>'.PHP_EOL;
-          $result .= '<p class="textblock">' .$optionHelpText. '</p>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-footer">'.PHP_EOL;
-          $result .= '<button type="button" id="ohCloseBtn" class="btn btn-secondary" data-dismiss="modal">Close</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-      $result .= '</div>'.PHP_EOL;
-    $result .= '</div>'.PHP_EOL;
-  $result .= '</div>'.PHP_EOL;
-  return $result;
-}
-
-// Return an Error No Permissions Modal
-function getENoPermHTML() {
-  $result = '';
-
-  $result .= '<div id="ENoPerm" class="modal fade" id="staticBackdrop" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
-    $result .= '<div class="modal-dialog">'.PHP_EOL;
-      $result .= '<div class="modal-content">'.PHP_EOL;
-        $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title" id="staticBackdropLabel">ZoneMinder ' .translate('Error'). '</h5>'.PHP_EOL;
-          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
-            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
-          $result .= '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-body">'.PHP_EOL;
-          $result .= '<p>' .translate('YouNoPerms'). '</p>'.PHP_EOL;
-          $result .= '<p>' .translate('ContactAdmin'). '</p>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-footer">'.PHP_EOL;
-          $result .= '<button type="button" id="enpCloseBtn" class="btn btn-secondary" data-dismiss="modal">Close</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-      $result .= '</div>'.PHP_EOL;
-    $result .= '</div>'.PHP_EOL;
-  $result .= '</div>'.PHP_EOL;
-
-  return $result;
 }
 
 function getStatsTableHTML($eid, $fid, $row='') {
@@ -878,231 +813,14 @@ function getStatsTableHTML($eid, $fid, $row='') {
   return $result;
 }
 
-// This is the HTML representing the Delete confirmation modal on the Events page
-function getDelConfirmHTML() {
-  $result = '';
-  
-  $result .= '<div id="deleteConfirm" class="modal fade" class="modal" tabindex="-1">'.PHP_EOL;
-    $result .= '<div class="modal-dialog">'.PHP_EOL;
-      $result .= '<div class="modal-content">'.PHP_EOL;
-        $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title">Delete Confirmation</h5>'.PHP_EOL;
-          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
-            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
-          $result .= '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-body">'.PHP_EOL;
-          $result .= '<p>' .translate('ConfirmDeleteEvents'). '</p>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-footer">'.PHP_EOL;
-          $result .= '<button id="delCancelBtn" type="button" class="btn btn-secondary" data-dismiss="modal">' .translate('Cancel'). '</button>'.PHP_EOL;
-          $result .= '<button id ="delConfirmBtn" type="button" class="btn btn-danger">' .translate('Delete'). '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-      $result .= '</div>'.PHP_EOL;
-    $result .= '</div>'.PHP_EOL;
-  $result .= '</div>'.PHP_EOL;
-  
-  return $result;
-}
-
-function getStorageModalHTML($sid) {
-  $result = '';
-  $null = '';
-  $checked = 'checked="checked"';
-  
-  if ( !canEdit('System') ) return;
-
-  require_once('includes/Server.php');
-  require_once('includes/Storage.php');
-
-  if ( $_REQUEST['id'] ) {
-    if ( !($newStorage = ZM\Storage::find_one(array('Id'=>$sid)) ) ) {
-      // Perhaps do something different here, rather than return nothing
-      return;
-    }
-  } else {
-    $newStorage = new ZM\Storage();
-    $newStorage->Name(translate('NewStorage'));
-  }
-
-  $type_options = array( 'local' => translate('Local'), 's3fs' => translate('s3fs') );
-  $scheme_options = array(
-    'Deep' => translate('Deep'),
-    'Medium' => translate('Medium'),
-    'Shallow' => translate('Shallow'),
-  );
-
-  $servers = ZM\Server::find( null, array('order'=>'lower(Name)') );
-  $ServersById = array();
-  foreach ( $servers as $S ) {
-    $ServersById[$S->Id()] = $S;
-  }
-
-  // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+// Use this function to manually insert the csrf key into the form when using a modal generated via ajax call
+function getCSRFinputHTML() {
   if ( isset($GLOBALS['csrf']['key']) ) {
-    $csrf_input = '<input type="hidden" name="__csrf_magic" value="key:' .csrf_hash($GLOBALS['csrf']['key']). '" />'.PHP_EOL;
+    $result = '<input type="hidden" name="__csrf_magic" value="key:' .csrf_hash($GLOBALS['csrf']['key']). '" />'.PHP_EOL;
   } else {
-    $csrf_input = '';
-  }
-
-  $result .= '<div class="modal fade" id="storageModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
-    $result .= '<div class="modal-dialog">'.PHP_EOL;
-      $result .= '<div class="modal-content">'.PHP_EOL;
-        $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title" id="staticBackdropLabel">' .translate('Storage').' - '.$newStorage->Name(). '</h5>'.PHP_EOL;
-          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
-            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
-          $result .= '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-body">'.PHP_EOL;
-        $result .= '<form id="storageModalForm" name="contentForm" method="post" action="?view=storage&action=save" class="validateFormOnSubmit">'.PHP_EOL;
-          // We have to manually insert the csrf key into the form when using a modal generated via ajax call
-          $result .= $csrf_input;
-          $result .= '<input type="hidden" name="view" value="storage"/>'.PHP_EOL;
-          $result .= '<input type="hidden" name="object" value="storage"/>'.PHP_EOL;
-          $result .= '<input type="hidden" name="id" value="' .validHtmlStr($sid). '"/>'.PHP_EOL;
-          $result .= '<table id="contentTable" class="major table-sm">'.PHP_EOL;
-            $result .= '<tbody>'.PHP_EOL;
-              $result .= '<tr>'.PHP_EOL;
-                $result .= '<th class="text-right pr-3" scope="row">' .translate('Name'). '</th>'.PHP_EOL;
-                $result .= '<td><input type="text" name="newStorage[Name]" value="' .$newStorage->Name(). '"/></td>'.PHP_EOL;
-              $result .= '</tr>'.PHP_EOL;
-              $result .= '<tr>'.PHP_EOL;
-                $result .= '<th class="text-right pr-3" scope="row">' .translate('Path'). '</th>'.PHP_EOL;
-                $result .= '<td><input type="text" name="newStorage[Path]" value="' .$newStorage->Path(). '"/></td>'.PHP_EOL;
-              $result .= '</tr>'.PHP_EOL;
-              $result .= '<tr>'.PHP_EOL;
-                $result .= '<th class="text-right pr-3" scope="row">' .translate('Url'). '</th>'.PHP_EOL;
-                $result .= '<td><input type="text" name="newStorage[Url]" value="' .$newStorage->Url(). '"/></td>'.PHP_EOL;
-              $result .= '</tr>'.PHP_EOL;
-              $result .= '<tr>'.PHP_EOL;
-                $result .= '<th class="text-right pr-3" scope="row">' .translate('Server'). '</th>'.PHP_EOL;
-                $result .= '<td>' .htmlSelect('newStorage[ServerId]', array(''=>'Remote / No Specific Server') + $ServersById, $newStorage->ServerId()). '</td>'.PHP_EOL;
-              $result .= '</tr>'.PHP_EOL;
-              $result .= '<tr>'.PHP_EOL;
-                $result .= '<th class="text-right pr-3" scope="row">' .translate('Type'). '</th>'.PHP_EOL;
-                $result .= '<td>' .htmlSelect('newStorage[Type]', $type_options, $newStorage->Type()). '</td>'.PHP_EOL;
-              $result .= '</tr>'.PHP_EOL;
-              $result .= '<tr>'.PHP_EOL;
-                $result .= '<th class="text-right pr-3" scope="row">' .translate('StorageScheme'). '</th>'.PHP_EOL;
-                $result .= '<td>' .htmlSelect('newStorage[Scheme]', $scheme_options, $newStorage->Scheme()). '</td>'.PHP_EOL;
-              $result .= '</tr>'.PHP_EOL;
-              $result .= '<tr>'.PHP_EOL;
-                $result .= '<th class="text-right pr-3" scope="row">' .translate('StorageDoDelete'). '</th>'.PHP_EOL;
-                $result .= '<td>'.PHP_EOL;
-                $result .= '<input type="radio" name="newStorage[DoDelete]" value="1" ' .($newStorage->DoDelete() ? $checked : $null). '>Yes'.PHP_EOL;
-                $result .= '<input type="radio" name="newStorage[DoDelete]" value="0" ' .($newStorage->DoDelete() ? $null : $checked). '>No'.PHP_EOL;
-                $result .= '</td>'.PHP_EOL;
-              $result .= '</tr>'.PHP_EOL;
-              $result .= '<tr>'.PHP_EOL;
-                $result .= '<th class="text-right pr-3" scope="row">' .translate('Enabled'). '</th>'.PHP_EOL;
-                $result .= '<td>'.PHP_EOL;
-                $result .= '<input type="radio" name="newStorage[Enabled]" value="1" ' .($newStorage->Enabled() ? $checked : $null). '>Yes'.PHP_EOL;
-                $result .= '<input type="radio" name="newStorage[Enabled]" value="0" ' .($newStorage->Enabled() ? $null : $checked). '>No'.PHP_EOL;
-                $result .= '</td>'.PHP_EOL;
-              $result .= '</tr>'.PHP_EOL;
-            $result .= '</tbody>'.PHP_EOL;
-          $result .= '</table>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-footer">'.PHP_EOL;
-          $result .= '<button name="action" id="storageSubmitBtn" type="submit" class="btn btn-primary" value="Save">' .translate('Save'). '</button>'.PHP_EOL;
-          $result .= '<button type="button" class="btn btn-secondary" data-dismiss="modal">' .translate('Cancel'). '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-      $result .= '</form>'.PHP_EOL;
-      $result .= '</div>'.PHP_EOL;
-    $result .= '</div>'.PHP_EOL;
-  $result .= '</div>'.PHP_EOL;
-
-  return $result;
-}
-
-function getEventDetailHTML($eid='', $eids='') {
-  $result = '';
-  $inputs = '';
-  $disabled = 'disabled="disabled"';
-  $null = '';
-  
-  if ( !canEdit('Events') ) return;
-
-  // We have to manually insert the csrf key into the form when using a modal generated via ajax call
-  if ( isset($GLOBALS['csrf']['key']) ) {
-    $csrf_input = '<input type="hidden" name="__csrf_magic" value="key:' .csrf_hash($GLOBALS['csrf']['key']). '" />'.PHP_EOL;
-  } else {
-    $csrf_input = '';
-  }
-
-  if ( $eid ){ // Single Event Mode
-    $eid = validInt($eid);
-    $title = translate('Event').' '.$eid.PHP_EOL;
-    $inputs .= '<input type="hidden" name="markEids[]" value="' .$eid. '"/>'.PHP_EOL;
-    $newEvent = dbFetchOne('SELECT E.* FROM Events AS E WHERE E.Id = ?', NULL, array($eid));
-
-  } elseif ( $eids ) { // Multi Event Mode
-
-    $title = translate('Events');
-    $sql = 'SELECT E.* FROM Events AS E WHERE ';
-    $sqlWhere = array();
-    $sqlValues = array();
-    foreach ( $eids as $eid ) {
-      $eid = validInt($eid);
-      $inputs .= '<input type="hidden" name="markEids[]" value="' .$eid. '"/>'.PHP_EOL;
-      $sqlWhere[] = 'E.Id = ?';
-      $sqlValues[] = $eid;
-    }
-    unset($eid);
-    $sql .= join(' OR ', $sqlWhere);
-    foreach( dbFetchAll( $sql, NULL, $sqlValues ) as $row ) {
-      if ( !isset($newEvent) ) {
-        $newEvent = $row;
-      } else {
-        if ( $newEvent['Cause'] && $newEvent['Cause'] != $row['Cause'] )
-          $newEvent['Cause'] = '';
-        if ( $newEvent['Notes'] && $newEvent['Notes'] != $row['Notes'] )
-          $newEvent['Notes'] = '';
-      }
-    }
-
-  } else { // Event Mode not specified - should we really proceed if neither eid nor eids is set?
-    $title = translate('Events');
+    $result = '';
   }
   
-  $result .= '<div class="modal fade" id="eventDetailModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">'.PHP_EOL;
-    $result .= '<div class="modal-dialog">'.PHP_EOL;
-      $result .= '<div class="modal-content">'.PHP_EOL;
-        $result .= '<div class="modal-header">'.PHP_EOL;
-          $result .= '<h5 class="modal-title" id="staticBackdropLabel">' .$title. '</h5>'.PHP_EOL;
-          $result .= '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'.PHP_EOL;
-            $result .= '<span aria-hidden="true">&times;</span>'.PHP_EOL;
-          $result .= '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-body">'.PHP_EOL;
-          $result .= '<form name="contentForm" id="eventDetailForm" method="post" action="?view=eventdetail&action=eventdetail">'.PHP_EOL;
-            $result .= $csrf_input;
-            $result .= '<input type="hidden" name="action" value="eventdetail"/>'.PHP_EOL;
-            $result .= '<input type="hidden" name="view" value="eventdetail"/>'.PHP_EOL;
-            $result .= $inputs;
-            $result .= '<table id="contentTable" class="table-sm">'.PHP_EOL;
-              $result .= '<tbody>'.PHP_EOL;
-                $result .= '<tr>'.PHP_EOL;
-                  $result .= '<th scope="row">' .translate('Cause'). '</th>'.PHP_EOL;
-                  $result .= '<td><input type="text" name="newEvent[Cause]" value="' .validHtmlStr($newEvent['Cause']). '" size="32"/></td>'.PHP_EOL;
-                $result .= '</tr>'.PHP_EOL;
-                $result .= '<tr>'.PHP_EOL;
-                  $result .= '<th scope="row" class="align-middle">' .translate('Notes'). '</th>'.PHP_EOL;
-                  $result .= '<td><textarea name="newEvent[Notes]" rows="6" cols="33">' .validHtmlStr($newEvent['Notes']). '</textarea></td>'.PHP_EOL;
-                $result .= '</tr>'.PHP_EOL;
-              $result .= '</tbody>'.PHP_EOL;
-            $result .= '</table>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '<div class="modal-footer">'.PHP_EOL;
-          $result .= '<button type="submit" name="action" id="eventDetailSaveBtn" class="btn btn-primary" value="save" ' .( !canEdit('Events') ? $disabled : $null ). '>' .translate('Save'). '</button>'.PHP_EOL;
-          $result .= '<button type="button" class="btn btn-secondary" data-dismiss="modal">' .translate('Cancel'). '</button>'.PHP_EOL;
-        $result .= '</div>'.PHP_EOL;
-        $result .= '</form>'.PHP_EOL;
-      $result .= '</div>'.PHP_EOL;
-    $result .= '</div>'.PHP_EOL;
-  $result .= '</div>'.PHP_EOL;
-
   return $result;
 }
 
@@ -1112,9 +830,6 @@ function xhtmlFooter() {
   global $view;
   global $skin;
   global $basename;
-  if ( canEdit('System') ) {
-    include("skins/$skin/views/state.php");
-  }
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $cssJsFile = getSkinFile('js/'.$css.'.js');
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
@@ -1133,12 +848,13 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-export.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-page-jump-to.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-toolbar.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-auto-refresh.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
   <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
   <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
-  <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
 <?php
   if ( $view == 'event' ) {
 ?>

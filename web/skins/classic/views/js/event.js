@@ -50,10 +50,7 @@ var cueFrames = null; //make cueFrames available even if we don't send another a
 
 function initialAlarmCues(eventId) {
   $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues) //get frames data for alarmCues and inserts into html
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function setAlarmCues(data) {
@@ -953,12 +950,27 @@ function renameEvent() {
   actQuery('rename', {eventName: newName});
 }
 
+// Manage the EDIT button
 function editEvent() {
-  createPopup('?view=eventdetail&eid='+eventData.Id, 'zmEventDetail', 'eventdetail');
+  $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eid='+eventData.Id)
+      .done(function(data) {
+        if ( $j('#eventDetailModal').length ) {
+          $j('#eventDetailModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#eventDetailModal').modal('show');
+        // Manage the Save button
+        $j('#eventDetailSaveBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#eventDetailForm').submit();
+        });
+      })
+      .fail(logAjaxFail);
 }
 
 function exportEvent() {
-  createPopup('?view=export&eid='+eventData.Id, 'zmExport', 'export');
+  window.location.assign('?view=export&eid='+eventData.Id);
 }
 
 function archiveEvent() {
@@ -970,7 +982,7 @@ function unarchiveEvent() {
 }
 
 function showEventFrames() {
-  createPopup('?view=frames&eid='+eventData.Id, 'zmFrames', 'frames', WEB_LIST_THUMB_WIDTH, WEB_LIST_THUMB_HEIGHT);
+  window.location.assign('?view=frames&eid='+eventData.Id);
 }
 
 function showStream() {
@@ -1018,7 +1030,7 @@ function showStills() {
 
 function showFrameStats() {
   var fid = $('eventImageNo').get('text');
-  createPopup('?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height);
+  window.location.assign('?view=stats&eid='+eventData.Id+'&fid='+fid);
 }
 
 function videoEvent() {

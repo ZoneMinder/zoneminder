@@ -42,7 +42,7 @@ if ( isset($_REQUEST['filter'])) {
 parseSort();
 
 $filterQuery = $filter->querystring();
-ZM\Logger::Debug("Filter ".print_r($filter, true));
+ZM\Logger::Debug('Filter '.print_r($filter, true));
 
 if ( $filter->sql() ) {
   $eventsSql .= ' AND ('.$filter->sql().')';
@@ -50,7 +50,7 @@ if ( $filter->sql() ) {
   ZM\Warning('No filters');
   exit;
 }
-$eventsSql .= " ORDER BY $sortColumn $sortOrder";
+$eventsSql .= ' ORDER BY '.$sortColumn.' '.$sortOrder;
 if ( $sortColumn != 'E.Id' ) $eventsSql .= ',E.Id '.$sortOrder;
 
 $page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 0;
@@ -71,6 +71,10 @@ if ( $failed ) {
 $results = $failed ? null : dbQuery($eventsSql);
 
 $nEvents = $results ? $results->rowCount() : 0;
+if ( ! $results ) {
+  global $error_message;
+  $error_message = dbError($eventsSql);
+} 
 ZM\Logger::Debug("Pre conditions succeeded sql return $nEvents events");
 
 if ( !empty($limit) && ($nEvents > $limit) ) {
@@ -91,13 +95,12 @@ if ( !empty($page) ) {
     $limitLeft = $limit - $limitStart;
     $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
   }
-  $eventsSql .= " LIMIT $limitStart, $limitAmount";
+  $eventsSql .= ' LIMIT '.$limitStart.', '.$limitAmount;
 } else if ( !empty($limit) ) {
   $eventsSql .= ' LIMIT 0, '.$limit;
 }
 
 $maxShortcuts = 5;
-$pagination = getPagination($pages, $page, $maxShortcuts, $filter->querystring().$sortQuery.$limitQuery);
 
 $focusWindow = true;
 
@@ -108,9 +111,9 @@ foreach ( $storage_areas as $S ) {
 }
 
 xhtmlHeaders(__FILE__, translate('Events'));
+getBodyTopHTML();
 
 ?>
-<body>
   <?php echo getNavBarHTML() ?>
   <div id="page" class="container-fluid p-3">
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
@@ -131,7 +134,6 @@ xhtmlHeaders(__FILE__, translate('Events'));
     <div class="row justify-content-center">
       <table
         id="eventTable"
-        data-toggle="table"
         data-pagination="true"
         data-show-pagination-switch="true"
         data-page-list="[10, 25, 50, 100, 200, All]"
@@ -229,7 +231,7 @@ if ( $results ) {
 
               <td class="text-center"><?php echo ( $event->Archived() ) ? 'Yes' : 'No' ?></td>
               <td class="text-center"><?php echo ( $event->Emailed() ) ? 'Yes' : 'No' ?></td>
-              <td><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
+              <td><?php echo makeLink( '?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
               <td><?php echo makeLink( '#', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid=' .$event->Id(). '"') ?>
               <?php
               # display notes as small text
@@ -237,9 +239,7 @@ if ( $results ) {
                 # if notes include detection objects, then link it to objdetect.jpg
                 if ( strpos($event->Notes(), 'detected:') !== false ) {
                   # make a link
-                  echo makePopupLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', 'zmImage',
-                  array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)),
-                  '<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
+                  echo makeLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', '<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
                 } else if ( $event->Notes() != 'Forced Web: ' ) {
                   echo '<br/><div class="small text-nowrap text-muted">'.$event->Notes().'</div>';
                 }
@@ -254,10 +254,7 @@ if ( $results ) {
               <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->AlarmFrames() ?></a></td>
               <td><?php echo $event->TotScore() ?></td>
               <td><?php echo $event->AvgScore() ?></td>
-              <td><?php echo makePopupLink(
-                '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage',
-                array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)), $event->MaxScore()
-              ); ?></td>
+              <td><?php echo makeLink('?view=frame&amp;eid='.$event->Id().'&amp;fid=0', $event->MaxScore()); ?></td>
 <?php
   if ( count($storage_areas) > 1 ) { 
 ?>

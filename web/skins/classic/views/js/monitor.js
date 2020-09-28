@@ -137,6 +137,16 @@ function initPage() {
   document.querySelectorAll('input[name="newMonitor[WebColour]"]').forEach(function(el) {
     el.onchange = window['change_WebColour'].bind(el);
   });
+  document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
+    el.onchange = function() {
+      var form = document.getElementById('contentForm');
+      form.tab.value = 'general';
+      form.submit();
+    };
+  });
+  document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
+    el.oninput = window['update_estimated_ram_use'].bind(el);
+  });
 
   $j('.chosen').chosen();
 
@@ -217,6 +227,19 @@ function random_WebColour() {
   $j('#WebSwatch').css(
       'backgroundColor', new_colour
   );
+}
+
+function update_estimated_ram_use() {
+  var buffer_count = document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value;
+  console.log(buffer_count);
+  var width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
+  console.log(width);
+  var height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
+  console.log(height);
+  var colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
+  console.log(colours);
+
+  document.getElementById('estimated_ram_use').innerHTML = human_filesize(buffer_count * width * height * colours, 0);
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

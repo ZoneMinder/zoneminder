@@ -434,14 +434,11 @@ class EventsController extends AppController {
     // Find the max Frame for this Event.  Error out otherwise.
     $this->loadModel('Frame');
 
-    if (! $frame = $this->Frame->find('first', array(
+    $frame = $this->Frame->find('first', array(
       'conditions' => array(
-        'EventId' => $event['Event']['Id'],
-        'Score' => $event['Event']['MaxScore']
-      )
-    ))) {
-      throw new NotFoundException(__('Can not find Frame for Event ' . $event['Event']['Id']));
-    }
-    return $frame['Frame']['Id'];
+      'EventId' => $event['Event']['Id'],
+      'Score' => $event['Event']['MaxScore']
+    )));
+    return empty($frame)?null:$frame['Frame']['Id'];
   }
 } // end class EventsController

@@ -487,6 +487,16 @@ function makePopupButton($url, $winName, $winSize, $buttonValue, $condition=1, $
   return $string;
 }
 
+function makeButton($url, $buttonValue, $condition=1, $options='') {
+  $string = '<button type="button" data-on-click-this="'.$buttonValue.'"';
+  $string .= ' data-url="' .$url. '"';
+  if (!$condition) {
+    $string .= ' disabled="disabled"';
+  }
+  $string .= ($options ? (' ' . $options) : '') . '/>'.translate($buttonValue).'</button>'.PHP_EOL;
+  return $string;
+}
+
 function htmlSelect($name, $contents, $values, $behaviours=false) {
   $behaviourText = '';
   if ( !empty($behaviours) ) {
@@ -1109,7 +1119,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $Filter = ZM\Filter::parse($filter, $querySep);
 
   $filter['sql'] = $Filter->sql();
-  $filter['querystring'] = $Filter->querystring();
+  $filter['querystring'] = $Filter->querystring($querySep);
   $filter['hidden_fields'] = $Filter->hidden_fields();
   $filter['pre_sql_conditions'] = $Filter->pre_sql_conditions();
   $filter['post_sql_conditions'] = $Filter->post_sql_conditions();
@@ -2148,7 +2158,10 @@ function getStreamHTML($monitor, $options = array()) {
     }
     $options['mode'] = 'single';
     $streamSrc = $monitor->getStreamSrc($options);
-    return getImageStill('liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
+    return getImageStill('liveStream'.$monitor->Id(), $streamSrc,
+      (isset($options['width']) ? $options['width'] : null),
+      (isset($options['height']) ? $options['height'] : null),
+      $monitor->Name());
   }
 } // end function getStreamHTML
 

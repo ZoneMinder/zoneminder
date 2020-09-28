@@ -39,12 +39,19 @@ function validateForm(form) {
   } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
     var have_endtime_term = false;
     for ( var i = 0; i < rows.length; i++ ) {
-      if ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' ) {
+      if (
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' )
+        ||
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndTime' )
+        ||
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDate' )
+      ) {
         have_endtime_term = true;
+        break;
       }
     }
     if ( ! have_endtime_term ) {
-      return confirm('You don\'t have an EndTime term in your filter.  This might match recordings that are still in progress and so the UpdateDiskSpace action will be a waste of time and resources.  Ideally you should have an EndTime IS NOT NULL term.  Do you want to continue?');
+      return confirm('You don\'t have an End Date/Time term in your filter.  This might match recordings that are still in progress and so the UpdateDiskSpace action will be a waste of time and resources.  Ideally you should have an End Date/Time IS NOT NULL term.  Do you want to continue?');
     }
   } else if ( form.elements['filter[Background]'].checked ) {
     if ( ! (
@@ -386,6 +393,47 @@ function delTerm( element ) {
   row.remove();
   var rows = rowParent.children();
   parseRows(rows);
+}
+
+function debugFilter() {
+  getModal('filterdebug');
+}
+
+// Load the Delete Confirmation Modal HTML via Ajax call
+function getModal(id) {
+  $j.getJSON(thisUrl + '?request=modal&modal='+id+'&fid='+filterid)
+      .done(function(data) {
+        if ( !data ) {
+          console.error("Get modal returned no data");
+          return;
+        }
+
+        if ( $j('#'+id).length ) {
+          console.log("replacing");
+          $j('#'+id).replaceWith(data.html);
+        } else {
+          console.log("Adding to body"+data.html);
+          $j('body').append(data.html);
+        }
+        manageModalBtns(id);
+        modal = $j('#'+id+'Modal');
+        if ( ! modal.length ) {
+          console.log("No modal found");
+        }
+        $j('#'+id+'Modal').modal('show');
+      })
+      .fail(logAjaxFail);
+}
+
+function manageModalBtns(id) {
+  console.log(id);
+  // Manage the CANCEL modal button
+  var cancelBtn = document.getElementById(id+"CancelBtn");
+  if ( cancelBtn ) {
+    document.getElementById(id+"CancelBtn").addEventListener("click", function onCancelClick(evt) {
+      $j('#'+id).modal('hide');
+    });
+  }
 }
 
 function init() {

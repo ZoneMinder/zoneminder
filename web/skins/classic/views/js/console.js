@@ -127,31 +127,12 @@ function reloadWindow() {
   window.location.replace( thisUrl );
 }
 
-function initPage() {
-  reloadWindow.periodical(consoleRefreshTimeout);
-  if ( showVersionPopup ) {
-    window.location.assign('?view=version');
-  }
-  if ( showDonatePopup ) {
-    $j('#donate').modal('show');
-  }
-
-  // Makes table sortable
-  $j( function() {
-    $j( "#consoleTableBody" ).sortable({
-      handle: ".sort",
-      update: applySort,
-      axis: 'Y'} );
-    $j( "#consoleTableBody" ).disableSelection();
-  } );
-
-  // Setup the thumbnail video animation
-  initThumbAnimation();
-
+// Manage the the Function modal and its buttons
+function manageFunctionModal() {
   $j('.functionLnk').click(function(evt) {
     evt.preventDefault();
     if ( !canEditEvents ) {
-      alert('You do not have permission to change monitor function.');
+      enoperm();
       return;
     }
     var mid = evt.currentTarget.getAttribute('data-mid');
@@ -167,12 +148,13 @@ function initPage() {
       return;
     }
     function_form.elements['newFunction'].value = monitor.Function;
-    function_form.elements['newEnabled'].checked = monitor.Enabled;
+    function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
     function_form.elements['mid'].value = mid;
     document.getElementById('function_monitor_name').innerHTML = monitor.Name;
 
     $j('#modalFunction').modal('show');
   });
+
   // Manage the CANCEL modal buttons
   $j('.funcCancelBtn').click(function(evt) {
     evt.preventDefault();
@@ -182,13 +164,57 @@ function initPage() {
   // Manage the SAVE modal buttons
   $j('.funcSaveBtn').click(function(evt) {
     evt.preventDefault();
-    var form = evt.currentTarget.form;
-    var mid = form.elements['mid'].value;
-    var newFunc = $j('#newFunction').val();
-    var newEnabled = $j('#newEnabled').is(':checked') ? 1 : 0;
-    $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled);
-    window.location.reload(true);
+    $j('#function_form').submit();
   });
+}
+
+function initPage() {
+  reloadWindow.periodical(consoleRefreshTimeout);
+  if ( showVersionPopup ) {
+    window.location.assign('?view=version');
+  }
+  if ( showDonatePopup ) {
+    $j.getJSON(thisUrl + '?request=modal&modal=donate')
+        .done(function(data) {
+          if ( $j('#donate').length ) {
+            $j('#donate').replaceWith(data.html);
+          } else {
+            $j("body").append(data.html);
+          }
+          $j('#donate').modal('show');
+          // Manage the Apply button
+          $j('#donateApplyBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#donateForm').submit();
+          });
+        })
+        .fail(logAjaxFail);
+  }
+
+  // Makes table sortable
+  $j( function() {
+    $j( "#consoleTableBody" ).sortable({
+      handle: ".sort",
+      update: applySort,
+      axis: 'Y'} );
+    $j( "#consoleTableBody" ).disableSelection();
+  } );
+
+  // Setup the thumbnail video animation
+  initThumbAnimation();
+
+  // Load the Function modal on page load
+  $j.getJSON(thisUrl + '?request=modal&modal=function')
+      .done(function(data) {
+        if ( $j('#modalFunction').length ) {
+          $j('#modalFunction').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        // Manage the Function modal
+        manageFunctionModal();
+      })
+      .fail(logAjaxFail);
 }
 
 function applySort(event, ui) {

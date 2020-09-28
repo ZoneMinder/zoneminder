@@ -125,7 +125,6 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
     <div class="row justify-content-center">      
       <table
         id="framesTable"
-        data-toggle="table"
         data-pagination="true"
         data-show-pagination-switch="true"
         data-page-list="[10, 25, 50, 100, 200, All]"
@@ -207,15 +206,4 @@ if ( count($frames) ) {
         </table>
       </div>
   </div>
-<!-- Load the statistics for each frame -->
-<!-- This content gets hidden on init and only revailed on detail view -->
-<?php
-$row = 0;
-if ( count($frames) ) foreach ( $frames as $frame ) {
-  $eid = $frame['EventId'];
-  $fid = $frame['FrameId'];
-  include('_stats_table.php');
-  $row++;
-}
-?>
 <?php xhtmlFooter() ?>

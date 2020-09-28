@@ -83,7 +83,7 @@ if ( $options{command} ) {
   my $server_up;
   while ( $tries and ! ( $server_up = connect(CLIENT, $saddr) ) ) {
     Debug("Failed to connect to zmcontrol server at $sock_file");
-    runCommand("zmdc.pl start zmcontrol.pl --id=$id");
+    runCommand("zmdc.pl start zmcontrol.pl --id $id");
     sleep 1;
     $tries -= 1;
   }
@@ -142,9 +142,9 @@ if ( $options{command} ) {
     .strftime('%y/%m/%d %H:%M:%S', localtime())
   );
 
-  $0 = $0." --id=$id";
+  $0 = $0.' --id '.$id;
 
-  my $control = "ZoneMinder::Control::$protocol"->new($id);
+  my $control = ('ZoneMinder::Control::'.$protocol)->new($id);
   my $control_key = $control->getKey();
   $control->loadMonitor();
 

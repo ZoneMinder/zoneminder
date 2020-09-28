@@ -536,6 +536,8 @@ CREATE TABLE `Monitors` (
   `ArchivedEventDiskSpace` bigint default NULL,
   `ZoneCount` TINYINT NOT NULL DEFAULT 0,
   `Refresh` int(10) unsigned default NULL,
+  `Latitude`  DECIMAL(10,8),
+  `Longitude`  DECIMAL(10,8),
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

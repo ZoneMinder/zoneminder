@@ -480,6 +480,33 @@ our @options = (
     category    => 'system',
   },
   {
+    name        =>  'ZM_OPT_USE_GEOLOCATION',
+    description =>  'Add geolocation features to ZoneMinder.',
+    help        =>  'Whether or not to enable Latitude/Longitude settings on Monitors and enable mapping options.',
+    type        =>  $types{boolean},
+    category    =>  'system',
+  },
+  {
+    name        =>  'ZM_OPT_GEOLOCATION_TILE_PROVIDER',
+    description =>  'Tile provider to use for maps.',
+    help        =>  'OpenStreetMaps does not itself provide the images to use in the map. There are many to choose from.  Mapbox.com is one example that offers free tiles and has been tested during development of this feature.',
+    requires    =>  [
+                     {name=>'ZM_OPT_USE_GEOLOCATION', value=>'yes'}
+                   ],
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        =>  'ZM_OPT_GEOLOCATION_ACCESS_TOKEN',
+    description =>  'Access Token for the tile provider used for maps.',
+    help        =>  'OpenStreetMaps does not itself provide the images to use in the map. There are many to choose from.  Mapbox.com is one example that offers free tiles and has been tested during development of this feature. You must go to mapbox.com and sign up and get an access token and cutnpaste it here.',
+    requires    =>  [
+                     {name=>'ZM_OPT_USE_GEOLOCATION', value=>'yes'}
+                   ],
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
     name        =>  'ZM_SYSTEM_SHUTDOWN',
     default     =>  'true',
     description =>  'Allow Admin users to power off or restart the system from the ZoneMinder UI.',
@@ -2621,7 +2648,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_EVENT_SORT_FIELD',
-    default     => 'DateTime',
+    default     => 'StartDateTime',
     description => 'Default field the event lists are sorted by',
     help        => q`
       Events in lists can be initially ordered in any way you want.
@@ -2633,7 +2660,7 @@ our @options = (
       `,
     type        => {
       db_type     =>'string',
-      hint        =>'Id|Name|Cause|MonitorName|DateTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore',
+      hint        =>'Id|Name|Cause|DiskSpace|MonitorName|StartDateTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore',
       pattern     =>qr|.|,
       format      =>q( $1 )
     },

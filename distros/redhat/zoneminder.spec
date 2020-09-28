@@ -28,7 +28,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.35.6
+Version: 1.35.7
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -206,8 +206,6 @@ mv -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Beh
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
-./utils/zmeditconfigdata.sh ZM_DYN_SHOW_DONATE_REMINDER no
-./utils/zmeditconfigdata.sh ZM_OPT_FAST_DELETE no
 
 %build
 # Disable LTO due to top level asm

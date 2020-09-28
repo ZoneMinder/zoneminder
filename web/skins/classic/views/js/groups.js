@@ -1,5 +1,22 @@
+// Manage the NEW Group button
 function newGroup() {
-  createPopup( '?view=group', 'zmGroup', 'group' );
+  $j.getJSON(thisUrl + '?request=modal&modal=group')
+      .done(function(data) {
+        if ( $j('#groupModal').length ) {
+          $j('#groupModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#groupModal').modal('show');
+        $j('.chosen').chosen("destroy");
+        $j('.chosen').chosen();
+        // Manage the Save button
+        $j('#grpModalSaveBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#groupForm').submit();
+        });
+      })
+      .fail(logAjaxFail);
 }
 
 function setGroup( element ) {
@@ -13,7 +30,23 @@ function editGroup( element ) {
   if ( !gid ) {
     console.log('No group id found in editGroup');
   } else {
-    createPopup('?view=group&gid='+gid, 'zmGroup'+gid, 'group');
+    $j.getJSON(thisUrl + '?request=modal&modal=group&gid=' + gid)
+        .done(function(data) {
+          if ( $j('#groupModal').length ) {
+            $j('#groupModal').replaceWith(data.html);
+          } else {
+            $j("body").append(data.html);
+          }
+          $j('#groupModal').modal('show');
+          $j('.chosen').chosen("destroy");
+          $j('.chosen').chosen();
+          // Manage the Save button
+          $j('#grpModalSaveBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#groupForm').submit();
+          });
+        })
+        .fail(logAjaxFail);
   }
 }
 
@@ -33,4 +66,21 @@ function configureButtons( element ) {
   }
 }
 
-window.focus();
+function configModalBtns() {
+  var form = $j('#groupForm')[0];
+  if ( !form ) {
+    console.log("No groupForm found");
+    return;
+  }
+  if ( !canEditGroups ) {
+    console.log("Cannot edit groups");
+    form.elements['action'].disabled = disabled;
+    return;
+  }
+  var disabled = false;
+
+  if ( form.elements['newGroup[Name]'].value == '' ) {
+    disabled = true;
+  }
+  form.elements['action'].disabled = disabled;
+}

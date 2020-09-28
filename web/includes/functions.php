@@ -79,14 +79,12 @@ function CSPHeaders($view, $nonce) {
     case 'storage':
     case 'version': {
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      // 'unsafe-inline' is only for backwards compatibility with browsers which
-      // only support CSP 1 (with no nonce-* support).
-      header("Content-Security-Policy: script-src 'unsafe-inline' 'self' 'nonce-$nonce' $additionalScriptSrc");
+      header("Content-Security-Policy: script-src 'self' 'nonce-$nonce' $additionalScriptSrc");
       break;
     }
     default: {
       // Use Report-Only mode on all other pages.
-      header("Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self' 'nonce-$nonce' $additionalScriptSrc;".
+      header("Content-Security-Policy-Report-Only: script-src 'self' 'nonce-$nonce' $additionalScriptSrc;".
         (ZM_CSP_REPORT_URI ? ' report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;
@@ -438,6 +436,13 @@ function makeLink($url, $label, $condition=1, $options='') {
   return $string;
 }
 
+//Make it slightly easier to create a link to help text modal
+function makeHelpLink($ohndx) {
+  $string = '&nbsp;(<a id="' .$ohndx. '" class="optionhelp" href="#">?</a>)';
+
+  return $string;
+}
+
 /**
  * $label must be already escaped. It can't be done here since it sometimes contains HTML tags.
  */
@@ -479,6 +484,16 @@ function makePopupButton($url, $winName, $winSize, $buttonValue, $condition=1, $
     $string .= ' disabled="disabled"';
   }
   $string .= ($options ? (' ' . $options) : '') . '/>';
+  return $string;
+}
+
+function makeButton($url, $buttonValue, $condition=1, $options='') {
+  $string = '<button type="button" data-on-click-this="'.$buttonValue.'"';
+  $string .= ' data-url="' .$url. '"';
+  if (!$condition) {
+    $string .= ' disabled="disabled"';
+  }
+  $string .= ($options ? (' ' . $options) : '') . '/>'.translate($buttonValue).'</button>'.PHP_EOL;
   return $string;
 }
 
@@ -1104,7 +1119,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $Filter = ZM\Filter::parse($filter, $querySep);
 
   $filter['sql'] = $Filter->sql();
-  $filter['querystring'] = $Filter->querystring();
+  $filter['querystring'] = $Filter->querystring($querySep);
   $filter['hidden_fields'] = $Filter->hidden_fields();
   $filter['pre_sql_conditions'] = $Filter->pre_sql_conditions();
   $filter['post_sql_conditions'] = $Filter->post_sql_conditions();
@@ -2143,7 +2158,10 @@ function getStreamHTML($monitor, $options = array()) {
     }
     $options['mode'] = 'single';
     $streamSrc = $monitor->getStreamSrc($options);
-    return getImageStill('liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
+    return getImageStill('liveStream'.$monitor->Id(), $streamSrc,
+      (isset($options['width']) ? $options['width'] : null),
+      (isset($options['height']) ? $options['height'] : null),
+      $monitor->Name());
   }
 } // end function getStreamHTML
 

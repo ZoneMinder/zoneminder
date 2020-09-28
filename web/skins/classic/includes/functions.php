@@ -39,12 +39,37 @@ function xhtmlHeaders($file, $title) {
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
 
-  function output_link_if_exists($files) {
+  function output_link_if_exists($files, $cache_bust=true) {
     global $skin;
     $html = array();
     foreach ( $files as $file ) {
       if ( getSkinFile($file) ) {
+        if ( $cache_bust ) {
         $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
+        } else  {
+        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
+        }
+      }
+    }
+    $html[] = ''; // So we ge a trailing \n
+    return implode(PHP_EOL, $html);
+  }
+  function output_script_if_exists($files, $cache_bust=true) {
+    global $skin;
+    $html = array();
+    foreach ( $files as $file ) {
+      if ( file_exists('skins/'.$skin.'/'.$file) ) {
+        if ( $cache_bust ) {
+          $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
+        } else {
+          $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
+        }
+      } else if ( file_exists($file) ) {
+        if ( $cache_bust ) {
+          $html[] = '<script src="'.cache_bust($file).'"></script>';
+        } else {
+          $html[] = '<script src="'.$file.'"></script>';
+        }
       }
     }
     $html[] = ''; // So we ge a trailing \n
@@ -55,6 +80,9 @@ function xhtmlHeaders($file, $title) {
     $html = array();
     foreach ( $files as $file ) {
         $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
+    }
+    if ( ! count($html) ) {
+      ZM\Warning("No files found for $files");
     }
     $html[] = ''; // So we ge a trailing \n
     return implode(PHP_EOL, $html);
@@ -109,6 +137,8 @@ if ( $css != 'base' )
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
+  } else if ( $basename == 'monitor' ) {
+      echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);
   }
 ?>
   <style>
@@ -572,7 +602,7 @@ function getLogHTML() {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
-      $result .= '<li id="getLogHTML" class="nav-item dropdown mx-2">'.makePopupLink('?view=log', 'zmLog', 'log', '<span class="nav-link '.$class.'">'.translate('Log').'</span>').'</li>'.PHP_EOL;
+      $result .= '<li id="getLogHTML" class="nav-item dropdown mx-2">'.makeLink('?view=log', '<span class="nav-link '.$class.'">'.translate('Log').'</span>').'</li>'.PHP_EOL;
     }
   }
   
@@ -588,7 +618,7 @@ function getLogIconHTML() {
       $logstate = logState();
       $class = ( $logstate == 'alert' ) ? 'text-warning' : (( $logstate == 'alarm' ) ? 'text-danger' : '');
       $result .= '<li id="getLogIconHTML" class="nav-item dropdown">'.
-        makePopupLink('?view=log', 'zmLog', 'log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
+        makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
         '</li>'.PHP_EOL;
     }
   }
@@ -702,8 +732,6 @@ function getHeaderFlipHTML() {
 
 // Returns the html representing the logged in user name and avatar
 function getAcctCircleHTML($skin, $user=null) {
-  // Include Logout modal
-  include("skins/$skin/views/logout.php");
   $result = '';
   
   if ( ZM_OPT_USE_AUTH and $user ) {
@@ -723,7 +751,7 @@ function getStatusBtnHTML($status) {
   if ( canEdit('System') ) {
     //$result .= '<li class="nav-item dropdown">'.PHP_EOL;
     $result .= '<form id="getStatusBtnHTML" class="form-inline">'.PHP_EOL;
-    $result .= '<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState">' .$status. '</button>'.PHP_EOL;
+    $result .= '<button type="button" class="btn btn-default navbar-btn" id="stateModalBtn">' .$status. '</button>'.PHP_EOL;
     $result .= '</form>'.PHP_EOL;
     //$result .= '</li>'.PHP_EOL;
 
@@ -754,15 +782,84 @@ function runtimeStatus($running=null) {
   return $running ? ($state ? $state : translate('Running')) : translate('Stopped');
 }
 
+function getStatsTableHTML($eid, $fid, $row='') {
+  if ( !canView('Events') ) return;
+  $result = '';
+  
+  $sql = 'SELECT S.*,E.*,Z.Name AS ZoneName,Z.Units,Z.Area,M.Name AS MonitorName FROM Stats AS S LEFT JOIN Events AS E ON S.EventId = E.Id LEFT JOIN Zones AS Z ON S.ZoneId = Z.Id LEFT JOIN Monitors AS M ON E.MonitorId = M.Id WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
+  $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
+  
+  $result .= '<table id="contentStatsTable' .$row. '"'.PHP_EOL;
+    $result .= 'data-toggle="table"'.PHP_EOL;
+    $result .= 'data-toolbar="#toolbar"'.PHP_EOL;
+    $result .= 'class="table-sm table-borderless contentStatsTable"'.PHP_EOL;
+    $result .= 'cellspacing="0">'.PHP_EOL;
+    
+    $result .= '<caption>' .translate('Stats'). ' - ' .$eid. ' - ' .$fid. '</caption>'.PHP_EOL;
+    $result .= '<thead>'.PHP_EOL;
+      $result .= '<tr>'.PHP_EOL;
+        $result .= '<th class="colZone font-weight-bold" data-align="center">' .translate('Zone'). '</th>'.PHP_EOL;
+        $result .= '<th class="colPixelDiff font-weight-bold" data-align="center">' .translate('PixelDiff'). '</th>'.PHP_EOL;
+        $result .= '<th class="colAlarmPx font-weight-bold" data-align="center">' .translate('AlarmPx'). '</th>'.PHP_EOL;
+        $result .= '<th class="colFilterPx font-weight-bold" data-align="center">' .translate('FilterPx'). '</th>'.PHP_EOL;
+        $result .= '<th class="colBlobPx font-weight-bold" data-align="center">' .translate('BlobPx'). '</th>'.PHP_EOL;
+        $result .= '<th class="colBlobs font-weight-bold" data-align="center">' .translate('Blobs'). '</th>'.PHP_EOL;
+        $result .= '<th class="colBlobSizes font-weight-bold" data-align="center">' .translate('BlobSizes'). '</th>'.PHP_EOL;
+        $result .= '<th class="colAlarmLimits font-weight-bold" data-align="center">' .translate('AlarmLimits'). '</th>'.PHP_EOL;
+        $result .= '<th class="colScore font-weight-bold" data-align="center">' .translate('Score'). '</th>'.PHP_EOL;
+      $result .= '</tr>'.PHP_EOL;
+    $result .= '</thead>'.PHP_EOL;
+
+    $result .= '<tbody>'.PHP_EOL;
+    
+    if ( count($stats) ) {
+      foreach ( $stats as $stat ) {
+        $result .= '<tr>'.PHP_EOL;
+          $result .= '<td class="colZone">' .validHtmlStr($stat['ZoneName']). '</td>'.PHP_EOL;
+          $result .= '<td class="colPixelDiff">' .validHtmlStr($stat['PixelDiff']). '</td>'.PHP_EOL;
+          $result .= '<td class="colAlarmPx">' .sprintf( "%d (%d%%)", $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']) ). '</td>'.PHP_EOL;
+          $result .= '<td class="colFilterPx">' .sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']) ).'</td>'.PHP_EOL;
+          $result .= '<td class="colBlobPx">' .sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']) ). '</td>'.PHP_EOL;
+          $result .= '<td class="colBlobs">' .validHtmlStr($stat['Blobs']). '</td>'.PHP_EOL;
+          
+          if ( $stat['Blobs'] > 1 ) {
+            $result .= '<td class="colBlobSizes">' .sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']) ). '</td>'.PHP_EOL;
+          } else {
+            $result .= '<td class="colBlobSizes">' .sprintf( "%d (%d%%)", $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$stat['Area'] ). '</td>'.PHP_EOL;
+          }
+          
+          $result .= '<td class="colAlarmLimits">' .validHtmlStr($stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY']). '</td>'.PHP_EOL;
+          $result .= '<td class="colScore">' .$stat['Score']. '</td>'.PHP_EOL;
+      }
+    } else {
+      $result .= '<tr>'.PHP_EOL;
+        $result .= '<td class="rowNoStats" colspan="9">' .translate('NoStatisticsRecorded'). '</td>'.PHP_EOL;
+      $result .= '</tr>'.PHP_EOL;
+    }
+
+    $result .= '</tbody>'.PHP_EOL;
+  $result .= '</table>'.PHP_EOL;
+  
+  return $result;
+}
+
+// Use this function to manually insert the csrf key into the form when using a modal generated via ajax call
+function getCSRFinputHTML() {
+  if ( isset($GLOBALS['csrf']['key']) ) {
+    $result = '<input type="hidden" name="__csrf_magic" value="key:' .csrf_hash($GLOBALS['csrf']['key']). '" />'.PHP_EOL;
+  } else {
+    $result = '';
+  }
+  
+  return $result;
+}
+
 function xhtmlFooter() {
   global $css;
   global $cspNonce;
   global $view;
   global $skin;
   global $basename;
-  if ( canEdit('System') ) {
-    include("skins/$skin/views/state.php");
-  }
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
   $cssJsFile = getSkinFile('js/'.$css.'.js');
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
@@ -776,17 +873,20 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/tableExport.min.js"></script> 
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-export.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-page-jump-to.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
-  <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
-
-  <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
+<?php echo output_script_if_exists(array(
+  'js/bootstrap-table.min.js',
+  'js/tableExport.min.js',
+  'js/bootstrap-table-export.min.js',
+  'js/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-cookie.min.js',
+  'js/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-auto-refresh.min.js',
+  'js/chosen/chosen.jquery.min.js',
+  'js/dateTimePicker/jquery-ui-timepicker-addon.js',
+  'js/Server.js',
+), true );
+?>
   <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
-  <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
 <?php
   if ( $view == 'event' ) {
 ?>
@@ -834,7 +934,10 @@ function xhtmlFooter() {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
 ?>
     <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
-<?php } ?>
+<?php
+  } else if ( $basename == 'monitor' ) {
+    echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
+  } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

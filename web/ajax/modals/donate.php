@@ -18,10 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit('System') ) {
-  $view = 'error';
-  return;
-}
+if ( !canEdit('System') ) return;
 
 $options = array( 
   'go'      => translate('DonateYes'),
@@ -45,25 +42,25 @@ $options = array(
         </button>
       </div>
       <div class="modal-body">
-        <form name="contentForm" id="contentForm" method="post" action="?">
-          <input type="hidden" name="view" value="donate"/>
-          <input type="hidden" name="action" value="donate"/>
-          <p>
-            <?php echo translate('DonateEnticement') ?>
-          </p>
-          <p>
-            <?php echo buildSelect('option', $options); ?>
-          </p>
-          <div id="contentButtons">
-            <button type="submit"><?php echo translate('Apply') ?></button>
-            <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
-          </div>
-        </form>
+      <form name="contentForm" id="donateForm" method="post" action="?">
+        <?php
+        // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+        echo getCSRFinputHTML();
+        ?>
+        <input type="hidden" name="view" value="donate"/>
+        <input type="hidden" name="action" value="donate"/>
+        <p>
+          <?php echo translate('DonateEnticement') ?>
+        </p>
+        <p>
+          <?php echo buildSelect('option', $options); ?>
+        </p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary">Understood</button>
+        <button type="submit" class="btn btn-primary" id="donateApplyBtn"><?php echo translate('Apply') ?></button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Close') ?></button>
       </div>
+    </form>
     </div>
   </div>
 </div>

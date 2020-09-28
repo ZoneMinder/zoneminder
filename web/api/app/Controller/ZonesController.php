@@ -115,6 +115,7 @@ class ZonesController extends AppController {
     if ( !$this->Zone->exists($id) ) {
       throw new NotFoundException(__('Invalid zone'));
     }
+    $message = '';
     if ( $this->request->is(array('post', 'put')) ) {
       global $user;
       $canEdit = (!$user) || $user['Monitors'] == 'Edit';
@@ -123,14 +124,15 @@ class ZonesController extends AppController {
         return;
       }
       if ( $this->Zone->save($this->request->data) ) {
-        return $this->flash(__('The zone has been saved.'), array('action' => 'index'));
+        $message = 'The zone has been saved.';
+      } else {
+        $message = 'Error ' . print_r($this->Zone->invalidFields());
       }
-    } else {
-      $options = array('conditions' => array('Zone.' . $this->Zone->primaryKey => $id));
-      $this->request->data = $this->Zone->find('first', $options);
     }
-    $monitors = $this->Zone->Monitor->find('list');
-    $this->set(compact('monitors'));
+    $this->set(array(
+      'message' => $message,
+      '_serialize' => array('message')
+    ));
   }
 
   /**

@@ -54,15 +54,8 @@ if ( isset($_REQUEST['exportFormat']) ) {
   }
 }
 
-if ( !empty($_REQUEST['eid']) ) {
-  $Event = new ZM\Event($_REQUEST['eid']);
-  if ( !$Event->Id ) {
-    Error('Invalid event id');
-  }
-}
-
 $focusWindow = true;
-$connkey = isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : generateConnKey();
+$connkey = isset($_REQUEST['connkey']) ? validInt($_REQUEST['connkey']) : generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Download'));
 ?>
@@ -75,7 +68,7 @@ xhtmlHeaders(__FILE__, translate('Download'));
       <h2><?php echo translate('Download') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="connkey" value="<?php echo $connkey; ?>"/>
 <?php
 if ( !empty($_REQUEST['eid']) ) {
@@ -83,7 +76,12 @@ if ( !empty($_REQUEST['eid']) ) {
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
     <?php
     $Event = new ZM\Event($_REQUEST['eid']);
-    echo 'Downloading event ' . $Event->Id . '. Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
+    if ( !$Event->Id() ) {
+      ZM\Error('Invalid event id');
+      echo '<div class="error">Invalid event id</div>';
+    } else {
+      echo 'Downloading event ' . $Event->Id . '. Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
+    }
 } else if ( !empty($_REQUEST['eids']) ) {
     $total_size = 0;
     foreach ( $_REQUEST['eids'] as $eid ) {

@@ -210,22 +210,31 @@ function resetLog() {
   refreshLog();
 }
 
-var exportFormValidator;
+var exportFormValidator = null;
 
 function exportLog() {
-  exportFormValidator.reset();
-  $('exportLog').overlayShow();
+  getModal('log_export');
+
+  if ( !exportFormValidator ) {
+    exportFormValidator = new Form.Validator.Inline($('exportForm'), {
+      useTitles: true,
+      warningPrefix: '',
+      errorPrefix: ''
+    });
+  } else {
+    exportFormValidator.reset();
+  }
 }
 
 function exportResponse( response ) {
-  $('exportLog').unspin();
+  $('log_exportModal').unspin();
   if ( response.result == 'Ok' ) {
     window.location.replace( thisUrl+'?view=request&request=log&task=download&key='+response.key+'&format='+response.format );
   }
 }
 
 function exportFail( request ) {
-  $('exportLog').unspin();
+  $('log_exportModal').unspin();
   $('exportErrorText').set('text', request.status+' / '+request.statusText);
   $('exportError').show();
   Error('Export request failed: '+request.status+' / '+request.statusText);
@@ -233,12 +242,18 @@ function exportFail( request ) {
 
 function exportRequest() {
   var form = $('exportForm');
+  console.log(form);
   $('exportErrorText').set('text', '');
   $('exportError').hide();
   if ( form.validate() ) {
     var exportParms = "view=request&request=log&task=export";
     var exportReq = new Request.JSON({url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail});
-    var selection = form.getElement('input[name=selector]:checked').get('value');
+    var selector = form.querySelectorAll('input[name=selector]:checked');
+    if ( !selector.length ) {
+      alert("Please select how to filter logs");
+      return;
+    }
+    var selection = selector[0].get('value');
     if ( selection == 'filter' || selection == 'current' ) {
       $$('#filters select').each(
           function( select ) {
@@ -257,7 +272,7 @@ function exportRequest() {
       }
     }
     exportReq.send(exportParms+"&"+form.toQueryString());
-    $('exportLog').spin();
+    $('log_exportModal').spin();
   }
 }
 
@@ -294,6 +309,8 @@ function updateFilterSelectors() {
         if ( filter[key] ) {
           selector.set('value', filter[key]);
         }
+        $j(selector).chosen('destroy');
+        $j(selector).chosen();
       }
   );
 }
@@ -331,11 +348,6 @@ function initPage() {
     } // end if loCount > displayLimit
   }
   );
-  exportFormValidator = new Form.Validator.Inline($('exportForm'), {
-    useTitles: true,
-    warningPrefix: '',
-    errorPrefix: ''
-  });
   new Asset.css('css/spinner.css');
   fetchNextLogs();
 }

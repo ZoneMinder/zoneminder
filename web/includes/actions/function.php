@@ -51,11 +51,9 @@ if ( $action == 'function' ) {
 			if ( $newFunction != 'None' && $newFunction != 'NoDect' )
         zmaControl($monitor, 'start');
     }
-    $refreshParent = true;
   } else {
     ZM\Logger::Debug('No change to function, not doing anything.');
   }
 } // end if action 
-$view = 'none';
-$closePopup = true;
+$view = 'console';
 ?>

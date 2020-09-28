@@ -326,23 +326,9 @@ ul.tabList li.active a {
     color: #dc143c;
 }
 
-fieldset {
-    border: 1px solid black;
-    padding: 4px;
-    margin-bottom: 8px;
-    border-radius: 2px;
-    -moz-border-radius: 2px;
-    -webkit-border-radius: 2px;
-}
-
-fieldset > legend {
-    padding: 0 2px;
-}
-
 /*
  * Behavior classes
  */
-
 
 .ok, .infoText {
     color: #0fb9b1;

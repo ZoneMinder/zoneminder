@@ -17,12 +17,10 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-global $running;
 
-if ( !canEdit('System') ) {
-  $view = 'error';
-  return;
-}
+if ( !canEdit('System') ) return;
+
+$running = daemonCheck();
 
 $content = '';
 if ( $running ) {
@@ -53,6 +51,10 @@ foreach ( $states as $state ) {
       </div>
       <div class="modal-body">
           <form class="" name="contentForm" method="get" action="?view=state">
+            <?php
+            // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+            echo getCSRFinputHTML();
+            ?>
             <input type="hidden" name="view" value="state"/>
             <input type="hidden" name="action" value="state"/>
             <input type="hidden" name="apply" value="1"/>

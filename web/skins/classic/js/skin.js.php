@@ -72,3 +72,4 @@ var imagePrefix = "<?php echo '?view=image&eid=' ?>";
 
 var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
 var auth_relay = '<?php echo get_auth_relay() ?>';
+var running = <?php echo daemonCheck()?'true':'false' ?>;

@@ -560,6 +560,9 @@ function watchdogCheck(type) {
 function watchdogOk(type) {
   watchdogInactive[type] = false;
 }
+function presetSelectorBlur() {
+  this.selectedIndex = 0;
+}
 
 var monitors = new Array();
 
@@ -569,6 +572,7 @@ function initPage() {
   //form.elements['newZone[Name]'].disabled = true;
   //form.elements['newZone[Type]'].disabled = true;
   form.presetSelector.disabled = true;
+  form.presetSelector.onblur = window['presetSelectorBlur'].bind(form.presetSelector, form.presetSelector);
   //form.elements['newZone[Units]'].disabled = true;
   if ( CheckMethod = form.elements['newZone[CheckMethod]'] ) {
     CheckMethod.disabled = true;
@@ -665,6 +669,21 @@ function initPage() {
     el.addEventListener("load", imageLoadEvent, {passive: true});
   });
   window.addEventListener("resize", drawZonePoints, {passive: true});
+
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Disable the back button if there is nothing to go back to
+  $j('#backBtn').prop('disabled', !document.referrer.length);
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
 } // initPage
 
 function imageLoadEvent() {

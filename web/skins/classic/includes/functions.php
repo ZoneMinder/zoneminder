@@ -39,12 +39,29 @@ function xhtmlHeaders($file, $title) {
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
 
-  function output_link_if_exists($files) {
+  function output_link_if_exists($files, $cache_bust=true) {
     global $skin;
     $html = array();
     foreach ( $files as $file ) {
       if ( getSkinFile($file) ) {
+        if ( $cache_bust ) {
         $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
+        } else  {
+        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
+        }
+      }
+    }
+    $html[] = ''; // So we ge a trailing \n
+    return implode(PHP_EOL, $html);
+  }
+  function output_script_if_exists($files, $cache_bust=true) {
+    global $skin;
+    $html = array();
+    foreach ( $files as $file ) {
+      if ( $cache_bust ) {
+        $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
+      } else {
+        $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
       }
     }
     $html[] = ''; // So we ge a trailing \n
@@ -55,6 +72,9 @@ function xhtmlHeaders($file, $title) {
     $html = array();
     foreach ( $files as $file ) {
         $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
+    }
+    if ( ! count($html) ) {
+      ZM\Warning("No files found for $files");
     }
     $html[] = ''; // So we ge a trailing \n
     return implode(PHP_EOL, $html);
@@ -109,6 +129,8 @@ if ( $css != 'base' )
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
+  } else if ( $basename == 'monitor' ) {
+      echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);
   }
 ?>
   <style>
@@ -902,7 +924,10 @@ function xhtmlFooter() {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
 ?>
     <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
-<?php } ?>
+<?php
+  } else if ( $basename == 'monitor' ) {
+    echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
+  } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

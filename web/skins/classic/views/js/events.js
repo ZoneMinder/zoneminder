@@ -197,7 +197,7 @@ function initPage() {
         })
         .fail(logAjaxFail);
 
-    window.location.reload(true);
+    //window.location.reload(true);
   });
 
   // Manage the EDIT button

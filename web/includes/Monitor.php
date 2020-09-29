@@ -293,7 +293,7 @@ class Monitor extends ZM_Object {
   }
 
   function zmcControl( $mode=false ) {
-    if ( ! $this->{'Id'} ) {
+    if ( !(property_exists($this,'Id') and $this->{'Id'}) ) {
       Warning('Attempt to control a monitor with no Id');
       return;
     }
@@ -346,7 +346,7 @@ class Monitor extends ZM_Object {
   } // end function zmcControl
 
   function zmaControl($mode=false) {
-    if ( !$this->{'Id'} ) {
+    if ( ! (property_exists($this, 'Id') and $this->{'Id'}) ) {
       Warning('Attempt to control a monitor with no Id');
       return;
     }

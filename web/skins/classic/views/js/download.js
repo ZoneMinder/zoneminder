@@ -35,17 +35,11 @@ function exportResponse(respObj, respText) {
       '&generated='+((respObj.result=='Ok')?1:0)+
       '&connkey='+connkey;
 
-  console.log('the full url is: '+fullUrl);
-  window.location.replace(
-      thisUrl+'?view='+currentView+'&'+eidParm+
-      '&exportFormat='+respObj.exportFormat+
-      '&exportFile='+respObj.exportFile+
-      '&generated='+((respObj.result=='Ok')?1:0)+
-      '&connkey='+connkey
-  );
+  console.log('The full url is: ' + fullUrl);
+  window.location.replace(fullUrl);
 }
 
-function exportEvent( element ) {
+function exportEvent() {
   var form = $j('#contentForm').serialize();
   $j.getJSON(thisUrl + '?view=request&request=event&action=download', form)
       .done(exportResponse)
@@ -61,9 +55,7 @@ function initPage() {
   if ( exportReady ) {
     startDownload.pass( exportFile ).delay( 1500 );
   }
-  document.getElementById('exportButton').addEventListener("click", function onClick(evt) {
-    exportEvent(this);
-  });
+  document.getElementById('exportButton').addEventListener("click", exportEvent );
 }
 
 $j(document).ready(function() {

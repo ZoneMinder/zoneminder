@@ -18,16 +18,24 @@ function startDownload( exportFile ) {
 var exportTimer = null;
 
 function exportProgress() {
-  var tickerText = $('exportProgressTicker').get('text');
+  var tickerText = $j('#exportProgressTicker').text();
   if ( tickerText.length < 1 || tickerText.length > 4 ) {
-    $('exportProgressTicker').set( 'text', '.' );
+    $j('#exportProgressTicker').text( '.' );
   } else {
-    $('exportProgressTicker').appendText( '.' );
+    $j('#exportProgressTicker').append( '.' );
   }
 }
 
 function exportResponse(respObj, respText) {
   console.log(respObj);
+  
+  var fullUrl = thisUrl+'?view='+currentView+'&'+eidParm+
+      '&exportFormat='+respObj.exportFormat+
+      '&exportFile='+respObj.exportFile+
+      '&generated='+((respObj.result=='Ok')?1:0)+
+      '&connkey='+connkey;
+
+  console.log('the full url is: '+fullUrl);
   window.location.replace(
       thisUrl+'?view='+currentView+'&'+eidParm+
       '&exportFormat='+respObj.exportFormat+
@@ -38,15 +46,13 @@ function exportResponse(respObj, respText) {
 }
 
 function exportEvent( element ) {
-  var form = element.form;
-  var parms = 'view=request&request=event&action=download';
-  parms += '&'+$(form).toQueryString();
-  console.log(parms);
-  var query = new Request.JSON( {url: thisUrl, method: 'post', data: parms, onSuccess: exportResponse} );
-  query.send();
-  $('exportProgress').removeClass( 'hidden' );
-  $('exportProgress').setProperty( 'class', 'warnText' );
-  $('exportProgressText').set( 'text', exportProgressString );
+  var form = $j('#contentForm').serialize();
+  $j.getJSON(thisUrl + '?view=request&request=event&action=download', form)
+      .done(exportResponse)
+      .fail(logAjaxFail); 
+  $j('#exportProgress').removeClass( 'hidden' );
+  $j('#exportProgress').addClass( 'warnText' );
+  $j('#exportProgressText').text( exportProgressString );
   exportProgress();
   exportTimer = exportProgress.periodical( 500 );
 }
@@ -60,4 +66,6 @@ function initPage() {
   });
 }
 
-window.addEventListener( 'DOMContentLoaded', initPage );
+$j(document).ready(function() {
+  initPage();
+});

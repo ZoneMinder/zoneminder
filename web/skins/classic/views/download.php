@@ -68,6 +68,8 @@ function getGeneratedHTML($generated) {
   if ( $generated ) {
       $result .= '<h3 id="downloadLink"><a href="?view=archive&amp;type=' .$exportFormat. '">' .translate('Download'). '</a></h3>'.PHP_EOL;
   }
+
+  return $result;
 }
 
 if ( !canView('Events') ) {

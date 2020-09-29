@@ -51,24 +51,24 @@ function getDLEventHTML($eid, $eids) {
   return $result;
 }
 
-function getGeneratedHTML($generated) {
+function getGeneratedHTML($generated, $exportFormat) {
   $result = '';
 
-  if ( $generated = '' ) {
+  if ( $generated == '' ) {
       $result .= '<h2 id="exportProgress" class="hidden warnText">'.PHP_EOL;
         $result .= '<span id="exportProgressText">' .translate('Exporting'). '</span>'.PHP_EOL;
         $result .= '<span id="exportProgressTicker"></span>'.PHP_EOL;
       $result .= '</h2>'.PHP_EOL;
   } else {
       $result .= '<h2 id="exportProgress" class="' .($generated ? 'infoText' : 'errorText').'">'.PHP_EOL;
-        $result .= '<span id="exportProgressText">' .($generated ? translate('ExportSucceeded'):translate('ExportFailed')). '</span>'.PHP_EOL;
+        $result .= '<span id="exportProgressText">' .($generated ? translate('ExportSucceeded') : translate('ExportFailed')). '</span>'.PHP_EOL;
         $result .= '<span id="exportProgressTicker"></span>'.PHP_EOL;
       $result .= '</h2>'.PHP_EOL;
   }
   if ( $generated ) {
       $result .= '<h3 id="downloadLink"><a href="?view=archive&amp;type=' .$exportFormat. '">' .translate('Download'). '</a></h3>'.PHP_EOL;
   }
-
+  
   return $result;
 }
 
@@ -149,6 +149,6 @@ xhtmlHeaders(__FILE__, translate('Download'));
         </button>
       </form>
     </div>
-    <?php echo getGeneratedHTML($generated) ?>
+    <?php echo getGeneratedHTML($generated, $exportFormat) ?>
   </div>
 <?php xhtmlFooter() ?>

@@ -28,7 +28,7 @@ function exportProgress() {
 
 function exportResponse(respObj, respText) {
   console.log(respObj);
-  
+
   var fullUrl = thisUrl+'?view='+currentView+'&'+eidParm+
       '&exportFormat='+respObj.exportFormat+
       '&exportFile='+respObj.exportFile+
@@ -43,7 +43,7 @@ function exportEvent() {
   var form = $j('#contentForm').serialize();
   $j.getJSON(thisUrl + '?view=request&request=event&action=download', form)
       .done(exportResponse)
-      .fail(logAjaxFail); 
+      .fail(logAjaxFail);
   $j('#exportProgress').removeClass( 'hidden' );
   $j('#exportProgress').addClass( 'warnText' );
   $j('#exportProgressText').text( exportProgressString );

@@ -93,6 +93,7 @@ public:
   } Orientation;
 
   typedef enum {
+    UNKNOWN=-1,
     IDLE,
     PREALARM,
     ALARM,
@@ -403,7 +404,7 @@ public:
   bool connect();
 
   inline int ShmValid() const {
-    return shared_data->valid;
+    return shared_data && shared_data->valid;
   }
   Camera *getCamera();
 

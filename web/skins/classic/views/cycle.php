@@ -91,7 +91,7 @@ if ( !$monitor ) {
 }
 $options['connkey'] = generateConnKey();
 
-session_start();
+zm_session_start();
 
 if ( isset($_REQUEST['scale']) ) {
   $options['scale'] = validInt($_REQUEST['scale']);
@@ -147,49 +147,49 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
       <div id="sizeControl">
         <span id="widthControl">
           <label><?php echo translate('Width') ?>:</label>
-          <?php echo htmlSelect('width', $widths, $options['width'], array('data-on-change-this'=>'changeSize') ); ?>
+          <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change-this'=>'changeSize') ); ?>
         </span>
         <span id="heightControl">
           <label><?php echo translate('Height') ?>:</label>
-          <?php echo htmlSelect('height', $heights, $options['height'], array('data-on-change-this'=>'changeSize') ); ?>
+          <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change-this'=>'changeSize') ); ?>
         </span>
         <span id="scaleControl">
           <label><?php echo translate('Scale') ?>:</label>
-          <?php echo htmlSelect('scale', $scales, $options['scale'], array('data-on-change-this'=>'changeScale') ); ?>
+          <?php echo htmlSelect('scale', $scales, $options['scale'], array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
         </span>
       </div>
     </div>
-  <div class="container-fluid">
-    <div class="row" id="content">
-      <div class="col-sm-2 sidebar">
-        <ul class="nav flex-column">
-<?php
-foreach ( $monitors as $m ) {
-          echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
-}
-?>
-        </ul>
-      </div>
-      <div class="col-sm-10 col-sm-offset-2">
+    <div class="container-fluid h-100">
+      <div class="row flex-nowrap h-100" id="content">
+        <nav id="sidebar" class="h-100">
+          <ul class="nav nav-pills flex-column h-100">
+  <?php
+  foreach ( $monitors as $m ) {
+            echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+  }
+  ?>
+          </ul>
+        </nav>
+        <div class="container-fluid col-sm-offset-2 h-100 pr-0">
 
-      <div id="imageFeed">
-      <?php 
-        if ( $monitor ) {
-          echo getStreamHTML($monitor, $options);
-        } else {
-          echo 'There are no monitors to view.';
-        }
-      ?>
-      </div>
+          <div id="imageFeed">
+          <?php 
+            if ( $monitor ) {
+              echo getStreamHTML($monitor, $options);
+            } else {
+              echo 'There are no monitors to view.';
+            }
+          ?>
+          </div>
 
-      <div class="buttons">
-        <button type="button" value="&lt;" id="prevBtn" title="<?php echo translate('PreviousMonitor') ?>" class="active" data-on-click-true="cyclePrev">&lt;&lt;</button>
-        <button type="button" value="||" id="pauseBtn" title="<?php echo translate('PauseCycle') ?>" class="active" data-on-click-true="cyclePause">||</button>
-        <button type="button" value="|&gt;" id="playBtn" title="<?php echo translate('PlayCycle') ?>" class="inactive" disabled="disabled" data-on-click-true="cycleStart">|&gt;</button>
-        <button type="button" value="&gt;" id="nextBtn" title="<?php echo translate('NextMonitor') ?>" class="active" data-on-click-true="cycleNext">&gt;&gt;</button>
-      </div>
+          <div class="buttons">
+            <button type="button" value="&lt;" id="prevBtn" title="<?php echo translate('PreviousMonitor') ?>" class="active" data-on-click-true="cyclePrev">&lt;&lt;</button>
+            <button type="button" value="||" id="pauseBtn" title="<?php echo translate('PauseCycle') ?>" class="active" data-on-click-true="cyclePause">||</button>
+            <button type="button" value="|&gt;" id="playBtn" title="<?php echo translate('PlayCycle') ?>" class="inactive" disabled="disabled" data-on-click-true="cycleStart">|&gt;</button>
+            <button type="button" value="&gt;" id="nextBtn" title="<?php echo translate('NextMonitor') ?>" class="active" data-on-click-true="cycleNext">&gt;&gt;</button>
+          </div>
 
+        </div>
+      </div>
     </div>
-    </div>
-  </div>
 <?php xhtmlFooter() ?>

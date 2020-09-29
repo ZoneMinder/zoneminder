@@ -24,36 +24,36 @@
 
 using namespace std;
 
-ZMPacket::ZMPacket( ) {
+ZMPacket::ZMPacket() {
   keyframe = 0;
   // frame from decoded packet, to be used in generating image
-  in_frame = NULL;
-  out_frame = NULL;
-  image = NULL;
-  buffer = NULL;
+  in_frame = nullptr;
+  out_frame = nullptr;
+  image = nullptr;
+  buffer = nullptr;
   av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.
-  timestamp = NULL;
-  analysis_image = NULL;
+  timestamp = nullptr;
+  analysis_image = nullptr;
   image_index = -1;
   score = -1;
   codec_imgsize = 0;
 }
 
-ZMPacket::ZMPacket( ZMPacket &p ) {
+ZMPacket::ZMPacket(ZMPacket &p) {
   keyframe = 0;
   // frame from decoded packet, to be used in generating image
-  in_frame = NULL;
-  out_frame = NULL;
-  image = NULL;
-  buffer = NULL;
+  in_frame = nullptr;
+  out_frame = nullptr;
+  image = nullptr;
+  buffer = nullptr;
   av_init_packet(&packet);
   if ( zm_av_packet_ref(&packet, &p.packet) < 0 ) {
     Error("error refing packet");
   }
   timestamp = new struct timeval;
   *timestamp = *p.timestamp;
-  analysis_image = NULL;
+  analysis_image = nullptr;
   image_index = -1;
   score = -1;
 }
@@ -73,11 +73,11 @@ ZMPacket::~ZMPacket() {
   }
   if ( analysis_image ) {
     delete analysis_image;
-    analysis_image = NULL;
+    analysis_image = nullptr;
   }
   // We assume the image was allocated elsewhere, so we just unref it.
-  image = NULL;
-  timestamp = NULL;
+  image = nullptr;
+  timestamp = nullptr;
 }
 
 void ZMPacket::reset() {
@@ -98,7 +98,7 @@ void ZMPacket::reset() {
   }
   if ( analysis_image ) {
     delete analysis_image;
-    analysis_image = NULL;
+    analysis_image = nullptr;
   }
 #if 0
   if ( (! image) && timestamp ) {
@@ -176,12 +176,12 @@ int ZMPacket::decode( AVCodecContext *ctx ) {
 Image *ZMPacket::get_image(Image *i) {
   if ( !in_frame ) {
     Error("Can't get image without frame.. maybe need to decode first");
-    return NULL;
+    return nullptr;
   }
   if ( !image ) {
     if ( !i ) {
       Error("Need a pre-allocated image buffer");
-      return NULL;
+      return nullptr;
     } 
     image = i;
   }
@@ -199,7 +199,7 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
     Error("error refing packet");
   }
   //dumpPacket(&packet, "zmpacket:");
-  gettimeofday(timestamp, NULL);
+  gettimeofday(timestamp, nullptr);
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   return &packet;
 }
@@ -209,7 +209,7 @@ AVFrame *ZMPacket::get_out_frame( const AVCodecContext *ctx ) {
     out_frame = zm_av_frame_alloc();
     if ( !out_frame ) {
       Error("Unable to allocate a frame");
-      return NULL;
+      return nullptr;
     }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
     codec_imgsize = av_image_get_buffer_size(

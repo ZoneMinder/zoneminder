@@ -48,12 +48,12 @@ static short *g_v_table;
 static short *g_u_table;
 static short *b_u_table;
 
-struct SwsContext *sws_convert_context = NULL;
+struct SwsContext *sws_convert_context = nullptr;
 
-jpeg_compress_struct *Image::writejpg_ccinfo[101] = { 0 };
-jpeg_compress_struct *Image::encodejpg_ccinfo[101] = { 0 };
-jpeg_decompress_struct *Image::readjpg_dcinfo = 0;
-jpeg_decompress_struct *Image::decodejpg_dcinfo = 0;
+jpeg_compress_struct *Image::writejpg_ccinfo[101] = { };
+jpeg_compress_struct *Image::encodejpg_ccinfo[101] = { };
+jpeg_decompress_struct *Image::readjpg_dcinfo = nullptr;
+jpeg_decompress_struct *Image::decodejpg_dcinfo = nullptr;
 struct zm_error_mgr Image::jpg_err;
 
 /* Pointer to blend function. */
@@ -152,7 +152,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   padding = p_padding;
   subpixelorder = p_subpixelorder;
   size = linesize*height + padding;
-  buffer = 0;
+  buffer = nullptr;
   holdbuffer = 0;
   if ( p_buffer ) {
     allocation = size;
@@ -177,7 +177,7 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   padding = p_padding;
   subpixelorder = p_subpixelorder;
   size = linesize*height + padding;
-  buffer = 0;
+  buffer = nullptr;
   holdbuffer = 0;
   if ( p_buffer ) {
     allocation = size;
@@ -210,7 +210,7 @@ Image::Image(const AVFrame *frame) {
   size = avpicture_get_size(AV_PIX_FMT_RGBA, width, height);
 #endif
 
-  buffer = 0;
+  buffer = nullptr;
   holdbuffer = 0;
   AllocImgBuffer(size);
   this->Assign(frame);
@@ -237,9 +237,9 @@ void Image::Assign(const AVFrame *frame) {
       height,
       (AVPixelFormat)frame->format,
       width, height,
-      format, SWS_BICUBIC, NULL,
-      NULL, NULL);
-  if ( sws_convert_context == NULL )
+      format, SWS_BICUBIC, nullptr,
+      nullptr, nullptr);
+  if ( sws_convert_context == nullptr )
     Fatal("Unable to create conversion context");
 
   if ( sws_scale(sws_convert_context, frame->data, frame->linesize, 0, frame->height,
@@ -262,7 +262,7 @@ Image::Image(const Image &p_image) {
   colours = p_image.colours;
   subpixelorder = p_image.subpixelorder;
   size = p_image.size; // allocation is set in AllocImgBuffer
-  buffer = 0;
+  buffer = nullptr;
   holdbuffer = 0;
   AllocImgBuffer(size);
   (*fptr_imgbufcpy)(buffer, p_image.buffer, size);
@@ -281,24 +281,24 @@ void Image::Deinitialise() {
   if ( readjpg_dcinfo ) {
     jpeg_destroy_decompress(readjpg_dcinfo);
     delete readjpg_dcinfo;
-    readjpg_dcinfo = NULL;
+    readjpg_dcinfo = nullptr;
   }
   if ( decodejpg_dcinfo ) {
     jpeg_destroy_decompress(decodejpg_dcinfo);
     delete decodejpg_dcinfo;
-    decodejpg_dcinfo = NULL;
+    decodejpg_dcinfo = nullptr;
   }
   for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
     if ( writejpg_ccinfo[quality] ) {
       jpeg_destroy_compress(writejpg_ccinfo[quality]);
       delete writejpg_ccinfo[quality];
-      writejpg_ccinfo[quality] = NULL;
+      writejpg_ccinfo[quality] = nullptr;
     }
   } // end foreach quality
 
   if ( sws_convert_context ) {
     sws_freeContext(sws_convert_context);
-    sws_convert_context = NULL;
+    sws_convert_context = nullptr;
   }
 }  // end void Image::Deinitialise()
 
@@ -509,25 +509,25 @@ uint8_t* Image::WriteBuffer(
       &&
       p_colours != ZM_COLOUR_RGB32 ) {
     Error("WriteBuffer called with unexpected colours: %d", p_colours);
-    return NULL;
+    return nullptr;
   }
 
   if ( ! ( p_height > 0 && p_width > 0 ) ) {
     Error("WriteBuffer called with invalid width or height: %d %d", p_width, p_height);
-    return NULL;
+    return nullptr;
   }
 
   if ( p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder ) {
 
     unsigned int newsize = (p_width * p_height) * p_colours;
 
-    if ( buffer == NULL ) {
+    if ( buffer == nullptr ) {
       AllocImgBuffer(newsize);
     } else {
       if ( allocation < newsize ) {
         if ( holdbuffer ) {
           Error("Held buffer is undersized for requested buffer");
-          return NULL;
+          return nullptr;
         } else {
           /* Replace buffer with a bigger one */
           //DumpImgBuffer(); // Done in AllocImgBuffer too
@@ -560,7 +560,7 @@ void Image::AssignDirect(
     const size_t buffer_size,
     const int p_buffertype) {
 
-  if ( new_buffer == NULL ) {
+  if ( new_buffer == nullptr ) {
     Error("Attempt to directly assign buffer from a NULL pointer");
     return;
   }
@@ -631,7 +631,7 @@ void Image::Assign(
     const size_t buffer_size) {
   unsigned int new_size = (p_width * p_height) * p_colours;
 
-  if ( new_buffer == NULL ) {
+  if ( new_buffer == nullptr ) {
     Error("Attempt to assign buffer from a NULL pointer");
     return;
   }
@@ -681,7 +681,7 @@ void Image::Assign(
 void Image::Assign(const Image &image) {
   unsigned int new_size = image.height * image.linesize;
 
-  if ( image.buffer == NULL ) {
+  if ( image.buffer == nullptr ) {
     Error("Attempt to assign image with an empty buffer");
     return;
   }
@@ -820,7 +820,7 @@ Image *Image::HighlightEdges(
 
 bool Image::ReadRaw(const char *filename) {
   FILE *infile;
-  if ( (infile = fopen(filename, "rb")) == NULL ) {
+  if ( (infile = fopen(filename, "rb")) == nullptr ) {
     Error("Can't open %s: %s", filename, strerror(errno));
     return false;
   }
@@ -851,7 +851,7 @@ bool Image::ReadRaw(const char *filename) {
 
 bool Image::WriteRaw(const char *filename) const {
   FILE *outfile;
-  if ( (outfile = fopen(filename, "wb")) == NULL ) {
+  if ( (outfile = fopen(filename, "wb")) == nullptr ) {
     Error("Can't open %s: %s", filename, strerror(errno));
     return false;
   }
@@ -880,7 +880,7 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
   }
 
   FILE *infile;
-  if ( (infile = fopen(filename, "rb")) == NULL ) {
+  if ( (infile = fopen(filename, "rb")) == nullptr ) {
     Error("Can't open %s: %s", filename, strerror(errno));
     return false;
   }
@@ -904,7 +904,7 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
 
   /* Check if the image has at least one huffman table defined. If not, use the standard ones */
   /* This is required for the MJPEG capture palette of USB devices */
-  if ( cinfo->dc_huff_tbl_ptrs[0] == NULL ) {
+  if ( cinfo->dc_huff_tbl_ptrs[0] == nullptr ) {
     zm_use_std_huff_tables(cinfo);
   }
 
@@ -969,7 +969,7 @@ cinfo->out_color_space = JCS_RGB;
         break;
   }  // end switch p_colours
 
-  if ( WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == NULL ) {
+  if ( WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == nullptr ) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
     jpeg_abort_decompress(cinfo);
     fclose(infile);
@@ -1020,7 +1020,7 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
   int quality = quality_override ? quality_override : config.jpeg_file_quality;
 
   struct jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
-  FILE *outfile = NULL;
+  FILE *outfile = nullptr;
   static int raw_fd = 0;
   raw_fd = 0;
 
@@ -1037,7 +1037,7 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
     jpg_err.pub.emit_message = zm_jpeg_emit_silence;
     if ( setjmp(jpg_err.setjmp_buffer) ) {
       jpeg_abort_compress(cinfo);
-      Debug(1, "Aborted a write mid-stream and %s and %d", (outfile == NULL) ? "closing file" : "file not opened", raw_fd);
+      Debug(1, "Aborted a write mid-stream and %s and %d", (outfile == nullptr) ? "closing file" : "file not opened", raw_fd);
       if ( raw_fd )
         close(raw_fd);
       if ( outfile )
@@ -1047,7 +1047,7 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
   }
 
   if ( !on_blocking_abort ) {
-    if ( (outfile = fopen(filename, "wb")) == NULL ) {
+    if ( (outfile = fopen(filename, "wb")) == nullptr ) {
       Error("Can't open %s for writing: %s", filename, strerror(errno));
       return false;
     }
@@ -1056,7 +1056,7 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
     if ( raw_fd < 0 )
       return false;
     outfile = fdopen(raw_fd, "wb");
-    if ( outfile == NULL ) {
+    if ( outfile == nullptr ) {
       close(raw_fd);
       return false;
     }
@@ -1199,7 +1199,7 @@ bool Image::DecodeJpeg(
 
   /* Check if the image has at least one huffman table defined. If not, use the standard ones */
   /* This is required for the MJPEG capture palette of USB devices */
-  if ( cinfo->dc_huff_tbl_ptrs[0] == NULL ) {
+  if ( cinfo->dc_huff_tbl_ptrs[0] == nullptr ) {
     zm_use_std_huff_tables(cinfo);
   }
 
@@ -1265,7 +1265,7 @@ cinfo->out_color_space = JCS_RGB;
         break;
   } // end switch
 
-  if ( WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == NULL ) {
+  if ( WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == nullptr ) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
     jpeg_abort_decompress(cinfo);
     return false;
@@ -1808,7 +1808,7 @@ void Image::Delta(const Image &image, Image* targetimage) const {
 
   uint8_t *pdiff = targetimage->WriteBuffer(width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
 
-  if ( pdiff == NULL ) {
+  if ( pdiff == nullptr ) {
     Panic("Failed requesting writeable buffer for storing the delta image");
   }
 

@@ -64,7 +64,8 @@ function dbConnect() {
     $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   } catch(PDOException $ex) {
-    echo "Unable to connect to ZM db using dsn $dsn host".ZM_DB_HOST.' user: ('.ZM_DB_USER.') password ('.ZM_DB_PASS.': '.$ex->getMessage();
+    global $error_message;
+    $error_message = "Unable to connect to ZM db using dsn $dsn<br/><br/>".$ex->getMessage();
     error_log('Unable to connect to ZM DB ' . $ex->getMessage());
     $dbConn = null;
   }
@@ -72,7 +73,8 @@ function dbConnect() {
 }  // end function dbConnect
 
 if ( !dbConnect() ) {
-  ZM\Fatal('Failed db connection');
+  include('views/no_database_connection.php');
+  exit();
 }
 
 function dbDisconnect() {
@@ -153,10 +155,7 @@ function dbQuery($sql, $params=NULL) {
       }
     }
     if ( defined('ZM_DB_DEBUG') ) {
-      if ( $params )
-        ZM\Logger::Debug("SQL: $sql " . implode(',',$params) . ' rows: '.$result->rowCount());
-      else
-        ZM\Logger::Debug("SQL: $sql: rows:" . $result->rowCount());
+      ZM\Logger::Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
     }
   } catch(PDOException $e) {
     ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));

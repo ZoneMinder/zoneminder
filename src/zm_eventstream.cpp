@@ -148,7 +148,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   event_data->monitor_id = atoi(dbrow[0]);
   event_data->storage_id = dbrow[1] ? atoi(dbrow[1]) : 0;
-  event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[2]);
+  event_data->frame_count = dbrow[2] == nullptr ? 0 : atoi(dbrow[2]);
   event_data->start_time = atoi(dbrow[3]);
   event_data->duration = dbrow[4] ? atof(dbrow[4]) : 0.0;
   strncpy(event_data->video_file, dbrow[5], sizeof(event_data->video_file)-1);
@@ -160,8 +160,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   } else {
     event_data->scheme = Storage::SHALLOW;
   }
-  event_data->SaveJPEGs = dbrow[7] == NULL ? 0 : atoi(dbrow[7]);
-  event_data->Orientation = (Monitor::Orientation)(dbrow[8] == NULL ? 0 : atoi(dbrow[8]));
+  event_data->SaveJPEGs = dbrow[7] == nullptr ? 0 : atoi(dbrow[7]);
+  event_data->Orientation = (Monitor::Orientation)(dbrow[8] == nullptr ? 0 : atoi(dbrow[8]));
   mysql_free_result(result);
 
   if ( !monitor ) {
@@ -303,7 +303,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     if ( 0 > ffmpeg_input->Open(filepath.c_str()) ) {
       Warning("Unable to open ffmpeg_input %s", filepath.c_str());
       delete ffmpeg_input;
-      ffmpeg_input = NULL;
+      ffmpeg_input = nullptr;
     }
   }
 
@@ -646,7 +646,6 @@ bool EventStream::sendFrame(int delta_us) {
 
   static char filepath[PATH_MAX];
   static struct stat filestat;
-  FILE *fdj = NULL;
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
@@ -662,7 +661,6 @@ bool EventStream::sendFrame(int delta_us) {
         filepath[0] = 0;
       }
     }
-
   } else if ( !ffmpeg_input ) {
     Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
     return false;
@@ -684,34 +682,22 @@ bool EventStream::sendFrame(int delta_us) {
   } else
 #endif // HAVE_LIBAVCODEC
   {
-    static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
 
+    static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
     int img_buffer_size = 0;
     uint8_t *img_buffer = temp_img_buffer;
 
-    bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE)) && filepath[0];
+    bool send_raw = (type == STREAM_JPEG) && ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE)) && filepath[0];
 
-    fprintf(stdout, "--ZoneMinderFrame\r\n");
-
-    if ( (type != STREAM_JPEG) || (!filepath[0]) )
-      send_raw = false;
+    fprintf(stdout, "--" BOUNDARY "\r\n");
 
     if ( send_raw ) {
-      fdj = fopen(filepath, "rb");
-      if ( !fdj ) {
-        Error("Can't open %s: %s", filepath, strerror(errno));
-        return true; // returning false will cause us to terminate.
-      }
-#if HAVE_SENDFILE
-      if ( fstat(fileno(fdj),&filestat) < 0 ) {
-        Error("Failed getting information about file %s: %s", filepath, strerror(errno));
+      if ( !send_file(filepath) ) {
+        Error("Can't send %s: %s", filepath, strerror(errno));
         return false;
       }
-#else
-      img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
-#endif
     } else {
-      Image *image = NULL;
+      Image *image = nullptr;
 
       if ( filepath[0] ) {
         image = new Image(filepath);
@@ -765,91 +751,33 @@ bool EventStream::sendFrame(int delta_us) {
 
       switch ( type ) {
         case STREAM_JPEG :
-          if ( send_image->EncodeJpeg(img_buffer, &img_buffer_size) ) {
-            Debug(1, "encoded JPEG");
-          } else {
-            // Failed
-          }
+          send_image->EncodeJpeg(img_buffer, &img_buffer_size);
+          fputs("Content-Type: image/jpeg\r\n", stdout);
           break;
         case STREAM_ZIP :
-#if HAVE_ZLIB_H
           unsigned long zip_buffer_size;
           send_image->Zip(img_buffer, &zip_buffer_size);
           img_buffer_size = zip_buffer_size;
+          fputs("Content-Type: image/x-rgbz\r\n", stdout);
           break;
-#else
-          Error("zlib is required for zipped images. Falling back to raw image");
-          type = STREAM_RAW;
-#endif // HAVE_ZLIB_H
         case STREAM_RAW :
           img_buffer = (uint8_t*)(send_image->Buffer());
           img_buffer_size = send_image->Size();
+          fputs("Content-Type: image/x-rgb\r\n", stdout);
           break;
         default:
           Fatal("Unexpected frame type %d", type);
           break;
       }
+      send_buffer(img_buffer, img_buffer_size);
       delete image;
-      image = NULL;
-    } // end if send_raw or not
-
-    switch ( type ) {
-      case STREAM_JPEG :
-        fputs("Content-Type: image/jpeg\r\n", stdout);
-        break;
-      case STREAM_RAW :
-        fputs("Content-Type: image/x-rgb\r\n", stdout);
-        break;
-      case STREAM_ZIP :
-        fputs("Content-Type: image/x-rgbz\r\n", stdout);
-        break;
-      default :
-        Fatal("Unexpected frame type %d", type);
-        break;
-    }
-
-    if ( send_raw ) {
-#if HAVE_SENDFILE
-      if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size) ) {
-        fclose(fdj); /* Close the file handle */
-        Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
-        return false;
-      }
-      if ( zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size ) {
-        /* sendfile() failed, use standard way instead */
-        img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
-        if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
-          fclose(fdj); /* Close the file handle */
-          Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
-          return false;
-        }
-      }
-#else
-      if ( 
-          (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) )
-          ||
-          ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 )
-         ) {
-        fclose(fdj); /* Close the file handle */
-        Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
-        return false;
-      }
-#endif
-      fclose(fdj); /* Close the file handle */
-    } else {
-      Debug(3, "Content length: %d", img_buffer_size);
-      if ( 
-          (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) )
-          ||
-          ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) )  {
-        Error("Unable to send stream frame: %s", strerror(errno));
-        return false;
-      }
+      image = nullptr;
     }  // end if send_raw or not
 
-    fputs("\r\n\r\n", stdout);
-    fflush(stdout);
   }  // end if stream MPEG or other
+
+  fputs("\r\n\r\n", stdout);
+  fflush(stdout);
   last_frame_sent = TV_2_FLOAT(now);
   return true;
 }  // bool EventStream::sendFrame( int delta_us )
@@ -860,7 +788,7 @@ void EventStream::runStream() {
   checkInitialised();
 
   if ( type == STREAM_JPEG )
-    fputs("Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n", stdout);
+    fputs("Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   if ( !event_data ) {
     sendTextFrame("No event data found");
@@ -869,7 +797,7 @@ void EventStream::runStream() {
 
   Debug(3, "frame rate is: (%f)", (double)event_data->frame_count/event_data->duration);
   updateFrameRate((double)event_data->frame_count/event_data->duration);
-  gettimeofday(&start, NULL);
+  gettimeofday(&start, nullptr);
   uint64_t start_usec = start.tv_sec * 1000000 + start.tv_usec;
   uint64_t last_frame_offset = 0;
 
@@ -877,7 +805,7 @@ void EventStream::runStream() {
   double time_to_event = 0;
 
   while ( !zm_terminate ) {
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     int delta_us = 0;
     send_frame = false;
@@ -981,7 +909,7 @@ void EventStream::runStream() {
       // +/- 1? What if we are skipping frames?
       curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;
       // sending the frame may have taken some time, so reload now
-      gettimeofday(&now, NULL);
+      gettimeofday(&now, nullptr);
       uint64_t now_usec = (now.tv_sec * 1000000 + now.tv_usec);
 
       // we incremented by replay_rate, so might have jumped past frame_count
@@ -1078,7 +1006,65 @@ void EventStream::runStream() {
 #endif // HAVE_LIBAVCODEC
 
   closeComms();
-} // void EventStream::runStream()
+} // end void EventStream::runStream()
+
+bool EventStream::send_file(const char * filepath) {
+  static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
+
+  int img_buffer_size = 0;
+  uint8_t *img_buffer = temp_img_buffer;
+
+  FILE *fdj = NULL;
+  fdj = fopen(filepath, "rb");
+  if ( !fdj ) {
+    Error("Can't open %s: %s", filepath, strerror(errno));
+    return false;
+  }
+  bool size_sent = false;
+
+#if HAVE_SENDFILE
+  static struct stat filestat;
+  if ( fstat(fileno(fdj), &filestat) < 0 ) {
+    Error("Failed getting information about file %s: %s", filepath, strerror(errno));
+    return false;
+  }
+  if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size) ) {
+    fclose(fdj); /* Close the file handle */
+    Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+    return false;
+  }
+  size_sent = true;
+
+  if ( zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size ) {
+    fclose(fdj); /* Close the file handle */
+    return true;
+  }
+#endif
+  img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
+  if ( !size_sent ) {
+    if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) ) {
+      fclose(fdj); /* Close the file handle */
+      Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+      return false;
+    }
+  }
+  if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+    Error("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+    return false;
+  }
+
+  fclose(fdj); /* Close the file handle */
+  return true;
+}  // end bool EventStream::send_file(const char * filepath)
+
+bool EventStream::send_buffer(uint8_t* buffer, int size) {
+  fprintf(stdout, "Content-Length: %d\r\n\r\n", size);
+  if ( fwrite(buffer, size, 1, stdout) != 1 ) {
+    Error("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+    return false;
+  }
+  return true;
+}  // end bool EventStream::send_buffer(uint8_t* buffer, int size)
 
 void EventStream::setStreamStart(
     uint64_t init_event_id,

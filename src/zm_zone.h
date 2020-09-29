@@ -32,15 +32,14 @@ class Monitor;
 // This describes a 'zone', or an area of an image that has certain
 // detection characteristics.
 //
-class Zone
-{
+class Zone {
 protected:
-  struct Range
-  {
+  struct Range {
     int lo_x;
     int hi_x;
     int off_x;
   };
+  typedef struct { unsigned char tag; int count; int lo_x; int hi_x; int lo_y; int hi_y; } BlobStats;
 
 public:
   typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE, PRIVACY } ZoneType;
@@ -52,8 +51,8 @@ protected:
 
   int        id;
   char      *label;
-  ZoneType    type;
-  Polygon      polygon;
+  ZoneType   type;
+  Polygon    polygon;
   Rgb        alarm_rgb;
   CheckMethod    check_method;
 
@@ -67,17 +66,18 @@ protected:
   int        min_filter_pixels;
   int        max_filter_pixels;
 
+  BlobStats blob_stats[256];
   int        min_blob_pixels;
   int        max_blob_pixels;
   int        min_blobs;
   int        max_blobs;
 
-  int       overload_frames;
+  int        overload_frames;
   int        extend_alarm_frames;
 
   // Outputs/Statistics
-  bool      alarmed;
-  bool      was_alarmed;
+  bool       alarmed;
+  bool       was_alarmed;
   int        pixel_diff;
   unsigned int      alarm_pixels;
   int        alarm_filter_pixels;
@@ -139,8 +139,7 @@ public:
   inline Coord GetAlarmCentre() const { return( alarm_centre ); }
   inline unsigned int Score() const { return( score ); }
 
-  inline void ResetStats()
-  {
+  inline void ResetStats() {
     alarmed = false;
 		was_alarmed = false;
     pixel_diff = 0;

@@ -41,9 +41,9 @@ zm_packetqueue::zm_packetqueue( int video_image_count, int p_video_stream_id, in
 zm_packetqueue::~zm_packetqueue() {
   clearQueue();
   delete[] packet_counts;
-  packet_counts = NULL;
+  packet_counts = nullptr;
   delete condition;
-  condition = NULL;
+  condition = nullptr;
 }
 
 /* Enqueues the given packet.  Will maintain the analysis_it pointer and image packet counts.
@@ -87,7 +87,7 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
 
 ZMPacket* zm_packetqueue::popPacket( ) {
 	if ( pktQueue.empty() ) {
-		return NULL;
+		return nullptr;
 	}
   Debug(2, "poPacket Mutex locking");
   mutex.lock();
@@ -131,7 +131,7 @@ unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_
   int packets_to_delete = pktQueue.size();
 
   std::list<ZMPacket *>::reverse_iterator it;
-  ZMPacket *packet = NULL;
+  ZMPacket *packet = nullptr;
 
   for ( it = pktQueue.rbegin(); frames_to_keep && (it != pktQueue.rend()); ++it ) {
     ZMPacket *zm_packet = *it;
@@ -201,7 +201,7 @@ unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_
       delete_count += 1;
     } // while our iterator is not the first packet
   } // end if have packet_delete_count 
-  packet = NULL; // tidy up for valgrind
+  packet = nullptr; // tidy up for valgrind
   Debug(3, "Deleted %d packets, %d remaining", delete_count, pktQueue.size());
 
 #if 0
@@ -220,7 +220,7 @@ unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_
 
 void zm_packetqueue::clearQueue() {
   mutex.lock();
-  ZMPacket *packet = NULL;
+  ZMPacket *packet = nullptr;
   int delete_count = 0;
 	while ( !pktQueue.empty() ) {
     packet = pktQueue.front();
@@ -290,7 +290,7 @@ unsigned int zm_packetqueue::clearQueue(struct timeval *duration, int streamId) 
   }
 
   unsigned int deleted_frames = 0;
-  ZMPacket *zm_packet = NULL;
+  ZMPacket *zm_packet = nullptr;
   while (distance(it, pktQueue.rend()) > 1) {
     zm_packet = pktQueue.front();
     pktQueue.pop_front();
@@ -298,7 +298,7 @@ unsigned int zm_packetqueue::clearQueue(struct timeval *duration, int streamId) 
     delete zm_packet;
     deleted_frames += 1;
   }
-  zm_packet = NULL;
+  zm_packet = nullptr;
   Debug(3, "Deleted %d frames", deleted_frames);
 
   return deleted_frames;

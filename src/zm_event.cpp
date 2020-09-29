@@ -224,18 +224,18 @@ Event::Event(
       return;
     }
     video_file = path + "/" + video_name;
-    Debug(1,"Writing video file to %s", video_file.c_str());
+    Debug(1, "Writing video file to %s", video_file.c_str());
     Camera * camera = monitor->getCamera();
     videoStore = new VideoStore(
         video_file.c_str(),
         container.c_str(),
         camera->get_VideoStream(),
-        ( monitor->RecordAudio() ? camera->get_AudioStream() : NULL ),
+        ( monitor->RecordAudio() ? camera->get_AudioStream() : nullptr ),
         monitor );
 
     if ( !videoStore->open() ) {
       delete videoStore;
-      videoStore = NULL;
+      videoStore = nullptr;
       save_jpegs |= 1; // Turn on jpeg storage
     }
   }
@@ -245,10 +245,10 @@ Event::~Event() {
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
 
   /* Close the video file */
-  if ( videoStore ) {
+  if ( videoStore != nullptr ) {
     Debug(2, "Deleting video store");
     delete videoStore;
-    videoStore = NULL;
+    videoStore = nullptr;
   }
 
   struct DeltaTimeval delta_time;
@@ -280,8 +280,8 @@ Event::~Event() {
 
   // Should not be static because we might be multi-threaded
   char sql[ZM_SQL_LGE_BUFSIZ];
-  snprintf(sql, sizeof(sql), 
-      "UPDATE Events SET Name='%s %" PRIu64 "', EndTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+  snprintf(sql, sizeof(sql),
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64 " AND Name='New Event'",
       monitor->EventPrefix(), id, end_time.tv_sec,
       delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
       frames, alarm_frames,
@@ -294,6 +294,22 @@ Event::~Event() {
     sleep(1);
     db_mutex.lock();
   }
+  if ( !mysql_affected_rows(&dbconn) ) {
+    // Name might have been changed during recording, so just do the update without changing the name.
+    snprintf(sql, sizeof(sql),
+        "UPDATE Events SET EndTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+        end_time.tv_sec,
+        delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
+        frames, alarm_frames,
+        tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
+        id);
+    while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
+      db_mutex.unlock();
+      Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
+      sleep(1);
+      db_mutex.lock();
+    }
+  }  // end if no changed rows due to Name change during recording
   db_mutex.unlock();
 }  // Event::~Event()
 

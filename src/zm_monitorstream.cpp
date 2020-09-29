@@ -251,20 +251,29 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   } status_data;
 
   status_data.id = monitor->Id();
-  status_data.fps = monitor->GetFPS();
-  status_data.state = monitor->shared_data->state;
-  if ( playback_buffer > 0 )
-    status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
-  else
+  if ( ! monitor->ShmValid() ) {
+    status_data.fps = 0.0;
+    status_data.state = Monitor::UNKNOWN;
+    //status_data.enabled = monitor->shared_data->active;
+    status_data.enabled = false;
+    status_data.forced = false;
     status_data.buffer_level = 0;
+  } else {
+    status_data.fps = monitor->GetFPS();
+    status_data.state = monitor->shared_data->state;
+    //status_data.enabled = monitor->shared_data->active;
+    status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
+    status_data.forced = monitor->trigger_data->trigger_state==Monitor::TRIGGER_ON;
+    if ( playback_buffer > 0 )
+      status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
+    else
+      status_data.buffer_level = 0;
+  }
   status_data.delayed = delayed;
   status_data.paused = paused;
   status_data.rate = replay_rate;
-  status_data.delay = TV_2_FLOAT( now ) - TV_2_FLOAT( last_frame_timestamp );
+  status_data.delay = TV_2_FLOAT(now) - TV_2_FLOAT(last_frame_timestamp);
   status_data.zoom = zoom;
-  //status_data.enabled = monitor->shared_data->active;
-  status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
-  status_data.forced = monitor->trigger_data->trigger_state==Monitor::TRIGGER_ON;
   Debug(2, "Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
     status_data.buffer_level,
     status_data.delayed,
@@ -291,12 +300,13 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
 
   // quit after sending a status, if this was a quit request
   if ( (MsgCommand)msg->msg_data[0]==CMD_QUIT ) {
-    Debug(2,"Quitting");
-    exit(0);
+    zm_terminate = true;
+    Debug(2, "Quitting");
+    return;
   }
 
-  Debug(2,"Updating framerate");
-  updateFrameRate(monitor->GetFPS());
+  //Debug(2,"Updating framerate");
+  //updateFrameRate(monitor->GetFPS());
 } // end void MonitorStream::processCommand(const CmdMsg *msg)
 
 bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
@@ -317,7 +327,7 @@ bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
     int img_buffer_size = 0;
     static unsigned char img_buffer[ZM_MAX_IMAGE_SIZE];
 
-    FILE *fdj = NULL;
+    FILE *fdj = nullptr;
     if ( (fdj = fopen(filepath, "r")) ) {
       img_buffer_size = fread(img_buffer, 1, sizeof(img_buffer), fdj);
       fclose(fdj);
@@ -328,7 +338,7 @@ bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
 
     // Calculate how long it takes to actually send the frame
     struct timeval frameStartTime;
-    gettimeofday(&frameStartTime, NULL);
+    gettimeofday(&frameStartTime, nullptr);
 
     if (
         (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %d.%06d\r\n\r\n",
@@ -344,7 +354,7 @@ bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
     fflush(stdout);
 
     struct timeval frameEndTime;
-    gettimeofday(&frameEndTime, NULL);
+    gettimeofday(&frameEndTime, nullptr);
 
     int frameSendTime = tvDiffMsec(frameStartTime, frameEndTime);
     if ( frameSendTime > 1000/maxfps ) {
@@ -388,9 +398,8 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
 
     // Calculate how long it takes to actually send the frame
     struct timeval frameStartTime;
-    gettimeofday(&frameStartTime, NULL);
+    gettimeofday(&frameStartTime, nullptr);
 
-    fputs("--ZoneMinderFrame\r\n", stdout);
     switch ( type ) {
       case STREAM_JPEG :
         send_image->EncodeJpeg(img_buffer, &img_buffer_size);
@@ -432,7 +441,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
     fflush(stdout);
 
     struct timeval frameEndTime;
-    gettimeofday(&frameEndTime, NULL);
+    gettimeofday(&frameEndTime, nullptr);
 
     int frameSendTime = tvDiffMsec(frameStartTime, frameEndTime);
     if ( frameSendTime > 1000/maxfps ) {
@@ -454,15 +463,22 @@ void MonitorStream::runStream() {
 
   openComms();
 
+  if ( type == STREAM_JPEG )
+    fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
+
   if ( !checkInitialised() ) {
     Error("Not initialized");
-    return;
+    while ( !(loadMonitor(monitor_id) || zm_terminate) ) {
+      sendTextFrame("Not connected");
+      if ( connkey )
+        checkCommandQueue();
+      sleep(1);
+    }
+    if ( zm_terminate )
+      return;
   }
 
   updateFrameRate(monitor->GetFPS());
-
-  if ( type == STREAM_JPEG )
-    fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
   unsigned int last_read_index = monitor->image_buffer_count;
@@ -472,7 +488,7 @@ void MonitorStream::runStream() {
 
   frame_count = 0;
 
-  temp_image_buffer = 0;
+  temp_image_buffer = nullptr;
   temp_image_buffer_count = playback_buffer;
   temp_read_index = temp_image_buffer_count;
   temp_write_index = temp_image_buffer_count;
@@ -483,7 +499,7 @@ void MonitorStream::runStream() {
   bool buffered_playback = false;
 
   // Last image and timestamp when paused, will be resent occasionally to prevent timeout
-  Image *paused_image = NULL;
+  Image *paused_image = nullptr;
   struct timeval paused_timestamp;
 
   if ( connkey && ( playback_buffer > 0 ) ) {
@@ -491,8 +507,8 @@ void MonitorStream::runStream() {
     const int max_swap_len_suffix = 15;
 
     int swap_path_length = staticConfig.PATH_SWAP.length() + 1; // +1 for NULL terminator
-    int subfolder1_length = snprintf(NULL, 0, "/zmswap-m%d", monitor->Id()) + 1;
-    int subfolder2_length = snprintf(NULL, 0, "/zmswap-q%06d", connkey) + 1;
+    int subfolder1_length = snprintf(nullptr, 0, "/zmswap-m%d", monitor->Id()) + 1;
+    int subfolder2_length = snprintf(nullptr, 0, "/zmswap-q%06d", connkey) + 1;
     int total_swap_path_length = swap_path_length + subfolder1_length + subfolder2_length;
 
     if ( total_swap_path_length + max_swap_len_suffix > PATH_MAX ) {
@@ -549,7 +565,7 @@ void MonitorStream::runStream() {
       break;
     }
 
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     bool was_paused = paused;
     if ( connkey ) {
@@ -575,7 +591,7 @@ void MonitorStream::runStream() {
     } else if ( paused_image ) {
       Debug(1, "Clearing paused_image");
       delete paused_image;
-      paused_image = NULL;
+      paused_image = nullptr;
     }
 
     if ( buffered_playback && delayed ) {

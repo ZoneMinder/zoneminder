@@ -93,7 +93,7 @@ VideoStore::VideoStore(
 bool VideoStore::open() {
   Info("Opening video storage stream %s format: %s", filename, format);
 
-  int ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
+  int ret = avformat_alloc_output_context2(&oc, nullptr, nullptr, filename);
   if ( ret < 0 ) {
     Warning(
         "Could not create video storage stream %s as no out ctx"
@@ -103,7 +103,7 @@ bool VideoStore::open() {
 
   // Couldn't deduce format from filename, trying from format name
   if ( !oc ) {
-    avformat_alloc_output_context2(&oc, NULL, format, filename);
+    avformat_alloc_output_context2(&oc, nullptr, format, filename);
     if ( !oc ) {
       Error(
           "Could not create video storage stream %s as no out ctx"
@@ -113,7 +113,7 @@ bool VideoStore::open() {
     }
   } // end if ! oc
 
-  AVDictionary *pmetadata = NULL;
+  AVDictionary *pmetadata = nullptr;
   ret = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
   if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
 
@@ -151,8 +151,6 @@ bool VideoStore::open() {
       Debug(2, "Defaulting to H264");
       wanted_codec = AV_CODEC_ID_H264;
     }
-
-  //max_stream_index = video_out_stream->index;
 
   // FIXME Should check that we are set to passthrough.  Might be same codec, but want privacy overlays
     if ( video_in_ctx->codec_id == wanted_codec ) {
@@ -298,6 +296,7 @@ bool VideoStore::open() {
     Error("Unable to create video out stream");
     return false;
   }
+  max_stream_index = video_out_stream->index;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
   if ( ret < 0 ) {
@@ -308,16 +307,16 @@ bool VideoStore::open() {
   avcodec_copy_context(video_out_stream->codec, video_out_ctx);
 #endif
 
-  converted_in_samples = NULL;
-  audio_out_codec = NULL;
-  audio_in_codec = NULL;
-  audio_in_ctx = NULL;
-  audio_out_stream = NULL;
-  in_frame = NULL;
-  out_frame = NULL;
+  converted_in_samples = nullptr;
+  audio_out_codec = nullptr;
+  audio_in_codec = nullptr;
+  audio_in_ctx = nullptr;
+  audio_out_stream = nullptr;
+  in_frame = nullptr;
+  out_frame = nullptr;
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
-  resample_ctx = NULL;
-  fifo = NULL;
+  resample_ctx = nullptr;
+  fifo = nullptr;
 #endif
   video_first_pts = 0;
   video_first_dts = 0;
@@ -352,11 +351,11 @@ bool VideoStore::open() {
       }
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      audio_out_stream = avformat_new_stream(oc, NULL);
+      audio_out_stream = avformat_new_stream(oc, nullptr);
       audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
       if ( !audio_out_ctx ) {
         Error("could not allocate codec ctx for AAC");
-        audio_out_stream = NULL;
+        audio_out_stream = nullptr;
         return false;
       }
 #else
@@ -371,7 +370,7 @@ bool VideoStore::open() {
     } else {
       Debug(2, "Got AAC");
 
-      audio_out_stream = avformat_new_stream(oc, NULL);
+      audio_out_stream = avformat_new_stream(oc, nullptr);
       if ( !audio_out_stream ) {
         Error("Could not allocate new stream");
         return false;
@@ -408,7 +407,7 @@ bool VideoStore::open() {
       if ( ret < 0 ) {
         Error("Unable to copy audio ctx %s",
               av_make_error_string(ret).c_str());
-        audio_out_stream = NULL;
+        audio_out_stream = nullptr;
         return;
       } // end if
       audio_out_ctx->codec_tag = 0;
@@ -442,7 +441,8 @@ bool VideoStore::open() {
 
   /* open the out file, if needed */
   if ( !(out_format->flags & AVFMT_NOFILE) ) {
-    if ( (ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE, NULL, NULL) ) < 0 ) {
+    ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE, nullptr, nullptr);
+    if ( ret < 0 ) {
       Error("Could not open out file '%s': %s", filename,
           av_make_error_string(ret).c_str());
       return false;
@@ -452,7 +452,7 @@ bool VideoStore::open() {
   zm_dump_stream_format(oc, 0, 0, 1);
   if ( audio_out_stream ) zm_dump_stream_format(oc, 1, 0, 1);
 
-  AVDictionary *opts = NULL;
+  AVDictionary *opts = nullptr;
 
   std::string option_string = monitor->GetEncoderOptions();
   ret = av_dict_parse_string(&opts, option_string.c_str(), "=", ",\n", 0);
@@ -460,7 +460,7 @@ bool VideoStore::open() {
     Warning("Could not parse ffmpeg output options '%s'", option_string.c_str());
   }
 
-  const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", NULL, AV_DICT_MATCH_CASE);
+  const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
   if ( !movflags_entry ) {
     Debug(1, "setting movflags to frag_keyframe+empty_moov");
     // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
@@ -473,14 +473,14 @@ bool VideoStore::open() {
   }
   if ( (ret = avformat_write_header(oc, &opts)) < 0 ) {
     Warning("Unable to set movflags trying with defaults.");
-    ret = avformat_write_header(oc, NULL);
+    ret = avformat_write_header(oc, nullptr);
   } else if ( av_dict_count(opts) != 0 ) {
     Info("some options not used, turn on debugging for a list.");
-    AVDictionaryEntry *e = NULL;
-    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+    AVDictionaryEntry *e = nullptr;
+    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr ) {
       Debug(1, "Encoder Option %s=>%s", e->key, e->value);
       if ( !e->value ) {
-        av_dict_set(&opts, e->key, NULL, 0);
+        av_dict_set(&opts, e->key, nullptr, 0);
       }
     }
   }
@@ -516,7 +516,7 @@ void VideoStore::flush_codecs() {
     while (1) {
       AVPacket pkt;
       // Without these we seg fault I don't know why.
-      pkt.data = NULL;
+      pkt.data = nullptr;
       pkt.size = 0;
       av_init_packet(&pkt);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -546,7 +546,7 @@ void VideoStore::flush_codecs() {
     // The codec queues data.  We need to send a flush command and out
     // whatever we get. Failures are not fatal.
     AVPacket pkt;
-    pkt.data = NULL;
+    pkt.data = nullptr;
     pkt.size = 0;
     av_init_packet(&pkt);
 
@@ -555,7 +555,7 @@ void VideoStore::flush_codecs() {
      * At the end of the file, we pass the remaining samples to
      * the encoder. */
     while ( zm_resample_get_delay(resample_ctx, audio_out_ctx->sample_rate) ) {
-      zm_resample_audio(resample_ctx, NULL, out_frame);
+      zm_resample_audio(resample_ctx, nullptr, out_frame);
 
       if ( zm_add_samples_to_fifo(fifo, out_frame) ) {
         // Should probably set the frame size to what is reported FIXME
@@ -595,8 +595,8 @@ void VideoStore::flush_codecs() {
     }  // end while still data in the fifo
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    // Put encoder into flushing mode
-    avcodec_send_frame(audio_out_ctx, NULL);
+      // Put encoder into flushing mode
+      avcodec_send_frame(audio_out_ctx, nullptr);
 #endif
 
     while (1) {
@@ -623,7 +623,7 @@ VideoStore::~VideoStore() {
 
     // Flush Queues
     Debug(1, "Flushing interleaved queues");
-    av_interleaved_write_frame(oc, NULL);
+    av_interleaved_write_frame(oc, nullptr);
 
     Debug(1, "Writing trailer");
     /* Write the trailer before close */
@@ -638,7 +638,7 @@ VideoStore::~VideoStore() {
       /* Close the out file. */
       Debug(2, "Closing");
       if ( int rc = avio_close(oc->pb) ) {
-        oc->pb = NULL;
+        oc->pb = nullptr;
         Error("Error closing avio %s", av_err2str(rc));
       }
     } else {
@@ -657,24 +657,24 @@ VideoStore::~VideoStore() {
     // We allocate and copy in newer ffmpeg, so need to free it
     //avcodec_free_context(&video_in_ctx);
 #endif
-    video_in_ctx = NULL;
+    video_in_ctx = nullptr;
 
     if ( video_out_codec ) {
       avcodec_close(video_out_ctx);
       Debug(4, "Success closing video_out_ctx");
-      video_out_codec = NULL;
+      video_out_codec = nullptr;
     } // end if video_out_codec
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     avcodec_free_context(&video_out_ctx);
 #endif
-    video_out_ctx = NULL;
+    video_out_ctx = nullptr;
   } // end if video_out_stream
 
   if ( audio_out_stream ) {
     if ( audio_in_codec ) {
       avcodec_close(audio_in_ctx);
       Debug(4, "Success closing audio_in_ctx");
-      audio_in_codec = NULL;
+      audio_in_codec = nullptr;
     } // end if audio_in_codec
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -682,7 +682,7 @@ VideoStore::~VideoStore() {
     avcodec_free_context(&audio_in_ctx);
 #endif
     Debug(4, "Success freeing audio_in_ctx");
-    audio_in_ctx = NULL;
+    audio_in_ctx = nullptr;
 
     if ( audio_out_ctx ) {
       avcodec_close(audio_out_ctx);
@@ -691,13 +691,13 @@ VideoStore::~VideoStore() {
       avcodec_free_context(&audio_out_ctx);
 #endif
     }
-    audio_out_ctx = NULL;
+    audio_out_ctx = nullptr;
 
 #if defined(HAVE_LIBAVRESAMPLE) || defined(HAVE_LIBSWRESAMPLE)
     if ( resample_ctx ) {
       if ( fifo ) {
         av_audio_fifo_free(fifo);
-        fifo = NULL;
+        fifo = nullptr;
       }
   #if defined(HAVE_LIBSWRESAMPLE)
       swr_free(&resample_ctx);
@@ -710,15 +710,15 @@ VideoStore::~VideoStore() {
     }
     if ( in_frame ) {
       av_frame_free(&in_frame);
-      in_frame = NULL;
+      in_frame = nullptr;
     }
     if ( out_frame ) {
       av_frame_free(&out_frame);
-      out_frame = NULL;
+      out_frame = nullptr;
     }
     if ( converted_in_samples ) {
       av_free(converted_in_samples);
-      converted_in_samples = NULL;
+      converted_in_samples = nullptr;
     }
 #endif
   } // end if audio_out_stream
@@ -775,7 +775,7 @@ bool VideoStore::setup_resampler() {
 #endif
 
   // if the codec is already open, nothing is done.
-  if ( (ret = avcodec_open2(audio_in_ctx, audio_in_codec, NULL)) < 0 ) {
+  if ( (ret = avcodec_open2(audio_in_ctx, audio_in_codec, nullptr)) < 0 ) {
     Error("Can't open audio in codec!");
     return false;
   }
@@ -834,7 +834,7 @@ bool VideoStore::setup_resampler() {
   // Example code doesn't set the codec tb.  I think it just uses whatever defaults
   //audio_out_ctx->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
-  AVDictionary *opts = NULL;
+  AVDictionary *opts = nullptr;
   // Needed to allow AAC
   if ( (ret = av_dict_set(&opts, "strict", "experimental", 0)) < 0 ) {
     Error("Couldn't set experimental");
@@ -844,9 +844,9 @@ bool VideoStore::setup_resampler() {
   if ( ret < 0 ) {
     Error("could not open codec (%d) (%s)",
         ret, av_make_error_string(ret).c_str());
-    audio_out_codec = NULL;
-    audio_out_ctx = NULL;
-    audio_out_stream = NULL;
+    audio_out_codec = nullptr;
+    audio_out_ctx = nullptr;
+    audio_out_stream = nullptr;
     return false;
   }
   zm_dump_codec(audio_out_ctx);
@@ -922,14 +922,14 @@ bool VideoStore::setup_resampler() {
     return false;
   }
 #if defined(HAVE_LIBSWRESAMPLE)
-  resample_ctx = swr_alloc_set_opts(NULL,
+  resample_ctx = swr_alloc_set_opts(nullptr,
       audio_out_ctx->channel_layout,
       audio_out_ctx->sample_fmt,
       audio_out_ctx->sample_rate,
       audio_in_ctx->channel_layout,
       audio_in_ctx->sample_fmt,
       audio_in_ctx->sample_rate,
-      0, NULL);
+      0, nullptr);
   if ( !resample_ctx ) {
     Error("Could not allocate resample context");
     av_frame_free(&in_frame);
@@ -993,7 +993,7 @@ bool VideoStore::setup_resampler() {
   // The codec gives us the frame size, in samples, we calculate the size of the
   // samples buffer in bytes
   unsigned int audioSampleBuffer_size = av_samples_get_buffer_size(
-      NULL, audio_out_ctx->channels,
+      nullptr, audio_out_ctx->channels,
       audio_out_ctx->frame_size,
       audio_out_ctx->sample_fmt, 0);
   converted_in_samples = reinterpret_cast<uint8_t *>(av_malloc(audioSampleBuffer_size));
@@ -1295,7 +1295,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
       if ( zm_resample_get_delay(resample_ctx, out_frame->sample_rate) < out_frame->nb_samples)
         break;
       // This will send a null frame, emptying out the resample buffer
-      input_frame = NULL;
+      input_frame = nullptr;
     } // end while there is data in the resampler
 
   } else {

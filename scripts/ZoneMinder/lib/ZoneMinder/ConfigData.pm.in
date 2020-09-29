@@ -582,26 +582,6 @@ our @options = (
     type        => $types{integer},
     category    => 'images',
   },
-# Deprecated, now stream quality
-  {
-    name        => 'ZM_JPEG_IMAGE_QUALITY',
-    default     => '70',
-    description => q`Set the JPEG quality setting for the streamed 'live' images (1-100)`,
-    help        => q`
-      When viewing a 'live' stream for a monitor ZoneMinder will grab
-      an image from the buffer and encode it into JPEG format before
-      sending it. This option specifies what image quality should be
-      used to encode these images. A higher number means better
-      quality but less compression so will take longer to view over a
-      slow connection. By contrast a low number means quicker to view
-      images but at the price of lower quality images. This option
-      does not apply when viewing events or still images as these are
-      usually just read from disk and so will be encoded at the
-      quality specified by the previous options.
-      `,
-    type        => $types{integer},
-    category    => 'hidden',
-  },
   {
     name        => 'ZM_JPEG_STREAM_QUALITY',
     default     => '70',
@@ -876,38 +856,6 @@ our @options = (
       `,
     type        => $types{integer},
     category    => 'config',
-  },
-# Deprecated, really no longer necessary
-  {
-    name        => 'ZM_OPT_REMOTE_CAMERAS',
-    default     => 'no',
-    description => 'Are you going to use remote/networked cameras',
-    help        => q`
-      ZoneMinder can work with both local cameras, ie. those attached
-      physically to your computer and remote or network cameras. If
-      you will be using networked cameras select this option.
-      `,
-    type        => $types{boolean},
-    category    => 'hidden',
-  },
-# Deprecated, now set on a per monitor basis using the Method field
-  {
-    name        => 'ZM_NETCAM_REGEXPS',
-    default     => 'yes',
-    description => 'Use regular expression matching with network cameras',
-    help        => q`
-      Traditionally ZoneMinder has used complex regular regular
-      expressions to handle the multitude of formats that network
-      cameras produce. In versions from 1.21.1 the default is to use
-      a simpler and faster built in pattern matching methodology.
-      This works well with most networks cameras but if you have
-      problems you can try the older, but more flexible, regular
-      expression based method by selecting this option. Note, to use
-      this method you must have libpcre installed on your system.
-      `,
-    requires    => [ { name => 'ZM_OPT_REMOTE_CAMERAS', value => 'yes' } ],
-    type        => $types{boolean},
-    category    => 'hidden',
   },
   {
     name        => 'ZM_HTTP_VERSION',
@@ -1975,19 +1923,6 @@ our @options = (
     category    => 'upload',
   },
   {
-    name        => 'ZM_UPLOAD_FTP_HOST',
-    default     => '',
-    description => 'The remote server to upload to',
-    help        => q`
-      You can use filters to instruct ZoneMinder to upload events to
-      a remote ftp server. This option indicates the name, or ip
-      address, of the server to use.
-      `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
-    type        => $types{hostname},
-    category    => 'hidden',
-  },
-  {
     name        => 'ZM_UPLOAD_HOST',
     default     => '',
     description => 'The remote server to upload events to',
@@ -2016,19 +1951,6 @@ our @options = (
     category    => 'upload',
   },
   {
-    name        => 'ZM_UPLOAD_FTP_USER',
-    default     => '',
-    description => 'Your ftp username',
-    help        => q`
-      You can use filters to instruct ZoneMinder to upload events to
-      a remote ftp server. This option indicates the username that
-      ZoneMinder should use to log in for ftp transfer.
-      `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
-    type        => $types{alphanum},
-    category    => 'hidden',
-  },
-  {
     name        => 'ZM_UPLOAD_USER',
     default     => '',
     description => 'Remote server username',
@@ -2040,19 +1962,6 @@ our @options = (
     requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
     type        => $types{alphanum},
     category    => 'upload',
-  },
-  {
-    name        => 'ZM_UPLOAD_FTP_PASS',
-    default     => '',
-    description => 'Your ftp password',
-    help        => q`
-      You can use filters to instruct ZoneMinder to upload events to
-      a remote ftp server. This option indicates the password that
-      ZoneMinder should use to log in for ftp transfer.
-      `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
-    type        => $types{string},
-    category    => 'hidden',
   },
   {
     name        => 'ZM_UPLOAD_PASS',
@@ -2070,21 +1979,6 @@ our @options = (
     category    => 'upload',
   },
   {
-    name        => 'ZM_UPLOAD_FTP_LOC_DIR',
-    default     => '@ZM_TMPDIR@',
-    description => 'The local directory in which to create upload files',
-    help        => q`
-      You can use filters to instruct ZoneMinder to upload events to
-      a remote ftp server. This option indicates the local directory
-      that ZoneMinder should use for temporary upload files. These
-      are files that are created from events, uploaded and then
-      deleted.
-      `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
-    type        => $types{abs_path},
-    category    => 'hidden',
-  },
-  {
     name        => 'ZM_UPLOAD_LOC_DIR',
     default     => '@ZM_TMPDIR@',
     description => 'The local directory in which to create upload files',
@@ -2099,19 +1993,6 @@ our @options = (
     category    => 'upload',
   },
   {
-    name        => 'ZM_UPLOAD_FTP_REM_DIR',
-    default     => '',
-    description => 'The remote directory to upload to',
-    help        => q`
-      You can use filters to instruct ZoneMinder to upload events to
-      a remote ftp server. This option indicates the remote directory
-      that ZoneMinder should use to upload event files to.
-      `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
-    type        => $types{rel_path},
-    category    => 'hidden',
-  },
-  {
     name        => 'ZM_UPLOAD_REM_DIR',
     default     => '',
     description => 'The remote directory to upload to',
@@ -2123,21 +2004,6 @@ our @options = (
     requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
     type        => $types{rel_path},
     category    => 'upload',
-  },
-  {
-    name        => 'ZM_UPLOAD_FTP_TIMEOUT',
-    default     => '120',
-    description => 'How long to allow the transfer to take for each file',
-    help        => q`
-      You can use filters to instruct ZoneMinder to upload events to
-      a remote ftp server. This option indicates the maximum ftp
-      inactivity timeout (in seconds) that should be tolerated before
-      ZoneMinder determines that the transfer has failed and closes
-      down the connection.
-      `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
-    type        => $types{integer},
-    category    => 'hidden',
   },
   {
     name        => 'ZM_UPLOAD_TIMEOUT',
@@ -2192,20 +2058,6 @@ our @options = (
     category    => 'upload',
   },
   {
-    name        => 'ZM_UPLOAD_FTP_DEBUG',
-    default     => 'no',
-    description => 'Switch ftp debugging on',
-    help        => q`
-      You can use filters to instruct ZoneMinder to upload events to
-      a remote ftp server. If you are having (or expecting) troubles
-      with uploading events then setting this to 'yes' permits
-      additional information to be included in the zmfilter log file.
-      `,
-    requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
-    type        => $types{boolean},
-    category    => 'hidden',
-  },
-  {
     name        => 'ZM_UPLOAD_DEBUG',
     default     => 'no',
     description => 'Switch upload debugging on',
@@ -2238,85 +2090,6 @@ our @options = (
     category    => 'mail',
   },
   {
-    name        => 'ZM_EMAIL_ADDRESS',
-    default     => '',
-    description => 'The email address to send matching event details to',
-    requires    => [ { name => 'ZM_OPT_EMAIL', value => 'yes' } ],
-    help        => q`
-      This option is used to define the email address that any events
-      that match the appropriate filters will be sent to.
-      `,
-    type        => $types{email},
-    category    => 'hidden',
-  },
-  {
-    name        => 'ZM_EMAIL_TEXT',
-    default     => 'subject = "ZoneMinder: Alarm - %MN%-%EI% (%ESM% - %ESA% %EFA%)"
-      body = "
-      Hello,
-
-    An alarm has been detected on your installation of the ZoneMinder.
-
-      The details are as follows :-
-
-      Monitor  : %MN%
-      Event Id : %EI%
-      Length   : %EL%
-      Frames   : %EF% (%EFA%)
-      Scores   : t%EST% m%ESM% a%ESA%
-
-      This alarm was matched by the %FN% filter and can be viewed at %EPS%
-
-      ZoneMinder"',
-    description => 'The text of the email used to send matching event details',
-    requires    => [ { name => 'ZM_OPT_EMAIL', value => 'yes' } ],
-    help        => q`
-      This option is used to define the content of the email that is
-      sent for any events that match the appropriate filters.
-      `,
-    type        => $types{text},
-    category    => 'hidden',
-  },
-  {
-    name        => 'ZM_EMAIL_SUBJECT',
-    default     => 'ZoneMinder: Alarm - %MN%-%EI% (%ESM% - %ESA% %EFA%)',
-    description => 'The subject of the email used to send matching event details',
-    requires    => [ { name => 'ZM_OPT_EMAIL', value => 'yes' } ],
-    help        => q`
-      This option is used to define the subject of the email that is
-      sent for any events that match the appropriate filters.
-      `,
-    type        => $types{string},
-    category    => 'hidden',
-  },
-  {
-    name        => 'ZM_EMAIL_BODY',
-    default     => '
-      Hello,
-
-    An alarm has been detected on your installation of the ZoneMinder.
-
-      The details are as follows :-
-
-      Monitor  : %MN%
-      Event Id : %EI%
-      Length   : %EL%
-      Frames   : %EF% (%EFA%)
-      Scores   : t%EST% m%ESM% a%ESA%
-
-      This alarm was matched by the %FN% filter and can be viewed at %EPS%
-
-      ZoneMinder',
-    description => 'The body of the email used to send matching event details',
-    requires    => [ { name => 'ZM_OPT_EMAIL', value => 'yes' } ],
-    help        => q`
-      This option is used to define the content of the email that is
-      sent for any events that match the appropriate filters.
-      `,
-    type        => $types{text},
-    category    => 'hidden',
-  },
-  {
     name        => 'ZM_OPT_MESSAGE',
     default     => 'no',
     description => 'Should ZoneMinder message you with details of events that match corresponding filters',
@@ -2346,19 +2119,6 @@ our @options = (
       `,
     type        => $types{email},
     category    => 'mail',
-  },
-  {
-    name        => 'ZM_MESSAGE_TEXT',
-    default     => 'subject = "ZoneMinder: Alarm - %MN%-%EI%"
-      body = "ZM alarm detected - %EL% secs, %EF%/%EFA% frames, t%EST%/m%ESM%/a%ESA% score."',
-    description => 'The text of the message used to send matching event details',
-    requires    => [ { name => 'ZM_OPT_MESSAGE', value => 'yes' } ],
-    help        => q`
-      This option is used to define the content of the message that
-      is sent for any events that match the appropriate filters.
-      `,
-    type        => $types{text},
-    category    => 'hidden',
   },
   {
     name        => 'ZM_MESSAGE_SUBJECT',
@@ -2653,23 +2413,6 @@ our @options = (
   },
 # Deprecated, superseded by event close mode
   {
-    name        => 'ZM_FORCE_CLOSE_EVENTS',
-    default     => 'no',
-    description => 'Close events at section ends.',
-    help        => q`
-      When a monitor is running in a continuous recording mode
-      (Record or Mocord) events are usually closed after a fixed
-      period of time (the section length). However in Mocord mode it
-      is possible that motion detection may occur near the end of a
-      section and ordinarily this will prevent the event being closed
-      until the motion has ceased. Switching this option on will
-      force the event closed at the specified time regardless of any
-      motion activity.
-      `,
-    type        => $types{boolean},
-    category    => 'hidden',
-  },
-  {
     name        => 'ZM_WEIGHTED_ALARM_CENTRES',
     default     => 'no',
     description => 'Use a weighted algorithm to calculate the centre of an alarm',
@@ -2876,37 +2619,9 @@ our @options = (
     type        => $types{hexadecimal},
     category    => 'system',
   },
-# Deprecated, really no longer necessary
-  {
-    name        => 'ZM_WEB_REFRESH_METHOD',
-    default     => 'javascript',
-    description => 'What method windows should use to refresh themselves',
-    help        => q`
-      Many windows in ZoneMinder need to refresh themselves to keep
-      their information current. This option determines what method
-      they should use to do this. Choosing 'javascript' means that
-      each window will have a short JavaScript statement in with a
-      timer to prompt the refresh. This is the most compatible
-      method. Choosing 'http' means the refresh instruction is put in
-      the HTTP header. This is a cleaner method but refreshes are
-      interrupted or cancelled when a link in the window is clicked
-      meaning that the window will no longer refresh and this would
-      have to be done manually.
-      `,
-    type        => {
-      db_type     =>'string',
-      hint        =>'javascript|http',
-      pattern     =>qr|^([jh])|i,
-      format      =>q( $1 =~ /^j/
-          ? 'javascript'
-          : 'http'
-          )
-    },
-    category    => 'hidden',
-  },
   {
     name        => 'ZM_WEB_EVENT_SORT_FIELD',
-    default     => 'DateTime',
+    default     => 'StartDateTime',
     description => 'Default field the event lists are sorted by',
     help        => q`
       Events in lists can be initially ordered in any way you want.
@@ -2918,7 +2633,7 @@ our @options = (
       `,
     type        => {
       db_type     =>'string',
-      hint        =>'Id|Name|Cause|MonitorName|DateTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore',
+      hint        =>'Id|Name|Cause|DiskSpace|MonitorName|StartDateTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore',
       pattern     =>qr|.|,
       format      =>q( $1 )
     },
@@ -4043,7 +3758,6 @@ sub initialiseConfig {
     } else {
       $option->{value} = '';
     }
-#next if ( $option->{category} eq 'hidden' );
     $option->{id} = $option_id++;
   }
   $configInitialised = 1;

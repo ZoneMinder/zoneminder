@@ -24,7 +24,7 @@ if ( ! canEdit('System') ) {
   return;
 }
 
-if ( $action == 'Save' ) {
+if ( $action == 'save' ) {
   if ( !empty($_REQUEST['id']) ) {
     $dbServer = dbFetchOne(
       'SELECT * FROM Servers WHERE Id=?',
@@ -46,7 +46,7 @@ if ( $action == 'Save' ) {
     }
     $refreshParent = true;
   }
-  $view = 'none';
+  $redirect = '?view=options&tab=servers';
 } else {
   ZM\Error("Unknown action $action in saving Server");
 }

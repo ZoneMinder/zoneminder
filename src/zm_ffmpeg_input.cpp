@@ -4,12 +4,12 @@
 #include "zm_ffmpeg.h"
 
 FFmpeg_Input::FFmpeg_Input() {
-  input_format_context = NULL;
+  input_format_context = nullptr;
   video_stream_id = -1;
   audio_stream_id = -1;
   FFMPEGInit();
-  streams = NULL;
-  frame = NULL;
+  streams = nullptr;
+  frame = nullptr;
 	last_seek_request = -1;
 }
 
@@ -20,14 +20,14 @@ FFmpeg_Input::~FFmpeg_Input() {
   if ( streams ) {
     for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
       avcodec_close(streams[i].context);
-      streams[i].context = NULL;
+      streams[i].context = nullptr;
     }
     delete[] streams;
-    streams = NULL;
+    streams = nullptr;
   }
   if ( frame ) {
     av_frame_free(&frame);
-    frame = NULL;
+    frame = nullptr;
   }
   if ( input_format_context ) {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
@@ -35,7 +35,7 @@ FFmpeg_Input::~FFmpeg_Input() {
 #else
     avformat_close_input(&input_format_context);
 #endif
-    input_format_context = NULL;
+    input_format_context = nullptr;
   }
 }  // end ~FFmpeg_Input()
 
@@ -58,16 +58,16 @@ int FFmpeg_Input::Open(const char *filepath) {
   int error;
 
   /** Open the input file to read from it. */
-  error = avformat_open_input(&input_format_context, filepath, NULL, NULL);
+  error = avformat_open_input(&input_format_context, filepath, nullptr, nullptr);
   if ( error < 0 ) {
     Error("Could not open input file '%s' (error '%s')",
         filepath, av_make_error_string(error).c_str());
-    input_format_context = NULL;
+    input_format_context = nullptr;
     return error;
   }
 
   /** Get information on the input file (number of streams etc.). */
-  if ( (error = avformat_find_stream_info(input_format_context, NULL)) < 0 ) {
+  if ( (error = avformat_find_stream_info(input_format_context, nullptr)) < 0 ) {
     Error(
         "Could not open find stream info (error '%s')",
         av_make_error_string(error).c_str()
@@ -101,7 +101,7 @@ int FFmpeg_Input::Open(const char *filepath) {
 
     streams[i].frame_count = 0;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    streams[i].context = avcodec_alloc_context3(NULL);
+    streams[i].context = avcodec_alloc_context3(nullptr);
     avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
 #else
     streams[i].context = input_format_context->streams[i]->codec;
@@ -115,7 +115,7 @@ int FFmpeg_Input::Open(const char *filepath) {
       Debug(1, "Using codec (%s) for stream %d", streams[i].codec->name, i);
     }
 
-    error = avcodec_open2(streams[i].context, streams[i].codec, NULL);
+    error = avcodec_open2(streams[i].context, streams[i].codec, nullptr);
     if ( error < 0 ) {
       Error("Could not open input codec (error '%s')",
           av_make_error_string(error).c_str());
@@ -123,7 +123,7 @@ int FFmpeg_Input::Open(const char *filepath) {
       avcodec_free_context(&streams[i].context);
 #endif
       avformat_close_input(&input_format_context);
-      input_format_context = NULL;
+      input_format_context = nullptr;
       return error;
     }
   } // end foreach stream
@@ -174,11 +174,11 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
           (ret == -110)
          ) {
         Info("av_read_frame returned %s.", av_make_error_string(ret).c_str());
-        return NULL;
+        return nullptr;
       }
       Error("Unable to read packet from stream %d: error %d \"%s\".",
           packet.stream_index, ret, av_make_error_string(ret).c_str());
-      return NULL;
+      return nullptr;
     }
     dumpPacket(input_format_context->streams[packet.stream_index], &packet, "Received packet");
 
@@ -216,7 +216,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
 
   } // end while !frameComplete
   return frame;
-} // end AVFrame *FFmpeg_Input::get_frame
+}  // end AVFrame *FFmpeg_Input::get_frame
 
 AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   Debug(1, "Getting frame from stream %d at %f", stream_id, at);
@@ -233,7 +233,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME);
     if ( ret < 0 ) {
       Error("Unable to seek in stream");
-      return NULL;
+      return nullptr;
     }
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
@@ -241,7 +241,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
 
 	if ( !frame ) {
 		Warning("Unable to get frame.");
-		return NULL;
+		return nullptr;
 	}
 
   if ( 
@@ -257,7 +257,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
             AVSEEK_FLAG_BACKWARD | AVSEEK_FLAG_FRAME
             ) < 0 ) ) {
       Error("Unable to seek in stream");
-      return NULL;
+      return nullptr;
     }
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);

@@ -10,9 +10,19 @@ function zm_session_start() {
     $currentCookieParams = session_get_cookie_params(); 
     $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
     $currentCookieParams['httponly'] = true;
-    $currentCookieParams['samesite'] = 'Strict';
-
-    session_set_cookie_params($currentCookieParams);
+    if ( version_compare(phpversion(), '7.3.0', '<') ) {
+      session_set_cookie_params(
+        $currentCookieParams['lifetime'],
+        $currentCookieParams['path'],
+        $currentCookieParams['domain'],
+        $currentCookieParams['secure'],
+        $currentCookieParams['httponly']
+      );
+    } else {
+      # samesite was introduced in 7.3.0
+      $currentCookieParams['samesite'] = 'Strict';
+      session_set_cookie_params($currentCookieParams);
+    }
 
     ini_set('session.name', 'ZMSESSID');
     ZM\Logger::Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));

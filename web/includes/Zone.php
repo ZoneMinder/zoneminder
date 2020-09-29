@@ -8,8 +8,9 @@ class Zone extends ZM_Object {
   protected static $table = 'Zones';
 
 	protected $defaults = array(
-			'Id'                   => null,
-			'Name'                 => '',
+			'Id'                  => null,
+      'MonitorId'           => null,
+			'Name'                => '',
 			'Type' => 'Active',
 			'Units' => 'Pixels',
 			'CheckMethod' => 'Blobs',
@@ -35,6 +36,14 @@ class Zone extends ZM_Object {
 
   public static function find_one( $parameters = array(), $options = array() ) {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
+  }
+  public function Monitor() {
+    if ( isset($this->{'MonitorId'}) ) {
+      $Monitor = Monitor::find_one(array('Id'=>$this->{'MonitorId'}));
+      if ( $Monitor )
+        return $Monitor;
+    }
+    return new Monitor();
   }
 
 } # end class Zone

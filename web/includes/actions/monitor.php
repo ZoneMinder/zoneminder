@@ -24,7 +24,7 @@ if ( ! canEdit('Monitors') ) {
   return;
 }
 
-if ( $action == 'monitor' ) {
+if ( $action == 'save' ) {
   $mid = 0;
   if ( !empty($_REQUEST['mid']) ) {
     $mid = validInt($_REQUEST['mid']);
@@ -272,9 +272,8 @@ if ( $action == 'monitor' ) {
     }
     // really should thump zmwatch and maybe zmtrigger too.
     //daemonControl( 'restart', 'zmwatch.pl' );
-    $refreshParent = true;
   } // end if restart
-  $view = 'none';
+  $redirect = '?view=console';
 } else {
   ZM\Warning("Unknown action $action in Monitor");
 } // end if action == Delete

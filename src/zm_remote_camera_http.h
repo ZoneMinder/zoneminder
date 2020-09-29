@@ -70,6 +70,7 @@ public:
   int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
 	int GetData();
   int GetResponse();
+  int PrimeCapture();
   int PreCapture();
   int Capture( ZMPacket &p );
   int PostCapture();

@@ -72,7 +72,7 @@ void* LibvlcLockBuffer(void* opaque, void** planes) {
   data->prevBuffer = buffer;
 
   *planes = data->buffer;
-  return NULL;
+  return nullptr;
 }
 
 void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes) {
@@ -129,12 +129,12 @@ LibvlcCamera::LibvlcCamera(
   mMethod(p_method),
   mOptions(p_options)
 {  
-  mLibvlcInstance = NULL;
-  mLibvlcMedia = NULL;
-  mLibvlcMediaPlayer = NULL;
-  mLibvlcData.buffer = NULL;
-  mLibvlcData.prevBuffer = NULL;
-  mOptArgV = NULL;
+  mLibvlcInstance = nullptr;
+  mLibvlcMedia = nullptr;
+  mLibvlcMediaPlayer = nullptr;
+  mLibvlcData.buffer = nullptr;
+  mLibvlcData.prevBuffer = nullptr;
+  mOptArgV = nullptr;
 
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {
@@ -163,19 +163,19 @@ LibvlcCamera::~LibvlcCamera() {
   if ( capture ) {
     Terminate();
   }
-  if ( mLibvlcMediaPlayer != NULL ) {
+  if ( mLibvlcMediaPlayer != nullptr ) {
     (*libvlc_media_player_release_f)(mLibvlcMediaPlayer);
-    mLibvlcMediaPlayer = NULL;
+    mLibvlcMediaPlayer = nullptr;
   }
-  if ( mLibvlcMedia != NULL ) {
+  if ( mLibvlcMedia != nullptr ) {
     (*libvlc_media_release_f)(mLibvlcMedia);
-    mLibvlcMedia = NULL;
+    mLibvlcMedia = nullptr;
   }
-  if ( mLibvlcInstance != NULL ) {
+  if ( mLibvlcInstance != nullptr ) {
     (*libvlc_release_f)(mLibvlcInstance);
-    mLibvlcInstance = NULL;
+    mLibvlcInstance = nullptr;
   }
-  if ( mOptArgV != NULL ) {
+  if ( mOptArgV != nullptr ) {
     delete[] mOptArgV;
   }
 }
@@ -188,12 +188,12 @@ void LibvlcCamera::Terminate() {
   (*libvlc_media_player_stop_f)(mLibvlcMediaPlayer);
   if ( mLibvlcData.buffer ) {
     zm_freealigned(mLibvlcData.buffer);
-    mLibvlcData.buffer = NULL;
+    mLibvlcData.buffer = nullptr;
   }
   
   if ( mLibvlcData.prevBuffer ) {
     zm_freealigned(mLibvlcData.prevBuffer);
-    mLibvlcData.prevBuffer = NULL;
+    mLibvlcData.prevBuffer = nullptr;
   }
 }
 
@@ -223,27 +223,27 @@ int LibvlcCamera::PrimeCapture() {
   }
 
   mLibvlcInstance = (*libvlc_new_f)(opVect.size(), (const char* const*)mOptArgV);
-  if ( mLibvlcInstance == NULL ) {
+  if ( mLibvlcInstance == nullptr ) {
     Error("Unable to create libvlc instance due to: %s", (*libvlc_errmsg_f)());
     return -1;
   }
-  (*libvlc_log_set_f)(mLibvlcInstance, LibvlcCamera::log_callback, NULL);
+  (*libvlc_log_set_f)(mLibvlcInstance, LibvlcCamera::log_callback, nullptr);
 
 
   mLibvlcMedia = (*libvlc_media_new_location_f)(mLibvlcInstance, mPath.c_str());
-  if ( mLibvlcMedia == NULL ) {
+  if ( mLibvlcMedia == nullptr ) {
     Error("Unable to open input %s due to: %s", mPath.c_str(), (*libvlc_errmsg_f)());
     return -1;
   }
 
   mLibvlcMediaPlayer = (*libvlc_media_player_new_from_media_f)(mLibvlcMedia);
-  if ( mLibvlcMediaPlayer == NULL ) {
+  if ( mLibvlcMediaPlayer == nullptr ) {
     Error("Unable to create player for %s due to: %s", mPath.c_str(), (*libvlc_errmsg_f)());
     return -1;
   }
 
   (*libvlc_video_set_format_f)(mLibvlcMediaPlayer, mTargetChroma.c_str(), width, height, width * mBpp);
-  (*libvlc_video_set_callbacks_f)(mLibvlcMediaPlayer, &LibvlcLockBuffer, &LibvlcUnlockBuffer, NULL, &mLibvlcData);
+  (*libvlc_video_set_callbacks_f)(mLibvlcMediaPlayer, &LibvlcLockBuffer, &LibvlcUnlockBuffer, nullptr, &mLibvlcData);
 
   mLibvlcData.bufferSize = width * height * mBpp;
   // Libvlc wants 32 byte alignment for images (should in theory do this for all image lines)

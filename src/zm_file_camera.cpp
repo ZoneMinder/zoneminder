@@ -88,7 +88,7 @@ int FileCamera::PreCapture() {
   // This waits until 1 second has passed since it was modified. Effectively limiting fps to 60.
   // Which is kinda bogus. If we were writing to this jpg constantly faster than we are monitoring it here
   // we would never break out of this loop
-  while ( (time(0) - statbuf.st_mtime) < 1 ) {
+  while ( (time(nullptr) - statbuf.st_mtime) < 1 ) {
     usleep(100000);
   }
   return 0;

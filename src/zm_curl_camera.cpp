@@ -106,26 +106,26 @@ void cURLCamera::Initialise() {
   Debug(2,"libcurl version: %s", (*curl_version_f)());
 
   /* Create the shared data mutex */
-  int nRet = pthread_mutex_init(&shareddata_mutex, NULL);
+  int nRet = pthread_mutex_init(&shareddata_mutex, nullptr);
   if(nRet != 0) {
     Error("Shared data mutex creation failed: %s",strerror(nRet));
     return;
   }
   /* Create the data available condition variable */
-  nRet = pthread_cond_init(&data_available_cond, NULL);
+  nRet = pthread_cond_init(&data_available_cond, nullptr);
   if(nRet != 0) {
     Error("Data available condition variable creation failed: %s",strerror(nRet));
     return;
   }
   /* Create the request complete condition variable */
-  nRet = pthread_cond_init(&request_complete_cond, NULL);
+  nRet = pthread_cond_init(&request_complete_cond, nullptr);
   if(nRet != 0) {
     Error("Request complete condition variable creation failed: %s",strerror(nRet));
     return;
   }
 
   /* Create the thread */
-  nRet = pthread_create(&thread, NULL, thread_func_dispatcher, this);
+  nRet = pthread_create(&thread, nullptr, thread_func_dispatcher, this);
   if(nRet != 0) {
     Error("Thread creation failed: %s",strerror(nRet));
     return;
@@ -137,7 +137,7 @@ void cURLCamera::Terminate() {
   bTerminate = true;
 
   /* Wait for thread termination */
-  pthread_join(thread, NULL);
+  pthread_join(thread, nullptr);
 
   /* Destroy condition variables */
   pthread_cond_destroy(&request_complete_cond);
@@ -419,7 +419,7 @@ void* cURLCamera::thread_func() {
   double dSize;
 
   c = (*curl_easy_init_f)();
-  if(c == NULL) {
+  if(c == nullptr) {
     dlclose(curl_lib);
     Error("Failed getting easy handle from libcurl");
     tRet = -51;
@@ -566,7 +566,7 @@ void* cURLCamera::thread_func() {
       
   /* Cleanup */
   (*curl_easy_cleanup_f)(c);
-  c = NULL;
+  c = nullptr;
   
   return (void*)tRet;
 }

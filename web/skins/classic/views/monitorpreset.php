@@ -36,10 +36,9 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('MonitorPreset') );
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
       <h2><?php echo translate('MonitorPreset') ?></h2>
-    </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="none"/>
@@ -57,5 +56,4 @@ xhtmlHeaders(__FILE__, translate('MonitorPreset') );
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

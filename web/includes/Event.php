@@ -50,6 +50,9 @@ class Event extends ZM_Object {
   public static function clear_cache() {
     return ZM_Object::_clear_cache(get_class());
   }
+  public function remove_from_cache() {
+    return ZM_Object::_remove_from_cache(get_class(), $this);
+  }
 
   public function Storage( $new = null ) {
     if ( $new ) {
@@ -58,8 +61,10 @@ class Event extends ZM_Object {
     if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
       if ( isset($this->{'StorageId'}) and $this->{'StorageId'} )
         $this->{'Storage'} = Storage::find_one(array('Id'=>$this->{'StorageId'}));
-      if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) )
+      if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
         $this->{'Storage'} = new Storage(NULL);
+        $this->{'Storage'}->Scheme($this->{'Scheme'});
+      }
     }
     return $this->{'Storage'};
   }
@@ -128,6 +133,10 @@ class Event extends ZM_Object {
   public function delete() {
     if ( ! $this->{'Id'} ) {
       Error('Event delete on event with empty Id');
+      return;
+    }
+    if ( $this->{'Archived'} ) {
+      Error('Cannot delete an Archived event.');
       return;
     }
     if ( ZM_OPT_FAST_DELETE ) {

@@ -81,7 +81,7 @@ void FFMPEGInit() {
       av_log_set_callback(log_libav_callback); 
       Info("Enabling ffmpeg logs, as LOG_DEBUG+LOG_FFMPEG are enabled in options");
     } else {
-      Info("Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor is not part of your debug targets");
+      Debug(1,"Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor is not part of your debug targets");
       av_log_set_level(AV_LOG_QUIET);
     }
 #if !LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
@@ -151,7 +151,7 @@ static int parse_key_value_pair(AVDictionary **pm, const char **buf,
                                 int flags)
 {
     char *key = av_get_token(buf, key_val_sep);
-    char *val = NULL;
+    char *val = nullptr;
     int ret;
 
     if (key && *key && strspn(*buf, key_val_sep)) {
@@ -225,7 +225,7 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
   AVFormatContext *s = avformat_alloc_context();
   int ret = 0;
 
-  *avctx = NULL;
+  *avctx = nullptr;
   if (!s) {
     av_log(s, AV_LOG_ERROR, "Out of memory\n");
     ret = AVERROR(ENOMEM);
@@ -234,13 +234,13 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
 
   if (!oformat) {
     if (format) {
-      oformat = av_guess_format(format, NULL, NULL);
+      oformat = av_guess_format(format, nullptr, nullptr);
       if (!oformat) {
         av_log(s, AV_LOG_ERROR, "Requested output format '%s' is not a suitable output format\n", format);
         ret = AVERROR(EINVAL);
       }
     } else {
-      oformat = av_guess_format(NULL, filename, NULL);
+      oformat = av_guess_format(nullptr, filename, nullptr);
       if (!oformat) {
         ret = AVERROR(EINVAL);
         av_log(s, AV_LOG_ERROR, "Unable to find a suitable output format for '%s'\n", filename);
@@ -267,7 +267,7 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
       ret = AVERROR(ENOMEM);
       return ret;
     }
-    s->priv_data = NULL;
+    s->priv_data = nullptr;
   }
 #endif
 
@@ -335,7 +335,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   Debug(1, "Dumping stream index i(%d) index(%d)", i, index );
   int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
   AVStream *st = ic->streams[i];
-  AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
+  AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", nullptr, 0);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   AVCodecParameters *codec = st->codecpar;
 #else
@@ -533,7 +533,7 @@ int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
   return 1;
 #else
   int got_packet = 0;
-  int ret = avcodec_encode_audio2(context, &packet, NULL, &got_packet);
+  int ret = avcodec_encode_audio2(context, &packet, nullptr, &got_packet);
   if ( ret < 0 ) {
     Error("Error encoding (%d) (%s)", ret, av_err2str(ret));
   }
@@ -730,7 +730,7 @@ int zm_resample_audio(
     Error("Flushing resampler not supported by AVRESAMPLE");
     return 0;
   }
-  int ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
+  int ret = avresample_convert(resample_ctx, nullptr, 0, 0, in_frame->data,
                             0, in_frame->nb_samples);
   if ( ret < 0 ) {
     Error("Could not resample frame (error '%s')",

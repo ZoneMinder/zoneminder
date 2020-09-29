@@ -98,9 +98,9 @@ std::string CameraType_Strings[] = {
 
 Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
   id(p_id),
-  shared_data(NULL),
-  trigger_data(NULL),
-  video_store_data(NULL)
+  shared_data(nullptr),
+  trigger_data(nullptr),
+  video_store_data(nullptr)
 {
   strncpy(name, p_name, sizeof(name)-1);
 
@@ -111,7 +111,7 @@ Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
   shm_id = 0;
 #endif // ZM_MEM_MAPPED
   mem_size = 0;
-  mem_ptr = 0;
+  mem_ptr = nullptr;
 
   last_event_id = 0;
   last_state = IDLE;
@@ -125,8 +125,8 @@ Monitor::MonitorLink::~MonitorLink() {
 }
 
 bool Monitor::MonitorLink::connect() {
-  if ( !last_connect_time || (time(0) - last_connect_time) > 60 ) {
-    last_connect_time = time(0);
+  if ( !last_connect_time || (time(nullptr) - last_connect_time) > 60 ) {
+    last_connect_time = time(nullptr);
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
@@ -162,7 +162,7 @@ bool Monitor::MonitorLink::connect() {
       return false;
     }
 
-    mem_ptr = (unsigned char *)mmap(NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
+    mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
     if ( mem_ptr == MAP_FAILED ) {
       Error("Can't map file %s (%d bytes) to memory: %s", mem_file, mem_size, strerror(errno));
       disconnect();
@@ -237,7 +237,7 @@ bool Monitor::MonitorLink::disconnect() {
 
 #endif // ZM_MEM_MAPPED
     mem_size = 0;
-    mem_ptr = 0;
+    mem_ptr = nullptr;
   }
   return( true );
 }
@@ -334,13 +334,13 @@ Monitor::Monitor()
   last_motion_score(0),
   camera(0),
   n_zones(0),
-  zones(NULL),
+  zones(nullptr),
   timestamps(0),
   images(0),
-  privacy_bitmask( NULL ),
-  event_delete_thread(NULL),
+  privacy_bitmask( nullptr ),
+  event_delete_thread(nullptr),
   n_linked_monitors(0),
-  linked_monitors(NULL)
+  linked_monitors(nullptr)
 {
 
   if ( strcmp(config.event_close_mode, "time") == 0 )
@@ -356,7 +356,7 @@ Monitor::Monitor()
 
   adaptive_skip = true;
 
-  videoStore = NULL;
+  videoStore = nullptr;
 } // Monitor::Monitor
 
 /*
@@ -581,7 +581,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       (image_buffer_count*sizeof(struct timeval)),
       image_buffer_count, image_size, (image_buffer_count*image_size),
      mem_size);
-  mem_ptr = NULL;
+  mem_ptr = nullptr;
 
   Zone **zones = 0;
   int n_zones = Zone::Load(this, zones);
@@ -851,12 +851,12 @@ bool Monitor::connect() {
 
   Debug(3, "MMap file size is %ld", map_stat.st_size);
 #ifdef MAP_LOCKED
-  mem_ptr = (unsigned char *)mmap(NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0);
+  mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0);
   if ( mem_ptr == MAP_FAILED ) {
     if ( errno == EAGAIN ) {
       Debug(1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size);
 #endif
-      mem_ptr = (unsigned char *)mmap(NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
+      mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
       Debug(1, "Mapped file %s (%d bytes) to unlocked memory", mem_file, mem_size);
 #ifdef MAP_LOCKED
     } else {
@@ -866,7 +866,7 @@ bool Monitor::connect() {
 #endif
   if ( mem_ptr == MAP_FAILED )
     Fatal("Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
-  if ( mem_ptr == NULL ) {
+  if ( mem_ptr == nullptr ) {
     Error("mmap gave a NULL address:");
   } else {
     Debug(3, "mmapped to %p", mem_ptr);
@@ -976,13 +976,13 @@ Monitor::~Monitor() {
       if ( event_delete_thread ) {
         event_delete_thread->join();
         delete event_delete_thread;
-        event_delete_thread = NULL;
+        event_delete_thread = nullptr;
       }
     }
     if ( event_delete_thread ) {
       event_delete_thread->join();
       delete event_delete_thread;
-      event_delete_thread = NULL;
+      event_delete_thread = nullptr;
     }
 
     if ( deinterlacing_value == 4 ) {
@@ -1083,9 +1083,9 @@ void Monitor::AddZones(int p_n_zones, Zone *p_zones[]) {
 void Monitor::AddPrivacyBitmask(Zone *p_zones[]) {
   if ( privacy_bitmask ) {
     delete[] privacy_bitmask;
-    privacy_bitmask = NULL;
+    privacy_bitmask = nullptr;
   }
-  Image *privacy_image = NULL;
+  Image *privacy_image = nullptr;
 
   for ( int i=0; i < n_zones; i++ ) {
     if ( p_zones[i]->IsPrivacy() ) {
@@ -1444,7 +1444,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     }
   }
 
-  Image *zone_image = NULL;
+  Image *zone_image = nullptr;
   if ( ( (!staticConfig.SERVER_ID) || ( staticConfig.SERVER_ID == server_id ) ) && mem_ptr ) {
     Debug(3, "Trying to load from local zmc");
     int index = shared_data->last_write_index;
@@ -1463,7 +1463,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
       stream->setStreamStart(event_id, (unsigned int)1);
       zone_image = stream->getImage();
       delete stream;
-      stream = NULL;
+      stream = nullptr;
     } else {
       Error("Unable to load an event for monitor %d", id);
       return;
@@ -1594,7 +1594,8 @@ bool Monitor::CheckSignal(const Image *image) {
 
 void Monitor::CheckAction() {
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
+
   if ( shared_data->action ) {
     // Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
     if ( shared_data->action & RELOAD ) {
@@ -2096,7 +2097,7 @@ void Monitor::ReloadZones() {
     delete zones[i];
   }
   delete[] zones;
-  zones = 0;
+  zones = nullptr;
   n_zones = Zone::Load(this, zones);
   //DumpZoneImage();
 } // end void Monitor::ReloadZones()
@@ -2108,7 +2109,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
       delete linked_monitors[i];
     }
     delete[] linked_monitors;
-    linked_monitors = 0;
+    linked_monitors = nullptr;
   }
 
   n_linked_monitors = 0;
@@ -2538,13 +2539,13 @@ bool Monitor::closeEvent() {
     }
     event_delete_thread = new std::thread([](Event *event) {
       Event * e = event;
-      event = NULL;
+      event = nullptr;
       delete e;
-      e = NULL;
+      e = nullptr;
       }, event);
 #else
   delete event;
-  event = NULL;
+  event = nullptr;
 #endif
   video_store_data->recording = (struct timeval){0};
   return true;

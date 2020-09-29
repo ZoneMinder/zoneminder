@@ -80,7 +80,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,eoan,focal"
+    DISTROS="xenial,bionic,focal"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;
@@ -156,10 +156,14 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
   if [ -d "${GITHUB_FORK}_ZoneMinder.git" ]; then
     echo "Using local clone ${GITHUB_FORK}_ZoneMinder.git to pull from."
     cd "${GITHUB_FORK}_ZoneMinder.git"
-    echo "git pull..."
-    git pull
+    echo "git fetch..."
+    git fetch
     echo "git checkout $BRANCH"
     git checkout $BRANCH
+    if [ $? -ne 0 ]; then
+      echo "Failed to switch to branch."
+      exit 1;
+    fi;
     echo "git pull..."
     git pull
     cd ../
@@ -227,12 +231,11 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   # Generate Changlog
   if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ]; then 
     cp -Rpd distros/ubuntu2004 debian
-  else 
-    if [ "$DISTRO" == "wheezy" ]; then 
-      cp -Rpd distros/debian debian
-    else 
-      cp -Rpd distros/ubuntu1604 debian
-    fi;
+  elif [ "$DISTRO" == "beowulf" ]
+  then
+    cp -Rpd distros/beowulf debian
+  else
+    cp -Rpd distros/ubuntu1604 debian
   fi;
 
   if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then
@@ -336,7 +339,7 @@ EOF
 
     dput="Y";
     if [ "$INTERACTIVE" != "no" ]; then
-      read -p "Ready to dput $SC to $PPA ? Y/N...";
+      read -p "Ready to dput $SC to $PPA ? Y/n...";
       if [[ "$REPLY" == [yY] ]]; then
         dput $PPA $SC
       fi;

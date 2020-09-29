@@ -91,7 +91,7 @@ void Usage() {
 int main(int argc, char *argv[]) {
   self = argv[0];
 
-  srand(getpid() * time(0));
+  srand(getpid() * time(nullptr));
 
   const char *device = "";
   const char *protocol = "";
@@ -102,16 +102,16 @@ int main(int argc, char *argv[]) {
   int monitor_id = -1;
 
   static struct option long_options[] = {
-    {"device", 1, 0, 'd'},
-    {"protocol", 1, 0, 'r'},
-    {"host", 1, 0, 'H'},
-    {"port", 1, 0, 'P'},
-    {"path", 1, 0, 'p'},
-    {"file", 1, 0, 'f'},
-    {"monitor", 1, 0, 'm'},
-    {"help", 0, 0, 'h'},
-    {"version", 0, 0, 'v'},
-    {0, 0, 0, 0}
+    {"device", 1, nullptr, 'd'},
+    {"protocol", 1, nullptr, 'r'},
+    {"host", 1, nullptr, 'H'},
+    {"port", 1, nullptr, 'P'},
+    {"path", 1, nullptr, 'p'},
+    {"file", 1, nullptr, 'f'},
+    {"monitor", 1, nullptr, 'm'},
+    {"help", 0, nullptr, 'h'},
+    {"version", 0, nullptr, 'v'},
+    {nullptr, 0, nullptr, 0}
   };
 
   while (1) {
@@ -194,7 +194,7 @@ int main(int argc, char *argv[]) {
 
   hwcaps_detect();
 
-  Monitor **monitors = 0;
+  Monitor **monitors = nullptr;
   int n_monitors = 0;
 #if ZM_HAS_V4L
   if ( device[0] ) {
@@ -245,7 +245,7 @@ int main(int argc, char *argv[]) {
       }
       if ( ! monitors[i]->connect() ) {
       }
-      time_t now = (time_t)time(NULL);
+      time_t now = (time_t)time(nullptr);
       monitors[i]->setStartupTime(now);
 
       snprintf(sql, sizeof(sql),
@@ -328,7 +328,7 @@ int main(int argc, char *argv[]) {
           break;
         }
 
-        gettimeofday(&now, NULL);
+        gettimeofday(&now, nullptr);
         // capture_delay is the amount of time we should sleep to achieve the desired framerate.
         int delay = monitors[i]->GetState() == Monitor::ALARM ? alarm_capture_delays[i] : capture_delays[i];
         if ( delay && last_capture_times[i].tv_sec ) {

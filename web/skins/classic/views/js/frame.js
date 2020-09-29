@@ -37,5 +37,36 @@ if ( !scale ) {
 }
 
 document.addEventListener('DOMContentLoaded', function onDCL() {
-  document.getElementById('scale').addEventListener('change', changeScale);
+  document.getElementById('scaleControl').addEventListener('change', changeScale);
+});
+
+function initPage() {
+  var backBtn = $j('#backBtn');
+
+  if ( scale == '0' || scale == 'auto' ) changeScale();
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+
+  // Manage the STATS button
+  document.getElementById("statsBtn").addEventListener("click", function onViewClick(evt) {
+    evt.preventDefault();
+    window.location.href = thisUrl+'?view=stats&eid='+eid+'&fid='+fid;
+  });
+}
+
+$j(document).ready(function() {
+  initPage();
 });

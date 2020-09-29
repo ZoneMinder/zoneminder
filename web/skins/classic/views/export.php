@@ -17,6 +17,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+global $sortQuery;
 
 if ( !canView('Events') ) {
   $view = 'error';
@@ -55,7 +56,7 @@ if (isset($_REQUEST['exportFormat'])) {
 }
 
 $focusWindow = true;
-$connkey = isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : generateConnKey();
+$connkey = isset($_REQUEST['connkey']) ? validInt($_REQUEST['connkey']) : generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Export'));
 ?>
@@ -85,20 +86,18 @@ if ( $user['MonitorIds'] ) {
 }
 
 if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
-  ZM\Logger::Debug('Loading events by single eid');
   $eventsSql .= ' AND E.Id=?';
   $eventsValues[] = $_REQUEST['eid'];
-} elseif ( isset($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
-  ZM\Logger::Debug('Loading events by eids');
+} else if ( isset($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
   $eventsSql .= ' AND E.Id IN ('.implode(',', array_map(function(){return '?';}, $_REQUEST['eids'])). ')';
   $eventsValues += $_REQUEST['eids'];
 } else if ( isset($_REQUEST['filter']) ) {
   parseSort();
-  parseFilter($_REQUEST['filter']);
-  $filterQuery = $_REQUEST['filter']['query'];
+  $filter = Filter::parse($_REQUEST['filter']);
+  $filterQuery = $filter->querystring();
 
-  if ( $_REQUEST['filter']['sql'] ) {
-    $eventsSql .= $_REQUEST['filter']['sql'];
+  if ( $filter->sql() ) {
+    $eventsSql .= $filter->sql();
   }
   $eventsSql .= " ORDER BY $sortColumn $sortOrder";
   if ( isset($_REQUEST['filter']['Query']['limit']) )
@@ -146,19 +145,17 @@ while ( $event_row = dbFetchNext($results) ) {
                 <a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery ?>&amp;page=1"><?php echo $event->Id().($event->Archived()?'*':'') ?></a>
               </td>
               <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery ?>&amp;page=1"><?php echo validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
-              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
-              <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?></td>
+              <td class="colMonitorName"><?php echo makeLink( '?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
+              <td class="colCause"><?php echo makeLink( '#', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid=' .$event->Id(). '"') ?></td>
               <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) .
 ( $event->EndTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) : '' ) ?>
               </td>
               <td class="colDuration"><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
-              <td class="colFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->Frames() ) ?></td>
-              <td class="colAlarmFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->AlarmFrames() ) ?></td>
+              <td class="colFrames"><?php echo makeLink( '?view=frames&amp;eid='.$event->Id(), $event->Frames() ) ?></td>
+              <td class="colAlarmFrames"><?php echo makeLink( '?view=frames&amp;eid='.$event->Id(), $event->AlarmFrames() ) ?></td>
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
-              <td class="colMaxScore"><?php echo
- $event->MaxScore();
- #makePopupLink('?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)), $event->MaxScore()) ?></td>
+              <td class="colMaxScore"><?php echo $event->MaxScore() ?></td>
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
     $disk_space_total += $event->DiskSpace();
@@ -271,5 +268,4 @@ while ( $event_row = dbFetchNext($results) ) {
         </form>
       </div>
     </div>
-  </body>
-</html>
+<?php xhtmlFooter() ?>

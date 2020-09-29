@@ -2,7 +2,7 @@
   global $connkey;
   global $Event;
   global $Monitor;
-  global $FilterQuery;
+  global $filterQuery;
   global $sortQuery;
   global $rates;
   global $rate;

@@ -97,33 +97,33 @@ class EventStream : public StreamBase {
       curr_frame_id(0),
       curr_stream_time(0.0),
       send_frame(false),
-      event_data(0),
-      storage(NULL),
-      ffmpeg_input(NULL),
+      event_data(nullptr),
+      storage(nullptr),
+      ffmpeg_input(nullptr),
       // Used when loading frames from an mp4
-      input_codec_context(0),
-      input_codec(0)
+      input_codec_context(nullptr),
+      input_codec(nullptr)
     {}
     ~EventStream() {
         if ( event_data ) {
           if ( event_data->frames ) {
             delete[] event_data->frames;
-            event_data->frames = NULL;
+            event_data->frames = nullptr;
           }
           delete event_data;
-          event_data = NULL;
+          event_data = nullptr;
         }
         if ( monitor ) {
           delete monitor;
-          monitor = NULL;
+          monitor = nullptr;
         }
         if ( storage ) {
           delete storage;
-          storage = NULL;
+          storage = nullptr;
         }
         if ( ffmpeg_input ) {
           delete ffmpeg_input;
-          ffmpeg_input = NULL;
+          ffmpeg_input = nullptr;
         }
     }
     void setStreamStart( uint64_t init_event_id, unsigned int init_frame_id );
@@ -134,6 +134,8 @@ class EventStream : public StreamBase {
     void runStream();
     Image *getImage();
   private:
+    bool send_file( const char *file_path );
+    bool send_buffer( uint8_t * buffer, int size );
     Storage *storage;
     FFmpeg_Input  *ffmpeg_input;
     AVCodecContext *input_codec_context;

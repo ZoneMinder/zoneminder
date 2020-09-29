@@ -116,7 +116,7 @@ User *zmLoadUser(const char *username, const char *password) {
       " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1",
       safer_username);
   delete[] safer_username;
-  safer_username = NULL;
+  safer_username = nullptr;
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -145,7 +145,7 @@ User *zmLoadUser(const char *username, const char *password) {
   mysql_free_result(result);
 
   Warning("Unable to authenticate user %s", username);
-  return NULL;
+  return nullptr;
 }  // end User *zmLoadUser(const char *username, const char *password)
 
 User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr) {
@@ -169,7 +169,7 @@ User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr) {
   Debug(1, "retrieved user '%s' from token", username.c_str());
 
   if ( username == "" ) {
-    return NULL;
+    return nullptr;
   }
 
   char sql[ZM_SQL_MED_BUFSIZ] = "";
@@ -180,30 +180,30 @@ User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr) {
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
-    return NULL;
+    return nullptr;
   }
 
   MYSQL_RES *result = mysql_store_result(&dbconn);
   if ( !result ) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
-    return NULL;
+    return nullptr;
   }
 
   int n_users = mysql_num_rows(result);
   if ( n_users != 1 ) {
     mysql_free_result(result);
     Error("Unable to authenticate user '%s'", username.c_str());
-    return NULL;
+    return nullptr;
   }
 
   MYSQL_ROW dbrow = mysql_fetch_row(result);
   User *user = new User(dbrow);
-  unsigned int stored_iat = strtoul(dbrow[10], NULL, 0);
+  unsigned int stored_iat = strtoul(dbrow[10], nullptr, 0);
 
   if ( stored_iat > iat ) { // admin revoked tokens
     mysql_free_result(result);
     Error("Token was revoked for '%s'", username.c_str());
-    return NULL;
+    return nullptr;
   }
 
   Debug(1, "Authenticated user '%s' via token with last revoke time: %u",
@@ -248,17 +248,17 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
   MYSQL_RES *result = mysql_store_result(&dbconn);
   if ( !result ) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
-    return NULL;
+    return nullptr;
   }
   int n_users = mysql_num_rows(result);
   if ( n_users < 1 ) {
     mysql_free_result(result);
     Warning("Unable to authenticate user");
-    return NULL;
+    return nullptr;
   }
 
   // getting the time is expensive, so only do it once.
-  time_t now = time(0);
+  time_t now = time(nullptr);
   unsigned int hours = config.auth_hash_ttl;
   if ( !hours ) {
     Warning("No value set for ZM_AUTH_HASH_TTL. Defaulting to 2.");
@@ -324,7 +324,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
   Error("You need to build with gnutls or openssl to use hash based auth");
 #endif  // HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
   Debug(1, "No user found for auth_key %s", auth);
-  return NULL;
+  return nullptr;
 }  // end User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
 
 // Function to check Username length

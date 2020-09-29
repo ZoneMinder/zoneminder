@@ -49,7 +49,8 @@ $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
 
 function initialAlarmCues(eventId) {
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues); //get frames data for alarmCues and inserts into html
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues) //get frames data for alarmCues and inserts into html
+      .fail(logAjaxFail);
 }
 
 function setAlarmCues(data) {
@@ -161,7 +162,7 @@ function changeScale() {
     newWidth = eventData.Width * scale / SCALE_BASE;
     newHeight = eventData.Height * scale / SCALE_BASE;
   }
-  if ( !(streamMode == 'stills') ) {
+  if ( streamMode != 'stills' ) {
     eventViewer.width(newWidth);
   } // stills handles its own width
   eventViewer.height(newHeight);
@@ -181,7 +182,7 @@ function changeScale() {
     Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365});
     Cookie.dispose('zmEventScaleAuto');
   }
-}
+} // end function changeScale
 
 function changeReplayMode() {
   var replayMode = $('replayMode').get('value');
@@ -1077,6 +1078,12 @@ function initPage() {
     vid.on('click', function(event) {
       handleClick(event);
     });
+    vid.on('volumechange', function() {
+      Cookie.write('volume', vid.volume(), {duration: 10*365});
+    });
+    if ( Cookie.read('volume') != null ) {
+      vid.volume(Cookie.read('volume'));
+    }
     vid.on('timeupdate', function() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
     });

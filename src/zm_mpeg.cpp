@@ -46,9 +46,9 @@ void VideoStream::Initialise( ) {
 
 void VideoStream::SetupFormat( ) {
 	/* allocate the output media context */
-	ofc = NULL;
+	ofc = nullptr;
 #if (LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 2, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
-	avformat_alloc_output_context2(&ofc, NULL, format, filename);
+	avformat_alloc_output_context2(&ofc, nullptr, format, filename);
 #else
 	AVFormatContext *s = avformat_alloc_context();
 	if ( !s ) {
@@ -59,18 +59,18 @@ void VideoStream::SetupFormat( ) {
 	AVOutputFormat *oformat;
 	if ( format ) {
 #if LIBAVFORMAT_VERSION_CHECK(52, 45, 0, 45, 0)
-		oformat = av_guess_format(format, NULL, NULL);
+		oformat = av_guess_format(format, nullptr, nullptr);
 #else
-		oformat = guess_format(format, NULL, NULL);
+		oformat = guess_format(format, nullptr, nullptr);
 #endif
 		if ( !oformat ) {
 			Fatal("Requested output format '%s' is not a suitable output format", format);
 		}
 	} else {
 #if LIBAVFORMAT_VERSION_CHECK(52, 45, 0, 45, 0)
-		oformat = av_guess_format(NULL, filename, NULL);
+		oformat = av_guess_format(nullptr, filename, nullptr);
 #else
-		oformat = guess_format(NULL, filename, NULL);
+		oformat = guess_format(nullptr, filename, nullptr);
 #endif
 		if ( !oformat ) {
 			Fatal("Unable to find a suitable output format for '%s'", format);
@@ -91,7 +91,7 @@ void VideoStream::SetupFormat( ) {
 #endif
 	} else {
     Debug(1, "No allocating priv_data");
-		s->priv_data = NULL;
+		s->priv_data = nullptr;
 	}
 	
 	if ( filename ) {
@@ -172,7 +172,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 
 	/* add the video streams using the default format codecs
 	   and initialize the codecs */
-	ost = NULL;
+	ost = nullptr;
 	if ( codec_id != AV_CODEC_ID_NONE ) {
 		codec = avcodec_find_encoder(codec_id);
 		if ( !codec ) {
@@ -204,7 +204,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     
-    codec_context = avcodec_alloc_context3(NULL);
+    codec_context = avcodec_alloc_context3(nullptr);
     //avcodec_parameters_to_context(codec_context, ost->codecpar);
 #else
 		codec_context = ost->codec;
@@ -296,7 +296,7 @@ bool VideoStream::OpenStream( ) {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
 		if ( (ret = avcodec_open(codec_context, codec)) < 0 )
 #else
-		if ( (ret = avcodec_open2(codec_context, codec, 0)) < 0 )
+		if ( (ret = avcodec_open2(codec_context, codec, nullptr)) < 0 )
 #endif
 		{
 			Error("Could not open codec. Error code %d \"%s\"", ret, av_err2str(ret));
@@ -338,7 +338,7 @@ bool VideoStream::OpenStream( ) {
     /* if the output format is not identical to the input format, then a temporary
        picture is needed too. It is then converted to the required
        output format */
-    tmp_opicture = NULL;
+    tmp_opicture = nullptr;
     if ( codec_context->pix_fmt != pf ) {
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
 			tmp_opicture = av_frame_alloc( );
@@ -374,7 +374,7 @@ bool VideoStream::OpenStream( ) {
   /* open the output file, if needed */
   if ( !(of->flags & AVFMT_NOFILE) ) {
 #if LIBAVFORMAT_VERSION_CHECK(53, 15, 0, 21, 0)
-		ret = avio_open2( &ofc->pb, filename, AVIO_FLAG_WRITE, NULL, NULL );
+		ret = avio_open2( &ofc->pb, filename, AVIO_FLAG_WRITE, nullptr, nullptr );
 #elif LIBAVFORMAT_VERSION_CHECK(52, 102, 0, 102, 0)
 		ret = avio_open( &ofc->pb, filename, AVIO_FLAG_WRITE );
 #else
@@ -391,7 +391,7 @@ bool VideoStream::OpenStream( ) {
     return false;
 	}
 
-	video_outbuf = NULL;
+	video_outbuf = nullptr;
 #if LIBAVFORMAT_VERSION_CHECK(57, 0, 0, 0, 0)
   if (codec_context->codec_type == AVMEDIA_TYPE_VIDEO &&
       codec_context->codec_id == AV_CODEC_ID_RAWVIDEO) {
@@ -403,7 +403,7 @@ bool VideoStream::OpenStream( ) {
 		// TODO: Make buffer dynamic.
 		video_outbuf_size = 4000000;
 		video_outbuf = (uint8_t *)malloc( video_outbuf_size );
-		if ( video_outbuf == NULL ) {
+		if ( video_outbuf == nullptr ) {
 			Fatal("Unable to malloc memory for outbuf");
 		}
 	}
@@ -417,7 +417,7 @@ bool VideoStream::OpenStream( ) {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
   ret = av_write_header(ofc);
 #else
-  ret = avformat_write_header(ofc, NULL);
+  ret = avformat_write_header(ofc, nullptr);
 #endif
 
   if ( ret < 0 ) {
@@ -430,16 +430,16 @@ bool VideoStream::OpenStream( ) {
 VideoStream::VideoStream( const char *in_filename, const char *in_format, int bitrate, double frame_rate, int colours, int subpixelorder, int width, int height ) :
 		filename(in_filename),
 		format(in_format),
-    opicture(NULL),
-    tmp_opicture(NULL),
-    video_outbuf(NULL),
+    opicture(nullptr),
+    tmp_opicture(nullptr),
+    video_outbuf(nullptr),
     video_outbuf_size(0),
 		last_pts( -1 ),
 		streaming_thread(0),
 		do_streaming(true),
     add_timestamp(false),
     timestamp(0),
-		buffer_copy(NULL),
+		buffer_copy(nullptr),
 		buffer_copy_lock(new pthread_mutex_t),
 		buffer_copy_size(0),
 		buffer_copy_used(0),
@@ -454,15 +454,15 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 		codec_and_format = new char[length+1];;
 		strcpy( codec_and_format, format );
 		format = codec_and_format;
-		codec_name = NULL;
+		codec_name = nullptr;
 		char *f = strchr(codec_and_format, '/');
-		if (f != NULL) {
+		if (f != nullptr) {
 			*f = 0;
 			codec_name = f+1;
 		}
 	}
 
-  codec_context = NULL;
+  codec_context = nullptr;
 	SetupFormat( );
 	SetupCodec( colours, subpixelorder, width, height, bitrate, frame_rate );
 	SetParameters( );
@@ -474,7 +474,7 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
   packet_index = 0;
 	
 	// Initialize mutex used by streaming thread.
-	if ( pthread_mutex_init( buffer_copy_lock, NULL ) != 0 ) {
+	if ( pthread_mutex_init( buffer_copy_lock, nullptr ) != 0 ) {
 		Fatal("pthread_mutex_init failed");
 	}
 
@@ -494,7 +494,7 @@ VideoStream::~VideoStream( ) {
 		pthread_join(streaming_thread, &thread_exit_code);
 	}
 	
-	if ( buffer_copy != NULL ) {
+	if ( buffer_copy != nullptr ) {
 		av_free( buffer_copy );
 	}
     
@@ -582,7 +582,7 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _a
 		Debug( 1, "Starting streaming thread" );
 		
 		// Start a thread for streaming encoded video.
-		if (pthread_create( &streaming_thread, NULL, StreamingThreadCallback, (void*) this) != 0){
+		if (pthread_create( &streaming_thread, nullptr, StreamingThreadCallback, (void*) this) != 0){
 			// Log a fatal error and exit the process.
 			Fatal( "VideoStream failed to create streaming thread." );
 		}
@@ -597,12 +597,12 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 
 	if ( codec_context->pix_fmt != pf ) {
 #ifdef HAVE_LIBSWSCALE
-	static struct SwsContext *img_convert_ctx = 0;
+	static struct SwsContext *img_convert_ctx = nullptr;
 #endif // HAVE_LIBSWSCALE
 		memcpy( tmp_opicture->data[0], buffer, buffer_size );
 #ifdef HAVE_LIBSWSCALE
 		if ( !img_convert_ctx ) {
-			img_convert_ctx = sws_getCachedContext( NULL, codec_context->width, codec_context->height, pf, codec_context->width, codec_context->height, codec_context->pix_fmt, SWS_BICUBIC, NULL, NULL, NULL );
+			img_convert_ctx = sws_getCachedContext( nullptr, codec_context->width, codec_context->height, pf, codec_context->width, codec_context->height, codec_context->pix_fmt, SWS_BICUBIC, nullptr, nullptr, nullptr );
 			if ( !img_convert_ctx )
 				Panic( "Unable to initialise image scaling context" );
 		}
@@ -659,7 +659,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 #else
 		int out_size = avcodec_encode_video( codec_context, video_outbuf, video_outbuf_size, opicture_ptr );
 		got_packet = out_size > 0 ? 1 : 0;
-		pkt->data = got_packet ? video_outbuf : NULL;
+		pkt->data = got_packet ? video_outbuf : nullptr;
 		pkt->size = got_packet ? out_size : 0;
 #endif
 #endif
@@ -705,7 +705,7 @@ void *VideoStream::StreamingThreadCallback(void *ctx){
 	
 	Debug( 1, "StreamingThreadCallback started" );
 	
-  if (ctx == NULL) return NULL;
+  if (ctx == nullptr) return nullptr;
 
   VideoStream* videoStream = reinterpret_cast<VideoStream*>(ctx);
 
@@ -765,7 +765,7 @@ void *VideoStream::StreamingThreadCallback(void *ctx){
 		frame_count++;
 	}
 	
-	return 0;
+	return nullptr;
 }
 
 #endif // HAVE_LIBAVCODEC

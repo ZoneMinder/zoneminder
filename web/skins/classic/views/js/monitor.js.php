@@ -1,4 +1,5 @@
 var optControl = <?php echo ZM_OPT_CONTROL ?>;
+var hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
 var defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
 
 <?php
@@ -6,21 +7,14 @@ if ( ZM_OPT_CONTROL ) {
 ?>
 var controlOptions = new Object();
 <?php
-  global $controlTypes;
-  $controlTypes = array( ''=>translate('None') );
-  # Temporary workaround to show all ptz control types regardless of monitor source type
-  #    $sql = "select * from Controls where Type = '".$newMonitor['Type']."'";
-  $sql = 'SELECT `Id`,`Name`,`HasHomePreset`,`NumPresets` FROM `Controls` ORDER BY lower(`Name`)';
-  foreach( dbFetchAll($sql) as $row ) {
-    $controlTypes[$row['Id']] = $row['Name'];
+  global $controls;
+  foreach ( $controls as $control ) {
     echo '
-controlOptions['.$row['Id'].'] = new Array();
-controlOptions['.$row['Id'].'][0] = '.
-    ( $row['HasHomePreset'] ? '\''.translate('Home').'\'' : 'null' ).'
-';
-    for ( $i = 1; $i <= $row['NumPresets']; $i++ ) {
-      echo 'controlOptions['. $row['Id'].']['.$i.'] = \''.translate('Preset').' '.$i .'\';
-';
+controlOptions['.$control->Id().'] = new Array();
+controlOptions['.$control->Id().'][0] = '.
+    ( $control->HasHomePreset() ? '\''.translate('Home').'\'' : 'null' ).PHP_EOL;
+    for ( $i = 1; $i <= $control->NumPresets(); $i++ ) {
+      echo 'controlOptions['. $control->Id().']['.$i.'] = \''.translate('Preset').' '.$i .'\';'.PHP_EOL;
     }
   } # end foreach row
 } # end if ZM_OPT_CONTROL

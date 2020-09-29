@@ -64,18 +64,18 @@ RemoteCameraRtsp::RemoteCameraRtsp(
     Initialise();
   }
   
-  mFormatContext = NULL;
+  mFormatContext = nullptr;
   mVideoStreamId = -1;
   mAudioStreamId = -1;
-  mCodecContext = NULL;
-  mCodec = NULL;
-  mRawFrame = NULL;
-  mFrame = NULL;
+  mCodecContext = nullptr;
+  mCodec = nullptr;
+  mRawFrame = nullptr;
+  mFrame = nullptr;
   frameCount = 0;
   startTime=0;
   
 #if HAVE_LIBSWSCALE
-  mConvertContext = NULL;
+  mConvertContext = nullptr;
 #endif
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {
@@ -99,13 +99,13 @@ RemoteCameraRtsp::~RemoteCameraRtsp() {
 #if HAVE_LIBSWSCALE
   if ( mConvertContext ) {
     sws_freeContext(mConvertContext);
-    mConvertContext = NULL;
+    mConvertContext = nullptr;
   }
 #endif
 
   if ( mCodecContext ) {
      avcodec_close(mCodecContext);
-     mCodecContext = NULL; // Freed by avformat_free_context in the destructor of RtspThread class
+     mCodecContext = nullptr; // Freed by avformat_free_context in the destructor of RtspThread class
   }
 
   if ( capture ) {
@@ -144,7 +144,7 @@ int RemoteCameraRtsp::Disconnect() {
     rtspThread->stop();
     rtspThread->join();
     delete rtspThread;
-    rtspThread = 0;
+    rtspThread = nullptr;
   }
   return 0;
 }
@@ -203,7 +203,7 @@ int RemoteCameraRtsp::PrimeCapture() {
 
   // Find the decoder for the video stream
   mCodec = avcodec_find_decoder(mCodecContext->codec_id);
-  if ( mCodec == NULL )
+  if ( mCodec == nullptr )
     Panic("Unable to locate codec %d decoder", mCodecContext->codec_id);
 
   // Open codec
@@ -220,7 +220,7 @@ int RemoteCameraRtsp::PrimeCapture() {
   // Allocate space for the converted video frame
   mFrame = zm_av_frame_alloc();
 
-  if ( mRawFrame == NULL || mFrame == NULL )
+  if ( mRawFrame == nullptr || mFrame == nullptr )
     Fatal("Unable to allocate frame(s)");
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
@@ -275,7 +275,7 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
   
   /* Request a writeable buffer of the target image */
   directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
-  if ( directbuffer == NULL ) {
+  if ( directbuffer == nullptr ) {
     Error("Failed requesting writeable buffer for the captured image.");
     return -1;
   }
@@ -339,12 +339,12 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
       if ( frameComplete ) {
           
     #if HAVE_LIBSWSCALE
-        if ( mConvertContext == NULL ) {
+        if ( mConvertContext == nullptr ) {
           mConvertContext = sws_getContext(
               mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt,
-              width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL);
+              width, height, imagePixFormat, SWS_BICUBIC, nullptr, nullptr, nullptr);
 
-          if ( mConvertContext == NULL )
+          if ( mConvertContext == nullptr )
             Fatal("Unable to create conversion context");
 
           if (

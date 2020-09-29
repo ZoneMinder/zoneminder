@@ -36,5 +36,4 @@ if (
 			</div>
 		</form>
 	</div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

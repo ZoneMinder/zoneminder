@@ -737,7 +737,7 @@ function click_panright() {
 }
 // Manage the DOWNLOAD VIDEO button
 function click_download() {
-  $j.getJSON(thisUrl + '?request=modal&modal=download)
+  $j.getJSON(thisUrl + '?request=modal&modal=download')
       .done(function(data) {
         if ( $j('#downloadModal').length ) {
           $j('#downloadModal').replaceWith(data.html);

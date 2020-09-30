@@ -735,8 +735,21 @@ function click_panright() {
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
   clicknav(minTimeSecs, maxTimeSecs, 0);
 }
+// Manage the DOWNLOAD VIDEO button
 function click_download() {
-  createPopup('?view=download', 'zmDownload', 'download');
+  $j.getJSON(thisUrl + '?request=modal&modal=download)
+      .done(function(data) {
+        if ( $j('#downloadModal').length ) {
+          $j('#downloadModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#downloadModal').modal('show');
+        // Manage the GENERATE DOWNLOAD button
+        $j('#exportButton').click(exportEvent);
+      })
+      .fail(logAjaxFail);
+  });
 }
 function click_all_events() {
   clicknav(0, 0, 0);
@@ -869,15 +882,15 @@ function showOneMonitor(monId) {
   var url;
   if ( liveMode != 0 ) {
     url = '?view=watch&mid=' + monId.toString();
-    createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId]);
+    window.location.assign(url);
   } else {
     var Frame = getFrame(monId, currentTimeSecs);
     if ( Frame ) {
       url = '?view=event&eid=' + Frame.EventId + '&fid=' + Frame.FrameId;
-      createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
+      window.location.assign(url);
     } else {
       url = '?view=watch&mid=' + monId.toString();
-      createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId]);
+      window.location.assign(url);
     }
   } // end if live/events
 }

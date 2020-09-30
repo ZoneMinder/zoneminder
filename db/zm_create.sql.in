@@ -551,7 +551,7 @@ CREATE TABLE `Monitor_Status` (
   `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
   `CaptureBandwidth`  INT NOT NULL default 0,
   PRIMARY KEY (`MonitorId`)
-) ENGINE=MEMORY;
+) ENGINE=@ZM_MYSQL_ENGINE@;
 --
 -- Table structure for table `States`
 -- PP - Added IsActive to track custom run states

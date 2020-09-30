@@ -749,7 +749,6 @@ function click_download() {
         $j('#exportButton').click(exportEvent);
       })
       .fail(logAjaxFail);
-  });
 }
 function click_all_events() {
   clicknav(0, 0, 0);

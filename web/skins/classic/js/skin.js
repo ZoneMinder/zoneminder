@@ -931,7 +931,7 @@ function startDownload( exportFile ) {
 
 function exportResponse(data, responseText) {
   console.log(data);
-  
+
   var generated = (data.result=='Ok') ? 1 : 0;
   var exportFile = '?view=archive&type='+data.exportFormat+'&connkey='+data.connkey;
 
@@ -952,6 +952,6 @@ function exportEvent() {
   var form = $j('#downloadForm').serialize();
   $j.getJSON(thisUrl + '?view=request&request=event&action=download', form)
       .done(exportResponse)
-      .fail(logAjaxFail); 
+      .fail(logAjaxFail);
   $j('#exportProgress').removeClass( 'invisible' );
 }

@@ -25,10 +25,12 @@
 
 ?>
 var AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
-
 var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
-
 var currentView = '<?php echo $view ?>';
+
+var exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
+var exportFailedString = '<?php echo translate('ExportFailed') ?>';
+var exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
 <?php
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
    will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,

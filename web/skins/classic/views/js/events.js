@@ -240,7 +240,18 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    createPopup('?view=download&eids[]='+selections.join('&eids[]='), 'zmDownload', 'download');
+    $j.getJSON(thisUrl + '?request=modal&modal=download&eids[]='+selections.join('&eids[]='))
+        .done(function(data) {
+          if ( $j('#downloadModal').length ) {
+            $j('#downloadModal').replaceWith(data.html);
+          } else {
+            $j("body").append(data.html);
+          }
+          $j('#downloadModal').modal('show');
+          // Manage the GENERATE DOWNLOAD button
+          $j('#exportButton').click(exportEvent);
+        })
+        .fail(logAjaxFail);
   });
 
   // Manage the DELETE button

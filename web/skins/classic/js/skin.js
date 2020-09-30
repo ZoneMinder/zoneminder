@@ -924,4 +924,34 @@ function human_filesize(size, precision = 2) {
   return (Math.round(size*(10^precision))/(10^precision))+units[i];
 }
 
+function startDownload( exportFile ) {
+  console.log("Starting download from " + exportFile);
+  window.location.replace( exportFile );
+}
 
+function exportResponse(data, responseText) {
+  console.log(data);
+  
+  var generated = (data.result=='Ok') ? 1 : 0;
+  var exportFile = '?view=archive&type='+data.exportFormat+'&connkey='+data.connkey;
+
+  $j('#exportProgress').removeClass( 'text-warning' );
+  if ( generated ) {
+    $j('#downloadLink').text('Download');
+    $j('#downloadLink').attr("href", thisUrl + exportFile);
+    $j('#exportProgress').addClass( 'text-success' );
+    $j('#exportProgress').text(exportSucceededString);
+    startDownload.pass( exportFile ).delay( 1500 );
+  } else {
+    $j('#exportProgress').addClass( 'text-danger' );
+    $j('#exportProgress').text(exportFailedString);
+  }
+}
+
+function exportEvent() {
+  var form = $j('#downloadForm').serialize();
+  $j.getJSON(thisUrl + '?view=request&request=event&action=download', form)
+      .done(exportResponse)
+      .fail(logAjaxFail); 
+  $j('#exportProgress').removeClass( 'invisible' );
+}

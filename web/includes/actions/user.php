@@ -102,7 +102,7 @@ if ( $action == 'Save' ) {
       session_write_close();
       $refreshParent = true;
     }
-    $view = 'none';
+    $redirect = $_SERVER['HTTP_REFERER'];
   }
 } // end if $action == user
 ?>

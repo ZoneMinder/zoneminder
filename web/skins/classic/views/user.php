@@ -128,6 +128,10 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
               <td><?php echo htmlSelect('newUser[System]', $nve, $newUser->System()) ?></td>
             </tr>
             <tr>
+              <th class="text-right" scope="row"><?php echo translate('Devices') ?></th>
+              <td><?php echo htmlSelect('newUser[Devices]', $nve, $newUser->Devices()) ?></td>
+            </tr>
+            <tr>
               <th class="text-right" scope="row"><?php echo translate('MaxBandwidth') ?></th>
               <td><?php echo htmlSelect('newUser[MaxBandwidth]', $bandwidths, $newUser->MaxBandwidth()) ?></td>
             </tr>

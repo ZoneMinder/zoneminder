@@ -130,6 +130,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
               <th class="colMonitors"><?php echo translate('Monitors') ?></th>
               <th class="colGroups"><?php echo translate('Groups') ?></th>
               <th class="colSystem"><?php echo translate('System') ?></th>
+              <th class="colDevices"><?php echo translate('Devices') ?></th>
               <th class="colBandwidth"><?php echo translate('Bandwidth') ?></th>
               <th class="colMonitor"><?php echo translate('Monitor') ?></th>
               <?php if ( ZM_OPT_USE_API ) { ?><th class="colAPIEnabled"><?php echo translate('APIEnabled') ?></th><?php } ?>
@@ -167,6 +168,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
               <td class="colMonitors"><?php echo validHtmlStr($user_row['Monitors']) ?></td>
               <td class="colGroups"><?php echo validHtmlStr($user_row['Groups']) ?></td>
               <td class="colSystem"><?php echo validHtmlStr($user_row['System']) ?></td>
+              <td class="colDevices"><?php echo validHtmlStr($user_row['Devices']) ?></td>
               <td class="colBandwidth"><?php echo $user_row['MaxBandwidth']?$bandwidth_options[$user_row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?php echo count($userMonitors)?(join(', ', $userMonitors)):'&nbsp;' ?></td>
               <?php if ( ZM_OPT_USE_API ) { ?><td class="colAPIEnabled"><?php echo translate($user_row['APIEnabled']?'Yes':'No') ?></td><?php } ?>

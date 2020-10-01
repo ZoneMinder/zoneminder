@@ -59,15 +59,15 @@ foreach( $devices as $device )
 {
     if ( $device['Status'] == 'ON' )
     {
-        $fclass = "infoText";
+        $fclass = "deviceCol infoText";
     }
     elseif ( $device['Status'] == 'OFF' )
     {
-        $fclass = "warnText";
+        $fclass = "deviceCol warnText";
     }
     else
     {
-        $fclass = "errorText";
+        $fclass = "deviceCol errorText";
     }
 ?>
             <tr>
@@ -82,8 +82,8 @@ foreach( $devices as $device )
           </tbody>
         </table>
         <div id="contentButtons">
-          <?php echo makeButton('?view=device&did=0', 'New', canEdit( 'Devices' )); ?>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" data-on-click-this="deleteDevice" disabled="disabled"/>
+          <button type="button" id="newDeviceBtn" value="<?php echo translate('New') ?>" disabled="disabled"><?php echo translate('New') ?></button>
+          <input type="button" class="btn-danger" name="deleteBtn" value="<?php echo translate('Delete') ?>" data-on-click-this="deleteDevice" disabled="disabled"/>
         </div>
       </form>
     </div>

@@ -1,3 +1,5 @@
+var newDeviceBtn = $j('#newDeviceBtn');
+
 function switchDeviceOn( element, key ) {
   var form = element.form;
   form.view.value = currentView;
@@ -37,13 +39,42 @@ function configureButtons( element, name ) {
   form.deleteBtn.disabled = !checked;
 }
 
-// Manage the New button
-function New(el) {
-  url = el.getAttribute('data-url');
-  window.location.assign(url);
+// Load the Device Modal HTML via Ajax call
+function getDeviceModal(did) {
+  $j.getJSON(thisUrl + '?request=modal&modal=device&did=' + did)
+      .done(function(data) {
+        if ( $j('#deviceModal').length ) {
+          $j('#deviceModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#deviceModal').modal('show');
+        // Manage the Save button
+        $j('#deviceSaveBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#deviceModalForm').submit();
+        });
+      })
+      .fail(logAjaxFail);
+}
+
+function enableDeviceModal() {
+  $j(".deviceCol").click(function(evt) {
+    evt.preventDefault();
+    var did = $j(this).data('did');
+    getDeviceModal(did);
+  });
+  newDeviceBtn.click(function(evt) {
+    evt.preventDefault();
+    getDeviceModal(0);
+  });
 }
 
 function initPage() {
+  if ( canEditDevice ) enableDeviceModal();
+
+  newDeviceBtn.prop('disabled', !canEditDevice);
+
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();

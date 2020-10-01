@@ -57,7 +57,15 @@ jobs:
       uses: github/codeql-action/autobuild@v1
 
     # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 https://git.io/JvXDl
+    # 📚 https://git.io/JvXDl- 
+    - name: Clean install dependencies and build
+      run: |
+        apt-get install libx264-dev libmp4v2-dev libavdevice-dev libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev
+        apt-get install libbz2-dev libgcrypt20-dev libcurl4-gnutls-dev libjpeg62-turbo-dev libturbojpeg0-dev
+        apt-get install default-libmysqlclient-dev libpcre3-dev libpolkit-gobject-1-dev libv4l-dev libvlc-dev
+        apt-get install libdate-manip-perl libdbd-mysql-perl libphp-serialization-perl libsys-mmap-perl
+        apt-get install libwww-perl libdata-uuid-perl libssl-dev libcrypt-eksblowfish-perl libdata-entropy-perl
+        
 
     # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines
     #    and modify them (or add more) to build your code if your project

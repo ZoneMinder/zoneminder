@@ -65,6 +65,8 @@ jobs:
         apt-get install default-libmysqlclient-dev libpcre3-dev libpolkit-gobject-1-dev libv4l-dev libvlc-dev
         apt-get install libdate-manip-perl libdbd-mysql-perl libphp-serialization-perl libsys-mmap-perl
         apt-get install libwww-perl libdata-uuid-perl libssl-dev libcrypt-eksblowfish-perl libdata-entropy-perl
+        git submodule init
+        git submodule update --init --recursive
         
 
     # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines

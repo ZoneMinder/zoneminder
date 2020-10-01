@@ -170,9 +170,6 @@ function manageFunctionModal() {
 
 function initPage() {
   reloadWindow.periodical(consoleRefreshTimeout);
-  if ( showVersionPopup ) {
-    window.location.assign('?view=version');
-  }
   if ( showDonatePopup ) {
     $j.getJSON(thisUrl + '?request=modal&modal=donate')
         .done(function(data) {
@@ -228,4 +225,4 @@ function applySort(event, ui) {
   ajax.send();
 } // end function applySort(event,ui)
 
-window.addEventListener( 'DOMContentLoaded', initPage );
+$j(document).ready(initPage );

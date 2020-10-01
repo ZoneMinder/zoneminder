@@ -121,6 +121,24 @@ $serial = $primary_key = 'Id';
   WebColour
   Exif
   Sequence
+  TotalEvents
+  TotalEventDiskSpace
+  HourEvents
+  HourEventDiskSpace
+  DayEvents
+  DayEventDiskSpace
+  WeekEvents
+  WeekEventDiskSpace
+  MonthEvents
+  MonthEventDiskSpace
+  ArchivedEvents
+  ArchivedEventDiskSpace
+  ZoneCount
+  Refresh
+  DefaultCodec
+  GroupIds
+  Latitude
+  Longitude
   );
 
 %defaults = (
@@ -201,6 +219,23 @@ $serial = $primary_key = 'Id';
     WebColour   =>  '#ff0000',
     Exif    =>  0,
     Sequence  =>  undef,
+    TotalEvents => undef,
+    TotalEventDiskSpace => undef,
+    HourEvents =>   undef,
+    HourEventDiskSpace =>  undef,
+    DayEvents =>  undef,
+    DayEventDiskSpace =>  undef,
+    WeekEvents =>  undef,
+    WeekEventDiskSpace =>  undef,
+    MonthEvents =>  undef,
+    MonthEventDiskSpace =>  undef,
+    ArchivedEvents =>  undef,
+    ArchivedEventDiskSpace =>  undef,
+    ZoneCount =>  0,
+    Refresh => null,
+    DefaultCodec  => 'auto',
+    Latitude  =>  null,
+    Longitude =>  null,
     );
 
 sub Server {
@@ -210,6 +245,30 @@ sub Server {
 sub Storage {
 	return new ZoneMinder::Storage( $_[0]{StorageId} );
 } # end sub Storage
+
+sub control {
+  my $monitor = shift;
+  my $command = shift;
+  my $process = shift;
+
+  if ( $command eq 'stop' or $command eq 'restart' ) {
+    if ( $process ) {
+      `/usr/bin/zmdc.pl stop $process -m $$monitor{Id}`;
+    } else {
+      `/usr/bin/zmdc.pl stop zma -m $$monitor{Id}`;
+      `/usr/bin/zmdc.pl stop zmc -m $$monitor{Id}`;
+    }
+  }
+  if ( $command eq 'start' or $command eq 'restart' ) {
+    if ( $process ) {
+      `/usr/bin/zmdc.pl start $process -m $$monitor{Id}`;
+    } else {
+      `/usr/bin/zmdc.pl start zmc -m $$monitor{Id}`;
+      `/usr/bin/zmdc.pl start zma -m $$monitor{Id}`;
+    } # end if
+  }
+} # end sub control
+
 
 1;
 __END__

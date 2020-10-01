@@ -17,7 +17,7 @@ Build-Depends: debhelper, dh-systemd, sphinx-doc, python3-sphinx, dh-linktree, d
               ,libbz2-dev
               ,libgcrypt20-dev
               ,libcurl4-gnutls-dev
-              ,libjpeg9-dev | libjpeg8-dev | libjpeg62-turbo-dev
+              ,libjpeg62-turbo-dev | libjpeg8-dev | libjpeg9-dev
               ,libturbojpeg0-dev
               ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat
               ,libpcre3-dev

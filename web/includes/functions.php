@@ -544,7 +544,7 @@ function htmlOptions($options, $values) {
 ';
   } # end foreach options
   if ( $values and ! $has_selected ) {
-    ZM\Warning('Specified value '.$values.' not in contents: '.print_r($options, true));
+    ZM\Warning('Specified value '.print_r($values, true).' not in contents: '.print_r($options, true));
   }
   return $options_html;
 } # end function htmlOptions

@@ -55,23 +55,20 @@ xhtmlHeaders(__FILE__, translate('Devices') );
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
 <?php
-foreach( $devices as $device )
-{
-    if ( $device['Status'] == 'ON' )
-    {
-        $fclass = "deviceCol infoText";
-    }
-    elseif ( $device['Status'] == 'OFF' )
-    {
-        $fclass = "deviceCol warnText";
-    }
-    else
-    {
-        $fclass = "deviceCol errorText";
-    }
+foreach( $devices as $device ) {
+
+  if ( $device['Status'] == 'ON' ) {
+    $fclass = "infoText";
+  } else if ( $device['Status'] == 'OFF' ) {
+    $fclass = "warnText";
+  } else {
+    $fclass = "errorText";
+  }
+  
+  $str_opt = 'class="deviceCol" data-did="'.$device['Id'].'"';
 ?>
             <tr>
-              <td><?php echo makeLink( '?view=device&amp;did='.$device['Id'], '<span class="'.$fclass.'">'.validHtmlStr($device['Name']).' ('.validHtmlStr($device['KeyString']).')</span>', canEdit( 'Devices' ) ) ?></td>
+              <td><?php echo makeLink( '#', '<span class="'.$fclass.'">'.validHtmlStr($device['Name']).' ('.validHtmlStr($device['KeyString']).')</span>', canEdit( 'Devices' ), $str_opt ) ?></td>
               <td><input type="button" value="<?php echo translate('On') ?>"<?php echo ($device['Status'] != 'ON')?' class="set"':'' ?> onclick="switchDeviceOn( this, '<?php echo validHtmlStr($device['KeyString']) ?>' )"<?php echo canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
               <td><input type="button" value="<?php echo translate('Off') ?>"<?php echo ($device['Status'] != 'OFF')?' class="set"':'' ?> onclick="switchDeviceOff( this, '<?php echo validHtmlStr($device['KeyString']) ?>' )"<?php echo canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
               <td><input type="checkbox" name="markDids[]" value="<?php echo $device['Id'] ?>" onclick="configureButtons( this, 'markDids' );"<?php if ( !canEdit( 'Devices' ) ) {?> disabled="disabled"<?php } ?>/></td>

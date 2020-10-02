@@ -32,11 +32,15 @@ global $CLANG;
         <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
 <?php if ( canView('System') ) { ?>
         <p>Other logged in users:<br/>
-<table>
+<table class="table table-striped">
+  <thead>
   <tr>
-    <th><?php echo(translate('Username'))?></th>
-    <th><?php echo(translate('Last Access'))?></th>
+    <th class="text-left"><?php echo translate('Username') ?></th>
+    <th class="text-left"><?php echo translate('IPAddress') ?></th>
+    <th class="text-left"><?php echo translate('Last Access') ?></th>
   </tr>
+  </thead>
+  <tbody>
 <?php
 require_once('includes/User.php');
 $result = dbQuery('SELECT * FROM Sessions');
@@ -61,11 +65,18 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
     continue;
   }
 
-  echo '<tr><td>'.$user->Username().'</td><td>'.strftime(STRF_FMT_DATETIME_SHORTER, $row['access']).'</td></tr>';
+  echo '
+  <tr>
+    <td>'.$user->Username().'</td>
+    <td>'.$_SESSION['remoteAddr'].'</td>
+    <td>'.strftime(STRF_FMT_DATETIME_SHORTER, $row['access']).'</td>
+  </tr>
+';
 } # end while
 session_abort();
 $_SESSION = $current_session;
 ?>
+          </tbody>
         </table>
 <?php } # end if canView(System) ?>
       </div>

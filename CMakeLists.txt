@@ -806,7 +806,7 @@ find_package(
     Getopt::Long Time::HiRes Date::Manip LWP::UserAgent 
     ExtUtils::MakeMaker ${ZM_MMAP_PERLPACKAGE})
 if(NOT PERLMODULES_FOUND)
-	message(FATAL_ERROR 
+  message(WARNING
             "Not all required perl modules were found on your system")
 endif(NOT PERLMODULES_FOUND)
 

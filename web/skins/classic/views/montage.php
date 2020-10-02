@@ -152,7 +152,7 @@ xhtmlHeaders(__FILE__, translate('Montage'));
         <div id="headerButtons">
 <?php
 if ( $showControl ) {
-  echo makePopupLink('?view=control', 'zmControl', 'control', translate('Control'));
+  echo makeLink('?view=control', translate('Control'));
 }
 if ( $showZones ) {
 ?>

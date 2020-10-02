@@ -55,6 +55,7 @@ jobs:
       run: |
         git submodule init
         git submodule update --init --recursive
+        sudo apt-get update
         sudo apt-get install libx264-dev libmp4v2-dev libavdevice-dev libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev
         sudo apt-get install libbz2-dev libgcrypt20-dev libcurl4-gnutls-dev libjpeg-turbo8-dev libturbojpeg0-dev
         sudo apt-get install default-libmysqlclient-dev libpcre3-dev libpolkit-gobject-1-dev libv4l-dev libvlc-dev

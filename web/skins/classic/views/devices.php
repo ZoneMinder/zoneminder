@@ -35,9 +35,16 @@ foreach( dbFetchAll( $sql ) as $row )
 xhtmlHeaders(__FILE__, translate('Devices') );
 ?>
 <body>
+  <?php echo getNavBarHTML(); ?>
   <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Devices') ?></h2>
+    <div class="w-100 py-1">
+      <div class="float-left pl-3">
+        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+      </div>
+      <div class="w-100 pt-2">
+        <h2><?php echo translate('Devices') ?></h2>
+      </div>
     </div>
     <div id="content">
       <form name="contentForm" method="get" action="?">
@@ -48,23 +55,20 @@ xhtmlHeaders(__FILE__, translate('Devices') );
         <table id="contentTable" class="major" cellspacing="0">
           <tbody>
 <?php
-foreach( $devices as $device )
-{
-    if ( $device['Status'] == 'ON' )
-    {
-        $fclass = "infoText";
-    }
-    elseif ( $device['Status'] == 'OFF' )
-    {
-        $fclass = "warnText";
-    }
-    else
-    {
-        $fclass = "errorText";
-    }
+foreach( $devices as $device ) {
+
+  if ( $device['Status'] == 'ON' ) {
+    $fclass = "infoText";
+  } else if ( $device['Status'] == 'OFF' ) {
+    $fclass = "warnText";
+  } else {
+    $fclass = "errorText";
+  }
+  
+  $str_opt = 'class="deviceCol" data-did="'.$device['Id'].'"';
 ?>
             <tr>
-              <td><?php echo makePopupLink( '?view=device&amp;did='.$device['Id'], 'zmDevice', 'device', '<span class="'.$fclass.'">'.validHtmlStr($device['Name']).' ('.validHtmlStr($device['KeyString']).')</span>', canEdit( 'Devices' ) ) ?></td>
+              <td><?php echo makeLink( '#', '<span class="'.$fclass.'">'.validHtmlStr($device['Name']).' ('.validHtmlStr($device['KeyString']).')</span>', canEdit( 'Devices' ), $str_opt ) ?></td>
               <td><input type="button" value="<?php echo translate('On') ?>"<?php echo ($device['Status'] != 'ON')?' class="set"':'' ?> onclick="switchDeviceOn( this, '<?php echo validHtmlStr($device['KeyString']) ?>' )"<?php echo canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
               <td><input type="button" value="<?php echo translate('Off') ?>"<?php echo ($device['Status'] != 'OFF')?' class="set"':'' ?> onclick="switchDeviceOff( this, '<?php echo validHtmlStr($device['KeyString']) ?>' )"<?php echo canEdit( 'Devices' )?"":' disabled="disabled"' ?>/></td>
               <td><input type="checkbox" name="markDids[]" value="<?php echo $device['Id'] ?>" onclick="configureButtons( this, 'markDids' );"<?php if ( !canEdit( 'Devices' ) ) {?> disabled="disabled"<?php } ?>/></td>
@@ -75,12 +79,10 @@ foreach( $devices as $device )
           </tbody>
         </table>
         <div id="contentButtons">
-          <?php echo makePopupButton('?view=device&did=0', 'zmDevice', 'device', translate('New'), canEdit( 'Devices' )); ?>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" data-on-click-this="deleteDevice" disabled="disabled"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
+          <button type="button" id="newDeviceBtn" value="<?php echo translate('New') ?>" disabled="disabled"><?php echo translate('New') ?></button>
+          <input type="button" class="btn-danger" name="deleteBtn" value="<?php echo translate('Delete') ?>" data-on-click-this="deleteDevice" disabled="disabled"/>
         </div>
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

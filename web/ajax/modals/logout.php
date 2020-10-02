@@ -30,6 +30,28 @@ global $CLANG;
       </div>
       <div class="modal-body">
         <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
+        <p>Other logged in users:<br/>
+<table>
+  <tr>
+    <th><?php echo(translate('Username'))?></th>
+    <th><?php echo(translate('Last Access'))?></th>
+  </tr>
+<?php
+$result = dbQuery('SELECT * FROM Sessions');
+if ( ! $result ) return;
+
+$current_session = $_SESSION;
+
+while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
+  $_SESSION = array();
+  session_decode($row['data']);
+  $user = ZM\User->find_one(array('Username'=>$_SESSION['username']));
+
+  echo '<tr><td>'.$user['Username'].'</td><td>'.$row['access'].'</td></tr>';
+} # end while
+$_SESSION = $current_session;
+?>
+        </table>
       </div>
       <div class="modal-footer">
         <form name="logoutForm" id="logoutForm" method="post" action="?">

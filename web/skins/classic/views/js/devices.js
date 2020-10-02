@@ -86,12 +86,12 @@ function processClicks(event, field, value, row, $element) {
     var url = '?request=device&action=device&command=' + field + '&key=' + key;
     console.log('Url sent to device: ' + url);
     $j.getJSON(thisUrl + url)
-      .done(function(data) {
-        // TODO - verify if either of these are needed
-        $j('#devicesTable').bootstrapTable('refresh');
-        window.location.reload(true);
-      })
-      .fail(logAjaxFail);
+        .done(function(data) {
+          // TODO - verify if either of these are needed
+          $j('#devicesTable').bootstrapTable('refresh');
+          window.location.reload(true);
+        })
+        .fail(logAjaxFail);
   }
 }
 

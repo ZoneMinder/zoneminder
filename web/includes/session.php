@@ -116,12 +116,10 @@ class Session {
     return true;
   }
   public function _read($id){
-    ZM\Logger::Debug("read session" . ($this->db ? true : false));
     $sth = $this->db->prepare('SELECT data FROM Sessions WHERE id = :id');
     $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
 
     if ( $sth->execute() and ( $row = $sth->fetch(PDO::FETCH_ASSOC) ) ) {
-      ZM\Logger::Debug("row: " . print_r($row,true));
       return $row['data'];
     }
     // Return an empty string

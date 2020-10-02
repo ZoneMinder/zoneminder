@@ -30,6 +30,44 @@ global $CLANG;
       </div>
       <div class="modal-body">
         <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
+<?php if ( canView('System') ) { ?>
+        <p>Other logged in users:<br/>
+<table>
+  <tr>
+    <th><?php echo(translate('Username'))?></th>
+    <th><?php echo(translate('Last Access'))?></th>
+  </tr>
+<?php
+require_once('includes/User.php');
+$result = dbQuery('SELECT * FROM Sessions');
+if ( ! $result ) return;
+
+$current_session = $_SESSION;
+zm_session_start();
+
+while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
+  $_SESSION = array();
+  if ( ! session_decode($row['data']) ) {
+    ZM\Warning('Failed to decode ' . $row['data']);
+    continue;
+  }
+  if ( isset($_SESSION['last_time']) )  {
+    # This is a dead session
+    continue;
+  }
+  $user = ZM\User::find_one(array('Username'=>$_SESSION['username']));
+  if ( ! $user ) {
+    ZM\Logger::Debug('User not found for ' . $_SESSION['username']);
+    continue;
+  }
+
+  echo '<tr><td>'.$user->Username().'</td><td>'.strftime(STRF_FMT_DATETIME_SHORTER, $row['access']).'</td></tr>';
+} # end while
+session_abort();
+$_SESSION = $current_session;
+?>
+        </table>
+<?php } # end if canView(System) ?>
       </div>
       <div class="modal-footer">
         <form name="logoutForm" id="logoutForm" method="post" action="?">

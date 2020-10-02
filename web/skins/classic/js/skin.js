@@ -864,8 +864,9 @@ function stateStuff(action, runState, newState) {
 }
 
 function logAjaxFail(jqxhr, textStatus, error) {
+  var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
   console.log("Request Failed: " + textStatus + ", " + error);
-  console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, '')); // strip any html from the response
+  if ( responseText ) console.log("Response Text: " + responseText);
 }
 
 // Load the Modal HTML via Ajax call

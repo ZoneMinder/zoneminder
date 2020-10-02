@@ -842,7 +842,7 @@ if(WITH_SYSTEMD)
     # Check for polkit
     find_package(Polkit)
     if(NOT POLKIT_FOUND)
-	    message(FATAL_ERROR 
+      message(WARNING
                 "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
     endif(NOT POLKIT_FOUND)
 endif(WITH_SYSTEMD)

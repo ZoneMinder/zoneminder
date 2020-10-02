@@ -38,7 +38,7 @@ for ( $i = 1; $i <= $monitor['NumPresets']; $i++ ) {
         <input type="hidden" name="action" value="control"/>
         <input type="hidden" name="control" value="presetSet"/>
         <input type="hidden" name="showControls" value="1"/>
-        <p><?php echo buildSelect('preset', $presets, 'updateLabel()' ) ?></p>
+        <p><?php echo buildSelect('preset', $presets, 'updatePresetLabels()' ) ?></p>
         <p>
           <label for="newLabel"><?php echo translate('NewLabel') ?></label>
           <input type="text" name="newLabel" id="newLabel" value=""/>
@@ -46,7 +46,7 @@ for ( $i = 1; $i <= $monitor['NumPresets']; $i++ ) {
 
       </div>
       <div class="modal-footer">
-        <button type="submit" class="btn btn-primary" value="Save"><?php echo translate('Save') ?></button>
+        <button type="submit" class="btn btn-primary" id="cPresetSubmitModal" value="Save"><?php echo translate('Save') ?></button>
         <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
       </div>
     </form>

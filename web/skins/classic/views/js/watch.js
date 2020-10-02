@@ -816,7 +816,7 @@ function reloadWebSite() {
 }
 
 function updatePresetLabels() {
-  var form = $('contentForm');
+  var form = $('ctrlPresetForm');
   var preset_ddm = form.elements['preset'];
 
   var presetIndex = preset_ddm[preset_ddm.selectedIndex].value;
@@ -836,6 +836,11 @@ function getCtrlPresetModal() {
           $j("body").append(data.html);
         }
         updatePresetLabels();
+        // Manage the Save button
+        $j('#cPresetSubmitModal').click(function(evt) {
+          evt.preventDefault();
+          $j('#ctrlPresetForm').submit();
+        });        
       })
       .fail(logAjaxFail);
 }

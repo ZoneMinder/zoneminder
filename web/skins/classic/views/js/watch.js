@@ -815,7 +815,35 @@ function reloadWebSite() {
   document.getElementById('imageFeed').innerHTML = document.getElementById('imageFeed').innerHTML;
 }
 
+function updatePresetLabels() {
+  var form = $('contentForm');
+  var preset_ddm = form.elements['preset'];
+
+  var presetIndex = preset_ddm[preset_ddm.selectedIndex].value;
+  if ( labels[presetIndex] ) {
+    form.newLabel.value = labels[presetIndex];
+  } else {
+    form.newLabel.value = '';
+  }
+}
+
+function getCtrlPresetModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=controlpreset&mid=' + monitorId)
+      .done(function(data) {
+        if ( $j('#ctrlPresetModal').length ) {
+          $j('#ctrlPresetModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        updatePresetLabels();
+      })
+      .fail(logAjaxFail);
+}
+
 function initPage() {
+  // Load the PTZ Preset modal into the DOM
+  getCtrlPresetModal();
+
   if ( monitorType != 'WebSite' ) {
     if ( streamMode == 'single' ) {
       statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
@@ -863,4 +891,4 @@ function initPage() {
 }
 
 // Kick everything off
-window.addEventListener('DOMContentLoaded', initPage);
+$j(document).ready(initPage);

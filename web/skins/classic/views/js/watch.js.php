@@ -4,6 +4,7 @@
   global $connkey;
   global $monitor;
   global $scale;
+  global $labels;
 ?>
 //
 // Import constants
@@ -84,3 +85,17 @@ var imageControlMode = null;
 
 var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
 var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
+
+var labels = new Array();
+<?php
+$labels = array();
+foreach( dbFetchAll( 'SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array( $monitor->Id() ) ) as $row ) {
+  $labels[$row['Preset']] = $row['Label'];
+}
+
+foreach ( $labels as $index=>$label ) {
+?>
+labels[<?php echo validInt($index) ?>] = '<?php echo validJsStr($label) ?>';
+<?php
+}
+?>

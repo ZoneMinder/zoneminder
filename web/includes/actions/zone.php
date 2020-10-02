@@ -70,9 +70,8 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       if ( ($_REQUEST['newZone']['Type'] == 'Privacy') && $monitor->Controllable() ) {
         $monitor->sendControlCommand('quit');
       }
-      $refreshParent = true;
     } // end if changes
-    $view = 'none';
+    $redirect = $_SERVER['HTTP_REFERER'];
   } // end if action 
 } // end if $mid and canEdit($mid)
 ?>

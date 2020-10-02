@@ -1048,12 +1048,14 @@ bool EventStream::send_file(const char * filepath) {
       return false;
     }
   }
-  if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+  int rc = fwrite(img_buffer, img_buffer_size, 1, stdout);
+  fclose(fdj); /* Close the file handle */
+
+  if ( rc != 1 ) {
     Error("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
     return false;
   }
 
-  fclose(fdj); /* Close the file handle */
   return true;
 }  // end bool EventStream::send_file(const char * filepath)
 

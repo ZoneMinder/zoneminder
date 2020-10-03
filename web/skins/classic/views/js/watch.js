@@ -840,7 +840,7 @@ function getCtrlPresetModal() {
         $j('#cPresetSubmitModal').click(function(evt) {
           evt.preventDefault();
           $j('#ctrlPresetForm').submit();
-        });        
+        });
       })
       .fail(logAjaxFail);
 }

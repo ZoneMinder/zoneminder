@@ -29,8 +29,6 @@ if ( $action == 'device' ) {
     setDeviceStatusX10($_REQUEST['key'], $_REQUEST['command']);
   } else if ( isset($_REQUEST['newDevice']) ) {
     if ( isset($_REQUEST['did']) && $_REQUEST['did'] ) {
-      ZM\Warning('did value is: '.$_REQUEST['did']);
-      ZM\Warning('newDevice array value is: '.print_r($_REQUEST['newDevice'],true));
       dbQuery('UPDATE Devices SET Name=?, KeyString=? WHERE Id=?',
         array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'], $_REQUEST['did']) );
     } else {

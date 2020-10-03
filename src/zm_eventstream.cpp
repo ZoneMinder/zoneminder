@@ -683,9 +683,6 @@ bool EventStream::sendFrame(int delta_us) {
 #endif // HAVE_LIBAVCODEC
   {
 
-    static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
-    int img_buffer_size = 0;
-    uint8_t *img_buffer = temp_img_buffer;
 
     bool send_raw = (type == STREAM_JPEG) && ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE)) && filepath[0];
 
@@ -748,6 +745,9 @@ bool EventStream::sendFrame(int delta_us) {
       }
       
       Image *send_image = prepareImage(image);
+      static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
+      int img_buffer_size = 0;
+      uint8_t *img_buffer = temp_img_buffer;
 
       switch ( type ) {
         case STREAM_JPEG :
@@ -1010,6 +1010,7 @@ void EventStream::runStream() {
 
 bool EventStream::send_file(const char * filepath) {
   static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
+  int rc;
 
   int img_buffer_size = 0;
   uint8_t *img_buffer = temp_img_buffer;
@@ -1020,12 +1021,16 @@ bool EventStream::send_file(const char * filepath) {
     Error("Can't open %s: %s", filepath, strerror(errno));
     return false;
   }
-  bool size_sent = false;
-
 #if HAVE_SENDFILE
   static struct stat filestat;
   if ( fstat(fileno(fdj), &filestat) < 0 ) {
+    fclose(fdj); /* Close the file handle */
     Error("Failed getting information about file %s: %s", filepath, strerror(errno));
+    return false;
+  }
+  if ( !filestat.st_size ) {
+    fclose(fdj); /* Close the file handle */
+    Info("File size is zero. Unable to send raw frame %u: %s", curr_frame_id);
     return false;
   }
   if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size) ) {
@@ -1033,26 +1038,29 @@ bool EventStream::send_file(const char * filepath) {
     Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
     return false;
   }
-  size_sent = true;
-
-  if ( zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size ) {
+  rc = zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size);
+  if ( rc == (int)filestat.st_size ) {
+    // Success
     fclose(fdj); /* Close the file handle */
     return true;
   }
+  Warning("Unable to send raw frame %u: %s rc %d", curr_frame_id, strerror(errno), rc);
 #endif
   img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
-  if ( !size_sent ) {
-    if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) ) {
-      fclose(fdj); /* Close the file handle */
-      Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
-      return false;
-    }
-  }
-  int rc = fwrite(img_buffer, img_buffer_size, 1, stdout);
   fclose(fdj); /* Close the file handle */
+  if ( !img_buffer_size ) {
+    Info("Unable to read raw frame %u: %s", curr_frame_id, strerror(errno));
+    return false;
+  }
 
-  if ( rc != 1 ) {
-    Error("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+  if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) ) {
+    Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
+    return false;
+  }
+  rc = fwrite(img_buffer, img_buffer_size, 1, stdout);
+
+  if ( 1 != rc ) {
+    Error("Unable to send raw frame %u: %s %d", curr_frame_id, strerror(errno), rc);
     return false;
   }
 

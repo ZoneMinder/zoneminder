@@ -867,9 +867,9 @@ function initPage() {
 
   if ( canViewControl ) {
     // Load the PTZ Preset modal into the DOM
-    getCtrlPresetModal();
+    if ( monitorControllable ) getCtrlPresetModal();
     // Load the settings modal into the DOM
-    getSettingsModal();
+    if ( monitorType == "Local" ) getSettingsModal();
   }
 
   if ( monitorType != 'WebSite' ) {

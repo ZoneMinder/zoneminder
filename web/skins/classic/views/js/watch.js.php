@@ -59,6 +59,7 @@ var monitorUrl = '<?php echo $monitor->UrlToIndex() ?>';
 var monitorType = '<?php echo $monitor->Type() ?>';
 var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
 var monitorStreamReplayBuffer = <?php echo $monitor->StreamReplayBuffer() ?>;
+var monitorControllable = <?php echo $monitor->Controllable()?'true':'false' ?>;
 
 var scale = '<?php echo $scale ?>';
 

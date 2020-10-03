@@ -864,7 +864,6 @@ function getSettingsModal() {
 }
 
 function initPage() {
-
   if ( canViewControl ) {
     // Load the PTZ Preset modal into the DOM
     if ( monitorControllable ) getCtrlPresetModal();

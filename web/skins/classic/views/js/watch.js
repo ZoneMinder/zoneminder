@@ -836,6 +836,8 @@ function getCtrlPresetModal() {
           $j("body").append(data.html);
         }
         updatePresetLabels();
+        // Manage the Preset Select box
+        $j('#preset').change(updatePresetLabels);
         // Manage the Save button
         $j('#cPresetSubmitModal').click(function(evt) {
           evt.preventDefault();
@@ -853,7 +855,6 @@ function getSettingsModal() {
         } else {
           $j("body").append(data.html);
         }
-        updatePresetLabels();
         // Manage the Save button
         $j('#settingsSubmitModal').click(function(evt) {
           evt.preventDefault();

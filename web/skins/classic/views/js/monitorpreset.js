@@ -1,4 +1,4 @@
-var form = $j('#monitorePresetForm');
+var form = $j('#monitorPresetForm');
 
 function submitPreset( element ) {
   form.target = opener.name;

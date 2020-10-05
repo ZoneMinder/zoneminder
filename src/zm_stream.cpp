@@ -252,7 +252,8 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
       monitor->Width(), monitor->Height(), scale, frame_text);
 
   Image image(monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder());
-  image.Annotate(frame_text, image.centreCoord(frame_text));
+  image.Clear();
+  image.Annotate(frame_text, image.centreCoord(frame_text, monitor->LabelSize()), monitor->LabelSize());
 
   if ( scale != 100 ) {
     image.Scale(scale);

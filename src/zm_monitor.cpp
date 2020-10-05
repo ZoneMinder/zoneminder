@@ -1448,8 +1448,8 @@ bool Monitor::Analyse() {
               int new_motion_score = DetectMotion(*snap_image, zoneSet);
 
               Debug(3,
-                  "After motion detection, last_motion_score(%d), new motion score(%d)",
-                  last_motion_score, new_motion_score
+                  "After motion detection, score(%d), last_motion_score(%d), new motion score(%d)",
+                  score, last_motion_score, new_motion_score
                   );
               last_motion_score = new_motion_score;
             }
@@ -1675,6 +1675,8 @@ bool Monitor::Analyse() {
               } else {
                 shared_data->state = state = TAPE;
               }
+            } else {
+              Debug(1, "Not leaving ALERT beacuse image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%d) - recording.tv_src(%d) >= min_section_length(%d)", image_count, last_alarm_count, post_event_count, timestamp->tv_sec, video_store_data->recording.tv_sec, min_section_length);
             }
           } // end if ALARM or ALERT
 

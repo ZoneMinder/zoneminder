@@ -11,11 +11,11 @@ function downloadVideo(e) {
 var generateVideoTimer = null;
 
 function generateVideoProgress() {
-  var tickerText = $('videoProgressTicker').get('text');
+  var tickerText = $j('#videoProgressTicker').text();
   if ( tickerText.length < 1 || tickerText.length > 4 ) {
-    $('videoProgressTicker').set('text', '.');
+    $j('#videoProgressTicker').text('.');
   } else {
-    $('videoProgressTicker').appendText('.');
+    $j('videoProgressTicker').append('.');
   }
 }
 
@@ -24,14 +24,13 @@ function generateVideoResponse( respObj, respText ) {
 }
 
 function generateVideo() {
-  form = $j('#contentForm')[0];
-  var parms = 'view=request&request=event&action=video';
-  parms += '&'+$(form).toQueryString();
-  var query = new Request.JSON({url: thisUrl, method: 'post', data: parms, onSuccess: generateVideoResponse});
-  query.send();
-  $('videoProgress').removeClass('hidden');
-  $('videoProgress').setProperty('class', 'warnText');
-  $('videoProgressText').set('text', videoGenProgressString);
+  var form = $j('#videoForm').serialize();
+  $j.getJSON(thisUrl + '?view=request&request=event&action=video', form)
+      .done(generateVideoResponse)
+      .fail(logAjaxFail);
+  $j('#videoProgress').removeClass('hidden');
+  $j('#videoProgress').addClass('warnText');
+  $j('#videoProgressText').text(videoGenProgressString);
   generateVideoProgress();
   generateVideoTimer = generateVideoProgress.periodical(500);
 }

@@ -418,6 +418,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
         paused = false;
         // Set play rate
         switch ( replay_rate ) {
+          case -1 * ZM_RATE_BASE :
+            replay_rate = -2 * ZM_RATE_BASE;
           case -2 * ZM_RATE_BASE :
             replay_rate = -5 * ZM_RATE_BASE;
             break;
@@ -432,7 +434,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
             replay_rate = -50 * ZM_RATE_BASE;
             break;
           default :
-            replay_rate = -2 * ZM_RATE_BASE;
+            replay_rate = -1 * ZM_RATE_BASE;
             break;
         }
         break;
@@ -866,7 +868,9 @@ void EventStream::runStream() {
       if ( actual_delta_time > 1 ) {
         Debug(1, "Sending time to next event frame");
         static char frame_text[64];
-        snprintf(frame_text, sizeof(frame_text), "Time to next event = %d seconds", (int)time_to_event);
+
+        snprintf(frame_text, sizeof(frame_text), "Time to %s event = %d seconds",
+            (replay_rate > 0 ? "next" : "previous" ), (int)time_to_event);
         if ( !sendTextFrame(frame_text) )
           zm_terminate = true;
       } else {

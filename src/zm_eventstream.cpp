@@ -524,18 +524,18 @@ void EventStream::processCommand(const CmdMsg *msg) {
 
   struct {
     uint64_t event_id;
-    int progress;
+    double progress;
     int rate;
     int zoom;
     bool paused;
   } status_data;
 
   status_data.event_id = event_data->event_id;
-  status_data.progress = (int)event_data->frames[curr_frame_id-1].offset;
+  status_data.progress = event_data->frames[curr_frame_id-1].offset;
   status_data.rate = replay_rate;
   status_data.zoom = zoom;
   status_data.paused = paused;
-  Debug(2, "Event:%" PRIu64 ", Paused:%d, progress:%d Rate:%d, Zoom:%d",
+  Debug(2, "Event:%" PRIu64 ", Paused:%d, progress:%f Rate:%d, Zoom:%d",
     status_data.event_id,
     status_data.paused,
     status_data.progress,
@@ -976,29 +976,28 @@ void EventStream::runStream() {
       //if ( step != 0 )// Adding 0 is cheaper than an if 0
       // curr_frame_id starts at 1 though, so we might skip the first frame?
       curr_frame_id += step;
-
-      // Detects when we hit end of event and will load the next event or previous event
-      if ( checkEventLoaded() ) {
-        // Have change of event
-
-        // This next bit is to determine if we are in the current event time wise
-        // and whether to show an image saying how long until the next event.
-        if ( replay_rate > 0 ) {
-          // This doesn't make sense unless we have hit the end of the event.
-          time_to_event = event_data->frames[0].timestamp - curr_stream_time;
-          Debug(1, "replay rate(%d) time_to_event(%f)=frame timestamp:%f - curr_stream_time(%f)",
-              replay_rate, time_to_event,
-              event_data->frames[0].timestamp,
-              curr_stream_time);
-
-        } else if ( replay_rate < 0 ) {
-          time_to_event = curr_stream_time - event_data->frames[event_data->frame_count-1].timestamp;
-          Debug(1, "replay rate(%d) time_to_event(%f)=curr_stream_time(%f)-frame timestamp:%f",
-              replay_rate, time_to_event, curr_stream_time, event_data->frames[event_data->frame_count-1].timestamp);
-        }  // end if forward or reverse
-
-      }  // end if checkEventLoaded
     }  // end if !paused
+
+    // Detects when we hit end of event and will load the next event or previous event
+    if ( checkEventLoaded() ) {
+      // Have change of event
+
+      // This next bit is to determine if we are in the current event time wise
+      // and whether to show an image saying how long until the next event.
+      if ( replay_rate > 0 ) {
+        // This doesn't make sense unless we have hit the end of the event.
+        time_to_event = event_data->frames[0].timestamp - curr_stream_time;
+        Debug(1, "replay rate(%d) time_to_event(%f)=frame timestamp:%f - curr_stream_time(%f)",
+            replay_rate, time_to_event,
+            event_data->frames[0].timestamp,
+            curr_stream_time);
+
+      } else if ( replay_rate < 0 ) {
+        time_to_event = curr_stream_time - event_data->frames[event_data->frame_count-1].timestamp;
+        Debug(1, "replay rate(%d) time_to_event(%f)=curr_stream_time(%f)-frame timestamp:%f",
+            replay_rate, time_to_event, curr_stream_time, event_data->frames[event_data->frame_count-1].timestamp);
+      }  // end if forward or reverse
+    }  // end if checkEventLoaded
   }  // end while ! zm_terminate
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG )

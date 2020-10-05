@@ -507,7 +507,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
         // offset is in seconds
         int offset = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
         curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration);
-        Debug(1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id);
+        Debug(1, "Got SEEK command, to %d (new current frame id: %d offset %.f)",
+            offset, curr_frame_id, event_data->frames[curr_frame_id-1].offset);
         send_frame = true;
         break;
       }

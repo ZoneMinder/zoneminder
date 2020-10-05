@@ -43,7 +43,7 @@ global $CLANG;
   <tbody>
 <?php
 require_once('includes/User.php');
-$result = dbQuery('SELECT * FROM Sessions');
+$result = dbQuery('SELECT * FROM Sessions ORDER BY access DESC');
 if ( ! $result ) return;
 
 $current_session = $_SESSION;

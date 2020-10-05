@@ -533,18 +533,18 @@ void EventStream::processCommand(const CmdMsg *msg) {
   }
   struct {
     uint64_t event_id;
-    int progress;
+    double progress;
     int rate;
     int zoom;
     bool paused;
   } status_data;
 
   status_data.event_id = event_data->event_id;
-  status_data.progress = (int)event_data->frames[curr_frame_id-1].offset;
+  status_data.progress = event_data->frames[curr_frame_id-1].offset;
   status_data.rate = replay_rate;
   status_data.zoom = zoom;
   status_data.paused = paused;
-  Debug(2, "Event:%" PRIu64 ", Paused:%d, progress:%d Rate:%d, Zoom:%d",
+  Debug(2, "Event:%" PRIu64 ", Paused:%d, progress:%f Rate:%d, Zoom:%d",
     status_data.event_id,
     status_data.paused,
     status_data.progress,

@@ -1631,6 +1631,13 @@ bool Monitor::Analyse() {
                     }
                   }
                   event->AddFrames(pre_event_images, images, timestamps);
+                } else if ( alarm_frame_count > 1 ) {
+                    int temp_alarm_frame_count = alarm_frame_count;
+                    while ( --temp_alarm_frame_count ) {
+                      Debug(1, "Adding previous frame due to alarm_frame_count %d", pre_index);
+                      event->AddFrame(image_buffer[pre_index].image, *image_buffer[pre_index].timestamp, 0, nullptr);
+                      pre_index = (pre_index + 1)%image_buffer_count;
+                    }
                 }  // end if pre_event_images
 
                 if ( ( alarm_frame_count > 1 ) && Event::PreAlarmCount() ) {

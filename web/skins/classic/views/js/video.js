@@ -8,19 +8,21 @@ function downloadVideo(e) {
   window.location.replace(thisUrl+'?view='+currentView+'&eid='+eventId+'&downloadIndex='+index);
 }
 
-var generateVideoTimer = null;
+function generateVideoResponse( data, responseText ) {
+  console.log(data);
 
-function generateVideoProgress() {
-  var tickerText = $j('#videoProgressTicker').text();
-  if ( tickerText.length < 1 || tickerText.length > 4 ) {
-    $j('#videoProgressTicker').text('.');
+  var generated = (data.result=='Ok') ? 1 : 0;
+  var fullUrl = thisUrl + '?view=' + currentView + '&eid=' + eventId + '&generated=' + generated;
+  
+  $j('#videoProgress').removeClass( 'text-warning' );
+  if ( generated ) {
+    $j('#videoProgress').addClass( 'text-success' );
+    $j('#videoProgress').text(exportSucceededString);
+    $j( "#videoTable" ).load( fullUrl+ ' #videoTable' );
   } else {
-    $j('videoProgressTicker').append('.');
+    $j('#videoProgress').addClass( 'text-danger' );
+    $j('#videoProgress').text(exportFailedString);
   }
-}
-
-function generateVideoResponse( respObj, respText ) {
-  window.location.replace(thisUrl+'?view='+currentView+'&eid='+eventId+'&generated='+((respObj.result=='Ok')?1:0));
 }
 
 function generateVideo() {
@@ -28,9 +30,5 @@ function generateVideo() {
   $j.getJSON(thisUrl + '?view=request&request=event&action=video', form)
       .done(generateVideoResponse)
       .fail(logAjaxFail);
-  $j('#videoProgress').removeClass('hidden');
-  $j('#videoProgress').addClass('warnText');
-  $j('#videoProgressText').text(videoGenProgressString);
-  generateVideoProgress();
-  generateVideoTimer = generateVideoProgress.periodical(500);
+  $j('#videoProgress').removeClass('invisible');
 }

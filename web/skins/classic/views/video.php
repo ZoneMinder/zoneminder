@@ -148,23 +148,10 @@ if ( isset($_REQUEST['showIndex']) ) {
         <?php echo translate('GenerateVideo') ?>
         </button>
       </form>
-<?php
-  if ( isset($_REQUEST['generated']) ) {
-?>
-      <h2 id="videoProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>">
-        <span id="videoProgressText"><?php echo $_REQUEST['generated']?translate('VideoGenSucceeded'):translate('VideoGenFailed') ?></span>
-        <span id="videoProgressTicker"></span>
+      <h2 id="videoProgress" class="text-warning invisible"> 
+        <span class="spinner-grow" role="status" aria-hidden="true"></span> 
+        <?php echo translate('GeneratingVideo') ?>
       </h2>
-<?php
-  } else {
-?>
-      <h2 id="videoProgress" class="hidden warnText">
-        <span id="videoProgressText"><?php echo translate('GeneratingVideo') ?></span>
-        <span id="videoProgressTicker"></span>
-      </h2>
-<?php
-  }
-?>
       <h2 id="videoFilesHeader"><?php echo translate('VideoGenFiles') ?></h2>
 <?php
   if ( count($videoFiles) == 0 ) {
@@ -210,7 +197,7 @@ if ( isset($_REQUEST['showIndex']) ) {
           <td><?php echo $rateText ?></td>
           <td><?php echo $scaleText ?></td>
           <td>
-            <?php echo makePopupLink('?view='.$view.'&amp;eid='.$event->Id().'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, 'zmVideo'.$event->Id().'-'.$scale, array('videoview', $width, $height), translate('View') ); ?>
+            <?php echo makeLink('?view='.$view.'&amp;eid='.$event->Id().'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, translate('View') ); ?>
             &nbsp;/&nbsp;
             <a href="#"
  data-on-click-this="downloadVideo" data-file-index="<?php echo $index ?>"><?php echo translate('Download') ?></a>

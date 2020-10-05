@@ -359,6 +359,13 @@ void EventStream::processCommand(const CmdMsg *msg) {
           paused = false;
         }
         replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
+        if ( replay_rate > 50 * ZM_RATE_BASE ) {
+          Warning("requested replay rate (%d) is too high. We only support up to 50x", replay_rate);
+          replay_rate = 50 * ZM_RATE_BASE;
+        } else if ( replay_rate < -50*ZM_RATE_BASE ) {
+          Warning("requested replay rate (%d) is too low. We only support up to -50x", replay_rate);
+          replay_rate = -50 * ZM_RATE_BASE;
+        }
         break;
     case CMD_STOP :
         Debug(1, "Got STOP command");

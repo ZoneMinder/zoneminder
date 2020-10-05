@@ -122,7 +122,7 @@ if ( isset($_REQUEST['showIndex']) ) {
 <?php
 } else {
 ?>
-      <form name="contentForm" id="contentForm" method="post" action="?">
+      <form name="contentForm" id="videoForm" method="post" action="?">
         <input type="hidden" name="id" value="<?php echo $event->Id() ?>"/>
         <table id="contentTable" class="minor">
           <tbody>
@@ -231,5 +231,4 @@ if ( isset($_REQUEST['showIndex']) ) {
 ?>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

@@ -134,10 +134,10 @@ if ( sem_acquire($semaphore,1) !== false ) {
   case MSG_DATA_EVENT :
     if ( version_compare( phpversion(), '5.6.0', '<') ) {
       ZM\Logger::Debug('Using old unpack methods to handle 64bit event id');
-      $data = unpack('ltype/ieventlow/ieventhigh/iprogress/irate/izoom/Cpaused', $msg);
+      $data = unpack('ltype/ieventlow/ieventhigh/dprogress/irate/izoom/Cpaused', $msg);
       $data['event'] = $data['eventhigh'] << 32 | $data['eventlow'];
     } else {
-      $data = unpack('ltype/Qevent/iprogress/irate/izoom/Cpaused', $msg);
+      $data = unpack('ltype/Qevent/dprogress/irate/izoom/Cpaused', $msg);
     }
     $data['rate'] /= RATE_BASE;
     $data['zoom'] = round($data['zoom']/SCALE_BASE, 1);

@@ -873,6 +873,7 @@ void EventStream::runStream() {
             (replay_rate > 0 ? "next" : "previous" ), (int)time_to_event);
         if ( !sendTextFrame(frame_text) )
           zm_terminate = true;
+        send_frame = false; // In case keepalive was set
       } else {
         Debug(1, "Not Sending time to next event frame because actual delta time is %f", actual_delta_time);
       }

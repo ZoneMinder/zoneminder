@@ -22,3 +22,27 @@ function generateVideo() {
       .fail(logAjaxFail);
   $j('#videoProgress').removeClass('invisible');
 }
+
+function initPage() {
+  var backBtn = $j('#backBtn');
+  var videoBtn = $j('#videoBtn');
+
+  videoBtn.prop('disabled', !opt_ffmpeg);
+  
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+}
+
+$j(document).ready(initPage);

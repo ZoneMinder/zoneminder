@@ -1034,7 +1034,7 @@ function showFrameStats() {
 }
 
 function videoEvent() {
-  createPopup('?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height);
+  window.location.assign('?view=video&eid='+eventData.Id);
 }
 
 // Called on each event load because each event can be a different width

@@ -102,12 +102,17 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Video'));
 ?>
 <body>
+  <?php if ( !$popup ) echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
+    <div class="w-100 py-1">
+      <div class="float-left pl-3">
+        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button type="button" id="videoBtn" class="btn btn-normal" data-on-click="generateVideo" data-toggle="tooltip" data-placement="top" title="<?php echo translate('GenerateVideo') ?>" disabled><i class="fa fa-file-video-o"></i></button>
       </div>
-      <h2><?php echo translate('Video') ?></h2>
+      <div class="w-100 pt-2">
+        <h2><?php echo translate('Video') ?></h2>
+      </div>
     </div>
     <div id="content">
 <?php
@@ -127,26 +132,23 @@ if ( isset($_REQUEST['showIndex']) ) {
         <table id="contentTable" class="minor">
           <tbody>
             <tr>
-              <th scope="row"><?php echo translate('VideoFormat') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('VideoFormat') ?></th>
               <td><?php echo buildSelect('videoFormat', $videoFormats) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('FrameRate') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('FrameRate') ?></th>
               <td><?php echo buildSelect('rate', $rates) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('VideoSize') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('VideoSize') ?></th>
               <td><?php echo buildSelect('scale', $scales) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('OverwriteExisting') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('OverwriteExisting') ?></th>
               <td><input type="checkbox" name="overwrite" value="1"<?php if ( !empty($_REQUEST['overwrite']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
           </tbody>
         </table>
-        <button type="button" data-on-click="generateVideo"<?php if ( !ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>>
-        <?php echo translate('GenerateVideo') ?>
-        </button>
       </form>
       <h2 id="videoProgress" class="text-warning invisible"> 
         <span class="spinner-grow" role="status" aria-hidden="true"></span> 

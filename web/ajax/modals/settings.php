@@ -1,27 +1,6 @@
 <?php
-//
-// ZoneMinder web settings view file, $Date$, $Revision$
-// Copyright (C) 2001-2008 Philip Coombes
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
+if ( !canView('Control') ) return;
 
-if ( !canView('Control') ) {
-  $view = 'error';
-  return;
-}
 $monitor = ZM\Monitor::find_one(array('Id'=>$_REQUEST['mid']));
 
 $zmuCommand = getZmuCommand(' -m '.escapeshellarg($_REQUEST['mid']).' -B -C -H -O');
@@ -35,17 +14,22 @@ if ( $zmuOutput ) {
   $monitor->Colour($colour);
 }
 
-$focusWindow = true;
-
-xhtmlHeaders(__FILE__, validHtmlStr($monitor->Name()).' - '.translate('Settings'));
 ?>
-<body>
-  <div id="page">
-    <div id="header">
-      <h2><?php echo validHtmlStr($monitor->Name()) ?> - <?php echo translate('Settings') ?></h2>
-    </div>
-    <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="?">
+<div class="modal" id="settingsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><?php echo validHtmlStr($monitor->Name()) ?> - <?php echo translate('Settings') ?></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+      <form name="contentForm" id="settingsForm" method="post" action="?">
+        <?php
+        // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+        echo getCSRFinputHTML();
+        ?>
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="settings"/>
         <input type="hidden" name="mid" value="<?php echo validInt($_REQUEST['mid']) ?>"/>
@@ -69,11 +53,12 @@ xhtmlHeaders(__FILE__, validHtmlStr($monitor->Name()).' - '.translate('Settings'
             </tr>
           </tbody>
         </table>
-        <div id="contentButtons">
-          <button type="submit" value="Save"<?php echo canView('Control') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
-          <button type="button" value="Close" data-on-click="closeWindow"/><?php echo translate('Close') ?></button>
-        </div>
-      </form>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary" id="settingsSubmitModal" value="Save"<?php echo canView('Control') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </form>
     </div>
   </div>
-<?php xhtmlFooter() ?>
+</div>

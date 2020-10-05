@@ -836,6 +836,8 @@ function getCtrlPresetModal() {
           $j("body").append(data.html);
         }
         updatePresetLabels();
+        // Manage the Preset Select box
+        $j('#preset').change(updatePresetLabels);
         // Manage the Save button
         $j('#cPresetSubmitModal').click(function(evt) {
           evt.preventDefault();
@@ -845,9 +847,30 @@ function getCtrlPresetModal() {
       .fail(logAjaxFail);
 }
 
+function getSettingsModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=settings&mid=' + monitorId)
+      .done(function(data) {
+        if ( $j('#settingsModal').length ) {
+          $j('#settingsModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        // Manage the Save button
+        $j('#settingsSubmitModal').click(function(evt) {
+          evt.preventDefault();
+          $j('#settingsForm').submit();
+        });
+      })
+      .fail(logAjaxFail);
+}
+
 function initPage() {
-  // Load the PTZ Preset modal into the DOM
-  getCtrlPresetModal();
+  if ( canViewControl ) {
+    // Load the PTZ Preset modal into the DOM
+    if ( monitorControllable ) getCtrlPresetModal();
+    // Load the settings modal into the DOM
+    if ( monitorType == "Local" ) getSettingsModal();
+  }
 
   if ( monitorType != 'WebSite' ) {
     if ( streamMode == 'single' ) {

@@ -59,6 +59,7 @@ var monitorUrl = '<?php echo $monitor->UrlToIndex() ?>';
 var monitorType = '<?php echo $monitor->Type() ?>';
 var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
 var monitorStreamReplayBuffer = <?php echo $monitor->StreamReplayBuffer() ?>;
+var monitorControllable = <?php echo $monitor->Controllable()?'true':'false' ?>;
 
 var scale = '<?php echo $scale ?>';
 
@@ -68,6 +69,7 @@ var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
 var canEditMonitors = <?php echo canEdit( 'Monitors' )?'true':'false' ?>;
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
+var canViewControl = <?php echo canView( 'Control' )?'true':'false' ?>;
 
 var canPlayPauseAudio = Browser.ie;
 

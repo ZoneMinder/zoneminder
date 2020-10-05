@@ -60,6 +60,12 @@ function enableStorageModal() {
   });
 }
 
+// Manage the Add New User button
+function AddNewUser(el) {
+  url = el.getAttribute('data-url');
+  window.location.assign(url);
+}
+
 function initPage() {
   var NewStorageBtn = $j('#NewStorageBtn');
   var NewServerBtn = $j('#NewServerBtn');

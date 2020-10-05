@@ -582,7 +582,7 @@ function buildSelect($name, $contents, $behaviours=false) {
         $behaviourText .= ' '.$event.'="'.$action.'"';
       }
     } else {
-      $behaviourText = ' onchange="'.$behaviours.'"';
+      $behaviourText = ' data-on-change-this="'.$behaviours.'"';
     }
   }
   ?>

@@ -1,5 +1,6 @@
 var controlParms = "view=request&request=control";
 var controlReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: getControlResponse} );
+var form = $j('#controlForm');
 
 function getControlResponse( respObj, respText ) {
   if ( !respObj ) {
@@ -41,3 +42,11 @@ function controlCmd( control, event, xtell, ytell ) {
   }
   controlReq.send( controlParms+"&control="+control+locParms );
 }
+
+function initPage() {
+  $j('#mid').change(function() {
+    form.submit();
+  });
+}
+
+$j(document).ready(initPage);

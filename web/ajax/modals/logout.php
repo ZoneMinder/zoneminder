@@ -59,6 +59,10 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
     # This is a dead session
     continue;
   }
+  if ( !isset($_SESSION['username']) ) {
+    # Not logged in
+    continue;
+  }
   $user = ZM\User::find_one(array('Username'=>$_SESSION['username']));
   if ( ! $user ) {
     ZM\Logger::Debug('User not found for ' . $_SESSION['username']);

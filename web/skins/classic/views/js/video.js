@@ -3,7 +3,7 @@ function generateVideoResponse( data, responseText ) {
 
   var generated = (data.result=='Ok') ? 1 : 0;
   var fullUrl = thisUrl + '?view=' + currentView + '&eid=' + eventId + '&generated=' + generated;
-  
+
   $j('#videoProgress').removeClass( 'text-warning' );
   if ( generated ) {
     $j('#videoProgress').addClass( 'text-success' );

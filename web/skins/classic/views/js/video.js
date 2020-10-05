@@ -28,7 +28,7 @@ function initPage() {
   var videoBtn = $j('#videoBtn');
 
   videoBtn.prop('disabled', !opt_ffmpeg);
-  
+
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();

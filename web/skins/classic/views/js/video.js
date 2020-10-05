@@ -1,13 +1,3 @@
-function deleteVideo(e) {
-  index = e.getAttribute('data-file-index');
-  window.location.replace(thisUrl+'?view='+currentView+'&eid='+eventId+'&deleteIndex='+index);
-}
-
-function downloadVideo(e) {
-  index = e.getAttribute('data-file-index');
-  window.location.replace(thisUrl+'?view='+currentView+'&eid='+eventId+'&downloadIndex='+index);
-}
-
 function generateVideoResponse( data, responseText ) {
   console.log(data);
 

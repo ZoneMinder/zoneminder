@@ -153,13 +153,7 @@ if ( isset($_REQUEST['showIndex']) ) {
         <?php echo translate('GeneratingVideo') ?>
       </h2>
       <h2 id="videoFilesHeader"><?php echo translate('VideoGenFiles') ?></h2>
-<?php
-  if ( count($videoFiles) == 0 ) {
-?>
-      <h3 id="videoNoFiles"><?php echo translate('VideoGenNoFiles') ?></h3>
-<?php
-  } else {
-?>
+
       <table id="videoTable" class="major">
         <thead>
           <tr>
@@ -172,6 +166,12 @@ if ( isset($_REQUEST['showIndex']) ) {
         </thead>
         <tbody>
 <?php
+
+  if ( count($videoFiles) == 0 ) {
+       ?>
+      <td>No Video Files Found</td>
+      <?php
+  } else {
     $index = 0;
     foreach ( $videoFiles as $file ) {
       if ( filesize($file) > 0 ) {
@@ -197,23 +197,20 @@ if ( isset($_REQUEST['showIndex']) ) {
           <td><?php echo $rateText ?></td>
           <td><?php echo $scaleText ?></td>
           <td>
-            <?php echo makeLink('?view='.$view.'&amp;eid='.$event->Id().'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, translate('View') ); ?>
-            &nbsp;/&nbsp;
-            <a href="#"
- data-on-click-this="downloadVideo" data-file-index="<?php echo $index ?>"><?php echo translate('Download') ?></a>
-            &nbsp;/&nbsp;
-            <a href="#" data-on-click-this="deleteVideo" data-file-index="<?php echo $index ?>"><?php echo translate('Delete') ?></a>
+            <a href="?view=video&eid=<?php echo $event->Id() ?>&downloadIndex=<?php echo $index ?>"><?php echo translate('Download') ?></a>
+               &nbsp;/&nbsp;
+            <a href="?view=video&eid=<?php echo $event->Id() ?>&deleteIndex=<?php echo $index ?>"><?php echo translate('Delete') ?></a>
           </td>
         </tr>
 <?php
         $index++;
       } # end if filesize
     } # end foreach videoFile
+  }
 ?>
         </tbody>
       </table>
 <?php
-  }
 }
 ?>
     </div>

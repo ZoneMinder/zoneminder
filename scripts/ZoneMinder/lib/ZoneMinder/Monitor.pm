@@ -232,10 +232,10 @@ $serial = $primary_key = 'Id';
     ArchivedEvents =>  undef,
     ArchivedEventDiskSpace =>  undef,
     ZoneCount =>  0,
-    Refresh => null,
+    Refresh => undef,
     DefaultCodec  => 'auto',
-    Latitude  =>  null,
-    Longitude =>  null,
+    Latitude  =>  undef,
+    Longitude =>  undef,
     );
 
 sub Server {

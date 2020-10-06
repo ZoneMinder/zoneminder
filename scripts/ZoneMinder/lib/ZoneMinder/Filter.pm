@@ -322,7 +322,7 @@ sub Sql {
               $self->{Sql} .= ' IS NOT '.$value;
             } elsif ( $term->{op} eq '=[]' ) {
               $self->{Sql} .= ' IN ('.join(',', @value_list).')';
-            } elsif ( $term->{op} eq '!~' ) {
+            } elsif ( $term->{op} eq '![]' ) {
               $self->{Sql} .= ' NOT IN ('.join(',', @value_list).')';
             } elsif ( $term->{op} eq 'LIKE' ) {
               $self->{Sql} .= ' LIKE '.$value;

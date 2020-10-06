@@ -469,24 +469,6 @@ function makePopupLink($url, $winName, $winSize, $label, $condition=1, $options=
   return $string;
 }
 
-function makePopupButton($url, $winName, $winSize, $buttonValue, $condition=1, $options='') {
-  $string = '<input type="button" class="popup-link" value="' . htmlspecialchars($buttonValue) . '"';
-  $string .= ' data-url="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
-  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
-  if ( is_array($winSize) ) {
-    $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
-    $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
-    $string .= ' data-window-height="' . htmlspecialchars($winSize[2]) . '"';
-  } else {
-    $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
-  }
-  if (!$condition) {
-    $string .= ' disabled="disabled"';
-  }
-  $string .= ($options ? (' ' . $options) : '') . '/>';
-  return $string;
-}
-
 function makeButton($url, $buttonValue, $condition=1, $options='') {
   $string = '<button type="button" data-on-click-this="'.$buttonValue.'"';
   $string .= ' data-url="' .$url. '"';

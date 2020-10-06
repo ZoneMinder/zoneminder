@@ -1,26 +1,18 @@
-function deleteVideo(e) {
-  index = e.getAttribute('data-file-index');
-  window.location.replace(thisUrl+'?view='+currentView+'&eid='+eventId+'&deleteIndex='+index);
-}
+function generateVideoResponse( data, responseText ) {
+  console.log(data);
 
-function downloadVideo(e) {
-  index = e.getAttribute('data-file-index');
-  window.location.replace(thisUrl+'?view='+currentView+'&eid='+eventId+'&downloadIndex='+index);
-}
+  var generated = (data.result=='Ok') ? 1 : 0;
+  var fullUrl = thisUrl + '?view=' + currentView + '&eid=' + eventId + '&generated=' + generated;
 
-var generateVideoTimer = null;
-
-function generateVideoProgress() {
-  var tickerText = $j('#videoProgressTicker').text();
-  if ( tickerText.length < 1 || tickerText.length > 4 ) {
-    $j('#videoProgressTicker').text('.');
+  $j('#videoProgress').removeClass( 'text-warning' );
+  if ( generated ) {
+    $j('#videoProgress').addClass( 'text-success' );
+    $j('#videoProgress').text(exportSucceededString);
+    $j( "#videoTable" ).load( fullUrl+ ' #videoTable' );
   } else {
-    $j('videoProgressTicker').append('.');
+    $j('#videoProgress').addClass( 'text-danger' );
+    $j('#videoProgress').text(exportFailedString);
   }
-}
-
-function generateVideoResponse( respObj, respText ) {
-  window.location.replace(thisUrl+'?view='+currentView+'&eid='+eventId+'&generated='+((respObj.result=='Ok')?1:0));
 }
 
 function generateVideo() {
@@ -28,9 +20,29 @@ function generateVideo() {
   $j.getJSON(thisUrl + '?view=request&request=event&action=video', form)
       .done(generateVideoResponse)
       .fail(logAjaxFail);
-  $j('#videoProgress').removeClass('hidden');
-  $j('#videoProgress').addClass('warnText');
-  $j('#videoProgressText').text(videoGenProgressString);
-  generateVideoProgress();
-  generateVideoTimer = generateVideoProgress.periodical(500);
+  $j('#videoProgress').removeClass('invisible');
 }
+
+function initPage() {
+  var backBtn = $j('#backBtn');
+  var videoBtn = $j('#videoBtn');
+
+  videoBtn.prop('disabled', !opt_ffmpeg);
+
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+}
+
+$j(document).ready(initPage);

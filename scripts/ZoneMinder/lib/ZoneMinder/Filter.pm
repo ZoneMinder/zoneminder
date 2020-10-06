@@ -281,29 +281,30 @@ sub Sql {
             push @value_list, $value;
           } # end foreach temp_value
         } # end if has an attr
+
         if ( $term->{op} ) {
           if ( $term->{op} eq '=~' ) {
-            $self->{Sql} .= " regexp $value";
+            $self->{Sql} .= ' regexp '.$value;
           } elsif ( $term->{op} eq '!~' ) {
-            $self->{Sql} .= " not regexp $value";
+            $self->{Sql} .= ' not regexp '.$value;
           } elsif ( $term->{op} eq 'IS' ) {
             if ( $value eq 'Odd' ) {
               $self->{Sql} .= ' % 2 = 1';
             } elsif ( $value eq 'Even' ) {
               $self->{Sql} .= ' % 2 = 0';
             } else {
-              $self->{Sql} .= " IS $value";
+              $self->{Sql} .= ' IS '.$value;
             }
           } elsif ( $term->{op} eq 'IS NOT' ) {
-            $self->{Sql} .= " IS NOT $value";
-          } elsif ( $term->{op} eq '=[]' ) {
+            $self->{Sql} .= ' IS NOT '.$value;
+          } elsif ( $term->{op} eq '=[]' or $term->{op} eq 'IN' ) {
             $self->{Sql} .= ' IN ('.join(',', @value_list).')';
-          } elsif ( $term->{op} eq '!~' ) {
+          } elsif ( $term->{op} eq '![]' ) {
             $self->{Sql} .= ' NOT IN ('.join(',', @value_list).')';
           } elsif ( $term->{op} eq 'LIKE' ) {
-            $self->{Sql} .= " LIKE $value";
+            $self->{Sql} .= ' LIKE '.$value;
           } elsif ( $term->{op} eq 'NOT LIKE' ) {
-            $self->{Sql} .= " NOT LIKE $value";
+            $self->{Sql} .= ' NOT LIKE '.$value;
           } else {
             $self->{Sql} .= ' '.$term->{op}.' '.$value;
           }

@@ -514,9 +514,19 @@ void EventStream::processCommand(const CmdMsg *msg) {
     case CMD_SEEK :
       {
         // offset is in seconds
-        int offset = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-        curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration);
-        Debug(1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id);
+
+        int int_part = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+       int dec_part =  ((unsigned char)msg->msg_data[5]<<24)|((unsigned char)msg->msg_data[6]<<16)|((unsigned char)msg->msg_data[7]<<8)|(unsigned char)msg->msg_data[8];
+
+       double offset = (double)int_part + (double)(dec_part / (double)1000000);
+        if ( offset < 0.0 ) {
+          Warning("Invalid offset, not seeking");
+          break;
+        } 
+        curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration)+1;
+        curr_stream_time = event_data->frames[curr_frame_id-1].timestamp;
+        Debug(1, "Got SEEK command, to %f (new current frame id: %d offset %f)",
+            offset, curr_frame_id, event_data->frames[curr_frame_id-1].offset);
         send_frame = true;
         break;
       }

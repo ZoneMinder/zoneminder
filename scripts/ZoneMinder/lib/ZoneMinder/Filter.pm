@@ -320,9 +320,9 @@ sub Sql {
               $self->{Sql} .= ' EXISTS '.$value;
             } elsif ( $term->{op} eq 'IS NOT' ) {
               $self->{Sql} .= ' IS NOT '.$value;
-            } elsif ( $term->{op} eq '=[]' ) {
+            } elsif ( $term->{op} eq '=[]' or $term->{op} eq 'IN' ) {
               $self->{Sql} .= ' IN ('.join(',', @value_list).')';
-            } elsif ( $term->{op} eq '!~' ) {
+            } elsif ( $term->{op} eq '![]' ) {
               $self->{Sql} .= ' NOT IN ('.join(',', @value_list).')';
             } elsif ( $term->{op} eq 'LIKE' ) {
               $self->{Sql} .= ' LIKE '.$value;

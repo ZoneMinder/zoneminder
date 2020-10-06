@@ -47,8 +47,10 @@ if ( sem_acquire($semaphore,1) !== false ) {
     $msg = pack('lcn', MSG_CMD, $_REQUEST['command'], $_REQUEST['scale']);
     break;
   case CMD_SEEK :
-    ZM\Logger::Debug('Seeking to '.$_REQUEST['offset']);
-    $msg = pack('lcN', MSG_CMD, $_REQUEST['command'], $_REQUEST['offset']);
+    # Pack int two 32 bit integers instead of trying to deal with floats
+    $msg = pack('lcNN', MSG_CMD, $_REQUEST['command'],
+      intval($_REQUEST['offset']),
+      1000000*( $_REQUEST['offset']-intval($_REQUEST['offset'])));
     break;
   default :
     ZM\Logger::Debug('Sending command ' . $_REQUEST['command']);

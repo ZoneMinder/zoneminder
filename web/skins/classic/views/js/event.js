@@ -244,7 +244,8 @@ function getCmdResponse( respObj, respText ) {
   }
 
   streamStatus = respObj.status;
-  if ( streamStatus.progress >= Math.round(parseFloat(eventData.Length)) ) {
+  if ( streamStatus.progress > parseFloat(eventData.Length) ) {
+    console.log("Limiting progress to " + streamStatus.progress + ' >= ' + parseFloat(eventData.Length) );
     streamStatus.progress = parseFloat(eventData.Length);
   } //Limit progress to reality
 
@@ -263,7 +264,6 @@ function getCmdResponse( respObj, respText ) {
   if ( streamStatus.paused == true ) {
     streamPause( );
   } else {
-    console.log('streamStatus.rate: ' + streamStatus.rate);
     $j('select[name="rate"]').val(streamStatus.rate*100);
     Cookie.write('zmEventRate', streamStatus.rate*100, {duration: 10*365});
     streamPlay( );
@@ -287,7 +287,7 @@ function getCmdResponse( respObj, respText ) {
   } // end if haev a new auth hash
 
   streamCmdTimer = streamQuery.delay(streamTimeout); //Timeout is refresh rate for progressBox and time display
-}
+} // end function getCmdResponse( respObj, respText )
 
 var streamReq = new Request.JSON( {
   url: monitorUrl,

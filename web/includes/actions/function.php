@@ -55,5 +55,5 @@ if ( $action == 'function' ) {
     ZM\Logger::Debug('No change to function, not doing anything.');
   }
 } // end if action 
-$view = 'console';
+$redirect = '?view=console';
 ?>

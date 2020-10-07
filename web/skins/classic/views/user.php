@@ -37,8 +37,6 @@ if ( $_REQUEST['uid'] ) {
 	$newUser->Username(translate('NewUser'));
 }
 
-$monitorIds = array_flip(explode(',', $newUser->MonitorIds()));
-
 $yesno = array( 0=>translate('No'), 1=>translate('Yes') );
 $nv = array( 'None'=>translate('None'), 'View'=>translate('View') );
 $nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
@@ -138,7 +136,12 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
             <tr>
               <th class="text-right" scope="row"><?php echo translate('RestrictedMonitors') ?></th>
               <td>
-<?php echo htmlSelect('newUser[MonitorIds][]', $monitors, explode(',', $newUser->MonitorIds()), array('multiple'=>'multiple')); ?>
+<?php
+  // explode returns an array with an empty element, so test for a value first
+  echo htmlSelect('newUser[MonitorIds][]', $monitors,
+    ($newUser->MonitorIds() ? explode(',', $newUser->MonitorIds()) : array()),
+    array('multiple'=>'multiple'));
+?>
               </td>
             </tr>
 <?php if ( ZM_OPT_USE_API ) { ?>

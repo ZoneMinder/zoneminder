@@ -77,18 +77,18 @@ function changeSize() {
     console.log('Did not find liveStream'+monitorData[monIdx].id);
   }
   $('scale').set('value', '');
-  Cookie.write('zmCycleScale', '', {duration: 10*365});
-  Cookie.write('zmCycleWidth', width, {duration: 10*365});
-  Cookie.write('zmCycleHeight', height, {duration: 10*365});
+  Cookie.write('zmCycleScale', '', {duration: 10*365, samesite: 'strict'});
+  Cookie.write('zmCycleWidth', width, {duration: 10*365, samesite: 'strict'});
+  Cookie.write('zmCycleHeight', height, {duration: 10*365, samesite: 'strict'});
 } // end function changeSize()
 
 function changeScale() {
   var scale = $('scale').get('value');
   $('width').set('value', 'auto');
   $('height').set('value', 'auto');
-  Cookie.write('zmCycleScale', scale, {duration: 10*365});
-  Cookie.write('zmCycleWidth', 'auto', {duration: 10*365});
-  Cookie.write('zmCycleHeight', 'auto', {duration: 10*365});
+  Cookie.write('zmCycleScale', scale, {duration: 10*365, samesite: 'strict'});
+  Cookie.write('zmCycleWidth', 'auto', {duration: 10*365, samesite: 'strict'});
+  Cookie.write('zmCycleHeight', 'auto', {duration: 10*365, samesite: 'strict'});
   var newWidth = ( monitorData[monIdx].width * scale ) / SCALE_BASE;
   var newHeight = ( monitorData[monIdx].height * scale ) / SCALE_BASE;
 

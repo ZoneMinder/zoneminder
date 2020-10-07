@@ -38,7 +38,7 @@ function changeScale() {
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
 
-  Cookie.write('zmWatchScale'+monitorId, scale, {duration: 10*365});
+  Cookie.write('zmWatchScale'+monitorId, scale, {duration: 10*365, samesite: 'strict'});
 
   /*Stream could be an applet so can't use moo tools*/
   var streamImg = $('liveStream'+monitorId);

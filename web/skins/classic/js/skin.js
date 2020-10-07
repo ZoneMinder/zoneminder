@@ -378,10 +378,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
-        Cookie.write('zmHeaderFlip', 'down', {duration: 10*365} );
+        Cookie.write('zmHeaderFlip', 'down', {duration: 10*365, samesite: 'strict'} );
       } else {
         flip.html('keyboard_arrow_up');
-        Cookie.write('zmHeaderFlip', 'up', {duration: 10*365} );
+        Cookie.write('zmHeaderFlip', 'up', {duration: 10*365, samesite: 'strict'} );
       }
     });
     // Manage the web console filter bar minimize chevron
@@ -390,10 +390,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var fbflip = $j("#fbflip");
       if ( fbflip.html() == 'keyboard_arrow_up' ) {
         fbflip.html('keyboard_arrow_down');
-        Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365} );
+        Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365, samesite: 'strict'} );
       } else {
         fbflip.html('keyboard_arrow_up');
-        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365} );
+        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365, samesite: 'strict'} );
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
@@ -405,10 +405,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
         mfbflip.html('keyboard_arrow_down');
-        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365} );
+        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365, samesite: 'strict'} );
       } else {
         mfbflip.html('keyboard_arrow_up');
-        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365} );
+        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365, samesite: 'strict'} );
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
@@ -720,7 +720,7 @@ function setCookie(name, value, days) {
     date.setTime(date.getTime() + (days*24*60*60*1000));
     expires = "; expires=" + date.toUTCString();
   }
-  document.cookie = name + "=" + (value || "") + expires + "; path=/";
+  document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";
 }
 
 function getCookie(name) {

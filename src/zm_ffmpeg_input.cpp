@@ -17,7 +17,7 @@ FFmpeg_Input::~FFmpeg_Input() {
   if ( streams ) {
     for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
       avcodec_close(streams[i].context);
-      streams[i].context = nullptr;
+      avcodec_free_context(&streams[i].context);
     }
     delete[] streams;
     streams = nullptr;

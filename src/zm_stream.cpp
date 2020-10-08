@@ -39,7 +39,7 @@ StreamBase::~StreamBase() {
   closeComms();
   if ( monitor ) {
     delete monitor;
-    monitor = NULL;
+    monitor = nullptr;
   }
 }
 

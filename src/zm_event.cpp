@@ -686,15 +686,12 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
-    if ( write_to_db || ( monitor->get_fps() && (frame_data.size() > monitor->get_fps())) ) {
-      Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f",
+    if ( write_to_db or ( monitor->get_fps() and (frame_data.size() > monitor->get_fps())) or frame_type==BULK ) {
+      Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
 					frame_data.size(), write_to_db, monitor->get_fps());
       WriteDbFrames();
       last_db_frame = frames;
-    }
 
-    // We are writing a Bulk frame
-    if ( frame_type == BULK ) {
       snprintf(sql, sizeof(sql), 
           "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64, 
           ( delta_time.positive?"":"-" ),

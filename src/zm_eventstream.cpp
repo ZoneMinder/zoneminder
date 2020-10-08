@@ -892,8 +892,8 @@ void EventStream::runStream() {
       send_frame = true;
     } else if ( !send_frame ) {
       // We are paused, not stepping and doing nothing, meaning that comms didn't set send_frame to true
-      double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
-      if ( actual_delta_time > MAX_STREAM_DELAY ) {
+      double time_since_last_send = TV_2_FLOAT(now) - last_frame_sent;
+      if ( time_since_last_send > MAX_STREAM_DELAY ) {
         // Send keepalive
         Debug(2, "Sending keepalive frame");
         send_frame = true;
@@ -904,8 +904,7 @@ void EventStream::runStream() {
     if ( ( time_to_event > 0 ) and ( mode == MODE_ALL ) ) {
       double time_since_last_send = TV_2_FLOAT(now) - last_frame_sent;
       Debug(1, "Time since last send = %f = %f - %f", time_since_last_send, TV_2_FLOAT(now), last_frame_sent);
-      // > 1 second
-      if ( time_since_last_send > 1 ) {
+      if ( time_since_last_send > 1 /* second */ ) {
         static char frame_text[64];
 
         snprintf(frame_text, sizeof(frame_text), "Time to %s event = %d seconds",

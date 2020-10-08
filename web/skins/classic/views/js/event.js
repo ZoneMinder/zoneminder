@@ -243,6 +243,9 @@ function getCmdResponse( respObj, respText ) {
   }
 
   streamStatus = respObj.status;
+  if ( streamStatus.duration && ( streamStatus.duration != parseFloat(eventData.Length) ) ) {
+    eventData.Length = streamStatus.duration;
+  }
   if ( streamStatus.progress > parseFloat(eventData.Length) ) {
     console.log("Limiting progress to " + streamStatus.progress + ' >= ' + parseFloat(eventData.Length) );
     streamStatus.progress = parseFloat(eventData.Length);

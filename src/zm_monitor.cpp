@@ -1455,11 +1455,12 @@ bool Monitor::Analyse() {
             }
             if ( last_motion_score ) {
               score += last_motion_score;
-              if ( !event ) {
+              // cause is calculated every frame, 
+              //if ( !event ) {
                 if ( cause.length() )
                   cause += ", ";
                 cause += MOTION_CAUSE;
-              }
+              //}
               noteSetMap[MOTION_CAUSE] = zoneSet;
             } // end if motion_score
             //shared_data->active = signal; // unneccessary active gets set on signal change
@@ -1559,7 +1560,7 @@ bool Monitor::Analyse() {
                   alarm_cause = alarm_cause + "," + std::string(zones[i]->Label());
                 }
               }
-              if ( !alarm_cause.empty() ) alarm_cause[0] = ' ';
+              if ( !alarm_cause.empty() ) alarm_cause[0] = ' '; // replace leading , with a space
               alarm_cause = cause + alarm_cause;
               strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",

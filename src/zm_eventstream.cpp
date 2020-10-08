@@ -869,8 +869,8 @@ Debug(1, "Loading image");
           ||
           ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 )
          ) {
-        //Error("Unable to send stream frame: %s", strerror(errno));
-        //return false;
+        Error("Unable to send stream frame: %s", strerror(errno));
+        return false;
       }
     }  // end if send_raw or not
 

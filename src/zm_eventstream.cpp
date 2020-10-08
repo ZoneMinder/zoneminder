@@ -527,7 +527,21 @@ void EventStream::processCommand(const CmdMsg *msg) {
           Warning("Invalid offset, not seeking");
           break;
         } 
+        // This should get us close, but not all frames will have the same duration
         curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration)+1;
+        if ( event_data->frames[curr_frame_id-1].offset > offset ) {
+          while ( (curr_frame_id --) && ( event_data->frames[curr_frame_id-1].offset > offset ) ) {
+          }
+        } else if ( event_data->frames[curr_frame_id-1].offset < offset ) {
+          while ( (curr_frame_id ++) && ( event_data->frames[curr_frame_id-1].offset > offset ) ) {
+          }
+        }
+        if ( curr_frame_id < 1 ) {
+          curr_frame_id = 1;
+        } else if ( curr_frame_id > event_data->last_frame_id ) {
+          curr_frame_id = event_data->last_frame_id;
+        }
+          
         curr_stream_time = event_data->frames[curr_frame_id-1].timestamp;
         Debug(1, "Got SEEK command, to %f (new current frame id: %d offset %f)",
             offset, curr_frame_id, event_data->frames[curr_frame_id-1].offset);
@@ -837,7 +851,6 @@ void EventStream::runStream() {
   uint64_t start_usec = start.tv_sec * 1000000 + start.tv_usec;
   uint64_t last_frame_offset = 0;
 
-  bool in_event = true;
   double time_to_event = 0;
 
   while ( !zm_terminate ) {
@@ -893,7 +906,6 @@ void EventStream::runStream() {
       Debug(1, "Time since last send = %f = %f - %f", time_since_last_send, TV_2_FLOAT(now), last_frame_sent);
       // > 1 second
       if ( time_since_last_send > 1 ) {
-        Debug(1, "Sending time to next event frame");
         static char frame_text[64];
 
         snprintf(frame_text, sizeof(frame_text), "Time to %s event = %d seconds",
@@ -901,11 +913,8 @@ void EventStream::runStream() {
         if ( !sendTextFrame(frame_text) )
           zm_terminate = true;
         send_frame = false; // In case keepalive was set
-      } else {
-        Debug(1, "Not Sending time to next event frame because actual delta time is %f", actual_delta_time);
       }
-      //else
-      //{
+
       // FIXME ICON But we are not paused.  We are somehow still in the event?
       double sleep_time = (replay_rate>0?1:-1) * ((1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000));
       //double sleep_time = (replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
@@ -1095,11 +1104,11 @@ bool EventStream::send_file(const char * filepath) {
 }  // end bool EventStream::send_file(const char * filepath)
 
 bool EventStream::send_buffer(uint8_t* buffer, int size) {
-  if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size) ) {
+  if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", size) ) {
     Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
     return false;
   }
-  rc = fwrite(img_buffer, img_buffer_size, 1, stdout);
+  int rc = fwrite(buffer, size, 1, stdout);
 
   if ( 1 != rc ) {
     Error("Unable to send raw frame %u: %s %d", curr_frame_id, strerror(errno), rc);

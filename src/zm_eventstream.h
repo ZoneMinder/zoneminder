@@ -76,7 +76,7 @@ class EventStream : public StreamBase {
     StreamMode mode;
     bool forceEventChange;
 
-    int curr_frame_id;
+    unsigned long curr_frame_id;
     double curr_stream_time;
     bool  send_frame;
     struct timeval start;     // clock time when started the event

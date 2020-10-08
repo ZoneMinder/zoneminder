@@ -497,6 +497,8 @@ Monitor::Monitor(
     shared_data->last_read_time = 0;
     shared_data->alarm_x = -1;
     shared_data->alarm_y = -1;
+  } else {
+    shared_data = nullptr;
   }
 
   start_time = last_fps_time = time( 0 );
@@ -2118,7 +2120,6 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   } else {
     v4l_captures_per_frame = config.captures_per_frame;
   }
-  Debug(1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame);
   col++;
 
   std::string protocol = dbrow[col] ? dbrow[col] : ""; col++;
@@ -2408,10 +2409,13 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       0
         );
   camera->setMonitor(monitor);
-  Zone **zones = 0;
-  int n_zones = Zone::Load(monitor, zones);
-  monitor->AddZones(n_zones, zones);
-  monitor->AddPrivacyBitmask(zones);
+  int n_zones = 0;
+  if ( load_zones ) {
+    Zone **zones = 0;
+    n_zones = Zone::Load(monitor, zones);
+    monitor->AddZones(n_zones, zones);
+    monitor->AddPrivacyBitmask(zones);
+  }
   Debug(1, "Loaded monitor %d(%s), %d zones", id, name, n_zones);
   return monitor;
 } // end Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose)

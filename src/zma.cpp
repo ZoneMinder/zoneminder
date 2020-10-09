@@ -70,15 +70,15 @@ void Usage() {
 int main( int argc, char *argv[] ) {
   self = argv[0];
 
-  srand(getpid() * time(0));
+  srand(getpid() * time(nullptr));
 
   int id = -1;
 
   static struct option long_options[] = {
-    {"monitor", 1, 0, 'm'},
-    {"help", 0, 0, 'h'},
-    {"version", 0, 0, 'v'},
-    {0, 0, 0, 0}
+    {"monitor", 1, nullptr, 'm'},
+    {"help", 0, nullptr, 'h'},
+    {"version", 0, nullptr, 'v'},
+    {nullptr, 0, nullptr, 0}
   };
 
   while (1) {
@@ -146,15 +146,15 @@ int main( int argc, char *argv[] ) {
     unsigned int analysis_update_delay = monitor->GetAnalysisUpdateDelay();
     time_t last_analysis_update_time, cur_time;
     monitor->UpdateAdaptiveSkip();
-    last_analysis_update_time = time(0);
+    last_analysis_update_time = time(nullptr);
 
     while( (!zm_terminate) && monitor->ShmValid() ) {
       // Process the next image
-      sigprocmask(SIG_BLOCK, &block_set, 0);
+      sigprocmask(SIG_BLOCK, &block_set, nullptr);
 
       // Some periodic updates are required for variable capturing framerate
       if ( analysis_update_delay ) {
-        cur_time = time(0);
+        cur_time = time(nullptr);
         if ( (unsigned int)( cur_time - last_analysis_update_time ) > analysis_update_delay ) {
           analysis_rate = monitor->GetAnalysisRate();
           monitor->UpdateAdaptiveSkip();
@@ -174,7 +174,7 @@ int main( int argc, char *argv[] ) {
         logInit(log_id_string);
         zm_reload = false;
       }
-      sigprocmask(SIG_UNBLOCK, &block_set, 0);
+      sigprocmask(SIG_UNBLOCK, &block_set, nullptr);
     } // end while ! zm_terminate
     delete monitor;
   } else {

@@ -129,7 +129,7 @@ class Event {
     void updateNotes( const StringSetMap &stringSetMap );
 
     void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
-    void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
+    void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=nullptr );
 
   private:
     void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );
@@ -158,16 +158,16 @@ class Event {
       while ( pre_alarm_count > 0 ) {
 				int i = pre_alarm_count - 1;
 				delete pre_alarm_data[i].image;
-				pre_alarm_data[i].image = NULL;
+				pre_alarm_data[i].image = nullptr;
 				if ( pre_alarm_data[i].alarm_frame ) {
 					delete pre_alarm_data[i].alarm_frame;
-					pre_alarm_data[i].alarm_frame = NULL;
+					pre_alarm_data[i].alarm_frame = nullptr;
 				}
 				pre_alarm_count--;
 			}
       pre_alarm_count = 0;
     }
-    static void AddPreAlarmFrame(Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL) {
+    static void AddPreAlarmFrame(Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=nullptr) {
       pre_alarm_data[pre_alarm_count].image = new Image(*image);
       pre_alarm_data[pre_alarm_count].timestamp = timestamp;
       pre_alarm_data[pre_alarm_count].score = score;

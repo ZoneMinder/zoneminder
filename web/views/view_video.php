@@ -30,6 +30,8 @@ if ( !canView('Events') ) {
   return;
 }
 
+# in index.php we do ob_end_start but there can be no output before view_video and we often don't have enough ram to buffer the content.
+ob_end_clean();
 require_once('includes/Event.php');
 
 $errorText = false;

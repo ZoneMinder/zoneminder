@@ -1,3 +1,7 @@
+<?php
+  global $filterQuery;
+  global $sortQuery;
+?>
 //var openFilterWindow = <?php echo $_REQUEST['filter']?'true':'false' ?>;
 var openFilterWindow = false;
 

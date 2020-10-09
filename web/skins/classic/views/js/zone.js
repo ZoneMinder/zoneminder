@@ -1,3 +1,7 @@
+var requestQueue = new Request.Queue({
+  concurrent: monitorData.length,
+  stopOnFailure: false
+});
 function validateForm( form ) {
   var errors = new Array();
   if ( selfIntersecting ) {
@@ -249,15 +253,18 @@ function limitArea(field) {
   limitRange(field, minValue, maxValue);
 }
 
-function highlightOn(point) {
-  var index = point.getAttribute('data-index');
+function highlightOn(index) {
   $('row'+index).addClass('highlight');
   $('point'+index).addClass('highlight');
 }
 
-function highlightOff(point) {
-  var index = point.getAttribute('data-index');
-  $('row'+index).removeClass('highlight');
+function highlightOff(index) {
+  row = $('row'+index);
+  if ( row ) {
+    row.removeClass('highlight');
+  } else {
+    console.log("No row for index " + index);
+  }
   $('point'+index).removeClass('highlight');
 }
 
@@ -281,13 +288,18 @@ function getCoordString() {
 }
 
 function updateZoneImage() {
+  var imageFrame = $('imageFrame');
+  var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+
+  scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
   var SVG = $('zoneSVG');
   var Poly = $('zonePoly');
   Poly.points.clear();
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var Point = SVG.createSVGPoint();
     Point.x = zone['Points'][i].x;
-    Point.y = zone['Points'][i].y;
+    //+ 2*padding_left;
+    Point.y = zone['Points'][i].y;// + 2*padding_top;
     Poly.points.appendItem(Point);
   }
 }
@@ -310,35 +322,49 @@ function constrainValue(value, loVal, hiVal) {
 
 function updateActivePoint(index) {
   var point = $('point'+index);
-  var x = constrainValue(point.getStyle('left').toInt(), 0, maxX);
-  var y = constrainValue(point.getStyle('top').toInt(), 0, maxY);
+  var imageFrame = $('imageFrame');
+  var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  var padding_left = style.paddingLeft.toInt();
+  var padding_top = style.paddingTop.toInt();
 
-  $('newZone[Points]['+index+'][x]').value = x;
-  $('newZone[Points]['+index+'][y]').value = y;
-  zone['Points'][index].x = x;
-  zone['Points'][index].y = y;
+  scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
+  var left = point.getStyle('left').toInt();
+
+  if ( left < padding_left ) {
+    point.setStyle('left', style.paddingLeft);
+    left = padding_left.toInt();
+  }
+  var top = point.getStyle('top').toInt();
+  if ( top < padding_top ) {
+    point.setStyle('top', style.paddingTop);
+    top = padding_top;
+  }
+
+  var x = constrainValue(Math.ceil(left / scale)-Math.ceil(padding_left/scale), 0, maxX);
+  var y = constrainValue(Math.ceil(top / scale)-Math.ceil(padding_top/scale), 0, maxY);
+
+  zone['Points'][index].x = $('newZone[Points]['+index+'][x]').value = x;
+  zone['Points'][index].y = $('newZone[Points]['+index+'][y]').value = y;
   var Point = $('zonePoly').points.getItem(index);
   Point.x = x;
   Point.y = y;
   updateArea();
-}
+} // end function updateActivePoint(index)
 
 function addPoint(index) {
   var nextIndex = index+1;
   if ( index >= (zone['Points'].length-1) ) {
     nextIndex = 0;
   }
+
   var newX = parseInt(Math.round((zone['Points'][index]['x']+zone['Points'][nextIndex]['x'])/2));
   var newY = parseInt(Math.round((zone['Points'][index]['y']+zone['Points'][nextIndex]['y'])/2));
   if ( nextIndex == 0 ) {
     zone['Points'][zone['Points'].length] = {'x': newX, 'y': newY};
   } else {
-    zone['Points'].splice( nextIndex, 0, {'x': newX, 'y': newY} );
+    zone['Points'].splice(nextIndex, 0, {'x': newX, 'y': newY});
   }
   drawZonePoints();
-  // drawZonePoints calls updateZoneImage
-  //updateZoneImage();
-  //setActivePoint( nextIndex );
 }
 
 function delPoint(index) {
@@ -406,33 +432,37 @@ function saveChanges(element) {
 }
 
 function drawZonePoints() {
-  $('imageFrame').getElements('div.zonePoint').each(
+  var imageFrame = $('imageFrame');
+  imageFrame.getElements('.zonePoint').each(
       function(element) {
         element.destroy();
       });
+  var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
+  console.log("Scale = width: " + imageFrame.clientWidth);
+
   for ( var i = 0; i < zone['Points'].length; i++ ) {
+    console.log("scale: " + scale + " x " + zone['Points'][i].x + " = " + Math.round(zone['Points'][i].x * scale));
     var div = new Element('div', {
       'id': 'point'+i,
-      'data-index': i,
+      'data-point-index': i,
       'class': 'zonePoint',
       'title': 'Point '+(i+1),
       'styles': {
-        'left': zone['Points'][i].x,
-        'top': zone['Points'][i].y
+        'left': (Math.round(zone['Points'][i].x * scale) + style.paddingLeft.toInt())+"px",
+        'top': ((zone['Points'][i].y * scale).toInt() + style.paddingTop.toInt()) +"px"
       }
     });
-    //div.addEvent('mouseover', highlightOn.pass(i));
-    div.onmouseover = window['highlightOn'].bind(div, div);
-    div.onmouseout = window['highlightOff'].bind(div, div);
+    div.addEvent('mouseover', highlightOn.pass(i));
     div.addEvent('mouseout', highlightOff.pass(i));
-    div.inject($('imageFrame'));
+    div.inject(imageFrame);
     div.makeDraggable( {
-      'container': $('imageFrame'),
+      'container': imageFrame,
       'onStart': setActivePoint.pass(i),
       'onComplete': fixActivePoint.pass(i),
       'onDrag': updateActivePoint.pass(i)
     } );
-  }
+  } // end foreach point
 
   var tables = $('zonePoints').getElement('table').getElements('table');
   tables.each( function(table) {
@@ -442,7 +472,10 @@ function drawZonePoints() {
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var row;
     row = new Element('tr', {'id': 'row'+i});
-    row.addEvents({'mouseover': highlightOn.pass(i), 'mouseout': highlightOff.pass(i)});
+    row.addEvent('mouseover', highlightOn.pass(i));
+    row.addEvent('mouseout', highlightOff.pass(i));
+    //row.onmouseover = highlightOn.pass(i)
+    //row.onmouseout = window['highlightOff'].bind(div, div);
     var cell = new Element('td');
     cell.set('text', i+1);
     cell.inject(row);
@@ -493,190 +526,26 @@ function drawZonePoints() {
     cell.inject(row);
 
     row.inject(tables[i%tables.length].getElement('tbody'));
-  }
+  } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();
 }
 
-//
-// Imported from watch.js and modified for new zone edit view
-//
-
-var alarmState = STATE_IDLE;
-var lastAlarmState = STATE_IDLE;
-
-function setAlarmState( currentAlarmState ) {
-  alarmState = currentAlarmState;
-
-  var stateClass = '';
-  if ( alarmState == STATE_ALARM ) {
-    stateClass = 'alarm';
-  } else if ( alarmState == STATE_ALERT ) {
-    stateClass = 'alert';
+function streamCmdPause() {
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+    monitors[i].pause();
   }
-  $('stateValue').set('text', stateStrings[alarmState]);
-  if ( stateClass ) {
-    $('stateValue').setProperty('class', stateClass);
-  } else {
-    $('stateValue').removeProperty('class');
-  }
+  document.getElementById('pauseBtn').style.display = 'none';
+  document.getElementById('playBtn').style.display = 'inline';
 }
 
-var streamCmdParms = "view=request&request=stream&connkey="+connKey;
-if ( auth_hash ) {
-  streamCmdParms += '&auth='+auth_hash;
-}
-var streamCmdReq = new Request.JSON( {
-  url: monitorUrl,
-  method: 'get',
-  timeout: AJAX_TIMEOUT,
-  link: 'cancel',
-  onSuccess: getStreamCmdResponse
-} );
-var streamCmdTimer = null;
-
-var streamStatus;
-
-function getStreamCmdResponse(respObj, respText) {
-  watchdogOk("stream");
-  if ( streamCmdTimer ) {
-    streamCmdTimer = clearTimeout(streamCmdTimer);
+function streamCmdPlay() {
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+    monitors[i].play();
   }
-
-  if ( respObj.result == 'Ok' ) {
-    streamStatus = respObj.status;
-    $('fpsValue').set('text', streamStatus.fps);
-
-    setAlarmState(streamStatus.state);
-
-    if ( streamStatus.paused == true ) {
-      streamCmdPause(false);
-    } else if ( streamStatus.delayed == true && streamStatus.rate == 1 ) {
-      streamCmdPlay(false);
-    }
-  } else {
-    checkStreamForErrors('getStreamCmdResponse', respObj);//log them
-    if ( ! streamPause ) {
-      // Try to reload the image stream.
-      var streamImg = $('liveStream'+monitorId);
-      if ( streamImg ) {
-        streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor(Math.random() * 1000000));
-      }
-    }
-  }
-
-  if ( !streamPause ) {
-    var streamCmdTimeout = statusRefreshTimeout;
-    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
-      streamCmdTimeout = streamCmdTimeout/5;
-    }
-    streamCmdTimer = streamCmdQuery.delay(streamCmdTimeout);
-  }
+  document.getElementById('playBtn').style.display = 'none';
+  document.getElementById('pauseBtn').style.display = 'inline';
 }
-
-var streamPause = false;
-
-function streamCmdPauseToggle() {
-  if ( streamPause == true ) {
-    streamCmdPlay(true);
-    streamPause = false;
-    document.getElementById('pauseBtn').innerHTML = pauseString;
-  } else {
-    streamCmdPause(true);
-    streamPause = true;
-    document.getElementById('pauseBtn').innerHTML = playString;
-  }
-}
-
-function streamCmdPause(action) {
-  if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_PAUSE);
-  }
-}
-
-function streamCmdPlay(action) {
-  if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_PLAY);
-  }
-}
-
-function streamCmdStop(action) {
-  if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_STOP);
-  }
-}
-
-function streamCmdQuery() {
-  streamCmdReq.send(streamCmdParms+"&command="+CMD_QUERY);
-}
-
-var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
-if ( auth_hash ) {
-  statusCmdParms += '&auth='+auth_hash;
-}
-var statusCmdReq = new Request.JSON( {
-  url: monitorUrl,
-  method: 'get',
-  data: statusCmdParms,
-  timeout: AJAX_TIMEOUT,
-  link: 'cancel',
-  onSuccess: getStatusCmdResponse
-} );
-var statusCmdTimer = null;
-
-function getStatusCmdResponse(respObj, respText) {
-  watchdogOk("status");
-  if ( statusCmdTimer ) {
-    statusCmdTimer = clearTimeout(statusCmdTimer);
-  }
-
-  if ( respObj.result == 'Ok' ) {
-    $('fpsValue').set('text', respObj.monitor.FrameRate);
-    setAlarmState(respObj.monitor.Status);
-  } else {
-    checkStreamForErrors("getStatusCmdResponse", respObj);
-  }
-
-  if ( ! streamPause ) {
-    var statusCmdTimeout = statusRefreshTimeout;
-    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
-      statusCmdTimeout = statusCmdTimeout/5;
-    }
-    statusCmdTimer = statusCmdQuery.delay(statusCmdTimeout);
-  }
-}
-
-function statusCmdQuery() {
-  statusCmdReq.send();
-}
-
-function fetchImage( streamImage ) {
-  streamImage.src = streamImage.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-}
-
-function appletRefresh() {
-  if ( streamStatus && (!streamStatus.paused && !streamStatus.delayed) ) {
-    var streamImg = $('liveStream');
-    var parent = streamImg.getParent();
-    streamImg.dispose();
-    streamImg.inject( parent );
-    if ( appletRefreshTime ) {
-      appletRefresh.delay( appletRefreshTime*1000 );
-    }
-  } else {
-    appletRefresh.delay( 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
-  }
-}
-
-var watchdogInactive = {
-  'stream': false,
-  'status': false
-};
-
-var watchdogFunctions = {
-  'stream': streamCmdQuery,
-  'status': statusCmdQuery
-};
 
 //Make sure the various refreshes are still taking effect
 function watchdogCheck(type) {
@@ -691,6 +560,8 @@ function watchdogCheck(type) {
 function watchdogOk(type) {
   watchdogInactive[type] = false;
 }
+
+var monitors = new Array();
 
 function initPage() {
   var form = document.zoneForm;
@@ -763,11 +634,15 @@ function initPage() {
   }
 
   applyCheckMethod();
-  drawZonePoints();
 
   $('pauseBtn').onclick = function() {
-    streamCmdPauseToggle();
+    streamCmdPause();
   };
+  $('playBtn').style.display = 'none'; // hide pause initially
+  $('playBtn').onclick = function() {
+    streamCmdPlay();
+  };
+
   if ( el = $('saveBtn') ) {
     el.onclick = window['saveChanges'].bind(el, el);
   }
@@ -778,34 +653,27 @@ function initPage() {
     };
   }
 
-  //
-  // Imported from watch.js and modified for new zone edit view
-  //
+  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+    monitors[i] = new MonitorStream(monitorData[i]);
 
-  var delay = (Math.random()+0.1) * statusRefreshTimeout;
-  //console.log("Delay for status updates is: " + delay );
-  if ( streamMode == 'single' ) {
-    statusCmdTimer = statusCmdQuery.delay(delay);
-    watchdogCheck.pass('status').periodical(statusRefreshTimeout*2);
-  } else {
-    streamCmdTimer = streamCmdQuery.delay(delay);
-    watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
+    // Start the fps and status updates. give a random delay so that we don't assault the server
+    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    monitors[i].start(delay);
   }
 
-  if ( canStreamNative || (streamMode == 'single') ) {
-    var streamImg = $('imageFrame').getElement('img');
-    if ( !streamImg ) {
-      streamImg = $('imageFrame').getElement('object');
-    }
-    if ( streamMode == 'single' ) {
-      streamImg.addEvent('click', fetchImage.pass(streamImg));
-      fetchImage.pass(streamImg).periodical(imageRefreshTimeout);
-    }
-  }
+  document.querySelectorAll('#imageFrame img').forEach(function(el) {
+    el.addEventListener("load", imageLoadEvent, {passive: true});
+  });
+  window.addEventListener("resize", drawZonePoints, {passive: true});
+} // initPage
 
-  if ( refreshApplet && appletRefreshTime ) {
-    appletRefresh.delay(appletRefreshTime*1000);
-  }
+function imageLoadEvent() {
+  // We only need this event on the first image load to set dimensions.
+  // Turn it off after it has been called.
+  document.querySelectorAll('#imageFrame img').forEach(function(el) {
+    el.removeEventListener("load", imageLoadEvent, {passive: true});
+  });
+  drawZonePoints();
 }
 
 function Polygon_calcArea(coords) {

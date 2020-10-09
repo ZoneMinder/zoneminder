@@ -18,12 +18,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$servers = ZM\Server::find(null, array('order'=>'lower(Name)'));
-$ServersById = array();
-foreach ( $servers as $S ) {
-  $ServersById[$S->Id()] = $S;
-}
-session_start();
+require_once('includes/Monitor.php');
+
+zm_session_start();
 foreach ( array('GroupId','Function','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var ) {
   if ( isset($_REQUEST[$var]) ) {
     if ( $_REQUEST[$var] != '' ) {
@@ -42,15 +39,20 @@ $StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
 }
+$servers = ZM\Server::find(null, array('order'=>'lower(Name)'));
+$ServersById = array();
+foreach ( $servers as $S ) {
+  $ServersById[$S->Id()] = $S;
+}
 
 $html =
 '
 <div class="controlHeader">
+
   <!-- Used to submit the form with the enter key -->
   <input type="submit" class="d-none"/>
   <input type="hidden" name="filtering" value=""/>
 ';
-
 $GroupsById = array();
 foreach ( ZM\Group::find() as $G ) {
   $GroupsById[$G->Id()] = $G;
@@ -100,10 +102,7 @@ $html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['Monit
 $html .= '</span>
 ';
 
-$Functions = array();
-foreach ( getEnumValues('Monitors', 'Function') as $optFunction ) {
-  $Functions[$optFunction] = translate('Fn'.$optFunction);
-}
+$Functions = ZM\GetMonitorFunctionTypes();
 
 $html .= '<span class="FunctionFilter"><label>'.translate('Function').'</label>';
 $html .= htmlSelect('Function[]', $Functions,

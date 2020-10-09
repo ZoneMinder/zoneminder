@@ -30,7 +30,7 @@
 struct timespec getTimeout( int secs ) {
   struct timespec timeout;
   struct timeval temp_timeout;
-  gettimeofday(&temp_timeout, 0);
+  gettimeofday(&temp_timeout, nullptr);
   timeout.tv_sec = temp_timeout.tv_sec + secs;
   timeout.tv_nsec = temp_timeout.tv_usec*1000;
   return timeout;
@@ -39,7 +39,7 @@ struct timespec getTimeout( int secs ) {
 struct timespec getTimeout( double secs ) {
   struct timespec timeout;
   struct timeval temp_timeout;
-  gettimeofday( &temp_timeout, 0 );
+  gettimeofday( &temp_timeout, nullptr );
   timeout.tv_sec = temp_timeout.tv_sec + int(secs);
   timeout.tv_nsec = temp_timeout.tv_usec += (long int)(1000000000.0*(secs-int(secs)));
   if ( timeout.tv_nsec > 1000000000 ) {
@@ -50,7 +50,7 @@ struct timespec getTimeout( double secs ) {
 }
 
 Mutex::Mutex() {
-  if ( pthread_mutex_init(&mMutex, NULL) < 0 )
+  if ( pthread_mutex_init(&mMutex, nullptr) < 0 )
     Error("Unable to create pthread mutex: %s", strerror(errno));
 }
 
@@ -105,7 +105,7 @@ RecursiveMutex::RecursiveMutex() {
 }
 
 Condition::Condition( Mutex &mutex ) : mMutex( mutex ) {
-  if ( pthread_cond_init( &mCondition, NULL ) < 0 )
+  if ( pthread_cond_init( &mCondition, nullptr ) < 0 )
     throw ThreadException( stringtf( "Unable to create pthread condition: %s", strerror(errno) ) );
 }
 

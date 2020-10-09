@@ -159,7 +159,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     });
   });
 
-  document.querySelectorAll(".tabList a").forEach(function addOnClick(el) {
+  document.querySelectorAll(".pillList a").forEach(function addOnClick(el) {
     el.addEventListener("click", submitTab);
   });
 
@@ -358,6 +358,21 @@ if ( currentView != 'none' && currentView != 'login' ) {
       } else {
         fbflip.html('keyboard_arrow_up');
         Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365} );
+        $j('.chosen').chosen("destroy");
+        $j('.chosen').chosen();
+      }
+    });
+
+    // Manage the web console filter bar minimize chevron
+    $j("#mfbflip").click(function() {
+      $j("#mfbpanel").slideToggle("slow");
+      var mfbflip = $j("#mfbflip");
+      if ( mfbflip.html() == 'keyboard_arrow_up' ) {
+        mfbflip.html('keyboard_arrow_down');
+        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365} );
+      } else {
+        mfbflip.html('keyboard_arrow_up');
+        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365} );
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }

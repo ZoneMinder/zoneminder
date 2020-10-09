@@ -24,33 +24,49 @@ if ( !canView('Events') || (!empty($_REQUEST['execute']) && !canEdit('Events')) 
 }
 
 require_once('includes/Event.php');
+require_once('includes/Filter.php');
 
-$countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
   $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
-  $countSql .= $user_monitor_ids;
   $eventsSql .= $user_monitor_ids;
 } else {
-  $countSql .= ' 1';
   $eventsSql .= ' 1';
 }
 
 parseSort();
-parseFilter($_REQUEST['filter']);
-$filterQuery = $_REQUEST['filter']['query'];
 
-if ( $_REQUEST['filter']['sql'] ) {
-  $countSql .= $_REQUEST['filter']['sql'];
-  $eventsSql .= $_REQUEST['filter']['sql'];
+$filter = ZM\Filter::parse($_REQUEST['filter']);
+$filterQuery = $filter->querystring();
+ZM\Logger::Debug("Filter ".print_r($filter, true));
+
+if ( $filter->sql() ) {
+  $eventsSql .= ' AND ('.$filter->sql().')';
 }
-$eventsSql .= " ORDER BY $sortColumn $sortOrder,Id $sortOrder";
+$eventsSql .= " ORDER BY $sortColumn $sortOrder";
+if ( $sortColumn != 'E.Id' ) $eventsSql .= ',E.Id '.$sortOrder;
 
 $page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 0;
-$limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : 0;
+$limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : $filter['limit'];
 
-$nEvents = dbFetchOne($countSql, 'EventCount');
-if ( !empty($limit) && $nEvents > $limit ) {
+if ( $_POST ) {
+  // I think this is basically so that a refresh doesn't repost
+  ZM\Logger::Debug('Redirecting to ' . $_SERVER['REQUEST_URI']);
+  header('Location: ?view=' . $view.htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
+  exit();
+}
+
+$failed = !$filter->test_pre_sql_conditions();
+if ( $failed ) {
+  ZM\Logger::Debug('Pre conditions failed, not doing sql');
+}
+
+$results = $failed ? null : dbQuery($eventsSql);
+
+$nEvents = $results ? $results->rowCount() : 0;
+ZM\Logger::Debug("Pre conditions succeeded sql return $nEvents events");
+
+if ( !empty($limit) && ($nEvents > $limit) ) {
   $nEvents = $limit;
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
@@ -62,14 +78,14 @@ if ( !empty($page) ) {
     $page = $pages;
 
   $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
-  if ( empty( $limit ) ) {
+  if ( empty($limit) ) {
     $limitAmount = ZM_WEB_EVENTS_PER_PAGE;
   } else {
     $limitLeft = $limit - $limitStart;
     $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
   }
   $eventsSql .= " LIMIT $limitStart, $limitAmount";
-} elseif ( !empty($limit) ) {
+} else if ( !empty($limit) ) {
   $eventsSql .= ' LIMIT 0, '.$limit;
 }
 
@@ -78,26 +94,18 @@ $pagination = getPagination($pages, $page, $maxShortcuts, $filterQuery.$sortQuer
 
 $focusWindow = true;
 
-if ( $_POST ) {
-  // I think this is basically so that a refresh doesn't repost
-  ZM\Logger::Debug('Redirecting to ' . $_SERVER['REQUEST_URI']);
-  header('Location: ?view=' . $view.htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
-  exit();
-}
-
 $storage_areas = ZM\Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
 }
 
-xhtmlHeaders(__FILE__, translate('Events') );
+xhtmlHeaders(__FILE__, translate('Events'));
 
 ?>
 <body>
-  <div id="page">
-    <?php echo getNavBarHTML() ?>
-
+  <?php echo getNavBarHTML() ?>
+  <div id="page" class="container-fluid p-3">
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
@@ -113,7 +121,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
     </div>
 
     <!-- Table styling handled by bootstrap-tables -->
-    <div class="table-responsive-sm p-3">
+    <div class="row justify-content-center">
       <table
         id="eventTable"
         data-toggle="table"
@@ -127,6 +135,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
         data-click-to-select="true"
         data-remember-order="true"
         data-show-columns="true"
+        data-show-export="true"
         data-uncheckAll="true"
         data-toolbar="#toolbar"
         data-show-fullscreen="true"
@@ -134,18 +143,11 @@ xhtmlHeaders(__FILE__, translate('Events') );
         data-maintain-meta-data="true"
         data-mobile-responsive="true"
         data-buttons-class="btn btn-normal"
-        class="table-sm table-borderless">
+        data-show-jump-to="true"
+        class="table-sm table-borderless"
+        style="display:none;"
+      >
         <thead>
-<?php
-$count = 0;
-$disk_space_total = 0;
-
-$results = dbQuery($eventsSql);
-while ( $event_row = dbFetchNext($results) ) {
-  $event = new ZM\Event($event_row);
-
-  if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
-?>
             <!-- Row styling is handled by bootstrap-tables -->
             <tr>
               <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
@@ -184,17 +186,36 @@ while ( $event_row = dbFetchNext($results) ) {
            </thead>
            <tbody>
 <?php
+$count = 0;
+$disk_space_total = 0;
+if ( $results ) {
+  $events = array();
+
+  while ( $event_row = dbFetchNext($results) ) {
+    $event = new ZM\Event($event_row);
+
+    if ( !$filter->test_post_sql_conditions($event) ) {
+      $event->remove_from_cache();
+      continue;
+    }
+    $events[] = $event;
+    if ( $limit and (count($events) >= $limit) ) {
+      break;
+    }
+    ZM\Logger::Debug("Have " . count($events) . " events, limit $limit");
   }
-  $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+  foreach ( $events as $event ) {
+
+    $scale = max(reScale(SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
 ?>
-            <tr<?php echo ( $event->Archived() ) ? ' class="archived"' : '' ?>>
+            <tr<?php echo $event->Archived() ? ' class="archived"' : '' ?>>
               <td data-checkbox="true"></td>            
               <td><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$event->Id() ?></a></td>
 
               <td><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name())?></a>
               <?php 
-              $archived = ( $event->Archived() ) ? translate('Archived') : '';
-              $emailed = ( $event->Emailed() ) ? ' '.translate('Emailed') : '';
+              $archived = $event->Archived() ? translate('Archived') : '';
+              $emailed = $event->Emailed() ? ' '.translate('Emailed') : '';
               echo '<br/><div class="small text-nowrap text-muted">'.$archived.$emailed.'</div>';
               ?>
               </td>
@@ -220,8 +241,8 @@ while ( $event_row = dbFetchNext($results) ) {
               </td>
               
               <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) ?></td>
-              <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) ?></td>
-              <td><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
+              <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime())) ?></td>
+              <td><?php echo gmdate('H:i:s', $event->Length() ) ?></td>
               <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->Frames() ?></a></td>
               <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->AlarmFrames() ?></a></td>
               <td><?php echo $event->TotScore() ?></td>
@@ -267,10 +288,11 @@ while ( $event_row = dbFetchNext($results) ) {
 ?>
             </tr>
 <?php
-}
+} # end foreach row
 ?>
           </tbody>
 <?php
+} # end if $results
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
 ?>
           <tfoot>
@@ -301,26 +323,24 @@ while ( $event_row = dbFetchNext($results) ) {
       </div>       
   </div>
 
-<!-- Delete Confirmation Modal -->
-<div id="deleteConfirm" class="modal fade" class="modal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Delete Confirmation</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p><?php echo translate('ConfirmDeleteEvents') ?></p>
-      </div>
-      <div class="modal-footer">
-        <button id="delCancelBtn" type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
-        <button id ="delConfirmBtn" type="button" class="btn btn-danger"><?php echo translate('Delete') ?></button>
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteConfirm" class="modal fade" class="modal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Delete Confirmation</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p><?php echo translate('ConfirmDeleteEvents') ?></p>
+        </div>
+        <div class="modal-footer">
+          <button id="delCancelBtn" type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
+          <button id ="delConfirmBtn" type="button" class="btn btn-danger"><?php echo translate('Delete') ?></button>
+        </div>
       </div>
     </div>
   </div>
-</div>
-
-</body>
-</html>
+<?php xhtmlFooter() ?>

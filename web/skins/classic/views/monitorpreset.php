@@ -57,5 +57,4 @@ xhtmlHeaders(__FILE__, translate('MonitorPreset') );
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

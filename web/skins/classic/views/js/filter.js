@@ -2,7 +2,7 @@ function selectFilter(element) {
   element.form.submit();
 }
 
-function validateForm( form ) {
+function validateForm(form) {
   var rows = $j(form).find('tbody').eq(0).find('tr');
   var obrCount = 0;
   var cbrCount = 0;
@@ -48,22 +48,14 @@ function validateForm( form ) {
     }
   } else if ( form.elements['filter[Background]'].checked ) {
     if ( ! (
-      form.elements['filter[AutoArchive]'].checked
-      ||
-      form.elements['filter[UpdateDiskSpace]'].checked
-      ||
-      form.elements['filter[AutoVideo]'].checked
-      ||
-      form.elements['filter[AutoEmail]'].checked
-      ||
-      form.elements['filter[AutoMessage]'].checked
-      ||
-      form.elements['filter[AutoExecute]'].checked
-      ||
-      form.elements['filter[AutoDelete]'].checked
-      ||
-      form.elements['filter[AutoCopy]'].checked
-      ||
+      form.elements['filter[AutoArchive]'].checked ||
+      form.elements['filter[UpdateDiskSpace]'].checked ||
+      form.elements['filter[AutoVideo]'].checked ||
+      form.elements['filter[AutoEmail]'].checked ||
+      form.elements['filter[AutoMessage]'].checked ||
+      form.elements['filter[AutoExecute]'].checked ||
+      form.elements['filter[AutoDelete]'].checked ||
+      form.elements['filter[AutoCopy]'].checked ||
       form.elements['filter[AutoMove]'].checked
     ) ) {
       alert('You have chosen to run this filter in the background but not selected any actions.');
@@ -152,10 +144,14 @@ function resetFilter( element ) {
   $j('#contentForm')[0].reset();
 }
 
-function submitToEvents( element ) {
+function submitToEvents(element) {
   var form = element.form;
-  form.action = thisUrl + '?view=events';
-  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+  //form.action = '?view=events';
+  //form.submit();
+  //console.log(form);
+  //console.log($j(form).serialize());
+  //history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+  window.location.assign('?view=events&'+$j(form).serialize());
 }
 
 function submitToMontageReview(element) {
@@ -298,6 +294,14 @@ function parseRows(rows) {
       }
       var monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal);
+    } else if ( attr == 'ExistsInFileSystem' ) {
+      var select = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      for ( var booleanVal in booleanValues ) {
+        select.append('<option value="' + booleanVal + '">' + escapeHTML(booleanValues[booleanVal]) + '</option>');
+      }
+      var val = inputTds.eq(4).children().val();
+      if ( ! val ) val = 'false'; // default to the first option false
+      inputTds.eq(4).html(select).children().val(val);
     } else { // Reset to regular text field and operator for everything that isn't special
       var textInput = $j('<input></input>').attr('type', 'text').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       var textVal = inputTds.eq(4).children().val();
@@ -307,13 +311,23 @@ function parseRows(rows) {
     // Validate the operator
     var opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
     var opVal = inputTds.eq(3).children().val();
-    if ( ! opVal ) {
-      // Default to equals so that something gets selected
-      console.log("No value for operator. Defaulting to =");
-      opVal = '=';
-    }
-    for ( var key in opTypes ) {
-      opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
+    if ( attr == 'ExistsInFileSystem' ) {
+      if ( ! opVal ) {
+        // Default to equals so that something gets selected
+        opVal = 'IS';
+      }
+      for ( var key of ['IS', 'IS NOT'] ) {
+        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
+      }
+    } else {
+      if ( ! opVal ) {
+        // Default to equals so that something gets selected
+        console.log("No value for operator. Defaulting to =");
+        opVal = '=';
+      }
+      for ( var key in opTypes ) {
+        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
+      }
     }
     inputTds.eq(3).html(opSelect).children().val(opVal).chosen({width: "101%"});
     if ( attr.endsWith('DateTime') ) { //Start/End DateTime
@@ -333,7 +347,7 @@ function parseRows(rows) {
     inputTds.eq(2).children().eq(0).attr('id', 'filter'+stringFilter(term));
   } //End for each term/row
   history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
-}
+} // parseRows
 
 function stringFilter(term) {
   var termString = '';

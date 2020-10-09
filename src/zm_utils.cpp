@@ -185,7 +185,7 @@ const std::string base64Encode(const std::string &inString) {
 }
 
 int split(const char* string, const char delim, std::vector<std::string>& items) {
-  if ( string == NULL )
+  if ( string == nullptr )
     return -1;
 
   if ( string[0] == 0 )
@@ -206,7 +206,7 @@ int split(const char* string, const char delim, std::vector<std::string>& items)
 }
 
 int pairsplit(const char* string, const char delim, std::string& name, std::string& value) {
-  if ( string == NULL )
+  if ( string == nullptr )
     return -1;
 
   if ( string[0] == 0 )

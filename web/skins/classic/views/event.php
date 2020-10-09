@@ -23,6 +23,9 @@ if ( !canView('Events') ) {
   return;
 }
 
+require_once('includes/Event.php');
+require_once('includes/Filter.php');
+
 $eid = validInt($_REQUEST['eid']);
 $fid = !empty($_REQUEST['fid']) ? validInt($_REQUEST['fid']) : 1;
 
@@ -58,7 +61,7 @@ if ( isset($_REQUEST['scale']) ) {
 $codec = 'auto';
 if ( isset($_REQUEST['codec']) ) {
   $codec = $_REQUEST['codec'];
-  session_start();
+  zm_session_start();
   $_SESSION['zmEventCodec'.$Event->MonitorId()] = $codec;
   session_write_close();
 } else if ( isset($_SESSION['zmEventCodec'.$Event->MonitorId()]) ) {
@@ -115,8 +118,8 @@ if ( !isset($_REQUEST['filter']) ) {
   );
 }
 parseSort();
-parseFilter($_REQUEST['filter']);
-$filterQuery = $_REQUEST['filter']['query'];
+$filter = ZM\Filter::parse($_REQUEST['filter']);
+$filterQuery = $filter->querystring();
 
 $connkey = generateConnKey();
 
@@ -134,6 +137,9 @@ xhtmlHeaders(__FILE__, translate('Event'));
 if ( !$Event->Id() ) {
   echo 'Event was not found.';
 } else {
+  if ( !file_exists($Event->Path()) ) {
+    echo '<div class="error">Event was not found at '.$Event->Path().'.  It is unlikely that playback will be possible.</div>';
+  }
 ?>
       <div id="dataBar">
         <span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span>
@@ -148,7 +154,7 @@ if ( !$Event->Id() ) {
   human_filesize($Event->DiskSpace(null)) . ' on ' . validHtmlStr($Event->Storage()->Name()).
   ( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' )
 ?></span>
-        <div id="closeWindow"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back();return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+        <div id="closeWindow"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
       </div>
       <div id="menuBar1">
         <div id="nameControl">
@@ -183,15 +189,15 @@ if ( canEdit('Events') ) {
         <div id="exportEvent"><button type="button" data-on-click="exportEvent"><?php echo translate('Export') ?></button></div>
         <div id="replayControl">
           <label for="replayMode"><?php echo translate('Replay') ?></label>
-          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode')); ?>
+          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode')); ?>
         </div>
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>
-          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale')); ?>
+          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
         </div>
         <div id="codecControl">
           <label for="codec"><?php echo translate('Codec') ?></label>
-          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec')); ?>
+          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
         </div>
       </div>
     </div>
@@ -316,5 +322,4 @@ echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
     </div><!--content-->
   </div><!--page-->
-</body>
-</html>
+<?php xhtmlFooter() ?>

@@ -59,7 +59,7 @@ class MonitorStream : public StreamBase {
 
   public:
     MonitorStream() : 
-      temp_image_buffer(NULL), temp_image_buffer_count(0), temp_read_index(0), temp_write_index(0),
+      temp_image_buffer(nullptr), temp_image_buffer_count(0), temp_read_index(0), temp_write_index(0),
       ttl(0), playback_buffer(0), delayed(false), frame_count(0) {
     }
     void setStreamBuffer(int p_playback_buffer) {

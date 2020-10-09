@@ -106,7 +106,6 @@ class Server extends ZM_Object {
     if ( $this->Protocol() == 'https' and $port == 443 ) {
     } else if ( $this->Protocol() == 'http' and $port == 80 ) {
     } else {
-      Logger::Debug("Adding port $port for " . $this->Protocol());
       $url .= ':'.$port;
     }
     return $url;

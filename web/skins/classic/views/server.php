@@ -32,8 +32,8 @@ if ( $_REQUEST['id'] and ! $Server->Id() ) {
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Server').' - '.$Server->Name());
+getBodyTopHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
       <h2><?php echo translate('Server').' - '.$Server->Name() ?></h2>
@@ -110,5 +110,4 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$Server->Name());
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

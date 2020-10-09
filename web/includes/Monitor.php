@@ -5,6 +5,23 @@ require_once('Server.php');
 require_once('Object.php');
 require_once('Control.php');
 require_once('Storage.php');
+require_once('Group.php');
+
+$FunctionTypes = null;
+
+function getMonitorFunctionTypes() {
+  if ( !isset($FunctionTypes ) ) {
+    $FunctionTypes = array(
+      'None'    => translate('FnNone'),
+      'Monitor' => translate('FnMonitor'),
+      'Modect'  => translate('FnModect'),
+      'Record'  => translate('FnRecord'),
+      'Mocord'  => translate('FnMocord'),
+      'Nodect'  => translate('FnNodect')
+    );
+  }
+  return $FunctionTypes;
+}
 
 class Monitor extends ZM_Object {
   protected static $table = 'Monitors';
@@ -133,7 +150,7 @@ class Monitor extends ZM_Object {
 
   public function Server() {
     if ( !property_exists($this, 'Server') ) {
-      if ( $this->ServerId() ) 
+      if ( $this->ServerId() )
         $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
       if ( !property_exists($this, 'Server') ) {
         $this->{'Server'} = new Server();
@@ -199,17 +216,25 @@ class Monitor extends ZM_Object {
         $args['user'] = $_SESSION['username'];
       }
     }
-    if ( ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) && !empty($GLOBALS['connkey']) ) {
-      $args['connkey'] = $GLOBALS['connkey'];
+    if ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) {
+      $args['connkey'] = $this->connKey();
     }
     if ( ZM_RAND_STREAM ) {
       $args['rand'] = time();
     }
-    foreach ( array('scale') as $int_arg )  {
-      if ( isset($args[$int_arg]) and (!is_numeric($args[$int_arg]) or !$args[$int_arg] ) ) {
-        unset($args[$int_arg]);
+
+    # zms doesn't support width & height, so if no scale is set, default it
+    if ( ! isset($args['scale']) ) {
+      if ( isset($args['width']) and intval($args['width']) ) {
+        $args['scale'] = intval((100*intval($args['width']))/$this->ViewWidth());
+      } else if ( isset($args['height']) and intval($args['height']) ) {
+        $args['scale'] = intval((100*intval($args['height']))/$this->ViewHeight());
       }
     }
+    if ( isset($args['width']) )
+      unset($args['width']);
+    if ( isset($args['height']) )
+      unset($args['height']);
 
     $streamSrc .= '?'.http_build_query($args, '', $querySep);
 
@@ -307,7 +332,7 @@ class Monitor extends ZM_Object {
       $context  = stream_context_create();
       try {
         $result = file_get_contents($url, false, $context);
-        if ( $result === FALSE ) { /* Handle error */ 
+        if ( $result === FALSE ) { /* Handle error */
           Error("Error restarting zmc using $url");
         }
       } catch ( Exception $e ) {
@@ -326,7 +351,7 @@ class Monitor extends ZM_Object {
 
     if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {
-        if ( ZM_OPT_CONTROL && $this->Controllable() && $this->TrackMotion() && 
+        if ( ZM_OPT_CONTROL && $this->Controllable() && $this->TrackMotion() &&
           ( $this->{'Function'} == 'Modect' || $this->{'Function'} == 'Mocord' ) ) {
           daemonControl('stop', 'zmtrack.pl', '-m '.$this->{'Id'});
         }
@@ -339,7 +364,7 @@ class Monitor extends ZM_Object {
           daemonControl('stop', 'zma', '-m '.$this->{'Id'});
         }
         daemonControl('start', 'zma', '-m '.$this->{'Id'});
-        if ( ZM_OPT_CONTROL && $this->Controllable() && $this->TrackMotion() && 
+        if ( ZM_OPT_CONTROL && $this->Controllable() && $this->TrackMotion() &&
           ( $this->{'Function'} == 'Modect' || $this->{'Function'} == 'Mocord' ) ) {
           daemonControl('start', 'zmtrack.pl', '-m '.$this->{'Id'});
         }
@@ -438,8 +463,8 @@ class Monitor extends ZM_Object {
       $this->{'Storage'} = $new;
     }
     if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
-      $this->{'Storage'} = isset($this->{'StorageId'}) ? 
-        Storage::find_one(array('Id'=>$this->{'StorageId'})) : 
+      $this->{'Storage'} = isset($this->{'StorageId'}) ?
+        Storage::find_one(array('Id'=>$this->{'StorageId'})) :
           new Storage(NULL);
       if ( ! $this->{'Storage'} )
         $this->{'Storage'} = new Storage(NULL);
@@ -480,7 +505,7 @@ class Monitor extends ZM_Object {
         if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
           unset($url_parts['port']);
         $source = unparse_url($url_parts);
-      } else { # Don't filter anything 
+      } else { # Don't filter anything
         $source = $this->{'Path'};
       }
     }
@@ -581,6 +606,27 @@ class Monitor extends ZM_Object {
     } // end if we are on the recording server
     return true;
   } // end function sendControlCommand($mid, $command)
+
+  function Groups($new='') {
+    if ( $new != '' )
+      $this->Groups = $new;
+    if ( !property_exists($this, 'Groups') ) {
+      $this->Groups = Group::find(array('Id'=>$this->GroupIds()));
+    }
+    return $this->Groups;
+  }
+  function connKey($new='') {
+    if ( $new )
+      $this->connKey = $new;
+    if ( !isset($this->connKey) ) {
+      if ( !empty($GLOBALS['connkey']) ) {
+        $this->connKey = $GLOBALS['connkey'];
+      } else {
+        $this->connKey = generateConnKey();
+      }
+    }
+    return $this->connKey;
+  }
 
 } // end class Monitor
 ?>

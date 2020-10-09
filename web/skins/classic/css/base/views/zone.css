@@ -38,7 +38,10 @@
 }
 
 #imagePanel {
+  float: left;
     position: relative;
+    width: 50%;
+    min-width: 647px; /* extra 6 px for padding */
 }
 
 /* NB: The size of the imageFrame determines the area within which the markers
@@ -47,7 +50,23 @@
  * the extreme edges of the imageFrame. */
 #imageFrame {
     position: relative;
-    padding: 0 3px 3px 0; /* Compensate for negative margins in the markers just below. */
+    padding: 3px 4px 4px 3px;
+}
+#imageFrame svg {
+  box-sizing: border-box;
+ position:absolute;
+ top: 3px;
+ left: 3px; 
+ right: 3px;
+ background: none;
+ }
+#imageFrame img {
+  width: 100%;
+  display: block;
+}
+#imageFrame img.alarm ,
+#imageFrame img.alert {
+  padding: 1px;
 }
 
 #imageFrame div {
@@ -152,4 +171,19 @@ input[name="newZone[MaxAlarmPixels]"] {
 }
 input.ZonePoint {
     width: 75px;
+}
+svg {
+  overflow: visible;
+}
+svg circle {
+  fill: green;
+    overflow: visible;
+}
+#monitorState {
+  display: inline;
+  float: left;
+}
+#StreamControlButtons {
+  display: inline;
+  float: right;
 }

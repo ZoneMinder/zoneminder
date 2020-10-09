@@ -61,6 +61,7 @@ protected:
   typedef enum { CMD_NONE=0, CMD_PAUSE, CMD_PLAY, CMD_STOP, CMD_FASTFWD, CMD_SLOWFWD, CMD_SLOWREV, CMD_FASTREV, CMD_ZOOMIN, CMD_ZOOMOUT, CMD_PAN, CMD_SCALE, CMD_PREV, CMD_NEXT, CMD_SEEK, CMD_VARPLAY, CMD_GET_IMAGE, CMD_QUIT, CMD_QUERY=99 } MsgCommand;
 
 protected:
+  int monitor_id;
   Monitor *monitor;
 
   StreamType type;
@@ -114,6 +115,7 @@ protected:
 
 public:
   StreamBase(): 
+    monitor_id(0),
     monitor(0),
     type(DEFAULT_TYPE),
     format(""),
@@ -157,6 +159,13 @@ public:
 
   void setStreamType(StreamType p_type) {
     type = p_type;
+#if ! HAVE_ZLIB_H
+    if ( type == STREAM_ZIP ) {
+      Error("zlib is required for zipped images. Falling back to raw image");
+      type = STREAM_RAW;
+    }
+#endif
+
   }
   void setStreamFormat(const char *p_format) {
     format = p_format;

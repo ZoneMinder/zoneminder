@@ -147,7 +147,7 @@ if ( isset($_REQUEST['newControl']) ) {
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('ControlCap')." - ".$newControl['Name'] );
+xhtmlHeaders(__FILE__, translate('ControlCap').' - '.$newControl['Name']);
 ?>
 <body>
   <div id="page">
@@ -486,5 +486,4 @@ switch ( $tab ) {
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

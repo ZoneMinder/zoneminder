@@ -18,10 +18,8 @@ function configureExportButton(element) {
       form.elements['exportImages'].checked ||
       form.elements['exportVideo'].checked ||
       form.elements['exportMisc'].checked
-    )
-    &&
-    ( form.elements['exportFormat'][0].checked || form.elements['exportFormat'][1].checked )
-    &&
+    ) &&
+    ( form.elements['exportFormat'][0].checked || form.elements['exportFormat'][1].checked ) &&
     ( form.elements['exportCompress'][0].checked || form.elements['exportCompress'][1].checked )
   );
 }

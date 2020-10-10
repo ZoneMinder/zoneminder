@@ -617,7 +617,7 @@ function getEventResponse(respObj, respText) {
 var eventReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse} );
 
 function eventQuery( eventId ) {
-  var eventParms = "view=request&request=status&entity=event&id="+eventId;
+  var eventParms = 'view=request&request=status&entity=event&id='+eventId;
   if ( auth_hash ) {
     eventParms += '&auth='+auth_hash;
   }
@@ -632,7 +632,7 @@ var PrevEventDefVideoPath = "";
 var NextEventDefVideoPath = "";
 
 function getNearEventsResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getNearEventsResponse", respObj ) ) {
+  if ( checkStreamForErrors('getNearEventsResponse', respObj) ) {
     return;
   }
   prevEventId = respObj.nearevents.PrevEventId;

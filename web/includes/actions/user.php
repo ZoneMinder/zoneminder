@@ -34,7 +34,6 @@ if ( $action == 'Save' ) {
 
     $changes = getFormChanges($dbUser, $_REQUEST['newUser'], $types);
 
-    
     if ( isset($_REQUEST['newUser']['Password']) ) {
       if ( function_exists('password_hash') ) {
         $pass_hash = '"'.password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT).'"';
@@ -68,8 +67,8 @@ if ( $action == 'Save' ) {
         dbQuery('INSERT INTO Users SET '.implode(', ', $changes));
       }
       $refreshParent = true;
-    }
-    $view = 'none';
+    } # end if changes
+    $redirect = '?view=options&tab=users';
   } else if ( ZM_USER_SELF_EDIT and ( $_REQUEST['uid'] == $user['Id'] ) ) {
     $uid = $user['Id'];
 
@@ -102,7 +101,7 @@ if ( $action == 'Save' ) {
       session_write_close();
       $refreshParent = true;
     }
-    $redirect = $_SERVER['HTTP_REFERER'];
+    $redirect = '?view=options&tab=users';
   }
 } // end if $action == user
 ?>

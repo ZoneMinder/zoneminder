@@ -1565,7 +1565,7 @@ bool Monitor::Analyse() {
               if ( !alarm_cause.empty() ) alarm_cause[0] = ' '; // replace leading , with a space
               alarm_cause = cause + alarm_cause;
               strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
-              Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
+              Info("%s: %03d - Gone into alarm state PreAlarmCount: %u+this >= AlarmFrameCount:%u Cause:%s",
                   name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
               if ( !event ) {

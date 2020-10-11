@@ -462,7 +462,9 @@ if ( $tab != 'general' ) {
 ?>
       <input type="hidden" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>"/>
       <input type="hidden" name="newMonitor[Notes]" value="<?php echo validHtmlStr($monitor->Notes()) ?>"/>
-      <input type="hidden" name="newMonitor[ServerId]" value="<?php echo validHtmlStr($monitor->ServerId() ) ?>"/>
+      <input type="hidden" name="newMonitor[ServerId]" value="<?php echo $monitor->ServerId() ?>"/>
+      <input type="hidden" name="newMonitor[ManufacturerId]" value="<?php echo $monitor->ManufacturerId() ?>"/>
+      <input type="hidden" name="newMonitor[ModelId]" value="<?php echo $monitor->ModelId() ?>"/>
       <input type="hidden" name="newMonitor[LinkedMonitors]" value="<?php echo (null !== $monitor->LinkedMonitors())?validHtmlStr($monitor->LinkedMonitors()):'' ?>"/>
 <?php
 foreach ( $monitor->GroupIds() as $group_id ) {
@@ -626,6 +628,24 @@ switch ( $tab ) {
           <tr class="Notes">
             <td class="text-right pr-3"><?php echo translate('Notes') ?></td>
             <td><textarea name="newMonitor[Notes]" rows="4"><?php echo validHtmlStr($monitor->Notes()) ?></textarea></td>
+          </tr>
+          <tr class="Manufacturer">
+            <td class="text-right pr-3"><?php echo translate('Manufacturer') ?></td>
+            <td><?php 
+require_once('includes/Manufacturer.php');
+$manufacturers = ZM\Manufacturer::find();
+echo htmlSelect('newMonitor[ManufacturerId]', $manufacturers, $monitor->ManufacturerId(), array('class'=>'chosen'));
+?>
+            </td>
+          </tr>
+          <tr class="Model">
+            <td class="text-right pr-3"><?php echo translate('Model') ?></td>
+            <td><?php 
+require_once('includes/Model.php');
+$models = ZM\Model::find(array('ManufacturerId'=>$monitor->ManufacturerId()));
+echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(), array('class'=>'chosen'));
+?>
+            </td>
           </tr>
           <tr>
             <td class="text-right pr-3"><?php echo translate('Server') ?></td><td>

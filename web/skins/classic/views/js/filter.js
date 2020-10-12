@@ -56,6 +56,7 @@ function validateForm(form) {
   } else if ( form.elements['filter[Background]'].checked ) {
     if ( ! (
       form.elements['filter[AutoArchive]'].checked ||
+      form.elements['filter[AutoUnarchive]'].checked ||
       form.elements['filter[UpdateDiskSpace]'].checked ||
       form.elements['filter[AutoVideo]'].checked ||
       form.elements['filter[AutoEmail]'].checked ||
@@ -78,6 +79,8 @@ function updateButtons(element) {
   } else {
     var canExecute = false;
     if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
+      canExecute = true;
+    } else if ( form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked ) {
       canExecute = true;
     } else if ( form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked ) {
       canExecute = true;

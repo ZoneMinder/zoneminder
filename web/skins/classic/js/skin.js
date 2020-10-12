@@ -233,46 +233,22 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   });
 });
 
-function createEventPopup( eventId, eventFilter, width, height ) {
+function openEvent( eventId, eventFilter ) {
   var url = '?view=event&eid='+eventId;
   if ( eventFilter ) {
     url += eventFilter;
   }
-  var name = 'zmEvent';
-  var popupSize = getPopupSize( 'event', width, height );
-  var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
+  window.location.assign(url);
 }
 
-function createFramesPopup( eventId, width, height ) {
+function openFrames( eventId ) {
   var url = '?view=frames&eid='+eventId;
-  var name = 'zmFrames';
-  var popupSize = getPopupSize( 'frames', width, height );
-  var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
+  window.location.assign(url);
 }
 
-function createFramePopup( eventId, frameId, width, height ) {
+function openFrame( eventId, frameId, width, height ) {
   var url = '?view=frame&eid='+eventId+'&fid='+frameId;
-  var name = 'zmFrame';
-  var popupSize = getPopupSize( 'frame', width, height );
-  var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
+  window.location.assign(url);
 }
 
 function windowToFront() {

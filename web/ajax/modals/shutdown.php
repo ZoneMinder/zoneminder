@@ -1,6 +1,4 @@
 <?php
-global $view;
-
 $error='';
 
 if ( !canEdit('System') ) {

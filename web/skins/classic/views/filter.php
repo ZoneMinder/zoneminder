@@ -34,6 +34,13 @@ parseSort();
 $filterNames = array(''=>translate('ChooseFilter'));
 $filter = NULL;
 
+$fid = 0;
+if ( isset($_REQUEST['Id']) ) {
+  $fid = validInt($_REQUEST['Id']);
+} else if ( isset($_REQUEST['filter[Id]']) ) {
+  $fid = validInt($_REQUEST['filter[Id]']);
+}
+
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
   $filterNames[$Filter->Id()] = $Filter->Id() . ' ' . $Filter->Name();
   if ( $Filter->Background() )
@@ -41,7 +48,7 @@ foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
   if ( $Filter->Concurrent() )
     $filterNames[$Filter->Id()] .= '&';
 
-  if ( isset($_REQUEST['Id']) && ($_REQUEST['Id'] == $Filter->Id()) ) {
+  if ( $fid == $Filter->Id() ) {
     $filter = $Filter;
   }
 }
@@ -391,6 +398,10 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
             <p>
               <label><?php echo translate('FilterArchiveEvents') ?></label>
               <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( $filter->AutoArchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+            </p>
+            <p>
+              <label><?php echo translate('FilterUnarchiveEvents') ?></label>
+              <input type="checkbox" name="filter[AutoUnarchive]" value="1"<?php if ( $filter->AutoUnarchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
             <p><label><?php echo translate('FilterUpdateDiskSpace') ?></label>
               <input type="checkbox" name="filter[UpdateDiskSpace]" value="1"<?php echo !$filter->UpdateDiskSpace() ? '' : ' checked="checked"' ?> data-on-click-this="updateButtons"/>

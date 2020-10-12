@@ -367,6 +367,7 @@ $SLANG = array(
     'Ffmpeg'                => 'Ffmpeg',
     'File'                  => 'File',
     'FilterArchiveEvents'   => 'Archive all matches',
+    'FilterUnarchiveEvents' => 'Unarchive all matches',
     'FilterUpdateDiskSpace' => 'Update used disk space',
     'FilterDeleteEvents'    => 'Delete all matches',
     'FilterCopyEvents'      => 'Copy all matches',

@@ -58,6 +58,7 @@ Id
 Name
 Query_json
 AutoArchive
+AutoUnarchive
 AutoVideo
 AutoUpload
 AutoEmail
@@ -347,6 +348,9 @@ sub Sql {
     my @auto_terms;
     if ( $self->{AutoArchive} ) {
       push @auto_terms, 'E.Archived = 0';
+    }
+    if ( $self->{AutoUnarchive} ) {
+      push @auto_terms, 'E.Archived = 1';
     }
     # Don't do this, it prevents re-generation and concatenation.
     # If the file already exists, then the video won't be re-recreated

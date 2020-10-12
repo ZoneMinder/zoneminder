@@ -98,6 +98,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   ;
 
 logInit($filter_id?(id=>'zmfilter_'.$filter_id):());
+
 sub HupHandler {
   # This idea at this time is to just exit, freeing up the memory. 
   # zmfilter.pl will be respawned by zmdc.
@@ -236,6 +237,7 @@ sub getFilters {
     $sql .= ' `Background` = 1 AND';
   }
   $sql .= '( `AutoArchive` = 1
+    or `AutoUnarchive` = 1
     or `AutoVideo` = 1
     or `AutoUpload` = 1
     or `AutoEmail` = 1
@@ -282,6 +284,7 @@ sub checkFilter {
         join(', ', 
           ($filter->{AutoDelete}?'delete':()),
           ($filter->{AutoArchive}?'archive':()),
+          ($filter->{AutoUnarchive}?'unarchive':()),
           ($filter->{AutoVideo}?'video':()),
           ($filter->{AutoUpload}?'upload':()),
           ($filter->{AutoEmail}?'email':()),
@@ -299,13 +302,22 @@ sub checkFilter {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
 
-    Debug("Checking event $Event->{Id}");
+    Debug('Checking event '.$Event->{Id});
     my $delete_ok = !undef;
     $dbh->ping();
     if ( $filter->{AutoArchive} ) {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
       my $sql = 'UPDATE `Events` SET `Archived` = 1 WHERE `Id` = ?';
+      my $sth = $dbh->prepare_cached($sql)
+        or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
+      my $res = $sth->execute($Event->{Id})
+        or Error("Unable to execute '$sql': ".$dbh->errstr());
+    }
+    if ( $filter->{AutoUnarchive} ) {
+      Info("Unarchiving event $Event->{Id}");
+      # Do it individually to avoid locking up the table for new events
+      my $sql = 'UPDATE `Events` SET `Archived` = 0 WHERE `Id` = ?';
       my $sth = $dbh->prepare_cached($sql)
         or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
       my $res = $sth->execute($Event->{Id})

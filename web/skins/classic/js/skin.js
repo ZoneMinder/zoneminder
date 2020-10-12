@@ -830,6 +830,16 @@ function getShutdownModal() {
         }
         // Manage the Shutdown modal
         $j('#shutdownModal').modal('show');
+        // Redirect to the current view after the form is submitted - avoids a blank screen
+        $j('#shutdownForm').append('<input type="hidden" name="redirect" value="'+ currentView +'" />');
+        $j('#restartBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#shutdownForm').submit();
+        });
+        $j('#shutdownBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#shutdownForm').submit();
+        });
       })
       .fail(logAjaxFail);
 }

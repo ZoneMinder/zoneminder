@@ -1,4 +1,6 @@
 <?php
+global $view;
+
 $error='';
 
 if ( !canEdit('System') ) {
@@ -40,7 +42,11 @@ if ( isset($_POST['when']) and ($_POST['when'] != 'NOW') and ($action != 'cancel
         </button>
       </div>
       <div class="modal-body">
-      <form name="contentForm" id="contentForm" method="post" action="?">
+      <form name="contentForm" id="shutdownForm" method="post" action="?">
+        <?php
+        // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+        echo getCSRFinputHTML();
+        ?>
         <input type="hidden" name="view" value="shutdown"/>
         <?php echo $output_str ?>
         <?php echo $cancel_str ?>
@@ -54,8 +60,8 @@ if ( isset($_POST['when']) and ($_POST['when'] != 'NOW') and ($action != 'cancel
       </div>
       <div class="modal-footer">
         <?php echo $cancel_btn ?>
-        <button type="submit" class="btn btn-primary" name="action" value="restart"><?php echo translate('Restart') ?></button>
-        <button type="submit" class="btn btn-primary" name="action" value="shutdown"><?php echo translate('Shutdown') ?></button>
+        <button type="submit" id="restartBtn" class="btn btn-primary" name="action" value="restart"><?php echo translate('Restart') ?></button>
+        <button type="submit" id="shutdownBtn" class="btn btn-primary" name="action" value="shutdown"><?php echo translate('Shutdown') ?></button>
         <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Close') ?></button>
       </div>
     </form>

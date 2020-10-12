@@ -183,6 +183,9 @@ $user = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
 
+if ( isset($_REQUEST['redirect']) )
+  $redirect = '?view='.detaintPath($_REQUEST['redirect']);
+
 # Add CSP Headers
 $cspNonce = bin2hex(zm_random_bytes(16));
 

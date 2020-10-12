@@ -16,6 +16,7 @@ class Filter extends ZM_Object {
 		'EmailBody'				=>	'',
     'AutoDelete'      =>  0,
     'AutoArchive'     =>  0,
+    'AutoUnarchive'   =>  0,
     'AutoVideo'       =>  0,
     'AutoUpload'      =>  0,
     'AutoMessage'     =>  0,
@@ -55,6 +56,9 @@ class Filter extends ZM_Object {
       foreach ( $this->FilterTerms() as $term ) {
         $this->_querystring .= $term->querystring($separator);
       } # end foreach term
+      if ( $this->Id() ) {
+        $this->_querystring .= $separator.'filter[Id]='.$this->Id();
+      }
     }
     return $this->_querystring;
   }

@@ -123,24 +123,6 @@ function zmWindow(sub_url) {
   }
 }
 
-function createPopup( url, name, tag, width, height ) {
-  var popupSize = getPopupSize( tag, width, height );
-  var popupDimensions = "";
-  if ( popupSize.width > 0 ) {
-    popupDimensions += ",width="+popupSize.width;
-  }
-  if ( popupSize.height > 0 ) {
-    popupDimensions += ",height="+popupSize.height;
-  }
-  var popup = window.open( url+"&popup=1", name, popupOptions+popupDimensions );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
-}
-
 // Polyfill for NodeList.prototype.forEach on IE.
 if (window.NodeList && !NodeList.prototype.forEach) {
   NodeList.prototype.forEach = Array.prototype.forEach;
@@ -152,26 +134,6 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       if (!validateForm(this)) {
         evt.preventDefault();
       }
-    });
-  });
-
-  document.querySelectorAll(".popup-link").forEach(function(el) {
-    el.addEventListener("click", function onClick(evt) {
-      var el = this;
-      var url;
-      if ( el.hasAttribute("href") ) {
-        // <a>
-        url = el.getAttribute("href");
-      } else {
-        // buttons
-        url = el.getAttribute("data-url");
-      }
-      var name = el.getAttribute("data-window-name");
-      var tag = el.getAttribute("data-window-tag");
-      var width = el.getAttribute("data-window-width");
-      var height = el.getAttribute("data-window-height");
-      evt.preventDefault();
-      createPopup(url, name, tag, width, height);
     });
   });
 

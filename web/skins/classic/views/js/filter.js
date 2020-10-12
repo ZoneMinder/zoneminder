@@ -174,7 +174,6 @@ function submitToMontageReview(element) {
 function submitToExport(element) {
   var form = element.form;
   window.location.assign('?view=export&'+$j(form).serialize());
-  //createPopup('?view=export&filter_id='+form.elements['Id'].value, 'zmExport', 'export' );
 }
 
 function executeFilter( element ) {

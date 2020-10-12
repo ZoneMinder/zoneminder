@@ -956,3 +956,18 @@ function exportEvent() {
       .fail(logAjaxFail);
   $j('#exportProgress').removeClass( 'invisible' );
 }
+
+// Load the Function modal on page load
+function getShutdownModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=shutdown')
+      .done(function(data) {
+        if ( $j('#shutdownModal').length ) {
+          $j('#shutdownModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        // Manage the Shutdown modal
+        $j('#shutdownModal').modal('show');
+      })
+      .fail(logAjaxFail);
+}

@@ -2093,7 +2093,7 @@ function getStreamHTML($monitor, $options = array()) {
         if ( $scale < $options['scale'] )
           $options['scale'] = $scale;
       } else {
-        Warning('Invalid value for width: '.$options['width']);
+        ZM\Warning('Invalid value for width: '.$options['width']);
       }
     }
   }

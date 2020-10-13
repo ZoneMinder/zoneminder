@@ -949,7 +949,7 @@ $OLANG = array(
 	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

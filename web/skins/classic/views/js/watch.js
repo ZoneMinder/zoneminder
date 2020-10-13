@@ -562,11 +562,9 @@ function getEventCmdResponse( respObj, respText ) {
         var link = new Element('a', {
           'href': '#',
           'events': {
-            'click': createEventPopup.pass( [
+            'click': openEvent.pass( [
               zm_event.Id,
-              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1',
-              zm_event.Width,
-              zm_event.Height
+              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1'
             ] )
           }
         });
@@ -576,11 +574,9 @@ function getEventCmdResponse( respObj, respText ) {
         link = new Element('a', {
           'href': '#',
           'events': {
-            'click': createEventPopup.pass( [
+            'click': openEvent.pass( [
               zm_event.Id,
-              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1',
-              zm_event.Width,
-              zm_event.Height
+              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1'
             ] )
           }
         });
@@ -590,11 +586,11 @@ function getEventCmdResponse( respObj, respText ) {
         row.getElement('td.colTime').set('text', zm_event.StartTime);
         row.getElement('td.colSecs').set('text', zm_event.Length);
 
-        link = new Element('a', {'href': '#', 'events': {'click': createFramesPopup.pass( [zm_event.Id, zm_event.Width, zm_event.Height] )}});
+        link = new Element('a', {'href': '#', 'events': {'click': openFrames.pass( [zm_event.Id] )}});
         link.set('text', zm_event.Frames+'/'+zm_event.AlarmFrames);
         link.inject(row.getElement('td.colFrames'));
 
-        link = new Element('a', {'href': '#', 'events': {'click': createFramePopup.pass( [zm_event.Id, '0', zm_event.Width, zm_event.Height] )}});
+        link = new Element('a', {'href': '#', 'events': {'click': openFrame.pass( [zm_event.Id, '0'] )}});
         link.set('text', zm_event.AvgScore+'/'+zm_event.MaxScore);
         link.inject(row.getElement('td.colScore'));
 

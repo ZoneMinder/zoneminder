@@ -21,7 +21,6 @@
 // This file should only contain static JavaScript and no php.
 // Use skin.js.php for JavaScript that need pre-processing
 //
-var popupOptions = "resizable,scrollbars,status=no,toolbar=yes";
 
 // Globally define the icons used in the bootstrap-table top-right toolbar
 var icons = {
@@ -59,88 +58,6 @@ function checkSize() {
   }
 }
 
-// Deprecated
-function newWindow( url, name, width, height ) {
-  window.open( url, name, popupOptions+",width="+width+",height="+height );
-}
-
-function getPopupSize( tag, width, height ) {
-  if ( typeof popupSizes == 'undefined' ) {
-    Error("Can't find any window sizes");
-    return {'width': 0, 'height': 0};
-  }
-  var popupSize = Object.clone(popupSizes[tag]);
-  if ( !popupSize ) {
-    Error("Can't find window size for tag '"+tag+"'");
-    return {'width': 0, 'height': 0};
-  }
-  if ( popupSize.width && popupSize.height ) {
-    if ( width || height ) {
-      Warning("Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'");
-    }
-    return popupSize;
-  }
-  if ( popupSize.addWidth ) {
-    popupSize.width = popupSize.addWidth;
-    if ( !width ) {
-      Error("Got addWidth but no passed width when getting popup size for tag '"+tag+"'");
-    } else {
-      popupSize.width += parseInt(width);
-    }
-  } else if ( width ) {
-    popupSize.width = width;
-    Error("Got passed width but no addWidth when getting popup size for tag '"+tag+"'");
-  }
-  if ( popupSize.minWidth && popupSize.width < popupSize.minWidth ) {
-    Warning("Adjusting to minimum width when getting popup size for tag '"+tag+"'");
-    popupSize.width = popupSize.minWidth;
-  }
-  if ( popupSize.addHeight ) {
-    popupSize.height = popupSize.addHeight;
-    if ( !height ) {
-      Error("Got addHeight but no passed height when getting popup size for tag '"+tag+"'");
-    } else {
-      popupSize.height += parseInt(height);
-    }
-  } else if ( height ) {
-    popupSize.height = height;
-    Error("Got passed height but no addHeight when getting popup size for tag '"+tag+"'");
-  }
-  if ( popupSize.minHeight && ( popupSize.height < popupSize.minHeight ) ) {
-    Warning("Adjusting to minimum height ("+popupSize.minHeight+") when getting popup size for tag '"+tag+"' because calculated height is " + popupSize.height);
-    popupSize.height = popupSize.minHeight;
-  }
-  return popupSize;
-}
-
-function zmWindow(sub_url) {
-  var zmWin = window.open( 'https://www.zoneminder.com'+(sub_url?sub_url:''), 'ZoneMinder' );
-  if ( ! zmWin ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    zmWin.focus();
-  }
-}
-
-function createPopup( url, name, tag, width, height ) {
-  var popupSize = getPopupSize( tag, width, height );
-  var popupDimensions = "";
-  if ( popupSize.width > 0 ) {
-    popupDimensions += ",width="+popupSize.width;
-  }
-  if ( popupSize.height > 0 ) {
-    popupDimensions += ",height="+popupSize.height;
-  }
-  var popup = window.open( url+"&popup=1", name, popupOptions+popupDimensions );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
-}
-
 // Polyfill for NodeList.prototype.forEach on IE.
 if (window.NodeList && !NodeList.prototype.forEach) {
   NodeList.prototype.forEach = Array.prototype.forEach;
@@ -152,26 +69,6 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       if (!validateForm(this)) {
         evt.preventDefault();
       }
-    });
-  });
-
-  document.querySelectorAll(".popup-link").forEach(function(el) {
-    el.addEventListener("click", function onClick(evt) {
-      var el = this;
-      var url;
-      if ( el.hasAttribute("href") ) {
-        // <a>
-        url = el.getAttribute("href");
-      } else {
-        // buttons
-        url = el.getAttribute("data-url");
-      }
-      var name = el.getAttribute("data-window-name");
-      var tag = el.getAttribute("data-window-tag");
-      var width = el.getAttribute("data-window-width");
-      var height = el.getAttribute("data-window-height");
-      evt.preventDefault();
-      createPopup(url, name, tag, width, height);
     });
   });
 
@@ -271,46 +168,22 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   });
 });
 
-function createEventPopup( eventId, eventFilter, width, height ) {
+function openEvent( eventId, eventFilter ) {
   var url = '?view=event&eid='+eventId;
   if ( eventFilter ) {
     url += eventFilter;
   }
-  var name = 'zmEvent';
-  var popupSize = getPopupSize( 'event', width, height );
-  var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
+  window.location.assign(url);
 }
 
-function createFramesPopup( eventId, width, height ) {
+function openFrames( eventId ) {
   var url = '?view=frames&eid='+eventId;
-  var name = 'zmFrames';
-  var popupSize = getPopupSize( 'frames', width, height );
-  var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
+  window.location.assign(url);
 }
 
-function createFramePopup( eventId, frameId, width, height ) {
+function openFrame( eventId, frameId, width, height ) {
   var url = '?view=frame&eid='+eventId+'&fid='+frameId;
-  var name = 'zmFrame';
-  var popupSize = getPopupSize( 'frame', width, height );
-  var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
+  window.location.assign(url);
 }
 
 function windowToFront() {
@@ -575,17 +448,6 @@ function configureDeleteButton( element ) {
 
 function confirmDelete( message ) {
   return ( confirm( message?message:'Are you sure you wish to delete?' ) );
-}
-
-if ( refreshParent ) {
-  refreshParentWindow();
-}
-
-if ( focusWindow ) {
-  windowToFront();
-}
-if ( closePopup ) {
-  closeWindow();
 }
 
 window.addEventListener( 'DOMContentLoaded', checkSize );
@@ -955,4 +817,29 @@ function exportEvent() {
       .done(exportResponse)
       .fail(logAjaxFail);
   $j('#exportProgress').removeClass( 'invisible' );
+}
+
+// Load the Function modal on page load
+function getShutdownModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=shutdown')
+      .done(function(data) {
+        if ( $j('#shutdownModal').length ) {
+          $j('#shutdownModal').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        // Manage the Shutdown modal
+        $j('#shutdownModal').modal('show');
+        // Redirect to the current view after the form is submitted - avoids a blank screen
+        $j('#shutdownForm').append('<input type="hidden" name="redirect" value="'+ currentView +'" />');
+        $j('#restartBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#shutdownForm').submit();
+        });
+        $j('#shutdownBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#shutdownForm').submit();
+        });
+      })
+      .fail(logAjaxFail);
 }

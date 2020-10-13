@@ -424,6 +424,9 @@ function deleteEvent($event) {
   } # CAN EDIT
 }
 
+/**
+ * $label must be already escaped. It can't be done here since it sometimes contains HTML tags.
+ */
 function makeLink($url, $label, $condition=1, $options='') {
   $string = '';
   if ( $condition ) {
@@ -440,32 +443,6 @@ function makeLink($url, $label, $condition=1, $options='') {
 function makeHelpLink($ohndx) {
   $string = '&nbsp;(<a id="' .$ohndx. '" class="optionhelp" href="#">?</a>)';
 
-  return $string;
-}
-
-/**
- * $label must be already escaped. It can't be done here since it sometimes contains HTML tags.
- */
-function makePopupLink($url, $winName, $winSize, $label, $condition=1, $options='') {
-  // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
-  $string = '<a';
-  if ( $condition ) {
-    $string .= ' class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false) . '"';
-    $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
-    if ( is_array( $winSize ) ) {
-      $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
-      $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
-      $string .= ' data-window-height="' . htmlspecialchars($winSize[2]) . '"';
-    } else {
-      $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
-    }
-
-    $string .= ($options ? (' ' . $options ) : '') . '>';
-  } else {
-    $string .= '>';
-  }
-  $string .= $label;
-  $string .= '</a>';
   return $string;
 }
 

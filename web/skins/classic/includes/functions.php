@@ -756,9 +756,9 @@ function getStatusBtnHTML($status) {
     //$result .= '</li>'.PHP_EOL;
 
     if ( ZM_SYSTEM_SHUTDOWN ) {
-      $result .= '<p class="navbar-text">'.PHP_EOL;
-      $result .= makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ).PHP_EOL;
-      $result .= '</p>'.PHP_EOL;
+      $result .= '<div class="navbar-text pr-2 align-self-center">'.PHP_EOL;
+      $result .= '<button class="btn btn-outline" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate("Shutdown"). '" ><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
+      $result .= '</div>'.PHP_EOL;
      } 
 
   } else if ( canView('System') ) {

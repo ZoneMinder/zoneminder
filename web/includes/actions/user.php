@@ -66,9 +66,7 @@ if ( $action == 'Save' ) {
       } else {
         dbQuery('INSERT INTO Users SET '.implode(', ', $changes));
       }
-      $refreshParent = true;
     } # end if changes
-    $redirect = '?view=options&tab=users';
   } else if ( ZM_USER_SELF_EDIT and ( $_REQUEST['uid'] == $user['Id'] ) ) {
     $uid = $user['Id'];
 
@@ -99,9 +97,7 @@ if ( $action == 'Save' ) {
       zm_session_start();
       generateAuthHash(ZM_AUTH_HASH_IPS, true);
       session_write_close();
-      $refreshParent = true;
     }
-    $redirect = '?view=options&tab=users';
   }
 } // end if $action == user
 ?>

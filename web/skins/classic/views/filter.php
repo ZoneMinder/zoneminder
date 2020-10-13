@@ -39,6 +39,7 @@ if ( isset($_REQUEST['Id']) ) {
   $fid = validInt($_REQUEST['Id']);
 } else if ( isset($_REQUEST['filter[Id]']) ) {
   $fid = validInt($_REQUEST['filter[Id]']);
+  ZM\Warning("got fid by object id $fid");
 }
 
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
@@ -59,6 +60,8 @@ if ( !$filter ) {
     # Update our filter object with whatever changes we have made before saving
     $filter->set($_REQUEST['filter']);
   }
+} else {
+  ZM\Logger::Debug('filter: ' . print_r($filter));
 }
 
 $conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
@@ -222,13 +225,13 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         </p>
 <?php if ( ZM_OPT_USE_AUTH ) { ?>
         <p><label><?php echo translate('FilterUser') ?></label>
-          <?php 
+<?php 
             global $user;
-echo htmlSelect('filter[UserId]',
-  ZM\User::Indexed_By_Id(),
-  //ZM\User::find(),
-  $filter->UserId() ? $filter->UserId() : $user['Id']
-); ?>
+  echo htmlSelect('filter[UserId]',
+    ZM\User::Indexed_By_Id(),
+    $filter->UserId() ? $filter->UserId() : $user['Id']
+  );
+?>
         </p>
 <?php } ?>
         <p>
@@ -240,7 +243,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
   if ( ! isset( $term['op'] ) )
     $term['op'] = '=';
   if ( ! isset( $term['attr'] ) )
-    $term['attr'] = '';
+    $term['attr'] = 'Id';
   if ( ! isset( $term['val'] ) )
     $term['val'] = '';
   if ( ! isset( $term['cnj'] ) )
@@ -352,7 +355,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               </td>
             </tr>
 <?php
-} # end foreach filter
+} # end foreach term
 ?>
           </tbody>
         </table>

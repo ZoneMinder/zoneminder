@@ -92,7 +92,17 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     el.addEventListener("click", submitTab);
   });
 
-  // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
+  dataOnClickThis();
+  dataOnClick();
+  dataOnClickTrue();
+  dataOnChangeThis();
+  dataOnChange();
+  dataOnInput();
+  dataOnInputThis();
+});
+
+// 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
+function dataOnClickThis() {
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
     if ( !window[fnName] ) {
@@ -101,8 +111,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.onclick = window[fnName].bind(el, el);
   });
+}
 
-  // 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
+// 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
+function dataOnClick() {
   document.querySelectorAll("i[data-on-click], a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click");
     if ( !window[fnName] ) {
@@ -114,8 +126,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       window[fnName](ev);
     };
   });
+}
 
-  // 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
+// 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
+function dataOnClickTrue() {
   document.querySelectorAll("a[data-on-click-true], button[data-on-click-true], input[data-on-click-true]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-true");
     if ( !window[fnName] ) {
@@ -126,8 +140,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       window[fnName](true);
     };
   });
+}
 
-  // 'data-on-change-this' calls the global function in the attribute value with the element when a change happens.
+// 'data-on-change-this' calls the global function in the attribute value with the element when a change happens.
+function dataOnChangeThis() {
   document.querySelectorAll("select[data-on-change-this], input[data-on-change-this]").forEach(function attachOnChangeThis(el) {
     var fnName = el.getAttribute("data-on-change-this");
     if ( !window[fnName] ) {
@@ -136,8 +152,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.onchange = window[fnName].bind(el, el);
   });
+}
 
-  // 'data-on-change' adds an event listener for the global function in the attribute value when a change happens.
+// 'data-on-change' adds an event listener for the global function in the attribute value when a change happens.
+function dataOnChange() {
   document.querySelectorAll("select[data-on-change], input[data-on-change]").forEach(function attachOnChange(el) {
     var fnName = el.getAttribute("data-on-change");
     if ( !window[fnName] ) {
@@ -146,8 +164,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.onchange = window[fnName];
   });
+}
 
-  // 'data-on-input' adds an event listener for the global function in the attribute value when an input happens.
+// 'data-on-input' adds an event listener for the global function in the attribute value when an input happens.
+function dataOnInput() {
   document.querySelectorAll("input[data-on-input]").forEach(function(el) {
     var fnName = el.getAttribute("data-on-input");
     if ( !window[fnName] ) {
@@ -156,8 +176,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.oninput = window[fnName];
   });
+}
 
-  // 'data-on-input-this' calls the global function in the attribute value with the element when an input happens.
+// 'data-on-input-this' calls the global function in the attribute value with the element when an input happens.
+function dataOnInputThis() {
   document.querySelectorAll("input[data-on-input-this]").forEach(function(el) {
     var fnName = el.getAttribute("data-on-input-this");
     if ( !window[fnName] ) {
@@ -166,7 +188,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.oninput = window[fnName].bind(el, el);
   });
-});
+}
 
 function openEvent( eventId, eventFilter ) {
   var url = '?view=event&eid='+eventId;

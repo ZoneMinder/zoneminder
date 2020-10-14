@@ -861,19 +861,19 @@ function manageShutdownBtns(element) {
   var when = $j('#when1min').is(':checked') ? '1min' : 'now';
   var respText = $j('#respText');
 
-    $j.getJSON(thisUrl + '?request=shutdown&when=' + when + '&command=' + cmd)
-        .done(function(data) {
-          respText.removeClass('invisible');
-          if ( data.rc ) {
-            respText.html('<h2>Error</h2>' + data.output);
+  $j.getJSON(thisUrl + '?request=shutdown&when=' + when + '&command=' + cmd)
+      .done(function(data) {
+        respText.removeClass('invisible');
+        if ( data.rc ) {
+          respText.html('<h2>Error</h2>' + data.output);
+        } else {
+          $j('#cancelBtn').prop('disabled', false);
+          if ( cmd == 'cancel' ) {
+            respText.html('<h2>Success</h2>Event has been cancelled');
           } else {
-            $j('#cancelBtn').prop('disabled', false);
-            if ( cmd == 'cancel' ) {
-              respText.html('<h2>Success</h2>Event has been cancelled');
-            } else {
-              respText.html('<h2>Success</h2>You may cancel this shutdown by clicking ' + cancelString);
-            }
+            respText.html('<h2>Success</h2>You may cancel this shutdown by clicking ' + cancelString);
           }
-        })
-        .fail(logAjaxFail);
+        }
+      })
+      .fail(logAjaxFail);
 }

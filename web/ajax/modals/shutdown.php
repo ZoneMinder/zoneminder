@@ -14,21 +14,6 @@ if ( $error ) {
   return;
 }
 
-$output_str = '';
-if ( isset($output) ) {
-  $output_str = '<p>'.implode('<br/>', $output).'</p>'.PHP_EOL;
-}
-
-$cancel_str = '';
-if ( isset($_POST['when']) and ($_POST['when'] != 'NOW') and ($action != 'cancel') ) {
-  $cancel_str = '<p>You may cancel this shutdown by clicking '.translate('Cancel').'</p>'.PHP_EOL;
-}
-
-$cancel_btn = '';
-if ( isset($_POST['when']) and ($_POST['when'] != 'NOW') and ($action != 'cancel') ) {
-          $cancel_btn = '<button type="submit" class="btn btn-primary" name="action" value="cancel">' .translate('Cancel'). '</button>'.PHP_EOL;
-}
-
 ?>
 <div class="modal" id="shutdownModal" tabindex="-1">
   <div class="modal-dialog">
@@ -40,14 +25,6 @@ if ( isset($_POST['when']) and ($_POST['when'] != 'NOW') and ($action != 'cancel
         </button>
       </div>
       <div class="modal-body">
-      <form name="contentForm" id="shutdownForm" method="post" action="?">
-        <?php
-        // We have to manually insert the csrf key into the form when using a modal generated via ajax call
-        echo getCSRFinputHTML();
-        ?>
-        <input type="hidden" name="view" value="shutdown"/>
-        <?php echo $output_str ?>
-        <?php echo $cancel_str ?>
         <p class="warning"><h2>Warning</h2>
           This command will either shutdown or restart all ZoneMinder Servers<br/>
         </p>
@@ -55,11 +32,13 @@ if ( isset($_POST['when']) and ($_POST['when'] != 'NOW') and ($action != 'cancel
           <input type="radio" name="when" value="now" id="whennow"/><label for="whennow">Now</label>
           <input type="radio" name="when" value="1min" id="when1min" checked="checked"/><label for="when1min">1 Minute</label>
         </p>
+        <p id="respText" class="invisible">
+        </p>
       </div>
       <div class="modal-footer">
-        <?php echo $cancel_btn ?>
-        <button type="submit" id="restartBtn" class="btn btn-primary" name="action" value="restart"><?php echo translate('Restart') ?></button>
-        <button type="submit" id="shutdownBtn" class="btn btn-primary" name="action" value="shutdown"><?php echo translate('Shutdown') ?></button>
+        <button type="button" class="btn btn-primary" data-command="cancel" data-on-click-this="manageShutdownBtns" id="cancelBtn" disabled><?php echo translate('Cancel') ?></button>
+        <button type="button" class="btn btn-primary" data-command="restart" data-on-click-this="manageShutdownBtns"><?php echo translate('Restart') ?></button>
+        <button type="button" class="btn btn-primary" data-command="shutdown" data-on-click-this="manageShutdownBtns"><?php echo translate('Shutdown') ?></button>
         <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Close') ?></button>
       </div>
     </form>

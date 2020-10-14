@@ -841,7 +841,7 @@ function exportEvent() {
   $j('#exportProgress').removeClass( 'invisible' );
 }
 
-// Load the Function modal on page load
+// Loads the shutdown modal
 function getShutdownModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=shutdown')
       .done(function(data) {
@@ -850,18 +850,30 @@ function getShutdownModal() {
         } else {
           $j("body").append(data.html);
         }
-        // Manage the Shutdown modal
+        dataOnClickThis();
         $j('#shutdownModal').modal('show');
-        // Redirect to the current view after the form is submitted - avoids a blank screen
-        $j('#shutdownForm').append('<input type="hidden" name="redirect" value="'+ currentView +'" />');
-        $j('#restartBtn').click(function(evt) {
-          evt.preventDefault();
-          $j('#shutdownForm').submit();
-        });
-        $j('#shutdownBtn').click(function(evt) {
-          evt.preventDefault();
-          $j('#shutdownForm').submit();
-        });
       })
       .fail(logAjaxFail);
+}
+
+function manageShutdownBtns(element) {
+  var cmd = element.getAttribute('data-command');
+  var when = $j('#when1min').is(':checked') ? '1min' : 'now';
+  var respText = $j('#respText');
+
+    $j.getJSON(thisUrl + '?request=shutdown&when=' + when + '&command=' + cmd)
+        .done(function(data) {
+          respText.removeClass('invisible');
+          if ( data.rc ) {
+            respText.html('<h2>Error</h2>' + data.output);
+          } else {
+            $j('#cancelBtn').prop('disabled', false);
+            if ( cmd == 'cancel' ) {
+              respText.html('<h2>Success</h2>Event has been cancelled');
+            } else {
+              respText.html('<h2>Success</h2>You may cancel this shutdown by clicking ' + cancelString);
+            }
+          }
+        })
+        .fail(logAjaxFail);
 }

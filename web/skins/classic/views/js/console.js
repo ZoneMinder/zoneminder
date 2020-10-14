@@ -173,11 +173,7 @@ function initPage() {
   if ( showDonatePopup ) {
     $j.getJSON(thisUrl + '?request=modal&modal=donate')
         .done(function(data) {
-          if ( $j('#donate').length ) {
-            $j('#donate').replaceWith(data.html);
-          } else {
-            $j("body").append(data.html);
-          }
+          insertModalHtml('donate', data.html);
           $j('#donate').modal('show');
           // Manage the Apply button
           $j('#donateApplyBtn').click(function(evt) {
@@ -203,11 +199,7 @@ function initPage() {
   // Load the Function modal on page load
   $j.getJSON(thisUrl + '?request=modal&modal=function')
       .done(function(data) {
-        if ( $j('#modalFunction').length ) {
-          $j('#modalFunction').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('modalFunction', data.html);
         // Manage the Function modal
         manageFunctionModal();
       })

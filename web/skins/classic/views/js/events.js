@@ -39,11 +39,7 @@ function getArchivedSelections() {
 function getDelConfirmModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
       .done(function(data) {
-        if ( $j('#deleteConfirm').length ) {
-          $j('#deleteConfirm').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('deleteConfirm', data.html);
         manageDelConfirmModalBtns();
       })
       .fail(logAjaxFail);
@@ -77,11 +73,7 @@ function manageDelConfirmModalBtns() {
 function getEventDetailModal(eid) {
   $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]=' + eid)
       .done(function(data) {
-        if ( $j('#eventDetailModal').length ) {
-          $j('#eventDetailModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('eventDetailModal', data.html);
         $j('#eventDetailModal').modal('show');
         // Manage the Save button
         $j('#eventDetailSaveBtn').click(function(evt) {
@@ -212,11 +204,7 @@ function initPage() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]='+selections.join('&eids[]='))
         .done(function(data) {
-          if ( $j('#eventDetailModal').length ) {
-            $j('#eventDetailModal').replaceWith(data.html);
-          } else {
-            $j("body").append(data.html);
-          }
+          insertModalHtml('eventDetailModal', data.html);
           $j('#eventDetailModal').modal('show');
           // Manage the Save button
           $j('#eventDetailSaveBtn').click(function(evt) {
@@ -242,11 +230,7 @@ function initPage() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=modal&modal=download&eids[]='+selections.join('&eids[]='))
         .done(function(data) {
-          if ( $j('#downloadModal').length ) {
-            $j('#downloadModal').replaceWith(data.html);
-          } else {
-            $j("body").append(data.html);
-          }
+          insertModalHtml('downloadModal', data.html);
           $j('#downloadModal').modal('show');
           // Manage the GENERATE DOWNLOAD button
           $j('#exportButton').click(exportEvent);

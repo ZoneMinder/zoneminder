@@ -957,11 +957,7 @@ function renameEvent() {
 function editEvent() {
   $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eid='+eventData.Id)
       .done(function(data) {
-        if ( $j('#eventDetailModal').length ) {
-          $j('#eventDetailModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('eventDetailModal', data.html);
         $j('#eventDetailModal').modal('show');
         // Manage the Save button
         $j('#eventDetailSaveBtn').click(function(evt) {

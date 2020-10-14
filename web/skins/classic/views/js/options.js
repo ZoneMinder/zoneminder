@@ -2,11 +2,7 @@
 function getServerModal(sid) {
   $j.getJSON(thisUrl + '?request=modal&modal=server&id=' + sid)
       .done(function(data) {
-        if ( $j('#ServerModal').length ) {
-          $j('#ServerModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('ServerModal', data.html);
         $j('#ServerModal').modal('show');
         // Manage the Save button
         $j('#serverSubmitBtn').click(function(evt) {
@@ -33,11 +29,7 @@ function enableServerModal() {
 function getStorageModal(sid) {
   $j.getJSON(thisUrl + '?request=modal&modal=storage&id=' + sid)
       .done(function(data) {
-        if ( $j('#storageModal').length ) {
-          $j('#storageModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('storageModal', data.html);
         $j('#storageModal').modal('show');
         // Manage the Save button
         $j('#storageSubmitBtn').click(function(evt) {

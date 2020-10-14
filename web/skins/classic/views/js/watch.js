@@ -826,11 +826,7 @@ function updatePresetLabels() {
 function getCtrlPresetModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=controlpreset&mid=' + monitorId)
       .done(function(data) {
-        if ( $j('#ctrlPresetModal').length ) {
-          $j('#ctrlPresetModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('ctrlPresetModal', data.html);
         updatePresetLabels();
         // Manage the Preset Select box
         $j('#preset').change(updatePresetLabels);
@@ -846,11 +842,7 @@ function getCtrlPresetModal() {
 function getSettingsModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=settings&mid=' + monitorId)
       .done(function(data) {
-        if ( $j('#settingsModal').length ) {
-          $j('#settingsModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('settingsModal', data.html);
         // Manage the Save button
         $j('#settingsSubmitModal').click(function(evt) {
           evt.preventDefault();

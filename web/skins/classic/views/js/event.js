@@ -434,14 +434,14 @@ function streamFastRev( action ) {
 function streamPrev(action) {
   if ( action ) {
     $j(".vjsMessage").remove();
-    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery + '&popup='+popup);
+    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     return;
 
     if ( vid && PrevEventDefVideoPath.indexOf("view_video") > 0 ) {
       CurEventDefVideoPath = PrevEventDefVideoPath;
       eventQuery(prevEventId);
     } else if (zmsBroke || (vid && PrevEventDefVideoPath.indexOf("view_video") < 0) || $j("#vjsMessage").length || PrevEventDefVideoPath.indexOf("view_video") > 0) {//zms broke, leaving videojs, last event, moving to videojs
-      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery + '&popup='+popup);
+      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     } else {
       streamReq.send(streamParms+"&command="+CMD_PREV);
       streamPlay();
@@ -463,13 +463,13 @@ function streamNext(action) {
     // We used to try to dynamically update all the bits in the page, which is really complex
     // How about we just reload the page?
     //
-    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery + '&popup='+popup);
+    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
     return;
     if ( vid && ( NextEventDefVideoPath.indexOf("view_video") > 0 ) ) { //on and staying with videojs
       CurEventDefVideoPath = NextEventDefVideoPath;
       eventQuery(nextEventId);
     } else if ( zmsBroke || (vid && NextEventDefVideoPath.indexOf("view_video") < 0) || NextEventDefVideoPath.indexOf("view_video") > 0) {//reload zms, leaving vjs, moving to vjs
-      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery + '&popup='+popup);
+      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
     } else {
       streamReq.send(streamParms+"&command="+CMD_NEXT);
       streamPlay();

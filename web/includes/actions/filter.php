@@ -64,7 +64,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       $_REQUEST['filter']['Background'] = empty($_REQUEST['filter']['Background']) ? 0 : 1;
       $_REQUEST['filter']['Concurrent'] = empty($_REQUEST['filter']['Concurrent']) ? 0 : 1;
       $changes = $filter->changes($_REQUEST['filter']);
-      ZM\Logger::Debug('Changes: ' . print_r($changes,true));
+      ZM\Debug('Changes: ' . print_r($changes,true));
 
       if ( $_REQUEST['Id'] and ( $action == 'Save' ) ) {
         if ( $filter->Background() )

@@ -56,7 +56,7 @@ require_once('includes/Monitor.php');
 if ( 0 and ZM\Logger::fetch()->debugOn() ) {
   ob_start();
   phpinfo(INFO_VARIABLES);
-  ZM\Logger::Debug(ob_get_contents());
+  ZM\Debug(ob_get_contents());
   ob_end_clean();
 }
 
@@ -82,7 +82,7 @@ define('ZM_BASE_URL', '');
 
 require_once('includes/functions.php');
 if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
-  ZM\Logger::Debug('OPTIONS Method, only doing CORS');
+  ZM\Debug('OPTIONS Method, only doing CORS');
   # Add Cross domain access headers
   CORSHeaders();
   return;
@@ -221,7 +221,7 @@ if ( (!$view and !$request) or ($view == 'console') ) {
   check_timezone();
 }
 
-ZM\Logger::Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
+ZM\Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
@@ -232,14 +232,14 @@ if (
   ( $view != 'archive' ) // returns data
 ) {
   require_once('includes/csrf/csrf-magic.php');
-  #ZM\Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+  #ZM\Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
   csrf_check();
 }
 
 # Need to include actions because it does auth
 if ( $action and !$request ) {
   if ( file_exists('includes/actions/'.$view.'.php') ) {
-    ZM\Logger::Debug("Including includes/actions/$view.php");
+    ZM\Debug("Including includes/actions/$view.php");
     require_once('includes/actions/'.$view.'.php');
   } else {
     ZM\Warning("No includes/actions/$view.php for action $action");
@@ -254,7 +254,7 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
     header('HTTP/1.1 401 Unauthorized');
     exit;
   }
-  ZM\Logger::Debug('Redirecting to login');
+  ZM\Debug('Redirecting to login');
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
   if ( ! $request ) {
@@ -271,7 +271,7 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
 
 
 if ( $redirect ) {
-  ZM\Logger::Debug("Redirecting to $redirect");
+  ZM\Debug("Redirecting to $redirect");
   header('Location: '.$redirect);
   return;
 }

@@ -55,7 +55,7 @@ if ( !$mimetype ) {
 $connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
 $filename = "zmExport_$connkey.$file_ext";
 $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
-ZM\Logger::Debug("downloading archive from $filename_path");
+ZM\Debug("downloading archive from $filename_path");
 if ( is_readable($filename_path) ) {
   while (ob_get_level()) {
     ob_end_clean();

@@ -19,11 +19,11 @@ function probe( &$url_bits ) {
 
     $cam_list_html = file_get_contents('http://'.$url_bits['host'].':5000/monitoring/');
     if ( $cam_list_html ) {
-      ZM\Logger::Debug("Have content at port 5000/monitoring");
+      ZM\Debug("Have content at port 5000/monitoring");
       $matches_count = preg_match_all(
           '/<a href="http:\/\/([.[:digit:]]+):([[:digit:]]+)\/\?action=stream" target="_blank">([^<]+)<\/a>/',
           $cam_list_html, $cam_list );
-      ZM\Logger::Debug(print_r($cam_list,true));
+      ZM\Debug(print_r($cam_list,true));
     }
     if ( $matches_count ) {
       for( $index = 0; $index < $matches_count; $index ++ ) {
@@ -33,7 +33,7 @@ function probe( &$url_bits ) {
         if ( ! isset($new_stream['scheme'] ) )
           $new_stream['scheme'] = 'http';
         $available_streams[] = $new_stream;          
-ZM\Logger::Debug("Have new stream " . print_r($new_stream,true) );
+ZM\Debug("Have new stream " . print_r($new_stream,true) );
       }
     } else {
       ZM\Info('No matches');

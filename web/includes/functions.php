@@ -104,7 +104,7 @@ function CORSHeaders() {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
       if ( ZM_MIN_STREAMING_PORT ) {
-        ZM\Logger::Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
+        ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
       }
@@ -117,7 +117,7 @@ function CORSHeaders() {
         preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
       ) {
         $valid = true;
-        ZM\Logger::Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
+        ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
         break;
@@ -392,7 +392,7 @@ function getEventDefaultVideoPath($event) {
 }
 
 function deletePath( $path ) {
-  ZM\Logger::Debug('Deleting '.$path);
+  ZM\Debug('Deleting '.$path);
   if ( is_dir($path) ) {
     system(escapeshellcmd('rm -rf '.$path));
   } else if ( file_exists($path) ) {
@@ -791,7 +791,7 @@ function daemonControl($command, $daemon=false, $args=false) {
   }
   $string = escapeshellcmd($string);
   #$string .= ' 2>/dev/null >&- <&- >/dev/null';
-  ZM\Logger::Debug('daemonControl '.$string);
+  ZM\Debug('daemonControl '.$string);
   exec($string);
 }
 
@@ -932,7 +932,7 @@ function createVideo($event, $format, $rate, $scale, $overwrite=false) {
     $command .= ' -o';
   $command = escapeshellcmd($command);
   $result = exec($command, $output, $status);
-  ZM\Logger::Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
+  ZM\Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
   return $status ? '' : rtrim($result);
 }
 
@@ -1635,17 +1635,17 @@ function coordsToPoints($coords) {
 function limitPoints(&$points, $min_x, $min_y, $max_x, $max_y) {
   foreach ( $points as &$point ) {
     if ( $point['x'] < $min_x ) {
-      ZM\Logger::Debug('Limiting point x'.$point['x'].' to min_x '.$min_x);
+      ZM\Debug('Limiting point x'.$point['x'].' to min_x '.$min_x);
       $point['x'] = $min_x;
     } else if ( $point['x'] > $max_x ) {
-      ZM\Logger::Debug('Limiting point x'.$point['x'].' to max_x '.$max_x);
+      ZM\Debug('Limiting point x'.$point['x'].' to max_x '.$max_x);
       $point['x'] = $max_x;
     }
     if ( $point['y'] < $min_y ) {
-      ZM\Logger::Debug('Limiting point y'.$point['y'].' to min_y '.$min_y);
+      ZM\Debug('Limiting point y'.$point['y'].' to min_y '.$min_y);
       $point['y'] = $min_y;
     } else if ( $point['y'] > $max_y ) {
-      ZM\Logger::Debug('Limiting point y'.$point['y'].' to max_y '.$max_y);
+      ZM\Debug('Limiting point y'.$point['y'].' to max_y '.$max_y);
       $point['y'] = $max_y;
     }
   } // end foreach point
@@ -2170,7 +2170,7 @@ function check_timezone() {
     'TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),\'%H%i\')'
   ));
 
-  #Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20
+  #Debug("System timezone offset determine to be: $sys_tzoffset,\x20
                  #PHP timezone offset determine to be: $php_tzoffset,\x20
                  #Mysql timezone offset determine to be: $mysql_tzoffset
                #");

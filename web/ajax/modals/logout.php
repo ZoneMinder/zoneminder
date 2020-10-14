@@ -69,7 +69,7 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
   } else {
     $user = ZM\User::find_one(array('Username'=>$_SESSION['username']));
     if ( ! $user ) {
-      ZM\Logger::Debug('User not found for ' . $_SESSION['username']);
+      ZM\Debug('User not found for ' . $_SESSION['username']);
       continue;
     }
     $user_cache[$_SESSION['username']] = $user;

@@ -50,10 +50,10 @@ class HostController extends AppController {
     $cred_depr = [];
 
     if ( $username && $password ) {
-      ZM\Logger::Debug('Username and password provided, generating access and refresh tokens');
+      ZM\Debug('Username and password provided, generating access and refresh tokens');
       $cred = $this->_getCredentials(true, '', $username); // generate refresh
     } else {
-      ZM\Logger::Debug('Only generating access token');
+      ZM\Debug('Only generating access token');
       $cred = $this->_getCredentials(false, $token); // don't generate refresh
     }
 
@@ -72,7 +72,7 @@ class HostController extends AppController {
       $login_array['credentials'] = $cred_depr[0];
       $login_array['append_password'] = $cred_depr[1];
     } else {
-      ZM\Logger::Debug('Legacy Auth is disabled, not generating auth= credentials');
+      ZM\Debug('Legacy Auth is disabled, not generating auth= credentials');
     }
 
     $login_array['version'] = $ver[0];
@@ -203,7 +203,7 @@ class HostController extends AppController {
 
     if ( $mid ) {
       // Get disk usage for $mid
-      ZM\Logger::Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
+      ZM\Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
       $usage = shell_exec("du -s0 $zm_dir_events/$mid | awk '{print $1}'");
     } else {
       $monitors = $this->Monitor->find('all', array(

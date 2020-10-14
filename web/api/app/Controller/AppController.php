@@ -105,7 +105,7 @@ class AppController extends Controller {
           if ( ! is_session_started() )
             zm_session_start();
 
-          ZM\Logger::Debug(print_r($_SESSION, true));
+          ZM\Debug(print_r($_SESSION, true));
           $user = userFromSession();
           session_write_close();
         }

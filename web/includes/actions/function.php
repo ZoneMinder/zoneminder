@@ -52,7 +52,7 @@ if ( $action == 'function' ) {
         $monitor->zmaControl('start');
     }
   } else {
-    ZM\Logger::Debug('No change to function, not doing anything.');
+    ZM\Debug('No change to function, not doing anything.');
   }
 } // end if action 
 $redirect = '?view=console';

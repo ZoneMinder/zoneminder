@@ -105,7 +105,7 @@ function dbLog($sql, $update=false) {
   global $dbLogLevel;
   $noExecute = $update && ($dbLogLevel >= DB_LOG_DEBUG);
   if ( $dbLogLevel > DB_LOG_OFF )
-    ZM\Logger::Debug( "SQL-LOG: $sql".($noExecute?' (not executed)':'') );
+    ZM\Debug( "SQL-LOG: $sql".($noExecute?' (not executed)':'') );
   return( $noExecute );
 }
 
@@ -146,7 +146,7 @@ function dbQuery($sql, $params=NULL) {
       }
     } else {
       if ( defined('ZM_DB_DEBUG') ) {
-				ZM\Logger::Debug("SQL: $sql values:" . ($params?implode(',',$params):''));
+				ZM\Debug("SQL: $sql values:" . ($params?implode(',',$params):''));
       }
       $result = $dbConn->query($sql);
       if ( ! $result ) {
@@ -155,7 +155,7 @@ function dbQuery($sql, $params=NULL) {
       }
     }
     if ( defined('ZM_DB_DEBUG') ) {
-      ZM\Logger::Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
+      ZM\Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
     }
   } catch(PDOException $e) {
     ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));

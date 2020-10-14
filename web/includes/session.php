@@ -25,7 +25,7 @@ function zm_session_start() {
     }
 
     ini_set('session.name', 'ZMSESSID');
-    ZM\Logger::Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
+    ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
   }
   session_start();
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
@@ -37,7 +37,7 @@ function zm_session_start() {
     session_start();
   } else if ( !empty($_SESSION['generated_at']) ) {
     if ( $_SESSION['generated_at']<($now-(ZM_COOKIE_LIFETIME/2)) ) {
-      ZM\Logger::Debug('Regenerating session because generated_at ' . $_SESSION['generated_at'] . ' < ' . $now . '-'.ZM_COOKIE_LIFETIME.'/2 = '.($now-ZM_COOKIE_LIFETIME/2));
+      ZM\Debug('Regenerating session because generated_at ' . $_SESSION['generated_at'] . ' < ' . $now . '-'.ZM_COOKIE_LIFETIME.'/2 = '.($now-ZM_COOKIE_LIFETIME/2));
       zm_session_regenerate_id();
     }
   }

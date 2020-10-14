@@ -61,7 +61,7 @@ if ( !$filter ) {
     $filter->set($_REQUEST['filter']);
   }
 } else {
-  ZM\Logger::Debug('filter: ' . print_r($filter,true));
+  ZM\Debug('filter: ' . print_r($filter,true));
 }
 
 $conjunctionTypes = ZM\getFilterQueryConjunctionTypes();

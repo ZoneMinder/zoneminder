@@ -94,7 +94,7 @@ class Storage extends ZM_Object {
     }
     $used = $this->disk_used_space();
     $usage = round(($used / $total) * 100);
-    //Logger::Debug("Used $usage = round( ( $used / $total ) * 100 )");
+    //Debug("Used $usage = round( ( $used / $total ) * 100 )");
     return $usage;
   }
 

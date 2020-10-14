@@ -8,7 +8,7 @@ if ( empty($_REQUEST['modal']) ) {
 $modal = validJsStr($_REQUEST['modal']);
 $data = array();
 
-ZM\Logger::Debug("Including modals/$modal.php");
+ZM\Debug("Including modals/$modal.php");
 # Shouldn't be necessary but at the moment we have last .conf file contents
 ob_start();
 @$result = include('modals/'.$modal.'.php');

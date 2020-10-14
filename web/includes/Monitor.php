@@ -181,7 +181,7 @@ class Monitor extends ZM_Object {
         FROM `Monitor_Status` WHERE `MonitorId`=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
       if ( !$row ) {
-        Error('Unable to load Monitor record for Id='.$this->{'Id'});
+        Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
         foreach ( $this->status_fields as $k => $v ) {
           $this->{$k} = $v;
         }

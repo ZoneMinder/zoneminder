@@ -194,11 +194,6 @@ sub Sql {
             $self->{Sql} .= 'extract( hour_second from E.EndTime )';
           } elsif ( $term->{attr} eq 'EndWeekday' ) {
             $self->{Sql} .= "weekday( E.EndTime )";
-
-# 
-          } elsif ( $term->{attr} eq 'DiskSpace' ) {
-            $self->{Sql} .= 'E.DiskSpace';
-            $self->{HasDiskPercent} = !undef;
           } elsif ( $term->{attr} eq 'DiskPercent' ) {
             $self->{Sql} .= 'zmDiskPercent';
             $self->{HasDiskPercent} = !undef;
@@ -382,7 +377,7 @@ sub Sql {
       $sort_column = 'E.StartTime';
     }
     my $sort_order = $filter_expr->{sort_asc} ? 'ASC' : 'DESC';
-    $sql .= ' ORDER BY '.$sort_column." ".$sort_order;
+    $sql .= ' ORDER BY '.$sort_column.' '.$sort_order;
     if ( $filter_expr->{limit} ) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }

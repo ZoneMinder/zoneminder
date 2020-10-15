@@ -492,7 +492,7 @@ function htmlSelect($name, $contents, $values, $behaviours=false) {
     }
   }
 
-  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions($contents, $values).'</select>';
+  return "<select name=\"$name\" id=\"$name\"$behaviourText>\n".htmlOptions($contents, $values).'</select>';
 }
 
 function htmlOptions($contents, $values) {
@@ -520,7 +520,7 @@ function htmlOptions($contents, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>';
+      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   }
   return $options_html;
 }

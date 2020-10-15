@@ -4,6 +4,7 @@
 var CMD_NONE = <?php echo CMD_NONE ?>;
 var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
 var CMD_PLAY = <?php echo CMD_PLAY ?>;
+var CMD_VARPLAY = <?php echo CMD_VARPLAY ?>;
 var CMD_STOP = <?php echo CMD_STOP ?>;
 var CMD_FASTFWD = <?php echo CMD_FASTFWD ?>;
 var CMD_SLOWFWD = <?php echo CMD_SLOWFWD ?>;

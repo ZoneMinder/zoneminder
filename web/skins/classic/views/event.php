@@ -211,7 +211,12 @@ if ( ($codec == 'MP4' || $codec == 'auto' ) && $Event->DefaultVideo() ) {
             style="transform: matrix(1, 0, 0, 1, 0, 0);"
            <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
            <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
-            data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
+            data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ <?php echo implode(',',
+              array_map(function($r){return $r/100;},
+                array_filter(
+                  array_keys($rates),
+                  function($r){return $r >= 0 ? true : false;},
+                ))) ?>], "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
           >
           <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
           <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
@@ -274,7 +279,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
           <span id="rate"><?php echo translate('Rate') ?>: 
 <?php 
-$rates = array( -800=>'-8x', -400=>'-4x', -200=>'-2x', -100=>'-1x', 0=>translate('Stop'), 100 => '1x', 200=>'2x', 400=>'4x', 800=>'8x' );
+#rates are defined in skins/classic/includes/config.php
 echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
 <!--<span id="rateValue"><?php echo $rate/100 ?></span>x</span>-->

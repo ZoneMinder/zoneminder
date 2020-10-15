@@ -209,10 +209,14 @@ function changeRate() {
           vid.currentTime(vid.currentTime() - (revSpeed/2)); //Half of reverse speed because our interval is 500ms.
         }
       }, 500); //500ms is a compromise between smooth reverse and realistic performance
+    } else {
+      streamReq.send(streamParms+"&command="+CMD_VARPLAY+"&rate="+rate);
     } // end if vid
   } else { // Forward rate
     if ( vid ) {
       vid.playbackRate(rate/100);
+    } else {
+      streamReq.send(streamParms+"&command="+CMD_VARPLAY+"&rate="+rate);
     }
   }
   Cookie.write('zmEventRate', rate, {duration: 10*365, samesite: 'strict'});

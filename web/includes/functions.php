@@ -468,7 +468,7 @@ function htmlSelect($name, $contents, $values, $behaviours=false) {
     }
   }
 
-  return '<select name="'.$name.'" '.$behaviourText.'>'.htmlOptions($contents, $values).'</select>';
+  return '<select name="'.$name.'" '.$behaviourText.'>'.PHP_EOL.htmlOptions($contents, $values).'</select>';
 }
 
 function htmlOptions($options, $values) {
@@ -499,8 +499,7 @@ function htmlOptions($options, $values) {
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>
-';
+      '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {
     ZM\Warning('Specified value '.print_r($values, true).' not in contents: '.print_r($options, true));

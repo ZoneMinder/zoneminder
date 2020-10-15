@@ -739,11 +739,7 @@ function click_panright() {
 function click_download() {
   $j.getJSON(thisUrl + '?request=modal&modal=download')
       .done(function(data) {
-        if ( $j('#downloadModal').length ) {
-          $j('#downloadModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('downloadModal', data.html);
         $j('#downloadModal').modal('show');
         // Manage the GENERATE DOWNLOAD button
         $j('#exportButton').click(exportEvent);

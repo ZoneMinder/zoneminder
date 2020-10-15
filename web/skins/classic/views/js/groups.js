@@ -2,11 +2,7 @@
 function newGroup() {
   $j.getJSON(thisUrl + '?request=modal&modal=group')
       .done(function(data) {
-        if ( $j('#groupModal').length ) {
-          $j('#groupModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('groupdModal', data.html);
         $j('#groupModal').modal('show');
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
@@ -32,11 +28,7 @@ function editGroup( element ) {
   } else {
     $j.getJSON(thisUrl + '?request=modal&modal=group&gid=' + gid)
         .done(function(data) {
-          if ( $j('#groupModal').length ) {
-            $j('#groupModal').replaceWith(data.html);
-          } else {
-            $j("body").append(data.html);
-          }
+          insertModalHtml('groupModal', data.html);
           $j('#groupModal').modal('show');
           $j('.chosen').chosen("destroy");
           $j('.chosen').chosen();

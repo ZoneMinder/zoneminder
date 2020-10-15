@@ -324,13 +324,20 @@ if ( currentView != 'none' && currentView != 'login' ) {
     });
   });
 
+  // After retieving modal html via Ajax, this will insert it into the DOM
+  function insertModalHtml(name, html) {
+    var modal = $j('#' + name);
+
+    if ( modal.length ) {
+      modal.replaceWith(html);
+    } else {
+      $j("body").append(html);
+    }
+  }
+
   // Manage the modal html we received after user clicks help link
   function optionhelpModal(data) {
-    if ( $j('#optionhelp').length ) {
-      $j('#optionhelp').replaceWith(data.html);
-    } else {
-      $j("body").append(data.html);
-    }
+    insertModalHtml('optionhelp', data.html);
     $j('#optionhelp').modal('show');
 
     // Manage the CLOSE optionhelp modal button
@@ -643,11 +650,7 @@ function reminderClickFunction() {
 function enoperm() {
   $j.getJSON(thisUrl + '?request=modal&modal=enoperm')
       .done(function(data) {
-        if ( $j('#ENoPerm').length ) {
-          $j('#ENoPerm').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('ENoPerm', data.html);
         $j('#ENoPerm').modal('show');
 
         // Manage the CLOSE optionhelp modal button
@@ -661,11 +664,7 @@ function enoperm() {
 function getLogoutModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=logout')
       .done(function(data) {
-        if ( $j('#modalLogout').length ) {
-          $j('#modalLogout').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('modalLogout', data.html);
       })
       .fail(logAjaxFail);
 }
@@ -673,11 +672,7 @@ function getLogoutModal() {
 function getStateModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=state')
       .done(function(data) {
-        if ( $j('#modalState').length ) {
-          $j('#modalState').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('modalState', data.html);
         $j('#modalState').modal('show');
         manageStateModalBtns();
       })
@@ -762,11 +757,7 @@ function getModal(id) {
           return;
         }
 
-        if ( $j('#'+id).length ) {
-          $j('#'+id).replaceWith(data.html);
-        } else {
-          $j('body').append(data.html);
-        }
+        insertModalHtml(id, data.html);
         manageModalBtns(id);
         modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {
@@ -841,27 +832,35 @@ function exportEvent() {
   $j('#exportProgress').removeClass( 'invisible' );
 }
 
-// Load the Function modal on page load
+// Loads the shutdown modal
 function getShutdownModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=shutdown')
       .done(function(data) {
-        if ( $j('#shutdownModal').length ) {
-          $j('#shutdownModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
-        // Manage the Shutdown modal
+        insertModalHtml('shutdownModal', data.html);
+        dataOnClickThis();
         $j('#shutdownModal').modal('show');
-        // Redirect to the current view after the form is submitted - avoids a blank screen
-        $j('#shutdownForm').append('<input type="hidden" name="redirect" value="'+ currentView +'" />');
-        $j('#restartBtn').click(function(evt) {
-          evt.preventDefault();
-          $j('#shutdownForm').submit();
-        });
-        $j('#shutdownBtn').click(function(evt) {
-          evt.preventDefault();
-          $j('#shutdownForm').submit();
-        });
+      })
+      .fail(logAjaxFail);
+}
+
+function manageShutdownBtns(element) {
+  var cmd = element.getAttribute('data-command');
+  var when = $j('#when1min').is(':checked') ? '1min' : 'now';
+  var respText = $j('#respText');
+
+  $j.getJSON(thisUrl + '?request=shutdown&when=' + when + '&command=' + cmd)
+      .done(function(data) {
+        respText.removeClass('invisible');
+        if ( data.rc ) {
+          respText.html('<h2>Error</h2>' + data.output);
+        } else {
+          $j('#cancelBtn').prop('disabled', false);
+          if ( cmd == 'cancel' ) {
+            respText.html('<h2>Success</h2>Event has been cancelled');
+          } else {
+            respText.html('<h2>Success</h2>You may cancel this shutdown by clicking ' + cancelString);
+          }
+        }
       })
       .fail(logAjaxFail);
 }

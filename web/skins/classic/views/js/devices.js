@@ -6,11 +6,7 @@ var deleteBtn = $j('#deleteBtn');
 function getDeviceModal(did) {
   $j.getJSON(thisUrl + '?request=modal&modal=device&did=' + did)
       .done(function(data) {
-        if ( $j('#deviceModal').length ) {
-          $j('#deviceModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('deviceModal', data.html);
         $j('#deviceModal').modal('show');
         // Manage the Save button
         $j('#deviceSaveBtn').click(function(evt) {
@@ -37,11 +33,7 @@ function enableDeviceModal() {
 function getDelConfirmModal(key) {
   $j.getJSON(thisUrl + '?request=modal&modal=delconfirm&key=' + key)
       .done(function(data) {
-        if ( $j('#deleteConfirm').length ) {
-          $j('#deleteConfirm').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('deleteConfirm', data.html);
         manageDelConfirmModalBtns();
       })
       .fail(logAjaxFail);

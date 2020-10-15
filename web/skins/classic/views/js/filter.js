@@ -410,13 +410,7 @@ function getModal(id) {
           return;
         }
 
-        if ( $j('#'+id).length ) {
-          console.log("replacing");
-          $j('#'+id).replaceWith(data.html);
-        } else {
-          console.log("Adding to body"+data.html);
-          $j('body').append(data.html);
-        }
+        insertModalHtml(id, data.html);
         manageModalBtns(id);
         modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {

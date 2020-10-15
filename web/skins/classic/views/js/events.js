@@ -149,6 +149,12 @@ function initPage() {
     window.location.assign('?view=timeline'+filterQuery);
   });
 
+  // Manage the FILTER Button
+  document.getElementById("filterBtn").addEventListener("click", function onFilterClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=filter'+filterQuery);
+  });
+
   // Manage the VIEW button
   document.getElementById("viewBtn").addEventListener("click", function onViewClick(evt) {
     var selections = getIdSelections();

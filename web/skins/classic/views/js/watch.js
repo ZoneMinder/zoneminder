@@ -1,3 +1,5 @@
+var backBtn = $j('#backBtn');
+var settingsBtn = $j('#settingsBtn');
 
 function showEvents() {
   $('ptzControls').addClass('hidden');
@@ -904,6 +906,29 @@ function initPage() {
   } else if ( monitorRefresh > 0 ) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+
+  // Manage the SETTINGS button
+  document.getElementById("settingsBtn").addEventListener("click", function onSettingsClick(evt) {
+    evt.preventDefault();
+    $j('#settingsModal').modal('show');
+  });
+
+  // Only enable the settings button for local cameras
+  settingsBtn.prop('disabled', !(monitorType == 'Local' && canViewControl));
 }
 
 // Kick everything off

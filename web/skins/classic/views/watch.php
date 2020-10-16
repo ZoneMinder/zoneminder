@@ -59,23 +59,21 @@ noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 ?>
 <body>
-  <div id="page">
-  <?php if ( !$popup ) echo getNavBarHTML() ?>
-    <div id="header">
-        <div id="monitorName"><?php echo validHtmlStr($monitor->Name()) ?></div>
-        <div id="menuControls">
-<?php
-if ( canView('Control') && $monitor->Type() == 'Local' ) {
-?>
-          <div id="settingsControl">
-            <button type="button" data-toggle="modal" data-target="#settingsModal"><?php echo translate('Settings') ?></button>
-          </div>
-<?php
-}
-?>
-          <div id="scaleControl"><?php echo translate('Scale').': '.htmlSelect('scale', $scales, $scale, array('id'=>'scale')); ?></div>
-        </div>
-        <div id="closeControl"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+  <?php echo getNavBarHTML() ?>
+    <div class="d-flex flex-row justify-content-between px-3 py-1">
+      <div>
+        <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button id="settingsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Settings') ?>" disabled><i class="fa fa-sliders"></i></button>
+      </div>
+
+      <div>
+        <h2><?php echo validHtmlStr($monitor->Name()) ?></h2>
+      </div>
+
+      <div>
+        <?php echo translate('Scale').': '.htmlSelect('scale', $scales, $scale, array('id'=>'scale')); ?>
+      </div>
     </div>
 <?php
 if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {

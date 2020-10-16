@@ -1,5 +1,7 @@
 var backBtn = $j('#backBtn');
 var settingsBtn = $j('#settingsBtn');
+var enableAlmBtn = $j('#enableAlmBtn');
+var forceAlmBtn = $j('#forceAlmBtn');
 
 function showEvents() {
   $('ptzControls').addClass('hidden');
@@ -204,22 +206,22 @@ function getStreamCmdResponse(respObj, respText) {
 
       if ( canEditMonitors ) {
         if ( streamStatus.enabled ) {
-          $('enableAlarmsLink').addClass('hidden');
-          $('disableAlarmsLink').removeClass('hidden');
+          enableAlmBtn.addClass('disabled');
+          enableAlmBtn.prop('title', disableAlarmsStr);
           if ( streamStatus.forced ) {
-            $('forceAlarmLink').addClass('hidden');
-            $('cancelAlarmLink').removeClass('hidden');
+            forceAlmBtn.addClass('disabled');
+            forceAlmBtn.prop('title', cancelForcedAlarmStr);
           } else {
-            $('forceAlarmLink').removeClass('hidden');
-            $('cancelAlarmLink').addClass('hidden');
+            forceAlmBtn.removeClass('disabled');
+            forceAlmBtn.prop('title', forceAlarmStr);
           }
-          $('forceCancelAlarm').removeClass('hidden');
+          forceAlmBtn.prop('disabled', false);
         } else {
-          $('enableAlarmsLink').removeClass('hidden');
-          $('disableAlarmsLink').addClass('hidden');
-          $('forceCancelAlarm').addClass('hidden');
+          enableAlmBtn.removeClass('disabled');
+          enableAlmBtn.prop('title', enableAlarmsStr);
+          forceAlmBtn.prop('disabled', true);
         }
-        $('enableDisableAlarms').removeClass('hidden');
+        enableAlmBtn.prop('disabled', false);
       } // end if canEditMonitors
 
       if ( streamStatus.auth ) {
@@ -470,6 +472,14 @@ function cmdEnableAlarms() {
   alarmCmdReq.send(alarmCmdParms+"&command=enableAlarms");
 }
 
+function cmdAlarm() {
+  if ( enableAlmBtn.hasClass('disabled') ) {
+    cmdEnableAlarms();
+  } else {
+    cmdDisableAlarms();
+  }
+}
+
 function cmdForceAlarm() {
   alarmCmdReq.send(alarmCmdParms+"&command=forceAlarm");
   if ( window.event ) {
@@ -483,6 +493,14 @@ function cmdCancelForcedAlarm() {
     window.event.preventDefault();
   }
   return false;
+}
+
+function cmdForce() {
+  if ( forceAlmBtn.hasClass('disabled') ) {
+    cmdCancelForcedAlarm();
+  } else {
+    cmdForceAlarm();
+  }
 }
 
 function getActResponse( respObj, respText ) {

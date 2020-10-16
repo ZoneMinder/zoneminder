@@ -24,6 +24,11 @@ stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 var deleteString = "<?php echo translate('Delete') ?>";
 
+var enableAlarmsStr = "<?php echo translate('EnableAlarms') ?>";
+var disableAlarmsStr = "<?php echo translate('DisableAlarms') ?>";
+var forceAlarmStr = "<?php echo translate('ForceAlarm') ?>";
+var cancelForcedAlarmStr = "<?php echo translate('CancelForcedAlarm') ?>";
+
 var CMD_NONE = <?php echo CMD_NONE ?>;
 var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
 var CMD_PLAY = <?php echo CMD_PLAY ?>;

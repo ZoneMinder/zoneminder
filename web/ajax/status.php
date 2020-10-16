@@ -336,7 +336,7 @@ function collectData() {
       }
     }
   }
-  #ZM\Logger::Debug(print_r($data, true));
+  #ZM\Debug(print_r($data, true));
   return $data;
 }
 

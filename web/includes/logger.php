@@ -158,7 +158,7 @@ class Logger {
 
     $this->initialised = true;
 
-    //Logger::Debug( "LogOpts: level=".self::$codes[$this->level]."/".self::$codes[$this->effectiveLevel].", screen=".self::$codes[$this->termLevel].", database=".self::$codes[$this->databaseLevel].", logfile=".self::$codes[$this->fileLevel]."->".$this->logFile.", weblog=".self::$codes[$this->weblogLevel].", syslog=".self::$codes[$this->syslogLevel] );
+    //Debug( "LogOpts: level=".self::$codes[$this->level]."/".self::$codes[$this->effectiveLevel].", screen=".self::$codes[$this->termLevel].", database=".self::$codes[$this->databaseLevel].", logfile=".self::$codes[$this->fileLevel]."->".$this->logFile.", weblog=".self::$codes[$this->weblogLevel].", syslog=".self::$codes[$this->syslogLevel] );
   }
 
   private function terminate() {
@@ -199,9 +199,6 @@ class Logger {
     return self::$instance;
   }
 
-  public static function Debug( $string ) {
-    Logger::fetch()->logPrint( Logger::DEBUG, $string );
-  }
 
   public function id( $id=NULL ) {
     if ( isset($id) && $this->id != $id ) {
@@ -457,6 +454,10 @@ function Dump( &$var, $label='VAR' ) {
   print( $label.' => ' );
   print_r( $var );
   Logger::fetch()->logPrint( Logger::DEBUG, ob_get_clean() );
+}
+
+function Debug( $string ) {
+  Logger::fetch()->logPrint( Logger::DEBUG, $string );
 }
 
 function Info( $string ) {

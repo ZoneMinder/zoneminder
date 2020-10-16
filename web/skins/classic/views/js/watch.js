@@ -1,3 +1,7 @@
+var backBtn = $j('#backBtn');
+var settingsBtn = $j('#settingsBtn');
+var enableAlmBtn = $j('#enableAlmBtn');
+var forceAlmBtn = $j('#forceAlmBtn');
 
 function showEvents() {
   $('ptzControls').addClass('hidden');
@@ -202,22 +206,22 @@ function getStreamCmdResponse(respObj, respText) {
 
       if ( canEditMonitors ) {
         if ( streamStatus.enabled ) {
-          $('enableAlarmsLink').addClass('hidden');
-          $('disableAlarmsLink').removeClass('hidden');
+          enableAlmBtn.addClass('disabled');
+          enableAlmBtn.prop('title', disableAlarmsStr);
           if ( streamStatus.forced ) {
-            $('forceAlarmLink').addClass('hidden');
-            $('cancelAlarmLink').removeClass('hidden');
+            forceAlmBtn.addClass('disabled');
+            forceAlmBtn.prop('title', cancelForcedAlarmStr);
           } else {
-            $('forceAlarmLink').removeClass('hidden');
-            $('cancelAlarmLink').addClass('hidden');
+            forceAlmBtn.removeClass('disabled');
+            forceAlmBtn.prop('title', forceAlarmStr);
           }
-          $('forceCancelAlarm').removeClass('hidden');
+          forceAlmBtn.prop('disabled', false);
         } else {
-          $('enableAlarmsLink').removeClass('hidden');
-          $('disableAlarmsLink').addClass('hidden');
-          $('forceCancelAlarm').addClass('hidden');
+          enableAlmBtn.removeClass('disabled');
+          enableAlmBtn.prop('title', enableAlarmsStr);
+          forceAlmBtn.prop('disabled', true);
         }
-        $('enableDisableAlarms').removeClass('hidden');
+        enableAlmBtn.prop('disabled', false);
       } // end if canEditMonitors
 
       if ( streamStatus.auth ) {
@@ -468,6 +472,14 @@ function cmdEnableAlarms() {
   alarmCmdReq.send(alarmCmdParms+"&command=enableAlarms");
 }
 
+function cmdAlarm() {
+  if ( enableAlmBtn.hasClass('disabled') ) {
+    cmdEnableAlarms();
+  } else {
+    cmdDisableAlarms();
+  }
+}
+
 function cmdForceAlarm() {
   alarmCmdReq.send(alarmCmdParms+"&command=forceAlarm");
   if ( window.event ) {
@@ -481,6 +493,14 @@ function cmdCancelForcedAlarm() {
     window.event.preventDefault();
   }
   return false;
+}
+
+function cmdForce() {
+  if ( forceAlmBtn.hasClass('disabled') ) {
+    cmdCancelForcedAlarm();
+  } else {
+    cmdForceAlarm();
+  }
 }
 
 function getActResponse( respObj, respText ) {
@@ -562,11 +582,9 @@ function getEventCmdResponse( respObj, respText ) {
         var link = new Element('a', {
           'href': '#',
           'events': {
-            'click': createEventPopup.pass( [
+            'click': openEvent.pass( [
               zm_event.Id,
-              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1',
-              zm_event.Width,
-              zm_event.Height
+              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1'
             ] )
           }
         });
@@ -576,11 +594,9 @@ function getEventCmdResponse( respObj, respText ) {
         link = new Element('a', {
           'href': '#',
           'events': {
-            'click': createEventPopup.pass( [
+            'click': openEvent.pass( [
               zm_event.Id,
-              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1',
-              zm_event.Width,
-              zm_event.Height
+              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1'
             ] )
           }
         });
@@ -590,11 +606,11 @@ function getEventCmdResponse( respObj, respText ) {
         row.getElement('td.colTime').set('text', zm_event.StartTime);
         row.getElement('td.colSecs').set('text', zm_event.Length);
 
-        link = new Element('a', {'href': '#', 'events': {'click': createFramesPopup.pass( [zm_event.Id, zm_event.Width, zm_event.Height] )}});
+        link = new Element('a', {'href': '#', 'events': {'click': openFrames.pass( [zm_event.Id] )}});
         link.set('text', zm_event.Frames+'/'+zm_event.AlarmFrames);
         link.inject(row.getElement('td.colFrames'));
 
-        link = new Element('a', {'href': '#', 'events': {'click': createFramePopup.pass( [zm_event.Id, '0', zm_event.Width, zm_event.Height] )}});
+        link = new Element('a', {'href': '#', 'events': {'click': openFrame.pass( [zm_event.Id, '0'] )}});
         link.set('text', zm_event.AvgScore+'/'+zm_event.MaxScore);
         link.inject(row.getElement('td.colScore'));
 
@@ -830,11 +846,7 @@ function updatePresetLabels() {
 function getCtrlPresetModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=controlpreset&mid=' + monitorId)
       .done(function(data) {
-        if ( $j('#ctrlPresetModal').length ) {
-          $j('#ctrlPresetModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('ctrlPresetModal', data.html);
         updatePresetLabels();
         // Manage the Preset Select box
         $j('#preset').change(updatePresetLabels);
@@ -850,11 +862,7 @@ function getCtrlPresetModal() {
 function getSettingsModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=settings&mid=' + monitorId)
       .done(function(data) {
-        if ( $j('#settingsModal').length ) {
-          $j('#settingsModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('settingsModal', data.html);
         // Manage the Save button
         $j('#settingsSubmitModal').click(function(evt) {
           evt.preventDefault();
@@ -916,6 +924,29 @@ function initPage() {
   } else if ( monitorRefresh > 0 ) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+
+  // Manage the SETTINGS button
+  document.getElementById("settingsBtn").addEventListener("click", function onSettingsClick(evt) {
+    evt.preventDefault();
+    $j('#settingsModal').modal('show');
+  });
+
+  // Only enable the settings button for local cameras
+  settingsBtn.prop('disabled', !(monitorType == 'Local' && canViewControl));
 }
 
 // Kick everything off

@@ -58,6 +58,7 @@ Id
 Name
 Query_json
 AutoArchive
+AutoUnarchive
 AutoVideo
 AutoUpload
 AutoEmail
@@ -201,26 +202,18 @@ sub Sql {
             $self->{Sql} .= 'extract( hour_second from E.EndTime )';
           } elsif ( $term->{attr} eq 'EndWeekday' ) {
             $self->{Sql} .= "weekday( E.EndTime )";
-
-# 
           } elsif ( $term->{attr} eq 'ExistsInFileSystem' ) {
             push @{$self->{PostSQLConditions}}, $term;
             $self->{Sql} .= 'TRUE /* ExistsInFileSystem */';
-
-          } elsif ( $term->{attr} eq 'DiskSpace' ) {
-            $self->{Sql} .= 'E.DiskSpace';
           } elsif ( $term->{attr} eq 'DiskPercent' ) {
             $self->{Sql} .= 'zmDiskPercent';
             $self->{HasDiskPercent} = !undef;
-            $self->{HasPreCondition} = !undef;
           } elsif ( $term->{attr} eq 'DiskBlocks' ) {
             $self->{Sql} .= 'zmDiskBlocks';
             $self->{HasDiskBlocks} = !undef;
-            $self->{HasPreCondition} = !undef;
           } elsif ( $term->{attr} eq 'SystemLoad' ) {
             $self->{Sql} .= 'zmSystemLoad';
             $self->{HasSystemLoad} = !undef;
-            $self->{HasPreCondition} = !undef;
           } else {
             $self->{Sql} .= 'E.'.$term->{attr};
           }
@@ -348,6 +341,9 @@ sub Sql {
     if ( $self->{AutoArchive} ) {
       push @auto_terms, 'E.Archived = 0';
     }
+    if ( $self->{AutoUnarchive} ) {
+      push @auto_terms, 'E.Archived = 1';
+    }
     # Don't do this, it prevents re-generation and concatenation.
     # If the file already exists, then the video won't be re-recreated
     if ( $self->{AutoVideo} ) {
@@ -401,7 +397,7 @@ sub Sql {
       $sort_column = 'E.StartTime';
     }
     my $sort_order = $filter_expr->{sort_asc} ? 'ASC' : 'DESC';
-    $sql .= ' ORDER BY '.$sort_column." ".$sort_order;
+    $sql .= ' ORDER BY '.$sort_column.' '.$sort_order;
     if ( $filter_expr->{limit} ) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }

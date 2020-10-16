@@ -34,6 +34,14 @@ parseSort();
 $filterNames = array(''=>translate('ChooseFilter'));
 $filter = NULL;
 
+$fid = 0;
+if ( isset($_REQUEST['Id']) ) {
+  $fid = validInt($_REQUEST['Id']);
+} else if ( isset($_REQUEST['filter[Id]']) ) {
+  $fid = validInt($_REQUEST['filter[Id]']);
+  ZM\Warning("got fid by object id $fid");
+}
+
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
   $filterNames[$Filter->Id()] = $Filter->Id() . ' ' . $Filter->Name();
   if ( $Filter->Background() )
@@ -41,7 +49,7 @@ foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
   if ( $Filter->Concurrent() )
     $filterNames[$Filter->Id()] .= '&';
 
-  if ( isset($_REQUEST['Id']) && ($_REQUEST['Id'] == $Filter->Id()) ) {
+  if ( $fid == $Filter->Id() ) {
     $filter = $Filter;
   }
 }
@@ -52,6 +60,8 @@ if ( !$filter ) {
     # Update our filter object with whatever changes we have made before saving
     $filter->set($_REQUEST['filter']);
   }
+} else {
+  ZM\Debug('filter: ' . print_r($filter,true));
 }
 
 $conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
@@ -215,13 +225,13 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         </p>
 <?php if ( ZM_OPT_USE_AUTH ) { ?>
         <p><label><?php echo translate('FilterUser') ?></label>
-          <?php 
+<?php 
             global $user;
-echo htmlSelect('filter[UserId]',
-  ZM\User::Indexed_By_Id(),
-  //ZM\User::find(),
-  $filter->UserId() ? $filter->UserId() : $user['Id']
-); ?>
+  echo htmlSelect('filter[UserId]',
+    ZM\User::Indexed_By_Id(),
+    $filter->UserId() ? $filter->UserId() : $user['Id']
+  );
+?>
         </p>
 <?php } ?>
         <p>
@@ -233,7 +243,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
   if ( ! isset( $term['op'] ) )
     $term['op'] = '=';
   if ( ! isset( $term['attr'] ) )
-    $term['attr'] = '';
+    $term['attr'] = 'Id';
   if ( ! isset( $term['val'] ) )
     $term['val'] = '';
   if ( ! isset( $term['cnj'] ) )
@@ -345,7 +355,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               </td>
             </tr>
 <?php
-} # end foreach filter
+} # end foreach term
 ?>
           </tbody>
         </table>
@@ -391,6 +401,10 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
             <p>
               <label><?php echo translate('FilterArchiveEvents') ?></label>
               <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( $filter->AutoArchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+            </p>
+            <p>
+              <label><?php echo translate('FilterUnarchiveEvents') ?></label>
+              <input type="checkbox" name="filter[AutoUnarchive]" value="1"<?php if ( $filter->AutoUnarchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
             <p><label><?php echo translate('FilterUpdateDiskSpace') ?></label>
               <input type="checkbox" name="filter[UpdateDiskSpace]" value="1"<?php echo !$filter->UpdateDiskSpace() ? '' : ' checked="checked"' ?> data-on-click-this="updateButtons"/>

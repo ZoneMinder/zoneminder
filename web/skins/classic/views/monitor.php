@@ -835,6 +835,7 @@ include('_monitor_source_nvsocket.php');
   '1600x1200'=>'1600x1200 2MP',
   '1920x1080'=>'1920x1080 1080p',
   '2048x1536'=>'2048x1536 3MP',
+  '2560x1440'=>'2560x1440 1440p QHD WQHD',
   '2592x1944'=>'2592x1944 5MP',
   '3840x2160'=>'3840x2160 4K UHD',
 ), $monitor->Width().'x'.$monitor->Height()

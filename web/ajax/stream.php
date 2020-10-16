@@ -31,19 +31,19 @@ if ( sem_acquire($semaphore,1) !== false ) {
 
   switch ( $_REQUEST['command'] ) {
   case CMD_VARPLAY :
-    ZM\Logger::Debug('Varplaying to '.$_REQUEST['rate']);
+    ZM\Debug('Varplaying to '.$_REQUEST['rate']);
     $msg = pack('lcn', MSG_CMD, $_REQUEST['command'], $_REQUEST['rate']+32768);
     break;
   case CMD_ZOOMIN :
-    ZM\Logger::Debug('Zooming to '.$_REQUEST['x'].','.$_REQUEST['y']);
+    ZM\Debug('Zooming to '.$_REQUEST['x'].','.$_REQUEST['y']);
     $msg = pack('lcnn', MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y']);
     break;
   case CMD_PAN :
-    ZM\Logger::Debug('Panning to '.$_REQUEST['x'].','.$_REQUEST['y']);
+    ZM\Debug('Panning to '.$_REQUEST['x'].','.$_REQUEST['y']);
     $msg = pack('lcnn', MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y']);
     break;
   case CMD_SCALE :
-    ZM\Logger::Debug('Scaling to '.$_REQUEST['scale']);
+    ZM\Debug('Scaling to '.$_REQUEST['scale']);
     $msg = pack('lcn', MSG_CMD, $_REQUEST['command'], $_REQUEST['scale']);
     break;
   case CMD_SEEK :
@@ -53,7 +53,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
       1000000*( $_REQUEST['offset']-intval($_REQUEST['offset'])));
     break;
   default :
-    ZM\Logger::Debug('Sending command ' . $_REQUEST['command']);
+    ZM\Debug('Sending command ' . $_REQUEST['command']);
     $msg = pack('lc', MSG_CMD, $_REQUEST['command']);
     break;
   }
@@ -67,7 +67,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
     // WHY? We will just send another one... 
     // ANSWER: Because otherwise we get a log of errors logged
 
-    //ZM\Logger::Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
+    //ZM\Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
     usleep(1000);
   }
 
@@ -126,16 +126,16 @@ if ( sem_acquire($semaphore,1) !== false ) {
       $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
       if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
         $data['auth'] = $auth_hash;
-        ZM\Logger::Debug("including nw auth hash " . $data['auth']);
+        ZM\Debug("including nw auth hash " . $data['auth']);
       } else {
-        ZM\Logger::Debug('Not including nw auth hash becase it hashn\'t changed '.$auth_hash);
+        ZM\Debug('Not including nw auth hash becase it hashn\'t changed '.$auth_hash);
       } 
     }
     ajaxResponse(array('status'=>$data));
     break;
   case MSG_DATA_EVENT :
     if ( version_compare( phpversion(), '5.6.0', '<') ) {
-      ZM\Logger::Debug('Using old unpack methods to handle 64bit event id');
+      ZM\Debug('Using old unpack methods to handle 64bit event id');
       $data = unpack('ltype/ieventlow/ieventhigh/dduration/dprogress/irate/izoom/Cpaused', $msg);
       $data['event'] = $data['eventhigh'] << 32 | $data['eventlow'];
     } else {
@@ -156,7 +156,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
   }
   sem_release($semaphore);
 } else {
-  ZM\Logger::Debug('Couldn\'t get semaphore');
+  ZM\Debug('Couldn\'t get semaphore');
   ajaxResponse(array());
 }
 

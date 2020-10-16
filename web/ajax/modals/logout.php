@@ -49,6 +49,7 @@ if ( ! $result ) return;
 $current_session = $_SESSION;
 zm_session_start();
 
+$user_cache = array();
 while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
   $_SESSION = array();
   if ( ! session_decode($row['data']) ) {
@@ -63,10 +64,15 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
     # Not logged in
     continue;
   }
-  $user = ZM\User::find_one(array('Username'=>$_SESSION['username']));
-  if ( ! $user ) {
-    ZM\Logger::Debug('User not found for ' . $_SESSION['username']);
-    continue;
+  if ( isset($user_cache[$_SESSION['username']]) ) {
+    $user = $user_cache[$_SESSION['username']];
+  } else {
+    $user = ZM\User::find_one(array('Username'=>$_SESSION['username']));
+    if ( ! $user ) {
+      ZM\Debug('User not found for ' . $_SESSION['username']);
+      continue;
+    }
+    $user_cache[$_SESSION['username']] = $user;
   }
 
   echo '

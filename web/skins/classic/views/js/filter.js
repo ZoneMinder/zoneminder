@@ -56,6 +56,7 @@ function validateForm(form) {
   } else if ( form.elements['filter[Background]'].checked ) {
     if ( ! (
       form.elements['filter[AutoArchive]'].checked ||
+      form.elements['filter[AutoUnarchive]'].checked ||
       form.elements['filter[UpdateDiskSpace]'].checked ||
       form.elements['filter[AutoVideo]'].checked ||
       form.elements['filter[AutoEmail]'].checked ||
@@ -78,6 +79,8 @@ function updateButtons(element) {
   } else {
     var canExecute = false;
     if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
+      canExecute = true;
+    } else if ( form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked ) {
       canExecute = true;
     } else if ( form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked ) {
       canExecute = true;
@@ -171,7 +174,6 @@ function submitToMontageReview(element) {
 function submitToExport(element) {
   var form = element.form;
   window.location.assign('?view=export&'+$j(form).serialize());
-  //createPopup('?view=export&filter_id='+form.elements['Id'].value, 'zmExport', 'export' );
 }
 
 function executeFilter( element ) {
@@ -408,13 +410,7 @@ function getModal(id) {
           return;
         }
 
-        if ( $j('#'+id).length ) {
-          console.log("replacing");
-          $j('#'+id).replaceWith(data.html);
-        } else {
-          console.log("Adding to body"+data.html);
-          $j('body').append(data.html);
-        }
+        insertModalHtml(id, data.html);
         manageModalBtns(id);
         modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {

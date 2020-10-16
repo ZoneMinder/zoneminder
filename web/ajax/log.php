@@ -252,7 +252,7 @@ switch ( $_REQUEST['task'] ) {
       ZM\Fatal('Can\'t create exports dir at \''.ZM_DIR_EXPORTS.'\'');
     }
     $exportPath = ZM_DIR_EXPORTS.'/zm-log-'.$exportKey.$exportExt;
-    ZM\Logger::Debug("Exporting to $exportPath");
+    ZM\Debug("Exporting to $exportPath");
     if ( !($exportFP = fopen($exportPath, 'w')) )
       ZM\Fatal("Unable to open log export file $exportPath");
     $logs = array();
@@ -261,7 +261,7 @@ switch ( $_REQUEST['task'] ) {
       $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
       $logs[] = $log;
     }
-    ZM\Logger::Debug(count($logs).' lines being exported by '.$sql.implode(',', $values));
+    ZM\Debug(count($logs).' lines being exported by '.$sql.implode(',', $values));
 
   switch( $format ) {
     case 'text' :

@@ -60,7 +60,7 @@ if ( isset($_SESSION['montageReviewFilter']) and !$eids ) {
   #unset($_SESSION['montageReviewFilter']);
   #session_write_close();
 #} else {
-#Logger::Debug("NO montageReviewFilter");
+#Debug("NO montageReviewFilter");
 }
 
 $exportFormat = '';

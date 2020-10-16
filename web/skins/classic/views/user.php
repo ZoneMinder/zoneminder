@@ -69,6 +69,7 @@ xhtmlHeaders(__FILE__, translate('User').' - '.$newUser->Username());
     </div>
     <div id="content" class="row justify-content-center">
       <form id="contentForm" name="contentForm" method="post" action="?view=user">
+        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? $_REQUEST['prev'] : 'options&tab=users' ?>"/>
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($_REQUEST['uid']) ?>"/>
         <table id="contentTable" class="table">
           <tbody>

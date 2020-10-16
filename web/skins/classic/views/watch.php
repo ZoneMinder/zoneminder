@@ -59,23 +59,23 @@ noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 ?>
 <body>
-  <div id="page">
-  <?php if ( !$popup ) echo getNavBarHTML() ?>
-    <div id="header">
-        <div id="monitorName"><?php echo validHtmlStr($monitor->Name()) ?></div>
-        <div id="menuControls">
-<?php
-if ( canView('Control') && $monitor->Type() == 'Local' ) {
-?>
-          <div id="settingsControl">
-            <button type="button" data-toggle="modal" data-target="#settingsModal"><?php echo translate('Settings') ?></button>
-          </div>
-<?php
-}
-?>
-          <div id="scaleControl"><?php echo translate('Scale').': '.htmlSelect('scale', $scales, $scale, array('id'=>'scale')); ?></div>
-        </div>
-        <div id="closeControl"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+  <?php echo getNavBarHTML() ?>
+    <div class="d-flex flex-row justify-content-between px-3 py-1">
+      <div>
+        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button type="button" id="settingsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Settings') ?>" disabled><i class="fa fa-sliders"></i></button>
+        <button type="button" id="enableAlmBtn" class="btn btn-normal" data-on-click="cmdAlarm" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DisableAlarms') ?>" disabled><i class="fa fa-bell"></i></button>
+        <button type="button" id="forceAlmBtn" class="btn btn-danger" data-on-click="cmdForce" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ForceAlarm') ?>" disabled><i class="fa fa-exclamation-circle"></i></button>
+      </div>
+
+      <div>
+        <h2><?php echo validHtmlStr($monitor->Name()) ?></h2>
+      </div>
+
+      <div>
+        <?php echo translate('Scale').': '.htmlSelect('scale', $scales, $scale, array('id'=>'scale')); ?>
+      </div>
     </div>
 <?php
 if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
@@ -94,20 +94,6 @@ if ( $streamMode == 'jpeg' ) {
 
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>
       <div id="monitorStatus">
-<?php if ( canEdit('Monitors') ) { ?>
-        <div id="enableDisableAlarms">
-          <button type="button" id="enableAlarmsLink" data-on-click="cmdEnableAlarms" class="hidden">
-          <?php echo translate('EnableAlarms') ?></button>
-          <button type="button" id="disableAlarmsLink" data-on-click="cmdDisableAlarms" class="hidden">
-          <?php echo translate('DisableAlarms') ?></button>
-        </div>
-        <div id="forceCancelAlarm">
-            <button type="button" id="forceAlarmLink" data-on-click="cmdForceAlarm"><?php echo translate('ForceAlarm') ?></button>
-            <button type="button" id="cancelAlarmLink" data-on-click="cmdCancelForcedAlarm" class="hidden"><?php echo translate('CancelForcedAlarm') ?></button>
-        </div>
-<?php
-}
-?>
         <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
       </div>
       <div id="dvrControls">

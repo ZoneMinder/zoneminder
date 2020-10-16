@@ -240,7 +240,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
   $j(document).ready(function() {
     // Load the Logout and State modals into the dom
-    getLogoutModal();
+    $j('#logoutButton').click(getLogoutModal());
     if ( canEditSystem ) $j('#stateModalBtn').click(getStateModal);
 
     // Trigger autorefresh of the widget bar stats on the navbar

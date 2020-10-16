@@ -737,7 +737,7 @@ function getAcctCircleHTML($skin, $user=null) {
   if ( ZM_OPT_USE_AUTH and $user ) {
     $result .= '<p id="getAcctCircleHTML" class="navbar-text mr-2">'.PHP_EOL;
     $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  $user['Username'],
-      (ZM_AUTH_TYPE == 'builtin'), 'data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
+      (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</p>'.PHP_EOL;
   }
   

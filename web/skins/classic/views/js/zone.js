@@ -439,10 +439,8 @@ function drawZonePoints() {
       });
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
   scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
-  console.log("Scale = width: " + imageFrame.clientWidth);
 
   for ( var i = 0; i < zone['Points'].length; i++ ) {
-    console.log("scale: " + scale + " x " + zone['Points'][i].x + " = " + Math.round(zone['Points'][i].x * scale));
     var div = new Element('div', {
       'id': 'point'+i,
       'data-point-index': i,
@@ -470,12 +468,9 @@ function drawZonePoints() {
   } );
 
   for ( var i = 0; i < zone['Points'].length; i++ ) {
-    var row;
-    row = new Element('tr', {'id': 'row'+i});
+    var row = new Element('tr', {'id': 'row'+i});
     row.addEvent('mouseover', highlightOn.pass(i));
     row.addEvent('mouseout', highlightOff.pass(i));
-    //row.onmouseover = highlightOn.pass(i)
-    //row.onmouseout = window['highlightOff'].bind(div, div);
     var cell = new Element('td');
     cell.set('text', i+1);
     cell.inject(row);
@@ -669,6 +664,8 @@ function initPage() {
     el.addEventListener("load", imageLoadEvent, {passive: true});
   });
   window.addEventListener("resize", drawZonePoints, {passive: true});
+  // if the image link is broken for some reason we won't draw the points, so do it manually
+  drawZonePoints();
 
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {

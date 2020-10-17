@@ -790,6 +790,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
   $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
   
   $result .= '<table id="contentStatsTable' .$row. '"'.PHP_EOL;
+    $result .= 'data-locale="' .i18n(). '"'.PHP_EOL;
     $result .= 'data-toggle="table"'.PHP_EOL;
     $result .= 'data-toolbar="#toolbar"'.PHP_EOL;
     $result .= 'class="table-sm table-borderless contentStatsTable"'.PHP_EOL;

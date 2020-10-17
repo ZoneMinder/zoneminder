@@ -49,6 +49,7 @@ xhtmlHeaders(__FILE__, translate('Devices') );
     <div id="content" class="row justify-content-center">
         <table
           id="devicesTable"
+          data-locale="<?php echo i18n() ?>"
           class="table-sm table-borderless"
           data-search="true"
           data-cookie="true"

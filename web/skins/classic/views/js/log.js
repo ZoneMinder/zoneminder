@@ -27,7 +27,7 @@ var params =
 
 // Called by bootstrap-table to retrieve zm log data
 function ajaxRequest(params) {
-  $j.getJSON(thisUrl + '?view=request&request=newlog&task=query', params.data)
+  $j.getJSON(thisUrl + '?view=request&request=log&task=query', params.data)
       .done(function(data) {
         //console.log('Ajax parameters: ' + JSON.stringify(params));
         // rearrange the result into what bootstrap-table expects

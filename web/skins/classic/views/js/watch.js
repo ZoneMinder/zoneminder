@@ -848,7 +848,7 @@ function initPage() {
     if ( refreshApplet && appletRefreshTime ) {
       appletRefresh.delay(appletRefreshTime*1000);
     }
-    if ( scale == 'auto' ) changeScale();
+    if ( scale == 'auto' || scale == '0' ) changeScale();
     if ( window.history.length == 1 ) {
       $j('#closeControl').html('');
     }
@@ -858,7 +858,7 @@ function initPage() {
   } else if ( monitorRefresh > 0 ) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }
-}
+}  // initPage
 
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);

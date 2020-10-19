@@ -186,9 +186,11 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $rows = array();
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
     // Modify the row data as needed
+    $row['Name'] = validHtmlStr($row['Name']);
+    $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
+    $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     $row['Monitor'] = ( $row['MonitorId'] and isset($MonitorById[$row['MonitorId']]) ) ? $MonitorById[$row['MonitorId']]->Name() : '';
-    $row['Archived'] = $row['Archived'] ? 'Yes' : 'No';
-    $row['Emailed'] = $row['Emailed'] ? 'Yes' : 'No';
+    $row['Cause'] = validHtmlStr($row['Cause']);
     $row['StartTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
     $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
     $row['Length'] = gmdate('H:i:s', $row['Length'] );

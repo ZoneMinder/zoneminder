@@ -46,7 +46,18 @@ function ajaxRequest(params) {
 }
 
 function processRows(rows) {
-  // TO-DO: Inject desired html for the cells in each row
+  // WIP: Inject desired html and formatting for the cells in each row
+  $j.each(rows, function(ndx, row) {
+    var eid = row.Id;
+    var mid = row.MonitorId;
+    var archived = row.Archived == yesString ? archivedString : '';
+    var emailed = row.Emailed == yesString ? emailedString : '';
+
+    row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
+    row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>'
+               + '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
+    row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
+  });
 
   return rows;
 }

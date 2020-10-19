@@ -34,7 +34,7 @@ $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
 $advsearch = isset($_REQUEST['filter']) ? json_decode($_REQUEST['filter'], JSON_OBJECT_AS_ARRAY) : array();
 
 // Sort specifies the name of the column to sort on
-$sort = 'AttrStartTime';
+$sort = 'StartTime';
 if ( isset($_REQUEST['sort']) ) {
   if ( !in_array($_REQUEST['sort'], array_merge($columns, $col_alt)) ) {
     ZM\Error('Invalid sort field: ' . $_REQUEST['sort']);
@@ -120,7 +120,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $table = 'Events';
 
   // The names of the dB columns in the log table we are interested in
-  $columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartTime', 'EndTime', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'DiskSpace');
+  $columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartTime', 'EndTime', 'Length', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'DiskSpace');
 
   // The names of columns shown in the log view that are NOT dB columns in the database
   $col_alt = array('Monitor', 'Storage');
@@ -186,10 +186,14 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $rows = array();
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
     // Modify the row data as needed
+    $row['Monitor'] = ( $row['MonitorId'] and isset($MonitorById[$row['MonitorId']]) ) ? $MonitorById[$row['MonitorId']]->Name() : '';
+    $row['Archived'] = $row['Archived'] ? 'Yes' : 'No';
+    $row['Emailed'] = $row['Emailed'] ? 'Yes' : 'No';
     $row['StartTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
     $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
-    $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : '';
-    $row['Monitor'] = ( $row['MonitorId'] and isset($MonitorById[$row['MonitorId']]) ) ? $MonitorById[$row['MonitorId']]->Name() : '';
+    $row['Length'] = gmdate('H:i:s', $row['Length'] );
+    $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
+    $row['DiskSpace'] = human_filesize($row['DiskSpace']);
     $rows[] = $row;
   }
   $data['rows'] = $rows;

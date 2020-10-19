@@ -8,6 +8,49 @@ var downloadBtn = $j('#downloadBtn');
 var deleteBtn = $j('#deleteBtn');
 var table = $j('#eventTable');
 
+/*
+This is the format of the json object sent by bootstrap-table
+
+var params =
+{
+"type":"get",
+"data":
+  {
+  "search":"some search text",
+  "sort":"StartTime",
+  "order":"asc",
+  "offset":0,
+  "limit":25
+  "filter":
+    {
+    "Name":"some advanced search text"
+    "StartTime":"some more advanced search text"
+    }
+  },
+"cache":true,
+"contentType":"application/json",
+"dataType":"json"
+};
+*/
+
+// Called by bootstrap-table to retrieve zm event data
+function ajaxRequest(params) {
+  $j.getJSON(thisUrl + '?view=request&request=events&task=query', params.data)
+      .done(function(data) {
+        //console.log('Ajax parameters: ' + JSON.stringify(params));
+        // rearrange the result into what bootstrap-table expects
+        var rows = processRows(data.rows);
+        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+      })
+      .fail(logAjaxFail);
+}
+
+function processRows(rows) {
+  // TO-DO: Inject desired html for the cells in each row
+
+  return rows;
+}
+
 function thumbnail_onmouseover(event) {
   var img = event.target;
   img.src = '';

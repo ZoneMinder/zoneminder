@@ -1,3 +1,13 @@
+var backBtn = $j('#backBtn');
+var viewBtn = $j('#viewBtn');
+var archiveBtn = $j('#archiveBtn');
+var unarchiveBtn = $j('#unarchiveBtn');
+var editBtn = $j('#editBtn');
+var exportBtn = $j('#exportBtn');
+var downloadBtn = $j('#downloadBtn');
+var deleteBtn = $j('#deleteBtn');
+var table = $j('#eventTable');
+
 function thumbnail_onmouseover(event) {
   var img = event.target;
   img.src = '';
@@ -56,7 +66,7 @@ function manageDelConfirmModalBtns() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='))
+    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);
@@ -85,16 +95,6 @@ function getEventDetailModal(eid) {
 }
 
 function initPage() {
-  var backBtn = $j('#backBtn');
-  var viewBtn = $j('#viewBtn');
-  var archiveBtn = $j('#archiveBtn');
-  var unarchiveBtn = $j('#unarchiveBtn');
-  var editBtn = $j('#editBtn');
-  var exportBtn = $j('#exportBtn');
-  var downloadBtn = $j('#downloadBtn');
-  var deleteBtn = $j('#deleteBtn');
-  var table = $j('#eventTable');
-
   // Load the delete confirmation modal into the DOM
   getDelConfirmModal();
 
@@ -169,7 +169,7 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=archive&eids[]='+selections.join('&eids[]='))
+    $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);
@@ -188,7 +188,7 @@ function initPage() {
     console.log(selections);
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=unarchive&eids[]='+selections.join('&eids[]='))
+    $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);

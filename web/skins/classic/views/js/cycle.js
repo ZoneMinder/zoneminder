@@ -40,6 +40,8 @@ function cyclePrev() {
 
 function initCycle() {
   periodical_id = nextCycleView.periodical(cycleRefreshTimeout);
+  var scale = $j('#scale').val();
+  if ( scale == '0' || scale == 'auto' ) changeScale();
 }
 
 function changeSize() {
@@ -89,8 +91,6 @@ function changeScale() {
   Cookie.write('zmCycleScale', scale, {duration: 10*365});
   Cookie.write('zmCycleWidth', 'auto', {duration: 10*365});
   Cookie.write('zmCycleHeight', 'auto', {duration: 10*365});
-  var newWidth = ( monitorData[monIdx].width * scale ) / SCALE_BASE;
-  var newHeight = ( monitorData[monIdx].height * scale ) / SCALE_BASE;
 
   // Scale the frame
   monitor_frame = $j('#imageFeed');
@@ -100,6 +100,8 @@ function changeScale() {
   }
 
   if ( scale != '0' && scale != '' && scale != 'auto' ) {
+    var newWidth = ( monitorData[monIdx].width * scale ) / SCALE_BASE;
+    var newHeight = ( monitorData[monIdx].height * scale ) / SCALE_BASE;
     if ( newWidth ) {
       monitor_frame.css('width', newWidth+'px');
     }
@@ -107,8 +109,13 @@ function changeScale() {
       monitor_frame.css('height', newHeight+'px');
     }
   } else {
-    monitor_frame.css('width', '100%');
-    monitor_frame.css('height', 'auto');
+    //var bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
+    var newSize = scaleToFit(monitorData[monIdx].width, monitorData[monIdx].height, monitor_frame, $j('#buttons'));
+    newWidth = newSize.width;
+    newHeight = newSize.height;
+    autoScale = newSize.autoScale;
+    monitor_frame.width(newWidth);
+    monitor_frame.height(newHeight);
   }
 
   /*Stream could be an applet so can't use moo tools*/
@@ -124,6 +131,7 @@ function changeScale() {
 
     //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
     src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
+    // zms doesn't actually use width&height
     if ( scale != '0' && scale != '' && scale != 'auto' ) {
       src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
       src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);

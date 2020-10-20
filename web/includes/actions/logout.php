@@ -21,8 +21,10 @@
 
 if ( $action == 'logout' ) {
   userLogout();
-  $refreshParent = true;
-  $view = 'none';
-  $closePopup = true;
+  $view = 'login';
+  ZM\Logger::Debug("User: " . print_r($user,true));
+} elseif ( $action == 'config' ) {
+  $redirect = '?view=user&uid='.$user['Id'];
 }
+
 ?>

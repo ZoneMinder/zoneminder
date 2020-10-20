@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -29,7 +29,7 @@ use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use POSIX qw/strftime EPIPE/;
 use Socket;
-#use Data::Dumper;
+use Data::Dumper;
 use Module::Load::Conditional qw{can_load};
 
 use constant MAX_CONNECT_DELAY => 15;
@@ -41,8 +41,6 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-logInit();
-
 my $arg_string = join(' ', @ARGV);
 
 my $id;
@@ -51,9 +49,9 @@ my %options;
 GetOptions(
   'id=i'          =>\$id,
   'command=s'     =>\$options{command},
-  'xcoord=i'      =>\$options{xcoord},
-  'ycoord=i'      =>\$options{ycoord},
-  'speed=i'       =>\$options{speed},
+  'xcoord=f'      =>\$options{xcoord},
+  'ycoord=f'      =>\$options{ycoord},
+  'speed=f'       =>\$options{speed},
   'step=i'        =>\$options{step},
   'panspeed=i'    =>\$options{panspeed},
   'tiltspeed=i'   =>\$options{tiltspeed},
@@ -69,6 +67,7 @@ if ( !$id ) {
 }
 
 ( $id ) = $id =~ /^(\w+)$/;
+logInit($id?(id=>'zmcontrol_'.$id):());
 
 my $sock_file = $Config{ZM_PATH_SOCKS}.'/zmcontrol-'.$id.'.sock';
 Debug("zmcontrol: arg string: $arg_string sock file $sock_file");
@@ -83,8 +82,8 @@ if ( $options{command} ) {
   my $tries = 10;
   my $server_up;
   while ( $tries and ! ( $server_up = connect(CLIENT, $saddr) ) ) {
-    Debug("Failed to connect to $server_up at $sock_file");
-    runCommand("zmdc.pl start zmcontrol.pl --id=$id");
+    Debug("Failed to connect to zmcontrol server at $sock_file");
+    runCommand("zmdc.pl start zmcontrol.pl --id $id");
     sleep 1;
     $tries -= 1;
   }
@@ -109,6 +108,9 @@ if ( $options{command} ) {
     Fatal("Unable to load control data for monitor $id");
   }
   my $protocol = $monitor->{Protocol};
+  if ( !$protocol ) {
+    Fatal('No protocol is set in monitor. Please edit the monitor, edit control type, select the control capability and fill in the Protocol field');
+  }
 
   if ( -x $protocol ) {
     # Protocol is actually a script!
@@ -140,9 +142,9 @@ if ( $options{command} ) {
     .strftime('%y/%m/%d %H:%M:%S', localtime())
   );
 
-  $0 = $0." --id=$id";
+  $0 = $0.' --id '.$id;
 
-  my $control = "ZoneMinder::Control::$protocol"->new($id);
+  my $control = ('ZoneMinder::Control::'.$protocol)->new($id);
   my $control_key = $control->getKey();
   $control->loadMonitor();
 
@@ -174,14 +176,17 @@ if ( $options{command} ) {
         next if !$message;
 
         my $params = jsonDecode($message);
-        #Debug( Dumper( $params ) );
+        Debug( Dumper( $params ) );
 
         my $command = $params->{command};
-        close( CLIENT );
+        close(CLIENT);
         if ( $command eq 'quit' ) {
           last;
+        } elsif ( $command ) {
+          $control->$command($params);
+        } else {
+          Warning("No command in $message");
         }
-        $control->$command($params);
       } else {
         Fatal('Bogus descriptor');
       }

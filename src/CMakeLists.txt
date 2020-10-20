@@ -1,7 +1,7 @@
 # CMakeLists.txt for the ZoneMinder binaries
 
 # Create files from the .in files
-configure_file(zm_config.h.in "${CMAKE_CURRENT_BINARY_DIR}/zm_config.h" @ONLY)
+configure_file(zm_config_data.h.in "${CMAKE_CURRENT_BINARY_DIR}/zm_config_data.h" @ONLY)
 
 # Group together all the source files that are used by all the binaries (zmc, zmu, zms etc)
 set(ZM_BIN_SRC_FILES
@@ -27,6 +27,7 @@ set(ZM_BIN_SRC_FILES
  zm_image.cpp
  zm_jpeg.cpp
  zm_libvlc_camera.cpp
+ zm_libvnc_camera.cpp
  zm_local_camera.cpp
  zm_monitor.cpp
  zm_monitorstream.cpp
@@ -79,7 +80,7 @@ target_link_libraries(zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} ${CMAKE_DL_LIBS} bc
 
 # Generate man files for the binaries destined for the bin folder
 FOREACH(CBINARY zmc zmu)
-    POD2MAN(${CMAKE_CURRENT_SOURCE_DIR}/${CBINARY}.cpp zoneminder-${CBINARY} 8 ${ZM_MANPAGE_DEST_PREFIX})
+    POD2MAN(${CMAKE_CURRENT_SOURCE_DIR}/${CBINARY}.cpp ${CBINARY} 8 ${ZM_MANPAGE_DEST_PREFIX})
 ENDFOREACH(CBINARY zmc zmu)
 
 install(TARGETS zmc zmu RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

@@ -20,6 +20,7 @@ class FFmpeg_Input {
     ~FFmpeg_Input();
 
     int Open( const char *filename );
+    int Open( const AVStream *, const AVStream * );
     int Close();
     AVFrame *get_frame( int stream_id=-1 );
     AVFrame *get_frame( int stream_id, double at );
@@ -42,6 +43,7 @@ class FFmpeg_Input {
     int audio_stream_id;
     AVFormatContext *input_format_context;
     AVFrame *frame;
+		int64_t last_seek_request;
 };
 
 #endif

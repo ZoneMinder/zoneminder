@@ -21,8 +21,23 @@
 // This file should only contain static JavaScript and no php.
 // Use skin.js.php for JavaScript that need pre-processing
 //
-
 var popupOptions = "resizable,scrollbars,status=no,toolbar=yes";
+
+// Globally define the icons used in the bootstrap-table top-right toolbar
+var icons = {
+  paginationSwitchDown: 'fa-caret-square-o-down',
+  paginationSwitchUp: 'fa-caret-square-o-up',
+  export: 'fa-download',
+  refresh: 'fa-retweet',
+  autoRefresh: 'fa-clock-o',
+  advancedSearchIcon: 'fa-chevron-down',
+  toggleOff: 'fa-toggle-off',
+  toggleOn: 'fa-toggle-on',
+  columns: 'fa-th-list',
+  fullscreen: 'fa-arrows-alt',
+  detailOpen: 'fa-plus',
+  detailClose: 'fa-minus'
+};
 
 function checkSize() {
   if ( 0 ) {
@@ -98,8 +113,8 @@ function getPopupSize( tag, width, height ) {
   return popupSize;
 }
 
-function zmWindow() {
-  var zmWin = window.open( 'http://www.zoneminder.com', 'ZoneMinder' );
+function zmWindow(sub_url) {
+  var zmWin = window.open( 'https://www.zoneminder.com'+(sub_url?sub_url:''), 'ZoneMinder' );
   if ( ! zmWin ) {
     // if popup blocking is enabled, the popup won't be defined.
     console.log("Please disable popup blocking.");
@@ -160,7 +175,23 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     });
   });
 
-  document.querySelectorAll(".tabList a").forEach(function addOnClick(el) {
+  document.querySelectorAll(".zmlink").forEach(function(el) {
+    el.addEventListener("click", function onClick(evt) {
+      var el = this;
+      var url;
+      if ( el.hasAttribute("href") ) {
+        // <a>
+        url = el.getAttribute("href");
+      } else {
+        // buttons
+        url = el.getAttribute("data-url");
+      }
+      evt.preventDefault();
+      window.location.assign(url);
+    });
+  });
+
+  document.querySelectorAll(".pillList a").forEach(function addOnClick(el) {
     el.addEventListener("click", submitTab);
   });
 
@@ -168,21 +199,22 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
     if ( !window[fnName] ) {
-      console.error("Nothing found to bind to " + fnName);
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
       return;
     }
     el.onclick = window[fnName].bind(el, el);
   });
 
   // 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
-  document.querySelectorAll("a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
+  document.querySelectorAll("i[data-on-click], a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click");
     if ( !window[fnName] ) {
-      console.error("Nothing found to bind to " + fnName);
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
       return;
     }
-    el.onclick = function() {
-      window[fnName]();
+
+    el.onclick = function(ev) {
+      window[fnName](ev);
     };
   });
 
@@ -216,6 +248,26 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       return;
     }
     el.onchange = window[fnName];
+  });
+
+  // 'data-on-input' adds an event listener for the global function in the attribute value when an input happens.
+  document.querySelectorAll("input[data-on-input]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-input");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
+    el.oninput = window[fnName];
+  });
+
+  // 'data-on-input-this' calls the global function in the attribute value with the element when an input happens.
+  document.querySelectorAll("input[data-on-input-this]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-input-this");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
+    el.oninput = window[fnName].bind(el, el);
   });
 });
 
@@ -272,6 +324,9 @@ function closeWindow() {
 function refreshWindow() {
   window.location.reload( true );
 }
+function backWindow() {
+  window.history.back();
+}
 
 function refreshParentWindow() {
   if ( refreshParent ) {
@@ -289,16 +344,112 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
+    // Load the Logout and State modals into the dom
+    getLogoutModal();
+    if ( canEditSystem ) $j('#stateModalBtn').click(getStateModal);
+
+    // Trigger autorefresh of the widget bar stats on the navbar
     if ( $j('.navbar').length ) {
       setInterval(getNavBar, navBarRefresh);
     }
+    // Workaround Bootstrap-Mootools conflict
+    var bootstrapLoaded = (typeof $j().carousel == 'function');
+    var mootoolsLoaded = (typeof MooTools != 'undefined');
+    if (bootstrapLoaded && mootoolsLoaded) {
+      Element.implement({
+        hide: function() {
+          return this;
+        },
+        show: function(v) {
+          return this;
+        },
+        slide: function(v) {
+          return this;
+        }
+      });
+    }
+    // Update zmBandwidth cookie when the user makes a selection from the dropdown
+    bwClickFunction();
+    // Update update reminders when the user makes a selection from the dropdown
+    reminderClickFunction();
+    // Manage the widget bar minimize chevron
+    $j("#flip").click(function() {
+      $j("#panel").slideToggle("slow");
+      var flip = $j("#flip");
+      if ( flip.html() == 'keyboard_arrow_up' ) {
+        flip.html('keyboard_arrow_down');
+        Cookie.write('zmHeaderFlip', 'down', {duration: 10*365} );
+      } else {
+        flip.html('keyboard_arrow_up');
+        Cookie.write('zmHeaderFlip', 'up', {duration: 10*365} );
+      }
+    });
+    // Manage the web console filter bar minimize chevron
+    $j("#fbflip").click(function() {
+      $j("#fbpanel").slideToggle("slow");
+      var fbflip = $j("#fbflip");
+      if ( fbflip.html() == 'keyboard_arrow_up' ) {
+        fbflip.html('keyboard_arrow_down');
+        Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365} );
+      } else {
+        fbflip.html('keyboard_arrow_up');
+        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365} );
+        $j('.chosen').chosen("destroy");
+        $j('.chosen').chosen();
+      }
+    });
+
+    // Manage the web console filter bar minimize chevron
+    $j("#mfbflip").click(function() {
+      $j("#mfbpanel").slideToggle("slow");
+      var mfbflip = $j("#mfbflip");
+      if ( mfbflip.html() == 'keyboard_arrow_up' ) {
+        mfbflip.html('keyboard_arrow_down');
+        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365} );
+      } else {
+        mfbflip.html('keyboard_arrow_up');
+        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365} );
+        $j('.chosen').chosen("destroy");
+        $j('.chosen').chosen();
+      }
+    });
+    // Autoclose the hamburger button if the end user clicks outside the button
+    $j(document).click(function(event) {
+      var target = $j(event.target);
+      var _mobileMenuOpen = $j("#main-header-nav").hasClass("show");
+      if (_mobileMenuOpen === true && !target.hasClass("navbar-toggler")) {
+        $j("button.navbar-toggler").click();
+      }
+    });
+    // Manage the optionhelp links
+    $j(".optionhelp").click(function(evt) {
+      $j.getJSON(thisUrl + '?request=modal&modal=optionhelp&ohndx=' + evt.target.id)
+          .done(optionhelpModal)
+          .fail(logAjaxFail);
+    });
   });
+
+  // Manage the modal html we received after user clicks help link
+  function optionhelpModal(data) {
+    if ( $j('#optionhelp').length ) {
+      $j('#optionhelp').replaceWith(data.html);
+    } else {
+      $j("body").append(data.html);
+    }
+    $j('#optionhelp').modal('show');
+
+    // Manage the CLOSE optionhelp modal button
+    document.getElementById("ohCloseBtn").addEventListener("click", function onOhCloseClick(evt) {
+      $j('#optionhelp').modal('hide');
+    });
+  }
 
   function getNavBar() {
     $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar')
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
+          console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, ''));
           if ( textStatus != "timeout" ) {
           // The idea is that this should only fail due to auth, so reload the page
           // which should go to login if it can't stay logged in.
@@ -308,13 +459,23 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function setNavBar(data) {
+    if ( !data ) {
+      console.error("No data in setNavBar");
+      return;
+    }
     if ( data.auth ) {
       if ( data.auth != auth_hash ) {
         // Update authentication token.
         auth_hash = data.auth;
       }
     }
-    $j('#reload').replaceWith(data.message);
+    // iterate through all the keys then update each element id with the same name
+    for (var key of Object.keys(data)) {
+      if ( key == "auth" ) continue;
+      if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
+      if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
+      if ( key == 'getBandwidthHTML' ) bwClickFunction();
+    }
   }
 }
 
@@ -373,6 +534,10 @@ function submitTab(evt) {
 }
 
 function submitThisForm() {
+  if ( ! this.form ) {
+    console.log("No this.form.  element with onchange is not in a form");
+    return;
+  }
   this.form.submit();
 }
 
@@ -429,10 +594,37 @@ function convertLabelFormat(LabelFormat, monitorName) {
   //convert label format from strftime to moment's format (modified from
   //https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
   //added %f and %N below (TODO: add %Q)
-  var replacements = {"a": 'ddd', "A": 'dddd', "b": 'MMM', "B": 'MMMM', "d": 'DD', "e": 'D', "F": 'YYYY-MM-DD', "H": 'HH', "I": 'hh', "j": 'DDDD', "k": 'H', "l": 'h', "m": 'MM', "M": 'mm', "p": 'A', "S": 'ss', "u": 'E', "w": 'd', "W": 'WW', "y": 'YY', "Y": 'YYYY', "z": 'ZZ', "Z": 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%'};
+  var replacements = {
+    'a': 'ddd',
+    'A': 'dddd',
+    'b': 'MMM',
+    'B': 'MMMM',
+    'd': 'DD',
+    'e': 'D',
+    'F': 'YYYY-MM-DD',
+    'H': 'HH',
+    'I': 'hh',
+    'j': 'DDDD',
+    'k': 'H',
+    'l': 'h',
+    'm': 'MM',
+    'M': 'mm',
+    'p': 'A',
+    'r': 'hh:mm:ss A',
+    'S': 'ss',
+    'u': 'E',
+    'w': 'd',
+    'W': 'WW',
+    'y': 'YY',
+    'Y': 'YYYY',
+    'z': 'ZZ',
+    'Z': 'z',
+    'f': 'SS',
+    'N': '['+monitorName+']',
+    '%': '%'};
   var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
     var value = replacements[key];
-    return momentFormat.replace("%" + key, value);
+    return momentFormat.replace('%' + key, value);
   }, LabelFormat);
   return momentLabelFormat;
 }
@@ -443,7 +635,7 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
   startTime = moment(startTime);
 
-  for (var i = 0; i <= duration; i++) {
+  for ( var i = 0; i <= duration; i++ ) {
     cues[i] = {id: i, index: i, startTime: i, endTime: i+1, text: startTime.format(labelFormat)};
     startTime.add(1, 's');
   }
@@ -506,3 +698,230 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   autoScale = closest;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
+
+function setButtonState(element_id, butClass) {
+  var element = $(element_id);
+  if ( element ) {
+    element.className = butClass;
+    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
+      element.disabled = true;
+    } else {
+      element.disabled = false;
+    }
+  } else {
+    console.log('Element was null or not found in setButtonState. id:'+element_id);
+  }
+}
+
+function setCookie(name, value, days) {
+  var expires = "";
+  if (days) {
+    var date = new Date();
+    date.setTime(date.getTime() + (days*24*60*60*1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  document.cookie = name + "=" + (value || "") + expires + "; path=/";
+}
+
+function getCookie(name) {
+  var nameEQ = name + "=";
+  var ca = document.cookie.split(';');
+  for (var i=0; i < ca.length; i++) {
+    var c = ca[i];
+    while (c.charAt(0)==' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
+
+function delCookie(name) {
+  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
+
+function bwClickFunction() {
+  $j("#dropdown_bandwidth a").click(function() {
+    var bwval = $j(this).data('pdsa-dropdown-val');
+    setCookie("zmBandwidth", bwval, 3600);
+    getNavBar();
+  });
+}
+
+function reminderClickFunction() {
+  $j("#dropdown_reminder a").click(function() {
+    var option = $j(this).data('pdsa-dropdown-val');
+    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
+        .done(window.location.reload(true)) //Do a full refresh to update ZM_DYN_LAST_VERSION
+        .fail(logAjaxFail);
+  });
+}
+
+// Load then show the "You No Permission" error modal
+function enoperm() {
+  $j.getJSON(thisUrl + '?request=modal&modal=enoperm')
+      .done(function(data) {
+        if ( $j('#ENoPerm').length ) {
+          $j('#ENoPerm').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#ENoPerm').modal('show');
+
+        // Manage the CLOSE optionhelp modal button
+        document.getElementById("enpCloseBtn").addEventListener("click", function onENPCloseClick(evt) {
+          $j('#ENoPerm').modal('hide');
+        });
+      })
+      .fail(logAjaxFail);
+}
+
+function getLogoutModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=logout')
+      .done(function(data) {
+        if ( $j('#modalLogout').length ) {
+          $j('#modalLogout').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+      })
+      .fail(logAjaxFail);
+}
+
+function getStateModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=state')
+      .done(function(data) {
+        if ( $j('#modalState').length ) {
+          $j('#modalState').replaceWith(data.html);
+        } else {
+          $j("body").append(data.html);
+        }
+        $j('#modalState').modal('show');
+        manageStateModalBtns();
+      })
+      .fail(logAjaxFail);
+}
+
+function manageStateModalBtns() {
+  // Enable or disable the Delete button depending on the selected run state
+  $j("#runState").change(function() {
+    runstate = $j(this).val();
+
+    if ( (runstate == 'stop') || (runstate == 'restart') || (runstate == 'start') || (runstate == 'default') ) {
+      $j("#btnDelete").prop("disabled", true);
+    } else {
+      $j("#btnDelete").prop("disabled", false);
+    }
+  });
+
+  // Enable or disable the Save button when entering a new state
+  $j("#newState").keyup(function() {
+    length = $j(this).val().length;
+    if ( length < 1 ) {
+      $j("#btnSave").prop("disabled", true);
+    } else {
+      $j("#btnSave").prop("disabled", false);
+    }
+  });
+
+
+  // Delete a state
+  $j("#btnDelete").click(function() {
+    stateStuff('delete', $j("#runState").val());
+  });
+
+
+  // Save a new state
+  $j("#btnSave").click(function() {
+    stateStuff('save', undefined, $j("#newState").val());
+  });
+
+  // Change state
+  $j("#btnApply").click(function() {
+    stateStuff('state', $j("#runState").val());
+  });
+}
+
+function stateStuff(action, runState, newState) {
+  // the state action will redirect to console
+  var formData = {
+    'view': 'state',
+    'action': action,
+    'apply': 1,
+    'runState': runState,
+    'newState': newState
+  };
+
+  $j("#pleasewait").toggleClass("hidden");
+
+  $j.ajax({
+    type: 'POST',
+    url: thisUrl,
+    data: formData,
+    dataType: 'html',
+    timeout: 0
+  }).done(function(data) {
+    location.reload();
+  });
+}
+
+function logAjaxFail(jqxhr, textStatus, error) {
+  console.log("Request Failed: " + textStatus + ", " + error);
+  console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, '')); // strip any html from the response
+}
+
+// Load the Modal HTML via Ajax call
+function getModal(id) {
+  $j.getJSON(thisUrl + '?request=modal&modal='+id)
+      .done(function(data) {
+        if ( !data ) {
+          console.error("Get modal returned no data");
+          return;
+        }
+
+        if ( $j('#'+id).length ) {
+          $j('#'+id).replaceWith(data.html);
+        } else {
+          $j('body').append(data.html);
+        }
+        manageModalBtns(id);
+        modal = $j('#'+id+'Modal');
+        if ( ! modal.length ) {
+          console.log('No modal found');
+        }
+        $j('#'+id+'Modal').modal('show');
+      })
+      .fail(logAjaxFail);
+}
+
+function manageModalBtns(id) {
+  // Manage the CANCEL modal button
+  var cancelBtn = document.getElementById(id+"CancelBtn");
+  if ( cancelBtn ) {
+    document.getElementById(id+"CancelBtn").addEventListener('click', function onCancelClick(evt) {
+      $j('#'+id).modal('hide');
+    });
+  }
+  // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
+  document.querySelectorAll('#'+id+'Modal button[data-on-click]').forEach(function attachOnClick(el) {
+    var fnName = el.getAttribute('data-on-click');
+    if ( !window[fnName] ) {
+      console.error('Nothing found to bind to ' + fnName + ' on element ' + el.name);
+      return;
+    } else {
+      console.log("Setting onclick for " + el.name);
+    }
+    el.onclick = window[fnName].bind(el, el);
+  });
+}
+
+function human_filesize(size, precision = 2) {
+  var units = Array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
+  var step = 1024;
+  var i = 0;
+  while ((size / step) > 0.9) {
+    size = size / step;
+    i++;
+  }
+  return (Math.round(size*(10^precision))/(10^precision))+units[i];
+}
+
+

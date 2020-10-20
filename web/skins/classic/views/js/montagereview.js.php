@@ -3,7 +3,21 @@ var server_utc_offset = <?php
 $TimeZone = new DateTimeZone( ini_get('date.timezone') );
 $now = new DateTime('now', $TimeZone);
 $offset = $TimeZone->getOffset($now);
-echo $offset . '; // ' . floor($offset / 3600) . ' hours ';
+echo $offset.'; // '.floor($offset / 3600).' hours ';
+
+global $defaultScale;
+global $liveMode;
+global $fitMode;
+global $speeds;
+global $speedIndex;
+global $initialDisplayInterval;
+global $minTimeSecs;
+global $maxTimeSecs;
+global $minTime;
+global $maxTime;
+global $monitors;
+global $eventsSql;
+global $framesSql;
 ?>
 
 var currentScale=<?php echo $defaultScale?>;
@@ -18,7 +32,7 @@ var speedIndex=<?php echo $speedIndex?>;
 // for history, and fps for live, and dynamically determined (in ms)
 
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
-var playSecsperInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
+var playSecsPerInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
 var timerObj;                    // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image
@@ -40,7 +54,7 @@ $maxScore = 0;
 if ( !$liveMode ) {
   $result = dbQuery($eventsSql);
   if ( !$result ) {
-    Fatal('SQL-ERR');
+    ZM\Fatal('SQL-ERR');
     return;
   }
 
@@ -50,7 +64,6 @@ if ( !$liveMode ) {
     $event_id = $event['Id'];
     $EventsById[$event_id] = $event;
   }
-
   $next_frames = array();
 
   if ( $result = dbQuery($framesSql) ) {
@@ -69,9 +82,9 @@ if ( !$liveMode ) {
         $frame['NextFrameId'] = $next_frames[$frame['EventId']]['Id'];
       }
       $event['FramesById'] += array($frame['Id']=>$frame);
-      $next_frames[$frame['EventId']] = $frame;
+      $next_frames[$frame['EventId']] = &$event['FramesById'][$frame['Id']];
     }
-  }
+  } // end if dbQuery
 
   $events_by_monitor_id = array();
 
@@ -147,7 +160,6 @@ foreach ( ZM\Server::find() as $Server ) {
   echo 'Servers[' . $Server->Id() . '] = new Server(' . $Server->to_json(). ");\n";
 }
 
-
 echo '
 var monitorName = [];
 var monitorLoading = [];
@@ -168,8 +180,8 @@ var monitorCanvasCtx = [];
 var monitorPtr = []; // monitorName[monitorPtr[0]] is first monitor
 ';
 
-$numMonitors=0;  // this array is indexed by the monitor ID for faster access later, so it may be sparse
-$avgArea=floatval(0);  // Calculations the normalizing scale
+$numMonitors = 0;  // this array is indexed by the monitor ID for faster access later, so it may be sparse
+$avgArea = floatval(0);  // Calculations the normalizing scale
 
 foreach ( $monitors as $m ) {
   $avgArea = $avgArea + floatval($m->Width() * $m->Height());
@@ -183,18 +195,18 @@ foreach ( $monitors as $m ) {
   echo "  monitorLoading["         . $m->Id() . "]=false;\n";
   echo "  monitorImageURL["        . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale*100), '&' )."';\n";
   echo "  monitorLoadingStageURL[" . $m->Id() . "] = '';\n";
-  echo "  monitorColour["          . $m->Id() . "]=\"" . $m->WebColour() . "\";\n";
-  echo "  monitorWidth["           . $m->Id() . "]=" . $m->Width() . ";\n";
-  echo "  monitorHeight["          . $m->Id() . "]=" . $m->Height() . ";\n";
+  echo "  monitorColour["          . $m->Id() . "]=\"" . validHtmlStr($m->WebColour()) . "\";\n";
+  echo "  monitorWidth["           . $m->Id() . "]=" . validHtmlStr($m->ViewWidth()) . ";\n";
+  echo "  monitorHeight["          . $m->Id() . "]=" . validHtmlStr($m->ViewHeight()) . ";\n";
   echo "  monitorIndex["           . $m->Id() . "]=" . $numMonitors . ";\n";
   echo "  monitorServerId["        . $m->Id() . "]='" .($m->ServerId() ?  $m->ServerId() : '0'). "';\n";
-  echo "  monitorName["            . $m->Id() . "]=\"" . $m->Name() . "\";\n";
+  echo "  monitorName["            . $m->Id() . "]=\"" . validHtmlStr($m->Name()) . "\";\n";
   echo "  monitorLoadStartTimems[" . $m->Id() . "]=0;\n";
   echo "  monitorLoadEndTimems["   . $m->Id() . "]=0;\n";
   echo "  monitorNormalizeScale["  . $m->Id() . "]=" . sqrt($avgArea / ($m->Width() * $m->Height() )) . ";\n";
   $zoomScale=1.0;
-  if(isset($_REQUEST[ 'z' . $m->Id() ]) )
-      $zoomScale = floatval( validHtmlStr($_REQUEST[ 'z' . $m->Id() ]) );
+  if ( isset($_REQUEST['z'.$m->Id()]) )
+      $zoomScale = floatval(validHtmlStr($_REQUEST['z'.$m->Id()]));
   echo "  monitorZoomScale["       . $m->Id() . "]=" . $zoomScale . ";\n";
   echo "  monitorPtr["         . $numMonitors . "]=" . $m->Id() . ";\n";
   $numMonitors += 1;
@@ -203,15 +215,17 @@ echo "
 var numMonitors = $numMonitors;
 var minTimeSecs=parseInt($minTimeSecs);
 var maxTimeSecs=parseInt($maxTimeSecs);
+var minTime='$minTime';
+var maxTime='$maxTime';
 ";
-echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
-if(isset($defaultCurrentTime))
-  echo "var currentTimeSecs=parseInt(" . strtotime($defaultCurrentTime) . ");\n";
+echo 'var rangeTimeSecs='.($maxTimeSecs - $minTimeSecs + 1).";\n";
+if ( isset($defaultCurrentTime) )
+  echo 'var currentTimeSecs=parseInt('.strtotime($defaultCurrentTime).");\n";
 else
-  echo "var currentTimeSecs=parseInt(" . ($minTimeSecs + $maxTimeSecs)/2 . ");\n";
+  echo 'var currentTimeSecs=parseInt('.(($minTimeSecs + $maxTimeSecs)/2).");\n";
 
 echo 'var speeds=[';
-for ($i=0; $i<count($speeds); $i++)
+for ( $i=0; $i < count($speeds); $i++ )
   echo (($i>0)?', ':'') . $speeds[$i];
 echo "];\n";
 ?>

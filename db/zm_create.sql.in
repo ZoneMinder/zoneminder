@@ -63,7 +63,7 @@ DROP TABLE IF EXISTS `Controls`;
 CREATE TABLE `Controls` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket','VNC') NOT NULL default 'Local',
   `Protocol` varchar(64) default NULL,
   `CanWake` tinyint(3) unsigned NOT NULL default '0',
   `CanSleep` tinyint(3) unsigned NOT NULL default '0',
@@ -209,7 +209,7 @@ CREATE TABLE `Events` (
   `Executed` tinyint(3) unsigned NOT NULL default '0',
   `Notes` text,
   `StateId` int(10) unsigned NOT NULL,
-  `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
+  `Orientation` enum('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT') NOT NULL default 'ROTATE_0',
   `DiskSpace`   bigint unsigned default NULL,
   `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
   `Locked`    BOOLEAN NOT NULL DEFAULT False,
@@ -282,17 +282,23 @@ DROP TABLE IF EXISTS `Filters`;
 CREATE TABLE `Filters` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Query` text NOT NULL,
+  `UserId`  int(10) unsigned,
+  `Query_json` text NOT NULL,
   `AutoArchive` tinyint(3) unsigned NOT NULL default '0',
   `AutoVideo` tinyint(3) unsigned NOT NULL default '0',
   `AutoUpload` tinyint(3) unsigned NOT NULL default '0',
   `AutoEmail` tinyint(3) unsigned NOT NULL default '0',
+	`EmailTo`				TEXT,
+	`EmailSubject`	TEXT,
+	`EmailBody`			TEXT,
   `AutoMessage` tinyint(3) unsigned NOT NULL default '0',
   `AutoExecute` tinyint(3) unsigned NOT NULL default '0',
   `AutoExecuteCmd` tinytext,
   `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
   `AutoMove` tinyint(3) unsigned NOT NULL default '0',
   `AutoMoveTo`	smallint(5) unsigned NOT NULL default 0,
+  `AutoCopy` tinyint(3) unsigned NOT NULL default '0',
+  `AutoCopyTo`	smallint(5) unsigned NOT NULL default 0,
   `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
   `Concurrent` tinyint(1) unsigned NOT NULL default '0',
@@ -401,7 +407,7 @@ DROP TABLE IF EXISTS `MonitorPresets`;
 CREATE TABLE `MonitorPresets` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket','VNC') NOT NULL default 'Local',
   `Device` tinytext,
   `Channel` tinyint(3) unsigned default NULL,
   `Format` int(10) unsigned default NULL,
@@ -432,13 +438,18 @@ DROP TABLE IF EXISTS `Monitors`;
 CREATE TABLE `Monitors` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
+  `Notes` TEXT,
   `ServerId` int(10) unsigned,
   `StorageId`	smallint(5) unsigned default 0,
-  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket','VNC') NOT NULL default 'Local',
   `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `LinkedMonitors` varchar(255),
   `Triggers` set('X10') NOT NULL default '',
+  `ONVIF_URL` VARCHAR(255) NOT NULL DEFAULT '',
+  `ONVIF_Username` VARCHAR(64) NOT NULL DEFAULT '',
+  `ONVIF_Password` VARCHAR(64) NOT NULL DEFAULT '',
+  `ONVIF_Options` VARCHAR(64) NOT NULL DEFAULT '',
   `Device` tinytext NOT NULL default '',
   `Channel` tinyint(3) unsigned NOT NULL default '0',
   `Format` int(10) unsigned NOT NULL default '0',
@@ -457,7 +468,7 @@ CREATE TABLE `Monitors` (
   `Height` smallint(5) unsigned NOT NULL default '0',
   `Colours` tinyint(3) unsigned NOT NULL default '1',
   `Palette` int(10) unsigned NOT NULL default '0',
-  `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
+  `Orientation` enum('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT') NOT NULL default 'ROTATE_0',
   `Deinterlacing` int(10) unsigned NOT NULL default '0',
   `DecoderHWAccelName`  varchar(64),
   `DecoderHWAccelDevice`  varchar(255),
@@ -474,7 +485,7 @@ CREATE TABLE `Monitors` (
   `Hue` mediumint(7) NOT NULL default '-1',
   `Colour` mediumint(7) NOT NULL default '-1',
   `EventPrefix` varchar(32) NOT NULL default 'Event-',
-  `LabelFormat` varchar(64) default '%N - %y/%m/%d %H:%M:%S',
+  `LabelFormat` varchar(64),
   `LabelX` smallint(5) unsigned NOT NULL default '0',
   `LabelY` smallint(5) unsigned NOT NULL default '0',
   `LabelSize` smallint(5) unsigned NOT NULL DEFAULT '1',
@@ -728,13 +739,14 @@ CREATE TABLE `Storage` (
   `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
   `ServerId` int(10) unsigned,
   `DoDelete`  BOOLEAN NOT NULL DEFAULT true,
+  `Enabled`  BOOLEAN NOT NULL DEFAULT true,
 	PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '@ZM_DIR_EVENTS@', 'Default', 'local', NULL, NULL, 'Medium', 0, true );
+insert into Storage VALUES (NULL, '@ZM_DIR_EVENTS@', 'Default', 'local', NULL, NULL, 'Medium', 0, true, true );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
@@ -757,8 +769,95 @@ insert into Users VALUES (NULL,'admin','$2b$12$NHZsm6AM2f2LQVROriz79ul3D6DnmFiZC
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full
 --
 
-insert into Filters values (NULL,'PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',0/*AutoArchive*/,0/*AutoVideo*/,0/*AutoUpload*/,0/*AutoEmail*/,0/*AutoMessage*/,0/*AutoExecute*/,'',1/*AutoDelete*/,0/*AutoMove*/,0/*MoveTo*/,0/*UpdateDiskSpace*/,1/*Background*/,0/*Concurrent*/);
-insert into Filters values (NULL,'Update DiskSpace','{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',0,0,0,0,0,0,'',0,0,0,1,1,0);
+INSERT INTO `Filters`
+  (
+    `Name`,
+    `Query_json`,
+    `AutoArchive`,
+    `AutoVideo`,
+    `AutoUpload`,
+    `AutoEmail`,
+    `EmailTo`,
+    `EmailSubject`,
+    `EmailBody`,
+    `AutoMessage`,
+    `AutoExecute`,
+    `AutoExecuteCmd`,
+    `AutoDelete`,
+    `AutoMove`,
+    `AutoMoveTo`,
+    `AutoCopy`,
+    `AutoCopyTo`,
+    `UpdateDiskSpace`,
+    `UserId`,
+    `Background`,
+    `Concurrent`
+  )
+  VALUES
+  (
+    'PurgeWhenFull',
+    '{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',
+    0/*AutoArchive*/,
+    0/*AutoVideo*/,
+    0/*AutoUpload*/,
+    0/*AutoEmail*/,
+    ''/*EmailTo*/,
+    ''/*EmailSubject*/,
+    ''/*EmailBody*/,
+    0/*AutoMessage*/,
+    0/*AutoExecute*/,'',
+    1/*AutoDelete*/,
+    0/*AutoMove*/,0/*MoveTo*/,
+    0/*AutoCopy*/,0/*CopyTo*/,
+    0/*UpdateDiskSpace*/,
+    1/*UserId = admin*/,
+    1/*Background*/,
+    0/*Concurrent*/
+  );
+INSERT INTO `Filters`
+  (
+    `Name`,
+    `Query_json`,
+    `AutoArchive`,
+    `AutoVideo`,
+    `AutoUpload`,
+    `AutoEmail`,
+    `EmailTo`,
+    `EmailSubject`,
+    `EmailBody`,
+    `AutoMessage`,
+    `AutoExecute`,
+    `AutoExecuteCmd`,
+    `AutoDelete`,
+    `AutoMove`,
+    `AutoMoveTo`,
+    `AutoCopy`,
+    `AutoCopyTo`,
+    `UpdateDiskSpace`,
+    `UserId`,
+    `Background`,
+    `Concurrent`
+  )
+VALUES (
+  'Update DiskSpace',
+  '{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',
+  0/*AutoArchive*/,
+  0/*AutoVideo*/,
+  0/*AutoUpload*/,
+  0/*AutoEmail*/,
+  ''/*EmailTo*/,
+  ''/*EmailSubject*/,
+  ''/*EmailBody*/,
+  0/*AutoMessage*/,
+  0/*AutoExecute*/,'',
+  0/*AutoDelete*/,
+  0/*AutoMove*/,0/*MoveTo*/,
+  0/*AutoCopy*/,0/*CopyTo*/,
+  1/*UpdateDiskSpace*/,
+  1/*UserId=admin*/,
+  1/*Background*/,
+  0/*Concurrent*/
+);
 
 --
 -- Add in some sample control protocol definitions
@@ -796,6 +895,7 @@ INSERT INTO `Controls` VALUES (NULL,'Reolink RLC-423','Ffmpeg','Reolink',0,0,1,0
 INSERT INTO `Controls` VALUES (NULL,'Reolink RLC-411','Ffmpeg','Reolink',0,0,1,0,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Reolink RLC-420','Ffmpeg','Reolink',0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'D-LINK DCS-3415','Remote','DCS3415',0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'D-Link DCS-5020L','Remote','DCS5020L',1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,24,1,0,1,1,1,0,1,0,1,0,0,1,30,0,0,0,0,0,1,0,0,1,30,0,0,0,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'IOS Camera','Ffmpeg','IPCAMIOS',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Dericam P2','Ffmpeg','DericamP2',0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,10,0,1,1,1,0,0,0,1,1,0,0,0,0,1,1,45,0,0,1,0,0,0,0,1,1,45,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Trendnet','Remote','Trendnet',1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
@@ -807,6 +907,9 @@ INSERT INTO `Controls` VALUES (NULL,'Amcrest HTTP API','Ffmpeg','Amcrest_HTTP',0
 --
 -- Add some monitor preset values
 --
+
+INSERT into MonitorPresets VALUES (NULL,'Amcrest, IP8M-T2499EW 640x480, RTP/RTSP','Ffmpeg','rtsp',0,255,'rtsp','rtpRtsp','NULL',554,'rtsp://<username>:<password>@<ip-address>/cam/realmonitor?channel=1&subtype=1',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT into MonitorPresets VALUES (NULL,'Amcrest, IP8M-T2499EW 3840x2160, RTP/RTSP','Ffmpeg','rtsp',0,255,'rtsp','rtpRtsp','NULL',554,'rtsp://<username>:<password>@<ip-address>/cam/realmonitor?channel=1&subtype=0',NULL,3840,2160,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, mpjpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240&req_fps=5',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
@@ -830,6 +933,7 @@ INSERT into MonitorPresets VALUES (NULL,'Axis IP, mpeg4, multicast','Remote','rt
 INSERT into MonitorPresets VALUES (NULL,'Axis IP, mpeg4, RTP/RTSP','Remote','rtsp',0,255,'rtsp','rtpRtsp','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT into MonitorPresets VALUES (NULL,'Axis IP, mpeg4, RTP/RTSP/HTTP','Remote',NULL,NULL,NULL,'rtsp','rtpRtspHttp','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'D-link DCS-930L, 640x480, mjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/mjpeg.cgi',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'D-Link DCS-5020L, 640x480, mjpeg','Remote','http',0,0,'http','simple','<username>:<pwd>@<ip-address>','80','/video.cgi',NULL,640,480,0,NULL,1,'34',NULL,'<username>:<pwd>@<ip-address>',100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 320x240, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/nphMotionJpeg?Resolution=320x240&Quality=Standard',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 320x240, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/SnapshotJPEG?Resolution=320x240&Quality=Standard',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 320x240, jpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/SnapshotJPEG?Resolution=320x240&Quality=Standard',NULL,320,240,3,5.0,0,NULL,NULL,NULL,100,100);

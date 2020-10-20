@@ -32,7 +32,7 @@ bool zmDbConnect() {
   // For some reason having these lines causes memory corruption and crashing on newer debian/ubuntu
 	// But they really need to be here in order to prevent a double open of mysql
   if ( zmDbConnected )  {
-    Warning("Calling zmDbConnect when already connected");
+    //Warning("Calling zmDbConnect when already connected");
     return true;
   }
 
@@ -40,7 +40,7 @@ bool zmDbConnect() {
     Error("Can't initialise database connection: %s", mysql_error(&dbconn));
     return false;
   }
-  my_bool reconnect = 1;
+  bool reconnect = 1;
   if ( mysql_options(&dbconn, MYSQL_OPT_RECONNECT, &reconnect) )
     Error("Can't set database auto reconnect option: %s", mysql_error(&dbconn));
   if ( !staticConfig.DB_SSL_CA_CERT.empty() )
@@ -48,10 +48,10 @@ bool zmDbConnect() {
         staticConfig.DB_SSL_CLIENT_KEY.c_str(),
         staticConfig.DB_SSL_CLIENT_CERT.c_str(),
         staticConfig.DB_SSL_CA_CERT.c_str(),
-        NULL, NULL);
+        nullptr, nullptr);
   std::string::size_type colonIndex = staticConfig.DB_HOST.find(":");
   if ( colonIndex == std::string::npos ) {
-    if ( !mysql_real_connect(&dbconn, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, NULL, 0) ) {
+    if ( !mysql_real_connect(&dbconn, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), nullptr, 0, nullptr, 0) ) {
       Error( "Can't connect to server: %s", mysql_error(&dbconn));
       return false;
     }
@@ -59,12 +59,12 @@ bool zmDbConnect() {
     std::string dbHost = staticConfig.DB_HOST.substr( 0, colonIndex );
     std::string dbPortOrSocket = staticConfig.DB_HOST.substr( colonIndex+1 );
     if ( dbPortOrSocket[0] == '/' ) {
-      if ( !mysql_real_connect(&dbconn, NULL, staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, dbPortOrSocket.c_str(), 0) ) {
+      if ( !mysql_real_connect(&dbconn, nullptr, staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), nullptr, 0, dbPortOrSocket.c_str(), 0) ) {
         Error("Can't connect to server: %s", mysql_error(&dbconn));
         return false;
       }
     } else {
-      if ( !mysql_real_connect( &dbconn, dbHost.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, atoi(dbPortOrSocket.c_str()), NULL, 0 ) ) {
+      if ( !mysql_real_connect( &dbconn, dbHost.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), nullptr, atoi(dbPortOrSocket.c_str()), nullptr, 0 ) ) {
         Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
         return false;
       }
@@ -81,10 +81,11 @@ bool zmDbConnect() {
 void zmDbClose() {
   if ( zmDbConnected ) {
     db_mutex.lock();
-    mysql_close( &dbconn );
+    mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()
-    mysql_library_end();
+    // We get segfaults and a hang when we call this.  So just don't.
+    //mysql_library_end();
     zmDbConnected = false;
     db_mutex.unlock();
   }
@@ -93,14 +94,20 @@ void zmDbClose() {
 MYSQL_RES * zmDbFetch(const char * query) {
   if ( !zmDbConnected ) {
     Error("Not connected.");
-    return NULL;
+    return nullptr;
   }
   db_mutex.lock();
+  // Might have been disconnected while we waited for the lock
+  if ( !zmDbConnected ) {
+    db_mutex.unlock();
+    Error("Not connected.");
+    return nullptr;
+  }
 
   if ( mysql_query(&dbconn, query) ) {
     db_mutex.unlock();
     Error("Can't run query: %s", mysql_error(&dbconn));
-    return NULL;
+    return nullptr;
   }
   Debug(4, "Success running query: %s", query);
   MYSQL_RES *result = mysql_store_result(&dbconn);
@@ -117,7 +124,7 @@ zmDbRow *zmDbFetchOne(const char *query) {
     return row;
   } 
   delete row;
-  return NULL;
+  return nullptr;
 }
 
 MYSQL_RES *zmDbRow::fetch(const char *query) {
@@ -128,14 +135,14 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
   if ( n_rows != 1 ) {
     Error("Bogus number of lines return from query, %d returned for query %s.", n_rows, query);
     mysql_free_result(result_set);
-    result_set = NULL;
+    result_set = nullptr;
     return result_set;
   }
 
   row = mysql_fetch_row(result_set);
   if ( ! row ) {
     mysql_free_result(result_set);
-    result_set = NULL;
+    result_set = nullptr;
     Error("Error getting row from query %s. Error is %s", query, mysql_error(&dbconn));
   } else {
     Debug(5, "Success");
@@ -146,6 +153,6 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
 zmDbRow::~zmDbRow() {
   if ( result_set ) {
     mysql_free_result(result_set);
-    result_set = NULL;
+    result_set = nullptr;
   }
 }

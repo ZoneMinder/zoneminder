@@ -57,7 +57,7 @@ extern imgbufcpy_fptr_t fptr_imgbufcpy;
 /* Should be called from Image class functions */
 inline static uint8_t* AllocBuffer(size_t p_bufsize) {
 	uint8_t* buffer = (uint8_t*)zm_mallocaligned(64, p_bufsize);
-	if ( buffer == NULL )
+	if ( buffer == nullptr )
 		Fatal("Memory allocation failed: %s", strerror(errno));
 	
 	return buffer;
@@ -122,8 +122,8 @@ protected:
 	};
 	
 	inline void DumpImgBuffer() {
-		DumpBuffer(buffer,buffertype);
-		buffer = NULL;
+		DumpBuffer(buffer, buffertype);
+		buffer = nullptr;
 		allocation = 0;
 	}
 	
@@ -153,9 +153,11 @@ protected:
 	static struct zm_error_mgr jpg_err;
 
 	unsigned int width;
+	unsigned int linesize;
 	unsigned int height;
 	unsigned int pixels;
 	unsigned int colours;
+  unsigned int padding;
 	unsigned int size;
 	unsigned int subpixelorder;
 	unsigned long allocation;
@@ -167,15 +169,18 @@ protected:
 
 public:
 	Image();
-	explicit Image( const char *filename );
-	Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0);
+	explicit Image(const char *filename);
+	Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
+	Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
 	explicit Image( const Image &p_image );
   explicit Image( const AVFrame *frame );
+
 	~Image();
 	static void Initialise();
 	static void Deinitialise();
 
 	inline unsigned int Width() const { return width; }
+	inline unsigned int LineSize() const { return linesize; }
 	inline unsigned int Height() const { return height; }
 	inline unsigned int Pixels() const { return pixels; }
 	inline unsigned int Colours() const { return colours; }
@@ -201,7 +206,7 @@ public:
 	
 	/* Internal buffer should not be modified from functions outside of this class */
 	inline const uint8_t* Buffer() const { return buffer; }
-	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return &buffer[colours*((y*width)+x)]; }
+	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return &buffer[(y*linesize)+x]; }
 	/* Request writeable buffer */
 	uint8_t* WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder);
   // Is only acceptable on a pre-allocated buffer
@@ -214,22 +219,35 @@ public:
     if ( !holdbuffer )
       DumpImgBuffer();
 
-    width = height = colours = size = pixels = subpixelorder = 0;
+    width = linesize = height = colours = size = pixels = subpixelorder = 0;
 	}
 	
-	void Assign( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size);
-	void Assign( const Image &image );
-  void Assign( const AVFrame *frame );
-	void AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype);
+	void Assign(
+      unsigned int p_width,
+      unsigned int p_height,
+      unsigned int p_colours,
+      unsigned int p_subpixelorder,
+      const uint8_t* new_buffer,
+      const size_t buffer_size);
+	void Assign(const Image &image);
+  void Assign(const AVFrame *frame);
+	void AssignDirect(
+      const unsigned int p_width,
+      const unsigned int p_height,
+      const unsigned int p_colours,
+      const unsigned int p_subpixelorder,
+      uint8_t *new_buffer,
+      const size_t buffer_size,
+      const int p_buffertype);
 
-	inline void CopyBuffer( const Image &image ) {
+	inline void CopyBuffer(const Image &image) {
 		Assign(image);
 	}
-	inline Image &operator=( const Image &image ) {
+	inline Image &operator=(const Image &image) {
 		Assign(image);
 		return *this;
 	}
-	inline Image &operator=( const unsigned char *new_buffer ) {
+	inline Image &operator=(const unsigned char *new_buffer) {
 		(*fptr_imgbufcpy)(buffer, new_buffer, size);
 		return *this;
 	}
@@ -267,7 +285,7 @@ public:
 	//Image *Delta( const Image &image ) const;
 	void Delta( const Image &image, Image* targetimage) const;
 
-	const Coord centreCoord( const char *text ) const;
+	const Coord centreCoord(const char *p_text) const;
   void MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour=0x00222222 );
 	void Annotate( const char *p_text, const Coord &coord, const unsigned int size=1, const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
 	Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );

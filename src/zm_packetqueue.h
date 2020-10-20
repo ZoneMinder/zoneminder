@@ -54,6 +54,7 @@ class zm_packetqueue {
     bool popVideoPacket(ZMPacket* packet);
     bool popAudioPacket(ZMPacket* packet);
     unsigned int clearQueue(unsigned int video_frames_to_keep, int stream_id);
+    unsigned int clearQueue(struct timeval *duration, int streamid);
     void clearQueue();
     void dumpQueue();
     unsigned int size();

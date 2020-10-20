@@ -62,6 +62,17 @@ ob_end_clean();
 $filter = array();
 if ( isset($_REQUEST['filter']) ) {
   $filter = $_REQUEST['filter'];
+
+	# Try to guess min/max time from filter
+	foreach ( $filter['Query'] as $term ) {
+		if ( $term['attr'] == 'StartDateTime' ) {
+			if ( $term['op'] == '<=' or $term['op'] == '<' ) {
+				$maxTime = $term['val'];
+			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
+				$minTime = $term['val'];
+			}
+		}
+	}
 } else {
 
   if ( isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0) ) {
@@ -88,12 +99,13 @@ if ( isset($_REQUEST['filter']) ) {
       }
     }
   } # end if REQUEST[Filter]
+}
+if ( count($filter) ) {
   parseFilter($filter);
   # This is to enable the download button
-  session_start();
+  zm_session_start();
   $_SESSION['montageReviewFilter'] = $filter;
   session_write_close();
-  $filterQuery = $filter['query'];
 }
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
@@ -308,7 +320,7 @@ getBodyTopHTML();
 <?php
   // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
   foreach ( $monitors as $m ) {
-    echo '<canvas title="'.$m->Id().' ' .$m->Name().'" width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:1px solid ' . $m->WebColour() . '" monitor_id="'.$m->Id().'">No Canvas Support!!</canvas>
+    echo '<canvas title="'.$m->Id().' '.validHtmlStr($m->Name()).'" width="'.($m->Width() * $defaultScale).'" height="'.($m->Height() * $defaultScale).'" id="Monitor'.$m->Id().'" style="border:1px solid '.$m->WebColour().'" monitor_id="'.$m->Id().'">No Canvas Support!!</canvas>
 ';
   }
 ?>

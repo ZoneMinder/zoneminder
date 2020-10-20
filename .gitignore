@@ -120,7 +120,7 @@ src/CMakeFiles/
 src/cmake_install.cmake
 src/libzm.a
 src/nph-zms
-src/zm_config.h
+src/zm_config_data.h
 src/zm_config_defines.h
 src/zma
 src/zmc
@@ -157,3 +157,4 @@ web/undef.log
 zm.conf
 zmconfgen.pl
 zmlinkcontent.sh
+**/.DS_Store

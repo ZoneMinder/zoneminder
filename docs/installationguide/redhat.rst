@@ -53,7 +53,7 @@ ZoneMinder releases are now being hosted at RPM Fusion. New users should navigat
 
 Note that RHEL/CentOS 7 users should use yum instead of dnf.
 
-Once ZoneMinder has been installed, it is critically important that you read the README file under /usr/share/doc/zoneminder. ZoneMinder will not run without completing the steps outlined in the README.
+Once ZoneMinder has been installed, it is critically important that you read the README file under /usr/share/doc/zoneminder-common. ZoneMinder will not run without completing the steps outlined in the README.
 
 How to Install Nightly Development Builds
 -----------------------------------------
@@ -101,7 +101,7 @@ Certain commands in these instructions require root privileges while other comma
 
 Set Up Your Environment
 ***********************
-Before you begin, set up an rpmbuild environment by following `this guide <http://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers.
+Before you begin, set up an rpmbuild environment by following `this guide <https://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers.
 
 In addition, make sure RPM Fusion is enabled as described in the previous section `How to Install ZoneMinder`_.  
 
@@ -191,7 +191,7 @@ Now clone the ZoneMinder git repository from your home folder:
     git clone https://github.com/ZoneMinder/zoneminder
     cd zoneminder
 
-This will create a sub-folder called ZoneMinder, which will contain the latest development source code.
+This will create a sub-folder called zoneminder, which will contain the latest development source code.
 
 If you have previsouly cloned the ZoneMinder git repo and wish to update it to the most recent, then issue these commands instead:
 

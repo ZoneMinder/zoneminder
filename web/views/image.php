@@ -57,6 +57,7 @@ $filename = '';
 $Frame = null;
 $Event = null;
 $path = null;
+$media_type='image/jpeg';
 
 if ( empty($_REQUEST['path']) ) {
 
@@ -69,7 +70,6 @@ if ( empty($_REQUEST['path']) ) {
   }
 
   if ( !empty($_REQUEST['eid']) ) {
-    ZM\Logger::Debug("Loading by eid");
     $Event = ZM\Event::find_one(array('Id'=>$_REQUEST['eid']));
     if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
@@ -78,6 +78,47 @@ if ( empty($_REQUEST['path']) ) {
     }
 
     if ( $_REQUEST['fid'] == 'objdetect' ) {
+        // if animation file is found, return that, else return image
+        // we are only looking for GIF or jpg here, not mp4
+        // as most often, browsers asking for this link will be expecting
+        // media types that can be rendered as <img src=>
+        $path_anim_gif = $Event->Path().'/objdetect.gif';
+        $path_image = $Event->Path().'/objdetect.jpg';
+        if (file_exists($path_anim_gif)) {
+          // we found the animation gif file
+          $media_type = 'image/gif';
+          ZM\Logger::Debug("Animation file found at $path");
+          $path = $path_anim_gif;
+        } else if (file_exists($path_image)) {
+            // animation not found, but image found
+            ZM\Logger::Debug("Image file found at $path");
+            $path = $path_image;
+        } else {
+            // neither animation nor image found
+            header('HTTP/1.0 404 Not Found');
+            ZM\Fatal("Object detection animation and image not found for this event");  
+        }
+        $Frame = new ZM\Frame();
+        $Frame->Id('objdetect');
+      } else if ( $_REQUEST['fid'] == 'objdetect_mp4' ) {
+        $path = $Event->Path().'/objdetect.mp4';
+        if ( !file_exists($path) ) {
+          header('HTTP/1.0 404 Not Found');
+          ZM\Fatal("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
+          }
+        $Frame = new ZM\Frame();
+        $Frame->Id('objdetect');
+        $media_type = 'video/mp4';
+      } else if ( $_REQUEST['fid'] == 'objdetect_gif' ) {
+        $path = $Event->Path().'/objdetect.gif';
+        if ( !file_exists($path) ) {
+          header('HTTP/1.0 404 Not Found');
+          ZM\Fatal("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
+      }
+      $Frame = new ZM\Frame();
+      $Frame->Id('objdetect');
+      $media_type = 'image/gif';
+    } else if ( $_REQUEST['fid'] == 'objdetect_jpg' ) {
       $path = $Event->Path().'/objdetect.jpg';
       if ( !file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
@@ -86,47 +127,66 @@ if ( empty($_REQUEST['path']) ) {
       $Frame = new ZM\Frame();
       $Frame->Id('objdetect');
     } else if ( $_REQUEST['fid'] == 'alarm' ) {
-      # look for first alarmed frame
-      $Frame = ZM\Frame::find_one(
-        array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
-        array('order'=>'FrameId ASC'));
-      if ( !$Frame ) { # no alarms, get first one I find
-        $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid']));
-        if ( !$Frame ) { 
-          ZM\Warning('No frame found for event '.$_REQUEST['eid']);
-          $Frame = new ZM\Frame();
-          $Frame->Delta(1);
-          $Frame->FrameId(1);
+      $path = $Event->Path().'/alarm.jpg';
+      if ( !file_exists($path) ) {
+        # legacy support
+        # look for first alarmed frame
+        $Frame = ZM\Frame::find_one(
+          array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
+          array('order'=>'FrameId ASC'));
+        if ( !$Frame ) { # no alarms, get first one I find
+          $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid']));
+          if ( !$Frame ) { 
+            ZM\Warning('No frame found for event '.$_REQUEST['eid']);
+            $Frame = new ZM\Frame();
+            $Frame->Delta(1);
+            $Frame->FrameId(1);
+          }
         }
-      }
-      $Monitor = $Event->Monitor();
-      if ( $Monitor->SaveJPEGs() & 1 ) {
-        # If we store Frames as jpgs, then we don't store an alarmed snapshot
-        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
+        $Monitor = $Event->Monitor();
+        if ( $Event->SaveJPEGs() & 1 ) {
+          # If we store Frames as jpgs, then we don't store an alarmed snapshot
+          $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
+        } else {
+          header('HTTP/1.0 404 Not Found');
+          ZM\Fatal('No alarm jpg found for event '.$_REQUEST['eid']);
+          return;
+        }
       } else {
-        $path = $Event->Path().'/alarm.jpg';
-      }
-    } else if ( $_REQUEST['fid'] == 'snapshot' ) {
-      $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Score'=>$Event->MaxScore()));
-      if ( !$Frame )
-        $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid']));
-      if ( !$Frame ) {
-        ZM\Warning('No frame found for event ' . $_REQUEST['eid']);
         $Frame = new ZM\Frame();
         $Frame->Delta(1);
-        if ( $Monitor->SaveJPEGs() & 1 ) {
-          $Frame->FrameId(0);
-        } else {
-          $Frame->FrameId('snapshot');
+        $Frame->FrameId('alarm');
+      } # alarm.jpg found
+    } else if ( $_REQUEST['fid'] == 'snapshot' ) {
+      $path = $Event->Path().'/snapshot.jpg';
+      if ( !file_exists($path) ) {
+        $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Score'=>$Event->MaxScore()));
+        if ( !$Frame )
+          $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid']));
+        if ( !$Frame ) {
+          ZM\Warning('No frame found for event ' . $_REQUEST['eid']);
+          $Frame = new ZM\Frame();
+          $Frame->Delta(1);
+          if ( $Event->SaveJPEGs() & 1 ) {
+            $Frame->FrameId(0);
+          } else {
+            $Frame->FrameId('snapshot');
+          }
         }
-      }
-      $Monitor = $Event->Monitor();
-      if ( $Monitor->SaveJPEGs() & 1 ) {
-        # If we store Frames as jpgs, then we don't store a snapshot
-        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
+        $Monitor = $Event->Monitor();
+        if ( $Event->SaveJPEGs() & 1 ) {
+          # If we store Frames as jpgs, then we don't store a snapshot
+          $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
+        } else {
+          header('HTTP/1.0 404 Not Found');
+          ZM\Fatal('No alarm jpg found for event '.$_REQUEST['eid']);
+          return;
+        } # end if stored jpgs
       } else {
-        $path = $Event->Path().'/snapshot.jpg';
-      }
+        $Frame = new ZM\Frame();
+        $Frame->Delta(1);
+        $Frame->FrameId('snapshot');
+      } # end if found snapshot.jpg
     } else {
 
       $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$_REQUEST['fid']));
@@ -182,7 +242,7 @@ if ( empty($_REQUEST['path']) ) {
         header('HTTP/1.0 404 Not Found');
         ZM\Fatal("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
       }
-      $command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path;
+      $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path;
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
       ZM\Logger::Debug("Running $command");
@@ -192,7 +252,7 @@ if ( empty($_REQUEST['path']) ) {
       ZM\Logger::Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
       if ( ! file_exists( $path ) ) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Fatal("Can't create frame images from video for this event (".$Event->DefaultVideo() );
+        ZM\Fatal('Can\'t create frame images from video for this event '.$Event->DefaultVideo() );
       }
       # Generating an image file will use up more disk space, so update the Event record.
       $Event->DiskSpace(null);
@@ -244,7 +304,6 @@ if ( !empty($_REQUEST['scale']) ) {
 
 $width = 0;
 if ( !empty($_REQUEST['width']) ) {
-ZM\Logger::Debug("Setting width: " . $_REQUEST['width']);
   if ( is_numeric($_REQUEST['width']) ) {
     $x = $_REQUEST['width'];
     if ( $x >= 10 and $x <= 8000 )
@@ -264,7 +323,7 @@ if ( !empty($_REQUEST['height']) ) {
 if ( $errorText ) {
   ZM\Error($errorText);
 } else {
-  header('Content-type: image/jpeg');
+  header("Content-type: $media_type");
   if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
     # This is so that Save Image As give a useful filename
     if ( $Event ) {

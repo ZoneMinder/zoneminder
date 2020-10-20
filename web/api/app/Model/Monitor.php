@@ -47,7 +47,16 @@ class Monitor extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-	);
+    'Name' => array(
+       'required' => array(
+         'on'         => 'create',
+         'rule'       => 'notBlank',
+         'message'    => 'Monitor Name must be specified for creation',
+         'required'   => true,
+       ),
+     )
+
+  );
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
@@ -110,9 +119,9 @@ class Monitor extends AppModel {
   );
   public $actsAs = array(
     'CakePHP-Enum-Behavior.Enum' => array(
-      'Type'            => array('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite'),
+      'Type'            => array('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite', 'VNC'),
       'Function'        => array('None','Monitor','Modect','Record','Mocord','Nodect'),
-      'Orientation'     => array('0','90','180','270','hori','vert'),
+      'Orientation'     => array('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT'),
       'OutputCodec'     => array('h264','mjpeg','mpeg1','mpeg2'),
       'OutputContainer' => array('auto','mp4','mkv'),
       'DefaultView'     => array('Events','Control'),

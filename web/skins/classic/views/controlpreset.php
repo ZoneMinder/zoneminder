@@ -66,5 +66,4 @@ xhtmlHeaders(__FILE__, translate('SetPreset') );
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

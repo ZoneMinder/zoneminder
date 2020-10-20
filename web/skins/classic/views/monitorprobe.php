@@ -39,16 +39,18 @@ function probeV4L() {
   }
 
   $monitors = array();
-  foreach ( dbFetchAll("SELECT Id, Name, Device,Channel FROM Monitors WHERE Type = 'Local' ORDER BY Device, Channel" ) as $monitor )
+  foreach ( dbFetchAll("SELECT Id, Name, Device, Channel FROM Monitors WHERE Type = 'Local' ORDER BY Device, Channel" ) as $monitor )
     $monitors[$monitor['Device'].':'.$monitor['Channel']] = $monitor;
 
   $devices = array();
   $preferredStandards = array('PAL', 'NTSC');
   $preferredFormats = array('BGR3', 'RGB3', 'YUYV', 'UYVY', 'JPEG', 'MJPG', '422P', 'YU12', 'GREY');
   foreach ( $output as $line ) {
-    if ( !preg_match('/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches) )
-      ZM\Fatal("Can't parse command output '$line'");
-    $standards = explode('/',$deviceMatches[2]);
+    if ( !preg_match('/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches) ) {
+      ZM\Error("Can't parse command output '$line'");
+      continue;
+    }
+    $standards = explode('/', $deviceMatches[2]);
     $preferredStandard = false;
     foreach ( $preferredStandards as $standard ) {
       if ( in_array( $standard, $standards ) ) {
@@ -56,7 +58,7 @@ function probeV4L() {
         break;
       }
     }
-    $formats = explode('/',$deviceMatches[3]);
+    $formats = explode('/', $deviceMatches[3]);
     $preferredFormat = false;
     foreach ( $preferredFormats as $format ) {
       if ( in_array($format, $formats) ) {
@@ -73,8 +75,10 @@ function probeV4L() {
     );
     $inputs = array();
     for ( $i = 0; $i < $deviceMatches[4]; $i++ ) {
-      if ( !preg_match('/i'.$i.':([^|]+)\|i'.$i.'T:([^|]+)\|/', $deviceMatches[5], $inputMatches) )
-        ZM\Fatal("Can't parse input '".$deviceMatches[5]."'");
+      if ( !preg_match('/i'.$i.':([^|]+)\|i'.$i.'T:([^|]+)\|/', $deviceMatches[5], $inputMatches) ) {
+        ZM\Error("Can't parse input '".$deviceMatches[5]."'");
+        continue;
+      }
       if ( $inputMatches[2] == 'Camera' ) {
         $input = array(
           'index' => $i,
@@ -101,7 +105,7 @@ function probeV4L() {
           $inputMonitor['Colours'] = 1;
           $inputMonitor['SignalCheckColour'] = '#000023';
         }
-        $inputDesc = base64_encode(serialize($inputMonitor));
+        $inputDesc = base64_encode(json_encode($inputMonitor));
         $inputString = $deviceMatches[1].', chan '.$i.($input['free']?(' - '.translate('Available')):(' ('.$monitors[$input['id']]['Name'].')'));
         $inputs[] = $input;
         $cameras[$inputDesc] = $inputString;
@@ -247,18 +251,18 @@ function probeNetwork() {
   $arp_command = ZM_PATH_ARP;
   $result = explode(' ', $arp_command);
   if ( !is_executable($result[0]) ) {
-    ZM\Error("ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.");
-    return;
+    ZM\Error('ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.');
+    return $cameras;
   }
 
   $result = exec(escapeshellcmd($arp_command), $output, $status);
   if ( $status ) {
     ZM\Error("Unable to probe network cameras, status is '$status'");
-    return;
+    return $cameras;
   }
 
   $monitors = array();
-  foreach ( dbFetchAll("SELECT Id, Name, Host FROM Monitors WHERE Type = 'Remote' ORDER BY Host") as $monitor ) {
+  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Host` FROM `Monitors` WHERE `Type` = 'Remote' ORDER BY `Host`") as $monitor ) {
     if ( preg_match('/^(.+)@(.+)$/', $monitor['Host'], $matches) ) {
       //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
       $monitors[gethostbyname($matches[2])] = $monitor;
@@ -277,29 +281,29 @@ function probeNetwork() {
     '78:a5:dd' => array('type'=>'Wansview','probeFunc'=>'probeWansview')
   );
 
-    foreach ( $output as $line ) {
-      if ( !preg_match('/(\d+\.\d+\.\d+\.\d+).*(([0-9a-f]{2}:){5})/', $line, $matches) )
-        continue;
-      $ip = $matches[1];
-      $host = $ip;
-      $mac = $matches[2];
-      //echo "I:$ip, H:$host, M:$mac<br/>";
-      $macRoot = substr($mac,0,8);
-      if ( isset($macBases[$macRoot]) ) {
-        $macBase = $macBases[$macRoot];
-        $camera = call_user_func($macBase['probeFunc'], $ip);
-        $sourceDesc = base64_encode(serialize($camera['monitor']));
-        $sourceString = $camera['model'].' @ '.$host;
-        if ( isset($monitors[$ip]) ) {
-          $monitor = $monitors[$ip];
-          $sourceString .= ' ('.$monitor['Name'].')';
-        } else {
-          $sourceString .= ' - '.translate('Available');
-        }
-        $cameras[$sourceDesc] = $sourceString;
+  foreach ( $output as $line ) {
+    if ( !preg_match('/(\d+\.\d+\.\d+\.\d+).*(([0-9a-f]{2}:){5})/', $line, $matches) )
+      continue;
+    $ip = $matches[1];
+    $host = $ip;
+    $mac = $matches[2];
+    //echo "I:$ip, H:$host, M:$mac<br/>";
+    $macRoot = substr($mac,0,8);
+    if ( isset($macBases[$macRoot]) ) {
+      $macBase = $macBases[$macRoot];
+      $camera = call_user_func($macBase['probeFunc'], $ip);
+      $sourceDesc = base64_encode(json_encode($camera['monitor']));
+      $sourceString = $camera['model'].' @ '.$host;
+      if ( isset($monitors[$ip]) ) {
+        $monitor = $monitors[$ip];
+        $sourceString .= ' ('.$monitor['Name'].')';
+      } else {
+        $sourceString .= ' - '.translate('Available');
       }
-    } # end foreach output line
-    return $cameras;
+      $cameras[$sourceDesc] = $sourceString;
+    }
+  } # end foreach output line
+  return $cameras;
 } # end function probeNetwork()
 
 $cameras = array();
@@ -317,10 +321,9 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('MonitorProbe') );
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
-      <h2><?php echo translate('MonitorProbe') ?></h2>
-    </div>
+    <h2><?php echo translate('MonitorProbe') ?></h2>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="none"/>
@@ -330,7 +333,7 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
         </p>
         <p>
           <label for="probe"><?php echo translate('DetectedCameras') ?></label>
-          <?php echo buildSelect('probe', $cameras, 'configureButtons(this)'); ?>
+          <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons(this)')); ?>
         </p>
         <div id="contentButtons">
         <button type="button" name="saveBtn" value="Save" data-on-click-this="submitCamera" disabled="disabled">
@@ -340,5 +343,4 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

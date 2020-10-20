@@ -272,12 +272,12 @@ int RtpCtrlThread::run() {
 
   unsigned char buffer[ZM_NETWORK_BUFSIZ];
 
-  time_t  last_receive = time(NULL);
+  time_t  last_receive = time(nullptr);
   bool  timeout = false; // used as a flag that we had a timeout, and then sent an RR to see if we wake back up. Real timeout will happen when this is true.
 
   while ( !mStop && select.wait() >= 0 ) {
 
-    time_t now = time(NULL);
+    time_t now = time(nullptr);
     Select::CommsList readable = select.getReadable();
     if ( readable.size() == 0 ) {
       if ( ! timeout ) {
@@ -300,7 +300,7 @@ int RtpCtrlThread::run() {
       }
     } else {
       timeout = false;
-      last_receive = time(NULL);
+      last_receive = time(nullptr);
     }
     for ( Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
       if ( UdpInetSocket *socket = dynamic_cast<UdpInetSocket *>(*iter) ) {

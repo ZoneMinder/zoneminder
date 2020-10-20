@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -329,14 +329,13 @@ sub loadMonitor {
 } # end sub loadMonitor
 
 sub loadMonitors {
-  Debug('Loading monitors');
   $monitor_reload_time = time();
 
   my %new_monitors = ();
 
-  my $sql = q`SELECT * FROM Monitors
-    WHERE find_in_set( Function, 'Modect,Mocord,Nodect' )`.
-    ( $Config{ZM_SERVER_ID} ? ' AND ServerId=?' : '' )
+  my $sql = 'SELECT * FROM `Monitors`
+    WHERE find_in_set( `Function`, \'Modect,Mocord,Nodect\' )'.
+    ( $Config{ZM_SERVER_ID} ? ' AND `ServerId`=?' : '' )
     ;
   my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
@@ -357,11 +356,16 @@ sub handleMessage {
   my $connection = shift;
   my $message = shift;
 
+  #  CUA  - Axis camera send the message quoted with"
+  #  CUA  - Also Axis camera cannot save the plus sign which
+  $message =~ s/^\"//g;
+  $message =~ s/\"$//g;
+
   my ( $id, $action, $score, $cause, $text, $showtext )
     = split( /\|/, $message );
-  $score = 0 if ( !defined($score) );
-  $cause = '' if ( !defined($cause) );
-  $text = '' if ( !defined($text) );
+  $score = 0 if !defined($score);
+  $cause = '' if !defined($cause);
+  $text = '' if !defined($text);
 
   my $monitor = $monitors{$id};
   if ( !$monitor ) {
@@ -373,7 +377,7 @@ sub handleMessage {
   next if !zmMemVerify($monitor);
 
   Debug("Handling action '$action'");
-  if ( $action =~ /^(enable|disable)(?:\+(\d+))?$/ ) {
+  if ( $action =~ /^(enable|disable)(?:[\+ ](\d+))?$/ ) {
     my $state = $1;
     my $delay = $2;
     if ( $state eq 'enable' ) {

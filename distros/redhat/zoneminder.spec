@@ -14,23 +14,32 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
-# Fedora >= 25 needs apcu backwards compatibility module
-%if 0%{?fedora} >= 25
+# Fedora needs apcu backwards compatibility module
+%if 0%{?fedora}
 %global with_apcu_bc 1
+%endif
+
+# Newer php's keep json functions in a subpackage
+%if 0%{?fedora} || 0%{?rhel} >= 8
+%global with_php_json 1
 %endif
 
 # The default for everything but el7 these days
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.33.14
+Version: 1.35.6
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
-# Mootools is inder the MIT license: http://mootools.net/
+# Mootools is under the MIT license: http://mootools.net/
+# jQuery is under the MIT license: https://jquery.org/license/
 # CakePHP is under the MIT license: https://github.com/cakephp/cakephp
 # Crud is under the MIT license: https://github.com/FriendsOfCake/crud
 # CakePHP-Enum-Behavior is under the MIT license: https://github.com/asper/CakePHP-Enum-Behavior
+# Bootstrap is under the MIT license: https://getbootstrap.com/docs/4.5/about/license/
+# Bootstrap-table is under the MIT license: https://bootstrap-table.com/docs/about/license/
+# font-awesome is under CC-BY license: https://fontawesome.com/license/free
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
@@ -38,6 +47,7 @@ Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zon
 Source1: https://github.com/ZoneMinder/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
 
+%{?rhel:BuildRequires: epel-rpm-macros}
 BuildRequires: systemd-devel
 BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
@@ -105,7 +115,7 @@ Summary: Common files for ZoneMinder, not tied to a specific web server
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
-%{?fedora:Requires: php-json}
+%{?with_php_json:Requires: php-json}
 Requires: php-pecl-apcu
 %{?with_apcu_bc:Requires: php-pecl-apcu-bc}
 Requires: cambozola
@@ -194,23 +204,24 @@ mv -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Beh
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
-./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR %{_localstatedir}/spool/zoneminder-upload
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
-./utils/zmeditconfigdata.sh ZM_DYN_SHOW_DONATE_REMINDER no
-./utils/zmeditconfigdata.sh ZM_OPT_FAST_DELETE no
 
 %build
+# Disable LTO due to top level asm
+# See https://fedoraproject.org/wiki/LTOByDefault
+%define _lto_cflags %{nil}
+
 %cmake3 \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
         .
 
-%make_build
+%cmake3_build
 
 %install
-%make_install
+%cmake3_install
 
 desktop-file-install					\
 	--dir %{buildroot}%{_datadir}/applications	\
@@ -352,6 +363,7 @@ EOF
 %{_bindir}/zmtelemetry.pl
 %{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl
+%{_bindir}/zmonvif-trigger.pl
 %{_bindir}/zmstats.pl
 %{_bindir}/zmrecover.pl
 
@@ -384,7 +396,6 @@ EOF
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/cache/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
 
 %files nginx
 %config(noreplace) %attr(640,root,nginx) %{_sysconfdir}/zm/zm.conf
@@ -408,29 +419,28 @@ EOF
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,nginx,nginx) %{_localstatedir}/cache/zoneminder
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
-%dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
-* Sun Aug 11 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.14-1
-- Bump to 1.33.13 Development
+* Tue Feb 04 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.2-1
+- 1.34.2 Release
 
-* Sun Jul 07 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.12-1
-- Bump to 1.33.12 Development
+* Fri Jan 31 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.1-1
+- 1.34.1 Release
 
-* Sun Jun 23 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.9-1
-- Bump to 1.33.9 Development
+* Sat Jan 18 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.0-1
+- 1.34.0 Release
 
-* Tue Apr 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.8-1
-- Bump to 1.33.8 Development
+* Tue Dec 17 2019 Leigh Scott <leigh123linux@gmail.com> - 1.32.3-5
+- Mass rebuild for x264
 
-* Sun Apr 07 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.6-1
-- Bump to 1.33.6 Development
+* Wed Aug 07 2019 Leigh Scott <leigh123linux@gmail.com> - 1.32.3-4
+- Rebuild for new ffmpeg version
 
-* Sat Mar 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.4-1
-- Bump to 1.33.4 Development
+* Tue Mar 12 2019 Sérgio Basto <sergio@serjux.com> - 1.32.3-3
+- Mass rebuild for x264
 
-* Tue Dec 11 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.0-1
-- Bump to 1.33.0 Development
+* Tue Mar 05 2019 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.32.3-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
 
 * Sat Dec 08 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.3-1
 - 1.32.3 Release

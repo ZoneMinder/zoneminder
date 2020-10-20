@@ -80,6 +80,7 @@ public:
     LIBVLC,
     CURL,
     NVSOCKET,
+    VNC,
   } CameraType;
 
   typedef enum {
@@ -92,6 +93,7 @@ public:
   } Orientation;
 
   typedef enum {
+    UNKNOWN=-1,
     IDLE,
     PREALARM,
     ALARM,
@@ -142,15 +144,23 @@ protected:
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +72  */
-      time_t last_write_time;
+    union {                     /* +72   */
+      time_t zmc_heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {            /* +80   */
-      time_t last_read_time;
+    union {                     /* +80   */
+      time_t zma_heartbeat_time;			/* Constantly updated by zma.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad3;
     };
-    uint8_t control_state[256];  /* +88   */
+    union {                     /* +88  */
+      time_t last_write_time;
+      uint64_t extrapad4;
+    };
+    union {                     /* +96  */
+      time_t last_read_time;
+      uint64_t extrapad5;
+    };
+    uint8_t control_state[256];  /* +104   */
 
     char alarm_cause[256];
 
@@ -207,13 +217,13 @@ protected:
     uint64_t   last_event_id;
 
     public:
-      MonitorLink( int p_id, const char *p_name );
+      MonitorLink(unsigned int p_id, const char *p_name);
       ~MonitorLink();
 
-      inline int Id() const { return id; }
+      inline unsigned int Id() const { return id; }
       inline const char *Name() const { return name; }
 
-      inline bool isConnected() const { return connected; }
+      inline bool isConnected() const { return connected && shared_data->valid; }
       inline time_t getLastConnectTime() const { return last_connect_time; }
 
       bool connect();
@@ -257,10 +267,10 @@ protected:
   Orientation     orientation;        // Whether the image has to be rotated at all
   unsigned int    deinterlacing;
   unsigned int    deinterlacing_value;
-  bool            videoRecording;
-  bool rtsp_describe;
   std::string     decoder_hwaccel_name;
   std::string     decoder_hwaccel_device;
+  bool            videoRecording;
+  bool rtsp_describe;
 
   int savejpegs;
   int colours;
@@ -297,6 +307,7 @@ protected:
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
   double     analysis_fps_limit;     // Target framerate for video analysis
+  struct timeval video_buffer_duration; // How long a video segment to keep in buffer (set only if analysis fps != 0 )
   unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
   int        capture_delay;      // How long we wait between capture frames
   int        alarm_capture_delay;  // How long we wait between capture frames when in alarm state
@@ -383,7 +394,7 @@ protected:
 
 public:
   explicit Monitor();
-  explicit Monitor(int p_id);
+  explicit Monitor(unsigned int p_id);
 
   ~Monitor();
 
@@ -391,12 +402,13 @@ public:
   void AddPrivacyBitmask( Zone *p_zones[] );
 
   bool connect();
+
   inline int ShmValid() const {
-    return( shared_data->valid );
+    return shared_data && shared_data->valid;
   }
   Camera *getCamera();
 
-  inline int Id() const { return id; }
+  inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name; }
   inline Storage *getStorage() {
     if ( ! storage ) {
@@ -452,7 +464,7 @@ public:
 
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
+  //const std::vector<EncoderParameter_t>* GetEncoderParams() const { return &encoderparamsvec; }
   const std::string &GetEncoderOptions() const { return encoderparams; }
   const int OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }
@@ -461,8 +473,12 @@ public:
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( uint64_t p_event_id ) { video_store_data->current_event = p_event_id; }
 
+  struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
+  void SetVideoWriterStartTime(struct timeval &t) { video_store_data->recording = t; }
+ 
   unsigned int GetPreEventCount() const { return pre_event_count; };
-    int GetImageBufferCount() const { return image_buffer_count; };
+  struct timeval GetVideoBufferDuration() const { return video_buffer_duration; };
+  int GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
   ZMPacket *getSnapshot( int index=-1 ) const;
@@ -541,6 +557,9 @@ public:
 #if HAVE_LIBAVCODEC
   //void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC
+  double get_capture_fps( ) const {
+    return capture_fps;
+  }
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

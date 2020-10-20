@@ -1,7 +1,7 @@
 <?php
 
 namespace ZM;
-require_once( 'config.php' );
+require_once('config.php');
 
 class Logger {
   private static $instance;
@@ -70,7 +70,7 @@ class Logger {
     $this->terminate();
   }
 
-  public function initialise( $options=array() ) {
+  public function initialise($options=array()) {
     if ( !empty($options['id']) )
       $this->id = $options['id'];
 
@@ -100,14 +100,17 @@ class Logger {
       $tempDatabaseLevel = $options['databaseLevel'];
     else
       $tempDatabaseLevel = ZM_LOG_LEVEL_DATABASE;
+
     if ( isset($options['fileLevel']) )
       $tempFileLevel = $options['fileLevel'];
     else
       $tempFileLevel = ZM_LOG_LEVEL_FILE;
+
     if ( isset($options['weblogLevel']) )
       $tempWeblogLevel = $options['weblogLevel'];
     else
       $tempWeblogLevel = ZM_LOG_LEVEL_WEBLOG;
+
     if ( isset($options['syslogLevel']) )
       $tempSyslogLevel = $options['syslogLevel'];
     else
@@ -215,7 +218,7 @@ class Logger {
         }
       }
     }
-    return( $this->id );
+    return $this->id;
   }
 
   public function level( $level ) {
@@ -237,31 +240,31 @@ class Logger {
         $this->effectiveLevel = $this->level;
       if ( !$this->hasTerm ) {
         if ( $lastLevel < self::DEBUG && $this->level >= self::DEBUG ) {
-          $this->savedErrorReporting = error_reporting( E_ALL );
-          $this->savedDisplayErrors = ini_set( 'display_errors', true );
+          $this->savedErrorReporting = error_reporting(E_ALL);
+          $this->savedDisplayErrors = ini_set('display_errors', true);
         } elseif ( $lastLevel >= self::DEBUG && $this->level < self::DEBUG ) {
-          error_reporting( $this->savedErrorReporting );
-          ini_set( 'display_errors', $this->savedDisplayErrors );
+          error_reporting($this->savedErrorReporting);
+          ini_set('display_errors', $this->savedDisplayErrors);
         }
       }
     }
-    return( $this->level );
+    return $this->level;
   }
 
   public function debugOn() {
     return( $this->effectiveLevel >= self::DEBUG );
   }
 
-  public function termLevel( $termLevel ) {
+  public function termLevel($termLevel) {
     if ( isset($termLevel) ) {
       $termLevel = $this->limit($termLevel);
       if ( $this->termLevel != $termLevel )
         $this->termLevel = $termLevel;
     }
-    return( $this->termLevel );
+    return $this->termLevel;
   }
 
-  public function databaseLevel( $databaseLevel=NULL ) {
+  public function databaseLevel($databaseLevel=NULL) {
     if ( !is_null($databaseLevel) ) {
       $databaseLevel = $this->limit($databaseLevel);
       if ( $this->databaseLevel != $databaseLevel ) {
@@ -269,15 +272,15 @@ class Logger {
         if ( $this->databaseLevel > self::NOLOG ) {
           if ( (include_once 'database.php') === FALSE ) {
             $this->databaseLevel = self::NOLOG;
-            Warning( 'Unable to write log entries to DB, database.php not found' );
+            Warning('Unable to write log entries to DB, database.php not found');
           }
         }
       }
     }
-    return( $this->databaseLevel );
+    return $this->databaseLevel;
   }
 
-  public function fileLevel( $fileLevel ) {
+  public function fileLevel($fileLevel) {
     if ( isset($fileLevel) ) {
       $fileLevel = $this->limit($fileLevel);
       if ( $this->fileLevel != $fileLevel ) {
@@ -288,25 +291,25 @@ class Logger {
           $this->openFile();
       }
     }
-    return( $this->fileLevel );
+    return $this->fileLevel;
   }
 
-  public function weblogLevel( $weblogLevel ) {
+  public function weblogLevel($weblogLevel) {
     if ( isset($weblogLevel) ) {
       $weblogLevel = $this->limit($weblogLevel);
       if ( $this->weblogLevel != $weblogLevel ) {
         if ( $weblogLevel > self::NOLOG && $this->weblogLevel <= self::NOLOG ) {
-          $this->savedLogErrors = ini_set( 'log_errors', true );
+          $this->savedLogErrors = ini_set('log_errors', true);
         } elseif ( $weblogLevel <= self::NOLOG && $this->weblogLevel > self::NOLOG ) {
-          ini_set( 'log_errors', $this->savedLogErrors );
+          ini_set('log_errors', $this->savedLogErrors);
         }
         $this->weblogLevel = $weblogLevel;
       }
     }
-    return( $this->weblogLevel );
+    return $this->weblogLevel;
   }
 
-  public function syslogLevel( $syslogLevel ) {
+  public function syslogLevel($syslogLevel) {
     if ( isset($syslogLevel) ) {
       $syslogLevel = $this->limit($syslogLevel);
       if ( $this->syslogLevel != $syslogLevel ) {
@@ -317,30 +320,31 @@ class Logger {
           $this->openSyslog();
       }
     }
-    return( $this->syslogLevel );
+    return $this->syslogLevel;
   }
 
   private function openSyslog() {
-    openlog( $this->id, LOG_PID|LOG_NDELAY, LOG_LOCAL1 );
+    openlog($this->id, LOG_PID|LOG_NDELAY, LOG_LOCAL1);
   }
 
   private function closeSyslog() {
     closelog();
   }
 
-  private function logFile( $logFile ) {
-    if ( preg_match( '/^(.+)\+$/', $logFile, $matches ) )
+  private function logFile($logFile) {
+    if ( preg_match('/^(.+)\+$/', $logFile, $matches) ) {
       $this->logFile = $matches[1].'.'.getmypid();
-    else
+    } else {
       $this->logFile = $logFile;
+    }
   }
 
   private function openFile() {
     if ( !$this->useErrorLog ) {
-      if ( $this->logFd = fopen( $this->logFile, 'a+' ) ) {
-        if ( strnatcmp( phpversion(), '5.2.0' ) >= 0 ) {
+      if ( $this->logFd = fopen($this->logFile, 'a+') ) {
+        if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
           $error = error_get_last();
-          trigger_error( "Can't open log file '$logFile': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR );
+          trigger_error("Can't open log file '$logFile': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
         }
         $this->fileLevel = self::NOLOG;
       }
@@ -349,73 +353,86 @@ class Logger {
 
   private function closeFile() {
     if ( $this->logFd )
-      fclose( $this->logFd );
+      fclose($this->logFd);
   }
 
-  public function logPrint( $level, $string, $file=NULL, $line=NULL ) {
-    if ( $level <= $this->effectiveLevel ) {
-      $string = preg_replace( '/[\r\n]+$/', '', $string );
-      $code = self::$codes[$level];
+  public function logPrint($level, $string, $file=NULL, $line=NULL) {
+    if ( $level > $this->effectiveLevel ) {
+      return;
+    }
 
-      $time = gettimeofday();
-      $message = sprintf( '%s.%06d %s[%d].%s [%s]', strftime( '%x %H:%M:%S', $time['sec'] ), $time['usec'], $this->id, getmypid(), $code, $string );
+    $string = preg_replace('/[\r\n]+$/', '', $string);
+    $code = self::$codes[$level];
 
-      if ( is_null($file) ) {
-        if ( $this->useErrorLog || $this->databaseLevel > self::NOLOG ) {
-          $backTrace = debug_backtrace();
-          $file = $backTrace[1]['file'];
-          $line = $backTrace[1]['line'];
-          if ( $this->hasTerm )
-            $rootPath = getcwd();
-          else
-            $rootPath = $_SERVER['DOCUMENT_ROOT'];
-          $file = preg_replace( '/^'.addcslashes($rootPath,'/').'\/?/', '', $file );
-        }
-      }
+    $time = gettimeofday();
+    $message = sprintf('%s.%06d %s[%d].%s [%s] [%s]',
+      strftime('%x %H:%M:%S', $time['sec']), $time['usec'],
+      $this->id, getmypid(), $code, $_SERVER['REMOTE_ADDR'], $string);
 
-      if ( $this->useErrorLog )
-        $message .= ' at '.$file.' line '.$line;
-      else
-        $message = $message;
-
-      if ( $level <= $this->termLevel )
+    if ( is_null($file) ) {
+      if ( $this->useErrorLog || ($this->databaseLevel > self::NOLOG) ) {
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
         if ( $this->hasTerm )
-          print( $message."\n" );
+          $rootPath = getcwd();
         else
-          print( preg_replace( "/\n/", '<br/>', htmlspecialchars($message) ).'<br/>' );
-
-      if ( $level <= $this->fileLevel )
-        if ( $this->useErrorLog ) {
-          if ( !error_log( $message."\n", 3, $this->logFile ) ) {
-            if ( strnatcmp( phpversion(), '5.2.0' ) >= 0 ) {
-              $error = error_get_last();
-              trigger_error( "Can't write to log file '".$this->logFile."': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR );
-            }
-          }
-        } elseif ( $this->logFd ) {
-          fprintf( $this->logFd, $message."\n" );
-        }
-
-      $message = $code.' ['.$string.']';
-      if ( $level <= $this->syslogLevel )
-        syslog( self::$syslogPriorities[$level], $message );
-      if ( $level <= $this->databaseLevel ) {
-        try {
-          global $dbConn;
-          $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, ? )';
-          $stmt = $dbConn->prepare( $sql );
-          $result = $stmt->execute( array( sprintf( '%d.%06d', $time['sec'], $time['usec'] ), $this->id, getmypid(), $level, $code, $string, $file, $line ) );
-        } catch(PDOException $ex) {
-          $this->databaseLevel = self::NOLOG;
-          Error("Can't write log entry '$sql': ". $ex->getMessage());
-        }
+          $rootPath = $_SERVER['DOCUMENT_ROOT'];
+        $file = preg_replace('/^'.addcslashes($rootPath, '/').'\/?/', '', $file);
       }
-      // This has to be last as trigger_error can be fatal
-      if ( $level <= $this->weblogLevel ) {
-        if ( $this->useErrorLog )
-          error_log( $message, 0 );
-        else
-          trigger_error( $message, self::$phpErrorLevels[$level] );
+    }
+
+    if ( $this->useErrorLog ) {
+      $message .= ' at '.$file.' line '.$line;
+    }
+
+    if ( $level <= $this->termLevel ) {
+      if ( $this->hasTerm ) {
+        print($message."\n");
+      } else {
+        // Didn't we already replace all newlines with spaces above?
+        print(preg_replace('/\n/', '<br/>', htmlspecialchars($message)).'<br/>');
+      }
+    }
+
+    if ( $level <= $this->fileLevel ) {
+      if ( $this->useErrorLog ) {
+        if ( !error_log($message."\n", 3, $this->logFile) ) {
+          if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
+            $error = error_get_last();
+            trigger_error("Can't write to log file '".$this->logFile."': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
+          }
+        }
+      } else if ( $this->logFd ) {
+        fprintf($this->logFd, $message."\n");
+      } else {
+        $this->fileLevel = self::NOLOG;
+        Error('No logFd but have fileLevel logging!?');
+      }
+    }
+
+    $message = $code.' ['.$string.']';
+    if ( $level <= $this->syslogLevel )
+      syslog( self::$syslogPriorities[$level], $message );
+
+    if ( $level <= $this->databaseLevel ) {
+      try {
+        global $dbConn;
+        $sql = 'INSERT INTO `Logs` ( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';
+        $stmt = $dbConn->prepare($sql);
+        $result = $stmt->execute(array(sprintf('%d.%06d', $time['sec'], $time['usec']), $this->id,
+          (defined('ZM_SERVER_ID') ? ZM_SERVER_ID : null), getmypid(), $level, $code, $string, $file, $line));
+      } catch(PDOException $ex) {
+        $this->databaseLevel = self::NOLOG;
+        Error("Can't write log entry '$sql': ". $ex->getMessage());
+      }
+    }
+    // This has to be last as trigger_error can be fatal
+    if ( $level <= $this->weblogLevel ) {
+      if ( $this->useErrorLog ) {
+        error_log($message, 0);
+      } else {
+        trigger_error($message, self::$phpErrorLevels[$level]);
       }
     }
   }

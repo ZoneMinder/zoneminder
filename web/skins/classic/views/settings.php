@@ -26,12 +26,14 @@ $monitor = ZM\Monitor::find_one(array('Id'=>$_REQUEST['mid']));
 
 $zmuCommand = getZmuCommand(' -m '.escapeshellarg($_REQUEST['mid']).' -B -C -H -O');
 $zmuOutput = exec( $zmuCommand );
-list($brightness, $contrast, $hue, $colour) = explode(' ', $zmuOutput);
+if ( $zmuOutput ) {
+  list($brightness, $contrast, $hue, $colour) = explode(' ', $zmuOutput);
 
-$monitor->Brightness() = $brightness;
-$monitor->Contrast() = $contrast;
-$monitor->Hue() = $hue;
-$monitor->Colour() = $colour;
+  $monitor->Brightness($brightness);
+  $monitor->Contrast($contrast);
+  $monitor->Hue($hue);
+  $monitor->Colour($colour);
+}
 
 $focusWindow = true;
 
@@ -47,23 +49,23 @@ xhtmlHeaders(__FILE__, validHtmlStr($monitor->Name()).' - '.translate('Settings'
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="settings"/>
         <input type="hidden" name="mid" value="<?php echo validInt($_REQUEST['mid']) ?>"/>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table id="contentTable" class="major">
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('Brightness') ?></th>
-              <td><input type="number" name="newBrightness" value="<?php echo $monitor->Brightness() ?>" <?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td><input type="number" name="newBrightness" value="<?php echo $monitor->Brightness() ?>" <?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?> /></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Contrast') ?></th>
-              <td><input type="number" name="newContrast" value="<?php echo $monitor->Contrast() ?>" <?php  echo canView('Control') ? '' : ' disabled="disabled"' ?>/></td>
+              <td><input type="number" name="newContrast" value="<?php echo $monitor->Contrast() ?>" <?php  echo canView('Control') ? '' : ' disabled="disabled"' ?> /></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Hue') ?></th>
-              <td><input type="number" name="newHue" value="<?php echo $monitor->Hue() ?>" <?php echo canView('Control') ? '' : ' disabled="disabled"' ?>/></td>
+              <td><input type="number" name="newHue" value="<?php echo $monitor->Hue() ?>" <?php echo canView('Control') ? '' : ' disabled="disabled"' ?> /></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Colour') ?></th>
-              <td><input type="number" name="newColour" value="<?php echo $monitor->Colour() ?>" <?php echo canView('Control') ? '' : ' disabled="disabled"' ?>/></td>
+              <td><input type="number" name="newColour" value="<?php echo $monitor->Colour() ?>" <?php echo canView('Control') ? '' : ' disabled="disabled"' ?> /></td>
             </tr>
           </tbody>
         </table>
@@ -74,5 +76,4 @@ xhtmlHeaders(__FILE__, validHtmlStr($monitor->Name()).' - '.translate('Settings'
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

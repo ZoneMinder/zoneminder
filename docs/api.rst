@@ -14,6 +14,10 @@ The API is built in CakePHP and lives under the ``/api`` directory.  It
 provides a RESTful service and supports CRUD (create, retrieve, update, delete)
 functions for Monitors, Events, Frames, Zones and Config.
 
+API Wrappers
+^^^^^^^^^^^^^
+- pyzm is a python wrapper for the ZoneMinder APIs. It supports both the legacy and new token based API, as well as ZM logs/ZM shared memory support. See `its project site <https://github.com/pliablepixels/pyzm/>`__ for more details. Documentation is `here <https://pyzm.readthedocs.io/en/latest/>`__.
+
 API evolution
 ^^^^^^^^^^^^^^^
 
@@ -21,12 +25,14 @@ The ZoneMinder API has evolved over time. Broadly speaking the iterations were a
 
 * Prior to version 1.29, there really was no API layer. Users had to use the same URLs that the web console used to 'mimic' operations, or use an XML skin
 * Starting version 1.29, a v1.0 CakePHP based API was released which continues to evolve over time. From a security perspective, it still tied into ZM auth and required client cookies for many operations. Primarily, two authentication modes were offered: 
-  * You use cookies to maintain session state (`ZM_SESS_ID`)
-  * You use an authentication hash to validate yourself, which included encoding personal information and time stamps which at times caused timing validation issues, especially for mobile consumers
-* Starting version 1.34, ZoneMinder has introduced a new "token" based system which is based JWT. We have given it a '2.0' version ID. These tokens don't encode any personal data and can be statelessly passed around per request. It introduces concepts like access tokens, refresh tokens and per user level API revocation to manage security better. The internal components of ZoneMinder all support this new scheme now and if you are using the APIs we strongly recommend you migrate to 1.34 and use this new token system (as a side note, 1.34 also moves from MYSQL PASSWORD to Bcrypt for passwords, which is also a good reason why you should migate).
-* Note that as of 1.34, both versions of API access will work (tokens and the older auth hash mechanism).
 
-.. NOTE::
+  * You use cookies to maintain session state (``ZM_SESS_ID``)
+  * You use an authentication hash to validate yourself, which included encoding personal information and time stamps which at times caused timing validation issues, especially for mobile consumers
+
+* Starting version 1.34, ZoneMinder has introduced a new "token" based system which is based JWT. We have given it a '2.0' version ID. These tokens don't encode any personal data and can be statelessly passed around per request. It introduces concepts like access tokens, refresh tokens and per user level API revocation to manage security better. The internal components of ZoneMinder all support this new scheme now and if you are using the APIs we strongly recommend you migrate to 1.34 and use this new token system (as a side note, 1.34 also moves from MYSQL PASSWORD to Bcrypt for passwords, which is also a good reason why you should migate).
+* Note that as of 1.34, both versions of API access will work (tokens and the older auth hash mechanism), however we no longer use sessions by default.  You will have to add a ``stateful=1`` query parameter during login to tell ZM to set a COOKIE and store the required info in the session. This option is only available if ``OPT_USE_LEGACY_API_AUTH`` is set to ON.
+
+.. note::
 	For the rest of the document, we will specifically highlight v2.0 only features. If you don't see a special mention, assume it applies for both API versions.
 
 
@@ -35,7 +41,9 @@ Enabling API
 ^^^^^^^^^^^^^
 
 ZoneMinder comes with APIs enabled. To check if APIs are enabled, visit ``Options->System``. If ``OPT_USE_API`` is enabled, your APIs are active. 
-For v2.0 APIs, you have an additional option right below it - ``OPT_USE_LEGACY_API_AUTH`` which is enabled by default. When enabled, the `login.json` API (discussed later) will return both the old style (``auth=``) and new style (``token=``) credentials. The reason this is enabled by default is because any existing apps that use the API would break if they were not updated to use v2.0. (Note that zmNinja 1.3.057 and beyond will support tokens)
+For v2.0 APIs, you have an additional option right below it:
+
+ * ``OPT_USE_LEGACY_API_AUTH`` which is enabled by default. When enabled, the `login.json` API (discussed later) will return both the old style (``auth=``) and new style (``token=``) credentials. The reason this is enabled by default is because any existing apps that use the API would break if they were not updated to use v2.0. (Note that zmNinja 1.3.057 and beyond will support tokens)
 
 Enabling secret key
 ^^^^^^^^^^^^^^^^^^^
@@ -51,10 +59,14 @@ To get an API key:
 
 ::
 
-    curl -XPOST [-c cookies.txt] -d "user=yourusername&pass=yourpassword" https://yourserver/zm/api/host/login.json
+    curl -XPOST -d "user=yourusername&pass=yourpassword" https://yourserver/zm/api/host/login.json
 
 
-The ``[-c cookies.txt]`` is optional, and will be explained in the next section.
+If you want to use a stateful connection, so you don't have to pass auth credentials with each query, you can use the following:
+
+::
+
+    curl -XPOST -c cookies.txt -d "user=yourusername&pass=yourpassword&stateful=1" https://yourserver/zm/api/host/login.json
 
 This returns a payload like this for API v1.0:
 
@@ -89,17 +101,14 @@ Once you have the keys (a.k.a credentials (v1.0, v2.0) or token (v2.0)) you shou
 
 ::
 
+  # v1.0 or 2.0 based API access (will only work if AUTH_HASH_LOGINS is enabled
+
   # RECOMMENDED: v2.0 token based 
-    curl -XPOST   https://yourserver/zm/api/monitors.json&token=<access_token>
+    curl -XGET  https://yourserver/zm/api/monitors.json?token=<access_token>
 
-  # or
+  # or, for legacy mode:
 
-  # v1.0 or 2.0 based API access (will only work if AUTH_HASH_LOGINS is enabled)
-  curl -XPOST -d "auth=<hex digits from 'credentials'>"   https://yourserver/zm/api/monitors.json
-
-  # or 
-
-  curl -XGET   https://yourserver/zm/api/monitors.json&auth=<hex digits from 'credentials'>
+  curl -XGET  https://yourserver/zm/api/monitors.json?auth=<hex digits from 'credentials'>
 
   # or, if you specified -c cookies.txt in the original login request
 
@@ -107,8 +116,8 @@ Once you have the keys (a.k.a credentials (v1.0, v2.0) or token (v2.0)) you shou
 
 
 .. NOTE::
-	ZoneMinder's API layer allows API keys to be encoded either as a query parameter or as a data payload. If you don't pass keys, you could use cookies (not recommended as a general approach)
 
+	If you are using an ``HTTP GET`` request, the token/auth needs to be passed as a query parameter in the URL. If you are using an ``HTTP POST`` (like when you use the API to modify a monitor, for example), you can choose to pass the token as a data payload instead. The API layer discards data payloads for ``HTTP GET``. Finally, If you don't pass keys, you could also use cookies (not recommended as a general approach).
 
 Key lifetime (v1.0)
 ^^^^^^^^^^^^^^^^^^^^^
@@ -118,7 +127,7 @@ If you are using the old credentials mechanism present in v1.0, then the credent
 Key lifetime (v2.0)
 ^^^^^^^^^^^^^^^^^^^^^^
 
-In version 2.0, it is easy to know when a key will expire before you use it. You can find that out from the ``access_token_expires`` and ``refresh_token_exipres`` values (in seconds) after you decode the JWT key (there are JWT decode libraries for every language you want). You should refresh the keys before the timeout occurs, or you will not be able to use the APIs. 
+In version 2.0, it is easy to know when a key will expire before you use it. You can find that out from the ``access_token_expires`` and ``refresh_token_expires`` values (in seconds) after you decode the JWT key (there are JWT decode libraries for every language you want). You should refresh the keys before the timeout occurs, or you will not be able to use the APIs. 
 
 Understanding access/refresh tokens (v2.0)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -473,6 +482,7 @@ Create a Zone
   &Zone[Units]=Percent\
   &Zone[NumCoords]=4\
   &Zone[Coords]=0,0 639,0 639,479 0,479\
+  &Zone[Area]=307200\
   &Zone[AlarmRGB]=16711680\
   &Zone[CheckMethod]=Blobs\
   &Zone[MinPixelThreshold]=25\

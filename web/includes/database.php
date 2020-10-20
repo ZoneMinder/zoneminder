@@ -25,21 +25,28 @@ define('DB_LOG_DEBUG', 2);
 $GLOBALS['dbLogLevel'] = DB_LOG_OFF;
 
 $GLOBALS['dbConn'] = false;
+require_once('logger.php');
 
 function dbConnect() {
   global $dbConn;
 
-  if ( strpos(ZM_DB_HOST, ':') ) {
-    // Host variable may carry a port or socket.
-    list($host, $portOrSocket) = explode(':', ZM_DB_HOST, 2);
-    if ( ctype_digit($portOrSocket) ) {
-      $socket = ':host='.$host . ';port='.$portOrSocket;
+  $dsn = ZM_DB_TYPE;
+  if ( ZM_DB_HOST ) {
+    if ( strpos(ZM_DB_HOST, ':') ) {
+      // Host variable may carry a port or socket.
+      list($host, $portOrSocket) = explode(':', ZM_DB_HOST, 2);
+      if ( ctype_digit($portOrSocket) ) {
+        $dsn .= ':host='.$host.';port='.$portOrSocket.';';
+      } else {
+        $dsn .= ':unix_socket='.$portOrSocket.';';
+      }
     } else {
-      $socket = ':unix_socket='.$portOrSocket;
+      $dsn .= ':host='.ZM_DB_HOST.';';
     }
   } else {
-    $socket = ':host='.ZM_DB_HOST;
+    $dsn .= ':host=localhost;';
   }
+  $dsn .= 'dbname='.ZM_DB_NAME;
 
   try {
     $dbOptions = null;
@@ -49,21 +56,26 @@ function dbConnect() {
         PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
         PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
       );
-      $dbConn = new PDO(ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
+      $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
     } else {
-      $dbConn = new PDO(ZM_DB_TYPE . $socket . ';dbname='.ZM_DB_NAME, ZM_DB_USER, ZM_DB_PASS);
+      $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS);
     }
 
     $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-  } catch(PDOException $ex ) {
-    echo 'Unable to connect to ZM db.' . $ex->getMessage();
+  } catch(PDOException $ex) {
+    global $error_message;
+    $error_message = "Unable to connect to ZM db using dsn $dsn<br/><br/>".$ex->getMessage();
     error_log('Unable to connect to ZM DB ' . $ex->getMessage());
     $dbConn = null;
   }
-}
+  return $dbConn;
+}  // end function dbConnect
 
-dbConnect();
+if ( !dbConnect() ) {
+  include('views/no_database_connection.php');
+  exit();
+}
 
 function dbDisconnect() {
   global $dbConn;
@@ -110,16 +122,10 @@ function dbError($sql) {
 
 function dbEscape( $string ) {
   global $dbConn;
-  if ( version_compare(phpversion(), '4.3.0', '<'))
-    if ( get_magic_quotes_gpc() )
-      return $dbConn->quote(stripslashes($string));
-    else
-      return $dbConn->quote($string);
+  if ( version_compare(phpversion(), '5.4', '<=') and get_magic_quotes_gpc() ) 
+    return $dbConn->quote(stripslashes($string));
   else
-    if ( get_magic_quotes_gpc() )
-      return $dbConn->quote(stripslashes($string));
-    else
-      return $dbConn->quote($string);
+    return $dbConn->quote($string);
 }
 
 function dbQuery($sql, $params=NULL) {
@@ -135,7 +141,7 @@ function dbQuery($sql, $params=NULL) {
       }
 
       if ( ! $result->execute($params) ) {
-        ZM\Error("SQL: Error executing $sql: " . implode(',', $result->errorInfo()));
+        ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
         return NULL;
       }
     } else {
@@ -149,10 +155,7 @@ function dbQuery($sql, $params=NULL) {
       }
     }
     if ( defined('ZM_DB_DEBUG') ) {
-      if ( $params )
-        ZM\Logger::Debug("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount());
-      else
-        ZM\Logger::Debug("SQL: $sql: rows:" . $result->rowCount());
+      ZM\Logger::Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
     }
   } catch(PDOException $e) {
     ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));
@@ -212,6 +215,10 @@ function dbFetch($sql, $col=false) {
 }
 
 function dbFetchNext($result, $col=false) {
+	if ( !$result ) {
+		ZM\Error("dbFetchNext called on null result.");
+		return false;
+	}
   if ( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
     return $col ? $dbRow[$col] : $dbRow;
   return false;

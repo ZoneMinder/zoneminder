@@ -28,15 +28,16 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
 var monitorData = new Array();
 <?php
+global $monitors;
 foreach ( $monitors as $monitor ) {
 ?>
 monitorData[monitorData.length] = { 
   'id': <?php echo $monitor->Id() ?>, 
   'connKey': <?php echo $monitor->connKey() ?>, 
-  'width': <?php echo $monitor->Width() ?>,
-  'height':<?php echo $monitor->Height() ?>,
-  'url': '<?php echo $monitor->UrlToIndex() ?>',
-  'onclick': function(){createPopup( '?view=watch&mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );},
+  'width': <?php echo $monitor->ViewWidth() ?>,
+  'height':<?php echo $monitor->ViewHeight() ?>,
+  'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
+  'onclick': function(){createPopup( '?view=watch&mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->ViewWidth(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->ViewHeight(), $monitor->PopupScale() ); ?> );},
   'type': '<?php echo $monitor->Type() ?>',
   'refresh': '<?php echo $monitor->Refresh() ?>'
 };
@@ -46,9 +47,10 @@ monitorData[monitorData.length] = {
 layouts = new Array();
 layouts[0] = {}; // reserved, should hold which fields to clear when transitioning
 <?php
+global $layouts;
 foreach ( $layouts as $layout ) {
 ?>
-layouts[<?php echo $layout->Id() ?>] = {"Name":"<?php echo $layout->Name()?>","Positions":<?php echo $layout->Positions() ?>};
+layouts[<?php echo $layout->Id() ?>] = {"Name":"<?php echo $layout->Name()?>","Positions":<?php echo json_decode($layout->Positions())?$layout->Positions():'{}' ?>};
 <?php
 } // end foreach layout
 ?>

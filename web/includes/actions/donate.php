@@ -25,24 +25,20 @@ if ( !canEdit('System') ) {
 
 if ( $action == 'donate' && isset($_REQUEST['option']) ) {
   $option = $_REQUEST['option'];
-  switch( $option ) {
+  $nextReminder = time();
+
+  switch ( $option ) {
     case 'go' :
-      // Ignore this, the caller will open the page itself
-      break;
+      // Ignore this, the caller will open the page itself, use a return to shortut the view=none
+      return;
     case 'hour' :
+      $nextReminder += 60*60;
     case 'day' :
+      $nextReminder += 24*60*60;
     case 'week' :
+      $nextReminder += 7*24*60*60;
     case 'month' :
-      $nextReminder = time();
-      if ( $option == 'hour' ) {
-        $nextReminder += 60*60;
-      } elseif ( $option == 'day' ) {
-        $nextReminder += 24*60*60;
-      } elseif ( $option == 'week' ) {
-        $nextReminder += 7*24*60*60;
-      } elseif ( $option == 'month' ) {
-        $nextReminder += 30*24*60*60;
-      }
+      $nextReminder += 30*24*60*60;
       dbQuery("UPDATE Config SET Value = '".$nextReminder."' WHERE Name = 'ZM_DYN_DONATE_REMINDER_TIME'");
       break;
     case 'never' :
@@ -53,6 +49,6 @@ if ( $action == 'donate' && isset($_REQUEST['option']) ) {
       Warning("Unknown value for option in donate: $option");
       break;
   } // end switch option
-  $view = 'none';
+  $redirect = '?view=console';
 }
 ?>

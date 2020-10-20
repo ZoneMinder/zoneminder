@@ -33,18 +33,31 @@ StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC
   if ( vid_stream ) {
     delete vid_stream;
-    vid_stream = NULL;
+    vid_stream = nullptr;
   }
 #endif
   closeComms();
+  if ( monitor ) {
+    delete monitor;
+    monitor = NULL;
+  }
 }
 
-bool StreamBase::loadMonitor(int monitor_id) {
+bool StreamBase::loadMonitor(int p_monitor_id) {
+  monitor_id = p_monitor_id;
+  if ( monitor )
+    delete monitor;
+
   if ( !(monitor = Monitor::Load(monitor_id, false, Monitor::QUERY)) ) {
     Error("Unable to load monitor id %d for streaming", monitor_id);
     return false;
   }
-  if ( ! monitor->connect() ) {
+  if ( monitor->GetFunction() == Monitor::NONE ) {
+    Error("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
+    return false;
+  }
+
+  if ( !monitor->connect() ) {
     Error("Unable to connect to monitor id %d for streaming", monitor_id);
     return false;
   }
@@ -54,7 +67,15 @@ bool StreamBase::loadMonitor(int monitor_id) {
 
 bool StreamBase::checkInitialised() {
   if ( !monitor ) {
-    Fatal("Cannot stream, not initialised");
+    Error("Cannot stream, not initialised");
+    return false;
+  }
+  if ( monitor->GetFunction() == Monitor::NONE ) {
+    Error("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
+    return false;
+  }
+  if ( !monitor->ShmValid() ) {
+    Error("Monitor shm is not connected");
     return false;
   }
   return true;
@@ -109,16 +130,7 @@ bool StreamBase::checkCommandQueue() {
   return false;
 }
 
-Image *StreamBase::prepareImage( Image *image ) {
-  static int last_scale = 0;
-  static int last_zoom = 0;
-  static int last_x = 0;
-  static int last_y = 0;
-
-  if ( !last_scale )
-    last_scale = scale;
-  if ( !last_zoom )
-    last_zoom = zoom;
+Image *StreamBase::prepareImage(Image *image) {
 
   // Do not bother to scale zoomed in images, just crop them and let the browser scale
   // Works in FF2 but breaks FF3 which doesn't like image sizes changing in mid stream.
@@ -128,50 +140,51 @@ Image *StreamBase::prepareImage( Image *image ) {
 
   int mag = (scale * zoom) / ZM_SCALE_BASE;
   int act_mag = optimisedScaling?(mag > ZM_SCALE_BASE?ZM_SCALE_BASE:mag):mag;
-  Debug( 3, "Scaling by %d, zooming by %d = magnifying by %d(%d)", scale, zoom, mag, act_mag );
 
   int last_mag = (last_scale * last_zoom) / ZM_SCALE_BASE;
   int last_act_mag = last_mag > ZM_SCALE_BASE?ZM_SCALE_BASE:last_mag;
-  Debug( 3, "Last scaling by %d, zooming by %d = magnifying by %d(%d)", last_scale, last_zoom, last_mag, last_act_mag );
-
   int base_image_width = image->Width(), base_image_height = image->Height();
-  Debug( 3, "Base image width = %d, height = %d", base_image_width, base_image_height );
-
   int virt_image_width = (base_image_width * mag) / ZM_SCALE_BASE, virt_image_height = (base_image_height * mag) / ZM_SCALE_BASE;
-  Debug( 3, "Virtual image width = %d, height = %d", virt_image_width, virt_image_height );
-
   int last_virt_image_width = (base_image_width * last_mag) / ZM_SCALE_BASE, last_virt_image_height = (base_image_height * last_mag) / ZM_SCALE_BASE;
-  Debug( 3, "Last virtual image width = %d, height = %d", last_virt_image_width, last_virt_image_height );
-
   int act_image_width = (base_image_width * act_mag ) / ZM_SCALE_BASE, act_image_height = (base_image_height * act_mag ) / ZM_SCALE_BASE;
-  Debug( 3, "Actual image width = %d, height = %d", act_image_width, act_image_height );
-
   int last_act_image_width = (base_image_width * last_act_mag ) / ZM_SCALE_BASE, last_act_image_height = (base_image_height * last_act_mag ) / ZM_SCALE_BASE;
-  Debug( 3, "Last actual image width = %d, height = %d", last_act_image_width, last_act_image_height );
-
   int disp_image_width = (image->Width() * scale) / ZM_SCALE_BASE, disp_image_height = (image->Height() * scale) / ZM_SCALE_BASE;
-  Debug( 3, "Display image width = %d, height = %d", disp_image_width, disp_image_height );
-
   int last_disp_image_width = (image->Width() * last_scale) / ZM_SCALE_BASE, last_disp_image_height = (image->Height() * last_scale) / ZM_SCALE_BASE;
-  Debug( 3, "Last display image width = %d, height = %d", last_disp_image_width, last_disp_image_height );
-
   int send_image_width = (disp_image_width * act_mag ) / mag, send_image_height = (disp_image_height * act_mag ) / mag;
-  Debug( 3, "Send image width = %d, height = %d", send_image_width, send_image_height );
-
   int last_send_image_width = (last_disp_image_width * last_act_mag ) / last_mag, last_send_image_height = (last_disp_image_height * last_act_mag ) / last_mag;
-  Debug( 3, "Last send image width = %d, height = %d", last_send_image_width, last_send_image_height );
 
-  if ( mag != ZM_SCALE_BASE ) {
-    if ( act_mag != ZM_SCALE_BASE ) {
-      Debug(3, "Magnifying by %d", mag);
-      if ( !image_copied ) {
-        static Image copy_image;
-        copy_image.Assign(*image);
-        image = &copy_image;
-        image_copied = true;
-      }
-      image->Scale(mag);
-    }
+  Debug(3,
+      "Scaling by %d, zooming by %d = magnifying by %d(%d)\n"
+      "Last scaling by %d, zooming by %d = magnifying by %d(%d)\n"
+      "Base image width = %d, height = %d\n"
+      "Virtual image width = %d, height = %d\n"
+      "Last virtual image width = %d, height = %d\n"
+      "Actual image width = %d, height = %d\n"
+      "Last actual image width = %d, height = %d\n"
+      "Display image width = %d, height = %d\n"
+      "Last display image width = %d, height = %d\n"
+      "Send image width = %d, height = %d\n"
+      "Last send image width = %d, height = %d\n",
+      scale, zoom, mag, act_mag,
+      last_scale, last_zoom, last_mag, last_act_mag,
+      base_image_width, base_image_height,
+      virt_image_width, virt_image_height,
+      last_virt_image_width, last_virt_image_height,
+      act_image_width, act_image_height,
+      last_act_image_width, last_act_image_height,
+      disp_image_width, disp_image_height,
+      last_disp_image_width, last_disp_image_height,
+      send_image_width, send_image_height,
+      last_send_image_width, last_send_image_height
+      );
+
+  if ( ( mag != ZM_SCALE_BASE ) && (act_mag != ZM_SCALE_BASE) ) {
+    Debug(3, "Magnifying by %d", mag);
+    static Image copy_image;
+    copy_image.Assign(*image);
+    image = &copy_image;
+    image_copied = true;
+    image->Scale(mag);
   }
 
   Debug(3, "Real image width = %d, height = %d", image->Width(), image->Height());
@@ -180,26 +193,22 @@ Image *StreamBase::prepareImage( Image *image ) {
     static Box last_crop;
 
     if ( mag != last_mag || x != last_x || y != last_y ) {
-      Debug( 3, "Got click at %d,%d x %d", x, y, mag );
-
-      //if ( !last_mag )
-        //last_mag = mag;
+      Debug(3, "Got click at %d,%d x %d", x, y, mag);
 
       if ( !(last_disp_image_width < last_virt_image_width || last_disp_image_height < last_virt_image_height) )
         last_crop = Box();
 
-      Debug( 3, "Recalculating crop" );
       // Recalculate crop parameters, as %ges
       int click_x = (last_crop.LoX() * 100 ) / last_act_image_width; // Initial crop offset from last image
       click_x += ( x * 100 ) / last_virt_image_width;
       int click_y = (last_crop.LoY() * 100 ) / last_act_image_height; // Initial crop offset from last image
       click_y += ( y * 100 ) / last_virt_image_height;
-      Debug( 3, "Got adjusted click at %d%%,%d%%", click_x, click_y );
+      Debug(3, "Got adjusted click at %d%%,%d%%", click_x, click_y);
 
       // Convert the click locations to the current image pixels
       click_x = ( click_x * act_image_width ) / 100;
       click_y = ( click_y * act_image_height ) / 100;
-      Debug( 3, "Got readjusted click at %d,%d", click_x, click_y );
+      Debug(3, "Got readjusted click at %d,%d", click_x, click_y);
 
       int lo_x = click_x - (send_image_width/2);
       if ( lo_x < 0 )
@@ -218,8 +227,9 @@ Image *StreamBase::prepareImage( Image *image ) {
         lo_y = hi_y - (send_image_height - 1);
       }
       last_crop = Box( lo_x, lo_y, hi_x, hi_y );
-    }
-    Debug( 3, "Cropping to %d,%d -> %d,%d", last_crop.LoX(), last_crop.LoY(), last_crop.HiX(), last_crop.HiY() );
+    }  // end if ( mag != last_mag || x != last_x || y != last_y )
+
+    Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.LoX(), last_crop.LoY(), last_crop.HiX(), last_crop.HiY());
     if ( !image_copied ) {
       static Image copy_image;
       copy_image.Assign(*image);
@@ -227,14 +237,15 @@ Image *StreamBase::prepareImage( Image *image ) {
       image_copied = true;
     }
     image->Crop(last_crop);
-  }
+  }  // end if difference in image vs displayed dimensions
+
   last_scale = scale;
   last_zoom = zoom;
   last_x = x;
   last_y = y;
 
   return image;
-}
+}  // end Image *StreamBase::prepareImage(Image *image)
 
 bool StreamBase::sendTextFrame(const char *frame_text) {
   Debug(2, "Sending %dx%d * %d text frame '%s'",
@@ -253,7 +264,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
-    /* double pts = */ vid_stream->EncodeFrame( image.Buffer(), image.Size() );
+    /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
   } else
 #endif // HAVE_LIBAVCODEC
   {
@@ -262,13 +273,13 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
 
     image.EncodeJpeg(buffer, &n_bytes);
 
-    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n", stdout);
+    fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout);
     fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);
     if ( fwrite(buffer, n_bytes, 1, stdout) != 1 ) {
       Error("Unable to send stream text frame: %s", strerror(errno));
       return false;
     }
-    fputs("\r\n\r\n",stdout);
+    fputs("\r\n\r\n", stdout);
     fflush(stdout);
   }
   last_frame_sent = TV_2_FLOAT(now);
@@ -353,10 +364,10 @@ void StreamBase::openComms() {
     }
 
     snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey);
-    strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path)-1);
+    strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
-    gettimeofday(&last_comm_update, NULL);
+    gettimeofday(&last_comm_update, nullptr);
   } // end if connKey > 0
   Debug(3, "comms open at %s", loc_sock_path);
 } // end void StreamBase::openComms()

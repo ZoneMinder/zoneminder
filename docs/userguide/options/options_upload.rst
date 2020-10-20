@@ -1,9 +1,11 @@
 Options - Upload
 ----------------
 
+A partial screenshot of the upload options is shown below:
+
 .. image:: images/Options_upload.png
 
-OPT_UPLOAD - In ZoneMinder you can create event filters that specify whether events that match certain criteria should be uploaded to a remote server for archiving. This option specifies whether this functionality should be available
+OPT_UPLOAD - In ZoneMinder you can create event filters that specify whether events that match certain criteria should be uploaded to a remote server for archiving. This option specifies whether this functionality should be available.
 
 UPLOAD_ARCH_FORMAT - Uploaded events may be stored in either .tar or .zip format, this option specifies which. Note that to use this you will need to have the Archive::Tar and/or Archive::Zip perl modules installed.
 
@@ -26,6 +28,8 @@ UPLOAD_LOC_DIR - You can use filters to instruct ZoneMinder to upload events to 
 UPLOAD_REM_DIR - You can use filters to instruct ZoneMinder to upload events to a remote server. This option indicates the remote directory that ZoneMinder should use to upload event files to.
 
 UPLOAD_TIMEOUT - You can use filters to instruct ZoneMinder to upload events to a remote server. This option indicates the maximum inactivity timeout (in seconds) that should be tolerated before ZoneMinder determines that the transfer has failed and closes down the connection.
+
+UPLOAD_STRICT - You can require SFTP uploads to verify the host key of the remote server for protection against man-in-the-middle attacks. You will need to add the server's key to the known_hosts file. On most systems, this will be ``~/.ssh/known_hosts``, where ``~`` is the home directory of the web server running ZoneMinder.
 
 UPLOAD_FTP_PASSIVE - You can use filters to instruct ZoneMinder to upload events to a remote ftp server. This option indicates that ftp transfers should be done in passive mode. This uses a single connection for all ftp activity and, whilst slower than active transfers, is more robust and likely to work from behind filewalls. This option is ignored for SFTP transfers.
 

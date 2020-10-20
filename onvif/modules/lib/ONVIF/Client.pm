@@ -44,6 +44,10 @@ require ONVIF::Deserializer::XSD;
 require ONVIF::Device::Interfaces::Device::DevicePort;
 require ONVIF::Media::Interfaces::Media::MediaPort;
 require ONVIF::PTZ::Interfaces::PTZ::PTZPort;
+require ONVIF::Analytics::Interfaces::Analytics::AnalyticsEnginePort;
+require ONVIF::Analytics::Interfaces::Analytics::RuleEnginePort;
+
+require WSNotification::Interfaces::WSBaseNotificationSender::NotificationProducerPort;
 
 use Data::Dump qw(dump);
 
@@ -70,44 +74,39 @@ my %services_of      :ATTR(:default<{}>);
 
 my %serializer_of    :ATTR();
 my %soap_version_of  :ATTR(:default<('1.1')>);
+my $verbose;
 
 # =========================================================================
 # private methods
 
-sub service
-{
+sub service {
   my ($self, $serviceName, $attr) = @_;
-#print "service: " . $services_of{${$self}}{$serviceName}{$attr} . "\n";
+  #print "service: " . $services_of{${$self}}{$serviceName}{$attr} . "\n";
 # Please note that the Std::Class::Fast docs say not to use ident.
   $services_of{ident $self}{$serviceName}{$attr};
 }
 
-sub set_service
-{
+sub set_service {
   my ($self, $serviceName, $attr, $value) = @_;
   $services_of{ident $self}{$serviceName}{$attr} = $value;
 }
 
-sub serializer
-{
+sub serializer {
   my ($self) = @_;
   $serializer_of{ident $self};
 }
 
-sub set_serializer
-{
+sub set_serializer {
   my ($self, $serializer) = @_;
   $serializer_of{ident $self} = $serializer;
 }
 
-sub soap_version
-{
+sub soap_version {
   my ($self) = @_;
   $soap_version_of{ident $self};
 }
 
-sub set_soap_version
-{
+sub set_soap_version {
   my ($self, $soap_version) = @_;
   $soap_version_of{ident $self} = $soap_version;
 
@@ -120,49 +119,50 @@ sub get_service_urls {
 
   my $result = $self->service('device', 'ep')->GetServices( {
     IncludeCapability =>  'true', # boolean
-    },,
+    }
   );
   if ( $result ) {
-    foreach  my $svc ( @{ $result->get_Service() } ) {
+    print "Have results from GetServices\n" if $verbose;
+    foreach my $svc ( @{ $result->get_Service() } ) {
       my $short_name = $namespace_map{$svc->get_Namespace()};    
       my $url_svc = $svc->get_XAddr()->get_value();
-      if(defined $short_name && defined $url_svc) {
-#      print "Got $short_name service\n";
+      if ( defined $short_name && defined $url_svc ) {
+        print "Got $short_name service $url_svc\n" if $verbose;
         $self->set_service($short_name, 'url', $url_svc);
       }
     }
- # } else {
-    #print "No results from GetServices: $result\n";
+  } else {
+    print "No results from GetServices\n" if $verbose;
   }
 
   # Some devices do not support getServices, so we have to try getCapabilities
 
   $result = $self->service('device', 'ep')->GetCapabilities( {}, , );
-  if ( ! $result ) {
-    print "No results from GetCapabilities: $result\n";
+  if ( !$result ) {
+    print "No results from GetCapabilities: $result\n" if $verbose;
     return;
   }
+  print "Have results from GetCapabilities: $result\n" if $verbose;
   # Result is a GetCapabilitiesResponse
   foreach my $capabilities ( @{ $result->get_Capabilities() } ) {
     foreach my $capability ( 'PTZ', 'Media', 'Imaging', 'Events', 'Device' ) {
       if ( my $function = $capabilities->can( "get_$capability" ) ) {
         my $Services = $function->( $capabilities );
-        if ( ! $Services ) {
-          print "Nothing returned ffrom get_$capability\n";
+        if ( !$Services ) {
+          #print "Nothing returned from get_$capability\n";
         } else {
           foreach my $svc ( @{ $Services } ) {
             # The capability versions don't have a namespace, so just lowercase them.
             my $short_name = lc $capability;
             my $url_svc = $svc->get_XAddr()->get_value();
-            if( defined $url_svc) {
-#      print "Got $short_name service\n";
+            if ( defined $url_svc ) {
+              #print "Got $short_name service\n";
               $self->set_service($short_name, 'url', $url_svc);
             }
           } # end foreach svr
         }
       } else {
         print "No $capability function\n";
-
       } # end if has a get_ function
     } # end foreach capability
   } # end foreach capabilities
@@ -188,16 +188,13 @@ sub http_digest {
   };
 }  
 
-# =========================================================================
-
-
-sub BUILD
-{
+sub BUILD {
   my ($self,  $ident, $args_ref) = @_;
   
-  my $url_svc_device = $args_ref->{'url_svc_device'};
-  my $soap_version = $args_ref->{'soap_version'};
-  if(! $soap_version) {
+  $verbose = $args_ref->{verbose};
+  my $url_svc_device = $args_ref->{url_svc_device};
+  my $soap_version = $args_ref->{soap_version};
+  if ( !$soap_version ) {
     $soap_version = '1.1';
   }
   $self->set_soap_version($soap_version);
@@ -212,14 +209,13 @@ sub BUILD
 #   deserializer_args => { strict => 0 }
   });
 
-  $services_of{$ident}{'device'} = { url => $url_svc_device, ep => $svc_device };
+  $services_of{$ident}{device} = { url => $url_svc_device, ep => $svc_device };
 
-  $self->get_service_urls();
-
+  # Can't, don't have credentials yet
+  # $self->get_service_urls();
 }
 
-sub get_users
-{
+sub get_users {
   my ($self) = @_;
 
   my $result = $self->service('device', 'ep')->GetUsers( { },, );
@@ -228,8 +224,7 @@ sub get_users
 #  print $result . "\n";
 }
 
-sub create_user
-{
+sub create_user {
   my ($self, $username, $password) = @_;
   
   my $result = $self->service('device', 'ep')->CreateUsers( { 
@@ -245,16 +240,14 @@ sub create_user
 
   die $result if not $result;
 #  print $result . "\n";
-  
 }
 
-sub set_credentials
-{
+sub set_credentials {
   my ($self, $username, $password, $create_if_not_exists) = @_;
 
 #  TODO: snyc device and client time  
 
-  if ($create_if_not_exists) {
+  if ( $create_if_not_exists ) {
 #  If GetUsers() is ok but empty then CreateUsers()
 #    if(not get_users()) {
 #      create_user($username, $password);
@@ -271,31 +264,51 @@ sub set_credentials
 }
 
 # use this after set_credentials
-sub create_services
-{
+sub create_services {
   my ($self) = @_;
 
-  if(defined $self->service('media', 'url'))  {
+  $self->get_service_urls();
+
+  if ( defined $self->service('media', 'url') ) {
     $self->set_service('media', 'ep', ONVIF::Media::Interfaces::Media::MediaPort->new({
       proxy => $self->service('media', 'url'),
       serializer => $self->serializer(),
 #      transport => $transport
     }));
   }
-  if(defined $self->service('ptz', 'url'))  {
+  if ( defined $self->service('ptz', 'url') ) {
     $self->set_service('ptz', 'ep', ONVIF::PTZ::Interfaces::PTZ::PTZPort->new({
       proxy => $self->service('ptz', 'url'),
       serializer => $self->serializer(),
 #      transport => $transport
     }));
   }
-}
+  if ( defined $self->service('events', 'url') ) {
+    $self->set_service('events', 'ep', WSNotification::Interfaces::WSBaseNotificationSender::NotificationProducerPort->new({
+      proxy => $self->service('events', 'url'),
+      serializer => $self->serializer(),
+#      transport => $transport
+    }));
+  }
+  if ( defined $self->service('analytics', 'url') ) {
+    $self->set_service('analytics', 'ep', ONVIF::Analytics::Interfaces::Analytics::AnalyticsEnginePort->new({
+      proxy => $self->service('analytics', 'url'),
+      serializer => $self->serializer(),
+#      transport => $transport
+    }));
+    $self->set_service('rules', 'ep', ONVIF::Analytics::Interfaces::Analytics::RuleEnginePort->new({
+      proxy => $self->service('analytics', 'url'),
+      serializer => $self->serializer(),
+#      transport => $transport
+    }));
+  }
+} # end sub create_services
 
-sub get_endpoint
-{
+sub get_endpoint {
   my ($self, $serviceType) = @_;
   
   $self->service($serviceType, 'ep');
 }
 
 1;
+__END__

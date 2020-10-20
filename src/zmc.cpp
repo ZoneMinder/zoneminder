@@ -91,7 +91,7 @@ void Usage() {
 int main(int argc, char *argv[]) {
   self = argv[0];
 
-  srand(getpid() * time(0));
+  srand(getpid() * time(nullptr));
 
   const char *device = "";
   const char *protocol = "";
@@ -102,16 +102,16 @@ int main(int argc, char *argv[]) {
   int monitor_id = -1;
 
   static struct option long_options[] = {
-    {"device", 1, 0, 'd'},
-    {"protocol", 1, 0, 'r'},
-    {"host", 1, 0, 'H'},
-    {"port", 1, 0, 'P'},
-    {"path", 1, 0, 'p'},
-    {"file", 1, 0, 'f'},
-    {"monitor", 1, 0, 'm'},
-    {"help", 0, 0, 'h'},
-    {"version", 0, 0, 'v'},
-    {0, 0, 0, 0}
+    {"device", 1, nullptr, 'd'},
+    {"protocol", 1, nullptr, 'r'},
+    {"host", 1, nullptr, 'H'},
+    {"port", 1, nullptr, 'P'},
+    {"path", 1, nullptr, 'p'},
+    {"file", 1, nullptr, 'f'},
+    {"monitor", 1, nullptr, 'm'},
+    {"help", 0, nullptr, 'h'},
+    {"version", 0, nullptr, 'v'},
+    {nullptr, 0, nullptr, 0}
   };
 
   while (1) {
@@ -188,13 +188,13 @@ int main(int argc, char *argv[]) {
     snprintf(log_id_string, sizeof(log_id_string), "zmc_m%d", monitor_id);
   }
 
+  logInit(log_id_string);
   zmLoadConfig();
-
   logInit(log_id_string);
 
   hwcaps_detect();
 
-  Monitor **monitors = 0;
+  Monitor **monitors = nullptr;
   int n_monitors = 0;
 #if ZM_HAS_V4L
   if ( device[0] ) {
@@ -235,6 +235,8 @@ int main(int argc, char *argv[]) {
 
   int result = 0;
 
+  int prime_capture_log_count = 0;
+
   while ( !zm_terminate ) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
@@ -243,7 +245,7 @@ int main(int argc, char *argv[]) {
       }
       if ( ! monitors[i]->connect() ) {
       }
-      time_t now = (time_t)time(NULL);
+      time_t now = (time_t)time(nullptr);
       monitors[i]->setStartupTime(now);
 
       snprintf(sql, sizeof(sql),
@@ -252,11 +254,18 @@ int main(int argc, char *argv[]) {
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
-    }
+    }  // end foreach monitor
+
     // Outer primary loop, handles connection to camera
     if ( monitors[0]->PrimeCapture() < 0 ) {
-      Error("Failed to prime capture of initial monitor");
-      sleep(10);
+      if ( prime_capture_log_count % 60 ) {
+        Error("Failed to prime capture of initial monitor");
+      } else {
+        Debug(1, "Failed to prime capture of initial monitor");
+      }
+      prime_capture_log_count ++;
+      if ( !zm_terminate )
+        sleep(10);
       continue;
     }
     for ( int i = 0; i < n_monitors; i++ ) {
@@ -319,7 +328,7 @@ int main(int argc, char *argv[]) {
           break;
         }
 
-        gettimeofday(&now, NULL);
+        gettimeofday(&now, nullptr);
         // capture_delay is the amount of time we should sleep to achieve the desired framerate.
         int delay = monitors[i]->GetState() == Monitor::ALARM ? alarm_capture_delays[i] : capture_delays[i];
         if ( delay && last_capture_times[i].tv_sec ) {
@@ -345,11 +354,13 @@ int main(int argc, char *argv[]) {
         last_capture_times[i] = now;
 
       } // end foreach n_monitors
+
       if ( result < 0 ) {
         // Failure, try reconnecting
-				sleep(1);
+				sleep(5);
         break;
       }
+
       if ( zm_reload ) {
         for ( int i = 0; i < n_monitors; i++ ) {
           monitors[i]->Reload();

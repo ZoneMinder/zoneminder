@@ -2,86 +2,69 @@
 namespace ZM;
 require_once('Storage.php');
 require_once('functions.php');
+require_once('Object.php');
 
-$event_cache = array();
+class Event extends ZM_Object {
+  protected static $table = 'Events';
 
-class Event {
-
-  private $fields = array(
-'Id',
-'Name',
-'MonitorId',
-'StorageId',
-'SecondaryStorageId',
-'Name',
-'Cause',
-'StartTime',
-'EndTime',
-'Width',
-'Height',
-'Length',
-'Frames',
-'AlarmFrames',
-'DefaultVideo',
-'SaveJPEGs',
-'TotScore',
-'AvgScore',
-'MaxScore',
-'Archived',
-'Videoed',
-'Uploaded',
-'Emailed',
-'Messaged',
-'Executed',
-'Notes',
-'StateId',
-'Orientation',
-'DiskSpace',
-'Scheme',
-'Locked',
+  protected $defaults = array(
+    'Id' => null,
+    'Name' => '',
+    'MonitorId' => null,
+    'StorageId' => null,
+    'SecondaryStorageId' => null,
+    'Cause' => '',
+    'StartTime' => null,
+    'EndTime' => null,
+    'Width' => null,
+    'Height' => null,
+    'Length' => null,
+    'Frames' => null,
+    'AlarmFrames' => null,
+    'DefaultVideo' => '',
+    'SaveJPEGs' => 0,
+    'TotScore' => 0,
+    'AvgScore' => 0,
+    'MaxScore' => 0,
+    'Archived' => 0,
+    'Videoed'  => 0,
+    'Uploaded' => 0,
+    'Emailed' => 0,
+    'Messaged' => 0,
+    'Executed' => 0,
+    'Notes' => '',
+    'StateId' => 0,
+    'Orientation' => 0,
+    'DiskSpace' => null,
+    'Scheme' => 0,
+    'Locked' => 0,
 );
-  public function __construct( $IdOrRow = null ) {
-    $row = NULL;
-    if ( $IdOrRow ) {
-      if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
-        $row = dbFetchOne('SELECT *,unix_timestamp(StartTime) AS Time FROM Events WHERE Id=?', NULL, array($IdOrRow));
-        if ( ! $row ) {
-          Error('Unable to load Event record for Id=' . $IdOrRow);
-        }
-      } elseif ( is_array($IdOrRow) ) {
-        $row = $IdOrRow;
-      } else {
-        $backTrace = debug_backtrace();
-        $file = $backTrace[1]['file'];
-        $line = $backTrace[1]['line'];
-        Error("Unknown argument passed to Event Constructor from $file:$line) Id was $IdOrRow");
-        return;
-      }
+  public static function find( $parameters = array(), $options = array() ) {
+    return ZM_Object::_find(get_class(), $parameters, $options);
+  }
 
-      if ( $row ) {
-        foreach ($row as $k => $v) {
-          $this->{$k} = $v;
-        }
-        global $event_cache;
-        $event_cache[$row['Id']] = $this;
-      } else {
-        $backTrace = debug_backtrace();
-        $file = $backTrace[1]['file'];
-        $line = $backTrace[1]['line'];
-        Error('No row for Event ' . $IdOrRow . " from $file:$line");
-      }
-    } # end if isset($IdOrRow)
-  } // end function __construct
+  public static function find_one( $parameters = array(), $options = array() ) {
+    return ZM_Object::_find_one(get_class(), $parameters, $options);
+  }
+
+  public static function clear_cache() {
+    return ZM_Object::_clear_cache(get_class());
+  }
+  public function remove_from_cache() {
+    return ZM_Object::_remove_from_cache(get_class(), $this);
+  }
 
   public function Storage( $new = null ) {
     if ( $new ) {
       $this->{'Storage'} = $new;
     }
-    if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) ) {
+    if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
       if ( isset($this->{'StorageId'}) and $this->{'StorageId'} )
         $this->{'Storage'} = Storage::find_one(array('Id'=>$this->{'StorageId'}));
-      if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) )
+      if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
         $this->{'Storage'} = new Storage(NULL);
+        $this->{'Storage'}->Scheme($this->{'Scheme'});
+      }
     }
     return $this->{'Storage'};
   }
@@ -90,10 +73,10 @@ class Event {
     if ( $new ) {
       $this->{'SecondaryStorage'} = $new;
     }
-    if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) ) {
+    if ( ! ( property_exists($this, 'SecondaryStorage') and $this->{'SecondaryStorage'} ) ) {
       if ( isset($this->{'SecondaryStorageId'}) and $this->{'SecondaryStorageId'} )
         $this->{'SecondaryStorage'} = Storage::find_one(array('Id'=>$this->{'SecondaryStorageId'}));
-      if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) )
+      if ( ! ( property_exists($this, 'SecondaryStorage') and $this->{'SecondaryStorage'} ) )
         $this->{'SecondaryStorage'} = new Storage(NULL);
     }
     return $this->{'SecondaryStorage'};
@@ -106,24 +89,6 @@ class Event {
         return $Monitor;
     }
     return new Monitor();
-  }
-
-  public function __call($fn, array $args){
-  if ( count($args) ) {
-      $this->{$fn} = $args[0];
-    }
-    if ( array_key_exists($fn, $this) ) {
-      return $this->{$fn};
-        
-      $backTrace = debug_backtrace();
-      $file = $backTrace[0]['file'];
-      $line = $backTrace[0]['line'];
-      Warning("Unknown function call Event->$fn from $file:$line");
-      $file = $backTrace[1]['file'];
-      $line = $backTrace[1]['line'];
-      Warning("Unknown function call Event->$fn from $file:$line");
-      Warning(print_r($this, true));
-    }
   }
 
   public function Time() {
@@ -170,35 +135,44 @@ class Event {
       Error('Event delete on event with empty Id');
       return;
     }
-    if ( !ZM_OPT_FAST_DELETE ) {
+    if ( $this->{'Archived'} ) {
+      Error('Cannot delete an Archived event.');
+      return;
+    }
+    if ( ZM_OPT_FAST_DELETE ) {
+      dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
+      return;
+    }
+
+    global $dbConn;
+    $dbConn->beginTransaction();
+    try {
+      $this->lock();
       dbQuery('DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}));
       dbQuery('DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}));
       if ( $this->{'Scheme'} == 'Deep' ) {
 
-# Assumption: All events have a start time
+        # Assumption: All events have a start time
         $start_date = date_parse($this->{'StartTime'});
         if ( ! $start_date ) {
-          Error('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.');
-          return;
+          throw new Exception('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.');
         }
         $start_date['year'] = $start_date['year'] % 100;
 
-# So this is because ZM creates a link under the day pointing to the time that the event happened. 
+        # So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();
         if ( ! $link_path ) {
-          Error('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
-          return;
+          throw new Exception('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
         }
-        
+
         $Storage = $this->Storage();
         $eventlink_path = $Storage->Path().'/'.$link_path;
 
         if ( $id_files = glob($eventlink_path) ) {
           if ( ! $eventPath = readlink($id_files[0]) ) {
-            Error("Unable to read link at $id_files[0]");
-            return;
+            throw new Exception("Unable to read link at $id_files[0]");
           }
-# I know we are using arrays here, but really there can only ever be 1 in the array
+          # I know we are using arrays here, but really there can only ever be 1 in the array
           $eventPath = preg_replace('/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0]);
           deletePath($eventPath);
           deletePath($id_files[0]);
@@ -215,13 +189,29 @@ class Event {
       } else {
         $eventPath = $this->Path();
         if ( ! $eventPath ) {
-          Error('No event Path in Event delete. Not deleting');
-          return;
+          throw new Exception('No event Path in Event delete. Not deleting');
         }
         deletePath($eventPath);
+        if ( $this->SecondaryStorageId() ) {
+          $Storage = $this->SecondaryStorage();
+          if ( $Storage->Id() ) {
+            $eventPath = $Storage->Path().'/'.$this->Relative_Path();
+            if ( ! $eventPath ) {
+              Error('No event Path in Event delete. Not deleting');
+            } else {
+              deletePath($eventPath);
+            }
+          } # end if Storage
+        } # end if has Secondary Storage
       } # USE_DEEP_STORAGE OR NOT
-    } # ! ZM_OPT_FAST_DELETE
-    dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
+      dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
+      $dbConn->commit();
+    } catch (PDOException $e) {
+      $dbConn->rollback();
+    } catch (Exception $e) {
+      Error($e->getMessage());
+      $dbConn->rollback();
+    }
   } # end Event->delete
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {
@@ -276,18 +266,23 @@ class Event {
       }
     }
 
-    $streamSrc .= '?'.http_build_query($args,'', $querySep);
+    $streamSrc .= '?'.http_build_query($args, '', $querySep);
 
     return $streamSrc;
   } // end function getStreamSrc
 
+  # The new='' is to so that if we pass null, we reset the value of DiskSpace.
+  # '' is not a valid DiskSpace so that tells us that nothing was passed whereas null (unknown) is.
   function DiskSpace( $new='' ) {
     if ( is_null($new) or ( $new != '' ) ) {
       $this->{'DiskSpace'} = $new;
     }
-    if ( (!array_key_exists('DiskSpace',$this)) or (null === $this->{'DiskSpace'}) ) {
+    if ( (!property_exists($this, 'DiskSpace')) or (null === $this->{'DiskSpace'}) ) {
       $this->{'DiskSpace'} = folder_size($this->Path());
-      dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
+      if ( $this->{'EndTime'} ) {
+        # Finished events shouldn't grow in size much so we can commit it to the db.
+        dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
+      }
     }
     return $this->{'DiskSpace'};
   }
@@ -321,7 +316,7 @@ class Event {
   } // end function createListThumbnail
 
   function ThumbnailWidth( ) {
-    if ( ! ( array_key_exists('ThumbnailWidth', $this) ) ) {
+    if ( ! ( property_exists($this, 'ThumbnailWidth') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
         $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
@@ -338,7 +333,7 @@ class Event {
   } // end function ThumbnailWidth
 
   function ThumbnailHeight( ) {
-    if ( ! ( array_key_exists('ThumbnailHeight', $this) ) ) {
+    if ( ! ( property_exists($this, 'ThumbnailHeight') ) ) {
       if ( ZM_WEB_LIST_THUMB_WIDTH ) {
         $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
         $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
@@ -399,75 +394,71 @@ class Event {
     $Event = $this;
     $eventPath = $Event->Path();
 
-    if ( $frame and ! is_array($frame) ) {
+    if ( $frame and !is_array($frame) ) {
       # Must be an Id
       Logger::Debug("Assuming that $frame is an Id");
-      $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
+      $frame = array('FrameId'=>$frame, 'Type'=>'', 'Delta'=>0);
     }
 
-    if ( ( ! $frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
+    if ( ( !$frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
       # No frame specified, so look for a snapshot to use
       $captImage = 'snapshot.jpg';
-      Logger::Debug("Frame not specified, using snapshot");
-      $frame = array('FrameId'=>'snapshot', 'Type'=>'');
+      Logger::Debug('Frame not specified, using snapshot');
+      $frame = array('FrameId'=>'snapshot', 'Type'=>'', 'Delta'=>0);
     } else {
-      $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId'] );
+      $captImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId']);
       if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
-        $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId'] );
-        if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
+        $captImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId']);
+        if ( !file_exists($eventPath.'/'.$captImage) ) {
           # Generate the frame JPG
           if ( $Event->DefaultVideo() ) {
             $videoPath = $eventPath.'/'.$Event->DefaultVideo();
 
-            if ( ! file_exists( $videoPath ) ) {
-              Error("Event claims to have a video file, but it does not seem to exist at $videoPath" );
+            if ( !file_exists($videoPath) ) {
+              Error('Event claims to have a video file, but it does not seem to exist at '.$videoPath);
               return '';
             } 
               
             #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
             $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captImage;
-            Logger::Debug( "Running $command" );
+            Logger::Debug('Running '.$command);
             $output = array();
             $retval = 0;
-            exec( $command, $output, $retval );
+            exec($command, $output, $retval);
             Logger::Debug("Retval: $retval, output: " . implode("\n", $output));
           } else {
-            Error("Can't create frame images from video because there is no video file for event ".$Event->Id().' at ' .$Event->Path() );
+            Error('Can\'t create frame images from video because there is no video file for event '.$Event->Id().' at ' .$Event->Path());
           }
         } // end if capture file exists
       } // end if analyze file exists
-    }
+    } // end if frame or snapshot
 
     $captPath = $eventPath.'/'.$captImage;
-    if ( ! file_exists($captPath) ) {
-      Error("Capture file does not exist at $captPath");
+    if ( !file_exists($captPath) ) {
+      Error('Capture file does not exist at '.$captPath);
     }
     
-    //echo "CI:$captImage, CP:$captPath, TCP:$captPath<br>";
-
     $analImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
     $analPath = $eventPath.'/'.$analImage;
 
-    //echo "AI:$analImage, AP:$analPath, TAP:$analPath<br>";
-
-    $alarmFrame = $frame['Type']=='Alarm';
+    $alarmFrame = $frame['Type'] == 'Alarm';
 
     $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
     $isAnalImage = $hasAnalImage && !$captureOnly;
 
-    if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists('imagecreatefromjpeg') ) {
+    if ( !ZM_WEB_SCALE_THUMBS || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
       $imagePath = $thumbPath = $isAnalImage ? $analPath : $captPath;
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;
     } else {
-      if ( version_compare( phpversion(), '4.3.10', '>=') )
+      if ( version_compare(phpversion(), '4.3.10', '>=') )
         $fraction = sprintf('%.3F', $scale/SCALE_BASE);
       else
         $fraction = sprintf('%.3f', $scale/SCALE_BASE);
       $scale = (int)round($scale);
 
-      $thumbCaptPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $captPath );
-      $thumbAnalPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $analPath );
+      $thumbCaptPath = preg_replace('/\.jpg$/', "-$scale.jpg", $captPath);
+      $thumbAnalPath = preg_replace('/\.jpg$/', "-$scale.jpg", $analPath);
 
       if ( $isAnalImage ) {
         $imagePath = $analPath;
@@ -478,19 +469,19 @@ class Event {
       }
 
       $thumbFile = $thumbPath;
-      if ( $overwrite || ! file_exists( $thumbFile ) || ! filesize( $thumbFile ) ) {
+      if ( $overwrite || ! file_exists($thumbFile) || ! filesize($thumbFile) ) {
         // Get new dimensions
-        list( $imageWidth, $imageHeight ) = getimagesize( $imagePath );
+        list($imageWidth, $imageHeight) = getimagesize($imagePath);
         $thumbWidth = $imageWidth * $fraction;
         $thumbHeight = $imageHeight * $fraction;
 
         // Resample
-        $thumbImage = imagecreatetruecolor( $thumbWidth, $thumbHeight );
-        $image = imagecreatefromjpeg( $imagePath );
-        imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
+        $thumbImage = imagecreatetruecolor($thumbWidth, $thumbHeight);
+        $image = imagecreatefromjpeg($imagePath);
+        imagecopyresampled($thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight);
 
-        if ( !imagejpeg( $thumbImage, $thumbPath ) )
-          Error( "Can't create thumbnail '$thumbPath'" );
+        if ( !imagejpeg($thumbImage, $thumbPath) )
+          Error("Can't create thumbnail '$thumbPath'");
       }
     } # Create thumbnails
 
@@ -507,83 +498,8 @@ class Event {
         );
 
     return $imageData;
-  }
+  } # getImageSrc
 
-  public static function find_one( $parameters = null, $options = null ) {
-    global $event_cache;
-    if (
-        ( count($parameters) == 1 ) and
-        isset($parameters['Id']) and
-        isset($event_cache[$parameters['Id']]) ) {
-      return $event_cache[$parameters['Id']];
-    }
-    $results = Event::find( $parameters, $options );
-    if ( count($results) > 1 ) {
-      Error("Event Returned more than 1");
-      return $results[0];
-    } else if ( count($results) ) {
-      return $results[0];
-    } else {
-      return null;
-    }
-  }
-
-  public static function find( $parameters = null, $options = null ) {
-    $sql = 'SELECT * FROM Events ';
-    $values = array();
-
-    if ( $parameters ) {
-      $fields = array();
-      $sql .= 'WHERE ';
-      foreach ( $parameters as $field => $value ) {
-        if ( $value == null ) {
-          $fields[] = $field.' IS NULL';
-        } else if ( is_array( $value ) ) {
-          $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
-          $values += $value;
-
-        } else {
-          $fields[] = $field.'=?';
-          $values[] = $value;
-        }
-      }
-      $sql .= implode(' AND ', $fields );
-    }
-    if ( $options ) {
-      if ( isset($options['order']) ) {
-        $sql .= ' ORDER BY ' . $options['order'];
-      }
-      if ( isset($options['limit']) ) {
-        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $options['limit'];
-        } else {
-          $backTrace = debug_backtrace();
-          $file = $backTrace[1]['file'];
-          $line = $backTrace[1]['line'];
-          Error("Invalid value for limit(".$options['limit'].") passed to Event::find from $file:$line");
-          return array();
-        }
-      }
-    }
-    $filters = array();
-    $result = dbQuery($sql, $values);
-    if ( $result ) {
-      $results = $result->fetchALL();
-      foreach ( $results as $row ) {
-        $filters[] = new Event($row);
-      }
-    }
-    return $filters;
-  }
-
-  public function save( ) {
-    
-    $sql = 'UPDATE Events SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $this->fields ) ) . ' WHERE Id=?';
-    $values = array_map( function($field){return $this->{$field};}, $this->fields );
-    $values[] = $this->{'Id'};
-    dbQuery( $sql, $values );
-  }
   public function link_to($text=null) {
     if ( !$text )
       $text = $this->{'Id'};
@@ -605,11 +521,12 @@ class Event {
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
-        } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-          $url = '?user='.$_SESSION['username'];
-          $url = '?pass='.$_SESSION['password'];
-        } elseif ( ZM_AUTH_RELAY == 'none' ) {
-          $url = '?user='.$_SESSION['username'];
+        } else if ( ZM_AUTH_RELAY == 'plain' ) {
+          $url .= '?user='.$_SESSION['username'];
+          $url .= '?pass='.$_SESSION['password'];
+        } else {
+          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
+          return;
         }
       }
       Logger::Debug("sending command to $url");
@@ -648,15 +565,16 @@ class Event {
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
-      $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
+      $url = $Server->UrlToApi().'/events/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
+          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
         } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-          $url = '?user='.$_SESSION['username'];
-          $url = '?pass='.$_SESSION['password'];
-        } elseif ( ZM_AUTH_RELAY == 'none' ) {
-          $url = '?user='.$_SESSION['username'];
+          $url .= '?user='.$_SESSION['username'];
+          $url .= '?pass='.$_SESSION['password'];
+        } else {
+          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
+          return;
         }
       }
       Logger::Debug("sending command to $url");
@@ -686,18 +604,14 @@ class Event {
 
   public function can_delete() {
     if ( $this->Archived() ) {
-      Logger::Debug("Am archived, can't delete");
       return false;
     }
     if ( !$this->EndTime() ) {
-      Logger::Debug("No EndTime can't delete");
       return false;
     }
     if ( !canEdit('Events') ) {
-      Logger::Debug("No permission to edit events, can't delete");
       return false;
     }
-    Logger::Debug("Can delete: archived: " . $this->Archived() . " endtime: " . $this->EndTime() );
 
     return true;
   }

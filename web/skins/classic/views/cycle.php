@@ -40,7 +40,7 @@ if ( empty($_REQUEST['mode']) ) {
 }
 
 $widths = array(
-  ''  => translate('auto'),
+  'auto'  => translate('auto'),
   '100%'  => '100%',
   '160px' => '160px',
   '320px' => '320px',
@@ -58,34 +58,6 @@ $heights = array(
   '1080px'  =>  '1080px',
 );
 
-session_start();
-
-if ( isset($_REQUEST['scale']) ) {
-  $options['scale'] = validInt($_REQUEST['scale']);
-  ZM\Logger::Debug('Setting scale from request to '.$options['scale']);
-} else if ( isset($_COOKIE['zmCycleScale']) ) {
-  $options['scale'] = $_COOKIE['zmCycleScale'];
-  ZM\Logger::Debug('Setting scale from cookie to '.$options['scale']);
-}
-
-if ( !(isset($options['scale']) and $options['scale']) )
-  $options['scale'] = 100;
-
-if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
-  $_SESSION['zmCycleWidth'] = $options['width'] = $_COOKIE['zmCycleWidth'];
-#} elseif ( isset($_SESSION['zmCycleWidth']) and $_SESSION['zmCycleWidth'] ) {
-  #$options['width'] = $_SESSION['zmCycleWidth'];
-} else
-  $options['width'] = '';
-
-if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] )
-  $_SESSION['zmCycleHeight'] = $options['height'] = $_COOKIE['zmCycleHeight'];
-#else if ( isset($_SESSION['zmCycleHeight']) and $_SESSION['zmCycleHeight'] )
-  #$options['height'] = $_SESSION['zmCycleHeight'];
-else
-  $options['height'] = '';
-
-session_write_close();
 
 $monIdx = 0;
 $monitors = array();
@@ -106,7 +78,6 @@ foreach( $displayMonitors as &$row ) {
     $heights[$row['Height'].'px'] = $row['Height'].'px';
   }
 
-  $row['connKey'] = generateConnKey();
   $monitors[] = new ZM\Monitor($row);
   unset($row);
 } # end foreach Monitor
@@ -115,6 +86,41 @@ if ( $monitors ) {
   $monitor = $monitors[$monIdx];
   $nextMid = $monIdx==(count($monitors)-1)?$monitors[0]->Id():$monitors[$monIdx+1]->Id();
 }
+if ( !$monitor ) {
+  ZM\Error('There was no monitor to display.');
+}
+$options['connkey'] = generateConnKey();
+
+zm_session_start();
+
+if ( isset($_REQUEST['scale']) ) {
+  $options['scale'] = validInt($_REQUEST['scale']);
+} else if ( isset($_COOKIE['zmCycleScale']) ) {
+  $options['scale'] = $_COOKIE['zmCycleScale'];
+} else if ( $monitor ) {
+  $options['scale'] = $monitor->DefaultScale();
+}
+
+if ( !isset($options['scale']) )
+  $options['scale'] = 100;
+
+if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
+  $_SESSION['zmCycleWidth'] = $options['width'] = $_COOKIE['zmCycleWidth'];
+#} elseif ( isset($_SESSION['zmCycleWidth']) and $_SESSION['zmCycleWidth'] ) {
+  #$options['width'] = $_SESSION['zmCycleWidth'];
+} else {
+  $options['width'] = '';
+}
+
+if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] ) {
+  $_SESSION['zmCycleHeight'] = $options['height'] = $_COOKIE['zmCycleHeight'];
+#else if ( isset($_SESSION['zmCycleHeight']) and $_SESSION['zmCycleHeight'] )
+  #$options['height'] = $_SESSION['zmCycleHeight'];
+} else {
+  $options['height'] = '';
+}
+
+session_write_close();
 
 ZM\Logger::Debug(print_r($options,true));
 
@@ -141,36 +147,49 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
       <div id="sizeControl">
         <span id="widthControl">
           <label><?php echo translate('Width') ?>:</label>
-          <?php echo htmlSelect('width', $widths, $options['width'], array('data-on-change-this'=>'changeSize') ); ?>
+          <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change-this'=>'changeSize') ); ?>
         </span>
         <span id="heightControl">
           <label><?php echo translate('Height') ?>:</label>
-          <?php echo htmlSelect('height', $heights, $options['height'], array('data-on-change-this'=>'changeSize') ); ?>
+          <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change-this'=>'changeSize') ); ?>
         </span>
         <span id="scaleControl">
           <label><?php echo translate('Scale') ?>:</label>
-          <?php echo htmlSelect('scale', $scales, $options['scale'], array('data-on-change-this'=>'changeScale') ); ?>
+          <?php echo htmlSelect('scale', $scales, $options['scale'], array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
         </span>
       </div>
     </div>
-    <div id="content">
-      <div id="imageFeed">
-      <?php 
-        if ( $monitor ) {
-          echo getStreamHTML($monitor, $options);
-        } else {
-          echo 'There are no monitors to view.';
-        }
-      ?>
-      </div>
+    <div class="container-fluid h-100">
+      <div class="row flex-nowrap h-100" id="content">
+        <nav id="sidebar" class="h-100">
+          <ul class="nav nav-pills flex-column h-100">
+  <?php
+  foreach ( $monitors as $m ) {
+            echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+  }
+  ?>
+          </ul>
+        </nav>
+        <div class="container-fluid col-sm-offset-2 h-100 pr-0">
 
-      <div class="buttons">
-        <button type="button" value="&lt;" id="prevBtn" title="<?php echo translate('PreviousMonitor') ?>" class="active" data-on-click-true="cyclePrev">&lt;&lt;</button>
-        <button type="button" value="||" id="pauseBtn" title="<?php echo translate('PauseCycle') ?>" class="active" data-on-click-true="cyclePause">||</button>
-        <button type="button" value="|&gt;" id="playBtn" title="<?php echo translate('PlayCycle') ?>" class="inactive" disabled="disabled" data-on-click-true="streamCmdPlay">|&gt;</button>
-        <button type="button" value="&gt;" id="nextBtn" title="<?php echo translate('NextMonitor') ?>" class="active" data-on-click-true="cycleNext">&gt;&gt;</button>
-      </div>
+          <div id="imageFeed">
+          <?php 
+            if ( $monitor ) {
+              echo getStreamHTML($monitor, $options);
+            } else {
+              echo 'There are no monitors to view.';
+            }
+          ?>
+          </div>
 
+          <div class="buttons">
+            <button type="button" value="&lt;" id="prevBtn" title="<?php echo translate('PreviousMonitor') ?>" class="active" data-on-click-true="cyclePrev">&lt;&lt;</button>
+            <button type="button" value="||" id="pauseBtn" title="<?php echo translate('PauseCycle') ?>" class="active" data-on-click-true="cyclePause">||</button>
+            <button type="button" value="|&gt;" id="playBtn" title="<?php echo translate('PlayCycle') ?>" class="inactive" disabled="disabled" data-on-click-true="cycleStart">|&gt;</button>
+            <button type="button" value="&gt;" id="nextBtn" title="<?php echo translate('NextMonitor') ?>" class="active" data-on-click-true="cycleNext">&gt;&gt;</button>
+          </div>
+
+        </div>
+      </div>
     </div>
-  </div>
 <?php xhtmlFooter() ?>

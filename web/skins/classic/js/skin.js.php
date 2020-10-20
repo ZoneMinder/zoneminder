@@ -70,7 +70,6 @@ var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 
 var imagePrefix = "<?php echo '?view=image&eid=' ?>";
 
-var auth_hash;
-<?php if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) { ?>
-auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
-<?php } ?>
+var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
+var auth_relay = '<?php echo get_auth_relay() ?>';
+var running = <?php echo daemonCheck()?'true':'false' ?>;

@@ -1,4 +1,4 @@
-var logParms = "view=request&request=log&task=query";
+var logParms = 'view=request&request=log&task=query';
 var logReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse} );
 var logTimer = undefined;
 var logTable = undefined;
@@ -148,7 +148,7 @@ function logResponse( respObj ) {
 
 function refreshLog() {
   options = {};
-  logTable.empty();
+  $j('#logTable tbody').empty();
   firstLoad = true;
   maxLogTime = 0;
   minLogTime = 0;
@@ -163,15 +163,26 @@ function expandLog() {
   fetchPrevLogs();
 }
 
+function clearResponse() {
+  refreshLog();
+}
+function clearError() {
+}
 function clearLog() {
   logReq.cancel();
-  minLogTime = 0;
-  logCount = 0;
-  logTimeout = maxSampleTime;
-  displayLimit = initialDisplayLimit;
-  $('displayLogs').set('text', logCount);
-  options = {};
-  logTable.empty();
+
+  var clearParms = 'view=request&request=log&task=delete';
+  var clearReq = new Request.JSON({url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: clearResponse});
+  var tbody = $(logTable).getElement('tbody');
+  var rows = tbody.getElements('tr');
+  if ( rows && rows.length ) {
+    var minTime = rows[0].getElement('td').get('text');
+    clearParms += "&minTime="+encodeURIComponent(minTime);
+    var maxTime = rows[rows.length-1].getElement('td').get('text');
+    clearParms += "&maxTime="+encodeURIComponent(maxTime);
+  }
+  var form = $('logForm');
+  clearReq.send(clearParms+"&"+form.toQueryString());
 }
 
 function filterLog() {
@@ -179,9 +190,9 @@ function filterLog() {
   filterFields.each(
       function( field ) {
         var selector = $('filter['+field+']');
-        if ( ! selector ) {
+        if ( !selector ) {
           if ( window.console && window.console.log ) {
-            window.console.log("No selector found for " + field );
+            window.console.log('No selector found for ' + field);
           }
           return;
         }
@@ -199,35 +210,50 @@ function resetLog() {
   refreshLog();
 }
 
-var exportFormValidator;
+var exportFormValidator = null;
 
 function exportLog() {
-  exportFormValidator.reset();
-  $('exportLog').overlayShow();
+  getModal('log_export');
+
+  if ( !exportFormValidator ) {
+    exportFormValidator = new Form.Validator.Inline($('exportForm'), {
+      useTitles: true,
+      warningPrefix: '',
+      errorPrefix: ''
+    });
+  } else {
+    exportFormValidator.reset();
+  }
 }
 
 function exportResponse( response ) {
-  $('exportLog').unspin();
+  $('log_exportModal').unspin();
   if ( response.result == 'Ok' ) {
     window.location.replace( thisUrl+'?view=request&request=log&task=download&key='+response.key+'&format='+response.format );
   }
 }
 
 function exportFail( request ) {
-  $('exportLog').unspin();
-  $('exportErrorText').set('text', request.status+" / "+request.statusText );
+  $('log_exportModal').unspin();
+  $('exportErrorText').set('text', request.status+' / '+request.statusText);
   $('exportError').show();
-  Error( "Export request failed: "+request.status+" / "+request.statusText );
+  Error('Export request failed: '+request.status+' / '+request.statusText);
 }
 
 function exportRequest() {
   var form = $('exportForm');
-  $('exportErrorText').set('text', "" );
+  console.log(form);
+  $('exportErrorText').set('text', '');
   $('exportError').hide();
   if ( form.validate() ) {
     var exportParms = "view=request&request=log&task=export";
-    var exportReq = new Request.JSON( {url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail} );
-    var selection = form.getElement('input[name=selector]:checked').get('value');
+    var exportReq = new Request.JSON({url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail});
+    var selector = form.querySelectorAll('input[name=selector]:checked');
+    if ( !selector.length ) {
+      alert("Please select how to filter logs");
+      return;
+    }
+    var selection = selector[0].get('value');
     if ( selection == 'filter' || selection == 'current' ) {
       $$('#filters select').each(
           function( select ) {
@@ -245,8 +271,8 @@ function exportRequest() {
         exportParms += "&maxTime="+encodeURIComponent(maxTime);
       }
     }
-    exportReq.send( exportParms+"&"+form.toQueryString() );
-    $('exportLog').spin();
+    exportReq.send(exportParms+"&"+form.toQueryString());
+    $('log_exportModal').spin();
   }
 }
 
@@ -254,9 +280,9 @@ function updateFilterSelectors() {
   Object.each(options,
       function( values, key ) {
         var selector = $('filter['+key+']');
-        if ( ! selector ) {
+        if ( !selector ) {
           if ( window.console && window.console.log ) {
-            window.console.log("No selector found for " + key );
+            window.console.log('No selector found for ' + key);
           }
           return;
         }
@@ -283,6 +309,8 @@ function updateFilterSelectors() {
         if ( filter[key] ) {
           selector.set('value', filter[key]);
         }
+        $j(selector).chosen('destroy');
+        $j(selector).chosen();
       }
   );
 }
@@ -300,12 +328,12 @@ function initPage() {
       }
   );
   logTable.addEvent( 'sort', function( tbody, index ) {
-    var header = tbody.getParent( 'table' ).getElement( 'thead' );
-    var columns = header.getElement( 'tr' ).getElements( 'th' );
+    var header = tbody.getParent('table').getElement('thead');
+    var columns = header.getElement('tr').getElements('th');
     var column = columns[index];
-    sortReversed = column.hasClass( 'table-th-sort-rev' );
+    sortReversed = column.hasClass('table-th-sort-rev');
     if ( logCount > displayLimit ) {
-      var rows = tbody.getElements( 'tr' );
+      var rows = tbody.getElements('tr');
       var startIndex;
       if ( sortReversed ) {
         startIndex = displayLimit;
@@ -320,14 +348,9 @@ function initPage() {
     } // end if loCount > displayLimit
   }
   );
-  exportFormValidator = new Form.Validator.Inline($('exportForm'), {
-    useTitles: true,
-    warningPrefix: "",
-    errorPrefix: ""
-  });
-  new Asset.css( "css/spinner.css" );
+  new Asset.css('css/spinner.css');
   fetchNextLogs();
 }
 
 // Kick everything off
-window.addEventListener( 'DOMContentLoaded', initPage );
+window.addEventListener('DOMContentLoaded', initPage);

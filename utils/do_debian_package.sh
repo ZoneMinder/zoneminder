@@ -80,7 +80,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,disco,trusty"
+    DISTROS="xenial,bionic,focal"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;
@@ -110,7 +110,12 @@ else
   fi;
   if [ "$SNAPSHOT" == "stable" ]; then
     if [ "$BRANCH" == "" ]; then
-      BRANCH=$(git describe --tags $(git rev-list --tags --max-count=1));
+      #REV=$(git rev-list --tags --max-count=1)
+      BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
+      if [ "$BRANCH" == "" ]; then
+        echo "Unable to determine latest stable branch!"
+        exit 0;
+      fi
       echo "Latest stable branch is $BRANCH";
     fi;
   else
@@ -120,18 +125,22 @@ else
     fi;
     if [ "$SNAPSHOT" == "NOW" ]; then
       SNAPSHOT=`date +%Y%m%d%H%M%S`;
+    else
+      if [ "$SNAPSHOT" == "CURRENT" ]; then
+        SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+      fi;
     fi;
   fi;
 fi
 
+IFS='.' read -r -a VERSION_PARTS <<< "$RELEASE"
 if [ "$PPA" == "" ]; then
   if [ "$RELEASE" != "" ]; then
     # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
-    IFS='.' read -r -a VERSION <<< "$RELEASE"
-    if [ "${VERSION[0]}.${VERSION[1]}" == "1.30" ]; then
+    if [ "${VERSION_PARTS[0]}.${VERSION_PARTS[1]}" == "1.30" ]; then
       PPA="ppa:iconnor/zoneminder-stable"
     else
-      PPA="ppa:iconnor/zoneminder-${VERSION[0]}.${VERSION[1]}"
+      PPA="ppa:iconnor/zoneminder-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}"
     fi;
   else
     if [ "$BRANCH" == "" ]; then
@@ -147,10 +156,14 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
   if [ -d "${GITHUB_FORK}_ZoneMinder.git" ]; then
     echo "Using local clone ${GITHUB_FORK}_ZoneMinder.git to pull from."
     cd "${GITHUB_FORK}_ZoneMinder.git"
-    echo "git pull..."
-    git pull
+    echo "git fetch..."
+    git fetch
     echo "git checkout $BRANCH"
     git checkout $BRANCH
+    if [ $? -ne 0 ]; then
+      echo "Failed to switch to branch."
+      exit 1;
+    fi;
     echo "git pull..."
     git pull
     cd ../
@@ -171,7 +184,7 @@ cd ../
 
 VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
 
-if [ $VERSION == "" ]; then
+if [ -z "$VERSION" ]; then
   exit 1;
 fi;
 if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
@@ -216,14 +229,13 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   fi;
 
   # Generate Changlog
-  if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
-    cp -Rpd distros/ubuntu1204 debian
-  else 
-    if [ "$DISTRO" == "wheezy" ]; then 
-      cp -Rpd distros/debian debian
-    else 
-      cp -Rpd distros/ubuntu1604 debian
-    fi;
+  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ]; then 
+    cp -Rpd distros/ubuntu2004 debian
+  elif [ "$DISTRO" == "beowulf" ]
+  then
+    cp -Rpd distros/beowulf debian
+  else
+    cp -Rpd distros/ubuntu1604 debian
   fi;
 
   if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then
@@ -312,7 +324,7 @@ EOF
       read -p "Do you want to upload this binary to zmrepo? (y/N)"
       if [[ $REPLY == [yY] ]]; then
         if [ "$RELEASE" != "" ]; then
-          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
+          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
             scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
@@ -327,7 +339,7 @@ EOF
 
     dput="Y";
     if [ "$INTERACTIVE" != "no" ]; then
-      read -p "Ready to dput $SC to $PPA ? Y/N...";
+      read -p "Ready to dput $SC to $PPA ? Y/n...";
       if [[ "$REPLY" == [yY] ]]; then
         dput $PPA $SC
       fi;

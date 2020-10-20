@@ -77,16 +77,24 @@ class GroupsController extends AppController {
       }
 
 			$this->Group->create();
-			if ( $this->Group->save($this->request->data) ) {
+
+      if ( $this->request->data['Group']['MonitorIds'] and ! isset($this->request->data['Monitor']) ) {
+        $this->request->data['Monitor'] = explode(',', $this->request->data['Group']['MonitorIds']);
+        unset($this->request->data['Group']['MonitorIds']);
+      }
+      if ( $this->Group->saveAssociated($this->request->data, array('atomic'=>true)) ) {
         return $this->flash(
           __('The group has been saved.'),
           array('action' => 'index')
         );
-			}
-		}
-		$monitors = $this->Group->Monitor->find('list');
+      } else {
+        ZM\Error("Failed to save Group");
+        debug($this->Group->invalidFields());
+      }
+    } # end if post
+    $monitors = $this->Group->Monitor->find('list');
 		$this->set(compact('monitors'));
-	}
+	} # end add
 
 /**
  * edit method
@@ -162,5 +170,23 @@ class GroupsController extends AppController {
         array('action' => 'index')
       );
 		}
-	} // end function delete
+  } // end function delete
+  
+  // returns monitor associations
+  public function associations() {
+    $this->Group->recursive = -1;
+    $groups = $this->Group->find('all', array(
+                                        'contain'=> array(
+                                          'Monitor' => array(
+                                            'fields'=>array('Id','Name')
+                                          )
+                                        )
+                                      )
+                                );
+            $this->set(array(
+                    'groups' => $groups,
+                    '_serialize' => array('groups')
+            ));
+  } // end associations
+
 } // end class GroupController

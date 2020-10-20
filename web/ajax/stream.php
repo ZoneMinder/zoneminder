@@ -86,10 +86,8 @@ if ( sem_acquire($semaphore,1) !== false ) {
   $numSockets = socket_select($rSockets, $wSockets, $eSockets, intval($timeout/1000), ($timeout%1000)*1000);
 
   if ( $numSockets === false ) {
-    ZM\Error('socket_select failed: ' . socket_strerror(socket_last_error()));
     ajaxError('socket_select failed: '.socket_strerror(socket_last_error()));
   } else if ( $numSockets < 0 ) {
-    ZM\Error("Socket closed $remSockFile");
     ajaxError("Socket closed $remSockFile");
   } else if ( $numSockets == 0 ) {
     ZM\Error("Timed out waiting for msg $remSockFile");
@@ -97,7 +95,6 @@ if ( sem_acquire($semaphore,1) !== false ) {
     #ajaxError("Timed out waiting for msg $remSockFile");
   } else if ( $numSockets > 0 ) {
     if ( count($rSockets) != 1 ) {
-      ZM\Error('Bogus return from select, '.count($rSockets).' sockets available');
       ajaxError('Bogus return from select, '.count($rSockets).' sockets available');
     }
   }
@@ -119,17 +116,17 @@ if ( sem_acquire($semaphore,1) !== false ) {
   switch ( $data['type'] ) {
   case MSG_DATA_WATCH :
     $data = unpack('ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced', $msg);
-    ZM\Logger::Debug('FPS: ' . $data['fps']);
     $data['fps'] = round( $data['fps'], 2 );
-    ZM\Logger::Debug('FPS: ' . $data['fps'] );
     $data['rate'] /= RATE_BASE;
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-    if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
-      $time = time();
-      // Regenerate auth hash after half the lifetime of the hash
-      if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
-        $data['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+    if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+      $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+      if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
+        $data['auth'] = $auth_hash;
+        ZM\Logger::Debug("including nw auth hash " . $data['auth']);
+      } else {
+        ZM\Logger::Debug('Not including nw auth hash becase it hashn\'t changed '.$auth_hash);
       } 
     }
     ajaxResponse(array('status'=>$data));
@@ -143,12 +140,11 @@ if ( sem_acquire($semaphore,1) !== false ) {
       $data = unpack('ltype/Qevent/iprogress/irate/izoom/Cpaused', $msg);
     }
     $data['rate'] /= RATE_BASE;
-    $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-    if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
-      $time = time();
-      // Regenerate auth hash after half the lifetime of the hash
-      if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
-        $data['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+    $data['zoom'] = round($data['zoom']/SCALE_BASE, 1);
+    if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+      $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+      if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
+        $data['auth'] = $auth_hash;
       } 
     }
     ajaxResponse(array('status'=>$data));

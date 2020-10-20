@@ -186,7 +186,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $rows = array();
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
     $event = new ZM\Event($row['Id']);
-    $scale = max(reScale(SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
+    $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
     $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
     $streamSrc = $event->getStreamSrc(array(
                         'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');

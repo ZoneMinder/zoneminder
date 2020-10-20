@@ -37,17 +37,14 @@ var params =
 function ajaxRequest(params) {
   $j.getJSON(thisUrl + '?view=request&request=events&task=query', params.data)
       .done(function(data) {
-        //console.log('Ajax parameters: ' + JSON.stringify(params));
-        // rearrange the result into what bootstrap-table expects
         var rows = processRows(data.rows);
+        // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
       .fail(logAjaxFail);
 }
 
 function processRows(rows) {
-  // WIP: Inject desired html and formatting for the cells in each row
-  // REMINDER: Make these lines dependent on user permissions e.g. canEditEvents
   $j.each(rows, function(ndx, row) {
     var eid = row.Id;
     var mid = row.MonitorId;
@@ -57,8 +54,8 @@ function processRows(rows) {
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
     row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>'
                + '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
-    row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
-    row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    if ( canEditMonitors ) row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
+    if ( canEditEvents ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {
       row.Cause = row.Cause + '<a href="#?view=image&amp;eid=' + eid + '&amp;fid=objdetect"><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></a>';
     } else if ( row.Notes != 'Forced Web: ' ) {

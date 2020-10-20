@@ -128,45 +128,55 @@ function reloadWindow() {
 }
 
 // Manage the the Function modal and its buttons
-function manageFunctionModal() {
-  $j('.functionLnk').click(function(evt) {
-    evt.preventDefault();
-    if ( !canEditEvents ) {
-      enoperm();
-      return;
-    }
-    var mid = evt.currentTarget.getAttribute('data-mid');
-    monitor = monitors[mid];
-    if ( !monitor ) {
-      console.error("No monitor found for mid " + mid);
-      return;
-    }
+function manageFunctionModal(evt) {
+  evt.preventDefault();
 
-    var function_form = document.getElementById('function_form');
-    if ( !function_form ) {
-      console.error("Unable to find form with id function_form");
-      return;
-    }
-    function_form.elements['newFunction'].value = monitor.Function;
-    function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
-    function_form.elements['mid'].value = mid;
-    document.getElementById('function_monitor_name').innerHTML = monitor.Name;
+  if ( !canEditEvents ) {
+    enoperm();
+    return;
+  }
 
-    $j('#modalFunction').modal('show');
-  });
+  if ( ! $j('#modalFunction').length ) {
+    // Load the Function modal on page load
+    $j.getJSON(thisUrl + '?request=modal&modal=function')
+        .done(function(data) {
+          insertModalHtml('modalFunction', data.html);
+          // Manage the CANCEL modal buttons
+          $j('.funcCancelBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#modalFunction').modal('hide');
+          });
+          // Manage the SAVE modal buttons
+          $j('.funcSaveBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#function_form').submit();
+          });
 
-  // Manage the CANCEL modal buttons
-  $j('.funcCancelBtn').click(function(evt) {
-    evt.preventDefault();
-    $j('#modalFunction').modal('hide');
-  });
+          manageFunctionModal(evt);
+        })
+        .fail(logAjaxFail);
+    return;
+  }
 
-  // Manage the SAVE modal buttons
-  $j('.funcSaveBtn').click(function(evt) {
-    evt.preventDefault();
-    $j('#function_form').submit();
-  });
-}
+  var mid = evt.currentTarget.getAttribute('data-mid');
+  monitor = monitors[mid];
+  if ( !monitor ) {
+    console.error("No monitor found for mid " + mid);
+    return;
+  }
+
+  var function_form = document.getElementById('function_form');
+  if ( !function_form ) {
+    console.error("Unable to find form with id function_form");
+    return;
+  }
+  function_form.elements['newFunction'].value = monitor.Function;
+  function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
+  function_form.elements['mid'].value = mid;
+  document.getElementById('function_monitor_name').innerHTML = monitor.Name;
+
+  $j('#modalFunction').modal('show');
+} // end function manageFunctionModal
 
 function initPage() {
   reloadWindow.periodical(consoleRefreshTimeout);
@@ -196,15 +206,8 @@ function initPage() {
   // Setup the thumbnail video animation
   initThumbAnimation();
 
-  // Load the Function modal on page load
-  $j.getJSON(thisUrl + '?request=modal&modal=function')
-      .done(function(data) {
-        insertModalHtml('modalFunction', data.html);
-        // Manage the Function modal
-        manageFunctionModal();
-      })
-      .fail(logAjaxFail);
-}
+  $j('.functionLnk').click(manageFunctionModal);
+} // end function initPage
 
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');

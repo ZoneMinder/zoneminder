@@ -185,7 +185,14 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
 
   $rows = array();
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
+    $event = new ZM\Event($row['Id']);
+    $scale = max(reScale(SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
+    $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
+    $streamSrc = $event->getStreamSrc(array(
+                        'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
+
     // Modify the row data as needed
+    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="' .validHtmlStr('Event ' .$event->Id()). '" style="width:' .validInt($event->ThumbnailWidth()). 'px;height:' .validInt($event->ThumbnailHeight()).'px;" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"/>';
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');

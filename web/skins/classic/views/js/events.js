@@ -67,6 +67,7 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+    row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
   });
 
   return rows;
@@ -334,6 +335,11 @@ function initPage() {
       var eid = $j(this).data('eid');
       getEventDetailModal(eid);
     });
+
+    var thumb_ndx = $j('#eventTable tr th').filter(function() {
+      return $j(this).text().trim() == 'Thumbnail';
+    }).index();
+    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail zoom');
   });
 
   // The table is initially given a hidden style, so now that we are done rendering, show it

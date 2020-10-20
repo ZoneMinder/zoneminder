@@ -44,6 +44,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
 
     <table
       id="logTable"
+      data-locale="<?php echo i18n() ?>"
       class="table-sm table-borderless"
       data-side-pagination="server"
       data-ajax="ajaxRequest"

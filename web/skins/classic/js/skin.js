@@ -240,7 +240,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
   $j(document).ready(function() {
     // Load the Logout and State modals into the dom
-    $j('#logoutButton').click(getLogoutModal());
+    $j('#logoutButton').click(clickLogout);
     if ( canEditSystem ) $j('#stateModalBtn').click(getStateModal);
 
     // Trigger autorefresh of the widget bar stats on the navbar
@@ -665,8 +665,17 @@ function getLogoutModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=logout')
       .done(function(data) {
         insertModalHtml('modalLogout', data.html);
+        manageModalBtns('modalLogout');
+        clickLogout();
       })
       .fail(logAjaxFail);
+}
+function clickLogout() {
+  if ( ! $j('#modalLogout').length ) {
+    getLogoutModal();
+    return;
+  }
+  $j('#modalLogout').modal('show');
 }
 
 function getStateModal() {
@@ -769,13 +778,14 @@ function getModal(id) {
 }
 
 function manageModalBtns(id) {
-  // Manage the CANCEL modal button
+  // Manage the CANCEL modal button, note data-dismiss="modal" would work better
   var cancelBtn = document.getElementById(id+"CancelBtn");
   if ( cancelBtn ) {
     document.getElementById(id+"CancelBtn").addEventListener('click', function onCancelClick(evt) {
       $j('#'+id).modal('hide');
     });
   }
+
   // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
   document.querySelectorAll('#'+id+'Modal button[data-on-click]').forEach(function attachOnClick(el) {
     var fnName = el.getAttribute('data-on-click');

@@ -2408,4 +2408,11 @@ function zm_random_bytes($length = 32) {
   }
   ZM\Error('No random_bytes function found.');
 }
+
+function i18n() {
+  $string = explode('_', ZM_LANG_DEFAULT, 2);
+  $string[1] = strtoupper($string[1]);
+
+  return implode('-', $string);
+}
 ?>

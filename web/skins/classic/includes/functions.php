@@ -790,6 +790,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
   $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
   
   $result .= '<table id="contentStatsTable' .$row. '"'.PHP_EOL;
+    $result .= 'data-locale="' .i18n(). '"'.PHP_EOL;
     $result .= 'data-toggle="table"'.PHP_EOL;
     $result .= 'data-toolbar="#toolbar"'.PHP_EOL;
     $result .= 'class="table-sm table-borderless contentStatsTable"'.PHP_EOL;
@@ -875,6 +876,7 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
 <?php echo output_script_if_exists(array(
   'js/bootstrap-table.min.js',
+  'js/bootstrap-table-locale-all.min.js',
   'js/tableExport.min.js',
   'js/bootstrap-table-export.min.js',
   'js/bootstrap-table-page-jump-to.min.js',

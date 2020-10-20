@@ -176,7 +176,7 @@ function controlPresets($monitor, $cmds) {
   }
   if ( canEdit('Monitors') && $control->CanSetPresets() ) {
 ?>
-    <button type="button" class="ptzTextBtn popup-link" value="Set" data-url="?view=controlpreset&amp;mid=<?php echo $monitor->Id() ?>" data-window-name="zmPreset" data-window-tag="preset"><?php echo translate('Set') ?></button>
+    <button type="button" class="ptzTextBtn" value="Set" data-toggle="modal" data-target="#ctrlPresetModal"><?php echo translate('Set') ?></button>
 <?php
   }
 ?>

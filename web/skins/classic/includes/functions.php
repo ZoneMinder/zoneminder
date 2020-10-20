@@ -39,12 +39,37 @@ function xhtmlHeaders($file, $title) {
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
 
-  function output_link_if_exists($files) {
+  function output_link_if_exists($files, $cache_bust=true) {
     global $skin;
     $html = array();
     foreach ( $files as $file ) {
       if ( getSkinFile($file) ) {
+        if ( $cache_bust ) {
         $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
+        } else  {
+        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
+        }
+      }
+    }
+    $html[] = ''; // So we ge a trailing \n
+    return implode(PHP_EOL, $html);
+  }
+  function output_script_if_exists($files, $cache_bust=true) {
+    global $skin;
+    $html = array();
+    foreach ( $files as $file ) {
+      if ( file_exists('skins/'.$skin.'/'.$file) ) {
+        if ( $cache_bust ) {
+          $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
+        } else {
+          $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
+        }
+      } else if ( file_exists($file) ) {
+        if ( $cache_bust ) {
+          $html[] = '<script src="'.cache_bust($file).'"></script>';
+        } else {
+          $html[] = '<script src="'.$file.'"></script>';
+        }
       }
     }
     $html[] = ''; // So we ge a trailing \n
@@ -55,6 +80,9 @@ function xhtmlHeaders($file, $title) {
     $html = array();
     foreach ( $files as $file ) {
         $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
+    }
+    if ( ! count($html) ) {
+      ZM\Warning("No files found for $files");
     }
     $html[] = ''; // So we ge a trailing \n
     return implode(PHP_EOL, $html);
@@ -109,6 +137,8 @@ if ( $css != 'base' )
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
+  } else if ( $basename == 'monitor' ) {
+      echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);
   }
 ?>
   <style>
@@ -494,7 +524,7 @@ function getZMVersionHTML() {
     $class = 'text-danger';
     $tt_text = translate('RunLocalUpdate');
     $content = 'v'.ZM_VERSION.PHP_EOL;
-  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) ) { // No update needed
+  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) || !ZM_CHECK_FOR_UPDATES || ZM_DYN_NEXT_REMINDER > time() ) { // No update needed
     $class = ''; // Don't change the text color under normal conditions
     $tt_text = translate('UpdateNotNecessary');
     $content = 'v'.ZM_VERSION.PHP_EOL;
@@ -707,7 +737,7 @@ function getAcctCircleHTML($skin, $user=null) {
   if ( ZM_OPT_USE_AUTH and $user ) {
     $result .= '<p id="getAcctCircleHTML" class="navbar-text mr-2">'.PHP_EOL;
     $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  $user['Username'],
-      (ZM_AUTH_TYPE == 'builtin'), 'data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
+      (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</p>'.PHP_EOL;
   }
   
@@ -726,9 +756,9 @@ function getStatusBtnHTML($status) {
     //$result .= '</li>'.PHP_EOL;
 
     if ( ZM_SYSTEM_SHUTDOWN ) {
-      $result .= '<p class="navbar-text">'.PHP_EOL;
-      $result .= makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ).PHP_EOL;
-      $result .= '</p>'.PHP_EOL;
+      $result .= '<div class="navbar-text pr-2 align-self-center">'.PHP_EOL;
+      $result .= '<button class="btn btn-outline" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate("Shutdown"). '" ><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
+      $result .= '</div>'.PHP_EOL;
      } 
 
   } else if ( canView('System') ) {
@@ -760,6 +790,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
   $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
   
   $result .= '<table id="contentStatsTable' .$row. '"'.PHP_EOL;
+    $result .= 'data-locale="' .i18n(). '"'.PHP_EOL;
     $result .= 'data-toggle="table"'.PHP_EOL;
     $result .= 'data-toolbar="#toolbar"'.PHP_EOL;
     $result .= 'class="table-sm table-borderless contentStatsTable"'.PHP_EOL;
@@ -843,17 +874,20 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/tableExport.min.js"></script> 
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-export.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-page-jump-to.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-cookie.min.js"></script> 
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-toolbar.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap-table-auto-refresh.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
-
-  <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
+<?php echo output_script_if_exists(array(
+  'js/bootstrap-table.min.js',
+  'js/bootstrap-table-locale-all.min.js',
+  'js/tableExport.min.js',
+  'js/bootstrap-table-export.min.js',
+  'js/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-cookie.min.js',
+  'js/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-auto-refresh.min.js',
+  'js/chosen/chosen.jquery.min.js',
+  'js/dateTimePicker/jquery-ui-timepicker-addon.js',
+  'js/Server.js',
+), true );
+?>
   <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
 <?php
   if ( $view == 'event' ) {
@@ -902,7 +936,10 @@ function xhtmlFooter() {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
 ?>
     <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
-<?php } ?>
+<?php
+  } else if ( $basename == 'monitor' ) {
+    echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
+  } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

@@ -1859,10 +1859,10 @@ void Image::Delta(const Image &image, Image* targetimage) const {
 #endif
 }
 
-const Coord Image::centreCoord( const char *text ) const {
+const Coord Image::centreCoord( const char *text, int size=1 ) const {
   int index = 0;
   int line_no = 0;
-  int text_len = strlen( text );
+  int text_len = strlen(text);
   int line_len = 0;
   int max_line_len = 0;
   const char *line = text;
@@ -1878,8 +1878,8 @@ const Coord Image::centreCoord( const char *text ) const {
     line = text+index;
     line_no++;
   }
-  int x = (width - (max_line_len * ZM_CHAR_WIDTH) ) / 2;
-  int y = (height - (line_no * LINE_HEIGHT) ) / 2;
+  int x = (width - (max_line_len * ZM_CHAR_WIDTH * size) ) / 2;
+  int y = (height - (line_no * LINE_HEIGHT * size) ) / 2;
   return Coord(x, y);
 }
 

@@ -23,77 +23,70 @@ if ( !canView('System') ) {
   return;
 }
 
-$focusWindow = true;
-
 xhtmlHeaders(__FILE__, translate('SystemLog'));
 ?>
 <body>
   <?php echo getNavBarHTML() ?>
-  <div id="page">
-    <div id="header">
-      <div id="logSummary" class="text-center">
-      <?php echo translate('State') ?>: <span id="logState"></span>/
-      <?php echo translate('Total') ?>: <span id="totalLogs"></span>/
-      <?php echo translate('Available') ?>: <span id="availLogs"></span>/
-      <?php echo translate('Displaying') ?>: <span id="displayLogs"></span>/
-      <?php echo translate('Updated') ?>: <span id="lastUpdate"></span>
-      </div>
-      <div class="btn-toolbar justify-content-center py-1">
-        <button type="button" data-on-click="expandLog"><?php echo translate('More') ?></button>
-        <button type="button" data-on-click="clearLog"><?php echo translate('Clear') ?></button>
-        <button type="button" data-on-click="refreshLog"><?php echo translate('Refresh') ?></button>
-        <button type="button" data-on-click="exportLog"><?php echo translate('Export') ?></button>
-        <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
-      </div> <!--btn-->
-    </div> <!--header-->
-    <div id="content">
-      <form id="logForm" name="logForm" method="post" action="?">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <div class="container" id="filters">
-          <div class="row">
-            <div class="col">
-              <label><?php echo translate('Component') ?></label>
-              <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
-            </div>
-            <div class="col">
-              <label><?php echo translate('Server') ?></label>
-              <select class="form-control chosen" id="filter[ServerId]" data-on-change="filterLog"><option value="">-----</option></select>
-            </div>
-            <div class="col">
-              <label><?php echo translate('Pid') ?></label>
-              <select class="form-control chosen" id="filter[Pid]" data-on-change="filterLog"><option value="">-----</option></select>
-            </div>
-            <div class="col">
-              <label><?php echo translate('Level') ?></label>
-              <select class="form-control chosen" id="filter[Level]" data-on-change="filterLog"><option value="">---</option></select>
-            </div>
-            <div class="col">
-              <label><?php echo translate('File') ?></label>
-              <select class="form-control chosen" id="filter[File]" data-on-change="filterLog"><option value="">------</option></select>
-            </div>
-            <div class="col">
-              <label><?php echo translate('Line') ?></label>
-              <select class="form-control chosen" id="filter[Line]" data-on-change="filterLog"><option value="">----</option></select>
-            </div>
-          </div><!--row-->
-        </div><!--container-->
-        <table id="logTable" class="major">
-          <thead class="thead-highlight">
-            <tr>
-              <th><?php echo translate('DateTime') ?></th>
-              <th class="table-th-nosort"><?php echo translate('Component') ?></th>
-              <th class="table-th-nosort"><?php echo translate('Server') ?></th>
-              <th class="table-th-nosort"><?php echo translate('Pid') ?></th>
-              <th class="table-th-nosort"><?php echo translate('Level') ?></th>
-              <th class="table-th-nosort"><?php echo translate('Message') ?></th>
-              <th class="table-th-nosort"><?php echo translate('File') ?></th>
-              <th class="table-th-nosort"><?php echo translate('Line') ?></th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
-      </form>
-    </div><!--content-->
+  <div id="page" class="px-3">
+
+    <div id="logSummary" class="text-center">
+      <?php echo translate('State') ?>:&nbsp;<span id="logState"></span>&nbsp;-&nbsp;
+      <?php echo translate('Total') ?>:&nbsp;<span id="totalLogs"></span>&nbsp;-&nbsp;
+      <?php echo translate('Available') ?>:&nbsp;<span id="availLogs"></span>&nbsp;-&nbsp;
+      <?php echo translate('Displaying') ?>:&nbsp;<span id="displayLogs"></span>&nbsp;-&nbsp;
+      <?php echo translate('Updated') ?>:&nbsp;<span id="lastUpdate"></span>
+    </div>
+
+    <div id="toolbar">
+      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+      <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+    </div>
+
+    <table
+      id="logTable"
+      data-locale="<?php echo i18n() ?>"
+      class="table-sm table-borderless"
+      data-side-pagination="server"
+      data-ajax="ajaxRequest"
+      data-pagination="true"
+      data-page-list="[10, 25, 50, 100, 200, 300, 400, 500]"
+      data-search="true"
+      data-advanced-search="true"
+      data-id-table="advancedTable"
+      data-cookie="true"
+      data-cookie-id-table="zmLogsTable"
+      data-cookie-expire="2y"
+      data-remember-order="true"
+      data-show-columns="true"
+      data-show-export="true"
+      data-toolbar="#toolbar"
+      data-show-fullscreen="true"
+      data-maintain-meta-data="true"
+      data-mobile-responsive="true"
+      data-buttons-class="btn btn-normal"
+      data-show-jump-to="true"
+      data-auto-refresh="true"
+      data-auto-refresh-silent="true"
+      data-show-refresh="true"
+      data-auto-refresh-interval="5"
+    >
+      <thead class="thead-highlight">
+        <tr>
+          <th data-sortable="true" data-field="DateTime"><?php echo translate('DateTime') ?></th>
+          <th data-sortable="true" data-field="Component"><?php echo translate('Component') ?></th>
+          <th data-sortable="false" data-field="Server"><?php echo translate('Server') ?></th>
+          <th data-sortable="true" data-field="Pid"><?php echo translate('Pid') ?></th>
+          <th data-sortable="true" data-field="Code"><?php echo translate('Level') ?></th>
+          <th data-sortable="true" data-field="Message"><?php echo translate('Message') ?></th>
+          <th data-sortable="true" data-field="File"><?php echo translate('File') ?></th>
+          <th data-sortable="true" data-field="Line"><?php echo translate('Line') ?></th>
+        </tr>
+      </thead>
+
+      <tbody>
+      <!-- Row data populated via Ajax -->
+      </tbody>
+
+    </table>
   </div><!--page-->
 <?php xhtmlFooter() ?>

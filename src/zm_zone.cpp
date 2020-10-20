@@ -126,7 +126,8 @@ void Zone::Setup(
 
 Zone::~Zone() {
   delete[] label;
-  delete image;
+  if ( image )
+    delete image;
   delete pg_image;
   delete[] ranges;
 }
@@ -158,7 +159,8 @@ void Zone::SetScore(unsigned int nScore) {
 }  // end void Zone::SetScore(unsigned int nScore)
 
 void Zone::SetAlarmImage(const Image* srcImage) {
-  delete image;
+  if ( image )
+    delete image;
   image = new Image(*srcImage);
 }  // end void Zone::SetAlarmImage( const Image* srcImage )
 
@@ -205,7 +207,8 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  delete image;
+  if ( image )
+    delete image;
   // Get the difference image
   Image *diff_image = image = new Image(*delta_image);
   int diff_width = diff_image->Width();
@@ -734,14 +737,12 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
       // Only need to delete this when 'image' becomes detached and points somewhere else
       delete diff_image;
-    } else {
-      delete image;
-      image = 0;
-    }
+      diff_image = nullptr;
+    }  // end if ( (type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)
 
     Debug(1, "%s: Pixel Diff: %d, Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d",
         Label(), pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score);
-  }
+  }  // end if score
   return true;
 }
 

@@ -280,7 +280,7 @@ Monitor::Monitor()
   //user
   //pass
   //path
- //device 
+  //device 
   palette(0),
   channel(0),
   format(0),
@@ -1766,9 +1766,7 @@ bool Monitor::Analyse() {
             int motion_score = last_motion_score;
             if ( !(analysis_image_count % (motion_frame_skip+1) ) ) {
               if ( snap->image ) {
-
                 // Get new score.
-                Debug(3, "before DetectMotion packet index is %d", snap->image_index);
                 motion_score = DetectMotion(*snap_image, zoneSet);
 
                 Debug(3, "After motion detection, last_motion_score(%d), new motion score(%d)", last_motion_score, motion_score);
@@ -1780,11 +1778,9 @@ bool Monitor::Analyse() {
             }
             if ( motion_score ) {
               score += motion_score;
-              if ( !event ) {
-                if ( cause.length() )
-                  cause += ", ";
-                cause += MOTION_CAUSE;
-              }
+              if ( cause.length() )
+                cause += ", ";
+              cause += MOTION_CAUSE;
               noteSetMap[MOTION_CAUSE] = zoneSet;
             } // end if motion_score
             //shared_data->active = signal; // unneccessary active gets set on signal change
@@ -1887,7 +1883,6 @@ bool Monitor::Analyse() {
                     ( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
                     );
               }
-
               if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) ) {
                 // lets construct alarm cause. It will contain cause + names of zones alarmed
                 std::string alarm_cause = "";
@@ -1914,7 +1909,7 @@ bool Monitor::Analyse() {
                   Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name, image_count, event->Id());
                 }
                 if ( alarm_frame_count ) {
-Debug(1, "alarm frame count so SavePreAlarmFrames");
+                  Debug(1, "alarm frame count so SavePreAlarmFrames");
                   event->SavePreAlarmFrames();
                 }
               } else if ( state != PREALARM ) {
@@ -1947,6 +1942,8 @@ Debug(1, "alarm frame count so SavePreAlarmFrames");
             } else if ( state == PREALARM ) {
               // Back to IDLE
               shared_data->state = state =  function != MOCORD ? IDLE : TAPE;
+            } else {
+              Debug(1, "Not leaving ALERT beacuse image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%d) - recording.tv_src(%d) >= min_section_length(%d)", image_count, last_alarm_count, post_event_count, timestamp->tv_sec, video_store_data->recording.tv_sec, min_section_length);
             }
             if ( Event::PreAlarmCount() )
               Event::EmptyPreAlarmFrames();

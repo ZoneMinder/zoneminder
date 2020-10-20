@@ -65,9 +65,9 @@
 //
 // Examples
 // setlocale( 'LC_ALL', 'en_GB' ); All locale settings pre-4.3.0
- setlocale( LC_ALL, 'cn_ZH' ); //All locale settings 4.3.0 and after
- setlocale( LC_CTYPE, 'cn_ZH' ); //Character class settings 4.3.0 and after
- setlocale( LC_TIME, 'cn_ZH' ); //Date and time formatting 4.3.0 and after
+ setlocale( LC_ALL, 'zh_CN' ); //All locale settings 4.3.0 and after
+ setlocale( LC_CTYPE, 'zh_CN' ); //Character class settings 4.3.0 and after
+ setlocale( LC_TIME, 'zh_CN' ); //Date and time formatting 4.3.0 and after
 
 // Simple String Replacements
 $SLANG = array(
@@ -989,7 +989,7 @@ $OLANG = array(
 	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

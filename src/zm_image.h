@@ -285,7 +285,7 @@ public:
 	//Image *Delta( const Image &image ) const;
 	void Delta( const Image &image, Image* targetimage) const;
 
-	const Coord centreCoord(const char *p_text) const;
+	const Coord centreCoord(const char *text, const int size) const;
   void MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour=0x00222222 );
 	void Annotate( const char *p_text, const Coord &coord, const unsigned int size=1, const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
 	Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );

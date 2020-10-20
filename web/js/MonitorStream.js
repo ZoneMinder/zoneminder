@@ -72,14 +72,10 @@ function MonitorStream(monitorData) {
 
   this.onclick = function(evt) {
     var el = evt.currentTarget;
-    var tag = 'watch';
     var id = el.getAttribute("data-monitor-id");
-    var width = el.getAttribute("data-width");
-    var height = el.getAttribute("data-height");
     var url = '?view=watch&mid='+id;
-    var name = 'zmWatch'+id;
     evt.preventDefault();
-    createPopup(url, name, tag, width, height);
+    window.location.assign(url);
   };
 
   this.setup_onclick = function() {

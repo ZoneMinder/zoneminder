@@ -808,7 +808,7 @@ find_package(
     Getopt::Long Time::HiRes Date::Manip LWP::UserAgent 
     ExtUtils::MakeMaker ${ZM_MMAP_PERLPACKAGE})
 if(NOT PERLMODULES_FOUND)
-	message(FATAL_ERROR 
+  message(WARNING
             "Not all required perl modules were found on your system")
 endif(NOT PERLMODULES_FOUND)
 
@@ -844,7 +844,7 @@ if(WITH_SYSTEMD)
     # Check for polkit
     find_package(Polkit)
     if(NOT POLKIT_FOUND)
-	    message(FATAL_ERROR 
+      message(WARNING
                 "Running ZoneMinder requires polkit. Building ZoneMinder requires the polkit development package.")
     endif(NOT POLKIT_FOUND)
 endif(WITH_SYSTEMD)

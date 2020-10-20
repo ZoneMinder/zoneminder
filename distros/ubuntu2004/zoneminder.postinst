@@ -16,17 +16,20 @@ create_db () {
   else
     echo "Db exists."
   fi
+}
+
+create_update_user () {
   USER_EXISTS="$(mysql --defaults-file=/etc/mysql/debian.cnf  -sse "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '$ZM_DB_USER')")"
   if [ $USER_EXISTS -ne 1 ]; then
     echo "Creating zm user $ZM_DB_USER"
     # This creates the user.
     echo "CREATE USER '${ZM_DB_USER}'@${ZM_DB_HOST} IDENTIFIED BY '${ZM_DB_PASS}';" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
   fi
+  echo "Updating permissions"
+  echo "GRANT LOCK tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine,trigger,execute ON ${ZM_DB_NAME}.* TO '${ZM_DB_USER}'@${ZM_DB_HOST};" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 }
 
 update_db () {
-  echo "Updating permissions"
-  echo "GRANT LOCK tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine,trigger,execute ON ${ZM_DB_NAME}.* TO '${ZM_DB_USER}'@${ZM_DB_HOST};" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 
   zmupdate.pl --nointeractive
   zmupdate.pl --nointeractive -f
@@ -94,6 +97,7 @@ if [ "$1" = "configure" ]; then
       # Make sure systemctl status exit code is 0; i.e. the DB is running
       if systemctl is-active --quiet "$DBSERVICE"; then
         create_db
+        create_update_user
         update_db
       else
         echo 'NOTE: MySQL/MariaDB not running; please start mysql and run dpkg-reconfigure zoneminder when it is running.'
@@ -108,6 +112,7 @@ if [ "$1" = "configure" ]; then
       fi
       if $(/etc/init.d/mysql status >/dev/null 2>&1); then
         create_db
+        create_update_user
         update_db
       else
         echo 'NOTE: MySQL/MariaDB not running; please start mysql and run dpkg-reconfigure zoneminder when it is running.'

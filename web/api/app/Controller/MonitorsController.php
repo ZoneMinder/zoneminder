@@ -178,7 +178,7 @@ class MonitorsController extends AppController {
         )
       ) {
         if ( !defined('ZM_SERVER_ID')) {
-          ZM\Logger::Debug("Not defined ZM_SERVER_ID");
+          ZM\Debug("Not defined ZM_SERVER_ID");
         }
         $this->daemonControl($this->Monitor->id, 'start');
       }
@@ -386,7 +386,7 @@ class MonitorsController extends AppController {
       }
 
       $shellcmd = escapeshellcmd("$zm_path_bin/zmdc.pl $command $daemon $args");
-      ZM\Logger::Debug("Command $shellcmd");
+      ZM\Debug("Command $shellcmd");
       $status = exec($shellcmd);
       $status_text .= $status."\n";
     }

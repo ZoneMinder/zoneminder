@@ -48,9 +48,9 @@ function selectLayout(element) {
   if ( ! layout ) {
     return;
   }
-  Cookie.write('zmMontageLayout', layout_id, {duration: 10*365});
+  Cookie.write('zmMontageLayout', layout_id, {duration: 10*365, samesite: 'strict'});
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
-    Cookie.write('zmMontageScale', '', {duration: 10*365});
+    Cookie.write('zmMontageScale', '', {duration: 10*365, samesite: 'strict'});
     $('scale').set('value', '');
     $('width').set('value', '0');
   } else {
@@ -133,9 +133,9 @@ function changeSize() {
     }
   }
   $('scale').set('value', '');
-  Cookie.write('zmMontageScale', '', {duration: 10*365});
-  Cookie.write('zmMontageWidth', width, {duration: 10*365});
-  Cookie.write('zmMontageHeight', height, {duration: 10*365});
+  Cookie.write('zmMontageScale', '', {duration: 10*365, samesite: 'strict'});
+  Cookie.write('zmMontageWidth', width, {duration: 10*365, samesite: 'strict'});
+  Cookie.write('zmMontageHeight', height, {duration: 10*365, samesite: 'strict'});
   jQuery("#zmMontageLayout option:selected").removeAttr("selected");
   //selectLayout('#zmMontageLayout');
 } // end function changeSize()
@@ -147,9 +147,9 @@ function changeScale() {
   var scale = $('scale').get('value');
   $('width').set('value', '0'); //auto
   $('height').set('value', '0'); //auto
-  Cookie.write('zmMontageScale', scale, {duration: 10*365});
-  Cookie.write('zmMontageWidth', '', {duration: 10*365});
-  Cookie.write('zmMontageHeight', '', {duration: 10*365});
+  Cookie.write('zmMontageScale', scale, {duration: 10*365, samesite: 'strict'});
+  Cookie.write('zmMontageWidth', '', {duration: 10*365, samesite: 'strict'});
+  Cookie.write('zmMontageHeight', '', {duration: 10*365, samesite: 'strict'});
   if ( scale == '' ) {
     selectLayout('#zmMontageLayout');
     return;

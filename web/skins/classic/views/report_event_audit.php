@@ -62,7 +62,7 @@ if ( count($selected_monitor_ids) ) {
 }
 parseFilter($filter);
 $filterQuery = $filter['query'];
-ZM\Logger::Debug($filterQuery);
+ZM\Debug($filterQuery);
 
 $eventsSql = 'SELECT *,
     UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
@@ -94,7 +94,7 @@ while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
 
   if ( count($EventsByMonitor[$event['MonitorId']]['Events']) ) {
     $last_event = end($EventsByMonitor[$event['MonitorId']]['Events']);
-#Logger::Debug(print_r($last_event,true));
+#Debug(print_r($last_event,true));
     $gap = $last_event->EndTimeSecs() - $event['StartTimeSecs'];
  
     if ( $gap < $EventsByMonitor[$event['MonitorId']]['MinGap'] )

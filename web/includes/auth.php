@@ -72,12 +72,12 @@ function validateUser($username='', $password='') {
     // We assume we don't need to support mysql < 4.1
     // Starting MY SQL 4.1, mysql concats a '*' in front of its password hash
     // https://blog.pythian.com/hashing-algorithm-in-mysql-password-2/
-    ZM\Logger::Debug('Saved password is using MYSQL password function');
+    ZM\Debug('Saved password is using MYSQL password function');
     $input_password_hash = '*'.strtoupper(sha1(sha1($password, true)));
     $password_correct = ($user['Password'] == $input_password_hash);
     break;
   case 'bcrypt' :
-    ZM\Logger::Debug('bcrypt signature found, assumed bcrypt password');
+    ZM\Debug('bcrypt signature found, assumed bcrypt password');
     $password_correct = password_verify($password, $user['Password']);
     break;
   case 'mysql+bcrypt' : 
@@ -85,10 +85,10 @@ function validateUser($username='', $password='') {
     // this is done so that we don't spend cycles doing two bcrypt password_verify calls
     // for every wrong password entered. This will only be invoked for passwords zmupdate.pl has
     // overlay hashed
-    ZM\Logger::Debug("Detected bcrypt overlay hashing for $username");
+    ZM\Debug("Detected bcrypt overlay hashing for $username");
     $bcrypt_hash = substr($user['Password'], 4);
     $mysql_encoded_password = '*'.strtoupper(sha1(sha1($password, true)));
-    ZM\Logger::Debug("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
+    ZM\Debug("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
     $password_correct = password_verify($mysql_encoded_password, $bcrypt_hash);
     break;
   default:
@@ -130,7 +130,7 @@ function validateToken($token, $allowed_token_type='access') {
       return array(false, 'Incorrect token type');
     }
   } else {
-    ZM\Logger::Debug('Not comparing token types as [any] was passed');
+    ZM\Debug('Not comparing token types as [any] was passed');
   }
   
   $username = $jwt_payload['user'];
@@ -210,7 +210,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       } else {
         $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       }
-      #ZM\Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
+      #ZM\Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5($authKey);
       $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;
@@ -248,14 +248,14 @@ function userFromSession() {
       if ( isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) )
         $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
       else
-        ZM\Logger::Debug("No auth hash in session, there should have been");
+        ZM\Debug("No auth hash in session, there should have been");
     } else {
       # Need to refresh permissions and validate that the user still exists
       $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
     }
   } else {
-    ZM\Logger::Debug('No username in session');
+    ZM\Debug('No username in session');
   }
   return $user;
 }

@@ -4,6 +4,7 @@
   global $connkey;
   global $monitor;
   global $scale;
+  global $labels;
 ?>
 //
 // Import constants
@@ -22,6 +23,11 @@ stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
 stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 var deleteString = "<?php echo translate('Delete') ?>";
+
+var enableAlarmsStr = "<?php echo translate('EnableAlarms') ?>";
+var disableAlarmsStr = "<?php echo translate('DisableAlarms') ?>";
+var forceAlarmStr = "<?php echo translate('ForceAlarm') ?>";
+var cancelForcedAlarmStr = "<?php echo translate('CancelForcedAlarm') ?>";
 
 var CMD_NONE = <?php echo CMD_NONE ?>;
 var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
@@ -58,6 +64,7 @@ var monitorUrl = '<?php echo $monitor->UrlToIndex() ?>';
 var monitorType = '<?php echo $monitor->Type() ?>';
 var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
 var monitorStreamReplayBuffer = <?php echo $monitor->StreamReplayBuffer() ?>;
+var monitorControllable = <?php echo $monitor->Controllable()?'true':'false' ?>;
 
 var scale = '<?php echo $scale ?>';
 
@@ -67,6 +74,7 @@ var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
 var canEditMonitors = <?php echo canEdit( 'Monitors' )?'true':'false' ?>;
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
+var canViewControl = <?php echo canView( 'Control' )?'true':'false' ?>;
 
 var canPlayPauseAudio = Browser.ie;
 
@@ -84,3 +92,17 @@ var imageControlMode = null;
 
 var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
 var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
+
+var labels = new Array();
+<?php
+$labels = array();
+foreach( dbFetchAll( 'SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array( $monitor->Id() ) ) as $row ) {
+  $labels[$row['Preset']] = $row['Label'];
+}
+
+foreach ( $labels as $index=>$label ) {
+?>
+labels[<?php echo validInt($index) ?>] = '<?php echo validJsStr($label) ?>';
+<?php
+}
+?>

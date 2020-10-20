@@ -102,12 +102,17 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Video'));
 ?>
 <body>
+  <?php if ( !$popup ) echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
+    <div class="w-100 py-1">
+      <div class="float-left pl-3">
+        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button type="button" id="videoBtn" class="btn btn-normal" data-on-click="generateVideo" data-toggle="tooltip" data-placement="top" title="<?php echo translate('GenerateVideo') ?>" disabled><i class="fa fa-file-video-o"></i></button>
       </div>
-      <h2><?php echo translate('Video') ?></h2>
+      <div class="w-100 pt-2">
+        <h2><?php echo translate('Video') ?></h2>
+      </div>
     </div>
     <div id="content">
 <?php
@@ -122,57 +127,35 @@ if ( isset($_REQUEST['showIndex']) ) {
 <?php
 } else {
 ?>
-      <form name="contentForm" id="contentForm" method="post" action="?">
+      <form name="contentForm" id="videoForm" method="post" action="?">
         <input type="hidden" name="id" value="<?php echo $event->Id() ?>"/>
         <table id="contentTable" class="minor">
           <tbody>
             <tr>
-              <th scope="row"><?php echo translate('VideoFormat') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('VideoFormat') ?></th>
               <td><?php echo buildSelect('videoFormat', $videoFormats) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('FrameRate') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('FrameRate') ?></th>
               <td><?php echo buildSelect('rate', $rates) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('VideoSize') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('VideoSize') ?></th>
               <td><?php echo buildSelect('scale', $scales) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('OverwriteExisting') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('OverwriteExisting') ?></th>
               <td><input type="checkbox" name="overwrite" value="1"<?php if ( !empty($_REQUEST['overwrite']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
           </tbody>
         </table>
-        <button type="button" data-on-click="generateVideo"<?php if ( !ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>>
-        <?php echo translate('GenerateVideo') ?>
-        </button>
       </form>
-<?php
-  if ( isset($_REQUEST['generated']) ) {
-?>
-      <h2 id="videoProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>">
-        <span id="videoProgressText"><?php echo $_REQUEST['generated']?translate('VideoGenSucceeded'):translate('VideoGenFailed') ?></span>
-        <span id="videoProgressTicker"></span>
+      <h2 id="videoProgress" class="text-warning invisible"> 
+        <span class="spinner-grow" role="status" aria-hidden="true"></span> 
+        <?php echo translate('GeneratingVideo') ?>
       </h2>
-<?php
-  } else {
-?>
-      <h2 id="videoProgress" class="hidden warnText">
-        <span id="videoProgressText"><?php echo translate('GeneratingVideo') ?></span>
-        <span id="videoProgressTicker"></span>
-      </h2>
-<?php
-  }
-?>
       <h2 id="videoFilesHeader"><?php echo translate('VideoGenFiles') ?></h2>
-<?php
-  if ( count($videoFiles) == 0 ) {
-?>
-      <h3 id="videoNoFiles"><?php echo translate('VideoGenNoFiles') ?></h3>
-<?php
-  } else {
-?>
+
       <table id="videoTable" class="major">
         <thead>
           <tr>
@@ -185,6 +168,12 @@ if ( isset($_REQUEST['showIndex']) ) {
         </thead>
         <tbody>
 <?php
+
+  if ( count($videoFiles) == 0 ) {
+       ?>
+      <td>No Video Files Found</td>
+      <?php
+  } else {
     $index = 0;
     foreach ( $videoFiles as $file ) {
       if ( filesize($file) > 0 ) {
@@ -210,26 +199,22 @@ if ( isset($_REQUEST['showIndex']) ) {
           <td><?php echo $rateText ?></td>
           <td><?php echo $scaleText ?></td>
           <td>
-            <?php echo makePopupLink('?view='.$view.'&amp;eid='.$event->Id().'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, 'zmVideo'.$event->Id().'-'.$scale, array('videoview', $width, $height), translate('View') ); ?>
-            &nbsp;/&nbsp;
-            <a href="#"
- data-on-click-this="downloadVideo" data-file-index="<?php echo $index ?>"><?php echo translate('Download') ?></a>
-            &nbsp;/&nbsp;
-            <a href="#" data-on-click-this="deleteVideo" data-file-index="<?php echo $index ?>"><?php echo translate('Delete') ?></a>
+            <a href="?view=video&eid=<?php echo $event->Id() ?>&downloadIndex=<?php echo $index ?>"><?php echo translate('Download') ?></a>
+               &nbsp;/&nbsp;
+            <a href="?view=video&eid=<?php echo $event->Id() ?>&deleteIndex=<?php echo $index ?>"><?php echo translate('Delete') ?></a>
           </td>
         </tr>
 <?php
         $index++;
       } # end if filesize
     } # end foreach videoFile
+  }
 ?>
         </tbody>
       </table>
 <?php
-  }
 }
 ?>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

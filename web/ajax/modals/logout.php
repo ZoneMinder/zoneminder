@@ -30,14 +30,73 @@ global $CLANG;
       </div>
       <div class="modal-body">
         <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
+<?php if ( canView('System') ) { ?>
+        <p>Other logged in users:<br/>
+<table class="table table-striped">
+  <thead>
+  <tr>
+    <th class="text-left"><?php echo translate('Username') ?></th>
+    <th class="text-left"><?php echo translate('IPAddress') ?></th>
+    <th class="text-left"><?php echo translate('Last Access') ?></th>
+  </tr>
+  </thead>
+  <tbody>
+<?php
+require_once('includes/User.php');
+$result = dbQuery('SELECT * FROM Sessions ORDER BY access DESC');
+if ( ! $result ) return;
+
+$current_session = $_SESSION;
+zm_session_start();
+
+$user_cache = array();
+while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
+  $_SESSION = array();
+  if ( ! session_decode($row['data']) ) {
+    ZM\Warning('Failed to decode ' . $row['data']);
+    continue;
+  }
+  ZM\Debug(print_r($_SESSION, true));
+  if ( isset($_SESSION['last_time']) )  {
+    # This is a dead session
+    continue;
+  }
+  if ( !isset($_SESSION['username']) ) {
+    # Not logged in
+    continue;
+  }
+  if ( isset($user_cache[$_SESSION['username']]) ) {
+    $user = $user_cache[$_SESSION['username']];
+  } else {
+    $user = ZM\User::find_one(array('Username'=>$_SESSION['username']));
+    if ( ! $user ) {
+      ZM\Debug('User not found for ' . $_SESSION['username']);
+      continue;
+    }
+    $user_cache[$_SESSION['username']] = $user;
+  }
+
+  echo '
+  <tr>
+    <td>'.$user->Username().'</td>
+    <td>'.$_SESSION['remoteAddr'].'</td>
+    <td>'.strftime(STRF_FMT_DATETIME_SHORTER, $row['access']).'</td>
+  </tr>
+';
+} # end while
+session_abort();
+$_SESSION = $current_session;
+?>
+          </tbody>
+        </table>
+<?php } # end if canView(System) ?>
       </div>
       <div class="modal-footer">
-        <form name="logoutForm" id="logoutForm" method="post" action="?">
+        <form name="logoutForm" id="logoutForm" method="post" action="?view=logout">
           <?php
           // We have to manually insert the csrf key into the form when using a modal generated via ajax call
           echo getCSRFinputHTML();
           ?>
-          <input type="hidden" name="view" value="logout"/>
           <button type="submit" name="action" value="logout"><?php echo translate('Logout') ?></button>
           <?php if ( ZM_USER_SELF_EDIT ) echo '<button type="submit" name="action" value="config">'.translate('Config').'</button>'.PHP_EOL; ?>
           <button type="button" data-dismiss="modal"><?php echo translate('Cancel') ?></button>

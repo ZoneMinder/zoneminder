@@ -177,9 +177,9 @@ function changeScale() {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
   if ( scale == '0' ) {
-    Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
+    Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365, samesite: 'strict'});
   } else {
-    Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365});
+    Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365, samesite: 'strict'});
     Cookie.dispose('zmEventScaleAuto');
   }
 } // end function changeScale
@@ -187,7 +187,7 @@ function changeScale() {
 function changeReplayMode() {
   var replayMode = $('replayMode').get('value');
 
-  Cookie.write('replayMode', replayMode, {duration: 10*365});
+  Cookie.write('replayMode', replayMode, {duration: 10*365, samesite: 'strict'});
 
   refreshWindow();
 }
@@ -209,13 +209,17 @@ function changeRate() {
           vid.currentTime(vid.currentTime() - (revSpeed/2)); //Half of reverse speed because our interval is 500ms.
         }
       }, 500); //500ms is a compromise between smooth reverse and realistic performance
+    } else {
+      streamReq.send(streamParms+"&command="+CMD_VARPLAY+"&rate="+rate);
     } // end if vid
   } else { // Forward rate
     if ( vid ) {
       vid.playbackRate(rate/100);
+    } else {
+      streamReq.send(streamParms+"&command="+CMD_VARPLAY+"&rate="+rate);
     }
   }
-  Cookie.write('zmEventRate', rate, {duration: 10*365});
+  Cookie.write('zmEventRate', rate, {duration: 10*365, samesite: 'strict'});
 } // end function changeRate
 
 var streamParms = "view=request&request=stream&connkey="+connKey;
@@ -244,7 +248,11 @@ function getCmdResponse( respObj, respText ) {
   }
 
   streamStatus = respObj.status;
-  if ( streamStatus.progress >= Math.round(parseFloat(eventData.Length)) ) {
+  if ( streamStatus.duration && ( streamStatus.duration != parseFloat(eventData.Length) ) ) {
+    eventData.Length = streamStatus.duration;
+  }
+  if ( streamStatus.progress > parseFloat(eventData.Length) ) {
+    console.log("Limiting progress to " + streamStatus.progress + ' >= ' + parseFloat(eventData.Length) );
     streamStatus.progress = parseFloat(eventData.Length);
   } //Limit progress to reality
 
@@ -263,9 +271,8 @@ function getCmdResponse( respObj, respText ) {
   if ( streamStatus.paused == true ) {
     streamPause( );
   } else {
-    console.log('streamStatus.rate: ' + streamStatus.rate);
     $j('select[name="rate"]').val(streamStatus.rate*100);
-    Cookie.write('zmEventRate', streamStatus.rate*100, {duration: 10*365});
+    Cookie.write('zmEventRate', streamStatus.rate*100, {duration: 10*365, samesite: 'strict'});
     streamPlay( );
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
@@ -287,7 +294,7 @@ function getCmdResponse( respObj, respText ) {
   } // end if haev a new auth hash
 
   streamCmdTimer = streamQuery.delay(streamTimeout); //Timeout is refresh rate for progressBox and time display
-}
+} // end function getCmdResponse( respObj, respText )
 
 var streamReq = new Request.JSON( {
   url: monitorUrl,
@@ -341,7 +348,7 @@ function vjsPlay() { //catches if we change mode programatically
     stopFastRev();
   }
   $j('select[name="rate"]').val(vid.playbackRate()*100);
-  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
+  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365, samesite: 'strict'});
   streamPlay();
 }
 
@@ -368,7 +375,7 @@ function streamFastFwd( action ) {
       setButtonState($('fastFwdBtn'), 'unavail');
     }
     $j('select[name="rate"]').val(vid.playbackRate()*100);
-    Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
+    Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365, samesite: 'strict'});
   } else {
     streamReq.send(streamParms+"&command="+CMD_FASTFWD);
   }
@@ -395,7 +402,7 @@ function stopFastRev() {
   clearInterval(intervalRewind);
   vid.playbackRate(1);
   $j('select[name="rate"]').val(vid.playbackRate()*100);
-  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
+  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365, samesite: 'strict'});
   revSpeed = .5;
 }
 
@@ -413,7 +420,7 @@ function streamFastRev( action ) {
     }
     clearInterval(intervalRewind);
     $j('select[name="rate"]').val(-revSpeed*100);
-    Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
+    Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365, samesite: 'strict'});
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
         clearInterval(intervalRewind);
@@ -431,14 +438,14 @@ function streamFastRev( action ) {
 function streamPrev(action) {
   if ( action ) {
     $j(".vjsMessage").remove();
-    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery + '&popup='+popup);
+    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     return;
 
     if ( vid && PrevEventDefVideoPath.indexOf("view_video") > 0 ) {
       CurEventDefVideoPath = PrevEventDefVideoPath;
       eventQuery(prevEventId);
     } else if (zmsBroke || (vid && PrevEventDefVideoPath.indexOf("view_video") < 0) || $j("#vjsMessage").length || PrevEventDefVideoPath.indexOf("view_video") > 0) {//zms broke, leaving videojs, last event, moving to videojs
-      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery + '&popup='+popup);
+      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     } else {
       streamReq.send(streamParms+"&command="+CMD_PREV);
       streamPlay();
@@ -460,13 +467,13 @@ function streamNext(action) {
     // We used to try to dynamically update all the bits in the page, which is really complex
     // How about we just reload the page?
     //
-    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery + '&popup='+popup);
+    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
     return;
     if ( vid && ( NextEventDefVideoPath.indexOf("view_video") > 0 ) ) { //on and staying with videojs
       CurEventDefVideoPath = NextEventDefVideoPath;
       eventQuery(nextEventId);
     } else if ( zmsBroke || (vid && NextEventDefVideoPath.indexOf("view_video") < 0) || NextEventDefVideoPath.indexOf("view_video") > 0) {//reload zms, leaving vjs, moving to vjs
-      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery + '&popup='+popup);
+      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
     } else {
       streamReq.send(streamParms+"&command="+CMD_NEXT);
       streamPlay();
@@ -614,7 +621,7 @@ function getEventResponse(respObj, respText) {
 var eventReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse} );
 
 function eventQuery( eventId ) {
-  var eventParms = "view=request&request=status&entity=event&id="+eventId;
+  var eventParms = 'view=request&request=status&entity=event&id='+eventId;
   if ( auth_hash ) {
     eventParms += '&auth='+auth_hash;
   }
@@ -629,7 +636,7 @@ var PrevEventDefVideoPath = "";
 var NextEventDefVideoPath = "";
 
 function getNearEventsResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getNearEventsResponse", respObj ) ) {
+  if ( checkStreamForErrors('getNearEventsResponse', respObj) ) {
     return;
   }
   prevEventId = respObj.nearevents.PrevEventId;
@@ -950,12 +957,23 @@ function renameEvent() {
   actQuery('rename', {eventName: newName});
 }
 
+// Manage the EDIT button
 function editEvent() {
-  createPopup('?view=eventdetail&eid='+eventData.Id, 'zmEventDetail', 'eventdetail');
+  $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eid='+eventData.Id)
+      .done(function(data) {
+        insertModalHtml('eventDetailModal', data.html);
+        $j('#eventDetailModal').modal('show');
+        // Manage the Save button
+        $j('#eventDetailSaveBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#eventDetailForm').submit();
+        });
+      })
+      .fail(logAjaxFail);
 }
 
 function exportEvent() {
-  createPopup('?view=export&eid='+eventData.Id, 'zmExport', 'export');
+  window.location.assign('?view=export&eid='+eventData.Id);
 }
 
 function archiveEvent() {
@@ -967,7 +985,7 @@ function unarchiveEvent() {
 }
 
 function showEventFrames() {
-  createPopup('?view=frames&eid='+eventData.Id, 'zmFrames', 'frames', WEB_LIST_THUMB_WIDTH, WEB_LIST_THUMB_HEIGHT);
+  window.location.assign('?view=frames&eid='+eventData.Id);
 }
 
 function showStream() {
@@ -1015,11 +1033,11 @@ function showStills() {
 
 function showFrameStats() {
   var fid = $('eventImageNo').get('text');
-  createPopup('?view=stats&eid='+eventData.Id+'&fid='+fid, 'zmStats', 'stats', eventData.Width, eventData.Height);
+  window.location.assign('?view=stats&eid='+eventData.Id+'&fid='+fid);
 }
 
 function videoEvent() {
-  createPopup('?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height);
+  window.location.assign('?view=video&eid='+eventData.Id);
 }
 
 // Called on each event load because each event can be a different width
@@ -1079,7 +1097,7 @@ function initPage() {
       handleClick(event);
     });
     vid.on('volumechange', function() {
-      Cookie.write('volume', vid.volume(), {duration: 10*365});
+      Cookie.write('volume', vid.volume(), {duration: 10*365, samesite: 'strict'});
     });
     if ( Cookie.read('volume') != null ) {
       vid.volume(Cookie.read('volume'));

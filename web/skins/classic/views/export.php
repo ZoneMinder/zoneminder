@@ -63,10 +63,15 @@ xhtmlHeaders(__FILE__, translate('Export'));
 <body>
   <div id="page">
     <?php echo getNavBarHTML() ?>
-    <div id="header">
-      <h2><?php echo translate('ExportOptions') ?></h2>
-    </div>
-    <div id="content">
+      <div class="w-100 py-1">
+        <div class="float-left pl-3">
+          <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+          <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        </div>
+        <div class="w-100 pt-2">
+          <h2><?php echo translate('ExportOptions') ?></h2>
+        </div>
+      </div>    <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="?view=export">
         <input type="hidden" name="connkey" value="<?php echo $connkey; ?>"/>
 <?php

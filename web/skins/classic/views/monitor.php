@@ -404,6 +404,7 @@ if ( $monitor->Type() != 'WebSite' ) {
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
   $tabs['misc'] = translate('Misc');
+  $tabs['location'] = translate('Location');
 }
 
 if ( isset($_REQUEST['tab']) )
@@ -834,6 +835,7 @@ include('_monitor_source_nvsocket.php');
   '1600x1200'=>'1600x1200 2MP',
   '1920x1080'=>'1920x1080 1080p',
   '2048x1536'=>'2048x1536 3MP',
+  '2560x1440'=>'2560x1440 1440p QHD WQHD',
   '2592x1944'=>'2592x1944 5MP',
   '3840x2160'=>'3840x2160 4K UHD',
 ), $monitor->Width().'x'.$monitor->Height()
@@ -1052,7 +1054,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 
                   echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId());
                   if ( canEdit('Control') ) {
-                    echo '&nbsp;'.makePopupLink('?view=controlcaps', 'zmControlCaps', 'controlcaps', translate('Edit'));
+                    echo '&nbsp;'.makeLink('?view=controlcaps', translate('Edit'));
                   }
 ?>
               </td>
@@ -1192,6 +1194,28 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 <?php
         break;
     }
+  case 'location':
+?>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('Latitude') ?></td>
+          <td><input type="number" name="newMonitor[Latitude]" step="any" value="<?php echo $monitor->Latitude() ?>" min="-90" max="90"/></td>
+        </tr>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('Longitude') ?></td>
+          <td><input type="number" name="newMonitor[Longitude]" step="any" value="<?php echo $monitor->Longitude() ?>" min="-180" max="180"/></td>
+        </tr>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('Longitude') ?></td>
+          <td><button type="button" data-on-click="getLocation"><?php echo translate('GetCurrentLocation') ?></button></td>
+        </tr>
+        <tr>
+          <td colspan="2"><div id="LocationMap" style="height: 500px; width: 500px;"></div></td>
+        </tr>
+            
+<?php
+    break;
+  default :
+    ZM\Error("Unknown tab $tab");
 } // end switch tab
 ?>
           </tbody>

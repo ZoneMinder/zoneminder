@@ -21,7 +21,6 @@
 // This file should only contain static JavaScript and no php.
 // Use skin.js.php for JavaScript that need pre-processing
 //
-var popupOptions = "resizable,scrollbars,status=no,toolbar=yes";
 
 // Globally define the icons used in the bootstrap-table top-right toolbar
 var icons = {
@@ -59,88 +58,6 @@ function checkSize() {
   }
 }
 
-// Deprecated
-function newWindow( url, name, width, height ) {
-  window.open( url, name, popupOptions+",width="+width+",height="+height );
-}
-
-function getPopupSize( tag, width, height ) {
-  if ( typeof popupSizes == 'undefined' ) {
-    Error("Can't find any window sizes");
-    return {'width': 0, 'height': 0};
-  }
-  var popupSize = Object.clone(popupSizes[tag]);
-  if ( !popupSize ) {
-    Error("Can't find window size for tag '"+tag+"'");
-    return {'width': 0, 'height': 0};
-  }
-  if ( popupSize.width && popupSize.height ) {
-    if ( width || height ) {
-      Warning("Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'");
-    }
-    return popupSize;
-  }
-  if ( popupSize.addWidth ) {
-    popupSize.width = popupSize.addWidth;
-    if ( !width ) {
-      Error("Got addWidth but no passed width when getting popup size for tag '"+tag+"'");
-    } else {
-      popupSize.width += parseInt(width);
-    }
-  } else if ( width ) {
-    popupSize.width = width;
-    Error("Got passed width but no addWidth when getting popup size for tag '"+tag+"'");
-  }
-  if ( popupSize.minWidth && popupSize.width < popupSize.minWidth ) {
-    Warning("Adjusting to minimum width when getting popup size for tag '"+tag+"'");
-    popupSize.width = popupSize.minWidth;
-  }
-  if ( popupSize.addHeight ) {
-    popupSize.height = popupSize.addHeight;
-    if ( !height ) {
-      Error("Got addHeight but no passed height when getting popup size for tag '"+tag+"'");
-    } else {
-      popupSize.height += parseInt(height);
-    }
-  } else if ( height ) {
-    popupSize.height = height;
-    Error("Got passed height but no addHeight when getting popup size for tag '"+tag+"'");
-  }
-  if ( popupSize.minHeight && ( popupSize.height < popupSize.minHeight ) ) {
-    Warning("Adjusting to minimum height ("+popupSize.minHeight+") when getting popup size for tag '"+tag+"' because calculated height is " + popupSize.height);
-    popupSize.height = popupSize.minHeight;
-  }
-  return popupSize;
-}
-
-function zmWindow(sub_url) {
-  var zmWin = window.open( 'https://www.zoneminder.com'+(sub_url?sub_url:''), 'ZoneMinder' );
-  if ( ! zmWin ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    zmWin.focus();
-  }
-}
-
-function createPopup( url, name, tag, width, height ) {
-  var popupSize = getPopupSize( tag, width, height );
-  var popupDimensions = "";
-  if ( popupSize.width > 0 ) {
-    popupDimensions += ",width="+popupSize.width;
-  }
-  if ( popupSize.height > 0 ) {
-    popupDimensions += ",height="+popupSize.height;
-  }
-  var popup = window.open( url+"&popup=1", name, popupOptions+popupDimensions );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
-}
-
 // Polyfill for NodeList.prototype.forEach on IE.
 if (window.NodeList && !NodeList.prototype.forEach) {
   NodeList.prototype.forEach = Array.prototype.forEach;
@@ -152,26 +69,6 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       if (!validateForm(this)) {
         evt.preventDefault();
       }
-    });
-  });
-
-  document.querySelectorAll(".popup-link").forEach(function(el) {
-    el.addEventListener("click", function onClick(evt) {
-      var el = this;
-      var url;
-      if ( el.hasAttribute("href") ) {
-        // <a>
-        url = el.getAttribute("href");
-      } else {
-        // buttons
-        url = el.getAttribute("data-url");
-      }
-      var name = el.getAttribute("data-window-name");
-      var tag = el.getAttribute("data-window-tag");
-      var width = el.getAttribute("data-window-width");
-      var height = el.getAttribute("data-window-height");
-      evt.preventDefault();
-      createPopup(url, name, tag, width, height);
     });
   });
 
@@ -195,7 +92,17 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     el.addEventListener("click", submitTab);
   });
 
-  // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
+  dataOnClickThis();
+  dataOnClick();
+  dataOnClickTrue();
+  dataOnChangeThis();
+  dataOnChange();
+  dataOnInput();
+  dataOnInputThis();
+});
+
+// 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
+function dataOnClickThis() {
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
     if ( !window[fnName] ) {
@@ -204,8 +111,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.onclick = window[fnName].bind(el, el);
   });
+}
 
-  // 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
+// 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
+function dataOnClick() {
   document.querySelectorAll("i[data-on-click], a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click");
     if ( !window[fnName] ) {
@@ -217,8 +126,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       window[fnName](ev);
     };
   });
+}
 
-  // 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
+// 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
+function dataOnClickTrue() {
   document.querySelectorAll("a[data-on-click-true], button[data-on-click-true], input[data-on-click-true]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-true");
     if ( !window[fnName] ) {
@@ -229,8 +140,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       window[fnName](true);
     };
   });
+}
 
-  // 'data-on-change-this' calls the global function in the attribute value with the element when a change happens.
+// 'data-on-change-this' calls the global function in the attribute value with the element when a change happens.
+function dataOnChangeThis() {
   document.querySelectorAll("select[data-on-change-this], input[data-on-change-this]").forEach(function attachOnChangeThis(el) {
     var fnName = el.getAttribute("data-on-change-this");
     if ( !window[fnName] ) {
@@ -239,8 +152,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.onchange = window[fnName].bind(el, el);
   });
+}
 
-  // 'data-on-change' adds an event listener for the global function in the attribute value when a change happens.
+// 'data-on-change' adds an event listener for the global function in the attribute value when a change happens.
+function dataOnChange() {
   document.querySelectorAll("select[data-on-change], input[data-on-change]").forEach(function attachOnChange(el) {
     var fnName = el.getAttribute("data-on-change");
     if ( !window[fnName] ) {
@@ -249,8 +164,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.onchange = window[fnName];
   });
+}
 
-  // 'data-on-input' adds an event listener for the global function in the attribute value when an input happens.
+// 'data-on-input' adds an event listener for the global function in the attribute value when an input happens.
+function dataOnInput() {
   document.querySelectorAll("input[data-on-input]").forEach(function(el) {
     var fnName = el.getAttribute("data-on-input");
     if ( !window[fnName] ) {
@@ -259,8 +176,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.oninput = window[fnName];
   });
+}
 
-  // 'data-on-input-this' calls the global function in the attribute value with the element when an input happens.
+// 'data-on-input-this' calls the global function in the attribute value with the element when an input happens.
+function dataOnInputThis() {
   document.querySelectorAll("input[data-on-input-this]").forEach(function(el) {
     var fnName = el.getAttribute("data-on-input-this");
     if ( !window[fnName] ) {
@@ -269,48 +188,24 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     }
     el.oninput = window[fnName].bind(el, el);
   });
-});
+}
 
-function createEventPopup( eventId, eventFilter, width, height ) {
+function openEvent( eventId, eventFilter ) {
   var url = '?view=event&eid='+eventId;
   if ( eventFilter ) {
     url += eventFilter;
   }
-  var name = 'zmEvent';
-  var popupSize = getPopupSize( 'event', width, height );
-  var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
+  window.location.assign(url);
 }
 
-function createFramesPopup( eventId, width, height ) {
+function openFrames( eventId ) {
   var url = '?view=frames&eid='+eventId;
-  var name = 'zmFrames';
-  var popupSize = getPopupSize( 'frames', width, height );
-  var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
+  window.location.assign(url);
 }
 
-function createFramePopup( eventId, frameId, width, height ) {
+function openFrame( eventId, frameId, width, height ) {
   var url = '?view=frame&eid='+eventId+'&fid='+frameId;
-  var name = 'zmFrame';
-  var popupSize = getPopupSize( 'frame', width, height );
-  var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
-  if ( ! popup ) {
-    // if popup blocking is enabled, the popup won't be defined.
-    console.log("Please disable popup blocking.");
-  } else {
-    popup.focus();
-  }
+  window.location.assign(url);
 }
 
 function windowToFront() {
@@ -345,7 +240,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
   $j(document).ready(function() {
     // Load the Logout and State modals into the dom
-    getLogoutModal();
+    $j('#logoutButton').click(clickLogout);
     if ( canEditSystem ) $j('#stateModalBtn').click(getStateModal);
 
     // Trigger autorefresh of the widget bar stats on the navbar
@@ -378,10 +273,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
-        Cookie.write('zmHeaderFlip', 'down', {duration: 10*365} );
+        Cookie.write('zmHeaderFlip', 'down', {duration: 10*365, samesite: 'strict'} );
       } else {
         flip.html('keyboard_arrow_up');
-        Cookie.write('zmHeaderFlip', 'up', {duration: 10*365} );
+        Cookie.write('zmHeaderFlip', 'up', {duration: 10*365, samesite: 'strict'} );
       }
     });
     // Manage the web console filter bar minimize chevron
@@ -390,10 +285,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var fbflip = $j("#fbflip");
       if ( fbflip.html() == 'keyboard_arrow_up' ) {
         fbflip.html('keyboard_arrow_down');
-        Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365} );
+        Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365, samesite: 'strict'} );
       } else {
         fbflip.html('keyboard_arrow_up');
-        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365} );
+        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365, samesite: 'strict'} );
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
@@ -405,10 +300,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
         mfbflip.html('keyboard_arrow_down');
-        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365} );
+        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365, samesite: 'strict'} );
       } else {
         mfbflip.html('keyboard_arrow_up');
-        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365} );
+        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365, samesite: 'strict'} );
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
@@ -429,13 +324,20 @@ if ( currentView != 'none' && currentView != 'login' ) {
     });
   });
 
+  // After retieving modal html via Ajax, this will insert it into the DOM
+  function insertModalHtml(name, html) {
+    var modal = $j('#' + name);
+
+    if ( modal.length ) {
+      modal.replaceWith(html);
+    } else {
+      $j("body").append(html);
+    }
+  }
+
   // Manage the modal html we received after user clicks help link
   function optionhelpModal(data) {
-    if ( $j('#optionhelp').length ) {
-      $j('#optionhelp').replaceWith(data.html);
-    } else {
-      $j("body").append(data.html);
-    }
+    insertModalHtml('optionhelp', data.html);
     $j('#optionhelp').modal('show');
 
     // Manage the CLOSE optionhelp modal button
@@ -577,17 +479,6 @@ function confirmDelete( message ) {
   return ( confirm( message?message:'Are you sure you wish to delete?' ) );
 }
 
-if ( refreshParent ) {
-  refreshParentWindow();
-}
-
-if ( focusWindow ) {
-  windowToFront();
-}
-if ( closePopup ) {
-  closeWindow();
-}
-
 window.addEventListener( 'DOMContentLoaded', checkSize );
 
 function convertLabelFormat(LabelFormat, monitorName) {
@@ -720,7 +611,7 @@ function setCookie(name, value, days) {
     date.setTime(date.getTime() + (days*24*60*60*1000));
     expires = "; expires=" + date.toUTCString();
   }
-  document.cookie = name + "=" + (value || "") + expires + "; path=/";
+  document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";
 }
 
 function getCookie(name) {
@@ -759,11 +650,7 @@ function reminderClickFunction() {
 function enoperm() {
   $j.getJSON(thisUrl + '?request=modal&modal=enoperm')
       .done(function(data) {
-        if ( $j('#ENoPerm').length ) {
-          $j('#ENoPerm').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('ENoPerm', data.html);
         $j('#ENoPerm').modal('show');
 
         // Manage the CLOSE optionhelp modal button
@@ -777,23 +664,24 @@ function enoperm() {
 function getLogoutModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=logout')
       .done(function(data) {
-        if ( $j('#modalLogout').length ) {
-          $j('#modalLogout').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('modalLogout', data.html);
+        manageModalBtns('modalLogout');
+        clickLogout();
       })
       .fail(logAjaxFail);
+}
+function clickLogout() {
+  if ( ! $j('#modalLogout').length ) {
+    getLogoutModal();
+    return;
+  }
+  $j('#modalLogout').modal('show');
 }
 
 function getStateModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=state')
       .done(function(data) {
-        if ( $j('#modalState').length ) {
-          $j('#modalState').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('modalState', data.html);
         $j('#modalState').modal('show');
         manageStateModalBtns();
       })
@@ -864,8 +752,9 @@ function stateStuff(action, runState, newState) {
 }
 
 function logAjaxFail(jqxhr, textStatus, error) {
+  var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
   console.log("Request Failed: " + textStatus + ", " + error);
-  console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, '')); // strip any html from the response
+  if ( responseText ) console.log("Response Text: " + responseText);
 }
 
 // Load the Modal HTML via Ajax call
@@ -877,11 +766,7 @@ function getModal(id) {
           return;
         }
 
-        if ( $j('#'+id).length ) {
-          $j('#'+id).replaceWith(data.html);
-        } else {
-          $j('body').append(data.html);
-        }
+        insertModalHtml(id, data.html);
         manageModalBtns(id);
         modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {
@@ -893,13 +778,14 @@ function getModal(id) {
 }
 
 function manageModalBtns(id) {
-  // Manage the CANCEL modal button
+  // Manage the CANCEL modal button, note data-dismiss="modal" would work better
   var cancelBtn = document.getElementById(id+"CancelBtn");
   if ( cancelBtn ) {
     document.getElementById(id+"CancelBtn").addEventListener('click', function onCancelClick(evt) {
       $j('#'+id).modal('hide');
     });
   }
+
   // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
   document.querySelectorAll('#'+id+'Modal button[data-on-click]').forEach(function attachOnClick(el) {
     var fnName = el.getAttribute('data-on-click');
@@ -924,4 +810,67 @@ function human_filesize(size, precision = 2) {
   return (Math.round(size*(10^precision))/(10^precision))+units[i];
 }
 
+function startDownload( exportFile ) {
+  console.log("Starting download from " + exportFile);
+  window.location.replace( exportFile );
+}
 
+function exportResponse(data, responseText) {
+  console.log(data);
+
+  var generated = (data.result=='Ok') ? 1 : 0;
+  var exportFile = '?view=archive&type='+data.exportFormat+'&connkey='+data.connkey;
+
+  $j('#exportProgress').removeClass( 'text-warning' );
+  if ( generated ) {
+    $j('#downloadLink').text('Download');
+    $j('#downloadLink').attr("href", thisUrl + exportFile);
+    $j('#exportProgress').addClass( 'text-success' );
+    $j('#exportProgress').text(exportSucceededString);
+    startDownload.pass( exportFile ).delay( 1500 );
+  } else {
+    $j('#exportProgress').addClass( 'text-danger' );
+    $j('#exportProgress').text(exportFailedString);
+  }
+}
+
+function exportEvent() {
+  var form = $j('#downloadForm').serialize();
+  $j.getJSON(thisUrl + '?view=request&request=event&action=download', form)
+      .done(exportResponse)
+      .fail(logAjaxFail);
+  $j('#exportProgress').removeClass( 'invisible' );
+}
+
+// Loads the shutdown modal
+function getShutdownModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=shutdown')
+      .done(function(data) {
+        insertModalHtml('shutdownModal', data.html);
+        dataOnClickThis();
+        $j('#shutdownModal').modal('show');
+      })
+      .fail(logAjaxFail);
+}
+
+function manageShutdownBtns(element) {
+  var cmd = element.getAttribute('data-command');
+  var when = $j('#when1min').is(':checked') ? '1min' : 'now';
+  var respText = $j('#respText');
+
+  $j.getJSON(thisUrl + '?request=shutdown&when=' + when + '&command=' + cmd)
+      .done(function(data) {
+        respText.removeClass('invisible');
+        if ( data.rc ) {
+          respText.html('<h2>Error</h2>' + data.output);
+        } else {
+          $j('#cancelBtn').prop('disabled', false);
+          if ( cmd == 'cancel' ) {
+            respText.html('<h2>Success</h2>Event has been cancelled');
+          } else {
+            respText.html('<h2>Success</h2>You may cancel this shutdown by clicking ' + cancelString);
+          }
+        }
+      })
+      .fail(logAjaxFail);
+}

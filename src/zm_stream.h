@@ -116,7 +116,7 @@ protected:
 public:
   StreamBase(): 
     monitor_id(0),
-    monitor(0),
+    monitor(nullptr),
     type(DEFAULT_TYPE),
     format(""),
     replay_rate(DEFAULT_RATE),

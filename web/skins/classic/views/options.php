@@ -43,6 +43,7 @@ $tabs['highband'] = translate('HighBW');
 $tabs['medband'] = translate('MediumBW');
 $tabs['lowband'] = translate('LowBW');
 $tabs['users'] = translate('Users');
+$tabs['control'] = translate('Control');
 
 if ( isset($_REQUEST['tab']) )
   $tab = validHtmlStr($_REQUEST['tab']);
@@ -56,9 +57,9 @@ xhtmlHeaders(__FILE__, translate('Options'));
 ?>
 <body>
   <?php echo getNavBarHTML(); ?>
-  <div class="container-fluid h-100">
-    <div class="row flex-nowrap h-100">
-      <nav id="sidebar" class="h-100">
+  <div class="container-fluid">
+    <div class="row flex-nowrap">
+      <nav id="sidebar">
         <ul class="nav nav-pills flex-column h-100">
 <?php
 foreach ( $tabs as $name=>$value ) {
@@ -129,6 +130,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
               <th class="colMonitors"><?php echo translate('Monitors') ?></th>
               <th class="colGroups"><?php echo translate('Groups') ?></th>
               <th class="colSystem"><?php echo translate('System') ?></th>
+              <th class="colDevices"><?php echo translate('Devices') ?></th>
               <th class="colBandwidth"><?php echo translate('Bandwidth') ?></th>
               <th class="colMonitor"><?php echo translate('Monitor') ?></th>
               <?php if ( ZM_OPT_USE_API ) { ?><th class="colAPIEnabled"><?php echo translate('APIEnabled') ?></th><?php } ?>
@@ -154,7 +156,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
           $userMonitors[] = $monitors[$monitorId]['Name'];
         }
       }
-      ZM\Logger::Debug("monitors: ".$user_row['Username'] . ' ' . $user_row['MonitorIds']. ' :' . print_r($userMonitors, true));
+      ZM\Debug("monitors: ".$user_row['Username'] . ' ' . $user_row['MonitorIds']. ' :' . print_r($userMonitors, true));
 ?>
             <tr>
               <td class="colUsername"><?php echo makeLink('?view=user&amp;uid='.$user_row['Id'], validHtmlStr($user_row['Username']).($user['Username']==$user_row['Username']?'*':''), $canEdit) ?></td>
@@ -166,6 +168,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
               <td class="colMonitors"><?php echo validHtmlStr($user_row['Monitors']) ?></td>
               <td class="colGroups"><?php echo validHtmlStr($user_row['Groups']) ?></td>
               <td class="colSystem"><?php echo validHtmlStr($user_row['System']) ?></td>
+              <td class="colDevices"><?php echo validHtmlStr($user_row['Devices']) ?></td>
               <td class="colBandwidth"><?php echo $user_row['MaxBandwidth']?$bandwidth_options[$user_row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?php echo count($userMonitors)?(join(', ', $userMonitors)):'&nbsp;' ?></td>
               <?php if ( ZM_OPT_USE_API ) { ?><td class="colAPIEnabled"><?php echo translate($user_row['APIEnabled']?'Yes':'No') ?></td><?php } ?>
@@ -177,11 +180,19 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
           </tbody>
         </table>
         <div id="contentButtons">
-        <?php echo makePopupButton('?view=user&uid=0', 'zmUser', 'user', translate("AddNewUser"), canEdit('System')); ?>
+          <?php echo makeButton('?view=user&uid=0', 'AddNewUser', canEdit('System')); ?>
           <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
       <?php
+} else if ( $tab == 'control' ) {
+      if ( canView('Control') ) {
+        $redirect = '?view=controlcaps';
+      } else {
+        $redirect = '?view=error';
+      }
+      // Have to do this 
+      header('Location: '.$redirect);
 } else if ( $tab == 'servers' ) {
       ?>
       <form name="serversForm" method="post" action="?">

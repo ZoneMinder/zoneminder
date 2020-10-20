@@ -32,7 +32,7 @@ if ( !canEdit('Events') ) {
 if ( $action == 'archive' ) {
   $dbConn->beginTransaction();
   $eids = getAffectedIds('eids');
-  ZM\Logger::Debug("E IDS" . print_r($eids, true));
+  ZM\Debug("E IDS" . print_r($eids, true));
   foreach ( $eids as $markEid ) {
     dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(1, $markEid));
   }
@@ -41,7 +41,7 @@ if ( $action == 'archive' ) {
 } else if ( $action == 'unarchive' ) {
   $dbConn->beginTransaction();
   $eids = getAffectedIds('eids');
-  ZM\Logger::Debug("E IDS" . print_r($eids, true));
+  ZM\Debug("E IDS" . print_r($eids, true));
   foreach ( $eids as $markEid ) {
     dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(0, $markEid));
   }

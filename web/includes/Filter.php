@@ -16,6 +16,7 @@ class Filter extends ZM_Object {
 		'EmailBody'				=>	'',
     'AutoDelete'      =>  0,
     'AutoArchive'     =>  0,
+    'AutoUnarchive'   =>  0,
     'AutoVideo'       =>  0,
     'AutoUpload'      =>  0,
     'AutoMessage'     =>  0,
@@ -55,6 +56,9 @@ class Filter extends ZM_Object {
       foreach ( $this->FilterTerms() as $term ) {
         $this->_querystring .= $term->querystring($separator);
       } # end foreach term
+      if ( $this->Id() ) {
+        $this->_querystring .= $separator.'filter[Id]='.$this->Id();
+      }
     }
     return $this->_querystring;
   }
@@ -226,7 +230,7 @@ class Filter extends ZM_Object {
 
       if ( (!defined('ZM_SERVER_ID')) or (!$Server->Id()) or (ZM_SERVER_ID==$Server->Id()) ) {
         # Local
-        Logger::Debug("Controlling filter locally $command for server ".$Server->Id());
+        Debug("Controlling filter locally $command for server ".$Server->Id());
         daemonControl($command, 'zmfilter.pl', '--filter_id='.$this->{'Id'}.' --daemon');
       } else {
         # Remote case
@@ -243,7 +247,7 @@ class Filter extends ZM_Object {
           }
         }
         $url .= '&view=filter&object=filter&action=control&command='.$command.'&Id='.$this->Id().'&ServerId='.$Server->Id();
-        Logger::Debug("sending command to $url");
+        Debug("sending command to $url");
         $data = array();
         if ( defined('ZM_ENABLE_CSRF_MAGIC') ) {
           require_once( 'includes/csrf/csrf-magic.php' );
@@ -274,7 +278,7 @@ class Filter extends ZM_Object {
   public function execute() {
     $command = ZM_PATH_BIN.'/zmfilter.pl --filter_id='.escapeshellarg($this->Id());
     $result = exec($command, $output, $status);
-    Logger::Debug("$command status:$status output:".implode("\n", $output));
+    Debug("$command status:$status output:".implode("\n", $output));
     return $status;
   }
 

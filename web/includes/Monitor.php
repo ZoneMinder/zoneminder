@@ -130,6 +130,8 @@ class Monitor extends ZM_Object {
     'Refresh' => null,
     'DefaultCodec'  => 'auto',
     'GroupIds'    => array('default'=>array(), 'do_not_update'=>1),
+    'Latitude'  =>  null,
+    'Longitude' =>  null,
   );
   private $status_fields = array(
     'Status'  =>  null,
@@ -180,7 +182,7 @@ class Monitor extends ZM_Object {
         FROM `Monitor_Status` WHERE `MonitorId`=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
       if ( !$row ) {
-        Error('Unable to load Monitor record for Id='.$this->{'Id'});
+        Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
         foreach ( $this->status_fields as $k => $v ) {
           $this->{$k} = $v;
         }
@@ -292,7 +294,7 @@ class Monitor extends ZM_Object {
   }
 
   function zmcControl( $mode=false ) {
-    if ( ! $this->{'Id'} ) {
+    if ( !(property_exists($this,'Id') and $this->{'Id'}) ) {
       Warning('Attempt to control a monitor with no Id');
       return;
     }
@@ -328,7 +330,7 @@ class Monitor extends ZM_Object {
           return;
         }
       }
-      Logger::Debug('sending command to '.$url);
+      Debug('sending command to '.$url);
 
       $context  = stream_context_create();
       try {
@@ -345,7 +347,7 @@ class Monitor extends ZM_Object {
   } // end function zmcControl
 
   function zmaControl($mode=false) {
-    if ( !$this->{'Id'} ) {
+    if ( ! (property_exists($this, 'Id') and $this->{'Id'}) ) {
       Warning('Attempt to control a monitor with no Id');
       return;
     }
@@ -388,7 +390,7 @@ class Monitor extends ZM_Object {
           return;
         }
       }
-      Logger::Debug("sending command to $url");
+      Debug("sending command to $url");
 
       $context = stream_context_create();
       try {
@@ -537,7 +539,7 @@ class Monitor extends ZM_Object {
       if ( $command == 'quit' or $command == 'start' or $command == 'stop' ) {
         # These are special as we now run zmcontrol as a daemon through zmdc.
         $status = daemonStatus('zmcontrol.pl', array('--id', $this->{'Id'}));
-        Logger::Debug("Current status $status");
+        Debug("Current status $status");
         if ( $status or ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) ) {
           daemonControl($command, 'zmcontrol.pl', '--id '.$this->{'Id'});
           return;
@@ -551,10 +553,10 @@ class Monitor extends ZM_Object {
 
     if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       # Local
-      Logger::Debug('Trying to send options ' . print_r($options, true));
+      Debug('Trying to send options ' . print_r($options, true));
 
       $optionString = jsonEncode($options);
-      Logger::Debug("Trying to send options $optionString");
+      Debug("Trying to send options $optionString");
       // Either connects to running zmcontrol.pl or runs zmcontrol.pl to send the command.
       $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
       if ( $socket < 0 ) {
@@ -588,7 +590,7 @@ class Monitor extends ZM_Object {
           $url .= '?user='.$_SESSION['username'];
         }
       }
-      Logger::Debug("sending command to $url");
+      Debug("sending command to $url");
 
       $context = stream_context_create();
       try {

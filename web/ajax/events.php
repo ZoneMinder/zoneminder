@@ -120,7 +120,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $table = 'Events';
 
   // The names of the dB columns in the log table we are interested in
-  $columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartTime', 'EndTime', 'Length', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'DiskSpace');
+  $columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartTime', 'EndTime', 'Length', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'Notes', 'DiskSpace');
 
   // The names of columns shown in the log view that are NOT dB columns in the database
   $col_alt = array('Monitor', 'Storage');
@@ -195,6 +195,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
     $row['Length'] = gmdate('H:i:s', $row['Length'] );
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
+    $row['Notes'] = htmlspecialchars($row['Notes']);
     $row['DiskSpace'] = human_filesize($row['DiskSpace']);
     $rows[] = $row;
   }

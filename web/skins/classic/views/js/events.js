@@ -47,6 +47,7 @@ function ajaxRequest(params) {
 
 function processRows(rows) {
   // WIP: Inject desired html and formatting for the cells in each row
+  // REMINDER: Make these lines dependent on user permissions e.g. canEditEvents
   $j.each(rows, function(ndx, row) {
     var eid = row.Id;
     var mid = row.MonitorId;
@@ -57,6 +58,15 @@ function processRows(rows) {
     row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>'
                + '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
     row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
+    row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    if ( row.Notes.indexOf('detected:') >= 0 ) {
+      row.Cause = row.Cause + '<a href="#?view=image&amp;eid=' + eid + '&amp;fid=objdetect"><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></a>';
+    } else if ( row.Notes != 'Forced Web: ' ) {
+      row.Cause = row.Cause + '<br/><div class="small text-nowrap text-muted">' + row.Notes + '</div>';
+    }
+    row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
+    row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
+    row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
   });
 
   return rows;
@@ -314,6 +324,16 @@ function initPage() {
     evt.preventDefault();
     var eid = $j(this).data('eid');
     getEventDetailModal(eid);
+  });
+
+  // Update table links each time after new data is loaded
+  table.on('post-body.bs.table', function(data) {
+    // Manage the eventdetail links in the events list
+    $j(".eDetailLink").click(function(evt) {
+      evt.preventDefault();
+      var eid = $j(this).data('eid');
+      getEventDetailModal(eid);
+    });
   });
 
   // The table is initially given a hidden style, so now that we are done rendering, show it

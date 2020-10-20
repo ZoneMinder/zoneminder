@@ -215,7 +215,7 @@ if ( ($codec == 'MP4' || $codec == 'auto' ) && $Event->DefaultVideo() ) {
               array_map(function($r){return $r/100;},
                 array_filter(
                   array_keys($rates),
-                  function($r){return $r >= 0 ? true : false;},
+                  function($r){return $r >= 0 ? true : false;}
                 ))) ?>], "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
           >
           <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264'),'&amp;'); ?>" type="video/mp4">

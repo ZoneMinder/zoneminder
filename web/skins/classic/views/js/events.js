@@ -1,3 +1,77 @@
+var backBtn = $j('#backBtn');
+var viewBtn = $j('#viewBtn');
+var archiveBtn = $j('#archiveBtn');
+var unarchiveBtn = $j('#unarchiveBtn');
+var editBtn = $j('#editBtn');
+var exportBtn = $j('#exportBtn');
+var downloadBtn = $j('#downloadBtn');
+var deleteBtn = $j('#deleteBtn');
+var table = $j('#eventTable');
+
+/*
+This is the format of the json object sent by bootstrap-table
+
+var params =
+{
+"type":"get",
+"data":
+  {
+  "search":"some search text",
+  "sort":"StartTime",
+  "order":"asc",
+  "offset":0,
+  "limit":25
+  "filter":
+    {
+    "Name":"some advanced search text"
+    "StartTime":"some more advanced search text"
+    }
+  },
+"cache":true,
+"contentType":"application/json",
+"dataType":"json"
+};
+*/
+
+// Called by bootstrap-table to retrieve zm event data
+function ajaxRequest(params) {
+  $j.getJSON(thisUrl + '?view=request&request=events&task=query', params.data)
+      .done(function(data) {
+        //console.log('Ajax parameters: ' + JSON.stringify(params));
+        // rearrange the result into what bootstrap-table expects
+        var rows = processRows(data.rows);
+        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+      })
+      .fail(logAjaxFail);
+}
+
+function processRows(rows) {
+  // WIP: Inject desired html and formatting for the cells in each row
+  // REMINDER: Make these lines dependent on user permissions e.g. canEditEvents
+  $j.each(rows, function(ndx, row) {
+    var eid = row.Id;
+    var mid = row.MonitorId;
+    var archived = row.Archived == yesString ? archivedString : '';
+    var emailed = row.Emailed == yesString ? emailedString : '';
+
+    row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
+    row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>'
+               + '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
+    row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
+    row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    if ( row.Notes.indexOf('detected:') >= 0 ) {
+      row.Cause = row.Cause + '<a href="#?view=image&amp;eid=' + eid + '&amp;fid=objdetect"><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></a>';
+    } else if ( row.Notes != 'Forced Web: ' ) {
+      row.Cause = row.Cause + '<br/><div class="small text-nowrap text-muted">' + row.Notes + '</div>';
+    }
+    row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
+    row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
+    row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+  });
+
+  return rows;
+}
+
 function thumbnail_onmouseover(event) {
   var img = event.target;
   img.src = '';
@@ -56,7 +130,7 @@ function manageDelConfirmModalBtns() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='))
+    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);
@@ -85,16 +159,6 @@ function getEventDetailModal(eid) {
 }
 
 function initPage() {
-  var backBtn = $j('#backBtn');
-  var viewBtn = $j('#viewBtn');
-  var archiveBtn = $j('#archiveBtn');
-  var unarchiveBtn = $j('#unarchiveBtn');
-  var editBtn = $j('#editBtn');
-  var exportBtn = $j('#exportBtn');
-  var downloadBtn = $j('#downloadBtn');
-  var deleteBtn = $j('#deleteBtn');
-  var table = $j('#eventTable');
-
   // Load the delete confirmation modal into the DOM
   getDelConfirmModal();
 
@@ -169,7 +233,7 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=archive&eids[]='+selections.join('&eids[]='))
+    $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);
@@ -188,7 +252,7 @@ function initPage() {
     console.log(selections);
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=unarchive&eids[]='+selections.join('&eids[]='))
+    $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
           window.location.reload(true);
@@ -260,6 +324,16 @@ function initPage() {
     evt.preventDefault();
     var eid = $j(this).data('eid');
     getEventDetailModal(eid);
+  });
+
+  // Update table links each time after new data is loaded
+  table.on('post-body.bs.table', function(data) {
+    // Manage the eventdetail links in the events list
+    $j(".eDetailLink").click(function(evt) {
+      evt.preventDefault();
+      var eid = $j(this).data('eid');
+      getEventDetailModal(eid);
+    });
   });
 
   // The table is initially given a hidden style, so now that we are done rendering, show it

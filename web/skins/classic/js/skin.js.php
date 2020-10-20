@@ -44,6 +44,8 @@ var canEditSystem = <?php echo canEdit('System')?'true':'false' ?>;
 var canViewSystem = <?php echo canView('System')?'true':'false' ?>;
 var canEditEvents = <?php echo canEdit('Events')?'true':'false' ?>;
 var canViewEvents = <?php echo canView('Events')?'true':'false' ?>;
+var canEditMonitors = <?php echo canEdit('Monitors')?'true':'false' ?>;
+var canViewMonitors = <?php echo canView('Monitors')?'true':'false' ?>;
 
 var canEditGroups = <?php echo canEdit('Groups')?'true':'false' ?>;
 

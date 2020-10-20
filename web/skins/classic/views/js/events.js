@@ -37,17 +37,14 @@ var params =
 function ajaxRequest(params) {
   $j.getJSON(thisUrl + '?view=request&request=events&task=query', params.data)
       .done(function(data) {
-        //console.log('Ajax parameters: ' + JSON.stringify(params));
-        // rearrange the result into what bootstrap-table expects
         var rows = processRows(data.rows);
+        // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
       .fail(logAjaxFail);
 }
 
 function processRows(rows) {
-  // WIP: Inject desired html and formatting for the cells in each row
-  // REMINDER: Make these lines dependent on user permissions e.g. canEditEvents
   $j.each(rows, function(ndx, row) {
     var eid = row.Id;
     var mid = row.MonitorId;
@@ -57,8 +54,8 @@ function processRows(rows) {
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
     row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>'
                + '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
-    row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
-    row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    if ( canEditMonitors ) row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
+    if ( canEditEvents ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {
       row.Cause = row.Cause + '<a href="#?view=image&amp;eid=' + eid + '&amp;fid=objdetect"><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></a>';
     } else if ( row.Notes != 'Forced Web: ' ) {
@@ -67,6 +64,7 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+    row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
   });
 
   return rows;
@@ -334,6 +332,11 @@ function initPage() {
       var eid = $j(this).data('eid');
       getEventDetailModal(eid);
     });
+
+    var thumb_ndx = $j('#eventTable tr th').filter(function() {
+      return $j(this).text().trim() == 'Thumbnail';
+    }).index();
+    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail zoom');
   });
 
   // The table is initially given a hidden style, so now that we are done rendering, show it

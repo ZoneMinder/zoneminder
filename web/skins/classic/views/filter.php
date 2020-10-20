@@ -366,6 +366,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td>
                 <label for="filter[Query][sort_field]"><?php echo translate('SortBy') ?></label>
                 <?php
+# Note: The keys need to be actual column names
 $sort_fields = array(
     'Id'            => translate('AttrId'),
     'Name'          => translate('AttrName'),
@@ -373,7 +374,7 @@ $sort_fields = array(
     'DiskSpace'     => translate('AttrDiskSpace'),
     'Notes'         => translate('AttrNotes'),
     'MonitorName'   => translate('AttrMonitorName'),
-    'StartDateTime' => translate('AttrStartDateTime'),
+    'StartTime'     => translate('AttrStartDateTime'),
     'Length'        => translate('AttrDuration'),
     'Frames'        => translate('AttrFrames'),
     'AlarmFrames'   => translate('AttrAlarmFrames'),
@@ -381,7 +382,7 @@ $sort_fields = array(
     'AvgScore'      => translate('AttrAvgScore'),
     'MaxScore'      => translate('AttrMaxScore'),
     );
-echo htmlSelect( 'filter[Query][sort_field]', $sort_fields, $filter->sort_field() );
+echo htmlSelect('filter[Query][sort_field]', $sort_fields, $filter->sort_field());
 $sort_dirns = array(
     '1' => translate('SortAsc'),
     '0'  => translate('SortDesc')

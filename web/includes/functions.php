@@ -1006,12 +1006,15 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
       $sortColumn = 'E.StartTime';
       break;
     case 'StartDateTime' :
+      // Fix for systems with EVENT_SORT_ORDER set to erroneous StartDateTime.
+      $_REQUEST['sort_field'] = 'StartTime';
       $sortColumn = 'E.StartTime';
       break;
     case 'EndTime' :
       $sortColumn = 'E.EndTime';
       break;
     case 'EndDateTime' :
+      $_REQUEST['sort_field'] = 'EndTime';
       $sortColumn = 'E.EndTime';
       break;
     case 'Length' :

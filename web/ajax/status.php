@@ -459,7 +459,7 @@ function getNearEvents() {
     $NearEvents['PrevEventStartTime'] = $prevEvent['StartTime'];
     $NearEvents['PrevEventDefVideoPath'] = getEventDefaultVideoPath($prevEvent['Id']);
   } else {
-    $NearEvents['PrevEventId'] = $result['PrevEventStartTime'] = $result['PrevEventDefVideoPath'] = 0;
+    $NearEvents['PrevEventId'] = $NearEvents['PrevEventStartTime'] = $NearEvents['PrevEventDefVideoPath'] = 0;
   }
   if ( $nextEvent ) {
     $NearEvents['NextEventId'] = $nextEvent['Id'];

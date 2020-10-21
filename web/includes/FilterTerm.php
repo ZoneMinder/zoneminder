@@ -185,7 +185,7 @@ class FilterTerm {
       }
       return ' IS NOT ';
     default:
-      ZM\Warning('Invalid operator in filter: ' . print_r($this->op, true));
+      Warning('Invalid operator in filter: ' . print_r($this->op, true));
     } // end switch op
   } # end public function sql_operator
 

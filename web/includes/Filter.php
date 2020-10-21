@@ -40,6 +40,7 @@ class Filter extends ZM_Object {
 
   public function sql() {
     if ( ! isset($this->_sql) ) {
+      $this->_sql = '';
       foreach ( $this->FilterTerms() as $term ) {
         #if ( ! ($term->is_pre_sql() or $term->is_post_sql()) ) {
           $this->_sql .= $term->sql();
@@ -53,6 +54,7 @@ class Filter extends ZM_Object {
 
   public function querystring($separator='&amp;') {
     if ( (! isset($this->_querystring)) or ( $separator != '&amp;' ) ) {
+      $this->_querystring = '';
       foreach ( $this->FilterTerms() as $term ) {
         $this->_querystring .= $term->querystring($separator);
       } # end foreach term
@@ -65,6 +67,7 @@ class Filter extends ZM_Object {
 
   public function hidden_fields() {
     if ( ! isset($this->_hidden_fields) ) {
+      $this->_hidden_fields = '';
       foreach ( $this->FilterTerms() as $term ) {
         $this->_hidden_fields .= $term->hidden_fields();
       } # end foreach term
@@ -141,6 +144,13 @@ class Filter extends ZM_Object {
     if ( func_num_args( ) ) {
       $this->{'Query'} = func_get_arg(0);
       $this->{'Query_json'} = jsonEncode($this->{'Query'});
+      # We have altered the query so need to reset all the calculated results.
+      unset($this->_querystring);
+      unset($this->_sql);
+      unset($this->_hidden_fields);
+      unset($this->_pre_sql_conditions);
+      unset($this->_post_sql_conditions);
+      unset($this->_Terms);
     }
     if ( !property_exists($this, 'Query') ) {
       if ( property_exists($this, 'Query_json') and $this->{'Query_json'} ) {
@@ -619,6 +629,25 @@ class Filter extends ZM_Object {
     return array_pop($exprStack);
   } # end function tree
 
-} # end class Filter
+  function addTerm($term=false, $position=null) {
 
+    $terms = $this->terms();
+
+    if ( (!isset($position)) or ($position > count($terms)) )
+      $position = count($terms);
+    else if ( $position < 0 )
+      $position = 0;
+
+    if ( $term && ($position == 0) ) {
+      # if only 1 term, don't need AND or OR
+      unset($term['cnj']);
+    }
+
+    array_splice($terms, $position, 0, array($term ? $term : array()));
+    $this->terms($terms);
+
+    return $this;
+  } # end function addTerm
+
+} # end class Filter
 ?>

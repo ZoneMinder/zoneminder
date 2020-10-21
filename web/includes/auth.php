@@ -248,7 +248,7 @@ function userFromSession() {
       if ( isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) )
         $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
       else
-        ZM\Debug("No auth hash in session, there should have been");
+        ZM\Debug('No auth hash in session, there should have been');
     } else {
       # Need to refresh permissions and validate that the user still exists
       $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';

@@ -17,7 +17,7 @@ FFmpeg_Input::~FFmpeg_Input() {
   if ( streams ) {
     for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
       avcodec_close(streams[i].context);
-      streams[i].context = nullptr;
+      avcodec_free_context(&streams[i].context);
     }
     delete[] streams;
     streams = nullptr;
@@ -206,7 +206,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   if ( 
 			(last_seek_request >= 0)
 			&&
-			(last_seek_request > seek_target ) 
+			(last_seek_request > seek_target) 
 			&&
 			(frame->pts > seek_target)
 		 ) {
@@ -221,6 +221,9 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
     zm_dump_frame(frame, "frame->pts > seek_target, got");
+  } else if ( last_seek_request == seek_target ) {
+    // paused case, sending keepalives
+    return frame;
   } // end if frame->pts > seek_target
 
 	last_seek_request = seek_target;

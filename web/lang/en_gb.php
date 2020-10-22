@@ -262,6 +262,7 @@ $SLANG = array(
     'ConfiguredFor'         => 'Configured for',
     'ConfigURL'             => 'Config Base URL',
     'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
+    'ConfirmDeleteDevices'  => 'Are you sure you wish to delete the selected devices?',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
     'ConfirmDeleteTitle'    => 'Delete Confirmation',
     'ConfirmPassword'       => 'Confirm Password',
@@ -366,6 +367,7 @@ $SLANG = array(
     'Ffmpeg'                => 'Ffmpeg',
     'File'                  => 'File',
     'FilterArchiveEvents'   => 'Archive all matches',
+    'FilterUnarchiveEvents' => 'Unarchive all matches',
     'FilterUpdateDiskSpace' => 'Update used disk space',
     'FilterDeleteEvents'    => 'Delete all matches',
     'FilterCopyEvents'      => 'Copy all matches',
@@ -1073,7 +1075,7 @@ $OLANG = array(
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

@@ -229,63 +229,31 @@ void hwcaps_detect() {
   neonversion = 0;
   sse_version = 0;
 #if (defined(__i386__) || defined(__x86_64__))
-  /* x86 or x86-64 processor */
-  uint32_t r_edx, r_ecx, r_ebx;
+  __builtin_cpu_init();
 
-#ifdef __x86_64__
-  __asm__ __volatile__(
-  "push %%rbx\n\t"
-  "mov $0x0,%%ecx\n\t"
-  "mov $0x7,%%eax\n\t"
-  "cpuid\n\t"
-  "push %%rbx\n\t"
-  "mov $0x1,%%eax\n\t"
-  "cpuid\n\t"
-  "pop %%rax\n\t"
-  "pop %%rbx\n\t"
-  : "=d" (r_edx), "=c" (r_ecx), "=a" (r_ebx)
-  :
-  :
-  );
-#else
-  __asm__ __volatile__(
-  "push %%ebx\n\t"
-  "mov $0x0,%%ecx\n\t"
-  "mov $0x7,%%eax\n\t"
-  "cpuid\n\t"
-  "push %%ebx\n\t"
-  "mov $0x1,%%eax\n\t"
-  "cpuid\n\t"
-  "pop %%eax\n\t"
-  "pop %%ebx\n\t"
-  : "=d" (r_edx), "=c" (r_ecx), "=a" (r_ebx)
-  :
-  :
-  );
-#endif
 
-  if ( r_ebx & 0x00000020 ) {
+  if ( __builtin_cpu_supports("avx2") ) {
     sse_version = 52; /* AVX2 */
     Debug(1, "Detected a x86\\x86-64 processor with AVX2");
-  } else if ( r_ecx & 0x10000000 ) {
+  } else if ( __builtin_cpu_supports("avx") ) {
     sse_version = 51; /* AVX */
     Debug(1, "Detected a x86\\x86-64 processor with AVX");
-  } else if ( r_ecx & 0x00100000 ) {
+  } else if ( __builtin_cpu_supports("sse4.2") ) {
     sse_version = 42; /* SSE4.2 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE4.2");
-  } else if ( r_ecx & 0x00080000 ) {
+  } else if ( __builtin_cpu_supports("sse4.1") ) {
     sse_version = 41; /* SSE4.1 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE4.1");
-  } else if ( r_ecx & 0x00000200 ) {
+  } else if ( __builtin_cpu_supports("ssse3") ) {
     sse_version = 35; /* SSSE3 */
     Debug(1,"Detected a x86\\x86-64 processor with SSSE3");
-  } else if ( r_ecx & 0x00000001 ) {
+  } else if ( __builtin_cpu_supports("sse3") ) {
     sse_version = 30; /* SSE3 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE3");
-  } else if ( r_edx & 0x04000000 ) {
+  } else if ( __builtin_cpu_supports("sse2") ) {
     sse_version = 20; /* SSE2 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE2");
-  } else if ( r_edx & 0x02000000 ) {
+  } else if ( __builtin_cpu_supports("sse") ) {
     sse_version = 10; /* SSE */
     Debug(1, "Detected a x86\\x86-64 processor with SSE");
   } else {
@@ -320,7 +288,7 @@ __attribute__((noinline,__target__("sse2")))
 #endif
 void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
-  if ( bytes > 128 ) {
+  if(bytes > 128) {
     unsigned int remainder = bytes % 128;
     const uint8_t* lastsrc = (uint8_t*)src + (bytes - remainder);
 
@@ -362,7 +330,7 @@ void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
   }
 #else
   /* Non x86\x86-64 platform, use memcpy */
-  memcpy(dest, src, bytes);
+  memcpy(dest,src,bytes);
 #endif
   return dest;
 }

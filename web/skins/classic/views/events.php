@@ -42,7 +42,7 @@ if ( isset($_REQUEST['filter'])) {
 parseSort();
 
 $filterQuery = $filter->querystring();
-ZM\Logger::Debug('Filter '.print_r($filter, true));
+ZM\Debug('Filter '.print_r($filter, true));
 
 if ( $filter->sql() ) {
   $eventsSql .= ' AND ('.$filter->sql().')';
@@ -58,14 +58,14 @@ $limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : $filter['lim
 
 if ( $_POST ) {
   // I think this is basically so that a refresh doesn't repost
-  ZM\Logger::Debug('Redirecting to ' . $_SERVER['REQUEST_URI']);
+  ZM\Debug('Redirecting to ' . $_SERVER['REQUEST_URI']);
   header('Location: ?view=' . $view.htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
   exit();
 }
 
 $failed = !$filter->test_pre_sql_conditions();
 if ( $failed ) {
-  ZM\Logger::Debug('Pre conditions failed, not doing sql');
+  ZM\Debug('Pre conditions failed, not doing sql');
 }
 
 $results = $failed ? null : dbQuery($eventsSql);
@@ -75,13 +75,13 @@ if ( ! $results ) {
   global $error_message;
   $error_message = dbError($eventsSql);
 } 
-ZM\Logger::Debug("Pre conditions succeeded sql return $nEvents events");
+ZM\Debug("Pre conditions succeeded sql return $nEvents events");
 
 if ( !empty($limit) && ($nEvents > $limit) ) {
   $nEvents = $limit;
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
-#Logger::Debug("Page $page Limit $limit #vents: $nEvents pages: $pages ");
+#Debug("Page $page Limit $limit #vents: $nEvents pages: $pages ");
 if ( !empty($page) ) {
   if ( $page < 0 )
     $page = 1;
@@ -121,6 +121,7 @@ getBodyTopHTML();
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       <button id="tlineBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ShowTimeline') ?>" ><i class="fa fa-history"></i></button>
+      <button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>
       <button id="viewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('View') ?>" disabled><i class="fa fa-binoculars"></i></button>
       <button id="archiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Archive') ?>" disabled><i class="fa fa-archive"></i></button>
       <button id="unarchiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Unarchive') ?>" disabled><i class="fa fa-file-archive-o"></i></button>
@@ -134,6 +135,7 @@ getBodyTopHTML();
     <div class="row justify-content-center">
       <table
         id="eventTable"
+        data-locale="<?php echo i18n() ?>"
         data-pagination="true"
         data-show-pagination-switch="true"
         data-page-list="[10, 25, 50, 100, 200, All]"
@@ -211,7 +213,7 @@ if ( $results ) {
     if ( $limit and (count($events) >= $limit) ) {
       break;
     }
-    ZM\Logger::Debug("Have " . count($events) . " events, limit $limit");
+    ZM\Debug("Have " . count($events) . " events, limit $limit");
   }
   foreach ( $events as $event ) {
 

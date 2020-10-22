@@ -897,7 +897,7 @@ function exportEvents(
     ZM\Error("Can't create exports dir at '$export_dir'");
     return false;
   }
-  ZM\Logger::Debug("Successfully created dir '$export_dir'");
+  ZM\Debug("Successfully created dir '$export_dir'");
   chmod($export_dir, 0700);
   if ( !chdir($export_dir) ) {
     ZM\Error("Can't chdir to $export_dir");
@@ -925,7 +925,7 @@ function exportEvents(
         #continue;
       $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'/'.$file. ' 2>&1';
       exec($cmd, $output, $return);
-      ZM\Logger::Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
+      ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
     } # end foreach event_exportFile
   } # end foreach event
 

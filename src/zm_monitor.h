@@ -505,6 +505,8 @@ public:
 	inline time_t getStartupTime() const { return shared_data->startup_time; }
 	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
 
+  int LabelSize() { return label_size; }
+
   void actionReload();
   void actionEnable();
   void actionDisable();

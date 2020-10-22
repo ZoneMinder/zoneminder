@@ -32,7 +32,7 @@ if ( !canEdit('Monitors', $mid) ) {
 
 if ( $action == 'function' ) {
   $monitor = new ZM\Monitor($mid);
-  if ( !$monitor ) {
+  if ( !$monitor->Id() ) {
     ZM\Error("Monitor not found with Id=$mid");
     return;
   }
@@ -46,14 +46,14 @@ if ( $action == 'function' ) {
     $monitor->save(array('Function'=>$newFunction, 'Enabled'=>$newEnabled));
 
     if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
-      zmaControl($monitor, 'stop');
-      zmcControl($monitor, ($newFunction != 'None') ? 'restart' : 'stop');
+      $monitor->zmaControl('stop');
+      $monitor->zmcControl(($newFunction != 'None') ? 'restart' : 'stop');
 			if ( $newFunction != 'None' && $newFunction != 'NoDect' )
-        zmaControl($monitor, 'start');
+        $monitor->zmaControl('start');
     }
   } else {
-    ZM\Logger::Debug('No change to function, not doing anything.');
+    ZM\Debug('No change to function, not doing anything.');
   }
 } // end if action 
-$view = 'console';
+$redirect = '?view=console';
 ?>

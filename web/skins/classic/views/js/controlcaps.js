@@ -34,11 +34,7 @@ function getIdSelections() {
 function getDelConfirmModal(key) {
   $j.getJSON(thisUrl + '?request=modal&modal=delconfirm&key=' + key)
       .done(function(data) {
-        if ( $j('#deleteConfirm').length ) {
-          $j('#deleteConfirm').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('deleteConfirm', data.html);
         manageDelConfirmModalBtns();
       })
       .fail(logAjaxFail);

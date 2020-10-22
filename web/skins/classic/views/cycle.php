@@ -122,7 +122,7 @@ if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] ) {
 
 session_write_close();
 
-ZM\Logger::Debug(print_r($options,true));
+ZM\Debug(print_r($options,true));
 
 noCacheHeaders();
 xhtmlHeaders(__FILE__, translate('CycleWatch'));

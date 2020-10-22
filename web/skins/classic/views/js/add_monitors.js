@@ -66,7 +66,7 @@ function addMonitor(url) {
   var Monitor = Stream.Monitor;
 
   var mid = Monitor.Id ? Monitor.Id : '';
-  popup_url = '?view=monitor&mid='+mid+'&newMonitor[Path]='+url;
+  urlString = '?view=monitor&mid='+mid+'&newMonitor[Path]='+url;
   keys = Object.keys( Monitor );
   for ( i in Monitor ) {
     if ( ! Monitor[i] ) {
@@ -75,9 +75,9 @@ function addMonitor(url) {
     if ( Monitor[i] == 'null' ) {
       Monitor[i]='';
     }
-    popup_url += '&newMonitor['+i+']='+Monitor[i];
+    urlString += '&newMonitor['+i+']='+Monitor[i];
   }
-  createPopup( popup_url, 'zmMonitor'+mid, 'monitor' );
+  window.location.assign( urlString );
 }
 
 function import_csv( form ) {

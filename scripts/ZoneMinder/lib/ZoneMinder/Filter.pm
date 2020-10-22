@@ -58,6 +58,7 @@ Id
 Name
 Query_json
 AutoArchive
+AutoUnarchive
 AutoVideo
 AutoUpload
 AutoEmail
@@ -201,131 +202,130 @@ sub Sql {
             $self->{Sql} .= 'extract( hour_second from E.EndTime )';
           } elsif ( $term->{attr} eq 'EndWeekday' ) {
             $self->{Sql} .= "weekday( E.EndTime )";
-
-# 
           } elsif ( $term->{attr} eq 'ExistsInFileSystem' ) {
             push @{$self->{PostSQLConditions}}, $term;
-          } elsif ( $term->{attr} eq 'DiskSpace' ) {
-            $self->{Sql} .= 'E.DiskSpace';
+            $self->{Sql} .= 'TRUE /* ExistsInFileSystem */';
           } elsif ( $term->{attr} eq 'DiskPercent' ) {
             $self->{Sql} .= 'zmDiskPercent';
             $self->{HasDiskPercent} = !undef;
-            $self->{HasPreCondition} = !undef;
           } elsif ( $term->{attr} eq 'DiskBlocks' ) {
             $self->{Sql} .= 'zmDiskBlocks';
             $self->{HasDiskBlocks} = !undef;
-            $self->{HasPreCondition} = !undef;
           } elsif ( $term->{attr} eq 'SystemLoad' ) {
             $self->{Sql} .= 'zmSystemLoad';
             $self->{HasSystemLoad} = !undef;
-            $self->{HasPreCondition} = !undef;
           } else {
             $self->{Sql} .= 'E.'.$term->{attr};
           }
 
-          ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
-          foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
-	
-            if ( $term->{attr} eq 'AlarmedZoneId' ) {
-							$value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
-            } elsif ( $term->{attr} =~ /^MonitorName/ ) {
-              $value = "'$temp_value'";
-            } elsif ( $term->{attr} =~ /ServerId/) {
-              Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
-              if ( $temp_value eq 'ZM_SERVER_ID' ) {
-                $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
-                # This gets used later, I forget for what
-                $$self{Server} = new ZoneMinder::Server($ZoneMinder::Config::Config{ZM_SERVER_ID});
-              } elsif ( $temp_value eq 'NULL' ) {
-                $value = $temp_value;
-              } else {
+          if ( $term->{attr} eq 'ExistsInFileSystem' ) {
+            # PostCondition, so no further SQL
+          } else {
+            ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
+            foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
+
+              if ( $term->{attr} eq 'AlarmedZoneId' ) {
+                $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+              } elsif ( $term->{attr} =~ /^MonitorName/ ) {
                 $value = "'$temp_value'";
-                # This gets used later, I forget for what
-                $$self{Server} = new ZoneMinder::Server($temp_value);
-              }
-						} elsif ( $term->{attr} eq 'StorageId' ) {
-							$value = "'$temp_value'";
-							$$self{Storage} = new ZoneMinder::Storage($temp_value);
-            } elsif ( $term->{attr} eq 'Name'
+              } elsif ( $term->{attr} =~ /ServerId/) {
+                Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
+                if ( $temp_value eq 'ZM_SERVER_ID' ) {
+                  $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
+                  # This gets used later, I forget for what
+                  $$self{Server} = new ZoneMinder::Server($ZoneMinder::Config::Config{ZM_SERVER_ID});
+                } elsif ( $temp_value eq 'NULL' ) {
+                  $value = $temp_value;
+                } else {
+                  $value = "'$temp_value'";
+                  # This gets used later, I forget for what
+                  $$self{Server} = new ZoneMinder::Server($temp_value);
+                }
+              } elsif ( $term->{attr} eq 'StorageId' ) {
+                $value = "'$temp_value'";
+                $$self{Storage} = new ZoneMinder::Storage($temp_value);
+              } elsif ( $term->{attr} eq 'Name'
                 || $term->{attr} eq 'Cause'
                 || $term->{attr} eq 'Notes'
-                ) {
+              ) {
                 if ( $term->{op} eq 'LIKE'
-                || $term->{op} eq 'NOT LIKE'
+                  || $term->{op} eq 'NOT LIKE'
                 ) {
-                $temp_value = '%'.$temp_value.'%' if $temp_value !~ /%/;
+                  $temp_value = '%'.$temp_value.'%' if $temp_value !~ /%/;
                 }
-              $value = "'$temp_value'";
-            } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
-              if ( $temp_value eq 'NULL' ) {
-                $value = $temp_value;
+                $value = "'$temp_value'";
+              } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
+                if ( $temp_value eq 'NULL' ) {
+                  $value = $temp_value;
+                } else {
+                  $value = DateTimeToSQL($temp_value);
+                  if ( !$value ) {
+                    Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
+                    return;
+                  }
+                  $value = "'$value'";
+                }
+              } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
+                if ( $temp_value eq 'NULL' ) {
+                  $value = $temp_value;
+                } elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
+                  $value = 'to_days('.$temp_value.')';
+                } else {
+                  $value = DateTimeToSQL($temp_value);
+                  if ( !$value ) {
+                    Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
+                    return;
+                  }
+                  $value = "to_days( '$value' )";
+                }
+              } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' ) {
+                if ( $temp_value eq 'NULL' ) {
+                  $value = $temp_value;
+                } else {
+                  $value = DateTimeToSQL($temp_value);
+                  if ( !$value ) {
+                    Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
+                    return;
+                  }
+                  $value = "extract( hour_second from '$value' )";
+                }
               } else {
-                $value = DateTimeToSQL($temp_value);
-                if ( !$value ) {
-                  Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
-                  return;
-                }
-                $value = "'$value'";
-              }
-            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
-              if ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
-							} elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
-								$value = 'to_days('.$temp_value.')';
-              } else {
-                $value = DateTimeToSQL($temp_value);
-                if ( !$value ) {
-                  Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
-                  return;
-                }
-                $value = "to_days( '$value' )";
               }
-            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' ) {
-              if ( $temp_value eq 'NULL' ) {
-                $value = $temp_value;
+              push @value_list, $value;
+            } # end foreach temp_value
+          } # end if has an attr
+
+          if ( $term->{op} ) {
+            if ( $term->{op} eq '=~' ) {
+              $self->{Sql} .= ' REGEXP '.$value;
+            } elsif ( $term->{op} eq '!~' ) {
+              $self->{Sql} .= ' NOT REGEXP '.$value;
+            } elsif ( $term->{op} eq 'IS' ) {
+              if ( $value eq 'Odd' ) {
+                $self->{Sql} .= ' % 2 = 1';
+              } elsif ( $value eq 'Even' ) {
+                $self->{Sql} .= ' % 2 = 0';
               } else {
-                $value = DateTimeToSQL($temp_value);
-                if ( !$value ) {
-                  Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
-                  return;
-                }
-                $value = "extract( hour_second from '$value' )";
+                $self->{Sql} .= " IS $value";
               }
+            } elsif ( $term->{op} eq 'EXISTS' ) {
+              $self->{Sql} .= ' EXISTS '.$value;
+            } elsif ( $term->{op} eq 'IS NOT' ) {
+              $self->{Sql} .= ' IS NOT '.$value;
+            } elsif ( $term->{op} eq '=[]' or $term->{op} eq 'IN' ) {
+              $self->{Sql} .= ' IN ('.join(',', @value_list).')';
+            } elsif ( $term->{op} eq '![]' ) {
+              $self->{Sql} .= ' NOT IN ('.join(',', @value_list).')';
+            } elsif ( $term->{op} eq 'LIKE' ) {
+              $self->{Sql} .= ' LIKE '.$value;
+            } elsif ( $term->{op} eq 'NOT LIKE' ) {
+              $self->{Sql} .= ' NOT LIKE '.$value;
             } else {
-              $value = $temp_value;
+              $self->{Sql} .= ' '.$term->{op}.' '.$value;
             }
-            push @value_list, $value;
-          } # end foreach temp_value
-        } # end if has an attr
-        if ( $term->{op} ) {
-          if ( $term->{op} eq '=~' ) {
-            $self->{Sql} .= " regexp $value";
-          } elsif ( $term->{op} eq '!~' ) {
-            $self->{Sql} .= " not regexp $value";
-          } elsif ( $term->{op} eq 'IS' ) {
-            if ( $value eq 'Odd' ) {
-              $self->{Sql} .= ' % 2 = 1';
-            } elsif ( $value eq 'Even' ) {
-              $self->{Sql} .= ' % 2 = 0';
-            } else {
-              $self->{Sql} .= " IS $value";
-            }
-          } elsif ( $term->{op} eq 'EXISTS' ) {
-            $self->{Sql} .= " EXISTS $value";
-          } elsif ( $term->{op} eq 'IS NOT' ) {
-            $self->{Sql} .= " IS NOT $value";
-          } elsif ( $term->{op} eq '=[]' ) {
-            $self->{Sql} .= ' IN ('.join(',', @value_list).')';
-          } elsif ( $term->{op} eq '!~' ) {
-            $self->{Sql} .= ' NOT IN ('.join(',', @value_list).')';
-          } elsif ( $term->{op} eq 'LIKE' ) {
-            $self->{Sql} .= " LIKE $value";
-          } elsif ( $term->{op} eq 'NOT LIKE' ) {
-            $self->{Sql} .= " NOT LIKE $value";
-          } else {
-            $self->{Sql} .= ' '.$term->{op}.' '.$value;
-          }
-        } # end if has an operator
+          } # end if has an operator
+        } # end if Pre/Post or SQL
         if ( exists($term->{cbr}) ) {
           $self->{Sql} .= ' '.str_repeat(')', $term->{cbr}).' ';
         }
@@ -340,6 +340,9 @@ sub Sql {
     my @auto_terms;
     if ( $self->{AutoArchive} ) {
       push @auto_terms, 'E.Archived = 0';
+    }
+    if ( $self->{AutoUnarchive} ) {
+      push @auto_terms, 'E.Archived = 1';
     }
     # Don't do this, it prevents re-generation and concatenation.
     # If the file already exists, then the video won't be re-recreated
@@ -394,7 +397,7 @@ sub Sql {
       $sort_column = 'E.StartTime';
     }
     my $sort_order = $filter_expr->{sort_asc} ? 'ASC' : 'DESC';
-    $sql .= ' ORDER BY '.$sort_column." ".$sort_order;
+    $sql .= ' ORDER BY '.$sort_column.' '.$sort_order;
     if ( $filter_expr->{limit} ) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }

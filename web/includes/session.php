@@ -25,7 +25,7 @@ function zm_session_start() {
     }
 
     ini_set('session.name', 'ZMSESSID');
-    ZM\Logger::Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
+    ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
   }
   session_start();
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
@@ -37,7 +37,7 @@ function zm_session_start() {
     session_start();
   } else if ( !empty($_SESSION['generated_at']) ) {
     if ( $_SESSION['generated_at']<($now-(ZM_COOKIE_LIFETIME/2)) ) {
-      ZM\Logger::Debug('Regenerating session because generated_at ' . $_SESSION['generated_at'] . ' < ' . $now . '-'.ZM_COOKIE_LIFETIME.'/2 = '.($now-ZM_COOKIE_LIFETIME/2));
+      ZM\Debug('Regenerating session because generated_at ' . $_SESSION['generated_at'] . ' < ' . $now . '-'.ZM_COOKIE_LIFETIME.'/2 = '.($now-ZM_COOKIE_LIFETIME/2));
       zm_session_regenerate_id();
     }
   }
@@ -87,4 +87,71 @@ function zm_session_clear() {
   session_write_close();
   session_start();
 } // function zm_session_clear()
+
+
+class Session {
+  private $db;
+  public function __construct() {
+    global $dbConn;
+    $this->db = $dbConn;
+
+    // Set handler to overide SESSION
+    session_set_save_handler(
+      array($this, '_open'),
+      array($this, '_close'),
+      array($this, '_read'),
+      array($this, '_write'),
+      array($this, '_destroy'),
+      array($this, '_gc')
+    );
+
+    // Start the session
+    //zm_session_start();
+  }
+  public function _open() {
+    return $this->db ? true : false;
+  }
+  public function _close(){
+    // The example code closed the db connection.. I don't think we care to.
+    return true;
+  }
+  public function _read($id){
+    $sth = $this->db->prepare('SELECT data FROM Sessions WHERE id = :id');
+    $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
+
+    if ( $sth->execute() and ( $row = $sth->fetch(PDO::FETCH_ASSOC) ) ) {
+      return $row['data'];
+    }
+    // Return an empty string
+    return '';
+  }
+  public function _write($id, $data){
+    // Create time stamp
+    $access = time();
+
+    $sth = $this->db->prepare('REPLACE INTO Sessions VALUES (:id, :access, :data)');
+
+    $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
+    $sth->bindParam(':access', $access, PDO::PARAM_INT);
+    $sth->bindParam(':data', $data);
+
+    return $sth->execute() ? true : false;
+  }
+  public function _destroy($id) {
+    $sth = $this->db->prepare('DELETE FROM Sessions WHERE Id = :id');
+    $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
+    return $sth->execute() ? true : false;
+  }
+  public function _gc($max) {
+    // Calculate what is to be deemed old
+    $now = time();
+    $old = $now - $max;
+    ZM\Debug('doing session gc ' . $now . '-' . $max. '='.$old);
+    $sth = $this->db->prepare('DELETE * FROM Sessions WHERE access < :old');
+    $sth->bindParam(':old', $old, PDO::PARAM_INT);
+    return $sth->execute() ? true : false;
+  }
+} # end class Session
+
+$session = new Session;
 ?>

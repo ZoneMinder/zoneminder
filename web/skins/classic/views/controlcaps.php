@@ -45,6 +45,7 @@ xhtmlHeaders(__FILE__, translate('ControlCaps'));
     <div id="content">
         <table
           id="controlTable"
+          data-locale="<?php echo i18n() ?>"
           class="table-sm table-borderless"
           data-search="true"
           data-cookie="true"

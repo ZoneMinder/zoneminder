@@ -8,22 +8,22 @@ class User extends ZM_Object {
   protected static $table = 'Users';
 
 	protected $defaults = array(
-			'Id'                   => null,
-      'Username'  => '',
-      'Password' => '',
-      'Language' => '',
-      'Enabled' => 1,
-      'Stream'  => 'None',
-      'Events' => 'None',
-      'Control' => 'None',
-      'Monitors' => 'None',
-      'Groups' => 'None',
-      'Devices' => 'None',
-      'System'=> 'None',
-      'MaxBandwidth'    =>'',
-      'MonitorIds'      =>'',
+			'Id'              => null,
+      'Username'        => '',
+      'Password'        => '',
+      'Language'        => '',
+      'Enabled'         => 1,
+      'Stream'          => 'None',
+      'Events'          => 'None',
+      'Control'         => 'None',
+      'Monitors'        => 'None',
+      'Groups'          => 'None',
+      'Devices'         => 'None',
+      'System'          => 'None',
+      'MaxBandwidth'    => '',
+      'MonitorIds'      => '',
       'TokenMinExpiry'  => 0,
-      'APIEnabled'=> 1,
+      'APIEnabled'      => 1,
 			);
 
   public static function find( $parameters = array(), $options = array() ) {

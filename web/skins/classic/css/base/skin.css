@@ -508,6 +508,7 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
+    clear: both;
 }
 
 #content p {

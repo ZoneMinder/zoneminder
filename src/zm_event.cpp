@@ -39,6 +39,7 @@
 //#define USE_PREPARED_SQL 1
 
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
+char frame_insert_sql[ZM_SQL_LGE_BUFSIZ] = "INSERT INTO `Frames` (`EventId`, `FrameId`, `Type`, `TimeStamp`, `Delta`, `Score`) VALUES ";
 
 int Event::pre_alarm_count = 0;
 
@@ -104,9 +105,11 @@ Event::Event(
       );
   db_mutex.lock();
   if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't insert event: %s. sql was (%s)", mysql_error(&dbconn), sql);
     db_mutex.unlock();
+    Error("Can't insert event: %s. sql was (%s)", mysql_error(&dbconn), sql);
     return;
+  } else {
+    Debug(2, "Created new event with %s", sql);
   }
   id = mysql_insert_id(&dbconn);
 
@@ -202,8 +205,8 @@ Event::Event(
     video_name = stringtf("%" PRIu64 "-%s", id, "video.mp4");
     snprintf(sql, sizeof(sql), "UPDATE Events SET DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
     if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
       db_mutex.unlock();
+      Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
       return;
     }
     video_file = path + "/" + video_name;
@@ -501,8 +504,9 @@ void Event::AddFrames(int n_frames, Image **images, struct timeval **timestamps)
 }
 
 void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, struct timeval **timestamps) {
-  static char sql[ZM_SQL_LGE_BUFSIZ];
-  strncpy(sql, "INSERT INTO `Frames` (`EventId`, `FrameId`, `TimeStamp`, `Delta`) VALUES ", sizeof(sql));
+  char *frame_insert_values = (char *)&frame_insert_sql + 90; // 90 == strlen(frame_insert_sql); 
+  //static char sql[ZM_SQL_LGE_BUFSIZ];
+  //strncpy(sql, "INSERT INTO `Frames` (`EventId`, `FrameId`, `TimeStamp`, `Delta`) VALUES ", sizeof(sql));
   int frameCount = 0;
   for ( int i = start_frame; i < n_frames && i - start_frame < ZM_SQL_BATCH_SIZE; i++ ) {
     if ( timestamps[i]->tv_sec <= 0 ) {
@@ -541,21 +545,24 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
         delta_time.sec = 0;
     }
 
-    int sql_len = strlen(sql);
-    snprintf(sql+sql_len, sizeof(sql)-sql_len, "( %" PRIu64 ", %d, from_unixtime(%ld), %s%ld.%02ld ), ",
+    frame_insert_values += snprintf(frame_insert_values,
+        sizeof(frame_insert_sql)-(frame_insert_values-(char *)&frame_insert_sql),
+        "\n( %" PRIu64 ", %d, 'Normal', from_unixtime(%ld), %s%ld.%02ld, 0 ),",
         id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
 
     frameCount++;
   } // end foreach frame
 
   if ( frameCount ) {
-    Debug(1, "Adding %d/%d frames to DB", frameCount, n_frames);
-    *(sql+strlen(sql)-2) = '\0';
+    *(frame_insert_values-1) = '\0';
     db_mutex.lock();
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't insert frames: %s, sql was (%s)", mysql_error(&dbconn), sql);
-    }
+    int rc = mysql_query(&dbconn, frame_insert_sql);
     db_mutex.unlock();
+    if ( rc ) {
+      Error("Can't insert frames: %s, sql was (%s)", mysql_error(&dbconn), frame_insert_sql);
+    } else {
+      Debug(1, "INSERT %d/%d frames sql %s", frameCount, n_frames, frame_insert_sql);
+    }
     last_db_frame = frames;
   } else {
     Debug(1, "No valid pre-capture frames to add");
@@ -563,16 +570,15 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
 }  // void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, struct timeval **timestamps)
 
 void Event::WriteDbFrames() {
-  static char sql[ZM_SQL_LGE_BUFSIZ];
-  char * sql_ptr = (char *)&sql;
-  sql_ptr += snprintf(sql, sizeof(sql),
-      "INSERT INTO Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) VALUES "
-      );
+  char *frame_insert_values_ptr = (char *)&frame_insert_sql + 90; // 90 == strlen(frame_insert_sql); 
   while ( frame_data.size() ) {
     Frame *frame = frame_data.front();
     frame_data.pop();
-    sql_ptr += snprintf(sql_ptr, sizeof(sql)-(sql_ptr-(char *)&sql), "( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d ), ",
-        id, frame->frame_id, frame_type_names[frame->type],
+    frame_insert_values_ptr += snprintf(frame_insert_values_ptr,
+        sizeof(frame_insert_sql)-(frame_insert_values_ptr-(char *)&frame_insert_sql),
+        "\n( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d ),",
+        id, frame->frame_id,
+        frame_type_names[frame->type],
         frame->timestamp.tv_sec,
         frame->delta.positive?"":"-",
         frame->delta.sec,
@@ -580,14 +586,17 @@ void Event::WriteDbFrames() {
         frame->score);
     delete frame;
   }
-  *(sql_ptr-2) = '\0';
+  *(frame_insert_values_ptr-1) = '\0'; // The -2 is for the extra , added for values above
   db_mutex.lock();
-  if ( mysql_query(&dbconn, sql) ) {
-    db_mutex.unlock();
-    Error("Can't insert frames: %s, sql was %s", mysql_error(&dbconn), sql);
-    return;
-  }
+  int rc = mysql_query(&dbconn, frame_insert_sql);
   db_mutex.unlock();
+
+  if ( rc ) {
+    Error("Can't insert frames: %s, sql was %s", mysql_error(&dbconn), frame_insert_sql);
+    return;
+  } else {
+    Debug(1, "INSERT FRAMES: sql was %s", frame_insert_sql);
+  }
 } // end void Event::WriteDbFrames()
 
 // Subtract an offset time from frames deltas to match with video start time
@@ -668,6 +677,8 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
   struct DeltaTimeval delta_time;
   DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
+  Debug(1, "Frame delta is %d.%d - %d.%d = %d.%d", 
+      start_time.tv_sec, start_time.tv_usec, timestamp.tv_sec, timestamp.tv_usec, delta_time.sec, delta_time.fsec);
 
   bool db_frame = ( frame_type != BULK ) || (frames==1) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
@@ -675,16 +686,12 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
-    if ( write_to_db || ( monitor->get_fps() && (frame_data.size() > monitor->get_fps())) ) {
-      Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f",
+    if ( write_to_db or ( monitor->get_fps() and (frame_data.size() > monitor->get_fps())) or frame_type==BULK ) {
+      Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
 					frame_data.size(), write_to_db, monitor->get_fps());
       WriteDbFrames();
       last_db_frame = frames;
-      Debug(1, "Adding %d frames to DB, done", frame_data.size());
-    }
 
-    // We are writing a Bulk frame
-    if ( frame_type == BULK ) {
       snprintf(sql, sizeof(sql), 
           "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64, 
           ( delta_time.positive?"":"-" ),

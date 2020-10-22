@@ -87,11 +87,11 @@ if ( empty($_REQUEST['path']) ) {
         if (file_exists($path_anim_gif)) {
           // we found the animation gif file
           $media_type = 'image/gif';
-          ZM\Logger::Debug("Animation file found at $path");
+          ZM\Debug("Animation file found at $path");
           $path = $path_anim_gif;
         } else if (file_exists($path_image)) {
             // animation not found, but image found
-            ZM\Logger::Debug("Image file found at $path");
+            ZM\Debug("Image file found at $path");
             $path = $path_image;
         } else {
             // neither animation nor image found
@@ -206,14 +206,14 @@ if ( empty($_REQUEST['path']) ) {
           $percentage = ($Frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
 
           $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
-          ZM\Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousBulkFrame['Delta'] . " + nextdelta:" . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
+          ZM\Debug("Got virtual frame from Bulk Frames previous delta: " . $previousBulkFrame['Delta'] . " + nextdelta:" . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
         } else {
           ZM\Fatal('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
         }
       }
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
       $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
-      ZM\Logger::Debug("Path: $path");
+      ZM\Debug("Path: $path");
     }
 
   } else {
@@ -235,7 +235,7 @@ if ( empty($_REQUEST['path']) ) {
   } # end if have eid
     
   if ( !file_exists($path) ) {
-    ZM\Logger::Debug("$path does not exist");
+    ZM\Debug("$path does not exist");
     # Generate the frame JPG
     if ( ($show == 'capture') and $Event->DefaultVideo() ) {
       if ( !file_exists($Event->Path().'/'.$Event->DefaultVideo()) ) {
@@ -245,11 +245,11 @@ if ( empty($_REQUEST['path']) ) {
       $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path . ' 2>&1';
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
-      ZM\Logger::Debug("Running $command");
+      ZM\Debug("Running $command");
       $output = array();
       $retval = 0;
       exec($command, $output, $retval);
-      ZM\Logger::Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
+      ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
       if ( ! file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
         ZM\Fatal('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
@@ -338,7 +338,7 @@ if ( $errorText ) {
       ZM\Error('No bytes read from '. $path);
     }
   } else {
-    ZM\Logger::Debug("Doing a scaled image: scale($scale) width($width) height($height)");
+    ZM\Debug("Doing a scaled image: scale($scale) width($width) height($height)");
     $i = 0;
     if ( ! ( $width && $height ) ) {
       $i = imagecreatefromjpeg($path);
@@ -351,7 +351,7 @@ if ( $errorText ) {
         $width = ($height * $oldWidth) / $oldHeight;
       } elseif ( $width != 0 && $height == 0 ) {
         $height = ($width * $oldHeight) / $oldWidth;
-ZM\Logger::Debug("Figuring out height using width: $height = ($width * $oldHeight) / $oldWidth");
+ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $oldWidth");
       }
       if ( $width == $oldWidth && $height == $oldHeight ) {
         ZM\Warning('No change to width despite scaling.');
@@ -365,7 +365,7 @@ ZM\Logger::Debug("Figuring out height using width: $height = ($width * $oldHeigh
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
     if ( !( file_exists($scaled_path) and readfile($scaled_path) ) ) {
-      ZM\Logger::Debug("Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
+      ZM\Debug("Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
       ob_start();
       if ( !$i )
         $i = imagecreatefromjpeg($path);
@@ -377,12 +377,12 @@ ZM\Logger::Debug("Figuring out height using width: $height = ($width * $oldHeigh
       file_put_contents($scaled_path, $scaled_jpeg_data);
       echo $scaled_jpeg_data;
     } else {
-      ZM\Logger::Debug("Sending $scaled_path");
+      ZM\Debug("Sending $scaled_path");
       $bytes = readfile($scaled_path);
       if ( !$bytes ) {
         ZM\Error('No bytes read from '. $scaled_path);
       } else {
-        ZM\Logger::Debug("$bytes sent");
+        ZM\Debug("$bytes sent");
       }
     }
   }

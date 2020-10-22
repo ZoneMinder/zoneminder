@@ -185,7 +185,7 @@ class FilterTerm {
       }
       return ' IS NOT ';
     default:
-      ZM\Warning('Invalid operator in filter: ' . print_r($this->op, true));
+      Warning('Invalid operator in filter: ' . print_r($this->op, true));
     } // end switch op
   } # end public function sql_operator
 
@@ -329,14 +329,14 @@ class FilterTerm {
   public function test($event=null) {
     if ( !isset($event) ) {
       # Is a Pre Condition
-      Logger::Debug("Testing " . $this->attr);
+      Debug("Testing " . $this->attr);
       if ( $this->attr == 'DiskPercent' ) {
         # The logic on this is really ugly.  We are going to treat it as an OR
         foreach ( $this->filter->get_StorageAreas() as $storage ) {
           $string_to_eval = 'return $storage->disk_usage_percent() '.$this->op.' '.$this->val.';';
           try {
             $ret = eval($string_to_eval);
-            Logger::Debug("Evalled $string_to_eval = $ret");
+            Debug("Evalled $string_to_eval = $ret");
             if ( $ret )
               return true;
           } catch ( Throwable $t ) {
@@ -348,7 +348,7 @@ class FilterTerm {
         $string_to_eval = 'return getLoad() '.$this->op.' '.$this->val.';';
         try {
           $ret = eval($string_to_eval);
-          Logger::Debug("Evaled $string_to_eval = $ret");
+          Debug("Evaled $string_to_eval = $ret");
           if ( $ret )
             return true;
         } catch ( Throwable $t ) {
@@ -374,7 +374,7 @@ class FilterTerm {
         $string_to_eval = 'return $event->Storage()->disk_usage_percent() '.$this->op.' '.$this->val.';';
         try {
           $ret = eval($string_to_eval);
-          Logger::Debug("Evalled $string_to_eval = $ret");
+          Debug("Evalled $string_to_eval = $ret");
           if ( $ret )
             return true;
         } catch ( Throwable $t ) {
@@ -385,7 +385,7 @@ class FilterTerm {
         $string_to_eval = 'return $event->Storage()->disk_usage_blocks() '.$this->op.' '.$this->val.';';
         try {
           $ret = eval($string_to_eval);
-          Logger::Debug("Evalled $string_to_eval = $ret");
+          Debug("Evalled $string_to_eval = $ret");
           if ( $ret )
             return true;
         } catch ( Throwable $t ) {

@@ -25,10 +25,13 @@
 
 ?>
 var AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
-
 var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
-
 var currentView = '<?php echo $view ?>';
+
+var exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
+var exportFailedString = '<?php echo translate('ExportFailed') ?>';
+var exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
+var cancelString = '<?php echo translate('Cancel') ?>';
 <?php
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
    will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,
@@ -41,6 +44,8 @@ var canEditSystem = <?php echo canEdit('System')?'true':'false' ?>;
 var canViewSystem = <?php echo canView('System')?'true':'false' ?>;
 var canEditEvents = <?php echo canEdit('Events')?'true':'false' ?>;
 var canViewEvents = <?php echo canView('Events')?'true':'false' ?>;
+var canEditMonitors = <?php echo canEdit('Monitors')?'true':'false' ?>;
+var canViewMonitors = <?php echo canView('Monitors')?'true':'false' ?>;
 
 var canEditGroups = <?php echo canEdit('Groups')?'true':'false' ?>;
 

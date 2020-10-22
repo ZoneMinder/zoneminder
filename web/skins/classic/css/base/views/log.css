@@ -1,19 +1,3 @@
-#logSummary {
-   font-size:10px;
-}
-
-#logSummary tr {
-    margin: 0;
-    padding: 0;
-}
-
-#logSummary td {
-    border: 1px solid #7f7fb2;
-    padding: 0 6px;
-    font-size: 10px;
-    line-height: 15px;
-}
-
 tr.log-fat td {
     background-color:#ffcccc;
     font-weight: bold;
@@ -32,20 +16,3 @@ tr.log-dbg td {
     font-style: italic;
 }
 
-#exportLog label {
-    vertical-align: middle;
-}
-
-#exportLog input[type=radio] {
-    margin-right: 4px;
-    vertical-align: middle;
-}
-
-#exportError {
-    display: none;
-    color: #dc143c;
-    margin-bottom: 8px;
-}
-
-#exportErrorText {
-}

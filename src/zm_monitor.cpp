@@ -497,6 +497,8 @@ Monitor::Monitor(
     shared_data->last_read_time = 0;
     shared_data->alarm_x = -1;
     shared_data->alarm_y = -1;
+  } else {
+    shared_data = nullptr;
   }
 
   start_time = last_fps_time = time( 0 );
@@ -1448,18 +1450,19 @@ bool Monitor::Analyse() {
               int new_motion_score = DetectMotion(*snap_image, zoneSet);
 
               Debug(3,
-                  "After motion detection, last_motion_score(%d), new motion score(%d)",
-                  last_motion_score, new_motion_score
+                  "After motion detection, score(%d), last_motion_score(%d), new motion score(%d)",
+                  score, last_motion_score, new_motion_score
                   );
               last_motion_score = new_motion_score;
             }
             if ( last_motion_score ) {
               score += last_motion_score;
-              if ( !event ) {
+              // cause is calculated every frame, 
+              //if ( !event ) {
                 if ( cause.length() )
                   cause += ", ";
                 cause += MOTION_CAUSE;
-              }
+              //}
               noteSetMap[MOTION_CAUSE] = zoneSet;
             } // end if motion_score
             //shared_data->active = signal; // unneccessary active gets set on signal change
@@ -1559,7 +1562,7 @@ bool Monitor::Analyse() {
                   alarm_cause = alarm_cause + "," + std::string(zones[i]->Label());
                 }
               }
-              if ( !alarm_cause.empty() ) alarm_cause[0] = ' ';
+              if ( !alarm_cause.empty() ) alarm_cause[0] = ' '; // replace leading , with a space
               alarm_cause = cause + alarm_cause;
               strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
@@ -1631,6 +1634,13 @@ bool Monitor::Analyse() {
                     }
                   }
                   event->AddFrames(pre_event_images, images, timestamps);
+                } else if ( alarm_frame_count > 1 ) {
+                    int temp_alarm_frame_count = alarm_frame_count;
+                    while ( --temp_alarm_frame_count ) {
+                      Debug(1, "Adding previous frame due to alarm_frame_count %d", pre_index);
+                      event->AddFrame(image_buffer[pre_index].image, *image_buffer[pre_index].timestamp, 0, nullptr);
+                      pre_index = (pre_index + 1)%image_buffer_count;
+                    }
                 }  // end if pre_event_images
 
                 if ( ( alarm_frame_count > 1 ) && Event::PreAlarmCount() ) {
@@ -1668,6 +1678,8 @@ bool Monitor::Analyse() {
               } else {
                 shared_data->state = state = TAPE;
               }
+            } else {
+              Debug(1, "Not leaving ALERT beacuse image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%d) - recording.tv_src(%d) >= min_section_length(%d)", image_count, last_alarm_count, post_event_count, timestamp->tv_sec, video_store_data->recording.tv_sec, min_section_length);
             }
           } // end if ALARM or ALERT
 
@@ -2108,7 +2120,6 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   } else {
     v4l_captures_per_frame = config.captures_per_frame;
   }
-  Debug(1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame);
   col++;
 
   std::string protocol = dbrow[col] ? dbrow[col] : ""; col++;
@@ -2398,10 +2409,13 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       0
         );
   camera->setMonitor(monitor);
-  Zone **zones = 0;
-  int n_zones = Zone::Load(monitor, zones);
-  monitor->AddZones(n_zones, zones);
-  monitor->AddPrivacyBitmask(zones);
+  int n_zones = 0;
+  if ( load_zones ) {
+    Zone **zones = 0;
+    n_zones = Zone::Load(monitor, zones);
+    monitor->AddZones(n_zones, zones);
+    monitor->AddPrivacyBitmask(zones);
+  }
   Debug(1, "Loaded monitor %d(%s), %d zones", id, name, n_zones);
   return monitor;
 } // end Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose)

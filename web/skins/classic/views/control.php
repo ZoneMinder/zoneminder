@@ -60,9 +60,9 @@ xhtmlHeaders(__FILE__, translate('Control'));
       </div>
       <h2><?php echo translate('Control') ?></h2>
       <div id="headerControl">
-        <form name="contentForm" id="contentForm" method="get" action="?">
+        <form name="contentForm" id="controlForm" method="get" action="?">
           <input type="hidden" name="view" value="<?php echo $view ?>"/>
-          <?php echo buildSelect('mid', $mids, 'this.form.submit();'); ?>
+          <?php echo buildSelect('mid', $mids); ?>
         </form>
       </div>
     </div>

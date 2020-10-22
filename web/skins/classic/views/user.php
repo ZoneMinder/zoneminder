@@ -37,8 +37,6 @@ if ( $_REQUEST['uid'] ) {
 	$newUser->Username(translate('NewUser'));
 }
 
-$monitorIds = array_flip(explode(',', $newUser->MonitorIds()));
-
 $yesno = array( 0=>translate('No'), 1=>translate('Yes') );
 $nv = array( 'None'=>translate('None'), 'View'=>translate('View') );
 $nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
@@ -71,6 +69,7 @@ xhtmlHeaders(__FILE__, translate('User').' - '.$newUser->Username());
     </div>
     <div id="content" class="row justify-content-center">
       <form id="contentForm" name="contentForm" method="post" action="?view=user">
+        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? $_REQUEST['prev'] : 'options&tab=users' ?>"/>
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($_REQUEST['uid']) ?>"/>
         <table id="contentTable" class="table">
           <tbody>
@@ -128,13 +127,22 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
               <td><?php echo htmlSelect('newUser[System]', $nve, $newUser->System()) ?></td>
             </tr>
             <tr>
+              <th class="text-right" scope="row"><?php echo translate('Devices') ?></th>
+              <td><?php echo htmlSelect('newUser[Devices]', $nve, $newUser->Devices()) ?></td>
+            </tr>
+            <tr>
               <th class="text-right" scope="row"><?php echo translate('MaxBandwidth') ?></th>
               <td><?php echo htmlSelect('newUser[MaxBandwidth]', $bandwidths, $newUser->MaxBandwidth()) ?></td>
             </tr>
             <tr>
               <th class="text-right" scope="row"><?php echo translate('RestrictedMonitors') ?></th>
               <td>
-<?php echo htmlSelect('newUser[MonitorIds][]', $monitors, explode(',', $newUser->MonitorIds()), array('multiple'=>'multiple')); ?>
+<?php
+  // explode returns an array with an empty element, so test for a value first
+  echo htmlSelect('newUser[MonitorIds][]', $monitors,
+    ($newUser->MonitorIds() ? explode(',', $newUser->MonitorIds()) : array()),
+    array('multiple'=>'multiple'));
+?>
               </td>
             </tr>
 <?php if ( ZM_OPT_USE_API ) { ?>

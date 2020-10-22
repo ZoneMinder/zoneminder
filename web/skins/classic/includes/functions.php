@@ -524,7 +524,7 @@ function getZMVersionHTML() {
     $class = 'text-danger';
     $tt_text = translate('RunLocalUpdate');
     $content = 'v'.ZM_VERSION.PHP_EOL;
-  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) ) { // No update needed
+  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) || !ZM_CHECK_FOR_UPDATES || ZM_DYN_NEXT_REMINDER > time() ) { // No update needed
     $class = ''; // Don't change the text color under normal conditions
     $tt_text = translate('UpdateNotNecessary');
     $content = 'v'.ZM_VERSION.PHP_EOL;
@@ -737,7 +737,7 @@ function getAcctCircleHTML($skin, $user=null) {
   if ( ZM_OPT_USE_AUTH and $user ) {
     $result .= '<p id="getAcctCircleHTML" class="navbar-text mr-2">'.PHP_EOL;
     $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  $user['Username'],
-      (ZM_AUTH_TYPE == 'builtin'), 'data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
+      (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</p>'.PHP_EOL;
   }
   
@@ -756,9 +756,9 @@ function getStatusBtnHTML($status) {
     //$result .= '</li>'.PHP_EOL;
 
     if ( ZM_SYSTEM_SHUTDOWN ) {
-      $result .= '<p class="navbar-text">'.PHP_EOL;
-      $result .= makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ).PHP_EOL;
-      $result .= '</p>'.PHP_EOL;
+      $result .= '<div class="navbar-text pr-2 align-self-center">'.PHP_EOL;
+      $result .= '<button class="btn btn-outline" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate("Shutdown"). '" ><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
+      $result .= '</div>'.PHP_EOL;
      } 
 
   } else if ( canView('System') ) {
@@ -790,6 +790,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
   $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
   
   $result .= '<table id="contentStatsTable' .$row. '"'.PHP_EOL;
+    $result .= 'data-locale="' .i18n(). '"'.PHP_EOL;
     $result .= 'data-toggle="table"'.PHP_EOL;
     $result .= 'data-toolbar="#toolbar"'.PHP_EOL;
     $result .= 'class="table-sm table-borderless contentStatsTable"'.PHP_EOL;
@@ -875,6 +876,7 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
 <?php echo output_script_if_exists(array(
   'js/bootstrap-table.min.js',
+  'js/bootstrap-table-locale-all.min.js',
   'js/tableExport.min.js',
   'js/bootstrap-table-export.min.js',
   'js/bootstrap-table-page-jump-to.min.js',

@@ -42,7 +42,7 @@ function execONVIF($cmd) {
         $shell_command"
         );
   } else {
-    ZM\Logger::Debug('Results from probe: '.implode('<br/>', $output));
+    ZM\Debug('Results from probe: '.implode('<br/>', $output));
   }
 
   return $output;
@@ -80,7 +80,7 @@ function probeCameras($localIp) {
               $camera['monitor']['Notes'] .= $tokens[1].'='.$tokens[2]."\n";
               // $camera['location'] = $tokens[2];
             } else {
-              ZM\Logger::Debug('Unknown token '.$tokens[1].' = '.$tokens[2]);
+              ZM\Debug('Unknown token '.$tokens[1].' = '.$tokens[2]);
             }
           }
         } // end foreach token
@@ -119,7 +119,7 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
             );
         $profiles[] = $profile;
       } else {
-        ZM\Logger::Debug("Line did not match preg: $line");
+        ZM\Debug("Line did not match preg: $line");
       }
     } // end foreach line
   } // end if results from execONVIF
@@ -187,7 +187,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
         if ( $matches[1] != 'lo' ) {
           $interfaces[$matches[1]] = $matches[1];
         } else {
-          ZM\Logger::Debug("No match for $line");
+          ZM\Debug("No match for $line");
         }
       }
     }
@@ -247,7 +247,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
        #empty($_REQUEST['password']) )
     
   $probe = json_decode(base64_decode($_REQUEST['probe']));
-  ZM\Logger::Debug(print_r($probe, true));
+  ZM\Debug(print_r($probe, true));
   foreach ( $probe as $name=>$value ) {
     if ( isset($value) ) {
       $monitor[$name] = $value;

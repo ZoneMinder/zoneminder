@@ -66,14 +66,14 @@ $end = $size-1;
 $length = $size;
 
 if ( isset($_SERVER['HTTP_RANGE']) ) {
-  ZM\Logger::Debug('Using Range '.$_SERVER['HTTP_RANGE']);
+  ZM\Debug('Using Range '.$_SERVER['HTTP_RANGE']);
   if ( preg_match('/bytes=\h*(\d+)-(\d*)[\D.*]?/i', $_SERVER['HTTP_RANGE'], $matches) ) {
     $begin = intval($matches[1]);
     if ( !empty($matches[2]) ) {
       $end = intval($matches[2]);
     }
     $length = $end - $begin + 1;
-    ZM\Logger::Debug("Using Range $begin $end size: $size, length: $length");
+    ZM\Debug("Using Range $begin $end size: $size, length: $length");
   }
 } # end if HTTP_RANGE
 

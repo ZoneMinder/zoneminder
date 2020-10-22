@@ -1,213 +1,331 @@
 <?php
-
-$message = '';
-$data = array();
-
 //
-// INITIALIZE AND CHECK SANITY
+// ZoneMinder web events view file, $Date$, $Revision$
+// Copyright (C) 2001-2008 Philip Coombes
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit('Events') ) $message = 'Insufficient permissions for user '.$user['Username'];
-
-if ( empty($_REQUEST['task']) ) {
-  $message = 'Must specify a task';
-} else {
-  $task = $_REQUEST['task'];
-}
-
-if ( empty($_REQUEST['eids']) ) {
-  if ( isset($_REQUEST['task']) && $_REQUEST['task'] != "query" ) $message = 'No event id(s) supplied';
-} else {
-  $eids = $_REQUEST['eids'];
-}
-
-if ( $message ) {
-  ajaxError($message);
+if ( !canView('Events') || (!empty($_REQUEST['execute']) && !canEdit('Events')) ) {
+  $view = 'error';
   return;
 }
 
-// Search contains a user entered string to search on
-$search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+require_once('includes/Event.php');
+require_once('includes/Filter.php');
 
-// Advanced search contains an array of "column name" => "search text" pairs
-// Bootstrap table sends json_ecoded array, which we must decode
-$advsearch = isset($_REQUEST['filter']) ? json_decode($_REQUEST['filter'], JSON_OBJECT_AS_ARRAY) : array();
-
-// Sort specifies the name of the column to sort on
-$sort = 'StartTime';
-if ( isset($_REQUEST['sort']) ) {
-  $sort = $_REQUEST['sort'];
+$eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
+if ( $user['MonitorIds'] ) {
+  $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
+  $eventsSql .= $user_monitor_ids;
+} else {
+  $eventsSql .= ' 1';
 }
 
-// Offset specifies the starting row to return, used for pagination
-$offset = 0;
-if ( isset($_REQUEST['offset']) ) {
-  if ( ( !is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']) ) ) {
-    ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+$filter = isset($_REQUEST['filter_id']) ? new ZM\Filter($_REQUEST['filter_id']) : new ZM\Filter();
+if ( isset($_REQUEST['filter'])) {
+  $filter->set($_REQUEST['filter']);
+}
+
+parseSort();
+
+$filterQuery = $filter->querystring();
+ZM\Debug('Filter '.print_r($filter, true));
+
+if ( $filter->sql() ) {
+  $eventsSql .= ' AND ('.$filter->sql().')';
+} else {
+  ZM\Warning('No filters');
+  exit;
+}
+$eventsSql .= ' ORDER BY '.$sortColumn.' '.$sortOrder;
+if ( $sortColumn != 'E.Id' ) $eventsSql .= ',E.Id '.$sortOrder;
+
+$page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 0;
+$limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : $filter['limit'];
+
+if ( $_POST ) {
+  // I think this is basically so that a refresh doesn't repost
+  ZM\Debug('Redirecting to ' . $_SERVER['REQUEST_URI']);
+  header('Location: ?view=' . $view.htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
+  exit();
+}
+
+$failed = !$filter->test_pre_sql_conditions();
+if ( $failed ) {
+  ZM\Debug('Pre conditions failed, not doing sql');
+}
+
+$results = $failed ? null : dbQuery($eventsSql);
+
+$nEvents = $results ? $results->rowCount() : 0;
+if ( ! $results ) {
+  global $error_message;
+  $error_message = dbError($eventsSql);
+} 
+ZM\Debug("Pre conditions succeeded sql return $nEvents events");
+
+if ( !empty($limit) && ($nEvents > $limit) ) {
+  $nEvents = $limit;
+}
+$pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
+#Debug("Page $page Limit $limit #vents: $nEvents pages: $pages ");
+if ( !empty($page) ) {
+  if ( $page < 0 )
+    $page = 1;
+  else if ( $pages and ( $page > $pages ) )
+    $page = $pages;
+
+  $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
+  if ( empty($limit) ) {
+    $limitAmount = ZM_WEB_EVENTS_PER_PAGE;
   } else {
-    $offset = $_REQUEST['offset'];
+    $limitLeft = $limit - $limitStart;
+    $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
   }
+  $eventsSql .= ' LIMIT '.$limitStart.', '.$limitAmount;
+} else if ( !empty($limit) ) {
+  $eventsSql .= ' LIMIT 0, '.$limit;
 }
 
-// Order specifies the sort direction, either asc or desc
-$order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+$maxShortcuts = 5;
 
-// Limit specifies the number of rows to return
-$limit = 100;
-if ( isset($_REQUEST['limit']) ) {
-  if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
-    ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
-  } else {
-    $limit = $_REQUEST['limit'];
-  }
+$focusWindow = true;
+
+$storage_areas = ZM\Storage::find();
+$StorageById = array();
+foreach ( $storage_areas as $S ) {
+  $StorageById[$S->Id()] = $S;
 }
 
-//
-// MAIN LOOP
-//
+xhtmlHeaders(__FILE__, translate('Events'));
+getBodyTopHTML();
 
-switch ( $task ) {
-  case 'archive' :
-  case 'unarchive' :
-    foreach ( $eids as $eid ) archiveRequest($task, $eid);
-    break;
-  case 'delete' :
-    foreach ( $eids as $eid ) $data[] = deleteRequest($eid);
-    break;
-  case 'query' :
-    $data = queryRequest($search, $advsearch, $sort, $offset, $order, $limit);
-    break;
-  default :
-    ZM\Fatal("Unrecognised task '$task'");
-} // end switch task
+?>
+  <?php echo getNavBarHTML() ?>
+  <div id="page" class="container-fluid p-3">
+    <!-- Toolbar button placement and styling handled by bootstrap-tables -->
+    <div id="toolbar">
+      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+      <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+      <button id="tlineBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ShowTimeline') ?>" ><i class="fa fa-history"></i></button>
+      <button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>
+      <button id="viewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('View') ?>" disabled><i class="fa fa-binoculars"></i></button>
+      <button id="archiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Archive') ?>" disabled><i class="fa fa-archive"></i></button>
+      <button id="unarchiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Unarchive') ?>" disabled><i class="fa fa-file-archive-o"></i></button>
+      <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
+      <button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>" disabled><i class="fa fa-external-link"></i></button>
+      <button id="downloadBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DownloadVideo') ?>" disabled><i class="fa fa-download"></i></button>
+      <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
+    </div>
 
-ajaxResponse($data);
-
-//
-// FUNCTION DEFINITIONS
-//
-
-function archiveRequest($task, $eid) {
-  $archiveVal = ($task == 'archive') ? 1 : 0;
-  dbQuery(
-    'UPDATE Events SET Archived = ? WHERE Id = ?',
-    array($archiveVal, $eid)
-  );
-}
-
-function deleteRequest($eid) {
-  $message = array();
-  $event = new ZM\Event($eid);
-  if ( !$event->Id() ) {
-    $message[] = array($eid=>'Event not found.');
-  } else if ( $event->Archived() ) {
-    $message[] = array($eid=>'Event is archived, cannot delete it.');
-  } else {
-    $event->delete();
-  }
-  
-  return $message;
-}
-
-function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
-  // Put server pagination code here
-  // The table we want our data from
-  $table = 'Events';
-
-  // The names of the dB columns in the log table we are interested in
-  $columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartTime', 'EndTime', 'Length', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'Notes', 'DiskSpace');
-
-  // The names of columns shown in the event view that are NOT dB columns in the database
-  $col_alt = array('Monitor', 'Storage');
-
-  if ( !in_array($sort, array_merge($columns, $col_alt)) ) {
-    ZM\Fatal('Invalid sort field: ' . $sort);
-  }
-
-  $col_str = implode(', ', $columns);
-  $data = array();
-  $query = array();
-  $query['values'] = array();
-  $likes = array();
-  $where = '';
-  // There are two search bars in the log view, normal and advanced
-  // Making an exuctive decision to ignore the normal search, when advanced search is in use
-  // Alternatively we could try to do both
-  if ( count($advsearch) ) {
-
-    foreach ( $advsearch as $col=>$text ) {
-      if ( !in_array($col, array_merge($columns, $col_alt)) ) {
-        ZM\Error("'$col' is not a sortable column name");
-        continue;
-      }
-      $text = '%' .$text. '%';
-      array_push($likes, $col.' LIKE ?');
-      array_push($query['values'], $text);
+    <!-- Table styling handled by bootstrap-tables -->
+    <div class="row justify-content-center">
+      <table
+        id="eventTable"
+        data-locale="<?php echo i18n() ?>"
+        data-pagination="true"
+        data-show-pagination-switch="true"
+        data-page-list="[10, 25, 50, 100, 200, All]"
+        data-search="true"
+        data-cookie="true"
+        data-cookie-id-table="zmEventsTable"
+        data-cookie-expire="2y"
+        data-click-to-select="true"
+        data-remember-order="true"
+        data-show-columns="true"
+        data-show-export="true"
+        data-uncheckAll="true"
+        data-toolbar="#toolbar"
+        data-show-fullscreen="true"
+        data-click-to-select="true"
+        data-maintain-meta-data="true"
+        data-mobile-responsive="true"
+        data-buttons-class="btn btn-normal"
+        data-show-jump-to="true"
+        class="table-sm table-borderless"
+        style="display:none;"
+      >
+        <thead>
+            <!-- Row styling is handled by bootstrap-tables -->
+            <tr>
+              <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
+              <th data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
+              <th data-sortable="true" data-field="Name"><?php echo translate('Name') ?></th>
+              <th data-sortable="true" data-field="Archived"><?php echo translate('Archived') ?></th>
+              <th data-sortable="true" data-field="Emailed"><?php echo translate('Emailed') ?></th>
+              <th data-sortable="true" data-field="Monitor"><?php echo translate('Monitor') ?></th>
+              <th data-sortable="true" data-field="Cause"><?php echo translate('Cause') ?></th>
+              <th data-sortable="true" data-field="AttrStartTime"><?php echo translate('AttrStartTime') ?></th>
+              <th data-sortable="true" data-field="AttrEndTime"><?php echo translate('AttrEndTime') ?></th>
+              <th data-sortable="true" data-field="Duration"><?php echo translate('Duration') ?></th>
+              <th data-sortable="true" data-field="Frames"><?php echo translate('Frames') ?></th>
+              <th data-sortable="true" data-field="AlarmBrFrames"><?php echo translate('AlarmBrFrames') ?></th>
+              <th data-sortable="true" data-field="TotalBrScore"><?php echo translate('TotalBrScore') ?></th>
+              <th data-sortable="true" data-field="AvgBrScore"><?php echo translate('AvgBrScore') ?></th>
+              <th data-sortable="true" data-field="MaxBrScore"><?php echo translate('MaxBrScore') ?></th>
+<?php
+    if ( count($storage_areas) > 1 ) { 
+?>
+              <th data-sortable="true" data-field="Storage"><?php echo translate('Storage') ?></th>
+<?php
     }
-    $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
-
-  } else if ( $search != '' ) {
-
-    $search = '%' .$search. '%';
-    foreach ( $columns as $col ) {
-      array_push($likes, $col.' LIKE ?');
-      array_push($query['values'], $search);
+    if ( ZM_WEB_EVENT_DISK_SPACE ) {
+?>
+              <th data-sortable="true" data-field="DiskSpace"><?php echo translate('DiskSpace') ?></th>
+<?php
     }
-    $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
-  }  
+    if ( ZM_WEB_LIST_THUMBS ) {
+?>
+              <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+<?php
+    }
+?>
+            </tr>
+           </thead>
+           <tbody>
+<?php
+$count = 0;
+$disk_space_total = 0;
+if ( $results ) {
+  $events = array();
 
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
-  array_push($query['values'], $offset, $limit);
+  while ( $event_row = dbFetchNext($results) ) {
+    $event = new ZM\Event($event_row);
 
-  ZM\Warning('Calling the following sql query: ' .$query['sql']);
-
-  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $wherevalues);
-  } else {
-    $data['total'] = $data['totalNotFiltered'];
+    if ( !$filter->test_post_sql_conditions($event) ) {
+      $event->remove_from_cache();
+      continue;
+    }
+    $events[] = $event;
+    if ( $limit and (count($events) >= $limit) ) {
+      break;
+    }
+    ZM\Debug("Have " . count($events) . " events, limit $limit");
   }
+  foreach ( $events as $event ) {
 
-  $storage_areas = ZM\Storage::find();
-  $StorageById = array();
-  foreach ( $storage_areas as $S ) {
-    $StorageById[$S->Id()] = $S;
+    $scale = max(reScale(SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
+?>
+            <tr<?php echo $event->Archived() ? ' class="archived"' : '' ?>>
+              <td data-checkbox="true"></td>            
+              <td><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$event->Id() ?></a></td>
+
+              <td><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name())?></a>
+              <?php 
+              $archived = $event->Archived() ? translate('Archived') : '';
+              $emailed = $event->Emailed() ? ' '.translate('Emailed') : '';
+              echo '<br/><div class="small text-nowrap text-muted">'.$archived.$emailed.'</div>';
+              ?>
+              </td>
+
+              <td class="text-center"><?php echo ( $event->Archived() ) ? 'Yes' : 'No' ?></td>
+              <td class="text-center"><?php echo ( $event->Emailed() ) ? 'Yes' : 'No' ?></td>
+              <td><?php echo makeLink( '?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
+              <td><?php echo makeLink( '#', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid=' .$event->Id(). '"') ?>
+              <?php
+              # display notes as small text
+              if ( $event->Notes() ) {
+                # if notes include detection objects, then link it to objdetect.jpg
+                if ( strpos($event->Notes(), 'detected:') !== false ) {
+                  # make a link
+                  echo makeLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', '<div class="small text-nowrap text-muted"><u>'.$event->Notes().'</u></div>');
+                } else if ( $event->Notes() != 'Forced Web: ' ) {
+                  echo '<br/><div class="small text-nowrap text-muted">'.$event->Notes().'</div>';
+                }
+              }
+              ?>
+              </td>
+              
+              <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) ?></td>
+              <td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime())) ?></td>
+              <td><?php echo gmdate('H:i:s', $event->Length() ) ?></td>
+              <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->Frames() ?></a></td>
+              <td><a href="?view=frames&amp;eid=<?php echo $event->Id() ?>"><?php echo $event->AlarmFrames() ?></a></td>
+              <td><?php echo $event->TotScore() ?></td>
+              <td><?php echo $event->AvgScore() ?></td>
+              <td><?php echo makeLink('?view=frame&amp;eid='.$event->Id().'&amp;fid=0', $event->MaxScore()); ?></td>
+<?php
+  if ( count($storage_areas) > 1 ) { 
+?>
+              <td>
+<?php
+    if ( $event->StorageId() ) {
+      echo isset($StorageById[$event->StorageId()]) ? $StorageById[$event->StorageId()]->Name() : 'Unknown Storage Id: '.$event->StorageId();
+    } else {
+      echo 'Default';
+    }
+    if ( $event->SecondaryStorageId() ) {
+      echo '<br/>'.(isset($StorageById[$event->SecondaryStorageId()]) ? $StorageById[$event->SecondaryStorageId()]->Name() : 'Unknown Storage Id '.$event->SecondaryStorageId());
+    }
+ ?>
+</td>
+          
+<?php
   }
-
-  $monitor_names = ZM\Monitor::find();
-  $MonitorById = array();
-  foreach ( $monitor_names as $S ) {
-    $MonitorById[$S->Id()] = $S;
+  if ( ZM_WEB_EVENT_DISK_SPACE ) {
+    $disk_space_total += $event->DiskSpace();
+?>
+              <td class="colDiskSpace"><?php echo human_filesize($event->DiskSpace()) ?></td>
+<?php
   }
+  if ( ZM_WEB_LIST_THUMBS ) {
+      echo '<td class="colThumbnail zoom">';
+      $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
+      $streamSrc = $event->getStreamSrc(array(
+        'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
 
-  $rows = array();
-  foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
-    $event = new ZM\Event($row['Id']);
-    $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
-    $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
-    $streamSrc = $event->getStreamSrc(array(
-                        'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
-
-    // Modify the row data as needed
-    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="' .validHtmlStr('Event ' .$event->Id()). '" style="width:' .validInt($event->ThumbnailWidth()). 'px;height:' .validInt($event->ThumbnailHeight()).'px;" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"/>';
-    $row['Name'] = validHtmlStr($row['Name']);
-    $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
-    $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
-    $row['Monitor'] = ( $row['MonitorId'] and isset($MonitorById[$row['MonitorId']]) ) ? $MonitorById[$row['MonitorId']]->Name() : '';
-    $row['Cause'] = validHtmlStr($row['Cause']);
-    $row['StartTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
-    $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
-    $row['Length'] = gmdate('H:i:s', $row['Length'] );
-    $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
-    $row['Notes'] = htmlspecialchars($row['Notes']);
-    $row['DiskSpace'] = human_filesize($row['DiskSpace']);
-    $rows[] = $row;
-  }
-  $data['rows'] = $rows;
-  $data['updated'] = preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG);
-
-  return $data;
+      $imgHtml = '<img id="thumbnail'.$event->Id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($event->ThumbnailWidth()) .'px;height:'. validInt($event->ThumbnailHeight()).'px;" stream_src="'.$streamSrc.'" still_src="'.$imgSrc.'"/>';
+      echo '<a href="?view=event&amp;eid='. $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$imgHtml.'</a>';
+      echo '</td>';
+  } // end if ZM_WEB_LIST_THUMBS
+?>
+            </tr>
+<?php
+} # end foreach row
+?>
+          </tbody>
+<?php
+} # end if $results
+  if ( ZM_WEB_EVENT_DISK_SPACE ) {
+?>
+          <tfoot>
+            <tr>
+              <td colspan="11">Totals:</td>
+<?php
+  if ( count($storage_areas)>1 ) {
+?>
+              <td class="colStorage"></td>
+<?php
 }
 ?>
+              <td class="colDiskSpace"><?php echo human_filesize($disk_space_total) ?></td>
+<?php
+  if ( ZM_WEB_LIST_THUMBS ) {
+?>
+              <td></td>
+<?php
+}
+?>
+              <td></td>
+            </tr>
+          </tfoot>
+<?php
+  }
+?>
+        </table>
+      </div>       
+  </div>
+<?php xhtmlFooter() ?>

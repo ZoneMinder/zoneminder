@@ -395,8 +395,8 @@ sub set {
 		if ( ( ! exists $$self{$field} ) or (!defined $$self{$field}) or ( $$self{$field} eq '' ) ) {
 			$log->debug("Setting default ($field) (".def_or_undef($$self{$field}).') ('.def_or_undef($defaults{$field}).') ') if $debug;
 			if ( defined $defaults{$field} ) {
-				if ( $defaults{$field} eq 'NOW()' ) {
-					$$self{$field} = 'NOW()';
+				if ( $defaults{$field} eq '' or $defaults{$field} eq 'NOW()' ) {
+					$$self{$field} = $defaults{$field};
 				} else {
 					$$self{$field} = eval($defaults{$field});
 					$log->error( "Eval error of object default $field default ($defaults{$field}) Reason: " . $@ ) if $@;

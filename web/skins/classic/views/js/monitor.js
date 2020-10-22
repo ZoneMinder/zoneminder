@@ -105,7 +105,6 @@ function initPage() {
   document.querySelectorAll('input[name="newMonitor[MaxFPS]"]').forEach(function(el) {
     el.oninput = el.onclick = function(e) {
       if ( e.target.value ) {
-        console.log('showing');
         $j('#newMonitor\\[MaxFPS\\]').show();
       } else {
         $j('#newMonitor\\[MaxFPS\\]').hide();
@@ -115,7 +114,6 @@ function initPage() {
   document.querySelectorAll('input[name="newMonitor[AlarmMaxFPS]"]').forEach(function(el) {
     el.oninput = el.onclick = function(e) {
       if ( e.target.value ) {
-        console.log('showing');
         $j('#newMonitor\\[AlarmMaxFPS\\]').show();
       } else {
         $j('#newMonitor\\[AlarmMaxFPS\\]').hide();
@@ -209,7 +207,6 @@ function initPage() {
       var form = document.getElementById('contentForm');
       var latitude = form.elements['newMonitor[Latitude]'].value;
       var longitude = form.elements['newMonitor[Longitude]'].value;
-      console.log("lat: " + latitude + ', long:'+longitude);
       map = L.map('LocationMap', {
         center: L.latLng(latitude, longitude),
         zoom: 13,
@@ -258,13 +255,9 @@ function random_WebColour() {
 
 function update_estimated_ram_use() {
   var buffer_count = document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value;
-  console.log(buffer_count);
   var width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
-  console.log(width);
   var height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
-  console.log(height);
   var colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
-  console.log(colours);
 
   document.getElementById('estimated_ram_use').innerHTML = human_filesize(buffer_count * width * height * colours, 0);
 }

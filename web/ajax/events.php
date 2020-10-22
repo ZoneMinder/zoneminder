@@ -140,7 +140,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
         ZM\Error("'$col' is not a sortable column name");
         continue;
       }
-      $text = '%' .$text. '%';
+      //Don't use wildcards. Let the user specify them if needed.
+      //$text = '%' .$text. '%';
       array_push($likes, $col.' LIKE ?');
       array_push($query['values'], $text);
     }

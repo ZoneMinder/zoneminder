@@ -8,7 +8,7 @@ if ( !canView('System') ) {
 
 // Only the query task is supported at the moment
 if ( !isset($_REQUEST['task']) or $_REQUEST['task'] != 'query' ) {
-  ajaxError('Unrecognised action');
+  ajaxError('Unrecognised task '.(isset($_REQUEST['task'])?$_REQUEST['task']:''));
   return;
 }
 // The table we want our data from

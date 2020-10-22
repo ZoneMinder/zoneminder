@@ -247,7 +247,7 @@ function initPage() {
     }
 
     var selections = getIdSelections();
-    console.log(selections);
+    //console.log(selections);
 
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+selections.join('&eids[]='))

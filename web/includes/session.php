@@ -144,7 +144,9 @@ class Session {
   }
   public function _gc($max) {
     // Calculate what is to be deemed old
-    $old = time() - $max;
+    $now = time();
+    $old = $now - $max;
+    ZM\Debug('doing session gc ' . $now . '-' . $max. '='.$old);
     $sth = $this->db->prepare('DELETE * FROM Sessions WHERE access < :old');
     $sth->bindParam(':old', $old, PDO::PARAM_INT);
     return $sth->execute() ? true : false;

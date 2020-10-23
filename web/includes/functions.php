@@ -1006,12 +1006,15 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
       $sortColumn = 'E.StartTime';
       break;
     case 'StartDateTime' :
+      // Fix for systems with EVENT_SORT_ORDER set to erroneous StartDateTime.
+      $_REQUEST['sort_field'] = 'StartTime';
       $sortColumn = 'E.StartTime';
       break;
     case 'EndTime' :
       $sortColumn = 'E.EndTime';
       break;
     case 'EndDateTime' :
+      $_REQUEST['sort_field'] = 'EndTime';
       $sortColumn = 'E.EndTime';
       break;
     case 'Length' :
@@ -1077,7 +1080,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $Filter = ZM\Filter::parse($filter, $querySep);
 
   $filter['sql'] = $Filter->sql();
-  $filter['querystring'] = $Filter->querystring($querySep);
+  $filter['querystring'] = $Filter->querystring('filter', $querySep);
   $filter['hidden_fields'] = $Filter->hidden_fields();
   $filter['pre_sql_conditions'] = $Filter->pre_sql_conditions();
   $filter['post_sql_conditions'] = $Filter->post_sql_conditions();

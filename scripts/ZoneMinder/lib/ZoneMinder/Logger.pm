@@ -159,7 +159,7 @@ sub new {
   ( $this->{fileName} = $0 ) =~ s|^.*/||;
   $this->{logPath} = $ZoneMinder::Config::Config{ZM_PATH_LOGS};
   $this->{logFile} = $this->{logPath}.'/'.$this->{id}.'.log';
-  ($this->{logFile}) = $this->{logFile} =~ /^([\w\.\/]+)$/;
+  ($this->{logFile}) = $this->{logFile} =~ /^([_\-\w\.\/]+)$/;
 
   $this->{trace} = 0;
 

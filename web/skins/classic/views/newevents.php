@@ -23,6 +23,26 @@ if ( !canView('Events') || (!empty($_REQUEST['execute']) && !canEdit('Events')) 
   return;
 }
 
+require_once('includes/Event.php');
+require_once('includes/Filter.php');
+
+$eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
+if ( $user['MonitorIds'] ) {
+  $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
+  $eventsSql .= $user_monitor_ids;
+} else {
+  $eventsSql .= ' 1';
+}
+
+$filter = isset($_REQUEST['filter_id']) ? new ZM\Filter($_REQUEST['filter_id']) : new ZM\Filter();
+if ( isset($_REQUEST['filter'])) {
+  $filter->set($_REQUEST['filter']);
+}
+
+parseSort();
+
+$filterQuery = $filter->querystring();
+
 xhtmlHeaders(__FILE__, translate('Events'));
 getBodyTopHTML();
 

@@ -26,6 +26,11 @@ if ( $message ) {
   return;
 }
 
+$filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : new ZM\Filter();
+if ( $user['MonitorIds'] ) {
+  $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
+}
+
 // Search contains a user entered string to search on
 $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
 
@@ -75,7 +80,7 @@ switch ( $task ) {
     foreach ( $eids as $eid ) $data[] = deleteRequest($eid);
     break;
   case 'query' :
-    $data = queryRequest($search, $advsearch, $sort, $offset, $order, $limit);
+    $data = queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit);
     break;
   default :
     ZM\Fatal("Unrecognised task '$task'");
@@ -109,7 +114,7 @@ function deleteRequest($eid) {
   return $message;
 }
 
-function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
+function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit) {
   // Put server pagination code here
   // The table we want our data from
   $table = 'Events';
@@ -127,9 +132,9 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $col_str = '';
   foreach ( $columns as $key => $col ) {
     if ( $col == 'Name' ) {
-      $columns[$key] = 'Monitors.'.$col;
+      $columns[$key] = 'M.'.$col;
     } else {
-      $columns[$key] = $table.'.'.$col;
+      $columns[$key] = 'E.'.$col;
     }
   }
   $col_str = implode(', ', $columns);
@@ -137,7 +142,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $query = array();
   $query['values'] = array();
   $likes = array();
-  $where = '';
+  $where = ($filter->sql()?'('.$filter->sql().')' : '');
   // There are two search bars in the log view, normal and advanced
   // Making an exuctive decision to ignore the normal search, when advanced search is in use
   // Alternatively we could try to do both
@@ -153,7 +158,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       array_push($query['values'], $text);
     }
     $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
+    $where = ' AND (' .implode(' OR ', $likes). ')';
 
   } else if ( $search != '' ) {
 
@@ -163,17 +168,20 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       array_push($query['values'], $search);
     }
     $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
-  }  
+    $where = ' AND (' .implode(' OR ', $likes). ')';
+  }
+  if ( $where )
+    $where = ' WHERE '.$where;
 
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` INNER JOIN Monitors ON Events.MonitorId = Monitors.Name' .$where. ' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  $col_str = 'E.*';
+  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
 
   ZM\Warning('Calling the following sql query: ' .$query['sql']);
 
-  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
+  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table . ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
   if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $wherevalues);
+    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table . ' AS E'.$where , 'Total', $wherevalues);
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
@@ -192,7 +200,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
 
   $rows = array();
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
-    $event = new ZM\Event($row['Id']);
+    ZM\Debug("row".print_r($row,true));
+    $event = new ZM\Event($row);
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
     $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
     $streamSrc = $event->getStreamSrc(array(

@@ -114,7 +114,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   // The table we want our data from
   $table = 'Events';
 
-  // The names of the dB columns in the log table we are interested in
+  // The names of the dB columns in the events table we are interested in
   $columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartTime', 'EndTime', 'Length', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'Notes', 'DiskSpace');
 
   // The names of columns shown in the event view that are NOT dB columns in the database
@@ -124,6 +124,14 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     ZM\Fatal('Invalid sort field: ' . $sort);
   }
 
+  $col_str = '';
+  foreach ( $columns as $key => $col ) {
+    if ( $col == 'Name' ) {
+      $columns[$key] = 'Monitors.'.$col;
+    } else {
+      $columns[$key] = $table.'.'.$col;
+    }
+  }
   $col_str = implode(', ', $columns);
   $data = array();
   $query = array();
@@ -140,8 +148,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
         ZM\Error("'$col' is not a sortable column name");
         continue;
       }
-      //Don't use wildcards. Let the user specify them if needed.
-      //$text = '%' .$text. '%';
+      $text = '%' .$text. '%';
       array_push($likes, $col.' LIKE ?');
       array_push($query['values'], $text);
     }
@@ -159,7 +166,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     $where = ' WHERE (' .implode(' OR ', $likes). ')';
   }  
 
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` INNER JOIN Monitors ON Events.MonitorId = Monitors.Name' .$where. ' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
 
   ZM\Warning('Calling the following sql query: ' .$query['sql']);
@@ -196,7 +203,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
-    $row['Monitor'] = ( $row['MonitorId'] and isset($MonitorById[$row['MonitorId']]) ) ? $MonitorById[$row['MonitorId']]->Name() : '';
+    //$row['Monitor'] = ( $row['MonitorId'] and isset($MonitorById[$row['MonitorId']]) ) ? $MonitorById[$row['MonitorId']]->Name() : '';
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['StartTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
     $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));

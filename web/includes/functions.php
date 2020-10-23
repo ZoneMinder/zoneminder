@@ -1080,7 +1080,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $Filter = ZM\Filter::parse($filter, $querySep);
 
   $filter['sql'] = $Filter->sql();
-  $filter['querystring'] = $Filter->querystring($querySep);
+  $filter['querystring'] = $Filter->querystring('filter', $querySep);
   $filter['hidden_fields'] = $Filter->hidden_fields();
   $filter['pre_sql_conditions'] = $Filter->pre_sql_conditions();
   $filter['post_sql_conditions'] = $Filter->post_sql_conditions();

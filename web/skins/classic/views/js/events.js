@@ -35,7 +35,8 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  $j.getJSON(thisUrl + '?view=request&request=events&task=query', params.data)
+  console.log(params);
+  $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
       .done(function(data) {
         var rows = processRows(data.rows);
         // rearrange the result into what bootstrap-table expects

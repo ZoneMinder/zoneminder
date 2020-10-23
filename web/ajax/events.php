@@ -36,12 +36,7 @@ $advsearch = isset($_REQUEST['filter']) ? json_decode($_REQUEST['filter'], JSON_
 // Sort specifies the name of the column to sort on
 $sort = 'StartTime';
 if ( isset($_REQUEST['sort']) ) {
-  if ( !in_array($_REQUEST['sort'], array_merge($columns, $col_alt)) ) {
-    ZM\Error('Invalid sort field: ' . $_REQUEST['sort']);
-  } else {
-    $sort = $_REQUEST['sort'];
-    //if ( $sort == 'DateTime' ) $sort = 'TimeKey';
-  }
+  $sort = $_REQUEST['sort'];
 }
 
 // Offset specifies the starting row to return, used for pagination
@@ -122,8 +117,12 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   // The names of the dB columns in the log table we are interested in
   $columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartTime', 'EndTime', 'Length', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'Notes', 'DiskSpace');
 
-  // The names of columns shown in the log view that are NOT dB columns in the database
+  // The names of columns shown in the event view that are NOT dB columns in the database
   $col_alt = array('Monitor', 'Storage');
+
+  if ( !in_array($sort, array_merge($columns, $col_alt)) ) {
+    ZM\Fatal('Invalid sort field: ' . $sort);
+  }
 
   $col_str = implode(', ', $columns);
   $data = array();
@@ -141,7 +140,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
         ZM\Error("'$col' is not a sortable column name");
         continue;
       }
-      $text = '%' .$text. '%';
+      //Don't use wildcards. Let the user specify them if needed.
+      //$text = '%' .$text. '%';
       array_push($likes, $col.' LIKE ?');
       array_push($query['values'], $text);
     }
@@ -162,7 +162,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
 
-  //ZM\Warning('Calling the following sql query: ' .$query['sql']);
+  ZM\Warning('Calling the following sql query: ' .$query['sql']);
 
   $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
   if ( $search != '' || count($advsearch) ) {

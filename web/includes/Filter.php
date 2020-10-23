@@ -52,14 +52,14 @@ class Filter extends ZM_Object {
     return $this->_sql;
   }
 
-  public function querystring($separator='&amp;') {
-    if ( (! isset($this->_querystring)) or ( $separator != '&amp;' ) ) {
+  public function querystring($objectname='filter', $separator='&amp;') {
+    if ( (! isset($this->_querystring)) or ( $separator != '&amp;' ) or ($objectname != 'filter') ) {
       $this->_querystring = '';
       foreach ( $this->FilterTerms() as $term ) {
-        $this->_querystring .= $term->querystring($separator);
+        $this->_querystring .= $term->querystring($objectname, $separator);
       } # end foreach term
       if ( $this->Id() ) {
-        $this->_querystring .= $separator.'filter[Id]='.$this->Id();
+        $this->_querystring .= $separator.$objectname.'[Id]='.$this->Id();
       }
     }
     return $this->_querystring;

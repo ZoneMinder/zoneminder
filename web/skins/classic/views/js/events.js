@@ -35,7 +35,7 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  if ( params.data.filter ) {
+  if ( params.data && params.data.filter ) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
   }

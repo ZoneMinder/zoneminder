@@ -212,14 +212,14 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
-    //$row['Monitor'] = ( $row['MonitorId'] and isset($MonitorById[$row['MonitorId']]) ) ? $MonitorById[$row['MonitorId']]->Name() : '';
+    $row['Monitor'] = ( $row['MonitorId'] and isset($MonitorById[$row['MonitorId']]) ) ? $MonitorById[$row['MonitorId']]->Name() : '';
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['StartTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
     $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
     $row['Length'] = gmdate('H:i:s', $row['Length'] );
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
     $row['Notes'] = htmlspecialchars($row['Notes']);
-    $row['DiskSpace'] = human_filesize($row['DiskSpace']);
+    $row['DiskSpace'] = human_filesize($event->DiskSpace());
     $rows[] = $row;
   }
   $data['rows'] = $rows;

@@ -129,15 +129,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     ZM\Fatal('Invalid sort field: ' . $sort);
   }
 
-  $col_str = '';
-  foreach ( $columns as $key => $col ) {
-    if ( $col == 'Name' ) {
-      $columns[$key] = 'M.'.$col;
-    } else {
-      $columns[$key] = 'E.'.$col;
-    }
-  }
-  $col_str = implode(', ', $columns);
   $data = array();
   $query = array();
   $query['values'] = array();
@@ -174,7 +165,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $where = ' WHERE '.$where;
 
   $sort = $sort == "Name" ? 'M.'.$sort : 'E.'.$sort;
-  $col_str = 'E.*';
+  $col_str = 'E.*, M.Name AS Monitor';
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
 

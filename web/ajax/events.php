@@ -173,6 +173,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   if ( $where )
     $where = ' WHERE '.$where;
 
+  $sort = $sort == "Name" ? 'M.'.$sort : 'E.'.$sort;
   $col_str = 'E.*';
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
@@ -192,12 +193,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $StorageById[$S->Id()] = $S;
   }
 
-  $monitor_names = ZM\Monitor::find();
-  $MonitorById = array();
-  foreach ( $monitor_names as $S ) {
-    $MonitorById[$S->Id()] = $S;
-  }
-
   $rows = array();
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
     ZM\Debug("row".print_r($row,true));
@@ -212,7 +207,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
-    $row['Monitor'] = ( $row['MonitorId'] and isset($MonitorById[$row['MonitorId']]) ) ? $MonitorById[$row['MonitorId']]->Name() : '';
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['StartTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
     $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));

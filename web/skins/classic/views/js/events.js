@@ -321,13 +321,6 @@ function initPage() {
     $j('#deleteConfirm').modal('show');
   });
 
-  // Manage the eventdetail links in the events list
-  $j(".eDetailLink").click(function(evt) {
-    evt.preventDefault();
-    var eid = $j(this).data('eid');
-    getEventDetailModal(eid);
-  });
-
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
     // Manage the eventdetail links in the events list

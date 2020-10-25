@@ -35,7 +35,10 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  console.log(params);
+  if ( params.data && params.data.filter ) {
+    params.data.advsearch = params.data.filter;
+    delete params.data.filter;
+  }
   $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
       .done(function(data) {
         var rows = processRows(data.rows);
@@ -55,7 +58,7 @@ function processRows(rows) {
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
     row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>'
                + '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
-    if ( canEditMonitors ) row.Name = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Name + '</a>';
+    if ( canEditMonitors ) row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
     if ( canEditEvents ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {
       row.Cause = row.Cause + '<a href="#?view=image&amp;eid=' + eid + '&amp;fid=objdetect"><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></a>';

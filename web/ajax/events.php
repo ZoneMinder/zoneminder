@@ -129,15 +129,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     ZM\Fatal('Invalid sort field: ' . $sort);
   }
 
-  $col_str = '';
-  foreach ( $columns as $key => $col ) {
-    if ( $col == 'Name' ) {
-      $columns[$key] = 'M.'.$col;
-    } else {
-      $columns[$key] = 'E.'.$col;
-    }
-  }
-  $col_str = implode(', ', $columns);
   $data = array();
   $query = array();
   $query['values'] = array();
@@ -173,8 +164,10 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   if ( $where )
     $where = ' WHERE '.$where;
 
-  $col_str = 'E.*';
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  $sort = $sort == "Monitor" ? 'M.Name' : 'E.'.$sort;
+  $col_str = 'E.*, M.Name AS Monitor';
+  //$query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
 
   ZM\Warning('Calling the following sql query: ' .$query['sql']);
@@ -192,12 +185,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $StorageById[$S->Id()] = $S;
   }
 
-  $monitor_names = ZM\Monitor::find();
-  $MonitorById = array();
-  foreach ( $monitor_names as $S ) {
-    $MonitorById[$S->Id()] = $S;
-  }
-
   $rows = array();
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
     ZM\Debug("row".print_r($row,true));
@@ -212,14 +199,13 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
-    //$row['Monitor'] = ( $row['MonitorId'] and isset($MonitorById[$row['MonitorId']]) ) ? $MonitorById[$row['MonitorId']]->Name() : '';
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['StartTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
     $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
     $row['Length'] = gmdate('H:i:s', $row['Length'] );
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
     $row['Notes'] = htmlspecialchars($row['Notes']);
-    $row['DiskSpace'] = human_filesize($row['DiskSpace']);
+    $row['DiskSpace'] = human_filesize($event->DiskSpace());
     $rows[] = $row;
   }
   $data['rows'] = $rows;

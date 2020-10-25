@@ -164,9 +164,10 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   if ( $where )
     $where = ' WHERE '.$where;
 
-  $sort = $sort == "Name" ? 'M.'.$sort : 'E.'.$sort;
+  $sort = $sort == "Monitor" ? 'M.Name' : 'E.'.$sort;
   $col_str = 'E.*, M.Name AS Monitor';
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  //$query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
 
   ZM\Warning('Calling the following sql query: ' .$query['sql']);

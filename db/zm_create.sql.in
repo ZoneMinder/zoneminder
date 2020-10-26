@@ -303,6 +303,7 @@ CREATE TABLE `Filters` (
   `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
   `Concurrent` tinyint(1) unsigned NOT NULL default '0',
+  `LockRows` tinyint(1) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
   KEY `Name` (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;

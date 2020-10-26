@@ -372,9 +372,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
     if ( data.auth ) {
       if ( data.auth != auth_hash ) {
+        console.log("Update auth_hash to "+data.auth);
         // Update authentication token.
         auth_hash = data.auth;
       }
+    }
+    if ( data.auth_relay ) {
+      auth_relay = data.auth_relay;
     }
     // iterate through all the keys then update each element id with the same name
     for (var key of Object.keys(data)) {

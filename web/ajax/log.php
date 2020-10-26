@@ -66,7 +66,7 @@ if ( isset($_REQUEST['limit']) ) {
 
 switch ( $task ) {
   case 'create' :
-    createRequest($task, $eid);
+    createRequest();
     break;
   case 'query' :
     $data = queryRequest($search, $advsearch, $sort, $offset, $order, $limit);
@@ -82,27 +82,27 @@ ajaxResponse($data);
 //
 
 function createRequest() {
-    if ( !empty($_POST['level']) && !empty($_POST['message']) ) {
-      ZM\logInit(array('id'=>'web_js'));
+  if ( !empty($_POST['level']) && !empty($_POST['message']) ) {
+    ZM\logInit(array('id'=>'web_js'));
 
-      $string = $_POST['message'];
+    $string = $_POST['message'];
 
-      $file = !empty($_POST['file']) ? preg_replace('/\w+:\/\/[\w.:]+\//', '', $_POST['file']) : '';
-      if ( !empty($_POST['line']) ) {
-        $line = validInt($_POST['line']);
-      } else {
-        $line = NULL;
-      }
-
-      $levels = array_flip(ZM\Logger::$codes);
-      if ( !isset($levels[$_POST['level']]) ) {
-        ZM\Panic('Unexpected logger level '.$_POST['level']);
-      }
-      $level = $levels[$_POST['level']];
-      ZM\Logger::fetch()->logPrint($level, $string, $file, $line);
+    $file = !empty($_POST['file']) ? preg_replace('/\w+:\/\/[\w.:]+\//', '', $_POST['file']) : '';
+    if ( !empty($_POST['line']) ) {
+      $line = validInt($_POST['line']);
     } else {
-      ZM\Error('Invalid log create: '.print_r($_POST, true));
+      $line = NULL;
     }
+
+    $levels = array_flip(ZM\Logger::$codes);
+    if ( !isset($levels[$_POST['level']]) ) {
+      ZM\Panic('Unexpected logger level '.$_POST['level']);
+    }
+    $level = $levels[$_POST['level']];
+    ZM\Logger::fetch()->logPrint($level, $string, $file, $line);
+  } else {
+    ZM\Error('Invalid log create: '.print_r($_POST, true));
+  }
 }
 
 function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {

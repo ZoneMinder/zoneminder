@@ -351,6 +351,11 @@ if ( currentView != 'none' && currentView != 'login' ) {
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
+          if ( ! jqxhr.responseText ) {
+            console.log("No responseText in jqxhr");
+            console.log(jqxhr);
+            return;
+          }
           console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, ''));
           if ( textStatus != "timeout" ) {
           // The idea is that this should only fail due to auth, so reload the page

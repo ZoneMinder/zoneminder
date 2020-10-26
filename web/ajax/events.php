@@ -155,11 +155,11 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
     foreach ( $advsearch as $col=>$text ) {
       if ( in_array($col, $columns) ) {
-        $text = '%' .$text. '%';
+        //$text = '%' .$text. '%';
         array_push($likes, 'E.'.$col.' LIKE ?');
         array_push($query['values'], $text);
       } else if ( in_array($col, $col_alt) ) {
-        $text = '%' .$text. '%';
+        //$text = '%' .$text. '%';
         array_push($likes, 'M.'.$col.' LIKE ?');
         array_push($query['values'], $text);
       } else {

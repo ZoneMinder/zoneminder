@@ -139,7 +139,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $col_alt = array('Monitor', 'Storage');
 
   if ( !in_array($sort, array_merge($columns, $col_alt)) ) {
-    ZM\Fatal('Invalid sort field: ' . $sort);
+    ZM\Error('Invalid sort field: ' . $sort);
+    $sort = 'Id';
   }
 
   $data = array();
@@ -153,26 +154,31 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   if ( count($advsearch) ) {
 
     foreach ( $advsearch as $col=>$text ) {
-      if ( !in_array($col, array_merge($columns, $col_alt)) ) {
+      if ( in_array($col, $columns) ) {
+        $text = '%' .$text. '%';
+        array_push($likes, 'E.'.$col.' LIKE ?');
+        array_push($query['values'], $text);
+      } else if ( in_array($col, $col_alt) ) {
+        $text = '%' .$text. '%';
+        array_push($likes, 'M.'.$col.' LIKE ?');
+        array_push($query['values'], $text);
+      } else {
         ZM\Error("'$col' is not a sortable column name");
         continue;
       }
-      $text = '%' .$text. '%';
-      array_push($likes, $col.' LIKE ?');
-      array_push($query['values'], $text);
-    }
+    } # end foreach col in advsearch
     $wherevalues = $query['values'];
-    $where = ' AND (' .implode(' OR ', $likes). ')';
+    $where .= ($where != '') ? ' AND (' .implode(' OR ', $likes). ')' : implode(' OR ', $likes);
 
   } else if ( $search != '' ) {
 
     $search = '%' .$search. '%';
     foreach ( $columns as $col ) {
-      array_push($likes, $col.' LIKE ?');
+      array_push($likes, 'E.'.$col.' LIKE ?');
       array_push($query['values'], $search);
     }
     $wherevalues = $query['values'];
-    $where = ' AND (' .implode(' OR ', $likes). ')';
+    $where .= ( $where != '') ? ' AND (' .implode(' OR ', $likes). ')' : implode(' OR ', $likes);
   }
   if ( $where )
     $where = ' WHERE '.$where;

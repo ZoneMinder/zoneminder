@@ -336,6 +336,7 @@ function initPage() {
     table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail zoom');
   });
 
+  table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
 }

@@ -188,8 +188,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
 
-  ZM\Debug('Calling the following sql query: ' .$query['sql']);
-
+  //ZM\Debug('Calling the following sql query: ' .$query['sql']);
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -217,7 +216,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['StartTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
-    $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
+    $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['EndTime']));
     $row['Length'] = gmdate('H:i:s', $row['Length'] );
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
     $row['Notes'] = htmlspecialchars($row['Notes']);

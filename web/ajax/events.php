@@ -169,7 +169,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
 
-  ZM\Warning('Calling the following sql query: ' .$query['sql']);
+  //ZM\Warning('Calling the following sql query: ' .$query['sql']);
 
   $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table . ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
   if ( $search != '' || count($advsearch) ) {

@@ -115,6 +115,19 @@ function deleteRequest($eid) {
 }
 
 function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit) {
+  $data = array(
+    'total'   =>  0,
+    'totalNotFiltered' => 0,
+    'rows'    =>  array(),
+    'updated' => preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG)
+  );
+
+  $failed = !$filter->test_pre_sql_conditions();
+  if ( $failed ) {
+    ZM\Debug('Pre conditions failed, not doing sql');
+    return $data;
+  }
+
   // Put server pagination code here
   // The table we want our data from
   $table = 'Events';
@@ -138,7 +151,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     }
   }
   $col_str = implode(', ', $columns);
-  $data = array();
   $query = array();
   $query['values'] = array();
   $likes = array();
@@ -177,14 +189,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
 
-  ZM\Warning('Calling the following sql query: ' .$query['sql']);
+  ZM\Debug('Calling the following sql query: ' .$query['sql']);
 
-  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table . ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table . ' AS E'.$where , 'Total', $wherevalues);
-  } else {
-    $data['total'] = $data['totalNotFiltered'];
-  }
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -202,6 +208,10 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
     ZM\Debug("row".print_r($row,true));
     $event = new ZM\Event($row);
+    if ( !$filter->test_post_sql_conditions($event) ) {
+      $event->remove_from_cache();
+      continue;
+    }
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
     $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
     $streamSrc = $event->getStreamSrc(array(
@@ -223,8 +233,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $rows[] = $row;
   }
   $data['rows'] = $rows;
-  $data['updated'] = preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG);
 
+  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table. ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
+    $data['total'] = count($rows);
   return $data;
 }
 ?>

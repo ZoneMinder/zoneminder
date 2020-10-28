@@ -135,7 +135,7 @@ function manageDelConfirmModalBtns() {
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
+          $j('#deleteConfirm').modal('hide');
         })
         .fail(logAjaxFail);
   });
@@ -238,7 +238,6 @@ function initPage() {
     $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
         })
         .fail(logAjaxFail);
   });
@@ -257,11 +256,8 @@ function initPage() {
     $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
         })
         .fail(logAjaxFail);
-
-    //window.location.reload(true);
   });
 
   // Manage the EDIT button

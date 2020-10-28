@@ -408,10 +408,10 @@ class Logger {
       }
     }
 
-    $message = $code.' ['.$string.']';
     if ( $level <= $this->syslogLevel )
-      syslog( self::$syslogPriorities[$level], $message );
+      syslog(self::$syslogPriorities[$level], $message);
 
+    $message = $code.' ['.$string.']';
     if ( $level <= $this->databaseLevel ) {
       try {
         global $dbConn;

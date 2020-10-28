@@ -26,7 +26,7 @@ create_update_user () {
     echo "CREATE USER '${ZM_DB_USER}'@${ZM_DB_HOST} IDENTIFIED BY '${ZM_DB_PASS}';" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
   fi
   echo "Updating permissions"
-  echo "GRANT LOCK tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine,trigger,execute ON ${ZM_DB_NAME}.* TO '${ZM_DB_USER}'@${ZM_DB_HOST};" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+  echo "GRANT LOCK tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine,trigger,execute,REFERENCES ON ${ZM_DB_NAME}.* TO '${ZM_DB_USER}'@${ZM_DB_HOST};" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 }
 
 update_db () {

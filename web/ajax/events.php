@@ -155,11 +155,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
     foreach ( $advsearch as $col=>$text ) {
       if ( in_array($col, $columns) ) {
-        //$text = '%' .$text. '%';
         array_push($likes, 'E.'.$col.' LIKE ?');
         array_push($query['values'], $text);
       } else if ( in_array($col, $col_alt) ) {
-        //$text = '%' .$text. '%';
         array_push($likes, 'M.'.$col.' LIKE ?');
         array_push($query['values'], $text);
       } else {
@@ -198,7 +196,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   $rows = array();
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
-    ZM\Debug("row".print_r($row,true));
     $event = new ZM\Event($row);
     if ( !$filter->test_post_sql_conditions($event) ) {
       $event->remove_from_cache();
@@ -207,7 +204,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
     $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
     $streamSrc = $event->getStreamSrc(array(
-                        'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
+      'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
 
     // Modify the row data as needed
     $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="' .validHtmlStr('Event ' .$event->Id()). '" style="width:' .validInt($event->ThumbnailWidth()). 'px;height:' .validInt($event->ThumbnailHeight()).'px;" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"/>';
@@ -225,8 +222,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   }
   $data['rows'] = $rows;
 
-  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table. ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
-    $data['total'] = count($rows);
+  # total has to be the # of available rows.  Not sure what totalNotFiltered is actually used for yet.
+  $data['totalNotFiltered'] = $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table. ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
+  #$data['total'] = count($rows);
   return $data;
 }
 ?>

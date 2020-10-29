@@ -216,7 +216,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['EndTime']));
     $row['Length'] = gmdate('H:i:s', $row['Length'] );
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
-    $row['Notes'] = htmlspecialchars($row['Notes']);
+    $row['Notes'] = nl2br(htmlspecialchars($row['Notes']));
     $row['DiskSpace'] = human_filesize($event->DiskSpace());
     $rows[] = $row;
   }

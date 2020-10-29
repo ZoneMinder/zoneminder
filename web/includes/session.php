@@ -147,7 +147,7 @@ class Session {
     $now = time();
     $old = $now - $max;
     ZM\Debug('doing session gc ' . $now . '-' . $max. '='.$old);
-    $sth = $this->db->prepare('DELETE * FROM Sessions WHERE access < :old');
+    $sth = $this->db->prepare('DELETE FROM Sessions WHERE access < :old');
     $sth->bindParam(':old', $old, PDO::PARAM_INT);
     return $sth->execute() ? true : false;
   }

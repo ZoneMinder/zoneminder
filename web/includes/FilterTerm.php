@@ -292,19 +292,19 @@ class FilterTerm {
     return $sql;
   } # end public function sql
 
-  public function querystring($querySep='&amp;') {
+  public function querystring($objectname='filter', $querySep='&amp;') {
     # We don't validate the term parameters here
     $query = '';
     if ( $this->cnj ) 
-      $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][cnj]').'='.$this->cnj;
+      $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][cnj]').'='.$this->cnj;
     if ( $this->obr )
-      $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][obr]').'='.$this->obr;
+      $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][obr]').'='.$this->obr;
 
-    $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][attr]').'='.urlencode($this->attr);
-    $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][op]').'='.urlencode($this->op);
-    $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][val]').'='.urlencode($this->val);
+    $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][attr]').'='.urlencode($this->attr);
+    $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][op]').'='.urlencode($this->op);
+    $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][val]').'='.urlencode($this->val);
     if ( $this->cbr )
-      $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][cbr]').'='.$this->cbr;
+      $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][cbr]').'='.$this->cbr;
     return $query;
   } # end public function querystring
 

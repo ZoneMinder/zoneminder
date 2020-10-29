@@ -947,7 +947,7 @@ function initPage() {
 
   // Only enable the settings button for local cameras
   settingsBtn.prop('disabled', !(monitorType == 'Local' && canViewControl));
-}
+} // initPage
 
 // Kick everything off
 $j(document).ready(initPage);

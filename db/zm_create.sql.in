@@ -303,6 +303,7 @@ CREATE TABLE `Filters` (
   `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
   `Concurrent` tinyint(1) unsigned NOT NULL default '0',
+  `LockRows` tinyint(1) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
   KEY `Name` (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -315,6 +316,7 @@ DROP TABLE IF EXISTS `Frames`;
 CREATE TABLE `Frames` (
   `Id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `EventId` BIGINT UNSIGNED NOT NULL default '0',
+  FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,
   `FrameId` int(10) unsigned NOT NULL default '0',
   `Type` enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
@@ -608,8 +610,11 @@ DROP TABLE IF EXISTS `Stats`;
 CREATE TABLE `Stats` (
   `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `MonitorId` int(10) unsigned NOT NULL default '0',
+  FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE,
   `ZoneId` int(10) unsigned NOT NULL default '0',
+  FOREIGN KEY (`ZoneId`) REFERENCES `Zones` (`Id`) ON DELETE CASCADE,
   `EventId` BIGINT UNSIGNED NOT NULL,
+  FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,
   `FrameId` int(10) unsigned NOT NULL default '0',
   `PixelDiff` tinyint(3) unsigned NOT NULL default '0',
   `AlarmPixels` int(10) unsigned NOT NULL default '0',
@@ -704,6 +709,7 @@ DROP TABLE IF EXISTS `Zones`;
 CREATE TABLE `Zones` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
+  FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE,
   `Name` varchar(64) NOT NULL default '',
   `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive','Privacy') NOT NULL default 'Active',
   `Units` enum('Pixels','Percent') NOT NULL default 'Pixels',

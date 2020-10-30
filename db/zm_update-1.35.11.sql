@@ -10,7 +10,7 @@ set @exist := (select count(*) FROM information_schema.key_column_usage where ta
 
 set @sqlstmt := if( @exist > 1, "SELECT 'You have more than 1 FOREIGN KEY. Please do manual cleanup'", "SELECT 'Ok'");
 set @sqlstmt := if( @exist = 1, "SELECT 'FOREIGN KEY EventId in Frames already exists'", @sqlstmt);
-set @sqlstmt := if( @exist = 0, "SELECT 'Adding foreign key for EventId to Frames", @sqlstmt);
+set @sqlstmt := if( @exist = 0, "SELECT 'Adding foreign key for EventId to Frames'", @sqlstmt);
 PREPARE stmt FROM @sqlstmt;
 EXECUTE stmt;
 

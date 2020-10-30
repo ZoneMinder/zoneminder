@@ -349,6 +349,10 @@ sub GenerateVideo {
   return;
 } # end sub GenerateVideo
 
+# Note about transactions, this function may be called with rows locked and hence in a transaction.
+# So we will detect if we are in a transaction, and if not, start one.  We will NOT do rollback or 
+# commits unless we started the transaction.
+
 sub delete {
   my $event = $_[0];
 
@@ -378,23 +382,25 @@ sub delete {
     Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from ".$event->Path());
     $ZoneMinder::Database::dbh->ping();
 
-    $ZoneMinder::Database::dbh->begin_work();
-    #$event->lock_and_load();
+    my $in_transaction = $ZoneMinder::Database::dbh->{AutoCommit} ? 0 : 1;
 
-    ZoneMinder::Database::zmDbDo('DELETE FROM Frames WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit();
-      return;
-    }
+    $ZoneMinder::Database::dbh->begin_work() if ! $in_transaction;
+
+    # Going to delete in order of least value to greatest value. Stats is least and references Frames
     ZoneMinder::Database::zmDbDo('DELETE FROM Stats WHERE EventId=?', $$event{Id});
     if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit();
+      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
+      return;
+    }
+    ZoneMinder::Database::zmDbDo('DELETE FROM Frames WHERE EventId=?', $$event{Id});
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
       return;
     }
 
     # Do it individually to avoid locking up the table for new events
     ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
-    $ZoneMinder::Database::dbh->commit();
+    $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {

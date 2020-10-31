@@ -664,7 +664,6 @@ int FfmpegCamera::OpenFfmpeg() {
 }  // int FfmpegCamera::OpenFfmpeg()
 
 int FfmpegCamera::Close() {
-  Debug(2, "CloseFfmpeg called.");
 
   mCanCapture = false;
 

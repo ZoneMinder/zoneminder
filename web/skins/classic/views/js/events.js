@@ -61,7 +61,7 @@ function processRows(rows) {
     if ( canEditMonitors ) row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
     if ( canEditEvents ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {
-      row.Cause = row.Cause + '<a href="#?view=image&amp;eid=' + eid + '&amp;fid=objdetect"><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></a>';
+      row.Cause = row.Cause + '<a href="?view=image&amp;eid=' + eid + '&amp;fid=objdetect"><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></a>';
     } else if ( row.Notes != 'Forced Web: ' ) {
       row.Cause = row.Cause + '<br/><div class="small text-nowrap text-muted">' + row.Notes + '</div>';
     }
@@ -135,7 +135,7 @@ function manageDelConfirmModalBtns() {
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
+          $j('#deleteConfirm').modal('hide');
         })
         .fail(logAjaxFail);
   });
@@ -238,7 +238,6 @@ function initPage() {
     $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
         })
         .fail(logAjaxFail);
   });
@@ -257,11 +256,8 @@ function initPage() {
     $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
         })
         .fail(logAjaxFail);
-
-    //window.location.reload(true);
   });
 
   // Manage the EDIT button
@@ -321,13 +317,6 @@ function initPage() {
     $j('#deleteConfirm').modal('show');
   });
 
-  // Manage the eventdetail links in the events list
-  $j(".eDetailLink").click(function(evt) {
-    evt.preventDefault();
-    var eid = $j(this).data('eid');
-    getEventDetailModal(eid);
-  });
-
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
     // Manage the eventdetail links in the events list
@@ -343,6 +332,7 @@ function initPage() {
     table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail zoom');
   });
 
+  table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
 }

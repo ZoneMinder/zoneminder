@@ -77,6 +77,7 @@ UpdateDiskSpace
 UserId
 Background
 Concurrent
+LockRows
 );
 
 sub Execute {
@@ -102,6 +103,8 @@ sub Execute {
     my $load = getLoad();
     $sql =~ s/zmSystemLoad/$load/g;
   }
+
+  $sql .= ' FOR UPDATE' if $$self{LockRows};
 
   Debug("Filter::Execute SQL ($sql)");
   my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)

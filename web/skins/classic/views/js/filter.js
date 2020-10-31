@@ -74,35 +74,32 @@ function validateForm(form) {
 
 function updateButtons(element) {
   var form = element.form;
-  if ( element.type == 'checkbox' && element.checked ) {
-    form.elements['executeButton'].disabled = false;
-  } else {
-    var canExecute = false;
-    if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoMove]'] && form.elements['filter[AutoMove]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '' ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoDelete]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
-      canExecute = true;
-    }
-    form.elements['executeButton'].disabled = !canExecute;
+
+  var canExecute = false;
+  if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoMove]'] && form.elements['filter[AutoMove]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '' ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoDelete]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
+    canExecute = true;
   }
+  form.elements['executeButton'].disabled = !canExecute;
   if ( form.elements['filter[Name]'].value ) {
     form.elements['Save'].disabled = false;
     form.elements['SaveAs'].disabled = false;

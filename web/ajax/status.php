@@ -6,6 +6,7 @@ if ( $_REQUEST['entity'] == 'navBar' ) {
     $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
     if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
       $data['auth'] = $auth_hash;
+      $data['auth_relay'] = get_auth_relay();
     }
   }
   // Each widget on the navbar has its own function

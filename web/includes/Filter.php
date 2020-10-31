@@ -29,6 +29,7 @@ class Filter extends ZM_Object {
     'Background'      =>  0,
     'Concurrent'      =>  0,
     'Query_json'      =>  '',
+    'LockRows'        =>  0,
   );
 
   protected $_querystring;

@@ -115,6 +115,19 @@ function deleteRequest($eid) {
 }
 
 function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit) {
+  $data = array(
+    'total'   =>  0,
+    'totalNotFiltered' => 0,
+    'rows'    =>  array(),
+    'updated' => preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG)
+  );
+
+  $failed = !$filter->test_pre_sql_conditions();
+  if ( $failed ) {
+    ZM\Debug('Pre conditions failed, not doing sql');
+    return $data;
+  }
+
   // Put server pagination code here
   // The table we want our data from
   $table = 'Events';
@@ -126,7 +139,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $col_alt = array('Monitor', 'Storage');
 
   if ( !in_array($sort, array_merge($columns, $col_alt)) ) {
-    ZM\Fatal('Invalid sort field: ' . $sort);
+    ZM\Error('Invalid sort field: ' . $sort);
+    $sort = 'Id';
   }
 
   $data = array();
@@ -140,44 +154,39 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   if ( count($advsearch) ) {
 
     foreach ( $advsearch as $col=>$text ) {
-      if ( !in_array($col, array_merge($columns, $col_alt)) ) {
+      if ( in_array($col, $columns) ) {
+        array_push($likes, 'E.'.$col.' LIKE ?');
+        array_push($query['values'], $text);
+      } else if ( in_array($col, $col_alt) ) {
+        array_push($likes, 'M.'.$col.' LIKE ?');
+        array_push($query['values'], $text);
+      } else {
         ZM\Error("'$col' is not a sortable column name");
         continue;
       }
-      $text = '%' .$text. '%';
-      array_push($likes, $col.' LIKE ?');
-      array_push($query['values'], $text);
-    }
+    } # end foreach col in advsearch
     $wherevalues = $query['values'];
-    $where = ' AND (' .implode(' OR ', $likes). ')';
+    $where .= ($where != '') ? ' AND (' .implode(' OR ', $likes). ')' : implode(' OR ', $likes);
 
   } else if ( $search != '' ) {
 
     $search = '%' .$search. '%';
     foreach ( $columns as $col ) {
-      array_push($likes, $col.' LIKE ?');
+      array_push($likes, 'E.'.$col.' LIKE ?');
       array_push($query['values'], $search);
     }
     $wherevalues = $query['values'];
-    $where = ' AND (' .implode(' OR ', $likes). ')';
+    $where .= ( $where != '') ? ' AND (' .implode(' OR ', $likes). ')' : implode(' OR ', $likes);
   }
   if ( $where )
     $where = ' WHERE '.$where;
 
-  $sort = $sort == "Monitor" ? 'M.Name' : 'E.'.$sort;
+  $sort = $sort == 'Monitor' ? 'M.Name' : 'E.'.$sort;
   $col_str = 'E.*, M.Name AS Monitor';
-  //$query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY LENGTH(' .$sort. '), ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
 
-  ZM\Warning('Calling the following sql query: ' .$query['sql']);
-
-  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table . ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table . ' AS E'.$where , 'Total', $wherevalues);
-  } else {
-    $data['total'] = $data['totalNotFiltered'];
-  }
+  //ZM\Debug('Calling the following sql query: ' .$query['sql']);
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -187,12 +196,15 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   $rows = array();
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
-    ZM\Debug("row".print_r($row,true));
     $event = new ZM\Event($row);
+    if ( !$filter->test_post_sql_conditions($event) ) {
+      $event->remove_from_cache();
+      continue;
+    }
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
     $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
     $streamSrc = $event->getStreamSrc(array(
-                        'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
+      'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
 
     // Modify the row data as needed
     $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="' .validHtmlStr('Event ' .$event->Id()). '" style="width:' .validInt($event->ThumbnailWidth()). 'px;height:' .validInt($event->ThumbnailHeight()).'px;" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"/>';
@@ -201,16 +213,18 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['StartTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
-    $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
+    $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['EndTime']));
     $row['Length'] = gmdate('H:i:s', $row['Length'] );
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
-    $row['Notes'] = htmlspecialchars($row['Notes']);
+    $row['Notes'] = nl2br(htmlspecialchars($row['Notes']));
     $row['DiskSpace'] = human_filesize($event->DiskSpace());
     $rows[] = $row;
   }
   $data['rows'] = $rows;
-  $data['updated'] = preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG);
 
+  # total has to be the # of available rows.  Not sure what totalNotFiltered is actually used for yet.
+  $data['totalNotFiltered'] = $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table. ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
+  #$data['total'] = count($rows);
   return $data;
 }
 ?>

@@ -485,6 +485,10 @@ if ( ZM_OPT_MESSAGE ) {
               <label for="Concurrent"><?php echo translate('ConcurrentFilter') ?></label>
               <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( $filter->Concurrent() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
+            <p>
+              <label for="LockRows"><?php echo translate('FilterLockRows') ?></label>
+              <input type="checkbox" id="filter[LockRows]" name="filter[LockRows]" value="1"<?php if ( $filter->LockRows() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+            </p>
         </div>
         <hr/>
         <div id="contentButtons">

@@ -181,6 +181,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   if ( $where )
     $where = ' WHERE '.$where;
 
+  # total has to be the # of available rows.  Not sure what totalNotFiltered is actually used for yet.
+  $data['totalNotFiltered'] = $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'. $where, 'Total', $query['values']);
+
   $sort = $sort == 'Monitor' ? 'M.Name' : 'E.'.$sort;
   $col_str = 'E.*, M.Name AS Monitor';
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
@@ -195,6 +198,10 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   }
 
   $rows = array();
+  $results = dbFetchAll($query['sql'], NULL, $query['values']);
+  if ( ! $results ) {
+    return $data;
+  }
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
     $event = new ZM\Event($row);
     if ( !$filter->test_post_sql_conditions($event) ) {
@@ -222,8 +229,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   }
   $data['rows'] = $rows;
 
-  # total has to be the # of available rows.  Not sure what totalNotFiltered is actually used for yet.
-  $data['totalNotFiltered'] = $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table. ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
   #$data['total'] = count($rows);
   return $data;
 }

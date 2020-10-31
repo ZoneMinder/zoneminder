@@ -222,9 +222,14 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   }
   $data['rows'] = $rows;
 
-  # total has to be the # of available rows.  Not sure what totalNotFiltered is actually used for yet.
-  $data['totalNotFiltered'] = $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table. ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
-  #$data['total'] = count($rows);
+  # totalNotFiltered must equal total, except when either search bar has been used
+  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table. ' AS E'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
+  if ( $search != '' || count($advsearch) ) {
+    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table. ' AS E'.$where , 'Total', $wherevalues);
+  } else {
+    $data['total'] = $data['totalNotFiltered'];
+  }
+
   return $data;
 }
 ?>

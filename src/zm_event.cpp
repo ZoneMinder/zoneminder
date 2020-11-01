@@ -571,6 +571,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
 
 void Event::WriteDbFrames() {
   char *frame_insert_values_ptr = (char *)&frame_insert_sql + 90; // 90 == strlen(frame_insert_sql); 
+  Debug(1, "Inserting %d frames", frame_data.size());
   while ( frame_data.size() ) {
     Frame *frame = frame_data.front();
     frame_data.pop();
@@ -586,8 +587,9 @@ void Event::WriteDbFrames() {
         frame->score);
     delete frame;
   }
-  *(frame_insert_values_ptr-1) = '\0'; // The -2 is for the extra , added for values above
+  *(frame_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
   db_mutex.lock();
+  Debug(1, "SQL: %s", frame_insert_sql);
   int rc = mysql_query(&dbconn, frame_insert_sql);
   db_mutex.unlock();
 

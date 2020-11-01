@@ -49,7 +49,7 @@ protected:
   const int  &mWd;
 
 protected:
-  CommsBase( int &rd, int &wd ) : mRd( rd ), mWd( wd ) {
+  CommsBase(const int &rd, const int &wd) : mRd(rd), mWd(wd) {
   }
   virtual ~CommsBase() {
   }
@@ -62,10 +62,10 @@ public:
 
 public:
   int getReadDesc() const {
-    return( mRd );
+    return mRd;
   }
   int getWriteDesc() const {
-    return( mWd );
+    return mWd;
   }
   int getMaxDesc() const {
     return( mRd>mWd?mRd:mWd );

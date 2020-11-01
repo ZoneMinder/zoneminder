@@ -68,19 +68,26 @@ class FifoStream : public StreamBase {
         );
 
  protected:
-    typedef enum { MJPEG, RAW } StreamType;
+    typedef enum { UNKNOWN, MJPEG, RAW } StreamType;
     StreamType  stream_type;
     bool sendMJEGFrames();
     bool sendRAWFrames();
     void processCommand(const CmdMsg *msg) {}
 
  public:
-    FifoStream() {}
+    FifoStream() : 
+      stream_path(nullptr),
+      fd(0),
+      total_read(0),
+      bytes_read(0),
+      frame_count(0),
+      stream_type(UNKNOWN)
+    {}
     static void fifo_create_if_missing(
         const char * path,
         bool delete_fake_fifo = true);
     void setStreamStart(const char * path);
     void setStreamStart(int monitor_id, const char * format);
-    void runStream();
+    void runStream() override;
 };
 #endif  // ZM_FIFO_H

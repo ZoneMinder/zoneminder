@@ -48,12 +48,12 @@ public:
     return( result );
   }
 
-  inline bool operator==( const Coord &coord ) { return( x == coord.x && y == coord.y ); }
-  inline bool operator!=( const Coord &coord ) { return( x != coord.x || y != coord.y ); }
-  inline bool operator>( const Coord &coord ) { return( x > coord.x && y > coord.y ); }
-  inline bool operator>=( const Coord &coord ) { return( !(operator<(coord)) ); }
-  inline bool operator<( const Coord &coord ) { return( x < coord.x && y < coord.y ); }
-  inline bool operator<=( const Coord &coord ) { return( !(operator>(coord)) ); }
+  inline bool operator==( const Coord &coord ) const { return( x == coord.x && y == coord.y ); }
+  inline bool operator!=( const Coord &coord ) const { return( x != coord.x || y != coord.y ); }
+  inline bool operator>( const Coord &coord ) const { return( x > coord.x && y > coord.y ); }
+  inline bool operator>=( const Coord &coord ) const { return( !(operator<(coord)) ); }
+  inline bool operator<( const Coord &coord ) const { return( x < coord.x && y < coord.y ); }
+  inline bool operator<=( const Coord &coord ) const { return( !(operator>(coord)) ); }
   inline Coord &operator+=( const Coord &coord ) { x += coord.x; y += coord.y; return( *this ); }
   inline Coord &operator-=( const Coord &coord ) { x -= coord.x; y -= coord.y; return( *this ); }
 

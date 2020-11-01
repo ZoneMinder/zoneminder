@@ -88,7 +88,9 @@ Event::Event(
 
   char sql[ZM_SQL_MED_BUFSIZ];
   struct tm *stime = localtime(&start_time.tv_sec);
-  snprintf(sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) VALUES ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
+  snprintf(sql, sizeof(sql), "INSERT INTO Events "
+      "( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme )"
+     " VALUES ( %u, %u, 'New Event', from_unixtime( %ld ), %u, %u, '%s', '%s', %u, %d, %d, '%s', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,
@@ -684,7 +686,6 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
   bool db_frame = ( frame_type != BULK ) || (frames==1) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
-    static char sql[ZM_SQL_MED_BUFSIZ];
 
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
@@ -694,6 +695,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
       WriteDbFrames();
       last_db_frame = frames;
 
+      static char sql[ZM_SQL_MED_BUFSIZ];
       snprintf(sql, sizeof(sql), 
           "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64, 
           ( delta_time.positive?"":"-" ),

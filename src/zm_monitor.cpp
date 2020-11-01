@@ -2654,10 +2654,6 @@ bool Monitor::closeEvent() {
   if ( !event )
     return false;
 
-  if ( function == RECORD || function == MOCORD ) {
-    //FIXME Is this neccessary? ENdTime should be set in the destructor
-    gettimeofday(&(event->EndTime()), nullptr);
-  }
   if ( event_delete_thread ) {
     event_delete_thread->join();
     delete event_delete_thread;

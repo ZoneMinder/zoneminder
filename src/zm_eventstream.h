@@ -133,7 +133,7 @@ class EventStream : public StreamBase {
     void setStreamMode( StreamMode p_mode ) {
       mode = p_mode;
     }
-    void runStream();
+    void runStream() override;
     Image *getImage();
   private:
     bool send_file( const char *file_path );

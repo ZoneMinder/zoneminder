@@ -336,7 +336,7 @@ bool Event::WriteFrameImage(
     Image *image,
     struct timeval timestamp,
     const char *event_file,
-    bool alarm_frame) {
+    bool alarm_frame) const {
 
   int thisquality = 
     (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?

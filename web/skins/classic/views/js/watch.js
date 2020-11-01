@@ -946,7 +946,8 @@ function initPage() {
   });
 
   // Only enable the settings button for local cameras
-  settingsBtn.prop('disabled', !(monitorType == 'Local' && canViewControl));
+  settingsBtn.prop('disabled', !canViewControl);
+  if ( monitorType != 'Local' ) settingsBtn.hide();
 } // initPage
 
 // Kick everything off

@@ -181,7 +181,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   if ( $where )
     $where = ' WHERE '.$where;
 
-
   $sort = $sort == 'Monitor' ? 'M.Name' : 'E.'.$sort;
   $col_str = 'E.*, M.Name AS Monitor';
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
@@ -196,10 +195,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   }
 
   $rows = array();
-  $results = dbFetchAll($query['sql'], NULL, $query['values']);
-  if ( ! $results ) {
-    return $data;
-  }
   foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
     $event = new ZM\Event($row);
     if ( !$filter->test_post_sql_conditions($event) ) {
@@ -218,7 +213,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['StartTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartTime']));
-    $row['EndTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['EndTime']));
+    $row['EndTime'] = $row['EndTime'] ? strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['EndTime'])) : null;
     $row['Length'] = gmdate('H:i:s', $row['Length'] );
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
     $row['Notes'] = nl2br(htmlspecialchars($row['Notes']));
@@ -228,13 +223,13 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $data['rows'] = $rows;
 
   # totalNotFiltered must equal total, except when either search bar has been used
-  $data['totalNotFiltered'] = dbFetchOne(
-    'SELECT count(*) AS Total FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
+  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
   if ( $search != '' || count($advsearch) ) {
     $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where , 'Total', $wherevalues);
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
+
   return $data;
 }
 ?>

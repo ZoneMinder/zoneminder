@@ -189,13 +189,13 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
     if ( storage_path[0] == '/' )
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%d/%02d/%02d/%02d/%02d/%02d/%02d",
+          "%s/%u/%02d/%02d/%02d/%02d/%02d/%02d",
           storage_path, event_data->monitor_id,
           event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday,
           event_time->tm_hour, event_time->tm_min, event_time->tm_sec);
     else
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%s/%d/%02d/%02d/%02d/%02d/%02d/%02d",
+          "%s/%s/%u/%02d/%02d/%02d/%02d/%02d/%02d",
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday,
           event_time->tm_hour, event_time->tm_min, event_time->tm_sec);
@@ -203,23 +203,23 @@ bool EventStream::loadEventData(uint64_t event_id) {
     struct tm *event_time = localtime(&event_data->start_time);
     if ( storage_path[0] == '/' )
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%d/%04d-%02d-%02d/%" PRIu64,
+          "%s/%u/%04d-%02d-%02d/%" PRIu64,
           storage_path, event_data->monitor_id,
           event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday,
           event_data->event_id);
     else
       snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%s/%d/%04d-%02d-%02d/%" PRIu64,
+          "%s/%s/%u/%04d-%02d-%02d/%" PRIu64,
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
-          event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, 
+          event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday,
           event_data->event_id);
 
   } else {
     if ( storage_path[0] == '/' )
-      snprintf(event_data->path, sizeof(event_data->path), "%s/%d/%" PRIu64,
+      snprintf(event_data->path, sizeof(event_data->path), "%s/%u/%" PRIu64,
           storage_path, event_data->monitor_id, event_data->event_id);
     else
-      snprintf(event_data->path, sizeof(event_data->path), "%s/%s/%d/%" PRIu64, 
+      snprintf(event_data->path, sizeof(event_data->path), "%s/%s/%u/%" PRIu64,
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_data->event_id);
   }
@@ -527,7 +527,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
         if ( offset < 0.0 ) {
           Warning("Invalid offset, not seeking");
           break;
-        } 
+        }
         // This should get us close, but not all frames will have the same duration
         curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration)+1;
         if ( event_data->frames[curr_frame_id-1].offset > offset ) {
@@ -539,10 +539,10 @@ void EventStream::processCommand(const CmdMsg *msg) {
         }
         if ( curr_frame_id < 1 ) {
           curr_frame_id = 1;
-        } else if ( curr_frame_id > event_data->last_frame_id ) {
+        } else if ( (unsigned long)curr_frame_id > event_data->last_frame_id ) {
           curr_frame_id = event_data->last_frame_id;
         }
-          
+
         curr_stream_time = event_data->frames[curr_frame_id-1].timestamp;
         Debug(1, "Got SEEK command, to %f (new current frame id: %d offset %f)",
             offset, curr_frame_id, event_data->frames[curr_frame_id-1].offset);
@@ -795,7 +795,7 @@ bool EventStream::sendFrame(int delta_us) {
         Error("Unable to get a frame");
         return false;
       }
-      
+
       Image *send_image = prepareImage(image);
       static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
       int img_buffer_size = 0;
@@ -882,7 +882,7 @@ void EventStream::runStream() {
       // If we are streaming and this frame is due to be sent
       // frame mod defaults to 1 and if we are going faster than max_fps will get multiplied by 2
       // so if it is 2, then we send every other frame, if is it 4 then every fourth frame, etc.
- 
+
       if ( (frame_mod == 1) || (((curr_frame_id-1)%frame_mod) == 0) ) {
         send_frame = true;
       }
@@ -964,7 +964,7 @@ void EventStream::runStream() {
       if ( (mode == MODE_SINGLE) && (
             (curr_frame_id < 1 )
             ||
-            ((unsigned int)curr_frame_id >= event_data->frame_count) 
+            ((unsigned int)curr_frame_id >= event_data->frame_count)
             )
          ) {
         Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
@@ -1055,9 +1055,8 @@ void EventStream::runStream() {
   closeComms();
 } // end void EventStream::runStream()
 
-bool EventStream::send_file(const char * filepath) {
+bool EventStream::send_file(const char *filepath) {
   static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
-  int rc;
 
   int img_buffer_size = 0;
   uint8_t *img_buffer = temp_img_buffer;
@@ -1085,7 +1084,7 @@ bool EventStream::send_file(const char * filepath) {
     Info("Unable to send raw frame %u: %s", curr_frame_id, strerror(errno));
     return false;
   }
-  rc = zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size);
+  int rc = zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size);
   if ( rc == (int)filestat.st_size ) {
     // Success
     fclose(fdj); /* Close the file handle */

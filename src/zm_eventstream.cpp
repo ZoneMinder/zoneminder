@@ -424,6 +424,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
         switch ( replay_rate ) {
           case -1 * ZM_RATE_BASE :
             replay_rate = -2 * ZM_RATE_BASE;
+            break;
           case -2 * ZM_RATE_BASE :
             replay_rate = -5 * ZM_RATE_BASE;
             break;

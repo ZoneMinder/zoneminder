@@ -292,7 +292,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   if ( (nbytes = sendto(sd, &status_msg, sizeof(status_msg), MSG_DONTWAIT, (sockaddr *)&rem_addr, sizeof(rem_addr))) < 0 ) {
     //if ( errno != EAGAIN )
     {
-      Error( "Can't sendto on sd %d: %s", sd, strerror(errno) );
+      Error("Can't sendto on sd %d: %s", sd, strerror(errno));
       //exit( -1 );
     }
   }
@@ -503,7 +503,7 @@ void MonitorStream::runStream() {
     const int max_swap_len_suffix = 15;
 
     int swap_path_length = staticConfig.PATH_SWAP.length() + 1; // +1 for NULL terminator
-    int subfolder1_length = snprintf(nullptr, 0, "/zmswap-m%d", monitor->Id()) + 1;
+    int subfolder1_length = snprintf(nullptr, 0, "/zmswap-m%u", monitor->Id()) + 1;
     int subfolder2_length = snprintf(nullptr, 0, "/zmswap-q%06d", connkey) + 1;
     int total_swap_path_length = swap_path_length + subfolder1_length + subfolder2_length;
 
@@ -874,7 +874,7 @@ void MonitorStream::SingleImageRaw(int scale) {
   }
 
   fprintf(stdout,
-      "Content-Length: %d\r\n"
+      "Content-Length: %u\r\n"
       "Content-Type: image/x-rgb\r\n\r\n",
       snap_image->Size());
   fwrite(snap_image->Buffer(), snap_image->Size(), 1, stdout);

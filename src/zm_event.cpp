@@ -256,6 +256,11 @@ Event::~Event() {
     videowriter = nullptr;
   }
 
+  // endtime is set in AddFrame, so SHOULD be set to the value of the last frame timestamp.
+  if ( ! end_time.tv_sec ) {
+    Warning("Empty endtime for event.  Should not happen.  Setting to now.");
+    gettimeofday(&end_time, nullptr);
+  }
   struct DeltaTimeval delta_time;
   DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
   Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
@@ -569,6 +574,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
   } else {
     Debug(1, "No valid pre-capture frames to add");
   }
+  end_time = *timestamps[n_frames-1];
 }  // void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, struct timeval **timestamps)
 
 void Event::WriteDbFrames() {

@@ -804,7 +804,7 @@ INSERT INTO `Filters`
   VALUES
   (
     'PurgeWhenFull',
-    '{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',
+    '{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="},{"cnj":"and","obr":"0","attr":"EndDateTime","op":"IS NOT","val":"NULL","cbr":"0"}],"limit":100,"sort_asc":1}',
     0/*AutoArchive*/,
     0/*AutoVideo*/,
     0/*AutoUpload*/,

@@ -848,7 +848,7 @@ INSERT INTO `Filters`
   )
 VALUES (
   'Update DiskSpace',
-  '{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',
+  '{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"},{"cnj":"and","obr":"0","attr":"EndDateTime","op":"IS NOT","val":"NULL","cbr":"0"}]}',
   0/*AutoArchive*/,
   0/*AutoVideo*/,
   0/*AutoUpload*/,

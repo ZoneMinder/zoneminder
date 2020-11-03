@@ -53,16 +53,16 @@ foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
     $filter = $Filter;
   }
 }
-if ( !$filter ) {
+if ( !$filter )  {
   $filter = new ZM\Filter();
-
-  if ( isset($_REQUEST['filter']) ) {
-    # Update our filter object with whatever changes we have made before saving
-    $filter->set($_REQUEST['filter']);
-  }
-} else {
-  ZM\Debug('filter: ' . print_r($filter,true));
 }
+
+if ( isset($_REQUEST['filter']) ) {
+  # Update our filter object with whatever changes we have made before saving
+  $filter->set($_REQUEST['filter']);
+  ZM\Debug("Setting filter from " . print_r($_REQUEST['filter'], true));
+}
+ZM\Debug('filter: ' . print_r($filter,true));
 
 $conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
 $obracketTypes = array();

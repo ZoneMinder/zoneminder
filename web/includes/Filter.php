@@ -60,7 +60,7 @@ class Filter extends ZM_Object {
         $this->_querystring .= $term->querystring($objectname, $separator);
       } # end foreach term
       if ( $this->Id() ) {
-        $this->_querystring .= $separator.$objectname.'[Id]='.$this->Id();
+        $this->_querystring .= $separator.$objectname.urlencode('[Id]=').$this->Id();
       }
     }
     return $this->_querystring;

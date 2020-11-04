@@ -13,6 +13,7 @@ function getFilterQueryConjunctionTypes() {
   return $validConjunctionTypes;
 }
 
+
 class FilterTerm {
   public $filter;
   public $index;
@@ -35,7 +36,7 @@ class FilterTerm {
     $this->val = $term['val'];
     if ( isset($term['cnj']) ) {
       if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
-      $this->cnj = $term['cnj'];
+        $this->cnj = $term['cnj'];
       } else {
         Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
       }
@@ -65,7 +66,8 @@ class FilterTerm {
       return $values;
     }
 
-    foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val)) as $value ) {
+    $vals = is_array($this->val) ? $this->val : preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val));
+    foreach ( $vals as $value ) {
 
       switch ( $this->attr ) {
 
@@ -75,7 +77,7 @@ class FilterTerm {
       case 'ExistsInFileSystem':
         $value = '';
         break;
-      case 'DiskSpace':
+      case 'DiskPercent':
         $value = '';
         break;
       case 'MonitorName':
@@ -83,7 +85,7 @@ class FilterTerm {
       case 'Name':
       case 'Cause':
       case 'Notes':
-        if ( $this->op == 'LIKE' || $this->op == 'NOT LIKE' ) {
+        if ( strstr($this->op, 'LIKE') and ! strstr($this->val, '%' ) ) {
           $value = '%'.$value.'%';
         }
         $value = dbEscape($value);
@@ -145,7 +147,7 @@ class FilterTerm {
     case 'AlarmZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':
-    case 'DiskSpace':
+    case 'DiskPercent':
       return '';
     }
 
@@ -202,7 +204,7 @@ class FilterTerm {
 
     switch ( $this->attr ) {
     case 'ExistsInFileSystem':
-    case 'DiskSpace':
+    case 'DiskPercent':
       $sql .= 'TRUE /*'.$this->attr.'*/';
       break;
     case 'MonitorName':
@@ -260,9 +262,10 @@ class FilterTerm {
     case 'EndWeekday':
       $sql .= 'weekday(E.EndTime)';
       break;
+    case 'Emailed':
     case 'Id':
     case 'Name':
-    case 'EventDiskSpace':
+    case 'DiskSpace':
     case 'MonitorId':
     case 'StorageId':
     case 'SecondaryStorageId':
@@ -400,21 +403,63 @@ class FilterTerm {
   }
   
   public function is_pre_sql() {
-    if ( $this->attr == 'DiskPercent' ) {
+    if ( $this->attr == 'DiskPercent' )
         return true;
-    }
+    if ( $this->attr == 'DiskBlocks' )
+        return true;
     return false;
   }
 
   public function is_post_sql() {
     if ( $this->attr == 'ExistsInFileSystem' ) {
         return true;
-    } else if ( $this->attr == 'DiskPercent' ) {
-        return true;
     }
     return false;
   }
 
+  public static function is_valid_attr($attr) {
+    $attrs = array(
+      'ExistsInFileSystem',
+      'Emailed',
+      'DiskSpace',
+      'DiskPercent',
+      'DiskBlocks',
+      'MonitorName',
+      'ServerId',
+      'MonitorServerId',
+      'StorageServerId',
+      'FilterServerId',
+      'DateTime',
+      'Date',
+      'Time',
+      'Weekday',
+      'StartDateTime',
+      'FramesEventId',
+      'StartDate',
+      'StartTime',
+      'StartWeekday',
+      'EndDateTime',
+      'EndDate',
+      'EndTime',
+      'EndWeekday',
+      'Id',
+      'Name',
+      'MonitorId',
+      'StorageId',
+      'SecondaryStorageId',
+      'Length',
+      'Frames',
+      'AlarmFrames',
+      'TotScore',
+      'AvgScore',
+      'MaxScore',
+      'Cause',
+      'Notes',
+      'StateId',
+      'Archived'
+    );
+    return in_array($attr, $attrs);
+  }
 } # end class FilterTerm
 
 ?>

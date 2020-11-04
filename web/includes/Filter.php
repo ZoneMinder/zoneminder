@@ -1,6 +1,7 @@
 <?php
 namespace ZM;
 require_once('Object.php');
+require_once('FilterTerm.php');
 
 class Filter extends ZM_Object {
   protected static $table = 'Filters';
@@ -632,6 +633,11 @@ class Filter extends ZM_Object {
 
   function addTerm($term=false, $position=null) {
 
+    if ( !FilterTerm::is_valid_attr($term['attr']) ) {
+      Error('Unsupported filter attribute ' . $term['attr']);
+      return $this;
+    }
+
     $terms = $this->terms();
 
     if ( (!isset($position)) or ($position > count($terms)) )
@@ -649,6 +655,13 @@ class Filter extends ZM_Object {
 
     return $this;
   } # end function addTerm
+
+  function addTerms($terms, $options=null) {
+    foreach ( $terms as $term ) {
+      $this->addTerm($term);
+    }
+    return $this;
+  }
 
 } # end class Filter
 ?>

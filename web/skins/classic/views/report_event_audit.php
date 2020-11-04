@@ -65,8 +65,8 @@ $filterQuery = $filter['query'];
 ZM\Debug($filterQuery);
 
 $eventsSql = 'SELECT *,
-    UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
-    UNIX_TIMESTAMP(EndTime) AS EndTimeSecs
+    UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
+    UNIX_TIMESTAMP(EndDateTime) AS EndTimeSecs
   FROM Events AS E
   WHERE 1 > 0 
 ';
@@ -77,7 +77,7 @@ if ( count($selected_monitor_ids) ) {
   $eventsSql .= ' AND MonitorId IN ('.implode(',', $selected_monitor_ids).')';
 }
 if ( isset($minTime) && isset($maxTime) ) {
-  $eventsSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
+  $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
 }
 $eventsSql .= ' ORDER BY Id ASC';
 
@@ -211,8 +211,8 @@ for ( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             </div></td>
             <td class="colServer"><?php echo validHtmlStr($Monitor->Server()->Name())?></td>
             <td class="colEvents"><a href="?view=<?php echo ZM_WEB_EVENTS_VIEW ?>&amp;page=1<?php echo $monitor_filter['query'] ?>"><?php echo isset($EventsByMonitor[$Monitor->Id()])?count($EventsByMonitor[$Monitor->Id()]['Events']):0 ?></a></td>
-            <td class="colFirstEvent"><?php echo $FirstEvent ? $FirstEvent->link_to($FirstEvent->Id().' at '.$FirstEvent->StartTime()) : 'none'?></td>
-            <td class="colLastEvent"><?php echo $LastEvent ? $LastEvent->link_to($LastEvent->Id().' at '.$LastEvent->StartTime()) : 'none'?></td>
+            <td class="colFirstEvent"><?php echo $FirstEvent ? $FirstEvent->link_to($FirstEvent->Id().' at '.$FirstEvent->StartDateTime()) : 'none'?></td>
+            <td class="colLastEvent"><?php echo $LastEvent ? $LastEvent->link_to($LastEvent->Id().' at '.$LastEvent->StartDateTime()) : 'none'?></td>
             <td class="colMinGap"><?php echo $MinGap ?></td>
             <td class="colMaxGap"><?php echo $MaxGap ?></td>
             <td class="colFileMissing<?php echo count($FileMissing) ? ' errorText' : ''?>">

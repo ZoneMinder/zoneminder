@@ -7,7 +7,7 @@ SET @s = (SELECT IF(
      AND column_name = 'StartDateTime'
     ) > 0,
 "SELECT 'Column StartDateTime already exists in Events'",
-"ALTER TABLE Events RENAME COLUMN StartTime TO StartDateTime"
+"ALTER TABLE Events CHANGE StartTime StartDateTime datetime default NULL"
 ));
 
 PREPARE stmt FROM @s;
@@ -19,7 +19,7 @@ SET @s = (SELECT IF(
     AND column_name = 'EndDateTime'
     ) > 0,
     "SELECT 'Column EndDateTime already exists in Events'",
-    "ALTER TABLE Events RENAME COLUMN EndTime TO EndDateTime"
+    "ALTER TABLE Events CHANGE EndTime EndDateTime datetime default NULL"
 ));
 
 PREPARE stmt FROM @s;
@@ -31,7 +31,7 @@ SET @s = (SELECT IF(
     AND column_name = 'StartDateTime'
     ) > 0,
     "SELECT 'Column StartDateTime already exists in Events_Hour'",
-    "ALTER TABLE Events_Hour RENAME COLUMN StartTime TO StartDateTime"
+    "ALTER TABLE Events_Hour CHANGE StartTime StartDateTime datetime default NULL"
 ));
 
 PREPARE stmt FROM @s;
@@ -43,7 +43,7 @@ SET @s = (SELECT IF(
     AND column_name = 'StartDateTime'
     ) > 0,
     "SELECT 'Column StartDateTime already exists in Events_Day'",
-    "ALTER TABLE Events_Day RENAME COLUMN StartTime TO StartDateTime"
+    "ALTER TABLE Events_Day CHANGE StartTime StartDateTime datetime default NULL"
 ));
 
 PREPARE stmt FROM @s;
@@ -55,7 +55,7 @@ SET @s = (SELECT IF(
     AND column_name = 'StartDateTime'
     ) > 0,
     "SELECT 'Column StartDateTime already exists in Events_Week'",
-    "ALTER TABLE Events_Week RENAME COLUMN StartTime TO StartDateTime"
+    "ALTER TABLE Events_Week CHANGE StartTime StartDateTime datetime default NULL"
 ));
 
 PREPARE stmt FROM @s;
@@ -67,7 +67,7 @@ SET @s = (SELECT IF(
     AND column_name = 'StartDateTime'
     ) > 0,
     "SELECT 'Column StartDateTime already exists in Events_Month'",
-    "ALTER TABLE Events_Month RENAME COLUMN StartTime TO StartDateTime"
+    "ALTER TABLE Events_Month CHANGE StartTime StartDateTime datetime default NULL"
 ));
 
 PREPARE stmt FROM @s;

@@ -106,12 +106,10 @@ Event::Event(
       storage->SchemeString().c_str()
       );
   db_mutex.lock();
-  if ( mysql_query(&dbconn, sql) ) {
+  while ( mysql_query(&dbconn, sql) ) {
     db_mutex.unlock();
     Error("Can't insert event: %s. sql was (%s)", mysql_error(&dbconn), sql);
-    return;
-  } else {
-    Debug(2, "Created new event with %s", sql);
+    db_mutex.lock();
   }
   id = mysql_insert_id(&dbconn);
 

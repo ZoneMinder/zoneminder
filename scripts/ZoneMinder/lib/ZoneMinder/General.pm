@@ -262,21 +262,21 @@ sub createEvent {
     }
     $frame->{Type} = $frame->{Score}>0?'Alarm':'Normal' unless( $frame->{Type} );
     $frame->{Delta} = $lastTimestamp?($frame->{TimeStamp}-$lastTimestamp):0.0;
-    $event->{StartTime} = $frame->{TimeStamp} unless ( $event->{StartTime} );
+    $event->{StartDateTime} = $frame->{TimeStamp} unless ( $event->{StartDateTime} );
     $event->{TotScore} += $frame->{Score};
     $event->{MaxScore} = $frame->{Score} if ( $frame->{Score} > $event->{MaxScore} );
     $event->{AlarmFrames}++ if ( $frame->{Type} eq 'Alarm' );
-    $event->{EndTime} = $frame->{TimeStamp};
+    $event->{EndDateTime} = $frame->{TimeStamp};
     $lastTimestamp = $frame->{TimeStamp};
   }
   $event->{Width} = $event->{monitor}->{Width} unless( $event->{Width} );
   $event->{Height} = $event->{monitor}->{Height} unless( $event->{Height} );
   $event->{AvgScore} = $event->{TotScore}/int($event->{AlarmFrames});
-  $event->{Length} = $event->{EndTime} - $event->{StartTime};
+  $event->{Length} = $event->{EndDateTime} - $event->{StartDateTime};
 
   my %formats = (
-      StartTime => 'from_unixtime(?)',
-      EndTime => 'from_unixtime(?)',
+      StartDateTime => 'from_unixtime(?)',
+      EndDateTime => 'from_unixtime(?)',
       );
 
   my ( @fields, @formats, @values );
@@ -297,7 +297,7 @@ sub createEvent {
   $event->{Id} = $dbh->{mysql_insertid};
   Info( "Created event ".$event->{Id} );
 
-  if ( $event->{EndTime} ) {
+  if ( $event->{EndDateTime} ) {
     $event->{Name} = $event->{monitor}->{EventPrefix}.$event->{Id}
     if ( $event->{Name} eq 'New Event' );
     my $sql = "update Events set Name = ? where Id = ?";
@@ -383,8 +383,8 @@ sub updateEvent {
   if ( $event->{Name} eq 'New Event' );
 
   my %formats = (
-      StartTime => 'from_unixtime(?)',
-      EndTime => 'from_unixtime(?)',
+      StartDateTime => 'from_unixtime(?)',
+      EndDateTime => 'from_unixtime(?)',
       );
 
   my ( @values, @sets );

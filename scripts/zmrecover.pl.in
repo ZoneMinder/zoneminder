@@ -231,7 +231,7 @@ Debug("@Monitors");
                 $Event->Height( $Monitor->Height() );
                 $Event->Orientation( $Monitor->Orientation() );
                 $Event->recover_timestamps();
-                if ( $$Event{StartTime} ) {
+                if ( $$Event{StartDateTime} ) {
                   $Event->save({}, 1);
                   Info("Event resurrected as " . $Event->to_string() );
                 } else {
@@ -294,7 +294,7 @@ Debug("@Monitors");
                 $Event->StorageId( $Storage->Id() );
                 $Event->DiskSpace( undef );
                 $Event->recover_timestamps();
-                if ( $$Event{StartTime} ) {
+                if ( $$Event{StartDateTime} ) {
                   $Event->save({}, 1);
                   Info("Event resurrected as " . $Event->to_string() );
                 } else {
@@ -309,13 +309,13 @@ Debug("@Monitors");
             my ( undef, $year, $month, $day ) = split('/', $day_dir);
             $year += 2000;
             my ( $hour, $minute, $second ) = split('/', $event_dir);
-            my $StartTime =sprintf('%.4d-%.2d-%.2d %.2d:%.2d:%.2d', $year, $month, $day, $hour, $minute, $second);
+            my $StartDateTime =sprintf('%.4d-%.2d-%.2d %.2d:%.2d:%.2d', $year, $month, $day, $hour, $minute, $second);
             my $Event = ZoneMinder::Event->find_one(
               MonitorId=>$monitor_dir,
-              StartTime=>$StartTime,
+              StartDateTime=>$StartDateTime,
             );
             if ( $Event ) {
-              Debug("Found event matching starttime on monitor $monitor_dir at $StartTime: " . $Event->to_string());
+              Debug("Found event matching starttime on monitor $monitor_dir at $StartDateTime: " . $Event->to_string());
               next;
             }
 
@@ -358,7 +358,7 @@ Debug("@Monitors");
             $Event->Orientation( $Monitor->Orientation() );
             $Event->StorageId( $Storage->Id() );
             $Event->recover_timestamps();
-            if ( $$Event{StartTime} ) {
+            if ( $$Event{StartDateTime} ) {
               $Event->save({}, 1);
               Info("Event resurrected as " . $Event->to_string() );
             } else {
@@ -400,7 +400,7 @@ Debug("@Monitors");
           $Event->Orientation( $Monitor->Orientation() );
           $Event->StorageId( $Storage->Id() );
           $Event->recover_timestamps();
-          if ( $$Event{StartTime} ) {
+          if ( $$Event{StartDateTime} ) {
             $Event->save({}, 1);
             Info("Event resurrected as " . $Event->to_string() );
           } else {

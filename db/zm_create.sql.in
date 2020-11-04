@@ -189,8 +189,8 @@ CREATE TABLE `Events` (
   `SecondaryStorageId`	smallint(5) unsigned default 0,
   `Name` varchar(64) NOT NULL default '',
   `Cause` varchar(32) NOT NULL default '',
-  `StartTime` datetime default NULL,
-  `EndTime` datetime default NULL,
+  `StartDateTime` datetime default NULL,
+  `EndDateTime` datetime default NULL,
   `Width` smallint(5) unsigned NOT NULL default '0',
   `Height` smallint(5) unsigned NOT NULL default '0',
   `Length` decimal(10,2) NOT NULL default '0.00',
@@ -216,52 +216,52 @@ CREATE TABLE `Events` (
   PRIMARY KEY (`Id`),
   KEY `Events_MonitorId_idx` (`MonitorId`),
   KEY `Events_StorageId_idx` (`StorageId`),
-  KEY `Events_StartTime_idx` (`StartTime`),
-  KEY `Events_EndTime_DiskSpace` (`EndTime`,`DiskSpace`)
+  KEY `Events_StartDateTime_idx` (`StartDateTime`),
+  KEY `Events_EndDateTime_DiskSpace` (`EndDateTime`,`DiskSpace`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 DROP TABLE IF EXISTS `Events_Hour`;
 CREATE TABLE `Events_Hour` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
+  `StartDateTime` datetime default NULL,
   `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Hour_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Hour_StartTime_idx` (`StartTime`)
+  KEY `Events_Hour_StartDateTime_idx` (`StartDateTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 DROP TABLE IF EXISTS `Events_Day`;
 CREATE TABLE `Events_Day` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
+  `StartDateTime` datetime default NULL,
   `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Day_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Day_StartTime_idx` (`StartTime`)
+  KEY `Events_Day_StartDateTime_idx` (`StartDateTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 DROP TABLE IF EXISTS `Events_Week`;
 CREATE TABLE `Events_Week` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
+  `StartDateTime` datetime default NULL,
   `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Week_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Week_StartTime_idx` (`StartTime`)
+  KEY `Events_Week_StartDateTime_idx` (`StartDateTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 DROP TABLE IF EXISTS `Events_Month`;
 CREATE TABLE `Events_Month` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
+  `StartDateTime` datetime default NULL,
   `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Month_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Month_StartTime_idx` (`StartTime`)
+  KEY `Events_Month_StartDateTime_idx` (`StartDateTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 

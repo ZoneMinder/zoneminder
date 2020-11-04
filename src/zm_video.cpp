@@ -216,7 +216,7 @@ int X264MP4Writer::Open() {
 int X264MP4Writer::Close() {
   /* Flush all pending frames */
   for ( int i = (x264_encoder_delayed_frames(x264enc) + 1); i > 0; i-- ) {
-Debug(1,"Encoding delayed frame");
+    Debug(1, "Encoding delayed frame");
     if ( x264encodeloop(true) < 0 )
       break;
   }
@@ -227,7 +227,7 @@ Debug(1,"Encoding delayed frame");
   /* Close MP4 handle */
   MP4Close(mp4h);
 
-  Debug(1,"Optimising");
+  Debug(1, "Optimising");
   /* Required for proper HTTP streaming */
   MP4Optimize((path + ".incomplete").c_str(), path.c_str());
 

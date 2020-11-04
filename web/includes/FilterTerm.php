@@ -13,6 +13,7 @@ function getFilterQueryConjunctionTypes() {
   return $validConjunctionTypes;
 }
 
+
 class FilterTerm {
   public $filter;
   public $index;
@@ -35,7 +36,7 @@ class FilterTerm {
     $this->val = $term['val'];
     if ( isset($term['cnj']) ) {
       if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
-      $this->cnj = $term['cnj'];
+        $this->cnj = $term['cnj'];
       } else {
         Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
       }
@@ -65,7 +66,8 @@ class FilterTerm {
       return $values;
     }
 
-    foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val)) as $value ) {
+    $vals = is_array($this->val) ? $this->val : preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val));
+    foreach ( $vals as $value ) {
 
       switch ( $this->attr ) {
 
@@ -75,7 +77,7 @@ class FilterTerm {
       case 'ExistsInFileSystem':
         $value = '';
         break;
-      case 'DiskSpace':
+      case 'DiskPercent':
         $value = '';
         break;
       case 'MonitorName':
@@ -83,7 +85,7 @@ class FilterTerm {
       case 'Name':
       case 'Cause':
       case 'Notes':
-        if ( $this->op == 'LIKE' || $this->op == 'NOT LIKE' ) {
+        if ( strstr($this->op, 'LIKE') and ! strstr($this->val, '%' ) ) {
           $value = '%'.$value.'%';
         }
         $value = dbEscape($value);
@@ -145,7 +147,7 @@ class FilterTerm {
     case 'AlarmZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':
-    case 'DiskSpace':
+    case 'DiskPercent':
       return '';
     }
 
@@ -202,7 +204,7 @@ class FilterTerm {
 
     switch ( $this->attr ) {
     case 'ExistsInFileSystem':
-    case 'DiskSpace':
+    case 'DiskPercent':
       $sql .= 'TRUE /*'.$this->attr.'*/';
       break;
     case 'MonitorName':
@@ -220,49 +222,50 @@ class FilterTerm {
       break;
       # Unspecified start or end, so assume start, this is to support legacy filters
     case 'DateTime':
-      $sql .= 'E.StartTime';
+      $sql .= 'E.StartDateTime';
       break;
     case 'Date':
-      $sql .= 'to_days(E.StartTime)';
+      $sql .= 'to_days(E.StartDateTime)';
       break;
     case 'Time':
-      $sql .= 'extract(hour_second FROM E.StartTime)';
+      $sql .= 'extract(hour_second FROM E.StartDateTime)';
       break;
     case 'Weekday':
-      $sql .= 'weekday(E.StartTime)';
+      $sql .= 'weekday(E.StartDateTime)';
       break;
       # Starting Time
     case 'StartDateTime':
-      $sql .= 'E.StartTime';
+      $sql .= 'E.StartDateTime';
       break;
     case 'FramesEventId':
       $sql .= 'F.EventId';
       break;
     case 'StartDate':
-      $sql .= 'to_days(E.StartTime)';
+      $sql .= 'to_days(E.StartDateTime)';
       break;
     case 'StartTime':
-      $sql .= 'extract(hour_second FROM E.StartTime)';
+      $sql .= 'extract(hour_second FROM E.StartDateTime)';
       break;
     case 'StartWeekday':
-      $sql .= 'weekday(E.StartTime)';
+      $sql .= 'weekday(E.StartDateTime)';
       break;
       # Ending Time
     case 'EndDateTime':
-      $sql .= 'E.EndTime';
+      $sql .= 'E.EndDateTime';
       break;
     case 'EndDate':
-      $sql .= 'to_days(E.EndTime)';
+      $sql .= 'to_days(E.EndDateTime)';
       break;
     case 'EndTime':
-      $sql .= 'extract(hour_second FROM E.EndTime)';
+      $sql .= 'extract(hour_second FROM E.EndDateTime)';
       break;
     case 'EndWeekday':
-      $sql .= 'weekday(E.EndTime)';
+      $sql .= 'weekday(E.EndDateTime)';
       break;
+    case 'Emailed':
     case 'Id':
     case 'Name':
-    case 'EventDiskSpace':
+    case 'DiskSpace':
     case 'MonitorId':
     case 'StorageId':
     case 'SecondaryStorageId':
@@ -400,21 +403,63 @@ class FilterTerm {
   }
   
   public function is_pre_sql() {
-    if ( $this->attr == 'DiskPercent' ) {
+    if ( $this->attr == 'DiskPercent' )
         return true;
-    }
+    if ( $this->attr == 'DiskBlocks' )
+        return true;
     return false;
   }
 
   public function is_post_sql() {
     if ( $this->attr == 'ExistsInFileSystem' ) {
         return true;
-    } else if ( $this->attr == 'DiskPercent' ) {
-        return true;
     }
     return false;
   }
 
+  public static function is_valid_attr($attr) {
+    $attrs = array(
+      'ExistsInFileSystem',
+      'Emailed',
+      'DiskSpace',
+      'DiskPercent',
+      'DiskBlocks',
+      'MonitorName',
+      'ServerId',
+      'MonitorServerId',
+      'StorageServerId',
+      'FilterServerId',
+      'DateTime',
+      'Date',
+      'Time',
+      'Weekday',
+      'StartDateTime',
+      'FramesEventId',
+      'StartDate',
+      'StartTime',
+      'StartWeekday',
+      'EndDateTime',
+      'EndDate',
+      'EndTime',
+      'EndWeekday',
+      'Id',
+      'Name',
+      'MonitorId',
+      'StorageId',
+      'SecondaryStorageId',
+      'Length',
+      'Frames',
+      'AlarmFrames',
+      'TotScore',
+      'AvgScore',
+      'MaxScore',
+      'Cause',
+      'Notes',
+      'StateId',
+      'Archived'
+    );
+    return in_array($attr, $attrs);
+  }
 } # end class FilterTerm
 
 ?>

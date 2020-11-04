@@ -1,6 +1,7 @@
 <?php
 namespace ZM;
 require_once('Object.php');
+require_once('FilterTerm.php');
 
 class Filter extends ZM_Object {
   protected static $table = 'Filters';
@@ -60,7 +61,7 @@ class Filter extends ZM_Object {
         $this->_querystring .= $term->querystring($objectname, $separator);
       } # end foreach term
       if ( $this->Id() ) {
-        $this->_querystring .= $separator.$objectname.'[Id]='.$this->Id();
+        $this->_querystring .= $separator.$objectname.urlencode('[Id]=').$this->Id();
       }
     }
     return $this->_querystring;
@@ -391,35 +392,35 @@ class Filter extends ZM_Object {
           break;
         case 'DateTime':
         case 'StartDateTime':
-          $sqlValue = 'E.StartTime';
+          $sqlValue = 'E.StartDateTime';
           $dtAttr = true;
           break;
         case 'Date':
         case 'StartDate':
-          $sqlValue = 'to_days(E.StartTime)';
+          $sqlValue = 'to_days(E.StartDateTime)';
           $dtAttr = true;
           break;
         case 'Time':
         case 'StartTime':
-          $sqlValue = 'extract(hour_second from E.StartTime)';
+          $sqlValue = 'extract(hour_second from E.StartDateTime)';
           break;
         case 'Weekday':
         case 'StartWeekday':
-          $sqlValue = 'weekday(E.StartTime)';
+          $sqlValue = 'weekday(E.StartDateTime)';
           break;
         case 'EndDateTime':
-          $sqlValue = 'E.EndTime';
+          $sqlValue = 'E.EndDateTime';
           $dtAttr = true;
           break;
         case 'EndDate':
-          $sqlValue = 'to_days(E.EndTime)';
+          $sqlValue = 'to_days(E.EndDateTime)';
           $dtAttr = true;
           break;
         case 'EndTime':
-          $sqlValue = 'extract(hour_second from E.EndTime)';
+          $sqlValue = 'extract(hour_second from E.EndDateTime)';
           break;
         case 'EndWeekday':
-          $sqlValue = 'weekday(E.EndTime)';
+          $sqlValue = 'weekday(E.EndDateTime)';
           break;
         case 'Id':
         case 'Name':
@@ -632,6 +633,11 @@ class Filter extends ZM_Object {
 
   function addTerm($term=false, $position=null) {
 
+    if ( !FilterTerm::is_valid_attr($term['attr']) ) {
+      Error('Unsupported filter attribute ' . $term['attr']);
+      return $this;
+    }
+
     $terms = $this->terms();
 
     if ( (!isset($position)) or ($position > count($terms)) )
@@ -649,6 +655,13 @@ class Filter extends ZM_Object {
 
     return $this;
   } # end function addTerm
+
+  function addTerms($terms, $options=null) {
+    foreach ( $terms as $term ) {
+      $this->addTerm($term);
+    }
+    return $this;
+  }
 
 } # end class Filter
 ?>

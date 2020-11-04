@@ -14,8 +14,8 @@ class Event extends ZM_Object {
     'StorageId' => null,
     'SecondaryStorageId' => null,
     'Cause' => '',
-    'StartTime' => null,
-    'EndTime' => null,
+    'StartDateTime' => null,
+    'EndDateTime' => null,
     'Width' => null,
     'Height' => null,
     'Length' => null,
@@ -93,7 +93,7 @@ class Event extends ZM_Object {
 
   public function Time() {
     if ( ! isset($this->{'Time'}) ) {
-      $this->{'Time'} = strtotime($this->{'StartTime'});
+      $this->{'Time'} = strtotime($this->{'StartDateTime'});
     }
     return $this->{'Time'};
   }
@@ -153,9 +153,9 @@ class Event extends ZM_Object {
       if ( $this->{'Scheme'} == 'Deep' ) {
 
         # Assumption: All events have a start time
-        $start_date = date_parse($this->{'StartTime'});
+        $start_date = date_parse($this->{'StartDateTime'});
         if ( ! $start_date ) {
-          throw new Exception('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.');
+          throw new Exception('Unable to parse start date time for event ' . $this->{'Id'} . ' not deleting files.');
         }
         $start_date['year'] = $start_date['year'] % 100;
 
@@ -279,7 +279,7 @@ class Event extends ZM_Object {
     }
     if ( (!property_exists($this, 'DiskSpace')) or (null === $this->{'DiskSpace'}) ) {
       $this->{'DiskSpace'} = folder_size($this->Path());
-      if ( $this->{'EndTime'} ) {
+      if ( $this->{'EndDateTime'} ) {
         # Finished events shouldn't grow in size much so we can commit it to the db.
         dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
       }
@@ -606,7 +606,7 @@ class Event extends ZM_Object {
     if ( $this->Archived() ) {
       return false;
     }
-    if ( !$this->EndTime() ) {
+    if ( !$this->EndDateTime() ) {
       return false;
     }
     if ( !canEdit('Events') ) {
@@ -619,7 +619,7 @@ class Event extends ZM_Object {
   public function cant_delete_reason() {
     if ( $this->Archived() ) {
       return 'You cannot delete an archived event. Unarchive it first.';
-    } else if ( ! $this->EndTime() ) {
+    } else if ( ! $this->EndDateTime() ) {
       return 'You cannot delete an event while it is being recorded. Wait for it to finish.';
     } else if ( ! canEdit('Events') ) {
       return 'You do not have rights to edit Events.';

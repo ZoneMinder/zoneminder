@@ -71,7 +71,7 @@ Event::Event(
     start_time = now;
   } else if ( start_time.tv_sec > now.tv_sec ) {
     Error(
-        "StartTime in the future %u.%u > %u.%u",
+        "StartDateTime in the future %u.%u > %u.%u",
         start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec
         );
     start_time = now;
@@ -88,7 +88,9 @@ Event::Event(
 
   char sql[ZM_SQL_MED_BUFSIZ];
   struct tm *stime = localtime(&start_time.tv_sec);
-  snprintf(sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) VALUES ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
+  snprintf(sql, sizeof(sql), "INSERT INTO Events "
+      "( MonitorId, StorageId, Name, StartDateTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme )"
+     " VALUES ( %u, %u, 'New Event', from_unixtime( %ld ), %u, %u, '%s', '%s', %u, %d, %d, '%s', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,
@@ -104,12 +106,10 @@ Event::Event(
       storage->SchemeString().c_str()
       );
   db_mutex.lock();
-  if ( mysql_query(&dbconn, sql) ) {
+  while ( mysql_query(&dbconn, sql) ) {
     db_mutex.unlock();
     Error("Can't insert event: %s. sql was (%s)", mysql_error(&dbconn), sql);
-    return;
-  } else {
-    Debug(2, "Created new event with %s", sql);
+    db_mutex.lock();
   }
   id = mysql_insert_id(&dbconn);
 
@@ -254,6 +254,11 @@ Event::~Event() {
     videowriter = nullptr;
   }
 
+  // endtime is set in AddFrame, so SHOULD be set to the value of the last frame timestamp.
+  if ( ! end_time.tv_sec ) {
+    Warning("Empty endtime for event.  Should not happen.  Setting to now.");
+    gettimeofday(&end_time, nullptr);
+  }
   struct DeltaTimeval delta_time;
   DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
   Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
@@ -284,7 +289,7 @@ Event::~Event() {
   // Should not be static because we might be multi-threaded
   char sql[ZM_SQL_LGE_BUFSIZ];
   snprintf(sql, sizeof(sql),
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64 " AND Name='New Event'",
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64 " AND Name='New Event'",
       monitor->EventPrefix(), id, end_time.tv_sec,
       delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
       frames, alarm_frames,
@@ -300,7 +305,7 @@ Event::~Event() {
   if ( !mysql_affected_rows(&dbconn) ) {
     // Name might have been changed during recording, so just do the update without changing the name.
     snprintf(sql, sizeof(sql),
-        "UPDATE Events SET EndTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
         end_time.tv_sec,
         delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
         frames, alarm_frames,
@@ -334,7 +339,7 @@ bool Event::WriteFrameImage(
     Image *image,
     struct timeval timestamp,
     const char *event_file,
-    bool alarm_frame) {
+    bool alarm_frame) const {
 
   int thisquality = 
     (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
@@ -567,10 +572,12 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
   } else {
     Debug(1, "No valid pre-capture frames to add");
   }
+  end_time = *timestamps[n_frames-1];
 }  // void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, struct timeval **timestamps)
 
 void Event::WriteDbFrames() {
   char *frame_insert_values_ptr = (char *)&frame_insert_sql + 90; // 90 == strlen(frame_insert_sql); 
+  Debug(1, "Inserting %d frames", frame_data.size());
   while ( frame_data.size() ) {
     Frame *frame = frame_data.front();
     frame_data.pop();
@@ -586,8 +593,9 @@ void Event::WriteDbFrames() {
         frame->score);
     delete frame;
   }
-  *(frame_insert_values_ptr-1) = '\0'; // The -2 is for the extra , added for values above
+  *(frame_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
   db_mutex.lock();
+  Debug(1, "SQL: %s", frame_insert_sql);
   int rc = mysql_query(&dbconn, frame_insert_sql);
   db_mutex.unlock();
 
@@ -682,7 +690,6 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
   bool db_frame = ( frame_type != BULK ) || (frames==1) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
-    static char sql[ZM_SQL_MED_BUFSIZ];
 
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
@@ -692,6 +699,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
       WriteDbFrames();
       last_db_frame = frames;
 
+      static char sql[ZM_SQL_MED_BUFSIZ];
       snprintf(sql, sizeof(sql), 
           "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64, 
           ( delta_time.positive?"":"-" ),

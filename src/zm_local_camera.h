@@ -153,17 +153,17 @@ public:
   int Palette() const { return( palette ); }
   int Extras() const { return( extras ); }
 
-  int Brightness( int p_brightness=-1 );
-  int Hue( int p_hue=-1 );
-  int Colour( int p_colour=-1 );
-  int Contrast( int p_contrast=-1 );
+  int Brightness( int p_brightness=-1 ) override;
+  int Hue( int p_hue=-1 ) override;
+  int Colour( int p_colour=-1 ) override;
+  int Contrast( int p_contrast=-1 ) override;
 
-  int PrimeCapture();
-  int PreCapture();
-  int Capture( Image &image );
-  int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
-  int Close() { return 0; };
+  int PrimeCapture()override ;
+  int PreCapture()override ;
+  int Capture( Image &image )override ;
+  int PostCapture()override ;
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) override {return(0);};
+  int Close() override { return 0; };
 
   static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
 };

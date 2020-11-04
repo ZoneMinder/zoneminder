@@ -76,7 +76,7 @@ if ( !$liveMode ) {
       if ( !isset($event['FramesById']) ) {
         // Please note that this is the last frame as we sort DESC
         $event['FramesById'] = array();
-        $frame['NextTimeStampSecs'] = $event['EndTime'];
+        $frame['NextTimeStampSecs'] = $event['EndTimeSecs'];
       } else {
         $frame['NextTimeStampSecs'] = $next_frames[$frame['EventId']]['TimeStampSecs'];
         $frame['NextFrameId'] = $next_frames[$frame['EventId']]['Id'];

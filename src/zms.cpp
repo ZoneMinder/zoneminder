@@ -95,90 +95,91 @@ int main(int argc, const char *argv[], char **envp) {
   }
 
   const char *query = getenv("QUERY_STRING");
-  if ( query ) {
-    Debug(1, "Query: %s", query);
-
-    char temp_query[1024];
-    strncpy(temp_query, query, sizeof(temp_query)-1);
-    char *q_ptr = temp_query;
-    char *parms[16];  // Shouldn't be more than this
-    int parm_no = 0;
-    while ( (parm_no < 16) && (parms[parm_no] = strtok(q_ptr, "&")) ) {
-      parm_no++;
-      q_ptr = nullptr;
-    }
-
-    for ( int p = 0; p < parm_no; p++ ) {
-      char *name = strtok(parms[p], "=");
-      char const *value = strtok(nullptr, "=");
-      if ( !value )
-        value = "";
-      if ( !strcmp(name, "source") ) {
-        source = !strcmp(value, "event")?ZMS_EVENT:ZMS_MONITOR;
-        if ( !strcmp(value, "fifo") )
-          source = ZMS_FIFO;
-      } else if ( !strcmp(name, "mode") ) {
-        mode = !strcmp(value, "jpeg")?ZMS_JPEG:ZMS_MPEG;
-        mode = !strcmp(value, "raw")?ZMS_RAW:mode;
-        mode = !strcmp(value, "zip")?ZMS_ZIP:mode;
-        mode = !strcmp(value, "single")?ZMS_SINGLE:mode;
-      } else if ( !strcmp(name, "format") ) {
-        strncpy( format, value, sizeof(format) );
-      } else if ( !strcmp(name, "monitor") ) {
-        monitor_id = atoi(value);
-        if ( source == ZMS_UNKNOWN )
-          source = ZMS_MONITOR;
-      } else if ( !strcmp(name, "time") ) {
-        event_time = atoi(value);
-      } else if ( !strcmp(name, "event") ) {
-        event_id = strtoull(value, nullptr, 10);
-        source = ZMS_EVENT;
-      } else if ( !strcmp(name, "frame") ) {
-        frame_id = strtoull(value, nullptr, 10);
-        source = ZMS_EVENT;
-      } else if ( !strcmp(name, "scale") ) {
-        scale = atoi(value);
-      } else if ( !strcmp(name, "rate") ) {
-        rate = atoi(value);
-      } else if ( !strcmp(name, "maxfps") ) {
-        maxfps = atof(value);
-      } else if ( !strcmp(name, "bitrate") ) {
-        bitrate = atoi(value);
-      } else if ( !strcmp(name, "ttl") ) {
-        ttl = atoi(value);
-      } else if ( !strcmp(name, "replay") ) {
-        if ( !strcmp(value, "gapless") ) {
-          replay = EventStream::MODE_ALL_GAPLESS;
-        } else if ( !strcmp(value, "all") ) {
-          replay = EventStream::MODE_ALL;
-        } else if ( !strcmp(value, "none") ) {
-          replay = EventStream::MODE_NONE;
-        } else if ( !strcmp(value, "single") ) {
-          replay = EventStream::MODE_SINGLE;
-        } else {
-          Error("Unsupported value %s for replay, defaulting to none", value);
-        }
-      } else if ( !strcmp(name, "connkey") ) {
-        connkey = atoi(value);
-      } else if ( !strcmp(name, "buffer") ) {
-        playback_buffer = atoi(value);
-      } else if ( !strcmp(name, "auth") ) {
-        strncpy(auth, value, sizeof(auth)-1);
-      } else if ( !strcmp(name, "token") ) {
-        jwt_token_str = value;
-        Debug(1, "ZMS: JWT token found: %s", jwt_token_str.c_str());
-      } else if ( !strcmp(name, "user") ) {
-        username = UriDecode(value);
-      } else if ( !strcmp(name, "pass") ) {
-        password = UriDecode(value);
-        Debug(1, "Have %s for password", password.c_str());
-      } else {
-        Debug(1, "Unknown parameter passed to zms %s=%s", name, value);
-      }  // end if possible parameter names
-    }  // end foreach parm
-  } else {
+  if ( query == nullptr ) {
     Fatal("No query string.");
+    return 0;
   }  // end if query
+
+  Debug(1, "Query: %s", query);
+
+  char temp_query[1024];
+  strncpy(temp_query, query, sizeof(temp_query)-1);
+  char *q_ptr = temp_query;
+  char *parms[16];  // Shouldn't be more than this
+  int parm_no = 0;
+  while ( (parm_no < 16) && (parms[parm_no] = strtok(q_ptr, "&")) ) {
+    parm_no++;
+    q_ptr = nullptr;
+  }
+
+  for ( int p = 0; p < parm_no; p++ ) {
+    char *name = strtok(parms[p], "=");
+    char const *value = strtok(nullptr, "=");
+    if ( !value )
+      value = "";
+    if ( !strcmp(name, "source") ) {
+      source = !strcmp(value, "event")?ZMS_EVENT:ZMS_MONITOR;
+      if ( !strcmp(value, "fifo") )
+        source = ZMS_FIFO;
+    } else if ( !strcmp(name, "mode") ) {
+      mode = !strcmp(value, "jpeg")?ZMS_JPEG:ZMS_MPEG;
+      mode = !strcmp(value, "raw")?ZMS_RAW:mode;
+      mode = !strcmp(value, "zip")?ZMS_ZIP:mode;
+      mode = !strcmp(value, "single")?ZMS_SINGLE:mode;
+    } else if ( !strcmp(name, "format") ) {
+      strncpy(format, value, sizeof(format)-1);
+    } else if ( !strcmp(name, "monitor") ) {
+      monitor_id = atoi(value);
+      if ( source == ZMS_UNKNOWN )
+        source = ZMS_MONITOR;
+    } else if ( !strcmp(name, "time") ) {
+      event_time = atoi(value);
+    } else if ( !strcmp(name, "event") ) {
+      event_id = strtoull(value, nullptr, 10);
+      source = ZMS_EVENT;
+    } else if ( !strcmp(name, "frame") ) {
+      frame_id = strtoull(value, nullptr, 10);
+      source = ZMS_EVENT;
+    } else if ( !strcmp(name, "scale") ) {
+      scale = atoi(value);
+    } else if ( !strcmp(name, "rate") ) {
+      rate = atoi(value);
+    } else if ( !strcmp(name, "maxfps") ) {
+      maxfps = atof(value);
+    } else if ( !strcmp(name, "bitrate") ) {
+      bitrate = atoi(value);
+    } else if ( !strcmp(name, "ttl") ) {
+      ttl = atoi(value);
+    } else if ( !strcmp(name, "replay") ) {
+      if ( !strcmp(value, "gapless") ) {
+        replay = EventStream::MODE_ALL_GAPLESS;
+      } else if ( !strcmp(value, "all") ) {
+        replay = EventStream::MODE_ALL;
+      } else if ( !strcmp(value, "none") ) {
+        replay = EventStream::MODE_NONE;
+      } else if ( !strcmp(value, "single") ) {
+        replay = EventStream::MODE_SINGLE;
+      } else {
+        Error("Unsupported value %s for replay, defaulting to none", value);
+      }
+    } else if ( !strcmp(name, "connkey") ) {
+      connkey = atoi(value);
+    } else if ( !strcmp(name, "buffer") ) {
+      playback_buffer = atoi(value);
+    } else if ( !strcmp(name, "auth") ) {
+      strncpy(auth, value, sizeof(auth)-1);
+    } else if ( !strcmp(name, "token") ) {
+      jwt_token_str = value;
+      Debug(1, "ZMS: JWT token found: %s", jwt_token_str.c_str());
+    } else if ( !strcmp(name, "user") ) {
+      username = UriDecode(value);
+    } else if ( !strcmp(name, "pass") ) {
+      password = UriDecode(value);
+      Debug(1, "Have %s for password", password.c_str());
+    } else {
+      Debug(1, "Unknown parameter passed to zms %s=%s", name, value);
+    }  // end if possible parameter names
+  }  // end foreach parm
 
   if ( monitor_id ) {
     snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);

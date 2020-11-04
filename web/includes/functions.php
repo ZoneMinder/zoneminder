@@ -996,26 +996,19 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
       $sortColumn = 'E.Cause';
       break;
     case 'DateTime' :
-      $sortColumn = 'E.StartTime';
-      $_REQUEST['sort_field'] = 'StartTime';
+      $sortColumn = 'E.StartDateTime';
+      $_REQUEST['sort_field'] = 'StartDateTime';
       break;
     case 'DiskSpace' :
       $sortColumn = 'E.DiskSpace';
       break;
     case 'StartTime' :
-      $sortColumn = 'E.StartTime';
-      break;
     case 'StartDateTime' :
-      // Fix for systems with EVENT_SORT_ORDER set to erroneous StartDateTime.
-      $_REQUEST['sort_field'] = 'StartTime';
-      $sortColumn = 'E.StartTime';
+      $sortColumn = 'E.StartDateTime';
       break;
     case 'EndTime' :
-      $sortColumn = 'E.EndTime';
-      break;
     case 'EndDateTime' :
-      $_REQUEST['sort_field'] = 'EndTime';
-      $sortColumn = 'E.EndTime';
+      $sortColumn = 'E.EndDateTime';
       break;
     case 'Length' :
       $sortColumn = 'E.Length';
@@ -1051,7 +1044,7 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
       $sortColumn = 'F.Score';
       break;
     default:
-      $sortColumn = 'E.StartTime';
+      $sortColumn = 'E.StartDateTime';
       break;
   }
   if ( !isset($_REQUEST['sort_asc']) )

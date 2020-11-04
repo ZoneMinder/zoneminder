@@ -44,8 +44,8 @@ var eventData = {
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
     Length: '<?php echo $Event->Length() ?>',
-    StartTime: '<?php echo $Event->StartTime() ?>',
-    EndTime: '<?php echo $Event->EndTime() ?>',
+    StartDateTime: '<?php echo $Event->StartDateTime() ?>',
+    EndDateTime: '<?php echo $Event->EndDateTime() ?>',
     Frames: '<?php echo $Event->Frames() ?>',
     MonitorName: '<?php echo validJsStr($Monitor->Name()) ?>'
 };

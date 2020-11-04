@@ -29,15 +29,13 @@
 bool zm_reload = false;
 bool zm_terminate = false;
 
-RETSIGTYPE zm_hup_handler(int signal)
-{
+RETSIGTYPE zm_hup_handler(int signal) {
   // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.
 	//Info("Got signal %d (%s), reloading", signal, strsignal(signal));
 	zm_reload = true;
 }
 
-RETSIGTYPE zm_term_handler(int signal)
-{
+RETSIGTYPE zm_term_handler(int signal) {
   // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.
 	//Info("Got signal %d (%s), exiting", signal, strsignal(signal));
 	zm_terminate = true;
@@ -55,8 +53,7 @@ RETSIGTYPE zm_die_handler(int signal)
   #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
 	void *ip = nullptr;
 	void *cr2 = nullptr;
-	if (info && context) {
-
+	if ( info && context ) {
 		Debug(1,
 		      "Signal information: number %d code %d errno %d pid %d uid %d status %d",
 		      signal, info->si_code, info->si_errno, info->si_pid,
@@ -79,7 +76,7 @@ RETSIGTYPE zm_die_handler(int signal)
     #endif				// defined(__x86_64__)
 
 		// Print the signal address and instruction pointer if available
-		if (ip) {
+		if ( ip ) {
 			Error("Signal address is %p, from %p", cr2, ip);
 		} else {
 			Error("Signal address is %p, no instruction pointer", cr2);
@@ -115,8 +112,7 @@ RETSIGTYPE zm_die_handler(int signal)
 	exit(signal);
 }
 
-void zmSetHupHandler(SigHandler * handler)
-{
+void zmSetHupHandler(SigHandler * handler) {
 	sigset_t block_set;
 	sigemptyset(&block_set);
 	struct sigaction action, old_action;
@@ -127,8 +123,7 @@ void zmSetHupHandler(SigHandler * handler)
 	sigaction(SIGHUP, &action, &old_action);
 }
 
-void zmSetTermHandler(SigHandler * handler)
-{
+void zmSetTermHandler(SigHandler * handler) {
 	sigset_t block_set;
 	sigemptyset(&block_set);
 	struct sigaction action, old_action;
@@ -141,8 +136,7 @@ void zmSetTermHandler(SigHandler * handler)
 	sigaction(SIGQUIT, &action, &old_action);
 }
 
-void zmSetDieHandler(SigHandler * handler)
-{
+void zmSetDieHandler(SigHandler * handler) {
 	sigset_t block_set;
 	sigemptyset(&block_set);
 	struct sigaction action, old_action;
@@ -163,19 +157,16 @@ void zmSetDieHandler(SigHandler * handler)
 	sigaction(SIGFPE, &action, &old_action);
 }
 
-void zmSetDefaultHupHandler()
-{
+void zmSetDefaultHupHandler() {
 	zmSetHupHandler((SigHandler *) zm_hup_handler);
 }
 
-void zmSetDefaultTermHandler()
-{
+void zmSetDefaultTermHandler() {
 	zmSetTermHandler((SigHandler *) zm_term_handler);
 }
 
-void zmSetDefaultDieHandler()
-{
-	if (config.dump_cores) {
+void zmSetDefaultDieHandler() {
+	if ( config.dump_cores ) {
 		// Do nothing
 	} else {
 		zmSetDieHandler((SigHandler *) zm_die_handler);

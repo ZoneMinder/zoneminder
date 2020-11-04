@@ -104,8 +104,8 @@ getBodyTopHTML();
               <th data-sortable="true" data-field="Emailed"><?php echo translate('Emailed') ?></th>
               <th data-sortable="true" data-field="Monitor"><?php echo translate('Monitor') ?></th>
               <th data-sortable="true" data-field="Cause"><?php echo translate('Cause') ?></th>
-              <th data-sortable="true" data-field="StartTime"><?php echo translate('AttrStartTime') ?></th>
-              <th data-sortable="true" data-field="EndTime"><?php echo translate('AttrEndTime') ?></th>
+              <th data-sortable="true" data-field="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
+              <th data-sortable="true" data-field="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
               <th data-sortable="true" data-field="Length"><?php echo translate('Duration') ?></th>
               <th data-sortable="true" data-field="Frames"><?php echo translate('Frames') ?></th>
               <th data-sortable="true" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>

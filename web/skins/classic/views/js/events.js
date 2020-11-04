@@ -17,14 +17,14 @@ var params =
 "data":
   {
   "search":"some search text",
-  "sort":"StartTime",
+  "sort":"StartDateTime",
   "order":"asc",
   "offset":0,
   "limit":25
   "filter":
     {
     "Name":"some advanced search text"
-    "StartTime":"some more advanced search text"
+    "StartDateTime":"some more advanced search text"
     }
   },
 "cache":true,

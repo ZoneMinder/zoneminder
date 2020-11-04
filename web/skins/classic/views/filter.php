@@ -35,13 +35,12 @@ $filterNames = array(''=>translate('ChooseFilter'));
 $filter = NULL;
 
 $fid = 0;
-if ( isset($_REQUEST['Id']) ) {
+if ( isset($_REQUEST['Id']) and $_REQUEST['Id'] ) {
   $fid = validInt($_REQUEST['Id']);
 } else if ( isset($_REQUEST['filter[Id]']) ) {
   $fid = validInt($_REQUEST['filter[Id]']);
-  ZM\Warning("got fid by object id $fid");
 }
-
+$filter = null;
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
   $filterNames[$Filter->Id()] = $Filter->Id() . ' ' . $Filter->Name();
   if ( $Filter->Background() )

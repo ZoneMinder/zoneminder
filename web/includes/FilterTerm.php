@@ -222,45 +222,45 @@ class FilterTerm {
       break;
       # Unspecified start or end, so assume start, this is to support legacy filters
     case 'DateTime':
-      $sql .= 'E.StartTime';
+      $sql .= 'E.StartDateTime';
       break;
     case 'Date':
-      $sql .= 'to_days(E.StartTime)';
+      $sql .= 'to_days(E.StartDateTime)';
       break;
     case 'Time':
-      $sql .= 'extract(hour_second FROM E.StartTime)';
+      $sql .= 'extract(hour_second FROM E.StartDateTime)';
       break;
     case 'Weekday':
-      $sql .= 'weekday(E.StartTime)';
+      $sql .= 'weekday(E.StartDateTime)';
       break;
       # Starting Time
     case 'StartDateTime':
-      $sql .= 'E.StartTime';
+      $sql .= 'E.StartDateTime';
       break;
     case 'FramesEventId':
       $sql .= 'F.EventId';
       break;
     case 'StartDate':
-      $sql .= 'to_days(E.StartTime)';
+      $sql .= 'to_days(E.StartDateTime)';
       break;
     case 'StartTime':
-      $sql .= 'extract(hour_second FROM E.StartTime)';
+      $sql .= 'extract(hour_second FROM E.StartDateTime)';
       break;
     case 'StartWeekday':
-      $sql .= 'weekday(E.StartTime)';
+      $sql .= 'weekday(E.StartDateTime)';
       break;
       # Ending Time
     case 'EndDateTime':
-      $sql .= 'E.EndTime';
+      $sql .= 'E.EndDateTime';
       break;
     case 'EndDate':
-      $sql .= 'to_days(E.EndTime)';
+      $sql .= 'to_days(E.EndDateTime)';
       break;
     case 'EndTime':
-      $sql .= 'extract(hour_second FROM E.EndTime)';
+      $sql .= 'extract(hour_second FROM E.EndDateTime)';
       break;
     case 'EndWeekday':
-      $sql .= 'weekday(E.EndTime)';
+      $sql .= 'weekday(E.EndDateTime)';
       break;
     case 'Emailed':
     case 'Id':

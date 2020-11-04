@@ -65,7 +65,7 @@ class EventsController extends AppController {
       // API
 
       'limit' => '100',
-      'order' => array('StartTime'),
+      'order' => array('StartDateTime'),
       'paramType' => 'querystring',
     );
     if ( isset($conditions['GroupId']) ) {
@@ -309,7 +309,7 @@ class EventsController extends AppController {
     } else {
       $conditions = array();
     } 
-    array_push($conditions, array("StartTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
+    array_push($conditions, array("StartDateTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
     $query = $this->Event->find('all', array(
                                              'fields' => array(
                                                                'MonitorId',

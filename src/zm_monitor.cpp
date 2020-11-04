@@ -1613,7 +1613,6 @@ bool Monitor::Analyse() {
                 } // end if analysis_fps && pre_event_count
 
                 shared_data->last_event = event->Id();
-                //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();
 

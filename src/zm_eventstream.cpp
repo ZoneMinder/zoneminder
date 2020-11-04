@@ -45,7 +45,7 @@ bool EventStream::loadInitialEventData(int monitor_id, time_t event_time) {
   static char sql[ZM_SQL_SML_BUFSIZ];
 
   snprintf(sql, sizeof(sql), "SELECT `Id` FROM `Events` WHERE "
-      "`MonitorId` = %d AND unix_timestamp(`EndTime`) > %ld "
+      "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %ld "
       "ORDER BY `Id` ASC LIMIT 1", monitor_id, event_time);
 
   if ( mysql_query(&dbconn, sql) ) {
@@ -116,8 +116,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
   snprintf(sql, sizeof(sql),
-      "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartTime` ) AS StartTimestamp, "
-      "unix_timestamp( `EndTime` ) AS EndTimestamp, "
+      "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, "
+      "unix_timestamp( `EndDateTime` ) AS EndTimestamp, "
       "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS Duration, "
       "`DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 

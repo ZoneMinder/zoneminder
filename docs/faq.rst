@@ -27,7 +27,7 @@ After you've done that, you changes will automatically be loaded into zmfilter w
 Check the ``zmfilter.log`` file to make sure it is running as sometimes missing perl modules mean that it never runs but people don't always realize.
 
 **Purge By Age**
-To delete events that are older than 7 days, create a new filter with "Date" set to "less than" and a value of "-7 days", sort by "date/time" in "asc"ending order, then enable the checkbox "delete all matches". You can also use a value of week or week and days: "-2 week"  or "-2 week 4 day"
+To delete events that are older than 7 days, create a new filter with "End Date" set to "less than" and a value of "-7 days", sort by "date/time" in "asc"ending order, then enable the checkbox "delete all matches". You can also use a value of week or week and days: "-2 week"  or "-2 week 4 day"
 
 Save with 'Run Filter In Background' enabled to have it run automatically.
 Optional skip archived events:  click on the plus sign next to -7 days to add another condition.  "and" "archive status" equal to "unarchived only".

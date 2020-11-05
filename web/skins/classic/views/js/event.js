@@ -176,12 +176,7 @@ function changeScale() {
   } else {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
-  if ( scale == '0' ) {
-    Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365, samesite: 'strict'});
-  } else {
-    Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365, samesite: 'strict'});
-    Cookie.dispose('zmEventScaleAuto');
-  }
+  Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365, samesite: 'strict'});
 } // end function changeScale
 
 function changeReplayMode() {

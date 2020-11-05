@@ -49,9 +49,6 @@ if ( isset($_REQUEST['rate']) ) {
 
 if ( isset($_REQUEST['scale']) ) {
   $scale = validInt($_REQUEST['scale']);
-} else if ( isset($_COOKIE['zmEventScaleAuto']) ) {
-  // If we're using scale to fit use it on all monitors
-  $scale = '0';
 } else if ( isset($_COOKIE['zmEventScale'.$Event->MonitorId()]) ) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {

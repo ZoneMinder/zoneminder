@@ -16,7 +16,7 @@ function vjsReplay() {
         var overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
       } else {
-        var endTime = (Date.parse(eventData.EndTime)).getTime();
+        var endTime = (Date.parse(eventData.EndDateTime)).getTime();
         var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
         if ( nextStartTime <= endTime ) {
           streamNext(true);
@@ -176,12 +176,7 @@ function changeScale() {
   } else {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
-  if ( scale == '0' ) {
-    Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365, samesite: 'strict'});
-  } else {
-    Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365, samesite: 'strict'});
-    Cookie.dispose('zmEventScaleAuto');
-  }
+  Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365, samesite: 'strict'});
 } // end function changeScale
 
 function changeReplayMode() {
@@ -584,7 +579,7 @@ function getEventResponse(respObj, respText) {
     $('dataCause').setProperty( 'title', causeString );
   }
   $('dataCause').set( 'text', eventData.Cause );
-  $('dataTime').set( 'text', eventData.StartTime );
+  $('dataTime').set( 'text', eventData.StartDateTime );
   $('dataDuration').set( 'text', eventData.Length );
   $('dataFrames').set( 'text', eventData.Frames+"/"+eventData.AlarmFrames );
   $('dataScore').set( 'text', eventData.TotScore+"/"+eventData.AvgScore+"/"+eventData.MaxScore );
@@ -606,7 +601,7 @@ function getEventResponse(respObj, respText) {
     vid.src({type: 'video/mp4', src: CurEventDefVideoPath}); //Currently mp4 is all we use
     console.log('getEventResponse');
     initialAlarmCues(eventData.Id);//ajax and render, new event
-    addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
+    addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     CurEventDefVideoPath = null;
     $j('#modeValue').html('Replay');
     $j('#zoomValue').html('1');
@@ -1088,7 +1083,7 @@ function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   if ( $j('#videoobj').length ) {
     vid = videojs('videoobj');
-    addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
+    addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
     vid.on('play', vjsPlay);

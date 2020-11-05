@@ -482,7 +482,7 @@ int main(int argc, char *argv[]) {
     } // end if ! MONITOR
 
     if ( verbose ) {
-      printf("Monitor %d(%s)\n", monitor->Id(), monitor->Name());
+      printf("Monitor %u(%s)\n", monitor->Id(), monitor->Name());
     }
     if ( !monitor->connect() ) {
       Error("Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name());
@@ -521,19 +521,19 @@ int main(int argc, char *argv[]) {
     }
     if ( function & ZMU_READ_IDX ) {
       if ( verbose )
-        printf("Last read index: %d\n", monitor->GetLastReadIndex());
+        printf("Last read index: %u\n", monitor->GetLastReadIndex());
       else {
         if ( have_output ) fputc(separator, stdout);
-        printf("%d", monitor->GetLastReadIndex());
+        printf("%u", monitor->GetLastReadIndex());
         have_output = true;
       }
     }
     if ( function & ZMU_WRITE_IDX ) {
       if ( verbose ) {
-        printf("Last write index: %d\n", monitor->GetLastWriteIndex());
+        printf("Last write index: %u\n", monitor->GetLastWriteIndex());
       } else {
         if ( have_output ) fputc(separator, stdout);
-        printf("%d", monitor->GetLastWriteIndex());
+        printf("%u", monitor->GetLastWriteIndex());
         have_output = true;
       }
     }
@@ -558,9 +558,9 @@ int main(int argc, char *argv[]) {
     if ( function & ZMU_IMAGE ) {
       if ( verbose ) {
         if ( image_idx == -1 )
-          printf("Dumping last image captured to Monitor%d.jpg", monitor->Id());
+          printf("Dumping last image captured to Monitor%u.jpg", monitor->Id());
         else
-          printf("Dumping buffer image %d to Monitor%d.jpg", image_idx, monitor->Id());
+          printf("Dumping buffer image %d to Monitor%u.jpg", image_idx, monitor->Id());
         if ( scale != -1 )
           printf(", scaling by %d%%", scale);
         printf("\n");
@@ -569,7 +569,7 @@ int main(int argc, char *argv[]) {
     }
     if ( function & ZMU_ZONES ) {
       if ( verbose )
-        printf("Dumping zone image to Zones%d.jpg\n", monitor->Id());
+        printf("Dumping zone image to Zones%u.jpg\n", monitor->Id());
       monitor->DumpZoneImage(zoneString);
     }
     if ( function & ZMU_ALARM ) {
@@ -735,17 +735,17 @@ int main(int argc, char *argv[]) {
       Debug(1, "Got %d monitors", mysql_num_rows(result));
 
       printf("%4s%5s%6s%9s%14s%6s%6s%8s%8s\n", "Id", "Func", "State", "TrgState", "LastImgTim", "RdIdx", "WrIdx", "LastEvt", "FrmRate");
-      for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-        int mon_id = atoi(dbrow[0]);
-        int function = atoi(dbrow[1]);
-        if ( !user || user->canAccess(mon_id) ) {
-          if ( function > 1 ) {
-            Monitor *monitor = Monitor::Load(mon_id, false, Monitor::QUERY);
+      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+        int monitor_id = atoi(dbrow[0]);
+        int monitor_function = atoi(dbrow[1]);
+        if ( !user || user->canAccess(monitor_id) ) {
+          if ( monitor_function > 1 ) {
+            Monitor *monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
             if ( monitor && monitor->connect() ) {
               struct timeval tv = monitor->GetTimestamp();
               printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8" PRIu64 "%8.2f\n",
                 monitor->Id(),
-                function,
+                monitor_function,
                 monitor->GetState(),
                 monitor->GetTriggerState(),
                 tv.tv_sec, tv.tv_usec/10000,

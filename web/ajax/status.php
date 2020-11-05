@@ -109,9 +109,9 @@ $statusData = array(
       'Name' => true,
       'Cause' => true,
       'Notes' => true,
-      'StartTime' => true,
-      'StartTimeShort' => array( 'sql' => 'date_format( StartTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
-      'EndTime' => true,
+      'StartDateTime' => true,
+      'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'EndDateTime' => true,
       'Width' => true,
       'Height' => true,
       'Length' => true,
@@ -133,9 +133,9 @@ $statusData = array(
       'MonitorName' => array('sql' => '(SELECT Monitors.Name FROM Monitors WHERE Monitors.Id = Events.MonitorId)'),
       'Name' => true,
       'Cause' => true,
-      'StartTime' => true,
-      'StartTimeShort' => array( 'sql' => 'date_format( StartTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
-      'EndTime' => true,
+      'StartDateTime' => true,
+      'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'EndDateTime' => true,
       'Width' => true,
       'Height' => true,
       'Length' => true,
@@ -180,7 +180,7 @@ $statusData = array(
       'EventId' => true,
       'Type' => true,
       'TimeStamp' => true,
-      'TimeStampShort' => array( 'sql' => 'date_format( StartTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'TimeStampShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'Delta' => true,
       'Score' => true,
       //'Image' => array( 'postFunc' => 'getFrameImage' ),
@@ -424,11 +424,11 @@ function getNearEvents() {
   }
 
   # When listing, it may make sense to list them in descending order.  But when viewing Prev should timewise earlier and Next should be after.
-  if ( $sortColumn == 'E.Id' or $sortColumn == 'E.StartTime' ) {
+  if ( $sortColumn == 'E.Id' or $sortColumn == 'E.StartDateTime' ) {
     $sortOrder = 'ASC';
   }
 
-  $sql = 'SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn.' '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\' AND ('.$filter->sql().') AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
+  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn.' '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\' AND ('.$filter->sql().') AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
     $sql .= ', E.Id DESC';
@@ -442,7 +442,7 @@ function getNearEvents() {
 
   $prevEvent = dbFetchNext($result);
 
-  $sql = 'SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn .' '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']]."' AND (".$filter->sql().') AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
+  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn .' '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']]."' AND (".$filter->sql().') AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
     $sql .= ', E.Id ASC';
@@ -457,14 +457,14 @@ function getNearEvents() {
 
   if ( $prevEvent ) {
     $NearEvents['PrevEventId'] = $prevEvent['Id'];
-    $NearEvents['PrevEventStartTime'] = $prevEvent['StartTime'];
+    $NearEvents['PrevEventStartTime'] = $prevEvent['StartDateTime'];
     $NearEvents['PrevEventDefVideoPath'] = getEventDefaultVideoPath($prevEvent['Id']);
   } else {
     $NearEvents['PrevEventId'] = $NearEvents['PrevEventStartTime'] = $NearEvents['PrevEventDefVideoPath'] = 0;
   }
   if ( $nextEvent ) {
     $NearEvents['NextEventId'] = $nextEvent['Id'];
-    $NearEvents['NextEventStartTime'] = $nextEvent['StartTime'];
+    $NearEvents['NextEventStartTime'] = $nextEvent['StartDateTime'];
     $NearEvents['NextEventDefVideoPath'] = getEventDefaultVideoPath($nextEvent['Id']);
   } else {
     $NearEvents['NextEventId'] = $NearEvents['NextEventStartTime'] = $NearEvents['NextEventDefVideoPath'] = 0;

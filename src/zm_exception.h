@@ -22,8 +22,7 @@
 
 #include <string>
 
-class Exception
-{
+class Exception {
 protected:
   typedef enum { INFO, WARNING, ERROR, FATAL } Severity;
 
@@ -32,33 +31,28 @@ protected:
   Severity mSeverity;
 
 public:
-  Exception( const std::string &message, Severity severity=ERROR ) : mMessage( message ), mSeverity( severity )
+  explicit Exception(const std::string &message, const Severity severity=ERROR) :
+    mMessage(message),
+    mSeverity(severity)
   {
   }
 
-public:
-  const std::string &getMessage() const
-  {
-    return( mMessage );
+  const std::string &getMessage() const {
+    return mMessage;
   }
-  Severity getSeverity() const
-  {
-    return( mSeverity );
+  Severity getSeverity() const {
+    return mSeverity;
   }
-  bool isInfo() const
-  {
-    return( mSeverity == INFO );
+  bool isInfo() const {
+    return mSeverity == INFO;
   }
-  bool isWarning() const
-  {
+  bool isWarning() const {
     return( mSeverity == WARNING );
   }
-  bool isError() const
-  {
+  bool isError() const {
     return( mSeverity == ERROR );
   }
-  bool isFatal() const
-  {
+  bool isFatal() const {
     return( mSeverity == FATAL );
   }
 };

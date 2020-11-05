@@ -17,14 +17,14 @@ var params =
 "data":
   {
   "search":"some search text",
-  "sort":"StartTime",
+  "sort":"StartDateTime",
   "order":"asc",
   "offset":0,
   "limit":25
   "filter":
     {
     "Name":"some advanced search text"
-    "StartTime":"some more advanced search text"
+    "StartDateTime":"some more advanced search text"
     }
   },
 "cache":true,
@@ -68,7 +68,7 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
-    row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
+    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
   });
 
   return rows;
@@ -161,6 +161,9 @@ function getEventDetailModal(eid) {
 }
 
 function initPage() {
+  // Remove the thumbnail column from the DOM if thumbnails are off globally
+  if ( !WEB_LIST_THUMBS ) $j('th[data-field="Thumbnail"]').remove();
+
   // Load the delete confirmation modal into the DOM
   getDelConfirmModal();
 

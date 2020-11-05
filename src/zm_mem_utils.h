@@ -26,7 +26,7 @@
 inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {
   uint8_t* retptr;
 #if HAVE_POSIX_MEMALIGN
-  if ( posix_memalign((void**)&retptr,reqalignment,reqsize) != 0 )
+  if ( posix_memalign((void**)&retptr, reqalignment, reqsize) != 0 )
     return nullptr;
   
   return retptr;
@@ -39,7 +39,7 @@ inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {
   
   alloc = retptr + sizeof(void*);
   
-  if(((long)alloc % reqalignment) != 0)
+  if ( ((long)alloc % reqalignment) != 0 )
     alloc = alloc + (reqalignment - ((long)alloc % reqalignment));
   
   /* Store a pointer before to the start of the block, just before returned aligned memory */

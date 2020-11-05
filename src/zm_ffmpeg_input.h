@@ -23,10 +23,10 @@ class FFmpeg_Input {
     int Close();
     AVFrame *get_frame( int stream_id=-1 );
     AVFrame *get_frame( int stream_id, double at );
-    int get_video_stream_id() {
+    int get_video_stream_id() const {
       return video_stream_id;
     }
-    int get_audio_stream_id() {
+    int get_audio_stream_id() const {
       return audio_stream_id;
     }
 

@@ -31,7 +31,7 @@ extern "C" {
 }
 class zm_packetqueue {
 public:
-    zm_packetqueue(int max_stream_id);
+    explicit zm_packetqueue(int max_stream_id);
     virtual ~zm_packetqueue();
     bool queuePacket(AVPacket* packet, struct timeval *timestamp);
     bool queuePacket(ZMPacket* packet);

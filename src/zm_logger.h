@@ -121,7 +121,7 @@ private:
   Logger();
   ~Logger();
 
-  int limit(int level) {
+  int limit(const int level) const {
     if ( level > DEBUG9 )
       return DEBUG9;
     if ( level < NOLOG )
@@ -163,7 +163,7 @@ public:
   }
   Level level(Level=NOOPT);
 
-  bool debugOn() {
+  bool debugOn() const {
     return mEffectiveLevel >= DEBUG1;
   }
 

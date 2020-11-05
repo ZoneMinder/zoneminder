@@ -76,7 +76,7 @@ class EventStream : public StreamBase {
     StreamMode mode;
     bool forceEventChange;
 
-    unsigned long curr_frame_id;
+    long curr_frame_id;
     double curr_stream_time;
     bool  send_frame;
     struct timeval start;     // clock time when started the event
@@ -133,11 +133,11 @@ class EventStream : public StreamBase {
     void setStreamMode( StreamMode p_mode ) {
       mode = p_mode;
     }
-    void runStream();
+    void runStream() override;
     Image *getImage();
   private:
-    bool send_file( const char *file_path );
-    bool send_buffer( uint8_t * buffer, int size );
+    bool send_file(const char *filepath);
+    bool send_buffer(uint8_t * buffer, int size);
     Storage *storage;
     FFmpeg_Input  *ffmpeg_input;
     AVCodecContext *input_codec_context;

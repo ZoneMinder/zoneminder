@@ -35,13 +35,12 @@ $filterNames = array(''=>translate('ChooseFilter'));
 $filter = NULL;
 
 $fid = 0;
-if ( isset($_REQUEST['Id']) ) {
+if ( isset($_REQUEST['Id']) and $_REQUEST['Id'] ) {
   $fid = validInt($_REQUEST['Id']);
 } else if ( isset($_REQUEST['filter[Id]']) ) {
   $fid = validInt($_REQUEST['filter[Id]']);
-  ZM\Warning("got fid by object id $fid");
 }
-
+$filter = null;
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
   $filterNames[$Filter->Id()] = $Filter->Id() . ' ' . $Filter->Name();
   if ( $Filter->Background() )
@@ -53,16 +52,16 @@ foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
     $filter = $Filter;
   }
 }
-if ( !$filter ) {
+if ( !$filter )  {
   $filter = new ZM\Filter();
-
-  if ( isset($_REQUEST['filter']) ) {
-    # Update our filter object with whatever changes we have made before saving
-    $filter->set($_REQUEST['filter']);
-  }
-} else {
-  ZM\Debug('filter: ' . print_r($filter,true));
 }
+
+if ( isset($_REQUEST['filter']) ) {
+  # Update our filter object with whatever changes we have made before saving
+  $filter->set($_REQUEST['filter']);
+  ZM\Debug("Setting filter from " . print_r($_REQUEST['filter'], true));
+}
+ZM\Debug('filter: ' . print_r($filter,true));
 
 $conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
 $obracketTypes = array();
@@ -89,8 +88,8 @@ $attrTypes = array(
     'Cause'       => translate('AttrCause'),
     'DiskBlocks'  => translate('AttrDiskBlocks'),
     'DiskPercent' => translate('AttrDiskPercent'),
-    'DiskSpace'   => translate('AttrDiskSpace'),
-    'EventDiskSpace'   => translate('AttrEventDiskSpace'),
+    #'StorageDiskSpace'   => translate('AttrStorageDiskSpace'),
+    'DiskSpace'   => translate('AttrEventDiskSpace'),
     'EndDateTime'    => translate('AttrEndDateTime'),
     'EndDate'        => translate('AttrEndDate'),
     'EndTime'        => translate('AttrEndTime'),

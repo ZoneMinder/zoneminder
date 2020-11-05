@@ -128,9 +128,9 @@ $chart = array(
 $monitors = array();
 
 # The as E, and joining with Monitors is required for the filterSQL filters.
-$rangeSql = 'SELECT min(E.StartTime) AS MinTime, max(E.EndTime) AS MaxTime FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(E.StartTime) AND NOT isnull(E.EndTime)';
-$eventsSql = 'SELECT E.* FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartTime)';
-$eventIdsSql = 'SELECT E.Id FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartTime)';
+$rangeSql = 'SELECT min(E.StartDateTime) AS MinTime, max(E.EndDateTime) AS MaxTime FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(E.StartDateTime) AND NOT isnull(E.EndDateTime)';
+$eventsSql = 'SELECT E.* FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartDateTime)';
+$eventIdsSql = 'SELECT E.Id FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartDateTime)';
 $eventsValues = array();
 
 if ( !empty($user['MonitorIds']) ) {
@@ -277,8 +277,8 @@ $midTimeT = $minTimeT + $halfRange;
 $midTime = strftime(STRF_FMT_DATETIME_DB, $midTimeT);
 
 if ( isset($minTime) && isset($maxTime) ) {
-  $eventsSql .= " AND EndTime >= '$minTime' AND StartTime <= '$maxTime'";
-  $eventIdsSql .= " AND EndTime >= '$minTime' AND StartTime <= '$maxTime'";
+  $eventsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
+  $eventIdsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
 }
 
 if ( 0 ) {
@@ -332,13 +332,13 @@ while( $event = $events_result->fetch(PDO::FETCH_ASSOC) ) {
   $currEventSlots = &$monEventSlots[$event['MonitorId']];
   $currFrameSlots = &$monFrameSlots[$event['MonitorId']];
 
-  $startTimeT = strtotime($event['StartTime']);
+  $startTimeT = strtotime($event['StartDateTime']);
   $startIndex = $rawStartIndex = (int)(($startTimeT - $chart['data']['x']['lo']) / $chart['data']['x']['density']);
   if ( $startIndex < 0 )
     $startIndex = 0;
 
-  if ( isset($event['EndTime']) )
-    $endTimeT = strtotime($event['EndTime']);
+  if ( isset($event['EndDateTime']) )
+    $endTimeT = strtotime($event['EndDateTime']);
   else
     $endTimeT = time();
   $endIndex = $rawEndIndex = (int)(($endTimeT - $chart['data']['x']['lo']) / $chart['data']['x']['density']);

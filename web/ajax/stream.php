@@ -128,7 +128,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
         $data['auth'] = $auth_hash;
         ZM\Debug("including nw auth hash " . $data['auth']);
       } else {
-        ZM\Debug('Not including nw auth hash becase it hashn\'t changed '.$auth_hash);
+        ZM\Debug('Not including new auth hash becase it hasn\'t changed '.$auth_hash);
       } 
     }
     ajaxResponse(array('status'=>$data));

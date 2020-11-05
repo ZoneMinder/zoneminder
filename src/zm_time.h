@@ -76,7 +76,9 @@ struct DeltaTimeval
 #define USEC_PER_SEC 1000000
 #define MSEC_PER_SEC 1000
 
+/*
 extern struct timeval tv;
+*/
 
 inline int tvDiffUsec( struct timeval first, struct timeval last )
 {

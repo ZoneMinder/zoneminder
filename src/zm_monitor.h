@@ -444,7 +444,7 @@ public:
   inline Function GetFunction() const {
     return( function );
   }
-  inline bool Enabled() {
+  inline bool Enabled() const {
     if ( function <= MONITOR )
       return false;
     return enabled;
@@ -452,17 +452,17 @@ public:
   inline const char *EventPrefix() const {
     return event_prefix;
   }
-  inline bool Ready() {
+  inline bool Ready() const {
     if ( function <= MONITOR )
       return false;
     return( image_count > ready_count );
   }
-  inline bool Active() {
+  inline bool Active() const {
     if ( function <= MONITOR )
       return false;
     return( enabled && shared_data->active );
   }
-  inline bool Exif() {
+  inline bool Exif() const {
     return embed_exif;
   }
   Orientation getOrientation() const;
@@ -479,7 +479,7 @@ public:
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
   struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
-  void SetVideoWriterStartTime(struct timeval &t) { video_store_data->recording = t; }
+  void SetVideoWriterStartTime(const struct timeval &t) { video_store_data->recording = t; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   struct timeval GetVideoBufferDuration() const { return video_buffer_duration; };
@@ -505,7 +505,7 @@ public:
 	inline time_t getStartupTime() const { return shared_data->startup_time; }
 	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
 
-  int LabelSize() { return label_size; }
+  int LabelSize() const { return label_size; }
 
   void actionReload();
   void actionEnable();

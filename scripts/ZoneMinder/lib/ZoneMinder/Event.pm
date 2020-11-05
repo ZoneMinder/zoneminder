@@ -68,8 +68,8 @@ $serial = $primary_key = 'Id';
   SecondaryStorageId
   Name
   Cause
-  StartTime
-  EndTime
+  StartDateTime
+  EndDateTime
   Width
   Height
   Length
@@ -111,8 +111,8 @@ sub Time {
     $_[0]{Time} = $_[1];
   }
   if ( ! defined $_[0]{Time} ) {
-    if ( $_[0]{StartTime} ) {
-      $_[0]{Time} = Date::Parse::str2time( $_[0]{StartTime} );
+    if ( $_[0]{StartDateTime} ) {
+      $_[0]{Time} = Date::Parse::str2time( $_[0]{StartDateTime} );
     }
   }
   return $_[0]{Time};
@@ -364,11 +364,11 @@ sub delete {
   my $in_zmaudit = ( $0 =~ 'zmaudit.pl$');
 
   if ( ! $in_zmaudit ) {
-    if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartTime} ) ) {
+    if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartDateTime} ) ) {
       # zmfilter shouldn't delete anything in an odd situation. zmaudit will though.
       my ( $caller, undef, $line ) = caller;
-      Warning("$0 Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:".
-        (defined($event->{StartTime})?$event->{StartTime}:'undef')." from $caller:$line");
+      Warning("$0 Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartDateTime:".
+        (defined($event->{StartDateTime})?$event->{StartDateTime}:'undef')." from $caller:$line");
       return;
     }
     if ( !($event->Storage()->Path() and -e $event->Storage()->Path()) ) {
@@ -379,7 +379,7 @@ sub delete {
 
   if ( $$event{Id} ) {
     # Need to have an event Id if we are to delete from the db.  
-    Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from ".$event->Path());
+    Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartDateTime:$event->{StartDateTime} from ".$event->Path());
     $ZoneMinder::Database::dbh->ping();
 
     my $in_transaction = $ZoneMinder::Database::dbh->{AutoCommit} ? 0 : 1;
@@ -820,9 +820,9 @@ sub recover_timestamps {
 
     my $duration = $last_timestamp - $first_timestamp;
     $Event->Length($duration);
-    $Event->StartTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
-    $Event->EndTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $last_timestamp) );
-    Debug("From capture Jpegs have duration $duration = $last_timestamp - $first_timestamp : $$Event{StartTime} to $$Event{EndTime}");
+    $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
+    $Event->EndDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $last_timestamp) );
+    Debug("From capture Jpegs have duration $duration = $last_timestamp - $first_timestamp : $$Event{StartDateTime} to $$Event{EndDateTime}");
     $ZoneMinder::Database::dbh->begin_work();
     foreach my $jpg ( @capture_jpgs ) {
       my ( $id ) = $jpg =~ /^(\d+)\-capture\.jpg$/;
@@ -858,8 +858,8 @@ sub recover_timestamps {
       }
     my $seconds = ($h*60*60)+($m*60)+$s;
     $Event->Length($seconds.'.'.$u);
-    $Event->StartTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
-    $Event->EndTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp+$seconds) );
+    $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
+    $Event->EndDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp+$seconds) );
   }
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);

@@ -59,8 +59,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'HourEvents'
     ) > 0,
-"ALTER TABLE `Monitors` DROP `HourEvents`"
-"SELECT 'Column HourEvents is already removed from Monitors'",
+"ALTER TABLE `Monitors` DROP `HourEvents`",
+"SELECT 'Column HourEvents is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
@@ -81,8 +81,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'HourEventDiskSpace'
     ) > 0,
-"ALTER TABLE `Monitors` DROP `HourEventDiskSpace`"
-"SELECT 'Column HourEventDiskSpace is already removed from Monitors'",
+"ALTER TABLE `Monitors` DROP `HourEventDiskSpace`",
+"SELECT 'Column HourEventDiskSpace is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
@@ -103,8 +103,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'DayEvents'
     ) > 0,
-"ALTER TABLE `Monitors` DROP `DayEvents`"
-"SELECT 'Column DayEvents is already removed from Monitors'",
+"ALTER TABLE `Monitors` DROP `DayEvents`",
+"SELECT 'Column DayEvents is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
@@ -125,8 +125,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'DayEventDiskSpace'
     ) > 0,
-"ALTER TABLE `Monitors` DROP `DayEventDiskSpace`"
-"SELECT 'Column DayEventDiskSpace is already removed from Monitors'",
+"ALTER TABLE `Monitors` DROP `DayEventDiskSpace`",
+"SELECT 'Column DayEventDiskSpace is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
@@ -147,8 +147,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'WeekEvents'
     ) > 0,
-"ALTER TABLE `Monitors` DROP `WeekEvents`"
-"SELECT 'Column WeekEvents is already removed from Monitors'",
+"ALTER TABLE `Monitors` DROP `WeekEvents`",
+"SELECT 'Column WeekEvents is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
@@ -169,8 +169,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'WeekEventDiskSpace'
     ) > 0,
-"ALTER TABLE `Monitors` DROP `WeekEventDiskSpace`"
-"SELECT 'Column WeekEventDiskSpace is already removed from Monitors'",
+"ALTER TABLE `Monitors` DROP `WeekEventDiskSpace`",
+"SELECT 'Column WeekEventDiskSpace is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
@@ -191,8 +191,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'MonthEvents'
     ) > 0,
-"ALTER TABLE `Monitors` DROP `MonthEvents`"
-"SELECT 'Column MonthEvents is already removed from Monitors'",
+"ALTER TABLE `Monitors` DROP `MonthEvents`",
+"SELECT 'Column MonthEvents is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
@@ -208,14 +208,13 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
-
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
      AND table_name = 'Monitors'
      AND column_name = 'MonthEventDiskSpace'
     ) > 0,
-"ALTER TABLE `Monitors` DROP `MonthEventDiskSpace`"
-"SELECT 'Column MonthEventDiskSpace is already removed from Monitors'",
+"ALTER TABLE `Monitors` DROP `MonthEventDiskSpace`",
+"SELECT 'Column MonthEventDiskSpace is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
@@ -236,8 +235,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'ArchivedEvents'
     ) > 0,
-"ALTER TABLE `Monitors` DROP `ArchivedEvents`"
-"SELECT 'Column ArchivedEvents is already removed from Monitors'",
+"ALTER TABLE `Monitors` DROP `ArchivedEvents`",
+"SELECT 'Column ArchivedEvents is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
@@ -258,8 +257,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'ArchivedEventDiskSpace'
     ) > 0,
-"ALTER TABLE `Monitors` DROP `ArchivedEventDiskSpace`"
-"SELECT 'Column ArchivedEventDiskSpace is already removed from Monitors'",
+"ALTER TABLE `Monitors` DROP `ArchivedEventDiskSpace`",
+"SELECT 'Column ArchivedEventDiskSpace is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;

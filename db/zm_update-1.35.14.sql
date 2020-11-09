@@ -525,6 +525,12 @@ END;
 
 DELIMITER ;
 
+REPLACE INTO Events_Hour SELECT Id,MonitorId,StartDateTime,DiskSpace FROM Events WHERE StartDateTime > DATE_SUB(NOW(),  INTERVAL 1 hour);
+REPLACE INTO Events_Day SELECT Id,MonitorId,StartDateTime,DiskSpace FROM Events WHERE StartDateTime > DATE_SUB(NOW(),  INTERVAL 1 day);
+REPLACE INTO Events_Week SELECT Id,MonitorId,StartDateTime,DiskSpace FROM Events WHERE StartDateTime > DATE_SUB(NOW(),  INTERVAL 1 week);
+REPLACE INTO Events_Month SELECT Id,MonitorId,StartDateTime,DiskSpace FROM Events WHERE StartDateTime > DATE_SUB(NOW(),  INTERVAL 1 month);
+REPLACE INTO Events_Archived SELECT Id,MonitorId,DiskSpace FROM Events WHERE Archived=1;
+
 UPDATE Monitor_Status INNER JOIN (
   SELECT  MonitorId,
     COUNT(Id) AS TotalEvents,

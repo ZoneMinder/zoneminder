@@ -254,8 +254,6 @@ function userFromSession() {
       $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
     }
-  } else {
-    ZM\Debug('No username in session');
   }
   return $user;
 }

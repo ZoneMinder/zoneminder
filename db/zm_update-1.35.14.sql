@@ -1,3 +1,16 @@
+SELECT 'This update may make changes that require SUPER privileges. If you see an error message saying:
+
+ERROR 1419 (HY000) at line 298: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+
+You will have to either run this update as root manually using something like (on ubuntu/debian)
+
+sudo mysql --defaults-file=/etc/mysql/debian.cnf zm < /usr/share/zoneminder/db/zm_update-1.35.14.sql
+
+OR
+
+sudo mysql --defaults-file=/etc/mysql/debian.cnf "set global log_bin_trust_function_creators=1;"
+sudo zmupdate.pl
+';
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()

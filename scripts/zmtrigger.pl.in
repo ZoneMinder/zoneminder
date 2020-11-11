@@ -372,9 +372,10 @@ sub handleMessage {
     Warning("Can't find monitor '$id' for message '$message'");
     return;
   }
-  Debug("Found monitor for id '$id'");
-
-  next if !zmMemVerify($monitor);
+  if ( !zmMemVerify($monitor) ) {
+    Warning("Can't verify monitor '$id' for message '$message'");
+    return;
+  }
 
   Debug("Handling action '$action'");
   if ( $action =~ /^(enable|disable)(?:[\+ ](\d+))?$/ ) {
@@ -393,12 +394,19 @@ sub handleMessage {
       handleDelay($delay, $connection, $action_text);
     }
   } elsif ( $action =~ /^(on|off)(?:[ \+](\d+))?$/ ) {
-    next if !$monitor->{Enabled};
+    if ( !$monitor->{Enabled} ) {
+      Info('Motion detection not enabled on monitor '.$id);
+      return;
+    }
 
     my $trigger = $1;
     my $delay = $2;
     my $trigger_data;
     if ( $trigger eq 'on' ) {
+      if ( $score <= 0 ) {
+        Warning('Triggering on with invalid score will have no result.');
+        return;
+      }
       zmTriggerEventOn($monitor, $score, $cause, $text);
       zmTriggerShowtext($monitor, $showtext) if defined($showtext);
       Info("Trigger '$trigger' '$cause'");

@@ -37,8 +37,8 @@ $filter = NULL;
 $fid = 0;
 if ( isset($_REQUEST['Id']) and $_REQUEST['Id'] ) {
   $fid = validInt($_REQUEST['Id']);
-} else if ( isset($_REQUEST['filter[Id]']) ) {
-  $fid = validInt($_REQUEST['filter[Id]']);
+} else if ( isset($_REQUEST['filter']) and isset($_REQUEST['filter']['Id']) ) {
+  $fid = validInt($_REQUEST['filter']['Id']);
 }
 $filter = null;
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
@@ -56,6 +56,7 @@ if ( !$filter )  {
   $filter = new ZM\Filter();
 }
 
+ZM\Debug('filter: ' . print_r($filter,true));
 if ( isset($_REQUEST['filter']) ) {
   # Update our filter object with whatever changes we have made before saving
   $filter->set($_REQUEST['filter']);

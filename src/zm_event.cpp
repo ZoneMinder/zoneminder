@@ -39,6 +39,7 @@
 //#define USE_PREPARED_SQL 1
 
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
+#define MAX_DB_FRAMES 120
 char frame_insert_sql[ZM_SQL_LGE_BUFSIZ] = "INSERT INTO `Frames` (`EventId`, `FrameId`, `Type`, `TimeStamp`, `Delta`, `Score`) VALUES ";
 
 int Event::pre_alarm_count = 0;
@@ -577,6 +578,9 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
 
 void Event::WriteDbFrames() {
   char *frame_insert_values_ptr = (char *)&frame_insert_sql + 90; // 90 == strlen(frame_insert_sql); 
+
+	/* Each frame needs about 63 chars.  So if we buffer too many frames, we will exceed the size of frame_insert_sql;
+	 */
   Debug(1, "Inserting %d frames", frame_data.size());
   while ( frame_data.size() ) {
     Frame *frame = frame_data.front();
@@ -592,17 +596,13 @@ void Event::WriteDbFrames() {
         frame->delta.fsec,
         frame->score);
     delete frame;
-		Debug(1, "SQL: %s", frame_insert_sql);
   }
   *(frame_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
   db_mutex.lock();
-  Debug(1, "SQL: %s", frame_insert_sql);
   int rc = mysql_query(&dbconn, frame_insert_sql);
   db_mutex.unlock();
 
   if ( rc ) {
-    Error("Can't insert frames: rc %d", rc);
-    Error("Can't insert frames: sql %s", frame_insert_sql);
     Error("Can't insert frames: %s, sql was %s", mysql_error(&dbconn), frame_insert_sql);
     return;
   } else {
@@ -691,14 +691,23 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   Debug(1, "Frame delta is %d.%d - %d.%d = %d.%d", 
       start_time.tv_sec, start_time.tv_usec, timestamp.tv_sec, timestamp.tv_usec, delta_time.sec, delta_time.fsec);
 
+	double fps = monitor->get_fps();
+
   bool db_frame = ( frame_type != BULK ) || (frames==1) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
 
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
-    if ( write_to_db or ( monitor->get_fps() and (frame_data.size() > monitor->get_fps())) or frame_type==BULK ) {
+		if ( write_to_db 
+				or 
+				(frame_data.size() > MAX_DB_FRAMES)
+				or
+				(frame_type==BULK)
+				or
+				( fps and (frame_data.size() > fps) )
+			 ) {
       Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
-					frame_data.size(), write_to_db, monitor->get_fps());
+					frame_data.size(), write_to_db, fps);
       WriteDbFrames();
       last_db_frame = frames;
 
@@ -724,7 +733,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
       db_mutex.unlock();
 		} else {
       Debug(1, "Not Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
-					frame_data.size(), write_to_db, monitor->get_fps());
+					frame_data.size(), write_to_db, fps);
     } // end if frame_type == BULK
   } // end if db_frame
 

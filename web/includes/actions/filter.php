@@ -46,7 +46,6 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       }
     } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) ) {
 
-      $sql = '';
       $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
       $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
       $_REQUEST['filter']['Query']['limit'] = validInt($_REQUEST['filter']['Query']['limit']);
@@ -95,7 +94,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       } else if ( $filter->Background() ) {
         $filter->control('start');
       }
-      $redirect = '?view=filter'.$filter->querystring();
+      $redirect = '?view=filter'.$filter->querystring('filter', '&');
 
     } else if ( $action == 'control' ) {
       if ( $_REQUEST['command'] == 'start'

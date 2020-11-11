@@ -255,7 +255,7 @@ Event::~Event() {
   }
 
   // endtime is set in AddFrame, so SHOULD be set to the value of the last frame timestamp.
-  if ( ! end_time.tv_sec ) {
+  if ( !end_time.tv_sec ) {
     Warning("Empty endtime for event.  Should not happen.  Setting to now.");
     gettimeofday(&end_time, nullptr);
   }
@@ -503,7 +503,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
 void Event::AddFrames(int n_frames, Image **images, struct timeval **timestamps) {
-  for (int i = 0; i < n_frames; i += ZM_SQL_BATCH_SIZE) {
+  for ( int i = 0; i < n_frames; i += ZM_SQL_BATCH_SIZE ) {
     AddFramesInternal(n_frames, i, images, timestamps);
   }
 }
@@ -592,6 +592,7 @@ void Event::WriteDbFrames() {
         frame->delta.fsec,
         frame->score);
     delete frame;
+		Debug(1, "SQL: %s", frame_insert_sql);
   }
   *(frame_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
   db_mutex.lock();
@@ -600,6 +601,8 @@ void Event::WriteDbFrames() {
   db_mutex.unlock();
 
   if ( rc ) {
+    Error("Can't insert frames: rc %d", rc);
+    Error("Can't insert frames: sql %s", frame_insert_sql);
     Error("Can't insert frames: %s, sql was %s", mysql_error(&dbconn), frame_insert_sql);
     return;
   } else {
@@ -719,6 +722,9 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
         db_mutex.lock();
       }
       db_mutex.unlock();
+		} else {
+      Debug(1, "Not Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
+					frame_data.size(), write_to_db, monitor->get_fps());
     } // end if frame_type == BULK
   } // end if db_frame
 

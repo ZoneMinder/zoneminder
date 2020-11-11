@@ -886,10 +886,10 @@ FROM `Frames` WHERE `EventId`=?';
 
   my $eventcounts_sql = '
   UPDATE `Monitor_Status` SET
-  `TotalEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id`),
-  `TotalEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id` AND `DiskSpace` IS NOT NULL),
-  `ArchivedEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id` AND `Archived`=1),
-  `ArchivedEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id` AND `Archived`=1 AND `DiskSpace` IS NOT NULL)
+  `TotalEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitor_Status`.`MonitorId`),
+  `TotalEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Monitor_Status`.`MonitorId` AND `DiskSpace` IS NOT NULL),
+  `ArchivedEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitor_Status`.`MonitorId` AND `Archived`=1),
+  `ArchivedEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Monitor_Status`.`MonitorId` AND `Archived`=1 AND `DiskSpace` IS NOT NULL)
   ';
 
   my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );

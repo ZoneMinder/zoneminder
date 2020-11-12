@@ -44,7 +44,7 @@ License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
 Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zoneminder-%{version}.tar.gz
-Source1: https://github.com/FriendOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
+Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
 
 %{?rhel:BuildRequires: epel-rpm-macros}

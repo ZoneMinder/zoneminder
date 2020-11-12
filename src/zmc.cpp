@@ -248,8 +248,8 @@ int main(int argc, char *argv[]) {
       time_t now = (time_t)time(nullptr);
       monitors[i]->setStartupTime(now);
 
-      snprintf(sql, sizeof(sql),
-          "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')",
+      snprintf(sql, sizeof(sql), 
+          "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Running') ON DUPLICATE KEY UPDATE Status='Running'", 
           monitors[i]->Id());
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
@@ -270,7 +270,7 @@ int main(int argc, char *argv[]) {
     }
     for ( int i = 0; i < n_monitors; i++ ) {
       snprintf(sql, sizeof(sql),
-          "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')",
+          "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'", 
           monitors[i]->Id());
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
@@ -391,7 +391,7 @@ int main(int argc, char *argv[]) {
   for ( int i = 0; i < n_monitors; i++ ) {
     static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf(sql, sizeof(sql),
-        "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','NotRunning')",
+        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='NotRunning'", 
         monitors[i]->Id());
     if ( mysql_query(&dbconn, sql) ) {
       Error("Can't run query: %s", mysql_error(&dbconn));

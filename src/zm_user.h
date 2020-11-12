@@ -46,7 +46,7 @@ class User {
   User();
   explicit User(const MYSQL_ROW &dbrow);
   ~User();
-  User(User &u) { Copy(u); }
+  User(const User &u) { Copy(u); }
   void Copy(const User &u);
   User& operator=(const User &u) {
     Copy(u); return *this;

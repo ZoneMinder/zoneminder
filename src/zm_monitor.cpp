@@ -2465,7 +2465,6 @@ int Monitor::Capture() {
     } // end if result
   } // end if deinterlacing
 
-
   // Icon: I'm not sure these should be here. They have nothing to do with capturing
   if ( shared_data->action & GET_SETTINGS ) {
     shared_data->brightness = camera->Brightness();
@@ -2527,23 +2526,10 @@ void Monitor::TimestampImage(Image *ts_image, const struct timeval *ts_time) con
 
 bool Monitor::closeEvent() {
   if ( !event )
-    return true;
-#if 0
-    if ( event_delete_thread ) {
-      event_delete_thread->join();
-      delete event_delete_thread;
-      event_delete_thread = NULL;
-    }
-    event_delete_thread = new std::thread([](Event *event) {
-      Event * e = event;
-      event = nullptr;
-      delete e;
-      e = nullptr;
-      }, event);
-#else
+    return false;
+
   delete event;
   event = nullptr;
-#endif
   video_store_data->recording = (struct timeval){0};
   return true;
 } // end bool Monitor::closeEvent()

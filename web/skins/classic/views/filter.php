@@ -35,13 +35,12 @@ $filterNames = array(''=>translate('ChooseFilter'));
 $filter = NULL;
 
 $fid = 0;
-if ( isset($_REQUEST['Id']) ) {
+if ( isset($_REQUEST['Id']) and $_REQUEST['Id'] ) {
   $fid = validInt($_REQUEST['Id']);
-} else if ( isset($_REQUEST['filter[Id]']) ) {
-  $fid = validInt($_REQUEST['filter[Id]']);
-  ZM\Warning("got fid by object id $fid");
+} else if ( isset($_REQUEST['filter']) and isset($_REQUEST['filter']['Id']) ) {
+  $fid = validInt($_REQUEST['filter']['Id']);
 }
-
+$filter = null;
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
   $filterNames[$Filter->Id()] = $Filter->Id() . ' ' . $Filter->Name();
   if ( $Filter->Background() )
@@ -53,16 +52,17 @@ foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
     $filter = $Filter;
   }
 }
-if ( !$filter ) {
+if ( !$filter )  {
   $filter = new ZM\Filter();
-
-  if ( isset($_REQUEST['filter']) ) {
-    # Update our filter object with whatever changes we have made before saving
-    $filter->set($_REQUEST['filter']);
-  }
-} else {
-  ZM\Debug('filter: ' . print_r($filter,true));
 }
+
+ZM\Debug('filter: ' . print_r($filter,true));
+if ( isset($_REQUEST['filter']) ) {
+  # Update our filter object with whatever changes we have made before saving
+  $filter->set($_REQUEST['filter']);
+  ZM\Debug("Setting filter from " . print_r($_REQUEST['filter'], true));
+}
+ZM\Debug('filter: ' . print_r($filter,true));
 
 $conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
 $obracketTypes = array();
@@ -89,8 +89,8 @@ $attrTypes = array(
     'Cause'       => translate('AttrCause'),
     'DiskBlocks'  => translate('AttrDiskBlocks'),
     'DiskPercent' => translate('AttrDiskPercent'),
-    'DiskSpace'   => translate('AttrDiskSpace'),
-    'EventDiskSpace'   => translate('AttrEventDiskSpace'),
+    #'StorageDiskSpace'   => translate('AttrStorageDiskSpace'),
+    'DiskSpace'   => translate('AttrEventDiskSpace'),
     'EndDateTime'    => translate('AttrEndDateTime'),
     'EndDate'        => translate('AttrEndDate'),
     'EndTime'        => translate('AttrEndTime'),
@@ -366,6 +366,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td>
                 <label for="filter[Query][sort_field]"><?php echo translate('SortBy') ?></label>
                 <?php
+# Note: The keys need to be actual column names
 $sort_fields = array(
     'Id'            => translate('AttrId'),
     'Name'          => translate('AttrName'),
@@ -373,7 +374,7 @@ $sort_fields = array(
     'DiskSpace'     => translate('AttrDiskSpace'),
     'Notes'         => translate('AttrNotes'),
     'MonitorName'   => translate('AttrMonitorName'),
-    'StartDateTime' => translate('AttrStartDateTime'),
+    'StartTime'     => translate('AttrStartDateTime'),
     'Length'        => translate('AttrDuration'),
     'Frames'        => translate('AttrFrames'),
     'AlarmFrames'   => translate('AttrAlarmFrames'),
@@ -381,7 +382,7 @@ $sort_fields = array(
     'AvgScore'      => translate('AttrAvgScore'),
     'MaxScore'      => translate('AttrMaxScore'),
     );
-echo htmlSelect( 'filter[Query][sort_field]', $sort_fields, $filter->sort_field() );
+echo htmlSelect('filter[Query][sort_field]', $sort_fields, $filter->sort_field());
 $sort_dirns = array(
     '1' => translate('SortAsc'),
     '0'  => translate('SortDesc')
@@ -483,6 +484,10 @@ if ( ZM_OPT_MESSAGE ) {
             <p>
               <label for="Concurrent"><?php echo translate('ConcurrentFilter') ?></label>
               <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( $filter->Concurrent() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+            </p>
+            <p>
+              <label for="LockRows"><?php echo translate('FilterLockRows') ?></label>
+              <input type="checkbox" id="filter[LockRows]" name="filter[LockRows]" value="1"<?php if ( $filter->LockRows() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
         </div>
         <hr/>

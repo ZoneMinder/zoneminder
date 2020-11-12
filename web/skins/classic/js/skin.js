@@ -351,6 +351,11 @@ if ( currentView != 'none' && currentView != 'login' ) {
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
+          if ( ! jqxhr.responseText ) {
+            console.log("No responseText in jqxhr");
+            console.log(jqxhr);
+            return;
+          }
           console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, ''));
           if ( textStatus != "timeout" ) {
           // The idea is that this should only fail due to auth, so reload the page
@@ -367,9 +372,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
     if ( data.auth ) {
       if ( data.auth != auth_hash ) {
+        console.log("Update auth_hash to "+data.auth);
         // Update authentication token.
         auth_hash = data.auth;
       }
+    }
+    if ( data.auth_relay ) {
+      auth_relay = data.auth_relay;
     }
     // iterate through all the keys then update each element id with the same name
     for (var key of Object.keys(data)) {
@@ -752,8 +761,13 @@ function stateStuff(action, runState, newState) {
 }
 
 function logAjaxFail(jqxhr, textStatus, error) {
-  var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
   console.log("Request Failed: " + textStatus + ", " + error);
+  if ( ! jqxhr.responseText ) {
+    console.log("Ajax request failed.  No responseText.  jqxhr follows:");
+    console.log(jqxhr);
+    return;
+  }
+  var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
   if ( responseText ) console.log("Response Text: " + responseText);
 }
 

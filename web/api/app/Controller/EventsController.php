@@ -48,9 +48,24 @@ class EventsController extends AppController {
       $mon_options = '';
     }
 
-    if ( $this->request->params['named'] ) {
+    $named_params = $this->request->params['named'];
+    if ( $named_params ) {
+      # In 1.35.13 we renamed StartTime and EndTime to StartDateTime and EndDateTime.
+      # This hack renames the query string params
+      foreach ( $named_params as $k=>$v ) {
+        if ( false !== strpos($k, 'StartTime') ) {
+          $new_k = preg_replace('/StartTime/', 'StartDateTime', $k);
+          $named_params[$new_k] = $named_params[$k];
+          unset($named_params[$k]);
+        }
+        if ( false !== strpos($k, 'EndTime') ) {
+          $new_k = preg_replace('/EndTime/', 'EndDateTime', $k);
+          $named_params[$new_k] = $named_params[$k];
+          unset($named_params[$k]);
+        }
+      }
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($named_params);
     } else {
       $conditions = array();
     }
@@ -65,7 +80,7 @@ class EventsController extends AppController {
       // API
 
       'limit' => '100',
-      'order' => array('StartTime'),
+      'order' => array('StartDateTime'),
       'paramType' => 'querystring',
     );
     if ( isset($conditions['GroupId']) ) {
@@ -309,7 +324,7 @@ class EventsController extends AppController {
     } else {
       $conditions = array();
     } 
-    array_push($conditions, array("StartTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
+    array_push($conditions, array("StartDateTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
     $query = $this->Event->find('all', array(
                                              'fields' => array(
                                                                'MonitorId',

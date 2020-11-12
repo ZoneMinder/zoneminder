@@ -201,7 +201,7 @@ if ( $event_id ) {
 
 my $sql = " SELECT (SELECT max(Delta) FROM Frames WHERE EventId=Events.Id)-(SELECT min(Delta) FROM Frames WHERE EventId=Events.Id) as FullLength,
    Events.*,
-   unix_timestamp(Events.StartTime) as Time,
+   unix_timestamp(Events.StartDateTime) as Time,
    M.Name as MonitorName,
    M.Palette
    FROM Events

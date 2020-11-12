@@ -71,7 +71,7 @@ class MonitorStream : public StreamBase {
     bool setStreamStart(int monitor_id) {
       return loadMonitor(monitor_id);
     }
-    void runStream();
+    void runStream() override;
 };
 
 #endif // ZM_MONITORSTREAM_H

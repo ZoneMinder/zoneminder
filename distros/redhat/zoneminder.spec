@@ -3,7 +3,7 @@
 %global zmgid_final apache
 
 # Crud is configured as a git submodule
-%global crud_version 3.1.0-zm
+%global crud_version 3.2.0
 
 # CakePHP-Enum-Behavior is configured as a git submodule
 %global ceb_version 1.0-zm
@@ -28,7 +28,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.35.10
+Version: 1.35.14
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -44,7 +44,7 @@ License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
 Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zoneminder-%{version}.tar.gz
-Source1: https://github.com/ZoneMinder/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
+Source1: https://github.com/FriendOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
 
 %{?rhel:BuildRequires: epel-rpm-macros}

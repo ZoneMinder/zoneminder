@@ -371,6 +371,7 @@ $SLANG = array(
     'FilterUpdateDiskSpace' => 'Update used disk space',
     'FilterDeleteEvents'    => 'Delete all matches',
     'FilterCopyEvents'      => 'Copy all matches',
+    'FilterLockRows'        => 'Lock Rows',
     'FilterMoveEvents'      => 'Move all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
     'FilterEmailTo'    			=> 'Email To',

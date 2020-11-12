@@ -49,9 +49,6 @@ if ( isset($_REQUEST['rate']) ) {
 
 if ( isset($_REQUEST['scale']) ) {
   $scale = validInt($_REQUEST['scale']);
-} else if ( isset($_COOKIE['zmEventScaleAuto']) ) {
-  // If we're using scale to fit use it on all monitors
-  $scale = '0';
 } else if ( isset($_COOKIE['zmEventScale'.$Event->MonitorId()]) ) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {
@@ -149,7 +146,7 @@ if ( !$Event->Id() ) {
         <span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span>
         <span id="dataMonitor" title="<?php echo translate('Monitor') ?>"><?php echo $Monitor->Id().' '.validHtmlStr($Monitor->Name()) ?></span>
         <span id="dataCause" title="<?php echo $Event->Notes()?validHtmlStr($Event->Notes()):translate('AttrCause') ?>"><?php echo validHtmlStr($Event->Cause()) ?></span>
-        <span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartTime())) ?></span>
+        <span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?></span>
         <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>
         <span id="dataFrames" title="<?php echo translate('AttrFrames').'/'.translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
         <span id="dataScore" title="<?php echo translate('AttrTotalScore').'/'.translate('AttrAvgScore').'/'.translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>

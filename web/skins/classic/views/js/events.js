@@ -17,14 +17,14 @@ var params =
 "data":
   {
   "search":"some search text",
-  "sort":"StartTime",
+  "sort":"StartDateTime",
   "order":"asc",
   "offset":0,
   "limit":25
   "filter":
     {
     "Name":"some advanced search text"
-    "StartTime":"some more advanced search text"
+    "StartDateTime":"some more advanced search text"
     }
   },
 "cache":true,
@@ -35,7 +35,11 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  $j.getJSON(thisUrl + '?view=request&request=events&task=query', params.data)
+  if ( params.data && params.data.filter ) {
+    params.data.advsearch = params.data.filter;
+    delete params.data.filter;
+  }
+  $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
       .done(function(data) {
         var rows = processRows(data.rows);
         // rearrange the result into what bootstrap-table expects
@@ -57,14 +61,14 @@ function processRows(rows) {
     if ( canEditMonitors ) row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
     if ( canEditEvents ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {
-      row.Cause = row.Cause + '<a href="#?view=image&amp;eid=' + eid + '&amp;fid=objdetect"><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></a>';
+      row.Cause = row.Cause + '<a href="?view=image&amp;eid=' + eid + '&amp;fid=objdetect"><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></a>';
     } else if ( row.Notes != 'Forced Web: ' ) {
       row.Cause = row.Cause + '<br/><div class="small text-nowrap text-muted">' + row.Notes + '</div>';
     }
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
-    row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
+    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
   });
 
   return rows;
@@ -131,7 +135,7 @@ function manageDelConfirmModalBtns() {
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
+          $j('#deleteConfirm').modal('hide');
         })
         .fail(logAjaxFail);
   });
@@ -157,6 +161,9 @@ function getEventDetailModal(eid) {
 }
 
 function initPage() {
+  // Remove the thumbnail column from the DOM if thumbnails are off globally
+  if ( !WEB_LIST_THUMBS ) $j('th[data-field="Thumbnail"]').remove();
+
   // Load the delete confirmation modal into the DOM
   getDelConfirmModal();
 
@@ -234,7 +241,6 @@ function initPage() {
     $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
         })
         .fail(logAjaxFail);
   });
@@ -247,17 +253,14 @@ function initPage() {
     }
 
     var selections = getIdSelections();
-    console.log(selections);
+    //console.log(selections);
 
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
         })
         .fail(logAjaxFail);
-
-    //window.location.reload(true);
   });
 
   // Manage the EDIT button
@@ -317,13 +320,6 @@ function initPage() {
     $j('#deleteConfirm').modal('show');
   });
 
-  // Manage the eventdetail links in the events list
-  $j(".eDetailLink").click(function(evt) {
-    evt.preventDefault();
-    var eid = $j(this).data('eid');
-    getEventDetailModal(eid);
-  });
-
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
     // Manage the eventdetail links in the events list
@@ -339,6 +335,7 @@ function initPage() {
     table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail zoom');
   });
 
+  table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
 }

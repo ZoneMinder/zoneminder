@@ -112,8 +112,9 @@ public:
   double DecimalValue() const;
   const char *StringValue() const;
 
-  ConfigItem &operator=(const ConfigItem item) {
-    Copy(item);return *this;
+  ConfigItem &operator=(const ConfigItem &item) {
+    Copy(item);
+    return *this;
   }
   inline operator bool() const {
     return BooleanValue();

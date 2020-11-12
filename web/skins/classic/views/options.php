@@ -231,6 +231,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
               <td class="colUrl"><?php echo makeLink('#', validHtmlStr($Server->Url()), $canEdit, $svr_opt ) ?></td>
               <td class="colPathToIndex"><?php echo makeLink('#', validHtmlStr($Server->PathToIndex()), $canEdit, $svr_opt ) ?></td>
               <td class="colPathToZMS"><?php echo makeLink('#', validHtmlStr($Server->PathToZMS()), $canEdit, $svr_opt ) ?></td>
+              <td class="colPathToAPI"><?php echo makeLink('#', validHtmlStr($Server->PathToAPI()), $canEdit, $svr_opt ) ?></td>
               <td class="colStatus <?php if ( $Server->Status() == 'NotRunning' ) { echo 'danger'; } ?>">
                   <?php echo makeLink('#', validHtmlStr($Server->Status()), $canEdit, $svr_opt) ?></td>
               <td class="colMonitorCount"><?php echo makeLink('#', validHtmlStr($monitor_counts[$Server->Id()]), $canEdit, $svr_opt) ?></td>
@@ -279,17 +280,23 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
           <tbody>
           <?php
           foreach( ZM\Storage::find( null, array('order'=>'lower(Name)') ) as $Storage ) { 
+            $filter = new ZM\Filter();
+            $filter->addTerm(array('attr'=>'StorageId','op'=>'=','val'=>$Storage->Id()));
+            if ( $user['MonitorIds'] ) {
+              $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
+            }
+
             $str_opt = 'class="storageCol" data-sid="'.$Storage->Id().'"';
             ?>
             <tr>
-              <td class="colId"><?php echo makeLink('#', validHtmlStr($Storage->Id()), $canEdit, $str_opt ) ?></td>
-              <td class="colName"><?php echo makeLink('#', validHtmlStr($Storage->Name()), $canEdit, $str_opt ) ?></td>
-              <td class="colPath"><?php echo makeLink('#', validHtmlStr($Storage->Path()), $canEdit, $str_opt ) ?></td>
-              <td class="colType"><?php echo makeLink('#', validHtmlStr($Storage->Type()), $canEdit, $str_opt ) ?></td>
-              <td class="colScheme"><?php echo makeLink('#', validHtmlStr($Storage->Scheme()), $canEdit, $str_opt ) ?></td>
-              <td class="colServer"><?php echo makeLink('#', validHtmlStr($Storage->Server()->Name()), $canEdit, $str_opt ) ?></td>
+              <td class="colId"><?php echo makeLink('#', validHtmlStr($Storage->Id()), $canEdit, $str_opt) ?></td>
+              <td class="colName"><?php echo makeLink('#', validHtmlStr($Storage->Name()), $canEdit, $str_opt) ?></td>
+              <td class="colPath"><?php echo makeLink('#', validHtmlStr($Storage->Path()), $canEdit, $str_opt) ?></td>
+              <td class="colType"><?php echo makeLink('#', validHtmlStr($Storage->Type()), $canEdit, $str_opt) ?></td>
+              <td class="colScheme"><?php echo makeLink('#', validHtmlStr($Storage->Scheme()), $canEdit, $str_opt) ?></td>
+              <td class="colServer"><?php echo makeLink('#', validHtmlStr($Storage->Server()->Name()), $canEdit, $str_opt) ?></td>
               <td class="colDiskSpace"><?php echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?></td>
-              <td class="ColEvents"><?php echo $Storage->EventCount().' using '.human_filesize($Storage->event_disk_space()) ?></td>
+              <td class="ColEvents"><?php echo makeLink('?view=events'.$filter->querystring(), $Storage->EventCount().' using '.human_filesize($Storage->event_disk_space()) ); ?></td>
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( $Storage->EventCount() or !$canEdit ) { ?> disabled="disabled"<?php } ?><?php echo $Storage->EventCount() ? ' title="Can\'t delete as long as there are events stored here."' : ''?>/></td>
             </tr>
 <?php } #end foreach Server ?>
@@ -302,13 +309,12 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
       </form>
 
   <?php
-  } else if ($tab == 'API') {
+  } else if ( $tab == 'API' ) {
   
-    $apiEnabled = dbFetchOne("SELECT Value FROM Config WHERE Name='ZM_OPT_USE_API'");
-    if ($apiEnabled['Value']!='1') {
-      echo "<div class='errorText'>APIs are disabled. To enable, please turn on OPT_USE_API in Options->System</div>";
-    }
-    else {
+    $apiEnabled = dbFetchOne('SELECT Value FROM Config WHERE Name=\'ZM_OPT_USE_API\'');
+    if ( $apiEnabled['Value'] != '1' ) {
+      echo '<div class="errorText">APIs are disabled. To enable, please turn on OPT_USE_API in Options->System</div>';
+    } else {
   ?>
 
     <form name="userForm" method="post" action="?">

@@ -121,18 +121,6 @@ $serial = $primary_key = 'Id';
   WebColour
   Exif
   Sequence
-  TotalEvents
-  TotalEventDiskSpace
-  HourEvents
-  HourEventDiskSpace
-  DayEvents
-  DayEventDiskSpace
-  WeekEvents
-  WeekEventDiskSpace
-  MonthEvents
-  MonthEventDiskSpace
-  ArchivedEvents
-  ArchivedEventDiskSpace
   ZoneCount
   Refresh
   DefaultCodec
@@ -219,18 +207,6 @@ $serial = $primary_key = 'Id';
     WebColour   =>  '#ff0000',
     Exif    =>  0,
     Sequence  =>  undef,
-    TotalEvents => undef,
-    TotalEventDiskSpace => undef,
-    HourEvents =>   undef,
-    HourEventDiskSpace =>  undef,
-    DayEvents =>  undef,
-    DayEventDiskSpace =>  undef,
-    WeekEvents =>  undef,
-    WeekEventDiskSpace =>  undef,
-    MonthEvents =>  undef,
-    MonthEventDiskSpace =>  undef,
-    ArchivedEvents =>  undef,
-    ArchivedEventDiskSpace =>  undef,
     ZoneCount =>  0,
     Refresh => undef,
     DefaultCodec  => 'auto',

@@ -113,17 +113,16 @@ class Event {
     ~Event();
 
     uint64_t Id() const { return id; }
-    const std::string &Cause() { return cause; }
+    const std::string &Cause() const { return cause; }
     int Frames() const { return frames; }
     int AlarmFrames() const { return alarm_frames; }
 
     const struct timeval &StartTime() const { return start_time; }
     const struct timeval &EndTime() const { return end_time; }
-    struct timeval &StartTime() { return start_time; }
-    struct timeval &EndTime() { return end_time; }
 
     bool SendFrameImage( const Image *image, bool alarm_frame=false );
-    bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false );
+    bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false ) const;
+    bool WriteFrameVideo( const Image *image, const struct timeval timestamp, VideoWriter* videow );
 
     void updateNotes( const StringSetMap &stringSetMap );
 
@@ -147,7 +146,7 @@ class Event {
       return Event::getSubPath( localtime( time ) );
     }
 
-    const char* getEventFile(void) {
+    const char* getEventFile(void) const {
       return video_file.c_str();
     }
 

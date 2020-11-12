@@ -159,7 +159,7 @@ sub new {
   ( $this->{fileName} = $0 ) =~ s|^.*/||;
   $this->{logPath} = $ZoneMinder::Config::Config{ZM_PATH_LOGS};
   $this->{logFile} = $this->{logPath}.'/'.$this->{id}.'.log';
-  ($this->{logFile}) = $this->{logFile} =~ /^([\w\.\/]+)$/;
+  ($this->{logFile}) = $this->{logFile} =~ /^([_\-\w\.\/]+)$/;
 
   $this->{trace} = 0;
 
@@ -504,9 +504,9 @@ sub openFile {
     $LOGFILE->autoflush() if $this->{autoFlush};
 
     my $webUid = (getpwnam($ZoneMinder::Config::Config{ZM_WEB_USER}))[2];
-    Error("Can't get uid for $ZoneMinder::Config::Config{ZM_WEB_USER}") if ! defined $webUid;
+    Error('Can\'t get uid for '.$ZoneMinder::Config::Config{ZM_WEB_USER}) if ! defined $webUid;
     my $webGid = (getgrnam($ZoneMinder::Config::Config{ZM_WEB_GROUP}))[2];
-    Error("Can't get gid for $ZoneMinder::Config::Config{ZM_WEB_USER}") if ! defined $webGid;
+    Error('Can\'t get gid for '.$ZoneMinder::Config::Config{ZM_WEB_USER}) if ! defined $webGid;
     if ( $> == 0 ) {
       # If we are root, we want to make sure that www-data or whatever owns the file
       chown($webUid, $webGid, $this->{logFile} ) or
@@ -610,6 +610,7 @@ sub logInit( ;@ ) {
   my %options = @_ ? @_ : ();
   $logger = ZoneMinder::Logger->new() if !$logger;
   $logger->initialise(%options);
+  logSetSignal();
 }
 
 sub logReinit {
@@ -626,12 +627,26 @@ sub logHupHandler {
   $do_log_rotate = 1;
 }
 
+sub logUSR1Handler {
+  $logger->level($logger->level()+1);
+  Info('Logger - Level changed to '. $logger->level() . '=>'.$codes{$logger->level()});
+}
+
+sub logUSR2Handler {
+  $logger->level($logger->level()-1);
+  Info('Logger - Level changed to '. $logger->level() . '=>'.$codes{$logger->level()});
+}
+
 sub logSetSignal {
   $SIG{HUP} = \&logHupHandler;
+  $SIG{USR1} = \&logUSR1Handler;
+  $SIG{USR2} = \&logUSR2Handler;
 }
 
 sub logClearSignal {
   $SIG{HUP} = 'DEFAULT';
+  $SIG{USR1} = 'DEFAULT';
+  $SIG{USR2} = 'DEFAULT';
 }
 
 sub logLevel {

@@ -603,7 +603,7 @@ function getEventCmdResponse( respObj, respText ) {
         link.set('text', zm_event.Name);
         link.inject(row.getElement('td.colName'));
 
-        row.getElement('td.colTime').set('text', zm_event.StartTime);
+        row.getElement('td.colTime').set('text', zm_event.StartDateTime);
         row.getElement('td.colSecs').set('text', zm_event.Length);
 
         link = new Element('a', {'href': '#', 'events': {'click': openFrames.pass( [zm_event.Id] )}});
@@ -946,8 +946,9 @@ function initPage() {
   });
 
   // Only enable the settings button for local cameras
-  settingsBtn.prop('disabled', !(monitorType == 'Local' && canViewControl));
-}
+  settingsBtn.prop('disabled', !canViewControl);
+  if ( monitorType != 'Local' ) settingsBtn.hide();
+} // initPage
 
 // Kick everything off
 $j(document).ready(initPage);

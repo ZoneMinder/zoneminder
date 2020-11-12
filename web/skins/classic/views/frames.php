@@ -181,8 +181,9 @@ if ( count($frames) ) {
 <?php
     if ( ZM_WEB_LIST_THUMBS ) {
       $base_img_src = '?view=image&amp;fid=' .$Frame->Id();
+			$ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
       $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';
-      $thmb_height = ZM_WEB_LIST_THUMB_HEIGHT ? 'height='.ZM_WEB_LIST_THUMB_HEIGHT : '';
+      $thmb_height = 'height="'.( ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor ) .'"';
       $thmb_fn = 'filename=' .$Event->MonitorId(). '_' .$frame['EventId']. '_' .$frame['FrameId']. '.jpg';
       $img_src = join('&amp;', array_filter(array($base_img_src, $thmb_width, $thmb_height, $thmb_fn)));
       $full_img_src = join('&amp;', array_filter(array($base_img_src, $thmb_fn)));

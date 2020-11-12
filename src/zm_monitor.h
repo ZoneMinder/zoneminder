@@ -419,7 +419,7 @@ public:
   inline Function GetFunction() const {
     return function;
   }
-  inline bool Enabled() {
+  inline bool Enabled() const {
     if ( function <= MONITOR )
       return false;
     return enabled;
@@ -427,7 +427,7 @@ public:
   inline const char *EventPrefix() const {
     return event_prefix;
   }
-  inline bool Ready() {
+  inline bool Ready() const {
     if ( function <= MONITOR ) {
       Error("Should not be calling Ready if the function doesn't include motion detection");
       return false;
@@ -435,15 +435,15 @@ public:
     if ( image_count >= ready_count ) {
       return true;
     }
-    Debug(2, "Not ready because image_count(%d) <= ready_count(%d)", image_count, ready_count );
+    Debug(2, "Not ready because image_count(%d) <= ready_count(%d)", image_count, ready_count);
     return false;
   }
-  inline bool Active() {
+  inline bool Active() const {
     if ( function <= MONITOR )
       return false;
     return( enabled && shared_data->active );
   }
-  inline bool Exif() {
+  inline bool Exif() const {
     return embed_exif;
   }
   inline bool RecordAudio() {
@@ -474,7 +474,7 @@ public:
   void SetVideoWriterEventId( uint64_t p_event_id ) { video_store_data->current_event = p_event_id; }
 
   struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
-  void SetVideoWriterStartTime(struct timeval &t) { video_store_data->recording = t; }
+  void SetVideoWriterStartTime(const struct timeval &t) { video_store_data->recording = t; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   struct timeval GetVideoBufferDuration() const { return video_buffer_duration; };
@@ -502,7 +502,7 @@ public:
 	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
   void get_ref_image();
 
-  int LabelSize() { return label_size; }
+  int LabelSize() const { return label_size; }
 
   void actionReload();
   void actionEnable();

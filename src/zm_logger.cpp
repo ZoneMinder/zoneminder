@@ -44,18 +44,6 @@ Logger *Logger::smInstance = nullptr;
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
 
-#if 0
-static void subtractTime( struct timeval * const tp1, struct timeval * const tp2 ) {
-  tp1->tv_sec -= tp2->tv_sec;
-  if ( tp1->tv_usec <= tp2->tv_usec ) {
-    tp1->tv_sec--;
-    tp1->tv_usec = 1000000 - (tp2->tv_usec - tp1->tv_usec);
-  } else {
-    tp1->tv_usec = tp1->tv_usec - tp2->tv_usec;
-  }
-}
-#endif
-
 void Logger::usrHandler(int sig) {
   Logger *logger = fetch();
   if ( sig == SIGUSR1 )

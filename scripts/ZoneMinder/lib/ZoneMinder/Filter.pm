@@ -77,6 +77,7 @@ UpdateDiskSpace
 UserId
 Background
 Concurrent
+LockRows
 );
 
 sub Execute {
@@ -102,6 +103,8 @@ sub Execute {
     my $load = getLoad();
     $sql =~ s/zmSystemLoad/$load/g;
   }
+
+  $sql .= ' FOR UPDATE' if $$self{LockRows};
 
   Debug("Filter::Execute SQL ($sql)");
   my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
@@ -146,7 +149,7 @@ sub Sql {
 
     my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query_json});
     my $sql = 'SELECT E.*,
-       unix_timestamp(E.StartTime) as Time,
+       unix_timestamp(E.StartDateTime) as Time,
        M.Name as MonitorName,
        M.DefaultRate,
        M.DefaultScale
@@ -181,27 +184,25 @@ sub Sql {
             $self->{Sql} .= $Config{ZM_SERVER_ID};
 # StartTime options
           } elsif ( $term->{attr} eq 'DateTime' ) {
-            $self->{Sql} .= 'E.StartTime';
-          } elsif ( $term->{attr} eq 'StartDateTime' ) {
-            $self->{Sql} .= 'E.StartTime';
+            $self->{Sql} .= 'E.StartDateTime';
           } elsif ( $term->{attr} eq 'Date' ) {
-            $self->{Sql} .= 'to_days( E.StartTime )';
+            $self->{Sql} .= 'to_days( E.StartDateTime )';
           } elsif ( $term->{attr} eq 'StartDate' ) {
-            $self->{Sql} .= 'to_days( E.StartTime )';
+            $self->{Sql} .= 'to_days( E.StartDateTime )';
           } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' ) {
-            $self->{Sql} .= 'extract( hour_second from E.StartTime )';
+            $self->{Sql} .= 'extract( hour_second from E.StartDateTime )';
           } elsif ( $term->{attr} eq 'Weekday' or $term->{attr} eq 'StartWeekday' ) {
-            $self->{Sql} .= 'weekday( E.StartTime )';
+            $self->{Sql} .= 'weekday( E.StartDateTime )';
 
 # EndTIme options
           } elsif ( $term->{attr} eq 'EndDateTime' ) {
-            $self->{Sql} .= 'E.EndTime';
+            $self->{Sql} .= 'E.EndDateTime';
           } elsif ( $term->{attr} eq 'EndDate' ) {
-            $self->{Sql} .= 'to_days( E.EndTime )';
-          } elsif ( $term->{attr} eq 'EndTime' ) {
-            $self->{Sql} .= 'extract( hour_second from E.EndTime )';
+            $self->{Sql} .= 'to_days( E.EndDateTime )';
+          } elsif ( $term->{attr} eq 'EndDateTime' ) {
+            $self->{Sql} .= 'extract( hour_second from E.EndDateTime )';
           } elsif ( $term->{attr} eq 'EndWeekday' ) {
-            $self->{Sql} .= "weekday( E.EndTime )";
+            $self->{Sql} .= "weekday( E.EndDateTime )";
           } elsif ( $term->{attr} eq 'ExistsInFileSystem' ) {
             push @{$self->{PostSQLConditions}}, $term;
             $self->{Sql} .= 'TRUE /* ExistsInFileSystem */';
@@ -365,7 +366,7 @@ sub Sql {
       $sql .= ' AND ( '.join(' or ', @auto_terms).' )';
     }
     if ( !$filter_expr->{sort_field} ) {
-      $filter_expr->{sort_field} = 'StartTime';
+      $filter_expr->{sort_field} = 'StartDateTime';
       $filter_expr->{sort_asc} = 0;
     }
     my $sort_column = '';
@@ -375,10 +376,14 @@ sub Sql {
       $sort_column = 'M.Name';
     } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
       $sort_column = 'E.Name';
+    } elsif ( $filter_expr->{sort_field} eq 'StartDateTime' ) {
+      $sort_column = 'E.StartDateTime';
     } elsif ( $filter_expr->{sort_field} eq 'StartTime' ) {
-      $sort_column = 'E.StartTime';
+      $sort_column = 'E.StartDateTime';
     } elsif ( $filter_expr->{sort_field} eq 'EndTime' ) {
-      $sort_column = 'E.EndTime';
+      $sort_column = 'E.EndDateTime';
+    } elsif ( $filter_expr->{sort_field} eq 'EndDateTime' ) {
+      $sort_column = 'E.EndDateTime';
     } elsif ( $filter_expr->{sort_field} eq 'Secs' ) {
       $sort_column = 'E.Length';
     } elsif ( $filter_expr->{sort_field} eq 'Frames' ) {
@@ -394,7 +399,7 @@ sub Sql {
     } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
       $sort_column = 'E.DiskSpace';
     } else {
-      $sort_column = 'E.StartTime';
+      $sort_column = 'E.StartDateTime';
     }
     my $sort_order = $filter_expr->{sort_asc} ? 'ASC' : 'DESC';
     $sql .= ' ORDER BY '.$sort_column.' '.$sort_order;

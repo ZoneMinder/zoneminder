@@ -121,7 +121,8 @@ if ( $action == 'save' ) {
           }
           $saferNewName = basename($_REQUEST['newMonitor']['Name']);
           $link_path = $NewStorage->Path().'/'.$saferNewName;
-          if ( !symlink($NewStorage->Path().'/'.$mid, $link_path) ) {
+          // Use a relative path for the target so the link continues to work from backups or directory changes.
+          if ( !symlink($mid, $link_path) ) {
             if ( ! ( file_exists($link_path) and is_link($link_path) ) ) {
               ZM\Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
             }

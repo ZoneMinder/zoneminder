@@ -996,23 +996,19 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
       $sortColumn = 'E.Cause';
       break;
     case 'DateTime' :
-      $sortColumn = 'E.StartTime';
-      $_REQUEST['sort_field'] = 'StartTime';
+      $sortColumn = 'E.StartDateTime';
+      $_REQUEST['sort_field'] = 'StartDateTime';
       break;
     case 'DiskSpace' :
       $sortColumn = 'E.DiskSpace';
       break;
     case 'StartTime' :
-      $sortColumn = 'E.StartTime';
-      break;
     case 'StartDateTime' :
-      $sortColumn = 'E.StartTime';
+      $sortColumn = 'E.StartDateTime';
       break;
     case 'EndTime' :
-      $sortColumn = 'E.EndTime';
-      break;
     case 'EndDateTime' :
-      $sortColumn = 'E.EndTime';
+      $sortColumn = 'E.EndDateTime';
       break;
     case 'Length' :
       $sortColumn = 'E.Length';
@@ -1048,7 +1044,7 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
       $sortColumn = 'F.Score';
       break;
     default:
-      $sortColumn = 'E.StartTime';
+      $sortColumn = 'E.StartDateTime';
       break;
   }
   if ( !isset($_REQUEST['sort_asc']) )
@@ -1077,7 +1073,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $Filter = ZM\Filter::parse($filter, $querySep);
 
   $filter['sql'] = $Filter->sql();
-  $filter['querystring'] = $Filter->querystring($querySep);
+  $filter['querystring'] = $Filter->querystring('filter', $querySep);
   $filter['hidden_fields'] = $Filter->hidden_fields();
   $filter['pre_sql_conditions'] = $Filter->pre_sql_conditions();
   $filter['post_sql_conditions'] = $Filter->post_sql_conditions();

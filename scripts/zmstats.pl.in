@@ -43,10 +43,10 @@ while( 1 ) {
     }
   }
 
-  $dbh->do('DELETE FROM Events_Hour WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 hour)') or Error($dbh->errstr());
-  $dbh->do('DELETE FROM Events_Day WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 day)') or Error($dbh->errstr());
-  $dbh->do('DELETE FROM Events_Week WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 week)') or Error($dbh->errstr());
-  $dbh->do('DELETE FROM Events_Month WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 month)') or Error($dbh->errstr());
+  $dbh->do('DELETE FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)') or Error($dbh->errstr());
+  $dbh->do('DELETE FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)') or Error($dbh->errstr());
+  $dbh->do('DELETE FROM Events_Week WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 week)') or Error($dbh->errstr());
+  $dbh->do('DELETE FROM Events_Month WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 month)') or Error($dbh->errstr());
 
   # Prune the Logs table if required
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {

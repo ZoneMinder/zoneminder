@@ -189,8 +189,8 @@ CREATE TABLE `Events` (
   `SecondaryStorageId`	smallint(5) unsigned default 0,
   `Name` varchar(64) NOT NULL default '',
   `Cause` varchar(32) NOT NULL default '',
-  `StartTime` datetime default NULL,
-  `EndTime` datetime default NULL,
+  `StartDateTime` datetime default NULL,
+  `EndDateTime` datetime default NULL,
   `Width` smallint(5) unsigned NOT NULL default '0',
   `Height` smallint(5) unsigned NOT NULL default '0',
   `Length` decimal(10,2) NOT NULL default '0.00',
@@ -216,52 +216,52 @@ CREATE TABLE `Events` (
   PRIMARY KEY (`Id`),
   KEY `Events_MonitorId_idx` (`MonitorId`),
   KEY `Events_StorageId_idx` (`StorageId`),
-  KEY `Events_StartTime_idx` (`StartTime`),
-  KEY `Events_EndTime_DiskSpace` (`EndTime`,`DiskSpace`)
+  KEY `Events_StartDateTime_idx` (`StartDateTime`),
+  KEY `Events_EndDateTime_DiskSpace` (`EndDateTime`,`DiskSpace`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 DROP TABLE IF EXISTS `Events_Hour`;
 CREATE TABLE `Events_Hour` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
+  `StartDateTime` datetime default NULL,
   `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Hour_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Hour_StartTime_idx` (`StartTime`)
+  KEY `Events_Hour_StartDateTime_idx` (`StartDateTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 DROP TABLE IF EXISTS `Events_Day`;
 CREATE TABLE `Events_Day` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
+  `StartDateTime` datetime default NULL,
   `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Day_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Day_StartTime_idx` (`StartTime`)
+  KEY `Events_Day_StartDateTime_idx` (`StartDateTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 DROP TABLE IF EXISTS `Events_Week`;
 CREATE TABLE `Events_Week` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
+  `StartDateTime` datetime default NULL,
   `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Week_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Week_StartTime_idx` (`StartTime`)
+  KEY `Events_Week_StartDateTime_idx` (`StartDateTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 DROP TABLE IF EXISTS `Events_Month`;
 CREATE TABLE `Events_Month` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
+  `StartDateTime` datetime default NULL,
   `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Month_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Month_StartTime_idx` (`StartTime`)
+  KEY `Events_Month_StartDateTime_idx` (`StartDateTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 
@@ -303,6 +303,7 @@ CREATE TABLE `Filters` (
   `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
   `Concurrent` tinyint(1) unsigned NOT NULL default '0',
+  `LockRows` tinyint(1) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
   KEY `Name` (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -315,6 +316,7 @@ DROP TABLE IF EXISTS `Frames`;
 CREATE TABLE `Frames` (
   `Id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `EventId` BIGINT UNSIGNED NOT NULL default '0',
+  FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,
   `FrameId` int(10) unsigned NOT NULL default '0',
   `Type` enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
@@ -524,18 +526,6 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
-  `TotalEvents` int(10) default NULL,
-  `TotalEventDiskSpace` bigint default NULL,
-  `HourEvents` int(10) default NULL,
-  `HourEventDiskSpace` bigint default NULL,
-  `DayEvents` int(10) default NULL,
-  `DayEventDiskSpace` bigint default NULL,
-  `WeekEvents` int(10) default NULL,
-  `WeekEventDiskSpace` bigint default NULL,
-  `MonthEvents` int(10) default NULL,
-  `MonthEventDiskSpace` bigint default NULL,
-  `ArchivedEvents` int(10) default NULL,
-  `ArchivedEventDiskSpace` bigint default NULL,
   `ZoneCount` TINYINT NOT NULL DEFAULT 0,
   `Refresh` int(10) unsigned default NULL,
   `Latitude`  DECIMAL(10,8),
@@ -552,6 +542,18 @@ CREATE TABLE `Monitor_Status` (
   `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
   `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
   `CaptureBandwidth`  INT NOT NULL default 0,
+  `TotalEvents` int(10) default NULL,
+  `TotalEventDiskSpace` bigint default NULL,
+  `HourEvents` int(10) default NULL,
+  `HourEventDiskSpace` bigint default NULL,
+  `DayEvents` int(10) default NULL,
+  `DayEventDiskSpace` bigint default NULL,
+  `WeekEvents` int(10) default NULL,
+  `WeekEventDiskSpace` bigint default NULL,
+  `MonthEvents` int(10) default NULL,
+  `MonthEventDiskSpace` bigint default NULL,
+  `ArchivedEvents` int(10) default NULL,
+  `ArchivedEventDiskSpace` bigint default NULL,
   PRIMARY KEY (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 --
@@ -609,8 +611,11 @@ DROP TABLE IF EXISTS `Stats`;
 CREATE TABLE `Stats` (
   `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `MonitorId` int(10) unsigned NOT NULL default '0',
+  FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE,
   `ZoneId` int(10) unsigned NOT NULL default '0',
+  FOREIGN KEY (`ZoneId`) REFERENCES `Zones` (`Id`) ON DELETE CASCADE,
   `EventId` BIGINT UNSIGNED NOT NULL,
+  FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,
   `FrameId` int(10) unsigned NOT NULL default '0',
   `PixelDiff` tinyint(3) unsigned NOT NULL default '0',
   `AlarmPixels` int(10) unsigned NOT NULL default '0',
@@ -705,6 +710,7 @@ DROP TABLE IF EXISTS `Zones`;
 CREATE TABLE `Zones` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
+  FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE,
   `Name` varchar(64) NOT NULL default '',
   `Type` enum('Active','Inclusive','Exclusive','Preclusive','Inactive','Privacy') NOT NULL default 'Active',
   `Units` enum('Pixels','Percent') NOT NULL default 'Pixels',
@@ -799,7 +805,7 @@ INSERT INTO `Filters`
   VALUES
   (
     'PurgeWhenFull',
-    '{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',
+    '{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="},{"cnj":"and","obr":"0","attr":"EndDateTime","op":"IS NOT","val":"NULL","cbr":"0"}],"limit":100,"sort_asc":1}',
     0/*AutoArchive*/,
     0/*AutoVideo*/,
     0/*AutoUpload*/,
@@ -843,7 +849,7 @@ INSERT INTO `Filters`
   )
 VALUES (
   'Update DiskSpace',
-  '{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',
+  '{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"},{"cnj":"and","obr":"0","attr":"EndDateTime","op":"IS NOT","val":"NULL","cbr":"0"}]}',
   0/*AutoArchive*/,
   0/*AutoVideo*/,
   0/*AutoUpload*/,

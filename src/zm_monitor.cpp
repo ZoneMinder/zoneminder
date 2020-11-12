@@ -540,11 +540,14 @@ Monitor::Monitor(
     ReloadLinkedMonitors(p_linked_monitors);
 
     if ( config.record_diag_images ) {
-      diag_path_r = stringtf(config.record_diag_images_fifo ? "%s/%d/diagpipe-r.jpg" : "%s/%d/diag-r.jpg", storage->Path(), id);
-      diag_path_d = stringtf(config.record_diag_images_fifo ? "%s/%d/diagpipe-d.jpg" : "%s/%d/diag-d.jpg", storage->Path(), id);
       if ( config.record_diag_images_fifo ) {
-        FifoStream::fifo_create_if_missing(diag_path_r.c_str());
-        FifoStream::fifo_create_if_missing(diag_path_d.c_str());
+        diag_path_ref = stringtf("%s/%d/diagpipe-r.jpg", staticConfig.PATH_SOCKS.c_str(), id);
+        diag_path_delta = stringtf("%s/%d/diagpipe-d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
+        FifoStream::fifo_create_if_missing(diag_path_ref.c_str());
+        FifoStream::fifo_create_if_missing(diag_path_delta.c_str());
+      } else {
+        diag_path_ref = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
+        diag_path_delta = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
       }
     }
   }  // end if purpose == ANALYSIS
@@ -2683,8 +2686,8 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   ref_image.Delta(comp_image, &delta_image);
 
   if ( config.record_diag_images ) {
-    ref_image.WriteJpeg(diag_path_r.c_str(), config.record_diag_images_fifo);
-    delta_image.WriteJpeg(diag_path_d.c_str(), config.record_diag_images_fifo);
+    ref_image.WriteJpeg(diag_path_ref.c_str(), config.record_diag_images_fifo);
+    delta_image.WriteJpeg(diag_path_delta.c_str(), config.record_diag_images_fifo);
   }
 
   // Blank out all exclusion zones

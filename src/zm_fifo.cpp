@@ -221,7 +221,7 @@ void FifoStream::setStreamStart(int monitor_id, const char * format) {
   }
 
   snprintf(diag_path, sizeof(diag_path), "%s/%d/%s",
-      monitor->getStorage()->Path(), monitor->Id(), filename);
+      staticConfig.PATH_SOCKS.c_str(), monitor->Id(), filename);
   setStreamStart(diag_path);
 }
 

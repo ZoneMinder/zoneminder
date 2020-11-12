@@ -113,11 +113,16 @@ void Zone::Setup(
   }
 
   if ( config.record_diag_images ) {
-    snprintf(diag_path, sizeof(diag_path),
-        config.record_diag_images_fifo ? "%s/diagpipe-%d-poly.jpg" : "%s/diag-%d-poly.jpg",
-        monitor->getStorage()->Path(), id);
-    if ( config.record_diag_images_fifo )
+    if ( config.record_diag_images_fifo ) {
+      snprintf(diag_path, sizeof(diag_path),
+          "%s/diagpipe-%d-poly.jpg",
+          staticConfig.PATH_SOCKS.c_str(), id);
+
       FifoStream::fifo_create_if_missing(diag_path);
+    } else {
+      snprintf(diag_path, sizeof(diag_path), "%s/diag-%d-poly.jpg",
+          monitor->getStorage()->Path(), id);
+    }
     pg_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
   } else {
     diag_path[0] = 0;
@@ -139,10 +144,11 @@ void Zone::RecordStats(const Event *event) {
       "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
       monitor->Id(), id, event->Id(), event->Frames(), pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score
       );
-  if ( mysql_query(&dbconn, sql) ) {
+  int rc = mysql_query(&dbconn, sql);
+  db_mutex.unlock();
+  if ( rc ) {
     Error("Can't insert event stats: %s", mysql_error(&dbconn));
   }
-  db_mutex.unlock();
 }  // end void Zone::RecordStats( const Event *event )
 
 bool Zone::CheckOverloadCount() {

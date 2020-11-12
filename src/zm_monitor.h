@@ -313,8 +313,8 @@ protected:
   Image        ref_image;
   Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
   Image        write_image;    // Used when creating snapshot images
-  std::string diag_path_r;
-  std::string diag_path_d;
+  std::string diag_path_ref;
+  std::string diag_path_delta;
 
   Purpose      purpose;        // What this monitor has been created to do
   int          event_count;

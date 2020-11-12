@@ -2584,7 +2584,7 @@ int Monitor::Capture() {
            "VALUES (%d, %.2lf, %u, 'Connected') ON DUPLICATE KEY UPDATE "
            "CaptureFPS = %.2lf, CaptureBandwidth=%u, Status='Connected'",
             id, fps, new_capture_bandwidth, fps, new_capture_bandwidth);
-        rc = mysql_query(&dbconn, sql);
+        int rc = mysql_query(&dbconn, sql);
         db_mutex.unlock();
         if ( rc ) {
           Error("Can't run query %s: %s", sql, mysql_error(&dbconn));

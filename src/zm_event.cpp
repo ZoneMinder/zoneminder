@@ -276,7 +276,7 @@ Event::~Event() {
 
   // update frame deltas to refer to video start time which may be a few frames before event start
   struct timeval video_offset = {0};
-  struct timeval video_start_time  = monitor->GetVideoWriterStartTime();
+  struct timeval video_start_time = monitor->GetVideoWriterStartTime();
   if ( video_start_time.tv_sec > 0 ) {
      timersub(&video_start_time, &start_time, &video_offset);
      Debug(1, "Updating frames delta by %d sec %d usec",
@@ -700,7 +700,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
 		if ( write_to_db 
 				or 
-				(frame_data.size() > MAX_DB_FRAMES)
+				(frame_data.size() >= MAX_DB_FRAMES)
 				or
 				(frame_type==BULK)
 				or

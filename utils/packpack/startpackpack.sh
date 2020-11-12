@@ -94,12 +94,12 @@ commonprep () {
 
     # The rpm specfile requires we download each submodule as a tarball then manually move it into place
     # Might as well do this for Debian as well, rather than git submodule init
-    CRUDVER="3.1.0-zm"
+    CRUDVER="3.2.0"
     if [ -e "build/crud-${CRUDVER}.tar.gz" ]; then
         echo "Found existing Crud ${CRUDVER} tarball..."
     else
         echo "Retrieving Crud ${CRUDVER} submodule..."
-        curl -L https://github.com/ZoneMinder/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
+        curl -L https://github.com/FriendsOfCake/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
         if [ $? -ne 0 ]; then
             echo "ERROR: Crud tarball retreival failed..."
             exit 1

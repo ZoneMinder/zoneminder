@@ -706,8 +706,8 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 				or
 				( fps and (frame_data.size() > fps) )
 			 ) {
-      Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
-					frame_data.size(), write_to_db, fps);
+      Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK(%d)",
+					frame_data.size(), write_to_db, fps, (frame_type==BULK));
       WriteDbFrames();
       last_db_frame = frames;
 

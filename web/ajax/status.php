@@ -267,7 +267,6 @@ function collectData() {
 
     if ( count($fieldSql) ) {
       $sql = 'SELECT '.join(', ', $fieldSql).' FROM '.$entitySpec['table'];
-      #$sql = 'SELECT '.join(', ', array_map($fieldSql, function($f){return '`'.$f.'`';})).' FROM '.$entitySpec['table'];
       if ( $joinSql )
         $sql .= ' '.join(' ', array_unique($joinSql));
       if ( $id && !empty($entitySpec['selector']) ) {
@@ -314,27 +313,27 @@ function collectData() {
         $limit = $entitySpec['limit'];
       elseif ( !empty($_REQUEST['count']) )
         $limit = validInt($_REQUEST['count']);
-      $limit_offset='';
+      $limit_offset = '';
       if ( !empty($_REQUEST['offset']) )
         $limit_offset = validInt($_REQUEST['offset']) . ', ';
-      if ( !empty( $limit ) )
+      if ( !empty($limit) )
         $sql .= ' limit '.$limit_offset.$limit;
       if ( isset($limit) && $limit == 1 ) {
         if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
           foreach ( $postFuncs as $element=>$func )
             $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
-          $data = array_merge( $data, $sqlData );
+          $data = array_merge($data, $sqlData);
         }
       } else {
         $count = 0;
-        foreach( dbFetchAll( $sql, NULL, $values ) as $sqlData ) {
+        foreach ( dbFetchAll($sql, NULL, $values) as $sqlData ) {
           foreach ( $postFuncs as $element=>$func )
-            $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
+            $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
           $data[] = $sqlData;
           if ( isset($limi) && ++$count >= $limit )
             break;
-        }
-      }
+        } # end foreach
+      } # end if have limit == 1
     }
   }
   #ZM\Debug(print_r($data, true));
@@ -347,19 +346,19 @@ if ( !isset($_REQUEST['layout']) ) {
   $_REQUEST['layout'] = 'json';
 }
 
-switch( $_REQUEST['layout'] ) {
+switch ( $_REQUEST['layout'] ) {
   case 'xml NOT CURRENTLY SUPPORTED' :
-      header('Content-type: application/xml');
-      echo('<?xml version="1.0" encoding="iso-8859-1"?>
-');
-      echo '<'.strtolower($_REQUEST['entity']).'>
+    header('Content-type: application/xml');
+    echo('<?xml version="1.0" encoding="iso-8859-1"?>
+      ');
+    echo '<'.strtolower($_REQUEST['entity']).'>
 ';
-      foreach ( $data as $key=>$value ) {
-        $key = strtolower($key);
-        echo "<$key>".htmlentities($value)."</$key>\n";
-      }
-      echo '</'.strtolower($_REQUEST['entity']).">\n";
-      break;
+    foreach ( $data as $key=>$value ) {
+      $key = strtolower($key);
+      echo "<$key>".htmlentities($value)."</$key>\n";
+    }
+    echo '</'.strtolower($_REQUEST['entity']).">\n";
+    break;
   case 'json' :
     {
       $response = array( strtolower(validJsStr($_REQUEST['entity'])) => $data );
@@ -369,11 +368,11 @@ switch( $_REQUEST['layout'] ) {
       break;
     }
   case 'text' :
-      header('Content-type: text/plain' );
-      echo join( ' ', array_values( $data ) );
-      break;
+    header('Content-type: text/plain');
+    echo join(' ', array_values($data));
+    break;
   default:
-    ZM\Error('Unsupported layout: '. $_REQUEST['layout']);
+    ZM\Error('Unsupported layout: '.$_REQUEST['layout']);
 }
 
 function getFrameImage() {
@@ -381,38 +380,38 @@ function getFrameImage() {
   $frameId = $_REQUEST['id'][1];
 
   $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
-  if ( !($frame = dbFetchOne( $sql, NULL, array($eventId, $frameId ) )) ) {
+  if ( !($frame = dbFetchOne($sql, NULL, array($eventId, $frameId))) ) {
     $frame = array();
     $frame['EventId'] = $eventId;
     $frame['FrameId'] = $frameId;
     $frame['Type'] = 'Virtual';
   }
-  $event = dbFetchOne( 'select * from Events where Id = ?', NULL, array( $frame['EventId'] ) );
-  $frame['Image'] = getImageSrc( $event, $frame, SCALE_BASE );
-  return( $frame );
+  $event = dbFetchOne('SELECT * FROM Events WHERE Id = ?', NULL, array($frame['EventId']));
+  $frame['Image'] = getImageSrc($event, $frame, SCALE_BASE);
+  return $frame;
 }
 
 function getNearFrame() {
   $eventId = $_REQUEST['id'][0];
   $frameId = $_REQUEST['id'][1];
 
-  $sql = 'select FrameId from Frames where EventId = ? and FrameId <= ? order by FrameId desc limit 1';
-  if ( !$nearFrameId = dbFetchOne( $sql, 'FrameId', array( $eventId, $frameId ) ) ) {
-    $sql = 'select * from Frames where EventId = ? and FrameId > ? order by FrameId asc limit 1';
-    if ( !$nearFrameId = dbFetchOne( $sql, 'FrameId', array( $eventId, $frameId ) ) ) {
+  $sql = 'SELECT FrameId FROM Frames WHERE EventId = ? AND FrameId <= ? ORDER BY FrameId DESC LIMIT 1';
+  if ( !$nearFrameId = dbFetchOne($sql, 'FrameId', array($eventId, $frameId)) ) {
+    $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId > ? ORDER BY FrameId ASC LIMIT 1';
+    if ( !$nearFrameId = dbFetchOne($sql, 'FrameId', array($eventId, $frameId)) ) {
       return( array() );
     }
   }
   $_REQUEST['entity'] = 'frame';
   $_REQUEST['id'][1] = $nearFrameId;
-  return( collectData() );
+  return collectData();
 }
 
 function getNearEvents() {
   global $user, $sortColumn, $sortOrder;
 
   $eventId = $_REQUEST['id'];
-  $NearEvents = array( 'EventId'=>$eventId );
+  $NearEvents = array('EventId'=>$eventId);
 
   $event = dbFetchOne('SELECT * FROM Events WHERE Id=?', NULL, array($eventId));
   if ( !$event ) return $NearEvents;
@@ -423,7 +422,8 @@ function getNearEvents() {
     $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
   }
 
-  # When listing, it may make sense to list them in descending order.  But when viewing Prev should timewise earlier and Next should be after.
+  # When listing, it may make sense to list them in descending order.
+  # But when viewing Prev should timewise earlier and Next should be after.
   if ( $sortColumn == 'E.Id' or $sortColumn == 'E.StartDateTime' ) {
     $sortOrder = 'ASC';
   }
@@ -436,7 +436,7 @@ function getNearEvents() {
   $sql .= ' LIMIT 1';
   $result = dbQuery($sql);
   if ( !$result ) {
-    ZM\Error("Failed to load previous event using $sql");
+    ZM\Error('Failed to load previous event using '.$sql);
     return $NearEvents;
   }
 
@@ -450,7 +450,7 @@ function getNearEvents() {
   $sql .= ' LIMIT 1';
   $result = dbQuery($sql);
   if ( !$result ) {
-    ZM\Error("Failed to load next event using $sql");
+    ZM\Error('Failed to load next event using '.$sql);
     return $NearEvents;
   }
   $nextEvent = dbFetchNext($result);
@@ -470,6 +470,6 @@ function getNearEvents() {
     $NearEvents['NextEventId'] = $NearEvents['NextEventStartTime'] = $NearEvents['NextEventDefVideoPath'] = 0;
   }
   return $NearEvents;
-}
+} # end function getNearEvents()
 
 ?>

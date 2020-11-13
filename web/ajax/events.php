@@ -173,7 +173,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $unfiltered_rows[] = $row;
   }
 
-  ZM\Debug('Have ' . count($event_ids) . ' events matching base filter.');
+  ZM\Debug('Have ' . count($unfiltered_rows) . ' events matching base filter.');
 
   $filtered_rows = null;
 
@@ -238,11 +238,11 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $data['rows'] = $returned_rows;
 
   # totalNotFiltered must equal total, except when either search bar has been used
-  $data['totalNotFiltered'] = count($event_ids);
+  $data['totalNotFiltered'] = count($unfiltered_rows);
   if ( $search != '' || count($advsearch) ) {
     $data['total'] = count($filtered_rows);
   } else {
-    $data['total'] = count($unfiltered_rows);
+    $data['total'] = $data['totalNotFiltered'];
   }
 
   return $data;

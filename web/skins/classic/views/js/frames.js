@@ -1,3 +1,25 @@
+// Called by bootstrap-table to retrieve zm frame data
+function ajaxRequest(params) {
+  if ( params.data && params.data.filter ) {
+    params.data.advsearch = params.data.filter;
+    delete params.data.filter;
+  }
+  $j.getJSON(thisUrl + '?view=request&request=frames&task=query&eid='+eid, params.data)
+      .done(function(data) {
+        var rows = processRows(data.rows);
+        // rearrange the result into what bootstrap-table expects
+        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+      })
+      .fail(logAjaxFail);
+}
+
+function processRows(rows) {
+  $j.each(rows, function(ndx, row) {
+    // WIP: process each row here
+  });
+  return rows;
+}
+
 function thumbnail_onmouseover(event) {
   var img = event.target;
   img.src = '';

@@ -148,15 +148,8 @@ sub Sql {
     }
 
     my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query_json});
-    my $sql = 'SELECT E.*,
-       unix_timestamp(E.StartDateTime) as Time,
-       M.Name as MonitorName,
-       M.DefaultRate,
-       M.DefaultScale
-         FROM Events as E
-         INNER JOIN Monitors as M on M.Id = E.MonitorId
-         LEFT JOIN Storage as S on S.Id = E.StorageId
-         ';
+    my $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time
+         FROM Events as E';
 
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
@@ -174,12 +167,16 @@ sub Sql {
 					if ( $term->{attr} eq 'AlarmedZoneId' ) {
 						$term->{op} = 'EXISTS';
           } elsif ( $term->{attr} =~ /^Monitor/ ) {
+            $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
+         FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
             my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
             $self->{Sql} .= 'M.'.$temp_attr_name;
           } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
+            $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
+         FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
             $self->{Sql} .= 'M.ServerId';
           } elsif ( $term->{attr} eq 'StorageServerId' ) {
-            $self->{Sql} .= 'S.ServerId';
+            $self->{Sql} .= '(SELECT Storage.ServerId FROM Storage WHERE Storage.Id=E.StorageId)';
           } elsif ( $term->{attr} eq 'FilterServerId' ) {
             $self->{Sql} .= $Config{ZM_SERVER_ID};
 # StartTime options
@@ -308,7 +305,7 @@ sub Sql {
               } elsif ( $value eq 'Even' ) {
                 $self->{Sql} .= ' % 2 = 0';
               } else {
-                $self->{Sql} .= " IS $value";
+                $self->{Sql} .= ' IS '.$value;
               }
             } elsif ( $term->{op} eq 'EXISTS' ) {
               $self->{Sql} .= ' EXISTS '.$value;
@@ -373,6 +370,8 @@ sub Sql {
     if ( $filter_expr->{sort_field} eq 'Id' ) {
       $sort_column = 'E.Id';
     } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
+            $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
+         FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
       $sort_column = 'M.Name';
     } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
       $sort_column = 'E.Name';

@@ -1003,10 +1003,18 @@ function parseSort($saveToSession=false, $querySep='&amp;') {
       $sortColumn = 'E.DiskSpace';
       break;
     case 'StartTime' :
+      # legacy
+      $_REQUEST['sort_field'] = 'StartDateTime';
+      $sortColumn = 'E.StartDateTime';
+      break;
     case 'StartDateTime' :
       $sortColumn = 'E.StartDateTime';
       break;
     case 'EndTime' :
+      #legacy
+      $_REQUEST['sort_field'] = 'EndDateTime';
+      $sortColumn = 'E.EndDateTime';
+      break;
     case 'EndDateTime' :
       $sortColumn = 'E.EndDateTime';
       break;

@@ -350,7 +350,7 @@ sub loadMonitors {
     $new_monitors{$monitor->{Id}} = $monitor;
   } # end while fetchrow
   %monitors = %new_monitors;
-}
+} # end sub loadMonitors
 
 sub handleMessage {
   my $connection = shift;
@@ -369,8 +369,12 @@ sub handleMessage {
 
   my $monitor = $monitors{$id};
   if ( !$monitor ) {
-    Warning("Can't find monitor '$id' for message '$message'");
-    return;
+    loadMonitors();
+    $monitor = $monitors{$id};
+    if ( !$monitor ) {
+      Warning("Can't find monitor '$id' for message '$message'");
+      return;
+    }
   }
   if ( !zmMemVerify($monitor) ) {
     Warning("Can't verify monitor '$id' for message '$message'");

@@ -57,8 +57,8 @@ static bool zmFifoDbgOpen() {
 
 int zmFifoDbgInit(Monitor *monitor) {
   zm_fifodbg_inited = true;
-  snprintf(zm_fifodbg_log, sizeof(zm_fifodbg_log), "%s/%d/dbgpipe.log",
-      monitor->getStorage()->Path(), monitor->Id());
+  snprintf(zm_fifodbg_log, sizeof(zm_fifodbg_log), "%s/dbgpipe-%d.log",
+      staticConfig.PATH_SOCKS.c_str(), monitor->Id());
   zmFifoDbgOpen();
   return 1;
 }
@@ -211,17 +211,18 @@ void FifoStream::setStreamStart(int monitor_id, const char * format) {
 
   if ( !strcmp(format, "reference") ) {
     stream_type = MJPEG;
-    filename = "diagpipe-r.jpg";
+    snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-r-%d.jpg",
+        staticConfig.PATH_SOCKS.c_str(), monitor->Id());
   } else if ( !strcmp(format, "delta") ) {
-    filename = "diagpipe-d.jpg";
+    snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-d-%d.jpg",
+        staticConfig.PATH_SOCKS.c_str(), monitor->Id());
     stream_type = MJPEG;
   } else {
+    snprintf(diag_path, sizeof(diag_path), "%s/dbgpipe-%d.log",
+        staticConfig.PATH_SOCKS.c_str(), monitor->Id());
     stream_type = RAW;
-    filename = "dbgpipe.log";
   }
 
-  snprintf(diag_path, sizeof(diag_path), "%s/%d/%s",
-      staticConfig.PATH_SOCKS.c_str(), monitor->Id(), filename);
   setStreamStart(diag_path);
 }
 

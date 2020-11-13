@@ -516,8 +516,8 @@ Monitor::Monitor(
 
     if ( config.record_diag_images ) {
       if ( config.record_diag_images_fifo ) {
-        diag_path_ref = stringtf("%s/%d/diagpipe-r.jpg", staticConfig.PATH_SOCKS.c_str(), id);
-        diag_path_delta = stringtf("%s/%d/diagpipe-d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
+        diag_path_ref = stringtf("%s/diagpipe-r-%d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
+        diag_path_delta = stringtf("%s/diagpipe-d-%d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
         FifoStream::fifo_create_if_missing(diag_path_ref.c_str());
         FifoStream::fifo_create_if_missing(diag_path_delta.c_str());
       } else {

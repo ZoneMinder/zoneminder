@@ -405,8 +405,9 @@ sub generateVideo {
   my $Event = shift;
   my $phone = shift;
 
-  my $rate = $Event->{DefaultRate}/100;
-  my $scale = $Event->{DefaultScale}/100;
+  my $Monitor = $Event->Monitor();
+  my $rate = $$Monitor{DefaultRate}/100;
+  my $scale = $$Monitor{DefaultScale}/100;
   my $format;
 
   my @ffmpeg_formats = split(/\s+/, $Config{ZM_FFMPEG_FORMATS});

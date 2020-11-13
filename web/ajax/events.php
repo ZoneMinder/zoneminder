@@ -1,5 +1,4 @@
 <?php
-
 $message = '';
 $data = array();
 
@@ -16,7 +15,7 @@ if ( empty($_REQUEST['task']) ) {
 }
 
 if ( empty($_REQUEST['eids']) ) {
-  if ( isset($_REQUEST['task']) && $_REQUEST['task'] != "query" ) $message = 'No event id(s) supplied';
+  if ( isset($_REQUEST['task']) && $_REQUEST['task'] != 'query' ) $message = 'No event id(s) supplied';
 } else {
   $eids = $_REQUEST['eids'];
 }
@@ -26,6 +25,7 @@ if ( $message ) {
   return;
 }
 
+require_once('includes/Filter.php');
 $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : new ZM\Filter();
 if ( $user['MonitorIds'] ) {
   $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
@@ -115,11 +115,12 @@ function deleteRequest($eid) {
 }
 
 function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit) {
+
   $data = array(
     'total'   =>  0,
     'totalNotFiltered' => 0,
     'rows'    =>  array(),
-    'updated' => preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG)
+    'updated' =>  preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG)
   );
 
   $failed = !$filter->test_pre_sql_conditions();
@@ -143,50 +144,15 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $sort = 'Id';
   }
 
-  $data = array();
-  $query = array();
-  $query['values'] = array();
+  $values = array();
   $likes = array();
-  $where = ($filter->sql()?'('.$filter->sql().')' : '');
-  // There are two search bars in the log view, normal and advanced
-  // Making an exuctive decision to ignore the normal search, when advanced search is in use
-  // Alternatively we could try to do both
-  if ( count($advsearch) ) {
-
-    foreach ( $advsearch as $col=>$text ) {
-      if ( in_array($col, $columns) ) {
-        array_push($likes, 'E.'.$col.' LIKE ?');
-        array_push($query['values'], $text);
-      } else if ( in_array($col, $col_alt) ) {
-        array_push($likes, 'M.'.$col.' LIKE ?');
-        array_push($query['values'], $text);
-      } else {
-        ZM\Error("'$col' is not a sortable column name");
-        continue;
-      }
-    } # end foreach col in advsearch
-    $wherevalues = $query['values'];
-    $where .= ($where != '') ? ' AND (' .implode(' OR ', $likes). ')' : implode(' OR ', $likes);
-
-  } else if ( $search != '' ) {
-
-    $search = '%' .$search. '%';
-    foreach ( $columns as $col ) {
-      array_push($likes, 'E.'.$col.' LIKE ?');
-      array_push($query['values'], $search);
-    }
-    $wherevalues = $query['values'];
-    $where .= ( $where != '') ? ' AND (' .implode(' OR ', $likes). ')' : implode(' OR ', $likes);
-  }
-  if ( $where )
-    $where = ' WHERE '.$where;
+  $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
 
   $sort = $sort == 'Monitor' ? 'M.Name' : 'E.'.$sort;
   $col_str = 'E.*, M.Name AS Monitor';
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
-  array_push($query['values'], $offset, $limit);
+  $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY '.$sort.' '.$order;
 
-  //ZM\Debug('Calling the following sql query: ' .$query['sql']);
+  //ZM\Debug('Calling the following sql query: ' .$sql);
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -194,13 +160,61 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $StorageById[$S->Id()] = $S;
   }
 
-  $rows = array();
-  foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $row ) {
+  $unfiltered_rows = array();
+  $event_ids = array();
+
+  foreach ( dbFetchAll($sql, NULL, $values) as $row ) {
     $event = new ZM\Event($row);
     if ( !$filter->test_post_sql_conditions($event) ) {
       $event->remove_from_cache();
       continue;
     }
+    $event_ids[] = $event->Id();
+    $unfiltered_rows[] = $row;
+  }
+
+  ZM\Debug('Have ' . count($event_ids) . ' events matching base filter.');
+
+  $filtered_rows = null;
+
+  if ( count($advsearch) or $search != '' ) {
+    $search_filter = new ZM\Filter();
+    $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$event_ids));
+
+    // There are two search bars in the log view, normal and advanced
+    // Making an exuctive decision to ignore the normal search, when advanced search is in use
+    // Alternatively we could try to do both
+    if ( count($advsearch) ) {
+      $terms = array();
+      foreach ( $advsearch as $col=>$text ) {
+        $terms[] = array('cnj'=>'and', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$text);
+      } # end foreach col in advsearch
+      $terms[0]['obr'] = 1;
+      $terms[count($terms)-1]['cbr'] = 1;
+      $search_filter->addTerms($terms);
+    } else if ( $search != '' ) {
+      $search = '%' .$search. '%';
+      $terms = array();
+      foreach ( $columns as $col ) {
+        $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search);
+      }
+      $terms[0]['obr'] = 1;
+      $terms[0]['cnj'] = 'and';
+      $terms[count($terms)-1]['cbr'] = 1;
+      $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
+    } # end if search
+
+    $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
+    $filtered_rows = dbFetchAll($sql);
+    ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter.');
+  } else {
+    $filtered_rows = $unfiltered_rows;
+  } # end if search_filter->terms() > 1
+
+  $returned_rows = array();
+  foreach ( array_slice($filtered_rows, $offset, $limit) as $row ) {
+    $event = new ZM\Event($row);
+
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
     $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
     $streamSrc = $event->getStreamSrc(array(
@@ -218,16 +232,17 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
     $row['Notes'] = nl2br(htmlspecialchars($row['Notes']));
     $row['DiskSpace'] = human_filesize($event->DiskSpace());
-    $rows[] = $row;
-  }
-  $data['rows'] = $rows;
+    $returned_rows[] = $row;
+  } # end foreach row matching search
+
+  $data['rows'] = $returned_rows;
 
   # totalNotFiltered must equal total, except when either search bar has been used
-  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'. ($filter->sql() ? ' WHERE '.$filter->sql():''), 'Total');
+  $data['totalNotFiltered'] = count($event_ids);
   if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where , 'Total', $wherevalues);
+    $data['total'] = count($filtered_rows);
   } else {
-    $data['total'] = $data['totalNotFiltered'];
+    $data['total'] = count($unfiltered_rows);
   }
 
   return $data;

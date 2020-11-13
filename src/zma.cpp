@@ -106,9 +106,9 @@ int main( int argc, char *argv[] ) {
     }
   }
 
-  if (optind < argc) {
+  if ( optind < argc ) {
     fprintf(stderr, "Extraneous options, ");
-    while (optind < argc)
+    while ( optind < argc )
       printf("%s ", argv[optind++]);
     printf("\n");
     Usage();
@@ -130,7 +130,7 @@ int main( int argc, char *argv[] ) {
   hwcaps_detect();
 
   Monitor *monitor = Monitor::Load(id, true, Monitor::ANALYSIS);
-  zmFifoDbgInit( monitor );  
+  zmFifoDbgInit(monitor);  
 
   if ( monitor ) {
     Info("In mode %d/%d, warming up", monitor->GetFunction(), monitor->Enabled());
@@ -148,7 +148,14 @@ int main( int argc, char *argv[] ) {
     monitor->UpdateAdaptiveSkip();
     last_analysis_update_time = time(nullptr);
 
-    while( (!zm_terminate) && monitor->ShmValid() ) {
+    while ( !zm_terminate ) {
+      if ( !monitor->ShmValid() ) {
+        monitor->disconnect();
+        Info("Waiting for shm to become valid");
+        usleep(100000);
+        monitor->connect();
+        continue;
+      }
       // Process the next image
       sigprocmask(SIG_BLOCK, &block_set, nullptr);
 

@@ -448,6 +448,8 @@ Monitor::Monitor(
   char monitor_dir[PATH_MAX];
   snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
 
+  shared_data = nullptr;
+
   if ( purpose == CAPTURE ) {
     if ( mkdir(monitor_dir, 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
@@ -489,9 +491,39 @@ Monitor::Monitor(
     video_store_data->size = sizeof(VideoStoreData);
     //video_store_data->frameNumber = 0;
   } else if ( purpose == ANALYSIS ) {
-    if ( ! (this->connect() && mem_ptr && shared_data->valid) ) {
-      Error("Shared data not initialised by capture daemon for monitor %s", name);
-      exit(-1);
+    while ( 
+        (!zm_terminate)
+        and
+        ( !(this->connect() and shared_data->valid) )
+        and
+        ( shared_data->last_write_index == (unsigned int)image_buffer_count )
+        and 
+        ( shared_data->last_write_time == 0 )
+        ) {
+       Debug(1, "blah"); 
+      Debug(1, "Waiting for capture daemon shared_data(%d) last_write_index(%d), last_write_time(%d)",
+          (shared_data ? 1:0),
+          (shared_data ? shared_data->last_write_index : 0),
+          (shared_data ? shared_data->last_write_time : 0));
+      usleep(100000);
+    }
+
+    ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
+        image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
+    adaptive_skip = true;
+
+    ReloadLinkedMonitors(p_linked_monitors);
+
+    if ( config.record_diag_images ) {
+      if ( config.record_diag_images_fifo ) {
+        diag_path_ref = stringtf("%s/%d/diagpipe-r.jpg", staticConfig.PATH_SOCKS.c_str(), id);
+        diag_path_delta = stringtf("%s/%d/diagpipe-d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
+        FifoStream::fifo_create_if_missing(diag_path_ref.c_str());
+        FifoStream::fifo_create_if_missing(diag_path_delta.c_str());
+      } else {
+        diag_path_ref = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
+        diag_path_delta = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
+      }
     }
     shared_data->state = IDLE;
     shared_data->last_read_time = 0;
@@ -520,37 +552,6 @@ Monitor::Monitor(
   n_linked_monitors = 0;
   linked_monitors = nullptr;
 
-  if ( purpose == ANALYSIS ) {
-    while(
-        ( shared_data->last_write_index == (unsigned int)image_buffer_count )
-         &&
-        ( shared_data->last_write_time == 0 )
-        &&
-        ( !zm_terminate )
-        ) {
-      Debug(1, "Waiting for capture daemon last_write_index(%d), last_write_time(%d)",
-          shared_data->last_write_index, shared_data->last_write_time );
-      sleep(1);
-    }
-
-    ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
-        image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
-    adaptive_skip = true;
-
-    ReloadLinkedMonitors(p_linked_monitors);
-
-    if ( config.record_diag_images ) {
-      if ( config.record_diag_images_fifo ) {
-        diag_path_ref = stringtf("%s/%d/diagpipe-r.jpg", staticConfig.PATH_SOCKS.c_str(), id);
-        diag_path_delta = stringtf("%s/%d/diagpipe-d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
-        FifoStream::fifo_create_if_missing(diag_path_ref.c_str());
-        FifoStream::fifo_create_if_missing(diag_path_delta.c_str());
-      } else {
-        diag_path_ref = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
-        diag_path_delta = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
-      }
-    }
-  }  // end if purpose == ANALYSIS
 }  // Monitor::Monitor
 
 bool Monitor::connect() {
@@ -606,12 +607,12 @@ bool Monitor::connect() {
     }
   }
 #endif
-  if ( mem_ptr == MAP_FAILED )
-    Fatal("Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
-  if ( mem_ptr == nullptr ) {
-    Error("mmap gave a NULL address:");
-  } else {
-    Debug(3, "mmapped to %p", mem_ptr);
+  if ( (mem_ptr == MAP_FAILED) or (mem_ptr == nullptr) ) {
+    Error("Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
+    close(map_fd);
+    map_fd = -1;
+    mem_ptr = nullptr;
+    return false;
   }
 #else // ZM_MEM_MAPPED
   shm_id = shmget((config.shm_key&0xffff0000)|id, mem_size, IPC_CREAT|0700);
@@ -669,6 +670,51 @@ Debug(3, "Success connecting");
   return true;
 } // end Monitor::connect
 
+bool Monitor::disconnect() {
+  if ( !mem_ptr )
+    return true;
+
+#if ZM_MEM_MAPPED
+  if ( mem_ptr > (void *)0 ) {
+    msync(mem_ptr, mem_size, MS_ASYNC);
+    munmap(mem_ptr, mem_size);
+  }
+  if ( map_fd >= 0 )
+    close(map_fd);
+
+  map_fd = -1;
+
+  if ( purpose == CAPTURE ) {
+    if ( unlink(mem_file) < 0 ) {
+      Warning("Can't unlink '%s': %s", mem_file, strerror(errno));
+    }
+  }
+#else // ZM_MEM_MAPPED
+  struct shmid_ds shm_data;
+  if ( shmctl(shm_id, IPC_STAT, &shm_data) < 0 ) {
+    Debug(3, "Can't shmctl: %s", strerror(errno));
+    return false;
+  }
+
+  shm_id = 0;
+
+  if ( shm_data.shm_nattch <= 1 ) {
+    if ( shmctl(shm_id, IPC_RMID, 0) < 0 ) {
+      Debug(3, "Can't shmctl: %s", strerror(errno));
+      return false;
+    }
+  }
+
+  if ( shmdt(mem_ptr) < 0 ) {
+    Debug(3, "Can't shmdt: %s", strerror(errno));
+    return false;
+  }
+#endif // ZM_MEM_MAPPED
+  mem_ptr = nullptr;
+  shared_data = nullptr;
+  return true;
+}  // end bool Monitor::disconnect()
+
 Monitor::~Monitor() {
   if ( n_linked_monitors ) {
     for( int i = 0; i < n_linked_monitors; i++ ) {
@@ -712,14 +758,6 @@ Monitor::~Monitor() {
     delete[] image_buffer;
   } // end if mem_ptr
 
-  for ( int i = 0; i < n_zones; i++ ) {
-    delete zones[i];
-  }
-  delete[] zones;
-
-  delete camera;
-  delete storage;
-
   if ( mem_ptr ) {
     if ( purpose == ANALYSIS ) {
       shared_data->state = state = IDLE;
@@ -739,36 +777,17 @@ Monitor::~Monitor() {
       shared_data->valid = false;
       memset(mem_ptr, 0, mem_size);
     }
-
-#if ZM_MEM_MAPPED
-    if ( msync(mem_ptr, mem_size, MS_SYNC) < 0 )
-      Error("Can't msync: %s", strerror(errno));
-    if ( munmap(mem_ptr, mem_size) < 0 )
-      Fatal("Can't munmap: %s", strerror(errno));
-    close( map_fd );
-
-    if ( purpose == CAPTURE ) {
-      // How about we store this in the object on instantiation so that we don't have to do this again.
-      char mmap_path[PATH_MAX] = "";
-      snprintf(mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
-
-      if ( unlink(mmap_path) < 0 ) {
-        Warning("Can't unlink '%s': %s", mmap_path, strerror(errno));
-      }
-    }
-#else // ZM_MEM_MAPPED
-    struct shmid_ds shm_data;
-    if ( shmctl(shm_id, IPC_STAT, &shm_data) < 0 ) {
-      Fatal("Can't shmctl: %s", strerror(errno));
-    }
-    if ( shm_data.shm_nattch <= 1 ) {
-      if ( shmctl(shm_id, IPC_RMID, 0) < 0 ) {
-        Fatal("Can't shmctl: %s", strerror(errno));
-      }
-    }
-#endif // ZM_MEM_MAPPED
+    disconnect();
   } // end if mem_ptr
-}
+
+  for ( int i = 0; i < n_zones; i++ ) {
+    delete zones[i];
+  }
+  delete[] zones;
+
+  delete camera;
+  delete storage;
+}  // end Monitor::~Monitor()
 
 void Monitor::AddZones( int p_n_zones, Zone *p_zones[] ) {
   for ( int i = 0; i < n_zones; i++ )

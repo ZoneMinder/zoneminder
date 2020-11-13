@@ -424,6 +424,7 @@ public:
   void AddPrivacyBitmask( Zone *p_zones[] );
 
   bool connect();
+  bool disconnect();
 
   inline int ShmValid() const {
     return shared_data && shared_data->valid;

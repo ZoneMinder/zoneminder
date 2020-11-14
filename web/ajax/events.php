@@ -58,7 +58,8 @@ if ( isset($_REQUEST['offset']) ) {
 $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
 // Limit specifies the number of rows to return
-$limit = 100;
+// Set the default to 0 for events view, to prevent an issue with ALL pagination
+$limit = 0;
 if ( isset($_REQUEST['limit']) ) {
   if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
     ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);

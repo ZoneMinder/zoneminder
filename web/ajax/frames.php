@@ -161,7 +161,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
   $returned_rows = array();
   foreach ( array_slice($filtered_rows, $offset, $limit) as $row ) {
     if ( ZM_WEB_LIST_THUMBS ) {
-      $base_img_src = '?view=image&amp;fid=' .$row['FrameId'];
+      $base_img_src = '?view=image&amp;fid=' .$row['Id'];
       $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
       $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';
       $thmb_height = 'height="'.( ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor ) .'"';

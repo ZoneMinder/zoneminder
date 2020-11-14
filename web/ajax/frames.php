@@ -14,6 +14,8 @@ if ( empty($_REQUEST['task']) ) {
 // query is the only supported task at the moment
 } else if ( $_REQUEST['task'] != 'query' ) {
   $message = 'Unrecognised task '.$_REQUEST['task'];
+  } else {
+  $task = $_REQUEST['task'];
 }
 
 if ( empty($_REQUEST['eid']) ) {
@@ -54,7 +56,7 @@ if ( isset($_REQUEST['offset']) ) {
 $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
 // Limit specifies the number of rows to return
-$limit = 100;
+$limit = 0;
 if ( isset($_REQUEST['limit']) ) {
   if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
     ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
@@ -84,8 +86,12 @@ ajaxResponse($data);
 
 function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit) {
 
-  // The table we want our data from
-  $table = 'Frames';
+  $data = array(
+    'total'   =>  0,
+    'totalNotFiltered' => 0,
+    'rows'    =>  array(),
+    'updated' =>  preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG)
+  );
 
   // The names of the dB columns in the events table we are interested in
   $columns = array('EventId', 'FrameId', 'Type', 'TimeStamp', 'Delta', 'Score');
@@ -99,56 +105,64 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
   $Monitor = $Event->Monitor();
   $values = array();
   $likes = array();
-  $where = 'EventId ='.$eid;
+  $where = 'WHERE EventId = '.$eid;
 
-  // There are two search bars in the log view, normal and advanced
-  // Making an exuctive decision to ignore the normal search, when advanced search is in use
-  // Alternatively we could try to do both
-  if ( count($advsearch) ) {
+  $sql = 'SELECT * FROM `Frames` '.$where.' ORDER BY '.$sort.' '.$order;
 
-    foreach ( $advsearch as $col=>$text ) {
-      if ( !in_array($col, array_merge($columns, $col_alt)) ) {
-        ZM\Error("'$col' is not a searchable column name");
-        continue;
+  //ZM\Debug('Calling the following sql query: ' .$sql);
+
+  $unfiltered_rows = array();
+  $frame_ids = array();
+  require_once('includes/Frame.php');
+  foreach ( dbFetchAll($sql, NULL, $values) as $row ) {
+    $frame = new ZM\Frame($row);
+    $frame_ids[] = $frame->Id();
+    $unfiltered_rows[] = $row;
+  }
+
+  ZM\Debug('Have ' . count($unfiltered_rows) . ' frames matching base filter.');
+
+  $filtered_rows = null;
+  require_once('includes/Filter.php');
+  if ( count($advsearch) or $search != '' ) {
+    $search_filter = new ZM\Filter();
+    $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$frame_ids));
+
+    // There are two search bars in the log view, normal and advanced
+    // Making an exuctive decision to ignore the normal search, when advanced search is in use
+    // Alternatively we could try to do both
+    if ( count($advsearch) ) {
+      $terms = array();
+      foreach ( $advsearch as $col=>$text ) {
+        $terms[] = array('cnj'=>'and', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$text);
+      } # end foreach col in advsearch
+      $terms[0]['obr'] = 1;
+      $terms[count($terms)-1]['cbr'] = 1;
+      $search_filter->addTerms($terms);
+    } else if ( $search != '' ) {
+      $search = '%' .$search. '%';
+      $terms = array();
+      foreach ( $columns as $col ) {
+        $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search);
       }
-      // Don't use wildcards on advanced search
-      //$text = '%' .$text. '%';
-      array_push($likes, $col.' LIKE ?');
-      array_push($query['values'], $text);
-    }
-    $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
+      $terms[0]['obr'] = 1;
+      $terms[0]['cnj'] = 'and';
+      $terms[count($terms)-1]['cbr'] = 1;
+      $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
+    } # end if search
 
-  } else if ( $search != '' ) {
-
-    $search = '%' .$search. '%';
-    foreach ( $columns as $col ) {
-      array_push($likes, $col.' LIKE ?');
-      array_push($query['values'], $search);
-    }
-    $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
-  }
-  
-  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
-  array_push($query['values'], $offset, $limit);
-
-  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $wherevalues);
+    $sql = 'SELECT * FROM `Frames` WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
+    $filtered_rows = dbFetchAll($sql);
+    ZM\Debug('Have ' . count($filtered_rows) . ' frames matching search filter.');
   } else {
-    $data['total'] = $data['totalNotFiltered'];
-  }
+    $filtered_rows = $unfiltered_rows;
+  } # end if search_filter->terms() > 1
 
   $returned_rows = array();
-  $results = dbFetchAll($query['sql'], NULL, $query['values']);
-  if ( !$results ) {
-    return $data;
-  }
-  
-  foreach ( $results as $row ) {
+  foreach ( array_slice($filtered_rows, $offset, $limit) as $row ) {
+    if ( ZM_WEB_LIST_THUMBS ) {
       $base_img_src = '?view=image&amp;fid=' .$row['FrameId'];
-			$ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
+      $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
       $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';
       $thmb_height = 'height="'.( ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor ) .'"';
       $thmb_fn = 'filename=' .$Event->MonitorId(). '_' .$row['EventId']. '_' .$row['FrameId']. '.jpg';
@@ -156,10 +170,20 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $full_img_src = join('&amp;', array_filter(array($base_img_src, $thmb_fn)));
       $frame_src = '?view=frame&amp;eid=' .$row['EventId']. '&amp;fid=' .$row['FrameId'];
       
-      $row['imgHtml'] = '<td class="colThumbnail zoom"><img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '"></td>'.PHP_EOL;
+      $row['Thumbnail'] = '<img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '">';
+    }
       $returned_rows[] = $row;
-  }
+  } # end foreach row matching search
+
   $data['rows'] = $returned_rows;
+
+  # totalNotFiltered must equal total, except when either search bar has been used
+  $data['totalNotFiltered'] = count($unfiltered_rows);
+  if ( $search != '' || count($advsearch) ) {
+    $data['total'] = count($filtered_rows);
+  } else {
+    $data['total'] = $data['totalNotFiltered'];
+  }
 
   return $data;
 }

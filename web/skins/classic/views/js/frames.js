@@ -1,3 +1,6 @@
+var backBtn = $j('#backBtn');
+var table = $j('#framesTable');
+
 // Called by bootstrap-table to retrieve zm frame data
 function ajaxRequest(params) {
   if ( params.data && params.data.filter ) {
@@ -8,6 +11,8 @@ function ajaxRequest(params) {
       .done(function(data) {
         var rows = processRows(data.rows);
         // rearrange the result into what bootstrap-table expects
+        console.log('Total: '+data.total);
+        console.log('TotalnotFiltered: '+data.totalNotFiltered);
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
       .fail(logAjaxFail);
@@ -16,6 +21,7 @@ function ajaxRequest(params) {
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     // WIP: process each row here
+    // VERIFY: Might not need to do anything here for the frames table
   });
   return rows;
 }
@@ -56,9 +62,10 @@ function detailFormatter(index, row, $detail) {
       })
       .fail(logAjaxFail);
 }
+
 function initPage() {
-  var backBtn = $j('#backBtn');
-  var table = $j('#framesTable');
+  // Remove the thumbnail column from the DOM if thumbnails are off globally
+  if ( !WEB_LIST_THUMBS ) $j('th[data-field="Thumbnail"]').remove();
 
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
@@ -92,6 +99,24 @@ function initPage() {
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
+  });
+
+  // Update table links each time after new data is loaded
+  table.on('post-body.bs.table', function(data) {
+    var type_ndx = $j('#framesTable tr th').filter(function() {
+      return $j(this).text().trim() == 'Type';
+    }).index();
+
+    $j('#framesTable tr').each(function(ndx, row) {
+      var row = $j(row);
+      var type = row.find('td').eq(type_ndx).text().trim();
+      row.addClass(type.toLowerCase());
+    });
+
+    var thumb_ndx = $j('#framesTable tr th').filter(function() {
+      return $j(this).text().trim() == 'Thumbnail';
+    }).index();
+    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail zoom');
   });
 }
 

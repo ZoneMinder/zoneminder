@@ -237,6 +237,9 @@ class FilterTerm {
     case 'StartDateTime':
       $sql .= 'E.StartDateTime';
       break;
+    case 'FramesId':
+      $sql .= 'Id';
+      break;
     case 'FramesEventId':
       $sql .= 'F.EventId';
       break;
@@ -419,6 +422,12 @@ class FilterTerm {
 
   public static function is_valid_attr($attr) {
     $attrs = array(
+      'Score',
+      'Delta',
+      'TimeStamp',
+      'Type',
+      'FrameId',
+      'EventId',
       'ExistsInFileSystem',
       'Emailed',
       'DiskSpace',
@@ -434,6 +443,7 @@ class FilterTerm {
       'Time',
       'Weekday',
       'StartDateTime',
+      'FramesId',
       'FramesEventId',
       'StartDate',
       'StartTime',

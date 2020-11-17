@@ -237,8 +237,14 @@ class FilterTerm {
     case 'StartDateTime':
       $sql .= 'E.StartDateTime';
       break;
-    case 'FramesId':
+    case 'FrameId':
       $sql .= 'Id';
+      break;
+    case 'Type':
+    case 'TimeStamp':
+    case 'Delta':
+    case 'Score':
+      $sql .= $this->attr;
       break;
     case 'FramesEventId':
       $sql .= 'F.EventId';

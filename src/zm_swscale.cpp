@@ -84,10 +84,25 @@ int SWScale::SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, 
   return 0;
 }
 
-int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height, unsigned int new_width, unsigned int new_height) {
+int SWScale::Convert(
+    const uint8_t* in_buffer,
+    const size_t in_buffer_size,
+    uint8_t* out_buffer,
+    const size_t out_buffer_size,
+    enum _AVPIXELFORMAT in_pf,
+    enum _AVPIXELFORMAT out_pf,
+    unsigned int width,
+    unsigned int height,
+    unsigned int new_width,
+    unsigned int new_height
+    ) {
   /* Parameter checking */
-  if(in_buffer == nullptr || out_buffer == nullptr) {
-    Error("NULL Input or output buffer");
+  if ( in_buffer == nullptr ) {
+    Error("NULL Input buffer");
+    return -1;
+  }
+  if ( out_buffer == nullptr ) {
+    Error("NULL output buffer");
     return -1;
   }
   //  if(in_pf == 0 || out_pf == 0) {
@@ -101,11 +116,13 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 
 #if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
   /* Warn if the input or output pixelformat is not supported */
-  if(!sws_isSupportedInput(in_pf)) {
-    Warning("swscale does not support the input format: %c%c%c%c",(in_pf)&0xff,((in_pf)&0xff),((in_pf>>16)&0xff),((in_pf>>24)&0xff));
+  if ( !sws_isSupportedInput(in_pf) ) {
+    Warning("swscale does not support the input format: %c%c%c%c",
+        (in_pf)&0xff,((in_pf)&0xff),((in_pf>>16)&0xff),((in_pf>>24)&0xff));
   }
-  if(!sws_isSupportedOutput(out_pf)) {
-    Warning("swscale does not support the output format: %c%c%c%c",(out_pf)&0xff,((out_pf>>8)&0xff),((out_pf>>16)&0xff),((out_pf>>24)&0xff));
+  if ( !sws_isSupportedOutput(out_pf) ) {
+    Warning("swscale does not support the output format: %c%c%c%c",
+        (out_pf)&0xff,((out_pf>>8)&0xff),((out_pf>>16)&0xff),((out_pf>>24)&0xff));
   }
 #endif
 
@@ -115,7 +132,7 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 #else
   size_t insize = avpicture_get_size(in_pf, width, height);
 #endif
-  if(insize != in_buffer_size) {
+  if ( insize != in_buffer_size ) {
     Error("The input buffer size does not match the expected size for the input format. Required: %d Available: %d", insize, in_buffer_size);
     return -4;
   }
@@ -125,14 +142,14 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   size_t outsize = avpicture_get_size(out_pf, new_width, new_height);
 #endif
 
-  if(outsize < out_buffer_size) {
+  if ( outsize < out_buffer_size ) {
     Error("The output buffer is undersized for the output format. Required: %d Available: %d", outsize, out_buffer_size);
     return -5;
   }
 
   /* Get the context */
   swscale_ctx = sws_getCachedContext( swscale_ctx, width, height, in_pf, new_width, new_height, out_pf, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr );
-  if(swscale_ctx == nullptr) {
+  if ( swscale_ctx == nullptr ) {
     Error("Failed getting swscale context");
     return -6;
   }

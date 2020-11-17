@@ -94,7 +94,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
   );
 
   // The names of the dB columns in the events table we are interested in
-  $columns = array('EventId', 'FrameId', 'Type', 'TimeStamp', 'Delta', 'Score');
+  $columns = array('FrameId', 'Type', 'TimeStamp', 'Delta', 'Score');
 
   if ( !in_array($sort, $columns) ) {
     ZM\Error('Invalid sort field: ' . $sort);
@@ -126,7 +126,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
   require_once('includes/Filter.php');
   if ( count($advsearch) or $search != '' ) {
     $search_filter = new ZM\Filter();
-    $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'FramesId', 'op'=>'IN', 'val'=>$frame_ids));
+    $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'FrameId', 'op'=>'IN', 'val'=>$frame_ids));
 
     // There are two search bars in the log view, normal and advanced
     // Making an exuctive decision to ignore the normal search, when advanced search is in use

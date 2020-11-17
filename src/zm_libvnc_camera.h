@@ -9,9 +9,9 @@
 
 #if HAVE_LIBVNC
 #include <rfb/rfbclient.h>
+
 // Used by vnc callbacks
-struct VncPrivateData
-{
+struct VncPrivateData {
   uint8_t *buffer;
   uint8_t width; 
   uint8_t height;
@@ -47,9 +47,6 @@ public:
     
   ~VncCamera();
 
-  void Initialise();
-  void Terminate();
-  
   int PreCapture();
   int PrimeCapture();
   int Capture( Image &image );

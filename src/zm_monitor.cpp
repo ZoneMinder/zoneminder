@@ -425,8 +425,6 @@ Monitor::Monitor(
   else
     event_close_mode = CLOSE_IDLE;
 
-  Debug(1, "monitor purpose=%d", purpose);
-
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
@@ -491,21 +489,19 @@ Monitor::Monitor(
     video_store_data->size = sizeof(VideoStoreData);
     //video_store_data->frameNumber = 0;
   } else if ( purpose == ANALYSIS ) {
-    while ( 
-        (!zm_terminate)
-        and
+    while (
         ( !(this->connect() and shared_data->valid) )
-        and
+        or
         ( shared_data->last_write_index == (unsigned int)image_buffer_count )
-        and 
+        or
         ( shared_data->last_write_time == 0 )
         ) {
-       Debug(1, "blah"); 
       Debug(1, "Waiting for capture daemon shared_data(%d) last_write_index(%d), last_write_time(%d)",
           (shared_data ? 1:0),
           (shared_data ? shared_data->last_write_index : 0),
           (shared_data ? shared_data->last_write_time : 0));
-      usleep(100000);
+      sleep(1);
+      if ( zm_terminate ) break;
     }
 
     ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
@@ -666,7 +662,7 @@ bool Monitor::connect() {
     images = new Image *[pre_event_count];
     last_signal = shared_data->signal;
   } // end if purpose == ANALYSIS
-Debug(3, "Success connecting");
+  Debug(3, "Success connecting");
   return true;
 } // end Monitor::connect
 
@@ -1480,7 +1476,7 @@ bool Monitor::Analyse() {
             }
             if ( last_motion_score ) {
               score += last_motion_score;
-              // cause is calculated every frame, 
+              // cause is calculated every frame,
               //if ( !event ) {
                 if ( cause.length() )
                   cause += ", ";
@@ -1518,7 +1514,7 @@ bool Monitor::Analyse() {
             } // end foreach linked_monit
             if ( noteSet.size() > 0 )
               noteSetMap[LINKED_CAUSE] = noteSet;
-          } // end if linked_monitors 
+          } // end if linked_monitors
 
           //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
           if ( function == RECORD || function == MOCORD ) {
@@ -1527,7 +1523,7 @@ bool Monitor::Analyse() {
 
               if ( section_length
                   && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                  && ( (function == MOCORD && (event_close_mode != CLOSE_TIME)) || ! ( timestamp->tv_sec % section_length ) ) 
+                  && ( (function == MOCORD && (event_close_mode != CLOSE_TIME)) || ! ( timestamp->tv_sec % section_length ) )
                  ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
                     name, image_count, event->Id(),
@@ -1572,7 +1568,7 @@ bool Monitor::Analyse() {
             } else if ( event ) {
 							// This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
 							Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d min",
-									Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
+									Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(),
 									( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
 									);
 						}
@@ -1600,7 +1596,7 @@ bool Monitor::Analyse() {
                   // compute the index for pre event images in the dedicated buffer
                   pre_index = pre_event_buffer_count ? image_count % pre_event_buffer_count : 0;
                   Debug(3, "pre-index %d = image_count(%d) %% pre_event_buffer_count(%d)",
-                     pre_index, image_count, pre_event_buffer_count); 
+                     pre_index, image_count, pre_event_buffer_count);
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position
@@ -1610,7 +1606,7 @@ bool Monitor::Analyse() {
                     pre_event_images--;
                   }
                   Debug(3, "pre-index %d, pre-event_images %d",
-                     pre_index, pre_event_images); 
+                     pre_index, pre_event_images);
 
                   event = new Event(this, *(pre_event_buffer[pre_index].timestamp), cause, noteSetMap);
                 } else {
@@ -1685,7 +1681,7 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Gone into alert state", name, image_count);
             shared_data->state = state = ALERT;
           } else if ( state == ALERT ) {
-            if ( 
+            if (
                 ( image_count-last_alarm_count > post_event_count )
                 && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
                 ) {
@@ -1751,7 +1747,7 @@ bool Monitor::Analyse() {
                   }
                 } // end if  config.record_event_stats
               }
-            } // end if savejpegs > 1 
+            } // end if savejpegs > 1
 
             if ( event ) {
               if ( noteSetMap.size() > 0 )
@@ -1842,7 +1838,7 @@ void Monitor::Reload() {
 
   static char sql[ZM_SQL_MED_BUFSIZ];
   // This seems to have fallen out of date.
-  snprintf(sql, sizeof(sql), 
+  snprintf(sql, sizeof(sql),
       "SELECT `Function`+0, `Enabled`, `LinkedMonitors`, `EventPrefix`, `LabelFormat`, "
       "`LabelX`, `LabelY`, `LabelSize`, `WarmupCount`, `PreEventCount`, `PostEventCount`, "
       "`AlarmFrameCount`, `SectionLength`, `MinSectionLength`, `FrameSkip`, "
@@ -2369,7 +2365,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       width,
       height,
       colours,
-      brightness, 
+      brightness,
       contrast,
       hue,
       colour,

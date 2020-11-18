@@ -29,8 +29,8 @@ class zmDbRow {
     MYSQL_ROW row;
   public:
     zmDbRow() : result_set(nullptr), row(nullptr) { };
-    MYSQL_RES *fetch( const char *query );
-    zmDbRow( MYSQL_RES *, MYSQL_ROW *row );
+    MYSQL_RES *fetch(const char *query);
+    zmDbRow(MYSQL_RES *, MYSQL_ROW *row);
     ~zmDbRow();
 
     MYSQL_ROW mysql_row() const { return row; };

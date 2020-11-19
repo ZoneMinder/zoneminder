@@ -774,34 +774,20 @@ Monitor::~Monitor() {
       }
     }
 
-    if ( (deinterlacing & 0xff) == 4) {
-      delete next_buffer.image;
-      delete next_buffer.timestamp;
-    }
-    for ( int i = 0; i < image_buffer_count; i++ ) {
-      delete image_buffer[i].image;
-    }
-    delete[] image_buffer;
-  } // end if mem_ptr
-
-  if ( mem_ptr ) {
     if ( purpose == ANALYSIS ) {
       shared_data->state = state = IDLE;
       shared_data->last_read_index = image_buffer_count;
       shared_data->last_read_time = 0;
 
-      if ( analysis_fps ) {
-        for ( int i = 0; i < pre_event_buffer_count; i++ ) {
-          delete pre_event_buffer[i].image;
-          delete pre_event_buffer[i].timestamp;
-        }
-        delete[] pre_event_buffer;
-      }
 			if ( Event::PreAlarmCount() )
 				Event::EmptyPreAlarmFrames();
     } else if ( purpose == CAPTURE ) {
       shared_data->valid = false;
       memset(mem_ptr, 0, mem_size);
+      if ( (deinterlacing & 0xff) == 4 ) {
+        delete next_buffer.image;
+        delete next_buffer.timestamp;
+      }
     }
     disconnect();
   } // end if mem_ptr

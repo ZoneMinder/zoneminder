@@ -373,10 +373,10 @@ Monitor::Monitor(
   privacy_bitmask( nullptr ),
   event_delete_thread(nullptr)
 {
-  if (analysis_fps > 0.0) {
-      uint64_t usec = round(1000000*pre_event_count/analysis_fps);
-      video_buffer_duration.tv_sec = usec/1000000;
-      video_buffer_duration.tv_usec = usec % 1000000;
+  if ( analysis_fps > 0.0 ) {
+    uint64_t usec = round(1000000*pre_event_count/analysis_fps);
+    video_buffer_duration.tv_sec = usec/1000000;
+    video_buffer_duration.tv_usec = usec % 1000000;
   }
 
   strncpy(name, p_name, sizeof(name)-1);
@@ -500,6 +500,7 @@ Monitor::Monitor(
           (shared_data ? 1:0),
           (shared_data ? shared_data->last_write_index : 0),
           (shared_data ? shared_data->last_write_time : 0));
+      this->disconnect();
       sleep(1);
       if ( zm_terminate ) break;
     }
@@ -706,6 +707,35 @@ bool Monitor::disconnect() {
     return false;
   }
 #endif // ZM_MEM_MAPPED
+  if ( image_buffer ) {
+    for ( int i = 0; i < image_buffer_count; i++ ) {
+      delete image_buffer[i].image;
+      image_buffer[i].image = nullptr;
+    }
+    delete[] image_buffer;
+    image_buffer = nullptr;
+  }
+  if ( purpose == ANALYSIS ) {
+    if ( analysis_fps ) {
+      // Size of pre event buffer must be greater than pre_event_count
+      // if alarm_frame_count > 1, because in this case the buffer contains
+      // alarmed images that must be discarded when event is created
+      for ( int i = 0; i < pre_event_buffer_count; i++ ) {
+        delete pre_event_buffer[i].timestamp;
+        pre_event_buffer[i].timestamp = nullptr;
+        delete pre_event_buffer[i].image;
+        pre_event_buffer[i].image = nullptr;
+      }
+      delete[] pre_event_buffer;
+      pre_event_buffer = nullptr;
+    } // end if max_analysis_fps
+
+    delete[] timestamps;
+    timestamps = nullptr;
+    delete[] images;
+    images = nullptr;
+  } // end if purpose == ANALYSIS
+
   mem_ptr = nullptr;
   shared_data = nullptr;
   return true;
@@ -1849,7 +1879,9 @@ void Monitor::Reload() {
   zmDbRow *row = zmDbFetchOne(sql);
   if ( !row ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
-  } else if ( MYSQL_ROW dbrow = row->mysql_row() ) {
+    return;
+  } 
+  if ( MYSQL_ROW dbrow = row->mysql_row() ) {
     int index = 0;
     function = (Function)atoi(dbrow[index++]);
     enabled = atoi(dbrow[index++]);
@@ -1900,8 +1932,8 @@ void Monitor::Reload() {
     ready_count = image_count+warmup_count;
 
     ReloadLinkedMonitors(p_linked_monitors);
-    delete row;
   } // end if row
+  delete row;
 
   ReloadZones();
 }  // end void Monitor::Reload()
@@ -2030,6 +2062,7 @@ int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose)
   }
   if ( mysql_errno(&dbconn) ) {
     Error("Can't fetch row: %s", mysql_error(&dbconn));
+    mysql_free_result(result);
     return 0;
   }
   mysql_free_result(result);
@@ -2124,7 +2157,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   int format = atoi(dbrow[col]); col++;
   bool v4l_multi_buffer = config.v4l_multi_buffer;
   if ( dbrow[col] ) {
-    if (*dbrow[col] == '0' ) {
+    if ( *dbrow[col] == '0' ) {
       v4l_multi_buffer = false;
     } else if ( *dbrow[col] == '1' ) {
       v4l_multi_buffer = true;
@@ -2442,7 +2475,7 @@ Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
   std::string sql = load_monitor_sql + stringtf(" WHERE `Id`=%d", p_id);
 
   zmDbRow dbrow;
-  if ( ! dbrow.fetch(sql.c_str()) ) {
+  if ( !dbrow.fetch(sql.c_str()) ) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
     return nullptr;
   }

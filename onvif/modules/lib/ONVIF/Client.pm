@@ -117,12 +117,15 @@ sub get_service_urls {
     }
   );
   if ( $result ) {
-    foreach my $svc ( @{ $result->get_Service() } ) {
-      my $short_name = $namespace_map{$svc->get_Namespace()};    
-      my $url_svc = $svc->get_XAddr()->get_value();
-      if ( defined $short_name && defined $url_svc ) {
-        #print "Got $short_name service\n";
-        $self->set_service($short_name, 'url', $url_svc);
+    my $services = $result->get_Service();
+    if ( $services ) {
+      foreach my $svc ( @{ $services } ) {
+        my $short_name = $namespace_map{$svc->get_Namespace()};    
+        my $url_svc = $svc->get_XAddr()->get_value();
+        if ( defined $short_name && defined $url_svc ) {
+          #print "Got $short_name service\n";
+          $self->set_service($short_name, 'url', $url_svc);
+        }
       }
     }
     #} else {

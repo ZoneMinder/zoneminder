@@ -124,11 +124,14 @@ bool StreamBase::checkCommandQueue() {
       processCommand(&msg);
       return true;
     }
-  } else {
+  } else if ( connkey ) {
     Warning("No sd in checkCommandQueue, comms not open?");
+  } else {
+    // Perfectly valid if only getting a snapshot
+    Debug(1, "No sd in checkCommandQueue, comms not open?");
   }
   return false;
-}
+}  // end bool StreamBase::checkCommandQueue()
 
 Image *StreamBase::prepareImage(Image *image) {
 

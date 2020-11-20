@@ -118,9 +118,13 @@ int main(int argc, const char *argv[], char **envp) {
     if ( !value )
       value = "";
     if ( !strcmp(name, "source") ) {
-      source = !strcmp(value, "event")?ZMS_EVENT:ZMS_MONITOR;
-      if ( !strcmp(value, "fifo") )
+      if ( !strcmp(value, "event") ) {
+        source = ZMS_EVENT;
+      } else if ( !strcmp(value, "fifo") ) {
         source = ZMS_FIFO;
+      } else {
+        source = ZMS_MONITOR;
+      }
     } else if ( !strcmp(name, "mode") ) {
       mode = !strcmp(value, "jpeg")?ZMS_JPEG:ZMS_MPEG;
       mode = !strcmp(value, "raw")?ZMS_RAW:mode;
@@ -329,6 +333,7 @@ int main(int argc, const char *argv[], char **envp) {
     Error("Neither a monitor or event was specified.");
   }  // end if monitor or event
 
+  Debug(1, "Terminating");
   logTerm();
   zmDbClose();
 

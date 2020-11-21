@@ -38,8 +38,8 @@ unsigned int Buffer::expand(unsigned int count) {
   int headSpace = mHead - mStorage;
   int tailSpace = spare - headSpace;
   int width = mTail - mHead;
-  if ( spare > static_cast<int>count ) {
-    if ( tailSpace < static_cast<int>count ) {
+  if ( spare > static_cast<int>(count) ) {
+    if ( tailSpace < static_cast<int>(count) ) {
       memmove(mStorage, mHead, mSize);
       mHead = mStorage;
       mTail = mHead + width;

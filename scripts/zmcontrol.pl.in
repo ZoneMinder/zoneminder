@@ -162,24 +162,24 @@ if ( $options{command} ) {
   listen(SERVER, SOMAXCONN) or Fatal("Can't listen: $!");
 
   my $rin = '';
-  vec( $rin, fileno(SERVER), 1 ) = 1;
+  vec($rin, fileno(SERVER), 1) = 1;
   my $win = $rin;
   my $ein = $win;
   my $timeout = MAX_COMMAND_WAIT;
-  while( 1 ) {
+  while ( 1 ) {
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
     if ( $nfound > 0 ) {
-      if ( vec( $rout, fileno(SERVER), 1 ) ) {
+      if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
         my $message = <CLIENT>;
+        close(CLIENT);
 
         next if !$message;
 
         my $params = jsonDecode($message);
-        Debug( Dumper( $params ) );
+        Debug(Dumper($params));
 
         my $command = $params->{command};
-        close(CLIENT);
         if ( $command eq 'quit' ) {
           last;
         } elsif ( $command ) {
@@ -192,7 +192,7 @@ if ( $options{command} ) {
       }
     } elsif ( $nfound < 0 ) {
       if ( $! == EINTR ) {
-        # Likely just  SIGHUP
+        # Likely just SIGHUP
         Debug("Can't select: $!");
       } elsif ( $! == EPIPE ) {
         Error("Can't select: $!");
@@ -200,16 +200,13 @@ if ( $options{command} ) {
         Fatal("Can't select: $!");
       }
     } else {
-      #print( "Select timed out\n" );
-      last;
+      Debug('Select timed out');
     }
   } # end while forever
   Info("Control server $id/$protocol exiting");
   unlink($sock_file);
   $control->close();
-  exit(0);
 } # end if !server up
-
 
 exit(0);
 

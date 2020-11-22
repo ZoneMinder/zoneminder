@@ -117,7 +117,8 @@ bool FifoStream::sendRAWFrames() {
       return false;
     }
     if ( fwrite(buffer, bytes_read, 1, stdout) != 1 ) {
-      Error("Problem during writing: %s", strerror(errno));
+      if ( !zm_terminate ) 
+        Error("Problem during writing: %s", strerror(errno));
       close(fd);
       return false;
     }

@@ -206,7 +206,6 @@ void FifoStream::setStreamStart(const char * path) {
 
 void FifoStream::setStreamStart(int monitor_id, const char * format) {
   char diag_path[PATH_MAX];
-  const char * filename;
   Monitor * monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
 
   if ( !strcmp(format, "reference") ) {
@@ -218,6 +217,9 @@ void FifoStream::setStreamStart(int monitor_id, const char * format) {
         staticConfig.PATH_SOCKS.c_str(), monitor->Id());
     stream_type = MJPEG;
   } else {
+    if ( strcmp(format, "raw") ) {
+      Warning("Unknown or unspecified format.  Defaulting to raw");
+    }
     snprintf(diag_path, sizeof(diag_path), "%s/dbgpipe-%d.log",
         staticConfig.PATH_SOCKS.c_str(), monitor->Id());
     stream_type = RAW;
@@ -245,13 +247,13 @@ void FifoStream::runStream() {
     return;
   }
   int res = flock(fd_lock, LOCK_EX | LOCK_NB);
-  while ( (res == EAGAIN) and (! zm_terminate) ) {
+  while ( (res < 0 and errno == EAGAIN) and (! zm_terminate) ) {
     Warning("Flocking problem on %s: - %s", lock_file, strerror(errno));
     sleep(1);
     res = flock(fd_lock, LOCK_EX | LOCK_NB);
   }
   if ( res < 0 ) {
-    Error("Flocking problem on %s: - %s", lock_file, strerror(errno));
+    Error("Flocking problem on %d != %d %s: - %s", EAGAIN, res, lock_file, strerror(errno));
     close(fd_lock);
     return;
   }

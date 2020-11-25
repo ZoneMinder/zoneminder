@@ -204,7 +204,7 @@ function initPage() {
   } );
 
   // Setup the thumbnail video animation
-  initThumbAnimation();
+  if ( WEB_ANIMATE_THUMBS ) initThumbAnimation();
 
   $j('.functionLnk').click(manageFunctionModal);
 } // end function initPage

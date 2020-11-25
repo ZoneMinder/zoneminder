@@ -87,10 +87,12 @@ function thumbnail_onmouseout(event) {
 }
 
 function initThumbAnimation() {
-  $j('.colThumbnail img').each(function() {
-    this.addEventListener('mouseover', thumbnail_onmouseover, false);
-    this.addEventListener('mouseout', thumbnail_onmouseout, false);
-  });
+  if ( WEB_ANIMATE_THUMBS ) {
+    $j('.colThumbnail img').each(function() {
+      this.addEventListener('mouseover', thumbnail_onmouseover, false);
+      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+    });
+  }
 }
 
 // Returns the event id's of the selected rows
@@ -195,7 +197,7 @@ function initPage() {
   backBtn.prop('disabled', !document.referrer.length);
 
   // Setup the thumbnail video animation
-  if ( WEB_ANIMATE_THUMBS ) initThumbAnimation();
+  initThumbAnimation();
 
   // Some toolbar events break the thumbnail animation, so re-init eventlistener
   table.on('all.bs.table', initThumbAnimation);

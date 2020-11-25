@@ -11,10 +11,12 @@ function thumbnail_onmouseout(event) {
 }
 
 function initThumbAnimation() {
-  $j('.colThumbnail img').each(function() {
-    this.addEventListener('mouseover', thumbnail_onmouseover, false);
-    this.addEventListener('mouseout', thumbnail_onmouseout, false);
-  });
+  if ( WEB_ANIMATE_THUMBS ) {
+    $j('.colThumbnail img').each(function() {
+      this.addEventListener('mouseover', thumbnail_onmouseover, false);
+      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+    });
+  }
 }
 
 function setButtonStates( element ) {
@@ -204,7 +206,7 @@ function initPage() {
   } );
 
   // Setup the thumbnail video animation
-  if ( WEB_ANIMATE_THUMBS ) initThumbAnimation();
+  initThumbAnimation();
 
   $j('.functionLnk').click(manageFunctionModal);
 } // end function initPage

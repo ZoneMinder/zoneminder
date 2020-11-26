@@ -1,7 +1,89 @@
+var streamStatus;
+var auth_hash;
+var alarmState = STATE_IDLE;
+var lastAlarmState = STATE_IDLE;
 var backBtn = $j('#backBtn');
 var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
 var forceAlmBtn = $j('#forceAlmBtn');
+var table = $j('#eventList');
+
+if ( monitorType != 'WebSite' ) {
+  var streamCmdParms = 'view=request&request=stream&connkey='+connKey;
+  if ( auth_hash ) {
+    streamCmdParms += '&auth='+auth_hash;
+  }
+  var streamCmdReq = new Request.JSON( {
+    url: monitorUrl,
+    method: 'get',
+    timeout: AJAX_TIMEOUT,
+    link: 'chain',
+    onError: getStreamCmdError,
+    onSuccess: getStreamCmdResponse,
+    onFailure: getStreamCmdFailure
+  } );
+  var streamCmdTimer = null;
+}
+
+/*
+This is the format of the json object sent by bootstrap-table
+
+var params =
+{
+"type":"get",
+"data":
+  {
+  "search":"some search text",
+  "sort":"StartDateTime",
+  "order":"asc",
+  "offset":0,
+  "limit":25
+  "filter":
+    {
+    "Name":"some advanced search text"
+    "StartDateTime":"some more advanced search text"
+    }
+  },
+"cache":true,
+"contentType":"application/json",
+"dataType":"json"
+};
+*/
+
+// Called by bootstrap-table to retrieve zm event data
+function ajaxRequest(params) {
+  // Maintain legacy behavior of sorting by Id column only
+  delete params.data.order;
+  delete params.data.limit;
+  params.data.sort = 'Id desc';
+  params.data.count = maxDisplayEvents;
+  params.data.id = monitorId;
+  if ( auth_hash ) params.data.auth = auth_hash;
+
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=events', params.data)
+      .done(function(data) {
+        var rows = processRows(data.events);
+        // rearrange the result into what bootstrap-table expects
+        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+      })
+      .fail(logAjaxFail);
+}
+
+function processRows(rows) {
+  $j.each(rows, function(ndx, row) {
+    var eid = row.Id;
+    var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
+
+    row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + '">' + eid + '</a>';
+    row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + '">' + row.Name + '</a>';
+    row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
+    row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
+    row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+    row.Delete = '<i class="fa fa-trash text-danger"></i>';
+  });
+
+  return rows;
+}
 
 function showEvents() {
   $('ptzControls').addClass('hidden');
@@ -56,9 +138,6 @@ function changeScale() {
   }
 }
 
-var alarmState = STATE_IDLE;
-var lastAlarmState = STATE_IDLE;
-
 function setAlarmState( currentAlarmState ) {
   alarmState = currentAlarmState;
 
@@ -103,39 +182,22 @@ function setAlarmState( currentAlarmState ) {
         $('MediaPlayer').Stop();
       }
     }
-    eventCmdQuery();
+    table.bootstrapTable('refresh');
   }
 
   lastAlarmState = alarmState;
 } // end function setAlarmState( currentAlarmState )
-
-if ( monitorType != 'WebSite' ) {
-  var streamCmdParms = 'view=request&request=stream&connkey='+connKey;
-  if ( auth_hash ) {
-    streamCmdParms += '&auth='+auth_hash;
-  }
-  var streamCmdReq = new Request.JSON( {
-    url: monitorUrl,
-    method: 'get',
-    timeout: AJAX_TIMEOUT,
-    link: 'chain',
-    onError: getStreamCmdError,
-    onSuccess: getStreamCmdResponse,
-    onFailure: getStreamCmdFailure
-  } );
-  var streamCmdTimer = null;
-}
-
-var streamStatus;
 
 function getStreamCmdError(text, error) {
   console.log(error);
   // Error are normally due to failed auth. reload the page.
   window.location.reload();
 }
+
 function getStreamCmdFailure(xhr) {
   console.log(xhr);
 }
+
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk('stream');
   if ( streamCmdTimer ) {
@@ -233,7 +295,7 @@ function getStreamCmdResponse(respObj, respText) {
         }
         streamCmdParms = streamCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
         statusCmdParms = statusCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-        eventCmdParms = eventCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        table.bootstrapTable('refresh');
         controlParms = controlParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
       } // end if have a new auth hash
     } // end if respObj.status
@@ -503,187 +565,6 @@ function cmdForce() {
   }
 }
 
-function getActResponse( respObj, respText ) {
-  if ( respObj.result == 'Ok' ) {
-    if ( respObj.refreshParent && window.opener ) {
-      console.log('refreshing parent');
-      window.opener.location.reload();
-    }
-  }
-  eventCmdQuery();
-}
-
-function deleteEvent(event, eventId) {
-  var actParms = 'view=request&request=event&action=delete&id='+eventId;
-  if ( auth_hash ) {
-    actParms += '&auth='+auth_hash;
-  }
-  var actReq = new Request.JSON( {
-    url: thisUrl,
-    method: 'post',
-    timeout: 3000,
-    onSuccess: getActResponse
-  } );
-  actReq.send(actParms);
-  event.stop();
-}
-
-if ( monitorType != 'WebSite' ) {
-  var eventCmdParms = "view=request&request=status&entity=events&id="+monitorId+"&count="+maxDisplayEvents+"&sort=Id%20desc";
-  if ( auth_hash ) {
-    eventCmdParms += '&auth='+auth_hash;
-  }
-  var eventCmdReq = new Request.JSON( {
-    url: monitorUrl,
-    method: 'get',
-    timeout: AJAX_TIMEOUT,
-    link: 'cancel',
-    onSuccess: getEventCmdResponse,
-    onTimeout: eventCmdQuery
-  } );
-  var eventCmdTimer = null;
-  var eventCmdFirst = true;
-}
-
-function highlightRow( row ) {
-  $(row).toggleClass('highlight');
-}
-
-function getEventCmdResponse( respObj, respText ) {
-  watchdogOk('event');
-  if ( eventCmdTimer ) {
-    eventCmdTimer = clearTimeout(eventCmdTimer);
-  }
-
-  if ( respObj.result == 'Ok' ) {
-    var dbEvents = respObj.events.reverse();
-    var eventList = $('eventList');
-    var eventListBody = $(eventList).getElement('tbody');
-    var eventListRows = $(eventListBody).getElements('tr');
-
-    eventListRows.each( function(row) {
-      row.removeClass('updated');
-    } );
-
-    for ( var i = 0; i < dbEvents.length; i++ ) {
-      var zm_event = dbEvents[i];
-      var row = $('event'+zm_event.Id);
-      var newEvent = (row == null ? true : false);
-      if ( newEvent ) {
-        row = new Element('tr', {'id': 'event'+zm_event.Id});
-        new Element('td', {'class': 'colId'}).inject(row);
-        new Element('td', {'class': 'colName'}).inject(row);
-        new Element('td', {'class': 'colTime'}).inject(row);
-        new Element('td', {'class': 'colSecs'}).inject(row);
-        new Element('td', {'class': 'colFrames'}).inject(row);
-        new Element('td', {'class': 'colScore'}).inject(row);
-        new Element('td', {'class': 'colDelete'}).inject(row);
-
-        var link = new Element('a', {
-          'href': '#',
-          'events': {
-            'click': openEvent.pass( [
-              zm_event.Id,
-              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1'
-            ] )
-          }
-        });
-        link.set('text', zm_event.Id);
-        link.inject(row.getElement('td.colId'));
-
-        link = new Element('a', {
-          'href': '#',
-          'events': {
-            'click': openEvent.pass( [
-              zm_event.Id,
-              '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1'
-            ] )
-          }
-        });
-        link.set('text', zm_event.Name);
-        link.inject(row.getElement('td.colName'));
-
-        row.getElement('td.colTime').set('text', zm_event.StartDateTime);
-        row.getElement('td.colSecs').set('text', zm_event.Length);
-
-        link = new Element('a', {'href': '#', 'events': {'click': openFrames.pass( [zm_event.Id] )}});
-        link.set('text', zm_event.Frames+'/'+zm_event.AlarmFrames);
-        link.inject(row.getElement('td.colFrames'));
-
-        link = new Element('a', {'href': '#', 'events': {'click': openFrame.pass( [zm_event.Id, '0'] )}});
-        link.set('text', zm_event.AvgScore+'/'+zm_event.MaxScore);
-        link.inject(row.getElement('td.colScore'));
-
-        link = new Element('button', {
-          'type': 'button',
-          'title': deleteString,
-          'data-event-id': zm_event.Id,
-          'events': {
-            'click': function(e) {
-              var event_id = e.target.getAttribute('data-event-id');
-              if ( !event_id ) {
-                console.log('No event id in deleteEvent');
-                console.log(e);
-              } else {
-                deleteEvent(e, event_id);
-              }
-            },
-            'mouseover': highlightRow.pass(row),
-            'mouseout': highlightRow.pass(row)
-          }
-        });
-        link.set('text', 'X');
-        link.inject(row.getElement('td.colDelete'));
-
-        if ( i == 0 ) {
-          row.inject($(eventListBody));
-        } else {
-          row.inject($(eventListBody), 'top');
-          if ( !eventCmdFirst ) {
-            row.addClass('recent');
-          }
-        }
-      } else {
-        row.getElement('td.colName a').set('text', zm_event.Name);
-        row.getElement('td.colSecs').set('text', zm_event.Length);
-        row.getElement('td.colFrames a').set('text', zm_event.Frames+'/'+zm_event.AlarmFrames);
-        row.getElement('td.colScore a').set('text', zm_event.AvgScore+'/'+zm_event.MaxScore);
-        row.removeClass('recent');
-      }
-      row.addClass('updated');
-    } // end foreach event
-
-    var rows = $(eventListBody).getElements('tr');
-    for ( var i = 0; i < rows.length; i++ ) {
-      if ( !rows[i].hasClass('updated') ) {
-        rows[i].destroy();
-        rows.splice( i, 1 );
-        i--;
-      }
-    }
-    while ( rows.length > maxDisplayEvents ) {
-      rows[rows.length-1].destroy();
-      rows.length--;
-    }
-  } else {
-    checkStreamForErrors('getEventCmdResponse', respObj);
-  } // end if objresult == ok
-
-  var eventCmdTimeout = eventsRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
-    eventCmdTimeout = eventCmdTimeout/5;
-  }
-  eventCmdTimer = eventCmdQuery.delay(eventCmdTimeout);
-  eventCmdFirst = false;
-}
-
-function eventCmdQuery() {
-  if ( eventCmdTimer ) { // avoid firing another if we are firing one
-    eventCmdTimer = clearTimeout(eventCmdTimer);
-  }
-  eventCmdReq.send(eventCmdParms);
-}
-
 if ( monitorType != 'WebSite' ) {
   var controlParms = 'view=request&request=control&id='+monitorId;
   if ( auth_hash ) {
@@ -802,14 +683,12 @@ function appletRefresh() {
 
 var watchdogInactive = {
   'stream': false,
-  'status': false,
-  'event': false
+  'status': false
 };
 
 var watchdogFunctions = {
   'stream': streamCmdQuery,
   'status': statusCmdQuery,
-  'event': eventCmdQuery
 };
 
 //Make sure the various refreshes are still taking effect
@@ -872,6 +751,44 @@ function getSettingsModal() {
       .fail(logAjaxFail);
 }
 
+function processClicks(event, field, value, row, $element) {
+  if ( field == 'Delete' ) {
+    $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+    .done(function(data) {
+      insertModalHtml('deleteConfirm', data.html);
+      manageDelConfirmModalBtns();
+      $j('#deleteConfirm').data('eid', row.Id.replace(/(<([^>]+)>)/gi, ''));
+      $j('#deleteConfirm').modal('show');
+    })
+    .fail(logAjaxFail);
+  }
+}
+
+// Manage the DELETE CONFIRMATION modal button
+function manageDelConfirmModalBtns() {
+  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
+    if ( ! canEditEvents ) {
+      enoperm();
+      return;
+    }
+
+    var eid = $j('#deleteConfirm').data('eid');
+
+    evt.preventDefault();
+    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
+        .done( function(data) {
+          table.bootstrapTable('refresh');
+          $j('#deleteConfirm').modal('hide');
+        })
+        .fail(logAjaxFail);
+  });
+
+  // Manage the CANCEL modal button
+  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
+    $j('#deleteConfirm').modal('hide');
+  });
+}
+
 function initPage() {
   if ( canViewControl ) {
     // Load the PTZ Preset modal into the DOM
@@ -888,9 +805,6 @@ function initPage() {
       streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
       watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
     }
-
-    eventCmdTimer = eventCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
-    watchdogCheck.pass('event').periodical(eventsRefreshTimeout*2);
 
     if ( canStreamNative || (streamMode == 'single') ) {
       var streamImg = $('imageFeed').getElement('img');
@@ -924,6 +838,7 @@ function initPage() {
   } else if ( monitorRefresh > 0 ) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }
+
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
     evt.preventDefault();
@@ -948,6 +863,17 @@ function initPage() {
   // Only enable the settings button for local cameras
   settingsBtn.prop('disabled', !canViewControl);
   if ( monitorType != 'Local' ) settingsBtn.hide();
+
+  // Init the bootstrap-table
+  if ( monitorType != 'WebSite' ) table.bootstrapTable({icons: icons});
+
+  // Update table rows each time after new data is loaded
+  table.on('post-body.bs.table', function(data) {
+    $j('#eventList tr:contains("New Event")').addClass('recent');
+  });
+
+  // Take appropriate action when the user clicks on a cell
+  table.on('click-cell.bs.table', processClicks);
 } // initPage
 
 // Kick everything off

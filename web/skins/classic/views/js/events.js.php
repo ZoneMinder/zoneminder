@@ -12,3 +12,4 @@ var emailedString = "<?php echo translate('Emailed') ?>";
 var yesString = "<?php echo translate('Yes') ?>";
 var noString = "<?php echo translate('No') ?>";
 var WEB_LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
+var WEB_ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;

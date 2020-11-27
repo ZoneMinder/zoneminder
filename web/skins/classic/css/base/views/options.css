@@ -43,7 +43,10 @@ input[name="newConfig[ZM_MESSAGE_SUBJECT]"],
 input[name="newConfig[ZM_FROM_EMAIL]"],
 input[name="newConfig[ZM_URL]"],
 input[name="newConfig[ZM_SSMTP_PATH]"],
-input[name="newConfig[ZM_CSP_REPORT_URI]"] {
+input[name="newConfig[ZM_CSP_REPORT_URI]"],
+input[name="newStorage[Name]"],
+input[name="newStorage[Path]"],
+input[name="newStorage[Url]"] {
   width: 90%;
 }
 

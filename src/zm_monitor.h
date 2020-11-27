@@ -430,29 +430,22 @@ public:
     return shared_data && shared_data->valid;
   }
 
-  inline unsigned int Id() const {
-    return id;
-  }
-  inline const char *Name() const {
-    return name;
-  }
+  inline unsigned int Id() const { return id; }
+  inline const char *Name() const { return name; }
+  inline unsigned int ServerId() { return server_id; }
   inline Storage *getStorage() {
     if ( ! storage ) {
       storage = new Storage( storage_id );
     }
     return storage;
   }
-  inline Function GetFunction() const {
-    return( function );
-  }
+  inline Function GetFunction() const { return function; }
   inline bool Enabled() const {
     if ( function <= MONITOR )
       return false;
     return enabled;
   }
-  inline const char *EventPrefix() const {
-    return event_prefix;
-  }
+  inline const char *EventPrefix() const { return event_prefix; }
   inline bool Ready() const {
     if ( function <= MONITOR )
       return false;
@@ -463,9 +456,7 @@ public:
       return false;
     return( enabled && shared_data->active );
   }
-  inline bool Exif() const {
-    return embed_exif;
-  }
+  inline bool Exif() const { return embed_exif; }
   Orientation getOrientation() const;
 
   unsigned int Width() const { return width; }

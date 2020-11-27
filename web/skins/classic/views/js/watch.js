@@ -754,13 +754,13 @@ function getSettingsModal() {
 function processClicks(event, field, value, row, $element) {
   if ( field == 'Delete' ) {
     $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
-    .done(function(data) {
-      insertModalHtml('deleteConfirm', data.html);
-      manageDelConfirmModalBtns();
-      $j('#deleteConfirm').data('eid', row.Id.replace(/(<([^>]+)>)/gi, ''));
-      $j('#deleteConfirm').modal('show');
-    })
-    .fail(logAjaxFail);
+        .done(function(data) {
+          insertModalHtml('deleteConfirm', data.html);
+          manageDelConfirmModalBtns();
+          $j('#deleteConfirm').data('eid', row.Id.replace(/(<([^>]+)>)/gi, ''));
+          $j('#deleteConfirm').modal('show');
+        })
+        .fail(logAjaxFail);
   }
 }
 

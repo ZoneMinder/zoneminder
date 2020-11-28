@@ -24,6 +24,7 @@ class ZmFont {
         int ReadFontFile( const std::string &loc );
         ZMFONT *GetFont(){ return font; }
         uint64_t *GetBitmapDataForSize( const unsigned int size, uint16_t &charWidth, uint16_t &charHeight );
+        void FreeData();
 
     private:
       size_t datasize = 0;

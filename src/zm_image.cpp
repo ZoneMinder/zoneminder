@@ -295,6 +295,8 @@ void Image::Deinitialise() {
     sws_freeContext(sws_convert_context);
     sws_convert_context = nullptr;
   }
+
+  font.FreeData();
 }  // end void Image::Deinitialise()
 
 void Image::Initialise() {
@@ -488,11 +490,13 @@ void Image::Initialise() {
   g_u_table = g_u_table_global;
   b_u_table = b_u_table_global;
 
-  Warning("Going to read font file");
-  if ( font.ReadFontFile("/ZoneMinder/fonts/default.zmfnt") < 0)
+  int res = font.ReadFontFile("/ZoneMinder/fonts/default.zmfnt");
+  if( res == -1 ) {
     Panic("Invalid font location.");
-  Warning("Font file read");
-
+  }
+  else if( res == -3 || res == -4 ) {
+    Panic("Invalid font file."); 
+  }
   initialised = true;
 }
 

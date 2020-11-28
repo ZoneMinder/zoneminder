@@ -490,7 +490,7 @@ void Image::Initialise() {
   g_u_table = g_u_table_global;
   b_u_table = b_u_table_global;
 
-  int res = font.ReadFontFile("/ZoneMinder/fonts/default.zmfnt");
+  int res = font.ReadFontFile(config.font_file_location);
   if( res == -1 ) {
     Panic("Invalid font location.");
   }

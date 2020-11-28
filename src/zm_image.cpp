@@ -78,6 +78,9 @@ static deinterlace_4field_fptr_t fptr_deinterlace_4field_gray8;
 /* Pointer to image buffer memory copy function */
 imgbufcpy_fptr_t fptr_imgbufcpy;
 
+/* Font */
+static ZmFont font;
+
 void Image::update_function_pointers() {
   /* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements */
   if ( pixels % 16 || pixels % 12 ) {
@@ -484,6 +487,11 @@ void Image::Initialise() {
   g_v_table = g_v_table_global;
   g_u_table = g_u_table_global;
   b_u_table = b_u_table_global;
+
+  Warning("Going to read font file");
+  if ( font.ReadFontFile("/ZoneMinder/fonts/default.zmfnt") < 0)
+    Panic("Invalid font location.");
+  Warning("Font file read");
 
   initialised = true;
 }
@@ -1869,8 +1877,11 @@ const Coord Image::centreCoord( const char *text, int size=1 ) const {
     line = text+index;
     line_no++;
   }
-  int x = (width - (max_line_len * ZM_CHAR_WIDTH * size) ) / 2;
-  int y = (height - (line_no * LINE_HEIGHT * size) ) / 2;
+
+  uint16_t char_width, char_height;
+  font.GetBitmapDataForSize(size, char_width, char_height);
+  int x = (width - (max_line_len * char_width )) / 2;
+  int y = (height - (line_no * char_height) ) / 2;
   return Coord(x, y);
 }
 
@@ -1916,7 +1927,10 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
 }
 
 /* RGB32 compatible: complete */
-void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour )
+/* Bitmap decoding trick has been adopted from here:
+https://lemire.me/blog/2018/02/21/iterating-over-set-bits-quickly/
+*/
+__attribute__ ((optimize(3))) void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour )
 {
   strncpy(text, p_text, sizeof(text)-1);
 
@@ -1931,7 +1945,6 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
   const uint8_t fg_b_col = BLUE_VAL_RGBA(fg_colour);
   const uint8_t fg_bw_col = fg_colour & 0xff;
   const Rgb fg_rgb_col = rgb_convert(fg_colour,subpixelorder);
-  const bool fg_trans = (fg_colour == RGB_TRANSPARENT);
 
   const uint8_t bg_r_col = RED_VAL_RGBA(bg_colour);
   const uint8_t bg_g_col = GREEN_VAL_RGBA(bg_colour);
@@ -1939,22 +1952,20 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
   const uint8_t bg_bw_col = bg_colour & 0xff;
   const Rgb bg_rgb_col = rgb_convert(bg_colour,subpixelorder);
   const bool bg_trans = (bg_colour == RGB_TRANSPARENT);
-
-  int zm_text_bitmask = 0x80;
-  if ( size == 2 )
-    zm_text_bitmask = 0x8000;
+  uint16_t char_width = 0, char_height = 0;
+  uint64_t *fontbitmap = font.GetBitmapDataForSize(size, char_width, char_height);
 
   while ( (index < text_len) && (line_len = strcspn(line, "\n")) ) {
 
-    unsigned int line_width = line_len * ZM_CHAR_WIDTH * size;
+    unsigned int line_width = line_len * char_width;
 
     unsigned int lo_line_x = coord.X();
-    unsigned int lo_line_y = coord.Y() + (line_no * LINE_HEIGHT * size);
+    unsigned int lo_line_y = coord.Y() + (line_no * char_height);
 
     unsigned int min_line_x = 0;
     unsigned int max_line_x = width - line_width;
     unsigned  int min_line_y = 0;
-    unsigned int max_line_y = height - (LINE_HEIGHT * size);
+    unsigned int max_line_y = height - char_height;
 
     if ( lo_line_x > max_line_x )
       lo_line_x = max_line_x;
@@ -1966,7 +1977,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
       lo_line_y = min_line_y;
 
     unsigned int hi_line_x = lo_line_x + line_width;
-    unsigned int hi_line_y = lo_line_y + (LINE_HEIGHT * size);
+    unsigned int hi_line_y = lo_line_y + char_height;
 
     // Clip anything that runs off the right of the screen
     if ( hi_line_x > width )
@@ -1976,100 +1987,71 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
 
     if ( colours == ZM_COLOUR_GRAY8 ) {
       unsigned char *ptr = &buffer[(lo_line_y*width)+lo_line_x];
-      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (ZM_CHAR_HEIGHT * size); y++, r++, ptr += width ) {
+      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += width ) {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          int f;
-          if ( size == 2 ) {
-            if ( (line[c] * ZM_CHAR_HEIGHT * size) + r > sizeof(bigfontdata) ) {
+          if ( line[c] > 0xFF ) {
               Warning("Unsupported character %c in %s", line[c], line);
               continue;
             }
-            f = bigfontdata[(line[c] * ZM_CHAR_HEIGHT * size) + r];
-          } else {
-            if ( (line[c] * ZM_CHAR_HEIGHT) + r > sizeof(fontdata) ) {
-              Warning("Unsupported character %c in %s", line[c], line);
-              continue;
-            }
-            f = fontdata[(line[c] * ZM_CHAR_HEIGHT) + r];
+          uint64_t f = fontbitmap[(line[c] * char_height) + r];
+          if( !bg_trans ) memset(temp_ptr, bg_bw_col, char_width);
+          while(f != 0)
+          {
+            unsigned long long t = f & -f;
+            int idx = char_width - __builtin_ctzll(f>>2);
+            *(temp_ptr + idx) = fg_bw_col;
+            f ^= t;
           }
-          for ( unsigned int i = 0; i < (ZM_CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ ) {
-            if ( f & (zm_text_bitmask >> i) ) {
-              if ( !fg_trans )
-                *temp_ptr = fg_bw_col;
-            } else if ( !bg_trans ) {
-              *temp_ptr = bg_bw_col;
-            }
-          }
+          temp_ptr += char_width;
         }
       }
     } else if ( colours == ZM_COLOUR_RGB24 ) {
       unsigned int wc = width * colours;
-
       unsigned char *ptr = &buffer[((lo_line_y*width)+lo_line_x)*colours];
-      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (ZM_CHAR_HEIGHT * size); y++, r++, ptr += wc ) {
+      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          int f;
-          if ( size == 2 ) {
-            if ( (line[c] * ZM_CHAR_HEIGHT * size) + r > sizeof(bigfontdata) ) {
+            if ( line[c] > 0xFF ) {
               Warning("Unsupported character %c in %s", line[c], line);
               continue;
             }
-            f = bigfontdata[(line[c] * ZM_CHAR_HEIGHT * size) + r];
-          } else {
-            if ( (line[c] * ZM_CHAR_HEIGHT) + r > sizeof(fontdata) ) {
-              Warning("Unsupported character %c in %s", line[c], line);
-              continue;
+            uint64_t f = fontbitmap[(line[c] * char_height) + r];
+            if( !bg_trans ) memset(temp_ptr, 0x0, char_width * colours);
+            while( f != 0 )
+            {
+              uint64_t t = f & -f;
+              int idx = char_width - __builtin_ctzll(f >> 2);
+              RED_PTR_RGBA((temp_ptr + (idx*3))) = fg_r_col;
+              GREEN_PTR_RGBA((temp_ptr + (idx*3))) = fg_g_col;
+              BLUE_PTR_RGBA((temp_ptr + (idx*3))) = fg_b_col;
+              f ^= t;
             }
-            f = fontdata[(line[c] * ZM_CHAR_HEIGHT) + r];
-          }
-          for ( unsigned int i = 0; i < (ZM_CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr += colours ) {
-            if ( f & (zm_text_bitmask >> i) ) {
-              if ( !fg_trans ) {
-                RED_PTR_RGBA(temp_ptr) = fg_r_col;
-                GREEN_PTR_RGBA(temp_ptr) = fg_g_col;
-                BLUE_PTR_RGBA(temp_ptr) = fg_b_col;
-              }
-            } else if ( !bg_trans ) {
-              RED_PTR_RGBA(temp_ptr) = bg_r_col;
-              GREEN_PTR_RGBA(temp_ptr) = bg_g_col;
-              BLUE_PTR_RGBA(temp_ptr) = bg_b_col;
-            }
-          }
+            temp_ptr += char_width * colours;
         }
       }
     } else if ( colours == ZM_COLOUR_RGB32 ) {
       unsigned int wc = width * colours;
 
-      uint8_t *ptr = &buffer[((lo_line_y*width)+lo_line_x)<<2];
-      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < (ZM_CHAR_HEIGHT * size); y++, r++, ptr += wc ) {
+      uint8_t *ptr = &buffer[((lo_line_y*width)+lo_line_x) << 2];
+      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
         Rgb* temp_ptr = (Rgb*)ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          int f;
-          if ( size == 2 ) {
-            if ( (line[c] * ZM_CHAR_HEIGHT * size) + r > sizeof(bigfontdata) ) {
+          if ( line[c] > 0xFF ) {
               Warning("Unsupported character %c in %s", line[c], line);
               continue;
             }
-            f = bigfontdata[(line[c] * ZM_CHAR_HEIGHT * size) + r];
-          } else {
-            if ( (line[c] * ZM_CHAR_HEIGHT) + r > sizeof(fontdata) ) {
-              Warning("Unsupported character %c in %s", line[c], line);
-              continue;
+            uint64_t f = fontbitmap[(line[c] * char_height) + r];
+            if( !bg_trans ) memset((uint8_t *)temp_ptr, bg_rgb_col, char_width * colours);
+            while( f != 0 )
+            {
+              uint64_t t = f & -f;
+              int idx = char_width - __builtin_ctzll(f >> 2);
+              *(temp_ptr + idx) = fg_rgb_col;
+              f ^= t;
             }
-            f = fontdata[(line[c] * ZM_CHAR_HEIGHT) + r];
+            temp_ptr += char_width;
           }
-          for ( unsigned int i = 0; i < (ZM_CHAR_WIDTH * size) && x < hi_line_x; i++, x++, temp_ptr++ ) {
-            if ( f & (zm_text_bitmask >> i) ) {
-              if ( !fg_trans ) {
-                *temp_ptr = fg_rgb_col;
-              }
-            } else if ( !bg_trans ) {
-              *temp_ptr = bg_rgb_col;
-            }
-          }
-        }
       }
 
     } else {

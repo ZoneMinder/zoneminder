@@ -52,6 +52,7 @@ Event::Event(
     const std::string &p_cause,
     const StringSetMap &p_noteSetMap,
     bool p_videoEvent ) :
+  id(0),
   monitor(p_monitor),
   start_time(p_start_time),
   cause(p_cause),
@@ -86,55 +87,6 @@ Event::Event(
   }
 
   Storage * storage = monitor->getStorage();
-  if ( !SetPath(storage) ) {
-    // Try another
-    Warning("Failed creating event dir at %s", storage->Path());
-
-    std::string sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
-    if ( monitor->ServerId() )
-      sql += stringtf(" AND ServerId=%u", monitor->ServerId());
-
-    Debug(1, "%s", sql.c_str());
-    storage = nullptr;
-
-    MYSQL_RES *result = zmDbFetch(sql.c_str());
-    if ( result ) {
-      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-        storage = new Storage(atoi(dbrow[0]));
-        if ( SetPath(storage) )
-          break;
-        delete storage;
-        storage = nullptr;
-      }  // end foreach row of Storage
-      mysql_free_result(result);
-      result = nullptr;
-    }
-    if ( !storage ) {
-      Info("No valid local storage area found.  Trying all other areas.");
-      // Try remote
-      std::string sql = "SELECT `Id` FROM `Storage` WHERE ServerId IS NULL";
-      if ( monitor->ServerId() )
-        sql += stringtf(" OR ServerId != %u", monitor->ServerId());
-
-      MYSQL_RES *result = zmDbFetch(sql.c_str());
-      if ( result ) {
-        for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-          storage = new Storage(atoi(dbrow[0]));
-          if ( SetPath(storage) )
-            break;
-          delete storage;
-          storage = nullptr;
-        }  // end foreach row of Storage
-        mysql_free_result(result);
-        result = nullptr;
-      }
-    }
-    if ( !storage ) {
-      storage = new Storage();
-      Warning("Failed to find a storage area to save events.");
-    }
-  }
-  Debug(1, "Using storage area at %s", path.c_str());
 
   char sql[ZM_SQL_MED_BUFSIZ];
   snprintf(sql, sizeof(sql), "INSERT INTO Events "
@@ -162,6 +114,63 @@ Event::Event(
   }
   id = mysql_insert_id(&dbconn);
 
+  if ( !SetPath(storage) ) {
+    // Try another
+    Warning("Failed creating event dir at %s", storage->Path());
+
+    std::string sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
+    if ( monitor->ServerId() )
+      sql += stringtf(" AND ServerId=%u", monitor->ServerId());
+
+    Debug(1, "%s", sql.c_str());
+    storage = nullptr;
+
+    MYSQL_RES *result = zmDbFetch(sql.c_str());
+    if ( result ) {
+      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+        storage = new Storage(atoi(dbrow[0]));
+        if ( SetPath(storage) )
+          break;
+        delete storage;
+        storage = nullptr;
+      }  // end foreach row of Storage
+      mysql_free_result(result);
+      result = nullptr;
+    }
+    if ( !storage ) {
+      Info("No valid local storage area found.  Trying all other areas.");
+      // Try remote
+      sql = "SELECT `Id` FROM `Storage` WHERE ServerId IS NULL";
+      if ( monitor->ServerId() )
+        sql += stringtf(" OR ServerId != %u", monitor->ServerId());
+
+      MYSQL_RES *result = zmDbFetch(sql.c_str());
+      if ( result ) {
+        for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+          storage = new Storage(atoi(dbrow[0]));
+          if ( SetPath(storage) )
+            break;
+          delete storage;
+          storage = nullptr;
+        }  // end foreach row of Storage
+        mysql_free_result(result);
+        result = nullptr;
+      }
+    }
+    if ( !storage ) {
+      storage = new Storage();
+      Warning("Failed to find a storage area to save events.");
+    }
+    sql = stringtf("UPDATE Events SET StorageId = '%d' WHERE Id=%" PRIu64, storage->Id(), id);
+    db_mutex.lock();
+    int rc = mysql_query(&dbconn, sql.c_str());
+    db_mutex.unlock();
+    if ( rc ) {
+      Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql.c_str());
+    }
+  }
+  Debug(1, "Using storage area at %s", path.c_str());
+
   db_mutex.unlock();
   if ( untimedEvent ) {
     Warning("Event %" PRIu64 " has zero time, setting to current", id);
@@ -183,11 +192,13 @@ Event::Event(
   if ( monitor->GetOptVideoWriter() != 0 ) {
     video_name = stringtf("%" PRIu64 "-%s", id, "video.mp4");
     snprintf(sql, sizeof(sql), "UPDATE Events SET DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
+    db_mutex.lock();
     if ( mysql_query(&dbconn, sql) ) {
       db_mutex.unlock();
       Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
       return;
     }
+    db_mutex.unlock();
     video_file = path + "/" + video_name;
 			Debug(1, "Writing video file to %s", video_file.c_str());
 

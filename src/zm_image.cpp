@@ -294,8 +294,6 @@ void Image::Deinitialise() {
     sws_freeContext(sws_convert_context);
     sws_convert_context = nullptr;
   }
-
-  font.FreeData();
 }  // end void Image::Deinitialise()
 
 void Image::Initialise() {

@@ -21,6 +21,7 @@ struct ZMFONT {
 
 class ZmFont {
  public:
+    ~ZmFont() { FreeData(); }
     int ReadFontFile(const std::string &loc);
     ZMFONT *GetFont() { return font; }
     void SetFontSize(int _size) { size = _size; }

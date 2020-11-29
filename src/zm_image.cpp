@@ -1881,8 +1881,9 @@ const Coord Image::centreCoord( const char *text, int size=1 ) const {
     line_no++;
   }
 
-  uint16_t char_width, char_height;
-  font.GetBitmapDataForSize(size, char_width, char_height);
+  font.SetFontSize(size);
+  uint16_t char_width = font.GetCharWidth();
+  uint16_t char_height = font.GetCharHeight();
   int x = (width - (max_line_len * char_width )) / 2;
   int y = (height - (line_no * char_height) ) / 2;
   return Coord(x, y);
@@ -1933,8 +1934,7 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
 /* Bitmap decoding trick has been adopted from here:
 https://lemire.me/blog/2018/02/21/iterating-over-set-bits-quickly/
 */
-__attribute__ ((optimize(3))) void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour )
-{
+__attribute__ ((optimize(3))) void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour ) {
   strncpy(text, p_text, sizeof(text)-1);
 
   unsigned int index = 0;
@@ -1947,19 +1947,21 @@ __attribute__ ((optimize(3))) void Image::Annotate( const char *p_text, const Co
   const uint8_t fg_g_col = GREEN_VAL_RGBA(fg_colour);
   const uint8_t fg_b_col = BLUE_VAL_RGBA(fg_colour);
   const uint8_t fg_bw_col = fg_colour & 0xff;
-  const Rgb fg_rgb_col = rgb_convert(fg_colour,subpixelorder);
+  const Rgb fg_rgb_col = rgb_convert(fg_colour, subpixelorder);
 
   const uint8_t bg_r_col = RED_VAL_RGBA(bg_colour);
   const uint8_t bg_g_col = GREEN_VAL_RGBA(bg_colour);
   const uint8_t bg_b_col = BLUE_VAL_RGBA(bg_colour);
   const uint8_t bg_bw_col = bg_colour & 0xff;
-  const Rgb bg_rgb_col = rgb_convert(bg_colour,subpixelorder);
+  const Rgb bg_rgb_col = rgb_convert(bg_colour, subpixelorder);
   const bool bg_trans = (bg_colour == RGB_TRANSPARENT);
-  uint16_t char_width = 0, char_height = 0;
-  uint64_t *fontbitmap = font.GetBitmapDataForSize(size, char_width, char_height);
+
+  font.SetFontSize(size);
+  const uint16_t char_width = font.GetCharWidth();
+  const uint16_t char_height = font.GetCharHeight();
+  const uint64_t *font_bitmap = font.GetBitmapData();
 
   while ( (index < text_len) && (line_len = strcspn(line, "\n")) ) {
-
     unsigned int line_width = line_len * char_width;
 
     unsigned int lo_line_x = coord.X();
@@ -1997,11 +1999,10 @@ __attribute__ ((optimize(3))) void Image::Annotate( const char *p_text, const Co
               Warning("Unsupported character %c in %s", line[c], line);
               continue;
             }
-          uint64_t f = fontbitmap[(line[c] * char_height) + r];
-          if( !bg_trans ) memset(temp_ptr, bg_bw_col, char_width);
-          while(f != 0)
-          {
-            unsigned long long t = f & -f;
+          uint64_t f = font_bitmap[(line[c] * char_height) + r];
+          if ( !bg_trans ) memset(temp_ptr, bg_bw_col, char_width);
+          while ( f != 0 ) {
+            uint64_t t = f & -f;
             int idx = char_width - __builtin_ctzll(f>>2);
             *(temp_ptr + idx) = fg_bw_col;
             f ^= t;
@@ -2019,10 +2020,9 @@ __attribute__ ((optimize(3))) void Image::Annotate( const char *p_text, const Co
               Warning("Unsupported character %c in %s", line[c], line);
               continue;
             }
-            uint64_t f = fontbitmap[(line[c] * char_height) + r];
-            if( !bg_trans ) memset(temp_ptr, 0x0, char_width * colours);
-            while( f != 0 )
-            {
+            uint64_t f = font_bitmap[(line[c] * char_height) + r];
+            if ( !bg_trans ) memset(temp_ptr, 0x0, char_width * colours);
+            while ( f != 0 ) {
               uint64_t t = f & -f;
               int idx = char_width - __builtin_ctzll(f >> 2);
               RED_PTR_RGBA((temp_ptr + (idx*3))) = fg_r_col;
@@ -2044,10 +2044,9 @@ __attribute__ ((optimize(3))) void Image::Annotate( const char *p_text, const Co
               Warning("Unsupported character %c in %s", line[c], line);
               continue;
             }
-            uint64_t f = fontbitmap[(line[c] * char_height) + r];
-            if( !bg_trans ) memset((uint8_t *)temp_ptr, bg_rgb_col, char_width * colours);
-            while( f != 0 )
-            {
+            uint64_t f = font_bitmap[(line[c] * char_height) + r];
+            if ( !bg_trans ) memset((uint8_t *)temp_ptr, bg_rgb_col, char_width * colours);
+            while ( f != 0 ) {
               uint64_t t = f & -f;
               int idx = char_width - __builtin_ctzll(f >> 2);
               *(temp_ptr + idx) = fg_rgb_col;

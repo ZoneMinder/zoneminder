@@ -369,8 +369,10 @@ $fastblendopts_alarm = array(
     );
 
 $label_size = array(
-    1 => translate('Default'),
-    2 => translate('Large'),
+    1 => translate('Small'),
+    2 => translate('Default'),
+    3 => translate('Large'),
+    4 => translate('Extra Large'),
     );
 
 $codecs = array(

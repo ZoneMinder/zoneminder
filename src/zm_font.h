@@ -21,14 +21,13 @@ struct ZMFONT {
 
 class ZmFont {
  public:
-    ~ZmFont() { FreeData(); }
+    ~ZmFont();
     int ReadFontFile(const std::string &loc);
     ZMFONT *GetFont() { return font; }
     void SetFontSize(int _size) { size = _size; }
     uint64_t *GetBitmapData();
     uint16_t GetCharWidth() { return font->header[size].charWidth; }
     uint16_t GetCharHeight() { return font->header[size].charHeight; }
-    void FreeData();
 
  private:
     int size = 0;

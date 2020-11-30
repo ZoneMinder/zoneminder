@@ -490,8 +490,7 @@ void Image::Initialise() {
   int res = font.ReadFontFile(config.font_file_location);
   if( res == -1 ) {
     Panic("Invalid font location.");
-  }
-  else if( res == -3 || res == -4 ) {
+  } else if( res == -2 || res == -3 || res == -4 ) {
     Panic("Invalid font file."); 
   }
   initialised = true;
@@ -1932,7 +1931,7 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
 /* Bitmap decoding trick has been adopted from here:
 https://lemire.me/blog/2018/02/21/iterating-over-set-bits-quickly/
 */
-__attribute__ ((optimize(3))) void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour ) {
+void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour ) {
   strncpy(text, p_text, sizeof(text)-1);
 
   unsigned int index = 0;
@@ -2019,7 +2018,13 @@ __attribute__ ((optimize(3))) void Image::Annotate( const char *p_text, const Co
               continue;
             }
             uint64_t f = font_bitmap[(line[c] * char_height) + r];
-            if ( !bg_trans ) memset(temp_ptr, 0x0, char_width * colours);
+            if ( !bg_trans ) {
+              for( int i = 0; i < char_width; i++ ) {  // We need to set individual r,g,b components
+                RED_PTR_RGBA((temp_ptr + (i*3))) = bg_r_col;
+                GREEN_PTR_RGBA((temp_ptr + (i*3))) = bg_g_col;
+                BLUE_PTR_RGBA((temp_ptr + (i*3))) = bg_b_col;
+              }
+            }
             while ( f != 0 ) {
               uint64_t t = f & -f;
               int idx = char_width - __builtin_ctzll(f >> 2);
@@ -2043,7 +2048,10 @@ __attribute__ ((optimize(3))) void Image::Annotate( const char *p_text, const Co
               continue;
             }
             uint64_t f = font_bitmap[(line[c] * char_height) + r];
-            if ( !bg_trans ) memset((uint8_t *)temp_ptr, bg_rgb_col, char_width * colours);
+            if ( !bg_trans ) {
+              for( int i = 0; i < char_width; i++ )
+                  *(temp_ptr + i) = bg_rgb_col;
+            }
             while ( f != 0 ) {
               uint64_t t = f & -f;
               int idx = char_width - __builtin_ctzll(f >> 2);

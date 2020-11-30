@@ -14,11 +14,14 @@ int ZmFont::ReadFontFile(const std::string &loc) {
   stat(loc.c_str(), &st);
 
   font = new ZMFONT;
-  if ( !font )
-    return -2;
 
   // MAGIC + pad + BitmapHeaders
-  fread(&font[0], 1, 8 + (sizeof(ZMFONT_BH) * 4), f);
+  size_t readsize = fread(&font[0], 1, 8 + (sizeof(ZMFONT_BH) * 4), f);
+  if ( readsize < 8 + (sizeof(ZMFONT_BH) * 4) ) {
+    delete font;
+    font = nullptr;
+    return -2; // EOF reached, invalid file
+  }
 
   if ( memcmp(font->MAGIC, "ZMFNT", 5) != 0 )  // Check whether magic is correct
     return -3;
@@ -31,7 +34,8 @@ int ZmFont::ReadFontFile(const std::string &loc) {
     if ( (font->header[i].charWidth > 64 && font->header[i].charWidth == 0) || \
       (font->header[i].charHeight > 200 && font->header[i].charHeight == 0) || \
       (font->header[i].idx > st.st_size) ) {
-        FreeData();
+        delete font;
+        font = nullptr;
         return -4;
       }
   }
@@ -39,12 +43,19 @@ int ZmFont::ReadFontFile(const std::string &loc) {
   datasize = st.st_size - (8 + sizeof(ZMFONT_BH) * 4);
 
   font->data = new uint64_t[datasize/sizeof(uint64_t)];
-  fread(&font->data[0], 1, datasize, f);
+  readsize = fread(&font->data[0], 1, datasize, f);
+  if( readsize < datasize) { // Shouldn't happen
+    delete[] font->data;
+    font->data = nullptr;
+    delete font;
+    font = nullptr;
+    return -2;
+  }
   fclose(f);
   return 0;
 }
 
-void ZmFont::FreeData() {
+ZmFont::~ZmFont() {
   if ( font->data ) {
     delete[] font->data;
     font->data = nullptr;

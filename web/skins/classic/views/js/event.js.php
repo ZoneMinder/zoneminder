@@ -40,6 +40,7 @@ var connKey = '<?php echo $connkey ?>';
 
 var eventData = {
     Id: '<?php echo $Event->Id() ?>',
+    Name: '<?php echo $Event->Name() ?>',
     MonitorId: '<?php echo $Event->MonitorId() ?>',
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
@@ -47,7 +48,10 @@ var eventData = {
     StartDateTime: '<?php echo $Event->StartDateTime() ?>',
     EndDateTime: '<?php echo $Event->EndDateTime() ?>',
     Frames: '<?php echo $Event->Frames() ?>',
-    MonitorName: '<?php echo validJsStr($Monitor->Name()) ?>'
+    MonitorName: '<?php echo validJsStr($Monitor->Name()) ?>',
+    DiskSpace: '<?php echo human_filesize($Event->DiskSpace(null)) ?>',
+    Storage: '<?php validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
+    Archived: <?php echo $Event->Archived?'true':'false' ?>
 };
 var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';
 

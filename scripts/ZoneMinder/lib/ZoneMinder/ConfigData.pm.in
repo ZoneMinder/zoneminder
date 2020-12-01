@@ -2749,6 +2749,19 @@ our @options = (
     category    => 'web',
   },
   {
+    name        => 'ZM_WEB_ANIMATE_THUMBS',
+    default     => 'yes',
+    description => 'Enlarge and show the live stream when a thumbnail is hovered over',
+    help        => q`
+      Enabling this option causes the static thumbnail, shown on certain
+      views, to enlarge and show the live stream, when the thumbnail is
+      hovered over by the mouse.
+      `,
+    type        => $types{boolean},
+    requires    => [ { name => 'ZM_WEB_LIST_THUMBS', value => 'yes' } ],
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_USE_OBJECT_TAGS',
     default     => 'yes',
     description => 'Wrap embed in object tags for media content',
@@ -3769,7 +3782,7 @@ our @options = (
   },
   {
     name        => 'ZM_FONT_FILE_LOCATION',
-    default     => '/zoneminder/fonts/default.zmfnt',
+    default     => '@ZM_FONTDIR@/default.zmfnt',
     description => 'Font file location',
     help        => 'This font is used for timestamp labels.',
     type        => $types{string},

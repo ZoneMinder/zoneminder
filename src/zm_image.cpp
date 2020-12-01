@@ -118,7 +118,7 @@ Image::Image() {
   size = 0;
   allocation = 0;
   buffer = 0;
-  buffertype = 0;
+  buffertype = ZM_BUFTYPE_DONTFREE;
   holdbuffer = 0;
   text[0] = '\0';
   blend = fptr_blend;
@@ -136,24 +136,26 @@ Image::Image(const char *filename) {
   size = 0;
   allocation = 0;
   buffer = 0;
-  buffertype = 0;
+  buffertype = ZM_BUFTYPE_DONTFREE;
   holdbuffer = 0;
   ReadJpeg(filename, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   text[0] = '\0';
   update_function_pointers();
 }
 
-Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) {
+Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) :
+  width(p_width),
+  height(p_height),
+  colours(p_colours),
+  padding(p_padding),
+  subpixelorder(p_subpixelorder),
+  buffer(p_buffer) {
+
   if ( !initialised )
     Initialise();
-  width = p_width;
-  height = p_height;
-  pixels = width*height;
-  colours = p_colours;
+  pixels = width * height;
   linesize = p_width * p_colours;
-  padding = p_padding;
-  subpixelorder = p_subpixelorder;
-  size = linesize*height + padding;
+  size = linesize * height + padding;
   buffer = nullptr;
   holdbuffer = 0;
   if ( p_buffer ) {
@@ -168,16 +170,18 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   update_function_pointers();
 }
 
-Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) {
+Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer, unsigned int p_padding) :
+  width(p_width),
+  linesize(p_linesize),
+  height(p_height),
+  colours(p_colours),
+  padding(p_padding),
+  subpixelorder(p_subpixelorder),
+  buffer(p_buffer)
+{
   if ( !initialised )
     Initialise();
-  width = p_width;
-  linesize = p_linesize;
-  height = p_height;
   pixels = width*height;
-  colours = p_colours;
-  padding = p_padding;
-  subpixelorder = p_subpixelorder;
   size = linesize*height + padding;
   buffer = nullptr;
   holdbuffer = 0;
@@ -659,7 +663,7 @@ void Image::Assign(
         return;
       }
     } else {
-      if ( new_size > allocation || !buffer ) {
+      if ( (new_size > allocation) || !buffer ) {
         DumpImgBuffer();
         AllocImgBuffer(new_size);
       }
@@ -894,8 +898,8 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
 
   jpeg_read_header(cinfo, TRUE);
 
-  if ( cinfo->num_components != 1 && cinfo->num_components != 3 ) {
-    Error( "Unexpected colours when reading jpeg image: %d", colours );
+  if ( (cinfo->num_components != 1) && (cinfo->num_components != 3) ) {
+    Error("Unexpected colours when reading jpeg image: %d", colours);
     jpeg_abort_decompress(cinfo);
     fclose(infile);
     return false;
@@ -910,7 +914,7 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
   new_width = cinfo->image_width;
   new_height = cinfo->image_height;
 
-  if ( width != new_width || height != new_height ) {
+  if ( (width != new_width) || (height != new_height) ) {
     Debug(9, "Image dimensions differ. Old: %ux%u New: %ux%u", width, height, new_width, new_height);
   }
 
@@ -1114,7 +1118,7 @@ cinfo->out_color_space = JCS_EXT_RGB;
 #else
 cinfo->out_color_space = JCS_RGB;
 #endif
-           */
+*/
           cinfo->in_color_space = JCS_RGB;
         }
         break;
@@ -1205,7 +1209,7 @@ bool Image::DecodeJpeg(
   new_width = cinfo->image_width;
   new_height = cinfo->image_height;
 
-  if ( width != new_width || height != new_height ) {
+  if ( (width != new_width) || (height != new_height) ) {
     Debug(9, "Image dimensions differ. Old: %ux%u New: %ux%u",
         width, height, new_width, new_height);
   }

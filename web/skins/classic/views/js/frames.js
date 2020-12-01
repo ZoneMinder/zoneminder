@@ -39,10 +39,12 @@ function thumbnail_onmouseout(event) {
 }
 
 function initThumbAnimation() {
-  $j('.colThumbnail img').each(function() {
-    this.addEventListener('mouseover', thumbnail_onmouseover, false);
-    this.addEventListener('mouseout', thumbnail_onmouseout, false);
-  });
+  if ( WEB_ANIMATE_THUMBS ) {
+    $j('.colThumbnail img').each(function() {
+      this.addEventListener('mouseover', thumbnail_onmouseover, false);
+      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+    });
+  }
 }
 
 function processClicks(event, field, value, row, $element) {
@@ -116,7 +118,8 @@ function initPage() {
     var thumb_ndx = $j('#framesTable tr th').filter(function() {
       return $j(this).text().trim() == 'Thumbnail';
     }).index();
-    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail zoom');
+    var thmbClass = WEB_ANIMATE_THUMBS ? 'colThumbnail zoom' : 'colThumbnail';
+    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass(thmbClass);
   });
 }
 

@@ -39,6 +39,10 @@ $table = 'Monitor_Status';
 $serial = $primary_key = 'MonitorId';
 %fields = map { $_ => $_ } qw(
   MonitorId
+  Status
+  CaptureFPS
+  AnalysisFPS
+  CaptureBandwidth
   TotalEvents
   TotalEventDiskSpace
   HourEvents
@@ -54,6 +58,10 @@ $serial = $primary_key = 'MonitorId';
   );
 
 %defaults = (
+    Status => 'Unknown',
+    CaptureFPS => undef,
+    AnalysisFPS => undef,
+    CaptureBandwidth => undef,
     TotalEvents => undef,
     TotalEventDiskSpace => undef,
     HourEvents =>   undef,

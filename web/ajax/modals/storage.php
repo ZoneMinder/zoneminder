@@ -31,12 +31,11 @@
     'Shallow' => translate('Shallow'),
   );
 
-  $servers = ZM\Server::find( null, array('order'=>'lower(Name)') );
+  global $Servers;
   $ServersById = array();
-  foreach ( $servers as $S ) {
+  foreach ( $Servers as $S ) {
     $ServersById[$S->Id()] = $S;
   }
-
 ?>
 <div class="modal fade" id="storageModal" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -56,48 +55,54 @@
         <input type="hidden" name="view" value="storage"/>
         <input type="hidden" name="object" value="storage"/>
         <input type="hidden" name="id" value="<?php echo validHtmlStr($sid) ?>"/>
-        <table class="major table-sm">
+<div class="table-responsive">
+        <table class="major table table-sm">
           <tbody>
             <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('Name') ?></th>
+              <th class="text-right " scope="row"><?php echo translate('Name') ?></th>
               <td><input type="text" name="newStorage[Name]" value="<?php echo $newStorage->Name() ?>"/></td>
             </tr>
             <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('Path') ?></th>
+              <th class="text-right " scope="row"><?php echo translate('Path') ?></th>
               <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage->Path() ?>"/></td>
             </tr>
             <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('Url') ?></th>
+              <th class="text-right " scope="row"><?php echo translate('Url') ?></th>
               <td><input type="text" name="newStorage[Url]" value="<?php echo $newStorage->Url() ?>"/></td>
             </tr>
             <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('Server') ?></th>
+              <th class="text-right " scope="row"><?php echo translate('Server') ?></th>
               <td><?php echo htmlSelect('newStorage[ServerId]', array(''=>'Remote / No Specific Server') + $ServersById, $newStorage->ServerId()) ?></td>
             </tr>
             <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('Type') ?></th>
+              <th class="text-right " scope="row"><?php echo translate('Type') ?></th>
               <td><?php echo htmlSelect('newStorage[Type]', $type_options, $newStorage->Type()) ?></td>
             </tr>
             <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('StorageScheme') ?></th>
+              <th class="text-right " scope="row"><?php echo translate('StorageScheme') ?></th>
               <td><?php echo htmlSelect('newStorage[Scheme]', $scheme_options, $newStorage->Scheme()) ?></td>
             </tr>
             <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('StorageDoDelete') ?></th>
+              <th class="text-right " scope="row"><?php echo translate('StorageDoDelete') ?></th>
               <td>
-              <input type="radio" name="newStorage[DoDelete]" value="1" <?php echo $newStorage->DoDelete() ? $checked : $null ?>>Yes
-              <input type="radio" name="newStorage[DoDelete]" value="0" <?php echo $newStorage->DoDelete() ? $null : $checked ?>>No
+                <input type="radio" name="newStorage[DoDelete]" id="newStorage[DoDelete]1" value="1" <?php echo $newStorage->DoDelete() ? $checked : $null ?>/>
+                <label class="form-check-label" for="newStorage[DoDelete]1">Yes</label>
+                <input type="radio" name="newStorage[DoDelete]" id="newStorage[DoDelete]0" value="0" <?php echo $newStorage->DoDelete() ? $null : $checked ?>/>
+                <label class="form-check-label" for="newStorage[DoDelete]0">No</label>
               </td>
             </tr>
             <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('Enabled') ?></th>
+              <th class="text-right " scope="row"><?php echo translate('Enabled') ?></th>
               <td>
-              <input type="radio" name="newStorage[Enabled]" value="1" <?php echo $newStorage->Enabled() ? $checked : $null ?>>Yes
-              <input type="radio" name="newStorage[Enabled]" value="0" <?php echo $newStorage->Enabled() ? $null : $checked ?>>No
+                <input type="radio" name="newStorage[Enabled]" id="newStorage[Enabled]1" value="1" <?php echo $newStorage->Enabled() ? $checked : $null ?>/>
+                <label class="form-check-label" for="newStorage[Enabled]1">Yes</label>
+                <input type="radio" name="newStorage[Enabled]" id="newStorage[Enabled]0" value="0" <?php echo $newStorage->Enabled() ? $null : $checked ?>/>
+                <label class="form-check-label" for="newStorage[Enabled]0">No</label>
               </td>
             </tr>
           </tbody>
         </table>
+</div>
       </div>
       <div class="modal-footer">
         <button name="action" id="storageSubmitBtn" type="submit" class="btn btn-primary" value="Save"><?php echo translate('Save') ?></button>

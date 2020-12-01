@@ -1,5 +1,5 @@
 //
-// ZoneMinder Event Class Implementation, $Date$, $Revision$
+// ZoneMinder Event Class Implementation
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -78,7 +78,6 @@ Event::Event(
         );
     start_time = now;
   }
-
 
   unsigned int state_id = 0;
   zmDbRow dbrow;
@@ -356,7 +355,7 @@ bool Event::WriteFrameImage(
 bool Event::WriteFrameVideo(
     const Image *image,
     const struct timeval timestamp,
-    VideoWriter* videow) {
+    VideoWriter* videow) const {
   const Image* frameimg = image;
   Image ts_image;
 

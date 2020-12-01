@@ -128,7 +128,7 @@ function dbEscape( $string ) {
     return $dbConn->quote($string);
 }
 
-function dbQuery($sql, $params=NULL) {
+function dbQuery($sql, $params=NULL, $debug = false) {
   global $dbConn;
   if ( dbLog($sql, true) )
     return;
@@ -145,7 +145,7 @@ function dbQuery($sql, $params=NULL) {
         return NULL;
       }
     } else {
-      if ( defined('ZM_DB_DEBUG') ) {
+      if ( defined('ZM_DB_DEBUG') or $debug ) {
 				ZM\Debug("SQL: $sql values:" . ($params?implode(',',$params):''));
       }
       $result = $dbConn->query($sql);
@@ -154,7 +154,7 @@ function dbQuery($sql, $params=NULL) {
         return NULL;
       }
     }
-    if ( defined('ZM_DB_DEBUG') ) {
+    if ( defined('ZM_DB_DEBUG') or $debug ) {
       ZM\Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
     }
   } catch(PDOException $e) {

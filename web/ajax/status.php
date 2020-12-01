@@ -330,18 +330,18 @@ function collectData() {
           foreach ( $postFuncs as $element=>$func )
             $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
           $data[] = $sqlData;
-          if ( isset($limi) && ++$count >= $limit )
+          if ( isset($limit) && ++$count >= $limit )
             break;
         } # end foreach
       } # end if have limit == 1
     }
   }
-  #ZM\Debug(print_r($data, true));
+  #ZM\Warning(print_r($data, true));
   return $data;
 }
 
 $data = collectData();
-
+#Warning(print_r($data, true));
 if ( !isset($_REQUEST['layout']) ) {
   $_REQUEST['layout'] = 'json';
 }
@@ -364,6 +364,7 @@ switch ( $_REQUEST['layout'] ) {
       $response = array( strtolower(validJsStr($_REQUEST['entity'])) => $data );
       if ( isset($_REQUEST['loopback']) )
         $response['loopback'] = validJsStr($_REQUEST['loopback']);
+        #ZM\Warning(print_r($response, true));
       ajaxResponse($response);
       break;
     }

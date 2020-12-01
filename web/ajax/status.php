@@ -329,6 +329,17 @@ function collectData() {
         foreach ( dbFetchAll($sql, NULL, $values) as $sqlData ) {
           foreach ( $postFuncs as $element=>$func )
             $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
+
+          // Create parameters used to build the event thumbnail html
+          $event = new ZM\Event($sqlData['Id']);
+          $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
+          $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
+          $streamSrc = $event->getStreamSrc(array(
+            'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
+
+          // Build the thumbnail html
+          $sqlData['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="' .validHtmlStr('Event ' .$event->Id()). '" style="width:' .validInt($event->ThumbnailWidth()). 'px;height:' .validInt($event->ThumbnailHeight()).'px;" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"/>';
+
           $data[] = $sqlData;
           if ( isset($limit) && ++$count >= $limit )
             break;

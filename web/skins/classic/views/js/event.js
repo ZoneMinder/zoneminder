@@ -1065,11 +1065,11 @@ function manageDelConfirmModalBtns() {
 }
 
 function getEvtStatsCookie() {
-  var cookie = 'zmEventStats'
+  var cookie = 'zmEventStats';
   var stats = getCookie(cookie);
 
   if ( !stats ) {
-    stats = 'on'
+    stats = 'on';
     setCookie(cookie, stats, 10*365);
   }
   return stats;
@@ -1080,7 +1080,7 @@ function initPage() {
   getDelConfirmModal();
 
   var stats = getEvtStatsCookie();
-  if ( stats != 'on' ) table.toggle(false)
+  if ( stats != 'on' ) table.toggle(false);
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   if ( $j('#videoobj').length ) {
@@ -1239,7 +1239,7 @@ function initPage() {
   // Manage the Event STATISTICS Button
   document.getElementById("statsBtn").addEventListener("click", function onStatsClick(evt) {
     evt.preventDefault();
-    var cookie = 'zmEventStats'
+    var cookie = 'zmEventStats';
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
     if ( table.is(':visible') ) {
@@ -1247,7 +1247,7 @@ function initPage() {
       table.toggle(false);
     } else {
       setCookie(cookie, 'on', 10*365);
-      table.toggle(true);    
+      table.toggle(true);
     }
   });
 

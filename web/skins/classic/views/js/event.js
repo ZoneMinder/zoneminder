@@ -1053,7 +1053,7 @@ function manageDelConfirmModalBtns() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eventData.Id)
         .done( function(data) {
-          window.location.reload(true);
+          streamNext( true );
         })
         .fail(logAjaxFail);
   });

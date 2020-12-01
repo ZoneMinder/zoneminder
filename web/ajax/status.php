@@ -336,12 +336,12 @@ function collectData() {
       } # end if have limit == 1
     }
   }
-  #ZM\Warning(print_r($data, true));
+  #ZM\Debug(print_r($data, true));
   return $data;
 }
 
 $data = collectData();
-#Warning(print_r($data, true));
+
 if ( !isset($_REQUEST['layout']) ) {
   $_REQUEST['layout'] = 'json';
 }

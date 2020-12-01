@@ -3782,7 +3782,7 @@ our @options = (
   },
   {
     name        => 'ZM_FONT_FILE_LOCATION',
-    default     => '/zoneminder/fonts/default.zmfnt',
+    default     => '@ZM_FONTDIR@/default.zmfnt',
     description => 'Font file location',
     help        => 'This font is used for timestamp labels.',
     type        => $types{string},

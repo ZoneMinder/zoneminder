@@ -65,7 +65,7 @@ getBodyTopHTML();
     </div>
 
     <!-- Table styling handled by bootstrap-tables -->
-    <div class="row justify-content-center">
+    <div class="row justify-content-center table-responsive-sm">
       <table
         id="eventTable"
         data-locale="<?php echo i18n() ?>"

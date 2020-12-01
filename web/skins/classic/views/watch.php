@@ -160,7 +160,7 @@ if ( $showPtzControls ) {
 if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
 ?>
       <!-- Table styling handled by bootstrap-tables -->
-      <div id="events" class="row justify-content-center">
+      <div id="events" class="row justify-content-center table-responsive-sm">
         <table 
           id="eventList"
           data-locale="<?php echo i18n() ?>"

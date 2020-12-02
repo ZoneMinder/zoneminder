@@ -55,7 +55,8 @@ if ( $errorText ) {
   die();
 } 
 
-if ( ! ($fh = @fopen($path,'rb') ) ) {
+if ( ! ($fh = @fopen($path, 'rb') ) ) {
+  ZM\Error('Can\'t open video at '.$path);
   header('HTTP/1.0 404 Not Found');
   die();
 }

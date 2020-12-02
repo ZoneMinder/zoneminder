@@ -3780,6 +3780,14 @@ our @options = (
     type        => $types{boolean},
     category    => 'logging',
   },
+  {
+    name        => 'ZM_FONT_FILE_LOCATION',
+    default     => '@ZM_FONTDIR@/default.zmfnt',
+    description => 'Font file location',
+    help        => 'This font is used for timestamp labels.',
+    type        => $types{string},
+    category    => 'config',
+  },
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;

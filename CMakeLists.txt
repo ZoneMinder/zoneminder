@@ -148,6 +148,9 @@ set(ZM_CACHEDIR "/var/cache/zoneminder" CACHE PATH
     "Location of the web server cache busting files, default: /var/cache/zoneminder")
 set(ZM_CONTENTDIR "/var/lib/zoneminder" CACHE PATH 
     "Location of dynamic content (events and images), default: /var/lib/zoneminder")
+set(ZM_FONTDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/fonts" CACHE PATH
+  "Location of the font files used for timestamping, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/fonts")
+
 set(ZM_DB_HOST "localhost" CACHE STRING 
     "Hostname where ZoneMinder database located, default: localhost")
 set(ZM_DB_NAME "zm" CACHE STRING 
@@ -911,6 +914,7 @@ set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
 add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)
+add_subdirectory(fonts)
 add_subdirectory(web)
 add_subdirectory(misc)
 add_subdirectory(onvif)

@@ -56,7 +56,7 @@ int ZmFont::ReadFontFile(const std::string &loc) {
 }
 
 ZmFont::~ZmFont() {
-  if ( font->data ) {
+  if ( font && font->data ) {
     delete[] font->data;
     font->data = nullptr;
   }

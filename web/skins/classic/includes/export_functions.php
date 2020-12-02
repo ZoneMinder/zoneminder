@@ -999,5 +999,5 @@ function exportEvents(
     unlink($monitorPath.'/'.$html_eventMaster);
   }
 
-  return '?view=archive%26type='.$exportFormat.'%26connkey='.$connkey;
+  return '?view=archive&type='.$exportFormat.'&connkey='.$connkey;
 } // end function exportEvents

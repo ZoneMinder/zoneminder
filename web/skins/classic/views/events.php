@@ -87,7 +87,6 @@ getBodyTopHTML();
         data-show-fullscreen="true"
         data-click-to-select="true"
         data-maintain-meta-data="true"
-        data-mobile-responsive="true"
         data-buttons-class="btn btn-normal"
         data-show-jump-to="true"
         data-show-refresh="true"

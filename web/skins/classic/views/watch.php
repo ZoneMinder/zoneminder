@@ -172,7 +172,6 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
           data-show-columns="true"
           data-show-export="true"
           data-uncheckAll="true"
-          data-mobile-responsive="true"
           data-buttons-class="btn btn-normal"
           data-auto-refresh="true"
           data-auto-refresh-silent="true"

@@ -32,6 +32,7 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Storage;
 require ZoneMinder::Server;
+require ZoneMinder::Monitor_Status;
 
 #our @ISA = qw(Exporter ZoneMinder::Base);
 use parent qw(ZoneMinder::Object);
@@ -245,6 +246,14 @@ sub control {
   }
 } # end sub control
 
+sub Status {
+  my $self = shift;
+  $$self{Status} = shift if @_;
+  if ( ! $$self{Status} ) {
+    $$self{Status} = ZoneMinder::Monitor_Status->find_one(MonitorId=>$$self{Id});
+  }
+  return $$self{Status};
+}
 
 1;
 __END__

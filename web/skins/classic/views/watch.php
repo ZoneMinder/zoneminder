@@ -159,21 +159,46 @@ if ( $showPtzControls ) {
 }
 if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
 ?>
-      <div id="events">
-        <table id="eventList">
+      <!-- Table styling handled by bootstrap-tables -->
+      <div id="events" class="row justify-content-center">
+        <table 
+          id="eventList"
+          data-locale="<?php echo i18n() ?>"
+          data-side-pagination="server"
+          data-ajax="ajaxRequest"
+          data-cookie="true"
+          data-cookie-id-table="zmEventListTable"
+          data-cookie-expire="2y"
+          data-show-columns="true"
+          data-show-export="true"
+          data-uncheckAll="true"
+          data-mobile-responsive="true"
+          data-buttons-class="btn btn-normal"
+          data-auto-refresh="true"
+          data-auto-refresh-silent="true"
+          data-show-refresh="true"
+          data-auto-refresh-interval="5"
+          class="table-sm table-borderless"
+        >
           <thead>
+            <!-- Row styling is handled by bootstrap-tables -->
             <tr>
-              <th class="colId"><?php echo translate('Id') ?></th>
-              <th class="colName"><?php echo translate('Name') ?></th>
-              <th class="colTime"><?php echo translate('Time') ?></th>
-              <th class="colSecs"><?php echo translate('Secs') ?></th>
-              <th class="colFrames"><?php echo translate('Frames') ?></th>
-              <th class="colScore"><?php echo translate('Score') ?></th>
-              <th class="colDelete">&nbsp;</th>
+              <th data-sortable="false" data-field="Id"><?php echo translate('Id') ?></th>
+              <th data-sortable="false" data-field="Name"><?php echo translate('Name') ?></th>
+              <th data-sortable="false" data-field="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
+              <th data-sortable="false" data-field="Length"><?php echo translate('Duration') ?></th>
+              <th data-sortable="false" data-field="Frames"><?php echo translate('Frames') ?></th>
+              <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
+              <th data-sortable="false" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
+              <th data-sortable="false" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+              <th data-sortable="false" data-field="Delete"><?php echo translate('Delete') ?></th>
             </tr>
           </thead>
+
           <tbody>
+          <!-- Row data populated via Ajax -->
           </tbody>
+
         </table>
       </div>
 <?php

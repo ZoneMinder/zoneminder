@@ -691,6 +691,7 @@ void MonitorStream::runStream() {
           if ( !sendFrame(snap->image, snap->timestamp) ) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
+            break;
           }
           if ( frame_count == 0 ) {
             // Chrome will not display the first frame until it receives another.
@@ -698,14 +699,18 @@ void MonitorStream::runStream() {
             if ( !sendFrame(snap->image, snap->timestamp) ) {
               Debug(2, "sendFrame failed, quiting.");
               zm_terminate = true;
+              break;
             }
           }
           // Perhaps we should use NOW instead.
+          last_frame_timestamp = *snap->timestamp;
+          /*
           memcpy(
               &last_frame_timestamp,
               snap->timestamp,
               sizeof(last_frame_timestamp)
               );
+              */
           // frame_sent = true;
 
           temp_read_index = temp_write_index;

@@ -71,7 +71,9 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
         $monitor->sendControlCommand('quit');
       }
     } // end if changes
-    $redirect = $_SERVER['HTTP_REFERER'];
+    # HTTP_REFERER will typically be ?view=zone so no good.
+    # if a referer is passed in $_REQUEST then use it otherwise go to ?view=zones
+    $redirect = isset($_REQUEST['REFERER']) ? $_REQUEST['REFERER'] : '?view=zones';
   } // end if action 
 } // end if $mid and canEdit($mid)
 ?>

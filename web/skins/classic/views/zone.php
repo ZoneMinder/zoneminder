@@ -131,6 +131,7 @@ xhtmlHeaders(__FILE__, translate('Zone'));
     </div>
     <div id="content">
       <form name="zoneForm" id="zoneForm" method="post" action="?">
+        <input type="hidden" name="REFERER" value="<?php echo $_SERVER['HTTP_REFERER'] ?>"/> 
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="zone"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>

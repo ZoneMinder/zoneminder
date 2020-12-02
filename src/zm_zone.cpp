@@ -911,14 +911,15 @@ int Zone::Load(Monitor *monitor, Zone **&zones) {
       zones[i] = new Zone(monitor, Id, Name, polygon);
     } else if ( atoi(dbrow[2]) == Zone::PRIVACY ) {
       zones[i] = new Zone(monitor, Id, Name, (Zone::ZoneType)Type, polygon);
+    } else {
+      zones[i] = new Zone(
+          monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB,
+          (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold,
+          MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), 
+          MinFilterPixels, MaxFilterPixels,
+          MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs,
+          OverloadFrames, ExtendAlarmFrames);
     }
-    zones[i] = new Zone(
-        monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB,
-        (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold,
-        MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), 
-        MinFilterPixels, MaxFilterPixels,
-        MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs,
-        OverloadFrames, ExtendAlarmFrames);
   } // end foreach row
   mysql_free_result(result);
   return n_zones;

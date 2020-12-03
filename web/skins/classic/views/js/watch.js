@@ -7,6 +7,7 @@ var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
 var forceAlmBtn = $j('#forceAlmBtn');
 var table = $j('#eventList');
+var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 
 if ( monitorType != 'WebSite' ) {
   var streamCmdParms = 'view=request&request=stream&connkey='+connKey;
@@ -57,7 +58,7 @@ function ajaxRequest(params) {
   params.data.limit = maxDisplayEvents;
   params.data.sort = 'Id';
 
-  $j.getJSON(thisUrl + '?view=request&request=events&task=query', params.data)
+  $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
       .done(function(data) {
         var rows = processRows(data.rows);
         // rearrange the result into what bootstrap-table expects
@@ -69,7 +70,6 @@ function ajaxRequest(params) {
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     var eid = row.Id;
-    var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 
     row.Delete = '<i class="fa fa-trash text-danger"></i>';
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + '">' + eid + '</a>';

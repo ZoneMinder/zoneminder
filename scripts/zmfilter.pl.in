@@ -381,8 +381,10 @@ sub checkFilter {
     } # end if AutoCopy
 
     if ( $filter->{UpdateDiskSpace} ) {
-      $ZoneMinder::Database::dbh->begin_work();
-      $Event->lock_and_load();
+      if ( $$filter{LockRows} ) {
+        $ZoneMinder::Database::dbh->begin_work();
+        $Event->lock_and_load();
+      }
 
       my $old_diskspace = $$Event{DiskSpace};
 			my $new_diskspace = $Event->DiskSpace(undef);
@@ -394,7 +396,7 @@ sub checkFilter {
 					) {
         $Event->save();
       }
-      $ZoneMinder::Database::dbh->commit();
+      $ZoneMinder::Database::dbh->commit() if !$$filter{LockRows};
     } # end if UpdateDiskSpace
   } # end foreach event
   ZoneMinder::Database::end_transaction($dbh, $in_transaction) if $$filter{LockRows}; 

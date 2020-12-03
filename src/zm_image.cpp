@@ -1882,7 +1882,7 @@ const Coord Image::centreCoord( const char *text, int size=1 ) const {
     line_no++;
   }
 
-  font.SetFontSize(size);
+  font.SetFontSize(size-1);
   uint16_t char_width = font.GetCharWidth();
   uint16_t char_height = font.GetCharHeight();
   int x = (width - (max_line_len * char_width )) / 2;
@@ -1963,10 +1963,11 @@ void Image::Annotate(
   const Rgb bg_rgb_col = rgb_convert(bg_colour, subpixelorder);
   const bool bg_trans = (bg_colour == RGB_TRANSPARENT);
 
-  font.SetFontSize(size);
+  font.SetFontSize(size-1);
   const uint16_t char_width = font.GetCharWidth();
   const uint16_t char_height = font.GetCharHeight();
   const uint64_t *font_bitmap = font.GetBitmapData();
+  Debug(1, "Font size %d, char_width %d char_height %d", size, char_width, char_height);
 
   while ( (index < text_len) && (line_len = strcspn(line, "\n")) ) {
     unsigned int line_width = line_len * char_width;
@@ -1975,6 +1976,7 @@ void Image::Annotate(
     unsigned int lo_line_y = coord.Y() + (line_no * char_height);
 
     unsigned int min_line_x = 0;
+    // FIXME What if line_width > width?
     unsigned int max_line_x = width - line_width;
     unsigned int min_line_y = 0;
     unsigned int max_line_y = height - char_height;

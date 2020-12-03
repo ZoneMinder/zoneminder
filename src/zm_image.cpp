@@ -1935,7 +1935,13 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
 /* Bitmap decoding trick has been adopted from here:
 https://lemire.me/blog/2018/02/21/iterating-over-set-bits-quickly/
 */
-void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour ) {
+void Image::Annotate(
+    const char *p_text,
+    const Coord &coord,
+    const unsigned int size,
+    const Rgb fg_colour,
+    const Rgb bg_colour
+    ) {
   strncpy(text, p_text, sizeof(text)-1);
 
   unsigned int index = 0;
@@ -1970,7 +1976,7 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
 
     unsigned int min_line_x = 0;
     unsigned int max_line_x = width - line_width;
-    unsigned  int min_line_y = 0;
+    unsigned int min_line_y = 0;
     unsigned int max_line_y = height - char_height;
 
     if ( lo_line_x > max_line_x )
@@ -1997,9 +2003,9 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
           if ( line[c] > 0xFF ) {
-              Warning("Unsupported character %c in %s", line[c], line);
-              continue;
-            }
+            Warning("Unsupported character %c in %s", line[c], line);
+            continue;
+          }
           uint64_t f = font_bitmap[(line[c] * char_height) + r];
           if ( !bg_trans ) memset(temp_ptr, bg_bw_col, char_width);
           while ( f != 0 ) {
@@ -2017,27 +2023,29 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
       for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-            if ( line[c] > 0xFF ) {
-              Warning("Unsupported character %c in %s", line[c], line);
-              continue;
+          if ( line[c] > 0xFF ) {
+            Warning("Unsupported character %c in %s", line[c], line);
+            continue;
+          }
+          uint64_t f = font_bitmap[(line[c] * char_height) + r];
+          if ( !bg_trans ) {
+            for ( int i = 0; i < char_width; i++ ) {  // We need to set individual r,g,b components
+              unsigned char *colour_ptr = temp_ptr + (i*3);
+              RED_PTR_RGBA(colour_ptr) = bg_r_col;
+              GREEN_PTR_RGBA(colour_ptr) = bg_g_col;
+              BLUE_PTR_RGBA(colour_ptr) = bg_b_col;
             }
-            uint64_t f = font_bitmap[(line[c] * char_height) + r];
-            if ( !bg_trans ) {
-              for( int i = 0; i < char_width; i++ ) {  // We need to set individual r,g,b components
-                RED_PTR_RGBA((temp_ptr + (i*3))) = bg_r_col;
-                GREEN_PTR_RGBA((temp_ptr + (i*3))) = bg_g_col;
-                BLUE_PTR_RGBA((temp_ptr + (i*3))) = bg_b_col;
-              }
-            }
-            while ( f != 0 ) {
-              uint64_t t = f & -f;
-              int idx = char_width - __builtin_ctzll(f >> 2);
-              RED_PTR_RGBA((temp_ptr + (idx*3))) = fg_r_col;
-              GREEN_PTR_RGBA((temp_ptr + (idx*3))) = fg_g_col;
-              BLUE_PTR_RGBA((temp_ptr + (idx*3))) = fg_b_col;
-              f ^= t;
-            }
-            temp_ptr += char_width * colours;
+          }
+          while ( f != 0 ) {
+            uint64_t t = f & -f;
+            int idx = char_width - __builtin_ctzll(f >> 2);
+            unsigned char *colour_ptr = temp_ptr + (idx*3);
+            RED_PTR_RGBA(colour_ptr) = fg_r_col;
+            GREEN_PTR_RGBA(colour_ptr) = fg_g_col;
+            BLUE_PTR_RGBA(colour_ptr) = fg_b_col;
+            f ^= t;
+          }
+          temp_ptr += char_width * colours;
         }
       }
     } else if ( colours == ZM_COLOUR_RGB32 ) {
@@ -2048,22 +2056,22 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
         Rgb* temp_ptr = (Rgb*)ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
           if ( line[c] > 0xFF ) {
-              Warning("Unsupported character %c in %s", line[c], line);
-              continue;
-            }
-            uint64_t f = font_bitmap[(line[c] * char_height) + r];
-            if ( !bg_trans ) {
-              for( int i = 0; i < char_width; i++ )
-                  *(temp_ptr + i) = bg_rgb_col;
-            }
-            while ( f != 0 ) {
-              uint64_t t = f & -f;
-              int idx = char_width - __builtin_ctzll(f >> 2);
-              *(temp_ptr + idx) = fg_rgb_col;
-              f ^= t;
-            }
-            temp_ptr += char_width;
+            Warning("Unsupported character %c in %s", line[c], line);
+            continue;
           }
+          uint64_t f = font_bitmap[(line[c] * char_height) + r];
+          if ( !bg_trans ) {
+            for ( int i = 0; i < char_width; i++ )
+              *(temp_ptr + i) = bg_rgb_col;
+          }
+          while ( f != 0 ) {
+            uint64_t t = f & -f;
+            int idx = char_width - __builtin_ctzll(f >> 2);
+            *(temp_ptr + idx) = fg_rgb_col;
+            f ^= t;
+          }
+          temp_ptr += char_width;
+        }
       }
 
     } else {

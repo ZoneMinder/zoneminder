@@ -41,7 +41,7 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
     </div>
 
     <!-- Table styling handled by bootstrap-tables -->
-    <div class="row justify-content-center">      
+    <div class="row justify-content-center table-responsive-sm">      
       <table
         id="framesTable"
         data-locale="<?php echo i18n() ?>"
@@ -60,7 +60,6 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
         data-toolbar="#toolbar"
         data-show-fullscreen="true"
         data-maintain-meta-data="true"
-        data-mobile-responsive="true"
         data-buttons-class="btn btn-normal"
         data-detail-view="true"
         data-detail-formatter="detailFormatter"

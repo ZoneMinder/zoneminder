@@ -120,86 +120,113 @@ $filterQuery = $filter->querystring();
 
 $connkey = generateConnKey();
 
-$focusWindow = true;
-
-$popup = (isset($_REQUEST['popup']) && ($_REQUEST['popup'] == 1));
-
-xhtmlHeaders(__FILE__, translate('Event'));
+xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());
 ?>
 <body>
   <div id="page">
-    <?php if ( !$popup ) echo getNavBarHTML() ?>
-    <div id="header">
+    <?php echo getNavBarHTML() ?>
 <?php 
 if ( !$Event->Id() ) {
   echo 'Event was not found.';
 } else {
-  if ( !file_exists($Event->Path()) ) {
+  if ( !file_exists($Event->Path()) )
     echo '<div class="error">Event was not found at '.$Event->Path().'.  It is unlikely that playback will be possible.</div>';
-  }
+
+  $storage = validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' );
 ?>
-      <div id="dataBar">
-        <span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span>
-        <span id="dataMonitor" title="<?php echo translate('Monitor') ?>"><?php echo $Monitor->Id().' '.validHtmlStr($Monitor->Name()) ?></span>
-        <span id="dataCause" title="<?php echo $Event->Notes()?validHtmlStr($Event->Notes()):translate('AttrCause') ?>"><?php echo validHtmlStr($Event->Cause()) ?></span>
-        <span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?></span>
-        <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>
-        <span id="dataFrames" title="<?php echo translate('AttrFrames').'/'.translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
-        <span id="dataScore" title="<?php echo translate('AttrTotalScore').'/'.translate('AttrAvgScore').'/'.translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>
-        <span id="Storage">
-<?php echo 
-  human_filesize($Event->DiskSpace(null)) . ' on ' . validHtmlStr($Event->Storage()->Name()).
-  ( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' )
-?></span>
-        <div id="closeWindow"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+
+<!-- BEGIN HEADER -->
+    <div class="d-flex flex-row justify-content-between px-3 py-1">
+      <div id="toolbar" >
+        <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button id="renameBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Rename') ?>" disabled><i class="fa fa-font"></i></button>
+        <button id="archiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Archive') ?>" disabled><i class="fa fa-archive"></i></button>
+        <button id="unarchiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Unarchive') ?>" disabled><i class="fa fa-file-archive-o"></i></button>
+        <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
+        <button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>"><i class="fa fa-external-link"></i></button>
+        <button id="downloadBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DownloadVideo') ?>"><i class="fa fa-download"></i></button>
+        <button id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
+        <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>"><i class="fa fa-trash"></i></button>
       </div>
-      <div id="menuBar1">
-        <div id="nameControl">
-          <input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" />
-          <button value="Rename" type="button" data-on-click="renameEvent"<?php if ( !canEdit('Events') ) { ?> disabled="disabled"<?php } ?>>
-<?php echo translate('Rename') ?></button>
-        </div>
-<?php
-if ( canEdit('Events') ) {
-?>
-        <div id="deleteEvent"><button type="button" data-on-click="deleteEvent" <?php echo $Event->can_delete() ? '' : ' disabled="disabled" title="'.$Event->cant_delete_reason().'"' ?>><?php echo translate('Delete') ?></button></div>
-        <div id="editEvent"><button type="button" data-on-click="editEvent"><?php echo translate('Edit') ?></button></div>
-        <div id="archiveEvent"<?php echo $Event->Archived() == 1 ? ' class="hidden"' : ''  ?>><button type="button" data-on-click="archiveEvent"><?php echo translate('Archive') ?></button></div>
-        <div id="unarchiveEvent"<?php echo $Event->Archived() == 0 ? ' class="hidden"' : '' ?>><button type="button" data-on-click="unarchiveEvent"><?php echo translate('Unarchive') ?></button></div>
-<?php
-} // end if can edit Events
-?>
-        <div id="framesEvent"><button type="button" data-on-click="showEventFrames"><?php echo translate('Frames') ?></button></div>
-        <div id="streamEvent" class="hidden"><button data-on-click="showStream"><?php echo translate('Stream') ?></button></div>
-        <div id="stillsEvent"><button type="button" data-on-click="showStills"><?php echo translate('Stills') ?></button></div>
-<?php
-  if ( $Event->DefaultVideo() ) { 
-?>
-        <div id="downloadEventFile"><a class="btn-primary" href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'),'&amp;')?>" download>Download MP4</a></div>
-<?php
-  } else {
-?>
-        <div id="videoEvent"><button type="button" data-on-click="videoEvent"><?php echo translate('Video') ?></button></div>
-<?php
-  } // end if Event->DefaultVideo
-?>
-        <div id="exportEvent"><button type="button" data-on-click="exportEvent"><?php echo translate('Export') ?></button></div>
-        <div id="replayControl">
-          <label for="replayMode"><?php echo translate('Replay') ?></label>
-          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode')); ?>
-        </div>
-        <div id="scaleControl">
-          <label for="scale"><?php echo translate('Scale') ?></label>
-          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
-        </div>
-        <div id="codecControl">
-          <label for="codec"><?php echo translate('Codec') ?></label>
-          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
-        </div>
+      
+      <h2><?php echo translate('Event').' '.$Event->Id() ?></h2>
+      
+      <div class="d-flex flex-row">
+        <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode')); ?></div>
+        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?></div>
+        <div id="codecControl"><label for="codec"><?php echo translate('Codec') ?></label><?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?></div>
       </div>
     </div>
-    <div id="content">
+
+<!-- BEGIN VIDEO CONTENT ROW -->
+    <div id="content" class="d-flex flex-row justify-content-center">
+      <div class="">
+        <!-- VIDEO STATISTICS TABLE -->
+        <table id="eventStatsTable" class="table-sm table-borderless">
+          <tbody>
+            <tr>
+              <th class="text-right"><?php echo translate('EventId') ?></th>
+              <td id="dataEventId"><?php echo $Event->Id() ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('EventName') ?></th>
+              <td id="dataEventName"><?php echo $Event->Name() ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('AttrMonitorId') ?></th>
+              <td id="dataMonitorId"><?php echo $Monitor->Id() ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('AttrMonitorName') ?></th>
+              <td id="dataMonitorName"><?php echo validHtmlStr($Monitor->Name()) ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('Cause') ?></th>
+              <td id="dataCause"><?php echo validHtmlStr($Event->Cause()) ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('AttrStartTime') ?></th>
+              <td id="dataStartTime"><?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('Duration') ?></th>
+              <td id="dataDuration"><?php echo $Event->Length().'s' ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('AttrFrames') ?></th>
+              <td id="dataFrames"><?php echo $Event->Frames() ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('AttrAlarmFrames') ?></th>
+              <td id="dataAlarmFrames"><?php echo $Event->AlarmFrames() ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('AttrTotalScore') ?></th>
+              <td id="dataTotalScore"><?php echo $Event->TotScore() ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('AttrAvgScore') ?></th>
+              <td id="dataAvgScore"><?php echo $Event->AvgScore() ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('AttrMaxScore') ?></th>
+              <td id="dataMaxScore"><?php echo $Event->MaxScore() ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('DiskSpace') ?></th>
+              <td id="dataDiskSpace"><?php echo human_filesize($Event->DiskSpace(null)) ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('Storage') ?></th>
+              <td id="dataStorage"><?php echo $storage?></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="">
       <div id="eventVideo">
+      <!-- VIDEO CONTENT -->
 <?php
 if ( ($codec == 'MP4' || $codec == 'auto' ) && $Event->DefaultVideo() ) {
 ?>
@@ -322,6 +349,8 @@ echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 <?php
 } // end if Event exists
 ?>
+  </div>
     </div><!--content-->
+    
   </div><!--page-->
 <?php xhtmlFooter() ?>

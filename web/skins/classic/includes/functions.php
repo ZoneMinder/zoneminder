@@ -497,9 +497,9 @@ function getBandwidthHTML($bandwidth_options, $user) {
   }
 
   $result = '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-  $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
+  $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
 
-  $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
+  $result .= '<div class="dropdown-menu" id="dropdown_bandwidth" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
   if ( count($bandwidth_options) > 1 ) {
     if ( isset($bandwidth_options['high']) )
       $result .= '<a data-pdsa-dropdown-val="high" class="dropdown-item" href="#">' .translate('High'). '</a>'.PHP_EOL;

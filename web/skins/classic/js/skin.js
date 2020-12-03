@@ -830,10 +830,11 @@ function startDownload( exportFile ) {
 }
 
 function exportResponse(data, responseText) {
-  console.log(data);
+  console.log('exportResponse data: ' + JSON.stringify(data));
 
   var generated = (data.result=='Ok') ? 1 : 0;
-  var exportFile = '?view=archive&type='+data.exportFormat+'&connkey='+data.connkey;
+  //var exportFile = '?view=archive&type='+data.exportFormat+'&connkey='+data.connkey;
+  var exportFile = data.exportFile;
 
   $j('#exportProgress').removeClass( 'text-warning' );
   if ( generated ) {

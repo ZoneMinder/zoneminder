@@ -46,7 +46,7 @@ xhtmlHeaders(__FILE__, translate('Devices') );
       <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
     </div>
 
-    <div id="content" class="row justify-content-center">
+    <div id="content" class="row justify-content-center table-responsive-sm">
         <table
           id="devicesTable"
           data-locale="<?php echo i18n() ?>"
@@ -59,7 +59,6 @@ xhtmlHeaders(__FILE__, translate('Devices') );
           data-remember-order="true"
           data-click-to-select="true"
           data-maintain-meta-data="true"
-          data-mobile-responsive="true"
           data-buttons-class="btn btn-normal"
           data-toolbar="#toolbar"
           data-show-columns="true"

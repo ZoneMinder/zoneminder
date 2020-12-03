@@ -105,31 +105,31 @@ function initThumbAnimation() {
 }
 
 function showEvents() {
-  $('ptzControls').addClass('hidden');
-  $('events').removeClass('hidden');
-  if ( $('eventsControl') ) {
-    $('eventsControl').addClass('hidden');
+  $j('#ptzControls').addClass('hidden');
+  $j('#events').removeClass('hidden');
+  if ( $j('#eventsControl') ) {
+    $j('#eventsControl').addClass('hidden');
   }
-  if ( $('controlControl') ) {
-    $('controlControl').removeClass('hidden');
+  if ( $j('#controlControl') ) {
+    $j('#controlControl').removeClass('hidden');
   }
   showMode = 'events';
 }
 
 function showPtzControls() {
-  $('events').addClass('hidden');
-  $('ptzControls').removeClass('hidden');
-  if ( $('eventsControl') ) {
-    $('eventsControl').removeClass('hidden');
+  $j('#events').addClass('hidden');
+  $j('#ptzControls').removeClass('hidden');
+  if ( $j('#eventsControl') ) {
+    $j('#eventsControl').removeClass('hidden');
   }
-  if ( $('controlControl') ) {
-    $('controlControl').addClass('hidden');
+  if ( $j('#controlControl') ) {
+    $j('#controlControl').addClass('hidden');
   }
   showMode = 'control';
 }
 
 function changeScale() {
-  var scale = $('scale').get('value');
+  var scale = $j('#scale').val();
   var newWidth;
   var newHeight;
   if ( scale == '0' || scale == 'auto' ) {
@@ -166,11 +166,11 @@ function setAlarmState( currentAlarmState ) {
   } else if ( alarmState == STATE_ALERT ) {
     stateClass = 'alert';
   }
-  $('stateValue').set('text', stateStrings[alarmState]);
+  $j('#stateValue').text(stateStrings[alarmState]);
   if ( stateClass ) {
-    $('stateValue').setProperty('class', stateClass);
+    $j('#stateValue').addClass(stateClass);
   } else {
-    $('stateValue').removeProperty('class');
+    $j('#stateValue').removeClass();
   }
 
   var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
@@ -227,11 +227,11 @@ function getStreamCmdResponse(respObj, respText) {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if ( respObj.status ) {
       streamStatus = respObj.status;
-      $('fpsValue').set('text', streamStatus.fps);
+      $j('#fpsValue').text(streamStatus.fps);
 
       setAlarmState(streamStatus.state);
 
-      $('levelValue').set('text', streamStatus.level);
+      $j('#levelValue').text(streamStatus.level);
       if ( streamStatus.level > 95 ) {
         $('levelValue').className = 'alarm';
       } else if ( streamStatus.level > 80 ) {
@@ -243,19 +243,19 @@ function getStreamCmdResponse(respObj, respText) {
       var delayString = secsToTime(streamStatus.delay);
 
       if ( streamStatus.paused == true ) {
-        $('modeValue').set('text', 'Paused');
-        $('rate').addClass('hidden');
-        $('delayValue').set('text', delayString);
-        $('delay').removeClass('hidden');
-        $('level').removeClass('hidden');
+        $j('#modeValue').text('Paused');
+        $j('#rate').addClass('hidden');
+        $j('#delayValue').text(delayString);
+        $j('#delay').removeClass('hidden');
+        $j('#level').removeClass('hidden');
         streamCmdPause(false);
       } else if ( streamStatus.delayed == true ) {
-        $('modeValue').set('text', 'Replay');
-        $('rateValue').set('text', streamStatus.rate);
-        $('rate').removeClass('hidden');
-        $('delayValue').set('text', delayString);
-        $('delay').removeClass('hidden');
-        $('level').removeClass('hidden');
+        $j('#modeValue').text('Replay');
+        $j('#rateValue').text(streamStatus.rate);
+        $j('#rate').removeClass('hidden');
+        $j('#delayValue').text(delayString);
+        $j('#delay').removeClass('hidden');
+        $j('#level').removeClass('hidden');
         if ( streamStatus.rate == 1 ) {
           streamCmdPlay(false);
         } else if ( streamStatus.rate > 0 ) {
@@ -272,14 +272,14 @@ function getStreamCmdResponse(respObj, respText) {
           }
         } // rate
       } else {
-        $('modeValue').set( 'text', 'Live' );
-        $('rate').addClass( 'hidden' );
-        $('delay').addClass( 'hidden' );
-        $('level').addClass( 'hidden' );
+        $j('#modeValue').text( 'Live' );
+        $j('#rate').addClass( 'hidden' );
+        $j('#delay').addClass( 'hidden' );
+        $j('#level').addClass( 'hidden' );
         streamCmdPlay(false);
       } // end if paused or delayed
 
-      $('zoomValue').set('text', streamStatus.zoom);
+      $j('zoomValue').text(streamStatus.zoom);
       if ( streamStatus.zoom == '1.0' ) {
         setButtonState('zoomOutBtn', 'unavail');
       } else {
@@ -509,7 +509,7 @@ function getStatusCmdResponse(respObj, respText) {
   }
 
   if ( respObj.result == 'Ok' ) {
-    $('fpsValue').set('text', respObj.monitor.FrameRate);
+    $j('#fpsValue').text(respObj.monitor.FrameRate);
     setAlarmState(respObj.monitor.Status);
   } else {
     checkStreamForErrors('getStatusCmdResponse', respObj);

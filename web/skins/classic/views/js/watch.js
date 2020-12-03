@@ -905,7 +905,6 @@ function initPage() {
     var thmbClass = ANIMATE_THUMBS ? 'colThumbnail zoom' : 'colThumbnail';
     table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass(thmbClass);
   });
-
 } // initPage
 
 // Kick everything off

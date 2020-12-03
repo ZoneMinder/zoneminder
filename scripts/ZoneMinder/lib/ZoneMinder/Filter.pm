@@ -92,11 +92,13 @@ sub Execute {
   }
 
   if ( $self->{HasDiskPercent} ) {
-		my $disk_percent = getDiskPercent($$self{Storage} ? $$self{Storage}->Path() : ());
+    $$self{Storage} = ZoneMinder::Storage->find_one() if ! $$self{Storage};
+		my $disk_percent = getDiskPercent($$self{Storage} ? $$self{Storage}->Path() : $Config{ZM_DIR_EVENTS});
     $sql =~ s/zmDiskPercent/$disk_percent/g;
   }
   if ( $self->{HasDiskBlocks} ) {
-    my $disk_blocks = getDiskBlocks();
+    $$self{Storage} = ZoneMinder::Storage->find_one() if ! $$self{Storage};
+		my $disk_blocks = getDiskBlocks($$self{Storage} ? $$self{Storage}->Path() : $Config{ZM_DIR_EVENTS});
     $sql =~ s/zmDiskBlocks/$disk_blocks/g;
   }
   if ( $self->{HasSystemLoad} ) {
@@ -421,7 +423,7 @@ sub getDiskPercent {
 }
 
 sub getDiskBlocks {
-  my $command = 'df .';
+  my $command = 'df ' . ($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms ) {

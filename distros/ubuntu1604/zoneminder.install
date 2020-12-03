@@ -5,6 +5,7 @@ usr/lib/zoneminder
 usr/share/polkit-1
 usr/share/zoneminder/db
 usr/share/zoneminder/www
+usr/share/zoneminder/fonts
 
 # libzoneminder-perl files:
 usr/share/man/man3

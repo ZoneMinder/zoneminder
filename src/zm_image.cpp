@@ -492,9 +492,9 @@ void Image::Initialise() {
   b_u_table = b_u_table_global;
 
   int res = font.ReadFontFile(config.font_file_location);
-  if( res == -1 ) {
-    Panic("Invalid font location.");
-  } else if( res == -2 || res == -3 || res == -4 ) {
+  if ( res == -1 ) {
+    Panic("Invalid font location: %s", config.font_file_location);
+  } else if ( res == -2 || res == -3 || res == -4 ) {
     Panic("Invalid font file."); 
   }
   initialised = true;

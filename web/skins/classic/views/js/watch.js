@@ -180,6 +180,7 @@ function setAlarmState( currentAlarmState ) {
   var oldAlarm = ( !isAlarmed && wasAlarmed );
 
   if ( newAlarm ) {
+    table.bootstrapTable('refresh');
     if ( SOUND_ON_ALARM ) {
       // Enable the alarm sound
       if ( !canPlayPauseAudio ) {
@@ -193,6 +194,7 @@ function setAlarmState( currentAlarmState ) {
     }
   }
   if ( oldAlarm ) { // done with an event do a refresh
+    table.bootstrapTable('refresh');
     if ( SOUND_ON_ALARM ) {
       // Disable alarm sound
       if ( !canPlayPauseAudio ) {
@@ -201,7 +203,6 @@ function setAlarmState( currentAlarmState ) {
         $('MediaPlayer').Stop();
       }
     }
-    table.bootstrapTable('refresh');
   }
 
   lastAlarmState = alarmState;

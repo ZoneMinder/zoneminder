@@ -173,10 +173,6 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
           data-show-export="true"
           data-uncheckAll="true"
           data-buttons-class="btn btn-normal"
-          data-auto-refresh="true"
-          data-auto-refresh-silent="true"
-          data-show-refresh="true"
-          data-auto-refresh-interval="5"
           class="table-sm table-borderless"
         >
           <thead>

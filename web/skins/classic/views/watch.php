@@ -182,6 +182,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
           <thead>
             <!-- Row styling is handled by bootstrap-tables -->
             <tr>
+              <th data-sortable="false" data-field="Delete"><?php echo translate('Delete') ?></th>
               <th data-sortable="false" data-field="Id"><?php echo translate('Id') ?></th>
               <th data-sortable="false" data-field="Name"><?php echo translate('Name') ?></th>
               <th data-sortable="false" data-field="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
@@ -190,7 +191,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
               <th data-sortable="false" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
               <th data-sortable="false" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
-              <th data-sortable="false" data-field="Delete"><?php echo translate('Delete') ?></th>
+              <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
             </tr>
           </thead>
 

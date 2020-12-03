@@ -52,17 +52,14 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  // Maintain legacy behavior of sorting by Id column only
-  delete params.data.order;
-  delete params.data.limit;
-  params.data.sort = 'Id desc';
-  params.data.count = maxDisplayEvents;
-  params.data.id = monitorId;
-  if ( auth_hash ) params.data.auth = auth_hash;
+  // Maintain legacy behavior by statically setting these parameters
+  params.data.order = 'desc';
+  params.data.limit = maxDisplayEvents;
+  params.data.sort = 'Id';
 
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=events', params.data)
+  $j.getJSON(thisUrl + '?view=request&request=events&task=query', params.data)
       .done(function(data) {
-        var rows = processRows(data.events);
+        var rows = processRows(data.rows);
         // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
@@ -74,15 +71,37 @@ function processRows(rows) {
     var eid = row.Id;
     var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 
+    row.Delete = '<i class="fa fa-trash text-danger"></i>';
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + '">' + eid + '</a>';
     row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + '">' + row.Name + '</a>';
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
-    row.Delete = '<i class="fa fa-trash text-danger"></i>';
+    if ( LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + '&amp;page=1">' + row.imgHtml + '</a>';
   });
 
   return rows;
+}
+
+function thumbnail_onmouseover(event) {
+  var img = event.target;
+  img.src = '';
+  img.src = img.getAttribute('stream_src');
+}
+
+function thumbnail_onmouseout(event) {
+  var img = event.target;
+  img.src = '';
+  img.src = img.getAttribute('still_src');
+}
+
+function initThumbAnimation() {
+  if ( ANIMATE_THUMBS ) {
+    $j('.colThumbnail img').each(function() {
+      this.addEventListener('mouseover', thumbnail_onmouseover, false);
+      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+    });
+  }
 }
 
 function showEvents() {
@@ -874,6 +893,19 @@ function initPage() {
 
   // Take appropriate action when the user clicks on a cell
   table.on('click-cell.bs.table', processClicks);
+
+  // Some toolbar events break the thumbnail animation, so re-init eventlistener
+  table.on('all.bs.table', initThumbAnimation);
+
+  // Update table links each time after new data is loaded
+  table.on('post-body.bs.table', function(data) {
+    var thumb_ndx = $j('#eventList tr th').filter(function() {
+      return $j(this).text().trim() == 'Thumbnail';
+    }).index();
+    var thmbClass = ANIMATE_THUMBS ? 'colThumbnail zoom' : 'colThumbnail';
+    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass(thmbClass);
+  });
+
 } // initPage
 
 // Kick everything off

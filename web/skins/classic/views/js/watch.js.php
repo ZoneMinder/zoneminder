@@ -50,6 +50,8 @@ var SCALE_BASE = <?php echo SCALE_BASE ?>;
 
 var SOUND_ON_ALARM = <?php echo ZM_WEB_SOUND_ON_ALARM ?>;
 var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
+var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
+var ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;
 
 var streamMode = "<?php echo $streamMode ?>";
 var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"events" ?>";

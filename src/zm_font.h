@@ -4,6 +4,8 @@
 #include <inttypes.h>
 #include <string>
 
+#define NUM_FONT_SIZES 4
+
 struct ZMFONT_BH{
     uint16_t charHeight;  // Height of every character
     uint16_t charWidth;  // Width of every character
@@ -15,7 +17,7 @@ struct ZMFONT_BH{
 struct ZMFONT {
   char MAGIC[6];  // ZMFNT\0
   char pad[2];
-  ZMFONT_BH header[4];
+  ZMFONT_BH header[NUM_FONT_SIZES];
   uint64_t *data;
 };
 

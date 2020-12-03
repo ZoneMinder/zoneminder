@@ -15,9 +15,11 @@ int ZmFont::ReadFontFile(const std::string &loc) {
 
   font = new ZMFONT;
 
+  size_t header_size = 8 + (sizeof(ZMFONT_BH) * NUM_FONT_SIZES);
+
   // MAGIC + pad + BitmapHeaders
-  size_t readsize = fread(&font[0], 1, 8 + (sizeof(ZMFONT_BH) * 4), f);
-  if ( readsize < 8 + (sizeof(ZMFONT_BH) * 4) ) {
+  size_t readsize = fread(&font[0], 1, header_size, f);
+  if ( readsize < header_size ) {
     delete font;
     font = nullptr;
     return -2; // EOF reached, invalid file
@@ -26,25 +28,25 @@ int ZmFont::ReadFontFile(const std::string &loc) {
   if ( memcmp(font->MAGIC, "ZMFNT", 5) != 0 )  // Check whether magic is correct
     return -3;
 
-  for ( int i = 0; i < 4; i++ ) {
+  for ( int i = 0; i < NUM_FONT_SIZES; i++ ) {
     /* Character Width cannot be greater than 64 as a row is represented as a uint64_t, 
        height cannot be greater than 200(arbitary number which i have chosen, shouldn't need more than this) and 
        idx should not be more than filesize
     */
-    if ( (font->header[i].charWidth > 64 && font->header[i].charWidth == 0) || \
-      (font->header[i].charHeight > 200 && font->header[i].charHeight == 0) || \
-      (font->header[i].idx > st.st_size) ) {
+    if ( (font->header[i].charWidth > 64 && font->header[i].charWidth == 0) || 
+        (font->header[i].charHeight > 200 && font->header[i].charHeight == 0) || 
+        (font->header[i].idx > st.st_size) ) {
         delete font;
         font = nullptr;
         return -4;
       }
-  }
+  }  // end foreach font size
 
-  datasize = st.st_size - (8 + sizeof(ZMFONT_BH) * 4);
+  datasize = st.st_size - header_size;
 
   font->data = new uint64_t[datasize/sizeof(uint64_t)];
   readsize = fread(&font->data[0], 1, datasize, f);
-  if( readsize < datasize) { // Shouldn't happen
+  if ( readsize < datasize ) { // Shouldn't happen
     delete[] font->data;
     font->data = nullptr;
     delete font;

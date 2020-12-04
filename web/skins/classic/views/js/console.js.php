@@ -1,5 +1,4 @@
 var consoleRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_MAIN ?>;
-var WEB_ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;
 
 <?php
 if ( canEdit('System') && ZM_DYN_SHOW_DONATE_REMINDER ) {

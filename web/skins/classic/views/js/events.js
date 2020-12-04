@@ -74,27 +74,6 @@ function processRows(rows) {
   return rows;
 }
 
-function thumbnail_onmouseover(event) {
-  var img = event.target;
-  img.src = '';
-  img.src = img.getAttribute('stream_src');
-}
-
-function thumbnail_onmouseout(event) {
-  var img = event.target;
-  img.src = '';
-  img.src = img.getAttribute('still_src');
-}
-
-function initThumbAnimation() {
-  if ( WEB_ANIMATE_THUMBS ) {
-    $j('.colThumbnail img').each(function() {
-      this.addEventListener('mouseover', thumbnail_onmouseover, false);
-      this.addEventListener('mouseout', thumbnail_onmouseout, false);
-    });
-  }
-}
-
 // Returns the event id's of the selected rows
 function getIdSelections() {
   var table = $j('#eventTable');

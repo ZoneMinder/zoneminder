@@ -889,3 +889,31 @@ function manageShutdownBtns(element) {
       })
       .fail(logAjaxFail);
 }
+
+function thumbnail_onmouseover(event) {
+  timeout = setTimeout(function () {
+    var img = event.target;
+    var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom-hover';
+    img.src = '';
+    img.src = img.getAttribute('stream_src');
+    img.addClass(imgClass);
+  }, 350);
+}
+
+function thumbnail_onmouseout(event) {
+  clearTimeout(timeout);
+  var img = event.target;
+  var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom-hover';
+  img.src = '';
+  img.src = img.getAttribute('still_src');
+  img.removeClass(imgClass);
+}
+
+function initThumbAnimation() {
+  if ( ANIMATE_THUMBS ) {
+    $j('.colThumbnail img').each(function() {
+      this.addEventListener('mouseover', thumbnail_onmouseover, false);
+      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+    });
+  }
+}

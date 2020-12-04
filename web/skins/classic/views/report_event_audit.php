@@ -38,30 +38,24 @@ if ( isset($_REQUEST['maxTime']) ) {
   $maxTime = strftime('%FT%T',time() - 3600);
 }
 
-$filter = array(
-    'Query' => array(
-      'terms' => array(
-        array('attr'=>'StartDateTime', 'op'=>'>=', 'val'=>$minTime, 'obr'=>'1'),
-        array('attr'=>'StartDateTime', 'op'=>'<=', 'val'=>$maxTime, 'cnj'=>'and', 'cbr'=>'1'),
-      )
-    ),
-  );
+$filter = new ZM\Filter();
+$filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'>=', 'val'=>$minTime, 'obr'=>'1'));
+$filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'<=', 'val'=>$maxTime, 'cnj'=>'and', 'cbr'=>'1'));
 if ( count($selected_monitor_ids) ) {
-  $filter['Query']['terms'][] = (array('attr'=>'MonitorId', 'op'=>'IN', 'val'=>implode(',', $selected_monitor_ids), 'cnj'=>'and'));
+  $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'IN', 'val'=>implode(',', $selected_monitor_ids), 'cnj'=>'and'));
 } else if ( ( $group_id != 0 || isset($_SESSION['ServerId']) || isset($_SESSION['StorageId']) || isset($_SESSION['Status']) ) ) {
 # this should be redundant
   for ( $i=0; $i < count($displayMonitors); $i++ ) {
     if ( $i == 0 ) {
-      $filter['Query']['terms'][] = array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'and', 'obr'=>'1');
+      $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'and', 'obr'=>'1'));
     } else if ( $i == count($displayMonitors)-1 ) {
-      $filter['Query']['terms'][] = array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'or', 'cbr'=>'1');
+      $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'or', 'cbr'=>'1'));
     } else {
-      $filter['Query']['terms'][] = array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'or');
+      $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'or'));
     }
   }
 }
-parseFilter($filter);
-$filterQuery = $filter['query'];
+$filterQuery = $filter->querystring();
 ZM\Debug($filterQuery);
 
 $eventsSql = 'SELECT *,
@@ -150,12 +144,7 @@ for ( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $Monitor = new ZM\Monitor($monitor);
   $montagereview_link = '?view=montagereview&live=0&MonitorId='.$monitor['Id'].'&minTime='.$minTime.'&maxTime='.$maxTime;
 
-  $monitor_filter = addFilterTerm(
-      $filter,
-      count($filter['Query']['terms']),
-      array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'=', 'val'=>$monitor['Id'])
-    );
-  parseFilter($monitor_filter);
+  $monitor_filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'=', 'val'=>$monitor['Id']));
 
   if ( isset($EventsByMonitor[$Monitor->Id()]) ) {
     $EventCounts = $EventsByMonitor[$Monitor->Id()];
@@ -175,24 +164,12 @@ for ( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   }
 
   if ( count($FileMissing) ) {
-    $FileMissing_filter = array(
-        'Query' => array(
-          'terms' => array(
-            array('attr'=>'Id', 'op'=>'IN', 'val'=>implode(',', array_map(function($Event){return $Event->Id();}, $FileMissing)))
-            )
-          )
-        );
-    parseFilter($FileMissing_filter);
+    $FileMissing_filter = new ZM\Filter();
+    $FileMissing_filter->addTerm(array('attr'=>'Id', 'op'=>'IN', 'val'=>implode(',', array_map(function($Event){return $Event->Id();}, $FileMissing))));
   }
   if ( count($ZeroSize) ) {
-    $ZeroSize_filter = array(
-        'Query' => array(
-          'terms' => array(
-            array('attr'=>'Id', 'op'=>'IN', 'val'=>implode(',', array_map(function($Event){return $Event->Id();}, $ZeroSize)))
-            )
-          )
-        );
-    parseFilter($ZeroSize_filter);
+    $ZeroSize_filter = new ZM\Filter();
+    $ZeroSize_filter->addTerm(array('attr'=>'Id', 'op'=>'IN', 'val'=>implode(',', array_map(function($Event){return $Event->Id();}, $ZeroSize))));
   }
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
@@ -202,24 +179,27 @@ for ( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
               <div class="small text-nowrap text-muted">
               <?php echo implode('<br/>',
                   array_map(function($group_id){
-                    $Group = new ZM\Group($group_id);
-                    $Groups = $Group->Parents();
-                    array_push($Groups, $Group);
-                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
+                    $Group = ZM\Group::find_one(array('Id'=>$group_id));
+                    if ( $Group ) {
+                      $Groups = $Group->Parents();
+                      array_push( $Groups, $Group );
+                    }
+                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&amp;GroupId='.$Group->Id().'">'.validHtmlStr($Group->Name()).'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds())); 
+
 ?>
             </div></td>
             <td class="colServer"><?php echo validHtmlStr($Monitor->Server()->Name())?></td>
-            <td class="colEvents"><a href="?view=<?php echo ZM_WEB_EVENTS_VIEW ?>&amp;page=1<?php echo $monitor_filter['query'] ?>"><?php echo isset($EventsByMonitor[$Monitor->Id()])?count($EventsByMonitor[$Monitor->Id()]['Events']):0 ?></a></td>
+            <td class="colEvents"><a href="?view=<?php echo ZM_WEB_EVENTS_VIEW ?>&amp;page=1<?php echo $monitor_filter->querystring() ?>"><?php echo isset($EventsByMonitor[$Monitor->Id()])?count($EventsByMonitor[$Monitor->Id()]['Events']):0 ?></a></td>
             <td class="colFirstEvent"><?php echo $FirstEvent ? $FirstEvent->link_to($FirstEvent->Id().' at '.$FirstEvent->StartDateTime()) : 'none'?></td>
             <td class="colLastEvent"><?php echo $LastEvent ? $LastEvent->link_to($LastEvent->Id().' at '.$LastEvent->StartDateTime()) : 'none'?></td>
             <td class="colMinGap"><?php echo $MinGap ?></td>
             <td class="colMaxGap"><?php echo $MaxGap ?></td>
             <td class="colFileMissing<?php echo count($FileMissing) ? ' errorText' : ''?>">
-            <?php echo count($FileMissing) ? '<a href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$FileMissing_filter['query'].'">'.count($FileMissing).'</a>' : '0' ?>
+            <?php echo count($FileMissing) ? '<a href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$FileMissing_filter->querystring().'">'.count($FileMissing).'</a>' : '0' ?>
             </td>
             <td class="colZeroSize<?php echo count($ZeroSize) ? ' errorText' : ''?>">
-            <?php echo count($ZeroSize) ? '<a href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$ZeroSize_filter['query'].'">'.count($ZeroSize).'</a>' : '0' ?>
+            <?php echo count($ZeroSize) ? '<a href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$ZeroSize_filter->querystring().'">'.count($ZeroSize).'</a>' : '0' ?>
             </td>
           </tr>
 <?php

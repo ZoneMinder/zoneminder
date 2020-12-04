@@ -639,7 +639,7 @@ function delCookie(name) {
 }
 
 function bwClickFunction() {
-  $j(".dropdown-menu a").click(function() {
+  $j(".dropdown-menu.bwselect").click(function() {
     var bwval = $j(this).data('pdsa-dropdown-val');
     setCookie("zmBandwidth", bwval, 3600);
     getNavBar();

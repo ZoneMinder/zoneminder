@@ -893,7 +893,7 @@ function manageShutdownBtns(element) {
 function thumbnail_onmouseover(event) {
   timeout = setTimeout(function () {
     var img = event.target;
-    var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom-hover';
+    var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
     img.src = '';
     img.src = img.getAttribute('stream_src');
     img.addClass(imgClass);
@@ -903,7 +903,7 @@ function thumbnail_onmouseover(event) {
 function thumbnail_onmouseout(event) {
   clearTimeout(timeout);
   var img = event.target;
-  var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom-hover';
+  var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   img.src = '';
   img.src = img.getAttribute('still_src');
   img.removeClass(imgClass);

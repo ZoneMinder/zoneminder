@@ -11,16 +11,8 @@ class ZM_Object {
 
     $row = NULL;
     if ( $IdOrRow ) {
-      global $object_cache;
-      if ( ! isset($object_cache[$class]) ) {
-        $object_cache[$class] = array();
-      }
-      $cache = &$object_cache[$class];
 
       if ( is_integer($IdOrRow) or ctype_digit($IdOrRow) ) {
-        if ( isset($cache[$IdOrRow]) ) {
-          return $cache[$IdOrRow];
-        }
         $table = $class::$table;
         $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($IdOrRow));
         if ( !$row ) {
@@ -34,6 +26,11 @@ class ZM_Object {
         foreach ($row as $k => $v) {
           $this->{$k} = $v;
         }
+        global $object_cache;
+        if ( ! isset($object_cache[$class]) ) {
+          $object_cache[$class] = array();
+        }
+        $cache = &$object_cache[$class];
         $cache[$row['Id']] = $this;
       }
     } # end if isset($IdOrRow)

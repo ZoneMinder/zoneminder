@@ -107,17 +107,16 @@ while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
 
 ?>
 <body>
+  <?php echo $navbar ?>
   <form name="monitorForm" method="get" action="?">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
-
-    <?php echo $navbar ?>
     <div class="filterBar">
       <?php echo $filterbar ?>
       <div id="DateTimeDiv">
         <label>Event Start Time</label>
-        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>" oninput="this.form.submit();"/> to 
-        <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime) ?>" oninput="this.form.submit();"/>
+        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> to 
+        <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime) ?>"/>
       </div>
     </div><!--FilterBar-->
 

@@ -248,9 +248,9 @@ $html .= '</span>
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
     ) );
-# Repurpose this variable to be the list of MonitorIds as a result of all the filtering
-$selected_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
-$html .= '</span>
+  # Repurpose this variable to be the list of MonitorIds as a result of all the filtering
+  $selected_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
+  $html .= '</span>
 ';
   echo $html;
 ?>

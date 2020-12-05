@@ -189,13 +189,13 @@ function dbFetchOne($sql, $col=false, $params=NULL) {
 }
 
 function dbFetchAll($sql, $col=false, $params=NULL) {
+  $dbRows = array();
   $result = dbQuery($sql, $params);
   if ( ! $result ) {
     ZM\Error("SQL-ERR dbFetchAll no result, statement was '".$sql."'".($params ? 'params: '.join(',', $params) : ''));
-    return false;
+    return $dbRows;
   }
 
-  $dbRows = array();
   while ( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
     $dbRows[] = $col ? $dbRow[$col] : $dbRow;
   return $dbRows;

@@ -891,7 +891,7 @@ function manageShutdownBtns(element) {
 }
 
 function thumbnail_onmouseover(event) {
-  timeout = setTimeout(function () {
+  timeout = setTimeout(function() {
     var img = event.target;
     var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
     img.src = '';

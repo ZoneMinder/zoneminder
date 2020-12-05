@@ -991,7 +991,7 @@ include('_monitor_source_nvsocket.php');
               <td><input type="number" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($monitor->AlarmFrameCount()) ?>" min="1"/></td>
             </tr>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('EstimatedRamUse') ?></td>
+              <td class="text-right pr-3"><?php echo translate('Estimated Ram Use') ?></td>
               <td id="estimated_ram_use"><?php echo human_filesize($monitor->ImageBufferCount() * $monitor->Width() * $monitor->Height() * $monitor->Colours(), 0) ?></td>
             </tr>
 <?php

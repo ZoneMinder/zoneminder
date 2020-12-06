@@ -366,12 +366,15 @@ Monitor::Monitor(
   purpose( p_purpose ),
   last_motion_score(0),
   camera( p_camera ),
+  event(0),
   n_zones( p_n_zones ),
   zones( p_zones ),
   timestamps( nullptr ),
   images( nullptr ),
   privacy_bitmask( nullptr ),
-  event_delete_thread(nullptr)
+  event_delete_thread(nullptr),
+  n_linked_monitors(0),
+  linked_monitors(nullptr)
 {
   if ( analysis_fps > 0.0 ) {
     uint64_t usec = round(1000000*pre_event_count/analysis_fps);
@@ -532,7 +535,6 @@ Monitor::Monitor(
 
   start_time = last_fps_time = time( 0 );
 
-  event = 0;
 
   Debug(1, "Monitor %s has function %d,\n"
       "label format = '%s', label X = %d, label Y = %d, label size = %d,\n"
@@ -545,10 +547,6 @@ Monitor::Monitor(
 
   //Set video recording flag for event start constructor and easy reference in code
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
-
-  n_linked_monitors = 0;
-  linked_monitors = nullptr;
-
 }  // Monitor::Monitor
 
 bool Monitor::connect() {
@@ -1432,7 +1430,8 @@ bool Monitor::Analyse() {
     bool signal = shared_data->signal;
     bool signal_change = (signal != last_signal);
 
-    Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
+    Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%d)",
+        signal, signal_change, trigger_data->trigger_state);
 
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
       unsigned int score = 0;
@@ -1511,7 +1510,11 @@ bool Monitor::Analyse() {
             for ( int i = 0; i < n_linked_monitors; i++ ) {
               // TODO: Shouldn't we try to connect?
               if ( linked_monitors[i]->isConnected() ) {
+                Debug(4, "Linked monitor %d %s is connected",
+                    linked_monitors[i]->Id(), linked_monitors[i]->Name());
                 if ( linked_monitors[i]->hasAlarmed() ) {
+                  Debug(4, "Linked monitor %d %s is alarmed",
+                      linked_monitors[i]->Id(), linked_monitors[i]->Name());
                   if ( !event ) {
                     if ( first_link ) {
                       if ( cause.length() )
@@ -1522,6 +1525,9 @@ bool Monitor::Analyse() {
                   }
                   noteSet.insert(linked_monitors[i]->Name());
                   score += 50;
+                } else {
+                  Debug(4, "Linked monitor %d %s is not alarmed",
+                      linked_monitors[i]->Id(), linked_monitors[i]->Name());
                 }
               } else {
                 Debug(1, "Linked monitor %d %d is not connected. Connecting.", i, linked_monitors[i]->Id());
@@ -1842,7 +1848,7 @@ bool Monitor::Analyse() {
   image_count++;
 
   return true;
-} // end Monitor::Analyze
+} // end Monitor::Analyse
 
 void Monitor::Reload() {
   Debug(1, "Reloading monitor %s", name);
@@ -2018,7 +2024,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
         int n_monitors = mysql_num_rows(result);
         if ( n_monitors == 1 ) {
           MYSQL_ROW dbrow = mysql_fetch_row(result);
-          Debug(1, "Linking to monitor %d", link_ids[i]);
+          Debug(1, "Linking to monitor %d %s", atoi(dbrow[0]), dbrow[1]);
           linked_monitors[count++] = new MonitorLink(link_ids[i], dbrow[1]);
         } else {
           Warning("Can't link to monitor %d, invalid id, function or not enabled", link_ids[i]);

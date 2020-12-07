@@ -722,15 +722,9 @@ function reloadWebSite() {
 }
 
 function updatePresetLabels() {
-  var form = $('ctrlPresetForm');
-  var preset_ddm = form.elements['preset'];
+  var lblNdx = $j( '#ctrlPresetForm option:selected' ).val();
 
-  var presetIndex = preset_ddm[preset_ddm.selectedIndex].value;
-  if ( labels[presetIndex] ) {
-    form.newLabel.value = labels[presetIndex];
-  } else {
-    form.newLabel.value = '';
-  }
+  $j('#newLabel').val(labels[lblNdx]);
 }
 
 function getCtrlPresetModal() {

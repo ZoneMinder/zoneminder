@@ -83,7 +83,6 @@ ZMPacket::~ZMPacket() {
 void ZMPacket::reset() {
   //Debug(2,"reset");
   zm_av_packet_unref(&packet);
-  packet.size = 0;
   if ( in_frame ) {
   //Debug(4,"reset frame");
     av_frame_free(&in_frame);
@@ -110,7 +109,7 @@ void ZMPacket::reset() {
   keyframe = 0;
 }
 
-int ZMPacket::decode( AVCodecContext *ctx ) {
+int ZMPacket::decode(AVCodecContext *ctx) {
   Debug(4, "about to decode video, image_index is (%d)", image_index);
 
   if ( in_frame ) {
@@ -120,7 +119,7 @@ int ZMPacket::decode( AVCodecContext *ctx ) {
   }
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  Debug(4,"send_packet");
+  Debug(4, "send_packet");
   int ret = avcodec_send_packet(ctx, &packet);
   if ( ret < 0 ) {
     Error("Unable to send packet: %s", av_make_error_string(ret).c_str());
@@ -144,7 +143,7 @@ int ZMPacket::decode( AVCodecContext *ctx ) {
     }
   } else {
 #endif
-    Debug(4,"receive_frame");
+    Debug(4, "receive_frame");
     ret = avcodec_receive_frame(ctx, in_frame);
     if ( ret < 0 ) {
       Error("Unable to receive frame: %s", av_make_error_string(ret).c_str());

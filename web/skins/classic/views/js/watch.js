@@ -124,13 +124,14 @@ function changeScale() {
 
   Cookie.write('zmWatchScale'+monitorId, scale, {duration: 10*365, samesite: 'strict'});
 
-  /*Stream could be an applet so can't use moo tools*/
-  var streamImg = $('liveStream'+monitorId);
+  var streamImg = $j('#liveStream'+monitorId);
   if ( streamImg ) {
-    streamImg.style.width = newWidth + 'px';
-    streamImg.style.height = newHeight + 'px';
+    var oldSrc = streamImg.attr('src');
+    var newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+(scale== 'auto' ? autoScale : scale));
 
-    streamImg.src = streamImg.src.replace(/scale=\d+/i, 'scale='+(scale== 'auto' ? autoScale : scale));
+    streamImg.width( newWidth );
+    streamImg.height( newHeight );
+    streamImg.src = oldSrc;
   } else {
     console.error('No element found for liveStream'+monitorId);
   }
@@ -163,9 +164,9 @@ function setAlarmState( currentAlarmState ) {
     if ( SOUND_ON_ALARM ) {
       // Enable the alarm sound
       if ( !canPlayPauseAudio ) {
-        $('alarmSound').removeClass('hidden');
+        $j('#alarmSound').removeClass('hidden');
       } else {
-        $('MediaPlayer').Play();
+        $j('#MediaPlayer').trigger('play');
       }
     }
     if ( POPUP_ON_ALARM ) {
@@ -177,9 +178,9 @@ function setAlarmState( currentAlarmState ) {
     if ( SOUND_ON_ALARM ) {
       // Disable alarm sound
       if ( !canPlayPauseAudio ) {
-        $('alarmSound').addClass('hidden');
+        $j('#alarmSound').addClass('hidden');
       } else {
-        $('MediaPlayer').Stop();
+        $j('#MediaPlayer').trigger('pause');
       }
     }
   }
@@ -211,13 +212,14 @@ function getStreamCmdResponse(respObj, respText) {
       setAlarmState(streamStatus.state);
 
       $j('#levelValue').text(streamStatus.level);
+      var newClass = 'ok';
       if ( streamStatus.level > 95 ) {
-        $('levelValue').className = 'alarm';
+        newClass = 'alarm';
       } else if ( streamStatus.level > 80 ) {
-        $('levelValue').className = 'alert';
-      } else {
-        $('levelValue').className = 'ok';
+        newClass = 'alert';
       }
+      $j('#levelValue').removeClass();
+      $j('#levelValue').addClass(newClass);
 
       var delayString = secsToTime(streamStatus.delay);
 
@@ -288,9 +290,11 @@ function getStreamCmdResponse(respObj, respText) {
       if ( streamStatus.auth ) {
         auth_hash = streamStatus.auth;
         // Try to reload the image stream.
-        var streamImg = $('liveStream');
+        var streamImg = $j('#liveStream'+monitorId);
         if ( streamImg ) {
-          streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+          var oldSrc = streamImg.attr('src');
+          var newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+          streamImg.src = newSrc;          
         }
         streamCmdParms = streamCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
         statusCmdParms = statusCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
@@ -304,9 +308,12 @@ function getStreamCmdResponse(respObj, respText) {
     // If it's an auth error, we should reload the whole page.
     window.location.reload();
     if ( 0 ) {
-      var streamImg = $('liveStream'+monitorId);
+      var streamImg = $j('#liveStream'+monitorId);
       if ( streamImg ) {
-        streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+        var oldSrc = streamImg.attr('src');
+        var newSrc = oldSrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+
+        streamImg.src = newSrc;
         console.log('Changing livestream src to ' + streamImg.src);
       } else {
         console.log('Unable to find streamImg liveStream');
@@ -597,13 +604,15 @@ function controlCmd(event) {
   var locParms = '';
   if ( event && (xtell || ytell) ) {
     var target = event.target;
-    var coords = $(target).getCoordinates();
+    var offset = $j(target).offset();
+    var width = $j(target).width();
+    var height = $j(target).height();
 
-    var x = event.pageX - coords.left;
-    var y = event.pageY - coords.top;
+    var x = event.pageX - offset.left;
+    var y = event.pageY - offset.top;
 
     if ( xtell ) {
-      var xge = parseInt((x*100)/coords.width);
+      var xge = parseInt((x*100)/width);
       if ( xtell == -1 ) {
         xge = 100 - xge;
       } else if ( xtell == 2 ) {
@@ -612,7 +621,7 @@ function controlCmd(event) {
       locParms += '&xge='+xge;
     }
     if ( ytell ) {
-      var yge = parseInt((y*100)/coords.height);
+      var yge = parseInt((y*100)/height);
       if ( ytell == -1 ) {
         yge = 100 - yge;
       } else if ( ytell == 2 ) {
@@ -643,9 +652,12 @@ function fetchImage( streamImage ) {
 }
 
 function handleClick( event ) {
-  var $target = $(event.target);
-  var scaleX = parseInt(monitorWidth / $target.getWidth());
-  var scaleY = parseInt(monitorHeight / $target.getHeight());
+  var target = event.target;
+  var width = $j(target).width();
+  var height = $j(target).height();
+  
+  var scaleX = parseInt(monitorWidth / width);
+  var scaleY = parseInt(monitorHeight / height);
   var x = (event.page.x - $target.getLeft()) * scaleX;
   var y = (event.page.y - $target.getTop()) * scaleY;
 
@@ -664,11 +676,11 @@ function handleClick( event ) {
 
 function appletRefresh() {
   if ( streamStatus && (!streamStatus.paused && !streamStatus.delayed) ) {
-    var streamImg = $('liveStream'+monitorId);
+    var streamImg = $j('#liveStream'+monitorId);
     if ( streamImg ) {
-      var parent = streamImg.getParent();
-      streamImg.dispose();
-      streamImg.inject( parent );
+      var parent = streamImg.parent();
+      streamImg.remove();
+      streamImg.append( parent );
     } else {
       console.error("Nothing found for liveStream"+monitorId);
     }

@@ -131,7 +131,7 @@ function changeScale() {
 
     streamImg.width( newWidth );
     streamImg.height( newHeight );
-    streamImg.src = oldSrc;
+    streamImg.src = newSrc;
   } else {
     console.error('No element found for liveStream'+monitorId);
   }
@@ -294,7 +294,7 @@ function getStreamCmdResponse(respObj, respText) {
         if ( streamImg ) {
           var oldSrc = streamImg.attr('src');
           var newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-          streamImg.src = newSrc;          
+          streamImg.src = newSrc;
         }
         streamCmdParms = streamCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
         statusCmdParms = statusCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
@@ -655,7 +655,7 @@ function handleClick( event ) {
   var target = event.target;
   var width = $j(target).width();
   var height = $j(target).height();
-  
+
   var scaleX = parseInt(monitorWidth / width);
   var scaleY = parseInt(monitorHeight / height);
   var x = (event.page.x - target.getLeft()) * scaleX;

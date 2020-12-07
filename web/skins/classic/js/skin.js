@@ -639,7 +639,7 @@ function delCookie(name) {
 }
 
 function bwClickFunction() {
-  $j("#dropdown_bandwidth a").click(function() {
+  $j('.bwselect').click(function() {
     var bwval = $j(this).data('pdsa-dropdown-val');
     setCookie("zmBandwidth", bwval, 3600);
     getNavBar();
@@ -830,10 +830,11 @@ function startDownload( exportFile ) {
 }
 
 function exportResponse(data, responseText) {
-  console.log(data);
+  console.log('exportResponse data: ' + JSON.stringify(data));
 
   var generated = (data.result=='Ok') ? 1 : 0;
-  var exportFile = '?view=archive&type='+data.exportFormat+'&connkey='+data.connkey;
+  //var exportFile = '?view=archive&type='+data.exportFormat+'&connkey='+data.connkey;
+  var exportFile = data.exportFile;
 
   $j('#exportProgress').removeClass( 'text-warning' );
   if ( generated ) {
@@ -887,4 +888,32 @@ function manageShutdownBtns(element) {
         }
       })
       .fail(logAjaxFail);
+}
+
+function thumbnail_onmouseover(event) {
+  timeout = setTimeout(function() {
+    var img = event.target;
+    var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
+    img.src = '';
+    img.src = img.getAttribute('stream_src');
+    img.addClass(imgClass);
+  }, 350);
+}
+
+function thumbnail_onmouseout(event) {
+  clearTimeout(timeout);
+  var img = event.target;
+  var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
+  img.src = '';
+  img.src = img.getAttribute('still_src');
+  img.removeClass(imgClass);
+}
+
+function initThumbAnimation() {
+  if ( ANIMATE_THUMBS ) {
+    $j('.colThumbnail img').each(function() {
+      this.addEventListener('mouseover', thumbnail_onmouseover, false);
+      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+    });
+  }
 }

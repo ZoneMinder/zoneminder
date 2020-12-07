@@ -52,8 +52,9 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
     Error("Unable to load monitor id %d for streaming", monitor_id);
     return false;
   }
+
   if ( monitor->GetFunction() == Monitor::NONE ) {
-    Error("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
+    Info("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
     return false;
   }
 
@@ -71,7 +72,7 @@ bool StreamBase::checkInitialised() {
     return false;
   }
   if ( monitor->GetFunction() == Monitor::NONE ) {
-    Error("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
+    Info("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
     return false;
   }
   if ( !monitor->ShmValid() ) {
@@ -124,11 +125,14 @@ bool StreamBase::checkCommandQueue() {
       processCommand(&msg);
       return true;
     }
-  } else {
+  } else if ( connkey ) {
     Warning("No sd in checkCommandQueue, comms not open?");
+  } else {
+    // Perfectly valid if only getting a snapshot
+    Debug(1, "No sd in checkCommandQueue, comms not open?");
   }
   return false;
-}
+}  // end bool StreamBase::checkCommandQueue()
 
 Image *StreamBase::prepareImage(Image *image) {
 

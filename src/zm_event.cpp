@@ -1,5 +1,5 @@
 //
-// ZoneMinder Event Class Implementation, $Date$, $Revision$
+// ZoneMinder Event Class Implementation
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -52,6 +52,7 @@ Event::Event(
     const std::string &p_cause,
     const StringSetMap &p_noteSetMap
     ) :
+  id(0),
   monitor(p_monitor),
   start_time(p_start_time),
   cause(p_cause),
@@ -76,9 +77,6 @@ Event::Event(
     start_time = now;
   }
 
-  Storage * storage = monitor->getStorage();
-  scheme = storage->Scheme();
-
   unsigned int state_id = 0;
   zmDbRow dbrow;
   if ( dbrow.fetch("SELECT Id FROM States WHERE IsActive=1") ) {
@@ -87,11 +85,12 @@ Event::Event(
 
   // Copy it in case opening the mp4 doesn't work we can set it to another value
   save_jpegs = monitor->GetOptSaveJPEGs();
+  Storage * storage = monitor->getStorage();
 
   char sql[ZM_SQL_MED_BUFSIZ];
   snprintf(sql, sizeof(sql),
       "INSERT INTO `Events` "
-      "( `MonitorId`, `StorageId`, `Name`, `StartTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` )"
+      "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` )"
       " VALUES "
       "( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
       monitor->Id(), 
@@ -117,9 +116,66 @@ Event::Event(
   }
   id = mysql_insert_id(&dbconn);
 
+  if ( !SetPath(storage) ) {
+    // Try another
+    Warning("Failed creating event dir at %s", storage->Path());
+
+    std::string sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
+    if ( monitor->ServerId() )
+      sql += stringtf(" AND ServerId=%u", monitor->ServerId());
+
+    Debug(1, "%s", sql.c_str());
+    storage = nullptr;
+
+    MYSQL_RES *result = zmDbFetch(sql.c_str());
+    if ( result ) {
+      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+        storage = new Storage(atoi(dbrow[0]));
+        if ( SetPath(storage) )
+          break;
+        delete storage;
+        storage = nullptr;
+      }  // end foreach row of Storage
+      mysql_free_result(result);
+      result = nullptr;
+    }
+    if ( !storage ) {
+      Info("No valid local storage area found.  Trying all other areas.");
+      // Try remote
+      sql = "SELECT `Id` FROM `Storage` WHERE ServerId IS NULL";
+      if ( monitor->ServerId() )
+        sql += stringtf(" OR ServerId != %u", monitor->ServerId());
+
+      MYSQL_RES *result = zmDbFetch(sql.c_str());
+      if ( result ) {
+        for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+          storage = new Storage(atoi(dbrow[0]));
+          if ( SetPath(storage) )
+            break;
+          delete storage;
+          storage = nullptr;
+        }  // end foreach row of Storage
+        mysql_free_result(result);
+        result = nullptr;
+      }
+    }
+    if ( !storage ) {
+      storage = new Storage();
+      Warning("Failed to find a storage area to save events.");
+    }
+    sql = stringtf("UPDATE Events SET StorageId = '%d' WHERE Id=%" PRIu64, storage->Id(), id);
+    db_mutex.lock();
+    int rc = mysql_query(&dbconn, sql.c_str());
+    db_mutex.unlock();
+    if ( rc ) {
+      Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql.c_str());
+    }
+  }
+  Debug(1, "Using storage area at %s", path.c_str());
+
   db_mutex.unlock();
   if ( untimedEvent ) {
-    Warning("Event %d has zero time, setting to current", id);
+    Warning("Event %" PRIu64 " has zero time, setting to current", id);
   }
   end_time.tv_sec = 0;
   frames = 0;
@@ -128,79 +184,7 @@ Event::Event(
   max_score = 0;
   have_video_keyframe = false;
   alarm_frame_written = false;
-
-  struct tm *stime = localtime(&start_time.tv_sec);
-  std::string id_file;
-
-  path = stringtf("%s/%d", storage->Path(), monitor->Id());
-  // Try to make the Monitor Dir.  Normally this would exist, but in odd cases might not.
-  if ( mkdir(path.c_str(), 0755) ) {
-    if ( errno != EEXIST )
-      Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
-  }
-
-  if ( storage->Scheme() == Storage::DEEP ) {
-    int dt_parts[6];
-    dt_parts[0] = stime->tm_year-100;
-    dt_parts[1] = stime->tm_mon+1;
-    dt_parts[2] = stime->tm_mday;
-    dt_parts[3] = stime->tm_hour;
-    dt_parts[4] = stime->tm_min;
-    dt_parts[5] = stime->tm_sec;
-
-    std::string date_path;
-    std::string time_path;
-
-    for ( unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ ) {
-      path += stringtf("/%02d", dt_parts[i]);
-
-      if ( mkdir(path.c_str(), 0755) ) {
-        // FIXME This should not be fatal.  Should probably move to a different storage area.
-        if ( errno != EEXIST )
-          Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
-      }
-      if ( i == 2 )
-				date_path = path;
-    }
-		time_path = stringtf("%02d/%02d/%02d", stime->tm_hour, stime->tm_min, stime->tm_sec);
-
-    // Create event id symlink
-    id_file = stringtf("%s/.%" PRIu64, date_path.c_str(), id);
-    if ( symlink(time_path.c_str(), id_file.c_str()) < 0 )
-      Error("Can't symlink %s -> %s: %s", id_file.c_str(), time_path.c_str(), strerror(errno));
-  } else if ( storage->Scheme() == Storage::MEDIUM ) {
-    path += stringtf("/%04d-%02d-%02d",
-        stime->tm_year+1900, stime->tm_mon+1, stime->tm_mday
-        );
-    if ( mkdir(path.c_str(), 0755) ) {
-      if ( errno != EEXIST )
-        Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
-    }
-    path += stringtf("/%" PRIu64, id);
-    if ( mkdir(path.c_str(), 0755) ) {
-      if ( errno != EEXIST )
-        Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
-    }
-  } else {
-    path += stringtf("/%" PRIu64, id);
-    if ( mkdir(path.c_str(), 0755) ) {
-      if ( errno != EEXIST )
-        Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
-    }
-
-    // Create empty id tag file
-    id_file = stringtf("%s/.%" PRIu64, path.c_str(), id);
-    if ( FILE *id_fp = fopen(id_file.c_str(), "w") ) {
-      fclose(id_fp);
-    } else {
-      Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
-		}
-  } // deep storage or not
-
-  Debug(2, "Created event %d at %s", id, path.c_str());
-
   last_db_frame = 0;
-
   video_name = "";
 
   snapshot_file = path + "/snapshot.jpg";
@@ -220,11 +204,13 @@ Event::Event(
         
     video_name = stringtf("%" PRIu64 "-%s.%s", id, "video", container.c_str());
     snprintf(sql, sizeof(sql), "UPDATE Events SET DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
+    db_mutex.lock();
     if ( mysql_query(&dbconn, sql) ) {
       db_mutex.unlock();
       Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
       return;
     }
+    db_mutex.unlock();
     video_file = path + "/" + video_name;
     Debug(1, "Writing video file to %s", video_file.c_str());
     Camera * camera = monitor->getCamera();
@@ -274,7 +260,7 @@ Event::~Event() {
 
   // update frame deltas to refer to video start time which may be a few frames before event start
   struct timeval video_offset = {0};
-  struct timeval video_start_time  = monitor->GetVideoWriterStartTime();
+  struct timeval video_start_time = monitor->GetVideoWriterStartTime();
   if ( video_start_time.tv_sec > 0 ) {
      timersub(&video_start_time, &start_time, &video_offset);
      Debug(1, "Updating frames delta by %d sec %d usec",
@@ -681,7 +667,6 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   bool db_frame = ( frame_type != BULK ) || (frames==1) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
 
-    static char sql[ZM_SQL_MED_BUFSIZ];
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
     Debug(1, "Frame delta is %d.%d - %d.%d = %d.%d", 
@@ -692,14 +677,14 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     double fps = monitor->get_capture_fps();
 		if ( write_to_db 
 				or 
-				(frame_data.size() > MAX_DB_FRAMES)
+				(frame_data.size() >= MAX_DB_FRAMES)
 				or
 				(frame_type==BULK)
 				or
 				( fps and (frame_data.size() > fps) )
 			 ) {
-      Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
-					frame_data.size(), write_to_db, fps);
+      Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK(%d)",
+					frame_data.size(), write_to_db, fps, (frame_type==BULK));
       WriteDbFrames();
       last_db_frame = frames;
 
@@ -731,3 +716,77 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
   end_time = timestamp;
 }  // end void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image)
+
+bool Event::SetPath(Storage *storage) {
+  scheme = storage->Scheme();
+
+  path = stringtf("%s/%d", storage->Path(), monitor->Id());
+  // Try to make the Monitor Dir.  Normally this would exist, but in odd cases might not.
+  if ( mkdir(path.c_str(), 0755) and ( errno != EEXIST ) ) {
+    Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
+    return false;
+  }
+
+  struct tm *stime = localtime(&start_time.tv_sec);
+  if ( scheme == Storage::DEEP ) {
+
+    int dt_parts[6];
+    dt_parts[0] = stime->tm_year-100;
+    dt_parts[1] = stime->tm_mon+1;
+    dt_parts[2] = stime->tm_mday;
+    dt_parts[3] = stime->tm_hour;
+    dt_parts[4] = stime->tm_min;
+    dt_parts[5] = stime->tm_sec;
+
+    std::string date_path;
+    std::string time_path;
+
+    for ( unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ ) {
+      path += stringtf("/%02d", dt_parts[i]);
+
+      if ( mkdir(path.c_str(), 0755) and ( errno != EEXIST ) ) {
+        Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
+        return false;
+      }
+      if ( i == 2 )
+				date_path = path;
+    }
+		time_path = stringtf("%02d/%02d/%02d", stime->tm_hour, stime->tm_min, stime->tm_sec);
+
+    // Create event id symlink
+    std::string id_file = stringtf("%s/.%" PRIu64, date_path.c_str(), id);
+    if ( symlink(time_path.c_str(), id_file.c_str()) < 0 ) {
+      Error("Can't symlink %s -> %s: %s", id_file.c_str(), time_path.c_str(), strerror(errno));
+      return false;
+    }
+  } else if ( scheme == Storage::MEDIUM ) {
+    path += stringtf("/%04d-%02d-%02d",
+        stime->tm_year+1900, stime->tm_mon+1, stime->tm_mday
+        );
+    if ( mkdir(path.c_str(), 0755) and ( errno != EEXIST ) ) {
+      Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
+      return false;
+    }
+    path += stringtf("/%" PRIu64, id);
+    if ( mkdir(path.c_str(), 0755) and ( errno != EEXIST ) ) {
+      Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
+      return false;
+    }
+  } else {
+    path += stringtf("/%" PRIu64, id);
+    if ( mkdir(path.c_str(), 0755) and ( errno != EEXIST ) ) {
+      Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
+      return false;
+    }
+
+    // Create empty id tag file
+    std::string id_file = stringtf("%s/.%" PRIu64, path.c_str(), id);
+    if ( FILE *id_fp = fopen(id_file.c_str(), "w") ) {
+      fclose(id_fp);
+    } else {
+      Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
+      return false;
+		}
+  } // deep storage or not
+  return true;
+}  // end bool Event::SetPath

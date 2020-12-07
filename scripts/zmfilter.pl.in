@@ -381,8 +381,10 @@ sub checkFilter {
     } # end if AutoCopy
 
     if ( $filter->{UpdateDiskSpace} ) {
-      $ZoneMinder::Database::dbh->begin_work();
-      $Event->lock_and_load();
+      if ( $$filter{LockRows} ) {
+        $ZoneMinder::Database::dbh->begin_work();
+        $Event->lock_and_load();
+      }
 
       my $old_diskspace = $$Event{DiskSpace};
 			my $new_diskspace = $Event->DiskSpace(undef);
@@ -394,7 +396,7 @@ sub checkFilter {
 					) {
         $Event->save();
       }
-      $ZoneMinder::Database::dbh->commit();
+      $ZoneMinder::Database::dbh->commit() if !$$filter{LockRows};
     } # end if UpdateDiskSpace
   } # end foreach event
   ZoneMinder::Database::end_transaction($dbh, $in_transaction) if $$filter{LockRows}; 
@@ -405,8 +407,9 @@ sub generateVideo {
   my $Event = shift;
   my $phone = shift;
 
-  my $rate = $Event->{DefaultRate}/100;
-  my $scale = $Event->{DefaultScale}/100;
+  my $Monitor = $Event->Monitor();
+  my $rate = $$Monitor{DefaultRate}/100;
+  my $scale = $$Monitor{DefaultScale}/100;
   my $format;
 
   my @ffmpeg_formats = split(/\s+/, $Config{ZM_FFMPEG_FORMATS});
@@ -655,9 +658,11 @@ sub substituteTags {
 # First we'd better check what we need to get
 # We have a filter and an event, do we need any more
 # monitor information?
-  my $need_monitor = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_monitor = $text =~ /%(?:MN|MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_status = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
 
   my $Monitor = $Event->Monitor() if $need_monitor;
+  my $Status = $Monitor->Status() if $need_status;
 
 # Do we need the image information too?
   my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD)%/;
@@ -687,13 +692,13 @@ sub substituteTags {
 
   my $url = $Config{ZM_URL};
   $text =~ s/%ZP%/$url/g;
-  $text =~ s/%MN%/$Event->{MonitorName}/g;
-  $text =~ s/%MET%/$Monitor->{TotalEvents}/g;
-  $text =~ s/%MEH%/$Monitor->{HourEvents}/g;
-  $text =~ s/%MED%/$Monitor->{DayEvents}/g;
-  $text =~ s/%MEW%/$Monitor->{WeekEvents}/g;
-  $text =~ s/%MEM%/$Monitor->{MonthEvents}/g;
-  $text =~ s/%MEA%/$Monitor->{ArchivedEvents}/g;
+  $text =~ s/%MN%/$Monitor->{Name}/g;
+  $text =~ s/%MET%/$Status->{TotalEvents}/g;
+  $text =~ s/%MEH%/$Status->{HourEvents}/g;
+  $text =~ s/%MED%/$Status->{DayEvents}/g;
+  $text =~ s/%MEW%/$Status->{WeekEvents}/g;
+  $text =~ s/%MEM%/$Status->{MonthEvents}/g;
+  $text =~ s/%MEA%/$Status->{ArchivedEvents}/g;
   $text =~ s/%MP%/$url?view=watch&mid=$Event->{MonitorId}/g;
   $text =~ s/%MPS%/$url?view=watch&mid=$Event->{MonitorId}&mode=stream/g;
   $text =~ s/%MPI%/$url?view=watch&mid=$Event->{MonitorId}&mode=still/g;

@@ -40,10 +40,14 @@ void bind_libvnc_symbols() {
 static void GotFrameBufferUpdateCallback(rfbClient *rfb, int x, int y, int w, int h){
   VncPrivateData *data = (VncPrivateData *)(*rfbClientGetClientData_f)(rfb, &TAG_0);
   data->buffer = rfb->frameBuffer;
+  Debug(1, "GotFrameBufferUpdateallback x:%d y:%d w%d h:%d width: %d, height: %d",
+      x,y,w,h, rfb->width, rfb->height);
 }
 
 static char* GetPasswordCallback(rfbClient* cl){
-  return strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
+  Debug(1, "Getcredentials: %s", (*rfbClientGetClientData_f)(cl, &TAG_1));
+  return strdup(
+      (const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
 }
 
 static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
@@ -53,6 +57,7 @@ static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
     return nullptr;
   }
 
+  Debug(1, "Getcredentials: %s:%s", (*rfbClientGetClientData_f)(cl, &TAG_1), (*rfbClientGetClientData_f)(cl, &TAG_2));
   c->userCredential.password = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
   c->userCredential.username = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_2));
   return c;
@@ -87,6 +92,7 @@ VncCamera::VncCamera(
       p_capture,
       p_record_audio
     ),
+    mRfb(nullptr),
   mHost(host),
   mPort(port),
   mUser(user),
@@ -110,52 +116,61 @@ VncCamera::VncCamera(
     Panic("Unexpected colours: %d", colours);
   }
 
-  if ( capture )
-    Initialise();
-}
+  if ( capture ) {
+    Debug(3, "Initializing Client");
+    bind_libvnc_symbols();
+    scale.init();
 
+  }
+}
 
 VncCamera::~VncCamera() {
-  if ( capture )
-    Terminate();
-}
-
-void VncCamera::Initialise() {
-  Debug(2, "Initializing Client");
-  bind_libvnc_symbols();
-  mRfb = (*rfbGetClient_f)(8, 3, 4);
-  
-  (*rfbClientSetClientData_f)(mRfb, &TAG_0, &mVncData);
-  (*rfbClientSetClientData_f)(mRfb, &TAG_1, (void *)mPass.c_str());
-  (*rfbClientSetClientData_f)(mRfb, &TAG_2, (void *)mUser.c_str());
-
-  mRfb->GotFrameBufferUpdate = GotFrameBufferUpdateCallback;
-  mRfb->GetPassword = GetPasswordCallback;
-  mRfb->GetCredential = GetCredentialsCallback;
-
-  mRfb->programName = "Zoneminder VNC Monitor";
-  mRfb->serverHost = strdup(mHost.c_str());
-  mRfb->serverPort = atoi(mPort.c_str());
-  scale.init();
-}
-
-void VncCamera::Terminate() {
-  if ( mRfb->frameBuffer )
-    free(mRfb->frameBuffer);
-  (*rfbClientCleanup_f)(mRfb);
-  return;
+  if ( capture ) {
+    if ( mRfb->frameBuffer )
+      free(mRfb->frameBuffer);
+    (*rfbClientCleanup_f)(mRfb);
+  }
 }
 
 int VncCamera::PrimeCapture() {
   Debug(1, "Priming capture from %s", mHost.c_str());
+
+  if ( ! mRfb ) {
+    mVncData.buffer = nullptr;
+    mVncData.width = 0;
+    mVncData.height = 0;
+
+    mRfb = (*rfbGetClient_f)(8 /* bits per sample */, 3 /* samples per pixel */, 4 /* bytes Per Pixel */);
+    mRfb->frameBuffer = (uint8_t *)av_malloc(8*4*width*height); 
+    mRfb->canHandleNewFBSize = false;
+
+    (*rfbClientSetClientData_f)(mRfb, &TAG_0, &mVncData);
+    (*rfbClientSetClientData_f)(mRfb, &TAG_1, (void *)mPass.c_str());
+    (*rfbClientSetClientData_f)(mRfb, &TAG_2, (void *)mUser.c_str());
+
+    mRfb->GotFrameBufferUpdate = GotFrameBufferUpdateCallback;
+    mRfb->GetPassword = GetPasswordCallback;
+    mRfb->GetCredential = GetCredentialsCallback;
+
+    mRfb->programName = "Zoneminder VNC Monitor";
+    mRfb->serverHost = strdup(mHost.c_str());
+    mRfb->serverPort = atoi(mPort.c_str());
+  }
   if ( ! (*rfbInitClient_f)(mRfb, 0, nullptr) ) {
+    /* IF rfbInitClient fails, it calls rdbClientCleanup which will free mRfb */
+    Warning("Failed to Priming capture from %s", mHost.c_str());
+    mRfb = nullptr;
     return -1; 
   }
+  if ( (mRfb->width != width) or (mRfb->height != height) ) {
+    Warning("Specified dimensions do not match screen size monitor: (%dx%d) != vnc: (%dx%d)",
+        width, height, mRfb->width, mRfb->height);
+  }
+
   return 0;
 }
 
 int VncCamera::PreCapture() {
-  Debug(2, "PreCapture");
   int rc = (*WaitForMessage_f)(mRfb, 500);
   if ( rc < 0 ) {
     return -1;
@@ -163,13 +178,16 @@ int VncCamera::PreCapture() {
     return rc;
   }
   rfbBool res = (*HandleRFBServerMessage_f)(mRfb);
+  Debug(3, "PreCapture rc from HandleMessage %d", res == TRUE ? 1 : -1);
   return res == TRUE ? 1 : -1;
 }
 
-int VncCamera::Capture(Image &image) {
-  Debug(2, "Capturing");
-  uint8_t *directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-  scale.Convert(
+int VncCamera::Capture(ZMPacket &zm_packet) {
+  if ( ! mVncData.buffer ) {
+    return 0;
+  }
+  uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
+  int rc = scale.Convert(
       mVncData.buffer,
       mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4,
       directbuffer,
@@ -180,14 +198,10 @@ int VncCamera::Capture(Image &image) {
       mRfb->si.framebufferHeight,
       width,
       height);
-  return 1;
+  return rc == 0 ? 1 : rc;
 }
 
 int VncCamera::PostCapture() {
-  return 0;
-}
-
-int VncCamera::CaptureAndRecord(Image &image, timeval recording, char* event_directory) {
   return 0;
 }
 

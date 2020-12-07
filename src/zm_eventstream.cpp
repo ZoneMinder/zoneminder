@@ -1,5 +1,5 @@
 //
-// ZoneMinder Event Class Implementation, $Date$, $Revision$
+// ZoneMinder Event Stream Class Implementation
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -16,24 +16,13 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-
-#include <fcntl.h>
-#include <sys/socket.h>
+//
 #include <arpa/inet.h>
-#include <sys/un.h>
-#include <sys/uio.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <getopt.h>
-#include <arpa/inet.h>
-#include <glob.h>
-#include <cinttypes>
 
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_time.h"
 #include "zm_mpeg.h"
-#include "zm_signal.h"
 #include "zm_event.h"
 #include "zm_eventstream.h"
 #include "zm_storage.h"

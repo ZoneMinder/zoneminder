@@ -57,8 +57,8 @@ static bool zmFifoDbgOpen() {
 
 int zmFifoDbgInit(Monitor *monitor) {
   zm_fifodbg_inited = true;
-  snprintf(zm_fifodbg_log, sizeof(zm_fifodbg_log), "%s/%d/dbgpipe.log",
-      monitor->getStorage()->Path(), monitor->Id());
+  snprintf(zm_fifodbg_log, sizeof(zm_fifodbg_log), "%s/dbgpipe-%d.log",
+      staticConfig.PATH_SOCKS.c_str(), monitor->Id());
   zmFifoDbgOpen();
   return 1;
 }
@@ -117,7 +117,8 @@ bool FifoStream::sendRAWFrames() {
       return false;
     }
     if ( fwrite(buffer, bytes_read, 1, stdout) != 1 ) {
-      Error("Problem during writing: %s", strerror(errno));
+      if ( !zm_terminate ) 
+        Error("Problem during writing: %s", strerror(errno));
       close(fd);
       return false;
     }
@@ -181,7 +182,7 @@ bool FifoStream::sendMJEGFrames() {
     return true;
 
   if ( fprintf(stdout,
-        "--ZoneMinderFrame\r\n"
+        "--" BOUNDARY "\r\n"
       "Content-Type: image/jpeg\r\n"
       "Content-Length: %d\r\n\r\n",
       total_read) < 0 ) {
@@ -206,35 +207,40 @@ void FifoStream::setStreamStart(const char * path) {
 
 void FifoStream::setStreamStart(int monitor_id, const char * format) {
   char diag_path[PATH_MAX];
-  const char * filename;
   Monitor * monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
 
   if ( !strcmp(format, "reference") ) {
+    snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-r-%d.jpg",
+        staticConfig.PATH_SOCKS.c_str(), monitor->Id());
     stream_type = MJPEG;
-    filename = "diagpipe-r.jpg";
   } else if ( !strcmp(format, "delta") ) {
-    filename = "diagpipe-d.jpg";
+    snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-d-%d.jpg",
+        staticConfig.PATH_SOCKS.c_str(), monitor->Id());
     stream_type = MJPEG;
   } else {
+    if ( strcmp(format, "raw") ) {
+      Warning("Unknown or unspecified format.  Defaulting to raw");
+    }
+    snprintf(diag_path, sizeof(diag_path), "%s/dbgpipe-%d.log",
+        staticConfig.PATH_SOCKS.c_str(), monitor->Id());
     stream_type = RAW;
-    filename = "dbgpipe.log";
   }
 
-  snprintf(diag_path, sizeof(diag_path), "%s/%d/%s",
-      monitor->getStorage()->Path(), monitor->Id(), filename);
   setStreamStart(diag_path);
 }
 
 void FifoStream::runStream() {
   if ( stream_type == MJPEG ) {
-    fprintf(stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n");
+    fprintf(stdout, "Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n");
   } else {
     fprintf(stdout, "Content-Type: text/html\r\n\r\n");
   }
 
+  /* only 1 person can read from a fifo at a time, so use a lock */
   char lock_file[PATH_MAX];
   snprintf(lock_file, sizeof(lock_file), "%s.rlock", stream_path);
   file_create_if_missing(lock_file, false);
+  Debug(1, "Locking %s", lock_file);
 
   int fd_lock = open(lock_file, O_RDONLY);
   if ( fd_lock < 0 ) {
@@ -242,8 +248,13 @@ void FifoStream::runStream() {
     return;
   }
   int res = flock(fd_lock, LOCK_EX | LOCK_NB);
+  while ( (res < 0 and errno == EAGAIN) and (! zm_terminate) ) {
+    Warning("Flocking problem on %s: - %s", lock_file, strerror(errno));
+    sleep(1);
+    res = flock(fd_lock, LOCK_EX | LOCK_NB);
+  }
   if ( res < 0 ) {
-    Error("Flocking problem on %s: - %s", lock_file, strerror(errno));
+    Error("Flocking problem on %d != %d %s: - %s", EAGAIN, res, lock_file, strerror(errno));
     close(fd_lock);
     return;
   }

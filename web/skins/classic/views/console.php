@@ -294,6 +294,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $imgHTML='';
   if ( ZM_WEB_LIST_THUMBS && ($monitor['Status'] == 'Connected') && $running ) {
     $options = array();
+
     $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
     $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
     $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
@@ -306,7 +307,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
     $thmbHeight = ( $options['height'] ) ? 'height:'.$options['height'].'px;' : '';
     
-    $imgHTML = '<div class="colThumbnail zoom-right"><a';
+    $imgHTML = '<div class="colThumbnail"><a';
     $imgHTML .= $stream_available ? ' href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>';
     $imgHTML .= '<img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style="'
       .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"'.

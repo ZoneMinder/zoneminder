@@ -1,3 +1,31 @@
+var backBtn = $j('#backBtn');
+var table = $j('#framesTable');
+
+// Called by bootstrap-table to retrieve zm frame data
+function ajaxRequest(params) {
+  if ( params.data && params.data.filter ) {
+    params.data.advsearch = params.data.filter;
+    delete params.data.filter;
+  }
+  $j.getJSON(thisUrl + '?view=request&request=frames&task=query&eid='+eid, params.data)
+      .done(function(data) {
+        var rows = processRows(data.rows);
+        // rearrange the result into what bootstrap-table expects
+        console.log('Total: '+data.total);
+        console.log('TotalnotFiltered: '+data.totalNotFiltered);
+        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+      })
+      .fail(logAjaxFail);
+}
+
+function processRows(rows) {
+  $j.each(rows, function(ndx, row) {
+    // WIP: process each row here
+    // VERIFY: Might not need to do anything here for the frames table
+  });
+  return rows;
+}
+
 function thumbnail_onmouseover(event) {
   var img = event.target;
   img.src = '';
@@ -11,14 +39,16 @@ function thumbnail_onmouseout(event) {
 }
 
 function initThumbAnimation() {
-  $j('.colThumbnail img').each(function() {
-    this.addEventListener('mouseover', thumbnail_onmouseover, false);
-    this.addEventListener('mouseout', thumbnail_onmouseout, false);
-  });
+  if ( WEB_ANIMATE_THUMBS ) {
+    $j('.colThumbnail img').each(function() {
+      this.addEventListener('mouseover', thumbnail_onmouseover, false);
+      this.addEventListener('mouseout', thumbnail_onmouseout, false);
+    });
+  }
 }
 
 function processClicks(event, field, value, row, $element) {
-  if ( field == 'FrameScore' ) {
+  if ( field == 'Score' ) {
     window.location.assign('?view=stats&eid='+row.EventId+'&fid='+row.FrameId);
   } else {
     window.location.assign('?view=frame&eid='+row.EventId+'&fid='+row.FrameId);
@@ -34,9 +64,10 @@ function detailFormatter(index, row, $detail) {
       })
       .fail(logAjaxFail);
 }
+
 function initPage() {
-  var backBtn = $j('#backBtn');
-  var table = $j('#framesTable');
+  // Remove the thumbnail column from the DOM if thumbnails are off globally
+  if ( !WEB_LIST_THUMBS ) $j('th[data-field="Thumbnail"]').remove();
 
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
@@ -70,6 +101,25 @@ function initPage() {
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
+  });
+
+  // Update table links each time after new data is loaded
+  table.on('post-body.bs.table', function(data) {
+    var type_ndx = $j('#framesTable tr th').filter(function() {
+      return $j(this).text().trim() == 'Type';
+    }).index();
+
+    $j('#framesTable tr').each(function(ndx, row) {
+      var row = $j(row);
+      var type = row.find('td').eq(type_ndx).text().trim();
+      row.addClass(type.toLowerCase());
+    });
+
+    var thumb_ndx = $j('#framesTable tr th').filter(function() {
+      return $j(this).text().trim() == 'Thumbnail';
+    }).index();
+    var thmbClass = WEB_ANIMATE_THUMBS ? 'colThumbnail zoom' : 'colThumbnail';
+    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass(thmbClass);
   });
 }
 

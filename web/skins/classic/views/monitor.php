@@ -369,8 +369,10 @@ $fastblendopts_alarm = array(
     );
 
 $label_size = array(
-    1 => translate('Default'),
-    2 => translate('Large'),
+    1 => translate('Small'),
+    2 => translate('Default'),
+    3 => translate('Large'),
+    4 => translate('Extra Large'),
     );
 
 $codecs = array(
@@ -1030,7 +1032,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <td><input type="number" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($monitor->AlarmFrameCount()) ?>" min="1"/></td>
             </tr>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('EstimatedRamUse') ?></td>
+              <td class="text-right pr-3"><?php echo translate('Estimated Ram Use') ?></td>
               <td id="estimated_ram_use"><?php echo human_filesize($monitor->ImageBufferCount() * $monitor->Width() * $monitor->Height() * $monitor->Colours(), 0) ?></td>
             </tr>
 <?php

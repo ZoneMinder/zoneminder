@@ -331,8 +331,8 @@ protected:
   Image        ref_image;
   Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
   Image        write_image;    // Used when creating snapshot images
-  std::string diag_path_r;
-  std::string diag_path_d;
+  std::string diag_path_ref;
+  std::string diag_path_delta;
 
   Purpose      purpose;        // What this monitor has been created to do
   int        event_count;
@@ -402,6 +402,7 @@ public:
   void AddPrivacyBitmask( Zone *p_zones[] );
 
   bool connect();
+  bool disconnect();
 
   inline int ShmValid() const {
     return shared_data && shared_data->valid;
@@ -410,23 +411,20 @@ public:
 
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name; }
+  inline unsigned int ServerId() { return server_id; }
   inline Storage *getStorage() {
     if ( ! storage ) {
       storage = new Storage(storage_id);
     }
     return storage;
   }
-  inline Function GetFunction() const {
-    return function;
-  }
+  inline Function GetFunction() const { return function; }
   inline bool Enabled() const {
     if ( function <= MONITOR )
       return false;
     return enabled;
   }
-  inline const char *EventPrefix() const {
-    return event_prefix;
-  }
+  inline const char *EventPrefix() const { return event_prefix; }
   inline bool Ready() const {
     if ( function <= MONITOR ) {
       Error("Should not be calling Ready if the function doesn't include motion detection");
@@ -443,12 +441,8 @@ public:
       return false;
     return( enabled && shared_data->active );
   }
-  inline bool Exif() const {
-    return embed_exif;
-  }
-  inline bool RecordAudio() {
-    return record_audio;
-  }
+  inline bool Exif() const { return embed_exif; }
+  inline bool RecordAudio() { return record_audio; }
 
   /*
   inline Purpose Purpose() { return purpose };

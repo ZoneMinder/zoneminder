@@ -123,14 +123,19 @@ sub get_service_urls {
   );
   if ( $result ) {
     print "Have results from GetServices\n" if $verbose;
-    foreach my $svc ( @{ $result->get_Service() } ) {
-      my $short_name = $namespace_map{$svc->get_Namespace()};    
-      my $url_svc = $svc->get_XAddr()->get_value();
-      if ( defined $short_name && defined $url_svc ) {
-        print "Got $short_name service $url_svc\n" if $verbose;
-        $self->set_service($short_name, 'url', $url_svc);
-      }
-    }
+    my $services = $result->get_Service();
+    if ( $services ) {
+      foreach my $svc ( @{ $services } ) {
+        my $short_name = $namespace_map{$svc->get_Namespace()};    
+        my $url_svc = $svc->get_XAddr()->get_value();
+        if ( defined $short_name && defined $url_svc ) {
+          print "Got $short_name service $url_svc\n" if $verbose;
+          $self->set_service($short_name, 'url', $url_svc);
+        }
+      } # end foreach service
+    } else {
+      print "No services from GetServices\n" if $verbose;
+    } # end if services
   } else {
     print "No results from GetServices\n" if $verbose;
   }

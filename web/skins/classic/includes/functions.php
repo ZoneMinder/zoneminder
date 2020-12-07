@@ -502,11 +502,11 @@ function getBandwidthHTML($bandwidth_options, $user) {
   $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
   if ( count($bandwidth_options) > 1 ) {
     if ( isset($bandwidth_options['high']) )
-      $result .= '<a data-pdsa-dropdown-val="high" class="dropdown-item" href="#">' .translate('High'). '</a>'.PHP_EOL;
+      $result .= '<a data-pdsa-dropdown-val="high" class="dropdown-item bwselect" href="#">' .translate('High'). '</a>'.PHP_EOL;
     if ( isset($bandwidth_options['medium']) )
-      $result .= '<a data-pdsa-dropdown-val="medium" class="dropdown-item" href="#">' .translate('Medium'). '</a>'.PHP_EOL;
+      $result .= '<a data-pdsa-dropdown-val="medium" class="dropdown-item bwselect" href="#">' .translate('Medium'). '</a>'.PHP_EOL;
     # low is theoretically always available
-    $result .= '<a data-pdsa-dropdown-val="low" class="dropdown-item" href="#">' .translate('Low'). '</a>'.PHP_EOL;    
+    $result .= '<a data-pdsa-dropdown-val="low" class="dropdown-item bwselect" href="#">' .translate('Low'). '</a>'.PHP_EOL;    
   }
   $result .= '</div>'.PHP_EOL;
 

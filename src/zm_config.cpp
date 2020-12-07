@@ -325,10 +325,7 @@ const char *ConfigItem::StringValue() const {
   return cfg_value.string_value;
 }
 
-Config::Config() {
-  n_items = 0;
-  items = 0;
-}
+Config::Config() : n_items(0), items(nullptr) { }
 
 Config::~Config() {
   if ( items ) {
@@ -342,10 +339,7 @@ Config::~Config() {
 }
 
 void Config::Load() {
-  static char sql[ZM_SQL_SML_BUFSIZ];
-   
-  strncpy(sql, "SELECT `Name`, `Value`, `Type` FROM `Config` ORDER BY `Id`", sizeof(sql) );
-  if ( mysql_query(&dbconn, sql) ) {
+  if ( mysql_query(&dbconn, "SELECT `Name`, `Value`, `Type` FROM `Config` ORDER BY `Id`") ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     exit(mysql_errno(&dbconn));
   }
@@ -363,10 +357,11 @@ void Config::Load() {
   }
 
   items = new ConfigItem *[n_items];
-  for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+  for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
     items[i] = new ConfigItem(dbrow[0], dbrow[1], dbrow[2]);
   }
   mysql_free_result(result);
+  result = nullptr;
 }
 
 void Config::Assign() {

@@ -26,8 +26,28 @@ input.large {
 }
 
 input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SITEKEY]"],
-input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SECRETKEY]"] {
-  width: 100%;
+input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SECRETKEY]"],
+input[name="newConfig[ZM_OPT_GEOLOCATION_TILE_PROVIDER]"],
+input[name="newConfig[ZM_OPT_GEOLOCATION_ACCESS_TOKEN]"],
+input[name="newConfig[ZM_AUTH_HASH_SECRET]"],
+input[name="newConfig[ZM_UPDATE_CHECK_PROXY]"],
+input[name="newConfig[ZM_WEB_TITLE]"],
+input[name="newConfig[ZM_WEB_TITLE_PREFIX]"],
+input[name="newConfig[ZM_HOME_URL]"],
+input[name="newConfig[ZM_HOME_CONTENT]"],
+input[name="newConfig[ZM_WEB_CONSOLE_BANNER]"],
+input[name="newConfig[ZM_LOG_DEBUG_TARGET]"],
+input[name="newConfig[ZM_LOG_DEBUG_FILE]"],
+input[name="newConfig[ZM_MESSAGE_ADDRESS]"],
+input[name="newConfig[ZM_MESSAGE_SUBJECT]"],
+input[name="newConfig[ZM_FROM_EMAIL]"],
+input[name="newConfig[ZM_URL]"],
+input[name="newConfig[ZM_SSMTP_PATH]"],
+input[name="newConfig[ZM_CSP_REPORT_URI]"],
+input[name="newStorage[Name]"],
+input[name="newStorage[Path]"],
+input[name="newStorage[Url]"] {
+  width: 90%;
 }
 
 #options label {

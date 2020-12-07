@@ -64,7 +64,7 @@ inline static uint8_t* AllocBuffer(size_t p_bufsize) {
 }
 
 inline static void DumpBuffer(uint8_t* buffer, int buffertype) {
-	if ( buffer && buffertype != ZM_BUFTYPE_DONTFREE ) {
+	if ( buffer && (buffertype != ZM_BUFTYPE_DONTFREE) ) {
     if ( buffertype == ZM_BUFTYPE_ZM ) {
       zm_freealigned(buffer);
     } else if ( buffertype == ZM_BUFTYPE_MALLOC ) {
@@ -123,6 +123,7 @@ protected:
 	
 	inline void DumpImgBuffer() {
 		DumpBuffer(buffer, buffertype);
+    buffertype = ZM_BUFTYPE_DONTFREE;
 		buffer = nullptr;
 		allocation = 0;
 	}

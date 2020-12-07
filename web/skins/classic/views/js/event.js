@@ -1,7 +1,40 @@
+$j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
+var table = $j('#eventStatsTable');
+var backBtn = $j('#backBtn');
+var renameBtn = $j('#renameBtn');
+var archiveBtn = $j('#archiveBtn');
+var unarchiveBtn = $j('#unarchiveBtn');
+var editBtn = $j('#editBtn');
+var exportBtn = $j('#exportBtn');
+var downloadBtn = $j('#downloadBtn');
+var deleteBtn = $j('#deleteBtn');
+var prevEventId = 0;
+var nextEventId = 0;
+var prevEventStartTime = 0;
+var nextEventStartTime = 0;
+var PrevEventDefVideoPath = "";
+var NextEventDefVideoPath = "";
+var slider = null;
+var scroll = null;
+var currEventId = null;
+var CurEventDefVideoPath = null;
 var vid = null;
 var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//Seconds per frame for videojs frame by frame.
 var intervalRewind;
 var revSpeed = .5;
+var cueFrames = null; //make cueFrames available even if we don't send another ajax query
+var streamCmdTimer = null;
+var streamStatus = null;
+var lastEventId = 0;
+var zmsBroke = false; //Use alternate navigation if zms has crashed
+var streamParms = "view=request&request=stream&connkey="+connKey;
+if ( auth_hash ) streamParms += '&auth='+auth_hash;
+var frameBatch = 40;
+var currFrameId = null;
+var eventReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse} );
+var actReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse} );
+var frameReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse} );
+var streamReq = new Request.JSON( {url: monitorUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse} );
 
 // Function called when video.js hits the end of the video
 function vjsReplay() {
@@ -43,10 +76,6 @@ function vjsReplay() {
       break;
   }
 } // end function vjsReplay
-
-$j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
-
-var cueFrames = null; //make cueFrames available even if we don't send another ajax query
 
 function initialAlarmCues(eventId) {
   $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues) //get frames data for alarmCues and inserts into html
@@ -134,7 +163,6 @@ function renderAlarmCues(containerEl) {
   return alarmHtml;
 }
 
-
 function changeCodec() {
   location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+$j('#codec').val());
 }
@@ -217,16 +245,6 @@ function changeRate() {
   Cookie.write('zmEventRate', rate, {duration: 10*365, samesite: 'strict'});
 } // end function changeRate
 
-var streamParms = "view=request&request=stream&connkey="+connKey;
-if ( auth_hash ) {
-  streamParms += '&auth='+auth_hash;
-}
-var streamCmdTimer = null;
-
-var streamStatus = null;
-var lastEventId = 0;
-var zmsBroke = false; //Use alternate navigation if zms has crashed
-
 function getCmdResponse( respObj, respText ) {
   if ( checkStreamForErrors('getCmdResponse', respObj) ) {
     console.log('Got an error from getCmdResponse');
@@ -290,14 +308,6 @@ function getCmdResponse( respObj, respText ) {
 
   streamCmdTimer = streamQuery.delay(streamTimeout); //Timeout is refresh rate for progressBox and time display
 } // end function getCmdResponse( respObj, respText )
-
-var streamReq = new Request.JSON( {
-  url: monitorUrl,
-  method: 'get',
-  timeout: AJAX_TIMEOUT,
-  link: 'chain',
-  onSuccess: getCmdResponse
-} );
 
 function pauseClicked() {
   if ( vid ) {
@@ -553,11 +563,6 @@ function streamQuery() {
   streamReq.send( streamParms+"&command="+CMD_QUERY );
 }
 
-var slider = null;
-var scroll = null;
-var currEventId = null;
-var CurEventDefVideoPath = null;
-
 function getEventResponse(respObj, respText) {
   if ( checkStreamForErrors('getEventResponse', respObj) ) {
     console.log('getEventResponse: errors');
@@ -572,28 +577,31 @@ function getEventResponse(respObj, respText) {
   }
   currEventId = eventData.Id;
 
-  $('dataId').set( 'text', eventData.Id );
+  $j('#dataEventId').text( eventData.Id );
+  $j('#dataEventName').text( eventData.Name );
+  $j('#dataMonitorId').text( eventData.MonitorId );
+  $j('#dataMonitorName').text( eventData.MonitorName );
+  $j('#dataCause').text( eventData.Cause );
   if ( eventData.Notes ) {
-    $('dataCause').setProperty( 'title', eventData.Notes );
+    $j('#dataCause').prop( 'title', eventData.Notes );
   } else {
-    $('dataCause').setProperty( 'title', causeString );
+    $j('#dataCause').prop( 'title', causeString );
   }
-  $('dataCause').set( 'text', eventData.Cause );
-  $('dataTime').set( 'text', eventData.StartDateTime );
-  $('dataDuration').set( 'text', eventData.Length );
-  $('dataFrames').set( 'text', eventData.Frames+"/"+eventData.AlarmFrames );
-  $('dataScore').set( 'text', eventData.TotScore+"/"+eventData.AvgScore+"/"+eventData.MaxScore );
-  $('eventName').setProperty( 'value', eventData.Name );
-  history.replaceState(null, null, '?view=event&eid=' + eventData.Id + filterQuery + sortQuery);//if popup removed, check if this allows forward
-  if ( canEditEvents ) {
-    if ( parseInt(eventData.Archived) ) {
-      $('archiveEvent').addClass( 'hidden' );
-      $('unarchiveEvent').removeClass( 'hidden' );
-    } else {
-      $('archiveEvent').removeClass( 'hidden' );
-      $('unarchiveEvent').addClass( 'hidden' );
-    }
-  }
+  $j('#dataStartTime').text( eventData.StartDateTime );
+  $j('#dataDuration').text( eventData.Length );
+  $j('#dataFrames').text( eventData.Frames );
+  $j('#dataAlarmFrames').text( eventData.AlarmFrames );
+  $j('dataTotalScore').text( eventData.TotScore );
+  $j('dataAvgScore').text( eventData.AvgScore );
+  $j('dataMaxScore').text( eventData.MaxScore );
+  $j('dataDiskSpace').text( eventData.DiskSpace );
+  $j('dataStorage').text( eventData.Storage );
+
+  // Refresh the status of the archive buttons
+  archiveBtn.prop('disabled', !(!eventData.Archived && canEditEvents));
+  unarchiveBtn.prop('disabled', !(eventData.Archived && canEditEvents));
+
+  history.replaceState(null, null, '?view=event&eid=' + eventData.Id + filterQuery + sortQuery); //if popup removed, check if this allows forward
   // Technically, events can be different sizes, so may need to update the size of the image, but it might be better to have it stay scaled...
   //var eventImg = $('eventImage');
   //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
@@ -613,8 +621,6 @@ function getEventResponse(respObj, respText) {
   nearEventsQuery( eventData.Id );
 } // end function getEventResponse
 
-var eventReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse} );
-
 function eventQuery( eventId ) {
   var eventParms = 'view=request&request=status&entity=event&id='+eventId;
   if ( auth_hash ) {
@@ -622,13 +628,6 @@ function eventQuery( eventId ) {
   }
   eventReq.send( eventParms );
 }
-
-var prevEventId = 0;
-var nextEventId = 0;
-var prevEventStartTime = 0;
-var nextEventStartTime = 0;
-var PrevEventDefVideoPath = "";
-var NextEventDefVideoPath = "";
 
 function getNearEventsResponse( respObj, respText ) {
   if ( checkStreamForErrors('getNearEventsResponse', respObj) ) {
@@ -655,8 +654,6 @@ function nearEventsQuery( eventId ) {
   var parms = "view=request&request=status&entity=nearevents&id="+eventId+filterQuery+sortQuery;
   nearEventsReq.send( parms );
 }
-
-var frameBatch = 40;
 
 function loadEventThumb( event, frame, loadImage ) {
   var thumbImg = $('eventThumb'+frame.FrameId);
@@ -789,14 +786,10 @@ function getFrameResponse(respObj, respText) {
   loadEventThumb(eventData, frame, respObj.loopback=="true");
 }
 
-var frameReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse} );
-
 function frameQuery( eventId, frameId, loadImage ) {
   var parms = "view=request&request=status&entity=frameimage&id[0]="+eventId+"&id[1]="+frameId+"&loopback="+loadImage;
   frameReq.send(parms);
 }
-
-var currFrameId = null;
 
 function checkFrames( eventId, frameId, loadImage ) {
   if ( !eventData ) {
@@ -917,8 +910,6 @@ function getActResponse( respObj, respText ) {
   }
 }
 
-var actReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse} );
-
 function actQuery(action, parms) {
   var actParms = "view=request&request=event&id="+eventData.Id+"&action="+action;
   if ( auth_hash ) {
@@ -930,53 +921,15 @@ function actQuery(action, parms) {
   actReq.send(actParms);
 }
 
-function deleteEvent() {
-  pauseClicked(); //Provides visual feedback that your click happened.
-
-  var deleteReq = new Request.JSON({
-    url: thisUrl,
-    method: 'post',
-    timeout: AJAX_TIMEOUT,
-    onSuccess: function onDeleteSuccess(respObj, respText) {
-      getActResponse(respObj, respText);
-      // We must wait for the deletion to happen before navigating to the next
-      // event or this request will be cancelled.
-      streamNext(true);
-    },
-  });
-  deleteReq.send("view=request&request=event&id="+eventData.Id+"&action=delete");
-}
-
 function renameEvent() {
-  var newName = $('eventName').get('value');
+  var newName = $j('input').val();
   actQuery('rename', {eventName: newName});
-}
-
-// Manage the EDIT button
-function editEvent() {
-  $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eid='+eventData.Id)
-      .done(function(data) {
-        insertModalHtml('eventDetailModal', data.html);
-        $j('#eventDetailModal').modal('show');
-        // Manage the Save button
-        $j('#eventDetailSaveBtn').click(function(evt) {
-          evt.preventDefault();
-          $j('#eventDetailForm').submit();
-        });
-      })
-      .fail(logAjaxFail);
+  //FIXME: update the value of the event name rather than reload the whole page
+  window.location.reload(true);
 }
 
 function exportEvent() {
   window.location.assign('?view=export&eid='+eventData.Id);
-}
-
-function archiveEvent() {
-  actQuery('archive');
-}
-
-function unarchiveEvent() {
-  actQuery('unarchive');
 }
 
 function showEventFrames() {
@@ -1079,7 +1032,56 @@ function handleClick( event ) {
   }
 }
 
+// Load the Delete Confirmation Modal HTML via Ajax call
+function getDelConfirmModal() {
+  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+      .done(function(data) {
+        insertModalHtml('deleteConfirm', data.html);
+        manageDelConfirmModalBtns();
+      })
+      .fail(logAjaxFail);
+}
+
+// Manage the DELETE CONFIRMATION modal button
+function manageDelConfirmModalBtns() {
+  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
+    if ( ! canEditEvents ) {
+      enoperm();
+      return;
+    }
+
+    evt.preventDefault();
+    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eventData.Id)
+        .done( function(data) {
+          streamNext( true );
+        })
+        .fail(logAjaxFail);
+  });
+
+  // Manage the CANCEL modal button
+  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
+    $j('#deleteConfirm').modal('hide');
+  });
+}
+
+function getEvtStatsCookie() {
+  var cookie = 'zmEventStats';
+  var stats = getCookie(cookie);
+
+  if ( !stats ) {
+    stats = 'on';
+    setCookie(cookie, stats, 10*365);
+  }
+  return stats;
+}
+
 function initPage() {
+  // Load the delete confirmation modal into the DOM
+  getDelConfirmModal();
+
+  var stats = getEvtStatsCookie();
+  if ( stats != 'on' ) table.toggle(false);
+
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   if ( $j('#videoobj').length ) {
     vid = videojs('videoobj');
@@ -1130,7 +1132,136 @@ function initPage() {
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
     el.onchange = window['changeRate'];
   });
+
+  // enable or disable buttons based on current selection and user rights
+  renameBtn.prop('disabled', !canEditEvents);
+  archiveBtn.prop('disabled', !(!eventData.Archived && canEditEvents));
+  unarchiveBtn.prop('disabled', !(eventData.Archived && canEditEvents));
+  editBtn.prop('disabled', !canEditEvents);
+  exportBtn.prop('disabled', !canViewEvents);
+  downloadBtn.prop('disabled', !canViewEvents);
+  deleteBtn.prop('disabled', !canEditEvents);
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+
+  // Manage the Event RENAME button
+  document.getElementById("renameBtn").addEventListener("click", function onDownloadClick(evt) {
+    evt.preventDefault();
+    $j.getJSON(thisUrl + '?request=modal&modal=eventrename&eid='+eventData.Id)
+        .done(function(data) {
+          insertModalHtml('eventRenameModal', data.html);
+          $j('#eventRenameModal').modal('show');
+          // Manage the SAVE button
+          $j('#eventRenameBtn').click(renameEvent);
+        })
+        .fail(logAjaxFail);
+  });
+
+  // Manage the ARCHIVE button
+  document.getElementById("archiveBtn").addEventListener("click", function onArchiveClick(evt) {
+    evt.preventDefault();
+    $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+eventData.Id)
+        .done( function(data) {
+          //FIXME: update the status of the archive button reather than reload the whole page
+          window.location.reload(true);
+        })
+        .fail(logAjaxFail);
+  });
+
+  // Manage the UNARCHIVE button
+  document.getElementById("unarchiveBtn").addEventListener("click", function onUnarchiveClick(evt) {
+    if ( ! canEditEvents ) {
+      enoperm();
+      return;
+    }
+    evt.preventDefault();
+    $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+eventData.Id)
+        .done( function(data) {
+          //FIXME: update the status of the unarchive button reather than reload the whole page
+          window.location.reload(true);
+        })
+        .fail(logAjaxFail);
+  });
+
+  // Manage the EDIT button
+  document.getElementById("editBtn").addEventListener("click", function onEditClick(evt) {
+    if ( ! canEditEvents ) {
+      enoperm();
+      return;
+    }
+
+    evt.preventDefault();
+    $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]='+eventData.Id)
+        .done(function(data) {
+          insertModalHtml('eventDetailModal', data.html);
+          $j('#eventDetailModal').modal('show');
+          // Manage the Save button
+          $j('#eventDetailSaveBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#eventDetailForm').submit();
+          });
+        })
+        .fail(logAjaxFail);
+  });
+
+  // Manage the EXPORT button
+  document.getElementById("exportBtn").addEventListener("click", function onExportClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=export&eids[]='+eventData.Id);
+  });
+
+  // Manage the DOWNLOAD VIDEO button
+  document.getElementById("downloadBtn").addEventListener("click", function onDownloadClick(evt) {
+    evt.preventDefault();
+    $j.getJSON(thisUrl + '?request=modal&modal=download&eids[]='+eventData.Id)
+        .done(function(data) {
+          insertModalHtml('downloadModal', data.html);
+          $j('#downloadModal').modal('show');
+          // Manage the GENERATE DOWNLOAD button
+          $j('#exportButton').click(exportEvent);
+        })
+        .fail(logAjaxFail);
+  });
+
+  // Manage the Event STATISTICS Button
+  document.getElementById("statsBtn").addEventListener("click", function onStatsClick(evt) {
+    evt.preventDefault();
+    var cookie = 'zmEventStats';
+
+    // Toggle the visiblity of the stats table and write an appropriate cookie
+    if ( table.is(':visible') ) {
+      setCookie(cookie, 'off', 10*365);
+      table.toggle(false);
+    } else {
+      setCookie(cookie, 'on', 10*365);
+      table.toggle(true);
+    }
+  });
+
+  // Manage the DELETE button
+  document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
+    if ( ! canEditEvents ) {
+      enoperm();
+      return;
+    }
+
+    evt.preventDefault();
+    $j('#deleteConfirm').modal('show');
+  });
 }
 
 // Kick everything off
-window.addEventListener('DOMContentLoaded', initPage);
+$j(document).ready(initPage);

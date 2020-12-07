@@ -337,6 +337,7 @@ CREATE TABLE `Groups` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
   `ParentId` int(10) unsigned,
+  FOREIGN KEY (`ParentId`) REFERENCES `Groups` (`Id`) ON DELETE CASCADE,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -348,7 +349,9 @@ DROP TABLE IF EXISTS `Groups_Monitors`;
 CREATE TABLE `Groups_Monitors` (
     `Id` INT(10) unsigned NOT NULL auto_increment,
     `GroupId` int(10) unsigned NOT NULL,
+    FOREIGN KEY (`GroupId`) REFERENCES `Groups` (`Id`) ON DELETE CASCADE,
     `MonitorId` int(10) unsigned NOT NULL,
+    FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE,
     PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

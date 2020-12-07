@@ -698,6 +698,7 @@ void MonitorStream::runStream() {
           if ( !sendFrame(snap->image, snap->timestamp) ) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
+            break;
           }
           // Perhaps we should use NOW instead. 
           last_frame_timestamp = *timestamp;
@@ -709,6 +710,7 @@ void MonitorStream::runStream() {
             if ( !sendFrame(snap->image, snap->timestamp) ) {
               Debug(2, "sendFrame failed, quiting.");
               zm_terminate = true;
+              break;
             }
           }
 

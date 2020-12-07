@@ -28,87 +28,6 @@ require_once('includes/Filter.php');
 
 $eid = validInt($_REQUEST['eid']);
 $Event = new ZM\Event($eid);
-$Monitor = $Event->Monitor();
-
-$countSql = 'SELECT COUNT(*) AS FrameCount FROM Frames AS F WHERE 1 ';
-$frameSql = 'SELECT *, unix_timestamp(TimeStamp) AS UnixTimeStamp FROM Frames AS F WHERE 1 ';
-
-// override the sort_field handling in parseSort for frames
-if ( empty($_REQUEST['sort_field']) )
-  $_REQUEST['sort_field'] = 'FramesTimeStamp';
-
-if ( !isset($_REQUEST['sort_asc']) )
-  $_REQUEST['sort_asc'] = true;
-
-if ( !isset($_REQUEST['filter']) ) {
-  // generate a dummy filter from the eid for pagination
-  $_REQUEST['filter'] = array('Query' => array('terms' => array()));
-  $_REQUEST['filter'] = addFilterTerm(
-    $_REQUEST['filter'],
-    0,
-    array( 'cnj' => 'and', 'attr' => 'FramesEventId', 'op' => '=', 'val' => $eid )
-  );
-}
-
-parseSort();
-$filter = ZM\Filter::parse($_REQUEST['filter']);
-$filterQuery = $filter->querystring();
-
-if ( $filter->sql() ) {
-  $countSql .= ' AND ('.$filter->sql().')';
-  $frameSql .= ' AND ('.$filter->sql().')';
-}
-
-$frameSql .= " ORDER BY $sortColumn $sortOrder";
-if ( $sortColumn != 'Id' )
-  $frameSql .= ',Id '.$sortOrder;
-
-if ( isset($_REQUEST['scale']) ) {
-  $scale = validNum($_REQUEST['scale']);
-} else if ( isset($_COOKIE['zmWatchScale'.$Monitor->Id()]) ) {
-  $scale = validNum($_COOKIE['zmWatchScale'.$Monitor->Id()]);
-} else if ( isset($_COOKIE['zmWatchScale']) ) {
-  $scale = validNum($_COOKIE['zmWatchScale']);
-} else {
-  $scale = max(reScale(SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
-}
-
-$page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 1;
-$limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : 0;
-
-$nFrames = dbFetchOne($countSql, 'FrameCount');
-
-if ( !empty($limit) && ($nFrames > $limit) ) {
-  $nFrames = $limit;
-}
-
-$pages = (int)ceil($nFrames/ZM_WEB_EVENTS_PER_PAGE);
-
-if ( !empty($page) ) {
-  if ( $page <= 0 )
-    $page = 1;
-  else if ( $pages and ( $page > $pages ) )
-    $page = $pages;
-
-  $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
-  if ( empty($limit) ) {
-    $limitAmount = ZM_WEB_EVENTS_PER_PAGE;
-  } else {
-    $limitLeft = $limit - $limitStart;
-    $limitAmount = ($limitLeft>ZM_WEB_EVENTS_PER_PAGE)?ZM_WEB_EVENTS_PER_PAGE:$limitLeft;
-  }
-  $frameSql .= " LIMIT $limitStart, $limitAmount";
-} else if ( !empty($limit) ) {
-  $frameSql .= ' LIMIT 0, '.$limit;
-}
-
-$maxShortcuts = 5;
-$totalQuery = $sortQuery.'&amp;eid='.$eid.$limitQuery.$filterQuery;
-$pagination = getPagination($pages, $page, $maxShortcuts, $totalQuery);
-
-$frames = dbFetchAll($frameSql);
-
-$focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
 ?>
@@ -122,10 +41,12 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
     </div>
 
     <!-- Table styling handled by bootstrap-tables -->
-    <div class="row justify-content-center">      
+    <div class="row justify-content-center table-responsive-sm">      
       <table
         id="framesTable"
         data-locale="<?php echo i18n() ?>"
+        data-side-pagination="server"
+        data-ajax="ajaxRequest"
         data-pagination="true"
         data-show-pagination-switch="true"
         data-page-list="[10, 25, 50, 100, 200, All]"
@@ -139,12 +60,12 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
         data-toolbar="#toolbar"
         data-show-fullscreen="true"
         data-maintain-meta-data="true"
-        data-mobile-responsive="true"
         data-buttons-class="btn btn-normal"
         data-detail-view="true"
         data-detail-formatter="detailFormatter"
         data-show-toggle="true"
         data-show-jump-to="true"
+        data-show-refresh="true"
         class="table-sm table-borderless">
 
         <thead>
@@ -152,58 +73,16 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
           <tr>
             <th class="px-3" data-align="center" data-sortable="false" data-field="EventId"><?php echo translate('EventId') ?></th>
             <th class="px-3" data-align="center" data-sortable="true" data-field="FrameId"><?php echo translate('FrameId') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FrameType"><?php echo translate('Type') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FrameTimeStamp"><?php echo translate('TimeStamp') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FrameDelta"><?php echo translate('TimeDelta') ?></th>
-            <th class="px-3" data-align="center" data-sortable="true" data-field="FrameScore"><?php echo translate('Score') ?></th>
-<?php
-        if ( ZM_WEB_LIST_THUMBS ) {
-?>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="Type"><?php echo translate('Type') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="TimeStamp"><?php echo translate('TimeStamp') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="Delta"><?php echo translate('TimeDelta') ?></th>
+            <th class="px-3" data-align="center" data-sortable="true" data-field="Score"><?php echo translate('Score') ?></th>
             <th class="px-3" data-align="center" data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
-<?php
-        }
-?>
           </tr>
         </thead>
         <tbody>
-<?php
-if ( count($frames) ) {
-  foreach ( $frames as $frame ) {
-    $Frame = new ZM\Frame($frame);
-?>
-            <tr class="<?php echo strtolower($frame['Type']) ?>">
-              <td><?php echo $frame['EventId'] ?></td>
-              <td><?php echo $frame['FrameId'] ?></td>
-              <td><?php echo $frame['Type'] ?></td>
-              <td><?php echo strftime(STRF_FMT_TIME, $frame['UnixTimeStamp']) ?></td>
-              <td><?php echo number_format( $frame['Delta'], 2 ) ?></td>
-              <td><?php echo $frame['Score'] ?></td>
-<?php
-    if ( ZM_WEB_LIST_THUMBS ) {
-      $base_img_src = '?view=image&amp;fid=' .$Frame->Id();
-			$ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
-      $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';
-      $thmb_height = 'height="'.( ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor ) .'"';
-      $thmb_fn = 'filename=' .$Event->MonitorId(). '_' .$frame['EventId']. '_' .$frame['FrameId']. '.jpg';
-      $img_src = join('&amp;', array_filter(array($base_img_src, $thmb_width, $thmb_height, $thmb_fn)));
-      $full_img_src = join('&amp;', array_filter(array($base_img_src, $thmb_fn)));
-      $frame_src = '?view=frame&amp;eid=' .$Event->Id(). '&amp;fid=' .$frame['FrameId'];
-      
-      echo '<td class="colThumbnail zoom"><img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '"></td>'.PHP_EOL;
-		}
-?>
-            </tr>
-<?php
-  } // end foreach frame
-} else {
-?>
-            <tr>
-              <td colspan="5"><?php echo translate('NoFramesRecorded') ?></td>
-            </tr>
-<?php
-}
-?>
-          </tbody>
+          <!-- Row data populated via Ajax -->
+        </tbody>
         </table>
       </div>
   </div>

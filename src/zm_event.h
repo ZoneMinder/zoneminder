@@ -1,21 +1,21 @@
 //
 // ZoneMinder Core Interfaces, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_EVENT_H
 #define ZM_EVENT_H
@@ -47,25 +47,24 @@ class Zone;
 class Monitor;
 class EventStream;
 
-#define MAX_PRE_ALARM_FRAMES  16 // Maximum number of prealarm frames that can be stored
+// Maximum number of prealarm frames that can be stored
+#define MAX_PRE_ALARM_FRAMES  16
 typedef uint64_t event_id_t;
-    typedef enum { NORMAL=0, BULK, ALARM } FrameType;
+typedef enum { NORMAL=0, BULK, ALARM } FrameType;
 
 #include "zm_frame.h"
+
 //
 // Class describing events, i.e. captured periods of activity.
 //
 class Event {
   friend class EventStream;
 
-  protected:
-    static int    sd;
-
-  public:
+ public:
     typedef std::set<std::string> StringSet;
     typedef std::map<std::string,StringSet> StringSetMap;
 
-  protected:
+ protected:
     static const char * frame_type_names[3];
 
     struct PreAlarmData {
@@ -103,13 +102,18 @@ class Event {
     Storage::Schemes  scheme;
     int save_jpegs;
 
-    void createNotes( std::string &notes );
+    void createNotes(std::string &notes);
 
-  public:
-    static bool OpenFrameSocket( int );
-    static bool ValidateFrameSocket( int );
+ public:
+    static bool OpenFrameSocket(int);
+    static bool ValidateFrameSocket(int);
 
-    Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap );
+    Event(
+        Monitor *p_monitor,
+        struct timeval p_start_time,
+        const std::string &p_cause,
+        const StringSetMap &p_noteSetMap
+        );
     ~Event();
 
     uint64_t Id() const { return id; }
@@ -120,37 +124,56 @@ class Event {
     const struct timeval &StartTime() const { return start_time; }
     const struct timeval &EndTime() const { return end_time; }
 
-    bool SendFrameImage( const Image *image, bool alarm_frame=false );
-    bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false ) const;
-    bool WriteFrameVideo( const Image *image, const struct timeval timestamp, VideoWriter* videow );
-
-    void updateNotes( const StringSetMap &stringSetMap );
-
-    void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
-    void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=nullptr );
     void AddPacket( ZMPacket *p, int score=0, Image *alarm_frame=nullptr );
     bool WritePacket( ZMPacket &p );
+    bool SendFrameImage(const Image *image, bool alarm_frame=false);
+    bool WriteFrameImage(
+        Image *image,
+        struct timeval timestamp,
+        const char *event_file,
+        bool alarm_frame=false
+       ) const;
+    bool WriteFrameVideo(
+        const Image *image,
+        const struct timeval timestamp,
+        VideoWriter* videow
+        ) const;
 
-  private:
-    void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );
+    void updateNotes(const StringSetMap &stringSetMap);
+
+    void AddFrames(int n_frames, Image **images, struct timeval **timestamps);
+    void AddFrame(
+        Image *image,
+        struct timeval timestamp,
+        int score=0,
+        Image *alarm_image=nullptr);
+
+ private:
+    void AddFramesInternal(
+        int n_frames,
+        int start_frame,
+        Image **images,
+        struct timeval **timestamps);
     void WriteDbFrames();
     void UpdateFramesDelta(double offset);
+    bool SetPath(Storage *storage);
 
-  public:
-    static const char *getSubPath( struct tm *time ) {
+ public:
+    static const char *getSubPath(struct tm *time) {
       static char subpath[PATH_MAX] = "";
-      snprintf(subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec);
+      snprintf(subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d",
+          time->tm_year-100, time->tm_mon+1, time->tm_mday,
+          time->tm_hour, time->tm_min, time->tm_sec);
       return subpath;
     }
-    static const char *getSubPath( time_t *time ) {
-      return Event::getSubPath( localtime( time ) );
+    static const char *getSubPath(time_t *time) {
+      return Event::getSubPath(localtime(time));
     }
 
     const char* getEventFile(void) const {
       return video_file.c_str();
     }
 
-  public:
     static int PreAlarmCount() {
       return pre_alarm_count;
     }
@@ -167,7 +190,12 @@ class Event {
 			}
       pre_alarm_count = 0;
     }
-    static void AddPreAlarmFrame(Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=nullptr) {
+    static void AddPreAlarmFrame(
+        Image *image,
+        struct timeval timestamp,
+        int score=0,
+        Image *alarm_frame=nullptr
+        ) {
       pre_alarm_data[pre_alarm_count].image = new Image(*image);
       pre_alarm_data[pre_alarm_count].timestamp = timestamp;
       pre_alarm_data[pre_alarm_count].score = score;

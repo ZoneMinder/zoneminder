@@ -21,7 +21,8 @@ set(ZM_BIN_SRC_FILES
  zm_eventstream.cpp
  zm_exception.cpp
  zm_fifo.cpp
- zm_file_camera.cpp zm_ffmpeg_camera.cpp
+ zm_file_camera.cpp
+ zm_font.cpp
  zm_frame.cpp
  zm_group.cpp
  zm_image.cpp
@@ -32,6 +33,7 @@ set(ZM_BIN_SRC_FILES
  zm_monitor.cpp
  zm_monitorstream.cpp
  zm_ffmpeg.cpp
+ zm_ffmpeg_camera.cpp
  zm_ffmpeg_input.cpp
  zm_mpeg.cpp
  zm_packet.cpp

@@ -333,11 +333,12 @@ Monitor::Monitor()
   auto_resume_time(0),
   last_motion_score(0),
   camera(0),
+  event(0),
   n_zones(0),
   zones(nullptr),
   timestamps(0),
-  images(0),
-  privacy_bitmask( nullptr ),
+  images(nullptr),
+  privacy_bitmask(nullptr),
   event_delete_thread(nullptr),
   n_linked_monitors(0),
   linked_monitors(nullptr)
@@ -417,9 +418,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 
   if ( analysis_fps > 0.0 ) {
-      uint64_t usec = round(1000000*pre_event_count/analysis_fps);
-      video_buffer_duration.tv_sec = usec/1000000;
-      video_buffer_duration.tv_usec = usec % 1000000;
+    uint64_t usec = round(1000000*pre_event_count/analysis_fps);
+    video_buffer_duration.tv_sec = usec/1000000;
+    video_buffer_duration.tv_usec = usec % 1000000;
   }
 
   if ( dbrow[col] )
@@ -566,8 +567,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   else
     event_close_mode = CLOSE_IDLE;
 
-  Debug(1, "monitor purpose=%d", purpose);
-
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
@@ -591,16 +590,47 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 // maybe unneeded
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%d", storage->Path(), id);
+  shared_data = nullptr;
+
   if ( purpose == CAPTURE ) {
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
     }
   } else if ( purpose == ANALYSIS ) {
+    while (
+        ( !(this->connect() and shared_data->valid) )
+        or
+        ( shared_data->last_write_index == (unsigned int)image_buffer_count )
+        or
+        ( shared_data->last_write_time == 0 )
+        ) {
+      Debug(1, "Waiting for capture daemon shared_data(%d) last_write_index(%d), last_write_time(%d)",
+          (shared_data ? 1:0),
+          (shared_data ? shared_data->last_write_index : 0),
+          (shared_data ? shared_data->last_write_time : 0));
+      this->disconnect();
+      sleep(1);
+      if ( zm_terminate ) break;
+    }
+
+    ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
+        image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
+    adaptive_skip = true;
+
     if ( config.record_diag_images ) {
-      diag_path_r = monitor_dir + "/diag-r.jpg";
-      diag_path_d = monitor_dir + "/diag-d.jpg";
+      if ( config.record_diag_images_fifo ) {
+        diag_path_ref = stringtf("%s/diagpipe-r-%d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
+        diag_path_delta = stringtf("%s/diagpipe-d-%d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
+        FifoStream::fifo_create_if_missing(diag_path_ref.c_str());
+        FifoStream::fifo_create_if_missing(diag_path_delta.c_str());
+      } else {
+        diag_path_ref = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
+        diag_path_delta = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
+      }
     }
   }
+
+  start_time = last_fps_time = time( 0 );
 
   //this->delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
   //ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
@@ -769,6 +799,27 @@ Camera * Monitor::getCamera() {
 #else // HAVE_LIBCURL
     Error("You must have libcurl installed to use ffmpeg cameras for monitor %d", id);
 #endif // HAVE_LIBCURL
+  } else if ( type == VNC ) {
+#if HAVE_LIBVNC
+    camera = new VncCamera(
+      id,
+      host.c_str(),
+      port.c_str(),
+      user.c_str(),
+      pass.c_str(),
+      width,
+      height,
+      colours,
+      brightness,
+      contrast,
+      hue,
+      colour,
+      purpose==CAPTURE,
+      record_audio
+    );
+#else // HAVE_LIBVNC
+    Fatal("You must have libvnc installed to use VNC cameras for monitor id %d", id);
+#endif // HAVE_LIBVNC
   } // end if type
 
   camera->setMonitor(this);
@@ -815,7 +866,7 @@ bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose);
 #if ZM_MEM_MAPPED
   snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
-  map_fd = open(mem_file, O_RDWR|O_CREAT, (mode_t)0600);
+  map_fd = open(mem_file, O_RDWR|O_CREAT, (mode_t)0660);
   if ( map_fd < 0 ) {
     Error("Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno));
     return false;
@@ -864,12 +915,12 @@ bool Monitor::connect() {
     }
   }
 #endif
-  if ( mem_ptr == MAP_FAILED )
-    Fatal("Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
-  if ( mem_ptr == nullptr ) {
-    Error("mmap gave a NULL address:");
-  } else {
-    Debug(3, "mmapped to %p", mem_ptr);
+  if ( (mem_ptr == MAP_FAILED) or (mem_ptr == nullptr) ) {
+    Error("Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
+    close(map_fd);
+    map_fd = -1;
+    mem_ptr = nullptr;
+    return false;
   }
 #else // ZM_MEM_MAPPED
   shm_id = shmget((config.shm_key&0xffff0000)|id, mem_size, IPC_CREAT|0700);
@@ -960,11 +1011,71 @@ bool Monitor::connect() {
     timestamps = new struct timeval *[pre_event_count];
     images = new Image *[pre_event_count];
     last_signal = shared_data->signal;
-  }
-
+  } // end if purpose == ANALYSIS
   Debug(3, "Success connecting");
   return true;
 } // Monitor::connect
+
+bool Monitor::disconnect() {
+  if ( !mem_ptr )
+    return true;
+
+#if ZM_MEM_MAPPED
+  if ( mem_ptr > (void *)0 ) {
+    msync(mem_ptr, mem_size, MS_ASYNC);
+    munmap(mem_ptr, mem_size);
+  }
+  if ( map_fd >= 0 )
+    close(map_fd);
+
+  map_fd = -1;
+
+  if ( purpose == CAPTURE ) {
+    if ( unlink(mem_file) < 0 ) {
+      Warning("Can't unlink '%s': %s", mem_file, strerror(errno));
+    }
+  }
+#else // ZM_MEM_MAPPED
+  struct shmid_ds shm_data;
+  if ( shmctl(shm_id, IPC_STAT, &shm_data) < 0 ) {
+    Debug(3, "Can't shmctl: %s", strerror(errno));
+    return false;
+  }
+
+  shm_id = 0;
+
+  if ( shm_data.shm_nattch <= 1 ) {
+    if ( shmctl(shm_id, IPC_RMID, 0) < 0 ) {
+      Debug(3, "Can't shmctl: %s", strerror(errno));
+      return false;
+    }
+  }
+
+  if ( shmdt(mem_ptr) < 0 ) {
+    Debug(3, "Can't shmdt: %s", strerror(errno));
+    return false;
+  }
+#endif // ZM_MEM_MAPPED
+  if ( image_buffer ) {
+    for ( int i = 0; i < image_buffer_count; i++ ) {
+      delete image_buffer[i].image;
+      image_buffer[i].image = nullptr;
+    }
+    delete[] image_buffer;
+    image_buffer = nullptr;
+  }
+
+  if ( purpose == ANALYSIS ) {
+    delete[] timestamps;
+    timestamps = nullptr;
+    delete[] images;
+    images = nullptr;
+  } // end if purpose == ANALYSIS
+
+  mem_ptr = nullptr;
+  shared_data = nullptr;
+  return true;
+}  // end bool Monitor::disconnect()
 
 Monitor::~Monitor() {
   if ( mem_ptr ) {
@@ -985,92 +1096,36 @@ Monitor::~Monitor() {
       event_delete_thread = nullptr;
     }
 
-    if ( deinterlacing_value == 4 ) {
-      delete next_buffer.image;
-    }
-#if 1
-    for ( int i=0; i < image_buffer_count; i++ ) {
-      delete image_buffer[i].image;
-    }
-#endif
-    delete[] image_buffer;
-
     if ( purpose == ANALYSIS ) {
       shared_data->state = state = IDLE;
       // I think we set it to the count so that it is technically 1 behind capture, which starts at 0
       shared_data->last_read_index = image_buffer_count;
       shared_data->last_read_time = 0;
+
+			if ( Event::PreAlarmCount() )
+				Event::EmptyPreAlarmFrames();
     } else if ( purpose == CAPTURE ) {
       shared_data->valid = false;
       memset(mem_ptr, 0, mem_size);
-    }
-
-#if ZM_MEM_MAPPED
-    if ( msync(mem_ptr, mem_size, MS_SYNC) < 0 )
-      Error("Can't msync: %s", strerror(errno));
-    if ( munmap(mem_ptr, mem_size) < 0 )
-      Fatal("Can't munmap: %s", strerror(errno));
-    close(map_fd);
-
-    if ( purpose == CAPTURE ) {
-      // How about we store this in the object on instantiation so that we don't have to do this again.
-      char mmap_path[PATH_MAX] = "";
-      snprintf(mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
-
-      if ( unlink(mmap_path) < 0 ) {
-        Warning("Can't unlink '%s': %s", mmap_path, strerror(errno));
+      if ( (deinterlacing & 0xff) == 4 ) {
+        delete next_buffer.image;
+        delete next_buffer.timestamp;
       }
     }
-#else // ZM_MEM_MAPPED
-    struct shmid_ds shm_data;
-    if ( shmctl(shm_id, IPC_STAT, &shm_data) < 0 ) {
-      Fatal("Can't shmctl: %s", strerror(errno));
-    }
-    if ( shm_data.shm_nattch <= 1 ) {
-      if ( shmctl(shm_id, IPC_RMID, 0) < 0 ) {
-        Fatal("Can't shmctl: %s", strerror(errno));
-      }
-    }
-#endif // ZM_MEM_MAPPED
+    disconnect();
   } // end if mem_ptr
 
-  if ( videoStore ) {
-    delete videoStore;
-    videoStore = NULL;
-  }
-
-  if ( n_linked_monitors ) {
-    for( int i = 0; i < n_linked_monitors; i++ ) {
-      delete linked_monitors[i];
-    }
-    delete[] linked_monitors;
-    linked_monitors = 0;
-  }
-
-  if ( timestamps ) {
-    delete[] timestamps;
-    timestamps = 0;
-  }
-  if ( images ) {
-    delete[] images;
-    images = 0;
-  }
-
   delete packetqueue;
-  packetqueue = NULL;
+  packetqueue = nullptr;
 
-  if ( privacy_bitmask ) {
-    delete[] privacy_bitmask;
-    privacy_bitmask = NULL;
-  }
-  for ( int i=0; i < n_zones; i++ ) {
+  for ( int i = 0; i < n_zones; i++ ) {
     delete zones[i];
   }
   delete[] zones;
 
   delete camera;
   delete storage;
-}
+}  // end Monitor::~Monitor()
 
 void Monitor::AddZones(int p_n_zones, Zone *p_zones[]) {
   for ( int i=0; i < n_zones; i++ )
@@ -1703,7 +1758,9 @@ bool Monitor::Analyse() {
     // signal is set by capture
     bool signal = shared_data->signal;
     bool signal_change = (signal != last_signal);
-    Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
+
+    Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%d)",
+        signal, signal_change, trigger_data->trigger_state);
 
     // if we have been told to be OFF, then we are off and don't do any processing.
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
@@ -1795,7 +1852,11 @@ bool Monitor::Analyse() {
             for ( int i = 0; i < n_linked_monitors; i++ ) {
               // TODO: Shouldn't we try to connect?
               if ( linked_monitors[i]->isConnected() ) {
+                Debug(4, "Linked monitor %d %s is connected",
+                    linked_monitors[i]->Id(), linked_monitors[i]->Name());
                 if ( linked_monitors[i]->hasAlarmed() ) {
+                  Debug(4, "Linked monitor %d %s is alarmed",
+                      linked_monitors[i]->Id(), linked_monitors[i]->Name());
                   if ( !event ) {
                     if ( first_link ) {
                       if ( cause.length() )
@@ -1806,6 +1867,9 @@ bool Monitor::Analyse() {
                   }
                   noteSet.insert(linked_monitors[i]->Name());
                   score += 50;
+                } else {
+                  Debug(4, "Linked monitor %d %s is not alarmed",
+                      linked_monitors[i]->Id(), linked_monitors[i]->Name());
                 }
               } else {
                 Debug(1, "Linked monitor %d %d is not connected. Connecting.", i, linked_monitors[i]->Id());
@@ -1823,7 +1887,7 @@ bool Monitor::Analyse() {
               Debug(2, "Have event in mocord");
               if ( section_length
                   && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                  && ( (function == MOCORD && (event_close_mode != CLOSE_TIME)) || ! ( timestamp->tv_sec % section_length ) ) 
+                  && ( (function == MOCORD && (event_close_mode != CLOSE_TIME)) || ! ( timestamp->tv_sec % section_length ) )
                  ) {
 
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
@@ -2182,7 +2246,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
         int n_monitors = mysql_num_rows(result);
         if ( n_monitors == 1 ) {
           MYSQL_ROW dbrow = mysql_fetch_row(result);
-          Debug(1, "Linking to monitor %d", link_ids[i]);
+          Debug(1, "Linking to monitor %d %s", atoi(dbrow[0]), dbrow[1]);
           linked_monitors[count++] = new MonitorLink(link_ids[i], dbrow[1]);
         } else {
           Warning("Can't link to monitor %d, invalid id, function or not enabled", link_ids[i]);
@@ -2214,6 +2278,7 @@ int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose)
   }
   if ( mysql_errno(&dbconn) ) {
     Error("Can't fetch row: %s", mysql_error(&dbconn));
+    mysql_free_result(result);
     return 0;
   }
   mysql_free_result(result);
@@ -2543,8 +2608,8 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   ref_image.Delta(comp_image, &delta_image);
 
   if ( config.record_diag_images ) {
-    ref_image.WriteJpeg(diag_path_r.c_str(), config.record_diag_images_fifo);
-    delta_image.WriteJpeg(diag_path_d.c_str(), config.record_diag_images_fifo);
+    ref_image.WriteJpeg(diag_path_ref.c_str(), config.record_diag_images_fifo);
+    delta_image.WriteJpeg(diag_path_delta.c_str(), config.record_diag_images_fifo);
   }
 
   // Blank out all exclusion zones

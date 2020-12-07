@@ -40,38 +40,59 @@ bool zmDbConnect() {
     Error("Can't initialise database connection: %s", mysql_error(&dbconn));
     return false;
   }
+
   bool reconnect = 1;
   if ( mysql_options(&dbconn, MYSQL_OPT_RECONNECT, &reconnect) )
     Error("Can't set database auto reconnect option: %s", mysql_error(&dbconn));
-  if ( !staticConfig.DB_SSL_CA_CERT.empty() )
+
+  if ( !staticConfig.DB_SSL_CA_CERT.empty() ) {
     mysql_ssl_set(&dbconn,
         staticConfig.DB_SSL_CLIENT_KEY.c_str(),
         staticConfig.DB_SSL_CLIENT_CERT.c_str(),
         staticConfig.DB_SSL_CA_CERT.c_str(),
         nullptr, nullptr);
+  }
+
   std::string::size_type colonIndex = staticConfig.DB_HOST.find(":");
   if ( colonIndex == std::string::npos ) {
-    if ( !mysql_real_connect(&dbconn, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), nullptr, 0, nullptr, 0) ) {
-      Error( "Can't connect to server: %s", mysql_error(&dbconn));
+    if ( !mysql_real_connect(
+          &dbconn,
+          staticConfig.DB_HOST.c_str(),
+          staticConfig.DB_USER.c_str(),
+          staticConfig.DB_PASS.c_str(),
+          nullptr, 0, nullptr, 0) ) {
+      Error("Can't connect to server: %s", mysql_error(&dbconn));
       return false;
     }
   } else {
-    std::string dbHost = staticConfig.DB_HOST.substr( 0, colonIndex );
-    std::string dbPortOrSocket = staticConfig.DB_HOST.substr( colonIndex+1 );
+    std::string dbHost = staticConfig.DB_HOST.substr(0, colonIndex);
+    std::string dbPortOrSocket = staticConfig.DB_HOST.substr(colonIndex+1);
     if ( dbPortOrSocket[0] == '/' ) {
-      if ( !mysql_real_connect(&dbconn, nullptr, staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), nullptr, 0, dbPortOrSocket.c_str(), 0) ) {
+      if ( !mysql_real_connect(
+            &dbconn,
+            nullptr,
+            staticConfig.DB_USER.c_str(),
+            staticConfig.DB_PASS.c_str(),
+            nullptr, 0, dbPortOrSocket.c_str(), 0) ) {
         Error("Can't connect to server: %s", mysql_error(&dbconn));
         return false;
       }
     } else {
-      if ( !mysql_real_connect( &dbconn, dbHost.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), nullptr, atoi(dbPortOrSocket.c_str()), nullptr, 0 ) ) {
-        Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
+      if ( !mysql_real_connect(
+            &dbconn,
+            dbHost.c_str(),
+            staticConfig.DB_USER.c_str(),
+            staticConfig.DB_PASS.c_str(),
+            nullptr,
+            atoi(dbPortOrSocket.c_str()),
+            nullptr, 0) ) {
+        Error("Can't connect to server: %s", mysql_error(&dbconn));
         return false;
       }
     }
   }
-  if ( mysql_select_db( &dbconn, staticConfig.DB_NAME.c_str() ) ) {
-    Error( "Can't select database: %s", mysql_error( &dbconn ) );
+  if ( mysql_select_db(&dbconn, staticConfig.DB_NAME.c_str()) ) {
+    Error("Can't select database: %s", mysql_error(&dbconn));
     return false;
   }
   zmDbConnected = true;
@@ -140,7 +161,7 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
   }
 
   row = mysql_fetch_row(result_set);
-  if ( ! row ) {
+  if ( !row ) {
     mysql_free_result(result_set);
     result_set = nullptr;
     Error("Error getting row from query %s. Error is %s", query, mysql_error(&dbconn));
@@ -155,4 +176,5 @@ zmDbRow::~zmDbRow() {
     mysql_free_result(result_set);
     result_set = nullptr;
   }
+  row = nullptr;
 }

@@ -571,3 +571,6 @@ li.search-choice {
 }
 /* end chosen override */
 
+modal-content {
+  background-color: #222222;
+}

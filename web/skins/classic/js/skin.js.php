@@ -49,6 +49,8 @@ var canViewMonitors = <?php echo canView('Monitors')?'true':'false' ?>;
 
 var canEditGroups = <?php echo canEdit('Groups')?'true':'false' ?>;
 
+var ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;
+
 var refreshParent = <?php
 if ( ! empty($refreshParent) ) {
   if ( $refreshParent == true ) {

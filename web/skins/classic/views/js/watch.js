@@ -658,8 +658,8 @@ function handleClick( event ) {
   
   var scaleX = parseInt(monitorWidth / width);
   var scaleY = parseInt(monitorHeight / height);
-  var x = (event.page.x - $target.getLeft()) * scaleX;
-  var y = (event.page.y - $target.getTop()) * scaleY;
+  var x = (event.page.x - target.getLeft()) * scaleX;
+  var y = (event.page.y - target.getTop()) * scaleY;
 
   if ( showMode == 'events' || !imageControlMode ) {
     if ( event.shift ) {

@@ -203,6 +203,8 @@ set(ZM_NO_X10 "OFF" CACHE BOOL
 set(ZM_ONVIF "ON" CACHE BOOL 
     "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not 
     work with all cameras claiming to be ONVIF compliant. default: ON")
+set(ZM_NO_RTSPSERVER "OFF" CACHE BOOL
+  "Set to ON to skip live555 checks and force building ZM without rtsp server support. default: OFF")
 set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING 
 	"By default, ZoneMinder's Perl modules are installed into the Vendor folders, 
 	as defined by your installation of Perl. You can change that here. Consult Perl's 
@@ -710,6 +712,21 @@ endif(NOT ZM_NO_LIBVNC)
   ##set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
   #list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
 #endif()
+
+if(NOT ZM_NO_RTSPSERVER)
+  find_package(Live555)
+  if(Live555_FOUND)
+    include_directories(${Live555_INCLUDE_DIRS})
+    set(CMAKE_REQUIRED_INCLUDES "${Live555_INCLUDE_DIRS}")
+    list(APPEND ZM_BIN_LIBS "${Live555_LIBRARIES}")
+    set(HAVE_RTSP_SERVER 1)
+  else(Live555_FOUND)
+    set(HAVE_RTSP_SERVER 0)
+  endif(Live555_FOUND)
+else(NOT ZM_NO_RTSPSERVER)
+  set(HAVE_RTSP_SERVER 0)
+endif(NOT ZM_NO_RTSPSERVER)
+
 #
 # *** END OF LIBRARY CHECKS ***
 

@@ -112,7 +112,7 @@ function reloadWindow() {
 function manageFunctionModal(evt) {
   evt.preventDefault();
 
-  if ( !canEditEvents ) {
+  if ( !canEdit.Events ) {
     enoperm();
     return;
   }

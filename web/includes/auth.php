@@ -207,7 +207,6 @@ function getAuthUser($auth) {
     } // end if 
   } // end if using auth hash
 
-  } // end if using auth hash
   ZM\Error("Unable to authenticate user from auth hash '$auth'");
   return null;
 } // end getAuthUser($auth)

@@ -128,7 +128,6 @@ var streamSrc = "<?php echo preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
-var canEditMonitors = <?php echo canEdit( 'Monitors' )?'true':'false' ?>;
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
 var canPlayPauseAudio = Browser.ie;

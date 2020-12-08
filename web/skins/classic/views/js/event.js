@@ -598,8 +598,8 @@ function getEventResponse(respObj, respText) {
   $j('dataStorage').text( eventData.Storage );
 
   // Refresh the status of the archive buttons
-  archiveBtn.prop('disabled', !(!eventData.Archived && canEditEvents));
-  unarchiveBtn.prop('disabled', !(eventData.Archived && canEditEvents));
+  archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
+  unarchiveBtn.prop('disabled', !(eventData.Archived && canEdit.Events));
 
   history.replaceState(null, null, '?view=event&eid=' + eventData.Id + filterQuery + sortQuery); //if popup removed, check if this allows forward
   // Technically, events can be different sizes, so may need to update the size of the image, but it might be better to have it stay scaled...
@@ -1045,7 +1045,7 @@ function getDelConfirmModal() {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -1134,13 +1134,13 @@ function initPage() {
   });
 
   // enable or disable buttons based on current selection and user rights
-  renameBtn.prop('disabled', !canEditEvents);
-  archiveBtn.prop('disabled', !(!eventData.Archived && canEditEvents));
-  unarchiveBtn.prop('disabled', !(eventData.Archived && canEditEvents));
-  editBtn.prop('disabled', !canEditEvents);
-  exportBtn.prop('disabled', !canViewEvents);
-  downloadBtn.prop('disabled', !canViewEvents);
-  deleteBtn.prop('disabled', !canEditEvents);
+  renameBtn.prop('disabled', !canEdit.Events);
+  archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
+  unarchiveBtn.prop('disabled', !(eventData.Archived && canEdit.Events));
+  editBtn.prop('disabled', !canEdit.Events);
+  exportBtn.prop('disabled', !canView.Events);
+  downloadBtn.prop('disabled', !canView.Events);
+  deleteBtn.prop('disabled', !canEdit.Events);
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
@@ -1183,7 +1183,7 @@ function initPage() {
 
   // Manage the UNARCHIVE button
   document.getElementById("unarchiveBtn").addEventListener("click", function onUnarchiveClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -1198,7 +1198,7 @@ function initPage() {
 
   // Manage the EDIT button
   document.getElementById("editBtn").addEventListener("click", function onEditClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -1253,7 +1253,7 @@ function initPage() {
 
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }

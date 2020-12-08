@@ -43,7 +43,7 @@ function getDelConfirmModal(key) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEditControl ) {
+    if ( ! canEdit.Control ) {
       enoperm();
       return;
     }
@@ -67,9 +67,9 @@ function initPage() {
   function() {
     selections = table.bootstrapTable('getSelections');
 
-    addNewBtn.prop('disabled', (selections.length || !canEditControl));
-    editBtn.prop('disabled', !((selections.length == 1) && canEditControl));
-    deleteBtn.prop('disabled', !(selections.length && canEditControl));
+    addNewBtn.prop('disabled', (selections.length || !canEdit.Control));
+    editBtn.prop('disabled', !((selections.length == 1) && canEdit.Control));
+    deleteBtn.prop('disabled', !(selections.length && canEdit.Control));
   });
 
   // Init the bootstrap-table
@@ -92,7 +92,7 @@ function initPage() {
 
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
-    if ( ! canEditControl ) {
+    if ( ! canEdit.Control ) {
       enoperm();
       return;
     }

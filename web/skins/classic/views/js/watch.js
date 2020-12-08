@@ -267,7 +267,7 @@ function getStreamCmdResponse(respObj, respText) {
         setButtonState('zoomOutBtn', 'inactive');
       }
 
-      if ( canEditMonitors ) {
+      if ( canEdit.Monitors ) {
         if ( streamStatus.enabled ) {
           enableAlmBtn.addClass('disabled');
           enableAlmBtn.prop('title', disableAlarmsStr);
@@ -285,7 +285,7 @@ function getStreamCmdResponse(respObj, respText) {
           forceAlmBtn.prop('disabled', true);
         }
         enableAlmBtn.prop('disabled', false);
-      } // end if canEditMonitors
+      } // end if canEdit.Monitors
 
       if ( streamStatus.auth ) {
         auth_hash = streamStatus.auth;
@@ -772,7 +772,7 @@ function processClicks(event, field, value, row, $element) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -795,7 +795,7 @@ function manageDelConfirmModalBtns() {
 }
 
 function initPage() {
-  if ( canViewControl ) {
+  if ( canView.Control ) {
     // Load the PTZ Preset modal into the DOM
     if ( monitorControllable ) getCtrlPresetModal();
     // Load the settings modal into the DOM
@@ -866,7 +866,7 @@ function initPage() {
   });
 
   // Only enable the settings button for local cameras
-  settingsBtn.prop('disabled', !canViewControl);
+  settingsBtn.prop('disabled', !canView.Control);
   if ( monitorType != 'Local' ) settingsBtn.hide();
 
   // Init the bootstrap-table

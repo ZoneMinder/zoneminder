@@ -74,7 +74,6 @@ var eventsRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_EVENTS ?>;
 var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
-var canViewControl = <?php echo canView( 'Control' )?'true':'false' ?>;
 
 var canPlayPauseAudio = Browser.ie;
 

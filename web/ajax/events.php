@@ -6,7 +6,7 @@ $data = array();
 // INITIALIZE AND CHECK SANITY
 //
 
-if ( !canEdit('Events') ) $message = 'Insufficient permissions for user '.$user['Username'];
+if ( !canView('Events') ) $message = 'Insufficient permissions for user '.$user['Username'];
 
 if ( empty($_REQUEST['task']) ) {
   $message = 'Must specify a task';
@@ -74,10 +74,22 @@ if ( isset($_REQUEST['limit']) ) {
 
 switch ( $task ) {
   case 'archive' :
+    foreach ( $eids as $eid ) archiveRequest($task, $eid);
+    break;
   case 'unarchive' :
+		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
+		if ( !canEdit('Events') )  {
+			ajaxError('Insufficient permissions for user '.$user['Username']);
+			return;
+		}
     foreach ( $eids as $eid ) archiveRequest($task, $eid);
     break;
   case 'delete' :
+		if ( !canEdit('Events') )  {
+			ajaxError('Insufficient permissions for user '.$user['Username']);
+			return;
+		}
+
     foreach ( $eids as $eid ) $data[] = deleteRequest($eid);
     break;
   case 'query' :

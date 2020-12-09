@@ -30,11 +30,12 @@ extern "C" {
 
 #include "zm_image.h"
 #include "zm_thread.h"
+#include <mutex>
 
 class ZMPacket {
   public:
   
-    Mutex mutex;
+    std::recursive_mutex mutex;
     int keyframe;
     AVPacket  packet;   // Input packet, undecoded
     AVFrame   *in_frame;    // Input image, decoded Theoretically only filled if needed.
@@ -63,12 +64,16 @@ class ZMPacket {
     ZMPacket();
     ~ZMPacket();
     void lock() {
-      Debug(2,"Locking packet %d", this->image_index);
+      Debug(4,"Locking packet %d", this->image_index);
       mutex.lock();
-      Debug(2,"packet %d locked", this->image_index);
+      Debug(4,"packet %d locked", this->image_index);
+    };
+    bool trylock() {
+      Debug(4,"TryLocking packet %d", this->image_index);
+      return mutex.try_lock();
     };
     void unlock() {
-      Debug(2,"packet %d unlocked", this->image_index);
+      Debug(4,"packet %d unlocked", this->image_index);
       mutex.unlock();
     };
     AVFrame *get_out_frame( const AVCodecContext *ctx );

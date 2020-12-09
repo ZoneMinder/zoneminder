@@ -147,6 +147,8 @@ our $mem_data = {
     last_write_index => { type=>'uint32', seq=>$mem_seq++ },
     last_read_index  => { type=>'uint32', seq=>$mem_seq++ },
     state            => { type=>'uint32', seq=>$mem_seq++ },
+    capture_fps      => { type=>'double', seq=>$mem_seq++ },
+    analysis_fps     => { type=>'double', seq=>$mem_seq++ },
     last_event       => { type=>'uint64', seq=>$mem_seq++ },
     action           => { type=>'uint32', seq=>$mem_seq++ },
     brightness       => { type=>'int32', seq=>$mem_seq++ },
@@ -214,7 +216,7 @@ sub zmMemInit {
           || $member_data->{type} eq 'bool4'
           ) {
         $member_data->{size} = $member_data->{align} = 4;
-      } elsif ($member_data->{type} eq 'int16'
+      } elsif ( $member_data->{type} eq 'int16'
           || $member_data->{type} eq 'uint16'
           ) {
         $member_data->{size} = $member_data->{align} = 2;
@@ -223,6 +225,8 @@ sub zmMemInit {
           || $member_data->{type} eq 'bool1'
           ) {
         $member_data->{size} = $member_data->{align} = 1;
+      } elsif ( $member_data->{type} eq 'double' ) {
+        $member_data->{size} = $member_data->{align} = 8;
       } elsif ( $member_data->{type} =~ /^u?int8\[(\d+)\]$/ ) {
         $member_data->{size} = $1;
         $member_data->{align} = 1;
@@ -236,7 +240,7 @@ sub zmMemInit {
         $offset += ($member_data->{align} - ($offset%$member_data->{align}));
       }
       $member_data->{offset} = $offset;
-      $offset += $member_data->{size}
+      $offset += $member_data->{size};
     }
     $section_data->{size} = $offset - $section_data->{offset};
   }
@@ -322,7 +326,7 @@ sub zmMemRead {
     my $size = $mem_data->{$section}->{contents}->{$element}->{size};
 
     if (!defined $offset || !defined $type || !defined $size) {
-        Error('Invalid field:'.$field.' setting to undef and exiting zmMemRead');
+        Error('Invalid field:'.$field.' setting to undef and exiting zmMemRead offset:'.$offset.' type:'.$type.' size:'.$size);
         zmMemInvalidate($monitor);
         return undef;
     }   
@@ -355,7 +359,9 @@ sub zmMemRead {
     } elsif ( $type eq 'int8' ) {
       ( $value ) = unpack('c', $data);
     } elsif ( $type eq 'uint8' || $type eq 'bool1' ) {
-      ( $value ) = unpack( 'C', $data );
+      ( $value ) = unpack('C', $data);
+    } elsif ( $type eq 'double' ) {
+      ( $value ) = unpack('d', $data);
     } elsif ( $type =~ /^int8\[\d+\]$/ ) {
       ( $value ) = unpack('Z'.$size, $data);
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {

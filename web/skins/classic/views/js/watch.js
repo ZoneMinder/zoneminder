@@ -208,6 +208,8 @@ function getStreamCmdResponse(respObj, respText) {
     if ( respObj.status ) {
       streamStatus = respObj.status;
       $j('#fpsValue').text(streamStatus.fps);
+      $j('#capturefpsValue').text(streamStatus.capturefps);
+      $j('#analysisfpsValue').text(streamStatus.analysisfps);
 
       setAlarmState(streamStatus.state);
 

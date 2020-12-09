@@ -26,6 +26,8 @@
 #include <list>
 #include "zm_packet.h"
 #include "zm_thread.h"
+#include <mutex>
+#include <condition_variable>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -41,9 +43,10 @@ class zm_packetqueue {
     int max_video_packet_count; // allow a negative value to someday mean unlimited
     int max_stream_id;
     int *packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
+    bool deleting;
 
-    RecursiveMutex mutex;
-    Condition *condition;
+    std::mutex mutex;
+    std::condition_variable condition;
 
   public:
     zm_packetqueue(int p_max_video_packet_count, int p_video_stream_id, int p_audio_stream_id);

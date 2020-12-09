@@ -105,7 +105,7 @@ function validateUser($username='', $password='') {
 
 function userLogout() {
   global $user;
-  ZM\Info('User "'.$user['Username'].'" logged out');
+  ZM\Info('User "'.($user?$user['Username']:'no one').'" logged out');
   $user = null;// unset only clears the local variable
   zm_session_clear();
 }

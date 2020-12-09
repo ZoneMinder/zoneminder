@@ -1,3 +1,4 @@
+var streamCmdTimer = null;
 var streamStatus;
 var auth_hash;
 var alarmState = STATE_IDLE;
@@ -315,7 +316,7 @@ function streamCmdPause( action ) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if ( action ) {
-    var data = new Object();
+    var data = {};
     if ( auth_hash ) data.auth = auth_hash;
     data.command = CMD_PAUSE;
     streamCmdReq(data);
@@ -343,7 +344,7 @@ function streamCmdPlay( action ) {
     }
   }
   if ( action ) {
-    var data = new Object();
+    var data = {};
     if ( auth_hash ) data.auth = auth_hash;
     data.command = CMD_PLAY;
     streamCmdReq(data);
@@ -369,7 +370,7 @@ function streamCmdStop( action ) {
     setButtonState('fastRevBtn', 'unavail');
   }
   if ( action ) {
-    var data = new Object();
+    var data = {};
     if ( auth_hash ) data.auth = auth_hash;
     data.command = CMD_STOP;
     streamCmdReq(data);
@@ -389,7 +390,7 @@ function streamCmdFastFwd( action ) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if ( action ) {
-    var data = new Object();
+    var data = {};
     if ( auth_hash ) data.auth = auth_hash;
     data.command = CMD_FASTFWD;
     streamCmdReq(data);
@@ -407,7 +408,7 @@ function streamCmdSlowFwd( action ) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if ( action ) {
-    var data = new Object();
+    var data = {};
     if ( auth_hash ) data.auth = auth_hash;
     data.command = CMD_SLOWFWD;
     streamCmdReq(data);
@@ -429,7 +430,7 @@ function streamCmdSlowRev( action ) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if ( action ) {
-    var data = new Object();
+    var data = {};
     if ( auth_hash ) data.auth = auth_hash;
     data.command = CMD_SLOWREV;
     streamCmdReq(data);
@@ -451,7 +452,7 @@ function streamCmdFastRev( action ) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if ( action ) {
-    var data = new Object();
+    var data = {};
     if ( auth_hash ) data.auth = auth_hash;
     data.command = CMD_FASTREV;
     streamCmdReq(data);
@@ -459,7 +460,7 @@ function streamCmdFastRev( action ) {
 }
 
 function streamCmdZoomIn( x, y ) {
-  var data = new Object();
+  var data = {};
   if ( auth_hash ) data.auth = auth_hash;
   data.x = x;
   data.y = y;
@@ -468,22 +469,22 @@ function streamCmdZoomIn( x, y ) {
 }
 
 function streamCmdZoomOut() {
-  var data = new Object();
+  var data = {};
   if ( auth_hash ) data.auth = auth_hash;
   data.command = CMD_ZOOMOUT;
   streamCmdReq(data);
 }
 
 function streamCmdScale( scale ) {
-  var data = new Object();
+  var data = {};
   if ( auth_hash ) data.auth = auth_hash;
   data.command = CMD_SCALE;
   data.scale = scale;
-  streamCmdReq(data);  
+  streamCmdReq(data);
 }
 
 function streamCmdPan( x, y ) {
-  var data = new Object();
+  var data = {};
   if ( auth_hash ) data.auth = auth_hash;
   data.x = x;
   data.y = y;
@@ -492,7 +493,7 @@ function streamCmdPan( x, y ) {
 }
 
 function streamCmdQuery() {
-  var data = new Object();
+  var data = {};
   if ( auth_hash ) data.auth = auth_hash;
   data.command = CMD_QUERY;
   streamCmdReq(data);
@@ -530,14 +531,12 @@ function alarmCmdReq(data) {
   $j.getJSON(thisUrl + '?view=request&request=alarm&id='+monitorId, data)
       .done(getAlarmCmdResponse)
       .fail(function(jqxhr, textStatus, error) {
-        if(textstatus === "timeout") {
+        if (textstatus === "timeout") {
           streamCmdQuery();
         } else {
           logAjaxFail(jqxhr, textStatus, error);
         }
       });
-
-  var alarmCmdFirst = true;
 }
 
 function getAlarmCmdResponse(respObj, respText) {
@@ -545,14 +544,14 @@ function getAlarmCmdResponse(respObj, respText) {
 }
 
 function cmdDisableAlarms() {
-  var data = new Object();
+  var data = {};
   if ( auth_hash ) data.auth = auth_hash;
   data.command = 'disableAlarms';
   alarmCmdReq(data);
 }
 
 function cmdEnableAlarms() {
-  var data = new Object();
+  var data = {};
   if ( auth_hash ) data.auth = auth_hash;
   data.command = 'enableAlarms';
   alarmCmdReq(data);
@@ -567,7 +566,7 @@ function cmdAlarm() {
 }
 
 function cmdForceAlarm() {
-  var data = new Object();
+  var data = {};
   if ( auth_hash ) data.auth = auth_hash;
   data.command = 'forceAlarm';
   alarmCmdReq(data);
@@ -575,7 +574,7 @@ function cmdForceAlarm() {
 }
 
 function cmdCancelForcedAlarm() {
-  var data = new Object();
+  var data = {};
   if ( auth_hash ) data.auth = auth_hash;
   data.command = 'cancelForcedAlarm';
   alarmCmdReq(data);
@@ -613,7 +612,7 @@ function controlCmd(event) {
   xtell = button.getAttribute('data-xtell');
   ytell = button.getAttribute('data-ytell');
 
-  var data = new Object();
+  var data = {};
 
   if ( event && (xtell || ytell) ) {
     var target = event.target;
@@ -645,7 +644,7 @@ function controlCmd(event) {
   }
 
   if ( auth_hash ) data.auth = auth_hash;
-  data.control = control
+  data.control = control;
   controlReq(data);
 
   if ( streamMode == 'single' ) {
@@ -654,14 +653,14 @@ function controlCmd(event) {
 }
 
 function controlCmdImage( x, y ) {
-  var data = new Object();
+  var data = {};
   if ( auth_hash ) data.auth = auth_hash;
   data.scale = scale;
   data.control = imageControlMode;
   data.x = x;
   data.y = y;
   controlReq(data);
-  
+
   if ( streamMode == 'single' ) {
     fetchImage.pass( $('imageFeed').getElement('img') ).delay( 1000 );
   }

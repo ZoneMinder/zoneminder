@@ -13,7 +13,7 @@ class AnalysisThread : public Thread {
     Monitor *monitor;
 
   public:
-    explicit AnalysisThread( Monitor * );
+    explicit AnalysisThread(Monitor *);
     ~AnalysisThread();
     int run();
 
@@ -21,7 +21,7 @@ class AnalysisThread : public Thread {
       terminate = true;
     }
     bool stopped() const {
-      return( terminate );
+      return terminate;
     }
 
 };

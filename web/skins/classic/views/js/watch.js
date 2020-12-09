@@ -9,23 +9,6 @@ var forceAlmBtn = $j('#forceAlmBtn');
 var table = $j('#eventList');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 
-if ( monitorType != 'WebSite' ) {
-  var streamCmdParms = 'view=request&request=stream&connkey='+connKey;
-  if ( auth_hash ) {
-    streamCmdParms += '&auth='+auth_hash;
-  }
-  var streamCmdReq = new Request.JSON( {
-    url: monitorUrl,
-    method: 'get',
-    timeout: AJAX_TIMEOUT,
-    link: 'chain',
-    onError: getStreamCmdError,
-    onSuccess: getStreamCmdResponse,
-    onFailure: getStreamCmdFailure
-  } );
-  var streamCmdTimer = null;
-}
-
 /*
 This is the format of the json object sent by bootstrap-table
 
@@ -194,10 +177,6 @@ function getStreamCmdError(text, error) {
   window.location.reload();
 }
 
-function getStreamCmdFailure(xhr) {
-  console.log(xhr);
-}
-
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk('stream');
   if ( streamCmdTimer ) {
@@ -296,10 +275,7 @@ function getStreamCmdResponse(respObj, respText) {
           var newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
           streamImg.src = newSrc;
         }
-        streamCmdParms = streamCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-        statusCmdParms = statusCmdParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
         table.bootstrapTable('refresh');
-        controlParms = controlParms.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
       } // end if have a new auth hash
     } // end if respObj.status
   } else {
@@ -339,7 +315,10 @@ function streamCmdPause( action ) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_PAUSE);
+    var data = new Object();
+    if ( auth_hash ) data.auth = auth_hash;
+    data.command = CMD_PAUSE;
+    streamCmdReq(data);
   }
 }
 
@@ -364,8 +343,19 @@ function streamCmdPlay( action ) {
     }
   }
   if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_PLAY);
+    var data = new Object();
+    if ( auth_hash ) data.auth = auth_hash;
+    data.command = CMD_PLAY;
+    streamCmdReq(data);
   }
+}
+
+function streamCmdReq(data) {
+  $j.getJSON(thisUrl + '?view=request&request=stream&connkey='+connKey, data)
+      .done(getStreamCmdResponse)
+      .fail(getStreamCmdError);
+
+  var streamCmdTimer = null;
 }
 
 function streamCmdStop( action ) {
@@ -379,7 +369,10 @@ function streamCmdStop( action ) {
     setButtonState('fastRevBtn', 'unavail');
   }
   if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_STOP);
+    var data = new Object();
+    if ( auth_hash ) data.auth = auth_hash;
+    data.command = CMD_STOP;
+    streamCmdReq(data);
   }
   setButtonState('stopBtn', 'unavail');
   setButtonState('playBtn', 'active');
@@ -396,7 +389,10 @@ function streamCmdFastFwd( action ) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_FASTFWD);
+    var data = new Object();
+    if ( auth_hash ) data.auth = auth_hash;
+    data.command = CMD_FASTFWD;
+    streamCmdReq(data);
   }
 }
 
@@ -411,7 +407,10 @@ function streamCmdSlowFwd( action ) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_SLOWFWD);
+    var data = new Object();
+    if ( auth_hash ) data.auth = auth_hash;
+    data.command = CMD_SLOWFWD;
+    streamCmdReq(data);
   }
   setButtonState('pauseBtn', 'active');
   if ( monitorStreamReplayBuffer ) {
@@ -430,7 +429,10 @@ function streamCmdSlowRev( action ) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_SLOWREV);
+    var data = new Object();
+    if ( auth_hash ) data.auth = auth_hash;
+    data.command = CMD_SLOWREV;
+    streamCmdReq(data);
   }
   setButtonState('pauseBtn', 'active');
   if ( monitorStreamReplayBuffer ) {
@@ -449,43 +451,51 @@ function streamCmdFastRev( action ) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_FASTREV);
+    var data = new Object();
+    if ( auth_hash ) data.auth = auth_hash;
+    data.command = CMD_FASTREV;
+    streamCmdReq(data);
   }
 }
 
 function streamCmdZoomIn( x, y ) {
-  streamCmdReq.send(streamCmdParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y);
+  var data = new Object();
+  if ( auth_hash ) data.auth = auth_hash;
+  data.x = x;
+  data.y = y;
+  data.command = CMD_ZOOMIN;
+  streamCmdReq(data);
 }
 
 function streamCmdZoomOut() {
-  streamCmdReq.send(streamCmdParms+"&command="+CMD_ZOOMOUT);
+  var data = new Object();
+  if ( auth_hash ) data.auth = auth_hash;
+  data.command = CMD_ZOOMOUT;
+  streamCmdReq(data);
 }
 
 function streamCmdScale( scale ) {
-  streamCmdReq.send(streamCmdParms+"&command="+CMD_SCALE+"&scale="+scale);
+  var data = new Object();
+  if ( auth_hash ) data.auth = auth_hash;
+  data.command = CMD_SCALE;
+  data.scale = scale;
+  streamCmdReq(data);  
 }
 
 function streamCmdPan( x, y ) {
-  streamCmdReq.send(streamCmdParms+"&command="+CMD_PAN+"&x="+x+"&y="+y);
+  var data = new Object();
+  if ( auth_hash ) data.auth = auth_hash;
+  data.x = x;
+  data.y = y;
+  data.command = CMD_PAN;
+  streamCmdReq(data);
 }
 
 function streamCmdQuery() {
-  streamCmdReq.send(streamCmdParms+"&command="+CMD_QUERY);
-}
-
-if ( monitorType != 'WebSite' ) {
-  var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
-  if ( auth_hash ) {
-    statusCmdParms += '&auth='+auth_hash;
-  }
-  var statusCmdReq = new Request.JSON( {
-    url: monitorUrl,
-    method: 'get',
-    timeout: AJAX_TIMEOUT,
-    link: 'cancel',
-    onSuccess: getStatusCmdResponse
-  } );
-  var statusCmdTimer = null;
+  var data = new Object();
+  if ( auth_hash ) data.auth = auth_hash;
+  data.command = CMD_QUERY;
+  streamCmdReq(data);
 }
 
 function getStatusCmdResponse(respObj, respText) {
@@ -509,22 +519,24 @@ function getStatusCmdResponse(respObj, respText) {
 }
 
 function statusCmdQuery() {
-  statusCmdReq.send(statusCmdParms);
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId)
+      .done(getStatusCmdResponse)
+      .fail(logAjaxFail);
+
+  var streamCmdTimer = null;
 }
 
-if ( monitorType != 'WebSite' ) {
-  var alarmCmdParms = 'view=request&request=alarm&id='+monitorId;
-  if ( auth_hash ) {
-    alarmCmdParms += '&auth='+auth_hash;
-  }
-  var alarmCmdReq = new Request.JSON( {
-    url: monitorUrl,
-    method: 'get',
-    timeout: AJAX_TIMEOUT,
-    link: 'cancel',
-    onSuccess: getAlarmCmdResponse,
-    onTimeout: streamCmdQuery
-  } );
+function alarmCmdReq(data) {
+  $j.getJSON(thisUrl + '?view=request&request=alarm&id='+monitorId, data)
+      .done(getAlarmCmdResponse)
+      .fail(function(jqxhr, textStatus, error) {
+        if(textstatus === "timeout") {
+          streamCmdQuery();
+        } else {
+          logAjaxFail(jqxhr, textStatus, error);
+        }
+      });
+
   var alarmCmdFirst = true;
 }
 
@@ -533,11 +545,17 @@ function getAlarmCmdResponse(respObj, respText) {
 }
 
 function cmdDisableAlarms() {
-  alarmCmdReq.send(alarmCmdParms+"&command=disableAlarms");
+  var data = new Object();
+  if ( auth_hash ) data.auth = auth_hash;
+  data.command = 'disableAlarms';
+  alarmCmdReq(data);
 }
 
 function cmdEnableAlarms() {
-  alarmCmdReq.send(alarmCmdParms+"&command=enableAlarms");
+  var data = new Object();
+  if ( auth_hash ) data.auth = auth_hash;
+  data.command = 'enableAlarms';
+  alarmCmdReq(data);
 }
 
 function cmdAlarm() {
@@ -549,17 +567,19 @@ function cmdAlarm() {
 }
 
 function cmdForceAlarm() {
-  alarmCmdReq.send(alarmCmdParms+"&command=forceAlarm");
-  if ( window.event ) {
-    window.event.preventDefault();
-  }
+  var data = new Object();
+  if ( auth_hash ) data.auth = auth_hash;
+  data.command = 'forceAlarm';
+  alarmCmdReq(data);
+  if ( window.event ) window.event.preventDefault();
 }
 
 function cmdCancelForcedAlarm() {
-  alarmCmdReq.send(alarmCmdParms+"&command=cancelForcedAlarm");
-  if ( window.event ) {
-    window.event.preventDefault();
-  }
+  var data = new Object();
+  if ( auth_hash ) data.auth = auth_hash;
+  data.command = 'cancelForcedAlarm';
+  alarmCmdReq(data);
+  if ( window.event ) window.event.preventDefault();
   return false;
 }
 
@@ -571,18 +591,10 @@ function cmdForce() {
   }
 }
 
-if ( monitorType != 'WebSite' ) {
-  var controlParms = 'view=request&request=control&id='+monitorId;
-  if ( auth_hash ) {
-    controlParms += '&auth='+auth_hash;
-  }
-  var controlReq = new Request.JSON( {
-    url: monitorUrl,
-    method: 'post',
-    timeout: AJAX_TIMEOUT,
-    link: 'cancel',
-    onSuccess: getControlResponse
-  } );
+function controlReq(data) {
+  $j.getJSON(thisUrl + '?view=request&request=control&id='+monitorId, data)
+      .done(getControlResponse)
+      .fail(logAjaxFail);
 }
 
 function getControlResponse(respObj, respText) {
@@ -601,7 +613,8 @@ function controlCmd(event) {
   xtell = button.getAttribute('data-xtell');
   ytell = button.getAttribute('data-ytell');
 
-  var locParms = '';
+  var data = new Object();
+
   if ( event && (xtell || ytell) ) {
     var target = event.target;
     var offset = $j(target).offset();
@@ -618,7 +631,7 @@ function controlCmd(event) {
       } else if ( xtell == 2 ) {
         xge = 2*(50 - xge);
       }
-      locParms += '&xge='+xge;
+      data.xge = xge;
     }
     if ( ytell ) {
       var yge = parseInt((y*100)/height);
@@ -627,21 +640,28 @@ function controlCmd(event) {
       } else if ( ytell == 2 ) {
         yge = 2*(50 - yge);
       }
-      locParms += '&yge='+yge;
+      data.yge = yge;
     }
   }
-  controlReq.send(controlParms+"&control="+control+locParms);
+
+  if ( auth_hash ) data.auth = auth_hash;
+  data.control = control
+  controlReq(data);
+
   if ( streamMode == 'single' ) {
     fetchImage.pass($('imageFeed').getElement('img')).delay(1000);
   }
 }
 
 function controlCmdImage( x, y ) {
-  var imageControlParms = controlParms;
-  imageControlParms += '&scale='+scale;
-  imageControlParms += '&control='+imageControlMode;
-
-  controlReq.send( imageControlParms+"&x="+x+"&y="+y );
+  var data = new Object();
+  if ( auth_hash ) data.auth = auth_hash;
+  data.scale = scale;
+  data.control = imageControlMode;
+  data.x = x;
+  data.y = y;
+  controlReq(data);
+  
   if ( streamMode == 'single' ) {
     fetchImage.pass( $('imageFeed').getElement('img') ).delay( 1000 );
   }

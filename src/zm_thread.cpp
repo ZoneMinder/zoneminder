@@ -66,35 +66,35 @@ int Mutex::trylock() {
 }
 void Mutex::lock() {
   if ( pthread_mutex_lock(&mMutex) < 0 )
-    throw ThreadException( stringtf( "Unable to lock pthread mutex: %s", strerror(errno) ) );
+    throw ThreadException(stringtf("Unable to lock pthread mutex: %s", strerror(errno)));
   //Debug(3, "Lock");
 }
 
 void Mutex::lock( int secs ) {
-  struct timespec timeout = getTimeout( secs );
-  if ( pthread_mutex_timedlock( &mMutex, &timeout ) < 0 )
-    throw ThreadException( stringtf( "Unable to timedlock pthread mutex: %s", strerror(errno) ) );
+  struct timespec timeout = getTimeout(secs);
+  if ( pthread_mutex_timedlock(&mMutex, &timeout) < 0 )
+    throw ThreadException(stringtf("Unable to timedlock pthread mutex: %s", strerror(errno)));
 }
 
 void Mutex::lock( double secs ) {
-  struct timespec timeout = getTimeout( secs );
-  if ( pthread_mutex_timedlock( &mMutex, &timeout ) < 0 )
-    throw ThreadException( stringtf( "Unable to timedlock pthread mutex: %s", strerror(errno) ) );
+  struct timespec timeout = getTimeout(secs);
+  if ( pthread_mutex_timedlock(&mMutex, &timeout) < 0 )
+    throw ThreadException(stringtf("Unable to timedlock pthread mutex: %s", strerror(errno)));
 }
 
 void Mutex::unlock() {
-  if ( pthread_mutex_unlock( &mMutex ) < 0 )
-    throw ThreadException( stringtf( "Unable to unlock pthread mutex: %s", strerror(errno) ) );
+  if ( pthread_mutex_unlock(&mMutex) < 0 )
+    throw ThreadException(stringtf("Unable to unlock pthread mutex: %s", strerror(errno)));
   //Debug(3, "unLock");
 }
 
 bool Mutex::locked() {
-  int state = pthread_mutex_trylock( &mMutex );
-  if ( state != 0 && state != EBUSY )
-    throw ThreadException( stringtf( "Unable to trylock pthread mutex: %s", strerror(errno) ) );
+  int state = pthread_mutex_trylock(&mMutex);
+  if ( (state != 0) && (state != EBUSY) )
+    throw ThreadException(stringtf("Unable to trylock pthread mutex: %s", strerror(errno)));
   if ( state != EBUSY )
     unlock();
-  return( state == EBUSY );
+  return (state == EBUSY);
 }
 
 RecursiveMutex::RecursiveMutex() {

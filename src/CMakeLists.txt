@@ -50,6 +50,7 @@ set(ZM_BIN_SRC_FILES
  zm_rtp_source.cpp
  zm_rtsp.cpp
  zm_rtsp_auth.cpp
+ zm_rtsp_server_thread.cpp
  zm_sdp.cpp
  zm_signal.cpp
  zm_stream.cpp

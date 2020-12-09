@@ -25,7 +25,7 @@ int AnalysisThread::run() {
   monitor->get_ref_image();
   Debug(2, "THREAD: after Getting ref image");
 
-  while ( !terminate ) {
+  while ( !(terminate or zm_terminate) ) {
     // Process the next image
     //sigprocmask(SIG_BLOCK, &block_set, 0);
 
@@ -41,10 +41,10 @@ int AnalysisThread::run() {
 
     Debug(2, "Analyzing");
     if ( !monitor->Analyse() ) {
-Debug(2, "Sleeping for %d", monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE);
+Debug(2, "uSleeping for %d", 10*(monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE));
       usleep(10*(monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE));
     } else if ( analysis_rate ) {
-Debug(2, "Sleeping for %d", analysis_rate);
+Debug(2, "uSleeping for %d", analysis_rate);
       usleep(analysis_rate);
     } else {
 Debug(2, "Not Sleeping");

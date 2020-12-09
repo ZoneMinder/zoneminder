@@ -120,6 +120,8 @@ protected:
     uint32_t last_write_index;  /* +4    */
     uint32_t last_read_index;   /* +8    */
     uint32_t state;             /* +12   */
+    double      capture_fps;       // Current capturing fps
+    double      analysis_fps;      // Current analysis fps
     uint64_t last_event_id;     /* +16   */
     uint32_t action;            /* +24   */
     int32_t brightness;         /* +28   */
@@ -322,8 +324,6 @@ protected:
 
   int capture_max_fps;
 
-  double      capture_fps;       // Current capturing fps
-  double      analysis_fps;      // Current analysis fps
 
   unsigned int  last_camera_bytes;
   
@@ -554,7 +554,10 @@ public:
   //void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC
   double get_capture_fps( ) const {
-    return capture_fps;
+    return shared_data ? shared_data->capture_fps : 0.0;
+  }
+  double get_analysis_fps( ) const {
+    return shared_data ? shared_data->analysis_fps : 0.0;
   }
 };
 

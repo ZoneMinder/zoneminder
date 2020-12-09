@@ -412,13 +412,13 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   ReloadLinkedMonitors(dbrow[col]); col++;
 
-  analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
+  analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], NULL) : 0.0; col++;
   analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
   capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
   alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 
-  if ( analysis_fps > 0.0 ) {
-    uint64_t usec = round(1000000*pre_event_count/analysis_fps);
+  if ( analysis_fps_limit > 0.0 ) {
+    uint64_t usec = round(1000000*pre_event_count/analysis_fps_limit);
     video_buffer_duration.tv_sec = usec/1000000;
     video_buffer_duration.tv_usec = usec % 1000000;
   }
@@ -543,8 +543,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
   embed_exif = (*dbrow[col] != '0'); col++;
 
-  capture_fps = 0.0;
-  analysis_fps = 0.0;
   last_camera_bytes = 0;
   event_count = 0;
   image_count = 0;
@@ -597,6 +595,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
     }
   } else if ( purpose == ANALYSIS ) {
+    // FIXME Now that zma is a thread, this might not get called.  Unless maybe we are redoing motion detection in a separate program.
     while (
         ( !(this->connect() and shared_data->valid) )
         or
@@ -628,9 +627,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
         diag_path_delta = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
       }
     }
-  }
+    shared_data->analysis_fps = 0.0;
+  }  // end if purpose
 
-  start_time = last_fps_time = time( 0 );
+  start_time = last_fps_time = time(0);
 
   //this->delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
   //ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
@@ -966,6 +966,8 @@ bool Monitor::connect() {
     Debug( 1, "shared.size=%d", shared_data->size );
     shared_data->active = enabled;
     shared_data->signal = false;
+    shared_data->capture_fps = 0.0;
+    shared_data->analysis_fps = 0.0;
     shared_data->state = IDLE;
     shared_data->last_write_index = image_buffer_count;
     shared_data->last_read_index = image_buffer_count;
@@ -1001,7 +1003,7 @@ bool Monitor::connect() {
     }
   }
   if ( purpose == ANALYSIS ) {
-		if ( analysis_fps ) {
+		if ( analysis_fps_limit ) {
 			// Size of pre event buffer must be greater than pre_event_count
 			// if alarm_frame_count > 1, because in this case the buffer contains
 			// alarmed images that must be discarded when event is created
@@ -1164,17 +1166,12 @@ int Monitor::GetImage(int index, int scale) {
   if ( index < 0 || index > image_buffer_count ) {
     index = shared_data->last_write_index;
   }
-Debug(3, "GetImage");
   if ( index != image_buffer_count ) {
     Image *image;
     // If we are going to be modifying the snapshot before writing, then we need to copy it
     if ( ( scale != ZM_SCALE_BASE ) || ( !config.timestamp_on_capture ) ) {
       ZMPacket *snap = &image_buffer[index];
-      Image *snap_image = snap->image;
-
-      alarm_image.Assign(*snap_image);
-
-      //write_image.Assign( *snap_image );
+      alarm_image.Assign(*snap->image);
 
       if ( scale != ZM_SCALE_BASE ) {
         alarm_image.Scale(scale);
@@ -1230,7 +1227,7 @@ uint64_t Monitor::GetLastEventId() const {
 
 // This function is crap.
 double Monitor::GetFPS() const {
-  return capture_fps;
+  return get_capture_fps();
   // last_write_index is the last capture index.  It starts as == image_buffer_count so that the first asignment % image_buffer_count = 0;
   int index1 = shared_data->last_write_index;
   if ( index1 >= image_buffer_count ) {
@@ -1287,7 +1284,7 @@ double Monitor::GetFPS() const {
 
 /* I think this returns the # of micro seconds that we should sleep in order to maintain the desired analysis rate */
 useconds_t Monitor::GetAnalysisRate() {
-  capture_fps = GetFPS();
+  double capture_fps = get_capture_fps();
   if ( !analysis_fps_limit ) {
     return 0;
   } else if ( analysis_fps_limit > capture_fps ) {
@@ -1300,7 +1297,8 @@ useconds_t Monitor::GetAnalysisRate() {
 
 void Monitor::UpdateAdaptiveSkip() {
   if ( config.opt_adaptive_skip ) {
-    double capturing_fps = GetFPS();
+    double capturing_fps = get_capture_fps();
+    double analysis_fps = get_analysis_fps();
     if ( adaptive_skip && analysis_fps && ( analysis_fps < capturing_fps ) ) {
       Info("Analysis fps (%.2f) is lower than capturing fps (%.2f), disabling adaptive skip feature", analysis_fps, capturing_fps);
       adaptive_skip = false;
@@ -1697,14 +1695,14 @@ void Monitor::UpdateAnalysisFPS() {
     gettimeofday(&now, NULL);
     double new_analysis_fps = double(fps_report_interval)/(now.tv_sec - last_analysis_fps_time);
     Info("%s: %d - Analysing at %.2f fps", name, analysis_image_count, new_analysis_fps);
-    if ( new_analysis_fps != analysis_fps ) {
-      analysis_fps = new_analysis_fps;
+    if ( new_analysis_fps != shared_data->analysis_fps ) {
+      shared_data->analysis_fps = new_analysis_fps;
 
       char sql[ZM_SQL_SML_BUFSIZ];
       snprintf(sql, sizeof(sql),
           "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf)"
           " ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf",
-          id, analysis_fps, analysis_fps);
+          id, new_analysis_fps, new_analysis_fps);
       db_mutex.lock();
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
@@ -1729,29 +1727,35 @@ bool Monitor::Analyse() {
     Warning("Shouldn't be doing Analyse when not Enabled");
     return false;
   }
+  if ( ! packetqueue ) {
+    Debug(1, "Waiting for PrimeCapture");
+    return false;
+  }
 
   // if  have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
   int packets_processed = 0;
 
   ZMPacket *snap;
-  // Is it possible for snap->score to be ! -1?
   // get_analysis_packet will lock the packet
-  while ( ( snap = packetqueue->get_analysis_packet() ) && ( snap->score == -1 ) ) {
-    unsigned int index = snap->image_index;
+  while ( (!zm_terminate) and (snap = packetqueue->get_analysis_packet()) ) {
+    // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
+    if ( snap->score != -1 ) {
+      snap->unlock();
+      packetqueue->increment_analysis_it();
+      Error("skipping because score was %d", snap->score);
+      return false;
+    }
 
     packets_processed += 1;
+    packetqueue->increment_analysis_it();
 
     if ( snap->packet.stream_index != video_stream_id ) {
       snap->unlock();
       Debug(2, "skipping because audio");
-      // We want to skip, but if we return, we may sleep.
-      if ( !packetqueue->increment_analysis_it() ) {
-        Debug(2, "No more packets to analyse");
-        return false;
-      }
       continue;
     }
+
     struct timeval *timestamp = snap->timestamp;
     Image *snap_image = snap->image;
 
@@ -1785,7 +1789,7 @@ bool Monitor::Analyse() {
         } // end if trigger_on
 
         if ( signal_change ) {
-          Debug(1, "Signal change");
+          Debug(2, "Signal change");
           const char *signalText;
           if ( !signal ) {
             signalText = "Lost";
@@ -1842,7 +1846,6 @@ bool Monitor::Analyse() {
             } // end if motion_score
             //shared_data->active = signal; // unneccessary active gets set on signal change
           } // end if active and doing motion detection
-
 
           // Check to see if linked monitors are triggering.
           if ( n_linked_monitors > 0 ) {
@@ -1917,7 +1920,7 @@ bool Monitor::Analyse() {
                 }
               }
               alarm_cause = cause+" "+alarm_cause;
-              strncpy(shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause));
+              strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
               video_store_data->recording = event->StartTime();
               Info("%s: %03d - Opening new event %" PRIu64 ", section start",
                   name, analysis_image_count, event->Id());
@@ -2084,42 +2087,29 @@ bool Monitor::Analyse() {
       int last_write = shared_data->last_write_index;
       int written = 0;
       ZMPacket *queued_packet;
-      //popPacket will increment analysis_it if neccessary, so this will write out all packets in queue
-      // We can't just loop here forever, because we may be capturing just as fast, and never leave the loop.
-      // Only loop until we hit the analysis index
-      while ( ( queued_packet = packetqueue->popPacket() ) ) {
-        if ( snap == queued_packet ) {
-          // We already have it locked
-          Debug(2, "adding snap packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written );
-          event->AddPacket(queued_packet);
-          // Pop may have already incrememented it
-          //packetqueue->increment_analysis_it();
-          break;
-        } else {
-          queued_packet->lock();
-          Debug(2, "adding queued packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written );
-          event->AddPacket(queued_packet);
-          queued_packet->unlock();
-        }
+
+      // since we incremented the analysis_it, this will include snap
+      while ( (queued_packet = packetqueue->popPacket()) ) {
+        Debug(2, "adding queued packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written);
+        event->AddPacket(queued_packet);
+        queued_packet->unlock();
         written ++;
         if ( queued_packet->image_index == -1 ) {
           delete queued_packet;
         } 
-        // encoding can take a long time, so 
-        shared_data->last_read_time = time(NULL);
+        // encoding can take a long time, so : ICON 2020-12-08: Not that long.
+        //shared_data->last_read_time = time(NULL);
       } // end while write out queued_packets
       queued_packet = NULL;
-    } else {
-      Debug(1, "Incrementing analysis_it beacuse no event");
-      packetqueue->increment_analysis_it();
     }
+    // popPacket will have placed a second lock on snap, so release it here.
+    snap->unlock();
 
     shared_data->last_read_index = snap->image_index;
     shared_data->last_read_time = time(NULL);
     analysis_image_count++;
-    snap->unlock();
+    UpdateAnalysisFPS();
   } // end while not at end of packetqueue
-  UpdateAnalysisFPS();
   if ( packets_processed > 0 )
     return true;
   return false;
@@ -2436,7 +2426,7 @@ int Monitor::Capture() {
       // FIXME this mutex is useless, packetqueue has it's own
       //mutex.lock();
       if ( packetqueue->video_packet_count || packet->keyframe || event ) {
-        Debug(2, "Have video packet for index (%d)", index);
+        Debug(2, "Have video packet for index (%d), adding to queue", index);
         packetqueue->queuePacket(packet);
       } else {
         Debug(2, "Not queuing video packet for index (%d) packet count %d", index, packetqueue->video_packet_count);
@@ -2504,7 +2494,7 @@ int Monitor::Capture() {
           //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
           //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
           Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec", name, image_count, new_capture_fps, new_capture_bandwidth);
-          capture_fps = new_capture_fps;
+          shared_data->capture_fps = new_capture_fps;
           last_fps_time = now;
           db_mutex.lock();
           static char sql[ZM_SQL_SML_BUFSIZ];
@@ -2515,7 +2505,7 @@ int Monitor::Capture() {
             "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth,Status) "
             "VALUES (%d, %.2lf, %u, 'Connected') ON DUPLICATE KEY UPDATE "
             "CaptureFPS = %.2lf, CaptureBandwidth=%u, Status='Connected'",
-            id, capture_fps, new_capture_bandwidth, capture_fps, new_capture_bandwidth);
+            id, new_capture_fps, new_capture_bandwidth, new_capture_fps, new_capture_bandwidth);
           if ( mysql_query(&dbconn, sql) ) {
             Error("Can't run query: %s", mysql_error(&dbconn));
           }
@@ -2830,7 +2820,13 @@ int Monitor::PrimeCapture() {
 
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture() ; }
-int Monitor::Close() { return camera->Close(); };
+int Monitor::Close() {
+  if ( packetqueue ) {
+    delete packetqueue;
+    packetqueue = nullptr;
+  }
+  return camera->Close();
+};
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 // Wait for camera to get an image, and then assign it as the base reference image. So this should be done as the first task in the analysis thread startup.

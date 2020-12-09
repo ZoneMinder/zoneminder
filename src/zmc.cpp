@@ -71,6 +71,7 @@ possible, this should run at more or less constant speed.
 #include "zm_signal.h"
 #include "zm_monitor.h"
 #include "zm_analysis_thread.h"
+#include "zm_rtsp_server_thread.h"
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
@@ -237,6 +238,15 @@ int main(int argc, char *argv[]) {
 
   int prime_capture_log_count = 0;
 
+
+#if HAVE_RTSP_SERVER
+  RTSPServerThread **rtsp_server_threads = new RTSPServerThread *[n_monitors];
+  for ( int i = 0; i < n_monitors; i++ ) {
+    rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
+    rtsp_server_threads[i]->start();
+  }
+#endif
+
   while ( !zm_terminate ) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
@@ -317,6 +327,8 @@ int main(int argc, char *argv[]) {
           Error("Failed to capture image from monitor %d %s (%d/%d)",
               monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
           monitors[i]->Close();
+          Error("Failed to capture image from monitor %d %s (%d/%d)",
+              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
           result = -1;
           break;
         }
@@ -357,7 +369,8 @@ int main(int argc, char *argv[]) {
 
       if ( result < 0 ) {
         // Failure, try reconnecting
-				sleep(5);
+        Debug(1, "Sleeping for 5");
+        sleep(5);
         break;
       }
 

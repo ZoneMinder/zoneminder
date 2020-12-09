@@ -94,7 +94,13 @@ if ( $streamMode == 'jpeg' ) {
 
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>
       <div id="monitorStatus">
-        <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
+        <div id="monitorState">
+          <?php echo translate('State') ?>:
+          <span id="stateValue"></span> -
+          <span id="fpsValue"></span> fps
+          <span id="capturefpsValue"></span> fps
+          <span id="analysisfpsValue"></span> fps
+        </div>
       </div>
       <div id="dvrControls">
 <?php

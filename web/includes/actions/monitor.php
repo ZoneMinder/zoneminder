@@ -55,6 +55,7 @@ if ( $action == 'save' ) {
       'Controllable' => 0,
       'TrackMotion' => 0,
       'Enabled' => 0,
+      'DecodingEnabled' => 0,
       'Exif' => 0,
       'RTSPDescribe' => 0,
       'V4LMultiBuffer'  => '',
@@ -82,7 +83,7 @@ if ( $action == 'save' ) {
     }
   }
 
-  $changes = $monitor->changes($_REQUEST['newMonitor'], $types);
+  $changes = $monitor->changes($_REQUEST['newMonitor']);
   $restart = false;
 
   if ( count($changes) ) {

@@ -71,8 +71,8 @@
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `LinkedMonitors`, "
-"`AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, "
+"`LinkedMonitors`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
 "`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
@@ -282,6 +282,7 @@ Monitor::Monitor(
   const unsigned int p_storage_id,
   int p_function,
   bool p_enabled,
+  bool p_decoding_enabled,
   const char *p_linked_monitors,
   Camera *p_camera,
   int p_orientation,
@@ -326,6 +327,7 @@ Monitor::Monitor(
   storage_id( p_storage_id ),
   function( (Function)p_function ),
   enabled( p_enabled ),
+  decoding_enabled(p_decoding_enabled),
     width( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ),
     height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
   orientation( (Orientation)p_orientation ),
@@ -1861,7 +1863,7 @@ void Monitor::Reload() {
   static char sql[ZM_SQL_MED_BUFSIZ];
   // This seems to have fallen out of date.
   snprintf(sql, sizeof(sql),
-      "SELECT `Function`+0, `Enabled`, `LinkedMonitors`, `EventPrefix`, `LabelFormat`, "
+      "SELECT `Function`+0, `Enabled`, `DecodingEnabled`, `LinkedMonitors`, `EventPrefix`, `LabelFormat`, "
       "`LabelX`, `LabelY`, `LabelSize`, `WarmupCount`, `PreEventCount`, `PostEventCount`, "
       "`AlarmFrameCount`, `SectionLength`, `MinSectionLength`, `FrameSkip`, "
       "`MotionFrameSkip`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`, "
@@ -1877,6 +1879,7 @@ void Monitor::Reload() {
     int index = 0;
     function = (Function)atoi(dbrow[index++]);
     enabled = atoi(dbrow[index++]);
+    decoding_enabled = atoi(dbrow[index++]);
     const char *p_linked_monitors = dbrow[index++];
 
     if ( dbrow[index] ) {
@@ -2135,6 +2138,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   std::string type = dbrow[col] ? dbrow[col] : ""; col++;
   Function function = (Function)atoi(dbrow[col]); col++;
   int enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  int decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
   const char *linked_monitors = dbrow[col];col++;
 
   double analysis_fps = dbrow[col] ? strtod(dbrow[col], nullptr) : 0; col++;
@@ -2411,6 +2415,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       storage_id,
       (int)function,
       enabled,
+      decoding_enabled,
       linked_monitors,
       camera,
       orientation,

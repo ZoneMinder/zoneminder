@@ -378,6 +378,7 @@ public:
     unsigned int p_storage_id,
     int p_function,
     bool p_enabled,
+    bool p_decoding_enabled,
     const char *p_linked_monitors,
     Camera *p_camera,
     int p_orientation,
@@ -444,6 +445,17 @@ public:
     if ( function <= MONITOR )
       return false;
     return enabled;
+  }
+  inline bool DecodingEnabled() const {
+    return !(
+        ( monitor->GetFunction() == Monitor::RECORD or monitor->GetFunction() == Monitor::NODECT )
+        and
+        ( monitor->GetOptSaveJPEGs() == 0 )
+        and
+        ( monitor->GetOptVideoWriter() == Monitor::H264PASSTHROUGH )
+        and 
+        !decoding_enabled
+        );
   }
   inline const char *EventPrefix() const { return event_prefix; }
   inline bool Ready() const {

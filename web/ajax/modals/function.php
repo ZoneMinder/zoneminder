@@ -37,11 +37,29 @@ if ( !canEdit('Monitors') ) return;
         </button>
       </div>
       <div class="modal-body">
-        <p>
+        <div class="form-group" id="FunctionFunction">
+          <label for="newFunction"><?php echo translate('Function') ?></label>
           <?php echo htmlSelect('newFunction', ZM\getMonitorFunctionTypes(), null, array('id'=>'newFunction')); ?>
-          <label for="newEnabled"><?php echo translate('Enabled') ?></label>
+          <div id="function_help">
+<?php
+  foreach ( ZM\getMonitorFunctionTypes() as $fn => $translated ) {
+    if ( isset($OLANG['FUNCTION_'.strtoupper($fn)]) ) {
+      echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['FUNCTION_'.strtoupper($fn)]['Help'].'</div>';
+    }
+  }
+?>
+          </div>
+        </div>
+        <div class="form-group" id="FunctionEnabled">
+          <label for="newEnabled"><?php echo translate('Analysis Enabled') ?></label>
           <input type="checkbox" name="newEnabled" id="newEnabled" value="1"/>
-        </p>
+<?php
+  if ( isset($OLANG['FUNCTION_ANALYSIS_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_ANALYSIS_ENABLED']['Help'].'</div>';
+  }
+?>
+
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="funcSaveBtn btn btn-primary"><?php echo translate('Save') ?></button>

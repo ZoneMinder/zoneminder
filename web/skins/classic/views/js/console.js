@@ -151,7 +151,18 @@ function manageFunctionModal(evt) {
     console.error("Unable to find form with id function_form");
     return;
   }
+  function_form.elements['newFunction'].onchange=function() {
+    $j('#function_help div').hide();
+    $j('#'+this.value+'Help').show();
+    if ( this.value == 'Monitor' || this.value == 'None' ) {
+      $j('#FunctionEnabled').hide();
+    } else {
+      $j('#FunctionEnabled').show();
+    }
+  };
   function_form.elements['newFunction'].value = monitor.Function;
+  function_form.elements['newFunction'].onchange();
+
   function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
   function_form.elements['mid'].value = mid;
   document.getElementById('function_monitor_name').innerHTML = monitor.Name;

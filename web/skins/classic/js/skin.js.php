@@ -40,8 +40,8 @@ var thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERV
 var skinPath = '<?php echo ZM_SKIN_PATH ?>';
 var serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
 
-var canView = new Object();
-var canEdit = new Object();
+var canView = {};
+var canEdit = {};
 <?php
 $perms = array("Stream", "Events", "Control", "Monitors", "Groups", "System", "Devices");
 foreach ( $perms as $perm ) {

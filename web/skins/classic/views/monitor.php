@@ -470,7 +470,7 @@ if ( canEdit('Monitors') ) {
 <div class="tab-content" id="pills-tabContent">
 <?php
 foreach ( $tabs as $name=>$value ) {
-  echo '<div id="pills-'.$name.'" class="tab-pane fade'.($name==$tab ? ' show active' : '').'" role="tabpanel" area-labelledby="'.$name.'-tab">';
+  echo '<div id="pills-'.$name.'" class="tab-pane fade'.($name==$tab ? ' show active' : '').'" role="tabpanel" aria-labelledby="'.$name.'-tab">';
 ?>
       <table class="major">
         <tbody>
@@ -512,11 +512,26 @@ switch ( $name ) {
       }
       echo htmlSelect('newMonitor[Function]', $function_options, $monitor->Function());
 ?>
+ <div id="function_help">
+<?php
+  foreach ( ZM\getMonitorFunctionTypes() as $fn => $translated ) {
+    if ( isset($OLANG['FUNCTION_'.strtoupper($fn)]) ) {
+      echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['FUNCTION_'.strtoupper($fn)]['Help'].'</div>';
+    }
+  }
+?>
+          </div>
           </td>
         </tr>
-        <tr>
+        <tr id="FunctionEnabled">
           <td class="text-right pr-3"><?php echo translate('Enabled') ?></td>
-          <td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php echo $monitor->Enabled() ? ' checked="checked"' : '' ?>/></td>
+          <td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php echo $monitor->Enabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_ANALYSIS_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_ANALYSIS_ENABLED']['Help'].'</div>';
+  }
+?>
+          </td>
         </tr>
 <?php
       if ( $monitor->Type() != 'WebSite' ) {

@@ -538,13 +538,13 @@ switch ( $name ) {
         </tr>
   <tr id="FunctionDecodingEnabled">
           <td class="text-right pr-3"><?php echo translate('Decoding Enabled') ?></td>
-          <td><input type="checkbox" name="newDecodingEnabled" id="newDecodingEnabled" value="1"/></td>
+          <td><input type="checkbox" name="newMonitor[DecodingEnabled]" value="1"<?php echo $monitor->DecodingEnabled() ? ' checked="checked"' : '' ?>/>
 <?php
   if ( isset($OLANG['FUNCTION_DECODING_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
   }
 ?>
-
+          </td>
         </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>

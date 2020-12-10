@@ -883,7 +883,7 @@ int FfmpegCamera::CaptureAndRecord(
             AVPacket *avp = queued_packet->av_packet();
 
             // compute time offset between event start and first frame in video
-            if (packet_count == 0){
+            if ( packet_count == 0 ) {
                 monitor->SetVideoWriterStartTime(queued_packet->timestamp);
                 timersub(&queued_packet->timestamp, &recording, &video_offset);
                 Info("Event video offset is %.3f sec (<0 means video starts early)",
@@ -912,7 +912,7 @@ int FfmpegCamera::CaptureAndRecord(
             delete queued_packet;
           }  // end while packets in the packetqueue
           Debug(2, "Wrote %d queued packets", packet_count);
-        }
+        }  // end if videostore is open or not
       }  // end if ! was recording
 
     } else {
@@ -976,63 +976,74 @@ int FfmpegCamera::CaptureAndRecord(
         }
       }  // end if keyframe or have_video_keyframe
 
-      ret = zm_send_packet_receive_frame(mVideoCodecContext, mRawFrame, packet);
-      if ( ret < 0 ) {
-        if ( AVERROR(EAGAIN) != ret ) {
-          Warning("Unable to receive frame %d: code %d %s. error count is %d",
-              frameCount, ret, av_make_error_string(ret).c_str(), error_count);
-          error_count += 1;
-          if ( error_count > 100 ) {
-            Error("Error count over 100, going to close and re-open stream");
-            return -1;
-          }
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
-          if ( (ret == AVERROR_INVALIDDATA ) && (hw_pix_fmt != AV_PIX_FMT_NONE) ) {
-            use_hwaccel = false;
-            return -1;
-          }
-#endif
-#endif
-        }
-        zm_av_packet_unref(&packet);
-        continue;
-      }
-      if ( error_count > 0 ) error_count--;
-      zm_dump_video_frame(mRawFrame, "raw frame from decoder");
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
       if (
-          (hw_pix_fmt != AV_PIX_FMT_NONE)
-          &&
-          (mRawFrame->format == hw_pix_fmt)
+          ( monitor->GetFunction() == Monitor::RECORD or monitor->GetFunction() == Monitor::NODECT )
+          and
+          ( monitor->GetOptSaveJPEGs() == 0 )
+          and
+          ( monitor->GetOptVideoWriter() == Monitor::H264PASSTHROUGH )
           ) {
-        /* retrieve data from GPU to CPU */
-        ret = av_hwframe_transfer_data(hwFrame, mRawFrame, 0);
+        // In this specific case we don't need to do the decode.
+        Debug(1, "Not decoding");
+      } else {
+        ret = zm_send_packet_receive_frame(mVideoCodecContext, mRawFrame, packet);
         if ( ret < 0 ) {
-          Error("Unable to transfer frame at frame %d: %s, continuing",
-              frameCount, av_make_error_string(ret).c_str());
+          if ( AVERROR(EAGAIN) != ret ) {
+            Warning("Unable to receive frame %d: code %d %s. error count is %d",
+                frameCount, ret, av_make_error_string(ret).c_str(), error_count);
+            error_count += 1;
+            if ( error_count > 100 ) {
+              Error("Error count over 100, going to close and re-open stream");
+              return -1;
+            }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+            if ( (ret == AVERROR_INVALIDDATA ) && (hw_pix_fmt != AV_PIX_FMT_NONE) ) {
+              use_hwaccel = false;
+              return -1;
+            }
+#endif
+#endif
+          }
           zm_av_packet_unref(&packet);
           continue;
         }
-        zm_dump_video_frame(hwFrame, "After hwtransfer");
-
-        hwFrame->pts = mRawFrame->pts;
-        input_frame = hwFrame;
-      } else {
-#endif
-#endif
-        input_frame = mRawFrame;
+        if ( error_count > 0 ) error_count--;
+        zm_dump_video_frame(mRawFrame, "raw frame from decoder");
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
-      }
+        if (
+            (hw_pix_fmt != AV_PIX_FMT_NONE)
+            &&
+            (mRawFrame->format == hw_pix_fmt)
+            ) {
+          /* retrieve data from GPU to CPU */
+          ret = av_hwframe_transfer_data(hwFrame, mRawFrame, 0);
+          if ( ret < 0 ) {
+            Error("Unable to transfer frame at frame %d: %s, continuing",
+                frameCount, av_make_error_string(ret).c_str());
+            zm_av_packet_unref(&packet);
+            continue;
+          }
+          zm_dump_video_frame(hwFrame, "After hwtransfer");
+
+          hwFrame->pts = mRawFrame->pts;
+          input_frame = hwFrame;
+        } else {
 #endif
 #endif
-      if ( transfer_to_image(image, mFrame, input_frame) < 0 ) {
-        Error("Failed to transfer from frame to image");
-        zm_av_packet_unref(&packet);
-        return -1;
-      }
+          input_frame = mRawFrame;
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+        }
+#endif
+#endif
+        if ( transfer_to_image(image, mFrame, input_frame) < 0 ) {
+          Error("Failed to transfer from frame to image");
+          zm_av_packet_unref(&packet);
+          return -1;
+        }
+      }  // end if don't need to do decode
 
       frameComplete = 1;
       frameCount++;

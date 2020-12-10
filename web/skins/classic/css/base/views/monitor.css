@@ -42,3 +42,6 @@ input[name="newMonitor[Height]"] {
 select.chosen {
   width: 100%;
 }
+tr td:first-child {
+  min-width: 300px;
+}

@@ -146,6 +146,19 @@ function initPage() {
     el.oninput = window['update_estimated_ram_use'].bind(el);
   });
 
+  document.querySelectorAll('select[name="newMonitor[Function]"]').forEach(function(el) {
+    el.onchange = function() {
+      $j('#function_help div').hide();
+      $j('#'+this.value+'Help').show();
+      if ( this.value == 'Monitor' || this.value == 'None' ) {
+        $j('#FunctionEnabled').hide();
+      } else {
+        $j('#FunctionEnabled').show();
+      }
+    };
+    el.onchange();
+  });
+
   $j('.chosen').chosen();
 
   // Don't enable the back button if there is no previous zm page to go back to

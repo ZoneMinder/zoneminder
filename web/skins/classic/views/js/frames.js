@@ -118,8 +118,7 @@ function initPage() {
     var thumb_ndx = $j('#framesTable tr th').filter(function() {
       return $j(this).text().trim() == 'Thumbnail';
     }).index();
-    var thmbClass = WEB_ANIMATE_THUMBS ? 'colThumbnail zoom' : 'colThumbnail';
-    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass(thmbClass);
+    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
   });
 }
 

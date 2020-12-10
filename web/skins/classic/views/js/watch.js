@@ -356,7 +356,7 @@ function streamCmdReq(data) {
       .done(getStreamCmdResponse)
       .fail(getStreamCmdError);
 
-  var streamCmdTimer = null;
+  streamCmdTimer = null;
 }
 
 function streamCmdStop( action ) {
@@ -524,7 +524,7 @@ function statusCmdQuery() {
       .done(getStatusCmdResponse)
       .fail(logAjaxFail);
 
-  var streamCmdTimer = null;
+  streamCmdTimer = null;
 }
 
 function alarmCmdReq(data) {

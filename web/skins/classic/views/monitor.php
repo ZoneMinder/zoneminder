@@ -502,6 +502,9 @@ switch ( $name ) {
             <td class="text-right pr-3"><?php echo translate('SourceType') ?></td>
             <td><?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?></td>
           </tr>
+<?php
+      if ( $monitor->Type() != 'WebSite' ) {
+?>
           <tr>
             <td class="text-right pr-3"><?php echo translate('Function') ?></td>
             <td>
@@ -515,12 +518,19 @@ switch ( $name ) {
           </td>
         </tr>
         <tr>
-          <td class="text-right pr-3"><?php echo translate('Enabled') ?></td>
+          <td class="text-right pr-3"><?php echo translate('Analysis Enabled') ?></td>
           <td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php echo $monitor->Enabled() ? ' checked="checked"' : '' ?>/></td>
         </tr>
+  <tr id="FunctionDecodingEnabled">
+          <td class="text-right pr-3"><?php echo translate('Decoding Enabled') ?></td>
+          <td><input type="checkbox" name="newDecodingEnabled" id="newDecodingEnabled" value="1"/></td>
 <?php
-      if ( $monitor->Type() != 'WebSite' ) {
+  if ( isset($OLANG['FUNCTION_DECODING_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
+  }
 ?>
+
+        </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
           <td>

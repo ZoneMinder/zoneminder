@@ -976,16 +976,7 @@ int FfmpegCamera::CaptureAndRecord(
         }
       }  // end if keyframe or have_video_keyframe
 
-      if (
-          ( monitor->GetFunction() == Monitor::RECORD or monitor->GetFunction() == Monitor::NODECT )
-          and
-          ( monitor->GetOptSaveJPEGs() == 0 )
-          and
-          ( monitor->GetOptVideoWriter() == Monitor::H264PASSTHROUGH )
-          ) {
-        // In this specific case we don't need to do the decode.
-        Debug(1, "Not decoding");
-      } else {
+      if ( monitor->DecodingEnabled() ) {
         ret = zm_send_packet_receive_frame(mVideoCodecContext, mRawFrame, packet);
         if ( ret < 0 ) {
           if ( AVERROR(EAGAIN) != ret ) {

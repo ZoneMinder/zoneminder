@@ -463,6 +463,18 @@ Monitor::Monitor(
       exit(-1);
     }
 
+    // Do this here to save a few cycles with all the comparisons
+    decoding_enabled = !(
+        ( function == RECORD or function == NODECT )
+        and
+        ( savejpegs == 0 )
+        and
+        ( videowriter == H264PASSTHROUGH )
+        and
+        !decoding_enabled
+        );
+    Debug(1, "Decoding enabled: %d", decoding_enabled);
+
     memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
     shared_data->active = enabled;
@@ -1874,7 +1886,7 @@ void Monitor::Reload() {
   if ( !row ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     return;
-  } 
+  }
   if ( MYSQL_ROW dbrow = row->mysql_row() ) {
     int index = 0;
     function = (Function)atoi(dbrow[index++]);

@@ -253,6 +253,7 @@ protected:
   CameraType      type;
   Function        function;           // What the monitor is doing
   bool            enabled;            // Whether the monitor is enabled or asleep
+  bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
   bool            v4l_multi_buffer;
@@ -447,15 +448,7 @@ public:
     return enabled;
   }
   inline bool DecodingEnabled() const {
-    return !(
-        ( monitor->GetFunction() == Monitor::RECORD or monitor->GetFunction() == Monitor::NODECT )
-        and
-        ( monitor->GetOptSaveJPEGs() == 0 )
-        and
-        ( monitor->GetOptVideoWriter() == Monitor::H264PASSTHROUGH )
-        and 
-        !decoding_enabled
-        );
+    return decoding_enabled;
   }
   inline const char *EventPrefix() const { return event_prefix; }
   inline bool Ready() const {

@@ -155,6 +155,11 @@ function initPage() {
       } else {
         $j('#FunctionEnabled').show();
       }
+      if ( this.value == 'Record' || this.value == 'Nodect' ) {
+        $j('#FunctionDecodingEnabled').show();
+      } else {
+        $j('#FunctionDecodingEnabled').hide();
+      }
     };
     el.onchange();
   });

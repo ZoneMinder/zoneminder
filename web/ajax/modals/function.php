@@ -50,12 +50,22 @@ if ( !canEdit('Monitors') ) return;
 ?>
           </div>
         </div>
-        <div class="form-group" id="FunctionEnabled">
+        <div class="form-group" id="FunctionAnalysisEnabled">
           <label for="newEnabled"><?php echo translate('Analysis Enabled') ?></label>
           <input type="checkbox" name="newEnabled" id="newEnabled" value="1"/>
 <?php
   if ( isset($OLANG['FUNCTION_ANALYSIS_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_ANALYSIS_ENABLED']['Help'].'</div>';
+  }
+?>
+
+        </div>
+        <div class="form-group" id="FunctionDecodingEnabled">
+          <label for="newDecodingEnabled"><?php echo translate('Decoding Enabled') ?></label>
+          <input type="checkbox" name="newDecodingEnabled" id="newDecodingEnabled" value="1"/>
+<?php
+  if ( isset($OLANG['FUNCTION_DECODING_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
   }
 ?>
 

@@ -25,6 +25,7 @@ var monitors = new Array();
   'Type': '<?php echo $monitor->Type() ?>',
   'Function': '<?php echo $monitor->Function() ?>',
   'Enabled': '<?php echo $monitor->Enabled() ?>'
+  'DecodingEnabled': '<?php echo $monitor->DecodingEnabled() ?>'
 };
 <?php
   }

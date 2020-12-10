@@ -1130,7 +1130,13 @@ $OLANG = array(
       When not enabled no motion detection or linked monitor checking will be performed and 
       no events will be created. The zma process will still be running waiting to be enabled.
       '
-  )
+  ),
+  'FUNCTION_DECODING_ENABLED' => array(
+    'Help' => '
+      When in Record or Nodect mode and using H264Passthrough with no jpegs being saved, we can
+      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use
+      but will make live view unavailable for this monitor.'
+  ),
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

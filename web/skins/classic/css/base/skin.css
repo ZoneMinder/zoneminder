@@ -741,3 +741,6 @@ a.flip {
   float: right;
   margin-right: -20px;
 }
+#content table.major .colDiskSpace {
+  text-align: right;
+}

@@ -64,12 +64,10 @@ function exportResponse(respObj, respText) {
 }
 
 function exportEvents( ) {
-  var parms = 'view=event&request=event&action=export';
-  parms += '&'+$('contentForm').toQueryString();
   var query = new Request.JSON( {
-    url: thisUrl,
+    url: '?view=event&request=event&action=export',
     method: 'post',
-    data: parms,
+    data: $('contentForm').toQueryString(),
     onSuccess: exportResponse
   } );
   query.send();

@@ -152,10 +152,9 @@ while ( $event_row = dbFetchNext($results) ) {
               </td>
               <td class="colName"><a href="<?php echo $event_link ?>"><?php echo validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
               <td class="colMonitorName"><?php echo makeLink('?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit('Monitors')) ?></td>
-              <td class="colCause"><?php echo makeLink($event_link, validHtmlStr($event->Cause()), canEdit('Events'), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid=' .$event->Id(). '"') ?></td>
+              <td class="colCause"><?php echo makeLink($event_link, validHtmlStr($event->Cause()), canView('Events'), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid="'.$event->Id().'"') ?></td>
               <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartDateTime())) .
-( $event->EndDateTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndDateTime())) : '' ) ?>
-              </td>
+( $event->EndDateTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndDateTime())) : '' ) ?></td>
               <td class="colDuration"><?php echo gmdate('H:i:s', $event->Length()) ?></td>
               <td class="colFrames"><?php echo makeLink('?view=frames&amp;eid='.$event->Id(), $event->Frames()) ?></td>
               <td class="colAlarmFrames"><?php echo makeLink('?view=frames&amp;eid='.$event->Id(), $event->AlarmFrames()) ?></td>

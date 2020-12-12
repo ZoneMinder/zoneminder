@@ -49,7 +49,7 @@ $prevFid = $fid-1;
 $nextFid = $fid+1;
 $lastFid = $maxFid;
 
-$alarmFrame = $Frame->Type() == 'Alarm';
+$alarmFrame = ( $Frame->Type() == 'Alarm' ) ? 1 : 0;
 
 if ( isset($_REQUEST['scale']) ) {
   $scale = validNum($_REQUEST['scale']);

@@ -378,7 +378,11 @@ bool zm_packetqueue::increment_analysis_it( ) {
   // We do this instead of distance becuase distance will traverse the entire list in the worst case
   if ( analysis_it != pktQueue.end() ) {
     ++analysis_it;
-    Debug(1, "Incrementing analysis it %d %d", (analysis_it == pktQueue.end()), (*analysis_it)->image_index);
+    if ( (analysis_it == pktQueue.end()) ) {
+      Debug(1, "Incrementing analysis it %d", (analysis_it == pktQueue.end()) );
+    } else {
+      Debug(1, "Incrementing analysis it %d %d", (analysis_it == pktQueue.end()), (*analysis_it)->image_index);
+    }
   } else {
     Debug(1, "Not Incrementing analysis it %d", (analysis_it == pktQueue.end()));
   }

@@ -648,7 +648,7 @@ function controlCmd(event) {
   controlReq(data);
 
   if ( streamMode == 'single' ) {
-    fetchImage.pass($('imageFeed').getElement('img')).delay(1000);
+    setTimeout(fetchImage, 1000, $j('#imageFeed img'));
   }
 }
 
@@ -662,12 +662,12 @@ function controlCmdImage( x, y ) {
   controlReq(data);
 
   if ( streamMode == 'single' ) {
-    fetchImage.pass( $('imageFeed').getElement('img') ).delay( 1000 );
+    setTimeout(fetchImage, 1000, $j('#imageFeed img'));
   }
 }
 
 function fetchImage( streamImage ) {
-  streamImage.src = streamImage.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+  streamImage.attr('src', streamImage.attr('src').replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )));
 }
 
 function handleClick( event ) {
@@ -824,25 +824,25 @@ function initPage() {
   if ( monitorType != 'WebSite' ) {
     if ( streamMode == 'single' ) {
       statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
-      watchdogCheck.pass('status').periodical(statusRefreshTimeout*2);
+      setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
     } else {
       streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
-      watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
+      setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
     }
 
     if ( canStreamNative || (streamMode == 'single') ) {
-      var streamImg = $('imageFeed').getElement('img');
+      var streamImg = $j('#imageFeed img');
       if ( !streamImg ) {
-        streamImg = $('imageFeed').getElement('object');
+        streamImg = $j('#imageFeed object');
       }
       if ( !streamImg ) {
         console.error('No streamImg found for imageFeed');
       } else {
         if ( streamMode == 'single' ) {
-          streamImg.addEvent('click', fetchImage.pass(streamImg));
-          fetchImage.pass(streamImg).periodical(imageRefreshTimeout);
+          streamImg.click(streamImg, fetchImage);
+          setInterval(fetchImage, imageRefreshTimeout, $j('#imageFeed img'));
         } else {
-          streamImg.addEvent('click', function(event) {
+          streamImg.click(function(event) {
             handleClick(event);
           });
         }

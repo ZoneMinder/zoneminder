@@ -161,15 +161,30 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
   $returned_rows = array();
   foreach ( array_slice($filtered_rows, $offset, $limit) as $row ) {
     if ( ZM_WEB_LIST_THUMBS ) {
+
+      # Build the path to the potential analysis image
+      $analImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $row['FrameId']);
+      $analPath = $Event->Path().'/'.$analImage;
+      $alarmFrame = $row['Type'] == 'Alarm';
+      $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
+
+      # Our base img source component, which we will add on to
       $base_img_src = '?view=image&amp;fid=' .$row['Id'];
+
+      # if an analysis images exists, use it as the thumbnail
+      if ( $hasAnalImage ) $base_img_src .= '&amp;show=analyse';
+
+      # Build the subcomponents needed for the image source
       $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
       $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';
       $thmb_height = 'height="'.( ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor ) .'"';
       $thmb_fn = 'filename=' .$Event->MonitorId(). '_' .$row['EventId']. '_' .$row['FrameId']. '.jpg';
+
+      # Assemble the scaled and unscaled image source image source components
       $img_src = join('&amp;', array_filter(array($base_img_src, $thmb_width, $thmb_height, $thmb_fn)));
       $full_img_src = join('&amp;', array_filter(array($base_img_src, $thmb_fn)));
-      $frame_src = '?view=frame&amp;eid=' .$row['EventId']. '&amp;fid=' .$row['FrameId'];
       
+      # finally, we assemble the the entire thumbnail img src structure, whew
       $row['Thumbnail'] = '<img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '">';
     }
       $returned_rows[] = $row;

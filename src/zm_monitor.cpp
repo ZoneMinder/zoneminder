@@ -372,8 +372,8 @@ Monitor::Monitor()
  "Brightness, Contrast, Hue, Colour, "
  "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
  "ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
- "SectionLength, FrameSkip, MotionFrameSkip, "
- "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, SignalCheckColour FROM Monitors";
+ "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
+ "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, SignalCheckPoints, SignalCheckColour FROM Monitors";
 */
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
@@ -533,6 +533,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   pre_event_buffer_count = pre_event_count + alarm_frame_count + warmup_count - 1;
 
   section_length = atoi(dbrow[col]); col++;
+  min_section_length = atoi(dbrow[col]); col++;
   frame_skip = atoi(dbrow[col]); col++;
   motion_frame_skip = atoi(dbrow[col]); col++;
   fps_report_interval = atoi(dbrow[col]); col++;
@@ -540,6 +541,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   alarm_ref_blend_perc = atoi(dbrow[col]); col++;
   track_motion = atoi(dbrow[col]); col++;
 
+  signal_check_points = atoi(dbrow[col]); col++;
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
   embed_exif = (*dbrow[col] != '0'); col++;
 
@@ -1690,6 +1692,8 @@ void Monitor::CheckAction() {
 }
 
 void Monitor::UpdateAnalysisFPS() {
+  Debug(1, "analysis_image_count(%d) fps_report_interval(%d) mod%d", analysis_image_count, fps_report_interval, 
+      ((analysis_image_count && fps_report_interval) ? !(analysis_image_count%fps_report_interval) : -1 ) );
   if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
     struct timeval now;
     gettimeofday(&now, NULL);
@@ -2391,14 +2395,14 @@ int Monitor::Capture() {
         //mutex.lock();
         if ( packetqueue->video_packet_count || event ) {
           // Need to copy it into another ZMPacket.
-          //ZMPacket *audio_packet = new ZMPacket(*packet);
+          ZMPacket *audio_packet = new ZMPacket(*packet);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-          packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
+          audio_packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
 #else
-          packet->codec_type = camera->get_AudioStream()->codec->codec_type;
+          audio_packet->codec_type = camera->get_AudioStream()->codec->codec_type;
 #endif
           Debug(2, "Queueing audio packet");
-          packetqueue->queuePacket(packet);
+          packetqueue->queuePacket(audio_packet);
         }
         // Don't update last_write_index because that is used for live streaming
         //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
@@ -2414,12 +2418,22 @@ int Monitor::Capture() {
 #endif
 
       if ( packet->packet.size && !packet->in_frame ) {
-        //Debug(2,"About to decode");
-        if ( packet->decode(camera->get_VideoCodecContext()) ) {
-          //Debug(2,"Getimage");
-          packet->get_image(image_buffer[index].image);
+        if (
+            ( function == RECORD or function == NODECT )
+            and
+            ( savejpegs == 0 )
+            and
+            ( videowriter == H264PASSTHROUGH )
+           ) {
+          // In this specific case we don't need to do the decode.
+          Debug(1, "Not decoding");
+        } else {
+          //Debug(2,"About to decode");
+          if ( packet->decode(camera->get_VideoCodecContext()) ) {
+            //Debug(2,"Getimage");
+            packet->get_image(image_buffer[index].image);
+          }
         }
-        // Have an av_packet, 
       }
 
       //Debug(2,"Before mutex lock");

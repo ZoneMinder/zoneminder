@@ -103,7 +103,14 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
       </form>
     </div>
     
-  <div id="content">
+  <div id="content" class="d-flex flex-row justify-content-center">
+  
+
+  <table id="frameStatsTable" class="table-sm table-borderless pr-3">
+  <!-- FRAME STATISTICS POPULATED BY AJAX -->
+  </table>
+  
+  <div>
     <p id="image">
 <?php if ( $imageData['hasAnalImage'] ) {
  echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%d&amp;show=%s">', $Event->Id(), $Frame->FrameId(), $scale, ( $show=='anal'?'capt':'anal' ) );
@@ -152,6 +159,7 @@ if ( file_exists($rImagePath) ) {
           class="<?php echo $imageData['imageClass'] ?>"
         />
       </p>
+    </div>
 <?php } ?>
     </div>
   </div>

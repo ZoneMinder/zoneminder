@@ -221,6 +221,14 @@ if ( !$Event->Id() ) {
               <th class="text-right"><?php echo translate('Storage') ?></th>
               <td id="dataStorage"><?php echo $storage?></td>
             </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('Archived') ?></th>
+              <td id="dataArchived"><?php echo $Event->Archived ? translate('Yes') : translate('No') ?></td>
+            </tr>
+            <tr>
+              <th class="text-right"><?php echo translate('Emailed') ?></th>
+              <td id="dataArchived"><?php echo $Event->Emailed ? translate('Yes') : translate('No') ?></td>
+            </tr>
           </tbody>
         </table>
       </div>

@@ -84,8 +84,8 @@ function initPage() {
     window.location.href = thisUrl+'?view=stats&eid='+eid+'&fid='+fid;
   });
 
-  // Load the frame stats  
-  getStat({eid:eid, fid:fid});
+  // Load the frame stats
+  getStat({eid: eid, fid: fid});
 }
 
 $j(document).ready(function() {

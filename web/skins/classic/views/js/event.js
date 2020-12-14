@@ -1075,9 +1075,24 @@ function getEvtStatsCookie() {
   return stats;
 }
 
+function getStat() {
+  table.empty().append('<tbody>');
+  $j.each( eventDataStrings, function( key ) {
+    var th = $j('<th>').addClass('text-right').text(eventDataStrings[key]);
+    var tdString = ( eventData ) ? eventData[key] : 'n/a';
+    var td = $j('<td>').text(tdString);
+    var row = $j('<tr>').append(th, td);
+
+    $j('#eventStatsTable tbody').append(row);
+  });
+}
+
 function initPage() {
   // Load the delete confirmation modal into the DOM
   getDelConfirmModal();
+
+  // Load the event stats
+  getStat();
 
   var stats = getEvtStatsCookie();
   if ( stats != 'on' ) table.toggle(false);

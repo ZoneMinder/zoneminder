@@ -162,7 +162,7 @@ if ( !$Event->Id() ) {
       <div class="">
         <!-- VIDEO STATISTICS TABLE -->
         <table id="eventStatsTable" class="table-sm table-borderless">
-          <!-- EVENT STATISTICS POPULATED BY AJAX -->
+          <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
         </table>
       </div>
       <div class="">

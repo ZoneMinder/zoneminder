@@ -57,8 +57,10 @@ var eventData = {
     MaxScore: '<?php echo $Event->MaxScore() ?>',
     DiskSpace: '<?php echo human_filesize($Event->DiskSpace(null)) ?>',
     Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
-    Archived: '<?php echo $Event->Archived ? translate('Yes') : translate('No') ?>',
-    Emailed: '<?php echo $Event->Emailed ? translate('Yes') : translate('No') ?>'
+    ArchivedStr: '<?php echo $Event->Archived ? translate('Yes') : translate('No') ?>',
+    EmailedStr: '<?php echo $Event->Emailed ? translate('Yes') : translate('No') ?>',
+    Archived: <?php echo $Event->Archived?'true':'false' ?>,
+    Emailed: <?php echo $Event->Emailed?'true':'false' ?>
 };
 
 var eventDataStrings = {
@@ -76,8 +78,8 @@ var eventDataStrings = {
     MaxScore: '<?php echo translate('AttrMaxScore') ?>',
     DiskSpace: '<?php echo translate('DiskSpace') ?>',
     Storage: '<?php echo translate('Storage') ?>',
-    Archived: '<?php echo translate('Archived') ?>',
-    Emailed: '<?php echo translate('Emailed') ?>'
+    ArchivedStr: '<?php echo translate('Archived') ?>',
+    EmailedStr: '<?php echo translate('Emailed') ?>'
 };
 
 var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';

@@ -1160,7 +1160,7 @@ function initPage() {
   });
 
   // Manage the Event RENAME button
-  document.getElementById("renameBtn").addEventListener("click", function onDownloadClick(evt) {
+  document.getElementById("renameBtn").addEventListener("click", function onRenameClick(evt) {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=modal&modal=eventrename&eid='+eventData.Id)
         .done(function(data) {

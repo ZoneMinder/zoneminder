@@ -871,8 +871,8 @@ function xhtmlFooter() {
   <script src="tools/mootools/mootools-more.js"></script>
   <script src="js/mootools.ext.js"></script>
 <?php } ?>
-  <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
 <?php echo output_script_if_exists(array(
   'js/bootstrap-table.min.js',

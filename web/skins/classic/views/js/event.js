@@ -1032,16 +1032,6 @@ function handleClick( event ) {
   }
 }
 
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
-        manageDelConfirmModalBtns();
-      })
-      .fail(logAjaxFail);
-}
-
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
@@ -1075,9 +1065,21 @@ function getEvtStatsCookie() {
   return stats;
 }
 
+function getStat() {
+  table.empty().append('<tbody>');
+  $j.each( eventDataStrings, function( key ) {
+    var th = $j('<th>').addClass('text-right').text(eventDataStrings[key]);
+    var tdString = ( eventData[key].length ) ? eventData[key] : 'n/a';
+    var td = $j('<td>').text(tdString);
+    var row = $j('<tr>').append(th, td);
+
+    $j('#eventStatsTable tbody').append(row);
+  });
+}
+
 function initPage() {
-  // Load the delete confirmation modal into the DOM
-  getDelConfirmModal();
+  // Load the event stats
+  getStat();
 
   var stats = getEvtStatsCookie();
   if ( stats != 'on' ) table.toggle(false);
@@ -1259,6 +1261,17 @@ function initPage() {
     }
 
     evt.preventDefault();
+    if ( ! $j('#deleteConfirm').length ) {
+      // Load the delete confirmation modal into the DOM
+      $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+          .done(function(data) {
+            insertModalHtml('deleteConfirm', data.html);
+            manageDelConfirmModalBtns();
+            $j('#deleteConfirm').modal('show');
+          })
+          .fail(logAjaxFail);
+      return;
+    }
     $j('#deleteConfirm').modal('show');
   });
 }

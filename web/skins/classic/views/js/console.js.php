@@ -24,7 +24,8 @@ var monitors = new Array();
   'Url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'Type': '<?php echo $monitor->Type() ?>',
   'Function': '<?php echo $monitor->Function() ?>',
-  'Enabled': '<?php echo $monitor->Enabled() ?>'
+  'Enabled': '<?php echo $monitor->Enabled() ?>',
+  'DecodingEnabled': '<?php echo $monitor->DecodingEnabled() ?>'
 };
 <?php
   }

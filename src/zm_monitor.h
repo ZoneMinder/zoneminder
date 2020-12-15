@@ -243,6 +243,7 @@ protected:
   CameraType      type;
   Function        function;           // What the monitor is doing
   bool            enabled;            // Whether the monitor is enabled or asleep
+  bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
 
   std::string protocol;
   std::string method;
@@ -423,6 +424,9 @@ public:
     if ( function <= MONITOR )
       return false;
     return enabled;
+  }
+  inline bool DecodingEnabled() const {
+    return decoding_enabled;
   }
   inline const char *EventPrefix() const { return event_prefix; }
   inline bool Ready() const {

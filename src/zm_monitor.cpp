@@ -71,8 +71,8 @@
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `LinkedMonitors`, "
-"`AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, "
+"`LinkedMonitors`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
 "`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
@@ -596,6 +596,18 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
     }
+
+    decoding_enabled = !(
+        ( function == RECORD or function == NODECT )
+        and
+        ( savejpegs == 0 )
+        and
+        ( videowriter == H264PASSTHROUGH )
+        and
+        !decoding_enabled
+        );
+    Debug(1, "Decoding enabled: %d", decoding_enabled);
+
   } else if ( purpose == ANALYSIS ) {
     while (
         ( !(this->connect() and shared_data->valid) )

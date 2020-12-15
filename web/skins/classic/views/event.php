@@ -135,8 +135,6 @@ if ( !$Event->Id() ) {
 } else {
   if ( !file_exists($Event->Path()) )
     echo '<div class="error">Event was not found at '.$Event->Path().'.  It is unlikely that playback will be possible.</div>';
-
-  $storage = validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' );
 ?>
 
 <!-- BEGIN HEADER -->
@@ -214,64 +212,7 @@ if ( canEdit('Events') ) {
       <div class="">
         <!-- VIDEO STATISTICS TABLE -->
         <table id="eventStatsTable" class="table-sm table-borderless">
-          <tbody>
-            <tr>
-              <th class="text-right"><?php echo translate('EventId') ?></th>
-              <td id="dataEventId"><?php echo $Event->Id() ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('EventName') ?></th>
-              <td id="dataEventName"><?php echo $Event->Name() ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('AttrMonitorId') ?></th>
-              <td id="dataMonitorId"><?php echo $Monitor->Id() ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('AttrMonitorName') ?></th>
-              <td id="dataMonitorName"><?php echo validHtmlStr($Monitor->Name()) ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('Cause') ?></th>
-              <td id="dataCause"><?php echo validHtmlStr($Event->Cause()) ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('AttrStartTime') ?></th>
-              <td id="dataStartTime"><?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('Duration') ?></th>
-              <td id="dataDuration"><?php echo $Event->Length().'s' ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('AttrFrames') ?></th>
-              <td id="dataFrames"><?php echo $Event->Frames() ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('AttrAlarmFrames') ?></th>
-              <td id="dataAlarmFrames"><?php echo $Event->AlarmFrames() ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('AttrTotalScore') ?></th>
-              <td id="dataTotalScore"><?php echo $Event->TotScore() ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('AttrAvgScore') ?></th>
-              <td id="dataAvgScore"><?php echo $Event->AvgScore() ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('AttrMaxScore') ?></th>
-              <td id="dataMaxScore"><?php echo $Event->MaxScore() ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('DiskSpace') ?></th>
-              <td id="dataDiskSpace"><?php echo human_filesize($Event->DiskSpace(null)) ?></td>
-            </tr>
-            <tr>
-              <th class="text-right"><?php echo translate('Storage') ?></th>
-              <td id="dataStorage"><?php echo $storage?></td>
-            </tr>
-          </tbody>
+          <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
         </table>
       </div>
       <div class="">

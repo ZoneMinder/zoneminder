@@ -1073,6 +1073,70 @@ $OLANG = array(
       certainly not what you want! To unlink monitors you can ctrl-click.
       '
 	),
+  'FUNCTION_NONE' => array(
+    'Help' => '
+      In None mode no processes are started.  No capturing will occur.
+      '
+  ),
+  'FUNCTION_MONITOR' => array(
+    'Help' => '
+      In Monitor mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      No motion detection will be performed.  This monitor type cannot save video.
+      '
+  ),
+  'FUNCTION_MODECT' => array(
+    'Help' => '
+      In Modect mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      In addition a process (zma) will analyse the video for motion.  
+      When motion is detected, events will be created and video will be stored.
+      Motion data will be stored in the database for each event.
+      Events may also be triggered externally (zmtrigger) or by linked monitors.
+      '
+  ),
+  'FUNCTION_RECORD' => array(
+    'Help' => '
+      In Record mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      In addition a process (zma) will run but will not perform motion detection.
+      Events will be created at fixed intervals and video will be stored.
+      '
+  ),
+  'FUNCTION_MOCORD' => array(
+    'Help' => '
+      In Mocord mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      In addition a process (zma) will analyse the video for motion.
+      Events will be created at fixed intervals or at start and stop of motion.
+      Video will always be stored to disk and events will have the motion data stored in the database.
+      Events may also be triggered externally (zmtrigger) or by linked monitors.
+      '
+  ),
+  'FUNCTION_NODECT' => array(
+    'Help' => '
+      In Nodect mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      In addition a process (zma) will run and will check any linked cameras for their alarm status. 
+      When linked cameras or an external trigger (zmtrigger) are alarmed, events will be created
+      and video will be stored.  No other motion detection will occur.
+      '
+  ),
+  'FUNCTION_ANALYSIS_ENABLED' => array(
+    'Help' => '
+      When in Modect, Mocord, Nodect or RECORD mode the analysis process can be turned on/off.
+      This setting sets the default state when the process starts up.
+      It can then be turned on/off through external triggers zmtrigger zmu or the web ui.
+      When not enabled no motion detection or linked monitor checking will be performed and 
+      no events will be created. The zma process will still be running waiting to be enabled.
+      '
+  ),
+  'FUNCTION_DECODING_ENABLED' => array(
+    'Help' => '
+      When in Record or Nodect mode and using H264Passthrough with no jpegs being saved, we can
+      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use
+      but will make live view unavailable for this monitor.'
+  ),
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

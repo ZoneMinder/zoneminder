@@ -241,7 +241,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j(document).ready(function() {
     // Load the Logout and State modals into the dom
     $j('#logoutButton').click(clickLogout);
-    if ( canEditSystem ) $j('#stateModalBtn').click(getStateModal);
+    if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
 
     // Trigger autorefresh of the widget bar stats on the navbar
     if ( $j('.navbar').length ) {
@@ -894,8 +894,9 @@ function thumbnail_onmouseover(event) {
   timeout = setTimeout(function() {
     var img = event.target;
     var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
+    var imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
     img.src = '';
-    img.src = img.getAttribute('stream_src');
+    img.src = img.getAttribute(imgAttr);
     img.addClass(imgClass);
   }, 350);
 }
@@ -904,8 +905,9 @@ function thumbnail_onmouseout(event) {
   clearTimeout(timeout);
   var img = event.target;
   var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
+  var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
   img.src = '';
-  img.src = img.getAttribute('still_src');
+  img.src = img.getAttribute(imgAttr);
   img.removeClass(imgClass);
 }
 

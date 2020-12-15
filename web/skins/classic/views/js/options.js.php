@@ -4,4 +4,3 @@ if ( restartWarning ) {
   alert( "<?php echo translate('OptionRestartWarning') ?>" );
 }
 
-var canEditSystem = <?php echo canEdit('System') ? 'true' : 'false' ?>;

@@ -450,6 +450,7 @@ CREATE TABLE `Monitors` (
   `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket','VNC') NOT NULL default 'Local',
   `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
+  `DecodingEnabled` tinyint(3) unsigned NOT NULL default '1',
   `LinkedMonitors` varchar(255),
   `Triggers` set('X10') NOT NULL default '',
   `ONVIF_URL` VARCHAR(255) NOT NULL DEFAULT '',

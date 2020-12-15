@@ -319,14 +319,10 @@ int main(int argc, char *argv[]) {
         if ( monitors[i]->PreCapture() < 0 ) {
           Error("Failed to pre-capture monitor %d %d (%d/%d)",
               monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-          monitors[i]->Close();
           result = -1;
           break;
         }
         if ( monitors[i]->Capture() < 0 ) {
-          Error("Failed to capture image from monitor %d %s (%d/%d)",
-              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-          monitors[i]->Close();
           Error("Failed to capture image from monitor %d %s (%d/%d)",
               monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
           result = -1;
@@ -335,7 +331,6 @@ int main(int argc, char *argv[]) {
         if ( monitors[i]->PostCapture() < 0 ) {
           Error("Failed to post-capture monitor %d %s (%d/%d)",
               monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-          monitors[i]->Close();
           result = -1;
           break;
         }
@@ -383,6 +378,9 @@ int main(int argc, char *argv[]) {
         zm_reload = false;
       } // end if zm_reload
     } // end while ! zm_terminate and connected
+    for ( int i = 0; i < n_monitors; i++ ) {
+      monitors[i]->Close();
+    }
 
     delete [] alarm_capture_delays;
     delete [] capture_delays;
@@ -398,6 +396,7 @@ int main(int argc, char *argv[]) {
       }
     } // end foreach monitor
     delete [] analysis_threads;
+
   } // end while ! zm_terminate outer connection loop
   Debug(1,"Updating Monitor status");
 

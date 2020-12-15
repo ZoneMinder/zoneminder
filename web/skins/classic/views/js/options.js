@@ -62,11 +62,11 @@ function initPage() {
   var NewStorageBtn = $j('#NewStorageBtn');
   var NewServerBtn = $j('#NewServerBtn');
 
-  if ( canEditSystem ) enableStorageModal();
-  if ( canEditSystem ) enableServerModal();
+  if ( canEdit.System ) enableStorageModal();
+  if ( canEdit.System ) enableServerModal();
 
-  NewStorageBtn.prop('disabled', !canEditSystem);
-  NewServerBtn.prop('disabled', !canEditSystem);
+  NewStorageBtn.prop('disabled', !canEdit.System);
+  NewServerBtn.prop('disabled', !canEdit.System);
 }
 
 $j(document).ready(function() {

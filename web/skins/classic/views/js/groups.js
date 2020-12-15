@@ -50,7 +50,7 @@ function deleteGroup( element ) {
 }
 
 function configureButtons( element ) {
-  if ( canEditGroups ) {
+  if ( canEdit.Groups ) {
     var form = element.form;
     if ( element.checked ) {
       form.deleteBtn.disabled = (element.value == 0);
@@ -64,7 +64,7 @@ function configModalBtns() {
     console.log("No groupForm found");
     return;
   }
-  if ( !canEditGroups ) {
+  if ( !canEdit.Groups ) {
     console.log("Cannot edit groups");
     form.elements['action'].disabled = disabled;
     return;

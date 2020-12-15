@@ -48,14 +48,21 @@ zm_packetqueue::~zm_packetqueue() {
   }
 
   while ( !pktQueue.empty() ) {
+    Debug(1, "Fronting packet %d", pktQueue.empty());
     ZMPacket * packet = pktQueue.front();
+    Debug(1, "poppng packet %d", packet->image_index);
     pktQueue.pop_front();
-    delete packet;
+    if ( packet->image_index == -1 ) {
+      Debug(1, "Deletng packet");
+      delete packet;
+    }
   }
 
   delete[] packet_counts;
+  Debug(1, "Done in destrcutor");
   packet_counts = nullptr;
   mutex.unlock();
+  condition.notify_all();
 }
 
 /* Enqueues the given packet.  Will maintain the analysis_it pointer and image packet counts.
@@ -351,9 +358,12 @@ ZMPacket *zm_packetqueue::get_analysis_packet() {
   Debug(1, "Locking in get_analysis_packet");
   std::unique_lock<std::mutex> lck(mutex);
 
-  while ( ((! pktQueue.size()) || ( analysis_it == pktQueue.end() )) && !zm_terminate ) {
+  while ( ((! pktQueue.size()) or ( analysis_it == pktQueue.end() )) and !zm_terminate and !deleting ) {
     Debug(2, "waiting.  Queue size %d analysis_it == end? %d", pktQueue.size(), ( analysis_it == pktQueue.end() ) );
     condition.wait(lck);
+  }
+  if ( deleting ) {
+    return nullptr;
   }
 
 //Debug(2, "Distance from head: (%d)", std::distance( pktQueue.begin(), analysis_it ) );
@@ -364,6 +374,7 @@ ZMPacket *zm_packetqueue::get_analysis_packet() {
     Debug(2,"waiting.  Queue size %d analysis_it == end? %d", pktQueue.size(), ( analysis_it == pktQueue.end() ) );
     condition.wait(lck);
     if ( deleting ) {
+      Debug(1, "deleting");
       // packetqueue is being deleted, do not assume we have a lock on the packet
       return nullptr;
     }

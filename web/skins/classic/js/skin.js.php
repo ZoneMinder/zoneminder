@@ -40,14 +40,17 @@ var thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERV
 var skinPath = '<?php echo ZM_SKIN_PATH ?>';
 var serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
 
-var canEditSystem = <?php echo canEdit('System')?'true':'false' ?>;
-var canViewSystem = <?php echo canView('System')?'true':'false' ?>;
-var canEditEvents = <?php echo canEdit('Events')?'true':'false' ?>;
-var canViewEvents = <?php echo canView('Events')?'true':'false' ?>;
-var canEditMonitors = <?php echo canEdit('Monitors')?'true':'false' ?>;
-var canViewMonitors = <?php echo canView('Monitors')?'true':'false' ?>;
-
-var canEditGroups = <?php echo canEdit('Groups')?'true':'false' ?>;
+var canView = {};
+var canEdit = {};
+<?php
+$perms = array("Stream", "Events", "Control", "Monitors", "Groups", "System", "Devices");
+foreach ( $perms as $perm ) {
+?>
+  canView["<?php echo $perm ?>"] = <?php echo canView($perm)?'true':'false' ?>;
+  canEdit["<?php echo $perm ?>"] = <?php echo canEdit($perm)?'true':'false' ?>;
+<?php
+}
+?>
 
 var ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;
 

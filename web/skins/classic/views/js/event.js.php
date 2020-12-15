@@ -63,7 +63,6 @@ var rate = '<?php echo $rate ?>'; // really only used when setting up initial pl
 var scale = "<?php echo $scale ?>";
 var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
 
-var canEditEvents = <?php echo canEdit('Events')?'true':'false' ?>;
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;

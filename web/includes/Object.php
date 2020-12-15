@@ -250,8 +250,8 @@ class ZM_Object {
       } else if ( property_exists($this, $field) ) {
         $type = (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field])) ? $this->defaults[$field]['type'] : 'scalar';
         if ( $type == 'set' ) {
-          $old_value = is_array($this->$field) ? $this->$field : explode(',', $this->$field);
-          $new_value = is_array($value) ? $value : explode(',', $value);
+          $old_value = is_array($this->$field) ? $this->$field : ($this->$field ? explode(',', $this->$field) : array());
+          $new_value = is_array($value) ? $value : ($value ? explode(',', $value) : array());
 
           $diff = array_recursive_diff($old_value, $new_value);
           if ( count($diff) ) {

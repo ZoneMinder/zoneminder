@@ -71,8 +71,8 @@
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `LinkedMonitors`, "
-"`AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, "
+"`LinkedMonitors`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
 "`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
@@ -272,6 +272,7 @@ Monitor::Monitor()
   type(LOCAL),
   function(NONE),
   enabled(0),
+  decoding_enabled(0),
   //protocol
   //method
   //options
@@ -362,7 +363,7 @@ Monitor::Monitor()
 
 /*
   std::string load_monitor_sql =
- "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, "
+ "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, LinkedMonitors, "
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
  "Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
@@ -409,6 +410,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   function = (Function)atoi(dbrow[col]); col++;
   enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
 
   ReloadLinkedMonitors(dbrow[col]); col++;
 
@@ -596,6 +598,18 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
     }
+
+    // Do this here to save a few cycles with all the comparisons
+    decoding_enabled = !(
+        ( function == RECORD or function == NODECT )
+        and
+        ( savejpegs == 0 )
+        and
+        ( videowriter == H264PASSTHROUGH )
+        and
+        !decoding_enabled
+        );
+    Debug(1, "Decoding enabled: %d", decoding_enabled);
   } else if ( purpose == ANALYSIS ) {
     // FIXME Now that zma is a thread, this might not get called.  Unless maybe we are redoing motion detection in a separate program.
     while (
@@ -2160,7 +2174,7 @@ void Monitor::ReloadZones() {
 void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
   Debug(1, "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors);
   if ( n_linked_monitors ) {
-    for( int i=0; i < n_linked_monitors; i++ ) {
+    for ( int i=0; i < n_linked_monitors; i++ ) {
       delete linked_monitors[i];
     }
     delete[] linked_monitors;
@@ -2489,7 +2503,6 @@ int Monitor::Capture() {
       }
 
       shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
-        Debug(1, "signal check points? %d", signal_check_points);
       shared_data->last_write_index = index;
       shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
       image_count++;
@@ -2826,9 +2839,12 @@ int Monitor::PrimeCapture() {
     video_stream_id = camera->get_VideoStreamId();
     audio_stream_id = camera->get_AudioStreamId();
     packetqueue = new zm_packetqueue(image_buffer_count, video_stream_id, audio_stream_id);
+    Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
+        video_stream_id, audio_stream_id, pre_event_buffer_count);
+  } else {
+    Debug(2, "Not Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
+        video_stream_id, audio_stream_id, pre_event_buffer_count);
   }
-  Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
-      video_stream_id, audio_stream_id, pre_event_buffer_count);
   return ret;
 }
 
@@ -2839,6 +2855,7 @@ int Monitor::Close() {
     delete packetqueue;
     packetqueue = nullptr;
   }
+  Debug(1, "Closing camera");
   return camera->Close();
 };
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }

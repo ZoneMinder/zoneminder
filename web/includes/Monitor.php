@@ -35,6 +35,7 @@ class Monitor extends ZM_Object {
     'Type'      => 'Ffmpeg',
     'Function'  => 'Mocord',
     'Enabled'   => array('type'=>'boolean','default'=>1),
+    'DecodingEnabled'   => array('type'=>'boolean','default'=>1),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
     'ONVIF_URL' =>  '',

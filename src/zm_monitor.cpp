@@ -2115,8 +2115,6 @@ bool Monitor::Analyse() {
         if ( queued_packet->image_index == -1 ) {
           delete queued_packet;
         } 
-        // encoding can take a long time, so : ICON 2020-12-08: Not that long.
-        //shared_data->last_read_time = time(NULL);
       } // end while write out queued_packets
       queued_packet = NULL;
     }
@@ -2359,7 +2357,7 @@ int Monitor::Capture() {
   packet->lock();
   packet->reset();
   Image* capture_image = packet->image;
-  Debug(1, "capture image: %d x %d linesize: %d", capture_image->Width(), capture_image->Height(), capture_image->LineSize());
+  //Debug(1, "capture image: %d x %d linesize: %d", capture_image->Width(), capture_image->Height(), capture_image->LineSize());
   int captureResult = 0;
 
   if ( deinterlacing_value == 4 ) {
@@ -2399,7 +2397,7 @@ int Monitor::Capture() {
     } else if ( captureResult > 0 ) {
 
       // Analysis thread will take care of consuming and emptying the packets.
-      Debug(2, "Have packet (%d) ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
+      Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
           packet->packet.stream_index, video_stream_id, packetqueue->video_packet_count, ( event ? 1 : 0 ) );
 
       if ( packet->packet.stream_index != video_stream_id ) {
@@ -2450,16 +2448,12 @@ int Monitor::Capture() {
         }
       }
 
-      //Debug(2,"Before mutex lock");
-      // FIXME this mutex is useless, packetqueue has it's own
-      //mutex.lock();
       if ( packetqueue->video_packet_count || packet->keyframe || event ) {
         Debug(2, "Have video packet for index (%d), adding to queue", index);
         packetqueue->queuePacket(packet);
       } else {
         Debug(2, "Not queuing video packet for index (%d) packet count %d", index, packetqueue->video_packet_count);
       }
-      //mutex.unlock();
 
       /* Deinterlacing */
       if ( deinterlacing_value ) {
@@ -2498,7 +2492,6 @@ int Monitor::Capture() {
         capture_image->MaskPrivacy(privacy_bitmask);
 
       if ( config.timestamp_on_capture ) {
-        Debug(1, "Timestamping");
         TimestampImage(capture_image, packet->timestamp);
       }
 
@@ -2506,7 +2499,7 @@ int Monitor::Capture() {
       shared_data->last_write_index = index;
       shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
       image_count++;
-      Debug(2, "Unlocking packet");
+      Debug(2, "Unlocking packet, incrementing image_count to %d", image_count);
       packet->unlock();
 
       if ( fps_report_interval && ( !(image_count%fps_report_interval) || image_count == 5 ) ) {

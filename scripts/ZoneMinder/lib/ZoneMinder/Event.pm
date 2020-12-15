@@ -32,6 +32,7 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Storage;
 require ZoneMinder::Frame;
+require ZoneMinder::Monitor;
 require Date::Manip;
 require File::Find;
 require File::Path;

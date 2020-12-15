@@ -38,14 +38,14 @@ public:
     y = coord.y;
     return *this;
   }
-  inline int &X() { return( x ); }
-  inline const int &X() const { return( x ); }
-  inline int &Y() { return( y ); }
-  inline const int &Y() const { return( y ); }
+  inline int &X(int p_x) { x=p_x; return x; }
+  inline const int &X() const { return x; }
+  inline int &Y(int p_y) { y=p_y; return y; }
+  inline const int &Y() const { return y; }
 
   inline static Coord Range( const Coord &coord1, const Coord &coord2 ) {
     Coord result( (coord1.x-coord2.x)+1, (coord1.y-coord2.y)+1 );
-    return( result );
+    return result;
   }
 
   inline bool operator==( const Coord &coord ) const { return( x == coord.x && y == coord.y ); }

@@ -25,7 +25,7 @@ RTSPServerThread::~RTSPServerThread() {
 }
 
 int RTSPServerThread::run() {
-
+  Debug(2, "RTSPServerThread::run()");
   if ( rtspServer )
     env->taskScheduler().doEventLoop(); // does not return
   return 0;

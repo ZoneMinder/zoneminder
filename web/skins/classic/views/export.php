@@ -143,21 +143,21 @@ $event_count = 0;
 while ( $event_row = dbFetchNext($results) ) {
   $event = new ZM\Event($event_row);
   $scale = max(reScale(SCALE_BASE, $event->Monitor()->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
+  $event_link = '?view=event&amp;eid='.$event->Id().$filterQuery.$sortQuery.'&amp;page=1';
 ?>
           <tr<?php echo $event->Archived() ? ' class="archived"' : '' ?>>
               <td class="colId">
                 <input type="hidden" name="eids[]" value="<?php echo $event->Id()?>"/>
-                <a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery ?>&amp;page=1"><?php echo $event->Id().($event->Archived()?'*':'') ?></a>
+                <a href="<?php echo $event_link ?>"><?php echo $event->Id().($event->Archived()?'*':'') ?></a>
               </td>
-              <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery ?>&amp;page=1"><?php echo validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
-              <td class="colMonitorName"><?php echo makeLink( '?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
-              <td class="colCause"><?php echo makeLink( '#', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid=' .$event->Id(). '"') ?></td>
+              <td class="colName"><a href="<?php echo $event_link ?>"><?php echo validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
+              <td class="colMonitorName"><?php echo makeLink('?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit('Monitors')) ?></td>
+              <td class="colCause"><?php echo makeLink($event_link, validHtmlStr($event->Cause()), canView('Events'), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid="'.$event->Id().'"') ?></td>
               <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartDateTime())) .
-( $event->EndDateTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndDateTime()) ) : '' ) ?>
-              </td>
-              <td class="colDuration"><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
-              <td class="colFrames"><?php echo makeLink( '?view=frames&amp;eid='.$event->Id(), $event->Frames() ) ?></td>
-              <td class="colAlarmFrames"><?php echo makeLink( '?view=frames&amp;eid='.$event->Id(), $event->AlarmFrames() ) ?></td>
+( $event->EndDateTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndDateTime())) : '' ) ?></td>
+              <td class="colDuration"><?php echo gmdate('H:i:s', $event->Length()) ?></td>
+              <td class="colFrames"><?php echo makeLink('?view=frames&amp;eid='.$event->Id(), $event->Frames()) ?></td>
+              <td class="colAlarmFrames"><?php echo makeLink('?view=frames&amp;eid='.$event->Id(), $event->AlarmFrames()) ?></td>
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
               <td class="colMaxScore"><?php echo $event->MaxScore() ?></td>
@@ -168,9 +168,7 @@ while ( $event_row = dbFetchNext($results) ) {
     echo '<td class="colDiskSpace">'.human_filesize($event->DiskSpace()).'</td>';
   }
   unset($event);
-  echo '
-</tr>
-';
+  echo PHP_EOL.'</tr>'.PHP_EOL;
 } # end foreach event
 ?>
         </tbody>
@@ -179,9 +177,7 @@ while ( $event_row = dbFetchNext($results) ) {
             <td colspan="11"><?php echo $event_count ?> events</td>
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
-?>
-            <td class="colDiskSpace"><?php echo human_filesize($disk_space_total);?></td>
-<?php
+    echo '<td class="colDiskSpace">'.human_filesize($disk_space_total).'</td>'.PHP_EOL;
   }
 ?>
           </tr>

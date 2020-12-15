@@ -337,6 +337,7 @@ CREATE TABLE `Groups` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
   `ParentId` int(10) unsigned,
+  FOREIGN KEY (`ParentId`) REFERENCES `Groups` (`Id`) ON DELETE CASCADE,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -348,7 +349,9 @@ DROP TABLE IF EXISTS `Groups_Monitors`;
 CREATE TABLE `Groups_Monitors` (
     `Id` INT(10) unsigned NOT NULL auto_increment,
     `GroupId` int(10) unsigned NOT NULL,
+    FOREIGN KEY (`GroupId`) REFERENCES `Groups` (`Id`) ON DELETE CASCADE,
     `MonitorId` int(10) unsigned NOT NULL,
+    FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE,
     PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -447,6 +450,7 @@ CREATE TABLE `Monitors` (
   `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket','VNC') NOT NULL default 'Local',
   `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
+  `DecodingEnabled` tinyint(3) unsigned NOT NULL default '1',
   `LinkedMonitors` varchar(255),
   `Triggers` set('X10') NOT NULL default '',
   `ONVIF_URL` VARCHAR(255) NOT NULL DEFAULT '',

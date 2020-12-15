@@ -728,23 +728,11 @@ li.search-choice {
 }
 
 .zoom {
-  padding: 50px;
-  transition: transform .2s; /* Animation */
-  margin: 0 auto;
-}
-
-.zoom:hover {
   transform-origin: 70% 50%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
 }
 
-.zoom-right {
-  padding: 0px;
-  transition: transform .2s; /* Animation */
-  margin: 0 auto;
-}
-
-.zoom-right:hover {
+.zoom-console {
   transform-origin: 0% 50%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
 }
@@ -752,4 +740,7 @@ li.search-choice {
 a.flip {
   float: right;
   margin-right: -20px;
+}
+#content table.major .colDiskSpace {
+  text-align: right;
 }

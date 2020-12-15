@@ -6,7 +6,7 @@ $data = array();
 // INITIALIZE AND CHECK SANITY
 //
 
-if ( !canEdit('Events') ) $message = 'Insufficient permissions for user '.$user['Username'];
+if ( !canView('Events') ) $message = 'Insufficient permissions for user '.$user['Username'];
 
 if ( empty($_REQUEST['task']) ) {
   $message = 'Must specify a task';
@@ -74,10 +74,22 @@ if ( isset($_REQUEST['limit']) ) {
 
 switch ( $task ) {
   case 'archive' :
+    foreach ( $eids as $eid ) archiveRequest($task, $eid);
+    break;
   case 'unarchive' :
+		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
+		if ( !canEdit('Events') )  {
+			ajaxError('Insufficient permissions for user '.$user['Username']);
+			return;
+		}
     foreach ( $eids as $eid ) archiveRequest($task, $eid);
     break;
   case 'delete' :
+		if ( !canEdit('Events') )  {
+			ajaxError('Insufficient permissions for user '.$user['Username']);
+			return;
+		}
+
     foreach ( $eids as $eid ) $data[] = deleteRequest($eid);
     break;
   case 'query' :
@@ -217,12 +229,12 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $event = new ZM\Event($row);
 
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
-    $imgSrc = $event->getThumbnailSrc(array(),'&amp;');
+    $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
     $streamSrc = $event->getStreamSrc(array(
       'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
 
     // Modify the row data as needed
-    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="' .validHtmlStr('Event ' .$event->Id()). '" style="width:' .validInt($event->ThumbnailWidth()). 'px;height:' .validInt($event->ThumbnailHeight()).'px;" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"/>';
+    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"/>';
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');

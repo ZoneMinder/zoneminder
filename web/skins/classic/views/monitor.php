@@ -369,8 +369,10 @@ $fastblendopts_alarm = array(
     );
 
 $label_size = array(
-    1 => translate('Default'),
-    2 => translate('Large'),
+    1 => translate('Small'),
+    2 => translate('Default'),
+    3 => translate('Large'),
+    4 => translate('Extra Large'),
     );
 
 $codecs = array(
@@ -468,7 +470,7 @@ if ( canEdit('Monitors') ) {
 <div class="tab-content" id="pills-tabContent">
 <?php
 foreach ( $tabs as $name=>$value ) {
-  echo '<div id="pills-'.$name.'" class="tab-pane fade'.($name==$tab ? ' show active' : '').'" role="tabpanel" area-labelledby="'.$name.'-tab">';
+  echo '<div id="pills-'.$name.'" class="tab-pane fade'.($name==$tab ? ' show active' : '').'" role="tabpanel" aria-labelledby="'.$name.'-tab">';
 ?>
       <table class="major">
         <tbody>
@@ -500,6 +502,9 @@ switch ( $name ) {
             <td class="text-right pr-3"><?php echo translate('SourceType') ?></td>
             <td><?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?></td>
           </tr>
+<?php
+      if ( $monitor->Type() != 'WebSite' ) {
+?>
           <tr>
             <td class="text-right pr-3"><?php echo translate('Function') ?></td>
             <td>
@@ -510,15 +515,37 @@ switch ( $name ) {
       }
       echo htmlSelect('newMonitor[Function]', $function_options, $monitor->Function());
 ?>
+ <div id="function_help">
+<?php
+  foreach ( ZM\getMonitorFunctionTypes() as $fn => $translated ) {
+    if ( isset($OLANG['FUNCTION_'.strtoupper($fn)]) ) {
+      echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['FUNCTION_'.strtoupper($fn)]['Help'].'</div>';
+    }
+  }
+?>
+          </div>
           </td>
         </tr>
-        <tr>
-          <td class="text-right pr-3"><?php echo translate('Enabled') ?></td>
-          <td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php echo $monitor->Enabled() ? ' checked="checked"' : '' ?>/></td>
-        </tr>
+        <tr id="FunctionEnabled">
+          <td class="text-right pr-3"><?php echo translate('Analysis Enabled') ?></td>
+          <td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php echo $monitor->Enabled() ? ' checked="checked"' : '' ?>/>
 <?php
-      if ( $monitor->Type() != 'WebSite' ) {
+  if ( isset($OLANG['FUNCTION_ANALYSIS_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_ANALYSIS_ENABLED']['Help'].'</div>';
+  }
 ?>
+          </td>
+        </tr>
+  <tr id="FunctionDecodingEnabled">
+          <td class="text-right pr-3"><?php echo translate('Decoding Enabled') ?></td>
+          <td><input type="checkbox" name="newMonitor[DecodingEnabled]" value="1"<?php echo $monitor->DecodingEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_DECODING_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
+  }
+?>
+          </td>
+        </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
           <td>
@@ -823,11 +850,14 @@ include('_monitor_source_nvsocket.php');
   '320x240'=>'320x240',
   '320x200'=>'320x200',
   '352x240'=>'352x240 CIF',
+  '352x480'=>'352x480',
   '640x480'=>'640x480',
   '640x400'=>'640x400',
   '704x240'=>'704x240 2CIF',
   '704x480'=>'704x480 4CIF',
-  '720x480'=>'720x480 D1',
+  '704x576'=>'704x576 D1 PAL',
+  '720x480'=>'720x480 Full D1 NTSC',
+  '720x576'=>'720x576 Full D1 PAL',
   '1280x720'=>'1280x720 720p',
   '1280x800'=>'1280x800',
   '1280x960'=>'1280x960 960p',
@@ -989,7 +1019,7 @@ include('_monitor_source_nvsocket.php');
               <td><input type="number" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($monitor->AlarmFrameCount()) ?>" min="1"/></td>
             </tr>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('EstimatedRamUse') ?></td>
+              <td class="text-right pr-3"><?php echo translate('Estimated Ram Use') ?></td>
               <td id="estimated_ram_use"><?php echo human_filesize($monitor->ImageBufferCount() * $monitor->Width() * $monitor->Height() * $monitor->Colours(), 0) ?></td>
             </tr>
 <?php

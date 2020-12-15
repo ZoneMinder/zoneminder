@@ -1,5 +1,4 @@
 var consoleRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_MAIN ?>;
-var WEB_ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;
 
 <?php
 if ( canEdit('System') && ZM_DYN_SHOW_DONATE_REMINDER ) {
@@ -25,7 +24,8 @@ var monitors = new Array();
   'Url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'Type': '<?php echo $monitor->Type() ?>',
   'Function': '<?php echo $monitor->Function() ?>',
-  'Enabled': '<?php echo $monitor->Enabled() ?>'
+  'Enabled': '<?php echo $monitor->Enabled() ?>',
+  'DecodingEnabled': '<?php echo $monitor->DecodingEnabled() ?>'
 };
 <?php
   }

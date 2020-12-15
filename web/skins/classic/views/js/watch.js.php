@@ -50,6 +50,7 @@ var SCALE_BASE = <?php echo SCALE_BASE ?>;
 
 var SOUND_ON_ALARM = <?php echo ZM_WEB_SOUND_ON_ALARM ?>;
 var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
+var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
 
 var streamMode = "<?php echo $streamMode ?>";
 var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"events" ?>";
@@ -72,9 +73,7 @@ var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 var eventsRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_EVENTS ?>;
 var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
-var canEditMonitors = <?php echo canEdit( 'Monitors' )?'true':'false' ?>;
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
-var canViewControl = <?php echo canView( 'Control' )?'true':'false' ?>;
 
 var canPlayPauseAudio = Browser.ie;
 

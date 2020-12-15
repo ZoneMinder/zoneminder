@@ -253,6 +253,7 @@ protected:
   CameraType      type;
   Function        function;           // What the monitor is doing
   bool            enabled;            // Whether the monitor is enabled or asleep
+  bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
   bool            v4l_multi_buffer;
@@ -378,6 +379,7 @@ public:
     unsigned int p_storage_id,
     int p_function,
     bool p_enabled,
+    bool p_decoding_enabled,
     const char *p_linked_monitors,
     Camera *p_camera,
     int p_orientation,
@@ -444,6 +446,9 @@ public:
     if ( function <= MONITOR )
       return false;
     return enabled;
+  }
+  inline bool DecodingEnabled() const {
+    return decoding_enabled;
   }
   inline const char *EventPrefix() const { return event_prefix; }
   inline bool Ready() const {

@@ -11,16 +11,8 @@ class ZM_Object {
 
     $row = NULL;
     if ( $IdOrRow ) {
-      global $object_cache;
-      if ( ! isset($object_cache[$class]) ) {
-        $object_cache[$class] = array();
-      }
-      $cache = &$object_cache[$class];
 
       if ( is_integer($IdOrRow) or ctype_digit($IdOrRow) ) {
-        if ( isset($cache[$IdOrRow]) ) {
-          return $cache[$IdOrRow];
-        }
         $table = $class::$table;
         $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($IdOrRow));
         if ( !$row ) {
@@ -34,6 +26,11 @@ class ZM_Object {
         foreach ($row as $k => $v) {
           $this->{$k} = $v;
         }
+        global $object_cache;
+        if ( ! isset($object_cache[$class]) ) {
+          $object_cache[$class] = array();
+        }
+        $cache = &$object_cache[$class];
         $cache[$row['Id']] = $this;
       }
     } # end if isset($IdOrRow)
@@ -253,8 +250,8 @@ class ZM_Object {
       } else if ( property_exists($this, $field) ) {
         $type = (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field])) ? $this->defaults[$field]['type'] : 'scalar';
         if ( $type == 'set' ) {
-          $old_value = is_array($this->$field) ? $this->$field : explode(',', $this->$field);
-          $new_value = is_array($value) ? $value : explode(',', $value);
+          $old_value = is_array($this->$field) ? $this->$field : ($this->$field ? explode(',', $this->$field) : array());
+          $new_value = is_array($value) ? $value : ($value ? explode(',', $value) : array());
 
           $diff = array_recursive_diff($old_value, $new_value);
           if ( count($diff) ) {

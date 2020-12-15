@@ -1,24 +1,3 @@
-function thumbnail_onmouseover(event) {
-  var img = event.target;
-  img.src = '';
-  img.src = img.getAttribute('stream_src');
-}
-
-function thumbnail_onmouseout(event) {
-  var img = event.target;
-  img.src = '';
-  img.src = img.getAttribute('still_src');
-}
-
-function initThumbAnimation() {
-  if ( WEB_ANIMATE_THUMBS ) {
-    $j('.colThumbnail img').each(function() {
-      this.addEventListener('mouseover', thumbnail_onmouseover, false);
-      this.addEventListener('mouseout', thumbnail_onmouseout, false);
-    });
-  }
-}
-
 function setButtonStates( element ) {
   var form = element.form;
   var checked = 0;
@@ -133,7 +112,7 @@ function reloadWindow() {
 function manageFunctionModal(evt) {
   evt.preventDefault();
 
-  if ( !canEditEvents ) {
+  if ( !canEdit.Events ) {
     enoperm();
     return;
   }
@@ -172,8 +151,25 @@ function manageFunctionModal(evt) {
     console.error("Unable to find form with id function_form");
     return;
   }
+  function_form.elements['newFunction'].onchange=function() {
+    $j('#function_help div').hide();
+    $j('#'+this.value+'Help').show();
+    if ( this.value == 'Monitor' || this.value == 'None' ) {
+      $j('#FunctionAnalysisEnabled').hide();
+    } else {
+      $j('#FunctionAnalysisEnabled').show();
+    }
+    if ( this.value == 'Record' || this.value == 'Nodect' ) {
+      $j('#FunctionDecodingEnabled').show();
+    } else {
+      $j('#FunctionDecodingEnabled').hide();
+    }
+  };
   function_form.elements['newFunction'].value = monitor.Function;
+  function_form.elements['newFunction'].onchange();
+
   function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
+  function_form.elements['newDecodingEnabled'].checked = monitor.DecodingEnabled == '1';
   function_form.elements['mid'].value = mid;
   document.getElementById('function_monitor_name').innerHTML = monitor.Name;
 

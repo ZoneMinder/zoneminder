@@ -71,8 +71,8 @@
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `LinkedMonitors`, "
-"`AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, "
+"`LinkedMonitors`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
 "`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
@@ -282,6 +282,7 @@ Monitor::Monitor(
   const unsigned int p_storage_id,
   int p_function,
   bool p_enabled,
+  bool p_decoding_enabled,
   const char *p_linked_monitors,
   Camera *p_camera,
   int p_orientation,
@@ -326,6 +327,7 @@ Monitor::Monitor(
   storage_id( p_storage_id ),
   function( (Function)p_function ),
   enabled( p_enabled ),
+  decoding_enabled(p_decoding_enabled),
     width( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Height():p_camera->Width() ),
     height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
   orientation( (Orientation)p_orientation ),
@@ -366,12 +368,15 @@ Monitor::Monitor(
   purpose( p_purpose ),
   last_motion_score(0),
   camera( p_camera ),
+  event(0),
   n_zones( p_n_zones ),
   zones( p_zones ),
   timestamps( nullptr ),
   images( nullptr ),
   privacy_bitmask( nullptr ),
-  event_delete_thread(nullptr)
+  event_delete_thread(nullptr),
+  n_linked_monitors(0),
+  linked_monitors(nullptr)
 {
   if ( analysis_fps > 0.0 ) {
     uint64_t usec = round(1000000*pre_event_count/analysis_fps);
@@ -458,6 +463,18 @@ Monitor::Monitor(
       exit(-1);
     }
 
+    // Do this here to save a few cycles with all the comparisons
+    decoding_enabled = !(
+        ( function == RECORD or function == NODECT )
+        and
+        ( savejpegs == 0 )
+        and
+        ( videowriter == H264PASSTHROUGH )
+        and
+        !decoding_enabled
+        );
+    Debug(1, "Decoding enabled: %d", decoding_enabled);
+
     memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
     shared_data->active = enabled;
@@ -532,7 +549,6 @@ Monitor::Monitor(
 
   start_time = last_fps_time = time( 0 );
 
-  event = 0;
 
   Debug(1, "Monitor %s has function %d,\n"
       "label format = '%s', label X = %d, label Y = %d, label size = %d,\n"
@@ -545,10 +561,6 @@ Monitor::Monitor(
 
   //Set video recording flag for event start constructor and easy reference in code
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
-
-  n_linked_monitors = 0;
-  linked_monitors = nullptr;
-
 }  // Monitor::Monitor
 
 bool Monitor::connect() {
@@ -1432,7 +1444,8 @@ bool Monitor::Analyse() {
     bool signal = shared_data->signal;
     bool signal_change = (signal != last_signal);
 
-    Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
+    Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%d)",
+        signal, signal_change, trigger_data->trigger_state);
 
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
       unsigned int score = 0;
@@ -1511,7 +1524,11 @@ bool Monitor::Analyse() {
             for ( int i = 0; i < n_linked_monitors; i++ ) {
               // TODO: Shouldn't we try to connect?
               if ( linked_monitors[i]->isConnected() ) {
+                Debug(4, "Linked monitor %d %s is connected",
+                    linked_monitors[i]->Id(), linked_monitors[i]->Name());
                 if ( linked_monitors[i]->hasAlarmed() ) {
+                  Debug(4, "Linked monitor %d %s is alarmed",
+                      linked_monitors[i]->Id(), linked_monitors[i]->Name());
                   if ( !event ) {
                     if ( first_link ) {
                       if ( cause.length() )
@@ -1522,6 +1539,9 @@ bool Monitor::Analyse() {
                   }
                   noteSet.insert(linked_monitors[i]->Name());
                   score += 50;
+                } else {
+                  Debug(4, "Linked monitor %d %s is not alarmed",
+                      linked_monitors[i]->Id(), linked_monitors[i]->Name());
                 }
               } else {
                 Debug(1, "Linked monitor %d %d is not connected. Connecting.", i, linked_monitors[i]->Id());
@@ -1842,7 +1862,7 @@ bool Monitor::Analyse() {
   image_count++;
 
   return true;
-} // end Monitor::Analyze
+} // end Monitor::Analyse
 
 void Monitor::Reload() {
   Debug(1, "Reloading monitor %s", name);
@@ -1855,7 +1875,7 @@ void Monitor::Reload() {
   static char sql[ZM_SQL_MED_BUFSIZ];
   // This seems to have fallen out of date.
   snprintf(sql, sizeof(sql),
-      "SELECT `Function`+0, `Enabled`, `LinkedMonitors`, `EventPrefix`, `LabelFormat`, "
+      "SELECT `Function`+0, `Enabled`, `DecodingEnabled`, `LinkedMonitors`, `EventPrefix`, `LabelFormat`, "
       "`LabelX`, `LabelY`, `LabelSize`, `WarmupCount`, `PreEventCount`, `PostEventCount`, "
       "`AlarmFrameCount`, `SectionLength`, `MinSectionLength`, `FrameSkip`, "
       "`MotionFrameSkip`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`, "
@@ -1866,11 +1886,12 @@ void Monitor::Reload() {
   if ( !row ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     return;
-  } 
+  }
   if ( MYSQL_ROW dbrow = row->mysql_row() ) {
     int index = 0;
     function = (Function)atoi(dbrow[index++]);
     enabled = atoi(dbrow[index++]);
+    decoding_enabled = atoi(dbrow[index++]);
     const char *p_linked_monitors = dbrow[index++];
 
     if ( dbrow[index] ) {
@@ -2018,7 +2039,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
         int n_monitors = mysql_num_rows(result);
         if ( n_monitors == 1 ) {
           MYSQL_ROW dbrow = mysql_fetch_row(result);
-          Debug(1, "Linking to monitor %d", link_ids[i]);
+          Debug(1, "Linking to monitor %d %s", atoi(dbrow[0]), dbrow[1]);
           linked_monitors[count++] = new MonitorLink(link_ids[i], dbrow[1]);
         } else {
           Warning("Can't link to monitor %d, invalid id, function or not enabled", link_ids[i]);
@@ -2129,6 +2150,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   std::string type = dbrow[col] ? dbrow[col] : ""; col++;
   Function function = (Function)atoi(dbrow[col]); col++;
   int enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  int decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
   const char *linked_monitors = dbrow[col];col++;
 
   double analysis_fps = dbrow[col] ? strtod(dbrow[col], nullptr) : 0; col++;
@@ -2405,6 +2427,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       storage_id,
       (int)function,
       enabled,
+      decoding_enabled,
       linked_monitors,
       camera,
       orientation,

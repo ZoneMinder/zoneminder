@@ -42,17 +42,46 @@ var eventData = {
     Id: '<?php echo $Event->Id() ?>',
     Name: '<?php echo $Event->Name() ?>',
     MonitorId: '<?php echo $Event->MonitorId() ?>',
+    MonitorName: '<?php echo validJsStr($Monitor->Name()) ?>',
+    Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
     Length: '<?php echo $Event->Length() ?>',
     StartDateTime: '<?php echo $Event->StartDateTime() ?>',
+    StartDateTimeFmt: '<?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?>',
     EndDateTime: '<?php echo $Event->EndDateTime() ?>',
     Frames: '<?php echo $Event->Frames() ?>',
-    MonitorName: '<?php echo validJsStr($Monitor->Name()) ?>',
+    AlarmFrames: '<?php echo $Event->AlarmFrames() ?>',
+    TotScore: '<?php echo $Event->TotScore() ?>',
+    AvgScore: '<?php echo $Event->AvgScore() ?>',
+    MaxScore: '<?php echo $Event->MaxScore() ?>',
     DiskSpace: '<?php echo human_filesize($Event->DiskSpace(null)) ?>',
-    Storage: '<?php validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
-    Archived: <?php echo $Event->Archived?'true':'false' ?>
+    Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
+    ArchivedStr: '<?php echo $Event->Archived ? translate('Yes') : translate('No') ?>',
+    EmailedStr: '<?php echo $Event->Emailed ? translate('Yes') : translate('No') ?>',
+    Archived: <?php echo $Event->Archived?'true':'false' ?>,
+    Emailed: <?php echo $Event->Emailed?'true':'false' ?>
 };
+
+var eventDataStrings = {
+    Id: '<?php echo translate('EventId') ?>',
+    Name: '<?php echo translate('EventName') ?>',
+    MonitorId: '<?php echo translate('AttrMonitorId') ?>',
+    MonitorName: '<?php echo translate('AttrMonitorName') ?>',
+    Cause: '<?php echo translate('Cause') ?>',
+    StartDateTimeFmt: '<?php echo translate('AttrStartTime') ?>',
+    Length: '<?php echo translate('Duration') ?>',
+    Frames: '<?php echo translate('AttrFrames') ?>',
+    AlarmFrames: '<?php echo translate('AttrAlarmFrames') ?>',
+    TotScore: '<?php echo translate('AttrTotalScore') ?>',
+    AvgScore: '<?php echo translate('AttrAvgScore') ?>',
+    MaxScore: '<?php echo translate('AttrMaxScore') ?>',
+    DiskSpace: '<?php echo translate('DiskSpace') ?>',
+    Storage: '<?php echo translate('Storage') ?>',
+    ArchivedStr: '<?php echo translate('Archived') ?>',
+    EmailedStr: '<?php echo translate('Emailed') ?>'
+};
+
 var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';
 
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
@@ -63,7 +92,6 @@ var rate = '<?php echo $rate ?>'; // really only used when setting up initial pl
 var scale = "<?php echo $scale ?>";
 var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
 
-var canEditEvents = <?php echo canEdit('Events')?'true':'false' ?>;
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;

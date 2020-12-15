@@ -32,6 +32,7 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Storage;
 require ZoneMinder::Frame;
+require ZoneMinder::Monitor;
 require Date::Manip;
 require File::Find;
 require File::Path;
@@ -914,6 +915,15 @@ sub canEdit {
   }
   return 0;
 } # end sub canEdit
+
+sub Monitor {
+  my $self = shift;
+  $$self{Monitor} = shift if @_;
+  if ( !$$self{Monitor} ) {
+    $$self{Monitor} = new ZoneMinder::Monitor($$self{MonitorId});
+  }
+  return $$self{Monitor};
+}
 
 1;
 __END__

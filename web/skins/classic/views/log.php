@@ -27,7 +27,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
 ?>
 <body>
   <?php echo getNavBarHTML() ?>
-  <div id="page" class="px-3">
+  <div id="page" class="px-3 table-responsive-sm">
 
     <div id="logSummary" class="text-center">
       <?php echo translate('State') ?>:&nbsp;<span id="logState"></span>&nbsp;-&nbsp;
@@ -62,7 +62,6 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       data-toolbar="#toolbar"
       data-show-fullscreen="true"
       data-maintain-meta-data="true"
-      data-mobile-responsive="true"
       data-buttons-class="btn btn-normal"
       data-show-jump-to="true"
       data-auto-refresh="true"

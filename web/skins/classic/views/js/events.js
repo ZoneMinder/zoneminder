@@ -58,8 +58,8 @@ function processRows(rows) {
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
     row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>'
                + '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
-    if ( canEditMonitors ) row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
-    if ( canEditEvents ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    if ( canEdit.Monitors ) row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
+    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {
       row.Cause = row.Cause + '<a href="?view=image&amp;eid=' + eid + '&amp;fid=objdetect"><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></a>';
     } else if ( row.Notes != 'Forced Web: ' ) {
@@ -72,27 +72,6 @@ function processRows(rows) {
   });
 
   return rows;
-}
-
-function thumbnail_onmouseover(event) {
-  var img = event.target;
-  img.src = '';
-  img.src = img.getAttribute('stream_src');
-}
-
-function thumbnail_onmouseout(event) {
-  var img = event.target;
-  img.src = '';
-  img.src = img.getAttribute('still_src');
-}
-
-function initThumbAnimation() {
-  if ( WEB_ANIMATE_THUMBS ) {
-    $j('.colThumbnail img').each(function() {
-      this.addEventListener('mouseover', thumbnail_onmouseover, false);
-      this.addEventListener('mouseout', thumbnail_onmouseout, false);
-    });
-  }
 }
 
 // Returns the event id's of the selected rows
@@ -126,7 +105,7 @@ function getDelConfirmModal() {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -184,13 +163,13 @@ function initPage() {
   function() {
     selections = table.bootstrapTable('getSelections');
 
-    viewBtn.prop('disabled', !(selections.length && canViewEvents));
-    archiveBtn.prop('disabled', !(selections.length && canEditEvents));
-    unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEditEvents);
-    editBtn.prop('disabled', !(selections.length && canEditEvents));
-    exportBtn.prop('disabled', !(selections.length && canViewEvents));
-    downloadBtn.prop('disabled', !(selections.length && canViewEvents));
-    deleteBtn.prop('disabled', !(selections.length && canEditEvents));
+    viewBtn.prop('disabled', !(selections.length && canView.Events));
+    archiveBtn.prop('disabled', !(selections.length && canEdit.Events));
+    unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEdit.Events);
+    editBtn.prop('disabled', !(selections.length && canEdit.Events));
+    exportBtn.prop('disabled', !(selections.length && canView.Events));
+    downloadBtn.prop('disabled', !(selections.length && canView.Events));
+    deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
   });
 
   // Don't enable the back button if there is no previous zm page to go back to
@@ -249,7 +228,7 @@ function initPage() {
 
   // Manage the UNARCHIVE button
   document.getElementById("unarchiveBtn").addEventListener("click", function onUnarchiveClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -267,7 +246,7 @@ function initPage() {
 
   // Manage the EDIT button
   document.getElementById("editBtn").addEventListener("click", function onEditClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -313,7 +292,7 @@ function initPage() {
 
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -334,8 +313,7 @@ function initPage() {
     var thumb_ndx = $j('#eventTable tr th').filter(function() {
       return $j(this).text().trim() == 'Thumbnail';
     }).index();
-    var thmbClass = WEB_ANIMATE_THUMBS ? 'colThumbnail zoom' : 'colThumbnail';
-    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass(thmbClass);
+    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
   });
 
   table.bootstrapTable('resetSearch');

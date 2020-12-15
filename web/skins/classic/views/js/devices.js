@@ -42,7 +42,7 @@ function getDelConfirmModal(key) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEditDevice ) {
+    if ( ! canEdit.Device ) {
       enoperm();
       return;
     }
@@ -91,9 +91,9 @@ function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
-  if ( canEditDevice ) enableDeviceModal();
+  if ( canEdit.Device ) enableDeviceModal();
 
-  newDeviceBtn.prop('disabled', !canEditDevice);
+  newDeviceBtn.prop('disabled', !canEdit.Device);
 
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
@@ -112,7 +112,7 @@ function initPage() {
 
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
-    if ( ! canEditDevice ) {
+    if ( ! canEdit.Device ) {
       enoperm();
       return;
     }
@@ -130,7 +130,7 @@ function initPage() {
   function() {
     selections = table.bootstrapTable('getSelections');
 
-    deleteBtn.prop('disabled', !(selections.length && canEditDevice));
+    deleteBtn.prop('disabled', !(selections.length && canEdit.Device));
   });
 
   // Process mouse clicks on the table cells

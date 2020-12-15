@@ -172,17 +172,14 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
           data-show-columns="true"
           data-show-export="true"
           data-uncheckAll="true"
-          data-mobile-responsive="true"
           data-buttons-class="btn btn-normal"
-          data-auto-refresh="true"
-          data-auto-refresh-silent="true"
           data-show-refresh="true"
-          data-auto-refresh-interval="5"
           class="table-sm table-borderless"
         >
           <thead>
             <!-- Row styling is handled by bootstrap-tables -->
             <tr>
+              <th data-sortable="false" data-field="Delete"><?php echo translate('Delete') ?></th>
               <th data-sortable="false" data-field="Id"><?php echo translate('Id') ?></th>
               <th data-sortable="false" data-field="Name"><?php echo translate('Name') ?></th>
               <th data-sortable="false" data-field="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
@@ -191,7 +188,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
               <th data-sortable="false" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
               <th data-sortable="false" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
-              <th data-sortable="false" data-field="Delete"><?php echo translate('Delete') ?></th>
+              <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
             </tr>
           </thead>
 

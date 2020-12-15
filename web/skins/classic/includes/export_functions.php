@@ -83,7 +83,7 @@ function exportEventDetail($event, $exportFrames, $exportImages) {
         <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event->Monitor()->Name()) ?> (<?php echo $event->MonitorId() ?>)</td></tr>
         <tr><th scope="row"><?php echo translate('Cause') ?></th><td><?php echo validHtmlStr($event->Cause()) ?></td></tr>
         <tr><th scope="row"><?php echo translate('Notes') ?></th><td><?php echo validHtmlStr($event->Notes()) ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartDateTime())) ?></td></tr>
         <tr><th scope="row"><?php echo translate('Duration') ?></th><td><?php echo $event->Length() ?></td></tr>
         <tr><th scope="row"><?php echo translate('Frames') ?></th><td><?php echo $event->Frames() ?></td></tr>
         <tr><th scope="row"><?php echo translate('AttrAlarmFrames') ?></th><td><?php echo $event->AlarmFrames() ?></td></tr>
@@ -999,5 +999,5 @@ function exportEvents(
     unlink($monitorPath.'/'.$html_eventMaster);
   }
 
-  return '?view=archive%26type='.$exportFormat.'%26connkey='.$connkey;
+  return '?view=archive&type='.$exportFormat.'&connkey='.$connkey;
 } // end function exportEvents

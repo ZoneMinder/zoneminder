@@ -150,9 +150,11 @@ bool VideoStore::open() {
       // default to h264
       Debug(2, "Defaulting to H264");
       wanted_codec = AV_CODEC_ID_H264;
+    } else {
+      Debug(2, "Codec is %d, wanted %d", video_in_ctx->codec_id, wanted_codec);
     }
 
-  // FIXME Should check that we are set to passthrough.  Might be same codec, but want privacy overlays
+    // FIXME Should check that we are set to passthrough.  Might be same codec, but want privacy overlays
     if ( video_in_ctx->codec_id == wanted_codec ) {
       // Copy params from instream to ctx
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -183,34 +185,19 @@ bool VideoStore::open() {
           video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
           break;
       }
-      // Only set orientation if doing passthrough, otherwise the frame image will be rotated
-      Monitor::Orientation orientation = monitor->getOrientation();
-      if ( orientation ) {
-        Debug(3, "Have orientation");
-        if ( orientation == Monitor::ROTATE_0 ) {
-        } else if ( orientation == Monitor::ROTATE_90 ) {
-          ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
-          if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-        } else if ( orientation == Monitor::ROTATE_180 ) {
-          ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
-          if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-        } else if ( orientation == Monitor::ROTATE_270 ) {
-          ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
-          if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-        } else {
-          Warning("Unsupported Orientation(%d)", orientation);
-        }
-      } // end if orientation
     } else { // Either no video in or not the desired codec
       for ( unsigned int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++ ) {
-        if ( codec_data[i].codec_id != monitor->OutputCodec() )
+        if ( codec_data[i].codec_id != wanted_codec ) {
+          Debug(1, "Not the right codec %d != %d", codec_data[i].codec_id, wanted_codec);
           continue;
+        }
 
         video_out_codec = avcodec_find_encoder_by_name(codec_data[i].codec_name);
         if ( ! video_out_codec ) {
           Debug(1, "Didn't find encoder for %s", codec_data[i].codec_name);
           continue;
         }
+        Debug(1, "Found video codec for %s", codec_data[i].codec_name);
 
         video_out_ctx->pix_fmt = codec_data[i].pix_fmt;
         video_out_ctx->level = 32;
@@ -306,6 +293,24 @@ bool VideoStore::open() {
 #else
   avcodec_copy_context(video_out_stream->codec, video_out_ctx);
 #endif
+  // Only set orientation if doing passthrough, otherwise the frame image will be rotated
+  Monitor::Orientation orientation = monitor->getOrientation();
+  if ( orientation ) {
+    Debug(3, "Have orientation");
+    if ( orientation == Monitor::ROTATE_0 ) {
+    } else if ( orientation == Monitor::ROTATE_90 ) {
+      ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
+      if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+    } else if ( orientation == Monitor::ROTATE_180 ) {
+      ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
+      if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+    } else if ( orientation == Monitor::ROTATE_270 ) {
+      ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
+      if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+    } else {
+      Warning("Unsupported Orientation(%d)", orientation);
+    }
+  } // end if orientation
 
   converted_in_samples = nullptr;
   audio_out_codec = nullptr;

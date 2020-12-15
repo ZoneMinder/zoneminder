@@ -922,10 +922,12 @@ int Zone::Load(Monitor *monitor, Zone **&zones) {
 
     if ( polygon.LoX() < 0 || polygon.HiX() >= (int)monitor->Width() 
         || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() ) {
-      Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), ignoring",
+      Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), fixing",
           Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY());
-      n_zones -= 1;
-      continue;
+      if ( polygon.LoX() < 0 ) polygon.LoX(0);
+      if ( polygon.HiX() >= (int)monitor->Width()) polygon.HiX((int)monitor->Width());
+      if ( polygon.LoY() < 0 ) polygon.LoY(0);
+      if ( polygon.HiY() >= (int)monitor->Height() ) polygon.HiY((int)monitor->Height());
     }
 
     if ( false && !strcmp( Units, "Percent" ) ) {

@@ -240,11 +240,13 @@ int main(int argc, char *argv[]) {
 
 
 #if HAVE_RTSP_SERVER
+#if 0
   RTSPServerThread **rtsp_server_threads = new RTSPServerThread *[n_monitors];
   for ( int i = 0; i < n_monitors; i++ ) {
     rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
     rtsp_server_threads[i]->start();
   }
+#endif
 #endif
 
   while ( !zm_terminate ) {
@@ -298,7 +300,7 @@ int main(int argc, char *argv[]) {
       Debug(2, "capture delay(%u mSecs 1000/capture_fps) alarm delay(%u)", capture_delays[i], alarm_capture_delays[i] );
 
       Monitor::Function function = monitors[0]->GetFunction();
-      if ( function == Monitor::MODECT || function == Monitor::MOCORD || function == Monitor::RECORD) {
+      if ( function != Monitor::MONITOR ) {
         Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
         analysis_threads[i] = new AnalysisThread(monitors[i]);
         analysis_threads[i]->start();

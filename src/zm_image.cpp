@@ -1951,7 +1951,6 @@ void Image::Annotate(
     const Rgb fg_colour,
     const Rgb bg_colour) {
   strncpy(text, p_text, sizeof(text)-1);
-  Debug(1, "text %s", text);
 
   unsigned int index = 0;
   unsigned int line_no = 0;
@@ -1976,7 +1975,7 @@ void Image::Annotate(
   const uint16_t char_width = font.GetCharWidth();
   const uint16_t char_height = font.GetCharHeight();
   const uint64_t *font_bitmap = font.GetBitmapData();
-  Debug(1, "Font size %d, char_width %d char_height %d", size, char_width, char_height);
+  Debug(4, "Font size %d, char_width %d char_height %d", size, char_width, char_height);
 
   while ( (index < text_len) && (line_len = strcspn(line, "\n")) ) {
     unsigned int line_width = line_len * char_width;
@@ -4269,7 +4268,6 @@ void ssse3_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t* resul
 
 /* RGB32: RGBA SSSE3 */
 void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
-  Debug(2,"sse3 rgba");
   ssse3_delta8_rgb32(col1, col2, result, count, 0x00010502);
 }
 

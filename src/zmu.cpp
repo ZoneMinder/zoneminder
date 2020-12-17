@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:V:T:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
     if ( c == -1 ) {
       break;
     }
@@ -548,10 +548,11 @@ int main(int argc, char *argv[]) {
     }
     if ( function & ZMU_FPS ) {
       if ( verbose ) {
-        printf("Current capture rate: %.2f frames per second\n", monitor->GetFPS());
+        printf("Current capture rate: %.2f frames per second, analysis rate: %.2f frames per second\n",
+            monitor->get_capture_fps(), monitor->get_analysis_fps());
       } else {
         if ( have_output ) fputc(separator, stdout);
-        printf("%.2f", monitor->GetFPS());
+        printf("capture: %.2f, analysis: %.2f", monitor->get_capture_fps(), monitor->get_analysis_fps());
         have_output = true;
       }
     }

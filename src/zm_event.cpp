@@ -553,6 +553,7 @@ void Event::AddPacket(ZMPacket *packet, int score, Image *alarm_image) {
   if ( have_video_keyframe && ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) ) {
     AddFrame(packet->image, *packet->timestamp, score, alarm_image);
   } // end if is video
+  end_time = *packet->timestamp;
   return;
 }
 

@@ -207,7 +207,7 @@ int FfmpegCamera::PrimeCapture() {
   mAudioStreamId = -1;
   Debug(1, "Priming capture from %s", mPath.c_str());
 
-  return ! OpenFfmpeg();
+  return OpenFfmpeg();
 }
 
 int FfmpegCamera::PreCapture() {

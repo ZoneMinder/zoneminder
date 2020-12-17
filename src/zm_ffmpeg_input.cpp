@@ -17,25 +17,9 @@ FFmpeg_Input::~FFmpeg_Input() {
   if ( input_format_context ) {
     Close();
   }
-  if ( streams ) {
-    for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
-      avcodec_close(streams[i].context);
-      avcodec_free_context(&streams[i].context);
-    }
-    delete[] streams;
-    streams = nullptr;
-  }
   if ( frame ) {
     av_frame_free(&frame);
     frame = nullptr;
-  }
-  if ( input_format_context ) {
-#if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
-    av_close_input_file(input_format_context);
-#else
-    avformat_close_input(&input_format_context);
-#endif
-    input_format_context = nullptr;
   }
 }  // end ~FFmpeg_Input()
 
@@ -137,14 +121,16 @@ int FFmpeg_Input::Open(const char *filepath) {
 } // end int FFmpeg_Input::Open( const char * filepath )
 
 int FFmpeg_Input::Close( ) {
-  for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
-    if ( streams[i].context ) {
+  if ( streams ) {
+    for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
       avcodec_close(streams[i].context);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_free_context(&streams[i].context);
+      streams[i].context = nullptr;
 #endif
-      streams[i].context = NULL;
     }
+    delete[] streams;
+    streams = nullptr;
   }
 
   if ( input_format_context ) {
@@ -153,7 +139,7 @@ int FFmpeg_Input::Close( ) {
 #else
     avformat_close_input(&input_format_context);
 #endif
-    input_format_context = NULL;
+    input_format_context = nullptr;
   }
   return 1;
 } // end int FFmpeg_Input::Close()
@@ -164,7 +150,6 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
   av_init_packet(&packet);
 
   while ( !frameComplete ) {
-
     int ret = av_read_frame(input_format_context, &packet);
     if ( ret < 0 ) {
       if (
@@ -184,33 +169,33 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
 
     if ( (stream_id >= 0) && (packet.stream_index != stream_id) ) {
       Debug(1,"Packet is not for our stream (%d)", packet.stream_index );
-      return NULL;
-    } 
+      continue;
+    }
 
     AVCodecContext *context = streams[packet.stream_index].context;
 
-      if ( frame ) {
-        av_frame_free(&frame);
-        frame = zm_av_frame_alloc();
+    if ( frame ) {
+      av_frame_free(&frame);
+      frame = zm_av_frame_alloc();
+    } else {
+      frame = zm_av_frame_alloc();
+    }
+    ret = zm_send_packet_receive_frame(context, frame, packet);
+    if ( ret < 0 ) {
+      Error("Unable to decode frame at frame %d: %d %s, continuing",
+          streams[packet.stream_index].frame_count, ret, av_make_error_string(ret).c_str());
+      zm_av_packet_unref(&packet);
+      av_frame_free(&frame);
+      continue;
+    } else {
+      if ( is_video_stream(input_format_context->streams[packet.stream_index]) ) {
+        zm_dump_video_frame(frame, "resulting video frame");
       } else {
-        frame = zm_av_frame_alloc();
+        zm_dump_frame(frame, "resulting frame");
       }
-      ret = zm_send_packet_receive_frame(context, frame, packet);
-      if ( ret < 0 ) {
-        Error("Unable to decode frame at frame %d: %d %s, continuing",
-            streams[packet.stream_index].frame_count, ret, av_make_error_string(ret).c_str());
-        zm_av_packet_unref(&packet);
-        av_frame_free(&frame);
-        continue;
-			} else {
-        if ( is_video_stream(input_format_context->streams[packet.stream_index]) ) {
-          zm_dump_video_frame(frame, "resulting video frame");
-        } else {
-          zm_dump_frame(frame, "resulting frame");
-        }
-      }
+    }
 
-      frameComplete = 1;
+    frameComplete = 1;
 
     zm_av_packet_unref(&packet);
 

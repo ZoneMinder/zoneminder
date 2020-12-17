@@ -71,6 +71,7 @@ possible, this should run at more or less constant speed.
 #include "zm_signal.h"
 #include "zm_monitor.h"
 #include "zm_analysis_thread.h"
+#include "zm_rtsp_server_thread.h"
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
@@ -237,6 +238,17 @@ int main(int argc, char *argv[]) {
 
   int prime_capture_log_count = 0;
 
+
+#if HAVE_RTSP_SERVER
+#if 0
+  RTSPServerThread **rtsp_server_threads = new RTSPServerThread *[n_monitors];
+  for ( int i = 0; i < n_monitors; i++ ) {
+    rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
+    rtsp_server_threads[i]->start();
+  }
+#endif
+#endif
+
   while ( !zm_terminate ) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
@@ -257,15 +269,18 @@ int main(int argc, char *argv[]) {
     }  // end foreach monitor
 
     // Outer primary loop, handles connection to camera
-    if ( monitors[0]->PrimeCapture() < 0 ) {
+    if ( monitors[0]->PrimeCapture() <= 0 ) {
       if ( prime_capture_log_count % 60 ) {
         Error("Failed to prime capture of initial monitor");
       } else {
         Debug(1, "Failed to prime capture of initial monitor");
       }
       prime_capture_log_count ++;
-      if ( !zm_terminate )
-        sleep(10);
+      monitors[0]->disconnect();
+      if ( !zm_terminate ) {
+        Debug(1, "Sleeping");
+        sleep(5);
+      }
       continue;
     }
     for ( int i = 0; i < n_monitors; i++ ) {
@@ -288,7 +303,7 @@ int main(int argc, char *argv[]) {
       Debug(2, "capture delay(%u mSecs 1000/capture_fps) alarm delay(%u)", capture_delays[i], alarm_capture_delays[i] );
 
       Monitor::Function function = monitors[0]->GetFunction();
-      if ( function == Monitor::MODECT || function == Monitor::MOCORD || function == Monitor::RECORD) {
+      if ( function != Monitor::MONITOR ) {
         Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
         analysis_threads[i] = new AnalysisThread(monitors[i]);
         analysis_threads[i]->start();
@@ -309,21 +324,18 @@ int main(int argc, char *argv[]) {
         if ( monitors[i]->PreCapture() < 0 ) {
           Error("Failed to pre-capture monitor %d %d (%d/%d)",
               monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-          monitors[i]->Close();
           result = -1;
           break;
         }
         if ( monitors[i]->Capture() < 0 ) {
           Error("Failed to capture image from monitor %d %s (%d/%d)",
               monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-          monitors[i]->Close();
           result = -1;
           break;
         }
         if ( monitors[i]->PostCapture() < 0 ) {
           Error("Failed to post-capture monitor %d %s (%d/%d)",
               monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-          monitors[i]->Close();
           result = -1;
           break;
         }
@@ -357,7 +369,8 @@ int main(int argc, char *argv[]) {
 
       if ( result < 0 ) {
         // Failure, try reconnecting
-				sleep(5);
+        Debug(1, "Sleeping for 5");
+        sleep(5);
         break;
       }
 
@@ -370,6 +383,9 @@ int main(int argc, char *argv[]) {
         zm_reload = false;
       } // end if zm_reload
     } // end while ! zm_terminate and connected
+    for ( int i = 0; i < n_monitors; i++ ) {
+      monitors[i]->Close();
+    }
 
     delete [] alarm_capture_delays;
     delete [] capture_delays;
@@ -385,6 +401,7 @@ int main(int argc, char *argv[]) {
       }
     } // end foreach monitor
     delete [] analysis_threads;
+
   } // end while ! zm_terminate outer connection loop
   Debug(1,"Updating Monitor status");
 
@@ -401,6 +418,7 @@ int main(int argc, char *argv[]) {
   delete [] monitors;
 
   Image::Deinitialise();
+  Debug(1,"terminating");
   logTerm();
   zmDbClose();
 

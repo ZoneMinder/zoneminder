@@ -95,7 +95,7 @@ if ( ( !$replayMode ) or ( !$replayModes[$replayMode] ) ) {
 }
 
 $video_tag = false;
-if ( $Event->DefaultVideo() and ( 'mp4' == pathinfo($Event->DefaultVideo(), PATHINFO_EXTENSION) ) && ( $codec == 'MP4' || $codec == 'auto' ) ) {
+if ( $Event->DefaultVideo() and ( $codec == 'MP4' or $codec == 'auto' ) ) {
   $video_tag = true;
 }
 // videojs zoomrotate only when direct recording
@@ -147,42 +147,22 @@ if ( !$Event->Id() ) {
         <button id="unarchiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Unarchive') ?>" disabled><i class="fa fa-file-archive-o"></i></button>
         <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
         <button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>"><i class="fa fa-external-link"></i></button>
+<?php
+  if ( $Event->DefaultVideo() ) {
+?>
+        <div id="downloadEventFile"><a class="btn-primary" href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'),'&amp;')?>" download>Download MP4</a></div>
+<?php
+  } 
+?>
+
         <button id="downloadBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DownloadVideo') ?>"><i class="fa fa-download"></i></button>
         <button id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
         <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>"><i class="fa fa-trash"></i></button>
       </div>
-<<<<<<< HEAD
-      <div id="menuBar1">
-        <div id="nameControl">
-          <input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" />
-          <button value="Rename" type="button" data-on-click="renameEvent"<?php if ( !canEdit('Events') ) { ?> disabled="disabled"<?php } ?>>
-          <?php echo translate('Rename') ?></button>
-        </div>
-<?php
-if ( canEdit('Events') ) {
-?>
-        <div id="deleteEvent"><button type="button" data-on-click="deleteEvent" <?php echo $Event->can_delete() ? '' : ' disabled="disabled" title="'.$Event->cant_delete_reason().'"' ?>><?php echo translate('Delete') ?></button></div>
-        <div id="editEvent"><button type="button" data-on-click="editEvent"><?php echo translate('Edit') ?></button></div>
-        <div id="archiveEvent"<?php echo $Event->Archived() == 1 ? ' class="hidden"' : ''  ?>><button type="button" data-on-click="archiveEvent"><?php echo translate('Archive') ?></button></div>
-        <div id="unarchiveEvent"<?php echo $Event->Archived() == 0 ? ' class="hidden"' : '' ?>><button type="button" data-on-click="unarchiveEvent"><?php echo translate('Unarchive') ?></button></div>
-<?php
-} // end if can edit Events
-?>
-        <div id="framesEvent"><button type="button" data-on-click="showEventFrames"><?php echo translate('Frames') ?></button></div>
-        <div id="streamEvent" class="hidden"><button data-on-click="showStream"><?php echo translate('Stream') ?></button></div>
-        <div id="stillsEvent"><button type="button" data-on-click="showStills"><?php echo translate('Stills') ?></button></div>
-<?php
-  if ( $Event->DefaultVideo() ) { 
-?>
-        <div id="downloadEventFile"><a class="btn-primary" href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'),'&amp;')?>" download>Download MP4</a></div>
-<?php
-  } else {
-?>
-        <div id="videoEvent"><button type="button" data-on-click="videoEvent"><?php echo translate('Video') ?></button></div>
-<?php
-  } // end if Event->DefaultVideo
-?>
-        <div id="exportEvent"><button type="button" data-on-click="exportEvent"><?php echo translate('Export') ?></button></div>
+      
+      <h2><?php echo translate('Event').' '.$Event->Id() ?></h2>
+      
+      <div class="d-flex flex-row">
         <div id="replayControl">
           <label for="replayMode"><?php echo translate('Replay') ?></label>
           <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode')); ?>
@@ -195,15 +175,6 @@ if ( canEdit('Events') ) {
           <label for="codec"><?php echo translate('Codec') ?></label>
           <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?>
         </div>
-=======
-      
-      <h2><?php echo translate('Event').' '.$Event->Id() ?></h2>
-      
-      <div class="d-flex flex-row">
-        <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode','id'=>'replayMode')); ?></div>
-        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?></div>
-        <div id="codecControl"><label for="codec"><?php echo translate('Codec') ?></label><?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change'=>'changeCodec','id'=>'codec')); ?></div>
->>>>>>> master
       </div>
     </div>
 

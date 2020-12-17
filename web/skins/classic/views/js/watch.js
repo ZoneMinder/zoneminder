@@ -188,6 +188,8 @@ function getStreamCmdResponse(respObj, respText) {
     if ( respObj.status ) {
       streamStatus = respObj.status;
       $j('#fpsValue').text(streamStatus.fps);
+      $j('#capturefpsValue').text(streamStatus.capturefps);
+      $j('#analysisfpsValue').text(streamStatus.analysisfps);
 
       setAlarmState(streamStatus.state);
 
@@ -233,14 +235,14 @@ function getStreamCmdResponse(respObj, respText) {
           }
         } // rate
       } else {
-        $j('#modeValue').text( 'Live' );
-        $j('#rate').addClass( 'hidden' );
-        $j('#delay').addClass( 'hidden' );
-        $j('#level').addClass( 'hidden' );
+        $j('#modeValue').text('Live');
+        $j('#rate').addClass('hidden');
+        $j('#delay').addClass('hidden');
+        $j('#level').addClass('hidden');
         streamCmdPlay(false);
       } // end if paused or delayed
 
-      $j('zoomValue').text(streamStatus.zoom);
+      $j('#zoomValue').text(streamStatus.zoom);
       if ( streamStatus.zoom == '1.0' ) {
         setButtonState('zoomOutBtn', 'unavail');
       } else {

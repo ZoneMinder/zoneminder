@@ -47,10 +47,14 @@ public:
 
   inline const Coord &Lo() const { return lo; }
   inline int LoX() const { return lo.X(); }
+  inline int LoX(int p_lo_x) { return lo.X(p_lo_x); }
   inline int LoY() const { return lo.Y(); }
+  inline int LoY(int p_lo_y) { return lo.Y(p_lo_y); }
   inline const Coord &Hi() const { return hi; }
   inline int HiX() const { return hi.X(); }
+  inline int HiX(int p_hi_x) { return hi.X(p_hi_x); }
   inline int HiY() const { return hi.Y(); }
+  inline int HiY(int p_hi_y) { return hi.Y(p_hi_y); }
   inline const Coord &Size() const { return size; }
   inline int Width() const { return size.X(); }
   inline int Height() const { return size.Y(); }

@@ -240,6 +240,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     int id;
     int state;
     double fps;
+    double capture_fps;
+    double analysis_fps;
     int buffer_level;
     int rate;
     double delay;
@@ -253,6 +255,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.id = monitor->Id();
   if ( ! monitor->ShmValid() ) {
     status_data.fps = 0.0;
+    status_data.capture_fps = 0.0;
+    status_data.analysis_fps = 0.0;
     status_data.state = Monitor::UNKNOWN;
     //status_data.enabled = monitor->shared_data->active;
     status_data.enabled = false;
@@ -260,6 +264,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     status_data.buffer_level = 0;
   } else {
     status_data.fps = monitor->GetFPS();
+    status_data.capture_fps = monitor->get_capture_fps();
+    status_data.analysis_fps = monitor->get_analysis_fps();
     status_data.state = monitor->shared_data->state;
     //status_data.enabled = monitor->shared_data->active;
     status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
@@ -274,16 +280,19 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.rate = replay_rate;
   status_data.delay = TV_2_FLOAT(now) - TV_2_FLOAT(last_frame_timestamp);
   status_data.zoom = zoom;
-  Debug(2, "Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
-    status_data.buffer_level,
-    status_data.delayed,
-    status_data.paused,
-    status_data.rate,
-    status_data.delay,
-    status_data.zoom,
-    status_data.enabled,
-    status_data.forced
-  );
+  Debug(2, "fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
+      status_data.fps,
+      status_data.capture_fps,
+      status_data.analysis_fps,
+      status_data.buffer_level,
+      status_data.delayed,
+      status_data.paused,
+      status_data.rate,
+      status_data.delay,
+      status_data.zoom,
+      status_data.enabled,
+      status_data.forced
+      );
 
   DataMsg status_msg;
   status_msg.msg_type = MSG_DATA_WATCH;

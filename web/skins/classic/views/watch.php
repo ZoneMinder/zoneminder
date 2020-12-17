@@ -94,7 +94,15 @@ if ( $streamMode == 'jpeg' ) {
 
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>
       <div id="monitorStatus">
-        <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
+        <div id="monitorState">
+          <?php echo translate('State') ?>:
+          <span id="stateValue"></span> -
+          <span id="fpsValue" title="<?php echo translate('Viewing FPS')?>"></span> fps
+          <span id="capturefpsValue" title="<?php echo translate('Capturing FPS')?>"></span> fps
+          <?php if ( $monitor->Function() == 'Modect' or $monitor->Function() == 'Mocord' ) { ?>
+          <span id="analysisfpsValue" title="<?php echo translate('Analysis FPS')?>"></span> fps
+          <?php } ?>
+        </div>
       </div>
       <div id="dvrControls">
 <?php
@@ -132,8 +140,7 @@ if ( $streamMode == 'jpeg' ) {
   }
 ?>
         <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut">
-<i class="material-icons md-18">zoom_out</i>
-
+        <i class="material-icons md-18">zoom_out</i>
         </button>
 <?php
 } // end if streamMode==jpeg

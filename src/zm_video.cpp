@@ -553,8 +553,8 @@ int ParseEncoderParameters(
     }
 
     valueoffset = line.find('=');
-    if ( valueoffset == std::string::npos || valueoffset+1 >= line.length() || valueoffset == 0 ) {
-      Warning("Failed parsing encoder parameters line %d: Invalid pair", lineno);
+    if ( valueoffset == std::string::npos || (valueoffset+1 >= line.length()) || (valueoffset == 0) ) {
+      Warning("Failed parsing encoder parameters line %d %s: Invalid pair", lineno, line.c_str());
       continue;
     }
 

@@ -1,5 +1,12 @@
 var logParms = 'view=request&request=log&task=query';
-var logReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse} );
+var logReq = new Request.JSON( {
+  url: thisUrl,
+  method: 'post',
+  timeout: AJAX_TIMEOUT,
+  link: 'cancel',
+  onSuccess: logResponse
+} );
+
 var logTimer = undefined;
 var logTable = undefined;
 
@@ -171,18 +178,24 @@ function clearError() {
 function clearLog() {
   logReq.cancel();
 
+  var clearReq = new Request.JSON({
+    url: thisUrl,
+    method: 'post',
+    timeout: AJAX_TIMEOUT,
+    link: 'cancel',
+    onSuccess: clearResponse
+  });
   var clearParms = 'view=request&request=log&task=delete';
-  var clearReq = new Request.JSON({url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: clearResponse});
-  var tbody = $(logTable).getElement('tbody');
-  var rows = tbody.getElements('tr');
-  if ( rows && rows.length ) {
-    var minTime = rows[0].getElement('td').get('text');
-    clearParms += "&minTime="+encodeURIComponent(minTime);
-    var maxTime = rows[rows.length-1].getElement('td').get('text');
-    clearParms += "&maxTime="+encodeURIComponent(maxTime);
-  }
-  var form = $('logForm');
-  clearReq.send(clearParms+"&"+form.toQueryString());
+  clearParms += "&minTime="+minLogTime;
+  clearParms += "&maxTime="+maxLogTime;
+  var filters =['Component', 'ServerId', 'Pid', 'Level', 'File', 'Line'];
+  filters.forEach(function(filter) {
+    var f = $j('#filter\\['+filter+'\\]');
+    if ( f.val() ) {
+      clearParms += '&'+encodeURIComponent('filter[' + filter + ']')+'='+encodeURIComponent(f.val());
+    }
+  });
+  clearReq.send(clearParms);
 }
 
 function filterLog() {
@@ -236,13 +249,21 @@ function exportRequest() {
   $('exportErrorText').set('text', '');
   $('exportError').hide();
   if ( form.validate() ) {
+    var exportReq = new Request.JSON({
+      url: thisUrl,
+      method: 'post',
+      link: 'cancel',
+      onSuccess: exportResponse,
+      onFailure: exportFail
+    });
     var exportParms = "view=request&request=log&task=export";
-    var exportReq = new Request.JSON({url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail});
     var selection = form.getElement('input[name=selector]:checked').get('value');
     if ( selection == 'filter' || selection == 'current' ) {
       $$('#filters select').each(
           function( select ) {
-            exportParms += "&"+select.get('id')+"="+select.get('value');
+            if ( select.get('value') ) {
+              exportParms += "&"+select.get('id')+"="+select.get('value');
+            }
           }
       );
     }
@@ -250,6 +271,7 @@ function exportRequest() {
       var tbody = $(logTable).getElement( 'tbody' );
       var rows = tbody.getElements( 'tr' );
       if ( rows ) {
+        // Need to convert this to TimeKey
         var minTime = rows[0].getElement('td').get('text');
         exportParms += "&minTime="+encodeURIComponent(minTime);
         var maxTime = rows[rows.length-1].getElement('td').get('text');

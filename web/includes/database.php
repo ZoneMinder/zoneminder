@@ -125,7 +125,7 @@ function dbEscape( $string ) {
     return $dbConn->quote($string);
 }
 
-function dbQuery($sql, $params=NULL) {
+function dbQuery($sql, $params=NULL, $debug = false) {
   global $dbConn;
   if ( dbLog($sql, true) )
     return;
@@ -142,7 +142,7 @@ function dbQuery($sql, $params=NULL) {
         return NULL;
       }
     } else {
-      if ( defined('ZM_DB_DEBUG') ) {
+      if ( defined('ZM_DB_DEBUG') or $debug ) {
 				ZM\Logger::Debug("SQL: $sql values:" . ($params?implode(',',$params):''));
       }
       $result = $dbConn->query($sql);
@@ -151,7 +151,7 @@ function dbQuery($sql, $params=NULL) {
         return NULL;
       }
     }
-    if ( defined('ZM_DB_DEBUG') ) {
+    if ( defined('ZM_DB_DEBUG') or $debug ) {
       if ( $params )
         ZM\Logger::Debug("SQL: $sql " . implode(',',$params) . ' rows: '.$result->rowCount());
       else
@@ -189,13 +189,13 @@ function dbFetchOne($sql, $col=false, $params=NULL) {
 }
 
 function dbFetchAll($sql, $col=false, $params=NULL) {
+  $dbRows = array();
   $result = dbQuery($sql, $params);
   if ( ! $result ) {
     ZM\Error("SQL-ERR dbFetchAll no result, statement was '".$sql."'".($params ? 'params: '.join(',', $params) : ''));
-    return false;
+    return $dbRows;
   }
 
-  $dbRows = array();
   while ( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
     $dbRows[] = $col ? $dbRow[$col] : $dbRow;
   return $dbRows;

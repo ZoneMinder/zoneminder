@@ -269,15 +269,18 @@ int main(int argc, char *argv[]) {
     }  // end foreach monitor
 
     // Outer primary loop, handles connection to camera
-    if ( monitors[0]->PrimeCapture() < 0 ) {
+    if ( monitors[0]->PrimeCapture() <= 0 ) {
       if ( prime_capture_log_count % 60 ) {
         Error("Failed to prime capture of initial monitor");
       } else {
         Debug(1, "Failed to prime capture of initial monitor");
       }
       prime_capture_log_count ++;
-      if ( !zm_terminate )
-        sleep(10);
+      monitors[0]->disconnect();
+      if ( !zm_terminate ) {
+        Debug(1, "Sleeping");
+        sleep(5);
+      }
       continue;
     }
     for ( int i = 0; i < n_monitors; i++ ) {
@@ -415,6 +418,7 @@ int main(int argc, char *argv[]) {
   delete [] monitors;
 
   Image::Deinitialise();
+  Debug(1,"terminating");
   logTerm();
   zmDbClose();
 

@@ -178,6 +178,7 @@ class Event {
       return pre_alarm_count;
     }
     static void EmptyPreAlarmFrames() {
+#if 0
       while ( pre_alarm_count > 0 ) {
 				int i = pre_alarm_count - 1;
 				delete pre_alarm_data[i].image;
@@ -188,6 +189,7 @@ class Event {
 				}
 				pre_alarm_count--;
 			}
+#endif
       pre_alarm_count = 0;
     }
     static void AddPreAlarmFrame(
@@ -196,15 +198,18 @@ class Event {
         int score=0,
         Image *alarm_frame=nullptr
         ) {
+#if 0
       pre_alarm_data[pre_alarm_count].image = new Image(*image);
       pre_alarm_data[pre_alarm_count].timestamp = timestamp;
       pre_alarm_data[pre_alarm_count].score = score;
       if ( alarm_frame ) {
         pre_alarm_data[pre_alarm_count].alarm_frame = new Image(*alarm_frame);
       }
+#endif
       pre_alarm_count++;
     }
     void SavePreAlarmFrames() {
+#if 0
       for ( int i = 0; i < pre_alarm_count; i++ ) {
         AddFrame(
 						pre_alarm_data[i].image,
@@ -212,6 +217,7 @@ class Event {
 						pre_alarm_data[i].score,
 						pre_alarm_data[i].alarm_frame);
 			}
+#endif
       EmptyPreAlarmFrames();
     }
 };

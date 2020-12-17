@@ -447,7 +447,7 @@ LocalCamera::LocalCamera(
 #if HAVE_LIBSWSCALE
       /* Try using swscale for the conversion */
       conversion_type = 1; 
-      Debug(2,"Using swscale for image conversion");
+      Debug(2, "Using swscale for image conversion");
       if ( colours == ZM_COLOUR_RGB32 ) {
         subpixelorder = ZM_SUBPIX_ORDER_RGBA;
         imagePixFormat = AV_PIX_FMT_RGBA;
@@ -650,7 +650,7 @@ LocalCamera::LocalCamera(
 
 #if HAVE_LIBSWSCALE
   /* Initialize swscale stuff */
-  if ( capture && conversion_type == 1 ) {
+  if ( capture and (conversion_type == 1) ) {
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
     tmpPicture = av_frame_alloc();
 #else
@@ -680,7 +680,7 @@ LocalCamera::LocalCamera(
 #endif
     mVideoStreamId = 0;
     mAudioStreamId = -1;
-    video_stream = NULL;
+    video_stream = nullptr;
 } // end LocalCamera::LocalCamera
 
 LocalCamera::~LocalCamera() {
@@ -689,7 +689,7 @@ LocalCamera::~LocalCamera() {
 
 #if HAVE_LIBSWSCALE
   /* Clean up swscale stuff */
-  if ( capture && conversion_type == 1 ) {
+  if ( capture && (conversion_type == 1) ) {
     sws_freeContext(imgConversionContext);
     imgConversionContext = nullptr;
 
@@ -699,13 +699,6 @@ LocalCamera::~LocalCamera() {
 } // end LocalCamera::~LocalCamera
 
 void LocalCamera::Initialise() {
-#if HAVE_LIBSWSCALE
-  if ( logDebugging() )
-    av_log_set_level(AV_LOG_DEBUG);
-  else
-    av_log_set_level(AV_LOG_QUIET);
-#endif // HAVE_LIBSWSCALE
-
   Debug(3, "Opening video device %s", device.c_str());
   //if ( (vid_fd = open( device.c_str(), O_RDWR|O_NONBLOCK, 0 )) < 0 )
   if ( (vid_fd = open(device.c_str(), O_RDWR, 0)) < 0 )
@@ -2021,12 +2014,12 @@ int LocalCamera::PrimeCapture() {
 #endif // ZM_HAS_V4L1
   mVideoStreamId = 0;
 
-  return 0;
+  return 1;
 } // end LocalCamera::PrimeCapture
 
 int LocalCamera::PreCapture() {
   //Debug(5, "Pre-capturing");
-  return 0;
+  return 1;
 }
 
 int LocalCamera::Capture(ZMPacket &zm_packet) {
@@ -2124,12 +2117,13 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
   } /* prime capture */    
 
   if ( ! zm_packet.image ) {
+    Debug(1, "Allocating image");
     zm_packet.image = new Image(width, height, colours, subpixelorder);
   }
 
   if ( conversion_type != 0 ) {
 
-    Debug(3, "Performing format conversion");
+    Debug(3, "Performing format conversion %d", conversion_type);
 
     /* Request a writeable buffer of the target image */
     uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);

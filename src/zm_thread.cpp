@@ -269,9 +269,9 @@ void *Thread::mThreadFunc( void *arg ) {
 }
 
 void Thread::start() {
-  Debug( 1, "Starting thread" );
+  Debug(4, "Starting thread" );
   if ( isThread() )
-    throw ThreadException( "Can't self start thread" );
+    throw ThreadException("Can't self start thread");
   mThreadMutex.lock();
   if ( !mStarted ) {
     pthread_attr_t threadAttrs;
@@ -287,11 +287,11 @@ void Thread::start() {
   }
   mThreadCondition.wait();
   mThreadMutex.unlock();
-  Debug( 1, "Started thread %d", mPid );
+  Debug(4, "Started thread %d", mPid);
 }
 
 void Thread::join() {
-  Debug( 1, "Joining thread %d", mPid );
+  Debug(1, "Joining thread %d", mPid);
   if ( isThread() )
     throw ThreadException( "Can't self join thread" );
   mThreadMutex.lock();

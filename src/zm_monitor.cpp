@@ -333,8 +333,8 @@ Monitor::Monitor()
   purpose(QUERY),
   auto_resume_time(0),
   last_motion_score(0),
-  camera(0),
-  event(0),
+  camera(nullptr),
+  event(nullptr),
   n_zones(0),
   zones(nullptr),
   timestamps(0),
@@ -1768,14 +1768,6 @@ bool Monitor::Analyse() {
     packets_processed += 1;
     packetqueue->increment_analysis_it();
 
-    if ( snap->packet.stream_index != video_stream_id ) {
-      snap->unlock();
-      Debug(2, "skipping because audio");
-      continue;
-    }
-
-    struct timeval *timestamp = snap->timestamp;
-    Image *snap_image = snap->image;
 
     // signal is set by capture
     bool signal = shared_data->signal;
@@ -1820,7 +1812,6 @@ bool Monitor::Analyse() {
             signalText = "Reacquired";
             score += 100;
           }
-          Warning("%s: %s", SIGNAL_CAUSE, signalText);
           if ( event && !signal ) {
             Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name, image_count, event->Id());
             closeEvent();
@@ -1835,20 +1826,25 @@ bool Monitor::Analyse() {
           noteSetMap[SIGNAL_CAUSE] = noteSet;
           shared_data->state = state = IDLE;
           shared_data->active = signal;
-          ref_image.Assign(*snap_image);
+          ref_image.Assign(*(snap->image));
         }// else 
 
         if ( signal ) {
+          if ( snap->packet.stream_index == video_stream_id ) {
+            struct timeval *timestamp = snap->timestamp;
+
           if ( Active() && (function == MODECT || function == MOCORD) ) {
             Debug(3, "signal and active and modect");
             Event::StringSet zoneSet;
+
             int motion_score = last_motion_score;
             if ( !(analysis_image_count % (motion_frame_skip+1) ) ) {
               if ( snap->image ) {
                 // Get new score.
-                motion_score = DetectMotion(*snap_image, zoneSet);
+                motion_score = DetectMotion(*(snap->image), zoneSet);
 
-                Debug(3, "After motion detection, last_motion_score(%d), new motion score(%d)", last_motion_score, motion_score);
+                Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
+                    score, last_motion_score, motion_score);
               } else {
                 Warning("No image in snap");
               }
@@ -1862,7 +1858,6 @@ bool Monitor::Analyse() {
               cause += MOTION_CAUSE;
               noteSetMap[MOTION_CAUSE] = zoneSet;
             } // end if motion_score
-            //shared_data->active = signal; // unneccessary active gets set on signal change
           } // end if active and doing motion detection
 
           // Check to see if linked monitors are triggering.
@@ -2028,45 +2023,69 @@ bool Monitor::Analyse() {
               // Back to IDLE
               shared_data->state = state =  function != MOCORD ? IDLE : TAPE;
             } else {
-              Debug(1, "Not leaving ALERT beacuse image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%d) - recording.tv_src(%d) >= min_section_length(%d)", image_count, last_alarm_count, post_event_count, timestamp->tv_sec, video_store_data->recording.tv_sec, min_section_length);
+              Debug(1, "State %d ALERT beacuse image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%d) - recording.tv_src(%d) >= min_section_length(%d)",
+                  state, analysis_image_count, last_alarm_count, post_event_count,
+                  timestamp->tv_sec, video_store_data->recording.tv_sec, min_section_length);
             }
             if ( Event::PreAlarmCount() )
               Event::EmptyPreAlarmFrames();
           } // end if score or not
 
           // Flag the packet so we don't analyse it again
+          Debug(1, "Scoring packet");
           snap->score = score;
 
-          if ( state == PREALARM || state == ALARM ) {
+          if ( state == PREALARM ) {
+            // Generate analysis images if necessary
             if ( savejpegs > 1 ) {
-              bool got_anal_image = false;
-              Image *anal_image = new Image( *snap_image );
-              //alarm_image.Assign( *snap_image );
-              for( int i = 0; i < n_zones; i++ ) {
+              for ( int i = 0; i < n_zones; i++ ) {
                 if ( zones[i]->Alarmed() ) {
                   if ( zones[i]->AlarmImage() ) {
-                    anal_image->Overlay( *(zones[i]->AlarmImage()) );
-                    got_anal_image = true;
+                    if ( ! snap->analysis_image )
+                      snap->analysis_image = new Image(*(snap->image));
+                    snap->analysis_image->Overlay( *(zones[i]->AlarmImage()) );
                   }
-                  if ( config.record_event_stats && (state == ALARM) )
+                } // end if zone is alarmed
+              } // end foreach zone
+            } // end if savejpegs
+
+            // incremement pre alarm image count
+            //have_pre_alarmed_frames ++;
+            Event::AddPreAlarmFrame(snap->image, *timestamp, score, nullptr);
+          } else if ( state == ALARM ) {
+            if ( savejpegs > 1 ) {
+              for ( int i = 0; i < n_zones; i++ ) {
+                if ( zones[i]->Alarmed() ) {
+                  if ( zones[i]->AlarmImage() ) {
+                    if ( ! snap->analysis_image )
+                      snap->analysis_image = new Image(*(snap->image));
+                    snap->analysis_image->Overlay(*(zones[i]->AlarmImage()));
+                  }
+                  if ( config.record_event_stats )
                     zones[i]->RecordStats(event);
                 } // end if zone is alarmed
               } // end foreach zone
-              if ( got_anal_image ) {
-                snap->analysis_image = anal_image;
-              } else {
-                delete anal_image;
-              }
-            } else if ( config.record_event_stats && state == ALARM ) {
-              for ( int i = 0; i < n_zones; i++ ) {
-                if ( zones[i]->Alarmed() ) {
-                  zones[i]->RecordStats(event);
-                }
-              } // end foreach zone
-            } // analsys_images or record stats
-
+            } 
             if ( noteSetMap.size() > 0 )
-              event->updateNotes( noteSetMap );
+              event->updateNotes(noteSetMap);
+            if ( section_length
+                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                && ! (image_count % fps_report_interval)
+               ) {
+              Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
+                  name, image_count, event->Id(),
+                  timestamp->tv_sec, video_store_data->recording.tv_sec,
+                  timestamp->tv_sec - video_store_data->recording.tv_sec,
+                  section_length
+                  );
+              closeEvent();
+              event = new Event(this, *timestamp, cause, noteSetMap);
+              shared_data->last_event_id = event->Id();
+              //set up video store data
+              snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+              video_store_data->recording = event->StartTime();
+            }
+
           } else if ( state == ALERT ) {
             // Alert means this frame has no motion, but we were alarmed and are still recording.
             if ( noteSetMap.size() > 0 )
@@ -2079,11 +2098,14 @@ bool Monitor::Analyse() {
             //event->AddFrame( snap_image, *timestamp );
             //}
             //}
-        }
-        if ( function == MODECT || function == MOCORD ) {
-          ref_image.Blend( *snap_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ) );
-        }
-        last_signal = signal;
+          } // end if state machine
+
+          if ( function == MODECT || function == MOCORD ) {
+            ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+          }
+          last_signal = signal;
+
+          } // end if videostream
         } // end if signal
 
       } else {
@@ -2826,7 +2848,7 @@ unsigned int Monitor::SubpixelOrder() const { return camera->SubpixelOrder(); }
 
 int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();
-  if ( ret == 0 ) {
+  if ( ret > 0 ) {
     if ( packetqueue ) 
       delete packetqueue;
     video_stream_id = camera->get_VideoStreamId();
@@ -2835,14 +2857,13 @@ int Monitor::PrimeCapture() {
     Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_buffer_count);
   } else {
-    Debug(2, "Not Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
-        video_stream_id, audio_stream_id, pre_event_buffer_count);
+    Debug(2, "Failed to prime %d", ret);
   }
   return ret;
 }
 
 int Monitor::PreCapture() const { return camera->PreCapture(); }
-int Monitor::PostCapture() const { return camera->PostCapture() ; }
+int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
   if ( packetqueue ) {
     delete packetqueue;

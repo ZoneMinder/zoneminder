@@ -148,14 +148,14 @@ bool VideoStore::open() {
     int wanted_codec = monitor->OutputCodec();
     if ( !wanted_codec ) {
       // default to h264
-      Debug(2, "Defaulting to H264");
-      wanted_codec = AV_CODEC_ID_H264;
+      //Debug(2, "Defaulting to H264");
+      //wanted_codec = AV_CODEC_ID_H264;
     } else {
       Debug(2, "Codec is %d, wanted %d", video_in_ctx->codec_id, wanted_codec);
     }
 
     // FIXME Should check that we are set to passthrough.  Might be same codec, but want privacy overlays
-    if ( video_in_ctx->codec_id == wanted_codec ) {
+    if ( (!wanted_codec) or (video_in_ctx->codec_id == wanted_codec) ) {
       // Copy params from instream to ctx
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
@@ -235,6 +235,8 @@ bool VideoStore::open() {
 
         AVDictionary *opts = 0;
         std::string Options = monitor->GetEncoderOptions();
+        Debug(2, "Options?");
+        Debug(2, "Options? %s", Options.c_str());
         ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
         if ( ret < 0 ) {
           Warning("Could not parse ffmpeg encoder options list '%s'\n", Options.c_str());

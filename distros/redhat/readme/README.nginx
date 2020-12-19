@@ -86,7 +86,7 @@ New installs
 
      sudo systemctl enable --now fcgiwrap@nginx.socket
 
-   Do NOT try to start the fcgwrap service! It must be triggered by the
+   Do NOT try to start the fcgiwrap service! It must be triggered by the
    socket to work properly.
 
 8. Now start the web server:

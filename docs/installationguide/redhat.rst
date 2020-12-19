@@ -70,7 +70,7 @@ Install ZoneMinder for Apache web server:
 
 .. sidebar :: Note
 
-    A virtual package called zoneminder exists. This pacakge contains no files and will pull in the zoneminder-httpd package for backwards compatiblity.
+    A virtual package called zoneminder exists. This package contains no files and will pull in the zoneminder-httpd package for backwards compatiblity.
 
 ::
 

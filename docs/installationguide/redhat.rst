@@ -64,11 +64,11 @@ RHEL/CentOS 8 users must also enable the PowerTools repo:
     sudo dnf install dnf-plugins-core
     sudo dnf config-manager --set-enabled PowerTools
 
-Once the additional repos are enabled, install ZoneMinder from the commandline. Choose the package that matches the desired web server.
-
 .. sidebar :: Note
 
     A virtual package called zoneminder exists. This pacakge contains no files and will pull in the zoneminder-httpd package for backwards compatiblity.
+
+Once the additional repos are enabled, install ZoneMinder from the commandline. Choose the package that matches the desired web server.
 
 Install ZoneMinder for Apache web server:
 ::

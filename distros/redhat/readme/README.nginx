@@ -44,10 +44,7 @@ New installs
 
 5. Disable SELinux 
 
-   We currently do not have the resources to create and maintain an accurate
-   SELinux policy for ZoneMinder on Fedora. We will gladly accept pull
-   reqeusts from anyone who wishes to do the work. In the meantime, SELinux
-   will need to be disabled or put into permissive mode.
+   SELinux must be disabled or put into permissive mode. This is not optional!
    
    To immediately disbale SELinux for the current seesion, issue the following
    from the command line:
@@ -78,10 +75,19 @@ New installs
      sudo ln -sf /etc/zm/www/zoneminder.nginx.conf /etc/nginx/conf.d/
      sudo ln -sf /etc/zm/www/redirect.nginx.conf /etc/nginx/default.d/
 
-7. Edit /etc/sysconfig/fcgiwrap and set DAEMON_PROCS to the maximum number of
+7. Configure and start fcgiwrap
+
+   Edit /etc/sysconfig/fcgiwrap and set DAEMON_PROCS to the maximum number of
    simulatneous streams the server should support. Generally, a good minimum 
    value for this equals the total number of cameras you expect to view at the
    same time.
+
+   Enable the fcgiwrap *socket* in the following manner:
+
+     sudo systemctl enable --now fcgiwrap@nginx.socket
+
+   Do NOT try to start the fcgwrap service! It must be triggered by the
+   socket to work properly.
 
 8. Now start the web server:
 

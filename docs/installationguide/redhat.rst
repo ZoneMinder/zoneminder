@@ -66,14 +66,14 @@ RHEL/CentOS 8 users must also enable the PowerTools repo:
 
 Once the additional repos are enabled, install ZoneMinder from the commandline. Choose the package that matches the desired web server.
 
+.. sidebar :: Note
+
+    A virtual package called zoneminder exists. This pacakge contains no files and will pull in the zoneminder-httpd package for backwards compatiblity.
+
 Install ZoneMinder for Apache web server:
 ::
 
     sudo dnf install zoneminder-httpd
-
-.. sidebar :: Note
-
-    A virtual package called zoneminder exists. This pacakge contains no files and will pull in the zoneminder-httpd package for backwards compatiblity.
 
 Install ZoneMinder for Nginx web server:
 
@@ -81,11 +81,11 @@ Install ZoneMinder for Nginx web server:
 
     sudo dnf install zoneminder-nginx
 
-Once ZoneMinder has been installed, you must read the README file under /usr/share/doc. ZoneMinder will *NOT* run without completing the steps shown in the README!
-
 .. sidebar :: Note
 
     Fedora users can find the README under /usr/share/doc/zoneminder-common. RHEL/CentOS users can find the README under /usr/share/doc/zoneminder-common-x.xx where x.xx is the version of zoneminder.
+
+Once ZoneMinder has been installed, you must read the README file under /usr/share/doc. ZoneMinder will *NOT* run without completing the steps shown in the README!
 
 How to Install Nightly Development Builds
 -----------------------------------------

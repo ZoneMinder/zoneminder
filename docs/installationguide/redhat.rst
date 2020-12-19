@@ -71,15 +71,15 @@ Install ZoneMinder for Apache web server:
 
     sudo dnf install zoneminder-httpd
 
+.. sidebar :: Note
+
+    A virtual package called zoneminder exists. This pacakge contains no files and will pull in the zoneminder-httpd package for backwards compatiblity.
+
 Install ZoneMinder for Nginx web server:
 
 ::
 
     sudo dnf install zoneminder-nginx
-
-.. sidebar :: Note
-
-    A virtual package called zoneminder exists. This pacakge contains no files and will pull in zoneminder-common and zoneminder-httpd packages for backwards compatiblity.
 
 Once ZoneMinder has been installed, you must read the README file under /usr/share/doc. ZoneMinder will *NOT* run without completing the steps shown in the README!
 

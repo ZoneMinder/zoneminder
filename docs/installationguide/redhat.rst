@@ -75,15 +75,15 @@ Install ZoneMinder for Apache web server:
 
     sudo dnf install zoneminder-httpd
 
+.. sidebar :: Note
+
+    Fedora users can find the README under /usr/share/doc/zoneminder-common. RHEL/CentOS users can find the README under /usr/share/doc/zoneminder-common-x.xx where x.xx is the version of zoneminder.
+
 Install ZoneMinder for Nginx web server:
 
 ::
 
     sudo dnf install zoneminder-nginx
-
-.. sidebar :: Note
-
-    Fedora users can find the README under /usr/share/doc/zoneminder-common. RHEL/CentOS users can find the README under /usr/share/doc/zoneminder-common-x.xx where x.xx is the version of zoneminder.
 
 Once ZoneMinder has been installed, you must read the README file under /usr/share/doc. ZoneMinder will *NOT* run without completing the steps shown in the README!
 

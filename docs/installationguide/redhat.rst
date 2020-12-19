@@ -45,11 +45,11 @@ The following notes are based on real problems which have occurred by those who 
 How to Install ZoneMinder
 -------------------------
 
-ZoneMinder releases are hosted at RPM Fusion. New users should navigate to the `RPM Fusion site <https://rpmfusion.org>`__ then follow the instructions to enable that repo.
-
 .. sidebar :: Note
 
     RHEL/CentOS 7 users should use *yum* instead of *dnf*
+
+ZoneMinder releases are hosted at RPM Fusion. New users should navigate to the `RPM Fusion site <https://rpmfusion.org>`__ then follow the instructions to enable that repo.
 
 RHEL/CentOS 7 & 8 users must enable the EPEL repo:
 

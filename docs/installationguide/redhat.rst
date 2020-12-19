@@ -49,7 +49,7 @@ ZoneMinder releases are hosted at RPM Fusion. New users should navigate to the `
 
 .. sidebar :: Note
 
-    RHEL/CentOS 7 users should use yum instead of dnf
+    RHEL/CentOS 7 users should use *yum* instead of *dnf*
 
 RHEL/CentOS 7 & 8 users must enable the EPEL repo:
 

@@ -52,7 +52,7 @@ Note that these commands are just an example and might not be secure enough for 
 
 .. sidebar :: Note
 
-    NOTE: The location of the ZoneMinder events folder varies by distro. This folder is often found under "/var/lib/zoneminder/events" for RedHat based distros and "/var/cache/zoneminder/events" for Debain based distros. This folder is NOT a Symbolic Link!
+    The location of the ZoneMinder events folder varies by distro. This folder is often found under "/var/lib/zoneminder/events" for RedHat based distros and "/var/cache/zoneminder/events" for Debain based distros. This folder is NOT a Symbolic Link!
 
 10. Open your browser and point it to the web console on any of the ZoneMinder Servers (they will all be the same). Open Options, click the Servers tab,and populate this screen with all of your ZoneMinder Servers. Each server has a field for its name and its hostname. The name is what you used for ZM_SERVER_HOST in step 2. The hostname is the network name or ip address ZoneMinder should use.
 

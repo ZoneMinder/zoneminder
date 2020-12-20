@@ -64,16 +64,16 @@ function exportResponse(respObj, respText) {
 }
 
 function exportEvents( ) {
-  var query = new Request.JSON( {
-    url: '?view=event&request=event&action=export',
-    method: 'post',
-    data: $('contentForm').toQueryString(),
-    onSuccess: exportResponse
-  } );
-  query.send();
-  $('exportProgress').removeClass('hidden');
-  $('exportProgress').setProperty('class', 'warnText');
-  $('exportProgressText').set('text', exportProgressString);
+  var formData = $j('#contentForm').serialize();
+
+  $j.getJSON(thisUrl + '?view=event&request=event&action=export', formData)
+      .done(exportResponse)
+      .fail(logAjaxFail);
+
+  $j('#exportProgress').removeClass('hidden');
+  $j('#exportProgress').addClass('warnText');
+  $j('#exportProgress').text(exportProgressString);
+  
   //exportProgress();
   exportTimer = exportProgress.periodical( 500 );
 }
@@ -93,7 +93,7 @@ function getEventDetailModal(eid) {
 }
 
 function initPage() {
-  configureExportButton( $('exportButton') );
+  configureExportButton(this);
   if ( exportReady ) {
     startDownload.pass(exportFile).delay(1500);
   }

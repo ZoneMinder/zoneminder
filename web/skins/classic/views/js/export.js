@@ -73,7 +73,7 @@ function exportEvents( ) {
   $j('#exportProgress').removeClass('hidden');
   $j('#exportProgress').addClass('warnText');
   $j('#exportProgress').text(exportProgressString);
-  
+
   //exportProgress();
   exportTimer = exportProgress.periodical( 500 );
 }

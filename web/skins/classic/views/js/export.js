@@ -46,7 +46,7 @@ function exportResponse(respObj, respText) {
     $j('#exportProgressTicker').text(respObj.message);
   } else {
     $j('#exportProgressTicker').text(exportSucceededString);
-    startDownload.pass(decodeURIComponent(respObj.exportFile)).delay(1500);
+    setTimeout(startDownload, 1500, decodeURIComponent(respObj.exportFile));
   }
   return;
 
@@ -95,7 +95,7 @@ function getEventDetailModal(eid) {
 function initPage() {
   configureExportButton(this);
   if ( exportReady ) {
-    startDownload.pass(exportFile).delay(1500);
+    setTimeout(startDownload, 1500, exportFile);
   }
   document.getElementById('exportButton').addEventListener('click', exportEvents);
 

@@ -27,7 +27,7 @@ function createEventHtml(zm_event, frame) {
 
 function showEventDetail(eventHtml) {
   $j('#instruction').addClass('hidden');
-  $j('#eventData').empty().append(eventHtml).removeClass('Hidden');;
+  $j('#eventData').empty().append(eventHtml).removeClass('Hidden');
 }
 
 function eventDataResponse(respObj, respText) {

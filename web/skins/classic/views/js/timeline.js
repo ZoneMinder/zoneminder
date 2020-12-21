@@ -127,39 +127,13 @@ function previewEvent(slot) {
 }
 
 function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, duration, startTime, Monitor ) {
-  var vid = $('preview');
   var imageSrc = $j('#imageSrc');
-  if ( videoName && vid ) {
-    vid.show();
-    imageSrc.hide();
-    var newsource=imagePath.slice(0, imagePath.lastIndexOf('/'))+'/'+videoName;
-    //console.log(newsource);
-    //console.log(sources[0].src.slice(-newsource.length));
-    if ( newsource != vid.currentSrc.slice(-newsource.length) || vid.readyState == 0 ) {
-      //console.log("loading new");
-      //it is possible to set a long source list here will that be unworkable?
-      var sources = vid.getElementsByTagName('source');
-      sources[0].src = newsource;
-      var tracks = vid.getElementsByTagName('track');
-      if (tracks.length) {
-        tracks[0].parentNode.removeChild(tracks[0]);
-      }
-      vid.load();
-      addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime);
-      vid.currentTime = fid/fps;
-    } else {
-      if ( ! vid.seeking ) {
-        vid.currentTime=fid/fps;
-      }
-    }
-  } else {
-    if ( vid ) vid.hide();
-    imageSrc.show();
-    imageSrc.attr('src', imagePath);
-    imageSrc.data('event-id', eid);
-    imageSrc.data('frame-id', fid);
-    imageSrc.click(window['showEvent'].bind(imageSrc, imageSrc));
-  }
+
+  imageSrc.show();
+  imageSrc.attr('src', imagePath);
+  imageSrc.data('event-id', eid);
+  imageSrc.data('frame-id', fid);
+  imageSrc.click(window['showEvent'].bind(imageSrc, imageSrc));
 
   var eventData = $j('#eventData');
   eventData.off('click');

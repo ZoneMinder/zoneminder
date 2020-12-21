@@ -65,7 +65,7 @@ sub sendCmd {
   my $self = shift;
   my $cmd = shift;
   my $result = undef;
-  printMsg($cmd, 'Tx');
+  $this->printMsg($cmd, 'Tx');
 
   my $req = HTTP::Request->new(GET=>'http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
   my $res = $self->{ua}->request($req);

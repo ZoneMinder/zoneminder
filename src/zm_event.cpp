@@ -539,7 +539,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
   end_time = *timestamps[n_frames-1];
 }  // void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, struct timeval **timestamps)
 
-void Event::AddPacket(ZMPacket *packet, int score, Image *alarm_image) {
+void Event::AddPacket(ZMPacket *packet) {
 
   have_video_keyframe = have_video_keyframe || ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && packet->keyframe );
   if ( videoStore ) {
@@ -551,7 +551,7 @@ void Event::AddPacket(ZMPacket *packet, int score, Image *alarm_image) {
     //FIXME if it fails, we should write a jpeg
   }
   if ( have_video_keyframe && ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) ) {
-    AddFrame(packet->image, *packet->timestamp, score, alarm_image);
+    AddFrame(packet->image, *(packet->timestamp), packet->score, packet->analysis_image);
   } // end if is video
   end_time = *packet->timestamp;
   return;

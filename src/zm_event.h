@@ -124,8 +124,8 @@ class Event {
     const struct timeval &StartTime() const { return start_time; }
     const struct timeval &EndTime() const { return end_time; }
 
-    void AddPacket( ZMPacket *p, int score=0, Image *alarm_frame=nullptr );
-    bool WritePacket( ZMPacket &p );
+    void AddPacket(ZMPacket *p);
+    bool WritePacket(ZMPacket &p);
     bool SendFrameImage(const Image *image, bool alarm_frame=false);
     bool WriteFrameImage(
         Image *image,

@@ -741,6 +741,11 @@ a.flip {
   float: right;
   margin-right: -20px;
 }
+
 #content table.major .colDiskSpace {
   text-align: right;
+}
+
+#objdetectModal .modal-content {
+    width: fit-content;
 }

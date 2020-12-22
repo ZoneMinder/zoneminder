@@ -1767,6 +1767,7 @@ bool Monitor::Analyse() {
     }
 
     packets_processed += 1;
+    std::list<ZMPacket *>::iterator snap_it = packetqueue->get_analysis_it();
     packetqueue->increment_analysis_it();
 
 
@@ -1979,7 +1980,19 @@ bool Monitor::Analyse() {
                     name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
                 if ( !event ) {
-                  event = new Event(this, *timestamp, cause, noteSetMap);
+
+                  std::list<ZMPacket *>::iterator start_it = packetqueue->get_event_start_packet_it(
+                      snap_it,
+                      (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
+                      );
+                  ZMPacket *starting_packet = *start_it;
+
+                  event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
+                  // Write out starting packets, do not modify packetqueue it will garbage collect itself
+                  while (start_it != snap_it ) {
+                    event->AddPacket(*start_it);
+                    start_it ++;
+                  }
 
                   shared_data->last_event_id = event->Id();
                   //set up video store data
@@ -2033,7 +2046,6 @@ bool Monitor::Analyse() {
           } // end if score or not
 
           // Flag the packet so we don't analyse it again
-          Debug(1, "Scoring packet");
           snap->score = score;
 
           if ( state == PREALARM ) {
@@ -2126,11 +2138,14 @@ bool Monitor::Analyse() {
 
     if ( event ) {
       int last_write = shared_data->last_write_index;
+      event->AddPacket(snap);
+
+#if 0
       int written = 0;
       ZMPacket *queued_packet;
 
       // since we incremented the analysis_it, this will include snap
-      while ( (queued_packet = packetqueue->popPacket()) ) {
+      //while ( (queued_packet = packetqueue->popPacket()) ) {
         Debug(2, "adding queued packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written);
         event->AddPacket(queued_packet);
         queued_packet->unlock();
@@ -2140,6 +2155,7 @@ bool Monitor::Analyse() {
         } 
       } // end while write out queued_packets
       queued_packet = NULL;
+#endif
     }
     // popPacket will have placed a second lock on snap, so release it here.
     snap->unlock();

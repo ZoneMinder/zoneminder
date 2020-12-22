@@ -69,6 +69,11 @@ class zm_packetqueue {
     // Functions to manage the analysis frame logic
     bool increment_analysis_it();
     ZMPacket *get_analysis_packet();
+    std::list<ZMPacket *>::iterator get_analysis_it() const { return analysis_it; }
+    std::list<ZMPacket *>::iterator get_event_start_packet_it(
+        std::list<ZMPacket *>::iterator snapshot_it,
+        unsigned int pre_event_count
+    );
 };
 
 #endif /* ZM_PACKETQUEUE_H */

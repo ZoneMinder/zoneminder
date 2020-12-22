@@ -1,10 +1,10 @@
 var events = {};
 
 function showEvent(e) {
-  eid = e.getAttribute('data-event-id');
-  fid = e.getAttribute('data-frame-id');
-  var url = '?view=event&eid='+eid+'&fid='+fid;
-  url += filterQuery;
+  var eid = e.getAttribute('data-event-id');
+  var fid = e.getAttribute('data-frame-id');
+  var url = '?view=event&eid='+eid+'&fid='+fid+filterQuery;
+
   window.location.href = url;
 }
 
@@ -27,7 +27,7 @@ function createEventHtml(zm_event, frame) {
 
 function showEventDetail(eventHtml) {
   $j('#instruction').addClass('hidden');
-  $j('#eventData').empty().append(eventHtml).removeClass('hidden');
+  $j('#eventData').empty().append(eventHtml).removeClass('hidden');;
 }
 
 function eventDataResponse(respObj, respText) {
@@ -78,7 +78,7 @@ function showEventData(eventId, frameId) {
         showEventDetail( zm_event['frames'][frameId]['html'] );
         var imagePath = 'index.php?view=image&eid='+eventId+'&fid='+frameId;
         var videoName = zm_event.DefaultVideo;
-        loadEventImage(imagePath, eventId, frameId, zm_event.Width, zm_event.Height, zm_event.Frames/zm_event.Length, videoName, zm_event.Length, zm_event.StartDateTime, monitors[zm_event.MonitorId]);
+        loadEventImage(imagePath, eventId, frameId);
         return;
       } else {
         console.log('No frames for ' + frameId);
@@ -126,18 +126,20 @@ function previewEvent(slot) {
   }
 }
 
-function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, duration, startTime, Monitor ) {
+function loadEventImage( imagePath, eid, fid ) {
   var imageSrc = $j('#imageSrc');
 
   imageSrc.show();
   imageSrc.attr('src', imagePath);
-  imageSrc.data('event-id', eid);
-  imageSrc.data('frame-id', fid);
+  imageSrc.attr('data-event-id', eid);
+  imageSrc.attr('data-frame-id', fid);
   imageSrc.click(window['showEvent'].bind(imageSrc, imageSrc));
 
   var eventData = $j('#eventData');
   eventData.off('click');
   eventData.click(showEvent.pass());
+
+  divDataOnClick();
 }
 
 function tlZoomBounds(event) {
@@ -158,7 +160,7 @@ function tlPanRight() {
   location.replace('?view='+currentView+filterQuery+'&midTime='+maxTime+'&range='+range);
 }
 
-window.addEventListener('DOMContentLoaded', function() {
+function divDataOnClick() {
   // These look like the code in skin.js, but that code doesn't select for divs.
   document.querySelectorAll('div.event').forEach(function(el) {
     el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
@@ -173,7 +175,7 @@ window.addEventListener('DOMContentLoaded', function() {
       window[el.getAttribute('data-on-click')](ev);
     };
   });
-});
+}
 
 function initPage() {
   var backBtn = $j('#backBtn');
@@ -197,6 +199,9 @@ function initPage() {
     evt.preventDefault();
     window.location.assign('?view=events'+filterQuery);
   });
+
+  // Bind the data-on-click attributes associated with a div
+  divDataOnClick();
 }
 
 $j(document).ready(function() {

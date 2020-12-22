@@ -1538,7 +1538,7 @@ bool Monitor::Analyse() {
                     }
                   }
                   noteSet.insert(linked_monitors[i]->Name());
-                  score += 50;
+                  score += linked_monitors[i]->triggerScore(); // 50;
                 } else {
                   Debug(4, "Linked monitor %d %s is not alarmed",
                       linked_monitors[i]->Id(), linked_monitors[i]->Name());
@@ -1829,6 +1829,7 @@ bool Monitor::Analyse() {
           }
         } // end if ! IDLE
       }
+      trigger_data->trigger_score = score;
     } else {
       if ( event ) {
         Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name, image_count, event->Id());

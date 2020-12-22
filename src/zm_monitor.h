@@ -236,6 +236,10 @@ protected:
         return last_connect_time;
       }
 
+      inline uint32_t triggerScore() {
+        return trigger_data->trigger_score;
+      }
+
       bool connect();
       bool disconnect();
 

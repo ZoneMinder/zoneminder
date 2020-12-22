@@ -27,7 +27,7 @@ function createEventHtml(zm_event, frame) {
 
 function showEventDetail(eventHtml) {
   $j('#instruction').addClass('hidden');
-  $j('#eventData').empty().append(eventHtml).removeClass('Hidden');
+  $j('#eventData').empty().append(eventHtml).removeClass('hidden');
 }
 
 function eventDataResponse(respObj, respText) {
@@ -58,7 +58,7 @@ function frameDataResponse( respObj, respText ) {
   }
 
   if ( !zm_event['frames'] ) {
-    console.log("No frames data in event response");
+    console.log('No frames data in event response');
     console.log(zm_event);
     console.log(respObj);
     zm_event['frames'] = {};
@@ -78,7 +78,7 @@ function showEventData(eventId, frameId) {
         showEventDetail( zm_event['frames'][frameId]['html'] );
         var imagePath = 'index.php?view=image&eid='+eventId+'&fid='+frameId;
         var videoName = zm_event.DefaultVideo;
-        loadEventImage( imagePath, eventId, frameId, zm_event.Width, zm_event.Height, zm_event.Frames/zm_event.Length, videoName, zm_event.Length, zm_event.StartDateTime, monitors[zm_event.MonitorId]);
+        loadEventImage(imagePath, eventId, frameId, zm_event.Width, zm_event.Height, zm_event.Frames/zm_event.Length, videoName, zm_event.Length, zm_event.StartDateTime, monitors[zm_event.MonitorId]);
         return;
       } else {
         console.log('No frames for ' + frameId);

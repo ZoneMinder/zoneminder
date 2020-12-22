@@ -19,7 +19,7 @@ if ( !validInt($eid) ) {
         </button>
       </div>
       <div class="modal-body">
-        <img src="?view=image&amp;eid='<?php echo $eid ?>'&amp;fid=objdetect">
+        <img src="?view=image&amp;eid=<?php echo $eid ?>&amp;fid=objdetect">
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>

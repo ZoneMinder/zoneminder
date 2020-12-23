@@ -1,4 +1,3 @@
-$j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 var table = $j('#eventStatsTable');
 var backBtn = $j('#backBtn');
 var renameBtn = $j('#renameBtn');
@@ -27,14 +26,17 @@ var streamCmdTimer = null;
 var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
-var streamParms = "view=request&request=stream&connkey="+connKey;
-if ( auth_hash ) streamParms += '&auth='+auth_hash;
 var frameBatch = 40;
 var currFrameId = null;
-var eventReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse} );
-var actReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse} );
-var frameReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse} );
-var streamReq = new Request.JSON( {url: monitorUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse} );
+var auth_hash;
+
+function streamReq(data) {
+  if ( auth_hash ) data.auth = auth_hash;
+  data.connkey = connKey;
+  $j.getJSON(thisUrl + 'view=request&request=stream', data)
+      .done(getCmdResponse)
+      .fail(logAjaxFail);
+}
 
 // Function called when video.js hits the end of the video
 function vjsReplay() {
@@ -217,6 +219,7 @@ function changeReplayMode() {
 
 function changeRate() {
   var rate = parseInt($j('select[name="rate"]').val());
+
   if ( ! rate ) {
     pauseClicked();
   } else if ( rate < 0 ) {
@@ -233,13 +236,13 @@ function changeRate() {
         }
       }, 500); //500ms is a compromise between smooth reverse and realistic performance
     } else {
-      streamReq.send(streamParms+"&command="+CMD_VARPLAY+"&rate="+rate);
+      streamReq({command: CMD_VARPLAY, rate: rate});
     } // end if vid
   } else { // Forward rate
     if ( vid ) {
       vid.playbackRate(rate/100);
     } else {
-      streamReq.send(streamParms+"&command="+CMD_VARPLAY+"&rate="+rate);
+      streamReq({command: CMD_VARPLAY, rate: rate});
     }
   }
   Cookie.write('zmEventRate', rate, {duration: 10*365, samesite: 'strict'});
@@ -316,7 +319,7 @@ function pauseClicked() {
     }
     vid.pause();
   } else {
-    streamReq.send(streamParms+"&command="+CMD_PAUSE);
+    streamReq({command: CMD_PAUSE});
   }
   streamPause();
 }
@@ -333,6 +336,7 @@ function streamPause() {
 
 function playClicked( ) {
   var rate_select = $j('select[name="rate"]');
+
   if ( ! rate_select.val() ) {
     $j('select[name="rate"]').val(100);
   }
@@ -343,7 +347,7 @@ function playClicked( ) {
       vjsPlay(); //handles fast forward and rewind
     }
   } else {
-    streamReq.send(streamParms+"&command="+CMD_PLAY);
+    streamReq({command: CMD_PLAY});
   }
   streamPlay();
 }
@@ -382,7 +386,7 @@ function streamFastFwd( action ) {
     $j('select[name="rate"]').val(vid.playbackRate()*100);
     Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365, samesite: 'strict'});
   } else {
-    streamReq.send(streamParms+"&command="+CMD_FASTFWD);
+    streamReq({command: CMD_FASTFWD});
   }
 }
 
@@ -391,7 +395,7 @@ function streamSlowFwd( action ) {
   if ( vid ) {
     vid.currentTime(vid.currentTime() + spf);
   } else {
-    streamReq.send(streamParms+"&command="+CMD_SLOWFWD);
+    streamReq({command: CMD_SLOWFWD});
   }
 }
 
@@ -399,7 +403,7 @@ function streamSlowRev( action ) {
   if ( vid ) {
     vid.currentTime(vid.currentTime() - spf);
   } else {
-    streamReq.send(streamParms+"&command="+CMD_SLOWREV);
+    streamReq({command: CMD_SLOWREV});
   }
 }
 
@@ -436,7 +440,7 @@ function streamFastRev( action ) {
       }
     }, 500); //500ms is a compromise between smooth reverse and realistic performance
   } else {
-    streamReq.send(streamParms+"&command="+CMD_FASTREV);
+    streamReq({command: CMD_FASTREV});
   }
 }
 
@@ -452,7 +456,7 @@ function streamPrev(action) {
     } else if (zmsBroke || (vid && PrevEventDefVideoPath.indexOf("view_video") < 0) || $j("#vjsMessage").length || PrevEventDefVideoPath.indexOf("view_video") > 0) {//zms broke, leaving videojs, last event, moving to videojs
       location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     } else {
-      streamReq.send(streamParms+"&command="+CMD_PREV);
+      streamReq({command: CMD_PREV});
       streamPlay();
     }
   }
@@ -480,7 +484,7 @@ function streamNext(action) {
     } else if ( zmsBroke || (vid && NextEventDefVideoPath.indexOf("view_video") < 0) || NextEventDefVideoPath.indexOf("view_video") > 0) {//reload zms, leaving vjs, moving to vjs
       location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
     } else {
-      streamReq.send(streamParms+"&command="+CMD_NEXT);
+      streamReq({command: CMD_NEXT});
       streamPlay();
     }
   }
@@ -531,7 +535,7 @@ function streamZoomIn( x, y ) {
   if (vid) {
     vjsPanZoom('zoom', x, y);
   } else {
-    streamReq.send( streamParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y );
+    streamReq({command: CMD_ZOOMIN, x: x, y: y});
   }
 }
 
@@ -539,28 +543,28 @@ function streamZoomOut() {
   if (vid) {
     vjsPanZoom('zoomOut');
   } else {
-    streamReq.send( streamParms+"&command="+CMD_ZOOMOUT );
+    streamReq({command: CMD_ZOOMOUT});
   }
 }
 
 function streamScale( scale ) {
-  streamReq.send( streamParms+"&command="+CMD_SCALE+"&scale="+scale );
+  streamReq({command: CMD_SCALE, scale: scale});
 }
 
 function streamPan( x, y ) {
   if (vid) {
     vjsPanZoom('pan', x, y);
   } else {
-    streamReq.send( streamParms+"&command="+CMD_PAN+"&x="+x+"&y="+y );
+    streamReq({command: CMD_PAN, x: x, y: y});
   }
 }
 
 function streamSeek( offset ) {
-  streamReq.send( streamParms+"&command="+CMD_SEEK+"&offset="+offset );
+  streamReq({command: CMD_SEEK, offset: offset});
 }
 
 function streamQuery() {
-  streamReq.send( streamParms+"&command="+CMD_QUERY );
+  streamReq({command: CMD_QUERY});
 }
 
 function getEventResponse(respObj, respText) {
@@ -621,12 +625,14 @@ function getEventResponse(respObj, respText) {
   nearEventsQuery( eventData.Id );
 } // end function getEventResponse
 
-function eventQuery( eventId ) {
-  var eventParms = 'view=request&request=status&entity=event&id='+eventId;
-  if ( auth_hash ) {
-    eventParms += '&auth='+auth_hash;
-  }
-  eventReq.send( eventParms );
+function eventQuery(eventId) {
+  var data = {};
+  data.id = eventId;
+  if ( auth_hash ) data.auth = auth_hash;
+
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=event', data)
+      .done(getEventResponse)
+      .fail(logAjaxFail);
 }
 
 function getNearEventsResponse( respObj, respText ) {
@@ -787,8 +793,13 @@ function getFrameResponse(respObj, respText) {
 }
 
 function frameQuery( eventId, frameId, loadImage ) {
-  var parms = "view=request&request=status&entity=frameimage&id[0]="+eventId+"&id[1]="+frameId+"&loopback="+loadImage;
-  frameReq.send(parms);
+  var data = {};
+  data.loopback = loadImage;
+  data.id = {eventId, frameId};
+
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=frameimage', data)
+      .done(getFrameResponse)
+      .fail(logAjaxFail);
 }
 
 function checkFrames( eventId, frameId, loadImage ) {
@@ -911,14 +922,15 @@ function getActResponse( respObj, respText ) {
 }
 
 function actQuery(action, parms) {
-  var actParms = "view=request&request=event&id="+eventData.Id+"&action="+action;
-  if ( auth_hash ) {
-    actParms += '&auth='+auth_hash;
-  }
-  if ( parms != null ) {
-    actParms += "&"+Object.toQueryString(parms);
-  }
-  actReq.send(actParms);
+  var data = {};
+  if ( parms ) data = parms;
+  if ( auth_hash ) data.auth = auth_hash;
+  data.id = eventData.Id;
+  data.action = action;
+
+  $j.getJSON(thisUrl + '?view=request&request=event', data)
+      .done(getActResponse)
+      .fail(logAjaxFail);
 }
 
 function renameEvent() {

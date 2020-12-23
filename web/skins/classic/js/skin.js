@@ -437,9 +437,9 @@ function secsToTime( seconds ) {
 
 function submitTab(evt) {
   var tab = this.getAttribute("data-tab-name");
-  var form = $('contentForm');
-  form.action.value = "";
-  form.tab.value = tab;
+  var form = $j('#contentForm');
+  form.attr('action', '');
+  form.attr('tab', tab);
   form.submit();
   evt.preventDefault();
 }

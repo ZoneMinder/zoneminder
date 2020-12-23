@@ -331,6 +331,11 @@ Monitor::Monitor()
   signal_check_colour(0),
   embed_exif(0),
   purpose(QUERY),
+  last_camera_bytes(0),
+  event_count(0),
+  image_count(0),
+  analysis_image_count(0),
+  motion_frame_count(0),
   auto_resume_time(0),
   last_motion_score(0),
   camera(nullptr),
@@ -352,7 +357,7 @@ Monitor::Monitor()
   else
     event_close_mode = CLOSE_IDLE;
 
-  start_time = last_fps_time = time(0);
+
   event = 0;
   last_section_mod = 0;
 
@@ -547,10 +552,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
   embed_exif = (*dbrow[col] != '0'); col++;
 
-  last_camera_bytes = 0;
-  event_count = 0;
-  image_count = 0;
-  analysis_image_count = 0;
 
   // How many frames we need to have before we start analysing
   ready_count = warmup_count;
@@ -646,8 +647,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     }
     shared_data->analysis_fps = 0.0;
   }  // end if purpose
-
-  start_time = last_fps_time = time(0);
 
   //this->delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
   //ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
@@ -1031,6 +1030,14 @@ bool Monitor::connect() {
     images = new Image *[pre_event_count];
     last_signal = shared_data->signal;
   } // end if purpose == ANALYSIS
+
+  // We set these here because otherwise the first fps calc is meaningless
+  struct timeval now;
+  gettimeofday(&now, NULL);
+  double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
+  last_fps_time = now_double;
+  last_analysis_fps_time = now_double;
+
   Debug(3, "Success connecting");
   return true;
 } // Monitor::connect
@@ -1706,31 +1713,85 @@ void Monitor::CheckAction() {
   }
 }
 
-void Monitor::UpdateAnalysisFPS() {
-  Debug(1, "analysis_image_count(%d) fps_report_interval(%d) mod%d", analysis_image_count, fps_report_interval, 
-      ((analysis_image_count && fps_report_interval) ? !(analysis_image_count%fps_report_interval) : -1 ) );
-  if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
+void Monitor::UpdateCaptureFPS() {
+  if ( fps_report_interval && ( !(image_count%fps_report_interval) || image_count == 5 ) ) {
     struct timeval now;
     gettimeofday(&now, NULL);
-    double new_analysis_fps = double(fps_report_interval)/(now.tv_sec - last_analysis_fps_time);
-    Info("%s: %d - Analysing at %.2f fps", name, analysis_image_count, new_analysis_fps);
-    if ( new_analysis_fps != shared_data->analysis_fps ) {
-      shared_data->analysis_fps = new_analysis_fps;
+    double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
 
-      char sql[ZM_SQL_SML_BUFSIZ];
-      snprintf(sql, sizeof(sql),
-          "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf)"
-          " ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf",
-          id, new_analysis_fps, new_analysis_fps);
+    // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
+    if ( now_double != last_fps_time ) {
+      // # of images per interval / the amount of time it took
+      double new_capture_fps = double((image_count < fps_report_interval ? image_count : fps_report_interval))/(now_double-last_fps_time);
+      unsigned int new_camera_bytes = camera->Bytes();
+      unsigned int new_capture_bandwidth = (new_camera_bytes-last_camera_bytes)/(now_double-last_fps_time);
+      last_camera_bytes = new_camera_bytes;
+      //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
+      //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
+      Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec", name, image_count, new_capture_fps, new_capture_bandwidth);
+      shared_data->capture_fps = new_capture_fps;
+      last_fps_time = now_double;
       db_mutex.lock();
+      static char sql[ZM_SQL_SML_BUFSIZ];
+      // The reason we update the Status as well is because if mysql restarts, the Monitor_Status table is lost,
+      // and nothing else will update the status until zmc restarts. Since we are successfully capturing we can
+      // assume that we are connected
+      snprintf(sql, sizeof(sql),
+          "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth,Status) "
+          "VALUES (%d, %.2lf, %u, 'Connected') ON DUPLICATE KEY UPDATE "
+          "CaptureFPS = %.2lf, CaptureBandwidth=%u, Status='Connected'",
+          id, new_capture_fps, new_capture_bandwidth, new_capture_fps, new_capture_bandwidth);
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
       db_mutex.unlock();
-      last_analysis_fps_time = now.tv_sec;
-    }
-  }
+    } // now != last_fps_time
+  } // end if report fps
 }
+
+void Monitor::UpdateAnalysisFPS() {
+  Debug(1, "analysis_image_count(%d) motion_count(%d) fps_report_interval(%d) mod%d",
+      analysis_image_count, motion_frame_count, fps_report_interval, 
+      ((analysis_image_count && fps_report_interval) ? !(analysis_image_count%fps_report_interval) : -1 ) );
+
+  if ( motion_frame_count && fps_report_interval && !(motion_frame_count%fps_report_interval) ) {
+    //if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
+    Debug(4, "%s: %d - now:%d.%d = %lf, last %lf, diff %lf", name, analysis_image_count,
+        now.tv_sec, now.tv_usec, now_double, last_analysis_fps_time,
+        now_double - last_analysis_fps_time
+        );
+
+    if ( now_double - last_analysis_fps_time > 1.0 ) {
+      double new_analysis_fps = double(fps_report_interval) / (now_double - last_analysis_fps_time);
+      Info("%s: %d - Analysing at %.2lf fps from %d / %lf - %lf",
+          name, analysis_image_count, new_analysis_fps,
+          fps_report_interval, 
+          now_double, last_analysis_fps_time);
+
+      if ( new_analysis_fps != shared_data->analysis_fps ) {
+        shared_data->analysis_fps = new_analysis_fps;
+
+        char sql[ZM_SQL_SML_BUFSIZ];
+        snprintf(sql, sizeof(sql),
+            "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf)"
+            " ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf",
+            id, new_analysis_fps, new_analysis_fps);
+        db_mutex.lock();
+        if ( mysql_query(&dbconn, sql) ) {
+          Error("Can't run query: %s", mysql_error(&dbconn));
+        }
+        db_mutex.unlock();
+        last_analysis_fps_time = now_double;
+      } else {
+        Debug(4, "No change in fps");
+      } // end if change in fps
+    } // end if at least 1 second has passed since last update
+
+  } // end if time to do an update
+} // end void Monitor::UpdateAnalysisFPS
 
 // Would be nice if this JUST did analysis
 // This idea is that we should be analysing as close to the capture frame as possible.
@@ -1750,6 +1811,7 @@ bool Monitor::Analyse() {
     Debug(1, "Waiting for PrimeCapture");
     return false;
   }
+
 
   // if  have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
@@ -1840,7 +1902,15 @@ bool Monitor::Analyse() {
             Event::StringSet zoneSet;
 
             int motion_score = last_motion_score;
-            if ( !(analysis_image_count % (motion_frame_skip+1) ) ) {
+
+            if ( analysis_fps_limit ) {
+              double capture_fps = get_capture_fps();
+              motion_frame_skip = capture_fps / analysis_fps_limit;
+              Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
+                  motion_frame_skip, capture_fps, analysis_fps_limit);
+            }
+  
+            if ( !(analysis_image_count % (motion_frame_skip+1)) ) {
               if ( snap->image ) {
                 // Get new score.
                 motion_score = DetectMotion(*(snap->image), zoneSet);
@@ -1852,6 +1922,9 @@ bool Monitor::Analyse() {
               }
               // Why are we updating the last_motion_score too?
               last_motion_score = motion_score;
+              motion_frame_count += 1;
+            } else {
+              Debug(1, "Skipped motion detection");
             }
             if ( motion_score ) {
               score += motion_score;
@@ -2137,25 +2210,7 @@ bool Monitor::Analyse() {
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
     if ( event ) {
-      int last_write = shared_data->last_write_index;
       event->AddPacket(snap);
-
-#if 0
-      int written = 0;
-      ZMPacket *queued_packet;
-
-      // since we incremented the analysis_it, this will include snap
-      //while ( (queued_packet = packetqueue->popPacket()) ) {
-        Debug(2, "adding queued packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written);
-        event->AddPacket(queued_packet);
-        queued_packet->unlock();
-        written ++;
-        if ( queued_packet->image_index == -1 ) {
-          delete queued_packet;
-        } 
-      } // end while write out queued_packets
-      queued_packet = NULL;
-#endif
     }
     // popPacket will have placed a second lock on snap, so release it here.
     snap->unlock();
@@ -2467,7 +2522,7 @@ int Monitor::Capture() {
       packet->codec_type = camera->get_VideoStream()->codec->codec_type;
 #endif
 
-      if ( packet->packet.size && !packet->in_frame ) {
+      if ( packet->packet.size and !packet->in_frame ) {
         if (
             ( function == RECORD or function == NODECT )
             and
@@ -2478,12 +2533,14 @@ int Monitor::Capture() {
           // In this specific case we don't need to do the decode.
           Debug(1, "Not decoding");
         } else {
-          //Debug(2,"About to decode");
+          Debug(2,"About to decode");
           if ( packet->decode(camera->get_VideoCodecContext()) ) {
-            //Debug(2,"Getimage");
+            Debug(2,"Getimage");
             packet->get_image(image_buffer[index].image);
           }
         }
+      } else {
+        Error("No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
       }
 
       if ( packetqueue->packet_count(video_stream_id) or packet->keyframe or event ) {
@@ -2539,37 +2596,7 @@ int Monitor::Capture() {
       image_count++;
       Debug(2, "Unlocking packet, incrementing image_count to %d", image_count);
       packet->unlock();
-
-      if ( fps_report_interval && ( !(image_count%fps_report_interval) || image_count == 5 ) ) {
-        time_t now = image_buffer[index].timestamp->tv_sec;
-        // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
-        if ( now != last_fps_time ) {
-          // # of images per interval / the amount of time it took
-          double new_capture_fps = double((image_count < fps_report_interval ? image_count : fps_report_interval))/(now-last_fps_time);
-          unsigned int new_camera_bytes = camera->Bytes();
-          unsigned int new_capture_bandwidth = (new_camera_bytes - last_camera_bytes)/(now-last_fps_time);
-          last_camera_bytes = new_camera_bytes;
-          //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
-          //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-          Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec", name, image_count, new_capture_fps, new_capture_bandwidth);
-          shared_data->capture_fps = new_capture_fps;
-          last_fps_time = now;
-          db_mutex.lock();
-          static char sql[ZM_SQL_SML_BUFSIZ];
-          // The reason we update the Status as well is because if mysql restarts, the Monitor_Status table is lost,
-          // and nothing else will update the status until zmc restarts. Since we are successfully capturing we can
-          // assume that we are connected
-          snprintf(sql, sizeof(sql),
-            "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth,Status) "
-            "VALUES (%d, %.2lf, %u, 'Connected') ON DUPLICATE KEY UPDATE "
-            "CaptureFPS = %.2lf, CaptureBandwidth=%u, Status='Connected'",
-            id, new_capture_fps, new_capture_bandwidth, new_capture_fps, new_capture_bandwidth);
-          if ( mysql_query(&dbconn, sql) ) {
-            Error("Can't run query: %s", mysql_error(&dbconn));
-          }
-          db_mutex.unlock();
-        } // now != last_fps_time
-      } // end if report fps
+UpdateCaptureFPS();
     } else { // result == 0
       // Question is, do we update last_write_index etc?
       packet->unlock();

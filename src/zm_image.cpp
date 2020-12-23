@@ -223,7 +223,7 @@ Image::Image(const AVFrame *frame) {
 }
 
 void Image::Assign(const AVFrame *frame) {
-/* Assume the dimensions etc are correct. FIXME */
+  /* Assume the dimensions etc are correct. FIXME */
 
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
 
@@ -236,11 +236,11 @@ void Image::Assign(const AVFrame *frame) {
      format, width, height);
 #endif
 
+  Debug(1, "Beforecaling freeing dest frame");
 #if HAVE_LIBSWSCALE
   sws_convert_context = sws_getCachedContext(
       sws_convert_context,
-      width,
-      height,
+      width, height,
       (AVPixelFormat)frame->format,
       width, height,
       format, SWS_BICUBIC, nullptr,
@@ -254,6 +254,7 @@ void Image::Assign(const AVFrame *frame) {
 #else // HAVE_LIBSWSCALE
   Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE
+  Debug(1, "Done scaling freeing dest frame");
   av_frame_free(&dest_frame);
   update_function_pointers();
 }  // end Image::Image(const AVFrame *frame)

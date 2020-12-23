@@ -742,7 +742,7 @@ function drawSlot($slot,$index) {
 if ( $mode == 'overlay' ) {
   echo drawYGrid( $chart, $majYScale, 'majLabelY', 'majTickY', 'majGridY graphWidth' );
 }
-echo drawXGrid( $chart, $majXScale, 'majLabelX', 'majTickX', 'majGridX graphHeight', 'zoom graphHeight' );
+echo drawXGrid( $chart, $majXScale, 'majLabelX', 'majTickX', 'majGridX graphHeight', 'tlzoom graphHeight' );
 if ( $mode == 'overlay' ) {
 ?>
           <div id="activity" class="activitySize">

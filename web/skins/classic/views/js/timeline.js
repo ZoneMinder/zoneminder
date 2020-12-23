@@ -169,7 +169,7 @@ function divDataOnClick() {
     el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
     el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
   });
-  document.querySelectorAll('div.zoom').forEach(function(el) {
+  document.querySelectorAll('div.tlzoom').forEach(function(el) {
     el.onclick = function(ev) {
       window[el.getAttribute('data-on-click')](ev);
     };

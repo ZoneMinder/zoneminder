@@ -227,7 +227,7 @@ div.majLabelY {
     font-weight: normal;
 }
 
-div.zoom {
+div.tlzoom {
     position: absolute;
     z-index: 2;
     bottom: 0px;

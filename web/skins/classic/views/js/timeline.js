@@ -126,19 +126,24 @@ function previewEvent(slot) {
 }
 
 function loadEventImage( imagePath, eid, fid ) {
+  var eventData = $j('#eventData');
   var imageSrc = $j('#imageSrc');
 
   imageSrc.show();
   imageSrc.attr('src', imagePath);
   imageSrc.attr('data-event-id', eid);
   imageSrc.attr('data-frame-id', fid);
-  imageSrc.click(window['showEvent'].bind(imageSrc, imageSrc));
+  imageSrc.off('click');
+  imageSrc.click(function() {
+    showEvent(this)
+  });
 
-  var eventData = $j('#eventData');
+  eventData.attr('data-event-id', eid);
+  eventData.attr('data-frame-id', fid);
   eventData.off('click');
-  eventData.click(showEvent.pass());
-
-  divDataOnClick();
+  eventData.click(function() {
+    showEvent(this)
+  });
 }
 
 function tlZoomBounds(event) {

@@ -156,32 +156,21 @@ class MonitorsController extends AppController {
       return;
     }
 
+    $monitor = $this->Monitor->find('first', array(
+      'conditions' => array('Id' => $id)
+    ))['Monitor'];
+
     $message = '';
     if ( $this->Monitor->save($this->request->data) ) {
       $message = 'Saved';
-      $Monitor = $this->Monitor->find('first', array(
-        'fields' => array('Function','ServerId'),
+
+      // Stop the monitor. Should happen before saving
+      $this->Monitor->daemonControl($monitor, 'stop');
+      $monitor = $this->Monitor->find('first', array(
         'conditions' => array('Id' => $id)
       ))['Monitor'];
 
-      // - restart or stop this monitor after change
-      $func = $Monitor['Function'];
-      // We don't pass the request data as the monitor object because it may be a subset of the full monitor array
-      $this->daemonControl($this->Monitor->id, 'stop');
-      if (
-        ( $func != 'None' )
-        and
-        (
-          (!defined('ZM_SERVER_ID'))
-          or
-          ($Monitor['ServerId']==ZM_SERVER_ID)
-        )
-      ) {
-        if ( !defined('ZM_SERVER_ID')) {
-          ZM\Debug("Not defined ZM_SERVER_ID");
-        }
-        $this->daemonControl($this->Monitor->id, 'start');
-      }
+      $this->Monitor->daemonControl($monitor, 'start');
     } else {
       $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
     }
@@ -353,7 +342,6 @@ class MonitorsController extends AppController {
   }
 
   public function daemonControl($id, $command, $daemon=null) {
-
     // Need to see if it is local or remote
     $monitor = $this->Monitor->find('first', array(
       'fields' => array('Type', 'Function', 'Device'),
@@ -361,35 +349,8 @@ class MonitorsController extends AppController {
     ));
     $monitor = $monitor['Monitor'];
 
-    $daemons = array();
-    if ( ! $daemon ) {
-      if ( $monitor['Function'] == 'Monitor' ) {
-        array_push($daemons, 'zmc');
-      } else {
-        array_push($daemons, 'zmc', 'zma');
-      }
-    } else {
-      array_push($daemons, $daemon);
-    }
-    
-    $zm_path_bin = Configure::read('ZM_PATH_BIN');
+    $status_text = $this->Monitor->daemonControl($monitor, $command, $daemon);
 
-    $status_text = '';
-    foreach ( $daemons as $daemon ) {
-      $args = '';
-      if ( $daemon == 'zmc' and $monitor['Type'] == 'Local' ) {
-        $args = '-d ' . $monitor['Device'];
-      } else if ( $daemon == 'zmcontrol.pl' ) {
-        $args = '--id '.$id;
-      } else {
-        $args = '-m ' . $id;
-      }
-
-      $shellcmd = escapeshellcmd("$zm_path_bin/zmdc.pl $command $daemon $args");
-      ZM\Debug("Command $shellcmd");
-      $status = exec($shellcmd);
-      $status_text .= $status."\n";
-    }
     $this->set(array(
       'status' => 'ok',
       'statustext' => $status_text,

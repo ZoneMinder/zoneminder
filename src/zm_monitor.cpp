@@ -337,7 +337,7 @@ Monitor::Monitor()
   event(nullptr),
   n_zones(0),
   zones(nullptr),
-  timestamps(0),
+  timestamps(nullptr),
   images(nullptr),
   privacy_bitmask(nullptr),
   event_delete_thread(nullptr),
@@ -2437,14 +2437,13 @@ int Monitor::Capture() {
 
       // Analysis thread will take care of consuming and emptying the packets.
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
-          packet->packet.stream_index, video_stream_id, packetqueue->video_packet_count, ( event ? 1 : 0 ) );
+          packet->packet.stream_index, video_stream_id, packetqueue->packet_count(video_stream_id), ( event ? 1 : 0 ) );
 
       if ( packet->packet.stream_index != video_stream_id ) {
 //Debug(2, "Have audio packet (%d) != videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
  //           packet->packet.stream_index, video_stream_id, packetqueue->video_packet_count, ( event ? 1 : 0 ) );
         // Only queue if we have some video packets in there. Should push this logic into packetqueue
-        //mutex.lock();
-        if ( packetqueue->video_packet_count || event ) {
+        if ( packetqueue->packet_count(video_stream_id) or event ) {
           // Need to copy it into another ZMPacket.
           ZMPacket *audio_packet = new ZMPacket(*packet);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -2487,11 +2486,11 @@ int Monitor::Capture() {
         }
       }
 
-      if ( packetqueue->video_packet_count || packet->keyframe || event ) {
+      if ( packetqueue->packet_count(video_stream_id) or packet->keyframe or event ) {
         Debug(2, "Have video packet for index (%d), adding to queue", index);
         packetqueue->queuePacket(packet);
       } else {
-        Debug(2, "Not queuing video packet for index (%d) packet count %d", index, packetqueue->video_packet_count);
+        Debug(2, "Not queuing video packet for index (%d) packet count %d", index, packetqueue->packet_count(video_stream_id));
       }
 
       /* Deinterlacing */

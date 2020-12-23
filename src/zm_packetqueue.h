@@ -38,8 +38,6 @@ class zm_packetqueue {
     std::list<ZMPacket *>::iterator analysis_it;
 
     int video_stream_id;
-    int video_packet_count; // keep track of how many video packets we have, because we shouldn't have more than image_buffer_count
-    int first_video_packet_index;
     int max_video_packet_count; // allow a negative value to someday mean unlimited
     int max_stream_id;
     int *packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
@@ -61,7 +59,7 @@ class zm_packetqueue {
     void clearQueue();
     void dumpQueue();
     unsigned int size();
-    unsigned int get_video_packet_count();
+    unsigned int get_packet_count(int stream_id) const { return packet_counts[stream_id]; };
 
     void clear_unwanted_packets(timeval *recording, int pre_event_count, int mVideoStreamId);
     int packet_count(int stream_id);

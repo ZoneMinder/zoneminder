@@ -34,7 +34,6 @@ video_stream_id(p_video_stream_id),
   video_stream_id = p_video_stream_id;
   max_video_packet_count = video_image_count-1;
   analysis_it = pktQueue.begin();
-  first_video_packet_index = -1;
 
   max_stream_id = p_video_stream_id > p_audio_stream_id ? p_video_stream_id : p_audio_stream_id;
   packet_counts = new int[max_stream_id+1];
@@ -75,9 +74,8 @@ zm_packetqueue::~zm_packetqueue() {
  */
 
 bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
-  Debug(4, "packetqueue queuepacket, first_video_packet_index is %d", first_video_packet_index);
+  Debug(4, "packetqueue queuepacket");
   mutex.lock();
-  Debug(4, "packetqueue queuepacket, have lock first_video_packet_index is %d", first_video_packet_index);
 
 	pktQueue.push_back(zm_packet);
   packet_counts[zm_packet->packet.stream_index] += 1;
@@ -94,10 +92,16 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
 
   // We have added to the queue and signalled so other processes can now work on the new packet.
   // Now to clean ups mainting the queue size.
-  if ( packet_counts[video_stream_id] >= max_video_packet_count ) {
+  while ( packet_counts[video_stream_id] > max_video_packet_count ) {
     //clearQueue(max_video_packet_count, video_stream_id);
     //clearQueue is rather heavy.  Since this is the only packet injection spot, we can just start at the beginning of the queue and remove packets until we get to the next video keyframe
-
+    Debug(1, "Deleting a packet with stream index (%d) with keyframe(%d), Image_index(%d) video_frames_to_keep is (%d) max: %d",
+        zm_packet->packet.stream_index, zm_packet->keyframe, zm_packet->image_index, packet_counts[video_stream_id] , max_video_packet_count);
+    ZMPacket *zm_packet = *pktQueue.begin();
+    pktQueue.pop_front();
+    packet_counts[zm_packet->packet.stream_index] -= 1;
+    if ( zm_packet->image_index == -1 )
+      delete zm_packet;
   }
 
 	return true;
@@ -309,8 +313,6 @@ void zm_packetqueue::clearQueue() {
     delete_count += 1;
 	}
   Debug(3, "Deleted (%d) packets", delete_count );
-  video_packet_count = 0;
-  first_video_packet_index = -1;
   analysis_it = pktQueue.begin();
   mutex.unlock();
 }
@@ -399,10 +401,6 @@ unsigned int zm_packetqueue::clearQueue(struct timeval *duration, int streamId) 
 
 unsigned int zm_packetqueue::size() {
   return pktQueue.size();
-}
-
-unsigned int zm_packetqueue::get_video_packet_count() {
-  return video_packet_count;
 }
 
 int zm_packetqueue::packet_count( int stream_id ) {

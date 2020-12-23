@@ -12,9 +12,7 @@ if [ "$1" = "configure" ]; then
   # The logs can contain passwords, etc... so by setting group root, only www-data can read them, not people in the www-data group
   chown www-data:root /var/log/zm
   chown www-data:www-data /var/lib/zm
-  if [ -z "$2" ]; then
-    chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
-  fi
+  chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
   if [ ! -e "/etc/apache2/mods-enabled/cgi.load" ] && [ "$(command -v a2enmod)" != "" ]; then
     echo "The cgi module is not enabled in apache2.  I am enabling it using a2enmod cgi."
     a2enmod cgi

@@ -109,7 +109,7 @@ class Monitor extends ZM_Object {
     'ReturnLocation'  =>  -1,
     'ReturnDelay'     =>  null,
     'DefaultRate' =>  100,
-    'DefaultScale'  =>  100,
+    'DefaultScale'  =>  0,
     'SignalCheckPoints' =>  0,
     'SignalCheckColour' =>  '#0000BE',
     'WebColour'   =>  '#ff0000',

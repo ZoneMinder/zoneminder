@@ -66,10 +66,6 @@ function editMonitor( element ) {
       form.elements[i].checked
     ) {
       monitorIds.push( form.elements[i].value );
-      //form.elements[i].checked = false;
-      //setButtonStates( form.elements[i] );
-      //$(form.elements[i]).getParent( 'tr' ).removeClass( 'highlight' );
-      //break;
     }
   } // end foreach checkboxes
   if ( monitorIds.length == 1 ) {
@@ -209,13 +205,10 @@ function initPage() {
 
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
-  var ajax = new Request.JSON( {
-    url: 'index.php?request=console',
-    data: {monitor_ids: monitor_ids, action: 'sort'},
-    method: 'post',
-    timeout: AJAX_TIMEOUT
-  } );
-  ajax.send();
+  var data = {monitor_ids: monitor_ids, action: 'sort'};
+
+  $j.getJSON(thisUrl + '?request=console', data)
+      .fail(logAjaxFail);
 } // end function applySort(event,ui)
 
 $j(document).ready(initPage );

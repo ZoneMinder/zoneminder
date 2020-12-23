@@ -45,15 +45,47 @@ The following notes are based on real problems which have occurred by those who 
 How to Install ZoneMinder
 -------------------------
 
-ZoneMinder releases are now being hosted at RPM Fusion. New users should navigate the `RPM Fusion site <https://rpmfusion.org>`__ then follow the instructions to enable that repo. RHEL/CentOS users must also navaigate to the `EPEL Site <https://fedoraproject.org/wiki/EPEL>`_ and enable that repo as well. Once enabled, install ZoneMinder from the commandline:
+ZoneMinder releases are hosted at RPM Fusion. New users should navigate to the `RPM Fusion site <https://rpmfusion.org>`__ then follow the instructions to enable that repo.
+
+.. sidebar :: Note
+
+    RHEL/CentOS 7 users should use *yum* instead of *dnf*
+
+RHEL/CentOS 7 & 8 users must enable the EPEL repo:
 
 ::
 
-    sudo dnf install zoneminder
+    sudo dnf install epel-release
+    
+RHEL/CentOS 8 users must also enable the PowerTools repo:
 
-Note that RHEL/CentOS 7 users should use yum instead of dnf.
+::
 
-Once ZoneMinder has been installed, it is critically important that you read the README file under /usr/share/doc/zoneminder-common. ZoneMinder will not run without completing the steps outlined in the README.
+    sudo dnf install dnf-plugins-core
+    sudo dnf config-manager --set-enabled PowerTools
+
+Once the additional repos are enabled, install ZoneMinder from the commandline. Choose the package that matches the desired web server.
+
+Install ZoneMinder for Apache web server:
+
+.. sidebar :: Note
+
+    A virtual package called zoneminder exists. This package contains no files and will pull in the zoneminder-httpd package for backwards compatiblity.
+
+::
+
+    sudo dnf install zoneminder-httpd
+
+Install ZoneMinder for Nginx web server:
+
+::
+
+    sudo dnf install zoneminder-nginx
+
+| 
+Once ZoneMinder has been installed, you must read the README file to complete the installation. Fedora users can find the README under /usr/share/doc/zoneminder-common. RHEL/CentOS users can find the README under /usr/share/doc/zoneminder-common-x.xx where x.xx is the version of zoneminder.
+
+ZoneMinder will *NOT* run without completing the steps shown in the README!
 
 How to Install Nightly Development Builds
 -----------------------------------------
@@ -61,21 +93,6 @@ How to Install Nightly Development Builds
 ZoneMinder development packages, which represent the most recent build from our master branch, are available from `zmrepo <https://www.zoneminder.com>`_. 
 
 The feedback we get from those who use these development packages is extremely helpful. However, please understand these packages are intended for testing the latest master branch only. They are not intended to be used on any production system. There will be new bugs, and new features may not be documented. This is bleeding edge, and there might be breakage. Please keep that in mind when using this repo. We know from our user forum that this can't be stated enough. 
-
-How to Change from Zmrepo to RPM Fusion
----------------------------------------
-
-As mentioned above, the place to get the latest ZoneMinder release is now `RPM Fusion <https://rpmfusion.org>`__. If you are currently using ZoneMinder release packages from Zmrepo, then the following steps will change you over to RPM Fusion:
-
-- Navigate to the `RPM Fusion site <https://rpmfusion.org>`__ and enable RPM Fusion on your system
-- Now issue the following from the command line:
-
-::
-
-    sudo dnf remove zmrepo
-    sudo dnf update
-
-Note that RHEL/CentOS 7 users should use yum instead of dnf.
 
 How to Build Your Own ZoneMinder Package
 ------------------------------------------

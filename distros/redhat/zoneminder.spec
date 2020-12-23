@@ -298,7 +298,7 @@ if [ -f %{sslkey} -o -f %{sslcert} ]; then
 fi
 
 umask 077
-%{_bindir}/openssl genrsa -rand /proc/apm:/proc/cpuinfo:/proc/dma:/proc/filesystems:/proc/interrupts:/proc/ioports:/proc/pci:/proc/rtc:/proc/uptime 2048 > %{sslkey} 2> /dev/null
+%{_bindir}/openssl genrsa -rand /proc/cpuinfo:/proc/filesystems:/proc/interrupts:/proc/ioports:/proc/uptime 2048 > %{sslkey} 2> /dev/null
 
 FQDN=`hostname`
 # A >59 char FQDN means "root@FQDN" exceeds 64-char max length for emailAddress

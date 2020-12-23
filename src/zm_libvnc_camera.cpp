@@ -162,7 +162,7 @@ int VncCamera::PrimeCapture() {
     mRfb = nullptr;
     return -1; 
   }
-  if ( (mRfb->width != width) or (mRfb->height != height) ) {
+  if ( (mRfb->width != (unsigned int)width) or (mRfb->height != (unsigned int)height) ) {
     Warning("Specified dimensions do not match screen size monitor: (%dx%d) != vnc: (%dx%d)",
         width, height, mRfb->width, mRfb->height);
   }

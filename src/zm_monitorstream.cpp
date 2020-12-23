@@ -502,8 +502,6 @@ void MonitorStream::runStream() {
   temp_read_index = temp_image_buffer_count;
   temp_write_index = temp_image_buffer_count;
 
-  struct timeval last_frame_time;
-
   std::string swap_path;
   bool buffered_playback = false;
 
@@ -701,7 +699,6 @@ void MonitorStream::runStream() {
           // Send the next frame
           //
           ZMPacket *snap = &monitor->image_buffer[index];
-          Image *image = snap->image;// This works because connect rebuilds the image_buffer links
           struct timeval *timestamp = snap->timestamp;
 
           if ( !sendFrame(snap->image, snap->timestamp) ) {

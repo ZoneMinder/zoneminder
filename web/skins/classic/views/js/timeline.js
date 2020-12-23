@@ -27,7 +27,7 @@ function createEventHtml(zm_event, frame) {
 
 function showEventDetail(eventHtml) {
   $j('#instruction').addClass('hidden');
-  $j('#eventData').empty().append(eventHtml).removeClass('hidden');;
+  $j('#eventData').empty().append(eventHtml).removeClass('hidden');
 }
 
 function eventDataResponse(respObj, respText) {
@@ -77,7 +77,6 @@ function showEventData(eventId, frameId) {
       if ( zm_event['frames'][frameId] ) {
         showEventDetail( zm_event['frames'][frameId]['html'] );
         var imagePath = 'index.php?view=image&eid='+eventId+'&fid='+frameId;
-        var videoName = zm_event.DefaultVideo;
         loadEventImage(imagePath, eventId, frameId);
         return;
       } else {

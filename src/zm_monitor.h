@@ -239,7 +239,7 @@ protected:
   protected:
   // These are read from the DB and thereafter remain unchanged
   unsigned int    id;
-  char      name[64];
+  char            name[64];
   unsigned int    server_id;          // Id of the Server object
   unsigned int    storage_id;         // Id of the Storage Object, which currently will just provide a path, but in future may do more.
   CameraType      type;
@@ -256,10 +256,10 @@ protected:
   std::string pass;
   std::string path;
 
-  char  device[64];
-  int palette;
-  int channel;
-  int format;
+  char            device[64];
+  int             palette;
+  int             channel;
+  int             format;
 
   unsigned int    camera_width;
   unsigned int    camera_height;
@@ -273,19 +273,19 @@ protected:
   std::string     decoder_hwaccel_name;
   std::string     decoder_hwaccel_device;
   bool            videoRecording;
-  bool rtsp_describe;
+  bool            rtsp_describe;
 
-  int savejpegs;
-  int colours;
-  VideoWriter videowriter;
-  std::string encoderparams;
-  int     output_codec;
-  std::string         encoder;
-  std::string         output_container;
+  int             savejpegs;
+  int             colours;
+  VideoWriter     videowriter;
+  std::string     encoderparams;
+  int             output_codec;
+  std::string     encoder;
+  std::string     output_container;
   std::vector<EncoderParameter_t> encoderparamsvec;
-  _AVPIXELFORMAT      imagePixFormat;
-  unsigned int  subpixelorder;
-  bool       record_audio;      // Whether to store the audio that we receive
+  _AVPIXELFORMAT  imagePixFormat;
+  unsigned int    subpixelorder;
+  bool            record_audio;      // Whether to store the audio that we receive
 
 
   int        brightness;        // The statically saved brightness of the camera
@@ -325,31 +325,23 @@ protected:
 
   int capture_max_fps;
 
-
-  unsigned int  last_camera_bytes;
-  
-  Image        delta_image;
-  Image        ref_image;
-  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
-  Image        write_image;    // Used when creating snapshot images
-  std::string diag_path_ref;
-  std::string diag_path_delta;
-
   Purpose      purpose;        // What this monitor has been created to do
+  unsigned int  last_camera_bytes;
+
   int        event_count;
   int        image_count;
-  int        analysis_image_count;
+  int        analysis_image_count;    // How many frames have been processed by analysis thread.
+  int        motion_frame_count;      // How many frames have had motion detection performed on them.
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
   bool       last_signal;
   int        last_section_mod;
   int        buffer_count;
-  int        prealarm_count;
   State      state;
   time_t      start_time;
-  time_t      last_fps_time;
-  time_t      last_analysis_fps_time;
+  double      last_fps_time;
+  double      last_analysis_fps_time;
   time_t      auto_resume_time;
   unsigned int      last_motion_score;
 
@@ -392,6 +384,13 @@ protected:
   MonitorLink    **linked_monitors;
 
   std::vector<Group *> groups;
+
+  Image        delta_image;
+  Image        ref_image;
+  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
+  Image        write_image;    // Used when creating snapshot images
+  std::string diag_path_ref;
+  std::string diag_path_delta;
 
 public:
   explicit Monitor();
@@ -492,6 +491,7 @@ public:
   uint64_t GetLastEventId() const;
   double GetFPS() const;
   void UpdateAnalysisFPS();
+  void UpdateCaptureFPS();
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();

@@ -1,11 +1,10 @@
-
-var probeReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getProbeResponse} );
+var ProbeResults;
 
 function probe( url_e ) {
-  probeReq.send( "request=add_monitors&action=probe&url="+url_e.value );
+  $j.getJSON(thisUrl + '?view=request&request=add_monitors&action=probe&url=' + url_e.value)
+      .done(getProbeResponse)
+      .fail(logAjaxFail);
 }
-
-var ProbeResults;
 
 function getProbeResponse( respObj, respText ) {
   if ( checkStreamForErrors( "getProbeResponse", respObj ) ) {
@@ -83,7 +82,6 @@ function addMonitor(url) {
 function import_csv( form ) {
   var formData = new FormData( form );
   console.log(formData);
-  //formData.append('file', $('#file')[0].files[0]);
 
   $j.ajax({
     url: thisUrl+"?request=add_monitors&action=import",
@@ -91,16 +89,19 @@ function import_csv( form ) {
     data: formData,
     processData: false, // tell jQuery not to process the data
     contentType: false, // tell jQuery not to set contentType
-    success: function(data) {
+    done: function(data) {
       var json = JSON.parse(data);
       parseStreams( json.Streams );
     }
   });
 }
+
 function initPage() {
-  url = $j('#Url')[0];
+  var url = $j('#Url')[0];
+
   if ( url.value ) {
     probe(url);
   }
 }
-window.addEventListener( 'DOMContentLoaded', initPage );
+
+$j(document).ready(initPage);

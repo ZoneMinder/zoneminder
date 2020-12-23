@@ -210,7 +210,7 @@ function changeScale() {
 } // end function changeScale
 
 function changeReplayMode() {
-  var replayMode = $('replayMode').get('value');
+  var replayMode = $j('#replayMode').val();
 
   Cookie.write('replayMode', replayMode, {duration: 10*365, samesite: 'strict'});
 
@@ -294,9 +294,9 @@ function getCmdResponse( respObj, respText ) {
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
   $j('#zoomValue').html(streamStatus.zoom);
   if ( streamStatus.zoom == "1.0" ) {
-    setButtonState( $('zoomOutBtn'), 'unavail' );
+    setButtonState( 'zoomOutBtn', 'unavail' );
   } else {
-    setButtonState( $('zoomOutBtn'), 'inactive' );
+    setButtonState( 'zoomOutBtn', 'inactive' );
   }
 
   updateProgressBar();
@@ -326,12 +326,12 @@ function pauseClicked() {
 
 function streamPause() {
   $j('#modeValue').html('Paused');
-  setButtonState( $('pauseBtn'), 'active' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'unavail' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
-  setButtonState( $('fastRevBtn'), 'unavail' );
+  setButtonState( 'pauseBtn', 'active' );
+  setButtonState( 'playBtn', 'inactive' );
+  setButtonState( 'fastFwdBtn', 'unavail' );
+  setButtonState( 'slowFwdBtn', 'inactive' );
+  setButtonState( 'slowRevBtn', 'inactive' );
+  setButtonState( 'fastRevBtn', 'unavail' );
 }
 
 function playClicked( ) {
@@ -362,26 +362,26 @@ function vjsPlay() { //catches if we change mode programatically
 }
 
 function streamPlay( ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'active' );
-  setButtonState( $('fastFwdBtn'), 'inactive' );
-  setButtonState( $('slowFwdBtn'), 'unavail' );
-  setButtonState( $('slowRevBtn'), 'unavail' );
-  setButtonState( $('fastRevBtn'), 'inactive' );
+  setButtonState( 'pauseBtn', 'inactive' );
+  setButtonState( 'playBtn', 'active' );
+  setButtonState( 'fastFwdBtn', 'inactive' );
+  setButtonState( 'slowFwdBtn', 'unavail' );
+  setButtonState( 'slowRevBtn', 'unavail' );
+  setButtonState( 'fastRevBtn', 'inactive' );
 }
 
 function streamFastFwd( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'active' );
-  setButtonState( $('slowFwdBtn'), 'unavail' );
-  setButtonState( $('slowRevBtn'), 'unavail' );
-  setButtonState( $('fastRevBtn'), 'inactive' );
+  setButtonState( 'pauseBtn', 'inactive' );
+  setButtonState( 'playBtn', 'inactive' );
+  setButtonState( 'fastFwdBtn', 'active' );
+  setButtonState( 'slowFwdBtn', 'unavail' );
+  setButtonState( 'slowRevBtn', 'unavail' );
+  setButtonState( 'fastRevBtn', 'inactive' );
   if ( vid ) {
     if ( revSpeed != .5 ) stopFastRev();
     vid.playbackRate(rates[rates.indexOf(vid.playbackRate()*100)-1]/100);
     if ( rates.indexOf(vid.playbackRate()*100)-1 == -1 ) {
-      setButtonState($('fastFwdBtn'), 'unavail');
+      setButtonState('fastFwdBtn', 'unavail');
     }
     $j('select[name="rate"]').val(vid.playbackRate()*100);
     Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365, samesite: 'strict'});
@@ -416,16 +416,16 @@ function stopFastRev() {
 }
 
 function streamFastRev( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'inactive' );
-  setButtonState( $('slowFwdBtn'), 'unavail' );
-  setButtonState( $('slowRevBtn'), 'unavail' );
-  setButtonState( $('fastRevBtn'), 'active' );
+  setButtonState( 'pauseBtn', 'inactive' );
+  setButtonState( 'playBtn', 'inactive' );
+  setButtonState( 'fastFwdBtn', 'inactive' );
+  setButtonState( 'slowFwdBtn', 'unavail' );
+  setButtonState( 'slowRevBtn', 'unavail' );
+  setButtonState( 'fastRevBtn', 'active' );
   if ( vid ) { //There is no reverse play with mp4.  Set the speed to 0 and manually set the time back.
     revSpeed = rates[rates.indexOf(revSpeed*100)-1]/100;
     if ( rates.indexOf(revSpeed*100) == 0 ) {
-      setButtonState( $('fastRevBtn'), 'unavail' );
+      setButtonState( 'fastRevBtn', 'unavail' );
     }
     clearInterval(intervalRewind);
     $j('select[name="rate"]').val(-revSpeed*100);

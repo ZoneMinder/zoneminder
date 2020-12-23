@@ -135,14 +135,14 @@ function loadEventImage( imagePath, eid, fid ) {
   imageSrc.attr('data-frame-id', fid);
   imageSrc.off('click');
   imageSrc.click(function() {
-    showEvent(this)
+    showEvent(this);
   });
 
   eventData.attr('data-event-id', eid);
   eventData.attr('data-frame-id', fid);
   eventData.off('click');
   eventData.click(function() {
-    showEvent(this)
+    showEvent(this);
   });
 }
 

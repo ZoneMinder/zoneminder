@@ -128,7 +128,8 @@ protected:
     uint8_t signal;             /* +54   */
     uint8_t format;             /* +55   */
     uint32_t imagesize;         /* +56   */
-    uint32_t epadding1;         /* +60   */
+    uint32_t last_frame_score;  /* +60   */
+    // uint32_t epadding1;      /* +60   */
     /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
@@ -158,7 +159,7 @@ protected:
     uint8_t control_state[256];  /* +104   */
 
     char alarm_cause[256];
-    
+
   } SharedData;
 
   typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
@@ -234,6 +235,10 @@ protected:
       }
       inline time_t getLastConnectTime() const {
         return last_connect_time;
+      }
+
+      inline uint32_t lastFrameScore() {
+        return shared_data->last_frame_score;
       }
 
       bool connect();

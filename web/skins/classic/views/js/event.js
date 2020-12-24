@@ -1288,6 +1288,12 @@ function initPage() {
     }
   });
 
+  // Manage the FRAMES Button
+  document.getElementById("framesBtn").addEventListener("click", function onFramesClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=frames&eid='+eventData.Id);
+  });
+
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
     if ( ! canEdit.Events ) {

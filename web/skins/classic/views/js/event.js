@@ -33,7 +33,10 @@ var auth_hash;
 function streamReq(data) {
   if ( auth_hash ) data.auth = auth_hash;
   data.connkey = connKey;
-  $j.getJSON(thisUrl + 'view=request&request=stream', data)
+  data.view = 'request';
+  data.request = 'stream';
+
+  $j.getJSON(thisUrl, data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -574,9 +577,9 @@ function getEventResponse(respObj, respText) {
   }
 
   eventData = respObj.event;
-  var eventStills = $('eventStills');
+  var eventStills = $j('#eventStills');
 
-  if ( eventStills && !$('eventStills').hasClass( 'hidden' ) && currEventId != eventData.Id ) {
+  if ( eventStills && !eventStills.hasClass('hidden') && currEventId != eventData.Id ) {
     resetEventStills();
   }
   currEventId = eventData.Id;
@@ -606,9 +609,6 @@ function getEventResponse(respObj, respText) {
   unarchiveBtn.prop('disabled', !(eventData.Archived && canEdit.Events));
 
   history.replaceState(null, null, '?view=event&eid=' + eventData.Id + filterQuery + sortQuery); //if popup removed, check if this allows forward
-  // Technically, events can be different sizes, so may need to update the size of the image, but it might be better to have it stay scaled...
-  //var eventImg = $('eventImage');
-  //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
   if ( vid && CurEventDefVideoPath ) {
     vid.src({type: 'video/mp4', src: CurEventDefVideoPath}); //Currently mp4 is all we use
     console.log('getEventResponse');
@@ -646,10 +646,8 @@ function getNearEventsResponse( respObj, respText ) {
   PrevEventDefVideoPath = respObj.nearevents.PrevEventDefVideoPath;
   NextEventDefVideoPath = respObj.nearevents.NextEventDefVideoPath;
 
-  var prevEventBtn = $('prevEventBtn');
-  if ( prevEventBtn ) prevEventBtn.disabled = !prevEventId;
-  var nextEventBtn = $('nextEventBtn');
-  if ( nextEventBtn ) nextEventBtn.disabled = !nextEventId;
+  $j('#prevEventBtn').prop('disabled', !prevEventId);
+  $j('#nextEventBtn').prop('disabled', !nextEventId);
   $j('#prevBtn').prop('disabled', prevEventId == 0 ? true : false).attr('class', prevEventId == 0 ? 'unavail' : 'inactive');
   $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
 }
@@ -662,7 +660,7 @@ function nearEventsQuery( eventId ) {
 }
 
 function loadEventThumb( event, frame, loadImage ) {
-  var thumbImg = $('eventThumb'+frame.FrameId);
+  var thumbImg = $j('#eventThumb'+frame.FrameId);
   if ( !thumbImg ) {
     console.error('No holder found for frame '+frame.FrameId);
     return;
@@ -670,12 +668,12 @@ function loadEventThumb( event, frame, loadImage ) {
   var img = new Asset.image( imagePrefix+frame.EventId+"&fid="+frame.FrameId,
       {
         'onload': ( function( loadImage ) {
-          thumbImg.setProperty( 'src', img.getProperty( 'src' ) );
-          thumbImg.removeClass( 'placeholder' );
-          thumbImg.setProperty( 'class', frame.Type=='Alarm'?'alarm':'normal' );
-          thumbImg.setProperty( 'title', frame.FrameId+' / '+((frame.Type=='Alarm')?frame.Score:0) );
-          thumbImg.removeEvents( 'click' );
-          thumbImg.addEvent( 'click', function() {
+          thumbImg.prop('src', img.getProperty( 'src' ));
+          thumbImg.prop('class', frame.Type=='Alarm'?'alarm':'normal');
+          thumbImg.prop('title', frame.FrameId+' / '+((frame.Type=='Alarm')?frame.Score:0));
+          thumbImg.removeClass('placeholder');
+          thumbImg.off('click');
+          thumbImg.click(function() {
             locateImage( frame.FrameId, true );
           } );
           if ( loadImage ) {
@@ -688,71 +686,71 @@ function loadEventThumb( event, frame, loadImage ) {
 
 function loadEventImage(event, frame) {
   console.debug('Loading '+event.Id+'/'+frame.FrameId);
-  var eventImg = $('eventImage');
-  var thumbImg = $('eventThumb'+frame.FrameId);
-  if ( eventImg.getProperty('src') != thumbImg.getProperty('src') ) {
-    var eventImagePanel = $('eventImagePanel');
+  var eventImg = $j('#eventImage');
+  var thumbImg = $j('#eventThumb'+frame.FrameId);
+  if ( eventImg.prop('src') != thumbImg.prop('src') ) {
+    var eventImagePanel = $j('#eventImagePanel');
 
-    if ( eventImagePanel.getStyle('display') != 'none' ) {
-      var lastThumbImg = $('eventThumb'+eventImg.getProperty('alt'));
+    if ( eventImagePanel.css('display') != 'none' ) {
+      var lastThumbImg = $j('#eventThumb' + eventImg.prop('alt'));
       lastThumbImg.removeClass('selected');
-      lastThumbImg.setOpacity(1.0);
+      lastThumbImg.css('opacity', '1.0');
     }
 
-    $('eventImageBar').setStyle('width', event.Width);
+    $j('#eventImageBar').css('width', event.Width);
     if ( frame.Type == 'Alarm' ) {
-      $('eventImageStats').removeClass('hidden');
+      $j('#eventImageStats').removeClass('hidden');
     } else {
-      $('eventImageStats').addClass('hidden');
+      $j('#eventImageStats').addClass('hidden');
     }
     thumbImg.addClass('selected');
-    thumbImg.setOpacity(0.5);
+    thumbImg.css('opacity', '0.5');
 
-    if ( eventImagePanel.getStyle('display') == 'none' ) {
-      eventImagePanel.setOpacity(0);
-      eventImagePanel.setStyle('display', 'inline-block');
+    if ( eventImagePanel.css('display') == 'none' ) {
+      eventImagePanel.css('opacity', '0');
+      eventImagePanel.css('display', 'inline-block');
       new Fx.Tween( eventImagePanel, {duration: 500, transition: Fx.Transitions.Sine} ).start( 'opacity', 0, 1 );
     }
 
-    eventImg.setProperties( {
+    eventImg.prop( {
       'class': frame.Type=='Alarm'?'alarm':'normal',
-      'src': thumbImg.getProperty( 'src' ),
-      'title': thumbImg.getProperty( 'title' ),
-      'alt': thumbImg.getProperty( 'alt' ),
+      'src': thumbImg.prop('src'),
+      'title': thumbImg.prop('title'),
+      'alt': thumbImg.prop('alt'),
       'height': $j('#eventThumbs').height() - $j('#eventImageBar').outerHeight(true)-10
     } );
 
-    $('eventImageNo').set('text', frame.FrameId);
-    $('prevImageBtn').disabled = (frame.FrameId==1);
-    $('nextImageBtn').disabled = (frame.FrameId==event.Frames);
+    $j('#eventImageNo').text(frame.FrameId);
+    $j('#prevImageBtn').prop('disabled', !frame.FrameId == 1);
+    $j('#nextImageBtn').prop('disabled', !frame.FrameId == event.Frames);
   }
 }
 
 function hideEventImageComplete() {
-  var thumbImg = $('eventThumb'+$('eventImage').getProperty('alt'));
+  var thumbImg = $j('#eventThumb'+$j('#eventImage').prop('alt'));
   if ( thumbImg ) {
     thumbImg.removeClass('selected');
-    thumbImg.setOpacity(1.0);
+    thumbImg.css('opacity', '1.0');
   } else {
-    console.log('Unable to find eventThumb at eventThumb'+$('eventImage').getProperty('alt'));
+    console.log('Unable to find eventThumb at eventThumb'+$j('#eventImage').prop('alt'));
   }
-  $('prevImageBtn').disabled = true;
-  $('nextImageBtn').disabled = true;
-  $('eventImagePanel').setStyle('display', 'none');
-  $('eventImageStats').addClass('hidden');
+  $j('#prevImageBtn').prop('disabled', true);
+  $j('#nextImageBtn').prop('disabled', true);
+  $j('#eventImagePanel').css('display', 'none');
+  $j('#eventImageStats').addClass('hidden');
 }
 
 function hideEventImage() {
-  if ( $('eventImagePanel').getStyle('display') != 'none' ) {
-    new Fx.Tween( $('eventImagePanel'), {duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete} ).start('opacity', 1, 0);
+  if ( $j('#eventImagePanel').css('display') != 'none' ) {
+    new Fx.Tween( $j('#eventImagePanel'), {duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete} ).start('opacity', 1, 0);
   }
 }
 
 function resetEventStills() {
   hideEventImage();
-  $('eventThumbs').empty();
+  $j('#eventThumbs').empty();
   if ( true || !slider ) {
-    slider = new Slider( $('thumbsSlider'), $('thumbsKnob'), {
+    slider = new Slider( '#thumbsSlider', '#thumbsKnob', {
       /*steps: eventData.Frames,*/
       onChange: function( step ) {
         if ( !step ) {
@@ -824,23 +822,30 @@ function checkFrames( eventId, frameId, loadImage ) {
   }
 
   for ( var fid = loFid; fid <= hiFid; fid++ ) {
-    if ( !$('eventThumb'+fid) ) {
-      var img = new Element('img', {'id': 'eventThumb'+fid, 'src': 'graphics/transparent.png', 'alt': fid, 'class': 'placeholder'});
-      img.addEvent('click', function() {
+    if ( !$j('#eventThumb'+fid) ) {
+      var img = $j('<img>');
+      img.attr({
+        'id': 'eventThumb'+fid,
+        'src': 'graphics/transparent.png',
+        'alt': fid,
+        'class': 'placeholder'
+      });
+
+      img.click(function() {
         eventData['frames'][fid] = null;
         checkFrames(eventId, fid);
       });
       frameQuery(eventId, fid, loadImage && (fid == frameId));
-      var imgs = $('eventThumbs').getElements('img');
+      var imgs = $j('#eventThumbs img');
       var injected = false;
       if ( fid < imgs.length ) {
-        img.inject(imgs[fid-1], 'before');
+        imgs.before(img);
         injected = true;
       } else {
-        injected = imgs.some(
+        injected = imgs.toArray().some(
             function( thumbImg, index ) {
-              if ( parseInt(img.getProperty('alt')) < parseInt(thumbImg.getProperty('alt')) ) {
-                img.inject(thumbImg, 'before');
+              if ( parseInt(img.prop('alt')) < parseInt(thumbImg.prop('alt')) ) {
+                thumbImg.before(img);
                 return true;
               }
               return false;
@@ -848,7 +853,7 @@ function checkFrames( eventId, frameId, loadImage ) {
         );
       }
       if ( !injected ) {
-        img.inject($('eventThumbs'));
+        $j('#eventThumbs').append(img);
       }
       var scale = parseInt(img.getStyle('height'));
       img.setStyles( {
@@ -861,8 +866,8 @@ function checkFrames( eventId, frameId, loadImage ) {
       }
     }
   }
-  $('prevThumbsBtn').disabled = (frameId==1);
-  $('nextThumbsBtn').disabled = (frameId==eventData.Frames);
+  $j('#prevThumbsBtn').prop('disabled', frameId == 1);
+  $j('#nextThumbsBtn').prop('disabled', frameId == eventData.Frames);
 }
 
 function locateImage( frameId, loadImage ) {
@@ -887,13 +892,13 @@ function nextImage() {
 
 function prevThumbs() {
   if ( currFrameId > 1 ) {
-    locateImage( parseInt(currFrameId)>10?(parseInt(currFrameId)-10):1, $('eventImagePanel').getStyle('display')!="none" );
+    locateImage( parseInt(currFrameId)>10?(parseInt(currFrameId)-10):1, $j('#eventImagePanel').css('display')!="none" );
   }
 }
 
 function nextThumbs() {
   if ( currFrameId < eventData.Frames ) {
-    locateImage( parseInt(currFrameId)<(eventData.Frames-10)?(parseInt(currFrameId)+10):eventData.Frames, $('eventImagePanel').getStyle('display')!="none" );
+    locateImage( parseInt(currFrameId)<(eventData.Frames-10)?(parseInt(currFrameId)+10):eventData.Frames, $j('#eventImagePanel').css('display')!="none" );
   }
 }
 
@@ -949,19 +954,19 @@ function showEventFrames() {
 }
 
 function showStream() {
-  $('eventStills').addClass('hidden');
-  $('eventVideo').removeClass('hidden');
+  $j('#eventStills').addClass('hidden');
+  $j('#eventVideo').removeClass('hidden');
 
-  $('stillsEvent').removeClass('hidden');
-  $('streamEvent').addClass('hidden');
+  $j('#stillsEvent').removeClass('hidden');
+  $j('#streamEvent').addClass('hidden');
 
   streamMode = 'video';
   if (scale == 'auto') changeScale();
 }
 
 function showStills() {
-  $('eventStills').removeClass('hidden');
-  $('eventVideo').addClass('hidden');
+  $j('#eventStills').removeClass('hidden');
+  $j('#eventVideo').addClass('hidden');
 
   if (vid && ( vid.paused != true ) ) {
     // Pause the video
@@ -972,8 +977,8 @@ function showStills() {
     //playButton.innerHTML = "Play";
   }
 
-  $('stillsEvent').addClass('hidden');
-  $('streamEvent').removeClass('hidden');
+  $j('#stillsEvent').addClass('hidden');
+  $j('#streamEvent').removeClass('hidden');
 
   streamMode = 'stills';
 
@@ -992,7 +997,7 @@ function showStills() {
 }
 
 function showFrameStats() {
-  var fid = $('eventImageNo').get('text');
+  var fid = $j('#eventImageNo').text();
   window.location.assign('?view=stats&eid='+eventData.Id+'&fid='+fid);
 }
 
@@ -1026,13 +1031,14 @@ function progressBarNav() {
 
 function handleClick( event ) {
   var target = event.target;
+  var rect = target.getBoundingClientRect();
   if ( vid ) {
     if (target.id != 'videoobj') return; // ignore clicks on control bar
     var x = event.offsetX;
     var y = event.offsetY;
   } else {
-    var x = event.page.x - $(target).getLeft();
-    var y = event.page.y - $(target).getTop();
+    var x = event.page.x - rect.left;
+    var y = event.page.y - rect.top;
   }
 
   if ( event.shift || event.shiftKey ) { // handle both jquery and mootools
@@ -1081,8 +1087,26 @@ function getStat() {
   table.empty().append('<tbody>');
   $j.each( eventDataStrings, function( key ) {
     var th = $j('<th>').addClass('text-right').text(eventDataStrings[key]);
-    var tdString = ( eventData[key].length ) ? eventData[key] : 'n/a';
-    var td = $j('<td>').text(tdString);
+    var tdString;
+
+    switch (eventData[key].length ? key : 'n/a') {
+      case 'Frames':
+        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+        break;
+      case 'AlarmFrames':
+        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+        break;
+      case 'MaxScore':
+        tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
+        break;
+      case 'n/a':
+        tdString = 'n/a';
+        break;
+      default:
+        tdString = eventData[key];
+    }
+
+    var td = $j('<td>').html(tdString);
     var row = $j('<tr>').append(th, td);
 
     $j('#eventStatsTable tbody').append(row);
@@ -1126,15 +1150,14 @@ function initPage() {
     progressBarNav();
     streamCmdTimer = streamQuery.delay(250);
     if ( canStreamNative ) {
-      var imageFeed = $('imageFeed');
-      if ( !imageFeed ) {
+      if ( !$j('#imageFeed') ) {
         console.log('No element with id tag imageFeed found.');
       } else {
-        var streamImg = imageFeed.getElement('img');
+        var streamImg = $j('#imageFeed img');
         if ( !streamImg ) {
-          streamImg = imageFeed.getElement('object');
+          streamImg = $j('#imageFeed object');
         }
-        $(streamImg).addEvent('click', function(event) {
+        $j(streamImg).click(function(event) {
           handleClick(event);
         });
       }

@@ -37,8 +37,8 @@ if ( !console.debug ) {
 }
 
 window.onerror = function(message, url, line) {
-      logReport("ERR", message, url, line);
-    };
+  logReport("ERR", message, url, line);
+};
 
 window.addEventListener("securitypolicyviolation", function logCSP(evt) {
   var level = evt.disposition == "enforce" ? "ERR" : "DBG";

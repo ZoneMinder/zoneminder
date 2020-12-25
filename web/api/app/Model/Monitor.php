@@ -136,4 +136,44 @@ class Monitor extends AppModel {
       'joinTable' =>  'Monitor_Status',
     )
   );
+
+  public function daemonControl($monitor, $command, $daemon=null) {
+    if ( $monitor['Function'] == 'None' ) {
+      ZM\Debug('Calling daemonControl when Function == None');
+      return;
+    }
+    if ( defined('ZM_SERVER_ID') and ($monitor['ServerId']!=ZM_SERVER_ID) ) {
+      ZM\Debug('Calling daemonControl for Monitor assigned to different server');
+      return;
+    }
+
+    $daemons = array();
+    if ( ! $daemon ) {
+      if ( $monitor['Function'] == 'Monitor' ) {
+        array_push($daemons, 'zmc');
+      } else {
+        array_push($daemons, 'zmc', 'zma');
+      }
+    } else {
+      array_push($daemons, $daemon);
+    }
+
+    $status_text = '';
+    foreach ( $daemons as $daemon ) {
+      $args = '';
+      if ( $daemon == 'zmc' and $monitor['Type'] == 'Local' ) {
+        $args = '-d ' . $monitor['Device'];
+      } else if ( $daemon == 'zmcontrol.pl' ) {
+        $args = '--id '.$monitor['Id'];
+      } else {
+        $args = '-m ' . $monitor['Id'];
+      }
+
+      $shellcmd = escapeshellcmd(ZM_PATH_BIN.'/zmdc.pl '.$command.' '.$daemon.' '.$args);
+      ZM\Debug("Command $shellcmd");
+      $status = exec($shellcmd);
+      $status_text .= $status.PHP_EOL;
+    } # end foreach daemon
+    return $status_text;
+  } # end function daemonControl
 }

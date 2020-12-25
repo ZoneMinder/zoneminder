@@ -668,7 +668,7 @@ function loadEventThumb( event, frame, loadImage ) {
   var img = new Asset.image( imagePrefix+frame.EventId+"&fid="+frame.FrameId,
       {
         'onload': ( function( loadImage ) {
-          thumbImg.prop('src', img.getProperty( 'src' ));
+          thumbImg.prop('src', img.prop('src'));
           thumbImg.prop('class', frame.Type=='Alarm'?'alarm':'normal');
           thumbImg.prop('title', frame.FrameId+' / '+((frame.Type=='Alarm')?frame.Score:0));
           thumbImg.removeClass('placeholder');
@@ -752,6 +752,7 @@ function resetEventStills() {
   if ( true || !slider ) {
     slider = new Slider( '#thumbsSlider', '#thumbsKnob', {
       /*steps: eventData.Frames,*/
+      value: 0,
       onChange: function( step ) {
         if ( !step ) {
           step = 0;
@@ -765,7 +766,7 @@ function resetEventStills() {
         checkFrames( eventData.Id, fid, ($j('#eventImagePanel').css('display')=='none'?'':'true'));
         scroll.toElement( 'eventThumb'+fid );
       }
-    } ).set( 0 );
+    } );
   }
 }
 
@@ -855,8 +856,8 @@ function checkFrames( eventId, frameId, loadImage ) {
       if ( !injected ) {
         $j('#eventThumbs').append(img);
       }
-      var scale = parseInt(img.getStyle('height'));
-      img.setStyles( {
+      var scale = parseInt(img.css('height'));
+      img.css( {
         'width': parseInt((eventData.Width*scale)/100),
         'height': parseInt((eventData.Height*scale)/100)
       } );

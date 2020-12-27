@@ -620,50 +620,48 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   frames++;
 
   bool write_to_db = false;
-
-  if ( save_jpegs & 1 ) {
-    std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
-    Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
-    if ( !WriteFrameImage(image, timestamp, event_file.c_str()) ) {
-      Error("Failed to write frame image");
-    }
-  } // end if save_jpegs
-
-  // If this is the first frame, we should add a thumbnail to the event directory
-  if ( (frames == 1) || (score > (int)max_score) ) {
-    write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
-    WriteFrameImage(image, timestamp, snapshot_file.c_str());
-  }
-
   FrameType frame_type = score>0?ALARM:(score<0?BULK:NORMAL);
   // < 0 means no motion detection is being done.
   if ( score < 0 )
     score = 0;
+  tot_score += score;
+  if ( score > (int)max_score )
+    max_score = score;
 
-  // We are writing an Alarm frame
-  if ( frame_type == ALARM ) {
-    // The first frame with a score will be the frame that alarmed the event
-    if ( !alarm_frame_written ) {
-      write_to_db = true; // OD processing will need it, so the db needs to know about it
-      alarm_frame_written = true;
-      WriteFrameImage(image, timestamp, alarm_file.c_str());
+  if ( image ) {
+    if ( save_jpegs & 1 ) {
+      std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
+      Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
+      if ( !WriteFrameImage(image, timestamp, event_file.c_str()) ) {
+        Error("Failed to write frame image");
+      }
+    } // end if save_jpegs
+
+    // If this is the first frame, we should add a thumbnail to the event directory
+    if ( (frames == 1) || (score > (int)max_score) ) {
+      write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
+      WriteFrameImage(image, timestamp, snapshot_file.c_str());
     }
-    alarm_frames++;
 
-    tot_score += score;
-    if ( score > (int)max_score )
-      max_score = score;
+    // We are writing an Alarm frame
+    if ( frame_type == ALARM ) {
+      // The first frame with a score will be the frame that alarmed the event
+      if ( !alarm_frame_written ) {
+        write_to_db = true; // OD processing will need it, so the db needs to know about it
+        alarm_frame_written = true;
+        WriteFrameImage(image, timestamp, alarm_file.c_str());
+      }
+      alarm_frames++;
 
-    if ( alarm_image ) {
-      if ( save_jpegs & 2 ) {
+      if ( alarm_image and ( save_jpegs & 2 ) ) {
         std::string event_file = stringtf(staticConfig.analyse_file_format, path.c_str(), frames);
         Debug(1, "Writing analysis frame %d", frames);
         if ( ! WriteFrameImage(alarm_image, timestamp, event_file.c_str(), true) ) {
           Error("Failed to write analysis frame image");
         }
       }
-    }
-  }
+    }  // end if is an alarm frame
+  }  // end if has image
 
   bool db_frame = ( frame_type != BULK ) || (frames==1) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
@@ -680,7 +678,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 				or 
 				(frame_data.size() >= MAX_DB_FRAMES)
 				or
-				(frame_type==BULK)
+				(frame_type == BULK)
 				or
 				( fps and (frame_data.size() > fps) )
 			 ) {

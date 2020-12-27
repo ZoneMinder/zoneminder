@@ -243,7 +243,8 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
         int nalType = (buffer.head()[3] & 0x1f);
         
         // SPS The SPS NAL unit contains parameters that apply to a series of consecutive coded video pictures
-        if ( nalType == 7 ) {
+        if ( nalType == 1 ) {
+        } else if ( nalType == 7 ) {
           lastSps = buffer;
           continue;
         } else if ( nalType == 8 ) {

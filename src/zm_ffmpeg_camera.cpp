@@ -237,6 +237,13 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
   }
   dumpPacket(mFormatContext->streams[packet.stream_index], &packet, "ffmpeg_camera in");
 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  //audio_packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
+  zm_packet.codec_type = mFormatContext->streams[packet.stream_index]->codecpar->codec_type;
+#else
+  zm_packet.codec_type = mFormatContext->streams[packet.stream_index]->codec->codec_type;
+  //audio_packet->codec_type = camera->get_AudioStream()->codec->codec_type;
+#endif
   bytes += packet.size;
   zm_packet.set_packet(&packet);
   zm_av_packet_unref(&packet);

@@ -51,10 +51,10 @@ class ZMPacket {
 
   public:
     AVPacket *av_packet() { return &packet; }
-    AVPacket *set_packet( AVPacket *p ) ;
+    AVPacket *set_packet(AVPacket *p) ;
     AVFrame *av_frame() { return out_frame; }
-    Image *get_image( Image *i=NULL );
-    Image *set_image( Image * );
+    Image *get_image(Image *i=nullptr);
+    Image *set_image(Image *);
 
     int is_keyframe() { return keyframe; };
     int decode( AVCodecContext *ctx );

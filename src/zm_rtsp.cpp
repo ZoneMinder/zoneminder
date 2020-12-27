@@ -376,8 +376,8 @@ int RtspThread::run() {
   try {
     mSessDesc = new SessionDescriptor( mUrl, sdp );
     mFormatContext = mSessDesc->generateFormatContext();
-  } catch( const Exception &e ) {
-    Error( e.getMessage().c_str() );
+  } catch ( const Exception &e ) {
+    Error(e.getMessage().c_str());
     return -1;
   }
 
@@ -411,7 +411,7 @@ int RtspThread::run() {
       {
         // Check if control Url is absolute or relative
         controlUrl = mediaDesc->getControlUrl();
-        if (std::equal(trackUrl.begin(), trackUrl.end(), controlUrl.begin())) {
+        if ( std::equal(trackUrl.begin(), trackUrl.end(), controlUrl.begin()) ) {
           trackUrl = controlUrl;
         } else {
           if ( *trackUrl.rbegin() != '/') {
@@ -422,46 +422,36 @@ int RtspThread::run() {
         }
         rtpClock = mediaDesc->getClock();
         codecId = mFormatContext->streams[i]->codec->codec_id;
-        // Hackery pokery
-        //rtpClock = mFormatContext->streams[i]->codec->sample_rate;
         break;
       }
     }
   }
 
-  switch( mMethod ) {
+  switch ( mMethod ) {
     case RTP_UNICAST :
-    {
       localPorts[0] = requestPorts();
       localPorts[1] = localPorts[0]+1;
 
       message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;unicast;client_port="+stringtf( "%d", localPorts[0] )+"-"+stringtf( "%d", localPorts[1] )+"\r\n";
       break;
-    }
     case RTP_MULTICAST :
-    {
       message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;multicast\r\n";
       break;
-    }
     case RTP_RTSP :
     case RTP_RTSP_HTTP :
-    {
       message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP/TCP;unicast\r\n";
       break;
-    }
     default:
-    {
       Panic( "Got unexpected method %d", mMethod );
       break;
-    }
   }
 
-  if ( !sendCommand( message ) )
-    return( -1 );
-  if ( !recvResponse( response ) )
-    return( -1 );
+  if ( !sendCommand(message) )
+    return -1;
+  if ( !recvResponse(response) )
+    return -1;
 
-  lines = split( response, "\r\n" );
+  lines = split(response, "\r\n");
   std::string session;
   int timeout = 0;
   char transport[256] = "";
@@ -473,18 +463,18 @@ int RtspThread::run() {
       if ( sessionLine.size() == 2 )
         sscanf( trimSpaces( sessionLine[1] ).c_str(), "timeout=%d", &timeout );
     }
-    sscanf( lines[i].c_str(), "Transport: %s", transport );
+    sscanf(lines[i].c_str(), "Transport: %s", transport);
   }
 
   if ( session.empty() )
-    Fatal( "Unable to get session identifier from response '%s'", response.c_str() );
+    Fatal("Unable to get session identifier from response '%s'", response.c_str());
 
-  Debug( 2, "Got RTSP session %s, timeout %d secs", session.c_str(), timeout );
+  Debug(2, "Got RTSP session %s, timeout %d secs", session.c_str(), timeout);
 
   if ( !transport[0] )
-    Fatal( "Unable to get transport details from response '%s'", response.c_str() );
+    Fatal("Unable to get transport details from response '%s'", response.c_str());
 
-  Debug( 2, "Got RTSP transport %s", transport );
+  Debug(2, "Got RTSP transport %s", transport);
 
   std::string method = "";
   int remotePorts[2] = { 0, 0 };
@@ -531,23 +521,23 @@ int RtspThread::run() {
   Debug( 2, "RTSP Remote Channels are %d/%d", remoteChannels[0], remoteChannels[1] );
 
   message = "PLAY "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\nRange: npt=0.000-\r\n";
-  if ( !sendCommand( message ) )
-    return( -1 );
-  if ( !recvResponse( response ) )
-    return( -1 );
+  if ( !sendCommand(message) )
+    return -1;
+  if ( !recvResponse(response) )
+    return -1;
 
-  lines = split( response, "\r\n" );
+  lines = split(response, "\r\n");
   std::string rtpInfo;
   for ( size_t i = 0; i < lines.size(); i++ ) {
-    if ( ( lines[i].size() > 9 ) && ( lines[i].substr( 0, 9 ) == "RTP-Info:" ) )
-      rtpInfo = trimSpaces( lines[i].substr( 9 ) );
-  // Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
-    if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) && ( timeout == 0 ) ) {
-      StringVector sessionLine = split( lines[i].substr(9), ";" );
+    if ( ( lines[i].size() > 9 ) && ( lines[i].substr(0, 9) == "RTP-Info:" ) )
+      rtpInfo = trimSpaces(lines[i].substr(9));
+    // Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
+    if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) && ( timeout == 0 ) ) {
+      StringVector sessionLine = split(lines[i].substr(9), ";");
       if ( sessionLine.size() == 2 )
-        sscanf( trimSpaces( sessionLine[1] ).c_str(), "timeout=%d", &timeout );
+        sscanf(trimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
       if ( timeout > 0 )
-        Debug( 2, "Got timeout %d secs from PLAY command response", timeout );
+        Debug(2, "Got timeout %d secs from PLAY command response", timeout);
     }
   }
 

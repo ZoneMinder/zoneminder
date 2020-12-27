@@ -427,7 +427,7 @@ ZMPacket *zm_packetqueue::get_analysis_packet() {
   ZMPacket *p = *analysis_it;
   Debug(3, "get_analysis_packet image_index: %d, about to lock packet", p->image_index);
   while ( !p->trylock() and !zm_terminate ) {
-    Debug(3,"waiting.  Queue size %d analysis_it == end? %d", pktQueue.size(), ( analysis_it == pktQueue.end() ) );
+    Debug(3, "waiting.  Queue size %d analysis_it == end? %d", pktQueue.size(), ( analysis_it == pktQueue.end() ) );
     condition.wait(lck);
     if ( deleting ) {
       // packetqueue is being deleted, do not assume we have a lock on the packet

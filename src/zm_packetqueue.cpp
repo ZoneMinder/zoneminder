@@ -477,10 +477,9 @@ std::list<ZMPacket *>::iterator zm_packetqueue::get_event_start_packet_it(
   Debug(1, "Checking for keyframe begin %p", *(pktQueue.begin()));
   // snapshot it might already point to the beginning
   while ( ( it != pktQueue.begin() ) and pre_event_count ) {
-    Debug(1, "Previous packet pre %d index %d keyframe %d", pre_event_count, (*it)->image_index, (*it)->keyframe);
+    Debug(1, "Previous packet pre %d index %d keyframe %d", pre_event_count, (*it)->packet.stream_index, (*it)->keyframe);
     dumpPacket( &((*it)->packet ) );
-    // Is video, maybe should compare stream_id instead
-    if ( (*it)->image_index != -1 ) {
+    if ( (*it)->packet.stream_index != video_stream_id ) {
       pre_event_count --;
     }
     it--;

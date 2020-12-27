@@ -646,7 +646,7 @@ LocalCamera::LocalCamera(
 #endif // ZM_HAS_V4L1    
 
   last_camera = this;
-  Debug(3,"Selected subpixelorder: %u",subpixelorder);
+  Debug(3, "Selected subpixelorder: %u", subpixelorder);
 
 #if HAVE_LIBSWSCALE
   /* Initialize swscale stuff */
@@ -668,7 +668,10 @@ LocalCamera::LocalCamera(
       Fatal("Image size mismatch. Required: %d Available: %u", pSize, imagesize);
     }
 
-    imgConversionContext = sws_getContext(width, height, capturePixFormat, width, height, imagePixFormat, SWS_BICUBIC, nullptr, nullptr, nullptr);
+    imgConversionContext = sws_getContext(
+        width, height, capturePixFormat,
+        width, height, imagePixFormat, SWS_BICUBIC,
+        nullptr, nullptr, nullptr);
 
     if ( !imgConversionContext ) {
       Fatal("Unable to initialise image scaling context");
@@ -802,7 +805,7 @@ void LocalCamera::Initialise() {
         Warning("Failed to set requested width");
     }
     if ( v4l2_data.fmt.fmt.pix.height != height ) {
-        Warning("Failed to set requested width");
+        Warning("Failed to set requested height");
     }
 
     /* Buggy driver paranoia. */
@@ -922,7 +925,8 @@ void LocalCamera::Initialise() {
 #else
       avpicture_fill(
           (AVPicture *)capturePictures[i],
-          (uint8_t*)v4l2_data.buffers[i].start, capturePixFormat,
+          (uint8_t*)v4l2_data.buffers[i].start,
+          capturePixFormat,
           v4l2_data.fmt.fmt.pix.width,
           v4l2_data.fmt.fmt.pix.height
           );
@@ -1271,7 +1275,11 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
 #define capString(test,prefix,yesString,noString,capability) \
   (test) ? (prefix yesString " " capability "\n") : (prefix noString " " capability "\n")
 
-bool LocalCamera::GetCurrentSettings(const char *device, char *output, int version, bool verbose) {
+bool LocalCamera::GetCurrentSettings(
+    const char *device,
+    char *output,
+    int version,
+    bool verbose) {
   output[0] = 0;
   char *output_ptr = output;
 
@@ -1763,7 +1771,7 @@ bool LocalCamera::GetCurrentSettings(const char *device, char *output, int versi
   return true;
 }
 
-int LocalCamera::Brightness( int p_brightness ) {
+int LocalCamera::Brightness(int p_brightness) {
 #if ZM_HAS_V4L2
   if ( v4l_version == 2 ) {
     struct v4l2_control vid_control;
@@ -1817,7 +1825,7 @@ int LocalCamera::Brightness( int p_brightness ) {
   return -1;
 }
 
-int LocalCamera::Hue( int p_hue ) {
+int LocalCamera::Hue(int p_hue) {
 #if ZM_HAS_V4L2
   if ( v4l_version == 2 ) {
     struct v4l2_control vid_control;
@@ -1979,7 +1987,7 @@ int LocalCamera::PrimeCapture() {
     for ( unsigned int frame = 0; frame < v4l2_data.reqbufs.count; frame++ ) {
       struct v4l2_buffer vid_buf;
 
-      memset( &vid_buf, 0, sizeof(vid_buf) );
+      memset(&vid_buf, 0, sizeof(vid_buf));
       if ( v4l2_data.fmt.type != V4L2_BUF_TYPE_VIDEO_CAPTURE ) {
         Warning("Unknown type: (%d)", v4l2_data.fmt.type);
       }
@@ -2080,7 +2088,7 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
 
       if ( (v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) !=  (width * height) ) {
         Fatal("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",
-            v4l2_data.fmt.fmt.pix.width,v4l2_data.fmt.fmt.pix.height,width,height);
+            v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
       }
     } // end if v4l2
 #if ZM_HAS_V4L1
@@ -2116,13 +2124,12 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
 
   } /* prime capture */    
 
-  if ( ! zm_packet.image ) {
+  if ( !zm_packet.image ) {
     Debug(1, "Allocating image");
     zm_packet.image = new Image(width, height, colours, subpixelorder);
   }
 
   if ( conversion_type != 0 ) {
-
     Debug(3, "Performing format conversion %d", conversion_type);
 
     /* Request a writeable buffer of the target image */

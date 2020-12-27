@@ -76,6 +76,10 @@ ZMPacket::~ZMPacket() {
     analysis_image = nullptr;
   }
   // We assume the image was allocated elsewhere, so we just unref it.
+  if ( image_index == -1 ) {
+    delete image;
+    delete timestamp;
+  }
   image = nullptr;
   timestamp = nullptr;
 }
@@ -148,6 +152,8 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     if ( ret < 0 ) {
       Error("Unable to receive frame: %s", av_make_error_string(ret).c_str());
       av_frame_free(&in_frame);
+      Error("Unable to receive frame: %s %p", av_make_error_string(ret).c_str(), in_frame);
+
       return 0;
     }
 

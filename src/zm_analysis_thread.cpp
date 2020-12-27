@@ -22,9 +22,11 @@ int AnalysisThread::run() {
   Debug(2, "after UpdateAdaptiveSkip");
   last_analysis_update_time = time(0);
 
-  Debug(2, "THREAD: Getting ref image");
-  monitor->get_ref_image();
-  Debug(2, "THREAD: after Getting ref image");
+  if ( monitor->GetFunction() == Monitor::MODECT or monitor->GetFunction() == Monitor::MOCORD ) {
+    Debug(2, "THREAD: Getting ref image");
+    monitor->get_ref_image();
+    Debug(2, "THREAD: after Getting ref image");
+  }
 
   while ( !(terminate or zm_terminate) ) {
     // Process the next image

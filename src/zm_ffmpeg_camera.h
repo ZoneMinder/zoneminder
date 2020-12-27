@@ -113,12 +113,12 @@ class FfmpegCamera : public Camera {
     AVStream *get_VideoStream() { 
       if ( mVideoStreamId != -1 )
         return mFormatContext->streams[mVideoStreamId];
-      return NULL;
+      return nullptr;
     }
     AVStream *get_AudioStream() {
       if ( mAudioStreamId != -1 )
         return mFormatContext->streams[mAudioStreamId];
-      return NULL;
+      return nullptr;
     }
     AVCodecContext      *get_VideoCodecContext() { return mVideoCodecContext; };
     AVCodecContext      *get_AudioCodecContext() { return mAudioCodecContext; };

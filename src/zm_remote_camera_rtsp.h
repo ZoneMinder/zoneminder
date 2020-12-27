@@ -57,8 +57,6 @@ protected:
   AVFormatContext     *mFormatContext;
   AVCodecContext      *mCodecContext;
   AVCodec             *mCodec;
-  AVFrame             *mRawFrame; 
-  AVFrame             *mFrame;
   _AVPIXELFORMAT         imagePixFormat;
 #endif // HAVE_LIBAVFORMAT
 

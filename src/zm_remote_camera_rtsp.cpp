@@ -69,8 +69,6 @@ RemoteCameraRtsp::RemoteCameraRtsp(
   mAudioStreamId = -1;
   mCodecContext = nullptr;
   mCodec = nullptr;
-  mRawFrame = nullptr;
-  mFrame = nullptr;
   frameCount = 0;
   
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
@@ -89,8 +87,6 @@ RemoteCameraRtsp::RemoteCameraRtsp(
 } // end RemoteCameraRtsp::RemoteCameraRtsp(...)
 
 RemoteCameraRtsp::~RemoteCameraRtsp() {
-  av_frame_free(&mFrame);
-  av_frame_free(&mRawFrame);
 
   if ( mCodecContext ) {
      avcodec_close(mCodecContext);
@@ -201,15 +197,6 @@ int RemoteCameraRtsp::PrimeCapture() {
   if ( avcodec_open2(mCodecContext, mCodec, 0) < 0 )
 #endif
     Panic("Can't open codec");
-
-  // Allocate space for the native video frame
-  mRawFrame = zm_av_frame_alloc();
-
-  // Allocate space for the converted video frame
-  mFrame = zm_av_frame_alloc();
-
-  if ( mRawFrame == nullptr || mFrame == nullptr )
-    Fatal("Unable to allocate frame(s)");
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   int pSize = av_image_get_buffer_size(imagePixFormat, width, height, 1);

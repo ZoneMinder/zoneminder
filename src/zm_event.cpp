@@ -550,7 +550,7 @@ void Event::AddPacket(ZMPacket *packet) {
     }
     //FIXME if it fails, we should write a jpeg
   }
-  if ( have_video_keyframe && ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) ) {
+  if ( packet->image ) {
     AddFrame(packet->image, *(packet->timestamp), packet->score, packet->analysis_image);
   } // end if is video
   end_time = *packet->timestamp;

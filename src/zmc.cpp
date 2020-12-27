@@ -383,13 +383,6 @@ int main(int argc, char *argv[]) {
         zm_reload = false;
       } // end if zm_reload
     } // end while ! zm_terminate and connected
-    for ( int i = 0; i < n_monitors; i++ ) {
-      monitors[i]->Close();
-    }
-
-    delete [] alarm_capture_delays;
-    delete [] capture_delays;
-    delete [] last_capture_times;
 
     // Killoff the analysis threads. Don't need them spinning while we try to reconnect
     for ( int i = 0; i < n_monitors; i++ ) {
@@ -401,6 +394,14 @@ int main(int argc, char *argv[]) {
       }
     } // end foreach monitor
     delete [] analysis_threads;
+
+    for ( int i = 0; i < n_monitors; i++ ) {
+      monitors[i]->Close();
+    }
+
+    delete [] alarm_capture_delays;
+    delete [] capture_delays;
+    delete [] last_capture_times;
 
   } // end while ! zm_terminate outer connection loop
   Debug(1,"Updating Monitor status");

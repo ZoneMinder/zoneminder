@@ -72,11 +72,7 @@ RemoteCameraRtsp::RemoteCameraRtsp(
   mRawFrame = nullptr;
   mFrame = nullptr;
   frameCount = 0;
-  startTime=0;
   
-#if HAVE_LIBSWSCALE
-  mConvertContext = nullptr;
-#endif
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
@@ -95,13 +91,6 @@ RemoteCameraRtsp::RemoteCameraRtsp(
 RemoteCameraRtsp::~RemoteCameraRtsp() {
   av_frame_free(&mFrame);
   av_frame_free(&mRawFrame);
-  
-#if HAVE_LIBSWSCALE
-  if ( mConvertContext ) {
-    sws_freeContext(mConvertContext);
-    mConvertContext = nullptr;
-  }
-#endif
 
   if ( mCodecContext ) {
      avcodec_close(mCodecContext);
@@ -167,7 +156,6 @@ int RemoteCameraRtsp::PrimeCapture() {
   mVideoStreamId = -1;
   mAudioStreamId = -1;
 
-  
   // Find the first video stream. 
   for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {
     if ( is_video_stream(mFormatContext->streams[i]) ) {
@@ -233,30 +221,8 @@ int RemoteCameraRtsp::PrimeCapture() {
     Fatal("Image size mismatch. Required: %d Available: %d", pSize, imagesize);
   }
 
-#if HAVE_LIBSWSCALE
-  mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
-  if ( mConvertContext == NULL )
-    Fatal( "Unable to create conversion context");
-#else // HAVE_LIBSWSCALE
-  Fatal( "You must compile ffmpeg with the --enable-swscale option to use RTSP cameras" );
-#endif // HAVE_LIBSWSCALE
-/*  
-#if HAVE_LIBSWSCALE
-  if(!sws_isSupportedInput(mCodecContext->pix_fmt)) {
-    Fatal("swscale does not support the codec format: %c%c%c%c",(mCodecContext->pix_fmt)&0xff,((mCodecContext->pix_fmt>>8)&0xff),((mCodecContext->pix_fmt>>16)&0xff),((mCodecContext->pix_fmt>>24)&0xff));
-  }
-
-  if(!sws_isSupportedOutput(imagePixFormat)) {
-    Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
-  }
-  
-#else // HAVE_LIBSWSCALE
-  Fatal( "You must compile ffmpeg with the --enable-swscale option to use RTSP cameras" );
-#endif // HAVE_LIBSWSCALE
-*/
-
-  return 0;
-}
+  return 1;
+}  // end PrimeCapture
 
 int RemoteCameraRtsp::PreCapture() {
   if ( !rtspThread->isRunning() )
@@ -265,20 +231,13 @@ int RemoteCameraRtsp::PreCapture() {
     Error("Cannot precapture, no RTP sources");
     return -1;
   }
-  return 0;
+  return 1;
 }
 
-int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
+int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
   uint8_t* directbuffer;
   int frameComplete = false;
   AVPacket *packet = &zm_packet.packet;
-  
-  /* Request a writeable buffer of the target image */
-  directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
-  if ( directbuffer == nullptr ) {
-    Error("Failed requesting writeable buffer for the captured image.");
-    return -1;
-  }
   
   while ( !frameComplete ) {
     buffer.clear();
@@ -305,6 +264,8 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
           lastPps = buffer;
           continue;
         } else if ( nalType == 5 ) {
+          packet->flags |= AV_PKT_FLAG_KEY;
+          zm_packet.keyframe = 1;
         // IDR
           buffer += lastSps;
           buffer += lastPps;
@@ -315,57 +276,23 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
         Debug(3, "Not an h264 packet");
       }
 
-      // Don't need to do this... as zmPacket does it.
-      //av_init_packet( &packet );
-
       while ( (!frameComplete) && (buffer.size() > 0) ) {
         packet->data = buffer.head();
         packet->size = buffer.size();
         bytes += packet->size;
 
-        // So I think this is the magic decode step. Result is a raw image?
-        int len = zm_send_packet_receive_frame(mCodecContext, mRawFrame, *packet);
-        if ( len < 0 ) {
+        if ( 1 != zm_packet.decode(mCodecContext) ) {
           Error("Error while decoding frame %d", frameCount);
           Hexdump(Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size());
           buffer.clear();
-          continue;
+          break;
         }
+        int len = packet->size;
+
         frameComplete = true;
         Debug(2, "Frame: %d - %d/%d", frameCount, len, buffer.size());
         buffer -= len;
       }
-      // At this point, we either have a frame or ran out of buffer. What happens if we run out of buffer?
-      if ( frameComplete ) {
-          
-    #if HAVE_LIBSWSCALE
-        if ( mConvertContext == nullptr ) {
-          mConvertContext = sws_getContext(
-              mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt,
-              width, height, imagePixFormat, SWS_BICUBIC, nullptr, nullptr, nullptr);
-
-          if ( mConvertContext == nullptr )
-            Fatal("Unable to create conversion context");
-
-          if (
-              ((unsigned int)mRawFrame->width != width)
-              ||
-              ((unsigned int)mRawFrame->height != height)
-             ) {
-            Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
-                width, height, mRawFrame->width, mRawFrame->height);
-          }
-        }
-      
-        if ( sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize) < 0 )
-          Fatal("Unable to convert raw format %u to target format %u at frame %d",
-              mCodecContext->pix_fmt, imagePixFormat, frameCount );
-    #else // HAVE_LIBSWSCALE
-        Fatal("You must compile ffmpeg with the --enable-swscale option to use RTSP cameras");
-    #endif // HAVE_LIBSWSCALE
-      
-        frameCount++;
-      } /* frame complete */
     } /* getFrame() */
   } // end while true
 
@@ -373,6 +300,6 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
 } // end int RemoteCameraRtsp::Capture(ZMPacket &packet)
 
 int RemoteCameraRtsp::PostCapture() {
-  return 0;
+  return 1;
 }
 #endif // HAVE_LIBAVFORMAT

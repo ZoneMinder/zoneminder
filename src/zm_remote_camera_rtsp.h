@@ -55,22 +55,12 @@ protected:
 
 #if HAVE_LIBAVFORMAT
   AVFormatContext     *mFormatContext;
-  int                 mVideoStreamId;
-  int                 mAudioStreamId;
   AVCodecContext      *mCodecContext;
   AVCodec             *mCodec;
   AVFrame             *mRawFrame; 
   AVFrame             *mFrame;
   _AVPIXELFORMAT         imagePixFormat;
 #endif // HAVE_LIBAVFORMAT
-  bool                wasRecording;
-  VideoStore          *videoStore;
-  char                oldDirectory[4096];
-  int64_t             startTime;
-
-#if HAVE_LIBSWSCALE
-  struct SwsContext   *mConvertContext;
-#endif
 
 public:
   RemoteCameraRtsp( unsigned int p_monitor_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, bool p_rtsp_describe, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
@@ -86,6 +76,18 @@ public:
   int Capture( ZMPacket &p );
   int PostCapture();
   int Close() { return 0; };
+  AVStream *get_VideoStream() { 
+    if ( mVideoStreamId != -1 )
+      return mFormatContext->streams[mVideoStreamId];
+    return nullptr;
+  }
+  AVStream *get_AudioStream() {
+    if ( mAudioStreamId != -1 )
+      return mFormatContext->streams[mAudioStreamId];
+    return nullptr;
+  }
+  AVCodecContext      *get_VideoCodecContext() { return mVideoCodecContext; };
+  AVCodecContext      *get_AudioCodecContext() { return mAudioCodecContext; };
 };
 
 #endif // ZM_REMOTE_CAMERA_RTSP_H

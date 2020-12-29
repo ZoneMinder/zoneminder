@@ -88,10 +88,12 @@ VideoStore::VideoStore(
   audio_next_pts = 0;
   out_format = NULL;
   oc = NULL;
+
+  swscale.init();
 }  // VideoStore::VideoStore
 
 bool VideoStore::open() {
-  Info("Opening video storage stream %s format: %s", filename, format);
+  Debug(1, "Opening video storage stream %s format: %s", filename, format);
 
   int ret = avformat_alloc_output_context2(&oc, nullptr, nullptr, filename);
   if ( ret < 0 ) {
@@ -132,6 +134,19 @@ bool VideoStore::open() {
       zm_dump_codecpar(video_in_stream->codecpar);
     }
 
+    int wanted_codec = monitor->OutputCodec();
+    if ( !wanted_codec ) {
+      // default to h264
+      Debug(2, "Defaulting to H264");
+      wanted_codec = AV_CODEC_ID_H264;
+      // FIXME what is the optimal codec?  Probably low latency h264 which is effectively mjpeg
+    } else {
+      Debug(2, "Codec is %d, wanted %d", video_in_ctx->codec_id, wanted_codec);
+    }
+    std::string wanted_encoder = monitor->Encoder();
+
+    // FIXME Should check that we are set to passthrough.  Might be same codec, but want privacy overlays
+    if ( (!wanted_codec) or (video_in_ctx->codec_id == wanted_codec) ) {
     video_out_ctx = avcodec_alloc_context3(NULL);
     if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
@@ -140,23 +155,19 @@ bool VideoStore::open() {
       video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 #endif
     }
+
     if ( !video_out_ctx->codec_tag ) {
       video_out_ctx->codec_tag =
-        av_codec_get_tag(oc->oformat->codec_tag, video_in_ctx->codec_id);
+        av_codec_get_tag(oc->oformat->codec_tag, video_out_ctx->codec_id);
       Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
     }
-    int wanted_codec = monitor->OutputCodec();
-    if ( !wanted_codec ) {
-      // default to h264
-      //Debug(2, "Defaulting to H264");
-      //wanted_codec = AV_CODEC_ID_H264;
-    } else {
-      Debug(2, "Codec is %d, wanted %d", video_in_ctx->codec_id, wanted_codec);
-    }
-
-    // FIXME Should check that we are set to passthrough.  Might be same codec, but want privacy overlays
-    if ( (!wanted_codec) or (video_in_ctx->codec_id == wanted_codec) ) {
-      // Copy params from instream to ctx
+    video_out_ctx->time_base = video_in_ctx->time_base;
+    if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+      Debug(2,"No timebase found in video in context, defaulting to Q");
+      video_out_ctx->time_base = AV_TIME_BASE_Q;
+    }	
+      // Copy params from instream to ctx 
+      // There might not be a useful video_in_stream.  v4l in might not populate this very
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
 #else
@@ -167,7 +178,6 @@ bool VideoStore::open() {
         return false;
       }
       //video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-      video_out_ctx->time_base = video_in_ctx->time_base;
       // Fix deprecated formats
       switch ( video_out_ctx->pix_fmt ) {
         case AV_PIX_FMT_YUVJ422P  :
@@ -187,18 +197,44 @@ bool VideoStore::open() {
       }
     } else { // Either no video in or not the desired codec
       for ( unsigned int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++ ) {
+        if ( wanted_encoder != "" ) {
+          if ( wanted_encoder != codec_data[i].codec_name ) {
+            Debug(1, "Not the right codec name %s != %s", codec_data[i].codec_name, wanted_encoder.c_str());
+            continue;
+          }
+        }
         if ( codec_data[i].codec_id != wanted_codec ) {
           Debug(1, "Not the right codec %d != %d", codec_data[i].codec_id, wanted_codec);
           continue;
         }
 
         video_out_codec = avcodec_find_encoder_by_name(codec_data[i].codec_name);
-        if ( ! video_out_codec ) {
+        if ( !video_out_codec ) {
           Debug(1, "Didn't find encoder for %s", codec_data[i].codec_name);
           continue;
         }
         Debug(1, "Found video codec for %s", codec_data[i].codec_name);
+    video_out_ctx = avcodec_alloc_context3(video_out_codec);
+    if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
+#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
+      video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+#else
+      video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#endif
+    }
 
+    if ( !video_out_ctx->codec_tag ) {
+      video_out_ctx->codec_tag =
+        av_codec_get_tag(oc->oformat->codec_tag, video_out_ctx->codec_id);
+      Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
+    }
+    video_out_ctx->time_base = video_in_ctx->time_base;
+    if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+      Debug(2,"No timebase found in video in context, defaulting to Q");
+      video_out_ctx->time_base = AV_TIME_BASE_Q;
+    }	
+
+        video_out_ctx->codec_id = codec_data[i].codec_id;
         video_out_ctx->pix_fmt = codec_data[i].pix_fmt;
         video_out_ctx->level = 32;
 
@@ -207,22 +243,22 @@ bool VideoStore::open() {
         video_out_ctx->height = monitor->Height();
         video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
 
-        // Just copy them from the in, no reason to choose different
-        video_out_ctx->time_base = video_in_ctx->time_base;
-        if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
-          Debug(2,"No timebase found in video in context, defaulting to Q");
-          video_out_ctx->time_base = AV_TIME_BASE_Q;
-        }	
-        video_out_stream->time_base =  video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
-
         if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
+          /*
+          video_out_ctx->bit_rate = 2000000;
+          video_out_ctx->gop_size = 12;
           video_out_ctx->max_b_frames = 1;
           if ( video_out_ctx->priv_data ) {
-            //av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
-            //av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
+            Debug(2, "setting priv_data crf");
+            av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
+            Debug(2, "setting priv_data preset");
+            av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
           } else {
             Debug(2, "Not setting priv_data");
+            av_opt_set(video_out_ctx->priv_data, "preset", "fast", 0);
+            Debug(2, "Not setting priv_data");
           }
+          */
         } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO ) {
           /* just for testing, we also add B frames */
           video_out_ctx->max_b_frames = 2;
@@ -235,13 +271,12 @@ bool VideoStore::open() {
 
         AVDictionary *opts = 0;
         std::string Options = monitor->GetEncoderOptions();
-        Debug(2, "Options?");
         Debug(2, "Options? %s", Options.c_str());
         ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
         if ( ret < 0 ) {
           Warning("Could not parse ffmpeg encoder options list '%s'\n", Options.c_str());
         } else {
-          AVDictionaryEntry *e = NULL;
+          AVDictionaryEntry *e = nullptr;
           while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
             Debug(3, "Encoder Option %s=%s", e->key, e->value);
           }
@@ -252,16 +287,15 @@ bool VideoStore::open() {
               video_out_codec->name,
               av_make_error_string(ret).c_str()
               );
-          video_out_codec = NULL;
+          video_out_codec = nullptr;
         }
 
-        AVDictionaryEntry *e = NULL;
-        while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+        AVDictionaryEntry *e = nullptr;
+        while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr ) {
           Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
         }
         av_dict_free(&opts);
         if ( video_out_codec ) break;
-
       } // end foreach codec
 
       if ( !video_out_codec ) {
@@ -270,12 +304,12 @@ bool VideoStore::open() {
         // We allocate and copy in newer ffmpeg, so need to free it
         avcodec_free_context(&video_out_ctx);
 #endif
-        video_out_ctx = NULL;
+        video_out_ctx = nullptr;
 
         return false;
       } // end if can't open codec
 
-      Debug(2, "Sucess opening codec");
+      Debug(2, "Success opening codec");
 
     } // end if copying or transcoding
   }  // end if video_in_stream
@@ -1026,11 +1060,11 @@ bool VideoStore::setup_resampler() {
 #endif
 }  // end bool VideoStore::setup_resampler()
 
-int VideoStore::writePacket( ZMPacket *ipkt ) {
+int VideoStore::writePacket(ZMPacket *ipkt) {
   if ( ipkt->packet.stream_index == video_in_stream_index ) {
-    return writeVideoFramePacket( ipkt );
+    return writeVideoFramePacket(ipkt);
   } else if ( ipkt->packet.stream_index == audio_in_stream_index ) {
-    return writeAudioFramePacket( ipkt );
+    return writeAudioFramePacket(ipkt);
   }
   Error("Unknown stream type in packet (%d) out input video stream is (%d) and audio is (%d)",
       ipkt->packet.stream_index, video_in_stream_index, ( audio_in_stream ? audio_in_stream_index : -1 )
@@ -1044,10 +1078,10 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 
   // if we have to transcode
   if ( video_out_ctx->codec_id != video_in_ctx->codec_id ) {
-    //Debug(3, "Have encoding video frame count (%d)", frame_count);
+    Debug(3, "Have encoding video frame count (%d)", frame_count);
 
     if ( !zm_packet->out_frame ) {
-      //Debug(3, "Have no out frame");
+      Debug(3, "Have no out frame");
       AVFrame *out_frame = zm_packet->get_out_frame(video_out_ctx);
       if ( !out_frame ) {
         Error("Unable to allocate a frame");
@@ -1055,23 +1089,23 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
       }
 
       if ( !zm_packet->in_frame ) {
-        //Debug(2,"Have no in_frame");
+        Debug(2, "Have no in_frame");
         if ( zm_packet->packet.size ) {
-          //Debug(2,"Decoding");
+          Debug(2, "Decoding");
           if ( !zm_packet->decode(video_in_ctx) ) {
             Debug(2, "unable to decode yet.");
             return 0;
           }
-          //Go straight to out frame
+          // Go straight to out frame
           swscale.Convert(zm_packet->in_frame, out_frame);
         } else if ( zm_packet->image ) {
-          //Debug(2,"Have an image, convert it");
+          Debug(2, "Have an image, convert it");
           //Go straight to out frame
           swscale.Convert(
               zm_packet->image, 
               zm_packet->buffer,
               zm_packet->codec_imgsize,
-              (AVPixelFormat)zm_packet->image->AVPixFormat(),
+              zm_packet->image->AVPixFormat(),
               video_out_ctx->pix_fmt,
               video_out_ctx->width,
               video_out_ctx->height
@@ -1120,7 +1154,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     }
 
     av_init_packet(&opkt);
-    opkt.data = NULL;
+    opkt.data = nullptr;
     opkt.size = 0;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // Do this to allow the encoder to choose whether to use I/P/B frame
@@ -1168,37 +1202,41 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
       opkt.dts = av_rescale_q(opkt.dts, video_out_ctx->time_base, video_out_stream->time_base);
 
     int64_t duration;
-    if ( zm_packet->in_frame->pkt_duration ) {
-      duration = av_rescale_q(
-          zm_packet->in_frame->pkt_duration,
-          video_in_stream->time_base,
-          video_out_stream->time_base);
-      Debug(1, "duration from ipkt: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
-          zm_packet->in_frame->pts,
-          video_last_pts,
-          zm_packet->in_frame->pkt_duration,
-          duration,
-          video_in_stream->time_base.num,
-          video_in_stream->time_base.den,
-          video_out_stream->time_base.num,
-          video_out_stream->time_base.den
-          );
-    } else {
-      duration =
-        av_rescale_q(
-            zm_packet->in_frame->pts - video_last_pts,
+    if ( zm_packet->in_frame ) {
+      if ( zm_packet->in_frame->pkt_duration ) {
+        duration = av_rescale_q(
+            zm_packet->in_frame->pkt_duration,
             video_in_stream->time_base,
             video_out_stream->time_base);
-      Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
-          zm_packet->in_frame->pts,
-          video_last_pts,
-          zm_packet->in_frame->pts - video_last_pts,
-          duration
-          );
-      if ( duration <= 0 ) {
-        duration = zm_packet->in_frame->pkt_duration ? zm_packet->in_frame->pkt_duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
-      }
-    }
+        Debug(1, "duration from ipkt: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
+            zm_packet->in_frame->pts,
+            video_last_pts,
+            zm_packet->in_frame->pkt_duration,
+            duration,
+            video_in_stream->time_base.num,
+            video_in_stream->time_base.den,
+            video_out_stream->time_base.num,
+            video_out_stream->time_base.den
+            );
+      } else {
+        duration =
+          av_rescale_q(
+              zm_packet->in_frame->pts - video_last_pts,
+              video_in_stream->time_base,
+              video_out_stream->time_base);
+        Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
+            zm_packet->in_frame->pts,
+            video_last_pts,
+            zm_packet->in_frame->pts - video_last_pts,
+            duration
+            );
+        if ( duration <= 0 ) {
+          duration = zm_packet->in_frame->pkt_duration ? zm_packet->in_frame->pkt_duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
+        }
+      }  // end if in_frmae->pkt_duration
+    } else {
+      duration = av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
+    }  // end if in_frmae
     opkt.duration = duration;
 
   } else { // codec matches, we are doing passthrough

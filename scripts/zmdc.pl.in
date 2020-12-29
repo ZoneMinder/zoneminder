@@ -239,7 +239,7 @@ use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
 use ZoneMinder::Server qw(CpuLoad);
 #use Data::Dumper;
 
-use constant KILL_DELAY => 60; # seconds to wait between sending TERM and sending KILL
+use constant KILL_DELAY => 10; # seconds to wait between sending TERM and sending KILL
 
 our %cmd_hash;
 our %pid_hash;

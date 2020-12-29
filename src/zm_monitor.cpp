@@ -999,6 +999,7 @@ bool Monitor::connect() {
     shared_data->format = camera->SubpixelOrder();
     shared_data->imagesize = camera->ImageSize();
     shared_data->alarm_cause[0] = 0;
+    shared_data->last_frame_score = 0;
     trigger_data->size = sizeof(TriggerData);
     trigger_data->trigger_state = TRIGGER_CANCEL;
     trigger_data->trigger_score = 0;
@@ -1955,7 +1956,7 @@ bool Monitor::Analyse() {
                       }
                     }
                     noteSet.insert(linked_monitors[i]->Name());
-                    score += 50;
+                    score += linked_monitors[i]->lastFrameScore(); // 50;
                   } else {
                     Debug(4, "Linked monitor %d %s is not alarmed",
                         linked_monitors[i]->Id(), linked_monitors[i]->Name());
@@ -2195,6 +2196,7 @@ bool Monitor::Analyse() {
         snap->unlock();
         return false;
       }
+      shared_data->last_frame_score = score;
     } else {
       Debug(3, "trigger == off");
       if ( event ) {
@@ -2512,7 +2514,7 @@ int Monitor::Capture() {
             Debug(1, "Not decoding");
           } else {
             Debug(2,"About to decode %p", packet);
-            if ( ! packet->decode(camera->get_VideoCodecContext()) ) {
+            if ( packet->decode(camera->get_VideoCodecContext()) < 0 ) {
               Error("decode failed");
             } // end if decode
           } // end if decoding

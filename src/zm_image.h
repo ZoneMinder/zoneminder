@@ -188,7 +188,7 @@ public:
 	inline unsigned int SubpixelOrder() const { return subpixelorder; }
 	inline unsigned int Size() const { return size; }
 
-  inline unsigned int AVPixFormat() {
+  inline AVPixelFormat AVPixFormat() {
     if ( colours == ZM_COLOUR_RGB32 ) {
       return AV_PIX_FMT_RGBA;
     } else if ( colours == ZM_COLOUR_RGB24 ) {

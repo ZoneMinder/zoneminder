@@ -974,6 +974,8 @@ echo htmlSelect('newMonitor[OutputCodec]', $videowriter_codecs, $monitor->Output
 $videowriter_encoders = array(
   '' => translate('Auto'),
   'h264_omx' => 'h264_omx',
+  'libx264' => 'libx264',
+  'h264_vaapi' => 'h264_vaapi',
   'h264' => 'h264',
   'mjpeg' => 'mjpeg',
   'mpeg1' => 'mpeg1',

@@ -482,7 +482,7 @@ CREATE TABLE `Monitors` (
   `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' ,
   `VideoWriter` TINYINT NOT NULL DEFAULT '0',
   `OutputCodec` int(10) unsigned NOT NULL default 0,
-  `Encoder`     enum('auto','h264','h264_omx','mjpeg','mpeg1','mpeg2'),
+  `Encoder`     enum('auto','h264','libx264','h264_omx','h264_vaapi','mjpeg','mpeg1','mpeg2'),
   `OutputContainer` enum('auto','mp4','mkv'),
   `EncoderParameters` TEXT,
   `RecordAudio` TINYINT NOT NULL DEFAULT '0',

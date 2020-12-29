@@ -156,7 +156,7 @@ while( 1 ) {
         Error("Error reading shared data for $$monitor{Id} $$monitor{Name}");
       } elsif ( !$image_time ) {
 # We can't get the last capture time so can't be sure it's died.
-        $restart = 1;
+        #$restart = 1;
         Error("Last analyse time for $$monitor{Id} $$monitor{Name} was zero.");
       } else {
 

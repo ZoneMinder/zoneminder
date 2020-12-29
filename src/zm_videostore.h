@@ -24,7 +24,7 @@ class VideoStore {
 private:
 
 struct CodecData {
-  const int codec_id;
+  const AVCodecID codec_id;
   const char *codec_codec;
   const char *codec_name;
   const enum AVPixelFormat pix_fmt;

@@ -216,11 +216,12 @@ AVFrame *ZMPacket::get_out_frame( const AVCodecContext *ctx ) {
       Error("Unable to allocate a frame");
       return nullptr;
     }
+
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
     codec_imgsize = av_image_get_buffer_size(
         ctx->pix_fmt,
         ctx->width,
-        ctx->height, 1);
+        ctx->height, 32);
     buffer = (uint8_t *)av_malloc(codec_imgsize);
     av_image_fill_arrays(
         out_frame->data,
@@ -229,7 +230,7 @@ AVFrame *ZMPacket::get_out_frame( const AVCodecContext *ctx ) {
         ctx->pix_fmt,
         ctx->width,
         ctx->height,
-        1);
+        32);
 #else
     codec_imgsize = avpicture_get_size(
         ctx->pix_fmt,

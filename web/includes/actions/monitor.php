@@ -202,6 +202,9 @@ if ( $action == 'save' ) {
             } // end foreach zone
           } // end if rotation or just size change
         } // end if changes in width or height
+      } else {
+        global $error_message;
+        $error_message = dbError();
       } // end if successful save
       $restart = true;
     } else { // new monitor

@@ -28,11 +28,10 @@ zm_packetqueue::zm_packetqueue(
     int p_video_stream_id,
     int p_audio_stream_id
     ):
-video_stream_id(p_video_stream_id),
+  video_stream_id(p_video_stream_id),
+  max_video_packet_count(video_image_count),
   deleting(false)
 {
-  video_stream_id = p_video_stream_id;
-  max_video_packet_count = video_image_count-1;
   analysis_it = pktQueue.begin();
 
   max_stream_id = p_video_stream_id > p_audio_stream_id ? p_video_stream_id : p_audio_stream_id;
@@ -43,7 +42,6 @@ video_stream_id(p_video_stream_id),
 
 zm_packetqueue::~zm_packetqueue() {
   deleting = true;
-  Debug(4, "In destructor");
   /* zma might be waiting. Must have exclusive access */
   while ( ! mutex.try_lock() ) {
     Debug(4, "Waiting for exclusive access");
@@ -51,12 +49,9 @@ zm_packetqueue::~zm_packetqueue() {
   }
 
   while ( !pktQueue.empty() ) {
-    Debug(4, "Fronting packet %d", pktQueue.empty());
     ZMPacket * packet = pktQueue.front();
-    Debug(4, "poppng packet %d", packet->image_index);
     pktQueue.pop_front();
     if ( packet->image_index == -1 ) {
-      Debug(4, "Deletng packet");
       delete packet;
     }
   }
@@ -79,6 +74,8 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
 
 	pktQueue.push_back(zm_packet);
   packet_counts[zm_packet->packet.stream_index] += 1;
+  Debug(1, "packet counts for %d is %d",
+      zm_packet->packet.stream_index, packet_counts[zm_packet->packet.stream_index]);
   if ( analysis_it == pktQueue.end() ) {
     // Analsys_it should only point to end when queue is empty
     Debug(4, "pointing analysis_it to back");
@@ -95,8 +92,8 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
   while ( packet_counts[video_stream_id] > max_video_packet_count ) {
     //clearQueue(max_video_packet_count, video_stream_id);
     //clearQueue is rather heavy.  Since this is the only packet injection spot, we can just start at the beginning of the queue and remove packets until we get to the next video keyframe
-    Debug(1, "Deleting a packet with stream index (%d) with keyframe(%d), Image_index(%d) video_frames_to_keep is (%d) max: %d",
-        zm_packet->packet.stream_index, zm_packet->keyframe, zm_packet->image_index, packet_counts[video_stream_id] , max_video_packet_count);
+    Debug(1, "Deleting a packet with stream index (%d) with keyframe(%d), video_frames_to_keep is (%d) max: %d",
+        zm_packet->packet.stream_index, zm_packet->keyframe, packet_counts[video_stream_id], max_video_packet_count);
     ZMPacket *zm_packet = *pktQueue.begin();
     pktQueue.pop_front();
     packet_counts[zm_packet->packet.stream_index] -= 1;

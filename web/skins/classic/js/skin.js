@@ -437,9 +437,9 @@ function secsToTime( seconds ) {
 
 function submitTab(evt) {
   var tab = this.getAttribute("data-tab-name");
-  var form = $('contentForm');
-  form.action.value = "";
-  form.tab.value = tab;
+  var form = $j('#contentForm');
+  form.attr('action', '');
+  form.attr('tab', tab);
   form.submit();
   evt.preventDefault();
 }
@@ -599,11 +599,11 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
-function setButtonState(element_id, butClass) {
-  var element = $(element_id);
+function setButtonState(element_id, btnClass) {
+  var element = document.getElementById(element_id);
   if ( element ) {
-    element.className = butClass;
-    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
+    element.className = btnClass;
+    if (btnClass == 'unavail' || (btnClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
       element.disabled = true;
     } else {
       element.disabled = false;

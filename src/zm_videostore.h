@@ -19,6 +19,7 @@ class VideoStore;
 #include "zm_monitor.h"
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
+#include "zm_swscale.h"
 
 class VideoStore {
 private:

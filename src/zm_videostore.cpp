@@ -33,6 +33,7 @@ extern "C" {
 }
 
 VideoStore::CodecData VideoStore::codec_data[] = {
+  { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_NV12 },
   { AV_CODEC_ID_H264, "h264", "h264_omx", AV_PIX_FMT_YUV420P },
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P },
   { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P },
@@ -247,18 +248,6 @@ bool VideoStore::open() {
           video_out_ctx->bit_rate = 2000000;
           video_out_ctx->gop_size = 12;
           video_out_ctx->max_b_frames = 1;
-          /*
-          if ( video_out_ctx->priv_data ) {
-            Debug(2, "setting priv_data crf");
-            av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
-            Debug(2, "setting priv_data preset");
-            av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
-          } else {
-            Debug(2, "Not setting priv_data");
-            av_opt_set(video_out_ctx->priv_data, "preset", "fast", 0);
-            Debug(2, "Not setting priv_data");
-          }
-          */
         } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO ) {
           /* just for testing, we also add B frames */
           video_out_ctx->max_b_frames = 2;
@@ -283,6 +272,7 @@ bool VideoStore::open() {
         }
 
         if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
+          Warning("Can't open video codec");
           Warning("Can't open video codec (%s) %s",
               video_out_codec->name,
               av_make_error_string(ret).c_str()

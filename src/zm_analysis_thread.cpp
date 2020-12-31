@@ -29,12 +29,10 @@ int AnalysisThread::run() {
   }
 
   while ( !(terminate or zm_terminate) ) {
-    // Process the next image
-    //sigprocmask(SIG_BLOCK, &block_set, 0);
 
     // Some periodic updates are required for variable capturing framerate
     if ( analysis_update_delay ) {
-      cur_time = time( 0 );
+      cur_time = time(0);
       if ( (unsigned int)( cur_time - last_analysis_update_time ) > analysis_update_delay ) {
         analysis_rate = monitor->GetAnalysisRate();
         monitor->UpdateAdaptiveSkip();
@@ -45,7 +43,7 @@ int AnalysisThread::run() {
     Debug(2, "Analyzing");
     if ( !monitor->Analyse() ) {
 Debug(2, "uSleeping for %d", (monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE));
-      usleep((monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE));
+      usleep(monitor->Active() ? ZM_SAMPLE_RATE : ZM_SUSPENDED_RATE);
     } else if ( analysis_rate ) {
 Debug(2, "uSleeping for %d", analysis_rate);
       usleep(analysis_rate);
@@ -53,7 +51,6 @@ Debug(2, "uSleeping for %d", analysis_rate);
 Debug(2, "Not Sleeping");
     }
 
-    //sigprocmask(SIG_UNBLOCK, &block_set, 0);
   } // end while ! terminate
   return 0;
 } // end in AnalysisThread::run()

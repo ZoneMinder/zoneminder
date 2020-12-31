@@ -528,7 +528,7 @@ int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
       Error("Error encoding (%d) (%s)", ret,
           av_err2str(ret));
     }
-    return 0;
+    return ret;
   }
   return 1;
 #else
@@ -536,8 +536,9 @@ int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
   int ret = avcodec_encode_audio2(context, &packet, nullptr, &got_packet);
   if ( ret < 0 ) {
     Error("Error encoding (%d) (%s)", ret, av_err2str(ret));
+    return ret;
   }
-  return got_packet;
+  return got_packet; // 1
 #endif
 }  // end int zm_receive_packet(AVCodecContext *context, AVPacket &packet)
 

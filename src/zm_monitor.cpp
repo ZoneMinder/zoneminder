@@ -2441,16 +2441,11 @@ int Monitor::Capture() {
   unsigned int index = image_count % image_buffer_count;
 
   ZMPacket *packet = new ZMPacket();
-  //&image_buffer[index];
   packet->timestamp = new struct timeval;
-  gettimeofday(packet->timestamp, NULL);
-  //image_buffer[index].timestamp;
-  //packet->image_index = image_count;
+  gettimeofday(packet->timestamp, nullptr);
 
-  //&image_buffer[index];
   // Still need to lock it.  When we add it to queue other threads can pounce on it
   packet->lock();
-  //packet->reset();
   Image* capture_image = image_buffer[index].image;
   //Debug(1, "capture image: %d x %d linesize: %d", capture_image->Width(), capture_image->Height(), capture_image->LineSize());
   int captureResult = 0;

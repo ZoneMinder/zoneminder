@@ -30,6 +30,7 @@
 #include "zm_rgb.h"
 #include "zm_zone.h"
 #include "zm_event.h"
+#include "zm_video.h"
 #include "zm_videostore.h"
 #include "zm_packetqueue.h"
 #include "zm_thread.h"

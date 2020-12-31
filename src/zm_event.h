@@ -34,11 +34,11 @@
 #include <set>
 #include <map>
 #include <queue>
+#include <string>
 
 #include "zm.h"
 #include "zm_image.h"
 #include "zm_stream.h"
-#include "zm_video.h"
 #include "zm_packet.h"
 #include "zm_storage.h"
 
@@ -94,7 +94,6 @@ class Event {
     std::string alarm_file;
     VideoStore *videoStore;
 
-    VideoWriter* videowriter;
     std::string video_name;
     std::string video_file;
     int        last_db_frame;
@@ -133,11 +132,6 @@ class Event {
         const char *event_file,
         bool alarm_frame=false
        ) const;
-    bool WriteFrameVideo(
-        const Image *image,
-        const struct timeval timestamp,
-        VideoWriter* videow
-        ) const;
 
     void updateNotes(const StringSetMap &stringSetMap);
 

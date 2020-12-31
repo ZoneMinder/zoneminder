@@ -55,8 +55,24 @@ Event::Event(
   id(0),
   monitor(p_monitor),
   start_time(p_start_time),
+  end_time({0,0}),
   cause(p_cause),
-  noteSetMap(p_noteSetMap)
+  noteSetMap(p_noteSetMap),
+  frames(0),
+  alarm_frames(0),
+  alarm_frame_written(false),
+  tot_score(0),
+  max_score(0),
+  //path(""),
+  //snapshit_file(),
+  //alarm_file(""),
+  videoStore(nullptr),
+  //video_name(""),
+  //video_file(""),
+  last_db_frame(0),
+  have_video_keyframe(false),
+  //scheme
+  save_jpegs(0)
 {
 
   std::string notes;
@@ -177,14 +193,6 @@ Event::Event(
   if ( untimedEvent ) {
     Warning("Event %" PRIu64 " has zero time, setting to current", id);
   }
-  end_time.tv_sec = 0;
-  frames = 0;
-  alarm_frames = 0;
-  tot_score = 0;
-  max_score = 0;
-  have_video_keyframe = false;
-  alarm_frame_written = false;
-  last_db_frame = 0;
   video_name = "";
 
   snapshot_file = path + "/snapshot.jpg";
@@ -226,7 +234,7 @@ Event::Event(
       videoStore = nullptr;
       save_jpegs |= 1; // Turn on jpeg storage
     }
-  }
+  }  // end if GetOptVideoWriter
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
 Event::~Event() {

@@ -152,7 +152,7 @@ function applyCheckMethod() {
 
 function applyPreset() {
   var form = document.zoneForm;
-  var presetId = $('presetSelector').get('value');
+  var presetId = $j('#presetSelector').val();
 
   if ( presets[presetId] ) {
     var preset = presets[presetId];
@@ -256,29 +256,29 @@ function limitArea(field) {
 }
 
 function highlightOn(index) {
-  $('row'+index).addClass('highlight');
-  $('point'+index).addClass('highlight');
+  $j('#row'+index).addClass('highlight');
+  $j('#point'+index).addClass('highlight');
 }
 
 function highlightOff(index) {
-  row = $('row'+index);
+  row = $j('#row'+index);
   if ( row ) {
     row.removeClass('highlight');
   } else {
     console.log("No row for index " + index);
   }
-  $('point'+index).removeClass('highlight');
+  $j('#point'+index).removeClass('highlight');
 }
 
 function setActivePoint(index) {
   highlightOff(index);
-  $('row'+index).addClass('active');
-  $('point'+index).addClass('active');
+  $j('#row'+index).addClass('active');
+  $j('#point'+index).addClass('active');
 }
 
 function unsetActivePoint(index) {
-  $('row'+index).removeClass('active');
-  $('point'+index).removeClass('active');
+  $j('#row'+index).removeClass('active');
+  $j('#point'+index).removeClass('active');
 }
 
 function getCoordString() {
@@ -290,12 +290,12 @@ function getCoordString() {
 }
 
 function updateZoneImage() {
-  var imageFrame = $('imageFrame');
+  var imageFrame = document.getElementById('imageFrame');
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
 
   scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
-  var SVG = $('zoneSVG');
-  var Poly = $('zonePoly');
+  var SVG = document.getElementById('zoneSVG');
+  var Poly = document.getElementById('zonePoly');
   Poly.points.clear();
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var Point = SVG.createSVGPoint();
@@ -323,8 +323,8 @@ function constrainValue(value, loVal, hiVal) {
 }
 
 function updateActivePoint(index) {
-  var point = $('point'+index);
-  var imageFrame = $('imageFrame');
+  var point = document.getElementById('point'+index);
+  var imageFrame = document.getElementById('imageFrame');
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
   var padding_left = style.paddingLeft.toInt();
   var padding_top = style.paddingTop.toInt();

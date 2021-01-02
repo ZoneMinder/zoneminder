@@ -291,7 +291,6 @@ function getCoordString() {
 
 function updateZoneImage() {
   var imageFrame = document.getElementById('imageFrame');
-  var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
   var SVG = document.getElementById('zoneSVG');
   var Poly = document.getElementById('zonePoly');
   Poly.points.clear();

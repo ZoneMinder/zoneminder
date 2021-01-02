@@ -434,51 +434,54 @@ function saveChanges(element) {
 }
 
 function drawZonePoints() {
-  var imageFrame = $('imageFrame');
-  imageFrame.getElements('.zonePoint').each(
-      function(element) {
-        element.destroy();
-      });
-  var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  var imageFrame = document.getElementById('imageFrame');
+  $j('.zonePoint').remove();
+  var style = window.getComputedStyle(imageFrame);
   scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
 
-  for ( var i = 0; i < zone['Points'].length; i++ ) {
-    var div = new Element('div', {
+  $j.each( zone['Points'], function(i, coord) {
+    var div = $j('<div>');
+    div.attr({
       'id': 'point'+i,
       'data-point-index': i,
       'class': 'zonePoint',
-      'title': 'Point '+(i+1),
-      'styles': {
-        'left': (Math.round(zone['Points'][i].x * scale) + style.paddingLeft.toInt())+"px",
-        'top': ((zone['Points'][i].y * scale).toInt() + style.paddingTop.toInt()) +"px"
-      }
+      'title': 'Point '+(i+1)
     });
-    div.addEvent('mouseover', highlightOn.pass(i));
-    div.addEvent('mouseout', highlightOff.pass(i));
-    div.inject(imageFrame);
-    div.makeDraggable( {
-      'container': imageFrame,
-      'onStart': setActivePoint.pass(i),
-      'onComplete': fixActivePoint.pass(i),
-      'onDrag': updateActivePoint.pass(i)
-    } );
-  } // end foreach point
+    div.css({
+      left: (Math.round(coord.x * scale) + style.paddingLeft.toInt())+"px",
+      top: ((coord.y * scale).toInt() + style.paddingTop.toInt()) +"px"    
+    });
 
-  var tables = $('zonePoints').getElement('table').getElements('table');
+    div.mouseover(highlightOn.bind(i,i));
+    div.mouseout(highlightOff.bind(i,i));
+
+    $j('#imageFrame').append(div);
+   
+    div.draggable({
+      'containment': imageFrame,
+      'start': setActivePoint.bind(i,i),
+      'stop': fixActivePoint.bind(i,i),
+      'drag': updateActivePoint.bind(i,i)
+    });
+  }); // end $j.each point
+
+  var tables = document.getElementById('zonePoints').getElement('table').getElements('table');
   tables.each( function(table) {
     table.getElement('tbody').empty();
   } );
 
   for ( var i = 0; i < zone['Points'].length; i++ ) {
-    var row = new Element('tr', {'id': 'row'+i});
-    row.addEvent('mouseover', highlightOn.pass(i));
-    row.addEvent('mouseout', highlightOff.pass(i));
-    var cell = new Element('td');
-    cell.set('text', i+1);
-    cell.inject(row);
+    var row = document.createElement('tr');
+    row.id = 'row'+i;
+    row.addEvent('mouseover', highlightOn.bind(i,i));
+    row.addEvent('mouseout', highlightOff.bind(i,i));
 
-    cell = new Element('td');
-    var input = new Element('input', {
+    var cell = document.createElement('td');
+    $j(cell).text(i+1).appendTo(row);
+
+    cell = document.createElement('td');
+    var input = document.createElement('input');
+    $j(input).attr({
       'id': 'newZone[Points]['+i+'][x]',
       'name': 'newZone[Points]['+i+'][x]',
       'value': zone['Points'][i].x,
@@ -489,11 +492,12 @@ function drawZonePoints() {
       'data-point-index': i
     });
     input.oninput = window['updateX'].bind(input, input);
-    input.inject(cell);
-    cell.inject(row);
+    $j(input).appendTo(cell);
+    $j(cell).appendTo(row);
 
-    cell = new Element('td');
-    input = new Element('input', {
+    cell = document.createElement('td');
+    input = document.createElement('input');
+    $j(input).attr({
       'id': 'newZone[Points]['+i+'][y]',
       'name': 'newZone[Points]['+i+'][y]',
       'value': zone['Points'][i].y,
@@ -502,27 +506,32 @@ function drawZonePoints() {
       'min': '0',
       'max': maxY,
       'data-point-index': i
-    } );
+    });
     input.oninput = window['updateY'].bind(input, input);
-    input.inject(cell);
-    cell.inject(row);
+    $j(input).appendTo(cell);
+    $j(cell).appendTo(row);
 
-    cell = new Element('td');
-    new Element('button', {
-      'type': 'button',
-      'events': {'click': addPoint.pass(i)}
-    }).set('text', '+').inject(cell);
+    cell = document.createElement('td');
+    var pbtn = document.createElement('button');
+    $j(pbtn)
+      .attr('type', 'button')
+      .text('+')
+      .click(addPoint.bind(i,i))
+      .appendTo(cell);
+
     if ( zone['Points'].length > 3 ) {
-      cell.appendText(' ');
-      new Element('button', {
-        'id': 'delete'+i,
-        'type': 'button',
-        'events': {'click': delPoint.pass(i)}
-      }).set('text', '-').inject(cell);
+      var mbtn = document.createElement('button');
+      $j(mbtn)
+        .attr('id', 'delete'+i)
+        .attr('type', 'button')
+        .addClass('ml-1')
+        .text('-')
+        .click(delPoint.bind(i,i))
+        .appendTo(cell);
     }
-    cell.inject(row);
+    $j(cell).appendTo(row);
 
-    row.inject(tables[i%tables.length].getElement('tbody'));
+    $j(row).appendTo(tables[i%tables.length].getElement('tbody'));
   } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();

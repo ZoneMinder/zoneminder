@@ -292,8 +292,9 @@ function getCoordString() {
 function updateZoneImage() {
   var imageFrame = document.getElementById('imageFrame');
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-
-  scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
+  var padding_left = parseInt(style.paddingLeft);
+  var padding_right = parseInt(style.paddingRight);
+  var scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
   var SVG = document.getElementById('zoneSVG');
   var Poly = document.getElementById('zonePoly');
   Poly.points.clear();
@@ -323,23 +324,23 @@ function constrainValue(value, loVal, hiVal) {
 }
 
 function updateActivePoint(index) {
-  var point = document.getElementById('point'+index);
+  var point = $j('#point'+index);
   var imageFrame = document.getElementById('imageFrame');
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-  var padding_left = style.paddingLeft.toInt();
-  var padding_top = style.paddingTop.toInt();
-
-  scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
-  var left = point.getStyle('left').toInt();
+  var padding_left = parseInt(style.paddingLeft);
+  var padding_top = parseInt(style.paddingTop);
+  var padding_right = parseInt(style.paddingRight);
+  var scale = (imageFrame.clientWidth - ( padding_top + padding_right )) / maxX;
+  var left = parseInt(point.css('left'), 10);
 
   if ( left < padding_left ) {
-    point.setStyle('left', style.paddingLeft);
-    left = padding_left.toInt();
+    point.css('left', style.paddingLeft);
+    left = parseInt(padding_left);
   }
-  var top = point.getStyle('top').toInt();
+  var top = parseInt(point.css('top'));
   if ( top < padding_top ) {
-    point.setStyle('top', style.paddingTop);
-    top = padding_top;
+    point.css('top', style.paddingTop);
+    top = parseInt(padding_top);
   }
 
   var x = constrainValue(Math.ceil(left / scale)-Math.ceil(padding_left/scale), 0, maxX);
@@ -397,10 +398,10 @@ function updateX(input) {
 
   limitPointValue(input, 0, maxX);
 
-  var point = $('point'+index);
+  var point = $j('#point'+index);
   var x = input.value;
 
-  point.setStyle('left', x+'px');
+  point.css('left', x+'px');
   zone['Points'][index].x = x;
   var Point = $('zonePoly').points.getItem(index);
   Point.x = x;
@@ -411,10 +412,10 @@ function updateY(input) {
   index = input.getAttribute('data-point-index');
   limitPointValue(input, 0, maxY);
 
-  var point = $('point'+index);
+  var point = $j('#point'+index);
   var y = input.value;
 
-  point.setStyle('top', y+'px');
+  point.css('top', y+'px');
   zone['Points'][index].y = y;
   var Point = $('zonePoly').points.getItem(index);
   Point.y = y;
@@ -436,8 +437,11 @@ function saveChanges(element) {
 function drawZonePoints() {
   var imageFrame = document.getElementById('imageFrame');
   $j('.zonePoint').remove();
-  var style = window.getComputedStyle(imageFrame);
-  scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
+  var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  var padding_left = parseInt(style.paddingLeft);
+  var padding_right = parseInt(style.paddingRight);
+  var padding_top = parseInt(style.paddingTop);
+  var scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
   $j.each( zone['Points'], function(i, coord) {
     var div = $j('<div>');
@@ -448,8 +452,8 @@ function drawZonePoints() {
       'title': 'Point '+(i+1)
     });
     div.css({
-      left: (Math.round(coord.x * scale) + style.paddingLeft.toInt())+"px",
-      top: ((coord.y * scale).toInt() + style.paddingTop.toInt()) +"px"    
+      left: (Math.round(coord.x * scale) + padding_left)+"px",
+      top: ((parseInt(coord.y * scale)) + padding_top) +"px"    
     });
 
     div.mouseover(highlightOn.bind(i,i));

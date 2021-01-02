@@ -61,8 +61,7 @@ function processRows(rows) {
     if ( canEdit.Monitors ) row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
     if ( canEdit.Events ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {
-      // href is set to '##' here to prevent the page from scrolling to the top when the modal is opened
-      row.Cause = row.Cause + '<a href="##" data-on-click-this="objdetectModal" data-event-id=' +eid+ '><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></div></a>';
+      row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></div></a>';
     } else if ( row.Notes != 'Forced Web: ' ) {
       row.Cause = row.Cause + '<br/><div class="small text-nowrap text-muted">' + row.Notes + '</div>';
     }
@@ -142,9 +141,7 @@ function getEventDetailModal(eid) {
       .fail(logAjaxFail);
 }
 
-function objdetectModal( element ) {
-  var eid = element.getAttribute('data-event-id');
-
+function getObjdetectModal(eid) {
   $j.getJSON(thisUrl + '?request=modal&modal=objdetect&eid=' + eid)
       .done(function(data) {
         insertModalHtml('objdetectModal', data.html);
@@ -315,8 +312,13 @@ function initPage() {
 
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
-    // Object detection inserts data-onclick-this links after DOM has loaded
-    dataOnClickThis();
+    // Manage the Object Detection links in the events list
+    $j(".objDetectLink").click(function(evt) {
+      evt.preventDefault();
+      var eid = $j(this).data('eid');
+      getObjdetectModal(eid);
+    });
+
     // Manage the eventdetail links in the events list
     $j(".eDetailLink").click(function(evt) {
       evt.preventDefault();

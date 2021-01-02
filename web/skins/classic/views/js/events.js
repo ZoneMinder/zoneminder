@@ -61,7 +61,8 @@ function processRows(rows) {
     if ( canEdit.Monitors ) row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
     if ( canEdit.Events ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {
-      row.Cause = row.Cause + '<a href="#" data-on-click-this="objdetectModal" data-event-id=' +eid+ '><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></div></a>';
+      // href is set to '##' here to prevent the page from scrolling to the top when the modal is opened
+      row.Cause = row.Cause + '<a href="##" data-on-click-this="objdetectModal" data-event-id=' +eid+ '><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></div></a>';
     } else if ( row.Notes != 'Forced Web: ' ) {
       row.Cause = row.Cause + '<br/><div class="small text-nowrap text-muted">' + row.Notes + '</div>';
     }

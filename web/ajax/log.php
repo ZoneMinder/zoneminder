@@ -165,9 +165,6 @@ function queryRequest() {
 
   $rows = array();
   $results = dbFetchAll($query['sql'], NULL, $query['values']);
-  if ( !$results ) {
-    return $data;
-  }
 
   foreach ( $results as $row ) {
     $row['DateTime'] = strftime('%Y-%m-%d %H:%M:%S', intval($row['TimeKey']));

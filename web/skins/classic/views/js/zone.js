@@ -294,7 +294,6 @@ function updateZoneImage() {
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
   var padding_left = parseInt(style.paddingLeft);
   var padding_right = parseInt(style.paddingRight);
-  var scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
   var SVG = document.getElementById('zoneSVG');
   var Poly = document.getElementById('zonePoly');
   Poly.points.clear();
@@ -453,19 +452,19 @@ function drawZonePoints() {
     });
     div.css({
       left: (Math.round(coord.x * scale) + padding_left)+"px",
-      top: ((parseInt(coord.y * scale)) + padding_top) +"px"    
+      top: ((parseInt(coord.y * scale)) + padding_top) +"px"
     });
 
-    div.mouseover(highlightOn.bind(i,i));
-    div.mouseout(highlightOff.bind(i,i));
+    div.mouseover(highlightOn.bind(i, i));
+    div.mouseout(highlightOff.bind(i, i));
 
     $j('#imageFrame').append(div);
-   
+
     div.draggable({
       'containment': imageFrame,
-      'start': setActivePoint.bind(i,i),
-      'stop': fixActivePoint.bind(i,i),
-      'drag': updateActivePoint.bind(i,i)
+      'start': setActivePoint.bind(i, i),
+      'stop': fixActivePoint.bind(i, i),
+      'drag': updateActivePoint.bind(i, i)
     });
   }); // end $j.each point
 
@@ -477,8 +476,8 @@ function drawZonePoints() {
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var row = document.createElement('tr');
     row.id = 'row'+i;
-    row.addEvent('mouseover', highlightOn.bind(i,i));
-    row.addEvent('mouseout', highlightOff.bind(i,i));
+    row.addEvent('mouseover', highlightOn.bind(i, i));
+    row.addEvent('mouseout', highlightOff.bind(i, i));
 
     var cell = document.createElement('td');
     $j(cell).text(i+1).appendTo(row);
@@ -518,20 +517,20 @@ function drawZonePoints() {
     cell = document.createElement('td');
     var pbtn = document.createElement('button');
     $j(pbtn)
-      .attr('type', 'button')
-      .text('+')
-      .click(addPoint.bind(i,i))
-      .appendTo(cell);
+        .attr('type', 'button')
+        .text('+')
+        .click(addPoint.bind(i, i))
+        .appendTo(cell);
 
     if ( zone['Points'].length > 3 ) {
       var mbtn = document.createElement('button');
       $j(mbtn)
-        .attr('id', 'delete'+i)
-        .attr('type', 'button')
-        .addClass('ml-1')
-        .text('-')
-        .click(delPoint.bind(i,i))
-        .appendTo(cell);
+          .attr('id', 'delete'+i)
+          .attr('type', 'button')
+          .addClass('ml-1')
+          .text('-')
+          .click(delPoint.bind(i, i))
+          .appendTo(cell);
     }
     $j(cell).appendTo(row);
 

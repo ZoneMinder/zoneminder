@@ -292,16 +292,13 @@ function getCoordString() {
 function updateZoneImage() {
   var imageFrame = document.getElementById('imageFrame');
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-  var padding_left = parseInt(style.paddingLeft);
-  var padding_right = parseInt(style.paddingRight);
   var SVG = document.getElementById('zoneSVG');
   var Poly = document.getElementById('zonePoly');
   Poly.points.clear();
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var Point = SVG.createSVGPoint();
     Point.x = zone['Points'][i].x;
-    //+ 2*padding_left;
-    Point.y = zone['Points'][i].y;// + 2*padding_top;
+    Point.y = zone['Points'][i].y;
     Poly.points.appendItem(Point);
   }
 }

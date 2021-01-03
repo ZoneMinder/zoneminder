@@ -137,10 +137,10 @@ foreach ( $displayMonitors as &$row ) {
 } # end foreach Monitor
 
 xhtmlHeaders(__FILE__, translate('Montage'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <div id="page">
-    <?php echo getNavBarHTML() ?>
+  <div id="page" class="container-fluid">
     <div id="header">
 <?php
     $html = '';

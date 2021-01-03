@@ -484,7 +484,6 @@ function redrawScreen() {
     panLeft.hide();
     panRight.hide();
     downloadVideo.hide();
-
   } else {
     // switch out of liveview mode
     dateTimeDiv.show();
@@ -505,7 +504,7 @@ function redrawScreen() {
     var fps = $j('#fps');
     var vh = window.innerHeight;
     var mh = (vh - monitors.position().top - fps.outerHeight());
-    
+
     scaleDiv.hide();
     fit.text('Scale');
     monitors.height(mh.toString() + "px"); // leave a small gap at bottom

@@ -51,14 +51,14 @@ function selectLayout(element) {
   Cookie.write('zmMontageLayout', layout_id, {duration: 10*365, samesite: 'strict'});
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
     Cookie.write('zmMontageScale', '', {duration: 10*365, samesite: 'strict'});
-    $('scale').set('value', '');
-    $('width').set('value', '0');
+    $j('#scale').val('');
+    $j('#width').val('0');
   } else {
     // Is freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
   }
-  var width = parseInt($('width').get('value'));
-  var height = parseInt($('height').get('value'));
-  var scale = $('scale').get('value');
+  var width = parseInt($j('#width').val());
+  var height = parseInt($j('#height').val());
+  var scale = $j('#scale').val();
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
@@ -94,8 +94,8 @@ function selectLayout(element) {
  * called when the widthControl|heightControl select elements are changed
  */
 function changeSize() {
-  var width = parseInt($('width').get('value'));
-  var height = parseInt($('height').get('value'));
+  var width = parseInt($j('#width').val());
+  var height = parseInt($j('#height').val());
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
@@ -110,7 +110,7 @@ function changeSize() {
     monitor_frame.css('height', ( height ? height+'px' : 'auto'));
 
     /*Stream could be an applet so can't use moo tools*/
-    var streamImg = $('liveStream'+monitor.id);
+    var streamImg = document.getElementById('liveStream'+monitor.id);
     if ( streamImg ) {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
@@ -132,11 +132,11 @@ function changeSize() {
       //streamImg.style.height = '';
     }
   }
-  $('scale').set('value', '');
+  $j('#scale').val('');
   Cookie.write('zmMontageScale', '', {duration: 10*365, samesite: 'strict'});
   Cookie.write('zmMontageWidth', width, {duration: 10*365, samesite: 'strict'});
   Cookie.write('zmMontageHeight', height, {duration: 10*365, samesite: 'strict'});
-  jQuery("#zmMontageLayout option:selected").removeAttr("selected");
+  $j("#zmMontageLayout option:selected").removeAttr("selected");
   //selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
@@ -144,9 +144,9 @@ function changeSize() {
  * called when the scaleControl select element is changed
  */
 function changeScale() {
-  var scale = $('scale').get('value');
-  $('width').set('value', '0'); //auto
-  $('height').set('value', '0'); //auto
+  var scale = $j('#scale').val();
+  $j('#width').val('0'); //auto
+  $j('#height').val('0'); //auto
   Cookie.write('zmMontageScale', scale, {duration: 10*365, samesite: 'strict'});
   Cookie.write('zmMontageWidth', '', {duration: 10*365, samesite: 'strict'});
   Cookie.write('zmMontageHeight', '', {duration: 10*365, samesite: 'strict'});
@@ -276,17 +276,15 @@ function reloadWebSite(ndx) {
 
 var monitors = new Array();
 function initPage() {
-  jQuery(document).ready(function() {
-    jQuery("#hdrbutton").click(function() {
-      jQuery("#flipMontageHeader").slideToggle("slow");
-      jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-      Cookie.write( 'zmMontageHeaderFlip', jQuery('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', {duration: 10*365} );
-    });
+  $j("#hdrbutton").click(function() {
+    $j("#flipMontageHeader").slideToggle("slow");
+    $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+    Cookie.write( 'zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', {duration: 10*365} );
   });
   if ( Cookie.read('zmMontageHeaderFlip') == 'down' ) {
     // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
-    jQuery("#flipMontageHeader").slideToggle("fast");
-    jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+    $j("#flipMontageHeader").slideToggle("fast");
+    $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
 
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
@@ -306,4 +304,4 @@ function initPage() {
   selectLayout('#zmMontageLayout');
 }
 // Kick everything off
-window.addEventListener('DOMContentLoaded', initPage);
+$j(document).ready(initPage);

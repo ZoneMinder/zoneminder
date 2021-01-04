@@ -875,7 +875,6 @@ function xhtmlFooter() {
 <?php echo output_script_if_exists(array(
   'js/bootstrap-table.min.js',
   'js/bootstrap-table-locale-all.min.js',
-  'js/tableExport.min.js',
   'js/bootstrap-table-export.min.js',
   'js/bootstrap-table-page-jump-to.min.js',
   'js/bootstrap-table-cookie.min.js',

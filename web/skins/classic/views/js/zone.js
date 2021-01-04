@@ -2,8 +2,17 @@ var requestQueue = new Request.Queue({
   concurrent: monitorData.length,
   stopOnFailure: false
 });
+
+var pauseBtn = $j('#pauseBtn');
+var playBtn = $j('#playBtn');
+var saveBtn = $j('#saveBtn');
+var cancelBtn = $j('#cancelBtn');
+var backBtn = $j('#backBtn');
+var refreshBtn = $j('#refreshBtn');
+var monitors = [];
+
 function validateForm( form ) {
-  var errors = new Array();
+  var errors = [];
   if ( selfIntersecting ) {
     errors[errors.length] = selfIntersectingString;
   }
@@ -282,7 +291,7 @@ function unsetActivePoint(index) {
 }
 
 function getCoordString() {
-  var coords = new Array();
+  var coords = [];
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     coords[coords.length] = zone['Points'][i].x+','+zone['Points'][i].y;
   }
@@ -340,9 +349,9 @@ function updateActivePoint(index) {
   var x = constrainValue(Math.ceil(left / scale)-Math.ceil(padding_left/scale), 0, maxX);
   var y = constrainValue(Math.ceil(top / scale)-Math.ceil(padding_top/scale), 0, maxY);
 
-  zone['Points'][index].x = $('newZone[Points]['+index+'][x]').value = x;
-  zone['Points'][index].y = $('newZone[Points]['+index+'][y]').value = y;
-  var Point = $('zonePoly').points.getItem(index);
+  zone['Points'][index].x = document.getElementById('newZone[Points]['+index+'][x]').value = x;
+  zone['Points'][index].y = document.getElementById('newZone[Points]['+index+'][y]').value = y;
+  var Point = document.getElementById('zonePoly').points.getItem(index);
   Point.x = x;
   Point.y = y;
   updateArea();
@@ -376,7 +385,7 @@ function limitPointValue(point, loVal, hiVal) {
 function updateArea( ) {
   area = Polygon_calcArea(zone['Points']);
   zone.Area = area;
-  var form = $('zoneForm');
+  var form = document.getElementById('zoneForm');
   form.elements['newZone[Area]'].value = area;
   if ( form.elements['newZone[Units]'].value == 'Percent' ) {
     form.elements['newZone[TempArea]'].value = Math.round( area/monitorArea*100 );
@@ -397,7 +406,7 @@ function updateX(input) {
 
   point.css('left', x+'px');
   zone['Points'][index].x = x;
-  var Point = $('zonePoly').points.getItem(index);
+  var Point = document.getElementById('zonePoly').points.getItem(index);
   Point.x = x;
   updateArea();
 }
@@ -411,7 +420,7 @@ function updateY(input) {
 
   point.css('top', y+'px');
   zone['Points'][index].y = y;
-  var Point = $('zonePoly').points.getItem(index);
+  var Point = document.getElementById('zonePoly').points.getItem(index);
   Point.y = y;
   updateArea();
 }
@@ -539,16 +548,16 @@ function streamCmdPause() {
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     monitors[i].pause();
   }
-  document.getElementById('pauseBtn').style.display = 'none';
-  document.getElementById('playBtn').style.display = 'inline';
+  pauseBtn.hide();
+  playBtn.show();
 }
 
 function streamCmdPlay() {
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     monitors[i].play();
   }
-  document.getElementById('playBtn').style.display = 'none';
-  document.getElementById('pauseBtn').style.display = 'inline';
+  pauseBtn.show();
+  playBtn.hide();
 }
 
 //Make sure the various refreshes are still taking effect
@@ -567,8 +576,6 @@ function watchdogOk(type) {
 function presetSelectorBlur() {
   this.selectedIndex = 0;
 }
-
-var monitors = new Array();
 
 function initPage() {
   var form = document.zoneForm;
@@ -643,21 +650,16 @@ function initPage() {
 
   applyCheckMethod();
 
-  $('pauseBtn').onclick = function() {
-    streamCmdPause();
-  };
-  $('playBtn').style.display = 'none'; // hide pause initially
-  $('playBtn').onclick = function() {
-    streamCmdPlay();
-  };
+  pauseBtn.click(streamCmdPause);
+  playBtn.click(streamCmdPlay);
+  playBtn.hide(); // hide pause initially
 
-  if ( el = $('saveBtn') ) {
+  if ( el = saveBtn[0] ) {
     el.onclick = window['saveChanges'].bind(el, el);
   }
-  if ( el = $('cancelBtn') ) {
+  if ( el = cancelBtn[0] ) {
     el.onclick = function() {
-      refreshParentWindow();
-      closeWindow();
+      window.location.reload(true);
     };
   }
 
@@ -683,7 +685,7 @@ function initPage() {
   });
 
   // Disable the back button if there is nothing to go back to
-  $j('#backBtn').prop('disabled', !document.referrer.length);
+  backBtn.prop('disabled', !document.referrer.length);
 
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {

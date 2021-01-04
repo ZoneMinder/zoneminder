@@ -109,7 +109,6 @@ if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
 }
 echo output_cache_busted_stylesheet_links(array(
   'css/reset.css',
-  'css/overlay.css',
   'css/font-awesome.min.css',
   'css/bootstrap.min.css',
   'css/bootstrap-table.min.css',
@@ -925,13 +924,8 @@ function xhtmlFooter() {
 ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
-<?php 
-  if ($basename == 'watch' or $basename == 'log' ) {
-  // This is used in the log popup for the export function. Not sure if it's used anywhere else
-?>
-    <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
 <?php
-  } else if ( $basename == 'monitor' ) {
+  if ( $basename == 'monitor' ) {
     echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
   } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>

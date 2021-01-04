@@ -71,9 +71,6 @@ function initPage() {
   var backBtn = $j('#backBtn');
   var onvifBtn = $j('#onvifBtn');
 
-  //var protocolSelector = $('contentForm').elements['newMonitor[Protocol]'];
-  //if ( $(protocolSelector).getTag() == 'select' )
-  //updateMethods( $(protocolSelector) );
   document.querySelectorAll('input[name="newMonitor[SignalCheckColour]"]').forEach(function(el) {
     el.oninput = function(event) {
       $j('#SignalCheckSwatch').css('background-color', event.target.value);

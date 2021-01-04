@@ -1,5 +1,5 @@
-function updateLabel() {
-  var form = $('contentForm');
+function initPage() {
+  var form = document.getElementById('contentForm');
   var preset_ddm = form.elements['preset'];
 
   var presetIndex = preset_ddm[preset_ddm.selectedIndex].value;
@@ -9,4 +9,5 @@ function updateLabel() {
     form.newLabel.value = '';
   }
 }
-window.addEventListener('DOMContentLoaded', updateLabel);
+
+$j(document).ready(initPage );

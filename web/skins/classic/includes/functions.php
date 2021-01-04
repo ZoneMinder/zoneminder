@@ -855,7 +855,6 @@ function xhtmlFooter() {
   global $skin;
   global $basename;
   $skinJsPhpFile = getSkinFile('js/skin.js.php');
-  $cssJsFile = getSkinFile('js/'.$css.'.js');
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 ?>
@@ -906,15 +905,6 @@ function xhtmlFooter() {
 ?>
   </script>
 <?php
-	if ( $cssJsFile ) {
-?>
-  <script src="<?php echo cache_bust($cssJsFile) ?>"></script>
-<?php
-  } else {
-?>
-  <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
-<?php
-  }
   if ( $viewJsFile ) {
 ?>
   <script src="<?php echo cache_bust($viewJsFile) ?>"></script>

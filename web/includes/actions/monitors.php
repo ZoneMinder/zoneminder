@@ -44,8 +44,7 @@ if ( $action == 'save' ) {
       }
     }
   } // end foreach mid
-  $refreshParent = true;
-  $view = 'none';
+  $view = 'console';
 } else {
   ZM\Warning("Unknown action $action in Monitor");
 } // end if action == Delete

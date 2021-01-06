@@ -2179,6 +2179,7 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
     zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
   } // end if doing conversion or not
 
+  zm_packet.codec_type = AVMEDIA_TYPE_VIDEO;
   zm_packet.keyframe = 1;
   return 1;
 } // end int LocalCamera::Capture()

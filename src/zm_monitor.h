@@ -104,8 +104,8 @@ public:
 
   typedef enum {
     DISABLED,
-    X264ENCODE,
-    H264PASSTHROUGH,
+    ENCODE,
+    PASSTHROUGH,
   } VideoWriter;
 
 protected:
@@ -194,6 +194,7 @@ protected:
 
   VideoStore          *videoStore;
   zm_packetqueue      *packetqueue;
+  packetqueue_iterator  *analysis_it;
   Mutex mutex;
 
   class MonitorLink {
@@ -425,6 +426,7 @@ public:
     return storage;
   }
   inline Function GetFunction() const { return function; }
+  inline zm_packetqueue * GetPacketQueue() const { return packetqueue; }
   inline bool Enabled() const {
     if ( function <= MONITOR )
       return false;

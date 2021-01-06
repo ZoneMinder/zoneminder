@@ -1,8 +1,3 @@
-
-var requestQueue = new Request.Queue({
-  concurrent: monitorData.length,
-  stopOnFailure: false
-});
 function streamCmdQuit( ) {
   if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_QUIT );

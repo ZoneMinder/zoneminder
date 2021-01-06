@@ -947,6 +947,19 @@ our @options = (
     type  =>  $types{integer},
     category  => 'network',
   },
+  #{
+  #name        =>  'ZM_MIN_RTSP_PORT',
+  #default     =>  '',
+  #description =>  'Start of port range to contact for RTSP streaming video.',
+  #help        =>  q`
+  #The beginng of a port range that will be used to offer
+  #RTSP streaming of live captured video.
+  #Each monitor will use this value plus the Monitor Id to stream
+  #content.  So a value of 2000 here will cause a stream for Monitor 1 to
+  #hit port 2001.`,
+  #type  =>  $types{integer},
+  #category  => 'network',
+  #},
   {
     name        => 'ZM_MIN_RTP_PORT',
     default     => '40200',

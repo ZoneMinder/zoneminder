@@ -303,7 +303,10 @@ Monitor::Monitor()
   videowriter(DISABLED),
   encoderparams(""),
   output_codec(0),
+  encoder(""),
   output_container(""),
+  imagePixFormat(AV_PIX_FMT_NONE),
+  subpixelorder(0),
   record_audio(0),
 //event_prefix
 //label_format
@@ -316,6 +319,7 @@ Monitor::Monitor()
   stream_replay_buffer(0),
   section_length(0),
   min_section_length(0),
+  adaptive_skip(false),
   frame_skip(0),
   motion_frame_skip(0),
   analysis_fps_limit(0),
@@ -330,12 +334,23 @@ Monitor::Monitor()
   signal_check_points(0),
   signal_check_colour(0),
   embed_exif(0),
+  capture_max_fps(0),
   purpose(QUERY),
   last_camera_bytes(0),
   event_count(0),
   image_count(0),
   analysis_image_count(0),
   motion_frame_count(0),
+  ready_count(0),
+  first_alarm_count(0),
+  last_alarm_count(0),
+  last_signal(false),
+  last_section_mod(0),
+  buffer_count(0),
+  state(IDLE),
+  start_time(0),
+  last_fps_time(0),
+  last_analysis_fps_time(0),
   auto_resume_time(0),
   last_motion_score(0),
   camera(nullptr),
@@ -558,7 +573,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   last_alarm_count = 0;
   state = IDLE;
-  last_signal = false;
+  last_signal = true;   // Defaulting to having signal so that we don't get a signal change on the first frame.
+                        // Instead initial failure to capture will cause a loss of signal change which I think makes more sense.
 
   camera = NULL;
   uint64_t image_size = width * height * colours;
@@ -606,7 +622,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
         and
         ( savejpegs == 0 )
         and
-        ( videowriter == H264PASSTHROUGH )
+        ( videowriter == PASSTHROUGH )
         and
         !decoding_enabled
         );
@@ -954,7 +970,8 @@ bool Monitor::connect() {
   shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
-  packetqueue = NULL;
+  packetqueue = nullptr;
+  analysis_it = nullptr;
 
   if ( ((unsigned long)shared_images % 64) != 0 ) {
     /* Align images buffer to nearest 64 byte boundary */
@@ -1144,6 +1161,7 @@ Monitor::~Monitor() {
 
   delete packetqueue;
   packetqueue = nullptr;
+  analysis_it = nullptr; // deleted by packetqueue
 
   for ( int i = 0; i < n_zones; i++ ) {
     delete zones[i];
@@ -1808,11 +1826,12 @@ bool Monitor::Analyse() {
     Warning("Shouldn't be doing Analyse when not Enabled");
     return false;
   }
-  if ( ! packetqueue ) {
+  if ( !packetqueue ) {
     Debug(1, "Waiting for PrimeCapture");
     return false;
   }
-
+  if ( !analysis_it ) 
+    analysis_it = packetqueue->get_video_it(true);
 
   // if  have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
@@ -1820,19 +1839,19 @@ bool Monitor::Analyse() {
 
   ZMPacket *snap;
   // get_analysis_packet will lock the packet
-  while ( (!zm_terminate) and (snap = packetqueue->get_analysis_packet()) ) {
+  while ( (!zm_terminate) and (snap = packetqueue->get_packet(analysis_it)) ) {
     // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
     if ( snap->score != -1 ) {
       snap->unlock();
-      packetqueue->increment_analysis_it();
+      packetqueue->increment_it(analysis_it);
       Error("skipping because score was %d", snap->score);
       return false;
     }
 
     packets_processed += 1;
-    std::list<ZMPacket *>::iterator snap_it = packetqueue->get_analysis_it();
-    packetqueue->increment_analysis_it();
-
+    packetqueue_iterator snap_it = *analysis_it;
+    //packetqueue->get_analysis_it();
+    packetqueue->increment_it(analysis_it);
 
     // signal is set by capture
     bool signal = shared_data->signal;
@@ -2052,8 +2071,7 @@ bool Monitor::Analyse() {
                       name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
                   if ( !event ) {
-
-                    std::list<ZMPacket *>::iterator start_it = packetqueue->get_event_start_packet_it(
+                    packetqueue_iterator start_it = packetqueue->get_event_start_packet_it(
                         snap_it,
                         (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
                         );
@@ -2061,7 +2079,7 @@ bool Monitor::Analyse() {
 
                     event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
                     // Write out starting packets, do not modify packetqueue it will garbage collect itself
-                    while (start_it != snap_it ) {
+                    while ( start_it != snap_it ) {
                       event->AddPacket(*start_it);
                       start_it ++;
                     }
@@ -2073,7 +2091,7 @@ bool Monitor::Analyse() {
                     shared_data->state = state = ALARM;
 
                     Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name, image_count, event->Id());
-                  }
+                  }  // end if no event, so start it
                   if ( alarm_frame_count ) {
                     Debug(1, "alarm frame count so SavePreAlarmFrames");
                     event->SavePreAlarmFrames();
@@ -2107,9 +2125,9 @@ bool Monitor::Analyse() {
                 }
               } else if ( state == PREALARM ) {
                 // Back to IDLE
-                shared_data->state = state =  function != MOCORD ? IDLE : TAPE;
+                shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
               } else {
-                Debug(1, "State %d ALERT beacuse image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%d) - recording.tv_src(%d) >= min_section_length(%d)",
+                Debug(1, "State %d beacuse image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%d) - recording.tv_src(%d) >= min_section_length(%d)",
                     state, analysis_image_count, last_alarm_count, post_event_count,
                     timestamp->tv_sec, video_store_data->recording.tv_sec, min_section_length);
               }
@@ -2128,7 +2146,7 @@ bool Monitor::Analyse() {
                     if ( zones[i]->AlarmImage() ) {
                       if ( ! snap->analysis_image )
                         snap->analysis_image = new Image(*(snap->image));
-                      snap->analysis_image->Overlay( *(zones[i]->AlarmImage()) );
+                      snap->analysis_image->Overlay(*(zones[i]->AlarmImage()));
                     }
                   } // end if zone is alarmed
                 } // end foreach zone
@@ -2442,10 +2460,12 @@ int Monitor::Capture() {
 
   ZMPacket *packet = new ZMPacket();
   packet->timestamp = new struct timeval;
+  packet->image_index = image_count;
   gettimeofday(packet->timestamp, nullptr);
 
   // Still need to lock it.  When we add it to queue other threads can pounce on it
-  packet->lock();
+  // Not so convinced.  We hold the packetqueue lock while adding it.  
+  //packet->lock();
   Image* capture_image = image_buffer[index].image;
   //Debug(1, "capture image: %d x %d linesize: %d", capture_image->Width(), capture_image->Height(), capture_image->LineSize());
   int captureResult = 0;
@@ -2462,7 +2482,7 @@ int Monitor::Capture() {
     gettimeofday(packet->timestamp, NULL);
 
     if ( FirstCapture ) {
-      packet->unlock();
+      //packet->unlock();
       FirstCapture = 0;
       return 0;
     }
@@ -2483,23 +2503,26 @@ int Monitor::Capture() {
       shared_data->last_write_index = index;
       shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
       image_count++;
-      packet->unlock();
+      //packet->unlock();
+      delete packet;
       // What about timestamping it?
       // Don't want to do analysis on it, but we won't due to signal
       return -1;
     } else if ( captureResult > 0 ) {
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
           packet->packet.stream_index, video_stream_id, packetqueue->packet_count(video_stream_id), ( event ? 1 : 0 ) );
+      //packet->unlock();
 
       if ( packet->packet.stream_index != video_stream_id ) {
         // Only queue if we have some video packets in there. Should push this logic into packetqueue
         if ( packetqueue->packet_count(video_stream_id) or event ) {
           Debug(2, "Queueing audio packet");
           packetqueue->queuePacket(packet);
+        } else {
+          delete packet;
         }
         // Don't update last_write_index because that is used for live streaming
         //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
-        packet->unlock();
         return 1;
       } // end if audio
 
@@ -2574,25 +2597,27 @@ int Monitor::Capture() {
       }  // end if have image
       // FIXME Copy to shmem
 
-      if ( packetqueue->packet_count(video_stream_id) or packet->keyframe or event ) {
-        Debug(2, "Have video packet for index (%d), adding to queue", index);
-        packetqueue->queuePacket(packet);
-      } else {
-        Debug(2, "Not queuing video packet for index (%d) packet count %d", index, packetqueue->packet_count(video_stream_id));
-      }
-      Debug(2, "Queuedideo packet for index (%d), adding to queue", index);
-
       shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
       shared_data->last_write_index = index;
       shared_data->last_write_time = packet->timestamp->tv_sec;
-      //image_buffer[index].timestamp->tv_sec;
       image_count++;
       Debug(2, "Unlocking packet, incrementing image_count to %d", image_count);
-      packet->unlock();
+      // We can get away with unlocking the packet early because no one will know about it until 
+      // we unlock the packetqueue and signal them
+      //packet->unlock();
+
+      if ( packetqueue->packet_count(video_stream_id) or packet->keyframe or event ) {
+        Debug(2, "Have video packet for image index (%d), adding to queue", index);
+        packetqueue->queuePacket(packet);
+      } else {
+        Debug(2, "Not queuing video packet for index (%d) packet count %d", index, packetqueue->packet_count(video_stream_id));
+        delete packet;
+      }
       UpdateCaptureFPS();
     } else { // result == 0
       // Question is, do we update last_write_index etc?
-      packet->unlock();
+      //packet->unlock();
+      delete packet;
       return 0;
     } // end if result
   } // end if deinterlacing
@@ -2894,7 +2919,7 @@ int Monitor::PrimeCapture() {
     Debug(2, "Failed to prime %d", ret);
   }
   return ret;
-}
+}  // end int Monitor::PrimeCapture()
 
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
@@ -2902,6 +2927,7 @@ int Monitor::Close() {
   if ( packetqueue ) {
     delete packetqueue;
     packetqueue = nullptr;
+    analysis_it = nullptr; // deleted by packetqueue
   }
   Debug(1, "Closing camera");
   return camera->Close();
@@ -2914,7 +2940,7 @@ void Monitor::get_ref_image() {
   ZMPacket *snap;
   while ( 
       (
-       !( snap = packetqueue->get_analysis_packet())
+       !( snap = packetqueue->get_packet(analysis_it))
        or 
        ( snap->packet.stream_index != video_stream_id )
        or
@@ -2926,7 +2952,7 @@ void Monitor::get_ref_image() {
     if ( ! snap->image ) {
       snap->unlock();
       // can't analyse it anyways, incremement
-      packetqueue->increment_analysis_it();
+      packetqueue->increment_it(analysis_it);
     }
     //usleep(10000);
   }
@@ -2937,7 +2963,8 @@ void Monitor::get_ref_image() {
       snap->packet.stream_index, video_stream_id, snap->image_index, snap->image );
   // Might not have been decoded yet FIXME
   if ( snap->image ) {
-    ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(), snap->image->Buffer(), camera->ImageSize());
+    ref_image.Assign(width, height, camera->Colours(),
+        camera->SubpixelOrder(), snap->image->Buffer(), camera->ImageSize());
     Debug(2, "Have ref image about to unlock");
   } else {
     Debug(2, "Have no ref image about to unlock");
@@ -2950,7 +2977,7 @@ std::vector<Group *> Monitor::Groups() {
   if ( !groups.size() ) {
     std::string sql = stringtf(
         "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups.Id` IN "
-        "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)",id);
+        "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)", id);
     MYSQL_RES *result = zmDbFetch(sql.c_str());
     if ( !result ) {
       Error("Can't load groups: %s", mysql_error(&dbconn));

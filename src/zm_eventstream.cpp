@@ -756,7 +756,7 @@ bool EventStream::sendFrame(int delta_us) {
         // when stored as an mp4, we just have the rotation as a flag in the headers
         // so we need to rotate it before outputting
         if (
-            (monitor->GetOptVideoWriter() == Monitor::H264PASSTHROUGH)
+            (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH)
             and
             (event_data->Orientation != Monitor::ROTATE_0)
             ) {

@@ -15,7 +15,7 @@
 class RTSPServerThread : public Thread {
   private:
     Monitor *monitor;
-    bool terminate;
+    char terminate;
 
     TaskScheduler* scheduler;
     UsageEnvironment* env;
@@ -23,18 +23,19 @@ class RTSPServerThread : public Thread {
 
     RTSPServer* rtspServer;
 
-
   public:
     explicit RTSPServerThread(Monitor *);
     ~RTSPServerThread();
+    void addStream();
     int run();
-
-    void stop() {
-      terminate = true;
-    }
-    bool stopped() const {
-      return terminate;
-    }
+    void stop();
+    bool stopped() const;
+  private:
+    std::string getRtpFormat(int format, bool muxTS);
+    int addSession(
+        const std::string & sessionName,
+        const std::list<ServerMediaSubsession*> & subSession
+    );
 };
 
 #endif

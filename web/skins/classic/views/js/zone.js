@@ -1,8 +1,3 @@
-var requestQueue = new Request.Queue({
-  concurrent: monitorData.length,
-  stopOnFailure: false
-});
-
 var pauseBtn = $j('#pauseBtn');
 var playBtn = $j('#playBtn');
 var saveBtn = $j('#saveBtn');

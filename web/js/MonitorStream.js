@@ -8,7 +8,7 @@ function MonitorStream(monitorData) {
   this.status = null;
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
-  this.streamCmdParms = { 
+  this.streamCmdParms = {
     view: 'request',
     request: 'stream',
     connkey: this.connKey
@@ -36,7 +36,7 @@ function MonitorStream(monitorData) {
       stream.src = '';
       stream.src = src;
     }
-  this.streamCmdQuery.delay(delay, this);
+    this.streamCmdQuery.delay(delay, this);
   };
   this.stop = function() {
     if ( 0 ) {
@@ -103,7 +103,6 @@ function MonitorStream(monitorData) {
   };
 
   this.getStreamCmdResponse = function(respObj, respText) {
-
     var stream = $j('#liveStream'+this.id)[0];
 
     if ( ! stream ) {
@@ -133,7 +132,7 @@ function MonitorStream(monitorData) {
           var fpsValue = $j('#fpsValue'+this.id);
           var stateValue = $j('#stateValue'+this.id);
           var monitorState = $j('#monitorState'+this.id);
-          
+
           if ( fpsValue.length ) fpsValue.text(this.status.fps);
           if ( stateValue.length ) stateValue.text(stateStrings[this.alarmState]);
           if ( monitorState.length ) this.setStateClass(monitorState, stateClass);
@@ -195,7 +194,7 @@ function MonitorStream(monitorData) {
       }
     } // end if Ok or not
 
-    this.lastAlarmState = this.alarmState;   
+    this.lastAlarmState = this.alarmState;
     this.streamCmdQuery.delay(statusRefreshTimeout, this);
   };
 

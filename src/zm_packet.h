@@ -37,14 +37,14 @@ class ZMPacket {
   
     std::recursive_mutex mutex;
     int keyframe;
-    AVPacket  packet;   // Input packet, undecoded
-    AVFrame   *in_frame;    // Input image, decoded Theoretically only filled if needed.
-    AVFrame   *out_frame;    // Input image, decoded Theoretically only filled if needed.
-    uint8_t   *buffer;
-    Image     *image;            // Our internal image object representing this frame
-    Image     *analysis_image;   // Our internal image object representing this frame
-    int       score;
+    AVPacket  packet;             // Input packet, undecoded
+    AVFrame   *in_frame;          // Input image, decoded Theoretically only filled if needed.
+    AVFrame   *out_frame;         // output image, Only filled if needed.
     struct timeval *timestamp;
+    uint8_t   *buffer;            // buffer used in image
+    Image     *image;
+    Image     *analysis_image;
+    int       score;
     AVMediaType codec_type;
     int image_index;
     int codec_imgsize;

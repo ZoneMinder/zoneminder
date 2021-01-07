@@ -304,6 +304,7 @@ int main(int argc, char *argv[]) {
         analysis_threads[i] = NULL;
       }
 #if HAVE_RTSP_SERVER
+#if 0
       if ( rtsp_server_threads ) {
         for ( int i = 0; i < n_monitors; i++ ) {
           rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
@@ -314,6 +315,7 @@ int main(int argc, char *argv[]) {
           rtsp_server_threads[i]->start();
         }
       }
+#endif
 #endif
     } // end foreach monitor
 

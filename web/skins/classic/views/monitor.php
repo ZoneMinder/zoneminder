@@ -957,8 +957,9 @@ include('_monitor_source_nvsocket.php');
               <td>
 <?php
 $videowriter_codecs = array(
-  '0' => translate('Disabled'),
+  '0' => translate('Auto'),
   '27' => 'h264',
+  '173' => 'h265/hevc',
   '8' => 'mjpeg',
   '1' => 'mpeg1',
   '2' => 'mpeg2',

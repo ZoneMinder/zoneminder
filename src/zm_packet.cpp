@@ -24,38 +24,44 @@
 
 using namespace std;
 
-ZMPacket::ZMPacket() {
-  keyframe = 0;
+ZMPacket::ZMPacket() :
+  keyframe(0),
   // frame from decoded packet, to be used in generating image
-  in_frame = nullptr;
-  out_frame = nullptr;
-  image = nullptr;
-  buffer = nullptr;
+  in_frame(nullptr),
+  out_frame(nullptr),
+  timestamp(nullptr),
+  buffer(nullptr),
+  image(nullptr),
+  analysis_image(nullptr),
+  score(-1),
+  codec_type(AVMEDIA_TYPE_UNKNOWN),
+  image_index(-1),
+  codec_imgsize(0)
+{
   av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.
-  timestamp = nullptr;
-  analysis_image = nullptr;
-  image_index = -1;
-  score = -1;
-  codec_imgsize = 0;
 }
 
-ZMPacket::ZMPacket(ZMPacket &p) {
-  keyframe = 0;
+ZMPacket::ZMPacket(ZMPacket &p) :
+  keyframe(0),
   // frame from decoded packet, to be used in generating image
-  in_frame = nullptr;
-  out_frame = nullptr;
-  image = nullptr;
-  buffer = nullptr;
+  in_frame(nullptr),
+  out_frame(nullptr),
+  timestamp(nullptr),
+  buffer(nullptr),
+  image(nullptr),
+  analysis_image(nullptr),
+  score(-1),
+  codec_type(AVMEDIA_TYPE_UNKNOWN),
+  image_index(-1),
+  codec_imgsize(0)
+{
   av_init_packet(&packet);
   if ( zm_av_packet_ref(&packet, &p.packet) < 0 ) {
     Error("error refing packet");
   }
   timestamp = new struct timeval;
   *timestamp = *p.timestamp;
-  analysis_image = nullptr;
-  image_index = -1;
-  score = -1;
 }
 
 ZMPacket::~ZMPacket() {

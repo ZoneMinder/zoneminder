@@ -1,9 +1,13 @@
-var requestQueue = new Request.Queue({
-  concurrent: monitorData.length,
-  stopOnFailure: false
-});
+var pauseBtn = $j('#pauseBtn');
+var playBtn = $j('#playBtn');
+var saveBtn = $j('#saveBtn');
+var cancelBtn = $j('#cancelBtn');
+var backBtn = $j('#backBtn');
+var refreshBtn = $j('#refreshBtn');
+var monitors = [];
+
 function validateForm( form ) {
-  var errors = new Array();
+  var errors = [];
   if ( selfIntersecting ) {
     errors[errors.length] = selfIntersectingString;
   }
@@ -152,7 +156,7 @@ function applyCheckMethod() {
 
 function applyPreset() {
   var form = document.zoneForm;
-  var presetId = $('presetSelector').get('value');
+  var presetId = $j('#presetSelector').val();
 
   if ( presets[presetId] ) {
     var preset = presets[presetId];
@@ -256,33 +260,33 @@ function limitArea(field) {
 }
 
 function highlightOn(index) {
-  $('row'+index).addClass('highlight');
-  $('point'+index).addClass('highlight');
+  $j('#row'+index).addClass('highlight');
+  $j('#point'+index).addClass('highlight');
 }
 
 function highlightOff(index) {
-  row = $('row'+index);
+  row = $j('#row'+index);
   if ( row ) {
     row.removeClass('highlight');
   } else {
     console.log("No row for index " + index);
   }
-  $('point'+index).removeClass('highlight');
+  $j('#point'+index).removeClass('highlight');
 }
 
 function setActivePoint(index) {
   highlightOff(index);
-  $('row'+index).addClass('active');
-  $('point'+index).addClass('active');
+  $j('#row'+index).addClass('active');
+  $j('#point'+index).addClass('active');
 }
 
 function unsetActivePoint(index) {
-  $('row'+index).removeClass('active');
-  $('point'+index).removeClass('active');
+  $j('#row'+index).removeClass('active');
+  $j('#point'+index).removeClass('active');
 }
 
 function getCoordString() {
-  var coords = new Array();
+  var coords = [];
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     coords[coords.length] = zone['Points'][i].x+','+zone['Points'][i].y;
   }
@@ -290,18 +294,13 @@ function getCoordString() {
 }
 
 function updateZoneImage() {
-  var imageFrame = $('imageFrame');
-  var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-
-  scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
-  var SVG = $('zoneSVG');
-  var Poly = $('zonePoly');
+  var SVG = document.getElementById('zoneSVG');
+  var Poly = document.getElementById('zonePoly');
   Poly.points.clear();
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var Point = SVG.createSVGPoint();
     Point.x = zone['Points'][i].x;
-    //+ 2*padding_left;
-    Point.y = zone['Points'][i].y;// + 2*padding_top;
+    Point.y = zone['Points'][i].y;
     Poly.points.appendItem(Point);
   }
 }
@@ -323,31 +322,31 @@ function constrainValue(value, loVal, hiVal) {
 }
 
 function updateActivePoint(index) {
-  var point = $('point'+index);
-  var imageFrame = $('imageFrame');
+  var point = $j('#point'+index);
+  var imageFrame = document.getElementById('imageFrame');
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-  var padding_left = style.paddingLeft.toInt();
-  var padding_top = style.paddingTop.toInt();
-
-  scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
-  var left = point.getStyle('left').toInt();
+  var padding_left = parseInt(style.paddingLeft);
+  var padding_top = parseInt(style.paddingTop);
+  var padding_right = parseInt(style.paddingRight);
+  var scale = (imageFrame.clientWidth - ( padding_top + padding_right )) / maxX;
+  var left = parseInt(point.css('left'), 10);
 
   if ( left < padding_left ) {
-    point.setStyle('left', style.paddingLeft);
-    left = padding_left.toInt();
+    point.css('left', style.paddingLeft);
+    left = parseInt(padding_left);
   }
-  var top = point.getStyle('top').toInt();
+  var top = parseInt(point.css('top'));
   if ( top < padding_top ) {
-    point.setStyle('top', style.paddingTop);
-    top = padding_top;
+    point.css('top', style.paddingTop);
+    top = parseInt(padding_top);
   }
 
   var x = constrainValue(Math.ceil(left / scale)-Math.ceil(padding_left/scale), 0, maxX);
   var y = constrainValue(Math.ceil(top / scale)-Math.ceil(padding_top/scale), 0, maxY);
 
-  zone['Points'][index].x = $('newZone[Points]['+index+'][x]').value = x;
-  zone['Points'][index].y = $('newZone[Points]['+index+'][y]').value = y;
-  var Point = $('zonePoly').points.getItem(index);
+  zone['Points'][index].x = document.getElementById('newZone[Points]['+index+'][x]').value = x;
+  zone['Points'][index].y = document.getElementById('newZone[Points]['+index+'][y]').value = y;
+  var Point = document.getElementById('zonePoly').points.getItem(index);
   Point.x = x;
   Point.y = y;
   updateArea();
@@ -381,7 +380,7 @@ function limitPointValue(point, loVal, hiVal) {
 function updateArea( ) {
   area = Polygon_calcArea(zone['Points']);
   zone.Area = area;
-  var form = $('zoneForm');
+  var form = document.getElementById('zoneForm');
   form.elements['newZone[Area]'].value = area;
   if ( form.elements['newZone[Units]'].value == 'Percent' ) {
     form.elements['newZone[TempArea]'].value = Math.round( area/monitorArea*100 );
@@ -397,12 +396,12 @@ function updateX(input) {
 
   limitPointValue(input, 0, maxX);
 
-  var point = $('point'+index);
+  var point = $j('#point'+index);
   var x = input.value;
 
-  point.setStyle('left', x+'px');
+  point.css('left', x+'px');
   zone['Points'][index].x = x;
-  var Point = $('zonePoly').points.getItem(index);
+  var Point = document.getElementById('zonePoly').points.getItem(index);
   Point.x = x;
   updateArea();
 }
@@ -411,12 +410,12 @@ function updateY(input) {
   index = input.getAttribute('data-point-index');
   limitPointValue(input, 0, maxY);
 
-  var point = $('point'+index);
+  var point = $j('#point'+index);
   var y = input.value;
 
-  point.setStyle('top', y+'px');
+  point.css('top', y+'px');
   zone['Points'][index].y = y;
-  var Point = $('zonePoly').points.getItem(index);
+  var Point = document.getElementById('zonePoly').points.getItem(index);
   Point.y = y;
   updateArea();
 }
@@ -434,51 +433,57 @@ function saveChanges(element) {
 }
 
 function drawZonePoints() {
-  var imageFrame = $('imageFrame');
-  imageFrame.getElements('.zonePoint').each(
-      function(element) {
-        element.destroy();
-      });
+  var imageFrame = document.getElementById('imageFrame');
+  $j('.zonePoint').remove();
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-  scale = (imageFrame.clientWidth - ( style.paddingLeft.toInt() + style.paddingRight.toInt() )) / maxX;
+  var padding_left = parseInt(style.paddingLeft);
+  var padding_right = parseInt(style.paddingRight);
+  var padding_top = parseInt(style.paddingTop);
+  var scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
-  for ( var i = 0; i < zone['Points'].length; i++ ) {
-    var div = new Element('div', {
+  $j.each( zone['Points'], function(i, coord) {
+    var div = $j('<div>');
+    div.attr({
       'id': 'point'+i,
       'data-point-index': i,
       'class': 'zonePoint',
-      'title': 'Point '+(i+1),
-      'styles': {
-        'left': (Math.round(zone['Points'][i].x * scale) + style.paddingLeft.toInt())+"px",
-        'top': ((zone['Points'][i].y * scale).toInt() + style.paddingTop.toInt()) +"px"
-      }
+      'title': 'Point '+(i+1)
     });
-    div.addEvent('mouseover', highlightOn.pass(i));
-    div.addEvent('mouseout', highlightOff.pass(i));
-    div.inject(imageFrame);
-    div.makeDraggable( {
-      'container': imageFrame,
-      'onStart': setActivePoint.pass(i),
-      'onComplete': fixActivePoint.pass(i),
-      'onDrag': updateActivePoint.pass(i)
-    } );
-  } // end foreach point
+    div.css({
+      left: (Math.round(coord.x * scale) + padding_left)+"px",
+      top: ((parseInt(coord.y * scale)) + padding_top) +"px"
+    });
 
-  var tables = $('zonePoints').getElement('table').getElements('table');
+    div.mouseover(highlightOn.bind(i, i));
+    div.mouseout(highlightOff.bind(i, i));
+
+    $j('#imageFrame').append(div);
+
+    div.draggable({
+      'containment': imageFrame,
+      'start': setActivePoint.bind(i, i),
+      'stop': fixActivePoint.bind(i, i),
+      'drag': updateActivePoint.bind(i, i)
+    });
+  }); // end $j.each point
+
+  var tables = document.getElementById('zonePoints').getElement('table').getElements('table');
   tables.each( function(table) {
     table.getElement('tbody').empty();
   } );
 
   for ( var i = 0; i < zone['Points'].length; i++ ) {
-    var row = new Element('tr', {'id': 'row'+i});
-    row.addEvent('mouseover', highlightOn.pass(i));
-    row.addEvent('mouseout', highlightOff.pass(i));
-    var cell = new Element('td');
-    cell.set('text', i+1);
-    cell.inject(row);
+    var row = document.createElement('tr');
+    row.id = 'row'+i;
+    row.addEvent('mouseover', highlightOn.bind(i, i));
+    row.addEvent('mouseout', highlightOff.bind(i, i));
 
-    cell = new Element('td');
-    var input = new Element('input', {
+    var cell = document.createElement('td');
+    $j(cell).text(i+1).appendTo(row);
+
+    cell = document.createElement('td');
+    var input = document.createElement('input');
+    $j(input).attr({
       'id': 'newZone[Points]['+i+'][x]',
       'name': 'newZone[Points]['+i+'][x]',
       'value': zone['Points'][i].x,
@@ -489,11 +494,12 @@ function drawZonePoints() {
       'data-point-index': i
     });
     input.oninput = window['updateX'].bind(input, input);
-    input.inject(cell);
-    cell.inject(row);
+    $j(input).appendTo(cell);
+    $j(cell).appendTo(row);
 
-    cell = new Element('td');
-    input = new Element('input', {
+    cell = document.createElement('td');
+    input = document.createElement('input');
+    $j(input).attr({
       'id': 'newZone[Points]['+i+'][y]',
       'name': 'newZone[Points]['+i+'][y]',
       'value': zone['Points'][i].y,
@@ -502,27 +508,32 @@ function drawZonePoints() {
       'min': '0',
       'max': maxY,
       'data-point-index': i
-    } );
+    });
     input.oninput = window['updateY'].bind(input, input);
-    input.inject(cell);
-    cell.inject(row);
+    $j(input).appendTo(cell);
+    $j(cell).appendTo(row);
 
-    cell = new Element('td');
-    new Element('button', {
-      'type': 'button',
-      'events': {'click': addPoint.pass(i)}
-    }).set('text', '+').inject(cell);
+    cell = document.createElement('td');
+    var pbtn = document.createElement('button');
+    $j(pbtn)
+        .attr('type', 'button')
+        .text('+')
+        .click(addPoint.bind(i, i))
+        .appendTo(cell);
+
     if ( zone['Points'].length > 3 ) {
-      cell.appendText(' ');
-      new Element('button', {
-        'id': 'delete'+i,
-        'type': 'button',
-        'events': {'click': delPoint.pass(i)}
-      }).set('text', '-').inject(cell);
+      var mbtn = document.createElement('button');
+      $j(mbtn)
+          .attr('id', 'delete'+i)
+          .attr('type', 'button')
+          .addClass('ml-1')
+          .text('-')
+          .click(delPoint.bind(i, i))
+          .appendTo(cell);
     }
-    cell.inject(row);
+    $j(cell).appendTo(row);
 
-    row.inject(tables[i%tables.length].getElement('tbody'));
+    $j(row).appendTo(tables[i%tables.length].getElement('tbody'));
   } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();
@@ -532,16 +543,16 @@ function streamCmdPause() {
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     monitors[i].pause();
   }
-  document.getElementById('pauseBtn').style.display = 'none';
-  document.getElementById('playBtn').style.display = 'inline';
+  pauseBtn.hide();
+  playBtn.show();
 }
 
 function streamCmdPlay() {
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     monitors[i].play();
   }
-  document.getElementById('playBtn').style.display = 'none';
-  document.getElementById('pauseBtn').style.display = 'inline';
+  pauseBtn.show();
+  playBtn.hide();
 }
 
 //Make sure the various refreshes are still taking effect
@@ -560,8 +571,6 @@ function watchdogOk(type) {
 function presetSelectorBlur() {
   this.selectedIndex = 0;
 }
-
-var monitors = new Array();
 
 function initPage() {
   var form = document.zoneForm;
@@ -636,21 +645,16 @@ function initPage() {
 
   applyCheckMethod();
 
-  $('pauseBtn').onclick = function() {
-    streamCmdPause();
-  };
-  $('playBtn').style.display = 'none'; // hide pause initially
-  $('playBtn').onclick = function() {
-    streamCmdPlay();
-  };
+  pauseBtn.click(streamCmdPause);
+  playBtn.click(streamCmdPlay);
+  playBtn.hide(); // hide pause initially
 
-  if ( el = $('saveBtn') ) {
+  if ( el = saveBtn[0] ) {
     el.onclick = window['saveChanges'].bind(el, el);
   }
-  if ( el = $('cancelBtn') ) {
+  if ( el = cancelBtn[0] ) {
     el.onclick = function() {
-      refreshParentWindow();
-      closeWindow();
+      window.location.reload(true);
     };
   }
 
@@ -676,7 +680,7 @@ function initPage() {
   });
 
   // Disable the back button if there is nothing to go back to
-  $j('#backBtn').prop('disabled', !document.referrer.length);
+  backBtn.prop('disabled', !document.referrer.length);
 
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {

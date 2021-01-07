@@ -230,7 +230,6 @@ for ( $i=0; $i < count($speeds); $i++ )
 echo "];\n";
 ?>
 
-var scrubAsObject=$('scrub');
 var cWidth;   // save canvas width
 var cHeight;  // save canvas height
 var canvas;   // global canvas definition so we don't have to keep looking it up

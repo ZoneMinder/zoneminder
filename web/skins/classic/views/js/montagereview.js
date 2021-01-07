@@ -42,7 +42,7 @@ function evaluateLoadTimes() {
   currentDisplayInterval = Math.min(Math.max(currentDisplayInterval, 40), 10000);
   imageLoadTimesEvaluated=0;
   setSpeed(speedIndex);
-  $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
+  $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
 function getFrame(monId, time, last_Frame) {
@@ -337,7 +337,7 @@ function drawSliderOnGraph(val) {
       ctx.strokeRect(sliderX+sliderLineWidth, sliderLineWidth, sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
       underSliderX = sliderX;
     }
-    var o = $('scruboutput');
+    var o = document.getElementById('scruboutput');
     if ( liveMode == 1 ) {
       o.innerHTML = "Live Feed @ " + (1000 / currentDisplayInterval).toFixed(1) + " fps";
       o.style.color = "red";
@@ -363,41 +363,41 @@ function drawSliderOnGraph(val) {
   // Because these change widths if the slider is too close, use the slider width as an estimate for the left/right label length (i.e. don't recalculate len from above)
   // If this starts to collide increase some of the extra space
 
-  var o = $('scrubleft');
-  o.innerHTML=secs2dbstr(minTimeSecs);
-  o.style.position="absolute";
-  o.style.bottom=labbottom;
-  o.style.font=labfont;
-  o.style.left="5px";
+  var o = document.getElementById('scrubleft');
+  o.innerHTML = secs2dbstr(minTimeSecs);
+  o.style.position = "absolute";
+  o.style.bottom = labbottom;
+  o.style.font = labfont;
+  o.style.left = "5px";
   if ( numMonitors == 0 ) { // we need a len calculation if we skipped the slider
     len = o.offsetWidth;
   }
   // If the slider will overlay part of this suppress (this is the left side)
   if ( len + 10 > sliderX || cWidth < len * 4 ) {
     // that last check is for very narrow browsers
-    o.style.display="none";
+    o.style.display = "none";
   } else {
-    o.style.display="inline";
-    o.style.display="inline-flex"; // safari won't take this but will just ignore
+    o.style.display = "inline";
+    o.style.display = "inline-flex"; // safari won't take this but will just ignore
   }
 
-  var o = $('scrubright');
-  o.innerHTML=secs2dbstr(maxTimeSecs);
-  o.style.position="absolute";
-  o.style.bottom=labbottom;
-  o.style.font=labfont;
+  var o = document.getElementById('scrubright');
+  o.innerHTML = secs2dbstr(maxTimeSecs);
+  o.style.position = "absolute";
+  o.style.bottom = labbottom;
+  o.style.font = labfont;
   // If the slider will overlay part of this suppress (this is the right side)
   o.style.left=(cWidth - len - 15).toString() + "px";
   if ( sliderX > cWidth - len - 20 || cWidth < len * 4 ) {
-    o.style.display="none";
+    o.style.display = "none";
   } else {
-    o.style.display="inline";
-    o.style.display="inline-flex";
+    o.style.display = "inline";
+    o.style.display = "inline-flex";
   }
 }
 
 function drawGraph() {
-  var divWidth = $('timelinediv').clientWidth;
+  var divWidth = document.getElementById('timelinediv').clientWidth;
   canvas.width = cWidth = divWidth; // Let it float and determine width (it should be sized a bit smaller percentage of window)
   cHeight = parseInt(window.innerHeight * 0.10);
   if ( cHeight < numMonitors * 20 ) {
@@ -461,46 +461,54 @@ function drawGraph() {
 } // end function drawGraph
 
 function redrawScreen() {
+  var dateTimeDiv = $j('#DateTimeDiv');
+  var speedDiv = $j('#SpeedDiv');
+  var timeLineDiv = $j('#timelinediv');
+  var liveButton = $j('#liveButton');
+  var zoomIn = $j('#zoomin');
+  var zoomOut = $j('#zoomout');
+  var panLeft = $j('#panleft');
+  var panRight = $j('#panright');
+  var downloadVideo = $j('#downloadVideo');
+  var scaleDiv = $j('#ScaleDiv');
+  var fit = $j('#fit');
+
   if ( liveMode == 1 ) {
     // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
-    $('DateTimeDiv').style.display="none";
-    $('SpeedDiv').style.display="none";
-    var timelinediv= $('timelinediv');
-    if ( timelinediv ) timelinediv.style.display="none";
-    $('liveButton').innerHTML="History";
-    $('zoomin').style.display="none";
-    $('zoomout').style.display="none";
-    $('panleft').style.display="none";
-    $('panright').style.display="none";
-    if ($('downloadVideo')) $('downloadVideo').style.display="none";
+    dateTimeDiv.hide();
+    speedDiv.hide();
+    timeLineDiv.hide();
+    liveButton.text('History');
+    zoomIn.hide();
+    zoomOut.hide();
+    panLeft.hide();
+    panRight.hide();
+    downloadVideo.hide();
   } else {
     // switch out of liveview mode
-    $('DateTimeDiv').style.display="inline";
-    $('DateTimeDiv').style.display="inline-flex";
-    $('SpeedDiv').style.display="inline";
-    $('SpeedDiv').style.display="inline-flex";
-    $('timelinediv').style.display=null;
-    $('liveButton').innerHTML="Live";
-    $('zoomin').style.display="inline";
-    $('zoomin').style.display="inline-flex";
-    $('zoomout').style.display="inline";
-    $('zoomout').style.display="inline-flex";
-    $('panleft').style.display="inline";
-    $('panleft').style.display="inline-flex";
-    $('panright').style.display="inline";
-    $('panright').style.display="inline-flex";
-    if ($('downloadVideo')) $('downloadVideo').style.display="inline";
+    dateTimeDiv.show();
+    speedDiv.show();
+    timeLineDiv.show();
+    liveButton.text('Live');
+    zoomIn.show();
+    zoomOut.show();
+    panLeft.show();
+    panRight.show();
+    downloadVideo.show();
+
     drawGraph();
   }
 
   if ( fitMode == 1 ) {
-    $('ScaleDiv').style.display="none";
-    $('fit').innerHTML="Scale";
-    var vh=window.innerHeight;
-    var pos=$('monitors').getPosition();
-    var mh=(vh - pos.y - $('fps').getSize().y);
-    $('monitors').setStyle('height', mh.toString() + "px"); // leave a small gap at bottom
-    if (maxfit2($('monitors').getSize().x, $('monitors').getSize().y) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+    var monitors = $j('#monitors');
+    var fps = $j('#fps');
+    var vh = window.innerHeight;
+    var mh = (vh - monitors.position().top - fps.outerHeight());
+
+    scaleDiv.hide();
+    fit.text('Scale');
+    monitors.height(mh.toString() + "px"); // leave a small gap at bottom
+    if (maxfit2(monitors.outerWidth(), monitors.outerHeight()) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
       fitMode=1-fitMode;
     }
   } else {
@@ -509,10 +517,9 @@ function redrawScreen() {
     for ( var i=0; i<numMonitors; i++ ) {
       monitorCanvasObj[monitorPtr[i]].style.position="";
     }
-    $('monitors').setStyle('height', "auto");
-    $('ScaleDiv').style.display="inline";
-    $('ScaleDiv').style.display="inline-flex";
-    $('fit').innerHTML="Fit";
+    monitors.height('auto');
+    scaleDiv.show();
+    fit.text('fit');
     setScale(currentScale);
   }
   outputUpdate(currentTimeSecs);
@@ -609,7 +616,7 @@ function setFit(value) {
 
 function showScale(newscale) {
   // updates slider only
-  $('scaleslideroutput').innerHTML = parseFloat(newscale).toFixed(2).toString() + " x";
+  $j('#scaleslideroutput').text(parseFloat(newscale).toFixed(2).toString() + " x");
   return;
 }
 
@@ -625,7 +632,7 @@ function setScale(newscale) {
 
 function showSpeed(val) {
   // updates slider only
-  $('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
+  $j('#speedslideroutput').text(parseFloat(speeds[val]).toFixed(2).toString() + " x");
 }
 
 function setSpeed(speed_index) {
@@ -666,10 +673,10 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
       maxSecs = parseInt(now);
     }
     maxStr = "&maxTime=" + secs2inputstr(maxSecs);
-    $('maxTime').value = secs2inputstr(maxSecs);
+    $j('#maxTime').val(secs2inputstr(maxSecs));
   }
   if ( minSecs > 0 ) {
-    $('minTime').value = secs2inputstr(minSecs);
+    $j('#minTime').val(secs2inputstr(minSecs));
     minStr = "&minTime=" + secs2inputstr(minSecs);
   }
   if ( maxSecs == 0 && minSecs == 0 ) {
@@ -801,7 +808,7 @@ function maxfit2(divW, divH) {
       }
 
       if ( borders <= 0 ) {
-        borders=$("Monitor"+monId).getStyle("border").toInt() * 2;
+        borders = parseInt($j('#Monitor'+monId).css('border')) * 2;
       } // assume fixed size border, and added to both sides and top/bottom
       // try fitting over first, then down.  Each new one must land at either upper right or lower left corner of last (try in that order)
       // Pick the one with the smallest Y, then smallest X if Y equal
@@ -856,12 +863,12 @@ function maxfit2(divW, divH) {
   }
   if ( bestFitArea > 0 ) { // only rearrange if we could fit -- otherwise just do nothing, let them start coming out, whatever
     for ( m = 0; m < numMonitors; m++ ) {
-      c = $("Monitor" + monitorPtr[m]);
-      c.style.position="absolute";
-      c.style.left=bestFitX[m].toString() + "px";
-      c.style.top=bestFitY[m].toString() + "px";
+      c = document.getElementById('Monitor' + monitorPtr[m]);
+      c.style.position = "absolute";
+      c.style.left = bestFitX[m].toString() + "px";
+      c.style.top = bestFitY[m].toString() + "px";
       c.width = bestFitX2[m] - bestFitX[m] + 1 - borders;
-      c.height= bestFitY2[m] - bestFitY[m] + 1 - borders;
+      c.height = bestFitY2[m] - bestFitY[m] + 1 - borders;
     }
     return 1;
   } else {
@@ -902,7 +909,7 @@ function zoom(monId, scale) {
 
 function clickMonitor(event) {
   var element = event.target;
-  //var monitor_element = $("Monitor"+monId.toString());
+  //var monitor_element = document.getElementById('Monitor'+monId.toString());
   var monId = element.getAttribute('monitor_id');
   var pos_x = event.offsetX ? (event.offsetX) : event.pageX - element.offsetLeft;
   var pos_y = event.offsetY ? (event.offsetY) : event.pageY - element.offsetTop;
@@ -963,7 +970,7 @@ function initPage() {
   for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
     var monId = monitorPtr[i];
     if ( !monId ) continue;
-    monitorCanvasObj[monId] = $('Monitor'+monId);
+    monitorCanvasObj[monId] = document.getElementById('Monitor'+monId);
     if ( !monitorCanvasObj[monId] ) {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
     } else {
@@ -982,7 +989,7 @@ function initPage() {
   } // end foreach monitor
 
   if ( !liveMode ) {
-    canvas = $("timeline");
+    canvas = document.getElementById('timeline');
 
     canvas.addEventListener('mousemove', mmove, false);
     canvas.addEventListener('touchmove', tmove, false);

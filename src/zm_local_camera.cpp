@@ -2255,19 +2255,19 @@ int LocalCamera::PostCapture() {
 AVStream *LocalCamera::get_VideoStream() {
   if ( ! video_stream ) {
     AVFormatContext *oc = avformat_alloc_context();
-    video_stream = avformat_new_stream( oc, NULL );
+    video_stream = avformat_new_stream(oc, nullptr);
     if ( video_stream ) {
       video_stream->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       video_stream->codecpar->width = width;
       video_stream->codecpar->height = height;
-      video_stream->codecpar->format = GetFFMPEGPixelFormat(colours,subpixelorder);
+      video_stream->codecpar->format = GetFFMPEGPixelFormat(colours, subpixelorder);
       video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
       video_stream->codecpar->codec_id = AV_CODEC_ID_NONE;
 #else
       video_stream->codec->width = width;
       video_stream->codec->height = height;
-      video_stream->codec->pix_fmt = GetFFMPEGPixelFormat(colours,subpixelorder);
+      video_stream->codec->pix_fmt = GetFFMPEGPixelFormat(colours, subpixelorder);
       video_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
       video_stream->codec->codec_id = AV_CODEC_ID_NONE;
 #endif

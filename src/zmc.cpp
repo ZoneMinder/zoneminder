@@ -238,17 +238,6 @@ int main(int argc, char *argv[]) {
 
   int prime_capture_log_count = 0;
 
-
-#if HAVE_RTSP_SERVER
-#if 0
-  RTSPServerThread **rtsp_server_threads = new RTSPServerThread *[n_monitors];
-  for ( int i = 0; i < n_monitors; i++ ) {
-    rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
-    rtsp_server_threads[i]->start();
-  }
-#endif
-#endif
-
   while ( !zm_terminate ) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
@@ -292,6 +281,10 @@ int main(int argc, char *argv[]) {
       }
     }
 
+#if HAVE_RTSP_SERVER
+    RTSPServerThread ** rtsp_server_threads = nullptr;
+    rtsp_server_threads = new RTSPServerThread *[n_monitors];
+#endif
     AnalysisThread **analysis_threads = new AnalysisThread *[n_monitors];
     int *capture_delays = new int[n_monitors];
     int *alarm_capture_delays = new int[n_monitors];
@@ -310,6 +303,18 @@ int main(int argc, char *argv[]) {
       } else {
         analysis_threads[i] = NULL;
       }
+#if HAVE_RTSP_SERVER
+      if ( rtsp_server_threads ) {
+        for ( int i = 0; i < n_monitors; i++ ) {
+          rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
+          Camera *camera = monitors[i]->getCamera();
+          rtsp_server_threads[i]->addStream(camera->get_VideoStream());
+          if ( camera->get_AudioStreamId() )
+            rtsp_server_threads[i]->addStream(camera->get_AudioStream());
+          rtsp_server_threads[i]->start();
+        }
+      }
+#endif
     } // end foreach monitor
 
     struct timeval now;
@@ -388,22 +393,45 @@ int main(int argc, char *argv[]) {
     for ( int i = 0; i < n_monitors; i++ ) {
       if ( analysis_threads[i] ) {
         analysis_threads[i]->stop();
-        analysis_threads[i]->join();
-        delete analysis_threads[i];
-        analysis_threads[i] = 0;
       }
-    } // end foreach monitor
-    delete [] analysis_threads;
+#if HAVE_RTSP_SERVER
+      if ( rtsp_server_threads ) {
+        rtsp_server_threads[i]->stop();
+      }
+#endif
+    }
 
     for ( int i = 0; i < n_monitors; i++ ) {
       monitors[i]->Close();
     }
+    // Killoff the analysis threads. Don't need them spinning while we try to reconnect
+    for ( int i = 0; i < n_monitors; i++ ) {
+      if ( analysis_threads[i] ) {
+        analysis_threads[i]->join();
+        delete analysis_threads[i];
+        analysis_threads[i] = nullptr;
+      }
+    } // end foreach monitor
+    delete [] analysis_threads;
+#if HAVE_RTSP_SERVER
+    if ( rtsp_server_threads ) {
+      for ( int i = 0; i < n_monitors; i++ ) {
+        rtsp_server_threads[i]->join();;
+        delete rtsp_server_threads[i];
+        rtsp_server_threads[i] = nullptr;
+      }
+      delete[] rtsp_server_threads;
+      rtsp_server_threads = nullptr;
+    }
+#endif
+
 
     delete [] alarm_capture_delays;
     delete [] capture_delays;
     delete [] last_capture_times;
 
   } // end while ! zm_terminate outer connection loop
+
   Debug(1,"Updating Monitor status");
 
   for ( int i = 0; i < n_monitors; i++ ) {

@@ -222,7 +222,6 @@ int RemoteCameraRtsp::PreCapture() {
 }
 
 int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
-  uint8_t* directbuffer;
   int frameComplete = false;
   AVPacket *packet = &zm_packet.packet;
   

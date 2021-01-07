@@ -7,26 +7,17 @@ AnalysisThread::AnalysisThread(Monitor *p_monitor) {
 }
 
 AnalysisThread::~AnalysisThread() {
-  Debug(2, "THREAD: deleteing");
+  Debug(2, "THREAD: deleteing analysis thread");
 }
 
 int AnalysisThread::run() {
   Debug(2, "AnalysisThread::run()");
 
   useconds_t analysis_rate = monitor->GetAnalysisRate();
-  Debug(2, "after getanalysisrate rate is %u", analysis_rate);
   unsigned int analysis_update_delay = monitor->GetAnalysisUpdateDelay();
-  Debug(2, "after getanalysisUpdateDelay delay is %u", analysis_update_delay);
   time_t last_analysis_update_time, cur_time;
   monitor->UpdateAdaptiveSkip();
-  Debug(2, "after UpdateAdaptiveSkip");
   last_analysis_update_time = time(0);
-
-  if ( monitor->GetFunction() == Monitor::MODECT or monitor->GetFunction() == Monitor::MOCORD ) {
-    Debug(2, "THREAD: Getting ref image");
-    monitor->get_ref_image();
-    Debug(2, "THREAD: after Getting ref image");
-  }
 
   while ( !(terminate or zm_terminate) ) {
 

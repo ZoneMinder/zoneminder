@@ -32,6 +32,8 @@
 extern "C" {
 #include <libavformat/avformat.h>
 }
+typedef std::list<ZMPacket *>::iterator packetqueue_iterator;
+
 class zm_packetqueue {
   public: // For now just to ease development
     std::list<ZMPacket *>    pktQueue;
@@ -42,6 +44,7 @@ class zm_packetqueue {
     int max_stream_id;
     int *packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
     bool deleting;
+    std::list<packetqueue_iterator *> iterators;
 
     std::mutex mutex;
     std::condition_variable condition;
@@ -49,6 +52,8 @@ class zm_packetqueue {
   public:
     zm_packetqueue(int p_max_video_packet_count, int p_video_stream_id, int p_audio_stream_id);
     virtual ~zm_packetqueue();
+    std::list<ZMPacket *>::const_iterator end() const { return pktQueue.end(); }
+    std::list<ZMPacket *>::const_iterator begin() const { return pktQueue.begin(); }
 
     bool queuePacket(ZMPacket* packet);
     ZMPacket * popPacket();
@@ -64,12 +69,14 @@ class zm_packetqueue {
     void clear_unwanted_packets(timeval *recording, int pre_event_count, int mVideoStreamId);
     int packet_count(int stream_id);
 
-    // Functions to manage the analysis frame logic
-    bool increment_analysis_it();
-    ZMPacket *get_analysis_packet();
-    std::list<ZMPacket *>::iterator get_analysis_it() const { return analysis_it; }
+    bool increment_it(packetqueue_iterator *it);
+    bool increment_it(packetqueue_iterator *it, int stream_id);
+    ZMPacket *get_packet(packetqueue_iterator *);
+    packetqueue_iterator *get_video_it(bool wait);
+    packetqueue_iterator *get_stream_it(int stream_id);
+
     std::list<ZMPacket *>::iterator get_event_start_packet_it(
-        std::list<ZMPacket *>::iterator snapshot_it,
+        packetqueue_iterator snapshot_it,
         unsigned int pre_event_count
     );
 };

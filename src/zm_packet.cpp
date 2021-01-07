@@ -26,7 +26,6 @@ using namespace std;
 
 ZMPacket::ZMPacket() :
   keyframe(0),
-  // frame from decoded packet, to be used in generating image
   in_frame(nullptr),
   out_frame(nullptr),
   timestamp(nullptr),
@@ -44,7 +43,6 @@ ZMPacket::ZMPacket() :
 
 ZMPacket::ZMPacket(ZMPacket &p) :
   keyframe(0),
-  // frame from decoded packet, to be used in generating image
   in_frame(nullptr),
   out_frame(nullptr),
   timestamp(nullptr),
@@ -67,11 +65,9 @@ ZMPacket::ZMPacket(ZMPacket &p) :
 ZMPacket::~ZMPacket() {
   zm_av_packet_unref(&packet);
   if ( in_frame ) {
-    //av_free(frame->data);
     av_frame_free(&in_frame);
   }
   if ( out_frame ) {
-    //av_free(frame->data);
     av_frame_free(&out_frame);
   }
   if ( buffer ) {
@@ -81,28 +77,26 @@ ZMPacket::~ZMPacket() {
     delete analysis_image;
     analysis_image = nullptr;
   }
-  // We assume the image was allocated elsewhere, so we just unref it.
-  if ( image_index == -1 ) {
+  if ( image and !image->IsBufferHeld() ) {
     delete image;
-    delete timestamp;
   }
   image = nullptr;
-  timestamp = nullptr;
+  if ( timestamp ) {
+    delete timestamp;
+    timestamp = nullptr;
+  }
 }
 
+// deprecated
 void ZMPacket::reset() {
-  //Debug(2,"reset");
   zm_av_packet_unref(&packet);
   if ( in_frame ) {
-  //Debug(4,"reset frame");
     av_frame_free(&in_frame);
   }
   if ( out_frame ) {
-  //Debug(4,"reset frame");
     av_frame_free(&out_frame);
   }
   if ( buffer ) {
-  //Debug(4,"freeing buffer");
     av_freep(&buffer);
   }
   if ( analysis_image ) {
@@ -128,58 +122,37 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     in_frame = zm_av_frame_alloc();
   }
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  Debug(4, "send_packet");
-  int ret = avcodec_send_packet(ctx, &packet);
+  int ret = zm_send_packet_receive_frame(ctx, in_frame, packet);
   if ( ret < 0 ) {
-    Error("Unable to send packet: %s", av_make_error_string(ret).c_str());
+    if ( AVERROR(EAGAIN) != ret ) {
+      Warning("Unable to receive frame : code %d %s.",
+          ret, av_make_error_string(ret).c_str());
+    }
     av_frame_free(&in_frame);
     return 0;
   }
 
-#if HAVE_AVUTIL_HWCONTEXT_H
-  if ( hwaccel ) {
-    ret = avcodec_receive_frame(ctx, hwFrame);
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+  if ( (ctx->pix_fmt != in_frame->format) ) {
+    Debug(1, "Have different format.  Assuming hwaccel");
+    AVFrame *new_frame = zm_av_frame_alloc();
+    /* retrieve data from GPU to CPU */
+    ret = av_hwframe_transfer_data(in_frame, new_frame, 0);
     if ( ret < 0 ) {
-      Error("Unable to receive frame: %s", av_make_error_string(ret).c_str());
+      Error("Unable to transfer frame: %s, continuing",
+          av_make_error_string(ret).c_str());
       av_frame_free(&in_frame);
+      av_frame_free(&new_frame);
       return 0;
     }
-    ret = av_hwframe_transfer_data(frame, hwFrame, 0);
-    if ( ret < 0 ) {
-      Error("Unable to transfer frame: %s", av_make_error_string(ret).c_str());
-      av_frame_free(&in_frame);
-      return 0;
-    }
-  } else {
-#endif
-    Debug(4, "receive_frame");
-    ret = avcodec_receive_frame(ctx, in_frame);
-    if ( ret < 0 ) {
-      Error("Unable to receive frame: %s", av_make_error_string(ret).c_str());
-      av_frame_free(&in_frame);
-      Error("Unable to receive frame: %s %p", av_make_error_string(ret).c_str(), in_frame);
+    zm_dump_video_frame(new_frame, "After hwtransfer");
 
-      return 0;
-    }
-
-#if HAVE_AVUTIL_HWCONTEXT_H
+    new_frame->pts = in_frame->pts;
+    av_frame_free(&in_frame);
+    in_frame = new_frame;
   }
 #endif
-
-# else
-  int frameComplete = 0;
-  int ret = zm_avcodec_decode_video(ctx, in_frame, &frameComplete, &packet);
-  if ( ret < 0 ) {
-    Error("Unable to decode frame at frame %s", av_make_error_string(ret).c_str());
-    av_frame_free(&in_frame);
-    return 0;
-  }
-  if ( !frameComplete ) {
-    Debug(1, "incomplete frame?");
-    av_frame_free(&in_frame);
-    return 0;
-  }
 #endif
   return 1;
 } // end ZMPacket::decode

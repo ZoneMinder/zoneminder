@@ -43,6 +43,9 @@ zm_packetqueue::zm_packetqueue(
 
 zm_packetqueue::~zm_packetqueue() {
   deleting = true;
+
+  // Anyone waiting should immediately check deleting
+  condition.notify_all();
   /* zma might be waiting. Must have exclusive access */
   while ( !mutex.try_lock() ) {
     Debug(4, "Waiting for exclusive access");
@@ -85,7 +88,7 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
     packetqueue_iterator *iterator_it = *iterators_it;
     // Have to check each iterator and make sure it doesn't point to the packet we are about to delete
     if ( *iterator_it == pktQueue.end() ) {
-      Debug(4, "pointing it to back");
+      Debug(4, "pointing it %p to back", iterator_it);
       --(*iterator_it);
     }
   }  // end foreach iterator
@@ -119,6 +122,7 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
       }
 
       if ( !zm_packet->trylock() ) {
+        Debug(1, "Have locked packet %d", zm_packet->image_index);
         video_stream_packets = max_video_packet_count;
         break;
       }
@@ -137,10 +141,13 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
         }
       }  // end foreach iterator
         
-    } while ( video_stream_packets < max_video_packet_count );
-
+    } while ( *it != add_packet );
+    Debug(1, "Resulting video_stream_packets count %d, %d > %d, pointing at latet packet %d", video_stream_packets, 
+        packet_counts[video_stream_id] - video_stream_packets, max_video_packet_count,
+        ( *it == add_packet )
+        );
     if (
-        max_video_packet_count - video_stream_packets > max_video_packet_count 
+        packet_counts[video_stream_id] - video_stream_packets > max_video_packet_count 
         and
         ( *it != add_packet ) 
        ) {

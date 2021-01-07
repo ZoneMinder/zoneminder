@@ -11,6 +11,8 @@
 
 #include <BasicUsageEnvironment.hh>
 #include <RTSPServer.hh>
+#include <libavcodec/codec_id.h>
+#include <libavformat/avformat.h>
 
 class RTSPServerThread : public Thread {
   private:
@@ -26,12 +28,12 @@ class RTSPServerThread : public Thread {
   public:
     explicit RTSPServerThread(Monitor *);
     ~RTSPServerThread();
-    void addStream();
+    void addStream(AVStream *);
     int run();
     void stop();
     bool stopped() const;
   private:
-    std::string getRtpFormat(int format, bool muxTS);
+    std::string getRtpFormat(AVCodecID codec, bool muxTS);
     int addSession(
         const std::string & sessionName,
         const std::list<ServerMediaSubsession*> & subSession

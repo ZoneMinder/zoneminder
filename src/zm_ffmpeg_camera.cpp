@@ -91,7 +91,6 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
 #endif
 #endif
 
-
 FfmpegCamera::FfmpegCamera(
     int p_id,
     const std::string &p_path,
@@ -425,17 +424,19 @@ int FfmpegCamera::OpenFfmpeg() {
     for ( int i = 0;; i++ ) {
       const AVCodecHWConfig *config = avcodec_get_hw_config(mVideoCodec, i);
       if ( !config ) {
-        Debug(1, "Decoder %s does not support device type %s.",
-            mVideoCodec->name, av_hwdevice_get_type_name(type));
+        Debug(1, "Decoder %s does not support config %d.",
+            mVideoCodec->name, i);
         break;
       }
       if ( (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
           && (config->device_type == type)
           ) {
         hw_pix_fmt = config->pix_fmt;
-        break;
+        Debug(1, "Decoder %s does support our type %s.",
+            mVideoCodec->name, av_hwdevice_get_type_name(type));
+        //break;
       } else {
-        Debug(1, "decoder %s hwConfig doesn't match our type: %s != %s, pix_fmt %s.",
+        Debug(1, "Decoder %s hwConfig doesn't match our type: %s != %s, pix_fmt %s.",
             mVideoCodec->name,
             av_hwdevice_get_type_name(type),
             av_hwdevice_get_type_name(config->device_type),
@@ -451,10 +452,18 @@ int FfmpegCamera::OpenFfmpeg() {
           hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
 
       ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
-          (hwaccel_device != "" ? hwaccel_device.c_str(): nullptr), nullptr, 0);
+          (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
       if ( ret < 0 ) {
-        Error("Failed to create hwaccel device. %s",av_make_error_string(ret).c_str());
-        hw_pix_fmt = AV_PIX_FMT_NONE;
+        Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
+        if ( hwaccel_device != "" ) {
+          ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
+          if ( ret < 0 ) {
+            Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
+            hw_pix_fmt = AV_PIX_FMT_NONE;
+          }
+        } else {
+          hw_pix_fmt = AV_PIX_FMT_NONE;
+        }
       } else {
         Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
         mVideoCodecContext->get_format = get_hw_format;

@@ -135,39 +135,22 @@ bool VideoStore::open() {
       zm_dump_codecpar(video_in_stream->codecpar);
     }
 
-    int wanted_codec = monitor->OutputCodec();
-    if ( !wanted_codec ) {
-      // default to h264
-      Debug(2, "Defaulting to H264");
-      wanted_codec = AV_CODEC_ID_H264;
-      // FIXME what is the optimal codec?  Probably low latency h264 which is effectively mjpeg
-    } else {
-      Debug(2, "Codec is %d, wanted %d", video_in_ctx->codec_id, wanted_codec);
-    }
-    std::string wanted_encoder = monitor->Encoder();
 
-    // FIXME Should check that we are set to passthrough.  Might be same codec, but want privacy overlays
-    if ( (!wanted_codec) or (video_in_ctx->codec_id == wanted_codec) ) {
-    video_out_ctx = avcodec_alloc_context3(nullptr);
-    if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
+    if ( monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH ) {
+      // Don't care what codec, just copy parameters
+      video_out_ctx = avcodec_alloc_context3(nullptr);
+      if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
-      video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+        video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 #else
-      video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+        video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 #endif
-    }
-
-    if ( !video_out_ctx->codec_tag ) {
-      video_out_ctx->codec_tag =
-        av_codec_get_tag(oc->oformat->codec_tag, video_out_ctx->codec_id);
-      Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
-    }
-    video_out_ctx->time_base = video_in_ctx->time_base;
-    if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
-      Debug(2,"No timebase found in video in context, defaulting to Q");
-      video_out_ctx->time_base = AV_TIME_BASE_Q;
-    }	
-      // Copy params from instream to ctx 
+      }
+      video_out_ctx->time_base = video_in_ctx->time_base;
+      if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+        Debug(2,"No timebase found in video in context, defaulting to Q");
+        video_out_ctx->time_base = AV_TIME_BASE_Q;
+      }
       // There might not be a useful video_in_stream.  v4l in might not populate this very
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
@@ -178,25 +161,36 @@ bool VideoStore::open() {
         Error("Could not initialize ctx parameters");
         return false;
       }
-      //video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-      // Fix deprecated formats
-      switch ( video_out_ctx->pix_fmt ) {
-        case AV_PIX_FMT_YUVJ422P  :
-          video_out_ctx->pix_fmt = AV_PIX_FMT_YUV422P;
-          break;
-        case AV_PIX_FMT_YUVJ444P   :
-          video_out_ctx->pix_fmt = AV_PIX_FMT_YUV444P;
-          break;
-        case AV_PIX_FMT_YUVJ440P :
-          video_out_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
-          break;
-        case AV_PIX_FMT_NONE :
-        case AV_PIX_FMT_YUVJ420P :
-        default:
-          video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-          break;
+    //video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
+    // Fix deprecated formats
+    switch ( video_out_ctx->pix_fmt ) {
+      case AV_PIX_FMT_YUVJ422P  :
+        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV422P;
+        break;
+      case AV_PIX_FMT_YUVJ444P   :
+        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV444P;
+        break;
+      case AV_PIX_FMT_YUVJ440P :
+        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
+        break;
+      case AV_PIX_FMT_NONE :
+      case AV_PIX_FMT_YUVJ420P :
+      default:
+        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+        break;
+    }
+    } else if ( monitor->GetOptVideoWriter() == Monitor::ENCODE ) {
+      int wanted_codec = monitor->OutputCodec();
+      if ( !wanted_codec ) {
+        // default to h264
+        Debug(2, "Defaulting to H264");
+        wanted_codec = AV_CODEC_ID_H264;
+        // FIXME what is the optimal codec?  Probably low latency h264 which is effectively mjpeg
+      } else {
+        Debug(2, "Codec is %d, wanted %d", video_in_ctx->codec_id, wanted_codec);
       }
-    } else { // Either no video in or not the desired codec
+      std::string wanted_encoder = monitor->Encoder();
+
       for ( unsigned int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++ ) {
         if ( wanted_encoder != "" ) {
           if ( wanted_encoder != codec_data[i].codec_name ) {
@@ -224,14 +218,9 @@ bool VideoStore::open() {
 #endif
         }
 
-        if ( !video_out_ctx->codec_tag ) {
-          video_out_ctx->codec_tag =
-            av_codec_get_tag(oc->oformat->codec_tag, video_out_ctx->codec_id);
-          Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
-        }
         video_out_ctx->time_base = video_in_ctx->time_base;
         if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
-          Debug(2,"No timebase found in video in context, defaulting to Q");
+          Debug(2,"No timebase found in video in context, defaulting to Q which is microseconds");
           video_out_ctx->time_base = AV_TIME_BASE_Q;
         }	
 
@@ -1030,7 +1019,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
   frame_count += 1;
 
   // if we have to transcode
-  if ( video_out_ctx->codec_id != video_in_ctx->codec_id ) {
+  if ( monitor->GetOptVideoWriter() == Monitor::ENCODE ) {
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
     if ( !zm_packet->out_frame ) {
@@ -1082,21 +1071,17 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 #endif
 
     if ( !video_start_pts ) {
-      uint64_t temp = zm_packet->timestamp->tv_sec*(uint64_t)1000000;
-      video_start_pts = temp + zm_packet->timestamp->tv_usec;
-      Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d=>%" PRId64 ") usecs(%d)",
-          video_start_pts, zm_packet->timestamp->tv_sec, temp, zm_packet->timestamp->tv_usec);
-      Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
+      uint64_t temp = 
+      video_start_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
+      Debug(2, "No video_last_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
           video_start_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
       zm_packet->out_frame->pts = 0;
       zm_packet->out_frame->coded_picture_number = 0;
     } else {
-      uint64_t seconds = ( zm_packet->timestamp->tv_sec*(uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_start_pts;
-      zm_packet->out_frame->pts = av_rescale_q(seconds, video_in_stream->time_base, video_out_ctx->time_base);
-
-      //zm_packet->out_frame->pkt_duration = zm_packet->out_frame->pts - video_start_pts;
+      uint64_t useconds = ( zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_start_pts;
+      zm_packet->out_frame->pts = av_rescale_q(useconds, video_in_stream->time_base, video_out_ctx->time_base);
       Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
-          frame_count, zm_packet->out_frame->pts, video_start_pts, seconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
+          frame_count, zm_packet->out_frame->pts, video_start_pts, useconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
     }
     if ( zm_packet->keyframe ) {
       //Debug(2, "Setting keyframe was (%d)", zm_packet->out_frame->key_frame );
@@ -1113,15 +1098,19 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
     Debug(4, "Sending frame");
 
-    if ( (ret = zm_send_frame_receive_packet(video_out_ctx, zm_packet->out_frame, opkt)) < 0 ) {
+    ret = zm_send_frame_receive_packet(video_out_ctx, zm_packet->out_frame, opkt);
+    if ( ret < 0 ) {
       Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
       return -1;
+    } else if ( ret == 0 ) {
+      Debug(1, "Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+      return 0;
     }
 
     // Need to adjust pts/dts values from codec time to stream time
-    if ( opkt.pts != AV_NOPTS_VALUE)
+    if ( opkt.pts != AV_NOPTS_VALUE )
       opkt.pts = av_rescale_q(opkt.pts, video_out_ctx->time_base, video_out_stream->time_base);
-    if ( opkt.dts != AV_NOPTS_VALUE)
+    if ( opkt.dts != AV_NOPTS_VALUE )
       opkt.dts = av_rescale_q(opkt.dts, video_out_ctx->time_base, video_out_stream->time_base);
 
     int64_t duration;
@@ -1162,7 +1151,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     }  // end if in_frmae
     opkt.duration = duration;
 
-  } else { // codec matches, we are doing passthrough
+  } else { // Passthrough
     AVPacket *ipkt = &zm_packet->packet;
     Debug(3, "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same

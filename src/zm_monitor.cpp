@@ -610,8 +610,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%d", storage->Path(), id);
   shared_data = nullptr;
+  getCamera();
 
-  if ( purpose == CAPTURE ) {
+  if ( purpose != QUERY ) {
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
     }
@@ -628,27 +629,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
         );
     Debug(1, "Decoding enabled: %d", decoding_enabled);
 
-  } else if ( purpose == ANALYSIS ) {
-    // FIXME Now that zma is a thread, this might not get called.  Unless maybe we are redoing motion detection in a separate program.
-    while (
-        ( !(this->connect() and shared_data->valid) )
-        or
-        ( shared_data->last_write_index == (unsigned int)image_buffer_count )
-        or
-        ( shared_data->last_write_time == 0 )
-        ) {
-      Debug(1, "Waiting for capture daemon shared_data(%d) last_write_index(%d), last_write_time(%d)",
-          (shared_data ? 1:0),
-          (shared_data ? shared_data->last_write_index : 0),
-          (shared_data ? shared_data->last_write_time : 0));
-      this->disconnect();
-      sleep(1);
-      if ( zm_terminate ) break;
-    }
-
-    ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
-        image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
-    adaptive_skip = true;
 
     if ( config.record_diag_images ) {
       if ( config.record_diag_images_fifo ) {
@@ -661,13 +641,11 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
         diag_path_delta = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
       }
     }
-    shared_data->analysis_fps = 0.0;
   }  // end if purpose
 
   //this->delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
   //ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
   Debug(1, "Loaded monitor %d(%s), %d zones", id, name, n_zones);
-  getCamera();
 } // Monitor::Load
 
 Camera * Monitor::getCamera() {
@@ -1048,6 +1026,8 @@ bool Monitor::connect() {
     images = new Image *[pre_event_count];
     last_signal = shared_data->signal;
   } // end if purpose == ANALYSIS
+
+  shared_data->analysis_fps = 0.0;
 
   // We set these here because otherwise the first fps calc is meaningless
   struct timeval now;
@@ -2592,6 +2572,12 @@ int Monitor::Capture() {
           Debug(1, "Timestampprivacy");
         }
 
+        if ( !ref_image.Buffer() ) {
+          // First image, so assign it to ref image
+          Debug(1, "Assigning ref image %dx%d size: %d", width, height, camera->ImageSize());
+          ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
+              packet->image->Buffer(), camera->ImageSize());
+        }
         image_buffer[index].image->Assign(*packet->image);
         *(image_buffer[index].timestamp) = *(packet->timestamp);
       }  // end if have image
@@ -2940,6 +2926,8 @@ void Monitor::get_ref_image() {
   ZMPacket *snap;
   while ( 
       (
+       !analysis_it
+       or
        !( snap = packetqueue->get_packet(analysis_it))
        or 
        ( snap->packet.stream_index != video_stream_id )
@@ -2947,6 +2935,10 @@ void Monitor::get_ref_image() {
        ! snap->image
       )
     and !zm_terminate) {
+
+    if ( !analysis_it ) 
+      analysis_it = packetqueue->get_video_it(true);
+
     Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)",
         shared_data->last_write_index, shared_data->last_write_time);
     if ( ! snap->image ) {

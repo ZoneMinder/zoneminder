@@ -36,7 +36,7 @@ int ZoneMinderDeviceSource::Stats::notify(int tv_sec, int framesize) {
 ZoneMinderDeviceSource::ZoneMinderDeviceSource(
     UsageEnvironment& env,
     Monitor* monitor,
-    int outputFd,
+    int stream_id,
     unsigned int queueSize,
     bool useThread) :
   FramedSource(env),
@@ -45,7 +45,7 @@ ZoneMinderDeviceSource::ZoneMinderDeviceSource(
   packetBufferPtr(nullptr),
 	m_in("in"),
 	m_out("out") ,
-	m_outfd(outputFd),
+	m_stream_id(stream_id),
 	m_monitor(monitor),
   m_packetqueue(nullptr),
   m_packetqueue_it(nullptr),
@@ -155,21 +155,30 @@ void ZoneMinderDeviceSource::incomingPacketHandler() {
 
 // read from monitor
 int ZoneMinderDeviceSource::getNextFrame() {
+  if ( zm_terminate )
+    return -1;
+  
 	timeval ref;
 	gettimeofday(&ref, nullptr);
 
   if ( !m_packetqueue_it ) {
     m_packetqueue_it = m_packetqueue->get_video_it(true);
-    return -1;
   }
   ZMPacket *zm_packet = m_packetqueue->get_packet(m_packetqueue_it);
+  while ( zm_packet and (zm_packet->packet.stream_index != m_stream_id) ) {
+    zm_packet->unlock();
+    // We want our stream to start at the same it as the video
+    // but if this is an audio stream we need to increment past that first packet
+    m_packetqueue->increment_it(m_packetqueue_it, m_stream_id);
+    zm_packet = m_packetqueue->get_packet(m_packetqueue_it);
+  }
   if ( !zm_packet ) {
     Debug(1, "null zm_packet %p", zm_packet);
     return -1;
   }
   // packet is locked
   AVPacket pkt = zm_packet->packet;
-  m_packetqueue->increment_it(m_packetqueue_it);
+  m_packetqueue->increment_it(m_packetqueue_it, m_stream_id);
 
   if ( !packetBufferSize ) {
     packetBufferSize = pkt.size * 2;
@@ -205,6 +214,7 @@ int ZoneMinderDeviceSource::getNextFrame() {
   memcpy(packetBufferPtr, pkt.data, pkt.size);
   packetBufferPtr += pkt.size;
   zm_packet->unlock();
+  zm_packet = nullptr;// we no longer have the lock so shouldn't be accessing it
 
   size_t frame_size;
   size_t pkt_size = packetBufferPtr-packetBuffer;
@@ -223,7 +233,6 @@ int ZoneMinderDeviceSource::getNextFrame() {
   Debug(1, "Have nal frame at %p size %d. Remaining pktsize %d", data, frame_size, pkt_size);
   NAL_Frame *frame  = new NAL_Frame(data, frame_size, tv);
   //frame->check();
-  zm_packet->unlock();
 
 	timeval diff;
 	timersub(&tv, &ref, &diff);

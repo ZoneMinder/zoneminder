@@ -31,10 +31,12 @@ function cycleNext() {
 }
 
 function cyclePrev() {
-  if ( monIdx ) {
-    monIdx -= 1;
-  } else {
+  monIdx --;
+  if ( monIdx < 0 ) {
     monIdx = monitorData.length - 1;
+  }
+  if ( !monitorData[monIdx] ) {
+    console.log('No monitorData for ' + monIdx);
   }
 
   window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);

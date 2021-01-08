@@ -653,11 +653,10 @@ function getNearEventsResponse( respObj, respText ) {
   $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
 }
 
-var nearEventsReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse} );
-
 function nearEventsQuery( eventId ) {
-  var parms = "view=request&request=status&entity=nearevents&id="+eventId+filterQuery+sortQuery;
-  nearEventsReq.send( parms );
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=nearevents&id='+eventId+filterQuery+sortQuery)
+      .done(getNearEventsResponse)
+      .fail(logAjaxFail);
 }
 
 function loadEventThumb( event, frame, loadImage ) {

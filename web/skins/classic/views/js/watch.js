@@ -106,7 +106,7 @@ function changeScale() {
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
 
-  Cookie.write('zmWatchScale'+monitorId, scale, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmWatchScale'+monitorId, scale, 3600);
 
   var streamImg = $j('#liveStream'+monitorId);
   if ( streamImg ) {

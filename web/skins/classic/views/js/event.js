@@ -209,13 +209,13 @@ function changeScale() {
   } else {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
-  Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmEventScale'+eventData.MonitorId, scale, 3600);
 } // end function changeScale
 
 function changeReplayMode() {
   var replayMode = $j('#replayMode').val();
 
-  Cookie.write('replayMode', replayMode, {duration: 10*365, samesite: 'strict'});
+  setCookie('replayMode', replayMode, 3600);
 
   refreshWindow();
 }
@@ -248,7 +248,7 @@ function changeRate() {
       streamReq({command: CMD_VARPLAY, rate: rate});
     }
   }
-  Cookie.write('zmEventRate', rate, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmEventRate', rate, 3600);
 } // end function changeRate
 
 function getCmdResponse( respObj, respText ) {
@@ -291,7 +291,7 @@ function getCmdResponse( respObj, respText ) {
     streamPause( );
   } else {
     $j('select[name="rate"]').val(streamStatus.rate*100);
-    Cookie.write('zmEventRate', streamStatus.rate*100, {duration: 10*365, samesite: 'strict'});
+    setCookie('zmEventRate', streamStatus.rate*100, 3600);
     streamPlay( );
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
@@ -360,7 +360,7 @@ function vjsPlay() { //catches if we change mode programatically
     stopFastRev();
   }
   $j('select[name="rate"]').val(vid.playbackRate()*100);
-  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmEventRate', vid.playbackRate()*100, 3600);
   streamPlay();
 }
 
@@ -387,7 +387,7 @@ function streamFastFwd( action ) {
       setButtonState('fastFwdBtn', 'unavail');
     }
     $j('select[name="rate"]').val(vid.playbackRate()*100);
-    Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365, samesite: 'strict'});
+    setCookie('zmEventRate', vid.playbackRate()*100, 3600);
   } else {
     streamReq({command: CMD_FASTFWD});
   }
@@ -414,7 +414,7 @@ function stopFastRev() {
   clearInterval(intervalRewind);
   vid.playbackRate(1);
   $j('select[name="rate"]').val(vid.playbackRate()*100);
-  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmEventRate', vid.playbackRate()*100, 3600);
   revSpeed = .5;
 }
 
@@ -432,7 +432,7 @@ function streamFastRev( action ) {
     }
     clearInterval(intervalRewind);
     $j('select[name="rate"]').val(-revSpeed*100);
-    Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365, samesite: 'strict'});
+    setCookie('zmEventRate', vid.playbackRate()*100, 3600;
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
         clearInterval(intervalRewind);
@@ -1133,11 +1133,11 @@ function initPage() {
       handleClick(event);
     });
     vid.on('volumechange', function() {
-      Cookie.write('volume', vid.volume(), {duration: 10*365, samesite: 'strict'});
+      setCookie('volume', vid.volume(), 3600);
     });
-    if ( Cookie.read('volume') != null ) {
-      vid.volume(Cookie.read('volume'));
-    }
+    var cookie = getCookie('volume');
+    if ( cookie ) vid.volume(cookie);
+
     vid.on('timeupdate', function() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
     });

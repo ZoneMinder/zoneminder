@@ -81,18 +81,18 @@ function changeSize() {
     console.log('Did not find liveStream'+monitorData[monIdx].id);
   }
   $j('#scale').val('');
-  Cookie.write('zmCycleScale', '', {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmCycleWidth', width, {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmCycleHeight', height, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmCycleScale', '', 3600);
+  setCookie('zmCycleWidth', width, 3600);
+  setCookie('zmCycleHeight', height, 3600);
 } // end function changeSize()
 
 function changeScale() {
   var scale = $j('#scale').val();
   $j('#width').val('auto');
   $j('#height').val('auto');
-  Cookie.write('zmCycleScale', scale, {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmCycleWidth', 'auto', {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmCycleHeight', 'auto', {duration: 10*365, samesite: 'strict'});
+  setCookie('zmCycleScale', scale, 3600);
+  setCookie('zmCycleWidth', 'auto', 3600);
+  setCookie('zmCycleHeight', 'auto', 3600);
   var newWidth = ( monitorData[monIdx].width * scale ) / SCALE_BASE;
   var newHeight = ( monitorData[monIdx].height * scale ) / SCALE_BASE;
 

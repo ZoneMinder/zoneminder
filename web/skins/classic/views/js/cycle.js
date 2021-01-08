@@ -1,4 +1,4 @@
-var periodical_id;
+var intervalId;
 var pauseBtn = $j('#pauseBtn');
 var playBtn = $j('#playBtn');
 
@@ -7,13 +7,13 @@ function nextCycleView() {
 }
 
 function cyclePause() {
-  $clear(periodical_id);
+  clearInterval(intervalId);
   pauseBtn.prop('disabled', true);
   playBtn.prop('disabled', false);
 }
 
 function cycleStart() {
-  periodical_id = nextCycleView.periodical(cycleRefreshTimeout);
+  intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   pauseBtn.prop('disabled', false);
   playBtn.prop('disabled', true);
 }
@@ -41,7 +41,7 @@ function cyclePrev() {
 }
 
 function initCycle() {
-  periodical_id = nextCycleView.periodical(cycleRefreshTimeout);
+  intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   var scale = $j('#scale').val();
   if ( scale == '0' || scale == 'auto' ) changeScale();
 }

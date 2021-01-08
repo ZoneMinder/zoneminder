@@ -312,7 +312,7 @@ function getCmdResponse( respObj, respText ) {
     }
   } // end if haev a new auth hash
 
-  streamCmdTimer = streamQuery.delay(streamTimeout); //Timeout is refresh rate for progressBox and time display
+  streamCmdTimer = setTimeout(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display
 } // end function getCmdResponse( respObj, respText )
 
 function pauseClicked() {
@@ -1149,7 +1149,7 @@ function initPage() {
     }
   } else {
     progressBarNav();
-    streamCmdTimer = streamQuery.delay(250);
+    streamCmdTimer = setTimeout(streamQuery, 250);
     if ( canStreamNative ) {
       if ( !$j('#imageFeed') ) {
         console.log('No element with id tag imageFeed found.');

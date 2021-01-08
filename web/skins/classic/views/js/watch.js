@@ -302,7 +302,7 @@ function getStreamCmdResponse(respObj, respText) {
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
     streamCmdTimeout = streamCmdTimeout/5;
   }
-  streamCmdTimer = streamCmdQuery.delay(streamCmdTimeout);
+  streamCmdTimer = setTimeout(streamCmdQuery, streamCmdTimeout);
 }
 
 function streamCmdPause( action ) {
@@ -516,7 +516,7 @@ function getStatusCmdResponse(respObj, respText) {
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
     statusCmdTimeout = statusCmdTimeout/5;
   }
-  statusCmdTimer = statusCmdQuery.delay(statusCmdTimeout);
+  statusCmdTimer = setTimeout(statusCmdQuery, statusCmdTimeout);
 }
 
 function statusCmdQuery() {
@@ -704,10 +704,10 @@ function appletRefresh() {
       console.error("Nothing found for liveStream"+monitorId);
     }
     if ( appletRefreshTime ) {
-      appletRefresh.delay( appletRefreshTime*1000 );
+      setTimeout(appletRefresh, appletRefreshTime*1000);
     }
   } else {
-    appletRefresh.delay( 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
+    setTimeout(appletRefresh, 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
   }
 }
 
@@ -834,10 +834,10 @@ function initPage() {
 
   if ( monitorType != 'WebSite' ) {
     if ( streamMode == 'single' ) {
-      statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+      statusCmdTimer = setTimeout(statusCmdQuery, (Math.random()+0.1)*statusRefreshTimeout );
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
     } else {
-      streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+      streamCmdTimer = setTimeout(streamCmdQuery, (Math.random()+0.1)*statusRefreshTimeout );
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
     }
 
@@ -861,7 +861,7 @@ function initPage() {
     } // streamMode native or single
 
     if ( refreshApplet && appletRefreshTime ) {
-      appletRefresh.delay(appletRefreshTime*1000);
+      setTimeout(appletRefresh, appletRefreshTime*1000);
     }
     if ( scale == '0' || scale == 'auto' ) changeScale();
     if ( window.history.length == 1 ) {

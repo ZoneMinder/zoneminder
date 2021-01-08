@@ -823,14 +823,14 @@ function manageDelConfirmModalBtns() {
 }
 
 function msieVer() {
-    var ua = window.navigator.userAgent;
-    var msie = ua.indexOf("MSIE ");
+  var ua = window.navigator.userAgent;
+  var msie = ua.indexOf("MSIE ");
 
-    if (msie >= 0) { // If Internet Explorer, return version number
-      return msie;
-    } else {  // If another browser, return 0
-      return 0;
-    }
+  if (msie >= 0) { // If Internet Explorer, return version number
+    return msie;
+  } else { // If another browser, return 0
+    return 0;
+  }
 }
 
 function initPage() {

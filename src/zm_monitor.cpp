@@ -942,6 +942,7 @@ bool Monitor::connect() {
     Fatal("Can't shmat: %s", strerror(errno));
   }
 #endif // ZM_MEM_MAPPED
+
   shared_data = (SharedData *)mem_ptr;
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
   video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
@@ -956,6 +957,8 @@ bool Monitor::connect() {
     Debug(3,"Aligning shared memory images to the next 64 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
+  if ( !camera )
+    getCamera();
 
   Debug(3, "Allocating %d image buffers", image_buffer_count);
   image_buffer = new ZMPacket[image_buffer_count];
@@ -1082,8 +1085,11 @@ bool Monitor::disconnect() {
 #endif // ZM_MEM_MAPPED
   if ( image_buffer ) {
     for ( int i = 0; i < image_buffer_count; i++ ) {
+      // We delete the image because it is an object pointing to space that won't be free'd.
       delete image_buffer[i].image;
       image_buffer[i].image = nullptr;
+      // We don't delete the timestamp because it is just a pointer to shared mem.
+      image_buffer[i].timestamp = nullptr;
     }
     delete[] image_buffer;
     image_buffer = nullptr;

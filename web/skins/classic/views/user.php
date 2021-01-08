@@ -159,7 +159,7 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
         </table>
         <div id="contentButtons">
           <button type="submit" name="action" value="Save"><?php echo translate('Save') ?></button>
-          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
+          <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

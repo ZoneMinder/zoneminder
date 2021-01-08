@@ -36,7 +36,7 @@ function MonitorStream(monitorData) {
       stream.src = '';
       stream.src = src;
     }
-    this.streamCmdQuery.delay(delay, this);
+    setTimeout(this.streamCmdQuery, delay, this);
   };
   this.stop = function() {
     if ( 0 ) {
@@ -98,7 +98,7 @@ function MonitorStream(monitorData) {
   };
 
   this.onFailure = function(jqxhr, textStatus, error) {
-    this.streamCmdQuery.delay(1000*statusRefreshTimeout, this);
+    setTimeout(this.streamCmdQuery, 1000*statusRefreshTimeout, this);
     logAjaxFail(jqxhr, textStatus, error);
   };
 
@@ -195,7 +195,7 @@ function MonitorStream(monitorData) {
     } // end if Ok or not
 
     this.lastAlarmState = this.alarmState;
-    this.streamCmdQuery.delay(statusRefreshTimeout, this);
+    setTimeout(this.streamCmdQuery, statusRefreshTimeout, this);
   };
 
   this.streamCmdQuery = function(resent) {

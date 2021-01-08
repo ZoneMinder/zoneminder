@@ -51,7 +51,7 @@ xhtmlHeaders(__FILE__, translate('MonitorPreset') );
         </p>
         <div id="contentButtons">
           <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" data-on-click-this="submitPreset" disabled="disabled"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="backWindow"/>
         </div>
       </form>
     </div>

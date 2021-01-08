@@ -152,7 +152,7 @@ function setAlarmState( currentAlarmState ) {
     table.bootstrapTable('refresh');
     if ( SOUND_ON_ALARM ) {
       // Enable the alarm sound
-      if ( !canPlayPauseAudio ) {
+      if ( !msieVer ) {
         $j('#alarmSound').removeClass('hidden');
       } else {
         $j('#MediaPlayer').trigger('play');
@@ -166,7 +166,7 @@ function setAlarmState( currentAlarmState ) {
     table.bootstrapTable('refresh');
     if ( SOUND_ON_ALARM ) {
       // Disable alarm sound
-      if ( !canPlayPauseAudio ) {
+      if ( !msieVer ) {
         $j('#alarmSound').addClass('hidden');
       } else {
         $j('#MediaPlayer').trigger('pause');
@@ -820,6 +820,17 @@ function manageDelConfirmModalBtns() {
   document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
     $j('#deleteConfirm').modal('hide');
   });
+}
+
+function msieVer() {
+    var ua = window.navigator.userAgent;
+    var msie = ua.indexOf("MSIE ");
+
+    if (msie >= 0) { // If Internet Explorer, return version number
+      return msie;
+    } else {  // If another browser, return 0
+      return 0;
+    }
 }
 
 function initPage() {

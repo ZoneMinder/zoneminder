@@ -1071,7 +1071,6 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 #endif
 
     if ( !video_start_pts ) {
-      uint64_t temp = 
       video_start_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
       Debug(2, "No video_last_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
           video_start_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);

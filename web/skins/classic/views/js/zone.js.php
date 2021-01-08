@@ -130,8 +130,6 @@ var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
-var canPlayPauseAudio = Browser.ie;
-
 var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
 var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
 

@@ -75,8 +75,6 @@ var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
-var canPlayPauseAudio = Browser.ie;
-
 <?php 
   $control = $monitor->Control();
   if ( $control->CanMoveMap() ) { ?>

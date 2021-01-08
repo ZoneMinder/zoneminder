@@ -370,15 +370,15 @@ int FfmpegCamera::OpenFfmpeg() {
       mVideoStreamId, mAudioStreamId);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  // mVideoCodecContext = avcodec_alloc_context3(NULL);
-  // avcodec_parameters_to_context(mVideoCodecContext,
-  // mFormatContext->streams[mVideoStreamId]->codecpar);
+  mVideoCodecContext = avcodec_alloc_context3(nullptr);
+  avcodec_parameters_to_context(mVideoCodecContext,
+  mFormatContext->streams[mVideoStreamId]->codecpar);
   // this isn't copied.
-  // mVideoCodecContext->time_base =
-  // mFormatContext->streams[mVideoStreamId]->codec->time_base;
+  mVideoCodecContext->time_base =
+  mFormatContext->streams[mVideoStreamId]->codec->time_base;
 #else
 #endif
-  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
+  //mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
 #ifdef CODEC_FLAG2_FAST
   mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 #endif
@@ -451,23 +451,23 @@ int FfmpegCamera::OpenFfmpeg() {
       Debug(1, "Selected hw_pix_fmt %d %s",
           hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
 
+       mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_IGNORE_LEVEL;
+        //if (!lavc_param->check_hw_profile)
+       mVideoCodecContext->hwaccel_flags |= AV_HWACCEL_FLAG_ALLOW_PROFILE_MISMATCH;
+
       ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
           (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
+      if ( ret < 0 and hwaccel_device != "" ) {
+        ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
+      }
       if ( ret < 0 ) {
         Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
-        if ( hwaccel_device != "" ) {
-          ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
-          if ( ret < 0 ) {
-            Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
-            hw_pix_fmt = AV_PIX_FMT_NONE;
-          }
-        } else {
-          hw_pix_fmt = AV_PIX_FMT_NONE;
-        }
+        hw_pix_fmt = AV_PIX_FMT_NONE;
       } else {
         Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
         mVideoCodecContext->get_format = get_hw_format;
         mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+
         hwFrame = zm_av_frame_alloc();
       }
     } else {
@@ -569,7 +569,7 @@ int FfmpegCamera::Close() {
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    // avcodec_free_context(&mVideoCodecContext);
+    avcodec_free_context(&mVideoCodecContext);
 #endif
     mVideoCodecContext = nullptr;  // Freed by av_close_input_file
   }

@@ -75,7 +75,7 @@ function exportEvents( ) {
   $j('#exportProgress').text(exportProgressString);
 
   //exportProgress();
-  exportTimer = exportProgress.periodical( 500 );
+  exportTimer = setInterval(exportProgress, 500);
 }
 
 function getEventDetailModal(eid) {

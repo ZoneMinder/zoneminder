@@ -119,6 +119,9 @@ function Dump(value, label) {
 JQuery has deprecated its browser object. This function implements our own
 browser object. It strikes a compromise between importing a full browser
 detection js library and using the js navigator object in its umodified form.
+
+This function derived from the following sample on stackoverflow:
+https://stackoverflow.com/a/11219680
 */
 
 function browserInfo() {

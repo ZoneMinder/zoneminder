@@ -273,10 +273,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
-        Cookie.write('zmHeaderFlip', 'down', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmHeaderFlip', 'down', 3600);
       } else {
         flip.html('keyboard_arrow_up');
-        Cookie.write('zmHeaderFlip', 'up', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmHeaderFlip', 'up', 3600);
       }
     });
     // Manage the web console filter bar minimize chevron
@@ -285,10 +285,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var fbflip = $j("#fbflip");
       if ( fbflip.html() == 'keyboard_arrow_up' ) {
         fbflip.html('keyboard_arrow_down');
-        Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmFilterBarFlip', 'down', 3600);
       } else {
         fbflip.html('keyboard_arrow_up');
-        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmFilterBarFlip', 'up', 3600);
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
@@ -300,10 +300,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
         mfbflip.html('keyboard_arrow_down');
-        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmMonitorFilterBarFlip', 'up', 3600);
       } else {
         mfbflip.html('keyboard_arrow_up');
-        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmMonitorFilterBarFlip', 'down', 3600);
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }

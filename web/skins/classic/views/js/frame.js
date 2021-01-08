@@ -24,7 +24,7 @@ function changeScale() {
     img.css('width', newWidth + 'px');
     img.css('height', newHeight + 'px');
   }
-  Cookie.write('zmWatchScale', scale, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmWatchScale', scale, 3600);
   $j.each(controlsLinks, function(k, anchor) { //Make frames respect scale choices
     if ( anchor ) {
       anchor.prop('href', anchor.prop('href').replace(/scale=.*&/, 'scale=' + scale + '&'));

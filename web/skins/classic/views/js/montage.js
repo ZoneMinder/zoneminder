@@ -44,9 +44,9 @@ function selectLayout(element) {
   if ( ! layout ) {
     return;
   }
-  Cookie.write('zmMontageLayout', layout_id, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmMontageLayout', layout_id, 3600);
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
-    Cookie.write('zmMontageScale', '', {duration: 10*365, samesite: 'strict'});
+    setCookie('zmMontageScale', '', 3600);
     $j('#scale').val('');
     $j('#width').val('0');
   } else {
@@ -129,9 +129,9 @@ function changeSize() {
     }
   }
   $j('#scale').val('');
-  Cookie.write('zmMontageScale', '', {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmMontageWidth', width, {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmMontageHeight', height, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmMontageScale', '', 3600);
+  setCookie('zmMontageWidth', width, 3600);
+  setCookie('zmMontageHeight', height, 3600);
   $j("#zmMontageLayout option:selected").removeAttr("selected");
   //selectLayout('#zmMontageLayout');
 } // end function changeSize()
@@ -143,9 +143,9 @@ function changeScale() {
   var scale = $j('#scale').val();
   $j('#width').val('0'); //auto
   $j('#height').val('0'); //auto
-  Cookie.write('zmMontageScale', scale, {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmMontageWidth', '', {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmMontageHeight', '', {duration: 10*365, samesite: 'strict'});
+  setCookie('zmMontageScale', scale, 3600);
+  setCookie('zmMontageWidth', '', 3600);
+  setCookie('zmMontageHeight', '', 3600);
   if ( scale == '' ) {
     selectLayout('#zmMontageLayout');
     return;
@@ -275,9 +275,9 @@ function initPage() {
   $j("#hdrbutton").click(function() {
     $j("#flipMontageHeader").slideToggle("slow");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-    Cookie.write( 'zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', {duration: 10*365} );
+    setCookie( 'zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', 3600);
   });
-  if ( Cookie.read('zmMontageHeaderFlip') == 'down' ) {
+  if ( getCookie('zmMontageHeaderFlip') == 'down' ) {
     // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
     $j("#flipMontageHeader").slideToggle("fast");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');

@@ -842,7 +842,7 @@ function exportResponse(data, responseText) {
     $j('#downloadLink').attr("href", thisUrl + exportFile);
     $j('#exportProgress').addClass( 'text-success' );
     $j('#exportProgress').text(exportSucceededString);
-    startDownload.pass( exportFile ).delay( 1500 );
+    setTimeout(startDownload, 1500, exportFile);
   } else {
     $j('#exportProgress').addClass( 'text-danger' );
     $j('#exportProgress').text(exportFailedString);

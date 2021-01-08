@@ -126,19 +126,21 @@ https://stackoverflow.com/a/11219680
 
 function browserInfo() {
   var browser = {};
-  var nVer = navigator.appVersion;
   var nAgt = navigator.userAgent;
-  var browserName  = navigator.appName;
-  var fullVersion  = ''+parseFloat(navigator.appVersion); 
-  var majorVersion = parseInt(navigator.appVersion,10);
-  var nameOffset,verOffset,ix;
+  var browserName = navigator.appName;
+  var fullVersion = ''+parseFloat(navigator.appVersion);
+  var majorVersion = parseInt(navigator.appVersion, 10);
+  var nameOffset;
+  var verOffset;
+  var ix;
 
   // In Opera, the true version is after "Opera" or after "Version"
   if ((verOffset=nAgt.indexOf("Opera")) != -1) {
-   browserName = "Opera";
-   fullVersion = nAgt.substring(verOffset+6);
-   if ((verOffset=nAgt.indexOf("Version")) != -1) 
-     fullVersion = nAgt.substring(verOffset+8);
+    browserName = "Opera";
+    fullVersion = nAgt.substring(verOffset+6);
+    if ((verOffset=nAgt.indexOf("Version")) != -1) {
+      fullVersion = nAgt.substring(verOffset+8);
+    }
   }
 
   // In MSIE, the true version is after "MSIE" in userAgent
@@ -157,8 +159,9 @@ function browserInfo() {
   else if ((verOffset=nAgt.indexOf("Safari")) != -1) {
     browserName = "Safari";
     fullVersion = nAgt.substring(verOffset+7);
-    if ((verOffset=nAgt.indexOf("Version")) != -1) 
+    if ((verOffset=nAgt.indexOf("Version")) != -1) {
       fullVersion = nAgt.substring(verOffset+8);
+    }
   }
 
   // In Firefox, the true version is after "Firefox" 
@@ -177,15 +180,17 @@ function browserInfo() {
   }
 
   // trim the fullVersion string at semicolon/space if present
-  if ((ix=fullVersion.indexOf(";")) != -1)
-     fullVersion=fullVersion.substring(0,ix);
-  if ((ix=fullVersion.indexOf(" ")) != -1)
-     fullVersion=fullVersion.substring(0,ix);
+  if ((ix=fullVersion.indexOf(";")) != -1) {
+    fullVersion=fullVersion.substring(0,ix);
+  }
+  if ((ix=fullVersion.indexOf(" ")) != -1) {
+    fullVersion=fullVersion.substring(0,ix);
+  }
 
-  majorVersion = parseInt(''+fullVersion,10);
+  var majorVersion = parseInt(''+fullVersion,10);
   if (isNaN(majorVersion)) {
-   fullVersion  = ''+parseFloat(navigator.appVersion); 
-   majorVersion = parseInt(navigator.appVersion,10);
+    fullVersion  = ''+parseFloat(navigator.appVersion); 
+    majorVersion = parseInt(navigator.appVersion,10);
   }
 
   // OSName variable is set as follows:

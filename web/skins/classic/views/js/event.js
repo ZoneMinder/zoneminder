@@ -432,7 +432,7 @@ function streamFastRev( action ) {
     }
     clearInterval(intervalRewind);
     $j('select[name="rate"]').val(-revSpeed*100);
-    setCookie('zmEventRate', vid.playbackRate()*100, 3600;
+    setCookie('zmEventRate', vid.playbackRate()*100, 3600);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
         clearInterval(intervalRewind);

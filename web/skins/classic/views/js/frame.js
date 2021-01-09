@@ -1,3 +1,5 @@
+var backBtn = $j('#backBtn');
+
 function changeScale() {
   var scale = $j('#scale').val();
   var img = $j('#frameImg');
@@ -32,14 +34,6 @@ function changeScale() {
   });
 }
 
-if ( !scale ) {
-  $j(document).ready(changeScale);
-}
-
-document.addEventListener('DOMContentLoaded', function onDCL() {
-  document.getElementById('scaleControl').addEventListener('change', changeScale);
-});
-
 function getStat(params) {
   $j.getJSON(thisUrl + '?view=request&request=stats&raw=true', params)
       .done(function(data) {
@@ -59,8 +53,7 @@ function getStat(params) {
 }
 
 function initPage() {
-  var backBtn = $j('#backBtn');
-
+  document.getElementById('scaleControl').addEventListener('change', changeScale);
   if ( scale == '0' || scale == 'auto' ) changeScale();
 
   // Don't enable the back button if there is no previous zm page to go back to
@@ -88,6 +81,5 @@ function initPage() {
   getStat({eid: eid, fid: fid});
 }
 
-$j(document).ready(function() {
-  initPage();
-});
+// Kick everything off
+$j(document).ready(initPage);

@@ -212,7 +212,7 @@ function changeScale() {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
   setCookie('zmEventScale'+eventData.MonitorId, scale, 3600);
-  
+
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
 } // end function changeScale
@@ -1120,21 +1120,20 @@ function getStat() {
 
 function onStatsResize(vidwidth) {
   var minWidth = 300; // An arbitrary value in pixels used to hide the stats table
-  var cookie = 'zmEventStats';
   var width = $j(window).width() - vidwidth;
 
   // Hide the stats table if we have run out of room to show it properly
   if ( width < minWidth ) {
     statsBtn.prop('disabled', true);
     if ( table.is(':visible') ) {
-      table.toggle(false);  
+      table.toggle(false);
       wasHidden = true;
     }
   // Show the stats table if we hid it previously and sufficient room becomes available
   } else if ( width >= minWidth ) {
     statsBtn.prop('disabled', false);
     if ( !table.is(':visible') && wasHidden ) {
-      table.toggle(true);  
+      table.toggle(true);
       wasHidden = false;
     }
   }

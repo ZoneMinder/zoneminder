@@ -53,7 +53,6 @@ function getStat(params) {
 }
 
 function initPage() {
-  document.getElementById('scaleControl').addEventListener('change', changeScale);
   if ( scale == '0' || scale == 'auto' ) changeScale();
 
   // Don't enable the back button if there is no previous zm page to go back to

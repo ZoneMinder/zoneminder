@@ -97,7 +97,7 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
       <h2><?php echo translate('Frame') ?> <?php echo $Event->Id().'-'.$Frame->FrameId().' ('.$Frame->Score().')' ?></h2>
       
       <form>
-        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo htmlSelect('scale', $scales, $scale); ?></div>        
+        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?></div>        
         <input type="hidden" name="base_width" id="base_width" value="<?php echo $Event->Width(); ?>"/>
         <input type="hidden" name="base_height" id="base_height" value="<?php echo $Event->Height(); ?>"/>
       </form>

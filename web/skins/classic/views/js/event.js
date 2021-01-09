@@ -1313,7 +1313,7 @@ function initPage() {
     if ( table.is(':visible') ) {
       setCookie(cookie, 'off', 10*365);
       table.toggle(false);
-    } else {  // Don't show the table if our autohide logic hid it
+    } else {
       setCookie(cookie, 'on', 10*365);
       table.toggle(true);
     }

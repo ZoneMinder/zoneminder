@@ -14,14 +14,16 @@ var fid = <?php echo $fid ?>;
 var record_event_stats = <?php echo ZM_RECORD_EVENT_STATS ?>;
 var alarmFrame = <?php echo $alarmFrame ?>;
 
-var statHeaderStrings = {};
-statHeaderStrings.ZoneName = "<?php echo translate('Zone') ?>";
-statHeaderStrings.PixelDiff = "<?php echo translate('PixelDiff') ?>";
-statHeaderStrings.AlarmPixels = "<?php echo translate('AlarmPx') ?>";
-statHeaderStrings.FilterPixels = "<?php echo translate('FilterPx') ?>";
-statHeaderStrings.BlobPixels = "<?php echo translate('BlobPx') ?>";
-statHeaderStrings.Blobs = "<?php echo translate('Blobs') ?>";
-statHeaderStrings.BlobSizes = "<?php echo translate('BlobSizes') ?>";
-statHeaderStrings.AlarmLimits = "<?php echo translate('AlarmLimits') ?>";
-statHeaderStrings.Score = "<?php echo translate('Score') ?>";
-
+var statHeaderStrings = {
+    Id: '<?php echo translate('EventId') ?>',
+    FrameId: '<?php echo translate('FrameId') ?>',
+    ZoneName: '<?php echo translate('Zone') ?>',
+    PixelDiff: '<?php echo translate('PixelDiff') ?>',
+    AlarmPixels: '<?php echo translate('AlarmPx') ?>',
+    FilterPixels: '<?php echo translate('FilterPx') ?>',
+    BlobPixels: '<?php echo translate('BlobPx') ?>',
+    Blobs: '<?php echo translate('Blobs') ?>',
+    BlobSizes: '<?php echo translate('BlobSizes') ?>',
+    AlarmLimits: '<?php echo translate('AlarmLimits') ?>',
+    Score: '<?php echo translate('Score') ?>'
+};

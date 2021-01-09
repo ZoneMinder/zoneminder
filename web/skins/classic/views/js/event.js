@@ -6,6 +6,7 @@ var unarchiveBtn = $j('#unarchiveBtn');
 var editBtn = $j('#editBtn');
 var exportBtn = $j('#exportBtn');
 var downloadBtn = $j('#downloadBtn');
+var statsBtn = $j('#statsBtn');
 var deleteBtn = $j('#deleteBtn');
 var prevEventId = 0;
 var nextEventId = 0;
@@ -29,6 +30,7 @@ var zmsBroke = false; //Use alternate navigation if zms has crashed
 var frameBatch = 40;
 var currFrameId = null;
 var auth_hash;
+var wasHidden = false;
 
 function streamReq(data) {
   if ( auth_hash ) data.auth = auth_hash;
@@ -211,6 +213,9 @@ function changeScale() {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
   setCookie('zmEventScale'+eventData.MonitorId, scale, 3600);
+  
+  // After a resize, check if we still have room to display the event stats table
+  onStatsResize(newWidth);
 } // end function changeScale
 
 function changeReplayMode() {
@@ -1114,12 +1119,37 @@ function getStat() {
   });
 }
 
+function onStatsResize(vidwidth) {
+  var minWidth = 300; // An arbitrary value in pixels used to hide the stats table
+  var cookie = 'zmEventStats';
+  var width = $j(window).width() - vidwidth;
+
+  // Hide the stats table if we have run out of room to show it properly
+  if ( width < minWidth ) {
+    statsBtn.prop('disabled', true);
+    if ( table.is(':visible') ) {
+      table.toggle(false);  
+      wasHidden = true;
+    }
+  // Show the stats table if we hid it previously and sufficient room becomes available
+  } else if ( width >= minWidth ) {
+    statsBtn.prop('disabled', false);
+    if ( !table.is(':visible') && wasHidden ) {
+      table.toggle(true);  
+      wasHidden = false;
+    }
+  }
+}
+
 function initPage() {
   // Load the event stats
   getStat();
 
-  var stats = getEvtStatsCookie();
-  if ( stats != 'on' ) table.toggle(false);
+  if ( getEvtStatsCookie() != 'on' ) {
+    table.toggle(false);
+  } else {
+    onStatsResize(eventData.Width);
+  }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   if ( $j('#videoobj').length ) {
@@ -1283,7 +1313,7 @@ function initPage() {
     if ( table.is(':visible') ) {
       setCookie(cookie, 'off', 10*365);
       table.toggle(false);
-    } else {
+    } else {  // Don't show the table if our autohide logic hid it
       setCookie(cookie, 'on', 10*365);
       table.toggle(true);
     }

@@ -134,6 +134,12 @@ function initPage() {
     }
   });
 
+  // Manage the Frame STATISTICS VIEW button
+  document.getElementById("statsViewBtn").addEventListener("click", function onViewClick(evt) {
+    evt.preventDefault();
+    window.location.href = thisUrl+'?view=stats&eid='+eid+'&fid='+fid;
+  });
+
   // Load the frame stats
   getStat({eid: eid, fid: fid});
 

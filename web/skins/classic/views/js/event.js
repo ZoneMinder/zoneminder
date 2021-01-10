@@ -14,8 +14,6 @@ var prevEventStartTime = 0;
 var nextEventStartTime = 0;
 var PrevEventDefVideoPath = "";
 var NextEventDefVideoPath = "";
-var slider = null;
-var scroll = null;
 var currEventId = null;
 var CurEventDefVideoPath = null;
 var vid = null;
@@ -27,8 +25,6 @@ var streamCmdTimer = null;
 var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
-var frameBatch = 40;
-var currFrameId = null;
 var auth_hash;
 var wasHidden = false;
 
@@ -85,7 +81,8 @@ function vjsReplay() {
 } // end function vjsReplay
 
 function initialAlarmCues(eventId) {
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues) //get frames data for alarmCues and inserts into html
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId) //get frames data for alarmCues and inserts into html
+      .done(setAlarmCues)
       .fail(logAjaxFail);
 }
 
@@ -179,14 +176,10 @@ function changeScale() {
   var newWidth;
   var newHeight;
   var autoScale;
-  var eventViewer;
+  var eventViewer= $j(vid ? '#videoobj' : '#evtStream');
   var alarmCue = $j('div.alarmCue');
-  var bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
-  if ( streamMode == 'stills' ) {
-    eventViewer = $j('#eventThumbs');
-  } else {
-    eventViewer = $j(vid ? '#videoobj' : '#evtStream');
-  }
+  var bottomEl = $j('#replayStatus');
+
   if ( scale == '0' || scale == 'auto' ) {
     var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
@@ -197,20 +190,13 @@ function changeScale() {
     newWidth = eventData.Width * scale / SCALE_BASE;
     newHeight = eventData.Height * scale / SCALE_BASE;
   }
-  if ( streamMode != 'stills' ) {
-    eventViewer.width(newWidth);
-  } // stills handles its own width
+  eventViewer.width(newWidth);
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
     streamScale(scale == '0' ? autoScale : scale);
     drawProgressBar();
   }
-  if ( streamMode == 'stills' ) {
-    slider.autosize();
-    alarmCue.html(renderAlarmCues($j('#thumbsSliderPanel')));
-  } else {
-    alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
-  }
+  alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   setCookie('zmEventScale'+eventData.MonitorId, scale, 3600);
 
   // After a resize, check if we still have room to display the event stats table
@@ -582,11 +568,6 @@ function getEventResponse(respObj, respText) {
   }
 
   eventData = respObj.event;
-  var eventStills = $j('#eventStills');
-
-  if ( eventStills && !eventStills.hasClass('hidden') && currEventId != eventData.Id ) {
-    resetEventStills();
-  }
   currEventId = eventData.Id;
 
   $j('#dataEventId').text( eventData.Id );
@@ -651,8 +632,6 @@ function getNearEventsResponse( respObj, respText ) {
   PrevEventDefVideoPath = respObj.nearevents.PrevEventDefVideoPath;
   NextEventDefVideoPath = respObj.nearevents.NextEventDefVideoPath;
 
-  $j('#prevEventBtn').prop('disabled', !prevEventId);
-  $j('#nextEventBtn').prop('disabled', !nextEventId);
   $j('#prevBtn').prop('disabled', prevEventId == 0 ? true : false).attr('class', prevEventId == 0 ? 'unavail' : 'inactive');
   $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
 }
@@ -661,117 +640,6 @@ function nearEventsQuery( eventId ) {
   $j.getJSON(thisUrl + '?view=request&request=status&entity=nearevents&id='+eventId+filterQuery+sortQuery)
       .done(getNearEventsResponse)
       .fail(logAjaxFail);
-}
-
-function loadEventThumb( event, frame, loadImage ) {
-  var thumbImg = $j('#eventThumb'+frame.FrameId);
-  if ( !thumbImg ) {
-    console.error('No holder found for frame '+frame.FrameId);
-    return;
-  }
-  var img = new Asset.image( imagePrefix+frame.EventId+"&fid="+frame.FrameId,
-      {
-        'onload': ( function( loadImage ) {
-          thumbImg.prop('src', img.prop('src'));
-          thumbImg.prop('class', frame.Type=='Alarm'?'alarm':'normal');
-          thumbImg.prop('title', frame.FrameId+' / '+((frame.Type=='Alarm')?frame.Score:0));
-          thumbImg.removeClass('placeholder');
-          thumbImg.off('click');
-          thumbImg.click(function() {
-            locateImage( frame.FrameId, true );
-          } );
-          if ( loadImage ) {
-            loadEventImage( event, frame );
-          }
-        } ).pass( loadImage )
-      }
-  );
-}
-
-function loadEventImage(event, frame) {
-  console.debug('Loading '+event.Id+'/'+frame.FrameId);
-  var eventImg = $j('#eventImage');
-  var thumbImg = $j('#eventThumb'+frame.FrameId);
-  if ( eventImg.prop('src') != thumbImg.prop('src') ) {
-    var eventImagePanel = $j('#eventImagePanel');
-
-    if ( eventImagePanel.css('display') != 'none' ) {
-      var lastThumbImg = $j('#eventThumb' + eventImg.prop('alt'));
-      lastThumbImg.removeClass('selected');
-      lastThumbImg.css('opacity', '1.0');
-    }
-
-    $j('#eventImageBar').css('width', event.Width);
-    if ( frame.Type == 'Alarm' ) {
-      $j('#eventImageStats').removeClass('hidden');
-    } else {
-      $j('#eventImageStats').addClass('hidden');
-    }
-    thumbImg.addClass('selected');
-    thumbImg.css('opacity', '0.5');
-
-    if ( eventImagePanel.css('display') == 'none' ) {
-      eventImagePanel.css('opacity', '0');
-      eventImagePanel.css('display', 'inline-block');
-      new Fx.Tween( eventImagePanel, {duration: 500, transition: Fx.Transitions.Sine} ).start( 'opacity', 0, 1 );
-    }
-
-    eventImg.prop( {
-      'class': frame.Type=='Alarm'?'alarm':'normal',
-      'src': thumbImg.prop('src'),
-      'title': thumbImg.prop('title'),
-      'alt': thumbImg.prop('alt'),
-      'height': $j('#eventThumbs').height() - $j('#eventImageBar').outerHeight(true)-10
-    } );
-
-    $j('#eventImageNo').text(frame.FrameId);
-    $j('#prevImageBtn').prop('disabled', !frame.FrameId == 1);
-    $j('#nextImageBtn').prop('disabled', !frame.FrameId == event.Frames);
-  }
-}
-
-function hideEventImageComplete() {
-  var thumbImg = $j('#eventThumb'+$j('#eventImage').prop('alt'));
-  if ( thumbImg ) {
-    thumbImg.removeClass('selected');
-    thumbImg.css('opacity', '1.0');
-  } else {
-    console.log('Unable to find eventThumb at eventThumb'+$j('#eventImage').prop('alt'));
-  }
-  $j('#prevImageBtn').prop('disabled', true);
-  $j('#nextImageBtn').prop('disabled', true);
-  $j('#eventImagePanel').css('display', 'none');
-  $j('#eventImageStats').addClass('hidden');
-}
-
-function hideEventImage() {
-  if ( $j('#eventImagePanel').css('display') != 'none' ) {
-    new Fx.Tween( $j('#eventImagePanel'), {duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete} ).start('opacity', 1, 0);
-  }
-}
-
-function resetEventStills() {
-  hideEventImage();
-  $j('#eventThumbs').empty();
-  if ( true || !slider ) {
-    slider = new Slider( '#thumbsSlider', '#thumbsKnob', {
-      /*steps: eventData.Frames,*/
-      value: 0,
-      onChange: function( step ) {
-        if ( !step ) {
-          step = 0;
-        }
-        var fid = parseInt((step * eventData.Frames)/this.options.steps);
-        if ( fid < 1 ) {
-          fid = 1;
-        } else if ( fid > eventData.Frames ) {
-          fid = eventData.Frames;
-        }
-        checkFrames( eventData.Id, fid, ($j('#eventImagePanel').css('display')=='none'?'':'true'));
-        scroll.toElement( 'eventThumb'+fid );
-      }
-    } );
-  }
 }
 
 function getFrameResponse(respObj, respText) {
@@ -791,8 +659,6 @@ function getFrameResponse(respObj, respText) {
   }
 
   eventData['frames'][frame.FrameId] = frame;
-
-  loadEventThumb(eventData, frame, respObj.loopback=="true");
 }
 
 function frameQuery( eventId, frameId, loadImage ) {
@@ -803,108 +669,6 @@ function frameQuery( eventId, frameId, loadImage ) {
   $j.getJSON(thisUrl + '?view=request&request=status&entity=frameimage', data)
       .done(getFrameResponse)
       .fail(logAjaxFail);
-}
-
-function checkFrames( eventId, frameId, loadImage ) {
-  if ( !eventData ) {
-    console.error("No event "+eventId+" found");
-    return;
-  }
-
-  if ( !eventData['frames'] ) {
-    eventData['frames'] = {};
-  }
-
-  currFrameId = frameId;
-
-  var loFid = frameId - frameBatch/2;
-  if ( loFid < 1 ) {
-    loFid = 1;
-  }
-  var hiFid = loFid + (frameBatch-1);
-  if ( hiFid > eventData.Frames ) {
-    hiFid = eventData.Frames;
-  }
-
-  for ( var fid = loFid; fid <= hiFid; fid++ ) {
-    if ( !$j('#eventThumb'+fid) ) {
-      var img = $j('<img>');
-      img.attr({
-        'id': 'eventThumb'+fid,
-        'src': 'graphics/transparent.png',
-        'alt': fid,
-        'class': 'placeholder'
-      });
-
-      img.click(function() {
-        eventData['frames'][fid] = null;
-        checkFrames(eventId, fid);
-      });
-      frameQuery(eventId, fid, loadImage && (fid == frameId));
-      var imgs = $j('#eventThumbs img');
-      var injected = false;
-      if ( fid < imgs.length ) {
-        imgs.before(img);
-        injected = true;
-      } else {
-        injected = imgs.toArray().some(
-            function( thumbImg, index ) {
-              if ( parseInt(img.prop('alt')) < parseInt(thumbImg.prop('alt')) ) {
-                thumbImg.before(img);
-                return true;
-              }
-              return false;
-            }
-        );
-      }
-      if ( !injected ) {
-        $j('#eventThumbs').append(img);
-      }
-      var scale = parseInt(img.css('height'));
-      img.css( {
-        'width': parseInt((eventData.Width*scale)/100),
-        'height': parseInt((eventData.Height*scale)/100)
-      } );
-    } else if ( eventData['frames'][fid] ) {
-      if ( loadImage && (fid == frameId) ) {
-        loadEventImage( eventData, eventData['frames'][fid], loadImage );
-      }
-    }
-  }
-  $j('#prevThumbsBtn').prop('disabled', frameId == 1);
-  $j('#nextThumbsBtn').prop('disabled', frameId == eventData.Frames);
-}
-
-function locateImage( frameId, loadImage ) {
-  if ( slider ) {
-    slider.fireEvent( 'tick', slider.toPosition( parseInt((frameId-1)*slider.options.steps/eventData.Frames) ));
-  }
-  checkFrames( eventData.Id, frameId, loadImage );
-  scroll.toElement( 'eventThumb'+frameId );
-}
-
-function prevImage() {
-  if ( currFrameId > 1 ) {
-    locateImage( parseInt(currFrameId)-1, true );
-  }
-}
-
-function nextImage() {
-  if ( currFrameId < eventData.Frames ) {
-    locateImage( parseInt(currFrameId)+1, true );
-  }
-}
-
-function prevThumbs() {
-  if ( currFrameId > 1 ) {
-    locateImage( parseInt(currFrameId)>10?(parseInt(currFrameId)-10):1, $j('#eventImagePanel').css('display')!="none" );
-  }
-}
-
-function nextThumbs() {
-  if ( currFrameId < eventData.Frames ) {
-    locateImage( parseInt(currFrameId)<(eventData.Frames-10)?(parseInt(currFrameId)+10):eventData.Frames, $j('#eventImagePanel').css('display')!="none" );
-  }
 }
 
 function prevEvent() {
@@ -956,54 +720,6 @@ function exportEvent() {
 
 function showEventFrames() {
   window.location.assign('?view=frames&eid='+eventData.Id);
-}
-
-function showStream() {
-  $j('#eventStills').addClass('hidden');
-  $j('#eventVideo').removeClass('hidden');
-
-  $j('#stillsEvent').removeClass('hidden');
-  $j('#streamEvent').addClass('hidden');
-
-  streamMode = 'video';
-  if (scale == 'auto') changeScale();
-}
-
-function showStills() {
-  $j('#eventStills').removeClass('hidden');
-  $j('#eventVideo').addClass('hidden');
-
-  if (vid && ( vid.paused != true ) ) {
-    // Pause the video
-    vid.pause();
-
-    // Update the button text to 'Play'
-    //if ( playButton )
-    //playButton.innerHTML = "Play";
-  }
-
-  $j('#stillsEvent').addClass('hidden');
-  $j('#streamEvent').removeClass('hidden');
-
-  streamMode = 'stills';
-
-  pauseClicked();
-  if ( !scroll ) {
-    scroll = new Fx.Scroll('eventThumbs', {
-      wait: false,
-      duration: 500,
-      offset: {'x': 0, 'y': 0},
-      transition: Fx.Transitions.Quad.easeInOut
-    }
-    );
-  }
-  resetEventStills();
-  if (scale == 'auto') changeScale();
-}
-
-function showFrameStats() {
-  var fid = $j('#eventImageNo').text();
-  window.location.assign('?view=stats&eid='+eventData.Id+'&fid='+fid);
 }
 
 function videoEvent() {

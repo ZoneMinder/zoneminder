@@ -893,7 +893,7 @@ function initPage() {
     }
   } else {
     progressBarNav();
-    streamCmdTimer = setTimeout(streamQuery, 250);
+    streamCmdTimer = setTimeout(streamQuery, 500);
     if ( canStreamNative ) {
       if ( !$j('#imageFeed') ) {
         console.log('No element with id tag imageFeed found.');

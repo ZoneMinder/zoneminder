@@ -545,6 +545,9 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
 void Event::AddPacket(ZMPacket *packet) {
 
   have_video_keyframe = have_video_keyframe || ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && packet->keyframe );
+  Debug(2, "have_video_keyframe %d codec_type %d == video? %d packet keyframe %d",
+      have_video_keyframe, packet->codec_type, (packet->codec_type == AVMEDIA_TYPE_VIDEO), packet->keyframe);
+  dumpPacket(&packet->packet, "Adding to event");
   if ( videoStore ) {
     if ( have_video_keyframe )  {
       videoStore->writePacket(packet);

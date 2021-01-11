@@ -74,20 +74,18 @@ Event::Event(
   //scheme
   save_jpegs(0)
 {
-
   std::string notes;
   createNotes(notes);
 
   struct timeval now;
   gettimeofday(&now, 0);
 
-  bool untimedEvent = false;
   if ( !start_time.tv_sec ) {
-    untimedEvent = true;
+    Warning("Event has zero time, setting to now");
     start_time = now;
   } else if ( start_time.tv_sec > now.tv_sec ) {
     Error(
-        "StartDateTime in the future %u.%u > %u.%u",
+        "StartDateTime in the future starttime %u.%u >? now %u.%u",
         start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec
         );
     start_time = now;
@@ -190,9 +188,6 @@ Event::Event(
   Debug(1, "Using storage area at %s", path.c_str());
 
   db_mutex.unlock();
-  if ( untimedEvent ) {
-    Warning("Event %" PRIu64 " has zero time, setting to current", id);
-  }
   video_name = "";
 
   snapshot_file = path + "/snapshot.jpg";

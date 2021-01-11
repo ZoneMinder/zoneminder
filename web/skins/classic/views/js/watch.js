@@ -95,13 +95,17 @@ function changeScale() {
   var scale = $j('#scale').val();
   var newWidth;
   var newHeight;
+
+  // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple 
+  // times and what the consequences would be
+  $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   if ( scale == '0' || scale == 'auto' ) {
     var newSize = scaleToFit(monitorWidth, monitorHeight, $j('#liveStream'+monitorId), $j('#replayStatus'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
+    $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   } else {
-    $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
     newWidth = monitorWidth * scale / SCALE_BASE;
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
@@ -111,15 +115,16 @@ function changeScale() {
   var streamImg = $j('#liveStream'+monitorId);
   if ( streamImg ) {
     var oldSrc = streamImg.attr('src');
-    var newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+(scale== 'auto' ? autoScale : scale));
+    var newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+(scale == 'auto' ? autoScale : scale));
 
-    streamImg.width( newWidth );
-    streamImg.height( newHeight );
+    streamImg.width(newWidth);
+    streamImg.height(newHeight);
+    streamImg.src = ''; // Some browsers need it to be cleared first
     streamImg.src = newSrc;
   } else {
     console.error('No element found for liveStream'+monitorId);
   }
-}
+}  // end function changeScale
 
 function setAlarmState( currentAlarmState ) {
   alarmState = currentAlarmState;
@@ -175,7 +180,8 @@ function setAlarmState( currentAlarmState ) {
 function getStreamCmdError(text, error) {
   console.log(error);
   // Error are normally due to failed auth. reload the page.
-  window.location.reload();
+
+  //window.location.reload();
 }
 
 function getStreamCmdResponse(respObj, respText) {
@@ -285,7 +291,8 @@ function getStreamCmdResponse(respObj, respText) {
     checkStreamForErrors('getStreamCmdResponse', respObj);//log them
     // Try to reload the image stream.
     // If it's an auth error, we should reload the whole page.
-    window.location.reload();
+    console.log("have error");
+    //window.location.reload();
     if ( 0 ) {
       var streamImg = $j('#liveStream'+monitorId);
       if ( streamImg ) {
@@ -854,13 +861,13 @@ function initPage() {
     if ( refreshApplet && appletRefreshTime ) {
       appletRefresh.delay(appletRefreshTime*1000);
     }
-    if ( scale == '0' || scale == 'auto' ) changeScale();
     if ( window.history.length == 1 ) {
       $j('#closeControl').html('');
     }
     document.querySelectorAll('select[name="scale"]').forEach(function(el) {
       el.onchange = window['changeScale'];
     });
+    changeScale();
   } else if ( monitorRefresh > 0 ) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }

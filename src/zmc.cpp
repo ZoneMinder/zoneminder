@@ -397,9 +397,11 @@ int main(int argc, char *argv[]) {
         analysis_threads[i]->stop();
       }
 #if HAVE_RTSP_SERVER
+#if 0
       if ( rtsp_server_threads ) {
         rtsp_server_threads[i]->stop();
       }
+#endif
 #endif
     }
 
@@ -416,6 +418,7 @@ int main(int argc, char *argv[]) {
     } // end foreach monitor
     delete [] analysis_threads;
 #if HAVE_RTSP_SERVER
+#if 0
     if ( rtsp_server_threads ) {
       for ( int i = 0; i < n_monitors; i++ ) {
         rtsp_server_threads[i]->join();;
@@ -426,8 +429,7 @@ int main(int argc, char *argv[]) {
       rtsp_server_threads = nullptr;
     }
 #endif
-
-
+#endif
     delete [] alarm_capture_delays;
     delete [] capture_delays;
     delete [] last_capture_times;

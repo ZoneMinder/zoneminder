@@ -226,19 +226,23 @@ Image::Image(const AVFrame *frame) {
   this->Assign(frame);
 }
 
+static void dont_free(void *opaque, uint8_t *data) {
+}
+
 int Image::PopulateFrame(AVFrame *frame) {
   Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d %s",
       width, height, linesize, colours, size,
       av_get_pix_fmt_name(imagePixFormat)
       );
   AVBufferRef *ref = av_buffer_create(buffer, size, 
-      nullptr, /* Free callback */
+      dont_free, /* Free callback */
       nullptr, /* opaque */
       0 /* flags */
       );
   if ( !ref ) {
     Warning("Failed to create av_buffer ");
   }
+  frame->buf[0] = ref;
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
   int size = av_image_fill_arrays(
@@ -255,6 +259,9 @@ int Image::PopulateFrame(AVFrame *frame) {
   avpicture_fill((AVPicture *)frame, buffer,
       imagePixFormat, width, height);
 #endif
+  frame->width = width;
+  frame->height = height;
+  frame->format = imagePixFormat;
   Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d", width, height, linesize, colours, size);
   zm_dump_video_frame(frame, "Image.Populate(frame)");
   return 1;

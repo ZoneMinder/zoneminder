@@ -242,7 +242,6 @@ int ZoneMinderDeviceSource::getNextFrame() {
 
 	pthread_mutex_lock(&m_mutex);
 	while ( m_captureQueue.size() >= m_queueSize ) {
-		//LOG(DEBUG) << "Queue full size drop frame size:"  << (int)m_captureQueue.size() ;
     Debug(2, "Queue full dropping frame %d", m_captureQueue.size());
 		NAL_Frame * f = m_captureQueue.front();
 		m_captureQueue.pop_front();

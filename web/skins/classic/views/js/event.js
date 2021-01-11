@@ -83,7 +83,8 @@ function vjsReplay() {
 } // end function vjsReplay
 
 function initialAlarmCues(eventId) {
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues) //get frames data for alarmCues and inserts into html
+  //get frames data for alarmCues and inserts into html
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues)
       .fail(logAjaxFail);
 }
 

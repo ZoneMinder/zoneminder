@@ -66,7 +66,7 @@ function selectLayout(element) {
     } else if ( height ) {
       stream_scale = parseInt(100*height/monitor.height);
     }
-    var streamImg = $('liveStream'+monitor.id);
+    var streamImg = document.getElementById('liveStream'+monitor.id);
     if ( streamImg ) {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;

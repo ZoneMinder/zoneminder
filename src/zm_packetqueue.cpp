@@ -507,8 +507,13 @@ std::list<ZMPacket *>::iterator zm_packetqueue::get_event_start_packet_it(
     // hit end, the first packet in the queue should ALWAYS be a video keyframe.
     // So we should be able to return it.
     if ( pre_event_count ) {
-      Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
-      dumpPacket( &((*it)->packet ) );
+      if ( (*it)->image_index < pre_event_count ) {
+        // probably just starting up
+        Debug(1, "Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
+      } else {
+        Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
+      }
+      dumpPacket(&((*it)->packet));
     }
     return it;
   }

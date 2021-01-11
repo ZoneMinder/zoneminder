@@ -292,7 +292,8 @@ function getStreamCmdResponse(respObj, respText) {
     // Try to reload the image stream.
     // If it's an auth error, we should reload the whole page.
     console.log("have error");
-    //window.location.reload();
+    await sleep(1000);
+    window.location.reload();
     if ( 0 ) {
       var streamImg = $j('#liveStream'+monitorId);
       if ( streamImg ) {

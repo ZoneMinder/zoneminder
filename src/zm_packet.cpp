@@ -23,6 +23,7 @@
 #include <sys/time.h>
 
 using namespace std;
+AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
 ZMPacket::ZMPacket() :
   keyframe(0),
@@ -77,14 +78,32 @@ ZMPacket::~ZMPacket() {
     delete analysis_image;
     analysis_image = nullptr;
   }
-  if ( image and !image->IsBufferHeld() ) {
-    delete image;
+  if ( image ) {
+      delete image;
+      image = nullptr;
   }
-  image = nullptr;
   if ( timestamp ) {
     delete timestamp;
     timestamp = nullptr;
   }
+
+#if 0
+  if ( image ) {
+    if ( image->IsBufferHeld() ) {
+    // Don't free the mmap'd image
+    } else {
+      delete image;
+      image = nullptr;
+      delete timestamp;
+      timestamp = nullptr;
+    }
+  } else {
+    if ( timestamp ) {
+      delete timestamp;
+      timestamp = nullptr;
+    }
+  }
+#endif
 }
 
 // deprecated
@@ -134,11 +153,54 @@ int ZMPacket::decode(AVCodecContext *ctx) {
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
-  if ( (ctx->pix_fmt != in_frame->format) ) {
-    Debug(1, "Have different format.  Assuming hwaccel");
+
+  if ( (ctx->sw_pix_fmt != in_frame->format) ) {
+    Debug(1, "Have different format %s != %s.",
+        av_get_pix_fmt_name(ctx->pix_fmt),
+        av_get_pix_fmt_name(ctx->sw_pix_fmt)
+        );
+
+    if ( target_format == AV_PIX_FMT_NONE and ctx->hw_frames_ctx ) {
+      enum AVPixelFormat *formats;
+      if ( 0 <= av_hwframe_transfer_get_formats(
+            ctx->hw_frames_ctx,
+            AV_HWFRAME_TRANSFER_DIRECTION_FROM,
+            &formats,
+            0
+            )	) {
+        for (int i = 0; formats[i] != AV_PIX_FMT_NONE; i++) {
+          Debug(1, "Available dest formats %d %s", 
+              formats[i],
+              av_get_pix_fmt_name(formats[i])
+              );
+          if ( formats[i] == AV_PIX_FMT_RGB0 ) {
+            target_format = formats[i];
+            //break;
+          }  // endif RGB0
+        }  // end foreach support format
+        av_freep(&formats);
+      }  // endif success getting list of formats
+    }  // end if target_format not set
+
     AVFrame *new_frame = zm_av_frame_alloc();
+    if ( target_format != AV_PIX_FMT_NONE ) {
+      if ( 1 and image ) {
+        if ( 0 > image->PopulateFrame(new_frame) ) {
+          delete new_frame;
+          new_frame = zm_av_frame_alloc();
+          delete image;
+          image = nullptr;
+        }
+      } else {
+        delete image;
+        image = nullptr;
+      }
+
+      new_frame->format = target_format;
+    }
     /* retrieve data from GPU to CPU */
-    ret = av_hwframe_transfer_data(in_frame, new_frame, 0);
+    zm_dump_video_frame(in_frame, "Before hwtransfer");
+    ret = av_hwframe_transfer_data(new_frame, in_frame, 0);
     if ( ret < 0 ) {
       Error("Unable to transfer frame: %s, continuing",
           av_make_error_string(ret).c_str());
@@ -146,11 +208,19 @@ int ZMPacket::decode(AVCodecContext *ctx) {
       av_frame_free(&new_frame);
       return 0;
     }
-    zm_dump_video_frame(new_frame, "After hwtransfer");
-
     new_frame->pts = in_frame->pts;
+    zm_dump_video_frame(new_frame, "After hwtransfer");
+    if ( new_frame->format == AV_PIX_FMT_RGB0 ) {
+      new_frame->format = AV_PIX_FMT_RGBA;
+      zm_dump_video_frame(new_frame, "After hwtransfer setting to rgba");
+    }
     av_frame_free(&in_frame);
     in_frame = new_frame;
+  } else {
+    Debug(2, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
+        av_get_pix_fmt_name(ctx->pix_fmt),
+        av_get_pix_fmt_name(ctx->sw_pix_fmt)
+        );
   }
 #endif
 #endif
@@ -188,7 +258,7 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
   return &packet;
 }
 
-AVFrame *ZMPacket::get_out_frame( const AVCodecContext *ctx ) {
+AVFrame *ZMPacket::get_out_frame(const AVCodecContext *ctx) {
   if ( !out_frame ) {
     out_frame = zm_av_frame_alloc();
     if ( !out_frame ) {

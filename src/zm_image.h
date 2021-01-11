@@ -241,6 +241,8 @@ public:
       const size_t buffer_size,
       const int p_buffertype);
 
+  int PopulateFrame(AVFrame *frame);
+
 	inline void CopyBuffer(const Image &image) {
 		Assign(image);
 	}

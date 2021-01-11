@@ -166,6 +166,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
     AllocImgBuffer(size);
   }
   text[0] = '\0';
+  imagePixFormat = AVPixFormat();
 
   update_function_pointers();
 }
@@ -193,6 +194,7 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
     AllocImgBuffer(size);
   }
   text[0] = '\0';
+  imagePixFormat = AVPixFormat();
 
   update_function_pointers();
 }
@@ -203,17 +205,19 @@ Image::Image(const AVFrame *frame) {
   height = frame->height;
   pixels = width*height;
 
+  zm_dump_video_frame(frame, "Image.Assign(frame)");
   // FIXME
   colours = ZM_COLOUR_RGB32;
   subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  imagePixFormat = (AVPixelFormat)frame->format;
 
-  #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  size = av_image_get_buffer_size(AV_PIX_FMT_RGBA, width, height, 32);
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  size = av_image_get_buffer_size(AV_PIX_FMT_RGB0, width, height, 32);
   // av_image_get_linesize isn't aligned, so we have to do that.
-  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 32);
+  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGB0, width, 0), 32);
 #else
-  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 1);
-  size = avpicture_get_size(AV_PIX_FMT_RGBA, width, height);
+  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGB0, width, 0), 1);
+  size = avpicture_get_size(AV_PIX_FMT_RGB0, width, height);
 #endif
 
   buffer = nullptr;
@@ -222,39 +226,67 @@ Image::Image(const AVFrame *frame) {
   this->Assign(frame);
 }
 
+int Image::PopulateFrame(AVFrame *frame) {
+  Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d %s",
+      width, height, linesize, colours, size,
+      av_get_pix_fmt_name(imagePixFormat)
+      );
+  AVBufferRef *ref = av_buffer_create(buffer, size, 
+      nullptr, /* Free callback */
+      nullptr, /* opaque */
+      0 /* flags */
+      );
+  if ( !ref ) {
+    Warning("Failed to create av_buffer ");
+  }
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
+  int size = av_image_fill_arrays(
+      frame->data, frame->linesize,
+      buffer, imagePixFormat, width, height,
+      32 //alignment
+      );
+  if ( size < 0 ) {
+    Error("Problem setting up data pointers into image %s",
+        av_make_error_string(size).c_str());
+    return size;
+  }
+#else
+  avpicture_fill((AVPicture *)frame, buffer,
+      imagePixFormat, width, height);
+#endif
+  Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d", width, height, linesize, colours, size);
+  zm_dump_video_frame(frame, "Image.Populate(frame)");
+  return 1;
+}
+
 void Image::Assign(const AVFrame *frame) {
   /* Assume the dimensions etc are correct. FIXME */
 
+  // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
 
   AVFrame *dest_frame = zm_av_frame_alloc();
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  av_image_fill_arrays(dest_frame->data, dest_frame->linesize,
-      buffer, format, width, height, 32);
-#else
-  avpicture_fill( (AVPicture *)dest_frame, buffer,
-     format, width, height);
-#endif
-
-  Debug(1, "Beforecaling freeing dest frame");
+  PopulateFrame(dest_frame);
+  zm_dump_video_frame(frame, "source frame");
+  zm_dump_video_frame(dest_frame, "dest frame before convert");
 #if HAVE_LIBSWSCALE
   sws_convert_context = sws_getCachedContext(
       sws_convert_context,
-      width, height,
-      (AVPixelFormat)frame->format,
-      width, height,
-      format, SWS_BICUBIC, nullptr,
-      nullptr, nullptr);
+      width, height, (AVPixelFormat)frame->format,
+      width, height, format,
+      SWS_BICUBIC, nullptr, nullptr, nullptr);
   if ( sws_convert_context == nullptr )
     Fatal("Unable to create conversion context");
 
-  if ( sws_scale(sws_convert_context, frame->data, frame->linesize, 0, frame->height,
+  if ( sws_scale(sws_convert_context,
+        frame->data, frame->linesize, 0, frame->height,
         dest_frame->data, dest_frame->linesize) < 0 )
     Fatal("Unable to convert raw format %u to target format %u", frame->format, AV_PIX_FMT_RGBA);
 #else // HAVE_LIBSWSCALE
   Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE
-  Debug(1, "Done scaling freeing dest frame");
+  zm_dump_video_frame(dest_frame, "dest frame after convert");
   av_frame_free(&dest_frame);
   update_function_pointers();
 }  // end Image::Image(const AVFrame *frame)
@@ -274,6 +306,7 @@ Image::Image(const Image &p_image) {
   AllocImgBuffer(size);
   (*fptr_imgbufcpy)(buffer, p_image.buffer, size);
   strncpy(text, p_image.text, sizeof(text));
+  imagePixFormat = p_image.imagePixFormat;
   update_function_pointers();
 }
 
@@ -5243,3 +5276,5 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
     pncurrent += 4;
   }
 }
+
+

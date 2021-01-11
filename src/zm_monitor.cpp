@@ -2475,21 +2475,25 @@ int Monitor::Capture() {
   } else {
     Debug(4, "Capturing");
     captureResult = camera->Capture(*packet);
-    Debug(1, "Back from capture, timestamping");
+    Debug(4, "Back from capture result=%d", captureResult);
 
     if ( captureResult < 0 ) {
       Debug(2, "failed capture");
-      // Unable to capture image for temporary reason
+      // Unable to capture image
       // Fake a signal loss image
+      // Not sure what to do here.  We will close monitor and kill analysis_thread but what about rtsp server?
       Rgb signalcolor;
       /* HTML colour code is actually BGR in memory, we want RGB */
       signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
+      capture_image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
       capture_image->Fill(signalcolor);
       shared_data->signal = false;
       shared_data->last_write_index = index;
       shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
+      image_buffer[index].image->Assign(*capture_image);
+      *(image_buffer[index].timestamp) = *(packet->timestamp);
+      delete capture_image;
       image_count++;
-      //packet->unlock();
       delete packet;
       // What about timestamping it?
       // Don't want to do analysis on it, but we won't due to signal
@@ -2518,14 +2522,22 @@ int Monitor::Capture() {
             Debug(1, "Not decoding");
           } else {
             Debug(2,"About to decode %p", packet);
-            if ( packet->decode(camera->get_VideoCodecContext()) < 0 ) {
+            // Allocate the image first so that it can be used by hwaccel
+            // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
+            //
+            capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
+            int ret = packet->decode(camera->get_VideoCodecContext());
+            if ( ret < 0 ) {
               Error("decode failed");
+            } else if ( ret == 0 ) {
+              delete packet;
+              return 0;
             } // end if decode
           } // end if decoding
         } else {
           Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
         }
-        if ( packet->in_frame ) {
+        if ( packet->in_frame and !packet->image ) {
           capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
           packet->get_image();
         }

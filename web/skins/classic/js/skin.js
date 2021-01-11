@@ -897,7 +897,7 @@ function thumbnail_onmouseover(event) {
     var imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
     img.src = '';
     img.src = img.getAttribute(imgAttr);
-    img.addClass(imgClass);
+    img.classList.add(imgClass);
   }, 350);
 }
 
@@ -908,7 +908,7 @@ function thumbnail_onmouseout(event) {
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
   img.src = '';
   img.src = img.getAttribute(imgAttr);
-  img.removeClass(imgClass);
+  img.classList.remove(imgClass);
 }
 
 function initThumbAnimation() {

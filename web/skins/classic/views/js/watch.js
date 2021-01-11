@@ -1,6 +1,5 @@
 var streamCmdTimer = null;
 var streamStatus;
-var auth_hash;
 var alarmState = STATE_IDLE;
 var lastAlarmState = STATE_IDLE;
 var backBtn = $j('#backBtn');
@@ -115,7 +114,7 @@ function changeScale() {
 
     streamImg.width( newWidth );
     streamImg.height( newHeight );
-    streamImg.src = newSrc;
+    streamImg.attr('src', newSrc);
   } else {
     console.error('No element found for liveStream'+monitorId);
   }
@@ -274,7 +273,7 @@ function getStreamCmdResponse(respObj, respText) {
         if ( streamImg ) {
           var oldSrc = streamImg.attr('src');
           var newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-          streamImg.src = newSrc;
+          streamImg.attr('src', newSrc);
         }
         table.bootstrapTable('refresh');
       } // end if have a new auth hash

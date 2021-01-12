@@ -116,8 +116,10 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
       ZMPacket *zm_packet = *it;
       Debug(1, "Checking packet to see if we can delete them");
       if ( zm_packet->packet.stream_index == video_stream_id ) {
-        if ( zm_packet->keyframe )
+        if ( zm_packet->keyframe ) {
+          Debug(1, "Have a video keyframe so breaking out");
           break;
+        }
         video_stream_packets ++;
       }
 
@@ -152,20 +154,18 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
         ( *it != add_packet ) 
        ) {
       Debug(1, "Deleting packets");
-
-      // Now to clean ups mainting the queue size.
-      while ( packet_counts[video_stream_id] > max_video_packet_count ) {
+      //  It is enough to delete the packets tested above.  A subsequent queuePacket can clear a second set
+      while ( pktQueue.begin() != it ) {
         ZMPacket *zm_packet = *pktQueue.begin();
         if ( !zm_packet ) {
           Error("NULL zm_packet in queue");
           continue;
         }
 
-        Debug(1, "Deleting a packet with stream index (%d) image_index %d with keyframe(%d), video_frames_to_keep is (%d) max: %d, queuesuze:%d",
-            zm_packet->packet.stream_index, zm_packet->image_index, zm_packet->keyframe, packet_counts[video_stream_id], max_video_packet_count,pktQueue.size());
+        Debug(1, "Deleting a packet with stream index (%d) image_index %d with keyframe(%d), video frames in queue(%d) max: %d, queuesuze:%d",
+            zm_packet->packet.stream_index, zm_packet->image_index, zm_packet->keyframe, packet_counts[video_stream_id], max_video_packet_count, pktQueue.size());
         pktQueue.pop_front();
         packet_counts[zm_packet->packet.stream_index] -= 1;
-        zm_packet->unlock();
         delete zm_packet;
       }
     }  // end if have at least max_video_packet_count video packets remaining
@@ -507,7 +507,7 @@ std::list<ZMPacket *>::iterator zm_packetqueue::get_event_start_packet_it(
     // hit end, the first packet in the queue should ALWAYS be a video keyframe.
     // So we should be able to return it.
     if ( pre_event_count ) {
-      if ( (*it)->image_index < pre_event_count ) {
+      if ( (*it)->image_index < (int)pre_event_count ) {
         // probably just starting up
         Debug(1, "Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
       } else {

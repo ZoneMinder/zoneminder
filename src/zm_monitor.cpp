@@ -2066,7 +2066,9 @@ bool Monitor::Analyse() {
                     event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
                     // Write out starting packets, do not modify packetqueue it will garbage collect itself
                     while ( start_it != snap_it ) {
-                      event->AddPacket(*start_it);
+                      ZMPacket *p = packetqueue->get_packet(&start_it);
+                      event->AddPacket(p);
+                      p->unlock();
                       start_it ++;
                     }
 

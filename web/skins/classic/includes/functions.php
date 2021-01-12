@@ -238,7 +238,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
         echo '</ul>';
 
         echo '<ul class="nav navbar-nav justify-content-end align-self-start flex-grow-1">';
-          echo getAcctCircleHTML($skin, $user);
+          echo getAccountCircleHTML($skin, $user);
           echo getStatusBtnHTML($status);
         echo '</ul>';
   }
@@ -335,7 +335,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 
         <ul class="list-group list-group-horizontal ml-auto">
         <?php
-        echo getAcctCircleHTML($skin, $user);
+        echo getAccountCircleHTML($skin, $user);
         echo getStatusBtnHTML($status);
         ?>
         </ul>
@@ -730,11 +730,11 @@ function getHeaderFlipHTML() {
 }
 
 // Returns the html representing the logged in user name and avatar
-function getAcctCircleHTML($skin, $user=null) {
+function getAccountCircleHTML($skin, $user=null) {
   $result = '';
   
   if ( ZM_OPT_USE_AUTH and $user ) {
-    $result .= '<p id="getAcctCircleHTML" class="navbar-text mr-2">'.PHP_EOL;
+    $result .= '<p id="getAccountCircleHTML" class="navbar-text mr-2">'.PHP_EOL;
     $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  $user['Username'],
       (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</p>'.PHP_EOL;

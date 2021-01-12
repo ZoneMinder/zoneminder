@@ -302,44 +302,43 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
     </div>
 
     <nav class="navbar navbar-expand-md align-self-start px-0">
-    <ul class="nav navbar-nav list-group px-0">
-    <?php
+<?php
 
   // *** Build the statistics shown on the navigation bar ***
   if ( (!ZM_OPT_USE_AUTH) or $user ) {
-    ?>
-    <div id="reload" class="collapse navbar-collapse px-0">
+?>
+      <div id="reload" class="collapse navbar-collapse px-0">
 
-      <ul id="Version" class="pr-2">
-        <?php echo getZMVersionHTML() ?>
-      </ul>
+        <ul id="Version" class="pr-2 navbar-nav">
+          <?php echo getZMVersionHTML() ?>
+        </ul>
 
-      <ul id="Bandwidth" class="px-2">
-        <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
-      </ul>
+        <ul id="Bandwidth" class="px-2 navbar-nav">
+          <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
+        </ul>
 
-        <?php
-        echo getSysLoadHTML();
-        echo getDbConHTML();
-        echo getStorageHTML();
-        echo getShmHTML();
-        echo getLogIconHTML();
-        ?>
+        <ul class="nav navbar-nav list-group px-0">
+          <?php
+          echo getSysLoadHTML();
+          echo getDbConHTML();
+          echo getStorageHTML();
+          echo getShmHTML();
+          echo getLogIconHTML();
+          ?>
+        </ul>
 
-    </div>
-
+      </div>
 <?php 
   } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?> 
     </nav>
 
-        <ul class="list-group list-group-horizontal ml-auto">
-        <?php
-        echo getAccountCircleHTML($skin, $user);
-        echo getStatusBtnHTML($status);
-        ?>
-        </ul>
-      </ul>
+    <ul class="list-group list-group-horizontal ml-auto">
+      <?php
+      echo getAccountCircleHTML($skin, $user);
+      echo getStatusBtnHTML($status);
+      ?>
+   </ul>
 
     <!-- the Navigation Bar Hamburger Button   -->
     <?php if ( (!ZM_OPT_USE_AUTH) or $user ) { ?>
@@ -734,7 +733,7 @@ function getAccountCircleHTML($skin, $user=null) {
   $result = '';
   
   if ( ZM_OPT_USE_AUTH and $user ) {
-    $result .= '<p id="getAccountCircleHTML" class="navbar-text mr-2">'.PHP_EOL;
+    $result .= '<p id="getAccountCircleHTML" class="navbar-text navbar-nav mr-2">'.PHP_EOL;
     $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  $user['Username'],
       (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</p>'.PHP_EOL;

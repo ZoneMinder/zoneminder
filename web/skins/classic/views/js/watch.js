@@ -670,19 +670,23 @@ function fetchImage( streamImage ) {
 }
 
 function handleClick( event ) {
+  console.log(event);
+  // target should be the img tag
   var target = event.target;
   var width = $j(target).width();
   var height = $j(target).height();
 
   var scaleX = parseInt(monitorWidth / width);
   var scaleY = parseInt(monitorHeight / height);
-  var x = (event.page.x - target.getLeft()) * scaleX;
-  var y = (event.page.y - target.getTop()) * scaleY;
+  var x = (event.pageX - target.getLeft()) * scaleX;
+  var y = (event.pageY - target.getTop()) * scaleY;
+  // image can be scaled... we need the coordinates in original image size units
+  // So what is event.page.x?
 
   if ( showMode == 'events' || !imageControlMode ) {
     if ( event.shift ) {
-      streamCmdPan( x, y );
-    } else if ( event.event.ctrlKey ) {
+      streamCmdPan(x, y);
+    } else if ( event.ctrlKey ) {
       streamCmdZoomOut();
     } else {
       streamCmdZoomIn(x, y);

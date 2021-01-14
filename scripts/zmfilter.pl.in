@@ -163,16 +163,17 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
 
-if ( ! EVENT_PATH ) {
-  Error("No event path defined. Config was $Config{ZM_DIR_EVENTS}");
+if ( !EVENT_PATH ) {
+  Error('No event path defined. Config was '.$Config{ZM_DIR_EVENTS});
   die;
 }
 
 # In future, should not be neccessary wrt StorageAreas
-chdir( EVENT_PATH );
+chdir(EVENT_PATH);
 
 # Should not be neccessary... but nice to get a local var.  What if it fails?
 my $dbh = zmDbConnect();
+$dbh->do('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 
 if ( $filter_name ) {
   Info("Scanning for events using filter '$filter_name'");

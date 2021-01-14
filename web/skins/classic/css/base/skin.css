@@ -168,6 +168,9 @@ input[disabled] {
     color: #888888;
 }
 
+.modal img {
+    max-width: 100%;
+}
 img {
   display: inline-block;
 }

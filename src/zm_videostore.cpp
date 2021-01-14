@@ -1100,9 +1100,9 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     ret = zm_send_frame_receive_packet(video_out_ctx, zm_packet->out_frame, opkt);
     if ( ret < 0 ) {
       Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
-      return -1;
+      return ret;
     } else if ( ret == 0 ) {
-      Debug(1, "Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+      Debug(1, "Could not send frame/receive pkt. Not error.");
       return 0;
     }
 

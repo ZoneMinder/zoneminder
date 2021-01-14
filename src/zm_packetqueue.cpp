@@ -428,10 +428,10 @@ ZMPacket *zm_packetqueue::get_packet(packetqueue_iterator *it) {
   std::unique_lock<std::mutex> lck(mutex);
   Debug(4, "Have Lock in get_packet");
 
-  while ( (! pktQueue.size()) or ( *it == pktQueue.end() ) ) {
+  while ( (!pktQueue.size()) or (*it == pktQueue.end()) ) {
     if ( deleting or zm_terminate )
       return nullptr;
-    Debug(2, "waiting.  Queue size %d it == end? %d", pktQueue.size(), ( *it == pktQueue.end() ) );
+    Debug(2, "waiting.  Queue size %d it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
     condition.wait(lck);
   }
   if ( deleting or zm_terminate )

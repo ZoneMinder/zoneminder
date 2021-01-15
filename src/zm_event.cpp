@@ -84,9 +84,20 @@ Event::Event(
     Warning("Event has zero time, setting to now");
     start_time = now;
   } else if ( start_time.tv_sec > now.tv_sec ) {
+    char buffer[26];
+    char buffer_now[26];
+    struct tm* tm_info;
+
+    tm_info = localtime(&start_time.tv_sec);
+    strftime(buffer, 26, "%Y:%m:%d %H:%M:%S", tm_info);
+    tm_info = localtime(&now.tv_sec);
+    strftime(buffer_now, 26, "%Y:%m:%d %H:%M:%S", tm_info);
+
     Error(
-        "StartDateTime in the future starttime %u.%u >? now %u.%u",
-        start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec
+        "StartDateTime in the future starttime %u.%u >? now %u.%u difference %d\n%s\n%s",
+        start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec,
+        (now.tv_sec-start_time.tv_sec),
+        buffer, buffer_now
         );
     start_time = now;
   }

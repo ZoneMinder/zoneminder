@@ -355,6 +355,10 @@ Monitor::Monitor()
   last_motion_score(0),
   camera(nullptr),
   event(nullptr),
+  storage(nullptr),
+  videoStore(nullptr),
+  packetqueue(nullptr),
+  analysis_it(nullptr),
   n_zones(0),
   zones(nullptr),
   timestamps(nullptr),
@@ -1145,8 +1149,10 @@ Monitor::~Monitor() {
     disconnect();
   } // end if mem_ptr
 
-  delete packetqueue;
-  packetqueue = nullptr;
+  if ( packetqueue ) {
+    delete packetqueue;
+    packetqueue = nullptr;
+  }
   analysis_it = nullptr; // deleted by packetqueue
 
   for ( int i = 0; i < n_zones; i++ ) {

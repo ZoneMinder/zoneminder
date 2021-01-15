@@ -192,10 +192,6 @@ protected:
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
   } VideoStoreData;
 
-  VideoStore          *videoStore;
-  zm_packetqueue      *packetqueue;
-  packetqueue_iterator  *analysis_it;
-  Mutex mutex;
 
   class MonitorLink {
   protected:
@@ -377,6 +373,11 @@ protected:
   Camera      *camera;
   Event       *event;
   Storage     *storage;
+
+  VideoStore          *videoStore;
+  zm_packetqueue      *packetqueue;
+  packetqueue_iterator  *analysis_it;
+  Mutex mutex;
 
   int      n_zones;
   Zone      **zones;

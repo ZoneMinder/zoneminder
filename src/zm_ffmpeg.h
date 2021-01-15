@@ -379,6 +379,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 #endif   
 
 int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
+void fix_deprecated_pix_fmt(AVCodecContext *);
 
 bool is_video_stream(const AVStream *);
 bool is_audio_stream(const AVStream *);
@@ -421,6 +422,7 @@ int zm_resample_get_delay(
 
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame);
 int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame);
+
 
 
 #endif // ZM_FFMPEG_H

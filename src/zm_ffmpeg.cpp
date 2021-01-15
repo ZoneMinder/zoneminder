@@ -425,6 +425,26 @@ int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt) {
   return 0;
 }
 
+void fix_deprecated_pix_fmt(AVCodecContext *ctx) {
+  // Fix deprecated formats
+  switch ( ctx->pix_fmt ) {
+    case AV_PIX_FMT_YUVJ422P  :
+      ctx->pix_fmt = AV_PIX_FMT_YUV422P;
+      break;
+    case AV_PIX_FMT_YUVJ444P   :
+      ctx->pix_fmt = AV_PIX_FMT_YUV444P;
+      break;
+    case AV_PIX_FMT_YUVJ440P :
+      ctx->pix_fmt = AV_PIX_FMT_YUV440P;
+      break;
+    case AV_PIX_FMT_NONE :
+    case AV_PIX_FMT_YUVJ420P :
+    default:
+      ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+      break;
+  }
+}
+
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
 #else
 unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src ) {

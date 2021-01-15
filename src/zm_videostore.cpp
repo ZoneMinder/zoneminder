@@ -622,7 +622,7 @@ void VideoStore::flush_codecs() {
 VideoStore::~VideoStore() {
   if ( oc->pb ) {
     if ( ( video_out_ctx->codec_id != video_in_ctx->codec_id ) || audio_out_codec ) {
-      Debug(2, "Different codecs between in and out");
+      Debug(2, "Different codecs between in and out. flushing codecs");
       flush_codecs();
     } // end if buffers
 
@@ -1031,9 +1031,9 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
       }
 
       if ( !zm_packet->in_frame ) {
-        Debug(2, "Have no in_frame");
+        Debug(4, "Have no in_frame");
         if ( zm_packet->packet.size ) {
-          Debug(2, "Decoding");
+          Debug(4, "Decoding");
           if ( !zm_packet->decode(video_in_ctx) ) {
             Debug(2, "unable to decode yet.");
             return 0;
@@ -1054,7 +1054,8 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
               );
 
         } else {
-          Error("Have neither in_frame or image!");
+          Error("Have neither in_frame or image in packet %p %d!",
+              zm_packet, zm_packet->image_index);
           return 0;
         } // end if has packet or image
       } else {
@@ -1066,6 +1067,9 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     zm_packet->out_frame->coded_picture_number = frame_count;
     zm_packet->out_frame->display_picture_number = frame_count;
     zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
+    // Do this to allow the encoder to choose whether to use I/P/B frame
+    zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
+    zm_packet->out_frame->key_frame = zm_packet->keyframe;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     zm_packet->out_frame->pkt_duration = 0;
 #endif
@@ -1079,32 +1083,24 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     } else {
       uint64_t useconds = ( zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_start_pts;
       zm_packet->out_frame->pts = av_rescale_q(useconds, video_in_stream->time_base, video_out_ctx->time_base);
-      Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
+      Debug(2, " Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
           frame_count, zm_packet->out_frame->pts, video_start_pts, useconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
-    }
-    if ( zm_packet->keyframe ) {
-      //Debug(2, "Setting keyframe was (%d)", zm_packet->out_frame->key_frame );
-      zm_packet->out_frame->key_frame = 1;
-      //Debug(2, "Setting keyframe (%d)", zm_packet->out_frame->key_frame );
-    } else {
-      Debug(2, "Not Setting keyframe");
     }
 
     av_init_packet(&opkt);
     opkt.data = nullptr;
     opkt.size = 0;
-    // Do this to allow the encoder to choose whether to use I/P/B frame
-    zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
-    Debug(4, "Sending frame");
 
     ret = zm_send_frame_receive_packet(video_out_ctx, zm_packet->out_frame, opkt);
-    if ( ret < 0 ) {
-      Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+    if ( ret <= 0 ) {
+      if ( ret < 0 ) {
+        Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+      } else {
+        Debug(2, "Could not send frame/receive pkt. Not error.");
+      }
       return ret;
-    } else if ( ret == 0 ) {
-      Debug(1, "Could not send frame/receive pkt. Not error.");
-      return 0;
     }
+    dumpPacket(&opkt, "packet returned by codec");
 
     // Need to adjust pts/dts values from codec time to stream time
     if ( opkt.pts != AV_NOPTS_VALUE )
@@ -1112,7 +1108,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     if ( opkt.dts != AV_NOPTS_VALUE )
       opkt.dts = av_rescale_q(opkt.dts, video_out_ctx->time_base, video_out_stream->time_base);
 
-    int64_t duration;
+    int64_t duration = 0;
     if ( zm_packet->in_frame ) {
       if ( zm_packet->in_frame->pkt_duration ) {
         duration = av_rescale_q(
@@ -1142,11 +1138,11 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
             duration
             );
         if ( duration <= 0 ) {
-          duration = zm_packet->in_frame->pkt_duration ? zm_packet->in_frame->pkt_duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
+          duration = zm_packet->in_frame->pkt_duration ? zm_packet->in_frame->pkt_duration : av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
         }
       }  // end if in_frmae->pkt_duration
     } else {
-      duration = av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
+      //duration = av_rescale_q(zm_packet->out_frame->pts - video_last_pts, video_in_stream->time_base, video_out_stream->time_base);
     }  // end if in_frmae
     opkt.duration = duration;
 

@@ -1317,7 +1317,10 @@ useconds_t Monitor::GetAnalysisRate() {
   if ( !analysis_fps_limit ) {
     return 0;
   } else if ( analysis_fps_limit > capture_fps ) {
-    Warning("Analysis fps (%.2f) is greater than capturing fps (%.2f)", analysis_fps_limit, capture_fps);
+    if ( last_fps_time != last_analysis_fps_time ) {
+      // At startup they are equal, should never be equal again
+      Warning("Analysis fps (%.2f) is greater than capturing fps (%.2f)", analysis_fps_limit, capture_fps);
+    }
     return 0;
   } else {
     return( ( 1000000 / analysis_fps_limit ) - ( 1000000 / capture_fps ) );
@@ -1733,7 +1736,8 @@ void Monitor::UpdateCaptureFPS() {
       last_camera_bytes = new_camera_bytes;
       //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
       //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-      Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec", name, image_count, new_capture_fps, new_capture_bandwidth);
+      Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec",
+          name, image_count, new_capture_fps, new_capture_bandwidth);
       shared_data->capture_fps = new_capture_fps;
       last_fps_time = now_double;
       db_mutex.lock();
@@ -1843,8 +1847,8 @@ bool Monitor::Analyse() {
     bool signal = shared_data->signal;
     bool signal_change = (signal != last_signal);
 
-    Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%d)",
-        signal, signal_change, trigger_data->trigger_state);
+    Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%d) image index %d",
+        signal, signal_change, trigger_data->trigger_state, snap->image_index);
 
     // if we have been told to be OFF, then we are off and don't do any processing.
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
@@ -1997,8 +2001,25 @@ bool Monitor::Analyse() {
 
               if ( !event ) {
                 Debug(2, "Creating continuous event");
-                // Create event
-                event = new Event(this, *timestamp, "Continuous", noteSetMap);
+                if ( ! snap->keyframe and (videowriter == PASSTHROUGH) ) {
+                  // Must start on a keyframe so rewind. Only for passthrough though I guess.
+                  packetqueue_iterator start_it = packetqueue->get_event_start_packet_it(
+                      snap_it, 0
+                      );
+                  ZMPacket *starting_packet = *start_it;
+
+                  event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
+                  // Write out starting packets, do not modify packetqueue it will garbage collect itself
+                  while ( start_it != snap_it ) {
+                    ZMPacket *p = packetqueue->get_packet(&start_it);
+                    event->AddPacket(p);
+                    p->unlock();
+                    start_it ++;
+                  }
+                } else {
+                  // Create event from current snap
+                  event = new Event(this, *timestamp, "Continuous", noteSetMap);
+                }
                 shared_data->last_event_id = event->Id();
 
                 // lets construct alarm cause. It will contain cause + names of zones alarmed

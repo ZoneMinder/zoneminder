@@ -165,8 +165,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $col_str = 'E.*, M.Name AS Monitor';
   $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY '.$sort.' '.$order;
 
-  //ZM\Debug('Calling the following sql query: ' .$sql);
-
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
   foreach ( $storage_areas as $S ) {
@@ -176,14 +174,18 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $unfiltered_rows = array();
   $event_ids = array();
 
-  foreach ( dbFetchAll($sql, NULL, $values) as $row ) {
-    $event = new ZM\Event($row);
-    if ( !$filter->test_post_sql_conditions($event) ) {
+  ZM\Debug('Calling the following sql query: ' .$sql);
+  $query = dbQuery($sql, $values);
+  if ( $query ) {
+    while ( $row = dbFetchNext($query) ) {
+      $event = new ZM\Event($row);
       $event->remove_from_cache();
-      continue;
-    }
-    $event_ids[] = $event->Id();
-    $unfiltered_rows[] = $row;
+      if ( !$filter->test_post_sql_conditions($event) ) {
+        continue;
+      }
+      $event_ids[] = $event->Id();
+      $unfiltered_rows[] = $row;
+    } # end foreach row
   }
 
   ZM\Debug('Have ' . count($unfiltered_rows) . ' events matching base filter.');
@@ -218,6 +220,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     } # end if search
 
     $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
+    ZM\Debug('Calling the following sql query: ' .$sql);
     $filtered_rows = dbFetchAll($sql);
     ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter.');
   } else {

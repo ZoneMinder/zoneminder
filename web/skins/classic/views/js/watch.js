@@ -40,6 +40,7 @@ function ajaxRequest(params) {
   params.data.order = 'desc';
   params.data.limit = maxDisplayEvents;
   params.data.sort = 'Id';
+  if ( auth_hash ) params.data.auth = auth_hash;
 
   $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
       .done(function(data) {
@@ -282,8 +283,8 @@ function getStreamCmdResponse(respObj, respText) {
     checkStreamForErrors('getStreamCmdResponse', respObj);//log them
     // Try to reload the image stream.
     // If it's an auth error, we should reload the whole page.
-    window.location.reload();
-    if ( 0 ) {
+    //window.location.reload();
+    if ( 1 ) {
       var streamImg = $j('#liveStream'+monitorId);
       if ( streamImg ) {
         var oldSrc = streamImg.attr('src');
@@ -351,7 +352,7 @@ function streamCmdPlay( action ) {
 }
 
 function streamCmdReq(data) {
-  $j.getJSON(thisUrl + '?view=request&request=stream&connkey='+connKey, data)
+  $j.getJSON(monitorUrl + '?view=request&request=stream&connkey='+connKey, data)
       .done(getStreamCmdResponse)
       .fail(getStreamCmdError);
 
@@ -519,7 +520,7 @@ function getStatusCmdResponse(respObj, respText) {
 }
 
 function statusCmdQuery() {
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId)
+  $j.getJSON(monitorUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId)
       .done(getStatusCmdResponse)
       .fail(logAjaxFail);
 
@@ -527,7 +528,7 @@ function statusCmdQuery() {
 }
 
 function alarmCmdReq(data) {
-  $j.getJSON(thisUrl + '?view=request&request=alarm&id='+monitorId, data)
+  $j.getJSON(monitorUrl + '?view=request&request=alarm&id='+monitorId, data)
       .done(getAlarmCmdResponse)
       .fail(function(jqxhr, textStatus, error) {
         if (textstatus === "timeout") {
@@ -590,7 +591,7 @@ function cmdForce() {
 }
 
 function controlReq(data) {
-  $j.getJSON(thisUrl + '?view=request&request=control&id='+monitorId, data)
+  $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
       .done(getControlResponse)
       .fail(logAjaxFail);
 }
@@ -750,7 +751,7 @@ function updatePresetLabels() {
 }
 
 function getCtrlPresetModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=controlpreset&mid=' + monitorId)
+  $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId)
       .done(function(data) {
         insertModalHtml('ctrlPresetModal', data.html);
         updatePresetLabels();
@@ -766,7 +767,7 @@ function getCtrlPresetModal() {
 }
 
 function getSettingsModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=settings&mid=' + monitorId)
+  $j.getJSON(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId)
       .done(function(data) {
         insertModalHtml('settingsModal', data.html);
         // Manage the Save button
@@ -780,7 +781,7 @@ function getSettingsModal() {
 
 function processClicks(event, field, value, row, $element) {
   if ( field == 'Delete' ) {
-    $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+    $j.getJSON(monitorUrl + '?request=modal&modal=delconfirm')
         .done(function(data) {
           insertModalHtml('deleteConfirm', data.html);
           manageDelConfirmModalBtns();
@@ -878,7 +879,7 @@ function initPage() {
   }
 
   // Manage the BACK button
-  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+  bindButton('#backBtn', 'click', null, function onBackClick(evt) {
     evt.preventDefault();
     window.history.back();
   });
@@ -887,13 +888,13 @@ function initPage() {
   backBtn.prop('disabled', !document.referrer.length);
 
   // Manage the REFRESH Button
-  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+  bindButton('#refreshBtn', 'click', null, function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
   });
 
   // Manage the SETTINGS button
-  document.getElementById("settingsBtn").addEventListener("click", function onSettingsClick(evt) {
+  bindButton('settingsBtn', 'click', null, function onSettingsClick(evt) {
     evt.preventDefault();
     $j('#settingsModal').modal('show');
   });

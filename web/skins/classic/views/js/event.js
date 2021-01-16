@@ -1034,14 +1034,14 @@ function initPage() {
   });
 
   // Manage the FRAMES Button
-  document.getElementById("framesBtn").addEventListener("click", function onFramesClick(evt) {
+  bindButton('#framesBtn', 'click', null, function onFramesClick(evt) {
     evt.preventDefault();
     window.location.assign('?view=frames&eid='+eventData.Id);
   });
 
   // Manage the DELETE button
-  document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
-    if ( ! canEdit.Events ) {
+  bindButton('#deleteBtn', 'click', null, function onDeleteClick(evt) {
+    if ( !canEdit.Events ) {
       enoperm();
       return;
     }
@@ -1060,7 +1060,7 @@ function initPage() {
     }
     $j('#deleteConfirm').modal('show');
   });
-}
+} // end initPage
 
 // Kick everything off
 $j(document).ready(initPage);

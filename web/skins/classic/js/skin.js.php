@@ -43,7 +43,7 @@ var serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
 var canView = {};
 var canEdit = {};
 <?php
-$perms = array("Stream", "Events", "Control", "Monitors", "Groups", "System", "Devices");
+$perms = array('Stream', 'Events', 'Control', 'Monitors', 'Groups', 'System', 'Devices');
 foreach ( $perms as $perm ) {
 ?>
   canView["<?php echo $perm ?>"] = <?php echo canView($perm)?'true':'false' ?>;
@@ -60,7 +60,7 @@ if ( ! empty($refreshParent) ) {
     echo 'true';
   } else if ( $refreshParent ) {
     # This is to tell the parent to refresh to a specific URL
-    echo "'$refreshParent'";
+    echo '\''.$refreshParent.'\'';
   } else {
     echo 'false';
   }

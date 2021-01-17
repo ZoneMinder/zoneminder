@@ -813,6 +813,16 @@ function manageModalBtns(id) {
   });
 }
 
+function bindButton(selector, action, data, func) {
+  var elements = $j(selector);
+  if ( !elements.length ) {
+    console.log("Nothing found for " + selector);
+    return;
+  }
+  elements.on(action, data, func);
+}
+
+
 function human_filesize(size, precision = 2) {
   var units = Array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
   var step = 1024;

@@ -118,7 +118,7 @@ function requestFrameData( eventId, frameId ) {
 function previewEvent(slot) {
   eventId = slot.getAttribute('data-event-id');
   frameId = slot.getAttribute('data-frame-id');
-  if ( events[eventId] ) {
+  if ( events[eventId] && events[eventId]['frames'] && events[eventId]['frames'][frameId] ) {
     showEventData(eventId, frameId);
   } else {
     requestFrameData(eventId, frameId);

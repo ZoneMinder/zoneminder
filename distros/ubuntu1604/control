@@ -36,7 +36,6 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libvncserver-dev
 # Unbundled (dh_linktree):
         ,libjs-jquery
-        ,libjs-mootools
 Standards-Version: 3.9.8
 Homepage: http://www.zoneminder.com/
 Vcs-Browser: http://anonscm.debian.org/cgit/collab-maint/zoneminder.git

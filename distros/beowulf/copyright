@@ -9,7 +9,6 @@ Comment:
  <pjh@northern-ridge.com.au> on Fri, 8 Dec 2006 10:19:43 +1100
 Files-Excluded:
     web/skins/*/js/jquery-*
-    web/tools/mootools/*-yc.js
 
 Files: *
 Copyright: 2001-2014 Philip Coombes <philip.coombes@zoneminder.com>
@@ -36,11 +35,6 @@ Comment:
  .
  Includes Sizzle.js http://sizzlejs.com/
  Released under the MIT, BSD, and GPL Licenses.
-
-Files: web/tools/mootools/*.js
-Copyright: 2009      Marcelo Jorge Vieira (metal) <metal@alucinados.com>
-           2006-2010 Valerio Proietti (http://mad4milk.net/)
-License: Expat
 
 Files: web/api/*
 Copyright: 2005-2013 Cake Software Foundation, Inc. (http://cakefoundation.org)

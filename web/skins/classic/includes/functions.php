@@ -863,11 +863,6 @@ function xhtmlFooter() {
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 ?>
-<?php if ( $basename != 'login' and $basename != 'postlogin' ) { ?>
-  <script src="tools/mootools/mootools-core.js"></script>
-  <script src="tools/mootools/mootools-more.js"></script>
-  <script src="js/mootools.ext.js"></script>
-<?php } ?>
   <script src="skins/<?php echo $skin; ?>/js/jquery.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>

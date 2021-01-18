@@ -247,22 +247,6 @@ if ( currentView != 'none' && currentView != 'login' ) {
     if ( $j('.navbar').length ) {
       setInterval(getNavBar, navBarRefresh);
     }
-    // Workaround Bootstrap-Mootools conflict
-    var bootstrapLoaded = (typeof $j().carousel == 'function');
-    var mootoolsLoaded = (typeof MooTools != 'undefined');
-    if (bootstrapLoaded && mootoolsLoaded) {
-      Element.implement({
-        hide: function() {
-          return this;
-        },
-        show: function(v) {
-          return this;
-        },
-        slide: function(v) {
-          return this;
-        }
-      });
-    }
     // Update zmBandwidth cookie when the user makes a selection from the dropdown
     bwClickFunction();
     // Update update reminders when the user makes a selection from the dropdown

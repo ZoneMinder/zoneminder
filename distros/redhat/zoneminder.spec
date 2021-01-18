@@ -32,7 +32,6 @@ Version: 1.35.16
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
-# Mootools is under the MIT license: http://mootools.net/
 # jQuery is under the MIT license: https://jquery.org/license/
 # CakePHP is under the MIT license: https://github.com/cakephp/cakephp
 # Crud is under the MIT license: https://github.com/FriendsOfCake/crud

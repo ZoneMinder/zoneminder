@@ -2061,7 +2061,7 @@ void Image::Annotate(
           if ( !bg_trans ) memset(temp_ptr, bg_bw_col, char_width);
           while ( f != 0 ) {
             uint64_t t = f & -f;
-            int idx = char_width - __builtin_ctzll(f);
+            int idx = char_width - __builtin_ctzll(f) + size;
             *(temp_ptr + idx) = fg_bw_col;
             f ^= t;
           }
@@ -2089,7 +2089,7 @@ void Image::Annotate(
           }
           while ( f != 0 ) {
             uint64_t t = f & -f;
-            int idx = char_width - __builtin_ctzll(f);
+            int idx = char_width - __builtin_ctzll(f) + size;
             unsigned char *colour_ptr = temp_ptr + (idx*3);
             RED_PTR_RGBA(colour_ptr) = fg_r_col;
             GREEN_PTR_RGBA(colour_ptr) = fg_g_col;
@@ -2117,7 +2117,7 @@ void Image::Annotate(
           }
           while ( f != 0 ) {
             uint64_t t = f & -f;
-            int idx = char_width - __builtin_ctzll(f);
+            int idx = char_width - __builtin_ctzll(f) + size;
             *(temp_ptr + idx) = fg_rgb_col;
             f ^= t;
           }

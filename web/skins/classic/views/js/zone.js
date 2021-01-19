@@ -467,16 +467,14 @@ function drawZonePoints() {
     });
   }); // end $j.each point
 
-  var tables = document.getElementById('zonePoints').getElement('table').getElements('table');
-  tables.each( function(table) {
-    table.getElement('tbody').empty();
-  } );
+  var tables = $j('#zonePoints table table');
+  tables.find('tbody').empty();
 
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var row = document.createElement('tr');
     row.id = 'row'+i;
-    row.addEvent('mouseover', highlightOn.bind(i, i));
-    row.addEvent('mouseout', highlightOff.bind(i, i));
+    $j(row).mouseover(highlightOn.bind(i, i));
+    $j(row).mouseout(highlightOn.bind(i, i));
 
     var cell = document.createElement('td');
     $j(cell).text(i+1).appendTo(row);
@@ -533,7 +531,7 @@ function drawZonePoints() {
     }
     $j(cell).appendTo(row);
 
-    $j(row).appendTo(tables[i%tables.length].getElement('tbody'));
+    $j(row).appendTo(tables.eq((i%tables.length)).find('tbody'));
   } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();

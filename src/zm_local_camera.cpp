@@ -699,6 +699,12 @@ LocalCamera::~LocalCamera() {
     av_frame_free(&tmpPicture);
   }
 #endif
+  if ( video_stream ) {
+    // Should also free streams
+    avformat_free_context(oc);
+    video_stream = nullptr;
+  }
+    
 } // end LocalCamera::~LocalCamera
 
 void LocalCamera::Initialise() {
@@ -2254,7 +2260,8 @@ int LocalCamera::PostCapture() {
 
 AVStream *LocalCamera::get_VideoStream() {
   if ( ! video_stream ) {
-    AVFormatContext *oc = avformat_alloc_context();
+    oc = avformat_alloc_context();
+    Debug(1, "Allocating avstream");
     video_stream = avformat_new_stream(oc, nullptr);
     if ( video_stream ) {
       video_stream->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
@@ -2264,6 +2271,7 @@ AVStream *LocalCamera::get_VideoStream() {
       video_stream->codecpar->format = GetFFMPEGPixelFormat(colours, subpixelorder);
       video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
       video_stream->codecpar->codec_id = AV_CODEC_ID_NONE;
+    Debug(1, "Allocating avstream %p %p %d", video_stream, video_stream->codecpar, video_stream->codecpar->codec_id);
 #else
       video_stream->codec->width = width;
       video_stream->codec->height = height;

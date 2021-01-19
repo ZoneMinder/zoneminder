@@ -275,41 +275,6 @@ echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>
       </div><!--eventVideo-->
-      <div id="eventStills" class="hidden">
-        <div id="eventThumbsPanel">
-          <div id="eventThumbs">
-          </div>
-        </div>
-        <div id="eventImagePanel">
-          <div id="eventImageFrame">
-            <img id="eventImage" src="graphics/transparent.png" alt=""/>
-            <div id="eventImageBar">
-              <div id="eventImageClose"><button type="button" data-on-click="hideEventImage"><?php echo translate('Close') ?></button></div>
-              <div id="eventImageStats" class="hidden"><button type="button" data-on-click="showFrameStats"><?php echo translate('Stats') ?></button></div>
-              <div id="eventImageData"><?php echo translate('Frame') ?> <span id="eventImageNo"></span></div>
-            </div>
-          </div>
-        </div>
-        <div id="eventImageNav">
-          <div id="thumbsSliderPanel">
-            <div id="alarmCue" class="alarmCue"></div>
-            <div id="thumbsSlider">
-              <div id="thumbsKnob">
-              </div>
-            </div>
-          </div>
-          <div id="eventImageButtons">
-            <div id="prevButtonsPanel">
-              <button id="prevEventBtn" type="button" data-on-click="prevEvent" disabled="disabled">&lt;E</button>
-              <button id="prevThumbsBtn" type="button" data-on-click="prevThumbs" disabled="disabled">&lt;&lt;</button>
-              <button id="prevImageBtn" type="button" data-on-click="prevImage" disabled="disabled">&lt;</button>
-              <button id="nextImageBtn" type="button" data-on-click="nextImage" disabled="disabled">&gt;</button>
-              <button id="nextThumbsBtn" type="button" data-on-click="nextThumbs" disabled="disabled">&gt;&gt;</button>
-              <button id="nextEventBtn" type="button" data-on-click="nextEvent" disabled="disabled">E&gt;</button>
-            </div>
-          </div>
-        </div>
-      </div>
 <?php
 } // end if Event exists
 ?>

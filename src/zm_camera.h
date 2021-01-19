@@ -59,6 +59,7 @@ protected:
   AVCodecContext      *mVideoCodecContext;
   AVCodecContext      *mAudioCodecContext;
   AVStream *video_stream;
+  AVFormatContext *oc;
   unsigned int  bytes;
 
 public:

@@ -95,6 +95,9 @@ bool zmDbConnect() {
     Error("Can't select database: %s", mysql_error(&dbconn));
     return false;
   }
+  if ( mysql_query(&dbconn, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {
+    Error("Can't set isolation level: %s", mysql_error(&dbconn));
+  }
   zmDbConnected = true;
   return zmDbConnected;
 }

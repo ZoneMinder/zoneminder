@@ -35,6 +35,7 @@ Camera::Camera(
     bool p_record_audio
     ) :
     monitor_id(p_monitor_id),
+    monitor(nullptr),
     type(p_type),
     width(p_width),
     height(p_height),
@@ -48,9 +49,10 @@ Camera::Camera(
     record_audio(p_record_audio),
     mVideoStreamId(-1),
     mAudioStreamId(-1),
-    mVideoCodecContext(NULL),
-    mAudioCodecContext(NULL),
-    video_stream(NULL),
+    mVideoCodecContext(nullptr),
+    mAudioCodecContext(nullptr),
+    video_stream(nullptr),
+    oc(nullptr),
     bytes(0)
 {
   linesize = width * colours;
@@ -59,8 +61,6 @@ Camera::Camera(
 
   Debug(2, "New camera id: %d width: %d line size: %d height: %d colours: %d subpixelorder: %d capture: %d",
       monitor_id, width, linesize, height, colours, subpixelorder, capture);
-
-  monitor = nullptr;
 }
 
 Camera::~Camera() {

@@ -29,7 +29,9 @@ RTSPServerThread::RTSPServerThread(Monitor *p_monitor) :
     Error("Failed to create rtspServer at port %d", rtspServerPortNum);
     return;
   }
-  Debug(1, "RTSP prefix is %s", rtspServer->rtspURLPrefix());
+  const char *prefix = rtspServer->rtspURLPrefix();
+  Debug(1, "RTSP prefix is %s", prefix);
+  delete[] prefix;
 }  // end RTSPServerThread::RTSPServerThread
 
 RTSPServerThread::~RTSPServerThread() {
@@ -61,50 +63,49 @@ void RTSPServerThread::addStream(AVStream *stream) {
   if ( !rtspServer )
     return;
 
+  // We don't know which format we can support at this time.
+  // Do we make it configurable, or wait until PrimeCapture to determine what is available
+  //Debug(1, "from %d %p->%p->%d", stream->index, stream, stream->codecpar, stream->codecpar->codec_id);
+  AVCodecID codec_id = stream->codecpar->codec_id;
+  std::string rtpFormat = getRtpFormat(codec_id, false);
+  Debug(1, "RTSP: format %s", rtpFormat.c_str());
+  if ( rtpFormat.empty() ) {
+    Error("No streaming format");
+    return;
+  } 
+
   int queueSize = 10;
   bool useThread = true;
   bool repeatConfig = true;
 
   StreamReplicator* videoReplicator = nullptr;
-  std::string rtpFormat;
+  //LOG(INFO) << "Create Source ... " << camera_name.c_str() << std::endl;
+  //bool muxTS = (muxer != NULL);
+  bool muxTS = false;
 
-  // We don't know which format we can support at this time.
-  // Do we make it configurable, or wait until PrimeCapture to determine what is available
-  rtpFormat.assign(getRtpFormat(stream->codecpar->codec_id, false));
-  Debug(1, "RTSP: format %s", rtpFormat.c_str());
-  if ( rtpFormat.empty() ) {
-    //LOG(ERROR) << "No Streaming format supported for device " << camera_name.c_str() << std::endl;
-    Error("No streaming format");
-    return;
+  FramedSource *source = nullptr;
+  if ( rtpFormat == "video/H264" ) {
+    source = H264_ZoneMinderDeviceSource::createNew(*env, monitor, stream->index, queueSize, useThread, repeatConfig, muxTS);
+#if 0
+    if ( muxTS ) {
+      muxer->addNewVideoSource(source, 5);
+      source = muxer;
+    }
+#endif
+  } else if ( rtpFormat == "video/H265" ) {
+    source = H265_ZoneMinderDeviceSource::createNew(*env, monitor, stream->index, queueSize, useThread, repeatConfig, muxTS);
+#if 0
+    if ( muxTS ) {
+      muxer->addNewVideoSource(source, 6);
+      source = muxer;
+    }
+#endif
+  }
+  if ( source == nullptr ) {
+    //LOG(ERROR) << "Unable to create source for device " << camera_name.c_str() << std::endl;
+    Error("Unable to create source");
   } else {
-    //LOG(INFO) << "Create Source ... " << camera_name.c_str() << std::endl;
-    //bool muxTS = (muxer != NULL);
-    bool muxTS = false;
-    
-    FramedSource *source = nullptr;
-    if ( rtpFormat == "video/H264" ) {
-      source = H264_ZoneMinderDeviceSource::createNew(*env, monitor, stream->index, queueSize, useThread, repeatConfig, muxTS);
-#if 0
-      if ( muxTS ) {
-        muxer->addNewVideoSource(source, 5);
-        source = muxer;
-      }
-#endif
-    } else if ( rtpFormat == "video/H265" ) {
-      source = H265_ZoneMinderDeviceSource::createNew(*env, monitor, stream->index, queueSize, useThread, repeatConfig, muxTS);
-#if 0
-      if ( muxTS ) {
-        muxer->addNewVideoSource(source, 6);
-        source = muxer;
-      }
-#endif
-    }
-    if ( source == nullptr ) {
-      //LOG(ERROR) << "Unable to create source for device " << camera_name.c_str() << std::endl;
-      Error("Unable to create source");
-    } else {
-      videoReplicator = StreamReplicator::createNew(*env, source, false);
-    }
+    videoReplicator = StreamReplicator::createNew(*env, source, false);
   }
 
   // Create Unicast Session
@@ -155,14 +156,13 @@ int RTSPServerThread::addSession(
 // -----------------------------------------
 //    convert V4L2 pix format to RTP mime
 // -----------------------------------------
-std::string RTSPServerThread::getRtpFormat(AVCodecID codec_id, bool muxTS) {
-  std::string rtpFormat;
-  if (muxTS) {
-    rtpFormat = "video/MP2T";
+const std::string RTSPServerThread::getRtpFormat(AVCodecID codec_id, bool muxTS) {
+  if ( muxTS ) {
+    return "video/MP2T";
   } else {
     switch ( codec_id ) {
-      case AV_CODEC_ID_H265 : rtpFormat = "video/H265"; break;
-      case AV_CODEC_ID_H264 : rtpFormat = "video/H264"; break;
+      case AV_CODEC_ID_H265 : return "video/H265";
+      case AV_CODEC_ID_H264 : return "video/H264";
       //case PIX_FMT_MJPEG: rtpFormat = "video/JPEG"; break;
       //case PIX_FMT_JPEG : rtpFormat = "video/JPEG"; break;
       //case AV_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
@@ -171,6 +171,6 @@ std::string RTSPServerThread::getRtpFormat(AVCodecID codec_id, bool muxTS) {
     }
   }
 
-  return rtpFormat;
+  return "";
 }
 #endif

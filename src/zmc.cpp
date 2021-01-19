@@ -304,18 +304,16 @@ int main(int argc, char *argv[]) {
         analysis_threads[i] = NULL;
       }
 #if HAVE_RTSP_SERVER
-#if 0
       if ( rtsp_server_threads ) {
         for ( int i = 0; i < n_monitors; i++ ) {
           rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
           Camera *camera = monitors[i]->getCamera();
           rtsp_server_threads[i]->addStream(camera->get_VideoStream());
-          if ( camera->get_AudioStreamId() )
+          if ( camera->get_AudioStreamId() >= 0 )
             rtsp_server_threads[i]->addStream(camera->get_AudioStream());
           rtsp_server_threads[i]->start();
         }
       }
-#endif
 #endif
     } // end foreach monitor
 
@@ -397,11 +395,9 @@ int main(int argc, char *argv[]) {
         analysis_threads[i]->stop();
       }
 #if HAVE_RTSP_SERVER
-#if 0
       if ( rtsp_server_threads ) {
         rtsp_server_threads[i]->stop();
       }
-#endif
 #endif
     }
 
@@ -418,7 +414,6 @@ int main(int argc, char *argv[]) {
     } // end foreach monitor
     delete [] analysis_threads;
 #if HAVE_RTSP_SERVER
-#if 0
     if ( rtsp_server_threads ) {
       for ( int i = 0; i < n_monitors; i++ ) {
         rtsp_server_threads[i]->join();;
@@ -428,7 +423,6 @@ int main(int argc, char *argv[]) {
       delete[] rtsp_server_threads;
       rtsp_server_threads = nullptr;
     }
-#endif
 #endif
     delete [] alarm_capture_delays;
     delete [] capture_delays;

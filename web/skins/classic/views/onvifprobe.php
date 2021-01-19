@@ -231,7 +231,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
         </p>
 </div>
         <div id="contentButtons">
-          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
+          <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
           <button type="button" name="nextBtn" data-on-click-this="gotoStep2" disabled="disabled"><?php echo translate('Next') ?></button>
         </div>
       </form>

@@ -83,13 +83,12 @@ VideoStore::VideoStore(
   fifo = nullptr;
 #endif
 #endif
-  FFMPEGInit();
-
   video_start_pts = 0;
   audio_next_pts = 0;
   out_format = nullptr;
   oc = nullptr;
 
+  FFMPEGInit();
   swscale.init();
 }  // VideoStore::VideoStore
 
@@ -135,7 +134,6 @@ bool VideoStore::open() {
       zm_dump_codecpar(video_in_stream->codecpar);
     }
 
-
     if ( monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH ) {
       // Don't care what codec, just copy parameters
       video_out_ctx = avcodec_alloc_context3(nullptr);
@@ -161,24 +159,7 @@ bool VideoStore::open() {
         Error("Could not initialize ctx parameters");
         return false;
       }
-    //video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-    // Fix deprecated formats
-    switch ( video_out_ctx->pix_fmt ) {
-      case AV_PIX_FMT_YUVJ422P  :
-        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV422P;
-        break;
-      case AV_PIX_FMT_YUVJ444P   :
-        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV444P;
-        break;
-      case AV_PIX_FMT_YUVJ440P :
-        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
-        break;
-      case AV_PIX_FMT_NONE :
-      case AV_PIX_FMT_YUVJ420P :
-      default:
-        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-        break;
-    }
+      fix_deprecated_pix_fmt(video_out_ctx);
     } else if ( monitor->GetOptVideoWriter() == Monitor::ENCODE ) {
       int wanted_codec = monitor->OutputCodec();
       if ( !wanted_codec ) {
@@ -220,7 +201,7 @@ bool VideoStore::open() {
 
         video_out_ctx->time_base = video_in_ctx->time_base;
         if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
-          Debug(2,"No timebase found in video in context, defaulting to Q which is microseconds");
+          Debug(2, "No timebase found in video in context, defaulting to Q which is microseconds");
           video_out_ctx->time_base = AV_TIME_BASE_Q;
         }	
 
@@ -237,6 +218,12 @@ bool VideoStore::open() {
           video_out_ctx->bit_rate = 2000000;
           video_out_ctx->gop_size = 12;
           video_out_ctx->max_b_frames = 1;
+
+          ret = av_opt_set(video_out_ctx->priv_data, "crf", "36", AV_OPT_SEARCH_CHILDREN);
+          if ( ret < 0 ) {
+            Error("Could not set 'crf' for output codec %s.",
+                codec_data[i].codec_name);
+          }
         } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO ) {
           /* just for testing, we also add B frames */
           video_out_ctx->max_b_frames = 2;
@@ -289,6 +276,7 @@ bool VideoStore::open() {
       } // end if can't open codec
 
       Debug(2, "Success opening codec");
+      zm_dump_codec(video_out_ctx);
 
     } // end if copying or transcoding
   }  // end if video_in_stream
@@ -311,7 +299,7 @@ bool VideoStore::open() {
   // Only set orientation if doing passthrough, otherwise the frame image will be rotated
   Monitor::Orientation orientation = monitor->getOrientation();
   if ( orientation ) {
-    Debug(3, "Have orientation");
+    Debug(3, "Have orientation %d", orientation);
     if ( orientation == Monitor::ROTATE_0 ) {
     } else if ( orientation == Monitor::ROTATE_90 ) {
       ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
@@ -326,6 +314,8 @@ bool VideoStore::open() {
       Warning("Unsupported Orientation(%d)", orientation);
     }
   } // end if orientation
+  video_out_stream->time_base = AV_TIME_BASE_Q;
+  zm_dump_stream_format(oc, 0, 0, 1);
 
   converted_in_samples = nullptr;
   audio_out_codec = nullptr;
@@ -523,7 +513,7 @@ void VideoStore::flush_codecs() {
   // Without these we seg fault becuse av_init_packet doesn't init them
   pkt.data = nullptr;
   pkt.size = 0;
-    av_init_packet(&pkt);
+  av_init_packet(&pkt);
 
   // I got crashes if the codec didn't do DELAY, so let's test for it.
   if ( video_out_ctx->codec && ( video_out_ctx->codec->capabilities & 
@@ -622,7 +612,7 @@ void VideoStore::flush_codecs() {
 VideoStore::~VideoStore() {
   if ( oc->pb ) {
     if ( ( video_out_ctx->codec_id != video_in_ctx->codec_id ) || audio_out_codec ) {
-      Debug(2, "Different codecs between in and out");
+      Debug(2, "Different codecs between in and out. flushing codecs");
       flush_codecs();
     } // end if buffers
 
@@ -660,7 +650,7 @@ VideoStore::~VideoStore() {
   if ( video_out_stream ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
-    //avcodec_free_context(&video_in_ctx);
+    avcodec_free_context(&video_in_ctx);
 #endif
     video_in_ctx = nullptr;
 
@@ -1031,9 +1021,9 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
       }
 
       if ( !zm_packet->in_frame ) {
-        Debug(2, "Have no in_frame");
+        Debug(4, "Have no in_frame");
         if ( zm_packet->packet.size ) {
-          Debug(2, "Decoding");
+          Debug(4, "Decoding");
           if ( !zm_packet->decode(video_in_ctx) ) {
             Debug(2, "unable to decode yet.");
             return 0;
@@ -1054,7 +1044,8 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
               );
 
         } else {
-          Error("Have neither in_frame or image!");
+          Error("Have neither in_frame or image in packet %p %d!",
+              zm_packet, zm_packet->image_index);
           return 0;
         } // end if has packet or image
       } else {
@@ -1063,9 +1054,12 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
       } // end if no in_frame
     } // end if no out_frame
 
-    zm_packet->out_frame->coded_picture_number = frame_count;
-    zm_packet->out_frame->display_picture_number = frame_count;
-    zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
+    //zm_packet->out_frame->coded_picture_number = frame_count;
+    //zm_packet->out_frame->display_picture_number = frame_count;
+    //zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
+    // Do this to allow the encoder to choose whether to use I/P/B frame
+    //zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
+    zm_packet->out_frame->key_frame = zm_packet->keyframe;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     zm_packet->out_frame->pkt_duration = 0;
 #endif
@@ -1075,36 +1069,27 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
       Debug(2, "No video_last_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
           video_start_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
       zm_packet->out_frame->pts = 0;
-      zm_packet->out_frame->coded_picture_number = 0;
     } else {
       uint64_t useconds = ( zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_start_pts;
       zm_packet->out_frame->pts = av_rescale_q(useconds, video_in_stream->time_base, video_out_ctx->time_base);
-      Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
+      Debug(2, " Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
           frame_count, zm_packet->out_frame->pts, video_start_pts, useconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
-    }
-    if ( zm_packet->keyframe ) {
-      //Debug(2, "Setting keyframe was (%d)", zm_packet->out_frame->key_frame );
-      zm_packet->out_frame->key_frame = 1;
-      //Debug(2, "Setting keyframe (%d)", zm_packet->out_frame->key_frame );
-    } else {
-      Debug(2, "Not Setting keyframe");
     }
 
     av_init_packet(&opkt);
     opkt.data = nullptr;
     opkt.size = 0;
-    // Do this to allow the encoder to choose whether to use I/P/B frame
-    zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
-    Debug(4, "Sending frame");
 
     ret = zm_send_frame_receive_packet(video_out_ctx, zm_packet->out_frame, opkt);
-    if ( ret < 0 ) {
-      Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
-      return -1;
-    } else if ( ret == 0 ) {
-      Debug(1, "Could not send frame (error '%s')", av_make_error_string(ret).c_str());
-      return 0;
+    if ( ret <= 0 ) {
+      if ( ret < 0 ) {
+        Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
+      } else {
+        Debug(2, "Could not send frame/receive pkt. Not error.");
+      }
+      return ret;
     }
+    dumpPacket(&opkt, "packet returned by codec");
 
     // Need to adjust pts/dts values from codec time to stream time
     if ( opkt.pts != AV_NOPTS_VALUE )
@@ -1112,7 +1097,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     if ( opkt.dts != AV_NOPTS_VALUE )
       opkt.dts = av_rescale_q(opkt.dts, video_out_ctx->time_base, video_out_stream->time_base);
 
-    int64_t duration;
+    int64_t duration = 0;
     if ( zm_packet->in_frame ) {
       if ( zm_packet->in_frame->pkt_duration ) {
         duration = av_rescale_q(
@@ -1142,11 +1127,11 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
             duration
             );
         if ( duration <= 0 ) {
-          duration = zm_packet->in_frame->pkt_duration ? zm_packet->in_frame->pkt_duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
+          duration = zm_packet->in_frame->pkt_duration ? zm_packet->in_frame->pkt_duration : av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
         }
       }  // end if in_frmae->pkt_duration
     } else {
-      duration = av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
+      //duration = av_rescale_q(zm_packet->out_frame->pts - video_last_pts, video_in_stream->time_base, video_out_stream->time_base);
     }  // end if in_frmae
     opkt.duration = duration;
 

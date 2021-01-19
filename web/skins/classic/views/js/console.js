@@ -173,7 +173,7 @@ function manageFunctionModal(evt) {
 } // end function manageFunctionModal
 
 function initPage() {
-  reloadWindow.periodical(consoleRefreshTimeout);
+  setInterval(reloadWindow, consoleRefreshTimeout);
   if ( showDonatePopup ) {
     $j.getJSON(thisUrl + '?request=modal&modal=donate')
         .done(function(data) {

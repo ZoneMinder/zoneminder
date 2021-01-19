@@ -33,7 +33,7 @@ class RTSPServerThread : public Thread {
     void stop();
     bool stopped() const;
   private:
-    std::string getRtpFormat(AVCodecID codec, bool muxTS);
+    const std::string getRtpFormat(AVCodecID codec, bool muxTS);
     int addSession(
         const std::string & sessionName,
         const std::list<ServerMediaSubsession*> & subSession

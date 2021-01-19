@@ -230,6 +230,7 @@ if (
   ( $request != 'control' ) && 
   //( $view != 'frames' ) &&  // big html can overflow ob
   ( $view != 'archive' ) // returns data
+  && ( (!isset($_SERVER['CONTENT_TYPE']) or ($_SERVER['CONTENT_TYPE'] != 'application/csp-report')) )
 ) {
   require_once('includes/csrf/csrf-magic.php');
   #ZM\Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");

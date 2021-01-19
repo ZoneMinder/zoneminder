@@ -273,10 +273,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
-        Cookie.write('zmHeaderFlip', 'down', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmHeaderFlip', 'down', 3600);
       } else {
         flip.html('keyboard_arrow_up');
-        Cookie.write('zmHeaderFlip', 'up', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmHeaderFlip', 'up', 3600);
       }
     });
     // Manage the web console filter bar minimize chevron
@@ -285,10 +285,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var fbflip = $j("#fbflip");
       if ( fbflip.html() == 'keyboard_arrow_up' ) {
         fbflip.html('keyboard_arrow_down');
-        Cookie.write('zmFilterBarFlip', 'down', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmFilterBarFlip', 'down', 3600);
       } else {
         fbflip.html('keyboard_arrow_up');
-        Cookie.write('zmFilterBarFlip', 'up', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmFilterBarFlip', 'up', 3600);
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
@@ -300,10 +300,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
         mfbflip.html('keyboard_arrow_down');
-        Cookie.write('zmMonitorFilterBarFlip', 'up', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmMonitorFilterBarFlip', 'up', 3600);
       } else {
         mfbflip.html('keyboard_arrow_up');
-        Cookie.write('zmMonitorFilterBarFlip', 'down', {duration: 10*365, samesite: 'strict'} );
+        setCookie('zmMonitorFilterBarFlip', 'down', 3600);
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
@@ -813,6 +813,16 @@ function manageModalBtns(id) {
   });
 }
 
+function bindButton(selector, action, data, func) {
+  var elements = $j(selector);
+  if ( !elements.length ) {
+    console.log("Nothing found for " + selector);
+    return;
+  }
+  elements.on(action, data, func);
+}
+
+
 function human_filesize(size, precision = 2) {
   var units = Array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
   var step = 1024;
@@ -842,7 +852,7 @@ function exportResponse(data, responseText) {
     $j('#downloadLink').attr("href", thisUrl + exportFile);
     $j('#exportProgress').addClass( 'text-success' );
     $j('#exportProgress').text(exportSucceededString);
-    startDownload.pass( exportFile ).delay( 1500 );
+    setTimeout(startDownload, 1500, exportFile);
   } else {
     $j('#exportProgress').addClass( 'text-danger' );
     $j('#exportProgress').text(exportFailedString);
@@ -897,7 +907,7 @@ function thumbnail_onmouseover(event) {
     var imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
     img.src = '';
     img.src = img.getAttribute(imgAttr);
-    img.addClass(imgClass);
+    img.classList.add(imgClass);
   }, 350);
 }
 
@@ -908,7 +918,7 @@ function thumbnail_onmouseout(event) {
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
   img.src = '';
   img.src = img.getAttribute(imgAttr);
-  img.removeClass(imgClass);
+  img.classList.remove(imgClass);
 }
 
 function initThumbAnimation() {
@@ -918,4 +928,8 @@ function initThumbAnimation() {
       this.addEventListener('mouseout', thumbnail_onmouseout, false);
     });
   }
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

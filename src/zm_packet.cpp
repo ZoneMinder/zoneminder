@@ -160,7 +160,8 @@ int ZMPacket::decode(AVCodecContext *ctx) {
         av_get_pix_fmt_name(ctx->sw_pix_fmt)
         );
 
-    if ( target_format == AV_PIX_FMT_NONE and ctx->hw_frames_ctx ) {
+    if ( target_format == AV_PIX_FMT_NONE and ctx->hw_frames_ctx and (image->Colours() == 4) ) {
+      // Look for rgb0 in list of supported formats
       enum AVPixelFormat *formats;
       if ( 0 <= av_hwframe_transfer_get_formats(
             ctx->hw_frames_ctx,
@@ -175,7 +176,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
               );
           if ( formats[i] == AV_PIX_FMT_RGB0 ) {
             target_format = formats[i];
-            //break;
+            break;
           }  // endif RGB0
         }  // end foreach support format
         av_freep(&formats);
@@ -183,6 +184,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     }  // end if target_format not set
 
     AVFrame *new_frame = zm_av_frame_alloc();
+
     if ( target_format != AV_PIX_FMT_NONE ) {
       if ( 1 and image ) {
         if ( 0 > image->PopulateFrame(new_frame) ) {
@@ -221,6 +223,9 @@ int ZMPacket::decode(AVCodecContext *ctx) {
         av_get_pix_fmt_name(ctx->pix_fmt),
         av_get_pix_fmt_name(ctx->sw_pix_fmt)
         );
+    if ( image ) {
+      image->Assign(in_frame);
+    }
   }
 #endif
 #endif

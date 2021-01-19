@@ -133,6 +133,7 @@ User *zmLoadUser(const char *username, const char *password) {
     MYSQL_ROW dbrow = mysql_fetch_row(result);
     User *user = new User(dbrow);
     mysql_free_result(result);
+    result = nullptr;
 
     if ( 
         (! password )  // relay type must be none
@@ -142,7 +143,8 @@ User *zmLoadUser(const char *username, const char *password) {
       return user;
     } 
   }  // end if 1 result from db
-  mysql_free_result(result);
+  if ( result )
+    mysql_free_result(result);
 
   Warning("Unable to authenticate user %s", username);
   return nullptr;

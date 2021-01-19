@@ -1,6 +1,5 @@
 var streamCmdTimer = null;
 var streamStatus;
-var auth_hash;
 var alarmState = STATE_IDLE;
 var lastAlarmState = STATE_IDLE;
 var backBtn = $j('#backBtn');
@@ -41,6 +40,7 @@ function ajaxRequest(params) {
   params.data.order = 'desc';
   params.data.limit = maxDisplayEvents;
   params.data.sort = 'Id';
+  if ( auth_hash ) params.data.auth = auth_hash;
 
   $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
       .done(function(data) {
@@ -110,7 +110,7 @@ function changeScale() {
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
 
-  Cookie.write('zmWatchScale'+monitorId, scale, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmWatchScale'+monitorId, scale, 3600);
 
   var streamImg = $j('#liveStream'+monitorId);
   if ( streamImg ) {
@@ -119,8 +119,7 @@ function changeScale() {
 
     streamImg.width(newWidth);
     streamImg.height(newHeight);
-    streamImg.src = ''; // Some browsers need it to be cleared first
-    streamImg.src = newSrc;
+    streamImg.attr('src', newSrc);
   } else {
     console.error('No element found for liveStream'+monitorId);
   }
@@ -152,7 +151,7 @@ function setAlarmState( currentAlarmState ) {
     table.bootstrapTable('refresh');
     if ( SOUND_ON_ALARM ) {
       // Enable the alarm sound
-      if ( !canPlayPauseAudio ) {
+      if ( !msieVer ) {
         $j('#alarmSound').removeClass('hidden');
       } else {
         $j('#MediaPlayer').trigger('play');
@@ -166,7 +165,7 @@ function setAlarmState( currentAlarmState ) {
     table.bootstrapTable('refresh');
     if ( SOUND_ON_ALARM ) {
       // Disable alarm sound
-      if ( !canPlayPauseAudio ) {
+      if ( !msieVer ) {
         $j('#alarmSound').addClass('hidden');
       } else {
         $j('#MediaPlayer').trigger('pause');
@@ -282,7 +281,7 @@ function getStreamCmdResponse(respObj, respText) {
         if ( streamImg ) {
           var oldSrc = streamImg.attr('src');
           var newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-          streamImg.src = newSrc;
+          streamImg.attr('src', newSrc);
         }
         table.bootstrapTable('refresh');
       } // end if have a new auth hash
@@ -293,14 +292,14 @@ function getStreamCmdResponse(respObj, respText) {
     // If it's an auth error, we should reload the whole page.
     console.log("have error");
     //window.location.reload();
-    if ( 0 ) {
+    if ( 1 ) {
       var streamImg = $j('#liveStream'+monitorId);
       if ( streamImg ) {
         var oldSrc = streamImg.attr('src');
         var newSrc = oldSrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
 
-        streamImg.src = newSrc;
-        console.log('Changing livestream src to ' + streamImg.src);
+        streamImg.attr('src', newSrc);
+        console.log('Changing livestream src to ' + newSrc);
       } else {
         console.log('Unable to find streamImg liveStream');
       }
@@ -311,7 +310,7 @@ function getStreamCmdResponse(respObj, respText) {
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
     streamCmdTimeout = streamCmdTimeout/5;
   }
-  streamCmdTimer = streamCmdQuery.delay(streamCmdTimeout);
+  streamCmdTimer = setTimeout(streamCmdQuery, streamCmdTimeout);
 }
 
 function streamCmdPause( action ) {
@@ -361,7 +360,7 @@ function streamCmdPlay( action ) {
 }
 
 function streamCmdReq(data) {
-  $j.getJSON(thisUrl + '?view=request&request=stream&connkey='+connKey, data)
+  $j.getJSON(monitorUrl + '?view=request&request=stream&connkey='+connKey, data)
       .done(getStreamCmdResponse)
       .fail(getStreamCmdError);
 
@@ -525,11 +524,11 @@ function getStatusCmdResponse(respObj, respText) {
   if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
     statusCmdTimeout = statusCmdTimeout/5;
   }
-  statusCmdTimer = statusCmdQuery.delay(statusCmdTimeout);
+  statusCmdTimer = setTimeout(statusCmdQuery, statusCmdTimeout);
 }
 
 function statusCmdQuery() {
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId)
+  $j.getJSON(monitorUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId)
       .done(getStatusCmdResponse)
       .fail(logAjaxFail);
 
@@ -537,7 +536,7 @@ function statusCmdQuery() {
 }
 
 function alarmCmdReq(data) {
-  $j.getJSON(thisUrl + '?view=request&request=alarm&id='+monitorId, data)
+  $j.getJSON(monitorUrl + '?view=request&request=alarm&id='+monitorId, data)
       .done(getAlarmCmdResponse)
       .fail(function(jqxhr, textStatus, error) {
         if (textstatus === "timeout") {
@@ -600,7 +599,7 @@ function cmdForce() {
 }
 
 function controlReq(data) {
-  $j.getJSON(thisUrl + '?view=request&request=control&id='+monitorId, data)
+  $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
       .done(getControlResponse)
       .fail(logAjaxFail);
 }
@@ -680,19 +679,23 @@ function fetchImage( streamImage ) {
 }
 
 function handleClick( event ) {
+  console.log(event);
+  // target should be the img tag
   var target = event.target;
   var width = $j(target).width();
   var height = $j(target).height();
 
   var scaleX = parseInt(monitorWidth / width);
   var scaleY = parseInt(monitorHeight / height);
-  var x = (event.page.x - target.getLeft()) * scaleX;
-  var y = (event.page.y - target.getTop()) * scaleY;
+  var x = (event.pageX - target.getLeft()) * scaleX;
+  var y = (event.pageY - target.getTop()) * scaleY;
+  // image can be scaled... we need the coordinates in original image size units
+  // So what is event.page.x?
 
   if ( showMode == 'events' || !imageControlMode ) {
     if ( event.shift ) {
-      streamCmdPan( x, y );
-    } else if ( event.event.ctrlKey ) {
+      streamCmdPan(x, y);
+    } else if ( event.ctrlKey ) {
       streamCmdZoomOut();
     } else {
       streamCmdZoomIn(x, y);
@@ -713,10 +716,10 @@ function appletRefresh() {
       console.error("Nothing found for liveStream"+monitorId);
     }
     if ( appletRefreshTime ) {
-      appletRefresh.delay( appletRefreshTime*1000 );
+      setTimeout(appletRefresh, appletRefreshTime*1000);
     }
   } else {
-    appletRefresh.delay( 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
+    setTimeout(appletRefresh, 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
   }
 }
 
@@ -756,7 +759,7 @@ function updatePresetLabels() {
 }
 
 function getCtrlPresetModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=controlpreset&mid=' + monitorId)
+  $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId)
       .done(function(data) {
         insertModalHtml('ctrlPresetModal', data.html);
         updatePresetLabels();
@@ -772,7 +775,7 @@ function getCtrlPresetModal() {
 }
 
 function getSettingsModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=settings&mid=' + monitorId)
+  $j.getJSON(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId)
       .done(function(data) {
         insertModalHtml('settingsModal', data.html);
         // Manage the Save button
@@ -786,7 +789,7 @@ function getSettingsModal() {
 
 function processClicks(event, field, value, row, $element) {
   if ( field == 'Delete' ) {
-    $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+    $j.getJSON(monitorUrl + '?request=modal&modal=delconfirm')
         .done(function(data) {
           insertModalHtml('deleteConfirm', data.html);
           manageDelConfirmModalBtns();
@@ -822,6 +825,17 @@ function manageDelConfirmModalBtns() {
   });
 }
 
+function msieVer() {
+  var ua = window.navigator.userAgent;
+  var msie = ua.indexOf("MSIE ");
+
+  if (msie >= 0) { // If Internet Explorer, return version number
+    return msie;
+  } else { // If another browser, return 0
+    return 0;
+  }
+}
+
 function initPage() {
   if ( canView.Control ) {
     // Load the PTZ Preset modal into the DOM
@@ -832,10 +846,10 @@ function initPage() {
 
   if ( monitorType != 'WebSite' ) {
     if ( streamMode == 'single' ) {
-      statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+      statusCmdTimer = setTimeout(statusCmdQuery, (Math.random()+0.1)*statusRefreshTimeout );
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
     } else {
-      streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+      streamCmdTimer = setTimeout(streamCmdQuery, (Math.random()+0.1)*statusRefreshTimeout );
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
     }
 
@@ -859,7 +873,7 @@ function initPage() {
     } // streamMode native or single
 
     if ( refreshApplet && appletRefreshTime ) {
-      appletRefresh.delay(appletRefreshTime*1000);
+      setTimeout(appletRefresh, appletRefreshTime*1000);
     }
     if ( window.history.length == 1 ) {
       $j('#closeControl').html('');
@@ -873,7 +887,7 @@ function initPage() {
   }
 
   // Manage the BACK button
-  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+  bindButton('#backBtn', 'click', null, function onBackClick(evt) {
     evt.preventDefault();
     window.history.back();
   });
@@ -882,13 +896,13 @@ function initPage() {
   backBtn.prop('disabled', !document.referrer.length);
 
   // Manage the REFRESH Button
-  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+  bindButton('#refreshBtn', 'click', null, function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
   });
 
   // Manage the SETTINGS button
-  document.getElementById("settingsBtn").addEventListener("click", function onSettingsClick(evt) {
+  bindButton('settingsBtn', 'click', null, function onSettingsClick(evt) {
     evt.preventDefault();
     $j('#settingsModal').modal('show');
   });

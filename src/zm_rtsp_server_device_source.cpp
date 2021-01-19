@@ -104,47 +104,56 @@ void ZoneMinderDeviceSource::doStopGettingFrames() {
 
 // deliver frame to the sink
 void ZoneMinderDeviceSource::deliverFrame() {
-	if ( isCurrentlyAwaitingData() ) {
-		fDurationInMicroseconds = 0;
-		fFrameSize = 0;
+	if ( !isCurrentlyAwaitingData() ) {
+    Debug(1, "not awaiting data");
+    return;
+  } 
 
-		pthread_mutex_lock(&m_mutex);
-		if ( m_captureQueue.empty() ) {
-			//LOG(INFO) << "Queue is empty";
-      Debug(1, "Queue is empty");
-		} else {
-      Debug(1, "Queue is not empty");
-			timeval curTime;
-			gettimeofday(&curTime, nullptr);
-			NAL_Frame *frame = m_captureQueue.front();
-			m_captureQueue.pop_front();
+  pthread_mutex_lock(&m_mutex);
+  if ( m_captureQueue.empty() ) {
+    Debug(1, "Queue is empty");
+    pthread_mutex_unlock(&m_mutex);
+    return;
+  } 
 
-			unsigned int nal_size = frame->size();
-			m_out.notify(curTime.tv_sec, nal_size);
+  fDurationInMicroseconds = 0;
+  fFrameSize = 0;
+  Debug(1, "Queue is not empty");
+  timeval curTime;
+  gettimeofday(&curTime, nullptr);
+  NAL_Frame *frame = m_captureQueue.front();
+  m_captureQueue.pop_front();
 
-			if ( nal_size > fMaxSize ) {
-				fFrameSize = fMaxSize;
-				fNumTruncatedBytes = nal_size - fMaxSize;
-			} else {
-				fFrameSize = nal_size;
-			}
-			timeval diff;
-			timersub(&curTime, &(frame->m_timestamp), &diff);
+  unsigned int nal_size = frame->size();
+  m_out.notify(curTime.tv_sec, nal_size);
 
-			//LOG(INFO) << "deliverFrame\ttimestamp:" << curTime.tv_sec << "." << curTime.tv_usec << "\tsize:" << fFrameSize <<"\tdiff:" <<  (diff.tv_sec*1000+diff.tv_usec/1000) << "ms\tqueue:" << m_captureQueue.size();
+  if ( nal_size > fMaxSize ) {
+    fFrameSize = fMaxSize;
+    fNumTruncatedBytes = nal_size - fMaxSize;
+  } else {
+    fFrameSize = nal_size;
+  }
+  timeval diff;
+  timersub(&curTime, &(frame->m_timestamp), &diff);
 
-			fPresentationTime = frame->m_timestamp;
-			memcpy(fTo, frame->buffer(), fFrameSize);
-			delete frame;
-		}
-		pthread_mutex_unlock(&m_mutex);
+  Debug(1, "deliverFrame now: %d.%d timestamp: %d.%d size: %d diff %d.%d queuesize:",
+      curTime.tv_sec, curTime.tv_usec, 
+      frame->m_timestamp.tv_sec, frame->m_timestamp.tv_usec,
+      fFrameSize, 
+      diff.tv_sec, diff.tv_usec, 
+      m_captureQueue.size()
+      );
 
-		if ( fFrameSize > 0 ) {
-			// send Frame to the consumer
-			FramedSource::afterGetting(this);
-		}
-	}
-}
+  fPresentationTime = frame->m_timestamp;
+  memcpy(fTo, frame->buffer(), fFrameSize);
+  delete frame;
+  pthread_mutex_unlock(&m_mutex);
+
+  if ( fFrameSize > 0 ) {
+    // send Frame to the consumer
+    FramedSource::afterGetting(this);
+  }
+}  // end void ZoneMinderDeviceSource::deliverFrame()
 
 // FrameSource callback on read event
 void ZoneMinderDeviceSource::incomingPacketHandler() {

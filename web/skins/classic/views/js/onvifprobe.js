@@ -3,7 +3,6 @@ function submitCamera( element ) {
   form.target = self.name;
   form.view.value = 'monitor';
   form.submit();
-  closeWindow.delay( 250 );
 }
 
 function gotoStep1( element ) {

@@ -1,4 +1,4 @@
-var periodical_id;
+var intervalId;
 var pauseBtn = $j('#pauseBtn');
 var playBtn = $j('#playBtn');
 
@@ -7,13 +7,13 @@ function nextCycleView() {
 }
 
 function cyclePause() {
-  $clear(periodical_id);
+  clearInterval(intervalId);
   pauseBtn.prop('disabled', true);
   playBtn.prop('disabled', false);
 }
 
 function cycleStart() {
-  periodical_id = nextCycleView.periodical(cycleRefreshTimeout);
+  intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   pauseBtn.prop('disabled', false);
   playBtn.prop('disabled', true);
 }
@@ -31,17 +31,19 @@ function cycleNext() {
 }
 
 function cyclePrev() {
-  if ( monIdx ) {
-    monIdx -= 1;
-  } else {
+  monIdx --;
+  if ( monIdx < 0 ) {
     monIdx = monitorData.length - 1;
+  }
+  if ( !monitorData[monIdx] ) {
+    console.log('No monitorData for ' + monIdx);
   }
 
   window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);
 }
 
 function initCycle() {
-  periodical_id = nextCycleView.periodical(cycleRefreshTimeout);
+  intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   var scale = $j('#scale').val();
   if ( scale == '0' || scale == 'auto' ) changeScale();
 }
@@ -81,18 +83,18 @@ function changeSize() {
     console.log('Did not find liveStream'+monitorData[monIdx].id);
   }
   $j('#scale').val('');
-  Cookie.write('zmCycleScale', '', {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmCycleWidth', width, {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmCycleHeight', height, {duration: 10*365, samesite: 'strict'});
+  setCookie('zmCycleScale', '', 3600);
+  setCookie('zmCycleWidth', width, 3600);
+  setCookie('zmCycleHeight', height, 3600);
 } // end function changeSize()
 
 function changeScale() {
   var scale = $j('#scale').val();
   $j('#width').val('auto');
   $j('#height').val('auto');
-  Cookie.write('zmCycleScale', scale, {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmCycleWidth', 'auto', {duration: 10*365, samesite: 'strict'});
-  Cookie.write('zmCycleHeight', 'auto', {duration: 10*365, samesite: 'strict'});
+  setCookie('zmCycleScale', scale, 3600);
+  setCookie('zmCycleWidth', 'auto', 3600);
+  setCookie('zmCycleHeight', 'auto', 3600);
   var newWidth = ( monitorData[monIdx].width * scale ) / SCALE_BASE;
   var newHeight = ( monitorData[monIdx].height * scale ) / SCALE_BASE;
 

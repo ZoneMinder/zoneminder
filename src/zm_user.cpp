@@ -132,12 +132,12 @@ User *zmLoadUser(const char *username, const char *password) {
   if ( mysql_num_rows(result) == 1 ) {
     MYSQL_ROW dbrow = mysql_fetch_row(result);
     User *user = new User(dbrow);
-    mysql_free_result(result);
 
     if ( 
         (! password )  // relay type must be none
         ||
         verifyPassword(username, password, user->getPassword()) ) {
+      mysql_free_result(result);
       Info("Authenticated user '%s'", user->getUsername());
       return user;
     } 

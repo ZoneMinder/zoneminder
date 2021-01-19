@@ -37,16 +37,19 @@ var params =
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
   // Maintain legacy behavior by statically setting these parameters
-  params.data.order = 'desc';
-  params.data.limit = maxDisplayEvents;
-  params.data.sort = 'Id';
-  if ( auth_hash ) params.data.auth = auth_hash;
+  var data = params.data;
+  data.order = 'desc';
+  data.limit = maxDisplayEvents;
+  data.sort = 'Id';
+  data.view = 'request';
+  data.request = 'watch';
+  data.mid = monitorId;
+  if ( auth_hash ) data.auth = auth_hash;
 
-  $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
+  $j.getJSON(thisUrl, data)
       .done(function(data) {
         var rows = processRows(data.rows);
-        // rearrange the result into what bootstrap-table expects
-        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+        params.success(rows);
       })
       .fail(logAjaxFail);
 }

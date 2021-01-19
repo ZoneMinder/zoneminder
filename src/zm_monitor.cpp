@@ -392,8 +392,8 @@ Monitor::Monitor()
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
  "Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
  "SaveJPEGs, VideoWriter, EncoderParameters,
-"OutputCodec, Encoder, OutputContainer,"
-" RecordAudio, "
+ "OutputCodec, Encoder, OutputContainer,"
+ "RecordAudio, "
  "Brightness, Contrast, Hue, Colour, "
  "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
  "ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
@@ -410,8 +410,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
 
   storage_id = atoi(dbrow[col]); col++;
+  if ( storage )
+    delete storage;
   storage = new Storage(storage_id);
-  Debug(1, "Storage path: %s", storage->Path() );
 
   if ( ! strcmp(dbrow[col], "Local") ) {
     type = LOCAL;
@@ -430,7 +431,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   } else {
     Fatal("Bogus monitor type '%s' for monitor %d", dbrow[col], id);
   }
-  Debug(1,"Have camera type %s", CameraType_Strings[type].c_str());
+  Debug(1, "Have camera type %s", CameraType_Strings[type].c_str());
   col++;
   function = (Function)atoi(dbrow[col]); col++;
   enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
@@ -440,8 +441,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], NULL) : 0.0; col++;
   analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
-  capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
-  alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+  capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+  alarm_capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 
   if ( analysis_fps_limit > 0.0 ) {
     uint64_t usec = round(1000000*pre_event_count/analysis_fps_limit);
@@ -571,7 +572,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
   embed_exif = (*dbrow[col] != '0'); col++;
 
-
   // How many frames we need to have before we start analysing
   ready_count = warmup_count;
 
@@ -579,8 +579,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   state = IDLE;
   last_signal = true;   // Defaulting to having signal so that we don't get a signal change on the first frame.
                         // Instead initial failure to capture will cause a loss of signal change which I think makes more sense.
-
-  camera = NULL;
   uint64_t image_size = width * height * colours;
 
   if ( strcmp(config.event_close_mode, "time") == 0 )
@@ -603,17 +601,14 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       (image_buffer_count*sizeof(struct timeval)),
       image_buffer_count, image_size, (image_buffer_count*image_size),
      mem_size);
-  mem_ptr = nullptr;
 
   Zone **zones = 0;
   int n_zones = Zone::Load(this, zones);
   this->AddZones(n_zones, zones);
   this->AddPrivacyBitmask(zones);
 
-// maybe unneeded
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%d", storage->Path(), id);
-  shared_data = nullptr;
   getCamera();
 
   if ( purpose != QUERY ) {
@@ -633,7 +628,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
         );
     Debug(1, "Decoding enabled: %d", decoding_enabled);
 
-
     if ( config.record_diag_images ) {
       if ( config.record_diag_images_fifo ) {
         diag_path_ref = stringtf("%s/diagpipe-r-%d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
@@ -647,10 +641,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     }
   }  // end if purpose
 
-  //this->delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
-  //ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
   Debug(1, "Loaded monitor %d(%s), %d zones", id, name, n_zones);
-} // Monitor::Load
+}  // Monitor::Load
 
 Camera * Monitor::getCamera() {
   if ( camera )
@@ -838,7 +830,7 @@ Camera * Monitor::getCamera() {
 
   camera->setMonitor(this);
   return camera;
-} // end Monitor::getCamera
+}  // end Monitor::getCamera
 
 Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
   std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", p_id);
@@ -850,31 +842,9 @@ Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
   }
   Monitor *monitor = new Monitor();
   monitor->Load(dbrow.mysql_row(), load_zones, purpose);
-#if 0
-  // We are explicitly connecting now
-  if ( purpose == CAPTURE ) {
-    Debug(1,"Connecting");
-    if ( ! (
-          monitor->getCamera()
-          &&
-          monitor->connect()
-          ) ) {
-        delete monitor;
-        return NULL;
-    }
-  }
-  if ( config.record_diag_images ) {
-    diag_path_r = stringtf(config.record_diag_images_fifo ? "%s/%d/diagpipe-r.jpg" : "%s/%d/diag-r.jpg", storage->Path(), id);
-    diag_path_d = stringtf(config.record_diag_images_fifo ? "%s/%d/diagpipe-d.jpg" : "%s/%d/diag-d.jpg", storage->Path(), id);
-    if ( config.record_diag_images_fifo ) {
-      FifoStream::fifo_create_if_missing(diag_path_r.c_str());
-      FifoStream::fifo_create_if_missing(diag_path_d.c_str());
-    }
-  }
-#endif
 
   return monitor;
-} // end Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose)
+}  // end Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose)
 
 bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose);
@@ -2041,7 +2011,7 @@ bool Monitor::Analyse() {
                 alarm_cause = cause+" "+alarm_cause;
                 strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
                 video_store_data->recording = event->StartTime();
-                Info("%s: %03d - Opening new event %" PRIu64 ", section start",
+                Info("%s: %03d - Opened new event %" PRIu64 ", section start",
                     name, analysis_image_count, event->Id());
                 /* To prevent cancelling out an existing alert\prealarm\alarm state */
                 if ( state == IDLE ) {

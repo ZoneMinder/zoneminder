@@ -71,7 +71,7 @@ zm_packetqueue::~zm_packetqueue() {
  */
 
 bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
-  Debug(4, "packetqueue queuepacket");
+  Debug(4, "packetqueue queuepacket %p %d", add_packet, add_packet->image_index);
   mutex.lock();
 
 	pktQueue.push_back(add_packet);
@@ -86,7 +86,6 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
       ++iterators_it
       ) {
     packetqueue_iterator *iterator_it = *iterators_it;
-    // Have to check each iterator and make sure it doesn't point to the packet we are about to delete
     if ( *iterator_it == pktQueue.end() ) {
       Debug(4, "pointing it %p to back", iterator_it);
       --(*iterator_it);
@@ -138,13 +137,14 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
         packetqueue_iterator *iterator_it = *iterators_it;
         // Have to check each iterator and make sure it doesn't point to the packet we are about to delete
         if ( *(*iterator_it) == zm_packet ) {
-          Debug(4, "bumping it. Threads not keeping up");
+          Debug(4, "Found IT at beginning of queue. Threads not keeping up");
           video_stream_packets = max_video_packet_count;
         }
       }  // end foreach iterator
         
     } while ( *it != add_packet );
-    Debug(1, "Resulting video_stream_packets count %d, %d > %d, pointing at latet packet %d", video_stream_packets, 
+    Debug(1, "Resulting video_stream_packets count %d, %d > %d, pointing at latest packet? %d",
+        video_stream_packets, 
         packet_counts[video_stream_id] - video_stream_packets, max_video_packet_count,
         ( *it == add_packet )
         );
@@ -424,7 +424,8 @@ int zm_packetqueue::packet_count(int stream_id) {
 // Returns a packet. Packet will be locked
 ZMPacket *zm_packetqueue::get_packet(packetqueue_iterator *it) {
 
-  Debug(4, "Locking in get_packet");
+  Debug(4, "Locking in get_packet using it %p queue end? %d, packet %p",
+      *it, (*it == pktQueue.end()), *(*it));
   std::unique_lock<std::mutex> lck(mutex);
   Debug(4, "Have Lock in get_packet");
 
@@ -442,7 +443,7 @@ ZMPacket *zm_packetqueue::get_packet(packetqueue_iterator *it) {
     Error("Null p?!");
     return nullptr;
   }
-  Debug(3, "get_packet image_index: %d, about to lock packet", p->image_index);
+  Debug(3, "get_packet %p image_index: %d, about to lock packet", p, p->image_index);
   while ( !(zm_terminate or deleting) and !p->trylock() ) {
     Debug(3, "waiting.  Queue size %d it == end? %d", pktQueue.size(), ( *it == pktQueue.end() ) );
     condition.wait(lck);
@@ -452,13 +453,13 @@ ZMPacket *zm_packetqueue::get_packet(packetqueue_iterator *it) {
 } // end ZMPacket *zm_packetqueue::get_packet(it)
 
 bool zm_packetqueue::increment_it(packetqueue_iterator *it) {
-  Debug(2, "Incrementing %p, queue size %d, end? ", it, pktQueue.size(), (*it == pktQueue.end()));
-  if ( *it == pktQueue.end() ) {
+  Debug(2, "Incrementing %p, queue size %d, end? %d", it, pktQueue.size(), ((*it) == pktQueue.end()));
+  if ( (*it) == pktQueue.end() ) {
     return false;
   }
   ++(*it);
   if ( *it != pktQueue.end() ) {
-    Debug(2, "Incrementing %p, still not at end, so returning true", it);
+    Debug(2, "Incrementing %p, %p still not at end %p, so returning true", it, *it, pktQueue.end());
     return true;
   }
   return false;

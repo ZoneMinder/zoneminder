@@ -897,14 +897,13 @@ function initPage() {
   });
 
   // Manage the SETTINGS button
-  bindButton('settingsBtn', 'click', null, function onSettingsClick(evt) {
+  bindButton('#settingsBtn', 'click', null, function onSettingsClick(evt) {
     evt.preventDefault();
     $j('#settingsModal').modal('show');
   });
 
   // Only enable the settings button for local cameras
-  settingsBtn.prop('disabled', !canView.Control);
-  if ( monitorType != 'Local' ) settingsBtn.hide();
+  settingsBtn.prop('disabled', !(canView.Control && monitorType == 'Local'));
 
   // Init the bootstrap-table
   if ( monitorType != 'WebSite' ) table.bootstrapTable({icons: icons});

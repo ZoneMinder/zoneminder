@@ -27,20 +27,20 @@ class H26X_ZoneMinderDeviceSource : public ZoneMinderDeviceSource {
 		H26X_ZoneMinderDeviceSource(
         UsageEnvironment& env,
         Monitor *monitor,
-        int outputFd,
+        AVStream *stream,
         unsigned int queueSize,
-        bool useThread,
         bool repeatConfig,
         bool keepMarker)
 			:
-        ZoneMinderDeviceSource(env, monitor, outputFd, queueSize, useThread),
+        ZoneMinderDeviceSource(env, monitor, stream, queueSize),
         m_repeatConfig(repeatConfig),
         m_keepMarker(keepMarker),
-        m_frameType(0) {}
+        m_frameType(0) { }
 
 		virtual ~H26X_ZoneMinderDeviceSource() {}
 
 		virtual unsigned char* extractFrame(unsigned char* frame, size_t& size, size_t& outsize);
+    virtual unsigned char* findMarker(unsigned char *frame, size_t size, size_t &length);
 
 	protected:
 		std::string m_sps;
@@ -55,19 +55,21 @@ class H264_ZoneMinderDeviceSource : public H26X_ZoneMinderDeviceSource {
 		static H264_ZoneMinderDeviceSource* createNew(
 				UsageEnvironment& env,
 				Monitor *monitor,
-				int outputFd,
+				AVStream *stream,
 				unsigned int queueSize,
-				bool useThread,
 				bool repeatConfig,
 				bool keepMarker) {
-			return new H264_ZoneMinderDeviceSource(env, monitor, outputFd, queueSize, useThread, repeatConfig, keepMarker);
+			return new H264_ZoneMinderDeviceSource(env, monitor, stream, queueSize, repeatConfig, keepMarker);
 		}
 
 	protected:
 		H264_ZoneMinderDeviceSource(
         UsageEnvironment& env,
-        Monitor *monitor, int outputFd, unsigned int queueSize, bool useThread, bool repeatConfig, bool keepMarker)
-			: H26X_ZoneMinderDeviceSource(env, monitor, outputFd, queueSize, useThread, repeatConfig, keepMarker) {}
+        Monitor *monitor,
+        AVStream *stream,
+        unsigned int queueSize,
+        bool repeatConfig,
+        bool keepMarker);
 
 		// overide ZoneMinderDeviceSource
 		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned frameSize);
@@ -78,24 +80,21 @@ class H265_ZoneMinderDeviceSource : public H26X_ZoneMinderDeviceSource {
 		static H265_ZoneMinderDeviceSource* createNew(
         UsageEnvironment& env,
         Monitor *monitor,
-        int outputFd,
+        AVStream *stream,
         unsigned int queueSize,
-        bool useThread,
         bool repeatConfig,
         bool keepMarker) {
-			return new H265_ZoneMinderDeviceSource(env, monitor, outputFd, queueSize, useThread, repeatConfig, keepMarker);
+			return new H265_ZoneMinderDeviceSource(env, monitor, stream, queueSize, repeatConfig, keepMarker);
 		}
 
 	protected:
 		H265_ZoneMinderDeviceSource(
         UsageEnvironment& env,
         Monitor *monitor,
-        int outputFd,
+        AVStream *stream,
         unsigned int queueSize,
-        bool useThread,
         bool repeatConfig,
-        bool keepMarker)
-			: H26X_ZoneMinderDeviceSource(env, monitor, outputFd, queueSize, useThread, repeatConfig, keepMarker) {}
+        bool keepMarker);
 
 		// overide ZoneMinderDeviceSource
 		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned frameSize);

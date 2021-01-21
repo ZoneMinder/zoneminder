@@ -2,16 +2,19 @@
 #include "zm_logger.h"
 
 #include <sys/time.h>
-	// ---------------------------------
-	// Captured frame
-	// ---------------------------------
+// ---------------------------------
+// Captured frame
+// ---------------------------------
 const char H264marker[] = {0,0,0,1};
 const char H264shortmarker[] = {0,0,1};
 
 class NAL_Frame {
   public:
     NAL_Frame(unsigned char * buffer, size_t size, timeval timestamp) :
-      m_buffer(nullptr), m_size(size), m_timestamp(timestamp), m_ref_count(1) {
+      m_buffer(nullptr),
+      m_size(size),
+      m_timestamp(timestamp),
+      m_ref_count(1) {
         m_buffer = new unsigned char[m_size];
         memcpy(m_buffer, buffer, m_size);
       };

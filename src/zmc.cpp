@@ -308,9 +308,7 @@ int main(int argc, char *argv[]) {
         for ( int i = 0; i < n_monitors; i++ ) {
           rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
           Camera *camera = monitors[i]->getCamera();
-          rtsp_server_threads[i]->addStream(camera->get_VideoStream());
-          if ( camera->get_AudioStreamId() >= 0 )
-            rtsp_server_threads[i]->addStream(camera->get_AudioStream());
+          rtsp_server_threads[i]->addStream(camera->get_VideoStream(), camera->get_AudioStream());
           rtsp_server_threads[i]->start();
         }
       }

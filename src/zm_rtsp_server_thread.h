@@ -24,11 +24,12 @@ class RTSPServerThread : public Thread {
     UserAuthenticationDatabase* authDB;
 
     RTSPServer* rtspServer;
+    std::list<FramedSource *> sources;
 
   public:
     explicit RTSPServerThread(Monitor *);
     ~RTSPServerThread();
-    void addStream(AVStream *);
+    void addStream(AVStream *, AVStream *);
     int run();
     void stop();
     bool stopped() const;

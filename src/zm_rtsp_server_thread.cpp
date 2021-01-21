@@ -14,7 +14,7 @@ RTSPServerThread::RTSPServerThread(Monitor *p_monitor) :
   //unsigned short rtsp_over_http_port = 0;
   //const char *realm = "ZoneMinder";
   //unsigned int timeout = 65;
-  OutPacketBuffer::maxSize = 100000;
+  OutPacketBuffer::maxSize = 2000000;
 
   scheduler = BasicTaskScheduler::createNew();
   env = BasicUsageEnvironment::createNew(*scheduler);
@@ -26,7 +26,7 @@ RTSPServerThread::RTSPServerThread(Monitor *p_monitor) :
   rtspServer = RTSPServer::createNew(*env, rtspServerPortNum, authDB);
 
   if ( rtspServer == nullptr ) {
-    Error("Failed to create rtspServer at port %d", rtspServerPortNum);
+    Fatal("Failed to create rtspServer at port %d", rtspServerPortNum);
     return;
   }
   const char *prefix = rtspServer->rtspURLPrefix();
@@ -38,6 +38,11 @@ RTSPServerThread::~RTSPServerThread() {
   if ( rtspServer ) {
     Medium::close(rtspServer);
   } // end if rtsp_server
+  while ( sources.size() ) {
+    FramedSource *source = sources.front();
+    sources.pop_front();
+    Medium::close(source);
+  }
   env->reclaim();
   delete scheduler;
 }
@@ -59,13 +64,10 @@ bool RTSPServerThread::stopped() const {
   return terminate ? true : false;
 }  // end RTSPServerThread::stopped()
 
-void RTSPServerThread::addStream(AVStream *stream) {
+void RTSPServerThread::addStream(AVStream *stream, AVStream *audio_stream) {
   if ( !rtspServer )
     return;
 
-  // We don't know which format we can support at this time.
-  // Do we make it configurable, or wait until PrimeCapture to determine what is available
-  //Debug(1, "from %d %p->%p->%d", stream->index, stream, stream->codecpar, stream->codecpar->codec_id);
   AVCodecID codec_id = stream->codecpar->codec_id;
   std::string rtpFormat = getRtpFormat(codec_id, false);
   Debug(1, "RTSP: format %s", rtpFormat.c_str());
@@ -74,55 +76,58 @@ void RTSPServerThread::addStream(AVStream *stream) {
     return;
   } 
 
-  int queueSize = 10;
-  bool useThread = true;
+  int queueSize = 30;
   bool repeatConfig = true;
-
-  StreamReplicator* videoReplicator = nullptr;
-  //LOG(INFO) << "Create Source ... " << camera_name.c_str() << std::endl;
-  //bool muxTS = (muxer != NULL);
   bool muxTS = false;
+  ServerMediaSession *sms = nullptr;
 
-  FramedSource *source = nullptr;
-  if ( rtpFormat == "video/H264" ) {
-    source = H264_ZoneMinderDeviceSource::createNew(*env, monitor, stream->index, queueSize, useThread, repeatConfig, muxTS);
-#if 0
-    if ( muxTS ) {
-      muxer->addNewVideoSource(source, 5);
-      source = muxer;
+  if ( stream ) {
+    StreamReplicator* videoReplicator = nullptr;
+    FramedSource *source = nullptr;
+    if ( rtpFormat == "video/H264" ) {
+      source = H264_ZoneMinderDeviceSource::createNew(*env, monitor, stream, queueSize, repeatConfig, muxTS);
+    } else if ( rtpFormat == "video/H265" ) {
+      source = H265_ZoneMinderDeviceSource::createNew(*env, monitor, stream, queueSize, repeatConfig, muxTS);
     }
-#endif
-  } else if ( rtpFormat == "video/H265" ) {
-    source = H265_ZoneMinderDeviceSource::createNew(*env, monitor, stream->index, queueSize, useThread, repeatConfig, muxTS);
-#if 0
-    if ( muxTS ) {
-      muxer->addNewVideoSource(source, 6);
-      source = muxer;
+    if ( source == nullptr ) {
+      //LOG(ERROR) << "Unable to create source for device " << camera_name.c_str() << std::endl;
+      Error("Unable to create source");
+    } else {
+      videoReplicator = StreamReplicator::createNew(*env, source, false);
     }
-#endif
-  }
-  if ( source == nullptr ) {
-    //LOG(ERROR) << "Unable to create source for device " << camera_name.c_str() << std::endl;
-    Error("Unable to create source");
-  } else {
-    videoReplicator = StreamReplicator::createNew(*env, source, false);
-  }
+    sources.push_back(source);
 
-  // Create Unicast Session
-  //std::list<ServerMediaSubsession*> subSessions;
-  if ( videoReplicator ) {
-    ServerMediaSession *sms = ServerMediaSession::createNew(*env, "streamname");
-    sms->addSubsession(UnicastServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat));
-      rtspServer->addServerMediaSession(sms);
-    //subSessions.push_back(subSession);
-    //addSession(baseUrl, subSessions);
-    char *url = rtspServer->rtspURL(sms);
-    Debug(1, "url is %s", url);
-    *env << "ZoneMinder Media Server at " << url << "\n";
-    delete[] url;
-  } else {
-    ////LOG(ERROR) << "No videoReplicator" << std::endl;
+    // Create Unicast Session
+    //std::list<ServerMediaSubsession*> subSessions;
+    if ( videoReplicator ) {
+      if ( !sms )
+        sms = ServerMediaSession::createNew(*env, "streamname");
+      //sms->addSubsession(ServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat));
+      sms->addSubsession(UnicastServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat));
+    }
   }
+  if ( audio_stream ) {
+    StreamReplicator* replicator = nullptr;
+    FramedSource *source = nullptr;
+    rtpFormat = getRtpFormat(audio_stream->codecpar->codec_id, false);
+    if ( rtpFormat == "audio/AAC" ) {
+      //source = AAC_ZoneMinderDeviceSource::createNew(*env, monitor, stream->index, queueSize, repeatConfig, muxTS);
+    }
+    if ( source ) {
+      replicator = StreamReplicator::createNew(*env, source, false);
+      sources.push_back(source);
+    }
+    if ( replicator ) {
+      if ( !sms )
+        sms = ServerMediaSession::createNew(*env, "streamname");
+      sms->addSubsession(UnicastServerMediaSubsession::createNew(*env, replicator, rtpFormat));
+    }
+  }
+  rtspServer->addServerMediaSession(sms);
+  char *url = rtspServer->rtspURL(sms);
+  Debug(1, "url is %s", url);
+  *env << "ZoneMinder Media Server at " << url << "\n";
+  delete[] url;
 }  // end void addStream
 
 int RTSPServerThread::addSession(
@@ -167,6 +172,7 @@ const std::string RTSPServerThread::getRtpFormat(AVCodecID codec_id, bool muxTS)
       //case PIX_FMT_JPEG : rtpFormat = "video/JPEG"; break;
       //case AV_PIX_FMT_VP8  : rtpFormat = "video/VP8" ; break;
       //case AV_PIX_FMT_VP9  : rtpFormat = "video/VP9" ; break;
+      case AV_CODEC_ID_AAC : return "audio/AAC";
       default: break;
     }
   }

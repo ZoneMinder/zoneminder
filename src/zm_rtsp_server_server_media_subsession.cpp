@@ -48,13 +48,13 @@ RTPSink*  BaseServerMediaSubsession::createSink(
 	if ( format == "video/MP2T" ) {
 		videoSink = SimpleRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, 90000, "video", "MP2T", 1, True, False); 
 	} else if ( format == "video/H264" ) {
-		videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
+		videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
 	} else if ( format == "video/VP8" ) {
-		videoSink = VP8VideoRTPSink::createNew (env, rtpGroupsock,rtpPayloadTypeIfDynamic); 
+		videoSink = VP8VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
 	}
 #if LIVEMEDIA_LIBRARY_VERSION_INT > 1414454400
 	else if ( format == "video/VP9" ) {
-		videoSink = VP9VideoRTPSink::createNew (env, rtpGroupsock,rtpPayloadTypeIfDynamic); 
+		videoSink = VP9VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
 	} else if ( format == "video/H265" ) {
 		videoSink = H265VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
 #endif	
@@ -66,7 +66,7 @@ RTPSink*  BaseServerMediaSubsession::createSink(
 		videoSink = JPEGVideoRTPSink::createNew (env, rtpGroupsock); 
 	}
 #endif
-  Error("Sinkce %p %s", videoSink, format.c_str());
+  Error("Sink %p %s", videoSink, format.c_str());
 	return videoSink;
 }
 
@@ -86,9 +86,9 @@ char const* BaseServerMediaSubsession::getAuxLine(
 			os << "a=x-dimensions:" << width << "," <<  height  << "\r\n";				
 		}
 		auxLine = strdup(os.str().c_str());
-    Error( "auxLine: %s", auxLine);
+    Error("auxLine: %s", auxLine);
   } else {
-  Error( "No source auxLine: ");
+    Error("No source auxLine: ");
 	} 
 	return auxLine;
 }

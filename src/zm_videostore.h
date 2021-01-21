@@ -78,7 +78,7 @@ static struct CodecData codec_data[];
 	const char *format;
     
   // These are for in
-  uint64_t video_start_pts;
+  int64_t video_start_pts;
 
   int64_t video_last_pts;
   int64_t video_last_dts;

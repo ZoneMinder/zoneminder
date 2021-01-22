@@ -568,7 +568,12 @@ bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose );
 #if ZM_MEM_MAPPED
   snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
-  map_fd = open(mem_file, O_RDWR|O_CREAT, (mode_t)0660);
+  if ( purpose != CAPTURE ) {
+    map_fd = open(mem_file, O_RDWR);
+  } else {
+    map_fd = open(mem_file, O_RDWR|O_CREAT, (mode_t)0660);
+  }
+
   if ( map_fd < 0 ) {
     Error("Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno));
     return false;

@@ -153,12 +153,8 @@ input,textarea,select,button,.btn-primary {
     background-color: #f8f8f8;
     text-align: left;
     border-radius:4px;
+    margin: 1px 0;
 }
-/*
-input[type=text], input[type=password], input[type="url"], textarea, select {
-    padding: 1px;
-}
-*/
 
 input.noborder {
     border: 0;
@@ -568,7 +564,7 @@ input[type=submit],
     border-color: #3498db;
     text-transform: uppercase;
     font-weight: 200;
-    padding: 5px 10px;
+    padding: 7px 10px 5px 10px;
     cursor: pointer;
     text-decoration: none;
     display: inline-block;

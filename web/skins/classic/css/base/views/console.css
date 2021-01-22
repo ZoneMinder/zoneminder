@@ -74,7 +74,7 @@
 }
 
 .consoleTable .colMark {
-    width: 52px;
+    width: 32px;
     text-align: left;
 }
 
@@ -101,4 +101,16 @@
 }
 #FunctionFunction {
   margin-bottom: 2rem;
+}
+
+.MonitorNameFilter,
+.FunctionFilter,
+.StatusFilter,
+.SourceFilter,
+.MonitorFilter {
+  display: inline-block;
+}
+.MonitorNameFilter input,
+.SourceFilter input {
+  padding: 3px 5px 4px 5px;
 }

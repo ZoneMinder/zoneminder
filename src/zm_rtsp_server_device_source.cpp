@@ -3,7 +3,6 @@
 ** support, and with no warranty, express or implied, as to its usefulness for
 ** any purpose.
 **
-** v4l2DeviceSource.cpp
 **
 ** ZoneMinder Live555 source
 **
@@ -187,4 +186,11 @@ std::list< std::pair<unsigned char*,size_t> > ZoneMinderDeviceSource::splitFrame
 		frameList.push_back(std::pair<unsigned char*,size_t>(frame, frameSize));
 	}
 	return frameList;
+}
+
+// extract a frame
+unsigned char*  ZoneMinderDeviceSource::extractFrame(unsigned char* frame, size_t& size, size_t& outsize) {
+  outsize = size;
+  size = 0;
+  return frame;
 }

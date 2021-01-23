@@ -21,6 +21,17 @@ class HostController extends AppController {
     ));
   }
 
+  // an interface to individually control the various ZM daemons
+  // invocation: https://server/zm/api/host/daemonControl/<daemon>.pl/<command>.json
+  public function daemonControl($daemon_name, $command) {
+    $string = ZM_PATH_BIN."/zmdc.pl $command $daemon_name";
+    $result = exec($string);
+    $this->set(array(
+      'result' => $result,
+      '_serialize' => array('result')
+    ));
+  }
+
   function getLoad() {
     $load = sys_getloadavg();
 

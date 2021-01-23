@@ -51,6 +51,7 @@ set(ZM_BIN_SRC_FILES
  zm_rtsp.cpp
  zm_rtsp_auth.cpp
  zm_rtsp_server_thread.cpp
+ zm_rtsp_server_adts_source.cpp
  zm_rtsp_server_h264_device_source.cpp
  zm_rtsp_server_device_source.cpp
  zm_rtsp_server_server_media_subsession.cpp

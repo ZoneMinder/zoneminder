@@ -293,7 +293,8 @@ int main(int argc, char *argv[]) {
       last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
       capture_delays[i] = monitors[i]->GetCaptureDelay();
       alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
-      Debug(2, "capture delay(%u mSecs 1000/capture_fps) alarm delay(%u)", capture_delays[i], alarm_capture_delays[i] );
+      Debug(2, "capture delay(%u mSecs 1000/capture_fps) alarm delay(%u)",
+          capture_delays[i], alarm_capture_delays[i]);
 
       Monitor::Function function = monitors[0]->GetFunction();
       if ( function != Monitor::MONITOR ) {

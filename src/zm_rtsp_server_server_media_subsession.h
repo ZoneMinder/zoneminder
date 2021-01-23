@@ -16,23 +16,30 @@
 #include <iostream>
 #include <fstream>
 
-// live555
 #include <liveMedia.hh>
 
-// forward declaration
 class ZoneMinderDeviceSource;
 
-// ---------------------------------
-//   BaseServerMediaSubsession
-// ---------------------------------
 class BaseServerMediaSubsession {
 	public:
-		BaseServerMediaSubsession(StreamReplicator* replicator): m_replicator(replicator) {};
-	
-	public:
-		static FramedSource* createSource(UsageEnvironment& env, FramedSource * videoES, const std::string& format);
-		static RTPSink* createSink(UsageEnvironment& env, Groupsock * rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, const std::string& format);
-		char const* getAuxLine(ZoneMinderDeviceSource* source, unsigned char rtpPayloadType);
+    BaseServerMediaSubsession(StreamReplicator* replicator):
+      m_replicator(replicator) {};
+
+		FramedSource* createSource(
+        UsageEnvironment& env,
+        FramedSource * videoES,
+        const std::string& format);
+
+		RTPSink * createSink(
+        UsageEnvironment& env,
+        Groupsock * rtpGroupsock,
+        unsigned char rtpPayloadTypeIfDynamic,
+        const std::string& format,
+        FramedSource *source);
+
+		char const* getAuxLine(
+        ZoneMinderDeviceSource* source,
+        unsigned char rtpPayloadType);
 		
 	protected:
 		StreamReplicator* m_replicator;

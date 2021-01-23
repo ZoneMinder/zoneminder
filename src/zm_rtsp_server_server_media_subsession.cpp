@@ -8,66 +8,78 @@
 
 #include "zm_rtsp_server_server_media_subsession.h"
 #include "zm_rtsp_server_device_source.h"
+#include "zm_rtsp_server_adts_source.h"
+
 
 // ---------------------------------
 //   BaseServerMediaSubsession
 // ---------------------------------
 FramedSource* BaseServerMediaSubsession::createSource(
-    UsageEnvironment& env, FramedSource* videoES, const std::string& format)
+    UsageEnvironment& env, FramedSource* inputSource, const std::string& format)
 {
 	FramedSource* source = nullptr;
 	if ( format == "video/MP2T" ) {
-		source = MPEG2TransportStreamFramer::createNew(env, videoES); 
+		source = MPEG2TransportStreamFramer::createNew(env, inputSource);
 	} else if ( format == "video/H264" ) {
-		source = H264VideoStreamDiscreteFramer::createNew(env, videoES);
+		source = H264VideoStreamDiscreteFramer::createNew(env, inputSource);
 	}
 #if LIVEMEDIA_LIBRARY_VERSION_INT > 1414454400
 	else if ( format == "video/H265" ) {
-		source = H265VideoStreamDiscreteFramer::createNew(env, videoES);
+		source = H265VideoStreamDiscreteFramer::createNew(env, inputSource);
 	}
 #endif
 #if 0
 	else if (format == "video/JPEG") {
-		source = MJPEGVideoSource::createNew(env, videoES);
+		source = MJPEGVideoSource::createNew(env, inputSource);
 	}
 #endif
 	else {
-		source = videoES;
+		source = inputSource;
 	}
-  Error("Source %p %s", source, format.c_str());
 	return source;
 }
 
+/* source is generally a replica */
 RTPSink*  BaseServerMediaSubsession::createSink(
     UsageEnvironment& env,
     Groupsock* rtpGroupsock,
     unsigned char rtpPayloadTypeIfDynamic,
-    const std::string& format
+    const std::string& format,
+    FramedSource *source
     ) {
-	RTPSink* videoSink = nullptr;
+
+	RTPSink* sink = nullptr;
 	if ( format == "video/MP2T" ) {
-		videoSink = SimpleRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, 90000, "video", "MP2T", 1, True, False); 
+		sink = SimpleRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, 90000, "video", "MP2T", 1, true, false);
 	} else if ( format == "video/H264" ) {
-		videoSink = H264VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
+		sink = H264VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
 	} else if ( format == "video/VP8" ) {
-		videoSink = VP8VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
+		sink = VP8VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
 	}
 #if LIVEMEDIA_LIBRARY_VERSION_INT > 1414454400
 	else if ( format == "video/VP9" ) {
-		videoSink = VP9VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
+		sink = VP9VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
 	} else if ( format == "video/H265" ) {
-		videoSink = H265VideoRTPSink::createNew(env, rtpGroupsock,rtpPayloadTypeIfDynamic);
+		sink = H265VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
 #endif	
+  } else if ( format == "audio/AAC" ) {
+    ADTS_ZoneMinderDeviceSource *adts_source = (ADTS_ZoneMinderDeviceSource *)(m_replicator->inputSource());
+    sink = MPEG4GenericRTPSink::createNew(env, rtpGroupsock,
+        rtpPayloadTypeIfDynamic,
+        adts_source->samplingFrequency(),
+        "audio", "AAC-hbr",
+        adts_source->configStr(),
+        adts_source->numChannels()
+        );
   } else {
-    std::cerr << "unknown format\n";
+    Error("unknown format");
 	}
 #if 0
 	else if (format == "video/JPEG") {
-		videoSink = JPEGVideoRTPSink::createNew (env, rtpGroupsock); 
+		sink = JPEGVideoRTPSink::createNew (env, rtpGroupsock); 
 	}
 #endif
-  Error("Sink %p %s", videoSink, format.c_str());
-	return videoSink;
+	return sink;
 }
 
 char const* BaseServerMediaSubsession::getAuxLine(
@@ -77,18 +89,18 @@ char const* BaseServerMediaSubsession::getAuxLine(
 	const char* auxLine = nullptr;
 	if ( source ) {
 		std::ostringstream os; 
-		os << "a=fmtp:" << int(rtpPayloadType) << " ";				
-		os << source->getAuxLine();				
-		os << "\r\n";		
+		os << "a=fmtp:" << int(rtpPayloadType) << " ";
+		os << source->getAuxLine();
+		os << "\r\n";
 		int width = source->getWidth();
 		int height = source->getHeight();
 		if ( (width > 0) && (height>0) ) {
-			os << "a=x-dimensions:" << width << "," <<  height  << "\r\n";				
+			os << "a=x-dimensions:" << width << "," <<  height  << "\r\n";
 		}
 		auxLine = strdup(os.str().c_str());
-    Error("auxLine: %s", auxLine);
+    Debug(1, "auxLine: %s", auxLine);
   } else {
     Error("No source auxLine: ");
-	} 
+	}
 	return auxLine;
 }

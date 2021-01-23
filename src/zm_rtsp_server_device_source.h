@@ -29,8 +29,10 @@ class ZoneMinderDeviceSource: public FramedSource {
         UsageEnvironment& env,
         Monitor* monitor,
         AVStream * stream,
-        unsigned int queueSize,
-        bool useThread);
+        unsigned int queueSize
+        ) {
+			return new ZoneMinderDeviceSource(env, monitor, stream, queueSize);
+    };
 		std::string getAuxLine() { return m_auxLine; };	
 		int getWidth() { return m_monitor->Width(); };	
 		int getHeight() { return m_monitor->Height(); };	
@@ -56,7 +58,7 @@ class ZoneMinderDeviceSource: public FramedSource {
 		// overide FramedSource
 		virtual void doGetNextFrame();	
 		virtual void doStopGettingFrames();
-    virtual unsigned char *extractFrame(unsigned char *data, size_t& size, size_t& outsize) = 0;
+    virtual unsigned char *extractFrame(unsigned char *data, size_t& size, size_t& outsize);
 					
 	protected:
 		std::list<NAL_Frame*> m_captureQueue;

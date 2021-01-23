@@ -290,7 +290,7 @@ static void zm_log_fps(double d, const char *postfix) {
 }
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-void zm_dump_codecpar ( const AVCodecParameters *par ) {
+void zm_dump_codecpar(const AVCodecParameters *par) {
   Debug(1, "Dumping codecpar codec_type(%d %s) codec_id(%d %s) codec_tag(%" PRIu32 ") width(%d) height(%d) bit_rate(%" PRIu64 ") format(%d %s)",
       par->codec_type,
       av_get_media_type_string(par->codec_type),
@@ -385,6 +385,9 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
       zm_log_fps(av_q2d(st->avg_frame_rate), "fps");
     if (tbn)
       zm_log_fps(1 / av_q2d(st->time_base), "stream tb numerator");
+  } else if ( codec->codec_type == AVMEDIA_TYPE_AUDIO ) {
+    Debug(1, "profile %d channels %d sample_rate %d",
+        codec->profile, codec->channels, codec->sample_rate);
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)

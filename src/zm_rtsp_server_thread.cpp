@@ -1,6 +1,7 @@
 #include "zm_rtsp_server_thread.h"
 #include "zm_rtsp_server_device_source.h"
 #include "zm_rtsp_server_h264_device_source.h"
+#include "zm_rtsp_server_adts_source.h"
 #include "zm_rtsp_server_unicast_server_media_subsession.h"
 #include <StreamReplicator.hh>
 
@@ -58,6 +59,9 @@ int RTSPServerThread::run() {
 void RTSPServerThread::stop() {
   Debug(1, "RTSPServerThread::stop()");
   terminate = 1;
+  for ( std::list<FramedSource *>::iterator it = sources.begin(); it != sources.end(); ++it ) {
+    (*it)->stopGettingFrames();
+  }
 }  // end RTSPServerThread::stop()
 
 bool RTSPServerThread::stopped() const {
@@ -90,7 +94,6 @@ void RTSPServerThread::addStream(AVStream *stream, AVStream *audio_stream) {
       source = H265_ZoneMinderDeviceSource::createNew(*env, monitor, stream, queueSize, repeatConfig, muxTS);
     }
     if ( source == nullptr ) {
-      //LOG(ERROR) << "Unable to create source for device " << camera_name.c_str() << std::endl;
       Error("Unable to create source");
     } else {
       videoReplicator = StreamReplicator::createNew(*env, source, false);
@@ -98,11 +101,9 @@ void RTSPServerThread::addStream(AVStream *stream, AVStream *audio_stream) {
     sources.push_back(source);
 
     // Create Unicast Session
-    //std::list<ServerMediaSubsession*> subSessions;
     if ( videoReplicator ) {
       if ( !sms )
         sms = ServerMediaSession::createNew(*env, "streamname");
-      //sms->addSubsession(ServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat));
       sms->addSubsession(UnicastServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat));
     }
   }
@@ -111,10 +112,11 @@ void RTSPServerThread::addStream(AVStream *stream, AVStream *audio_stream) {
     FramedSource *source = nullptr;
     rtpFormat = getRtpFormat(audio_stream->codecpar->codec_id, false);
     if ( rtpFormat == "audio/AAC" ) {
-      //source = AAC_ZoneMinderDeviceSource::createNew(*env, monitor, stream->index, queueSize, repeatConfig, muxTS);
+      source = ADTS_ZoneMinderDeviceSource::createNew(*env, monitor, audio_stream, queueSize);
+      Debug(1, "ADTS source %p", source);
     }
     if ( source ) {
-      replicator = StreamReplicator::createNew(*env, source, false);
+      replicator = StreamReplicator::createNew(*env, source, false /* deleteWhenLastReplicaDies */);
       sources.push_back(source);
     }
     if ( replicator ) {
@@ -122,41 +124,14 @@ void RTSPServerThread::addStream(AVStream *stream, AVStream *audio_stream) {
         sms = ServerMediaSession::createNew(*env, "streamname");
       sms->addSubsession(UnicastServerMediaSubsession::createNew(*env, replicator, rtpFormat));
     }
+  } else {
+    Debug(1, "Not Adding auto stream");
   }
   rtspServer->addServerMediaSession(sms);
   char *url = rtspServer->rtspURL(sms);
   Debug(1, "url is %s", url);
-  *env << "ZoneMinder Media Server at " << url << "\n";
   delete[] url;
 }  // end void addStream
-
-int RTSPServerThread::addSession(
-    const std::string & sessionName,
-    const std::list<ServerMediaSubsession*> & subSession
-    ) {
-  int nbSubsession = 0;
-  if ( subSession.empty() == false ) {
-    UsageEnvironment& env(rtspServer->envir());
-    ServerMediaSession* sms = ServerMediaSession::createNew(env, sessionName.c_str());
-    if ( sms != nullptr ) {
-      std::list<ServerMediaSubsession*>::const_iterator subIt;
-      for ( subIt = subSession.begin(); subIt != subSession.end(); ++subIt ) {
-        sms->addSubsession(*subIt);
-        nbSubsession ++;
-      }
-
-      rtspServer->addServerMediaSession(sms);
-
-      char* url = rtspServer->rtspURL(sms);
-      if ( url != nullptr ) {
-        Info("Play this stream using the URL %s", url);
-        delete[] url;
-        url = nullptr;
-      }
-    }  // end if sms
-  }  // end if subSession
-  return nbSubsession;
-}
 
 // -----------------------------------------
 //    convert V4L2 pix format to RTP mime

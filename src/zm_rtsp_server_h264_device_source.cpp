@@ -28,7 +28,7 @@ H264_ZoneMinderDeviceSource::H264_ZoneMinderDeviceSource(
   : H26X_ZoneMinderDeviceSource(env, monitor, stream, queueSize, repeatConfig, keepMarker)
 {
   // extradata appears to simply be the SPS and PPS NAL's
-  this->splitFrames(m_stream->codec->extradata, m_stream->codec->extradata_size);
+  this->splitFrames(m_stream->codecpar->extradata, m_stream->codecpar->extradata_size);
 }
 
 // split packet into frames
@@ -69,7 +69,7 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderDeviceSource::spli
 
 			std::ostringstream os;
 			os << "profile-level-id=" << std::hex << std::setw(6) << std::setfill('0') << profile_level_id;
-			os << ";sprop-parameter-sets=" << sps_base64 <<"," << pps_base64;
+			os << ";sprop-parameter-sets=" << sps_base64 << "," << pps_base64;
 			m_auxLine.assign(os.str());
       Debug(1, "auxLine: %s", m_auxLine.c_str());
 
@@ -93,7 +93,7 @@ H265_ZoneMinderDeviceSource::H265_ZoneMinderDeviceSource(
   : H26X_ZoneMinderDeviceSource(env, monitor, stream, queueSize, repeatConfig, keepMarker)
 {
   // extradata appears to simply be the SPS and PPS NAL's
-  this->splitFrames(m_stream->codec->extradata, m_stream->codec->extradata_size);
+  this->splitFrames(m_stream->codecpar->extradata, m_stream->codecpar->extradata_size);
 }
 
 // split packet in frames

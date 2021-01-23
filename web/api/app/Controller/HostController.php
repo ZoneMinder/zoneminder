@@ -21,6 +21,30 @@ class HostController extends AppController {
     ));
   }
 
+  // an interface to individually control the various ZM daemons
+  // invocation: https://server/zm/api/host/daemonControl/<daemon>.pl/<command>.json
+  // note that this API is only for interaction with a specific
+  // daemon. zmdc also allows other functions like logrot/etc
+  public function daemonControl($daemon_name, $command) {
+    global $user;
+    if ($command == 'check' || $command == 'status') {
+      $permission = 'View';
+    } else {
+      $permission = 'Edit';
+    }
+    $allowed = (!$user) || ($user['System'] == $permission );
+    if ( !$allowed ) {
+      throw new UnauthorizedException(__("Insufficient privileges"));
+      return;
+    }
+    $string = ZM_PATH_BIN."/zmdc.pl $command $daemon_name";
+    $result = exec($string);
+    $this->set(array(
+      'result' => $result,
+      '_serialize' => array('result')
+    ));
+  }
+
   function getLoad() {
     $load = sys_getloadavg();
 

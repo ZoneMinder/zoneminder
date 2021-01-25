@@ -39,6 +39,7 @@ var SCALE_BASE = <?php echo SCALE_BASE ?>;
 var connKey = '<?php echo $connkey ?>';
 
 var eventData = {
+<?php if ( $Event->Id() ) { ?>
     Id: '<?php echo $Event->Id() ?>',
     Name: '<?php echo $Event->Name() ?>',
     MonitorId: '<?php echo $Event->MonitorId() ?>',
@@ -61,6 +62,7 @@ var eventData = {
     EmailedStr: '<?php echo $Event->Emailed ? translate('Yes') : translate('No') ?>',
     Archived: <?php echo $Event->Archived?'true':'false' ?>,
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>
+<?php } ?>
 };
 
 var eventDataStrings = {

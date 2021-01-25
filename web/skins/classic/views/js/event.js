@@ -473,7 +473,7 @@ function streamNext(action) {
     //
     location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
     return;
-    if ( vid && ( NextEventDefVideoPath.indexOf("view_video") > 0 ) ) { //on and staying with videojs
+    if ( vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 ) ) { //on and staying with videojs
       CurEventDefVideoPath = NextEventDefVideoPath;
       eventQuery(nextEventId);
     } else if ( zmsBroke || (vid && NextEventDefVideoPath.indexOf("view_video") < 0) || NextEventDefVideoPath.indexOf("view_video") > 0) {//reload zms, leaving vjs, moving to vjs
@@ -775,15 +775,15 @@ function handleClick( event ) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEdit.Events ) {
+    if ( !canEdit.Events ) {
       enoperm();
       return;
     }
 
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eventData.Id)
-        .done( function(data) {
-          streamNext( true );
+        .done(function(data) {
+          streamNext(true);
         })
         .fail(logAjaxFail);
   });
@@ -807,11 +807,11 @@ function getEvtStatsCookie() {
 
 function getStat() {
   table.empty().append('<tbody>');
-  $j.each( eventDataStrings, function( key ) {
+  $j.each(eventDataStrings, function(key) {
     var th = $j('<th>').addClass('text-right').text(eventDataStrings[key]);
     var tdString;
 
-    switch (eventData[key].length ? key : 'n/a') {
+    switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
       case 'Frames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
         break;
@@ -929,19 +929,19 @@ function initPage() {
   backBtn.prop('disabled', !document.referrer.length);
 
   // Manage the BACK button
-  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+  bindButton('#backBtn', 'click', null, function onBackClick(evt) {
     evt.preventDefault();
     window.history.back();
   });
 
   // Manage the REFRESH Button
-  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+  bindButton('#refreshBtn', 'click', null, function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
   });
 
   // Manage the Event RENAME button
-  document.getElementById("renameBtn").addEventListener("click", function onRenameClick(evt) {
+  bindButton('#renameBtn', 'click', null, function onRenameClick(evt) {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=modal&modal=eventrename&eid='+eventData.Id)
         .done(function(data) {
@@ -954,7 +954,7 @@ function initPage() {
   });
 
   // Manage the ARCHIVE button
-  document.getElementById("archiveBtn").addEventListener("click", function onArchiveClick(evt) {
+  bindButton('#archiveBtn', 'click', null, function onArchiveClick(evt) {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+eventData.Id)
         .done( function(data) {
@@ -965,7 +965,7 @@ function initPage() {
   });
 
   // Manage the UNARCHIVE button
-  document.getElementById("unarchiveBtn").addEventListener("click", function onUnarchiveClick(evt) {
+  bindButton('#unarchiveBtn', 'click', null, function onUnarchiveClick(evt) {
     if ( ! canEdit.Events ) {
       enoperm();
       return;
@@ -980,7 +980,7 @@ function initPage() {
   });
 
   // Manage the EDIT button
-  document.getElementById("editBtn").addEventListener("click", function onEditClick(evt) {
+  bindButton('#editBtn', 'click', null, function onEditClick(evt) {
     if ( ! canEdit.Events ) {
       enoperm();
       return;
@@ -1001,13 +1001,13 @@ function initPage() {
   });
 
   // Manage the EXPORT button
-  document.getElementById("exportBtn").addEventListener("click", function onExportClick(evt) {
+  bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
     window.location.assign('?view=export&eids[]='+eventData.Id);
   });
 
   // Manage the DOWNLOAD VIDEO button
-  document.getElementById("downloadBtn").addEventListener("click", function onDownloadClick(evt) {
+  bindButton('#downloadBtn', 'click', null, function onDownloadClick(evt) {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=modal&modal=download&eids[]='+eventData.Id)
         .done(function(data) {
@@ -1020,7 +1020,7 @@ function initPage() {
   });
 
   // Manage the Event STATISTICS Button
-  document.getElementById("statsBtn").addEventListener("click", function onStatsClick(evt) {
+  bindButton('#statsBtn', 'click', null, function onStatsClick(evt) {
     evt.preventDefault();
     var cookie = 'zmEventStats';
 

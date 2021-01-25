@@ -117,6 +117,11 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
       if ( zm_packet->packet.stream_index == video_stream_id ) {
         if ( zm_packet->keyframe ) {
           Debug(1, "Have a video keyframe so breaking out");
+          if ( !zm_packet->trylock() ) {
+            Debug(1, "Have locked packet %d", zm_packet->image_index);
+            video_stream_packets = max_video_packet_count;
+          }
+          zm_packet->unlock();
           break;
         }
         video_stream_packets ++;

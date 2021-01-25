@@ -131,10 +131,11 @@ xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());
     <?php echo getNavBarHTML() ?>
 <?php 
 if ( !$Event->Id() ) {
-  echo 'Event was not found.';
-} else {
-  if ( !file_exists($Event->Path()) )
-    echo '<div class="error">Event was not found at '.$Event->Path().'.  It is unlikely that playback will be possible.</div>';
+  echo '<div class="error">Event was not found.</div>';
+}
+
+if ( $Event->Id() and !file_exists($Event->Path()) )
+  echo '<div class="error">Event was not found at '.$Event->Path().'.  It is unlikely that playback will be possible.</div>';
 ?>
 
 <!-- BEGIN HEADER -->
@@ -142,22 +143,23 @@ if ( !$Event->Id() ) {
       <div id="toolbar" >
         <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+<?php if ( $Event->Id() ) { ?>
         <button id="renameBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Rename') ?>" disabled><i class="fa fa-font"></i></button>
         <button id="archiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Archive') ?>" disabled><i class="fa fa-archive"></i></button>
         <button id="unarchiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Unarchive') ?>" disabled><i class="fa fa-file-archive-o"></i></button>
         <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
         <button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>"><i class="fa fa-external-link"></i></button>
-        <div id="Frames"><a class="btn-primary" href="?view=frames&eid=<?php echo $Event->Id() ?>">Frames</i></a></div>
 <?php
   if ( $Event->DefaultVideo() ) {
 ?>
-        <div id="downloadEventFile"><a class="btn-primary" href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'),'&amp;')?>" download><i class="fa fa-download"></i></a></div>
+        <a class="btn btn-normal" href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'),'&amp;')?>" download><i class="fa fa-download"></i></a>
 <?php
   } 
 ?>
         <button id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
         <button id="framesBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Frames') ?>" ><i class="fa fa-picture-o"></i></button>
         <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>"><i class="fa fa-trash"></i></button>
+<?php } // end if Event->Id ?>
       </div>
       
       <h2><?php echo translate('Event').' '.$Event->Id() ?></h2>
@@ -177,7 +179,7 @@ if ( !$Event->Id() ) {
         </div>
       </div>
     </div>
-
+<?php if ( $Event->Id() ) { ?>
 <!-- BEGIN VIDEO CONTENT ROW -->
     <div id="content" class="d-flex flex-row justify-content-center">
       <div class="">

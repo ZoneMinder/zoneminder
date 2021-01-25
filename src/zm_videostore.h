@@ -22,16 +22,16 @@ class VideoStore;
 #include "zm_swscale.h"
 
 class VideoStore {
-private:
+  private:
 
-struct CodecData {
-  const AVCodecID codec_id;
-  const char *codec_codec;
-  const char *codec_name;
-  const enum AVPixelFormat pix_fmt;
-  
-};
-static struct CodecData codec_data[];
+    struct CodecData {
+      const AVCodecID codec_id;
+      const char *codec_codec;
+      const char *codec_name;
+      const enum AVPixelFormat pix_fmt;
+    };
+
+    static struct CodecData codec_data[];
 
   Monitor *monitor;
 	AVOutputFormat *out_format;
@@ -104,7 +104,9 @@ public:
       const char *filename_in,
       const char *format_in,
       AVStream *video_in_stream,
+      AVCodecContext  *video_in_ctx,
       AVStream *audio_in_stream,
+      AVCodecContext  *audio_in_ctx,
       Monitor * p_monitor);
 	~VideoStore();
   bool  open();

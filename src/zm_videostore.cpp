@@ -44,50 +44,51 @@ VideoStore::VideoStore(
     const char *filename_in,
     const char *format_in,
     AVStream *p_video_in_stream,
+    AVCodecContext *p_video_in_ctx,
     AVStream *p_audio_in_stream,
+    AVCodecContext *p_audio_in_ctx,
     Monitor *p_monitor
-    ) {
-
-  monitor = p_monitor;
-  video_in_stream = p_video_in_stream;
-  video_in_stream_index = -1;
-  audio_in_stream = p_audio_in_stream;
-  audio_in_stream_index = -1;
-  filename = filename_in;
-  format = format_in;
-
-  packets_written = 0;
-  frame_count = 0;
-  in_frame = nullptr;
-
-  video_in_frame = nullptr;
-  video_in_ctx = nullptr;
-  // In future, we should just pass in the codec context instead of the stream.  Don't really need the stream.
-  video_in_ctx = video_in_stream->codec;
-
-  video_out_ctx = nullptr;
-  video_out_codec = nullptr;
-  video_out_stream = nullptr;
-
-  converted_in_samples = nullptr;
-  audio_out_codec = nullptr;
-  audio_in_codec = nullptr;
-  audio_in_ctx = nullptr;
-  audio_out_stream = nullptr;
-  audio_out_ctx = nullptr;
-
-  out_frame = nullptr;
+    ) :
+  monitor(p_monitor),
+  out_format(nullptr),
+  oc(nullptr),
+  video_out_stream(nullptr),
+  audio_out_stream(nullptr),
+  video_in_stream_index(-1),
+  audio_in_stream_index(-1),
+  video_out_codec(nullptr),
+  video_in_ctx(p_video_in_ctx),
+  video_out_ctx(nullptr),
+  video_in_stream(p_video_in_stream),
+  audio_in_stream(p_audio_in_stream),
+  audio_in_codec(nullptr),
+  audio_in_ctx(p_audio_in_ctx),
+  audio_out_codec(nullptr),
+  audio_out_ctx(nullptr),
+  video_in_frame(nullptr),
+  in_frame(nullptr),
+  out_frame(nullptr),
+  packets_written(0),
+  frame_count(0),
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
-  resample_ctx = nullptr;
+  resample_ctx(nullptr),
 #if defined(HAVE_LIBSWRESAMPLE)
-  fifo = nullptr;
+  fifo(nullptr),
 #endif
 #endif
-  video_start_pts = 0;
-  audio_next_pts = 0;
-  out_format = nullptr;
-  oc = nullptr;
+  converted_in_samples(nullptr),
+  filename(filename_in),
+  format(format_in),
+  video_start_pts(0),
+  video_first_pts(0),
+  video_first_dts(0),
 
+  audio_first_pts(0),
+  audio_first_dts(0),
+  next_dts(nullptr),
+  audio_next_pts(0),
+  max_stream_index(-1)
+{
   FFMPEGInit();
   swscale.init();
 }  // VideoStore::VideoStore
@@ -125,14 +126,6 @@ bool VideoStore::open() {
 
   if ( video_in_stream ) {
     video_in_stream_index = video_in_stream->index;
-    video_in_ctx = avcodec_alloc_context3(nullptr);
-    ret = avcodec_parameters_to_context(video_in_ctx, video_in_stream->codecpar);
-    if ( ret < 0 ) {
-      Error("Couldn't copy params to context");
-      return false;
-    } else {
-      zm_dump_codecpar(video_in_stream->codecpar);
-    }
 
     if ( monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH ) {
       // Don't care what codec, just copy parameters
@@ -317,23 +310,6 @@ bool VideoStore::open() {
   video_out_stream->time_base = AV_TIME_BASE_Q;
   zm_dump_stream_format(oc, 0, 0, 1);
 
-  converted_in_samples = nullptr;
-  audio_out_codec = nullptr;
-  audio_in_codec = nullptr;
-  audio_in_ctx = nullptr;
-  audio_out_stream = nullptr;
-  in_frame = nullptr;
-  out_frame = nullptr;
-#if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
-  resample_ctx = nullptr;
-  fifo = nullptr;
-#endif
-  video_first_pts = 0;
-  video_first_dts = 0;
-
-  audio_first_pts = 0;
-  audio_first_dts = 0;
-
   if ( audio_in_stream ) {
     Debug(2, "Have audio_in_stream");
     audio_in_stream_index = audio_in_stream->index;
@@ -397,7 +373,7 @@ bool VideoStore::open() {
       }
 
       // We don't actually care what the time_base is..
-      audio_out_ctx->time_base = audio_in_stream->time_base;
+      audio_out_ctx->time_base = audio_in_ctx->time_base;
 
       // Copy params from instream to ctx
       ret = avcodec_parameters_to_context(
@@ -648,24 +624,20 @@ VideoStore::~VideoStore() {
   // What if we were only doing audio recording?
 
   if ( video_out_stream ) {
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    // We allocate and copy in newer ffmpeg, so need to free it
-    avcodec_free_context(&video_in_ctx);
-#endif
     video_in_ctx = nullptr;
 
     Debug(4, "Freeing video_out_ctx");
     avcodec_free_context(&video_out_ctx);
-    Debug(4, "Success freeing video_out_ctx");
+    Debug(1, "Success freeing video_out_ctx %p", video_out_codec);
     video_out_codec = nullptr;
   } // end if video_out_stream
 
   if ( audio_out_stream ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
-    avcodec_free_context(&audio_in_ctx);
+    //avcodec_free_context(&audio_in_ctx);
 #endif
-    Debug(4, "Success freeing audio_in_ctx");
+    //Debug(4, "Success freeing audio_in_ctx");
     audio_in_codec = nullptr;
 
     if ( audio_out_ctx ) {
@@ -1066,7 +1038,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 
     if ( !video_start_pts ) {
       video_start_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
-      Debug(2, "No video_last_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
+      Debug(2, "No video_start_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
           video_start_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
       zm_packet->out_frame->pts = 0;
     } else {
@@ -1104,9 +1076,8 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
             zm_packet->in_frame->pkt_duration,
             video_in_stream->time_base,
             video_out_stream->time_base);
-        Debug(1, "duration from ipkt: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
+        Debug(1, "duration from ipkt: pts(%" PRId64 ") = pkt_duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
             zm_packet->in_frame->pts,
-            video_last_pts,
             zm_packet->in_frame->pkt_duration,
             duration,
             video_in_stream->time_base.num,

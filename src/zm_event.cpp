@@ -232,7 +232,9 @@ Event::Event(
         video_file.c_str(),
         container.c_str(),
         camera->get_VideoStream(),
+        camera->get_VideoCodecContext(),
         ( monitor->RecordAudio() ? camera->get_AudioStream() : nullptr ),
+        ( monitor->RecordAudio() ? camera->get_AudioCodecContext() : nullptr ),
         monitor );
 
     if ( !videoStore->open() ) {

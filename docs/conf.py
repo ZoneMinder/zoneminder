@@ -16,7 +16,7 @@ import sys
 import os
 
 def setup(app):
-	app.add_stylesheet('zmstyle.css')
+	app.add_css_file('zmstyle.css')
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the

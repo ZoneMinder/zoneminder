@@ -161,7 +161,7 @@ bool VideoStore::open() {
         wanted_codec = AV_CODEC_ID_H264;
         // FIXME what is the optimal codec?  Probably low latency h264 which is effectively mjpeg
       } else {
-        Debug(2, "Codec is %d, wanted %d", video_in_ctx->codec_id, wanted_codec);
+        Debug(2, "Codec wanted %d", wanted_codec);
       }
       std::string wanted_encoder = monitor->Encoder();
 
@@ -192,7 +192,7 @@ bool VideoStore::open() {
 #endif
         }
 
-        video_out_ctx->time_base = video_in_ctx->time_base;
+        video_out_ctx->time_base = video_in_ctx ? video_in_ctx->time_base : AV_TIME_BASE_Q;
         if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
           Debug(2, "No timebase found in video in context, defaulting to Q which is microseconds");
           video_out_ctx->time_base = AV_TIME_BASE_Q;
@@ -307,7 +307,7 @@ bool VideoStore::open() {
       Warning("Unsupported Orientation(%d)", orientation);
     }
   } // end if orientation
-  video_out_stream->time_base = AV_TIME_BASE_Q;
+  video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
   zm_dump_stream_format(oc, 0, 0, 1);
 
   if ( audio_in_stream ) {
@@ -587,10 +587,7 @@ void VideoStore::flush_codecs() {
 
 VideoStore::~VideoStore() {
   if ( oc->pb ) {
-    if ( ( video_out_ctx->codec_id != video_in_ctx->codec_id ) || audio_out_codec ) {
-      Debug(2, "Different codecs between in and out. flushing codecs");
-      flush_codecs();
-    } // end if buffers
+    flush_codecs();
 
     // Flush Queues
     Debug(1, "Flushing interleaved queues");
@@ -1211,7 +1208,6 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     } // end while there is data in the resampler
 
   } else {
-    Debug(2, "copying");
     av_init_packet(&opkt);
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
@@ -1221,6 +1217,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     opkt.pts = ipkt->pts;
     opkt.dts = ipkt->dts;
     av_packet_rescale_ts(&opkt, audio_in_stream->time_base, audio_out_stream->time_base);
+    dumpPacket(audio_out_stream, &opkt, "after stream pts adjustment");
     write_packet(&opkt, audio_out_stream);
 
     zm_av_packet_unref(&opkt);
@@ -1281,7 +1278,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
     Error("Error writing packet: %s",
           av_make_error_string(ret).c_str());
   } else {
-    Debug(2, "Success writing packet");
+    Debug(4, "Success writing packet");
   }
   return ret;
 }  // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)

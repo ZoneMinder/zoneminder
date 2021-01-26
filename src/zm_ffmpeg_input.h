@@ -19,11 +19,15 @@ class FFmpeg_Input {
     FFmpeg_Input();
     ~FFmpeg_Input();
 
-    int Open( const char *filename );
-    int Open( const AVStream *, const AVStream * );
+    int Open(const char *filename );
+    int Open(
+        const AVStream *,
+        const AVCodecContext *,
+        const AVStream *,
+        const AVCodecContext *);
     int Close();
-    AVFrame *get_frame( int stream_id=-1 );
-    AVFrame *get_frame( int stream_id, double at );
+    AVFrame *get_frame(int stream_id=-1);
+    AVFrame *get_frame(int stream_id, double at);
     int get_video_stream_id() const {
       return video_stream_id;
     }

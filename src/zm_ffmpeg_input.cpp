@@ -23,9 +23,13 @@ FFmpeg_Input::~FFmpeg_Input() {
   }
 }  // end ~FFmpeg_Input()
 
+/* Takes streams provided from elsewhere.  They might not come from the same source
+ * but we will treat them as if they are.  */
 int FFmpeg_Input::Open(
     const AVStream * video_in_stream,
-    const AVStream * audio_in_stream
+    const AVCodecContext * video_in_ctx,
+    const AVStream * audio_in_stream,
+    const AVCodecContext * audio_in_ctx
     ) {
   video_stream_id = video_in_stream->index;
   int max_stream_index = video_in_stream->index;
@@ -34,7 +38,8 @@ int FFmpeg_Input::Open(
     max_stream_index = video_in_stream->index > audio_in_stream->index ? video_in_stream->index : audio_in_stream->index;
     audio_stream_id = audio_in_stream->index;
   }
-  streams = new stream[max_stream_index];
+  streams = new stream[max_stream_index+1];
+  return 1;
 }
 
 int FFmpeg_Input::Open(const char *filepath) {

@@ -308,7 +308,6 @@ bool VideoStore::open() {
     }
   } // end if orientation
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
-  zm_dump_stream_format(oc, 0, 0, 1);
 
   if ( audio_in_stream ) {
     Debug(2, "Have audio_in_stream");

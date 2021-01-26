@@ -4,9 +4,9 @@
 #include "zm_rtsp_server_adts_source.h"
 #include "zm_rtsp_server_unicast_server_media_subsession.h"
 #include <StreamReplicator.hh>
+#include "zm.h"
 
 #if HAVE_RTSP_SERVER
-#define ZM_RTSP_SERVER_BASE 10000
 
 RTSPServerThread::RTSPServerThread(Monitor *p_monitor) : 
   monitor(p_monitor),
@@ -23,7 +23,7 @@ RTSPServerThread::RTSPServerThread(Monitor *p_monitor) :
   //authDB = new UserAuthenticationDatabase("ZoneMinder");
   //authDB->addUserRecord("username1", "password1"); // replace these with real strings
 
-  portNumBits rtspServerPortNum = ZM_RTSP_SERVER_BASE + monitor->Id();
+  portNumBits rtspServerPortNum = config.min_rtsp_port + monitor->Id();
   rtspServer = RTSPServer::createNew(*env, rtspServerPortNum, authDB);
 
   if ( rtspServer == nullptr ) {

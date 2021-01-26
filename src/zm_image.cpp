@@ -209,14 +209,15 @@ Image::Image(const AVFrame *frame) {
   // FIXME
   colours = ZM_COLOUR_RGB32;
   subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-  imagePixFormat = (AVPixelFormat)frame->format;
+  imagePixFormat = AV_PIX_FMT_RGBA;
+    //(AVPixelFormat)frame->format;
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  size = av_image_get_buffer_size(AV_PIX_FMT_RGB0, width, height, 32);
+  size = av_image_get_buffer_size(AV_PIX_FMT_RGBA, width, height, 32);
   // av_image_get_linesize isn't aligned, so we have to do that.
-  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGB0, width, 0), 32);
+  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 32);
 #else
-  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGB0, width, 0), 1);
+  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 1);
   size = avpicture_get_size(AV_PIX_FMT_RGB0, width, height);
 #endif
 

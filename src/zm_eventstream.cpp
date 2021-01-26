@@ -29,12 +29,13 @@
 #include "zm_monitor.h"
 
 #include "zm_sendfile.h"
-    static std::string StreamMode_Strings[4] = {
-      "None",
-      "Single",
-      "All",
-      "Gapless"
-    };
+
+const std::string EventStream::StreamMode_Strings[4] = {
+  "None",
+  "Single",
+  "All",
+  "Gapless"
+};
 
 bool EventStream::loadInitialEventData(int monitor_id, time_t event_time) {
   static char sql[ZM_SQL_SML_BUFSIZ];
@@ -222,7 +223,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
           event_data->event_id);
   }
 
-  updateFrameRate((double)event_data->frame_count/event_data->duration);
+  updateFrameRate((event_data->frame_count and event_data->duration) ? (double)event_data->frame_count/event_data->duration : 1);
 
   snprintf(sql, sizeof(sql), "SELECT `FrameId`, unix_timestamp(`TimeStamp`), `Delta` "
       "FROM `Frames` WHERE `EventId` = %" PRIu64 " ORDER BY `FrameId` ASC", event_id);
@@ -349,8 +350,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
           curr_frame_id = 1;
         } else {
           Debug(1, "mode is %s, current frame is %ld, frame count is %ld, last frame id is %ld",
-              (mode == MODE_SINGLE ? "single" : "not single"),
-              curr_frame_id, event_data->frame_count );
+              StreamMode_Strings[(int)mode], curr_frame_id, event_data->frame_count );
         }
 
         replay_rate = ZM_RATE_BASE;
@@ -597,7 +597,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
   if ( (MsgCommand)msg->msg_data[0] == CMD_QUIT )
     exit(0);
 
-  updateFrameRate((double)event_data->frame_count/event_data->duration);
+  updateFrameRate((event_data->frame_count and event_data->duration) ? (double)event_data->frame_count/event_data->duration : 1);
 }  // void EventStream::processCommand(const CmdMsg *msg)
 
 bool EventStream::checkEventLoaded() {
@@ -672,7 +672,7 @@ bool EventStream::checkEventLoaded() {
     mysql_free_result(result);
     forceEventChange = false;
   } else {
-    Debug(2, "Pausing because mode is %d", mode);
+    Debug(2, "Pausing because mode is %s", StreamMode_Strings[mode].c_str());
     if ( curr_frame_id <= 0 )
       curr_frame_id = 1;
     else
@@ -845,7 +845,7 @@ void EventStream::runStream() {
     exit(0);
   }
 
-  updateFrameRate((double)event_data->frame_count/event_data->duration);
+  updateFrameRate((event_data->frame_count and event_data->duration) ? (double)event_data->frame_count/event_data->duration : 1);
   gettimeofday(&start, nullptr);
   uint64_t start_usec = start.tv_sec * 1000000 + start.tv_usec;
   uint64_t last_frame_offset = 0;
@@ -1006,10 +1006,10 @@ void EventStream::runStream() {
       delta_us = ((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*(replay_rate?abs(replay_rate*2):2)));
 
       Debug(2, "Sleeping %d because 1000000 * ZM_RATE_BASE(%d) / ( base_fps (%f), replay_rate(%d)",
-          (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))),
+          delta_us,
           ZM_RATE_BASE,
-          (base_fps?base_fps:1),
-          (replay_rate?abs(replay_rate*2):0)
+          (base_fps ? base_fps : 1),
+          (replay_rate ? abs(replay_rate*2) : 0)
           );
       if ( delta_us > 0 ) {
         if ( delta_us > MAX_SLEEP_USEC ) {

@@ -318,7 +318,7 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
           // What is the point of this for loop? Is it just me, or will it call getUpdatedValue once or twice? Could it not be better written as
           // if ( ! mFrameProcessed.getUpdatedValue( 1 ) && mFrameProcessed.getUpdatedValue( 1 ) ) return false;
 
-          for ( int count = 0; !mFrameProcessed.getUpdatedValue( 1 ); count++ )
+          for ( int count = 0; !mFrameProcessed.getUpdatedValue(1); count++ )
             if ( count > 1 )
               return false;
         }
@@ -352,9 +352,10 @@ bool RtpSource::getFrame(Buffer &buffer) {
   if ( !mFrameReady.getValueImmediate() ) {
     Debug(3, "Getting frame but not ready");
     // Allow for a couple of spurious returns
-    for ( int count = 0; !mFrameReady.getUpdatedValue(1); count++ )
+    for ( int count = 0; !mFrameReady.getUpdatedValue(1); count++ ) {
       if ( count > 1 )
         return false;
+    }
   }
   buffer = mFrame;
   mFrameReady.setValueImmediate(false);

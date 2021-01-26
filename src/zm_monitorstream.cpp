@@ -27,13 +27,12 @@
 #include <arpa/inet.h>
 #include <glob.h>
 
-const int MAX_SLEEP_USEC=1000000; // 1 sec
+const int MAX_SLEEP_USEC = 1000000; // 1 sec
 
 bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
-
   struct stat stat_buf;
   if ( stat(path, &stat_buf) < 0 ) {
-    if ( create_path && errno == ENOENT ) {
+    if ( create_path and (errno == ENOENT) ) {
       Debug(3, "Swap path '%s' missing, creating", path);
       if ( mkdir(path, 0755) ) {
         Error("Can't mkdir %s: %s", path, strerror(errno));
@@ -73,7 +72,7 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
     return false;
   }
   return true;
-} // end bool MonitorStream::checkSwapPath( const char *path, bool create_path )
+} // end bool MonitorStream::checkSwapPath(const char *path, bool create_path)
 
 void MonitorStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
@@ -196,7 +195,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       }
       break;
     case CMD_ZOOMOUT :
-      Debug( 1, "Got ZOOM OUT command" );
+      Debug(1, "Got ZOOM OUT command");
       switch ( zoom ) {
         case 500:
           zoom = 400;
@@ -240,6 +239,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     int id;
     int state;
     double fps;
+    double capture_fps;
+    double analysis_fps;
     int buffer_level;
     int rate;
     double delay;
@@ -253,6 +254,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.id = monitor->Id();
   if ( ! monitor->ShmValid() ) {
     status_data.fps = 0.0;
+    status_data.capture_fps = 0.0;
+    status_data.analysis_fps = 0.0;
     status_data.state = Monitor::UNKNOWN;
     //status_data.enabled = monitor->shared_data->active;
     status_data.enabled = false;
@@ -260,6 +263,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     status_data.buffer_level = 0;
   } else {
     status_data.fps = monitor->GetFPS();
+    status_data.capture_fps = monitor->get_capture_fps();
+    status_data.analysis_fps = monitor->get_analysis_fps();
     status_data.state = monitor->shared_data->state;
     //status_data.enabled = monitor->shared_data->active;
     status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
@@ -274,16 +279,19 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.rate = replay_rate;
   status_data.delay = TV_2_FLOAT(now) - TV_2_FLOAT(last_frame_timestamp);
   status_data.zoom = zoom;
-  Debug(2, "Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
-    status_data.buffer_level,
-    status_data.delayed,
-    status_data.paused,
-    status_data.rate,
-    status_data.delay,
-    status_data.zoom,
-    status_data.enabled,
-    status_data.forced
-  );
+  Debug(2, "fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
+      status_data.fps,
+      status_data.capture_fps,
+      status_data.analysis_fps,
+      status_data.buffer_level,
+      status_data.delayed,
+      status_data.paused,
+      status_data.rate,
+      status_data.delay,
+      status_data.zoom,
+      status_data.enabled,
+      status_data.forced
+      );
 
   DataMsg status_msg;
   status_msg.msg_type = MSG_DATA_WATCH;
@@ -299,7 +307,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Number of bytes sent to (%s): (%d)", rem_addr.sun_path, nbytes);
 
   // quit after sending a status, if this was a quit request
-  if ( (MsgCommand)msg->msg_data[0]==CMD_QUIT ) {
+  if ( (MsgCommand)msg->msg_data[0] == CMD_QUIT ) {
     zm_terminate = true;
     Debug(2, "Quitting");
     return;
@@ -307,19 +315,20 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
 
   //Debug(2,"Updating framerate");
   //updateFrameRate(monitor->GetFPS());
-} // end void MonitorStream::processCommand(const CmdMsg *msg)
+}  // end void MonitorStream::processCommand(const CmdMsg *msg)
 
 bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
   bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
-  if ( type != STREAM_JPEG )
-    send_raw = false;
-  if ( !config.timestamp_on_capture && timestamp )
+  if (
+      ( type != STREAM_JPEG )
+      ||
+      ( (!config.timestamp_on_capture) && timestamp )
+     )
     send_raw = false;
 
   if ( !send_raw ) {
     Image temp_image(filepath);
-
     return sendFrame(&temp_image, timestamp);
   } else {
     int img_buffer_size = 0;
@@ -679,20 +688,25 @@ void MonitorStream::runStream() {
 
     if ( last_read_index != monitor->shared_data->last_write_index ) {
       // have a new image to send
-      int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;  // % shouldn't be neccessary
+      int index = monitor->shared_data->last_write_index % monitor->image_buffer_count; // % shouldn't be neccessary
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
         if ( !paused && !delayed ) {
           last_read_index = monitor->shared_data->last_write_index;
           Debug(2, "Sending frame index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
               index, frame_mod, frame_count, paused, delayed);
           // Send the next frame
-          Monitor::Snapshot *snap = &monitor->image_buffer[index];
+          //
+          ZMPacket *snap = &monitor->image_buffer[index];
 
           if ( !sendFrame(snap->image, snap->timestamp) ) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
             break;
           }
+          // Perhaps we should use NOW instead. 
+          last_frame_timestamp = *(snap->timestamp);
+          //frame_sent = true;
+          //
           if ( frame_count == 0 ) {
             // Chrome will not display the first frame until it receives another.
             // Firefox is fine.  So just send the first frame twice.
@@ -702,16 +716,6 @@ void MonitorStream::runStream() {
               break;
             }
           }
-          // Perhaps we should use NOW instead.
-          last_frame_timestamp = *snap->timestamp;
-          /*
-          memcpy(
-              &last_frame_timestamp,
-              snap->timestamp,
-              sizeof(last_frame_timestamp)
-              );
-              */
-          // frame_sent = true;
 
           temp_read_index = temp_write_index;
         } else {
@@ -738,14 +742,14 @@ void MonitorStream::runStream() {
               } else {
                 Debug(2, "Would have sent keepalive frame, but had no paused_image");
               }
-            } // end if actual_delta_time > 5
-          } // end if change in zoom
-        } // end if paused or not
-      } // end if should send frame
+            }  // end if actual_delta_time > 5
+          }  // end if change in zoom
+        }  // end if paused or not
+      }  // end if should send frame
 
       if ( buffered_playback && !paused ) {
         if ( monitor->shared_data->valid ) {
-          if ( monitor->image_buffer[index].timestamp->tv_sec ) {
+          if ( monitor->shared_timestamps[index].tv_sec ) {
             int temp_index = temp_write_index%temp_image_buffer_count;
             Debug(2, "Storing frame %d", temp_index);
             if ( !temp_image_buffer[temp_index].valid ) {
@@ -757,8 +761,11 @@ void MonitorStream::runStream() {
                   temp_index);
               temp_image_buffer[temp_index].valid = true;
             }
-            memcpy(&(temp_image_buffer[temp_index].timestamp), monitor->image_buffer[index].timestamp, sizeof(temp_image_buffer[0].timestamp));
-            monitor->image_buffer[index].image->WriteJpeg(temp_image_buffer[temp_index].file_name, config.jpeg_file_quality);
+            temp_image_buffer[temp_index].timestamp = monitor->shared_timestamps[index];
+            monitor->image_buffer[index].image->WriteJpeg(
+                temp_image_buffer[temp_index].file_name,
+                config.jpeg_file_quality
+                );
             temp_write_index = MOD_ADD(temp_write_index, 1, temp_image_buffer_count);
             if ( temp_write_index == temp_read_index ) {
               // Go back to live viewing
@@ -844,7 +851,7 @@ void MonitorStream::SingleImage(int scale) {
   int img_buffer_size = 0;
   static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
-  Monitor::Snapshot *snap = monitor->getSnapshot();
+  ZMPacket *snap = &(monitor->image_buffer[monitor->shared_data->last_write_index]);
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -862,11 +869,11 @@ void MonitorStream::SingleImage(int scale) {
       "Content-Type: image/jpeg\r\n\r\n",
       img_buffer_size);
   fwrite(img_buffer, img_buffer_size, 1, stdout);
-}
+}  // end void MonitorStream::SingleImage(int scale)
 
 void MonitorStream::SingleImageRaw(int scale) {
   Image scaled_image;
-  Monitor::Snapshot *snap = monitor->getSnapshot();
+  ZMPacket *snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -883,7 +890,7 @@ void MonitorStream::SingleImageRaw(int scale) {
       "Content-Type: image/x-rgb\r\n\r\n",
       snap_image->Size());
   fwrite(snap_image->Buffer(), snap_image->Size(), 1, stdout);
-}
+}  // end void MonitorStream::SingleImageRaw(int scale)
 
 #ifdef HAVE_ZLIB_H
 void MonitorStream::SingleImageZip(int scale) {
@@ -891,7 +898,7 @@ void MonitorStream::SingleImageZip(int scale) {
   static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
 
-  Monitor::Snapshot *snap = monitor->getSnapshot();
+  ZMPacket *snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -909,5 +916,5 @@ void MonitorStream::SingleImageZip(int scale) {
       "Content-Type: image/x-rgbz\r\n\r\n",
       img_buffer_size);
   fwrite(img_buffer, img_buffer_size, 1, stdout);
-}
+}  // end void MonitorStream::SingleImageZip(int scale)
 #endif // HAVE_ZLIB_H

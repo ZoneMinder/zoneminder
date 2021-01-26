@@ -162,7 +162,7 @@ int VncCamera::PrimeCapture() {
     mRfb = nullptr;
     return -1; 
   }
-  if ( (mRfb->width != width) or (mRfb->height != height) ) {
+  if ( ((unsigned int)mRfb->width != width) or ((unsigned int)mRfb->height != height) ) {
     Warning("Specified dimensions do not match screen size monitor: (%dx%d) != vnc: (%dx%d)",
         width, height, mRfb->width, mRfb->height);
   }
@@ -182,11 +182,11 @@ int VncCamera::PreCapture() {
   return res == TRUE ? 1 : -1;
 }
 
-int VncCamera::Capture(Image &image) {
+int VncCamera::Capture(ZMPacket &zm_packet) {
   if ( ! mVncData.buffer ) {
     return 0;
   }
-  uint8_t *directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+  uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
   int rc = scale.Convert(
       mVncData.buffer,
       mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4,
@@ -202,10 +202,6 @@ int VncCamera::Capture(Image &image) {
 }
 
 int VncCamera::PostCapture() {
-  return 0;
-}
-
-int VncCamera::CaptureAndRecord(Image &image, timeval recording, char* event_directory) {
   return 0;
 }
 

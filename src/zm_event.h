@@ -34,13 +34,15 @@
 #include <set>
 #include <map>
 #include <queue>
+#include <string>
 
 #include "zm.h"
 #include "zm_image.h"
 #include "zm_stream.h"
-#include "zm_video.h"
+#include "zm_packet.h"
 #include "zm_storage.h"
 
+class VideoStore;
 class Zone;
 class Monitor;
 class EventStream;
@@ -82,25 +84,22 @@ class Event {
     struct timeval  end_time;
     std::string     cause;
     StringSetMap    noteSetMap;
-    bool            videoEvent;
     int        frames;
     int        alarm_frames;
     bool alarm_frame_written;
     unsigned int  tot_score;
     unsigned int  max_score;
-		std::string path;
+    std::string path;
     std::string snapshot_file;
     std::string alarm_file;
+    VideoStore *videoStore;
 
-    VideoWriter* videowriter;
-    FILE* timecodes_fd;
     std::string video_name;
     std::string video_file;
-
-    std::string timecodes_name;
-    std::string timecodes_file;
     int        last_db_frame;
+    bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.
     Storage::Schemes  scheme;
+    int save_jpegs;
 
     void createNotes(std::string &notes);
 
@@ -112,8 +111,8 @@ class Event {
         Monitor *p_monitor,
         struct timeval p_start_time,
         const std::string &p_cause,
-        const StringSetMap &p_noteSetMap,
-        bool p_videoEvent=false);
+        const StringSetMap &p_noteSetMap
+        );
     ~Event();
 
     uint64_t Id() const { return id; }
@@ -124,6 +123,8 @@ class Event {
     const struct timeval &StartTime() const { return start_time; }
     const struct timeval &EndTime() const { return end_time; }
 
+    void AddPacket(ZMPacket *p);
+    bool WritePacket(ZMPacket &p);
     bool SendFrameImage(const Image *image, bool alarm_frame=false);
     bool WriteFrameImage(
         Image *image,
@@ -131,11 +132,6 @@ class Event {
         const char *event_file,
         bool alarm_frame=false
        ) const;
-    bool WriteFrameVideo(
-        const Image *image,
-        const struct timeval timestamp,
-        VideoWriter* videow
-        ) const;
 
     void updateNotes(const StringSetMap &stringSetMap);
 
@@ -176,6 +172,7 @@ class Event {
       return pre_alarm_count;
     }
     static void EmptyPreAlarmFrames() {
+#if 0
       while ( pre_alarm_count > 0 ) {
 				int i = pre_alarm_count - 1;
 				delete pre_alarm_data[i].image;
@@ -186,6 +183,7 @@ class Event {
 				}
 				pre_alarm_count--;
 			}
+#endif
       pre_alarm_count = 0;
     }
     static void AddPreAlarmFrame(
@@ -194,15 +192,18 @@ class Event {
         int score=0,
         Image *alarm_frame=nullptr
         ) {
+#if 0
       pre_alarm_data[pre_alarm_count].image = new Image(*image);
       pre_alarm_data[pre_alarm_count].timestamp = timestamp;
       pre_alarm_data[pre_alarm_count].score = score;
       if ( alarm_frame ) {
         pre_alarm_data[pre_alarm_count].alarm_frame = new Image(*alarm_frame);
       }
+#endif
       pre_alarm_count++;
     }
     void SavePreAlarmFrames() {
+#if 0
       for ( int i = 0; i < pre_alarm_count; i++ ) {
         AddFrame(
 						pre_alarm_data[i].image,
@@ -210,6 +211,7 @@ class Event {
 						pre_alarm_data[i].score,
 						pre_alarm_data[i].alarm_frame);
 			}
+#endif
       EmptyPreAlarmFrames();
     }
 };

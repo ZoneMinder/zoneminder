@@ -134,8 +134,6 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
     if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
     if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
   }
-  #$monitor['zmc'] = zmcStatus( $monitor );
-  #$monitor['zma'] = zmaStatus( $monitor );
   $zoneCount += $monitor['ZoneCount'];
 
   $counts = array();

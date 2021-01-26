@@ -216,9 +216,6 @@ if ( $command =~ /^(?:start|restart)$/ ) {
           } else {
             runCommand("zmdc.pl start zmc -m $monitor->{Id}");
           }
-          if ( $monitor->{Function} ne 'Monitor' ) {
-            runCommand("zmdc.pl start zma -m $monitor->{Id}");
-          }
           if ( $Config{ZM_OPT_CONTROL} ) {
             if ( $monitor->{Controllable} ) {
               runCommand("zmdc.pl start zmcontrol.pl --id $monitor->{Id}");

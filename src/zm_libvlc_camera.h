@@ -31,8 +31,7 @@
 #endif
 
 // Used by libvlc callbacks
-struct LibvlcPrivateData
-{
+struct LibvlcPrivateData {
   uint8_t* buffer;
   uint8_t* prevBuffer;
   time_t prevTime;
@@ -70,8 +69,7 @@ public:
 
   int PrimeCapture();
   int PreCapture();
-  int Capture( Image &image );
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
+  int Capture( ZMPacket &p );
   int PostCapture();
   int Close() { return 0; };
 };

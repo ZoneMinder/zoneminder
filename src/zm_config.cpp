@@ -28,6 +28,7 @@
 #include <glob.h>
 
 #include "zm_utils.h"
+#include "zm_config.h"
 
 // Note that Error and Debug calls won't actually go anywhere unless you 
 // set the relevant ENV vars because the logger gets it's setting from the 

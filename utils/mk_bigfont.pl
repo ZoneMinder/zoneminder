@@ -48,18 +48,18 @@ while (my $line = <F>) {
     $in_head-- if $line =~ /^$/ and $in_head;
     next while $in_head;
     unless ($line =~ /^\s+(0x..), \/\* (........)/) {
-        $line =~ s/static unsigned char fontdata/static unsigned int bigfontdata/;
+      #$line =~ s/static unsigned char fontdata/static unsigned int bigfontdata/;
         print $line;
         next;
     }
     my $code = $1;
     my $bincode = $2;
     $bincode = "$1$1$2$2$3$3$4$4$5$5$6$6$7$7$8$8" if $bincode =~ /(.)(.)(.)(.)(.)(.)(.)(.)$/;
-    $bincode =~ s/ /1/g;
-    my $intcode = unpack("N", pack("B32", substr("0" x 32 . $bincode, -32)));
-    my $hexcode = sprintf("%#x", $intcode);
-    $hexcode =~ s/^0$/0x0/;
-    $bincode =~ s/1/ /g;
+    #$bincode =~ s/ /1/g;
+    #my $intcode = unpack("N", pack("B32", substr("0" x 32 . $bincode, -32)));
+    #my $hexcode = sprintf("%#x", $intcode);
+    #$hexcode =~ s/^0$/0x0/;
+    #$bincode =~ s/1/ /g;
     print sprintf("\t%10s, /* %s */\n", $hexcode, $bincode);
     print sprintf("\t%10s, /* %s */\n", $hexcode, $bincode);
 }

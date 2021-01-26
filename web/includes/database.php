@@ -112,10 +112,10 @@ function dbLog($sql, $update=false) {
 function dbError($sql) {
   global $dbConn;
   $error = $dbConn->errorInfo();
-  if ( ! $error[0] )
+  if ( !$error[0] )
     return '';
 
-  $message = "SQL-ERR '".implode("\n",$dbConn->errorInfo())."', statement was '".$sql."'";
+  $message = "SQL-ERR '".implode("\n", $dbConn->errorInfo())."', statement was '".$sql."'";
   ZM\Error($message);
   return $message;
 }

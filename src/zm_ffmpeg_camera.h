@@ -25,7 +25,6 @@
 #include "zm_buffer.h"
 #include "zm_ffmpeg.h"
 #include "zm_videostore.h"
-#include "zm_packetqueue.h"
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 typedef struct DecodeContext {
@@ -41,6 +40,8 @@ class FfmpegCamera : public Camera {
     std::string         mPath;
     std::string         mMethod;
     std::string         mOptions;
+
+    std::string         encoder_options;
     std::string         hwaccel_name;
     std::string         hwaccel_device;
 
@@ -50,15 +51,12 @@ class FfmpegCamera : public Camera {
 
 #if HAVE_LIBAVFORMAT
     AVFormatContext     *mFormatContext;
-    int                 mVideoStreamId;
-    int                 mAudioStreamId;
-    AVCodecContext      *mVideoCodecContext;
-    AVCodecContext      *mAudioCodecContext;
     AVCodec             *mVideoCodec;
     AVCodec             *mAudioCodec;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
     _AVPIXELFORMAT      imagePixFormat;
+
     AVFrame             *input_frame;         // Use to point to mRawFrame or hwFrame;
 
     AVFrame             *hwFrame; // Will also be used to indicate if hwaccel is in use
@@ -76,10 +74,6 @@ class FfmpegCamera : public Camera {
     int Close();
     bool mCanCapture;
 #endif // HAVE_LIBAVFORMAT
-
-    VideoStore          *videoStore;
-    zm_packetqueue      *packetqueue;
-    bool                have_video_keyframe;
 
 #if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;
@@ -112,14 +106,22 @@ class FfmpegCamera : public Camera {
     const std::string &Options() const { return mOptions; } 
     const std::string &Method() const { return mMethod; }
 
-    void Initialise();
-    void Terminate();
-
     int PrimeCapture();
     int PreCapture();
-    int Capture( Image &image );
-    int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
+    int Capture(ZMPacket &p);
     int PostCapture();
+    AVStream *get_VideoStream() { 
+      if ( mVideoStreamId != -1 )
+        return mFormatContext->streams[mVideoStreamId];
+      return nullptr;
+    }
+    AVStream *get_AudioStream() {
+      if ( mAudioStreamId != -1 )
+        return mFormatContext->streams[mAudioStreamId];
+      return nullptr;
+    }
+    AVCodecContext      *get_VideoCodecContext() { return mVideoCodecContext; };
+    AVCodecContext      *get_AudioCodecContext() { return mAudioCodecContext; };
   private:
     static int FfmpegInterruptCallback(void*ctx);
     int transfer_to_image(Image &i, AVFrame *output_frame, AVFrame *input_frame);

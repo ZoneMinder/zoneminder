@@ -350,7 +350,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     AVCodecContext *codec_context = avcodec_alloc_context3(nullptr);
-    avcodec_parameters_to_context(codec_context, stream->codecpar);
+    //avcodec_parameters_to_context(codec_context, stream->codecpar);
     stream->codec = codec_context;
 #else
     AVCodecContext *codec_context = stream->codec;
@@ -376,9 +376,6 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 #endif
     else
       Warning("Unknown media_type %s", type.c_str());
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      stream->codecpar->codec_type = codec_context->codec_type;
-#endif
 
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
     std::string codec_name;
@@ -417,6 +414,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
       }
     } /// end if static or dynamic
 
+
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
     if ( codec_name.empty() )
 #else
@@ -425,7 +423,6 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
     {
       Warning( "Can't find payload details for %s payload type %d, name %s",
           mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
-      //return( 0 );
     }
     if ( mediaDesc->getWidth() )
       codec_context->width = mediaDesc->getWidth();
@@ -439,7 +436,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
     
       strcpy(pvalue, mediaDesc->getSprops().c_str());
     
-      while (*value) {
+      while ( *value ) {
         char base64packet[1024];
         uint8_t decoded_packet[1024];
         uint32_t packet_size;
@@ -454,9 +451,9 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
         if ( *value == ',' )
           value++;
 
-        packet_size= av_base64_decode(decoded_packet, (const char *)base64packet, (int)sizeof(decoded_packet));
+        packet_size = av_base64_decode(decoded_packet, (const char *)base64packet, (int)sizeof(decoded_packet));
         Hexdump(4, (char *)decoded_packet, packet_size);
-        if (packet_size) {
+        if ( packet_size ) {
           uint8_t *dest = 
           (uint8_t *)av_malloc(packet_size + sizeof(start_sequence) +
                        codec_context->extradata_size +
@@ -493,7 +490,10 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
         }
       }
     }
-  }
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    avcodec_parameters_from_context(stream->codecpar, codec_context);
+#endif
+  }  // end foreach mediaList
 
   return formatContext;
 }

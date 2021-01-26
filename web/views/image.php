@@ -178,9 +178,31 @@ if ( empty($_REQUEST['path']) ) {
           # If we store Frames as jpgs, then we don't store a snapshot
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
-          header('HTTP/1.0 404 Not Found');
-          ZM\Fatal('No alarm jpg found for event '.$_REQUEST['eid']);
-          return;
+          if ( $Event->DefaultVideo() ) {
+            $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path . ' 2>&1';
+            #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
+            #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
+            ZM\Debug("Running $command");
+            $output = array();
+            $retval = 0;
+            exec($command, $output, $retval);
+            ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
+            if ( ! file_exists($path) ) {
+              header('HTTP/1.0 404 Not Found');
+              ZM\Fatal('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
+
+                Command was: '.$command.'
+
+                Output was: '.implode(PHP_EOL,$output) );
+            }
+            # Generating an image file will use up more disk space, so update the Event record.
+            $Event->DiskSpace(null);
+            $Event->save();
+          } else {
+            header('HTTP/1.0 404 Not Found');
+            ZM\Fatal('No snapshot jpg found for event '.$_REQUEST['eid']);
+            return;
+          }
         } # end if stored jpgs
       } else {
         $Frame = new ZM\Frame();

@@ -1,14 +1,22 @@
 <?php
+error_reporting(0);
 
 $defaultMonitor = new ZM\Monitor();
 $defaultMonitor->set(array(
   'StorageId' =>  1,
   'ServerId'  =>  'auto',
-  'Function'  =>  'Record',
+  'Function'  =>  'Mocord',
   'Type'      =>  'Ffmpeg',
   'Enabled'   =>  '1',
   'Colour'    =>  '4', // 32bit
-  'PreEventCount' =>  0,
+  'ImageBufferCount'  =>  '20',
+  'WarmupCount' =>  '0',
+  'PreEventCount' =>  '0',
+  'StreamReplayBuffer'  =>  '0',
+  'SaveJPEGs' =>  '4',
+  'VideoWriter' =>  '1',
+  'MaxFPS'      =>  '20',
+  'AlarmMaxFPS' =>  '20',
 ) );
 
 function probe( &$url_bits ) {

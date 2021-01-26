@@ -66,33 +66,35 @@ int Mutex::trylock() {
 }
 void Mutex::lock() {
   if ( pthread_mutex_lock(&mMutex) < 0 )
-    throw ThreadException( stringtf( "Unable to lock pthread mutex: %s", strerror(errno) ) );
+    throw ThreadException(stringtf("Unable to lock pthread mutex: %s", strerror(errno)));
+  //Debug(3, "Lock");
 }
 
 void Mutex::lock( int secs ) {
-  struct timespec timeout = getTimeout( secs );
-  if ( pthread_mutex_timedlock( &mMutex, &timeout ) < 0 )
-    throw ThreadException( stringtf( "Unable to timedlock pthread mutex: %s", strerror(errno) ) );
+  struct timespec timeout = getTimeout(secs);
+  if ( pthread_mutex_timedlock(&mMutex, &timeout) < 0 )
+    throw ThreadException(stringtf("Unable to timedlock pthread mutex: %s", strerror(errno)));
 }
 
 void Mutex::lock( double secs ) {
-  struct timespec timeout = getTimeout( secs );
-  if ( pthread_mutex_timedlock( &mMutex, &timeout ) < 0 )
-    throw ThreadException( stringtf( "Unable to timedlock pthread mutex: %s", strerror(errno) ) );
+  struct timespec timeout = getTimeout(secs);
+  if ( pthread_mutex_timedlock(&mMutex, &timeout) < 0 )
+    throw ThreadException(stringtf("Unable to timedlock pthread mutex: %s", strerror(errno)));
 }
 
 void Mutex::unlock() {
-  if ( pthread_mutex_unlock( &mMutex ) < 0 )
-    throw ThreadException( stringtf( "Unable to unlock pthread mutex: %s", strerror(errno) ) );
+  if ( pthread_mutex_unlock(&mMutex) < 0 )
+    throw ThreadException(stringtf("Unable to unlock pthread mutex: %s", strerror(errno)));
+  //Debug(3, "unLock");
 }
 
 bool Mutex::locked() {
-  int state = pthread_mutex_trylock( &mMutex );
-  if ( state != 0 && state != EBUSY )
-    throw ThreadException( stringtf( "Unable to trylock pthread mutex: %s", strerror(errno) ) );
+  int state = pthread_mutex_trylock(&mMutex);
+  if ( (state != 0) && (state != EBUSY) )
+    throw ThreadException(stringtf("Unable to trylock pthread mutex: %s", strerror(errno)));
   if ( state != EBUSY )
     unlock();
-  return( state == EBUSY );
+  return (state == EBUSY);
 }
 
 RecursiveMutex::RecursiveMutex() {
@@ -105,8 +107,8 @@ RecursiveMutex::RecursiveMutex() {
 }
 
 Condition::Condition( Mutex &mutex ) : mMutex( mutex ) {
-  if ( pthread_cond_init( &mCondition, nullptr ) < 0 )
-    throw ThreadException( stringtf( "Unable to create pthread condition: %s", strerror(errno) ) );
+  if ( pthread_cond_init(&mCondition, nullptr) < 0 )
+    throw ThreadException(stringtf("Unable to create pthread condition: %s", strerror(errno)));
 }
 
 Condition::~Condition() {
@@ -236,8 +238,10 @@ Thread::Thread() :
 
 Thread::~Thread() {
   Debug( 1, "Destroying thread %d", mPid );
-  if ( mStarted )
+  if ( mStarted ) {
+    Warning("You should really join the thread before destroying it");
     join();
+  }
 }
 
 void *Thread::mThreadFunc( void *arg ) {
@@ -251,6 +255,7 @@ void *Thread::mThreadFunc( void *arg ) {
     thisPtr->mThreadCondition.signal();
     thisPtr->mThreadMutex.unlock();
     thisPtr->mRunning = true;
+    Debug(2,"Runnning");
     thisPtr->status = thisPtr->run();
     thisPtr->mRunning = false;
     Debug( 2, "Exiting thread, status %p", (void *)&(thisPtr->status) );
@@ -264,9 +269,9 @@ void *Thread::mThreadFunc( void *arg ) {
 }
 
 void Thread::start() {
-  Debug( 1, "Starting thread" );
+  Debug(4, "Starting thread" );
   if ( isThread() )
-    throw ThreadException( "Can't self start thread" );
+    throw ThreadException("Can't self start thread");
   mThreadMutex.lock();
   if ( !mStarted ) {
     pthread_attr_t threadAttrs;
@@ -282,11 +287,11 @@ void Thread::start() {
   }
   mThreadCondition.wait();
   mThreadMutex.unlock();
-  Debug( 1, "Started thread %d", mPid );
+  Debug(4, "Started thread %d", mPid);
 }
 
 void Thread::join() {
-  Debug( 1, "Joining thread %d", mPid );
+  Debug(1, "Joining thread %d", mPid);
   if ( isThread() )
     throw ThreadException( "Can't self join thread" );
   mThreadMutex.lock();

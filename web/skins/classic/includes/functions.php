@@ -295,50 +295,50 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 
   ?>
   <div class="fixed-top container-fluid p-0">
-  <nav class="navbar navbar-dark bg-dark px-1 flex-nowrap">
+    <nav class="navbar navbar-dark bg-dark px-1 flex-nowrap">
 
-    <div class="navbar-brand align-self-start px-0">
-      <?php echo getNavBrandHTML() ?>
-    </div>
+      <div class="navbar-brand align-self-start px-0">
+        <?php echo getNavBrandHTML() ?>
+      </div>
 
-    <nav class="navbar navbar-expand-md align-self-start px-0">
+      <nav class="navbar navbar-expand-md align-self-start px-0">
 <?php
 
   // *** Build the statistics shown on the navigation bar ***
   if ( (!ZM_OPT_USE_AUTH) or $user ) {
 ?>
-      <div id="reload" class="collapse navbar-collapse px-0">
+        <div id="reload" class="collapse navbar-collapse px-0">
 
-        <ul id="Version" class="pr-2 navbar-nav">
-          <?php echo getZMVersionHTML() ?>
-        </ul>
+          <ul id="Version" class="pr-2 navbar-nav">
+            <?php echo getZMVersionHTML() ?>
+          </ul>
 
-        <ul id="Bandwidth" class="px-2 navbar-nav">
-          <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
-        </ul>
+          <ul id="Bandwidth" class="px-2 navbar-nav">
+            <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
+          </ul>
 
-        <ul class="nav navbar-nav list-group px-0">
-          <?php
-          echo getSysLoadHTML();
-          echo getDbConHTML();
-          echo getStorageHTML();
-          echo getShmHTML();
-          echo getLogIconHTML();
-          ?>
-        </ul>
+          <ul class="nav navbar-nav list-group px-0">
+            <?php
+            echo getSysLoadHTML();
+            echo getDbConHTML();
+            echo getStorageHTML();
+            echo getShmHTML();
+            echo getLogIconHTML();
+            ?>
+          </ul>
 
-      </div>
+        </div>
 <?php 
   } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?> 
-    </nav>
+      </nav>
 
-    <ul class="list-group list-group-horizontal ml-auto">
-      <?php
-      echo getAccountCircleHTML($skin, $user);
-      echo getStatusBtnHTML($status);
-      ?>
-   </ul>
+      <ul class="list-group list-group-horizontal ml-auto">
+        <?php
+        echo getAccountCircleHTML($skin, $user);
+        echo getStatusBtnHTML($status);
+        ?>
+      </ul>
 
     <!-- the Navigation Bar Hamburger Button   -->
     <?php if ( (!ZM_OPT_USE_AUTH) or $user ) { ?>
@@ -348,30 +348,30 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
       </button>
     <?php } ?>
 
-  <div style="background-color:#485460" class="dropdown-menu dropdown-menu-right px-3" id="main-header-nav">
-    <?php
-    if ( $user and $user['Username'] ) {
-        echo '<ul class="navbar-nav">';
-          echo getConsoleHTML();
-          echo getOptionsHTML();
-          echo getLogHTML();
-          echo getDevicesHTML();
-          echo getGroupsHTML($view);
-          echo getFilterHTML($view);
-          echo getCycleHTML($view);
-          echo getMontageHTML($view);
-          echo getMontageReviewHTML($view);
-          echo getRprtEvntAuditHTML($view);
-        echo '</ul>';
-    }
-    ?>
-  </div>
+      <div style="background-color:#485460" class="dropdown-menu dropdown-menu-right px-3" id="main-header-nav">
+      <?php
+      if ( $user and $user['Username'] ) {
+          echo '<ul class="navbar-nav">';
+            echo getConsoleHTML();
+            echo getOptionsHTML();
+            echo getLogHTML();
+            echo getDevicesHTML();
+            echo getGroupsHTML($view);
+            echo getFilterHTML($view);
+            echo getCycleHTML($view);
+            echo getMontageHTML($view);
+            echo getMontageReviewHTML($view);
+            echo getRprtEvntAuditHTML($view);
+          echo '</ul>';
+      }
+      ?>
+      </div>
 
-  </nav><!-- End First Navbar -->
+    </nav><!-- End First Navbar -->
 
-  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
-    <?php echo getConsoleBannerHTML() ?>
-  </nav><!-- End Second Navbar -->
+    <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
+      <?php echo getConsoleBannerHTML() ?>
+    </nav><!-- End Second Navbar -->
   </div>
   
   <?php

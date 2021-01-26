@@ -84,6 +84,8 @@ if [ "$1" = "configure" ]; then
   else
     echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
   fi
+
+  echo "Done Updating; starting ZoneMinder."
   deb-systemd-invoke restart zoneminder.service
 
 fi

@@ -108,6 +108,7 @@ protected:
 		double _1_m;
 
 		static int CompareYX( const void *p1, const void *p2 ) {
+      // This is because these functions are passed to qsort
 			const Edge *e1 = reinterpret_cast<const Edge *>(p1), *e2 = reinterpret_cast<const Edge *>(p2);
 			if ( e1->min_y == e2->min_y )
 				return( int(e1->min_x - e2->min_x) );
@@ -161,6 +162,7 @@ protected:
 	unsigned int size;
 	unsigned int subpixelorder;
 	unsigned long allocation;
+  _AVPIXELFORMAT      imagePixFormat;
 	uint8_t *buffer;
 	int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
 	int holdbuffer; /* Hold the buffer instead of replacing it with new one */
@@ -171,8 +173,8 @@ public:
 	explicit Image(const char *filename);
 	Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
 	Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
-	explicit Image( const Image &p_image );
-  explicit Image( const AVFrame *frame );
+	explicit Image(const Image &p_image);
+  explicit Image(const AVFrame *frame);
 
 	~Image();
 	static void Initialise();
@@ -185,12 +187,31 @@ public:
 	inline unsigned int Colours() const { return colours; }
 	inline unsigned int SubpixelOrder() const { return subpixelorder; }
 	inline unsigned int Size() const { return size; }
+
+  inline AVPixelFormat AVPixFormat() {
+    if ( colours == ZM_COLOUR_RGB32 ) {
+      return AV_PIX_FMT_RGBA;
+    } else if ( colours == ZM_COLOUR_RGB24 ) {
+      if ( subpixelorder == ZM_SUBPIX_ORDER_BGR){
+        return AV_PIX_FMT_BGR24;
+      } else {
+        return AV_PIX_FMT_RGB24;
+      }
+    } else if ( colours == ZM_COLOUR_GRAY8 ) {
+      return AV_PIX_FMT_GRAY8;
+    } else {
+      Error("Unknown colours (%d)",colours);
+      return AV_PIX_FMT_RGBA;
+    }
+  }
 	
 	/* Internal buffer should not be modified from functions outside of this class */
 	inline const uint8_t* Buffer() const { return buffer; }
-	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return &buffer[(y*linesize)+x]; }
+	inline const uint8_t* Buffer(unsigned int x, unsigned int y=0) const { return &buffer[(y*linesize)+x]; }
 	/* Request writeable buffer */
 	uint8_t* WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder);
+  // Is only acceptable on a pre-allocated buffer
+	uint8_t* WriteBuffer() { return holdbuffer ? buffer : nullptr; };
 	
 	inline int IsBufferHeld() const { return holdbuffer; }
 	inline void HoldBuffer(int tohold) { holdbuffer = tohold; }
@@ -210,6 +231,7 @@ public:
       const uint8_t* new_buffer,
       const size_t buffer_size);
 	void Assign(const Image &image);
+  void Assign(const AVFrame *frame);
 	void AssignDirect(
       const unsigned int p_width,
       const unsigned int p_height,
@@ -218,6 +240,8 @@ public:
       uint8_t *new_buffer,
       const size_t buffer_size,
       const int p_buffertype);
+
+  int PopulateFrame(AVFrame *frame);
 
 	inline void CopyBuffer(const Image &image) {
 		Assign(image);
@@ -231,40 +255,39 @@ public:
 		return *this;
 	}
 
-	bool ReadRaw( const char *filename );
-	bool WriteRaw( const char *filename ) const;
+	bool ReadRaw(const char *filename);
+	bool WriteRaw(const char *filename) const;
 
-	bool ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
+	bool ReadJpeg(const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
 
-	bool WriteJpeg ( const char *filename) const;
-	bool WriteJpeg ( const char *filename, bool on_blocking_abort) const;	
-  bool WriteJpeg ( const char *filename, int quality_override ) const;
-  bool WriteJpeg ( const char *filename, struct timeval timestamp ) const;
-  bool WriteJpeg ( const char *filename, int quality_override, struct timeval timestamp ) const;
-  bool WriteJpeg ( const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort ) const;
+	bool WriteJpeg(const char *filename) const;
+	bool WriteJpeg(const char *filename, bool on_blocking_abort) const;	
+  bool WriteJpeg(const char *filename, int quality_override) const;
+  bool WriteJpeg(const char *filename, struct timeval timestamp) const;
+  bool WriteJpeg(const char *filename, int quality_override, struct timeval timestamp) const;
+  bool WriteJpeg(const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort) const;
   
-
-	bool DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
-	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;
+	bool DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
+	bool EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_override=0) const;
 
 #if HAVE_ZLIB_H
-	bool Unzip( const Bytef *inbuffer, unsigned long inbuffer_size );
-	bool Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compression_level=Z_BEST_SPEED ) const;
+	bool Unzip(const Bytef *inbuffer, unsigned long inbuffer_size);
+	bool Zip(Bytef *outbuffer, unsigned long *outbuffer_size, int compression_level=Z_BEST_SPEED) const;
 #endif // HAVE_ZLIB_H
 
-	bool Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsigned int hi_y );
-	bool Crop( const Box &limits );
+	bool Crop(unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsigned int hi_y);
+	bool Crop(const Box &limits);
 
-	void Overlay( const Image &image );
-	void Overlay( const Image &image, unsigned int x, unsigned int y );
-	void Blend( const Image &image, int transparency=12 );
+	void Overlay(const Image &image);
+	void Overlay(const Image &image, unsigned int x, unsigned int y);
+	void Blend(const Image &image, int transparency=12);
 	static Image *Merge( unsigned int n_images, Image *images[] );
 	static Image *Merge( unsigned int n_images, Image *images[], double weight );
 	static Image *Highlight( unsigned int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
 	//Image *Delta( const Image &image ) const;
 	void Delta( const Image &image, Image* targetimage) const;
 
-	const Coord centreCoord( const char *text, const int size ) const;
+	const Coord centreCoord(const char *text, const int size) const;
   void MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour=0x00222222 );
 	void Annotate( const char *p_text, const Coord &coord, const unsigned int size=1, const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
 	Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );

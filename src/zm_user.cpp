@@ -233,7 +233,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     }
   }
 
-  Debug(1, "Attempting to authenticate user from auth string '%s'", auth);
+  Debug(1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth, remote_addr);
   char sql[ZM_SQL_SML_BUFSIZ] = "";
   snprintf(sql, sizeof(sql),
       "SELECT `Id`, `Username`, `Password`, `Enabled`,"
@@ -257,13 +257,14 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     return nullptr;
   }
 
+  // getting the time is expensive, so only do it once.
   time_t now = time(nullptr);
   unsigned int hours = config.auth_hash_ttl;
-  if ( ! hours ) {
+  if ( !hours ) {
     Warning("No value set for ZM_AUTH_HASH_TTL. Defaulting to 2.");
     hours = 2;
   } else {
-    Debug(1, "AUTH_HASH_TTL is %d", hours);
+    Debug(1, "AUTH_HASH_TTL is %d, time is %d", hours, now);
   }
   char auth_key[512] = "";
   char auth_md5[32+1] = "";

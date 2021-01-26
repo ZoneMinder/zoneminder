@@ -1,21 +1,21 @@
 //
 // ZoneMinder Monitor Class Interfaces, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_MONITOR_H
 #define ZM_MONITOR_H
@@ -30,6 +30,11 @@
 #include "zm_rgb.h"
 #include "zm_zone.h"
 #include "zm_event.h"
+#include "zm_video.h"
+#include "zm_videostore.h"
+#include "zm_packetqueue.h"
+#include "zm_thread.h"
+
 class Monitor;
 #include "zm_group.h"
 #include "zm_camera.h"
@@ -75,10 +80,11 @@ public:
     FFMPEG,
     LIBVLC,
     CURL,
+    NVSOCKET,
     VNC,
   } CameraType;
 
-  typedef enum { 
+  typedef enum {
     ROTATE_0=1,
     ROTATE_90,
     ROTATE_180,
@@ -98,8 +104,8 @@ public:
 
   typedef enum {
     DISABLED,
-    X264ENCODE,
-    H264PASSTHROUGH,
+    ENCODE,
+    PASSTHROUGH,
   } VideoWriter;
 
 protected:
@@ -109,13 +115,15 @@ protected:
 
   typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
-  /* sizeof(SharedData) expected to be 340 bytes on 32bit and 64bit */
+  /* sizeof(SharedData) expected to be 344 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
-    uint32_t last_write_index;  /* +4    */ 
+    uint32_t last_write_index;  /* +4    */
     uint32_t last_read_index;   /* +8    */
     uint32_t state;             /* +12   */
-    uint64_t last_event;        /* +16   */
+    double      capture_fps;       // Current capturing fps
+    double      analysis_fps;      // Current analysis fps
+    uint64_t last_event_id;     /* +16   */
     uint32_t action;            /* +24   */
     int32_t brightness;         /* +28   */
     int32_t hue;                /* +32   */
@@ -175,25 +183,14 @@ protected:
     char trigger_showtext[256];
   } TriggerData;
 
-  /* sizeof(Snapshot) expected to be 16 bytes on 32bit and 32 bytes on 64bit */
-  struct Snapshot {
-    struct timeval  *timestamp;
-    Image  *image;
-    void* padding;
-  };
-
   //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
-#if 1
   //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
   typedef struct {
     uint32_t size;
     uint64_t current_event;
     char event_file[4096];
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
-    //uint32_t frameNumber;
   } VideoStoreData;
-
-#endif // HAVE_LIBAVFORMAT
 
   class MonitorLink {
   protected:
@@ -217,25 +214,17 @@ protected:
     volatile VideoStoreData *video_store_data;
 
     int        last_state;
-    uint64_t   last_event;
+    uint64_t   last_event_id;
 
     public:
       MonitorLink(unsigned int p_id, const char *p_name);
       ~MonitorLink();
 
-      inline unsigned int Id() const {
-        return id;
-      }
-      inline const char *Name() const {
-        return name;
-      }
+      inline unsigned int Id() const { return id; }
+      inline const char *Name() const { return name; }
 
-      inline bool isConnected() const {   
-        return connected && shared_data->valid;
-      }
-      inline time_t getLastConnectTime() const {
-        return last_connect_time;
-      }
+      inline bool isConnected() const { return connected && shared_data->valid; }
+      inline time_t getLastConnectTime() const { return last_connect_time; }
 
       inline uint32_t lastFrameScore() {
         return shared_data->last_frame_score;
@@ -259,81 +248,103 @@ protected:
   Function        function;           // What the monitor is doing
   bool            enabled;            // Whether the monitor is enabled or asleep
   bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
+
+  std::string protocol;
+  std::string method;
+  std::string options;
+  std::string host;
+  std::string port;
+  std::string user;
+  std::string pass;
+  std::string path;
+
+  char            device[64];
+  int             palette;
+  int             channel;
+  int             format;
+
+  unsigned int    camera_width;
+  unsigned int    camera_height;
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
   bool            v4l_multi_buffer;
   unsigned int    v4l_captures_per_frame;
   Orientation     orientation;        // Whether the image has to be rotated at all
   unsigned int    deinterlacing;
-  bool            videoRecording;
+  unsigned int    deinterlacing_value;
   std::string     decoder_hwaccel_name;
   std::string     decoder_hwaccel_device;
+  bool            videoRecording;
+  bool            rtsp_describe;
 
-  int savejpegs;
-  VideoWriter videowriter;
-  std::string encoderparams;
+  int             savejpegs;
+  int             colours;
+  VideoWriter     videowriter;
+  std::string     encoderparams;
+  int             output_codec;
+  std::string     encoder;
+  std::string     output_container;
   std::vector<EncoderParameter_t> encoderparamsvec;
-  bool          record_audio;      // Whether to store the audio that we receive
+  _AVPIXELFORMAT  imagePixFormat;
+  unsigned int    subpixelorder;
+  bool            record_audio;      // Whether to store the audio that we receive
 
-  int           brightness;        // The statically saved brightness of the camera
-  int           contrast;        // The statically saved contrast of the camera
-  int           hue;          // The statically saved hue of the camera
-  int           colour;          // The statically saved colour of the camera
-  char          event_prefix[64];    // The prefix applied to event names as they are created
-  char          label_format[64];    // The format of the timestamp on the images
-  Coord         label_coord;      // The coordinates of the timestamp on the images
-  int           label_size;         // Size of the timestamp on the images
-  int           image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
-  int           pre_event_buffer_count;   // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
+
+  int        brightness;        // The statically saved brightness of the camera
+  int        contrast;        // The statically saved contrast of the camera
+  int        hue;          // The statically saved hue of the camera
+  int        colour;          // The statically saved colour of the camera
+
+  char       event_prefix[64];    // The prefix applied to event names as they are created
+  char       label_format[64];    // The format of the timestamp on the images
+  Coord      label_coord;      // The coordinates of the timestamp on the images
+  int        label_size;         // Size of the timestamp on the images
+  int        image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
+  int        pre_event_buffer_count;   // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
   // value is pre_event_count + alarm_frame_count - 1
-  int           warmup_count;      // How many images to process before looking for events
-  int           pre_event_count;    // How many images to hold and prepend to an alarm event
-  int           post_event_count;    // How many unalarmed images must occur before the alarm state is reset
+  int        warmup_count;      // How many images to process before looking for events
+  int        pre_event_count;    // How many images to hold and prepend to an alarm event
+  int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
+  int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
+  int        section_length;      // How long events should last in continuous modes
+  int        min_section_length;   // Minimum event length when using event_close_mode == ALARM
+  bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
+  int        frame_skip;        // How many frames to skip in continuous modes
+  int        motion_frame_skip;      // How many frames to skip in motion detection
+  double     analysis_fps_limit;     // Target framerate for video analysis
   struct timeval video_buffer_duration; // How long a video segment to keep in buffer (set only if analysis fps != 0 )
-  int           stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
-  int           section_length;      // How long events should last in continuous modes
-  int           min_section_length;   // Minimum event length when using event_close_mode == ALARM
-  bool          adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
-  int           frame_skip;        // How many frames to skip in continuous modes
-  int           motion_frame_skip;      // How many frames to skip in motion detection
-  double        capture_max_fps;       // Target Capture FPS
-  double        analysis_fps;  // Target framerate for video analysis
   unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
-  int           capture_delay;      // How long we wait between capture frames
-  int           alarm_capture_delay;  // How long we wait between capture frames when in alarm state
-  int           alarm_frame_count;    // How many alarm frames are required before an event is triggered
-  int           fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
-  int           ref_blend_perc;      // Percentage of new image going into reference image.
-  int           alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
-  bool          track_motion;      // Whether this monitor tries to track detected motion 
-  int           signal_check_points;  // Number of points in the image to check for signal
-  Rgb           signal_check_colour;  // The colour that the camera will emit when no video signal detected
-  bool          embed_exif; // Whether to embed Exif data into each image frame or not
+  int        capture_delay;      // How long we wait between capture frames
+  int        alarm_capture_delay;  // How long we wait between capture frames when in alarm state
+  int        alarm_frame_count;    // How many alarm frames are required before an event is triggered
+  int        fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
+  int        ref_blend_perc;      // Percentage of new image going into reference image.
+  int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
+  bool       track_motion;      // Whether this monitor tries to track detected motion 
+  int         signal_check_points;  // Number of points in the image to check for signal
+  Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
+  bool        embed_exif; // Whether to embed Exif data into each image frame or not
 
-  bool last_signal;
-
-  double       fps;
-  unsigned int last_camera_bytes;
-  
-  Image        delta_image;
-  Image        ref_image;
-  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
-  Image        write_image;    // Used when creating snapshot images
-  std::string diag_path_ref;
-  std::string diag_path_delta;
+  int capture_max_fps;
 
   Purpose      purpose;        // What this monitor has been created to do
-  int          event_count;
-  int          image_count;
-  int          ready_count;
-  int          first_alarm_count;
-  int          last_alarm_count;
-  int          buffer_count;
-  int          prealarm_count;
-  State        state;
-  time_t       start_time;
-  time_t       last_fps_time;
-  time_t       auto_resume_time;
+  unsigned int  last_camera_bytes;
+
+  int        event_count;
+  int        image_count;
+  int        analysis_image_count;    // How many frames have been processed by analysis thread.
+  int        motion_frame_count;      // How many frames have had motion detection performed on them.
+  int        ready_count;
+  int        first_alarm_count;
+  int        last_alarm_count;
+  bool       last_signal;
+  int        last_section_mod;
+  int        buffer_count;
+  State      state;
+  time_t      start_time;
+  double      last_fps_time;
+  double      last_analysis_fps_time;
+  time_t      auto_resume_time;
   unsigned int      last_motion_score;
 
   EventCloseMode  event_close_mode;
@@ -350,13 +361,22 @@ protected:
   TriggerData     *trigger_data;
   VideoStoreData  *video_store_data;
 
-  Snapshot    *image_buffer;
-  Snapshot    next_buffer; /* Used by four field deinterlacing */
-  Snapshot    *pre_event_buffer;
+  struct timeval *shared_timestamps;
+  unsigned char *shared_images;
+  ZMPacket *image_buffer;
+  ZMPacket    next_buffer; /* Used by four field deinterlacing */
+
+  int video_stream_id; // will be filled in PrimeCapture
+  int audio_stream_id; // will be filled in PrimeCapture
 
   Camera      *camera;
   Event       *event;
   Storage     *storage;
+
+  VideoStore          *videoStore;
+  zm_packetqueue      *packetqueue;
+  packetqueue_iterator  *analysis_it;
+  Mutex mutex;
 
   int      n_zones;
   Zone      **zones;
@@ -372,59 +392,17 @@ protected:
 
   std::vector<Group *> groups;
 
+  Image        delta_image;
+  Image        ref_image;
+  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
+  Image        write_image;    // Used when creating snapshot images
+  std::string diag_path_ref;
+  std::string diag_path_delta;
+
 public:
+  explicit Monitor();
   explicit Monitor(unsigned int p_id);
 
-// OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
-//bool OurCheckAlarms( Zone *zone, const Image *pImage );
-  Monitor( 
-    unsigned int p_id,
-    const char *p_name,
-    unsigned int p_server_id,
-    unsigned int p_storage_id,
-    int p_function,
-    bool p_enabled,
-    bool p_decoding_enabled,
-    const char *p_linked_monitors,
-    Camera *p_camera,
-    int p_orientation,
-    unsigned int p_deinterlacing,
-    const std::string &p_decoder_hwaccel_name,
-    const std::string &p_decoder_hwaccel_device,
-    int p_savejpegs,
-    VideoWriter p_videowriter,
-    std::string p_encoderparams,
-    bool  p_record_audio,
-    const char *p_event_prefix,
-    const char *p_label_format,
-    const Coord &p_label_coord,
-    int label_size,
-    int p_image_buffer_count,
-    int p_warmup_count,
-    int p_pre_event_count,
-    int p_post_event_count,
-    int p_stream_replay_buffer,
-    int p_alarm_frame_count,
-    int p_section_length,
-    int p_min_section_length,
-    int p_frame_skip,
-    int p_motion_frame_skip,
-    double p_capture_max_fps,
-    double p_analysis_fps,
-    unsigned int p_analysis_update_delay,
-    int p_capture_delay,
-    int p_alarm_capture_delay,
-    int p_fps_report_interval,
-    int p_ref_blend_perc,
-    int p_alarm_ref_blend_perc,
-    bool p_track_motion,
-    int p_signal_check_points,
-    Rgb p_signal_check_colour,
-    bool p_embed_exif,
-    Purpose p_purpose,
-    int p_n_zones=0,
-    Zone *p_zones[]=0
-  );
   ~Monitor();
 
   void AddZones( int p_n_zones, Zone *p_zones[] );
@@ -436,17 +414,19 @@ public:
   inline int ShmValid() const {
     return shared_data && shared_data->valid;
   }
+  Camera *getCamera();
 
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name; }
   inline unsigned int ServerId() { return server_id; }
   inline Storage *getStorage() {
     if ( ! storage ) {
-      storage = new Storage( storage_id );
+      storage = new Storage(storage_id);
     }
     return storage;
   }
   inline Function GetFunction() const { return function; }
+  inline zm_packetqueue * GetPacketQueue() const { return packetqueue; }
   inline bool Enabled() const {
     if ( function <= MONITOR )
       return false;
@@ -457,9 +437,15 @@ public:
   }
   inline const char *EventPrefix() const { return event_prefix; }
   inline bool Ready() const {
-    if ( function <= MONITOR )
+    if ( function <= MONITOR ) {
+      Error("Should not be calling Ready if the function doesn't include motion detection");
       return false;
-    return( image_count > ready_count );
+    }
+    if ( image_count >= ready_count ) {
+      return true;
+    }
+    Debug(2, "Not ready because image_count(%d) <= ready_count(%d)", image_count, ready_count);
+    return false;
   }
   inline bool Active() const {
     if ( function <= MONITOR )
@@ -467,19 +453,31 @@ public:
     return( enabled && shared_data->active );
   }
   inline bool Exif() const { return embed_exif; }
+  inline bool RecordAudio() { return record_audio; }
+
+  /*
+  inline Purpose Purpose() { return purpose };
+  inline Purpose Purpose( Purpose p ) { purpose = p; };
+  */
+
   Orientation getOrientation() const;
 
   unsigned int Width() const { return width; }
   unsigned int Height() const { return height; }
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
-    
+
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParamsVec() const { return &encoderparamsvec; }
-  const std::string GetOptEncoderParams() const { return encoderparams; }
+  //const std::vector<EncoderParameter_t>* GetEncoderParams() const { return &encoderparamsvec; }
+  const std::string &GetEncoderOptions() const { return encoderparams; }
+  const int OutputCodec() const { return output_codec; }
+  const std::string &Encoder() const { return encoder; }
+  const std::string &OutputContainer() const { return output_container; }
+
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
-  void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
+  void SetVideoWriterEventId( uint64_t p_event_id ) { video_store_data->current_event = p_event_id; }
+
   struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
   void SetVideoWriterStartTime(const struct timeval &t) { video_store_data->recording = t; }
  
@@ -488,7 +486,7 @@ public:
   int GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
-  Snapshot *getSnapshot() const;
+  ZMPacket *getSnapshot( int index=-1 ) const;
   struct timeval GetTimestamp( int index=-1 ) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
@@ -500,12 +498,15 @@ public:
   unsigned int GetLastWriteIndex() const;
   uint64_t GetLastEventId() const;
   double GetFPS() const;
+  void UpdateAnalysisFPS();
+  void UpdateCaptureFPS();
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();
   TriggerState GetTriggerState() const { return (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL); }
 	inline time_t getStartupTime() const { return shared_data->startup_time; }
 	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
+  void get_ref_image();
 
   int LabelSize() const { return label_size; }
 
@@ -520,11 +521,13 @@ public:
   int actionColour( int p_colour=-1 );
   int actionContrast( int p_contrast=-1 );
 
-  int PrimeCapture() const;
+  int PrimeCapture();
   int PreCapture() const;
   int Capture();
   int PostCapture() const;
   int Close();
+
+  void CheckAction();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
    // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
@@ -554,7 +557,7 @@ public:
   static int LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose purpose);
 #endif // HAVE_LIBAVFORMAT
   static Monitor *Load(unsigned int id, bool load_zones, Purpose purpose);
-  static Monitor *Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose);
+  void Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose);
   //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );
   //void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );
   //void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );
@@ -562,8 +565,11 @@ public:
 #if HAVE_LIBAVCODEC
   //void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
 #endif // HAVE_LIBAVCODEC
-  double get_fps( ) const {
-    return fps;
+  double get_capture_fps( ) const {
+    return shared_data ? shared_data->capture_fps : 0.0;
+  }
+  double get_analysis_fps( ) const {
+    return shared_data ? shared_data->analysis_fps : 0.0;
   }
 };
 

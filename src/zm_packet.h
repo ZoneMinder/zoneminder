@@ -27,20 +27,57 @@ extern "C" {
 #ifdef __FreeBSD__
 #include <sys/time.h>
 #endif // __FreeBSD__
+
 #include "zm_image.h"
+#include "zm_thread.h"
+#include <mutex>
 
 class ZMPacket {
   public:
   
-    AVPacket  packet;   // Input packet, undecoded
-    AVFrame   *frame;    // Input image, decoded
-    Image     *image;   // Our internal image oject representing this frame
-    struct timeval timestamp;
+    std::recursive_mutex mutex;
+    int keyframe;
+    AVPacket  packet;             // Input packet, undecoded
+    AVFrame   *in_frame;          // Input image, decoded Theoretically only filled if needed.
+    AVFrame   *out_frame;         // output image, Only filled if needed.
+    struct timeval *timestamp;
+    uint8_t   *buffer;            // buffer used in image
+    Image     *image;
+    Image     *analysis_image;
+    int       score;
+    AVMediaType codec_type;
+    int image_index;
+    int codec_imgsize;
+
   public:
     AVPacket *av_packet() { return &packet; }
-    ZMPacket( AVPacket *packet, struct timeval *timestamp );
-    explicit ZMPacket( AVPacket *packet );
+    AVPacket *set_packet(AVPacket *p) ;
+    AVFrame *av_frame() { return out_frame; }
+    Image *get_image(Image *i=nullptr);
+    Image *set_image(Image *);
+
+    int is_keyframe() { return keyframe; };
+    int decode( AVCodecContext *ctx );
+    void reset();
+    explicit ZMPacket(Image *image);
+    explicit ZMPacket(ZMPacket &packet);
+    ZMPacket();
     ~ZMPacket();
+    void lock() {
+      Debug(4,"Locking packet %d", this->image_index);
+      mutex.lock();
+      Debug(4,"packet %d locked", this->image_index);
+    };
+    bool trylock() {
+      Debug(4,"TryLocking packet %d", this->image_index);
+      return mutex.try_lock();
+    };
+    void unlock() {
+      Debug(4,"packet %d unlocked", this->image_index);
+      mutex.unlock();
+    };
+    AVFrame *get_out_frame( const AVCodecContext *ctx );
+    int get_codec_imgsize() { return codec_imgsize; };
 };
 
 #endif /* ZM_PACKET_H */

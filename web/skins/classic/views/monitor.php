@@ -948,10 +948,54 @@ include('_monitor_source_nvsocket.php');
     $videowriteropts[2] = 'H264 Camera Passthrough';
   else
     $videowriteropts[2] = array('text'=>'H264 Camera Passthrough - only for FFMPEG','disabled'=>1);
-
-  echo htmlselect('newMonitor[VideoWriter]', $videowriteropts, $monitor->VideoWriter());
+	echo htmlSelect('newMonitor[VideoWriter]', $videowriteropts, $monitor->VideoWriter());
 ?>
-            </td></tr>
+              </td>
+            </tr>
+            <tr>
+              <td><?php echo translate('OutputCodec') ?></td>
+              <td>
+<?php
+$videowriter_codecs = array(
+  '0' => translate('Auto'),
+  '27' => 'h264',
+  '173' => 'h265/hevc',
+  '8' => 'mjpeg',
+  '1' => 'mpeg1',
+  '2' => 'mpeg2',
+);
+echo htmlSelect('newMonitor[OutputCodec]', $videowriter_codecs, $monitor->OutputCodec());
+?>
+              </td>
+            </tr>
+            <tr>
+              <td><?php echo translate('Encoder') ?></td>
+              <td>
+<?php
+$videowriter_encoders = array(
+  'auto' => translate('Auto'),
+  'h264_omx' => 'h264_omx',
+  'libx264' => 'libx264',
+  'h264_vaapi' => 'h264_vaapi',
+  'h264' => 'h264',
+  'mjpeg' => 'mjpeg',
+  'mpeg1' => 'mpeg1',
+  'mpeg2' => 'mpeg2',
+);
+ echo htmlSelect( 'newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder() );?></td></tr>
+            <tr>
+              <td><?php echo translate('OutputContainer') ?></td>
+              <td>
+<?php
+$videowriter_containers = array(
+  '' => translate('Auto'),
+  'mp4' => 'mp4',
+  'mkv' => 'mkv',
+);
+echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor->OutputContainer());
+?>
+              </td>
+            </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('OptionalEncoderParam'); echo makeHelpLink('OPTIONS_ENCODER_PARAMETERS') ?></td>
               <td>

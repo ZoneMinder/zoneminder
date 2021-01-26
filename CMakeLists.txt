@@ -59,7 +59,7 @@ if(NOT HOST_OS)
 endif(NOT HOST_OS)
 
 set (CMAKE_CXX_STANDARD 11)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 # Default CLFAGS and CXXFLAGS:
 set(CMAKE_C_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
 set(CMAKE_CXX_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
@@ -69,6 +69,8 @@ set(CMAKE_C_FLAGS_OPTIMISED "-Wall -D__STDC_CONSTANT_MACROS -O3")
 set(CMAKE_CXX_FLAGS_OPTIMISED "-Wall -D__STDC_CONSTANT_MACROS -O3")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+set (CMAKE_CXX_STANDARD 11)
+
 
 # GCC below 6.0 doesn't support __target__("fpu=neon") attribute, required for compiling ARM Neon code, otherwise compilation fails.
 # Must use -mfpu=neon compiler flag instead, but only do that for processors that support neon, otherwise strip the neon code alltogether,
@@ -201,6 +203,8 @@ set(ZM_NO_X10 "OFF" CACHE BOOL
 set(ZM_ONVIF "ON" CACHE BOOL 
     "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not 
     work with all cameras claiming to be ONVIF compliant. default: ON")
+set(ZM_NO_RTSPSERVER "OFF" CACHE BOOL
+  "Set to ON to skip live555 checks and force building ZM without rtsp server support. default: OFF")
 set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING 
 	"By default, ZoneMinder's Perl modules are installed into the Vendor folders, 
 	as defined by your installation of Perl. You can change that here. Consult Perl's 
@@ -708,6 +712,21 @@ endif(NOT ZM_NO_LIBVNC)
   ##set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
   #list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
 #endif()
+
+if(NOT ZM_NO_RTSPSERVER)
+  find_package(Live555)
+  if(Live555_FOUND)
+    include_directories(${Live555_INCLUDE_DIRS})
+    set(CMAKE_REQUIRED_INCLUDES "${Live555_INCLUDE_DIRS}")
+    list(APPEND ZM_BIN_LIBS "${Live555_LIBRARIES}")
+    set(HAVE_RTSP_SERVER 1)
+  else(Live555_FOUND)
+    set(HAVE_RTSP_SERVER 0)
+  endif(Live555_FOUND)
+else(NOT ZM_NO_RTSPSERVER)
+  set(HAVE_RTSP_SERVER 0)
+endif(NOT ZM_NO_RTSPSERVER)
+
 #
 # *** END OF LIBRARY CHECKS ***
 

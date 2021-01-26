@@ -68,6 +68,7 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
   timeout.tv_sec = 0;
   timeout.tv_usec = 0;
   subpixelorder = ZM_SUBPIX_ORDER_BGR;
+  video_stream = NULL;
 
   if ( capture ) {
     Initialise();
@@ -137,13 +138,13 @@ int RemoteCameraNVSocket::Disconnect() {
 }
 
 int RemoteCameraNVSocket::SendRequest( std::string request ) {
-  Debug( 4, "Sending request: %s", request.c_str() );
+  //Debug( 4, "Sending request: %s", request.c_str() );
   if ( write( sd, request.data(), request.length() ) < 0 ) {
     Error( "Can't write: %s", strerror(errno) );
     Disconnect();
     return( -1 );
   }
-  Debug( 4, "Request sent" );
+  //Debug( 4, "Request sent" );
   return( 0 );
 }
 
@@ -178,11 +179,12 @@ int RemoteCameraNVSocket::PrimeCapture() {
     Disconnect();
     return -1;
   }
+  mVideoStreamId=0;
 
   return 0;
 }
 
-int RemoteCameraNVSocket::Capture( Image &image ) {
+int RemoteCameraNVSocket::Capture( ZMPacket &zm_packet ) {
   if ( SendRequest("GetNextImage\n") < 0 ) {
     Warning( "Unable to capture image, retrying" );
     return 0;
@@ -202,10 +204,35 @@ int RemoteCameraNVSocket::Capture( Image &image ) {
     return 0;
   }
 
-  image.Assign(width, height, colours, subpixelorder, buffer, imagesize);
+  zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
+  zm_packet.keyframe = 1;
   return 1;
 }
 
 int RemoteCameraNVSocket::PostCapture() {
   return( 0 );
+}
+AVStream *RemoteCameraNVSocket::get_VideoStream() {
+  if ( ! video_stream ) {
+    AVFormatContext *oc = avformat_alloc_context();
+    video_stream = avformat_new_stream( oc, NULL );
+    if ( video_stream ) {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      video_stream->codecpar->width = width;
+      video_stream->codecpar->height = height;
+      video_stream->codecpar->format = GetFFMPEGPixelFormat(colours,subpixelorder);
+      video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+#else
+      video_stream->codec->width = width;
+      video_stream->codec->height = height;
+      video_stream->codec->pix_fmt = GetFFMPEGPixelFormat(colours,subpixelorder);
+      video_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+#endif
+    } else {
+      Error("Can't create video stream");
+    }
+  } else {
+    Debug(5,"Have videostream");
+  }
+  return video_stream;
 }

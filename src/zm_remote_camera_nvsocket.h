@@ -61,12 +61,11 @@ public:
   int Connect();
   int Disconnect();
   int SendRequest( std::string );
-  int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
   int GetResponse();
   int PrimeCapture();
-  int Capture( Image &image );
+  int Capture( ZMPacket &p );
   int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
+  AVStream* get_VideoStream();
   int Close() { return 0; };
 };
 

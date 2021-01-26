@@ -23,7 +23,7 @@
 #include "zm.h"
 #include "zm_camera.h"
 #include "zm_image.h"
-#include "zm_packetqueue.h"
+#include "zm_packet.h"
 
 #if ZM_HAS_V4L
 
@@ -49,18 +49,15 @@
 // directly connect to the host machine and which are accessed
 // via a video interface.
 //
-class LocalCamera : public Camera
-{
+class LocalCamera : public Camera {
 protected:
 #if ZM_HAS_V4L2
-    struct V4L2MappedBuffer
-    {
+    struct V4L2MappedBuffer {
         void    *start;
         size_t  length;
     };
 
-    struct V4L2Data
-    {
+    struct V4L2Data {
         v4l2_cropcap        cropcap;
         v4l2_crop           crop;
         v4l2_format         fmt;
@@ -71,8 +68,7 @@ protected:
 #endif // ZM_HAS_V4L2
 
 #if ZM_HAS_V4L1
-    struct V4L1Data
-    {
+    struct V4L1Data {
         int active_frame;
         video_mbuf frames;
         video_mmap *buffers;
@@ -160,12 +156,12 @@ public:
 
   int PrimeCapture()override ;
   int PreCapture()override ;
-  int Capture( Image &image )override ;
+  int Capture(ZMPacket &p) override;
   int PostCapture()override ;
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) override {return(0);};
   int Close() override { return 0; };
 
   static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
+  AVStream* get_VideoStream();
 };
 
 #endif // ZM_HAS_V4L

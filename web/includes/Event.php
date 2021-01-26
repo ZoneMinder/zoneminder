@@ -63,7 +63,7 @@ class Event extends ZM_Object {
         $this->{'Storage'} = Storage::find_one(array('Id'=>$this->{'StorageId'}));
       if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
         $this->{'Storage'} = new Storage(NULL);
-        $this->{'Storage'}->Scheme($this->{'Scheme'});
+        $this->{'Storage'}->Scheme($this->Scheme());
       }
     }
     return $this->{'Storage'};

@@ -263,8 +263,7 @@ int LibvlcCamera::PreCapture() {
 }
 
 // Should not return -1 as cancels capture. Always wait for image if available.
-int LibvlcCamera::Capture(Image &image) {   
-
+int LibvlcCamera::Capture( ZMPacket &zm_packet ) {   
   // newImage is a mutex/condition based flag to tell us when there is an image available
   while( !mLibvlcData.newImage.getValueImmediate() ) {
     if (zm_terminate)
@@ -273,15 +272,11 @@ int LibvlcCamera::Capture(Image &image) {
   }
 
   mLibvlcData.mutex.lock();
-  image.Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
+  zm_packet.image->Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
   mLibvlcData.newImage.setValueImmediate(false);
   mLibvlcData.mutex.unlock();
 
   return 1;
-}
-
-int LibvlcCamera::CaptureAndRecord(Image &image, timeval recording, char* event_directory) {
-  return 0;
 }
 
 int LibvlcCamera::PostCapture() {

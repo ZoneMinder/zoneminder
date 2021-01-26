@@ -70,6 +70,8 @@ possible, this should run at more or less constant speed.
 #include "zm_time.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
+#include "zm_analysis_thread.h"
+#include "zm_rtsp_server_thread.h"
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
@@ -240,11 +242,15 @@ int main(int argc, char *argv[]) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
     for ( int i = 0; i < n_monitors; i++ ) {
+      if ( ! monitors[i]->getCamera() ) {
+      }
+      if ( ! monitors[i]->connect() ) {
+      }
       time_t now = (time_t)time(nullptr);
       monitors[i]->setStartupTime(now);
 
       snprintf(sql, sizeof(sql), 
-          "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Running') ON DUPLICATE KEY UPDATE Status='Running'", 
+          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS) VALUES (%d, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0", 
           monitors[i]->Id());
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
@@ -252,95 +258,129 @@ int main(int argc, char *argv[]) {
     }  // end foreach monitor
 
     // Outer primary loop, handles connection to camera
-    if ( monitors[0]->PrimeCapture() < 0 ) {
+    if ( monitors[0]->PrimeCapture() <= 0 ) {
       if ( prime_capture_log_count % 60 ) {
         Error("Failed to prime capture of initial monitor");
       } else {
         Debug(1, "Failed to prime capture of initial monitor");
       }
       prime_capture_log_count ++;
-      if ( !zm_terminate )
-        sleep(10);
+      monitors[0]->disconnect();
+      if ( !zm_terminate ) {
+        Debug(1, "Sleeping");
+        sleep(5);
+      }
       continue;
     }
-
-    int *capture_delays = new int[n_monitors];
-    int *alarm_capture_delays = new int[n_monitors];
-    int *next_delays = new int[n_monitors];
-    struct timeval * last_capture_times = new struct timeval[n_monitors];
     for ( int i = 0; i < n_monitors; i++ ) {
-      last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
-      capture_delays[i] = monitors[i]->GetCaptureDelay();
-      alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
       snprintf(sql, sizeof(sql),
           "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'", 
           monitors[i]->Id());
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
+    }
+
+#if HAVE_RTSP_SERVER
+    RTSPServerThread ** rtsp_server_threads = nullptr;
+    if ( config.min_rtsp_port ) {
+      rtsp_server_threads = new RTSPServerThread *[n_monitors];
+      Debug(1, "Starting RTSP server because min_rtsp_port is set");
+    } else {
+      Debug(1, "Not starting RTSP server because min_rtsp_port not set");
+    }
+#endif
+    AnalysisThread **analysis_threads = new AnalysisThread *[n_monitors];
+    int *capture_delays = new int[n_monitors];
+    int *alarm_capture_delays = new int[n_monitors];
+    struct timeval * last_capture_times = new struct timeval[n_monitors];
+    for ( int i = 0; i < n_monitors; i++ ) {
+      last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
+      capture_delays[i] = monitors[i]->GetCaptureDelay();
+      alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
+      Debug(2, "capture delay(%u mSecs 1000/capture_fps) alarm delay(%u)",
+          capture_delays[i], alarm_capture_delays[i]);
+
+      Monitor::Function function = monitors[0]->GetFunction();
+      if ( function != Monitor::MONITOR ) {
+        Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
+        analysis_threads[i] = new AnalysisThread(monitors[i]);
+        analysis_threads[i]->start();
+      } else {
+        analysis_threads[i] = NULL;
+      }
+#if HAVE_RTSP_SERVER
+      if ( rtsp_server_threads ) {
+        for ( int i = 0; i < n_monitors; i++ ) {
+          rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
+          Camera *camera = monitors[i]->getCamera();
+          rtsp_server_threads[i]->addStream(camera->get_VideoStream(), camera->get_AudioStream());
+          rtsp_server_threads[i]->start();
+        }
+      }
+#endif
     } // end foreach monitor
 
     struct timeval now;
     struct DeltaTimeval delta_time;
+
     while ( !zm_terminate ) {
       //sigprocmask(SIG_BLOCK, &block_set, 0);
       for ( int i = 0; i < n_monitors; i++ ) {
-        long min_delay = MAXINT;
+
+        monitors[i]->CheckAction();
+
+        if ( monitors[i]->PreCapture() < 0 ) {
+          Error("Failed to pre-capture monitor %d %d (%d/%d)",
+              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          result = -1;
+          break;
+        }
+        if ( monitors[i]->Capture() < 0 ) {
+          Error("Failed to capture image from monitor %d %s (%d/%d)",
+              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          result = -1;
+          break;
+        }
+        if ( monitors[i]->PostCapture() < 0 ) {
+          Error("Failed to post-capture monitor %d %s (%d/%d)",
+              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          result = -1;
+          break;
+        }
 
         gettimeofday(&now, nullptr);
-        for ( int j = 0; j < n_monitors; j++ ) {
-          if ( last_capture_times[j].tv_sec ) {
-            DELTA_TIMEVAL(delta_time, now, last_capture_times[j], DT_PREC_3);
-            if ( monitors[i]->GetState() == Monitor::ALARM )
-              next_delays[j] = alarm_capture_delays[j]-delta_time.delta;
-            else
-              next_delays[j] = capture_delays[j]-delta_time.delta;
-            if ( next_delays[j] < 0 )
-              next_delays[j] = 0;
-          } else {
-            next_delays[j] = 0;
-          }
-          if ( next_delays[j] <= min_delay ) {
-            min_delay = next_delays[j];
-          }
-        }  // end foreach monitor
+        // capture_delay is the amount of time we should sleep to achieve the desired framerate.
+        int delay = monitors[i]->GetState() == Monitor::ALARM ? alarm_capture_delays[i] : capture_delays[i];
+        if ( delay && last_capture_times[i].tv_sec ) {
+          int sleep_time;
+          DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
 
-        if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
-          if ( monitors[i]->PreCapture() < 0 ) {
-            Error("Failed to pre-capture monitor %d %s (%d/%d)",
-                monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-            monitors[i]->Close();
-            result = -1;
-            break;
-          }
-          if ( monitors[i]->Capture() < 0 ) {
-            Info("Failed to capture image from monitor %d %s (%d/%d)",
-                monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-            monitors[i]->Close();
-            result = -1;
-            break;
-          }
-          if ( monitors[i]->PostCapture() < 0 ) {
-            Error("Failed to post-capture monitor %d %s (%d/%d)",
-                monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-            monitors[i]->Close();
-            result = -1;
-            break;
-          }
+          sleep_time = delay - delta_time.delta;
+          Debug(3, "Sleep time is %d from now:%d.%d last:%d.%d delay: %d",
+              sleep_time,
+              now.tv_sec, now.tv_usec,
+              last_capture_times[i].tv_sec, last_capture_times[i].tv_usec,
+              delay
+              );
+          
+          if ( sleep_time < 0 )
+            sleep_time = 0;
 
-          if ( next_delays[i] > 0 ) {
-            gettimeofday(&now, nullptr);
-            DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
-            long sleep_time = next_delays[i]-delta_time.delta;
-            if ( sleep_time > 0 ) {
-              usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
-            }
+          if ( sleep_time > 0 ) {
+            Debug(2,"usleeping (%d)", sleep_time*(DT_MAXGRAN/DT_PREC_3) );
+            usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
           }
-          gettimeofday(&(last_capture_times[i]), nullptr);
-        }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
+        } // end if has a last_capture time
+        last_capture_times[i] = now;
 
-      }  // end foreach n_monitors
-      //sigprocmask(SIG_UNBLOCK, &block_set, 0);
+      } // end foreach n_monitors
+
+      if ( result < 0 ) {
+        // Failure, try reconnecting
+        break;
+      }
+
       if ( zm_reload ) {
         for ( int i = 0; i < n_monitors; i++ ) {
           monitors[i]->Reload();
@@ -348,18 +388,56 @@ int main(int argc, char *argv[]) {
         logTerm();
         logInit(log_id_string);
         zm_reload = false;
+      } // end if zm_reload
+    } // end while ! zm_terminate and connected
+
+    // Killoff the analysis threads. Don't need them spinning while we try to reconnect
+    for ( int i = 0; i < n_monitors; i++ ) {
+      if ( analysis_threads[i] ) {
+        analysis_threads[i]->stop();
       }
-      if ( result < 0 ) {
-        // Failure, try reconnecting
-				sleep(5);
-        break;
+#if HAVE_RTSP_SERVER
+      if ( rtsp_server_threads ) {
+        rtsp_server_threads[i]->stop();
       }
-    }  // end while ! zm_terminate
+#endif
+    }
+
+    for ( int i = 0; i < n_monitors; i++ ) {
+      monitors[i]->Close();
+    }
+    // Killoff the analysis threads. Don't need them spinning while we try to reconnect
+    for ( int i = 0; i < n_monitors; i++ ) {
+      if ( analysis_threads[i] ) {
+        analysis_threads[i]->join();
+        delete analysis_threads[i];
+        analysis_threads[i] = nullptr;
+      }
+    } // end foreach monitor
+    delete [] analysis_threads;
+#if HAVE_RTSP_SERVER
+    if ( rtsp_server_threads ) {
+      for ( int i = 0; i < n_monitors; i++ ) {
+        rtsp_server_threads[i]->join();;
+        delete rtsp_server_threads[i];
+        rtsp_server_threads[i] = nullptr;
+      }
+      delete[] rtsp_server_threads;
+      rtsp_server_threads = nullptr;
+    }
+#endif
     delete [] alarm_capture_delays;
     delete [] capture_delays;
-    delete [] next_delays;
     delete [] last_capture_times;
+
+    if ( result < 0 ) {
+      // Failure, try reconnecting
+      Debug(1, "Sleeping for 5");
+      sleep(5);
+    }
   } // end while ! zm_terminate outer connection loop
+
+  Debug(1,"Updating Monitor status");
 
   for ( int i = 0; i < n_monitors; i++ ) {
     static char sql[ZM_SQL_SML_BUFSIZ];
@@ -374,6 +452,7 @@ int main(int argc, char *argv[]) {
   delete [] monitors;
 
   Image::Deinitialise();
+  Debug(1,"terminating");
   logTerm();
   zmDbClose();
 

@@ -36,6 +36,7 @@
 #ifdef __FreeBSD__
 #include <sys/thr.h>
 #endif
+#include <cstdarg>
 
 bool Logger::smInitialised = false;
 Logger *Logger::smInstance = nullptr;
@@ -271,9 +272,7 @@ std::string Logger::strEnv(const std::string &name, const std::string &defaultVa
 }
 
 char *Logger::getTargettedEnv(const std::string &name) {
-  std::string envName;
-
-  envName = name+"_"+mId;
+  std::string envName = name+"_"+mId;
   char *envPtr = getenv(envName.c_str());
   if ( !envPtr && mId != mIdRoot ) {
     envName = name+"_"+mIdRoot;
@@ -523,8 +522,10 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     puts(logString);
     fflush(stdout);
   }
+
   if ( level <= mFileLevel ) {
     if ( !mLogFileFP ) {
+      // We do this here so that we only create the file if we ever write to it.
       log_mutex.unlock();
       openFile();
       log_mutex.lock();
@@ -536,20 +537,14 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     } else {
       puts("Logging to file, but failed to open it\n");
     }
-#if 0
-  } else {
-    printf("Not writing to log file because level %d %s <= mFileLevel %d %s\nstring: %s\n",
-        level, smCodes[level].c_str(), mFileLevel, smCodes[mFileLevel].c_str(), logString);
-#endif
-  }
-  *syslogEnd = '\0';
-  if ( level <= mDatabaseLevel ) {
-    char sql[ZM_SQL_MED_BUFSIZ];
-    char escapedString[(strlen(syslogStart)*2)+1];
+  }  // end if level <= mFileLevel
 
+  if ( level <= mDatabaseLevel ) {
     if ( !db_mutex.trylock() ) {
+      char escapedString[(strlen(syslogStart)*2)+1];
       mysql_real_escape_string(&dbconn, escapedString, syslogStart, strlen(syslogStart));
 
+      char sql[ZM_SQL_MED_BUFSIZ];
       snprintf(sql, sizeof(sql),
           "INSERT INTO `Logs` "
           "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
@@ -567,26 +562,26 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     } else {
       Level tempDatabaseLevel = mDatabaseLevel;
       databaseLevel(NOLOG);
-      Error("Can't insert log entry: sql(%s) error(db is locked)", logString);
+      Error("Can't insert log entry: sql(%s) error(%s)", syslogStart, mysql_error(&dbconn));
       databaseLevel(tempDatabaseLevel);
     }
-  }
+    db_mutex.unlock();
+  }  // end if level <= mDatabaseLevel
+
   if ( level <= mSyslogLevel ) {
-    int priority = smSyslogPriorities[level];
-    //priority |= LOG_DAEMON;
-    syslog(priority, "%s [%s] [%s]", classString, mId.c_str(), syslogStart);
+    *syslogEnd = '\0';
+    syslog(smSyslogPriorities[level], "%s [%s] [%s]", classString, mId.c_str(), syslogStart);
   }
 
   free(filecopy);
+  log_mutex.unlock();
   if ( level <= FATAL ) {
-    log_mutex.unlock();
     logTerm();
     zmDbClose();
     if ( level <= PANIC )
       abort();
     exit(-1);
   }
-  log_mutex.unlock();
 }  // end logPrint
 
 void logInit(const char *name, const Logger::Options &options) {

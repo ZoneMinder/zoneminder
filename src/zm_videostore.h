@@ -15,36 +15,55 @@ extern "C"  {
 
 #if HAVE_LIBAVCODEC
 
+class VideoStore;
 #include "zm_monitor.h"
+#include "zm_packet.h"
+#include "zm_packetqueue.h"
+#include "zm_swscale.h"
 
 class VideoStore {
-private:
-  AVOutputFormat *out_format;
-  AVFormatContext *oc;
+  private:
+
+    struct CodecData {
+      const AVCodecID codec_id;
+      const char *codec_codec;
+      const char *codec_name;
+      const enum AVPixelFormat pix_fmt;
+    };
+
+    static struct CodecData codec_data[];
+
+  Monitor *monitor;
+	AVOutputFormat *out_format;
+	AVFormatContext *oc;
+	AVStream *video_out_stream;
+	AVStream *audio_out_stream;
+  int video_in_stream_index;
+  int audio_in_stream_index;
 
   AVCodec *video_out_codec;
+  AVCodecContext *video_in_ctx;
   AVCodecContext *video_out_ctx;
-  AVStream *video_out_stream;
 
   AVStream *video_in_stream;
-
   AVStream *audio_in_stream;
-  Monitor *monitor;
 
+  const AVCodec *audio_in_codec;
+  AVCodecContext *audio_in_ctx;
+  // The following are used when encoding the audio stream to AAC
+  AVCodec *audio_out_codec;
+  AVCodecContext *audio_out_ctx;
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
   AVPacket opkt;
   // we are transcoding
+  AVFrame *video_in_frame;
   AVFrame *in_frame;
   AVFrame *out_frame;
 
-  AVCodecContext *video_in_ctx;
-  const AVCodec *audio_in_codec;
-  AVCodecContext *audio_in_ctx;
+  SWScale swscale;
+  unsigned int packets_written;
+  unsigned int frame_count;
 
-  // The following are used when encoding the audio stream to AAC
-  AVStream *audio_out_stream;
-  AVCodec *audio_out_codec;
-  AVCodecContext *audio_out_ctx;
 #ifdef HAVE_LIBSWRESAMPLE
   SwrContext *resample_ctx;
 #else
@@ -59,6 +78,8 @@ private:
 	const char *format;
     
   // These are for in
+  int64_t video_start_pts;
+
   int64_t video_last_pts;
   int64_t video_last_dts;
   int64_t audio_last_pts;
@@ -83,13 +104,20 @@ public:
       const char *filename_in,
       const char *format_in,
       AVStream *video_in_stream,
+      AVCodecContext  *video_in_ctx,
       AVStream *audio_in_stream,
+      AVCodecContext  *audio_in_ctx,
       Monitor * p_monitor);
-  bool  open();
 	~VideoStore();
+  bool  open();
 
-  int writeVideoFramePacket( AVPacket *pkt );
-  int writeAudioFramePacket( AVPacket *pkt );
+  void write_video_packet( AVPacket &pkt );
+  void write_audio_packet( AVPacket &pkt );
+  int writeVideoFramePacket( ZMPacket *pkt );
+  int writeAudioFramePacket( ZMPacket *pkt );
+  int writePacket( ZMPacket *pkt );
+  int write_packets( zm_packetqueue &queue );
+  void flush_codecs();
 };
 
 #endif //havelibav

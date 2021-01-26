@@ -49,9 +49,8 @@ public:
 
   int PreCapture();
   int PrimeCapture();
-  int Capture( Image &image );
+  int Capture(ZMPacket &packet);
   int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
   int Close();
 };
 

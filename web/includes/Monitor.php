@@ -68,6 +68,7 @@ class Monitor extends ZM_Object {
     'SaveJPEGs' =>  3,
     'VideoWriter' =>  '0',
     'OutputCodec' =>  null,
+    'Encoder'     =>  'auto',
     'OutputContainer' => null,
     'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),

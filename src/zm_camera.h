@@ -24,6 +24,7 @@
 #include <sys/ioctl.h>
 
 #include "zm_image.h"
+#include "zm_packet.h"
 
 class Camera;
 
@@ -53,10 +54,29 @@ protected:
   int           contrast;
   bool          capture;
   bool          record_audio;
+  int                 mVideoStreamId;
+  int                 mAudioStreamId;
+  AVCodecContext      *mVideoCodecContext;
+  AVCodecContext      *mAudioCodecContext;
+  AVStream *video_stream;
+  AVFormatContext *oc;
   unsigned int  bytes;
 
 public:
-  Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_width, unsigned int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  Camera(
+      unsigned int p_monitor_id,
+      SourceType p_type,
+      unsigned int p_width,
+      unsigned int p_height,
+      int p_colours,
+      int p_subpixelorder,
+      int p_brightness,
+      int p_contrast,
+      int p_hue,
+      int p_colour,
+      bool p_capture,
+      bool p_record_audio
+      );
   virtual ~Camera();
 
   unsigned int getId() const { return monitor_id; }
@@ -91,11 +111,17 @@ public:
     //return (type == FFMPEG_SRC )||(type == REMOTE_SRC);
   }
 
+  virtual AVStream      *get_VideoStream() { return nullptr; };
+  virtual AVStream      *get_AudioStream() { return nullptr; };
+  virtual AVCodecContext     *get_VideoCodecContext() { return nullptr; };
+  virtual AVCodecContext     *get_AudioCodecContext() { return nullptr; };
+  int            get_VideoStreamId() { return mVideoStreamId; };
+  int            get_AudioStreamId() { return mAudioStreamId; };
+
   virtual int PrimeCapture() { return 0; }
   virtual int PreCapture() = 0;
-  virtual int Capture(Image &image) = 0;
+  virtual int Capture(ZMPacket &p) = 0;
   virtual int PostCapture() = 0;
-  virtual int CaptureAndRecord(Image &image, timeval recording, char* event_directory) = 0;
   virtual int Close() = 0;
 };
 

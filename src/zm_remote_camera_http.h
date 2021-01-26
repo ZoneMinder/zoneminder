@@ -44,7 +44,22 @@ protected:
   enum { SIMPLE, REGEXP } method;
 
 public:
-  RemoteCameraHttp( unsigned int p_monitor_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  RemoteCameraHttp(
+      unsigned int p_monitor_id,
+      const std::string &method,
+      const std::string &host,
+      const std::string &port,
+      const std::string &path,
+      int p_width,
+      int p_height,
+      int p_colours,
+      int p_brightness,
+      int p_contrast,
+      int p_hue,
+      int p_colour,
+      bool p_capture,
+      bool p_record_audio
+      );
   ~RemoteCameraHttp();
 
   void Initialise();
@@ -57,9 +72,9 @@ public:
   int GetResponse();
   int PrimeCapture();
   int PreCapture();
-  int Capture( Image &image );
+  int Capture( ZMPacket &p );
   int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return 0;};
+  AVStream* get_VideoStream();
   int Close() { Disconnect(); return 0; };
 };
 

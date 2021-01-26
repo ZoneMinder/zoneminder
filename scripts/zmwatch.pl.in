@@ -123,7 +123,7 @@ while( 1 ) {
         ) ? (3/$monitor->{MaxFPS})
         : $Config{ZM_WATCH_MAX_DELAY}
         ;
-        my $image_delay = $now-$capture_time;
+        my $image_delay = $now - $capture_time;
         Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
         if ( $image_delay > $max_image_delay ) {
           Warning("Restarting capture daemon for "
@@ -138,9 +138,6 @@ while( 1 ) {
     }
 
     if ( $restart ) {
-      # Because zma depends on zmc, and zma can hold the shm in place, preventing zmc from using the space in /dev/shm,
-      # we need to stop zma before restarting zmc.
-      runCommand("zmdc.pl stop zma -m $$monitor{Id}") if $monitor->{Function} ne 'Monitor';
       my $command;
       if ( $monitor->{Type} eq 'Local' ) {
         $command = "zmdc.pl restart zmc -d $monitor->{Device}";
@@ -148,7 +145,6 @@ while( 1 ) {
         $command = "zmdc.pl restart zmc -m $monitor->{Id}";
       }
       runCommand($command);
-      runCommand("zmdc.pl start zma -m $$monitor{Id}") if $monitor->{Function} ne 'Monitor';
     } elsif ( $monitor->{Function} ne 'Monitor' ) {
 # Now check analysis daemon
       $restart = 0;
@@ -160,7 +156,7 @@ while( 1 ) {
         Error("Error reading shared data for $$monitor{Id} $$monitor{Name}");
       } elsif ( !$image_time ) {
 # We can't get the last capture time so can't be sure it's died.
-        $restart = 1;
+        #$restart = 1;
         Error("Last analyse time for $$monitor{Id} $$monitor{Name} was zero.");
       } else {
 
@@ -181,8 +177,13 @@ while( 1 ) {
       }
 
       if ( $restart ) {
-        Info("Restarting analysis daemon for $$monitor{Id} $$monitor{Name}");
-        my $command = 'zmdc.pl restart zma -m '.$monitor->{Id};
+        Info("Restarting analysis daemon for $$monitor{Id} $$monitor{Name}\n");
+        my $command;
+        if ( $monitor->{Type} eq 'Local' ) {
+          $command = "zmdc.pl restart zmc -d $monitor->{Device}";
+        } else {
+          $command = "zmdc.pl restart zmc -m $monitor->{Id}";
+        }
         runCommand($command);
       } # end if restart
     } # end if check analysis daemon

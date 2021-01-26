@@ -33,7 +33,13 @@ class Monitor;
 
 class StreamBase {
 public:
-  typedef enum { STREAM_JPEG, STREAM_RAW, STREAM_ZIP, STREAM_SINGLE, STREAM_MPEG } StreamType;
+  typedef enum {
+    STREAM_JPEG,
+    STREAM_RAW,
+    STREAM_ZIP,
+    STREAM_SINGLE,
+    STREAM_MPEG
+  } StreamType;
 
 protected:
   static const int MAX_STREAM_DELAY = 5; // Seconds
@@ -57,8 +63,33 @@ protected:
     char msg_data[256];
   } DataMsg;
 
-  typedef enum { MSG_CMD=1, MSG_DATA_WATCH, MSG_DATA_EVENT } MsgType;
-  typedef enum { CMD_NONE=0, CMD_PAUSE, CMD_PLAY, CMD_STOP, CMD_FASTFWD, CMD_SLOWFWD, CMD_SLOWREV, CMD_FASTREV, CMD_ZOOMIN, CMD_ZOOMOUT, CMD_PAN, CMD_SCALE, CMD_PREV, CMD_NEXT, CMD_SEEK, CMD_VARPLAY, CMD_GET_IMAGE, CMD_QUIT, CMD_QUERY=99 } MsgCommand;
+  typedef enum {
+    MSG_CMD=1,
+    MSG_DATA_WATCH,
+    MSG_DATA_EVENT
+  } MsgType;
+
+  typedef enum {
+    CMD_NONE=0,
+    CMD_PAUSE,
+    CMD_PLAY,
+    CMD_STOP,
+    CMD_FASTFWD,
+    CMD_SLOWFWD,
+    CMD_SLOWREV,
+    CMD_FASTREV,
+    CMD_ZOOMIN,
+    CMD_ZOOMOUT,
+    CMD_PAN,
+    CMD_SCALE,
+    CMD_PREV,
+    CMD_NEXT,
+    CMD_SEEK,
+    CMD_VARPLAY,
+    CMD_GET_IMAGE,
+    CMD_QUIT,
+    CMD_QUERY=99
+  } MsgCommand;
 
 protected:
   int monitor_id;
@@ -109,7 +140,6 @@ protected:
   bool checkInitialised();
   void updateFrameRate(double fps);
   Image *prepareImage(Image *image);
-  bool sendTextFrame(const char *text);
   bool checkCommandQueue();
   virtual void processCommand(const CmdMsg *msg)=0;
 
@@ -137,7 +167,7 @@ public:
     lock_fd(0),
     paused(false),
     step(0)
-    {
+  {
     memset(&loc_sock_path, 0, sizeof(loc_sock_path));
     memset(&loc_addr, 0, sizeof(loc_addr));
     memset(&rem_sock_path, 0, sizeof(rem_sock_path));
@@ -188,6 +218,7 @@ public:
   void setStreamQueue(int p_connkey) {
     connkey = p_connkey;
   }
+  bool sendTextFrame(const char *text);
   virtual void openComms();
   virtual void closeComms();
   virtual void runStream()=0;

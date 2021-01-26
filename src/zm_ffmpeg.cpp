@@ -290,7 +290,7 @@ static void zm_log_fps(double d, const char *postfix) {
 }
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-void zm_dump_codecpar ( const AVCodecParameters *par ) {
+void zm_dump_codecpar(const AVCodecParameters *par) {
   Debug(1, "Dumping codecpar codec_type(%d %s) codec_id(%d %s) codec_tag(%" PRIu32 ") width(%d) height(%d) bit_rate(%" PRIu64 ") format(%d %s)",
       par->codec_type,
       av_get_media_type_string(par->codec_type),
@@ -385,6 +385,9 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
       zm_log_fps(av_q2d(st->avg_frame_rate), "fps");
     if (tbn)
       zm_log_fps(1 / av_q2d(st->time_base), "stream tb numerator");
+  } else if ( codec->codec_type == AVMEDIA_TYPE_AUDIO ) {
+    Debug(1, "profile %d channels %d sample_rate %d",
+        codec->profile, codec->channels, codec->sample_rate);
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)
@@ -423,6 +426,26 @@ int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt) {
     p++;
   }
   return 0;
+}
+
+void fix_deprecated_pix_fmt(AVCodecContext *ctx) {
+  // Fix deprecated formats
+  switch ( ctx->pix_fmt ) {
+    case AV_PIX_FMT_YUVJ422P  :
+      ctx->pix_fmt = AV_PIX_FMT_YUV422P;
+      break;
+    case AV_PIX_FMT_YUVJ444P   :
+      ctx->pix_fmt = AV_PIX_FMT_YUV444P;
+      break;
+    case AV_PIX_FMT_YUVJ440P :
+      ctx->pix_fmt = AV_PIX_FMT_YUV440P;
+      break;
+    case AV_PIX_FMT_NONE :
+    case AV_PIX_FMT_YUVJ420P :
+    default:
+      ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+      break;
+  }
 }
 
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
@@ -528,7 +551,7 @@ int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
       Error("Error encoding (%d) (%s)", ret,
           av_err2str(ret));
     }
-    return 0;
+    return ret;
   }
   return 1;
 #else
@@ -536,8 +559,9 @@ int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
   int ret = avcodec_encode_audio2(context, &packet, nullptr, &got_packet);
   if ( ret < 0 ) {
     Error("Error encoding (%d) (%s)", ret, av_err2str(ret));
+    return ret;
   }
-  return got_packet;
+  return got_packet; // 1
 #endif
 }  // end int zm_receive_packet(AVCodecContext *context, AVPacket &packet)
 
@@ -636,7 +660,7 @@ void dumpPacket(AVStream *stream, AVPacket *pkt, const char *text) {
            ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
            ", duration: %" 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-           PRId64
+           PRIu64
 #else
            "d"
 #endif
@@ -651,6 +675,17 @@ void dumpPacket(AVStream *stream, AVPacket *pkt, const char *text) {
            pkt->pos,
            pkt->duration);
   Debug(2, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
+}
+
+void zm_free_codec( AVCodecContext **ctx ) {
+  if ( *ctx ) {
+    avcodec_close(*ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    // We allocate and copy in newer ffmpeg, so need to free it
+    avcodec_free_context(ctx);
+#endif
+    *ctx = NULL;
+  } // end if 
 }
 
 void dumpPacket(AVPacket *pkt, const char *text) {

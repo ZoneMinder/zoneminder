@@ -8,7 +8,6 @@ function probe( url_e ) {
 
 function getProbeResponse( respObj, respText ) {
   if ( checkStreamForErrors( "getProbeResponse", respObj ) ) {
-    console.log(respText);
     return;
   }
 

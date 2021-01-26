@@ -37,9 +37,11 @@ extern "C" {
 }
 #endif
 
+
 class EventStream : public StreamBase {
   public:
     typedef enum { MODE_NONE, MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
+    static const std::string StreamMode_Strings[4];
 
   protected:
     struct FrameData {
@@ -84,13 +86,13 @@ class EventStream : public StreamBase {
     EventData *event_data;
 
   protected:
-    bool loadEventData( uint64_t event_id );
-    bool loadInitialEventData( uint64_t init_event_id, unsigned int init_frame_id );
-    bool loadInitialEventData( int monitor_id, time_t event_time );
+    bool loadEventData(uint64_t event_id);
+    bool loadInitialEventData(uint64_t init_event_id, unsigned int init_frame_id);
+    bool loadInitialEventData(int monitor_id, time_t event_time);
 
     bool checkEventLoaded();
-    void processCommand( const CmdMsg *msg );
-    bool sendFrame( int delta_us );
+    void processCommand(const CmdMsg *msg);
+    bool sendFrame(int delta_us);
 
   public:
     EventStream() :
@@ -128,11 +130,9 @@ class EventStream : public StreamBase {
           ffmpeg_input = nullptr;
         }
     }
-    void setStreamStart( uint64_t init_event_id, unsigned int init_frame_id );
-    void setStreamStart( int monitor_id, time_t event_time );
-    void setStreamMode( StreamMode p_mode ) {
-      mode = p_mode;
-    }
+    void setStreamStart(uint64_t init_event_id, unsigned int init_frame_id);
+    void setStreamStart(int monitor_id, time_t event_time);
+    void setStreamMode(StreamMode p_mode) { mode = p_mode; }
     void runStream() override;
     Image *getImage();
   private:

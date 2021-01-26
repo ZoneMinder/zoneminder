@@ -99,7 +99,7 @@ void ZoneMinderDeviceSource::deliverFrame() {
   } else {
     fFrameSize = nal_size;
   }
-  Debug(2, "deliverFrame stream: %d timestamp: %d.%d size: %d queuesize: %d",
+  Debug(2, "deliverFrame stream: %d timestamp: %ld.%06ld size: %d queuesize: %d",
       m_stream->index,
       frame->m_timestamp.tv_sec, frame->m_timestamp.tv_usec,
       fFrameSize, 
@@ -149,7 +149,7 @@ int ZoneMinderDeviceSource::getNextFrame() {
   m_packetqueue->increment_it(m_packetqueue_it, m_stream->index);
 
   // Convert pts to timeval
-  int64_t pts = av_rescale_q(pkt->pts, m_stream->time_base, AV_TIME_BASE_Q);
+  int64_t pts = av_rescale_q(pkt->dts, m_stream->time_base, AV_TIME_BASE_Q);
   timeval tv = { pts/1000000, pts%1000000 };
   dumpPacket(m_stream, pkt, "rtspServer");
   Debug(2, "pts %" PRId64 " pkt.pts %" PRId64 " tv %d.%d", pts, pkt->pts, tv.tv_sec, tv.tv_usec);
@@ -165,12 +165,22 @@ int ZoneMinderDeviceSource::getNextFrame() {
     NAL_Frame *frame  = new NAL_Frame(nal.first, nal.second, tv);
 
     pthread_mutex_lock(&m_mutex);
+    if ( m_captureQueue.size() ) {
+      NAL_Frame * f = m_captureQueue.front();
+      while ( (f->m_timestamp.tv_sec - tv.tv_sec) > 10 ) {
+        m_captureQueue.pop_front();
+        delete f;
+        f = m_captureQueue.front();
+      }
+    }
+#if 0
     while ( m_captureQueue.size() >= m_queueSize ) {
       Debug(2, "Queue full dropping frame %d", m_captureQueue.size());
       NAL_Frame * f = m_captureQueue.front();
       m_captureQueue.pop_front();
       delete f;
     }
+#endif
     m_captureQueue.push_back(frame);
     pthread_mutex_unlock(&m_mutex);
 

@@ -41,6 +41,9 @@ extern "C" {
 #include <libavutil/avstring.h>
 #include "libavutil/audio_fifo.h"
 #include "libavutil/imgutils.h"
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+  #include "libavutil/hwcontext.h"
+#endif
 
 /* LIBAVUTIL_VERSION_CHECK checks for the right version of libav and FFmpeg
  * The original source is vlc (in modules/codec/avcodec/avcommon_compat.h)

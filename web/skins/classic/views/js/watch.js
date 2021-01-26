@@ -858,7 +858,7 @@ function initPage() {
   } else if ( monitorRefresh > 0 ) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }
-}  // initPage
+} // initPage
 
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);

@@ -1,3 +1,4 @@
+#if HAVE_RTSP_SERVER
 #include "zm_rtsp_server_thread.h"
 #include "zm_rtsp_server_device_source.h"
 #include "zm_rtsp_server_h264_device_source.h"
@@ -6,7 +7,6 @@
 #include <StreamReplicator.hh>
 #include "zm.h"
 
-#if HAVE_RTSP_SERVER
 
 RTSPServerThread::RTSPServerThread(Monitor *p_monitor) : 
   monitor(p_monitor),

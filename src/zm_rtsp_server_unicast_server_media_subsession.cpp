@@ -1,3 +1,4 @@
+#if HAVE_RTSP_SERVER
 /* ---------------------------------------------------------------------------
 ** This software is in the public domain, furnished "as is", without technical
 ** support, and with no warranty, express or implied, as to its usefulness for
@@ -45,3 +46,4 @@ char const* UnicastServerMediaSubsession::getAuxSDPLine(
     ) {
 	return this->getAuxLine(dynamic_cast<ZoneMinderDeviceSource*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
 }
+#endif

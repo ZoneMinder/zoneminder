@@ -1,3 +1,4 @@
+#if HAVE_RTSP_SERVER
 /* ---------------------------------------------------------------------------
 **
 ** ServerMediaSubsession.cpp
@@ -104,3 +105,4 @@ char const* BaseServerMediaSubsession::getAuxLine(
 	}
 	return auxLine;
 }
+#endif

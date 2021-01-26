@@ -1,3 +1,4 @@
+#if HAVE_RTSP_SERVER
 /* ---------------------------------------------------------------------------
 **
 ** ADTS_DeviceSource.cpp
@@ -44,3 +45,4 @@ ADTS_ZoneMinderDeviceSource::ADTS_ZoneMinderDeviceSource(
     << "\r\n";
   m_auxLine.assign(os.str());    
 }
+#endif

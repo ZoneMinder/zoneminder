@@ -8,6 +8,7 @@
 **
 ** -------------------------------------------------------------------------*/
 
+#if HAVE_RTSP_SERVER
 #include <utility>
 
 #include "zm_rtsp_server_device_source.h"
@@ -167,7 +168,7 @@ int ZoneMinderDeviceSource::getNextFrame() {
     pthread_mutex_lock(&m_mutex);
     if ( m_captureQueue.size() ) {
       NAL_Frame * f = m_captureQueue.front();
-      while ( (f->m_timestamp.tv_sec - tv.tv_sec) > 10 ) {
+      while ( m_captureQueue.size() and ((f->m_timestamp.tv_sec - tv.tv_sec) > 10) ) {
         m_captureQueue.pop_front();
         delete f;
         f = m_captureQueue.front();
@@ -205,3 +206,4 @@ unsigned char*  ZoneMinderDeviceSource::extractFrame(unsigned char* frame, size_
   size = 0;
   return frame;
 }
+#endif

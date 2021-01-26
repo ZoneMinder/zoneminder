@@ -1,3 +1,4 @@
+#if HAVE_RTSP_SERVER
 /* ---------------------------------------------------------------------------
 **
 ** H264_DeviceSource.cpp
@@ -222,3 +223,4 @@ unsigned char*  H26X_ZoneMinderDeviceSource::extractFrame(unsigned char* frame, 
 
 	return outFrame;
 }
+#endif

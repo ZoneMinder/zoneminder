@@ -99,7 +99,7 @@ function changeScale() {
   var newWidth;
   var newHeight;
 
-  // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple 
+  // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   if ( scale == '0' || scale == 'auto' ) {
@@ -126,7 +126,7 @@ function changeScale() {
   } else {
     console.error('No element found for liveStream'+monitorId);
   }
-}  // end function changeScale
+} // end function changeScale
 
 function setAlarmState( currentAlarmState ) {
   alarmState = currentAlarmState;

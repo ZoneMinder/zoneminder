@@ -283,7 +283,12 @@ int main(int argc, char *argv[]) {
 
 #if HAVE_RTSP_SERVER
     RTSPServerThread ** rtsp_server_threads = nullptr;
-    rtsp_server_threads = new RTSPServerThread *[n_monitors];
+    if ( config.min_rtsp_port ) {
+      rtsp_server_threads = new RTSPServerThread *[n_monitors];
+      Debug(1, "Starting RTSP server because min_rtsp_port is set");
+    } else {
+      Debug(1, "Not starting RTSP server because min_rtsp_port not set");
+    }
 #endif
     AnalysisThread **analysis_threads = new AnalysisThread *[n_monitors];
     int *capture_delays = new int[n_monitors];
@@ -373,8 +378,6 @@ int main(int argc, char *argv[]) {
 
       if ( result < 0 ) {
         // Failure, try reconnecting
-        Debug(1, "Sleeping for 5");
-        sleep(5);
         break;
       }
 
@@ -427,6 +430,11 @@ int main(int argc, char *argv[]) {
     delete [] capture_delays;
     delete [] last_capture_times;
 
+    if ( result < 0 ) {
+      // Failure, try reconnecting
+      Debug(1, "Sleeping for 5");
+      sleep(5);
+    }
   } // end while ! zm_terminate outer connection loop
 
   Debug(1,"Updating Monitor status");

@@ -246,7 +246,11 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     }
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
-    zm_dump_frame(frame, "frame->pts > seek_target, got");
+    if ( is_video_stream(input_format_context->streams[stream_id]) ) {
+      zm_dump_video_frame(frame, "frame->pts > seek_target, got");
+    } else {
+      zm_dump_frame(frame, "frame->pts > seek_target, got");
+    }
   } else if ( last_seek_request == seek_target ) {
     // paused case, sending keepalives
     return frame;
@@ -256,7 +260,11 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
 
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
   if ( frame->pts <= seek_target ) {
-    zm_dump_frame(frame, "pts <= seek_target");
+    if ( is_video_stream(input_format_context->streams[stream_id]) ) {
+      zm_dump_video_frame(frame, "pts <= seek_target");
+    } else {
+      zm_dump_frame(frame, "pts <= seek_target");
+    }
     while ( frame && (frame->pts < seek_target) ) {
       if ( !get_frame(stream_id) ) {
         Warning("Got no frame. returning nothing");

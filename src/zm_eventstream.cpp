@@ -29,6 +29,12 @@
 #include "zm_monitor.h"
 
 #include "zm_sendfile.h"
+    static std::string StreamMode_Strings[4] = {
+      "None",
+      "Single",
+      "All",
+      "Gapless"
+    };
 
 bool EventStream::loadInitialEventData(int monitor_id, time_t event_time) {
   static char sql[ZM_SQL_SML_BUFSIZ];
@@ -82,7 +88,10 @@ bool EventStream::loadInitialEventData(int monitor_id, time_t event_time) {
   return true;
 } // bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
 
-bool EventStream::loadInitialEventData(uint64_t init_event_id, unsigned int init_frame_id) {
+bool EventStream::loadInitialEventData(
+    uint64_t init_event_id,
+    unsigned int init_frame_id
+    ) {
   loadEventData(init_event_id);
 
   if ( init_frame_id ) {

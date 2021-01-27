@@ -2080,6 +2080,11 @@ function getStreamHTML($monitor, $options = array()) {
   if ( ! isset($options['mode'] ) ) {
     $options['mode'] = 'stream';
   }
+  if ( ! isset($options['width'] ) )
+    $options['width'] = 0;
+  if ( ! isset($options['height'] ) )
+    $options['height'] = 0;
+
   $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
   if ( $monitor->StreamReplayBuffer() )
     $options['buffer'] = $monitor->StreamReplayBuffer();

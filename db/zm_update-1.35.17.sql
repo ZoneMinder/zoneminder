@@ -10,3 +10,5 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 ALTER TABLE `Monitors` MODIFY `Encoder`     enum('auto','h264','libx264', 'h264_omx', 'h264_vaapi', 'mjpeg','mpeg1','mpeg2');
+
+ALTER TABLE `Monitors` MODIFY `OutputCodec`     INT UNSIGNED default 0;

@@ -7,10 +7,10 @@
 **
 ** -------------------------------------------------------------------------*/
 
-
+#include "zm.h"
+#if HAVE_RTSP_SERVER
 #include "zm_rtsp_server_unicast_server_media_subsession.h"
 #include "zm_rtsp_server_device_source.h"
-#if HAVE_RTSP_SERVER
 
 // -----------------------------------------
 //    ServerMediaSubsession for Unicast

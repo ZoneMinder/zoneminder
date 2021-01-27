@@ -9,6 +9,9 @@
 **
 ** -------------------------------------------------------------------------*/
 
+#include "zm.h"
+
+#if HAVE_RTSP_SERVER
 
 #ifndef ADTS_ZoneMinder_DEVICE_SOURCE
 #define ADTS_ZoneMinder_DEVICE_SOURCE
@@ -64,4 +67,5 @@ class ADTS_ZoneMinderDeviceSource : public ZoneMinderDeviceSource {
     int samplingFrequencyIndex;
     int channels;
 };
+#endif
 #endif

@@ -4,14 +4,15 @@
 ** 
 ** -------------------------------------------------------------------------*/
 
+#include "zm.h"
+
+#if HAVE_RTSP_SERVER
 #include <sstream>
 
 #include "zm_rtsp_server_server_media_subsession.h"
 #include "zm_rtsp_server_device_source.h"
 #include "zm_rtsp_server_adts_source.h"
 
-
-#if HAVE_RTSP_SERVER
 // ---------------------------------
 //   BaseServerMediaSubsession
 // ---------------------------------

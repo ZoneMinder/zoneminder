@@ -6,6 +6,9 @@
 **
 ** -------------------------------------------------------------------------*/
 
+#include "zm.h"
+
+#if HAVE_RTSP_SERVER
 #include <sstream>
 #include <iomanip>
 
@@ -13,7 +16,6 @@
 #include <Base64.hh>
 
 #include "zm_rtsp_server_adts_source.h"
-#if HAVE_RTSP_SERVER
 
 static unsigned const samplingFrequencyTable[16] = {
   96000, 88200, 64000, 48000,

@@ -6,6 +6,9 @@
 **
 ** -------------------------------------------------------------------------*/
 
+#include "zm.h"
+
+#if HAVE_RTSP_SERVER
 
 #ifndef DEVICE_SOURCE
 #define DEVICE_SOURCE
@@ -75,4 +78,5 @@ class ZoneMinderDeviceSource: public FramedSource {
     int stop;
 };
 
+#endif
 #endif

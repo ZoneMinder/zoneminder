@@ -9,6 +9,10 @@
 
 #pragma once
 
+#include "zm.h"
+
+#if HAVE_RTSP_SERVER
+
 #include <sys/stat.h>
 
 #include <string>
@@ -44,3 +48,4 @@ class BaseServerMediaSubsession {
 	protected:
 		StreamReplicator* m_replicator;
 };
+#endif

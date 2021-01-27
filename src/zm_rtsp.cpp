@@ -423,9 +423,9 @@ int RtspThread::run() {
         rtpClock = mediaDesc->getClock();
         codecId = mFormatContext->streams[i]->codec->codec_id;
         break;
-      }
-    }
-  }
+      }  // end if is video
+    }  // end foreach stream
+  }  // end if have stream
 
   switch ( mMethod ) {
     case RTP_UNICAST :

@@ -835,7 +835,7 @@ bool EventStream::sendFrame(int delta_us) {
 void EventStream::runStream() {
   openComms();
 
-  checkInitialised();
+  //checkInitialised();
 
   if ( type == STREAM_JPEG )
     fputs("Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n", stdout);

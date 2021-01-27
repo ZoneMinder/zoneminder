@@ -1,4 +1,3 @@
-#if HAVE_RTSP_SERVER
 /* ---------------------------------------------------------------------------
 **
 ** H264_DeviceSource.cpp
@@ -14,6 +13,7 @@
 #include <Base64.hh>
 
 #include "zm_rtsp_server_h264_device_source.h"
+#if HAVE_RTSP_SERVER
 
 // ---------------------------------
 // H264 ZoneMinder FramedSource

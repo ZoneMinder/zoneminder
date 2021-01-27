@@ -1,4 +1,3 @@
-#if HAVE_RTSP_SERVER
 /* ---------------------------------------------------------------------------
 **
 ** ServerMediaSubsession.cpp
@@ -12,6 +11,7 @@
 #include "zm_rtsp_server_adts_source.h"
 
 
+#if HAVE_RTSP_SERVER
 // ---------------------------------
 //   BaseServerMediaSubsession
 // ---------------------------------

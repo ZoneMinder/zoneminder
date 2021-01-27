@@ -1,4 +1,3 @@
-#if HAVE_RTSP_SERVER
 /* ---------------------------------------------------------------------------
 **
 ** ADTS_DeviceSource.cpp
@@ -14,6 +13,7 @@
 #include <Base64.hh>
 
 #include "zm_rtsp_server_adts_source.h"
+#if HAVE_RTSP_SERVER
 
 static unsigned const samplingFrequencyTable[16] = {
   96000, 88200, 64000, 48000,

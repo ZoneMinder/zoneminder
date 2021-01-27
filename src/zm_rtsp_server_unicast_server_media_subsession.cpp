@@ -1,4 +1,3 @@
-#if HAVE_RTSP_SERVER
 /* ---------------------------------------------------------------------------
 ** This software is in the public domain, furnished "as is", without technical
 ** support, and with no warranty, express or implied, as to its usefulness for
@@ -11,6 +10,7 @@
 
 #include "zm_rtsp_server_unicast_server_media_subsession.h"
 #include "zm_rtsp_server_device_source.h"
+#if HAVE_RTSP_SERVER
 
 // -----------------------------------------
 //    ServerMediaSubsession for Unicast

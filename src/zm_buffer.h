@@ -34,34 +34,34 @@ protected:
   unsigned char *mTail;
 
 public:
-  Buffer() : mStorage( nullptr ), mAllocation( 0 ), mSize( 0 ), mHead( nullptr ), mTail( nullptr ) {
+  Buffer() : mStorage(nullptr), mAllocation(0), mSize(0), mHead(nullptr), mTail(nullptr) {
   }
-  explicit Buffer( unsigned int pSize ) : mAllocation( pSize ), mSize( 0 ) {
+  explicit Buffer(unsigned int pSize) : mAllocation(pSize), mSize(0) {
     mHead = mStorage = new unsigned char[mAllocation];
     mTail = mHead;
   }
-  Buffer( const unsigned char *pStorage, unsigned int pSize ) : mAllocation( pSize ), mSize( pSize ) {
+  Buffer(const unsigned char *pStorage, unsigned int pSize) : mAllocation(pSize), mSize(pSize) {
     mHead = mStorage = new unsigned char[mSize];
-    memcpy( mStorage, pStorage, mSize );
+    memcpy(mStorage, pStorage, mSize);
     mTail = mHead + mSize;
   }
-  Buffer( const Buffer &buffer ) : mAllocation( buffer.mSize ), mSize( buffer.mSize ) {
+  Buffer(const Buffer &buffer) : mAllocation(buffer.mSize), mSize(buffer.mSize) {
     mHead = mStorage = new unsigned char[mSize];
-    memcpy( mStorage, buffer.mHead, mSize );
+    memcpy(mStorage, buffer.mHead, mSize);
     mTail = mHead + mSize;
   }
   ~Buffer() {
     delete[] mStorage;
   }
-  unsigned char *head() const { return( mHead ); }
-  unsigned char *tail() const { return( mTail ); }
-  unsigned int size() const { return( mSize ); }
+  unsigned char *head() const { return mHead; }
+  unsigned char *tail() const { return mTail; }
+  unsigned int size() const { return mSize; }
   bool empty() const { return( mSize == 0 ); }
   unsigned int size( unsigned int pSize ) {
     if ( mSize < pSize ) {
-      expand( pSize-mSize );
+      expand(pSize-mSize);
     }
-    return( mSize );
+    return mSize;
   }
   //unsigned int Allocation() const { return( mAllocation ); }
 
@@ -70,62 +70,62 @@ public:
     mHead = mTail = mStorage;
   }
 
-  unsigned int assign( const unsigned char *pStorage, unsigned int pSize );
-  unsigned int assign( const Buffer &buffer ) {
-    return( assign( buffer.mHead, buffer.mSize ) );
+  unsigned int assign(const unsigned char *pStorage, unsigned int pSize);
+  unsigned int assign(const Buffer &buffer) {
+    return assign(buffer.mHead, buffer.mSize);
   }
 
   // Trim from the front of the buffer
-  unsigned int consume( unsigned int count ) {
+  unsigned int consume(unsigned int count) {
     if ( count > mSize ) {
-      Warning( "Attempt to consume %d bytes of buffer, size is only %d bytes", count, mSize );
+      Warning("Attempt to consume %d bytes of buffer, size is only %d bytes", count, mSize);
       count = mSize;
     }
     mHead += count;
     mSize -= count;
-    tidy( 0 );
-    return( count );
+    tidy(0);
+    return count;
   }
   // Trim from the end of the buffer
-  unsigned int shrink( unsigned int count ) {
+  unsigned int shrink(unsigned int count) {
     if ( count > mSize ) {
-      Warning( "Attempt to shrink buffer by %d bytes, size is only %d bytes", count, mSize );
+      Warning("Attempt to shrink buffer by %d bytes, size is only %d bytes", count, mSize);
       count = mSize;
     }
     mSize -= count;
     if ( mTail > (mHead + mSize) )
       mTail = mHead + mSize;
-    tidy( 0 );
-    return( count );
+    tidy(0);
+    return count;
   }
   // Add to the end of the buffer
   unsigned int expand( unsigned int count );
 
   // Return pointer to the first pSize bytes and advance the head
-  unsigned char *extract( unsigned int pSize ) {
+  unsigned char *extract(unsigned int pSize) {
     if ( pSize > mSize ) {
-      Warning( "Attempt to extract %d bytes of buffer, size is only %d bytes", pSize, mSize );
+      Warning("Attempt to extract %d bytes of buffer, size is only %d bytes", pSize, mSize);
       pSize = mSize;
     }
     unsigned char *oldHead = mHead;
     mHead += pSize;
     mSize -= pSize;
-    tidy( 0 );
-    return( oldHead );
+    tidy(0);
+    return oldHead;
   }
   // Add bytes to the end of the buffer
-  unsigned int append( const unsigned char *pStorage, unsigned int pSize ) {
-    expand( pSize );
-    memcpy( mTail, pStorage, pSize );
+  unsigned int append(const unsigned char *pStorage, unsigned int pSize) {
+    expand(pSize);
+    memcpy(mTail, pStorage, pSize);
     mTail += pSize;
     mSize += pSize;
-    return( mSize );
+    return mSize;
   }
-  unsigned int append( const char *pStorage, unsigned int pSize ) {
-    return( append( (const unsigned char *)pStorage, pSize ) );
+  unsigned int append(const char *pStorage, unsigned int pSize) {
+    return append((const unsigned char *)pStorage, pSize);
   }
-  unsigned int append( const Buffer &buffer ) {
-    return( append( buffer.mHead, buffer.mSize ) );
+  unsigned int append(const Buffer &buffer) {
+    return append(buffer.mHead, buffer.mSize);
   }
   void tidy( bool level=0 ) {
     if ( mHead != mStorage ) {
@@ -154,8 +154,8 @@ public:
     return( *this );
   }
   Buffer &operator-=( unsigned int count ) {
-    consume( count );
-    return( *this );
+    consume(count);
+    return *this;
   }
   operator unsigned char *() const {
     return( mHead );

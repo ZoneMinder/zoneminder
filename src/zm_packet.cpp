@@ -132,6 +132,7 @@ void ZMPacket::reset() {
   keyframe = 0;
 }
 
+/* returns < 0 on error, 0 on not ready, int bytes consumed on success */
 int ZMPacket::decode(AVCodecContext *ctx) {
   Debug(4, "about to decode video, image_index is (%d)", image_index);
 
@@ -150,6 +151,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     av_frame_free(&in_frame);
     return 0;
   }
+  int bytes_consumed = ret;
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
@@ -229,7 +231,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   }
 #endif
 #endif
-  return 1;
+  return bytes_consumed;
 } // end ZMPacket::decode
 
 Image *ZMPacket::get_image(Image *i) {

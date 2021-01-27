@@ -143,7 +143,7 @@ class Monitor extends AppModel {
       return;
     }
     if ( defined('ZM_SERVER_ID') and ($monitor['ServerId']!=ZM_SERVER_ID) ) {
-      ZM\Debug('Calling daemonControl for Monitor assigned to different server');
+      ZM\Error('Calling daemonControl for Monitor assigned to different server. Our server id '.ZM_SERVER_ID.' != '.$monitor['ServerId']);
       return;
     }
 

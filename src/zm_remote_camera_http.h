@@ -74,7 +74,6 @@ public:
   int PreCapture();
   int Capture( ZMPacket &p );
   int PostCapture();
-  AVStream* get_VideoStream();
   int Close() { Disconnect(); return 0; };
 };
 

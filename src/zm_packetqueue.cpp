@@ -479,6 +479,7 @@ bool zm_packetqueue::increment_it(packetqueue_iterator *it, int stream_id) {
     return false;
   }
 
+  std::unique_lock<std::mutex> lck(mutex);
   do {
     ++(*it);
   } while ( (*it != pktQueue.end()) and ( (*(*it))->packet.stream_index != stream_id) );

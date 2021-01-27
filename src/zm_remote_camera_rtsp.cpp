@@ -44,10 +44,15 @@ RemoteCameraRtsp::RemoteCameraRtsp(
     int p_colour,
     bool p_capture,
     bool p_record_audio ) :
-  RemoteCamera( p_monitor_id, "rtsp", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
-  rtsp_describe( p_rtsp_describe ),
-  rtspThread( 0 )
-
+  RemoteCamera(
+      p_monitor_id, "rtsp",
+      p_host, p_port, p_path,
+      p_width, p_height, p_colours,
+      p_brightness, p_contrast, p_hue, p_colour,
+      p_capture, p_record_audio),
+  rtsp_describe(p_rtsp_describe),
+  rtspThread(0),
+  frameCount(0)
 {
   if ( p_method == "rtpUni" )
     method = RtspThread::RTP_UNICAST;
@@ -63,13 +68,6 @@ RemoteCameraRtsp::RemoteCameraRtsp(
   if ( capture ) {
     Initialise();
   }
-  
-  mFormatContext = nullptr;
-  mVideoStreamId = -1;
-  mAudioStreamId = -1;
-  mCodecContext = nullptr;
-  mCodec = nullptr;
-  frameCount = 0;
   
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {
@@ -88,10 +86,12 @@ RemoteCameraRtsp::RemoteCameraRtsp(
 
 RemoteCameraRtsp::~RemoteCameraRtsp() {
 
-  if ( mCodecContext ) {
-     avcodec_close(mCodecContext);
-     mCodecContext = nullptr; // Freed by avformat_free_context in the destructor of RtspThread class
+  if ( mVideoCodecContext ) {
+     avcodec_close(mVideoCodecContext);
+     mVideoCodecContext = nullptr; // Freed by avformat_free_context in the destructor of RtspThread class
   }
+  // Is allocated in RTSPThread and is free there as well
+  mFormatContext = nullptr;
 
   if ( capture ) {
     Terminate();
@@ -157,6 +157,7 @@ int RemoteCameraRtsp::PrimeCapture() {
     if ( is_video_stream(mFormatContext->streams[i]) ) {
       if ( mVideoStreamId == -1 ) {
         mVideoStreamId = i;
+        video_stream = mFormatContext->streams[i];
         continue;
       } else {
         Debug(2, "Have another video stream.");
@@ -164,6 +165,7 @@ int RemoteCameraRtsp::PrimeCapture() {
     } else if ( is_audio_stream(mFormatContext->streams[i]) ) {
       if ( mAudioStreamId == -1 ) {
         mAudioStreamId = i;
+        audio_stream = mFormatContext->streams[i];
       } else {
         Debug(2, "Have another audio stream.");
       }
@@ -179,22 +181,22 @@ int RemoteCameraRtsp::PrimeCapture() {
 
   // Get a pointer to the codec context for the video stream
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  mCodecContext = avcodec_alloc_context3(NULL);
-  avcodec_parameters_to_context(mCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar);
+  mVideoCodecContext = avcodec_alloc_context3(NULL);
+  avcodec_parameters_to_context(mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar);
 #else
-  mCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
+  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
 #endif
 
   // Find the decoder for the video stream
-  mCodec = avcodec_find_decoder(mCodecContext->codec_id);
-  if ( mCodec == nullptr )
-    Panic("Unable to locate codec %d decoder", mCodecContext->codec_id);
+  AVCodec *codec = avcodec_find_decoder(mVideoCodecContext->codec_id);
+  if ( codec == nullptr )
+    Panic("Unable to locate codec %d decoder", mVideoCodecContext->codec_id);
 
   // Open codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-  if ( avcodec_open(mCodecContext, mCodec) < 0 )
+  if ( avcodec_open(mVideoCodecContext, codec) < 0 )
 #else
-  if ( avcodec_open2(mCodecContext, mCodec, 0) < 0 )
+  if ( avcodec_open2(mVideoCodecContext, codec, 0) < 0 )
 #endif
     Panic("Can't open codec");
 
@@ -224,6 +226,10 @@ int RemoteCameraRtsp::PreCapture() {
 int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
   int frameComplete = false;
   AVPacket *packet = &zm_packet.packet;
+  if ( !zm_packet.image ) {
+    Debug(1, "Allocating image %dx%d %d colours %d", width, height, colours, subpixelorder);
+    zm_packet.image = new Image(width, height, colours, subpixelorder);
+  }
   
   while ( !frameComplete ) {
     buffer.clear();
@@ -237,7 +243,7 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
       if ( !buffer.size() )
         return -1;
 
-      if ( mCodecContext->codec_id == AV_CODEC_ID_H264 ) {
+      if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
         // SPS and PPS frames should be saved and appended to IDR frames
         int nalType = (buffer.head()[3] & 0x1f);
         
@@ -263,23 +269,25 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
         Debug(3, "Not an h264 packet");
       }
 
-      while ( (!frameComplete) && (buffer.size() > 0) ) {
+      //while ( (!frameComplete) && (buffer.size() > 0) ) {
+      if ( buffer.size() > 0 ) {
         packet->data = buffer.head();
         packet->size = buffer.size();
         bytes += packet->size;
 
-        if ( 1 != zm_packet.decode(mCodecContext) ) {
+        int bytes_consumed = zm_packet.decode(mVideoCodecContext);
+        if ( bytes_consumed < 0 ) {
           Error("Error while decoding frame %d", frameCount);
-          Hexdump(Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size());
-          buffer.clear();
-          break;
+          //Hexdump(Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size());
         }
-        int len = packet->size;
-        zm_packet.codec_type = mCodecContext->codec_type;
-
-        frameComplete = true;
-        Debug(2, "Frame: %d - %d/%d", frameCount, len, buffer.size());
-        buffer -= len;
+        buffer -= packet->size;
+        if ( bytes_consumed ) {
+          zm_packet.codec_type = mVideoCodecContext->codec_type;
+          frameComplete = true;
+          Debug(2, "Frame: %d - %d/%d", frameCount, bytes_consumed, buffer.size());
+          packet->data = nullptr;
+          packet->size = 0;
+        }
       }
     } /* getFrame() */
   } // end while true

@@ -59,7 +59,8 @@ protected:
   AVCodecContext      *mVideoCodecContext;
   AVCodecContext      *mAudioCodecContext;
   AVStream *video_stream;
-  AVFormatContext *oc;
+  AVStream *audio_stream;
+  AVFormatContext *mFormatContext;
   unsigned int  bytes;
 
 public:
@@ -111,10 +112,10 @@ public:
     //return (type == FFMPEG_SRC )||(type == REMOTE_SRC);
   }
 
-  virtual AVStream      *get_VideoStream() { return nullptr; };
+  virtual AVStream      *get_VideoStream();
   virtual AVStream      *get_AudioStream() { return nullptr; };
-  virtual AVCodecContext     *get_VideoCodecContext() { return nullptr; };
-  virtual AVCodecContext     *get_AudioCodecContext() { return nullptr; };
+  virtual AVCodecContext     *get_VideoCodecContext() { return mVideoCodecContext; };
+  virtual AVCodecContext     *get_AudioCodecContext() { return mAudioCodecContext; };
   int            get_VideoStreamId() { return mVideoStreamId; };
   int            get_AudioStreamId() { return mAudioStreamId; };
 

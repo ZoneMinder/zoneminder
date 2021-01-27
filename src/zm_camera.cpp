@@ -52,7 +52,8 @@ Camera::Camera(
     mVideoCodecContext(nullptr),
     mAudioCodecContext(nullptr),
     video_stream(nullptr),
-    oc(nullptr),
+    audio_stream(nullptr),
+    mFormatContext(nullptr),
     bytes(0)
 {
   linesize = width * colours;
@@ -64,6 +65,12 @@ Camera::Camera(
 }
 
 Camera::~Camera() {
+  if ( mFormatContext ) {
+    // Should also free streams
+    avformat_free_context(mFormatContext);
+    video_stream = nullptr;
+    audio_stream = nullptr;
+  }
 }
 
 Monitor *Camera::getMonitor() {
@@ -75,4 +82,33 @@ Monitor *Camera::getMonitor() {
 void Camera::setMonitor(Monitor *p_monitor) {
   monitor = p_monitor;
   monitor_id = monitor->Id();
+}
+
+AVStream *Camera::get_VideoStream() {
+  if ( !video_stream ) {
+    if ( !mFormatContext )
+      mFormatContext = avformat_alloc_context();
+    Debug(1, "Allocating avstream");
+    video_stream = avformat_new_stream(mFormatContext, nullptr);
+    if ( video_stream ) {
+      video_stream->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      video_stream->codecpar->width = width;
+      video_stream->codecpar->height = height;
+      video_stream->codecpar->format = GetFFMPEGPixelFormat(colours, subpixelorder);
+      video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+      video_stream->codecpar->codec_id = AV_CODEC_ID_NONE;
+    Debug(1, "Allocating avstream %p %p %d", video_stream, video_stream->codecpar, video_stream->codecpar->codec_id);
+#else
+      video_stream->codec->width = width;
+      video_stream->codec->height = height;
+      video_stream->codec->pix_fmt = GetFFMPEGPixelFormat(colours, subpixelorder);
+      video_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+      video_stream->codec->codec_id = AV_CODEC_ID_NONE;
+#endif
+    } else {
+      Error("Can't create video stream");
+    }
+  }
+  return video_stream;
 }

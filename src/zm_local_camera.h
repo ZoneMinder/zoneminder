@@ -161,7 +161,6 @@ public:
   int Close() override { return 0; };
 
   static bool GetCurrentSettings(const char *device, char *output, int version, bool verbose);
-  AVStream* get_VideoStream();
 };
 
 #endif // ZM_HAS_V4L

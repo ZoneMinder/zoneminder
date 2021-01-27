@@ -55,13 +55,26 @@ protected:
 
 #if HAVE_LIBAVFORMAT
   AVFormatContext     *mFormatContext;
-  AVCodecContext      *mCodecContext;
-  AVCodec             *mCodec;
   _AVPIXELFORMAT         imagePixFormat;
 #endif // HAVE_LIBAVFORMAT
 
 public:
-  RemoteCameraRtsp( unsigned int p_monitor_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, bool p_rtsp_describe, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  RemoteCameraRtsp(
+      unsigned int p_monitor_id,
+      const std::string &method,
+      const std::string &host,
+      const std::string &port,
+      const std::string &path,
+      int p_width,
+      int p_height,
+      bool p_rtsp_describe,
+      int p_colours,
+      int p_brightness,
+      int p_contrast,
+      int p_hue,
+      int p_colour,
+      bool p_capture,
+      bool p_record_audio);
   ~RemoteCameraRtsp();
 
   void Initialise();
@@ -71,9 +84,10 @@ public:
 
   int PrimeCapture();
   int PreCapture();
-  int Capture( ZMPacket &p );
+  int Capture(ZMPacket &p);
   int PostCapture();
   int Close() { return 0; };
+
   AVStream *get_VideoStream() { 
     if ( mVideoStreamId != -1 )
       return mFormatContext->streams[mVideoStreamId];

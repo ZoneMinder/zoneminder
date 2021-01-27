@@ -207,7 +207,7 @@ function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
   var data = {monitor_ids: monitor_ids, action: 'sort'};
 
-  $j.getJSON(thisUrl + '?request=console', data)
+  $j.post(thisUrl + '?request=console', data)
       .fail(logAjaxFail);
 } // end function applySort(event,ui)
 

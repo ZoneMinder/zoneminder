@@ -569,7 +569,7 @@ void Event::AddPacket(ZMPacket *packet) {
     }
     //FIXME if it fails, we should write a jpeg
   }
-  if ( packet->codec_type == AVMEDIA_TYPE_VIDEO )
+  if ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) or packet->image )
     AddFrame(packet->image, *(packet->timestamp), packet->score, packet->analysis_image);
   end_time = *packet->timestamp;
   return;

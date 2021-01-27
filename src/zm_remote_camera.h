@@ -74,13 +74,13 @@ public:
   );
   virtual ~RemoteCamera();
 
-  const std::string &Protocol() const { return( protocol ); }
-  const std::string &Host() const { return( host ); }
-  const std::string &Port() const { return( port ); }
-  const std::string &Path() const { return( path ); }
-  const std::string &Auth() const { return( auth ); }
-  const std::string &Username() const { return( username ); }
-  const std::string &Password() const { return( password ); }
+  const std::string &Protocol() const { return protocol; }
+  const std::string &Host() const { return host; }
+  const std::string &Port() const { return port; }
+  const std::string &Path() const { return path; }
+  const std::string &Auth() const { return auth; }
+  const std::string &Username() const { return username; }
+  const std::string &Password() const { return password; }
 
   virtual void Initialise();
   virtual void Terminate() = 0;
@@ -88,9 +88,9 @@ public:
   virtual int Disconnect() = 0;
   virtual int PreCapture() { return 0; };
   virtual int PrimeCapture() { return 0; };
-  virtual int Capture( ZMPacket &p ) = 0;
+  virtual int Capture(ZMPacket &p) = 0;
   virtual int PostCapture() = 0;
-  int Read( int fd, char*buf, int size );
+  int Read(int fd, char*buf, int size);
 };
 
 #endif // ZM_REMOTE_CAMERA_H

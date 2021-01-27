@@ -344,7 +344,7 @@ class MonitorsController extends AppController {
   public function daemonControl($id, $command, $daemon=null) {
     // Need to see if it is local or remote
     $monitor = $this->Monitor->find('first', array(
-      'fields' => array('Type', 'Function', 'Device'),
+      'fields' => array('Type', 'Function', 'Device', 'ServerId'),
       'conditions' => array('Id' => $id)
     ));
     $monitor = $monitor['Monitor'];

@@ -142,25 +142,25 @@ public:
   void Initialise();
   void Terminate();
 
-  const std::string &Device() const { return( device ); }
+  const std::string &Device() const { return device; }
 
-  int Channel() const { return( channel ); }
-  int Standard() const { return( standard ); }
-  int Palette() const { return( palette ); }
-  int Extras() const { return( extras ); }
+  int Channel() const { return channel; }
+  int Standard() const { return standard; }
+  int Palette() const { return palette; }
+  int Extras() const { return extras; }
 
   int Brightness( int p_brightness=-1 ) override;
   int Hue( int p_hue=-1 ) override;
   int Colour( int p_colour=-1 ) override;
   int Contrast( int p_contrast=-1 ) override;
 
-  int PrimeCapture()override ;
-  int PreCapture()override ;
+  int PrimeCapture() override;
+  int PreCapture() override;
   int Capture(ZMPacket &p) override;
-  int PostCapture()override ;
+  int PostCapture() override;
   int Close() override { return 0; };
 
-  static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
+  static bool GetCurrentSettings(const char *device, char *output, int version, bool verbose);
   AVStream* get_VideoStream();
 };
 

@@ -2259,7 +2259,7 @@ int LocalCamera::PostCapture() {
 }
 
 AVStream *LocalCamera::get_VideoStream() {
-  if ( ! video_stream ) {
+  if ( !video_stream ) {
     oc = avformat_alloc_context();
     Debug(1, "Allocating avstream");
     video_stream = avformat_new_stream(oc, nullptr);

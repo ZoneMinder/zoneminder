@@ -69,30 +69,28 @@ bool RTSPServerThread::stopped() const {
   return terminate ? true : false;
 }  // end RTSPServerThread::stopped()
 
-void RTSPServerThread::addStream(AVStream *stream, AVStream *audio_stream) {
+void RTSPServerThread::addStream(AVStream *video_stream, AVStream *audio_stream) {
   if ( !rtspServer )
     return;
-
-  AVCodecID codec_id = stream->codecpar->codec_id;
-  std::string rtpFormat = getRtpFormat(codec_id, false);
-  Debug(1, "RTSP: format %s", rtpFormat.c_str());
-  if ( rtpFormat.empty() ) {
-    Error("No streaming format");
-    return;
-  } 
 
   int queueSize = 30;
   bool repeatConfig = true;
   bool muxTS = false;
   ServerMediaSession *sms = nullptr;
 
-  if ( stream ) {
+  if ( video_stream ) {
     StreamReplicator* videoReplicator = nullptr;
     FramedSource *source = nullptr;
+    std::string rtpFormat = getRtpFormat(video_stream->codecpar->codec_id, false);
+    if ( rtpFormat.empty() ) {
+      Error("No streaming format");
+      return;
+    } 
+    Debug(1, "RTSP: format %s", rtpFormat.c_str());
     if ( rtpFormat == "video/H264" ) {
-      source = H264_ZoneMinderDeviceSource::createNew(*env, monitor, stream, queueSize, repeatConfig, muxTS);
+      source = H264_ZoneMinderDeviceSource::createNew(*env, monitor, video_stream, queueSize, repeatConfig, muxTS);
     } else if ( rtpFormat == "video/H265" ) {
-      source = H265_ZoneMinderDeviceSource::createNew(*env, monitor, stream, queueSize, repeatConfig, muxTS);
+      source = H265_ZoneMinderDeviceSource::createNew(*env, monitor, video_stream, queueSize, repeatConfig, muxTS);
     }
     if ( source == nullptr ) {
       Error("Unable to create source");
@@ -111,7 +109,7 @@ void RTSPServerThread::addStream(AVStream *stream, AVStream *audio_stream) {
   if ( audio_stream ) {
     StreamReplicator* replicator = nullptr;
     FramedSource *source = nullptr;
-    rtpFormat = getRtpFormat(audio_stream->codecpar->codec_id, false);
+    std::string rtpFormat = getRtpFormat(audio_stream->codecpar->codec_id, false);
     if ( rtpFormat == "audio/AAC" ) {
       source = ADTS_ZoneMinderDeviceSource::createNew(*env, monitor, audio_stream, queueSize);
       Debug(1, "ADTS source %p", source);
@@ -126,12 +124,14 @@ void RTSPServerThread::addStream(AVStream *stream, AVStream *audio_stream) {
       sms->addSubsession(UnicastServerMediaSubsession::createNew(*env, replicator, rtpFormat));
     }
   } else {
-    Debug(1, "Not Adding auto stream");
+    Debug(1, "Not Adding audio stream");
   }
-  rtspServer->addServerMediaSession(sms);
-  char *url = rtspServer->rtspURL(sms);
-  Debug(1, "url is %s", url);
-  delete[] url;
+  if ( sms ) {
+    rtspServer->addServerMediaSession(sms);
+    char *url = rtspServer->rtspURL(sms);
+    Debug(1, "url is %s", url);
+    delete[] url;
+  }
 }  // end void addStream
 
 // -----------------------------------------

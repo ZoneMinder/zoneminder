@@ -371,12 +371,9 @@ int FfmpegCamera::OpenFfmpeg() {
   mVideoCodecContext = avcodec_alloc_context3(nullptr);
   avcodec_parameters_to_context(mVideoCodecContext,
       mFormatContext->streams[mVideoStreamId]->codecpar);
-  // this isn't copied.
-  mVideoCodecContext->time_base =
-    mFormatContext->streams[mVideoStreamId]->codec->time_base;
 #else
+  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
 #endif
-  //mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
 #ifdef CODEC_FLAG2_FAST
   mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 #endif

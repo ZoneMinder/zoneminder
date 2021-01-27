@@ -1081,7 +1081,13 @@ int RemoteCameraHttp::Capture(ZMPacket &packet) {
     return -1;
   }
 
+  if ( !packet.image ) {
+    Debug(1, "Allocating image");
+    packet.image = new Image(width, height, colours, subpixelorder);
+  }
   Image *image = packet.image;
+  packet.keyframe = 1;
+  packet.codec_type = AVMEDIA_TYPE_VIDEO;
 
   switch ( format ) {
     case JPEG :
@@ -1122,12 +1128,23 @@ int RemoteCameraHttp::PostCapture() {
 
 AVStream *RemoteCameraHttp::get_VideoStream() {
   if ( video_stream ) {
-    AVFormatContext *oc = avformat_alloc_context();
+    oc = avformat_alloc_context();
     video_stream = avformat_new_stream(oc, nullptr);
     if ( video_stream ) {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      video_stream->codecpar->width = width;
+      video_stream->codecpar->height = height;
+      video_stream->codecpar->format = GetFFMPEGPixelFormat(colours,subpixelorder);
+      video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+      video_stream->codecpar->codec_id = AV_CODEC_ID_NONE;
+#else
       video_stream->codec->width = width;
       video_stream->codec->height = height;
       video_stream->codec->pix_fmt = GetFFMPEGPixelFormat(colours,subpixelorder);
+      video_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+      video_stream->codec->codec_id = AV_CODEC_ID_NONE;
+#endif
+      mVideoStreamId = video_stream->index;
     }
   }
   return video_stream;

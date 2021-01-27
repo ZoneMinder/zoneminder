@@ -309,8 +309,8 @@ bool VideoStore::open() {
   } // end if orientation
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
 
-  if ( audio_in_stream ) {
-    Debug(2, "Have audio_in_stream");
+  if ( audio_in_stream and audio_in_ctx ) {
+    Debug(2, "Have audio_in_stream %p", audio_in_stream);
     audio_in_stream_index = audio_in_stream->index;
 
     if (

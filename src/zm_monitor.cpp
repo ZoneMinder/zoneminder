@@ -1885,7 +1885,7 @@ bool Monitor::Analyse() {
         }// else 
 
         if ( signal ) {
-          if ( snap->packet.stream_index == video_stream_id ) {
+          if ( snap->image or (snap->packet.stream_index == video_stream_id) ) {
             struct timeval *timestamp = snap->timestamp;
 
             if ( Active() and (function == MODECT or function == MOCORD) and snap->image ) {
@@ -2511,7 +2511,7 @@ int Monitor::Capture() {
           packet->packet.stream_index, video_stream_id, packetqueue->packet_count(video_stream_id), ( event ? 1 : 0 ) );
       //packet->unlock();
 
-      if ( packet->packet.stream_index != video_stream_id ) {
+      if ( packet->packet.stream_index != video_stream_id and ! packet->image ) {
         // Only queue if we have some video packets in there. Should push this logic into packetqueue
         if ( packetqueue->packet_count(video_stream_id) or event ) {
           Debug(2, "Queueing audio packet");
@@ -2613,10 +2613,6 @@ int Monitor::Capture() {
       shared_data->last_write_index = index;
       shared_data->last_write_time = packet->timestamp->tv_sec;
       image_count++;
-      Debug(2, "Unlocking packet, incrementing image_count to %d", image_count);
-      // We can get away with unlocking the packet early because no one will know about it until 
-      // we unlock the packetqueue and signal them
-      //packet->unlock();
 
       if ( packetqueue->packet_count(video_stream_id) or packet->keyframe or event ) {
         Debug(2, "Have video packet for image index (%d), adding to queue", index);

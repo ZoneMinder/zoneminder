@@ -359,15 +359,17 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 
     void av_packet_rescale_ts(AVPacket *pkt, AVRational src_tb, AVRational dst_tb);
 #endif
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-      #define zm_avcodec_decode_video( context, rawFrame, frameComplete, packet ) \
- avcodec_send_packet( context, packet ); \
- avcodec_receive_frame( context, rawFrame );
+#if LIBAVCODEC_VERSION_CHECK(57, 24, 1, 45, 101)
+#define zm_avcodec_decode_video(context, rawFrame, frameComplete, packet) \
+ avcodec_send_packet(context, packet); \
+ avcodec_receive_frame(context, rawFrame);
 #else
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
-      #define zm_avcodec_decode_video( context, rawFrame, frameComplete, packet ) avcodec_decode_video2( context, rawFrame, frameComplete, packet )
+  #define zm_avcodec_decode_video(context, rawFrame, frameComplete, packet) \
+      avcodec_decode_video2(context, rawFrame, frameComplete, packet)
 #else
-      #define zm_avcodec_decode_video(context, rawFrame, frameComplete, packet ) avcodec_decode_video( context, rawFrame, frameComplete, packet->data, packet->size)
+   #define zm_avcodec_decode_video(context, rawFrame, frameComplete, packet) \
+      avcodec_decode_video(context, rawFrame, frameComplete, packet->data, packet->size)
 #endif
 #endif
     

@@ -131,21 +131,11 @@ FfmpegCamera::FfmpegCamera(
     FFMPEGInit();
   }
 
-  mFormatContext = nullptr;
-  mVideoStreamId = -1;
-  mAudioStreamId = -1;
-  mVideoCodecContext = nullptr;
-  mAudioCodecContext = nullptr;
-  mVideoCodec = nullptr;
-  mAudioCodec = nullptr;
-  mRawFrame = nullptr;
-  mFrame = nullptr;
   frameCount = 0;
   mCanCapture = false;
   error_count = 0;
   use_hwaccel = true;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-  hwFrame = nullptr;
   hw_device_ctx = nullptr;
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
   hw_pix_fmt = AV_PIX_FMT_NONE;
@@ -170,25 +160,6 @@ FfmpegCamera::FfmpegCamera(
     Panic("Unexpected colours: %d", colours);
   }
 
-  frame_buffer = nullptr;
-  // sws_scale needs 32bit aligned width and an extra 16 bytes padding, so recalculate imagesize, which was width*height*bytes_per_pixel
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  alignment = 32;
-  imagesize = av_image_get_buffer_size(imagePixFormat, width, height, alignment);
-  // av_image_get_linesize isn't aligned, so we have to do that.
-  linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), alignment);
-#else
-  alignment = 1;
-  linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), alignment);
-  imagesize = avpicture_get_size(imagePixFormat, width, height);
-#endif
-  if ( linesize != width * colours ) {
-    Debug(1, "linesize %d != width %d * colours %d = %d, allocating frame_buffer", linesize, width, colours, width*colours);
-    frame_buffer = (uint8_t *)av_malloc(imagesize);
-  }
-
-  Debug(1, "ffmpegcamera: width %d height %d linesize %d colours %d image linesize %d imagesize %d",
-      width, height, linesize, colours, width*colours, imagesize);
 }  // FfmpegCamera::FfmpegCamera
 
 FfmpegCamera::~FfmpegCamera() {
@@ -378,6 +349,7 @@ int FfmpegCamera::OpenFfmpeg() {
   mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 #endif
 
+  AVCodec *mVideoCodec = nullptr;
   if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
     if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == nullptr ) {
       Debug(1, "Failed to find decoder (h264_mmal)");
@@ -462,8 +434,6 @@ int FfmpegCamera::OpenFfmpeg() {
         Debug(1, "Created hwdevice for %s", hwaccel_device.c_str());
         mVideoCodecContext->get_format = get_hw_format;
         mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-
-        hwFrame = zm_av_frame_alloc();
       }
     } else {
       Debug(1, "Failed to find suitable hw_pix_fmt.");
@@ -492,9 +462,8 @@ int FfmpegCamera::OpenFfmpeg() {
   }
   zm_dump_codec(mVideoCodecContext);
 
-  Debug(1, hwFrame ? "HWACCEL in use" : "HWACCEL not in use");
-
   if ( mAudioStreamId >= 0 ) {
+    AVCodec *mAudioCodec = nullptr;
     if ( (mAudioCodec = avcodec_find_decoder(
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
             mFormatContext->streams[mAudioStreamId]->codecpar->codec_id
@@ -546,21 +515,6 @@ int FfmpegCamera::OpenFfmpeg() {
 int FfmpegCamera::Close() {
   mCanCapture = false;
 
-  if ( mFrame ) {
-    av_frame_free(&mFrame);
-    mFrame = nullptr;
-  }
-  if ( mRawFrame ) {
-    av_frame_free(&mRawFrame);
-    mRawFrame = nullptr;
-  }
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-  if ( hwFrame ) {
-    av_frame_free(&hwFrame);
-    hwFrame = nullptr;
-  }
-#endif
-
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -593,120 +547,6 @@ int FfmpegCamera::Close() {
 
   return 0;
 }  // end FfmpegCamera::Close
-
-int FfmpegCamera::transfer_to_image(
-    Image &image,
-    AVFrame *output_frame,
-    AVFrame *input_frame
-    ) {
-  uint8_t* image_buffer;  // pointer to buffer in image
-  uint8_t* buffer;        // pointer to either image_buffer or frame_buffer
-
-  /* Request a writeable buffer of the target image */
-  image_buffer = image.WriteBuffer(width, height, colours, subpixelorder);
-  if ( image_buffer == nullptr ) {
-    Error("Failed requesting writeable buffer for the captured image.");
-    return -1;
-  }
-  // if image_buffer was allocated then use it.
-  buffer = frame_buffer ? frame_buffer : image_buffer;
-
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
-  int size = av_image_fill_arrays(
-      output_frame->data, output_frame->linesize,
-      buffer, imagePixFormat, width, height,
-      alignment
-      );
-  if ( size < 0 ) {
-    Error("Problem setting up data pointers into image %s",
-        av_make_error_string(size).c_str());
-  } else {
-    Debug(4, "av_image_fill_array %dx%d alignment: %d = %d, buffer size is %d",
-        width, height, alignment, size, image.Size());
-  }
-  Debug(1, "ffmpegcamera: width %d height %d linesize %d colours %d imagesize %d", width, height, linesize, colours, imagesize);
-  if ( linesize != (unsigned int)output_frame->linesize[0] ) {
-    Error("Bad linesize expected %d got %d", linesize, output_frame->linesize[0]);
-  }
-#else
-  avpicture_fill((AVPicture *)output_frame, buffer,
-      imagePixFormat, width, height);
-#endif
-
-#if HAVE_LIBSWSCALE
-  if ( !mConvertContext ) {
-    mConvertContext = sws_getContext(
-        input_frame->width,
-        input_frame->height,
-        (AVPixelFormat)input_frame->format,
-        width, height,
-        imagePixFormat, SWS_BICUBIC, nullptr,
-        nullptr, nullptr);
-    if ( mConvertContext == nullptr ) {
-      Error("Unable to create conversion context for %s from %s to %s",
-          mPath.c_str(),
-          av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
-          av_get_pix_fmt_name(imagePixFormat)
-          );
-      return -1;
-    }
-    Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
-          input_frame->width, input_frame->height,
-          av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
-          width, height,
-          av_get_pix_fmt_name(imagePixFormat)
-        );
-  }
-
-  int ret =
-      sws_scale(
-        mConvertContext, input_frame->data, input_frame->linesize,
-        0, mVideoCodecContext->height,
-        output_frame->data, output_frame->linesize);
-  if ( ret < 0 ) {
-    Error("Unable to convert format %u %s linesize %d,%d height %d to format %u %s linesize %d,%d at frame %d codec %u %s lines %d: code: %d",
-        input_frame->format, av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
-        input_frame->linesize[0], input_frame->linesize[1], mVideoCodecContext->height,
-        imagePixFormat,
-        av_get_pix_fmt_name(imagePixFormat),
-        output_frame->linesize[0], output_frame->linesize[1],
-        frameCount,
-        mVideoCodecContext->pix_fmt, av_get_pix_fmt_name(mVideoCodecContext->pix_fmt),
-        mVideoCodecContext->height,
-        ret
-        );
-    return -1;
-  }
-  Debug(4, "Able to convert format %u %s linesize %d,%d height %d to format %u %s linesize %d,%d at frame %d codec %u %s %dx%d ",
-      input_frame->format, av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
-      input_frame->linesize[0], input_frame->linesize[1], mVideoCodecContext->height,
-      imagePixFormat,
-      av_get_pix_fmt_name(imagePixFormat),
-      output_frame->linesize[0], output_frame->linesize[1],
-      frameCount,
-      mVideoCodecContext->pix_fmt, av_get_pix_fmt_name(mVideoCodecContext->pix_fmt),
-      output_frame->width,
-      output_frame->height
-      );
-#else  // HAVE_LIBSWSCALE
-  Fatal("You must compile ffmpeg with the --enable-swscale "
-      "option to use ffmpeg cameras");
-#endif  // HAVE_LIBSWSCALE
-  if ( buffer != image_buffer ) {
-    Debug(1, "Copying image-buffer to buffer");
-    // Have to copy contents of image_buffer to directbuffer.
-    // Since linesize isn't the same have to copy line by line
-    uint8_t *image_buffer_ptr = image_buffer;
-    int row_size = output_frame->width * colours;
-    for ( int i = 0; i < output_frame->height; i++ ) {
-      memcpy(image_buffer_ptr, buffer, row_size);
-      image_buffer_ptr += row_size;
-      buffer += output_frame->linesize[0];
-    }
-  }
-  return 0;
-}  // end int FfmpegCamera::transfer_to_image
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   // FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);

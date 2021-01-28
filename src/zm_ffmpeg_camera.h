@@ -50,9 +50,6 @@ class FfmpegCamera : public Camera {
     int alignment;      /* ffmpeg wants line sizes to be 32bit aligned.  Especially 4.3+ */
 
 #if HAVE_LIBAVFORMAT
-    AVFormatContext     *mFormatContext;
-    AVCodec             *mVideoCodec;
-    AVCodec             *mAudioCodec;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
     _AVPIXELFORMAT      imagePixFormat;
@@ -110,18 +107,6 @@ class FfmpegCamera : public Camera {
     int PreCapture();
     int Capture(ZMPacket &p);
     int PostCapture();
-    AVStream *get_VideoStream() { 
-      if ( mVideoStreamId != -1 )
-        return mFormatContext->streams[mVideoStreamId];
-      return nullptr;
-    }
-    AVStream *get_AudioStream() {
-      if ( mAudioStreamId != -1 )
-        return mFormatContext->streams[mAudioStreamId];
-      return nullptr;
-    }
-    AVCodecContext      *get_VideoCodecContext() { return mVideoCodecContext; };
-    AVCodecContext      *get_AudioCodecContext() { return mAudioCodecContext; };
   private:
     static int FfmpegInterruptCallback(void*ctx);
     int transfer_to_image(Image &i, AVFrame *output_frame, AVFrame *input_frame);

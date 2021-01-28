@@ -130,6 +130,17 @@ bool VideoStore::open() {
     if ( monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH ) {
       // Don't care what codec, just copy parameters
       video_out_ctx = avcodec_alloc_context3(nullptr);
+      // There might not be a useful video_in_stream.  v4l in might not populate this very
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
+#else
+      ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
+#endif
+      if ( ret < 0 ) {
+        Error("Could not initialize ctx parameters");
+        return false;
+      }
+      fix_deprecated_pix_fmt(video_out_ctx);
       if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
         video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -142,17 +153,6 @@ bool VideoStore::open() {
         Debug(2,"No timebase found in video in context, defaulting to Q");
         video_out_ctx->time_base = AV_TIME_BASE_Q;
       }
-      // There might not be a useful video_in_stream.  v4l in might not populate this very
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
-#else
-      ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
-#endif
-      if ( ret < 0 ) {
-        Error("Could not initialize ctx parameters");
-        return false;
-      }
-      fix_deprecated_pix_fmt(video_out_ctx);
     } else if ( monitor->GetOptVideoWriter() == Monitor::ENCODE ) {
       int wanted_codec = monitor->OutputCodec();
       if ( !wanted_codec ) {
@@ -241,7 +241,6 @@ bool VideoStore::open() {
         }
 
         if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
-          Warning("Can't open video codec");
           Warning("Can't open video codec (%s) %s",
               video_out_codec->name,
               av_make_error_string(ret).c_str()
@@ -267,11 +266,9 @@ bool VideoStore::open() {
 
         return false;
       } // end if can't open codec
-
-      Debug(2, "Success opening codec");
-      zm_dump_codec(video_out_ctx);
-
     } // end if copying or transcoding
+    Debug(2, "Success opening codec");
+    zm_dump_codec(video_out_ctx);
   }  // end if video_in_stream
 
   video_out_stream = avformat_new_stream(oc, video_out_codec);
@@ -394,7 +391,7 @@ bool VideoStore::open() {
         Error("Unable to copy audio ctx %s",
               av_make_error_string(ret).c_str());
         audio_out_stream = nullptr;
-        return;
+        return false;
       }  // end if
       audio_out_ctx->codec_tag = 0;
 #endif
@@ -498,17 +495,8 @@ void VideoStore::flush_codecs() {
         CODEC_CAP_DELAY
 #endif
         ) ) {
-
+    while ( (ret = zm_send_frame_receive_packet(video_out_ctx, nullptr, pkt) ) > 0 ) {
     // Put encoder into flushing mode
-    avcodec_send_frame(video_out_ctx, nullptr);
-    while (1) {
-      if ( 0 > ( ret = zm_receive_packet(video_out_ctx, pkt) ) ) {
-        if ( AVERROR_EOF != ret ) {
-          Error("Error encoding audio while flushing (%d) (%s)", ret,
-              av_err2str(ret));
-        }
-        break;
-      }
       write_packet(&pkt, video_out_stream);
       zm_av_packet_unref(&pkt);
     } // while have buffered frames

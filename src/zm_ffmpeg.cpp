@@ -594,8 +594,10 @@ int zm_send_packet_receive_frame(
   while ( !frameComplete ) {
     if ( is_video_context(context) ) {
       ret = zm_avcodec_decode_video(context, frame, &frameComplete, &packet);
+      Debug(2, "ret from decode_video %d, framecomplete %d", ret, frameComplete);
     } else {
       ret = avcodec_decode_audio4(context, frame, &frameComplete, &packet);
+      Debug(2, "ret from decode_audio %d, framecomplete %d", ret, frameComplete);
     }
     if ( ret < 0 ) {
       Error("Unable to decode frame: %s", av_make_error_string(ret).c_str());

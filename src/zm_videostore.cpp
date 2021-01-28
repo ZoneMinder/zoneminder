@@ -954,7 +954,7 @@ int VideoStore::writePacket(ZMPacket *ipkt) {
   } else if ( ipkt->packet.stream_index == audio_in_stream_index ) {
     return writeAudioFramePacket(ipkt);
   }
-  Error("Unknown stream type in packet (%d) out input video stream is (%d) and audio is (%d)",
+  Error("Unknown stream type in packet (%d) input video stream is (%d) and audio is (%d)",
       ipkt->packet.stream_index, video_in_stream_index, ( audio_in_stream ? audio_in_stream_index : -1 )
       );
   return 0;

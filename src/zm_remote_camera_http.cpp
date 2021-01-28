@@ -87,7 +87,7 @@ RemoteCameraHttp::RemoteCameraHttp(
   if ( capture ) {
     Initialise();
   }
-  video_stream = NULL;
+  mVideoStream = NULL;
 }
 
 RemoteCameraHttp::~RemoteCameraHttp() {

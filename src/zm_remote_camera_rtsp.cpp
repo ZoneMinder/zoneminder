@@ -157,7 +157,7 @@ int RemoteCameraRtsp::PrimeCapture() {
     if ( is_video_stream(mFormatContext->streams[i]) ) {
       if ( mVideoStreamId == -1 ) {
         mVideoStreamId = i;
-        video_stream = mFormatContext->streams[i];
+        mVideoStream = mFormatContext->streams[i];
         continue;
       } else {
         Debug(2, "Have another video stream.");
@@ -165,7 +165,7 @@ int RemoteCameraRtsp::PrimeCapture() {
     } else if ( is_audio_stream(mFormatContext->streams[i]) ) {
       if ( mAudioStreamId == -1 ) {
         mAudioStreamId = i;
-        audio_stream = mFormatContext->streams[i];
+        mAudioStream = mFormatContext->streams[i];
       } else {
         Debug(2, "Have another audio stream.");
       }

@@ -26,16 +26,10 @@
 #include "zm_regexp.h"
 #include "zm_utils.h"
 
-//
-// Class representing 'http' cameras, i.e. those which are
-// accessed over a network connection using http
-//
 class RemoteCameraNVSocket : public RemoteCamera {
 protected:
   std::string request;
   struct timeval timeout;
-  //struct hostent *hp;
-  //struct sockaddr_in sa;
   int sd;
   Buffer buffer;
 
@@ -60,12 +54,11 @@ public:
   void Terminate() { Disconnect(); }
   int Connect();
   int Disconnect();
-  int SendRequest( std::string );
+  int SendRequest(std::string);
   int GetResponse();
   int PrimeCapture();
-  int Capture( ZMPacket &p );
+  int Capture(ZMPacket &p);
   int PostCapture();
-  AVStream* get_VideoStream();
   int Close() { return 0; };
 };
 

@@ -683,7 +683,7 @@ LocalCamera::LocalCamera(
 #endif
     mVideoStreamId = 0;
     mAudioStreamId = -1;
-    video_stream = nullptr;
+    mVideoStream = nullptr;
 } // end LocalCamera::LocalCamera
 
 LocalCamera::~LocalCamera() {

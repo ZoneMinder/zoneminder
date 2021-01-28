@@ -152,11 +152,13 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     return 0;
   }
   int bytes_consumed = ret;
+  if ( ret > 0 )
+    zm_dump_video_frame(in_frame, "got frame");
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
-  if ( (ctx->sw_pix_fmt != in_frame->format) ) {
+  if ( ctx->sw_pix_fmt != in_frame->format ) {
     Debug(1, "Have different format %s != %s.",
         av_get_pix_fmt_name(ctx->pix_fmt),
         av_get_pix_fmt_name(ctx->sw_pix_fmt)
@@ -220,7 +222,10 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     }
     av_frame_free(&in_frame);
     in_frame = new_frame;
-  } else {
+  } else
+#endif
+#endif
+  {
     Debug(2, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
         av_get_pix_fmt_name(ctx->pix_fmt),
         av_get_pix_fmt_name(ctx->sw_pix_fmt)
@@ -229,8 +234,6 @@ int ZMPacket::decode(AVCodecContext *ctx) {
       image->Assign(in_frame);
     }
   }
-#endif
-#endif
   return bytes_consumed;
 } // end ZMPacket::decode
 

@@ -316,6 +316,7 @@ int FfmpegCamera::OpenFfmpeg() {
     if ( is_video_stream(stream) ) {
       if ( mVideoStreamId == -1 ) {
         mVideoStreamId = i;
+        mVideoStream = mFormatContext->streams[i];
         // if we break, then we won't find the audio stream
         continue;
       } else {
@@ -324,6 +325,7 @@ int FfmpegCamera::OpenFfmpeg() {
     } else if ( is_audio_stream(stream) ) {
       if ( mAudioStreamId == -1 ) {
         mAudioStreamId = i;
+        mAudioStream = mFormatContext->streams[i];
       } else {
         Debug(2, "Have another audio stream.");
       }

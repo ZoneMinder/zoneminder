@@ -113,7 +113,7 @@ public:
   }
 
   virtual AVStream      *get_VideoStream();
-  virtual AVStream      *get_AudioStream() { return nullptr; };
+  virtual AVStream      *get_AudioStream() { return mAudioStream; };
   virtual AVCodecContext     *get_VideoCodecContext() { return mVideoCodecContext; };
   virtual AVCodecContext     *get_AudioCodecContext() { return mAudioCodecContext; };
   int            get_VideoStreamId() { return mVideoStreamId; };

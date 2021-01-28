@@ -47,16 +47,8 @@ class FfmpegCamera : public Camera {
 
     int frameCount;    
   
-    int alignment;      /* ffmpeg wants line sizes to be 32bit aligned.  Especially 4.3+ */
-
-#if HAVE_LIBAVFORMAT
-    AVFrame             *mRawFrame; 
-    AVFrame             *mFrame;
     _AVPIXELFORMAT      imagePixFormat;
 
-    AVFrame             *input_frame;         // Use to point to mRawFrame or hwFrame;
-
-    AVFrame             *hwFrame; // Will also be used to indicate if hwaccel is in use
     bool                use_hwaccel; //will default to on if hwaccel specified, will get turned off if there is a failure
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     AVBufferRef *hw_device_ctx = nullptr;
@@ -70,12 +62,10 @@ class FfmpegCamera : public Camera {
     int OpenFfmpeg();
     int Close();
     bool mCanCapture;
-#endif // HAVE_LIBAVFORMAT
 
 #if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;
 #endif
-    uint8_t *frame_buffer;
 
     int                 error_count;
 
@@ -109,6 +99,5 @@ class FfmpegCamera : public Camera {
     int PostCapture();
   private:
     static int FfmpegInterruptCallback(void*ctx);
-    int transfer_to_image(Image &i, AVFrame *output_frame, AVFrame *input_frame);
 };
 #endif // ZM_FFMPEG_CAMERA_H

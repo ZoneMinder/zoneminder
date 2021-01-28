@@ -3,9 +3,8 @@ Section: net
 Priority: optional
 Maintainer: Isaac Connor <isaac@zoneminder.com>
 Uploaders: Isaac Connor <isaac@zoneminder.com>
-Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree, dh-systemd, dh-apache2
+Build-Depends: debhelper (>= 9), dh-systemd, python3-sphinx, apache2-dev, dh-linktree, dh-systemd, dh-apache2
               ,cmake
-              ,libx264-dev, libmp4v2-dev
               ,libavdevice-dev (>= 6:10~)
               ,libavcodec-dev (>= 6:10~)
               ,libavformat-dev  (>= 6:10~)
@@ -45,7 +44,6 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
-        ,libmp4v2-2, libx264-142|libx264-148|libx264-152|libx264-155
         ,libswscale-ffmpeg3|libswscale4|libswscale3|libswscale5
         ,libswresample2|libswresample3|libswresample24|libswresample-ffmpeg1
         ,ffmpeg | libav-tools
@@ -133,7 +131,7 @@ Package: zoneminder-doc
 Section: doc
 Architecture: all
 Multi-Arch: foreign
-Depends: ${misc:Depends}, ${sphinxdoc:Depends}, python-sphinx-rtd-theme | python3-sphinx-rtd-theme
+Depends: ${misc:Depends}, ${sphinxdoc:Depends}, python3-sphinx-rtd-theme
 Suggests: www-browser
 Description: ZoneMinder documentation
  ZoneMinder is intended for use in single or multi-camera video security

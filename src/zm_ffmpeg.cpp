@@ -591,20 +591,18 @@ int zm_send_packet_receive_frame(
   return packet.size;
 # else
   int frameComplete = 0;
-  while ( !frameComplete ) {
-    if ( is_video_context(context) ) {
-      ret = zm_avcodec_decode_video(context, frame, &frameComplete, &packet);
-      Debug(2, "ret from decode_video %d, framecomplete %d", ret, frameComplete);
-    } else {
-      ret = avcodec_decode_audio4(context, frame, &frameComplete, &packet);
-      Debug(2, "ret from decode_audio %d, framecomplete %d", ret, frameComplete);
-    }
-    if ( ret < 0 ) {
-      Error("Unable to decode frame: %s", av_make_error_string(ret).c_str());
-      return ret;
-    }
-  } // end while !frameComplete
-  return ret;
+  if ( is_video_context(context) ) {
+    ret = zm_avcodec_decode_video(context, frame, &frameComplete, &packet);
+    Debug(2, "ret from decode_video %d, framecomplete %d", ret, frameComplete);
+  } else {
+    ret = avcodec_decode_audio4(context, frame, &frameComplete, &packet);
+    Debug(2, "ret from decode_audio %d, framecomplete %d", ret, frameComplete);
+  }
+  if ( ret < 0 ) {
+    Error("Unable to decode frame: %s", av_make_error_string(ret).c_str());
+    return ret;
+  }
+  return frameComplete ? ret : 0;
 #endif
 } // end int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 

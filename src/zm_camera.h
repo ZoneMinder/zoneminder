@@ -58,8 +58,8 @@ protected:
   int                 mAudioStreamId;
   AVCodecContext      *mVideoCodecContext;
   AVCodecContext      *mAudioCodecContext;
-  AVStream *video_stream;
-  AVStream *audio_stream;
+  AVStream *mVideoStream;
+  AVStream *mAudioStream;
   AVFormatContext *mFormatContext;
   unsigned int  bytes;
 

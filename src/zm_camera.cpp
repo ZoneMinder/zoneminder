@@ -51,8 +51,8 @@ Camera::Camera(
     mAudioStreamId(-1),
     mVideoCodecContext(nullptr),
     mAudioCodecContext(nullptr),
-    video_stream(nullptr),
-    audio_stream(nullptr),
+    mVideoStream(nullptr),
+    mAudioStream(nullptr),
     mFormatContext(nullptr),
     bytes(0)
 {
@@ -68,8 +68,8 @@ Camera::~Camera() {
   if ( mFormatContext ) {
     // Should also free streams
     avformat_free_context(mFormatContext);
-    video_stream = nullptr;
-    audio_stream = nullptr;
+    mVideoStream = nullptr;
+    mAudioStream = nullptr;
   }
 }
 
@@ -85,30 +85,30 @@ void Camera::setMonitor(Monitor *p_monitor) {
 }
 
 AVStream *Camera::get_VideoStream() {
-  if ( !video_stream ) {
+  if ( !mVideoStream ) {
     if ( !mFormatContext )
       mFormatContext = avformat_alloc_context();
     Debug(1, "Allocating avstream");
-    video_stream = avformat_new_stream(mFormatContext, nullptr);
-    if ( video_stream ) {
-      video_stream->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
+    mVideoStream = avformat_new_stream(mFormatContext, nullptr);
+    if ( mVideoStream ) {
+      mVideoStream->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      video_stream->codecpar->width = width;
-      video_stream->codecpar->height = height;
-      video_stream->codecpar->format = GetFFMPEGPixelFormat(colours, subpixelorder);
-      video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
-      video_stream->codecpar->codec_id = AV_CODEC_ID_NONE;
-    Debug(1, "Allocating avstream %p %p %d", video_stream, video_stream->codecpar, video_stream->codecpar->codec_id);
+      mVideoStream->codecpar->width = width;
+      mVideoStream->codecpar->height = height;
+      mVideoStream->codecpar->format = GetFFMPEGPixelFormat(colours, subpixelorder);
+      mVideoStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+      mVideoStream->codecpar->codec_id = AV_CODEC_ID_NONE;
+    Debug(1, "Allocating avstream %p %p %d", mVideoStream, mVideoStream->codecpar, mVideoStream->codecpar->codec_id);
 #else
-      video_stream->codec->width = width;
-      video_stream->codec->height = height;
-      video_stream->codec->pix_fmt = GetFFMPEGPixelFormat(colours, subpixelorder);
-      video_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
-      video_stream->codec->codec_id = AV_CODEC_ID_NONE;
+      mVideoStream->codec->width = width;
+      mVideoStream->codec->height = height;
+      mVideoStream->codec->pix_fmt = GetFFMPEGPixelFormat(colours, subpixelorder);
+      mVideoStream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+      mVideoStream->codec->codec_id = AV_CODEC_ID_NONE;
 #endif
     } else {
       Error("Can't create video stream");
     }
   }
-  return video_stream;
+  return mVideoStream;
 }

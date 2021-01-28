@@ -225,7 +225,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   } else
 #endif
 #endif
-  {
+  if ( ret > 0 ) {
     Debug(2, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
         av_get_pix_fmt_name(ctx->pix_fmt),
         av_get_pix_fmt_name(ctx->sw_pix_fmt)

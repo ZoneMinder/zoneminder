@@ -56,6 +56,8 @@ function validateForm( form ) {
       errors[errors.length] = "<?php echo translate('BadChannel') ?>";
     if ( !form.elements['newMonitor[Format]'].value || !form.elements['newMonitor[Format]'].value.match( /^\d+$/ ) )
       errors[errors.length] = "<?php echo translate('BadFormat') ?>";
+    if ( form.elements['newMonitor[VideoWriter]'].value == 2 /* Passthrough */ )
+      errors[errors.length] = "<?php echo translate('BadPassthrough') ?>";
   } else if ( form.elements['newMonitor[Type]'].value == 'Remote' ) {
     //if ( !form.elements['newMonitor[Host]'].value || !form.elements['newMonitor[Host]'].value.match( /^[0-9a-zA-Z_.:@-]+$/ ) )
       //errors[errors.length] = "<?php echo translate('BadHost') ?>";
@@ -63,6 +65,8 @@ function validateForm( form ) {
       errors[errors.length] = "<?php echo translate('BadPort') ?>";
     //if ( !form.elements['newMonitor[Path]'].value )
       //errors[errors.length] = "<?php echo translate('BadPath') ?>";
+    if ( form.elements['newMonitor[VideoWriter]'].value == 2 /* Passthrough */ )
+      errors[errors.length] = "<?php echo translate('BadPassthrough') ?>";
   } else if ( form.elements['newMonitor[Type]'].value == 'Ffmpeg' ) {
     if ( !form.elements['newMonitor[Path]'].value )
 //|| !form.elements['newMonitor[Path]'].value.match( /^\d+$/ ) ) // valid url
@@ -71,6 +75,8 @@ function validateForm( form ) {
   } else if ( form.elements['newMonitor[Type]'].value == 'File' ) {
     if ( !form.elements['newMonitor[Path]'].value )
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
+    if ( form.elements['newMonitor[VideoWriter]'].value == 2 /* Passthrough */ )
+      errors[errors.length] = "<?php echo translate('BadPassthrough') ?>";
   } else if ( form.elements['newMonitor[Type]'].value == 'WebSite' ) {
     if ( form.elements['newMonitor[Function]'].value != 'Monitor' && form.elements['newMonitor[Function]'].value != 'None')
       errors[errors.length] = "<?php echo translate('BadSourceType') ?>";

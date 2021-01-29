@@ -402,7 +402,7 @@ int RtspThread::run() {
   
   if ( mFormatContext->nb_streams >= 1 ) {
     for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {
-      SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream( i );
+      SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream(i);
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
       if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
@@ -414,7 +414,7 @@ int RtspThread::run() {
         if ( std::equal(trackUrl.begin(), trackUrl.end(), controlUrl.begin()) ) {
           trackUrl = controlUrl;
         } else {
-          if ( *trackUrl.rbegin() != '/') {
+          if ( *trackUrl.rbegin() != '/' ) {
             trackUrl += "/" + controlUrl;
           } else {
             trackUrl += controlUrl;
@@ -432,7 +432,8 @@ int RtspThread::run() {
       localPorts[0] = requestPorts();
       localPorts[1] = localPorts[0]+1;
 
-      message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;unicast;client_port="+stringtf( "%d", localPorts[0] )+"-"+stringtf( "%d", localPorts[1] )+"\r\n";
+      message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;unicast;client_port="
+        +stringtf("%d", localPorts[0] )+"-"+stringtf( "%d", localPorts[1])+"\r\n";
       break;
     case RTP_MULTICAST :
       message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;multicast\r\n";
@@ -442,7 +443,7 @@ int RtspThread::run() {
       message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP/TCP;unicast\r\n";
       break;
     default:
-      Panic( "Got unexpected method %d", mMethod );
+      Panic("Got unexpected method %d", mMethod);
       break;
   }
 
@@ -457,11 +458,11 @@ int RtspThread::run() {
   char transport[256] = "";
 
   for ( size_t i = 0; i < lines.size(); i++ ) {
-    if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) ) {
-      StringVector sessionLine = split( lines[i].substr(9), ";" );
-      session = trimSpaces( sessionLine[0] );
+    if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) ) {
+      StringVector sessionLine = split(lines[i].substr(9), ";");
+      session = trimSpaces(sessionLine[0]);
       if ( sessionLine.size() == 2 )
-        sscanf( trimSpaces( sessionLine[1] ).c_str(), "timeout=%d", &timeout );
+        sscanf(trimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
     }
     sscanf(lines[i].c_str(), "Transport: %s", transport);
   }

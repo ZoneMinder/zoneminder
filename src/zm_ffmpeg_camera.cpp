@@ -340,19 +340,8 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(3, "Found video stream at index %d, audio stream at index %d",
       mVideoStreamId, mAudioStreamId);
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  mVideoCodecContext = avcodec_alloc_context3(nullptr);
-  avcodec_parameters_to_context(mVideoCodecContext,
-      mFormatContext->streams[mVideoStreamId]->codecpar);
-#else
-  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
-#endif
-#ifdef CODEC_FLAG2_FAST
-  mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
-#endif
-
   AVCodec *mVideoCodec = nullptr;
-  if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
+  if ( mVideoStream->codecpar->codec_id == AV_CODEC_ID_H264 ) {
     if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == nullptr ) {
       Debug(1, "Failed to find decoder (h264_mmal)");
     } else {
@@ -361,13 +350,24 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   if ( !mVideoCodec ) {
-    mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id);
+    mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
     if ( !mVideoCodec ) {
       // Try and get the codec from the codec context
       Error("Can't find codec for video stream from %s", mPath.c_str());
       return -1;
     }
   }
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
+  avcodec_parameters_to_context(mVideoCodecContext,
+      mFormatContext->streams[mVideoStreamId]->codecpar);
+#else
+  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
+#endif
+#ifdef CODEC_FLAG2_FAST
+  mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
+#endif
 
   zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
 

@@ -79,12 +79,12 @@ VideoStore::VideoStore(
   converted_in_samples(nullptr),
   filename(filename_in),
   format(format_in),
-  video_start_pts(0),
-  video_first_pts(0),
+  video_first_pts(0), /* starting pts of first in frame/packet */
   video_first_dts(0),
-
   audio_first_pts(0),
   audio_first_dts(0),
+  video_last_pts(AV_NOPTS_VALUE),
+  audio_last_pts(AV_NOPTS_VALUE),
   next_dts(nullptr),
   audio_next_pts(0),
   max_stream_index(-1)
@@ -125,6 +125,7 @@ bool VideoStore::open() {
   out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
 
   if ( video_in_stream ) {
+    zm_dump_codecpar(video_in_stream->codecpar);
     video_in_stream_index = video_in_stream->index;
 
     if ( monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH ) {
@@ -266,8 +267,8 @@ bool VideoStore::open() {
 
         return false;
       } // end if can't open codec
+      Debug(2, "Success opening codec");
     } // end if copying or transcoding
-    Debug(2, "Success opening codec");
     zm_dump_codec(video_out_ctx);
   }  // end if video_in_stream
 
@@ -1020,16 +1021,16 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     zm_packet->out_frame->pkt_duration = 0;
 #endif
 
-    if ( !video_start_pts ) {
-      video_start_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
-      Debug(2, "No video_start_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
-          video_start_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
+    if ( !video_first_pts ) {
+      video_first_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
+      Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
+          video_first_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
       zm_packet->out_frame->pts = 0;
     } else {
-      uint64_t useconds = ( zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_start_pts;
+      uint64_t useconds = ( zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_first_pts;
       zm_packet->out_frame->pts = av_rescale_q(useconds, video_in_stream->time_base, video_out_ctx->time_base);
       Debug(2, " Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
-          frame_count, zm_packet->out_frame->pts, video_start_pts, useconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
+          frame_count, zm_packet->out_frame->pts, video_first_pts, useconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
     }
 
     av_init_packet(&opkt);
@@ -1040,8 +1041,6 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     if ( ret <= 0 ) {
       if ( ret < 0 ) {
         Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
-      } else {
-        Debug(2, "Could not send frame/receive pkt. Not error.");
       }
       return ret;
     }
@@ -1052,6 +1051,12 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
       opkt.pts = av_rescale_q(opkt.pts, video_out_ctx->time_base, video_out_stream->time_base);
     if ( opkt.dts != AV_NOPTS_VALUE )
       opkt.dts = av_rescale_q(opkt.dts, video_out_ctx->time_base, video_out_stream->time_base);
+    Debug(1, "Timebase conversions using %d/%d -> %d/%d",
+        video_out_ctx->time_base.num,
+        video_out_ctx->time_base.den,
+        video_out_stream->time_base.num,
+        video_out_stream->time_base.den);
+
 
     int64_t duration = 0;
     if ( zm_packet->in_frame ) {
@@ -1069,7 +1074,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
             video_out_stream->time_base.num,
             video_out_stream->time_base.den
             );
-      } else {
+      } else if ( video_last_pts != AV_NOPTS_VALUE ) {
         duration =
           av_rescale_q(
               zm_packet->in_frame->pts - video_last_pts,
@@ -1085,6 +1090,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
           duration = zm_packet->in_frame->pkt_duration ? zm_packet->in_frame->pkt_duration : av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
         }
       }  // end if in_frmae->pkt_duration
+      video_last_pts = zm_packet->in_frame->pts;
     } else {
       //duration = av_rescale_q(zm_packet->out_frame->pts - video_last_pts, video_in_stream->time_base, video_out_stream->time_base);
     }  // end if in_frmae

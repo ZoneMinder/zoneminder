@@ -70,7 +70,7 @@ xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
       </div>
 
       <div>
-        <h2><?php echo validHtmlStr($monitor->Name()) ?></h2>
+        <h2><?php echo makeLink('?view=monitor&amp;mid='.$monitor->Id(), validHtmlStr($monitor->Name()), canEdit('Monitors')) ?></h2>
       </div>
 
       <div>

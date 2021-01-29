@@ -977,7 +977,19 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
         return 0;
       }
 
-      if ( !zm_packet->in_frame ) {
+      if ( zm_packet->image ) {
+        Debug(2, "Have an image, convert it");
+        //Go straight to out frame
+        swscale.Convert(
+            zm_packet->image, 
+            zm_packet->buffer,
+            zm_packet->codec_imgsize,
+            zm_packet->image->AVPixFormat(),
+            video_out_ctx->pix_fmt,
+            video_out_ctx->width,
+            video_out_ctx->height
+            );
+      } else if ( !zm_packet->in_frame ) {
         Debug(4, "Have no in_frame");
         if ( zm_packet->packet.size ) {
           Debug(4, "Decoding");
@@ -987,18 +999,6 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
           }
           // Go straight to out frame
           swscale.Convert(zm_packet->in_frame, out_frame);
-        } else if ( zm_packet->image ) {
-          Debug(2, "Have an image, convert it");
-          //Go straight to out frame
-          swscale.Convert(
-              zm_packet->image, 
-              zm_packet->buffer,
-              zm_packet->codec_imgsize,
-              zm_packet->image->AVPixFormat(),
-              video_out_ctx->pix_fmt,
-              video_out_ctx->width,
-              video_out_ctx->height
-              );
 
         } else {
           Error("Have neither in_frame or image in packet %p %d!",

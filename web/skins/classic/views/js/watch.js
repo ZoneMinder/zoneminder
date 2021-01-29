@@ -128,7 +128,7 @@ function changeScale() {
   }
 } // end function changeScale
 
-function setAlarmState( currentAlarmState ) {
+function setAlarmState(currentAlarmState) {
   alarmState = currentAlarmState;
 
   var stateClass = '';
@@ -316,7 +316,7 @@ function getStreamCmdResponse(respObj, respText) {
   streamCmdTimer = setTimeout(streamCmdQuery, streamCmdTimeout);
 }
 
-function streamCmdPause( action ) {
+function streamCmdPause(action) {
   setButtonState('pauseBtn', 'active');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
@@ -334,7 +334,7 @@ function streamCmdPause( action ) {
   }
 }
 
-function streamCmdPlay( action ) {
+function streamCmdPlay(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'active');
   if ( streamStatus.delayed == true ) {
@@ -370,7 +370,7 @@ function streamCmdReq(data) {
   streamCmdTimer = null;
 }
 
-function streamCmdStop( action ) {
+function streamCmdStop(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'unavail');
   setButtonState('stopBtn', 'active');
@@ -390,7 +390,7 @@ function streamCmdStop( action ) {
   setButtonState('playBtn', 'active');
 }
 
-function streamCmdFastFwd( action ) {
+function streamCmdFastFwd(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
@@ -408,7 +408,7 @@ function streamCmdFastFwd( action ) {
   }
 }
 
-function streamCmdSlowFwd( action ) {
+function streamCmdSlowFwd(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
@@ -430,7 +430,7 @@ function streamCmdSlowFwd( action ) {
   }
 }
 
-function streamCmdSlowRev( action ) {
+function streamCmdSlowRev(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
@@ -452,7 +452,7 @@ function streamCmdSlowRev( action ) {
   }
 }
 
-function streamCmdFastRev( action ) {
+function streamCmdFastRev(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
@@ -682,7 +682,6 @@ function fetchImage( streamImage ) {
 }
 
 function handleClick( event ) {
-  console.log(event);
   // target should be the img tag
   var target = event.target;
   var width = $j(target).width();
@@ -714,7 +713,7 @@ function appletRefresh() {
     if ( streamImg ) {
       var parent = streamImg.parent();
       streamImg.remove();
-      streamImg.append( parent );
+      streamImg.append(parent);
     } else {
       console.error("Nothing found for liveStream"+monitorId);
     }
@@ -722,7 +721,7 @@ function appletRefresh() {
       setTimeout(appletRefresh, appletRefreshTime*1000);
     }
   } else {
-    setTimeout(appletRefresh, 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
+    setTimeout(appletRefresh, 15*1000); // if we are paused or delayed check every 15 seconds if we are live yet...
   }
 }
 
@@ -756,7 +755,7 @@ function reloadWebSite() {
 }
 
 function updatePresetLabels() {
-  var lblNdx = $j( '#ctrlPresetForm option:selected' ).val();
+  var lblNdx = $j('#ctrlPresetForm option:selected').val();
 
   $j('#newLabel').val(labels[lblNdx]);
 }
@@ -832,7 +831,7 @@ function msieVer() {
   var ua = window.navigator.userAgent;
   var msie = ua.indexOf("MSIE ");
 
-  if (msie >= 0) { // If Internet Explorer, return version number
+  if ( msie >= 0 ) { // If Internet Explorer, return version number
     return msie;
   } else { // If another browser, return 0
     return 0;

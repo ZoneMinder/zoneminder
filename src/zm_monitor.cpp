@@ -1999,7 +1999,7 @@ bool Monitor::Analyse() {
                     if ( !p ) break;
                     event->AddPacket(p);
                     p->unlock();
-                    start_it ++;
+                    packetqueue->increment_it(start_it);
                   }
                 } else {
                   // Create event from current snap

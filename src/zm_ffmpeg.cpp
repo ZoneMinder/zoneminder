@@ -611,7 +611,7 @@ int zm_send_packet_receive_frame(
 int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
   int ret;
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    if ( (ret = avcodec_send_frame(ctx, frame)) < 0 ) {
+    if ( ( (ret = avcodec_send_frame(ctx, frame)) < 0 ) and frame ) {
       Error("Could not send frame (error '%s')",
             av_make_error_string(ret).c_str());
       return ret;

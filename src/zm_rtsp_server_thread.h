@@ -11,8 +11,7 @@
 
 #include <BasicUsageEnvironment.hh>
 #include <RTSPServer.hh>
-#include <libavcodec/codec_id.h>
-#include <libavformat/avformat.h>
+#include "zm_ffmpeg.h"
 
 class RTSPServerThread : public Thread {
   private:

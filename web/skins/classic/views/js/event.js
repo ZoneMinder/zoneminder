@@ -837,7 +837,14 @@ function getStat() {
 
 function onStatsResize(vidwidth) {
   var minWidth = 300; // An arbitrary value in pixels used to hide the stats table
+  var scale = $j('#scale').val();
+
+  if ( parseInt(scale) ) {
+    vidWidth = vidWidth * (scale/100);
+  }
+
   var width = $j(window).width() - vidwidth;
+  //console.log("Width: " + width + " = window.width " + $j(window).width() + "- vidWidth" + vidwidth);
 
   // Hide the stats table if we have run out of room to show it properly
   if ( width < minWidth ) {

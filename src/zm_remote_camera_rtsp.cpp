@@ -158,10 +158,12 @@ int RemoteCameraRtsp::PrimeCapture() {
       if ( mVideoStreamId == -1 ) {
         mVideoStreamId = i;
         mVideoStream = mFormatContext->streams[i];
+        mVideoStream->time_base = AV_TIME_BASE_Q;
         continue;
       } else {
         Debug(2, "Have another video stream.");
       }
+#if 0
     } else if ( is_audio_stream(mFormatContext->streams[i]) ) {
       if ( mAudioStreamId == -1 ) {
         mAudioStreamId = i;
@@ -169,6 +171,7 @@ int RemoteCameraRtsp::PrimeCapture() {
       } else {
         Debug(2, "Have another audio stream.");
       }
+#endif
     } else {
       Debug(1, "Have unknown codec type in stream %d", i);
     }
@@ -230,6 +233,7 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
     Debug(1, "Allocating image %dx%d %d colours %d", width, height, colours, subpixelorder);
     zm_packet.image = new Image(width, height, colours, subpixelorder);
   }
+
   
   while ( !frameComplete ) {
     buffer.clear();
@@ -275,6 +279,10 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
         packet->size = buffer.size();
         bytes += packet->size;
 
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        packet->pts = packet->dts = now.tv_sec*1000000+now.tv_usec;
+
         int bytes_consumed = zm_packet.decode(mVideoCodecContext);
         if ( bytes_consumed < 0 ) {
           Error("Error while decoding frame %d", frameCount);
@@ -282,12 +290,12 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
         }
         buffer -= packet->size;
         if ( bytes_consumed ) {
+          zm_dump_video_frame(zm_packet.in_frame, "remote_rtsp_decode");
           if ( ! mVideoStream->codecpar->width ) {
             zm_dump_codec(mVideoCodecContext);
             zm_dump_codecpar(mVideoStream->codecpar);
             mVideoStream->codecpar->width = zm_packet.in_frame->width;
             mVideoStream->codecpar->height = zm_packet.in_frame->height;
-            mVideoStream->time_base = mVideoCodecContext->time_base;
             zm_dump_codecpar(mVideoStream->codecpar);
           }
           zm_packet.codec_type = mVideoCodecContext->codec_type;

@@ -132,7 +132,11 @@ void ZMPacket::reset() {
   keyframe = 0;
 }
 
-/* returns < 0 on error, 0 on not ready, int bytes consumed on success */
+/* returns < 0 on error, 0 on not ready, int bytes consumed on success 
+ * This functions job is to populate in_frame with the image in an appropriate
+ * format. It MAY also populate image if able to.  In this case in_frame is populated
+ * by the image buffer.  
+ */
 int ZMPacket::decode(AVCodecContext *ctx) {
   Debug(4, "about to decode video, image_index is (%d)", image_index);
 
@@ -163,7 +167,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
         av_get_pix_fmt_name(ctx->pix_fmt),
         av_get_pix_fmt_name(ctx->sw_pix_fmt)
         );
-
+#if 0
     if ( target_format == AV_PIX_FMT_NONE and ctx->hw_frames_ctx and (image->Colours() == 4) ) {
       // Look for rgb0 in list of supported formats
       enum AVPixelFormat *formats;
@@ -186,24 +190,22 @@ int ZMPacket::decode(AVCodecContext *ctx) {
         av_freep(&formats);
       }  // endif success getting list of formats
     }  // end if target_format not set
+#endif
 
     AVFrame *new_frame = zm_av_frame_alloc();
-
-    if ( target_format != AV_PIX_FMT_NONE ) {
-      if ( 1 and image ) {
+#if 0
+    if ( target_format == AV_PIX_FMT_RGB0 ) {
+      if ( image ) {
         if ( 0 > image->PopulateFrame(new_frame) ) {
           delete new_frame;
           new_frame = zm_av_frame_alloc();
           delete image;
           image = nullptr;
+          new_frame->format = target_format;
         }
-      } else {
-        delete image;
-        image = nullptr;
       }
-
-      new_frame->format = target_format;
     }
+#endif
     /* retrieve data from GPU to CPU */
     zm_dump_video_frame(in_frame, "Before hwtransfer");
     ret = av_hwframe_transfer_data(new_frame, in_frame, 0);
@@ -216,10 +218,12 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     }
     new_frame->pts = in_frame->pts;
     zm_dump_video_frame(new_frame, "After hwtransfer");
+#if 0
     if ( new_frame->format == AV_PIX_FMT_RGB0 ) {
       new_frame->format = AV_PIX_FMT_RGBA;
       zm_dump_video_frame(new_frame, "After hwtransfer setting to rgba");
     }
+#endif
     av_frame_free(&in_frame);
     in_frame = new_frame;
   } else
@@ -230,9 +234,11 @@ int ZMPacket::decode(AVCodecContext *ctx) {
         av_get_pix_fmt_name(ctx->pix_fmt),
         av_get_pix_fmt_name(ctx->sw_pix_fmt)
         );
+#if 0
     if ( image ) {
       image->Assign(in_frame);
     }
+#endif
   }
   return bytes_consumed;
 } // end ZMPacket::decode

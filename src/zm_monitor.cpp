@@ -2537,7 +2537,7 @@ int Monitor::Capture() {
             // Allocate the image first so that it can be used by hwaccel
             // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
             //
-            capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
+            //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
             int ret = packet->decode(camera->get_VideoCodecContext());
             if ( ret < 0 ) {
               Error("decode failed");
@@ -2556,8 +2556,6 @@ int Monitor::Capture() {
       } // end if need to decode
 
       if ( packet->image ) {
-        //image_buffer[index].image);
-        //packet->image_index = index;
 
         /* Deinterlacing */
         if ( deinterlacing_value ) {

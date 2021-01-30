@@ -733,10 +733,10 @@ function getAccountCircleHTML($skin, $user=null) {
   $result = '';
   
   if ( ZM_OPT_USE_AUTH and $user ) {
-    $result .= '<p id="getAccountCircleHTML" class="navbar-text navbar-nav mr-2">'.PHP_EOL;
+    $result .= '<li id="getAccountCircleHTML" class="navbar-text navbar-nav mr-2">'.PHP_EOL;
     $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  $user['Username'],
       (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
-    $result .= '</p>'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
   }
   
   return $result;
@@ -748,21 +748,21 @@ function getStatusBtnHTML($status) {
   
   if ( canEdit('System') ) {
     //$result .= '<li class="nav-item dropdown">'.PHP_EOL;
-    $result .= '<form id="getStatusBtnHTML" class="form-inline">'.PHP_EOL;
+    $result .= '<li id="getStatusBtnHTML">'.PHP_EOL;
     $result .= '<button type="button" class="btn btn-default navbar-btn" id="stateModalBtn">' .$status. '</button>'.PHP_EOL;
-    $result .= '</form>'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
     //$result .= '</li>'.PHP_EOL;
 
     if ( ZM_SYSTEM_SHUTDOWN ) {
-      $result .= '<div class="navbar-text pr-2 align-self-center">'.PHP_EOL;
+      $result .= '<li class="navbar-text pr-2 align-self-center">'.PHP_EOL;
       $result .= '<button class="btn btn-outline" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate("Shutdown"). '" ><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
-      $result .= '</div>'.PHP_EOL;
+      $result .= '</li>'.PHP_EOL;
      } 
 
   } else if ( canView('System') ) {
-    $result .= '<p id="getStatusBtnHTML" class="navbar-text">'.PHP_EOL;
+    $result .= '<li id="getStatusBtnHTML" class="navbar-text">'.PHP_EOL;
     $result .= $status.PHP_EOL;
-    $result .= '</p>'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
   }
   
   return $result;

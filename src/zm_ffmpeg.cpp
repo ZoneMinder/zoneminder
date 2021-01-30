@@ -622,7 +622,8 @@ int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &
         // The codec may need more samples than it has, perfectly valid
         Debug(2, "Codec not ready to give us a packet");
         return 0;
-      } else {
+      } else if ( frame ) {
+        // May get EOF if frame is NULL because it signals flushing
         Error("Could not recieve packet (error %d = '%s')", ret,
               av_make_error_string(ret).c_str());
       }

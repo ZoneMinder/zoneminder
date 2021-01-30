@@ -391,7 +391,7 @@ echo getNavBarHTML();
 
   <div class="row flex-nowrap">
     <nav>  <!-- BEGIN PILL LIST -->
-    <ul class="nav nav-pills flex-column h-100" id="pills-tab" role="tabList" aria-orientation="vertical">
+    <ul class="nav nav-pills flex-column h-100" id="pills-tab" role="tablist" aria-orientation="vertical">
 <?php
 $tabs = array();
 $tabs['general'] = translate('General');
@@ -843,34 +843,40 @@ include('_monitor_source_nvsocket.php');
           <td>
             <input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" min="1"/>
             <input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" min="1"/>
-<?php echo htmlselect('dimensions_select', array(
-  ''=>translate('Custom'),
-  '176x120'=>'176x120 QCIF',
-  '176x144'=>'176x14',
-  '320x240'=>'320x240',
-  '320x200'=>'320x200',
-  '352x240'=>'352x240 CIF',
-  '352x480'=>'352x480',
-  '640x360'=>'640x360',
-  '640x400'=>'640x400',
-  '640x480'=>'640x480',
-  '704x240'=>'704x240 2CIF',
-  '704x480'=>'704x480 4CIF',
-  '704x576'=>'704x576 D1 PAL',
-  '720x480'=>'720x480 Full D1 NTSC',
-  '720x576'=>'720x576 Full D1 PAL',
-  '1280x720'=>'1280x720 720p',
-  '1280x800'=>'1280x800',
-  '1280x960'=>'1280x960 960p',
-  '1280x1024'=>'1280x1024 1MP',
-  '1600x1200'=>'1600x1200 2MP',
-  '1920x1080'=>'1920x1080 1080p',
-  '2048x1536'=>'2048x1536 3MP',
-  '2560x1440'=>'2560x1440 1440p QHD WQHD',
-  '2592x1944'=>'2592x1944 5MP',
-  '3840x2160'=>'3840x2160 4K UHD',
-), $monitor->Width().'x'.$monitor->Height()
-);
+<?php 
+        $resolutions =  
+          array(
+            ''=>translate('Custom'),
+            '176x120'=>'176x120 QCIF',
+            '176x144'=>'176x14',
+            '320x240'=>'320x240',
+            '320x200'=>'320x200',
+            '352x240'=>'352x240 CIF',
+            '352x480'=>'352x480',
+            '640x360'=>'640x360',
+            '640x400'=>'640x400',
+            '640x480'=>'640x480',
+            '704x240'=>'704x240 2CIF',
+            '704x480'=>'704x480 4CIF',
+            '704x576'=>'704x576 D1 PAL',
+            '720x480'=>'720x480 Full D1 NTSC',
+            '720x576'=>'720x576 Full D1 PAL',
+            '1280x720'=>'1280x720 720p',
+            '1280x800'=>'1280x800',
+            '1280x960'=>'1280x960 960p',
+            '1280x1024'=>'1280x1024 1MP',
+            '1600x1200'=>'1600x1200 2MP',
+            '1920x1080'=>'1920x1080 1080p',
+            '2048x1536'=>'2048x1536 3MP',
+            '2560x1440'=>'2560x1440 1440p QHD WQHD',
+            '2592x1944'=>'2592x1944 5MP',
+            '3840x2160'=>'3840x2160 4K UHD',
+          );
+        $selected = $monitor->Width().'x'.$monitor->Height();
+        if ( ! ($monitor->Width() and $monitor->Height()) ) {
+          $resolutions[$selected] = $selected;
+        }
+        echo htmlselect('dimensions_select', $resolutions, $selected);
 ?>
           </td>
         </tr>

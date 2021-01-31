@@ -2515,7 +2515,7 @@ int Monitor::Capture() {
           packet->packet.stream_index, video_stream_id, packetqueue->packet_count(video_stream_id), ( event ? 1 : 0 ) );
       //packet->unlock();
 
-      if ( packet->packet.stream_index != video_stream_id and ! packet->image ) {
+      if ( (packet->packet.stream_index != video_stream_id) and ! packet->image ) {
         // Only queue if we have some video packets in there. Should push this logic into packetqueue
         if ( packetqueue->packet_count(video_stream_id) or event ) {
           Debug(2, "Queueing audio packet");
@@ -2596,8 +2596,8 @@ int Monitor::Capture() {
         }
 
         if ( config.timestamp_on_capture ) {
-          TimestampImage(packet->image, packet->timestamp);
           Debug(1, "Timestampprivacy");
+          TimestampImage(packet->image, packet->timestamp);
         }
 
         if ( !ref_image.Buffer() ) {
@@ -2606,12 +2606,11 @@ int Monitor::Capture() {
           ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
               packet->image->Buffer(), camera->ImageSize());
         }
-        image_buffer[index].image->Assign(*packet->image);
+        image_buffer[index].image->Assign(*(packet->image));
         *(image_buffer[index].timestamp) = *(packet->timestamp);
       }  // end if have image
-      // FIXME Copy to shmem
 
-      shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
+      shared_data->signal = ( capture_image and signal_check_points ) ? CheckSignal(capture_image) : true;
       shared_data->last_write_index = index;
       shared_data->last_write_time = packet->timestamp->tv_sec;
       image_count++;
@@ -2620,7 +2619,8 @@ int Monitor::Capture() {
         Debug(2, "Have video packet for image index (%d), adding to queue", index);
         packetqueue->queuePacket(packet);
       } else {
-        Debug(2, "Not queuing video packet for index (%d) packet count %d", index, packetqueue->packet_count(video_stream_id));
+        Debug(2, "Not queuing video packet for index (%d) packet count %d",
+            index, packetqueue->packet_count(video_stream_id));
         delete packet;
       }
       UpdateCaptureFPS();

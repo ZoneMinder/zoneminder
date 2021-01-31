@@ -97,10 +97,10 @@ if ( $streamMode == 'jpeg' ) {
         <div id="monitorState">
           <?php echo translate('State') ?>:
           <span id="stateValue"></span> -
-          <span id="fpsValue" title="<?php echo translate('Viewing FPS')?>"></span> fps
-          <span id="capturefpsValue" title="<?php echo translate('Capturing FPS')?>"></span> fps
+          <span title="<?php echo translate('Viewing FPS')?>"><span id="fpsValue"></span> fps</span>
+          <span title="<?php echo translate('Capturing FPS')?>"><span id="capturefpsValue"></span> fps</span>
           <?php if ( $monitor->Function() == 'Modect' or $monitor->Function() == 'Mocord' ) { ?>
-          <span id="analysisfpsValue" title="<?php echo translate('Analysis FPS')?>"></span> fps
+          <span title="<?php echo translate('Analysis FPS')?>"><span id="analysisfpsValue"></span> fps</span>
           <?php } ?>
         </div>
       </div>

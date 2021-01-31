@@ -1105,6 +1105,13 @@ Monitor::~Monitor() {
 
   delete camera;
   delete storage;
+  if ( n_linked_monitors ) {
+    for ( int i=0; i < n_linked_monitors; i++ ) {
+      delete linked_monitors[i];
+    }
+    delete[] linked_monitors;
+    linked_monitors = nullptr;
+  }
 }  // end Monitor::~Monitor()
 
 void Monitor::AddZones(int p_n_zones, Zone *p_zones[]) {

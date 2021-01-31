@@ -17,6 +17,7 @@
 }
 .ptzControls .pantiltPanel button {
   border: none;
+  margin: 0;
 }
 
 .ptzControls .controlsPanel {

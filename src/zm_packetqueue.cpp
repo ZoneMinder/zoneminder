@@ -140,6 +140,9 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
           ++iterators_it
           ) {
         packetqueue_iterator *iterator_it = *iterators_it;
+        if ( *iterator_it == pktQueue.end() ) {
+          continue;
+        }
         // Have to check each iterator and make sure it doesn't point to the packet we are about to delete
         if ( *(*iterator_it) == zm_packet ) {
           Debug(4, "Found IT at beginning of queue. Threads not keeping up");

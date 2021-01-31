@@ -50,7 +50,7 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderDeviceSource::spli
         break;
 			case 8:
         Debug(1, "PPS_Size: %d bufSize %d", size, bufSize);
-        m_pps.assign((char*)buffer,size);
+        m_pps.assign((char*)buffer, size);
         break;
 			case 5:
         Debug(1, "IDR_Size: %d bufSize %d", size, bufSize);

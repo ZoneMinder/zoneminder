@@ -241,7 +241,7 @@ int Image::PopulateFrame(AVFrame *frame) {
       0 /* flags */
       );
   if ( !ref ) {
-    Warning("Failed to create av_buffer ");
+    Warning("Failed to create av_buffer");
   }
   frame->buf[0] = ref;
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
@@ -276,8 +276,8 @@ void Image::Assign(const AVFrame *frame) {
 
   AVFrame *dest_frame = zm_av_frame_alloc();
   PopulateFrame(dest_frame);
-  zm_dump_video_frame(frame, "source frame");
-  zm_dump_video_frame(dest_frame, "dest frame before convert");
+  zm_dump_video_frame(frame, "source frame before convert");
+  zm_dump_video_frame(dest_frame, "dest  frame before convert");
 #if HAVE_LIBSWSCALE
   sws_convert_context = sws_getCachedContext(
       sws_convert_context,
@@ -290,14 +290,14 @@ void Image::Assign(const AVFrame *frame) {
   if ( sws_scale(sws_convert_context,
         frame->data, frame->linesize, 0, frame->height,
         dest_frame->data, dest_frame->linesize) < 0 )
-    Fatal("Unable to convert raw format %u to target format %u", frame->format, AV_PIX_FMT_RGBA);
+    Fatal("Unable to convert raw format %u to target format %u", frame->format, format);
 #else // HAVE_LIBSWSCALE
   Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE
   zm_dump_video_frame(dest_frame, "dest frame after convert");
   av_frame_free(&dest_frame);
   update_function_pointers();
-}  // end Image::Image(const AVFrame *frame)
+}  // end Image::Assign(const AVFrame *frame)
 
 Image::Image(const Image &p_image) {
   if ( !initialised )

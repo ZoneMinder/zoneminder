@@ -586,11 +586,17 @@ int main(int argc, char *argv[]) {
               );
         }
         monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
-        while ( ((state = monitor->GetState()) != Monitor::ALARM) && !zm_terminate ) {
+        int wait = 10*1000*1000; // 10 seconds
+        while ( ((state = monitor->GetState()) != Monitor::ALARM) and !zm_terminate and wait) {
           // Wait for monitor to notice.
           usleep(1000);
+          wait -= 1000;
         }
-        printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        if ( (state = monitor->GetState()) != Monitor::ALARM and !wait ) {
+          Error("Monitor failed to respond to forced alarm.");
+        } else {
+          printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        }
       }
     }  // end if ZMU_ALARM
 

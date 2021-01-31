@@ -111,7 +111,6 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
     int video_stream_packets = 0;
     // Since we have many packets in the queue, we should NOT be pointing at end so don't need to test for that
     do {
-      it++;
       ZMPacket *zm_packet = *it;
       Debug(1, "Checking packet to see if we can delete them");
       if ( zm_packet->packet.stream_index == video_stream_id ) {
@@ -149,7 +148,7 @@ bool zm_packetqueue::queuePacket(ZMPacket* add_packet) {
           video_stream_packets = max_video_packet_count;
         }
       }  // end foreach iterator
-        
+      it++;
     } while ( *it != add_packet );
     Debug(1, "Resulting video_stream_packets count %d, %d > %d, pointing at latest packet? %d",
         video_stream_packets,
@@ -448,6 +447,8 @@ ZMPacket *zm_packetqueue::get_packet(packetqueue_iterator *it) {
   if ( deleting or zm_terminate )
     return nullptr;
 
+  Debug(4, "get_packet using it %p queue end? %d, packet %p",
+      *it, (*it == pktQueue.end()), *(*it));
   ZMPacket *p = *(*it);
   if ( !p ) {
     Error("Null p?!");

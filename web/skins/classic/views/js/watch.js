@@ -542,7 +542,7 @@ function alarmCmdReq(data) {
   $j.getJSON(monitorUrl + '?view=request&request=alarm&id='+monitorId, data)
       .done(getAlarmCmdResponse)
       .fail(function(jqxhr, textStatus, error) {
-        if (textstatus === "timeout") {
+        if ( textStatus === "timeout" ) {
           streamCmdQuery();
         } else {
           logAjaxFail(jqxhr, textStatus, error);

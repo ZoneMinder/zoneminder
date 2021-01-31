@@ -381,11 +381,7 @@ protected:
   int      n_zones;
   Zone      **zones;
 
-  struct timeval    **timestamps;
-  Image      **images;
-
   const unsigned char  *privacy_bitmask;
-  std::thread   *event_delete_thread; // Used to close events, but continue processing.
 
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;

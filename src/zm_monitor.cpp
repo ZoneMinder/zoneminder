@@ -361,10 +361,7 @@ Monitor::Monitor()
   analysis_it(nullptr),
   n_zones(0),
   zones(nullptr),
-  timestamps(nullptr),
-  images(nullptr),
   privacy_bitmask(nullptr),
-  event_delete_thread(nullptr),
   n_linked_monitors(0),
   linked_monitors(nullptr)
 {
@@ -996,18 +993,6 @@ bool Monitor::connect() {
       exit(-1);
     }
   }
-  if ( purpose == ANALYSIS ) {
-		if ( analysis_fps_limit ) {
-			// Size of pre event buffer must be greater than pre_event_count
-			// if alarm_frame_count > 1, because in this case the buffer contains
-			// alarmed images that must be discarded when event is created
-			pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
-		}
-
-    timestamps = new struct timeval *[pre_event_count];
-    images = new Image *[pre_event_count];
-    last_signal = shared_data->signal;
-  } // end if purpose == ANALYSIS
 
   shared_data->analysis_fps = 0.0;
 
@@ -1074,13 +1059,6 @@ bool Monitor::disconnect() {
     image_buffer = nullptr;
   }
 
-  if ( purpose == ANALYSIS ) {
-    delete[] timestamps;
-    timestamps = nullptr;
-    delete[] images;
-    images = nullptr;
-  } // end if purpose == ANALYSIS
-
   mem_ptr = nullptr;
   shared_data = nullptr;
   return true;
@@ -1091,20 +1069,7 @@ Monitor::~Monitor() {
     if ( event ) {
       Info( "%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id() );
       closeEvent();
-
-      // closeEvent may start another thread to close the event, so wait for it to finish
-      if ( event_delete_thread ) {
-        event_delete_thread->join();
-        delete event_delete_thread;
-        event_delete_thread = nullptr;
-      }
     }
-    if ( event_delete_thread ) {
-      event_delete_thread->join();
-      delete event_delete_thread;
-      event_delete_thread = nullptr;
-    }
-
     if ( purpose == ANALYSIS ) {
       shared_data->state = state = IDLE;
       // I think we set it to the count so that it is technically 1 behind capture, which starts at 0

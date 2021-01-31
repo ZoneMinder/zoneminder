@@ -47,6 +47,12 @@ ZoneMinderDeviceSource::~ZoneMinderDeviceSource() {
   stop = 1;
 	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
 	pthread_join(m_thid, nullptr);
+  while ( m_captureQueue.size() ) {
+    NAL_Frame * f = m_captureQueue.front();
+    m_captureQueue.pop_front();
+    delete f;
+  }
+
 	pthread_mutex_destroy(&m_mutex);
 }
 

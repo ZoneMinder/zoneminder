@@ -403,9 +403,6 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
-    for ( int i = 0; i < n_monitors; i++ ) {
-      monitors[i]->Close();
-    }
     // Killoff the analysis threads. Don't need them spinning while we try to reconnect
     for ( int i = 0; i < n_monitors; i++ ) {
       if ( analysis_threads[i] ) {
@@ -426,6 +423,9 @@ int main(int argc, char *argv[]) {
       rtsp_server_threads = nullptr;
     }
 #endif
+    for ( int i = 0; i < n_monitors; i++ ) {
+      monitors[i]->Close();
+    }
     delete [] alarm_capture_delays;
     delete [] capture_delays;
     delete [] last_capture_times;

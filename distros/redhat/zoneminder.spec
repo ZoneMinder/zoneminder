@@ -260,6 +260,32 @@ fi
 echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README file\nto finish the installation or upgrade!"
 echo -e "\nThe README file is located here: %{_pkgdocdir}-common/README\n"
 
+# Neither the Apache nor Nginx packages create an SSL certificate anymore, so lets do that here
+if [ -f %{sslkey} -o -f %{sslcert} ]; then
+   exit 0
+fi
+
+umask 077
+%{_bindir}/openssl genrsa -rand /proc/cpuinfo:/proc/filesystems:/proc/interrupts:/proc/ioports:/proc/uptime 2048 > %{sslkey} 2> /dev/null
+
+FQDN=`hostname`
+# A >59 char FQDN means "root@FQDN" exceeds 64-char max length for emailAddress
+if [ "x${FQDN}" = "x" -o ${#FQDN} -gt 59 ]; then
+   FQDN=localhost.localdomain
+fi
+
+cat << EOF | %{_bindir}/openssl req -new -key %{sslkey} \
+         -x509 -sha256 -days 365 -set_serial $RANDOM -extensions v3_req \
+         -out %{sslcert} 2>/dev/null
+--
+SomeState
+SomeCity
+SomeOrganization
+SomeOrganizationalUnit
+${FQDN}
+root@${FQDN}
+EOF
+
 %post httpd
 # For the case of changing from nginx <-> httpd, files in these folders must change ownership if they exist
 %{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_sharedstatedir}/php/session/* >/dev/null 2>&1 || :
@@ -290,32 +316,6 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 # Allow zoneminder access to local video sources, serial ports, and x10
 %{_bindir}/gpasswd -a nginx video >/dev/null 2>&1 || :
 %{_bindir}/gpasswd -a nginx dialout >/dev/null 2>&1 || :
-
-# Nginx does not create an SSL certificate like the apache package does so lets do that here
-if [ -f %{sslkey} -o -f %{sslcert} ]; then
-   exit 0
-fi
-
-umask 077
-%{_bindir}/openssl genrsa -rand /proc/cpuinfo:/proc/filesystems:/proc/interrupts:/proc/ioports:/proc/uptime 2048 > %{sslkey} 2> /dev/null
-
-FQDN=`hostname`
-# A >59 char FQDN means "root@FQDN" exceeds 64-char max length for emailAddress
-if [ "x${FQDN}" = "x" -o ${#FQDN} -gt 59 ]; then
-   FQDN=localhost.localdomain
-fi
-
-cat << EOF | %{_bindir}/openssl req -new -key %{sslkey} \
-         -x509 -sha256 -days 365 -set_serial $RANDOM -extensions v3_req \
-         -out %{sslcert} 2>/dev/null
---
-SomeState
-SomeCity
-SomeOrganization
-SomeOrganizationalUnit
-${FQDN}
-root@${FQDN}
-EOF
 
 %preun
 %systemd_preun %{name}.service

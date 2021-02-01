@@ -1219,7 +1219,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
   return 0;
 }  // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)
 
-int VideoStore::write_packets( zm_packetqueue &queue ) {
+int VideoStore::write_packets(PacketQueue &queue) {
   // Need to write out all the frames from the last keyframe?
   // No... need to write out all frames from when the event began. Due to PreEventFrames, this could be more than since the last keyframe.
   unsigned int packet_count = 0;

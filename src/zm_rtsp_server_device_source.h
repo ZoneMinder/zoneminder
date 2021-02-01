@@ -68,7 +68,7 @@ class ZoneMinderDeviceSource: public FramedSource {
 		EventTriggerId m_eventTriggerId;
     AVStream *m_stream;
 		Monitor* m_monitor;
-    zm_packetqueue *m_packetqueue;
+    PacketQueue *m_packetqueue;
     std::list<ZMPacket *>::iterator *m_packetqueue_it;
 
 		unsigned int m_queueSize;

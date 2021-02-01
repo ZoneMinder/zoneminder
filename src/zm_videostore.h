@@ -106,12 +106,12 @@ public:
 	~VideoStore();
   bool  open();
 
-  void write_video_packet( AVPacket &pkt );
-  void write_audio_packet( AVPacket &pkt );
-  int writeVideoFramePacket( ZMPacket *pkt );
-  int writeAudioFramePacket( ZMPacket *pkt );
-  int writePacket( ZMPacket *pkt );
-  int write_packets( zm_packetqueue &queue );
+  void write_video_packet(AVPacket &pkt);
+  void write_audio_packet(AVPacket &pkt);
+  int writeVideoFramePacket(ZMPacket *pkt);
+  int writeAudioFramePacket(ZMPacket *pkt);
+  int writePacket(ZMPacket *pkt);
+  int write_packets(PacketQueue &queue);
   void flush_codecs();
 };
 

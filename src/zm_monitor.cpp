@@ -925,7 +925,12 @@ bool Monitor::connect() {
   shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
-  analysis_it = nullptr;
+#if 0
+  if ( analysis_it ) {
+    packetqueue.free_it(analysis_it);
+    analysis_it = nullptr;
+  }
+#endif
 
   if ( ((unsigned long)shared_images % 64) != 0 ) {
     /* Align images buffer to nearest 64 byte boundary */
@@ -1089,7 +1094,7 @@ Monitor::~Monitor() {
   } // end if mem_ptr
 
   if ( analysis_it ) {
-    delete analysis_it;
+    packetqueue.free_it(analysis_it);
     analysis_it = nullptr;
   }
 
@@ -1955,6 +1960,7 @@ bool Monitor::Analyse() {
                 Debug(2, "Creating continuous event");
                 if ( ! snap->keyframe and (videowriter == PASSTHROUGH) ) {
                   // Must start on a keyframe so rewind. Only for passthrough though I guess.
+                  // FIXME this iterator is not protected from invalidation
                   packetqueue_iterator start_it = packetqueue.get_event_start_packet_it(
                       snap_it, 0
                       );
@@ -1969,6 +1975,7 @@ bool Monitor::Analyse() {
                     p->unlock();
                     packetqueue.increment_it(&start_it);
                   }
+                  //packetqueue.free_it(start_it);
                 } else {
                   // Create event from current snap
                   event = new Event(this, *timestamp, "Continuous", noteSetMap);

@@ -436,8 +436,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   ReloadLinkedMonitors(dbrow[col]); col++;
 
-  analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], NULL) : 0.0; col++;
-  analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
+  analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], nullptr) : 0.0; col++;
+  analysis_update_delay = strtoul(dbrow[col++], nullptr, 0);
   capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
   alarm_capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 
@@ -835,7 +835,7 @@ Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
   zmDbRow dbrow;
   if ( !dbrow.fetch(sql.c_str()) ) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
-    return NULL;
+    return nullptr;
   }
   Monitor *monitor = new Monitor();
   monitor->Load(dbrow.mysql_row(), load_zones, purpose);
@@ -986,23 +986,21 @@ bool Monitor::connect() {
     trigger_data->trigger_showtext[0] = 0;
     shared_data->valid = true;
     video_store_data->recording = (struct timeval){0};
-    // Uh, why nothing?  Why not NULL?
+    // Uh, why nothing?  Why not nullptr?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
     //video_store_data->frameNumber = 0;
   }
-  if ( ( ! mem_ptr ) || ! shared_data->valid ) {
+  if ( ( !mem_ptr ) or !shared_data->valid ) {
     if ( purpose != QUERY ) {
       Error("Shared data not initialised by capture daemon for monitor %s", name);
       exit(-1);
     }
   }
 
-  shared_data->analysis_fps = 0.0;
-
   // We set these here because otherwise the first fps calc is meaningless
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
   last_fps_time = now_double;
   last_analysis_fps_time = now_double;
@@ -1186,7 +1184,7 @@ ZMPacket *Monitor::getSnapshot(int index) const {
   }
   return &image_buffer[index];
 
-  return NULL;
+  return nullptr;
 }
 
 struct timeval Monitor::GetTimestamp(int index) const {
@@ -1680,7 +1678,7 @@ void Monitor::CheckAction() {
 void Monitor::UpdateCaptureFPS() {
   if ( fps_report_interval && ( !(image_count%fps_report_interval) || image_count == 5 ) ) {
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
     double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
 
     // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
@@ -1719,10 +1717,14 @@ void Monitor::UpdateAnalysisFPS() {
       analysis_image_count, motion_frame_count, fps_report_interval, 
       ((analysis_image_count && fps_report_interval) ? !(analysis_image_count%fps_report_interval) : -1 ) );
 
-  if ( motion_frame_count && fps_report_interval && !(motion_frame_count%fps_report_interval) ) {
+  if ( 
+      (motion_frame_count && fps_report_interval && !(motion_frame_count%fps_report_interval))
+      or 
+      ( motion_frame_count < fps_report_interval and !motion_frame_count%10 )
+     ) {
     //if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
     double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
     Debug(4, "%s: %d - now:%d.%d = %lf, last %lf, diff %lf", name, analysis_image_count,
         now.tv_sec, now.tv_usec, now_double, last_analysis_fps_time,
@@ -2205,7 +2207,7 @@ bool Monitor::Analyse() {
     snap->unlock();
 
     shared_data->last_read_index = snap->image_index;
-    shared_data->last_read_time = time(NULL);
+    shared_data->last_read_time = time(nullptr);
     analysis_image_count++;
     UpdateAnalysisFPS();
   } // end while not at end of packetqueue
@@ -2452,7 +2454,7 @@ int Monitor::Capture() {
     captureResult = camera->Capture(*packet);
     Debug(1, "Back from capture, timestamping");
     // Hhow about set shared_data->current_timestamp
-    gettimeofday(packet->timestamp, NULL);
+    gettimeofday(packet->timestamp, nullptr);
 
     if ( FirstCapture ) {
       //packet->unlock();

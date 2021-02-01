@@ -28,7 +28,7 @@ class Monitor extends ZM_Object {
 
   protected $defaults = array(
     'Id' => null,
-    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/'),
+    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Monitor'),
     'Notes' => '',
     'ServerId' => 0,
     'StorageId' => 0,
@@ -166,7 +166,7 @@ class Monitor extends ZM_Object {
   public function __call($fn, array $args){
     if ( count($args) ) {
       if ( is_array($this->defaults[$fn]) and $this->defaults[$fn]['type'] == 'set' ) {
-        $this->{$fn} = is_array($args[0]) ? implode(',',$args[0]) : $args[0];
+        $this->{$fn} = is_array($args[0]) ? implode(',', $args[0]) : $args[0];
       } else {
         $this->{$fn} = $args[0];
       }

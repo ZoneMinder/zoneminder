@@ -18,7 +18,7 @@ class ZM_Object {
         if ( !$row ) {
           Error("Unable to load $class record for Id=$IdOrRow");
         }
-      } elseif ( is_array($IdOrRow) ) {
+      } else if ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
       }
 
@@ -347,6 +347,57 @@ class ZM_Object {
     }
     return false;
   } // end function save
+
+  public function insert($new_values = null) {
+    $class = get_class($this);
+    $table = $class::$table;
+
+    if ( $new_values ) {
+      $this->set($new_values);
+    }
+
+    # Set defaults.  Note that we only replace "" with null, not other values
+    # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
+    foreach ( $this->defaults as $field => $default ) {
+      if ( (!property_exists($this, $field)) or ($this->{$field} === '') ) {
+        if ( is_array($default) ) {
+          $this->{$field} = $default['default'];
+        } else if ( $default == null ) {
+          $this->{$field} = $default;
+        }
+      }
+    }
+
+    $fields = array_filter(
+      $this->defaults,
+      function($v) {
+        return !(
+          is_array($v)
+          and
+          isset($v['do_not_update'])
+          and
+          $v['do_not_update']
+        );
+      }
+    );
+    $fields = array_keys($fields);
+
+    if ( ! $this->Id() )
+      unset($fields['Id']);
+
+    $sql = 'INSERT INTO `'.$table.
+      '` ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
+        ') VALUES ('.
+        implode(', ', array_map(function($field){return '?';}, $fields)).')';
+
+    $values = array_map(function($field){return $this->$field();}, $fields);
+    if ( dbQuery($sql, $values) ) {
+      if ( ! $this->{'Id'} )
+        $this->{'Id'} = dbInsertId();
+      return true;
+    }
+    return false;
+  } // end function insert
 
   public function delete() {
     $class = get_class($this);

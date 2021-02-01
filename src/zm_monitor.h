@@ -374,7 +374,7 @@ protected:
   Storage     *storage;
 
   VideoStore          *videoStore;
-  zm_packetqueue      *packetqueue;
+  PacketQueue      packetqueue;
   packetqueue_iterator  *analysis_it;
   Mutex mutex;
 
@@ -422,7 +422,7 @@ public:
     return storage;
   }
   inline Function GetFunction() const { return function; }
-  inline zm_packetqueue * GetPacketQueue() const { return packetqueue; }
+  inline PacketQueue * GetPacketQueue() { return &packetqueue; }
   inline bool Enabled() const {
     if ( function <= MONITOR )
       return false;

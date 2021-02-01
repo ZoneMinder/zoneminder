@@ -357,7 +357,6 @@ Monitor::Monitor()
   event(nullptr),
   storage(nullptr),
   videoStore(nullptr),
-  packetqueue(nullptr),
   analysis_it(nullptr),
   n_zones(0),
   zones(nullptr),
@@ -380,6 +379,7 @@ Monitor::Monitor()
   adaptive_skip = true;
 
   videoStore = nullptr;
+  packetqueue.setMaxVideoPackets(pre_event_count);
 } // Monitor::Monitor
 
 /*
@@ -925,7 +925,6 @@ bool Monitor::connect() {
   shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
-  packetqueue = nullptr;
   analysis_it = nullptr;
 
   if ( ((unsigned long)shared_images % 64) != 0 ) {
@@ -1089,10 +1088,6 @@ Monitor::~Monitor() {
     disconnect();
   } // end if mem_ptr
 
-  if ( packetqueue ) {
-    delete packetqueue;
-    packetqueue = nullptr;
-  }
   if ( analysis_it ) {
     delete analysis_it;
     analysis_it = nullptr;
@@ -1772,12 +1767,14 @@ bool Monitor::Analyse() {
     Warning("Shouldn't be doing Analyse when not Enabled");
     return false;
   }
-  if ( !packetqueue ) {
+#if 0
+  if ( !packetqueue.size() ) {
     Debug(1, "Waiting for PrimeCapture");
     return false;
   }
+#endif
   if ( !analysis_it ) 
-    analysis_it = packetqueue->get_video_it(true);
+    analysis_it = packetqueue.get_video_it(true);
 
   // if  have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
@@ -1785,19 +1782,18 @@ bool Monitor::Analyse() {
 
   ZMPacket *snap;
   // get_analysis_packet will lock the packet
-  while ( (!zm_terminate) and (snap = packetqueue->get_packet(analysis_it)) ) {
+  while ( (!zm_terminate) and (snap = packetqueue.get_packet(analysis_it)) ) {
     // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
     if ( snap->score != -1 ) {
       snap->unlock();
-      packetqueue->increment_it(analysis_it);
+      packetqueue.increment_it(analysis_it);
       Error("skipping because score was %d", snap->score);
       return false;
     }
 
     packets_processed += 1;
     packetqueue_iterator snap_it = *analysis_it;
-    //packetqueue->get_analysis_it();
-    packetqueue->increment_it(analysis_it);
+    packetqueue.increment_it(analysis_it);
 
     // signal is set by capture
     bool signal = shared_data->signal;
@@ -1959,7 +1955,7 @@ bool Monitor::Analyse() {
                 Debug(2, "Creating continuous event");
                 if ( ! snap->keyframe and (videowriter == PASSTHROUGH) ) {
                   // Must start on a keyframe so rewind. Only for passthrough though I guess.
-                  packetqueue_iterator start_it = packetqueue->get_event_start_packet_it(
+                  packetqueue_iterator start_it = packetqueue.get_event_start_packet_it(
                       snap_it, 0
                       );
                   ZMPacket *starting_packet = *start_it;
@@ -1967,11 +1963,11 @@ bool Monitor::Analyse() {
                   event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
                   // Write out starting packets, do not modify packetqueue it will garbage collect itself
                   while ( start_it != snap_it ) {
-                    ZMPacket *p = packetqueue->get_packet(&start_it);
+                    ZMPacket *p = packetqueue.get_packet(&start_it);
                     if ( !p ) break;
                     event->AddPacket(p);
                     p->unlock();
-                    packetqueue->increment_it(&start_it);
+                    packetqueue.increment_it(&start_it);
                   }
                 } else {
                   // Create event from current snap
@@ -2035,7 +2031,7 @@ bool Monitor::Analyse() {
                       name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
                   if ( !event ) {
-                    packetqueue_iterator start_it = packetqueue->get_event_start_packet_it(
+                    packetqueue_iterator start_it = packetqueue.get_event_start_packet_it(
                         snap_it,
                         (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
                         );
@@ -2044,7 +2040,7 @@ bool Monitor::Analyse() {
                     event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
                     // Write out starting packets, do not modify packetqueue it will garbage collect itself
                     while ( start_it != snap_it ) {
-                      ZMPacket *p = packetqueue->get_packet(&start_it);
+                      ZMPacket *p = packetqueue.get_packet(&start_it);
                       event->AddPacket(p);
                       p->unlock();
                       ++start_it;
@@ -2484,14 +2480,14 @@ int Monitor::Capture() {
       return -1;
     } else if ( captureResult > 0 ) {
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
-          packet->packet.stream_index, video_stream_id, packetqueue->packet_count(video_stream_id), ( event ? 1 : 0 ) );
+          packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ) );
       //packet->unlock();
 
       if ( (packet->packet.stream_index != video_stream_id) and ! packet->image ) {
         // Only queue if we have some video packets in there. Should push this logic into packetqueue
-        if ( packetqueue->packet_count(video_stream_id) or event ) {
+        if ( packetqueue.packet_count(video_stream_id) or event ) {
           Debug(2, "Queueing audio packet");
-          packetqueue->queuePacket(packet);
+          packetqueue.queuePacket(packet);
         } else {
           delete packet;
         }
@@ -2587,12 +2583,12 @@ int Monitor::Capture() {
       shared_data->last_write_time = packet->timestamp->tv_sec;
       image_count++;
 
-      if ( packetqueue->packet_count(video_stream_id) or packet->keyframe or event ) {
+      if ( packetqueue.packet_count(video_stream_id) or packet->keyframe or event ) {
         Debug(2, "Have video packet for image index (%d), adding to queue", index);
-        packetqueue->queuePacket(packet);
+        packetqueue.queuePacket(packet);
       } else {
         Debug(2, "Not queuing video packet for index (%d) packet count %d",
-            index, packetqueue->packet_count(video_stream_id));
+            index, packetqueue.packet_count(video_stream_id));
         delete packet;
       }
       UpdateCaptureFPS();
@@ -2890,11 +2886,15 @@ unsigned int Monitor::SubpixelOrder() const { return camera->SubpixelOrder(); }
 int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();
   if ( ret > 0 ) {
-    if ( packetqueue ) 
-      delete packetqueue;
+    //if ( packetqueue ) 
+      //delete packetqueue;
     video_stream_id = camera->get_VideoStreamId();
     audio_stream_id = camera->get_AudioStreamId();
-    packetqueue = new zm_packetqueue(image_buffer_count, video_stream_id, audio_stream_id);
+    //packetqueue = new PacketQueue(image_buffer_count, video_stream_id, audio_stream_id);
+    packetqueue.addStreamId(video_stream_id);
+    if ( audio_stream_id )
+      packetqueue.addStreamId(audio_stream_id);
+
     Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_buffer_count);
   } else {
@@ -2906,11 +2906,14 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
+  packetqueue.clear();
+#if 0
   if ( packetqueue ) {
     delete packetqueue;
     packetqueue = nullptr;
     analysis_it = nullptr; // deleted by packetqueue
   }
+#endif
   Debug(1, "Closing camera");
   return camera->Close();
 };
@@ -2924,7 +2927,7 @@ void Monitor::get_ref_image() {
       (
        !analysis_it
        or
-       !( snap = packetqueue->get_packet(analysis_it))
+       !( snap = packetqueue.get_packet(analysis_it))
        or 
        ( snap->packet.stream_index != video_stream_id )
        or
@@ -2933,14 +2936,14 @@ void Monitor::get_ref_image() {
     and !zm_terminate) {
 
     if ( !analysis_it ) 
-      analysis_it = packetqueue->get_video_it(true);
+      analysis_it = packetqueue.get_video_it(true);
 
     Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)",
         shared_data->last_write_index, shared_data->last_write_time);
     if ( ! snap->image ) {
       snap->unlock();
       // can't analyse it anyways, incremement
-      packetqueue->increment_it(analysis_it);
+      packetqueue.increment_it(analysis_it);
     }
     //usleep(10000);
   }

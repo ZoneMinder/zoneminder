@@ -20,9 +20,6 @@
 #ifndef ZM_PACKETQUEUE_H
 #define ZM_PACKETQUEUE_H
 
-//#include <boost/interprocess/managed_shared_memory.hpp>
-//#include <boost/interprocess/containers/map.hpp>
-//#include <boost/interprocess/allocators/allocator.hpp>
 #include <list>
 #include "zm_packet.h"
 #include "zm_thread.h"
@@ -34,7 +31,7 @@ extern "C" {
 }
 typedef std::list<ZMPacket *>::iterator packetqueue_iterator;
 
-class zm_packetqueue {
+class PacketQueue {
   public: // For now just to ease development
     std::list<ZMPacket *>    pktQueue;
     std::list<ZMPacket *>::iterator analysis_it;
@@ -50,18 +47,21 @@ class zm_packetqueue {
     std::condition_variable condition;
 
   public:
-    zm_packetqueue(int p_max_video_packet_count, int p_video_stream_id, int p_audio_stream_id);
-    virtual ~zm_packetqueue();
+    PacketQueue();
+    virtual ~PacketQueue();
     std::list<ZMPacket *>::const_iterator end() const { return pktQueue.end(); }
     std::list<ZMPacket *>::const_iterator begin() const { return pktQueue.begin(); }
+
+    void addStreamId(int p_stream_id);
+    void setMaxVideoPackets(int p) { max_video_packet_count = p; }
 
     bool queuePacket(ZMPacket* packet);
     ZMPacket * popPacket();
     bool popVideoPacket(ZMPacket* packet);
     bool popAudioPacket(ZMPacket* packet);
-    unsigned int clearQueue(unsigned int video_frames_to_keep, int stream_id);
-    unsigned int clearQueue(struct timeval *duration, int streamid);
-    void clearQueue();
+    unsigned int clear(unsigned int video_frames_to_keep, int stream_id);
+    unsigned int clear(struct timeval *duration, int streamid);
+    void clear();
     void dumpQueue();
     unsigned int size();
     unsigned int get_packet_count(int stream_id) const { return packet_counts[stream_id]; };

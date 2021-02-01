@@ -465,7 +465,7 @@ if ( canEdit('Monitors') ) {
     <div class="d-flex flex-row container-fluid pr-0">
     <form name="contentForm" id="contentForm" method="post" action="?view=monitor">
       <input type="hidden" name="tab" value="<?php echo $tab?>"/>
-      <input type="hidden" name="mid" value="<?php echo $monitor->Id()?>"/>
+      <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : validHtmlStr($_REQUEST['mid']) ?>"/>
       <input type="hidden" name="origMethod" value="<?php echo ( null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
 <div class="tab-content" id="pills-tabContent">
 <?php
@@ -872,9 +872,12 @@ include('_monitor_source_nvsocket.php');
             '2592x1944'=>'2592x1944 5MP',
             '3840x2160'=>'3840x2160 4K UHD',
           );
-        $selected = $monitor->Width().'x'.$monitor->Height();
-        if ( ! ($monitor->Width() and $monitor->Height()) ) {
-          $resolutions[$selected] = $selected;
+        $selected = '';
+        if ( $monitor->Width() and $monitor->Height() ) {
+          $selected = $monitor->Width().'x'.$monitor->Height();
+          if ( ! isset($resolutions[$selected]) ) {
+            $resolutions[$selected] = $selected;
+          }
         }
         echo htmlselect('dimensions_select', $resolutions, $selected);
 ?>

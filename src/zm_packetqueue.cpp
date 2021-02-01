@@ -104,6 +104,8 @@ bool PacketQueue::queuePacket(ZMPacket* add_packet) {
       add_packet->keyframe
       and
       (packet_counts[video_stream_id] > max_video_packet_count)
+      and 
+      *(pktQueue.begin()) != add_packet
      ) {
     packetqueue_iterator it = pktQueue.begin();
     int video_stream_packets = 0;

@@ -1089,7 +1089,7 @@ $OLANG = array(
     'Help' => '
       In Modect mode the capture process (zmc) will connect to the camera and stream data.
       It will be decoded if necessary and live viewing will be possible.
-      In addition a process (zma) will analyse the video for motion.  
+      In addition the video will be analysed for motion.  
       When motion is detected, events will be created and video will be stored.
       Motion data will be stored in the database for each event.
       Events may also be triggered externally (zmtrigger) or by linked monitors.
@@ -1099,7 +1099,7 @@ $OLANG = array(
     'Help' => '
       In Record mode the capture process (zmc) will connect to the camera and stream data.
       It will be decoded if necessary and live viewing will be possible.
-      In addition a process (zma) will run but will not perform motion detection.
+      Motion detection will not be performed.
       Events will be created at fixed intervals and video will be stored.
       '
   ),
@@ -1107,7 +1107,7 @@ $OLANG = array(
     'Help' => '
       In Mocord mode the capture process (zmc) will connect to the camera and stream data.
       It will be decoded if necessary and live viewing will be possible.
-      In addition a process (zma) will analyse the video for motion.
+      In addition the video will be analysed for motion.  
       Events will be created at fixed intervals or at start and stop of motion.
       Video will always be stored to disk and events will have the motion data stored in the database.
       Events may also be triggered externally (zmtrigger) or by linked monitors.
@@ -1117,7 +1117,7 @@ $OLANG = array(
     'Help' => '
       In Nodect mode the capture process (zmc) will connect to the camera and stream data.
       It will be decoded if necessary and live viewing will be possible.
-      In addition a process (zma) will run and will check any linked cameras for their alarm status. 
+      In addition any linked cameras will be checked for their alarm status. 
       When linked cameras or an external trigger (zmtrigger) are alarmed, events will be created
       and video will be stored.  No other motion detection will occur.
       '
@@ -1128,7 +1128,7 @@ $OLANG = array(
       This setting sets the default state when the process starts up.
       It can then be turned on/off through external triggers zmtrigger zmu or the web ui.
       When not enabled no motion detection or linked monitor checking will be performed and 
-      no events will be created. The zma process will still be running waiting to be enabled.
+      no events will be created.
       '
   ),
   'FUNCTION_DECODING_ENABLED' => array(

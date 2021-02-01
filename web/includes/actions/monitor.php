@@ -91,7 +91,6 @@ if ( $action == 'save' ) {
 
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
       if ( $monitor->Type() != 'WebSite' ) {
-        $monitor->zmaControl('stop');
         $monitor->zmcControl('stop');
         if ( $monitor->Controllable() ) {
           $monitor->sendControlCommand('stop');
@@ -271,8 +270,6 @@ if ( $action == 'save' ) {
   if ( $restart ) {
     if ( $monitor->Function() != 'None' and $monitor->Type() != 'WebSite' ) {
       $monitor->zmcControl('start');
-      if ( ($monitor->Function() == 'Modect' or $monitor->Function() == 'Mocord') and $monitor->Enabled() )
-        $monitor->zmaControl('start');
 
       if ( $monitor->Controllable() ) {
         $monitor->sendControlCommand('start');

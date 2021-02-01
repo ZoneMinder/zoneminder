@@ -799,11 +799,6 @@ function zmcControl($monitor, $mode=false) {
   return $Monitor->zmcControl($mode);
 }
 
-function zmaControl($monitor, $mode=false) {
-  $Monitor = new ZM\Monitor($monitor);
-  return $Monitor->zmaControl($mode);
-}
-
 function initDaemonStatus() {
   global $daemon_status;
 
@@ -842,13 +837,6 @@ function zmcStatus($monitor) {
   return daemonStatus('zmc', $zmcArgs);
 }
 
-function zmaStatus($monitor) {
-  if ( is_array($monitor) ) {
-    $monitor = $monitor['Id'];
-  }
-  return daemonStatus('zma', '-m '.$monitor);
-}
-
 function daemonCheck($daemon=false, $args=false) {
   $string = ZM_PATH_BIN.'/zmdc.pl check';
   if ( $daemon ) {
@@ -868,13 +856,6 @@ function zmcCheck($monitor) {
     $zmcArgs = '-m '.$monitor['Id'];
   }
   return daemonCheck('zmc', $zmcArgs);
-}
-
-function zmaCheck($monitor) {
-  if ( is_array($monitor) ) {
-    $monitor = $monitor['Id'];
-  }
-  return daemonCheck('zma', '-m '.$monitor);
 }
 
 function getImageSrc($event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false) {

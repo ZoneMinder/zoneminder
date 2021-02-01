@@ -149,11 +149,7 @@ class Monitor extends AppModel {
 
     $daemons = array();
     if ( ! $daemon ) {
-      if ( $monitor['Function'] == 'Monitor' ) {
-        array_push($daemons, 'zmc');
-      } else {
-        array_push($daemons, 'zmc', 'zma');
-      }
+      array_push($daemons, 'zmc');
     } else {
       array_push($daemons, $daemon);
     }

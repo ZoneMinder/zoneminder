@@ -59,13 +59,7 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
         dbQuery('INSERT INTO Zones SET MonitorId=?, '.implode(', ', $changes), array($mid));
       }
       if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
-        if ( $_REQUEST['newZone']['Type'] == 'Privacy' ) {
-          $monitor->zmaControl('stop');
-          $monitor->zmcControl('restart');
-          $monitor->zmaControl('start');
-        } else {
-          $monitor->zmaControl('restart');
-        }
+        $monitor->zmcControl('restart');
       }
       if ( ($_REQUEST['newZone']['Type'] == 'Privacy') && $monitor->Controllable() ) {
         $monitor->sendControlCommand('quit');

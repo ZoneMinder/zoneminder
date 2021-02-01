@@ -46,10 +46,7 @@ if ( $action == 'function' ) {
     $monitor->save(array('Function'=>$newFunction, 'Enabled'=>$newEnabled));
 
     if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
-      $monitor->zmaControl('stop');
       $monitor->zmcControl(($newFunction != 'None') ? 'restart' : 'stop');
-			if ( $newFunction != 'None' && $newFunction != 'NoDect' )
-        $monitor->zmaControl('start');
     }
   } else {
     ZM\Debug('No change to function, not doing anything.');

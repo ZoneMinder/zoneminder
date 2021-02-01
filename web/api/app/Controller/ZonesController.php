@@ -84,7 +84,7 @@ class ZonesController extends AppController {
     if ( $zone ) {
       require_once __DIR__ .'/../../../includes/Monitor.php';
       $monitor = new ZM\Monitor($zone['Zone']['MonitorId']);
-      $monitor->zmaControl('restart');
+      $monitor->zmcControl('restart');
       $message = 'Saved';
       //$zone = $this->Zone->find('first', array('conditions' => array( array('Zone.' . $this->Zone->primaryKey => $this->Zone),
     } else {

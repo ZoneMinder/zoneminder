@@ -74,6 +74,7 @@ class PacketQueue {
     ZMPacket *get_packet(packetqueue_iterator *);
     packetqueue_iterator *get_video_it(bool wait);
     packetqueue_iterator *get_stream_it(int stream_id);
+    void free_it(packetqueue_iterator *);
 
     std::list<ZMPacket *>::iterator get_event_start_packet_it(
         packetqueue_iterator snapshot_it,

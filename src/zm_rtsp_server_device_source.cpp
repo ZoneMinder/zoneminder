@@ -73,6 +73,7 @@ void ZoneMinderDeviceSource::doGetNextFrame() {
 
 // stopping FrameSource callback
 void ZoneMinderDeviceSource::doStopGettingFrames() {
+  stop = 1;
 	Debug(1, "ZoneMinderDeviceSource::doStopGettingFrames");
 	FramedSource::doStopGettingFrames();
 }

@@ -283,7 +283,7 @@ int main(int argc, char *argv[]) {
 
 #if HAVE_RTSP_SERVER
     RTSPServerThread ** rtsp_server_threads = nullptr;
-    if ( config.min_rtsp_port ) {
+    if ( config.min_rtsp_port and monitors[0]->RTSPServer() ) {
       rtsp_server_threads = new RTSPServerThread *[n_monitors];
       Debug(1, "Starting RTSP server because min_rtsp_port is set");
     } else {
@@ -405,24 +405,28 @@ int main(int argc, char *argv[]) {
 
     for ( int i = 0; i < n_monitors; i++ ) {
       monitors[i]->Close();
-    }
 
     // Killoff the analysis threads. Don't need them spinning while we try to reconnect
-    for ( int i = 0; i < n_monitors; i++ ) {
       if ( analysis_threads[i] ) {
         analysis_threads[i]->join();
         delete analysis_threads[i];
         analysis_threads[i] = nullptr;
       }
-    } // end foreach monitor
-    delete [] analysis_threads;
 #if HAVE_RTSP_SERVER
-    if ( rtsp_server_threads ) {
-      for ( int i = 0; i < n_monitors; i++ ) {
+      if ( rtsp_server_threads ) {
         rtsp_server_threads[i]->join();;
         delete rtsp_server_threads[i];
         rtsp_server_threads[i] = nullptr;
       }
+#endif
+      Camera *camera = monitors[i]->getCamera();
+      Debug(1, "Closing camera");
+      camera->Close();
+    }
+
+    delete [] analysis_threads;
+#if HAVE_RTSP_SERVER
+    if ( rtsp_server_threads ) {
       delete[] rtsp_server_threads;
       rtsp_server_threads = nullptr;
     }

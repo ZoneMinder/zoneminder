@@ -179,7 +179,6 @@ class Sqlite extends DboSource {
 		);
 
 		foreach ($result as $column) {
-			$column = (array)$column;
 			$default = ($column['dflt_value'] === 'NULL') ? null : trim($column['dflt_value'], "'");
 
 			$fields[$column['name']] = array(
@@ -299,7 +298,7 @@ class Sqlite extends DboSource {
 /**
  * Generate ResultSet
  *
- * @param mixed $results The results to modify.
+ * @param PDOStatement $results The results to modify.
  * @return void
  */
 	public function resultSet($results) {

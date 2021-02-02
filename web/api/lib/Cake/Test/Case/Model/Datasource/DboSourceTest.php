@@ -1028,6 +1028,11 @@ class DboSourceTest extends CakeTestCase {
 			$this->markTestSkipped('This test can only run on MySQL');
 		}
 		$name = $this->db->fullTableName('enum_tests');
+
+		$query = "DROP TABLE IF EXISTS {$name};";
+		$result = $this->db->query($query);
+		$this->assertTrue($result);
+
 		$query = "CREATE TABLE {$name} (mood ENUM('','happy','sad','ok') NOT NULL);";
 		$result = $this->db->query($query);
 		$this->assertTrue($result);
@@ -1042,6 +1047,40 @@ class DboSourceTest extends CakeTestCase {
 		$this->assertEquals(array(
 			'EnumTest' => array(
 				'mood' => '',
+				'id' => '0'
+			)
+		), $enumResult);
+	}
+
+/**
+ * Test for MySQL enum datatype for a list of Integer stored as String
+ *
+ * @return void
+ */
+	public function testIntValueAsStringOnEnum() {
+		if (!$this->db instanceof Mysql) {
+			$this->markTestSkipped('This test can only run on MySQL');
+		}
+		$name = $this->db->fullTableName('enum_faya_tests');
+
+		$query = "DROP TABLE IF EXISTS {$name};";
+		$result = $this->db->query($query);
+		$this->assertTrue($result);
+
+		$query = "CREATE TABLE {$name} (faya enum('10','20','30','40') NOT NULL);";
+		$result = $this->db->query($query);
+		$this->assertTrue($result);
+
+		$EnumFayaTest = ClassRegistry::init('EnumFayaTest');
+		$enumResult = $EnumFayaTest->save(array('faya' => '10'));
+
+		$query = "DROP TABLE {$name};";
+		$result = $this->db->query($query);
+		$this->assertTrue($result);
+
+		$this->assertEquals(array(
+			'EnumFayaTest' => array(
+				'faya' => '10',
 				'id' => '0'
 			)
 		), $enumResult);
@@ -1655,6 +1694,42 @@ class DboSourceTest extends CakeTestCase {
  *
  * @return void
  */
+	public function testConditionKeysToStringVirtualFieldExpression() {
+		$Article = ClassRegistry::init('Article');
+		$Article->virtualFields = array(
+			'extra' => $Article->getDataSource()->expression('something virtual')
+		);
+		$conn = $this->getMock('MockPDO', array('quote'));
+		$db = new DboTestSource();
+		$db->setConnection($conn);
+
+		$conn->expects($this->at(0))
+			->method('quote')
+			->will($this->returnValue('just text'));
+
+		$conditions = array('Article.extra' => 'just text');
+		$result = $db->conditionKeysToString($conditions, true, $Article);
+		$expected = "(" . $Article->virtualFields['extra']->value . ") = just text";
+		$this->assertEquals($expected, $result[0]);
+
+		$conn->expects($this->at(0))
+			->method('quote')
+			->will($this->returnValue('just text'));
+		$conn->expects($this->at(1))
+			->method('quote')
+			->will($this->returnValue('other text'));
+
+		$conditions = array('Article.extra' => array('just text', 'other text'));
+		$result = $db->conditionKeysToString($conditions, true, $Article);
+		$expected = "(" . $Article->virtualFields['extra']->value . ") IN (just text, other text)";
+		$this->assertEquals($expected, $result[0]);
+	}
+
+/**
+ * Test conditionKeysToString() with virtual field
+ *
+ * @return void
+ */
 	public function testConditionKeysToStringVirtualField() {
 		$Article = ClassRegistry::init('Article');
 		$Article->virtualFields = array(
@@ -2102,12 +2177,19 @@ class DboSourceTest extends CakeTestCase {
 
 		$result = $this->db->length('decimal(20,3)');
 		$this->assertEquals('20,3', $result);
+	}
 
+/**
+ * Test length parsing of enum column.
+ *
+ * @return void
+ */
+	public function testLengthEnum() {
 		$result = $this->db->length('enum("one", "longer")');
-		$this->assertEquals(6, $result);
+		$this->assertNull($result);
 
 		$result = $this->db->length("enum('One Value','ANOTHER ... VALUE ...')");
-		$this->assertEquals(21, $result);
+		$this->assertNull($result);
 	}
 
 /**

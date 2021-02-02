@@ -257,7 +257,7 @@ class ModelValidator implements ArrayAccess, IteratorAggregate, Countable {
 			}
 		}
 
-		$exists = $model->exists();
+		$exists = $model->exists($model->getID());
 		$methods = $this->getMethods();
 		$fields = $this->_validationList($fieldList);
 
@@ -280,7 +280,7 @@ class ModelValidator implements ArrayAccess, IteratorAggregate, Countable {
  * why the rule failed
  *
  * @param string $field The name of the field to invalidate
- * @param string $message Validation message explaining why the rule failed, defaults to true.
+ * @param string|bool $message Validation message explaining why the rule failed, defaults to true.
  * @return void
  */
 	public function invalidate($field, $message = true) {
@@ -594,7 +594,7 @@ class ModelValidator implements ArrayAccess, IteratorAggregate, Countable {
 		$this->_parseRules();
 		if ($rule === null) {
 			unset($this->_fields[$field]);
-		} else {
+		} elseif (array_key_exists($field, $this->_fields)) {
 			$this->_fields[$field]->removeRule($rule);
 		}
 		return $this;

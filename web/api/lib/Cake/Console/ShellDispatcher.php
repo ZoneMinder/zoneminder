@@ -140,8 +140,11 @@ class ShellDispatcher {
 			define('TMP', CAKE_CORE_INCLUDE_PATH . DS . 'Cake' . DS . 'Console' . DS . 'Templates' . DS . 'skel' . DS . 'tmp' . DS);
 		}
 
+		if (!defined('CONFIG')) {
+			define('CONFIG', ROOT . DS . APP_DIR . DS . 'Config' . DS);
+		}
 		// $boot is used by Cake/bootstrap.php file
-		$boot = file_exists(ROOT . DS . APP_DIR . DS . 'Config' . DS . 'bootstrap.php');
+		$boot = file_exists(CONFIG . 'bootstrap.php');
 		require CORE_PATH . 'Cake' . DS . 'bootstrap.php';
 
 		if (!file_exists(CONFIG . 'core.php')) {
@@ -220,7 +223,7 @@ class ShellDispatcher {
 		}
 		$methods = array_diff(get_class_methods($Shell), get_class_methods('Shell'));
 		$added = in_array($command, $methods);
-		$private = $command[0] === '_' && method_exists($Shell, $command);
+		$private = substr($command, 0, 1) === '_' && method_exists($Shell, $command);
 
 		if (!$private) {
 			if ($added) {

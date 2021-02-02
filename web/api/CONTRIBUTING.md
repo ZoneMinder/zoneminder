@@ -9,6 +9,10 @@ CakePHP loves to welcome your contributions. There are several ways to help out:
 There are a few guidelines that we need contributors to follow so that we have a
 chance of keeping on top of things.
 
+## Code of Conduct
+
+Help us keep CakePHP open and inclusive. Please read and follow our [Code of Conduct](https://github.com/cakephp/code-of-conduct/blob/master/CODE_OF_CONDUCT.md).
+
 ## Getting Started
 
 * Make sure you have a [GitHub account](https://github.com/signup/free).
@@ -33,14 +37,14 @@ chance of keeping on top of things.
 * Core test cases should continue to pass. You can run tests locally or enable
   [travis-ci](https://travis-ci.org/) for your fork, so all tests and codesniffs
   will be executed.
-* Your work should apply the CakePHP coding standards.
+* Your work should apply the [CakePHP coding standards](https://book.cakephp.org/2.0/en/contributing/cakephp-coding-conventions.html).
 
 ## Which branch to base the work
 
 * Bugfix branches will be based on master.
 * New features that are backwards compatible will be based on next minor release
   branch.
-* New features or other non-BC changes will go in the next major release branch.
+* New features or other non backwards compatible changes will go in the next major release branch.
 
 ## Submitting Changes
 
@@ -50,8 +54,8 @@ chance of keeping on top of things.
 
 ## Test cases and codesniffer
 
-CakePHP tests requires [PHPUnit](http://www.phpunit.de/manual/current/en/installation.html)
-3.5 or higher. To run the test cases locally use the following command:
+CakePHP tests requires [PHPUnit](https://phpunit.de/manual/current/en/installation.html)
+3.7, version 4 is not compatible. To run the test cases locally use the following command:
 
     ./lib/Cake/Console/cake test core AllTests --stderr
 
@@ -60,12 +64,16 @@ To run the sniffs for CakePHP coding standards:
     phpcs -p --extensions=php --standard=CakePHP ./lib/Cake
 
 Check the [cakephp-codesniffer](https://github.com/cakephp/cakephp-codesniffer)
-repository to setup the CakePHP standard. The README contains installation info
+repository to setup the CakePHP standard. The [README](https://github.com/cakephp/cakephp-codesniffer/blob/master/README.md) contains installation info
 for the sniff and phpcs.
+
+## Reporting a Security Issue
+
+If you've found a security related issue in CakePHP, please don't open an issue in GitHub. Instead contact us at security@cakephp.org. For more information on how we handle security issues, [see the CakePHP Security Issue Process](https://book.cakephp.org/2.0/en/contributing/tickets.html#reporting-security-issues).
 
 # Additional Resources
 
-* [CakePHP coding standards](http://book.cakephp.org/2.0/en/contributing/cakephp-coding-conventions.html)
+* [CakePHP coding standards](https://book.cakephp.org/2.0/en/contributing/cakephp-coding-conventions.html)
 * [Existing issues](https://github.com/cakephp/cakephp/issues)
 * [Development Roadmaps](https://github.com/cakephp/cakephp/wiki#roadmaps)
 * [General GitHub documentation](https://help.github.com/)

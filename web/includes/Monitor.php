@@ -113,7 +113,7 @@ class Monitor extends ZM_Object {
     'SignalCheckPoints' =>  0,
     'SignalCheckColour' =>  '#0000BE',
     'WebColour'   =>  '#ff0000',
-    'Exif'    =>  array('type'=>'boolean','default'=>0),
+    'Exif'    =>  array('type'=>'boolean', 'default'=>0),
     'Sequence'  =>  null,
     'ZoneCount' =>  0,
     'Refresh' => null,
@@ -121,6 +121,7 @@ class Monitor extends ZM_Object {
     'GroupIds'    => array('default'=>array(), 'do_not_update'=>1),
     'Latitude'  =>  null,
     'Longitude' =>  null,
+    'RTSPServer' => array('type'=>'boolean', 'default'=>0),
   );
   private $status_fields = array(
     'Status'  =>  null,

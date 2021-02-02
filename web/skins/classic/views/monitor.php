@@ -1232,7 +1232,11 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('Exif'); echo makeHelpLink('OPTIONS_EXIF') ?></td>
-          <td><input type="checkbox" name="newMonitor[Exif]" value="1"<?php if ( $monitor->Exif() ) { ?> checked="checked"<?php } ?>/></td>
+          <td><input type="checkbox" name="newMonitor[Exif]" value="1"<?php echo $monitor->Exif() ? ' checked="checked"' : '' ?>/></td>
+        </tr>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('RTSPServer'); echo makeHelpLink('OPTIONS_RTSPSERVER') ?></td>
+          <td><input type="checkbox" name="newMonitor[RTSPServer]" value="1"<?php echo $monitor->RTSPServer() ? ' checked="checked"' : '' ?>/></td>
         </tr>
 <?php
         break;

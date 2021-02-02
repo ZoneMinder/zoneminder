@@ -625,11 +625,11 @@ void Image::AssignDirect(
   }
 
   if ( p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32 ) {
-    Error("Attempt to directly assign buffer with unexpected colours per pixel: %d",p_colours);
+    Error("Attempt to directly assign buffer with unexpected colours per pixel: %d", p_colours);
     return;
   }
 
-  unsigned int new_buffer_size = ((p_width*p_height)*p_colours);
+  unsigned int new_buffer_size = p_width * p_height * p_colours;
 
   if ( buffer_size < new_buffer_size ) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",
@@ -642,38 +642,28 @@ void Image::AssignDirect(
       Error("Held buffer is undersized for assigned buffer");
       return;
     } else {
-      width = p_width;
-      height = p_height;
-      colours = p_colours;
-      linesize = width * colours;
-      subpixelorder = p_subpixelorder;
-      pixels = height*width;
-      size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
-
       /* Copy into the held buffer */
       if ( new_buffer != buffer ) {
         (*fptr_imgbufcpy)(buffer, new_buffer, size);
       }
-
       /* Free the new buffer */
       DumpBuffer(new_buffer, p_buffertype);
     }
   } else {
     /* Free an existing buffer if any */
     DumpImgBuffer();
-
-    width = p_width;
-    height = p_height;
-    colours = p_colours;
-    linesize = width*colours;
-    subpixelorder = p_subpixelorder;
-    pixels = height*width;
-    size = new_buffer_size; // was pixels*colours, but we already calculated it above as new_buffer_size
-
     allocation = buffer_size;
     buffertype = p_buffertype;
     buffer = new_buffer;
   }
+
+  width = p_width;
+  height = p_height;
+  colours = p_colours;
+  linesize = width * colours;
+  subpixelorder = p_subpixelorder;
+  pixels = width * height;
+  size = new_buffer_size;
 }  // end void Image::AssignDirect
 
 void Image::Assign(
@@ -683,13 +673,13 @@ void Image::Assign(
     const unsigned int p_subpixelorder,
     const uint8_t* new_buffer,
     const size_t buffer_size) {
-  unsigned int new_size = (p_width * p_height) * p_colours;
 
   if ( new_buffer == nullptr ) {
     Error("Attempt to assign buffer from a NULL pointer");
     return;
   }
 
+  unsigned int new_size = p_width * p_height * p_colours;
   if ( buffer_size < new_size ) {
     Error("Attempt to assign buffer from an undersized buffer of size: %zu", buffer_size);
     return;
@@ -752,7 +742,6 @@ void Image::Assign(const Image &image) {
   if ( !buffer
       || image.width != width || image.height != height
       || image.colours != colours || image.subpixelorder != subpixelorder
-      || image.linesize != linesize
       ) {
 
     if ( holdbuffer && buffer ) {
@@ -1469,23 +1458,21 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
         lo_x, lo_y, hi_x, hi_y, width-1, height-1);
     return false;
   }
-
-  if ( new_width == width && new_height == height ) {
+  if ( (new_width == width) && (new_height == height) ) {
     return true;
   }
 
-  unsigned int new_size = new_width*new_height*colours;
+  unsigned int new_stride = new_width * colours;
+  unsigned int new_size = new_stride * new_height;
   uint8_t *new_buffer = AllocBuffer(new_size);
 
-  unsigned int new_stride = new_width * colours;
   for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ ) {
     unsigned char *pbuf = &buffer[((y*linesize)+lo_x)];
-    unsigned char *pnbuf = &new_buffer[(ny*new_width)*colours];
-    memcpy( pnbuf, pbuf, new_stride );
+    unsigned char *pnbuf = &new_buffer[ny*new_stride];
+    memcpy(pnbuf, pbuf, new_stride);
   }
 
   AssignDirect(new_width, new_height, colours, subpixelorder, new_buffer, new_size, ZM_BUFTYPE_ZM);
-
   return true;
 }
 
@@ -2817,11 +2804,11 @@ void Image::Scale(unsigned int factor) {
       h_count += factor;
       h_index = h_count/ZM_SCALE_BASE;
       for ( unsigned int f = last_h_index+1; f < h_index; f++ ) {
-        memcpy( pd, pd-nwc, nwc );
+        memcpy(pd, pd-nwc, nwc);
         pd += nwc;
       }
       last_h_index = h_index;
-    }
+    }  // end foreach line
     new_width = last_w_index;
     new_height = last_h_index;
   } else {

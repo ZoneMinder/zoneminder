@@ -21,6 +21,8 @@
 #ifndef ZM_H
 #define ZM_H
 
+#include "zm_define.h"
+
 #include "zm_config.h"
 #include "zm_signal.h"
 #ifdef SOLARIS
@@ -29,10 +31,8 @@
 #endif
 #include "zm_logger.h"
 
-#include <stdint.h>
-
 #include <iostream>
 
-extern const char* self;
+extern const char *self;
 
 #endif // ZM_H

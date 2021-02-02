@@ -31,10 +31,20 @@ function ajaxRequest(params) {
       .done(function(data) {
         //console.log('Ajax parameters: ' + JSON.stringify(params));
         // rearrange the result into what bootstrap-table expects
-        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: data.rows});
+        params.success({
+          total: data.total,
+          totalNotFiltered: data.totalNotFiltered,
+          rows: processRows(data.rows)
+        });
         updateHeaderStats(data);
       })
       .fail(logAjaxFail);
+}
+function processRows(rows) {
+  $j.each(rows, function(ndx, row) {
+    row.Message = decodeURI(row.Message);
+  });
+  return rows;
 }
 
 function updateHeaderStats(data) {

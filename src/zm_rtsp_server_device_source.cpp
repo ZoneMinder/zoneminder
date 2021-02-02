@@ -154,7 +154,6 @@ int ZoneMinderDeviceSource::getNextFrame() {
   }
   // packet is locked
   AVPacket *pkt = &zm_packet->packet;
-  m_packetqueue->increment_it(m_packetqueue_it, m_stream->index);
 
   // Convert pts to timeval
   int64_t pts = av_rescale_q(pkt->dts, m_stream->time_base, AV_TIME_BASE_Q);
@@ -165,6 +164,7 @@ int ZoneMinderDeviceSource::getNextFrame() {
   std::list< std::pair<unsigned char*, size_t> > framesList = this->splitFrames(pkt->data, pkt->size);
   zm_packet->unlock();
   zm_packet = nullptr;// we no longer have the lock so shouldn't be accessing it
+  m_packetqueue->increment_it(m_packetqueue_it, m_stream->index);
 
   while ( framesList.size() ) {
     std::pair<unsigned char*, size_t> nal = framesList.front();

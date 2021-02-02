@@ -11,7 +11,8 @@
 
 include(Catch)
 
-set(TEST_SOURCES)
+set(TEST_SOURCES
+  zm_crypt.cpp)
 
 add_executable(tests main.cpp ${TEST_SOURCES})
 

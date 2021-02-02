@@ -534,6 +534,7 @@ CREATE TABLE `Monitors` (
   `Refresh` int(10) unsigned default NULL,
   `Latitude`  DECIMAL(10,8),
   `Longitude`  DECIMAL(10,8),
+  `RTSPServer`  BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

@@ -18,7 +18,6 @@
 // 
 
 #define __STDC_FORMAT_MACROS 1
-#include <cinttypes>
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_zone.h"

@@ -27,7 +27,6 @@
 #include <getopt.h>
 #include <arpa/inet.h>
 #include <glob.h>
-#include <cinttypes>
 
 #include "zm.h"
 #include "zm_db.h"
@@ -692,8 +691,8 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
     double fps = monitor->get_capture_fps();
-		if ( write_to_db 
-				or 
+		if ( write_to_db
+				or
 				(frame_data.size() >= MAX_DB_FRAMES)
 				or
 				(frame_type == BULK)

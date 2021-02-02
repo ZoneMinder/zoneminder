@@ -174,7 +174,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     case CMD_ZOOMIN :
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
       y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-      Debug( 1, "Got ZOOM IN command, to %d,%d", x, y );
+      Debug(1, "Got ZOOM IN command, to %d,%d", x, y);
       switch ( zoom ) {
         case 100:
           zoom = 150;

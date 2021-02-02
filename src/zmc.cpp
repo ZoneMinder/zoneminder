@@ -183,11 +183,11 @@ int main(int argc, char *argv[]) {
     logId = fmt::format("zmc_m{}", monitor_id);
   }
 
-  logInit(logId.c_str());
+  logInit(logId);
   zmLoadStaticConfig();
   zmDbConnect();
   zmLoadDBConfig();
-  logInit(logId.c_str());
+  logInit(logId);
 
   hwcaps_detect();
 
@@ -410,7 +410,7 @@ int main(int argc, char *argv[]) {
         monitor->Reload();
       }
       logTerm();
-      logInit(logId.c_str());
+      logInit(logId);
       zm_reload = false;
     }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop

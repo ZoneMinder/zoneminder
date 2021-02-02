@@ -556,13 +556,13 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   }
 }  // end logPrint
 
-void logInit(const char *name, const Logger::Options &options) {
+void logInit(const std::string &id, const Logger::Options &options) {
   if (Logger::smInstance) {
     delete Logger::smInstance;
   }
 
   Logger::smInstance = new Logger();
-  Logger::smInstance->initialise(name, options);
+  Logger::smInstance->initialise(id, options);
 }
 
 void logTerm() {

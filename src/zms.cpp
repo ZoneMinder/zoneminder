@@ -187,7 +187,7 @@ int main(int argc, const char *argv[], char **envp) {
   } else {
     logId = fmt::format("zms_e{}", event_id);
   }
-  logInit(logId.c_str());
+  logInit(logId);
 
   if ( config.opt_use_auth ) {
     User *user = nullptr;

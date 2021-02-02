@@ -137,7 +137,7 @@ private:
   static void usrHandler(int sig);
 
 public:
-  friend void logInit(const char *name, const Options &options);
+  friend void logInit(const std::string &id, const Options &options);
   friend void logTerm();
 
   static Logger *fetch() {
@@ -177,7 +177,7 @@ public:
   void logPrint(bool hex, const char * const filepath, const int line, const int level, const char *fstring, ...);
 };
 
-void logInit(const char *name, const Logger::Options &options=Logger::Options());
+void logInit(const std::string &id, const Logger::Options &options=Logger::Options());
 void logTerm();
 inline const std::string &logId() {
   return Logger::fetch()->id();

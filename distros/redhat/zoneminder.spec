@@ -83,6 +83,7 @@ BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
 BuildRequires: gzip
 BuildRequires: zlib-devel
+BuildRequires: fmt-devel
 
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
@@ -131,6 +132,7 @@ Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
 Requires: ca-certificates
 Requires: zip
+Requires: fmt
 %{?systemd_requires}
 
 Requires(post): %{_bindir}/gpasswd

@@ -1806,8 +1806,8 @@ bool Monitor::Analyse() {
 
     // if we have been told to be OFF, then we are off and don't do any processing.
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
-      Debug(4, "Trigger not oFF state is (%d)", trigger_data->trigger_state);
-      unsigned int score = 0;
+      Debug(4, "Trigger not OFF state is (%d)", trigger_data->trigger_state);
+      unsigned int score = -1;
       // Ready means that we have captured the warmpup # of frames
       if ( Ready() ) {
         Debug(4, "Ready");
@@ -2004,7 +2004,7 @@ bool Monitor::Analyse() {
               } // end if ! event
             } // end if RECORDING
 
-            if ( score ) {
+            if ( score > 0 ) {
               if ( (state == IDLE) || (state == TAPE) || (state == PREALARM) ) {
                 // If we should end then previous continuous event and start a new non-continuous event
                 if ( event && event->Frames()
@@ -2111,7 +2111,6 @@ bool Monitor::Analyse() {
                 Event::EmptyPreAlarmFrames();
             } // end if score or not
 
-            // Flag the packet so we don't analyse it again
             snap->score = score;
 
             if ( state == PREALARM ) {

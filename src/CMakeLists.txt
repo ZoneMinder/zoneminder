@@ -72,6 +72,11 @@ set(ZM_BIN_SRC_FILES
 
 # A fix for cmake recompiling the source files for every target.
 add_library(zm STATIC ${ZM_BIN_SRC_FILES})
+
+target_include_directories(zm
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR})
+
 link_directories(libbcrypt)
 
 add_executable(zmc zmc.cpp)

@@ -323,6 +323,7 @@ protected:
   int         signal_check_points;  // Number of points in the image to check for signal
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
+  bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
 
   int capture_max_fps;
 
@@ -448,6 +449,7 @@ public:
     return( enabled && shared_data->active );
   }
   inline bool Exif() const { return embed_exif; }
+  inline bool RTSPServer() const { return rtsp_server; }
   inline bool RecordAudio() { return record_audio; }
 
   /*

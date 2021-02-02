@@ -311,7 +311,6 @@ protected:
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
   double     analysis_fps_limit;     // Target framerate for video analysis
-  struct timeval video_buffer_duration; // How long a video segment to keep in buffer (set only if analysis fps != 0 )
   unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
   int        capture_delay;      // How long we wait between capture frames
   int        alarm_capture_delay;  // How long we wait between capture frames when in alarm state
@@ -479,7 +478,6 @@ public:
   void SetVideoWriterStartTime(const struct timeval &t) { video_store_data->recording = t; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
-  struct timeval GetVideoBufferDuration() const { return video_buffer_duration; };
   int GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );

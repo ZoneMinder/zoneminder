@@ -380,7 +380,7 @@ Monitor::Monitor()
 
   videoStore = nullptr;
   packetqueue.setMaxVideoPackets(pre_event_count);
-} // Monitor::Monitor
+}  // Monitor::Monitor
 
 /*
   std::string load_monitor_sql =
@@ -440,12 +440,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   analysis_update_delay = strtoul(dbrow[col++], nullptr, 0);
   capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
   alarm_capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
-
-  if ( analysis_fps_limit > 0.0 ) {
-    uint64_t usec = round(1000000*pre_event_count/analysis_fps_limit);
-    video_buffer_duration.tv_sec = usec/1000000;
-    video_buffer_duration.tv_usec = usec % 1000000;
-  }
 
   if ( dbrow[col] )
     strncpy(device, dbrow[col], sizeof(device)-1);
@@ -565,10 +559,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   alarm_ref_blend_perc = atoi(dbrow[col]); col++;
   track_motion = atoi(dbrow[col]); col++;
 
-  signal_check_points = atoi(dbrow[col]); col++;
-  signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
   embed_exif = (*dbrow[col] != '0'); col++;
   rtsp_server = (*dbrow[col] != '0'); col++;
+  signal_check_points = atoi(dbrow[col]); col++;
+  signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
 
   // How many frames we need to have before we start analysing
   ready_count = warmup_count;
@@ -2932,6 +2926,7 @@ int Monitor::Close() {
     analysis_it = nullptr; // deleted by packetqueue
   }
 #endif
+  return 1;
 };
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 

@@ -1,7 +1,8 @@
 #ifndef ZM_FONT_H
 #define ZM_FONT_H
 
-#include <inttypes.h>
+#include "zm_define.h"
+
 #include <string>
 
 #define NUM_FONT_SIZES 4

@@ -26,7 +26,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <cinttypes>
 
 extern "C" {
 #include "libavutil/time.h"

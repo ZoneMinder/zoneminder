@@ -21,11 +21,11 @@
 #define ZM_RTP_SOURCE_H
 
 #include "zm_buffer.h"
+#include "zm_define.h"
 #include "zm_ffmpeg.h"
 #include "zm_thread.h"
 
 #include <sys/time.h>
-#include <stdint.h>
 #include <string>
 
 #if HAVE_LIBAVCODEC

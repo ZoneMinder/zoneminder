@@ -87,7 +87,6 @@ Options for use with monitors:
 */
 
 #include <getopt.h>
-#include <cinttypes>
 
 #include "zm.h"
 #include "zm_db.h"

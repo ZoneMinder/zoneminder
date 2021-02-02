@@ -44,7 +44,6 @@ class Monitor;
 #include "zm_image_analyser.h"
 
 #include <sys/time.h>
-#include <stdint.h>
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"

@@ -21,7 +21,9 @@
 #define ZM_LOGGER_H
 
 #include "zm_config.h"
-#include <stdint.h>
+#include "zm_define.h"
+#include "zm_thread.h"
+
 #include <unistd.h>
 #include <string>
 #include <map>
@@ -29,8 +31,6 @@
 #include <sys/syscall.h>
 #endif // HAVE_SYS_SYSCALL_H
 #include <mysql/mysql.h>
-
-#include "zm_thread.h"
 
 class Logger {
 public:

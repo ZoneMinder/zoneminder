@@ -53,7 +53,12 @@ class PacketQueue {
     std::list<ZMPacket *>::const_iterator begin() const { return pktQueue.begin(); }
 
     void addStreamId(int p_stream_id);
-    void setMaxVideoPackets(int p) { max_video_packet_count = p; }
+    void setMaxVideoPackets(int p) {
+      max_video_packet_count = p;
+      if ( max_video_packet_count < 1 )
+        max_video_packet_count = 1 ;
+      // We can simplify a lot of logic in queuePacket if we can assume at least 1 packet in queue
+    }
 
     bool queuePacket(ZMPacket* packet);
     ZMPacket * popPacket();
@@ -76,10 +81,11 @@ class PacketQueue {
     packetqueue_iterator *get_stream_it(int stream_id);
     void free_it(packetqueue_iterator *);
 
-    std::list<ZMPacket *>::iterator get_event_start_packet_it(
+    packetqueue_iterator *get_event_start_packet_it(
         packetqueue_iterator snapshot_it,
         unsigned int pre_event_count
     );
+    bool is_there_an_iterator_pointing_to_packet(ZMPacket *zm_packet);
 };
 
 #endif /* ZM_PACKETQUEUE_H */

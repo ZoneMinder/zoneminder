@@ -82,7 +82,7 @@ std::string load_monitor_sql =
 "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
 "`ImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
-"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, `SignalCheckPoints`, `SignalCheckColour` FROM `Monitors`";
+"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, `RTSPServer`, `SignalCheckPoints`, `SignalCheckColour` FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
   "Local",
@@ -333,6 +333,7 @@ Monitor::Monitor()
   signal_check_points(0),
   signal_check_colour(0),
   embed_exif(0),
+  rtsp_server(0),
   capture_max_fps(0),
   purpose(QUERY),
   last_camera_bytes(0),
@@ -394,7 +395,7 @@ Monitor::Monitor()
  "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
  "ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
  "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
- "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, SignalCheckPoints, SignalCheckColour FROM Monitors";
+ "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, `RTSPServer`, SignalCheckPoints, SignalCheckColour FROM Monitors";
 */
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
@@ -567,6 +568,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   signal_check_points = atoi(dbrow[col]); col++;
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
   embed_exif = (*dbrow[col] != '0'); col++;
+  rtsp_server = (*dbrow[col] != '0'); col++;
 
   // How many frames we need to have before we start analysing
   ready_count = warmup_count;
@@ -1962,21 +1964,24 @@ bool Monitor::Analyse() {
                 if ( ! snap->keyframe and (videowriter == PASSTHROUGH) ) {
                   // Must start on a keyframe so rewind. Only for passthrough though I guess.
                   // FIXME this iterator is not protected from invalidation
-                  packetqueue_iterator start_it = packetqueue.get_event_start_packet_it(
+                  packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
                       snap_it, 0
                       );
-                  ZMPacket *starting_packet = *start_it;
+
+                  ZMPacket *starting_packet = *(*start_it);
 
                   event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
                   // Write out starting packets, do not modify packetqueue it will garbage collect itself
-                  while ( start_it != snap_it ) {
-                    ZMPacket *p = packetqueue.get_packet(&start_it);
+                  while ( (*start_it) != snap_it ) {
+                    ZMPacket *p = packetqueue.get_packet(start_it);
                     if ( !p ) break;
                     event->AddPacket(p);
                     p->unlock();
-                    packetqueue.increment_it(&start_it);
+                    packetqueue.increment_it(start_it);
                   }
-                  //packetqueue.free_it(start_it);
+                  packetqueue.free_it(start_it);
+                  delete start_it;
+                  start_it = nullptr;
                 } else {
                   // Create event from current snap
                   event = new Event(this, *timestamp, "Continuous", noteSetMap);
@@ -2039,20 +2044,23 @@ bool Monitor::Analyse() {
                       name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
                   if ( !event ) {
-                    packetqueue_iterator start_it = packetqueue.get_event_start_packet_it(
+                    packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
                         snap_it,
                         (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
                         );
-                    ZMPacket *starting_packet = *start_it;
+                    ZMPacket *starting_packet = *(*start_it);
 
                     event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
                     // Write out starting packets, do not modify packetqueue it will garbage collect itself
-                    while ( start_it != snap_it ) {
-                      ZMPacket *p = packetqueue.get_packet(&start_it);
+                    while ( *start_it != snap_it ) {
+                      ZMPacket *p = packetqueue.get_packet(start_it);
                       event->AddPacket(p);
                       p->unlock();
-                      ++start_it;
+                      ++(*start_it);
                     }
+                    packetqueue.free_it(start_it);
+                    delete start_it;
+                    start_it = nullptr;
 
                     shared_data->last_event_id = event->Id();
                     //set up video store data
@@ -2207,6 +2215,7 @@ bool Monitor::Analyse() {
 
     shared_data->last_read_index = snap->image_index;
     shared_data->last_read_time = time(nullptr);
+    Debug(1, "Last Read time: %d", shared_data->last_read_time);
     analysis_image_count++;
     UpdateAnalysisFPS();
   } // end while not at end of packetqueue
@@ -2499,6 +2508,7 @@ int Monitor::Capture() {
         } else {
           delete packet;
         }
+        image_count ++;
         // Don't update last_write_index because that is used for live streaming
         //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
         return 1;
@@ -2922,8 +2932,6 @@ int Monitor::Close() {
     analysis_it = nullptr; // deleted by packetqueue
   }
 #endif
-  Debug(1, "Closing camera");
-  return camera->Close();
 };
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 

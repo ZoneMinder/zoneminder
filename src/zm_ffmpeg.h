@@ -19,8 +19,9 @@
 
 #ifndef ZM_FFMPEG_H
 #define ZM_FFMPEG_H
-#include <stdint.h>
-#include "zm.h"
+
+#include "zm_config.h"
+#include "zm_define.h"
 
 extern "C" {
 

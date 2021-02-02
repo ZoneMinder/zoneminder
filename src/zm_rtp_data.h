@@ -20,10 +20,9 @@
 #ifndef ZM_RTP_DATA_H
 #define ZM_RTP_DATA_H
 
-#include "zm_thread.h"
 #include "zm_buffer.h"
-
-#include <stdint.h>
+#include "zm_define.h"
+#include "zm_thread.h"
 
 class RtspThread;
 class RtpSource;

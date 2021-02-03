@@ -1807,7 +1807,7 @@ bool Monitor::Analyse() {
     // if we have been told to be OFF, then we are off and don't do any processing.
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
       Debug(4, "Trigger not OFF state is (%d)", trigger_data->trigger_state);
-      unsigned int score = -1;
+      int score = -1;
       // Ready means that we have captured the warmpup # of frames
       if ( Ready() ) {
         Debug(4, "Ready");

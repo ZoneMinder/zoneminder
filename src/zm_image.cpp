@@ -1416,9 +1416,9 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
 
   unsigned int new_stride = new_width * colours;
   for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ ) {
-    unsigned char *pbuf = &buffer[((y*linesize)+lo_x)];
-    unsigned char *pnbuf = &new_buffer[(ny*new_width)*colours];
-    memcpy( pnbuf, pbuf, new_stride );
+    unsigned char *pbuf = &buffer[((y*linesize)+(lo_x*colours))];
+    unsigned char *pnbuf = &new_buffer[ny*new_stride];
+    memcpy(pnbuf, pbuf, new_stride);
   }
 
   AssignDirect(new_width, new_height, colours, subpixelorder, new_buffer, new_size, ZM_BUFTYPE_ZM);

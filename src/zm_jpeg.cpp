@@ -23,71 +23,62 @@
 #include <unistd.h>
 
 /* Overridden error handlers, mostly for decompression */
-extern "C"
-{
+extern "C" {
 
 #define MAX_JPEG_ERRS 25
 
 static int jpeg_err_count = 0;
 
-void zm_jpeg_error_silent( j_common_ptr cinfo ){
+void zm_jpeg_error_silent(j_common_ptr cinfo) {
   zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
-  longjmp( zmerr->setjmp_buffer, 1 );
-}
-void zm_jpeg_emit_silence( j_common_ptr cinfo, int msg_level ){
+  longjmp(zmerr->setjmp_buffer, 1);
 }
 
-void zm_jpeg_error_exit( j_common_ptr cinfo )
-{
+void zm_jpeg_emit_silence(j_common_ptr cinfo, int msg_level) {
+}
+
+void zm_jpeg_error_exit(j_common_ptr cinfo) {
   static char buffer[JMSG_LENGTH_MAX];
   zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
 
-  (zmerr->pub.format_message)( cinfo, buffer ); 
+  (zmerr->pub.format_message)(cinfo, buffer); 
 
-  Error( "%s", buffer );
-  if ( ++jpeg_err_count == MAX_JPEG_ERRS )
-  {
-    Fatal( "Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count );
+  Error("%s", buffer);
+  if ( ++jpeg_err_count == MAX_JPEG_ERRS ) {
+    Fatal("Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count);
   }
 
-  longjmp( zmerr->setjmp_buffer, 1 );
+  longjmp(zmerr->setjmp_buffer, 1);
 }
 
-void zm_jpeg_emit_message( j_common_ptr cinfo, int msg_level )
-{
+void zm_jpeg_emit_message(j_common_ptr cinfo, int msg_level) {
   static char buffer[JMSG_LENGTH_MAX];
   zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
 
-  if ( msg_level < 0 )
-  {
+  if ( msg_level < 0 ) {
     /* It's a warning message.  Since corrupt files may generate many warnings,
      * the policy implemented here is to show only the first warning,
      * unless trace_level >= 3.
      */
-    if ( zmerr->pub.num_warnings == 0 || zmerr->pub.trace_level >= 3 )
-    {
-      (zmerr->pub.format_message)( cinfo, buffer );
-      if (!strstr(buffer, "Corrupt JPEG data:")) 
-      Warning( "%s", buffer );
+    if ( zmerr->pub.num_warnings == 0 || zmerr->pub.trace_level >= 3 ) {
+      (zmerr->pub.format_message)(cinfo, buffer);
+      if ( !strstr(buffer, "Corrupt JPEG data:") ) 
+        Warning("%s", buffer);
     }
     /* Always count warnings in num_warnings. */
     zmerr->pub.num_warnings++;
-  }
-  else
-  {
+  } else {
     /* It's a trace message.  Show it if trace_level >= msg_level. */
-    if ( zmerr->pub.trace_level >= msg_level )
-    {
-      (zmerr->pub.format_message)( cinfo, buffer ); 
-      Debug( msg_level, "%s", buffer );
+    if ( zmerr->pub.trace_level >= msg_level ) {
+      (zmerr->pub.format_message)(cinfo, buffer); 
+      Debug(msg_level, "%s", buffer);
     }
   }
 }
 
 /* Expanded data destination object for memory */
 
-typedef struct
-{
+typedef struct {
   struct jpeg_destination_mgr pub; /* public fields */
 
   JOCTET *outbuffer;    /* target buffer */
@@ -104,8 +95,7 @@ typedef mem_destination_mgr * mem_dest_ptr;
  * before any data is actually written.
  */
 
-static void init_destination (j_compress_ptr cinfo)
-{
+static void init_destination (j_compress_ptr cinfo) {
   mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
 
   /* Allocate the output buffer --- it will be released when done with image */
@@ -116,7 +106,6 @@ static void init_destination (j_compress_ptr cinfo)
 
   *(dest->outbuffer_size) = 0;
 }
-
 
 /*
  * Empty the output buffer --- called whenever buffer fills up.
@@ -141,17 +130,16 @@ static void init_destination (j_compress_ptr cinfo)
  * write it out when emptying the buffer externally.
  */
 
-static boolean empty_output_buffer (j_compress_ptr cinfo)
-{
+static boolean empty_output_buffer(j_compress_ptr cinfo) {
   mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
 
-  memcpy( dest->outbuffer+*(dest->outbuffer_size), dest->buffer, OUTPUT_BUF_SIZE );
+  memcpy(dest->outbuffer+*(dest->outbuffer_size), dest->buffer, OUTPUT_BUF_SIZE);
   *(dest->outbuffer_size) += OUTPUT_BUF_SIZE;
 
   dest->pub.next_output_byte = dest->buffer;
   dest->pub.free_in_buffer = OUTPUT_BUF_SIZE;
 
-  return( TRUE );
+  return TRUE;
 }
 
 /*
@@ -163,14 +151,12 @@ static boolean empty_output_buffer (j_compress_ptr cinfo)
  * for error exit.
  */
 
-static void term_destination (j_compress_ptr cinfo)
-{
+static void term_destination(j_compress_ptr cinfo) {
   mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
   size_t datacount = OUTPUT_BUF_SIZE - dest->pub.free_in_buffer;
 
-  if ( datacount > 0 )
-  {
-    memcpy( dest->outbuffer+*(dest->outbuffer_size), dest->buffer, datacount );
+  if ( datacount > 0 ) {
+    memcpy(dest->outbuffer+*(dest->outbuffer_size), dest->buffer, datacount);
     *(dest->outbuffer_size) += datacount;
   }
 }
@@ -182,8 +168,7 @@ static void term_destination (j_compress_ptr cinfo)
  * for closing it after finishing compression.
  */
 
-void zm_jpeg_mem_dest (j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_size )
-{
+void zm_jpeg_mem_dest(j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_size) {
   mem_dest_ptr dest;
 
   /* The destination object is made permanent so that multiple JPEG images
@@ -192,10 +177,10 @@ void zm_jpeg_mem_dest (j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_s
    * manager serially with the same JPEG object, because their private object
    * sizes may be different.  Caveat programmer.
    */
-  if ( cinfo->dest == nullptr )
-  {
+  if ( cinfo->dest == nullptr ) {
     /* first time for this JPEG object? */
-    cinfo->dest = (struct jpeg_destination_mgr *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, SIZEOF(mem_destination_mgr));
+    cinfo->dest = (struct jpeg_destination_mgr *)(*cinfo->mem->alloc_small)
+      ((j_common_ptr) cinfo, JPOOL_PERMANENT, SIZEOF(mem_destination_mgr));
   }
 
   dest = (mem_dest_ptr) cinfo->dest;
@@ -208,8 +193,7 @@ void zm_jpeg_mem_dest (j_compress_ptr cinfo, JOCTET *outbuffer, int *outbuffer_s
 
 /* Expanded data source object for memory input */
 
-typedef struct
-{
+typedef struct {
   struct jpeg_source_mgr pub;  /* public fields */
 
   JOCTET * inbuffer;    /* source stream */
@@ -229,8 +213,7 @@ typedef mem_source_mgr * mem_src_ptr;
  * before any data is actually read.
  */
 
-static void init_source (j_decompress_ptr cinfo)
-{
+static void init_source (j_decompress_ptr cinfo) {
   mem_src_ptr src = (mem_src_ptr) cinfo->src;
 
   /* We reset the empty-input-file flag for each image,
@@ -275,12 +258,11 @@ static void init_source (j_decompress_ptr cinfo)
  * the front of the buffer rather than discarding it.
  */
 
-static boolean fill_input_buffer (j_decompress_ptr cinfo)
-{
+static boolean fill_input_buffer (j_decompress_ptr cinfo) {
   mem_src_ptr src = (mem_src_ptr) cinfo->src;
   size_t nbytes;
 
-  memcpy( src->buffer, src->inbuffer, (size_t) src->inbuffer_size );
+  memcpy(src->buffer, src->inbuffer, (size_t) src->inbuffer_size);
   nbytes = src->inbuffer_size;
 
   if ( nbytes == 0 ) {
@@ -297,9 +279,8 @@ static boolean fill_input_buffer (j_decompress_ptr cinfo)
   src->pub.bytes_in_buffer = nbytes;
   src->start_of_data = FALSE;
 
-  return( TRUE );
+  return TRUE;
 }
-
 
 /*
  * Skip data --- used to skip over a potentially large amount of
@@ -313,18 +294,15 @@ static boolean fill_input_buffer (j_decompress_ptr cinfo)
  * buffer is the application writer's problem.
  */
 
-static void skip_input_data (j_decompress_ptr cinfo, long num_bytes)
-{
+static void skip_input_data(j_decompress_ptr cinfo, long num_bytes) {
   mem_src_ptr src = (mem_src_ptr) cinfo->src;
 
   /* Just a dumb implementation for now.  Could use fseek() except
    * it doesn't work on pipes.  Not clear that being smart is worth
    * any trouble anyway --- large skips are infrequent.
    */
-  if ( num_bytes > 0 )
-  {
-    while ( num_bytes > (long) src->pub.bytes_in_buffer )
-    {
+  if ( num_bytes > 0 ) {
+    while ( num_bytes > (long) src->pub.bytes_in_buffer ) {
       num_bytes -= (long) src->pub.bytes_in_buffer;
       (void) fill_input_buffer(cinfo);
       /* note we assume that fill_input_buffer will never return FALSE,
@@ -336,7 +314,6 @@ static void skip_input_data (j_decompress_ptr cinfo, long num_bytes)
   }
 }
 
-
 /*
  * Terminate source --- called by jpeg_finish_decompress
  * after all data has been read.  Often a no-op.
@@ -346,11 +323,9 @@ static void skip_input_data (j_decompress_ptr cinfo, long num_bytes)
  * for error exit.
  */
 
-static void term_source (j_decompress_ptr cinfo)
-{
+static void term_source(j_decompress_ptr cinfo) {
   /* no work necessary here */
 }
-
 
 /*
  * Prepare for input from a memory stream.
@@ -358,8 +333,7 @@ static void term_source (j_decompress_ptr cinfo)
  * for closing it after finishing decompression.
  */
 
-void zm_jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuffer_size )
-{
+void zm_jpeg_mem_src(j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuffer_size) {
   mem_src_ptr src;
 
   /* The source object and input buffer are made permanent so that a series
@@ -369,19 +343,15 @@ void zm_jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuff
    * This makes it unsafe to use this manager and a different source
    * manager serially with the same JPEG object.  Caveat programmer.
    */
-  if ( cinfo->src == nullptr )
-  {
+  if ( cinfo->src == nullptr ) {
       /* first time for this JPEG object? */
     cinfo->src = (struct jpeg_source_mgr *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, SIZEOF(mem_source_mgr));
     src = (mem_src_ptr) cinfo->src;
     src->buffer = (JOCTET *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, inbuffer_size * SIZEOF(JOCTET));
     src->inbuffer_size_hwm = inbuffer_size;
-  }
-  else
-  {
+  } else {
     src = (mem_src_ptr) cinfo->src;
-    if ( src->inbuffer_size_hwm < inbuffer_size )
-    {
+    if ( src->inbuffer_size_hwm < inbuffer_size ) {
       src->buffer = (JOCTET *)(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, inbuffer_size * SIZEOF(JOCTET));
       src->inbuffer_size_hwm = inbuffer_size;
     }
@@ -399,7 +369,7 @@ void zm_jpeg_mem_src( j_decompress_ptr cinfo, const JOCTET *inbuffer, int inbuff
   src->pub.next_input_byte = nullptr; /* until buffer loaded */
 }
 
-void zm_use_std_huff_tables( j_decompress_ptr cinfo ) {
+void zm_use_std_huff_tables(j_decompress_ptr cinfo) {
   /* JPEG standard Huffman tables (cf. JPEG standard section K.3) */
   /* IMPORTANT: these are only valid for 8-bit data precision! */
   static const JHUFF_TBL dclumin = {
@@ -467,7 +437,6 @@ void zm_use_std_huff_tables( j_decompress_ptr cinfo ) {
   cinfo->dc_huff_tbl_ptrs[1] = (JHUFF_TBL*)&dcchrome;
   cinfo->ac_huff_tbl_ptrs[0] = (JHUFF_TBL*)&aclumin;
   cinfo->ac_huff_tbl_ptrs[1] = (JHUFF_TBL*)&acchrome;
-  
 }
 
 }

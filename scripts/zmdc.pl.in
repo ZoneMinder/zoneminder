@@ -436,18 +436,19 @@ sub start {
     return;
   }
 
+  # We have to block SIGCHLD during fork to prevent races while we setup our records for it
   my $sigset = POSIX::SigSet->new;
   my $blockset = POSIX::SigSet->new(SIGCHLD);
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
   # Apparently the child closing the db connection can affect the parent.
   zmDbDisconnect();
-  if ( my $cpid = fork() ) {
+  if ( my $child_pid = fork() ) {
 
     $dbh = zmDbConnect(1);
     # This logReinit is required.  Not sure why.
     logReinit();
 
-    $process->{pid} = $cpid;
+    $process->{pid} = $child_pid;
     $process->{started} = time();
     delete $process->{pending};
 
@@ -456,9 +457,9 @@ sub start {
         .", pid = $process->{pid}\n"
         );
 
-    $cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
+    $cmd_hash{$process->{command}} = $pid_hash{$child_pid} = $process;
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
-  } elsif ( defined($cpid) ) {
+  } elsif ( defined($child_pid) ) {
     # Child process
     
     # Force reconnection to the db. $dbh got copied, but isn't really valid anymore.
@@ -490,7 +491,7 @@ sub start {
     zmDbDisconnect();
 
     my $fd = 3; # leave stdin,stdout,stderr open.  Closing them causes problems with libx264
-    while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
+    while ( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
       POSIX::close($fd++);
     }
 

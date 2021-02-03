@@ -677,22 +677,21 @@ function controlCmdImage( x, y ) {
   }
 }
 
-function fetchImage( streamImage ) {
+function fetchImage(streamImage) {
   streamImage.attr('src', streamImage.attr('src').replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )));
 }
 
-function handleClick( event ) {
+function handleClick(event) {
   // target should be the img tag
-  var target = event.target;
-  var width = $j(target).width();
-  var height = $j(target).height();
+  var target = $j(event.target);
+  var width = target.width();
+  var height = target.height();
 
   var scaleX = parseInt(monitorWidth / width);
   var scaleY = parseInt(monitorHeight / height);
-  var x = (event.pageX - target.getLeft()) * scaleX;
-  var y = (event.pageY - target.getTop()) * scaleY;
-  // image can be scaled... we need the coordinates in original image size units
-  // So what is event.page.x?
+  var pos = target.offset();
+  var x = parseInt((event.pageX - pos.left) * scaleX);
+  var y = parseInt((event.pageY - pos.top) * scaleY);
 
   if ( showMode == 'events' || !imageControlMode ) {
     if ( event.shift ) {

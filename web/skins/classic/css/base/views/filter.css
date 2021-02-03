@@ -48,12 +48,16 @@ select {
 #actionsTable input[type=text] {
     margin-left: 4px;
 }
-
-#actionsTable p {
+#actionsTable, #optionsTable {
+  float: left;
+  width: 50%;
+  min-width: 300px;
+}
+#actionsTable p, #optionsTable p {
   text-align: left;
 }
-#actionsTable label {
-  width: 300px;
+#actionsTable label, #optionsTable label {
+  width: 320px;
   text-align: right;
 }
 input[name="filter[EmailSubject]"],

@@ -637,13 +637,20 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   frames++;
 
   bool write_to_db = false;
-  FrameType frame_type = score>0?ALARM:(score<0?BULK:NORMAL);
-  // < 0 means no motion detection is being done.
+  FrameType frame_type = ( ( score > 0 ) ? ALARM : (
+      (
+       ( monitor->GetState() == Monitor::TAPE )
+       and
+       ( config.bulk_frame_interval > 1 )
+       and
+       ( ! (frames % config.bulk_frame_interval) )
+      ) ? BULK : NORMAL 
+      ) );
+
   if ( score < 0 )
     score = 0;
+
   tot_score += score;
-  if ( score > (int)max_score )
-    max_score = score;
 
   if ( image ) {
     if ( save_jpegs & 1 ) {
@@ -680,22 +687,24 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     }  // end if is an alarm frame
   }  // end if has image
 
-  bool db_frame = ( frame_type != BULK ) || (frames==1) || ((frames%config.bulk_frame_interval)==0) ;
+  bool db_frame = ( frame_type == BULK ) || ( frame_type == ALARM ) || ( frames == 1 ) || ( score > (int)max_score );
   if ( db_frame ) {
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
     Debug(1, "Frame delta is %d.%d - %d.%d = %d.%d", 
-        start_time.tv_sec, start_time.tv_usec, timestamp.tv_sec, timestamp.tv_usec, delta_time.sec, delta_time.fsec);
+        start_time.tv_sec, start_time.tv_usec,
+        timestamp.tv_sec, timestamp.tv_usec,
+        delta_time.sec, delta_time.fsec);
 
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
     double fps = monitor->get_capture_fps();
 		if ( write_to_db
 				or
-				(frame_data.size() >= MAX_DB_FRAMES)
+				( frame_data.size() >= MAX_DB_FRAMES )
 				or
-				(frame_type == BULK)
+				( frame_type == BULK )
 				or
 				( fps and (frame_data.size() > fps) )
 			 ) {
@@ -730,6 +739,8 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     } // end if frame_type == BULK
   } // end if db_frame
 
+  if ( score > (int)max_score )
+    max_score = score;
   end_time = timestamp;
 }  // end void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image)
 

@@ -399,6 +399,7 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
         </table>
         <hr/>
         <div id="actionsTable" class="filterTable">
+          <fieldset><legend><?php echo translate('Actions') ?></legend>
             <p>
               <label><?php echo translate('FilterArchiveEvents') ?></label>
               <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( $filter->AutoArchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
@@ -433,20 +434,6 @@ if ( ZM_OPT_EMAIL ) {
               <label><?php echo translate('FilterEmailEvents') ?></label>
               <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_AutoEmail"/>
             </p>
-						<div id="EmailOptions"<?php echo $filter->AutoEmail() ? '' : ' style="display:none;"' ?>>
-							<p>
-								<label><?php echo translate('FilterEmailTo') ?></label>
-								<input type="email" name="filter[EmailTo]" value="<?php echo validHtmlStr($filter->EmailTo()) ?>" multiple/>
-							</p>
-							<p>
-								<label><?php echo translate('FilterEmailSubject') ?></label>
-								<input type="text" name="filter[EmailSubject]" value="<?php echo validHtmlStr($filter->EmailSubject()) ?>"/>
-							</p>
-							<p>
-								<label><?php echo translate('FilterEmailBody') ?></label>
-								<textarea name="filter[EmailBody]"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
-							</p>
-						</div>
 <?php
 }
 if ( ZM_OPT_MESSAGE ) {
@@ -477,6 +464,10 @@ if ( ZM_OPT_MESSAGE ) {
               <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_automove"/>
               <?php echo htmlSelect('filter[AutoMoveTo]', $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;')); ?>
             </p>
+          </fieldset>
+        </div>
+        <div id="optionsTable" class="filterTable">
+          <fieldset><legend><?php echo translate('Options') ?></legend>
             <p>
               <label for="background"><?php echo translate('BackgroundFilter') ?></label>
               <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( $filter->Background() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
@@ -489,6 +480,27 @@ if ( ZM_OPT_MESSAGE ) {
               <label for="LockRows"><?php echo translate('FilterLockRows') ?></label>
               <input type="checkbox" id="filter[LockRows]" name="filter[LockRows]" value="1"<?php if ( $filter->LockRows() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
+<?php
+if ( ZM_OPT_EMAIL ) {
+?>
+            <div id="EmailOptions"<?php echo $filter->AutoEmail() ? '' : ' style="display:none;"' ?>>
+              <p>
+                <label><?php echo translate('FilterEmailTo') ?></label>
+                <input type="email" name="filter[EmailTo]" value="<?php echo validHtmlStr($filter->EmailTo()) ?>" multiple/>
+              </p>
+              <p>
+                <label><?php echo translate('FilterEmailSubject') ?></label>
+                <input type="text" name="filter[EmailSubject]" value="<?php echo validHtmlStr($filter->EmailSubject()) ?>"/>
+              </p>
+              <p>
+                <label><?php echo translate('FilterEmailBody') ?></label>
+                <textarea name="filter[EmailBody]"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
+              </p>
+            </div>
+<?php
+}
+?>
+          </fieldset>
         </div>
         <hr/>
         <div id="contentButtons">

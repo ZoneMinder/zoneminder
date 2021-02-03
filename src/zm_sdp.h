@@ -26,7 +26,7 @@
 #include "zm_exception.h"
 #include "zm_ffmpeg.h"
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <string>
 #include <vector>

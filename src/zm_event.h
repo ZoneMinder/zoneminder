@@ -20,12 +20,11 @@
 #ifndef ZM_EVENT_H
 #define ZM_EVENT_H
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
 #include <unistd.h>
-#include <errno.h>
-#include <limits.h>
-#include <time.h>
+#include <cerrno>
+#include <climits>
+#include <ctime>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>

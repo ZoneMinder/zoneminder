@@ -34,7 +34,7 @@ extern "C" {
 class Image;
 #include "zm_ffmpeg.h"
 
-#include <errno.h>
+#include <cerrno>
 
 #if HAVE_ZLIB_H
 #include <zlib.h>

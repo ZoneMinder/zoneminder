@@ -20,9 +20,9 @@
 #include "zm.h"
 #include "zm_signal.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
 
 #define TRACE_SIZE 16
 

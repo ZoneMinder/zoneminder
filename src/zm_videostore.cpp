@@ -24,9 +24,6 @@
 #include "zm.h"
 #include "zm_videostore.h"
 
-#include <stdlib.h>
-#include <string.h>
-
 extern "C" {
 #include "libavutil/time.h"
 }

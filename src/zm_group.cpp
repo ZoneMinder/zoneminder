@@ -22,8 +22,8 @@
 
 #include "zm_group.h"
 
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 
 Group::Group() {
 	Warning("Instantiating default Group Object. Should not happen.");

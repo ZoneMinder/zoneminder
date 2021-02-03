@@ -20,22 +20,15 @@
 #include "zm_comms.h"
 #include "zm_logger.h"
 
-#include <errno.h>
+#include <cerrno>
 #include <fcntl.h>
-#include <stdarg.h>
+#include <cstdarg>
 #include <utility>
-
-#if defined(BSD)
-#include <stdlib.h>
-#else
-#include <alloca.h>
-#endif
-
 #include <sys/ioctl.h>
 #include <sys/param.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>   // for debug output
-#include <stdio.h>       // for snprintf
+#include <cstdio>       // for snprintf
 
 #ifdef SOLARIS
 #include <sys/filio.h> // define FIONREAD

@@ -21,10 +21,10 @@
 #include "zm.h"
 #include "zm_utils.h"
 
-#include <string.h>
+#include <cstring>
 #include <algorithm>
-#include <stdio.h>
-#include <stdarg.h>
+#include <cstdio>
+#include <cstdarg>
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <sys/stat.h>
 #if defined(__arm__)

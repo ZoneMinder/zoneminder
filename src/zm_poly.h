@@ -24,7 +24,7 @@
 #include "zm_coord.h"
 #include "zm_box.h"
 
-#include <math.h>
+#include <cmath>
 
 //
 // Class used for storing a box, which is defined as a region

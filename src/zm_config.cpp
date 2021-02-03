@@ -20,10 +20,7 @@
 #include "zm.h"
 #include "zm_db.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include <cstring>
 #include <dirent.h>
 #include <glob.h>
 

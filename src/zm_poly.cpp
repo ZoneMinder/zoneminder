@@ -20,11 +20,7 @@
 #include "zm.h"
 #include "zm_poly.h"
 
-#ifndef SOLARIS
-#include <math.h>
-#else
 #include <cmath>
-#endif
 
 void Polygon::calcArea() {
   double float_area = 0.0L;

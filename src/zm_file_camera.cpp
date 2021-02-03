@@ -17,14 +17,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/time.h>
+#include <ctime>
+#include <cerrno>
 #include <sys/stat.h>
 
 #include "zm.h"

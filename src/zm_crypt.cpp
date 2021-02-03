@@ -13,7 +13,6 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 #endif
-#include <string.h>
 
 // returns username if valid, "" if not
 #if HAVE_LIBJWT

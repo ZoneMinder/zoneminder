@@ -22,8 +22,6 @@
 #include <arpa/inet.h>
 #include <sys/un.h>
 #include <sys/uio.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
 #include <getopt.h>
 #include <arpa/inet.h>
 #include <glob.h>

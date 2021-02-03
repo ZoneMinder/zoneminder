@@ -22,9 +22,9 @@
 
 #include "zm_storage.h"
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
 
 Storage::Storage() : id(0) {
 	Warning("Instantiating default Storage Object. Should not happen.");

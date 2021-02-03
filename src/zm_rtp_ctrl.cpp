@@ -26,7 +26,7 @@
 #include "zm_time.h"
 #include "zm_rtsp.h"
 
-#include <errno.h>
+#include <cerrno>
 
 RtpCtrlThread::RtpCtrlThread( RtspThread &rtspThread, RtpSource &rtpSource )
   : mRtspThread( rtspThread ), mRtpSource( rtpSource ), mStop( false )

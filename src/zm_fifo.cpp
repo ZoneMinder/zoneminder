@@ -19,9 +19,9 @@
 
 #include <fcntl.h>
 #include <sys/file.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <signal.h>
+#include <cstdio>
+#include <cstdarg>
+#include <csignal>
 
 #include "zm.h"
 #include "zm_time.h"

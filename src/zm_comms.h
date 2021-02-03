@@ -23,12 +23,9 @@
 #include "zm_logger.h"
 #include "zm_exception.h"
 
-#include <string.h>
 #include <unistd.h>
 #include <netdb.h>
-#include <errno.h>
 #include <sys/un.h>
-
 #include <set>
 #include <vector>
 #include <sys/uio.h>

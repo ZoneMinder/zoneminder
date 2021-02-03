@@ -2,9 +2,8 @@
 #define ZM_ANALYSIS_THREAD_H
 
 #include "zm_thread.h"
-#include <signal.h>
-
 #include "zm_monitor.h"
+#include <csignal>
 
 class AnalysisThread : public Thread {
   private:

@@ -20,7 +20,7 @@
 #ifndef ZM_SIGNAL_H
 #define ZM_SIGNAL_H
 
-#include <signal.h>
+#include <csignal>
 
 #if HAVE_EXECINFO_H
 #include <execinfo.h>

@@ -20,7 +20,7 @@
 #ifndef ZM_MEM_UTILS_H
 #define ZM_MEM_UTILS_H
 
-#include <stdlib.h>
+#include <cstdlib>
 #include "zm.h"
 
 inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {

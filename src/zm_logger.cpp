@@ -24,14 +24,14 @@
 #include "zm_db.h"
 
 #include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <syslog.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <errno.h>
+#include <csignal>
+#include <cstdarg>
+#include <cerrno>
 #include <libgen.h>
 #ifdef __FreeBSD__
 #include <sys/thr.h>

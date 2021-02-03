@@ -20,7 +20,7 @@
 #ifndef ZM_UTILS_H
 #define ZM_UTILS_H
 
-#include <time.h>
+#include <ctime>
 #include <sys/time.h>
 #include <string>
 #include <sstream>

@@ -4,8 +4,8 @@
 
 #if HAVE_RTSP_SERVER
 
-#include <sys/time.h>
-#include <string.h>
+#include <ctime>
+#include <cstring>
 // ---------------------------------
 // Captured frame
 // ---------------------------------

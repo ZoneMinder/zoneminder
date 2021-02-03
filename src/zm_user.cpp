@@ -22,10 +22,10 @@
 
 #include "zm_user.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <utility>
 
 #if HAVE_GNUTLS_GNUTLS_H

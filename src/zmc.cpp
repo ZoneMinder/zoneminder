@@ -54,7 +54,7 @@ possible, this should run at more or less constant speed.
 */
 
 #include <getopt.h>
-#include <signal.h>
+#include <csignal>
 #if defined(__FreeBSD__)
 #include <limits.h>
 #else

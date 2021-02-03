@@ -5,7 +5,7 @@
 #define ZM_RTSP_SERVER_THREAD_H
 
 #include "zm_thread.h"
-#include <signal.h>
+#include <csignal>
 
 #include "zm_monitor.h"
 

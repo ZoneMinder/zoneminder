@@ -452,6 +452,7 @@ int main(int argc, char *argv[]) {
     if ( mysql_query(&dbconn, sql) ) {
       Error("Can't run query: %s", mysql_error(&dbconn));
     }
+    monitors[i]->disconnect();
     delete monitors[i];
   }
   delete [] monitors;

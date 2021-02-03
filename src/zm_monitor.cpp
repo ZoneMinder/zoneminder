@@ -1044,6 +1044,10 @@ bool Monitor::disconnect() {
     return false;
   }
 #endif // ZM_MEM_MAPPED
+  if ( event ) {
+    Info( "%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id() );
+    closeEvent();
+  }
   if ( image_buffer ) {
     for ( int i = 0; i < image_buffer_count; i++ ) {
       // We delete the image because it is an object pointing to space that won't be free'd.

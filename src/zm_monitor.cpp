@@ -1136,10 +1136,6 @@ void Monitor::AddPrivacyBitmask(Zone *p_zones[]) {
     privacy_bitmask = privacy_image->Buffer();
 }
 
-Monitor::State Monitor::GetState() const {
-  return (State)shared_data->state;
-}
-
 int Monitor::GetImage(int index, int scale) {
   if ( index < 0 || index > image_buffer_count ) {
     index = shared_data->last_write_index;
@@ -1807,7 +1803,7 @@ bool Monitor::Analyse() {
     // if we have been told to be OFF, then we are off and don't do any processing.
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
       Debug(4, "Trigger not OFF state is (%d)", trigger_data->trigger_state);
-      int score = -1;
+      int score = 0;
       // Ready means that we have captured the warmpup # of frames
       if ( Ready() ) {
         Debug(4, "Ready");
@@ -1964,7 +1960,7 @@ bool Monitor::Analyse() {
 
                   ZMPacket *starting_packet = *(*start_it);
 
-                  event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
+                  event = new Event(this, *(starting_packet->timestamp), "Continuous", noteSetMap);
                   // Write out starting packets, do not modify packetqueue it will garbage collect itself
                   while ( (*start_it) != snap_it ) {
                     ZMPacket *p = packetqueue.get_packet(start_it);
@@ -2004,7 +2000,7 @@ bool Monitor::Analyse() {
               } // end if ! event
             } // end if RECORDING
 
-            if ( score > 0 ) {
+            if ( score ) {
               if ( (state == IDLE) || (state == TAPE) || (state == PREALARM) ) {
                 // If we should end then previous continuous event and start a new non-continuous event
                 if ( event && event->Frames()
@@ -2169,13 +2165,7 @@ bool Monitor::Analyse() {
               if ( noteSetMap.size() > 0 )
                 event->updateNotes(noteSetMap);
             } else if ( state == TAPE ) {
-              //if ( !(analysis_image_count%(frame_skip+1)) ) {
-              //if ( config.bulk_frame_interval > 1 ) {
-              //event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
-              //} else {
-              //event->AddFrame( snap_image, *timestamp );
-              //}
-              //}
+              // bulk frame code moved to event.
             } // end if state machine
 
             if ( (function == MODECT or function == MOCORD) and snap->image ) {
@@ -2200,9 +2190,7 @@ bool Monitor::Analyse() {
       trigger_data->trigger_state = TRIGGER_CANCEL;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
-    if ( event ) {
-      event->AddPacket(snap);
-    }
+    if ( event ) event->AddPacket(snap);
     // popPacket will have placed a second lock on snap, so release it here.
     snap->unlock();
 

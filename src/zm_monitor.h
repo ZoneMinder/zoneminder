@@ -479,7 +479,8 @@ public:
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   int GetImageBufferCount() const { return image_buffer_count; };
-  State GetState() const;
+  State GetState() const { return (State)shared_data->state; }
+
   int GetImage( int index=-1, int scale=100 );
   ZMPacket *getSnapshot( int index=-1 ) const;
   struct timeval GetTimestamp( int index=-1 ) const;

@@ -1467,7 +1467,7 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
   uint8_t *new_buffer = AllocBuffer(new_size);
 
   for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ ) {
-    unsigned char *pbuf = &buffer[((y*linesize)+lo_x)];
+    unsigned char *pbuf = &buffer[((y*linesize)+(lo_x*colours))];
     unsigned char *pnbuf = &new_buffer[ny*new_stride];
     memcpy(pnbuf, pbuf, new_stride);
   }

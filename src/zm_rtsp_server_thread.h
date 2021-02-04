@@ -7,7 +7,6 @@
 #include <list>
 
 #if HAVE_RTSP_SERVER
-
 #include <BasicUsageEnvironment.hh>
 #include <RTSPServer.hh>
 
@@ -39,6 +38,6 @@ class RTSPServerThread : public Thread {
         const std::list<ServerMediaSubsession*> & subSession
     );
 };
+#endif // HAVE_RTSP_SERVER
 
-#endif
-#endif
+#endif // ZM_RTSP_SERVER_THREAD_H

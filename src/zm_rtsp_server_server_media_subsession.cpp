@@ -104,4 +104,4 @@ char const* BaseServerMediaSubsession::getAuxLine(
 	}
 	return auxLine;
 }
-#endif
+#endif // HAVE_RTSP_SERVER

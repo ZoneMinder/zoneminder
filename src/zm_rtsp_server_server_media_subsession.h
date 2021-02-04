@@ -7,13 +7,13 @@
 ** 
 ** -------------------------------------------------------------------------*/
 
-#pragma once
+#ifndef ZM_RTSP_SERVER_SERVER_MEDIA_SUBSESSION_H
+#define ZM_RTSP_SERVER_SERVER_MEDIA_SUBSESSION_H
 
 #include "zm_config.h"
 #include <string>
 
 #if HAVE_RTSP_SERVER
-
 #include <liveMedia.hh>
 
 class ZoneMinderDeviceSource;
@@ -42,4 +42,6 @@ class BaseServerMediaSubsession {
 	protected:
 		StreamReplicator* m_replicator;
 };
-#endif
+#endif // HAVE_RTSP_SERVER
+
+#endif // ZM_RTSP_SERVER_SERVER_MEDIA_SUBSESSION_H

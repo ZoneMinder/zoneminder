@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ZM_RTSP_SERVER_FRAME_H
+#define ZM_RTSP_SERVER_FRAME_H
 
 #include "zm_config.h"
 #include "zm_logger.h"
@@ -6,7 +7,6 @@
 #include <sys/time.h>
 
 #if HAVE_RTSP_SERVER
-
 // ---------------------------------
 // Captured frame
 // ---------------------------------
@@ -61,4 +61,6 @@ class NAL_Frame {
   private:
     int m_ref_count;
 };
-#endif
+#endif // HAVE_RTSP_SERVER
+
+#endif // ZM_RTSP_SERVER_FRAME_H

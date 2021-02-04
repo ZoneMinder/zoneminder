@@ -9,14 +9,13 @@
 **
 ** -------------------------------------------------------------------------*/
 
+#ifndef ZM_RTSP_SERVER_ADTS_SOURCE_H
+#define ZM_RTSP_SERVER_ADTS_SOURCE_H
+
 #include "zm_config.h"
 #include "zm_rtsp_server_device_source.h"
 
 #if HAVE_RTSP_SERVER
-
-#ifndef ADTS_ZoneMinder_DEVICE_SOURCE
-#define ADTS_ZoneMinder_DEVICE_SOURCE
-
 // ---------------------------------
 // ADTS(AAC) ZoneMinder FramedSource
 // ---------------------------------
@@ -64,5 +63,6 @@ class ADTS_ZoneMinderDeviceSource : public ZoneMinderDeviceSource {
     int samplingFrequencyIndex;
     int channels;
 };
-#endif
-#endif
+#endif // HAVE_RTSP_SERVER
+
+#endif // ZM_RTSP_SERVER_ADTS_SOURCE_H

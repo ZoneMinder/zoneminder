@@ -16,7 +16,6 @@
 #include "zm_signal.h"
 
 #if HAVE_RTSP_SERVER
-
 ZoneMinderDeviceSource::ZoneMinderDeviceSource(
     UsageEnvironment& env,
     Monitor* monitor,
@@ -215,4 +214,4 @@ unsigned char*  ZoneMinderDeviceSource::extractFrame(unsigned char* frame, size_
   size = 0;
   return frame;
 }
-#endif
+#endif // HAVE_RTSP_SERVER

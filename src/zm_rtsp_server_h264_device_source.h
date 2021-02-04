@@ -9,15 +9,16 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#ifndef H264_ZoneMinder_DEVICE_SOURCE
-#define H264_ZoneMinder_DEVICE_SOURCE
+#ifndef ZM_RTSP_H264_DEVICE_SOURCE_H
+#define ZM_RTSP_H264_DEVICE_SOURCE_H
 
+#include "zm_config.h"
 #include "zm_rtsp_server_device_source.h"
 
 // ---------------------------------
 // H264 ZoneMinder FramedSource
 // ---------------------------------
-
+#if HAVE_RTSP_SERVER
 class H26X_ZoneMinderDeviceSource : public ZoneMinderDeviceSource {
 	protected:
 		H26X_ZoneMinderDeviceSource(
@@ -98,4 +99,6 @@ class H265_ZoneMinderDeviceSource : public H26X_ZoneMinderDeviceSource {
 	protected:
 		std::string m_vps;
 };
-#endif
+#endif // HAVE_RTSP_SERVER
+
+#endif // ZM_RTSP_H264_DEVICE_SOURCE_H

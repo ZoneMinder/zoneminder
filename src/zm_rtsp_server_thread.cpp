@@ -154,4 +154,4 @@ const std::string RTSPServerThread::getRtpFormat(AVCodecID codec_id, bool muxTS)
 
   return "";
 }
-#endif
+#endif // HAVE_RTSP_SERVER

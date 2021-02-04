@@ -6,6 +6,9 @@
 **
 ** -------------------------------------------------------------------------*/
 
+#ifndef ZM_RTSP_SERVER_DEVICE_SOURCE_H
+#define ZM_RTSP_SERVER_DEVICE_SOURCE_H
+
 #include "zm_config.h"
 #include "zm_monitor.h"
 #include <list>
@@ -13,10 +16,6 @@
 #include <utility>
 
 #if HAVE_RTSP_SERVER
-
-#ifndef DEVICE_SOURCE
-#define DEVICE_SOURCE
-
 #include <liveMedia.hh>
 
 class NAL_Frame;
@@ -73,6 +72,6 @@ class ZoneMinderDeviceSource: public FramedSource {
 		std::string m_auxLine;
     int stop;
 };
+#endif // HAVE_RTSP_SERVER
 
-#endif
-#endif
+#endif // ZM_RTSP_SERVER_DEVICE_SOURCE_H

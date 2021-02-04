@@ -15,7 +15,6 @@
 #include <sstream>
 
 #if HAVE_RTSP_SERVER
-
 // live555
 #include <Base64.hh>
 
@@ -227,4 +226,4 @@ unsigned char*  H26X_ZoneMinderDeviceSource::extractFrame(unsigned char* frame, 
 
 	return outFrame;
 }
-#endif
+#endif // HAVE_RTSP_SERVER

@@ -134,6 +134,8 @@ mark_as_advanced(
     ZM_SYSTEMD
     ZM_MANPAGE_DEST_PREFIX)
 
+option(BUILD_MAN "Build man pages" 1)
+
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH 
     "Location of transient process files, default: /var/run/zm")
 set(ZM_SOCKDIR "/var/run/zm" CACHE PATH 
@@ -258,6 +260,16 @@ elseif(ZM_TARGET_DISTRO STREQUAL "FreeBSD")
         set(ZM_CGIDIR "/usr/local/libexec/zoneminder/cgi-bin")
         set(ZM_PERL_MM_PARMS "INSTALLDIRS=site")
 endif((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
+
+if(BUILD_MAN)
+	message(STATUS "Building man pages: Yes (default)")
+	set(ZM_PERL_MM_PARMS_FULL ${ZM_PERL_MM_PARMS})
+else()
+	message(STATUS "Building man pages: No")
+	list(APPEND ZM_PERL_MM_PARMS_FULL ${ZM_PERL_MM_PARMS}
+		"INSTALLMAN1DIR=none"
+		"INSTALLMAN3DIR=none")
+endif(BUILD_MAN)
 
 # Required for certain checks to work
 set(CMAKE_EXTRA_INCLUDE_FILES 

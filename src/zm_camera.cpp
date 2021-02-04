@@ -109,6 +109,7 @@ AVStream *Camera::get_VideoStream() {
     } else {
       Error("Can't create video stream");
     }
+    mVideoStreamId = mVideoStream->index;
   }
   return mVideoStream;
 }

@@ -20,6 +20,7 @@
 #ifndef ZM_MONITOR_H
 #define ZM_MONITOR_H
 
+#include "zm_define.h"
 #include "zm_event.h"
 #include "zm_image.h"
 #include "zm_packet.h"

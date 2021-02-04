@@ -2,6 +2,7 @@
 #define ZM_VIDEOSTORE_H
 
 #include "zm_config.h"
+#include "zm_define.h"
 #include "zm_ffmpeg.h"
 #include "zm_swscale.h"
 

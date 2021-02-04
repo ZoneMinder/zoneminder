@@ -1,6 +1,8 @@
 #ifndef ZM_FFMPEG_INPUT_H
 #define ZM_FFMPEG_INPUT_H
 
+#include "zm_define.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

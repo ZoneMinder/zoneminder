@@ -15,7 +15,6 @@ DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 
 CFLAGS = -Wall
-CPPFLAGS = -D__STDC_CONSTANT_MACROS
 CXXFLAGS = -DHAVE_LIBCRYPTO
 
 ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))

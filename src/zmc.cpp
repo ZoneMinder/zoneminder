@@ -64,16 +64,6 @@ possible, this should run at more or less constant speed.
 #include <getopt.h>
 #include <iostream>
 
-#if defined(__FreeBSD__)
-#include <limits.h>
-#else
-#include <values.h>
-#endif
-
-#if !defined(MAXINT)
-#define MAXINT INT_MAX
-#endif
-
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
 

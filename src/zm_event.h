@@ -20,6 +20,7 @@
 #ifndef ZM_EVENT_H
 #define ZM_EVENT_H
 
+#include "zm_define.h"
 #include "zm_storage.h"
 #include <map>
 #include <queue>

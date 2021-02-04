@@ -22,6 +22,7 @@
 
 #include "zm_box.h"
 #include "zm_coord.h"
+#include "zm_define.h"
 #include "zm_config.h"
 #include "zm_poly.h"
 #include "zm_rgb.h"

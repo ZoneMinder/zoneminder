@@ -3,6 +3,7 @@
 #include "zm_logger.h"
 #include "BCrypt.hpp"
 #include <algorithm>
+#include <cstring>
 
 #if HAVE_LIBJWT
 #include <jwt.h>

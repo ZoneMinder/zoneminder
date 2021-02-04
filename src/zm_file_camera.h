@@ -21,11 +21,6 @@
 #define ZM_FILE_CAMERA_H
 
 #include "zm_camera.h"
-#include "zm_buffer.h"
-#include "zm_regexp.h"
-#include "zm_packet.h"
-
-#include <sys/param.h>
 
 //
 // Class representing 'file' cameras, i.e. those which are

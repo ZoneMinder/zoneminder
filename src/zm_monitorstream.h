@@ -20,11 +20,8 @@
 #ifndef ZM_MONITORSTREAM_H
 #define ZM_MONITORSTREAM_H
 
-#include "zm.h"
-#include "zm_coord.h"
-#include "zm_image.h"
-#include "zm_utils.h"
-#include "zm_monitor.h"
+#include "zm_stream.h"
+#include <sys/time.h>
 
 class MonitorStream : public StreamBase {
   protected:

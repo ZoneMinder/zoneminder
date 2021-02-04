@@ -16,10 +16,11 @@
 //You should have received a copy of the GNU General Public License
 //along with ZoneMinder.  If not, see <http://www.gnu.org/licenses/>.
 
-
 #include "zm_packet.h"
-#include "zm_ffmpeg.h"
 
+#include "zm_ffmpeg.h"
+#include "zm_image.h"
+#include "zm_logger.h"
 #include <sys/time.h>
 
 using namespace std;

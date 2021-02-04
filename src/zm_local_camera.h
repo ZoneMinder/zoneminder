@@ -20,10 +20,7 @@
 #ifndef ZM_LOCAL_CAMERA_H
 #define ZM_LOCAL_CAMERA_H
 
-#include "zm.h"
 #include "zm_camera.h"
-#include "zm_image.h"
-#include "zm_packet.h"
 
 #if ZM_HAS_V4L
 
@@ -41,8 +38,6 @@
 #ifndef VIDEO_MAX_FRAME
 #define VIDEO_MAX_FRAME               32
 #endif
-
-#include "zm_ffmpeg.h"
 
 //
 // Class representing 'local' cameras, i.e. those which are

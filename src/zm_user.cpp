@@ -17,16 +17,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "zm.h"
-#include "zm_db.h"
-
 #include "zm_user.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <utility>
+#include "zm_crypt.h"
+#include "zm_logger.h"
+#include "zm_utils.h"
+#include <cstring>
 
 #if HAVE_GNUTLS_GNUTLS_H
 #include <gnutls/gnutls.h>
@@ -37,9 +33,6 @@
 #elif HAVE_LIBCRYPTO
 #include <openssl/md5.h>
 #endif  // HAVE_GCRYPT_H || HAVE_LIBCRYPTO
-
-#include "zm_utils.h"
-#include "zm_crypt.h"
 
 User::User() {
   id = 0;

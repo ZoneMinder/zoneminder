@@ -20,11 +20,9 @@
 #ifndef ZM_POLY_H
 #define ZM_POLY_H
 
-#include "zm.h"
-#include "zm_coord.h"
 #include "zm_box.h"
 
-#include <math.h>
+class Coord;
 
 //
 // Class used for storing a box, which is defined as a region

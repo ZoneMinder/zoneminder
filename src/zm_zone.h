@@ -20,12 +20,14 @@
 #ifndef ZM_ZONE_H
 #define ZM_ZONE_H
 
-#include "zm_rgb.h"
+#include "zm_box.h"
 #include "zm_coord.h"
+#include "zm_config.h"
 #include "zm_poly.h"
-#include "zm_image.h"
-#include "zm_event.h"
+#include "zm_rgb.h"
 
+class Event;
+class Image;
 class Monitor;
 
 //

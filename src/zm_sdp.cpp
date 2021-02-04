@@ -17,11 +17,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#include "zm.h"
+#include "zm_sdp.h"
+
+#include "zm_config.h"
+#include "zm_logger.h"
 
 #if HAVE_LIBAVFORMAT
-
-#include "zm_sdp.h"
 
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
 SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {

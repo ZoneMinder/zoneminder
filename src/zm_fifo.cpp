@@ -17,17 +17,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+#include "zm_fifo.h"
+
+#include "zm_monitor.h"
+#include "zm_signal.h"
 #include <fcntl.h>
 #include <sys/file.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <signal.h>
+#include <sys/stat.h>
 
-#include "zm.h"
-#include "zm_time.h"
-#include "zm_signal.h"
-#include "zm_monitor.h"
-#include "zm_fifo.h"
 #define RAW_BUFFER 512
 static bool zm_fifodbg_inited = false;
 FILE *zm_fifodbg_log_fd = nullptr;

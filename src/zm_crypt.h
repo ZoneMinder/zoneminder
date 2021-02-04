@@ -20,10 +20,8 @@
 #ifndef ZM_CRYPT_H
 #define ZM_CRYPT_H
 
-
-#include <string.h>
-
-
+#include <string>
+#include <utility>
 
 bool verifyPassword( const char *username, const char *input_password, const char *db_password_hash);
 

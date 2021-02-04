@@ -20,7 +20,6 @@
 #ifndef ZM_LIBVLC_CAMERA_H
 #define ZM_LIBVLC_CAMERA_H
 
-#include "zm_buffer.h"
 #include "zm_camera.h"
 #include "zm_thread.h"
 

@@ -22,10 +22,6 @@
 
 #include "zm_camera.h"
 
-#include "zm_buffer.h"
-#include "zm_ffmpeg.h"
-#include "zm_videostore.h"
-
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 typedef struct DecodeContext {
       AVBufferRef *hw_device_ref;

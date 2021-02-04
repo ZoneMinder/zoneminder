@@ -15,13 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/ 
-
-#include "zm_ffmpeg.h"
-#include "zm_image.h"
-#include "zm_rgb.h"
+*/
 
 #include "zm_swscale.h"
+
+#include "zm_image.h"
+#include "zm_logger.h"
 
 #if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
 SWScale::SWScale() : gotdefaults(false), swscale_ctx(nullptr), input_avframe(nullptr), output_avframe(nullptr) {

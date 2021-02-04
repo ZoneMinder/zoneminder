@@ -7,11 +7,12 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#include "zm.h"
-#if HAVE_RTSP_SERVER
 #include "zm_rtsp_server_unicast_server_media_subsession.h"
+
+#include "zm_config.h"
 #include "zm_rtsp_server_device_source.h"
 
+#if HAVE_RTSP_SERVER
 // -----------------------------------------
 //    ServerMediaSubsession for Unicast
 // -----------------------------------------
@@ -46,4 +47,4 @@ char const* UnicastServerMediaSubsession::getAuxSDPLine(
     ) {
 	return this->getAuxLine(dynamic_cast<ZoneMinderDeviceSource*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
 }
-#endif
+#endif // HAVE_RTSP_SERVER

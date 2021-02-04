@@ -20,6 +20,9 @@
 #ifndef ZM_PACKET_H
 #define ZM_PACKET_H
 
+#include "zm_logger.h"
+#include <mutex>
+
 extern "C" {
 #include <libavformat/avformat.h>
 }
@@ -28,9 +31,7 @@ extern "C" {
 #include <sys/time.h>
 #endif // __FreeBSD__
 
-#include "zm_image.h"
-#include "zm_thread.h"
-#include <mutex>
+class Image;
 
 class ZMPacket {
   public:

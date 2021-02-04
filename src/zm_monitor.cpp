@@ -17,42 +17,45 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <arpa/inet.h>
-#include <glob.h>
-
-#include "zm.h"
-#include "zm_db.h"
-#include "zm_time.h"
-#include "zm_mpeg.h"
-#include "zm_signal.h"
 #include "zm_monitor.h"
-#include "zm_video.h"
+
+#include "zm_group.h"
 #include "zm_eventstream.h"
-#if ZM_HAS_V4L
-#include "zm_local_camera.h"
-#endif // ZM_HAS_V4L
+#include "zm_fifo.h"
+#include "zm_file_camera.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #include "zm_remote_camera_nvsocket.h"
+#include "zm_signal.h"
+#include "zm_time.h"
+#include "zm_zone.h"
+
+#if ZM_HAS_V4L
+#include "zm_local_camera.h"
+#endif // ZM_HAS_V4L
+
 #if HAVE_LIBAVFORMAT
 #include "zm_remote_camera_rtsp.h"
 #endif // HAVE_LIBAVFORMAT
-#include "zm_file_camera.h"
+
 #if HAVE_LIBAVFORMAT
 #include "zm_ffmpeg_camera.h"
 #endif // HAVE_LIBAVFORMAT
-#include "zm_fifo.h"
+
 #if HAVE_LIBVLC
 #include "zm_libvlc_camera.h"
 #endif // HAVE_LIBVLC
+
 #if HAVE_LIBCURL
 #include "zm_curl_camera.h"
 #endif // HAVE_LIBCURL
+
 #if HAVE_LIBVNC
 #include "zm_libvnc_camera.h"
 #endif // HAVE_LIBVNC
+
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>

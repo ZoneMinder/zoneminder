@@ -18,13 +18,10 @@
 // 
 
 #define __STDC_FORMAT_MACROS 1
-#include "zm.h"
-#include "zm_db.h"
 #include "zm_zone.h"
-#include "zm_image.h"
-#include "zm_monitor.h"
-#include "zm_fifo.h"
 
+#include "zm_fifo.h"
+#include "zm_monitor.h"
 
 void Zone::Setup( 
   Monitor *p_monitor,

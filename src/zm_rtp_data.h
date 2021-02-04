@@ -20,7 +20,6 @@
 #ifndef ZM_RTP_DATA_H
 #define ZM_RTP_DATA_H
 
-#include "zm_buffer.h"
 #include "zm_define.h"
 #include "zm_thread.h"
 

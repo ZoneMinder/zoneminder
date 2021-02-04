@@ -20,14 +20,8 @@
 #ifndef ZM_BOX_H
 #define ZM_BOX_H
 
-#include "zm.h"
 #include "zm_coord.h"
-
-#ifndef SOLARIS
-#include <math.h>
-#else
 #include <cmath>
-#endif
 
 //
 // Class used for storing a box, which is defined as a region
@@ -61,8 +55,8 @@ public:
   inline int Area() const { return size.X()*size.Y(); }
 
   inline const Coord Centre() const {
-    int mid_x = int(round(lo.X()+(size.X()/2.0)));
-    int mid_y = int(round(lo.Y()+(size.Y()/2.0)));
+    int mid_x = int(std::round(lo.X()+(size.X()/2.0)));
+    int mid_y = int(std::round(lo.Y()+(size.Y()/2.0)));
     return Coord( mid_x, mid_y );
   }
   inline bool Inside( const Coord &coord ) const

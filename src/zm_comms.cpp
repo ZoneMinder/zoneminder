@@ -18,24 +18,17 @@
 //
 
 #include "zm_comms.h"
+
 #include "zm_logger.h"
-
-#include <errno.h>
+#include <arpa/inet.h>   // for debug output
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>       // for snprintf
 #include <fcntl.h>
-#include <stdarg.h>
-#include <utility>
-
-#if defined(BSD)
-#include <stdlib.h>
-#else
-#include <alloca.h>
-#endif
-
+#include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>   // for debug output
-#include <stdio.h>       // for snprintf
+#include <utility>
 
 #ifdef SOLARIS
 #include <sys/filio.h> // define FIONREAD

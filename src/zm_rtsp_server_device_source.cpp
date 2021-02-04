@@ -8,13 +8,14 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#include <utility>
-
 #include "zm_rtsp_server_device_source.h"
-#include "zm_rtsp_server_frame.h"
-#include "zm_logger.h"
-#if HAVE_RTSP_SERVER
 
+#include "zm_config.h"
+#include "zm_logger.h"
+#include "zm_rtsp_server_frame.h"
+#include "zm_signal.h"
+
+#if HAVE_RTSP_SERVER
 ZoneMinderDeviceSource::ZoneMinderDeviceSource(
     UsageEnvironment& env,
     Monitor* monitor,
@@ -213,4 +214,4 @@ unsigned char*  ZoneMinderDeviceSource::extractFrame(unsigned char* frame, size_
   size = 0;
   return frame;
 }
-#endif
+#endif // HAVE_RTSP_SERVER

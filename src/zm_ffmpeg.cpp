@@ -18,8 +18,10 @@
 */ 
 
 #include "zm_ffmpeg.h"
-#include "zm_image.h"
+
+#include "zm_logger.h"
 #include "zm_rgb.h"
+
 extern "C" {
 #include "libavutil/pixdesc.h"
 }

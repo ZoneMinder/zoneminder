@@ -13,13 +13,11 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
-#include "zm.h"
+
 #include "zm_video.h"
-#include "zm_image.h"
-#include "zm_utils.h"
-#include "zm_rgb.h"
-#include <sstream>
+
 #include <string>
+#include <sstream>
 #include <vector>
 
 VideoWriter::VideoWriter(

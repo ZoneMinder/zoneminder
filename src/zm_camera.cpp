@@ -17,8 +17,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include "zm.h"
 #include "zm_camera.h"
+
+#include "zm_monitor.h"
 
 Camera::Camera(
     unsigned int p_monitor_id,

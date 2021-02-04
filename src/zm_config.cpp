@@ -15,20 +15,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
-#include "zm.h"
+#include "zm_config.h"
+
 #include "zm_db.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include "zm_logger.h"
+#include "zm_utils.h"
+#include <cstring>
 #include <dirent.h>
 #include <glob.h>
-
-#include "zm_utils.h"
-#include "zm_config.h"
 
 // Note that Error and Debug calls won't actually go anywhere unless you 
 // set the relevant ENV vars because the logger gets it's setting from the 

@@ -20,7 +20,9 @@
 #ifndef ZM_RGB_H
 #define ZM_RGB_H
 
-typedef uint32_t Rgb;  // RGB colour type
+#include "zm_define.h"
+
+typedef uint32 Rgb;  // RGB colour type
 
 #define WHITE     0xff
 #define WHITE_R   0xff

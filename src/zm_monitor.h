@@ -20,30 +20,16 @@
 #ifndef ZM_MONITOR_H
 #define ZM_MONITOR_H
 
-#include <vector>
-#include <sstream>
-#include <thread>
-
-#include "zm.h"
-#include "zm_coord.h"
-#include "zm_image.h"
-#include "zm_rgb.h"
-#include "zm_zone.h"
 #include "zm_event.h"
-#include "zm_video.h"
-#include "zm_videostore.h"
+#include "zm_image.h"
+#include "zm_packet.h"
 #include "zm_packetqueue.h"
-#include "zm_thread.h"
-
-class Monitor;
-#include "zm_group.h"
-#include "zm_camera.h"
-#include "zm_storage.h"
-#include "zm_utils.h"
-
-#include "zm_image_analyser.h"
-
+#include "zm_video.h"
 #include <sys/time.h>
+#include <vector>
+
+class Camera;
+class Group;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"

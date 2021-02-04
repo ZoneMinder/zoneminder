@@ -17,13 +17,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include "zm.h"
+#include "zm_ffmpeg_camera.h"
+
+#include "zm_packet.h"
 #include "zm_signal.h"
 #include "zm_utils.h"
 
 #if HAVE_LIBAVFORMAT
-
-#include "zm_ffmpeg_camera.h"
 
 extern "C" {
 #include "libavutil/time.h"
@@ -35,7 +35,6 @@ extern "C" {
 }
 
 #include <string>
-#include <locale>
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)

@@ -17,12 +17,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */  
 
-#include "zm.h"
-#include "zm_db.h"
+
 
 #ifndef ZM_USER_H
 #define ZM_USER_H
 
+#include "zm_db.h"
 #include <string>
 #include <vector>
 

@@ -17,20 +17,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#include "zm.h"
-
-#if HAVE_LIBAVFORMAT
-
 #include "zm_rtsp.h"
 
+#include "zm_config.h"
 #include "zm_rtp_data.h"
 #include "zm_rtp_ctrl.h"
 #include "zm_db.h"
 
-#include <sys/time.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <errno.h>
+#if HAVE_LIBAVFORMAT
 
 int RtspThread::smMinDataPort = 0;
 int RtspThread::smMaxDataPort = 0;

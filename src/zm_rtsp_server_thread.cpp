@@ -1,12 +1,11 @@
+#include "zm_rtsp_server_thread.h"
 
-#include "zm.h"
+#include "zm_config.h"
+#include "zm_rtsp_server_adts_source.h"
+#include "zm_rtsp_server_h264_device_source.h"
+#include "zm_rtsp_server_unicast_server_media_subsession.h"
 
 #if HAVE_RTSP_SERVER
-#include "zm_rtsp_server_thread.h"
-#include "zm_rtsp_server_device_source.h"
-#include "zm_rtsp_server_h264_device_source.h"
-#include "zm_rtsp_server_adts_source.h"
-#include "zm_rtsp_server_unicast_server_media_subsession.h"
 #include <StreamReplicator.hh>
 
 RTSPServerThread::RTSPServerThread(Monitor *p_monitor) : 
@@ -155,4 +154,4 @@ const std::string RTSPServerThread::getRtpFormat(AVCodecID codec_id, bool muxTS)
 
   return "";
 }
-#endif
+#endif // HAVE_RTSP_SERVER

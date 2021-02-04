@@ -17,12 +17,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#include "zm.h"
 #include "zm_signal.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include "zm.h"
+#include "zm_logger.h"
+#include <cstring>
 
 #define TRACE_SIZE 16
 

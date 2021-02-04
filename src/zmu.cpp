@@ -86,14 +86,13 @@ Options for use with monitors:
 
 */
 
-#include <getopt.h>
-
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_user.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
+#include <getopt.h>
 
 void Usage(int status=-1) {
   fputs(

@@ -19,12 +19,10 @@
 
 #include "zm_remote_camera_nvsocket.h"
 
-#include "zm_mem_utils.h"
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <errno.h>
+#include "zm_packet.h"
 #include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #ifdef SOLARIS
 #include <sys/filio.h> // FIONREAD and friends

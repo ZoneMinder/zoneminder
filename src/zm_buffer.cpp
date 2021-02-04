@@ -17,7 +17,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */ 
 
-#include "zm.h"
 #include "zm_buffer.h"
 
 unsigned int Buffer::assign(const unsigned char *pStorage, unsigned int pSize) {

@@ -16,11 +16,8 @@
 #ifndef ZM_VIDEO_H
 #define ZM_VIDEO_H
 
-#include "zm.h"
-#include "zm_rgb.h"
-#include "zm_utils.h"
-#include "zm_ffmpeg.h"
 #include "zm_buffer.h"
+#include "zm_config.h"
 #include "zm_swscale.h"
 
 /*

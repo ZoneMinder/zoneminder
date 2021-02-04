@@ -20,7 +20,8 @@
 #ifndef ZM_SIGNAL_H
 #define ZM_SIGNAL_H
 
-#include <signal.h>
+#include "zm_config.h"
+#include <csignal>
 
 #if HAVE_EXECINFO_H
 #include <execinfo.h>
@@ -28,9 +29,6 @@
 #if HAVE_UCONTEXT_H
 #include <ucontext.h>
 #endif
-
-
-#include "zm.h"
 
 typedef RETSIGTYPE (SigHandler)( int );
 

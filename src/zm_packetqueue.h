@@ -16,19 +16,15 @@
 //You should have received a copy of the GNU General Public License
 //along with ZoneMinder.  If not, see <http://www.gnu.org/licenses/>.
 
-
 #ifndef ZM_PACKETQUEUE_H
 #define ZM_PACKETQUEUE_H
 
-#include <list>
-#include "zm_packet.h"
-#include "zm_thread.h"
-#include <mutex>
 #include <condition_variable>
+#include <list>
+#include <mutex>
 
-extern "C" {
-#include <libavformat/avformat.h>
-}
+class ZMPacket;
+
 typedef std::list<ZMPacket *>::iterator packetqueue_iterator;
 
 class PacketQueue {

@@ -20,39 +20,23 @@
 #ifndef ZM_EVENT_H
 #define ZM_EVENT_H
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <limits.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <mysql/mysql.h>
-
-#include <set>
+#include "zm_storage.h"
 #include <map>
 #include <queue>
-#include <string>
+#include <set>
 
-#include "zm.h"
-#include "zm_image.h"
-#include "zm_stream.h"
-#include "zm_packet.h"
-#include "zm_storage.h"
-
-class VideoStore;
-class Zone;
-class Monitor;
 class EventStream;
+class Frame;
+class Image;
+class Monitor;
+class VideoStore;
+class ZMPacket;
+class Zone;
 
 // Maximum number of prealarm frames that can be stored
 #define MAX_PRE_ALARM_FRAMES  16
-typedef uint64_t event_id_t;
-typedef enum { NORMAL=0, BULK, ALARM } FrameType;
 
-#include "zm_frame.h"
+typedef uint64_t event_id_t;
 
 //
 // Class describing events, i.e. captured periods of activity.

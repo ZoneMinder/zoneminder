@@ -20,17 +20,16 @@
 #ifndef ZM_THREAD_H
 #define ZM_THREAD_H
 
-class RecursiveMutex;
-
-
 #include "zm_config.h"
-#include <unistd.h>
+#include "zm_exception.h"
+#include "zm_utils.h"
 #include <pthread.h>
+#include <unistd.h>
+
 #ifdef HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
 #endif // HAVE_SYS_SYSCALL_H
-#include "zm_exception.h"
-#include "zm_utils.h"
+
 #ifdef __FreeBSD__
 #include <sys/thr.h>
 #endif

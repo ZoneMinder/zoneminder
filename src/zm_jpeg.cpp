@@ -18,9 +18,8 @@
 */ 
 
 #include "zm_jpeg.h"
-#include "zm_logger.h"
 
-#include <unistd.h>
+#include "zm_logger.h"
 
 /* Overridden error handlers, mostly for decompression */
 extern "C" {

@@ -21,10 +21,8 @@
 
 #include "zm_logger.h"
 #include "zm_utils.h"
-
-#include <string.h>
-#include <signal.h>
-#include <errno.h>
+#include <cstring>
+#include <csignal>
 #include <sys/time.h>
 
 struct timespec getTimeout( int secs ) {

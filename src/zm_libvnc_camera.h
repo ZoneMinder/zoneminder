@@ -2,9 +2,7 @@
 #ifndef ZN_LIBVNC_CAMERA_H
 #define ZN_LIBVNC_CAMERA_H
 
-#include "zm_buffer.h"
 #include "zm_camera.h"
-#include "zm_thread.h"
 #include "zm_swscale.h"
 
 #if HAVE_LIBVNC

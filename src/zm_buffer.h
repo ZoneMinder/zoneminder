@@ -20,9 +20,8 @@
 #ifndef ZM_BUFFER_H
 #define ZM_BUFFER_H
 
-#include "zm.h"
-
-#include <string.h>
+#include "zm_logger.h"
+#include <cstring>
 
 class Buffer
 {
@@ -42,12 +41,12 @@ public:
   }
   Buffer(const unsigned char *pStorage, unsigned int pSize) : mAllocation(pSize), mSize(pSize) {
     mHead = mStorage = new unsigned char[mSize];
-    memcpy(mStorage, pStorage, mSize);
+    std::memcpy(mStorage, pStorage, mSize);
     mTail = mHead + mSize;
   }
   Buffer(const Buffer &buffer) : mAllocation(buffer.mSize), mSize(buffer.mSize) {
     mHead = mStorage = new unsigned char[mSize];
-    memcpy(mStorage, buffer.mHead, mSize);
+    std::memcpy(mStorage, buffer.mHead, mSize);
     mTail = mHead + mSize;
   }
   ~Buffer() {
@@ -116,7 +115,7 @@ public:
   // Add bytes to the end of the buffer
   unsigned int append(const unsigned char *pStorage, unsigned int pSize) {
     expand(pSize);
-    memcpy(mTail, pStorage, pSize);
+    std::memcpy(mTail, pStorage, pSize);
     mTail += pSize;
     mSize += pSize;
     return mSize;
@@ -133,7 +132,7 @@ public:
         mHead = mTail = mStorage;
       else if ( level ) {
         if ( ((uintptr_t)mHead-(uintptr_t)mStorage) > mSize ) {
-          memcpy( mStorage, mHead, mSize );
+          std::memcpy( mStorage, mHead, mSize );
           mHead = mStorage;
           mTail = mHead + mSize;
         }

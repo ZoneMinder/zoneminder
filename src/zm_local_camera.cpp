@@ -17,20 +17,15 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#include "zm.h"
-
-#if ZM_HAS_V4L
-
 #include "zm_local_camera.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
+#include "zm_packet.h"
+#include "zm_utils.h"
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/mman.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <limits.h>
+#include <sys/stat.h>
+
+#if ZM_HAS_V4L
 
 /* Workaround for GNU/kFreeBSD and FreeBSD */
 #if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)

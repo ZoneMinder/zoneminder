@@ -15,18 +15,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-
-#include "zm.h"
-
-#if HAVE_LIBAVFORMAT
+//
 
 #include "zm_rtp_ctrl.h"
 
-#include "zm_time.h"
+#include "zm_config.h"
+#include "zm_rtp.h"
 #include "zm_rtsp.h"
 
-#include <errno.h>
+#if HAVE_LIBAVFORMAT
 
 RtpCtrlThread::RtpCtrlThread( RtspThread &rtspThread, RtpSource &rtpSource )
   : mRtspThread( rtspThread ), mRtpSource( rtpSource ), mStop( false )

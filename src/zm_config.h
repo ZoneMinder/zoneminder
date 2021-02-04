@@ -20,15 +20,14 @@
 #ifndef ZM_CONFIG_H
 #define ZM_CONFIG_H
 
+#include "config.h"
+#include "zm_config_data.h"
+#include "zm_config_defines.h"
+#include <string>
+
 #if !defined(PATH_MAX)
 #define PATH_MAX 1024
 #endif
-
-#include "config.h"
-#include "zm_config_defines.h"
-#include "zm_config_data.h"
-
-#include <string>
 
 #ifdef HAVE_LIBAVFORMAT
 #define ZM_HAS_FFMPEG       1

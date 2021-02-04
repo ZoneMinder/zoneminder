@@ -20,14 +20,8 @@
 #ifndef ZM_SDP_H
 #define ZM_SDP_H
 
-#include "zm.h"
-
-#include "zm_utils.h"
-#include "zm_exception.h"
 #include "zm_ffmpeg.h"
-
-#include <stdlib.h>
-
+#include "zm_utils.h"
 #include <string>
 #include <vector>
 

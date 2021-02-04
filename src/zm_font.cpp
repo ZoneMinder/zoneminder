@@ -1,10 +1,7 @@
-#include <stdio.h>
-#include <string.h>
-#include <sys/stat.h>
-
-#include "zm.h"
 #include "zm_font.h"
-#include "zm_utils.h"
+
+#include <cstring>
+#include <sys/stat.h>
 
 int ZmFont::ReadFontFile(const std::string &loc) {
   FILE *f = fopen(loc.c_str(), "rb");

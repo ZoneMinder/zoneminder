@@ -19,24 +19,18 @@
 
 #include "zm_logger.h"
 
-#include "zm_config.h"
-#include "zm_utils.h"
 #include "zm_db.h"
-
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
-#include <syslog.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <errno.h>
+#include "zm_utils.h"
+#include <csignal>
+#include <cstdarg>
+#include <cstring>
 #include <libgen.h>
+#include <syslog.h>
+#include <sys/time.h>
+
 #ifdef __FreeBSD__
 #include <sys/thr.h>
 #endif
-#include <cstdarg>
 
 bool Logger::smInitialised = false;
 Logger *Logger::smInstance = nullptr;

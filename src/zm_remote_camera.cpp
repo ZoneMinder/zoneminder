@@ -20,6 +20,8 @@
 #include "zm_remote_camera.h"
 
 #include "zm_utils.h"
+#include <arpa/inet.h>
+#include <netdb.h>
 
 RemoteCamera::RemoteCamera(
   unsigned int p_monitor_id,

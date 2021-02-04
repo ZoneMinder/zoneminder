@@ -19,22 +19,9 @@
 #ifndef ZM_FIFO_H
 #define ZM_FIFO_H
 
-#if 0
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <limits.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include "zm.h"
-#include "zm_image.h"
-#endif
-#include "zm_monitor.h"
 #include "zm_stream.h"
+
+class Monitor;
 
 #define zmFifoDbgPrintf(level, params...) {\
   zmFifoDbgOutput(0, __FILE__, __LINE__, level, ##params);\

@@ -134,9 +134,10 @@ mark_as_advanced(
     ZM_SYSTEMD
     ZM_MANPAGE_DEST_PREFIX)
 
+option(BUILD_TEST_SUITE "Build the test suite" 0)
 option(BUILD_MAN "Build man pages" 1)
 
-set(ZM_RUNDIR "/var/run/zm" CACHE PATH 
+set(ZM_RUNDIR "/var/run/zm" CACHE PATH
     "Location of transient process files, default: /var/run/zm")
 set(ZM_SOCKDIR "/var/run/zm" CACHE PATH 
     "Location of Unix domain socket files, default /var/run/zm")
@@ -898,6 +899,16 @@ add_subdirectory(fonts)
 add_subdirectory(web)
 add_subdirectory(misc)
 add_subdirectory(onvif)
+
+if(BUILD_TEST_SUITE)
+	message("Building unit tests: Yes")
+	find_package(Catch2 REQUIRED)
+
+	include(CTest)
+	add_subdirectory(tests)
+else()
+	message("Building unit tests: No (default)")
+endif(BUILD_TEST_SUITE)
 
 # Process distro subdirectories
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))

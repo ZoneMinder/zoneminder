@@ -88,10 +88,6 @@ BuildRequires: zlib-devel
 BuildRequires: ffmpeg
 BuildRequires: ffmpeg-devel
 
-# Required for mp4 container support
-BuildRequires: libmp4v2-devel
-BuildRequires: x264-devel
-
 # Allow existing user base to seamlessly transition to sub-packages
 Requires: %{name}-common%{?_isa} = %{version}-%{release}
 Requires: %{name}-httpd%{?_isa} = %{version}-%{release}

@@ -7,9 +7,8 @@ FFmpeg_Output::FFmpeg_Output() {
   input_format_context = NULL;
   video_stream_id = -1;
   audio_stream_id = -1;
-  av_register_all();
-  avcodec_register_all();
 
+  FFMPEGInit();
 }
 FFmpeg_Output::~FFmpeg_Output() {
 }

@@ -20,15 +20,13 @@
 #ifndef ZM_COMMS_H
 #define ZM_COMMS_H
 
-#include "zm_logger.h"
 #include "zm_exception.h"
-
-#include <unistd.h>
+#include "zm_logger.h"
 #include <netdb.h>
-#include <sys/un.h>
 #include <set>
-#include <vector>
 #include <sys/uio.h>
+#include <sys/un.h>
+#include <vector>
 
 #if defined(BSD)
 #include <sys/socket.h>

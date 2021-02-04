@@ -20,8 +20,8 @@
 #ifndef ZM_DB_H
 #define ZM_DB_H
 
-#include <mysql/mysql.h>
 #include "zm_thread.h"
+#include <mysql/mysql.h>
 
 class zmDbRow {
   private:

@@ -17,12 +17,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <cstdlib>
-#include <cstring>
-
-#include "zm.h"
-#include "zm_rgb.h"
 #include "zm_mpeg.h"
+
+#include "zm_logger.h"
+#include "zm_rgb.h"
+#include <cstring>
 
 #if HAVE_LIBAVCODEC
 extern "C" {

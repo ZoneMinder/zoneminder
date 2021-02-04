@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "zm_config.h"
 #include "zm_rtsp_server_server_media_subsession.h"
 
 // -----------------------------------------

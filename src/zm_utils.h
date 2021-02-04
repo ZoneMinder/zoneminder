@@ -23,7 +23,6 @@
 #include <ctime>
 #include <sys/time.h>
 #include <string>
-#include <sstream>
 #include <vector>
 
 typedef std::vector<std::string> StringVector;

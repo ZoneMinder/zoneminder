@@ -18,17 +18,17 @@
 //
 
 #include "zm_comms.h"
-#include "zm_logger.h"
 
+#include "zm_logger.h"
+#include <arpa/inet.h>   // for debug output
 #include <cerrno>
-#include <fcntl.h>
 #include <cstdarg>
-#include <utility>
+#include <cstdio>       // for snprintf
+#include <fcntl.h>
+#include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>   // for debug output
-#include <cstdio>       // for snprintf
+#include <utility>
 
 #ifdef SOLARIS
 #include <sys/filio.h> // define FIONREAD

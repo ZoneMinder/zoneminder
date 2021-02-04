@@ -15,12 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/ 
+*/
 
-#include <cstring>
-
-#include "zm.h"
 #include "zm_regexp.h"
+
+#include "zm_logger.h"
+#include <cstring>
 
 #if HAVE_LIBPCRE
 

@@ -15,16 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/ 
-
-#include "zm.h"
-#include "zm_db.h"
+*/
 
 #include "zm_storage.h"
 
+#include "zm_db.h"
+#include "zm_logger.h"
 #include <cstring>
-#include <cstdlib>
-#include <cstdio>
 
 Storage::Storage() : id(0) {
 	Warning("Instantiating default Storage Object. Should not happen.");

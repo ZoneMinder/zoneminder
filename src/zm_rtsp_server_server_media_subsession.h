@@ -9,16 +9,10 @@
 
 #pragma once
 
-#include "zm.h"
+#include "zm_config.h"
+#include <string>
 
 #if HAVE_RTSP_SERVER
-
-#include <sys/stat.h>
-
-#include <string>
-#include <iomanip>
-#include <iostream>
-#include <fstream>
 
 #include <liveMedia.hh>
 

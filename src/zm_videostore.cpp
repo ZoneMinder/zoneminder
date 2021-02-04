@@ -19,10 +19,10 @@
 //
 
 #define __STDC_FORMAT_MACROS 1
-
-
-#include "zm.h"
 #include "zm_videostore.h"
+
+#include "zm_logger.h"
+#include "zm_monitor.h"
 
 extern "C" {
 #include "libavutil/time.h"

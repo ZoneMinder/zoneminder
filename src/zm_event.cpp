@@ -17,21 +17,17 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <sys/un.h>
-#include <sys/uio.h>
-#include <getopt.h>
-#include <arpa/inet.h>
-#include <glob.h>
-
-#include "zm.h"
-#include "zm_db.h"
-#include "zm_time.h"
-#include "zm_signal.h"
 #include "zm_event.h"
+
+#include "zm_camera.h"
+#include "zm_db.h"
+#include "zm_frame.h"
+#include "zm_logger.h"
 #include "zm_monitor.h"
+#include "zm_signal.h"
+#include "zm_videostore.h"
+#include <cstring>
+#include <sys/stat.h>
 
 //#define USE_PREPARED_SQL 1
 

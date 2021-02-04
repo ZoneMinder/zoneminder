@@ -1,8 +1,8 @@
 #ifndef ZM_ANALYSIS_THREAD_H
 #define ZM_ANALYSIS_THREAD_H
 
-#include "zm_thread.h"
 #include "zm_monitor.h"
+#include "zm_thread.h"
 #include <csignal>
 
 class AnalysisThread : public Thread {

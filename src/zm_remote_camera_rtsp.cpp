@@ -17,16 +17,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#include "zm.h"
+#include "zm_remote_camera_rtsp.h"
+
+#include "zm_config.h"
+#include "zm_packet.h"
 
 #if HAVE_LIBAVFORMAT
-
-#include "zm_remote_camera_rtsp.h"
-#include "zm_ffmpeg.h"
-#include "zm_mem_utils.h"
-
-#include <sys/types.h>
-#include <sys/socket.h>
 
 RemoteCameraRtsp::RemoteCameraRtsp(
     unsigned int p_monitor_id,

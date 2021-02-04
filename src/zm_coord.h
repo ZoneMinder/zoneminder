@@ -20,7 +20,7 @@
 #ifndef ZM_COORD_H
 #define ZM_COORD_H
 
-#include "zm.h"
+#include "zm_define.h"
 
 //
 // Class used for storing an x,y pair, i.e. a coordinate

@@ -1,8 +1,10 @@
 #ifndef ZM_SWSCALE_H
 #define ZM_SWSCALE_H
 
-#include "zm_image.h"
+#include "zm_config.h"
 #include "zm_ffmpeg.h"
+
+class Image;
 
 /* SWScale wrapper class to make our life easier and reduce code reuse */
 #if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL

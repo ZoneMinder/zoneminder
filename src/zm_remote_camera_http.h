@@ -20,11 +20,8 @@
 #ifndef ZM_REMOTE_CAMERA_HTTP_H
 #define ZM_REMOTE_CAMERA_HTTP_H
 
-#include "zm_remote_camera.h"
-
 #include "zm_buffer.h"
-#include "zm_regexp.h"
-#include "zm_utils.h"
+#include "zm_remote_camera.h"
 
 //
 // Class representing 'http' cameras, i.e. those which are

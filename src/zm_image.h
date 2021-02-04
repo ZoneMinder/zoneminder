@@ -20,25 +20,20 @@
 #ifndef ZM_IMAGE_H
 #define ZM_IMAGE_H
 
-#include "zm.h"
-extern "C" {
-#include "zm_jpeg.h"
-}
-#include "zm_rgb.h"
 #include "zm_coord.h"
-#include "zm_box.h"
-#include "zm_poly.h"
-#include "zm_mem_utils.h"
-#include "zm_utils.h"
-
-class Image;
 #include "zm_ffmpeg.h"
-
-#include <cerrno>
+#include "zm_jpeg.h"
+#include "zm_logger.h"
+#include "zm_mem_utils.h"
+#include "zm_rgb.h"
 
 #if HAVE_ZLIB_H
 #include <zlib.h>
 #endif // HAVE_ZLIB_H
+
+class Box;
+class Image;
+class Polygon;
 
 #define ZM_BUFTYPE_DONTFREE 0
 #define ZM_BUFTYPE_MALLOC 1 

@@ -20,12 +20,12 @@
 #ifndef ZM_STREAM_H
 #define ZM_STREAM_H
 
-#include <sys/un.h>
-#include <sys/socket.h>
-
-#include "zm.h"
+#include "zm_logger.h"
 #include "zm_mpeg.h"
 
+#include <sys/un.h>
+
+class Image;
 class Monitor;
 
 #define TV_2_FLOAT( tv ) ( double((tv).tv_sec) + (double((tv).tv_usec) / 1000000.0) )

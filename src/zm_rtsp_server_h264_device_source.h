@@ -9,12 +9,10 @@
 **
 ** -------------------------------------------------------------------------*/
 
-
 #ifndef H264_ZoneMinder_DEVICE_SOURCE
 #define H264_ZoneMinder_DEVICE_SOURCE
 
 #include "zm_rtsp_server_device_source.h"
-#include "zm_rtsp_server_frame.h"
 
 // ---------------------------------
 // H264 ZoneMinder FramedSource

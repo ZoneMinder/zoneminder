@@ -20,7 +20,7 @@
 #ifndef ZM_BUFFER_H
 #define ZM_BUFFER_H
 
-#include "zm.h"
+#include "zm_logger.h"
 #include <cstring>
 
 class Buffer

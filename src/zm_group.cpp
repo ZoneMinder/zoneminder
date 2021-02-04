@@ -15,15 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/ 
-
-#include "zm.h"
-#include "zm_db.h"
+*/
 
 #include "zm_group.h"
 
+#include "zm_logger.h"
 #include <cstring>
-#include <cstdlib>
 
 Group::Group() {
 	Warning("Instantiating default Group Object. Should not happen.");

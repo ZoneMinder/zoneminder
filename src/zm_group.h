@@ -17,10 +17,10 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */  
 
-#include "zm_db.h"
-
 #ifndef ZM_GROUP_H
 #define ZM_GROUP_H
+
+#include "zm_db.h"
 
 class Group {
 

@@ -1,12 +1,15 @@
-#include "zm.h"
 #include "zm_crypt.h"
+
+#include "zm_logger.h"
 #include "BCrypt.hpp"
+#include <algorithm>
+
 #if HAVE_LIBJWT
 #include <jwt.h>
 #else
 #include "jwt_cpp.h"
 #endif
-#include <algorithm>
+
 #if HAVE_LIBCRYPTO
 #include <openssl/sha.h>
 #elif HAVE_GNUTLS_GNUTLS_H

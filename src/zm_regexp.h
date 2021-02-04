@@ -17,10 +17,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */  
 
-#include "zm.h"
-
 #ifndef ZM_REGEXP_H
 #define ZM_REGEXP_H
+
+#include "zm_config.h"
 
 #if HAVE_LIBPCRE
 

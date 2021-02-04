@@ -17,17 +17,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <sys/un.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/file.h>
-
-#include "zm.h"
-#include "zm_mpeg.h"
-#include "zm_monitor.h"
-
 #include "zm_stream.h"
+
+#include "zm_box.h"
+#include "zm_monitor.h"
+#include <sys/file.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 
 StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC

@@ -6,24 +6,20 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#include "zm.h"
+#include "zm_config.h"
+#include "zm_monitor.h"
+#include <list>
+#include <string>
+#include <utility>
 
 #if HAVE_RTSP_SERVER
 
 #ifndef DEVICE_SOURCE
 #define DEVICE_SOURCE
 
-#include <string>
-#include <list> 
-#include <iostream>
-
 #include <liveMedia.hh>
 
-#include "zm_monitor.h"
-#include "zm_rtsp_server_frame.h"
-#include "zm_packetqueue.h"
-
-#include <linux/types.h>
+class NAL_Frame;
 
 class ZoneMinderDeviceSource: public FramedSource {
 		

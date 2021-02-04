@@ -20,14 +20,9 @@
 #ifndef ZM_REMOTE_CAMERA_RTSP_H
 #define ZM_REMOTE_CAMERA_RTSP_H
 
-#include "zm_remote_camera.h"
-
-#include "zm_buffer.h"
-#include "zm_utils.h"
-#include "zm_rtsp.h"
 #include "zm_ffmpeg.h"
-#include "zm_videostore.h"
-#include "zm_packetqueue.h"
+#include "zm_remote_camera.h"
+#include "zm_rtsp.h"
 
 //
 // Class representing 'rtsp' cameras, i.e. those which are

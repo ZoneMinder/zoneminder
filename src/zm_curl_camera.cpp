@@ -17,12 +17,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <dlfcn.h>
-#include "zm.h"
-
 #include "zm_curl_camera.h"
 
-#include "zm_packetqueue.h"
+#include "zm_packet.h"
+#include <dlfcn.h>
 
 #if HAVE_LIBCURL
 

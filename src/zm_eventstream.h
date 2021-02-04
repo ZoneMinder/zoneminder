@@ -20,9 +20,7 @@
 #ifndef ZM_EVENTSTREAM_H
 #define ZM_EVENTSTREAM_H
 
-#include "zm_image.h"
 #include "zm_stream.h"
-#include "zm_video.h"
 #include "zm_ffmpeg_input.h"
 #include "zm_monitor.h"
 #include "zm_storage.h"
@@ -36,7 +34,6 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
 
 class EventStream : public StreamBase {
   public:

@@ -1,11 +1,12 @@
 #pragma once
+
+#include "zm_config.h"
 #include "zm_logger.h"
-#include "zm.h"
+#include <cstring>
+#include <sys/time.h>
 
 #if HAVE_RTSP_SERVER
 
-#include <ctime>
-#include <cstring>
 // ---------------------------------
 // Captured frame
 // ---------------------------------

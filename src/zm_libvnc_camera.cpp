@@ -1,8 +1,7 @@
-#include <dlfcn.h>
-#include "zm.h"
-#include "zm_signal.h"
 #include "zm_libvnc_camera.h"
-#include "zm_swscale.h"
+
+#include "zm_packet.h"
+#include <dlfcn.h>
 
 #if HAVE_LIBVNC
 

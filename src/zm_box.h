@@ -20,7 +20,6 @@
 #ifndef ZM_BOX_H
 #define ZM_BOX_H
 
-#include "zm.h"
 #include "zm_coord.h"
 #include <cmath>
 

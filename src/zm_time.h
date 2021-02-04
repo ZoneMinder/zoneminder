@@ -20,8 +20,7 @@
 #ifndef ZM_TIME_H
 #define ZM_TIME_H
 
-#include "zm.h"
-
+#include <zm_logger.h>
 #include <sys/time.h>
 
 // Structure used for storing the results of the subtraction

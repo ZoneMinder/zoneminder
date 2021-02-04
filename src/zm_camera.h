@@ -20,15 +20,12 @@
 #ifndef ZM_CAMERA_H
 #define ZM_CAMERA_H
 
-#include <sys/types.h>
-#include <sys/ioctl.h>
-
 #include "zm_image.h"
-#include "zm_packet.h"
+#include <sys/ioctl.h>
+#include <sys/types.h>
 
-class Camera;
-
-#include "zm_monitor.h"
+class Monitor;
+class ZMPacket;
 
 //
 // Abstract base class for cameras. This is intended just to express

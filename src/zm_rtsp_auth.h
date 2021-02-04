@@ -19,6 +19,9 @@
 #ifndef ZM_RTSP_AUTH_H
 #define ZM_RTSP_AUTH_H
 
+#include "zm_config.h"
+#include <string>
+
 #if HAVE_GNUTLS_GNUTLS_H
 #include <gnutls/gnutls.h>
 #endif

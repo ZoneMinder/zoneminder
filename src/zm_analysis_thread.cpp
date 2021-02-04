@@ -1,5 +1,7 @@
 #include "zm_analysis_thread.h"
 
+#include "zm_signal.h"
+
 AnalysisThread::AnalysisThread(Monitor *p_monitor) {
   monitor = p_monitor;
   terminate = false;

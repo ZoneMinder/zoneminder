@@ -6,17 +6,18 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#include "zm.h"
+#include "zm_rtsp_server_h264_device_source.h"
+
+#include "zm_config.h"
+#include "zm_logger.h"
+#include "zm_rtsp_server_frame.h"
+#include <iomanip>
+#include <sstream>
 
 #if HAVE_RTSP_SERVER
 
-#include <sstream>
-#include <iomanip>
-
 // live555
 #include <Base64.hh>
-
-#include "zm_rtsp_server_h264_device_source.h"
 
 // ---------------------------------
 // H264 ZoneMinder FramedSource

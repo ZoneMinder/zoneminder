@@ -17,15 +17,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#include "zm.h"
-
-#if HAVE_LIBAVFORMAT
-
 #include "zm_rtp_data.h"
 
+#include "zm_config.h"
 #include "zm_rtsp.h"
+#include "zm_signal.h"
 
-#include <arpa/inet.h>
+#if HAVE_LIBAVFORMAT
 
 RtpDataThread::RtpDataThread(RtspThread &rtspThread, RtpSource &rtpSource) :
   mRtspThread(rtspThread), mRtpSource(rtpSource), mStop(false)

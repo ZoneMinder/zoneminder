@@ -9,16 +9,13 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#include "zm.h"
+#include "zm_config.h"
+#include "zm_rtsp_server_device_source.h"
 
 #if HAVE_RTSP_SERVER
 
 #ifndef ADTS_ZoneMinder_DEVICE_SOURCE
 #define ADTS_ZoneMinder_DEVICE_SOURCE
-
-// project
-#include "zm_rtsp_server_device_source.h"
-#include "zm_rtsp_server_frame.h"
 
 // ---------------------------------
 // ADTS(AAC) ZoneMinder FramedSource

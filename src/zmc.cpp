@@ -53,8 +53,17 @@ possible, this should run at more or less constant speed.
 
 */
 
+#include "zm.h"
+#include "zm_analysis_thread.h"
+#include "zm_camera.h"
+#include "zm_db.h"
+#include "zm_monitor.h"
+#include "zm_rtsp_server_thread.h"
+#include "zm_signal.h"
+#include "zm_time.h"
 #include <getopt.h>
-#include <csignal>
+#include <iostream>
+
 #if defined(__FreeBSD__)
 #include <limits.h>
 #else
@@ -64,14 +73,6 @@ possible, this should run at more or less constant speed.
 #if !defined(MAXINT)
 #define MAXINT INT_MAX
 #endif
-
-#include "zm.h"
-#include "zm_db.h"
-#include "zm_time.h"
-#include "zm_signal.h"
-#include "zm_monitor.h"
-#include "zm_analysis_thread.h"
-#include "zm_rtsp_server_thread.h"
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");

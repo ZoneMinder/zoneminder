@@ -20,8 +20,6 @@
 #ifndef ZM_RTP_CTRL_H
 #define ZM_RTP_CTRL_H
 
-#include "zm_rtp.h"
-#include "zm_comms.h"
 #include "zm_thread.h"
 
 // Defined in ffmpeg rtp.h

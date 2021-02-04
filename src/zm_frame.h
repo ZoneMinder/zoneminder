@@ -20,12 +20,15 @@
 #ifndef ZM_FRAME_H
 #define ZM_FRAME_H
 
-#include <sys/time.h>
-#include <sys/types.h>
-class Frame;
-
 #include "zm_event.h"
 #include "zm_time.h"
+#include <sys/time.h>
+
+enum FrameType {
+  NORMAL = 0,
+  BULK,
+  ALARM
+};
 
 //
 // This describes a frame record

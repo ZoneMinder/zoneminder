@@ -17,13 +17,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <unistd.h>
-#include <ctime>
-#include <cerrno>
-#include <sys/stat.h>
-
-#include "zm.h"
 #include "zm_file_camera.h"
+
+#include "zm_packet.h"
+#include <sys/stat.h>
 
 FileCamera::FileCamera(
     int p_id,

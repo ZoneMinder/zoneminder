@@ -20,16 +20,13 @@
 #ifndef ZM_CURL_CAMERA_H
 #define ZM_CURL_CAMERA_H
 
-#if HAVE_LIBCURL
-
-#include "zm_camera.h"
-#include "zm_ffmpeg.h"
+#include "zm_config.h"
 #include "zm_buffer.h"
-#include "zm_regexp.h"
-#include "zm_utils.h"
-#include "zm_signal.h"
-#include <string>
+#include "zm_camera.h"
 #include <deque>
+#include <string>
+
+#if HAVE_LIBCURL
 
 #if HAVE_CURL_CURL_H
 #include <curl/curl.h>

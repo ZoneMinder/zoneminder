@@ -1,7 +1,10 @@
 #ifndef ZM_VIDEOSTORE_H
 #define ZM_VIDEOSTORE_H
 
+#include "zm_config.h"
 #include "zm_ffmpeg.h"
+#include "zm_swscale.h"
+
 extern "C"  {
 #ifdef HAVE_LIBSWRESAMPLE
   #include "libswresample/swresample.h"
@@ -15,11 +18,9 @@ extern "C"  {
 
 #if HAVE_LIBAVCODEC
 
-class VideoStore;
-#include "zm_monitor.h"
-#include "zm_packet.h"
-#include "zm_packetqueue.h"
-#include "zm_swscale.h"
+class Monitor;
+class ZMPacket;
+class PacketQueue;
 
 class VideoStore {
   private:

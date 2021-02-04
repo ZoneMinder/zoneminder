@@ -2,7 +2,6 @@
 #define ZM_FONT_H
 
 #include "zm_define.h"
-
 #include <string>
 
 #define NUM_FONT_SIZES 4

@@ -20,16 +20,12 @@
 #ifndef ZM_RTSP_H
 #define ZM_RTSP_H
 
-#include "zm.h"
-#include "zm_ffmpeg.h"
 #include "zm_comms.h"
-#include "zm_thread.h"
 #include "zm_rtp_source.h"
 #include "zm_rtsp_auth.h"
 #include "zm_sdp.h"
-
-#include <set>
 #include <map>
+#include <set>
 
 class RtspThread : public Thread {
 public:

@@ -339,8 +339,10 @@ Monitor::Monitor()
   last_camera_bytes(0),
   event_count(0),
   image_count(0),
+  last_capture_image_count(0),
   analysis_image_count(0),
   motion_frame_count(0),
+  last_motion_frame_count(0),
   ready_count(0),
   first_alarm_count(0),
   last_alarm_count(0),
@@ -1671,24 +1673,37 @@ void Monitor::CheckAction() {
 }
 
 void Monitor::UpdateCaptureFPS() {
-  if ( fps_report_interval && ( !(image_count%fps_report_interval) || image_count == 5 ) ) {
+  if ( fps_report_interval and 
+      ( 
+       !(image_count%fps_report_interval)
+      or 
+     ( (image_count < fps_report_interval) and !(image_count%10) )
+     )
+     ) {
     struct timeval now;
     gettimeofday(&now, nullptr);
     double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
+    double elapsed = now_double - last_fps_time;
 
     // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
-    if ( now_double != last_fps_time ) {
+    // Also only do the update at most 1/sec
+    if ( elapsed > 1.0 ) {
       // # of images per interval / the amount of time it took
-      double new_capture_fps = double((image_count < fps_report_interval ? image_count : fps_report_interval))/(now_double-last_fps_time);
+      double new_capture_fps = double((image_count - last_capture_image_count)/elapsed);
       unsigned int new_camera_bytes = camera->Bytes();
-      unsigned int new_capture_bandwidth = (new_camera_bytes-last_camera_bytes)/(now_double-last_fps_time);
+      unsigned int new_capture_bandwidth = (new_camera_bytes-last_camera_bytes)/elapsed;
       last_camera_bytes = new_camera_bytes;
-      //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
-      //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
+
+      Debug(4, "%s: %d - now:%lf, last %lf, elapsed %lf = %lffps", "Capturing", image_count,
+          now_double, last_analysis_fps_time,
+          elapsed, new_capture_fps
+          );
       Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec",
           name, image_count, new_capture_fps, new_capture_bandwidth);
       shared_data->capture_fps = new_capture_fps;
       last_fps_time = now_double;
+      last_capture_image_count = image_count;
+
       db_mutex.lock();
       static char sql[ZM_SQL_SML_BUFSIZ];
       // The reason we update the Status as well is because if mysql restarts, the Monitor_Status table is lost,
@@ -1705,7 +1720,7 @@ void Monitor::UpdateCaptureFPS() {
       db_mutex.unlock();
     } // now != last_fps_time
   } // end if report fps
-}
+}  // void Monitor::UpdateCaptureFPS()
 
 void Monitor::UpdateAnalysisFPS() {
   Debug(1, "analysis_image_count(%d) motion_count(%d) fps_report_interval(%d) mod%d",
@@ -1713,25 +1728,27 @@ void Monitor::UpdateAnalysisFPS() {
       ((analysis_image_count && fps_report_interval) ? !(analysis_image_count%fps_report_interval) : -1 ) );
 
   if ( 
-      (motion_frame_count && fps_report_interval && !(motion_frame_count%fps_report_interval))
+      ( analysis_image_count and fps_report_interval and !(analysis_image_count%fps_report_interval) )
       or 
-      ( motion_frame_count < fps_report_interval and !motion_frame_count%10 )
+      // In startup do faster updates
+      ( (analysis_image_count < fps_report_interval) and !(analysis_image_count%10) )
      ) {
     //if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
     struct timeval now;
     gettimeofday(&now, nullptr);
     double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
+    double elapsed = now_double - last_analysis_fps_time;
     Debug(4, "%s: %d - now:%d.%d = %lf, last %lf, diff %lf", name, analysis_image_count,
         now.tv_sec, now.tv_usec, now_double, last_analysis_fps_time,
-        now_double - last_analysis_fps_time
+        elapsed
         );
 
-    if ( now_double - last_analysis_fps_time > 1.0 ) {
-      double new_analysis_fps = double(fps_report_interval) / (now_double - last_analysis_fps_time);
-      Info("%s: %d - Analysing at %.2lf fps from %d / %lf - %lf",
+    if ( elapsed > 1.0 ) {
+      double new_analysis_fps = double(motion_frame_count - last_motion_frame_count) / elapsed;
+      Info("%s: %d - Analysing at %.2lf fps from %d - %d=%d / %lf - %lf = %lf",
           name, analysis_image_count, new_analysis_fps,
-          fps_report_interval, 
-          now_double, last_analysis_fps_time);
+          motion_frame_count, last_motion_frame_count, (motion_frame_count - last_motion_frame_count),
+          now_double, last_analysis_fps_time, elapsed);
 
       if ( new_analysis_fps != shared_data->analysis_fps ) {
         shared_data->analysis_fps = new_analysis_fps;
@@ -1747,6 +1764,7 @@ void Monitor::UpdateAnalysisFPS() {
         }
         db_mutex.unlock();
         last_analysis_fps_time = now_double;
+        last_motion_frame_count = motion_frame_count;
       } else {
         Debug(4, "No change in fps");
       } // end if change in fps
@@ -2493,7 +2511,7 @@ int Monitor::Capture() {
         } else {
           delete packet;
         }
-        image_count ++;
+        packet->image_index=-1;
         // Don't update last_write_index because that is used for live streaming
         //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
         return 1;

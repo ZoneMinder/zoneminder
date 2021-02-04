@@ -331,8 +331,10 @@ protected:
 
   int        event_count;
   int        image_count;
+  int         last_capture_image_count; // last value of image_count when calculating capture fps
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
   int        motion_frame_count;      // How many frames have had motion detection performed on them.
+  int         last_motion_frame_count; // last value of motion_frame_count when calculating fps
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;

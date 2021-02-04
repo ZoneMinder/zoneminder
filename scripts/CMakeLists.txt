@@ -22,8 +22,8 @@ configure_file(zmcamtool.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmcamtool.pl" @ONLY)
 configure_file(zmsystemctl.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmsystemctl.pl" @ONLY)
 configure_file(zmtelemetry.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmtelemetry.pl" @ONLY)
 if(NOT ZM_NO_X10)
-	configure_file(zmx10.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmx10.pl" @ONLY)
-endif(NOT ZM_NO_X10)
+  configure_file(zmx10.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmx10.pl" @ONLY)
+endif()
 #configure_file(zmdbbackup.in zmdbbackup @ONLY)
 #configure_file(zmdbrestore.in zmdbrestore @ONLY)
 configure_file(zm.in "${CMAKE_CURRENT_BINARY_DIR}/zm" @ONLY)
@@ -32,14 +32,14 @@ configure_file(zm.in "${CMAKE_CURRENT_BINARY_DIR}/zm" @ONLY)
 # Generate man files for the perl scripts destined for the bin folder
 if(BUILD_MAN)
   file(GLOB perlscripts "${CMAKE_CURRENT_BINARY_DIR}/*.pl")
-  FOREACH(PERLSCRIPT ${perlscripts})
+  foreach(PERLSCRIPT ${perlscripts})
     get_filename_component(PERLSCRIPTNAME ${PERLSCRIPT} NAME)
     POD2MAN(${PERLSCRIPT} ${PERLSCRIPTNAME} 8 ${ZM_MANPAGE_DEST_PREFIX})
-  ENDFOREACH(PERLSCRIPT ${perlscripts})
-endif(BUILD_MAN)
+  endforeach(PERLSCRIPT ${perlscripts})
+endif()
 
 # Install the perl scripts
-install(FILES 
+install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/zmaudit.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmcontrol.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmdc.pl"
@@ -58,9 +58,9 @@ install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/zmstats.pl"
   DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 if(NOT ZM_NO_X10)
-	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zmx10.pl" DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-endif(NOT ZM_NO_X10)
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zmx10.pl" DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+endif()
 
 if(WITH_SYSTEMD)
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zmsystemctl.pl" DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-endif(WITH_SYSTEMD)
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zmsystemctl.pl" DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+endif()

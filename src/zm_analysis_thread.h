@@ -3,12 +3,10 @@
 
 #include "zm_monitor.h"
 #include "zm_thread.h"
-#include <csignal>
 
 class AnalysisThread : public Thread {
   private:
     bool terminate;
-    sigset_t block_set;
     Monitor *monitor;
 
   public:

@@ -17,7 +17,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#define __STDC_FORMAT_MACROS 1
 #include "zm_zone.h"
 
 #include "zm_fifo.h"

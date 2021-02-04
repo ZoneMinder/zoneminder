@@ -19,6 +19,15 @@
 #ifndef ZONEMINDER_SRC_ZM_DEFINE_H_
 #define ZONEMINDER_SRC_ZM_DEFINE_H_
 
+// These macros have not been adopted by the C++11 standard.
+// However glibc 2.17 (CentOS 7) still depends on them to provide the macros which are guarded by these defines.
+#if !defined(__STDC_FORMAT_MACROS)
+#  define __STDC_FORMAT_MACROS
+#endif
+#if !defined(__STDC_CONSTANT_MACROS)
+#  define __STDC_CONSTANT_MACROS
+#endif
+
 #include <cinttypes>
 
 typedef std::int64_t int64;

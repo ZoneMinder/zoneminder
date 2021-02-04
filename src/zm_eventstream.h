@@ -20,10 +20,11 @@
 #ifndef ZM_EVENTSTREAM_H
 #define ZM_EVENTSTREAM_H
 
-#include "zm_stream.h"
+#include "zm_define.h"
 #include "zm_ffmpeg_input.h"
 #include "zm_monitor.h"
 #include "zm_storage.h"
+#include "zm_stream.h"
 
 #ifdef __cplusplus
 extern "C" {

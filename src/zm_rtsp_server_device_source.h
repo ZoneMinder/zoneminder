@@ -10,6 +10,7 @@
 #define ZM_RTSP_SERVER_DEVICE_SOURCE_H
 
 #include "zm_config.h"
+#include "zm_define.h"
 #include "zm_monitor.h"
 #include <list>
 #include <string>

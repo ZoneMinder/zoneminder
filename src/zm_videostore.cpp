@@ -496,6 +496,7 @@ void VideoStore::flush_codecs() {
       write_packet(&pkt, video_out_stream);
       zm_av_packet_unref(&pkt);
     } // while have buffered frames
+    Debug(1, "Done writing buffered video.");
   } // end if have delay capability
 
   if ( audio_out_codec ) {
@@ -512,7 +513,7 @@ void VideoStore::flush_codecs() {
       if ( zm_add_samples_to_fifo(fifo, out_frame) ) {
         // Should probably set the frame size to what is reported FIXME
         if ( zm_get_samples_from_fifo(fifo, out_frame) ) {
-          if ( zm_send_frame_receive_packet(audio_out_ctx, out_frame, pkt) ) {
+          if ( zm_send_frame_receive_packet(audio_out_ctx, out_frame, pkt) > 0 ) {
             pkt.stream_index = audio_out_stream->index;
 
             av_packet_rescale_ts(&pkt,

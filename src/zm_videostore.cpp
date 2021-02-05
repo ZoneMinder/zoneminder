@@ -491,8 +491,11 @@ void VideoStore::flush_codecs() {
         CODEC_CAP_DELAY
 #endif
         ) ) {
-    while ( (ret = zm_send_frame_receive_packet(video_out_ctx, nullptr, pkt) ) > 0 ) {
     // Put encoder into flushing mode
+    while ( (ret = zm_send_frame_receive_packet(video_out_ctx, nullptr, pkt) ) > 0 ) {
+      av_packet_rescale_ts(&pkt,
+          video_out_ctx->time_base,
+          video_out_stream->time_base);
       write_packet(&pkt, video_out_stream);
       zm_av_packet_unref(&pkt);
     } // while have buffered frames
@@ -514,8 +517,6 @@ void VideoStore::flush_codecs() {
         // Should probably set the frame size to what is reported FIXME
         if ( zm_get_samples_from_fifo(fifo, out_frame) ) {
           if ( zm_send_frame_receive_packet(audio_out_ctx, out_frame, pkt) > 0 ) {
-            pkt.stream_index = audio_out_stream->index;
-
             av_packet_rescale_ts(&pkt,
                 audio_out_ctx->time_base,
                 audio_out_stream->time_base);
@@ -525,7 +526,7 @@ void VideoStore::flush_codecs() {
         }  // end if data returned from fifo
       }
 
-    } // end if have buffered samples in the resampler
+    } // end while have buffered samples in the resampler
 
     Debug(2, "av_audio_fifo_size = %d", av_audio_fifo_size(fifo));
     while ( av_audio_fifo_size(fifo) > 0 ) {
@@ -1248,7 +1249,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   } else if ( pkt->dts < stream->cur_dts ) {
     Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream cur_dts %" PRId64, pkt->dts, stream->cur_dts);
     pkt->dts = stream->cur_dts;
-  } 
+  }
 
   if ( pkt->dts > pkt->pts ) {
     Debug(1,
@@ -1260,7 +1261,8 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
 
   dumpPacket(stream, pkt, "finished pkt");
   next_dts[stream->index] = opkt.dts + opkt.duration;
-  Debug(3, "video_next_dts has become %" PRId64, next_dts[stream->index]);
+  Debug(3, "next_dts for stream %d has become %" PRId64,
+      stream->index, next_dts[stream->index]);
 
   int ret = av_interleaved_write_frame(oc, pkt);
   if ( ret != 0 ) {

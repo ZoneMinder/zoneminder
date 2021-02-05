@@ -7,9 +7,6 @@ int ZmFont::ReadFontFile(const std::string &loc) {
   FILE *f = fopen(loc.c_str(), "rb");
   if ( !f ) return -1;  // FILE NOT FOUND
 
-  struct stat st;
-  stat(loc.c_str(), &st);
-
   font = new ZMFONT;
 
   size_t header_size = 8 + (sizeof(ZMFONT_BH) * NUM_FONT_SIZES);
@@ -19,11 +16,19 @@ int ZmFont::ReadFontFile(const std::string &loc) {
   if ( readsize < header_size ) {
     delete font;
     font = nullptr;
+    fclose(f);
     return -2; // EOF reached, invalid file
   }
 
-  if ( memcmp(font->MAGIC, "ZMFNT", 5) != 0 )  // Check whether magic is correct
+  if ( memcmp(font->MAGIC, "ZMFNT", 5) != 0 ) { // Check whether magic is correct
+    delete font;
+    font = nullptr;
+    fclose(f);
     return -3;
+  }
+
+  struct stat st;
+  stat(loc.c_str(), &st);
 
   for ( int i = 0; i < NUM_FONT_SIZES; i++ ) {
     /* Character Width cannot be greater than 64 as a row is represented as a uint64_t, 
@@ -33,10 +38,11 @@ int ZmFont::ReadFontFile(const std::string &loc) {
     if ( (font->header[i].charWidth > 64 && font->header[i].charWidth == 0) || 
         (font->header[i].charHeight > 200 && font->header[i].charHeight == 0) || 
         (font->header[i].idx > st.st_size) ) {
-        delete font;
-        font = nullptr;
-        return -4;
-      }
+      delete font;
+      font = nullptr;
+      fclose(f);
+      return -4;
+    }
   }  // end foreach font size
 
   datasize = st.st_size - header_size;

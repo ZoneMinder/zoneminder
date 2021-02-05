@@ -171,9 +171,9 @@ bool Monitor::MonitorLink::connect() {
       return false;
     }
 #else // ZM_MEM_MAPPED
-    shm_id = shmget( (config.shm_key&0xffff0000)|id, mem_size, 0700 );
+    shm_id = shmget((config.shm_key&0xffff0000)|id, mem_size, 0700);
     if ( shm_id < 0 ) {
-      Debug(3, "Can't shmget link memory: %s", strerror(errno );
+      Debug(3, "Can't shmget link memory: %s", strerror(errno));
       connected = false;
       return false;
     }
@@ -2944,12 +2944,15 @@ Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 // Wait for camera to get an image, and then assign it as the base reference image.
 // So this should be done as the first task in the analysis thread startup.
+// This function is deprecated.
 void Monitor::get_ref_image() {
-  ZMPacket *snap;
+  ZMPacket *snap = nullptr;
+
+  if ( !analysis_it ) 
+    analysis_it = packetqueue.get_video_it(true);
+
   while ( 
       (
-       !analysis_it
-       or
        !( snap = packetqueue.get_packet(analysis_it))
        or 
        ( snap->packet.stream_index != video_stream_id )
@@ -2958,12 +2961,9 @@ void Monitor::get_ref_image() {
       )
     and !zm_terminate) {
 
-    if ( !analysis_it ) 
-      analysis_it = packetqueue.get_video_it(true);
-
     Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)",
         shared_data->last_write_index, shared_data->last_write_time);
-    if ( ! snap->image ) {
+    if ( snap and ! snap->image ) {
       snap->unlock();
       // can't analyse it anyways, incremement
       packetqueue.increment_it(analysis_it);

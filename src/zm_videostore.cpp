@@ -120,7 +120,9 @@ bool VideoStore::open() {
   out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
 
   if ( video_in_stream ) {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     zm_dump_codecpar(video_in_stream->codecpar);
+#endif
     video_in_stream_index = video_in_stream->index;
 
     if ( monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH ) {

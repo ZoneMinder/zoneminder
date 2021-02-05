@@ -340,7 +340,13 @@ int FfmpegCamera::OpenFfmpeg() {
       mVideoStreamId, mAudioStreamId);
 
   AVCodec *mVideoCodec = nullptr;
-  if ( mVideoStream->codecpar->codec_id == AV_CODEC_ID_H264 ) {
+  if ( mVideoStream->
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      codecpar
+#else
+      codec
+#endif
+      ->codec_id == AV_CODEC_ID_H264 ) {
     if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == nullptr ) {
       Debug(1, "Failed to find decoder (h264_mmal)");
     } else {
@@ -349,7 +355,13 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   if ( !mVideoCodec ) {
-    mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
+    mVideoCodec = avcodec_find_decoder(mVideoStream->
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+        codecpar
+#else
+        codec
+#endif
+        ->codec_id);
     if ( !mVideoCodec ) {
       // Try and get the codec from the codec context
       Error("Can't find codec for video stream from %s", mPath.c_str());

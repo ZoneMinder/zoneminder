@@ -243,7 +243,7 @@ Event::~Event() {
 
   /* Close the video file */
   if ( videoStore != nullptr ) {
-    Debug(2, "Deleting video store");
+    Debug(4, "Deleting video store");
     delete videoStore;
     videoStore = nullptr;
   }
@@ -257,28 +257,8 @@ Event::~Event() {
   DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
   Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
 
-#if 0  // This closing frame has no image. There is no point in adding a db record for it, I think. ICON
-  if ( frames > last_db_frame ) {
-    frames ++;
-    Debug(1, "Adding closing frame %d to DB", frames);
-    frame_data.push(new Frame(id, frames, NORMAL, end_time, delta_time, 0));
-  }
-#endif
   if ( frame_data.size() )
     WriteDbFrames();
-
-  // update frame deltas to refer to video start time which may be a few frames before event start
-  struct timeval video_offset = {0};
-  struct timeval video_start_time = monitor->GetVideoWriterStartTime();
-  if ( video_start_time.tv_sec > 0 ) {
-     timersub(&video_start_time, &start_time, &video_offset);
-     Debug(1, "Updating frames delta by %d sec %d usec",
-           video_offset.tv_sec, video_offset.tv_usec);
-     UpdateFramesDelta(video_offset.tv_sec + video_offset.tv_usec*1e-6);
-  } else {
-     Debug(3, "Video start_time %d sec %d usec not valid -- frame deltas not updated",
-           video_start_time.tv_sec, video_start_time.tv_usec);
-  }
 
   // Should not be static because we might be multi-threaded
   char sql[ZM_SQL_LGE_BUFSIZ];

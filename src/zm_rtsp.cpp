@@ -24,6 +24,8 @@
 #include "zm_rtp_ctrl.h"
 #include "zm_db.h"
 
+#include <algorithm>
+
 #if HAVE_LIBAVFORMAT
 
 int RtspThread::smMinDataPort = 0;
@@ -68,7 +70,7 @@ bool RtspThread::recvResponse(std::string &response) {
     } else {
       Error("Response parse failure, %zd bytes follow", response.size());
       if ( response.size() )
-        Hexdump(Logger::ERROR, response.data(), min(response.size(),16));
+        Hexdump(Logger::ERROR, response.data(), std::min(int(response.size()), 16));
     }
     return false;
   }
@@ -260,7 +262,7 @@ int RtspThread::run() {
         } else {
           Error("Response parse failure, %zd bytes follow", response.size());
           if ( response.size() )
-            Hexdump(Logger::ERROR, response.data(), min(response.size(),16));
+            Hexdump(Logger::ERROR, response.data(), std::min(int(response.size()), 16));
         }
         return -1;
       }

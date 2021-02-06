@@ -947,7 +947,7 @@ void EventStream::runStream() {
       delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
       Debug(3, "delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
       // but must not exceed maxfps
-      delta_us = max(delta_us, 1000000/maxfps);
+      delta_us = std::max(delta_us, int(1000000/maxfps));
       Debug(3, "delta %u = base_fps(%f)/effective fps(%f) from 30fps", delta_us, base_fps, effective_fps);
 
       // +/- 1? What if we are skipping frames?

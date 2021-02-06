@@ -44,16 +44,6 @@ void string_toupper(std::string& str);
 int split(const char* string, const char delim, std::vector<std::string>& items);
 int pairsplit(const char* string, const char delim, std::string& name, std::string& value);
 
-inline int max( int a, int b )
-{
-  return( a>=b?a:b );
-}
-
-inline int min( int a, int b )
-{
-  return( a<=b?a:b );
-}
-
 void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes);
 void timespec_diff(struct timespec *start, struct timespec *end, struct timespec *diff);
 

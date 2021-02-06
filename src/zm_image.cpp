@@ -22,6 +22,7 @@
 #include "zm_font.h"
 #include "zm_poly.h"
 #include "zm_utils.h"
+#include <algorithm>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -2488,7 +2489,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
     global_edges[n_global_edges]._1_m = dx/dy;
     n_global_edges++;
   }
-  qsort( global_edges, n_global_edges, sizeof(*global_edges), Edge::CompareYX );
+  std::sort(global_edges, global_edges + n_global_edges, Edge::CompareYX);
 
 #ifndef ZM_DBG_OFF
   if ( logLevel() >= Logger::DEBUG9 ) {
@@ -2517,7 +2518,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
         break;
       }
     }
-    qsort(active_edges, n_active_edges, sizeof(*active_edges), Edge::CompareX);
+    std::sort(active_edges, active_edges + n_active_edges, Edge::CompareX);
 #ifndef ZM_DBG_OFF
     if ( logLevel() >= Logger::DEBUG9 ) {
       for ( int i = 0; i < n_active_edges; i++ ) {

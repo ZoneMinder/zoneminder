@@ -559,9 +559,9 @@ void VideoStore::flush_codecs() {
         break;
       }
 
-      dumpPacket(&pkt, "raw from encoder");
+      ZM_DUMP_PACKET(pkt, "raw from encoder");
       av_packet_rescale_ts(&pkt, audio_out_ctx->time_base, audio_out_stream->time_base);
-      dumpPacket(audio_out_stream, &pkt, "writing flushed packet");
+      ZM_DUMP_STREAM_PACKET(audio_out_stream, pkt, "writing flushed packet");
       write_packet(&pkt, audio_out_stream);
       zm_av_packet_unref(&pkt);
     }  // while have buffered frames
@@ -1039,7 +1039,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
       }
       return ret;
     }
-    dumpPacket(&opkt, "packet returned by codec");
+    ZM_DUMP_PACKET(opkt, "packet returned by codec");
 
     // Need to adjust pts/dts values from codec time to stream time
     if ( opkt.pts != AV_NOPTS_VALUE )
@@ -1119,7 +1119,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 
     av_packet_rescale_ts(&opkt, video_in_stream->time_base, video_out_stream->time_base);
 
-    dumpPacket(video_out_stream, &opkt, "after pts adjustment");
+    ZM_DUMP_STREAM_PACKET(video_out_stream, opkt, "after pts adjustment");
   } // end if codec matches
 
   write_packet(&opkt, video_out_stream);
@@ -1138,7 +1138,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     return 0;
     // FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
   }
-  dumpPacket(audio_in_stream, ipkt, "input packet");
+  ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "input packet");
 
   if ( !audio_first_dts ) {
     audio_first_dts = ipkt->dts;
@@ -1148,7 +1148,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
   ipkt->pts -= audio_first_dts;
   ipkt->dts -= audio_first_dts;
-  dumpPacket(audio_in_stream, ipkt, "after pts adjustment");
+  ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "after pts adjustment");
 
   if ( audio_out_codec ) {
     // I wonder if we can get multiple frames per packet? Probably
@@ -1205,7 +1205,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     opkt.pts = ipkt->pts;
     opkt.dts = ipkt->dts;
     av_packet_rescale_ts(&opkt, audio_in_stream->time_base, audio_out_stream->time_base);
-    dumpPacket(audio_out_stream, &opkt, "after stream pts adjustment");
+    ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
     write_packet(&opkt, audio_out_stream);
 
     zm_av_packet_unref(&opkt);
@@ -1257,7 +1257,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
     pkt->pts = pkt->dts;
   }
 
-  dumpPacket(stream, pkt, "finished pkt");
+  ZM_DUMP_STREAM_PACKET(stream, (*pkt), "finished pkt");
   next_dts[stream->index] = opkt.dts + opkt.duration;
   Debug(3, "video_next_dts has become %" PRId64, next_dts[stream->index]);
 

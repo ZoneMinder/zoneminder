@@ -492,14 +492,14 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   iterators.push_back(it);
 
   *it = snapshot_it;
-  dumpPacket(&((*(*it))->packet));
+  ZM_DUMP_PACKET((*(*it))->packet, "");
   // Step one count back pre_event_count frames as the minimum
   // Do not assume that snapshot_it is video
   // snapshot it might already point to the beginning
   while ( ( *it != pktQueue.begin() ) and pre_event_count ) {
     Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d",
         pre_event_count, (*(*it))->packet.stream_index, (*(*it))->keyframe);
-    dumpPacket(&((*(*it))->packet));
+    ZM_DUMP_PACKET((*(*it))->packet, "");
     if ( (*(*it))->packet.stream_index == video_stream_id ) {
       pre_event_count --;
       if ( ! pre_event_count )
@@ -520,19 +520,19 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
       } else {
         Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
       }
-      dumpPacket(&((*(*it))->packet));
+      ZM_DUMP_PACKET((*(*it))->packet, "");
     }
     return it;
   }
 
   // Not at beginning, so must be pointing at a video keyframe or maybe pre_event_count == 0
   if ( (*(*it))->keyframe ) {
-    dumpPacket(&((*(*it))->packet), "Found video keyframe, Returning");
+    ZM_DUMP_PACKET((*(*it))->packet, "Found video keyframe, Returning");
     return it;
   }
 
   while ( (*it)-- != pktQueue.begin() ) {
-    dumpPacket(&((*(*it))->packet), "No keyframe");
+    ZM_DUMP_PACKET((*(*it))->packet, "No keyframe");
     if ( (*(*it))->packet.stream_index == video_stream_id and (*(*it))->keyframe )
       return it; // Success
   }
@@ -546,8 +546,7 @@ void PacketQueue::dumpQueue() {
   std::list<ZMPacket *>::reverse_iterator it;
   for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {
     ZMPacket *zm_packet = *it;
-    AVPacket *av_packet = &(zm_packet->packet);
-    dumpPacket(av_packet);
+    ZM_DUMP_PACKET(zm_packet->packet, "");
   }
 }
 

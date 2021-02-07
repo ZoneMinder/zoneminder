@@ -36,21 +36,21 @@ void zmLoadStaticConfig() {
 
   // Search for user created config files. If one or more are found then
   // update the Config hash with those values
-  DIR* configSubFolder = opendir(ZM_CONFIG_SUBDIR);
-  if ( configSubFolder ) { // subfolder exists and is readable
+  DIR *configSubFolder = opendir(ZM_CONFIG_SUBDIR);
+  if (configSubFolder) { // subfolder exists and is readable
     char glob_pattern[PATH_MAX] = "";
     snprintf(glob_pattern, sizeof(glob_pattern), "%s/*.conf", ZM_CONFIG_SUBDIR);
 
     glob_t pglob;
-    int glob_status = glob(glob_pattern, 0, 0, &pglob);
-    if ( glob_status != 0 ) {
-      if ( glob_status < 0 ) {
+    int glob_status = glob(glob_pattern, 0, nullptr, &pglob);
+    if (glob_status != 0) {
+      if (glob_status < 0) {
         Error("Can't glob '%s': %s", glob_pattern, strerror(errno));
       } else {
         Debug(1, "Can't glob '%s': %d", glob_pattern, glob_status);
       }
     } else {
-      for ( unsigned int i = 0; i < pglob.gl_pathc; i++ ) {
+      for (unsigned int i = 0; i < pglob.gl_pathc; i++) {
         process_configfile(pglob.gl_pathv[i]);
       }
     }
@@ -60,48 +60,51 @@ void zmLoadStaticConfig() {
 }
 
 void zmLoadDBConfig() {
-  if ( !zmDbConnected ) {
+  if (!zmDbConnected) {
     Fatal("Not connected to the database. Can't continue.");
   }
   config.Load();
   config.Assign();
 
   // Populate the server config entries
-  if ( !staticConfig.SERVER_ID ) {
-    if ( !staticConfig.SERVER_NAME.empty() ) {
+  if (!staticConfig.SERVER_ID) {
+    if (!staticConfig.SERVER_NAME.empty()) {
 
       Debug(1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str());
       std::string sql = stringtf("SELECT `Id` FROM `Servers` WHERE `Name`='%s'",
-          staticConfig.SERVER_NAME.c_str());
+                                 staticConfig.SERVER_NAME.c_str());
       zmDbRow dbrow;
-      if ( dbrow.fetch(sql.c_str()) ) {
+      if (dbrow.fetch(sql.c_str())) {
         staticConfig.SERVER_ID = atoi(dbrow[0]);
       } else {
         Fatal("Can't get ServerId for Server %s", staticConfig.SERVER_NAME.c_str());
       }
 
     } // end if has SERVER_NAME
-  } else if ( staticConfig.SERVER_NAME.empty() ) {
+  } else if (staticConfig.SERVER_NAME.empty()) {
     Debug(1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID);
     std::string sql = stringtf("SELECT `Name` FROM `Servers` WHERE `Id`='%d'", staticConfig.SERVER_ID);
-    
+
     zmDbRow dbrow;
-    if ( dbrow.fetch(sql.c_str()) ) {
+    if (dbrow.fetch(sql.c_str())) {
       staticConfig.SERVER_NAME = std::string(dbrow[0]);
     } else {
       Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID);
     }
 
-    if ( staticConfig.SERVER_ID ) {
-			Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
-		} else {
-			Debug(3, "Single server configuration assumed because no Server ID or Name was specified.");
-		}
+    if (staticConfig.SERVER_ID) {
+      Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
+    } else {
+      Debug(3, "Single server configuration assumed because no Server ID or Name was specified.");
+    }
   }
 
-  snprintf(staticConfig.capture_file_format, sizeof(staticConfig.capture_file_format), "%%s/%%0%dd-capture.jpg", config.event_image_digits);
-  snprintf(staticConfig.analyse_file_format, sizeof(staticConfig.analyse_file_format), "%%s/%%0%dd-analyse.jpg", config.event_image_digits);
-  snprintf(staticConfig.general_file_format, sizeof(staticConfig.general_file_format), "%%s/%%0%dd-%%s", config.event_image_digits);
+  snprintf(staticConfig.capture_file_format, sizeof(staticConfig.capture_file_format), "%%s/%%0%dd-capture.jpg",
+           config.event_image_digits);
+  snprintf(staticConfig.analyse_file_format, sizeof(staticConfig.analyse_file_format), "%%s/%%0%dd-analyse.jpg",
+           config.event_image_digits);
+  snprintf(staticConfig.general_file_format, sizeof(staticConfig.general_file_format), "%%s/%%0%dd-%%s",
+           config.event_image_digits);
   snprintf(staticConfig.video_file_format, sizeof(staticConfig.video_file_format), "%%s/%%s");
 }
 

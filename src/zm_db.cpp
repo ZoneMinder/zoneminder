@@ -101,7 +101,7 @@ bool zmDbConnect() {
 }
 
 void zmDbClose() {
-  if ( zmDbConnected ) {
+  if (zmDbConnected) {
     db_mutex.lock();
     mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/  
+*/
 
 #ifndef ZM_FFMPEG_H
 #define ZM_FFMPEG_H
@@ -60,7 +60,7 @@ extern "C" {
 #else
 #include <libavcodec/opt.h>
 #endif
-    
+
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
 #include <libavutil/imgutils.h>
 #endif
@@ -70,8 +70,8 @@ extern "C" {
 #include <ffmpeg/mathematics.h>
 #include <ffmpeg/opt.h>
 #endif /* HAVE_LIBAVUTIL_AVUTIL_H */
-    
-#if defined(HAVE_LIBAVUTIL_AVUTIL_H) 
+
+#if defined(HAVE_LIBAVUTIL_AVUTIL_H)
 #if LIBAVUTIL_VERSION_CHECK(51, 42, 0, 74, 100)
     #define _AVPIXELFORMAT AVPixelFormat
 #else
@@ -211,7 +211,7 @@ extern "C" {
  #endif
 #endif
 
-/* A single function to initialize ffmpeg, to avoid multiple initializations */		
+/* A single function to initialize ffmpeg, to avoid multiple initializations */
 void FFMPEGInit();
 void FFMPEGDeInit();
 
@@ -350,6 +350,49 @@ void zm_dump_codecpar(const AVCodecParameters *par);
       );
 #endif
 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+# define AV_PACKET_DURATION_FMT PRId64
+#else
+# define AV_PACKET_DURATION_FMT "d"
+#endif
+
+#ifndef DBG_OFF
+# define ZM_DUMP_PACKET(pkt, text) \
+  Debug(2, "%s: pts: %" PRId64 ", dts: %" PRId64 \
+    ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64 ", duration: %" AV_PACKET_DURATION_FMT, \
+    text,\
+    pkt.pts,\
+    pkt.dts,\
+    pkt.size,\
+    pkt.stream_index,\
+    pkt.flags,\
+    pkt.flags & AV_PKT_FLAG_KEY,\
+    pkt.pos,\
+    pkt.duration)
+
+# define ZM_DUMP_STREAM_PACKET(stream, pkt, text) \
+  if (logDebugging()) { \
+    double pts_time = static_cast<double>(av_rescale_q(pkt.pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE; \
+    \
+    Debug(2, "%s: pts: %" PRId64 "=%f, dts: %" PRId64 \
+      ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64", duration: %" AV_PACKET_DURATION_FMT, \
+      text, \
+      pkt.pts, \
+      pts_time, \
+      pkt.dts, \
+      pkt.size, \
+      pkt.stream_index, \
+      pkt.flags, \
+      pkt.flags & AV_PKT_FLAG_KEY, \
+      pkt.pos, \
+    pkt.duration) \
+  }
+
+#else
+# define ZM_DUMP_PACKET(pkt, text)
+# define ZM_DUMP_STREAM_PACKET(stream, pkt, text)
+#endif
+
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
     #define zm_av_packet_unref(packet) av_packet_unref(packet)
     #define zm_av_packet_ref(dst, src) av_packet_ref(dst, src)
@@ -373,7 +416,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
       avcodec_decode_video(context, rawFrame, frameComplete, packet->data, packet->size)
 #endif
 #endif
-    
+
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
   #define zm_av_frame_alloc() av_frame_alloc()
 #else
@@ -382,7 +425,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 
 #if ! LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
   #define av_frame_free( input_avframe ) av_freep( input_avframe )
-#endif   
+#endif
 
 int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
 void fix_deprecated_pix_fmt(AVCodecContext *);
@@ -397,8 +440,6 @@ int zm_receive_packet(AVCodecContext *context, AVPacket &packet);
 int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
 int zm_send_frame_receive_packet(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
 
-void dumpPacket(AVStream *, AVPacket *,const char *text="");
-void dumpPacket(AVPacket *,const char *text="");
 void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRational src_tb, const AVRational dst_tb);
 
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
@@ -428,7 +469,5 @@ int zm_resample_get_delay(
 
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame);
 int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame);
-
-
 
 #endif // ZM_FFMPEG_H

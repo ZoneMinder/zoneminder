@@ -204,7 +204,7 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
     }
     return -1;
   }
-  dumpPacket(mFormatContext->streams[packet.stream_index], &packet, "ffmpeg_camera in");
+  ZM_DUMP_STREAM_PACKET(mFormatContext->streams[packet.stream_index], packet, "ffmpeg_camera in");
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   zm_packet.codec_type = mFormatContext->streams[packet.stream_index]->codecpar->codec_type;

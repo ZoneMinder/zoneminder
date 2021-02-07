@@ -159,7 +159,7 @@ int ZoneMinderDeviceSource::getNextFrame() {
   // Convert pts to timeval
   int64_t pts = av_rescale_q(pkt->dts, m_stream->time_base, AV_TIME_BASE_Q);
   timeval tv = { pts/1000000, pts%1000000 };
-  dumpPacket(m_stream, pkt, "rtspServer");
+  ZM_DUMP_STREAM_PACKET(m_stream, (*pkt), "rtspServer");
   Debug(2, "pts %" PRId64 " pkt.pts %" PRId64 " tv %d.%d", pts, pkt->pts, tv.tv_sec, tv.tv_usec);
 
   std::list< std::pair<unsigned char*, size_t> > framesList = this->splitFrames(pkt->data, pkt->size);

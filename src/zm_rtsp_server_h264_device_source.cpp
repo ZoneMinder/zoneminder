@@ -24,12 +24,12 @@
 //
 H264_ZoneMinderDeviceSource::H264_ZoneMinderDeviceSource(
     UsageEnvironment& env,
-    Monitor *monitor,
+    std::shared_ptr<Monitor> monitor,
     AVStream *stream,
     unsigned int queueSize,
     bool repeatConfig,
     bool keepMarker)
-  : H26X_ZoneMinderDeviceSource(env, monitor, stream, queueSize, repeatConfig, keepMarker)
+  : H26X_ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize, repeatConfig, keepMarker)
 {
   // extradata appears to simply be the SPS and PPS NAL's
   this->splitFrames(m_stream->codecpar->extradata, m_stream->codecpar->extradata_size);
@@ -89,12 +89,12 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderDeviceSource::spli
 
 H265_ZoneMinderDeviceSource::H265_ZoneMinderDeviceSource(
     UsageEnvironment& env,
-    Monitor *monitor,
+    std::shared_ptr<Monitor> monitor,
     AVStream *stream,
     unsigned int queueSize,
     bool repeatConfig,
     bool keepMarker)
-  : H26X_ZoneMinderDeviceSource(env, monitor, stream, queueSize, repeatConfig, keepMarker)
+  : H26X_ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize, repeatConfig, keepMarker)
 {
   // extradata appears to simply be the SPS and PPS NAL's
   this->splitFrames(m_stream->codecpar->extradata, m_stream->codecpar->extradata_size);

@@ -23,7 +23,7 @@
 #include <sys/stat.h>
 
 FileCamera::FileCamera(
-    int p_id,
+    const Monitor *monitor,
     const char *p_path,
     int p_width,
     int p_height,
@@ -35,7 +35,7 @@ FileCamera::FileCamera(
     bool p_capture,
     bool p_record_audio)
   : Camera(
-      p_id,
+      monitor,
       FILE_SRC,
       p_width,
       p_height,

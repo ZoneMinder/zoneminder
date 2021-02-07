@@ -42,7 +42,7 @@ static RegExpr *content_type_expr = nullptr;
 #endif
 
 RemoteCameraHttp::RemoteCameraHttp(
-  unsigned int p_monitor_id,
+  const Monitor *monitor,
   const std::string &p_method,
   const std::string &p_host,
   const std::string &p_port,
@@ -56,7 +56,7 @@ RemoteCameraHttp::RemoteCameraHttp(
   bool p_capture,
   bool p_record_audio ) :
   RemoteCamera(
-    p_monitor_id,
+    monitor,
     "http",
     p_host,
     p_port,
@@ -81,11 +81,11 @@ RemoteCameraHttp::RemoteCameraHttp(
   else if ( p_method == "regexp" ) {
     method = REGEXP;
   } else
-    Fatal( "Unrecognised method '%s' when creating HTTP camera %d", p_method.c_str(), monitor_id );
+    Fatal("Unrecognised method '%s' when creating HTTP camera %d", p_method.c_str(), monitor->Id());
   if ( capture ) {
     Initialise();
   }
-  mVideoStream = NULL;
+  mVideoStream = nullptr;
 }
 
 RemoteCameraHttp::~RemoteCameraHttp() {
@@ -156,7 +156,7 @@ int RemoteCameraHttp::Connect() {
       addr = (struct sockaddr_in *)p->ai_addr; 
       inet_ntop( AF_INET, &(addr->sin_addr), buf, INET6_ADDRSTRLEN );
 
-      Warning("Can't connect to remote camera mid: %d at %s: %s", monitor_id, buf, strerror(errno) );
+      Warning("Can't connect to remote camera mid: %d at %s: %s", monitor->Id(), buf, strerror(errno));
       continue;
     }
 

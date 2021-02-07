@@ -204,7 +204,7 @@ void FifoStream::setStreamStart(const char * path) {
 
 void FifoStream::setStreamStart(int monitor_id, const char * format) {
   char diag_path[PATH_MAX];
-  Monitor * monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
+  std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
 
   if ( !strcmp(format, "reference") ) {
     snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-r-%d.jpg",

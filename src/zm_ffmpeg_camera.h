@@ -67,7 +67,7 @@ class FfmpegCamera : public Camera {
 
   public:
     FfmpegCamera(
-        int p_id,
+        const Monitor *monitor,
         const std::string &path,
         const std::string &p_method,
         const std::string &p_options,

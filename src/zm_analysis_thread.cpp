@@ -2,10 +2,8 @@
 
 #include "zm_signal.h"
 
-AnalysisThread::AnalysisThread(Monitor *p_monitor) {
-  monitor = p_monitor;
-  terminate = false;
-}
+AnalysisThread::AnalysisThread(std::shared_ptr<Monitor> monitor) :
+    monitor(std::move(monitor)), terminate(false) {}
 
 AnalysisThread::~AnalysisThread() {
   Debug(2, "THREAD: deleteing analysis thread");

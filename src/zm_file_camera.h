@@ -32,7 +32,7 @@ protected:
 
 public:
   FileCamera(
-      int p_id,
+      const Monitor *monitor,
       const char *p_path,
       int p_width,
       int p_height,

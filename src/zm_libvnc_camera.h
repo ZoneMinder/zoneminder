@@ -28,7 +28,7 @@ protected:
   std::string mPass;
 public:
   VncCamera(
-      unsigned int p_monitor_id,
+      const Monitor *monitor,
       const std::string &host,
       const std::string &port,
       const std::string &user,

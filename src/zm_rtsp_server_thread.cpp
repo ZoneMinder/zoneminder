@@ -8,8 +8,8 @@
 #if HAVE_RTSP_SERVER
 #include <StreamReplicator.hh>
 
-RTSPServerThread::RTSPServerThread(Monitor *p_monitor) : 
-  monitor(p_monitor),
+RTSPServerThread::RTSPServerThread(std::shared_ptr<Monitor> monitor) :
+  monitor(std::move(monitor)),
   terminate(0)
 {
   //unsigned short rtsp_over_http_port = 0;

@@ -18,13 +18,13 @@
 #if HAVE_RTSP_SERVER
 ZoneMinderDeviceSource::ZoneMinderDeviceSource(
     UsageEnvironment& env,
-    Monitor* monitor,
+    std::shared_ptr<Monitor> monitor,
     AVStream *stream,
     unsigned int queueSize
     ) :
   FramedSource(env),
 	m_stream(stream),
-	m_monitor(monitor),
+	m_monitor(std::move(monitor)),
   m_packetqueue(nullptr),
   m_packetqueue_it(nullptr),
 	m_queueSize(queueSize)

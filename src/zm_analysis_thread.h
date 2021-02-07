@@ -3,14 +3,15 @@
 
 #include "zm_monitor.h"
 #include "zm_thread.h"
+#include <memory>
 
 class AnalysisThread : public Thread {
   private:
+    std::shared_ptr<Monitor> monitor;
     bool terminate;
-    Monitor *monitor;
 
   public:
-    explicit AnalysisThread(Monitor *);
+    explicit AnalysisThread(std::shared_ptr<Monitor> monitor);
     ~AnalysisThread();
     int run();
 

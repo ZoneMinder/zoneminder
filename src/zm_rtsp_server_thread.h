@@ -5,6 +5,7 @@
 #include "zm_ffmpeg.h"
 #include "zm_thread.h"
 #include <list>
+#include <memory>
 
 #if HAVE_RTSP_SERVER
 #include <BasicUsageEnvironment.hh>
@@ -14,7 +15,7 @@ class Monitor;
 
 class RTSPServerThread : public Thread {
   private:
-    Monitor *monitor;
+    std::shared_ptr<Monitor> monitor;
     char terminate;
 
     TaskScheduler* scheduler;
@@ -25,7 +26,7 @@ class RTSPServerThread : public Thread {
     std::list<FramedSource *> sources;
 
   public:
-    explicit RTSPServerThread(Monitor *);
+    explicit RTSPServerThread(std::shared_ptr<Monitor> monitor);
     ~RTSPServerThread();
     void addStream(AVStream *, AVStream *);
     int run();

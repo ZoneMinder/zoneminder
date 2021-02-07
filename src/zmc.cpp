@@ -57,6 +57,7 @@ possible, this should run at more or less constant speed.
 #include "zm_analysis_thread.h"
 #include "zm_camera.h"
 #include "zm_db.h"
+#include "zm_define.h"
 #include "zm_monitor.h"
 #include "zm_rtsp_server_thread.h"
 #include "zm_signal.h"
@@ -186,29 +187,26 @@ int main(int argc, char *argv[]) {
 
   hwcaps_detect();
 
-  Monitor **monitors = nullptr;
-  int n_monitors = 0;
+  std::vector<std::shared_ptr<Monitor>> monitors;
 #if ZM_HAS_V4L
   if ( device[0] ) {
-    n_monitors = Monitor::LoadLocalMonitors(device, monitors, Monitor::CAPTURE);
+    monitors = Monitor::LoadLocalMonitors(device, Monitor::CAPTURE);
   } else
 #endif  // ZM_HAS_V4L
   if ( host[0] ) {
     if ( !port )
       port = "80";
-    n_monitors = Monitor::LoadRemoteMonitors(protocol, host, port, path, monitors, Monitor::CAPTURE);
+    monitors = Monitor::LoadRemoteMonitors(protocol, host, port, path, Monitor::CAPTURE);
   } else if ( file[0] ) {
-    n_monitors = Monitor::LoadFileMonitors(file, monitors, Monitor::CAPTURE);
+    monitors = Monitor::LoadFileMonitors(file, Monitor::CAPTURE);
   } else {
-    Monitor *monitor = Monitor::Load(monitor_id, true, Monitor::CAPTURE);
+    std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, true, Monitor::CAPTURE);
     if ( monitor ) {
-      monitors = new Monitor *[1];
-      monitors[0] = monitor;
-      n_monitors = 1;
+      monitors.push_back(monitor);
     }
   }
 
-  if ( !n_monitors ) {
+  if (monitors.empty()) {
     Error("No monitors found");
     exit(-1);
   }
@@ -232,17 +230,17 @@ int main(int argc, char *argv[]) {
   while ( !zm_terminate ) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
-    for ( int i = 0; i < n_monitors; i++ ) {
-      if ( ! monitors[i]->getCamera() ) {
+    for (const std::shared_ptr<Monitor> &monitor : monitors) {
+      if (!monitor->getCamera()) {
       }
-      if ( ! monitors[i]->connect() ) {
+      if (!monitor->connect()) {
       }
       time_t now = (time_t)time(nullptr);
-      monitors[i]->setStartupTime(now);
+      monitor->setStartupTime(now);
 
       snprintf(sql, sizeof(sql), 
-          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS) VALUES (%d, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0", 
-          monitors[i]->Id());
+          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS) VALUES (%d, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0",
+               monitor->Id());
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
@@ -263,10 +261,10 @@ int main(int argc, char *argv[]) {
       }
       continue;
     }
-    for ( int i = 0; i < n_monitors; i++ ) {
+    for (std::shared_ptr<Monitor> &monitor : monitors) {
       snprintf(sql, sizeof(sql),
-          "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'", 
-          monitors[i]->Id());
+          "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
+               monitor->Id());
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
@@ -275,17 +273,17 @@ int main(int argc, char *argv[]) {
 #if HAVE_RTSP_SERVER
     RTSPServerThread ** rtsp_server_threads = nullptr;
     if ( config.min_rtsp_port and monitors[0]->RTSPServer() ) {
-      rtsp_server_threads = new RTSPServerThread *[n_monitors];
+      rtsp_server_threads = new RTSPServerThread *[monitors.size()];
       Debug(1, "Starting RTSP server because min_rtsp_port is set");
     } else {
       Debug(1, "Not starting RTSP server because min_rtsp_port not set");
     }
 #endif
-    AnalysisThread **analysis_threads = new AnalysisThread *[n_monitors];
-    int *capture_delays = new int[n_monitors];
-    int *alarm_capture_delays = new int[n_monitors];
-    struct timeval * last_capture_times = new struct timeval[n_monitors];
-    for ( int i = 0; i < n_monitors; i++ ) {
+    AnalysisThread **analysis_threads = new AnalysisThread *[monitors.size()];
+    int *capture_delays = new int[monitors.size()];
+    int *alarm_capture_delays = new int[monitors.size()];
+    struct timeval * last_capture_times = new struct timeval[monitors.size()];
+    for (size_t i = 0; i < monitors.size(); i++) {
       last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
       capture_delays[i] = monitors[i]->GetCaptureDelay();
       alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
@@ -298,11 +296,11 @@ int main(int argc, char *argv[]) {
         analysis_threads[i] = new AnalysisThread(monitors[i]);
         analysis_threads[i]->start();
       } else {
-        analysis_threads[i] = NULL;
+        analysis_threads[i] = nullptr;
       }
 #if HAVE_RTSP_SERVER
       if ( rtsp_server_threads ) {
-        for ( int i = 0; i < n_monitors; i++ ) {
+        for (size_t i = 0; i < monitors.size(); i++) {
           rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
           Camera *camera = monitors[i]->getCamera();
           rtsp_server_threads[i]->addStream(camera->get_VideoStream(), camera->get_AudioStream());
@@ -317,25 +315,24 @@ int main(int argc, char *argv[]) {
 
     while ( !zm_terminate ) {
       //sigprocmask(SIG_BLOCK, &block_set, 0);
-      for ( int i = 0; i < n_monitors; i++ ) {
-
+      for (size_t i = 0; i < monitors.size(); i++) {
         monitors[i]->CheckAction();
 
         if ( monitors[i]->PreCapture() < 0 ) {
-          Error("Failed to pre-capture monitor %d %d (%d/%d)",
-              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          Error("Failed to pre-capture monitor %d %d (%d/" SZFMTD ")",
+              monitors[i]->Id(), monitors[i]->Name(), i+1, monitors.size());
           result = -1;
           break;
         }
         if ( monitors[i]->Capture() < 0 ) {
-          Error("Failed to capture image from monitor %d %s (%d/%d)",
-              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          Error("Failed to capture image from monitor %d %s (%d/" SZFMTD ")",
+              monitors[i]->Id(), monitors[i]->Name(), i+1, monitors.size());
           result = -1;
           break;
         }
         if ( monitors[i]->PostCapture() < 0 ) {
-          Error("Failed to post-capture monitor %d %s (%d/%d)",
-              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          Error("Failed to post-capture monitor %d %s (%d/" SZFMTD ")",
+              monitors[i]->Id(), monitors[i]->Name(), i+1, monitors.size());
           result = -1;
           break;
         }
@@ -373,8 +370,8 @@ int main(int argc, char *argv[]) {
       }
 
       if ( zm_reload ) {
-        for ( int i = 0; i < n_monitors; i++ ) {
-          monitors[i]->Reload();
+        for (std::shared_ptr<Monitor> &monitor : monitors) {
+          monitor->Reload();
         }
         logTerm();
         logInit(log_id_string);
@@ -383,7 +380,7 @@ int main(int argc, char *argv[]) {
     } // end while ! zm_terminate and connected
 
     // Killoff the analysis threads. Don't need them spinning while we try to reconnect
-    for ( int i = 0; i < n_monitors; i++ ) {
+    for (size_t i = 0; i < monitors.size(); i++) {
       if ( analysis_threads[i] ) {
         analysis_threads[i]->stop();
       }
@@ -394,7 +391,7 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
-    for ( int i = 0; i < n_monitors; i++ ) {
+    for (size_t i = 0; i < monitors.size(); i++) {
       monitors[i]->Close();
 
     // Killoff the analysis threads. Don't need them spinning while we try to reconnect
@@ -435,18 +432,16 @@ int main(int argc, char *argv[]) {
 
   Debug(1,"Updating Monitor status");
 
-  for ( int i = 0; i < n_monitors; i++ ) {
+  for (std::shared_ptr<Monitor> &monitor : monitors) {
     static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf(sql, sizeof(sql),
         "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='NotRunning'", 
-        monitors[i]->Id());
+        monitor->Id());
     if ( mysql_query(&dbconn, sql) ) {
       Error("Can't run query: %s", mysql_error(&dbconn));
     }
-    monitors[i]->disconnect();
-    delete monitors[i];
+    monitor->disconnect();
   }
-  delete [] monitors;
 
   Image::Deinitialise();
   Debug(1,"terminating");

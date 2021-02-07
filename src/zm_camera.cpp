@@ -22,7 +22,7 @@
 #include "zm_monitor.h"
 
 Camera::Camera(
-    unsigned int p_monitor_id,
+    const Monitor *monitor,
     SourceType p_type,
     unsigned int p_width,
     unsigned int p_height,
@@ -35,8 +35,7 @@ Camera::Camera(
     bool p_capture,
     bool p_record_audio
     ) :
-    monitor_id(p_monitor_id),
-    monitor(nullptr),
+    monitor(monitor),
     type(p_type),
     width(p_width),
     height(p_height),
@@ -62,7 +61,7 @@ Camera::Camera(
   imagesize = height * linesize;
 
   Debug(2, "New camera id: %d width: %d line size: %d height: %d colours: %d subpixelorder: %d capture: %d",
-      monitor_id, width, linesize, height, colours, subpixelorder, capture);
+      monitor->Id(), width, linesize, height, colours, subpixelorder, capture);
 }
 
 Camera::~Camera() {
@@ -72,17 +71,6 @@ Camera::~Camera() {
     mVideoStream = nullptr;
     mAudioStream = nullptr;
   }
-}
-
-Monitor *Camera::getMonitor() {
-  if ( ! monitor )
-    monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-  return monitor;
-}
-
-void Camera::setMonitor(Monitor *p_monitor) {
-  monitor = p_monitor;
-  monitor_id = monitor->Id();
 }
 
 AVStream *Camera::get_VideoStream() {

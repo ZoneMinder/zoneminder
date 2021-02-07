@@ -650,7 +650,7 @@ Camera * Monitor::getCamera() {
     int extras = (deinterlacing>>24)&0xff;
 
     camera = new LocalCamera(
-        id,
+        this,
         device,
         channel,
         format,
@@ -672,7 +672,7 @@ Camera * Monitor::getCamera() {
   } else if ( type == REMOTE ) {
     if ( protocol == "http" ) {
       camera = new RemoteCameraHttp(
-        id,
+        this,
         method,
         host,
         port,
@@ -691,7 +691,7 @@ Camera * Monitor::getCamera() {
 #if HAVE_LIBAVFORMAT
     else if ( protocol == "rtsp" ) {
       camera = new RemoteCameraRtsp(
-        id,
+        this,
         method,
         host, // Host
         port, // Port
@@ -714,7 +714,7 @@ Camera * Monitor::getCamera() {
     }
   } else if ( type == FILE ) {
     camera = new FileCamera(
-      id,
+      this,
       path.c_str(),
       camera_width,
       camera_height,
@@ -729,7 +729,7 @@ Camera * Monitor::getCamera() {
   } else if ( type == FFMPEG ) {
 #if HAVE_LIBAVFORMAT
     camera = new FfmpegCamera(
-      id,
+      this,
       path,
       method,
       options,
@@ -748,7 +748,7 @@ Camera * Monitor::getCamera() {
 #endif // HAVE_LIBAVFORMAT
   } else if ( type == NVSOCKET ) {
       camera = new RemoteCameraNVSocket(
-        id,
+        this,
         host.c_str(),
         port.c_str(),
         path.c_str(),
@@ -765,7 +765,7 @@ Camera * Monitor::getCamera() {
   } else if ( type == LIBVLC ) {
 #if HAVE_LIBVLC
     camera = new LibvlcCamera(
-      id,
+      this,
       path.c_str(),
       method,
       options,
@@ -785,7 +785,7 @@ Camera * Monitor::getCamera() {
   } else if ( type == CURL ) {
 #if HAVE_LIBCURL
     camera = new cURLCamera(
-      id,
+      this,
       path.c_str(),
       user.c_str(),
       pass.c_str(),
@@ -805,7 +805,7 @@ Camera * Monitor::getCamera() {
   } else if ( type == VNC ) {
 #if HAVE_LIBVNC
     camera = new VncCamera(
-      id,
+      this,
       host.c_str(),
       port.c_str(),
       user.c_str(),
@@ -825,11 +825,10 @@ Camera * Monitor::getCamera() {
 #endif // HAVE_LIBVNC
   } // end if type
 
-  camera->setMonitor(this);
   return camera;
 }  // end Monitor::getCamera
 
-Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
+std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
   std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", p_id);
 
   zmDbRow dbrow;
@@ -837,11 +836,12 @@ Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
     return nullptr;
   }
-  Monitor *monitor = new Monitor();
+
+  std::shared_ptr<Monitor> monitor = std::make_shared<Monitor>();
   monitor->Load(dbrow.mysql_row(), load_zones, purpose);
 
   return monitor;
-}  // end Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose)
+}
 
 bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose);
@@ -2376,36 +2376,37 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
   } // end if p_linked_monitors
 } // end void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors)
 
-int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose) {
-
+std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(std::string sql, Purpose purpose) {
   Debug(1, "Loading Monitors with %s", sql.c_str());
 
   MYSQL_RES *result = zmDbFetch(sql.c_str());
-  if ( !result ) {
+  if (!result) {
     Error("Can't load local monitors: %s", mysql_error(&dbconn));
-    return 0;
+    return {};
   }
   int n_monitors = mysql_num_rows(result);
   Debug(1, "Got %d monitors", n_monitors);
-  delete[] monitors;
-  monitors = new Monitor *[n_monitors];
-  for( int i=0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-    monitors[i] = new Monitor();
-    monitors[i]->Load(dbrow, true, purpose);
-    // need to load zones and set Purpose, 1, purpose);
+
+  std::vector<std::shared_ptr<Monitor>> monitors;
+  monitors.reserve(n_monitors);
+
+  for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+    monitors.emplace_back();
+    monitors.back()->Load(dbrow, true, purpose);
   }
-  if ( mysql_errno(&dbconn) ) {
+
+  if (mysql_errno(&dbconn)) {
     Error("Can't fetch row: %s", mysql_error(&dbconn));
     mysql_free_result(result);
-    return 0;
+    return {};
   }
   mysql_free_result(result);
 
-  return n_monitors;
-} // end int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose)
+  return monitors;
+}
 
 #if ZM_HAS_V4L
-int Monitor::LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose) {
+std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors(const char *device, Purpose purpose) {
 
   std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Local'";
 
@@ -2413,32 +2414,32 @@ int Monitor::LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose 
     sql += " AND `Device`='" + std::string(device) + "'";
   if ( staticConfig.SERVER_ID )
     sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
-  return LoadMonitors(sql, monitors, purpose);
-} // end int Monitor::LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose)
+  return LoadMonitors(sql, purpose);
+}
 #endif // ZM_HAS_V4L
 
-int Monitor::LoadRemoteMonitors(const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose) {
+std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors(const char *protocol, const char *host, const char *port, const char *path, Purpose purpose) {
   std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Remote'";
   if ( staticConfig.SERVER_ID )
     sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
 
   if ( protocol )
     sql += stringtf(" AND `Protocol` = '%s' AND `Host` = '%s' AND `Port` = '%s' AND `Path` = '%s'", protocol, host, port, path);
-  return LoadMonitors(sql, monitors, purpose);
-} // end int Monitor::LoadRemoteMonitors
+  return LoadMonitors(sql, purpose);
+}
 
-int Monitor::LoadFileMonitors(const char *file, Monitor **&monitors, Purpose purpose) {
+std::vector<std::shared_ptr<Monitor>> Monitor::LoadFileMonitors(const char *file, Purpose purpose) {
   std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'File'";
   if ( file[0] )
     sql += " AND `Path`='" + std::string(file) + "'";
   if ( staticConfig.SERVER_ID ) {
     sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   }
-  return LoadMonitors(sql, monitors, purpose);
-} // end int Monitor::LoadFileMonitors
+  return LoadMonitors(sql, purpose);
+}
 
 #if HAVE_LIBAVFORMAT
-int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose purpose) {
+std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *file, Purpose purpose) {
   std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Ffmpeg'";
   if ( file[0] )
     sql += " AND `Path` = '" + std::string(file) + "'";
@@ -2446,8 +2447,8 @@ int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose p
   if ( staticConfig.SERVER_ID ) {
     sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   }
-  return LoadMonitors(sql, monitors, purpose);
-} // end int Monitor::LoadFfmpegMonitors
+  return LoadMonitors(sql, purpose);
+}
 #endif // HAVE_LIBAVFORMAT
 
 /* Returns 0 on success, even if no new images are available (transient error)

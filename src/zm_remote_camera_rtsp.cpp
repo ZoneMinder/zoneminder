@@ -25,7 +25,7 @@
 #if HAVE_LIBAVFORMAT
 
 RemoteCameraRtsp::RemoteCameraRtsp(
-    unsigned int p_monitor_id,
+    const Monitor *monitor,
     const std::string &p_method,
     const std::string &p_host,
     const std::string &p_port,
@@ -41,7 +41,7 @@ RemoteCameraRtsp::RemoteCameraRtsp(
     bool p_capture,
     bool p_record_audio ) :
   RemoteCamera(
-      p_monitor_id, "rtsp",
+      monitor, "rtsp",
       p_host, p_port, p_path,
       p_width, p_height, p_colours,
       p_brightness, p_contrast, p_hue, p_colour,
@@ -59,7 +59,7 @@ RemoteCameraRtsp::RemoteCameraRtsp(
   else if ( p_method == "rtpRtspHttp" )
     method = RtspThread::RTP_RTSP_HTTP;
   else
-    Fatal("Unrecognised method '%s' when creating RTSP camera %d", p_method.c_str(), monitor_id);
+    Fatal("Unrecognised method '%s' when creating RTSP camera %d", p_method.c_str(), monitor->Id());
 
   if ( capture ) {
     Initialise();
@@ -113,7 +113,7 @@ void RemoteCameraRtsp::Terminate() {
 }
 
 int RemoteCameraRtsp::Connect() {
-  rtspThread = new RtspThread(monitor_id, method, protocol, host, port, path, auth, rtsp_describe);
+  rtspThread = new RtspThread(monitor->Id(), method, protocol, host, port, path, auth, rtsp_describe);
 
   rtspThread->start();
 

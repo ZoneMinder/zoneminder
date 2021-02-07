@@ -115,10 +115,6 @@ class EventStream : public StreamBase {
           delete event_data;
           event_data = nullptr;
         }
-        if ( monitor ) {
-          delete monitor;
-          monitor = nullptr;
-        }
         if ( storage ) {
           delete storage;
           storage = nullptr;

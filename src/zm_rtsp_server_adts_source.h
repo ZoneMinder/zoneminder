@@ -24,18 +24,18 @@ class ADTS_ZoneMinderDeviceSource : public ZoneMinderDeviceSource {
   public:
 		static ADTS_ZoneMinderDeviceSource* createNew(
         UsageEnvironment& env,
-        Monitor* monitor,
+        std::shared_ptr<Monitor> monitor,
         AVStream * stream,
         unsigned int queueSize
         ) {
       Debug(1, "m_stream %p codecpar %p channels %d", 
           stream, stream->codecpar, stream->codecpar->channels);
-			return new ADTS_ZoneMinderDeviceSource(env, monitor, stream, queueSize);
+			return new ADTS_ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize);
     };
 	protected:
 		ADTS_ZoneMinderDeviceSource(
         UsageEnvironment& env,
-        Monitor *monitor,
+        std::shared_ptr<Monitor> monitor,
         AVStream *stream,
         unsigned int queueSize
         );

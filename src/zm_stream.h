@@ -22,7 +22,7 @@
 
 #include "zm_logger.h"
 #include "zm_mpeg.h"
-
+#include <memory>
 #include <sys/un.h>
 
 class Image;
@@ -93,7 +93,7 @@ protected:
 
 protected:
   int monitor_id;
-  Monitor *monitor;
+  std::shared_ptr<Monitor> monitor;
 
   StreamType type;
   const char *format;

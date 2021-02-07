@@ -34,16 +34,10 @@ StreamBase::~StreamBase() {
   }
 #endif
   closeComms();
-  if ( monitor ) {
-    delete monitor;
-    monitor = nullptr;
-  }
 }
 
 bool StreamBase::loadMonitor(int p_monitor_id) {
   monitor_id = p_monitor_id;
-  if ( monitor )
-    delete monitor;
 
   if ( !(monitor = Monitor::Load(monitor_id, false, Monitor::QUERY)) ) {
     Error("Unable to load monitor id %d for streaming", monitor_id);

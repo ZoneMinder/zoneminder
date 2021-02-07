@@ -114,7 +114,7 @@ protected:
 
 public:
   LocalCamera(
-    int p_id,
+    const Monitor *monitor,
     const std::string &device,
     int p_channel,
     int p_format,

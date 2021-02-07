@@ -52,7 +52,7 @@ protected:
 
 public:
   RemoteCamera(
-    unsigned int p_monitor_id,
+    const Monitor *monitor,
     const std::string &p_proto,
     const std::string &p_host,
     const std::string &p_port,

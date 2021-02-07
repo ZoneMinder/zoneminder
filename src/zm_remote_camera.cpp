@@ -24,7 +24,7 @@
 #include <netdb.h>
 
 RemoteCamera::RemoteCamera(
-  unsigned int p_monitor_id,
+  const Monitor *monitor,
   const std::string &p_protocol,
   const std::string &p_host,
   const std::string &p_port,
@@ -39,7 +39,7 @@ RemoteCamera::RemoteCamera(
   bool p_capture,
   bool p_record_audio
  ) :
-    Camera( p_monitor_id, REMOTE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
+    Camera( monitor, REMOTE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
     protocol( p_protocol ),
     host( p_host ),
     port( p_port ),

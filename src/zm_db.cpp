@@ -106,8 +106,7 @@ void zmDbClose() {
     mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()
-    // We get segfaults and a hang when we call this.  So just don't.
-    //mysql_library_end();
+    mysql_library_end();
     zmDbConnected = false;
     db_mutex.unlock();
   }

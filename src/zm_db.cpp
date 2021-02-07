@@ -60,6 +60,7 @@ bool zmDbConnect() {
           staticConfig.DB_PASS.c_str(),
           nullptr, 0, nullptr, 0) ) {
       Error("Can't connect to server: %s", mysql_error(&dbconn));
+      mysql_close(&dbconn);
       return false;
     }
   } else {
@@ -73,6 +74,7 @@ bool zmDbConnect() {
             staticConfig.DB_PASS.c_str(),
             nullptr, 0, dbPortOrSocket.c_str(), 0) ) {
         Error("Can't connect to server: %s", mysql_error(&dbconn));
+        mysql_close(&dbconn);
         return false;
       }
     } else {
@@ -85,12 +87,14 @@ bool zmDbConnect() {
             atoi(dbPortOrSocket.c_str()),
             nullptr, 0) ) {
         Error("Can't connect to server: %s", mysql_error(&dbconn));
+        mysql_close(&dbconn);
         return false;
       }
     }
   }
   if ( mysql_select_db(&dbconn, staticConfig.DB_NAME.c_str()) ) {
     Error("Can't select database: %s", mysql_error(&dbconn));
+    mysql_close(&dbconn);
     return false;
   }
   if ( mysql_query(&dbconn, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {

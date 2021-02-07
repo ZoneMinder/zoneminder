@@ -81,9 +81,12 @@ int main(int argc, const char *argv[], char **envp) {
     nph = true;
   }
 
-  zmLoadConfig();
   char log_id_string[32] = "zms";
   logInit(log_id_string);
+  zmLoadStaticConfig();
+  zmDbConnect();
+  zmLoadDBConfig();
+
   for (char **env = envp; *env != 0; env++) {
     char *thisEnv = *env;
     Debug(1, "env: %s", thisEnv);

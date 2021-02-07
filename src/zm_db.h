@@ -43,6 +43,8 @@ class zmDbRow {
 extern MYSQL dbconn;
 extern RecursiveMutex db_mutex;
 
+extern bool zmDbConnected;
+
 bool zmDbConnect();
 void zmDbClose();
 

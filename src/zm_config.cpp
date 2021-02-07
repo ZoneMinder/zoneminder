@@ -30,8 +30,7 @@
 // set the relevant ENV vars because the logger gets it's setting from the 
 // config.
 
-void zmLoadConfig() {
-
+void zmLoadStaticConfig() {
   // Process name, value pairs from the main config file first
   process_configfile(ZM_CONFIG);
 
@@ -58,9 +57,11 @@ void zmLoadConfig() {
     globfree(&pglob);
     closedir(configSubFolder);
   }
+}
 
-  if ( !zmDbConnect() ) {
-    Fatal("Can't connect to db. Can't continue.");
+void zmLoadDBConfig() {
+  if ( !zmDbConnected ) {
+    Fatal("Not connected to the database. Can't continue.");
   }
   config.Load();
   config.Assign();

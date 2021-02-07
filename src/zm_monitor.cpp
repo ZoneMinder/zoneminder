@@ -1983,16 +1983,23 @@ bool Monitor::Analyse() {
                       snap_it, 0
                       );
 
-                  ZMPacket *starting_packet = *(*start_it);
+                  // This gets a lock on the starting packet
+                  ZMPacket *starting_packet = packetqueue.get_packet(start_it);
 
                   event = new Event(this, *(starting_packet->timestamp), "Continuous", noteSetMap);
                   // Write out starting packets, do not modify packetqueue it will garbage collect itself
-                  while ( (*start_it) != snap_it ) {
-                    ZMPacket *p = packetqueue.get_packet(start_it);
-                    if ( !p ) break;
-                    event->AddPacket(p);
-                    p->unlock();
+                  while ( starting_packet and (*start_it) != snap_it ) {
+                    event->AddPacket(starting_packet);
+                    // Have added the packet, don't want to unlock it until we have locked the next
+                    
                     packetqueue.increment_it(start_it);
+                    if ( (*start_it) == snap_it ) {
+                      starting_packet->unlock();
+                      break;
+                    }
+                    ZMPacket *p = packetqueue.get_packet(start_it);
+                    starting_packet->unlock();
+                    starting_packet = p;
                   }
                   packetqueue.free_it(start_it);
                   delete start_it;
@@ -2068,10 +2075,16 @@ bool Monitor::Analyse() {
                     event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
                     // Write out starting packets, do not modify packetqueue it will garbage collect itself
                     while ( *start_it != snap_it ) {
+                      event->AddPacket(starting_packet);
+
+                      packetqueue.increment_it(start_it);
+                      if ( (*start_it) == snap_it ) {
+                        starting_packet->unlock();
+                        break;
+                      }
                       ZMPacket *p = packetqueue.get_packet(start_it);
-                      event->AddPacket(p);
-                      p->unlock();
-                      ++(*start_it);
+                      starting_packet->unlock();
+                      starting_packet = p;
                     }
                     packetqueue.free_it(start_it);
                     delete start_it;

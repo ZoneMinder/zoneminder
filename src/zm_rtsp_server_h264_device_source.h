@@ -23,13 +23,13 @@ class H26X_ZoneMinderDeviceSource : public ZoneMinderDeviceSource {
 	protected:
 		H26X_ZoneMinderDeviceSource(
         UsageEnvironment& env,
-        Monitor *monitor,
+        std::shared_ptr<Monitor> monitor,
         AVStream *stream,
         unsigned int queueSize,
         bool repeatConfig,
         bool keepMarker)
 			:
-        ZoneMinderDeviceSource(env, monitor, stream, queueSize),
+        ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize),
         m_repeatConfig(repeatConfig),
         m_keepMarker(keepMarker),
         m_frameType(0) { }
@@ -51,18 +51,18 @@ class H264_ZoneMinderDeviceSource : public H26X_ZoneMinderDeviceSource {
 	public:
 		static H264_ZoneMinderDeviceSource* createNew(
 				UsageEnvironment& env,
-				Monitor *monitor,
+				std::shared_ptr<Monitor> monitor,
 				AVStream *stream,
 				unsigned int queueSize,
 				bool repeatConfig,
 				bool keepMarker) {
-			return new H264_ZoneMinderDeviceSource(env, monitor, stream, queueSize, repeatConfig, keepMarker);
+			return new H264_ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize, repeatConfig, keepMarker);
 		}
 
 	protected:
 		H264_ZoneMinderDeviceSource(
         UsageEnvironment& env,
-        Monitor *monitor,
+        std::shared_ptr<Monitor> monitor,
         AVStream *stream,
         unsigned int queueSize,
         bool repeatConfig,
@@ -76,18 +76,18 @@ class H265_ZoneMinderDeviceSource : public H26X_ZoneMinderDeviceSource {
 	public:
 		static H265_ZoneMinderDeviceSource* createNew(
         UsageEnvironment& env,
-        Monitor *monitor,
+        std::shared_ptr<Monitor> monitor,
         AVStream *stream,
         unsigned int queueSize,
         bool repeatConfig,
         bool keepMarker) {
-			return new H265_ZoneMinderDeviceSource(env, monitor, stream, queueSize, repeatConfig, keepMarker);
+			return new H265_ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize, repeatConfig, keepMarker);
 		}
 
 	protected:
 		H265_ZoneMinderDeviceSource(
         UsageEnvironment& env,
-        Monitor *monitor,
+        std::shared_ptr<Monitor> monitor,
         AVStream *stream,
         unsigned int queueSize,
         bool repeatConfig,

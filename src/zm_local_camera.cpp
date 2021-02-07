@@ -302,7 +302,7 @@ AVFrame **LocalCamera::capturePictures = nullptr;
 LocalCamera *LocalCamera::last_camera = nullptr;
 
 LocalCamera::LocalCamera(
-  int p_id,
+  const Monitor *monitor,
   const std::string &p_device,
   int p_channel,
   int p_standard,
@@ -320,7 +320,7 @@ LocalCamera::LocalCamera(
   bool p_capture,
 	bool p_record_audio,
   unsigned int p_extras) :
-    Camera( p_id, LOCAL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
+    Camera( monitor, LOCAL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
   device( p_device ),
   channel( p_channel ),
   standard( p_standard ),

@@ -26,6 +26,7 @@
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_video.h"
+#include <memory>
 #include <sys/time.h>
 #include <vector>
 
@@ -532,16 +533,16 @@ public:
   std::vector<Group *>  Groups();
   StringVector GroupNames();
 
-  static int LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
+  static std::vector<std::shared_ptr<Monitor>> LoadMonitors(std::string sql, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
 #if ZM_HAS_V4L
-  static int LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose);
+  static std::vector<std::shared_ptr<Monitor>> LoadLocalMonitors(const char *device, Purpose purpose);
 #endif // ZM_HAS_V4L
-  static int LoadRemoteMonitors(const char *protocol, const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose);
-  static int LoadFileMonitors(const char *file, Monitor **&monitors, Purpose purpose);
+  static std::vector<std::shared_ptr<Monitor>> LoadRemoteMonitors(const char *protocol, const char *host, const char*port, const char*path, Purpose purpose);
+  static std::vector<std::shared_ptr<Monitor>> LoadFileMonitors(const char *file, Purpose purpose);
 #if HAVE_LIBAVFORMAT
-  static int LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose purpose);
+  static std::vector<std::shared_ptr<Monitor>> LoadFfmpegMonitors(const char *file, Purpose purpose);
 #endif // HAVE_LIBAVFORMAT
-  static Monitor *Load(unsigned int id, bool load_zones, Purpose purpose);
+  static std::shared_ptr<Monitor> Load(unsigned int id, bool load_zones, Purpose purpose);
   void Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose);
   //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );
   //void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );

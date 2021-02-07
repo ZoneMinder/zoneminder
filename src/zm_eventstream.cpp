@@ -166,7 +166,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
   if ( !monitor ) {
     monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY);
   } else if ( monitor->Id() != event_data->monitor_id ) {
-    delete monitor;
     monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY);
   }
   if ( !monitor ) {

@@ -27,12 +27,12 @@ static unsigned const samplingFrequencyTable[16] = {
 //
 ADTS_ZoneMinderDeviceSource::ADTS_ZoneMinderDeviceSource(
     UsageEnvironment& env,
-    Monitor *monitor,
+    std::shared_ptr<Monitor> monitor,
     AVStream *stream,
     unsigned int queueSize
     )
   :
-    ZoneMinderDeviceSource(env, monitor, stream, queueSize),
+    ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize),
     samplingFrequencyIndex(0),
     channels(stream->codecpar->channels)
 {

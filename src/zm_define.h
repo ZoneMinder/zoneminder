@@ -39,4 +39,6 @@ typedef std::uint32_t uint32;
 typedef std::uint16_t uint16;
 typedef std::uint8_t uint8;
 
+#define SZFMTD "%" PRIuPTR
+
 #endif // ZONEMINDER_SRC_ZM_DEFINE_H_

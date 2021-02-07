@@ -26,7 +26,7 @@ class ZoneMinderDeviceSource: public FramedSource {
 	public:
 		static ZoneMinderDeviceSource* createNew(
         UsageEnvironment& env,
-        Monitor* monitor,
+        std::shared_ptr<Monitor> monitor,
         AVStream * stream,
         unsigned int queueSize
         ) {
@@ -37,7 +37,7 @@ class ZoneMinderDeviceSource: public FramedSource {
 		int getHeight() { return m_monitor->Height(); };	
 
 	protected:
-		ZoneMinderDeviceSource(UsageEnvironment& env, Monitor* monitor, AVStream * stream, unsigned int queueSize);
+		ZoneMinderDeviceSource(UsageEnvironment& env, std::shared_ptr<Monitor> monitor, AVStream * stream, unsigned int queueSize);
 		virtual ~ZoneMinderDeviceSource();
 
 	protected:	
@@ -63,7 +63,7 @@ class ZoneMinderDeviceSource: public FramedSource {
 		std::list<NAL_Frame*> m_captureQueue;
 		EventTriggerId m_eventTriggerId;
     AVStream *m_stream;
-		Monitor* m_monitor;
+		std::shared_ptr<Monitor> m_monitor;
     PacketQueue *m_packetqueue;
     std::list<ZMPacket *>::iterator *m_packetqueue_it;
 

@@ -55,7 +55,7 @@ protected:
 
 public:
   RemoteCameraRtsp(
-      unsigned int p_monitor_id,
+      const Monitor *monitor,
       const std::string &method,
       const std::string &host,
       const std::string &port,

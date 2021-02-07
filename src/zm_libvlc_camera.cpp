@@ -99,7 +99,7 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes) {
 }
 
 LibvlcCamera::LibvlcCamera(
-    int p_id,
+    const Monitor *monitor,
     const std::string &p_path,
     const std::string &p_method,
     const std::string &p_options,
@@ -114,7 +114,7 @@ LibvlcCamera::LibvlcCamera(
     bool p_record_audio
     ) :
   Camera(
-      p_id,
+      monitor,
       LIBVLC_SRC,
       p_width,
       p_height,

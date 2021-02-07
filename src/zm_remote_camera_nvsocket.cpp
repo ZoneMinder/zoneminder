@@ -32,7 +32,7 @@
 #endif
 
 RemoteCameraNVSocket::RemoteCameraNVSocket(
-  unsigned int p_monitor_id,
+  const Monitor *monitor,
   const std::string &p_host,
   const std::string &p_port,
   const std::string &p_path,
@@ -46,7 +46,7 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
   bool p_capture,
   bool p_record_audio ) :
   RemoteCamera(
-    p_monitor_id,
+    monitor,
     "http",
     p_host,
     p_port,
@@ -115,7 +115,7 @@ int RemoteCameraNVSocket::Connect() {
     close(sd);
     sd = -1;
 
-    Warning("Can't connect to socket mid: %d : %s", monitor_id, strerror(errno) );
+    Warning("Can't connect to socket mid: %d : %s", monitor->Id(), strerror(errno));
     return -1;
   }
 

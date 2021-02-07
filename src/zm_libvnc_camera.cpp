@@ -63,7 +63,7 @@ static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
 }
 
 VncCamera::VncCamera(
-    unsigned int p_monitor_id,
+    const Monitor *monitor,
     const std::string &host,
     const std::string &port,
     const std::string &user,
@@ -78,7 +78,7 @@ VncCamera::VncCamera(
     bool p_capture,
     bool p_record_audio ) :
     Camera(
-      p_monitor_id,
+      monitor,
       VNC_SRC,
       p_width,
       p_height,

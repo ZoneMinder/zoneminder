@@ -33,7 +33,6 @@ Build-Depends: debhelper, dh-systemd, sphinx-doc, python3-sphinx, dh-linktree, d
               ,libcrypt-eksblowfish-perl
               ,libdata-entropy-perl
               ,libvncserver-dev
-
 Standards-Version: 3.9.8
 Homepage: http://www.zoneminder.com/
 Vcs-Browser: http://anonscm.debian.org/cgit/collab-maint/zoneminder.git

@@ -534,7 +534,7 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   }  // end if level <= mFileLevel
 
   if ( level <= mDatabaseLevel ) {
-    if ( !db_mutex.trylock() ) {
+    if (db_mutex.try_lock_for(1)) {
       char escapedString[(strlen(syslogStart)*2)+1];
       mysql_real_escape_string(&dbconn, escapedString, syslogStart, strlen(syslogStart));
 
@@ -556,7 +556,7 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     } else {
       Level tempDatabaseLevel = mDatabaseLevel;
       databaseLevel(NOLOG);
-      Error("Can't insert log entry: sql(%s) error(%s)", syslogStart, mysql_error(&dbconn));
+      Error("Can't insert log entry since the DB lock could not be obtained. Message: %s", syslogStart);
       databaseLevel(tempDatabaseLevel);
     }
   }  // end if level <= mDatabaseLevel

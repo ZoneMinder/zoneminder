@@ -77,6 +77,10 @@ target_include_directories(zm
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR})
 
+target_link_libraries(zm
+  PRIVATE
+    zm-core-interface)
+
 link_directories(libbcrypt)
 
 add_executable(zmc zmc.cpp)
@@ -87,9 +91,31 @@ add_executable(zms zms.cpp)
 include_directories(libbcrypt/include/bcrypt)
 include_directories(jwt-cpp/include/jwt-cpp)
 
-target_link_libraries(zmc zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} ${CMAKE_DL_LIBS})
-target_link_libraries(zmu zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} ${CMAKE_DL_LIBS} bcrypt)
-target_link_libraries(zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} ${CMAKE_DL_LIBS} bcrypt)
+target_link_libraries(zmc
+  PRIVATE
+    zm-core-interface
+    zm
+    ${ZM_EXTRA_LIBS}
+    ${ZM_BIN_LIBS}
+    ${CMAKE_DL_LIBS})
+
+target_link_libraries(zmu
+  PRIVATE
+    zm-core-interface
+    zm
+    ${ZM_EXTRA_LIBS}
+    ${ZM_BIN_LIBS}
+    ${CMAKE_DL_LIBS}
+    bcrypt)
+
+target_link_libraries(zms
+  PRIVATE
+    zm-core-interface
+    zm
+    ${ZM_EXTRA_LIBS}
+    ${ZM_BIN_LIBS}
+    ${CMAKE_DL_LIBS}
+    bcrypt)
 
 # Generate man files for the binaries destined for the bin folder
 if(BUILD_MAN)

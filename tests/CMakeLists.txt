@@ -18,6 +18,7 @@ add_executable(tests main.cpp ${TEST_SOURCES})
 
 target_link_libraries(tests
   PRIVATE
+    zm-core-interface
     zm
     ${ZM_BIN_LIBS}
     bcrypt

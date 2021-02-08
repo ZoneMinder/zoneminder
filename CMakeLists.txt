@@ -31,73 +31,35 @@ endif()
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 #set(CMAKE_INSTALL_ALWAYS ON)
 
-# Host OS Check
-set(HOST_OS "")
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(HOST_OS "linux")
-endif()
-if(${CMAKE_SYSTEM_NAME} MATCHES ".*(SunOS|Solaris).*")
-  set(HOST_OS "solaris")
-  set(SOLARIS 1)
-endif()
-if(${CMAKE_SYSTEM_NAME} MATCHES ".*BSD.*")
-  set(HOST_OS "BSD")
-  set(BSD 1)
-endif()
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-  set(HOST_OS "darwin")
-endif()
-if(NOT HOST_OS)
-  message(FATAL_ERROR
-    "ZoneMinder was unable to deterimine the host OS. Please report this.
-    Value of CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
-endif()
-
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 # Default CLFAGS and CXXFLAGS:
-set(CMAKE_C_FLAGS_RELEASE "-Wall -O2")
-set(CMAKE_CXX_FLAGS_RELEASE "-Wall -O2")
-set(CMAKE_C_FLAGS_DEBUG "-Wall -g")
-set(CMAKE_CXX_FLAGS_DEBUG "-Wall -g")
-set(CMAKE_C_FLAGS_OPTIMISED "-Wall -O3")
-set(CMAKE_CXX_FLAGS_OPTIMISED "-Wall -O3")
+set(CMAKE_C_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_C_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_C_FLAGS_OPTIMISED "-O3")
+set(CMAKE_CXX_FLAGS_OPTIMISED "-O3")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-set(CMAKE_CXX_STANDARD 11)
 
+include(ConfigureBaseTargets)
+include(CheckPlatform)
 
 # GCC below 6.0 doesn't support __target__("fpu=neon") attribute, required for compiling ARM Neon code, otherwise compilation fails.
 # Must use -mfpu=neon compiler flag instead, but only do that for processors that support neon, otherwise strip the neon code alltogether,
 # because passing -fmpu=neon is unsafe to processors that don't support neon
 
 # Arm neon support only tested on Linux. If your arm hardware is running a non-Linux distro and is using gcc then contact us.
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-  string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ZM_SYSTEM_PROC)
-  if((ZM_SYSTEM_PROC STREQUAL "") OR (ZM_SYSTEM_PROC STREQUAL "unknown"))
-    execute_process(COMMAND uname -m OUTPUT_VARIABLE ZM_SYSTEM_PROC ERROR_VARIABLE ZM_SYSTEM_PROC_ERR)
-
-    # maybe make the following error checks fatal
-    if(ZM_SYSTEM_PROC_ERR)
-      message(WARNING "\nAn error occurred while attempting to determine the system processor:\n${ZM_SYSTEM_PROC_ERR}")
-    endif()
-    if(NOT ZM_SYSTEM_PROC)
-      message(WARNING "\nUnable to determine the system processor. This may cause a build failure.\n")
-    endif()
-  endif()
-
-  if(ZM_SYSTEM_PROC MATCHES "^arm")
-    if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-      exec_program(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
-      if(neonresult EQUAL 0)
-        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
-        set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
-        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
-      else()
-        add_definitions(-DZM_STRIP_NEON=1)
-        message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
-      endif()
+if(ZM_SYSTEM_PROC MATCHES "^arm")
+  if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+    exec_program(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
+    if(neonresult EQUAL 0)
+      set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
+      set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
+      set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
+      set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
+    else()
+      add_definitions(-DZM_STRIP_NEON=1)
+      message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
     endif()
   endif()
 endif()
@@ -130,6 +92,7 @@ mark_as_advanced(
 
 option(BUILD_TEST_SUITE "Build the test suite" 0)
 option(BUILD_MAN "Build man pages" 1)
+option(ASAN "DEBUGGING: Build with AddressSanitizer (ASan) support" 0)
 
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH
   "Location of transient process files, default: /var/run/zm")

@@ -2391,7 +2391,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(std::string sql, Pur
   monitors.reserve(n_monitors);
 
   for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
-    monitors.emplace_back();
+    monitors.emplace_back(std::make_shared<Monitor>());
     monitors.back()->Load(dbrow, true, purpose);
   }
 

@@ -612,8 +612,6 @@ VideoStore::~VideoStore() {
 
     Debug(4, "Freeing video_out_ctx");
     avcodec_free_context(&video_out_ctx);
-    Debug(1, "Success freeing video_out_ctx %p", video_out_codec);
-    video_out_codec = nullptr;
   } // end if video_out_stream
 
   if ( audio_out_stream ) {

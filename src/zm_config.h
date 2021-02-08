@@ -53,7 +53,8 @@
 #define ZM_SAMPLE_RATE      int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
 #define ZM_SUSPENDED_RATE     int(1000000/4) // A slower rate for when disabled etc
 
-extern void zmLoadConfig();
+void zmLoadStaticConfig();
+void zmLoadDBConfig();
 
 extern void process_configfile(char const *configFile);
 

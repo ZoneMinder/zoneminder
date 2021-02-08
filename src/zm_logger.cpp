@@ -338,17 +338,17 @@ Logger::Level Logger::terminalLevel(Logger::Level terminalLevel) {
 }
 
 Logger::Level Logger::databaseLevel(Logger::Level databaseLevel) {
-  if ( databaseLevel > NOOPT ) {
+  if (databaseLevel > NOOPT) {
     databaseLevel = limit(databaseLevel);
-    if ( mDatabaseLevel != databaseLevel ) {
-      if ( (databaseLevel > NOLOG) && (mDatabaseLevel <= NOLOG) ) { // <= NOLOG would be NOOPT
-        if ( !zmDbConnect() ) {
+    if (mDatabaseLevel != databaseLevel) {
+      if ((databaseLevel > NOLOG) && (mDatabaseLevel <= NOLOG)) { // <= NOLOG would be NOOPT
+        if (!zmDbConnected) {
           databaseLevel = NOLOG;
         }
-      }  // end if ( databaseLevel > NOLOG && mDatabaseLevel <= NOLOG )
+      }
       mDatabaseLevel = databaseLevel;
-    }  // end if ( mDatabaseLevel != databaseLevel )
-  }  // end if ( databaseLevel > NOOPT )
+    }
+  }
 
   return mDatabaseLevel;
 }

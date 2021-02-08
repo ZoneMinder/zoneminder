@@ -417,8 +417,10 @@ int main(int argc, char *argv[]) {
   }
   //printf( "Monitor %d, Function %d\n", mon_id, function );
 
-  zmLoadConfig();
-
+  logInit("zmu");
+  zmLoadStaticConfig();
+  zmDbConnect();
+  zmLoadDBConfig();
   logInit("zmu");
 
   zmSetDefaultTermHandler();

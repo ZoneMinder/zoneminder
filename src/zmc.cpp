@@ -182,7 +182,9 @@ int main(int argc, char *argv[]) {
   }
 
   logInit(log_id_string);
-  zmLoadConfig();
+  zmLoadStaticConfig();
+  zmDbConnect();
+  zmLoadDBConfig();
   logInit(log_id_string);
 
   hwcaps_detect();

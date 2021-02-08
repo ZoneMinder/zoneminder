@@ -2702,7 +2702,8 @@ bool Monitor::closeEvent() {
 
   delete event;
   event = nullptr;
-  video_store_data->recording = (struct timeval){0};
+  if ( shared_data )
+    video_store_data->recording = (struct timeval){0};
   return true;
 } // end bool Monitor::closeEvent()
 

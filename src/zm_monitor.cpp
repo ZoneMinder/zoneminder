@@ -1976,11 +1976,11 @@ bool Monitor::Analyse() {
 
               if ( !event ) {
                 Debug(2, "Creating continuous event");
-                if ( ! snap->keyframe and (videowriter == PASSTHROUGH) ) {
+                if ( !snap->keyframe and (videowriter == PASSTHROUGH) ) {
                   // Must start on a keyframe so rewind. Only for passthrough though I guess.
                   // FIXME this iterator is not protected from invalidation
                   packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                      snap_it, 0
+                      snap_it, 0 /* pre_event_count */
                       );
 
                   // This gets a lock on the starting packet

@@ -1022,6 +1022,8 @@ bool Monitor::disconnect() {
     close(map_fd);
 
   map_fd = -1;
+  mem_ptr = nullptr;
+  shared_data = nullptr;
 
   if ( purpose == CAPTURE ) {
     if ( unlink(mem_file) < 0 ) {
@@ -1065,8 +1067,7 @@ bool Monitor::disconnect() {
     image_buffer = nullptr;
   }
 
-  mem_ptr = nullptr;
-  shared_data = nullptr;
+
   return true;
 }  // end bool Monitor::disconnect()
 

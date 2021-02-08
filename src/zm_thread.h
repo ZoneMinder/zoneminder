@@ -78,10 +78,10 @@ class Mutex {
     }
 
   public:
-    int trylock();
+    int try_lock();
     void lock();
-    void lock( int secs );
-    void lock( double secs );
+    bool try_lock_for(int secs);
+    bool try_lock_for(double secs);
     void unlock();
     bool locked();
 };

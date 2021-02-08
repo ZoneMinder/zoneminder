@@ -65,7 +65,7 @@ public:
 class Mutex {
   friend class Condition;
 
-  private:
+  protected:
     pthread_mutex_t mMutex;
 
   public:
@@ -87,8 +87,6 @@ class Mutex {
 };
 
 class RecursiveMutex : public Mutex {
-  private:
-    pthread_mutex_t mMutex;
   public:
     RecursiveMutex();
 };

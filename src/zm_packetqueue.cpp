@@ -496,7 +496,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   // Step one count back pre_event_count frames as the minimum
   // Do not assume that snapshot_it is video
   // snapshot it might already point to the beginning
-  while ( ( *it != pktQueue.begin() ) and pre_event_count ) {
+  while ( ( (*it) != pktQueue.begin() ) and pre_event_count ) {
     Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d",
         pre_event_count, (*(*it))->packet.stream_index, (*(*it))->keyframe);
     ZM_DUMP_PACKET((*(*it))->packet, "");
@@ -531,9 +531,9 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
     return it;
   }
 
-  while ( (*it)-- != pktQueue.begin() ) {
+  while ( --(*it) != pktQueue.begin() ) {
     ZM_DUMP_PACKET((*(*it))->packet, "No keyframe");
-    if ( (*(*it))->packet.stream_index == video_stream_id and (*(*it))->keyframe )
+    if ( ((*(*it))->packet.stream_index == video_stream_id) and (*(*it))->keyframe )
       return it; // Success
   }
   if ( !(*(*it))->keyframe ) {

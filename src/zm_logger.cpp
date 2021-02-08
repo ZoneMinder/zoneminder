@@ -559,7 +559,6 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
       Error("Can't insert log entry: sql(%s) error(%s)", syslogStart, mysql_error(&dbconn));
       databaseLevel(tempDatabaseLevel);
     }
-    db_mutex.unlock();
   }  // end if level <= mDatabaseLevel
 
   if ( level <= mSyslogLevel ) {

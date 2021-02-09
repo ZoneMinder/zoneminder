@@ -554,7 +554,7 @@ int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
     }
     return ret;
   }
-  return 1;
+  return ret; // 1 or 0
 #else
   int got_packet = 0;
   int ret = avcodec_encode_audio2(context, &packet, nullptr, &got_packet);

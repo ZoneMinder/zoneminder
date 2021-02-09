@@ -664,7 +664,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     }  // end if is an alarm frame
   }  // end if has image
 
-  bool db_frame = ( frame_type == BULK ) or ( frame_type == ALARM ) or ( frames == 1 ) or ( score > (int)max_score ) or ( monitor_state == Monitor::ALERT );
+  bool db_frame = ( frame_type == BULK ) or ( frame_type == ALARM ) or ( frames == 1 ) or ( score > (int)max_score ) or ( monitor_state == Monitor::ALERT ) or ( monitor_state == Monitor::PREALARM );
   if (db_frame) {
 
     struct DeltaTimeval delta_time;

@@ -2458,8 +2458,6 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
 int Monitor::Capture() {
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
-  // I think was starting to work towards not using the buffer. So only ever use the first image.
-  // Let's not do this for now.
   unsigned int index = image_count % image_buffer_count;
 
   ZMPacket *packet = new ZMPacket();
@@ -2467,11 +2465,7 @@ int Monitor::Capture() {
   packet->image_index = image_count;
   gettimeofday(packet->timestamp, nullptr);
 
-  // Still need to lock it.  When we add it to queue other threads can pounce on it
-  // Not so convinced.  We hold the packetqueue lock while adding it.  
-  //packet->lock();
   Image* capture_image = image_buffer[index].image;
-  //Debug(1, "capture image: %d x %d linesize: %d", capture_image->Width(), capture_image->Height(), capture_image->LineSize());
   int captureResult = 0;
 
   if ( deinterlacing_value == 4 ) {
@@ -2481,12 +2475,10 @@ int Monitor::Capture() {
     }
     /* Capture a new next image */
     captureResult = camera->Capture(*packet);
-    Debug(1, "Back from capture, timestamping");
-    // Hhow about set shared_data->current_timestamp
+    // How about set shared_data->current_timestamp
     gettimeofday(packet->timestamp, nullptr);
 
     if ( FirstCapture ) {
-      //packet->unlock();
       FirstCapture = 0;
       return 0;
     }
@@ -2519,17 +2511,16 @@ int Monitor::Capture() {
     } else if ( captureResult > 0 ) {
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
           packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ) );
-      //packet->unlock();
 
       if ( (packet->packet.stream_index != video_stream_id) and ! packet->image ) {
         // Only queue if we have some video packets in there. Should push this logic into packetqueue
-        if ( packetqueue.packet_count(video_stream_id) or event ) {
+        if ( record_audio and (packetqueue.packet_count(video_stream_id) or event) ) {
+          packet->image_index=-1;
           Debug(2, "Queueing audio packet");
           packetqueue.queuePacket(packet);
         } else {
           delete packet;
         }
-        packet->image_index=-1;
         // Don't update last_write_index because that is used for live streaming
         //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
         return 1;
@@ -2633,7 +2624,6 @@ int Monitor::Capture() {
       UpdateCaptureFPS();
     } else { // result == 0
       // Question is, do we update last_write_index etc?
-      //packet->unlock();
       delete packet;
       return 0;
     } // end if result

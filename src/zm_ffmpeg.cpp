@@ -85,7 +85,7 @@ void FFMPEGInit() {
       Debug(1,"Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor is not part of your debug targets");
       av_log_set_level(AV_LOG_QUIET);
     }
-#if !LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
+#if !LIBAVFORMAT_VERSION_CHECK(58, 9, 58, 9, 0)
     av_register_all();
 #endif
     avformat_network_init();

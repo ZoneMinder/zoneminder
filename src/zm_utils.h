@@ -22,6 +22,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <memory>
 #include <sys/time.h>
 #include <string>
 #include <vector>
@@ -55,6 +56,25 @@ extern unsigned int neonversion;
 char *timeval_to_string( struct timeval tv );
 std::string UriDecode( const std::string &encoded );
 void touch( const char *pathname );
+
+namespace ZM {
+//! std::make_unique implementation (TODO: remove this once C++14 is supported)
+template<typename T, typename ...Args>
+inline auto make_unique(Args &&...args) ->
+typename std::enable_if<!std::is_array<T>::value, std::unique_ptr<T>>::type {
+  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
+template<typename T>
+inline auto make_unique(std::size_t size) ->
+typename std::enable_if<std::is_array<T>::value && std::extent<T>::value == 0, std::unique_ptr<T>>::type {
+  return std::unique_ptr<T>(new typename std::remove_extent<T>::type[size]());
+}
+
+template<typename T, typename... Args>
+inline auto make_unique(Args &&...) ->
+typename std::enable_if<std::extent<T>::value != 0, void>::type = delete;
+}
 
 typedef std::chrono::microseconds Microseconds;
 typedef std::chrono::milliseconds Milliseconds;

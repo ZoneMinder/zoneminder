@@ -281,7 +281,9 @@ int main(int argc, char *argv[]) {
       Debug(1, "Not starting RTSP server because min_rtsp_port not set");
     }
 #endif
-    AnalysisThread **analysis_threads = new AnalysisThread *[monitors.size()];
+
+    std::vector<AnalysisThread> analysis_threads = std::vector<AnalysisThread>();
+
     int *capture_delays = new int[monitors.size()];
     int *alarm_capture_delays = new int[monitors.size()];
     struct timeval * last_capture_times = new struct timeval[monitors.size()];
@@ -295,10 +297,7 @@ int main(int argc, char *argv[]) {
       Monitor::Function function = monitors[0]->GetFunction();
       if ( function != Monitor::MONITOR ) {
         Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
-        analysis_threads[i] = new AnalysisThread(monitors[i]);
-        analysis_threads[i]->start();
-      } else {
-        analysis_threads[i] = nullptr;
+        analysis_threads.emplace_back(monitors[i]);
       }
 #if HAVE_RTSP_SERVER
       if ( rtsp_server_threads ) {
@@ -382,10 +381,9 @@ int main(int argc, char *argv[]) {
     } // end while ! zm_terminate and connected
 
     // Killoff the analysis threads. Don't need them spinning while we try to reconnect
+    analysis_threads.clear();
+
     for (size_t i = 0; i < monitors.size(); i++) {
-      if ( analysis_threads[i] ) {
-        analysis_threads[i]->stop();
-      }
 #if HAVE_RTSP_SERVER
       if ( rtsp_server_threads ) {
         rtsp_server_threads[i]->stop();
@@ -396,12 +394,6 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < monitors.size(); i++) {
       monitors[i]->Close();
 
-    // Killoff the analysis threads. Don't need them spinning while we try to reconnect
-      if ( analysis_threads[i] ) {
-        analysis_threads[i]->join();
-        delete analysis_threads[i];
-        analysis_threads[i] = nullptr;
-      }
 #if HAVE_RTSP_SERVER
       if ( rtsp_server_threads ) {
         rtsp_server_threads[i]->join();;
@@ -414,7 +406,6 @@ int main(int argc, char *argv[]) {
       camera->Close();
     }
 
-    delete [] analysis_threads;
 #if HAVE_RTSP_SERVER
     if ( rtsp_server_threads ) {
       delete[] rtsp_server_threads;

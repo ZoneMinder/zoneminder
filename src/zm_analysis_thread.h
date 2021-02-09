@@ -2,26 +2,22 @@
 #define ZM_ANALYSIS_THREAD_H
 
 #include "zm_monitor.h"
-#include "zm_thread.h"
+#include <atomic>
 #include <memory>
+#include <thread>
 
-class AnalysisThread : public Thread {
-  private:
-    std::shared_ptr<Monitor> monitor;
-    bool terminate;
+class AnalysisThread {
+ public:
+  explicit AnalysisThread(std::shared_ptr<Monitor> monitor);
+  ~AnalysisThread();
+  AnalysisThread(AnalysisThread &&rhs) noexcept;
 
-  public:
-    explicit AnalysisThread(std::shared_ptr<Monitor> monitor);
-    ~AnalysisThread();
-    int run();
+ private:
+  void Run();
 
-    void stop() {
-      terminate = true;
-    }
-    bool stopped() const {
-      return terminate;
-    }
-
+  std::shared_ptr<Monitor> monitor_;
+  std::atomic<bool> terminate_;
+  std::thread thread_;
 };
 
 #endif

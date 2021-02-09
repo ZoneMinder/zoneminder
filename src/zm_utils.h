@@ -20,6 +20,7 @@
 #ifndef ZM_UTILS_H
 #define ZM_UTILS_H
 
+#include <chrono>
 #include <ctime>
 #include <sys/time.h>
 #include <string>
@@ -54,4 +55,14 @@ extern unsigned int neonversion;
 char *timeval_to_string( struct timeval tv );
 std::string UriDecode( const std::string &encoded );
 void touch( const char *pathname );
+
+typedef std::chrono::microseconds Microseconds;
+typedef std::chrono::milliseconds Milliseconds;
+typedef std::chrono::seconds Seconds;
+typedef std::chrono::minutes Minutes;
+typedef std::chrono::hours Hours;
+
+typedef std::chrono::steady_clock::time_point TimePoint;
+typedef std::chrono::system_clock::time_point SystemTimePoint;
+
 #endif // ZM_UTILS_H

@@ -318,15 +318,15 @@ LocalCamera::LocalCamera(
   int p_hue,
   int p_colour,
   bool p_capture,
-	bool p_record_audio,
+  bool p_record_audio,
   unsigned int p_extras) :
-    Camera( monitor, LOCAL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
-  device( p_device ),
-  channel( p_channel ),
-  standard( p_standard ),
-  palette( p_palette ),
-  channel_index( 0 ),
-  extras ( p_extras )
+    Camera(monitor, LOCAL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio),
+  device(p_device),
+  channel(p_channel),
+  standard(p_standard),
+  palette(p_palette),
+  channel_index(0),
+  extras(p_extras)
 {
   // If we are the first, or only, input on this device then
   // do the initial opening etc
@@ -337,7 +337,7 @@ LocalCamera::LocalCamera(
 
   if ( capture ) {
     if ( device_prime ) {
-      Debug( 2, "V4L support enabled, using V4L%d api", v4l_version );
+      Debug(2, "V4L support enabled, using V4L%d api", v4l_version);
     }
 
     if ( !last_camera || channel != last_camera->channel ) {
@@ -356,10 +356,10 @@ LocalCamera::LocalCamera(
   uint32_t checkval = 0xAABBCCDD;
   if ( *(unsigned char*)&checkval == 0xDD ) {
     BigEndian = 0;
-    Debug(2,"little-endian processor detected");
+    Debug(2, "little-endian processor detected");
   } else if ( *(unsigned char*)&checkval == 0xAA ) {
     BigEndian = 1;
-    Debug(2,"Big-endian processor detected");
+    Debug(2, "Big-endian processor detected");
   } else {
     Error("Unable to detect the processor's endianness. Assuming little-endian.");
     BigEndian = 0;
@@ -676,9 +676,6 @@ LocalCamera::LocalCamera(
     imgConversionContext = nullptr;
   } // end if capture and conversion_tye == swscale
 #endif
-    mVideoStreamId = 0;
-    mAudioStreamId = -1;
-    mVideoStream = nullptr;
 } // end LocalCamera::LocalCamera
 
 LocalCamera::~LocalCamera() {
@@ -2175,6 +2172,7 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
     zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
   } // end if doing conversion or not
 
+  zm_packet.packet.stream_index = mVideoStreamId;
   zm_packet.codec_type = AVMEDIA_TYPE_VIDEO;
   zm_packet.keyframe = 1;
   return 1;

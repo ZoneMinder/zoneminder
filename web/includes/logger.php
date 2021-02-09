@@ -413,6 +413,9 @@ class Logger {
 
     $message = $code.' ['.$string.']';
     if ( $level <= $this->databaseLevel ) {
+      if ( strlen($file) > 255 )
+        $file = substr($file, 0, 255);
+
       try {
         global $dbConn;
         $sql = 'INSERT INTO `Logs` ( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';

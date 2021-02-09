@@ -1,6 +1,7 @@
 #include "zm_analysis_thread.h"
 
 #include "zm_signal.h"
+#include "zm_utils.h"
 
 AnalysisThread::AnalysisThread(std::shared_ptr<Monitor> monitor) :
     monitor_(std::move(monitor)), terminate_(false) {
@@ -19,7 +20,7 @@ AnalysisThread::AnalysisThread(AnalysisThread &&rhs) noexcept
 void AnalysisThread::Run() {
   Debug(2, "AnalysisThread::Run()");
 
-  useconds_t analysis_rate = monitor_->GetAnalysisRate();
+  Microseconds analysis_rate = Microseconds(monitor_->GetAnalysisRate());
   unsigned int analysis_update_delay = monitor_->GetAnalysisUpdateDelay();
   time_t last_analysis_update_time, cur_time;
   monitor_->UpdateAdaptiveSkip();
@@ -30,7 +31,7 @@ void AnalysisThread::Run() {
     if (analysis_update_delay) {
       cur_time = time(nullptr);
       if ((unsigned int) (cur_time - last_analysis_update_time) > analysis_update_delay) {
-        analysis_rate = monitor_->GetAnalysisRate();
+        analysis_rate = Microseconds(monitor_->GetAnalysisRate());
         monitor_->UpdateAdaptiveSkip();
         last_analysis_update_time = cur_time;
       }
@@ -38,13 +39,15 @@ void AnalysisThread::Run() {
 
     Debug(2, "Analyzing");
     if (!monitor_->Analyse()) {
-      Debug(2, "uSleeping for %d", (monitor_->Active() ? ZM_SAMPLE_RATE : ZM_SUSPENDED_RATE));
-      usleep(monitor_->Active() ? ZM_SAMPLE_RATE : ZM_SUSPENDED_RATE);
-    } else if (analysis_rate) {
-      Debug(2, "uSleeping for %d", analysis_rate);
-      usleep(analysis_rate);
+      Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
+
+      Debug(2, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+      std::this_thread::sleep_for(sleep_for);
+    } else if (analysis_rate != Microseconds::zero()) {
+      Debug(2, "Sleeping for %" PRId64 " us", int64(analysis_rate.count()));
+      std::this_thread::sleep_for(analysis_rate);
     } else {
-      Debug(2, "Not Sleeping");
+      Debug(2, "Not sleeping");
     }
   }
 }

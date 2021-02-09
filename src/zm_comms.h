@@ -33,6 +33,8 @@
 #include <netinet/in.h>
 #endif
 
+namespace ZM {
+
 class CommsException : public Exception {
 public:
   explicit CommsException( const std::string &message ) : Exception( message ) { }
@@ -642,5 +644,7 @@ public:
   const CommsList &getReadable() const;
   const CommsList &getWriteable() const;
 };
+
+}
 
 #endif // ZM_COMMS_H

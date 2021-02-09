@@ -558,7 +558,7 @@ void VideoStore::flush_codecs() {
 #endif
 
     while (1) {
-      if ( ! zm_receive_packet(audio_out_ctx, pkt) ) {
+      if ( 0 >= zm_receive_packet(audio_out_ctx, pkt) ) {
         Debug(1, "No more packets");
         break;
       }
@@ -1260,7 +1260,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   }
 
   ZM_DUMP_STREAM_PACKET(stream, (*pkt), "finished pkt");
-  next_dts[stream->index] = opkt.dts + opkt.duration;
+  next_dts[stream->index] = pkt->dts + pkt->duration;
   Debug(3, "next_dts for stream %d has become %" PRId64,
       stream->index, next_dts[stream->index]);
 

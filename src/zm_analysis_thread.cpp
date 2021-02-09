@@ -14,9 +14,6 @@ AnalysisThread::~AnalysisThread() {
     thread_.join();
 }
 
-AnalysisThread::AnalysisThread(AnalysisThread &&rhs) noexcept
-    : monitor_(std::move(rhs.monitor_)), terminate_(rhs.terminate_.load()), thread_(std::move(rhs.thread_)) {}
-
 void AnalysisThread::Run() {
   Debug(2, "AnalysisThread::Run()");
 

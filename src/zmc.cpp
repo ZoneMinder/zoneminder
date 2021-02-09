@@ -62,6 +62,7 @@ possible, this should run at more or less constant speed.
 #include "zm_rtsp_server_thread.h"
 #include "zm_signal.h"
 #include "zm_time.h"
+#include "zm_utils.h"
 #include <getopt.h>
 #include <iostream>
 
@@ -287,7 +288,7 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    std::vector<AnalysisThread> analysis_threads = std::vector<AnalysisThread>();
+    std::vector<std::unique_ptr<AnalysisThread>> analysis_threads = std::vector<std::unique_ptr<AnalysisThread>>();
 
     int *capture_delays = new int[monitors.size()];
     int *alarm_capture_delays = new int[monitors.size()];
@@ -303,7 +304,7 @@ int main(int argc, char *argv[]) {
       Monitor::Function function = monitors[0]->GetFunction();
       if ( function != Monitor::MONITOR ) {
         Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
-        analysis_threads.emplace_back(monitors[i]);
+        analysis_threads.emplace_back(ZM::make_unique<AnalysisThread>(monitors[i]));
       }
 #if HAVE_RTSP_SERVER
       if ( rtsp_server_threads ) {

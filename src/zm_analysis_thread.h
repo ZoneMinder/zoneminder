@@ -10,7 +10,8 @@ class AnalysisThread {
  public:
   explicit AnalysisThread(std::shared_ptr<Monitor> monitor);
   ~AnalysisThread();
-  AnalysisThread(AnalysisThread &&rhs) noexcept;
+  AnalysisThread(AnalysisThread &rhs) = delete;
+  AnalysisThread(AnalysisThread &&rhs) = delete;
 
  private:
   void Run();

@@ -603,37 +603,40 @@ void Event::UpdateFramesDelta(double offset) {
 }
 
 void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image) {
-  if ( !timestamp.tv_sec ) {
-    Debug(1, "Not adding new frame, zero timestamp");
+  if (!timestamp.tv_sec) {
+    Warning("Not adding new frame, zero timestamp");
     return;
   }
 
   frames++;
+  Monitor::State monitor_state = monitor->GetState();
 
   bool write_to_db = false;
   FrameType frame_type = ( ( score > 0 ) ? ALARM : (
       (
-       ( monitor->GetState() == Monitor::TAPE )
+       ( monitor_state == Monitor::TAPE )
        and
        ( config.bulk_frame_interval > 1 )
        and
        ( ! (frames % config.bulk_frame_interval) )
       ) ? BULK : NORMAL 
       ) );
+  //Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d", 
+      //frame_type_names[frame_type], score, monitor->GetState(), frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval) );
 
   if ( score < 0 )
     score = 0;
 
   tot_score += score;
 
-  if ( image ) {
-    if ( save_jpegs & 1 ) {
+  if (image) {
+    if (save_jpegs & 1) {
       std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
       Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
-      if ( !WriteFrameImage(image, timestamp, event_file.c_str()) ) {
+      if (!WriteFrameImage(image, timestamp, event_file.c_str())) {
         Error("Failed to write frame image");
       }
-    } // end if save_jpegs
+    }  // end if save_jpegs
 
     // If this is the first frame, we should add a thumbnail to the event directory
     if ( (frames == 1) || (score > (int)max_score) ) {
@@ -642,27 +645,27 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     }
 
     // We are writing an Alarm frame
-    if ( frame_type == ALARM ) {
+    if (frame_type == ALARM) {
       // The first frame with a score will be the frame that alarmed the event
-      if ( !alarm_frame_written ) {
+      if (!alarm_frame_written) {
         write_to_db = true; // OD processing will need it, so the db needs to know about it
         alarm_frame_written = true;
         WriteFrameImage(image, timestamp, alarm_file.c_str());
       }
       alarm_frames++;
 
-      if ( alarm_image and ( save_jpegs & 2 ) ) {
+      if (alarm_image and (save_jpegs & 2)) {
         std::string event_file = stringtf(staticConfig.analyse_file_format, path.c_str(), frames);
         Debug(1, "Writing analysis frame %d", frames);
-        if ( ! WriteFrameImage(alarm_image, timestamp, event_file.c_str(), true) ) {
+        if (!WriteFrameImage(alarm_image, timestamp, event_file.c_str(), true)) {
           Error("Failed to write analysis frame image");
         }
       }
     }  // end if is an alarm frame
   }  // end if has image
 
-  bool db_frame = ( frame_type == BULK ) || ( frame_type == ALARM ) || ( frames == 1 ) || ( score > (int)max_score );
-  if ( db_frame ) {
+  bool db_frame = ( frame_type == BULK ) or ( frame_type == ALARM ) or ( frames == 1 ) or ( score > (int)max_score ) or ( monitor_state == Monitor::ALERT );
+  if (db_frame) {
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
@@ -700,7 +703,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
           id
           );
       db_mutex.lock();
-      while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
+      while (mysql_query(&dbconn, sql) && !zm_terminate) {
         Error("Can't update event: %s", mysql_error(&dbconn));
         db_mutex.unlock();
         sleep(1);
@@ -713,7 +716,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     } // end if frame_type == BULK
   } // end if db_frame
 
-  if ( score > (int)max_score )
+  if (score > (int)max_score)
     max_score = score;
   end_time = timestamp;
 }  // end void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image)

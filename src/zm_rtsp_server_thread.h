@@ -15,7 +15,7 @@ class Monitor;
 
 class RTSPServerThread : public Thread {
   private:
-    std::shared_ptr<Monitor> monitor;
+    std::shared_ptr<Monitor> monitor_;
     char terminate;
 
     TaskScheduler* scheduler;

@@ -115,7 +115,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   snprintf(sql, sizeof(sql),
       "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, "
       "unix_timestamp( `EndDateTime` ) AS EndTimestamp, "
-      "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS Duration, "
+      "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS FramesDuration, "
       "`DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 
   if ( mysql_query(&dbconn, sql) ) {
@@ -149,7 +149,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->frame_count = dbrow[2] == nullptr ? 0 : atoi(dbrow[2]);
   event_data->start_time = atoi(dbrow[3]);
   event_data->end_time = dbrow[4] ? atoi(dbrow[4]) : 0;
-  event_data->duration = dbrow[5] ? atof(dbrow[5]) : 0.0;
+  event_data->duration = event_data->end_time - event_data->start_time;
+  event_data->frames_duration = dbrow[5] ? atof(dbrow[5]) : 0.0;
   strncpy(event_data->video_file, dbrow[6], sizeof(event_data->video_file)-1);
   std::string scheme_str = std::string(dbrow[7]);
   if ( scheme_str == "Deep" ) {
@@ -313,8 +314,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
     else
       curr_stream_time = event_data->frames[event_data->last_frame_id-1].timestamp;
   }
-  Debug(2, "Event:%" PRIu64 ", Frames:%ld, Last Frame ID(%ld, Duration: %.2f",
-      event_data->event_id, event_data->frame_count, event_data->last_frame_id, event_data->duration);
+  Debug(2, "Event:%" PRIu64 ", Frames:%ld, Last Frame ID(%ld, Duration: %.2f Frames Duration: %.2f",
+      event_data->event_id, event_data->frame_count, event_data->last_frame_id, event_data->duration, event_data->frames_duration);
 
   return true;
 } // bool EventStream::loadEventData( int event_id )

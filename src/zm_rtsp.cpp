@@ -635,14 +635,14 @@ int RtspThread::run() {
       RtpDataThread rtpDataThread( *this, *source );
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
-      Select select( double(config.http_timeout)/1000.0 );
+      ZM::Select select( double(config.http_timeout)/1000.0 );
       select.addReader( &mRtspSocket );
 
       Buffer buffer( ZM_NETWORK_BUFSIZ );
       std::string keepaliveMessage = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
       std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
       while ( !mStop && select.wait() >= 0 ) {
-        Select::CommsList readable = select.getReadable();
+        ZM::Select::CommsList readable = select.getReadable();
         if ( readable.size() == 0 ) {
           Error( "RTSP timed out" );
           break;

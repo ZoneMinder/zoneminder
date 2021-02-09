@@ -59,6 +59,7 @@ class EventStream : public StreamBase {
       time_t          start_time;
       time_t          end_time;
       double          duration;
+      double          frames_duration;
       char            path[PATH_MAX];
       int             n_frames;       // # of frame rows returned from database
       FrameData       *frames;

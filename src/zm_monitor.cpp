@@ -2548,7 +2548,7 @@ int Monitor::Capture() {
           Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
         }
         if ( packet->in_frame and !packet->image ) {
-          capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
+          capture_image = packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
           packet->get_image();
         }
       } // end if need to decode

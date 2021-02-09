@@ -243,7 +243,7 @@ function changeRate() {
   setCookie('zmEventRate', rate, 3600);
 } // end function changeRate
 
-function getCmdResponse( respObj, respText ) {
+function getCmdResponse(respObj, respText) {
   if ( checkStreamForErrors('getCmdResponse', respObj) ) {
     console.log('Got an error from getCmdResponse');
     console.log(respObj);
@@ -259,7 +259,11 @@ function getCmdResponse( respObj, respText ) {
   }
 
   streamStatus = respObj.status;
-  if ( streamStatus.duration && ( streamStatus.duration != parseFloat(eventData.Length) ) ) {
+  if (!streamStatus) {
+    console.log('No status in respObj');
+    console.log(respObj);
+    return;
+  } else if ( streamStatus.duration && ( streamStatus.duration != parseFloat(eventData.Length) ) ) {
     eventData.Length = streamStatus.duration;
   }
   if ( streamStatus.progress > parseFloat(eventData.Length) ) {
@@ -573,8 +577,8 @@ function getEventResponse(respObj, respText) {
 
   $j('#dataEventId').text( eventData.Id );
   $j('#dataEventName').text( eventData.Name );
-  $j('#dataMonitorId').text( eventData.MonitorId );
-  $j('#dataMonitorName').text( eventData.MonitorName );
+  $j('#dataMonitorId').text('<a href="?video=monitor&mid='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>');
+  $j('#dataMonitorName').text('<a href="?video=monitor&mid='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>');
   $j('#dataCause').text( eventData.Cause );
   if ( eventData.Notes ) {
     $j('#dataCause').prop( 'title', eventData.Notes );

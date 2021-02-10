@@ -570,7 +570,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
 
   // How many frames we need to have before we start analysing
-  ready_count = warmup_count;
+  ready_count = std::max(warmup_count, pre_event_count);
 
   last_alarm_count = 0;
   state = IDLE;
@@ -1660,7 +1660,7 @@ void Monitor::CheckAction() {
         Info("Received resume indication at count %d", image_count);
         shared_data->active = true;
         ref_image = *(image_buffer[shared_data->last_write_index].image);
-        ready_count = image_count+(warmup_count/2);
+        ready_count = std::max(warmup_count, pre_event_count);
         shared_data->alarm_x = shared_data->alarm_y = -1;
       }
       shared_data->action &= ~RESUME;
@@ -1671,7 +1671,7 @@ void Monitor::CheckAction() {
     Info("Auto resuming at count %d", image_count);
     shared_data->active = true;
     ref_image.Assign(*(image_buffer[shared_data->last_write_index].image));
-    ready_count = image_count+(warmup_count/2);
+    ready_count = std::max(warmup_count, pre_event_count);
     auto_resume_time = 0;
   }
 }
@@ -2247,6 +2247,8 @@ bool Monitor::Analyse() {
 void Monitor::Reload() {
   Debug(1, "Reloading monitor %s", name);
 
+  // Access to the event needs to be protected.  Either thread could call Reload.  Either thread could close the event. 
+  // Need a mutex on it I guess.  FIXME
   if ( event ) {
     Info("%s: %03d - Closing event %" PRIu64 ", reloading", name, image_count, event->Id());
     closeEvent();
@@ -2263,7 +2265,7 @@ void Monitor::Reload() {
     shared_data->alarm_x = shared_data->alarm_y = -1;
     if ( enabled )
       shared_data->active = true;
-    ready_count = image_count+warmup_count;
+    ready_count = std::max(warmup_count, pre_event_count);
 
     delete row;
   }  // end if row

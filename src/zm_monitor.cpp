@@ -2230,6 +2230,12 @@ bool Monitor::Analyse() {
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
     if ( event ) event->AddPacket(snap);
+
+    if ( videowriter == PASSTHROUGH and ! savejpegs ) {
+      // Don't need raw images anymore
+      delete snap->image;
+      snap->image = nullptr;
+    }
     // popPacket will have placed a second lock on snap, so release it here.
     snap->unlock();
 

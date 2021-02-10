@@ -127,7 +127,7 @@ Event::Event(
       );
 
   db_mutex.lock();
-  while ( mysql_query(&dbconn, sql) ) {
+  while (mysql_query(&dbconn, sql) and (mysql_errno(&dbconn) == ER_LOCK_WAIT_TIMEOUT)) {
     db_mutex.unlock();
     Error("Can't insert event: %s. sql was (%s)", mysql_error(&dbconn), sql);
     db_mutex.lock();

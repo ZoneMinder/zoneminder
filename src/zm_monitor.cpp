@@ -54,6 +54,7 @@
 #include "zm_libvnc_camera.h"
 #endif // HAVE_LIBVNC
 
+#include <algorithm>
 #include <sys/types.h>
 #include <sys/stat.h>
 

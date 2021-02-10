@@ -220,14 +220,13 @@ Event::Event(
     db_mutex.unlock();
     video_file = path + "/" + video_name;
     Debug(1, "Writing video file to %s", video_file.c_str());
-    Camera * camera = monitor->getCamera();
     videoStore = new VideoStore(
         video_file.c_str(),
         container.c_str(),
-        camera->get_VideoStream(),
-        camera->get_VideoCodecContext(),
-        ( monitor->RecordAudio() ? camera->get_AudioStream() : nullptr ),
-        ( monitor->RecordAudio() ? camera->get_AudioCodecContext() : nullptr ),
+        monitor->GetVideoStream(),
+        monitor->GetVideoCodecContext(),
+        ( monitor->RecordAudio() ? monitor->GetAudioStream() : nullptr ),
+        ( monitor->RecordAudio() ? monitor->GetAudioCodecContext() : nullptr ),
         monitor );
 
     if ( !videoStore->open() ) {

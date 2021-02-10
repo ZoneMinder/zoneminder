@@ -21,10 +21,10 @@
 #define ZM_CAMERA_H
 
 #include "zm_image.h"
-#include "zm_monitor.h"
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
+class Monitor;
 class ZMPacket;
 
 //
@@ -76,7 +76,6 @@ public:
       );
   virtual ~Camera();
 
-  unsigned int getId() const { return monitor->Id(); }
   SourceType Type() const { return type; }
   bool IsLocal() const { return type == LOCAL_SRC; }
   bool IsRemote() const { return type == REMOTE_SRC; }

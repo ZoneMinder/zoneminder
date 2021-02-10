@@ -399,7 +399,9 @@ int RtspThread::run() {
   if ( mFormatContext->nb_streams >= 1 ) {
     for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {
       SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream(i);
-#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+#if LIBAVFORMAT_VERSION_CHECK(57, 33, 0, 33, 0)
+      if ( mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO )
+#elif (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
       if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
       if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
@@ -417,7 +419,11 @@ int RtspThread::run() {
           }
         }
         rtpClock = mediaDesc->getClock();
+#if LIBAVFORMAT_VERSION_CHECK(57, 33, 0, 33, 0)
+        codecId = mFormatContext->streams[i]->codecpar->codec_id;
+#else
         codecId = mFormatContext->streams[i]->codec->codec_id;
+#endif
         break;
       }  // end if is video
     }  // end foreach stream

@@ -346,6 +346,7 @@ sub checkFilter {
 
     if ( $filter->{AutoMove} ) {
       my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
+      Info("Moving event $Event->{Id} to datastore $filter->{AutoMoveTo}");
       $_ = $Event->MoveTo($NewStorage);
       Error($_) if $_;
     }
@@ -354,6 +355,7 @@ sub checkFilter {
       # So we still need to update the Event object with the new SecondaryStorageId
       my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
       if ( $NewStorage ) {
+        Info("Copying event $Event->{Id} to datastore $filter->{AutoCopyTo}");
         $_ = $Event->CopyTo($NewStorage);
         if ( $_ ) {
           $ZoneMinder::Database::dbh->commit();

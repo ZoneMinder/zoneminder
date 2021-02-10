@@ -2615,13 +2615,8 @@ int Monitor::Capture() {
       shared_data->last_write_time = packet->timestamp->tv_sec;
       image_count++;
 
-      if (GetFunction() != Function::MONITOR
-          and (packetqueue.packet_count(video_stream_id) or packet->keyframe or event)) {
-        Debug(2, "Have video packet for image index (%d), adding to queue", index);
-        packetqueue.queuePacket(packet);
-      } else {
-        Debug(2, "Not queuing video packet for index (%d) packet count %d",
-            index, packetqueue.packet_count(video_stream_id));
+      // Will only be queued if there are iterators allocated in the queue.
+      if ( !packetqueue.queuePacket(packet) ) {
         delete packet;
       }
       UpdateCaptureFPS();

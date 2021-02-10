@@ -72,6 +72,14 @@ PacketQueue::~PacketQueue() {
 
 bool PacketQueue::queuePacket(ZMPacket* add_packet) {
   Debug(4, "packetqueue queuepacket %p %d", add_packet, add_packet->image_index);
+  if (iterators.empty()) {
+    Debug(4, "No iterators so no one needs us to queue packets.");
+    return false;
+  }
+  if (!packet_counts[video_stream_id] and !add_packet->keyframe) {
+    Debug(4, "No video keyframe so no one needs us to queue packets.");
+    return false;
+  }
   mutex.lock();
 
 	pktQueue.push_back(add_packet);

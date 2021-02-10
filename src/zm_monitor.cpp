@@ -1073,6 +1073,8 @@ bool Monitor::disconnect() {
 }  // end bool Monitor::disconnect()
 
 Monitor::~Monitor() {
+  Close();
+
   if ( mem_ptr ) {
     if ( event ) {
       Info( "%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id() );

@@ -341,7 +341,6 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
 %{_bindir}/zmsystemctl.pl
 
-%{_bindir}/zma
 %{_bindir}/zmaudit.pl
 %{_bindir}/zmc
 %{_bindir}/zmcontrol.pl

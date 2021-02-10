@@ -237,8 +237,8 @@ int main(int argc, char *argv[]) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
     for (const std::shared_ptr<Monitor> &monitor : monitors) {
-      if (!monitor->getCamera()) {
-      }
+      monitor->LoadCamera();
+
       if (!monitor->connect()) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
       }

@@ -358,7 +358,7 @@ protected:
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
 
-  Camera      *camera;
+  std::unique_ptr<Camera> camera;
   Event       *event;
   Storage     *storage;
 
@@ -393,13 +393,14 @@ public:
   void AddZones( int p_n_zones, Zone *p_zones[] );
   void AddPrivacyBitmask( Zone *p_zones[] );
 
+  void LoadCamera();
   bool connect();
   bool disconnect();
 
   inline int ShmValid() const {
     return shared_data && shared_data->valid;
   }
-  Camera *getCamera();
+
 
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name; }

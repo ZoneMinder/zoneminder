@@ -435,7 +435,6 @@ int main(int argc, char *argv[]) {
     if (mysql_query(&dbconn, sql)) {
       Error("Can't run query: %s", mysql_error(&dbconn));
     }
-    monitor->disconnect();
   }
 
   Image::Deinitialise();

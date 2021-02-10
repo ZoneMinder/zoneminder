@@ -2613,7 +2613,8 @@ int Monitor::Capture() {
       shared_data->last_write_time = packet->timestamp->tv_sec;
       image_count++;
 
-      if ( packetqueue.packet_count(video_stream_id) or packet->keyframe or event ) {
+      if (GetFunction() != Function::MONITOR
+          and (packetqueue.packet_count(video_stream_id) or packet->keyframe or event)) {
         Debug(2, "Have video packet for image index (%d), adding to queue", index);
         packetqueue.queuePacket(packet);
       } else {

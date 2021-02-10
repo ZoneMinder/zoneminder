@@ -22,6 +22,7 @@
 
 #include "zm_thread.h"
 #include <mysql/mysql.h>
+#include <mysql/mysqld_error.h>
 
 class zmDbRow {
   private:

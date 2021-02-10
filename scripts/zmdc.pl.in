@@ -612,6 +612,7 @@ sub restart {
   # Start will be handled by the reaper...
   # unless it was already pending in which case send_stop will return () so we should start it
   if ( !send_stop(0, $process) ) {
+    dPrint(ZoneMinder::Logger::WARNING, "!send_stop so starting '$command'\n");
     start($daemon, @args);
   }
   return;

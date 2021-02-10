@@ -35,6 +35,7 @@
 #endif
 
 static unsigned int BigEndian;
+static bool primed;
 
 static int vidioctl(int fd, int request, void *arg) {
   int result = -1;
@@ -676,6 +677,7 @@ LocalCamera::LocalCamera(
     imgConversionContext = nullptr;
   } // end if capture and conversion_tye == swscale
 #endif
+  get_VideoStream();
 } // end LocalCamera::LocalCamera
 
 LocalCamera::~LocalCamera() {
@@ -1171,6 +1173,7 @@ void LocalCamera::Terminate() {
 #endif // ZM_HAS_V4L1
 
   close(vid_fd);
+  primed = false;
 } // end LocalCamera::Terminate
 
 uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
@@ -1971,6 +1974,8 @@ int LocalCamera::Contrast( int p_contrast ) {
 }
 
 int LocalCamera::PrimeCapture() {
+  if ( primed ) return 1;
+
   Initialise();
 
   Debug(2, "Priming capture");
@@ -2014,6 +2019,7 @@ int LocalCamera::PrimeCapture() {
   }
 #endif // ZM_HAS_V4L1
   mVideoStreamId = 0;
+  primed = true;
 
   return 1;
 } // end LocalCamera::PrimeCapture

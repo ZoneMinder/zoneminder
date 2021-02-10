@@ -15,10 +15,11 @@ AnalysisThread::~AnalysisThread() {
 }
 
 void AnalysisThread::Run() {
-  Debug(2, "AnalysisThread::Run()");
+  Debug(2, "AnalysisThread::Run() for %d", monitor_->Id());
 
   Microseconds analysis_rate = Microseconds(monitor_->GetAnalysisRate());
   Seconds analysis_update_delay = Seconds(monitor_->GetAnalysisUpdateDelay());
+  Debug(2, "AnalysisThread::Run() have update delay %d", analysis_update_delay);
 
   monitor_->UpdateAdaptiveSkip();
 
@@ -29,6 +30,7 @@ void AnalysisThread::Run() {
     // Some periodic updates are required for variable capturing framerate
     if (analysis_update_delay != Seconds::zero()) {
       cur_time = std::chrono::steady_clock::now();
+      Debug(2, "Updating adaptive skip");
       if ((cur_time - last_analysis_update_time) > analysis_update_delay) {
         analysis_rate = Microseconds(monitor_->GetAnalysisRate());
         monitor_->UpdateAdaptiveSkip();

@@ -1268,18 +1268,22 @@ double Monitor::GetFPS() const {
 
 /* I think this returns the # of micro seconds that we should sleep in order to maintain the desired analysis rate */
 useconds_t Monitor::GetAnalysisRate() {
+  Debug(1, "Here");
   double capture_fps = get_capture_fps();
+  Debug(1, "Here");
   if ( !analysis_fps_limit ) {
     return 0;
   } else if ( analysis_fps_limit > capture_fps ) {
+  Debug(1, "Here");
     if ( last_fps_time != last_analysis_fps_time ) {
       // At startup they are equal, should never be equal again
       Warning("Analysis fps (%.2f) is greater than capturing fps (%.2f)", analysis_fps_limit, capture_fps);
     }
     return 0;
-  } else {
+  } else if ( capture_fps ) {
     return( ( 1000000 / analysis_fps_limit ) - ( 1000000 / capture_fps ) );
   }
+  return 0;
 }
 
 void Monitor::UpdateAdaptiveSkip() {
@@ -1791,12 +1795,6 @@ bool Monitor::Analyse() {
     Warning("Shouldn't be doing Analyse when not Enabled");
     return false;
   }
-#if 0
-  if ( !packetqueue.size() ) {
-    Debug(1, "Waiting for PrimeCapture");
-    return false;
-  }
-#endif
   if ( !analysis_it ) 
     analysis_it = packetqueue.get_video_it(true);
 
@@ -2916,13 +2914,12 @@ unsigned int Monitor::SubpixelOrder() const { return camera->SubpixelOrder(); }
 int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();
   if ( ret > 0 ) {
-    //if ( packetqueue ) 
-      //delete packetqueue;
     video_stream_id = camera->get_VideoStreamId();
-    audio_stream_id = camera->get_AudioStreamId();
-    //packetqueue = new PacketQueue(image_buffer_count, video_stream_id, audio_stream_id);
+
     packetqueue.addStreamId(video_stream_id);
-    if ( audio_stream_id )
+
+    audio_stream_id = camera->get_AudioStreamId();
+    if ( audio_stream_id >= 0 )
       packetqueue.addStreamId(audio_stream_id);
 
     Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",

@@ -289,7 +289,9 @@ void Image::Assign(const AVFrame *frame) {
   if ( sws_scale(sws_convert_context,
         frame->data, frame->linesize, 0, frame->height,
         dest_frame->data, dest_frame->linesize) < 0 )
-    Fatal("Unable to convert raw format %u to target format %u", frame->format, format);
+    Fatal("Unable to convert raw format %u %ux%u to target format %u %ux%u",
+        frame->format, frame->width, frame->height,
+        format, width, height);
 #else // HAVE_LIBSWSCALE
   Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE

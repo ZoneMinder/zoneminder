@@ -236,6 +236,7 @@ int main(int argc, char *argv[]) {
   while ( !zm_terminate ) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
+
     for (const std::shared_ptr<Monitor> &monitor : monitors) {
       if (!monitor->getCamera()) {
       }
@@ -251,28 +252,28 @@ int main(int argc, char *argv[]) {
       if (mysql_query(&dbconn, sql)) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
-    }  // end foreach monitor
-
-    // Outer primary loop, handles connection to camera
-    if (monitors[0]->PrimeCapture() <= 0) {
-      if (prime_capture_log_count % 60) {
-        Error("Failed to prime capture of initial monitor");
-      } else {
-        Debug(1, "Failed to prime capture of initial monitor");
-      }
-      prime_capture_log_count ++;
-      monitors[0]->disconnect();
-      if (!zm_terminate) {
-        Debug(1, "Sleeping");
-        sleep(5);
-      }
-      continue;
     }
 
-    for (std::shared_ptr<Monitor> &monitor : monitors) {
+    for (const std::shared_ptr<Monitor> &monitor : monitors) {
+
+      // Outer primary loop, handles connection to camera
+      if (monitor->PrimeCapture() <= 0) {
+        if (prime_capture_log_count % 60) {
+          Error("Failed to prime capture of initial monitor");
+        } else {
+          Debug(1, "Failed to prime capture of initial monitor");
+        }
+        prime_capture_log_count ++;
+        monitor->disconnect();
+        if (!zm_terminate) {
+          Debug(1, "Sleeping");
+          sleep(5);
+        }
+        continue;
+      }
       snprintf(sql, sizeof(sql),
           "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
-               monitor->Id());
+          monitor->Id());
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
@@ -314,7 +315,7 @@ int main(int argc, char *argv[]) {
         rtsp_server_threads[i]->start();
       }
 #endif
-    } // end foreach monitor
+    }
 
     struct timeval now;
     struct DeltaTimeval delta_time;

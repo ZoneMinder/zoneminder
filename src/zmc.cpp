@@ -384,8 +384,8 @@ int main(int argc, char *argv[]) {
       }  // end if zm_reload
     }  // end while ! zm_terminate and connected
 
-    // Killoff the analysis threads. Don't need them spinning while we try to reconnect
-    analysis_threads.clear();
+    for (std::unique_ptr<AnalysisThread> &analysis_thread: analysis_threads)
+      analysis_thread->Stop();
 
     for (size_t i = 0; i < monitors.size(); i++) {
 #if HAVE_RTSP_SERVER
@@ -407,6 +407,9 @@ int main(int argc, char *argv[]) {
       Debug(1, "Closing camera");
       camera->Close();
     }
+
+    // Killoff the analysis threads. Don't need them spinning while we try to reconnect
+    analysis_threads.clear();
 
 #if HAVE_RTSP_SERVER
     if (rtsp_server_threads) {

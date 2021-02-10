@@ -85,7 +85,7 @@ void FFMPEGInit() {
       Debug(1,"Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor is not part of your debug targets");
       av_log_set_level(AV_LOG_QUIET);
     }
-#if !LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
+#if !LIBAVFORMAT_VERSION_CHECK(58, 9, 58, 9, 0)
     av_register_all();
 #endif
     avformat_network_init();
@@ -221,61 +221,6 @@ simple_round:
 }
 #endif
 #endif
-
-int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat *oformat, const char *format, const char *filename) {
-  AVFormatContext *s = avformat_alloc_context();
-  int ret = 0;
-
-  *avctx = nullptr;
-  if (!s) {
-    av_log(s, AV_LOG_ERROR, "Out of memory\n");
-    ret = AVERROR(ENOMEM);
-    return ret;
-  }
-
-  if (!oformat) {
-    if (format) {
-      oformat = av_guess_format(format, nullptr, nullptr);
-      if (!oformat) {
-        av_log(s, AV_LOG_ERROR, "Requested output format '%s' is not a suitable output format\n", format);
-        ret = AVERROR(EINVAL);
-      }
-    } else {
-      oformat = av_guess_format(nullptr, filename, nullptr);
-      if (!oformat) {
-        ret = AVERROR(EINVAL);
-        av_log(s, AV_LOG_ERROR, "Unable to find a suitable output format for '%s'\n", filename);
-      }
-    }
-  }
-
-  if (ret) {
-    avformat_free_context(s);
-    return ret;
-  }
-
-  s->oformat = oformat;
-#if 0
-  if (s->oformat->priv_data_size > 0) {
-      if (s->oformat->priv_class) {
-        // This looks wrong, we just allocated priv_data and now we are losing the pointer to it.FIXME
-        *(const AVClass**)s->priv_data = s->oformat->priv_class;
-        av_opt_set_defaults(s->priv_data);
-      } else {
-    s->priv_data = av_mallocz(s->oformat->priv_data_size);
-    if ( ! s->priv_data) {
-      av_log(s, AV_LOG_ERROR, "Out of memory\n");
-      ret = AVERROR(ENOMEM);
-      return ret;
-    }
-    s->priv_data = nullptr;
-  }
-#endif
-
-  if (filename) strncpy(s->filename, filename, sizeof(s->filename)-1);
-  *avctx = s;
-  return 0;
-}
 
 static void zm_log_fps(double d, const char *postfix) {
   uint64_t v = lrintf(d * 100);

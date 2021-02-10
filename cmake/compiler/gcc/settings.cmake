@@ -19,3 +19,15 @@ if(ASAN)
 
   message(STATUS "GCC: Enabled AddressSanitizer (ASan)")
 endif()
+
+if(TSAN)
+  target_compile_options(zm-compile-option-interface
+    INTERFACE
+      -fsanitize=thread)
+
+  target_link_options(zm-compile-option-interface
+    INTERFACE
+      -fsanitize=thread)
+
+  message(STATUS "GCC: Enabled ThreadSanitizer (TSan)")
+endif()

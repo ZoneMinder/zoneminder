@@ -403,9 +403,6 @@ int main(int argc, char *argv[]) {
         rtsp_server_threads[i] = nullptr;
       }
 #endif
-      Camera *camera = monitors[i]->getCamera();
-      Debug(1, "Closing camera");
-      camera->Close();
     }
 
     // Killoff the analysis threads. Don't need them spinning while we try to reconnect

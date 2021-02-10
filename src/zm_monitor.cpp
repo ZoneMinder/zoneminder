@@ -2941,6 +2941,8 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
+  if (camera)
+    camera->Close();
   packetqueue.clear();
 #if 0
   if ( packetqueue ) {

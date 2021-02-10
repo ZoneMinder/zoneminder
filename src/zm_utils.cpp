@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_logger.h"
 #include <algorithm>
+#include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <sstream>
 #include <sys/stat.h>

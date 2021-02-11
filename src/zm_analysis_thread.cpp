@@ -9,7 +9,7 @@ AnalysisThread::AnalysisThread(std::shared_ptr<Monitor> monitor) :
 }
 
 AnalysisThread::~AnalysisThread() {
-  terminate_ = true;
+  Stop();
   if (thread_.joinable())
     thread_.join();
 }

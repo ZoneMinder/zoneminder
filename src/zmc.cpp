@@ -237,8 +237,8 @@ int main(int argc, char *argv[]) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
     for (const std::shared_ptr<Monitor> &monitor : monitors) {
-      if (!monitor->getCamera()) {
-      }
+      monitor->LoadCamera();
+
       if (!monitor->connect()) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
       }
@@ -309,8 +309,7 @@ int main(int argc, char *argv[]) {
 #if HAVE_RTSP_SERVER
       if ( rtsp_server_threads ) {
         rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
-        Camera *camera = monitors[i]->getCamera();
-        rtsp_server_threads[i]->addStream(camera->get_VideoStream(), camera->get_AudioStream());
+        rtsp_server_threads[i]->addStream(monitors[i]->GetVideoStream(), monitors[i]->GetAudioStream());
         rtsp_server_threads[i]->start();
       }
 #endif
@@ -403,9 +402,6 @@ int main(int argc, char *argv[]) {
         rtsp_server_threads[i] = nullptr;
       }
 #endif
-      Camera *camera = monitors[i]->getCamera();
-      Debug(1, "Closing camera");
-      camera->Close();
     }
 
     // Killoff the analysis threads. Don't need them spinning while we try to reconnect
@@ -438,7 +434,6 @@ int main(int argc, char *argv[]) {
     if (mysql_query(&dbconn, sql)) {
       Error("Can't run query: %s", mysql_error(&dbconn));
     }
-    monitor->disconnect();
   }
 
   Image::Deinitialise();

@@ -19,6 +19,7 @@
 
 #include "zm_remote_camera_http.h"
 
+#include "zm_monitor.h"
 #include "zm_packet.h"
 #include "zm_signal.h"
 #include "zm_regexp.h"

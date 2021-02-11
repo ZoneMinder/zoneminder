@@ -19,6 +19,7 @@
 
 #include "zm_remote_camera_nvsocket.h"
 
+#include "zm_monitor.h"
 #include "zm_packet.h"
 #include <netdb.h>
 #include <sys/socket.h>

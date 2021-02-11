@@ -21,6 +21,7 @@
 #define ZM_MONITOR_H
 
 #include "zm_define.h"
+#include "zm_camera.h"
 #include "zm_event.h"
 #include "zm_image.h"
 #include "zm_packet.h"
@@ -30,7 +31,6 @@
 #include <sys/time.h>
 #include <vector>
 
-class Camera;
 class Group;
 
 #define SIGNAL_CAUSE "Signal"
@@ -358,7 +358,7 @@ protected:
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
 
-  Camera      *camera;
+  std::unique_ptr<Camera> camera;
   Event       *event;
   Storage     *storage;
 
@@ -393,13 +393,14 @@ public:
   void AddZones( int p_n_zones, Zone *p_zones[] );
   void AddPrivacyBitmask( Zone *p_zones[] );
 
+  void LoadCamera();
   bool connect();
   bool disconnect();
 
   inline int ShmValid() const {
     return shared_data && shared_data->valid;
   }
-  Camera *getCamera();
+
 
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name; }
@@ -470,6 +471,11 @@ public:
   unsigned int GetPreEventCount() const { return pre_event_count; };
   int GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const { return (State)shared_data->state; }
+
+  AVStream *GetAudioStream() const { return camera ? camera->get_AudioStream() : nullptr; };
+  AVCodecContext *GetAudioCodecContext() const { return camera ?  camera->get_AudioCodecContext() : nullptr; };
+  AVStream *GetVideoStream() const { return camera ? camera->get_VideoStream() : nullptr; };
+  AVCodecContext *GetVideoCodecContext() const { return camera ?  camera->get_VideoCodecContext() : nullptr; };
 
   int GetImage( int index=-1, int scale=100 );
   ZMPacket *getSnapshot( int index=-1 ) const;

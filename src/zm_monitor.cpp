@@ -28,6 +28,7 @@
 #include "zm_remote_camera_nvsocket.h"
 #include "zm_signal.h"
 #include "zm_time.h"
+#include "zm_utils.h"
 #include "zm_zone.h"
 
 #if ZM_HAS_V4L
@@ -607,7 +608,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%d", storage->Path(), id);
-  getCamera();
+  LoadCamera();
 
   if ( purpose != QUERY ) {
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
@@ -642,192 +643,201 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   Debug(1, "Loaded monitor %d(%s), %d zones", id, name, n_zones);
 } // Monitor::Load
 
-Camera * Monitor::getCamera() {
-  if ( camera )
-    return camera;
+void Monitor::LoadCamera() {
+  if (camera)
+    return;
 
-  if ( type == LOCAL ) {
+  switch (type) {
+    case LOCAL: {
+      int extras = (deinterlacing >> 24) & 0xff;
 
-    int extras = (deinterlacing>>24)&0xff;
-
-    camera = new LocalCamera(
-        this,
-        device,
-        channel,
-        format,
-        v4l_multi_buffer,
-        v4l_captures_per_frame,
-        method,
-        camera_width,
-        camera_height,
-        colours,
-        palette,
-        brightness,
-        contrast,
-        hue,
-        colour,
-        purpose==CAPTURE,
-        record_audio,
-        extras
+      camera = ZM::make_unique<LocalCamera>(this,
+                                            device,
+                                            channel,
+                                            format,
+                                            v4l_multi_buffer,
+                                            v4l_captures_per_frame,
+                                            method,
+                                            camera_width,
+                                            camera_height,
+                                            colours,
+                                            palette,
+                                            brightness,
+                                            contrast,
+                                            hue,
+                                            colour,
+                                            purpose == CAPTURE,
+                                            record_audio,
+                                            extras
+      );
+      break;
+    }
+    case REMOTE: {
+      if (protocol == "http") {
+        camera = ZM::make_unique<RemoteCameraHttp>(this,
+                                                   method,
+                                                   host,
+                                                   port,
+                                                   path,
+                                                   camera_width,
+                                                   camera_height,
+                                                   colours,
+                                                   brightness,
+                                                   contrast,
+                                                   hue,
+                                                   colour,
+                                                   purpose == CAPTURE,
+                                                   record_audio
         );
-  } else if ( type == REMOTE ) {
-    if ( protocol == "http" ) {
-      camera = new RemoteCameraHttp(
-        this,
-        method,
-        host,
-        port,
-        path,
-        camera_width,
-        camera_height,
-        colours,
-        brightness,
-        contrast,
-        hue,
-        colour,
-        purpose==CAPTURE,
-        record_audio
+      }
+#if HAVE_LIBAVFORMAT
+      else if (protocol == "rtsp") {
+        camera = ZM::make_unique<RemoteCameraRtsp>(this,
+                                                   method,
+                                                   host, // Host
+                                                   port, // Port
+                                                   path, // Path
+                                                   camera_width,
+                                                   camera_height,
+                                                   rtsp_describe,
+                                                   colours,
+                                                   brightness,
+                                                   contrast,
+                                                   hue,
+                                                   colour,
+                                                   purpose == CAPTURE,
+                                                   record_audio
+        );
+      }
+#endif // HAVE_LIBAVFORMAT
+      else {
+        Error("Unexpected remote camera protocol '%s'", protocol.c_str());
+      }
+      break;
+    }
+    case FILE: {
+      camera = ZM::make_unique<FileCamera>(this,
+                                           path.c_str(),
+                                           camera_width,
+                                           camera_height,
+                                           colours,
+                                           brightness,
+                                           contrast,
+                                           hue,
+                                           colour,
+                                           purpose == CAPTURE,
+                                           record_audio
       );
+      break;
     }
 #if HAVE_LIBAVFORMAT
-    else if ( protocol == "rtsp" ) {
-      camera = new RemoteCameraRtsp(
-        this,
-        method,
-        host, // Host
-        port, // Port
-        path, // Path
-        camera_width,
-        camera_height,
-        rtsp_describe,
-        colours,
-        brightness,
-        contrast,
-        hue,
-        colour,
-        purpose==CAPTURE,
-        record_audio
+    case FFMPEG: {
+      camera = ZM::make_unique<FfmpegCamera>(this,
+                                             path,
+                                             method,
+                                             options,
+                                             camera_width,
+                                             camera_height,
+                                             colours,
+                                             brightness,
+                                             contrast,
+                                             hue,
+                                             colour,
+                                             purpose == CAPTURE,
+                                             record_audio,
+                                             decoder_hwaccel_name,
+                                             decoder_hwaccel_device
       );
+      break;
     }
 #endif // HAVE_LIBAVFORMAT
-    else {
-      Error("Unexpected remote camera protocol '%s'", protocol.c_str());
-    }
-  } else if ( type == FILE ) {
-    camera = new FileCamera(
-      this,
-      path.c_str(),
-      camera_width,
-      camera_height,
-      colours,
-      brightness,
-      contrast,
-      hue,
-      colour,
-      purpose==CAPTURE,
-      record_audio
-    );
-  } else if ( type == FFMPEG ) {
-#if HAVE_LIBAVFORMAT
-    camera = new FfmpegCamera(
-      this,
-      path,
-      method,
-      options,
-      camera_width,
-      camera_height,
-      colours,
-      brightness,
-      contrast,
-      hue,
-      colour,
-      purpose==CAPTURE,
-      record_audio,
-      decoder_hwaccel_name,
-      decoder_hwaccel_device
-    );
-#endif // HAVE_LIBAVFORMAT
-  } else if ( type == NVSOCKET ) {
-      camera = new RemoteCameraNVSocket(
-        this,
-        host.c_str(),
-        port.c_str(),
-        path.c_str(),
-        camera_width,
-        camera_height,
-        colours,
-        brightness,
-        contrast,
-        hue,
-        colour,
-        purpose==CAPTURE,
-        record_audio
+    case NVSOCKET: {
+      camera = ZM::make_unique<RemoteCameraNVSocket>(this,
+                                                     host.c_str(),
+                                                     port.c_str(),
+                                                     path.c_str(),
+                                                     camera_width,
+                                                     camera_height,
+                                                     colours,
+                                                     brightness,
+                                                     contrast,
+                                                     hue,
+                                                     colour,
+                                                     purpose == CAPTURE,
+                                                     record_audio
       );
-  } else if ( type == LIBVLC ) {
+      break;
+    }
+    case LIBVLC: {
 #if HAVE_LIBVLC
-    camera = new LibvlcCamera(
-      this,
-      path.c_str(),
-      method,
-      options,
-      camera_width,
-      camera_height,
-      colours,
-      brightness,
-      contrast,
-      hue,
-      colour,
-      purpose==CAPTURE,
-      record_audio
-    );
+      camera = ZM::make_unique<LibvlcCamera>(this,
+                                             path.c_str(),
+                                             method,
+                                             options,
+                                             camera_width,
+                                             camera_height,
+                                             colours,
+                                             brightness,
+                                             contrast,
+                                             hue,
+                                             colour,
+                                             purpose == CAPTURE,
+                                             record_audio
+      );
 #else // HAVE_LIBVLC
-    Error( "You must have vlc libraries installed to use vlc cameras for monitor %d", id );
+      Error("You must have vlc libraries installed to use vlc cameras for monitor %d", id);
 #endif // HAVE_LIBVLC
-  } else if ( type == CURL ) {
+      break;
+    }
+    case CURL: {
 #if HAVE_LIBCURL
-    camera = new cURLCamera(
-      this,
-      path.c_str(),
-      user.c_str(),
-      pass.c_str(),
-      camera_width,
-      camera_height,
-      colours,
-      brightness,
-      contrast,
-      hue,
-      colour,
-      purpose==CAPTURE,
-      record_audio
-    );
+      camera = ZM::make_unique<cURLCamera>(this,
+                                           path.c_str(),
+                                           user.c_str(),
+                                           pass.c_str(),
+                                           camera_width,
+                                           camera_height,
+                                           colours,
+                                           brightness,
+                                           contrast,
+                                           hue,
+                                           colour,
+                                           purpose == CAPTURE,
+                                           record_audio
+      );
 #else // HAVE_LIBCURL
-    Error("You must have libcurl installed to use ffmpeg cameras for monitor %d", id);
+      Error("You must have libcurl installed to use ffmpeg cameras for monitor %d", id);
 #endif // HAVE_LIBCURL
-  } else if ( type == VNC ) {
+      break;
+    }
+    case VNC: {
 #if HAVE_LIBVNC
-    camera = new VncCamera(
-      this,
-      host.c_str(),
-      port.c_str(),
-      user.c_str(),
-      pass.c_str(),
-      width,
-      height,
-      colours,
-      brightness,
-      contrast,
-      hue,
-      colour,
-      purpose==CAPTURE,
-      record_audio
-    );
+      camera = ZM::make_unique<VncCamera>(this,
+                                          host.c_str(),
+                                          port.c_str(),
+                                          user.c_str(),
+                                          pass.c_str(),
+                                          width,
+                                          height,
+                                          colours,
+                                          brightness,
+                                          contrast,
+                                          hue,
+                                          colour,
+                                          purpose == CAPTURE,
+                                          record_audio
+      );
 #else // HAVE_LIBVNC
-    Fatal("You must have libvnc installed to use VNC cameras for monitor id %d", id);
+      Fatal("You must have libvnc installed to use VNC cameras for monitor id %d", id);
 #endif // HAVE_LIBVNC
-  } // end if type
-
-  return camera;
-}  // end Monitor::getCamera
+      break;
+    }
+    default: {
+      Fatal("Tried to load unsupported camera type %d for monitor %u", int(type), id);
+      break;
+    }
+  }
+}
 
 std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
   std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", p_id);
@@ -939,7 +949,7 @@ bool Monitor::connect() {
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
   if ( !camera )
-    getCamera();
+    LoadCamera();
 
   Debug(3, "Allocating %d image buffers", image_buffer_count);
   image_buffer = new ZMPacket[image_buffer_count];
@@ -1073,6 +1083,8 @@ bool Monitor::disconnect() {
 }  // end bool Monitor::disconnect()
 
 Monitor::~Monitor() {
+  Close();
+
   if ( mem_ptr ) {
     if ( event ) {
       Info( "%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id() );
@@ -1107,7 +1119,6 @@ Monitor::~Monitor() {
   }
   delete[] zones;
 
-  delete camera;
   delete storage;
   if ( n_linked_monitors ) {
     for ( int i=0; i < n_linked_monitors; i++ ) {
@@ -2848,6 +2859,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   return score ? score : alarm;
 } // end MotionDetect
 
+// TODO: Move the camera specific things to the camera classes and avoid these casts.
 bool Monitor::DumpSettings(char *output, bool verbose) {
   output[0] = 0;
 
@@ -2856,29 +2868,34 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File") );
 #if ZM_HAS_V4L
   if ( camera->IsLocal() ) {
-    sprintf( output+strlen(output), "Device : %s\n", ((LocalCamera *)camera)->Device().c_str() );
-    sprintf( output+strlen(output), "Channel : %d\n", ((LocalCamera *)camera)->Channel() );
-    sprintf( output+strlen(output), "Standard : %d\n", ((LocalCamera *)camera)->Standard() );
+    LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
+    sprintf( output+strlen(output), "Device : %s\n", cam->Device().c_str() );
+    sprintf( output+strlen(output), "Channel : %d\n", cam->Channel() );
+    sprintf( output+strlen(output), "Standard : %d\n", cam->Standard() );
   } else
 #endif // ZM_HAS_V4L
   if ( camera->IsRemote() ) {
-    sprintf( output+strlen(output), "Protocol : %s\n", ((RemoteCamera *)camera)->Protocol().c_str() );
-    sprintf( output+strlen(output), "Host : %s\n", ((RemoteCamera *)camera)->Host().c_str() );
-    sprintf( output+strlen(output), "Port : %s\n", ((RemoteCamera *)camera)->Port().c_str() );
-    sprintf( output+strlen(output), "Path : %s\n", ((RemoteCamera *)camera)->Path().c_str() );
+    RemoteCamera* cam = static_cast<RemoteCamera*>(camera.get());
+    sprintf( output+strlen(output), "Protocol : %s\n", cam->Protocol().c_str() );
+    sprintf( output+strlen(output), "Host : %s\n", cam->Host().c_str() );
+    sprintf( output+strlen(output), "Port : %s\n", cam->Port().c_str() );
+    sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
   } else if ( camera->IsFile() ) {
-    sprintf( output+strlen(output), "Path : %s\n", ((FileCamera *)camera)->Path() );
+    FileCamera* cam = static_cast<FileCamera*>(camera.get());
+    sprintf( output+strlen(output), "Path : %s\n", cam->Path() );
   }
 #if HAVE_LIBAVFORMAT
   else if ( camera->IsFfmpeg() ) {
-    sprintf( output+strlen(output), "Path : %s\n", ((FfmpegCamera *)camera)->Path().c_str() );
+    FfmpegCamera* cam = static_cast<FfmpegCamera*>(camera.get());
+    sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
   }
 #endif // HAVE_LIBAVFORMAT
   sprintf( output+strlen(output), "Width : %d\n", camera->Width() );
   sprintf( output+strlen(output), "Height : %d\n", camera->Height() );
 #if ZM_HAS_V4L
   if ( camera->IsLocal() ) {
-    sprintf( output+strlen(output), "Palette : %d\n", ((LocalCamera *)camera)->Palette() );
+    LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
+    sprintf( output+strlen(output), "Palette : %d\n", cam->Palette() );
   }
 #endif // ZM_HAS_V4L
   sprintf(output+strlen(output), "Colours : %d\n", camera->Colours() );
@@ -2941,6 +2958,8 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
+  if (camera)
+    camera->Close();
   packetqueue.clear();
 #if 0
   if ( packetqueue ) {

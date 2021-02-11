@@ -840,6 +840,7 @@ function getStat() {
 }
 
 function onStatsResize(vidwidth) {
+  if (!vidWidth) return;
   var minWidth = 300; // An arbitrary value in pixels used to hide the stats table
   var scale = $j('#scale').val();
 

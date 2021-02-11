@@ -93,6 +93,11 @@ mark_as_advanced(
 option(BUILD_TEST_SUITE "Build the test suite" 0)
 option(BUILD_MAN "Build man pages" 1)
 option(ASAN "DEBUGGING: Build with AddressSanitizer (ASan) support" 0)
+option(TSAN "DEBUGGING: Build with ThreadSanitizer (TSan) support" 0)
+
+if(ASAN AND TSAN)
+  message(FATAL_ERROR "ASAN and TSAN options are mutually exclusive")
+endif()
 
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH
   "Location of transient process files, default: /var/run/zm")

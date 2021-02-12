@@ -360,12 +360,13 @@ protected:
 
   std::unique_ptr<Camera> camera;
   Event       *event;
+  std::mutex   event_mutex;
   Storage     *storage;
 
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   packetqueue_iterator  *analysis_it;
-  Mutex mutex;
+
 
   int      n_zones;
   Zone      **zones;

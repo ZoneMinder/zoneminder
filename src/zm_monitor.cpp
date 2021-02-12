@@ -1838,6 +1838,9 @@ bool Monitor::Analyse() {
     Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%d) image index %d",
         signal, signal_change, trigger_data->trigger_state, snap->image_index);
 
+    // Need to guard around event creation/deletion from Reload()
+    std::unique_lock<std::mutex> lck(event_mutex);
+
     // if we have been told to be OFF, then we are off and don't do any processing.
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
       Debug(4, "Trigger not OFF state is (%d)", trigger_data->trigger_state);
@@ -2267,6 +2270,8 @@ void Monitor::Reload() {
 
   // Access to the event needs to be protected.  Either thread could call Reload.  Either thread could close the event. 
   // Need a mutex on it I guess.  FIXME
+  // Need to guard around event creation/deletion This will prevent event creation until new settings are loaded
+  std::unique_lock<std::mutex> lck(event_mutex);
   if ( event ) {
     Info("%s: %03d - Closing event %" PRIu64 ", reloading", name, image_count, event->Id());
     closeEvent();

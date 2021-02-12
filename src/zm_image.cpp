@@ -280,7 +280,7 @@ void Image::Assign(const AVFrame *frame) {
 #if HAVE_LIBSWSCALE
   sws_convert_context = sws_getCachedContext(
       sws_convert_context,
-      width, height, (AVPixelFormat)frame->format,
+      frame->width, frame->height, (AVPixelFormat)frame->format,
       width, height, format,
       SWS_BICUBIC, nullptr, nullptr, nullptr);
   if ( sws_convert_context == nullptr )

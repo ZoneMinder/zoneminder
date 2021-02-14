@@ -202,11 +202,7 @@ Event::Event(
   if ( monitor->GetOptVideoWriter() != 0 ) {
     std::string container = monitor->OutputContainer();
     if ( container == "auto" || container == "" ) {
-      if ( monitor->OutputCodec() == AV_CODEC_ID_H264 ) {
-        container = "mp4";
-      } else {
-        container = "mkv";
-      }
+      container = "mp4";
     }
         
     video_name = stringtf("%" PRIu64 "-%s.%s", id, "video", container.c_str());

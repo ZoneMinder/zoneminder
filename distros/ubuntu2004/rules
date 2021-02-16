@@ -33,7 +33,7 @@ override_dh_clean:
 	dh_clean $(MANPAGES1)
 	$(RM) -r docs/_build
 
-build-indep:
+override_dh_auto_build-indep:
 	$(MAKE) -C docs html
 	 dh_auto_build
 

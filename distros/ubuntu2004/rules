@@ -34,10 +34,25 @@ override_dh_clean:
 	$(RM) -r docs/_build
 
 build-indep:
-	#$(MAKE) -C docs text
 	$(MAKE) -C docs html
+	 dh_auto_build
 
-MANPAGES1 = dbuild/scripts/zmupdate.pl.1
+MANPAGES1 = \
+		dbuild/scripts/zmupdate.pl.1 \
+    dbuild/scripts/zmaudit.pl.1     \
+    dbuild/scripts/zmcamtool.pl.1   \
+    dbuild/scripts/zmcontrol.pl.1   \
+    dbuild/scripts/zmdc.pl.1        \
+    dbuild/scripts/zmfilter.pl.1    \
+    dbuild/scripts/zmpkg.pl.1       \
+    dbuild/scripts/zmsystemctl.pl.1 \
+    dbuild/scripts/zmtelemetry.pl.1 \
+    dbuild/scripts/zmtrack.pl.1     \
+    dbuild/scripts/zmtrigger.pl.1   \
+    dbuild/scripts/zmvideo.pl.1     \
+    dbuild/scripts/zmwatch.pl.1     \
+    dbuild/scripts/zmx10.pl.1
+
 $(MANPAGES1):
 	# generate man page(s):
 	pod2man -s1 --stderr --utf8 $(patsubst %.1, %, $@) $@
@@ -50,7 +65,7 @@ override_dh_installman: $(MANPAGES1)
 	dh_installman --language=C $(MANPAGES1)
 
 override_dh_auto_install:
-	dh_auto_install --destdir=$(CURDIR)/debian/tmp
+	dh_auto_install --arch --destdir=$(CURDIR)/debian/tmp
 	# remove worthless files:
 	$(RM) -v $(CURDIR)/debian/tmp/usr/share/perl5/*/*/*/.packlist
 	$(RM) -v $(CURDIR)/debian/tmp/usr/share/perl5/*/*.in

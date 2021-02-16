@@ -1021,52 +1021,46 @@ bool Monitor::connect() {
 } // Monitor::connect
 
 bool Monitor::disconnect() {
-  if ( !mem_ptr )
+  if (mem_ptr == nullptr)
     return true;
 
 #if ZM_MEM_MAPPED
-  if ( mem_ptr > (void *)0 ) {
-    msync(mem_ptr, mem_size, MS_ASYNC);
-    munmap(mem_ptr, mem_size);
-  }
-  if ( map_fd >= 0 )
-    close(map_fd);
+  msync(mem_ptr, mem_size, MS_ASYNC);
+  munmap(mem_ptr, mem_size);
+  if (map_fd >= 0) close(map_fd);
 
   map_fd = -1;
   mem_ptr = nullptr;
   shared_data = nullptr;
 
-  if ( purpose == CAPTURE ) {
-    if ( unlink(mem_file) < 0 ) {
+  if (purpose == CAPTURE) {
+    if (unlink(mem_file) < 0) {
       Warning("Can't unlink '%s': %s", mem_file, strerror(errno));
     }
   }
 #else // ZM_MEM_MAPPED
   struct shmid_ds shm_data;
-  if ( shmctl(shm_id, IPC_STAT, &shm_data) < 0 ) {
+  if (shmctl(shm_id, IPC_STAT, &shm_data) < 0) {
     Debug(3, "Can't shmctl: %s", strerror(errno));
     return false;
   }
 
   shm_id = 0;
 
-  if ( shm_data.shm_nattch <= 1 ) {
-    if ( shmctl(shm_id, IPC_RMID, 0) < 0 ) {
+  if (shm_data.shm_nattch <= 1) {
+    if (shmctl(shm_id, IPC_RMID, 0) < 0) {
       Debug(3, "Can't shmctl: %s", strerror(errno));
       return false;
     }
   }
 
-  if ( shmdt(mem_ptr) < 0 ) {
+  if (shmdt(mem_ptr) < 0) {
     Debug(3, "Can't shmdt: %s", strerror(errno));
     return false;
   }
 #endif // ZM_MEM_MAPPED
-  if ( event ) {
-    Info( "%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id() );
-    closeEvent();
-  }
-  if ( image_buffer ) {
+
+  if (image_buffer) {
     for ( int i = 0; i < image_buffer_count; i++ ) {
       // We delete the image because it is an object pointing to space that won't be free'd.
       delete image_buffer[i].image;
@@ -1078,38 +1072,33 @@ bool Monitor::disconnect() {
     image_buffer = nullptr;
   }
 
-
   return true;
 }  // end bool Monitor::disconnect()
 
 Monitor::~Monitor() {
   Close();
 
-  if ( mem_ptr ) {
-    if ( event ) {
-      Info( "%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id() );
+  if (mem_ptr != nullptr) {
+    std::lock_guard<std::mutex> lck(event_mutex);
+    if (event) {
+      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id());
       closeEvent();
     }
-    if ( purpose == ANALYSIS ) {
+    if (purpose != QUERY) {
       shared_data->state = state = IDLE;
-      // I think we set it to the count so that it is technically 1 behind capture, which starts at 0
       shared_data->last_read_index = image_buffer_count;
       shared_data->last_read_time = 0;
-
-			if ( Event::PreAlarmCount() )
-				Event::EmptyPreAlarmFrames();
-    } else if ( purpose == CAPTURE ) {
       shared_data->valid = false;
       memset(mem_ptr, 0, mem_size);
       if ( (deinterlacing & 0xff) == 4 ) {
         delete next_buffer.image;
         delete next_buffer.timestamp;
       }
-    }
+    }  // end if purpose != query
     disconnect();
-  } // end if mem_ptr
+  }  // end if mem_ptr
 
-  if ( analysis_it ) {
+  if (analysis_it) {
     packetqueue.free_it(analysis_it);
     analysis_it = nullptr;
   }
@@ -1120,7 +1109,7 @@ Monitor::~Monitor() {
   delete[] zones;
 
   delete storage;
-  if ( n_linked_monitors ) {
+  if (n_linked_monitors) {
     for ( int i=0; i < n_linked_monitors; i++ ) {
       delete linked_monitors[i];
     }
@@ -2950,18 +2939,10 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
-  if (camera)
-    camera->Close();
+  if (camera) camera->Close();
   packetqueue.clear();
-#if 0
-  if ( packetqueue ) {
-    delete packetqueue;
-    packetqueue = nullptr;
-    analysis_it = nullptr; // deleted by packetqueue
-  }
-#endif
   return 1;
-};
+}
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 // Wait for camera to get an image, and then assign it as the base reference image.

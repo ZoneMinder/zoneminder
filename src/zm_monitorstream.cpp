@@ -487,7 +487,7 @@ void MonitorStream::runStream() {
   updateFrameRate(monitor->GetFPS());
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
-  unsigned int last_read_index = monitor->image_buffer_count;
+  int32_t last_read_index = monitor->image_buffer_count;
 
   time_t stream_start_time;
   time(&stream_start_time);
@@ -850,7 +850,13 @@ void MonitorStream::SingleImage(int scale) {
   int img_buffer_size = 0;
   static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
-  ZMPacket *snap = &(monitor->image_buffer[monitor->shared_data->last_write_index]);
+  while ( monitor->shared_data->last_write_index >= monitor->image_buffer_count ) {
+    Debug(1, "Waiting for capture to begin");
+    usleep(100000);
+  }
+  int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+  Debug(1, "write index: %d %d", monitor->shared_data->last_write_index, index);
+  ZMPacket *snap = &(monitor->image_buffer[index]);
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {

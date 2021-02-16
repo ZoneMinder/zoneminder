@@ -4,6 +4,9 @@ xhtmlHeaders(__FILE__, translate('Login'));
 <body>
 <?php echo getNavBarHTML(); ?>
 	<div class="container">
+<?php
+if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
+?>
 		<form class="center-block" name="loginForm" id="loginForm" method="post" action="?">
 			<input type="hidden" name="action" value="login"/>
 			<input type="hidden" name="view" value="login"/>
@@ -34,6 +37,15 @@ if (
 } ?>
 				<button class="btn btn-lg btn-primary btn-block" type="submit"><?php echo translate('Login') ?></button>
 			</div>
+<?php 
+} else {
+?>
+<div class="error">
+User Authentication is not turned on. You cannot log in.
+</div>
+<?php
+} # end if ZM_OPT_AUTH
+?>
 		</form>
 	</div>
 <?php xhtmlFooter() ?>

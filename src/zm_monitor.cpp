@@ -954,7 +954,7 @@ bool Monitor::connect() {
 
   Debug(3, "Allocating %d image buffers", image_buffer_count);
   image_buffer = new ZMPacket[image_buffer_count];
-  for ( uint32_t i = 0; i < image_buffer_count; i++ ) {
+  for ( int32_t i = 0; i < image_buffer_count; i++ ) {
     image_buffer[i].image_index = i;
     image_buffer[i].timestamp = &(shared_timestamps[i]);
     image_buffer[i].image = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
@@ -1062,7 +1062,7 @@ bool Monitor::disconnect() {
 #endif // ZM_MEM_MAPPED
 
   if (image_buffer) {
-    for ( uint32_t i = 0; i < image_buffer_count; i++ ) {
+    for ( int32_t i = 0; i < image_buffer_count; i++ ) {
       // We delete the image because it is an object pointing to space that won't be free'd.
       delete image_buffer[i].image;
       image_buffer[i].image = nullptr;
@@ -1200,11 +1200,11 @@ struct timeval Monitor::GetTimestamp(int index) const {
 }
 
 unsigned int Monitor::GetLastReadIndex() const {
-  return( shared_data->last_read_index!=(unsigned int)image_buffer_count?shared_data->last_read_index:-1 );
+  return ( shared_data->last_read_index != image_buffer_count ? shared_data->last_read_index : -1 );
 }
 
 unsigned int Monitor::GetLastWriteIndex() const {
-  return( shared_data->last_write_index!=(unsigned int)image_buffer_count?shared_data->last_write_index:-1 );
+  return ( shared_data->last_write_index != image_buffer_count ? shared_data->last_write_index : -1 );
 }
 
 uint64_t Monitor::GetLastEventId() const {
@@ -1215,7 +1215,7 @@ uint64_t Monitor::GetLastEventId() const {
 double Monitor::GetFPS() const {
   return get_capture_fps();
   // last_write_index is the last capture index.  It starts as == image_buffer_count so that the first asignment % image_buffer_count = 0;
-  uint32_t index1 = shared_data->last_write_index;
+  int32_t index1 = shared_data->last_write_index;
   if ( index1 >= image_buffer_count ) {
     // last_write_index only has this value on startup before capturing anything.
     return 0.0;
@@ -1229,9 +1229,9 @@ double Monitor::GetFPS() const {
   }
   struct timeval time1 = *snap1->timestamp;
 
-  uint32_t fps_image_count = image_buffer_count;
+  int32_t fps_image_count = image_buffer_count;
 
-  uint32_t index2 = (index1+1)%image_buffer_count;
+  int32_t index2 = (index1+1)%image_buffer_count;
   Debug(2, "index2(%d)", index2);
   ZMPacket *snap2 = &image_buffer[index2];
   // the timestamp pointers are initialized on connection, so that's redundant

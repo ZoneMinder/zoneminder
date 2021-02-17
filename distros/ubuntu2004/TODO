@@ -1,0 +1,12 @@
+
+## Separate substantial /usr/share into its own arch-all package.
+
+## Decide how to handle database updates.
+
+  * Consider possibility that database may be on another machine (#469239).
+  * Consider dbconfig-common? Probably not (what if database is not on localhost?).
+
+### Run `zmupdate.pl` from service control scripts (init.d, service) on start?
+
+ Automatic upgrade will break "one DB, many zoneminders" setup (unimportant?).
+

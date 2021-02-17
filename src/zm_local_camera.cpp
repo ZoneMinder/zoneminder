@@ -2195,7 +2195,6 @@ int LocalCamera::PostCapture() {
         v4l2_std_id stdId = standards[next_channel];
         if ( vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0 ) {
           Error("Failed to set video format %d: %s", standards[next_channel], strerror(errno));
-          return -1;
         }
       }
       if ( v4l2_data.bufptr ) {

@@ -433,6 +433,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     type = LIBVLC;
   } else if ( ! strcmp(dbrow[col], "cURL") ) {
     type = CURL;
+  } else if ( ! strcmp(dbrow[col], "VNC") ) {
+    type = VNC;
   } else {
     Fatal("Bogus monitor type '%s' for monitor %d", dbrow[col], id);
   }

@@ -144,7 +144,7 @@ Description: ZoneMinder documentation
 
 Package: zoneminder-dbg
 Section: debug
-Priority: extra
+Priority: optional
 Architecture: any
 Depends: zoneminder (= ${binary:Version}), ${misc:Depends}
 Description: Zoneminder -- debugging symbols

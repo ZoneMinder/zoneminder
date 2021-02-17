@@ -11,7 +11,7 @@ ARGS:= -DZM_NO_MMAP=ON
 endif
 
 %:
-	dh $@ --parallel --buildsystem=cmake --builddirectory=dbuild \
+	dh $@ --buildsystem=cmake --builddirectory=dbuild \
             --with sphinxdoc,apache2,linktree
 
 override_dh_auto_configure:

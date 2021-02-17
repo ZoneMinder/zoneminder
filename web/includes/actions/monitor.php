@@ -62,7 +62,8 @@ if ( $action == 'save' ) {
       'RecordAudio' => 0,
       'Method' => 'raw',
       'GroupIds'  =>  array(),
-      'LinkedMonitors'  => array() 
+      'LinkedMonitors'  => array(),
+      'RTSPServer' => 0
       );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.

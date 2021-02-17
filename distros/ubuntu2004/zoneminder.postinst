@@ -52,7 +52,10 @@ if [ "$1" = "configure" ]; then
   chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
   if [ ! -e "/etc/apache2/mods-enabled/cgi.load" ] && [ "$(command -v a2enmod)" != "" ]; then
     echo "The cgi module is not enabled in apache2.  I am enabling it using a2enmod cgi."
-    a2enmod cgi
+    if [ -e /usr/share/apache2/apache2-maintscript-helper ] ; then
+        . /usr/share/apache2/apache2-maintscript-helper
+        apache2_invoke enmod cgi || exit $?
+    fi
   fi
 
   SYSTEMD=0

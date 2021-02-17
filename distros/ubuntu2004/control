@@ -80,7 +80,6 @@ Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server
            ,zoneminder-doc (>= ${source:Version})
-           ,ffmpeg
 Suggests: fcgiwrap, logrotate
 Description: video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security

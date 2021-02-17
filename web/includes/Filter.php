@@ -354,7 +354,7 @@ class Filter extends ZM_Object {
     for ( $i = 0; $i < count($terms); $i++ ) {
       $term = $terms[$i];
       if ( !empty($term['cnj']) ) {
-        while( true ) {
+        while ( true ) {
           if ( !count($postfixStack) ) {
             $postfixStack[] = array('type'=>'cnj', 'value'=>$term['cnj'], 'sqlValue'=>$term['cnj']);
             break;
@@ -518,7 +518,7 @@ class Filter extends ZM_Object {
           ZM\Error('Unknown operator in filter '.$term['op']);
         }
 
-        while( true ) {
+        while ( true ) {
           if ( !count($postfixStack) ) {
             $postfixStack[] = array('type'=>'op', 'value'=>$term['op'], 'sqlValue'=>$sqlValue);
             break;
@@ -578,11 +578,6 @@ class Filter extends ZM_Object {
           case 'EndTime':
           case 'StartTime':
             $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
-            break;
-          case 'Weekday':
-          case 'EndWeekday':
-          case 'StartWeekday':
-            $value = 'weekday(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
             break;
           default :
             if ( $value != 'NULL' )

@@ -374,13 +374,8 @@ int main(int argc, char *argv[]) {
       }
 
       if ( zm_reload ) {
-        for (std::shared_ptr<Monitor> &monitor : monitors) {
-          monitor->Reload();
-        }
-        logTerm();
-        logInit(log_id_string);
-        zm_reload = false;
-      }  // end if zm_reload
+        break;
+      }
     }  // end while ! zm_terminate and connected
 
     for (std::unique_ptr<AnalysisThread> &analysis_thread: analysis_threads)
@@ -397,7 +392,7 @@ int main(int argc, char *argv[]) {
 
 #if HAVE_RTSP_SERVER
       if (rtsp_server_threads) {
-        rtsp_server_threads[i]->join();;
+        rtsp_server_threads[i]->join();
         delete rtsp_server_threads[i];
         rtsp_server_threads[i] = nullptr;
       }
@@ -422,6 +417,14 @@ int main(int argc, char *argv[]) {
       Debug(1, "Sleeping for 5");
       sleep(5);
     }
+    if (zm_reload) {
+      for (std::shared_ptr<Monitor> &monitor : monitors) {
+        monitor->Reload();
+      }
+      logTerm();
+      logInit(log_id_string);
+      zm_reload = false;
+    }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop
 
   Debug(1,"Updating Monitor status");

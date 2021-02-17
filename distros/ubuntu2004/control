@@ -2,7 +2,6 @@ Source: zoneminder
 Section: net
 Priority: optional
 Maintainer: Isaac Connor <isaac@zoneminder.com>
-Uploaders: Isaac Connor <isaac@zoneminder.com>
 Build-Depends: debhelper, sphinx-doc, python3-sphinx, dh-linktree, dh-apache2
               ,cmake
               ,libavdevice-dev
@@ -68,8 +67,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdata-uuid-perl
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl
-        ,mysql-client | mariadb-client | virtual-mysql-client
-        ,perl-modules
+        ,default-mysql-client | mariadb-client | virtual-mysql-client
         ,php-mysql, php-gd, php-apcu, php-apc | php-apcu-bc, php-json
         ,policykit-1
         ,rsyslog | system-log-daemon
@@ -80,7 +78,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libvncclient1|libvncclient0
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
-           ,mysql-server | mariadb-server | virtual-mysql-server
+           ,default-mysql-server | mariadb-server | virtual-mysql-server
            ,zoneminder-doc (>= ${source:Version})
            ,ffmpeg
 Suggests: fcgiwrap, logrotate

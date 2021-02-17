@@ -166,7 +166,7 @@ int VncCamera::PrimeCapture() {
         width, height, mRfb->width, mRfb->height);
   }
 
-  return 0;
+  return 1;
 }
 
 int VncCamera::PreCapture() {
@@ -201,10 +201,10 @@ int VncCamera::Capture(ZMPacket &zm_packet) {
 }
 
 int VncCamera::PostCapture() {
-  return 0;
+  return 1;
 }
 
 int VncCamera::Close() {
-  return 0;
+  return 1;
 }
 #endif

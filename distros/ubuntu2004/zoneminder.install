@@ -8,5 +8,5 @@ usr/share/zoneminder/www
 usr/share/zoneminder/fonts
 
 # libzoneminder-perl files:
-usr/share/man/man3
+#usr/share/man/man3
 usr/share/perl5

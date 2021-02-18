@@ -631,3 +631,10 @@ bool PacketQueue::is_there_an_iterator_pointing_to_packet(ZMPacket *zm_packet) {
   }  // end foreach iterator
   return false;
 }
+    void PacketQueue::setMaxVideoPackets(int p) {
+      max_video_packet_count = p;
+      Debug(1, "Setting max_video_packet_count to %d", p);
+      if ( max_video_packet_count < 1 )
+        max_video_packet_count = 1 ;
+      // We can simplify a lot of logic in queuePacket if we can assume at least 1 packet in queue
+    }

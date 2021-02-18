@@ -138,7 +138,7 @@ bool VideoStore::open() {
         Error("Could not initialize ctx parameters");
         return false;
       }
-      fix_deprecated_pix_fmt(video_out_ctx);
+      video_out_ctx->pix_fmt = fix_deprecated_pix_fmt(video_out_ctx->pix_fmt);
       if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
         video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;

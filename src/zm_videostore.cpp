@@ -164,7 +164,7 @@ bool VideoStore::open() {
       std::string wanted_encoder = monitor->Encoder();
 
       for ( unsigned int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++ ) {
-        if ( wanted_encoder != "" ) {
+        if ( wanted_encoder != "" and wanted_encoder != "auto" ) {
           if ( wanted_encoder != codec_data[i].codec_name ) {
             Debug(1, "Not the right codec name %s != %s", codec_data[i].codec_name, wanted_encoder.c_str());
             continue;
@@ -262,7 +262,7 @@ bool VideoStore::open() {
         // We allocate and copy in newer ffmpeg, so need to free it
         avcodec_free_context(&video_out_ctx);
 #endif
-        video_out_ctx = nullptr;
+        //video_out_ctx = nullptr;
 
         return false;
       } // end if can't open codec

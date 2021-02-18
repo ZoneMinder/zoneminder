@@ -133,6 +133,7 @@ Event::Event(
     db_mutex.lock();
   }
   id = mysql_insert_id(&dbconn);
+  db_mutex.unlock();
 
   if ( !SetPath(storage) ) {
     // Try another

@@ -138,7 +138,7 @@ bool VideoStore::open() {
         Error("Could not initialize ctx parameters");
         return false;
       }
-      fix_deprecated_pix_fmt(video_out_ctx);
+      video_out_ctx->pix_fmt = fix_deprecated_pix_fmt(video_out_ctx->pix_fmt);
       if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
         video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -164,7 +164,7 @@ bool VideoStore::open() {
       std::string wanted_encoder = monitor->Encoder();
 
       for ( unsigned int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++ ) {
-        if ( wanted_encoder != "" ) {
+        if ( wanted_encoder != "" and wanted_encoder != "auto" ) {
           if ( wanted_encoder != codec_data[i].codec_name ) {
             Debug(1, "Not the right codec name %s != %s", codec_data[i].codec_name, wanted_encoder.c_str());
             continue;
@@ -210,10 +210,12 @@ bool VideoStore::open() {
           video_out_ctx->gop_size = 12;
           video_out_ctx->max_b_frames = 1;
 
-          ret = av_opt_set(video_out_ctx->priv_data, "crf", "36", AV_OPT_SEARCH_CHILDREN);
+          ret = av_opt_set(video_out_ctx, "crf", "36", AV_OPT_SEARCH_CHILDREN);
           if ( ret < 0 ) {
-            Error("Could not set 'crf' for output codec %s.",
-                codec_data[i].codec_name);
+            Error("Could not set 'crf' for output codec %s. %s",
+                codec_data[i].codec_name,
+                av_make_error_string(ret).c_str()
+                );
           }
         } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO ) {
           /* just for testing, we also add B frames */
@@ -260,7 +262,7 @@ bool VideoStore::open() {
         // We allocate and copy in newer ffmpeg, so need to free it
         avcodec_free_context(&video_out_ctx);
 #endif
-        video_out_ctx = nullptr;
+        //video_out_ctx = nullptr;
 
         return false;
       } // end if can't open codec

@@ -43,19 +43,20 @@ if ( !empty($_REQUEST['mid']) ) {
 
 if ( !$monitor ) {
   $nextId = getTableAutoInc('Monitors');
-  if ( isset($_REQUEST['dupId']) ) {
-    $monitor = new ZM\Monitor($_REQUEST['dupId']);
-    $monitor->GroupIds(); // have to load before we change the Id
-    if ( ZM_OPT_X10 )
-      $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));
-    $clonedName = $monitor->Name();
-    $monitor->Id(0);
-  } else {
-    $monitor = new ZM\Monitor();
-  } # end if $_REQUEST['dupID']
+  $monitor = new ZM\Monitor();
   $monitor->Name(translate('Monitor').'-'.$nextId);
   $monitor->WebColour(random_colour());
 } # end if $_REQUEST['mid']
+
+if ( isset($_REQUEST['dupId']) ) {
+  $monitor = new ZM\Monitor($_REQUEST['dupId']);
+  $monitor->GroupIds(); // have to load before we change the Id
+  if ( ZM_OPT_X10 )
+    $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));
+  $clonedName = $monitor->Name();
+  $monitor->Name('Clone of '.$monitor->Name());
+  $monitor->Id(!empty($_REQUEST['mid'])?validInt($_REQUEST['mid']) : 0);
+}
 
 if ( ZM_OPT_X10 && empty($x10Monitor) ) {
   $x10Monitor = array(
@@ -550,7 +551,7 @@ switch ( $name ) {
           <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
           <td>
 <?php
-      $monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Sequence ASC');
+      $monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
       $monitor_options = array();
       foreach ( $monitors as $linked_monitor ) {
         if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {

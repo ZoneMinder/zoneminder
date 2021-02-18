@@ -238,8 +238,8 @@ int main(int argc, char *argv[]) {
     static char sql[ZM_SQL_SML_BUFSIZ];
 
     for (const std::shared_ptr<Monitor> &monitor : monitors) {
-      if (!monitor->getCamera()) {
-      }
+      monitor->LoadCamera();
+
       if (!monitor->connect()) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
       }
@@ -310,8 +310,7 @@ int main(int argc, char *argv[]) {
 #if HAVE_RTSP_SERVER
       if ( rtsp_server_threads ) {
         rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
-        Camera *camera = monitors[i]->getCamera();
-        rtsp_server_threads[i]->addStream(camera->get_VideoStream(), camera->get_AudioStream());
+        rtsp_server_threads[i]->addStream(monitors[i]->GetVideoStream(), monitors[i]->GetAudioStream());
         rtsp_server_threads[i]->start();
       }
 #endif
@@ -376,17 +375,12 @@ int main(int argc, char *argv[]) {
       }
 
       if ( zm_reload ) {
-        for (std::shared_ptr<Monitor> &monitor : monitors) {
-          monitor->Reload();
-        }
-        logTerm();
-        logInit(log_id_string);
-        zm_reload = false;
-      }  // end if zm_reload
+        break;
+      }
     }  // end while ! zm_terminate and connected
 
-    // Killoff the analysis threads. Don't need them spinning while we try to reconnect
-    analysis_threads.clear();
+    for (std::unique_ptr<AnalysisThread> &analysis_thread: analysis_threads)
+      analysis_thread->Stop();
 
     for (size_t i = 0; i < monitors.size(); i++) {
 #if HAVE_RTSP_SERVER
@@ -399,15 +393,15 @@ int main(int argc, char *argv[]) {
 
 #if HAVE_RTSP_SERVER
       if (rtsp_server_threads) {
-        rtsp_server_threads[i]->join();;
+        rtsp_server_threads[i]->join();
         delete rtsp_server_threads[i];
         rtsp_server_threads[i] = nullptr;
       }
 #endif
-      Camera *camera = monitors[i]->getCamera();
-      Debug(1, "Closing camera");
-      camera->Close();
     }
+
+    // Killoff the analysis threads. Don't need them spinning while we try to reconnect
+    analysis_threads.clear();
 
 #if HAVE_RTSP_SERVER
     if (rtsp_server_threads) {
@@ -424,6 +418,14 @@ int main(int argc, char *argv[]) {
       Debug(1, "Sleeping for 5");
       sleep(5);
     }
+    if (zm_reload) {
+      for (std::shared_ptr<Monitor> &monitor : monitors) {
+        monitor->Reload();
+      }
+      logTerm();
+      logInit(log_id_string);
+      zm_reload = false;
+    }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop
 
   Debug(1,"Updating Monitor status");
@@ -436,7 +438,6 @@ int main(int argc, char *argv[]) {
     if (mysql_query(&dbconn, sql)) {
       Error("Can't run query: %s", mysql_error(&dbconn));
     }
-    monitor->disconnect();
   }
 
   Image::Deinitialise();

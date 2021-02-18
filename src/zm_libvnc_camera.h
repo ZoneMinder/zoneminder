@@ -8,6 +8,13 @@
 #if HAVE_LIBVNC
 #include <rfb/rfbclient.h>
 
+// Older versions of libvncserver defined a max macro in rfb/rfbproto.h
+// Undef it here so it doesn't collide with std::max
+// TODO: Remove this once xenial support is dropped
+#ifdef max
+#undef max
+#endif
+
 // Used by vnc callbacks
 struct VncPrivateData {
   uint8_t *buffer;
@@ -19,7 +26,7 @@ class VncCamera : public Camera {
 protected:
   rfbClient *mRfb;
   VncPrivateData mVncData;
-  int mBpp;
+  int mBufferSize;
   SWScale scale;
   AVPixelFormat mImgPixFmt;
   std::string mHost;

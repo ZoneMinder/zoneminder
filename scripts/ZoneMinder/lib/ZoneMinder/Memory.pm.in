@@ -144,8 +144,8 @@ our $mem_seq = 0;
 our $mem_data = {
   shared_data => { type=>'SharedData', seq=>$mem_seq++, contents=> {
     size             => { type=>'uint32', seq=>$mem_seq++ },
-    last_write_index => { type=>'uint32', seq=>$mem_seq++ },
-    last_read_index  => { type=>'uint32', seq=>$mem_seq++ },
+    last_write_index => { type=>'int32', seq=>$mem_seq++ },
+    last_read_index  => { type=>'int32', seq=>$mem_seq++ },
     state            => { type=>'uint32', seq=>$mem_seq++ },
     capture_fps      => { type=>'double', seq=>$mem_seq++ },
     analysis_fps     => { type=>'double', seq=>$mem_seq++ },
@@ -162,7 +162,7 @@ our $mem_data = {
     signal           => { type=>'uint8', seq=>$mem_seq++ },
     format           => { type=>'uint8', seq=>$mem_seq++ },
     imagesize        => { type=>'uint32', seq=>$mem_seq++ },
-    epadding1        => { type=>'uint32', seq=>$mem_seq++ },
+    last_frame_score => { type=>'uint32', seq=>$mem_seq++ },
     startup_time     => { type=>'time_t64', seq=>$mem_seq++ },
     zmc_heartbeat_time  => { type=>'time_t64', seq=>$mem_seq++ },
     zma_heartbeat_time  => { type=>'time_t64', seq=>$mem_seq++ },

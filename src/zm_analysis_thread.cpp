@@ -9,7 +9,7 @@ AnalysisThread::AnalysisThread(std::shared_ptr<Monitor> monitor) :
 }
 
 AnalysisThread::~AnalysisThread() {
-  terminate_ = true;
+  Stop();
   if (thread_.joinable())
     thread_.join();
 }
@@ -40,10 +40,11 @@ void AnalysisThread::Run() {
 
     Debug(2, "Analyzing");
     if (!monitor_->Analyse()) {
-      Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
-
-      Debug(2, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
-      std::this_thread::sleep_for(sleep_for);
+      if ( !(terminate_ or zm_terminate) ) {
+        Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
+        Debug(2, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
+      }
     } else if (analysis_rate != Microseconds::zero()) {
       Debug(2, "Sleeping for %" PRId64 " us", int64(analysis_rate.count()));
       std::this_thread::sleep_for(analysis_rate);

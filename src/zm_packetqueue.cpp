@@ -72,6 +72,14 @@ PacketQueue::~PacketQueue() {
 
 bool PacketQueue::queuePacket(ZMPacket* add_packet) {
   Debug(4, "packetqueue queuepacket %p %d", add_packet, add_packet->image_index);
+  if (iterators.empty()) {
+    Debug(4, "No iterators so no one needs us to queue packets.");
+    return false;
+  }
+  if (!packet_counts[video_stream_id] and !add_packet->keyframe) {
+    Debug(4, "No video keyframe so no one needs us to queue packets.");
+    return false;
+  }
   mutex.lock();
 
 	pktQueue.push_back(add_packet);
@@ -412,6 +420,10 @@ unsigned int PacketQueue::size() {
 }
 
 int PacketQueue::packet_count(int stream_id) {
+  if ( stream_id < 0 or stream_id > max_stream_id ) {
+    Error("Invalid stream_id %d", stream_id);
+    return -1;
+  }
   return packet_counts[stream_id];
 } // end int PacketQueue::packet_count(int stream_id)
 
@@ -623,3 +635,10 @@ bool PacketQueue::is_there_an_iterator_pointing_to_packet(ZMPacket *zm_packet) {
   }  // end foreach iterator
   return false;
 }
+    void PacketQueue::setMaxVideoPackets(int p) {
+      max_video_packet_count = p;
+      Debug(1, "Setting max_video_packet_count to %d", p);
+      if ( max_video_packet_count < 1 )
+        max_video_packet_count = 1 ;
+      // We can simplify a lot of logic in queuePacket if we can assume at least 1 packet in queue
+    }

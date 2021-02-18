@@ -20,6 +20,7 @@
 #include "zm_remote_camera_rtsp.h"
 
 #include "zm_config.h"
+#include "zm_monitor.h"
 #include "zm_packet.h"
 
 #if HAVE_LIBAVFORMAT

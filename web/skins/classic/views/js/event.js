@@ -613,7 +613,7 @@ function getEventResponse(respObj, respText) {
   } else {
     drawProgressBar();
   }
-  nearEventsQuery( eventData.Id );
+  nearEventsQuery(eventData.Id);
 } // end function getEventResponse
 
 function eventQuery(eventId) {
@@ -626,10 +626,11 @@ function eventQuery(eventId) {
       .fail(logAjaxFail);
 }
 
-function getNearEventsResponse( respObj, respText ) {
+function getNearEventsResponse(respObj, respText) {
   if ( checkStreamForErrors('getNearEventsResponse', respObj) ) {
     return;
   }
+  console.log(respObj);
   prevEventId = respObj.nearevents.PrevEventId;
   nextEventId = respObj.nearevents.NextEventId;
   prevEventStartTime = Date.parse(respObj.nearevents.PrevEventStartTime);
@@ -641,7 +642,7 @@ function getNearEventsResponse( respObj, respText ) {
   $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
 }
 
-function nearEventsQuery( eventId ) {
+function nearEventsQuery(eventId) {
   $j.getJSON(thisUrl + '?view=request&request=status&entity=nearevents&id='+eventId+filterQuery+sortQuery)
       .done(getNearEventsResponse)
       .fail(logAjaxFail);
@@ -839,7 +840,8 @@ function getStat() {
   });
 }
 
-function onStatsResize(vidwidth) {
+function onStatsResize(vidWidth) {
+  if (!vidWidth) return;
   var minWidth = 300; // An arbitrary value in pixels used to hide the stats table
   var scale = $j('#scale').val();
 
@@ -847,8 +849,8 @@ function onStatsResize(vidwidth) {
     vidWidth = vidWidth * (scale/100);
   }
 
-  var width = $j(window).width() - vidwidth;
-  //console.log("Width: " + width + " = window.width " + $j(window).width() + "- vidWidth" + vidwidth);
+  var width = $j(window).width() - vidWidth;
+  //console.log("Width: " + width + " = window.width " + $j(window).width() + "- vidWidth" + vidWidth);
 
   // Hide the stats table if we have run out of room to show it properly
   if ( width < minWidth ) {

@@ -21,6 +21,7 @@
 #define ZM_MONITOR_H
 
 #include "zm_define.h"
+#include "zm_camera.h"
 #include "zm_event.h"
 #include "zm_image.h"
 #include "zm_packet.h"
@@ -30,7 +31,6 @@
 #include <sys/time.h>
 #include <vector>
 
-class Camera;
 class Group;
 
 #define SIGNAL_CAUSE "Signal"
@@ -105,8 +105,8 @@ protected:
   /* sizeof(SharedData) expected to be 344 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
-    uint32_t last_write_index;  /* +4    */
-    uint32_t last_read_index;   /* +8    */
+    int32_t last_write_index;  /* +4    */
+    int32_t last_read_index;   /* +8    */
     uint32_t state;             /* +12   */
     double      capture_fps;       // Current capturing fps
     double      analysis_fps;      // Current analysis fps
@@ -286,7 +286,7 @@ protected:
   char       label_format[64];    // The format of the timestamp on the images
   Coord      label_coord;      // The coordinates of the timestamp on the images
   int        label_size;         // Size of the timestamp on the images
-  int        image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
+  int32_t   image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
   int        pre_event_buffer_count;   // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
   // value is pre_event_count + alarm_frame_count - 1
   int        warmup_count;      // How many images to process before looking for events
@@ -358,14 +358,15 @@ protected:
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
 
-  Camera      *camera;
+  std::unique_ptr<Camera> camera;
   Event       *event;
+  std::mutex   event_mutex;
   Storage     *storage;
 
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   packetqueue_iterator  *analysis_it;
-  Mutex mutex;
+
 
   int      n_zones;
   Zone      **zones;
@@ -393,13 +394,14 @@ public:
   void AddZones( int p_n_zones, Zone *p_zones[] );
   void AddPrivacyBitmask( Zone *p_zones[] );
 
+  void LoadCamera();
   bool connect();
   bool disconnect();
 
   inline int ShmValid() const {
     return shared_data && shared_data->valid;
   }
-  Camera *getCamera();
+
 
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name; }
@@ -468,10 +470,15 @@ public:
   void SetVideoWriterStartTime(const struct timeval &t) { video_store_data->recording = t; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
-  int GetImageBufferCount() const { return image_buffer_count; };
+  int32_t GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const { return (State)shared_data->state; }
 
-  int GetImage( int index=-1, int scale=100 );
+  AVStream *GetAudioStream() const { return camera ? camera->get_AudioStream() : nullptr; };
+  AVCodecContext *GetAudioCodecContext() const { return camera ?  camera->get_AudioCodecContext() : nullptr; };
+  AVStream *GetVideoStream() const { return camera ? camera->get_VideoStream() : nullptr; };
+  AVCodecContext *GetVideoCodecContext() const { return camera ?  camera->get_VideoCodecContext() : nullptr; };
+
+  int GetImage(int32_t index=-1, int scale=100);
   ZMPacket *getSnapshot( int index=-1 ) const;
   struct timeval GetTimestamp( int index=-1 ) const;
   void UpdateAdaptiveSkip();

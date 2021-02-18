@@ -175,6 +175,37 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
   return result_set;
 }
 
+int zmDbDo(const char *query) {
+  db_mutex.lock();
+  int rc;
+  while ( rc = mysql_query(&dbconn, query) ) {
+    db_mutex.unlock();
+    Error("Can't run query %s: %s", query, mysql_error(&dbconn));
+    if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
+      return rc;
+
+    db_mutex.lock();
+  }
+  db_mutex.unlock();
+  return 1;
+}
+
+int zmDbDoInsert(const char *query) {
+  db_mutex.lock();
+  int rc;
+  while ( rc = mysql_query(&dbconn, query) ) {
+    db_mutex.unlock();
+    Error("Can't run query %s: %s", query, mysql_error(&dbconn));
+    if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
+      return 0;
+
+    db_mutex.lock();
+  }
+  int id = mysql_insert_id(&dbconn);
+  db_mutex.unlock();
+  return id;
+}
+
 zmDbRow::~zmDbRow() {
   if ( result_set ) {
     mysql_free_result(result_set);

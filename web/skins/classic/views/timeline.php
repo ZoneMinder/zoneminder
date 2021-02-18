@@ -145,7 +145,6 @@ $tree = false;
 if ( isset($_REQUEST['filter']) ) {
   $filter =  ZM\Filter::parse($_REQUEST['filter']);
   $tree = $filter->tree();
-  ZM\Debug('Parse tree: ' . print_r($tree,true));
 }
 
 if ( isset($_REQUEST['range']) )
@@ -196,9 +195,8 @@ if ( isset($minTime) && isset($maxTime) ) {
   $filterSql = parseTreeToSQL($tree);
 
   if ( $filterSql ) {
-    $filterSql = " AND $filterSql";
-    $eventsSql .= $filterSql;
-    $eventIdsSql .= $filterSql;
+    $eventsSql .= ' AND '.$filterSql;
+    $eventIdsSql .= ' AND '.$filterSql;
   }
 } else {
   $filterSql = parseTreeToSQL($tree);
@@ -206,10 +204,9 @@ if ( isset($minTime) && isset($maxTime) ) {
   extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
 
   if ( $filterSql ) {
-    $filterSql = " AND $filterSql";
-    $rangeSql .= $filterSql;
-    $eventsSql .= $filterSql;
-    $eventIdsSql .= $filterSql;
+    $rangeSql .= ' AND '.$filterSql;
+    $eventsSql .= ' AND '.$filterSql;
+    $eventIdsSql .= ' AND '.$filterSql;
   }
 
   if ( !isset($minTime) || !isset($maxTime) ) {
@@ -220,8 +217,6 @@ if ( isset($minTime) && isset($maxTime) ) {
         $minTime = $row['MinTime'];
       if ( !isset($maxTime) )
         $maxTime = $row['MaxTime'];
-    } else {
-      # Errors will be reported by db functions
     }
   }
 
@@ -237,10 +232,9 @@ if ( isset($minTime) && isset($maxTime) ) {
   $range = ($maxTimeT - $minTimeT) + 1;
   $halfRange = (int)($range/2);
   $midTimeT = $minTimeT + $halfRange;
-  $midTime = strftime( STRF_FMT_DATETIME_DB, $midTimeT );
+  $midTime = strftime(STRF_FMT_DATETIME_DB, $midTimeT);
 }
 
-//echo "MnT: $tempMinTime, MxT: $tempMaxTime, ExP: $tempExpandable<br>";
 if ( $tree ) {
   appendDatetimeRange($tree, $minTime, $maxTime);
 

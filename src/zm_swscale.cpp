@@ -191,21 +191,11 @@ int SWScale::Convert(
 #endif
 
   /* Check the buffer sizes */
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  size_t insize = av_image_get_buffer_size(in_pf, width, height, 32);
-#else
-  size_t insize = avpicture_get_size(in_pf, width, height);
-#endif
+  size_t insize = GetBufferSize(in_pf, width, height);
   if ( insize != in_buffer_size ) {
-    Error("The input buffer size does not match the expected size for the input format. Required: %d Available: %d", insize, in_buffer_size);
-    return -4;
+    Debug(1, "The input buffer size does not match the expected size for the input format. Required: %d Available: %d", insize, in_buffer_size);
   }
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  size_t outsize = av_image_get_buffer_size(out_pf, new_width, new_height, 32);
-#else
-  size_t outsize = avpicture_get_size(out_pf, new_width, new_height);
-#endif
-
+  size_t outsize = GetBufferSize(out_pf, new_width, new_height);
   if ( outsize < out_buffer_size ) {
     Error("The output buffer is undersized for the output format. Required: %d Available: %d", outsize, out_buffer_size);
     return -5;
@@ -304,5 +294,13 @@ int SWScale::ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_si
   }
 
   return Convert(in_buffer,in_buffer_size,out_buffer,out_buffer_size,default_input_pf,default_output_pf,default_width,default_height);
+}
+
+size_t SWScale::GetBufferSize(enum _AVPIXELFORMAT pf, unsigned int width, unsigned int height) {
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  return av_image_get_buffer_size(pf, width, height, 32);
+#else
+  return outsize = avpicture_get_size(pf, width,height);
+#endif
 }
 #endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL

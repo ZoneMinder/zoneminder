@@ -374,23 +374,19 @@ int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt) {
   return 0;
 }
 
-void fix_deprecated_pix_fmt(AVCodecContext *ctx) {
+enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
   // Fix deprecated formats
-  switch ( ctx->pix_fmt ) {
+  switch ( fmt ) {
     case AV_PIX_FMT_YUVJ422P  :
-      ctx->pix_fmt = AV_PIX_FMT_YUV422P;
-      break;
+      return AV_PIX_FMT_YUV422P;
     case AV_PIX_FMT_YUVJ444P   :
-      ctx->pix_fmt = AV_PIX_FMT_YUV444P;
-      break;
+      return AV_PIX_FMT_YUV444P;
     case AV_PIX_FMT_YUVJ440P :
-      ctx->pix_fmt = AV_PIX_FMT_YUV440P;
-      break;
+      return AV_PIX_FMT_YUV440P;
     case AV_PIX_FMT_NONE :
     case AV_PIX_FMT_YUVJ420P :
     default:
-      ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-      break;
+      return AV_PIX_FMT_YUV420P;
   }
 }
 

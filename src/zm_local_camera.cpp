@@ -946,12 +946,12 @@ void LocalCamera::Initialise() {
     }
 
     if ( (input.std != V4L2_STD_UNKNOWN) && ((input.std & standard) == V4L2_STD_UNKNOWN) ) {
-      Fatal("Device does not support video standard %d", standard);
+      Error("Device does not support video standard %d", standard);
     }
 
     stdId = standard;
-    if ( (input.std != V4L2_STD_UNKNOWN) && (vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0) )   {
-      Fatal("Failed to set video standard %d: %d %s", standard, errno, strerror(errno));
+    if ((vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0)) {
+      Error("Failed to set video standard %d: %d %s", standard, errno, strerror(errno));
     }
 
     Contrast(contrast);
@@ -2201,7 +2201,6 @@ int LocalCamera::PostCapture() {
         v4l2_std_id stdId = standards[next_channel];
         if ( vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0 ) {
           Error("Failed to set video format %d: %s", standards[next_channel], strerror(errno));
-          return -1;
         }
       }
       if ( v4l2_data.bufptr ) {

@@ -36,17 +36,16 @@ void bind_libvnc_symbols() {
   *(void**) (&HandleRFBServerMessage_f) = dlsym(libvnc_lib, "HandleRFBServerMessage");
 }
 
-static void GotFrameBufferUpdateCallback(rfbClient *rfb, int x, int y, int w, int h){
+static void GotFrameBufferUpdateCallback(rfbClient *rfb, int x, int y, int w, int h) {
   VncPrivateData *data = (VncPrivateData *)(*rfbClientGetClientData_f)(rfb, &TAG_0);
   data->buffer = rfb->frameBuffer;
-  Debug(1, "GotFrameBufferUpdateallback x:%d y:%d w%d h:%d width: %d, height: %d",
-      x,y,w,h, rfb->width, rfb->height);
+  Debug(1, "GotFrameBufferUpdateallback x:%d y:%d w%d h:%d width: %d, height: %d, buffer %p",
+      x,y,w,h, rfb->width, rfb->height, rfb->frameBuffer);
 }
 
 static char* GetPasswordCallback(rfbClient* cl){
   Debug(1, "Getcredentials: %s", (*rfbClientGetClientData_f)(cl, &TAG_1));
-  return strdup(
-      (const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
+  return strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
 }
 
 static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
@@ -102,15 +101,12 @@ VncCamera::VncCamera(
   if ( colours == ZM_COLOUR_RGB32 ) {
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
     mImgPixFmt = AV_PIX_FMT_RGBA;
-    mBpp = 4;
   } else if ( colours == ZM_COLOUR_RGB24 ) {
     subpixelorder = ZM_SUBPIX_ORDER_RGB;
     mImgPixFmt = AV_PIX_FMT_RGB24;
-    mBpp = 3;
   } else if ( colours == ZM_COLOUR_GRAY8 ) {
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
     mImgPixFmt = AV_PIX_FMT_GRAY8;
-    mBpp = 1;
   } else {
     Panic("Unexpected colours: %d", colours);
   }
@@ -119,7 +115,6 @@ VncCamera::VncCamera(
     Debug(3, "Initializing Client");
     bind_libvnc_symbols();
     scale.init();
-
   }
 }
 
@@ -134,13 +129,16 @@ VncCamera::~VncCamera() {
 int VncCamera::PrimeCapture() {
   Debug(1, "Priming capture from %s", mHost.c_str());
 
-  if ( ! mRfb ) {
+  if (!mRfb) {
     mVncData.buffer = nullptr;
     mVncData.width = 0;
     mVncData.height = 0;
 
+    mBufferSize = SWScale::GetBufferSize(AV_PIX_FMT_RGBA, width, height);
+
     mRfb = (*rfbGetClient_f)(8 /* bits per sample */, 3 /* samples per pixel */, 4 /* bytes Per Pixel */);
-    mRfb->frameBuffer = (uint8_t *)av_malloc(8*4*width*height); 
+    mRfb->frameBuffer = nullptr;
+    //(uint8_t *)av_malloc(mBufferSize); 
     mRfb->canHandleNewFBSize = false;
 
     (*rfbClientSetClientData_f)(mRfb, &TAG_0, &mVncData);
@@ -157,7 +155,7 @@ int VncCamera::PrimeCapture() {
   }
   if ( ! (*rfbInitClient_f)(mRfb, 0, nullptr) ) {
     /* IF rfbInitClient fails, it calls rdbClientCleanup which will free mRfb */
-    Warning("Failed to Priming capture from %s", mHost.c_str());
+    Warning("Failed to Prime capture from %s", mHost.c_str());
     mRfb = nullptr;
     return -1; 
   }
@@ -165,6 +163,7 @@ int VncCamera::PrimeCapture() {
     Warning("Specified dimensions do not match screen size monitor: (%dx%d) != vnc: (%dx%d)",
         width, height, mRfb->width, mRfb->height);
   }
+  get_VideoStream();
 
   return 1;
 }
@@ -182,15 +181,24 @@ int VncCamera::PreCapture() {
 }
 
 int VncCamera::Capture(ZMPacket &zm_packet) {
-  if ( ! mVncData.buffer ) {
+  if ( !mVncData.buffer ) {
+    Debug(1, "No buffer");
     return 0;
   }
+  if ( !zm_packet.image ) {
+    Debug(1, "Allocating image %dx%d %dcolours = %d", width, height, colours, pixels);
+    zm_packet.image = new Image(width, height, colours, subpixelorder);
+  }
+  zm_packet.keyframe = 1;
+  zm_packet.codec_type = AVMEDIA_TYPE_VIDEO;
+  zm_packet.packet.stream_index = mVideoStreamId;
+
   uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
   int rc = scale.Convert(
       mVncData.buffer,
       mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4,
       directbuffer,
-      width * height * mBpp,
+      width * height * colours,
       AV_PIX_FMT_RGBA,
       mImgPixFmt,
       mRfb->si.framebufferWidth,

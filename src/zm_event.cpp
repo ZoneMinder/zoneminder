@@ -120,9 +120,9 @@ Event::Event(
       notes.c_str(), 
       state_id,
       monitor->getOrientation(),
-      ( monitor->GetOptVideoWriter() != 0 ? 1 : 0 ),
-			( monitor->GetOptVideoWriter() != 0 ? "video.mp4" : "" ),
-      monitor->GetOptSaveJPEGs(),
+      0,
+			"",
+      save_jpegs,
       storage->SchemeString().c_str()
       );
 
@@ -206,14 +206,6 @@ Event::Event(
     }
         
     video_name = stringtf("%" PRIu64 "-%s.%s", id, "video", container.c_str());
-    snprintf(sql, sizeof(sql), "UPDATE Events SET DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
-    db_mutex.lock();
-    if ( mysql_query(&dbconn, sql) ) {
-      db_mutex.unlock();
-      Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
-      return;
-    }
-    db_mutex.unlock();
     video_file = path + "/" + video_name;
     Debug(1, "Writing video file to %s", video_file.c_str());
     videoStore = new VideoStore(
@@ -226,9 +218,29 @@ Event::Event(
         monitor );
 
     if ( !videoStore->open() ) {
+      Warning("Failed to open videostore, turning on jpegs");
       delete videoStore;
       videoStore = nullptr;
-      save_jpegs |= 1; // Turn on jpeg storage
+      if ( ! ( save_jpegs & 1 ) ) {
+        save_jpegs |= 1; // Turn on jpeg storage
+        snprintf(sql, sizeof(sql), "UPDATE Events SET SaveJpegs=%d WHERE Id=%" PRIu64, save_jpegs, id);
+        db_mutex.lock();
+        if ( mysql_query(&dbconn, sql) ) {
+          db_mutex.unlock();
+          Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
+          return;
+        }
+        db_mutex.unlock();
+      }
+    } else {
+      snprintf(sql, sizeof(sql), "UPDATE Events SET Videoed=1, DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
+      db_mutex.lock();
+      if ( mysql_query(&dbconn, sql) ) {
+        db_mutex.unlock();
+        Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
+        return;
+      }
+      db_mutex.unlock();
     }
   }  // end if GetOptVideoWriter
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
@@ -616,8 +628,8 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
        ( ! (frames % config.bulk_frame_interval) )
       ) ? BULK : NORMAL 
       ) );
-  //Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d", 
-      //frame_type_names[frame_type], score, monitor->GetState(), frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval) );
+  Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d", 
+      frame_type_names[frame_type], score, monitor->GetState(), frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval) );
 
   if ( score < 0 )
     score = 0;
@@ -657,6 +669,8 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
         }
       }
     }  // end if is an alarm frame
+  } else {
+    Debug(1, "No image");
   }  // end if has image
 
   bool db_frame = ( frame_type == BULK ) or ( frame_type == ALARM ) or ( frames == 1 ) or ( score > (int)max_score ) or ( monitor_state == Monitor::ALERT ) or ( monitor_state == Monitor::PREALARM );

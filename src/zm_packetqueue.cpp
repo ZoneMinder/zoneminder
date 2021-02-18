@@ -420,6 +420,10 @@ unsigned int PacketQueue::size() {
 }
 
 int PacketQueue::packet_count(int stream_id) {
+  if ( stream_id < 0 or stream_id > max_stream_id ) {
+    Error("Invalid stream_id %d", stream_id);
+    return -1;
+  }
   return packet_counts[stream_id];
 } // end int PacketQueue::packet_count(int stream_id)
 

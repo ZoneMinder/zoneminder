@@ -423,7 +423,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 #endif
 
 int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
-void fix_deprecated_pix_fmt(AVCodecContext *);
+enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat );
 
 bool is_video_stream(const AVStream *);
 bool is_audio_stream(const AVStream *);

@@ -30,6 +30,14 @@
     margin: 2px;
     text-align: center;
 }
+#definitionPanel:after {
+  content: ".";
+  display: block;
+  height: 0;
+    font-size: 0;
+  clear: both;
+  visibility: hidden;
+}
 
 #definitionPanel input[type=submit],
 #definitionPanel input[type=submit] {

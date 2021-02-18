@@ -210,10 +210,12 @@ bool VideoStore::open() {
           video_out_ctx->gop_size = 12;
           video_out_ctx->max_b_frames = 1;
 
-          ret = av_opt_set(video_out_ctx->priv_data, "crf", "36", AV_OPT_SEARCH_CHILDREN);
+          ret = av_opt_set(video_out_ctx, "crf", "36", AV_OPT_SEARCH_CHILDREN);
           if ( ret < 0 ) {
-            Error("Could not set 'crf' for output codec %s.",
-                codec_data[i].codec_name);
+            Error("Could not set 'crf' for output codec %s. %s",
+                codec_data[i].codec_name,
+                av_make_error_string(ret).c_str()
+                );
           }
         } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO ) {
           /* just for testing, we also add B frames */

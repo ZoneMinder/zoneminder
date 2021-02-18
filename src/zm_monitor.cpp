@@ -877,6 +877,7 @@ bool Monitor::connect() {
   if ( fstat(map_fd, &map_stat) < 0 ) {
     Error("Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno));
     close(map_fd);
+    map_fd = -1;
     return false;
   }
 
@@ -884,7 +885,10 @@ bool Monitor::connect() {
     if ( purpose == CAPTURE ) {
       // Allocate the size
       if ( ftruncate(map_fd, mem_size) < 0 ) {
-        Fatal("Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno));
+        Error("Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno));
+        close(map_fd);
+        map_fd = -1;
+        return false;
       }
     } else if ( map_stat.st_size == 0 ) {
       Error("Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size);
@@ -940,7 +944,7 @@ bool Monitor::connect() {
 
   if ( ((unsigned long)shared_images % 64) != 0 ) {
     /* Align images buffer to nearest 64 byte boundary */
-    Debug(3,"Aligning shared memory images to the next 64 byte boundary");
+    Debug(3, "Aligning shared memory images to the next 64 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
   if ( !camera )
@@ -963,7 +967,6 @@ bool Monitor::connect() {
   if ( purpose == CAPTURE ) {
     memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
-    Debug( 1, "shared.size=%d", shared_data->size );
     shared_data->active = enabled;
     shared_data->signal = false;
     shared_data->capture_fps = 0.0;
@@ -995,13 +998,9 @@ bool Monitor::connect() {
     // Uh, why nothing?  Why not nullptr?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
-    //video_store_data->frameNumber = 0;
-  }
-  if ( ( !mem_ptr ) or !shared_data->valid ) {
-    if ( purpose != QUERY ) {
-      Error("Shared data not initialised by capture daemon for monitor %s", name);
-      exit(-1);
-    }
+  } else if ( !shared_data->valid ) {
+    Error("Shared data not initialised by capture daemon for monitor %s", name);
+    return false;
   }
 
   // We set these here because otherwise the first fps calc is meaningless
@@ -1016,8 +1015,10 @@ bool Monitor::connect() {
 } // Monitor::connect
 
 bool Monitor::disconnect() {
-  if (mem_ptr == nullptr)
+  if (mem_ptr == nullptr) {
+    Debug(1, "Already disconnected");
     return true;
+  }
 
 #if ZM_MEM_MAPPED
   msync(mem_ptr, mem_size, MS_ASYNC);
@@ -1028,10 +1029,8 @@ bool Monitor::disconnect() {
   mem_ptr = nullptr;
   shared_data = nullptr;
 
-  if (purpose == CAPTURE) {
-    if (unlink(mem_file) < 0) {
-      Warning("Can't unlink '%s': %s", mem_file, strerror(errno));
-    }
+  if (purpose == CAPTURE and (unlink(mem_file) < 0) ) {
+    Warning("Can't unlink '%s': %s", mem_file, strerror(errno));
   }
 #else // ZM_MEM_MAPPED
   struct shmid_ds shm_data;
@@ -1042,11 +1041,9 @@ bool Monitor::disconnect() {
 
   shm_id = 0;
 
-  if (shm_data.shm_nattch <= 1) {
-    if (shmctl(shm_id, IPC_RMID, 0) < 0) {
-      Debug(3, "Can't shmctl: %s", strerror(errno));
-      return false;
-    }
+  if ((shm_data.shm_nattch <= 1) and (shmctl(shm_id, IPC_RMID, 0) < 0)) {
+    Debug(3, "Can't shmctl: %s", strerror(errno));
+    return false;
   }
 
   if (shmdt(mem_ptr) < 0) {

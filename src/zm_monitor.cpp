@@ -380,14 +380,12 @@ Monitor::Monitor()
   else
     event_close_mode = CLOSE_IDLE;
 
-
   event = 0;
   last_section_mod = 0;
 
   adaptive_skip = true;
 
   videoStore = nullptr;
-  packetqueue.setMaxVideoPackets(pre_event_count);
 }  // Monitor::Monitor
 
 /*
@@ -551,6 +549,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   image_buffer_count = atoi(dbrow[col]); col++;
   warmup_count = atoi(dbrow[col]); col++;
   pre_event_count = atoi(dbrow[col]); col++;
+  packetqueue.setMaxVideoPackets(pre_event_count);
   post_event_count = atoi(dbrow[col]); col++;
   stream_replay_buffer = atoi(dbrow[col]); col++;
   alarm_frame_count = atoi(dbrow[col]); col++;
@@ -938,13 +937,6 @@ bool Monitor::connect() {
   video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
   shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
-
-#if 0
-  if ( analysis_it ) {
-    packetqueue.free_it(analysis_it);
-    analysis_it = nullptr;
-  }
-#endif
 
   if ( ((unsigned long)shared_images % 64) != 0 ) {
     /* Align images buffer to nearest 64 byte boundary */

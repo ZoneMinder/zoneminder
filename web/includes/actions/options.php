@@ -56,9 +56,9 @@ if ( $action == 'delete' ) {
   }
 
   $changed = false;
-  while( $config = dbFetchNext($result) ) {
+  while ($config = dbFetchNext($result)) {
     unset($newValue);
-    if ( $config['Type'] == 'boolean' && empty($_REQUEST['newConfig'][$config['Name']]) ) {
+    if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
       $newValue = 0;
     } else if ( isset($_REQUEST['newConfig'][$config['Name']]) ) {
       $newValue = preg_replace("/\r\n/", "\n", stripslashes($_REQUEST['newConfig'][$config['Name']]));
@@ -98,5 +98,4 @@ if ( $action == 'delete' ) {
   }
   return;
 } // end if object vs action
-
 ?>

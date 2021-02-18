@@ -105,8 +105,7 @@ Event::Event(
   save_jpegs = monitor->GetOptSaveJPEGs();
   Storage * storage = monitor->getStorage();
 
-  char sql[ZM_SQL_MED_BUFSIZ];
-  snprintf(sql, sizeof(sql),
+  std::string sql = stringtf(
       "INSERT INTO `Events` "
       "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` )"
       " VALUES "
@@ -126,20 +125,13 @@ Event::Event(
       storage->SchemeString().c_str()
       );
 
-  db_mutex.lock();
-  while (mysql_query(&dbconn, sql) and (mysql_errno(&dbconn) == ER_LOCK_WAIT_TIMEOUT)) {
-    db_mutex.unlock();
-    Error("Can't insert event: %s. sql was (%s)", mysql_error(&dbconn), sql);
-    db_mutex.lock();
-  }
-  id = mysql_insert_id(&dbconn);
-  db_mutex.unlock();
+  id = zmDbDoInsert(sql.c_str());
 
   if ( !SetPath(storage) ) {
     // Try another
     Warning("Failed creating event dir at %s", storage->Path());
 
-    std::string sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
+    sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
     if ( monitor->ServerId() )
       sql += stringtf(" AND ServerId=%u", monitor->ServerId());
 
@@ -183,16 +175,10 @@ Event::Event(
       Warning("Failed to find a storage area to save events.");
     }
     sql = stringtf("UPDATE Events SET StorageId = '%d' WHERE Id=%" PRIu64, storage->Id(), id);
-    db_mutex.lock();
-    int rc = mysql_query(&dbconn, sql.c_str());
-    db_mutex.unlock();
-    if ( rc ) {
-      Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql.c_str());
-    }
-  }
+    zmDbDo(sql.c_str());
+  }  // end if ! setPath(Storage)
   Debug(1, "Using storage area at %s", path.c_str());
 
-  db_mutex.unlock();
   video_name = "";
 
   snapshot_file = path + "/snapshot.jpg";
@@ -224,24 +210,12 @@ Event::Event(
       videoStore = nullptr;
       if ( ! ( save_jpegs & 1 ) ) {
         save_jpegs |= 1; // Turn on jpeg storage
-        snprintf(sql, sizeof(sql), "UPDATE Events SET SaveJpegs=%d WHERE Id=%" PRIu64, save_jpegs, id);
-        db_mutex.lock();
-        if ( mysql_query(&dbconn, sql) ) {
-          db_mutex.unlock();
-          Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
-          return;
-        }
-        db_mutex.unlock();
+        sql = stringtf("UPDATE Events SET SaveJpegs=%d WHERE Id=%" PRIu64, save_jpegs, id);
+        zmDbDo(sql.c_str());
       }
     } else {
-      snprintf(sql, sizeof(sql), "UPDATE Events SET Videoed=1, DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
-      db_mutex.lock();
-      if ( mysql_query(&dbconn, sql) ) {
-        db_mutex.unlock();
-        Error("Can't update event: %s. sql was (%s)", mysql_error(&dbconn), sql);
-        return;
-      }
-      db_mutex.unlock();
+      sql = stringtf("UPDATE Events SET Videoed=1, DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
+      zmDbDo(sql.c_str());
     }
   }  // end if GetOptVideoWriter
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )

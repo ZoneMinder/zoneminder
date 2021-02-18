@@ -500,6 +500,8 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
     unsigned int pre_event_count
     ) {
 
+  std::unique_lock<std::mutex> lck(mutex);
+
   packetqueue_iterator *it = new packetqueue_iterator;
   iterators.push_back(it);
 

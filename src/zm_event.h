@@ -134,7 +134,6 @@ class Event {
         Image **images,
         struct timeval **timestamps);
     void WriteDbFrames();
-    void UpdateFramesDelta(double offset);
     bool SetPath(Storage *storage);
 
  public:

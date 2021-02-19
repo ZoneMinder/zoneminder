@@ -255,7 +255,6 @@ Event::~Event() {
   while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
     db_mutex.unlock();
     Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
-    sleep(1);
     db_mutex.lock();
   }
   if ( !mysql_affected_rows(&dbconn) ) {
@@ -270,7 +269,6 @@ Event::~Event() {
     while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
       db_mutex.unlock();
       Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
-      sleep(1);
       db_mutex.lock();
     }
   }  // end if no changed rows due to Name change during recording
@@ -427,11 +425,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     mysql_real_escape_string(&dbconn, escapedNotes, notes.c_str(), notes.length());
 
     snprintf(sql, sizeof(sql), "UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64, escapedNotes, id);
-    db_mutex.lock();
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't insert event: %s", mysql_error(&dbconn));
-    }
-    db_mutex.unlock();
+    zmDbDo(sql);
 #endif
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
@@ -564,26 +558,6 @@ void Event::WriteDbFrames() {
   }
 } // end void Event::WriteDbFrames()
 
-// Subtract an offset time from frames deltas to match with video start time
-void Event::UpdateFramesDelta(double offset) {
-  char sql[ZM_SQL_MED_BUFSIZ];
-
-  if ( offset == 0.0 ) return;
-  // the table is set to auto update timestamp so we force it to keep current value
-  snprintf(sql, sizeof(sql),
-    "UPDATE Frames SET timestamp = timestamp, Delta = Delta - (%.4f) WHERE EventId = %" PRIu64,
-    offset, id);
-
-  db_mutex.lock();
-  if ( mysql_query(&dbconn, sql) ) {
-    db_mutex.unlock();
-    Error("Can't update frames: %s, sql was %s", mysql_error(&dbconn), sql);
-    return;
-  }
-  db_mutex.unlock();
-  Info("Updating frames delta by %0.2f sec to match video file", offset);
-}
-
 void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image) {
   if (!timestamp.tv_sec) {
     Warning("Not adding new frame, zero timestamp");
@@ -686,14 +660,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
           max_score,
           id
           );
-      db_mutex.lock();
-      while (mysql_query(&dbconn, sql) && !zm_terminate) {
-        Error("Can't update event: %s", mysql_error(&dbconn));
-        db_mutex.unlock();
-        sleep(1);
-        db_mutex.lock();
-      }
-      db_mutex.unlock();
+      zmDbDo(sql);
 		} else {
       Debug(1, "Not Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
 					frame_data.size(), write_to_db, fps);

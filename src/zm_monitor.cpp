@@ -1830,7 +1830,7 @@ bool Monitor::Analyse() {
     } // end if trigger_on
 
     if ( signal_change ) {
-      Debug(2, "Signal change");
+      Debug(2, "Signal change, new signal is %d", signal);
       const char *signalText = "Unknown";
       if ( !signal ) {
         signalText = "Lost";
@@ -2503,6 +2503,7 @@ int Monitor::Capture() {
           Debug(2, "Queueing audio packet");
           packetqueue.queuePacket(packet);
         } else {
+          Debug(4, "Not Queueing audio packet");
           delete packet;
         }
         // Don't update last_write_index because that is used for live streaming

@@ -1134,7 +1134,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 
 int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
 
-  AVPacket *ipkt = av_packet_clone(&zm_packet->packet);
+  AVPacket *ipkt = &zm_packet->packet;
   int ret;
 
   if ( !audio_out_stream ) {
@@ -1151,9 +1151,6 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
 
   Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
-  ipkt->pts -= audio_first_dts;
-  ipkt->dts -= audio_first_dts;
-  ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "after pts adjustment");
 
   if ( audio_out_codec ) {
     // I wonder if we can get multiple frames per packet? Probably
@@ -1207,15 +1204,16 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     opkt.flags = ipkt->flags;
 
     opkt.duration = ipkt->duration;
-    opkt.pts = ipkt->pts;
-    opkt.dts = ipkt->dts;
+    opkt.pts = ipkt->pts - audio_first_dts;
+    opkt.dts = ipkt->dts - audio_first_dts;
+
+    ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "after pts adjustment");
     av_packet_rescale_ts(&opkt, audio_in_stream->time_base, audio_out_stream->time_base);
     ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
     write_packet(&opkt, audio_out_stream);
 
     zm_av_packet_unref(&opkt);
   }  // end if encoding or copying
-  av_packet_free(&ipkt);
 
   return 0;
 }  // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)

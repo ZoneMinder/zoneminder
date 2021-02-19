@@ -369,10 +369,12 @@ void zm_dump_codecpar(const AVCodecParameters *par);
   if (logDebugging()) { \
     double pts_time = static_cast<double>(av_rescale_q(pkt.pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE; \
     \
-    Debug(2, "%s: pts: %" PRId64 "=%f, dts: %" PRId64 \
+    Debug(2, "%s: pts: %" PRId64 " * %u/%u=%f, dts: %" PRId64 \
       ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64", duration: %" AV_PACKET_DURATION_FMT, \
       text, \
       pkt.pts, \
+      stream->time_base.num, \
+      stream->time_base.den, \
       pts_time, \
       pkt.dts, \
       pkt.size, \

@@ -143,15 +143,13 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
     // Since we have many packets in the queue, we should NOT be pointing at end so don't need to test for that
     while ( *it != add_packet ) {
       zm_packet = *it;
-      Debug(1, "Checking packet to see if we can delete them");
       if ( !zm_packet->trylock() ) {
-        Debug(1, "Have locked packet %d", zm_packet->image_index);
         break;
       }
       zm_packet->unlock();
 
       if ( is_there_an_iterator_pointing_to_packet(zm_packet) ) {
-        Debug(4, "Found IT at beginning of queue. Threads not keeping up");
+        Warning("Found iterator at beginning of queue. Some thread isn't keeping up");
         break;
       }
 
@@ -169,8 +167,6 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
       ( next_front == pktQueue.begin() )
       );
   if ( next_front != pktQueue.begin() ) {
-    Debug(1, "Deleting packets");
-    //  It is enough to delete the packets tested above.  A subsequent queuePacket can clear a second set
     while ( pktQueue.begin() != next_front ) {
       ZMPacket *zm_packet = *pktQueue.begin();
       if ( !zm_packet ) {

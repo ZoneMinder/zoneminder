@@ -1134,7 +1134,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 
 int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
 
-  AVPacket *ipkt = &zm_packet->packet;
+  AVPacket *ipkt = av_packet_clone(&zm_packet->packet);
   int ret;
 
   if ( !audio_out_stream ) {
@@ -1215,6 +1215,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
 
     zm_av_packet_unref(&opkt);
   }  // end if encoding or copying
+  av_packet_free(&ipkt);
 
   return 0;
 }  // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)

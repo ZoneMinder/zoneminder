@@ -19,6 +19,7 @@
 #include "zm_db.h"
 
 #include "zm_logger.h"
+#include "zm_signal.h"
 #include <cstdlib>
 
 MYSQL dbconn;
@@ -178,7 +179,7 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
 int zmDbDo(const char *query) {
   db_mutex.lock();
   int rc;
-  while ( rc = mysql_query(&dbconn, query) ) {
+  while ( (rc = mysql_query(&dbconn, query)) and !zm_terminate) {
     db_mutex.unlock();
     Error("Can't run query %s: %s", query, mysql_error(&dbconn));
     if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
@@ -193,7 +194,7 @@ int zmDbDo(const char *query) {
 int zmDbDoInsert(const char *query) {
   db_mutex.lock();
   int rc;
-  while ( rc = mysql_query(&dbconn, query) ) {
+  while ( (rc = mysql_query(&dbconn, query)) and !zm_terminate) {
     db_mutex.unlock();
     Error("Can't run query %s: %s", query, mysql_error(&dbconn));
     if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )

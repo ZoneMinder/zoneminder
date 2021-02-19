@@ -219,7 +219,12 @@ int ZMPacket::decode(AVCodecContext *ctx) {
       av_frame_free(&new_frame);
       return 0;
     }
-    new_frame->pts = in_frame->pts;
+    ret = av_frame_copy_props(new_frame, in_frame);
+    if ( ret < 0 ) {
+      Error("Unable to copy props: %s, continuing",
+          av_make_error_string(ret).c_str());
+    }
+
     zm_dump_video_frame(new_frame, "After hwtransfer");
 #if 0
     if ( new_frame->format == AV_PIX_FMT_RGB0 ) {

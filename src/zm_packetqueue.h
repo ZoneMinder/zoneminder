@@ -63,6 +63,7 @@ class PacketQueue {
     unsigned int get_packet_count(int stream_id) const { return packet_counts[stream_id]; };
 
     void clear_unwanted_packets(timeval *recording, int pre_event_count, int mVideoStreamId);
+    void clearPackets(ZMPacket *);
     int packet_count(int stream_id);
 
     bool increment_it(packetqueue_iterator *it);

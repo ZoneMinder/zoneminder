@@ -1950,7 +1950,7 @@ bool Monitor::Analyse() {
           // If doing record, check to see if we need to close the event or not.
 
           if ( event ) {
-            Debug(2, "Have event in mocord");
+            Debug(2, "Have event %" PRIu64 " in mocord", event->Id());
             if ( section_length
                 && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
                 && ( (function == MOCORD && (event_close_mode != CLOSE_TIME)) || ! ( timestamp->tv_sec % section_length ) )
@@ -2229,6 +2229,7 @@ bool Monitor::Analyse() {
   shared_data->last_read_time = time(nullptr);
   analysis_image_count++;
   UpdateAnalysisFPS();
+  packetqueue.clearPackets(snap);
 
   return true;
 } // end Monitor::Analyse

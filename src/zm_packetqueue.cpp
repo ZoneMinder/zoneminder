@@ -434,7 +434,7 @@ int PacketQueue::packet_count(int stream_id) {
     return -1;
   }
   return packet_counts[stream_id];
-} // end int PacketQueue::packet_count(int stream_id)
+}  // end int PacketQueue::packet_count(int stream_id)
 
 
 // Returns a packet. Packet will be locked
@@ -470,7 +470,7 @@ ZMPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
   }
   Debug(2, "Locked packet, unlocking packetqueue mutex");
   return p;
-} // end ZMPacket *PacketQueue::get_packet(it)
+}  // end ZMPacket *PacketQueue::get_packet(it)
 
 bool PacketQueue::increment_it(packetqueue_iterator *it) {
   Debug(2, "Incrementing %p, queue size %d, end? %d", it, pktQueue.size(), ((*it) == pktQueue.end()));

@@ -833,8 +833,8 @@ int Zone::Load(Monitor *monitor, Zone **&zones) {
       "OverloadFrames,ExtendAlarmFrames"
       " FROM Zones WHERE MonitorId = %d ORDER BY Type, Id", monitor->Id());
   if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
     db_mutex.unlock();
+    Error("Can't run query: %s", mysql_error(&dbconn));
     return 0;
   }
 

@@ -867,6 +867,7 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
 <?php echo output_script_if_exists(array(
+  'js/tableExport.min.js',
   'js/bootstrap-table.min.js',
   'js/bootstrap-table-locale-all.min.js',
   'js/bootstrap-table-export.min.js',

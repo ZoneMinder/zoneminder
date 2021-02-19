@@ -1313,25 +1313,17 @@ void Monitor::actionReload() {
 void Monitor::actionEnable() {
   shared_data->action |= RELOAD;
 
-  db_mutex.lock();
-  static char sql[ZM_SQL_SML_BUFSIZ];
+  char sql[ZM_SQL_SML_BUFSIZ];
   snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %d", id);
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-  }
-  db_mutex.unlock();
+  zmDbDo(sql);
 }
 
 void Monitor::actionDisable() {
   shared_data->action |= RELOAD;
 
-  static char sql[ZM_SQL_SML_BUFSIZ];
+  char sql[ZM_SQL_SML_BUFSIZ];
   snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %d", id);
-  db_mutex.lock();
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-  }
-  db_mutex.unlock();
+  zmDbDo(sql);
 }
 
 void Monitor::actionSuspend() {
@@ -1711,10 +1703,9 @@ void Monitor::UpdateCaptureFPS() {
           "VALUES (%d, %.2lf, %u, 'Connected') ON DUPLICATE KEY UPDATE "
           "CaptureFPS = %.2lf, CaptureBandwidth=%u, Status='Connected'",
           id, new_capture_fps, new_capture_bandwidth, new_capture_fps, new_capture_bandwidth);
-      if ( mysql_query(&dbconn, sql) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-      }
+      int rc = mysql_query(&dbconn, sql);
       db_mutex.unlock();
+      if ( rc ) Error("Can't run query: %s", mysql_error(&dbconn));
     } // now != last_fps_time
   } // end if report fps
 }  // void Monitor::UpdateCaptureFPS()
@@ -1756,10 +1747,9 @@ void Monitor::UpdateAnalysisFPS() {
             " ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf",
             id, new_analysis_fps, new_analysis_fps);
         db_mutex.lock();
-        if ( mysql_query(&dbconn, sql) ) {
-          Error("Can't run query: %s", mysql_error(&dbconn));
-        }
+        int rc = mysql_query(&dbconn, sql);
         db_mutex.unlock();
+        if ( rc ) Error("Can't run query: %s", mysql_error(&dbconn));
         last_analysis_fps_time = now_double;
         last_motion_frame_count = motion_frame_count;
       } else {

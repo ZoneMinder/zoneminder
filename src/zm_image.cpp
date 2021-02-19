@@ -282,7 +282,9 @@ void Image::Assign(const AVFrame *frame) {
       sws_convert_context,
       frame->width, frame->height, (AVPixelFormat)frame->format,
       width, height, format,
-      SWS_BICUBIC, nullptr, nullptr, nullptr);
+      //SWS_BICUBIC,
+      SWS_POINT | SWS_BITEXACT,
+      nullptr, nullptr, nullptr);
   if ( sws_convert_context == nullptr )
     Fatal("Unable to create conversion context");
 

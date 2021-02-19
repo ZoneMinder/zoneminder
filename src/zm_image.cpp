@@ -276,7 +276,7 @@ void Image::Assign(const AVFrame *frame) {
   AVFrame *dest_frame = zm_av_frame_alloc();
   PopulateFrame(dest_frame);
   zm_dump_video_frame(frame, "source frame before convert");
-  zm_dump_video_frame(dest_frame, "dest  frame before convert");
+  dest_frame->pts = frame->pts;
 #if HAVE_LIBSWSCALE
   sws_convert_context = sws_getCachedContext(
       sws_convert_context,

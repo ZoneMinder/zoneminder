@@ -1097,7 +1097,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 
   } else { // Passthrough
     AVPacket *ipkt = &zm_packet->packet;
-    Debug(3, "Doing passthrough, just copy packet");
+    ZM_DUMP_STREAM_PACKET(video_in_stream, (*ipkt), "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same
     av_init_packet(&opkt);
     opkt.data = ipkt->data;
@@ -1149,6 +1149,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     audio_next_pts = audio_out_ctx->frame_size;
   }
 
+  Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
   ipkt->pts -= audio_first_dts;
   ipkt->dts -= audio_first_dts;

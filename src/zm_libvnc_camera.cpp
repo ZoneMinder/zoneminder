@@ -61,6 +61,19 @@ static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
   return c;
 }
 
+static rfbBool resize(rfbClient* client) {
+  if ( client->frameBuffer )  {
+    Debug(1, "Freeing old frame buffer");
+    av_free(client->frameBuffer);
+  }
+
+  int mBufferSize = SWScale::GetBufferSize(AV_PIX_FMT_RGBA, client->width, client->height);
+  client->frameBuffer = (uint8_t *)av_malloc(mBufferSize);
+    Debug(1, "Allocing new frame buffer %dx%d = %d", client->width, client->height, mBufferSize);
+
+  return TRUE;
+}
+
 VncCamera::VncCamera(
     const Monitor *monitor,
     const std::string &host,
@@ -124,6 +137,10 @@ VncCamera::~VncCamera() {
       free(mRfb->frameBuffer);
     (*rfbClientCleanup_f)(mRfb);
   }
+  if (libvnc_lib) {
+    dlclose(libvnc_lib);
+    libvnc_lib = nullptr;
+  }
 }
 
 int VncCamera::PrimeCapture() {
@@ -134,12 +151,8 @@ int VncCamera::PrimeCapture() {
     mVncData.width = 0;
     mVncData.height = 0;
 
-    mBufferSize = SWScale::GetBufferSize(AV_PIX_FMT_RGBA, width, height);
-
     mRfb = (*rfbGetClient_f)(8 /* bits per sample */, 3 /* samples per pixel */, 4 /* bytes Per Pixel */);
-    mRfb->frameBuffer = nullptr;
-    //(uint8_t *)av_malloc(mBufferSize); 
-    mRfb->canHandleNewFBSize = false;
+    mRfb->MallocFrameBuffer=resize;
 
     (*rfbClientSetClientData_f)(mRfb, &TAG_0, &mVncData);
     (*rfbClientSetClientData_f)(mRfb, &TAG_1, (void *)mPass.c_str());
@@ -186,7 +199,7 @@ int VncCamera::Capture(ZMPacket &zm_packet) {
     return 0;
   }
   if ( !zm_packet.image ) {
-    Debug(1, "Allocating image %dx%d %dcolours = %d", width, height, colours, pixels);
+    Debug(1, "Allocating image %dx%d %dcolours = %d", width, height, colours, colours*pixels);
     zm_packet.image = new Image(width, height, colours, subpixelorder);
   }
   zm_packet.keyframe = 1;
@@ -194,6 +207,16 @@ int VncCamera::Capture(ZMPacket &zm_packet) {
   zm_packet.packet.stream_index = mVideoStreamId;
 
   uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
+  Debug(1, "scale src %p, %d, dest %p %d %d %dx%d %dx%d", mVncData.buffer,
+      mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4,
+      directbuffer,
+      width * height * colours,
+ mImgPixFmt,
+      mRfb->si.framebufferWidth,
+      mRfb->si.framebufferHeight,
+      width,
+      height);
+
   int rc = scale.Convert(
       mVncData.buffer,
       mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4,

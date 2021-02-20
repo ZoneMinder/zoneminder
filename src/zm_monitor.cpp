@@ -1071,11 +1071,6 @@ Monitor::~Monitor() {
   Close();
 
   if (mem_ptr != nullptr) {
-    std::lock_guard<std::mutex> lck(event_mutex);
-    if (event) {
-      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id());
-      closeEvent();
-    }
     if (purpose != QUERY) {
       shared_data->state = state = IDLE;
       shared_data->last_read_index = image_buffer_count;
@@ -2923,10 +2918,16 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
+  std::lock_guard<std::mutex> lck(event_mutex);
+  if (event) {
+    Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id());
+    closeEvent();
+  }
   if (camera) camera->Close();
   packetqueue.clear();
   return 1;
 }
+
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 // Wait for camera to get an image, and then assign it as the base reference image.

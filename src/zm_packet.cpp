@@ -159,95 +159,94 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     return 0;
   }
   int bytes_consumed = ret;
-  if ( ret > 0 )
+  if ( ret > 0 ) {
     zm_dump_video_frame(in_frame, "got frame");
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
-  if ( ctx->sw_pix_fmt != in_frame->format ) {
-    Debug(1, "Have different format %s != %s.",
-        av_get_pix_fmt_name(ctx->pix_fmt),
-        av_get_pix_fmt_name(ctx->sw_pix_fmt)
-        );
+    if ( ctx->sw_pix_fmt != in_frame->format ) {
+      Debug(1, "Have different format %s != %s.",
+          av_get_pix_fmt_name(ctx->pix_fmt),
+          av_get_pix_fmt_name(ctx->sw_pix_fmt)
+          );
 #if 0
-    if ( target_format == AV_PIX_FMT_NONE and ctx->hw_frames_ctx and (image->Colours() == 4) ) {
-      // Look for rgb0 in list of supported formats
-      enum AVPixelFormat *formats;
-      if ( 0 <= av_hwframe_transfer_get_formats(
-            ctx->hw_frames_ctx,
-            AV_HWFRAME_TRANSFER_DIRECTION_FROM,
-            &formats,
-            0
-            )	) {
-        for (int i = 0; formats[i] != AV_PIX_FMT_NONE; i++) {
-          Debug(1, "Available dest formats %d %s", 
-              formats[i],
-              av_get_pix_fmt_name(formats[i])
-              );
-          if ( formats[i] == AV_PIX_FMT_RGB0 ) {
-            target_format = formats[i];
-            break;
-          }  // endif RGB0
-        }  // end foreach support format
-        av_freep(&formats);
-      }  // endif success getting list of formats
-    }  // end if target_format not set
+      if ( target_format == AV_PIX_FMT_NONE and ctx->hw_frames_ctx and (image->Colours() == 4) ) {
+        // Look for rgb0 in list of supported formats
+        enum AVPixelFormat *formats;
+        if ( 0 <= av_hwframe_transfer_get_formats(
+              ctx->hw_frames_ctx,
+              AV_HWFRAME_TRANSFER_DIRECTION_FROM,
+              &formats,
+              0
+              )	) {
+          for (int i = 0; formats[i] != AV_PIX_FMT_NONE; i++) {
+            Debug(1, "Available dest formats %d %s", 
+                formats[i],
+                av_get_pix_fmt_name(formats[i])
+                );
+            if ( formats[i] == AV_PIX_FMT_RGB0 ) {
+              target_format = formats[i];
+              break;
+            }  // endif RGB0
+          }  // end foreach support format
+          av_freep(&formats);
+        }  // endif success getting list of formats
+      }  // end if target_format not set
 #endif
 
-    AVFrame *new_frame = zm_av_frame_alloc();
+      AVFrame *new_frame = zm_av_frame_alloc();
 #if 0
-    if ( target_format == AV_PIX_FMT_RGB0 ) {
-      if ( image ) {
-        if ( 0 > image->PopulateFrame(new_frame) ) {
-          delete new_frame;
-          new_frame = zm_av_frame_alloc();
-          delete image;
-          image = nullptr;
-          new_frame->format = target_format;
+      if ( target_format == AV_PIX_FMT_RGB0 ) {
+        if ( image ) {
+          if ( 0 > image->PopulateFrame(new_frame) ) {
+            delete new_frame;
+            new_frame = zm_av_frame_alloc();
+            delete image;
+            image = nullptr;
+            new_frame->format = target_format;
+          }
         }
       }
-    }
 #endif
-    /* retrieve data from GPU to CPU */
-    zm_dump_video_frame(in_frame, "Before hwtransfer");
-    ret = av_hwframe_transfer_data(new_frame, in_frame, 0);
-    if ( ret < 0 ) {
-      Error("Unable to transfer frame: %s, continuing",
-          av_make_error_string(ret).c_str());
-      av_frame_free(&in_frame);
-      av_frame_free(&new_frame);
-      return 0;
-    }
-    ret = av_frame_copy_props(new_frame, in_frame);
-    if ( ret < 0 ) {
-      Error("Unable to copy props: %s, continuing",
-          av_make_error_string(ret).c_str());
-    }
+      /* retrieve data from GPU to CPU */
+      zm_dump_video_frame(in_frame, "Before hwtransfer");
+      ret = av_hwframe_transfer_data(new_frame, in_frame, 0);
+      if ( ret < 0 ) {
+        Error("Unable to transfer frame: %s, continuing",
+            av_make_error_string(ret).c_str());
+        av_frame_free(&in_frame);
+        av_frame_free(&new_frame);
+        return 0;
+      }
+      ret = av_frame_copy_props(new_frame, in_frame);
+      if ( ret < 0 ) {
+        Error("Unable to copy props: %s, continuing",
+            av_make_error_string(ret).c_str());
+      }
 
-    zm_dump_video_frame(new_frame, "After hwtransfer");
+      zm_dump_video_frame(new_frame, "After hwtransfer");
 #if 0
-    if ( new_frame->format == AV_PIX_FMT_RGB0 ) {
-      new_frame->format = AV_PIX_FMT_RGBA;
-      zm_dump_video_frame(new_frame, "After hwtransfer setting to rgba");
-    }
+      if ( new_frame->format == AV_PIX_FMT_RGB0 ) {
+        new_frame->format = AV_PIX_FMT_RGBA;
+        zm_dump_video_frame(new_frame, "After hwtransfer setting to rgba");
+      }
 #endif
-    av_frame_free(&in_frame);
-    in_frame = new_frame;
-  } else
+      av_frame_free(&in_frame);
+      in_frame = new_frame;
+    } else
 #endif
 #endif
-  if ( ret > 0 ) {
-    Debug(2, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
-        av_get_pix_fmt_name(ctx->pix_fmt),
-        av_get_pix_fmt_name(ctx->sw_pix_fmt)
-        );
+      Debug(2, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
+          av_get_pix_fmt_name(ctx->pix_fmt),
+          av_get_pix_fmt_name(ctx->sw_pix_fmt)
+          );
 #if 0
     if ( image ) {
       image->Assign(in_frame);
     }
 #endif
-  }
+  } // end if if ( ret > 0 ) {
   return bytes_consumed;
 } // end ZMPacket::decode
 

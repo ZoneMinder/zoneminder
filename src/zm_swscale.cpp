@@ -91,25 +91,7 @@ int SWScale::Convert(
   AVFrame *out_frame
 ) {
 
-  // THe J formats are deprecated, so we need to convert
-  AVPixelFormat format;
-  switch ( in_frame->format ) {
-    case AV_PIX_FMT_YUVJ420P :
-      format = AV_PIX_FMT_YUV420P;
-      break;
-    case AV_PIX_FMT_YUVJ422P  :
-      format = AV_PIX_FMT_YUV422P;
-      break;
-    case AV_PIX_FMT_YUVJ444P   :
-      format = AV_PIX_FMT_YUV444P;
-      break;
-    case AV_PIX_FMT_YUVJ440P :
-      format = AV_PIX_FMT_YUV440P;
-      break;
-    default:
-      format = (AVPixelFormat)in_frame->format;
-      break;
-  }
+  AVPixelFormat format = fix_deprecated_pix_fmt((AVPixelFormat)in_frame->format);
   /* Get the context */
   swscale_ctx = sws_getCachedContext(swscale_ctx,
       in_frame->width, in_frame->height, format,
@@ -120,7 +102,9 @@ int SWScale::Convert(
     return -6;
   }
   /* Do the conversion */
-  if ( !sws_scale(swscale_ctx, in_frame->data, in_frame->linesize, 0, in_frame->height, out_frame->data, out_frame->linesize ) ) {
+  if (!sws_scale(swscale_ctx,
+        in_frame->data, in_frame->linesize, 0, in_frame->height,
+        out_frame->data, out_frame->linesize)) {
     Error("swscale conversion failed");
     return -10;
   }
@@ -140,8 +124,9 @@ int SWScale::Convert(
     unsigned int new_width,
     unsigned int new_height
     ) {
-  Debug(1, "Convert: in_buffer %p in_buffer_size %d out_buffer %p size %d width %d height %d width %d height %d", 
-      in_buffer, in_buffer_size, out_buffer, out_buffer_size, width, height, new_width, new_height);
+  Debug(1, "Convert: in_buffer %p in_buffer_size %d out_buffer %p size %d width %d height %d width %d height %d %d %d", 
+      in_buffer, in_buffer_size, out_buffer, out_buffer_size, width, height, new_width, new_height,
+      in_pf, out_pf);
   /* Parameter checking */
   if ( in_buffer == nullptr ) {
     Error("NULL Input buffer");
@@ -160,23 +145,7 @@ int SWScale::Convert(
     return -3;
   }
 
-  // THe J formats are deprecated, so we need to convert
-  switch ( in_pf ) {
-    case AV_PIX_FMT_YUVJ420P :
-      in_pf = AV_PIX_FMT_YUV420P;
-      break;
-    case AV_PIX_FMT_YUVJ422P  :
-      in_pf = AV_PIX_FMT_YUV422P;
-      break;
-    case AV_PIX_FMT_YUVJ444P   :
-      in_pf = AV_PIX_FMT_YUV444P;
-      break;
-    case AV_PIX_FMT_YUVJ440P :
-      in_pf = AV_PIX_FMT_YUV440P;
-      break;
-    default:
-      break;
-  }
+  in_pf = fix_deprecated_pix_fmt(in_pf);
 
 #if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
   /* Warn if the input or output pixelformat is not supported */
@@ -192,11 +161,11 @@ int SWScale::Convert(
 
   /* Check the buffer sizes */
   size_t insize = GetBufferSize(in_pf, width, height);
-  if ( insize != in_buffer_size ) {
-    Debug(1, "The input buffer size does not match the expected size for the input format. Required: %d Available: %d", insize, in_buffer_size);
+  if ( insize > in_buffer_size ) {
+    Debug(1, "The input buffer size does not match the expected size for the input format. Required: %d for %dx%d %d Available: %d", insize, width, height, in_pf, in_buffer_size);
   }
   size_t outsize = GetBufferSize(out_pf, new_width, new_height);
-  if ( outsize < out_buffer_size ) {
+  if ( outsize > out_buffer_size ) {
     Error("The output buffer is undersized for the output format. Required: %d Available: %d", outsize, out_buffer_size);
     return -5;
   }
@@ -212,8 +181,8 @@ int SWScale::Convert(
 
   /* Fill in the buffers */
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  if ( av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
-                           (uint8_t*) in_buffer, in_pf, width, height, 1) <= 0) {
+  if (av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
+                           (uint8_t*) in_buffer, in_pf, width, height, 32) <= 0) {
 #else
   if (avpicture_fill((AVPicture*) input_avframe, (uint8_t*) in_buffer,
                      in_pf, width, height) <= 0) {
@@ -222,10 +191,10 @@ int SWScale::Convert(
     return -7;
   }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  if ( av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
-                           out_buffer, out_pf, new_width, new_height, 1) <= 0) {
+  if (av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
+                           out_buffer, out_pf, new_width, new_height, 32) <= 0) {
 #else
-  if ( avpicture_fill((AVPicture*) output_avframe, out_buffer, out_pf, new_width,
+  if (avpicture_fill((AVPicture*) output_avframe, out_buffer, out_pf, new_width,
                      new_height) <= 0) {
 #endif
     Error("Failed filling output frame with output buffer");
@@ -235,7 +204,8 @@ int SWScale::Convert(
   /* Do the conversion */
   if ( !sws_scale(swscale_ctx,
         input_avframe->data, input_avframe->linesize,
-        0, height, output_avframe->data, output_avframe->linesize ) ) {
+        0, height,
+        output_avframe->data, output_avframe->linesize) ) {
     Error("swscale conversion failed");
     return -10;
   }

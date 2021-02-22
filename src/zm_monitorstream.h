@@ -47,7 +47,7 @@ class MonitorStream : public StreamBase {
     bool checkSwapPath(const char *path, bool create_path);
     bool sendFrame(const char *filepath, struct timeval *timestamp);
     bool sendFrame(Image *image, struct timeval *timestamp);
-    void processCommand(const CmdMsg *msg);
+    void processCommand(const CmdMsg *msg) override;
     void SingleImage(int scale=100);
     void SingleImageRaw(int scale=100);
 #ifdef HAVE_ZLIB_H

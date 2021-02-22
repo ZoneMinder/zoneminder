@@ -44,7 +44,6 @@ int zmFifoDbgInit(Monitor * monitor);
 class FifoStream : public StreamBase {
  private:
     char * stream_path;
-    int fd;
     int total_read;
     int bytes_read;
     unsigned int frame_count;
@@ -59,12 +58,11 @@ class FifoStream : public StreamBase {
     StreamType  stream_type;
     bool sendMJEGFrames();
     bool sendRAWFrames();
-    void processCommand(const CmdMsg *msg) {}
+    void processCommand(const CmdMsg *msg) override {}
 
  public:
     FifoStream() : 
       stream_path(nullptr),
-      fd(0),
       total_read(0),
       bytes_read(0),
       frame_count(0),

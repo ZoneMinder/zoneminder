@@ -190,12 +190,8 @@ bool VideoStore::open() {
 #endif
         }
 
-        video_out_ctx->time_base = video_in_ctx ? video_in_ctx->time_base : AV_TIME_BASE_Q;
-        if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
-          Debug(2, "No timebase found in video in context, defaulting to Q which is microseconds");
-          video_out_ctx->time_base = AV_TIME_BASE_Q;
-        }	
-
+        // When encoding, we are going to use the timestamp values instead of packet pts/dts
+        video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = codec_data[i].codec_id;
         video_out_ctx->pix_fmt = codec_data[i].pix_fmt;
         video_out_ctx->level = 32;
@@ -254,6 +250,7 @@ bool VideoStore::open() {
         }
         //av_dict_free(&opts);
         if ( video_out_codec ) break;
+        avcodec_free_context(&video_out_ctx);
       } // end foreach codec
 
       if ( !video_out_codec ) {
@@ -1015,21 +1012,25 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     //zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
     // Do this to allow the encoder to choose whether to use I/P/B frame
     //zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
-    zm_packet->out_frame->key_frame = zm_packet->keyframe;
+    //zm_packet->out_frame->key_frame = zm_packet->keyframe;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     zm_packet->out_frame->pkt_duration = 0;
 #endif
 
+    int64_t in_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
     if ( !video_first_pts ) {
-      video_first_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
+      video_first_pts = in_pts;
       Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
           video_first_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
       zm_packet->out_frame->pts = 0;
     } else {
-      uint64_t useconds = ( zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_first_pts;
-      zm_packet->out_frame->pts = av_rescale_q(useconds, video_in_stream->time_base, video_out_ctx->time_base);
-      Debug(2, " Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
-          frame_count, zm_packet->out_frame->pts, video_first_pts, useconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
+      uint64_t useconds = in_pts - video_first_pts;
+      zm_packet->out_frame->pts = av_rescale_q(useconds, AV_TIME_BASE_Q, video_out_ctx->time_base);
+      Debug(2, " Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d) @ %d/%d",
+          frame_count, zm_packet->out_frame->pts, video_first_pts, useconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec,
+          video_out_ctx->time_base.num,
+          video_out_ctx->time_base.den
+          );
     }
 
     av_init_packet(&opkt);

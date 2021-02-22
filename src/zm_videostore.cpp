@@ -205,14 +205,6 @@ bool VideoStore::open() {
           video_out_ctx->bit_rate = 2000000;
           video_out_ctx->gop_size = 12;
           video_out_ctx->max_b_frames = 1;
-
-          ret = av_opt_set(video_out_ctx, "crf", "36", AV_OPT_SEARCH_CHILDREN);
-          if ( ret < 0 ) {
-            Error("Could not set 'crf' for output codec %s. %s",
-                codec_data[i].codec_name,
-                av_make_error_string(ret).c_str()
-                );
-          }
         } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO ) {
           /* just for testing, we also add B frames */
           video_out_ctx->max_b_frames = 2;
@@ -237,10 +229,17 @@ bool VideoStore::open() {
         }
 
         if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
-          Warning("Can't open video codec (%s) %s",
-              video_out_codec->name,
-              av_make_error_string(ret).c_str()
-              );
+          if ( wanted_encoder != "" and wanted_encoder != "auto" ) {
+            Warning("Can't open video codec (%s) %s",
+                video_out_codec->name,
+                av_make_error_string(ret).c_str()
+                );
+          } else {
+            Debug(1, "Can't open video codec (%s) %s",
+                video_out_codec->name,
+                av_make_error_string(ret).c_str()
+                );
+          }
           video_out_codec = nullptr;
         }
 

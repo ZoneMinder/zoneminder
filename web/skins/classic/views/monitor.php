@@ -993,7 +993,7 @@ $videowriter_encoders = array(
   'mpeg1' => 'mpeg1',
   'mpeg2' => 'mpeg2',
 );
- echo htmlSelect( 'newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder() );?></td></tr>
+ echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());?></td></tr>
             <tr>
               <td><?php echo translate('OutputContainer') ?></td>
               <td>
@@ -1017,7 +1017,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
               <input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/>
 <?php } else { ?>
-              Audio recording only available with FFMPEG using H264 Passthrough
+              Audio recording only available with FFMPEG
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
             </td></tr>

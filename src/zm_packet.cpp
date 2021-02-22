@@ -165,10 +165,11 @@ int ZMPacket::decode(AVCodecContext *ctx) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
-    if ( ctx->sw_pix_fmt != in_frame->format ) {
-      Debug(1, "Have different format %s != %s.",
+    if ( fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != in_frame->format ) {
+      Debug(1, "Have different format ctx->pix_fmt %s ?= ctx->sw_pix_fmt %s in_frame->format %s.",
           av_get_pix_fmt_name(ctx->pix_fmt),
-          av_get_pix_fmt_name(ctx->sw_pix_fmt)
+          av_get_pix_fmt_name(ctx->sw_pix_fmt),
+          av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
           );
 #if 0
       if ( target_format == AV_PIX_FMT_NONE and ctx->hw_frames_ctx and (image->Colours() == 4) ) {

@@ -651,6 +651,7 @@ void Monitor::LoadCamera() {
 
   switch (type) {
     case LOCAL: {
+#if ZM_HAS_V4L
       int extras = (deinterlacing >> 24) & 0xff;
 
       camera = ZM::make_unique<LocalCamera>(this,
@@ -672,6 +673,9 @@ void Monitor::LoadCamera() {
                                             record_audio,
                                             extras
       );
+#else
+      Fatal("Not compiled with local v4l camera support");
+#endif
       break;
     }
     case REMOTE: {

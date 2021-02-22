@@ -26,6 +26,7 @@
 #include "zm_utils.h"
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/socket.h>
 
 #ifdef SOLARIS
 #include <sys/filio.h> // FIONREAD and friends

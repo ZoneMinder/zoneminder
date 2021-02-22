@@ -21,6 +21,7 @@
 
 #include "zm_db.h"
 #include "zm_utils.h"
+#include <cerrno>
 #include <csignal>
 #include <cstdarg>
 #include <cstring>

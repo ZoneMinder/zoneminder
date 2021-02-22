@@ -24,7 +24,11 @@
 #include "zm_time.h"
 #include <arpa/inet.h>
 #include <glob.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
+#ifdef __FreeBSD__
+#include <netinet/in.h>
+#endif
 
 const int MAX_SLEEP_USEC = 1000000; // 1 sec
 

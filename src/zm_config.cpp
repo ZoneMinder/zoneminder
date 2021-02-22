@@ -22,6 +22,7 @@
 #include "zm_db.h"
 #include "zm_logger.h"
 #include "zm_utils.h"
+#include <cerrno>
 #include <cstring>
 #include <dirent.h>
 #include <glob.h>

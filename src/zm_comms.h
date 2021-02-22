@@ -22,6 +22,7 @@
 
 #include "zm_exception.h"
 #include "zm_logger.h"
+#include <cerrno>
 #include <netdb.h>
 #include <set>
 #include <sys/uio.h>

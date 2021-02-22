@@ -204,13 +204,11 @@ function initPage() {
   });
 
   
-  /*
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
   });
-  */
 
   // Manage the TIMELINE Button
   document.getElementById("tlineBtn").addEventListener("click", function onTlineClick(evt) {

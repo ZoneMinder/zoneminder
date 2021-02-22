@@ -385,8 +385,9 @@ enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
       return AV_PIX_FMT_YUV440P;
     case AV_PIX_FMT_NONE :
     case AV_PIX_FMT_YUVJ420P :
-    default:
       return AV_PIX_FMT_YUV420P;
+    default:
+      return fmt;
   }
 }
 

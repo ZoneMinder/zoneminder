@@ -45,7 +45,10 @@ function ajaxRequest(params) {
         // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
-      .fail(logAjaxFail);
+      .fail(function(jqXHR) {
+        logAjaxFail(jqXHR);
+        $j('#eventTable').bootstrapTable('refresh');
+      });
 }
 
 function processRows(rows) {
@@ -118,7 +121,11 @@ function manageDelConfirmModalBtns() {
           $j('#eventTable').bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');
         })
-        .fail(logAjaxFail);
+        .fail( function(jqxhr) {
+          logAjaxFail(jqxhr);
+          $j('#eventTable').bootstrapTable('refresh');
+          $j('#deleteConfirm').modal('hide');
+        });
   });
 
   // Manage the CANCEL modal button
@@ -196,11 +203,14 @@ function initPage() {
     window.history.back();
   });
 
+  
+  /*
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
   });
+  */
 
   // Manage the TIMELINE Button
   document.getElementById("tlineBtn").addEventListener("click", function onTlineClick(evt) {

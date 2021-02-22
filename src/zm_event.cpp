@@ -506,7 +506,9 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
 
 void Event::AddPacket(ZMPacket *packet) {
 
-  have_video_keyframe = have_video_keyframe || ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && packet->keyframe );
+  have_video_keyframe = have_video_keyframe || 
+    ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && 
+      ( packet->keyframe || monitor->GetOptVideoWriter() == Monitor::ENCODE) );
   Debug(2, "have_video_keyframe %d codec_type %d == video? %d packet keyframe %d",
       have_video_keyframe, packet->codec_type, (packet->codec_type == AVMEDIA_TYPE_VIDEO), packet->keyframe);
   ZM_DUMP_PACKET(packet->packet, "Adding to event");

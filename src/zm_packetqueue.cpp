@@ -155,14 +155,14 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
 
       if ( zm_packet->packet.stream_index == video_stream_id ) {
         if ( zm_packet->keyframe ) {
-          Debug(1, "Have a video keyframe so breaking out");
+          Debug(1, "Have a video keyframe so setting next front to it");
           next_front = it;
         }
       }
       it++;
     } // end while
   }  // end if first packet not locked
-  Debug(1, "Resulting pointing at latest packet? %d, have next front? %d",
+  Debug(1, "Resulting pointing at latest packet? %d, next front points to begin? %d",
       ( *it == add_packet ),
       ( next_front == pktQueue.begin() )
       );
@@ -426,7 +426,7 @@ unsigned int PacketQueue::size() {
 
 int PacketQueue::packet_count(int stream_id) {
   if ( stream_id < 0 or stream_id > max_stream_id ) {
-    Error("Invalid stream_id %d", stream_id);
+    Error("Invalid stream_id %d max is %d", stream_id, max_stream_id);
     return -1;
   }
   return packet_counts[stream_id];

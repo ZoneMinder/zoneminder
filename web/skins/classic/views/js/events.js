@@ -203,7 +203,6 @@ function initPage() {
     window.history.back();
   });
 
-  
   // Manage the REFRESH Button
   document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
     evt.preventDefault();

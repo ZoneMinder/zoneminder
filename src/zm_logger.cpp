@@ -535,7 +535,7 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   }  // end if level <= mFileLevel
 
   if ( level <= mDatabaseLevel ) {
-    if (db_mutex.try_lock_for(1)) {
+    if (db_mutex.try_lock) {
       int syslogSize = syslogEnd-syslogStart;
       char escapedString[(syslogSize*2)+1];
       mysql_real_escape_string(&dbconn, escapedString, syslogStart, syslogSize);

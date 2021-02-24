@@ -18,11 +18,11 @@ static int (*WaitForMessage_f)(rfbClient*, unsigned int) = nullptr;
 static rfbBool (*HandleRFBServerMessage_f)(rfbClient*) = nullptr;
 
 void bind_libvnc_symbols() {
-  if ( libvnc_lib != nullptr ) // Safe-check
+  if (libvnc_lib != nullptr) // Safe-check
     return;
   
   libvnc_lib = dlopen("libvncclient.so", RTLD_LAZY | RTLD_GLOBAL);
-  if ( !libvnc_lib ) {
+  if (!libvnc_lib) {
     Error("Error loading libvncclient: %s", dlerror());
     return;
   }
@@ -43,14 +43,14 @@ static void GotFrameBufferUpdateCallback(rfbClient *rfb, int x, int y, int w, in
       x,y,w,h, rfb->width, rfb->height, rfb->frameBuffer);
 }
 
-static char* GetPasswordCallback(rfbClient* cl){
+static char* GetPasswordCallback(rfbClient* cl) {
   Debug(1, "Getcredentials: %s", (*rfbClientGetClientData_f)(cl, &TAG_1));
   return strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
 }
 
 static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
   rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
-  if ( credentialType != rfbCredentialTypeUser ) {
+  if (credentialType != rfbCredentialTypeUser) {
     free(c);
     return nullptr;
   }
@@ -62,14 +62,16 @@ static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
 }
 
 static rfbBool resize(rfbClient* client) {
-  if ( client->frameBuffer )  {
+  if (client->frameBuffer) {
     Debug(1, "Freeing old frame buffer");
     av_free(client->frameBuffer);
   }
 
-  int mBufferSize = SWScale::GetBufferSize(AV_PIX_FMT_RGBA, client->width, client->height);
-  client->frameBuffer = (uint8_t *)av_malloc(mBufferSize);
-    Debug(1, "Allocing new frame buffer %dx%d = %d", client->width, client->height, mBufferSize);
+  int bufferSize = 4*client->width*client->height;
+  // libVNC doesn't do alignment or padding in each line
+  //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, client->width, client->height);
+  client->frameBuffer = (uint8_t *)av_malloc(bufferSize);
+    Debug(1, "Allocing new frame buffer %dx%d = %d", client->width, client->height, bufferSize);
 
   return TRUE;
 }
@@ -109,22 +111,20 @@ VncCamera::VncCamera(
   mUser(user),
   mPass(pass)
 {
-  Debug(2, "Host:%s Port: %s User: %s Pass:%s", mHost.c_str(), mPort.c_str(), mUser.c_str(), mPass.c_str());
-  
-  if ( colours == ZM_COLOUR_RGB32 ) {
+  if (colours == ZM_COLOUR_RGB32) {
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
     mImgPixFmt = AV_PIX_FMT_RGBA;
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
+  } else if (colours == ZM_COLOUR_RGB24) {
     subpixelorder = ZM_SUBPIX_ORDER_RGB;
     mImgPixFmt = AV_PIX_FMT_RGB24;
-  } else if ( colours == ZM_COLOUR_GRAY8 ) {
+  } else if (colours == ZM_COLOUR_GRAY8) {
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
     mImgPixFmt = AV_PIX_FMT_GRAY8;
   } else {
     Panic("Unexpected colours: %d", colours);
   }
 
-  if ( capture ) {
+  if (capture) {
     Debug(3, "Initializing Client");
     bind_libvnc_symbols();
     scale.init();
@@ -132,8 +132,8 @@ VncCamera::VncCamera(
 }
 
 VncCamera::~VncCamera() {
-  if ( capture ) {
-    if ( mRfb->frameBuffer )
+  if (capture) {
+    if (mRfb->frameBuffer)
       free(mRfb->frameBuffer);
     (*rfbClientCleanup_f)(mRfb);
   }
@@ -151,8 +151,9 @@ int VncCamera::PrimeCapture() {
     mVncData.width = 0;
     mVncData.height = 0;
 
+    // TODO, support 8bit or 24bit
     mRfb = (*rfbGetClient_f)(8 /* bits per sample */, 3 /* samples per pixel */, 4 /* bytes Per Pixel */);
-    mRfb->MallocFrameBuffer=resize;
+    mRfb->MallocFrameBuffer = resize;
 
     (*rfbClientSetClientData_f)(mRfb, &TAG_0, &mVncData);
     (*rfbClientSetClientData_f)(mRfb, &TAG_1, (void *)mPass.c_str());
@@ -166,13 +167,13 @@ int VncCamera::PrimeCapture() {
     mRfb->serverHost = strdup(mHost.c_str());
     mRfb->serverPort = atoi(mPort.c_str());
   }
-  if ( ! (*rfbInitClient_f)(mRfb, 0, nullptr) ) {
+  if (!(*rfbInitClient_f)(mRfb, 0, nullptr)) {
     /* IF rfbInitClient fails, it calls rdbClientCleanup which will free mRfb */
     Warning("Failed to Prime capture from %s", mHost.c_str());
     mRfb = nullptr;
     return -1; 
   }
-  if ( ((unsigned int)mRfb->width != width) or ((unsigned int)mRfb->height != height) ) {
+  if (((unsigned int)mRfb->width != width) or ((unsigned int)mRfb->height != height)) {
     Warning("Specified dimensions do not match screen size monitor: (%dx%d) != vnc: (%dx%d)",
         width, height, mRfb->width, mRfb->height);
   }
@@ -183,9 +184,9 @@ int VncCamera::PrimeCapture() {
 
 int VncCamera::PreCapture() {
   int rc = (*WaitForMessage_f)(mRfb, 500);
-  if ( rc < 0 ) {
+  if (rc < 0) {
     return -1;
-  } else if ( !rc ) {
+  } else if (!rc) {
     return rc;
   }
   rfbBool res = (*HandleRFBServerMessage_f)(mRfb);
@@ -194,11 +195,11 @@ int VncCamera::PreCapture() {
 }
 
 int VncCamera::Capture(ZMPacket &zm_packet) {
-  if ( !mVncData.buffer ) {
+  if (!mVncData.buffer) {
     Debug(1, "No buffer");
     return 0;
   }
-  if ( !zm_packet.image ) {
+  if (!zm_packet.image) {
     Debug(1, "Allocating image %dx%d %dcolours = %d", width, height, colours, colours*pixels);
     zm_packet.image = new Image(width, height, colours, subpixelorder);
   }
@@ -208,10 +209,10 @@ int VncCamera::Capture(ZMPacket &zm_packet) {
 
   uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
   Debug(1, "scale src %p, %d, dest %p %d %d %dx%d %dx%d", mVncData.buffer,
-      mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4,
+      mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
       directbuffer,
       width * height * colours,
- mImgPixFmt,
+      mImgPixFmt,
       mRfb->si.framebufferWidth,
       mRfb->si.framebufferHeight,
       width,
@@ -219,7 +220,8 @@ int VncCamera::Capture(ZMPacket &zm_packet) {
 
   int rc = scale.Convert(
       mVncData.buffer,
-      mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4,
+      mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
+      //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, mRfb->si.framebufferWidth, mRfb->si.framebufferHeight),
       directbuffer,
       width * height * colours,
       AV_PIX_FMT_RGBA,

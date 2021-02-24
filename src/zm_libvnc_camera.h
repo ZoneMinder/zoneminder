@@ -26,7 +26,6 @@ class VncCamera : public Camera {
 protected:
   rfbClient *mRfb;
   VncPrivateData mVncData;
-  int mBufferSize;
   SWScale scale;
   AVPixelFormat mImgPixFmt;
   std::string mHost;
@@ -48,7 +47,7 @@ public:
       int p_hue,
       int p_colour,
       bool p_capture,
-      bool p_record_audio );
+      bool p_record_audio);
     
   ~VncCamera();
 

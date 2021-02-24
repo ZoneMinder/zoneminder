@@ -536,8 +536,9 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
 
   if ( level <= mDatabaseLevel ) {
     if (db_mutex.try_lock_for(1)) {
-      char escapedString[(strlen(syslogStart)*2)+1];
-      mysql_real_escape_string(&dbconn, escapedString, syslogStart, strlen(syslogStart));
+      int syslogSize = syslogEnd-syslogStart;
+      char escapedString[(syslogSize*2)+1];
+      mysql_real_escape_string(&dbconn, escapedString, syslogStart, syslogSize);
 
       char sql[ZM_SQL_MED_BUFSIZ];
       snprintf(sql, sizeof(sql),

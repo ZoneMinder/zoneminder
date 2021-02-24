@@ -676,7 +676,7 @@ LocalCamera::LocalCamera(
     imgConversionContext = nullptr;
   } // end if capture and conversion_tye == swscale
 #endif
-  if ( device_prime )
+  if ( capture and device_prime )
     Initialise();
 } // end LocalCamera::LocalCamera
 

@@ -159,21 +159,24 @@ int SWScale::Convert(
   }
 #endif
 
+  int alignment = 1;
   /* Check the buffer sizes */
-  size_t insize = GetBufferSize(in_pf, width, height);
-  if ( insize > in_buffer_size ) {
-    Debug(1, "The input buffer size does not match the expected size for the input format. Required: %d for %dx%d %d Available: %d", insize, width, height, in_pf, in_buffer_size);
+  size_t needed_insize = GetBufferSize(in_pf, width, height);
+  if ( needed_insize > in_buffer_size ) {
+    Debug(1, "The input buffer size does not match the expected size for the input format. Required: %d for %dx%d %d Available: %d",
+        needed_insize, width, height, in_pf, in_buffer_size);
   }
-  size_t outsize = GetBufferSize(out_pf, new_width, new_height);
-  if ( outsize > out_buffer_size ) {
-    Error("The output buffer is undersized for the output format. Required: %d Available: %d", outsize, out_buffer_size);
+  size_t needed_outsize = GetBufferSize(out_pf, new_width, new_height);
+  if ( needed_outsize > out_buffer_size ) {
+    Error("The output buffer is undersized for the output format. Required: %d Available: %d", needed_outsize, out_buffer_size);
     return -5;
   }
 
   /* Get the context */
-  swscale_ctx = sws_getCachedContext(
-      swscale_ctx, width, height, in_pf, new_width, new_height,
-      out_pf, SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+  swscale_ctx = sws_getCachedContext(swscale_ctx,
+      width, height, in_pf,
+      new_width, new_height, out_pf,
+      SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
   if ( swscale_ctx == nullptr ) {
     Error("Failed getting swscale context");
     return -6;
@@ -182,7 +185,7 @@ int SWScale::Convert(
   /* Fill in the buffers */
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   if (av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
-                           (uint8_t*) in_buffer, in_pf, width, height, 32) <= 0) {
+                           (uint8_t*) in_buffer, in_pf, width, height, alignment) <= 0) {
 #else
   if (avpicture_fill((AVPicture*) input_avframe, (uint8_t*) in_buffer,
                      in_pf, width, height) <= 0) {
@@ -192,7 +195,7 @@ int SWScale::Convert(
   }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   if (av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
-                           out_buffer, out_pf, new_width, new_height, 32) <= 0) {
+                           out_buffer, out_pf, new_width, new_height, alignment) <= 0) {
 #else
   if (avpicture_fill((AVPicture*) output_avframe, out_buffer, out_pf, new_width,
                      new_height) <= 0) {
@@ -268,7 +271,7 @@ int SWScale::ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_si
 
 size_t SWScale::GetBufferSize(enum _AVPIXELFORMAT pf, unsigned int width, unsigned int height) {
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  return av_image_get_buffer_size(pf, width, height, 32);
+  return av_image_get_buffer_size(pf, width, height, 1);
 #else
   return outsize = avpicture_get_size(pf, width,height);
 #endif

@@ -439,8 +439,8 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   va_list         argPtr;
   struct timeval  timeVal;
 
-  char *filecopy = strdup(filepath);
-  const char * const file = basename(filecopy);
+  const char *base = strrchr(filepath, '/');
+  const char *file = base ? base+1 : filepath;
   const char *classString = smCodes[level].c_str();
 
   if ( level < PANIC || level > DEBUG9 )
@@ -567,7 +567,6 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     syslog(smSyslogPriorities[level], "%s [%s] [%s]", classString, mId.c_str(), syslogStart);
   }
 
-  free(filecopy);
   log_mutex.unlock();
   if ( level <= FATAL ) {
     logTerm();

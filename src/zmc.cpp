@@ -308,6 +308,7 @@ int main(int argc, char *argv[]) {
 
     struct timeval now;
     struct DeltaTimeval delta_time;
+    int sleep_time = 0;
 
     while (!zm_terminate) {
       //sigprocmask(SIG_BLOCK, &block_set, 0);
@@ -334,31 +335,31 @@ int main(int argc, char *argv[]) {
         }
 
         gettimeofday(&now, nullptr);
-        // capture_delay is the amount of time we should sleep to achieve the desired framerate.
-        int delay = monitors[i]->GetState() == Monitor::ALARM ? alarm_capture_delays[i] : capture_delays[i];
+        // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
+        int delay = (monitors[i]->GetState() == Monitor::ALARM) ? alarm_capture_delays[i] : capture_delays[i];
         if (delay && last_capture_times[i].tv_sec) {
-          int sleep_time;
-          DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
+          // DT_PREC_3 means that the value will be in thousands of a second
+          DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_6);
 
-          sleep_time = delay - delta_time.delta;
-          Debug(3, "Sleep time is %d from now:%d.%d last:%d.%d delay: %d",
+          // You have to add back in the previous sleep time
+          sleep_time = delay - (delta_time.delta - sleep_time);
+          Debug(4, "Sleep time is %d from now:%d.%d last:%d.%d delta %d delay: %d",
               sleep_time,
               now.tv_sec, now.tv_usec,
               last_capture_times[i].tv_sec, last_capture_times[i].tv_usec,
+              delta_time.delta,
               delay
               );
           
-          if (sleep_time < 0) {
-            sleep_time = 0;
-          } else if (sleep_time > 0) {
-            Debug(2,"usleeping (%d)", sleep_time*(DT_MAXGRAN/DT_PREC_3) );
-            usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
+          if (sleep_time > 0) {
+            Debug(4, "usleeping (%d)", sleep_time);
+            usleep(sleep_time);
           }
-        } // end if has a last_capture time
+        }  // end if has a last_capture time
         last_capture_times[i] = now;
-      } // end foreach n_monitors
+      }  // end foreach n_monitors
 
-      if (result < 0 or zm_reload) {
+      if ((result < 0) or zm_reload) {
         // Failure, try reconnecting
         break;
       }

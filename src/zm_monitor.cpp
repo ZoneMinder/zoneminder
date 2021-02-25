@@ -446,8 +446,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], nullptr) : 0.0; col++;
   analysis_update_delay = strtoul(dbrow[col++], nullptr, 0);
-  capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
-  alarm_capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+  capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_6/atof(dbrow[col])):0; col++;
+  alarm_capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_6/atof(dbrow[col])):0; col++;
 
   if ( dbrow[col] )
     strncpy(device, dbrow[col], sizeof(device)-1);
@@ -1686,7 +1686,8 @@ void Monitor::UpdateCaptureFPS() {
       unsigned int new_capture_bandwidth = (new_camera_bytes-last_camera_bytes)/elapsed;
       last_camera_bytes = new_camera_bytes;
 
-      Debug(4, "%s: %d - now:%lf, last %lf, elapsed %lf = %lffps", "Capturing", image_count,
+      Debug(4, "%s: %d - last %d = %d now:%lf, last %lf, elapsed %lf = %lffps", "Capturing", image_count,
+          last_capture_image_count, image_count - last_capture_image_count,
           now_double, last_analysis_fps_time,
           elapsed, new_capture_fps
           );
@@ -2462,9 +2463,8 @@ int Monitor::Capture() {
       return 0;
     }
   } else {
-    Debug(4, "Capturing");
     captureResult = camera->Capture(*packet);
-    Debug(4, "Back from capture result=%d", captureResult);
+    Debug(4, "Back from capture result=%d image %d", captureResult, image_count);
 
     if ( captureResult < 0 ) {
       Debug(2, "failed capture");
@@ -2534,6 +2534,7 @@ int Monitor::Capture() {
       } // end if need to decode
 
       if ( packet->image ) {
+        capture_image = packet->image;
 
         /* Deinterlacing */
         if ( deinterlacing_value ) {

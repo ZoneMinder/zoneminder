@@ -21,13 +21,13 @@
 #define ZM_DB_H
 
 #include "zm_thread.h"
-#include <mysql/mysql.h>
-#include <mysql/mysqld_error.h>
-#include <string>
-#include <thread>
-#include <queue>
 #include <condition_variable>
 #include <mutex>
+#include <mysql/mysql.h>
+#include <mysql/mysqld_error.h>
+#include <queue>
+#include <string>
+#include <thread>
 
 class zmDbQueue {
   private:
@@ -40,7 +40,7 @@ class zmDbQueue {
   zmDbQueue();
   ~zmDbQueue();
   void push(const char *sql) { return push(std::string(sql)); };
-  void push(std::string);
+  void push(std::string &&sql);
   void process();
 };
 

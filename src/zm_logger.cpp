@@ -536,7 +536,7 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
           "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
           timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line
           );
-      dbQueue.push(sql_string);
+      dbQueue.push(std::move(sql_string));
     } else {
       puts("Db is closed");
     }

@@ -24,6 +24,7 @@
 
 MYSQL dbconn;
 RecursiveMutex db_mutex;
+zmDbQueue   dbQueue;
 
 bool zmDbConnected = false;
 
@@ -213,4 +214,37 @@ zmDbRow::~zmDbRow() {
     result_set = nullptr;
   }
   row = nullptr;
+}
+
+zmDbQueue::zmDbQueue() :
+  mThread(&zmDbQueue::process, this),
+  mTerminate(false)
+{ }
+
+zmDbQueue::~zmDbQueue() {
+  mTerminate = true;
+  mCondition.notify_all();
+  mThread.join();
+}
+void zmDbQueue::process() {
+  std::unique_lock<std::mutex> lock(mMutex);
+
+  while (!mTerminate and !zm_terminate) { 
+    if (mQueue.empty()) {
+      mCondition.wait(lock);
+    }
+    if (!mQueue.empty()) {
+      std::string sql = mQueue.front();
+      mQueue.pop();
+      lock.unlock();
+      zmDbDo(sql.c_str());
+      lock.lock();
+    }
+  }
+}  // end void zmDbQueue::process()
+
+void zmDbQueue::push(std::string sql) {
+  std::unique_lock<std::mutex> lock(mMutex);
+  mQueue.push(sql);
+  mCondition.notify_all();
 }

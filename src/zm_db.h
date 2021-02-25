@@ -23,6 +23,26 @@
 #include "zm_thread.h"
 #include <mysql/mysql.h>
 #include <mysql/mysqld_error.h>
+#include <string>
+#include <thread>
+#include <queue>
+#include <condition_variable>
+#include <mutex>
+
+class zmDbQueue {
+  private:
+  std::queue<std::string> mQueue;
+  std::thread             mThread;
+  std::mutex              mMutex;
+  std::condition_variable mCondition;
+  bool                    mTerminate;
+  public:
+  zmDbQueue();
+  ~zmDbQueue();
+  void push(const char *sql) { return push(std::string(sql)); };
+  void push(std::string);
+  void process();
+};
 
 class zmDbRow {
   private:
@@ -43,6 +63,7 @@ class zmDbRow {
 
 extern MYSQL dbconn;
 extern RecursiveMutex db_mutex;
+extern zmDbQueue  dbQueue;
 
 extern bool zmDbConnected;
 
@@ -51,7 +72,7 @@ void zmDbClose();
 int zmDbDo(const char *query);
 int zmDbDoInsert(const char *query);
 
-MYSQL_RES * zmDbFetch( const char *query );
-zmDbRow *zmDbFetchOne( const char *query );
+MYSQL_RES * zmDbFetch(const char *query);
+zmDbRow *zmDbFetchOne(const char *query);
 
 #endif // ZM_DB_H

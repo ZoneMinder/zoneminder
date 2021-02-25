@@ -535,32 +535,18 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   }  // end if level <= mFileLevel
 
   if ( level <= mDatabaseLevel ) {
-    if (db_mutex.try_lock()) {
-      int syslogSize = syslogEnd-syslogStart;
-      char escapedString[(syslogSize*2)+1];
-      mysql_real_escape_string(&dbconn, escapedString, syslogStart, syslogSize);
+    int syslogSize = syslogEnd-syslogStart;
+    char escapedString[(syslogSize*2)+1];
+    mysql_real_escape_string(&dbconn, escapedString, syslogStart, syslogSize);
 
-      char sql[ZM_SQL_MED_BUFSIZ];
-      snprintf(sql, sizeof(sql),
-          "INSERT INTO `Logs` "
-          "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
-         " VALUES "
-         "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
-         timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line
-         );
-      if ( mysql_query(&dbconn, sql) ) {
-        Level tempDatabaseLevel = mDatabaseLevel;
-        databaseLevel(NOLOG);
-        Error("Can't insert log entry: sql(%s) error(%s)", sql, mysql_error(&dbconn));
-        databaseLevel(tempDatabaseLevel);
-      }
-      db_mutex.unlock();
-    } else {
-      Level tempDatabaseLevel = mDatabaseLevel;
-      databaseLevel(NOLOG);
-      Error("Can't insert log entry since the DB lock could not be obtained. Message: %s", syslogStart);
-      databaseLevel(tempDatabaseLevel);
-    }
+    std::string sql_string = stringtf(
+        "INSERT INTO `Logs` "
+        "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
+        " VALUES "
+        "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+        timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line
+        );
+    dbQueue.push(sql_string);
   }  // end if level <= mDatabaseLevel
 
   if ( level <= mSyslogLevel ) {

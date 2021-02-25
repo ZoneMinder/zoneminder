@@ -871,6 +871,8 @@ include('_monitor_source_nvsocket.php');
             '2048x1536'=>'2048x1536 3MP',
             '2560x1440'=>'2560x1440 1440p QHD WQHD',
             '2592x1944'=>'2592x1944 5MP',
+            '2688x1520'=>'2688x1520 4MP',
+            '3072x2048'=>'3072x2048 6MP',
             '3840x2160'=>'3840x2160 4K UHD',
           );
         $selected = '';
@@ -993,7 +995,7 @@ $videowriter_encoders = array(
   'mpeg1' => 'mpeg1',
   'mpeg2' => 'mpeg2',
 );
- echo htmlSelect( 'newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder() );?></td></tr>
+ echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());?></td></tr>
             <tr>
               <td><?php echo translate('OutputContainer') ?></td>
               <td>
@@ -1017,7 +1019,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
               <input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/>
 <?php } else { ?>
-              Audio recording only available with FFMPEG using H264 Passthrough
+              Audio recording only available with FFMPEG
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
             </td></tr>

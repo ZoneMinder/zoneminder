@@ -22,6 +22,7 @@
 #include "zm_utils.h"
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/socket.h>
 
 RemoteCamera::RemoteCamera(
   const Monitor *monitor,

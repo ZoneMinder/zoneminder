@@ -19,10 +19,12 @@
 #include "zm_db.h"
 
 #include "zm_logger.h"
+#include "zm_signal.h"
 #include <cstdlib>
 
 MYSQL dbconn;
-RecursiveMutex db_mutex;
+std::mutex db_mutex;
+zmDbQueue   dbQueue;
 
 bool zmDbConnected = false;
 
@@ -106,46 +108,36 @@ bool zmDbConnect() {
 
 void zmDbClose() {
   if (zmDbConnected) {
-    db_mutex.lock();
+    std::lock_guard<std::mutex> lck(db_mutex);
     mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()
     mysql_library_end();
     zmDbConnected = false;
-    db_mutex.unlock();
   }
 }
 
 MYSQL_RES * zmDbFetch(const char * query) {
-  if ( !zmDbConnected ) {
-    Error("Not connected.");
-    return nullptr;
-  }
-  db_mutex.lock();
-  // Might have been disconnected while we waited for the lock
-  if ( !zmDbConnected ) {
-    db_mutex.unlock();
+  std::lock_guard<std::mutex> lck(db_mutex);
+  if (!zmDbConnected) {
     Error("Not connected.");
     return nullptr;
   }
 
-  if ( mysql_query(&dbconn, query) ) {
-    db_mutex.unlock();
+  if (mysql_query(&dbconn, query)) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     return nullptr;
   }
-  Debug(4, "Success running query: %s", query);
   MYSQL_RES *result = mysql_store_result(&dbconn);
-  if ( !result ) {
+  if (!result) {
     Error("Can't use query result: %s for query %s", mysql_error(&dbconn), query);
   }
-  db_mutex.unlock();
   return result;
 } // end MYSQL_RES * zmDbFetch(const char * query);
 
 zmDbRow *zmDbFetchOne(const char *query) {
   zmDbRow *row = new zmDbRow();
-  if ( row->fetch(query) ) {
+  if (row->fetch(query)) {
     return row;
   } 
   delete row;
@@ -154,10 +146,10 @@ zmDbRow *zmDbFetchOne(const char *query) {
 
 MYSQL_RES *zmDbRow::fetch(const char *query) {
   result_set = zmDbFetch(query);
-  if ( ! result_set ) return result_set;
+  if (!result_set) return result_set;
 
   int n_rows = mysql_num_rows(result_set);
-  if ( n_rows != 1 ) {
+  if (n_rows != 1) {
     Error("Bogus number of lines return from query, %d returned for query %s.", n_rows, query);
     mysql_free_result(result_set);
     result_set = nullptr;
@@ -165,7 +157,7 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
   }
 
   row = mysql_fetch_row(result_set);
-  if ( !row ) {
+  if (!row) {
     mysql_free_result(result_set);
     result_set = nullptr;
     Error("Error getting row from query %s. Error is %s", query, mysql_error(&dbconn));
@@ -176,40 +168,69 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
 }
 
 int zmDbDo(const char *query) {
-  db_mutex.lock();
+  std::lock_guard<std::mutex> lck(db_mutex);
+  if (!zmDbConnected)
+    return 0;
   int rc;
-  while ( rc = mysql_query(&dbconn, query) ) {
-    db_mutex.unlock();
+  while ((rc = mysql_query(&dbconn, query)) and !zm_terminate) {
     Error("Can't run query %s: %s", query, mysql_error(&dbconn));
-    if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
+    if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) ) {
       return rc;
-
-    db_mutex.lock();
+    }
   }
-  db_mutex.unlock();
   return 1;
 }
 
 int zmDbDoInsert(const char *query) {
-  db_mutex.lock();
+  std::lock_guard<std::mutex> lck(db_mutex);
+  if (!zmDbConnected) return 0;
   int rc;
-  while ( rc = mysql_query(&dbconn, query) ) {
-    db_mutex.unlock();
+  while ( (rc = mysql_query(&dbconn, query)) and !zm_terminate) {
     Error("Can't run query %s: %s", query, mysql_error(&dbconn));
     if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
       return 0;
-
-    db_mutex.lock();
   }
   int id = mysql_insert_id(&dbconn);
-  db_mutex.unlock();
   return id;
 }
 
 zmDbRow::~zmDbRow() {
-  if ( result_set ) {
+  if (result_set) {
     mysql_free_result(result_set);
     result_set = nullptr;
   }
   row = nullptr;
+}
+
+zmDbQueue::zmDbQueue() :
+  mThread(&zmDbQueue::process, this),
+  mTerminate(false)
+{ }
+
+zmDbQueue::~zmDbQueue() {
+  mTerminate = true;
+  mCondition.notify_all();
+  mThread.join();
+}
+void zmDbQueue::process() {
+  std::unique_lock<std::mutex> lock(mMutex);
+
+  while (!mTerminate and !zm_terminate) { 
+    if (mQueue.empty()) {
+      mCondition.wait(lock);
+    }
+    if (!mQueue.empty()) {
+      std::string sql = mQueue.front();
+      mQueue.pop();
+      lock.unlock();
+      zmDbDo(sql.c_str());
+      lock.lock();
+    }
+  }
+}  // end void zmDbQueue::process()
+
+void zmDbQueue::push(std::string sql) {
+  std::unique_lock<std::mutex> lock(mMutex);
+  mQueue.push(sql);
+  mCondition.notify_all();
 }

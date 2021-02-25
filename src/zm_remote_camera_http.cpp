@@ -26,6 +26,7 @@
 #include "zm_utils.h"
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/socket.h>
 
 #ifdef SOLARIS
 #include <sys/filio.h> // FIONREAD and friends
@@ -540,10 +541,8 @@ int RemoteCameraHttp::GetResponse() {
           }
         case HEADERCONT :
         case SUBHEADERCONT :
-          {
             // Ignore
             break;
-          }
       }
     }
   } else
@@ -1062,7 +1061,6 @@ int RemoteCameraHttp::PreCapture() {
   if ( mode == SINGLE_IMAGE ) {
     if ( SendRequest() < 0 ) {
       Error("Unable to send request");
-      Disconnect();
       return -1;
     }
   }
@@ -1072,12 +1070,11 @@ int RemoteCameraHttp::PreCapture() {
 int RemoteCameraHttp::Capture(ZMPacket &packet) {
   int content_length = GetResponse();
   if ( content_length == 0 ) {
-    Warning( "Unable to capture image, retrying" );
+    Warning("Unable to capture image, retrying");
     return 0;
   }
   if ( content_length < 0 ) {
-    Error( "Unable to get response, disconnecting" );
-    Disconnect();
+    Error("Unable to get response, disconnecting");
     return -1;
   }
 
@@ -1094,7 +1091,6 @@ int RemoteCameraHttp::Capture(ZMPacket &packet) {
     case JPEG :
       if ( !image->DecodeJpeg(buffer.extract(content_length), content_length, colours, subpixelorder) ) {
         Error("Unable to decode jpeg");
-        Disconnect();
         return -1;
       }
       break;
@@ -1102,7 +1098,6 @@ int RemoteCameraHttp::Capture(ZMPacket &packet) {
       if ( content_length != (long)image->Size() ) {
         Error("Image length mismatch, expected %d bytes, content length was %d",
             image->Size(), content_length);
-        Disconnect();
         return -1;
       }
       image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
@@ -1110,14 +1105,12 @@ int RemoteCameraHttp::Capture(ZMPacket &packet) {
     case X_RGBZ :
       if ( !image->Unzip( buffer.extract( content_length ), content_length ) ) {
         Error("Unable to unzip RGB image");
-        Disconnect();
         return -1;
       }
       image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
       break;
     default :
       Error("Unexpected image format encountered");
-      Disconnect();
       return -1;
   }
   return 1;

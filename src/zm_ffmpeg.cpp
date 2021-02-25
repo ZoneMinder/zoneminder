@@ -64,11 +64,15 @@ void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
 
   if ( log ) {
     char logString[8192];
-    vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
-    int length = strlen(logString);
-    // ffmpeg logs have a carriage return, so replace it with terminator
-    logString[length-1] = 0;
-    log->logPrint(false, __FILE__, __LINE__, log_level, logString);
+    int length = vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
+    if ( length > 0 ) {
+      if ( static_cast<size_t>(length) > sizeof(logString)-1 ) length = sizeof(logString)-1;
+      // ffmpeg logs have a carriage return, so replace it with terminator
+      logString[length-1] = 0;
+      log->logPrint(false, __FILE__, __LINE__, log_level, logString);
+    } else {
+      log->logPrint(false, __FILE__, __LINE__, AV_LOG_ERROR, "Can't encode log from av. fmt was %s", fmt);
+    }
   }
 }
 
@@ -385,8 +389,9 @@ enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
       return AV_PIX_FMT_YUV440P;
     case AV_PIX_FMT_NONE :
     case AV_PIX_FMT_YUVJ420P :
-    default:
       return AV_PIX_FMT_YUV420P;
+    default:
+      return fmt;
   }
 }
 

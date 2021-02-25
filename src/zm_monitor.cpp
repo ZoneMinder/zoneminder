@@ -651,6 +651,7 @@ void Monitor::LoadCamera() {
 
   switch (type) {
     case LOCAL: {
+#if ZM_HAS_V4L
       int extras = (deinterlacing >> 24) & 0xff;
 
       camera = ZM::make_unique<LocalCamera>(this,
@@ -672,6 +673,9 @@ void Monitor::LoadCamera() {
                                             record_audio,
                                             extras
       );
+#else
+      Fatal("Not compiled with local v4l camera support");
+#endif
       break;
     }
     case REMOTE: {
@@ -1071,11 +1075,6 @@ Monitor::~Monitor() {
   Close();
 
   if (mem_ptr != nullptr) {
-    std::lock_guard<std::mutex> lck(event_mutex);
-    if (event) {
-      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id());
-      closeEvent();
-    }
     if (purpose != QUERY) {
       shared_data->state = state = IDLE;
       shared_data->last_read_index = image_buffer_count;
@@ -1317,25 +1316,17 @@ void Monitor::actionReload() {
 void Monitor::actionEnable() {
   shared_data->action |= RELOAD;
 
-  db_mutex.lock();
-  static char sql[ZM_SQL_SML_BUFSIZ];
+  char sql[ZM_SQL_SML_BUFSIZ];
   snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %d", id);
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-  }
-  db_mutex.unlock();
+  zmDbDo(sql);
 }
 
 void Monitor::actionDisable() {
   shared_data->action |= RELOAD;
 
-  static char sql[ZM_SQL_SML_BUFSIZ];
+  char sql[ZM_SQL_SML_BUFSIZ];
   snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %d", id);
-  db_mutex.lock();
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-  }
-  db_mutex.unlock();
+  zmDbDo(sql);
 }
 
 void Monitor::actionSuspend() {
@@ -1705,7 +1696,6 @@ void Monitor::UpdateCaptureFPS() {
       last_fps_time = now_double;
       last_capture_image_count = image_count;
 
-      db_mutex.lock();
       static char sql[ZM_SQL_SML_BUFSIZ];
       // The reason we update the Status as well is because if mysql restarts, the Monitor_Status table is lost,
       // and nothing else will update the status until zmc restarts. Since we are successfully capturing we can
@@ -1715,10 +1705,7 @@ void Monitor::UpdateCaptureFPS() {
           "VALUES (%d, %.2lf, %u, 'Connected') ON DUPLICATE KEY UPDATE "
           "CaptureFPS = %.2lf, CaptureBandwidth=%u, Status='Connected'",
           id, new_capture_fps, new_capture_bandwidth, new_capture_fps, new_capture_bandwidth);
-      if ( mysql_query(&dbconn, sql) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-      }
-      db_mutex.unlock();
+      dbQueue.push(sql);
     } // now != last_fps_time
   } // end if report fps
 }  // void Monitor::UpdateCaptureFPS()
@@ -1759,11 +1746,7 @@ void Monitor::UpdateAnalysisFPS() {
             "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf)"
             " ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf",
             id, new_analysis_fps, new_analysis_fps);
-        db_mutex.lock();
-        if ( mysql_query(&dbconn, sql) ) {
-          Error("Can't run query: %s", mysql_error(&dbconn));
-        }
-        db_mutex.unlock();
+        dbQueue.push(sql);
         last_analysis_fps_time = now_double;
         last_motion_frame_count = motion_frame_count;
       } else {
@@ -1844,7 +1827,7 @@ bool Monitor::Analyse() {
     } // end if trigger_on
 
     if ( signal_change ) {
-      Debug(2, "Signal change");
+      Debug(2, "Signal change, new signal is %d", signal);
       const char *signalText = "Unknown";
       if ( !signal ) {
         signalText = "Lost";
@@ -1954,7 +1937,7 @@ bool Monitor::Analyse() {
           // If doing record, check to see if we need to close the event or not.
 
           if ( event ) {
-            Debug(2, "Have event in mocord");
+            Debug(2, "Have event %" PRIu64 " in mocord", event->Id());
             if ( section_length
                 && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
                 && ( (function == MOCORD && (event_close_mode != CLOSE_TIME)) || ! ( timestamp->tv_sec % section_length ) )
@@ -2233,6 +2216,7 @@ bool Monitor::Analyse() {
   shared_data->last_read_time = time(nullptr);
   analysis_image_count++;
   UpdateAnalysisFPS();
+  packetqueue.clearPackets(snap);
 
   return true;
 } // end Monitor::Analyse
@@ -2338,7 +2322,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
       for ( int i = 0; i < n_link_ids; i++ ) {
         Debug(1, "Checking linked monitor %d", link_ids[i]);
 
-        db_mutex.lock();
+        std::lock_guard<std::mutex> lck(db_mutex);
         static char sql[ZM_SQL_SML_BUFSIZ];
         snprintf(sql, sizeof(sql),
             "SELECT `Id`, `Name` FROM `Monitors`"
@@ -2347,14 +2331,12 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
             "   AND `Function` != 'Monitor'"
             "   AND `Enabled`=1",
             link_ids[i]);
-        if ( mysql_query(&dbconn, sql) ) {
-					db_mutex.unlock();
+        if (mysql_query(&dbconn, sql)) {
           Error("Can't run query: %s", mysql_error(&dbconn));
           continue;
         }
 
         MYSQL_RES *result = mysql_store_result(&dbconn);
-        db_mutex.unlock();
         if ( !result ) {
           Error("Can't use query result: %s", mysql_error(&dbconn));
           continue;
@@ -2368,11 +2350,11 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
           Warning("Can't link to monitor %d, invalid id, function or not enabled", link_ids[i]);
         }
         mysql_free_result(result);
-      } // end foreach link_id
+      }  // end foreach link_id
       n_linked_monitors = count;
-    } // end if has link_ids
-  } // end if p_linked_monitors
-} // end void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors)
+    }  // end if has link_ids
+  }  // end if p_linked_monitors
+}  // end void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors)
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(std::string sql, Purpose purpose) {
   Debug(1, "Loading Monitors with %s", sql.c_str());
@@ -2516,6 +2498,7 @@ int Monitor::Capture() {
           Debug(2, "Queueing audio packet");
           packetqueue.queuePacket(packet);
         } else {
+          Debug(4, "Not Queueing audio packet");
           delete packet;
         }
         // Don't update last_write_index because that is used for live streaming
@@ -2934,10 +2917,16 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
+  std::lock_guard<std::mutex> lck(event_mutex);
+  if (event) {
+    Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id());
+    closeEvent();
+  }
   if (camera) camera->Close();
   packetqueue.clear();
   return 1;
 }
+
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 // Wait for camera to get an image, and then assign it as the base reference image.

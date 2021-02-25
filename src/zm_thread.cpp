@@ -21,6 +21,7 @@
 
 #include "zm_logger.h"
 #include "zm_utils.h"
+#include <cerrno>
 #include <cstring>
 #include <csignal>
 #include <sys/time.h>

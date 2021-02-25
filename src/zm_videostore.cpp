@@ -190,12 +190,8 @@ bool VideoStore::open() {
 #endif
         }
 
-        video_out_ctx->time_base = video_in_ctx ? video_in_ctx->time_base : AV_TIME_BASE_Q;
-        if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
-          Debug(2, "No timebase found in video in context, defaulting to Q which is microseconds");
-          video_out_ctx->time_base = AV_TIME_BASE_Q;
-        }	
-
+        // When encoding, we are going to use the timestamp values instead of packet pts/dts
+        video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = codec_data[i].codec_id;
         video_out_ctx->pix_fmt = codec_data[i].pix_fmt;
         video_out_ctx->level = 32;
@@ -209,14 +205,6 @@ bool VideoStore::open() {
           video_out_ctx->bit_rate = 2000000;
           video_out_ctx->gop_size = 12;
           video_out_ctx->max_b_frames = 1;
-
-          ret = av_opt_set(video_out_ctx, "crf", "36", AV_OPT_SEARCH_CHILDREN);
-          if ( ret < 0 ) {
-            Error("Could not set 'crf' for output codec %s. %s",
-                codec_data[i].codec_name,
-                av_make_error_string(ret).c_str()
-                );
-          }
         } else if ( video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO ) {
           /* just for testing, we also add B frames */
           video_out_ctx->max_b_frames = 2;
@@ -241,10 +229,17 @@ bool VideoStore::open() {
         }
 
         if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
-          Warning("Can't open video codec (%s) %s",
-              video_out_codec->name,
-              av_make_error_string(ret).c_str()
-              );
+          if ( wanted_encoder != "" and wanted_encoder != "auto" ) {
+            Warning("Can't open video codec (%s) %s",
+                video_out_codec->name,
+                av_make_error_string(ret).c_str()
+                );
+          } else {
+            Debug(1, "Can't open video codec (%s) %s",
+                video_out_codec->name,
+                av_make_error_string(ret).c_str()
+                );
+          }
           video_out_codec = nullptr;
         }
 
@@ -254,6 +249,7 @@ bool VideoStore::open() {
         }
         //av_dict_free(&opts);
         if ( video_out_codec ) break;
+        avcodec_free_context(&video_out_ctx);
       } // end foreach codec
 
       if ( !video_out_codec ) {
@@ -1015,21 +1011,25 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     //zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
     // Do this to allow the encoder to choose whether to use I/P/B frame
     //zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
-    zm_packet->out_frame->key_frame = zm_packet->keyframe;
+    //zm_packet->out_frame->key_frame = zm_packet->keyframe;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     zm_packet->out_frame->pkt_duration = 0;
 #endif
 
+    int64_t in_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
     if ( !video_first_pts ) {
-      video_first_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
+      video_first_pts = in_pts;
       Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
           video_first_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
       zm_packet->out_frame->pts = 0;
     } else {
-      uint64_t useconds = ( zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_first_pts;
-      zm_packet->out_frame->pts = av_rescale_q(useconds, video_in_stream->time_base, video_out_ctx->time_base);
-      Debug(2, " Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
-          frame_count, zm_packet->out_frame->pts, video_first_pts, useconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
+      uint64_t useconds = in_pts - video_first_pts;
+      zm_packet->out_frame->pts = av_rescale_q(useconds, AV_TIME_BASE_Q, video_out_ctx->time_base);
+      Debug(2, " Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d) @ %d/%d",
+          frame_count, zm_packet->out_frame->pts, video_first_pts, useconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec,
+          video_out_ctx->time_base.num,
+          video_out_ctx->time_base.den
+          );
     }
 
     av_init_packet(&opkt);
@@ -1097,7 +1097,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 
   } else { // Passthrough
     AVPacket *ipkt = &zm_packet->packet;
-    Debug(3, "Doing passthrough, just copy packet");
+    ZM_DUMP_STREAM_PACKET(video_in_stream, (*ipkt), "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same
     av_init_packet(&opkt);
     opkt.data = ipkt->data;
@@ -1149,10 +1149,8 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     audio_next_pts = audio_out_ctx->frame_size;
   }
 
+  Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
-  ipkt->pts -= audio_first_dts;
-  ipkt->dts -= audio_first_dts;
-  ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "after pts adjustment");
 
   if ( audio_out_codec ) {
     // I wonder if we can get multiple frames per packet? Probably
@@ -1206,8 +1204,10 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     opkt.flags = ipkt->flags;
 
     opkt.duration = ipkt->duration;
-    opkt.pts = ipkt->pts;
-    opkt.dts = ipkt->dts;
+    opkt.pts = ipkt->pts - audio_first_dts;
+    opkt.dts = ipkt->dts - audio_first_dts;
+
+    ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "after pts adjustment");
     av_packet_rescale_ts(&opkt, audio_in_stream->time_base, audio_out_stream->time_base);
     ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
     write_packet(&opkt, audio_out_stream);

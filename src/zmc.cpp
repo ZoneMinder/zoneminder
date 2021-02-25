@@ -214,7 +214,6 @@ int main(int argc, char *argv[]) {
     exit(-1);
   } else {
 	  Debug(2, "%d monitors loaded", monitors.size());
-
   }
 
   Info("Starting Capture version %s", ZM_VERSION);
@@ -230,10 +229,9 @@ int main(int argc, char *argv[]) {
   sigaddset(&block_set, SIGUSR2);
 
   int result = 0;
-
   int prime_capture_log_count = 0;
 
-  while ( !zm_terminate ) {
+  while (!zm_terminate) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
 
@@ -247,37 +245,29 @@ int main(int argc, char *argv[]) {
       monitor->setStartupTime(now);
 
       snprintf(sql, sizeof(sql), 
-          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS) VALUES (%d, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0",
-               monitor->Id());
-      if (mysql_query(&dbconn, sql)) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-      }
-    }
+          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"
+          " VALUES (%d, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0",
+          monitor->Id());
+      zmDbDo(sql);
 
-    for (const std::shared_ptr<Monitor> &monitor : monitors) {
-
-      // Outer primary loop, handles connection to camera
-      if (monitor->PrimeCapture() <= 0) {
+      while (monitor->PrimeCapture() <= 0) {
         if (prime_capture_log_count % 60) {
           Error("Failed to prime capture of initial monitor");
         } else {
           Debug(1, "Failed to prime capture of initial monitor");
         }
         prime_capture_log_count ++;
-        monitor->disconnect();
-        if (!zm_terminate) {
-          Debug(1, "Sleeping");
-          sleep(5);
-        }
-        continue;
+        if (zm_terminate) break;
+        sleep(1);
       }
+      if (zm_terminate) break;
+
       snprintf(sql, sizeof(sql),
           "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
-          monitor->Id());
-      if ( mysql_query(&dbconn, sql) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-      }
-    }
+               monitor->Id());
+      zmDbDo(sql);
+    }  // end foreach monitor
+    if (zm_terminate) break;
 
 #if HAVE_RTSP_SERVER
     RTSPServerThread ** rtsp_server_threads = nullptr;
@@ -303,12 +293,12 @@ int main(int argc, char *argv[]) {
           capture_delays[i], alarm_capture_delays[i]);
 
       Monitor::Function function = monitors[0]->GetFunction();
-      if ( function != Monitor::MONITOR ) {
+      if (function != Monitor::MONITOR) {
         Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
         analysis_threads.emplace_back(ZM::make_unique<AnalysisThread>(monitors[i]));
       }
 #if HAVE_RTSP_SERVER
-      if ( rtsp_server_threads ) {
+      if (rtsp_server_threads) {
         rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
         rtsp_server_threads[i]->addStream(monitors[i]->GetVideoStream(), monitors[i]->GetAudioStream());
         rtsp_server_threads[i]->start();
@@ -366,15 +356,10 @@ int main(int argc, char *argv[]) {
           }
         } // end if has a last_capture time
         last_capture_times[i] = now;
-
       } // end foreach n_monitors
 
-      if (result < 0) {
+      if (result < 0 or zm_reload) {
         // Failure, try reconnecting
-        break;
-      }
-
-      if ( zm_reload ) {
         break;
       }
     }  // end while ! zm_terminate and connected
@@ -413,7 +398,7 @@ int main(int argc, char *argv[]) {
     delete [] capture_delays;
     delete [] last_capture_times;
 
-    if (result < 0) {
+    if (result < 0 and !zm_terminate) {
       // Failure, try reconnecting
       Debug(1, "Sleeping for 5");
       sleep(5);
@@ -435,9 +420,7 @@ int main(int argc, char *argv[]) {
     snprintf(sql, sizeof(sql),
         "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='NotRunning'", 
         monitor->Id());
-    if (mysql_query(&dbconn, sql)) {
-      Error("Can't run query: %s", mysql_error(&dbconn));
-    }
+    zmDbDo(sql);
   }
 
   Image::Deinitialise();

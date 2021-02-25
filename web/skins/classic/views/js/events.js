@@ -45,7 +45,10 @@ function ajaxRequest(params) {
         // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
-      .fail(logAjaxFail);
+      .fail(function(jqXHR) {
+        logAjaxFail(jqXHR);
+        $j('#eventTable').bootstrapTable('refresh');
+      });
 }
 
 function processRows(rows) {
@@ -58,7 +61,7 @@ function processRows(rows) {
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
     row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>'
                + '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
-    if ( canEdit.Monitors ) row.Monitor = '<a href="?view=monitor&amp;mid=' + mid + '">' + row.Monitor + '</a>';
+    if ( canEdit.Monitors ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
     if ( canEdit.Events ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {
       row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></div></a>';
@@ -118,7 +121,11 @@ function manageDelConfirmModalBtns() {
           $j('#eventTable').bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');
         })
-        .fail(logAjaxFail);
+        .fail( function(jqxhr) {
+          logAjaxFail(jqxhr);
+          $j('#eventTable').bootstrapTable('refresh');
+          $j('#deleteConfirm').modal('hide');
+        });
   });
 
   // Manage the CANCEL modal button

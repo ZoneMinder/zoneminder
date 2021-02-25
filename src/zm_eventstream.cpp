@@ -27,6 +27,9 @@
 #include "zm_storage.h"
 #include <arpa/inet.h>
 #include <sys/stat.h>
+#ifdef __FreeBSD__
+#include <netinet/in.h>
+#endif
 
 const std::string EventStream::StreamMode_Strings[4] = {
   "None",
@@ -348,7 +351,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
           curr_frame_id = 1;
         } else {
           Debug(1, "mode is %s, current frame is %ld, frame count is %ld, last frame id is %ld",
-              StreamMode_Strings[(int)mode], curr_frame_id, event_data->frame_count );
+              StreamMode_Strings[(int)mode].c_str(), curr_frame_id, event_data->frame_count );
         }
 
         replay_rate = ZM_RATE_BASE;

@@ -134,16 +134,11 @@ Zone::~Zone() {
 
 void Zone::RecordStats(const Event *event) {
   static char sql[ZM_SQL_MED_BUFSIZ];
-  db_mutex.lock();
   snprintf(sql, sizeof(sql),
       "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
       monitor->Id(), id, event->Id(), event->Frames(), pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score
       );
-  int rc = mysql_query(&dbconn, sql);
-  db_mutex.unlock();
-  if ( rc ) {
-    Error("Can't insert event stats: %s", mysql_error(&dbconn));
-  }
+  zmDbDo(sql);
 }  // end void Zone::RecordStats( const Event *event )
 
 bool Zone::CheckOverloadCount() {
@@ -824,23 +819,24 @@ bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, P
 
 int Zone::Load(Monitor *monitor, Zone **&zones) {
   static char sql[ZM_SQL_MED_BUFSIZ];
+  MYSQL_RES *result;
 
-  db_mutex.lock();
-  snprintf(sql, sizeof(sql), "SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
-      "MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,"
-      "FilterX,FilterY,MinFilterPixels,MaxFilterPixels,"
-      "MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,"
-      "OverloadFrames,ExtendAlarmFrames"
-      " FROM Zones WHERE MonitorId = %d ORDER BY Type, Id", monitor->Id());
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-    db_mutex.unlock();
-    return 0;
+  {  // scope for lock
+    std::lock_guard<std::mutex> lck(db_mutex);
+    snprintf(sql, sizeof(sql), "SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
+        "MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,"
+        "FilterX,FilterY,MinFilterPixels,MaxFilterPixels,"
+        "MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,"
+        "OverloadFrames,ExtendAlarmFrames"
+        " FROM Zones WHERE MonitorId = %d ORDER BY Type, Id", monitor->Id());
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't run query: %s", mysql_error(&dbconn));
+      return 0;
+    }
+
+    result = mysql_store_result(&dbconn);
   }
-
-  MYSQL_RES *result = mysql_store_result(&dbconn);
-  db_mutex.unlock();
-  if ( !result ) {
+  if (!result) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
     return 0;
   }
@@ -848,7 +844,7 @@ int Zone::Load(Monitor *monitor, Zone **&zones) {
   Debug(1, "Got %d zones for monitor %s", n_zones, monitor->Name());
   delete[] zones;
   zones = new Zone *[n_zones];
-  for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+  for(int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
     int col = 0;
 
     int Id = atoi(dbrow[col++]);

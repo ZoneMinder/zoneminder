@@ -251,30 +251,25 @@ Event::~Event() {
       frames, alarm_frames,
       tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
       id);
-  db_mutex.lock();
-  while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
-    db_mutex.unlock();
-    Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
-    sleep(1);
-    db_mutex.lock();
-  }
-  if ( !mysql_affected_rows(&dbconn) ) {
-    // Name might have been changed during recording, so just do the update without changing the name.
-    snprintf(sql, sizeof(sql),
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
-        end_time.tv_sec,
-        delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
-        frames, alarm_frames,
-        tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
-        id);
+  {  // scope for lock
+    std::lock_guard<std::mutex> lck(db_mutex);
     while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
-      db_mutex.unlock();
       Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
-      sleep(1);
-      db_mutex.lock();
     }
-  }  // end if no changed rows due to Name change during recording
-  db_mutex.unlock();
+    if ( !mysql_affected_rows(&dbconn) ) {
+      // Name might have been changed during recording, so just do the update without changing the name.
+      snprintf(sql, sizeof(sql),
+          "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+          end_time.tv_sec,
+          delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
+          frames, alarm_frames,
+          tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
+          id);
+      while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
+        Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
+      }
+    }  // end if no changed rows due to Name change during recording
+  }
 }  // Event::~Event()
 
 void Event::createNotes(std::string &notes) {
@@ -427,11 +422,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     mysql_real_escape_string(&dbconn, escapedNotes, notes.c_str(), notes.length());
 
     snprintf(sql, sizeof(sql), "UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64, escapedNotes, id);
-    db_mutex.lock();
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't insert event: %s", mysql_error(&dbconn));
-    }
-    db_mutex.unlock();
+    zmDbDo(sql);
 #endif
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
@@ -495,14 +486,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
 
   if ( frameCount ) {
     *(frame_insert_values-1) = '\0';
-    db_mutex.lock();
-    int rc = mysql_query(&dbconn, frame_insert_sql);
-    db_mutex.unlock();
-    if ( rc ) {
-      Error("Can't insert frames: %s, sql was (%s)", mysql_error(&dbconn), frame_insert_sql);
-    } else {
-      Debug(1, "INSERT %d/%d frames sql %s", frameCount, n_frames, frame_insert_sql);
-    }
+    zmDbDo(frame_insert_sql);
     last_db_frame = frames;
   } else {
     Debug(1, "No valid pre-capture frames to add");
@@ -512,7 +496,9 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
 
 void Event::AddPacket(ZMPacket *packet) {
 
-  have_video_keyframe = have_video_keyframe || ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && packet->keyframe );
+  have_video_keyframe = have_video_keyframe || 
+    ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && 
+      ( packet->keyframe || monitor->GetOptVideoWriter() == Monitor::ENCODE) );
   Debug(2, "have_video_keyframe %d codec_type %d == video? %d packet keyframe %d",
       have_video_keyframe, packet->codec_type, (packet->codec_type == AVMEDIA_TYPE_VIDEO), packet->keyframe);
   ZM_DUMP_PACKET(packet->packet, "Adding to event");
@@ -552,37 +538,8 @@ void Event::WriteDbFrames() {
     delete frame;
   }
   *(frame_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
-  db_mutex.lock();
-  int rc = mysql_query(&dbconn, frame_insert_sql);
-  db_mutex.unlock();
-
-  if ( rc ) {
-    Error("Can't insert frames: %s, sql was %s", mysql_error(&dbconn), frame_insert_sql);
-    return;
-  } else {
-    Debug(1, "INSERT FRAMES: sql was %s", frame_insert_sql);
-  }
+  zmDbDo(frame_insert_sql);
 } // end void Event::WriteDbFrames()
-
-// Subtract an offset time from frames deltas to match with video start time
-void Event::UpdateFramesDelta(double offset) {
-  char sql[ZM_SQL_MED_BUFSIZ];
-
-  if ( offset == 0.0 ) return;
-  // the table is set to auto update timestamp so we force it to keep current value
-  snprintf(sql, sizeof(sql),
-    "UPDATE Frames SET timestamp = timestamp, Delta = Delta - (%.4f) WHERE EventId = %" PRIu64,
-    offset, id);
-
-  db_mutex.lock();
-  if ( mysql_query(&dbconn, sql) ) {
-    db_mutex.unlock();
-    Error("Can't update frames: %s, sql was %s", mysql_error(&dbconn), sql);
-    return;
-  }
-  db_mutex.unlock();
-  Info("Updating frames delta by %0.2f sec to match video file", offset);
-}
 
 void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image) {
   if (!timestamp.tv_sec) {
@@ -686,14 +643,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
           max_score,
           id
           );
-      db_mutex.lock();
-      while (mysql_query(&dbconn, sql) && !zm_terminate) {
-        Error("Can't update event: %s", mysql_error(&dbconn));
-        db_mutex.unlock();
-        sleep(1);
-        db_mutex.lock();
-      }
-      db_mutex.unlock();
+      zmDbDo(sql);
 		} else {
       Debug(1, "Not Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
 					frame_data.size(), write_to_db, fps);

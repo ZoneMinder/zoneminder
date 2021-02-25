@@ -177,6 +177,10 @@ LibvlcCamera::~LibvlcCamera() {
     (*libvlc_release_f)(mLibvlcInstance);
     mLibvlcInstance = nullptr;
   }
+  if (libvlc_lib) {
+    dlclose(libvlc_lib);
+    libvlc_lib = nullptr;
+  }
   if ( mOptArgV != nullptr ) {
     delete[] mOptArgV;
   }

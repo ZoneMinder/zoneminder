@@ -153,18 +153,12 @@ public:
   void terminate();
 
   const std::string &id(const std::string &id);
-  const std::string &id() const {
-    return mId;
-  }
+  const std::string &id() const { return mId; }
 
-  Level level() const {
-    return mLevel;
-  }
+  Level level() const { return mLevel; }
   Level level(Level=NOOPT);
 
-  bool debugOn() const {
-    return mEffectiveLevel >= DEBUG1;
-  }
+  bool debugOn() const { return mEffectiveLevel >= DEBUG1; }
 
   Level terminalLevel(Level=NOOPT);
   Level databaseLevel(Level=NOOPT);

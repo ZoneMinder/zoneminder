@@ -132,7 +132,7 @@ VncCamera::VncCamera(
 }
 
 VncCamera::~VncCamera() {
-  if (capture) {
+  if (capture and mRfb) {
     if (mRfb->frameBuffer)
       free(mRfb->frameBuffer);
     (*rfbClientCleanup_f)(mRfb);
@@ -164,6 +164,7 @@ int VncCamera::PrimeCapture() {
     mRfb->GetCredential = GetCredentialsCallback;
 
     mRfb->programName = "Zoneminder VNC Monitor";
+    if ( mRfb->serverHost ) free(mRfb->serverHost);
     mRfb->serverHost = strdup(mHost.c_str());
     mRfb->serverPort = atoi(mPort.c_str());
   }

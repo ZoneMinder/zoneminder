@@ -266,6 +266,7 @@ int main(int argc, char *argv[]) {
                monitor->Id());
       zmDbDo(sql);
     }  // end foreach monitor
+    if (zm_terminate) break;
 
 #if HAVE_RTSP_SERVER
     RTSPServerThread ** rtsp_server_threads = nullptr;
@@ -418,9 +419,7 @@ int main(int argc, char *argv[]) {
     snprintf(sql, sizeof(sql),
         "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='NotRunning'", 
         monitor->Id());
-    if (mysql_query(&dbconn, sql)) {
-      Error("Can't run query: %s", mysql_error(&dbconn));
-    }
+    zmDbDo(sql);
   }
 
   Image::Deinitialise();

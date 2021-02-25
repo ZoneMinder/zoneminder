@@ -21,10 +21,7 @@
 
 #include "zm_db.h"
 #include "zm_utils.h"
-#include <cerrno>
-#include <csignal>
-#include <cstdarg>
-#include <cstring>
+
 #include <libgen.h>
 #include <syslog.h>
 #include <sys/time.h>
@@ -32,6 +29,11 @@
 #ifdef __FreeBSD__
 #include <sys/thr.h>
 #endif
+#include <cerrno>
+#include <csignal>
+#include <cstdarg>
+#include <cstring>
+
 
 bool Logger::smInitialised = false;
 Logger *Logger::smInstance = nullptr;
@@ -57,16 +59,15 @@ Logger::Logger() :
   mEffectiveLevel(NOLOG),
   mDbConnected(false),
   mLogPath(staticConfig.PATH_LOGS.c_str()),
-  //mLogFile( mLogPath+"/"+mId+".log" ),
+  //  mLogFile( mLogPath+"/"+mId+".log" ),
   mLogFileFP(nullptr),
   mHasTerminal(false),
   mFlush(false) {
-
-  if ( smInstance ) {
+  if (smInstance) {
     Panic("Attempt to create second instance of Logger class");
   }
 
-  if ( !smInitialised ) {
+  if (!smInitialised) {
     smCodes[INFO] = "INF";
     smCodes[WARNING] = "WAR";
     smCodes[ERROR] = "ERR";
@@ -81,16 +82,16 @@ Logger::Logger() :
     smSyslogPriorities[PANIC] = LOG_ERR;
 
     char code[4] = "";
-    for ( int i = DEBUG1; i <= DEBUG9; i++ ) {
+    for (int i = DEBUG1; i <= DEBUG9; i++) {
       snprintf(code, sizeof(code), "DB%d", i);
       smCodes[i] = code;
       smSyslogPriorities[i] = LOG_DEBUG;
     }
 
     smInitialised = true;
-  }
+  }  // end if ! smInitialised
 
-  if ( fileno(stderr) && isatty(fileno(stderr)) ) {
+  if (fileno(stderr) && isatty(fileno(stderr))) {
     mHasTerminal = true;
     mTerminalLevel = WARNING;
   }
@@ -101,14 +102,6 @@ Logger::~Logger() {
   smCodes.clear();
   smSyslogPriorities.clear();
   smInitialised = false;
-#if 0
-  for ( StringMap::iterator itr = smCodes.begin(); itr != smCodes.end(); itr ++ ) {
-      smCodes.erase( itr );
-  }
-  for ( IntMap::iterator itr = smSyslogPriorities.begin(); itr != smSyslogPriorities.end(); itr ++ ) {
-      smSyslogPriorities.erase(itr);
-  }
-#endif
 }
 
 void Logger::initialise(const std::string &id, const Options &options) {
@@ -185,7 +178,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
           }
         }
       }
-    } // end foreach target
+    }  // end foreach target
   } else {
     // if we don't have debug turned on, then the max effective log level is INFO
     if ( tempSyslogLevel > INFO ) tempSyslogLevel = INFO;
@@ -193,7 +186,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
     if ( tempTerminalLevel > INFO ) tempTerminalLevel = INFO;
     if ( tempDatabaseLevel > INFO ) tempDatabaseLevel = INFO;
     if ( tempLevel > INFO ) tempLevel = INFO;
-  } // end if config.log_debug
+  }  // end if config.log_debug
 
   logFile(tempLogFile);
 
@@ -355,11 +348,11 @@ Logger::Level Logger::databaseLevel(Logger::Level databaseLevel) {
 }
 
 Logger::Level Logger::fileLevel(Logger::Level fileLevel) {
-  if ( fileLevel > NOOPT ) {
+  if (fileLevel > NOOPT) {
     fileLevel = limit(fileLevel);
     // Always close, because we may have changed file names
-    if ( mFileLevel > NOLOG )
-	    closeFile();
+    if (mFileLevel > NOLOG)
+      closeFile();
     mFileLevel = fileLevel;
     // Don't try to open it here because it will create the log file even if we never write to it.
   }
@@ -367,13 +360,13 @@ Logger::Level Logger::fileLevel(Logger::Level fileLevel) {
 }
 
 Logger::Level Logger::syslogLevel(Logger::Level syslogLevel) {
-  if ( syslogLevel > NOOPT ) {
+  if (syslogLevel > NOOPT) {
     syslogLevel = limit(syslogLevel);
-    if ( mSyslogLevel != syslogLevel ) {
-      if ( mSyslogLevel > NOLOG )
+    if (mSyslogLevel != syslogLevel) {
+      if (mSyslogLevel > NOLOG)
         closeSyslog();
       mSyslogLevel = syslogLevel;
-      if ( mSyslogLevel > NOLOG )
+      if (mSyslogLevel > NOLOG)
         openSyslog();
     }
   }
@@ -383,31 +376,31 @@ Logger::Level Logger::syslogLevel(Logger::Level syslogLevel) {
 void Logger::logFile(const std::string &logFile) {
   bool addLogPid = false;
   std::string tempLogFile = logFile;
-  if ( tempLogFile[tempLogFile.length()-1] == '+' ) {
+  if (tempLogFile[tempLogFile.length()-1] == '+') {
     tempLogFile.resize(tempLogFile.length()-1);
     addLogPid = true;
   }
-  if ( addLogPid )
+  if (addLogPid)
     mLogFile = stringtf("%s.%05d", tempLogFile.c_str(), getpid());
   else
     mLogFile = tempLogFile;
 }
 
 void Logger::openFile() {
-  if ( mLogFile.size() ) {
-   if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == nullptr ) {
-    mFileLevel = NOLOG;
-    Error("fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno));
-   }
+  if (mLogFile.size()) {
+    if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == nullptr ) {
+      mFileLevel = NOLOG;
+      Error("fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno));
+    }
   } else {
     puts("Called Logger::openFile() without a filename");
   }
 }
 
 void Logger::closeFile() {
-  if ( mLogFileFP ) {
+  if (mLogFileFP) {
     fflush(mLogFileFP);
-    if ( fclose(mLogFileFP) < 0 ) {
+    if (fclose(mLogFileFP) < 0) {
       mLogFileFP = nullptr;
       Error("fclose(), error = %s", strerror(errno));
     }
@@ -416,7 +409,6 @@ void Logger::closeFile() {
 }
 
 void Logger::closeDatabase() {
-
 }
 
 void Logger::openSyslog() {
@@ -428,12 +420,12 @@ void Logger::closeSyslog() {
 }
 
 void Logger::logPrint(bool hex, const char * const filepath, const int line, const int level, const char *fstring, ...) {
-  
-  if ( level > mEffectiveLevel ) {
-    return;
-  }
+  if (level > mEffectiveLevel) return;
+  if (level < PANIC || level > DEBUG9)
+    Panic("Invalid logger level %d", level);
     
   log_mutex.lock();
+  // Can we save some cycles by having these as members and not allocate them on the fly? I think so.
   char            timeString[64];
   char            logString[8192];
   va_list         argPtr;
@@ -442,9 +434,6 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   const char *base = strrchr(filepath, '/');
   const char *file = base ? base+1 : filepath;
   const char *classString = smCodes[level].c_str();
-
-  if ( level < PANIC || level > DEBUG9 )
-    Panic("Invalid logger level %d", level);
 
   gettimeofday(&timeVal, nullptr);
 
@@ -474,12 +463,12 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
 #else
   #ifdef HAVE_SYSCALL
     #ifdef __FreeBSD_kernel__
-    if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
+    if ((syscall(SYS_thr_self, &tid)) < 0)  // Thread/Process id
 
     # else
       // SOLARIS doesn't have SYS_gettid; don't assume
       #ifdef SYS_gettid
-    if ( (tid = syscall(SYS_gettid)) < 0 ) // Thread/Process id
+    if ((tid = syscall(SYS_gettid)) < 0)  // Thread/Process id
       #endif // SYS_gettid
     #endif
   #endif // HAVE_SYSCALL
@@ -513,61 +502,63 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   char *syslogEnd = logPtr;
   strncpy(logPtr, "]\n", sizeof(logString)-(logPtr-logString));
 
-  if ( level <= mTerminalLevel ) {
+  if (level <= mTerminalLevel) {
     puts(logString);
     fflush(stdout);
   }
 
-  if ( level <= mFileLevel ) {
-    if ( !mLogFileFP ) {
-      // We do this here so that we only create the file if we ever write to it.
+  if (level <= mFileLevel) {
+    if (!mLogFileFP) {
+      // FIXME unlocking here is a problem. Another thread could sneak in.
       log_mutex.unlock();
+      // We do this here so that we only create the file if we ever write to it.
       openFile();
       log_mutex.lock();
     }
-    if ( mLogFileFP ) {
+    if (mLogFileFP) {
       fputs(logString, mLogFileFP);
-      if ( mFlush )
-        fflush(mLogFileFP);
+      if (mFlush) fflush(mLogFileFP);
     } else {
       puts("Logging to file, but failed to open it\n");
     }
   }  // end if level <= mFileLevel
 
-  if ( level <= mDatabaseLevel ) {
-    int syslogSize = syslogEnd-syslogStart;
-    char escapedString[(syslogSize*2)+1];
-    mysql_real_escape_string(&dbconn, escapedString, syslogStart, syslogSize);
+  if (level <= mDatabaseLevel) {
+    if (zmDbConnected) {
+      int syslogSize = syslogEnd-syslogStart;
+      char escapedString[(syslogSize*2)+1];
+      mysql_real_escape_string(&dbconn, escapedString, syslogStart, syslogSize);
 
-    std::string sql_string = stringtf(
-        "INSERT INTO `Logs` "
-        "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
-        " VALUES "
-        "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
-        timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line
-        );
-    dbQueue.push(sql_string);
+      std::string sql_string = stringtf(
+          "INSERT INTO `Logs` "
+          "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
+          " VALUES "
+          "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+          timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line
+          );
+      dbQueue.push(sql_string);
+    } else {
+      puts("Db is closed");
+    }
   }  // end if level <= mDatabaseLevel
 
-  if ( level <= mSyslogLevel ) {
+  if (level <= mSyslogLevel) {
     *syslogEnd = '\0';
     syslog(smSyslogPriorities[level], "%s [%s] [%s]", classString, mId.c_str(), syslogStart);
   }
 
   log_mutex.unlock();
-  if ( level <= FATAL ) {
+  if (level <= FATAL) {
     logTerm();
     zmDbClose();
-    if ( level <= PANIC )
-      abort();
+    if (level <= PANIC) abort();
     exit(-1);
   }
 }  // end logPrint
 
 void logInit(const char *name, const Logger::Options &options) {
-  if ( Logger::smInstance ) {
+  if (Logger::smInstance) {
     delete Logger::smInstance;
-    Logger::smInstance = nullptr;
   }
 
   Logger::smInstance = new Logger();
@@ -575,7 +566,7 @@ void logInit(const char *name, const Logger::Options &options) {
 }
 
 void logTerm() {
-  if ( Logger::smInstance ) {
+  if (Logger::smInstance) {
     delete Logger::smInstance;
     Logger::smInstance = nullptr;
   }

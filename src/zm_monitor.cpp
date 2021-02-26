@@ -998,7 +998,7 @@ bool Monitor::connect() {
     trigger_data->trigger_text[0] = 0;
     trigger_data->trigger_showtext[0] = 0;
     shared_data->valid = true;
-    video_store_data->recording = (struct timeval){0};
+    video_store_data->recording = {};
     // Uh, why nothing?  Why not nullptr?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
@@ -2671,7 +2671,7 @@ bool Monitor::closeEvent() {
   delete event;
   event = nullptr;
   if ( shared_data )
-    video_store_data->recording = (struct timeval){0};
+    video_store_data->recording = {};
   return true;
 } // end bool Monitor::closeEvent()
 

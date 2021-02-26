@@ -60,14 +60,14 @@ my ( $controlUri, $scheme );
 # This will use the following defaults:
 #   - port: 80
 #   - Control Device: 000
-#   - Control URI: /onvif/device_control
+#   - Control URI: /onvif/PTZ
 #   - No authentication
 #   - No Auto Stop Timeout (on movement command the camera will keep moving until it reaches it's edge)
 #
 # Example Control Address values:
 #   - http://user:password@192.168.1.199:888/onvif/device_control :Connect to camera at IP: 192.168.1.199 on port 888 with "username" and "password" credentials using /onvif/device_control URI
-#   - user:password@192.168.1.199                                 :Connect to camera at IP: 192.168.1.199 on default port 80 with "username" and "password" credentials using default /onvif/device_control URI
-#   - 192.168.1.199                                               :Connect to camera at IP: 192.168.1.199 without any authentication and use the default /onvif/device_control URI over HTTP.
+#   - user:password@192.168.1.199                                 :Connect to camera at IP: 192.168.1.199 on default port 80 with "username" and "password" credentials using default /onvif/PTZ URI
+#   - 192.168.1.199                                               :Connect to camera at IP: 192.168.1.199 without any authentication and use the default /onvif/PTZ URI over HTTP.
 #
 # ==========================================================================
 
@@ -122,7 +122,7 @@ sub parseControlAddress {
     }
     
     if (!$url->path){
-        $controlUri = "/onvif/device_control";
+        $controlUri = "/onvif/PTZ";
     } else {
         $controlUri = $url->path;
     }
@@ -289,9 +289,54 @@ END_MESSAGE
   $self->sendCmd($cmd, $msg_body, $content_type);
 }
 
+sub moveMap {
+  my $self = shift;
+  my $params = shift;
+  my $x = $self->getParam($params,'xcoord');
+  my $y = $self->getParam($params,'ycoord');
+  Debug("Move map to $x x $y");
+
+  my $cmd = $controlUri;
+  my $msg_body ='
+    <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <AbsoluteMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+            <ProfileToken>' . $profileToken . '</ProfileToken>
+            <Position>
+                <PanTilt x="'.$x.'" y="'.$y.'" xmlns="http://www.onvif.org/ver10/schema"/>
+            </Position>
+            <Speed>
+                <Zoom x="1" xmlns="http://www.onvif.org/ver10/schema"/>
+            </Speed>
+        </AbsoluteMove>
+    </s:Body>';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  $self->sendCmd($cmd, $msg_body, $content_type);
+}
+
+sub moveRel {
+  my $self = shift;
+  my $params = shift;
+  my $x = $self->getParam($params,'xcoord');
+  my $speed = $self->getParam($params,'speed');
+  my $y = $self->getParam($params,'ycoord');
+  Debug("Move rel to $x x $y");
+
+  my $cmd = $controlUri;
+  my $msg_body ='
+    <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <RelativeMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+            <ProfileToken>' . $profileToken . '</ProfileToken>
+            <Translation>
+                <PanTilt x="'.$x.'" y="'.$y.'" xmlns="http://www.onvif.org/ver10/schema" space="http://www.onvif.org/ver10/tptz/PanTiltSpaces/PositionGenericSpace"/>
+                <Zoom x="1"/>
+            </Translation>
+        </RelativeMove>
+    </s:Body>';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  $self->sendCmd($cmd, $msg_body, $content_type);
+}
 
 sub moveCamera {
-
   my $type = shift;
   my $x = shift;
   my $y = shift;
@@ -299,17 +344,17 @@ sub moveCamera {
 
   if ( $type == "move" ){
   	$msg_move_body = '
-  	      <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  	          <ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
-  	              <ProfileToken>'.$profileToken.'</ProfileToken>
-  	              <Velocity>
-  	                  <PanTilt
+  	    <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  	        <ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+                <ProfileToken>'.$profileToken.'</ProfileToken>
+                    <Velocity>
+                        <PanTilt
   	                      x="'.$x.'"
   	                      y="'.$y.'"
   	                      xmlns="http://www.onvif.org/ver10/schema"/>
-  	                  </Velocity>
-  	              </ContinuousMove>
-  	          </s:Body>';
+                    </Velocity>
+            </ContinuousMove>
+        </s:Body>';
 
   } elsif ( $type == "zoom" ) {
   	$msg_move_body = '
@@ -320,9 +365,9 @@ sub moveCamera {
 					<Zoom 
 						x="'.$x.'" 
 						xmlns="http://www.onvif.org/ver10/schema"/>
-					</Velocity>
-				</ContinuousMove>
-			</s:Body>';
+				</Velocity>
+			</ContinuousMove>
+        </s:Body>';
   }
 
   return $msg_move_body;

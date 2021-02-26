@@ -54,7 +54,6 @@ function ajaxRequest(params) {
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     var eid = row.Id;
-    var mid = row.MonitorId;
     var archived = row.Archived == yesString ? archivedString : '';
     var emailed = row.Emailed == yesString ? emailedString : '';
 

@@ -459,7 +459,7 @@ public:
   VideoWriter GetOptVideoWriter() const { return videowriter; }
   //const std::vector<EncoderParameter_t>* GetEncoderParams() const { return &encoderparamsvec; }
   const std::string &GetEncoderOptions() const { return encoderparams; }
-  const int OutputCodec() const { return output_codec; }
+  int OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }
   const std::string &OutputContainer() const { return output_container; }
 

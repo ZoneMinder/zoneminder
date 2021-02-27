@@ -1067,8 +1067,7 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
 
   struct jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
   FILE *outfile = nullptr;
-  static int raw_fd = 0;
-  raw_fd = 0;
+  int raw_fd = 0;
 
   if ( !cinfo ) {
     cinfo = writejpg_ccinfo[quality] = new jpeg_compress_struct;

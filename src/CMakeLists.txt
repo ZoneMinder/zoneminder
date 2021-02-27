@@ -70,6 +70,8 @@ set(ZM_BIN_SRC_FILES
   zm_zone.cpp
   zm_storage.cpp)
 
+add_subdirectory(jwt-cpp)
+
 # A fix for cmake recompiling the source files for every target.
 add_library(zm STATIC ${ZM_BIN_SRC_FILES})
 
@@ -78,6 +80,8 @@ target_include_directories(zm
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(zm
+  PUBLIC
+    jwt-cpp::jwt-cpp
   PRIVATE
     zm-core-interface)
 
@@ -87,9 +91,7 @@ add_executable(zmc zmc.cpp)
 add_executable(zmu zmu.cpp)
 add_executable(zms zms.cpp)
 
-# JWT is a header only library. 
 include_directories(libbcrypt/include/bcrypt)
-include_directories(jwt-cpp/include/jwt-cpp)
 
 target_link_libraries(zmc
   PRIVATE

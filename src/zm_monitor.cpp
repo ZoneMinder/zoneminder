@@ -87,7 +87,9 @@ std::string load_monitor_sql =
 "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
 "`ImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
-"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, `RTSPServer`, `SignalCheckPoints`, `SignalCheckColour` FROM `Monitors`";
+"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
+"`RTSPServer`, `RTSPStreamName`,"
+"`SignalCheckPoints`, `SignalCheckColour` FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
   "Local",
@@ -227,41 +229,41 @@ bool Monitor::MonitorLink::disconnect() {
 
     shm_id = 0;
 
-    if ( shm_data.shm_nattch <= 1 ) {
-      if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 ) {
-        Debug( 3, "Can't shmctl: %s", strerror(errno) );
-        return( false );
+    if (shm_data.shm_nattch <= 1) {
+      if (shmctl(shm_id, IPC_RMID, 0) < 0) {
+        Debug(3, "Can't shmctl: %s", strerror(errno));
+        return false;
       }
     }
 
-    if ( shmdt( mem_ptr ) < 0 ) {
-      Debug( 3, "Can't shmdt: %s", strerror(errno) );
-      return( false );
+    if (shmdt(mem_ptr) < 0) {
+      Debug(3, "Can't shmdt: %s", strerror(errno));
+      return false;
     }
 
 #endif // ZM_MEM_MAPPED
     mem_size = 0;
     mem_ptr = nullptr;
   }
-  return( true );
+  return true;
 }
 
 bool Monitor::MonitorLink::isAlarmed() {
-  if ( !connected ) {
-    return( false );
+  if (!connected) {
+    return false;
   }
   return( shared_data->state == ALARM );
 }
 
 bool Monitor::MonitorLink::inAlarm() {
-  if ( !connected ) {
-    return( false );
+  if (!connected) {
+    return false;
   }
   return( shared_data->state == ALARM || shared_data->state == ALERT );
 }
 
 bool Monitor::MonitorLink::hasAlarmed() {
-  if ( shared_data->state == ALARM ) {
+  if (shared_data->state == ALARM) {
     return true;
   }
   last_event_id = shared_data->last_event_id;
@@ -340,6 +342,7 @@ Monitor::Monitor()
   signal_check_colour(0),
   embed_exif(0),
   rtsp_server(0),
+  rtsp_streamname(""),
   capture_max_fps(0),
   purpose(QUERY),
   last_camera_bytes(0),
@@ -361,6 +364,21 @@ Monitor::Monitor()
   last_analysis_fps_time(0),
   auto_resume_time(0),
   last_motion_score(0),
+  event_close_mode(CLOSE_IDLE),
+#if ZM_MEM_MAPPED
+  map_fd(-1),
+  mem_file(""),
+#else // ZM_MEM_MAPPED
+  shm_id(-1),
+#endif // ZM_MEM_MAPPED
+  mem_size(0),
+  mem_ptr(nullptr),
+  shared_data(nullptr),
+  trigger_data(nullptr),
+  video_store_data(nullptr),
+  shared_timestamps(nullptr),
+  shared_images(nullptr),
+
   camera(nullptr),
   event(nullptr),
   storage(nullptr),
@@ -401,7 +419,9 @@ Monitor::Monitor()
  "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
  "ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
  "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
- "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, `RTSPServer`, SignalCheckPoints, SignalCheckColour FROM Monitors";
+ "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
+ "`RTSPServer`,`RTSPStreamName`,
+ "SignalCheckPoints, SignalCheckColour FROM Monitors";
 */
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
@@ -570,6 +590,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   embed_exif = (*dbrow[col] != '0'); col++;
   rtsp_server = (*dbrow[col] != '0'); col++;
+  rtsp_streamname = dbrow[col]; col++;
   signal_check_points = atoi(dbrow[col]); col++;
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
 
@@ -641,6 +662,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       }
     }
   }  // end if purpose
+
 
   Debug(1, "Loaded monitor %d(%s), %d zones", id, name, n_zones);
 } // Monitor::Load
@@ -864,14 +886,14 @@ bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose);
 #if ZM_MEM_MAPPED
   snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
-  if ( purpose != CAPTURE ) {
+  if (purpose != CAPTURE) {
     map_fd = open(mem_file, O_RDWR);
   } else {
     map_fd = open(mem_file, O_RDWR|O_CREAT, (mode_t)0660);
   }
 
-  if ( map_fd < 0 ) {
-    Error("Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno));
+  if (map_fd < 0) {
+    Error("Can't open memory map file %s: %s", mem_file, strerror(errno));
     return false;
   } else {
     Debug(3, "Success opening mmap file at (%s)", mem_file);
@@ -990,6 +1012,8 @@ bool Monitor::connect() {
     shared_data->format = camera->SubpixelOrder();
     shared_data->imagesize = camera->ImageSize();
     shared_data->alarm_cause[0] = 0;
+    shared_data->video_fifo[0] = 0;
+    shared_data->audio_fifo[0] = 0;
     shared_data->last_frame_score = 0;
     trigger_data->size = sizeof(TriggerData);
     trigger_data->trigger_state = TriggerState::TRIGGER_CANCEL;
@@ -1260,13 +1284,10 @@ double Monitor::GetFPS() const {
 
 /* I think this returns the # of micro seconds that we should sleep in order to maintain the desired analysis rate */
 useconds_t Monitor::GetAnalysisRate() {
-  Debug(1, "Here");
   double capture_fps = get_capture_fps();
-  Debug(1, "Here");
   if ( !analysis_fps_limit ) {
     return 0;
   } else if ( analysis_fps_limit > capture_fps ) {
-  Debug(1, "Here");
     if ( last_fps_time != last_analysis_fps_time ) {
       // At startup they are equal, should never be equal again
       Warning("Analysis fps (%.2f) is greater than capturing fps (%.2f)", analysis_fps_limit, capture_fps);
@@ -2208,9 +2229,23 @@ bool Monitor::Analyse() {
     trigger_data->trigger_state = TriggerState::TRIGGER_CANCEL;
   } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
-  if ( event ) event->AddPacket(snap);
+  if (event) event->AddPacket(snap);
+  if (snap->packet.stream_index == video_stream_id) {
+    if (shared_data->video_fifo[0]) {
+      if ( snap->keyframe ) {
+        AVStream *stream = camera->get_VideoStream();
+        FifoStream::write(shared_data->video_fifo,
+            static_cast<unsigned char *>(stream->codecpar->extradata),
+            stream->codecpar->extradata_size);
+      }
+      FifoStream::writePacket(shared_data->video_fifo, *snap);
+    }
+  } else if (snap->packet.stream_index == video_stream_id) {
+    if (shared_data->audio_fifo[0])
+      FifoStream::writePacket(shared_data->audio_fifo, *snap);
+  }
 
-  if ( videowriter == PASSTHROUGH and ! savejpegs ) {
+  if ((videowriter == PASSTHROUGH) and !savejpegs) {
     // Don't need raw images anymore
     delete snap->image;
     snap->image = nullptr;
@@ -2362,7 +2397,8 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
   }  // end if p_linked_monitors
 }  // end void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors)
 
-std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(std::string sql, Purpose purpose) {
+std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(std::string where, Purpose purpose) {
+  std::string sql = load_monitor_sql + " WHERE " + where;
   Debug(1, "Loading Monitors with %s", sql.c_str());
 
   MYSQL_RES *result = zmDbFetch(sql.c_str());
@@ -2392,48 +2428,46 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(std::string sql, Pur
 }
 
 #if ZM_HAS_V4L
-std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors(const char *device, Purpose purpose) {
+std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
+(const char *device, Purpose purpose) {
 
-  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Local'";
+  std::string where = "`Function` != 'None' AND `Type` = 'Local'";
 
   if ( device[0] )
-    sql += " AND `Device`='" + std::string(device) + "'";
-  if ( staticConfig.SERVER_ID )
-    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
-  return LoadMonitors(sql, purpose);
+    where += " AND `Device`='" + std::string(device) + "'";
+  if (staticConfig.SERVER_ID)
+    where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
+  return LoadMonitors(where, purpose);
 }
 #endif // ZM_HAS_V4L
 
-std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors(const char *protocol, const char *host, const char *port, const char *path, Purpose purpose) {
-  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Remote'";
-  if ( staticConfig.SERVER_ID )
-    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
-
-  if ( protocol )
-    sql += stringtf(" AND `Protocol` = '%s' AND `Host` = '%s' AND `Port` = '%s' AND `Path` = '%s'", protocol, host, port, path);
-  return LoadMonitors(sql, purpose);
+std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors
+(const char *protocol, const char *host, const char *port, const char *path, Purpose purpose) {
+  std::string where = "`Function` != 'None' AND `Type` = 'Remote'";
+  if (staticConfig.SERVER_ID)
+    where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
+  if (protocol)
+    where += stringtf(" AND `Protocol` = '%s' AND `Host` = '%s' AND `Port` = '%s' AND `Path` = '%s'", protocol, host, port, path);
+  return LoadMonitors(where, purpose);
 }
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadFileMonitors(const char *file, Purpose purpose) {
-  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'File'";
-  if ( file[0] )
-    sql += " AND `Path`='" + std::string(file) + "'";
-  if ( staticConfig.SERVER_ID ) {
-    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
-  }
-  return LoadMonitors(sql, purpose);
+  std::string where = "`Function` != 'None' AND `Type` = 'File'";
+  if (file[0])
+    where += " AND `Path`='" + std::string(file) + "'";
+  if (staticConfig.SERVER_ID)
+    where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
+  return LoadMonitors(where, purpose);
 }
 
 #if HAVE_LIBAVFORMAT
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *file, Purpose purpose) {
-  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Ffmpeg'";
-  if ( file[0] )
-    sql += " AND `Path` = '" + std::string(file) + "'";
-
-  if ( staticConfig.SERVER_ID ) {
-    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
-  }
-  return LoadMonitors(sql, purpose);
+  std::string where = "`Function` != 'None' AND `Type` = 'Ffmpeg'";
+  if (file[0])
+    where += " AND `Path` = '" + std::string(file) + "'";
+  if (staticConfig.SERVER_ID)
+    where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
+  return LoadMonitors(where, purpose);
 }
 #endif // HAVE_LIBAVFORMAT
 
@@ -2914,6 +2948,24 @@ int Monitor::PrimeCapture() {
 
     Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_buffer_count);
+
+    if (rtsp_server) {
+      if (video_stream_id >= 0) {
+        AVStream *videoStream = camera->get_VideoStream();
+        snprintf(shared_data->video_fifo, sizeof(shared_data->video_fifo)-1, "%s/video_fifo_%d.%s",
+            staticConfig.PATH_SOCKS.c_str(),
+            id,
+            avcodec_get_name(videoStream->codecpar->codec_id));
+        FifoStream::fifo_create_if_missing(shared_data->video_fifo);
+      }
+      if (record_audio and (audio_stream_id >= 0)) {
+        AVStream *audioStream = camera->get_AudioStream();
+        snprintf(shared_data->audio_fifo, sizeof(shared_data->audio_fifo)-1, "%s/video_fifo_%d.%s",
+            staticConfig.PATH_SOCKS.c_str(), id,
+            avcodec_get_name(audioStream->codecpar->codec_id));
+        FifoStream::fifo_create_if_missing(shared_data->audio_fifo);
+      }
+    }  // end if rtsp_server
   } else {
     Debug(2, "Failed to prime %d", ret);
   }

@@ -1,6 +1,10 @@
 target_compile_options(zm-warning-interface
   INTERFACE
-    -Wall)
+    -Wall
+    -Wextra
+    -Wno-cast-function-type
+    -Wno-type-limits
+    -Wno-unused-parameter)
 
 if(ASAN)
   target_compile_options(zm-compile-option-interface

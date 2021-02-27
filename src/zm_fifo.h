@@ -20,6 +20,7 @@
 #define ZM_FIFO_H
 
 #include "zm_stream.h"
+#include "zm_packet.h"
 
 class Monitor;
 
@@ -74,5 +75,7 @@ class FifoStream : public StreamBase {
     void setStreamStart(const char * path);
     void setStreamStart(int monitor_id, const char * format);
     void runStream() override;
+    static bool writePacket(std::string filename, ZMPacket &packet);
+    static bool write(std::string filename, uint8_t *data, size_t size);
 };
 #endif  // ZM_FIFO_H

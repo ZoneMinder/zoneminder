@@ -48,8 +48,8 @@ public:
 	unsigned int	Id() const { return id; }
 	const char *Name() const { return name; }
 	const char *Path() const { return path; }
-  const Schemes  Scheme() const { return scheme; }
-  const std::string  SchemeString() const { return scheme_str; }
+  Schemes  Scheme() const { return scheme; }
+  std::string  SchemeString() const { return scheme_str; }
 };
 
 #endif // ZM_STORAGE_H

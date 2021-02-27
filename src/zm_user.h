@@ -52,7 +52,7 @@ class User {
     Copy(u); return *this;
   }
 
-  const int  Id() const { return id; }
+  int  Id() const { return id; }
   const char *getUsername() const { return username; }
   const char *getPassword() const { return password; }
   bool isEnabled() const { return enabled; }

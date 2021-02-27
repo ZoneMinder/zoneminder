@@ -182,7 +182,7 @@ public:
     vid_stream = 0;
 #endif // HAVE_LIBAVCODEC   
     last_frame_sent = 0.0;
-    last_frame_timestamp = (struct timeval){0};
+    last_frame_timestamp = {};
     msg = { 0, { 0 } };
   }
   virtual ~StreamBase();

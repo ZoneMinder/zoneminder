@@ -270,8 +270,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     status_data.analysis_fps = monitor->get_analysis_fps();
     status_data.state = monitor->shared_data->state;
     //status_data.enabled = monitor->shared_data->active;
-    status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
-    status_data.forced = monitor->trigger_data->trigger_state==Monitor::TRIGGER_ON;
+    status_data.enabled = monitor->trigger_data->trigger_state != Monitor::TriggerState::TRIGGER_OFF;
+    status_data.forced = monitor->trigger_data->trigger_state == Monitor::TriggerState::TRIGGER_ON;
     if ( playback_buffer > 0 )
       status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
     else

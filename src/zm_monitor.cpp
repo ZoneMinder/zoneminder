@@ -992,13 +992,13 @@ bool Monitor::connect() {
     shared_data->alarm_cause[0] = 0;
     shared_data->last_frame_score = 0;
     trigger_data->size = sizeof(TriggerData);
-    trigger_data->trigger_state = TRIGGER_CANCEL;
+    trigger_data->trigger_state = TriggerState::TRIGGER_CANCEL;
     trigger_data->trigger_score = 0;
     trigger_data->trigger_cause[0] = 0;
     trigger_data->trigger_text[0] = 0;
     trigger_data->trigger_showtext[0] = 0;
     shared_data->valid = true;
-    video_store_data->recording = (struct timeval){0};
+    video_store_data->recording = {};
     // Uh, why nothing?  Why not nullptr?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
@@ -1295,18 +1295,18 @@ void Monitor::UpdateAdaptiveSkip() {
 }
 
 void Monitor::ForceAlarmOn( int force_score, const char *force_cause, const char *force_text ) {
-  trigger_data->trigger_state = TRIGGER_ON;
+  trigger_data->trigger_state = TriggerState::TRIGGER_ON;
   trigger_data->trigger_score = force_score;
   strncpy(trigger_data->trigger_cause, force_cause, sizeof(trigger_data->trigger_cause)-1);
   strncpy(trigger_data->trigger_text, force_text, sizeof(trigger_data->trigger_text)-1);
 }
 
 void Monitor::ForceAlarmOff() {
-  trigger_data->trigger_state = TRIGGER_OFF;
+  trigger_data->trigger_state = TriggerState::TRIGGER_OFF;
 }
 
 void Monitor::CancelForced() {
-  trigger_data->trigger_state = TRIGGER_CANCEL;
+  trigger_data->trigger_state = TriggerState::TRIGGER_CANCEL;
 }
 
 void Monitor::actionReload() {
@@ -1795,14 +1795,14 @@ bool Monitor::Analyse() {
   bool signal_change = (signal != last_signal);
 
   Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%d) image index %d",
-      signal, signal_change, trigger_data->trigger_state, snap->image_index);
+      signal, signal_change, int(trigger_data->trigger_state), snap->image_index);
 
   // Need to guard around event creation/deletion from Reload()
   std::lock_guard<std::mutex> lck(event_mutex);
 
   // if we have been told to be OFF, then we are off and don't do any processing.
-  if ( trigger_data->trigger_state != TRIGGER_OFF ) {
-    Debug(4, "Trigger not OFF state is (%d)", trigger_data->trigger_state);
+  if ( trigger_data->trigger_state != TriggerState::TRIGGER_OFF ) {
+    Debug(4, "Trigger not OFF state is (%d)", int(trigger_data->trigger_state));
     int score = 0;
     // Ready means that we have captured the warmup # of frames
     if ( !Ready() ) {
@@ -1816,7 +1816,7 @@ bool Monitor::Analyse() {
     Event::StringSetMap noteSetMap;
 
     // Specifically told to be on.  Setting the score here will trigger the alarm.
-    if ( trigger_data->trigger_state == TRIGGER_ON ) {
+    if ( trigger_data->trigger_state == TriggerState::TRIGGER_ON ) {
       score += trigger_data->trigger_score;
       Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
       if ( !event ) {
@@ -2200,7 +2200,7 @@ bool Monitor::Analyse() {
       closeEvent();
     }
     shared_data->state = state = IDLE;
-    trigger_data->trigger_state = TRIGGER_CANCEL;
+    trigger_data->trigger_state = TriggerState::TRIGGER_CANCEL;
   } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
   if ( event ) event->AddPacket(snap);
@@ -2671,7 +2671,7 @@ bool Monitor::closeEvent() {
   delete event;
   event = nullptr;
   if ( shared_data )
-    video_store_data->recording = (struct timeval){0};
+    video_store_data->recording = {};
   return true;
 } // end bool Monitor::closeEvent()
 

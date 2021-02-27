@@ -833,6 +833,7 @@ configure_file(zmlinkcontent.sh.in "${CMAKE_CURRENT_BINARY_DIR}/zmlinkcontent.sh
 include(Pod2Man)
 
 # Process subdirectories
+add_subdirectory(dep)
 add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)

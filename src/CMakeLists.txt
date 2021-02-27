@@ -70,9 +70,6 @@ set(ZM_BIN_SRC_FILES
   zm_zone.cpp
   zm_storage.cpp)
 
-add_subdirectory(jwt-cpp)
-add_subdirectory(libbcrypt)
-
 # A fix for cmake recompiling the source files for every target.
 add_library(zm STATIC ${ZM_BIN_SRC_FILES})
 

@@ -102,7 +102,7 @@ protected:
 
   typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
-  /* sizeof(SharedData) expected to be 344 bytes on 32bit and 64bit */
+  /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
     int32_t last_write_index;  /* +4    */
@@ -154,6 +154,8 @@ protected:
     uint8_t control_state[256];  /* +104   */
 
     char alarm_cause[256];
+    char video_fifo[64];
+    char audio_fifo[64];
 
   } SharedData;
 
@@ -317,6 +319,7 @@ protected:
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
+  std::string rtsp_streamname;      // path in the rtsp url for this monitor
 
   int capture_max_fps;
 
@@ -483,6 +486,10 @@ public:
   AVCodecContext *GetAudioCodecContext() const { return camera ?  camera->get_AudioCodecContext() : nullptr; };
   AVStream *GetVideoStream() const { return camera ? camera->get_VideoStream() : nullptr; };
   AVCodecContext *GetVideoCodecContext() const { return camera ?  camera->get_VideoCodecContext() : nullptr; };
+
+  const std::string GetVideoFifo() const { return shared_data ? shared_data->video_fifo : ""; };
+  const std::string GetAudioFifo() const { return shared_data ? shared_data->audio_fifo : ""; };
+  const std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
   int GetImage(int32_t index=-1, int scale=100);
   ZMPacket *getSnapshot( int index=-1 ) const;

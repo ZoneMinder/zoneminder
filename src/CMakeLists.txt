@@ -71,6 +71,7 @@ set(ZM_BIN_SRC_FILES
   zm_storage.cpp)
 
 add_subdirectory(jwt-cpp)
+add_subdirectory(libbcrypt)
 
 # A fix for cmake recompiling the source files for every target.
 add_library(zm STATIC ${ZM_BIN_SRC_FILES})
@@ -81,17 +82,14 @@ target_include_directories(zm
 
 target_link_libraries(zm
   PUBLIC
+    libbcrypt::bcrypt
     jwt-cpp::jwt-cpp
   PRIVATE
     zm-core-interface)
 
-link_directories(libbcrypt)
-
 add_executable(zmc zmc.cpp)
 add_executable(zmu zmu.cpp)
 add_executable(zms zms.cpp)
-
-include_directories(libbcrypt/include/bcrypt)
 
 target_link_libraries(zmc
   PRIVATE
@@ -107,8 +105,7 @@ target_link_libraries(zmu
     zm
     ${ZM_EXTRA_LIBS}
     ${ZM_BIN_LIBS}
-    ${CMAKE_DL_LIBS}
-    bcrypt)
+    ${CMAKE_DL_LIBS})
 
 target_link_libraries(zms
   PRIVATE
@@ -116,8 +113,7 @@ target_link_libraries(zms
     zm
     ${ZM_EXTRA_LIBS}
     ${ZM_BIN_LIBS}
-    ${CMAKE_DL_LIBS}
-    bcrypt)
+    ${CMAKE_DL_LIBS})
 
 # Generate man files for the binaries destined for the bin folder
 if(BUILD_MAN)

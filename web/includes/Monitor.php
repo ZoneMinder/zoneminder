@@ -122,6 +122,7 @@ class Monitor extends ZM_Object {
     'Latitude'  =>  null,
     'Longitude' =>  null,
     'RTSPServer' => array('type'=>'boolean', 'default'=>0),
+    'RTSPStreamName'  => '',
   );
   private $status_fields = array(
     'Status'  =>  null,

@@ -58,6 +58,7 @@ possible, this should run at more or less constant speed.
 #include "zm_camera.h"
 #include "zm_db.h"
 #include "zm_define.h"
+#include "zm_fifo.h"
 #include "zm_monitor.h"
 #include "zm_rtsp_server_thread.h"
 #include "zm_signal.h"
@@ -269,16 +270,6 @@ int main(int argc, char *argv[]) {
     }  // end foreach monitor
     if (zm_terminate) break;
 
-#if HAVE_RTSP_SERVER
-    RTSPServerThread ** rtsp_server_threads = nullptr;
-    if (config.min_rtsp_port and monitors[0]->RTSPServer()) {
-      rtsp_server_threads = new RTSPServerThread *[monitors.size()];
-      Debug(1, "Starting RTSP server because min_rtsp_port is set");
-    } else {
-      Debug(1, "Not starting RTSP server because min_rtsp_port not set");
-    }
-#endif
-
     std::vector<std::unique_ptr<AnalysisThread>> analysis_threads = std::vector<std::unique_ptr<AnalysisThread>>();
 
     int *capture_delays = new int[monitors.size()];
@@ -297,13 +288,6 @@ int main(int argc, char *argv[]) {
         Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
         analysis_threads.emplace_back(ZM::make_unique<AnalysisThread>(monitors[i]));
       }
-#if HAVE_RTSP_SERVER
-      if (rtsp_server_threads) {
-        rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
-        rtsp_server_threads[i]->addStream(monitors[i]->GetVideoStream(), monitors[i]->GetAudioStream());
-        rtsp_server_threads[i]->start();
-      }
-#endif
     }
 
     struct timeval now;
@@ -369,32 +353,12 @@ int main(int argc, char *argv[]) {
       analysis_thread->Stop();
 
     for (size_t i = 0; i < monitors.size(); i++) {
-#if HAVE_RTSP_SERVER
-      if (rtsp_server_threads) {
-        rtsp_server_threads[i]->stop();
-      }
-#endif
-
       monitors[i]->Close();
-
-#if HAVE_RTSP_SERVER
-      if (rtsp_server_threads) {
-        rtsp_server_threads[i]->join();
-        delete rtsp_server_threads[i];
-        rtsp_server_threads[i] = nullptr;
-      }
-#endif
     }
 
     // Killoff the analysis threads. Don't need them spinning while we try to reconnect
     analysis_threads.clear();
 
-#if HAVE_RTSP_SERVER
-    if (rtsp_server_threads) {
-      delete[] rtsp_server_threads;
-      rtsp_server_threads = nullptr;
-    }
-#endif
     delete [] alarm_capture_delays;
     delete [] capture_delays;
     delete [] last_capture_times;

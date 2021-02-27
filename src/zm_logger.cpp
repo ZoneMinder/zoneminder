@@ -559,6 +559,7 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
 void logInit(const char *name, const Logger::Options &options) {
   if (Logger::smInstance) {
     delete Logger::smInstance;
+    Logger::smInstance = nullptr;
   }
 
   Logger::smInstance = new Logger();

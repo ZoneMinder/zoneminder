@@ -157,12 +157,16 @@ protected:
 
   } SharedData;
 
-  typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
+  enum TriggerState : uint32 {
+    TRIGGER_CANCEL,
+    TRIGGER_ON,
+    TRIGGER_OFF
+  };
 
   /* sizeof(TriggerData) expected to be 560 on 32bit & and 64bit */
   typedef struct {
     uint32_t size;
-    uint32_t trigger_state;
+    TriggerState trigger_state;
     uint32_t trigger_score;
     uint32_t padding;
     char trigger_cause[32];
@@ -496,7 +500,7 @@ public:
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();
-  TriggerState GetTriggerState() const { return (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL); }
+  TriggerState GetTriggerState() const { return trigger_data ? trigger_data->trigger_state : TRIGGER_CANCEL; }
 	inline time_t getStartupTime() const { return shared_data->startup_time; }
 	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
   void get_ref_image();

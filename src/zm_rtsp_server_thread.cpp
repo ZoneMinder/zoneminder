@@ -2,7 +2,9 @@
 
 #include "zm_config.h"
 #include "zm_rtsp_server_adts_source.h"
+#include "zm_rtsp_server_adts_fifo_source.h"
 #include "zm_rtsp_server_h264_device_source.h"
+#include "zm_rtsp_server_h264_fifo_source.h"
 #include "zm_rtsp_server_unicast_server_media_subsession.h"
 
 #if HAVE_RTSP_SERVER
@@ -31,7 +33,6 @@ RTSPServerThread::RTSPServerThread(std::shared_ptr<Monitor> monitor) :
     return;
   }
   const char *prefix = rtspServer->rtspURLPrefix();
-  Debug(1, "RTSP prefix is %s", prefix);
   delete[] prefix;
 }  // end RTSPServerThread::RTSPServerThread
 
@@ -68,7 +69,60 @@ bool RTSPServerThread::stopped() const {
   return terminate ? true : false;
 }  // end RTSPServerThread::stopped()
 
-void RTSPServerThread::addStream(AVStream *video_stream, AVStream *audio_stream) {
+ServerMediaSession *RTSPServerThread::addSession(std::string &streamname) {
+  ServerMediaSession *sms = ServerMediaSession::createNew(*env, streamname.c_str());
+  if (sms) {
+    rtspServer->addServerMediaSession(sms);
+    char *url = rtspServer->rtspURL(sms);
+    Debug(1, "url is %s for stream %s", url, streamname.c_str());
+    delete[] url;
+  }
+  return sms;
+}
+
+FramedSource *RTSPServerThread::addFifo(
+    ServerMediaSession *sms,
+    std::string fifo) {
+  if (!rtspServer) return nullptr;
+
+  int queueSize = 30;
+  bool repeatConfig = true;
+  bool muxTS = false;
+  FramedSource *source = nullptr;
+
+  if (!fifo.empty()) {
+    StreamReplicator* replicator = nullptr;
+    std::string rtpFormat;
+    if (fifo.find("h264")) {
+      rtpFormat = "video/H264";
+      source = H264_ZoneMinderFifoSource::createNew(*env, fifo, queueSize, repeatConfig, muxTS);
+    } else if (fifo.find("h265")) {
+      rtpFormat = "video/H265";
+      source = H265_ZoneMinderFifoSource::createNew(*env, fifo, queueSize, repeatConfig, muxTS);
+    } else if (fifo.find("aac")) {
+      rtpFormat = "audio/AAC";
+      source = ADTS_ZoneMinderFifoSource::createNew(*env, fifo, queueSize);
+      Debug(1, "ADTS source %p", source);
+    } else {
+      Warning("Unknown format in %s", fifo.c_str());
+    }
+    if (source == nullptr) {
+      Error("Unable to create source");
+    } else {
+      replicator = StreamReplicator::createNew(*env, source, false);
+    }
+    sources.push_back(source);
+
+    if (replicator) {
+      sms->addSubsession(UnicastServerMediaSubsession::createNew(*env, replicator, rtpFormat));
+    }
+  } else {
+    Debug(1, "Not Adding stream");
+  }
+  return source;
+}  // end void addFifo
+
+void RTSPServerThread::addStream(std::string &streamname, AVStream *video_stream, AVStream *audio_stream) {
   if ( !rtspServer )
     return;
 
@@ -101,7 +155,7 @@ void RTSPServerThread::addStream(AVStream *video_stream, AVStream *audio_stream)
     // Create Unicast Session
     if ( videoReplicator ) {
       if ( !sms )
-        sms = ServerMediaSession::createNew(*env, "streamname");
+        sms = ServerMediaSession::createNew(*env, streamname.c_str());
       sms->addSubsession(UnicastServerMediaSubsession::createNew(*env, videoReplicator, rtpFormat));
     }
   }
@@ -119,7 +173,7 @@ void RTSPServerThread::addStream(AVStream *video_stream, AVStream *audio_stream)
     }
     if ( replicator ) {
       if ( !sms )
-        sms = ServerMediaSession::createNew(*env, "streamname");
+        sms = ServerMediaSession::createNew(*env, streamname.c_str());
       sms->addSubsession(UnicastServerMediaSubsession::createNew(*env, replicator, rtpFormat));
     }
   } else {

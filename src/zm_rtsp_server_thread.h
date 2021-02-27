@@ -4,6 +4,8 @@
 #include "zm_config.h"
 #include "zm_ffmpeg.h"
 #include "zm_thread.h"
+#include "zm_rtsp_server_server_media_subsession.h"
+#include "zm_rtsp_server_fifo_source.h"
 #include <list>
 #include <memory>
 
@@ -28,7 +30,9 @@ class RTSPServerThread : public Thread {
   public:
     explicit RTSPServerThread(std::shared_ptr<Monitor> monitor);
     ~RTSPServerThread();
-    void addStream(AVStream *, AVStream *);
+    ServerMediaSession *addSession(std::string &streamname);
+    void addStream(std::string &streamname, AVStream *, AVStream *);
+    FramedSource *addFifo(ServerMediaSession *sms, std::string fifo);
     int run();
     void stop();
     bool stopped() const;

@@ -535,6 +535,7 @@ CREATE TABLE `Monitors` (
   `Latitude`  DECIMAL(10,8),
   `Longitude`  DECIMAL(10,8),
   `RTSPServer`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `RTSPStreamName`  varchar(255) NOT NULL default '',
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

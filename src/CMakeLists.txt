@@ -50,7 +50,6 @@ set(ZM_BIN_SRC_FILES
   zm_rtp_source.cpp
   zm_rtsp.cpp
   zm_rtsp_auth.cpp
-  zm_rtsp_server.cpp
   zm_rtsp_server_thread.cpp
   zm_rtsp_server_adts_source.cpp
   zm_rtsp_server_adts_fifo_source.cpp
@@ -90,7 +89,6 @@ target_link_libraries(zm
     zm-core-interface)
 
 add_executable(zmc zmc.cpp)
-add_executable(zm_rtsp_server zm_rtsp_server.cpp)
 add_executable(zms zms.cpp)
 add_executable(zmu zmu.cpp)
 
@@ -134,8 +132,20 @@ if(BUILD_MAN)
   endforeach(CBINARY zmc zmu)
 endif()
 
-install(TARGETS zmc zm_rtsp_server zmu RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(TARGETS zmc zmu RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(TARGETS zms RUNTIME DESTINATION "${ZM_CGIDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(CODE "execute_process(COMMAND ln -sf zms nph-zms WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})")
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/nph-zms DESTINATION "${ZM_CGIDIR}")
 
+if(HAVE_RTSP_SERVER)
+  add_executable(zm_rtsp_server zm_rtsp_server.cpp)
+  target_link_libraries(zm_rtsp_server
+    PRIVATE
+      zm-core-interface
+      zm
+      ${ZM_EXTRA_LIBS}
+      ${ZM_BIN_LIBS}
+      ${CMAKE_DL_LIBS}
+      bcrypt)
+  install(TARGETS zm_rtsp_server RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+endif()

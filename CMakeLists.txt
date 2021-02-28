@@ -833,13 +833,7 @@ configure_file(zmlinkcontent.sh.in "${CMAKE_CURRENT_BINARY_DIR}/zmlinkcontent.sh
 include(Pod2Man)
 
 # Process subdirectories
-
-# build a bcrypt static library
-set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(src/libbcrypt EXCLUDE_FROM_ALL)
-set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
-
+add_subdirectory(dep)
 add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)

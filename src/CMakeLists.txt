@@ -78,18 +78,15 @@ target_include_directories(zm
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(zm
+  PUBLIC
+    libbcrypt::bcrypt
+    jwt-cpp::jwt-cpp
   PRIVATE
     zm-core-interface)
-
-link_directories(libbcrypt)
 
 add_executable(zmc zmc.cpp)
 add_executable(zmu zmu.cpp)
 add_executable(zms zms.cpp)
-
-# JWT is a header only library. 
-include_directories(libbcrypt/include/bcrypt)
-include_directories(jwt-cpp/include/jwt-cpp)
 
 target_link_libraries(zmc
   PRIVATE
@@ -105,8 +102,7 @@ target_link_libraries(zmu
     zm
     ${ZM_EXTRA_LIBS}
     ${ZM_BIN_LIBS}
-    ${CMAKE_DL_LIBS}
-    bcrypt)
+    ${CMAKE_DL_LIBS})
 
 target_link_libraries(zms
   PRIVATE
@@ -114,8 +110,7 @@ target_link_libraries(zms
     zm
     ${ZM_EXTRA_LIBS}
     ${ZM_BIN_LIBS}
-    ${CMAKE_DL_LIBS}
-    bcrypt)
+    ${CMAKE_DL_LIBS})
 
 # Generate man files for the binaries destined for the bin folder
 if(BUILD_MAN)

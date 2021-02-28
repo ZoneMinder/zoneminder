@@ -24,24 +24,24 @@
 
 typedef uint32 Rgb;  // RGB colour type
 
-#define WHITE     0xff
-#define WHITE_R   0xff
-#define WHITE_G   0xff
-#define WHITE_B   0xff
+constexpr uint8 kWhite = 0xff;
+constexpr uint8 kWhiteR = 0xff;
+constexpr uint8 kWhiteG = 0xff;
+constexpr uint8 kWhiteB = 0xff;
 
-#define BLACK     0x00
-#define BLACK_R   0x00
-#define BLACK_G   0x00
-#define BLACK_B   0x00
+constexpr uint8 kBlack = 0x00;
+constexpr uint8 kBlackR = 0x00;
+constexpr uint8 kBlackG = 0x00;
+constexpr uint8 kBlackB = 0x00;
 
-#define RGB_WHITE     (0x00ffffff)
-#define RGB_BLACK     (0x00000000)
-#define RGB_RED     (0x000000ff)
-#define RGB_GREEN     (0x0000ff00)
-#define RGB_BLUE    (0x00ff0000)
-#define RGB_ORANGE    (0x0000a5ff)
-#define RGB_PURPLE    (0x00800080)
-#define RGB_TRANSPARENT  (0x01000000)
+constexpr Rgb kRGBWhite = 0x00ffffff;
+constexpr Rgb kRGBBlack = 0x00000000;
+constexpr Rgb kRGBRed = 0x000000ff;
+constexpr Rgb kRGBGreen = 0x0000ff00;
+constexpr Rgb kRGBBlue = 0x00ff0000;
+constexpr Rgb kRGBOrange = 0x0000a5ff;
+constexpr Rgb kRGBPurple = 0x00800080;
+constexpr Rgb kRGBTransparent = 0x01000000;
 
 #define RGB_VAL(v,c)    (((v)>>(16-((c)*8)))&0xff)
 

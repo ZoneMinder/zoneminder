@@ -287,7 +287,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         pdiff = (uint8_t*)diff_image->Buffer(lo_x, y);
 
         for ( int x = lo_x; x <= hi_x; x++, pdiff++ ) {
-          if ( *pdiff == WHITE ) {
+          if ( *pdiff == kWhite ) {
             // Check participation in an X block
             ldx = (x>=(lo_x+bx1))?-bx1:lo_x-x;
             hdx = (x<=(hi_x-bx1))?0:((hi_x-x)-bx1);
@@ -308,7 +308,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
               }
             }
             if ( !block ) {
-              *pdiff = BLACK;
+              *pdiff = kBlack;
               continue;
             }
             alarm_filter_pixels++;
@@ -365,7 +365,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
         pdiff = (uint8_t*)diff_image->Buffer(lo_x, y);
         for ( int x = lo_x; x <= hi_x; x++, pdiff++ ) {
-          if ( *pdiff == WHITE ) {
+          if ( *pdiff == kWhite ) {
             Debug(9, "Got white pixel at %d,%d (%p)", x, y, pdiff);
 
             last_x = ((x > 0) && ( (x-1) >= lo_x )) ? *(pdiff-1) : 0;
@@ -483,7 +483,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
               } else {
                 // Create a new blob
                 int i;
-                for ( i = (WHITE-1); i > 0; i-- ) {
+                for ( i = (kWhite-1); i > 0; i-- ) {
                   BlobStats *bs = &blob_stats[i];
                   // See if we can recycle one first, only if it's at least two rows up
                   if ( bs->count && bs->hi_y < (int)(y-1) ) {
@@ -497,7 +497,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                           spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
                           for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ ) {
                             if ( *spdiff == bs->tag ) {
-                              *spdiff = BLACK;
+                              *spdiff = kBlack;
                             }
                           }
                         }
@@ -557,7 +557,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       }
 
       // Now eliminate blobs under the threshold
-      for ( int i = 1; i < WHITE; i++ ) {
+      for ( uint32 i = 1; i < kWhite; i++ ) {
         BlobStats *bs = &blob_stats[i];
         if ( bs->count ) {
           if ( (min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels) ) {
@@ -566,7 +566,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
                 for ( int sx = bs->lo_x; sx <= bs->hi_x; sx++, spdiff++ ) {
                   if ( *spdiff == bs->tag ) {
-                    *spdiff = BLACK;
+                    *spdiff = kBlack;
                   }
                 }
               }
@@ -631,7 +631,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       alarm_lo_y = polygon.HiY()+1;
       alarm_hi_y = polygon.LoY()-1;
 
-      for ( int i = 1; i < WHITE; i++ ) {
+      for ( uint32 i = 1; i < kWhite; i++ ) {
         BlobStats *bs = &blob_stats[i];
         if ( bs->count ) {
           if ( bs->count == max_blob_size ) {
@@ -701,9 +701,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         int lo_gap = lo_x2-lo_x;
         if ( lo_gap > 0 ) {
           if ( lo_gap == 1 ) {
-            *pdiff++ = BLACK;
+            *pdiff++ = kBlack;
           } else {
-            memset(pdiff, BLACK, lo_gap);
+            memset(pdiff, kBlack, lo_gap);
             pdiff += lo_gap;
           }
         }
@@ -711,16 +711,16 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         const uint8_t* ppoly = pg_image->Buffer(lo_x2, y);
         for ( int x = lo_x2; x <= hi_x2; x++, pdiff++, ppoly++ ) {
           if ( !*ppoly ) {
-            *pdiff = BLACK;
+            *pdiff = kBlack;
           }
         }
 
         int hi_gap = hi_x-hi_x2;
         if ( hi_gap > 0 ) {
           if ( hi_gap == 1 ) {
-            *pdiff = BLACK;
+            *pdiff = kBlack;
           } else {
-            memset(pdiff, BLACK, hi_gap);
+            memset(pdiff, kBlack, hi_gap);
           }
         }
       } // end for y
@@ -982,9 +982,9 @@ void Zone::std_alarmedpixels(
       if ( *ppoly && (*pdiff > min_pixel_threshold) && (*pdiff <= calc_max_pixel_threshold) ) {
         pixelsalarmed++;
         pixelsdifference += *pdiff;
-        *pdiff = WHITE;
+        *pdiff = kWhite;
       } else {
-        *pdiff = BLACK;
+        *pdiff = kBlack;
       }
     }
   }  // end for y = lo_y to hi_y

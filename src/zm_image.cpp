@@ -2001,7 +2001,7 @@ void Image::Annotate(
   const uint8_t bg_b_col = BLUE_VAL_RGBA(bg_colour);
   const uint8_t bg_bw_col = bg_colour & 0xff;
   const Rgb bg_rgb_col = rgb_convert(bg_colour, subpixelorder);
-  const bool bg_trans = (bg_colour == RGB_TRANSPARENT);
+  const bool bg_trans = (bg_colour == kRGBTransparent);
 
   font.SetFontSize(size-1);
   const uint16_t char_width = font.GetCharWidth();

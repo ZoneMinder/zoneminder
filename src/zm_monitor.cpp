@@ -1511,15 +1511,15 @@ void Monitor::DumpZoneImage(const char *zone_string) {
       colour = extra_colour;
     } else {
       if ( zones[i]->IsActive() ) {
-        colour = RGB_RED;
+        colour = kRGBRed;
       } else if ( zones[i]->IsInclusive() ) {
-        colour = RGB_ORANGE;
+        colour = kRGBOrange;
       } else if ( zones[i]->IsExclusive() ) {
-        colour = RGB_PURPLE;
+        colour = kRGBPurple;
       } else if ( zones[i]->IsPreclusive() ) {
-        colour = RGB_BLUE;
+        colour = kRGBBlue;
       } else {
-        colour = RGB_WHITE;
+        colour = kRGBWhite;
       }
     }
     zone_image->Fill(colour, 2, zones[i]->GetPolygon());
@@ -2698,7 +2698,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
       continue;
     }
     Debug(3, "Blanking inactive zone %s", zone->Label());
-    delta_image.Fill(RGB_BLACK, zone->GetPolygon());
+    delta_image.Fill(kRGBBlack, zone->GetPolygon());
   } // end foreach zone
 
   // Check preclusive zones first

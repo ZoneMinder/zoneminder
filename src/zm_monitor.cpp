@@ -378,7 +378,8 @@ Monitor::Monitor()
   video_store_data(nullptr),
   shared_timestamps(nullptr),
   shared_images(nullptr),
-
+  video_fifo(nullptr),
+  audio_fifo(nullptr),
   camera(nullptr),
   event(nullptr),
   storage(nullptr),
@@ -654,8 +655,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       if ( config.record_diag_images_fifo ) {
         diag_path_ref = stringtf("%s/diagpipe-r-%d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
         diag_path_delta = stringtf("%s/diagpipe-d-%d.jpg", staticConfig.PATH_SOCKS.c_str(), id);
-        FifoStream::fifo_create_if_missing(diag_path_ref.c_str());
-        FifoStream::fifo_create_if_missing(diag_path_delta.c_str());
+        Fifo::fifo_create_if_missing(diag_path_ref.c_str());
+        Fifo::fifo_create_if_missing(diag_path_delta.c_str());
       } else {
         diag_path_ref = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
         diag_path_delta = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
@@ -900,23 +901,23 @@ bool Monitor::connect() {
   }
 
   struct stat map_stat;
-  if ( fstat(map_fd, &map_stat) < 0 ) {
+  if (fstat(map_fd, &map_stat) < 0) {
     Error("Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno));
     close(map_fd);
     map_fd = -1;
     return false;
   }
 
-  if ( map_stat.st_size != mem_size ) {
-    if ( purpose == CAPTURE ) {
+  if (map_stat.st_size != mem_size) {
+    if (purpose == CAPTURE) {
       // Allocate the size
-      if ( ftruncate(map_fd, mem_size) < 0 ) {
+      if (ftruncate(map_fd, mem_size) < 0) {
         Error("Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno));
         close(map_fd);
         map_fd = -1;
         return false;
       }
-    } else if ( map_stat.st_size == 0 ) {
+    } else if (map_stat.st_size == 0) {
       Error("Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size);
       close(map_fd);
       map_fd = -1;
@@ -927,13 +928,13 @@ bool Monitor::connect() {
       map_fd = -1;
       return false;
     }
-  }
+  }  // end if map_stat.st_size != mem_size
 
   Debug(3, "MMap file size is %ld", map_stat.st_size);
 #ifdef MAP_LOCKED
   mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0);
-  if ( mem_ptr == MAP_FAILED ) {
-    if ( errno == EAGAIN ) {
+  if (mem_ptr == MAP_FAILED) {
+    if (errno == EAGAIN) {
       Debug(1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size);
 #endif
       mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
@@ -944,7 +945,7 @@ bool Monitor::connect() {
     }
   }
 #endif
-  if ( (mem_ptr == MAP_FAILED) or (mem_ptr == nullptr) ) {
+  if ((mem_ptr == MAP_FAILED) or (mem_ptr == nullptr)) {
     Error("Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
     close(map_fd);
     map_fd = -1;
@@ -953,11 +954,11 @@ bool Monitor::connect() {
   }
 #else // ZM_MEM_MAPPED
   shm_id = shmget((config.shm_key&0xffff0000)|id, mem_size, IPC_CREAT|0700);
-  if ( shm_id < 0 ) {
+  if (shm_id < 0) {
     Fatal("Can't shmget, probably not enough shared memory space free: %s", strerror(errno));
   }
   mem_ptr = (unsigned char *)shmat(shm_id, 0, 0);
-  if ( mem_ptr < (void *)0 ) {
+  if (mem_ptr < (void *)0) {
     Fatal("Can't shmat: %s", strerror(errno));
   }
 #endif // ZM_MEM_MAPPED
@@ -968,29 +969,28 @@ bool Monitor::connect() {
   shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
-  if ( ((unsigned long)shared_images % 64) != 0 ) {
+  if (((unsigned long)shared_images % 64) != 0) {
     /* Align images buffer to nearest 64 byte boundary */
     Debug(3, "Aligning shared memory images to the next 64 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
-  if ( !camera )
-    LoadCamera();
+  if (!camera) LoadCamera();
 
   Debug(3, "Allocating %d image buffers", image_buffer_count);
   image_buffer = new ZMPacket[image_buffer_count];
-  for ( int32_t i = 0; i < image_buffer_count; i++ ) {
+  for (int32_t i = 0; i < image_buffer_count; i++) {
     image_buffer[i].image_index = i;
     image_buffer[i].timestamp = &(shared_timestamps[i]);
     image_buffer[i].image = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
     image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-  if ( deinterlacing_value == 4 ) {
+  if (deinterlacing_value == 4) {
     /* Four field motion adaptive deinterlacing in use */
     /* Allocate a buffer for the next image */
-    next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+    next_buffer.image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
   }
 
-  if ( purpose == CAPTURE ) {
+  if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
     shared_data->active = enabled;
@@ -1012,8 +1012,8 @@ bool Monitor::connect() {
     shared_data->format = camera->SubpixelOrder();
     shared_data->imagesize = camera->ImageSize();
     shared_data->alarm_cause[0] = 0;
-    shared_data->video_fifo[0] = 0;
-    shared_data->audio_fifo[0] = 0;
+    shared_data->video_fifo_path[0] = 0;
+    shared_data->audio_fifo_path[0] = 0;
     shared_data->last_frame_score = 0;
     trigger_data->size = sizeof(TriggerData);
     trigger_data->trigger_state = TriggerState::TRIGGER_CANCEL;
@@ -1021,11 +1021,11 @@ bool Monitor::connect() {
     trigger_data->trigger_cause[0] = 0;
     trigger_data->trigger_text[0] = 0;
     trigger_data->trigger_showtext[0] = 0;
-    shared_data->valid = true;
-    video_store_data->recording = {};
+    video_store_data->recording = (struct timeval){0};
     // Uh, why nothing?  Why not nullptr?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
+    shared_data->valid = true;
   } else if ( !shared_data->valid ) {
     Error("Shared data not initialised by capture daemon for monitor %s", name);
     return false;
@@ -1131,6 +1131,9 @@ Monitor::~Monitor() {
     delete[] linked_monitors;
     linked_monitors = nullptr;
   }
+
+  if (video_fifo) delete video_fifo;
+  if (audio_fifo) delete audio_fifo;
 }  // end Monitor::~Monitor()
 
 void Monitor::AddZones(int p_n_zones, Zone *p_zones[]) {
@@ -2230,20 +2233,24 @@ bool Monitor::Analyse() {
   } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
   if (event) event->AddPacket(snap);
+#if 0
   if (snap->packet.stream_index == video_stream_id) {
-    if (shared_data->video_fifo[0]) {
+    if (video_fifo) {
       if ( snap->keyframe ) {
+        // avcodec strips out important nals that describe the stream and 
+        // stick them in extradata. Need to send them along with keyframes
         AVStream *stream = camera->get_VideoStream();
-        FifoStream::write(shared_data->video_fifo,
+        video_fifo->write(
             static_cast<unsigned char *>(stream->codecpar->extradata),
             stream->codecpar->extradata_size);
       }
-      FifoStream::writePacket(shared_data->video_fifo, *snap);
+      video_fifo->writePacket(*snap);
     }
-  } else if (snap->packet.stream_index == video_stream_id) {
-    if (shared_data->audio_fifo[0])
-      FifoStream::writePacket(shared_data->audio_fifo, *snap);
+  } else if (snap->packet.stream_index == audio_stream_id) {
+    if (audio_fifo)
+      audio_fifo->writePacket(*snap);
   }
+#endif
 
   if ((videowriter == PASSTHROUGH) and !savejpegs) {
     // Don't need raw images anymore
@@ -2529,6 +2536,24 @@ int Monitor::Capture() {
     } else if ( captureResult > 0 ) {
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
           packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ) );
+
+  if (packet->packet.stream_index == video_stream_id) {
+    if (video_fifo) {
+      if ( packet->keyframe ) {
+        // avcodec strips out important nals that describe the stream and 
+        // stick them in extradata. Need to send them along with keyframes
+        AVStream *stream = camera->get_VideoStream();
+        video_fifo->write(
+            static_cast<unsigned char *>(stream->codecpar->extradata),
+            stream->codecpar->extradata_size,
+            packet->pts);
+      }
+      video_fifo->writePacket(*packet);
+    }
+  } else if (packet->packet.stream_index == audio_stream_id) {
+    if (audio_fifo)
+      audio_fifo->writePacket(*packet);
+  }
 
       if ( (packet->packet.stream_index != video_stream_id) and ! packet->image ) {
         // Only queue if we have some video packets in there. Should push this logic into packetqueue
@@ -2952,18 +2977,18 @@ int Monitor::PrimeCapture() {
     if (rtsp_server) {
       if (video_stream_id >= 0) {
         AVStream *videoStream = camera->get_VideoStream();
-        snprintf(shared_data->video_fifo, sizeof(shared_data->video_fifo)-1, "%s/video_fifo_%d.%s",
+        snprintf(shared_data->video_fifo_path, sizeof(shared_data->video_fifo_path)-1, "%s/video_fifo_%d.%s",
             staticConfig.PATH_SOCKS.c_str(),
             id,
             avcodec_get_name(videoStream->codecpar->codec_id));
-        FifoStream::fifo_create_if_missing(shared_data->video_fifo);
+        video_fifo = new Fifo(shared_data->video_fifo_path, true);
       }
       if (record_audio and (audio_stream_id >= 0)) {
         AVStream *audioStream = camera->get_AudioStream();
-        snprintf(shared_data->audio_fifo, sizeof(shared_data->audio_fifo)-1, "%s/video_fifo_%d.%s",
+        snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path)-1, "%s/video_fifo_%d.%s",
             staticConfig.PATH_SOCKS.c_str(), id,
             avcodec_get_name(audioStream->codecpar->codec_id));
-        FifoStream::fifo_create_if_missing(shared_data->audio_fifo);
+        audio_fifo = new Fifo(shared_data->audio_fifo_path, true);
       }
     }  // end if rtsp_server
   } else {

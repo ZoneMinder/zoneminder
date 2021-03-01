@@ -23,6 +23,7 @@
 #include "zm_define.h"
 #include "zm_camera.h"
 #include "zm_event.h"
+#include "zm_fifo.h"
 #include "zm_image.h"
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
@@ -154,8 +155,8 @@ protected:
     uint8_t control_state[256];  /* +104   */
 
     char alarm_cause[256];
-    char video_fifo[64];
-    char audio_fifo[64];
+    char video_fifo_path[64];
+    char audio_fifo_path[64];
 
   } SharedData;
 
@@ -366,6 +367,8 @@ protected:
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
+  Fifo *video_fifo;
+  Fifo *audio_fifo;
 
   std::unique_ptr<Camera> camera;
   Event       *event;
@@ -487,8 +490,8 @@ public:
   AVStream *GetVideoStream() const { return camera ? camera->get_VideoStream() : nullptr; };
   AVCodecContext *GetVideoCodecContext() const { return camera ?  camera->get_VideoCodecContext() : nullptr; };
 
-  const std::string GetVideoFifo() const { return shared_data ? shared_data->video_fifo : ""; };
-  const std::string GetAudioFifo() const { return shared_data ? shared_data->audio_fifo : ""; };
+  const std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
+  const std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
   const std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
   int GetImage(int32_t index=-1, int scale=100);

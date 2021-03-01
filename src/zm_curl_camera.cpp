@@ -210,7 +210,7 @@ int cURLCamera::Capture( ZMPacket &zm_packet ) {
         }
      
         /* Find crlf start */
-        crlf_start = memcspn(databuffer,"\r\n",databuffer.size());
+        crlf_start = memcspn(reinterpret_cast<const char *>(databuffer.head()),"\r\n",databuffer.size());
         if ( crlf_start == databuffer.size() ) {
           /* Not found, wait for more data */
           need_more_data = true;

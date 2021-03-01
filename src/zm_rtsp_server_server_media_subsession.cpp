@@ -71,10 +71,10 @@ RTPSink*  BaseServerMediaSubsession::createSink(
     ADTS_ZoneMinderFifoSource *adts_source = (ADTS_ZoneMinderFifoSource *)(m_replicator->inputSource());
     sink = MPEG4GenericRTPSink::createNew(env, rtpGroupsock,
         rtpPayloadTypeIfDynamic,
-        adts_source->samplingFrequency(),
+        adts_source->getFrequency(),
         "audio", "AAC-hbr",
         adts_source->configStr(),
-        adts_source->numChannels()
+        adts_source->getChannels()
         );
   } else {
     Error("unknown format");

@@ -13,14 +13,14 @@
 #define ZM_RTSP_SERVER_ADTS_FIFO_SOURCE_H
 
 #include "zm_config.h"
-#include "zm_rtsp_server_fifo_source.h"
+#include "zm_rtsp_server_fifo_audio_source.h"
 
 #if HAVE_RTSP_SERVER
 // ---------------------------------
 // ADTS(AAC) ZoneMinder FramedSource
 // ---------------------------------
 
-class ADTS_ZoneMinderFifoSource : public ZoneMinderFifoSource {
+class ADTS_ZoneMinderFifoSource : public ZoneMinderFifoAudioSource {
   public:
 		static ADTS_ZoneMinderFifoSource* createNew(
         UsageEnvironment& env,
@@ -37,29 +37,6 @@ class ADTS_ZoneMinderFifoSource : public ZoneMinderFifoSource {
         );
 
 		virtual ~ADTS_ZoneMinderFifoSource() {}
-
-    /*
-		virtual unsigned char* extractFrame(unsigned char* frame, size_t& size, size_t& outsize);
-    virtual unsigned char* findMarker(unsigned char *frame, size_t size, size_t &length);
-    */
-  public:
-    int samplingFrequency() { return 8000; //m_stream->codecpar->sample_rate;
-    };
-    const char *configStr() { return config.c_str(); };
-    int numChannels() {
-      //Debug(1, "this %p m_stream %p channels %d", 
-          //this, m_stream, channels);
-      //Debug(1, "m_stream %p codecpar %p channels %d => %d", 
-          //m_stream, m_stream->codecpar, m_stream->codecpar->channels, channels);
-      return 1;
-      //return channels;
-      //return m_stream->codecpar->channels;
-    }
-
-	protected:
-    std::string config;
-    int samplingFrequencyIndex;
-    int channels;
 };
 #endif // HAVE_RTSP_SERVER
 

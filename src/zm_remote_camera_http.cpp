@@ -629,7 +629,7 @@ int RemoteCameraHttp::GetResponse() {
 						bytes += buffer_len;
 
             char *crlf = nullptr;
-            char *header_ptr = (char *)buffer;
+            char *header_ptr = buffer;
             int header_len = buffer.size();
             bool all_headers = false;
 
@@ -1102,14 +1102,14 @@ int RemoteCameraHttp::Capture(ZMPacket &packet) {
             image->Size(), content_length);
         return -1;
       }
-      image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
+      image->Assign(width, height, colours, subpixelorder, buffer.head(), imagesize);
       break;
     case X_RGBZ :
       if ( !image->Unzip( buffer.extract( content_length ), content_length ) ) {
         Error("Unable to unzip RGB image");
         return -1;
       }
-      image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
+      image->Assign(width, height, colours, subpixelorder, buffer.head(), imagesize);
       break;
     default :
       Error("Unexpected image format encountered");

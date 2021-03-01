@@ -332,6 +332,7 @@ Monitor::Monitor()
   capture_delay(0),
   alarm_capture_delay(0),
   alarm_frame_count(0),
+  alert_to_alarm_frame_count(0),
   fps_report_interval(0),
   ref_blend_perc(0),
   alarm_ref_blend_perc(0),
@@ -2087,11 +2088,16 @@ bool Monitor::Analyse() {
               shared_data->state = state = PREALARM;
             }
           } else if ( state == ALERT ) {
-            Info("%s: %03d - Gone back into alarm state", name, analysis_image_count);
-            shared_data->state = state = ALARM;
+            alert_to_alarm_frame_count--;
+            Info("%s: %03d - Alarmed frame while in alert state. Consecutive alarmed frames left to return to alarm state: %03d", name, analysis_image_count,alert_to_alarm_frame_count);
+            if (alert_to_alarm_frame_count == 0) {
+              Info("%s: %03d - Gone back into alarm state", name, analysis_image_count);
+              shared_data->state = state = ALARM;
+            }
           }
           last_alarm_count = analysis_image_count;
         } else { // no score?
+          alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count 
           if ( state == ALARM ) {
             Info("%s: %03d - Gone into alert state", name, analysis_image_count);
             shared_data->state = state = ALERT;

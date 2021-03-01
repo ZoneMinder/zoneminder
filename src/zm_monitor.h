@@ -307,6 +307,8 @@ protected:
   int        capture_delay;      // How long we wait between capture frames
   int        alarm_capture_delay;  // How long we wait between capture frames when in alarm state
   int        alarm_frame_count;    // How many alarm frames are required before an event is triggered
+  int        alert_to_alarm_frame_count;    // How many alarm frames (consecutive score frames) are required to return alarm from alert
+  // value for now is the same number configured in alarm_frame_count, maybe getting his own parameter some day
   int        fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
   int        ref_blend_perc;      // Percentage of new image going into reference image.
   int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.

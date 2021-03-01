@@ -89,7 +89,7 @@ class H265_ZoneMinderFifoSource : public H26X_ZoneMinderFifoSource {
         bool keepMarker);
 
 		// overide ZoneMinderFifoSource
-		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned frameSize);
+		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned &frameSize);
 
 	protected:
 		std::string m_vps;

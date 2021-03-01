@@ -21,6 +21,8 @@ set(ZM_BIN_SRC_FILES
   zm_eventstream.cpp
   zm_exception.cpp
   zm_fifo.cpp
+  zm_fifo_debug.cpp
+  zm_fifo_stream.cpp
   zm_file_camera.cpp
   zm_font.cpp
   zm_frame.cpp

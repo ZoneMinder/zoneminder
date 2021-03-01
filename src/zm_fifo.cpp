@@ -26,106 +26,8 @@
 #include <sys/stat.h>
 
 #define RAW_BUFFER 512
-static bool zm_fifodbg_inited = false;
-FILE *zm_fifodbg_log_fd = nullptr;
-char zm_fifodbg_log[PATH_MAX] = "";
 
-static bool zmFifoDbgOpen() {
-  if ( zm_fifodbg_log_fd )
-    fclose(zm_fifodbg_log_fd);
-  zm_fifodbg_log_fd = nullptr;
-  signal(SIGPIPE, SIG_IGN);
-  FifoStream::fifo_create_if_missing(zm_fifodbg_log);
-  int fd = open(zm_fifodbg_log, O_WRONLY|O_NONBLOCK|O_TRUNC);
-  if ( fd < 0 )
-    return false;
-  int res = flock(fd, LOCK_EX | LOCK_NB);
-  if ( res < 0 ) {
-    close(fd);
-    return false;
-  }
-  zm_fifodbg_log_fd = fdopen(fd, "wb");
-  if ( zm_fifodbg_log_fd == nullptr ) {
-    close(fd);
-    return false;
-  }
-  return true;
-}
-
-int zmFifoDbgInit(Monitor *monitor) {
-  zm_fifodbg_inited = true;
-  snprintf(zm_fifodbg_log, sizeof(zm_fifodbg_log), "%s/dbgpipe-%d.log",
-      staticConfig.PATH_SOCKS.c_str(), monitor->Id());
-  zmFifoDbgOpen();
-  return 1;
-}
-
-void zmFifoDbgOutput(
-    int hex,
-    const char * const file,
-    const int line,
-    const int level,
-    const char *fstring,
-    ...
-    ) {
-  char dbg_string[8192];
-  int str_size = sizeof(dbg_string);
-
-  va_list arg_ptr;
-  if ( (!zm_fifodbg_inited) || ( !zm_fifodbg_log_fd && !zmFifoDbgOpen() ) )
-    return;
-
-  char *dbg_ptr = dbg_string;
-  va_start(arg_ptr, fstring);
-  if ( hex ) {
-    unsigned char *data = va_arg(arg_ptr, unsigned char *);
-    int len = va_arg(arg_ptr, int);
-    dbg_ptr += snprintf(dbg_ptr, str_size-(dbg_ptr-dbg_string), "%d:", len);
-    for ( int i = 0; i < len; i++ ) {
-      dbg_ptr += snprintf(dbg_ptr, str_size-(dbg_ptr-dbg_string), " %02x", data[i]);
-    }
-  } else {
-    dbg_ptr += vsnprintf(dbg_ptr, str_size-(dbg_ptr-dbg_string), fstring, arg_ptr);
-  }
-  va_end(arg_ptr);
-  strncpy(dbg_ptr++, "\n", 2);
-  int res = fwrite(dbg_string, dbg_ptr-dbg_string, 1, zm_fifodbg_log_fd);
-  if ( res != 1 ) {
-    fclose(zm_fifodbg_log_fd);
-    zm_fifodbg_log_fd = nullptr;
-  } else {
-    fflush(zm_fifodbg_log_fd);
-  }
-}
-
-bool FifoStream::sendRAWFrames() {
-  static unsigned char buffer[RAW_BUFFER];
-  int fd = open(stream_path, O_RDONLY);
-  if ( fd < 0 ) {
-    Error("Can't open %s: %s", stream_path, strerror(errno));
-    return false;
-  }
-  while ( (bytes_read = read(fd, buffer, RAW_BUFFER)) ) {
-    if ( bytes_read == 0 )
-      continue;
-    if ( bytes_read < 0 ) {
-      Error("Problem during reading: %s", strerror(errno));
-      close(fd);
-      return false;
-    }
-    if ( fwrite(buffer, bytes_read, 1, stdout) != 1 ) {
-      if ( !zm_terminate ) 
-        Error("Problem during writing: %s", strerror(errno));
-      close(fd);
-      return false;
-    }
-    fflush(stdout);
-  }
-  close(fd);
-  return true;
-}
-
-void FifoStream::file_create_if_missing(
+void Fifo::file_create_if_missing(
     const char * path,
     bool is_fifo,
     bool delete_fake_fifo
@@ -138,139 +40,77 @@ void FifoStream::file_create_if_missing(
     unlink(path);
   }
   int fd;
-  if ( !is_fifo ) {
+  if (!is_fifo) {
     Debug(5, "Creating non fifo file as requested: %s", path);
-    fd = open(path, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
-    close(fd);
+    fd = ::open(path, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
+    ::close(fd);
     return;
   }
   Debug(5, "Making fifo file of: %s", path);
   mkfifo(path, S_IRUSR|S_IWUSR);
 }
 
-void FifoStream::fifo_create_if_missing(
+void Fifo::fifo_create_if_missing(
     const char * path,
     bool delete_fake_fifo
     ) {
   file_create_if_missing(path, true, delete_fake_fifo);
 }
 
-bool FifoStream::sendMJEGFrames() {
-  static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
-  int fd = open(stream_path, O_RDONLY);
-  if ( fd < 0 ) {
-    Error("Can't open %s: %s", stream_path, strerror(errno));
-    return false;
-  }
-  total_read = 0;
-  while (
-      (bytes_read = read(fd, buffer+total_read, ZM_MAX_IMAGE_SIZE-total_read))
-      ) {
-    if ( bytes_read < 0 ) {
-      Error("Problem during reading: %s", strerror(errno));
-      close(fd);
+Fifo::~Fifo() {
+  close();
+}
+bool Fifo::open() {
+  if (!on_blocking_abort) {
+    if ( (outfile = fopen(path.c_str(), "wb")) == nullptr ) {
+      Error("Can't open %s for writing: %s", path.c_str(), strerror(errno));
       return false;
     }
-    total_read += bytes_read;
+  } else {
+    raw_fd = ::open(path.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    if (raw_fd < 0)
+      return false;
+    outfile = fdopen(raw_fd, "wb");
+    if (outfile == nullptr) {
+      ::close(raw_fd);
+      raw_fd = -1;
+      return false;
+    }
   }
-  close(fd);
+  int ret = fcntl(raw_fd, F_SETPIPE_SZ, 1024 * 1024);
+  if (ret < 0) {
+    Error("set pipe size failed.");
+  }
+  long pipe_size = (long)fcntl(raw_fd, F_GETPIPE_SZ);
+  if (pipe_size == -1) {
+    perror("get pipe size failed.");
+  }
+  Debug(1, "default pipe size: %ld\n", pipe_size);
+  return true;
+}
 
-  if ( (total_read == 0) || (frame_count%frame_mod != 0) )
-    return true;
+bool Fifo::close() {
+  fclose(outfile);
+  return true;
+}
 
-  if ( fprintf(stdout,
-        "--" BOUNDARY "\r\n"
-      "Content-Type: image/jpeg\r\n"
-      "Content-Length: %d\r\n\r\n",
-      total_read) < 0 ) {
+bool Fifo::writePacket(ZMPacket &packet) {
+  if (!(outfile or open())) return false;
+
+  Debug(1, "Writing header ZM %u %" PRId64,  packet.packet.size, packet.pts);
+  // Going to write a brief header
+  if ( fprintf(outfile, "ZM %u %" PRId64 "\n", packet.packet.size, packet.pts) < 0 ) {
     Error("Problem during writing: %s", strerror(errno));
     return false;
   }
 
-  if ( fwrite(buffer, total_read, 1, stdout) != 1 ) {
-    Error("Problem during reading: %s", strerror(errno));
+  if (fwrite(packet.packet.data, packet.packet.size, 1, outfile) != 1) {
+    Debug(1, "Unable to write to '%s': %s", path.c_str(), strerror(errno));
     return false;
   }
-  fprintf(stdout, "\r\n\r\n");
-  fflush(stdout);
-  last_frame_sent = TV_2_FLOAT(now);
-  frame_count++;
   return true;
 }
-
-void FifoStream::setStreamStart(const char * path) {
-  stream_path = strdup(path);
-}
-
-void FifoStream::setStreamStart(int monitor_id, const char * format) {
-  char diag_path[PATH_MAX];
-  std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-
-  if ( !strcmp(format, "reference") ) {
-    snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-r-%d.jpg",
-        staticConfig.PATH_SOCKS.c_str(), monitor->Id());
-    stream_type = MJPEG;
-  } else if ( !strcmp(format, "delta") ) {
-    snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-d-%d.jpg",
-        staticConfig.PATH_SOCKS.c_str(), monitor->Id());
-    stream_type = MJPEG;
-  } else {
-    if ( strcmp(format, "raw") ) {
-      Warning("Unknown or unspecified format.  Defaulting to raw");
-    }
-    snprintf(diag_path, sizeof(diag_path), "%s/dbgpipe-%d.log",
-        staticConfig.PATH_SOCKS.c_str(), monitor->Id());
-    stream_type = RAW;
-  }
-
-  setStreamStart(diag_path);
-}
-
-void FifoStream::runStream() {
-  if ( stream_type == MJPEG ) {
-    fprintf(stdout, "Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n");
-  } else {
-    fprintf(stdout, "Content-Type: text/html\r\n\r\n");
-  }
-
-  /* only 1 person can read from a fifo at a time, so use a lock */
-  char lock_file[PATH_MAX];
-  snprintf(lock_file, sizeof(lock_file), "%s.rlock", stream_path);
-  file_create_if_missing(lock_file, false);
-  Debug(1, "Locking %s", lock_file);
-
-  int fd_lock = open(lock_file, O_RDONLY);
-  if ( fd_lock < 0 ) {
-    Error("Can't open %s: %s", lock_file, strerror(errno));
-    return;
-  }
-  int res = flock(fd_lock, LOCK_EX | LOCK_NB);
-  while ( (res < 0 and errno == EAGAIN) and (! zm_terminate) ) {
-    Warning("Flocking problem on %s: - %s", lock_file, strerror(errno));
-    sleep(1);
-    res = flock(fd_lock, LOCK_EX | LOCK_NB);
-  }
-  if ( res < 0 ) {
-    Error("Flocking problem on %d != %d %s: - %s", EAGAIN, res, lock_file, strerror(errno));
-    close(fd_lock);
-    return;
-  }
-
-  while ( !zm_terminate ) {
-    gettimeofday(&now, nullptr);
-    checkCommandQueue();
-    if ( stream_type == MJPEG ) {
-      if ( !sendMJEGFrames() )
-        zm_terminate = true;
-    } else {
-      if ( !sendRAWFrames() )
-        zm_terminate = true;
-    }
-  }
-  close(fd_lock);
-}
-
-bool FifoStream::writePacket(std::string filename, ZMPacket &packet) {
+bool Fifo::writePacket(std::string filename, ZMPacket &packet) {
   bool on_blocking_abort = true;
   FILE *outfile = nullptr;
   int raw_fd = 0;
@@ -281,12 +121,12 @@ bool FifoStream::writePacket(std::string filename, ZMPacket &packet) {
       return false;
     }
   } else {
-    raw_fd = open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    raw_fd = ::open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
     if (raw_fd < 0)
       return false;
     outfile = fdopen(raw_fd, "wb");
     if (outfile == nullptr) {
-      close(raw_fd);
+      ::close(raw_fd);
       return false;
     }
   }
@@ -301,7 +141,22 @@ bool FifoStream::writePacket(std::string filename, ZMPacket &packet) {
   return true;
 }
 
-bool FifoStream::write(std::string filename, uint8_t *data, size_t bytes) {
+bool Fifo::write(uint8_t *data, size_t bytes, int64_t pts) {
+  if (!(outfile or open())) return false;
+  // Going to write a brief header
+  Debug(1, "Writing header ZM %lu %" PRId64,  bytes, pts);
+  if ( fprintf(outfile, "ZM %lu %" PRId64 "\n", bytes, pts) < 0 ) {
+    Error("Problem during writing: %s", strerror(errno));
+    return false;
+  }
+  if (fwrite(data, bytes, 1, outfile) != 1) {
+    Debug(1, "Unable to write to '%s': %s", path.c_str(), strerror(errno));
+    return false;
+  }
+  return true;
+}
+
+bool Fifo::write(std::string filename, uint8_t *data, size_t bytes) {
   bool on_blocking_abort = true;
   FILE *outfile = nullptr;
   int raw_fd = 0;
@@ -312,12 +167,12 @@ bool FifoStream::write(std::string filename, uint8_t *data, size_t bytes) {
       return false;
     }
   } else {
-    raw_fd = open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    raw_fd = ::open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
     if (raw_fd < 0)
       return false;
     outfile = fdopen(raw_fd, "wb");
     if (outfile == nullptr) {
-      close(raw_fd);
+      ::close(raw_fd);
       return false;
     }
   }

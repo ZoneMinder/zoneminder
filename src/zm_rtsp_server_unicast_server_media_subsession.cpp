@@ -10,7 +10,6 @@
 #include "zm_rtsp_server_unicast_server_media_subsession.h"
 
 #include "zm_config.h"
-#include "zm_rtsp_server_device_source.h"
 #include "zm_rtsp_server_fifo_source.h"
 
 #if HAVE_RTSP_SERVER

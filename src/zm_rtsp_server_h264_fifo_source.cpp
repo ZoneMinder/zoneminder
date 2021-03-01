@@ -62,7 +62,6 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderFifoSource::splitF
 				}
 				break;
 			default:
-        Debug(4, "Unknown frametype!? %d %d", m_frameType, m_frameType & 0x1F);
 				break;
 		}
 
@@ -78,7 +77,7 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderFifoSource::splitF
 			os << ";sprop-parameter-sets=" << sps_base64 << "," << pps_base64;
       os << "a=x-dimensions:" << m_width << "," <<  m_height  << "\r\n";
 			m_auxLine.assign(os.str());
-      Debug(1, "auxLine: %s", m_auxLine.c_str());
+      Debug(3, "auxLine: %s", m_auxLine.c_str());
 
 			delete [] sps_base64;
 			delete [] pps_base64;

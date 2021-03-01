@@ -52,6 +52,7 @@ and provide that stream over rtsp
 #include "zm_define.h"
 #include "zm_monitor.h"
 #include "zm_rtsp_server_thread.h"
+#include "zm_rtsp_server_fifo_audio_source.h"
 #include "zm_rtsp_server_fifo_video_source.h"
 #include "zm_signal.h"
 #include "zm_time.h"
@@ -199,10 +200,17 @@ int main(int argc, char *argv[]) {
           video_source->setWidth(monitor->Width());
           video_source->setHeight(monitor->Height());
         }
-        Debug(1, "Adding audio fifo %s", monitor->GetAudioFifoPath().c_str());
-        FramedSource *audio_source = rtsp_server_thread->addFifo(sms, monitor->GetAudioFifoPath());
+
+        std::string audioFifoPath = monitor->GetAudioFifoPath();
+        if (audioFifoPath.empty()) {
+          Debug(1, "audio fifo is empty. Skipping.");
+          continue;
+        }
+        Debug(1, "Adding audio fifo %s", audioFifoPath.c_str());
+        ZoneMinderFifoAudioSource *audio_source = static_cast<ZoneMinderFifoAudioSource *>(rtsp_server_thread->addFifo(sms, audioFifoPath));
         if (audio_source) {
-          // set frequency
+          audio_source->setFrequency(monitor->GetAudioFrequency());
+          audio_source->setChannels(monitor->GetAudioChannels());
         }
       }  // end if ! sessions[i]
     }  // end foreach monitor

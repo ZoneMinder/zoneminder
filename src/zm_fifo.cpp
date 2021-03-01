@@ -61,6 +61,7 @@ Fifo::~Fifo() {
   close();
 }
 bool Fifo::open() {
+  fifo_create_if_missing(path.c_str());
   if (!on_blocking_abort) {
     if ( (outfile = fopen(path.c_str(), "wb")) == nullptr ) {
       Error("Can't open %s for writing: %s", path.c_str(), strerror(errno));

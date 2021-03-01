@@ -1,17 +1,17 @@
 #include "zm_rtsp_server_thread.h"
 
 #include "zm_config.h"
-#include "zm_rtsp_server_adts_source.h"
+#include "zm_logger.h"
 #include "zm_rtsp_server_adts_fifo_source.h"
-#include "zm_rtsp_server_h264_device_source.h"
+#include "zm_rtsp_server_adts_source.h"
 #include "zm_rtsp_server_h264_fifo_source.h"
+#include "zm_rtsp_server_h264_device_source.h"
 #include "zm_rtsp_server_unicast_server_media_subsession.h"
 
 #if HAVE_RTSP_SERVER
 #include <StreamReplicator.hh>
 
-RTSPServerThread::RTSPServerThread(std::shared_ptr<Monitor> monitor) :
-  monitor_(std::move(monitor)),
+RTSPServerThread::RTSPServerThread(int port) :
   terminate(0)
 {
   //unsigned short rtsp_over_http_port = 0;
@@ -25,7 +25,7 @@ RTSPServerThread::RTSPServerThread(std::shared_ptr<Monitor> monitor) :
   //authDB = new UserAuthenticationDatabase("ZoneMinder");
   //authDB->addUserRecord("username1", "password1"); // replace these with real strings
 
-  portNumBits rtspServerPortNum = config.min_rtsp_port + monitor_->Id();
+  portNumBits rtspServerPortNum = port;
   rtspServer = RTSPServer::createNew(*env, rtspServerPortNum, authDB);
 
   if ( rtspServer == nullptr ) {
@@ -37,7 +37,7 @@ RTSPServerThread::RTSPServerThread(std::shared_ptr<Monitor> monitor) :
 }  // end RTSPServerThread::RTSPServerThread
 
 RTSPServerThread::~RTSPServerThread() {
-  if ( rtspServer ) {
+  if (rtspServer) {
     Medium::close(rtspServer);
   } // end if rtsp_server
   while ( sources.size() ) {
@@ -80,26 +80,30 @@ ServerMediaSession *RTSPServerThread::addSession(std::string &streamname) {
   return sms;
 }
 
+void RTSPServerThread::removeSession(ServerMediaSession *sms) {
+  rtspServer->removeServerMediaSession(sms);
+}
+
 FramedSource *RTSPServerThread::addFifo(
     ServerMediaSession *sms,
     std::string fifo) {
   if (!rtspServer) return nullptr;
 
-  int queueSize = 30;
-  bool repeatConfig = true;
+  int queueSize = 60;
+  bool repeatConfig = false;
   bool muxTS = false;
   FramedSource *source = nullptr;
 
   if (!fifo.empty()) {
     StreamReplicator* replicator = nullptr;
     std::string rtpFormat;
-    if (fifo.find("h264")) {
+    if (std::string::npos != fifo.find("h264")) {
       rtpFormat = "video/H264";
       source = H264_ZoneMinderFifoSource::createNew(*env, fifo, queueSize, repeatConfig, muxTS);
-    } else if (fifo.find("h265")) {
+    } else if (std::string::npos != fifo.find("h265")) {
       rtpFormat = "video/H265";
       source = H265_ZoneMinderFifoSource::createNew(*env, fifo, queueSize, repeatConfig, muxTS);
-    } else if (fifo.find("aac")) {
+    } else if (std::string::npos != fifo.find("aac")) {
       rtpFormat = "audio/AAC";
       source = ADTS_ZoneMinderFifoSource::createNew(*env, fifo, queueSize);
       Debug(1, "ADTS source %p", source);
@@ -117,7 +121,7 @@ FramedSource *RTSPServerThread::addFifo(
       sms->addSubsession(UnicastServerMediaSubsession::createNew(*env, replicator, rtpFormat));
     }
   } else {
-    Debug(1, "Not Adding stream");
+    Debug(1, "Not Adding stream as fifo was empty");
   }
   return source;
 }  // end void addFifo

@@ -28,9 +28,10 @@ class RTSPServerThread : public Thread {
     std::list<FramedSource *> sources;
 
   public:
-    explicit RTSPServerThread(std::shared_ptr<Monitor> monitor);
+    explicit RTSPServerThread(int port);
     ~RTSPServerThread();
     ServerMediaSession *addSession(std::string &streamname);
+    void removeSession(ServerMediaSession *sms);
     void addStream(std::string &streamname, AVStream *, AVStream *);
     FramedSource *addFifo(ServerMediaSession *sms, std::string fifo);
     int run();

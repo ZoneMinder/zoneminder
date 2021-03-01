@@ -114,11 +114,11 @@ public:
   }
   Zone( Monitor *p_monitor, int p_id, const char *p_label, const Polygon &p_polygon )
   {
-    Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_polygon, RGB_BLACK, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
+    Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
   }
   Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon )
   {
-    Setup( p_monitor, p_id, p_label, p_type, p_polygon, RGB_BLACK, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
+    Setup( p_monitor, p_id, p_label, p_type, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
   }
 
 public:

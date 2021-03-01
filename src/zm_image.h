@@ -276,13 +276,13 @@ public:
 	void Blend(const Image &image, int transparency=12);
 	static Image *Merge( unsigned int n_images, Image *images[] );
 	static Image *Merge( unsigned int n_images, Image *images[], double weight );
-	static Image *Highlight( unsigned int n_images, Image *images[], const Rgb threshold=RGB_BLACK, const Rgb ref_colour=RGB_RED );
+  static Image *Highlight(unsigned int n_images, Image *images[], Rgb threshold = kRGBBlack, Rgb ref_colour = kRGBRed);
 	//Image *Delta( const Image &image ) const;
 	void Delta( const Image &image, Image* targetimage) const;
 
 	const Coord centreCoord(const char *text, const int size) const;
   void MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour=0x00222222 );
-	void Annotate( const char *p_text, const Coord &coord, const unsigned int size=1, const Rgb fg_colour=RGB_WHITE, const Rgb bg_colour=RGB_BLACK );
+  void Annotate(const char *p_text, const Coord &coord, unsigned int size = 1, Rgb fg_colour = kRGBWhite, Rgb bg_colour = kRGBBlack);
 	Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );
 	//Image *HighlightEdges( Rgb colour, const Polygon &polygon );
 	void Timestamp( const char *label, const time_t when, const Coord &coord, const int size );

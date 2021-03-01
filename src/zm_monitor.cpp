@@ -2114,7 +2114,8 @@ bool Monitor::Analyse() {
             }
           } else if ( state == ALERT ) {
             alert_to_alarm_frame_count--;
-            Info("%s: %03d - Alarmed frame while in alert state. Consecutive alarmed frames left to return to alarm state: %03d", name, analysis_image_count,alert_to_alarm_frame_count);
+            Info("%s: %03d - Alarmed frame while in alert state. Consecutive alarmed frames left to return to alarm state: %03d",
+                name, analysis_image_count, alert_to_alarm_frame_count);
             if (alert_to_alarm_frame_count == 0) {
               Info("%s: %03d - Gone back into alarm state", name, analysis_image_count);
               shared_data->state = state = ALARM;
@@ -2148,7 +2149,7 @@ bool Monitor::Analyse() {
             // Back to IDLE
             shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
           } else {
-            Debug(1, "State %d beacuse image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%d) - recording.tv_src(%d) >= min_section_length(%d)",
+            Debug(1, "State %d because image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%d) - recording.tv_src(%d) >= min_section_length(%d)",
                 state, analysis_image_count, last_alarm_count, post_event_count,
                 timestamp->tv_sec, video_store_data->recording.tv_sec, min_section_length);
           }
@@ -2262,10 +2263,13 @@ bool Monitor::Analyse() {
   // popPacket will have placed a second lock on snap, so release it here.
   snap->unlock();
 
-  shared_data->last_read_index = snap->image_index;
+  if ( snap->image_index > 0 ) {
+    // Only do these if it's a video packet.
+    shared_data->last_read_index = snap->image_index;
+    analysis_image_count++;
+    UpdateAnalysisFPS();
+  }
   shared_data->last_read_time = time(nullptr);
-  analysis_image_count++;
-  UpdateAnalysisFPS();
   packetqueue.clearPackets(snap);
 
   return true;

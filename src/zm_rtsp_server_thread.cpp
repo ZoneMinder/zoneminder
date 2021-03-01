@@ -100,7 +100,10 @@ FramedSource *RTSPServerThread::addFifo(
     if (std::string::npos != fifo.find("h264")) {
       rtpFormat = "video/H264";
       source = H264_ZoneMinderFifoSource::createNew(*env, fifo, queueSize, repeatConfig, muxTS);
-    } else if (std::string::npos != fifo.find("h265")) {
+    } else if (
+        std::string::npos != fifo.find("hevc")
+        or
+        std::string::npos != fifo.find("h265")) {
       rtpFormat = "video/H265";
       source = H265_ZoneMinderFifoSource::createNew(*env, fifo, queueSize, repeatConfig, muxTS);
     } else if (std::string::npos != fifo.find("aac")) {

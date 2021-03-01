@@ -8,7 +8,7 @@
 #if HAVE_LIBJWT
 #include <jwt.h>
 #else
-#include "jwt_cpp.h"
+#include <jwt-cpp/jwt.h>
 #endif
 
 #if HAVE_LIBCRYPTO

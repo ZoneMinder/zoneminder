@@ -76,8 +76,14 @@ extern "C" {
 // experimental support for int64_t (see README.mkdn for detail)
 #ifdef PICOJSON_USE_INT64
 #define __STDC_FORMAT_MACROS
-#include <errno.h>
+#include <cerrno>
+#if __cplusplus >= 201103L
+#include <cinttypes>
+#else
+extern "C" {
 #include <inttypes.h>
+}
+#endif
 #endif
 
 // to disable the use of localeconv(3), set PICOJSON_USE_LOCALE to 0
@@ -104,6 +110,7 @@ extern "C" {
 #pragma warning(disable : 4244) // conversion from int to char
 #pragma warning(disable : 4127) // conditional expression is constant
 #pragma warning(disable : 4702) // unreachable code
+#pragma warning(disable : 4706) // assignment within conditional expression
 #else
 #define SNPRINTF snprintf
 #endif
@@ -123,7 +130,7 @@ enum {
 #endif
 };
 
-enum { INDENT_WIDTH = 2 };
+enum { INDENT_WIDTH = 2, DEFAULT_MAX_DEPTHS = 100 };
 
 struct null {};
 
@@ -377,7 +384,7 @@ GET(array, *u_.array_)
 GET(object, *u_.object_)
 #ifdef PICOJSON_USE_INT64
 GET(double,
-    (type_ == int64_type && (const_cast<value *>(this)->type_ = number_type, const_cast<value *>(this)->u_.number_ = u_.int64_),
+    (type_ == int64_type && (const_cast<value *>(this)->type_ = number_type, (const_cast<value *>(this)->u_.number_ = u_.int64_)),
      u_.number_))
 GET(int64_t, u_.int64_)
 #else
@@ -832,7 +839,7 @@ template <typename Context, typename Iter> inline bool _parse_object(Context &ct
     return false;
   }
   if (in.expect('}')) {
-    return true;
+    return ctx.parse_object_stop();
   }
   do {
     std::string key;
@@ -843,7 +850,7 @@ template <typename Context, typename Iter> inline bool _parse_object(Context &ct
       return false;
     }
   } while (in.expect(','));
-  return in.expect('}');
+  return in.expect('}') && ctx.parse_object_stop();
 }
 
 template <typename Iter> inline std::string _parse_number(input<Iter> &in) {
@@ -959,9 +966,10 @@ public:
 class default_parse_context {
 protected:
   value *out_;
+  size_t depths_;
 
 public:
-  default_parse_context(value *out) : out_(out) {
+  default_parse_context(value *out, size_t depths = DEFAULT_MAX_DEPTHS) : out_(out), depths_(depths) {
   }
   bool set_null() {
     *out_ = value();
@@ -986,26 +994,36 @@ public:
     return _parse_string(out_->get<std::string>(), in);
   }
   bool parse_array_start() {
+    if (depths_ == 0)
+      return false;
+    --depths_;
     *out_ = value(array_type, false);
     return true;
   }
   template <typename Iter> bool parse_array_item(input<Iter> &in, size_t) {
     array &a = out_->get<array>();
     a.push_back(value());
-    default_parse_context ctx(&a.back());
+    default_parse_context ctx(&a.back(), depths_);
     return _parse(ctx, in);
   }
   bool parse_array_stop(size_t) {
+    ++depths_;
     return true;
   }
   bool parse_object_start() {
+    if (depths_ == 0)
+      return false;
     *out_ = value(object_type, false);
     return true;
   }
   template <typename Iter> bool parse_object_item(input<Iter> &in, const std::string &key) {
     object &o = out_->get<object>();
-    default_parse_context ctx(&o[key]);
+    default_parse_context ctx(&o[key], depths_);
     return _parse(ctx, in);
+  }
+  bool parse_object_stop() {
+    ++depths_;
+    return true;
   }
 
 private:
@@ -1014,6 +1032,9 @@ private:
 };
 
 class null_parse_context {
+protected:
+  size_t depths_;
+
 public:
   struct dummy_str {
     void push_back(int) {
@@ -1021,7 +1042,7 @@ public:
   };
 
 public:
-  null_parse_context() {
+  null_parse_context(size_t depths = DEFAULT_MAX_DEPTHS) : depths_(depths) {
   }
   bool set_null() {
     return true;
@@ -1042,19 +1063,30 @@ public:
     return _parse_string(s, in);
   }
   bool parse_array_start() {
+    if (depths_ == 0)
+      return false;
+    --depths_;
     return true;
   }
   template <typename Iter> bool parse_array_item(input<Iter> &in, size_t) {
     return _parse(*this, in);
   }
   bool parse_array_stop(size_t) {
+    ++depths_;
     return true;
   }
   bool parse_object_start() {
+    if (depths_ == 0)
+      return false;
+    --depths_;
     return true;
   }
   template <typename Iter> bool parse_object_item(input<Iter> &in, const std::string &) {
+    ++depths_;
     return _parse(*this, in);
+  }
+  bool parse_object_stop() {
+    return true;
   }
 
 private:

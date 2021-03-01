@@ -92,6 +92,20 @@ public:
   unsigned int Pixels() const { return pixels; }
   unsigned long long ImageSize() const { return imagesize; }
   unsigned int Bytes() const { return bytes; };
+  int getFrequency() {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    return mAudioStream ? mAudioStream->codecpar->sample_rate : -1;
+#else
+    return mAudioStream ? mAudioStream->codec->sample_rate : -1;
+#endif
+  }
+  int getChannels() {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    return mAudioStream ? mAudioStream->codecpar->channels : -1;
+#else
+    return mAudioStream ? mAudioStream->codec->channels : -1;
+#endif
+  }
 
   virtual int Brightness( int/*p_brightness*/=-1 ) { return -1; }
   virtual int Hue( int/*p_hue*/=-1 ) { return -1; }

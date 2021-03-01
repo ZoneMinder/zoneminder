@@ -6,6 +6,7 @@
 **
 ** -------------------------------------------------------------------------*/
 
+#include "zm_logger.h"
 #include "zm_rtsp_server_adts_fifo_source.h"
 
 #include <sstream>
@@ -29,7 +30,7 @@ ADTS_ZoneMinderFifoSource::ADTS_ZoneMinderFifoSource(
     )
   :
     ZoneMinderFifoSource(env, fifo, queueSize),
-    samplingFrequencyIndex(0),
+    samplingFrequencyIndex(11),
     channels(1)
 {
   std::ostringstream os;
@@ -39,5 +40,6 @@ ADTS_ZoneMinderFifoSource::ADTS_ZoneMinderFifoSource(
     "indexdeltalength=3"
     << "\r\n";
   m_auxLine.assign(os.str());    
+  Debug(1, "m_auxline is %s", m_auxLine.c_str());
 }
 #endif // HAVE_RTSP_SERVER

@@ -2102,7 +2102,7 @@ bool Monitor::Analyse() {
                 video_store_data->recording = event->StartTime();
                 shared_data->state = state = ALARM;
 
-                Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name, image_count, event->Id());
+                Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name, analysis_image_count, event->Id());
               }  // end if no event, so start it
               if ( alarm_frame_count ) {
                 Debug(1, "alarm frame count so SavePreAlarmFrames");

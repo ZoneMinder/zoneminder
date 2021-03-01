@@ -9,6 +9,7 @@
 #ifndef ZM_RTSP_SERVER_FIFO_SOURCE_H
 #define ZM_RTSP_SERVER_FIFO_SOURCE_H
 
+#include "zm_buffer.h"
 #include "zm_config.h"
 #include "zm_define.h"
 #include <list>
@@ -73,9 +74,7 @@ class ZoneMinderFifoSource: public FramedSource {
     int stop;
 
     int m_fd;
-    #define BUFFER_SIZE 65536
-    unsigned char m_buffer[BUFFER_SIZE];
-    unsigned char *m_buffer_ptr;
+    Buffer  m_buffer;
 };
 #endif // HAVE_RTSP_SERVER
 

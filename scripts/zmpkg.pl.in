@@ -295,6 +295,9 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     } else {
       runCommand('zmdc.pl start zmstats.pl');
     }
+    if ( $Config{ZM_MIN_RTSP_PORT} ) {
+      runCommand('zmdc.pl start zm_rtsp_server');
+    }
   } else {
     $retval = 1;
   }

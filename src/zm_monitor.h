@@ -125,32 +125,29 @@ protected:
     uint8_t format;             /* +55   */
     uint32_t imagesize;         /* +56   */
     uint32_t last_frame_score;  /* +60   */
-    // uint32_t epadding1;      /* +60   */
+    uint32_t  audio_frequency;  /* +64   */
+    uint32_t  audio_channels;   /* +68   */
     /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple 
      ** of 8. Add or delete epadding's to achieve this.
      */  
-    union {                     /* +64   */
+    union {                     /* +72   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +72   */
+    union {                     /* +80   */
       time_t zmc_heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {                     /* +80   */
-      time_t zma_heartbeat_time;			/* Constantly updated by zma.  Used to determine if the process is alive or hung or dead */
-      uint64_t extrapad3;
-    };
     union {                     /* +88  */
       time_t last_write_time;
-      uint64_t extrapad4;
+      uint64_t extrapad3;
     };
     union {                     /* +96  */
       time_t last_read_time;
-      uint64_t extrapad5;
+      uint64_t extrapad4;
     };
     uint8_t control_state[256];  /* +104   */
 
@@ -466,6 +463,9 @@ public:
   unsigned int Height() const { return height; }
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
+
+  int GetAudioFrequency() const { return shared_data ? shared_data->audio_frequency : -1; }
+  int GetAudioChannels() const { return shared_data ? shared_data->audio_channels : -1; }
 
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }

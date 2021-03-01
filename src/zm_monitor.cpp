@@ -17,10 +17,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <algorithm>
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #include "zm_monitor.h"
 
 #include "zm_group.h"
@@ -59,6 +55,9 @@
 #include "zm_libvnc_camera.h"
 #endif // HAVE_LIBVNC
 
+#include <algorithm>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>

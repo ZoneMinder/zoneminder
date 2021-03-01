@@ -20,6 +20,7 @@
 #include "zm_zone.h"
 
 #include "zm_fifo.h"
+#include "zm_fifo_debug.h"
 #include "zm_monitor.h"
 
 void Zone::Setup( 
@@ -113,7 +114,7 @@ void Zone::Setup(
           "%s/diagpipe-%d-poly.jpg",
           staticConfig.PATH_SOCKS.c_str(), id);
 
-      FifoStream::fifo_create_if_missing(diag_path);
+      Fifo::fifo_create_if_missing(diag_path);
     } else {
       snprintf(diag_path, sizeof(diag_path), "%s/diag-%d-poly.jpg",
           monitor->getStorage()->Path(), id);

@@ -213,6 +213,7 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
 #endif
   bytes += packet.size;
   zm_packet.set_packet(&packet);
+  zm_packet.pts = av_rescale_q(packet.pts, mFormatContext->streams[packet.stream_index]->time_base, AV_TIME_BASE_Q);
   zm_av_packet_unref(&packet);
   return 1;
 } // FfmpegCamera::Capture

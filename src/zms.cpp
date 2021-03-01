@@ -23,7 +23,7 @@
 #include "zm_signal.h"
 #include "zm_monitorstream.h"
 #include "zm_eventstream.h"
-#include "zm_fifo.h"
+#include "zm_fifo_stream.h"
 #include <string>
 
 bool ValidateAccess(User *user, int mon_id) {

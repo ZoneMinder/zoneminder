@@ -1015,6 +1015,8 @@ bool Monitor::connect() {
     shared_data->video_fifo_path[0] = 0;
     shared_data->audio_fifo_path[0] = 0;
     shared_data->last_frame_score = 0;
+    shared_data->audio_frequency = -1;
+    shared_data->audio_channels = -1;
     trigger_data->size = sizeof(TriggerData);
     trigger_data->trigger_state = TriggerState::TRIGGER_CANCEL;
     trigger_data->trigger_score = 0;
@@ -2968,8 +2970,11 @@ int Monitor::PrimeCapture() {
     packetqueue.addStreamId(video_stream_id);
 
     audio_stream_id = camera->get_AudioStreamId();
-    if ( audio_stream_id >= 0 )
+    if ( audio_stream_id >= 0 ) {
       packetqueue.addStreamId(audio_stream_id);
+      shared_data->audio_frequency = camera->getFrequency();
+      shared_data->audio_channels = camera->getChannels();
+    }
 
     Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
         video_stream_id, audio_stream_id, pre_event_buffer_count);

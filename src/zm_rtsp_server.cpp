@@ -58,6 +58,7 @@ and provide that stream over rtsp
 #include "zm_utils.h"
 #include <getopt.h>
 #include <iostream>
+#include <StreamReplicator.hh>
 
 void Usage() {
   fprintf(stderr, "zm_rtsp_server -m <monitor_id>\n");
@@ -155,72 +156,79 @@ int main(int argc, char *argv[]) {
   sigaddset(&block_set, SIGUSR1);
   sigaddset(&block_set, SIGUSR2);
 
-  int result = 0;
+  RTSPServerThread * rtsp_server_thread = nullptr;
+  if (config.min_rtsp_port) {
+    rtsp_server_thread = new RTSPServerThread(config.min_rtsp_port);
+    Debug(1, "Starting RTSP server because min_rtsp_port is set");
+  } else {
+    Debug(1, "Not starting RTSP server because min_rtsp_port not set");
+    exit(-1);
+  }
+  ServerMediaSession **sessions = new ServerMediaSession *[monitors.size()];
+  for (size_t i = 0; i < monitors.size(); i++) sessions[i] = nullptr;
+
+  rtsp_server_thread->start();
 
   while (!zm_terminate) {
-    result = 0;
 
-    for (const std::shared_ptr<Monitor> &monitor : monitors) {
-      monitor->LoadCamera();
+    for (size_t i = 0; i < monitors.size(); i++) {
+      std::shared_ptr<Monitor> monitor = monitors[i];
 
-      while (!monitor->connect()) {
+      if (!(monitor->ShmValid() or monitor->connect())) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
-        sleep(1);
+        if (sessions[i]) {
+          rtsp_server_thread->removeSession(sessions[i]);
+          sessions[i] = nullptr;
+        }
+        continue;
       }
+      Debug(1, "monitor %d is connected", monitor->Id());
+
+      if (!sessions[i]) {
+        std::string videoFifoPath = monitor->GetVideoFifoPath();
+        if (videoFifoPath.empty()) {
+          Debug(1, "video fifo is empty. Skipping.");
+          continue;
+        }
+        std::string streamname = monitor->GetRTSPStreamName();
+        Debug(1, "Adding session for %s", streamname.c_str());
+        ServerMediaSession *sms = sessions[i] = rtsp_server_thread->addSession(streamname);
+        Debug(1, "Adding video fifo %s", videoFifoPath.c_str());
+        ZoneMinderFifoVideoSource *video_source = static_cast<ZoneMinderFifoVideoSource *>(rtsp_server_thread->addFifo(sms, videoFifoPath));
+        if (video_source) {
+          video_source->setWidth(monitor->Width());
+          video_source->setHeight(monitor->Height());
+        }
+        Debug(1, "Adding audio fifo %s", monitor->GetAudioFifoPath().c_str());
+        FramedSource *audio_source = rtsp_server_thread->addFifo(sms, monitor->GetAudioFifoPath());
+        if (audio_source) {
+          // set frequency
+        }
+      }  // end if ! sessions[i]
     }  // end foreach monitor
-
-    RTSPServerThread ** rtsp_server_threads = nullptr;
-    if (config.min_rtsp_port) {
-      rtsp_server_threads = new RTSPServerThread *[monitors.size()];
-      Debug(1, "Starting RTSP server because min_rtsp_port is set");
-    } else {
-      Debug(1, "Not starting RTSP server because min_rtsp_port not set");
-      exit(-1);
-    }
-
-    for (size_t i = 0; i < monitors.size(); i++) {
-        rtsp_server_threads[i] = new RTSPServerThread(monitors[i]);
-        std::string streamname = monitors[i]->GetRTSPStreamName();
-        ServerMediaSession *sms = rtsp_server_threads[i]->addSession(streamname);
-        ZoneMinderFifoVideoSource *video_source = static_cast<ZoneMinderFifoVideoSource *>(rtsp_server_threads[i]->addFifo(sms, monitors[i]->GetVideoFifo()));
-        video_source->setWidth(monitors[i]->Width());
-        video_source->setHeight(monitors[i]->Height());
-        FramedSource *audio_source = rtsp_server_threads[i]->addFifo(sms, monitors[i]->GetAudioFifo());
-        rtsp_server_threads[i]->start();
-    }
-
-    while (!zm_terminate) {
-      sleep(1);
-      // What to do in here? Sleep mostly.  Wait for reload commands maybe watch for dead monitors.
-      if ((result < 0) or zm_reload) {
-        // Failure, try reconnecting
-        break;
-      }
-    }  // end while ! zm_terminate and connected
-
-    for (size_t i = 0; i < monitors.size(); i++) {
-      rtsp_server_threads[i]->stop();
-      rtsp_server_threads[i]->join();
-      delete rtsp_server_threads[i];
-      rtsp_server_threads[i] = nullptr;
-    }
-
-    delete[] rtsp_server_threads;
-    rtsp_server_threads = nullptr;
+    sleep(1);
 
     if (zm_reload) {
-      for (std::shared_ptr<Monitor> &monitor : monitors) {
-        monitor->Reload();
+      for (size_t i = 0; i < monitors.size(); i++) {
+        monitors[i]->Reload();
       }
       logTerm();
       logInit(log_id_string);
       zm_reload = false;
     }  // end if zm_reload
-  }  // end while ! zm_terminate outer connection loop
+  } // end while ! zm_terminate
+
+  rtsp_server_thread->stop();
+  rtsp_server_thread->join();
+  delete rtsp_server_thread;
+  rtsp_server_thread = nullptr;
+
+  delete[] sessions;
+  sessions = nullptr;
 
   Image::Deinitialise();
   logTerm();
   zmDbClose();
 
-	return zm_terminate ? 0 : result;
+	return 0;
 }

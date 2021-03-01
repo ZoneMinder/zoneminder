@@ -24,7 +24,9 @@ FramedSource* BaseServerMediaSubsession::createSource(
 	if (format == "video/MP2T") {
 		source = MPEG2TransportStreamFramer::createNew(env, inputSource);
 	} else if (format == "video/H264") {
-		source = H264VideoStreamDiscreteFramer::createNew(env, inputSource);
+		source = H264VideoStreamDiscreteFramer::createNew(env, inputSource
+        /*Boolean includeStartCodeInOutput, Boolean insertAccessUnitDelimiters*/
+        );
 	}
 #if LIVEMEDIA_LIBRARY_VERSION_INT > 1414454400
 	else if (format == "video/H265") {
@@ -94,9 +96,9 @@ char const* BaseServerMediaSubsession::getAuxLine(
 		std::ostringstream os; 
 		os << "a=fmtp:" << int(rtpPayloadType) << " ";
 		os << source->getAuxLine();
-		os << "\r\n";
+		//os << "\r\n";
 		auxLine = strdup(os.str().c_str());
-    Debug(1, "auxLine: %s", auxLine);
+    Debug(1, "BaseServerMediaSubsession::auxLine: %s", auxLine);
   } else {
     Error("No source auxLine:");
     return "";

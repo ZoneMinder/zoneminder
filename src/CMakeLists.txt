@@ -103,14 +103,6 @@ target_link_libraries(zmc
     ${ZM_BIN_LIBS}
     ${CMAKE_DL_LIBS})
 
-target_link_libraries(zm_rtsp_server
-  PRIVATE
-    zm-core-interface
-    zm
-    ${ZM_EXTRA_LIBS}
-    ${ZM_BIN_LIBS}
-    ${CMAKE_DL_LIBS})
-
 target_link_libraries(zms
   PRIVATE
     zm-core-interface

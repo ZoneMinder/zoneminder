@@ -233,7 +233,8 @@ int ZoneMinderFifoSource::getNextFrame() {
       pthread_mutex_lock(&m_mutex);
       if (m_captureQueue.size() > 25) {  // 1 sec at 25 fps
         NAL_Frame * f = m_captureQueue.front();
-        while (m_captureQueue.size() and ((f->m_timestamp.tv_sec - tv.tv_sec) > 2)) {
+        while (m_captureQueue.size() and ((tv.tv_sec - f->m_timestamp.tv_sec) > 2)) {
+        Debug(1, "Deleting Front NAL is %d seconds old", (tv.tv_sec - f->m_timestamp.tv_sec));
           m_captureQueue.pop_front();
           delete f;
           f = m_captureQueue.front();

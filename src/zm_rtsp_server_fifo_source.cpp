@@ -184,7 +184,7 @@ int ZoneMinderFifoSource::getNextFrame() {
       char *pts_ptr = strchr(content_length_ptr, ' ');
       if (!pts_ptr) {
         m_buffer.consume(header_start-m_buffer.head() + 2);
-        Warning("Didn't find space delineating pts");
+        Debug(1, "Didn't find space delineating pts in %s", header);
         delete header;
         return -1;
       }

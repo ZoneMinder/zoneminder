@@ -2267,7 +2267,8 @@ bool Monitor::Analyse() {
     // Only do these if it's a video packet.
     shared_data->last_read_index = snap->image_index;
     analysis_image_count++;
-    UpdateAnalysisFPS();
+    if ( function == MODECT or function == MOCORD )
+      UpdateAnalysisFPS();
   }
   shared_data->last_read_time = time(nullptr);
   packetqueue.clearPackets(snap);
@@ -2543,23 +2544,25 @@ int Monitor::Capture() {
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
           packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ) );
 
-  if (packet->packet.stream_index == video_stream_id) {
-    if (video_fifo) {
-      if ( packet->keyframe ) {
-        // avcodec strips out important nals that describe the stream and 
-        // stick them in extradata. Need to send them along with keyframes
-        AVStream *stream = camera->get_VideoStream();
-        video_fifo->write(
-            static_cast<unsigned char *>(stream->codecpar->extradata),
-            stream->codecpar->extradata_size,
-            packet->pts);
+      if (packet->packet.stream_index == video_stream_id) {
+        if (video_fifo) {
+          if ( packet->keyframe ) {
+            // avcodec strips out important nals that describe the stream and 
+            // stick them in extradata. Need to send them along with keyframes
+            AVStream *stream = camera->get_VideoStream();
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+            video_fifo->write(
+                static_cast<unsigned char *>(stream->codecpar->extradata),
+                stream->codecpar->extradata_size,
+                packet->pts);
+#endif
+          }
+          video_fifo->writePacket(*packet);
+        }
+      } else if (packet->packet.stream_index == audio_stream_id) {
+        if (audio_fifo)
+          audio_fifo->writePacket(*packet);
       }
-      video_fifo->writePacket(*packet);
-    }
-  } else if (packet->packet.stream_index == audio_stream_id) {
-    if (audio_fifo)
-      audio_fifo->writePacket(*packet);
-  }
 
       if ( (packet->packet.stream_index != video_stream_id) and ! packet->image ) {
         // Only queue if we have some video packets in there. Should push this logic into packetqueue

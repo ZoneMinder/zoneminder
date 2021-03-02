@@ -101,7 +101,10 @@ bool Fifo::writePacket(ZMPacket &packet) {
   Debug(1, "Writing header ZM %u %" PRId64,  packet.packet.size, packet.pts);
   // Going to write a brief header
   if ( fprintf(outfile, "ZM %u %" PRId64 "\n", packet.packet.size, packet.pts) < 0 ) {
-    Error("Problem during writing: %s", strerror(errno));
+    if (errno != EAGAIN)
+      Error("Problem during writing: %s", strerror(errno));
+    else
+      Debug(1, "Problem during writing: %s", strerror(errno));
     return false;
   }
 
@@ -147,7 +150,10 @@ bool Fifo::write(uint8_t *data, size_t bytes, int64_t pts) {
   // Going to write a brief header
   Debug(1, "Writing header ZM %lu %" PRId64,  bytes, pts);
   if ( fprintf(outfile, "ZM %lu %" PRId64 "\n", bytes, pts) < 0 ) {
-    Error("Problem during writing: %s", strerror(errno));
+    if (errno != EAGAIN)
+      Error("Problem during writing: %s", strerror(errno));
+    else
+      Debug(1, "Problem during writing: %s", strerror(errno));
     return false;
   }
   if (fwrite(data, bytes, 1, outfile) != 1) {

@@ -23,9 +23,9 @@
 #include "zm_db.h"
 #include "zm_config.h"
 #include "zm_define.h"
-#include "zm_thread.h"
-#include <string>
 #include <map>
+#include <mutex>
+#include <string>
 
 #ifdef HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
@@ -89,7 +89,7 @@ private:
   static bool smInitialised;
   static Logger *smInstance;
 
-  RecursiveMutex log_mutex;
+  std::recursive_mutex log_mutex;
 
   static StringMap smCodes;
   static IntMap smSyslogPriorities;

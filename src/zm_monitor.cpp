@@ -1033,7 +1033,7 @@ bool Monitor::connect() {
     trigger_data->trigger_cause[0] = 0;
     trigger_data->trigger_text[0] = 0;
     trigger_data->trigger_showtext[0] = 0;
-    video_store_data->recording = (struct timeval){0,0};
+    video_store_data->recording = {};
     // Uh, why nothing?  Why not nullptr?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
@@ -2560,7 +2560,7 @@ int Monitor::Capture() {
         packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
         if (video_fifo) {
           if ( packet->keyframe ) {
-            // avcodec strips out important nals that describe the stream and 
+            // avcodec strips out important nals that describe the stream and
             // stick them in extradata. Need to send them along with keyframes
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
             AVStream *stream = camera->getVideoStream();

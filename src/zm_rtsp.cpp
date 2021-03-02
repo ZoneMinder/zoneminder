@@ -587,7 +587,6 @@ void RtspThread::Run() {
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
       rtpDataThread.start();
-      rtpCtrlThread.start();
 
       while (!mTerminate) {
         now = time(nullptr);
@@ -616,7 +615,7 @@ void RtspThread::Run() {
         return;
 
       rtpDataThread.stop();
-      rtpCtrlThread.stop();
+      rtpCtrlThread.Stop();
 
       //rtpDataThread.kill( SIGTERM );
       //rtpCtrlThread.kill( SIGTERM );
@@ -749,7 +748,6 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
       rtpDataThread.start();
-      rtpCtrlThread.start();
 
       while (!mTerminate) {
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
@@ -774,10 +772,9 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
         return;
 
       rtpDataThread.stop();
-      rtpCtrlThread.stop();
+      rtpCtrlThread.Stop();
 
       rtpDataThread.join();
-      rtpCtrlThread.join();
      
       delete mSources[ssrc];
       mSources.clear();

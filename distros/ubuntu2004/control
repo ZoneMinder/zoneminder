@@ -32,6 +32,7 @@ Build-Depends: debhelper (>= 12), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libcrypt-eksblowfish-perl
               ,libdata-entropy-perl
               ,libvncserver-dev
+              ,liblivemedia-dev
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 
@@ -74,6 +75,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
+        ,liblivemedia62|liblivemedia77
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server

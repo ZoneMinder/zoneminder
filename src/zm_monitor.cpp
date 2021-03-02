@@ -1023,7 +1023,7 @@ bool Monitor::connect() {
     trigger_data->trigger_cause[0] = 0;
     trigger_data->trigger_text[0] = 0;
     trigger_data->trigger_showtext[0] = 0;
-    video_store_data->recording = (struct timeval){0};
+    video_store_data->recording = (struct timeval){0,0};
     // Uh, why nothing?  Why not nullptr?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);

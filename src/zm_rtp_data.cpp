@@ -98,7 +98,7 @@ int RtpDataThread::run() {
      }  // end foreach commsList
   }
   rtpDataSocket.close();
-  mRtspThread.stop();
+  mRtspThread.Stop();
   return 0;
 }
 

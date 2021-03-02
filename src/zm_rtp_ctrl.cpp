@@ -327,7 +327,7 @@ int RtpCtrlThread::run() {
     } // end foeach comms iterator
   }
   rtpCtrlServer.close();
-  mRtspThread.stop();
+  mRtspThread.Stop();
   return 0;
 }
 

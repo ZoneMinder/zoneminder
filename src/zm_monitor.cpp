@@ -1725,7 +1725,7 @@ void Monitor::UpdateCaptureFPS() {
           now_double, last_analysis_fps_time,
           elapsed, new_capture_fps
           );
-      Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec",
+      Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec",
           name, image_count, new_capture_fps, new_capture_bandwidth);
       shared_data->capture_fps = new_capture_fps;
       last_fps_time = now_double;

@@ -31,8 +31,31 @@ class GroupsController extends AppController {
  * @return void
  */
 	public function index() {
-		$this->Group->recursive = -1;
-		$groups = $this->Group->find('all');
+		$this->Group->recursive = 0;
+
+    if ( $this->request->params['named'] ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+    } else {
+      $conditions = array();
+    }
+
+    $find_array = array(
+      'conditions' => &$conditions,
+      'contain'    => array('Monitor'),
+      'joins'      => array(
+        array(
+          'table' => 'Groups_Monitors',
+          'type'  => 'left',
+          'conditions' => array(
+            'Groups_Monitors.GroupId = Group.Id',
+          ),
+        ),
+      ),
+      'group' => '`Group`.`Id`',
+    );
+
+		$groups = $this->Group->find('all', $find_array);
 		$this->set(array(
 			'groups' => $groups,
 			'_serialize' => array('groups')

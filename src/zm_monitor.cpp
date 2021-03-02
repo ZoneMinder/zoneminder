@@ -2255,11 +2255,6 @@ bool Monitor::Analyse() {
   }
 #endif
 
-  if ((videowriter == PASSTHROUGH) and !savejpegs) {
-    // Don't need raw images anymore
-    delete snap->image;
-    snap->image = nullptr;
-  }
   // popPacket will have placed a second lock on snap, so release it here.
   snap->unlock();
 

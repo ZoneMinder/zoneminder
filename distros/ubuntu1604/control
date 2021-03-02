@@ -33,8 +33,7 @@ Build-Depends: debhelper (>= 9), dh-systemd, python3-sphinx, apache2-dev, dh-lin
               ,libcrypt-eksblowfish-perl
               ,libdata-entropy-perl
               ,libvncserver-dev
-# Unbundled (dh_linktree):
-        ,libjs-jquery
+              ,liblivemedia-dev
 Standards-Version: 3.9.8
 Homepage: http://www.zoneminder.com/
 Vcs-Browser: http://anonscm.debian.org/cgit/collab-maint/zoneminder.git
@@ -81,6 +80,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
+        ,liblivemedia50|liblivemedia62
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
            ,mysql-server | mariadb-server | virtual-mysql-server

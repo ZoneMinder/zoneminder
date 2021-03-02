@@ -2544,8 +2544,8 @@ int Monitor::Capture() {
           if ( packet->keyframe ) {
             // avcodec strips out important nals that describe the stream and 
             // stick them in extradata. Need to send them along with keyframes
-            AVStream *stream = camera->get_VideoStream();
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+            AVStream *stream = camera->get_VideoStream();
             video_fifo->write(
                 static_cast<unsigned char *>(stream->codecpar->extradata),
                 stream->codecpar->extradata_size,
@@ -2987,14 +2987,24 @@ int Monitor::PrimeCapture() {
         snprintf(shared_data->video_fifo_path, sizeof(shared_data->video_fifo_path)-1, "%s/video_fifo_%d.%s",
             staticConfig.PATH_SOCKS.c_str(),
             id,
-            avcodec_get_name(videoStream->codecpar->codec_id));
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+            avcodec_get_name(videoStream->codecpar->codec_id)
+#else
+            avcodec_get_name(videoStream->codec->codec_id)
+#endif
+            );
         video_fifo = new Fifo(shared_data->video_fifo_path, true);
       }
       if (record_audio and (audio_stream_id >= 0)) {
         AVStream *audioStream = camera->get_AudioStream();
         snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path)-1, "%s/video_fifo_%d.%s",
             staticConfig.PATH_SOCKS.c_str(), id,
-            avcodec_get_name(audioStream->codecpar->codec_id));
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+            avcodec_get_name(audioStream->codecpar->codec_id)
+#else
+            avcodec_get_name(audioStream->codec->codec_id)
+#endif
+            );
         audio_fifo = new Fifo(shared_data->audio_fifo_path, true);
       }
     }  // end if rtsp_server

@@ -563,9 +563,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d", 
       frame_type_names[frame_type], score, monitor->GetState(), frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval) );
 
-  if ( score < 0 )
-    score = 0;
-
+  if (score < 0) score = 0;
   tot_score += score;
 
   if (image) {
@@ -605,7 +603,14 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     Debug(1, "No image");
   }  // end if has image
 
-  bool db_frame = ( frame_type == BULK ) or ( frame_type == ALARM ) or ( frames == 1 ) or ( score > (int)max_score ) or ( monitor_state == Monitor::ALERT ) or ( monitor_state == Monitor::PREALARM );
+  bool db_frame = ( frame_type == BULK )
+    or ( frame_type == ALARM )
+    or ( frames == 1 )
+    or ( score > (int)max_score )
+    or ( monitor_state == Monitor::ALERT )
+    or ( monitor_state == Monitor::ALARM )
+    or ( monitor_state == Monitor::PREALARM );
+
   if (db_frame) {
 
     struct DeltaTimeval delta_time;

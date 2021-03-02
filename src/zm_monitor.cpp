@@ -2079,6 +2079,12 @@ bool Monitor::Analyse() {
                 ZMPacket *starting_packet = *(*start_it);
 
                 event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
+                shared_data->last_event_id = event->Id();
+                //set up video store data
+                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                video_store_data->recording = event->StartTime();
+                shared_data->state = state = ALARM;
+
                 // Write out starting packets, do not modify packetqueue it will garbage collect itself
                 while ( *start_it != snap_it ) {
                   event->AddPacket(starting_packet);
@@ -2095,12 +2101,6 @@ bool Monitor::Analyse() {
                 packetqueue.free_it(start_it);
                 delete start_it;
                 start_it = nullptr;
-
-                shared_data->last_event_id = event->Id();
-                //set up video store data
-                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-                video_store_data->recording = event->StartTime();
-                shared_data->state = state = ALARM;
 
                 Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name, analysis_image_count, event->Id());
               }  // end if no event, so start it

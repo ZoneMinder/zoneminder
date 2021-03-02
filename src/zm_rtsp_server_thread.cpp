@@ -141,7 +141,13 @@ void RTSPServerThread::addStream(std::string &streamname, AVStream *video_stream
   if ( video_stream ) {
     StreamReplicator* videoReplicator = nullptr;
     FramedSource *source = nullptr;
-    std::string rtpFormat = getRtpFormat(video_stream->codecpar->codec_id, false);
+    std::string rtpFormat = getRtpFormat(
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+        video_stream->codecpar->codec_id
+#else
+        video_stream->codec->codec_id
+#endif
+        , false);
     if ( rtpFormat.empty() ) {
       Error("No streaming format");
       return;
@@ -169,7 +175,13 @@ void RTSPServerThread::addStream(std::string &streamname, AVStream *video_stream
   if ( audio_stream ) {
     StreamReplicator* replicator = nullptr;
     FramedSource *source = nullptr;
-    std::string rtpFormat = getRtpFormat(audio_stream->codecpar->codec_id, false);
+    std::string rtpFormat = getRtpFormat(
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+        audio_stream->codecpar->codec_id
+#else
+        audio_stream->codec->codec_id
+#endif
+        , false);
     if ( rtpFormat == "audio/AAC" ) {
       source = ADTS_ZoneMinderDeviceSource::createNew(*env, monitor_, audio_stream, queueSize);
       Debug(1, "ADTS source %p", source);

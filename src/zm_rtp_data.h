@@ -21,7 +21,8 @@
 #define ZM_RTP_DATA_H
 
 #include "zm_define.h"
-#include "zm_thread.h"
+#include <atomic>
+#include <thread>
 
 class RtspThread;
 class RtpSource;
@@ -40,26 +41,26 @@ struct RtpDataHeader
   uint32_t csrc[];    // optional CSRC list
 };
 
-class RtpDataThread : public Thread
+class RtpDataThread
 {
 friend class RtspThread;
 
 private:
   RtspThread &mRtspThread;
   RtpSource &mRtpSource;
-  bool mStop;
+
+  std::atomic<bool> mTerminate;
+  std::thread mThread;
 
 private:
   bool recvPacket( const unsigned char *packet, size_t packetLen );
-  int run();
+  void Run();
 
 public:
   RtpDataThread( RtspThread &rtspThread, RtpSource &rtpSource );
+  ~RtpDataThread();
 
-  void stop()
-  {
-    mStop = true;
-  }
+  void Stop() { mTerminate = true; }
 };
 
 #endif // ZM_RTP_DATA_H

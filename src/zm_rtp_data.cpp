@@ -26,8 +26,15 @@
 #if HAVE_LIBAVFORMAT
 
 RtpDataThread::RtpDataThread(RtspThread &rtspThread, RtpSource &rtpSource) :
-  mRtspThread(rtspThread), mRtpSource(rtpSource), mStop(false)
+  mRtspThread(rtspThread), mRtpSource(rtpSource), mTerminate(false)
 {
+  mThread = std::thread(&RtpDataThread::Run, this);
+}
+
+RtpDataThread::~RtpDataThread() {
+  Stop();
+  if (mThread.joinable())
+    mThread.join();
 }
 
 bool RtpDataThread::recvPacket(const unsigned char *packet, size_t packetLen) {
@@ -54,7 +61,7 @@ bool RtpDataThread::recvPacket(const unsigned char *packet, size_t packetLen) {
   return mRtpSource.handlePacket(packet, packetLen);
 }
 
-int RtpDataThread::run() {
+void RtpDataThread::Run() {
   Debug(2, "Starting data thread %d on port %d",
       mRtpSource.getSsrc(), mRtpSource.getLocalDataPort());
 
@@ -75,11 +82,11 @@ int RtpDataThread::run() {
   select.addReader(&rtpDataSocket);
 
   unsigned char buffer[ZM_NETWORK_BUFSIZ];
-  while ( !zm_terminate && !mStop && (select.wait() >= 0) ) {
+  while ( !zm_terminate && !mTerminate && (select.wait() >= 0) ) {
     ZM::Select::CommsList readable = select.getReadable();
      if ( readable.size() == 0 ) {
        Error("RTP timed out");
-       mStop = true;
+       Stop();
        break;
      }
      for ( ZM::Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
@@ -89,7 +96,7 @@ int RtpDataThread::run() {
          if ( nBytes ) {
            recvPacket(buffer, nBytes);
          } else {
-          mStop = true;
+          Stop();
           break;
          }
        } else {
@@ -99,7 +106,6 @@ int RtpDataThread::run() {
   }
   rtpDataSocket.close();
   mRtspThread.Stop();
-  return 0;
 }
 
 #endif // HAVE_LIBAVFORMAT

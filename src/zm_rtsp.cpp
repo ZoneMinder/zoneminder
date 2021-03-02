@@ -91,16 +91,9 @@ int RtspThread::requestPorts() {
     char sql[ZM_SQL_SML_BUFSIZ];
     //FIXME Why not load specifically by Id?  This will get ineffeicient with a lot of monitors
     strncpy(sql, "SELECT `Id` FROM `Monitors` WHERE `Function` != 'None' AND `Type` = 'Remote' AND `Protocol` = 'rtsp' AND `Method` = 'rtpUni' ORDER BY `Id` ASC", sizeof(sql));
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't run query: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
-    }
 
-    MYSQL_RES *result = mysql_store_result(&dbconn);
-    if ( !result ) {
-      Error("Can't use query result: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
-    }
+    MYSQL_RES *result = zmDbFetch(sql);
+
     int nMonitors = mysql_num_rows(result);
     int position = 0;
     if ( nMonitors ) {

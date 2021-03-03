@@ -6,6 +6,7 @@
 #include "zm_thread.h"
 #include "zm_rtsp_server_server_media_subsession.h"
 #include "zm_rtsp_server_fifo_source.h"
+#include <atomic>
 #include <list>
 #include <memory>
 
@@ -15,10 +16,14 @@
 
 class Monitor;
 
-class RTSPServerThread : public Thread {
+class RTSPServerThread {
   private:
     std::shared_ptr<Monitor> monitor_;
-    char terminate;
+
+    std::thread thread_;
+    std::atomic<bool> terminate_;
+    std::mutex scheduler_watch_var_mutex_;
+    char scheduler_watch_var_;
 
     TaskScheduler* scheduler;
     UsageEnvironment* env;
@@ -34,9 +39,9 @@ class RTSPServerThread : public Thread {
     void removeSession(ServerMediaSession *sms);
     void addStream(std::string &streamname, AVStream *, AVStream *);
     FramedSource *addFifo(ServerMediaSession *sms, std::string fifo);
-    int run();
-    void stop();
-    bool stopped() const;
+    void Run();
+    void Stop();
+    bool IsStopped() const { return terminate_; };
   private:
     const std::string getRtpFormat(AVCodecID codec, bool muxTS);
     int addSession(

@@ -12,7 +12,7 @@
 #include <StreamReplicator.hh>
 
 RTSPServerThread::RTSPServerThread(int port) :
-  terminate(0)
+    terminate_(false), scheduler_watch_var_(0)
 {
   //unsigned short rtsp_over_http_port = 0;
   //const char *realm = "ZoneMinder";
@@ -34,9 +34,15 @@ RTSPServerThread::RTSPServerThread(int port) :
   }
   const char *prefix = rtspServer->rtspURLPrefix();
   delete[] prefix;
-}  // end RTSPServerThread::RTSPServerThread
+
+  thread_ = std::thread(&RTSPServerThread::Run, this);
+}
 
 RTSPServerThread::~RTSPServerThread() {
+  Stop();
+  if (thread_.joinable())
+    thread_.join();
+
   if (rtspServer) {
     Medium::close(rtspServer);
   } // end if rtsp_server
@@ -49,25 +55,26 @@ RTSPServerThread::~RTSPServerThread() {
   delete scheduler;
 }
 
-int RTSPServerThread::run() {
-  Debug(1, "RTSPServerThread::run()");
-  if ( rtspServer )
-    env->taskScheduler().doEventLoop(&terminate); // does not return
+void RTSPServerThread::Run() {
+  Debug(1, "RTSPServerThread::Run()");
+  if (rtspServer)
+    env->taskScheduler().doEventLoop(&scheduler_watch_var_); // does not return
   Debug(1, "RTSPServerThread::done()");
-  return 0;
-}  // end in RTSPServerThread::run()
+}
 
-void RTSPServerThread::stop() {
+void RTSPServerThread::Stop() {
   Debug(1, "RTSPServerThread::stop()");
-  terminate = 1;
+  terminate_ = true;
+
+  {
+    std::lock_guard<std::mutex> lck(scheduler_watch_var_mutex_);
+    scheduler_watch_var_ = 1;
+  }
+
   for ( std::list<FramedSource *>::iterator it = sources.begin(); it != sources.end(); ++it ) {
     (*it)->stopGettingFrames();
   }
-}  // end RTSPServerThread::stop()
-
-bool RTSPServerThread::stopped() const {
-  return terminate ? true : false;
-}  // end RTSPServerThread::stopped()
+}
 
 ServerMediaSession *RTSPServerThread::addSession(std::string &streamname) {
   ServerMediaSession *sms = ServerMediaSession::createNew(*env, streamname.c_str());

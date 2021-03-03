@@ -118,11 +118,11 @@ int FFmpeg_Input::Open(const char *filepath) {
   } // end foreach stream
 
   if ( video_stream_id == -1 )
-    Error("Unable to locate video stream in %s", filepath);
+    Warning("Unable to locate video stream in %s", filepath);
   if ( audio_stream_id == -1 )
     Debug(3, "Unable to locate audio stream in %s", filepath);
 
-  return 0;
+  return 1;
 } // end int FFmpeg_Input::Open( const char * filepath )
 
 int FFmpeg_Input::Close( ) {

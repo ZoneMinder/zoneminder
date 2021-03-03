@@ -26,6 +26,8 @@
 #include <glob.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <unistd.h>
+
 #ifdef __FreeBSD__
 #include <netinet/in.h>
 #endif

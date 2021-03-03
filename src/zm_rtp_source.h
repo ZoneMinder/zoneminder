@@ -24,7 +24,6 @@
 #include "zm_config.h"
 #include "zm_define.h"
 #include "zm_ffmpeg.h"
-#include "zm_thread.h"
 #include <condition_variable>
 #include <mutex>
 #include <string>

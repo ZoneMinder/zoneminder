@@ -23,6 +23,7 @@
 #include "zm_rtp_data.h"
 #include "zm_utils.h"
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #if HAVE_LIBAVCODEC
 

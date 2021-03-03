@@ -23,6 +23,7 @@
 #include "zm_signal.h"
 #include <fcntl.h>
 #include <sys/file.h>
+#include <unistd.h>
 
 #define RAW_BUFFER 512
 static bool zm_fifodbg_inited = false;

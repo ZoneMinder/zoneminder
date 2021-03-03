@@ -27,6 +27,8 @@
 #include "zm_storage.h"
 #include <arpa/inet.h>
 #include <sys/stat.h>
+#include <unistd.h>
+
 #ifdef __FreeBSD__
 #include <netinet/in.h>
 #endif

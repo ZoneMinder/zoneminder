@@ -28,6 +28,7 @@
 #include "zm_videostore.h"
 #include <cstring>
 #include <sys/stat.h>
+#include <unistd.h>
 
 //#define USE_PREPARED_SQL 1
 

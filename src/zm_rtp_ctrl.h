@@ -20,7 +20,6 @@
 #ifndef ZM_RTP_CTRL_H
 #define ZM_RTP_CTRL_H
 
-#include "zm_thread.h"
 #include <atomic>
 #include <thread>
 

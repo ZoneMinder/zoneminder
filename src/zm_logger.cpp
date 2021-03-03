@@ -21,10 +21,10 @@
 
 #include "zm_db.h"
 #include "zm_utils.h"
-
 #include <libgen.h>
 #include <syslog.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #ifdef __FreeBSD__
 #include <sys/thr.h>

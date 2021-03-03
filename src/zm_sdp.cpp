@@ -20,6 +20,7 @@
 #include "zm_sdp.h"
 
 #include "zm_config.h"
+#include "zm_exception.h"
 #include "zm_logger.h"
 
 #if HAVE_LIBAVFORMAT

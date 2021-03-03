@@ -21,6 +21,7 @@
 
 #include "zm_packet.h"
 #include <sys/stat.h>
+#include <unistd.h>
 
 FileCamera::FileCamera(
     const Monitor *monitor,

@@ -25,6 +25,7 @@
 #include "zm_eventstream.h"
 #include "zm_fifo_stream.h"
 #include <string>
+#include <unistd.h>
 
 bool ValidateAccess(User *user, int mon_id) {
   bool allowed = true;

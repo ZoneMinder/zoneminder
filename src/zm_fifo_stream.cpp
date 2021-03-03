@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #define RAW_BUFFER 512
 bool FifoStream::sendRAWFrames() {

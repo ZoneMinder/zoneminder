@@ -27,6 +27,7 @@
 #include "zm_image.h"
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
+#include "zm_utils.h"
 #include "zm_video.h"
 #include <memory>
 #include <sys/time.h>

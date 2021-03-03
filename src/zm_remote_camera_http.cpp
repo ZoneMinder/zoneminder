@@ -27,6 +27,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #ifdef SOLARIS
 #include <sys/filio.h> // FIONREAD and friends

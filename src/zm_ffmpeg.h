@@ -370,7 +370,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
     double pts_time = static_cast<double>(av_rescale_q(pkt.pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE; \
     \
     Debug(2, "%s: pts: %" PRId64 " * %u/%u=%f, dts: %" PRId64 \
-      ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64", duration: %" AV_PACKET_DURATION_FMT, \
+      ", size: %d, stream_index: %d, %s flags: %04x, keyframe(%d) pos: %" PRId64", duration: %" AV_PACKET_DURATION_FMT, \
       text, \
       pkt.pts, \
       stream->time_base.num, \
@@ -379,6 +379,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
       pkt.dts, \
       pkt.size, \
       pkt.stream_index, \
+      av_get_media_type_string(stream->codecpar->codec_type), \
       pkt.flags, \
       pkt.flags & AV_PKT_FLAG_KEY, \
       pkt.pos, \

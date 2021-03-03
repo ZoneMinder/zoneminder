@@ -257,9 +257,10 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
 #endif
 
 void zm_dump_codec(const AVCodecContext *codec) {
-  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d %s) width(%d) height(%d)  timebase(%d/%d) format(%s) "
+  Debug(1, "Dumping codec_context codec_type(%d %s) codec_id(%d %s) width(%d) height(%d)  timebase(%d/%d) format(%s) "
       "gop_size %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d",
     codec->codec_type,
+    av_get_media_type_string(codec->codec_type),
     codec->codec_id,
     avcodec_get_name(codec->codec_id),
     codec->width,
@@ -306,7 +307,10 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
       );
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  Debug(1, "codec: %s", avcodec_get_name(st->codecpar->codec_id));
+  Debug(1, "codec: %s %s",
+      avcodec_get_name(st->codecpar->codec_id),
+      av_get_media_type_string(st->codecpar->codec_type)
+      );
 #else
   char buf[256];
   avcodec_string(buf, sizeof(buf), st->codec, is_output);

@@ -48,7 +48,7 @@ class PacketQueue {
     std::list<ZMPacket *>::const_iterator end() const { return pktQueue.end(); }
     std::list<ZMPacket *>::const_iterator begin() const { return pktQueue.begin(); }
 
-    void addStreamId(int p_stream_id);
+    int addStream();
     void setMaxVideoPackets(int p);
 
     bool queuePacket(ZMPacket* packet);

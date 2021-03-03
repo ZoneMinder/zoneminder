@@ -823,7 +823,7 @@ include('_monitor_source_nvsocket.php');
       if ( $monitor->Type() == 'Ffmpeg' ) {
 ?>
           <tr class="SourceSecondPath">
-            <td><?php echo translate('SourceSecondPath') ?></td>
+            <td class="text-right pr-3"><?php echo translate('SourceSecondPath') ?></td>
             <td><input type="text" name="newMonitor[SecondPath]" value="<?php echo validHtmlStr($monitor->SecondPath()) ?>" /></td>
           </tr>
           <tr class="DecoderHWAccelName">

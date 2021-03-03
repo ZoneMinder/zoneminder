@@ -56,7 +56,8 @@ protected:
   AVCodecContext      *mAudioCodecContext;
   AVStream *mVideoStream;
   AVStream *mAudioStream;
-  AVFormatContext *mFormatContext;
+  AVFormatContext *mFormatContext; // One for video, one for audio
+  AVFormatContext *mSecondFormatContext; // One for video, one for audio
   unsigned int  bytes;
 
 public:

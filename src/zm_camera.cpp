@@ -54,6 +54,7 @@ Camera::Camera(
     mVideoStream(nullptr),
     mAudioStream(nullptr),
     mFormatContext(nullptr),
+    mSecondFormatContext(nullptr),
     bytes(0)
 {
   linesize = width * colours;
@@ -68,9 +69,13 @@ Camera::~Camera() {
   if ( mFormatContext ) {
     // Should also free streams
     avformat_free_context(mFormatContext);
-    mVideoStream = nullptr;
-    mAudioStream = nullptr;
   }
+  if ( mSecondFormatContext ) {
+    // Should also free streams
+    avformat_free_context(mSecondFormatContext);
+  }
+  mVideoStream = nullptr;
+  mAudioStream = nullptr;
 }
 
 AVStream *Camera::get_VideoStream() {

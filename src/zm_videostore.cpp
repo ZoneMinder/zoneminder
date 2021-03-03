@@ -49,8 +49,6 @@ VideoStore::VideoStore(
   oc(nullptr),
   video_out_stream(nullptr),
   audio_out_stream(nullptr),
-  video_in_stream_index(-1),
-  audio_in_stream_index(-1),
   video_out_codec(nullptr),
   video_in_ctx(p_video_in_ctx),
   video_out_ctx(nullptr),
@@ -123,8 +121,6 @@ bool VideoStore::open() {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     zm_dump_codecpar(video_in_stream->codecpar);
 #endif
-    video_in_stream_index = video_in_stream->index;
-
     if ( monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH ) {
       // Don't care what codec, just copy parameters
       video_out_ctx = avcodec_alloc_context3(nullptr);
@@ -950,9 +946,7 @@ int VideoStore::writePacket(ZMPacket *ipkt) {
   } else if ( ipkt->codec_type == AVMEDIA_TYPE_AUDIO ) {
     return writeAudioFramePacket(ipkt);
   }
-  Error("Unknown stream type in packet (%d) input video stream is (%d) and audio is (%d)",
-      ipkt->packet.stream_index, video_in_stream_index, ( audio_in_stream ? audio_in_stream_index : -1 )
-      );
+  Error("Unknown stream type in packet (%d)", ipkt->codec_type);
   return 0;
 }
 

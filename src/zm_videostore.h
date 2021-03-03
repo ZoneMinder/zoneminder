@@ -40,8 +40,6 @@ class VideoStore {
 	AVFormatContext *oc;
 	AVStream *video_out_stream;
 	AVStream *audio_out_stream;
-  int video_in_stream_index;
-  int audio_in_stream_index;
 
   AVCodec *video_out_codec;
   AVCodecContext *video_in_ctx;

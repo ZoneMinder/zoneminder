@@ -69,7 +69,6 @@ set(ZM_BIN_SRC_FILES
   zm_swscale.cpp
   zm_thread.cpp
   zm_time.cpp
-  zm_timer.cpp
   zm_user.cpp
   zm_utils.cpp
   zm_video.cpp

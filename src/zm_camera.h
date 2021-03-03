@@ -120,12 +120,12 @@ public:
     //return (type == FFMPEG_SRC )||(type == REMOTE_SRC);
   }
 
-  virtual AVStream      *get_VideoStream();
-  virtual AVStream      *get_AudioStream() { return mAudioStream; };
-  virtual AVCodecContext     *get_VideoCodecContext() { return mVideoCodecContext; };
-  virtual AVCodecContext     *get_AudioCodecContext() { return mAudioCodecContext; };
-  int            get_VideoStreamId() { return mVideoStreamId; };
-  int            get_AudioStreamId() { return mAudioStreamId; };
+  virtual AVStream      *getVideoStream();
+  virtual AVStream      *getAudioStream() { return mAudioStream; };
+  virtual AVCodecContext     *getVideoCodecContext() { return mVideoCodecContext; };
+  virtual AVCodecContext     *getAudioCodecContext() { return mAudioCodecContext; };
+  int            getVideoStreamId() { return mVideoStreamId; };
+  int            getAudioStreamId() { return mAudioStreamId; };
 
   virtual int PrimeCapture() { return 0; }
   virtual int PreCapture() = 0;

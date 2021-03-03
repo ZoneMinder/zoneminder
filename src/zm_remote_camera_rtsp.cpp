@@ -309,6 +309,7 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
 #endif
           }
           zm_packet.codec_type = mVideoCodecContext->codec_type;
+          zm_packet.stream = mVideoStream;
           frameComplete = true;
           Debug(2, "Frame: %d - %d/%d", frameCount, bytes_consumed, buffer.size());
           packet->data = nullptr;

@@ -38,6 +38,7 @@ class ZMPacket {
   
     std::recursive_mutex mutex;
     int keyframe;
+    AVStream  *stream;            // Input stream
     AVPacket  packet;             // Input packet, undecoded
     AVFrame   *in_frame;          // Input image, decoded Theoretically only filled if needed.
     AVFrame   *out_frame;         // output image, Only filled if needed.

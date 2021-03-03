@@ -78,7 +78,7 @@ Camera::~Camera() {
   mAudioStream = nullptr;
 }
 
-AVStream *Camera::get_VideoStream() {
+AVStream *Camera::getVideoStream() {
   if ( !mVideoStream ) {
     if ( !mFormatContext )
       mFormatContext = avformat_alloc_context();

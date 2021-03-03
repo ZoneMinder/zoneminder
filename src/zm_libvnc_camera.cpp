@@ -178,7 +178,7 @@ int VncCamera::PrimeCapture() {
     Warning("Specified dimensions do not match screen size monitor: (%dx%d) != vnc: (%dx%d)",
         width, height, mRfb->width, mRfb->height);
   }
-  get_VideoStream();
+  getVideoStream();
 
   return 1;
 }
@@ -207,6 +207,7 @@ int VncCamera::Capture(ZMPacket &zm_packet) {
   zm_packet.keyframe = 1;
   zm_packet.codec_type = AVMEDIA_TYPE_VIDEO;
   zm_packet.packet.stream_index = mVideoStreamId;
+  zm_packet.stream = mVideoStream;
 
   uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
   Debug(1, "scale src %p, %d, dest %p %d %d %dx%d %dx%d", mVncData.buffer,

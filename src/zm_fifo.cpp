@@ -124,7 +124,7 @@ bool Fifo::writePacket(std::string filename, ZMPacket &packet) {
 
   if ( !on_blocking_abort ) {
     if ( (outfile = fopen(filename.c_str(), "wb")) == nullptr ) {
-      Error("Can't open %s for writing: %s", filename, strerror(errno));
+      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
       return false;
     }
   } else {
@@ -174,7 +174,7 @@ bool Fifo::write(std::string filename, uint8_t *data, size_t bytes) {
 
   if ( !on_blocking_abort ) {
     if ( (outfile = fopen(filename.c_str(), "wb")) == nullptr ) {
-      Error("Can't open %s for writing: %s", filename, strerror(errno));
+      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
       return false;
     }
   } else {

@@ -1890,7 +1890,7 @@ bool Monitor::Analyse() {
     }// else 
 
     if (signal) {
-      if (snap->image or (snap->packet.stream_index == video_stream_id)) {
+      if (snap->image or (snap->codec_type == AVMEDIA_TYPE_VIDEO)) {
         struct timeval *timestamp = snap->timestamp;
 
         if ( Active() and (function == MODECT or function == MOCORD) and snap->image ) {
@@ -2554,7 +2554,7 @@ int Monitor::Capture() {
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
           packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ) );
 
-      if (packet->packet.stream_index == video_stream_id) {
+      if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
         if (video_fifo) {
           if ( packet->keyframe ) {
             // avcodec strips out important nals that describe the stream and 
@@ -2569,12 +2569,13 @@ int Monitor::Capture() {
           }
           video_fifo->writePacket(*packet);
         }
-      } else if (packet->packet.stream_index == audio_stream_id) {
+      } else if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
         if (audio_fifo)
           audio_fifo->writePacket(*packet);
       }
 
-      if ( (packet->packet.stream_index != video_stream_id) and ! packet->image ) {
+      //if ( (packet->packet.stream_index != video_stream_id) and ! packet->image ) {
+      if ( (packet->codec_type == AVMEDIA_TYPE_AUDIO) and ! packet->image ) {
         // Only queue if we have some video packets in there. Should push this logic into packetqueue
         if ( record_audio and (packetqueue.packet_count(video_stream_id) or event) ) {
           packet->image_index=-1;
@@ -2982,13 +2983,13 @@ unsigned int Monitor::SubpixelOrder() const { return camera->SubpixelOrder(); }
 int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();
   if ( ret > 0 ) {
-    video_stream_id = camera->get_VideoStreamId();
+    if ( -1 != camera->get_VideoStreamId() ) {
+      video_stream_id = packetqueue.addStream();
+    }
 
-    packetqueue.addStreamId(video_stream_id);
-
-    audio_stream_id = camera->get_AudioStreamId();
-    if ( audio_stream_id >= 0 ) {
-      packetqueue.addStreamId(audio_stream_id);
+    if ( -1 != camera->get_AudioStreamId() ) {
+      audio_stream_id = packetqueue.addStream();
+      packetqueue.addStream();
       shared_data->audio_frequency = camera->getFrequency();
       shared_data->audio_channels = camera->getChannels();
     }
@@ -3057,7 +3058,7 @@ void Monitor::get_ref_image() {
       (
        !( snap = packetqueue.get_packet(analysis_it))
        or 
-       ( snap->packet.stream_index != video_stream_id )
+       ( snap->codec_type != AVMEDIA_TYPE_VIDEO )
        or
        ! snap->image
       )

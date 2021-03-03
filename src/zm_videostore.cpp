@@ -945,9 +945,9 @@ bool VideoStore::setup_resampler() {
 }  // end bool VideoStore::setup_resampler()
 
 int VideoStore::writePacket(ZMPacket *ipkt) {
-  if ( ipkt->packet.stream_index == video_in_stream_index ) {
+  if ( ipkt->codec_type == AVMEDIA_TYPE_VIDEO ) {
     return writeVideoFramePacket(ipkt);
-  } else if ( ipkt->packet.stream_index == audio_in_stream_index ) {
+  } else if ( ipkt->codec_type == AVMEDIA_TYPE_AUDIO ) {
     return writeAudioFramePacket(ipkt);
   }
   Error("Unknown stream type in packet (%d) input video stream is (%d) and audio is (%d)",

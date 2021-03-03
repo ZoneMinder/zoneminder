@@ -300,7 +300,6 @@ bool VideoStore::open() {
 
   if ( audio_in_stream and audio_in_ctx ) {
     Debug(2, "Have audio_in_stream %p", audio_in_stream);
-    audio_in_stream_index = audio_in_stream->index;
 
     if (
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)

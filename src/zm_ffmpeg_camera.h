@@ -44,17 +44,8 @@ class FfmpegCamera : public Camera {
 
     int frameCount;    
 
-#if HAVE_LIBAVFORMAT
-    AVFormatContext     *mFormatContext[2];
-    int                 mFormats;
-    int                 mFormatIndex;
-    int                 mVideoStreamId;
-    int                 mAudioStreamId;
-    AVCodecContext      *mVideoCodecContext;
-    AVCodecContext      *mAudioCodecContext;
-    AVCodec             *mVideoCodec;
-    AVCodec             *mAudioCodec;
     _AVPIXELFORMAT      imagePixFormat;
+    AVFormatContext *mFormatContextPtr;
 
     bool                use_hwaccel; //will default to on if hwaccel specified, will get turned off if there is a failure
 #if HAVE_LIBAVUTIL_HWCONTEXT_H

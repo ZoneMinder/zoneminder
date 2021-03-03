@@ -351,6 +351,13 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 # define AV_PACKET_DURATION_FMT "d"
 #endif
 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+#define CODEC_TYPE(stream) stream->codecpar->codec_type
+#else
+#define CODEC_TYPE(stream) stream->codec->codec_type
+#endif
+
+
 #ifndef DBG_OFF
 # define ZM_DUMP_PACKET(pkt, text) \
   Debug(2, "%s: pts: %" PRId64 ", dts: %" PRId64 \
@@ -379,7 +386,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
       pkt.dts, \
       pkt.size, \
       pkt.stream_index, \
-      av_get_media_type_string(stream->codecpar->codec_type), \
+      av_get_media_type_string(CODEC_TYPE(stream)), \
       pkt.flags, \
       pkt.flags & AV_PKT_FLAG_KEY, \
       pkt.pos, \

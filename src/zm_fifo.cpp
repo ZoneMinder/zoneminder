@@ -78,6 +78,7 @@ bool Fifo::open() {
       return false;
     }
   }
+#ifdef __linux__
   int ret = fcntl(raw_fd, F_SETPIPE_SZ, 1024 * 1024);
   if (ret < 0) {
     Error("set pipe size failed.");
@@ -87,6 +88,7 @@ bool Fifo::open() {
     perror("get pipe size failed.");
   }
   Debug(1, "default pipe size: %ld\n", pipe_size);
+#endif
   return true;
 }
 
@@ -122,7 +124,7 @@ bool Fifo::writePacket(std::string filename, ZMPacket &packet) {
 
   if ( !on_blocking_abort ) {
     if ( (outfile = fopen(filename.c_str(), "wb")) == nullptr ) {
-      Error("Can't open %s for writing: %s", filename, strerror(errno));
+      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
       return false;
     }
   } else {
@@ -172,7 +174,7 @@ bool Fifo::write(std::string filename, uint8_t *data, size_t bytes) {
 
   if ( !on_blocking_abort ) {
     if ( (outfile = fopen(filename.c_str(), "wb")) == nullptr ) {
-      Error("Can't open %s for writing: %s", filename, strerror(errno));
+      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
       return false;
     }
   } else {

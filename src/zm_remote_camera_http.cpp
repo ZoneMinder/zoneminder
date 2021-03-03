@@ -1047,7 +1047,7 @@ int RemoteCameraHttp::PrimeCapture() {
     mode = SINGLE_IMAGE;
     buffer.clear();
   }
-  get_VideoStream();
+  getVideoStream();
   return 1;
 }
 
@@ -1088,6 +1088,7 @@ int RemoteCameraHttp::Capture(ZMPacket &packet) {
   packet.keyframe = 1;
   packet.codec_type = AVMEDIA_TYPE_VIDEO;
   packet.packet.stream_index = mVideoStreamId;
+  packet.stream = mVideoStream;
 
   switch ( format ) {
     case JPEG :

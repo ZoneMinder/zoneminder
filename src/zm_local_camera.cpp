@@ -1975,7 +1975,7 @@ int LocalCamera::Contrast( int p_contrast ) {
 }
 
 int LocalCamera::PrimeCapture() {
-  get_VideoStream();
+  getVideoStream();
   if ( !device_prime )
     return 1;
 
@@ -2240,6 +2240,7 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
   } // end if doing conversion or not
 
   zm_packet.packet.stream_index = mVideoStreamId;
+  zm_packet.stream = mVideoStream;
   zm_packet.codec_type = AVMEDIA_TYPE_VIDEO;
   zm_packet.keyframe = 1;
   return 1;

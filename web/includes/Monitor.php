@@ -53,6 +53,7 @@ class Monitor extends ZM_Object {
     'Port'  =>  '',
     'SubPath' =>  '',
     'Path'  =>  null,
+    'SecondPath'  =>  null,
     'Options' =>  null,
     'User'  =>  null,
     'Pass'  =>  null,

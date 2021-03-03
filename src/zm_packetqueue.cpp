@@ -38,17 +38,20 @@ PacketQueue::PacketQueue():
 /* Assumes queue is empty when adding streams
  * Assumes first stream added will be the video stream
  */
-void PacketQueue::addStreamId(int p_stream_id) {
+int PacketQueue::addStream() {
   deleting = false;
-  if ( video_stream_id == -1 )
-    video_stream_id = p_stream_id;
-  if ( max_stream_id < p_stream_id ) {
-    if ( packet_counts ) delete[] packet_counts;
-    max_stream_id = p_stream_id;
-    packet_counts = new int[max_stream_id+1];
-    for ( int i=0; i <= max_stream_id; ++i )
-      packet_counts[i] = 0;
+  if ( max_stream_id == -1 ) {
+    video_stream_id = 0;
+    max_stream_id = 0;
+  } else {
+    max_stream_id ++;
   }
+
+  if ( packet_counts ) delete[] packet_counts;
+  packet_counts = new int[max_stream_id+1];
+  for ( int i=0; i <= max_stream_id; ++i )
+    packet_counts[i] = 0;
+  return max_stream_id;
 }
 
 PacketQueue::~PacketQueue() {

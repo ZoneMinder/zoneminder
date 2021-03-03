@@ -149,6 +149,9 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     in_frame = zm_av_frame_alloc();
   }
 
+  // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
+  //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
+
   int ret = zm_send_packet_receive_frame(ctx, in_frame, packet);
   if ( ret < 0 ) {
     if ( AVERROR(EAGAIN) != ret ) {

@@ -248,6 +248,7 @@ protected:
   std::string user;
   std::string pass;
   std::string path;
+  std::string second_path;
 
   char            device[64];
   int             palette;
@@ -485,11 +486,12 @@ public:
   int32_t GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const { return (State)shared_data->state; }
 
-  AVStream *GetAudioStream() const { return camera ? camera->get_AudioStream() : nullptr; };
-  AVCodecContext *GetAudioCodecContext() const { return camera ?  camera->get_AudioCodecContext() : nullptr; };
-  AVStream *GetVideoStream() const { return camera ? camera->get_VideoStream() : nullptr; };
-  AVCodecContext *GetVideoCodecContext() const { return camera ?  camera->get_VideoCodecContext() : nullptr; };
+  AVStream *GetAudioStream() const { return camera ? camera->getAudioStream() : nullptr; };
+  AVCodecContext *GetAudioCodecContext() const { return camera ? camera->getAudioCodecContext() : nullptr; };
+  AVStream *GetVideoStream() const { return camera ? camera->getVideoStream() : nullptr; };
+  AVCodecContext *GetVideoCodecContext() const { return camera ? camera->getVideoCodecContext() : nullptr; };
 
+  const std::string GetSecondPath() const { return second_path; };
   const std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
   const std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
   const std::string GetRTSPStreamName() const { return rtsp_streamname; };

@@ -78,7 +78,7 @@ std::string load_monitor_sql =
 "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, "
 "`LinkedMonitors`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
-"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
+"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
 "`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
 "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
 "`OutputCodec`, `Encoder`, `OutputContainer`, "
@@ -420,7 +420,7 @@ Monitor::Monitor()
  "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, LinkedMonitors, "
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
- "Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
+ "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
  "SaveJPEGs, VideoWriter, EncoderParameters,
  "OutputCodec, Encoder, OutputContainer,"
  "RecordAudio, "
@@ -512,6 +512,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   host = dbrow[col] ? dbrow[col] : ""; col++;
   port = dbrow[col] ? dbrow[col] : ""; col++;
   path = dbrow[col] ? dbrow[col] : ""; col++;
+  second_path = dbrow[col] ? dbrow[col] : ""; col++;
 
   camera_width = atoi(dbrow[col]); col++;
   camera_height = atoi(dbrow[col]); col++;
@@ -771,6 +772,7 @@ void Monitor::LoadCamera() {
     case FFMPEG: {
       camera = ZM::make_unique<FfmpegCamera>(this,
                                              path,
+                                             second_path,
                                              method,
                                              options,
                                              camera_width,
@@ -1890,7 +1892,7 @@ bool Monitor::Analyse() {
     }// else 
 
     if (signal) {
-      if (snap->image or (snap->packet.stream_index == video_stream_id)) {
+      if (snap->image or (snap->codec_type == AVMEDIA_TYPE_VIDEO)) {
         struct timeval *timestamp = snap->timestamp;
 
         if ( Active() and (function == MODECT or function == MOCORD) and snap->image ) {
@@ -2257,7 +2259,7 @@ bool Monitor::Analyse() {
       if ( snap->keyframe ) {
         // avcodec strips out important nals that describe the stream and 
         // stick them in extradata. Need to send them along with keyframes
-        AVStream *stream = camera->get_VideoStream();
+        AVStream *stream = camera->getVideoStream();
         video_fifo->write(
             static_cast<unsigned char *>(stream->codecpar->extradata),
             stream->codecpar->extradata_size);
@@ -2554,13 +2556,14 @@ int Monitor::Capture() {
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
           packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ) );
 
-      if (packet->packet.stream_index == video_stream_id) {
+      if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
+        packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
         if (video_fifo) {
           if ( packet->keyframe ) {
             // avcodec strips out important nals that describe the stream and 
             // stick them in extradata. Need to send them along with keyframes
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-            AVStream *stream = camera->get_VideoStream();
+            AVStream *stream = camera->getVideoStream();
             video_fifo->write(
                 static_cast<unsigned char *>(stream->codecpar->extradata),
                 stream->codecpar->extradata_size,
@@ -2569,16 +2572,15 @@ int Monitor::Capture() {
           }
           video_fifo->writePacket(*packet);
         }
-      } else if (packet->packet.stream_index == audio_stream_id) {
+      } else if (packet->codec_type == AVMEDIA_TYPE_AUDIO) {
         if (audio_fifo)
           audio_fifo->writePacket(*packet);
-      }
 
-      if ( (packet->packet.stream_index != video_stream_id) and ! packet->image ) {
         // Only queue if we have some video packets in there. Should push this logic into packetqueue
-        if ( record_audio and (packetqueue.packet_count(video_stream_id) or event) ) {
+        if (record_audio and (packetqueue.packet_count(video_stream_id) or event)) {
           packet->image_index=-1;
           Debug(2, "Queueing audio packet");
+          packet->packet.stream_index = audio_stream_id; // Convert to packetQueue's index
           packetqueue.queuePacket(packet);
         } else {
           Debug(4, "Not Queueing audio packet");
@@ -2587,6 +2589,8 @@ int Monitor::Capture() {
         // Don't update last_write_index because that is used for live streaming
         //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
         return 1;
+      } else {
+        Debug(1, "Unknown codec type %d", packet->codec_type);
       } // end if audio
 
       if ( !packet->image ) {
@@ -2599,7 +2603,7 @@ int Monitor::Capture() {
             // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
             //
             //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
-            int ret = packet->decode(camera->get_VideoCodecContext());
+            int ret = packet->decode(camera->getVideoCodecContext());
             if ( ret < 0 ) {
               Error("decode failed");
             } else if ( ret == 0 ) {
@@ -2982,13 +2986,13 @@ unsigned int Monitor::SubpixelOrder() const { return camera->SubpixelOrder(); }
 int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();
   if ( ret > 0 ) {
-    video_stream_id = camera->get_VideoStreamId();
+    if ( -1 != camera->getVideoStreamId() ) {
+      video_stream_id = packetqueue.addStream();
+    }
 
-    packetqueue.addStreamId(video_stream_id);
-
-    audio_stream_id = camera->get_AudioStreamId();
-    if ( audio_stream_id >= 0 ) {
-      packetqueue.addStreamId(audio_stream_id);
+    if ( -1 != camera->getAudioStreamId() ) {
+      audio_stream_id = packetqueue.addStream();
+      packetqueue.addStream();
       shared_data->audio_frequency = camera->getFrequency();
       shared_data->audio_channels = camera->getChannels();
     }
@@ -2998,7 +3002,7 @@ int Monitor::PrimeCapture() {
 
     if (rtsp_server) {
       if (video_stream_id >= 0) {
-        AVStream *videoStream = camera->get_VideoStream();
+        AVStream *videoStream = camera->getVideoStream();
         snprintf(shared_data->video_fifo_path, sizeof(shared_data->video_fifo_path)-1, "%s/video_fifo_%d.%s",
             staticConfig.PATH_SOCKS.c_str(),
             id,
@@ -3011,7 +3015,7 @@ int Monitor::PrimeCapture() {
         video_fifo = new Fifo(shared_data->video_fifo_path, true);
       }
       if (record_audio and (audio_stream_id >= 0)) {
-        AVStream *audioStream = camera->get_AudioStream();
+        AVStream *audioStream = camera->getAudioStream();
         snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path)-1, "%s/video_fifo_%d.%s",
             staticConfig.PATH_SOCKS.c_str(), id,
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -3057,7 +3061,7 @@ void Monitor::get_ref_image() {
       (
        !( snap = packetqueue.get_packet(analysis_it))
        or 
-       ( snap->packet.stream_index != video_stream_id )
+       ( snap->codec_type != AVMEDIA_TYPE_VIDEO )
        or
        ! snap->image
       )

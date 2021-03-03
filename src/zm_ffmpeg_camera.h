@@ -34,6 +34,7 @@ typedef struct DecodeContext {
 class FfmpegCamera : public Camera {
   protected:
     std::string         mPath;
+    std::string         mSecondPath;
     std::string         mMethod;
     std::string         mOptions;
 
@@ -42,8 +43,9 @@ class FfmpegCamera : public Camera {
     std::string         hwaccel_device;
 
     int frameCount;    
-  
+
     _AVPIXELFORMAT      imagePixFormat;
+    AVFormatContext *mFormatContextPtr;
 
     bool                use_hwaccel; //will default to on if hwaccel specified, will get turned off if there is a failure
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
@@ -69,6 +71,7 @@ class FfmpegCamera : public Camera {
     FfmpegCamera(
         const Monitor *monitor,
         const std::string &path,
+        const std::string &second_path,
         const std::string &p_method,
         const std::string &p_options,
         int p_width,

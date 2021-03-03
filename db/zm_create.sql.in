@@ -468,6 +468,7 @@ CREATE TABLE `Monitors` (
   `Port` varchar(8) NOT NULL default '',
   `SubPath` varchar(64) NOT NULL default '',
   `Path` varchar(255),
+  `SecondPath` varchar(255),
   `Options` varchar(255),
   `User` varchar(64),
   `Pass` varchar(64),

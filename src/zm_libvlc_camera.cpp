@@ -279,6 +279,8 @@ int LibvlcCamera::Capture( ZMPacket &zm_packet ) {
 
   mLibvlcData.mutex.lock();
   zm_packet.image->Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
+  zm_packet.packet.stream_index = mVideoStreamId;
+  zm_packet.stream = mVideoStream;
   mLibvlcData.newImage.setValueImmediate(false);
   mLibvlcData.mutex.unlock();
 

@@ -2591,6 +2591,8 @@ int Monitor::Capture() {
         return 1;
       } else {
         Debug(1, "Unknown codec type %d", packet->codec_type);
+        delete packet;
+        return 1;
       } // end if audio
 
       if ( !packet->image ) {

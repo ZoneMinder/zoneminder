@@ -78,6 +78,7 @@ bool Fifo::open() {
       return false;
     }
   }
+#ifdef __linux__
   int ret = fcntl(raw_fd, F_SETPIPE_SZ, 1024 * 1024);
   if (ret < 0) {
     Error("set pipe size failed.");
@@ -87,6 +88,7 @@ bool Fifo::open() {
     perror("get pipe size failed.");
   }
   Debug(1, "default pipe size: %ld\n", pipe_size);
+#endif
   return true;
 }
 

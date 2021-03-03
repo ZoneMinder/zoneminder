@@ -55,6 +55,8 @@ Camera::Camera(
     mAudioStream(nullptr),
     mFormatContext(nullptr),
     mSecondFormatContext(nullptr),
+    mLastVideoPTS(0),
+    mLastAudioPTS(0),
     bytes(0)
 {
   linesize = width * colours;

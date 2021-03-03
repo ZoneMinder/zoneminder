@@ -193,14 +193,24 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
   int ret;
 
   AVStream *stream;
-  if ((mFormatContextPtr != mFormatContext) or !mSecondFormatContext) {
-    mFormatContextPtr = mFormatContext;
-    stream = mVideoStream;
-    Debug(1, "Using video input");
-  } else {
+  if ( mSecondFormatContext and
+      (
+        av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q)
+        <
+        av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
+      ) ) {
+    // if audio stream is behind video stream, then read from audio, otherwise video
     mFormatContextPtr = mSecondFormatContext;
     stream = mAudioStream;
     Debug(1, "Using audio input");
+  } else {
+
+    mFormatContextPtr = mFormatContext;
+    stream = mVideoStream;
+    Debug(1, "Using video input beacuse %" PRId64 " >= %" PRId64,
+        av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q),
+        av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
+        );
   } 
 
   if ( (ret = av_read_frame(mFormatContextPtr, &packet)) < 0 ) {
@@ -229,7 +239,15 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
   zm_packet.set_packet(&packet);
   zm_packet.stream = stream;
   zm_packet.pts = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
+  if ( packet.pts != AV_NOPTS_VALUE ) {
+    if ( stream == mVideoStream ) {
+      mLastVideoPTS = packet.pts;
+    } else {
+      mLastAudioPTS = packet.pts;
+    }
+  }
   zm_av_packet_unref(&packet);
+
   return 1;
 } // FfmpegCamera::Capture
 

@@ -36,6 +36,7 @@ if ( !$Server ) {
 
 $monitor = null;
 if ( !empty($_REQUEST['mid']) ) {
+  $nextId = validInt($_REQUEST['mid']);
   $monitor = new ZM\Monitor($_REQUEST['mid']);
   if ( $monitor and ZM_OPT_X10 )
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']));
@@ -466,8 +467,8 @@ if ( canEdit('Monitors') ) {
     <div class="d-flex flex-row container-fluid pr-0">
     <form name="contentForm" id="contentForm" method="post" action="?view=monitor">
       <input type="hidden" name="tab" value="<?php echo $tab?>"/>
-      <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : validHtmlStr($_REQUEST['mid']) ?>"/>
-      <input type="hidden" name="origMethod" value="<?php echo ( null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
+      <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : validHtmlStr($nextId) ?>"/>
+      <input type="hidden" name="origMethod" value="<?php echo (null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
 <div class="tab-content" id="pills-tabContent">
 <?php
 foreach ( $tabs as $name=>$value ) {

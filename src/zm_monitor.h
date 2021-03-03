@@ -248,6 +248,7 @@ protected:
   std::string user;
   std::string pass;
   std::string path;
+  std::string second_path;
 
   char            device[64];
   int             palette;
@@ -490,6 +491,7 @@ public:
   AVStream *GetVideoStream() const { return camera ? camera->get_VideoStream() : nullptr; };
   AVCodecContext *GetVideoCodecContext() const { return camera ?  camera->get_VideoCodecContext() : nullptr; };
 
+  const std::string GetSecondPath() const { return second_path; };
   const std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
   const std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
   const std::string GetRTSPStreamName() const { return rtsp_streamname; };

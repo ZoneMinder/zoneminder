@@ -78,7 +78,7 @@ std::string load_monitor_sql =
 "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, "
 "`LinkedMonitors`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
-"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
+"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
 "`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
 "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
 "`OutputCodec`, `Encoder`, `OutputContainer`, "
@@ -420,7 +420,7 @@ Monitor::Monitor()
  "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, LinkedMonitors, "
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
- "Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
+ "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
  "SaveJPEGs, VideoWriter, EncoderParameters,
  "OutputCodec, Encoder, OutputContainer,"
  "RecordAudio, "
@@ -512,6 +512,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   host = dbrow[col] ? dbrow[col] : ""; col++;
   port = dbrow[col] ? dbrow[col] : ""; col++;
   path = dbrow[col] ? dbrow[col] : ""; col++;
+  second_path = dbrow[col] ? dbrow[col] : ""; col++;
 
   camera_width = atoi(dbrow[col]); col++;
   camera_height = atoi(dbrow[col]); col++;
@@ -771,6 +772,7 @@ void Monitor::LoadCamera() {
     case FFMPEG: {
       camera = ZM::make_unique<FfmpegCamera>(this,
                                              path,
+                                             second_path,
                                              method,
                                              options,
                                              camera_width,

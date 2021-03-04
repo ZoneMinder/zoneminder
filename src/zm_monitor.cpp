@@ -2138,7 +2138,9 @@ bool Monitor::Analyse() {
             Debug(1, "Staying in %s", State_Strings[state].c_str());
 
           }
-          last_alarm_count = analysis_image_count;
+          if ( state == ALARM ) {
+            last_alarm_count = analysis_image_count; 
+          } // This is needed so post_event_count counts after last alarmed frames while in ALARM not single alarmed frames while ALERT
         } else { // no score?
           alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count 
           if (state == ALARM) {

@@ -74,8 +74,9 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderFifoSource::splitF
 
 			std::ostringstream os;
 			os << "profile-level-id=" << std::hex << std::setw(6) << std::setfill('0') << profile_level_id;
-			os << ";sprop-parameter-sets=" << sps_base64 << "," << pps_base64;
-      os << "\r\n" << "a=x-dimensions:" << m_width << "," <<  m_height  << "\r\n";
+			os << ";sprop-parameter-sets=" << sps_base64 << "," << pps_base64 << "\r\n";
+      if (!(m_width and m_height))
+        os << "a=x-dimensions:" << m_width << "," <<  m_height  << "\r\n";
 			m_auxLine.assign(os.str());
       Debug(3, "auxLine: %s", m_auxLine.c_str());
 

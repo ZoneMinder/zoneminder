@@ -130,6 +130,10 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
       *(pktQueue.begin()) != add_packet
       )
      ) {
+    Debug(3, "stream index %d ?= video_stream_id %d, keyframe %d,  counts %d > max %d at begin %d",
+        add_packet->packet.stream_index, video_stream_id, add_packet->keyframe, packet_counts[video_stream_id], max_video_packet_count, 
+        ( *(pktQueue.begin()) != add_packet )
+        );
     return;
   }
   std::unique_lock<std::mutex> lck(mutex);
@@ -315,7 +319,6 @@ void PacketQueue::clear() {
     ZMPacket *packet = pktQueue.front();
     // Someone might have this packet, but not for very long and since we have locked the queue they won't be able to get another one
     packet->lock();
-    packet_counts[packet->packet.stream_index] -= 1;
     pktQueue.pop_front();
     packet->unlock();
     delete packet;
@@ -329,6 +332,11 @@ void PacketQueue::clear() {
     packetqueue_iterator *iterator_it = *iterators_it;
     *iterator_it = pktQueue.begin();
   }  // end foreach iterator
+
+  if ( packet_counts ) delete[] packet_counts;
+  packet_counts = nullptr;
+  max_stream_id = -1;
+
   condition.notify_all();
 }
 

@@ -203,8 +203,8 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
     Debug(1, "Using audio input");
   } else {
     mFormatContextPtr = mFormatContext;
-    Debug(1, "Using video input beacuse %" PRId64 " >= %" PRId64,
-        av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q),
+    Debug(1, "Using video input because %" PRId64 " >= %" PRId64,
+        (mAudioStream?av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q):0),
         av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
         );
   }

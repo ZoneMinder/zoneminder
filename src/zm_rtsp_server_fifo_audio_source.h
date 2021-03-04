@@ -39,8 +39,12 @@ class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
 		virtual ~ZoneMinderFifoAudioSource() {}
   public:
 
-    void setFrequency(int p_frequency) { frequency = p_frequency; };
+    void setFrequency(int p_frequency) {
+      frequency = p_frequency;
+      samplingFrequencyIndex = getFrequencyIndex();
+    };
     int getFrequency() { return frequency; };
+    int getFrequencyIndex();
     const char *configStr() const { return config.c_str(); };
     void setChannels(int p_channels) { channels = p_channels; };
     int getChannels() const { return channels; };
@@ -48,7 +52,7 @@ class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
 	protected:
     std::string config;
     int samplingFrequencyIndex;
-    int frequency;
+    unsigned int frequency;
     int channels;
 };
 #endif // HAVE_RTSP_SERVER

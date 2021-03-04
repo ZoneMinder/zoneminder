@@ -6,10 +6,7 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#include "zm_logger.h"
 #include "zm_rtsp_server_fifo_audio_source.h"
-
-#include <sstream>
 
 #if HAVE_RTSP_SERVER
 
@@ -34,5 +31,10 @@ ZoneMinderFifoAudioSource::ZoneMinderFifoAudioSource(
     frequency(-1),
     channels(1)
 {
+}
+int ZoneMinderFifoAudioSource::getFrequencyIndex() {
+  for (int i=0; i<16; i++)
+    if (samplingFrequencyTable[i] == frequency) return i;
+  return -1;
 }
 #endif // HAVE_RTSP_SERVER

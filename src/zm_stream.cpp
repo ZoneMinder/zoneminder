@@ -21,10 +21,11 @@
 
 #include "zm_box.h"
 #include "zm_monitor.h"
+#include <cmath>
 #include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <cmath>
+#include <unistd.h>
 
 StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC

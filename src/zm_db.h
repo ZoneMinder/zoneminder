@@ -20,7 +20,6 @@
 #ifndef ZM_DB_H
 #define ZM_DB_H
 
-#include "zm_thread.h"
 #include <condition_variable>
 #include <mutex>
 #include <mysql/mysql.h>

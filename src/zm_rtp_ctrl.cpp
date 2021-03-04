@@ -25,9 +25,16 @@
 
 #if HAVE_LIBAVFORMAT
 
-RtpCtrlThread::RtpCtrlThread( RtspThread &rtspThread, RtpSource &rtpSource )
-  : mRtspThread( rtspThread ), mRtpSource( rtpSource ), mStop( false )
+RtpCtrlThread::RtpCtrlThread(RtspThread &rtspThread, RtpSource &rtpSource)
+    : mRtspThread(rtspThread), mRtpSource(rtpSource), mTerminate(false)
 {
+  mThread = std::thread(&RtpCtrlThread::Run, this);
+}
+
+RtpCtrlThread::~RtpCtrlThread() {
+  Stop();
+  if (mThread.joinable())
+    mThread.join();
 }
 
 int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen ) {
@@ -121,7 +128,7 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen ) 
     }
     case RTCP_BYE :
       Debug(5, "RTCP Got BYE");
-      mStop = true;
+      Stop();
       break;
     case RTCP_APP :
       // Ignoring as per RFC 3550
@@ -241,7 +248,7 @@ int RtpCtrlThread::recvPackets( unsigned char *buffer, ssize_t nBytes ) {
   return nBytes;
 }
 
-int RtpCtrlThread::run() {
+void RtpCtrlThread::Run() {
   Debug( 2, "Starting control thread %x on port %d", mRtpSource.getSsrc(), mRtpSource.getLocalCtrlPort() );
   ZM::SockAddrInet localAddr, remoteAddr;
 
@@ -272,8 +279,7 @@ int RtpCtrlThread::run() {
   time_t  last_receive = time(nullptr);
   bool  timeout = false; // used as a flag that we had a timeout, and then sent an RR to see if we wake back up. Real timeout will happen when this is true.
 
-  while ( !mStop && select.wait() >= 0 ) {
-
+  while (!mTerminate && select.wait() >= 0) {
     time_t now = time(nullptr);
     ZM::Select::CommsList readable = select.getReadable();
     if ( readable.size() == 0 ) {
@@ -318,7 +324,7 @@ int RtpCtrlThread::run() {
           }
         } else {
           // Here is another case of not receiving some data causing us to terminate... why?  Sometimes there are pauses in the interwebs.
-          mStop = true;
+          Stop();
           break;
         }
       } else {
@@ -327,8 +333,7 @@ int RtpCtrlThread::run() {
     } // end foeach comms iterator
   }
   rtpCtrlServer.close();
-  mRtspThread.stop();
-  return 0;
+  mRtspThread.Stop();
 }
 
 #endif // HAVE_LIBAVFORMAT

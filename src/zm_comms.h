@@ -27,6 +27,7 @@
 #include <set>
 #include <sys/uio.h>
 #include <sys/un.h>
+#include <unistd.h>
 #include <vector>
 
 #if defined(BSD)

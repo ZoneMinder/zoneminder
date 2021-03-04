@@ -19,6 +19,8 @@
 
 #include "zm_buffer.h"
 
+#include <unistd.h>
+
 unsigned int Buffer::assign(const unsigned char *pStorage, unsigned int pSize) {
   if ( mAllocation < pSize ) {
     delete[] mStorage;

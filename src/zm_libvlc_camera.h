@@ -21,7 +21,8 @@
 #define ZM_LIBVLC_CAMERA_H
 
 #include "zm_camera.h"
-#include "zm_thread.h"
+#include <condition_variable>
+#include <mutex>
 
 #if HAVE_LIBVLC
 
@@ -35,8 +36,11 @@ struct LibvlcPrivateData {
   uint8_t* prevBuffer;
   time_t prevTime;
   uint32_t bufferSize;
-  Mutex mutex;
-  ThreadData<bool> newImage;
+  std::mutex mutex;
+
+  bool newImage;
+  std::mutex newImageMutex;
+  std::condition_variable newImageCv;
 };
 
 class LibvlcCamera : public Camera {

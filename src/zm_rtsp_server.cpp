@@ -157,9 +157,9 @@ int main(int argc, char *argv[]) {
   sigaddset(&block_set, SIGUSR1);
   sigaddset(&block_set, SIGUSR2);
 
-  RTSPServerThread * rtsp_server_thread = nullptr;
+  std::unique_ptr<RTSPServerThread> rtsp_server_thread;
   if (config.min_rtsp_port) {
-    rtsp_server_thread = new RTSPServerThread(config.min_rtsp_port);
+    rtsp_server_thread = ZM::make_unique<RTSPServerThread>(config.min_rtsp_port);
     Debug(1, "Starting RTSP server because min_rtsp_port is set");
   } else {
     Debug(1, "Not starting RTSP server because min_rtsp_port not set");
@@ -167,8 +167,6 @@ int main(int argc, char *argv[]) {
   }
   ServerMediaSession **sessions = new ServerMediaSession *[monitors.size()];
   for (size_t i = 0; i < monitors.size(); i++) sessions[i] = nullptr;
-
-  rtsp_server_thread->start();
 
   while (!zm_terminate) {
 
@@ -225,11 +223,6 @@ int main(int argc, char *argv[]) {
       zm_reload = false;
     }  // end if zm_reload
   } // end while ! zm_terminate
-
-  rtsp_server_thread->stop();
-  rtsp_server_thread->join();
-  delete rtsp_server_thread;
-  rtsp_server_thread = nullptr;
 
   delete[] sessions;
   sessions = nullptr;

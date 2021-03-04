@@ -91,16 +91,9 @@ int RtspThread::requestPorts() {
     char sql[ZM_SQL_SML_BUFSIZ];
     //FIXME Why not load specifically by Id?  This will get ineffeicient with a lot of monitors
     strncpy(sql, "SELECT `Id` FROM `Monitors` WHERE `Function` != 'None' AND `Type` = 'Remote' AND `Protocol` = 'rtsp' AND `Method` = 'rtpUni' ORDER BY `Id` ASC", sizeof(sql));
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't run query: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
-    }
 
-    MYSQL_RES *result = mysql_store_result(&dbconn);
-    if ( !result ) {
-      Error("Can't use query result: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
-    }
+    MYSQL_RES *result = zmDbFetch(sql);
+
     int nMonitors = mysql_num_rows(result);
     int position = 0;
     if ( nMonitors ) {
@@ -161,7 +154,7 @@ RtspThread::RtspThread(
   mSsrc(0),
   mDist(UNDEFINED),
   mRtpTime(0),
-  mStop(false)
+  mTerminate(false)
 {
   mUrl = mProtocol+"://"+mHost+":"+mPort;
   if ( !mPath.empty() ) {
@@ -185,9 +178,15 @@ RtspThread::RtspThread(
     mAuthenticator = new zm::Authenticator(parts[0], parts[1]);
   else
     mAuthenticator = new zm::Authenticator(parts[0], "");
+
+  mThread = std::thread(&RtspThread::Run, this);
 }
 
 RtspThread::~RtspThread() {
+  Stop();
+  if (mThread.joinable())
+    mThread.join();
+
   if ( mFormatContext ) {
 #if LIBAVFORMAT_VERSION_CHECK(52, 96, 0, 96, 0)
     avformat_free_context(mFormatContext);
@@ -204,7 +203,7 @@ RtspThread::~RtspThread() {
   mAuthenticator = nullptr;
 }
 
-int RtspThread::run() {
+void RtspThread::Run() {
   std::string message;
   std::string response;
 
@@ -246,11 +245,11 @@ int RtspThread::run() {
       Debug(2, "Sending HTTP message: %s", message.c_str());
       if ( mRtspSocket.send(message.c_str(), message.size()) != (int)message.length() ) {
         Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
-        return -1;
+        return;
       }
       if ( mRtspSocket.recv(response) < 0 ) {
         Error("Recv failed; %s", strerror(errno));
-        return -1;
+        return;
       }
     
       Debug(2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size());
@@ -264,7 +263,7 @@ int RtspThread::run() {
           if ( response.size() )
             Hexdump(Logger::ERROR, response.data(), std::min(int(response.size()), 16));
         }
-        return -1;
+        return;
       }
       // If Server requests authentication, check WWW-Authenticate header and fill required fields
       // for requested authentication method
@@ -282,7 +281,7 @@ int RtspThread::run() {
     
     if ( respCode != 200 ) {
       Error("Unexpected response code %d, text is '%s'", respCode, respText);
-      return -1;
+      return;
     }
 
     message = "POST "+mPath+" HTTP/1.0\r\n";
@@ -295,7 +294,7 @@ int RtspThread::run() {
     Debug(2, "Sending HTTP message: %s", message.c_str());
     if ( mRtspSocket2.send(message.c_str(), message.size()) != (int)message.length() ) {
       Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
-      return -1;
+      return;
     }
   }  // end if ( mMethod == RTP_RTSP_HTTP )
 
@@ -305,18 +304,18 @@ int RtspThread::run() {
   // Request supported RTSP commands by the server
   message = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
   if ( !sendCommand(message) )
-    return -1;
+    return;
 
   // A negative return here may indicate auth failure, but we will have setup the auth mechanisms so we need to retry.
   if ( !recvResponse(response) ) {
     if ( mNeedAuth ) {
       Debug(2, "Resending OPTIONS due to possible auth requirement");
       if ( !sendCommand(message) )
-        return -1;
+        return;
       if ( !recvResponse(response) )
-        return -1;
+        return;
     } else {
-      return -1;
+      return;
     }
   } // end if failed response maybe due to auth
 
@@ -347,7 +346,7 @@ int RtspThread::run() {
   const std::string endOfHeaders = "\r\n\r\n";
   size_t sdpStart = response.find(endOfHeaders);
   if ( sdpStart == std::string::npos )
-    return -1;
+    return;
 
   if ( mRtspDescribe ) {
     std::string DescHeader = response.substr(0, sdpStart);
@@ -374,7 +373,7 @@ int RtspThread::run() {
     mFormatContext = mSessDesc->generateFormatContext();
   } catch ( const Exception &e ) {
     Error(e.getMessage().c_str());
-    return -1;
+    return;
   }
 
 #if 0
@@ -450,9 +449,9 @@ int RtspThread::run() {
   }
 
   if ( !sendCommand(message) )
-    return -1;
+    return;
   if ( !recvResponse(response) )
-    return -1;
+    return;
 
   lines = split(response, "\r\n");
   std::string session;
@@ -525,9 +524,9 @@ int RtspThread::run() {
 
   message = "PLAY "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\nRange: npt=0.000-\r\n";
   if ( !sendCommand(message) )
-    return -1;
+    return;
   if ( !recvResponse(response) )
-    return -1;
+    return;
 
   lines = split(response, "\r\n");
   std::string rtpInfo;
@@ -587,17 +586,14 @@ int RtspThread::run() {
       RtpDataThread rtpDataThread( *this, *source );
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
-      rtpDataThread.start();
-      rtpCtrlThread.start();
-
-      while( !mStop ) {
+      while (!mTerminate) {
         now = time(nullptr);
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
         Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d",
             sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
         if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) ) {
           if ( !sendCommand( message ) )
-            return( -1 );
+            return;
           lastKeepalive = now;
         }
         usleep( 100000 );
@@ -612,19 +608,16 @@ int RtspThread::run() {
 
       message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
       if ( !sendCommand( message ) )
-        return( -1 );
+        return;
       if ( !recvResponse( response ) )
-        return( -1 );
+        return;
 
-      rtpDataThread.stop();
-      rtpCtrlThread.stop();
+      rtpDataThread.Stop();
+      rtpCtrlThread.Stop();
 
       //rtpDataThread.kill( SIGTERM );
       //rtpCtrlThread.kill( SIGTERM );
 
-      rtpDataThread.join();
-      rtpCtrlThread.join();
-     
       delete mSources[ssrc];
       mSources.clear();
 
@@ -647,7 +640,7 @@ int RtspThread::run() {
       Buffer buffer( ZM_NETWORK_BUFSIZ );
       std::string keepaliveMessage = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
       std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
-      while ( !mStop && select.wait() >= 0 ) {
+      while (!mTerminate && select.wait() >= 0) {
         ZM::Select::CommsList readable = select.getReadable();
         if ( readable.size() == 0 ) {
           Error( "RTSP timed out" );
@@ -720,7 +713,7 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
         if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
         {
           if ( !sendCommand( message ) )
-            return( -1 );
+            return;
           lastKeepalive = now;
         }
         buffer.tidy( 1 );
@@ -735,7 +728,7 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
       // Send a teardown message but don't expect a response as this may not be implemented on the server when using TCP
       message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
       if ( !sendCommand( message ) )
-        return( -1 );
+        return;
 
       delete mSources[ssrc];
       mSources.clear();
@@ -749,14 +742,12 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
       RtpDataThread rtpDataThread( *this, *source );
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
-      rtpDataThread.start();
-      rtpCtrlThread.start();
 
-      while ( !mStop ) {
+      while (!mTerminate) {
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
         if ( sendKeepalive && (timeout > 0) && ((time(nullptr)-lastKeepalive) > (timeout-5)) ) {
           if ( !sendCommand( message ) )
-            return -1;
+            return;
           lastKeepalive = time(nullptr);
         }
         usleep(100000);
@@ -770,15 +761,12 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
 #endif
       message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
       if ( !sendCommand(message) )
-        return -1;
+        return;
       if ( !recvResponse(response) )
-        return -1;
+        return;
 
-      rtpDataThread.stop();
-      rtpCtrlThread.stop();
-
-      rtpDataThread.join();
-      rtpCtrlThread.join();
+      rtpDataThread.Stop();
+      rtpCtrlThread.Stop();
      
       delete mSources[ssrc];
       mSources.clear();
@@ -791,7 +779,7 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
       break;
   }
 
-  return 0;
+  return;
 }
 
 #endif // HAVE_LIBAVFORMAT

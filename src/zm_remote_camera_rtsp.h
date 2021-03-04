@@ -44,7 +44,7 @@ protected:
 
   RtspThread::RtspMethod method;
 
-  RtspThread *rtspThread;
+  std::unique_ptr<RtspThread> rtspThread;
 
   int frameCount;
 

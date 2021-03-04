@@ -48,7 +48,6 @@ RemoteCameraRtsp::RemoteCameraRtsp(
       p_brightness, p_contrast, p_hue, p_colour,
       p_capture, p_record_audio),
   rtsp_describe(p_rtsp_describe),
-  rtspThread(0),
   frameCount(0)
 {
   if ( p_method == "rtpUni" )
@@ -114,19 +113,15 @@ void RemoteCameraRtsp::Terminate() {
 }
 
 int RemoteCameraRtsp::Connect() {
-  rtspThread = new RtspThread(monitor->Id(), method, protocol, host, port, path, auth, rtsp_describe);
-
-  rtspThread->start();
+  rtspThread = ZM::make_unique<RtspThread>(monitor->Id(), method, protocol, host, port, path, auth, rtsp_describe);
 
   return 0;
 }
 
 int RemoteCameraRtsp::Disconnect() {
-  if ( rtspThread ) {
-    rtspThread->stop();
-    rtspThread->join();
-    delete rtspThread;
-    rtspThread = nullptr;
+  if (rtspThread) {
+    rtspThread->Stop();
+    rtspThread.reset();
   }
   return 0;
 }
@@ -214,7 +209,7 @@ int RemoteCameraRtsp::PrimeCapture() {
 }  // end PrimeCapture
 
 int RemoteCameraRtsp::PreCapture() {
-  if ( !rtspThread->isRunning() )
+  if (!rtspThread || rtspThread->IsStopped())
     return -1;
   if ( !rtspThread->hasSources() ) {
     Error("Cannot precapture, no RTP sources");
@@ -234,7 +229,7 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
   
   while ( !frameComplete ) {
     buffer.clear();
-    if ( !rtspThread->isRunning() )
+    if (!rtspThread || rtspThread->IsStopped())
       return -1;
 
     if ( rtspThread->getFrame(buffer) ) {

@@ -66,6 +66,7 @@ possible, this should run at more or less constant speed.
 #include "zm_utils.h"
 #include <getopt.h>
 #include <iostream>
+#include <unistd.h>
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");

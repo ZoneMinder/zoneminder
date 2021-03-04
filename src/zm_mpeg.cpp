@@ -22,6 +22,7 @@
 #include "zm_logger.h"
 #include "zm_rgb.h"
 #include <cstring>
+#include <unistd.h>
 
 #if HAVE_LIBAVCODEC
 extern "C" {

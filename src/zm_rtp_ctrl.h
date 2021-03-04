@@ -21,6 +21,7 @@
 #define ZM_RTP_CTRL_H
 
 #include <atomic>
+#include <sys/types.h>
 #include <thread>
 
 // Defined in ffmpeg rtp.h

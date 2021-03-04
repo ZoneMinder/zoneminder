@@ -192,7 +192,7 @@ int ZoneMinderFifoSource::getNextFrame() {
       pts_ptr ++;
       data_size = atoi(content_length_ptr);
       pts = strtoll(pts_ptr, nullptr, 10);
-      delete header;
+      delete[] header;
     } else {
       Debug(1, "ZM header not found.");
       return -1;
@@ -202,8 +202,9 @@ int ZoneMinderFifoSource::getNextFrame() {
       Debug(4, "ZM Packet didn't start at beginning of buffer %u. %c%c",
           header_start-m_buffer.head(), m_buffer[0], m_buffer[1]);
     }
-    unsigned char *packet_start = header_end+1;
-    unsigned int header_size = packet_start - m_buffer.head(); // includes any bytes before header
+
+    // read_into may invalidate packet_start
+    unsigned int header_size = (header_end+1) /*packet_start*/ - m_buffer.head(); // includes any bytes before header
 
     int bytes_needed = data_size - (m_buffer.size() - header_size);
     if (bytes_needed > 0) {
@@ -212,6 +213,7 @@ int ZoneMinderFifoSource::getNextFrame() {
       if ( bytes_read != bytes_needed )
         return -1;
     }
+    unsigned char *packet_start = m_buffer.head() + header_size;
 
     // splitFrames modifies so make a copy
     unsigned int bytes_remaining = data_size;
@@ -234,11 +236,12 @@ int ZoneMinderFifoSource::getNextFrame() {
       if (m_captureQueue.size() > 25) {  // 1 sec at 25 fps
         NAL_Frame * f = m_captureQueue.front();
         while (m_captureQueue.size() and ((tv.tv_sec - f->m_timestamp.tv_sec) > 2)) {
-        Debug(1, "Deleting Front NAL is %d seconds old", (tv.tv_sec - f->m_timestamp.tv_sec));
+          Debug(1, "Deleting Front NAL is %d seconds old", (tv.tv_sec - f->m_timestamp.tv_sec));
           m_captureQueue.pop_front();
           delete f;
           f = m_captureQueue.front();
         }
+        Debug(1, "Done clearing");
       }
       m_captureQueue.push_back(frame);
       pthread_mutex_unlock(&m_mutex);

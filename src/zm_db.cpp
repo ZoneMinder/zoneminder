@@ -178,6 +178,7 @@ int zmDbDo(const char *query) {
       return rc;
     }
   }
+  Debug(1, "Success running sql query %s", query);
   return 1;
 }
 
@@ -191,6 +192,7 @@ int zmDbDoInsert(const char *query) {
       return 0;
   }
   int id = mysql_insert_id(&dbconn);
+  Debug(1, "Success running sql insert %s. Resulting id is %d", query, id);
   return id;
 }
 

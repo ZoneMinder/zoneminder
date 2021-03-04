@@ -273,20 +273,16 @@ Event::~Event() {
 }  // Event::~Event()
 
 void Event::createNotes(std::string &notes) {
-  if ( !notes.empty() ) {
-    notes.clear();
-    for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter ) {
-      notes += mapIter->first;
-      notes += ": ";
-      const StringSet &stringSet = mapIter->second;
-      for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); ++setIter ) {
-        if ( setIter != stringSet.begin() )
-          notes += ", ";
-        notes += *setIter;
-      }
+  notes.clear();
+  for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter ) {
+    notes += mapIter->first;
+    notes += ": ";
+    const StringSet &stringSet = mapIter->second;
+    for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); ++setIter ) {
+      if ( setIter != stringSet.begin() )
+        notes += ", ";
+      notes += *setIter;
     }
-  } else {
-    notes = "";
   }
 }  // void Event::createNotes(std::string &notes)
 

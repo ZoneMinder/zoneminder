@@ -140,6 +140,7 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
 
   packetqueue_iterator it = pktQueue.begin();
   packetqueue_iterator next_front = pktQueue.begin();
+  int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
 
   // First packet is special because we know it is a video keyframe and only need to check for lock
   ZMPacket *zm_packet = *it;
@@ -162,8 +163,14 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
 
       if ( zm_packet->packet.stream_index == video_stream_id ) {
         if ( zm_packet->keyframe ) {
-          Debug(1, "Have a video keyframe so setting next front to it");
+          Debug(3, "Have a video keyframe so setting next front to it");
           next_front = it;
+        }
+        ++video_packets_to_delete;
+          Debug(4, "Counted %d video packets. Which would leave %d in packetqueue",
+              video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete);
+        if (packet_counts[video_stream_id] - video_packets_to_delete <= max_video_packet_count) {
+          break;
         }
       }
       it++;
@@ -526,7 +533,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   // Step one count back pre_event_count frames as the minimum
   // Do not assume that snapshot_it is video
   // snapshot it might already point to the beginning
-  while ( ( (*it) != pktQueue.begin() ) and pre_event_count ) {
+  while (( (*it) != pktQueue.begin() ) and pre_event_count) {
     Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d",
         pre_event_count, (*(*it))->packet.stream_index, (*(*it))->keyframe);
     ZM_DUMP_PACKET((*(*it))->packet, "");

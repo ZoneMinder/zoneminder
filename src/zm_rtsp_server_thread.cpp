@@ -12,7 +12,7 @@
 #include <StreamReplicator.hh>
 
 RTSPServerThread::RTSPServerThread(int port) :
-    scheduler_watch_var_(0)
+    terminate_(false), scheduler_watch_var_(0)
 {
   //unsigned short rtsp_over_http_port = 0;
   //const char *realm = "ZoneMinder";
@@ -64,6 +64,7 @@ void RTSPServerThread::Run() {
 
 void RTSPServerThread::Stop() {
   Debug(1, "RTSPServerThread::stop()");
+  terminate_ = true;
 
   {
     std::lock_guard<std::mutex> lck(scheduler_watch_var_mutex_);

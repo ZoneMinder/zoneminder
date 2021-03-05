@@ -2391,25 +2391,19 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
       for ( int i = 0; i < n_link_ids; i++ ) {
         Debug(1, "Checking linked monitor %d", link_ids[i]);
 
-        std::lock_guard<std::mutex> lck(db_mutex);
-        static char sql[ZM_SQL_SML_BUFSIZ];
-        snprintf(sql, sizeof(sql),
+        std::string sql = stringtf(
             "SELECT `Id`, `Name` FROM `Monitors`"
             "  WHERE `Id` = %d"
             "   AND `Function` != 'None'"
             "   AND `Function` != 'Monitor'"
             "   AND `Enabled`=1",
             link_ids[i]);
-        if (mysql_query(&dbconn, sql)) {
-          Error("Can't run query: %s", mysql_error(&dbconn));
+
+        MYSQL_RES *result = zmDbFetch(sql.c_str());
+        if (!result) {
           continue;
         }
 
-        MYSQL_RES *result = mysql_store_result(&dbconn);
-        if ( !result ) {
-          Error("Can't use query result: %s", mysql_error(&dbconn));
-          continue;
-        }
         int n_monitors = mysql_num_rows(result);
         if ( n_monitors == 1 ) {
           MYSQL_ROW dbrow = mysql_fetch_row(result);

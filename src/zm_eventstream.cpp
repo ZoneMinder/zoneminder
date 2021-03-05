@@ -41,22 +41,14 @@ const std::string EventStream::StreamMode_Strings[4] = {
 };
 
 bool EventStream::loadInitialEventData(int monitor_id, time_t event_time) {
-  static char sql[ZM_SQL_SML_BUFSIZ];
+  std::string sql = stringtf("SELECT `Id` FROM `Events` WHERE "
+                             "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %ld "
+                             "ORDER BY `Id` ASC LIMIT 1", monitor_id, event_time);
 
-  snprintf(sql, sizeof(sql), "SELECT `Id` FROM `Events` WHERE "
-      "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %ld "
-      "ORDER BY `Id` ASC LIMIT 1", monitor_id, event_time);
+  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  if (!result)
+    exit(-1);
 
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
-
-  MYSQL_RES *result = mysql_store_result(&dbconn);
-  if ( !result ) {
-    Error("Can't use query result: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
   MYSQL_ROW dbrow = mysql_fetch_row(result);
 
   if ( mysql_errno(&dbconn) ) {
@@ -115,23 +107,15 @@ bool EventStream::loadInitialEventData(
 }
 
 bool EventStream::loadEventData(uint64_t event_id) {
-  static char sql[ZM_SQL_MED_BUFSIZ];
-
-  snprintf(sql, sizeof(sql),
+  std::string sql = stringtf(
       "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, "
       "unix_timestamp( `EndDateTime` ) AS EndTimestamp, "
       "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS FramesDuration, "
       "`DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
-
-  MYSQL_RES *result = mysql_store_result(&dbconn);
-  if ( !result ) {
-    Error("Can't use query result: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
+  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  if (!result) {
+    exit(-1);
   }
 
   if ( !mysql_num_rows(result) ) {
@@ -228,17 +212,12 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   updateFrameRate((event_data->frame_count and event_data->duration) ? (double)event_data->frame_count/event_data->duration : 1);
 
-  snprintf(sql, sizeof(sql), "SELECT `FrameId`, unix_timestamp(`TimeStamp`), `Delta` "
-      "FROM `Frames` WHERE `EventId` = %" PRIu64 " ORDER BY `FrameId` ASC", event_id);
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
+  sql = stringtf("SELECT `FrameId`, unix_timestamp(`TimeStamp`), `Delta` "
+                 "FROM `Frames` WHERE `EventId` = %" PRIu64 " ORDER BY `FrameId` ASC", event_id);
 
-  result = mysql_store_result(&dbconn);
-  if ( !result ) {
-    Error("Can't use query result: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
+  result = zmDbFetch(sql.c_str());
+  if (!result) {
+    exit(-1);
   }
 
   event_data->n_frames = mysql_num_rows(result);
@@ -604,10 +583,10 @@ void EventStream::processCommand(const CmdMsg *msg) {
 }  // void EventStream::processCommand(const CmdMsg *msg)
 
 bool EventStream::checkEventLoaded() {
-  static char sql[ZM_SQL_SML_BUFSIZ];
+  std::string sql;
 
   if ( curr_frame_id <= 0 ) {
-    snprintf(sql, sizeof(sql),
+    sql = stringtf(
         "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
         event_data->monitor_id, event_data->event_id);
   } else if ( (unsigned int)curr_frame_id > event_data->last_frame_id ) {
@@ -618,7 +597,7 @@ bool EventStream::checkEventLoaded() {
         curr_frame_id = event_data->last_frame_id;
       return false;
     }
-    snprintf(sql, sizeof(sql),
+    sql = stringtf(
         "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` > %" PRIu64 " ORDER BY `Id` ASC LIMIT 1",
         event_data->monitor_id, event_data->event_id);
   } else {
@@ -630,19 +609,15 @@ bool EventStream::checkEventLoaded() {
 
   // Event change required.
   if ( forceEventChange || ( (mode != MODE_SINGLE) && (mode != MODE_NONE) ) ) {
-    Debug(1, "Checking for next event %s", sql);
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't run query: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
+    Debug(1, "Checking for next event %s", sql.c_str());
+
+    MYSQL_RES *result = zmDbFetch(sql.c_str());
+    if (!result) {
+      exit(-1);
     }
 
-    MYSQL_RES *result = mysql_store_result(&dbconn);
-    if ( !result ) {
-      Error("Can't use query result: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
-    }
     if ( mysql_num_rows(result) != 1 ) {
-      Debug(1, "No rows returned for %s", sql);
+      Debug(1, "No rows returned for %s", sql.c_str());
     }
     MYSQL_ROW dbrow = mysql_fetch_row(result);
 
@@ -664,7 +639,7 @@ bool EventStream::checkEventLoaded() {
       Debug(2, "New frame id = %d", curr_frame_id);
       return true;
     } else {
-      Debug(2, "No next event loaded using %s. Pausing", sql);
+      Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
       if ( curr_frame_id <= 0 )
         curr_frame_id = 1;
       else

@@ -721,20 +721,14 @@ int main(int argc, char *argv[]) {
 
     if ( function & ZMU_LIST ) {
       std::string sql = "SELECT `Id`, `Function`+0 FROM `Monitors`";
-      if ( !verbose ) {
+      if (!verbose) {
         sql += "WHERE `Function` != 'None'";
       }
       sql += " ORDER BY Id ASC";
 
-      if ( mysql_query(&dbconn, sql.c_str()) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-        exit_zmu(mysql_errno(&dbconn));
-      }
-
-      MYSQL_RES *result = mysql_store_result(&dbconn);
-      if ( !result ) {
-        Error("Can't use query result: %s", mysql_error(&dbconn));
-        exit_zmu(mysql_errno(&dbconn));
+      MYSQL_RES *result = zmDbFetch(sql.c_str());
+      if (!result) {
+        exit_zmu(-1);
       }
       Debug(1, "Got %d monitors", mysql_num_rows(result));
 

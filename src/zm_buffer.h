@@ -182,6 +182,7 @@ class Buffer {
     return static_cast<int>(mSize);
   }
   int read_into(int sd, unsigned int bytes);
+  int read_into(int sd, unsigned int bytes, struct timeval timeout);
 };
 
 #endif // ZM_BUFFER_H

@@ -69,3 +69,27 @@ int Buffer::read_into(int sd, unsigned int bytes) {
   }
   return bytes_read;
 }
+
+int Buffer::read_into(int sd, unsigned int bytes, struct timeval timeout) {
+  // Make sure there is enough space
+  this->expand(bytes);
+
+  fd_set set;
+  FD_ZERO(&set); /* clear the set */
+  FD_SET(sd, &set); /* add our file descriptor to the set */
+
+  int rv = select(sd + 1, &set, NULL, NULL, &timeout);
+  if (rv == -1) {
+    Error("Error %d %s from select", errno, strerror(errno));
+    return rv;
+  } else if (rv == 0) {
+    printf("timeout"); /* a timeout occured */
+    return 0;
+  }
+  int bytes_read = read(sd, mTail, bytes);
+  if ( bytes_read > 0 ) {
+    mTail += bytes_read;
+    mSize += bytes_read;
+  }
+  return bytes_read;
+}

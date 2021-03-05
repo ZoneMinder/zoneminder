@@ -65,34 +65,6 @@ std::string replaceAll(std::string str, std::string from, std::string to) {
   return str;
 }
 
-const std::string stringtf( const char *format, ... ) {
-  va_list ap;
-  char tempBuffer[8192];
-  std::string tempString;
-
-  va_start(ap, format);
-  vsnprintf(tempBuffer, sizeof(tempBuffer), format , ap);
-  va_end(ap);
-
-  tempString = tempBuffer;
-
-  return tempString;
-}
-
-const std::string stringtf(const std::string format, ...) {
-  va_list ap;
-  char tempBuffer[8192];
-  std::string tempString;
-
-  va_start(ap, format);
-  vsnprintf(tempBuffer, sizeof(tempBuffer), format.c_str(), ap);
-  va_end(ap);
-
-  tempString = tempBuffer;
-
-  return tempString;
-}
-
 bool startsWith(const std::string &haystack, const std::string &needle) {
   return ( haystack.substr(0, needle.length()) == needle );
 }

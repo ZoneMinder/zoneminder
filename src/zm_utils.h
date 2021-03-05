@@ -23,8 +23,9 @@
 #include <chrono>
 #include <ctime>
 #include <memory>
-#include <sys/time.h>
+#include <stdexcept>
 #include <string>
+#include <sys/time.h>
 #include <vector>
 
 typedef std::vector<std::string> StringVector;
@@ -33,8 +34,16 @@ std::string trimSpaces(const std::string &str);
 std::string trimSet(std::string str, std::string trimset);
 std::string replaceAll(std::string str, std::string from, std::string to);
 
-const std::string stringtf( const char *format, ... );
-const std::string stringtf( const std::string &format, ... );
+template<typename... Args>
+std::string stringtf(const std::string &format, Args... args) {
+  int size = snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
+  if (size <= 0) {
+    throw std::runtime_error("Error during formatting.");
+  }
+  std::unique_ptr<char[]> buf(new char[size]);
+  snprintf(buf.get(), size, format.c_str(), args...);
+  return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+}
 
 bool startsWith( const std::string &haystack, const std::string &needle );
 StringVector split( const std::string &string, const std::string &chars, int limit=0 );

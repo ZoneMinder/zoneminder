@@ -223,6 +223,16 @@ int main(int argc, char *argv[]) {
       zm_reload = false;
     }  // end if zm_reload
   } // end while ! zm_terminate
+  Info("RTSP Server shutting down");
+
+  for (size_t i = 0; i < monitors.size(); i++) {
+    if (sessions[i]) {
+      Debug(1, "Removing session for %s", monitors[i]->Name());
+      rtsp_server_thread->removeSession(sessions[i]);
+      sessions[i] = nullptr;
+    }
+  }  // end foreach monitor
+  rtsp_server_thread->Stop();
 
   delete[] sessions;
   sessions = nullptr;

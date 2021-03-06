@@ -94,33 +94,25 @@ bool User::canAccess(int monitor_id) {
 // Function to load a user from username and password
 // Please note that in auth relay mode = none, password is NULL
 User *zmLoadUser(const char *username, const char *password) {
-  char sql[ZM_SQL_MED_BUFSIZ] = "";
   int username_length = strlen(username);
-  char *safer_username = new char[(username_length * 2) + 1];
 
   // According to docs, size of safer_whatever must be 2*length+1
   // due to unicode conversions + null terminator.
-  mysql_real_escape_string(&dbconn, safer_username, username, username_length);
+  std::string escaped_username((username_length * 2) + 1, '\0');
 
-  snprintf(sql, sizeof(sql),
-      "SELECT `Id`, `Username`, `Password`, `Enabled`,"
-      " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
-      " `MonitorIds`"
-      " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1",
-      safer_username);
-  delete[] safer_username;
-  safer_username = nullptr;
 
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
+  size_t escaped_len = mysql_real_escape_string(&dbconn, &escaped_username[0], username, username_length);
+  escaped_username.resize(escaped_len);
 
-  MYSQL_RES *result = mysql_store_result(&dbconn);
-  if ( !result ) {
-    Error("Can't use query result: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
+  std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`,"
+                             " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
+                             " `MonitorIds`"
+                             " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1",
+                             escaped_username.c_str());
+
+  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  if (!result)
+    return nullptr;
 
   if ( mysql_num_rows(result) == 1 ) {
     MYSQL_ROW dbrow = mysql_fetch_row(result);
@@ -165,22 +157,13 @@ User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr) {
     return nullptr;
   }
 
-  char sql[ZM_SQL_MED_BUFSIZ] = "";
-  snprintf(sql, sizeof(sql),
-    "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0,"
-    " `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`, `TokenMinExpiry`"
-    " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", username.c_str());
+  std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0,"
+                             " `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`, `TokenMinExpiry`"
+                             " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", username.c_str());
 
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
+  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  if (!result)
     return nullptr;
-  }
-
-  MYSQL_RES *result = mysql_store_result(&dbconn);
-  if ( !result ) {
-    Error("Can't use query result: %s", mysql_error(&dbconn));
-    return nullptr;
-  }
 
   int n_users = mysql_num_rows(result);
   if ( n_users != 1 ) {
@@ -227,22 +210,14 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
   }
 
   Debug(1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth, remote_addr);
-  char sql[ZM_SQL_SML_BUFSIZ] = "";
-  snprintf(sql, sizeof(sql),
-      "SELECT `Id`, `Username`, `Password`, `Enabled`,"
-      " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
-      " `MonitorIds` FROM `Users` WHERE `Enabled` = 1");
+  std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
+                    " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
+                    " `MonitorIds` FROM `Users` WHERE `Enabled` = 1";
 
-  if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
-
-  MYSQL_RES *result = mysql_store_result(&dbconn);
-  if ( !result ) {
-    Error("Can't use query result: %s", mysql_error(&dbconn));
+  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  if (!result)
     return nullptr;
-  }
+
   int n_users = mysql_num_rows(result);
   if ( n_users < 1 ) {
     mysql_free_result(result);

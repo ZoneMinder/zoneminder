@@ -2,6 +2,7 @@ target_compile_options(zm-warning-interface
   INTERFACE
     -Wall
     -Wextra
+    -Wformat-security
     -Wno-cast-function-type
     -Wno-type-limits
     -Wno-unused-parameter)

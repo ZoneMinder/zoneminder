@@ -105,7 +105,7 @@ void RemoteCameraHttp::Initialise() {
     request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
     request += stringtf( "Host: %s\r\n", host.c_str());
     if ( strcmp( config.http_version, "1.0" ) == 0 )
-      request += stringtf( "Connection: Keep-Alive\r\n" );
+      request += "Connection: Keep-Alive\r\n";
     if ( !auth.empty() )
       request += stringtf( "Authorization: Basic %s\r\n", auth64.c_str() );
     request += "\r\n";
@@ -362,7 +362,7 @@ int RemoteCameraHttp::GetResponse() {
                   request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
                   request += stringtf( "Host: %s\r\n", host.c_str());
                   if ( strcmp( config.http_version, "1.0" ) == 0 )
-                    request += stringtf( "Connection: Keep-Alive\r\n" );
+                    request += "Connection: Keep-Alive\r\n";
                   request += mAuthenticator->getAuthHeader( "GET", path.c_str() );
                   request += "\r\n";
 
@@ -738,7 +738,7 @@ int RemoteCameraHttp::GetResponse() {
                   request += stringtf("User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION);
                   request += stringtf("Host: %s\r\n", host.c_str());
                   if ( strcmp(config.http_version, "1.0") == 0 )
-                    request += stringtf("Connection: Keep-Alive\r\n");
+                    request += "Connection: Keep-Alive\r\n";
                   request += mAuthenticator->getAuthHeader("GET", path.c_str());
                   request += "\r\n";
 

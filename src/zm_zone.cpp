@@ -819,28 +819,18 @@ bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, P
 }  // end bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon)
 
 int Zone::Load(Monitor *monitor, Zone **&zones) {
-  static char sql[ZM_SQL_MED_BUFSIZ];
-  MYSQL_RES *result;
+  std::string sql = stringtf("SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
+                             "MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,"
+                             "FilterX,FilterY,MinFilterPixels,MaxFilterPixels,"
+                             "MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,"
+                             "OverloadFrames,ExtendAlarmFrames"
+                             " FROM Zones WHERE MonitorId = %d ORDER BY Type, Id", monitor->Id());
 
-  {  // scope for lock
-    std::lock_guard<std::mutex> lck(db_mutex);
-    snprintf(sql, sizeof(sql), "SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
-        "MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,"
-        "FilterX,FilterY,MinFilterPixels,MaxFilterPixels,"
-        "MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,"
-        "OverloadFrames,ExtendAlarmFrames"
-        " FROM Zones WHERE MonitorId = %d ORDER BY Type, Id", monitor->Id());
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't run query: %s", mysql_error(&dbconn));
-      return 0;
-    }
-
-    result = mysql_store_result(&dbconn);
-  }
+  MYSQL_RES *result = zmDbFetch(sql.c_str());
   if (!result) {
-    Error("Can't use query result: %s", mysql_error(&dbconn));
     return 0;
   }
+
   int n_zones = mysql_num_rows(result);
   Debug(1, "Got %d zones for monitor %s", n_zones, monitor->Name());
   delete[] zones;

@@ -340,16 +340,11 @@ Config::~Config() {
 }
 
 void Config::Load() {
-  if ( mysql_query(&dbconn, "SELECT `Name`, `Value`, `Type` FROM `Config` ORDER BY `Id`") ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
+  MYSQL_RES *result = zmDbFetch("SELECT `Name`, `Value`, `Type` FROM `Config` ORDER BY `Id`");
+  if (!result) {
+    exit(-1);
   }
 
-  MYSQL_RES *result = mysql_store_result(&dbconn);
-  if ( !result ) {
-    Error("Can't use query result: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
   n_items = mysql_num_rows(result);
 
   if ( n_items <= ZM_MAX_CFG_ID ) {
@@ -362,7 +357,6 @@ void Config::Load() {
     items[i] = new ConfigItem(dbrow[0], dbrow[1], dbrow[2]);
   }
   mysql_free_result(result);
-  result = nullptr;
 }
 
 void Config::Assign() {

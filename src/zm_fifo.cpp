@@ -94,7 +94,10 @@ bool Fifo::open() {
 }
 
 bool Fifo::close() {
-  fclose(outfile);
+  if (outfile) {
+    fclose(outfile);
+  }
+
   return true;
 }
 

@@ -60,7 +60,8 @@ Add the following to the /etc/apt/sources.list.d/zoneminder.list file
 
 You can do this using:
 
-::
+.. code-block::
+
     echo "deb https://zmrepo.zoneminder.com/debian/release-1.34 buster/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 
 Because ZoneMinder's package repository provides a secure connection through HTTPS, apt must be enabled for HTTPS.

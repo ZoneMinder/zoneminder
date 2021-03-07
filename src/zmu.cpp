@@ -506,8 +506,10 @@ int main(int argc, char *argv[]) {
       struct timeval timestamp = monitor->GetTimestamp(image_idx);
       if ( verbose ) {
         char timestamp_str[64] = "None";
-        if ( timestamp.tv_sec )
-          strftime(timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime(&timestamp.tv_sec));
+        if ( timestamp.tv_sec ) {
+          tm tm_info = {};
+          strftime(timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime_r(&timestamp.tv_sec, &tm_info));
+        }
         if ( image_idx == -1 )
           printf("Time of last image capture: %s.%02ld\n", timestamp_str, timestamp.tv_usec/10000);
         else

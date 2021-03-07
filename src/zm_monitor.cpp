@@ -2842,7 +2842,8 @@ void Monitor::TimestampImage(Image *ts_image, const struct timeval *ts_time) con
 
   // Expand the strftime macros first
   char label_time_text[256];
-  strftime(label_time_text, sizeof(label_time_text), label_format, localtime(&ts_time->tv_sec));
+  tm ts_tm = {};
+  strftime(label_time_text, sizeof(label_time_text), label_format, localtime_r(&ts_time->tv_sec, &ts_tm));
   char label_text[1024];
   const char *s_ptr = label_time_text;
   char *d_ptr = label_text;

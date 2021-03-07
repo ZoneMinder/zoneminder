@@ -245,18 +245,19 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     const char *pass = dbrow[2];
 
     time_t our_now = now;
+    tm now_tm = {};
     for ( unsigned int i = 0; i < hours; i++, our_now -= 3600 ) {
-      struct tm *now_tm = localtime(&our_now);
+      localtime_r(&our_now, &now_tm);
 
       snprintf(auth_key, sizeof(auth_key)-1, "%s%s%s%s%d%d%d%d",
         config.auth_hash_secret,
         user,
         pass,
         remote_addr,
-        now_tm->tm_hour,
-        now_tm->tm_mday,
-        now_tm->tm_mon,
-        now_tm->tm_year);
+        now_tm.tm_hour,
+        now_tm.tm_mday,
+        now_tm.tm_mon,
+        now_tm.tm_year);
 
 #if HAVE_DECL_MD5
       MD5((unsigned char *)auth_key, strlen(auth_key), md5sum);

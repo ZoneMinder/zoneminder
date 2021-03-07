@@ -22,7 +22,7 @@
 #include "zm_config.h"
 #include "zm_logger.h"
 #include <algorithm>
-#include <cstdarg>
+#include <array>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <sstream>
@@ -43,7 +43,7 @@ std::string trimSet(std::string str, std::string trimset) {
   // Trim Both leading and trailing sets
   size_t startpos = str.find_first_not_of(trimset); // Find the first character position after excluding leading blank spaces
   size_t endpos = str.find_last_not_of(trimset); // Find the first character position from reverse af
- 
+
   // if all spaces or empty return an empty string
   if ( ( std::string::npos == startpos ) || ( std::string::npos == endpos ) )
     return std::string("");
@@ -148,7 +148,7 @@ const std::string base64Encode(const std::string &inString) {
       selection = remainder | (*inPtr >> 4);
       remainder = (*inPtr++ & 0x0f) << 2;
       outString += base64_table[selection];
-    
+
       if ( *inPtr ) {
         selection = remainder | (*inPtr >> 6);
         outString += base64_table[selection];
@@ -175,7 +175,7 @@ int split(const char* string, const char delim, std::vector<std::string>& items)
     return -2;
 
   std::string str(string);
-  
+
   while ( true ) {
     size_t pos = str.find(delim);
     items.push_back(str.substr(0, pos));
@@ -242,7 +242,7 @@ void hwcaps_detect() {
   } else {
     sse_version = 0;
     Debug(1, "Detected a x86\\x86-64 processor");
-  } 
+  }
 #elif defined(__arm__)
   // ARM processor in 32bit mode
   // To see if it supports NEON, we need to get that information from the kernel
@@ -279,7 +279,7 @@ void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
     "sse2_copy_iter:\n\t"
     "movdqa (%0),%%xmm0\n\t"
     "movdqa 0x10(%0),%%xmm1\n\t"
-    "movdqa 0x20(%0),%%xmm2\n\t"  
+    "movdqa 0x20(%0),%%xmm2\n\t"
     "movdqa 0x30(%0),%%xmm3\n\t"
     "movdqa 0x40(%0),%%xmm4\n\t"
     "movdqa 0x50(%0),%%xmm5\n\t"
@@ -328,16 +328,17 @@ void timespec_diff(struct timespec *start, struct timespec *end, struct timespec
   }
 }
 
-char *timeval_to_string( struct timeval tv ) {
-  time_t nowtime;
-  struct tm *nowtm;
-  static char tmbuf[20], buf[28];
+std::string TimevalToString(timeval tv) {
+  tm now = {};
+  std::array<char, 26> tm_buf = {};
 
-  nowtime = tv.tv_sec;
-  nowtm = localtime(&nowtime);
-  strftime(tmbuf, sizeof tmbuf, "%Y-%m-%d %H:%M:%S", nowtm);
-  snprintf(buf, sizeof buf-1, "%s.%06ld", tmbuf, tv.tv_usec);
-  return buf;
+  localtime_r(&tv.tv_sec, &now);
+  size_t tm_buf_len = strftime(tm_buf.data(), tm_buf.size(), "%Y-%m-%d %H:%M:%S", &now);
+  if (tm_buf_len == 0) {
+    return "";
+  }
+
+  return stringtf("%s.%06ld", tm_buf.data(), tv.tv_usec);
 }
 
 std::string UriDecode( const std::string &encoded ) {

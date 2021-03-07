@@ -63,7 +63,7 @@ void hwcaps_detect();
 extern unsigned int sse_version;
 extern unsigned int neonversion;
 
-char *timeval_to_string( struct timeval tv );
+std::string TimevalToString(timeval tv);
 std::string UriDecode( const std::string &encoded );
 void touch( const char *pathname );
 

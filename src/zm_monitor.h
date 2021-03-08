@@ -410,11 +410,14 @@ public:
   bool disconnect();
 
   inline int ShmValid() const {
-    struct timeval now;
-    gettimeofday(&now, nullptr);
-    return shared_data && shared_data->valid && ((now.tv_sec - shared_data->zmc_heartbeat_time) > config.watch_max_delay);
+    if ( shared_data && shared_data->valid ) {
+      struct timeval now;
+      gettimeofday(&now, nullptr);
+      if ((now.tv_sec - shared_data->zmc_heartbeat_time) < config.watch_max_delay)
+        return true;
+    }
+    return false;
   }
-
 
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name; }
@@ -520,6 +523,7 @@ public:
   TriggerState GetTriggerState() const { return trigger_data ? trigger_data->trigger_state : TRIGGER_CANCEL; }
 	inline time_t getStartupTime() const { return shared_data->startup_time; }
 	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
+	inline void setHeartbeatTime( time_t p_time ) { shared_data->zmc_heartbeat_time = p_time; }
   void get_ref_image();
 
   int LabelSize() const { return label_size; }

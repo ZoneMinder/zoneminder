@@ -245,6 +245,7 @@ int main(int argc, char *argv[]) {
       }
       time_t now = (time_t)time(nullptr);
       monitor->setStartupTime(now);
+      monitor->setHeartbeatTime(now);
 
       snprintf(sql, sizeof(sql), 
           "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"

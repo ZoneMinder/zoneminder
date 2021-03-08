@@ -2505,6 +2505,7 @@ int Monitor::Capture() {
   packet->timestamp = new struct timeval;
   packet->image_index = image_count;
   gettimeofday(packet->timestamp, nullptr);
+  shared_data->zmc_heartbeat_time = packet->timestamp->tv_sec;
 
   Image* capture_image = image_buffer[index].image;
   int captureResult = 0;

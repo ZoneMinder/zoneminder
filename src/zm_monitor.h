@@ -410,7 +410,9 @@ public:
   bool disconnect();
 
   inline int ShmValid() const {
-    return shared_data && shared_data->valid;
+    struct timeval now;
+    gettimeofday(&now, nullptr);
+    return shared_data && shared_data->valid && ((now.tv_sec - shared_data->zmc_heartbeat_time) > config.watch_max_delay);
   }
 
 

@@ -28,7 +28,6 @@
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_utils.h"
-#include "zm_video.h"
 #include <memory>
 #include <sys/time.h>
 #include <vector>
@@ -277,7 +276,6 @@ protected:
   int             output_codec;
   std::string     encoder;
   std::string     output_container;
-  std::vector<EncoderParameter_t> encoderparamsvec;
   _AVPIXELFORMAT  imagePixFormat;
   unsigned int    subpixelorder;
   bool            record_audio;      // Whether to store the audio that we receive
@@ -476,7 +474,6 @@ public:
 
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
-  //const std::vector<EncoderParameter_t>* GetEncoderParams() const { return &encoderparamsvec; }
   const std::string &GetEncoderOptions() const { return encoderparams; }
   int OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }

@@ -51,7 +51,6 @@ extern "C" {
 struct EncoderParameter_t {
 	char pname[48];
 	char pvalue[48];
-
 };
 int ParseEncoderParameters(const char* str, std::vector<EncoderParameter_t>* vec);
 

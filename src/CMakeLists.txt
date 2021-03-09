@@ -70,7 +70,6 @@ set(ZM_BIN_SRC_FILES
   zm_time.cpp
   zm_user.cpp
   zm_utils.cpp
-  zm_video.cpp
   zm_videostore.cpp
   zm_zone.cpp
   zm_storage.cpp)

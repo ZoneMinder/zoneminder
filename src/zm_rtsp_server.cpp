@@ -179,6 +179,7 @@ int main(int argc, char *argv[]) {
           rtsp_server_thread->removeSession(sessions[i]);
           sessions[i] = nullptr;
         }
+        monitor->disconnect();
         continue;
       }
       Debug(1, "monitor %d is connected", monitor->Id());

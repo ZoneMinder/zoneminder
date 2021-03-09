@@ -534,8 +534,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   savejpegs = atoi(dbrow[col]); col++;
   videowriter = (VideoWriter)atoi(dbrow[col]); col++;
   encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
-  /* Parse encoder parameters */
-  ParseEncoderParameters(encoderparams.c_str(), &encoderparamsvec);
 
   output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
   encoder = dbrow[col] ? dbrow[col] : ""; col++;

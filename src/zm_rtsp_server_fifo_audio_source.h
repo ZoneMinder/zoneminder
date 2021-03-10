@@ -22,26 +22,19 @@
 
 class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
   public:
-		static ZoneMinderFifoAudioSource* createNew(
-        UsageEnvironment& env,
-        std::string fifo,
-        unsigned int queueSize
-        ) {
-			return new ZoneMinderFifoAudioSource(env, fifo, queueSize);
-    };
-	protected:
 		ZoneMinderFifoAudioSource(
-        UsageEnvironment& env,
-        std::string fifo,
-        unsigned int queueSize
+        std::shared_ptr<xop::RtspServer>& rtspServer,
+        xop::MediaSessionId sessionId,
+        xop::MediaChannelId channelId,
+        std::string fifo
         );
 
 		virtual ~ZoneMinderFifoAudioSource() {}
-  public:
 
     void setFrequency(int p_frequency) {
       frequency = p_frequency;
       samplingFrequencyIndex = getFrequencyIndex();
+      m_timeBase = {1, frequency};
     };
     int getFrequency() { return frequency; };
     int getFrequencyIndex();
@@ -49,10 +42,13 @@ class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
     void setChannels(int p_channels) { channels = p_channels; };
     int getChannels() const { return channels; };
 
+  protected:
+    void PushFrame(const uint8_t *data, size_t size, int64_t pts);
+
 	protected:
     std::string config;
     int samplingFrequencyIndex;
-    unsigned int frequency;
+    int frequency;
     int channels;
 };
 #endif // HAVE_RTSP_SERVER

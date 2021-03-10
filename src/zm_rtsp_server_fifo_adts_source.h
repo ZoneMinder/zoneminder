@@ -21,19 +21,12 @@
 // ---------------------------------
 
 class ADTS_ZoneMinderFifoSource : public ZoneMinderFifoAudioSource {
-  public:
-		static ADTS_ZoneMinderFifoSource* createNew(
-        UsageEnvironment& env,
-        std::string fifo,
-        unsigned int queueSize
-        ) {
-			return new ADTS_ZoneMinderFifoSource(env, fifo, queueSize);
-    };
-	protected:
-		ADTS_ZoneMinderFifoSource(
-        UsageEnvironment& env,
-        std::string fifo,
-        unsigned int queueSize
+	public:
+    ADTS_ZoneMinderFifoSource(
+        std::shared_ptr<xop::RtspServer>& rtspServer,
+        xop::MediaSessionId sessionId,
+        xop::MediaChannelId channelId,
+        std::string fifo
         );
 
 		virtual ~ADTS_ZoneMinderFifoSource() {}

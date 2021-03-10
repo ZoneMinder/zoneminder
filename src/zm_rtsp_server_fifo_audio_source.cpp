@@ -10,7 +10,7 @@
 
 #if HAVE_RTSP_SERVER
 
-static unsigned const samplingFrequencyTable[16] = {
+static const int samplingFrequencyTable[16] = {
   96000, 88200, 64000, 48000,
   44100, 32000, 24000, 22050,
   16000, 12000, 11025, 8000,
@@ -21,12 +21,13 @@ static unsigned const samplingFrequencyTable[16] = {
 // ---------------------------------
 //
 ZoneMinderFifoAudioSource::ZoneMinderFifoAudioSource(
-    UsageEnvironment& env,
-    std::string fifo,
-    unsigned int queueSize
+    std::shared_ptr<xop::RtspServer>& rtspServer,
+    xop::MediaSessionId sessionId,
+    xop::MediaChannelId channelId,
+    std::string fifo
     )
   :
-    ZoneMinderFifoSource(env, fifo, queueSize),
+    ZoneMinderFifoSource(rtspServer, sessionId, channelId, fifo),
     samplingFrequencyIndex(-1),
     frequency(-1),
     channels(1)
@@ -36,5 +37,18 @@ int ZoneMinderFifoAudioSource::getFrequencyIndex() {
   for (int i=0; i<16; i++)
     if (samplingFrequencyTable[i] == frequency) return i;
   return -1;
+}
+
+void ZoneMinderFifoAudioSource::PushFrame(const uint8_t *data, size_t size, int64_t pts) {
+
+  Debug(1, "Pushing audio frame to session %d channel %d pts %" PRId64, m_sessionId, m_channelId, pts);
+  xop::AVFrame frame = {0};
+  frame.type = xop::AUDIO_FRAME;
+  frame.size = size;
+  frame.timestamp = av_rescale_q(pts, AV_TIME_BASE_Q, m_timeBase);
+  frame.buffer.reset(new uint8_t[size]);
+  memcpy(frame.buffer.get(), data, size);
+  m_rtspServer->PushFrame(m_sessionId, m_channelId, frame);
+
 }
 #endif // HAVE_RTSP_SERVER

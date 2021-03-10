@@ -21,9 +21,16 @@ class ZoneMinderFifoVideoSource: public ZoneMinderFifoSource {
 		int setWidth(int width) { return m_width=width; };	
 		int setHeight(int height) { return m_height=height; };	
 
-	protected:
-		ZoneMinderFifoVideoSource(UsageEnvironment& env, std::string fifo, unsigned int queueSize);
+		ZoneMinderFifoVideoSource(
+        std::shared_ptr<xop::RtspServer>& rtspServer,
+        xop::MediaSessionId sessionId,
+        xop::MediaChannelId channelId,
+        std::string fifo
+        );
+  protected:
+    void PushFrame(const uint8_t *data, size_t size, int64_t pts);
 
+	protected:
     int m_width;
     int m_height;
 };

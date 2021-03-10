@@ -19,18 +19,19 @@
 // H264 ZoneMinder FramedSource
 // ---------------------------------
 #if HAVE_RTSP_SERVER
+const char H264marker[] = {0,0,0,1};
+const char H264shortmarker[] = {0,0,1};
 class H26X_ZoneMinderFifoSource : public ZoneMinderFifoVideoSource {
-	protected:
+	public:
 		H26X_ZoneMinderFifoSource(
-        UsageEnvironment& env,
-        std::string fifo,
-        unsigned int queueSize,
-        bool repeatConfig,
-        bool keepMarker)
+        std::shared_ptr<xop::RtspServer>& rtspServer,
+        xop::MediaSessionId sessionId,
+        xop::MediaChannelId channelId,
+        std::string fifo
+        )
 			:
-        ZoneMinderFifoVideoSource(env, fifo, queueSize),
-        m_repeatConfig(repeatConfig),
-        m_keepMarker(keepMarker),
+        ZoneMinderFifoVideoSource(rtspServer, sessionId, channelId, fifo),
+        m_keepMarker(false),
         m_frameType(0) { }
 
 		virtual ~H26X_ZoneMinderFifoSource() {}
@@ -41,55 +42,34 @@ class H26X_ZoneMinderFifoSource : public ZoneMinderFifoVideoSource {
 	protected:
 		std::string m_sps;
 		std::string m_pps;
-		bool        m_repeatConfig;
 		bool        m_keepMarker;
 		int         m_frameType;
 };
 
 class H264_ZoneMinderFifoSource : public H26X_ZoneMinderFifoSource {
 	public:
-		static H264_ZoneMinderFifoSource* createNew(
-				UsageEnvironment& env,
-        std::string fifo,
-				unsigned int queueSize,
-				bool repeatConfig,
-				bool keepMarker) {
-			return new H264_ZoneMinderFifoSource(env, fifo, queueSize, repeatConfig, keepMarker);
-		}
-
-	protected:
 		H264_ZoneMinderFifoSource(
-        UsageEnvironment& env,
-        std::string fifo,
-        unsigned int queueSize,
-        bool repeatConfig,
-        bool keepMarker);
+        std::shared_ptr<xop::RtspServer>& rtspServer,
+        xop::MediaSessionId sessionId,
+        xop::MediaChannelId channelId,
+        std::string fifo
+        );
 
 		// overide ZoneMinderFifoSource
-		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned &frameSize);
+		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, size_t &frameSize);
 };
 
 class H265_ZoneMinderFifoSource : public H26X_ZoneMinderFifoSource {
 	public:
-		static H265_ZoneMinderFifoSource* createNew(
-        UsageEnvironment& env,
-        std::string fifo,
-        unsigned int queueSize,
-        bool repeatConfig,
-        bool keepMarker) {
-			return new H265_ZoneMinderFifoSource(env, fifo, queueSize, repeatConfig, keepMarker);
-		}
-
-	protected:
 		H265_ZoneMinderFifoSource(
-        UsageEnvironment& env,
-        std::string fifo,
-        unsigned int queueSize,
-        bool repeatConfig,
-        bool keepMarker);
+        std::shared_ptr<xop::RtspServer>& rtspServer,
+        xop::MediaSessionId sessionId,
+        xop::MediaChannelId channelId,
+        std::string fifo
+        );
 
 		// overide ZoneMinderFifoSource
-		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, unsigned &frameSize);
+		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, size_t &frameSize);
 
 	protected:
 		std::string m_vps;

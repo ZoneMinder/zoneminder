@@ -11,8 +11,8 @@
 #include "zm_rtsp_server_fifo_source.h"
 
 #include "zm_config.h"
+#include "zm_ffmpeg.h"
 #include "zm_logger.h"
-#include "zm_rtsp_server_frame.h"
 #include "zm_signal.h"
 
 #include <fcntl.h>
@@ -20,16 +20,17 @@
 
 #if HAVE_RTSP_SERVER
 ZoneMinderFifoSource::ZoneMinderFifoSource(
-    UsageEnvironment& env,
-    std::string fifo,
-    unsigned int queueSize
+    std::shared_ptr<xop::RtspServer>& rtspServer,
+    xop::MediaSessionId sessionId,
+    xop::MediaChannelId channelId,
+    std::string fifo
     ) :
-  FramedSource(env),
+  m_rtspServer(rtspServer),
+  m_sessionId(sessionId),
+  m_channelId(channelId),
 	m_fifo(fifo),
-	m_queueSize(queueSize),
   m_fd(-1)
 {
-	m_eventTriggerId = envir().taskScheduler().createEventTrigger(ZoneMinderFifoSource::deliverFrameStub);
 	memset(&m_thid, 0, sizeof(m_thid));
 	memset(&m_mutex, 0, sizeof(m_mutex));
   pthread_mutex_init(&m_mutex, nullptr);
@@ -39,13 +40,7 @@ ZoneMinderFifoSource::ZoneMinderFifoSource(
 ZoneMinderFifoSource::~ZoneMinderFifoSource() {
   Debug(1, "Deleting Fifo Source");
   stop = 1;
-	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
 	pthread_join(m_thid, nullptr);
-  while (m_captureQueue.size()) {
-    NAL_Frame * f = m_captureQueue.front();
-    m_captureQueue.pop_front();
-    delete f;
-  }
   Debug(1, "Deleting Fifo Source done");
 	pthread_mutex_destroy(&m_mutex);
 }
@@ -55,76 +50,9 @@ void* ZoneMinderFifoSource::thread() {
 	stop = 0;
 
 	while (!stop) {
-		if ( getNextFrame() < 0 )
-      sleep(1);
+		if (getNextFrame() < 0) sleep(1);
 	}
 	return nullptr;
-}
-
-// getting FrameSource callback
-void ZoneMinderFifoSource::doGetNextFrame() {
-	deliverFrame();
-}
-
-// stopping FrameSource callback
-void ZoneMinderFifoSource::doStopGettingFrames() {
-  //stop = 1;
-	Debug(1, "ZoneMinderFifoSource::doStopGettingFrames");
-	FramedSource::doStopGettingFrames();
-}
-
-// deliver frame to the sink
-void ZoneMinderFifoSource::deliverFrame() {
-	if (!isCurrentlyAwaitingData()) {
-    Debug(5, "not awaiting data");
-    return;
-  } 
-
-  pthread_mutex_lock(&m_mutex);
-  if (m_captureQueue.empty()) {
-    Debug(5, "Queue is empty");
-    pthread_mutex_unlock(&m_mutex);
-    return;
-  }
-
-  NAL_Frame *frame = m_captureQueue.front();
-  m_captureQueue.pop_front();
-  pthread_mutex_unlock(&m_mutex);
-
-  fDurationInMicroseconds = 0;
-  fFrameSize = 0;
-
-  unsigned int nal_size = frame->size();
-
-  if (nal_size > fMaxSize) {
-    fFrameSize = fMaxSize;
-    fNumTruncatedBytes = nal_size - fMaxSize;
-  } else {
-    fFrameSize = nal_size;
-  }
-
-  Debug(4, "deliverFrame timestamp: %ld.%06ld size: %d queuesize: %d",
-      frame->m_timestamp.tv_sec, frame->m_timestamp.tv_usec,
-      fFrameSize, 
-      m_captureQueue.size()
-      );
-
-  fPresentationTime = frame->m_timestamp;
-  memcpy(fTo, frame->buffer(), fFrameSize);
-
-  if (fFrameSize > 0) {
-    // send Frame to the consumer
-    FramedSource::afterGetting(this);
-  }
-  delete frame;
-}  // end void ZoneMinderFifoSource::deliverFrame()
-
-// FrameSource callback on read event
-void ZoneMinderFifoSource::incomingPacketHandler() {
-  Debug(1, "incomingPacketHandler");
-	if (this->getNextFrame() <= 0) {
-		handleClosure(this);
-	}
 }
 
 // read from monitor
@@ -221,53 +149,28 @@ int ZoneMinderFifoSource::getNextFrame() {
       }
     }
     unsigned char *packet_start = m_buffer.head() + header_size;
-
-    // splitFrames modifies so make a copy
-    unsigned int bytes_remaining = data_size;
+    size_t bytes_remaining = data_size;
     std::list< std::pair<unsigned char*, size_t> > framesList = this->splitFrames(packet_start, bytes_remaining);
-    Debug(3, "Got %d frames, consuming %d bytes", framesList.size(), header_size + data_size);
+    Debug(3, "Got %d frames, consuming %d bytes, remaining %d", framesList.size(), header_size + data_size, bytes_remaining);
     m_buffer.consume(header_size + data_size);
-
-    timeval tv;
-    tv.tv_sec  = pts / 1000000;
-    tv.tv_usec = pts % 1000000;
-
     while (framesList.size()) {
       std::pair<unsigned char*, size_t> nal = framesList.front();
       framesList.pop_front();
 
-      NAL_Frame *frame  = new NAL_Frame(nal.first, nal.second, tv);
-      Debug(3, "Got frame, size %d, queue_size %d", frame->size(), m_captureQueue.size());
-
-      pthread_mutex_lock(&m_mutex);
-      if (m_captureQueue.size() > 25) {  // 1 sec at 25 fps
-        NAL_Frame * f = m_captureQueue.front();
-        while (m_captureQueue.size() and ((tv.tv_sec - f->m_timestamp.tv_sec) > 2)) {
-          m_captureQueue.pop_front();
-          delete f;
-          f = m_captureQueue.front();
-        }
-        Debug(3, "Done clearing. Queue size is now %d", m_captureQueue.size());
-      }
-      m_captureQueue.push_back(frame);
-      pthread_mutex_unlock(&m_mutex);
-
-      // post an event to ask to deliver the frame
-      envir().taskScheduler().triggerEvent(m_eventTriggerId, this);
-    }  // end while we get frame from data
+      PushFrame(nal.first, nal.second, pts);
+    }
   } // end while m_buffer.size()
   return 1;
 }
 
 // split packet in frames
-std::list< std::pair<unsigned char*,size_t> > ZoneMinderFifoSource::splitFrames(unsigned char* frame, unsigned &frameSize) {
-	std::list< std::pair<unsigned char*,size_t> > frameList;
-	if (frame != nullptr) {
-		frameList.push_back(std::pair<unsigned char*,size_t>(frame, frameSize));
-	}
-  // We consume it all
+std::list< std::pair<unsigned char*,size_t> > ZoneMinderFifoSource::splitFrames(unsigned char* frame, size_t &frameSize) {
+  std::list< std::pair<unsigned char*,size_t> > frameList;
+  if ( frame != nullptr ) {
+    frameList.push_back(std::pair<unsigned char*,size_t>(frame, frameSize));
+  }
   frameSize = 0;
-	return frameList;
+  return frameList;
 }
 
 // extract a frame

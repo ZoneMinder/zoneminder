@@ -7,32 +7,27 @@
 ** -------------------------------------------------------------------------*/
 
 #include "zm_logger.h"
-#include "zm_rtsp_server_adts_fifo_source.h"
+#include "zm_rtsp_server_fifo_adts_source.h"
 
 #include <iomanip>
 #include <sstream>
 
 #if HAVE_RTSP_SERVER
 
-static unsigned const samplingFrequencyTable[16] = {
-  96000, 88200, 64000, 48000,
-  44100, 32000, 24000, 22050,
-  16000, 12000, 11025, 8000,
-  7350, 0, 0, 0
-};
 // ---------------------------------
 // ADTS ZoneMinder FramedSource
 // ---------------------------------
 //
 ADTS_ZoneMinderFifoSource::ADTS_ZoneMinderFifoSource(
-    UsageEnvironment& env,
-    std::string fifo,
-    unsigned int queueSize
+     std::shared_ptr<xop::RtspServer>& rtspServer,
+    xop::MediaSessionId sessionId,
+    xop::MediaChannelId channelId,
+    std::string fifo
     )
   :
-    ZoneMinderFifoAudioSource(env, fifo, queueSize)
+    ZoneMinderFifoAudioSource(rtspServer, sessionId, channelId, fifo)
 {
-#if 1
+#if 0
   int profile = 0;
 
   unsigned char audioSpecificConfig[2];

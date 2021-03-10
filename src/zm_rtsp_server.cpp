@@ -51,15 +51,16 @@ and provide that stream over rtsp
 #include "zm_db.h"
 #include "zm_define.h"
 #include "zm_monitor.h"
-#include "zm_rtsp_server_thread.h"
-#include "zm_rtsp_server_fifo_audio_source.h"
-#include "zm_rtsp_server_fifo_video_source.h"
+#include "zm_rtsp_server_fifo_h264_source.h"
+#include "zm_rtsp_server_fifo_adts_source.h"
 #include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_utils.h"
 #include <getopt.h>
 #include <iostream>
-#include <StreamReplicator.hh>
+
+
+#include "xop/RtspServer.h"
 
 void Usage() {
   fprintf(stderr, "zm_rtsp_server -m <monitor_id>\n");
@@ -157,16 +158,22 @@ int main(int argc, char *argv[]) {
   sigaddset(&block_set, SIGUSR1);
   sigaddset(&block_set, SIGUSR2);
 
-  std::unique_ptr<RTSPServerThread> rtsp_server_thread;
-  if (config.min_rtsp_port) {
-    rtsp_server_thread = ZM::make_unique<RTSPServerThread>(config.min_rtsp_port);
-    Debug(1, "Starting RTSP server because min_rtsp_port is set");
-  } else {
+  if (!config.min_rtsp_port) {
     Debug(1, "Not starting RTSP server because min_rtsp_port not set");
     exit(-1);
   }
-  ServerMediaSession **sessions = new ServerMediaSession *[monitors.size()];
+
+  std::shared_ptr<xop::EventLoop> eventLoop(new xop::EventLoop());
+	std::shared_ptr<xop::RtspServer> rtspServer = xop::RtspServer::Create(eventLoop.get());
+  if ( !rtspServer->Start("0.0.0.0", config.min_rtsp_port) ) {
+    Debug(1, "Failed starting RTSP server on port %d", config.min_rtsp_port);
+    exit(-1);
+  }
+
+  xop::MediaSession **sessions = new xop::MediaSession *[monitors.size()];
   for (size_t i = 0; i < monitors.size(); i++) sessions[i] = nullptr;
+
+  std::list<ZoneMinderFifoSource *> sources;
 
   while (!zm_terminate) {
 
@@ -176,13 +183,12 @@ int main(int argc, char *argv[]) {
       if (!(monitor->ShmValid() or monitor->connect())) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
         if (sessions[i]) {
-          rtsp_server_thread->removeSession(sessions[i]);
+          rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
           sessions[i] = nullptr;
         }
         monitor->disconnect();
         continue;
       }
-      Debug(1, "monitor %d is connected", monitor->Id());
 
       if (!sessions[i]) {
         std::string videoFifoPath = monitor->GetVideoFifoPath();
@@ -191,14 +197,49 @@ int main(int argc, char *argv[]) {
           continue;
         }
         std::string streamname = monitor->GetRTSPStreamName();
-        Debug(1, "Adding session for %s", streamname.c_str());
-        ServerMediaSession *sms = sessions[i] = rtsp_server_thread->addSession(streamname);
+
+        xop::MediaSession *session = sessions[i] = xop::MediaSession::CreateNew(streamname);
+        if (session) {
+          session->AddNotifyConnectedCallback([] (xop::MediaSessionId sessionId, std::string peer_ip, uint16_t peer_port){
+              Debug(1, "RTSP client connect, ip=%s, port=%hu \n", peer_ip.c_str(), peer_port);
+              });
+
+          session->AddNotifyDisconnectedCallback([](xop::MediaSessionId sessionId, std::string peer_ip, uint16_t peer_port) {
+              Debug(1, "RTSP client disconnect, ip=%s, port=%hu \n", peer_ip.c_str(), peer_port);
+              });
+
+          rtspServer->AddSession(session);
+          //char *url = rtspServer->rtspURL(session);
+          //Debug(1, "url is %s for stream %s", url, streamname.c_str());
+          //delete[] url;
+        }
+
         Debug(1, "Adding video fifo %s", videoFifoPath.c_str());
-        ZoneMinderFifoVideoSource *video_source = static_cast<ZoneMinderFifoVideoSource *>(rtsp_server_thread->addFifo(sms, videoFifoPath));
+        ZoneMinderFifoVideoSource *videoSource = nullptr;
+
+        if (std::string::npos != videoFifoPath.find("h264")) {
+          session->AddSource(xop::channel_0, xop::H264Source::CreateNew());
+          videoSource = new H264_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+        } else if (
+            std::string::npos != videoFifoPath.find("hevc")
+            or
+            std::string::npos != videoFifoPath.find("h265")) {
+          session->AddSource(xop::channel_0, xop::H265Source::CreateNew());
+          videoSource = new H265_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_0, videoFifoPath);
+        } else {
+          Warning("Unknown format in %s", videoFifoPath.c_str());
+        }
+        if (videoSource == nullptr) {
+          Error("Unable to create source");
+        }
+        sources.push_back(videoSource);
+
+#if 0
         if (video_source) {
           video_source->setWidth(monitor->Width());
           video_source->setHeight(monitor->Height());
         }
+#endif
 
         std::string audioFifoPath = monitor->GetAudioFifoPath();
         if (audioFifoPath.empty()) {
@@ -206,13 +247,28 @@ int main(int argc, char *argv[]) {
           continue;
         }
         Debug(1, "Adding audio fifo %s", audioFifoPath.c_str());
-        ZoneMinderFifoAudioSource *audio_source = static_cast<ZoneMinderFifoAudioSource *>(rtsp_server_thread->addFifo(sms, audioFifoPath));
-        if (audio_source) {
-          audio_source->setFrequency(monitor->GetAudioFrequency());
-          audio_source->setChannels(monitor->GetAudioChannels());
+
+        ZoneMinderFifoAudioSource *audioSource = nullptr;
+
+        if (std::string::npos != audioFifoPath.find("aac")) {
+          Debug(1, "Adding aac source at %dHz %d channels", monitor->GetAudioFrequency(), monitor->GetAudioChannels());
+          session->AddSource(xop::channel_1, xop::AACSource::CreateNew(
+                monitor->GetAudioFrequency(),
+                monitor->GetAudioChannels(),
+                false /* has_adts */));
+          audioSource = new ADTS_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
+          audioSource->setFrequency(monitor->GetAudioFrequency());
+          audioSource->setChannels(monitor->GetAudioChannels());
+        } else {
+          Warning("Unknown format in %s", audioFifoPath.c_str());
         }
+        if (audioSource == nullptr) {
+          Error("Unable to create source");
+        }
+        sources.push_back(audioSource);
       }  // end if ! sessions[i]
     }  // end foreach monitor
+
     sleep(1);
 
     if (zm_reload) {
@@ -229,11 +285,23 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < monitors.size(); i++) {
     if (sessions[i]) {
       Debug(1, "Removing session for %s", monitors[i]->Name());
-      rtsp_server_thread->removeSession(sessions[i]);
+      rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
       sessions[i] = nullptr;
     }
   }  // end foreach monitor
-  rtsp_server_thread->Stop();
+
+  for ( std::list<ZoneMinderFifoSource *>::iterator it = sources.begin(); it != sources.end(); ++it ) {
+  Debug(1, "RTSPServerThread::stopping source");
+    (*it)->Stop();
+  }
+  while (sources.size()) {
+    Debug(1, "RTSPServerThread::stop closing source");
+    ZoneMinderFifoSource *source = sources.front();
+    sources.pop_front();
+    delete source;
+  }
+
+  rtspServer->Stop();
 
   delete[] sessions;
   sessions = nullptr;

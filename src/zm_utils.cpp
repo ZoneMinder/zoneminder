@@ -25,6 +25,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
+#include <memory>
 #include <sstream>
 #include <sys/stat.h>
 

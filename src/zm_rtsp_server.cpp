@@ -51,6 +51,7 @@ and provide that stream over rtsp
 #include "zm_db.h"
 #include "zm_define.h"
 #include "zm_monitor.h"
+#include "zm_rtsp_server_authenticator.h"
 #include "zm_rtsp_server_fifo_h264_source.h"
 #include "zm_rtsp_server_fifo_adts_source.h"
 #include "zm_signal.h"
@@ -165,7 +166,13 @@ int main(int argc, char *argv[]) {
 
   std::shared_ptr<xop::EventLoop> eventLoop(new xop::EventLoop());
 	std::shared_ptr<xop::RtspServer> rtspServer = xop::RtspServer::Create(eventLoop.get());
-  if ( !rtspServer->Start("0.0.0.0", config.min_rtsp_port) ) {
+
+  if (config.opt_use_auth) {
+    std::shared_ptr<ZM_RtspServer_Authenticator> authenticator(new ZM_RtspServer_Authenticator());
+    rtspServer->SetAuthenticator(authenticator);
+  }
+
+  if (!rtspServer->Start("0.0.0.0", config.min_rtsp_port)) {
     Debug(1, "Failed starting RTSP server on port %d", config.min_rtsp_port);
     exit(-1);
   }

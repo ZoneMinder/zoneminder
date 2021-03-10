@@ -1,4 +1,4 @@
-#ifndef ZM_RTSP_SERVER_D_H
+#ifndef ZM_RTSP_SERVER_AUTHENTICATOR_H
 #define ZM_RTSP_SERVER_AUTHENTICATOR_H
 
 #include "zm_config.h"

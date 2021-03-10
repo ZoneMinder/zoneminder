@@ -40,8 +40,6 @@ int ZoneMinderFifoAudioSource::getFrequencyIndex() {
 }
 
 void ZoneMinderFifoAudioSource::PushFrame(const uint8_t *data, size_t size, int64_t pts) {
-
-  Debug(1, "Pushing audio frame to session %d channel %d pts %" PRId64, m_sessionId, m_channelId, pts);
   xop::AVFrame frame = {0};
   frame.type = xop::AUDIO_FRAME;
   frame.size = size;
@@ -49,6 +47,5 @@ void ZoneMinderFifoAudioSource::PushFrame(const uint8_t *data, size_t size, int6
   frame.buffer.reset(new uint8_t[size]);
   memcpy(frame.buffer.get(), data, size);
   m_rtspServer->PushFrame(m_sessionId, m_channelId, frame);
-
 }
 #endif // HAVE_RTSP_SERVER

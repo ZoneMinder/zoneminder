@@ -396,3 +396,65 @@ void touch(const char *pathname) {
   }
 }
 
+QueryString::QueryString(std::istream &input) {
+
+  while (!input.eof() && input.peek() > 0) {
+    //Should eat "param1="
+    auto name = parseName(input);
+    //Should eat value1&
+    std::string value = parseValue(input);
+
+    auto foundItr = parameters_.find(name);
+    if (foundItr == parameters_.end()) {
+      auto newParam = std::make_unique<QueryParameter>(name);
+      if (value.size() > 0) {
+        newParam->addValue(value);
+      }
+      parameters_.emplace(name, std::move(newParam)).first;
+    } else {
+      foundItr->second->addValue(value);
+    }
+  }  // end while not the end
+}
+
+std::vector<std::string> QueryString::names() const {
+  std::vector<std::string> names;
+  for (auto const& pair : parameters_)
+    names.push_back(pair.second->name());
+
+  return names;
+}
+
+const QueryParameter *QueryString::get(const std::string &name) const {
+  auto itr = parameters_.find(name);
+  return itr == parameters_.end() ? nullptr : itr->second.get();
+};
+
+std::string QueryString::parseName(std::istream &input) {
+  std::string name = "";
+
+  while (!input.eof() && input.peek()!= '=')
+    name.push_back(input.get());
+
+  //Eat the '='
+  if (!input.eof()) input.get();
+
+  Debug(1, "namee: %s", name.c_str());
+  return name;
+}
+
+std::string QueryString::parseValue(std::istream &input) {
+  std::string urlEncodedValue;
+
+  int c = input.get();
+  while (c > 0 && c != '&') {
+    urlEncodedValue.push_back(c);
+    c = input.get();
+  }
+
+  Debug(1, "value: %s", urlEncodedValue.c_str());
+  if (urlEncodedValue.size() == 0)
+    return "";
+
+  return UriDecode(urlEncodedValue);
+}

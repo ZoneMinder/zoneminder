@@ -22,6 +22,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -94,4 +95,39 @@ typedef std::chrono::hours Hours;
 typedef std::chrono::steady_clock::time_point TimePoint;
 typedef std::chrono::system_clock::time_point SystemTimePoint;
 
+class QueryParameter {
+  public:
+    const std::string &name() const { return name_; }
+    const std::string &firstValue() const { return values_[0]; }
+
+    const std::vector<std::string> &values() const { return values_; }
+    size_t size() const { return values_.size(); }
+
+    QueryParameter(std::string name) : name_(std::move(name)) { }
+
+    template<class T> void addValue(T&& value) { values_.emplace_back(std::forward<T>(value)); }
+  private:
+    std::string name_;
+    std::vector<std::string> values_;
+};
+
+class QueryString {
+  public:
+    QueryString(std::istream &input);
+
+    size_t size() const { return parameters_.size(); }
+    bool has(const char *name) const { return parameters_.find(std::string(name)) != parameters_.end(); }
+
+    std::vector<std::string> names() const;
+
+    const QueryParameter *get(const std::string &name) const;
+    const QueryParameter *get(const char* name) const { return get(std::string(name)); };
+
+  private:
+
+    static std::string parseName(std::istream &input);
+    static std::string parseValue(std::istream &input);
+
+    std::map<std::string, std::unique_ptr<QueryParameter>> parameters_;
+};
 #endif // ZM_UTILS_H

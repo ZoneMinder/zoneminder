@@ -7,4 +7,4 @@
 	url = https://github.com/ZoneMinder/CakePHP-Enum-Behavior.git
 [submodule "dep/RtspServer"]
 	path = dep/RtspServer
-	url = https://github.com/ZoneMinder/RtspServer.git
+	url = https://github.com/ZoneMinder/RtspServer

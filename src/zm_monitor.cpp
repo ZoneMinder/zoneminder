@@ -386,6 +386,8 @@ Monitor::Monitor()
   video_store_data(nullptr),
   shared_timestamps(nullptr),
   shared_images(nullptr),
+  video_stream_id(-1),
+  audio_stream_id(-1),
   video_fifo(nullptr),
   audio_fifo(nullptr),
   camera(nullptr),

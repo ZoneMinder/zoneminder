@@ -25,7 +25,6 @@
 #include <cstdarg>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
-#include <memory>
 #include <sstream>
 #include <sys/stat.h>
 
@@ -407,7 +406,7 @@ QueryString::QueryString(std::istream &input) {
 
     auto foundItr = parameters_.find(name);
     if (foundItr == parameters_.end()) {
-      auto newParam = std::make_unique<QueryParameter>(name);
+      auto newParam = ZM::make_unique<QueryParameter>(name);
       if (value.size() > 0) {
         newParam->addValue(value);
       }

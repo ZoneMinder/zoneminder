@@ -17,7 +17,7 @@ class ZM_RtspServer_Authenticator : public xop::Authenticator {
     ZM_RtspServer_Authenticator() {};
     ~ZM_RtspServer_Authenticator() {};
 
-    virtual bool Authenticate(std::shared_ptr<xop::RtspRequest> request, std::string &nonce) {
+    bool Authenticate(std::shared_ptr<xop::RtspRequest> request, std::string &nonce) {
 
       if (!config.opt_use_auth) {
         Debug(1, "Not doing auth");
@@ -77,6 +77,14 @@ class ZM_RtspServer_Authenticator : public xop::Authenticator {
       }
       return false;
     }
+
+    size_t GetFailedResponse(
+        std::shared_ptr<xop::RtspRequest> request,
+        std::shared_ptr<char> buf,
+        size_t size) {
+      return request->BuildUnauthorizedRes(buf.get(), size);
+    }
+
 };  // end class ZM_RtspServer_Authenticator
 
 #endif // HAVE_RTSP_SERVER

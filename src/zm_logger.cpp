@@ -427,7 +427,7 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   log_mutex.lock();
   // Can we save some cycles by having these as members and not allocate them on the fly? I think so.
   char            timeString[64];
-  char            logString[8192];
+  char            logString[4096]; // SQL TEXT can hold 64k so we could go up to 32k here but why?
   va_list         argPtr;
   struct timeval  timeVal;
 
@@ -500,6 +500,11 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   }
   va_end(argPtr);
   char *syslogEnd = logPtr;
+
+  if ( static_cast<size_t>(logPtr - logString) >= sizeof(logString) ) {
+    // vsnprintf won't exceed the the buffer, but it might hit the end.
+    logPtr = logString + sizeof(logString)-3;
+  }
   strncpy(logPtr, "]\n", sizeof(logString)-(logPtr-logString));
 
   if (level <= mTerminalLevel) {

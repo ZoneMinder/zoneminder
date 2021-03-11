@@ -322,7 +322,7 @@ void PacketQueue::clear() {
 
   std::unique_lock<std::mutex> lck(mutex);
 
-  while ( !pktQueue.empty() ) {
+  while (!pktQueue.empty()) {
     ZMPacket *packet = pktQueue.front();
     // Someone might have this packet, but not for very long and since we have locked the queue they won't be able to get another one
     packet->lock();
@@ -660,10 +660,11 @@ bool PacketQueue::is_there_an_iterator_pointing_to_packet(ZMPacket *zm_packet) {
   }  // end foreach iterator
   return false;
 }
-    void PacketQueue::setMaxVideoPackets(int p) {
-      max_video_packet_count = p;
-      Debug(1, "Setting max_video_packet_count to %d", p);
-      if ( max_video_packet_count < 1 )
-        max_video_packet_count = 1 ;
-      // We can simplify a lot of logic in queuePacket if we can assume at least 1 packet in queue
-    }
+
+void PacketQueue::setMaxVideoPackets(int p) {
+  max_video_packet_count = p;
+  Debug(1, "Setting max_video_packet_count to %d", p);
+  if ( max_video_packet_count < 1 )
+    max_video_packet_count = 1 ;
+  // We can simplify a lot of logic in queuePacket if we can assume at least 1 packet in queue
+}

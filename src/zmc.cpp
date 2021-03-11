@@ -73,12 +73,12 @@ void Usage() {
 
   fprintf(stderr, "Options:\n");
 #if defined(BSD)
-  fprintf(stderr, "  -d, --device <device_path>         : For local cameras, device to access. E.g /dev/bktr0 etc\n");
+  fprintf(stderr, "  -d, --device <device_path> : For local cameras, device to access. E.g /dev/bktr0 etc\n");
 #else
-  fprintf(stderr, "  -d, --device <device_path>         : For local cameras, device to access. E.g /dev/video0 etc\n");
+  fprintf(stderr, "  -d, --device <device_path> : For local cameras, device to access. E.g /dev/video0 etc\n");
 #endif
-  fprintf(stderr, "  -f, --file <file_path>           : For local images, jpg file to access.\n");
-  fprintf(stderr, "  -m, --monitor <monitor_id>         : For sources associated with a single monitor\n");
+  fprintf(stderr, "  -f, --file <file_path>     : For local images, jpg file to access.\n");
+  fprintf(stderr, "  -m, --monitor <monitor_id> : For sources associated with a single monitor\n");
   fprintf(stderr, "  -h, --help                 : This screen\n");
   fprintf(stderr, "  -v, --version              : Report the installed version of ZoneMinder\n");
   exit(0);

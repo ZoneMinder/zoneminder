@@ -14,8 +14,6 @@
 #include <sstream>
 
 #if HAVE_RTSP_SERVER
-// live555
-#include <Base64.hh>
 
 // ---------------------------------
 // H264 ZoneMinder FramedSource

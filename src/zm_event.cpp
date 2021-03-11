@@ -240,8 +240,7 @@ Event::~Event() {
   DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
   Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
 
-  if ( frame_data.size() )
-    WriteDbFrames();
+  if (frame_data.size()) WriteDbFrames();
 
   // Should not be static because we might be multi-threaded
   char sql[ZM_SQL_LGE_BUFSIZ];
@@ -252,25 +251,17 @@ Event::~Event() {
       frames, alarm_frames,
       tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
       id);
-  {  // scope for lock
-    std::lock_guard<std::mutex> lck(db_mutex);
-    while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
-      Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
-    }
-    if ( !mysql_affected_rows(&dbconn) ) {
-      // Name might have been changed during recording, so just do the update without changing the name.
-      snprintf(sql, sizeof(sql),
-          "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
-          end_time.tv_sec,
-          delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
-          frames, alarm_frames,
-          tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
-          id);
-      while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
-        Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
-      }
-    }  // end if no changed rows due to Name change during recording
-  }
+  if (!zmDbDoUpdate(sql)) {
+    // Name might have been changed during recording, so just do the update without changing the name.
+    snprintf(sql, sizeof(sql),
+        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+        end_time.tv_sec,
+        delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
+        frames, alarm_frames,
+        tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
+        id);
+    zmDbDoUpdate(sql);
+  }  // end if no changed rows due to Name change during recording
 }  // Event::~Event()
 
 void Event::createNotes(std::string &notes) {
@@ -535,7 +526,10 @@ void Event::WriteDbFrames() {
     delete frame;
   }
   *(frame_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
-  zmDbDo(frame_insert_sql);
+  std::string sql(frame_insert_sql);
+
+  dbQueue.push(std::move(sql));
+  //zmDbDo(frame_insert_sql);
 } // end void Event::WriteDbFrames()
 
 void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image) {

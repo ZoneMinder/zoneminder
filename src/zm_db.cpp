@@ -201,8 +201,22 @@ int zmDbDoInsert(const char *query) {
       return 0;
   }
   int id = mysql_insert_id(&dbconn);
-  Debug(1, "Success running sql insert %s. Resulting id is %d", query, id);
+  Debug(2, "Success running sql insert %s. Resulting id is %d", query, id);
   return id;
+}
+
+int zmDbDoUpdate(const char *query) {
+  std::lock_guard<std::mutex> lck(db_mutex);
+  if (!zmDbConnected) return 0;
+  int rc;
+  while ( (rc = mysql_query(&dbconn, query)) and !zm_terminate) {
+    Error("Can't run query %s: %s", query, mysql_error(&dbconn));
+    if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
+      return -rc;
+  }
+  int affected = mysql_affected_rows(&dbconn);
+  Debug(2, "Success running sql update %s. Rows modified %d", query, affected);
+  return affected;
 }
 
 zmDbRow::~zmDbRow() {

@@ -70,6 +70,7 @@ bool zmDbConnect();
 void zmDbClose();
 int zmDbDo(const char *query);
 int zmDbDoInsert(const char *query);
+int zmDbDoUpdate(const char *query);
 
 MYSQL_RES * zmDbFetch(const char *query);
 zmDbRow *zmDbFetchOne(const char *query);

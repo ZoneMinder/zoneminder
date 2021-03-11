@@ -24,7 +24,7 @@
 
 MYSQL dbconn;
 std::mutex db_mutex;
-zmDbQueue   dbQueue;
+zmDbQueue  dbQueue;
 
 bool zmDbConnected = false;
 
@@ -173,12 +173,21 @@ int zmDbDo(const char *query) {
     return 0;
   int rc;
   while ((rc = mysql_query(&dbconn, query)) and !zm_terminate) {
+    Logger *logger = Logger::fetch();
+    Logger::Level oldLevel = logger->databaseLevel();
+    logger->databaseLevel(Logger::NOLOG);
     Error("Can't run query %s: %s", query, mysql_error(&dbconn));
+    logger->databaseLevel(oldLevel);
     if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) ) {
       return rc;
     }
   }
+  Logger *logger = Logger::fetch();
+  Logger::Level oldLevel = logger->databaseLevel();
+  logger->databaseLevel(Logger::NOLOG);
+
   Debug(1, "Success running sql query %s", query);
+  logger->databaseLevel(oldLevel);
   return 1;
 }
 

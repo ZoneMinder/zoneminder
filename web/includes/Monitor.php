@@ -578,5 +578,20 @@ class Monitor extends ZM_Object {
     global $user;
     return ( $user && ($user['Monitors'] == 'Edit') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
   }
+
+  function TriggerOn() {
+    $cmd = getZmuCommand(' -a -m '.$this->{'Id'});
+    $output = shell_exec($cmd);
+    Debug("Running $cmd output: $output");
+    if ( $output and preg_match('/Alarmed event id: (\d+)$/', $output, $matches) ) {
+      return $matches[1];
+    }
+    Warning("No event returned from TriggerOn");
+    return 0;
+  }
+  function TriggerOff() {
+    $cmd = getZmuCommand(' -c -m '.$this->{'Id'});
+    $output = shell_exec($cmd);
+  }
 } // end class Monitor
 ?>

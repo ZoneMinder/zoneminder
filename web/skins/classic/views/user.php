@@ -155,6 +155,11 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
       } // end if ZM_OPT_USE_API
 } // end if canEdit(System)
 ?>
+            <tr>
+              <th class="text-right" scope="row"><?php echo translate('Home View') ?></th>
+              <td><input type="text" name="newUser[HomeView]" value="<?php echo validHtmlStr($newUser->HomeView()); ?>"/></td>
+            </tr>
+            
           </tbody>
         </table>
         <div id="contentButtons">

@@ -337,9 +337,12 @@ class ZM_Object {
       $sql = 'INSERT INTO `'.$table.
         '` ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
           ') VALUES ('.
-          implode(', ', array_map(function($field){return '?';}, $fields)).')';
+          implode(', ', array_map(function($field){return $this->$field() == 'NOW()' ? 'NOW()' : '?';}, $fields)).')';
 
-      $values = array_map(function($field){return $this->$field();}, $fields);
+      $values = array_values(array_map(
+        function($field){return $this->$field();},
+          array_filter($fields, function($field){ return $this->$field() != 'NOW()';})
+      ));
       if ( dbQuery($sql, $values) ) {
         $this->{'Id'} = dbInsertId();
         return true;
@@ -414,6 +417,9 @@ class ZM_Object {
     if ( !$row ) {
       Error("Unable to lock $class record for Id=".$this->Id());
     }
+  }
+  public function remove_from_cache() {
+    return ZM_Object::_remove_from_cache(get_class(), $this);
   }
 } # end class Object
 ?>

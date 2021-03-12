@@ -24,6 +24,7 @@ class User extends ZM_Object {
       'MonitorIds'      => '',
       'TokenMinExpiry'  => 0,
       'APIEnabled'      => 1,
+      'HomeView'        =>  '',
 			);
 
   public static function find( $parameters = array(), $options = array() ) {

@@ -197,6 +197,11 @@ if ( $showZones ) {
             <button type="button" value="Save" data-on-click-this="save_layout"><?php echo translate('Save') ?></button>
             <button type="button" value="Cancel" data-on-click-this="cancel_layout"><?php echo translate('Cancel') ?></button>
           </span>
+
+          <button type="button" name="snapshotBtn" data-on-click-this="takeSnapshot">
+            <i class="material-icons md-18">camera_enhance</i>
+            &nbsp;<?php echo translate('Snapshot') ?>
+          </button>
         </form>
       </div>
     </div>

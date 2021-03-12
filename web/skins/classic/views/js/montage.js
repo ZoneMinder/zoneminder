@@ -270,6 +270,11 @@ function reloadWebSite(ndx) {
   document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
 }
 
+function takeSnapshot() {
+  monitor_ids = monitorData.map( monitor=> { return 'monitor_ids[]='+monitor.id; });
+  window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
+}
+
 var monitors = new Array();
 function initPage() {
   $j("#hdrbutton").click(function() {

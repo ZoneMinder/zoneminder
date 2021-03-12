@@ -233,6 +233,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getCycleHTML($view);
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
+          echo getSnapshotsHTML($view);
           echo getRprtEvntAuditHTML($view);
           echo getHeaderFlipHTML();
         echo '</ul>';
@@ -361,6 +362,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getCycleHTML($view);
             echo getMontageHTML($view);
             echo getMontageReviewHTML($view);
+            echo getSnapshotsHTML($view);
             echo getRprtEvntAuditHTML($view);
           echo '</ul>';
       }
@@ -672,7 +674,7 @@ function getMontageHTML($view) {
   $result = '';
   
   if ( canView('Stream') ) {
-    $class = $view == 'cycle' ? ' selected' : '';
+    $class = $view == 'montage' ? ' selected' : '';
     $result .= '<li id="getMontageHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
   
@@ -701,6 +703,18 @@ function getMontageReviewHTML($view) {
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
     $class = $view == 'montagereview' ? ' selected' : '';
     $result .= '<li id="getMontageReviewHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+  }
+  
+  return $result;
+}
+
+// Returns the html representing the Montage menu item
+function getSnapshotsHTML($view) {
+  $result = '';
+  
+  if ( canView('Events') ) {
+    $class = $view == 'snapshots' ? ' selected' : '';
+    $result .= '<li id="getSnapshotsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
   }
   
   return $result;

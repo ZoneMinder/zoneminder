@@ -677,6 +677,7 @@ CREATE TABLE `Users` (
   `MonitorIds` text,
   `TokenMinExpiry`   BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `APIEnabled`  tinyint(3) UNSIGNED NOT NULL default 1,
+  `HomeView`  varchar(64) NOT NULL DEFAULT '',
   PRIMARY KEY (`Id`),
   UNIQUE KEY `UC_Username` (`Username`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -1045,6 +1046,26 @@ CREATE TABLE Sessions (
   data text,
   PRIMARY KEY(id)
 ) ENGINE=InnoDB;
+
+CREATE TABLE Snapshots (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name`  VARCHAR(64),
+  `Description` TEXT,
+  `CreatedBy`   int(10),
+  `CreatedOn`   datetime default NULL,
+  PRIMARY KEY(Id)
+) ENGINE=InnoDB;
+
+CREATE TABLE Snapshot_Events (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `SnapshotId` int(10) unsigned NOT NULL,
+  FOREIGN KEY (`SnapshotId`) REFERENCES `Snapshots` (`Id`) ON DELETE CASCADE,
+  `EventId`    bigint unsigned NOT NULL,
+  FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,
+  KEY `Snapshot_Events_SnapshotId_idx` (`SnapshotId`),
+  PRIMARY KEY(Id)
+) ENGINE=InnoDB;
+
 
 -- We generally don't alter triggers, we drop and re-create them, so let's keep them in a separate file that we can just source in update scripts.
 source @PKGDATADIR@/db/triggers.sql

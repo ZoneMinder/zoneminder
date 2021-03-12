@@ -118,7 +118,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $table = 'Snapshots';
 
   // The names of the dB columns in the events table we are interested in
-  $columns = array('Id', 'Name', 'Description', 'CreatedDateTime');
+  $columns = array('Id', 'Name', 'Description', 'CreatedOn');
 
   if ( !in_array($sort, array_merge($columns)) ) {
     ZM\Error('Invalid sort field: ' . $sort);
@@ -154,7 +154,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     $search_filter = new ZM\Filter();
 
     if (count($snapshot_ids))
-      $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$snapshot_ids));
+      $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$snapshot_ids, 'tablename'=>'Snapshots'));
 
     // There are two search bars in the log view, normal and advanced
     // Making an exuctive decision to ignore the normal search, when advanced search is in use
@@ -162,7 +162,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     if ( count($advsearch) ) {
       $terms = array();
       foreach ( $advsearch as $col=>$text ) {
-        $terms[] = array('cnj'=>'and', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$text);
+        $terms[] = array('cnj'=>'and', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$text, 'tablename'=>'Snapshots');
       } # end foreach col in advsearch
       $terms[0]['obr'] = 1;
       $terms[count($terms)-1]['cbr'] = 1;
@@ -171,7 +171,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       $search = '%' .$search. '%';
       $terms = array();
       foreach ( $columns as $col ) {
-        $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search);
+        $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search, 'tablename'=>'Snapshots');
       }
       $terms[0]['obr'] = 1;
       $terms[0]['cnj'] = 'and';

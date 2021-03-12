@@ -190,13 +190,14 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   foreach ( array_slice($filtered_rows, $offset, $limit) as $row ) {
     $snapshot = new ZM\Snapshot($row);
 
-    //$scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
-    //$imgSrc = $event->getThumbnailSrc(array(), '&amp;');
-    //$streamSrc = $event->getStreamSrc(array(
-      //'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
-
+    $row['imgHtml'] = '';
     // Modify the row data as needed
-    //$row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"/>';
+    foreach ( $snapshot->Events() as $event ) {
+      $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
+      $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
+
+      $row['imgHtml'] .= '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'"/>';
+    }
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Description'] = validHtmlStr($row['Description']);
     //$row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
@@ -209,6 +210,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     //$row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
     //$row['Notes'] = nl2br(htmlspecialchars($row['Notes']));
     //$row['DiskSpace'] = human_filesize($event->DiskSpace());
+    //
     $returned_rows[] = $row;
   } # end foreach row matching search
 

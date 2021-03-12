@@ -54,7 +54,7 @@ function processRows(rows) {
     row.Name = '<a href="?view=snapshot&amp;id=' + id + '">' + row.Name + '</a>';
     row.Description = '<a href="?view=snapshot&amp;id=' + id + '">' + row.Description + '</a>';
 
-    //if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=snapshot&amp;id=' + row.Id '">' + row.imgHtml + '</a>';
+    if (WEB_LIST_THUMBS) row.Thumbnail = '<a href="?view=snapshot&amp;id=' + id +'">' + row.imgHtml + '</a>';
   });
 
   return rows;

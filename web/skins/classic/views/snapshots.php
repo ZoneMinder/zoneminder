@@ -77,7 +77,7 @@ getBodyTopHTML();
               <th data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
               <th data-sortable="true" data-field="Name"><?php echo translate('Reference') ?></th>
               <th data-sortable="false" data-field="Description"><?php echo translate('Notes') ?></th>
-              <th data-sortable="true" data-field="CreatedOn"><?php echo translate('AttrWhen') ?></th>
+              <th data-sortable="true" data-field="CreatedOn"><?php echo translate('When') ?></th>
               <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
             </tr>
           </thead>

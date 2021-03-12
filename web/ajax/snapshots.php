@@ -133,7 +133,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $sql = 'SELECT ' .$col_str. ' FROM `Snapshots`'.$where.' ORDER BY '.$sort.' '.$order;
 
   $unfiltered_rows = array();
-  $event_ids = array();
+  $snapshot_ids = array();
 
   ZM\Debug('Calling the following sql query: ' .$sql);
   $query = dbQuery($sql, $values);
@@ -153,7 +153,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   if ( count($advsearch) or $search != '' ) {
     $search_filter = new ZM\Filter();
 
-    $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$event_ids));
+    if (count($snapshot_ids))
+      $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$snapshot_ids));
 
     // There are two search bars in the log view, normal and advanced
     // Making an exuctive decision to ignore the normal search, when advanced search is in use

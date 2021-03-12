@@ -154,14 +154,16 @@ echo getNavBarHTML();
 if ( $showControl ) {
   echo makeLink('?view=control', translate('Control'));
 }
-if ( $showZones ) {
-?>
-  <a id="HideZones" href="?view=montage&amp;showZones=0"><?php echo translate('Hide Zones')?></a>
-<?php
-} else {
-?>
-  <a id="ShowZones" href="?view=montage&amp;showZones=1"><?php echo translate('Show Zones')?></a>
-<?php
+if ( canView('System') ) {
+  if ( $showZones ) {
+  ?>
+    <a id="HideZones" href="?view=montage&amp;showZones=0"><?php echo translate('Hide Zones')?></a>
+  <?php
+  } else {
+  ?>
+    <a id="ShowZones" href="?view=montage&amp;showZones=1"><?php echo translate('Show Zones')?></a>
+  <?php
+  }
 }
 ?>
       </div>

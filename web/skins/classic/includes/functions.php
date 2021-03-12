@@ -382,6 +382,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 // Returns the html representing the current unix style system load
 function getSysLoadHTML() {
   $result = '';
+  if ( !canView('System') ) return $result;
 
   $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
   $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
@@ -394,7 +395,7 @@ function getSysLoadHTML() {
 // Returns the html representing the current number of connections made to the database
 function getDbConHTML() {
   $result = '';
-  
+  if ( !canView('System') ) return $result;
   $connections = dbFetchOne('SHOW status WHERE variable_name=\'threads_connected\'', 'Value');
   $max_connections = dbFetchOne('SHOW variables WHERE variable_name=\'max_connections\'', 'Value');
   $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
@@ -411,6 +412,7 @@ function getDbConHTML() {
 // Returns an html dropdown showing capacity of all storage areas
 function getStorageHTML() {
   $result = '';
+  if ( !canView('System') ) return $result;
 
   $func = function($S) {
     $class = '';
@@ -457,6 +459,7 @@ function getStorageHTML() {
 // Returns the html representing the current capacity of mapped memory filesystem (usually /dev/shm)
 function getShmHTML() {
   $result = '';
+  if ( !canView('System') ) return $result;
   
   $shm_percent = getDiskPercent(ZM_PATH_MAP);
   $shm_total_space = disk_total_space(ZM_PATH_MAP);
@@ -518,6 +521,7 @@ function getBandwidthHTML($bandwidth_options, $user) {
 // Returns the html representing the version of ZoneMinder
 function getZMVersionHTML() {
   $result = '';
+  if ( !canView('System') ) return $result;
   $content = '';
   
   if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) ) {  // Must upgrade before proceeding
@@ -640,7 +644,8 @@ function getDevicesHTML() {
 // Returns the html representing the Groups menu item
 function getGroupsHTML($view) {
   $result = '';
-  
+  if ( !canView('Groups') ) return $result;
+
   $class = $view == 'groups' ? ' selected' : '';
   $result .= '<li id="getGroupsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
   
@@ -650,6 +655,7 @@ function getGroupsHTML($view) {
 // Returns the html representing the Filter menu item
 function getFilterHTML($view) {
   $result = '';
+  if ( !canView('Events') ) return $result;
   
   $class = $view == 'filter' ? ' selected' : '';
   $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;

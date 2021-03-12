@@ -53,20 +53,22 @@ $html =
   <input type="submit" class="d-none"/>
   <input type="hidden" name="filtering" value=""/>
 ';
-$GroupsById = array();
-foreach ( ZM\Group::find() as $G ) {
-  $GroupsById[$G->Id()] = $G;
-}
-
 $groupSql = '';
-if ( count($GroupsById) ) {
-  $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
-  # This will end up with the group_id of the deepest selection
-  $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
-  $html .= ZM\Group::get_group_dropdown();
-  $groupSql = ZM\Group::get_group_sql($group_id);
-  $html .= '</span>
-';
+if ( canView('Groups') ) {
+  $GroupsById = array();
+  foreach ( ZM\Group::find() as $G ) {
+    $GroupsById[$G->Id()] = $G;
+  }
+
+  if ( count($GroupsById) ) {
+    $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
+    # This will end up with the group_id of the deepest selection
+    $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
+    $html .= ZM\Group::get_group_dropdown();
+    $groupSql = ZM\Group::get_group_sql($group_id);
+    $html .= '</span>
+  ';
+  }
 }
 
 $selected_monitor_ids = isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : array();

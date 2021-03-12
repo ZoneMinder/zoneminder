@@ -635,7 +635,7 @@ class Filter extends ZM_Object {
 
     if ( !FilterTerm::is_valid_attr($term['attr']) ) {
       Error('Unsupported filter attribute ' . $term['attr']);
-      return $this;
+      //return $this;
     }
 
     $terms = $this->terms();

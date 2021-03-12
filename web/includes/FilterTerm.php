@@ -41,6 +41,11 @@ class FilterTerm {
         Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
       }
     }
+    if ( isset($term['tablename']) ) {
+      $this->tablename = $term['tablename'];
+    } else {
+      $this->tablename = 'E';
+    }
 
     if ( isset($term['obr']) ) {
       if ( (string)(int)$term['obr'] == $term['obr'] ) {
@@ -288,7 +293,10 @@ class FilterTerm {
     case 'Notes':
     case 'StateId':
     case 'Archived':
-      $sql .= 'E.'.$this->attr;
+      $sql .= $this->tablename.'.'.$this->attr;
+      break;
+    default :
+      $sql .= $this->tablename.'.'.$this->attr;
     }
     $sql .= $this->sql_operator();
     $values = $this->sql_values();

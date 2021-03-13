@@ -13,11 +13,6 @@ function MonitorStream(monitorData) {
     request: 'stream',
     connkey: this.connKey
   };
-  if ( auth_hash ) {
-    this.streamCmdParms.auth = auth_hash;
-  } else if ( auth_relay ) {
-    this.streamCmdParms.auth_relay = '';
-  }
   this.type = monitorData.type;
   this.refresh = monitorData.refresh;
   this.start = function(delay) {
@@ -208,6 +203,11 @@ function MonitorStream(monitorData) {
 
   if ( this.type != 'WebSite' ) {
     this.streamCmdReq = function(streamCmdParms) {
+      if ( auth_hash ) {
+        this.streamCmdParms.auth = auth_hash;
+      } else if ( auth_relay ) {
+        this.streamCmdParms.auth_relay = '';
+      }
       $j.ajaxSetup({timeout: AJAX_TIMEOUT});
       $j.getJSON(this.url, streamCmdParms)
           .done(this.getStreamCmdResponse.bind(this))

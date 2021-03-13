@@ -4,10 +4,8 @@ if ( $_REQUEST['entity'] == 'navBar' ) {
   $data = array();
   if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
     $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
-    if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
-      $data['auth'] = $auth_hash;
-      $data['auth_relay'] = get_auth_relay();
-    }
+    $data['auth'] = $auth_hash;
+    $data['auth_relay'] = get_auth_relay();
   }
   // Each widget on the navbar has its own function
   // Call the functions we want to dynamically update

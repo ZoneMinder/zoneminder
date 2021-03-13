@@ -249,21 +249,16 @@ if ( $action and !$request ) {
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'none') ) {
-  /* AJAX check  */
-  if ( !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-    && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' ) {
+  if ($request) {
+    # requests only return json
     header('HTTP/1.1 401 Unauthorized');
     exit;
   }
-  ZM\Debug('Redirecting to login');
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
-  if ( ! $request ) {
-    zm_session_start();
-    $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
-    session_write_close();
-  }
-  $request = null;
+  zm_session_start();
+  $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
+  session_write_close();
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';

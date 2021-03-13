@@ -61,7 +61,6 @@ class ZMPacket {
 
     int is_keyframe() { return keyframe; };
     int decode( AVCodecContext *ctx );
-    void reset();
     explicit ZMPacket(Image *image);
     explicit ZMPacket(ZMPacket &packet);
     ZMPacket();

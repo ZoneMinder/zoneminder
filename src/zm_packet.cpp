@@ -68,71 +68,12 @@ ZMPacket::ZMPacket(ZMPacket &p) :
 
 ZMPacket::~ZMPacket() {
   zm_av_packet_unref(&packet);
-  if ( in_frame ) {
-    av_frame_free(&in_frame);
-  }
-  if ( out_frame ) {
-    av_frame_free(&out_frame);
-  }
-  if ( buffer ) {
-    av_freep(&buffer);
-  }
-  if ( analysis_image ) {
-    delete analysis_image;
-    analysis_image = nullptr;
-  }
-  if ( image ) {
-      delete image;
-      image = nullptr;
-  }
-  if ( timestamp ) {
-    delete timestamp;
-    timestamp = nullptr;
-  }
-
-#if 0
-  if ( image ) {
-    if ( image->IsBufferHeld() ) {
-    // Don't free the mmap'd image
-    } else {
-      delete image;
-      image = nullptr;
-      delete timestamp;
-      timestamp = nullptr;
-    }
-  } else {
-    if ( timestamp ) {
-      delete timestamp;
-      timestamp = nullptr;
-    }
-  }
-#endif
-}
-
-// deprecated
-void ZMPacket::reset() {
-  zm_av_packet_unref(&packet);
-  if ( in_frame ) {
-    av_frame_free(&in_frame);
-  }
-  if ( out_frame ) {
-    av_frame_free(&out_frame);
-  }
-  if ( buffer ) {
-    av_freep(&buffer);
-  }
-  if ( analysis_image ) {
-    delete analysis_image;
-    analysis_image = nullptr;
-  }
-#if 0
-  if ( (! image) && timestamp ) {
-    delete timestamp;
-    timestamp = NULL;
-  }
-#endif
-  score = -1;
-  keyframe = 0;
+  if ( in_frame ) av_frame_free(&in_frame);
+  if ( out_frame ) av_frame_free(&out_frame);
+  if ( buffer ) av_freep(&buffer);
+  if ( analysis_image ) delete analysis_image;
+  if ( image ) delete image;
+  if ( timestamp ) delete timestamp;
 }
 
 /* returns < 0 on error, 0 on not ready, int bytes consumed on success 

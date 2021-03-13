@@ -33,13 +33,14 @@ if ( defined('ZM_SERVER_ID') ) {
 if ( !$Server ) {
   $Server = array('Id' => '');
 }
-
+$mid = null;
 $monitor = null;
 if ( !empty($_REQUEST['mid']) ) {
-  $nextId = validInt($_REQUEST['mid']);
-  $monitor = new ZM\Monitor($_REQUEST['mid']);
+  $mid = validInt($_REQUEST['mid']);
+
+  $monitor = new ZM\Monitor($mid);
   if ( $monitor and ZM_OPT_X10 )
-    $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']));
+    $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($mid));
 }
 
 if ( !$monitor ) {
@@ -56,7 +57,7 @@ if ( isset($_REQUEST['dupId']) ) {
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));
   $clonedName = $monitor->Name();
   $monitor->Name('Clone of '.$monitor->Name());
-  $monitor->Id(!empty($_REQUEST['mid'])?validInt($_REQUEST['mid']) : 0);
+  $monitor->Id($mid);
 }
 
 if ( ZM_OPT_X10 && empty($x10Monitor) ) {
@@ -467,7 +468,7 @@ if ( canEdit('Monitors') ) {
     <div class="d-flex flex-row container-fluid pr-0">
     <form name="contentForm" id="contentForm" method="post" action="?view=monitor">
       <input type="hidden" name="tab" value="<?php echo $tab?>"/>
-      <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : validHtmlStr($nextId) ?>"/>
+      <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>
       <input type="hidden" name="origMethod" value="<?php echo (null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
 <div class="tab-content" id="pills-tabContent">
 <?php

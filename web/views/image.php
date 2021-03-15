@@ -196,8 +196,10 @@ if ( empty($_REQUEST['path']) ) {
                 Output was: '.implode(PHP_EOL,$output) );
             }
             # Generating an image file will use up more disk space, so update the Event record.
-            $Event->DiskSpace(null);
-            $Event->save();
+            if ( $Event->EndDateTime() ) {
+              $Event->DiskSpace(null);
+              $Event->save();
+            }
           } else {
             header('HTTP/1.0 404 Not Found');
             ZM\Fatal('No snapshot jpg found for event '.$_REQUEST['eid']);
@@ -281,8 +283,10 @@ Command was: '.$command.'
 Output was: '.implode(PHP_EOL,$output) );
       }
       # Generating an image file will use up more disk space, so update the Event record.
-      $Event->DiskSpace(null);
-      $Event->save();
+      if ( $Event->EndDateTime() ) {
+        $Event->DiskSpace(null);
+        $Event->save();
+      }
     } else {
       header('HTTP/1.0 404 Not Found');
       ZM\Fatal("Can't create frame $show images from video because there is no video file for this event at ".

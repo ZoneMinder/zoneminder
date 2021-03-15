@@ -1211,29 +1211,6 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
   return 0;
 }  // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)
 
-int VideoStore::write_packets(PacketQueue &queue) {
-  // Need to write out all the frames from the last keyframe?
-  // No... need to write out all frames from when the event began. Due to PreEventFrames, this could be more than since the last keyframe.
-  unsigned int packet_count = 0;
-  ZMPacket *queued_packet;
-
-  while ( ( queued_packet = queue.popPacket() ) ) {
-    AVPacket *avp = queued_packet->av_packet();
-
-    packet_count += 1;
-    //Write the packet to our video store
-    Debug(2, "Writing queued packet stream: %d KEY %d, remaining (%d)",
-        avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, queue.size() );
-    int ret = this->writePacket( queued_packet );
-    if ( ret < 0 ) {
-      //Less than zero and we skipped a frame
-    }
-    delete queued_packet;
-  } // end while packets in the packetqueue
-  Debug(2, "Wrote %d queued packets", packet_count );
-  return packet_count;
-}  // end int VideoStore::write_packets( PacketQueue &queue ) {
-
 int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   pkt->pos = -1;
   pkt->stream_index = stream->index;

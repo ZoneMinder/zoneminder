@@ -144,17 +144,19 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
 
   // First packet is special because we know it is a video keyframe and only need to check for lock
   ZMPacket *zm_packet = *it;
-  if ( zm_packet->trylock() ) {
+  ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
+  if ( lp->trylock() ) {
     ++it;
-    zm_packet->unlock();
+    delete lp;
 
     // Since we have many packets in the queue, we should NOT be pointing at end so don't need to test for that
     while ( *it != add_packet ) {
       zm_packet = *it;
-      if ( !zm_packet->trylock() ) {
+      lp = new ZMLockedPacket(zm_packet);
+      if ( !lp->trylock() ) {
         break;
       }
-      zm_packet->unlock();
+      delete lp;
 
       if ( is_there_an_iterator_pointing_to_packet(zm_packet) ) {
         Warning("Found iterator at beginning of queue. Some thread isn't keeping up");
@@ -200,7 +202,7 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
 	return;
 } // end voidPacketQueue::clearPackets(ZMPacket* zm_packet)
 
-ZMPacket* PacketQueue::popPacket( ) {
+ZMLockedPacket* PacketQueue::popPacket( ) {
   Debug(4, "pktQueue size %d", pktQueue.size());
 	if ( pktQueue.empty() ) {
 		return nullptr;
@@ -222,14 +224,15 @@ ZMPacket* PacketQueue::popPacket( ) {
     }
   }  // end foreach iterator
 
-  zm_packet->lock();
+  ZMLockedPacket *lp = new ZMLockedPacket (zm_packet);
+  lp->lock();
 
 	pktQueue.pop_front();
   packet_counts[zm_packet->packet.stream_index] -= 1;
 
   mutex.unlock();
 
-	return zm_packet;
+	return lp;
 }  // popPacket
 
 
@@ -325,9 +328,9 @@ void PacketQueue::clear() {
   while (!pktQueue.empty()) {
     ZMPacket *packet = pktQueue.front();
     // Someone might have this packet, but not for very long and since we have locked the queue they won't be able to get another one
-    packet->lock();
+    ZMLockedPacket lp(packet);
+    lp.lock();
     pktQueue.pop_front();
-    packet->unlock();
     delete packet;
   }
 
@@ -452,7 +455,7 @@ int PacketQueue::packet_count(int stream_id) {
 
 
 // Returns a packet. Packet will be locked
-ZMPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
+ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
   if ( deleting or zm_terminate )
     return nullptr;
 
@@ -477,14 +480,17 @@ ZMPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
     Error("Null p?!");
     return nullptr;
   }
+  ZMLockedPacket *lp = new ZMLockedPacket(p);
   Debug(3, "get_packet %p image_index: %d, about to lock packet", p, p->image_index);
-  while ( !(zm_terminate or deleting) and !p->trylock() ) {
-    Debug(3, "waiting.  Queue size %d it == end? %d", pktQueue.size(), ( *it == pktQueue.end() ) );
+  while (!(zm_terminate or deleting) and !lp->trylock()) {
+    Debug(3, "waiting on index %d.  Queue size %d it == end? %d",
+        p->image_index, pktQueue.size(), ( *it == pktQueue.end() ) );
+    ZM_DUMP_PACKET(p->packet, "");
     condition.wait(lck);
   }
   Debug(2, "Locked packet, unlocking packetqueue mutex");
-  return p;
-}  // end ZMPacket *PacketQueue::get_packet(it)
+  return lp;
+}  // end ZMLockedPacket *PacketQueue::get_packet(it)
 
 bool PacketQueue::increment_it(packetqueue_iterator *it) {
   Debug(2, "Incrementing %p, queue size %d, end? %d", it, pktQueue.size(), ((*it) == pktQueue.end()));
@@ -612,14 +618,14 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
 
   while ( *it != pktQueue.end() ) {
     ZMPacket *zm_packet = *(*it);
-    if ( !zm_packet ) {
+    if (!zm_packet) {
       Error("Null zmpacket in queue!?");
       free_it(it);
       return nullptr;
     }
     Debug(1, "Packet keyframe %d for stream %d, so returning the it to it",
         zm_packet->keyframe, zm_packet->packet.stream_index);
-    if ( zm_packet->keyframe and ( zm_packet->packet.stream_index == video_stream_id ) ) {
+    if (zm_packet->keyframe and ( zm_packet->packet.stream_index == video_stream_id )) {
       Debug(1, "Found a keyframe for stream %d, so returning the it to it", video_stream_id);
       return it;
     }
@@ -627,7 +633,7 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
   }
   Debug(1, "DIdn't Found a keyframe for stream %d, so returning the it to it", video_stream_id);
   return it;
-}
+}  // get video_it
 
 void PacketQueue::free_it(packetqueue_iterator *it) {
   for (

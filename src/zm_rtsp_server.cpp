@@ -187,14 +187,16 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < monitors.size(); i++) {
       std::shared_ptr<Monitor> monitor = monitors[i];
 
-      if (!(monitor->ShmValid() or monitor->connect())) {
-        Warning("Couldn't connect to monitor %d", monitor->Id());
-        if (sessions[i]) {
-          rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
-          sessions[i] = nullptr;
-        }
-        monitor->disconnect();
-        continue;
+      if (!monitor->ShmValid()) {
+         monitor->disconnect();
+         if (!monitor->connect()) {
+           Warning("Couldn't connect to monitor %d", monitor->Id());
+           if (sessions[i]) {
+             rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
+             sessions[i] = nullptr;
+           }
+           continue;
+         }
       }
 
       if (!sessions[i]) {

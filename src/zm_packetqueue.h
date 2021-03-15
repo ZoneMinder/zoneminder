@@ -24,6 +24,7 @@
 #include <mutex>
 
 class ZMPacket;
+class ZMLockedPacket;
 
 typedef std::list<ZMPacket *>::iterator packetqueue_iterator;
 
@@ -52,7 +53,7 @@ class PacketQueue {
     void setMaxVideoPackets(int p);
 
     bool queuePacket(ZMPacket* packet);
-    ZMPacket * popPacket();
+    ZMLockedPacket * popPacket();
     bool popVideoPacket(ZMPacket* packet);
     bool popAudioPacket(ZMPacket* packet);
     unsigned int clear(unsigned int video_frames_to_keep, int stream_id);
@@ -68,7 +69,7 @@ class PacketQueue {
 
     bool increment_it(packetqueue_iterator *it);
     bool increment_it(packetqueue_iterator *it, int stream_id);
-    ZMPacket *get_packet(packetqueue_iterator *);
+    ZMLockedPacket *get_packet(packetqueue_iterator *);
     packetqueue_iterator *get_video_it(bool wait);
     packetqueue_iterator *get_stream_it(int stream_id);
     void free_it(packetqueue_iterator *);

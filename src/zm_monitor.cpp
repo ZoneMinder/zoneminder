@@ -1813,12 +1813,13 @@ bool Monitor::Analyse() {
   // if have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
   // get_analysis_packet will lock the packet and may wait if analysis_it is at the end
-  ZMPacket *snap = packetqueue.get_packet(analysis_it);
-  if (!snap) return false;
+  ZMLockedPacket *packet_lock = packetqueue.get_packet(analysis_it);
+  if (!packet_lock) return false;
+  ZMPacket *snap = packet_lock->packet_;
 
   // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
   if (snap->score != -1) {
-    snap->unlock();
+    delete packet_lock;
     packetqueue.increment_it(analysis_it);
     Error("skipping because score was %d", snap->score);
     return false;
@@ -1844,7 +1845,7 @@ bool Monitor::Analyse() {
     // Ready means that we have captured the warmup # of frames
     if (!Ready()) {
       Debug(3, "Not ready?");
-      snap->unlock();
+      delete packet_lock;
       return false;
     }
 
@@ -1896,10 +1897,10 @@ bool Monitor::Analyse() {
         while (!snap->image and !snap->decoded) {
           // Need to wait for the decoder thread.
             Debug(1, "Waiting for decode");
-          snap->wait();
+          packet_lock->wait();
           if (!snap->image and snap->decoded) {
             Debug(1, "No image but was decoded, giving up");
-            snap->unlock();
+            delete packet_lock;
             return false;
           }
         }  // end while ! decoded
@@ -2010,22 +2011,32 @@ bool Monitor::Analyse() {
                   );
 
               // This gets a lock on the starting packet
-              ZMPacket *starting_packet = ( *start_it == snap_it ) ? snap : packetqueue.get_packet(start_it);
+
+              ZMLockedPacket *starting_packet_lock = nullptr;
+              ZMPacket *starting_packet = nullptr;
+              if ( *start_it != snap_it ) {
+                starting_packet_lock = packetqueue.get_packet(start_it);
+                if (!starting_packet_lock) return false;
+                starting_packet = starting_packet_lock->packet_;
+              } else {
+                starting_packet = snap;
+              }
 
               event = new Event(this, *(starting_packet->timestamp), "Continuous", noteSetMap);
               // Write out starting packets, do not modify packetqueue it will garbage collect itself
-              while ( starting_packet and (*start_it) != snap_it ) {
+              while ( starting_packet and ((*start_it) != snap_it) ) {
                 event->AddPacket(starting_packet);
                 // Have added the packet, don't want to unlock it until we have locked the next
 
                 packetqueue.increment_it(start_it);
                 if ( (*start_it) == snap_it ) {
-                  starting_packet->unlock();
+                  if (starting_packet_lock) delete starting_packet_lock;
                   break;
                 }
-                ZMPacket *p = packetqueue.get_packet(start_it);
-                starting_packet->unlock();
-                starting_packet = p;
+                ZMLockedPacket *lp = packetqueue.get_packet(start_it);
+                delete starting_packet_lock;
+                starting_packet_lock = lp;
+                starting_packet = lp->packet_;
               }
               packetqueue.free_it(start_it);
               delete start_it;
@@ -2094,7 +2105,16 @@ bool Monitor::Analyse() {
                     snap_it,
                     (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
                     );
-                ZMPacket *starting_packet = ( *start_it == snap_it ) ? snap : packetqueue.get_packet(start_it);
+                
+                ZMLockedPacket *starting_packet_lock = nullptr;
+                ZMPacket *starting_packet = nullptr;
+                if ( *start_it != snap_it ) {
+                  starting_packet_lock = packetqueue.get_packet(start_it);
+                  if (!starting_packet_lock) return false;
+                  starting_packet = starting_packet_lock->packet_;
+                } else {
+                  starting_packet = snap;
+                }
 
                 event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
                 shared_data->last_event_id = event->Id();
@@ -2108,12 +2128,13 @@ bool Monitor::Analyse() {
 
                   packetqueue.increment_it(start_it);
                   if ( (*start_it) == snap_it ) {
-                    starting_packet->unlock();
+                    if (starting_packet_lock) delete starting_packet_lock;
                     break;
                   }
-                  ZMPacket *p = packetqueue.get_packet(start_it);
-                  starting_packet->unlock();
-                  starting_packet = p;
+                  ZMLockedPacket *lp = packetqueue.get_packet(start_it);
+                  delete starting_packet_lock;
+                  starting_packet_lock = lp;
+                  starting_packet = lp->packet_;
                 }
                 packetqueue.free_it(start_it);
                 delete start_it;
@@ -2266,7 +2287,7 @@ bool Monitor::Analyse() {
   if (event) event->AddPacket(snap);
 
   // popPacket will have placed a second lock on snap, so release it here.
-  snap->unlock();
+  delete packet_lock;  
 
   if ( snap->image_index > 0 ) {
     // Only do these if it's a video packet.
@@ -2705,11 +2726,12 @@ int Monitor::Capture() {
 bool Monitor::Decode() {
   if (!decoder_it) decoder_it = packetqueue.get_video_it(true);
   
-  ZMPacket *packet = packetqueue.get_packet(decoder_it);
-  if (!packet) return false;
+  ZMLockedPacket *packet_lock = packetqueue.get_packet(decoder_it);
+  if (!packet_lock) return false;
+  ZMPacket *packet = packet_lock->packet_;
   packetqueue.increment_it(decoder_it);
   if (packet->image or (packet->codec_type != AVMEDIA_TYPE_VIDEO)) {
-    packet->unlock();
+    delete packet_lock;
     return true; // Don't need decode
   }
 
@@ -2788,7 +2810,7 @@ bool Monitor::Decode() {
     }  // end if have image
   }  // end if did decoding
   packet->decoded = true;
-  packet->unlock();  // unlock will also signal
+  delete packet_lock;
 
   shared_data->signal = ( capture_image and signal_check_points ) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
@@ -3112,7 +3134,7 @@ int Monitor::PrimeCapture() {
         audio_fifo = new Fifo(shared_data->audio_fifo_path, true);
       }
     }  // end if rtsp_server
-    decoder = new DecoderThread(this);
+    if (decoding_enabled) decoder = new DecoderThread(this);
   } else {
     Debug(2, "Failed to prime %d", ret);
   }
@@ -3140,25 +3162,25 @@ Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 // So this should be done as the first task in the analysis thread startup.
 // This function is deprecated.
 void Monitor::get_ref_image() {
-  ZMPacket *snap = nullptr;
+  ZMLockedPacket *snap_lock = nullptr;
 
   if ( !analysis_it ) 
     analysis_it = packetqueue.get_video_it(true);
 
   while ( 
       (
-       !( snap = packetqueue.get_packet(analysis_it))
+       !( snap_lock = packetqueue.get_packet(analysis_it))
        or 
-       ( snap->codec_type != AVMEDIA_TYPE_VIDEO )
+       ( snap_lock->packet_->codec_type != AVMEDIA_TYPE_VIDEO )
        or
-       ! snap->image
+       ! snap_lock->packet_->image
       )
     and !zm_terminate) {
 
     Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)",
         shared_data->last_write_index, shared_data->last_write_time);
-    if ( snap and ! snap->image ) {
-      snap->unlock();
+    if ( snap_lock and ! snap_lock->packet_->image ) {
+      delete snap_lock;
       // can't analyse it anyways, incremement
       packetqueue.increment_it(analysis_it);
     }
@@ -3167,6 +3189,7 @@ void Monitor::get_ref_image() {
   if ( zm_terminate )
     return;
 
+  ZMPacket *snap = snap_lock->packet_;
   Debug(1, "get_ref_image: packet.stream %d ?= video_stream %d, packet image id %d packet image %p",
       snap->packet.stream_index, video_stream_id, snap->image_index, snap->image );
   // Might not have been decoded yet FIXME
@@ -3177,7 +3200,7 @@ void Monitor::get_ref_image() {
   } else {
     Debug(2, "Have no ref image about to unlock");
   }
-  snap->unlock();
+  delete snap_lock;
 }
 
 std::vector<Group *> Monitor::Groups() {

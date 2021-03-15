@@ -27,7 +27,6 @@ using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
 ZMPacket::ZMPacket() :
-  lck(mutex,std::defer_lock),
   keyframe(0),
   in_frame(nullptr),
   out_frame(nullptr),

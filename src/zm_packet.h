@@ -37,6 +37,8 @@ class Image;
 class ZMPacket {
   public:
   
+    std::mutex  mutex_;
+    std::condition_variable condition_;
 
     int keyframe;
     AVStream  *stream;            // Input stream
@@ -68,43 +70,44 @@ class ZMPacket {
     ZMPacket();
     ~ZMPacket();
 
-    std::unique_lock<std::mutex> * lock() {
-      std::unique_lock<std::mutex> *lck = new std::unique_lock<std::mutex>(mutex);
-      Debug(4, "packet %d locked", this->image_index);
-      return lck;
-    };
-    std::unique_lock<std::mutex> * trylock() {
-      std::unique_lock<std::mutex> *lck = new std::unique_lock<std::mutex>(mutex, std::defer_lock);
-      Debug(4, "TryLocking packet %d", this->image_index);
-      if ( lck.try_lock() )
-        return lck;
-      delete lck;
-      return nullptr;
-    };
-    void unlock(std::unique_lock<std::mutex> *lck) {
-      Debug(4, "packet %d unlocked", this->image_index);
-      lck->unlock();
-      condition.notify_all();
-    };
-    void wait(std::unique_lock<std::mutex> *lck) {
-      Debug(4, "packet %d waiting", this->image_index);
-      // We already have a lock, but it's a recursive mutex.. so this may be ok
-      condition.wait(*lck);
-    }
     AVFrame *get_out_frame(const AVCodecContext *ctx);
     int get_codec_imgsize() { return codec_imgsize; };
 };
 
-class  ZMLockedPacket : public ZMPacket {
+class ZMLockedPacket {
   public:
-    std::mutex mutex_;
-    std::condition_variable condition_;
-    std::unique_lock<std::mutex> lck_;
     ZMPacket *packet_;
+    std::unique_lock<std::mutex> lck_;
 
-    ZMLockedPacket(ZMPacket *p) : packet_(packet), lck_(mutex_) {
+    ZMLockedPacket(ZMPacket *p) :
+      packet_(p),
+      lck_(packet_->mutex_, std::defer_lock) {
+    }
+    ~ZMLockedPacket() {
+      unlock();
     }
 
-}
+    void lock() {
+      Debug(4, "locking packet %d", packet_->image_index);
+      lck_.lock();
+      Debug(4, "packet %d locked", packet_->image_index);
+    };
+    bool trylock() {
+      Debug(4, "TryLocking packet %d", packet_->image_index);
+      return lck_.try_lock();
+    };
+    void unlock() {
+      Debug(4, "packet %d unlocked", packet_->image_index);
+      lck_.unlock();
+      packet_->condition_.notify_all();
+    };
+
+    void wait() {
+      Debug(4, "packet %d waiting", packet_->image_index);
+      // We already have a lock, but it's a recursive mutex.. so this may be ok
+      packet_->condition_.wait(lck_);
+    }
+
+};
 
 #endif /* ZM_PACKET_H */

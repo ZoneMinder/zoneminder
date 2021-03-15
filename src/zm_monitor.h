@@ -22,6 +22,7 @@
 
 #include "zm_define.h"
 #include "zm_camera.h"
+#include "zm_decoder_thread.h"
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
@@ -375,6 +376,8 @@ protected:
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   packetqueue_iterator  *analysis_it;
+  packetqueue_iterator  *decoder_it;
+  DecoderThread *decoder;
 
 
   int      n_zones;
@@ -549,6 +552,7 @@ public:
    //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
   bool Analyse();
+  bool Decode();
   void DumpImage( Image *dump_image ) const;
   void TimestampImage( Image *ts_image, const struct timeval *ts_time ) const;
   bool closeEvent();

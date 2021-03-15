@@ -27,6 +27,7 @@ using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
 ZMPacket::ZMPacket() :
+  lck(mutex,std::defer_lock),
   keyframe(0),
   in_frame(nullptr),
   out_frame(nullptr),
@@ -37,7 +38,8 @@ ZMPacket::ZMPacket() :
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
-  codec_imgsize(0)
+  codec_imgsize(0),
+  decoded(0)
 {
   av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.

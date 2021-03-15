@@ -395,6 +395,8 @@ Monitor::Monitor()
   storage(nullptr),
   videoStore(nullptr),
   analysis_it(nullptr),
+  decoder_it(nullptr),
+  decoder(nullptr),
   n_zones(0),
   zones(nullptr),
   privacy_bitmask(nullptr),
@@ -1802,21 +1804,20 @@ void Monitor::UpdateAnalysisFPS() {
 // If there isn't then we keep pre-event + alarm frames. = pre_event_count
 bool Monitor::Analyse() {
 
-  if ( !Enabled() ) {
+  if (!Enabled()) {
     Warning("Shouldn't be doing Analyse when not Enabled");
     return false;
   }
-  if ( !analysis_it ) 
-    analysis_it = packetqueue.get_video_it(true);
+  if (!analysis_it) analysis_it = packetqueue.get_video_it(true);
 
   // if have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
   // get_analysis_packet will lock the packet and may wait if analysis_it is at the end
   ZMPacket *snap = packetqueue.get_packet(analysis_it);
-  if ( !snap ) return false;
+  if (!snap) return false;
 
   // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
-  if ( snap->score != -1 ) {
+  if (snap->score != -1) {
     snap->unlock();
     packetqueue.increment_it(analysis_it);
     Error("skipping because score was %d", snap->score);
@@ -1837,25 +1838,24 @@ bool Monitor::Analyse() {
   std::lock_guard<std::mutex> lck(event_mutex);
 
   // if we have been told to be OFF, then we are off and don't do any processing.
-  if ( trigger_data->trigger_state != TriggerState::TRIGGER_OFF ) {
+  if (trigger_data->trigger_state != TriggerState::TRIGGER_OFF) {
     Debug(4, "Trigger not OFF state is (%d)", int(trigger_data->trigger_state));
     int score = 0;
     // Ready means that we have captured the warmup # of frames
-    if ( !Ready() ) {
+    if (!Ready()) {
       Debug(3, "Not ready?");
       snap->unlock();
       return false;
     }
 
-    Debug(4, "Ready");
     std::string cause;
     Event::StringSetMap noteSetMap;
 
     // Specifically told to be on.  Setting the score here will trigger the alarm.
-    if ( trigger_data->trigger_state == TriggerState::TRIGGER_ON ) {
+    if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
       score += trigger_data->trigger_score;
       Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
-      if ( !event ) {
+      if (!event) {
         cause += trigger_data->trigger_cause;
       }
       Event::StringSet noteSet;
@@ -1863,12 +1863,13 @@ bool Monitor::Analyse() {
       noteSetMap[trigger_data->trigger_cause] = noteSet;
     } // end if trigger_on
 
-    if ( signal_change ) {
+    // FIXME this snap might not be the one that caused the signal change.  Need to store that in the packet.
+    if (signal_change) {
       Debug(2, "Signal change, new signal is %d", signal);
       const char *signalText = "Unknown";
-      if ( !signal ) {
+      if (!signal) {
         signalText = "Lost";
-        if ( event ) {
+        if (event) {
           Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name, analysis_image_count, event->Id());
           closeEvent();
           last_section_mod = 0;
@@ -1877,9 +1878,8 @@ bool Monitor::Analyse() {
         signalText = "Reacquired";
         score += 100;
       }
-      if ( !event ) {
-        if ( cause.length() )
-          cause += ", ";
+      if (!event) {
+        if (cause.length()) cause += ", ";
         cause += SIGNAL_CAUSE;
       }
       Event::StringSet noteSet;
@@ -1887,15 +1887,26 @@ bool Monitor::Analyse() {
       noteSetMap[SIGNAL_CAUSE] = noteSet;
       shared_data->state = state = IDLE;
       shared_data->active = signal;
-      if ( (function == MODECT or function == MOCORD) and snap->image )
+      if ((function == MODECT or function == MOCORD) and snap->image)
         ref_image.Assign(*(snap->image));
     }// else 
 
     if (signal) {
-      if (snap->image or (snap->codec_type == AVMEDIA_TYPE_VIDEO)) {
+      if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
+        while (!snap->image and !snap->decoded) {
+          // Need to wait for the decoder thread.
+            Debug(1, "Waiting for decode");
+          snap->wait();
+          if (!snap->image and snap->decoded) {
+            Debug(1, "No image but was decoded, giving up");
+            snap->unlock();
+            return false;
+          }
+        }  // end while ! decoded
+
         struct timeval *timestamp = snap->timestamp;
 
-        if ( Active() and (function == MODECT or function == MOCORD) and snap->image ) {
+        if (Active() and (function == MODECT or function == MOCORD)) {
           Debug(3, "signal and active and modect");
           Event::StringSet zoneSet;
 
@@ -1999,7 +2010,7 @@ bool Monitor::Analyse() {
                   );
 
               // This gets a lock on the starting packet
-              ZMPacket *starting_packet = packetqueue.get_packet(start_it);
+              ZMPacket *starting_packet = ( *start_it == snap_it ) ? snap : packetqueue.get_packet(start_it);
 
               event = new Event(this, *(starting_packet->timestamp), "Continuous", noteSetMap);
               // Write out starting packets, do not modify packetqueue it will garbage collect itself
@@ -2030,9 +2041,7 @@ bool Monitor::Analyse() {
             for ( int i=0; i < n_zones; i++ ) {
               if ( zones[i]->Alarmed() ) {
                 alarm_cause += std::string(zones[i]->Label());
-                if ( i < n_zones-1 ) {
-                  alarm_cause += ",";
-                }
+                if (i < n_zones-1) alarm_cause += ",";
               }
             }
             alarm_cause = cause+" "+alarm_cause;
@@ -2085,7 +2094,7 @@ bool Monitor::Analyse() {
                     snap_it,
                     (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
                     );
-                ZMPacket *starting_packet = *(*start_it);
+                ZMPacket *starting_packet = ( *start_it == snap_it ) ? snap : packetqueue.get_packet(start_it);
 
                 event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
                 shared_data->last_event_id = event->Id();
@@ -2255,24 +2264,6 @@ bool Monitor::Analyse() {
   } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
   if (event) event->AddPacket(snap);
-#if 0
-  if (snap->packet.stream_index == video_stream_id) {
-    if (video_fifo) {
-      if ( snap->keyframe ) {
-        // avcodec strips out important nals that describe the stream and 
-        // stick them in extradata. Need to send them along with keyframes
-        AVStream *stream = camera->getVideoStream();
-        video_fifo->write(
-            static_cast<unsigned char *>(stream->codecpar->extradata),
-            stream->codecpar->extradata_size);
-      }
-      video_fifo->writePacket(*snap);
-    }
-  } else if (snap->packet.stream_index == audio_stream_id) {
-    if (audio_fifo)
-      audio_fifo->writePacket(*snap);
-  }
-#endif
 
   // popPacket will have placed a second lock on snap, so release it here.
   snap->unlock();
@@ -2507,7 +2498,6 @@ int Monitor::Capture() {
   gettimeofday(packet->timestamp, nullptr);
   shared_data->zmc_heartbeat_time = packet->timestamp->tv_sec;
 
-  Image* capture_image = image_buffer[index].image;
   int captureResult = 0;
 
   if ( deinterlacing_value == 4 ) {
@@ -2536,7 +2526,7 @@ int Monitor::Capture() {
       Rgb signalcolor;
       /* HTML colour code is actually BGR in memory, we want RGB */
       signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
-      capture_image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
+      Image *capture_image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
       capture_image->Fill(signalcolor);
       shared_data->signal = false;
       shared_data->last_write_index = index;
@@ -2592,6 +2582,7 @@ int Monitor::Capture() {
         return 1;
       } // end if audio
 
+#if 0
       if ( !packet->image ) {
         if ( packet->packet.size and !packet->in_frame ) {
           if ( !decoding_enabled ) {
@@ -2678,6 +2669,7 @@ int Monitor::Capture() {
       shared_data->signal = ( capture_image and signal_check_points ) ? CheckSignal(capture_image) : true;
       shared_data->last_write_index = index;
       shared_data->last_write_time = packet->timestamp->tv_sec;
+#endif
       image_count++;
 
       // Will only be queued if there are iterators allocated in the queue.
@@ -2709,6 +2701,100 @@ int Monitor::Capture() {
   }
   return captureResult;
 } // end Monitor::Capture
+
+bool Monitor::Decode() {
+  if (!decoder_it) decoder_it = packetqueue.get_video_it(true);
+  
+  ZMPacket *packet = packetqueue.get_packet(decoder_it);
+  if (!packet) return false;
+  packetqueue.increment_it(decoder_it);
+  if (packet->image or (packet->codec_type != AVMEDIA_TYPE_VIDEO)) {
+    packet->unlock();
+    return true; // Don't need decode
+  }
+
+  int ret = 0;
+  if (packet->packet.size and !packet->in_frame) {
+    // Allocate the image first so that it can be used by hwaccel
+    // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
+    //
+    //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
+    ret = packet->decode(camera->getVideoCodecContext());
+  } else {
+    Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
+  }
+  Image* capture_image = nullptr;
+  unsigned int index = image_count % image_buffer_count;
+  if (ret > 0) {
+    if (packet->in_frame and !packet->image) {
+      packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+      packet->get_image();
+    }
+
+    if (packet->image) {
+      capture_image = packet->image;
+
+      /* Deinterlacing */
+      if ( deinterlacing_value ) {
+        if ( deinterlacing_value == 1 ) {
+          capture_image->Deinterlace_Discard();
+        } else if ( deinterlacing_value == 2 ) {
+          capture_image->Deinterlace_Linear();
+        } else if ( deinterlacing_value == 3 ) {
+          capture_image->Deinterlace_Blend();
+        } else if ( deinterlacing_value == 4 ) {
+          capture_image->Deinterlace_4Field(next_buffer.image, (deinterlacing>>8)&0xff);
+        } else if ( deinterlacing_value == 5 ) {
+          capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
+        }
+      }
+
+      if ( orientation != ROTATE_0 ) {
+        Debug(2, "Doing rotation");
+        switch ( orientation ) {
+          case ROTATE_0 :
+            // No action required
+            break;
+          case ROTATE_90 :
+          case ROTATE_180 :
+          case ROTATE_270 : 
+            capture_image->Rotate((orientation-1)*90);
+            break;
+          case FLIP_HORI :
+          case FLIP_VERT :
+            capture_image->Flip(orientation==FLIP_HORI);
+            break;
+        }
+      } // end if have rotation
+
+      if (privacy_bitmask) {
+        Debug(1, "Applying privacy");
+        capture_image->MaskPrivacy(privacy_bitmask);
+      }
+
+      if (config.timestamp_on_capture) {
+        Debug(1, "Timestampprivacy");
+        TimestampImage(packet->image, packet->timestamp);
+      }
+
+      if (!ref_image.Buffer()) {
+        // First image, so assign it to ref image
+        Debug(1, "Assigning ref image %dx%d size: %d", width, height, camera->ImageSize());
+        ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
+            packet->image->Buffer(), camera->ImageSize());
+      }
+      image_buffer[index].image->Assign(*(packet->image));
+      *(image_buffer[index].timestamp) = *(packet->timestamp);
+    }  // end if have image
+  }  // end if did decoding
+  packet->decoded = true;
+  packet->unlock();  // unlock will also signal
+
+  shared_data->signal = ( capture_image and signal_check_points ) ? CheckSignal(capture_image) : true;
+  shared_data->last_write_index = index;
+  shared_data->last_write_time = packet->timestamp->tv_sec;
+  return true;
+}  // end bool Monitor::Decode()
 
 void Monitor::TimestampImage(Image *ts_image, const struct timeval *ts_time) const {
   if ( !label_format[0] )
@@ -3026,6 +3112,7 @@ int Monitor::PrimeCapture() {
         audio_fifo = new Fifo(shared_data->audio_fifo_path, true);
       }
     }  // end if rtsp_server
+    decoder = new DecoderThread(this);
   } else {
     Debug(2, "Failed to prime %d", ret);
   }
@@ -3035,6 +3122,8 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
+  decoder->Stop();
+  delete decoder;
   std::lock_guard<std::mutex> lck(event_mutex);
   if (event) {
     Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id());

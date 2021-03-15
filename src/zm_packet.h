@@ -21,6 +21,7 @@
 #define ZM_PACKET_H
 
 #include "zm_logger.h"
+#include <condition_variable>
 #include <mutex>
 
 extern "C" {
@@ -36,7 +37,7 @@ class Image;
 class ZMPacket {
   public:
   
-    std::recursive_mutex mutex;
+
     int keyframe;
     AVStream  *stream;            // Input stream
     AVPacket  packet;             // Input packet, undecoded
@@ -51,6 +52,7 @@ class ZMPacket {
     int image_index;
     int codec_imgsize;
     int64_t   pts;                // pts in the packet can be in another time base. This MUST be in AV_TIME_BASE_Q
+    bool decoded;
 
   public:
     AVPacket *av_packet() { return &packet; }
@@ -65,21 +67,44 @@ class ZMPacket {
     explicit ZMPacket(ZMPacket &packet);
     ZMPacket();
     ~ZMPacket();
-    void lock() {
-      Debug(4,"Locking packet %d", this->image_index);
-      mutex.lock();
-      Debug(4,"packet %d locked", this->image_index);
+
+    std::unique_lock<std::mutex> * lock() {
+      std::unique_lock<std::mutex> *lck = new std::unique_lock<std::mutex>(mutex);
+      Debug(4, "packet %d locked", this->image_index);
+      return lck;
     };
-    bool trylock() {
-      Debug(4,"TryLocking packet %d", this->image_index);
-      return mutex.try_lock();
+    std::unique_lock<std::mutex> * trylock() {
+      std::unique_lock<std::mutex> *lck = new std::unique_lock<std::mutex>(mutex, std::defer_lock);
+      Debug(4, "TryLocking packet %d", this->image_index);
+      if ( lck.try_lock() )
+        return lck;
+      delete lck;
+      return nullptr;
     };
-    void unlock() {
-      Debug(4,"packet %d unlocked", this->image_index);
-      mutex.unlock();
+    void unlock(std::unique_lock<std::mutex> *lck) {
+      Debug(4, "packet %d unlocked", this->image_index);
+      lck->unlock();
+      condition.notify_all();
     };
-    AVFrame *get_out_frame( const AVCodecContext *ctx );
+    void wait(std::unique_lock<std::mutex> *lck) {
+      Debug(4, "packet %d waiting", this->image_index);
+      // We already have a lock, but it's a recursive mutex.. so this may be ok
+      condition.wait(*lck);
+    }
+    AVFrame *get_out_frame(const AVCodecContext *ctx);
     int get_codec_imgsize() { return codec_imgsize; };
 };
+
+class  ZMLockedPacket : public ZMPacket {
+  public:
+    std::mutex mutex_;
+    std::condition_variable condition_;
+    std::unique_lock<std::mutex> lck_;
+    ZMPacket *packet_;
+
+    ZMLockedPacket(ZMPacket *p) : packet_(packet), lck_(mutex_) {
+    }
+
+}
 
 #endif /* ZM_PACKET_H */

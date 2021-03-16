@@ -2286,6 +2286,15 @@ bool Monitor::Analyse() {
 
   if (event) event->AddPacket(snap);
 
+  // In the case where people have pre-alarm frames, the web ui will generate the frame images
+  // from the mp4. So no one will notice anyways.
+  if ((videowriter == PASSTHROUGH) and !savejpegs) {
+    Debug(1, "Deleting image data for %d", snap->image_index);
+    // Don't need raw images anymore
+    delete snap->image;
+    snap->image = nullptr;
+  }
+
   // popPacket will have placed a second lock on snap, so release it here.
   delete packet_lock;  
 

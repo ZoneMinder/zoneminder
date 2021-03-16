@@ -467,7 +467,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
 } // end bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
 
 void MonitorStream::runStream() {
-  if ( type == STREAM_SINGLE ) {
+  if (type == STREAM_SINGLE) {
     // Not yet migrated over to stream class
     SingleImage(scale);
     return;
@@ -479,15 +479,13 @@ void MonitorStream::runStream() {
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   if ( !checkInitialised() ) {
-    Error("Not initialized");
-    while ( !(loadMonitor(monitor_id) || zm_terminate) ) {
+    while (!(loadMonitor(monitor_id) || zm_terminate)) {
       sendTextFrame("Not connected");
-      if ( connkey )
+      if (connkey)
         checkCommandQueue();
       sleep(1);
     }
-    if ( zm_terminate )
-      return;
+    if (zm_terminate) return;
   }
 
   updateFrameRate(monitor->GetFPS());
@@ -562,7 +560,7 @@ void MonitorStream::runStream() {
     capture_fps = capture_max_fps;
   }
 
-  while ( !zm_terminate ) {
+  while (!zm_terminate) {
     bool got_command = false;
     if ( feof(stdout) ) {
       Debug(2, "feof stdout");
@@ -570,7 +568,7 @@ void MonitorStream::runStream() {
     } else if ( ferror(stdout) ) {
       Debug(2, "ferror stdout");
       break;
-    } else if ( !monitor->ShmValid() ) {
+    } else if (!monitor->ShmValid()) {
       Debug(2, "monitor not valid.... maybe we should wait until it comes back.");
       break;
     }

@@ -524,8 +524,8 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     if (mLogFileFP) {
       fputs(logString, mLogFileFP);
       if (mFlush) fflush(mLogFileFP);
-    } else {
-      puts("Logging to file, but failed to open it\n");
+    } else if (mTerminalLevel != NOLOG) {
+      puts("Logging to file but failed to open it\n");
     }
   }  // end if level <= mFileLevel
 

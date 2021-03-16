@@ -83,6 +83,7 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderFifoSource::splitF
 		}
 #endif
 		frameList.push_back(std::pair<unsigned char*,size_t>(buffer, size));
+    if (!bufSize) break;
 
 		buffer = this->extractFrame(&buffer[size], bufSize, size);
 	}  // end while buffer

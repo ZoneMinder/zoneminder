@@ -446,8 +446,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
 
   storage_id = atoi(dbrow[col]); col++;
-  if ( storage )
-    delete storage;
+  if (storage) delete storage;
   storage = new Storage(storage_id);
 
   if ( ! strcmp(dbrow[col], "Local") ) {
@@ -636,16 +635,16 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       image_buffer_count, image_size, (image_buffer_count*image_size),
      mem_size);
 
-  Zone **zones = 0;
-  int n_zones = Zone::Load(this, zones);
-  this->AddZones(n_zones, zones);
-  this->AddPrivacyBitmask(zones);
-
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%d", storage->Path(), id);
   LoadCamera();
 
   if ( purpose != QUERY ) {
+    Zone **zones = 0;
+    int n_zones = Zone::Load(this, zones);
+    this->AddZones(n_zones, zones);
+    this->AddPrivacyBitmask(zones);
+
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
     }
@@ -2733,7 +2732,6 @@ int Monitor::Capture() {
 } // end Monitor::Capture
 
 bool Monitor::Decode() {
-  if (!decoder_it) decoder_it = packetqueue.get_video_it(true);
   
   ZMLockedPacket *packet_lock = packetqueue.get_packet(decoder_it);
   if (!packet_lock) return false;
@@ -3143,7 +3141,10 @@ int Monitor::PrimeCapture() {
         audio_fifo = new Fifo(shared_data->audio_fifo_path, true);
       }
     }  // end if rtsp_server
-    if (decoding_enabled) decoder = new DecoderThread(this);
+    if (decoding_enabled) {
+      if (!decoder_it) decoder_it = packetqueue.get_video_it(true);
+      decoder = new DecoderThread(this);
+    }
   } else {
     Debug(2, "Failed to prime %d", ret);
   }
@@ -3153,8 +3154,10 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
-  decoder->Stop();
-  delete decoder;
+  if ( decoder ) {
+    decoder->Stop();
+    delete decoder;
+  }
   std::lock_guard<std::mutex> lck(event_mutex);
   if (event) {
     Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id());

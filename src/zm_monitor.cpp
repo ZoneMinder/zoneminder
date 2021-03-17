@@ -2567,7 +2567,11 @@ int Monitor::Capture() {
       return -1;
     } else if ( captureResult > 0 ) {
       // If we captured, let's assume signal, ::Decode will detect further
-      shared_data->signal = true;
+      if (!decoding_enabled) {
+        shared_data->last_write_index = index;
+        shared_data->last_write_time = packet->timestamp->tv_sec;
+        shared_data->signal = true;
+      }
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
           packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ) );
 

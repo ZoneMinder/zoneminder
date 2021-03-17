@@ -87,7 +87,7 @@ bool PacketQueue::queuePacket(ZMPacket* add_packet) {
 
 	pktQueue.push_back(add_packet);
   packet_counts[add_packet->packet.stream_index] += 1;
-  Debug(1, "packet counts for %d is %d",
+  Debug(2, "packet counts for %d is %d",
       add_packet->packet.stream_index,
       packet_counts[add_packet->packet.stream_index]);
 
@@ -328,9 +328,10 @@ void PacketQueue::clear() {
   while (!pktQueue.empty()) {
     ZMPacket *packet = pktQueue.front();
     // Someone might have this packet, but not for very long and since we have locked the queue they won't be able to get another one
-    ZMLockedPacket lp(packet);
-    lp.lock();
+    ZMLockedPacket *lp = new ZMLockedPacket(packet);
+    lp->lock();
     pktQueue.pop_front();
+    delete lp;
     delete packet;
   }
 
@@ -605,7 +606,7 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
 
   if ( wait ) {
     while ( ((! pktQueue.size()) or (*it == pktQueue.end())) and !zm_terminate and !deleting ) {
-      Debug(2, "waiting.  Queue size %d it == end? %d", pktQueue.size(), ( *it == pktQueue.end() ) );
+      Debug(2, "waiting for packets in queue.  Queue size %d it == end? %d", pktQueue.size(), ( *it == pktQueue.end() ) );
       condition.wait(lck);
       *it = pktQueue.begin();
     }

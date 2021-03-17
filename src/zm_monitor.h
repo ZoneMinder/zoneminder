@@ -22,6 +22,7 @@
 
 #include "zm_define.h"
 #include "zm_camera.h"
+#include "zm_analysis_thread.h"
 #include "zm_decoder_thread.h"
 #include "zm_event.h"
 #include "zm_fifo.h"
@@ -376,9 +377,9 @@ protected:
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   packetqueue_iterator  *analysis_it;
+  AnalysisThread        *analysis_thread;
   packetqueue_iterator  *decoder_it;
-  DecoderThread *decoder;
-
+  DecoderThread         *decoder;
 
   int      n_zones;
   Zone      **zones;

@@ -3180,9 +3180,11 @@ int Monitor::Close() {
   packetqueue.clear();
   if (decoder) {
     delete decoder;
+    decoder = nullptr;
   }
   if (analysis_thread) {
     delete analysis_thread;
+    analysis_thread = nullptr;
   }
   std::lock_guard<std::mutex> lck(event_mutex);
   if (event) {

@@ -54,7 +54,6 @@ possible, this should run at more or less constant speed.
 */
 
 #include "zm.h"
-#include "zm_analysis_thread.h"
 #include "zm_camera.h"
 #include "zm_db.h"
 #include "zm_define.h"
@@ -272,8 +271,6 @@ int main(int argc, char *argv[]) {
     }  // end foreach monitor
     if (zm_terminate) break;
 
-    std::vector<std::unique_ptr<AnalysisThread>> analysis_threads = std::vector<std::unique_ptr<AnalysisThread>>();
-
     int *capture_delays = new int[monitors.size()];
     int *alarm_capture_delays = new int[monitors.size()];
     struct timeval * last_capture_times = new struct timeval[monitors.size()];
@@ -284,12 +281,6 @@ int main(int argc, char *argv[]) {
       alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
       Debug(2, "capture delay(%u mSecs 1000/capture_fps) alarm delay(%u)",
           capture_delays[i], alarm_capture_delays[i]);
-
-      Monitor::Function function = monitors[0]->GetFunction();
-      if (function != Monitor::MONITOR) {
-        Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
-        analysis_threads.emplace_back(ZM::make_unique<AnalysisThread>(monitors[i]));
-      }
     }
 
     struct timeval now;
@@ -320,29 +311,31 @@ int main(int argc, char *argv[]) {
           break;
         }
 
-        gettimeofday(&now, nullptr);
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         int delay = (monitors[i]->GetState() == Monitor::ALARM) ? alarm_capture_delays[i] : capture_delays[i];
-        if (delay && last_capture_times[i].tv_sec) {
-          // DT_PREC_3 means that the value will be in thousands of a second
-          DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_6);
+        if (delay) {
+          gettimeofday(&now, nullptr);
+          if (last_capture_times[i].tv_sec) {
+            // DT_PREC_3 means that the value will be in thousands of a second
+            DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_6);
 
-          // You have to add back in the previous sleep time
-          sleep_time = delay - (delta_time.delta - sleep_time);
-          Debug(4, "Sleep time is %d from now:%d.%d last:%d.%d delta %d delay: %d",
-              sleep_time,
-              now.tv_sec, now.tv_usec,
-              last_capture_times[i].tv_sec, last_capture_times[i].tv_usec,
-              delta_time.delta,
-              delay
-              );
-          
-          if (sleep_time > 0) {
-            Debug(4, "usleeping (%d)", sleep_time);
-            usleep(sleep_time);
-          }
-        }  // end if has a last_capture time
-        last_capture_times[i] = now;
+            // You have to add back in the previous sleep time
+            sleep_time = delay - (delta_time.delta - sleep_time);
+            Debug(4, "Sleep time is %d from now:%d.%d last:%d.%d delta %d delay: %d",
+                sleep_time,
+                now.tv_sec, now.tv_usec,
+                last_capture_times[i].tv_sec, last_capture_times[i].tv_usec,
+                delta_time.delta,
+                delay
+                );
+
+            if (sleep_time > 0) {
+              Debug(4, "usleeping (%d)", sleep_time);
+              usleep(sleep_time);
+            }
+          }  // end if has a last_capture time
+          last_capture_times[i] = now;
+        }  // end if delay
       }  // end foreach n_monitors
 
       if ((result < 0) or zm_reload) {
@@ -351,15 +344,9 @@ int main(int argc, char *argv[]) {
       }
     }  // end while ! zm_terminate and connected
 
-    for (std::unique_ptr<AnalysisThread> &analysis_thread: analysis_threads)
-      analysis_thread->Stop();
-
     for (size_t i = 0; i < monitors.size(); i++) {
       monitors[i]->Close();
     }
-
-    // Killoff the analysis threads. Don't need them spinning while we try to reconnect
-    analysis_threads.clear();
 
     delete [] alarm_capture_delays;
     delete [] capture_delays;
@@ -385,7 +372,7 @@ int main(int argc, char *argv[]) {
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf(sql, sizeof(sql),
-        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'Connected') ON DUPLICATE KEY UPDATE Status='NotRunning'", 
+        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%d, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'", 
         monitor->Id());
     zmDbDo(sql);
   }

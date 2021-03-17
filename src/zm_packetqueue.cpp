@@ -56,11 +56,11 @@ int PacketQueue::addStream() {
 
 PacketQueue::~PacketQueue() {
   clear();
-  if ( packet_counts ) {
+  if (packet_counts) {
     delete[] packet_counts;
     packet_counts = nullptr;
   }
-  while ( !iterators.empty() ) {
+  while (!iterators.empty()) {
     packetqueue_iterator *it = iterators.front();
     iterators.pop_front();
     delete it;
@@ -322,6 +322,7 @@ unsigned int PacketQueue::clear(unsigned int frames_to_keep, int stream_id) {
 
 void PacketQueue::clear() {
   deleting = true;
+  condition.notify_all();
 
   std::unique_lock<std::mutex> lck(mutex);
 
@@ -457,7 +458,7 @@ int PacketQueue::packet_count(int stream_id) {
 
 // Returns a packet. Packet will be locked
 ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
-  if ( deleting or zm_terminate )
+  if (deleting or zm_terminate)
     return nullptr;
 
   Debug(4, "Locking in get_packet using it %p queue end? %d, packet %p",
@@ -471,7 +472,7 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
     Debug(2, "waiting.  Queue size %d it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
     condition.wait(lck);
   }
-  if ( deleting or zm_terminate )
+  if (deleting or zm_terminate)
     return nullptr;
 
   Debug(4, "get_packet using it %p queue end? %d, packet %p",
@@ -488,6 +489,10 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
         p->image_index, pktQueue.size(), ( *it == pktQueue.end() ) );
     ZM_DUMP_PACKET(p->packet, "");
     condition.wait(lck);
+  }
+  if (deleting or zm_terminate) {
+    // packet may have been deleted so we can't delete the lp FIXME
+    return nullptr;
   }
   Debug(2, "Locked packet, unlocking packetqueue mutex");
   return lp;

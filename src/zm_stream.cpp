@@ -72,6 +72,10 @@ bool StreamBase::checkInitialised() {
     Error("Monitor shm is not connected");
     return false;
   }
+  if ((monitor->GetType() == Monitor::FFMPEG) and !monitor->DecodingEnabled() ) {
+    Error("Monitor is not decoding.");
+    return false;
+  }
   return true;
 }
 

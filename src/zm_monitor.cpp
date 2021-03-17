@@ -1893,16 +1893,55 @@ bool Monitor::Analyse() {
 
     if (signal) {
       if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
-        while (!snap->image and !snap->decoded) {
-          // Need to wait for the decoder thread.
+        // Check to see if linked monitors are triggering.
+        if (n_linked_monitors > 0) {
+          Debug(1, "Checking linked monitors");
+          // FIXME improve logic here
+          bool first_link = true;
+          Event::StringSet noteSet;
+          for ( int i = 0; i < n_linked_monitors; i++ ) {
+            // TODO: Shouldn't we try to connect?
+            if ( linked_monitors[i]->isConnected() ) {
+              Debug(1, "Linked monitor %d %s is connected",
+                  linked_monitors[i]->Id(), linked_monitors[i]->Name());
+              if ( linked_monitors[i]->hasAlarmed() ) {
+                Debug(1, "Linked monitor %d %s is alarmed",
+                    linked_monitors[i]->Id(), linked_monitors[i]->Name());
+                if ( !event ) {
+                  if ( first_link ) {
+                    if ( cause.length() )
+                      cause += ", ";
+                    cause += LINKED_CAUSE;
+                    first_link = false;
+                  }
+                }
+                noteSet.insert(linked_monitors[i]->Name());
+                score += linked_monitors[i]->lastFrameScore(); // 50;
+              } else {
+                Debug(1, "Linked monitor %d %s is not alarmed",
+                    linked_monitors[i]->Id(), linked_monitors[i]->Name());
+              }
+            } else {
+              Debug(1, "Linked monitor %d %d is not connected. Connecting.", i, linked_monitors[i]->Id());
+              linked_monitors[i]->connect();
+            }
+          } // end foreach linked_monitor
+          if ( noteSet.size() > 0 )
+            noteSetMap[LINKED_CAUSE] = noteSet;
+        } // end if linked_monitors
+
+        if ( decoding_enabled ) {
+          while (!snap->image and !snap->decoded and !zm_terminate) {
+            // Need to wait for the decoder thread.
             Debug(1, "Waiting for decode");
-          packet_lock->wait();
-          if (!snap->image and snap->decoded) {
-            Debug(1, "No image but was decoded, giving up");
-            delete packet_lock;
-            return false;
-          }
-        }  // end while ! decoded
+            packet_lock->wait();
+            if (!snap->image and snap->decoded) {
+              Debug(1, "No image but was decoded, giving up");
+              delete packet_lock;
+              return false;
+            }
+          }  // end while ! decoded
+        }
 
         struct timeval *timestamp = snap->timestamp;
 
@@ -1943,42 +1982,6 @@ bool Monitor::Analyse() {
           } // end if motion_score
         } // end if active and doing motion detection
 
-        // Check to see if linked monitors are triggering.
-        if (n_linked_monitors > 0) {
-          Debug(4, "Checking linked monitors");
-          // FIXME improve logic here
-          bool first_link = true;
-          Event::StringSet noteSet;
-          for ( int i = 0; i < n_linked_monitors; i++ ) {
-            // TODO: Shouldn't we try to connect?
-            if ( linked_monitors[i]->isConnected() ) {
-              Debug(4, "Linked monitor %d %s is connected",
-                  linked_monitors[i]->Id(), linked_monitors[i]->Name());
-              if ( linked_monitors[i]->hasAlarmed() ) {
-                Debug(4, "Linked monitor %d %s is alarmed",
-                    linked_monitors[i]->Id(), linked_monitors[i]->Name());
-                if ( !event ) {
-                  if ( first_link ) {
-                    if ( cause.length() )
-                      cause += ", ";
-                    cause += LINKED_CAUSE;
-                    first_link = false;
-                  }
-                }
-                noteSet.insert(linked_monitors[i]->Name());
-                score += linked_monitors[i]->lastFrameScore(); // 50;
-              } else {
-                Debug(4, "Linked monitor %d %s is not alarmed",
-                    linked_monitors[i]->Id(), linked_monitors[i]->Name());
-              }
-            } else {
-              Debug(1, "Linked monitor %d %d is not connected. Connecting.", i, linked_monitors[i]->Id());
-              linked_monitors[i]->connect();
-            }
-          } // end foreach linked_monitor
-          if ( noteSet.size() > 0 )
-            noteSetMap[LINKED_CAUSE] = noteSet;
-        } // end if linked_monitors
 
         if (function == RECORD or function == MOCORD) {
           // If doing record, check to see if we need to close the event or not.
@@ -2287,7 +2290,7 @@ bool Monitor::Analyse() {
 
   // In the case where people have pre-alarm frames, the web ui will generate the frame images
   // from the mp4. So no one will notice anyways.
-  if ((videowriter == PASSTHROUGH) and !savejpegs) {
+  if (snap->image and (videowriter == PASSTHROUGH) and !savejpegs) {
     Debug(1, "Deleting image data for %d", snap->image_index);
     // Don't need raw images anymore
     delete snap->image;
@@ -2569,6 +2572,8 @@ int Monitor::Capture() {
       // Don't want to do analysis on it, but we won't due to signal
       return -1;
     } else if ( captureResult > 0 ) {
+      // If we captured, let's assume signal, ::Decode will detect further
+      shared_data->signal = true;
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
           packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ) );
 
@@ -2732,6 +2737,7 @@ int Monitor::Capture() {
 } // end Monitor::Capture
 
 bool Monitor::Decode() {
+  if (!decoder_it) decoder_it = packetqueue.get_video_it(true);
   
   ZMLockedPacket *packet_lock = packetqueue.get_packet(decoder_it);
   if (!packet_lock) return false;
@@ -3142,7 +3148,6 @@ int Monitor::PrimeCapture() {
       }
     }  // end if rtsp_server
     if (decoding_enabled) {
-      if (!decoder_it) decoder_it = packetqueue.get_video_it(true);
       decoder = new DecoderThread(this);
     }
   } else {

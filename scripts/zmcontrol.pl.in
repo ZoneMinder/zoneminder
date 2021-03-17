@@ -138,6 +138,14 @@ if ( $options{command} ) {
     Fatal("Can't load ZoneMinder::Control::$protocol\n$Module::Load::Conditional::ERROR");
   }
 
+  my $zm_terminate = 0;
+  sub TermHandler {
+    Info('Received TERM, exiting');
+    $zm_terminate = 1;
+  }
+  $SIG{TERM} = \&TermHandler;
+  $SIG{INT} = \&TermHandler;
+
   Info("Control server $id/$protocol starting at "
     .strftime('%y/%m/%d %H:%M:%S', localtime())
   );
@@ -166,7 +174,7 @@ if ( $options{command} ) {
   my $win = $rin;
   my $ein = $win;
   my $timeout = MAX_COMMAND_WAIT;
-  while ( 1 ) {
+  while (!$zm_terminate) {
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
@@ -202,7 +210,7 @@ if ( $options{command} ) {
     } else {
       Debug('Select timed out');
     }
-  } # end while forever
+  } # end while !$zm_terminate
   Info("Control server $id/$protocol exiting");
   unlink($sock_file);
   $control->close();

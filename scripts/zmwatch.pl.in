@@ -68,6 +68,13 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 logInit();
 logSetSignal();
+my $zm_terminate = 0;
+sub TermHandler {
+  Info('Received TERM, exiting');
+  $zm_terminate = 1;
+}
+$SIG{TERM} = \&TermHandler;
+$SIG{INT} = \&TermHandler;
 
 Info('Watchdog starting, pausing for '.START_DELAY.' seconds');
 sleep(START_DELAY);
@@ -77,7 +84,7 @@ my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'S
 my $sth = $dbh->prepare_cached($sql)
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
 
-while( 1 ) {
+while (!$zm_terminate) {
   while ( ! ( $dbh and $dbh->ping() ) ) {
     if ( ! ( $dbh = zmDbConnect() ) ) {
       sleep($Config{ZM_WATCH_CHECK_INTERVAL});
@@ -192,7 +199,7 @@ while( 1 ) {
   } # end foreach monitor
 
   sleep($Config{ZM_WATCH_CHECK_INTERVAL});
-} # end while (1)
+} # end while (!$zm_terminate)
 
 Info("Watchdog exiting");
 exit();

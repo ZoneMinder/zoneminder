@@ -2551,7 +2551,7 @@ int Monitor::Capture() {
     }
   } else {
     captureResult = camera->Capture(*packet);
-    Debug(4, "Back from capture result=%d image %d", captureResult, image_count);
+    Debug(4, "Back from capture result=%d image count %d", captureResult, image_count);
 
     if ( captureResult < 0 ) {
       Debug(2, "failed capture");
@@ -2749,85 +2749,85 @@ bool Monitor::Decode() {
   if (!packet_lock) return false;
   ZMPacket *packet = packet_lock->packet_;
   packetqueue.increment_it(decoder_it);
-  if (packet->image or (packet->codec_type != AVMEDIA_TYPE_VIDEO)) {
+  if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     delete packet_lock;
     return true; // Don't need decode
   }
 
   int ret = 0;
-  if (packet->packet.size and !packet->in_frame) {
+  if ((!packet->image) and packet->packet.size and !packet->in_frame) {
     // Allocate the image first so that it can be used by hwaccel
     // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
     //
     //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
     ret = packet->decode(camera->getVideoCodecContext());
-  } else {
-    Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
+    if (ret > 0) {
+      if (packet->in_frame and !packet->image) {
+        packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+        packet->get_image();
+      }
+    } else {
+      Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
+    }
   }
   Image* capture_image = nullptr;
   unsigned int index = image_count % image_buffer_count;
-  if (ret > 0) {
-    if (packet->in_frame and !packet->image) {
-      packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
-      packet->get_image();
+
+  if (packet->image) {
+    capture_image = packet->image;
+
+    /* Deinterlacing */
+    if ( deinterlacing_value ) {
+      if ( deinterlacing_value == 1 ) {
+        capture_image->Deinterlace_Discard();
+      } else if ( deinterlacing_value == 2 ) {
+        capture_image->Deinterlace_Linear();
+      } else if ( deinterlacing_value == 3 ) {
+        capture_image->Deinterlace_Blend();
+      } else if ( deinterlacing_value == 4 ) {
+        capture_image->Deinterlace_4Field(next_buffer.image, (deinterlacing>>8)&0xff);
+      } else if ( deinterlacing_value == 5 ) {
+        capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
+      }
     }
 
-    if (packet->image) {
-      capture_image = packet->image;
-
-      /* Deinterlacing */
-      if ( deinterlacing_value ) {
-        if ( deinterlacing_value == 1 ) {
-          capture_image->Deinterlace_Discard();
-        } else if ( deinterlacing_value == 2 ) {
-          capture_image->Deinterlace_Linear();
-        } else if ( deinterlacing_value == 3 ) {
-          capture_image->Deinterlace_Blend();
-        } else if ( deinterlacing_value == 4 ) {
-          capture_image->Deinterlace_4Field(next_buffer.image, (deinterlacing>>8)&0xff);
-        } else if ( deinterlacing_value == 5 ) {
-          capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
-        }
+    if ( orientation != ROTATE_0 ) {
+      Debug(2, "Doing rotation");
+      switch ( orientation ) {
+        case ROTATE_0 :
+          // No action required
+          break;
+        case ROTATE_90 :
+        case ROTATE_180 :
+        case ROTATE_270 : 
+          capture_image->Rotate((orientation-1)*90);
+          break;
+        case FLIP_HORI :
+        case FLIP_VERT :
+          capture_image->Flip(orientation==FLIP_HORI);
+          break;
       }
+    } // end if have rotation
 
-      if ( orientation != ROTATE_0 ) {
-        Debug(2, "Doing rotation");
-        switch ( orientation ) {
-          case ROTATE_0 :
-            // No action required
-            break;
-          case ROTATE_90 :
-          case ROTATE_180 :
-          case ROTATE_270 : 
-            capture_image->Rotate((orientation-1)*90);
-            break;
-          case FLIP_HORI :
-          case FLIP_VERT :
-            capture_image->Flip(orientation==FLIP_HORI);
-            break;
-        }
-      } // end if have rotation
+    if (privacy_bitmask) {
+      Debug(1, "Applying privacy");
+      capture_image->MaskPrivacy(privacy_bitmask);
+    }
 
-      if (privacy_bitmask) {
-        Debug(1, "Applying privacy");
-        capture_image->MaskPrivacy(privacy_bitmask);
-      }
+    if (config.timestamp_on_capture) {
+      Debug(1, "Timestampprivacy");
+      TimestampImage(packet->image, packet->timestamp);
+    }
 
-      if (config.timestamp_on_capture) {
-        Debug(1, "Timestampprivacy");
-        TimestampImage(packet->image, packet->timestamp);
-      }
-
-      if (!ref_image.Buffer()) {
-        // First image, so assign it to ref image
-        Debug(1, "Assigning ref image %dx%d size: %d", width, height, camera->ImageSize());
-        ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
-            packet->image->Buffer(), camera->ImageSize());
-      }
-      image_buffer[index].image->Assign(*(packet->image));
-      *(image_buffer[index].timestamp) = *(packet->timestamp);
-    }  // end if have image
-  }  // end if did decoding
+    if (!ref_image.Buffer()) {
+      // First image, so assign it to ref image
+      Debug(1, "Assigning ref image %dx%d size: %d", width, height, camera->ImageSize());
+      ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
+          packet->image->Buffer(), camera->ImageSize());
+    }
+    image_buffer[index].image->Assign(*(packet->image));
+    *(image_buffer[index].timestamp) = *(packet->timestamp);
+  }  // end if have image
   packet->decoded = true;
   delete packet_lock;
 

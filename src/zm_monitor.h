@@ -414,6 +414,8 @@ public:
     if ( shared_data && shared_data->valid ) {
       struct timeval now;
       gettimeofday(&now, nullptr);
+      Debug(3, "Shared data is valid, checking heartbeat %u - %u = %d < %f",
+          now.tv_sec, shared_data->zmc_heartbeat_time, (now.tv_sec - shared_data->zmc_heartbeat_time), config.watch_max_delay);
       if ((now.tv_sec - shared_data->zmc_heartbeat_time) < config.watch_max_delay)
         return true;
     }
@@ -429,6 +431,7 @@ public:
     }
     return storage;
   }
+  inline CameraType GetType() const { return type; }
   inline Function GetFunction() const { return function; }
   inline PacketQueue * GetPacketQueue() { return &packetqueue; }
   inline bool Enabled() const {

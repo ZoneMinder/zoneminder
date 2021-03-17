@@ -1734,16 +1734,10 @@ void Monitor::UpdateCaptureFPS() {
       last_fps_time = now_double;
       last_capture_image_count = image_count;
 
-      static char sql[ZM_SQL_SML_BUFSIZ];
-      // The reason we update the Status as well is because if mysql restarts, the Monitor_Status table is lost,
-      // and nothing else will update the status until zmc restarts. Since we are successfully capturing we can
-      // assume that we are connected
-      snprintf(sql, sizeof(sql),
-          "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth,Status) "
-          "VALUES (%d, %.2lf, %u, 'Connected') ON DUPLICATE KEY UPDATE "
-          "CaptureFPS = %.2lf, CaptureBandwidth=%u, Status='Connected'",
-          id, new_capture_fps, new_capture_bandwidth, new_capture_fps, new_capture_bandwidth);
-      dbQueue.push(sql);
+      std::string sql = stringtf(
+          "UPDATE Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u WHERE MonitorId=%u",
+          new_capture_fps, new_capture_bandwidth, id);
+      dbQueue.push(sql.c_str());
     } // now != last_fps_time
   } // end if report fps
 }  // void Monitor::UpdateCaptureFPS()

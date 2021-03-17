@@ -104,7 +104,7 @@ bool Fifo::close() {
 bool Fifo::writePacket(ZMPacket &packet) {
   if (!(outfile or open())) return false;
 
-  Debug(1, "Writing header ZM %u %" PRId64,  packet.packet.size, packet.pts);
+  Debug(2, "Writing header ZM %u %" PRId64,  packet.packet.size, packet.pts);
   // Going to write a brief header
   if ( fprintf(outfile, "ZM %u %" PRId64 "\n", packet.packet.size, packet.pts) < 0 ) {
     if (errno != EAGAIN) {

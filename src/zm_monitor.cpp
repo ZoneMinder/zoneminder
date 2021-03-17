@@ -2829,11 +2829,11 @@ bool Monitor::Decode() {
     *(image_buffer[index].timestamp) = *(packet->timestamp);
   }  // end if have image
   packet->decoded = true;
-  delete packet_lock;
 
   shared_data->signal = ( capture_image and signal_check_points ) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
   shared_data->last_write_time = packet->timestamp->tv_sec;
+  delete packet_lock;
   return true;
 }  // end bool Monitor::Decode()
 

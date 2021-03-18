@@ -124,7 +124,7 @@ commonprep () {
       echo "Cloning RtspServer ..."
       git clone https://github.com/ZoneMinder/RtspServer build/RtspServer
       if [ $? -ne 0 ]; then
-        echo "ERROR: CakePHP-Enum-Behavior tarball retreival failed..."
+        echo "ERROR: RtspServer clone failed..."
         exit 1
       fi
     fi
@@ -152,7 +152,7 @@ movecrud () {
         echo "RtspServer already installed..."
     else
         echo "Copying RtspServer..."
-        rmdir dep/RtspServer
+        rm -r dep/RtspServer
         cp -Rpd build/RtspServer dep/RtspServer
     fi
 }

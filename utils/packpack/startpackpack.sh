@@ -122,7 +122,7 @@ commonprep () {
       echo "Found existing RtspServer..."
     else
       echo "Cloning RtspServer ..."
-      git clone https://github.com/ZoneMinder/RtspServer
+      git clone https://github.com/ZoneMinder/RtspServer build/RtspServer
       if [ $? -ne 0 ]; then
         echo "ERROR: CakePHP-Enum-Behavior tarball retreival failed..."
         exit 1

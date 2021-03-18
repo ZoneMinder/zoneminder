@@ -27,7 +27,6 @@ function manageDelConfirmModalBtns() {
 }
 
 function initPage() {
-
   // enable or disable buttons based on current selection and user rights
   /*
   renameBtn.prop('disabled', !canEdit.Events);

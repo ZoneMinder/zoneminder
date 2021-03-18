@@ -302,14 +302,20 @@ class ZM_Object {
     # Set defaults.  Note that we only replace "" with null, not other values
     # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
     foreach ( $this->defaults as $field => $default ) {
-      if ( (!property_exists($this, $field)) or ($this->{$field} === '') ) {
-        if ( is_array($default) ) {
+      if (!property_exists($this, $field)) {
+        if (is_array($default)) {
           $this->{$field} = $default['default'];
-        } else if ( $default == null ) {
+        } else {
+          $this->{$field} = $default;
+        }
+      } else if ($this->{$field} === '') {
+        if (is_array($default)) {
+          $this->{$field} = $default['default'];
+        } else if ($default == null) {
           $this->{$field} = $default;
         }
       }
-    }
+    } # end foreach default
 
     $fields = array_filter(
       $this->defaults,
@@ -339,10 +345,10 @@ class ZM_Object {
           ') VALUES ('.
           implode(', ', array_map(function($field){return $this->$field() == 'NOW()' ? 'NOW()' : '?';}, $fields)).')';
 
-      $values = array_values(array_map(
-        function($field){return $this->$field();},
-          array_filter($fields, function($field){ return $this->$field() != 'NOW()';})
-      ));
+      # For some reason comparing 0 to 'NOW()' returns false; So we do this.
+      $filtered = array_filter($fields, function($field){ return ( (!$this->$field()) or ($this->$field() != 'NOW()'));});
+      $mapped = array_map(function($field){return $this->$field();}, $filtered);
+      $values = array_values($mapped);
       if ( dbQuery($sql, $values) ) {
         $this->{'Id'} = dbInsertId();
         return true;

@@ -445,10 +445,6 @@ public:
   }
   inline const char *EventPrefix() const { return event_prefix; }
   inline bool Ready() const {
-    if ( function <= MONITOR ) {
-      Error("Should not be calling Ready if the function doesn't include motion detection");
-      return false;
-    }
     if ( image_count >= ready_count ) {
       return true;
     }

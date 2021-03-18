@@ -1797,10 +1797,6 @@ void Monitor::UpdateAnalysisFPS() {
 // If there isn't then we keep pre-event + alarm frames. = pre_event_count
 bool Monitor::Analyse() {
 
-  if (!Enabled()) {
-    Warning("Shouldn't be doing Analyse when not Enabled");
-    return false;
-  }
 
   // if have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
@@ -3153,10 +3149,12 @@ int Monitor::PrimeCapture() {
         audio_fifo = new Fifo(shared_data->audio_fifo_path, true);
       }
     }  // end if rtsp_server
+
     if (decoding_enabled) {
       if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
       if (!decoder) decoder = new DecoderThread(this);
     }
+
     if (!analysis_it) analysis_it = packetqueue.get_video_it(false);
     if (!analysis_thread) {
       Debug(1, "Starting an analysis thread for monitor (%d)", id);

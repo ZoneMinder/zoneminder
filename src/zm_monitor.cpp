@@ -3157,12 +3157,10 @@ int Monitor::PrimeCapture() {
       if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
       if (!decoder) decoder = new DecoderThread(this);
     }
-    if (function != MONITOR) {
-      if (!analysis_it) analysis_it = packetqueue.get_video_it(false);
-      if (!analysis_thread) {
-        Debug(1, "Starting an analysis thread for monitor (%d)", id);
-        analysis_thread = new AnalysisThread(this);
-      }
+    if (!analysis_it) analysis_it = packetqueue.get_video_it(false);
+    if (!analysis_thread) {
+      Debug(1, "Starting an analysis thread for monitor (%d)", id);
+      analysis_thread = new AnalysisThread(this);
     }
 
   } else {

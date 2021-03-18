@@ -46,6 +46,9 @@ class ZM_RtspServer_Authenticator : public xop::Authenticator {
       if (query.has("jwt_token")) {
         const QueryParameter *jwt_token = query.get("jwt_token");
         user = zmLoadTokenUser(jwt_token->firstValue().c_str(), false);
+      } else if (query.has("token")) {
+        const QueryParameter *jwt_token = query.get("token");
+        user = zmLoadTokenUser(jwt_token->firstValue().c_str(), false);
       } else if (strcmp(config.auth_relay, "none") == 0) {
         if (query.has("username")) {
           std::string username = query.get("username")->firstValue();

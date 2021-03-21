@@ -58,8 +58,8 @@ function processRows(rows) {
     var emailed = row.Emailed == yesString ? emailedString : '';
 
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
-    row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>'
-               + '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
+    row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>' +
+        '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
     if ( canEdit.Monitors ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
     if ( canEdit.Events ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {

@@ -48,7 +48,6 @@ function ajaxRequest(params) {
 
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
-
     var id = row.Id;
     row.Id = '<a href="?view=snapshot&amp;id=' + id + '">' + id + '</a>';
     row.Name = '<a href="?view=snapshot&amp;id=' + id + '">' + row.Name + '</a>';
@@ -192,7 +191,7 @@ function initPage() {
     window.location.reload(true);
   });
 
-/*
+  /*
   // Manage the ARCHIVE button
   document.getElementById("archiveBtn").addEventListener("click", function onArchiveClick(evt) {
     var selections = getIdSelections();

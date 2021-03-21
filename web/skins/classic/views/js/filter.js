@@ -40,10 +40,8 @@ function validateForm(form) {
     var have_endtime_term = false;
     for ( var i = 0; i < rows.length; i++ ) {
       if (
-        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' )
-        ||
-        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndTime' )
-        ||
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' ) ||
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndTime' ) ||
         ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDate' )
       ) {
         have_endtime_term = true;

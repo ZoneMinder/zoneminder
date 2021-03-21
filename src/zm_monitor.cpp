@@ -1975,9 +1975,15 @@ bool Monitor::Analyse() {
           // If doing record, check to see if we need to close the event or not.
           if (event) {
             Debug(2, "Have event %" PRIu64 " in mocord", event->Id());
-            if (section_length
-                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                && ( (function == MOCORD && (event_close_mode != CLOSE_TIME)) || ! ( timestamp->tv_sec % section_length ) )
+
+            if (section_length && 
+                ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                && ( 
+                  ( (function == MOCORD) && (event_close_mode != CLOSE_TIME) )
+                  ||
+                  ( (function == RECORD) && (event_close_mode == CLOSE_TIME) )  
+                  || ! ( timestamp->tv_sec % section_length )
+                )
                ) {
               Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
                   name, image_count, event->Id(),

@@ -267,7 +267,7 @@ function initPage() {
         })
         .fail(logAjaxFail);
   });
-*/
+  */
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
     if ( ! canEdit.Events ) {

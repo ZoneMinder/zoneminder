@@ -3210,7 +3210,7 @@ int Monitor::PrimeCapture() {
 
     if (decoding_enabled) {
       if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
-      if (!decoder) decoder = new DecoderThread(this);
+      if (!decoder) decoder = ZM::make_unique<DecoderThread>(this);
     }
 
     if (!analysis_it) analysis_it = packetqueue.get_video_it(false);
@@ -3237,10 +3237,6 @@ int Monitor::Close() {
   }
   packetqueue.clear();
 
-  if (decoder) {
-    delete decoder;
-    decoder = nullptr;
-  }
   std::lock_guard<std::mutex> lck(event_mutex);
   if (event) {
     Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id());

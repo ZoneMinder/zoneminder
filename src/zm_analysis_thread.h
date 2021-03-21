@@ -1,15 +1,15 @@
 #ifndef ZM_ANALYSIS_THREAD_H
 #define ZM_ANALYSIS_THREAD_H
 
-class Monitor;
 #include <atomic>
 #include <memory>
 #include <thread>
 
+class Monitor;
+
 class AnalysisThread {
  public:
-  explicit AnalysisThread(Monitor* monitor);
-  //explicit AnalysisThread(std::shared_ptr<Monitor> monitor);
+  explicit AnalysisThread(Monitor *monitor);
   ~AnalysisThread();
   AnalysisThread(AnalysisThread &rhs) = delete;
   AnalysisThread(AnalysisThread &&rhs) = delete;
@@ -19,8 +19,7 @@ class AnalysisThread {
  private:
   void Run();
 
-  Monitor* monitor_;
-  //std::shared_ptr<Monitor> monitor_;
+  Monitor *monitor_;
   std::atomic<bool> terminate_;
   std::thread thread_;
 };

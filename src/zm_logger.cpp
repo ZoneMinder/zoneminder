@@ -447,7 +447,8 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   } else {
 #endif
     char *timePtr = timeString;
-    timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime(&timeVal.tv_sec));
+    tm now_tm = {};
+    timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime_r(&timeVal.tv_sec, &now_tm));
     snprintf(timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec);
 #if 0
   }

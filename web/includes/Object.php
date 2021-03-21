@@ -5,6 +5,7 @@ require_once('database.php');
 $object_cache = array();
 
 class ZM_Object {
+  protected $_last_error;
 
   public function __construct($IdOrRow = NULL) {
     $class = get_class($this);
@@ -207,8 +208,8 @@ class ZM_Object {
   public function changes($new_values, $defaults=null) {
     $changes = array();
 
-    if ( $defaults ) {
-      foreach ( $defaults as $field => $type ) {
+    if ($defaults) {
+      foreach ($defaults as $field => $type) {
         if ( isset($new_values[$field]) ) {
           # Will have already been handled above
           continue;
@@ -247,46 +248,39 @@ class ZM_Object {
         } else if ( $this->$field() != $value ) {
           $changes[$field] = $value;
         }
-      } else if ( property_exists($this, $field) ) {
+      } else if (property_exists($this, $field)) {
         $type = (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field])) ? $this->defaults[$field]['type'] : 'scalar';
-        if ( $type == 'set' ) {
+        if ($type == 'set') {
           $old_value = is_array($this->$field) ? $this->$field : ($this->$field ? explode(',', $this->$field) : array());
           $new_value = is_array($value) ? $value : ($value ? explode(',', $value) : array());
 
           $diff = array_recursive_diff($old_value, $new_value);
-          if ( count($diff) ) {
-            $changes[$field] = $new_value;
-          }
+          if (count($diff)) $changes[$field] = $new_value;
 
           # Input might be a command separated string, or an array
 
         } else {
-          if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
-            if ( is_array($this->defaults[$field]['filter_regexp']) ) {
-              foreach ( $this->defaults[$field]['filter_regexp'] as $regexp ) {
+          if (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp'])) {
+            if (is_array($this->defaults[$field]['filter_regexp'])) {
+              foreach ($this->defaults[$field]['filter_regexp'] as $regexp) {
                 $value = preg_replace($regexp, '', trim($value));
               }
             } else {
               $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
             }
           }
-          if ( $this->{$field} != $value ) {
-            $changes[$field] = $value;
-          }
+          if ($this->{$field} != $value) $changes[$field] = $value;
         }
-      } else if ( array_key_exists($field, $this->defaults) ) {
-        if ( is_array($this->defaults[$field]) and isset($this->defaults[$field]['default']) ) {
+      } else if (array_key_exists($field, $this->defaults)) {
+        if (is_array($this->defaults[$field]) and isset($this->defaults[$field]['default'])) {
           $default = $this->defaults[$field]['default'];
         } else {
           $default = $this->defaults[$field];
         }
 
-        if ( $default != $value ) {
-          $changes[$field] = $value;
-        }
+        if ($default != $value) $changes[$field] = $value;
       }
     } # end foreach newvalue
-
 
     return $changes;
   } # end public function changes
@@ -335,8 +329,7 @@ class ZM_Object {
       $sql = 'UPDATE `'.$table.'` SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields)).' WHERE Id=?';
       $values = array_map(function($field){ return $this->{$field};}, $fields);
       $values[] = $this->{'Id'};
-      if ( dbQuery($sql, $values) )
-        return true;
+      if (dbQuery($sql, $values)) return true;
     } else {
       unset($fields['Id']);
 
@@ -349,11 +342,12 @@ class ZM_Object {
       $filtered = array_filter($fields, function($field){ return ( (!$this->$field()) or ($this->$field() != 'NOW()'));});
       $mapped = array_map(function($field){return $this->$field();}, $filtered);
       $values = array_values($mapped);
-      if ( dbQuery($sql, $values) ) {
+      if (dbQuery($sql, $values)) {
         $this->{'Id'} = dbInsertId();
         return true;
       }
     }
+    $this->_last_error = dbError($sql);
     return false;
   } // end function save
 
@@ -426,6 +420,9 @@ class ZM_Object {
   }
   public function remove_from_cache() {
     return ZM_Object::_remove_from_cache(get_class(), $this);
+  }
+  public function get_last_error() {
+    return $this->_last_error;
   }
 } # end class Object
 ?>

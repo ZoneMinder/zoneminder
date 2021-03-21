@@ -1947,8 +1947,8 @@ bool Monitor::Analyse() {
                 motion_frame_skip, capture_fps, analysis_fps_limit);
           }
 
-          if ( !(analysis_image_count % (motion_frame_skip+1)) ) {
-            if ( snap->image ) {
+          if (!(analysis_image_count % (motion_frame_skip+1))) {
+            if (snap->image) {
               // Get new score.
               motion_score = DetectMotion(*(snap->image), zoneSet);
 
@@ -1971,16 +1971,20 @@ bool Monitor::Analyse() {
           } // end if motion_score
         } // end if active and doing motion detection
 
-
         if (function == RECORD or function == MOCORD) {
           // If doing record, check to see if we need to close the event or not.
-
           if (event) {
             Debug(2, "Have event %" PRIu64 " in mocord", event->Id());
-            if (section_length && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                && ( ( (function == MOCORD) && (event_close_mode != CLOSE_TIME) ) || ( (function == RECORD) && (event_close_mode == CLOSE_TIME) )  
-                || ! ( timestamp->tv_sec % section_length ) ) ) 
-            {
+
+            if (section_length && 
+                ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                && ( 
+                  ( (function == MOCORD) && (event_close_mode != CLOSE_TIME) )
+                  ||
+                  ( (function == RECORD) && (event_close_mode == CLOSE_TIME) )  
+                  || ! ( timestamp->tv_sec % section_length )
+                )
+               ) {
               Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
                   name, image_count, event->Id(),
                   timestamp->tv_sec, video_store_data->recording.tv_sec, 

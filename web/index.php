@@ -98,7 +98,7 @@ if ( isset($_GET['skin']) ) {
   $skin = 'classic';
 }
 
-if ( ! is_dir("skins/$skin") ) {
+if (!is_dir('skins/'.$skin) ) {
   $skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
 
   if ( !in_array($skin, $skins) ) {
@@ -117,10 +117,10 @@ if ( isset($_GET['css']) ) {
   $css = 'classic';
 }
 
-if ( !is_dir("skins/$skin/css/$css") ) {
+if (!is_dir("skins/$skin/css/$css")) {
   $css_skins = array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR));
-  if ( count($css_skins) ) {
-    if ( !in_array($css, $css_skins) ) {
+  if (count($css_skins)) {
+    if (!in_array($css, $css_skins)) {
       ZM\Error("Invalid skin css '$css' setting to " . $css_skins[0]);
       $css = $css_skins[0];
     } else {
@@ -137,7 +137,7 @@ define('ZM_SKIN_PATH', "skins/$skin");
 define('ZM_SKIN_NAME', $skin);
 
 $skinBase = array(); // To allow for inheritance of skins
-if ( !file_exists(ZM_SKIN_PATH) )
+if (!file_exists(ZM_SKIN_PATH))
   ZM\Fatal("Invalid skin '$skin'");
 $skinBase[] = $skin;
 
@@ -182,9 +182,6 @@ $view = null;
 $user = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
-
-if ( isset($_REQUEST['redirect']) )
-  $redirect = '?view='.detaintPath($_REQUEST['redirect']);
 
 # Add CSP Headers
 $cspNonce = bin2hex(zm_random_bytes(16));
@@ -265,6 +262,8 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   $request = null;
 }
 
+if ( isset($_REQUEST['redirect']) )
+  $redirect = '?view='.detaintPath($_REQUEST['redirect']);
 
 if ( $redirect ) {
   ZM\Debug("Redirecting to $redirect");

@@ -120,7 +120,7 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
   //
   // So start at the beginning, counting video packets until the next keyframe.  
   // Then if deleting those packets doesn't break 1 and 2, then go ahead and delete them.
-  if ( ! (
+  if (! (
         add_packet->packet.stream_index == video_stream_id
       and
       add_packet->keyframe
@@ -138,6 +138,20 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
   }
   std::unique_lock<std::mutex> lck(mutex);
 
+  // If ananlysis_it isn't at the end, we need to keep that many additional packets
+  int tail_count = 0;
+  if (pktQueue.back() != add_packet) {
+    Debug(1, "Ours is not the back");
+    packetqueue_iterator it = pktQueue.end();
+    --it;
+    while (*it != add_packet) {
+      if ((*it)->packet.stream_index == video_stream_id)
+        ++tail_count;
+      --it;
+    }
+  }
+  Debug(1, "Tail count is %d", tail_count);
+
   packetqueue_iterator it = pktQueue.begin();
   packetqueue_iterator next_front = pktQueue.begin();
   int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
@@ -145,33 +159,31 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
   // First packet is special because we know it is a video keyframe and only need to check for lock
   ZMPacket *zm_packet = *it;
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
-  if ( lp->trylock() ) {
+  if (lp->trylock()) {
     ++it;
     delete lp;
 
     // Since we have many packets in the queue, we should NOT be pointing at end so don't need to test for that
-    while ( *it != add_packet ) {
+    while (*it != add_packet) {
       zm_packet = *it;
       lp = new ZMLockedPacket(zm_packet);
-      if ( !lp->trylock() ) {
-        break;
-      }
+      if (!lp->trylock()) break;
       delete lp;
 
-      if ( is_there_an_iterator_pointing_to_packet(zm_packet) ) {
+      if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
         Warning("Found iterator at beginning of queue. Some thread isn't keeping up");
         break;
       }
 
-      if ( zm_packet->packet.stream_index == video_stream_id ) {
-        if ( zm_packet->keyframe ) {
+      if (zm_packet->packet.stream_index == video_stream_id) {
+        if (zm_packet->keyframe) {
           Debug(3, "Have a video keyframe so setting next front to it");
           next_front = it;
         }
         ++video_packets_to_delete;
-          Debug(4, "Counted %d video packets. Which would leave %d in packetqueue",
-              video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete);
-        if (packet_counts[video_stream_id] - video_packets_to_delete <= max_video_packet_count) {
+          Debug(4, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+              video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
+        if (packet_counts[video_stream_id] - video_packets_to_delete <= max_video_packet_count + tail_count) {
           break;
         }
       }

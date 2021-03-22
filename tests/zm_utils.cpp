@@ -63,3 +63,11 @@ TEST_CASE("replaceAll") {
   REQUIRE(replaceAll("aTOKENa", "TOKEN", "VAL") == "aVALa");
   REQUIRE(replaceAll("aTOKENaTOKEN", "TOKEN", "VAL") == "aVALaVAL");
 }
+
+TEST_CASE("startsWith") {
+  REQUIRE(startsWith("", "") == true);
+
+  REQUIRE(startsWith("test", "test") == true);
+  REQUIRE(startsWith("test=abc", "test") == true);
+  REQUIRE(startsWith(" test=abc", "test") == false);
+}

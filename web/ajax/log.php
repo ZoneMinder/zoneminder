@@ -168,7 +168,7 @@ function queryRequest() {
 
   foreach ( $results as $row ) {
     $row['DateTime'] = strftime('%Y-%m-%d %H:%M:%S', intval($row['TimeKey']));
-    $Server = new ZM\Server($row['ServerId']);
+    $Server = ZM\Server::find_one(array('Id'=>$row['ServerId']));
     $row['Server'] = $Server->Name();
     // First strip out any html tags
     // Second strip out all characters that are not ASCII 32-126 (yes, 126)

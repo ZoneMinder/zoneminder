@@ -38,6 +38,7 @@ class PacketQueue {
     int max_stream_id;
     int *packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
     bool deleting;
+    bool keep_keyframes;
     std::list<packetqueue_iterator *> iterators;
 
     std::mutex mutex;
@@ -51,6 +52,7 @@ class PacketQueue {
 
     int addStream();
     void setMaxVideoPackets(int p);
+    void setKeepKeyframes(bool k) { keep_keyframes = k; };
 
     bool queuePacket(ZMPacket* packet);
     ZMLockedPacket * popPacket();

@@ -49,3 +49,17 @@ TEST_CASE("trimSpaces") {
 
   REQUIRE(trimSpaces("\t te st \t") == "te st");
 }
+
+TEST_CASE("replaceAll") {
+  REQUIRE(replaceAll("", "", "") == "");
+
+  REQUIRE(replaceAll("a", "", "b") == "a");
+  REQUIRE(replaceAll("a", "a", "b") == "b");
+  REQUIRE(replaceAll("a", "b", "c") == "a");
+
+  REQUIRE(replaceAll("aa", "a", "b") == "bb");
+  REQUIRE(replaceAll("aba", "a", "c") == "cbc");
+
+  REQUIRE(replaceAll("aTOKENa", "TOKEN", "VAL") == "aVALa");
+  REQUIRE(replaceAll("aTOKENaTOKEN", "TOKEN", "VAL") == "aVALaVAL");
+}

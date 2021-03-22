@@ -351,7 +351,7 @@ class ZM_Object {
       $sql = 'INSERT INTO `'.$table.
         '` ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
           ') VALUES ('.
-          implode(', ', array_map(function($field){return $this->$field() == 'NOW()' ? 'NOW()' : '?';}, $fields)).')';
+          implode(', ', array_map(function($field){return (($this->$field() === 'NOW()') ? 'NOW()' : '?');}, $fields)).')';
 
       # For some reason comparing 0 to 'NOW()' returns false; So we do this.
       $filtered = array_filter($fields, function($field){ return ( (!$this->$field()) or ($this->$field() != 'NOW()'));});

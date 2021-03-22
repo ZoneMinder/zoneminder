@@ -39,6 +39,7 @@ class ZM_Object {
 
   public function __call($fn, array $args){
     $type = (array_key_exists($fn, $this->defaults) && is_array($this->defaults[$fn])) ? $this->defaults[$fn]['type'] : 'scalar';
+
     if ( count($args) ) {
       if ( $type == 'set' and is_array($args[0]) ) {
         $this->{$fn} = implode(',', $args[0]);
@@ -51,7 +52,15 @@ class ZM_Object {
           $this->{$fn} = preg_replace($this->defaults[$fn]['filter_regexp'], '', $args[0]);
         }
       } else {
-        $this->{$fn} = $args[0];
+        if ( $args[0] == '' and array_key_exists($fn, $this->defaults) ) {
+          if ( is_array($this->defaults[$fn]) ) {
+            $this->{$fn} = $this->defaults[$fn]['default'];
+          } else {
+            $this->{$fn} = $this->defaults[$fn];
+          }
+        } else {
+          $this->{$fn} = $args[0];
+        }
       }
     }
 
@@ -175,7 +184,7 @@ class ZM_Object {
         $this->$field($value);
       } else {
         if ( is_array($value) ) {
-# perhaps should turn into a comma-separated string
+          # perhaps should turn into a comma-separated string
           $this->{$field} = implode(',', $value);
         } else if ( is_string($value) ) {
           if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
@@ -186,8 +195,14 @@ class ZM_Object {
             } else {
               $this->{$field} = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
             }
+          } else if ( $value == '' and array_key_exists($field, $this->defaults) ) {
+            if ( is_array($this->defaults[$field]) ) {
+              $this->{$field} = $this->defaults[$field]['default'];
+            } else {
+              $this->{$field} = $this->defaults[$field];
+            }
           } else {
-            $this->{$field} = trim($value);
+            $this->{$field} = $value;
           }
         } else if ( is_integer($value) ) {
           $this->{$field} = $value;

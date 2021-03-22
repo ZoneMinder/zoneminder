@@ -582,6 +582,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   warmup_count = atoi(dbrow[col]); col++;
   pre_event_count = atoi(dbrow[col]); col++;
   packetqueue.setMaxVideoPackets(pre_event_count);
+  packetqueue.setKeepKeyframes(videowriter == PASSTHROUGH);
   post_event_count = atoi(dbrow[col]); col++;
   stream_replay_buffer = atoi(dbrow[col]); col++;
   alarm_frame_count = atoi(dbrow[col]); col++;
@@ -2574,7 +2575,7 @@ int Monitor::Capture() {
       // Don't want to do analysis on it, but we won't due to signal
       return -1;
     } else if ( captureResult > 0 ) {
-      // If we captured, let's assume signal, ::Decode will detect further
+      // If we captured, let's assume signal, Decode will detect further
       if (!decoding_enabled) {
         shared_data->last_write_index = index;
         shared_data->last_write_time = packet->timestamp->tv_sec;

@@ -266,7 +266,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getDbConHTML();
           echo getStorageHTML();
           echo getShmHTML();
-          echo getLogIconHTML();
+          #echo getLogIconHTML();
           ?>
         </ul>
 

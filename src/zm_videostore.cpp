@@ -979,7 +979,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
             );
       } else if ( !zm_packet->in_frame ) {
         Debug(4, "Have no in_frame");
-        if ( zm_packet->packet.size ) {
+        if (zm_packet->packet.size and !zm_packet->decoded) {
           Debug(4, "Decoding");
           if ( !zm_packet->decode(video_in_ctx) ) {
             Debug(2, "unable to decode yet.");

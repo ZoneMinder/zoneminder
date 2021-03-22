@@ -15,17 +15,14 @@ const char H264shortmarker[] = {0,0,1};
 
 class NAL_Frame {
   public:
-    NAL_Frame(unsigned char * buffer, size_t size, timeval timestamp) :
+    NAL_Frame(unsigned char * buffer, size_t size, int64 pts) :
       m_buffer(nullptr),
       m_size(size),
-      m_timestamp(timestamp),
+      m_pts(pts),
       m_ref_count(1) {
         m_buffer = new unsigned char[m_size];
         memcpy(m_buffer, buffer, m_size);
       };
-    NAL_Frame(unsigned char* buffer, size_t size) : m_buffer(buffer), m_size(size) {
-      gettimeofday(&m_timestamp, NULL);
-    };
     NAL_Frame& operator=(const NAL_Frame&);
     ~NAL_Frame()  {
       delete[] m_buffer;
@@ -37,6 +34,7 @@ class NAL_Frame {
     unsigned char *nal() const { return m_buffer+4; };
     size_t size() const { return m_size; };
     size_t nal_size() const { return m_size-4; };
+    int64_t pts() const { return m_pts; };
     bool check() const {
       // Look for marker at beginning
       unsigned char *marker = (unsigned char*)memmem(m_buffer, sizeof(H264marker), H264marker, sizeof(H264marker));
@@ -68,7 +66,7 @@ class NAL_Frame {
     unsigned char* m_buffer;
     size_t m_size;
   public:
-    timeval m_timestamp;
+    int64 m_pts;
   private:
     int m_ref_count;
 };

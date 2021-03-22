@@ -37,16 +37,14 @@ $mid = null;
 $monitor = null;
 if ( !empty($_REQUEST['mid']) ) {
   $mid = validInt($_REQUEST['mid']);
-
   $monitor = new ZM\Monitor($mid);
   if ( $monitor and ZM_OPT_X10 )
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($mid));
 }
 
 if ( !$monitor ) {
-  $nextId = getTableAutoInc('Monitors');
   $monitor = new ZM\Monitor();
-  $monitor->Name(translate('Monitor').'-'.$nextId);
+  $monitor->Name(translate('Monitor').'-'.getTableAutoInc('Monitors'));
   $monitor->WebColour(random_colour());
 } # end if $_REQUEST['mid']
 

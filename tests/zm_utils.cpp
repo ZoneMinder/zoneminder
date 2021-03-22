@@ -31,3 +31,21 @@ TEST_CASE("trimSet") {
   REQUIRE(trimSet("te\"st", "\"") == "te\"st");
   REQUIRE(trimSet("\"te\"st\"", "\"") == "te\"st");
 }
+
+TEST_CASE("trimSpaces") {
+  REQUIRE(trimSpaces(" ") == "");
+
+  REQUIRE(trimSpaces("test") == "test");
+  REQUIRE(trimSpaces(" test ") == "test");
+  REQUIRE(trimSpaces("  test ") == "test");
+  REQUIRE(trimSpaces("  test  ") == "test");
+  REQUIRE(trimSpaces(" test") == "test");
+  REQUIRE(trimSpaces("\ttest") == "test");
+  REQUIRE(trimSpaces("test\t") == "test");
+  REQUIRE(trimSpaces("\ttest\t") == "test");
+  REQUIRE(trimSpaces(" test\t") == "test");
+  REQUIRE(trimSpaces("\ttest ") == "test");
+  REQUIRE(trimSpaces("\t test \t") == "test");
+
+  REQUIRE(trimSpaces("\t te st \t") == "te st");
+}

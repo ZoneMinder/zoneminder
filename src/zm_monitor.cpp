@@ -1979,10 +1979,11 @@ bool Monitor::Analyse() {
             if (section_length && 
                 ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
                 && ( 
-                  ( (function == MOCORD) && (event_close_mode != CLOSE_TIME) )
+                  ( (function == MOCORD) && (event_close_mode != CLOSE_ALARM) )
                   ||
-                  ( (function == RECORD) && (event_close_mode == CLOSE_TIME) )  
-                  || ! ( timestamp->tv_sec % section_length )
+                  ( function == RECORD )  
+                  // TODO: Unless it's reflected in the docs and user can have the option to disable this breaks the logic check #3197
+                  // || ! ( timestamp->tv_sec % section_length )
                 )
                ) {
               Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
@@ -2067,7 +2068,7 @@ bool Monitor::Analyse() {
             // If we should end then previous continuous event and start a new non-continuous event
             if (event && event->Frames()
                 && (!event->AlarmFrames())
-                && (event_close_mode == CLOSE_ALARM)
+                && (event_close_mode != CLOSE_TIME)
                 && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
                 && ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) )
                ) {

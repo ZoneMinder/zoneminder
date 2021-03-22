@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #define RAW_BUFFER 512
+#define PIPE_SIZE 1024*1024
 
 void Fifo::file_create_if_missing(
     const char * path,
@@ -80,7 +81,7 @@ bool Fifo::open() {
     }
   }
 #ifdef __linux__
-  int ret = fcntl(raw_fd, F_SETPIPE_SZ, 1024 * 1024);
+  int ret = fcntl(raw_fd, F_SETPIPE_SZ, PIPE_SIZE);
   if (ret < 0) {
     Error("set pipe size failed.");
   }
@@ -143,6 +144,7 @@ bool Fifo::writePacket(std::string filename, ZMPacket &packet) {
     }
   }
 
+  Debug(4, "Writing packet of size %d pts %" PRId64, packet.packet.size, packet.pts);
   if (fwrite(packet.packet.data, packet.packet.size, 1, outfile) != 1) {
     Debug(1, "Unable to write to '%s': %s", filename.c_str(), strerror(errno));
     fclose(outfile);

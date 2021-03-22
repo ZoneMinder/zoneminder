@@ -129,6 +129,10 @@ int main(int argc, char *argv[]) {
   zmDbConnect();
   zmLoadDBConfig();
   logInit(log_id_string);
+  if (!config.min_rtsp_port) {
+    Debug(1, "Not starting RTSP server because min_rtsp_port not set");
+    exit(-1);
+  }
 
   hwcaps_detect();
 
@@ -152,18 +156,6 @@ int main(int argc, char *argv[]) {
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
-  sigset_t block_set;
-  sigemptyset(&block_set);
-
-  sigaddset(&block_set, SIGHUP);
-  sigaddset(&block_set, SIGUSR1);
-  sigaddset(&block_set, SIGUSR2);
-
-  if (!config.min_rtsp_port) {
-    Debug(1, "Not starting RTSP server because min_rtsp_port not set");
-    exit(-1);
-  }
-
   std::shared_ptr<xop::EventLoop> eventLoop(new xop::EventLoop());
 	std::shared_ptr<xop::RtspServer> rtspServer = xop::RtspServer::Create(eventLoop.get());
 
@@ -183,7 +175,6 @@ int main(int argc, char *argv[]) {
   std::list<ZoneMinderFifoSource *> sources;
 
   while (!zm_terminate) {
-
     for (size_t i = 0; i < monitors.size(); i++) {
       std::shared_ptr<Monitor> monitor = monitors[i];
 
@@ -242,13 +233,10 @@ int main(int argc, char *argv[]) {
           Error("Unable to create source");
         }
         sources.push_back(videoSource);
-
-#if 0
-        if (video_source) {
-          video_source->setWidth(monitor->Width());
-          video_source->setHeight(monitor->Height());
+        if (videoSource) {
+          videoSource->setWidth(monitor->Width());
+          videoSource->setHeight(monitor->Height());
         }
-#endif
 
         std::string audioFifoPath = monitor->GetAudioFifoPath();
         if (audioFifoPath.empty()) {
@@ -288,7 +276,7 @@ int main(int argc, char *argv[]) {
       logInit(log_id_string);
       zm_reload = false;
     }  // end if zm_reload
-  } // end while ! zm_terminate
+  } // end while !zm_terminate
   Info("RTSP Server shutting down");
 
   for (size_t i = 0; i < monitors.size(); i++) {
@@ -300,7 +288,7 @@ int main(int argc, char *argv[]) {
   }  // end foreach monitor
 
   for ( std::list<ZoneMinderFifoSource *>::iterator it = sources.begin(); it != sources.end(); ++it ) {
-  Debug(1, "RTSPServerThread::stopping source");
+    Debug(1, "RTSPServerThread::stopping source");
     (*it)->Stop();
   }
   while (sources.size()) {

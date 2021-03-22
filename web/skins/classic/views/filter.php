@@ -187,10 +187,10 @@ foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones ORDER BY lower(`Name
 }
 
 xhtmlHeaders(__FILE__, translate('EventFilter'));
+echo getBodyTopHTML();
+echo $navbar = getNavBarHTML();
 ?>
-<body>
   <div id="page">
-<?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
       <form name="selectForm" id="selectForm" method="get" action="?">
         <input type="hidden" name="view" value="filter"/>

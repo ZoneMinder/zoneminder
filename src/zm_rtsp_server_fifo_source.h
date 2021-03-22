@@ -13,8 +13,10 @@
 #include "zm_config.h"
 #include "zm_ffmpeg.h"
 #include "zm_define.h"
+#include "zm_rtsp_server_frame.h"
 #include <list>
 #include <string>
+#include <thread>
 #include <utility>
 
 #if HAVE_RTSP_SERVER
@@ -24,7 +26,10 @@ class ZoneMinderFifoSource {
 		
 	public:
 
-    void Stop() { stop=1; };
+    void Stop() {
+      stop_ = true;
+      condition_.notify_all();
+    };
 
     ZoneMinderFifoSource(
         std::shared_ptr<xop::RtspServer>& rtspServer,
@@ -35,8 +40,9 @@ class ZoneMinderFifoSource {
 		virtual ~ZoneMinderFifoSource();
 
 	protected:	
-		static void* threadStub(void* clientData) { return ((ZoneMinderFifoSource*) clientData)->thread();};
-		void* thread();
+		void ReadRun();
+		void WriteRun();
+
 		int getNextFrame();
     virtual void PushFrame(const uint8_t *data, size_t size, int64_t pts) = 0;
      // split packet in frames
@@ -45,11 +51,12 @@ class ZoneMinderFifoSource {
 
 	protected:
 
-    int m_width;
-    int m_height;
-		pthread_t m_thid;
-		pthread_mutex_t m_mutex;
-    int stop;
+    std::mutex  mutex_;
+    std::condition_variable condition_;
+
+    std::thread read_thread_;
+    std::thread write_thread_;
+    std::atomic<bool> stop_;
 
     std::shared_ptr<xop::RtspServer>& m_rtspServer;
     xop::MediaSessionId m_sessionId;
@@ -58,6 +65,7 @@ class ZoneMinderFifoSource {
     int m_fd;
     Buffer  m_buffer;
     AVRational m_timeBase;
+    std::queue<NAL_Frame *> m_nalQueue;
 };
 #endif // HAVE_RTSP_SERVER
 

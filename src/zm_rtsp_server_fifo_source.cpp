@@ -31,34 +31,53 @@ ZoneMinderFifoSource::ZoneMinderFifoSource(
 	m_fifo(fifo),
   m_fd(-1)
 {
-	memset(&m_thid, 0, sizeof(m_thid));
-	memset(&m_mutex, 0, sizeof(m_mutex));
-  pthread_mutex_init(&m_mutex, nullptr);
-  pthread_create(&m_thid, nullptr, threadStub, this);
+  read_thread_ = std::thread(&ZoneMinderFifoSource::ReadRun, this);
+  write_thread_ = std::thread(&ZoneMinderFifoSource::WriteRun, this);
 }
 
 ZoneMinderFifoSource::~ZoneMinderFifoSource() {
   Debug(1, "Deleting Fifo Source");
-  stop = 1;
-	pthread_join(m_thid, nullptr);
+    Stop();
+  if (read_thread_.joinable())
+    read_thread_.join();
+  if (write_thread_.joinable())
+    write_thread_.join();
   Debug(1, "Deleting Fifo Source done");
-	pthread_mutex_destroy(&m_mutex);
 }
 
 // thread mainloop
-void* ZoneMinderFifoSource::thread() {
-	stop = 0;
-
-	while (!stop) {
-		if (getNextFrame() < 0) sleep(1);
+void ZoneMinderFifoSource::ReadRun() {
+	while (!stop_) {
+		if (getNextFrame() < 0) {
+      Debug(1, "Sleeping");
+      sleep(1);
+    }
 	}
-	return nullptr;
+}
+void ZoneMinderFifoSource::WriteRun() {
+	while (!stop_) {
+    std::unique_lock<std::mutex> lck(mutex_);
+    if (m_nalQueue.empty()) {
+      Debug(3, "waiting");
+      condition_.wait(lck);
+    }
+
+    while (!m_nalQueue.empty()) {
+      NAL_Frame *nal = m_nalQueue.front();
+      m_nalQueue.pop();
+
+      Debug(3, "Pushing nal of size %d at %" PRId64, nal->size(), nal->pts());
+      PushFrame(nal->buffer(), nal->size(), nal->pts());
+      Debug(3, "Done Pushing nal");
+      delete nal;
+    }
+	}
 }
 
 // read from monitor
 int ZoneMinderFifoSource::getNextFrame() {
-  if (zm_terminate or stop) {
-    Debug(1, "Terminating %d %d", zm_terminate, stop);
+  if (zm_terminate or stop_) {
+    Debug(1, "Terminating %d %d", zm_terminate, (stop_==true?1:0));
     return -1;
   }
 
@@ -84,7 +103,7 @@ int ZoneMinderFifoSource::getNextFrame() {
     return -1;
   }
 
-  Debug(1, "%s bytes read %d bytes, buffer size %u", m_fifo.c_str(), bytes_read, m_buffer.size());
+  Debug(3, "%s bytes read %d bytes, buffer size %u", m_fifo.c_str(), bytes_read, m_buffer.size());
   while (m_buffer.size()) {
     unsigned int data_size = 0;
     int64_t pts;
@@ -142,23 +161,36 @@ int ZoneMinderFifoSource::getNextFrame() {
     int bytes_needed = data_size - (m_buffer.size() - header_size);
     if (bytes_needed > 0) {
       Debug(4, "Need another %d bytes. Trying to read them", bytes_needed);
-      int bytes_read = m_buffer.read_into(m_fd, bytes_needed);
-      if ( bytes_read != bytes_needed ) {
-        Debug(1, "Failed to read another %d bytes, got %d.", bytes_needed, bytes_read);
-        return -1;
-      }
+      while (bytes_needed) {
+        int bytes_read = m_buffer.read_into(m_fd, bytes_needed);
+        if (bytes_read <= 0) {
+          Debug(1, "Failed to read another %d bytes, got %d.", bytes_needed, bytes_read);
+          return -1;
+        }
+
+        if (bytes_read != bytes_needed) {
+          Debug(4, "Failed to read another %d bytes, got %d.", bytes_needed, bytes_read);
+        }
+        bytes_needed -= bytes_read;
+      }  // end while bytes_neeeded
     }
     m_buffer.consume(header_size);
     unsigned char *packet_start = m_buffer.head();
     size_t bytes_remaining = data_size;
     std::list< std::pair<unsigned char*, size_t> > framesList = this->splitFrames(packet_start, bytes_remaining);
-    Debug(3, "Got %d frames, consuming %d bytes, remaining %d", framesList.size(), header_size + data_size, bytes_remaining);
+    Debug(3, "Got %d frames, consuming %d bytes, remaining %d", framesList.size(), data_size, bytes_remaining);
     m_buffer.consume(data_size);
-    while (framesList.size()) {
-      std::pair<unsigned char*, size_t> nal = framesList.front();
-      framesList.pop_front();
-      PushFrame(nal.first, nal.second, pts);
+
+    {
+      std::unique_lock<std::mutex> lck(mutex_);
+      while (framesList.size()) {
+        std::pair<unsigned char*, size_t> nal = framesList.front();
+        framesList.pop_front();
+        NAL_Frame *Nal = new NAL_Frame(nal.first, nal.second, pts);
+        m_nalQueue.push(Nal);
+      }
     }
+    condition_.notify_all();
   } // end while m_buffer.size()
   return 1;
 }

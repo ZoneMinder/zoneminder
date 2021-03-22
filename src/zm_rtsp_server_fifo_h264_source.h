@@ -19,8 +19,6 @@
 // H264 ZoneMinder FramedSource
 // ---------------------------------
 #if HAVE_RTSP_SERVER
-const char H264marker[] = {0,0,0,1};
-const char H264shortmarker[] = {0,0,1};
 class H26X_ZoneMinderFifoSource : public ZoneMinderFifoVideoSource {
 	public:
 		H26X_ZoneMinderFifoSource(

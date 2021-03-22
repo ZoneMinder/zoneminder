@@ -84,7 +84,7 @@ int ZoneMinderFifoSource::getNextFrame() {
     return -1;
   }
 
-  Debug(4, "%s bytes read %d bytes, buffer size %u", m_fifo.c_str(), bytes_read, m_buffer.size());
+  Debug(1, "%s bytes read %d bytes, buffer size %u", m_fifo.c_str(), bytes_read, m_buffer.size());
   while (m_buffer.size()) {
     unsigned int data_size = 0;
     int64_t pts;
@@ -96,14 +96,14 @@ int ZoneMinderFifoSource::getNextFrame() {
       header_end = (unsigned char *)memchr(header_start, '\n', m_buffer.tail()-header_start);
       if (!header_end) {
         // Must not have enough data.  So... keep all.
-        Debug(1, "Didn't find newline");
+        Debug(1, "Didn't find newline buffer size is %d", m_buffer.size());
         return 0;
       }
 
       unsigned int header_size = header_end-header_start;
       char *header = new char[header_size+1];
+      strncpy(header, reinterpret_cast<const char *>(header_start), header_size);
       header[header_size] = '\0';
-      strncpy(header, reinterpret_cast<const char *>(header_start), header_end-header_start);
 
       char *content_length_ptr = strchr(header, ' ');
       if (!content_length_ptr) {
@@ -125,12 +125,12 @@ int ZoneMinderFifoSource::getNextFrame() {
       pts_ptr ++;
       data_size = atoi(content_length_ptr);
       pts = strtoll(pts_ptr, nullptr, 10);
+      Debug(4, "ZM Packet %s header_size %d packet size %u pts %" PRId64, header, header_size, data_size, pts);
       delete[] header;
     } else {
-      Debug(1, "ZM header not found %s.",m_buffer.head());
+      Debug(1, "ZM header not found in %d of buffer:%s.", m_buffer.size(), m_buffer.head());
       return 0;
     }
-    Debug(4, "ZM Packet size %u pts %" PRId64, data_size, pts);
     if (header_start != m_buffer) {
       Debug(4, "ZM Packet didn't start at beginning of buffer %u. %c%c",
           header_start-m_buffer.head(), m_buffer[0], m_buffer[1]);
@@ -142,21 +142,21 @@ int ZoneMinderFifoSource::getNextFrame() {
     int bytes_needed = data_size - (m_buffer.size() - header_size);
     if (bytes_needed > 0) {
       Debug(4, "Need another %d bytes. Trying to read them", bytes_needed);
-      int bytes_read = m_buffer.read_into(m_fd, bytes_needed, {1,0});
+      int bytes_read = m_buffer.read_into(m_fd, bytes_needed);
       if ( bytes_read != bytes_needed ) {
-        Debug(4, "Failed to read another %d bytes.", bytes_needed);
+        Debug(1, "Failed to read another %d bytes, got %d.", bytes_needed, bytes_read);
         return -1;
       }
     }
-    unsigned char *packet_start = m_buffer.head() + header_size;
+    m_buffer.consume(header_size);
+    unsigned char *packet_start = m_buffer.head();
     size_t bytes_remaining = data_size;
     std::list< std::pair<unsigned char*, size_t> > framesList = this->splitFrames(packet_start, bytes_remaining);
     Debug(3, "Got %d frames, consuming %d bytes, remaining %d", framesList.size(), header_size + data_size, bytes_remaining);
-    m_buffer.consume(header_size + data_size);
+    m_buffer.consume(data_size);
     while (framesList.size()) {
       std::pair<unsigned char*, size_t> nal = framesList.front();
       framesList.pop_front();
-
       PushFrame(nal.first, nal.second, pts);
     }
   } // end while m_buffer.size()

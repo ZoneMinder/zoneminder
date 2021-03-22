@@ -87,6 +87,13 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 logInit();
 logSetSignal();
+my $zm_terminate = 0;
+sub TermHandler {
+  Info('Received TERM, exiting');
+  $zm_terminate = 1;
+}
+$SIG{TERM} = \&TermHandler;
+$SIG{INT} = \&TermHandler;
 
 Info('Trigger daemon starting');
 
@@ -118,7 +125,7 @@ my $win = $rin;
 my $ein = $win;
 my $timeout = SELECT_TIMEOUT;
 my %actions;
-while (1) {
+while (!$zm_terminate) {
   $rin = $base_rin;
 # Add the file descriptors of any spawned connections
   foreach my $fileno ( keys %spawned_connections ) {
@@ -312,7 +319,7 @@ while (1) {
 
   # zmDbConnect will ping and reconnect if neccessary
   $dbh = zmDbConnect();
-} # end while ( 1 )
+} # end while (!$zm_terminate)
 Info('Trigger daemon exiting');
 exit;
 

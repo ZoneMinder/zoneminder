@@ -1,10 +1,13 @@
 #include "zm_analysis_thread.h"
 
+#include "zm_monitor.h"
 #include "zm_signal.h"
 #include "zm_utils.h"
 
-AnalysisThread::AnalysisThread(std::shared_ptr<Monitor> monitor) :
-    monitor_(std::move(monitor)), terminate_(false) {
+//AnalysisThread::AnalysisThread(std::shared_ptr<Monitor> monitor) :
+AnalysisThread::AnalysisThread(Monitor* monitor) :
+    monitor_(monitor), terminate_(false) {
+    //monitor_(std::move(monitor)), terminate_(false) {
   thread_ = std::thread(&AnalysisThread::Run, this);
 }
 

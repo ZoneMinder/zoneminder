@@ -24,6 +24,7 @@
 #include <mutex>
 
 class ZMPacket;
+class ZMLockedPacket;
 
 typedef std::list<ZMPacket *>::iterator packetqueue_iterator;
 
@@ -37,6 +38,7 @@ class PacketQueue {
     int max_stream_id;
     int *packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
     bool deleting;
+    bool keep_keyframes;
     std::list<packetqueue_iterator *> iterators;
 
     std::mutex mutex;
@@ -50,9 +52,10 @@ class PacketQueue {
 
     int addStream();
     void setMaxVideoPackets(int p);
+    void setKeepKeyframes(bool k) { keep_keyframes = k; };
 
     bool queuePacket(ZMPacket* packet);
-    ZMPacket * popPacket();
+    ZMLockedPacket * popPacket();
     bool popVideoPacket(ZMPacket* packet);
     bool popAudioPacket(ZMPacket* packet);
     unsigned int clear(unsigned int video_frames_to_keep, int stream_id);
@@ -68,7 +71,7 @@ class PacketQueue {
 
     bool increment_it(packetqueue_iterator *it);
     bool increment_it(packetqueue_iterator *it, int stream_id);
-    ZMPacket *get_packet(packetqueue_iterator *);
+    ZMLockedPacket *get_packet(packetqueue_iterator *);
     packetqueue_iterator *get_video_it(bool wait);
     packetqueue_iterator *get_stream_it(int stream_id);
     void free_it(packetqueue_iterator *);

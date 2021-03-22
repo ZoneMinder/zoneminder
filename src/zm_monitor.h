@@ -22,6 +22,8 @@
 
 #include "zm_define.h"
 #include "zm_camera.h"
+#include "zm_analysis_thread.h"
+#include "zm_decoder_thread.h"
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
@@ -375,7 +377,9 @@ protected:
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   packetqueue_iterator  *analysis_it;
-
+  AnalysisThread        *analysis_thread;
+  packetqueue_iterator  *decoder_it;
+  DecoderThread         *decoder;
 
   int      n_zones;
   Zone      **zones;
@@ -411,6 +415,8 @@ public:
     if ( shared_data && shared_data->valid ) {
       struct timeval now;
       gettimeofday(&now, nullptr);
+      Debug(3, "Shared data is valid, checking heartbeat %u - %u = %d < %f",
+          now.tv_sec, shared_data->zmc_heartbeat_time, (now.tv_sec - shared_data->zmc_heartbeat_time), config.watch_max_delay);
       if ((now.tv_sec - shared_data->zmc_heartbeat_time) < config.watch_max_delay)
         return true;
     }
@@ -426,6 +432,7 @@ public:
     }
     return storage;
   }
+  inline CameraType GetType() const { return type; }
   inline Function GetFunction() const { return function; }
   inline PacketQueue * GetPacketQueue() { return &packetqueue; }
   inline bool Enabled() const {
@@ -438,10 +445,6 @@ public:
   }
   inline const char *EventPrefix() const { return event_prefix; }
   inline bool Ready() const {
-    if ( function <= MONITOR ) {
-      Error("Should not be calling Ready if the function doesn't include motion detection");
-      return false;
-    }
     if ( image_count >= ready_count ) {
       return true;
     }
@@ -549,6 +552,7 @@ public:
    //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
   bool Analyse();
+  bool Decode();
   void DumpImage( Image *dump_image ) const;
   void TimestampImage( Image *ts_image, const struct timeval *ts_time ) const;
   bool closeEvent();

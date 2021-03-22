@@ -467,28 +467,35 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
 } // end bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
 
 void MonitorStream::runStream() {
-  if ( type == STREAM_SINGLE ) {
+  if (type == STREAM_SINGLE) {
     // Not yet migrated over to stream class
-    SingleImage(scale);
+    if (checkInitialised())
+      SingleImage(scale);
+    else
+      sendTextFrame("Unable to send image");
+
     return;
   }
 
   openComms();
 
-  if ( type == STREAM_JPEG )
+  if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
-  if ( !checkInitialised() ) {
-    Error("Not initialized");
-    while ( !(loadMonitor(monitor_id) || zm_terminate) ) {
-      sendTextFrame("Not connected");
-      if ( connkey )
-        checkCommandQueue();
-      sleep(1);
-    }
-    if ( zm_terminate )
-      return;
+  while (!(loadMonitor(monitor_id) || zm_terminate)) {
+    sendTextFrame("Not connected");
+    if (connkey)
+      checkCommandQueue();
+    sleep(1);
   }
+  if (zm_terminate) return;
+  while (!checkInitialised() and !zm_terminate) {
+    sendTextFrame("Unable to stream");
+    if (connkey)
+      checkCommandQueue();
+    sleep(1);
+  }
+  if (zm_terminate) return;
 
   updateFrameRate(monitor->GetFPS());
 
@@ -562,7 +569,7 @@ void MonitorStream::runStream() {
     capture_fps = capture_max_fps;
   }
 
-  while ( !zm_terminate ) {
+  while (!zm_terminate) {
     bool got_command = false;
     if ( feof(stdout) ) {
       Debug(2, "feof stdout");
@@ -570,7 +577,7 @@ void MonitorStream::runStream() {
     } else if ( ferror(stdout) ) {
       Debug(2, "ferror stdout");
       break;
-    } else if ( !monitor->ShmValid() ) {
+    } else if (!monitor->ShmValid()) {
       Debug(2, "monitor not valid.... maybe we should wait until it comes back.");
       break;
     }
@@ -856,7 +863,7 @@ void MonitorStream::SingleImage(int scale) {
   int img_buffer_size = 0;
   static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
-  while ( monitor->shared_data->last_write_index >= monitor->image_buffer_count ) {
+  while ((monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
     Debug(1, "Waiting for capture to begin");
     usleep(100000);
   }

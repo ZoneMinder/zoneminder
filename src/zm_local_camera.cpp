@@ -798,10 +798,10 @@ void LocalCamera::Initialise() {
         );
 
     if ( v4l2_data.fmt.fmt.pix.width != width ) {
-        Warning("Failed to set requested width");
+      Warning("Failed to set requested width");
     }
     if ( v4l2_data.fmt.fmt.pix.height != height ) {
-        Warning("Failed to set requested height");
+      Warning("Failed to set requested height");
     }
 
     /* Buggy driver paranoia. */
@@ -2087,8 +2087,11 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
       buffer_bytesused = v4l2_data.bufptr->bytesused;
       bytes += buffer_bytesused;
 
-      if ( (v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) !=  (width * height) ) {
-        Fatal("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",
+      if ( (v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) > (width * height) ) {
+        Fatal("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",
+            v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
+      } else if ( (v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) != (width * height) ) {
+        Error("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",
             v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
       }
     } // end if v4l2

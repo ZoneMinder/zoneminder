@@ -271,7 +271,9 @@ function reloadWebSite(ndx) {
 }
 
 function takeSnapshot() {
-  monitor_ids = monitorData.map( monitor=> { return 'monitor_ids[]='+monitor.id; });
+  monitor_ids = monitorData.map((monitor)=>{
+    return 'monitor_ids[]='+monitor.id;
+  });
   window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
 }
 

@@ -447,7 +447,8 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   } else {
 #endif
     char *timePtr = timeString;
-    timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime(&timeVal.tv_sec));
+    tm now_tm = {};
+    timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime_r(&timeVal.tv_sec, &now_tm));
     snprintf(timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec);
 #if 0
   }
@@ -524,8 +525,8 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     if (mLogFileFP) {
       fputs(logString, mLogFileFP);
       if (mFlush) fflush(mLogFileFP);
-    } else {
-      puts("Logging to file, but failed to open it\n");
+    } else if (mTerminalLevel != NOLOG) {
+      puts("Logging to file but failed to open it\n");
     }
   }  // end if level <= mFileLevel
 

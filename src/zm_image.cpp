@@ -1186,7 +1186,8 @@ cinfo->out_color_space = JCS_RGB;
 
     // This is a lot of stuff to allocate on the stack.  Recommend char *timebuf[64];
     char timebuf[64], msbuf[64];
-    strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime(&(timestamp.tv_sec)));
+    tm timestamp_tm = {};
+    strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime_r(&timestamp.tv_sec, &timestamp_tm));
     snprintf(msbuf, sizeof msbuf, "%06d",(int)(timestamp.tv_usec));  // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
     unsigned char exiftimes[82] = {
       0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00,
@@ -2132,7 +2133,8 @@ void Image::Annotate(
 
 void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size ) {
   char time_text[64];
-  strftime(time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime(&when));
+  tm when_tm = {};
+  strftime(time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime_r(&when, &when_tm));
   if ( label ) {
     // Assume label is max 64, + ' - ' + 64 chars of time_text
     char text[132];

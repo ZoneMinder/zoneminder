@@ -31,7 +31,8 @@ PacketQueue::PacketQueue():
   max_video_packet_count(-1),
   max_stream_id(-1),
   packet_counts(nullptr),
-  deleting(false)
+  deleting(false),
+  keep_keyframes(false)
 {
 }
 
@@ -56,11 +57,11 @@ int PacketQueue::addStream() {
 
 PacketQueue::~PacketQueue() {
   clear();
-  if ( packet_counts ) {
+  if (packet_counts) {
     delete[] packet_counts;
     packet_counts = nullptr;
   }
-  while ( !iterators.empty() ) {
+  while (!iterators.empty()) {
     packetqueue_iterator *it = iterators.front();
     iterators.pop_front();
     delete it;
@@ -87,7 +88,7 @@ bool PacketQueue::queuePacket(ZMPacket* add_packet) {
 
 	pktQueue.push_back(add_packet);
   packet_counts[add_packet->packet.stream_index] += 1;
-  Debug(1, "packet counts for %d is %d",
+  Debug(2, "packet counts for %d is %d",
       add_packet->packet.stream_index,
       packet_counts[add_packet->packet.stream_index]);
 
@@ -120,56 +121,87 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
   //
   // So start at the beginning, counting video packets until the next keyframe.  
   // Then if deleting those packets doesn't break 1 and 2, then go ahead and delete them.
-  if ( ! (
+  if (keep_keyframes and ! (
         add_packet->packet.stream_index == video_stream_id
-      and
-      add_packet->keyframe
-      and
-      (packet_counts[video_stream_id] > max_video_packet_count)
-      and 
-      *(pktQueue.begin()) != add_packet
-      )
+        and
+        add_packet->keyframe
+        and
+        (packet_counts[video_stream_id] > max_video_packet_count)
+        and 
+        *(pktQueue.begin()) != add_packet
+        )
      ) {
-    Debug(3, "stream index %d ?= video_stream_id %d, keyframe %d,  counts %d > max %d at begin %d",
-        add_packet->packet.stream_index, video_stream_id, add_packet->keyframe, packet_counts[video_stream_id], max_video_packet_count, 
+    Debug(3, "stream index %d ?= video_stream_id %d, keyframe %d, keep_keyframes %d,  counts %d > max %d at begin %d",
+        add_packet->packet.stream_index, video_stream_id, add_packet->keyframe, keep_keyframes, packet_counts[video_stream_id], max_video_packet_count, 
         ( *(pktQueue.begin()) != add_packet )
         );
     return;
   }
   std::unique_lock<std::mutex> lck(mutex);
+  if (!keep_keyframes) {
+    // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
+    while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > max_video_packet_count)) {
+      ZMPacket *zm_packet = *pktQueue.begin();
+      ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
+      if (!lp->trylock()) break;
+      delete lp;
+
+      pktQueue.pop_front();
+      packet_counts[zm_packet->packet.stream_index] -= 1;
+      Debug(1, "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%d",
+          zm_packet->packet.stream_index, zm_packet->image_index, zm_packet->keyframe, packet_counts[video_stream_id], max_video_packet_count, pktQueue.size());
+      delete zm_packet;
+    } // end while
+    return;
+  }
+
+  // If ananlysis_it isn't at the end, we need to keep that many additional packets
+  int tail_count = 0;
+  if (pktQueue.back() != add_packet) {
+    Debug(1, "Ours is not the back");
+    packetqueue_iterator it = pktQueue.end();
+    --it;
+    while (*it != add_packet) {
+      if ((*it)->packet.stream_index == video_stream_id)
+        ++tail_count;
+      --it;
+    }
+  }
+  Debug(1, "Tail count is %d", tail_count);
 
   packetqueue_iterator it = pktQueue.begin();
   packetqueue_iterator next_front = pktQueue.begin();
   int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
 
+
   // First packet is special because we know it is a video keyframe and only need to check for lock
   ZMPacket *zm_packet = *it;
-  if ( zm_packet->trylock() ) {
+  ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
+  if (lp->trylock()) {
     ++it;
-    zm_packet->unlock();
+    delete lp;
 
     // Since we have many packets in the queue, we should NOT be pointing at end so don't need to test for that
-    while ( *it != add_packet ) {
+    while (*it != add_packet) {
       zm_packet = *it;
-      if ( !zm_packet->trylock() ) {
-        break;
-      }
-      zm_packet->unlock();
+      lp = new ZMLockedPacket(zm_packet);
+      if (!lp->trylock()) break;
+      delete lp;
 
-      if ( is_there_an_iterator_pointing_to_packet(zm_packet) ) {
+      if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
         Warning("Found iterator at beginning of queue. Some thread isn't keeping up");
         break;
       }
 
-      if ( zm_packet->packet.stream_index == video_stream_id ) {
-        if ( zm_packet->keyframe ) {
+      if (zm_packet->packet.stream_index == video_stream_id) {
+        if (zm_packet->keyframe) {
           Debug(3, "Have a video keyframe so setting next front to it");
           next_front = it;
         }
         ++video_packets_to_delete;
-          Debug(4, "Counted %d video packets. Which would leave %d in packetqueue",
-              video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete);
-        if (packet_counts[video_stream_id] - video_packets_to_delete <= max_video_packet_count) {
+          Debug(4, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+              video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
+        if (packet_counts[video_stream_id] - video_packets_to_delete <= max_video_packet_count + tail_count) {
           break;
         }
       }
@@ -200,7 +232,7 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
 	return;
 } // end voidPacketQueue::clearPackets(ZMPacket* zm_packet)
 
-ZMPacket* PacketQueue::popPacket( ) {
+ZMLockedPacket* PacketQueue::popPacket( ) {
   Debug(4, "pktQueue size %d", pktQueue.size());
 	if ( pktQueue.empty() ) {
 		return nullptr;
@@ -222,14 +254,15 @@ ZMPacket* PacketQueue::popPacket( ) {
     }
   }  // end foreach iterator
 
-  zm_packet->lock();
+  ZMLockedPacket *lp = new ZMLockedPacket (zm_packet);
+  lp->lock();
 
 	pktQueue.pop_front();
   packet_counts[zm_packet->packet.stream_index] -= 1;
 
   mutex.unlock();
 
-	return zm_packet;
+	return lp;
 }  // popPacket
 
 
@@ -319,15 +352,17 @@ unsigned int PacketQueue::clear(unsigned int frames_to_keep, int stream_id) {
 
 void PacketQueue::clear() {
   deleting = true;
+  condition.notify_all();
 
   std::unique_lock<std::mutex> lck(mutex);
 
   while (!pktQueue.empty()) {
     ZMPacket *packet = pktQueue.front();
     // Someone might have this packet, but not for very long and since we have locked the queue they won't be able to get another one
-    packet->lock();
+    ZMLockedPacket *lp = new ZMLockedPacket(packet);
+    lp->lock();
     pktQueue.pop_front();
-    packet->unlock();
+    delete lp;
     delete packet;
   }
 
@@ -452,8 +487,8 @@ int PacketQueue::packet_count(int stream_id) {
 
 
 // Returns a packet. Packet will be locked
-ZMPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
-  if ( deleting or zm_terminate )
+ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
+  if (deleting or zm_terminate)
     return nullptr;
 
   Debug(4, "Locking in get_packet using it %p queue end? %d, packet %p",
@@ -467,7 +502,7 @@ ZMPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
     Debug(2, "waiting.  Queue size %d it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
     condition.wait(lck);
   }
-  if ( deleting or zm_terminate )
+  if (deleting or zm_terminate)
     return nullptr;
 
   Debug(4, "get_packet using it %p queue end? %d, packet %p",
@@ -477,14 +512,21 @@ ZMPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
     Error("Null p?!");
     return nullptr;
   }
+  ZMLockedPacket *lp = new ZMLockedPacket(p);
   Debug(3, "get_packet %p image_index: %d, about to lock packet", p, p->image_index);
-  while ( !(zm_terminate or deleting) and !p->trylock() ) {
-    Debug(3, "waiting.  Queue size %d it == end? %d", pktQueue.size(), ( *it == pktQueue.end() ) );
+  while (!(zm_terminate or deleting) and !lp->trylock()) {
+    Debug(3, "waiting on index %d.  Queue size %d it == end? %d",
+        p->image_index, pktQueue.size(), ( *it == pktQueue.end() ) );
+    ZM_DUMP_PACKET(p->packet, "");
     condition.wait(lck);
   }
+  if (deleting or zm_terminate) {
+    // packet may have been deleted so we can't delete the lp FIXME
+    return nullptr;
+  }
   Debug(2, "Locked packet, unlocking packetqueue mutex");
-  return p;
-}  // end ZMPacket *PacketQueue::get_packet(it)
+  return lp;
+}  // end ZMLockedPacket *PacketQueue::get_packet(it)
 
 bool PacketQueue::increment_it(packetqueue_iterator *it) {
   Debug(2, "Incrementing %p, queue size %d, end? %d", it, pktQueue.size(), ((*it) == pktQueue.end()));
@@ -599,7 +641,7 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
 
   if ( wait ) {
     while ( ((! pktQueue.size()) or (*it == pktQueue.end())) and !zm_terminate and !deleting ) {
-      Debug(2, "waiting.  Queue size %d it == end? %d", pktQueue.size(), ( *it == pktQueue.end() ) );
+      Debug(2, "waiting for packets in queue.  Queue size %d it == end? %d", pktQueue.size(), ( *it == pktQueue.end() ) );
       condition.wait(lck);
       *it = pktQueue.begin();
     }
@@ -612,14 +654,14 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
 
   while ( *it != pktQueue.end() ) {
     ZMPacket *zm_packet = *(*it);
-    if ( !zm_packet ) {
+    if (!zm_packet) {
       Error("Null zmpacket in queue!?");
       free_it(it);
       return nullptr;
     }
     Debug(1, "Packet keyframe %d for stream %d, so returning the it to it",
         zm_packet->keyframe, zm_packet->packet.stream_index);
-    if ( zm_packet->keyframe and ( zm_packet->packet.stream_index == video_stream_id ) ) {
+    if (zm_packet->keyframe and ( zm_packet->packet.stream_index == video_stream_id )) {
       Debug(1, "Found a keyframe for stream %d, so returning the it to it", video_stream_id);
       return it;
     }
@@ -627,7 +669,7 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
   }
   Debug(1, "DIdn't Found a keyframe for stream %d, so returning the it to it", video_stream_id);
   return it;
-}
+}  // get video_it
 
 void PacketQueue::free_it(packetqueue_iterator *it) {
   for (

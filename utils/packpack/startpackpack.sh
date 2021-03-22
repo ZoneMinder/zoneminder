@@ -117,6 +117,17 @@ commonprep () {
             exit 1
         fi
     fi
+
+    if [ -e "build/RtspServer" ]; then
+      echo "Found existing RtspServer..."
+    else
+      echo "Cloning RtspServer ..."
+      git clone https://github.com/ZoneMinder/RtspServer build/RtspServer
+      if [ $? -ne 0 ]; then
+        echo "ERROR: RtspServer clone failed..."
+        exit 1
+      fi
+    fi
 }
 
 # Uncompress the submodule tarballs and move them into place
@@ -136,6 +147,13 @@ movecrud () {
         tar -xzf build/cakephp-enum-behavior-${CEBVER}.tar.gz
         rmdir web/api/app/Plugin/CakePHP-Enum-Behavior
         mv -f CakePHP-Enum-Behavior-${CEBVER} web/api/app/Plugin/CakePHP-Enum-Behavior
+    fi
+    if [ -e "dep/RtspServer/CMakeLists.txt" ]; then
+        echo "RtspServer already installed..."
+    else
+        echo "Copying RtspServer..."
+        rm -r dep/RtspServer
+        cp -Rpd build/RtspServer dep/RtspServer
     fi
 }
 
@@ -347,7 +365,7 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   setdebpkgname
   movecrud
 
-  if [ "${DIST}" == "focal" ] || [ "${DIST}" == "buster" ]; then
+  if [ "${DIST}" == "focal" ] || [ "${DIST}" == "groovy" ] || [ "${DIST}" == "hirsuit" ] || [ "${DIST}" == "buster" ]; then
     ln -sfT distros/ubuntu2004 debian
   elif [ "${DIST}" == "beowulf" ]; then
     ln -sfT distros/beowulf debian

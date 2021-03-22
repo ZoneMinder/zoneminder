@@ -37,7 +37,8 @@ ZMPacket::ZMPacket() :
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
-  codec_imgsize(0)
+  codec_imgsize(0),
+  decoded(0)
 {
   av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.

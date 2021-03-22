@@ -138,18 +138,20 @@ class Event {
     bool SetPath(Storage *storage);
 
  public:
-    static const char *getSubPath(struct tm *time) {
+    static const char *getSubPath(tm time) {
       static char subpath[PATH_MAX] = "";
       snprintf(subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d",
-          time->tm_year-100, time->tm_mon+1, time->tm_mday,
-          time->tm_hour, time->tm_min, time->tm_sec);
+          time.tm_year-100, time.tm_mon+1, time.tm_mday,
+          time.tm_hour, time.tm_min, time.tm_sec);
       return subpath;
     }
     static const char *getSubPath(time_t *time) {
-      return Event::getSubPath(localtime(time));
+      tm time_tm = {};
+      localtime_r(time, &time_tm);
+      return Event::getSubPath(time_tm);
     }
 
-    const char* getEventFile(void) const {
+    const char* getEventFile() const {
       return video_file.c_str();
     }
 

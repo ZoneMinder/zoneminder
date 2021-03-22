@@ -25,7 +25,7 @@ if ( !canEdit('System') && !$selfEdit ) {
   return;
 }
 
-require('includes/User.php');
+require_once('includes/User.php');
 
 if ( $_REQUEST['uid'] ) {
 	if ( !($newUser = new ZM\User($_REQUEST['uid'])) ) {
@@ -54,9 +54,9 @@ foreach ( dbFetchAll($sql) as $monitor ) {
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('User').' - '.$newUser->Username());
+echo getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-<?php echo getNavBarHTML() ?>
   <div id="page">
     <div class="w-100">
       <div class="float-left pl-3 pt-1">

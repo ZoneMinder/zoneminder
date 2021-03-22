@@ -48,6 +48,7 @@ function updateMonitorDimensions(element) {
       form.elements['newMonitor[Height]'].value = dimensions[1];
     }
   }
+  update_estimated_ram_use();
   return false;
 }
 

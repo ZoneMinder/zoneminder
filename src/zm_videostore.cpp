@@ -155,7 +155,7 @@ bool VideoStore::open() {
         wanted_codec = AV_CODEC_ID_H264;
         // FIXME what is the optimal codec?  Probably low latency h264 which is effectively mjpeg
       } else {
-        Debug(2, "Codec wanted %d", wanted_codec);
+        Debug(2, "Codec wanted %d %s", wanted_codec, avcodec_get_name((AVCodecID)wanted_codec));
       }
       std::string wanted_encoder = monitor->Encoder();
 
@@ -167,7 +167,12 @@ bool VideoStore::open() {
           }
         }
         if ( codec_data[i].codec_id != wanted_codec ) {
-          Debug(1, "Not the right codec %d != %d", codec_data[i].codec_id, wanted_codec);
+          Debug(1, "Not the right codec %d %s != %d %s",
+							codec_data[i].codec_id,
+							avcodec_get_name(codec_data[i].codec_id),
+							wanted_codec,
+							avcodec_get_name((AVCodecID)wanted_codec)
+							);
           continue;
         }
 

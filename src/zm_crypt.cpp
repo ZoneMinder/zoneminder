@@ -21,44 +21,45 @@
 // returns username if valid, "" if not
 #if HAVE_LIBJWT
 std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
+  Debug(1, "Using LIBJWT");
   std::string username = "";
   unsigned int token_issued_at = 0;
   int err = 0;
   jwt_t *jwt = nullptr;
 
   err = jwt_new(&jwt);
-  if( err ) {
+  if (err) {
     Error("Unable to Allocate JWT object");
     return std::make_pair("", 0);
   }
 
   err = jwt_set_alg(jwt, JWT_ALG_HS256, (const unsigned char*)key.c_str(), key.length());
-  if( err ) {
+  if (err) {
     jwt_free(jwt);
     Error("Error setting Algorithm for JWT decode");
     return std::make_pair("", 0);
   }
   
   err = jwt_decode(&jwt, jwt_token_str.c_str(), nullptr, 0);
-  if( err ) {
+  if (err) {
     jwt_free(jwt);
     Error("Could not decode JWT");
     return std::make_pair("", 0);
   }
   
   const char *c_type = jwt_get_grant(jwt, (const char*)"type");
-  if ( !c_type ) {
+  if (!c_type) {
     jwt_free(jwt);
     Error("Missing token type. This should not happen");
     return std::make_pair("", 0);
-  } else if ( std::string(c_type) != "access" ) {
+  } else if (std::string(c_type) != "access") {
     jwt_free(jwt);
     Error("Only access tokens are allowed. Please do not use refresh tokens");
     return std::make_pair("", 0);
   }
 
   const char *c_username = jwt_get_grant(jwt, (const char*)"user");
-  if( !c_username ) {
+  if (!c_username) {
     jwt_free(jwt);
     Error("User not found in claim");
     return std::make_pair("", 0);
@@ -68,7 +69,7 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
   Debug(1, "Got %s as user claim from token", username.c_str());
   
   token_issued_at = (unsigned int)jwt_get_grant_int(jwt, "iat");
-  if ( errno == ENOENT ) {
+  if (errno == ENOENT) {
     jwt_free(jwt);
     Error("IAT not found in claim. This should not happen");
     return std::make_pair("", 0);
@@ -80,6 +81,7 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
 }
 #else // HAVE_LIBJWT
 std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
+  Debug(1, "Using jwt-cpp");
   std::string username = "";
   unsigned int token_issued_at = 0;
   try {
@@ -93,26 +95,27 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
     verifier.verify(decoded);
 
     // make sure it has fields we need
-    if ( decoded.has_payload_claim("type") ) {
+    if (decoded.has_payload_claim("type")) {
       std::string type = decoded.get_payload_claim("type").as_string();
-      if ( type != "access" ) {
+      if (type != "access") {
         Error("Only access tokens are allowed. Please do not use refresh tokens");
         return std::make_pair("", 0);
       }
     } else {
       // something is wrong. All ZM tokens have type
       Error("Missing token type. This should not happen");
-      return std::make_pair("",0);
+      return std::make_pair("", 0);
     }
-    if ( decoded.has_payload_claim("user") ) {
-      username  = decoded.get_payload_claim("user").as_string();
+
+    if (decoded.has_payload_claim("user")) {
+      username = decoded.get_payload_claim("user").as_string();
       Debug(1, "Got %s as user claim from token", username.c_str());
     } else {
       Error("User not found in claim");
       return std::make_pair("", 0);
     }
 
-    if ( decoded.has_payload_claim("iat") ) {
+    if (decoded.has_payload_claim("iat")) {
       token_issued_at = (unsigned int) (decoded.get_payload_claim("iat").as_int());
       Debug(1, "Got IAT token=%u", token_issued_at);
     } else {
@@ -120,13 +123,13 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
       return std::make_pair("", 0);
     }
   } // try
-  catch ( const std::exception &e ) {
-      Error("Unable to verify token: %s", e.what());
-      return std::make_pair("", 0);
+  catch (const std::exception &e) {
+    Error("Unable to verify token: %s", e.what());
+    return std::make_pair("", 0);
   }
   catch (...) {
-     Error("unknown exception");
-     return std::make_pair("", 0);
+    Error("unknown exception");
+    return std::make_pair("", 0);
   }
   return std::make_pair(username, token_issued_at);
 }

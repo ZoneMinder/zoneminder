@@ -73,7 +73,7 @@ bool StreamBase::checkInitialised() {
     return false;
   }
   if ((monitor->GetType() == Monitor::FFMPEG) and !monitor->DecodingEnabled() ) {
-    Error("Monitor is not decoding.");
+    Debug(1, "Monitor is not decoding.");
     return false;
   }
   return true;

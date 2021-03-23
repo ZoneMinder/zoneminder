@@ -48,7 +48,7 @@ ZoneMinderFifoSource::~ZoneMinderFifoSource() {
 
 // thread mainloop
 void ZoneMinderFifoSource::ReadRun() {
-  if (!stop_) Warning("bad value for stop_ in ReadRun");
+  if (stop_) Warning("bad value for stop_ in ReadRun");
 	while (!stop_) {
 		if (getNextFrame() < 0) {
       Debug(1, "Sleeping");
@@ -57,7 +57,7 @@ void ZoneMinderFifoSource::ReadRun() {
 	}
 }
 void ZoneMinderFifoSource::WriteRun() {
-  if (!stop_) Warning("bad value for stop_ in WriteRun");
+  if (stop_) Warning("bad value for stop_ in WriteRun");
 	while (!stop_) {
     std::unique_lock<std::mutex> lck(mutex_);
     if (m_nalQueue.empty()) {

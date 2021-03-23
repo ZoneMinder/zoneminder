@@ -8,3 +8,6 @@
 [submodule "dep/RtspServer"]
 	path = dep/RtspServer
 	url = https://github.com/ZoneMinder/RtspServer
+[submodule "dep/jwt-cpp"]
+	path = dep/jwt-cpp
+	url = https://github.com/Thalhammer/jwt-cpp

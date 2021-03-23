@@ -138,22 +138,6 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
     return;
   }
   std::unique_lock<std::mutex> lck(mutex);
-  if (!keep_keyframes) {
-    // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
-    while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > max_video_packet_count)) {
-      ZMPacket *zm_packet = *pktQueue.begin();
-      ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
-      if (!lp->trylock()) break;
-      delete lp;
-
-      pktQueue.pop_front();
-      packet_counts[zm_packet->packet.stream_index] -= 1;
-      Debug(1, "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%d",
-          zm_packet->packet.stream_index, zm_packet->image_index, zm_packet->keyframe, packet_counts[video_stream_id], max_video_packet_count, pktQueue.size());
-      delete zm_packet;
-    } // end while
-    return;
-  }
 
   // If ananlysis_it isn't at the end, we need to keep that many additional packets
   int tail_count = 0;
@@ -169,10 +153,26 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
   }
   Debug(1, "Tail count is %d", tail_count);
 
+  if (!keep_keyframes) {
+    // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
+    while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > max_video_packet_count + tail_count)) {
+      ZMPacket *zm_packet = *pktQueue.begin();
+      ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
+      if (!lp->trylock()) break;
+      delete lp;
+
+      pktQueue.pop_front();
+      packet_counts[zm_packet->packet.stream_index] -= 1;
+      Debug(1, "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%d",
+          zm_packet->packet.stream_index, zm_packet->image_index, zm_packet->keyframe, packet_counts[video_stream_id], max_video_packet_count, pktQueue.size());
+      delete zm_packet;
+    } // end while
+    return;
+  }
+
   packetqueue_iterator it = pktQueue.begin();
   packetqueue_iterator next_front = pktQueue.begin();
   int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
-
 
   // First packet is special because we know it is a video keyframe and only need to check for lock
   ZMPacket *zm_packet = *it;

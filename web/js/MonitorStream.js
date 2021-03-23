@@ -17,9 +17,20 @@ function MonitorStream(monitorData) {
   this.refresh = monitorData.refresh;
   this.start = function(delay) {
     // Step 1 make sure we are streaming instead of a static image
-    var stream = $j('#liveStream'+this.id)[0];
-    if ( ! stream ) {
+    var stream = $j('#liveStream'+this.id);
+    if (!stream.length) {
       console.log('No live stream');
+      return;
+    }
+    stream = stream[0];
+    if ( !stream ) {
+      console.log('No live stream');
+      return;
+    }
+    if ( !stream.src ) {
+      // Website Monitors won't have an img tag
+      console.log('No src for #liveStream'+this.id);
+      console.log(stream);
       return;
     }
     src = stream.src.replace(/mode=single/i, 'mode=jpeg');

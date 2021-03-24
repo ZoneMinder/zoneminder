@@ -88,3 +88,49 @@ TEST_CASE("split (char delimiter)") {
   REQUIRE(res == 3);
   REQUIRE(items == std::vector<std::string>{"abc", "def", "ghi"});
 }
+
+TEST_CASE("split (string delimiter)") {
+  std::vector<std::string> items;
+
+  items = split("", "");
+  REQUIRE(items == std::vector<std::string>{""});
+
+  items = split("", " ");
+  REQUIRE(items == std::vector<std::string>{""});
+
+  items = split("", " \t");
+  REQUIRE(items == std::vector<std::string>{""});
+
+  items = split("", " \t");
+  REQUIRE(items == std::vector<std::string>{""});
+
+  items = split(" ", " ");
+  REQUIRE(items.size() == 0);
+
+  items = split("  ", " ");
+  REQUIRE(items.size() == 0);
+
+  items = split(" ", " \t");
+  REQUIRE(items.size() == 0);
+
+  items = split("a b", "");
+  REQUIRE(items == std::vector<std::string>{"a b"});
+
+  items = split("a b", " ");
+  REQUIRE(items == std::vector<std::string>{"a", "b"});
+
+  items = split("a \tb", " \t");
+  REQUIRE(items == std::vector<std::string>{"a", "b"});
+
+  items = split(" a \tb ", " \t");
+  REQUIRE(items == std::vector<std::string>{"a", "b"});
+
+  items = split(" a=b ", "=");
+  REQUIRE(items == std::vector<std::string>{" a", "b "});
+
+  items = split(" a=b ", " =");
+  REQUIRE(items == std::vector<std::string>{"a", "b"});
+
+  items = split("a b c", " ", 2);
+  REQUIRE(items == std::vector<std::string>{"a", "b c"});
+}

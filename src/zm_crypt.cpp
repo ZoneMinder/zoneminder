@@ -21,7 +21,6 @@
 // returns username if valid, "" if not
 #if HAVE_LIBJWT
 std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
-  Debug(1, "Using LIBJWT");
   std::string username = "";
   unsigned int token_issued_at = 0;
   int err = 0;
@@ -40,7 +39,7 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
     return std::make_pair("", 0);
   }
   
-  err = jwt_decode(&jwt, jwt_token_str.c_str(), nullptr, 0);
+  err = jwt_decode(&jwt, jwt_token_str.c_str(), key.c_str(), key.length());
   if (err) {
     jwt_free(jwt);
     Error("Could not decode JWT");
@@ -81,7 +80,6 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
 }
 #else // HAVE_LIBJWT
 std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
-  Debug(1, "Using jwt-cpp");
   std::string username = "";
   unsigned int token_issued_at = 0;
   try {

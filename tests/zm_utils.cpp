@@ -71,3 +71,20 @@ TEST_CASE("startsWith") {
   REQUIRE(startsWith("test=abc", "test") == true);
   REQUIRE(startsWith(" test=abc", "test") == false);
 }
+
+TEST_CASE("split (char delimiter)") {
+  std::vector<std::string> items;
+  int res;
+
+  res = split(nullptr, ' ', items);
+  REQUIRE(res == -1);
+  REQUIRE(items.size() == 0);
+
+  res = split("", ' ', items);
+  REQUIRE(res == -2);
+  REQUIRE(items.size() == 0);
+
+  res = split("abc def ghi", ' ', items);
+  REQUIRE(res == 3);
+  REQUIRE(items == std::vector<std::string>{"abc", "def", "ghi"});
+}

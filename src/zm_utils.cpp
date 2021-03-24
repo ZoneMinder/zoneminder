@@ -345,8 +345,7 @@ std::string UriDecode( const std::string &encoded ) {
   char a, b;
   const char *src = encoded.c_str();
   std::string retbuf;
-  retbuf.resize(encoded.length() + 1);
-  char *dst = &retbuf[0];
+  retbuf.reserve(encoded.length());
   while (*src) {
     if ((*src == '%') && ((a = src[1]) && (b = src[2])) && (isxdigit(a) && isxdigit(b))) {
       if (a >= 'a')
@@ -361,16 +360,15 @@ std::string UriDecode( const std::string &encoded ) {
         b -= ('A' - 10);
       else
         b -= '0';
-      *dst++ = 16*a+b;
+      retbuf.push_back(16*a+b);
       src+=3;
     } else if (*src == '+') {
-      *dst++ = ' ';
+      retbuf.push_back(' ');
       src++;
     } else {
-      *dst++ = *src++;
+      retbuf.push_back(*src++);
     }
   }
-  *dst++ = '\0';
   return retbuf;
 }
 
@@ -434,13 +432,12 @@ const QueryParameter *QueryString::get(const std::string &name) const {
 std::string QueryString::parseName(std::istream &input) {
   std::string name = "";
 
-  while (!input.eof() && input.peek()!= '=')
+  while (!input.eof() && input.peek() != '=')
     name.push_back(input.get());
 
   //Eat the '='
   if (!input.eof()) input.get();
 
-  Debug(1, "namee: %s", name.c_str());
   return name;
 }
 
@@ -453,7 +450,6 @@ std::string QueryString::parseValue(std::istream &input) {
     c = input.get();
   }
 
-  Debug(1, "value: %s", urlEncodedValue.c_str());
   if (urlEncodedValue.size() == 0)
     return "";
 

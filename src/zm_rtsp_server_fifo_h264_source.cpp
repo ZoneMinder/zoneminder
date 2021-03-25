@@ -29,6 +29,7 @@ H264_ZoneMinderFifoSource::H264_ZoneMinderFifoSource(
 {
   // extradata appears to simply be the SPS and PPS NAL's
   //this->splitFrames(m_stream->codecpar->extradata, m_stream->codecpar->extradata_size);
+  m_hType = 264;
 }
 
 // split packet into frames
@@ -101,6 +102,7 @@ H265_ZoneMinderFifoSource::H265_ZoneMinderFifoSource(
 {
   // extradata appears to simply be the SPS and PPS NAL's
   // this->splitFrames(m_stream->codecpar->extradata, m_stream->codecpar->extradata_size);
+  m_hType = 265;
 }
 
 // split packet in frames

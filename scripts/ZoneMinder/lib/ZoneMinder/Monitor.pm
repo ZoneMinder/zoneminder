@@ -125,7 +125,6 @@ $serial = $primary_key = 'Id';
   ZoneCount
   Refresh
   DefaultCodec
-  GroupIds
   Latitude
   Longitude
   );

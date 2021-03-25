@@ -66,6 +66,7 @@ class ZoneMinderFifoSource {
     Buffer  m_buffer;
     AVRational m_timeBase;
     std::queue<NAL_Frame *> m_nalQueue;
+    int m_hType;
 };
 #endif // HAVE_RTSP_SERVER
 

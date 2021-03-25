@@ -21,7 +21,9 @@ class NAL_Frame {
       m_pts(pts),
       m_ref_count(1) {
         m_buffer = new unsigned char[m_size];
-        memcpy(m_buffer, buffer, m_size);
+        if (buffer) {
+          memcpy(m_buffer, buffer, m_size);
+        }
       };
     NAL_Frame& operator=(const NAL_Frame&);
     ~NAL_Frame()  {
@@ -33,6 +35,7 @@ class NAL_Frame {
     // the address of the buffer plus 4 bytes.
     unsigned char *nal() const { return m_buffer+4; };
     size_t size() const { return m_size; };
+    size_t size(size_t new_size) { m_size=new_size; return m_size; };
     size_t nal_size() const { return m_size-4; };
     int64_t pts() const { return m_pts; };
     bool check() const {

@@ -149,24 +149,14 @@ function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
-  // Hide these columns on first run when no cookie is saved
-  if ( !getCookie("zmEventsTable.bs.table.columns") ) {
-    table.bootstrapTable('hideColumn', 'Archived');
-    table.bootstrapTable('hideColumn', 'Emailed');
-  }
-
   // enable or disable buttons based on current selection and user rights
   table.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',
   function() {
     selections = table.bootstrapTable('getSelections');
 
-    viewBtn.prop('disabled', !(selections.length && canView.Events));
-    archiveBtn.prop('disabled', !(selections.length && canEdit.Events));
-    unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEdit.Events);
-    editBtn.prop('disabled', !(selections.length && canEdit.Events));
-    exportBtn.prop('disabled', !(selections.length && canView.Events));
-    downloadBtn.prop('disabled', !(selections.length && canView.Events));
+    //exportBtn.prop('disabled', !(selections.length && canView.Events));
+    //downloadBtn.prop('disabled', !(selections.length && canView.Events));
     deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
   });
 
@@ -174,10 +164,10 @@ function initPage() {
   backBtn.prop('disabled', !document.referrer.length);
 
   // Setup the thumbnail video animation
-  initThumbAnimation();
+  //initThumbAnimation();
 
   // Some toolbar events break the thumbnail animation, so re-init eventlistener
-  table.on('all.bs.table', initThumbAnimation);
+  //table.on('all.bs.table', initThumbAnimation);
 
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
@@ -281,20 +271,6 @@ function initPage() {
 
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
-    // Manage the Object Detection links in the events list
-    $j(".objDetectLink").click(function(evt) {
-      evt.preventDefault();
-      var eid = $j(this).data('eid');
-      getObjdetectModal(eid);
-    });
-
-    // Manage the eventdetail links in the events list
-    $j(".eDetailLink").click(function(evt) {
-      evt.preventDefault();
-      var eid = $j(this).data('eid');
-      getEventDetailModal(eid);
-    });
-
     var thumb_ndx = $j('#snapshotTable tr th').filter(function() {
       return $j(this).text().trim() == 'Thumbnail';
     }).index();

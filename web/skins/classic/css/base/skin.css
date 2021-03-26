@@ -598,18 +598,6 @@ input[type=submit]:disabled,
 
 }
 
-#options {
-  font-size:90%;
-}
-
-#options .help-block {
-  margin-top: 0;
-}
-
-#options .form-group {
-  margin-bottom: 20px;
-  border-bottom: 1px solid #e7e7e7;
-}
 
 .navbar{
 	margin-bottom: 0 !important;

@@ -84,6 +84,7 @@ class Monitor extends ZM_Object {
     'LabelY'      =>  0,
     'LabelSize'   =>  1,
     'ImageBufferCount'  =>  3,
+    'MaxImageBufferCount'  =>  0,
     'WarmupCount' =>  0,
     'PreEventCount' =>  5,
     'PostEventCount'  =>  5,

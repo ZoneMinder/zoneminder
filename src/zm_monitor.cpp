@@ -85,7 +85,7 @@ std::string load_monitor_sql =
 "`RecordAudio`, "
 "`Brightness`, `Contrast`, `Hue`, `Colour`, "
 "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
-"`ImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
+"`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`,"
@@ -327,6 +327,7 @@ Monitor::Monitor()
   label_coord(Coord(0,0)),
   label_size(0),
   image_buffer_count(0),
+  max_image_buffer_count(0),
   warmup_count(0),
   pre_event_count(0),
   post_event_count(0),
@@ -431,7 +432,7 @@ Monitor::Monitor()
  "RecordAudio, "
  "Brightness, Contrast, Hue, Colour, "
  "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
- "ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
+ "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
  "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
  "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
  "`RTSPServer`,`RTSPStreamName`,
@@ -579,10 +580,14 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   label_size = atoi(dbrow[col]); col++;
 
   image_buffer_count = atoi(dbrow[col]); col++;
+  max_image_buffer_count = atoi(dbrow[col]); col++;
   warmup_count = atoi(dbrow[col]); col++;
   pre_event_count = atoi(dbrow[col]); col++;
-  packetqueue.setMaxVideoPackets(pre_event_count);
+  packetqueue.setPreEventVideoPackets(pre_event_count);
+  packetqueue.setMaxVideoPackets(max_image_buffer_count);
+
   packetqueue.setKeepKeyframes(videowriter == PASSTHROUGH);
+
   post_event_count = atoi(dbrow[col]); col++;
   stream_replay_buffer = atoi(dbrow[col]); col++;
   alarm_frame_count = atoi(dbrow[col]); col++;
@@ -590,7 +595,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     alarm_frame_count = 1;
   else if ( alarm_frame_count > MAX_PRE_ALARM_FRAMES )
     alarm_frame_count = MAX_PRE_ALARM_FRAMES;
-  pre_event_buffer_count = pre_event_count + alarm_frame_count + warmup_count - 1;
 
   section_length = atoi(dbrow[col]); col++;
   min_section_length = atoi(dbrow[col]); col++;
@@ -639,9 +643,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%d", storage->Path(), id);
-  LoadCamera();
 
   if ( purpose != QUERY ) {
+    LoadCamera();
     Zone **zones = 0;
     int n_zones = Zone::Load(this, zones);
     this->AddZones(n_zones, zones);
@@ -675,7 +679,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       }
     }
   }  // end if purpose
-
 
   Debug(1, "Loaded monitor %d(%s), %d zones", id, name, n_zones);
 } // Monitor::Load
@@ -3125,7 +3128,7 @@ int Monitor::PrimeCapture() {
     }
 
     Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
-        video_stream_id, audio_stream_id, pre_event_buffer_count);
+        video_stream_id, audio_stream_id, pre_event_count);
 
     if (rtsp_server) {
       if (video_stream_id >= 0) {

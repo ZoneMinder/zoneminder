@@ -1059,8 +1059,12 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     {
 ?>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('ImageBufferSize') ?></td>
+              <td class="text-right pr-3"><?php echo translate('ImageBufferSize'); echo makeHelpLink('ImageBufferCount'); ?></td>
               <td><input type="number" name="newMonitor[ImageBufferCount]" value="<?php echo validHtmlStr($monitor->ImageBufferCount()) ?>" min="1"/></td>
+            </tr>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('MaxImageBufferCount'); echo makeHelpLink('MaxImageBufferCount'); ?></td>
+              <td><input type="number" name="newMonitor[MaxImageBufferCount]" value="<?php echo validHtmlStr($monitor->MaxImageBufferCount()) ?>" min="0"/></td>
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('WarmupFrames') ?></td>
@@ -1081,10 +1085,6 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             <tr>
               <td class="text-right pr-3"><?php echo translate('AlarmFrameCount') ?></td>
               <td><input type="number" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($monitor->AlarmFrameCount()) ?>" min="1"/></td>
-            </tr>
-            <tr>
-              <td class="text-right pr-3"><?php echo translate('Estimated Ram Use') ?></td>
-              <td id="estimated_ram_use"><?php echo human_filesize($monitor->ImageBufferCount() * $monitor->Width() * $monitor->Height() * $monitor->Colours(), 0) ?></td>
             </tr>
 <?php
       break;

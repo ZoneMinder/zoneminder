@@ -292,10 +292,9 @@ protected:
   char       label_format[64];    // The format of the timestamp on the images
   Coord      label_coord;      // The coordinates of the timestamp on the images
   int        label_size;         // Size of the timestamp on the images
-  int32_t   image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
-  int        pre_event_buffer_count;   // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
-  // value is pre_event_count + alarm_frame_count - 1
-  int        warmup_count;      // How many images to process before looking for events
+  int32_t    image_buffer_count;        // Size of circular image buffer, kept in /dev/shm
+  int32_t    max_image_buffer_count;    // Max # of video packets to keep in packet queue
+  int        warmup_count;              // How many images to process before looking for events
   int        pre_event_count;    // How many images to hold and prepend to an alarm event
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now

@@ -59,7 +59,7 @@ void ZoneMinderFifoSource::ReadRun() {
 	}
 }
 void ZoneMinderFifoSource::WriteRun() {
-  size_t maxNalSize = 1300;
+  size_t maxNalSize = 1400;
 
   if (stop_) Warning("bad value for stop_ in WriteRun");
 	while (!stop_) {
@@ -100,6 +100,7 @@ void ZoneMinderFifoSource::WriteRun() {
         PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts());
         nalRemaining -= maxNalSize-1;
         nalSrc += maxNalSize-1;
+        int nal_count = 1;
 
         int headerSize = 0;
         if (m_hType == 264) {
@@ -114,21 +115,23 @@ void ZoneMinderFifoSource::WriteRun() {
             // This is the last fragment:
             fuNal.buffer()[headerSize-1] |= 0x40; // set the E bit in the FU header
           }
-          fuNalSize = nalRemaining < maxNalSize-headerSize ? nalRemaining : maxNalSize-headerSize;
+          fuNalSize = (nalRemaining < maxNalSize-headerSize) ? nalRemaining : maxNalSize-headerSize;
           fuNal.size(fuNalSize+headerSize);
           memcpy(fuNal.buffer()+headerSize, nalSrc, fuNalSize);
 
           PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts());
           nalRemaining -= fuNalSize;
           nalSrc += fuNalSize;
+          nal_count += 1;
         }
+          Debug(1, "Sending %d NALs @ %d and 1 @ %d", nal_count, maxNalSize, fuNal.size());
       } else {
         Debug(3, "Pushing nal of size %d at %" PRId64, nal->size(), nal->pts());
         PushFrame(nal->buffer(), nal->size(), nal->pts());
-        Debug(3, "Done Pushing nal");
       }
       delete nal;
       nal = nullptr;
+      Debug(3, "Done Pushing nal");
     }  // end if nal
 	}  // end while !_stop
 }

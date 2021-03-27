@@ -356,6 +356,11 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 #else
 #define CODEC_TYPE(stream) stream->codec->codec_type
 #endif
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+#define CODEC(stream) stream->codecpar
+#else
+#define CODEC(stream) stream->codec
+#endif
 
 
 #ifndef DBG_OFF

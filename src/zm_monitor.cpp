@@ -1800,8 +1800,6 @@ void Monitor::UpdateAnalysisFPS() {
 // If there is an event, the we should do our best to empty the queue.
 // If there isn't then we keep pre-event + alarm frames. = pre_event_count
 bool Monitor::Analyse() {
-
-
   // if have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
   // get_analysis_packet will lock the packet and may wait if analysis_it is at the end
@@ -1923,18 +1921,6 @@ bool Monitor::Analyse() {
             noteSetMap[LINKED_CAUSE] = noteSet;
         } // end if linked_monitors
 
-        if ( decoding_enabled ) {
-          while (!snap->image and !snap->decoded and !zm_terminate) {
-            // Need to wait for the decoder thread.
-            Debug(1, "Waiting for decode");
-            packet_lock->wait();
-            if (!snap->image and snap->decoded) {
-              Debug(1, "No image but was decoded, giving up");
-              delete packet_lock;
-              return false;
-            }
-          }  // end while ! decoded
-        }
 
         struct timeval *timestamp = snap->timestamp;
 
@@ -1952,16 +1938,25 @@ bool Monitor::Analyse() {
           }
 
           if (!(analysis_image_count % (motion_frame_skip+1))) {
-            if (snap->image) {
-              // Get new score.
-              motion_score = DetectMotion(*(snap->image), zoneSet);
-
-              Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
-                  score, last_motion_score, motion_score);
-              motion_frame_count += 1;
-            } else {
-              Debug(1, "No image in snap, codec likely not ready");
+            if (decoding_enabled) {
+              while (!snap->image and !snap->decoded and !zm_terminate) {
+                // Need to wait for the decoder thread.
+                Debug(1, "Waiting for decode");
+                packet_lock->wait();
+                if (!snap->image and snap->decoded) {
+                  Debug(1, "No image but was decoded, giving up");
+                  delete packet_lock;
+                  return false;
+                }
+              }  // end while ! decoded
             }
+
+            // Get new score.
+            motion_score = DetectMotion(*(snap->image), zoneSet);
+
+            Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
+                score, last_motion_score, motion_score);
+            motion_frame_count += 1;
             // Why are we updating the last_motion_score too?
             last_motion_score = motion_score;
           } else {

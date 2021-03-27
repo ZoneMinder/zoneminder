@@ -1,5 +1,5 @@
 window.addEventListener( 'DOMContentLoaded', function() {
-  if ( failed == true ) {
+  if ( failed == true && $j('#loginError').length ) {
     $j('#loginError').show();
   }
 } );

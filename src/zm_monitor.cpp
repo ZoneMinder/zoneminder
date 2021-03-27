@@ -3145,7 +3145,8 @@ int Monitor::PrimeCapture() {
       }
       if (record_audio and (audio_stream_id >= 0)) {
         AVStream *audioStream = camera->getAudioStream();
-        snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path)-1, "%s/video_fifo_%d.%s",
+        if (audioStream && CODEC(audioStream)) {
+        snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path)-1, "%s/audio_fifo_%d.%s",
             staticConfig.PATH_SOCKS.c_str(), id,
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
             avcodec_get_name(audioStream->codecpar->codec_id)
@@ -3154,6 +3155,9 @@ int Monitor::PrimeCapture() {
 #endif
             );
         audio_fifo = new Fifo(shared_data->audio_fifo_path, true);
+        } else {
+          Warning("No audioStream %p or codec?", audioStream);
+        }
       }
     }  // end if rtsp_server
 

@@ -144,7 +144,7 @@ VncCamera::~VncCamera() {
 }
 
 int VncCamera::PrimeCapture() {
-  if (libvnc_lib != nullptr) {
+  if (libvnc_lib == nullptr) {
     Error("No libvnc shared lib bound.");
     return -1;
   }

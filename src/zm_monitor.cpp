@@ -2248,10 +2248,9 @@ bool Monitor::Analyse() {
               event->updateNotes(noteSetMap);
             if ( section_length
                 && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                && ! (image_count % fps_report_interval)
                ) {
               Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
-                  name, image_count, event->Id(),
+                  name, analysis_image_count, event->Id(),
                   timestamp->tv_sec, video_store_data->recording.tv_sec,
                   timestamp->tv_sec - video_store_data->recording.tv_sec,
                   section_length

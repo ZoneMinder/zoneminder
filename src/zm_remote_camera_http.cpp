@@ -224,6 +224,9 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
     // Why are we disconnecting?  It's just a timeout, meaning that data wasn't available.
     //Disconnect();
     return 0;
+  } else if (n_found == EINTR) {
+    Error("Select interrupted");
+    return 0;
   } else if (n_found < 0) {
     Error("Select error: %s", strerror(errno));
     return -1;

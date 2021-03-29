@@ -88,7 +88,7 @@ Event::Event(
     strftime(buffer_now, 26, "%Y:%m:%d %H:%M:%S", &tm_info);
 
     Error(
-        "StartDateTime in the future starttime %u.%u >? now %u.%u difference %d\n%s\n%s",
+        "StartDateTime in the future starttime %ld.%06ld >? now %ld.%06ld difference %d\nstarttime: %s\nnow: %s",
         start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec,
         (now.tv_sec-start_time.tv_sec),
         buffer, buffer_now

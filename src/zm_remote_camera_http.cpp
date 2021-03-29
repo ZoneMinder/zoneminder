@@ -297,8 +297,8 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
 int RemoteCameraHttp::GetData() {
 	time_t start_time = time(nullptr);
 	int buffer_len = 0;
-	while ( !( buffer_len = ReadData(buffer) ) ) {
-			if ( zm_terminate ||  ( start_time - time(nullptr) < ZM_WATCH_MAX_DELAY ))
+	while (!(buffer_len = ReadData(buffer))) {
+			if (zm_terminate or ( (time(nullptr) - start_time) > ZM_WATCH_MAX_DELAY ))
 				return -1;
 		Debug(4, "Timeout waiting for REGEXP HEADER");
 		usleep(100000);

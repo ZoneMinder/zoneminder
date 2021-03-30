@@ -186,21 +186,26 @@ class ZM_Object {
         if ( is_array($value) ) {
           # perhaps should turn into a comma-separated string
           $this->{$field} = implode(',', $value);
-        } else if ( is_string($value) ) {
-          if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
-            if ( is_array($this->defaults[$field]['filter_regexp']) ) {
-              foreach ( $this->defaults[$field]['filter_regexp'] as $regexp ) {
-                $this->{$field} = preg_replace($regexp, '', trim($value));
-              }
-            } else {
-              $this->{$field} = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
-            }
-          } else if ( $value == '' and array_key_exists($field, $this->defaults) ) {
-            if ( is_array($this->defaults[$field]) ) {
-              $this->{$field} = $this->defaults[$field]['default'];
-            } else {
-              $this->{$field} = $this->defaults[$field];
-            }
+        } else if (is_string($value)) {
+          if (array_key_exists($field, $this->defaults)) {
+						if (is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp'])) {
+							if (is_array($this->defaults[$field]['filter_regexp'])) {
+								foreach ($this->defaults[$field]['filter_regexp'] as $regexp) {
+									$this->{$field} = preg_replace($regexp, '', trim($value));
+								}
+							} else {
+								$this->{$field} = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+							}
+						} else if ($value == '') {
+							if (is_array($this->defaults[$field])) {
+								$this->{$field} = $this->defaults[$field]['default'];
+							} else if (is_string($this->defaults[$field])) {
+# if the default is a string, don't set it. Having a default for empty string is to set null for numbers.
+								$this->{$field} = $value;
+							} else {
+								$this->{$field} = $this->defaults[$field];
+							}
+						}  # need a default
           } else {
             $this->{$field} = $value;
           }

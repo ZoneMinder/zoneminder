@@ -1921,7 +1921,6 @@ bool Monitor::Analyse() {
             noteSetMap[LINKED_CAUSE] = noteSet;
         } // end if linked_monitors
 
-
         struct timeval *timestamp = snap->timestamp;
 
         if (Active() and (function == MODECT or function == MOCORD)) {
@@ -1949,16 +1948,22 @@ bool Monitor::Analyse() {
                   return false;
                 }
               }  // end while ! decoded
-            }
+            }  // end if decoding enabled
 
-            // Get new score.
-            motion_score = DetectMotion(*(snap->image), zoneSet);
+            if (snap->image) {
+              // decoder may not have been able to provide an image
+              Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
+              // Get new score.
+              motion_score = DetectMotion(*(snap->image), zoneSet);
 
-            Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
-                score, last_motion_score, motion_score);
-            motion_frame_count += 1;
-            // Why are we updating the last_motion_score too?
-            last_motion_score = motion_score;
+              Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
+                  score, last_motion_score, motion_score);
+              motion_frame_count += 1;
+              // Why are we updating the last_motion_score too?
+              last_motion_score = motion_score;
+            } else {
+              Debug(1, "no image so skipping motion detection");
+            }  // end if has image
           } else {
             Debug(1, "Skipped motion detection");
           }

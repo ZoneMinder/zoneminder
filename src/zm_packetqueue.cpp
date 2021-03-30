@@ -42,16 +42,16 @@ PacketQueue::PacketQueue():
  */
 int PacketQueue::addStream() {
   deleting = false;
-  if ( max_stream_id == -1 ) {
+  if (max_stream_id == -1) {
     video_stream_id = 0;
     max_stream_id = 0;
   } else {
     max_stream_id ++;
   }
 
-  if ( packet_counts ) delete[] packet_counts;
+  if (packet_counts) delete[] packet_counts;
   packet_counts = new int[max_stream_id+1];
-  for ( int i=0; i <= max_stream_id; ++i )
+  for (int i=0; i <= max_stream_id; ++i)
     packet_counts[i] = 0;
   return max_stream_id;
 }
@@ -98,7 +98,7 @@ bool PacketQueue::queuePacket(ZMPacket* add_packet) {
             ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
             if (!lp->trylock()) {
               Debug(1, "Found locked packet when trying to free up video packets. Can't continue");
-              //delete lp;
+              delete lp;
               break;
             }
             delete lp;
@@ -539,10 +539,11 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
   Debug(4, "get_packet using it %p queue end? %d, packet %p",
       *it, (*it == pktQueue.end()), *(*it));
   ZMPacket *p = *(*it);
-  if ( !p ) {
+  if (!p) {
     Error("Null p?!");
     return nullptr;
   }
+
   ZMLockedPacket *lp = new ZMLockedPacket(p);
   Debug(3, "get_packet %p image_index: %d, about to lock packet", p, p->image_index);
   while (!(zm_terminate or deleting) and !lp->trylock()) {

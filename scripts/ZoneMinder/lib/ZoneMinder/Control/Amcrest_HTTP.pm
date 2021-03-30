@@ -75,7 +75,7 @@ sub open {
   }
 
   # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth
-  my $res = $self->{ua}->get($$self{base_url}.'cgi-bin/ptz.cgi');
+  my $res = $self->{ua}->get($$self{base_url}.'cgi-bin/magicBox.cgi?action=getDeviceType');
 
   if ( $res->is_success ) {
     $self->{state} = 'open';
@@ -121,7 +121,7 @@ sub open {
       Debug('No headers line');
     } # end if headers
   } else {
-    Error("Failed to get $$self{base_url}cgi-bin/ptz.cgi ".$res->status_line());
+    Error("Failed to get $$self{base_url}cgi-bin/magicBox.cgi?action=getDeviceType ".$res->status_line());
 
   } # end if $res->status_line() eq '401 Unauthorized'
 

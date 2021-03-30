@@ -188,6 +188,7 @@ class ZM_Object {
           $this->{$field} = implode(',', $value);
         } else if (is_string($value)) {
           if (array_key_exists($field, $this->defaults)) {
+						# Need filtering
 						if (is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp'])) {
 							if (is_array($this->defaults[$field]['filter_regexp'])) {
 								foreach ($this->defaults[$field]['filter_regexp'] as $regexp) {
@@ -205,6 +206,8 @@ class ZM_Object {
 							} else {
 								$this->{$field} = $this->defaults[$field];
 							}
+						} else {
+							$this->{$field} = $value;
 						}  # need a default
           } else {
             $this->{$field} = $value;
@@ -230,13 +233,10 @@ class ZM_Object {
 
     if ($defaults) {
       foreach ($defaults as $field => $type) {
-        if ( isset($new_values[$field]) ) {
-          # Will have already been handled above
-          continue;
-        }
+        if (isset($new_values[$field])) continue;
 
-        if ( isset($this->defaults[$field]) ) {
-          if ( is_array($this->defaults[$field]) ) {
+        if (isset($this->defaults[$field])) {
+          if (is_array($this->defaults[$field])) {
             $new_values[$field] = $this->defaults[$field]['default'];
           } else {
             $new_values[$field] = $this->defaults[$field];
@@ -245,13 +245,11 @@ class ZM_Object {
       } # end foreach default
     } # end if defaults
 
-    foreach ( $new_values as $field => $value ) {
-
-      if ( method_exists($this, $field) ) {
-
-        if ( array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp']) ) {
-          if ( is_array($this->defaults[$field]['filter_regexp']) ) {
-            foreach ( $this->defaults[$field]['filter_regexp'] as $regexp ) {
+    foreach ($new_values as $field => $value) {
+      if (method_exists($this, $field)) {
+        if (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp'])) {
+          if (is_array($this->defaults[$field]['filter_regexp'])) {
+            foreach ($this->defaults[$field]['filter_regexp'] as $regexp) {
               $value = preg_replace($regexp, '', trim($value));
             }
           } else {
@@ -260,7 +258,7 @@ class ZM_Object {
         }
 
         $old_value = $this->$field();
-        if ( is_array($old_value) ) {
+        if (is_array($old_value)) {
           $diff = array_recursive_diff($old_value, $value);
           if ( count($diff) ) {
             $changes[$field] = $value;

@@ -18,11 +18,14 @@ input[name="newMonitor[ControlDevice]"],
 input[name="newMonitor[ControlAddress]"] {
   width: 100%;
 }
+input[name="newMonitor[LabelFormat]"]{
+	min-width: 240px;
+}
 input[name="newMonitor[AnalysisFPSLimit]"],
 input[name="newMonitor[MaxFPS]"],
 input[name="newMonitor[AlarmMaxFPS]"],
 input[name="newMonitor[V4LCapturesPerFrame]"]{
-    width: 60px;
+    width: 75px;
 }
 input[name="newMonitor[Port]"],
 input[name="newMonitor[Refresh]"],

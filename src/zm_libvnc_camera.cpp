@@ -49,11 +49,11 @@ static char* GetPasswordCallback(rfbClient* cl) {
 }
 
 static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
-  rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
   if (credentialType != rfbCredentialTypeUser) {
-    free(c);
+		Debug(1, "credentialType != rfbCredentialTypeUser");
     return nullptr;
   }
+  rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
 
   Debug(1, "Getcredentials: %s:%s", (*rfbClientGetClientData_f)(cl, &TAG_1), (*rfbClientGetClientData_f)(cl, &TAG_2));
   c->userCredential.password = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
@@ -168,9 +168,16 @@ int VncCamera::PrimeCapture() {
     mRfb->GetCredential = GetCredentialsCallback;
 
     mRfb->programName = "Zoneminder VNC Monitor";
-    if ( mRfb->serverHost ) free(mRfb->serverHost);
+    if (mRfb->serverHost) free(mRfb->serverHost);
     mRfb->serverHost = strdup(mHost.c_str());
     mRfb->serverPort = atoi(mPort.c_str());
+		if (!mRfb->serverPort) {
+			Debug(1, "Defaulting to port 5900");
+			mRfb->serverPort = 5900;
+		}
+
+	} else {
+		Debug(1, "mRfb already exists?");
   }
   if (!(*rfbInitClient_f)(mRfb, 0, nullptr)) {
     /* IF rfbInitClient fails, it calls rdbClientCleanup which will free mRfb */

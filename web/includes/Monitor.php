@@ -580,6 +580,11 @@ class Monitor extends ZM_Object {
     return ( $user && ($user['Monitors'] == 'Edit') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
   }
 
+  function canView() {
+    global $user;
+    return ( $user && ($user['Monitors'] != 'None') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
+  }
+
   function TriggerOn() {
     $cmd = getZmuCommand(' -a -m '.$this->{'Id'});
     $output = shell_exec($cmd);

@@ -50,6 +50,7 @@ Event::Event(
     const std::string &p_cause,
     const StringSetMap &p_noteSetMap,
     bool p_videoEvent ) :
+  id(0),
   monitor(p_monitor),
   start_time(p_start_time),
   cause(p_cause),

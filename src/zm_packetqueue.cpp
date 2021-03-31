@@ -90,7 +90,10 @@ bool PacketQueue::queuePacket(ZMPacket* add_packet) {
 
     if (add_packet->packet.stream_index == video_stream_id) {
       if ((max_video_packet_count > 0) and (packet_counts[video_stream_id] > max_video_packet_count)) {
-        Warning("You have set the video packets in the queue to %d. The queue is full. Either Analysis is not keeping up or your camera's keyframe interval is larger than this setting. We are dropping packets.");
+        Warning("You have set the video packets in the queue to %u."
+            " The queue is full. Either Analysis is not keeping up or"
+            " your camera's keyframe interval is larger than this setting."
+            " We are dropping packets.", max_video_packet_count);
         if (add_packet->keyframe) {
           // Have a new keyframe, so delete everything
           while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > max_video_packet_count)) {
@@ -527,8 +530,8 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
   std::unique_lock<std::mutex> lck(mutex);
   Debug(4, "Have Lock in get_packet");
 
-  while ( (!pktQueue.size()) or (*it == pktQueue.end()) ) {
-    if ( deleting or zm_terminate )
+  while (*it == pktQueue.end()) {
+    if (deleting or zm_terminate)
       return nullptr;
     Debug(2, "waiting.  Queue size %d it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
     condition.wait(lck);
@@ -547,16 +550,15 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
   ZMLockedPacket *lp = new ZMLockedPacket(p);
   Debug(3, "get_packet %p image_index: %d, about to lock packet", p, p->image_index);
   while (!(zm_terminate or deleting) and !lp->trylock()) {
-    Debug(3, "waiting on index %d.  Queue size %d it == end? %d",
+    Debug(2, "waiting on index %d.  Queue size %d it == end? %d",
         p->image_index, pktQueue.size(), ( *it == pktQueue.end() ) );
-    ZM_DUMP_PACKET(p->packet, "");
     condition.wait(lck);
   }
   if (deleting or zm_terminate) {
     // packet may have been deleted so we can't delete the lp FIXME
     return nullptr;
   }
-  Debug(2, "Locked packet, unlocking packetqueue mutex");
+  Debug(2, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
   return lp;
 }  // end ZMLockedPacket *PacketQueue::get_packet(it)
 

@@ -361,7 +361,7 @@ Logger::Level Logger::databaseLevel(Logger::Level databaseLevel) {
     databaseLevel = limit(databaseLevel);
     if ( mDatabaseLevel != databaseLevel ) {
       if ( (databaseLevel > NOLOG) && (mDatabaseLevel <= NOLOG) ) { // <= NOLOG would be NOOPT
-        if ( !zmDbConnect() ) {
+        if ( !zmDbConnected ) {
           databaseLevel = NOLOG;
         }
       }  // end if ( databaseLevel > NOLOG && mDatabaseLevel <= NOLOG )

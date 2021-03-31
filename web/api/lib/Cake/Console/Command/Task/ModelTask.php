@@ -224,7 +224,7 @@ class ModelTask extends BakeTask {
 		if (!array_key_exists('id', $fields)) {
 			$primaryKey = $this->findPrimaryKey($fields);
 		}
-
+		$displayField = null;
 		if ($knownToExist) {
 			$displayField = $tempModel->hasField(array('name', 'title'));
 			if (!$displayField) {
@@ -388,7 +388,7 @@ class ModelTask extends BakeTask {
 		sort($options);
 		$default = 1;
 		foreach ($options as $option) {
-			if ($option{0} !== '_') {
+			if ($option[0] !== '_') {
 				$choices[$default] = $option;
 				$default++;
 			}

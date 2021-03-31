@@ -56,9 +56,6 @@ typedef uint64_t event_id_t;
 class Event {
   friend class EventStream;
 
-  protected:
-    static int    sd;
-
   public:
     typedef std::set<std::string> StringSet;
     typedef std::map<std::string,StringSet> StringSetMap;

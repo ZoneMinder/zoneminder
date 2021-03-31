@@ -1525,16 +1525,21 @@ bool Monitor::Analyse() {
             if ( !event ) {
               // Create event
               event = new Event(this, *timestamp, "Continuous", noteSetMap, videoRecording);
-              shared_data->last_event = event->Id();
-              //set up video store data
-              snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-              video_store_data->recording = event->StartTime();
+              if (event->Id()) {
+                shared_data->last_event = event->Id();
+                //set up video store data
+                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                video_store_data->recording = event->StartTime();
 
-              Info("%s: %03d - Opening new event %" PRIu64 ", section start", name, image_count, event->Id());
+                Info("%s: %03d - Opening new event %" PRIu64 ", section start", name, image_count, event->Id());
 
-              /* To prevent cancelling out an existing alert\prealarm\alarm state */
-              if ( state == IDLE ) {
-                shared_data->state = state = TAPE;
+                /* To prevent cancelling out an existing alert\prealarm\alarm state */
+                if ( state == IDLE ) {
+                  shared_data->state = state = TAPE;
+                }
+              } else {
+                delete event;
+                event = nullptr;
               }
             } // end if ! event
           } // end if function == RECORD || function == MOCORD)
@@ -1594,6 +1599,10 @@ bool Monitor::Analyse() {
                      pre_index, pre_event_images); 
 
                   event = new Event(this, *(pre_event_buffer[pre_index].timestamp), cause, noteSetMap);
+                  if (!event->Id()) {
+                    delete event;
+                    event = nullptr;
+                  }
                 } else {
                   // If analysis fps is not set (analysis performed at capturing framerate),
                   // compute the index for pre event images in the capturing buffer
@@ -1614,6 +1623,10 @@ bool Monitor::Analyse() {
                   }
 
                   event = new Event(this, *(image_buffer[pre_index].timestamp), cause, noteSetMap);
+                  if (!event->Id()) {
+                    delete event;
+                    event = nullptr;
+                  }
                 } // end if analysis_fps && pre_event_count
 
                 shared_data->last_event = event->Id();
@@ -1749,10 +1762,15 @@ bool Monitor::Analyse() {
                     );
                 closeEvent();
                 event = new Event(this, *timestamp, cause, noteSetMap);
-                shared_data->last_event = event->Id();
-                //set up video store data
-                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-                video_store_data->recording = event->StartTime();
+                if (!event->Id()) {
+                  delete event;
+                  event = nullptr;
+                } else {
+                  shared_data->last_event = event->Id();
+                  //set up video store data
+                  snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                  video_store_data->recording = event->StartTime();
+                }
               }
             } // end if event
 

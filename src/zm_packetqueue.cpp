@@ -546,18 +546,11 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
     Error("Null p?!");
     return nullptr;
   }
+  // Packets are only deleted by packetqueue, so lock must be held.
+  // We shouldn't have to trylock. Someone else might hold the lock but not for long
 
   ZMLockedPacket *lp = new ZMLockedPacket(p);
-  Debug(3, "get_packet %p image_index: %d, about to lock packet", p, p->image_index);
-  while (!(zm_terminate or deleting) and !lp->trylock()) {
-    Debug(2, "waiting on index %d.  Queue size %d it == end? %d",
-        p->image_index, pktQueue.size(), ( *it == pktQueue.end() ) );
-    condition.wait(lck);
-  }
-  if (deleting or zm_terminate) {
-    // packet may have been deleted so we can't delete the lp FIXME
-    return nullptr;
-  }
+  lp->lock();
   Debug(2, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
   return lp;
 }  // end ZMLockedPacket *PacketQueue::get_packet(it)

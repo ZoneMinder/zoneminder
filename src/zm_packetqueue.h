@@ -84,6 +84,7 @@ class PacketQueue {
         unsigned int pre_event_count
     );
     bool is_there_an_iterator_pointing_to_packet(ZMPacket *zm_packet);
+    void unlock(ZMLockedPacket *lp);
 };
 
 #endif /* ZM_PACKETQUEUE_H */

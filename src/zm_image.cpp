@@ -268,40 +268,46 @@ int Image::PopulateFrame(AVFrame *frame) {
   return 1;
 }  // int Image::PopulateFrame(AVFrame *frame)
 
-void Image::Assign(const AVFrame *frame) {
+bool Image::Assign(const AVFrame *frame) {
   /* Assume the dimensions etc are correct. FIXME */
 
   // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
-
   AVFrame *dest_frame = zm_av_frame_alloc();
-  PopulateFrame(dest_frame);
-  zm_dump_video_frame(frame, "source frame before convert");
-  dest_frame->pts = frame->pts;
-#if HAVE_LIBSWSCALE
   sws_convert_context = sws_getCachedContext(
       sws_convert_context,
       frame->width, frame->height, (AVPixelFormat)frame->format,
       width, height, format,
-      //SWS_BICUBIC,
-      SWS_POINT | SWS_BITEXACT,
+      SWS_BICUBIC,
+      //SWS_POINT | SWS_BITEXACT,
       nullptr, nullptr, nullptr);
-  if ( sws_convert_context == nullptr )
-    Fatal("Unable to create conversion context");
-
-  if ( sws_scale(sws_convert_context,
-        frame->data, frame->linesize, 0, frame->height,
-        dest_frame->data, dest_frame->linesize) < 0 )
-    Fatal("Unable to convert raw format %u %ux%u to target format %u %ux%u",
-        frame->format, frame->width, frame->height,
-        format, width, height);
-#else // HAVE_LIBSWSCALE
-  Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
-#endif // HAVE_LIBSWSCALE
-  zm_dump_video_frame(dest_frame, "dest frame after convert");
+  if (sws_convert_context == nullptr) {
+    Error("Unable to create conversion context");
+    return false;
+  }
+  bool result = Assign(frame, sws_convert_context, dest_frame);
   av_frame_free(&dest_frame);
   update_function_pointers();
+  return result;
 }  // end Image::Assign(const AVFrame *frame)
+
+bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame) {
+  PopulateFrame(temp_frame);
+  zm_dump_video_frame(frame, "source frame before convert");
+  temp_frame->pts = frame->pts;
+  AVPixelFormat format = (AVPixelFormat)AVPixFormat();
+
+  if (sws_scale(convert_context,
+        frame->data, frame->linesize, 0, frame->height,
+        temp_frame->data, temp_frame->linesize) < 0) {
+    Error("Unable to convert raw format %u %ux%u to target format %u %ux%u",
+        frame->format, frame->width, frame->height,
+        format, width, height);
+    return false;
+  }
+  zm_dump_video_frame(temp_frame, "dest frame after convert");
+  return true;
+}  // end Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame)
 
 Image::Image(const Image &p_image) {
   if ( !initialised )

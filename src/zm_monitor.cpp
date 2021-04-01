@@ -399,6 +399,8 @@ Monitor::Monitor()
   analysis_thread(nullptr),
   decoder_it(nullptr),
   decoder(nullptr),
+  dest_frame(nullptr),
+  convert_context(nullptr),
   n_zones(0),
   zones(nullptr),
   privacy_bitmask(nullptr),
@@ -1151,6 +1153,11 @@ Monitor::~Monitor() {
 
   if (video_fifo) delete video_fifo;
   if (audio_fifo) delete audio_fifo;
+  if (dest_frame) av_frame_free(&dest_frame);
+  if (convert_context) {
+    sws_freeContext(convert_context);
+    convert_context = nullptr;
+  }
 }  // end Monitor::~Monitor()
 
 void Monitor::AddZones(int p_n_zones, Zone *p_zones[]) {
@@ -2745,7 +2752,6 @@ int Monitor::Capture() {
 } // end Monitor::Capture
 
 bool Monitor::Decode() {
-  
   ZMLockedPacket *packet_lock = packetqueue.get_packet(decoder_it);
   if (!packet_lock) return false;
   ZMPacket *packet = packet_lock->packet_;
@@ -2764,13 +2770,47 @@ bool Monitor::Decode() {
     ret = packet->decode(camera->getVideoCodecContext());
     if (ret > 0) {
       if (packet->in_frame and !packet->image) {
-        packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
-        packet->get_image();
-      }
+        Image * image = packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+        AVFrame *input_frame = packet->in_frame;
+        if (!dest_frame) dest_frame = zm_av_frame_alloc();
+
+        if (!convert_context) {
+          AVPixelFormat imagePixFormat = (AVPixelFormat)image->AVPixFormat();
+
+          convert_context = sws_getContext(
+              input_frame->width,
+              input_frame->height,
+              (AVPixelFormat)input_frame->format,
+              camera_width, camera_height,
+              imagePixFormat, SWS_BICUBIC,
+              nullptr, nullptr, nullptr);
+          if (convert_context == nullptr) {
+            Error("Unable to create conversion context from %s to %s",
+                av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+                av_get_pix_fmt_name(imagePixFormat)
+                );
+            delete image;
+            packet->image = nullptr;
+          } else {
+            Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
+                input_frame->width, input_frame->height,
+                av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+                camera_width, camera_height,
+                av_get_pix_fmt_name(imagePixFormat)
+                );
+          }
+        }
+        if (convert_context) {
+          if (!image->Assign(packet->in_frame, convert_context, dest_frame)) {
+            delete image;
+            packet->image = nullptr;
+          }
+        }  // end if have convert_context
+      }  // end if need transfer to image
     } else {
       Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
     }
-  }
+  }  // end if need_decoding
   Image* capture_image = nullptr;
   unsigned int index = image_count % image_buffer_count;
 

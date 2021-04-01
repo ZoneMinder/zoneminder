@@ -224,7 +224,8 @@ public:
       const uint8_t* new_buffer,
       const size_t buffer_size);
 	void Assign(const Image &image);
-  void Assign(const AVFrame *frame);
+  bool Assign(const AVFrame *frame);
+  bool Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame);
 	void AssignDirect(
       const unsigned int p_width,
       const unsigned int p_height,

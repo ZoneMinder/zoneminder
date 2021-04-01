@@ -379,6 +379,8 @@ protected:
   AnalysisThread        *analysis_thread;
   packetqueue_iterator  *decoder_it;
   DecoderThread         *decoder;
+  AVFrame *dest_frame;                    // Used by decoding thread doing colorspace conversions
+  SwsContext   *convert_context;
 
   int      n_zones;
   Zone      **zones;

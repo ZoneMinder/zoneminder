@@ -68,7 +68,7 @@ while (!$zm_terminate) {
       my $logRows = $row->{Rows};
       if ( $logRows > $Config{ZM_LOG_DATABASE_LIMIT} ) {
         my $rows = zmDbDo('DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?', $logRows - $Config{ZM_LOG_DATABASE_LIMIT});
-        Debug('Deleted '.$deleteLogByRowsSth->rows().' log table entries by count') if defined $rows;
+        Debug('Deleted '.$rows.' log table entries by count') if defined $rows;
       }
     } else {
       # Time of record

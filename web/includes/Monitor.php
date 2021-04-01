@@ -71,7 +71,7 @@ class Monitor extends ZM_Object {
     'OutputCodec' =>  null,
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
-    'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
+    'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\ncrf=23\n",
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
     'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
     'Brightness'  =>  -1,

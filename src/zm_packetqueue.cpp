@@ -90,7 +90,7 @@ bool PacketQueue::queuePacket(ZMPacket* add_packet) {
 
     if (add_packet->packet.stream_index == video_stream_id) {
       if ((max_video_packet_count > 0) and (packet_counts[video_stream_id] > max_video_packet_count)) {
-        Warning("You have set the video packets in the queue to %u."
+        Warning("You have set the max video packets in the queue to %u."
             " The queue is full. Either Analysis is not keeping up or"
             " your camera's keyframe interval is larger than this setting."
             " We are dropping packets.", max_video_packet_count);

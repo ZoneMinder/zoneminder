@@ -2302,8 +2302,7 @@ bool Monitor::Analyse() {
     snap->image = nullptr;
   }
 
-  // popPacket will have placed a second lock on snap, so release it here.
-  delete packet_lock;  
+  packetqueue.unlock(packet_lock);
 
   if ( snap->image_index > 0 ) {
     // Only do these if it's a video packet.

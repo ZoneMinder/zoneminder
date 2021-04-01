@@ -962,12 +962,12 @@ include('_monitor_source_nvsocket.php');
 			0 => 'Disabled',
 			);
 
-  $videowriteropts[1] = 'X264 Encode';
+  $videowriteropts[1] = 'Encode';
 
   if ( $monitor->Type() == 'Ffmpeg' )
-    $videowriteropts[2] = 'H264 Camera Passthrough';
+    $videowriteropts[2] = 'Camera Passthrough';
   else
-    $videowriteropts[2] = array('text'=>'H264 Camera Passthrough - only for FFMPEG','disabled'=>1);
+    $videowriteropts[2] = array('text'=>'Camera Passthrough - only for FFMPEG','disabled'=>1);
 	echo htmlSelect('newMonitor[VideoWriter]', $videowriteropts, $monitor->VideoWriter());
 ?>
               </td>

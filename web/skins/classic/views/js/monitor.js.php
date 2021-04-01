@@ -84,6 +84,15 @@ function validateForm( form ) {
       errors[errors.length] = "<?php echo translate('BadWebSitePath') ?>";
   }
 
+  if (form.elements['newMonitor[VideoWriter]'].value == '1' /* Encode */) {
+    var parameters = form.elements['newMonitor[EncoderParameters]'].value.replace(/[^#a-zA-Z]/g, "");
+
+console.log("encoding value" + parameters);
+    if (parameters == '' || parameters == '#Linesbeginningwith#areacomment#Forchangingqualityusethecrfoption#isbestisworstquality#crf' ) {
+      errors[errors.length] = '<?php echo translate('BadEncoderParameters') ?>';
+    }
+  }
+
   if ( form.elements['newMonitor[Type]'].value != 'WebSite' ) {
 
     if ( form.elements['newMonitor[AnalysisFPSLimit]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPSLimit]'].value) > 0 ) )

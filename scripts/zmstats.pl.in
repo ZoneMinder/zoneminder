@@ -67,14 +67,8 @@ while (!$zm_terminate) {
       my $row = $selectLogRowCountSth->fetchrow_hashref();
       my $logRows = $row->{Rows};
       if ( $logRows > $Config{ZM_LOG_DATABASE_LIMIT} ) {
-        my $deleteLogByRowsSql = 'DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?';
-        my $deleteLogByRowsSth = $dbh->prepare_cached( $deleteLogByRowsSql )
-          or Fatal("Can't prepare '$deleteLogByRowsSql': ".$dbh->errstr());
-        $res = $deleteLogByRowsSth->execute( $logRows - $Config{ZM_LOG_DATABASE_LIMIT} )
-          or Fatal("Can't execute: ".$deleteLogByRowsSth->errstr());
-        if ( $deleteLogByRowsSth->rows() ) {
-          Debug('Deleted '.$deleteLogByRowsSth->rows().' log table entries by count');
-        }
+        my $rows = zmDbDo('DELETE low_priority FROM `Logs` ORDER BY `TimeKey` ASC LIMIT ?', $logRows - $Config{ZM_LOG_DATABASE_LIMIT});
+        Debug('Deleted '.$deleteLogByRowsSth->rows().' log table entries by count') if defined $rows;
       }
     } else {
       # Time of record
@@ -83,18 +77,11 @@ while (!$zm_terminate) {
       if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^(.*)s$/ ) {
         $Config{ZM_LOG_DATABASE_LIMIT} = $1;
       }
-      my $deleted_rows;
+      my $rows;
       do {
-        my $deleteLogByTimeSql =
-        'DELETE FROM `Logs`
-        WHERE `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 100';
-        my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql )
-          or Fatal("Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr());
-        my $res = $deleteLogByTimeSth->execute()
-          or Fatal("Can't execute: ".$deleteLogByTimeSth->errstr());
-        $deleted_rows = $deleteLogByTimeSth->rows();
-        Debug("Deleted $deleted_rows log table entries by time");
-      } while ( $deleted_rows );
+        my $rows = zmDbDo('DELETE FROM `Logs` WHERE `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 100');
+        Debug("Deleted $rows log table entries by time") if defined $rows;
+      } while ($rows);
     }
   } # end if ZM_LOG_DATABASE_LIMIT
 

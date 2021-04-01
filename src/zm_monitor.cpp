@@ -2812,12 +2812,12 @@ bool Monitor::Decode() {
     } // end if have rotation
 
     if (privacy_bitmask) {
-      Debug(1, "Applying privacy");
+      Debug(3, "Applying privacy");
       capture_image->MaskPrivacy(privacy_bitmask);
     }
 
     if (config.timestamp_on_capture) {
-      Debug(1, "Timestampprivacy");
+      Debug(3, "Timestampprivacy");
       TimestampImage(packet->image, packet->timestamp);
     }
 
@@ -2831,7 +2831,6 @@ bool Monitor::Decode() {
     *(image_buffer[index].timestamp) = *(packet->timestamp);
   }  // end if have image
   packet->decoded = true;
-
   shared_data->signal = ( capture_image and signal_check_points ) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
   shared_data->last_write_time = packet->timestamp->tv_sec;

@@ -240,7 +240,7 @@ int Image::PopulateFrame(AVFrame *frame) {
       nullptr, /* opaque */
       0 /* flags */
       );
-  if ( !ref ) {
+  if (!ref) {
     Warning("Failed to create av_buffer");
   }
   frame->buf[0] = ref;
@@ -266,7 +266,7 @@ int Image::PopulateFrame(AVFrame *frame) {
   Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d", width, height, linesize, colours, size);
   zm_dump_video_frame(frame, "Image.Populate(frame)");
   return 1;
-}
+}  // int Image::PopulateFrame(AVFrame *frame)
 
 void Image::Assign(const AVFrame *frame) {
   /* Assume the dimensions etc are correct. FIXME */

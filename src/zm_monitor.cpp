@@ -1746,7 +1746,7 @@ void Monitor::UpdateCaptureFPS() {
       last_capture_image_count = image_count;
 
       std::string sql = stringtf(
-          "UPDATE Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u WHERE MonitorId=%u",
+          "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u WHERE MonitorId=%u",
           new_capture_fps, new_capture_bandwidth, id);
       dbQueue.push(sql.c_str());
     } // now != last_fps_time
@@ -1784,12 +1784,10 @@ void Monitor::UpdateAnalysisFPS() {
       if ( new_analysis_fps != shared_data->analysis_fps ) {
         shared_data->analysis_fps = new_analysis_fps;
 
-        char sql[ZM_SQL_SML_BUFSIZ];
-        snprintf(sql, sizeof(sql),
-            "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf)"
-            " ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf",
-            id, new_analysis_fps, new_analysis_fps);
-        dbQueue.push(sql);
+      std::string sql = stringtf(
+          "UPDATE LOW_PRIORITY Monitor_Status SET AnalysisFPS = %.2lf WHERE MonitorId=%u",
+             new_analysis_fps, id);
+        dbQueue.push(sql.c_str());
         last_analysis_fps_time = now_double;
         last_motion_frame_count = motion_frame_count;
       } else {

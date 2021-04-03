@@ -113,7 +113,7 @@ std::string Join(const StringVector &values, const std::string &delim) {
   std::stringstream ss;
 
   for (size_t i = 0; i < values.size(); ++i) {
-    if ( i != 0 )
+    if (i != 0)
       ss << delim;
     ss << values[i];
   }
@@ -167,36 +167,58 @@ std::string Base64Encode(const std::string &str) {
   return outString;
 }
 
+void TimespecDiff(struct timespec *start, struct timespec *end, struct timespec *diff) {
+  if (((end->tv_nsec) - (start->tv_nsec)) < 0) {
+    diff->tv_sec = end->tv_sec - start->tv_sec - 1;
+    diff->tv_nsec = 1000000000 + end->tv_nsec - start->tv_nsec;
+  } else {
+    diff->tv_sec = end->tv_sec - start->tv_sec;
+    diff->tv_nsec = end->tv_nsec - start->tv_nsec;
+  }
+}
+
+std::string TimevalToString(timeval tv) {
+  tm now = {};
+  std::array<char, 26> tm_buf = {};
+
+  localtime_r(&tv.tv_sec, &now);
+  size_t tm_buf_len = strftime(tm_buf.data(), tm_buf.size(), "%Y-%m-%d %H:%M:%S", &now);
+  if (tm_buf_len == 0) {
+    return "";
+  }
+
+  return stringtf("%s.%06ld", tm_buf.data(), tv.tv_usec);
+}
+
 /* Detect special hardware features, such as SIMD instruction sets */
-void hwcaps_detect() {
+void HwCapsDetect() {
   neonversion = 0;
   sse_version = 0;
 #if (defined(__i386__) || defined(__x86_64__))
   __builtin_cpu_init();
 
-
-  if ( __builtin_cpu_supports("avx2") ) {
+  if (__builtin_cpu_supports("avx2")) {
     sse_version = 52; /* AVX2 */
     Debug(1, "Detected a x86\\x86-64 processor with AVX2");
-  } else if ( __builtin_cpu_supports("avx") ) {
+  } else if (__builtin_cpu_supports("avx")) {
     sse_version = 51; /* AVX */
     Debug(1, "Detected a x86\\x86-64 processor with AVX");
-  } else if ( __builtin_cpu_supports("sse4.2") ) {
+  } else if (__builtin_cpu_supports("sse4.2")) {
     sse_version = 42; /* SSE4.2 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE4.2");
-  } else if ( __builtin_cpu_supports("sse4.1") ) {
+  } else if (__builtin_cpu_supports("sse4.1")) {
     sse_version = 41; /* SSE4.1 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE4.1");
-  } else if ( __builtin_cpu_supports("ssse3") ) {
+  } else if (__builtin_cpu_supports("ssse3")) {
     sse_version = 35; /* SSSE3 */
-    Debug(1,"Detected a x86\\x86-64 processor with SSSE3");
-  } else if ( __builtin_cpu_supports("sse3") ) {
+    Debug(1, "Detected a x86\\x86-64 processor with SSSE3");
+  } else if (__builtin_cpu_supports("sse3")) {
     sse_version = 30; /* SSE3 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE3");
-  } else if ( __builtin_cpu_supports("sse2") ) {
+  } else if (__builtin_cpu_supports("sse2")) {
     sse_version = 20; /* SSE2 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE2");
-  } else if ( __builtin_cpu_supports("sse") ) {
+  } else if (__builtin_cpu_supports("sse")) {
     sse_version = 10; /* SSE */
     Debug(1, "Detected a x86\\x86-64 processor with SSE");
   } else {
@@ -227,13 +249,13 @@ void hwcaps_detect() {
 /* SSE2 aligned memory copy. Useful for big copying of aligned memory like image buffers in ZM */
 /* For platforms without SSE2 we will use standard x86 asm memcpy or glibc's memcpy() */
 #if defined(__i386__) || defined(__x86_64__)
-__attribute__((noinline,__target__("sse2")))
+__attribute__((noinline, __target__("sse2")))
 #endif
-void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
+void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
-  if(bytes > 128) {
+  if (bytes > 128) {
     unsigned int remainder = bytes % 128;
-    const uint8_t* lastsrc = (uint8_t*)src + (bytes - remainder);
+    const uint8_t *lastsrc = (uint8_t *) src + (bytes - remainder);
 
     __asm__ __volatile__(
     "sse2_copy_iter:\n\t"
@@ -269,7 +291,7 @@ void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
 
   } else {
     /* Standard memcpy */
-    __asm__ __volatile__("cld; rep movsb" :: "S"(src), "D"(dest), "c"(bytes) : "cc", "memory");
+    __asm__ __volatile__("cld; rep movsb"::"S"(src), "D"(dest), "c"(bytes) : "cc", "memory");
   }
 #else
   /* Non x86\x86-64 platform, use memcpy */
@@ -278,30 +300,21 @@ void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
   return dest;
 }
 
-void timespec_diff(struct timespec *start, struct timespec *end, struct timespec *diff) {
-  if (((end->tv_nsec)-(start->tv_nsec))<0) {
-    diff->tv_sec = end->tv_sec-start->tv_sec-1;
-    diff->tv_nsec = 1000000000+end->tv_nsec-start->tv_nsec;
-  } else {
-    diff->tv_sec = end->tv_sec-start->tv_sec;
-    diff->tv_nsec = end->tv_nsec-start->tv_nsec;
+void touch(const char *pathname) {
+  int fd = open(pathname, O_WRONLY | O_CREAT | O_NOCTTY | O_NONBLOCK, 0666);
+  if (fd < 0) {
+    // Couldn't open that path.
+    Error("Couldn't open() path %s in touch", pathname);
+    return;
+  }
+  int rc = utimensat(AT_FDCWD, pathname, nullptr, 0);
+  if (rc) {
+    Error("Couldn't utimensat() path %s in touch", pathname);
+    return;
   }
 }
 
-std::string TimevalToString(timeval tv) {
-  tm now = {};
-  std::array<char, 26> tm_buf = {};
-
-  localtime_r(&tv.tv_sec, &now);
-  size_t tm_buf_len = strftime(tm_buf.data(), tm_buf.size(), "%Y-%m-%d %H:%M:%S", &now);
-  if (tm_buf_len == 0) {
-    return "";
-  }
-
-  return stringtf("%s.%06ld", tm_buf.data(), tv.tv_usec);
-}
-
-std::string UriDecode( const std::string &encoded ) {
+std::string UriDecode(const std::string &encoded) {
   char a, b;
   const char *src = encoded.c_str();
   std::string retbuf;
@@ -309,19 +322,19 @@ std::string UriDecode( const std::string &encoded ) {
   while (*src) {
     if ((*src == '%') && ((a = src[1]) && (b = src[2])) && (isxdigit(a) && isxdigit(b))) {
       if (a >= 'a')
-        a -= 'a'-'A';
+        a -= 'a' - 'A';
       if (a >= 'A')
         a -= ('A' - 10);
       else
         a -= '0';
       if (b >= 'a')
-        b -= 'a'-'A';
+        b -= 'a' - 'A';
       if (b >= 'A')
         b -= ('A' - 10);
       else
         b -= '0';
-      retbuf.push_back(16*a+b);
-      src+=3;
+      retbuf.push_back(16 * a + b);
+      src += 3;
     } else if (*src == '+') {
       retbuf.push_back(' ');
       src++;
@@ -332,27 +345,7 @@ std::string UriDecode( const std::string &encoded ) {
   return retbuf;
 }
 
-void touch(const char *pathname) {
-  int fd = open(pathname,
-      O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK,
-      0666);
-  if ( fd < 0 ) {
-    // Couldn't open that path.
-    Error("Couldn't open() path %s in touch", pathname);
-    return;
-  }
-  int rc = utimensat(AT_FDCWD,
-      pathname,
-      nullptr,
-      0);
-  if ( rc ) {
-    Error("Couldn't utimensat() path %s in touch", pathname);
-    return;
-  }
-}
-
 QueryString::QueryString(std::istream &input) {
-
   while (!input.eof() && input.peek() > 0) {
     //Should eat "param1="
     auto name = parseName(input);
@@ -361,20 +354,20 @@ QueryString::QueryString(std::istream &input) {
 
     auto foundItr = parameters_.find(name);
     if (foundItr == parameters_.end()) {
-      auto newParam = ZM::make_unique<QueryParameter>(name);
-      if (value.size() > 0) {
+      std::unique_ptr<QueryParameter> newParam = ZM::make_unique<QueryParameter>(name);
+      if (!value.empty()) {
         newParam->addValue(value);
       }
-      parameters_.emplace(name, std::move(newParam)).first;
+      parameters_.emplace(name, std::move(newParam));
     } else {
       foundItr->second->addValue(value);
     }
-  }  // end while not the end
+  }
 }
 
 std::vector<std::string> QueryString::names() const {
   std::vector<std::string> names;
-  for (auto const& pair : parameters_)
+  for (auto const &pair : parameters_)
     names.push_back(pair.second->name());
 
   return names;
@@ -383,31 +376,35 @@ std::vector<std::string> QueryString::names() const {
 const QueryParameter *QueryString::get(const std::string &name) const {
   auto itr = parameters_.find(name);
   return itr == parameters_.end() ? nullptr : itr->second.get();
-};
+}
 
 std::string QueryString::parseName(std::istream &input) {
-  std::string name = "";
+  std::string name;
 
-  while (!input.eof() && input.peek() != '=')
+  while (!input.eof() && input.peek() != '=') {
     name.push_back(input.get());
+  }
 
   //Eat the '='
-  if (!input.eof()) input.get();
+  if (!input.eof()) {
+    input.get();
+  }
 
   return name;
 }
 
 std::string QueryString::parseValue(std::istream &input) {
-  std::string urlEncodedValue;
+  std::string url_encoded_value;
 
   int c = input.get();
   while (c > 0 && c != '&') {
-    urlEncodedValue.push_back(c);
+    url_encoded_value.push_back(c);
     c = input.get();
   }
 
-  if (urlEncodedValue.size() == 0)
+  if (url_encoded_value.empty()) {
     return "";
+  }
 
-  return UriDecode(urlEncodedValue);
+  return UriDecode(url_encoded_value);
 }

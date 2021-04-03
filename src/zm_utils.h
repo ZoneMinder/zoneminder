@@ -60,16 +60,15 @@ std::string stringtf(const std::string &format, Args... args) {
 
 std::string Base64Encode(const std::string &str);
 
-void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes);
-void timespec_diff(struct timespec *start, struct timespec *end, struct timespec *diff);
+void TimespecDiff(timespec *start, timespec *end, timespec *diff);
+std::string TimevalToString(timeval tv);
 
-void hwcaps_detect();
 extern unsigned int sse_version;
 extern unsigned int neonversion;
+void HwCapsDetect();
+void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes);
 
-std::string TimevalToString(timeval tv);
-std::string UriDecode( const std::string &encoded );
-void touch( const char *pathname );
+void touch(const char *pathname);
 
 namespace ZM {
 //! std::make_unique implementation (TODO: remove this once C++14 is supported)
@@ -99,39 +98,41 @@ typedef std::chrono::hours Hours;
 typedef std::chrono::steady_clock::time_point TimePoint;
 typedef std::chrono::system_clock::time_point SystemTimePoint;
 
+std::string UriDecode(const std::string &encoded);
+
 class QueryParameter {
-  public:
-    const std::string &name() const { return name_; }
-    const std::string &firstValue() const { return values_[0]; }
+ public:
+  explicit QueryParameter(std::string name) : name_(std::move(name)) {}
 
-    const std::vector<std::string> &values() const { return values_; }
-    size_t size() const { return values_.size(); }
+  const std::string &name() const { return name_; }
+  const std::string &firstValue() const { return values_[0]; }
 
-    QueryParameter(std::string name) : name_(std::move(name)) { }
+  const std::vector<std::string> &values() const { return values_; }
+  size_t size() const { return values_.size(); }
 
-    template<class T> void addValue(T&& value) { values_.emplace_back(std::forward<T>(value)); }
-  private:
-    std::string name_;
-    std::vector<std::string> values_;
+  template<class T>
+  void addValue(T &&value) { values_.emplace_back(std::forward<T>(value)); }
+ private:
+  std::string name_;
+  std::vector<std::string> values_;
 };
 
 class QueryString {
-  public:
-    QueryString(std::istream &input);
+ public:
+  explicit QueryString(std::istream &input);
 
-    size_t size() const { return parameters_.size(); }
-    bool has(const char *name) const { return parameters_.find(std::string(name)) != parameters_.end(); }
+  size_t size() const { return parameters_.size(); }
+  bool has(const char *name) const { return parameters_.find(std::string(name)) != parameters_.end(); }
 
-    std::vector<std::string> names() const;
+  std::vector<std::string> names() const;
 
-    const QueryParameter *get(const std::string &name) const;
-    const QueryParameter *get(const char* name) const { return get(std::string(name)); };
+  const QueryParameter *get(const std::string &name) const;
+  const QueryParameter *get(const char *name) const { return get(std::string(name)); };
 
-  private:
+ private:
+  static std::string parseName(std::istream &input);
+  static std::string parseValue(std::istream &input);
 
-    static std::string parseName(std::istream &input);
-    static std::string parseValue(std::istream &input);
-
-    std::map<std::string, std::unique_ptr<QueryParameter>> parameters_;
+  std::map<std::string, std::unique_ptr<QueryParameter>> parameters_;
 };
 #endif // ZM_UTILS_H

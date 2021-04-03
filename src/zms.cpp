@@ -229,7 +229,7 @@ int main(int argc, const char *argv[], char **envp) {
     user = nullptr;
   }  // end if config.opt_use_auth
 
-  hwcaps_detect();
+  HwCapsDetect();
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 

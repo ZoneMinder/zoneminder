@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  hwcaps_detect();
+  HwCapsDetect();
 
   std::string where = "`Function` != 'None' AND `RTSPServer` != false";
   if (staticConfig.SERVER_ID)

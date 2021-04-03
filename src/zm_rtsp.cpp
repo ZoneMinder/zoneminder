@@ -356,7 +356,7 @@ void RtspThread::Run() {
     for ( size_t i = 0; i < lines.size(); i++ ) {
       // If the device sends us a url value for Content-Base in the response header, we should use that instead
       if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) ) {
-        mUrl = trimSpaces( lines[i].substr( 13 ) );
+        mUrl = TrimSpaces(lines[i].substr(13));
         Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
         break;
       }
@@ -461,9 +461,9 @@ void RtspThread::Run() {
   for ( size_t i = 0; i < lines.size(); i++ ) {
     if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) ) {
       StringVector sessionLine = split(lines[i].substr(9), ";");
-      session = trimSpaces(sessionLine[0]);
+      session = TrimSpaces(sessionLine[0]);
       if ( sessionLine.size() == 2 )
-        sscanf(trimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
+        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
     }
     sscanf(lines[i].c_str(), "Transport: %s", transport);
   }
@@ -532,12 +532,12 @@ void RtspThread::Run() {
   std::string rtpInfo;
   for ( size_t i = 0; i < lines.size(); i++ ) {
     if ( ( lines[i].size() > 9 ) && ( lines[i].substr(0, 9) == "RTP-Info:" ) )
-      rtpInfo = trimSpaces(lines[i].substr(9));
+      rtpInfo = TrimSpaces(lines[i].substr(9));
     // Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
     if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) && ( timeout == 0 ) ) {
       StringVector sessionLine = split(lines[i].substr(9), ";");
       if ( sessionLine.size() == 2 )
-        sscanf(trimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
+        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
       if ( timeout > 0 )
         Debug(2, "Got timeout %d secs from PLAY command response", timeout);
     }

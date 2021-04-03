@@ -20,35 +20,35 @@
 #include "zm_utils.h"
 #include <sstream>
 
-TEST_CASE("trimSet") {
-  REQUIRE(trimSet("", "") == "");
-  REQUIRE(trimSet("test", "") == "test");
-  REQUIRE(trimSet(" ", "") == " ");
+TEST_CASE("Trim") {
+  REQUIRE(Trim("", "") == "");
+  REQUIRE(Trim("test", "") == "test");
+  REQUIRE(Trim(" ", "") == " ");
 
-  REQUIRE(trimSet("\"test", "\"") == "test");
-  REQUIRE(trimSet("test\"", "\"") == "test");
-  REQUIRE(trimSet("\"test\"", "\"") == "test");
+  REQUIRE(Trim("\"test", "\"") == "test");
+  REQUIRE(Trim("test\"", "\"") == "test");
+  REQUIRE(Trim("\"test\"", "\"") == "test");
 
-  REQUIRE(trimSet("te\"st", "\"") == "te\"st");
-  REQUIRE(trimSet("\"te\"st\"", "\"") == "te\"st");
+  REQUIRE(Trim("te\"st", "\"") == "te\"st");
+  REQUIRE(Trim("\"te\"st\"", "\"") == "te\"st");
 }
 
-TEST_CASE("trimSpaces") {
-  REQUIRE(trimSpaces(" ") == "");
+TEST_CASE("TrimSpaces") {
+  REQUIRE(TrimSpaces(" ") == "");
 
-  REQUIRE(trimSpaces("test") == "test");
-  REQUIRE(trimSpaces(" test ") == "test");
-  REQUIRE(trimSpaces("  test ") == "test");
-  REQUIRE(trimSpaces("  test  ") == "test");
-  REQUIRE(trimSpaces(" test") == "test");
-  REQUIRE(trimSpaces("\ttest") == "test");
-  REQUIRE(trimSpaces("test\t") == "test");
-  REQUIRE(trimSpaces("\ttest\t") == "test");
-  REQUIRE(trimSpaces(" test\t") == "test");
-  REQUIRE(trimSpaces("\ttest ") == "test");
-  REQUIRE(trimSpaces("\t test \t") == "test");
+  REQUIRE(TrimSpaces("test") == "test");
+  REQUIRE(TrimSpaces(" test ") == "test");
+  REQUIRE(TrimSpaces("  test ") == "test");
+  REQUIRE(TrimSpaces("  test  ") == "test");
+  REQUIRE(TrimSpaces(" test") == "test");
+  REQUIRE(TrimSpaces("\ttest") == "test");
+  REQUIRE(TrimSpaces("test\t") == "test");
+  REQUIRE(TrimSpaces("\ttest\t") == "test");
+  REQUIRE(TrimSpaces(" test\t") == "test");
+  REQUIRE(TrimSpaces("\ttest ") == "test");
+  REQUIRE(TrimSpaces("\t test \t") == "test");
 
-  REQUIRE(trimSpaces("\t te st \t") == "te st");
+  REQUIRE(TrimSpaces("\t te st \t") == "te st");
 }
 
 TEST_CASE("replaceAll") {

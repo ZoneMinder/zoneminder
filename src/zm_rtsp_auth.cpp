@@ -71,18 +71,18 @@ void Authenticator::authHandleHeader(std::string headerData) {
     StringVector subparts = split(headerData.substr(digest_match_len, headerData.length() - digest_match_len), ",");
     // subparts are key="value"
     for ( size_t i = 0; i < subparts.size(); i++ ) {
-      StringVector kvPair = split(trimSpaces(subparts[i]), "=");
-      std::string key = trimSpaces(kvPair[0]);
+      StringVector kvPair = split(TrimSpaces(subparts[i]), "=");
+      std::string key = TrimSpaces(kvPair[0]);
       if ( key == "realm" ) {
-        fRealm = trimSet(kvPair[1], "\"");
+        fRealm = Trim(kvPair[1], "\"");
         continue;
       }
       if ( key == "nonce" ) {
-        fNonce = trimSet(kvPair[1], "\"");
+        fNonce = Trim(kvPair[1], "\"");
         continue;
       }
       if ( key == "qop" ) {
-        fQop = trimSet(kvPair[1], "\"");
+        fQop = Trim(kvPair[1], "\"");
         continue;
       }
     }
@@ -211,7 +211,7 @@ void Authenticator::checkAuthResponse(std::string &response) {
   }
   if ( !authLine.empty() ) {
     Debug(2, "Analyze auth line %s", authLine.c_str());
-    authHandleHeader(trimSpaces(authLine.substr(authenticate_match_len, authLine.length()-authenticate_match_len)));
+    authHandleHeader(TrimSpaces(authLine.substr(authenticate_match_len, authLine.length() - authenticate_match_len)));
   } else {
     Debug(2, "Didn't find auth line in %s", authLine.c_str());
   }

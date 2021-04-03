@@ -39,19 +39,15 @@
 unsigned int sse_version = 0;
 unsigned int neonversion = 0;
 
-std::string trimSet(std::string str, std::string trimset) {
-  // Trim Both leading and trailing sets
-  size_t startpos = str.find_first_not_of(trimset); // Find the first character position after excluding leading blank spaces
-  size_t endpos = str.find_last_not_of(trimset); // Find the first character position from reverse af
+// Trim Both leading and trailing sets
+std::string Trim(const std::string &str, const std::string &char_set) {
+  size_t start_pos = str.find_first_not_of(char_set);
+  size_t end_pos = str.find_last_not_of(char_set);
 
   // if all spaces or empty return an empty string
-  if ( ( std::string::npos == startpos ) || ( std::string::npos == endpos ) )
-    return std::string("");
-  return str.substr(startpos, endpos-startpos+1);
-}
-
-std::string trimSpaces(const std::string &str) {
-  return trimSet(str, " \t");
+  if ((start_pos == std::string::npos) || (end_pos == std::string::npos))
+    return "";
+  return str.substr(start_pos, end_pos - start_pos + 1);
 }
 
 std::string replaceAll(std::string str, std::string from, std::string to) {
@@ -74,7 +70,7 @@ std::vector<std::string> split(const std::string &s, char delim) {
   std::stringstream ss(s);
   std::string item;
   while(std::getline(ss, item, delim)) {
-    elems.push_back(trimSpaces(item));
+    elems.push_back(TrimSpaces(item));
   }
   return elems;
 }

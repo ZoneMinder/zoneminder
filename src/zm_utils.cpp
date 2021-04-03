@@ -31,10 +31,6 @@
 #include <sys/auxv.h>
 #endif
 
-#ifdef HAVE_CURL_CURL_H
-#include <curl/curl.h>
-#endif
-
 unsigned int sse_version = 0;
 unsigned int neonversion = 0;
 

@@ -20,6 +20,7 @@
 #ifndef ZM_UTILS_H
 #define ZM_UTILS_H
 
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <map>
@@ -34,6 +35,7 @@ typedef std::vector<std::string> StringVector;
 std::string Trim(const std::string &str, const std::string &char_set);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
 std::string ReplaceAll(std::string str, const std::string& old_value, const std::string& new_value);
+inline void StringToUpper(std::string &str) { std::transform(str.begin(), str.end(), str.begin(), ::toupper); }
 
 StringVector Split(const std::string &str, char delim);
 StringVector Split(const std::string &str, const std::string &delim, size_t limit = 0);
@@ -56,8 +58,7 @@ std::string stringtf(const std::string &format, Args... args) {
   return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
-const std::string base64Encode( const std::string &inString );
-void string_toupper(std::string& str);
+std::string Base64Encode(const std::string &str);
 
 void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes);
 void timespec_diff(struct timespec *start, struct timespec *end, struct timespec *diff);

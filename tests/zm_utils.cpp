@@ -140,14 +140,14 @@ TEST_CASE("Join") {
   REQUIRE(Join({"a", "b"}, "") == "ab");
 }
 
-TEST_CASE("base64Encode") {
-  REQUIRE(base64Encode("") == "");
-  REQUIRE(base64Encode("f") == "Zg==");
-  REQUIRE(base64Encode("fo") == "Zm8=");
-  REQUIRE(base64Encode("foo") == "Zm9v");
-  REQUIRE(base64Encode("foob") == "Zm9vYg==");
-  REQUIRE(base64Encode("fooba") == "Zm9vYmE=");
-  REQUIRE(base64Encode("foobar") == "Zm9vYmFy");
+TEST_CASE("Base64Encode") {
+  REQUIRE(Base64Encode("") == "");
+  REQUIRE(Base64Encode("f") == "Zg==");
+  REQUIRE(Base64Encode("fo") == "Zm8=");
+  REQUIRE(Base64Encode("foo") == "Zm9v");
+  REQUIRE(Base64Encode("foob") == "Zm9vYg==");
+  REQUIRE(Base64Encode("fooba") == "Zm9vYmE=");
+  REQUIRE(Base64Encode("foobar") == "Zm9vYmFy");
 }
 
 TEST_CASE("UriDecode") {

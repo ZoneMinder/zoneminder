@@ -21,7 +21,6 @@
 
 #include "zm_config.h"
 #include "zm_logger.h"
-#include <algorithm>
 #include <array>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
@@ -121,36 +120,36 @@ std::string Join(const StringVector &values, const std::string &delim) {
   return ss.str();
 }
 
-const std::string base64Encode(const std::string &inString) {
-  static char base64_table[64] = { '\0' };
+std::string Base64Encode(const std::string &str) {
+  static char base64_table[64] = {'\0'};
 
-  if ( !base64_table[0] ) {
+  if (!base64_table[0]) {
     int i = 0;
-    for ( char c = 'A'; c <= 'Z'; c++ )
+    for (char c = 'A'; c <= 'Z'; c++)
       base64_table[i++] = c;
-    for ( char c = 'a'; c <= 'z'; c++ )
+    for (char c = 'a'; c <= 'z'; c++)
       base64_table[i++] = c;
-    for ( char c = '0'; c <= '9'; c++ )
+    for (char c = '0'; c <= '9'; c++)
       base64_table[i++] = c;
     base64_table[i++] = '+';
     base64_table[i++] = '/';
   }
 
   std::string outString;
-  outString.reserve(2 * inString.size());
+  outString.reserve(2 * str.size());
 
-  const char *inPtr = inString.c_str();
-  while ( *inPtr ) {
+  const char *inPtr = str.c_str();
+  while (*inPtr) {
     unsigned char selection = *inPtr >> 2;
     unsigned char remainder = (*inPtr++ & 0x03) << 4;
     outString += base64_table[selection];
 
-    if ( *inPtr ) {
+    if (*inPtr) {
       selection = remainder | (*inPtr >> 4);
       remainder = (*inPtr++ & 0x0f) << 2;
       outString += base64_table[selection];
 
-      if ( *inPtr ) {
+      if (*inPtr) {
         selection = remainder | (*inPtr >> 6);
         outString += base64_table[selection];
         selection = (*inPtr++ & 0x3f);
@@ -331,10 +330,6 @@ std::string UriDecode( const std::string &encoded ) {
     }
   }
   return retbuf;
-}
-
-void string_toupper( std::string& str) {
-  std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 }
 
 void touch(const char *pathname) {

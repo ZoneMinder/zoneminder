@@ -42,7 +42,7 @@ bool RtspThread::sendCommand(std::string message) {
   message += stringtf("CSeq: %d\r\n\r\n", ++mSeq);
   Debug(2, "Sending RTSP message: %s", message.c_str());
   if ( mMethod == RTP_RTSP_HTTP ) {
-    message = base64Encode(message);
+    message = Base64Encode(message);
     Debug(2, "Sending encoded RTSP message: %s", message.c_str());
     if ( mRtspSocket2.send(message.c_str(), message.size()) != (int)message.length() ) {
       Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));

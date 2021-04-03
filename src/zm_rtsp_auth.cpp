@@ -98,7 +98,7 @@ std::string Authenticator::quote( const std::string &src ) {
 std::string Authenticator::getAuthHeader(std::string method, std::string uri) {
   std::string result = "Authorization: ";
   if ( fAuthMethod == AUTH_BASIC ) {
-    result += "Basic " + base64Encode(username() + ":" + password());
+    result += "Basic " + Base64Encode(username() + ":" + password());
   } else if ( fAuthMethod == AUTH_DIGEST ) {
     result += std::string("Digest ") + 
           "username=\"" + quote(username()) + "\", realm=\"" + quote(realm()) + "\", " +

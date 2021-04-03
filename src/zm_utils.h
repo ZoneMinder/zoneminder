@@ -35,6 +35,10 @@ std::string Trim(const std::string &str, const std::string &char_set);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
 std::string ReplaceAll(std::string str, const std::string& old_value, const std::string& new_value);
 
+inline bool StartsWith(const std::string &haystack, const std::string &needle) {
+  return (haystack.substr(0, needle.length()) == needle);
+}
+
 template<typename... Args>
 std::string stringtf(const std::string &format, Args... args) {
   int size = snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
@@ -46,7 +50,6 @@ std::string stringtf(const std::string &format, Args... args) {
   return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
-bool startsWith( const std::string &haystack, const std::string &needle );
 StringVector split( const std::string &string, const std::string &chars, int limit=0 );
 const std::string join( const StringVector &, const char * );
 

@@ -487,28 +487,28 @@ void RtspThread::Run() {
   for ( size_t i = 0; i < parts.size(); i++ ) {
     if ( parts[i] == "unicast" || parts[i] == "multicast" )
       distribution = parts[i];
-    else if ( startsWith( parts[i], "server_port=" ) ) {
+    else if (StartsWith(parts[i], "server_port=") ) {
       method = "RTP/UNICAST";
       StringVector subparts = split( parts[i], "=" );
       StringVector ports = split( subparts[1], "-" );
       remotePorts[0] = strtol( ports[0].c_str(), nullptr, 10 );
       remotePorts[1] = strtol( ports[1].c_str(), nullptr, 10 );
-    } else if ( startsWith( parts[i], "interleaved=" ) ) {
+    } else if (StartsWith(parts[i], "interleaved=") ) {
       method = "RTP/RTSP";
       StringVector subparts = split( parts[i], "=" );
       StringVector channels = split( subparts[1], "-" );
       remoteChannels[0] = strtol( channels[0].c_str(), nullptr, 10 );
       remoteChannels[1] = strtol( channels[1].c_str(), nullptr, 10 );
-    } else if ( startsWith( parts[i], "port=" ) ) {
+    } else if (StartsWith(parts[i], "port=") ) {
       method = "RTP/MULTICAST";
       StringVector subparts = split( parts[i], "=" );
       StringVector ports = split( subparts[1], "-" );
       localPorts[0] = strtol( ports[0].c_str(), nullptr, 10 );
       localPorts[1] = strtol( ports[1].c_str(), nullptr, 10 );
-    } else if ( startsWith( parts[i], "destination=" ) ) {
+    } else if (StartsWith(parts[i], "destination=") ) {
       StringVector subparts = split( parts[i], "=" );
       localHost = subparts[1];
-    } else if ( startsWith( parts[i], "ssrc=" ) ) {
+    } else if (StartsWith(parts[i], "ssrc=") ) {
       StringVector subparts = split( parts[i], "=" );
       ssrc = strtoll( subparts[1].c_str(), nullptr, 16 );
     }
@@ -558,10 +558,10 @@ void RtspThread::Run() {
         // Parse the sequence and rtptime values
         parts = split( streams[i].c_str(), ";" );
         for ( size_t j = 0; j < parts.size(); j++ ) {
-          if ( startsWith( parts[j], "seq=" ) ) {
+          if (StartsWith(parts[j], "seq=") ) {
             StringVector subparts = split( parts[j], "=" );
             seq = strtol( subparts[1].c_str(), nullptr, 10 );
-          } else if ( startsWith( parts[j], "rtptime=" ) ) {
+          } else if (StartsWith(parts[j], "rtptime=") ) {
             StringVector subparts = split( parts[j], "=" );
             rtpTime = strtol( subparts[1].c_str(), nullptr, 10 );
           }

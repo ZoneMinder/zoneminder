@@ -61,10 +61,6 @@ std::string ReplaceAll(std::string str, const std::string &old_value, const std:
   return str;
 }
 
-bool startsWith(const std::string &haystack, const std::string &needle) {
-  return ( haystack.substr(0, needle.length()) == needle );
-}
-
 std::vector<std::string> split(const std::string &s, char delim) {
   std::vector<std::string> elems;
   std::stringstream ss(s);

@@ -65,12 +65,12 @@ TEST_CASE("ReplaceAll") {
   REQUIRE(ReplaceAll("aTOKENaTOKEN", "TOKEN", "VAL") == "aVALaVAL");
 }
 
-TEST_CASE("startsWith") {
-  REQUIRE(startsWith("", "") == true);
+TEST_CASE("StartsWith") {
+  REQUIRE(StartsWith("", "") == true);
 
-  REQUIRE(startsWith("test", "test") == true);
-  REQUIRE(startsWith("test=abc", "test") == true);
-  REQUIRE(startsWith(" test=abc", "test") == false);
+  REQUIRE(StartsWith("test", "test") == true);
+  REQUIRE(StartsWith("test=abc", "test") == true);
+  REQUIRE(StartsWith(" test=abc", "test") == false);
 }
 
 TEST_CASE("split (char delimiter)") {

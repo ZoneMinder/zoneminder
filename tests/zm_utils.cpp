@@ -154,3 +154,8 @@ TEST_CASE("base64Encode") {
   REQUIRE(base64Encode("fooba") == "Zm9vYmE=");
   REQUIRE(base64Encode("foobar") == "Zm9vYmFy");
 }
+
+TEST_CASE("UriDecode") {
+  REQUIRE(UriDecode("abcABC123-_.~%21%28%29%26%3d%20") == "abcABC123-_.~!()&= ");
+  REQUIRE(UriDecode("abcABC123-_.~%21%28%29%26%3d+") == "abcABC123-_.~!()&= ");
+}

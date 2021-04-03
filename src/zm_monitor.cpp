@@ -2280,7 +2280,9 @@ bool Monitor::Analyse() {
         } // end if state machine
 
         if ( (function == MODECT or function == MOCORD) and snap->image ) {
+          Debug(1, "Blending");
           ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+          Debug(1, "Done Blending");
         }
         last_signal = signal;
       } // end if videostream
@@ -2755,7 +2757,7 @@ bool Monitor::Decode() {
   ZMPacket *packet = packet_lock->packet_;
   packetqueue.increment_it(decoder_it);
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
-    delete packet_lock;
+    packetqueue.unlock(packet_lock);
     return true; // Don't need decode
   }
 
@@ -2871,7 +2873,7 @@ bool Monitor::Decode() {
   shared_data->signal = ( capture_image and signal_check_points ) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
   shared_data->last_write_time = packet->timestamp->tv_sec;
-  delete packet_lock;
+  packetqueue.unlock(packet_lock);
   return true;
 }  // end bool Monitor::Decode()
 

@@ -51,18 +51,18 @@ TEST_CASE("TrimSpaces") {
   REQUIRE(TrimSpaces("\t te st \t") == "te st");
 }
 
-TEST_CASE("replaceAll") {
-  REQUIRE(replaceAll("", "", "") == "");
+TEST_CASE("ReplaceAll") {
+  REQUIRE(ReplaceAll("", "", "") == "");
 
-  REQUIRE(replaceAll("a", "", "b") == "a");
-  REQUIRE(replaceAll("a", "a", "b") == "b");
-  REQUIRE(replaceAll("a", "b", "c") == "a");
+  REQUIRE(ReplaceAll("a", "", "b") == "a");
+  REQUIRE(ReplaceAll("a", "a", "b") == "b");
+  REQUIRE(ReplaceAll("a", "b", "c") == "a");
 
-  REQUIRE(replaceAll("aa", "a", "b") == "bb");
-  REQUIRE(replaceAll("aba", "a", "c") == "cbc");
+  REQUIRE(ReplaceAll("aa", "a", "b") == "bb");
+  REQUIRE(ReplaceAll("aba", "a", "c") == "cbc");
 
-  REQUIRE(replaceAll("aTOKENa", "TOKEN", "VAL") == "aVALa");
-  REQUIRE(replaceAll("aTOKENaTOKEN", "TOKEN", "VAL") == "aVALaVAL");
+  REQUIRE(ReplaceAll("aTOKENa", "TOKEN", "VAL") == "aVALa");
+  REQUIRE(ReplaceAll("aTOKENaTOKEN", "TOKEN", "VAL") == "aVALaVAL");
 }
 
 TEST_CASE("startsWith") {

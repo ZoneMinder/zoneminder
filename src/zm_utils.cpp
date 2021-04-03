@@ -50,13 +50,13 @@ std::string Trim(const std::string &str, const std::string &char_set) {
   return str.substr(start_pos, end_pos - start_pos + 1);
 }
 
-std::string replaceAll(std::string str, std::string from, std::string to) {
-  if ( from.empty() )
+std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value) {
+  if (old_value.empty())
     return str;
   size_t start_pos = 0;
-  while ( (start_pos = str.find(from, start_pos)) != std::string::npos ) {
-    str.replace(start_pos, from.length(), to);
-    start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+  while ((start_pos = str.find(old_value, start_pos)) != std::string::npos) {
+    str.replace(start_pos, old_value.length(), new_value);
+    start_pos += new_value.length(); // In case 'new_value' contains 'old_value', like replacing 'x' with 'yx'
   }
   return str;
 }

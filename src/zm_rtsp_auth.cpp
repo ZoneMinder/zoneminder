@@ -92,7 +92,7 @@ void Authenticator::authHandleHeader(std::string headerData) {
 }  // end void Authenticator::authHandleHeader(std::string headerData)
 
 std::string Authenticator::quote( const std::string &src ) {
-  return replaceAll(replaceAll(src, "\\", "\\\\"), "\"", "\\\"");
+  return ReplaceAll(ReplaceAll(src, "\\", "\\\\"), "\"", "\\\"");
 }
 
 std::string Authenticator::getAuthHeader(std::string method, std::string uri) {

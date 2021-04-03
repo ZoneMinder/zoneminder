@@ -33,8 +33,7 @@ typedef std::vector<std::string> StringVector;
 
 std::string Trim(const std::string &str, const std::string &char_set);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
-
-std::string replaceAll(std::string str, std::string from, std::string to);
+std::string ReplaceAll(std::string str, const std::string& old_value, const std::string& new_value);
 
 template<typename... Args>
 std::string stringtf(const std::string &format, Args... args) {

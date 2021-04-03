@@ -73,77 +73,71 @@ TEST_CASE("StartsWith") {
   REQUIRE(StartsWith(" test=abc", "test") == false);
 }
 
-TEST_CASE("split (char delimiter)") {
-  std::vector<std::string> items;
-  int res;
+TEST_CASE("Split (char delimiter)") {
+  std::vector<std::string> items = Split("", ' ');
+  REQUIRE(items == std::vector<std::string>{""});
 
-  res = split(nullptr, ' ', items);
-  REQUIRE(res == -1);
-  REQUIRE(items.size() == 0);
-
-  res = split("", ' ', items);
-  REQUIRE(res == -2);
-  REQUIRE(items.size() == 0);
-
-  res = split("abc def ghi", ' ', items);
-  REQUIRE(res == 3);
+  items = Split("abc def ghi", ' ');
   REQUIRE(items == std::vector<std::string>{"abc", "def", "ghi"});
+
+  items = Split("abc,def,,ghi", ',');
+  REQUIRE(items == std::vector<std::string>{"abc", "def", "", "ghi"});
 }
 
-TEST_CASE("split (string delimiter)") {
+TEST_CASE("Split (string delimiter)") {
   std::vector<std::string> items;
 
-  items = split("", "");
+  items = Split("", "");
   REQUIRE(items == std::vector<std::string>{""});
 
-  items = split("", " ");
+  items = Split("", " ");
   REQUIRE(items == std::vector<std::string>{""});
 
-  items = split("", " \t");
+  items = Split("", " \t");
   REQUIRE(items == std::vector<std::string>{""});
 
-  items = split("", " \t");
+  items = Split("", " \t");
   REQUIRE(items == std::vector<std::string>{""});
 
-  items = split(" ", " ");
+  items = Split(" ", " ");
   REQUIRE(items.size() == 0);
 
-  items = split("  ", " ");
+  items = Split("  ", " ");
   REQUIRE(items.size() == 0);
 
-  items = split(" ", " \t");
+  items = Split(" ", " \t");
   REQUIRE(items.size() == 0);
 
-  items = split("a b", "");
+  items = Split("a b", "");
   REQUIRE(items == std::vector<std::string>{"a b"});
 
-  items = split("a b", " ");
+  items = Split("a b", " ");
   REQUIRE(items == std::vector<std::string>{"a", "b"});
 
-  items = split("a \tb", " \t");
+  items = Split("a \tb", " \t");
   REQUIRE(items == std::vector<std::string>{"a", "b"});
 
-  items = split(" a \tb ", " \t");
+  items = Split(" a \tb ", " \t");
   REQUIRE(items == std::vector<std::string>{"a", "b"});
 
-  items = split(" a=b ", "=");
+  items = Split(" a=b ", "=");
   REQUIRE(items == std::vector<std::string>{" a", "b "});
 
-  items = split(" a=b ", " =");
+  items = Split(" a=b ", " =");
   REQUIRE(items == std::vector<std::string>{"a", "b"});
 
-  items = split("a b c", " ", 2);
+  items = Split("a b c", " ", 2);
   REQUIRE(items == std::vector<std::string>{"a", "b c"});
 }
 
-TEST_CASE("join") {
-  REQUIRE(join({}, "") == "");
-  REQUIRE(join({}, " ") == "");
-  REQUIRE(join({""}, "") == "");
-  REQUIRE(join({"a"}, "") == "a");
-  REQUIRE(join({"a"}, ",") == "a");
-  REQUIRE(join({"a", "b"}, ",") == "a,b");
-  REQUIRE(join({"a", "b"}, "") == "ab");
+TEST_CASE("Join") {
+  REQUIRE(Join({}, "") == "");
+  REQUIRE(Join({}, " ") == "");
+  REQUIRE(Join({""}, "") == "");
+  REQUIRE(Join({"a"}, "") == "a");
+  REQUIRE(Join({"a"}, ",") == "a");
+  REQUIRE(Join({"a", "b"}, ",") == "a,b");
+  REQUIRE(Join({"a", "b"}, "") == "ab");
 }
 
 TEST_CASE("base64Encode") {

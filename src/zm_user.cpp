@@ -54,7 +54,7 @@ User::User(const MYSQL_ROW &dbrow) {
   system = (Permission)atoi(dbrow[index++]);
   char *monitor_ids_str = dbrow[index++];
   if ( monitor_ids_str && *monitor_ids_str ) {
-    StringVector ids = split(monitor_ids_str, ",");
+    StringVector ids = Split(monitor_ids_str, ",");
     for ( StringVector::iterator i = ids.begin(); i < ids.end(); ++i ) {
       monitor_ids.push_back(atoi((*i).c_str()));
     }

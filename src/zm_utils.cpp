@@ -61,53 +61,62 @@ std::string ReplaceAll(std::string str, const std::string &old_value, const std:
   return str;
 }
 
-std::vector<std::string> split(const std::string &s, char delim) {
-  std::vector<std::string> elems;
-  std::stringstream ss(s);
-  std::string item;
-  while(std::getline(ss, item, delim)) {
-    elems.push_back(TrimSpaces(item));
+StringVector Split(const std::string &str, char delim) {
+  std::vector<std::string> tokens;
+
+  size_t start = 0;
+  for (size_t end = str.find(delim); end != std::string::npos; end = str.find(delim, start)) {
+    tokens.push_back(str.substr(start, end - start));
+    start = end + 1;
   }
-  return elems;
+
+  tokens.push_back(str.substr(start));
+
+  return tokens;
 }
 
-StringVector split(const std::string &string, const std::string &chars, int limit) {
-  StringVector stringVector;
-  std::string tempString = string;
-  std::string::size_type startIndex = 0;
-  std::string::size_type endIndex = 0;
+StringVector Split(const std::string &str, const std::string &delim, size_t limit) {
+  StringVector tokens;
+  size_t start = 0;
 
-  //Info( "Looking for '%s' in '%s', limit %d", chars.c_str(), string.c_str(), limit );
   do {
-    // Find delimiters
-    endIndex = string.find_first_of( chars, startIndex );
-    //Info( "Got endIndex at %d", endIndex );
-    if ( endIndex > 0 ) {
-      //Info( "Adding '%s'", string.substr( startIndex, endIndex-startIndex ).c_str() );
-      stringVector.push_back( string.substr( startIndex, endIndex-startIndex ) );
+    size_t end = str.find_first_of(delim, start);
+    if (end > 0) {
+      tokens.push_back(str.substr(start, end - start));
     }
-    if ( endIndex == std::string::npos )
+    if (end == std::string::npos) {
       break;
+    }
     // Find non-delimiters
-    startIndex = tempString.find_first_not_of( chars, endIndex );
-    if ( limit && (stringVector.size() == (unsigned int)(limit-1)) ) {
-      stringVector.push_back( string.substr( startIndex ) );
+    start = str.find_first_not_of(delim, end);
+    if (limit && (tokens.size() == limit - 1)) {
+      tokens.push_back(str.substr(start));
       break;
     }
-    //Info( "Got new startIndex at %d", startIndex );
-  } while ( startIndex != std::string::npos );
-  //Info( "Finished with %d strings", stringVector.size() );
+  } while (start != std::string::npos);
 
-  return stringVector;
+  return tokens;
 }
 
-const std::string join(const StringVector &v, const char * delim=",") {
+std::pair<std::string, std::string> PairSplit(const std::string &str, char delim) {
+  if (str.empty())
+    return std::make_pair("", "");
+
+  size_t pos = str.find(delim);
+
+  if (pos == std::string::npos)
+    return std::make_pair("", "");
+
+  return std::make_pair(str.substr(0, pos), str.substr(pos + 1, std::string::npos));
+}
+
+std::string Join(const StringVector &values, const std::string &delim) {
   std::stringstream ss;
 
-  for (size_t i = 0; i < v.size(); ++i) {
+  for (size_t i = 0; i < values.size(); ++i) {
     if ( i != 0 )
       ss << delim;
-    ss << v[i];
+    ss << values[i];
   }
   return ss.str();
 }
@@ -157,46 +166,6 @@ const std::string base64Encode(const std::string &inString) {
     }
   }
   return outString;
-}
-
-int split(const char* string, const char delim, std::vector<std::string>& items) {
-  if ( string == nullptr )
-    return -1;
-
-  if ( string[0] == 0 )
-    return -2;
-
-  std::string str(string);
-
-  while ( true ) {
-    size_t pos = str.find(delim);
-    items.push_back(str.substr(0, pos));
-    str.erase(0, pos+1);
-
-    if ( pos == std::string::npos )
-      break;
-  }
-
-  return items.size();
-}
-
-int pairsplit(const char* string, const char delim, std::string& name, std::string& value) {
-  if ( string == nullptr )
-    return -1;
-
-  if ( string[0] == 0 )
-    return -2;
-
-  std::string str(string);
-  size_t pos = str.find(delim);
-
-  if ( pos == std::string::npos || pos == 0 || pos >= str.length() )
-    return -3;
-
-  name = str.substr(0, pos);
-  value = str.substr(pos+1, std::string::npos);
-
-  return 0;
 }
 
 /* Detect special hardware features, such as SIMD instruction sets */

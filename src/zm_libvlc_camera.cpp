@@ -213,7 +213,7 @@ void LibvlcCamera::Terminate() {
 int LibvlcCamera::PrimeCapture() {
   Debug(1, "Priming capture from %s, libvlc version %s", mPath.c_str(), (*libvlc_get_version_f)());
 
-  StringVector opVect = split(Options(), ",");
+  StringVector opVect = Split(Options(), ",");
 
   // Set transport method as specified by method field, rtpUni is default
   if ( Method() == "rtpMulti" )

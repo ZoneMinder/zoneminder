@@ -68,10 +68,10 @@ void Authenticator::authHandleHeader(std::string headerData) {
   else if ( strncasecmp(headerData.c_str(), digest_match, digest_match_len) == 0) {
     fAuthMethod = AUTH_DIGEST;
     Debug(2, "Set authMethod to Digest");
-    StringVector subparts = split(headerData.substr(digest_match_len, headerData.length() - digest_match_len), ",");
+    StringVector subparts = Split(headerData.substr(digest_match_len, headerData.length() - digest_match_len), ",");
     // subparts are key="value"
     for ( size_t i = 0; i < subparts.size(); i++ ) {
-      StringVector kvPair = split(TrimSpaces(subparts[i]), "=");
+      StringVector kvPair = Split(TrimSpaces(subparts[i]), "=");
       std::string key = TrimSpaces(kvPair[0]);
       if ( key == "realm" ) {
         fRealm = Trim(kvPair[1], "\"");
@@ -194,7 +194,7 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
 
 void Authenticator::checkAuthResponse(std::string &response) {
   std::string authLine;
-  StringVector lines = split(response, "\r\n");
+  StringVector lines = Split(response, "\r\n");
   const char* authenticate_match = "WWW-Authenticate:";
   size_t authenticate_match_len = strlen(authenticate_match);
 

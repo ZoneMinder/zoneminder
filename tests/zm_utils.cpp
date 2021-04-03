@@ -134,3 +134,13 @@ TEST_CASE("split (string delimiter)") {
   items = split("a b c", " ", 2);
   REQUIRE(items == std::vector<std::string>{"a", "b c"});
 }
+
+TEST_CASE("join") {
+  REQUIRE(join({}, "") == "");
+  REQUIRE(join({}, " ") == "");
+  REQUIRE(join({""}, "") == "");
+  REQUIRE(join({"a"}, "") == "a");
+  REQUIRE(join({"a"}, ",") == "a");
+  REQUIRE(join({"a", "b"}, ",") == "a,b");
+  REQUIRE(join({"a", "b"}, "") == "ab");
+}

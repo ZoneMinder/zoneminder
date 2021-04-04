@@ -34,7 +34,7 @@ RtspThread::PortSet RtspThread::smAssignedPorts;
 
 bool RtspThread::sendCommand(std::string message) {
   if ( mNeedAuth ) {
-    StringVector parts = split(message, " ");
+    StringVector parts = Split(message, " ");
     if ( parts.size() > 1 )
       message += mAuthenticator->getAuthHeader(parts[0], parts[1]);
   }
@@ -42,7 +42,7 @@ bool RtspThread::sendCommand(std::string message) {
   message += stringtf("CSeq: %d\r\n\r\n", ++mSeq);
   Debug(2, "Sending RTSP message: %s", message.c_str());
   if ( mMethod == RTP_RTSP_HTTP ) {
-    message = base64Encode(message);
+    message = Base64Encode(message);
     Debug(2, "Sending encoded RTSP message: %s", message.c_str());
     if ( mRtspSocket2.send(message.c_str(), message.size()) != (int)message.length() ) {
       Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
@@ -172,7 +172,7 @@ RtspThread::RtspThread(
     mHttpSession = stringtf("%d", rand());
   
   mNeedAuth = false;
-  StringVector parts = split(auth, ":");
+  StringVector parts = Split(auth, ":");
   Debug(2, "# of auth parts %d", parts.size());
   if ( parts.size() > 1 ) 
     mAuthenticator = new zm::Authenticator(parts[0], parts[1]);
@@ -320,7 +320,7 @@ void RtspThread::Run() {
   } // end if failed response maybe due to auth
 
   char publicLine[256] = "";
-  StringVector lines = split(response, "\r\n");
+  StringVector lines = Split(response, "\r\n");
   for ( size_t i = 0; i < lines.size(); i++ )
     sscanf(lines[i].c_str(), "Public: %[^\r\n]\r\n", publicLine);
 
@@ -352,11 +352,11 @@ void RtspThread::Run() {
     std::string DescHeader = response.substr(0, sdpStart);
     Debug(1, "Processing DESCRIBE response header '%s'", DescHeader.c_str());
 
-    lines = split(DescHeader, "\r\n");
+    lines = Split(DescHeader, "\r\n");
     for ( size_t i = 0; i < lines.size(); i++ ) {
       // If the device sends us a url value for Content-Base in the response header, we should use that instead
       if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) ) {
-        mUrl = trimSpaces( lines[i].substr( 13 ) );
+        mUrl = TrimSpaces(lines[i].substr(13));
         Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
         break;
       }
@@ -453,17 +453,17 @@ void RtspThread::Run() {
   if ( !recvResponse(response) )
     return;
 
-  lines = split(response, "\r\n");
+  lines = Split(response, "\r\n");
   std::string session;
   int timeout = 0;
   char transport[256] = "";
 
   for ( size_t i = 0; i < lines.size(); i++ ) {
     if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) ) {
-      StringVector sessionLine = split(lines[i].substr(9), ";");
-      session = trimSpaces(sessionLine[0]);
+      StringVector sessionLine = Split(lines[i].substr(9), ";");
+      session = TrimSpaces(sessionLine[0]);
       if ( sessionLine.size() == 2 )
-        sscanf(trimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
+        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
     }
     sscanf(lines[i].c_str(), "Transport: %s", transport);
   }
@@ -483,33 +483,33 @@ void RtspThread::Run() {
   int remoteChannels[2] = { 0, 0 };
   std::string distribution = "";
   unsigned long ssrc = 0;
-  StringVector parts = split( transport, ";" );
+  StringVector parts = Split(transport, ";");
   for ( size_t i = 0; i < parts.size(); i++ ) {
     if ( parts[i] == "unicast" || parts[i] == "multicast" )
       distribution = parts[i];
-    else if ( startsWith( parts[i], "server_port=" ) ) {
+    else if (StartsWith(parts[i], "server_port=") ) {
       method = "RTP/UNICAST";
-      StringVector subparts = split( parts[i], "=" );
-      StringVector ports = split( subparts[1], "-" );
+      StringVector subparts = Split(parts[i], "=");
+      StringVector ports = Split(subparts[1], "-");
       remotePorts[0] = strtol( ports[0].c_str(), nullptr, 10 );
       remotePorts[1] = strtol( ports[1].c_str(), nullptr, 10 );
-    } else if ( startsWith( parts[i], "interleaved=" ) ) {
+    } else if (StartsWith(parts[i], "interleaved=") ) {
       method = "RTP/RTSP";
-      StringVector subparts = split( parts[i], "=" );
-      StringVector channels = split( subparts[1], "-" );
+      StringVector subparts = Split(parts[i], "=");
+      StringVector channels = Split(subparts[1], "-");
       remoteChannels[0] = strtol( channels[0].c_str(), nullptr, 10 );
       remoteChannels[1] = strtol( channels[1].c_str(), nullptr, 10 );
-    } else if ( startsWith( parts[i], "port=" ) ) {
+    } else if (StartsWith(parts[i], "port=") ) {
       method = "RTP/MULTICAST";
-      StringVector subparts = split( parts[i], "=" );
-      StringVector ports = split( subparts[1], "-" );
+      StringVector subparts = Split(parts[i], "=");
+      StringVector ports = Split(subparts[1], "-");
       localPorts[0] = strtol( ports[0].c_str(), nullptr, 10 );
       localPorts[1] = strtol( ports[1].c_str(), nullptr, 10 );
-    } else if ( startsWith( parts[i], "destination=" ) ) {
-      StringVector subparts = split( parts[i], "=" );
+    } else if (StartsWith(parts[i], "destination=") ) {
+      StringVector subparts = Split(parts[i], "=");
       localHost = subparts[1];
-    } else if ( startsWith( parts[i], "ssrc=" ) ) {
-      StringVector subparts = split( parts[i], "=" );
+    } else if (StartsWith(parts[i], "ssrc=") ) {
+      StringVector subparts = Split(parts[i], "=");
       ssrc = strtoll( subparts[1].c_str(), nullptr, 16 );
     }
   }
@@ -528,16 +528,16 @@ void RtspThread::Run() {
   if ( !recvResponse(response) )
     return;
 
-  lines = split(response, "\r\n");
+  lines = Split(response, "\r\n");
   std::string rtpInfo;
   for ( size_t i = 0; i < lines.size(); i++ ) {
     if ( ( lines[i].size() > 9 ) && ( lines[i].substr(0, 9) == "RTP-Info:" ) )
-      rtpInfo = trimSpaces(lines[i].substr(9));
+      rtpInfo = TrimSpaces(lines[i].substr(9));
     // Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
     if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) && ( timeout == 0 ) ) {
-      StringVector sessionLine = split(lines[i].substr(9), ";");
+      StringVector sessionLine = Split(lines[i].substr(9), ";");
       if ( sessionLine.size() == 2 )
-        sscanf(trimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
+        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
       if ( timeout > 0 )
         Debug(2, "Got timeout %d secs from PLAY command response", timeout);
     }
@@ -551,18 +551,18 @@ void RtspThread::Run() {
   } else {
     Debug( 2, "Got RTP Info %s", rtpInfo.c_str() );
     // More than one stream can be included in the RTP Info
-    streams = split( rtpInfo.c_str(), "," );
+    streams = Split(rtpInfo.c_str(), ",");
     for ( size_t i = 0; i < streams.size(); i++ ) {
       // We want the stream that matches the trackUrl we are using
       if ( streams[i].find(controlUrl.c_str()) != std::string::npos ) {
         // Parse the sequence and rtptime values
-        parts = split( streams[i].c_str(), ";" );
+        parts = Split(streams[i].c_str(), ";");
         for ( size_t j = 0; j < parts.size(); j++ ) {
-          if ( startsWith( parts[j], "seq=" ) ) {
-            StringVector subparts = split( parts[j], "=" );
+          if (StartsWith(parts[j], "seq=") ) {
+            StringVector subparts = Split(parts[j], "=");
             seq = strtol( subparts[1].c_str(), nullptr, 10 );
-          } else if ( startsWith( parts[j], "rtptime=" ) ) {
-            StringVector subparts = split( parts[j], "=" );
+          } else if (StartsWith(parts[j], "rtptime=") ) {
+            StringVector subparts = Split(parts[j], "=");
             rtpTime = strtol( subparts[1].c_str(), nullptr, 10 );
           }
         }

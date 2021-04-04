@@ -68,21 +68,21 @@ void Authenticator::authHandleHeader(std::string headerData) {
   else if ( strncasecmp(headerData.c_str(), digest_match, digest_match_len) == 0) {
     fAuthMethod = AUTH_DIGEST;
     Debug(2, "Set authMethod to Digest");
-    StringVector subparts = split(headerData.substr(digest_match_len, headerData.length() - digest_match_len), ",");
+    StringVector subparts = Split(headerData.substr(digest_match_len, headerData.length() - digest_match_len), ",");
     // subparts are key="value"
     for ( size_t i = 0; i < subparts.size(); i++ ) {
-      StringVector kvPair = split(trimSpaces(subparts[i]), "=");
-      std::string key = trimSpaces(kvPair[0]);
+      StringVector kvPair = Split(TrimSpaces(subparts[i]), "=");
+      std::string key = TrimSpaces(kvPair[0]);
       if ( key == "realm" ) {
-        fRealm = trimSet(kvPair[1], "\"");
+        fRealm = Trim(kvPair[1], "\"");
         continue;
       }
       if ( key == "nonce" ) {
-        fNonce = trimSet(kvPair[1], "\"");
+        fNonce = Trim(kvPair[1], "\"");
         continue;
       }
       if ( key == "qop" ) {
-        fQop = trimSet(kvPair[1], "\"");
+        fQop = Trim(kvPair[1], "\"");
         continue;
       }
     }
@@ -92,13 +92,13 @@ void Authenticator::authHandleHeader(std::string headerData) {
 }  // end void Authenticator::authHandleHeader(std::string headerData)
 
 std::string Authenticator::quote( const std::string &src ) {
-  return replaceAll(replaceAll(src, "\\", "\\\\"), "\"", "\\\"");
+  return ReplaceAll(ReplaceAll(src, "\\", "\\\\"), "\"", "\\\"");
 }
 
 std::string Authenticator::getAuthHeader(std::string method, std::string uri) {
   std::string result = "Authorization: ";
   if ( fAuthMethod == AUTH_BASIC ) {
-    result += "Basic " + base64Encode(username() + ":" + password());
+    result += "Basic " + Base64Encode(username() + ":" + password());
   } else if ( fAuthMethod == AUTH_DIGEST ) {
     result += std::string("Digest ") + 
           "username=\"" + quote(username()) + "\", realm=\"" + quote(realm()) + "\", " +
@@ -194,7 +194,7 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
 
 void Authenticator::checkAuthResponse(std::string &response) {
   std::string authLine;
-  StringVector lines = split(response, "\r\n");
+  StringVector lines = Split(response, "\r\n");
   const char* authenticate_match = "WWW-Authenticate:";
   size_t authenticate_match_len = strlen(authenticate_match);
 
@@ -211,7 +211,7 @@ void Authenticator::checkAuthResponse(std::string &response) {
   }
   if ( !authLine.empty() ) {
     Debug(2, "Analyze auth line %s", authLine.c_str());
-    authHandleHeader(trimSpaces(authLine.substr(authenticate_match_len, authLine.length()-authenticate_match_len)));
+    authHandleHeader(TrimSpaces(authLine.substr(authenticate_match_len, authLine.length() - authenticate_match_len)));
   } else {
     Debug(2, "Didn't find auth line in %s", authLine.c_str());
   }

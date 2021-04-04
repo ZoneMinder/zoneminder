@@ -1738,7 +1738,7 @@ void Image::Blend( const Image &image, int transparency ) {
 
 #ifdef ZM_IMAGE_PROFILING
   clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
-  timespec_diff(&start,&end,&diff);
+  TimespecDiff(&start,&end,&diff);
 
   executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
   milpixels = (unsigned long)((long double)size)/((((long double)executetime)/1000));
@@ -1902,7 +1902,7 @@ void Image::Delta(const Image &image, Image* targetimage) const {
 
 #ifdef ZM_IMAGE_PROFILING
   clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
-  timespec_diff(&start,&end,&diff);
+  TimespecDiff(&start,&end,&diff);
 
   executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
   milpixels = (unsigned long)((long double)pixels)/((((long double)executetime)/1000));

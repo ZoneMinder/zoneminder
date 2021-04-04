@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
   zmLoadDBConfig();
   logInit(log_id_string);
 
-  hwcaps_detect();
+  HwCapsDetect();
 
   std::vector<std::shared_ptr<Monitor>> monitors;
 #if ZM_HAS_V4L

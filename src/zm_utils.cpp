@@ -21,7 +21,6 @@
 
 #include "zm_config.h"
 #include "zm_logger.h"
-#include <algorithm>
 #include <array>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
@@ -32,124 +31,121 @@
 #include <sys/auxv.h>
 #endif
 
-#ifdef HAVE_CURL_CURL_H
-#include <curl/curl.h>
-#endif
-
 unsigned int sse_version = 0;
 unsigned int neonversion = 0;
 
-std::string trimSet(std::string str, std::string trimset) {
-  // Trim Both leading and trailing sets
-  size_t startpos = str.find_first_not_of(trimset); // Find the first character position after excluding leading blank spaces
-  size_t endpos = str.find_last_not_of(trimset); // Find the first character position from reverse af
+// Trim Both leading and trailing sets
+std::string Trim(const std::string &str, const std::string &char_set) {
+  size_t start_pos = str.find_first_not_of(char_set);
+  size_t end_pos = str.find_last_not_of(char_set);
 
   // if all spaces or empty return an empty string
-  if ( ( std::string::npos == startpos ) || ( std::string::npos == endpos ) )
-    return std::string("");
-  return str.substr(startpos, endpos-startpos+1);
+  if ((start_pos == std::string::npos) || (end_pos == std::string::npos))
+    return "";
+  return str.substr(start_pos, end_pos - start_pos + 1);
 }
 
-std::string trimSpaces(const std::string &str) {
-  return trimSet(str, " \t");
-}
-
-std::string replaceAll(std::string str, std::string from, std::string to) {
-  if ( from.empty() )
+std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value) {
+  if (old_value.empty())
     return str;
   size_t start_pos = 0;
-  while ( (start_pos = str.find(from, start_pos)) != std::string::npos ) {
-    str.replace(start_pos, from.length(), to);
-    start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+  while ((start_pos = str.find(old_value, start_pos)) != std::string::npos) {
+    str.replace(start_pos, old_value.length(), new_value);
+    start_pos += new_value.length(); // In case 'new_value' contains 'old_value', like replacing 'x' with 'yx'
   }
   return str;
 }
 
-bool startsWith(const std::string &haystack, const std::string &needle) {
-  return ( haystack.substr(0, needle.length()) == needle );
-}
+StringVector Split(const std::string &str, char delim) {
+  std::vector<std::string> tokens;
 
-std::vector<std::string> split(const std::string &s, char delim) {
-  std::vector<std::string> elems;
-  std::stringstream ss(s);
-  std::string item;
-  while(std::getline(ss, item, delim)) {
-    elems.push_back(trimSpaces(item));
+  size_t start = 0;
+  for (size_t end = str.find(delim); end != std::string::npos; end = str.find(delim, start)) {
+    tokens.push_back(str.substr(start, end - start));
+    start = end + 1;
   }
-  return elems;
+
+  tokens.push_back(str.substr(start));
+
+  return tokens;
 }
 
-StringVector split(const std::string &string, const std::string &chars, int limit) {
-  StringVector stringVector;
-  std::string tempString = string;
-  std::string::size_type startIndex = 0;
-  std::string::size_type endIndex = 0;
+StringVector Split(const std::string &str, const std::string &delim, size_t limit) {
+  StringVector tokens;
+  size_t start = 0;
 
-  //Info( "Looking for '%s' in '%s', limit %d", chars.c_str(), string.c_str(), limit );
   do {
-    // Find delimiters
-    endIndex = string.find_first_of( chars, startIndex );
-    //Info( "Got endIndex at %d", endIndex );
-    if ( endIndex > 0 ) {
-      //Info( "Adding '%s'", string.substr( startIndex, endIndex-startIndex ).c_str() );
-      stringVector.push_back( string.substr( startIndex, endIndex-startIndex ) );
+    size_t end = str.find_first_of(delim, start);
+    if (end > 0) {
+      tokens.push_back(str.substr(start, end - start));
     }
-    if ( endIndex == std::string::npos )
+    if (end == std::string::npos) {
       break;
+    }
     // Find non-delimiters
-    startIndex = tempString.find_first_not_of( chars, endIndex );
-    if ( limit && (stringVector.size() == (unsigned int)(limit-1)) ) {
-      stringVector.push_back( string.substr( startIndex ) );
+    start = str.find_first_not_of(delim, end);
+    if (limit && (tokens.size() == limit - 1)) {
+      tokens.push_back(str.substr(start));
       break;
     }
-    //Info( "Got new startIndex at %d", startIndex );
-  } while ( startIndex != std::string::npos );
-  //Info( "Finished with %d strings", stringVector.size() );
+  } while (start != std::string::npos);
 
-  return stringVector;
+  return tokens;
 }
 
-const std::string join(const StringVector &v, const char * delim=",") {
+std::pair<std::string, std::string> PairSplit(const std::string &str, char delim) {
+  if (str.empty())
+    return std::make_pair("", "");
+
+  size_t pos = str.find(delim);
+
+  if (pos == std::string::npos)
+    return std::make_pair("", "");
+
+  return std::make_pair(str.substr(0, pos), str.substr(pos + 1, std::string::npos));
+}
+
+std::string Join(const StringVector &values, const std::string &delim) {
   std::stringstream ss;
 
-  for (size_t i = 0; i < v.size(); ++i) {
-    if ( i != 0 )
+  for (size_t i = 0; i < values.size(); ++i) {
+    if (i != 0)
       ss << delim;
-    ss << v[i];
+    ss << values[i];
   }
   return ss.str();
 }
 
-const std::string base64Encode(const std::string &inString) {
-  static char base64_table[64] = { '\0' };
+std::string Base64Encode(const std::string &str) {
+  static char base64_table[64] = {'\0'};
 
-  if ( !base64_table[0] ) {
+  if (!base64_table[0]) {
     int i = 0;
-    for ( char c = 'A'; c <= 'Z'; c++ )
+    for (char c = 'A'; c <= 'Z'; c++)
       base64_table[i++] = c;
-    for ( char c = 'a'; c <= 'z'; c++ )
+    for (char c = 'a'; c <= 'z'; c++)
       base64_table[i++] = c;
-    for ( char c = '0'; c <= '9'; c++ )
+    for (char c = '0'; c <= '9'; c++)
       base64_table[i++] = c;
     base64_table[i++] = '+';
     base64_table[i++] = '/';
   }
 
   std::string outString;
-  outString.reserve(2 * inString.size());
+  outString.reserve(2 * str.size());
 
-  const char *inPtr = inString.c_str();
-  while ( *inPtr ) {
+  const char *inPtr = str.c_str();
+  while (*inPtr) {
     unsigned char selection = *inPtr >> 2;
     unsigned char remainder = (*inPtr++ & 0x03) << 4;
     outString += base64_table[selection];
 
-    if ( *inPtr ) {
+    if (*inPtr) {
       selection = remainder | (*inPtr >> 4);
       remainder = (*inPtr++ & 0x0f) << 2;
       outString += base64_table[selection];
 
-      if ( *inPtr ) {
+      if (*inPtr) {
         selection = remainder | (*inPtr >> 6);
         outString += base64_table[selection];
         selection = (*inPtr++ & 0x3f);
@@ -167,76 +163,58 @@ const std::string base64Encode(const std::string &inString) {
   return outString;
 }
 
-int split(const char* string, const char delim, std::vector<std::string>& items) {
-  if ( string == nullptr )
-    return -1;
-
-  if ( string[0] == 0 )
-    return -2;
-
-  std::string str(string);
-
-  while ( true ) {
-    size_t pos = str.find(delim);
-    items.push_back(str.substr(0, pos));
-    str.erase(0, pos+1);
-
-    if ( pos == std::string::npos )
-      break;
+void TimespecDiff(struct timespec *start, struct timespec *end, struct timespec *diff) {
+  if (((end->tv_nsec) - (start->tv_nsec)) < 0) {
+    diff->tv_sec = end->tv_sec - start->tv_sec - 1;
+    diff->tv_nsec = 1000000000 + end->tv_nsec - start->tv_nsec;
+  } else {
+    diff->tv_sec = end->tv_sec - start->tv_sec;
+    diff->tv_nsec = end->tv_nsec - start->tv_nsec;
   }
-
-  return items.size();
 }
 
-int pairsplit(const char* string, const char delim, std::string& name, std::string& value) {
-  if ( string == nullptr )
-    return -1;
+std::string TimevalToString(timeval tv) {
+  tm now = {};
+  std::array<char, 26> tm_buf = {};
 
-  if ( string[0] == 0 )
-    return -2;
+  localtime_r(&tv.tv_sec, &now);
+  size_t tm_buf_len = strftime(tm_buf.data(), tm_buf.size(), "%Y-%m-%d %H:%M:%S", &now);
+  if (tm_buf_len == 0) {
+    return "";
+  }
 
-  std::string str(string);
-  size_t pos = str.find(delim);
-
-  if ( pos == std::string::npos || pos == 0 || pos >= str.length() )
-    return -3;
-
-  name = str.substr(0, pos);
-  value = str.substr(pos+1, std::string::npos);
-
-  return 0;
+  return stringtf("%s.%06ld", tm_buf.data(), tv.tv_usec);
 }
 
 /* Detect special hardware features, such as SIMD instruction sets */
-void hwcaps_detect() {
+void HwCapsDetect() {
   neonversion = 0;
   sse_version = 0;
 #if (defined(__i386__) || defined(__x86_64__))
   __builtin_cpu_init();
 
-
-  if ( __builtin_cpu_supports("avx2") ) {
+  if (__builtin_cpu_supports("avx2")) {
     sse_version = 52; /* AVX2 */
     Debug(1, "Detected a x86\\x86-64 processor with AVX2");
-  } else if ( __builtin_cpu_supports("avx") ) {
+  } else if (__builtin_cpu_supports("avx")) {
     sse_version = 51; /* AVX */
     Debug(1, "Detected a x86\\x86-64 processor with AVX");
-  } else if ( __builtin_cpu_supports("sse4.2") ) {
+  } else if (__builtin_cpu_supports("sse4.2")) {
     sse_version = 42; /* SSE4.2 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE4.2");
-  } else if ( __builtin_cpu_supports("sse4.1") ) {
+  } else if (__builtin_cpu_supports("sse4.1")) {
     sse_version = 41; /* SSE4.1 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE4.1");
-  } else if ( __builtin_cpu_supports("ssse3") ) {
+  } else if (__builtin_cpu_supports("ssse3")) {
     sse_version = 35; /* SSSE3 */
-    Debug(1,"Detected a x86\\x86-64 processor with SSSE3");
-  } else if ( __builtin_cpu_supports("sse3") ) {
+    Debug(1, "Detected a x86\\x86-64 processor with SSSE3");
+  } else if (__builtin_cpu_supports("sse3")) {
     sse_version = 30; /* SSE3 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE3");
-  } else if ( __builtin_cpu_supports("sse2") ) {
+  } else if (__builtin_cpu_supports("sse2")) {
     sse_version = 20; /* SSE2 */
     Debug(1, "Detected a x86\\x86-64 processor with SSE2");
-  } else if ( __builtin_cpu_supports("sse") ) {
+  } else if (__builtin_cpu_supports("sse")) {
     sse_version = 10; /* SSE */
     Debug(1, "Detected a x86\\x86-64 processor with SSE");
   } else {
@@ -267,13 +245,13 @@ void hwcaps_detect() {
 /* SSE2 aligned memory copy. Useful for big copying of aligned memory like image buffers in ZM */
 /* For platforms without SSE2 we will use standard x86 asm memcpy or glibc's memcpy() */
 #if defined(__i386__) || defined(__x86_64__)
-__attribute__((noinline,__target__("sse2")))
+__attribute__((noinline, __target__("sse2")))
 #endif
-void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
+void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
-  if(bytes > 128) {
+  if (bytes > 128) {
     unsigned int remainder = bytes % 128;
-    const uint8_t* lastsrc = (uint8_t*)src + (bytes - remainder);
+    const uint8_t *lastsrc = (uint8_t *) src + (bytes - remainder);
 
     __asm__ __volatile__(
     "sse2_copy_iter:\n\t"
@@ -309,7 +287,7 @@ void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
 
   } else {
     /* Standard memcpy */
-    __asm__ __volatile__("cld; rep movsb" :: "S"(src), "D"(dest), "c"(bytes) : "cc", "memory");
+    __asm__ __volatile__("cld; rep movsb"::"S"(src), "D"(dest), "c"(bytes) : "cc", "memory");
   }
 #else
   /* Non x86\x86-64 platform, use memcpy */
@@ -318,30 +296,21 @@ void* sse2_aligned_memcpy(void* dest, const void* src, size_t bytes) {
   return dest;
 }
 
-void timespec_diff(struct timespec *start, struct timespec *end, struct timespec *diff) {
-  if (((end->tv_nsec)-(start->tv_nsec))<0) {
-    diff->tv_sec = end->tv_sec-start->tv_sec-1;
-    diff->tv_nsec = 1000000000+end->tv_nsec-start->tv_nsec;
-  } else {
-    diff->tv_sec = end->tv_sec-start->tv_sec;
-    diff->tv_nsec = end->tv_nsec-start->tv_nsec;
+void touch(const char *pathname) {
+  int fd = open(pathname, O_WRONLY | O_CREAT | O_NOCTTY | O_NONBLOCK, 0666);
+  if (fd < 0) {
+    // Couldn't open that path.
+    Error("Couldn't open() path %s in touch", pathname);
+    return;
+  }
+  int rc = utimensat(AT_FDCWD, pathname, nullptr, 0);
+  if (rc) {
+    Error("Couldn't utimensat() path %s in touch", pathname);
+    return;
   }
 }
 
-std::string TimevalToString(timeval tv) {
-  tm now = {};
-  std::array<char, 26> tm_buf = {};
-
-  localtime_r(&tv.tv_sec, &now);
-  size_t tm_buf_len = strftime(tm_buf.data(), tm_buf.size(), "%Y-%m-%d %H:%M:%S", &now);
-  if (tm_buf_len == 0) {
-    return "";
-  }
-
-  return stringtf("%s.%06ld", tm_buf.data(), tv.tv_usec);
-}
-
-std::string UriDecode( const std::string &encoded ) {
+std::string UriDecode(const std::string &encoded) {
   char a, b;
   const char *src = encoded.c_str();
   std::string retbuf;
@@ -349,19 +318,19 @@ std::string UriDecode( const std::string &encoded ) {
   while (*src) {
     if ((*src == '%') && ((a = src[1]) && (b = src[2])) && (isxdigit(a) && isxdigit(b))) {
       if (a >= 'a')
-        a -= 'a'-'A';
+        a -= 'a' - 'A';
       if (a >= 'A')
         a -= ('A' - 10);
       else
         a -= '0';
       if (b >= 'a')
-        b -= 'a'-'A';
+        b -= 'a' - 'A';
       if (b >= 'A')
         b -= ('A' - 10);
       else
         b -= '0';
-      retbuf.push_back(16*a+b);
-      src+=3;
+      retbuf.push_back(16 * a + b);
+      src += 3;
     } else if (*src == '+') {
       retbuf.push_back(' ');
       src++;
@@ -372,31 +341,7 @@ std::string UriDecode( const std::string &encoded ) {
   return retbuf;
 }
 
-void string_toupper( std::string& str) {
-  std::transform(str.begin(), str.end(), str.begin(), ::toupper);
-}
-
-void touch(const char *pathname) {
-  int fd = open(pathname,
-      O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK,
-      0666);
-  if ( fd < 0 ) {
-    // Couldn't open that path.
-    Error("Couldn't open() path %s in touch", pathname);
-    return;
-  }
-  int rc = utimensat(AT_FDCWD,
-      pathname,
-      nullptr,
-      0);
-  if ( rc ) {
-    Error("Couldn't utimensat() path %s in touch", pathname);
-    return;
-  }
-}
-
 QueryString::QueryString(std::istream &input) {
-
   while (!input.eof() && input.peek() > 0) {
     //Should eat "param1="
     auto name = parseName(input);
@@ -405,20 +350,20 @@ QueryString::QueryString(std::istream &input) {
 
     auto foundItr = parameters_.find(name);
     if (foundItr == parameters_.end()) {
-      auto newParam = ZM::make_unique<QueryParameter>(name);
-      if (value.size() > 0) {
+      std::unique_ptr<QueryParameter> newParam = ZM::make_unique<QueryParameter>(name);
+      if (!value.empty()) {
         newParam->addValue(value);
       }
-      parameters_.emplace(name, std::move(newParam)).first;
+      parameters_.emplace(name, std::move(newParam));
     } else {
       foundItr->second->addValue(value);
     }
-  }  // end while not the end
+  }
 }
 
 std::vector<std::string> QueryString::names() const {
   std::vector<std::string> names;
-  for (auto const& pair : parameters_)
+  for (auto const &pair : parameters_)
     names.push_back(pair.second->name());
 
   return names;
@@ -427,31 +372,35 @@ std::vector<std::string> QueryString::names() const {
 const QueryParameter *QueryString::get(const std::string &name) const {
   auto itr = parameters_.find(name);
   return itr == parameters_.end() ? nullptr : itr->second.get();
-};
+}
 
 std::string QueryString::parseName(std::istream &input) {
-  std::string name = "";
+  std::string name;
 
-  while (!input.eof() && input.peek() != '=')
+  while (!input.eof() && input.peek() != '=') {
     name.push_back(input.get());
+  }
 
   //Eat the '='
-  if (!input.eof()) input.get();
+  if (!input.eof()) {
+    input.get();
+  }
 
   return name;
 }
 
 std::string QueryString::parseValue(std::istream &input) {
-  std::string urlEncodedValue;
+  std::string url_encoded_value;
 
   int c = input.get();
   while (c > 0 && c != '&') {
-    urlEncodedValue.push_back(c);
+    url_encoded_value.push_back(c);
     c = input.get();
   }
 
-  if (urlEncodedValue.size() == 0)
+  if (url_encoded_value.empty()) {
     return "";
+  }
 
-  return UriDecode(urlEncodedValue);
+  return UriDecode(url_encoded_value);
 }

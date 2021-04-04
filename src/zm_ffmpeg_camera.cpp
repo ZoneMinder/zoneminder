@@ -273,7 +273,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   // Set transport method as specified by method field, rtpUni is default
   std::string protocol = mPath.substr(0, 4);
-  string_toupper(protocol);
+  StringToUpper(protocol);
   if ( protocol == "RTSP" ) {
     const std::string method = Method();
     if ( method == "rtpMulti" ) {

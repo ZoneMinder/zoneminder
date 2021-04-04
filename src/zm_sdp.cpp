@@ -107,7 +107,7 @@ SessionDescriptor::ConnInfo::ConnInfo( const std::string &connInfo ) :
   mTtl( 16 ),
   mNoAddresses( 0 )
 {
-  StringVector tokens = split(connInfo, " ");
+  StringVector tokens = Split(connInfo, " ");
   if ( tokens.size() < 3 )
     throw Exception( "Unable to parse SDP connection info from '"+connInfo+"'" );
   mNetworkType = tokens[0];
@@ -116,7 +116,7 @@ SessionDescriptor::ConnInfo::ConnInfo( const std::string &connInfo ) :
   mAddressType = tokens[1];
   if ( mAddressType != "IP4" && mAddressType != "IP6" )
     throw Exception( "Invalid SDP address type '"+mAddressType+"' in connection info '"+connInfo+"'" );
-  StringVector addressTokens = split( tokens[2], "/" );
+  StringVector addressTokens = Split(tokens[2], "/");
   if ( addressTokens.size() < 1 ) 
     throw Exception( "Invalid SDP address '"+tokens[2]+"' in connection info '"+connInfo+"'" );
   mAddress = addressTokens[0];
@@ -129,7 +129,7 @@ SessionDescriptor::ConnInfo::ConnInfo( const std::string &connInfo ) :
 SessionDescriptor::BandInfo::BandInfo( const std::string &bandInfo ) :
   mValue( 0 )
 {
-  StringVector tokens = split( bandInfo, ":" );
+  StringVector tokens = Split(bandInfo, ":");
   if ( tokens.size() < 2 )
     throw Exception( "Unable to parse SDP bandwidth info from '"+bandInfo+"'" );
   mType = tokens[0];
@@ -165,7 +165,7 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
 {
   MediaDescriptor *currMedia = nullptr;
 
-  StringVector lines = split( sdp, "\r\n" );
+  StringVector lines = Split(sdp, "\r\n");
   for ( StringVector::const_iterator iter = lines.begin(); iter != lines.end(); ++iter ) {
     std::string line = *iter;
     if ( line.empty() )
@@ -208,7 +208,7 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
       case 'a' :
       {
         mAttributes.push_back( line );
-        StringVector tokens = split( line, ":", 2 );
+        StringVector tokens = Split(line, ":", 2);
         std::string attrName = tokens[0];
         if ( currMedia ) {
           if ( attrName == "control" ) {
@@ -220,14 +220,14 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
             // a=rtpmap:96 MP4V-ES/90000
             if ( tokens.size() < 2 )
               throw Exception( "Unable to parse SDP rtpmap attribute '"+line+"' for media '"+currMedia->getType()+"'" );
-            StringVector attrTokens = split( tokens[1], " " );
+            StringVector attrTokens = Split(tokens[1], " ");
             int payloadType = atoi(attrTokens[0].c_str());
             if ( payloadType != currMedia->getPayloadType() )
               throw Exception( stringtf( "Payload type mismatch, expected %d, got %d in '%s'", currMedia->getPayloadType(), payloadType, line.c_str() ) );
             std::string payloadDesc = attrTokens[1];
             //currMedia->setPayloadType( payloadType );
             if ( attrTokens.size() > 1 ) {
-              StringVector payloadTokens = split( attrTokens[1], "/" );
+              StringVector payloadTokens = Split(attrTokens[1], "/");
               std::string payloadDesc = payloadTokens[0];
               int payloadClock = atoi(payloadTokens[1].c_str());
               currMedia->setPayloadDesc( payloadDesc );
@@ -237,13 +237,13 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
             // a=framesize:96 320-240
             if ( tokens.size() < 2 )
               throw Exception("Unable to parse SDP framesize attribute '"+line+"' for media '"+currMedia->getType()+"'");
-            StringVector attrTokens = split(tokens[1], " ");
+            StringVector attrTokens = Split(tokens[1], " ");
             int payloadType = atoi(attrTokens[0].c_str());
             if ( payloadType != currMedia->getPayloadType() )
               throw Exception( stringtf("Payload type mismatch, expected %d, got %d in '%s'",
                     currMedia->getPayloadType(), payloadType, line.c_str()));
             //currMedia->setPayloadType( payloadType );
-            StringVector sizeTokens = split(attrTokens[1], "-");
+            StringVector sizeTokens = Split(attrTokens[1], "-");
             int width = atoi(sizeTokens[0].c_str());
             int height = atoi(sizeTokens[1].c_str());
             currMedia->setFrameSize(width, height);
@@ -257,16 +257,16 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
             // a=fmtp:96 profile-level-id=247; config=000001B0F7000001B509000001000000012008D48D8803250F042D14440F
             if ( tokens.size() < 2 )
               throw Exception("Unable to parse SDP fmtp attribute '"+line+"' for media '"+currMedia->getType()+"'");
-            StringVector attrTokens = split(tokens[1], " ", 2);
+            StringVector attrTokens = Split(tokens[1], " ", 2);
             int payloadType = atoi(attrTokens[0].c_str());
             if ( payloadType != currMedia->getPayloadType() )
               throw Exception(stringtf("Payload type mismatch, expected %d, got %d in '%s'",
                     currMedia->getPayloadType(), payloadType, line.c_str()));
             //currMedia->setPayloadType( payloadType );
             if ( attrTokens.size() > 1 ) {
-              StringVector attr2Tokens = split( attrTokens[1], "; " );
+              StringVector attr2Tokens = Split(attrTokens[1], "; ");
               for ( unsigned int i = 0; i < attr2Tokens.size(); i++ ) {
-                StringVector attr3Tokens = split( attr2Tokens[i], "=" );
+                StringVector attr3Tokens = Split(attr2Tokens[i], "=");
                 //Info( "Name = %s, Value = %s", attr3Tokens[0].c_str(), attr3Tokens[1].c_str() );
                 if ( attr3Tokens[0] == "profile-level-id" ) {
                 } else if ( attr3Tokens[0] == "config" ) {
@@ -294,13 +294,13 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
       }
       case 'm' :
       {
-        StringVector tokens = split(line, " ");
+        StringVector tokens = Split(line, " ");
         if ( tokens.size() < 4 )
           throw Exception("Can't parse SDP media description '"+line+"'");
         std::string mediaType = tokens[0];
         if ( mediaType != "audio" && mediaType != "video"  && mediaType != "application" )
           throw Exception("Unsupported media type '"+mediaType+"' in SDP media attribute '"+line+"'");
-        StringVector portTokens = split(tokens[1], "/");
+        StringVector portTokens = Split(tokens[1], "/");
         int mediaPort = atoi(portTokens[0].c_str());
         int mediaNumPorts = 1;
         if ( portTokens.size() > 1 )

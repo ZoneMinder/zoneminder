@@ -381,6 +381,7 @@ protected:
   DecoderThread         *decoder;
   AVFrame *dest_frame;                    // Used by decoding thread doing colorspace conversions
   SwsContext   *convert_context;
+  std::thread  close_event_thread;
 
   int      n_zones;
   Zone      **zones;
@@ -556,7 +557,7 @@ public:
   bool Decode();
   void DumpImage( Image *dump_image ) const;
   void TimestampImage( Image *ts_image, const struct timeval *ts_time ) const;
-  bool closeEvent();
+  void closeEvent();
 
   void Reload();
   void ReloadZones();

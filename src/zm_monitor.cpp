@@ -1832,6 +1832,7 @@ bool Monitor::Analyse() {
 
   // Need to guard around event creation/deletion from Reload()
   std::lock_guard<std::mutex> lck(event_mutex);
+  Debug(3, "Have event lock");
 
   // if we have been told to be OFF, then we are off and don't do any processing.
   if (trigger_data->trigger_state != TriggerState::TRIGGER_OFF) {
@@ -1978,6 +1979,8 @@ bool Monitor::Analyse() {
             cause += MOTION_CAUSE;
             noteSetMap[MOTION_CAUSE] = zoneSet;
           } // end if motion_score
+        } else {
+          Debug(1, "Not Active(%d) enabled %d active %d", Active(), enabled, shared_data->active);
         } // end if active and doing motion detection
 
         if (function == RECORD or function == MOCORD) {
@@ -2211,6 +2214,7 @@ bool Monitor::Analyse() {
                 State_Strings[state].c_str(), analysis_image_count, last_alarm_count, post_event_count,
                 timestamp->tv_sec, video_store_data->recording.tv_sec, min_section_length);
           }
+            Debug(1, "PreAlarmCount");
           if (Event::PreAlarmCount())
             Event::EmptyPreAlarmFrames();
         } // end if score or not
@@ -2918,15 +2922,20 @@ void Monitor::TimestampImage(Image *ts_image, const struct timeval *ts_time) con
   Debug(2, "done annotating %s", label_text);
 } // end void Monitor::TimestampImage
 
-bool Monitor::closeEvent() {
-  if ( !event )
-    return false;
+void Monitor::closeEvent() {
+  if (!event) return;
 
-  delete event;
+  if ( close_event_thread.joinable() ) {
+    Debug(1, "close event thread is joinable");
+    close_event_thread.join();
+  } else {
+    Debug(1, "close event thread is not joinable");
+  }
+  Debug(1, "Starting thread to close event");
+  close_event_thread = std::thread([](Event *e){ delete e; }, event);
+  Debug(1, "Nulling event");
   event = nullptr;
-  if ( shared_data )
-    video_store_data->recording = {};
-  return true;
+  if (shared_data) video_store_data->recording = {};
 } // end bool Monitor::closeEvent()
 
 unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zoneSet) {

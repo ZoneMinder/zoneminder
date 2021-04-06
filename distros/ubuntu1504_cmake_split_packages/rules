@@ -72,7 +72,7 @@ override_dh_auto_test:
 override_dh_clean:
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
-	dh_clean src/zm_config_defines.h
+	dh_clean zm_config_defines.h
 	#
 	# Delete remaining auto-generated Makefile if Makefile.in exists
 	find $(CURDIR)/ -type f -name "Makefile" | while read file; do \

@@ -376,9 +376,9 @@ protected:
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
   packetqueue_iterator  *analysis_it;
-  AnalysisThread        *analysis_thread;
+  std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
-  DecoderThread         *decoder;
+  std::unique_ptr<DecoderThread> decoder;
   AVFrame *dest_frame;                    // Used by decoding thread doing colorspace conversions
   SwsContext   *convert_context;
   std::thread  close_event_thread;

@@ -3210,13 +3210,13 @@ int Monitor::PrimeCapture() {
 
     if (decoding_enabled) {
       if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
-      if (!decoder) decoder = new DecoderThread(this);
+      if (!decoder) decoder = ZM::make_unique<DecoderThread>(this);
     }
 
     if (!analysis_it) analysis_it = packetqueue.get_video_it(false);
     if (!analysis_thread) {
       Debug(1, "Starting an analysis thread for monitor (%d)", id);
-      analysis_thread = new AnalysisThread(this);
+      analysis_thread = ZM::make_unique<AnalysisThread>(this);
     }
 
   } else {
@@ -3229,17 +3229,14 @@ int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
   // Because the stream indexes may change we have to clear out the packetqueue
-  if (decoder) decoder->Stop();
-  if (analysis_thread) analysis_thread->Stop();
-  packetqueue.clear();
   if (decoder) {
-    delete decoder;
-    decoder = nullptr;
+    decoder->Stop();
   }
   if (analysis_thread) {
-    delete analysis_thread;
-    analysis_thread = nullptr;
+    analysis_thread->Stop();
   }
+  packetqueue.clear();
+
   std::lock_guard<std::mutex> lck(event_mutex);
   if (event) {
     Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id());

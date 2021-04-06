@@ -145,9 +145,11 @@ bool PacketQueue::queuePacket(ZMPacket* add_packet) {
         ++iterators_it
         ) {
       packetqueue_iterator *iterator_it = *iterators_it;
-      if ( *iterator_it == pktQueue.end() ) {
+      if (*iterator_it == pktQueue.end()) {
         Debug(4, "pointing it %p to back", iterator_it);
         --(*iterator_it);
+      } else {
+        Debug(4, "it %p not at end", iterator_it);
       }
     }  // end foreach iterator
   }  // end lock scope
@@ -575,14 +577,16 @@ void PacketQueue::unlock(ZMLockedPacket *lp) {
 
 bool PacketQueue::increment_it(packetqueue_iterator *it) {
   Debug(2, "Incrementing %p, queue size %d, end? %d", it, pktQueue.size(), ((*it) == pktQueue.end()));
-  if ( (*it) == pktQueue.end() ) {
+  if ((*it) == pktQueue.end()) {
     return false;
   }
+  std::unique_lock<std::mutex> lck(mutex);
   ++(*it);
-  if ( *it != pktQueue.end() ) {
+  if (*it != pktQueue.end()) {
     Debug(2, "Incrementing %p, %p still not at end %p, so returning true", it, *it, pktQueue.end());
     return true;
   }
+  Debug(2, "At end");
   return false;
 }  // end bool PacketQueue::increment_it(packetqueue_iterator *it)
 

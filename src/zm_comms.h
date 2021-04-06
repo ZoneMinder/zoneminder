@@ -111,6 +111,7 @@ class Pipe : public CommsBase {
   bool close();
 
   bool isOpen() const { return mFd[0] != -1 && mFd[1] != -1; }
+  bool isClosed() const { return !isOpen(); }
   int getReadDesc() const { return mFd[0]; }
   int getWriteDesc() const { return mFd[1]; }
 

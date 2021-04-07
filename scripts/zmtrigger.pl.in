@@ -226,10 +226,10 @@ while (!$zm_terminate) {
 
 #print( "$monitor->{Id}: S:$state, LE:$last_event" );
 #print( "$monitor->{Id}: mS:$monitor->{LastState}, mLE:$monitor->{LastEvent}" );
-    if ( $state == STATE_ALARM || $state == STATE_ALERT ) {
+    if ( $state == STATE_ALARM or $state == STATE_ALERT ) {
 # In alarm state
       if ( !defined($monitor->{LastEvent})
-          || ($last_event != $monitor->{LastEvent})
+          or ($last_event != $monitor->{LastEvent})
          ) {
 # A new event
         push @out_messages, $monitor->{Id}.'|on|'.time().'|'.$last_event;
@@ -238,9 +238,9 @@ while (!$zm_terminate) {
 # Do nothing
       }
     } elsif ( 
-        ($state == STATE_IDLE && $monitor->{LastState} != STATE_IDLE)
-        ||
-        ($state == STATE_TAPE && $monitor->{LastState} != STATE_TAPE)
+        (($state == STATE_IDLE) and ($monitor->{LastState} != STATE_IDLE))
+          or
+        (($state == STATE_TAPE) and ($monitor->{LastState} != STATE_TAPE))
         ) {
 # Out of alarm state
       push @out_messages, $monitor->{Id}.'|off|'.time().'|'.$last_event;

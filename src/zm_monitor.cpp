@@ -446,7 +446,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   int col = 0;
 
   id = atoi(dbrow[col]); col++;
-  strncpy(name, dbrow[col], sizeof(name)-1); col++;
+  name = dbrow[col]; col++;
   server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
 
   storage_id = atoi(dbrow[col]); col++;
@@ -485,11 +485,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_6/atof(dbrow[col])):0; col++;
   alarm_capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_6/atof(dbrow[col])):0; col++;
 
-  if ( dbrow[col] )
-    strncpy(device, dbrow[col], sizeof(device)-1);
-  else
-    device[0] = 0;
-  col++;
+  device = dbrow[col] ? dbrow[col] : ""; col++;
 
   channel = atoi(dbrow[col]); col++;
   format = atoi(dbrow[col]); col++;
@@ -552,32 +548,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   hue = atoi(dbrow[col]); col++;
   colour = atoi(dbrow[col]); col++;
 
-  if ( dbrow[col] )
-    strncpy(event_prefix, dbrow[col], sizeof(event_prefix)-1);
-  else
-    event_prefix[0] = 0;
-  col++;
-
-  if ( dbrow[col] )
-    strncpy(label_format, dbrow[col], sizeof(label_format)-1);
-  else
-    label_format[0] = 0;
-  col++;
-
-  // Change \n to actual line feeds
-  char *token_ptr = label_format;
-  const char *token_string = "\n";
-  while ( ( token_ptr = strstr(token_ptr, token_string) ) ) {
-    if ( *(token_ptr+1) ) {
-      *token_ptr = '\n';
-      token_ptr++;
-      strcpy(token_ptr, token_ptr+1);
-    } else {
-      *token_ptr = '\0';
-      break;
-    }
-  }
-
+  event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
+  label_format = dbrow[col] ? ReplaceAll(dbrow[col], "\\n", "\n") : ""; col++;
   label_coord = Coord(atoi(dbrow[col]), atoi(dbrow[col+1])); col += 2;
   label_size = atoi(dbrow[col]); col++;
 
@@ -682,7 +654,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     }
   }  // end if purpose
 
-  Debug(1, "Loaded monitor %d(%s), %d zones", id, name, n_zones);
+  Debug(1, "Loaded monitor %d(%s), %d zones", id, name.c_str(), n_zones);
 } // Monitor::Load
 
 void Monitor::LoadCamera() {
@@ -1047,7 +1019,7 @@ bool Monitor::connect() {
     video_store_data->size = sizeof(VideoStoreData);
     shared_data->valid = true;
   } else if ( !shared_data->valid ) {
-    Error("Shared data not initialised by capture daemon for monitor %s", name);
+    Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   }
 
@@ -1740,7 +1712,7 @@ void Monitor::UpdateCaptureFPS() {
           elapsed, new_capture_fps
           );
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec",
-          name, image_count, new_capture_fps, new_capture_bandwidth);
+          name.c_str(), image_count, new_capture_fps, new_capture_bandwidth);
       shared_data->capture_fps = new_capture_fps;
       last_fps_time = now_double;
       last_capture_image_count = image_count;
@@ -1769,7 +1741,7 @@ void Monitor::UpdateAnalysisFPS() {
     gettimeofday(&now, nullptr);
     double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
     double elapsed = now_double - last_analysis_fps_time;
-    Debug(4, "%s: %d - now:%d.%d = %lf, last %lf, diff %lf", name, analysis_image_count,
+    Debug(4, "%s: %d - now:%d.%d = %lf, last %lf, diff %lf", name.c_str(), analysis_image_count,
         now.tv_sec, now.tv_usec, now_double, last_analysis_fps_time,
         elapsed
         );
@@ -1777,7 +1749,7 @@ void Monitor::UpdateAnalysisFPS() {
     if ( elapsed > 1.0 ) {
       double new_analysis_fps = double(motion_frame_count - last_motion_frame_count) / elapsed;
       Info("%s: %d - Analysing at %.2lf fps from %d - %d=%d / %lf - %lf = %lf",
-          name, analysis_image_count, new_analysis_fps,
+          name.c_str(), analysis_image_count, new_analysis_fps,
           motion_frame_count, last_motion_frame_count, (motion_frame_count - last_motion_frame_count),
           now_double, last_analysis_fps_time, elapsed);
 
@@ -1867,7 +1839,7 @@ bool Monitor::Analyse() {
       if (!signal) {
         signalText = "Lost";
         if (event) {
-          Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name, analysis_image_count, event->Id());
+          Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
           closeEvent();
           last_section_mod = 0;
         }
@@ -1998,7 +1970,7 @@ bool Monitor::Analyse() {
                 )
                ) {
               Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
-                  name, image_count, event->Id(),
+                  name.c_str(), image_count, event->Id(),
                   timestamp->tv_sec, video_store_data->recording.tv_sec, 
                   timestamp->tv_sec - video_store_data->recording.tv_sec,
                   section_length
@@ -2066,7 +2038,7 @@ bool Monitor::Analyse() {
             strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
             video_store_data->recording = event->StartTime();
             Info("%s: %03d - Opened new event %" PRIu64 ", section start",
-                name, analysis_image_count, event->Id());
+                name.c_str(), analysis_image_count, event->Id());
             /* To prevent cancelling out an existing alert\prealarm\alarm state */
             if (state == IDLE) {
               shared_data->state = state = TAPE;
@@ -2084,7 +2056,7 @@ bool Monitor::Analyse() {
                 && ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) )
                ) {
               Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
-                  name, image_count, event->Id());
+                  name.c_str(), image_count, event->Id());
               closeEvent();
             } else if (event) {
               // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
@@ -2105,7 +2077,7 @@ bool Monitor::Analyse() {
               alarm_cause = cause + alarm_cause;
               strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
-                  name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
+                  name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
               if (!event) {
                 packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
@@ -2152,7 +2124,7 @@ bool Monitor::Analyse() {
                 delete start_it;
                 start_it = nullptr;
 
-                Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name, analysis_image_count, event->Id());
+                Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
               } else {
                 shared_data->state = state = ALARM;
               }  // end if no event, so start it
@@ -2161,15 +2133,15 @@ bool Monitor::Analyse() {
                 event->SavePreAlarmFrames();
               }
             } else if (state != PREALARM) {
-              Info("%s: %03d - Gone into prealarm state", name, analysis_image_count);
+              Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
               shared_data->state = state = PREALARM;
             }
           } else if (state == ALERT) {
             alert_to_alarm_frame_count--;
             Info("%s: %03d - Alarmed frame while in alert state. Consecutive alarmed frames left to return to alarm state: %03d",
-                name, analysis_image_count, alert_to_alarm_frame_count);
+                name.c_str(), analysis_image_count, alert_to_alarm_frame_count);
             if (alert_to_alarm_frame_count == 0) {
-              Info("%s: %03d - Gone back into alarm state", name, analysis_image_count);
+              Info("%s: %03d - Gone back into alarm state", name.c_str(), analysis_image_count);
               shared_data->state = state = ALARM;
             }
           } else if (state == TAPE) {
@@ -2186,7 +2158,7 @@ bool Monitor::Analyse() {
         } else { // no score?
           alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count 
           if (state == ALARM) {
-            Info("%s: %03d - Gone into alert state", name, analysis_image_count);
+            Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
             shared_data->state = state = ALERT;
           } else if (state == ALERT) {
             if ( 
@@ -2195,12 +2167,12 @@ bool Monitor::Analyse() {
                 ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
                ) {
               Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
-                  name, analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
+                  name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
               //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
               if ( (function != RECORD && function != MOCORD ) || event_close_mode == CLOSE_ALARM ) {
                 shared_data->state = state = IDLE;
                 Info("%s: %03d - Closing event %" PRIu64 ", alarm end%s",
-                    name, analysis_image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
+                    name.c_str(), analysis_image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
                 closeEvent();
               } else {
                 shared_data->state = state = TAPE;
@@ -2259,7 +2231,7 @@ bool Monitor::Analyse() {
                 && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
                ) {
               Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
-                  name, analysis_image_count, event->Id(),
+                  name.c_str(), analysis_image_count, event->Id(),
                   timestamp->tv_sec, video_store_data->recording.tv_sec,
                   timestamp->tv_sec - video_store_data->recording.tv_sec,
                   section_length
@@ -2295,7 +2267,7 @@ bool Monitor::Analyse() {
   } else {
     Debug(3, "trigger == off");
     if ( event ) {
-      Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name, analysis_image_count, event->Id());
+      Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name.c_str(), analysis_image_count, event->Id());
       closeEvent();
     }
     shared_data->state = state = IDLE;
@@ -2329,14 +2301,14 @@ bool Monitor::Analyse() {
 } // end Monitor::Analyse
 
 void Monitor::Reload() {
-  Debug(1, "Reloading monitor %s", name);
+  Debug(1, "Reloading monitor %s", name.c_str());
 
   // Access to the event needs to be protected.  Either thread could call Reload.  Either thread could close the event. 
   // Need a mutex on it I guess.  FIXME
   // Need to guard around event creation/deletion This will prevent event creation until new settings are loaded
   std::lock_guard<std::mutex> lck(event_mutex);
   if ( event ) {
-    Info("%s: %03d - Closing event %" PRIu64 ", reloading", name, image_count, event->Id());
+    Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(), image_count, event->Id());
     closeEvent();
   }
 
@@ -2360,7 +2332,7 @@ void Monitor::Reload() {
 }  // end void Monitor::Reload()
 
 void Monitor::ReloadZones() {
-  Debug(1, "Reloading zones for monitor %s", name);
+  Debug(1, "Reloading zones for monitor %s", name.c_str());
   for( int i = 0; i < n_zones; i++ ) {
     delete zones[i];
   }
@@ -2371,7 +2343,7 @@ void Monitor::ReloadZones() {
 } // end void Monitor::ReloadZones()
 
 void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
-  Debug(1, "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors);
+  Debug(1, "Reloading linked monitors for monitor %s, '%s'", name.c_str(), p_linked_monitors);
   if ( n_linked_monitors ) {
     for ( int i=0; i < n_linked_monitors; i++ ) {
       delete linked_monitors[i];
@@ -2888,7 +2860,7 @@ void Monitor::TimestampImage(Image *ts_image, const struct timeval *ts_time) con
   // Expand the strftime macros first
   char label_time_text[256];
   tm ts_tm = {};
-  strftime(label_time_text, sizeof(label_time_text), label_format, localtime_r(&ts_time->tv_sec, &ts_tm));
+  strftime(label_time_text, sizeof(label_time_text), label_format.c_str(), localtime_r(&ts_time->tv_sec, &ts_tm));
   char label_text[1024];
   const char *s_ptr = label_time_text;
   char *d_ptr = label_text;
@@ -2897,7 +2869,7 @@ void Monitor::TimestampImage(Image *ts_image, const struct timeval *ts_time) con
       bool found_macro = false;
       switch ( *(s_ptr+1) ) {
         case 'N' :
-          d_ptr += snprintf(d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", name);
+          d_ptr += snprintf(d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", name.c_str());
           found_macro = true;
           break;
         case 'Q' :
@@ -3088,7 +3060,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   output[0] = 0;
 
   sprintf( output+strlen(output), "Id : %d\n", id );
-  sprintf( output+strlen(output), "Name : %s\n", name );
+  sprintf( output+strlen(output), "Name : %s\n", name.c_str() );
   sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File") );
 #if ZM_HAS_V4L
   if ( camera->IsLocal() ) {
@@ -3124,8 +3096,8 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
 #endif // ZM_HAS_V4L
   sprintf(output+strlen(output), "Colours : %d\n", camera->Colours() );
   sprintf(output+strlen(output), "Subpixel Order : %d\n", camera->SubpixelOrder() );
-  sprintf(output+strlen(output), "Event Prefix : %s\n", event_prefix );
-  sprintf(output+strlen(output), "Label Format : %s\n", label_format );
+  sprintf(output+strlen(output), "Event Prefix : %s\n", event_prefix.c_str() );
+  sprintf(output+strlen(output), "Label Format : %s\n", label_format.c_str() );
   sprintf(output+strlen(output), "Label Coord : %d,%d\n", label_coord.X(), label_coord.Y() );
   sprintf(output+strlen(output), "Label Size : %d\n", label_size );
   sprintf(output+strlen(output), "Image Buffer Count : %d\n", image_buffer_count );
@@ -3239,7 +3211,7 @@ int Monitor::Close() {
 
   std::lock_guard<std::mutex> lck(event_mutex);
   if (event) {
-    Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id());
+    Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), image_count, event->Id());
     closeEvent();
   }
   if (camera) camera->Close();

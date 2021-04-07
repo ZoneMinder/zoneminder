@@ -234,7 +234,7 @@ protected:
   protected:
   // These are read from the DB and thereafter remain unchanged
   unsigned int    id;
-  char            name[64];
+  std::string     name;
   unsigned int    server_id;          // Id of the Server object
   unsigned int    storage_id;         // Id of the Storage Object, which currently will just provide a path, but in future may do more.
   CameraType      type;
@@ -252,7 +252,7 @@ protected:
   std::string path;
   std::string second_path;
 
-  char            device[64];
+  std::string     device;
   int             palette;
   int             channel;
   int             format;
@@ -288,8 +288,8 @@ protected:
   int        hue;          // The statically saved hue of the camera
   int        colour;          // The statically saved colour of the camera
 
-  char       event_prefix[64];    // The prefix applied to event names as they are created
-  char       label_format[64];    // The format of the timestamp on the images
+  std::string     event_prefix;    // The prefix applied to event names as they are created
+  std::string     label_format;    // The format of the timestamp on the images
   Coord      label_coord;      // The coordinates of the timestamp on the images
   int        label_size;         // Size of the timestamp on the images
   int32_t    image_buffer_count;        // Size of circular image buffer, kept in /dev/shm
@@ -426,7 +426,7 @@ public:
   }
 
   inline unsigned int Id() const { return id; }
-  inline const char *Name() const { return name; }
+  inline const char *Name() const { return name.c_str(); }
   inline unsigned int ServerId() { return server_id; }
   inline Storage *getStorage() {
     if ( ! storage ) {
@@ -445,7 +445,7 @@ public:
   inline bool DecodingEnabled() const {
     return decoding_enabled;
   }
-  inline const char *EventPrefix() const { return event_prefix; }
+  inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
     if ( image_count >= ready_count ) {
       return true;

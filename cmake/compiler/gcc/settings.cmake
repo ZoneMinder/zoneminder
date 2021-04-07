@@ -1,7 +1,7 @@
 target_compile_options(zm-warning-interface
   INTERFACE
     -Wall
-    -Wconditionally-supported
+    $<$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,5.0>:-Wconditionally-supported>
     -Wextra
     -Wformat-security
     -Wno-cast-function-type

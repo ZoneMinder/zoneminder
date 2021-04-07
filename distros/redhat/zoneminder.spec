@@ -8,6 +8,9 @@
 # CakePHP-Enum-Behavior is configured as a git submodule
 %global ceb_version 1.0-zm
 
+# RtspServer is configured as a git submodule
+%global rtspserver_commit     8ef9169c473da2f77752b5c43ae2dd7a82596876
+
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
 
@@ -39,12 +42,14 @@ Group: System Environment/Daemons
 # Bootstrap is under the MIT license: https://getbootstrap.com/docs/4.5/about/license/
 # Bootstrap-table is under the MIT license: https://bootstrap-table.com/docs/about/license/
 # font-awesome is under CC-BY license: https://fontawesome.com/license/free
+# RtspServer is under the MIT license: https://github.com/PHZ76/RtspServer/blob/master/LICENSE
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
 Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zoneminder-%{version}.tar.gz
 Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
+Source3: https://github.com/ZoneMinder/RtspServer/archive/%{rtspserver_commit}.tar.gz#/RtspServer-%{rtspserver_commit}.tar.gz
 
 %{?rhel:BuildRequires: epel-rpm-macros}
 BuildRequires: systemd-devel
@@ -196,6 +201,10 @@ mv -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 gzip -dc %{_sourcedir}/cakephp-enum-behavior-%{ceb_version}.tar.gz | tar -xvvf -
 rm -rf ./web/api/app/Plugin/CakePHP-Enum-Behavior
 mv -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Behavior
+
+gzip -dc %{_sourcedir}/RtspServer-%{rtspserver_commit}.tar.gz | tar -xvvf -
+rm -rf ./dep/RtspServer
+mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
@@ -360,6 +369,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmonvif-trigger.pl
 %{_bindir}/zmstats.pl
 %{_bindir}/zmrecover.pl
+%{_bindir}/zm_rtsp_server
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
@@ -415,6 +425,10 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Wed Apr 07 2021 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.35.23-1
+- 1.35.23 Development snapshot
+- Build against rtspserver
+
 * Tue Feb 04 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.2-1
 - 1.34.2 Release
 

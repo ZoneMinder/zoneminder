@@ -118,15 +118,16 @@ commonprep () {
         fi
     fi
 
-    if [ -e "build/RtspServer" ]; then
-      echo "Found existing RtspServer..."
+    RTSPVER="8ef9169c473da2f77752b5c43ae2dd7a82596876"
+    if [ -e "build/RtspServer-${RTSPVER}.tar.gz" ]; then
+        echo "Found existing RtspServer ${CEBVER} tarball..."
     else
-      echo "Cloning RtspServer ..."
-      git clone https://github.com/ZoneMinder/RtspServer build/RtspServer
-      if [ $? -ne 0 ]; then
-        echo "ERROR: RtspServer clone failed..."
-        exit 1
-      fi
+        echo "Retrieving RTSP ${RTSPVER} submodule..."
+        curl -L https://github.com/ZoneMinder/RtspServer/archive/${RTSPVER}.tar.gz > build/RtspServer-${RTSPVER}.tar.gz
+        if [ $? -ne 0 ]; then
+            echo "ERROR: RtspServer tarball retreival failed..."
+            exit 1
+        fi
     fi
 }
 
@@ -151,9 +152,10 @@ movecrud () {
     if [ -e "dep/RtspServer/CMakeLists.txt" ]; then
         echo "RtspServer already installed..."
     else
-        echo "Copying RtspServer..."
-        rm -r dep/RtspServer
-        cp -Rpd build/RtspServer dep/RtspServer
+        echo "Unpacking RtspServer..."
+        tar -xzf build/RtspServer-${RTSPVER}.tar.gz
+        rmdir dep/RtspServer
+        mv -f RtspServer-${RTSPVER} dep/RtspServer
     fi
 }
 

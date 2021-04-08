@@ -3182,13 +3182,19 @@ int Monitor::PrimeCapture() {
 
     if (decoding_enabled) {
       if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
-      if (!decoder) decoder = ZM::make_unique<DecoderThread>(this);
+      if (!decoder) {
+        decoder = ZM::make_unique<DecoderThread>(this);
+      } else {
+        decoder->Start();
+      }
     }
 
     if (!analysis_it) analysis_it = packetqueue.get_video_it(false);
     if (!analysis_thread) {
       Debug(1, "Starting an analysis thread for monitor (%d)", id);
       analysis_thread = ZM::make_unique<AnalysisThread>(this);
+    } else {
+      analysis_thread->Start();
     }
 
   } else {

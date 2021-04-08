@@ -14,6 +14,7 @@ class AnalysisThread {
   AnalysisThread(AnalysisThread &rhs) = delete;
   AnalysisThread(AnalysisThread &&rhs) = delete;
 
+  void Start();
   void Stop() { terminate_ = true; }
 
  private:

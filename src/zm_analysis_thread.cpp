@@ -15,6 +15,11 @@ AnalysisThread::~AnalysisThread() {
     thread_.join();
 }
 
+void AnalysisThread::Start() {
+  terminate_ = false;
+  thread_ = std::thread(&AnalysisThread::Run, this);
+}
+
 void AnalysisThread::Run() {
   Debug(2, "AnalysisThread::Run() for %d", monitor_->Id());
 

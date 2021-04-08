@@ -14,6 +14,10 @@ DecoderThread::~DecoderThread() {
     thread_.join();
 }
 
+void DecoderThread::Start() {
+  terminate_ = false;
+  thread_ = std::thread(&DecoderThread::Run, this);
+}
 void DecoderThread::Run() {
   Debug(2, "DecoderThread::Run() for %d", monitor_->Id());
 

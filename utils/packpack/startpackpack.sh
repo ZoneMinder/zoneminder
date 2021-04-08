@@ -118,9 +118,9 @@ commonprep () {
         fi
     fi
 
-    RTSPVER="8ef9169c473da2f77752b5c43ae2dd7a82596876"
+    RTSPVER="6de773da1236af21e918fdd7ec5f66713a1a182b"
     if [ -e "build/RtspServer-${RTSPVER}.tar.gz" ]; then
-        echo "Found existing RtspServer ${CEBVER} tarball..."
+        echo "Found existing RtspServer ${RTSPVER} tarball..."
     else
         echo "Retrieving RTSP ${RTSPVER} submodule..."
         curl -L https://github.com/ZoneMinder/RtspServer/archive/${RTSPVER}.tar.gz > build/RtspServer-${RTSPVER}.tar.gz

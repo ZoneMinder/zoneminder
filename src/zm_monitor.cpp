@@ -2559,11 +2559,11 @@ int Monitor::Capture() {
       // Don't want to do analysis on it, but we won't due to signal
       return -1;
     } else if ( captureResult > 0 ) {
+      shared_data->signal = true;   // Assume if getting packets that we are getting something useful. CheckSignalPoints can correct this later.
       // If we captured, let's assume signal, Decode will detect further
       if (!decoding_enabled) {
         shared_data->last_write_index = index;
         shared_data->last_write_time = packet->timestamp->tv_sec;
-        shared_data->signal = true;
       }
       Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
           packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ) );

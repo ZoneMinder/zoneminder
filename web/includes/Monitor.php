@@ -131,6 +131,8 @@ class Monitor extends ZM_Object {
     'AnalysisFPS' => null,
     'CaptureFPS' => null,
     'CaptureBandwidth' => null,
+  );
+  private $summary_fields = array(
     'TotalEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'TotalEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'HourEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
@@ -183,14 +185,23 @@ class Monitor extends ZM_Object {
       }
       return $this->defaults[$fn];
     } else if ( array_key_exists($fn, $this->status_fields) ) {
-      $sql = 'SELECT `Status`,`CaptureFPS`,`AnalysisFPS`,`CaptureBandwidth`
-        FROM `Monitor_Status` WHERE `MonitorId`=?';
+      $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
       if ( !$row ) {
         Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
-        foreach ( $this->status_fields as $k => $v ) {
+        return null;
+      } else {
+        foreach ($row as $k => $v) {
           $this->{$k} = $v;
         }
+      }
+      return $this->{$fn};
+    } else if ( array_key_exists($fn, $this->summary_fields) ) {
+      $sql = 'SELECT * FROM `Event_Summaries` WHERE `MonitorId`=?';
+      $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
+      if ( !$row ) {
+        Warning('Unable to load Event Summary record for Id='.$this->{'Id'}.' using '.$sql);
+        return null;
       } else {
         foreach ($row as $k => $v) {
           $this->{$k} = $v;
@@ -402,6 +413,8 @@ class Monitor extends ZM_Object {
     dbQuery('DELETE FROM Zones WHERE MonitorId = ?', array($this->{'Id'}));
     if ( ZM_OPT_X10 )
       dbQuery('DELETE FROM TriggersX10 WHERE MonitorId=?', array($this->{'Id'}));
+    dbQuery('DELETE FROM Monitor_Status WHERE MonitorId = ?', array($this->{'Id'}));
+    dbQuery('DELETE FROM Event_Summaries WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitors WHERE Id = ?', array($this->{'Id'}));
   } // end function delete
 

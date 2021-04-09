@@ -358,7 +358,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     createNotes(notes);
 
     Debug(2, "Updating notes for event %d, '%s'", id, notes.c_str());
-    static char sql[ZM_SQL_LGE_BUFSIZ];
+    char sql[ZM_SQL_LGE_BUFSIZ];
 #if USE_PREPARED_SQL
     static MYSQL_STMT *stmt = 0;
 
@@ -410,7 +410,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     mysql_real_escape_string(&dbconn, escapedNotes, notes.c_str(), notes.length());
 
     snprintf(sql, sizeof(sql), "UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64, escapedNotes, id);
-    zmDbDo(sql);
+    dbQueue.push(std::move(sql));
 #endif
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
@@ -627,7 +627,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
       WriteDbFrames();
       last_db_frame = frames;
 
-      static char sql[ZM_SQL_MED_BUFSIZ];
+      char sql[ZM_SQL_MED_BUFSIZ];
       snprintf(sql, sizeof(sql), 
           "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64, 
           ( delta_time.positive?"":"-" ),
@@ -639,7 +639,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
           max_score,
           id
           );
-      zmDbDo(sql);
+      dbQueue.push(std::move(sql));
 		} else {
       Debug(1, "Not Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
 					frame_data.size(), write_to_db, fps);

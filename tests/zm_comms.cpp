@@ -91,3 +91,35 @@ TEST_CASE("ZM::Pipe read/write") {
     REQUIRE(pipe.read(rcv.data(), rcv.size()) == -1);
   }
 }
+
+TEST_CASE("ZM::SockAddrInet") {
+  ZM::SockAddrInet addr;
+  REQUIRE(addr.getAddrSize() == sizeof(sockaddr_in));
+
+  SECTION("resolve") {
+    addr.resolve(80, "");
+    REQUIRE(addr.getDomain() == AF_INET);
+
+    SECTION("newSockAddr from resolved addr") {
+      ZM::SockAddr *addr2 = ZM::SockAddr::newSockAddr(&addr);
+      REQUIRE(addr2->getDomain() == AF_INET);
+      REQUIRE(addr2->getAddrSize() == sizeof(sockaddr_in));
+    }
+  }
+}
+
+TEST_CASE("ZM::SockAddrUnix") {
+  ZM::SockAddrUnix addr;
+  REQUIRE(addr.getAddrSize() == sizeof(sockaddr_un));
+
+  SECTION("resovle") {
+    addr.resolve("/", "");
+    REQUIRE(addr.getDomain() == AF_UNIX);
+
+    SECTION("newSockAddr from resolved addr") {
+      ZM::SockAddr *addr2 = ZM::SockAddr::newSockAddr(&addr);
+      REQUIRE(addr2->getDomain() == AF_UNIX);
+      REQUIRE(addr2->getAddrSize() == sizeof(sockaddr_un));
+    }
+  }
+}

@@ -550,6 +550,12 @@ CREATE TABLE `Monitor_Status` (
   `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
   `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
   `CaptureBandwidth`  INT NOT NULL default 0,
+  PRIMARY KEY (`MonitorId`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `Event_Summaries`;
+CREATE TABLE `Event_Summaries` (
+  `MonitorId` int(10) unsigned NOT NULL,
   `TotalEvents` int(10) default NULL,
   `TotalEventDiskSpace` bigint default NULL,
   `HourEvents` int(10) default NULL,
@@ -564,6 +570,7 @@ CREATE TABLE `Monitor_Status` (
   `ArchivedEventDiskSpace` bigint default NULL,
   PRIMARY KEY (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+
 --
 -- Table structure for table `States`
 -- PP - Added IsActive to track custom run states

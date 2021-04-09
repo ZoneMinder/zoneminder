@@ -145,7 +145,8 @@ BEGIN
   IF ( NEW.Archived != OLD.Archived ) THEN
     IF ( NEW.Archived ) THEN
       INSERT INTO Events_Archived (EventId,MonitorId,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.DiskSpace);
-      UPDATE Event_Summaries SET ArchivedEvents = COALESCE(ArchivedEvents,0)+1, ArchivedEventDiskSpace = COALESCE(ArchivedEventDiskSpace,0) + COALESCE(NEW.DiskSpace,0) WHERE Event_Summaries.MonitorId=NEW.MonitorId;
+      INSERT INTO Event_Summaries (MonitorId,ArchivedEvents,ArchivedEventDiskSpace) VALUES (NEW.MonitorId,1,NEW.DiskSpace) ON DUPLICATE KEY
+        UPDATE ArchivedEvents = COALESCE(ArchivedEvents,0)+1, ArchivedEventDiskSpace = COALESCE(ArchivedEventDiskSpace,0) + COALESCE(NEW.DiskSpace,0);
     ELSEIF ( OLD.Archived ) THEN
       DELETE FROM Events_Archived WHERE EventId=OLD.Id;
       UPDATE Event_Summaries
@@ -189,13 +190,13 @@ FOR EACH ROW
   INSERT INTO Events_Day (EventId,MonitorId,StartDateTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartDateTime,0);
   INSERT INTO Events_Week (EventId,MonitorId,StartDateTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartDateTime,0);
   INSERT INTO Events_Month (EventId,MonitorId,StartDateTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartDateTime,0);
-  UPDATE Event_Summaries SET
+  INSERT INTO Event_Summaries (MonitorId,HourEent,DayEvents,WeekEvents,MonthEvents,TotalEvents) VALUES (NEW.MonitorId,1,1,1,1,1) ON DUPLICATE KEY
+  UPDATE 
   HourEvents = COALESCE(HourEvents,0)+1,
   DayEvents = COALESCE(DayEvents,0)+1,
   WeekEvents = COALESCE(WeekEvents,0)+1,
   MonthEvents = COALESCE(MonthEvents,0)+1,
-  TotalEvents = COALESCE(TotalEvents,0)+1
-  WHERE Event_Summaries.MonitorId=NEW.MonitorId;
+  TotalEvents = COALESCE(TotalEvents,0)+1;
 END;
 //
 

@@ -190,7 +190,7 @@ FOR EACH ROW
   INSERT INTO Events_Day (EventId,MonitorId,StartDateTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartDateTime,0);
   INSERT INTO Events_Week (EventId,MonitorId,StartDateTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartDateTime,0);
   INSERT INTO Events_Month (EventId,MonitorId,StartDateTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartDateTime,0);
-  INSERT INTO Event_Summaries (MonitorId,HourEent,DayEvents,WeekEvents,MonthEvents,TotalEvents) VALUES (NEW.MonitorId,1,1,1,1,1) ON DUPLICATE KEY
+  INSERT INTO Event_Summaries (MonitorId,HourEvents,DayEvents,WeekEvents,MonthEvents,TotalEvents) VALUES (NEW.MonitorId,1,1,1,1,1) ON DUPLICATE KEY
   UPDATE 
   HourEvents = COALESCE(HourEvents,0)+1,
   DayEvents = COALESCE(DayEvents,0)+1,

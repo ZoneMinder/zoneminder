@@ -885,11 +885,11 @@ FROM `Frames` WHERE `EventId`=?';
   $loop = $continuous;
 
   my $eventcounts_sql = '
-  UPDATE `Monitor_Status` SET
-  `TotalEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitor_Status`.`MonitorId`),
-  `TotalEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Monitor_Status`.`MonitorId` AND `DiskSpace` IS NOT NULL),
-  `ArchivedEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitor_Status`.`MonitorId` AND `Archived`=1),
-  `ArchivedEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Monitor_Status`.`MonitorId` AND `Archived`=1 AND `DiskSpace` IS NOT NULL)
+  UPDATE `Event_Summaries` SET
+  `TotalEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId`),
+  `TotalEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `DiskSpace` IS NOT NULL),
+  `ArchivedEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `Archived`=1),
+  `ArchivedEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `Archived`=1 AND `DiskSpace` IS NOT NULL)
   ';
 
   my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
@@ -897,40 +897,40 @@ FROM `Frames` WHERE `EventId`=?';
   $eventcounts_sth->finish();
 
   my $eventcounts_hour_sql = '
-  UPDATE `Monitor_Status` INNER JOIN (
+  UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `HourEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `HourEventDiskSpace`
   FROM `Events_Hour` GROUP BY `MonitorId`
-  ) AS `E` ON `E`.`MonitorId`=`Monitor_Status`.`MonitorId` SET
-  `Monitor_Status`.`HourEvents` = `E`.`HourEvents`,
-  `Monitor_Status`.`HourEventDiskSpace` = `E`.`HourEventDiskSpace`
+  ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
+  `Event_Summaries`.`HourEvents` = `E`.`HourEvents`,
+  `Event_Summaries`.`HourEventDiskSpace` = `E`.`HourEventDiskSpace`
   ';
 
 
   my $eventcounts_day_sql = '
-  UPDATE `Monitor_Status` INNER JOIN (
+  UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `DayEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `DayEventDiskSpace`
   FROM `Events_Day` GROUP BY `MonitorId`
-  ) AS `E` ON `E`.`MonitorId`=`Monitor_Status`.`MonitorId` SET
-  `Monitor_Status`.`DayEvents` = `E`.`DayEvents`,
-  `Monitor_Status`.`DayEventDiskSpace` = `E`.`DayEventDiskSpace`
+  ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
+  `Event_Summaries`.`DayEvents` = `E`.`DayEvents`,
+  `Event_Summaries`.`DayEventDiskSpace` = `E`.`DayEventDiskSpace`
   ';
 
   my $eventcounts_week_sql = '
-  UPDATE `Monitor_Status` INNER JOIN (
+  UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `WeekEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `WeekEventDiskSpace`
   FROM `Events_Week` GROUP BY `MonitorId`
-  ) AS `E` ON `E`.`MonitorId`=`Monitor_Status`.`MonitorId` SET
-  `Monitor_Status`.`WeekEvents` = `E`.`WeekEvents`,
-  `Monitor_Status`.`WeekEventDiskSpace` = `E`.`WeekEventDiskSpace`
+  ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
+  `Event_Summaries`.`WeekEvents` = `E`.`WeekEvents`,
+  `Event_Summaries`.`WeekEventDiskSpace` = `E`.`WeekEventDiskSpace`
   ';
 
   my $eventcounts_month_sql = '
-  UPDATE `Monitor_Status` INNER JOIN (
+  UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `MonthEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `MonthEventDiskSpace`
   FROM `Events_Month` GROUP BY `MonitorId`
-  ) AS `E` ON `E`.`MonitorId`=`Monitor_Status`.`MonitorId` SET
-  `Monitor_Status`.`MonthEvents` = `E`.`MonthEvents`,
-  `Monitor_Status`.`MonthEventDiskSpace` = `E`.`MonthEventDiskSpace`
+  ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
+  `Event_Summaries`.`MonthEvents` = `E`.`MonthEvents`,
+  `Event_Summaries`.`MonthEventDiskSpace` = `E`.`MonthEventDiskSpace`
   ';
   my $eventcounts_hour_sth = $dbh->prepare_cached($eventcounts_hour_sql);
   my $eventcounts_day_sth = $dbh->prepare_cached($eventcounts_day_sql);

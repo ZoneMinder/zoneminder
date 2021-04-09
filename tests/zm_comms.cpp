@@ -18,6 +18,7 @@
 #include "catch2/catch.hpp"
 
 #include "zm_comms.h"
+#include <array>
 
 TEST_CASE("ZM::Pipe basics") {
   ZM::Pipe pipe;
@@ -59,5 +60,34 @@ TEST_CASE("ZM::Pipe basics") {
   SECTION("setBlocking") {
     REQUIRE(pipe.setBlocking(true) == true);
     REQUIRE(pipe.setBlocking(false) == true);
+  }
+}
+
+TEST_CASE("ZM::Pipe read/write") {
+  ZM::Pipe pipe;
+
+  std::array<char, 3> msg = {'a', 'b', 'c'};
+  std::array<char, msg.size()> rcv{};
+
+  SECTION("read/write on non-opened pipe") {
+    REQUIRE(pipe.write(msg.data(), msg.size()) == -1);
+    REQUIRE(pipe.read(rcv.data(), rcv.size()) == -1);
+  }
+
+  SECTION("read/write on opened pipe") {
+    REQUIRE(pipe.open() == true);
+
+    REQUIRE(pipe.write(msg.data(), msg.size()) == msg.size());
+    REQUIRE(pipe.read(rcv.data(), rcv.size()) == msg.size());
+
+    REQUIRE(rcv == msg);
+  }
+
+  SECTION("read/write on closed pipe") {
+    REQUIRE(pipe.open() == true);
+    REQUIRE(pipe.close() == true);
+
+    REQUIRE(pipe.write(msg.data(), msg.size()) == -1);
+    REQUIRE(pipe.read(rcv.data(), rcv.size()) == -1);
   }
 }

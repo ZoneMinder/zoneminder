@@ -181,7 +181,7 @@ function Monitor(monitorData) {
     }
     //console.log("Starting CmdQuery for " + this.connKey );
     if ( this.type != 'WebSite' ) {
-      this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_QUERY+(auth_hash?'&auth='+auth_hash:'');
+      this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_QUERY+(auth_hash?'&auth='+auth_hash:''));
     }
   };
 

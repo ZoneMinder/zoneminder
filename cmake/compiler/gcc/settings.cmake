@@ -6,7 +6,8 @@ target_compile_options(zm-warning-interface
     -Wformat-security
     -Wno-cast-function-type
     -Wno-type-limits
-    -Wno-unused-parameter)
+    -Wno-unused-parameter
+    -Woverloaded-virtual)
 
 if(ASAN)
   target_compile_options(zm-compile-option-interface

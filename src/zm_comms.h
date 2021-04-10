@@ -54,8 +54,8 @@ class CommsBase {
   virtual bool setBlocking(bool blocking) = 0;
 
  public:
-  int getReadDesc() const { return mRd; }
-  int getWriteDesc() const { return mWd; }
+  virtual int getReadDesc() const { return mRd; }
+  virtual int getWriteDesc() const { return mWd; }
   int getMaxDesc() const { return mRd > mWd ? mRd : mWd; }
 
   virtual int read(void *msg, int len) {
@@ -105,17 +105,17 @@ class Pipe : public CommsBase {
     mFd[1] = -1;
   }
 
-  ~Pipe() { close(); }
+  ~Pipe() override { close(); }
 
   bool open();
-  bool close();
+  bool close() override;
 
-  bool isOpen() const { return mFd[0] != -1 && mFd[1] != -1; }
-  bool isClosed() const { return !isOpen(); }
-  int getReadDesc() const { return mFd[0]; }
-  int getWriteDesc() const { return mFd[1]; }
+  bool isOpen() const override { return mFd[0] != -1 && mFd[1] != -1; }
+  bool isClosed() const override { return !isOpen(); }
+  int getReadDesc() const override { return mFd[0]; }
+  int getWriteDesc() const override { return mFd[1]; }
 
-  bool setBlocking(bool blocking);
+  bool setBlocking(bool blocking) override;
 
  protected:
   int mFd[2];
@@ -152,8 +152,8 @@ class SockAddrInet : public SockAddr {
   bool resolve(const char *serv, const char *proto);
   bool resolve(int port, const char *proto);
 
-  socklen_t getAddrSize() const { return sizeof(mAddrIn); }
-  sockaddr *getTempAddr() const { return (sockaddr *) &mTempAddrIn; }
+  socklen_t getAddrSize() const override { return sizeof(mAddrIn); }
+  sockaddr *getTempAddr() const override { return (sockaddr *) &mTempAddrIn; }
 
   static socklen_t addrSize() { return sizeof(sockaddr_in); }
 
@@ -172,8 +172,8 @@ class SockAddrUnix : public SockAddr {
 
   bool resolve(const char *path, const char *proto);
 
-  socklen_t getAddrSize() const { return sizeof(mAddrUn); }
-  sockaddr *getTempAddr() const { return (sockaddr *) &mTempAddrUn; }
+  socklen_t getAddrSize() const override { return sizeof(mAddrUn); }
+  sockaddr *getTempAddr() const override { return (sockaddr *) &mTempAddrUn; }
 
   static socklen_t addrSize() { return sizeof(sockaddr_un); }
 
@@ -209,11 +209,11 @@ class Socket : public CommsBase {
   }
 
  public:
-  bool isOpen() const { return !isClosed(); }
-  bool isClosed() const { return mState == CLOSED; }
+  bool isOpen() const override { return !isClosed(); }
+  bool isClosed() const override { return mState == CLOSED; }
   bool isDisconnected() const { return mState == DISCONNECTED; }
   bool isConnected() const { return mState == CONNECTED; }
-  virtual bool close();
+  bool close() override;
 
   virtual int send(const void *msg, int len) const {
     ssize_t nBytes = ::send(mSd, msg, len, 0);
@@ -284,7 +284,7 @@ class Socket : public CommsBase {
   virtual socklen_t getAddrSize() const = 0;
 
   bool getBlocking(bool &blocking);
-  bool setBlocking(bool blocking);
+  bool setBlocking(bool blocking) override;
 
   bool getSendBufferSize(int &) const;
   bool getRecvBufferSize(int &) const;
@@ -299,7 +299,7 @@ class Socket : public CommsBase {
   bool setNoDelay(bool);
 
  protected:
-  bool isListening() const { return mState == LISTENING; }
+  virtual bool isListening() const { return mState == LISTENING; }
 
   virtual bool socket();
   virtual bool bind();
@@ -317,8 +317,8 @@ class Socket : public CommsBase {
 
 class InetSocket : virtual public Socket {
  public:
-  int getDomain() const { return mAddressFamily; }
-  virtual socklen_t getAddrSize() const { return SockAddrInet::addrSize(); }
+  int getDomain() const override { return mAddressFamily; }
+  socklen_t getAddrSize() const override { return SockAddrInet::addrSize(); }
 
  protected:
   bool connect(const char *host, const char *serv);
@@ -334,8 +334,8 @@ class InetSocket : virtual public Socket {
 
 class UnixSocket : virtual public Socket {
  public:
-  int getDomain() const { return AF_UNIX; }
-  virtual socklen_t getAddrSize() const { return SockAddrUnix::addrSize(); }
+  int getDomain() const override { return AF_UNIX; }
+  socklen_t getAddrSize() const override { return SockAddrUnix::addrSize(); }
 
  protected:
   bool resolveLocal(const char *serv, const char *proto) {
@@ -365,8 +365,8 @@ class UnixSocket : virtual public Socket {
 
 class UdpSocket : virtual public Socket {
  public:
-  int getType() const { return SOCK_DGRAM; }
-  const char *getProtocol() const { return "udp"; }
+  int getType() const override { return SOCK_DGRAM; }
+  const char *getProtocol() const override { return "udp"; }
 
   virtual int sendto(const void *msg, int len, const SockAddr *addr = nullptr) const {
     ssize_t nBytes = ::sendto(mSd, msg, len, 0, addr ? addr->getAddr() : nullptr, addr ? addr->getAddrSize() : 0);
@@ -379,7 +379,7 @@ class UdpSocket : virtual public Socket {
   virtual int recvfrom(void *msg, int len, SockAddr *addr = nullptr) const {
     ssize_t nBytes = 0;
     if (addr) {
-      sockaddr sockAddr;
+      sockaddr sockAddr = {};
       socklen_t sockLen;
       nBytes = ::recvfrom(mSd, msg, len, 0, &sockAddr, &sockLen);
       if (nBytes < 0) {
@@ -497,23 +497,23 @@ class UdpUnixServer : public UdpUnixSocket {
 
 class TcpSocket : virtual public Socket {
  public:
-  TcpSocket() {}
+  TcpSocket() = default;
   TcpSocket(const TcpSocket &socket, int newSd) : Socket(socket, newSd) {}
 
-  int getType() const { return SOCK_STREAM; }
-  const char *getProtocol() const { return "tcp"; }
+  int getType() const override { return SOCK_STREAM; }
+  const char *getProtocol() const override { return "tcp"; }
 };
 
 class TcpInetSocket : virtual public TcpSocket, virtual public InetSocket {
  public:
-  TcpInetSocket() {}
+  TcpInetSocket() = default;
   TcpInetSocket(const TcpInetSocket &socket, int newSd)
       : TcpSocket(socket, newSd) {}
 };
 
 class TcpUnixSocket : virtual public TcpSocket, virtual public UnixSocket {
  public:
-  TcpUnixSocket() {}
+  TcpUnixSocket() = default;
   TcpUnixSocket(const TcpUnixSocket &socket, int newSd)
       : TcpSocket(socket, newSd) {}
 };
@@ -538,9 +538,9 @@ class TcpInetServer : public TcpInetSocket {
  public:
   bool bind(int port) { return TcpInetSocket::bind(port); }
 
-  bool isListening() const { return Socket::isListening(); }
-  bool listen();
-  bool accept();
+  bool isListening() const override { return Socket::isListening(); }
+  bool listen() override;
+  bool accept() override;
   bool accept(TcpInetSocket *&newSocket);
 };
 
@@ -548,9 +548,9 @@ class TcpUnixServer : public TcpUnixSocket {
  public:
   bool bind(const char *path) { return TcpUnixSocket::bind(path); }
 
-  bool isListening() const { return Socket::isListening(); }
-  bool listen();
-  bool accept();
+  bool isListening() const override { return Socket::isListening(); }
+  bool listen() override;
+  bool accept() override;
   bool accept(TcpUnixSocket *&newSocket);
 };
 

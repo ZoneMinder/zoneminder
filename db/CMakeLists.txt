@@ -13,6 +13,8 @@ install(FILES ${dbfileslist} DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db
 
 # install zm_update-1.31.30.sql
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.31.30.sql" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")
+# install zm_update-1.35.24.sql
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm_update-1.35.24.sql" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")
 
 # install zm_create.sql
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm_create.sql" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")

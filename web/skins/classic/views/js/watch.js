@@ -442,9 +442,6 @@ function statusCmdQuery() {
 
 if ( monitorType != 'WebSite' ) {
   var alarmCmdParms = 'view=request&request=alarm&id='+monitorId;
-  if ( auth_hash ) {
-    alarmCmdParms += '&auth='+auth_hash;
-  }
   var alarmCmdReq = new Request.JSON( {
     url: monitorUrl,
     method: 'get',
@@ -461,22 +458,22 @@ function getAlarmCmdResponse(respObj, respText) {
 }
 
 function cmdDisableAlarms() {
-  alarmCmdReq.send(alarmCmdParms+"&command=disableAlarms");
+  alarmCmdReq.send(alarmCmdParms+auth_relay+"&command=disableAlarms");
 }
 
 function cmdEnableAlarms() {
-  alarmCmdReq.send(alarmCmdParms+"&command=enableAlarms");
+  alarmCmdReq.send(alarmCmdParms+auth_relay+"&command=enableAlarms");
 }
 
 function cmdForceAlarm() {
-  alarmCmdReq.send(alarmCmdParms+"&command=forceAlarm");
+  alarmCmdReq.send(alarmCmdParms+auth_relay+"&command=forceAlarm");
   if ( window.event ) {
     window.event.preventDefault();
   }
 }
 
 function cmdCancelForcedAlarm() {
-  alarmCmdReq.send(alarmCmdParms+"&command=cancelForcedAlarm");
+  alarmCmdReq.send(alarmCmdParms+auth_relay+"&command=cancelForcedAlarm");
   if ( window.event ) {
     window.event.preventDefault();
   }

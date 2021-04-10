@@ -11,11 +11,6 @@ function Monitor(monitorData) {
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
   this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
-  if ( auth_hash ) {
-    this.streamCmdParms += '&auth='+auth_hash;
-  } else if ( auth_relay ) {
-    this.streamCmdParms += '&'+auth_relay;
-  }
   this.streamCmdTimer = null;
   this.type = monitorData.type;
   this.refresh = monitorData.refresh;
@@ -186,7 +181,7 @@ function Monitor(monitorData) {
     }
     //console.log("Starting CmdQuery for " + this.connKey );
     if ( this.type != 'WebSite' ) {
-      this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_QUERY);
+      this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_QUERY+(auth_hash?'&auth='+auth_hash:'');
     }
   };
 

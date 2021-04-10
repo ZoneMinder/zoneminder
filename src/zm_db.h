@@ -66,6 +66,8 @@ extern zmDbQueue  dbQueue;
 
 extern bool zmDbConnected;
 
+extern bool zmDbConnected;
+
 bool zmDbConnect();
 void zmDbClose();
 int zmDbDo(const char *query);

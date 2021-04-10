@@ -110,6 +110,10 @@ std::string State_Strings[] = {
   "TAPE"
 };
 
+std::string TriggerState_Strings[] = {
+  "Cancel", "On", "Off"
+};
+
 Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
   id(p_id),
   shared_data(nullptr),
@@ -1799,8 +1803,8 @@ bool Monitor::Analyse() {
   bool signal = shared_data->signal;
   bool signal_change = (signal != last_signal);
 
-  Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%d) image index %d",
-      signal, signal_change, int(trigger_data->trigger_state), snap->image_index);
+  Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%s) image index %d",
+      signal, signal_change, TriggerState_Strings[trigger_data->trigger_state].c_str(), snap->image_index);
 
   // Need to guard around event creation/deletion from Reload()
   std::lock_guard<std::mutex> lck(event_mutex);
@@ -2246,7 +2250,6 @@ bool Monitor::Analyse() {
           } else {
             Error("ALARM but no event");
           }
-
         } else if ( state == ALERT ) {
           // Alert means this frame has no motion, but we were alarmed and are still recording.
           if ( noteSetMap.size() > 0 )
@@ -2271,7 +2274,6 @@ bool Monitor::Analyse() {
       closeEvent();
     }
     shared_data->state = state = IDLE;
-    trigger_data->trigger_state = TriggerState::TRIGGER_CANCEL;
   } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
   if (event) event->AddPacket(snap);
@@ -3125,6 +3127,9 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   for ( int i = 0; i < n_zones; i++ ) {
     zones[i]->DumpSettings(output+strlen(output), verbose);
   }
+  sprintf(output+strlen(output), "Recording Enabled? %s\n", enabled ? "enabled" : "disabled");
+  sprintf(output+strlen(output), "Events Enabled (!TRIGGER_OFF)? %s\n", trigger_data->trigger_state == TRIGGER_OFF ? "disabled" : "enabled");
+  sprintf(output+strlen(output), "Motion Detection Enabled? %s\n", shared_data->active ? "enabled" : "disabled");
   return true;
 } // bool Monitor::DumpSettings(char *output, bool verbose)
 

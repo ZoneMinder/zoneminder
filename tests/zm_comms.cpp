@@ -245,3 +245,72 @@ TEST_CASE("ZM::UdpUnixSocket send/recv") {
     REQUIRE(rcv == msg);
   }
 }
+
+TEST_CASE("ZM::TcpInetClient basics") {
+  ZM::TcpInetClient client;
+  REQUIRE(client.isClosed() == true);
+  REQUIRE(client.isOpen() == false);
+  REQUIRE(client.isConnected() == false);
+  REQUIRE(client.isDisconnected() == false);
+
+  REQUIRE(client.connect("127.0.0.1", 1234) == false);
+  REQUIRE(client.isClosed() == true);
+  REQUIRE(client.isOpen() == false);
+  REQUIRE(client.isConnected() == false);
+  REQUIRE(client.isDisconnected() == false);
+}
+
+TEST_CASE("ZM::TcpInetServer basics") {
+  ZM::TcpInetServer server;
+  REQUIRE(server.isClosed() == true);
+  REQUIRE(server.isOpen() == false);
+  REQUIRE(server.isConnected() == false);
+  REQUIRE(server.isDisconnected() == false);
+
+  REQUIRE(server.bind(1234) == true);
+  REQUIRE(server.isOpen() == true);
+  REQUIRE(server.isClosed() == false);
+  REQUIRE(server.isConnected() == false);
+  REQUIRE(server.isDisconnected() == true);
+  REQUIRE(server.isListening() == false);
+
+  REQUIRE(server.listen() == true);
+  REQUIRE(server.isListening() == true);
+
+  SECTION("close") {
+    REQUIRE(server.close() == true);
+    REQUIRE(server.isClosed() == true);
+    REQUIRE(server.isOpen() == false);
+    REQUIRE(server.isConnected() == false);
+    REQUIRE(server.isDisconnected() == false);
+  }
+}
+
+TEST_CASE("ZM::TcpInetClient/Server send/recv") {
+  ZM::TcpInetServer server;
+  ZM::TcpInetClient client;
+
+  std::array<char, 3> msg = {'a', 'b', 'c'};
+  std::array<char, msg.size()> rcv{};
+
+  SECTION("send/recv on unbound socket") {
+    REQUIRE(client.send(msg.data(), msg.size()) == -1);
+    REQUIRE(server.recv(rcv.data(), rcv.size()) == -1);
+  }
+
+  SECTION("send/recv") {
+    REQUIRE(server.bind(1234) == true);
+    REQUIRE(server.isOpen() == true);
+    REQUIRE(server.listen() == true);
+
+    REQUIRE(client.connect("127.0.0.1", 1234) == true);
+    REQUIRE(client.isConnected() == true);
+
+    REQUIRE(server.accept() == true);
+
+    REQUIRE(client.send(msg.data(), msg.size()) == msg.size());
+    REQUIRE(server.recv(rcv.data(), rcv.size()) == msg.size());
+
+    REQUIRE(rcv == msg);
+  }
+}

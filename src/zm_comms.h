@@ -301,13 +301,13 @@ class Socket : public CommsBase {
  protected:
   virtual bool isListening() const { return mState == LISTENING; }
 
-  virtual bool socket();
-  virtual bool bind();
+  bool socket();
+  bool bind();
 
-  virtual bool connect();
+  bool connect();
   virtual bool listen();
   virtual bool accept();
-  virtual bool accept(int &);
+  bool accept(int &);
 
   int mSd;
   State mState;

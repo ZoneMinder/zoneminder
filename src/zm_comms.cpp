@@ -269,11 +269,11 @@ bool ZM::Socket::listen() {
 }
 
 bool ZM::Socket::accept() {
-  sockaddr *rem_addr = mLocalAddr->getTempAddr();
+  sockaddr rem_addr = {};
   socklen_t rem_addr_size = getAddrSize();
 
   int newSd = -1;
-  if ((newSd = ::accept(mSd, rem_addr, &rem_addr_size)) == -1) {
+  if ((newSd = ::accept(mSd, &rem_addr, &rem_addr_size)) == -1) {
     Error("accept(), errno = %d, error = %s", errno, strerror(errno));
     close();
     return false;
@@ -287,11 +287,11 @@ bool ZM::Socket::accept() {
 }
 
 bool ZM::Socket::accept(int &newSd) {
-  sockaddr *rem_addr = mLocalAddr->getTempAddr();
+  sockaddr rem_addr = {};
   socklen_t rem_addr_size = getAddrSize();
 
   newSd = -1;
-  if ((newSd = ::accept(mSd, rem_addr, &rem_addr_size)) == -1) {
+  if ((newSd = ::accept(mSd, &rem_addr, &rem_addr_size)) == -1) {
     Error("accept(), errno = %d, error = %s", errno, strerror(errno));
     close();
     return false;

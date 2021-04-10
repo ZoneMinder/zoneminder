@@ -260,7 +260,7 @@ TEST_CASE("ZM::TcpInetClient basics") {
   REQUIRE(client.isDisconnected() == false);
 }
 
-TEST_CASE("ZM::TcpInetServer basics") {
+TEST_CASE("ZM::TcpInetServer basics", "[notCI]") {
   ZM::TcpInetServer server;
   REQUIRE(server.isClosed() == true);
   REQUIRE(server.isOpen() == false);
@@ -286,7 +286,7 @@ TEST_CASE("ZM::TcpInetServer basics") {
   }
 }
 
-TEST_CASE("ZM::TcpInetClient/Server send/recv") {
+TEST_CASE("ZM::TcpInetClient/Server send/recv", "[notCI]") {
   ZM::TcpInetServer server;
   ZM::TcpInetClient client;
 

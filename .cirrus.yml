@@ -18,5 +18,5 @@ task:
     - make install
 
   test_script:
-    - cd build
-    - CTEST_OUTPUT_ON_FAILURE=1 make test
+    - cd build/tests
+    - ./tests "~[notCI]"

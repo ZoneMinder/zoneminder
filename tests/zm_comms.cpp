@@ -185,3 +185,63 @@ TEST_CASE("ZM::UdpInetSocket send/recv") {
     REQUIRE(rcv == msg);
   }
 }
+
+TEST_CASE("ZM::UdpUnixSocket basics") {
+  std::string sock_path = "/tmp/zm.unittest.sock";
+  unlink(sock_path.c_str()); // make sure the socket file does not exist
+
+  ZM::UdpUnixSocket socket;
+  REQUIRE(socket.isClosed() == true);
+  REQUIRE(socket.isOpen() == false);
+  REQUIRE(socket.isConnected() == false);
+  REQUIRE(socket.isDisconnected() == false);
+
+  SECTION("bind") {
+    REQUIRE(socket.bind(sock_path.c_str()) == true);
+    REQUIRE(socket.isOpen() == true);
+    REQUIRE(socket.isDisconnected() == true);
+    REQUIRE(socket.isClosed() == false);
+    REQUIRE(socket.isConnected() == false);
+
+    SECTION("close") {
+      REQUIRE(socket.close() == true);
+      REQUIRE(socket.isClosed() == true);
+      REQUIRE(socket.isOpen() == false);
+      REQUIRE(socket.isConnected() == false);
+      REQUIRE(socket.isDisconnected() == false);
+    }
+  }
+
+  SECTION("connect to unbound socket") {
+    REQUIRE(socket.connect(sock_path.c_str()) == false);
+  }
+}
+
+TEST_CASE("ZM::UdpUnixSocket send/recv") {
+  std::string sock_path = "/tmp/zm.unittest.sock";
+  unlink(sock_path.c_str()); // make sure the socket file does not exist
+
+  ZM::UdpUnixSocket srv_socket;
+  ZM::UdpUnixSocket client_socket;
+
+  std::array<char, 3> msg = {'a', 'b', 'c'};
+  std::array<char, msg.size()> rcv{};
+
+  SECTION("send/recv on unbound socket") {
+    REQUIRE(client_socket.send(msg.data(), msg.size()) == -1);
+    REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == -1);
+  }
+
+  SECTION("send/recv") {
+    REQUIRE(srv_socket.bind(sock_path.c_str()) == true);
+    REQUIRE(srv_socket.isOpen() == true);
+
+    REQUIRE(client_socket.connect(sock_path.c_str()) == true);
+    REQUIRE(client_socket.isConnected() == true);
+
+    REQUIRE(client_socket.send(msg.data(), msg.size()) == msg.size());
+    REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == msg.size());
+
+    REQUIRE(rcv == msg);
+  }
+}

@@ -123,3 +123,65 @@ TEST_CASE("ZM::SockAddrUnix") {
     }
   }
 }
+
+TEST_CASE("ZM::UdpInetSocket basics") {
+  ZM::UdpInetSocket socket;
+  REQUIRE(socket.isClosed() == true);
+  REQUIRE(socket.isOpen() == false);
+  REQUIRE(socket.isConnected() == false);
+  REQUIRE(socket.isDisconnected() == false);
+
+  SECTION("bind with host and port") {
+    REQUIRE(socket.bind(nullptr, "1234") == true);
+    REQUIRE(socket.isOpen() == true);
+    REQUIRE(socket.isDisconnected() == true);
+    REQUIRE(socket.isClosed() == false);
+    REQUIRE(socket.isConnected() == false);
+
+    SECTION("close") {
+      REQUIRE(socket.close() == true);
+      REQUIRE(socket.isClosed() == true);
+      REQUIRE(socket.isOpen() == false);
+      REQUIRE(socket.isConnected() == false);
+      REQUIRE(socket.isDisconnected() == false);
+    }
+  }
+
+  SECTION("bind with port") {
+    REQUIRE(socket.bind("1234") == true);
+  }
+
+  SECTION("bind with host and port number") {
+    REQUIRE(socket.bind(nullptr, 1234) == true);
+  }
+
+  SECTION("bind with port number") {
+    REQUIRE(socket.bind(1234) == true);
+  }
+}
+
+TEST_CASE("ZM::UdpInetSocket send/recv") {
+  ZM::UdpInetSocket srv_socket;
+  ZM::UdpInetSocket client_socket;
+
+  std::array<char, 3> msg = {'a', 'b', 'c'};
+  std::array<char, msg.size()> rcv{};
+
+  SECTION("send/recv on unbound socket") {
+    REQUIRE(client_socket.send(msg.data(), msg.size()) == -1);
+    REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == -1);
+  }
+
+  SECTION("send/recv") {
+    REQUIRE(srv_socket.bind("127.0.0.1", "1234") == true);
+    REQUIRE(srv_socket.isOpen() == true);
+
+    REQUIRE(client_socket.connect("127.0.0.1", "1234") == true);
+    REQUIRE(client_socket.isConnected() == true);
+
+    REQUIRE(client_socket.send(msg.data(), msg.size()) == msg.size());
+    REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == msg.size());
+
+    REQUIRE(rcv == msg);
+  }
+}

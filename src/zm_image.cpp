@@ -2051,10 +2051,6 @@ void Image::Annotate(
       for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += width ) {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          if ( line[c] > 0xFF ) {
-            Warning("Unsupported character %c in %s", line[c], line);
-            continue;
-          }
           uint64_t f = font_bitmap[(line[c] * char_height) + r];
           if ( !bg_trans ) memset(temp_ptr, bg_bw_col, char_width);
           while ( f != 0 ) {
@@ -2072,10 +2068,6 @@ void Image::Annotate(
       for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          if ( line[c] > 0xFF ) {
-            Warning("Unsupported character %c in %s", line[c], line);
-            continue;
-          }
           uint64_t f = font_bitmap[(line[c] * char_height) + r];
           if ( !bg_trans ) {
             for ( int i = 0; i < char_width; i++ ) {  // We need to set individual r,g,b components
@@ -2104,10 +2096,6 @@ void Image::Annotate(
       for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
         Rgb* temp_ptr = (Rgb*)ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          if ( line[c] > 0xFF ) {
-            Warning("Unsupported character %c in %s", line[c], line);
-            continue;
-          }
           uint64_t f = font_bitmap[(line[c] * char_height) + r];
           if ( !bg_trans ) {
             for ( int i = 0; i < char_width; i++ )

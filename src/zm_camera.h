@@ -58,6 +58,8 @@ protected:
   AVStream *mAudioStream;
   AVFormatContext *mFormatContext; // One for video, one for audio
   AVFormatContext *mSecondFormatContext; // One for video, one for audio
+  int64_t     mFirstVideoPTS;
+  int64_t     mFirstAudioPTS;
   int64_t     mLastVideoPTS;
   int64_t     mLastAudioPTS;
   unsigned int  bytes;

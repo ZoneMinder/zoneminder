@@ -55,6 +55,8 @@ Camera::Camera(
     mAudioStream(nullptr),
     mFormatContext(nullptr),
     mSecondFormatContext(nullptr),
+    mFirstVideoPTS(0),
+    mFirstAudioPTS(0),
     mLastVideoPTS(0),
     mLastAudioPTS(0),
     bytes(0)

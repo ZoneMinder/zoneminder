@@ -181,7 +181,6 @@ int VncCamera::PrimeCapture() {
   }
   if (!(*rfbInitClient_f)(mRfb, 0, nullptr)) {
     /* IF rfbInitClient fails, it calls rdbClientCleanup which will free mRfb */
-    Warning("Failed to Prime capture from %s", mHost.c_str());
     mRfb = nullptr;
     return -1; 
   }

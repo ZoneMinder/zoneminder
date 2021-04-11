@@ -1414,20 +1414,20 @@ bool LocalCamera::GetCurrentSettings(
         if ( verbose )
           output_ptr += sprintf(
               output_ptr,
-              "  %s (0x%02hhx%02hhx%02hhx%02hhx)\n",
+              "  %s (0x%02x%02x%02x%02x)\n",
               format.description,
-              (format.pixelformat>>24)&0xff,
-              (format.pixelformat>>16)&0xff,
-              (format.pixelformat>>8)&0xff,
-              format.pixelformat&0xff);
+              (format.pixelformat >> 24) & 0xff,
+              (format.pixelformat >> 16) & 0xff,
+              (format.pixelformat >> 8) & 0xff,
+              format.pixelformat & 0xff);
         else
           output_ptr += sprintf(
               output_ptr,
-              "0x%02hhx%02hhx%02hhx%02hhx/",
-              (format.pixelformat>>24)&0xff,
-              (format.pixelformat>>16)&0xff,
-              (format.pixelformat>>8)&0xff,
-              (format.pixelformat)&0xff);
+              "0x%02x%02x%02x%02x/",
+              (format.pixelformat >> 24) & 0xff,
+              (format.pixelformat >> 16) & 0xff,
+              (format.pixelformat >> 8) & 0xff,
+              format.pixelformat & 0xff);
       } while ( formatIndex++ >= 0 );
 
       if ( !verbose )

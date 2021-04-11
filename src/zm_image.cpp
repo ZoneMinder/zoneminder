@@ -4720,8 +4720,8 @@ void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned lon
 
 /* YUYV to RGB24 - relocated from zm_local_camera.cpp */
 __attribute__((noinline)) void zm_convert_yuyv_rgb(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;
-  unsigned int y1,y2,u,v;
+  int32 r,g,b;
+  int32 y1,y2,u,v;
   for(unsigned int i=0; i < count; i += 2, col1 += 4, result += 6) {
     y1 = col1[0];
     u = col1[1];

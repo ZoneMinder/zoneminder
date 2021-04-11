@@ -30,7 +30,7 @@ use ZoneMinder::ConfigData qw/:data/;
 
 $| = 1;
 
-my $config_header = '@CMAKE_CURRENT_BINARY_DIR@/src/zm_config_defines.h';
+my $config_header = '@CMAKE_BINARY_DIR@/zm_config_defines.h';
 my $config_sql = '@CMAKE_CURRENT_BINARY_DIR@/db/zm_create.sql';
 
 generateConfigFiles();

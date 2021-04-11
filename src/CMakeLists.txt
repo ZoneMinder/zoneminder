@@ -1,7 +1,7 @@
 # CMakeLists.txt for the ZoneMinder binaries
 
 # Create files from the .in files
-configure_file(zm_config_data.h.in "${CMAKE_CURRENT_BINARY_DIR}/zm_config_data.h" @ONLY)
+configure_file(zm_config_data.h.in "${CMAKE_BINARY_DIR}/zm_config_data.h" @ONLY)
 
 # Group together all the source files that are used by all the binaries (zmc, zmu, zms etc)
 set(ZM_BIN_SRC_FILES
@@ -74,6 +74,7 @@ add_library(zm STATIC ${ZM_BIN_SRC_FILES})
 
 target_include_directories(zm
   PUBLIC
+    ${CMAKE_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(zm

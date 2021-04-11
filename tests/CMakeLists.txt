@@ -12,6 +12,7 @@
 include(Catch)
 
 set(TEST_SOURCES
+  zm_comms.cpp
   zm_crypt.cpp
   zm_utils.cpp)
 

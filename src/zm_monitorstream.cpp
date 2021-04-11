@@ -32,8 +32,6 @@
 #include <netinet/in.h>
 #endif
 
-const int MAX_SLEEP_USEC = 1000000; // 1 sec
-
 bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
   struct stat stat_buf;
   if ( stat(path, &stat_buf) < 0 ) {
@@ -799,9 +797,9 @@ void MonitorStream::runStream() {
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
 
     unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));
-    if ( sleep_time > MAX_SLEEP_USEC ) {
+    if ( sleep_time > MonitorStream::MAX_SLEEP_USEC ) {
       // Shouldn't sleep for long because we need to check command queue, etc.
-      sleep_time = MAX_SLEEP_USEC;
+      sleep_time = MonitorStream::MAX_SLEEP_USEC;
       Debug(3, "Sleeping for MAX_SLEEP_USEC %dus", sleep_time);
     } else {
       Debug(3, "Sleeping for %dus", sleep_time);

@@ -118,7 +118,7 @@ int FFmpeg_Input::Open(const char *filepath) {
   } // end foreach stream
 
   if ( video_stream_id == -1 )
-    Warning("Unable to locate video stream in %s", filepath);
+    Debug(1, "Unable to locate video stream in %s", filepath);
   if ( audio_stream_id == -1 )
     Debug(3, "Unable to locate audio stream in %s", filepath);
 

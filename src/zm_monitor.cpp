@@ -2569,8 +2569,8 @@ int Monitor::Capture() {
         shared_data->last_write_index = index;
         shared_data->last_write_time = packet->timestamp->tv_sec;
       }
-      Debug(2, "Have packet stream_index:%d ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
-          packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ) );
+      Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
+          packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count );
 
       if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
         packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index

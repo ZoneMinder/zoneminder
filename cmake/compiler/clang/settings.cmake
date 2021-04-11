@@ -2,6 +2,7 @@ target_compile_options(zm-warning-interface
   INTERFACE
     -Wall
     -Wextra
+    -Wimplicit-fallthrough
     -Wno-unused-parameter)
 
 if(ASAN)

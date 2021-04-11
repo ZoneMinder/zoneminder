@@ -254,7 +254,8 @@ int main(int argc, char *argv[]) {
 
       while (monitor->PrimeCapture() <= 0) {
         if (prime_capture_log_count % 60) {
-          Error("Failed to prime capture of initial monitor");
+          logPrintf(Logger::ERROR+monitor->Importance(),
+              "Failed to prime capture of initial monitor");
         } else {
           Debug(1, "Failed to prime capture of initial monitor");
         }

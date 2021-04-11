@@ -540,7 +540,7 @@ int FfmpegCamera::OpenFfmpeg() {
       mAudioCodecContext = mAudioStream->codec;
 #endif
 
-      zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
+      zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
       // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
       if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 )

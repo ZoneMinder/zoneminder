@@ -5,7 +5,6 @@ target_compile_options(zm-warning-interface
     -Wextra
     -Wformat-security
     -Wno-cast-function-type
-    -Wno-type-limits
     -Wno-unused-parameter
     -Woverloaded-virtual)
 

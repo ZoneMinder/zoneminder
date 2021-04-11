@@ -319,6 +319,7 @@ protected:
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
+  int         importance;           // Importance of this monitor, affects Connection logging errors.
 
   int capture_max_fps;
 
@@ -592,6 +593,7 @@ public:
   double get_analysis_fps( ) const {
     return shared_data ? shared_data->analysis_fps : 0.0;
   }
+  int Importance() { return importance; }
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

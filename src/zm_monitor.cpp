@@ -356,6 +356,7 @@ Monitor::Monitor()
   embed_exif(0),
   rtsp_server(0),
   rtsp_streamname(""),
+  importance(0),
   capture_max_fps(0),
   purpose(QUERY),
   last_camera_bytes(0),
@@ -442,7 +443,7 @@ Monitor::Monitor()
  "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
  "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
  "`RTSPServer`,`RTSPStreamName`,
- "SignalCheckPoints, SignalCheckColour FROM Monitors";
+ "SignalCheckPoints, SignalCheckColour, Importance-2 FROM Monitors";
 */
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
@@ -588,6 +589,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   rtsp_streamname = dbrow[col]; col++;
   signal_check_points = atoi(dbrow[col]); col++;
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
+  importance = atoi(dbrow[col]); col++;
 
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
@@ -3201,9 +3203,6 @@ int Monitor::PrimeCapture() {
     } else {
       analysis_thread->Start();
     }
-
-  } else {
-    Debug(2, "Failed to prime %d", ret);
   }
   return ret;
 }  // end int Monitor::PrimeCapture()

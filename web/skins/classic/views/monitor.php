@@ -1252,6 +1252,19 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <td class="text-right pr-3"><?php echo translate('RTSPStreamName'); echo makeHelpLink('OPTIONS_RTSPSTREAMNAME') ?></td>
           <td><input type="text" name="newMonitor[RTSPStreamName]" value="<?php echo validHtmlStr($monitor->RTSPStreamName()) ?>"/></td>
         </tr>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('Importance'); echo makeHelpLink('OPTIONS_IMPORTANCE') ?></td>
+          <td>
+<?php
+      echo htmlselect('newMonitor[Importance]',
+              array(
+                'Not'=>translate('Not important'),
+                'Less'=>translate('Less important'),
+                'Normal'=>translate('Normal')
+              ), $monitor->Importance());
+?>
+          </td>
+        </tr>
 <?php
         break;
     }

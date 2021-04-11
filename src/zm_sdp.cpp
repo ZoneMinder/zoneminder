@@ -352,8 +352,6 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     AVCodecContext *codec_context = avcodec_alloc_context3(nullptr);
-    //avcodec_parameters_to_context(codec_context, stream->codecpar);
-    stream->codec = codec_context;
 #else
     AVCodecContext *codec_context = stream->codec;
 #endif

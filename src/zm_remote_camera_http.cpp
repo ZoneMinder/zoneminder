@@ -621,7 +621,7 @@ int RemoteCameraHttp::GetResponse() {
             content_type[0] = '\0';
             content_boundary[0] = '\0';
             content_boundary_len = 0;
-            [[gnu::fallthrough]];
+            FALLTHROUGH;
           }
         case HEADERCONT :
           {
@@ -838,7 +838,7 @@ int RemoteCameraHttp::GetResponse() {
             subcontent_type_header[0] = '\0';
             content_length = 0;
             content_type[0] = '\0';
-            [[gnu::fallthrough]];
+            FALLTHROUGH;
           }
         case SUBHEADERCONT :
           {

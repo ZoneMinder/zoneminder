@@ -41,4 +41,14 @@ typedef std::uint8_t uint8;
 
 #define SZFMTD "%" PRIuPTR
 
+#ifndef FALLTHROUGH
+#if defined(__clang__)
+#define FALLTHROUGH [[clang::fallthrough]]
+#elif defined(__GNUC__) && __GNUC__ >= 7
+#define FALLTHROUGH [[gnu::fallthrough]]
+#else
+#define FALLTHROUGH
+#endif
+#endif
+
 #endif // ZONEMINDER_SRC_ZM_DEFINE_H_

@@ -408,7 +408,7 @@ void RtspThread::Run() {
       {
         // Check if control Url is absolute or relative
         controlUrl = mediaDesc->getControlUrl();
-        if ( std::equal(trackUrl.begin(), trackUrl.end(), controlUrl.begin()) ) {
+        if (trackUrl == controlUrl) {
           trackUrl = controlUrl;
         } else {
           if ( *trackUrl.rbegin() != '/' ) {

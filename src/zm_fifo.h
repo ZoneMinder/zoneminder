@@ -27,8 +27,6 @@ class Monitor;
 class Fifo {
  private:
    std::string path;
-   int total_read;
-   int bytes_read;
    bool on_blocking_abort;
    FILE *outfile;
    int raw_fd;
@@ -40,17 +38,13 @@ class Fifo {
        bool delete_fake_fifo = true
        );
 
-    Fifo() : 
-      total_read(0),
-      bytes_read(0),
+    Fifo() :
       on_blocking_abort(true),
       outfile(nullptr),
       raw_fd(-1)
     {}
     Fifo(const char *p_path, bool p_on_blocking_abort) :
       path(p_path),
-      total_read(0),
-      bytes_read(0),
       on_blocking_abort(p_on_blocking_abort),
       outfile(nullptr),
       raw_fd(-1)

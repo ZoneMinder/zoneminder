@@ -102,10 +102,7 @@ class EventStream : public StreamBase {
       send_frame(false),
       event_data(nullptr),
       storage(nullptr),
-      ffmpeg_input(nullptr),
-      // Used when loading frames from an mp4
-      input_codec_context(nullptr),
-      input_codec(nullptr)
+      ffmpeg_input(nullptr)
     {}
     ~EventStream() {
         if ( event_data ) {
@@ -135,8 +132,6 @@ class EventStream : public StreamBase {
     bool send_buffer(uint8_t * buffer, int size);
     Storage *storage;
     FFmpeg_Input  *ffmpeg_input;
-    AVCodecContext *input_codec_context;
-    AVCodec *input_codec;
 };
 
 #endif // ZM_EVENTSTREAM_H

@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Events') ) {
+if ( !canView('Snapshots') ) {
   $view = 'error';
   return;
 }
@@ -85,7 +85,7 @@ if ( !$snapshot->Id() ) {
     <div id="content" class="justify-content-center">
 <?php
     $events = $snapshot->Events();
-    $width = 100 / ( ( count($events) < 4 ) ? count($events) : 4 ) -1;
+    $width = 100 / ( count($events) < 2 ? 1 : ( ( count($events) < 4 ) ? count($events) : 4 ) )-1;
     foreach ( $snapshot->Events() as $event ) {
       $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
       echo '<img src="?view=image&eid='.$event->Id().'&fid=snapshot" width="'.$width.'%"/>';

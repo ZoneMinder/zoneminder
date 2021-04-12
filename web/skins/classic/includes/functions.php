@@ -718,7 +718,7 @@ function getMontageReviewHTML($view) {
 function getSnapshotsHTML($view) {
   $result = '';
   
-  if ( canView('Events') ) {
+  if ( canView('Snapshots') ) {
     $class = $view == 'snapshots' ? ' selected' : '';
     $result .= '<li id="getSnapshotsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
   }

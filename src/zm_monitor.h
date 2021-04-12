@@ -413,6 +413,7 @@ public:
   void LoadCamera();
   bool connect();
   bool disconnect();
+  inline bool isConnected() const { return mem_ptr != nullptr; }
 
   inline int ShmValid() const {
     if ( shared_data && shared_data->valid ) {

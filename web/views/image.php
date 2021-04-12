@@ -32,7 +32,7 @@
 //     If both scale and either width or height are specified, scale is ignored
 //
 
-if ( !canView('Events') ) {
+if ( !canView('Events') and ($_REQUEST['fid'] != 'snapshot' or !canView('Snapshots'))) {
   $view = 'error';
   return;
 }

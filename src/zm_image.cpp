@@ -564,10 +564,10 @@ void Image::Initialise() {
   g_u_table = g_u_table_global;
   b_u_table = b_u_table_global;
 
-  int res = font.ReadFontFile(config.font_file_location);
-  if ( res == -1 ) {
+  FontLoadError res = font.LoadFontFile(config.font_file_location);
+  if ( res == FontLoadError::kFileNotFound ) {
     Panic("Invalid font location: %s", config.font_file_location);
-  } else if ( res == -2 || res == -3 || res == -4 ) {
+  } else if ( res == FontLoadError::kInvalidFile ) {
     Panic("Invalid font file."); 
   }
   initialised = true;
@@ -1943,9 +1943,9 @@ const Coord Image::centreCoord( const char *text, int size=1 ) const {
     line_no++;
   }
 
-  font.SetFontSize(size-1);
-  uint16_t char_width = font.GetCharWidth();
-  uint16_t char_height = font.GetCharHeight();
+  FontVariant const &font_variant = font.GetFontVariant(size - 1);
+  uint16_t char_width = font_variant.GetCharWidth();
+  uint16_t char_height = font_variant.GetCharHeight();
   int x = (width - (max_line_len * char_width )) / 2;
   int y = (height - (line_no * char_height) ) / 2;
   return Coord(x, y);
@@ -2023,10 +2023,9 @@ void Image::Annotate(
   const Rgb bg_rgb_col = rgb_convert(bg_colour, subpixelorder);
   const bool bg_trans = (bg_colour == kRGBTransparent);
 
-  font.SetFontSize(size-1);
-  const uint16_t char_width = font.GetCharWidth();
-  const uint16_t char_height = font.GetCharHeight();
-  const uint64_t *font_bitmap = font.GetBitmapData();
+  FontVariant const &font_variant = font.GetFontVariant(size - 1);
+  const uint16_t char_width = font_variant.GetCharWidth();
+  const uint16_t char_height = font_variant.GetCharHeight();
   Debug(4, "Font size %d, char_width %d char_height %d", size, char_width, char_height);
 
   while ( (index < text_len) && (line_len = strcspn(line, "\n")) ) {
@@ -2064,7 +2063,7 @@ void Image::Annotate(
       for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += width ) {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          uint64_t f = font_bitmap[(line[c] * char_height) + r];
+          uint64_t f = font_variant.GetCodepoint(line[c])[r];
           if ( !bg_trans ) memset(temp_ptr, bg_bw_col, char_width);
           while ( f != 0 ) {
             uint64_t t = f & -f;
@@ -2081,7 +2080,7 @@ void Image::Annotate(
       for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          uint64_t f = font_bitmap[(line[c] * char_height) + r];
+          uint64_t f = font_variant.GetCodepoint(line[c])[r];
           if ( !bg_trans ) {
             for ( int i = 0; i < char_width; i++ ) {  // We need to set individual r,g,b components
               unsigned char *colour_ptr = temp_ptr + (i*3);
@@ -2109,7 +2108,7 @@ void Image::Annotate(
       for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
         Rgb* temp_ptr = (Rgb*)ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          uint64_t f = font_bitmap[(line[c] * char_height) + r];
+          uint64_t f = font_variant.GetCodepoint(line[c])[r];
           if ( !bg_trans ) {
             for ( int i = 0; i < char_width; i++ )
               *(temp_ptr + i) = bg_rgb_col;

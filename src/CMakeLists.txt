@@ -82,6 +82,7 @@ target_link_libraries(zm
     libbcrypt::bcrypt
     jwt-cpp::jwt-cpp
     RtspServer::RtspServer
+    martinmoene::span-lite
   PRIVATE
     zm-core-interface)
 

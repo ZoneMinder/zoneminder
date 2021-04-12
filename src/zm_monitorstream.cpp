@@ -480,18 +480,20 @@ void MonitorStream::runStream() {
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
-  while (!(loadMonitor(monitor_id) || zm_terminate)) {
-    sendTextFrame("Not connected");
+  /* This is all about waiting and showing a useful message if the monitor isn't available */
+  while (!zm_terminate) {
     if (connkey)
       checkCommandQueue();
-    sleep(1);
-  }
-  if (zm_terminate) return;
-  while (!checkInitialised() and !zm_terminate) {
-    sendTextFrame("Unable to stream");
-    if (connkey)
-      checkCommandQueue();
-    sleep(1);
+
+    if (!loadMonitor(monitor_id)) {
+      sendTextFrame("Not connected");
+      sleep(1);
+    } else if (!checkInitialised()) {
+      sendTextFrame("Unable to stream");
+      sleep(1);
+    } else {
+      break;
+    }
   }
   if (zm_terminate) return;
 

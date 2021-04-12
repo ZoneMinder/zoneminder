@@ -228,7 +228,7 @@ class MonitorsController extends AppController {
   // arm/disarm alarms
   // expected format: http(s):/portal-api-url/monitors/alarm/id:M/command:C.json
   // where M=monitorId
-  // where C=on|off|status
+  // where C=on|off|status|disable
   public function alarm() {
     $id = $this->request->params['named']['id'];
     if ( !$this->Monitor->exists($id) ) {
@@ -243,6 +243,10 @@ class MonitorsController extends AppController {
         break;
       case 'off':
         $q = '-c';
+        $verbose = '-v';
+        break;
+      case 'disable':
+        $q = '-n';
         $verbose = '-v';
         break;
       case 'status':

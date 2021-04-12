@@ -111,6 +111,10 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
               <td><?php echo htmlSelect('newUser[Events]', $nve, $newUser->Events()) ?></td>
             </tr>
             <tr>
+              <th class="text-right" scope="row"><?php echo translate('Snapshots') ?></th>
+              <td><?php echo htmlSelect('newUser[Snapshots]', $nve, $newUser->Snapshots()) ?></td>
+            </tr>
+            <tr>
               <th class="text-right" scope="row"><?php echo translate('Control') ?></th>
               <td><?php echo htmlSelect('newUser[Control]', $nve, $newUser->Control()) ?></td>
             </tr>

@@ -19,6 +19,7 @@ class User extends ZM_Object {
       'Monitors'        => 'None',
       'Groups'          => 'None',
       'Devices'         => 'None',
+      'Snapshots'       => 'None',
       'System'          => 'None',
       'MaxBandwidth'    => '',
       'MonitorIds'      => '',

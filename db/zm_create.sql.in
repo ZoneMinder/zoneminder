@@ -681,6 +681,7 @@ CREATE TABLE `Users` (
   `Monitors` enum('None','View','Edit') NOT NULL default 'None',
   `Groups` enum('None','View','Edit') NOT NULL default 'None',
   `Devices` enum('None','View','Edit') NOT NULL default 'None',
+  `Snapshots` enum('None','View','Edit') NOT NULL default 'None',
   `System` enum('None','View','Edit') NOT NULL default 'None',
   `MaxBandwidth` varchar(16),
   `MonitorIds` text,

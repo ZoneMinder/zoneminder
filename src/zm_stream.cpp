@@ -50,6 +50,10 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
     return false;
   }
 
+  if ( monitor->isConnected() ) {
+    monitor->disconnect();
+  }
+
   if ( !monitor->connect() ) {
     Error("Unable to connect to monitor id %d for streaming", monitor_id);
     monitor->disconnect();
@@ -60,15 +64,15 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
 }
 
 bool StreamBase::checkInitialised() {
-  if ( !monitor ) {
+  if (!monitor) {
     Error("Cannot stream, not initialised");
     return false;
   }
-  if ( monitor->GetFunction() == Monitor::NONE ) {
+  if (monitor->GetFunction() == Monitor::NONE) {
     Info("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
     return false;
   }
-  if ( !monitor->ShmValid() ) {
+  if (!monitor->ShmValid()) {
     Error("Monitor shm is not connected");
     return false;
   }

@@ -612,5 +612,11 @@ class Monitor extends ZM_Object {
     $cmd = getZmuCommand(' -c -m '.$this->{'Id'});
     $output = shell_exec($cmd);
   }
+  function DisableAlarms() {
+    $cmd = getZmuCommand(' -n -m '.$this->{'Id'});
+    $output = shell_exec($cmd);
+    Debug("Running $cmd output: $output");
+  }
+
 } // end class Monitor
 ?>

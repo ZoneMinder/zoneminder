@@ -598,25 +598,64 @@ class Monitor extends ZM_Object {
     return ( $user && ($user['Monitors'] != 'None') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
   }
 
+  function AlarmCommand($cmd) {
+    if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
+      switch ($cmd) {
+      case 'on' : $cmd = ' -a'; break;
+      case 'off': $cmd = ' -c'; break;
+      case 'disable': $cmd = ' -n'; break;
+      case 'status': $cmd = ' -s'; break;
+      default:
+        Warning("Invalid command $cmd in AlarmCommand");
+        return false;
+      }
+
+      $cmd = getZmuCommand($cmd.' -m '.$this->{'Id'});
+      $output = shell_exec($cmd);
+      Debug("Running $cmd output: $output");
+      return $output;
+    }
+    
+    if ( $this->ServerId() ) {
+      $Server = $this->Server();
+
+      $url = $Server->UrlToApi().'/monitors/alarm/id:'.$this->{'Id'}.'/command:'.$cmd.'.json';
+      $auth_relay = get_auth_relay();
+      if ($auth_relay) $url .= '?'.$auth_relay;
+
+      Debug('sending command to '.$url);
+
+      $context = stream_context_create();
+      try {
+        $result = file_get_contents($url, false, $context);
+        if ( $result === FALSE ) { /* Handle error */
+          Error('Error sending command using '.$url);
+          return false;
+        }
+        Debug("Result $result");
+        $json = json_decode($result, true);
+        return $json['status'];
+
+      } catch ( Exception $e ) {
+        Error("Exception $e thrown trying to send command to $url");
+        return false;
+      }
+    } // end if we are on the recording server
+    Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
+    return false;
+  }
   function TriggerOn() {
-    $cmd = getZmuCommand(' -a -m '.$this->{'Id'});
-    $output = shell_exec($cmd);
-    Debug("Running $cmd output: $output");
+    $output = $this->AlarmCommand('on');
     if ( $output and preg_match('/Alarmed event id: (\d+)$/', $output, $matches) ) {
       return $matches[1];
     }
     Warning("No event returned from TriggerOn");
-    return 0;
   }
   function TriggerOff() {
-    $cmd = getZmuCommand(' -c -m '.$this->{'Id'});
-    $output = shell_exec($cmd);
+    $output = $this->AlarmCommand('off');
   }
   function DisableAlarms() {
-    $cmd = getZmuCommand(' -n -m '.$this->{'Id'});
-    $output = shell_exec($cmd);
-    Debug("Running $cmd output: $output");
+    $output = $this->AlarmCommand('disable');
   }
-
 } // end class Monitor
 ?>

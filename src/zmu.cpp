@@ -179,7 +179,7 @@ bool ValidateAccess(User *user, int mon_id, int function) {
     if ( user->getEvents() < User::PERM_VIEW )
       allowed = false;
   }
-  if ( function & (ZMU_ZONES|ZMU_QUERY|ZMU_LIST|ZMU_ALARM|ZMU_CANCEL) ) {
+  if ( function & (ZMU_ZONES|ZMU_QUERY|ZMU_LIST) ) {
     if ( user->getMonitors() < User::PERM_VIEW )
       allowed = false;
   }
@@ -586,6 +586,9 @@ int main(int argc, char *argv[]) {
               monitor->GetLastEventId()
               );
         }
+
+        // Ensure that we are not recording.  So the forced alarm is distinct from what was recording before
+        monitor->ForceAlarmOff();
         monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
         int wait = 10*1000*1000; // 10 seconds
         while ( ((state = monitor->GetState()) != Monitor::ALARM) and !zm_terminate and wait) {

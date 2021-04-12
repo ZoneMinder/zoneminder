@@ -485,11 +485,12 @@ void MonitorStream::runStream() {
     if (connkey)
       checkCommandQueue();
 
-    if (!loadMonitor(monitor_id)) {
-      sendTextFrame("Not connected");
-      sleep(1);
-    } else if (!checkInitialised()) {
-      sendTextFrame("Unable to stream");
+    if (!checkInitialised()) {
+      if (!loadMonitor(monitor_id)) {
+        sendTextFrame("Not connected");
+      } else {
+        sendTextFrame("Unable to stream");
+      }
       sleep(1);
     } else {
       break;

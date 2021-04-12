@@ -47,10 +47,6 @@ require_once('includes/config.php');
 require_once('includes/session.php');
 require_once('includes/logger.php');
 require_once('includes/Server.php');
-require_once('includes/Storage.php');
-require_once('includes/Event.php');
-require_once('includes/Group.php');
-require_once('includes/Monitor.php');
 
 // Useful debugging lines for mobile devices
 if ( 0 and ZM\Logger::fetch()->debugOn() ) {
@@ -195,6 +191,11 @@ require_once('includes/auth.php');
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
 session_write_close();
+
+require_once('includes/Storage.php');
+require_once('includes/Event.php');
+require_once('includes/Group.php');
+require_once('includes/Monitor.php');
 
 // lang references $user[Language] so must come after auth
 require_once('includes/lang.php');

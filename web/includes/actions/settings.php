@@ -29,7 +29,7 @@ if ( ! canView('Control', $_REQUEST['mid']) ) {
   return;
 }
 
-require_once('Monitor.php');
+require_once('includes/Monitor.php');
 $mid = validInt($_REQUEST['mid']);
 if ( $action == 'settings' ) {
   $args = ' -m ' . escapeshellarg($mid);

@@ -2051,10 +2051,6 @@ void Image::Annotate(
       for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += width ) {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          if ( line[c] > 0xFF ) {
-            Warning("Unsupported character %c in %s", line[c], line);
-            continue;
-          }
           uint64_t f = font_bitmap[(line[c] * char_height) + r];
           if ( !bg_trans ) memset(temp_ptr, bg_bw_col, char_width);
           while ( f != 0 ) {
@@ -2072,10 +2068,6 @@ void Image::Annotate(
       for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
         unsigned char *temp_ptr = ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          if ( line[c] > 0xFF ) {
-            Warning("Unsupported character %c in %s", line[c], line);
-            continue;
-          }
           uint64_t f = font_bitmap[(line[c] * char_height) + r];
           if ( !bg_trans ) {
             for ( int i = 0; i < char_width; i++ ) {  // We need to set individual r,g,b components
@@ -2104,10 +2096,6 @@ void Image::Annotate(
       for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
         Rgb* temp_ptr = (Rgb*)ptr;
         for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          if ( line[c] > 0xFF ) {
-            Warning("Unsupported character %c in %s", line[c], line);
-            continue;
-          }
           uint64_t f = font_bitmap[(line[c] * char_height) + r];
           if ( !bg_trans ) {
             for ( int i = 0; i < char_width; i++ )
@@ -4732,8 +4720,8 @@ void ssse3_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned lon
 
 /* YUYV to RGB24 - relocated from zm_local_camera.cpp */
 __attribute__((noinline)) void zm_convert_yuyv_rgb(const uint8_t* col1, uint8_t* result, unsigned long count) {
-  unsigned int r,g,b;
-  unsigned int y1,y2,u,v;
+  int32 r,g,b;
+  int32 y1,y2,u,v;
   for(unsigned int i=0; i < count; i += 2, col1 += 4, result += 6) {
     y1 = col1[0];
     u = col1[1];

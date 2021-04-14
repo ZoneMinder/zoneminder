@@ -790,7 +790,42 @@ insert into Storage VALUES (NULL, '@ZM_DIR_EVENTS@', 'Default', 'local', NULL, N
 --
 -- Create a default admin user.
 --
-insert into Users VALUES (NULL,'admin','$2b$12$NHZsm6AM2f2LQVROriz79ul3D6DnmFiZC.ZK5eqbF.ZWfwH9bqUJ6','',1,'View','Edit','Edit','Edit','Edit','Edit','Edit','','',0,1,'');
+INSERT INTO `Users` (
+  `Username`,
+  `Password`,
+  `Language`,
+  `Enabled`,
+  `Stream`,
+  `Events`,
+  `Control`,
+  `Monitors`,
+  `Groups`,
+  `Devices`,
+  `Snapshots`,
+  `System`,
+  `MaxBandwidth`,
+  `MonitorIds`,
+  `TokenMinExpiry`,
+  `APIEnabled`,
+  `HomeView`
+  ) VALUES (
+    'admin',
+    '$2b$12$NHZsm6AM2f2LQVROriz79ul3D6DnmFiZC.ZK5eqbF.ZWfwH9bqUJ6',
+    '' /* Language */,
+    1 /* Enabled */,
+    'View' /* Stream */,
+    'Edit' /* Events */,
+    'Edit' /* Control */,
+    'Edit' /* Monitors */,
+    'Edit' /* Groups */,
+    'Edit' /* Devices */,
+    'Edit' /* Snapshots */,
+    'Edit' /* System */,
+    '' /* Max Bandwidth */,
+    '' /* MonitorIds */,
+    0 /* TokenMinExpiry */,
+    0 /* Api Endabled */,
+    '' /* Homeview */);
 
 --
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full

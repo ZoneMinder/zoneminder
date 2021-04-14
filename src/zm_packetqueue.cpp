@@ -241,7 +241,7 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
       if (!lp->trylock()) break;
       delete lp;
 
-      if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
+      if (is_there_an_iterator_pointing_to_packet(zm_packet) and (pktQueue.begin() == next_front)) {
         Warning("Found iterator at beginning of queue. Some thread isn't keeping up");
         break;
       }

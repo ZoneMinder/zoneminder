@@ -220,7 +220,9 @@ setdebpkgname () {
 
     # Set VERSION to {zm version}~{today's date}.{number of commits} e.g. 1.31.0~20170605.82
     # Set RELEASE to the packpack DIST variable e.g. Trusty
-    export VERSION="${versionfile}~${thedate}.${numcommits}"
+    if [ "" == "$VERSION" ]; then
+      export VERSION="${versionfile}~${thedate}.${numcommits}"
+    fi
     export RELEASE="${DIST}"
 
     checkvars

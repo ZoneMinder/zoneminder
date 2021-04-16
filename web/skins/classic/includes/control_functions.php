@@ -122,7 +122,16 @@ function controlPanTilt($monitor, $cmds) {
   $hasTilt = $control->CanTilt();
   $hasDiag = $hasPan && $hasTilt && $control->CanMoveDiag();
 ?>
-    <button type="button" class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUpLeft'] ?>" data-xtell="-1" data-ytell="-1"></button>
+    <button type="button" class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>"
+<?php
+  if ($control->CanMoveCon()) {
+    echo 'data-on-mousedown="controlCmd" ';
+    echo 'data-on-mouseup="controlCmd" ';
+  } else {
+    echo 'data-on-click="controlCmd" ';
+  }
+?>
+value="<?php echo $cmds['MoveUpLeft'] ?>" data-xtell="-1" data-ytell="-1"></button>
     <button type="button" class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUp'] ?>" data-xtell="0" data-ytell="-1"></button>
     <button type="button" class="arrowBtn upRightBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUpRight'] ?>" data-xtell="1" data-ytell="-1"></button>
     <button type="button" class="arrowBtn leftBtn<?php echo $hasPan?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveLeft'] ?>" data-xtell="-1" data-ytell="0"></button>

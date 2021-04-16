@@ -121,29 +121,21 @@ function controlPanTilt($monitor, $cmds) {
   $hasPan = $control->CanPan();
   $hasTilt = $control->CanTilt();
   $hasDiag = $hasPan && $hasTilt && $control->CanMoveDiag();
+  $cmd = $control->CanMoveCon() ? 'data-on-mousedown="controlCmd" data-on-mouseup="controlCmd" ' : 'data-on-click="controlCmd" ';
 ?>
-    <button type="button" class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>"
-<?php
-  if ($control->CanMoveCon()) {
-    echo 'data-on-mousedown="controlCmd" ';
-    echo 'data-on-mouseup="controlCmd" ';
-  } else {
-    echo 'data-on-click="controlCmd" ';
-  }
-?>
-value="<?php echo $cmds['MoveUpLeft'] ?>" data-xtell="-1" data-ytell="-1"></button>
-    <button type="button" class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUp'] ?>" data-xtell="0" data-ytell="-1"></button>
-    <button type="button" class="arrowBtn upRightBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUpRight'] ?>" data-xtell="1" data-ytell="-1"></button>
-    <button type="button" class="arrowBtn leftBtn<?php echo $hasPan?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveLeft'] ?>" data-xtell="-1" data-ytell="0"></button>
+    <button type="button" class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveUpLeft'] ?>" data-xtell="-1" data-ytell="-1"></button>
+    <button type="button" class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveUp'] ?>" data-xtell="0" data-ytell="-1"></button>
+    <button type="button" class="arrowBtn upRightBtn<?php echo $hasDiag?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveUpRight'] ?>" data-xtell="1" data-ytell="-1"></button>
+    <button type="button" class="arrowBtn leftBtn<?php echo $hasPan?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveLeft'] ?>" data-xtell="-1" data-ytell="0"></button>
 <?php if ( isset($cmds['Center']) ) { ?>
-    <button type="button" class="arrowBtn centerBtn" data-on-click="controlCmd" value="<?php echo $cmds['Center'] ?>"></button>
+    <button type="button" class="arrowBtn centerBtn" <?php echo $cmd ?> value="<?php echo $cmds['Center'] ?>"></button>
 <?php } else { ?>
     <button type="button" class="arrowBtn NocenterBtn"></button>
 <?php } ?>
-    <button type="button" class="arrowBtn rightBtn<?php echo $hasPan?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveRight'] ?>" data-xtell="1" data-ytell="0"></button>
-    <button type="button" class="arrowBtn downLeftBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveDownLeft'] ?>" data-xtell="-1" data-ytell="1"></button>
-    <button type="button" class="arrowBtn downBtn<?php echo $hasTilt?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveDown'] ?>" data-xtell="0" data-ytell="1"></button>
-    <button type="button" class="arrowBtn downRightBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveDownRight'] ?>" data-xtell="1" data-ytell="1"></button>
+    <button type="button" class="arrowBtn rightBtn<?php echo $hasPan?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveRight'] ?>" data-xtell="1" data-ytell="0"></button>
+    <button type="button" class="arrowBtn downLeftBtn<?php echo $hasDiag?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveDownLeft'] ?>" data-xtell="-1" data-ytell="1"></button>
+    <button type="button" class="arrowBtn downBtn<?php echo $hasTilt?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveDown'] ?>" data-xtell="0" data-ytell="1"></button>
+    <button type="button" class="arrowBtn downRightBtn<?php echo $hasDiag?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveDownRight'] ?>" data-xtell="1" data-ytell="1"></button>
   </div>
 </div>
 <?php

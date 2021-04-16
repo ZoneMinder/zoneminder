@@ -347,23 +347,20 @@ int main(int argc, char *argv[]) {
 
     for (size_t i = 0; i < monitors.size(); i++) {
       monitors[i]->Close();
+      monitors[i]->disconnect();
     }
 
     delete [] alarm_capture_delays;
     delete [] capture_delays;
     delete [] last_capture_times;
 
-    if (result < 0 and !zm_terminate) {
-      // Failure, try reconnecting
-      Debug(1, "Sleeping for 5");
-      sleep(5);
-    }
     if (zm_reload) {
       for (std::shared_ptr<Monitor> &monitor : monitors) {
         monitor->Reload();
       }
       logTerm();
       logInit(log_id_string);
+      
       zm_reload = false;
     }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop

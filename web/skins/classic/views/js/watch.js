@@ -672,7 +672,8 @@ if ( monitorType != 'WebSite' ) {
   }
   var controlReq = new Request.JSON( {
     url: monitorUrl,
-    method: 'post',
+    method: 'get',
+    //method: 'post',
     timeout: AJAX_TIMEOUT,
     link: 'cancel',
     onSuccess: getControlResponse
@@ -691,12 +692,17 @@ function getControlResponse(respObj, respText) {
 
 function controlCmd(event) {
   button = event.target;
-  control = button.getAttribute('value');
+  if (event.buttons) {
+    control = button.getAttribute('value');
+  } else {
+    console.log('stop');
+    control = 'moveStop';
+  }
   xtell = button.getAttribute('data-xtell');
   ytell = button.getAttribute('data-ytell');
 
   var locParms = '';
-  if ( event && (xtell || ytell) ) {
+  if (xtell || ytell) {
     var target = event.target;
     var coords = $(target).getCoordinates();
 

@@ -619,7 +619,15 @@ function getControlResponse(respObj, respText) {
 
 function controlCmd(event) {
   button = event.target;
-  control = button.getAttribute('value');
+  
+console.log(event);
+if (event.type !='mouseup') {
+    control = button.getAttribute('value');
+  } else {
+    console.log('stop');
+    console.log(event);
+    control = 'moveStop';
+  }
   xtell = button.getAttribute('data-xtell');
   ytell = button.getAttribute('data-ytell');
 

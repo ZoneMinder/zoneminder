@@ -88,7 +88,6 @@ void ZoneMinderFifoSource::WriteRun() {
         memcpy(fuNal.buffer()+1, nalSrc, fuNalSize-1);
 
         if (m_hType == 264) {
-          Debug(1, "Doing h264 nal");
           fuNal.buffer()[0] = (nalSrc[0] & 0xE0) | 28; // FU indicator
           fuNal.buffer()[1] = 0x80 | (nalSrc[0] & 0x1F); // FU header (with S bit)
         } else { // 265
@@ -100,7 +99,7 @@ void ZoneMinderFifoSource::WriteRun() {
         PushFrame(fuNal.buffer(), fuNal.size(), fuNal.pts());
         nalRemaining -= maxNalSize-1;
         nalSrc += maxNalSize-1;
-        int nal_count = 1;
+        int nal_count = 0;
 
         int headerSize = 0;
         if (m_hType == 264) {
@@ -124,7 +123,7 @@ void ZoneMinderFifoSource::WriteRun() {
           nalSrc += fuNalSize;
           nal_count += 1;
         }
-          Debug(1, "Sending %d NALs @ %d and 1 @ %d", nal_count, maxNalSize, fuNal.size());
+        Debug(1, "Sending %d NALs @ %d and 1 @ %d", nal_count, maxNalSize, fuNal.size());
       } else {
         Debug(3, "Pushing nal of size %d at %" PRId64, nal->size(), nal->pts());
         PushFrame(nal->buffer(), nal->size(), nal->pts());

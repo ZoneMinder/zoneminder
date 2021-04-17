@@ -3220,6 +3220,14 @@ int Monitor::Close() {
     analysis_thread->Stop();
   }
   packetqueue.clear();
+  if (audio_fifo) {
+    delete audio_fifo;
+    audio_fifo = nullptr;
+  }
+  if (video_fifo) {
+    delete video_fifo;
+    video_fifo = nullptr;
+  }
 
   std::lock_guard<std::mutex> lck(event_mutex);
   if (event) {

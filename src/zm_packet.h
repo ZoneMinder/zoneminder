@@ -80,7 +80,7 @@ class ZMLockedPacket {
     std::unique_lock<std::mutex> lck_;
     bool locked;
 
-    ZMLockedPacket(ZMPacket *p) :
+    explicit ZMLockedPacket(ZMPacket *p) :
       packet_(p),
       lck_(packet_->mutex_, std::defer_lock),
       locked(false) {
@@ -95,11 +95,13 @@ class ZMLockedPacket {
       locked = true;
       Debug(4, "packet %d locked", packet_->image_index);
     };
+
     bool trylock() {
       Debug(4, "TryLocking packet %d", packet_->image_index);
       locked = lck_.try_lock();
       return locked;
     };
+
     void unlock() {
       Debug(4, "packet %d unlocked", packet_->image_index);
       locked = false;
@@ -109,7 +111,6 @@ class ZMLockedPacket {
 
     void wait() {
       Debug(4, "packet %d waiting", packet_->image_index);
-      // We already have a lock, but it's a recursive mutex.. so this may be ok
       packet_->condition_.wait(lck_);
     }
 };

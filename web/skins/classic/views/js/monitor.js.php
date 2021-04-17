@@ -28,12 +28,16 @@ controlOptions['.$control->Id().'][0] = '.
 ?>
 
 var monitorNames = new Object();
+var rtspStreamNames = new Object();
 <?php
-$query = empty($_REQUEST['mid']) ? dbQuery('SELECT Name FROM Monitors') : dbQuery('SELECT Name FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
-if ( $query ) {
-  while ( $name = dbFetchNext($query, 'Name') ) {
+$query = empty($_REQUEST['mid']) ?
+  dbQuery('SELECT Name,RTSPStreamName FROM Monitors') :
+  dbQuery('SELECT Name,RTSPStreamName FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
+if ($query) {
+  while ($row = dbFetchNext($query)) {
     echo '
-monitorNames[\''.validJsStr($name).'\'] = true;
+monitorNames[\''.validJsStr($row['Name']).'\'] = true;
+rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;
 ';
   } // end foreach
 } # end if query
@@ -86,8 +90,6 @@ function validateForm( form ) {
 
   if (form.elements['newMonitor[VideoWriter]'].value == '1' /* Encode */) {
     var parameters = form.elements['newMonitor[EncoderParameters]'].value.replace(/[^#a-zA-Z]/g, "");
-
-console.log("encoding value" + parameters);
     if (parameters == '' || parameters == '#Linesbeginningwith#areacomment#Forchangingqualityusethecrfoption#isbestisworstquality#crf' ) {
       errors[errors.length] = '<?php echo translate('BadEncoderParameters') ?>';
     }
@@ -145,8 +147,13 @@ console.log("encoding value" + parameters);
         errors[errors.length] = "<?php echo translate('BadSignalCheckColour') ?>";
     if ( !form.elements['newMonitor[WebColour]'].value || !form.elements['newMonitor[WebColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
       errors[errors.length] = "<?php echo translate('BadWebColour') ?>";
-
   }
+
+  if ( form.elements['newMonitor[RTSPStreamName]'].value
+      &&
+      rtspStreamNames[form.elements['newMonitor[RTSPStreamName]'].value]
+    )
+    errors[errors.length] = "<?php echo translate('DuplicateRTSPStreamName') ?>";
 
   if ( errors.length ) {
     alert(errors.join("\n"));

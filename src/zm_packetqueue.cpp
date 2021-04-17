@@ -577,7 +577,7 @@ void PacketQueue::unlock(ZMLockedPacket *lp) {
 
 bool PacketQueue::increment_it(packetqueue_iterator *it) {
   Debug(2, "Incrementing %p, queue size %d, end? %d", it, pktQueue.size(), ((*it) == pktQueue.end()));
-  if ((*it) == pktQueue.end()) {
+  if ((*it) == pktQueue.end() or deleting) {
     return false;
   }
   std::unique_lock<std::mutex> lck(mutex);

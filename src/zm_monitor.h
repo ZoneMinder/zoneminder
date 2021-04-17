@@ -384,8 +384,11 @@ protected:
   SwsContext   *convert_context;
   std::thread  close_event_thread;
 
-  int      n_zones;
+  std::list<Zone> zones;
+  /*
+int      n_zones;
   Zone      **zones;
+  */
 
   const unsigned char  *privacy_bitmask;
 
@@ -408,7 +411,7 @@ public:
   ~Monitor();
 
   void AddZones( int p_n_zones, Zone *p_zones[] );
-  void AddPrivacyBitmask( Zone *p_zones[] );
+  void AddPrivacyBitmask();
 
   void LoadCamera();
   bool connect();

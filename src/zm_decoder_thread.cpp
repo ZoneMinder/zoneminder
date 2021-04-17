@@ -10,11 +10,11 @@ DecoderThread::DecoderThread(Monitor *monitor) :
 
 DecoderThread::~DecoderThread() {
   Stop();
-  if (thread_.joinable())
-    thread_.join();
+  if (thread_.joinable()) thread_.join();
 }
 
 void DecoderThread::Start() {
+  if (thread_.joinable()) thread_.join();
   terminate_ = false;
   thread_ = std::thread(&DecoderThread::Run, this);
 }

@@ -11,18 +11,17 @@ AnalysisThread::AnalysisThread(Monitor *monitor) :
 
 AnalysisThread::~AnalysisThread() {
   Stop();
-  if (thread_.joinable())
-    thread_.join();
+  if (thread_.joinable()) thread_.join();
 }
 
 void AnalysisThread::Start() {
+  if (thread_.joinable()) thread_.join();
   terminate_ = false;
+  Debug(3, "Starting analysis thread");
   thread_ = std::thread(&AnalysisThread::Run, this);
 }
 
 void AnalysisThread::Run() {
-  Debug(2, "AnalysisThread::Run() for %d", monitor_->Id());
-
   Microseconds analysis_rate = Microseconds(monitor_->GetAnalysisRate());
   Seconds analysis_update_delay = Seconds(monitor_->GetAnalysisUpdateDelay());
   Debug(2, "AnalysisThread::Run() have update delay %d", analysis_update_delay);

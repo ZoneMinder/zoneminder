@@ -38,6 +38,7 @@ extern "C" {
 
 #include <string>
 
+time_t              start_read_time;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 static enum AVPixelFormat hw_pix_fmt;
@@ -172,6 +173,7 @@ FfmpegCamera::~FfmpegCamera() {
 }
 
 int FfmpegCamera::PrimeCapture() {
+  start_read_time = time(nullptr);
   if ( mCanCapture ) {
     Debug(1, "Priming capture from %s, Closing", mPath.c_str());
     Close();
@@ -190,6 +192,7 @@ int FfmpegCamera::PreCapture() {
 int FfmpegCamera::Capture(ZMPacket &zm_packet) {
   if (!mCanCapture) return -1;
 
+  start_read_time = time(nullptr);
   int ret;
 
   if ( mSecondFormatContext and
@@ -614,9 +617,16 @@ int FfmpegCamera::Close() {
 }  // end FfmpegCamera::Close
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
-  // FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
-  // Debug(4, "FfmpegInterruptCallback");
-  return zm_terminate;
+  if (zm_terminate) {
+    Debug(1, "Received terminate in cb");
+    return zm_terminate;
+  }
+  time_t now = time(nullptr);
+  if (now - start_read_time > 10) {
+    Debug(1, "timeout in ffmpeg camera now %d - %d > 10", now, start_read_time);
+    return 1;
+  }
+  return 0;
 }
 
 #endif  // HAVE_LIBAVFORMAT

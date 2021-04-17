@@ -41,6 +41,7 @@ class Buffer {
   }
   explicit Buffer(unsigned int pSize) : mAllocation(pSize), mSize(0) {
     mHead = mStorage = new unsigned char[mAllocation];
+    if (mAllocation) *mHead = '\n';
     mTail = mHead;
   }
   Buffer(const unsigned char *pStorage, unsigned int pSize) :
@@ -83,7 +84,7 @@ class Buffer {
 
   // Trim from the front of the buffer
   unsigned int consume(unsigned int count) {
-    if ( count > mSize ) {
+    if (count > mSize) {
       Warning("Attempt to consume %d bytes of buffer, size is only %d bytes",
           count, mSize);
       count = mSize;
@@ -140,6 +141,7 @@ class Buffer {
     if (mHead != mStorage) {
       if (mSize == 0) {
         mHead = mTail = mStorage;
+        *mHead = '\0';
       } else if (level) {
         if (((uintptr_t)mHead-(uintptr_t)mStorage) > mSize) {
           std::memcpy(mStorage, mHead, mSize);

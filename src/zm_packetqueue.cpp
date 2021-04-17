@@ -238,7 +238,10 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
     while (*it != add_packet) {
       zm_packet = *it;
       lp = new ZMLockedPacket(zm_packet);
-      if (!lp->trylock()) break;
+      if (!lp->trylock()) {
+        delete lp;
+        break;
+      }
       delete lp;
 
       if (is_there_an_iterator_pointing_to_packet(zm_packet) and (pktQueue.begin() == next_front)) {

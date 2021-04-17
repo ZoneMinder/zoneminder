@@ -14,7 +14,10 @@ task:
 
   build_script:
     - cd build
-    - make -j3 | grep --line-buffered -Ev '^(cp lib\/|Installing.+\.pm|-- Installing:)' && (exit ${PIPESTATUS[0]})
+    - make -j3
+
+  install_script:
+    - cd build
     - make install
 
   test_script:

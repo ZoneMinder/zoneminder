@@ -27,6 +27,10 @@
 #include "zm_poly.h"
 #include "zm_rgb.h"
 
+#include <algorithm>
+#include <list>
+#include <string>
+
 class Event;
 class Image;
 class Monitor;
@@ -42,7 +46,14 @@ protected:
     int hi_x;
     int off_x;
   };
-  typedef struct { unsigned char tag; int count; int lo_x; int hi_x; int lo_y; int hi_y; } BlobStats;
+  typedef struct {
+    unsigned char tag;
+    int count;
+    int lo_x;
+    int hi_x;
+    int lo_y;
+    int hi_y;
+  } BlobStats;
 
 public:
   typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE, PRIVACY } ZoneType;
@@ -50,10 +61,10 @@ public:
 
 protected:
   // Inputs
-  Monitor      *monitor;
+  Monitor     *monitor;
 
-  int        id;
-  char      *label;
+  int         id;
+  std::string label;
   ZoneType   type;
   Polygon    polygon;
   Rgb        alarm_rgb;
@@ -69,7 +80,7 @@ protected:
   int        min_filter_pixels;
   int        max_filter_pixels;
 
-  BlobStats blob_stats[256];
+  BlobStats  blob_stats[256];
   int        min_blob_pixels;
   int        max_blob_pixels;
   int        min_blobs;
@@ -97,50 +108,128 @@ protected:
 
   int       overload_count;
   int       extend_alarm_count;
-  char      diag_path[PATH_MAX];
+  std::string diag_path;
 
 protected:
-  void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs, int p_overload_frames, int p_extend_alarm_frames );
+  void Setup(
+      ZoneType p_type,
+      const Polygon &p_polygon,
+      const Rgb p_alarm_rgb,
+      CheckMethod p_check_method,
+      int p_min_pixel_threshold,
+      int p_max_pixel_threshold,
+      int p_min_alarm_pixels,
+      int p_max_alarm_pixels,
+      const Coord &p_filter_box,
+      int p_min_filter_pixels,
+      int p_max_filter_pixels,
+      int p_min_blob_pixels,
+      int p_max_blob_pixels,
+      int p_min_blobs,
+      int p_max_blobs,
+      int p_overload_frames,
+      int p_extend_alarm_frames);
+
   void std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum);
   
 public:
-  Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold=15, int p_max_pixel_threshold=0, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0, int p_overload_frames=0, int p_extend_alarm_frames=0 )
+  Zone(
+      Monitor *p_monitor,
+      int p_id,
+      const char *p_label,
+      ZoneType p_type,
+      const Polygon &p_polygon,
+      const Rgb p_alarm_rgb,
+      CheckMethod p_check_method,
+      int p_min_pixel_threshold=15,
+      int p_max_pixel_threshold=0,
+      int p_min_alarm_pixels=50,
+      int p_max_alarm_pixels=75000,
+      const Coord &p_filter_box=Coord( 3, 3 ),
+      int p_min_filter_pixels=50,
+      int p_max_filter_pixels=50000,
+      int p_min_blob_pixels=10,
+      int p_max_blob_pixels=0,
+      int p_min_blobs=0,
+      int p_max_blobs=0,
+      int p_overload_frames=0,
+      int p_extend_alarm_frames=0)
+        :
+           monitor(p_monitor),
+           id(p_id),
+           label(p_label),
+           blob_stats{}
   {
-    Setup( p_monitor, p_id, p_label, p_type, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames, p_extend_alarm_frames );
+    Setup(p_type, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames, p_extend_alarm_frames );
   }
-  Zone( Monitor *p_monitor, int p_id, const char *p_label, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold=15, int p_max_pixel_threshold=0, int p_min_alarm_pixels=50, int p_max_alarm_pixels=75000, const Coord &p_filter_box=Coord( 3, 3 ), int p_min_filter_pixels=50, int p_max_filter_pixels=50000, int p_min_blob_pixels=10, int p_max_blob_pixels=0, int p_min_blobs=0, int p_max_blobs=0, int p_overload_frames=0, int p_extend_alarm_frames=0)
+  Zone(
+      Monitor *p_monitor,
+      int p_id,
+      const char *p_label,
+      const Polygon &p_polygon,
+      const Rgb p_alarm_rgb,
+      CheckMethod p_check_method,
+      int p_min_pixel_threshold=15,
+      int p_max_pixel_threshold=0,
+      int p_min_alarm_pixels=50,
+      int p_max_alarm_pixels=75000,
+      const Coord &p_filter_box=Coord( 3, 3 ),
+      int p_min_filter_pixels=50,
+      int p_max_filter_pixels=50000,
+      int p_min_blob_pixels=10,
+      int p_max_blob_pixels=0,
+      int p_min_blobs=0,
+      int p_max_blobs=0,
+      int p_overload_frames=0,
+      int p_extend_alarm_frames=0)
+        :
+           monitor(p_monitor),
+           id(p_id),
+           label(p_label),
+           blob_stats{}
   {
-    Setup( p_monitor, p_id, p_label, Zone::ACTIVE, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames, p_extend_alarm_frames );
+    Setup(Zone::ACTIVE, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames, p_extend_alarm_frames );
   }
-  Zone( Monitor *p_monitor, int p_id, const char *p_label, const Polygon &p_polygon )
+  Zone(Monitor *p_monitor, int p_id, const char *p_label, const Polygon &p_polygon)
+        :
+           monitor(p_monitor),
+           id(p_id),
+           label(p_label),
+           blob_stats{}
   {
-    Setup( p_monitor, p_id, p_label, Zone::INACTIVE, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
+    Setup(Zone::INACTIVE, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord(0, 0), 0, 0, 0, 0, 0, 0, 0, 0);
   }
   Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon )
+        :
+           monitor(p_monitor),
+           id(p_id),
+           label(p_label),
+           blob_stats{}
   {
-    Setup( p_monitor, p_id, p_label, p_type, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
+    Setup(p_type, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
   }
 
-public:
+  Zone(const Zone &z);
+
   ~Zone();
 
-  inline int Id() const { return( id ); }
-  inline const char *Label() const { return( label ); }
-  inline ZoneType Type() const { return( type ); }
+  inline int Id() const { return id; }
+  inline const char *Label() const { return label.c_str(); }
+  inline ZoneType Type() const { return type; }
   inline bool IsActive() const { return( type == ACTIVE ); }
   inline bool IsInclusive() const { return( type == INCLUSIVE ); }
   inline bool IsExclusive() const { return( type == EXCLUSIVE ); }
   inline bool IsPreclusive() const { return( type == PRECLUSIVE ); }
   inline bool IsInactive() const { return( type == INACTIVE ); }
   inline bool IsPrivacy() const { return( type == PRIVACY ); }
-  inline const Image *AlarmImage() const { return( image ); }
-  inline const Polygon &GetPolygon() const { return( polygon ); }
-  inline bool Alarmed() const { return( alarmed ); }
-	inline bool WasAlarmed() const { return( was_alarmed ); }
+  inline const Image *AlarmImage() const { return image; }
+  inline const Polygon &GetPolygon() const { return polygon; }
+  inline bool Alarmed() const { return alarmed; }
+	inline bool WasAlarmed() const { return was_alarmed; }
 	inline void SetAlarm() { was_alarmed = alarmed; alarmed = true; }
 	inline void ClearAlarm() { was_alarmed = alarmed; alarmed = false; }
-  inline Coord GetAlarmCentre() const { return( alarm_centre ); }
-  inline unsigned int Score() const { return( score ); }
+  inline Coord GetAlarmCentre() const { return alarm_centre; }
+  inline unsigned int Score() const { return score; }
 
   inline void ResetStats() {
     alarmed = false;
@@ -160,7 +249,7 @@ public:
 
   static bool ParsePolygonString( const char *polygon_string, Polygon &polygon );
   static bool ParseZoneString( const char *zone_string, int &zone_id, int &colour, Polygon &polygon );
-  static int Load( Monitor *monitor, Zone **&zones );
+  static std::list<Zone> Load(Monitor *monitor);
   //=================================================
   bool CheckOverloadCount();
   int GetOverloadCount();
@@ -174,8 +263,8 @@ public:
   void SetScore(unsigned int nScore);
   void SetAlarmImage(const Image* srcImage);
 
-  inline const Image *getPgImage() const { return( pg_image ); }
-  inline const Range *getRanges() const { return( ranges ); }
+  inline const Image *getPgImage() const { return pg_image; }
+  inline const Range *getRanges() const { return ranges; }
 };
 
 #endif // ZM_ZONE_H

@@ -141,7 +141,7 @@ class Buffer {
     if (mHead != mStorage) {
       if (mSize == 0) {
         mHead = mTail = mStorage;
-        *mHead = '\0';
+//*mHead = '\0';
       } else if (level) {
         if (((uintptr_t)mHead-(uintptr_t)mStorage) > mSize) {
           std::memcpy(mStorage, mHead, mSize);

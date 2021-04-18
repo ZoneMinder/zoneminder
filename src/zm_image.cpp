@@ -130,7 +130,6 @@ Image::Image() :
   buffer = 0;
   buffertype = ZM_BUFTYPE_DONTFREE;
   holdbuffer = 0;
-  text[0] = '\0';
   blend = fptr_blend;
 }
 
@@ -150,7 +149,6 @@ Image::Image(const char *filename) {
   buffertype = ZM_BUFTYPE_DONTFREE;
   holdbuffer = 0;
   ReadJpeg(filename, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-  text[0] = '\0';
   update_function_pointers();
 }
 
@@ -176,7 +174,6 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   } else {
     AllocImgBuffer(size);
   }
-  text[0] = '\0';
   imagePixFormat = AVPixFormat();
 
   update_function_pointers();
@@ -204,14 +201,12 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   } else {
     AllocImgBuffer(size);
   }
-  text[0] = '\0';
   imagePixFormat = AVPixFormat();
 
   update_function_pointers();
 }
 
 Image::Image(const AVFrame *frame) {
-  text[0] = '\0';
   width = frame->width;
   height = frame->height;
   pixels = width*height;
@@ -336,7 +331,7 @@ Image::Image(const Image &p_image) {
   holdbuffer = 0;
   AllocImgBuffer(size);
   (*fptr_imgbufcpy)(buffer, p_image.buffer, size);
-  strncpy(text, p_image.text, sizeof(text));
+  annotation_ = p_image.annotation_;
   imagePixFormat = p_image.imagePixFormat;
   update_function_pointers();
 }
@@ -1191,8 +1186,8 @@ cinfo->out_color_space = JCS_RGB;
   cinfo->dct_method = JDCT_FASTEST;
 
   jpeg_start_compress(cinfo, TRUE);
-  if ( config.add_jpeg_comments && text[0] ) {
-    jpeg_write_marker(cinfo, JPEG_COM, (const JOCTET *)text, strlen(text));
+  if ( config.add_jpeg_comments && !annotation_.empty() ) {
+    jpeg_write_marker(cinfo, JPEG_COM, reinterpret_cast<const JOCTET *>(annotation_.c_str()), annotation_.size());
   }
   // If we have a non-zero time (meaning a parameter was passed in), then form a simple exif segment with that time as DateTimeOriginal and SubsecTimeOriginal
   // No timestamp just leave off the exif section.
@@ -1997,143 +1992,122 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
 https://lemire.me/blog/2018/02/21/iterating-over-set-bits-quickly/
 */
 void Image::Annotate(
-    const char *p_text,
+    const std::string &text,
     const Coord &coord,
-    const unsigned int size,
+    const uint8 size,
     const Rgb fg_colour,
     const Rgb bg_colour) {
-  strncpy(text, p_text, sizeof(text)-1);
+  annotation_ = text;
 
-  unsigned int index = 0;
-  unsigned int line_no = 0;
-  unsigned int text_len = strlen(text);
-  unsigned int line_len = 0;
-  const char *line = text;
-
-  const uint8_t fg_r_col = RED_VAL_RGBA(fg_colour);
-  const uint8_t fg_g_col = GREEN_VAL_RGBA(fg_colour);
-  const uint8_t fg_b_col = BLUE_VAL_RGBA(fg_colour);
-  const uint8_t fg_bw_col = fg_colour & 0xff;
   const Rgb fg_rgb_col = rgb_convert(fg_colour, subpixelorder);
-
-  const uint8_t bg_r_col = RED_VAL_RGBA(bg_colour);
-  const uint8_t bg_g_col = GREEN_VAL_RGBA(bg_colour);
-  const uint8_t bg_b_col = BLUE_VAL_RGBA(bg_colour);
-  const uint8_t bg_bw_col = bg_colour & 0xff;
   const Rgb bg_rgb_col = rgb_convert(bg_colour, subpixelorder);
-  const bool bg_trans = (bg_colour == kRGBTransparent);
 
   FontVariant const &font_variant = font.GetFontVariant(size - 1);
-  const uint16_t char_width = font_variant.GetCharWidth();
-  const uint16_t char_height = font_variant.GetCharHeight();
-  Debug(4, "Font size %d, char_width %d char_height %d", size, char_width, char_height);
+  const uint16 char_width = font_variant.GetCharWidth();
+  const uint16 char_height = font_variant.GetCharHeight();
 
-  while ( (index < text_len) && (line_len = strcspn(line, "\n")) ) {
-    unsigned int line_width = line_len * char_width;
+  std::vector<std::string> lines = Split(annotation_, '\n');
+  std::size_t max_line_length = 0;
+  for (const std::string &s : lines) {
+    max_line_length = std::max(max_line_length, s.size());
+  }
 
-    unsigned int lo_line_x = coord.X();
-    unsigned int lo_line_y = coord.Y() + (line_no * char_height);
+  uint32 x0_max = width - (max_line_length * char_width);
+  uint32 y0_max = height - (lines.size() * char_height);
 
-    unsigned int min_line_x = 0;
-    // FIXME What if line_width > width?
-    unsigned int max_line_x = width - line_width;
-    unsigned int min_line_y = 0;
-    unsigned int max_line_y = height - char_height;
+  // Calculate initial coordinates of annotation so that everything is displayed even if the
+  // user set coordinates would prevent that.
+  uint32 x0 = ZM::clamp(static_cast<uint32>(coord.X()), 0u, x0_max);
+  uint32 y0 = ZM::clamp(static_cast<uint32>(coord.Y()), 0u, y0_max);
 
-    if ( lo_line_x > max_line_x )
-      lo_line_x = max_line_x;
-    if ( lo_line_x < min_line_x )
-      lo_line_x = min_line_x;
-    if ( lo_line_y > max_line_y )
-      lo_line_y = max_line_y;
-    if ( lo_line_y < min_line_y )
-      lo_line_y = min_line_y;
+  uint32 y = y0;
+  for (const std::string &line : lines) {
+    uint32 x = x0;
 
-    unsigned int hi_line_x = lo_line_x + line_width;
-    unsigned int hi_line_y = lo_line_y + char_height;
-
-    // Clip anything that runs off the right of the screen
-    if ( hi_line_x > width )
-      hi_line_x = width;
-    if ( hi_line_y > height )
-      hi_line_y = height;
-
-    if ( colours == ZM_COLOUR_GRAY8 ) {
-      unsigned char *ptr = &buffer[(lo_line_y*width)+lo_line_x];
-      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += width ) {
-        unsigned char *temp_ptr = ptr;
-        for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          uint64_t f = font_variant.GetCodepoint(line[c])[r];
-          if ( !bg_trans ) memset(temp_ptr, bg_bw_col, char_width);
-          while ( f != 0 ) {
-            uint64_t t = f & -f;
-            int idx = char_width - __builtin_ctzll(f) + size;
-            *(temp_ptr + idx) = fg_bw_col;
-            f ^= t;
+    if (colours == ZM_COLOUR_GRAY8) {
+      uint8 *ptr = &buffer[(y * width) + x0];
+      for (char c : line) {
+        for (uint64 cp_row : font_variant.GetCodepoint(c)) {
+          if (bg_colour != kRGBTransparent) {
+            std::fill(ptr, ptr + char_width, static_cast<uint8>(bg_colour & 0xff));
           }
-          temp_ptr += char_width;
+
+          while (cp_row != 0) {
+            int column_idx = char_width - __builtin_ctzll(cp_row) + size;
+            *(ptr + column_idx) = fg_colour & 0xff;
+            cp_row = cp_row & (cp_row - 1);
+          }
+        }
+        ptr -= (width * char_height);
+        ptr += char_width;
+        x += char_width;
+        if (x >= width) {
+          break;
         }
       }
-    } else if ( colours == ZM_COLOUR_RGB24 ) {
-      unsigned int wc = width * colours;
-      unsigned char *ptr = &buffer[((lo_line_y*width)+lo_line_x)*colours];
-      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
-        unsigned char *temp_ptr = ptr;
-        for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          uint64_t f = font_variant.GetCodepoint(line[c])[r];
-          if ( !bg_trans ) {
-            for ( int i = 0; i < char_width; i++ ) {  // We need to set individual r,g,b components
-              unsigned char *colour_ptr = temp_ptr + (i*3);
-              RED_PTR_RGBA(colour_ptr) = bg_r_col;
-              GREEN_PTR_RGBA(colour_ptr) = bg_g_col;
-              BLUE_PTR_RGBA(colour_ptr) = bg_b_col;
+    } else if (colours == ZM_COLOUR_RGB24) {
+      constexpr uint8 bytesPerPixel = 3;
+      uint8 *ptr = &buffer[((y * width) + x0) * bytesPerPixel];
+
+      for (char c : line) {
+        for (uint64 cp_row : font_variant.GetCodepoint(c)) {
+          if (bg_colour != kRGBTransparent) {
+            for (int i = 0; i < char_width; i++) {  // We need to set individual r,g,b components
+              uint8 *colour_ptr = ptr + (i * bytesPerPixel);
+              RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(bg_colour);
+              GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(bg_colour);
+              BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(bg_colour);
             }
           }
-          while ( f != 0 ) {
-            uint64_t t = f & -f;
-            int idx = char_width - __builtin_ctzll(f) + size;
-            unsigned char *colour_ptr = temp_ptr + (idx*3);
-            RED_PTR_RGBA(colour_ptr) = fg_r_col;
-            GREEN_PTR_RGBA(colour_ptr) = fg_g_col;
-            BLUE_PTR_RGBA(colour_ptr) = fg_b_col;
-            f ^= t;
+
+          while (cp_row != 0) {
+            int column_idx = char_width - __builtin_ctzll(cp_row) + size;
+            uint8 *colour_ptr = ptr + (column_idx * bytesPerPixel);
+            RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_colour);
+            GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_colour);
+            BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
+            cp_row = cp_row & (cp_row - 1);
           }
-          temp_ptr += char_width * colours;
+        }
+        ptr -= (width * char_height * bytesPerPixel);
+        ptr += char_width * bytesPerPixel;
+        x += char_width;
+        if (x >= width) {
+          break;
         }
       }
-    } else if ( colours == ZM_COLOUR_RGB32 ) {
-      unsigned int wc = width * colours;
+    } else if (colours == ZM_COLOUR_RGB32) {
+      constexpr uint8 bytesPerPixel = 4;
+      Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[((y * width) + x0) * bytesPerPixel]);
 
-      uint8_t *ptr = &buffer[((lo_line_y*width)+lo_line_x) << 2];
-      for ( unsigned int y = lo_line_y, r = 0; y < hi_line_y && r < char_height; y++, r++, ptr += wc ) {
-        Rgb* temp_ptr = (Rgb*)ptr;
-        for ( unsigned int x = lo_line_x, c = 0; x < hi_line_x && c < line_len; c++ ) {
-          uint64_t f = font_variant.GetCodepoint(line[c])[r];
-          if ( !bg_trans ) {
-            for ( int i = 0; i < char_width; i++ )
-              *(temp_ptr + i) = bg_rgb_col;
+      for (char c : line) {
+        for (uint64 cp_row : font_variant.GetCodepoint(c)) {
+          if (bg_colour != kRGBTransparent) {
+            std::fill(ptr, ptr + char_width, bg_rgb_col);
           }
-          while ( f != 0 ) {
-            uint64_t t = f & -f;
-            int idx = char_width - __builtin_ctzll(f) + size;
-            *(temp_ptr + idx) = fg_rgb_col;
-            f ^= t;
+
+          while (cp_row != 0) {
+            uint32 column_idx = char_width - __builtin_ctzll(cp_row) + size;
+            *(ptr + column_idx) = fg_rgb_col;
+            cp_row = cp_row & (cp_row - 1);
           }
-          temp_ptr += char_width;
+          ptr += width;
+        }
+        ptr -= (width * char_height);
+        ptr += char_width;
+        x += char_width;
+        if (x >= width) {
+          break;
         }
       }
-
     } else {
       Error("Annotate called with unexpected colours: %d", colours);
       return;
     }
-
-    index += line_len;
-    while ( text[index] == '\n' ) {
-      index++;
+    y += char_height;
+    if (y >= height) {
+      break;
     }
-    line = text+index;
-    line_no++;
   }
 }
 

@@ -115,7 +115,7 @@ class Image {
 	
 
     inline void AllocImgBuffer(size_t p_bufsize) {
-      if ( buffer ) 
+      if ( buffer )
         DumpImgBuffer();
 
       buffer = AllocBuffer(p_bufsize);
@@ -152,7 +152,7 @@ class Image {
     uint8_t *buffer;
     int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
     int holdbuffer; /* Hold the buffer instead of replacing it with new one */
-    char text[1024];
+    std::string annotation_;
 
   public:
     Image();
@@ -254,7 +254,7 @@ class Image {
     bool ReadJpeg(const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
 
     bool WriteJpeg(const char *filename) const;
-    bool WriteJpeg(const char *filename, bool on_blocking_abort) const;	
+    bool WriteJpeg(const char *filename, bool on_blocking_abort) const;
     bool WriteJpeg(const char *filename, int quality_override) const;
     bool WriteJpeg(const char *filename, struct timeval timestamp) const;
     bool WriteJpeg(const char *filename, int quality_override, struct timeval timestamp) const;
@@ -282,7 +282,11 @@ class Image {
 
     const Coord centreCoord(const char *text, const int size) const;
     void MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour=0x00222222 );
-    void Annotate(const char *p_text, const Coord &coord, unsigned int size = 1, Rgb fg_colour = kRGBWhite, Rgb bg_colour = kRGBBlack);
+    void Annotate(const std::string &text,
+                const Coord &coord,
+                uint8 size = 1,
+                Rgb fg_colour = kRGBWhite,
+                Rgb bg_colour = kRGBBlack);
     Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );
     //Image *HighlightEdges( Rgb colour, const Polygon &polygon );
     void Timestamp( const char *label, const time_t when, const Coord &coord, const int size );

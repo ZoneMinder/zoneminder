@@ -1279,7 +1279,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <td><input type="number" name="newMonitor[Longitude]" step="any" value="<?php echo $monitor->Longitude() ?>" min="-180" max="180"/></td>
         </tr>
         <tr>
-          <td class="text-right pr-3"><?php echo translate('Longitude') ?></td>
+          <td class="text-right pr-3"></td>
           <td><button type="button" data-on-click="getLocation"><?php echo translate('GetCurrentLocation') ?></button></td>
         </tr>
         <tr>

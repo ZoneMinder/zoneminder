@@ -410,7 +410,6 @@ public:
 
   ~Monitor();
 
-  void AddZones( int p_n_zones, Zone *p_zones[] );
   void AddPrivacyBitmask();
 
   void LoadCamera();

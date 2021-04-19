@@ -1121,9 +1121,6 @@ Monitor::~Monitor() {
   analysis_it = nullptr;
   decoder_it = nullptr;
 
-  // FIXME do we even need to do this?
-  //zones.clear();
-
   delete storage;
   if (n_linked_monitors) {
     for ( int i=0; i < n_linked_monitors; i++ ) {
@@ -1141,16 +1138,6 @@ Monitor::~Monitor() {
     convert_context = nullptr;
   }
 }  // end Monitor::~Monitor()
-
-void Monitor::AddZones(int p_n_zones, Zone *p_zones[]) {
-#if 0
-  for ( int i=0; i < n_zones; i++ )
-    delete zones[i];
-  delete[] zones;
-  n_zones = p_n_zones;
-  zones = p_zones;
-#endif
-}
 
 void Monitor::AddPrivacyBitmask() {
   if (privacy_bitmask) {

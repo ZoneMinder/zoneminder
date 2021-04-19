@@ -150,6 +150,12 @@ TEST_CASE("Base64Encode") {
   REQUIRE(Base64Encode("foobar") == "Zm9vYmFy");
 }
 
+TEST_CASE("ZM::clamp") {
+  REQUIRE(ZM::clamp(1, 0, 2) == 1);
+  REQUIRE(ZM::clamp(3, 0, 2) == 2);
+  REQUIRE(ZM::clamp(-1, 0, 2) == 0);
+}
+
 TEST_CASE("UriDecode") {
   REQUIRE(UriDecode("abcABC123-_.~%21%28%29%26%3d%20") == "abcABC123-_.~!()&= ");
   REQUIRE(UriDecode("abcABC123-_.~%21%28%29%26%3d+") == "abcABC123-_.~!()&= ");

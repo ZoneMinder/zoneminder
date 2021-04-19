@@ -907,8 +907,9 @@ function manageShutdownBtns(element) {
       .fail(logAjaxFail);
 }
 
+var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
-  timeout = setTimeout(function() {
+  thumbnail_timeout = setTimeout(function() {
     var img = event.target;
     var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
     var imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
@@ -919,7 +920,7 @@ function thumbnail_onmouseover(event) {
 }
 
 function thumbnail_onmouseout(event) {
-  clearTimeout(timeout);
+  clearTimeout(thumbnail_timeout);
   var img = event.target;
   var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';

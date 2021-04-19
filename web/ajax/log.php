@@ -48,7 +48,7 @@ function buildLogQuery($action) {
     } else {
       $minTime = strtotime($minTime);
     }
-    $where[] = 'TimeKey >= ?';
+    $where[] = 'TimeKey > ?';
     $values[] = $minTime;
   }
   if ( $maxTime ) {
@@ -59,7 +59,7 @@ function buildLogQuery($action) {
     } else {
       $maxTime = strtotime($maxTime);
     }
-    $where[] = 'TimeKey <= ?';
+    $where[] = 'TimeKey < ?';
     $values[] = $maxTime;
   }
 

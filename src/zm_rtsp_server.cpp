@@ -57,8 +57,10 @@ and provide that stream over rtsp
 #include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_utils.h"
+
 #include <getopt.h>
 #include <iostream>
+#include <vector>
 
 
 #include "xop/RtspServer.h"
@@ -172,7 +174,10 @@ int main(int argc, char *argv[]) {
   xop::MediaSession **sessions = new xop::MediaSession *[monitors.size()];
   for (size_t i = 0; i < monitors.size(); i++) sessions[i] = nullptr;
 
-  std::list<ZoneMinderFifoSource *> sources;
+  std::vector<ZoneMinderFifoSource *> video_sources;
+  video_sources.reserve(monitors.size());
+  std::vector<ZoneMinderFifoSource *> audio_sources;
+  audio_sources.reserve(monitors.size());
 
   while (!zm_terminate) {
     for (size_t i = 0; i < monitors.size(); i++) {
@@ -185,6 +190,14 @@ int main(int argc, char *argv[]) {
            if (sessions[i]) {
              rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
              sessions[i] = nullptr;
+           }
+           if (video_sources[i]) {
+             delete video_sources[i];
+             video_sources[i] = 0;
+           }
+           if (audio_sources[i]) {
+             delete audio_sources[i];
+             audio_sources[i] = 0;
            }
            continue;
          }
@@ -232,7 +245,7 @@ int main(int argc, char *argv[]) {
         if (videoSource == nullptr) {
           Error("Unable to create source");
         }
-        sources.push_back(videoSource);
+        video_sources[i] = videoSource;
         if (videoSource) {
           videoSource->setWidth(monitor->Width());
           videoSource->setHeight(monitor->Height());
@@ -262,7 +275,7 @@ int main(int argc, char *argv[]) {
         if (audioSource == nullptr) {
           Error("Unable to create source");
         }
-        sources.push_back(audioSource);
+        audio_sources.push_back(audioSource);
       }  // end if ! sessions[i]
     }  // end foreach monitor
 
@@ -285,18 +298,9 @@ int main(int argc, char *argv[]) {
       rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
       sessions[i] = nullptr;
     }
+    if (video_sources[i]) delete video_sources[i];
+    if (audio_sources[i]) delete audio_sources[i];
   }  // end foreach monitor
-
-  for ( std::list<ZoneMinderFifoSource *>::iterator it = sources.begin(); it != sources.end(); ++it ) {
-    Debug(1, "RTSPServerThread::stopping source");
-    (*it)->Stop();
-  }
-  while (sources.size()) {
-    Debug(1, "RTSPServerThread::stop closing source");
-    ZoneMinderFifoSource *source = sources.front();
-    sources.pop_front();
-    delete source;
-  }
 
   rtspServer->Stop();
 

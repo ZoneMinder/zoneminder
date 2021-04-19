@@ -427,12 +427,12 @@ int RemoteCameraHttp::GetResponse() {
               //// MPEG stream, coming soon!
               //}
               else {
-                Error( "Unrecognised content type '%s'", content_type );
-                return( -1 );
+                Error("Unrecognised content type '%s'", content_type);
+                return -1;
               }
-              buffer.consume( header_len );
+              buffer.consume(header_len);
             } else {
-              Debug( 3, "Unable to extract header from stream, retrying" );
+              Debug(3, "Unable to extract header from stream, retrying");
               //return( -1 );
             }
             break;
@@ -579,10 +579,7 @@ int RemoteCameraHttp::GetResponse() {
       authenticate_match_len = strlen(authenticate_match);
 
     static int n_headers;
-    //static char *headers[32];
-
     static int n_subheaders;
-    //static char *subheaders[32];
 
     static char *http_header;
     static char *connection_header;
@@ -602,10 +599,9 @@ int RemoteCameraHttp::GetResponse() {
     static char content_boundary[64];
     static int content_boundary_len;
 
-    while ( !zm_terminate ) {
-      switch ( state ) {
+    while (!zm_terminate) {
+      switch (state) {
         case HEADER :
-          {
             n_headers = 0;
             http_header = nullptr;
             connection_header = nullptr;
@@ -622,7 +618,6 @@ int RemoteCameraHttp::GetResponse() {
             content_boundary[0] = '\0';
             content_boundary_len = 0;
             FALLTHROUGH;
-          }
         case HEADERCONT :
           {
 						buffer_len = GetData();
@@ -637,7 +632,7 @@ int RemoteCameraHttp::GetResponse() {
             int header_len = buffer.size();
             bool all_headers = false;
 
-            while (true and !zm_terminate) {
+            while (!zm_terminate) {
               int crlf_len = memspn(header_ptr, "\r\n", header_len);
               if (n_headers) {
                 if (
@@ -831,7 +826,6 @@ int RemoteCameraHttp::GetResponse() {
             break;
           }
         case SUBHEADER :
-          {
             n_subheaders = 0;
             boundary_header = 0;
             subcontent_length_header[0] = '\0';
@@ -839,7 +833,6 @@ int RemoteCameraHttp::GetResponse() {
             content_length = 0;
             content_type[0] = '\0';
             FALLTHROUGH;
-          }
         case SUBHEADERCONT :
           {
             char *crlf = nullptr;
@@ -847,10 +840,13 @@ int RemoteCameraHttp::GetResponse() {
             int subheader_len = buffer.size();
             bool all_headers = false;
 
-            while (true and !zm_terminate) {
+            while (!zm_terminate) {
               int crlf_len = memspn(subheader_ptr, "\r\n", subheader_len);
               if (n_subheaders) {
-                if ( (crlf_len == 2 && !strncmp(subheader_ptr, "\n\n", crlf_len)) || (crlf_len == 4 && !strncmp( subheader_ptr, "\r\n\r\n", crlf_len )) ) {
+                if ( (crlf_len == 2 && !strncmp(subheader_ptr, "\n\n", crlf_len))
+                    ||
+                    (crlf_len == 4 && !strncmp( subheader_ptr, "\r\n\r\n", crlf_len ))
+                    ) {
                   *subheader_ptr = '\0';
                   subheader_ptr += crlf_len;
                   subheader_len -= buffer.consume(subheader_ptr-(char *)buffer);
@@ -938,10 +934,9 @@ int RemoteCameraHttp::GetResponse() {
             break;
           }
         case CONTENT : {
-
             // if content_type is something like image/jpeg;size=, this will strip the ;size=
-            char * semicolon = strchr( content_type, ';' );
-            if ( semicolon ) {
+            char * semicolon = strchr(content_type, ';');
+            if (semicolon) {
               *semicolon = '\0';
             }
 
@@ -1075,17 +1070,17 @@ int RemoteCameraHttp::PreCapture() {
 
 int RemoteCameraHttp::Capture(ZMPacket &packet) {
   int content_length = GetResponse();
-  if ( content_length == 0 ) {
+  if (content_length == 0) {
     Warning("Unable to capture image, retrying");
     return 0;
   }
-  if ( content_length < 0 ) {
+  if (content_length < 0) {
     Error("Unable to get response, disconnecting");
     return -1;
   }
 
-  if ( !packet.image ) {
-    Debug(1, "Allocating image");
+  if (!packet.image) {
+    Debug(4, "Allocating image");
     packet.image = new Image(width, height, colours, subpixelorder);
   }
   Image *image = packet.image;
@@ -1094,15 +1089,15 @@ int RemoteCameraHttp::Capture(ZMPacket &packet) {
   packet.packet.stream_index = mVideoStreamId;
   packet.stream = mVideoStream;
 
-  switch ( format ) {
+  switch (format) {
     case JPEG :
-      if ( !image->DecodeJpeg(buffer.extract(content_length), content_length, colours, subpixelorder) ) {
+      if (!image->DecodeJpeg(buffer.extract(content_length), content_length, colours, subpixelorder)) {
         Error("Unable to decode jpeg");
         return -1;
       }
       break;
     case X_RGB :
-      if ( content_length != (long)image->Size() ) {
+      if (content_length != (long)image->Size()) {
         Error("Image length mismatch, expected %d bytes, content length was %d",
             image->Size(), content_length);
         return -1;
@@ -1110,7 +1105,7 @@ int RemoteCameraHttp::Capture(ZMPacket &packet) {
       image->Assign(width, height, colours, subpixelorder, buffer.head(), imagesize);
       break;
     case X_RGBZ :
-      if ( !image->Unzip( buffer.extract( content_length ), content_length ) ) {
+      if (!image->Unzip(buffer.extract(content_length), content_length)) {
         Error("Unable to unzip RGB image");
         return -1;
       }

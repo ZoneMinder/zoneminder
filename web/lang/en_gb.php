@@ -418,6 +418,7 @@ $SLANG = array(
     'General'               => 'General',
     'GenerateVideo'         => 'Generate Video',
     'GeneratingVideo'       => 'Generating Video',
+    'GetCurrentLocation'    => 'Get Current Location',
     'GoToZoneMinder'        => 'Go to ZoneMinder.com',
     'Grey'                  => 'Grey',
     'Group'                 => 'Group',

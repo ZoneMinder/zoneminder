@@ -41,7 +41,7 @@ class Buffer {
   }
   explicit Buffer(unsigned int pSize) : mAllocation(pSize), mSize(0) {
     mHead = mStorage = new unsigned char[mAllocation];
-    if (mAllocation) *mHead = '\n';
+    if (mAllocation) *mHead = '\0';
     mTail = mHead;
   }
   Buffer(const unsigned char *pStorage, unsigned int pSize) :
@@ -111,6 +111,8 @@ class Buffer {
   unsigned int expand(unsigned int count);
 
   // Return pointer to the first pSize bytes and advance the head
+  // We don't call tidy here because it is assumed the ram will be used afterwards
+  // This differs from consume
   unsigned char *extract(unsigned int pSize) {
     if (pSize > mSize) {
       Warning("Attempt to extract %d bytes of buffer, size is only %d bytes",
@@ -120,7 +122,6 @@ class Buffer {
     unsigned char *oldHead = mHead;
     mHead += pSize;
     mSize -= pSize;
-    tidy(0);
     return oldHead;
   }
   // Add bytes to the end of the buffer
@@ -149,6 +150,8 @@ class Buffer {
           mTail = mHead + mSize;
         }
       }
+    } else if (mSize == 0) {
+      *mHead = '\0';
     }
   }
 

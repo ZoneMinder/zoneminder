@@ -5,7 +5,7 @@ target_compile_options(zm-warning-interface
     -Wextra
     -Wformat-security
     -Wno-cast-function-type
-    $<$<VERSION_LESS_EQUAL:$<CXX_COMPILER_VERSION>,10>:-Wno-clobbered>
+    $<$<VERSION_LESS:$<CXX_COMPILER_VERSION>,11>:-Wno-clobbered>
     -Wno-unused-parameter
     -Woverloaded-virtual)
 

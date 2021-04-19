@@ -10,6 +10,7 @@ task:
     - git submodule update --init --recursive
     - mkdir build
     - cd build
+    - cmake --version
     - cmake ../ -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1
 
   build_script:

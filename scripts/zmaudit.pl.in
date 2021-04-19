@@ -308,7 +308,7 @@ MAIN: while( $loop ) {
 							} else {
 								my $full_path = join('/', $Storage->Path(), $day_dir, $event_path);
 # Check storage id
-								if ( !$Event->Storage()->Id() ) {
+								if ( $Storage->Id() and !$Event->Storage()->Id() ) {
 									Info("Correcting StorageId for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
 									$Event->save({ StorageId=>$Storage->Id() });
 									$Event->Path(undef);

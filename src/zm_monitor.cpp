@@ -1952,7 +1952,10 @@ bool Monitor::Analyse() {
             noteSetMap[MOTION_CAUSE] = zoneSet;
           } // end if motion_score
         } else {
-          Debug(1, "Not Active(%d) enabled %d active %d", Active(), enabled, shared_data->active);
+          Debug(1, "Not Active(%d) enabled %d active %d doing motion detection: %d",
+              Active(), enabled, shared_data->active,
+              (function == MODECT or function == MOCORD)
+              );
         } // end if active and doing motion detection
 
         if (function == RECORD or function == MOCORD) {
@@ -2329,10 +2332,10 @@ void Monitor::Reload() {
 }  // end void Monitor::Reload()
 
 void Monitor::ReloadZones() {
-  Debug(1, "Reloading zones for monitor %s have %u", name.c_str(), zones.size());
+  Debug(3, "Reloading zones for monitor %s have %u", name.c_str(), zones.size());
   zones = Zone::Load(this);
+  Debug(1, "Reloading zones for monitor %s have %u", name.c_str(), zones.size());
   this->AddPrivacyBitmask();
-  Debug(1, "Done");
   //DumpZoneImage();
 } // end void Monitor::ReloadZones()
 
@@ -2908,7 +2911,10 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   bool alarm = false;
   unsigned int score = 0;
 
-  if (!zones.size()) return alarm;
+  if (!zones.size()) {
+    Warning("No zones to check!");
+    return alarm;
+  }
 
   ref_image.Delta(comp_image, &delta_image);
 

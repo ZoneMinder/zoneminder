@@ -69,7 +69,15 @@ if [ "$1" = "configure" ]; then
         echo "GRANT LOCK TABLES,ALTER,DROP,SELECT,INSERT,UPDATE,DELETE,CREATE,INDEX,ALTER ROUTINE,CREATE ROUTINE, TRIGGER,EXECUTE,REFERENCES ON ${ZM_DB_NAME}.* TO '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 
         zmupdate.pl --nointeractive
+        if [ $? -ne 0 ]; then
+          echo "Error updating db."
+          exit 1;
+        fi
         zmupdate.pl --nointeractive -f
+        if [ $? -ne 0 ]; then
+          echo "Error updating config."
+          exit 1;
+        fi
 
         # Add any new PTZ control configurations to the database (will not overwrite)
         zmcamtool.pl --import >/dev/null 2>&1

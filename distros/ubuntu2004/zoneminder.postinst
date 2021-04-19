@@ -32,7 +32,15 @@ create_update_user () {
 update_db () {
 
   zmupdate.pl --nointeractive
+  if [ $? -ne 0 ]; then
+    echo "Error updating db."
+    exit 1;
+  fi
   zmupdate.pl --nointeractive -f
+  if [ $? -ne 0 ]; then
+    echo "Error updating config."
+    exit 1;
+  fi
 
   # Add any new PTZ control configurations to the database (will not overwrite)
   zmcamtool.pl --import >/dev/null 2>&1

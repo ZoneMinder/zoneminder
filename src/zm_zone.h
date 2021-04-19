@@ -162,6 +162,8 @@ public:
   {
     Setup(p_type, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames, p_extend_alarm_frames );
   }
+
+#if 0
   Zone(
       Monitor *p_monitor,
       int p_id,
@@ -190,6 +192,8 @@ public:
   {
     Setup(Zone::ACTIVE, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames, p_extend_alarm_frames );
   }
+#endif
+
   Zone(Monitor *p_monitor, int p_id, const char *p_label, const Polygon &p_polygon)
         :
            monitor(p_monitor),
@@ -199,7 +203,7 @@ public:
   {
     Setup(Zone::INACTIVE, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord(0, 0), 0, 0, 0, 0, 0, 0, 0, 0);
   }
-  Zone( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon )
+  Zone(Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon)
         :
            monitor(p_monitor),
            id(p_id),

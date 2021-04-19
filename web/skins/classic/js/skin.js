@@ -186,28 +186,6 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       window[fnName](ev);
     };
   });
-  document.querySelectorAll("button[data-on-mousedown]").forEach(function(el) {
-    var fnName = el.getAttribute("data-on-mousedown");
-    if ( !window[fnName] ) {
-      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
-      return;
-    }
-
-    el.onmousedown = function(ev) {
-      window[fnName](ev);
-    };
-  });
-  document.querySelectorAll("button[data-on-mouseup]").forEach(function(el) {
-    var fnName = el.getAttribute("data-on-mouseup");
-    if ( !window[fnName] ) {
-      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
-      return;
-    }
-
-    el.onmouseup = function(ev) {
-      window[fnName](ev);
-    };
-  });
 
   // 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
   document.querySelectorAll("a[data-on-click-true], button[data-on-click-true], input[data-on-click-true]").forEach(function attachOnClick(el) {

@@ -106,6 +106,7 @@ VncCamera::VncCamera(
       p_record_audio
     ),
     mRfb(nullptr),
+    mVncData({}),
   mHost(host),
   mPort(port),
   mUser(user),

@@ -54,7 +54,7 @@ static bool zmFifoDbgOpen() {
 
 int zmFifoDbgInit(Monitor *monitor) {
   zm_fifodbg_inited = true;
-  snprintf(zm_fifodbg_log, sizeof(zm_fifodbg_log), "%s/dbgpipe-%d.log",
+  snprintf(zm_fifodbg_log, sizeof(zm_fifodbg_log), "%s/dbgpipe-%u.log",
       staticConfig.PATH_SOCKS.c_str(), monitor->Id());
   zmFifoDbgOpen();
   return 1;

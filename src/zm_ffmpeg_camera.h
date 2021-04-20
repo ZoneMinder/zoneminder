@@ -58,7 +58,7 @@ class FfmpegCamera : public Camera {
     AVPacket packet;       
 
     int OpenFfmpeg();
-    int Close();
+    int Close() override;
     bool mCanCapture;
 
 #if HAVE_LIBSWSCALE

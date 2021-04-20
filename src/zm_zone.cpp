@@ -972,49 +972,50 @@ void Zone::std_alarmedpixels(
   Debug(7, "STORED pixelsalarmed(%d), pixelsdifference(%d)", pixelsalarmed, pixelsdifference);
 }  // end void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum)
 
-Zone::Zone(const Zone &z) {
-    monitor = z.monitor;
-    id = z.id;
-    label = z.label;
-    type = z.type;
-    polygon = z.polygon;
-    alarm_rgb = z.alarm_rgb;
-    check_method = z.check_method;
-    min_pixel_threshold = z.min_pixel_threshold;
-    max_pixel_threshold = z.max_pixel_threshold;
-    min_alarm_pixels = z.min_alarm_pixels;
-    max_alarm_pixels = z.max_alarm_pixels;
-    filter_box = z.filter_box;
-    min_filter_pixels = z.min_filter_pixels;
-    max_filter_pixels = z.max_filter_pixels;
+Zone::Zone(const Zone &z) :
+    monitor(z.monitor),
+    id(z.id),
+    label(z.label),
+    type(z.type),
+    polygon(z.polygon),
+    alarm_rgb(z.alarm_rgb),
+    check_method(z.check_method),
+    min_pixel_threshold(z.min_pixel_threshold),
+    max_pixel_threshold(z.max_pixel_threshold),
+    min_alarm_pixels(z.min_alarm_pixels),
+    max_alarm_pixels(z.max_alarm_pixels),
+    filter_box(z.filter_box),
+    min_filter_pixels(z.min_filter_pixels),
+    max_filter_pixels(z.max_filter_pixels),
+    min_blob_pixels(z.min_blob_pixels),
+    max_blob_pixels(z.max_blob_pixels),
+    min_blobs(z.min_blobs),
+    max_blobs(z.max_blobs),
+    overload_frames(z.overload_frames),
+    extend_alarm_frames(z.extend_alarm_frames),
+
+    alarmed(z.alarmed),
+    was_alarmed(z.was_alarmed),
+    pixel_diff(z.pixel_diff),
+    alarm_pixels(z.alarm_pixels),
+    alarm_filter_pixels(z.alarm_filter_pixels),
+    alarm_blob_pixels(z.alarm_blob_pixels),
+    alarm_blobs(z.alarm_blobs),
+    min_blob_size(z.min_blob_size),
+    max_blob_size(z.max_blob_size),
+
+    alarm_box(z.alarm_box),
+    alarm_centre(z.alarm_centre),
+    score(z.score),
+    overload_count(z.overload_count),
+    extend_alarm_count(z.extend_alarm_count),
+    diag_path(z.diag_path)
+{
     std::copy(z.blob_stats, z.blob_stats+256, blob_stats);
-    min_blob_pixels = z.min_blob_pixels;
-    max_blob_pixels = z.max_blob_pixels;
-    min_blobs = z.min_blobs;
-    max_blobs = z.max_blobs;
-    overload_frames = z.overload_frames;
-    extend_alarm_frames = z.extend_alarm_frames;
-
-    alarmed = z.alarmed;
-    was_alarmed = z.was_alarmed;
-    pixel_diff = z.pixel_diff;
-    alarm_pixels = z.alarm_pixels;
-    alarm_filter_pixels = z.alarm_filter_pixels;
-    alarm_blob_pixels = z.alarm_blob_pixels;
-    alarm_blobs = z.alarm_blobs;
-    min_blob_size = z.min_blob_size;
-    max_blob_size = z.max_blob_size;
-
-    alarm_box = z.alarm_box;
-    alarm_centre = z.alarm_centre;
-    score = z.score;
     pg_image = z.pg_image ? new Image(*z.pg_image) : nullptr;
     ranges = new Range[monitor->Height()];
     std::copy(z.ranges, z.ranges+monitor->Height(), ranges);
     image = z.image ? new Image(*z.image) : nullptr;
 
-    overload_count = z.overload_count;
-    extend_alarm_count = z.extend_alarm_count;
-    diag_path = z.diag_path;
   }
 

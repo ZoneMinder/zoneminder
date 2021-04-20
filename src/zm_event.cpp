@@ -97,9 +97,11 @@ Event::Event(
   }
 
   unsigned int state_id = 0;
-  zmDbRow dbrow;
-  if ( dbrow.fetch("SELECT Id FROM States WHERE IsActive=1") ) {
-    state_id = atoi(dbrow[0]);
+  {
+    zmDbRow dbrow;
+    if (dbrow.fetch("SELECT Id FROM States WHERE IsActive=1")) {
+      state_id = atoi(dbrow[0]);
+    }
   }
 
   // Copy it in case opening the mp4 doesn't work we can set it to another value

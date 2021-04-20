@@ -310,7 +310,6 @@ int RemoteCameraHttp::GetData() {
 }
 
 int RemoteCameraHttp::GetResponse() {
-  int buffer_len;
 #if HAVE_LIBPCRE
   if ( method == REGEXP ) {
     const char *header = nullptr;
@@ -331,7 +330,7 @@ int RemoteCameraHttp::GetResponse() {
       switch( state ) {
         case HEADER :
           {
-						buffer_len = GetData();
+						int buffer_len = GetData();
             if ( buffer_len < 0 ) {
               Error("Unable to read header data");
               return -1;
@@ -471,7 +470,7 @@ int RemoteCameraHttp::GetResponse() {
               state = CONTENT;
             } else {
               Debug( 3, "Unable to extract subheader from stream, retrying" );
-							buffer_len = GetData();
+							int buffer_len = GetData();
               if ( buffer_len < 0 ) {
                 Error( "Unable to extract subheader data" );
                 return( -1 );
@@ -514,7 +513,7 @@ int RemoteCameraHttp::GetResponse() {
               Debug(3, "Got end of image by length, content-length = %d", content_length);
             } else {
               while (!content_length) {
-								buffer_len = GetData();
+								int buffer_len = GetData();
                 if (buffer_len < 0) {
                   Error("Unable to read content");
                   return -1;
@@ -620,7 +619,7 @@ int RemoteCameraHttp::GetResponse() {
             FALLTHROUGH;
         case HEADERCONT :
           {
-						buffer_len = GetData();
+						int buffer_len = GetData();
             if (buffer_len < 0) {
               Error("Unable to read header");
               return -1;
@@ -923,7 +922,7 @@ int RemoteCameraHttp::GetResponse() {
               state = CONTENT;
             } else {
               Debug(3, "Unable to extract subheader from stream, retrying");
-							buffer_len = GetData();
+							int buffer_len = GetData();
               if (buffer_len < 0) {
                 Error("Unable to read subheader");
                 return -1;
@@ -974,7 +973,7 @@ int RemoteCameraHttp::GetResponse() {
               // Read until we find the end of image or the stream closes.
               while (!content_length && !zm_terminate) {
 								Debug(4, "!content_length, ReadData");
-                buffer_len = ReadData(buffer);
+                int buffer_len = ReadData(buffer);
                 if (buffer_len < 0) {
                   Error("Unable to read content");
                   return -1;

@@ -172,12 +172,16 @@ int main(int argc, char *argv[]) {
   }
 
   xop::MediaSession **sessions = new xop::MediaSession *[monitors.size()];
-  for (size_t i = 0; i < monitors.size(); i++) sessions[i] = nullptr;
 
   std::vector<ZoneMinderFifoSource *> video_sources;
   video_sources.reserve(monitors.size());
   std::vector<ZoneMinderFifoSource *> audio_sources;
   audio_sources.reserve(monitors.size());
+  for (size_t i = 0; i < monitors.size(); i++) {
+    sessions[i] = nullptr;
+    video_sources[i] = nullptr;
+    audio_sources[i] = nullptr;
+  }
 
   while (!zm_terminate) {
     for (size_t i = 0; i < monitors.size(); i++) {

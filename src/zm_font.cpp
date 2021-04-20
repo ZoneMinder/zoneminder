@@ -35,8 +35,8 @@ int ZmFont::ReadFontFile(const std::string &loc) {
        height cannot be greater than 200(arbitary number which i have chosen, shouldn't need more than this) and 
        idx should not be more than filesize
     */
-    if ( (font->header[i].charWidth > 64 && font->header[i].charWidth == 0) || 
-        (font->header[i].charHeight > 200 && font->header[i].charHeight == 0) || 
+    if ( font->header[i].charWidth > 64 || font->header[i].charWidth == 0 || 
+        font->header[i].charHeight > 200 || font->header[i].charHeight == 0 || 
         (font->header[i].idx > st.st_size) ) {
       delete font;
       font = nullptr;

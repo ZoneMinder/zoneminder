@@ -72,8 +72,6 @@ protected:
   Box extent;
   int area;
   Coord centre;
-  Edge *edges;
-  Slice *slices;
 
 protected:
   void initialiseEdges();
@@ -81,7 +79,7 @@ protected:
   void calcCentre();
 
 public:
-  inline Polygon() : n_coords(0), coords(nullptr), area(0), edges(nullptr), slices(nullptr) {
+  inline Polygon() : n_coords(0), coords(nullptr), area(0) {
   }
   Polygon(int p_n_coords, const Coord *p_coords);
   Polygon(const Polygon &p_polygon);

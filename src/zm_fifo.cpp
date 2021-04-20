@@ -102,7 +102,7 @@ bool Fifo::close() {
   return true;
 }
 
-bool Fifo::writePacket(ZMPacket &packet) {
+bool Fifo::writePacket(const ZMPacket &packet) {
   if (!(outfile or open())) return false;
 
   Debug(2, "Writing header ZM %u %" PRId64,  packet.packet.size, packet.pts);
@@ -123,7 +123,7 @@ bool Fifo::writePacket(ZMPacket &packet) {
   return true;
 }
 
-bool Fifo::writePacket(std::string filename, ZMPacket &packet) {
+bool Fifo::writePacket(std::string filename, const ZMPacket &packet) {
   FILE *outfile = nullptr;
 
   int raw_fd = ::open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);

@@ -57,13 +57,13 @@ class Fifo {
 
 
 
-    static bool writePacket(std::string filename, ZMPacket &packet);
+    static bool writePacket(std::string filename, const ZMPacket &packet);
     static bool write(std::string filename, uint8_t *data, size_t size);
 
     bool open();
     bool close();
 
-    bool writePacket(ZMPacket &packet);
+    bool writePacket(const ZMPacket &packet);
     bool write(uint8_t *data, size_t size, int64_t pts);
 };
 #endif  // ZM_FIFO_H

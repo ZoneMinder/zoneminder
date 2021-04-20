@@ -607,7 +607,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   blue_val = BLUE_VAL_BGRA(signal_check_colour);
   grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
 
-  importance = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  importance = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
 
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
@@ -629,7 +629,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
        + (image_buffer_count * sizeof(struct timeval))
-       + (image_buffer_count * width * height * colours)
+       + (image_buffer_count * image_size)
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1, "mem.size(%d) SharedData=%d TriggerData=%d VideoStoreData=%d timestamps=%d images=%dx%d = %" PRId64 " total=%" PRId64,
@@ -640,7 +640,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
      mem_size);
 
   // Should maybe store this for later use
-  std::string monitor_dir = stringtf("%s/%d", storage->Path(), id);
+  std::string monitor_dir = stringtf("%s/%u", storage->Path(), id);
 
   if ( purpose != QUERY ) {
     LoadCamera();
@@ -3298,7 +3298,7 @@ StringVector Monitor::GroupNames() {
   StringVector groupnames;
   for ( Group * g: Groups() ) {
     groupnames.push_back(std::string(g->Name()));
-    Debug(1,"Groups: %s", g->Name());
+    Debug(1, "Groups: %s", g->Name());
   }
   return groupnames;
 } // end Monitor::GroupNames()

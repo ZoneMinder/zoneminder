@@ -53,7 +53,7 @@ public:
   int PreCapture() override;
   int Capture(ZMPacket &p) override;
   int PostCapture() override;
-  int Close() { return 0; } override;
+  int Close() override { return 0; };
 };
 
 #endif // ZM_FILE_CAMERA_H

@@ -124,7 +124,7 @@ Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
-  snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
+  snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
 #else // ZM_MEM_MAPPED
   shm_id = 0;
 #endif // ZM_MEM_MAPPED
@@ -409,7 +409,12 @@ Monitor::Monitor()
   //zones(nullptr),
   privacy_bitmask(nullptr),
   n_linked_monitors(0),
-  linked_monitors(nullptr)
+  linked_monitors(nullptr),
+  red_val(0),
+  green_val(0),
+  blue_val(0),
+  grayscale_val(0),
+  colour_val(0)
 {
 
   if ( strcmp(config.event_close_mode, "time") == 0 )
@@ -594,6 +599,14 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
  /*"SignalCheckPoints, SignalCheckColour, Importance-2 FROM Monitors"; */
   signal_check_points = atoi(dbrow[col]); col++;
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
+
+  colour_val = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
+  colour_val = rgb_convert(colour_val, palette);
+  red_val = RED_VAL_BGRA(signal_check_colour);
+  green_val = GREEN_VAL_BGRA(signal_check_colour);
+  blue_val = BLUE_VAL_BGRA(signal_check_colour);
+  grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
+
   importance = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
 
   // How many frames we need to have before we start analysing
@@ -888,7 +901,7 @@ bool Monitor::connect() {
   }
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose);
 #if ZM_MEM_MAPPED
-  snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
+  snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
   if (purpose != CAPTURE) {
     map_fd = open(mem_file, O_RDWR);
   } else {
@@ -1569,75 +1582,55 @@ void Monitor::DumpImage(Image *dump_image) const {
 } // end void Monitor::DumpImage(Image *dump_image)
 
 bool Monitor::CheckSignal(const Image *image) {
-  static bool static_undef = true;
-  /* RGB24 colors */
-  static uint8_t red_val;
-  static uint8_t green_val;
-  static uint8_t blue_val;
-  static uint8_t grayscale_val; /* 8bit grayscale color */
-  static Rgb colour_val; /* RGB32 color */
-  static int usedsubpixorder;
+  if (signal_check_points <= 0)
+    return true;
 
-  if ( signal_check_points > 0 ) {
-    if ( static_undef ) {
-      static_undef = false;
-      usedsubpixorder = camera->SubpixelOrder();
-      colour_val = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
-      colour_val = rgb_convert(colour_val, usedsubpixorder);
-      red_val = RED_VAL_BGRA(signal_check_colour);
-      green_val = GREEN_VAL_BGRA(signal_check_colour);
-      blue_val = BLUE_VAL_BGRA(signal_check_colour);
-      grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
+  const uint8_t *buffer = image->Buffer();
+  int pixels = image->Pixels();
+  int width = image->Width();
+  int colours = image->Colours();
+
+  int index = 0;
+  for ( int i = 0; i < signal_check_points; i++ ) {
+    while ( true ) {
+      // Why the casting to long long? also note that on a 64bit cpu, long long is 128bits
+      index = (int)(((long long)rand()*(long long)(pixels-1))/RAND_MAX);
+      if ( !config.timestamp_on_capture || !label_format[0] )
+        break;
+      // Avoid sampling the rows with timestamp in
+      if ( index < (label_coord.Y()*width) || index >= (label_coord.Y()+Image::LINE_HEIGHT)*width )
+        break;
     }
 
-    const uint8_t *buffer = image->Buffer();
-    int pixels = image->Pixels();
-    int width = image->Width();
-    int colours = image->Colours();
+    if ( colours == ZM_COLOUR_GRAY8 ) {
+      if ( *(buffer+index) != grayscale_val )
+        return true;
 
-    int index = 0;
-    for ( int i = 0; i < signal_check_points; i++ ) {
-      while( true ) {
-        // Why the casting to long long? also note that on a 64bit cpu, long long is 128bits
-        index = (int)(((long long)rand()*(long long)(pixels-1))/RAND_MAX);
-        if ( !config.timestamp_on_capture || !label_format[0] )
-          break;
-        // Avoid sampling the rows with timestamp in
-        if ( index < (label_coord.Y()*width) || index >= (label_coord.Y()+Image::LINE_HEIGHT)*width )
-          break;
-      }
+    } else if ( colours == ZM_COLOUR_RGB24 ) {
+      const uint8_t *ptr = buffer+(index*colours);
 
-      if ( colours == ZM_COLOUR_GRAY8 ) {
-        if ( *(buffer+index) != grayscale_val )
+      if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR ) {
+        if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
           return true;
-
-      } else if ( colours == ZM_COLOUR_RGB24 ) {
-        const uint8_t *ptr = buffer+(index*colours);
-
-        if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR ) {
-          if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
-            return true;
-        } else {
-          /* Assume RGB */
-          if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
-            return true;
-        }
-
-      } else if ( colours == ZM_COLOUR_RGB32 ) {
-        if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR ) {
-          if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
-            return true;
-        } else {
-          /* Assume RGBA or BGRA */
-          if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val) )
-            return true;
-        }
+      } else {
+        /* Assume RGB */
+        if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
+          return true;
       }
-    } // end for < signal_check_points
-    Debug(1, "SignalCheck: %d points, colour_val(%d)", signal_check_points, colour_val);
-    return false;
-  } // end if signal_check_points
-  return true;
+
+    } else if ( colours == ZM_COLOUR_RGB32 ) {
+      if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR ) {
+        if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
+          return true;
+      } else {
+        /* Assume RGBA or BGRA */
+        if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val) )
+          return true;
+      }
+    }
+  } // end for < signal_check_points
+  Debug(1, "SignalCheck: %d points, colour_val(%d)", signal_check_points, colour_val);
+  return false;
 } // end bool Monitor::CheckSignal(const Image *image)
 
 void Monitor::CheckAction() {

@@ -194,6 +194,7 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
 
   start_read_time = time(nullptr);
   int ret;
+  AVFormatContext *formatContextPtr;
 
   if ( mSecondFormatContext and
       (
@@ -202,23 +203,23 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
         av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
       ) ) {
     // if audio stream is behind video stream, then read from audio, otherwise video
-    mFormatContextPtr = mSecondFormatContext;
+    formatContextPtr = mSecondFormatContext;
     Debug(4, "Using audio input because audio PTS %" PRId64 " < video PTS %" PRId64,
         av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q),
         av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
         );
   } else {
-    mFormatContextPtr = mFormatContext;
+    formatContextPtr = mFormatContext;
     Debug(4, "Using video input because %" PRId64 " >= %" PRId64,
         (mAudioStream?av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q):0),
         av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
         );
   }
 
-  if ( (ret = av_read_frame(mFormatContextPtr, &packet)) < 0 ) {
+  if ((ret = av_read_frame(formatContextPtr, &packet)) < 0) {
     if (
         // Check if EOF.
-        (ret == AVERROR_EOF || (mFormatContextPtr->pb && mFormatContextPtr->pb->eof_reached)) ||
+        (ret == AVERROR_EOF || (formatContextPtr->pb && formatContextPtr->pb->eof_reached)) ||
         // Check for Connection failure.
         (ret == -110)
        ) {
@@ -231,8 +232,7 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
     return -1;
   }
 
-
-  AVStream *stream = mFormatContextPtr->streams[packet.stream_index];
+  AVStream *stream = formatContextPtr->streams[packet.stream_index];
   ZM_DUMP_STREAM_PACKET(stream, packet, "ffmpeg_camera in");
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)

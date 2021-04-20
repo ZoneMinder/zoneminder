@@ -133,7 +133,7 @@ User *zmLoadUser(const char *username, const char *password) {
   return nullptr;
 }  // end User *zmLoadUser(const char *username, const char *password)
 
-User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr) {
+User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
   std::string key = config.auth_hash_secret;
   std::string remote_addr = "";
 

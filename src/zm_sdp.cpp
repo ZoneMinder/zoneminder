@@ -224,8 +224,6 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
             int payloadType = atoi(attrTokens[0].c_str());
             if ( payloadType != currMedia->getPayloadType() )
               throw Exception( stringtf( "Payload type mismatch, expected %d, got %d in '%s'", currMedia->getPayloadType(), payloadType, line.c_str() ) );
-            std::string payloadDesc = attrTokens[1];
-            //currMedia->setPayloadType( payloadType );
             if ( attrTokens.size() > 1 ) {
               StringVector payloadTokens = Split(attrTokens[1], "/");
               std::string payloadDesc = payloadTokens[0];
@@ -382,32 +380,32 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 #endif
     if ( mediaDesc->getPayloadType() < PAYLOAD_TYPE_DYNAMIC ) {
       // Look in static table
-      for ( unsigned int i = 0; i < (sizeof(smStaticPayloads)/sizeof(*smStaticPayloads)); i++ ) {
-        if ( smStaticPayloads[i].payloadType == mediaDesc->getPayloadType() ) {
-          Debug( 1, "Got static payload type %d, %s", smStaticPayloads[i].payloadType, smStaticPayloads[i].payloadName );
+      for ( unsigned int j = 0; j < (sizeof(smStaticPayloads)/sizeof(*smStaticPayloads)); j++ ) {
+        if ( smStaticPayloads[j].payloadType == mediaDesc->getPayloadType() ) {
+          Debug( 1, "Got static payload type %d, %s", smStaticPayloads[j].payloadType, smStaticPayloads[j].payloadName );
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
-          codec_name = std::string(smStaticPayloads[i].payloadName);
+          codec_name = std::string(smStaticPayloads[j].payloadName);
 #else
-          strncpy(codec_context->codec_name, smStaticPayloads[i].payloadName, sizeof(codec_context->codec_name));
+          strncpy(codec_context->codec_name, smStaticPayloads[j].payloadName, sizeof(codec_context->codec_name));
 #endif
-          codec_context->codec_type = smStaticPayloads[i].codecType;
-          codec_context->codec_id = smStaticPayloads[i].codecId;
-          codec_context->sample_rate = smStaticPayloads[i].clockRate;
+          codec_context->codec_type = smStaticPayloads[j].codecType;
+          codec_context->codec_id = smStaticPayloads[j].codecId;
+          codec_context->sample_rate = smStaticPayloads[j].clockRate;
           break;
         }
       }
     } else {
       // Look in dynamic table
-      for ( unsigned int i = 0; i < (sizeof(smDynamicPayloads)/sizeof(*smDynamicPayloads)); i++ ) {
-        if ( smDynamicPayloads[i].payloadName == mediaDesc->getPayloadDesc() ) {
-          Debug(1, "Got dynamic payload type %d, %s", mediaDesc->getPayloadType(), smDynamicPayloads[i].payloadName);
+      for ( unsigned int j = 0; j < (sizeof(smDynamicPayloads)/sizeof(*smDynamicPayloads)); j++ ) {
+        if ( smDynamicPayloads[j].payloadName == mediaDesc->getPayloadDesc() ) {
+          Debug(1, "Got dynamic payload type %d, %s", mediaDesc->getPayloadType(), smDynamicPayloads[j].payloadName);
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
-          codec_name = std::string(smStaticPayloads[i].payloadName);
+          codec_name = std::string(smStaticPayloads[j].payloadName);
 #else
-          strncpy(codec_context->codec_name, smDynamicPayloads[i].payloadName, sizeof(codec_context->codec_name));
+          strncpy(codec_context->codec_name, smDynamicPayloads[j].payloadName, sizeof(codec_context->codec_name));
 #endif
-          codec_context->codec_type = smDynamicPayloads[i].codecType;
-          codec_context->codec_id = smDynamicPayloads[i].codecId;
+          codec_context->codec_type = smDynamicPayloads[j].codecType;
+          codec_context->codec_id = smDynamicPayloads[j].codecId;
           codec_context->sample_rate = mediaDesc->getClock();
           break;
         }

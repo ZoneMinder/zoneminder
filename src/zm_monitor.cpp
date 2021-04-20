@@ -194,7 +194,7 @@ bool Monitor::MonitorLink::connect() {
       return false;
     }
     mem_ptr = (unsigned char *)shmat(shm_id, 0, 0);
-    if ( mem_ptr < (void *)0 ) {
+    if ((int)mem_ptr == -1) {
       Debug(3, "Can't shmat link memory: %s", strerror(errno));
       connected = false;
       return false;
@@ -973,7 +973,7 @@ bool Monitor::connect() {
     Fatal("Can't shmget, probably not enough shared memory space free: %s", strerror(errno));
   }
   mem_ptr = (unsigned char *)shmat(shm_id, 0, 0);
-  if (mem_ptr < (void *)0) {
+  if ((int)mem_ptr == -1) {
     Fatal("Can't shmat: %s", strerror(errno));
   }
 #endif // ZM_MEM_MAPPED
@@ -2497,7 +2497,6 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
  * Returns -1 on failure.
  */
 int Monitor::Capture() {
-  static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
   unsigned int index = image_count % image_buffer_count;
 
@@ -2510,6 +2509,7 @@ int Monitor::Capture() {
   int captureResult = 0;
 
   if ( deinterlacing_value == 4 ) {
+    static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
     if ( FirstCapture != 1 ) {
       /* Copy the next image into the shared memory */
       //capture_image->CopyBuffer(*(next_buffer.image));
@@ -2727,13 +2727,12 @@ bool Monitor::Decode() {
     return true; // Don't need decode
   }
 
-  int ret = 0;
   if ((!packet->image) and packet->packet.size and !packet->in_frame) {
     // Allocate the image first so that it can be used by hwaccel
     // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
     //
     //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
-    ret = packet->decode(camera->getVideoCodecContext());
+    int ret = packet->decode(camera->getVideoCodecContext());
     if (ret > 0) {
       if (packet->in_frame and !packet->image) {
         packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());

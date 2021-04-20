@@ -1185,7 +1185,7 @@ int Monitor::GetImage(int32_t index, int scale) {
     }
 
     static char filename[PATH_MAX];
-    snprintf(filename, sizeof(filename), "Monitor%d.jpg", id);
+    snprintf(filename, sizeof(filename), "Monitor%u.jpg", id);
     image->WriteJpeg(filename);
   } else {
     Error("Unable to generate image, no images in buffer");
@@ -1337,7 +1337,7 @@ void Monitor::actionEnable() {
   shared_data->action |= RELOAD;
 
   char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %d", id);
+  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %u", id);
   zmDbDo(sql);
 }
 
@@ -1345,7 +1345,7 @@ void Monitor::actionDisable() {
   shared_data->action |= RELOAD;
 
   char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %d", id);
+  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %u", id);
   zmDbDo(sql);
 }
 
@@ -1552,7 +1552,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
   }
 
   static char filename[PATH_MAX];
-  snprintf(filename, sizeof(filename), "Zones%d.jpg", id);
+  snprintf(filename, sizeof(filename), "Zones%u.jpg", id);
   zone_image->WriteJpeg(filename);
   delete zone_image;
 } // end void Monitor::DumpZoneImage(const char *zone_string)
@@ -1561,8 +1561,8 @@ void Monitor::DumpImage(Image *dump_image) const {
   if ( image_count && !(image_count%10) ) {
     static char filename[PATH_MAX];
     static char new_filename[PATH_MAX];
-    snprintf(filename, sizeof(filename), "Monitor%d.jpg", id);
-    snprintf(new_filename, sizeof(new_filename), "Monitor%d-new.jpg", id);
+    snprintf(filename, sizeof(filename), "Monitor%u.jpg", id);
+    snprintf(new_filename, sizeof(new_filename), "Monitor%u-new.jpg", id);
     if ( dump_image->WriteJpeg(new_filename) )
       rename(new_filename, filename);
   }
@@ -2743,12 +2743,12 @@ bool Monitor::Decode() {
     ret = packet->decode(camera->getVideoCodecContext());
     if (ret > 0) {
       if (packet->in_frame and !packet->image) {
-        Image * image = packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+        packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
         AVFrame *input_frame = packet->in_frame;
         if (!dest_frame) dest_frame = zm_av_frame_alloc();
 
         if (!convert_context) {
-          AVPixelFormat imagePixFormat = (AVPixelFormat)image->AVPixFormat();
+          AVPixelFormat imagePixFormat = (AVPixelFormat)(packet->image->AVPixFormat());
 
           convert_context = sws_getContext(
               input_frame->width,
@@ -2762,7 +2762,7 @@ bool Monitor::Decode() {
                 av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
                 av_get_pix_fmt_name(imagePixFormat)
                 );
-            delete image;
+            delete packet->image;
             packet->image = nullptr;
           } else {
             Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
@@ -2774,8 +2774,8 @@ bool Monitor::Decode() {
           }
         }
         if (convert_context) {
-          if (!image->Assign(packet->in_frame, convert_context, dest_frame)) {
-            delete image;
+          if (!packet->image->Assign(packet->in_frame, convert_context, dest_frame)) {
+            delete packet->image;
             packet->image = nullptr;
           }
         }  // end if have convert_context
@@ -3050,7 +3050,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
 bool Monitor::DumpSettings(char *output, bool verbose) {
   output[0] = 0;
 
-  sprintf( output+strlen(output), "Id : %d\n", id );
+  sprintf( output+strlen(output), "Id : %u\n", id );
   sprintf( output+strlen(output), "Name : %s\n", name.c_str() );
   sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File") );
 #if ZM_HAS_V4L
@@ -3077,16 +3077,16 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
     sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
   }
 #endif // HAVE_LIBAVFORMAT
-  sprintf( output+strlen(output), "Width : %d\n", camera->Width() );
-  sprintf( output+strlen(output), "Height : %d\n", camera->Height() );
+  sprintf( output+strlen(output), "Width : %u\n", camera->Width() );
+  sprintf( output+strlen(output), "Height : %u\n", camera->Height() );
 #if ZM_HAS_V4L
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
     sprintf( output+strlen(output), "Palette : %d\n", cam->Palette() );
   }
 #endif // ZM_HAS_V4L
-  sprintf(output+strlen(output), "Colours : %d\n", camera->Colours() );
-  sprintf(output+strlen(output), "Subpixel Order : %d\n", camera->SubpixelOrder() );
+  sprintf(output+strlen(output), "Colours : %u\n", camera->Colours() );
+  sprintf(output+strlen(output), "Subpixel Order : %u\n", camera->SubpixelOrder() );
   sprintf(output+strlen(output), "Event Prefix : %s\n", event_prefix.c_str() );
   sprintf(output+strlen(output), "Label Format : %s\n", label_format.c_str() );
   sprintf(output+strlen(output), "Label Coord : %d,%d\n", label_coord.X(), label_coord.Y() );
@@ -3146,7 +3146,7 @@ int Monitor::PrimeCapture() {
   if (rtsp_server) {
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();
-      snprintf(shared_data->video_fifo_path, sizeof(shared_data->video_fifo_path)-1, "%s/video_fifo_%d.%s",
+      snprintf(shared_data->video_fifo_path, sizeof(shared_data->video_fifo_path)-1, "%s/video_fifo_%u.%s",
           staticConfig.PATH_SOCKS.c_str(),
           id,
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -3160,7 +3160,7 @@ int Monitor::PrimeCapture() {
     if (record_audio and (audio_stream_id >= 0)) {
       AVStream *audioStream = camera->getAudioStream();
       if (audioStream && CODEC(audioStream)) {
-      snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path)-1, "%s/audio_fifo_%d.%s",
+      snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path)-1, "%s/audio_fifo_%u.%s",
           staticConfig.PATH_SOCKS.c_str(), id,
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
           avcodec_get_name(audioStream->codecpar->codec_id)

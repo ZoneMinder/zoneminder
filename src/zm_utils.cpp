@@ -311,11 +311,11 @@ void touch(const char *pathname) {
 }
 
 std::string UriDecode(const std::string &encoded) {
-  char a, b;
   const char *src = encoded.c_str();
   std::string retbuf;
   retbuf.reserve(encoded.length());
   while (*src) {
+    char a, b;
     if ((*src == '%') && ((a = src[1]) && (b = src[2])) && (isxdigit(a) && isxdigit(b))) {
       if (a >= 'a')
         a -= 'a' - 'A';

@@ -286,8 +286,8 @@ class Socket : public CommsBase {
   bool getBlocking(bool &blocking);
   bool setBlocking(bool blocking) override;
 
-  bool getSendBufferSize(int &) const;
-  bool getRecvBufferSize(int &) const;
+  int getSendBufferSize(int &) const;
+  int getRecvBufferSize(int &) const;
 
   bool setSendBufferSize(int);
   bool setRecvBufferSize(int);

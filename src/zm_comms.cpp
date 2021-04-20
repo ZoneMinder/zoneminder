@@ -352,7 +352,7 @@ bool ZM::Socket::setBlocking(bool blocking) {
   return true;
 }
 
-bool ZM::Socket::getSendBufferSize(int &buffersize) const {
+int ZM::Socket::getSendBufferSize(int &buffersize) const {
   socklen_t optlen = sizeof(buffersize);
   if (getsockopt(mSd, SOL_SOCKET, SO_SNDBUF, &buffersize, &optlen) < 0) {
     Error("getsockopt(), errno = %d, error = %s", errno, strerror(errno));
@@ -361,7 +361,7 @@ bool ZM::Socket::getSendBufferSize(int &buffersize) const {
   return buffersize;
 }
 
-bool ZM::Socket::getRecvBufferSize(int &buffersize) const {
+int ZM::Socket::getRecvBufferSize(int &buffersize) const {
   socklen_t optlen = sizeof(buffersize);
   if (getsockopt(mSd, SOL_SOCKET, SO_RCVBUF, &buffersize, &optlen) < 0) {
     Error("getsockopt(), errno = %d, error = %s", errno, strerror(errno));

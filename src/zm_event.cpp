@@ -160,7 +160,7 @@ Event::Event(
       if ( monitor->ServerId() )
         sql += stringtf(" OR ServerId != %u", monitor->ServerId());
 
-      MYSQL_RES *result = zmDbFetch(sql.c_str());
+      result = zmDbFetch(sql.c_str());
       if ( result ) {
         for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
           storage = new Storage(atoi(dbrow[0]));
@@ -360,7 +360,6 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     createNotes(notes);
 
     Debug(2, "Updating notes for event %d, '%s'", id, notes.c_str());
-    char sql[ZM_SQL_LGE_BUFSIZ];
 #if USE_PREPARED_SQL
     static MYSQL_STMT *stmt = 0;
 
@@ -407,6 +406,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
       Error("Unable to execute sql '%s': %s", sql, mysql_stmt_error(stmt));
     }
 #else
+    char sql[ZM_SQL_LGE_BUFSIZ];
     static char escapedNotes[ZM_SQL_MED_BUFSIZ];
 
     mysql_real_escape_string(&dbconn, escapedNotes, notes.c_str(), notes.length());

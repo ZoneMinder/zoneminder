@@ -30,7 +30,7 @@ Group::Group() {
 }
 
 // The order of columns is: Id, ParentId, Name
-Group::Group(MYSQL_ROW &dbrow) {
+Group::Group(const MYSQL_ROW &dbrow) {
 	unsigned int index = 0;
 	id = atoi(dbrow[index++]);
 	parent_id = dbrow[index] ? atoi(dbrow[index]): 0; index++;
@@ -43,11 +43,11 @@ Group::Group(unsigned int p_id) {
 
 	if ( p_id ) {
 		char sql[ZM_SQL_SML_BUFSIZ];
-		snprintf(sql, sizeof(sql), "SELECT `Id`, `ParentId`, `Name` FROM `Group` WHERE `Id`=%d", p_id);
-		Debug(2,"Loading Group for %d using %s", p_id, sql);
+		snprintf(sql, sizeof(sql), "SELECT `Id`, `ParentId`, `Name` FROM `Group` WHERE `Id`=%u", p_id);
+		Debug(2,"Loading Group for %u using %s", p_id, sql);
 		zmDbRow dbrow;
 		if ( !dbrow.fetch(sql) ) {
-			Error("Unable to load group for id %d: %s", p_id, mysql_error(&dbconn));
+			Error("Unable to load group for id %u: %s", p_id, mysql_error(&dbconn));
 		} else {
 			unsigned int index = 0;
 			id = atoi(dbrow[index++]);

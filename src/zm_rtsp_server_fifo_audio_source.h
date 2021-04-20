@@ -26,7 +26,7 @@ class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
         std::shared_ptr<xop::RtspServer>& rtspServer,
         xop::MediaSessionId sessionId,
         xop::MediaChannelId channelId,
-        std::string fifo
+        const std::string &fifo
         );
 
 		virtual ~ZoneMinderFifoAudioSource() {}
@@ -43,7 +43,7 @@ class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
     int getChannels() const { return channels; };
 
   protected:
-    void PushFrame(const uint8_t *data, size_t size, int64_t pts);
+    void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;
 
 	protected:
     std::string config;

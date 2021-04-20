@@ -24,7 +24,7 @@ ZoneMinderFifoAudioSource::ZoneMinderFifoAudioSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
     xop::MediaChannelId channelId,
-    std::string fifo
+    const std::string &fifo
     )
   :
     ZoneMinderFifoSource(rtspServer, sessionId, channelId, fifo),

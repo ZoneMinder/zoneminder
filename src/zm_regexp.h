@@ -51,7 +51,7 @@ protected:
   bool ok;
 
 public:
-  RegExpr( const char *pattern, int cflags=0, int p_max_matches=32 );
+  explicit RegExpr( const char *pattern, int cflags=0, int p_max_matches=32 );
   ~RegExpr();
   bool Ok() const { return( ok ); }
   int MatchCount() const { return( n_matches ); }

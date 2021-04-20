@@ -46,10 +46,10 @@ public:
   std::string username() { return fUsername; }
   AuthMethod  auth_method() const { return fAuthMethod; } 
   
-  std::string computeDigestResponse( std::string &cmd, std::string &url );
+  std::string computeDigestResponse(const std::string &cmd, const std::string &url);
   void authHandleHeader( std::string headerData );
   std::string getAuthHeader( std::string method, std::string path );
-  void checkAuthResponse(std::string &response);
+  void checkAuthResponse(const std::string &response);
   
 private:
   std::string password() { return fPassword; }

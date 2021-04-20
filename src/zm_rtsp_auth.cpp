@@ -127,7 +127,7 @@ std::string Authenticator::getAuthHeader(std::string method, std::string uri) {
   return result;
 }
 
-std::string Authenticator::computeDigestResponse(std::string &method, std::string &uri) {
+std::string Authenticator::computeDigestResponse(const std::string &method, const std::string &uri) {
 #if HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
   // The "response" field is computed as:
   //  md5(md5(<username>:<realm>:<password>):<nonce>:md5(<cmd>:<url>))
@@ -192,7 +192,7 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
 #endif // HAVE_DECL_MD5
 }
 
-void Authenticator::checkAuthResponse(std::string &response) {
+void Authenticator::checkAuthResponse(const std::string &response) {
   std::string authLine;
   StringVector lines = Split(response, "\r\n");
   const char* authenticate_match = "WWW-Authenticate:";

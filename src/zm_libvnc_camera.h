@@ -51,11 +51,11 @@ public:
     
   ~VncCamera();
 
-  int PreCapture();
-  int PrimeCapture();
-  int Capture(ZMPacket &packet);
-  int PostCapture();
-  int Close();
+  int PreCapture() override;
+  int PrimeCapture() override;
+  int Capture(ZMPacket &packet) override;
+  int PostCapture() override;
+  int Close() override;
 };
 
 #endif // HAVE_LIBVNC

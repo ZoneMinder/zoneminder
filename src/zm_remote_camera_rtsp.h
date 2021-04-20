@@ -72,16 +72,16 @@ public:
       bool p_record_audio);
   ~RemoteCameraRtsp();
 
-  void Initialise();
-  void Terminate();
-  int Connect();
-  int Disconnect();
+  void Initialise() override;
+  void Terminate() override;
+  int Connect() override;
+  int Disconnect() override;
 
-  int PrimeCapture();
-  int PreCapture();
-  int Capture(ZMPacket &p);
-  int PostCapture();
-  int Close() { return 0; };
+  int PrimeCapture() override;
+  int PreCapture() override;
+  int Capture(ZMPacket &p) override;
+  int PostCapture() override;
+  int Close() override { return 0; };
 
   AVStream *get_VideoStream() { 
     if ( mVideoStreamId != -1 )

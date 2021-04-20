@@ -106,12 +106,22 @@ void Image::update_function_pointers() {
 }
 
 // This constructor is not used anywhere
-Image::Image() {
+Image::Image() :
+    delta8_rgb(&std_delta8_rgb),
+    delta8_bgr(&std_delta8_bgr),
+    delta8_rgba(&std_delta8_rgba),
+    delta8_bgra(&std_delta8_bgra),
+    delta8_argb(&std_delta8_argb),
+    delta8_abgr(&std_delta8_abgr),
+    delta8_gray8(&std_delta8_gray8),
+    blend(&std_blend)
+{
   if ( !initialised )
     Initialise();
   width = 0;
   linesize = 0;
   height = 0;
+  padding = 0;
   pixels = 0;
   colours = 0;
   subpixelorder = 0;
@@ -130,6 +140,7 @@ Image::Image(const char *filename) {
   width = 0;
   linesize = 0;
   height = 0;
+  padding = 0;
   pixels = 0;
   colours = 0;
   subpixelorder = 0;

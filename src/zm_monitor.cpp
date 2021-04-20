@@ -2023,14 +2023,14 @@ bool Monitor::Analyse() {
             shared_data->last_event_id = event->Id();
 
             // lets construct alarm cause. It will contain cause + names of zones alarmed
-            std::string alarm_cause = "Continuous";
+            std::string alarm_cause;
             for (Zone zone : zones) {
               if (zone.Alarmed()) {
+                if (!alarm_cause.empty()) alarm_cause += ",";
                 alarm_cause += std::string(zone.Label());
-                //FIXME if (i < n_zones-1) alarm_cause += ",";
               }
             }
-            alarm_cause = cause+" "+alarm_cause;
+            alarm_cause = cause+" Continuous "+alarm_cause;
             strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
             video_store_data->recording = event->StartTime();
             Info("%s: %03d - Opened new event %" PRIu64 ", section start",

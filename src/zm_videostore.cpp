@@ -695,11 +695,11 @@ bool VideoStore::setup_resampler() {
 // codec is already open in ffmpeg_camera
   audio_in_ctx = audio_in_stream->codec;
   audio_in_codec = reinterpret_cast<const AVCodec *>(audio_in_ctx->codec);
-  if ( !audio_in_codec ) {
+  if (!audio_in_codec) {
     audio_in_codec = avcodec_find_decoder(audio_in_stream->codec->codec_id);
-  }
-  if ( !audio_in_codec ) {
-    return false;
+    if (!audio_in_codec) {
+      return false;
+    }
   }
 #endif
 

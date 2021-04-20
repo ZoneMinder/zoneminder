@@ -41,11 +41,10 @@ void Polygon::calcCentre() {
   }
   float_x /= (6*area);
   float_y /= (6*area);
-  //printf( "%.2f,%.2f\n", float_x, float_y );
   centre = Coord( (int)round(float_x), (int)round(float_y) );
 }
 
-Polygon::Polygon(int p_n_coords, const Coord *p_coords) : n_coords( p_n_coords ) {
+Polygon::Polygon(int p_n_coords, const Coord *p_coords) : n_coords(p_n_coords) {
   coords = new Coord[n_coords];
 
   int min_x = -1;
@@ -68,7 +67,7 @@ Polygon::Polygon(int p_n_coords, const Coord *p_coords) : n_coords( p_n_coords )
   calcCentre();
 }
 
-Polygon::Polygon( const Polygon &p_polygon ) :
+Polygon::Polygon(const Polygon &p_polygon) :
   n_coords(p_polygon.n_coords),
   extent(p_polygon.extent),
   area(p_polygon.area),
@@ -80,19 +79,20 @@ Polygon::Polygon( const Polygon &p_polygon ) :
   }
 }
 
-Polygon &Polygon::operator=( const Polygon &p_polygon ) {
-  if ( n_coords < p_polygon.n_coords ) {
-    delete[] coords;
-    coords = new Coord[p_polygon.n_coords];
-  }
+Polygon &Polygon::operator=(const Polygon &p_polygon) {
   n_coords = p_polygon.n_coords;
-  for ( int i = 0; i < n_coords; i++ ) {
-    coords[i] = p_polygon.coords[i];
+
+  Coord *new_coords = new Coord[n_coords];
+  for (int i = 0; i < n_coords; i++) {
+    new_coords[i] = p_polygon.coords[i];
   }
+  delete[] coords;
+  coords = new_coords;
+
   extent = p_polygon.extent;
   area = p_polygon.area;
   centre = p_polygon.centre;
-  return *this ;
+  return *this;
 }
 
 bool Polygon::isInside( const Coord &coord ) const {

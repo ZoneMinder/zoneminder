@@ -148,11 +148,10 @@ bool verifyPassword(const char *username, const char *input_password, const char
     #ifndef SHA_DIGEST_LENGTH
       #define SHA_DIGEST_LENGTH 20
     #endif
-  
-    unsigned char digest_interim[SHA_DIGEST_LENGTH];
-    unsigned char digest_final[SHA_DIGEST_LENGTH];
     
 #if HAVE_LIBCRYPTO
+    unsigned char digest_interim[SHA_DIGEST_LENGTH];
+    unsigned char digest_final[SHA_DIGEST_LENGTH];
     SHA_CTX ctx1, ctx2;
     
     //get first iteration
@@ -163,8 +162,10 @@ bool verifyPassword(const char *username, const char *input_password, const char
     //2nd iteration
     SHA1_Init(&ctx2);
     SHA1_Update(&ctx2, digest_interim,SHA_DIGEST_LENGTH);
-    SHA1_Final (digest_final, &ctx2);
+    SHA1_Final(digest_final, &ctx2);
 #elif HAVE_GNUTLS_GNUTLS_H
+    unsigned char digest_interim[SHA_DIGEST_LENGTH];
+    unsigned char digest_final[SHA_DIGEST_LENGTH];
     //get first iteration
     gnutls_hash_fast(GNUTLS_DIG_SHA1, input_password, strlen(input_password), digest_interim);
     //2nd iteration

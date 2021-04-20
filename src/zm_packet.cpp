@@ -28,6 +28,7 @@ AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
 ZMPacket::ZMPacket() :
   keyframe(0),
+  stream(nullptr),
   in_frame(nullptr),
   out_frame(nullptr),
   timestamp(nullptr),
@@ -38,6 +39,7 @@ ZMPacket::ZMPacket() :
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
   codec_imgsize(0),
+  pts(0),
   decoded(0)
 {
   av_init_packet(&packet);
@@ -46,6 +48,7 @@ ZMPacket::ZMPacket() :
 
 ZMPacket::ZMPacket(ZMPacket &p) :
   keyframe(0),
+  stream(nullptr),
   in_frame(nullptr),
   out_frame(nullptr),
   timestamp(nullptr),
@@ -55,7 +58,9 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
   image_index(-1),
-  codec_imgsize(0)
+  codec_imgsize(0),
+  pts(0),
+  decoded(0)
 {
   av_init_packet(&packet);
   packet.size = 0;

@@ -124,24 +124,15 @@ bool Fifo::writePacket(ZMPacket &packet) {
 }
 
 bool Fifo::writePacket(std::string filename, ZMPacket &packet) {
-  bool on_blocking_abort = true;
   FILE *outfile = nullptr;
-  int raw_fd = 0;
 
-  if ( !on_blocking_abort ) {
-    if ( (outfile = fopen(filename.c_str(), "wb")) == nullptr ) {
-      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
-      return false;
-    }
-  } else {
-    raw_fd = ::open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-    if (raw_fd < 0)
-      return false;
-    outfile = fdopen(raw_fd, "wb");
-    if (outfile == nullptr) {
-      ::close(raw_fd);
-      return false;
-    }
+  int raw_fd = ::open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+  if (raw_fd < 0)
+    return false;
+  outfile = fdopen(raw_fd, "wb");
+  if (outfile == nullptr) {
+    ::close(raw_fd);
+    return false;
   }
 
   Debug(4, "Writing packet of size %d pts %" PRId64, packet.packet.size, packet.pts);

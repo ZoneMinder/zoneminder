@@ -126,24 +126,24 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   Level tempLevel = INFO;
   Level tempTerminalLevel = mTerminalLevel;
-  Level tempDatabaseLevel = mDatabaseLevel;
-  Level tempFileLevel = mFileLevel;
-  Level tempSyslogLevel = mSyslogLevel;
 
   if ( options.mTerminalLevel != NOOPT )
     tempTerminalLevel = options.mTerminalLevel;
 
-  // DEBUG1 == 1.  So >= DEBUG1, we set to DEBUG9?! Why?
+  // DEBUG1 == 1.  So >= DEBUG1, we set to DEBUG9?! Why? icon: because log_level_database only goes up to debug.
+  Level tempDatabaseLevel;
   if ( options.mDatabaseLevel != NOOPT )
     tempDatabaseLevel = options.mDatabaseLevel;
   else
     tempDatabaseLevel = config.log_level_database >= DEBUG1 ? DEBUG9 : config.log_level_database;
 
+  Level tempFileLevel;
   if ( options.mFileLevel != NOOPT )
     tempFileLevel = options.mFileLevel;
   else
     tempFileLevel = config.log_level_file >= DEBUG1 ? DEBUG9 : config.log_level_file;
 
+  Level tempSyslogLevel;
   if ( options.mSyslogLevel != NOOPT )
     tempSyslogLevel = options.mSyslogLevel;
   else
@@ -297,9 +297,7 @@ const std::string &Logger::id(const std::string &id) {
 
 Logger::Level Logger::level(Logger::Level level) {
   if ( level > NOOPT ) {
-    level = limit(level);
-    if ( mLevel != level )
-      mLevel = level;
+    mLevel = limit(level);
 
     mEffectiveLevel = NOLOG;
     if ( mTerminalLevel > mEffectiveLevel )
@@ -324,9 +322,7 @@ Logger::Level Logger::terminalLevel(Logger::Level terminalLevel) {
   if ( terminalLevel > NOOPT ) {
     if ( !mHasTerminal )
       terminalLevel = NOLOG;
-    terminalLevel = limit(terminalLevel);
-    if ( mTerminalLevel != terminalLevel )
-      mTerminalLevel = terminalLevel;
+    mTerminalLevel = limit(terminalLevel);
   }
   return mTerminalLevel;
 }

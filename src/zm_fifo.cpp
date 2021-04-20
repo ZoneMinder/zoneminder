@@ -166,24 +166,15 @@ bool Fifo::write(uint8_t *data, size_t bytes, int64_t pts) {
 }
 
 bool Fifo::write(std::string filename, uint8_t *data, size_t bytes) {
-  bool on_blocking_abort = true;
   FILE *outfile = nullptr;
-  int raw_fd = 0;
 
-  if ( !on_blocking_abort ) {
-    if ( (outfile = fopen(filename.c_str(), "wb")) == nullptr ) {
-      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
-      return false;
-    }
-  } else {
-    raw_fd = ::open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-    if (raw_fd < 0)
-      return false;
-    outfile = fdopen(raw_fd, "wb");
-    if (outfile == nullptr) {
-      ::close(raw_fd);
-      return false;
-    }
+  int raw_fd = ::open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+  if (raw_fd < 0)
+    return false;
+  outfile = fdopen(raw_fd, "wb");
+  if (outfile == nullptr) {
+    ::close(raw_fd);
+    return false;
   }
 
   if (fwrite(data, bytes, 1, outfile) != 1) {

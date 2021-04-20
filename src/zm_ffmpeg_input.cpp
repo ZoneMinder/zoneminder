@@ -218,21 +218,21 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
 
   int ret;
 
-  if ( !frame ) {
+  if (!frame) {
     // Don't have a frame yet, so get a keyframe before the timestamp
     ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME);
-    if ( ret < 0 ) {
+    if (ret < 0) {
       Error("Unable to seek in stream");
       return nullptr;
     }
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
-  }  // end if ! frame
 
-	if ( !frame ) {
-		Warning("Unable to get frame.");
-		return nullptr;
-	}
+    if (!frame) {
+      Warning("Unable to get frame.");
+      return nullptr;
+    }
+  }  // end if ! frame
 
   if ( 
 			(last_seek_request >= 0)
@@ -243,10 +243,10 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
 		 ) {
     zm_dump_frame(frame, "frame->pts > seek_target, seek backwards");
   // our frame must be beyond our seek target. so go backwards to before it
-    if ( ( ret = av_seek_frame(input_format_context, stream_id, seek_target, 
+    if (( ret = av_seek_frame(input_format_context, stream_id, seek_target, 
             AVSEEK_FLAG_BACKWARD | AVSEEK_FLAG_FRAME
-            ) < 0 ) ) {
-      Error("Unable to seek in stream");
+            ) ) < 0) {
+      Error("Unable to seek in stream %d", ret);
       return nullptr;
     }
     // Have to grab a frame to update our current frame to know where we are

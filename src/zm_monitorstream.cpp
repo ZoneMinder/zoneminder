@@ -562,14 +562,6 @@ void MonitorStream::runStream() {
     Debug(2, "Not using playback_buffer");
   } // end if connkey  & playback_buffer
 
-  // if MaxFPS < 0 as in 1/60 = 0.017 then we won't get another frame for 60 sec.
-  double capture_fps = monitor->GetFPS();
-  double capture_max_fps = monitor->GetCaptureMaxFPS();
-  if ( capture_max_fps && ( capture_fps > capture_max_fps ) ) {
-    Debug(1, "Using %.3f for fps instead of current fps %.3f", capture_max_fps, capture_fps);
-    capture_fps = capture_max_fps;
-  }
-
   while (!zm_terminate) {
     bool got_command = false;
     if ( feof(stdout) ) {
@@ -931,7 +923,7 @@ void MonitorStream::SingleImageZip(int scale) {
   snap_image->Zip(img_buffer, &img_buffer_size);
 
   fprintf(stdout,
-      "Content-Length: %ld\r\n"
+      "Content-Length: %lu\r\n"
       "Content-Type: image/x-rgbz\r\n\r\n",
       img_buffer_size);
   fwrite(img_buffer, img_buffer_size, 1, stdout);

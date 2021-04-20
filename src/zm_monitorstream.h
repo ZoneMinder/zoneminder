@@ -36,7 +36,6 @@ class MonitorStream : public StreamBase {
     int temp_image_buffer_count;
     int temp_read_index;
     int temp_write_index;
-    static const uint32 MAX_SLEEP_USEC = 1000000;  // 1 sec
 
   protected:
     time_t ttl;

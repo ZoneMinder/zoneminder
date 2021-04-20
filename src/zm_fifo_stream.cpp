@@ -106,18 +106,18 @@ void FifoStream::setStreamStart(int monitor_id, const char * format) {
   std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
 
   if ( !strcmp(format, "reference") ) {
-    snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-r-%d.jpg",
+    snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-r-%u.jpg",
         staticConfig.PATH_SOCKS.c_str(), monitor->Id());
     stream_type = MJPEG;
   } else if ( !strcmp(format, "delta") ) {
-    snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-d-%d.jpg",
+    snprintf(diag_path, sizeof(diag_path), "%s/diagpipe-d-%u.jpg",
         staticConfig.PATH_SOCKS.c_str(), monitor->Id());
     stream_type = MJPEG;
   } else {
     if ( strcmp(format, "raw") ) {
       Warning("Unknown or unspecified format.  Defaulting to raw");
     }
-    snprintf(diag_path, sizeof(diag_path), "%s/dbgpipe-%d.log",
+    snprintf(diag_path, sizeof(diag_path), "%s/dbgpipe-%u.log",
         staticConfig.PATH_SOCKS.c_str(), monitor->Id());
     stream_type = RAW;
   }

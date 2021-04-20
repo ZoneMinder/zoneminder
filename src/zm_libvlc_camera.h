@@ -70,11 +70,11 @@ public:
   void Initialise();
   void Terminate();
 
-  int PrimeCapture();
-  int PreCapture();
-  int Capture( ZMPacket &p );
-  int PostCapture();
-  int Close() { return 0; };
+  int PrimeCapture() override;
+  int PreCapture() override;
+  int Capture(ZMPacket &p) override;
+  int PostCapture() override;
+  int Close() override { return 0; };
 };
 
 #endif // HAVE_LIBVLC

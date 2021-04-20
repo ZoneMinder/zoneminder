@@ -231,6 +231,7 @@ Image::Image(const AVFrame *frame) {
   linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 1);
   size = avpicture_get_size(AV_PIX_FMT_RGB0, width, height);
 #endif
+  padding = 0;
 
   buffer = nullptr;
   holdbuffer = 0;
@@ -325,6 +326,7 @@ Image::Image(const Image &p_image) {
     Initialise();
   width = p_image.width;
   linesize = p_image.linesize;
+  padding = 0;
   height = p_image.height;
   pixels = p_image.pixels;
   colours = p_image.colours;

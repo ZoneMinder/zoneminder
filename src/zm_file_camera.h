@@ -46,14 +46,14 @@ public:
       );
   ~FileCamera();
 
-  const char *Path() const { return( path ); }
+  const char *Path() const { return path; }
 
   void Initialise();
   void Terminate();
-  int PreCapture();
-  int Capture( ZMPacket &p );
-  int PostCapture();
-  int Close() { return 0; };
+  int PreCapture() override;
+  int Capture(ZMPacket &p) override;
+  int PostCapture() override;
+  int Close() { return 0; } override;
 };
 
 #endif // ZM_FILE_CAMERA_H

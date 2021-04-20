@@ -92,10 +92,10 @@ class FfmpegCamera : public Camera {
     const std::string &Options() const { return mOptions; } 
     const std::string &Method() const { return mMethod; }
 
-    int PrimeCapture();
-    int PreCapture();
-    int Capture(ZMPacket &p);
-    int PostCapture();
+    int PrimeCapture() override;
+    int PreCapture() override;
+    int Capture(ZMPacket &p) override;
+    int PostCapture() override;
   private:
     static int FfmpegInterruptCallback(void*ctx);
 };

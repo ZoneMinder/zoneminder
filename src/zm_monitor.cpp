@@ -2419,7 +2419,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
   }  // end if p_linked_monitors
 }  // end void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors)
 
-std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(std::string where, Purpose purpose) {
+std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(std::string &where, Purpose purpose) {
   std::string sql = load_monitor_sql + " WHERE " + where;
   Debug(1, "Loading Monitors with %s", sql.c_str());
 

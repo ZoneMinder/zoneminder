@@ -241,8 +241,8 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
 
   const char * hex = "0123456789abcdef";
   while ( MYSQL_ROW dbrow = mysql_fetch_row(result) ) {
-    const char *user = dbrow[1];
-    const char *pass = dbrow[2];
+    const char *username = dbrow[1];
+    const char *password = dbrow[2];
 
     time_t our_now = now;
     tm now_tm = {};
@@ -251,8 +251,8 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
 
       snprintf(auth_key, sizeof(auth_key)-1, "%s%s%s%s%d%d%d%d",
         config.auth_hash_secret,
-        user,
-        pass,
+        username,
+        password,
         remote_addr,
         now_tm.tm_hour,
         now_tm.tm_mday,

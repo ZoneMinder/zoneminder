@@ -193,7 +193,6 @@ bool verifyPassword(const char *username, const char *input_password, const char
     // BCRYPT 
     Debug(1, "%s is using a bcrypt encoded password", username);
     BCrypt bcrypt;
-    std::string input_hash = bcrypt.generateHash(std::string(input_password));
     password_correct = bcrypt.validatePassword(std::string(input_password), std::string(db_password_hash));
   } else if ( strncmp(db_password_hash, "-ZM-",4) == 0 ) {
     Error("Authentication failed - migration of password not complete. Please log into web console for this user and retry this operation");

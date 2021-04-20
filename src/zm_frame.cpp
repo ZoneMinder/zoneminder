@@ -5,7 +5,7 @@ Frame::Frame(
     int p_frame_id,
     FrameType p_type,
     struct timeval p_timestamp,
-    struct DeltaTimeval p_delta,
+    struct DeltaTimeval &p_delta,
     int p_score
     ) : 
       event_id(p_event_id),

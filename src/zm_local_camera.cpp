@@ -144,6 +144,7 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette)
         {
           Fatal("Can't find swscale format for palette %d", palette);
           break;
+#if 0
           // These are all spare and may match some of the above
           pixFormat = AV_PIX_FMT_YUVJ420P;
           pixFormat = AV_PIX_FMT_YUVJ422P;
@@ -169,6 +170,7 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette)
           //pixFormat = AV_PIX_FMT_VDPAU_H264;
           //pixFormat = AV_PIX_FMT_VDPAU_MPEG1;
           //pixFormat = AV_PIX_FMT_VDPAU_MPEG2;
+#endif
         }
     } // end switch palette
   } // end if v4l2
@@ -211,6 +213,7 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette)
         {
           Fatal("Can't find swscale format for palette %d", palette);
           break;
+#if 0
           // These are all spare and may match some of the above
           pixFormat = AV_PIX_FMT_YUVJ420P;
           pixFormat = AV_PIX_FMT_YUVJ422P;
@@ -237,6 +240,7 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette)
           //pixFormat = AV_PIX_FMT_VDPAU_H264;
           //pixFormat = AV_PIX_FMT_VDPAU_MPEG1;
           //pixFormat = AV_PIX_FMT_VDPAU_MPEG2;
+#endif
         }
     } // end switch palette
   } // end if v4l1
@@ -2251,9 +2255,5 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
 
 int LocalCamera::PostCapture() {
   return 1;
-  Debug(4, "Post-capturing");
-  return 0;
 }
-
-
 #endif // ZM_HAS_V4L

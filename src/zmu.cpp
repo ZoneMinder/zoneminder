@@ -497,7 +497,6 @@ int main(int argc, char *argv[]) {
       if ( verbose ) {
         printf("Current state: %s\n", state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"));
       } else {
-        if ( have_output ) fputc(separator, stdout);
         printf("%d", state);
         have_output = true;
       }
@@ -591,12 +590,12 @@ int main(int argc, char *argv[]) {
         monitor->ForceAlarmOff();
         monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
         int wait = 10*1000*1000; // 10 seconds
-        while ( ((state = monitor->GetState()) != Monitor::ALARM) and !zm_terminate and wait) {
+        while ((monitor->GetState() != Monitor::ALARM) and !zm_terminate and wait) {
           // Wait for monitor to notice.
           usleep(1000);
           wait -= 1000;
         }
-        if ( (state = monitor->GetState()) != Monitor::ALARM and !wait ) {
+        if ( monitor->GetState() != Monitor::ALARM and !wait ) {
           Error("Monitor failed to respond to forced alarm.");
         } else {
           printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());

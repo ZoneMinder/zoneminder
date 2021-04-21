@@ -616,55 +616,58 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
     packetqueue_iterator snapshot_it,
     unsigned int pre_event_count
     ) {
-
   std::unique_lock<std::mutex> lck(mutex);
 
   packetqueue_iterator *it = new packetqueue_iterator;
   iterators.push_back(it);
 
   *it = snapshot_it;
-  ZM_DUMP_PACKET((*(*it))->packet, "");
+  ZMPacket *packet = *(*it);
+  ZM_DUMP_PACKET(packet->packet, "");
   // Step one count back pre_event_count frames as the minimum
   // Do not assume that snapshot_it is video
   // snapshot it might already point to the beginning
   while (( (*it) != pktQueue.begin() ) and pre_event_count) {
-    Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d",
-        pre_event_count, (*(*it))->packet.stream_index, (*(*it))->keyframe);
-    ZM_DUMP_PACKET((*(*it))->packet, "");
-    if ( (*(*it))->packet.stream_index == video_stream_id ) {
+    packet = *(*it);
+    Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d score %d",
+        pre_event_count, packet->packet.stream_index, packet->keyframe, packet->score);
+    ZM_DUMP_PACKET(packet->packet, "");
+    if (packet->packet.stream_index == video_stream_id) {
       pre_event_count --;
-      if ( ! pre_event_count )
+      if (!pre_event_count)
         break;
     }
     (*it)--;
   }
   // it either points to beginning or we have seen pre_event_count video packets.
   
-  if ( (*it) == pktQueue.begin() ) {
+  if ((*it) == pktQueue.begin()) {
+    packet = *(*it);
     Debug(1, "Hit begin");
     // hit end, the first packet in the queue should ALWAYS be a video keyframe.
     // So we should be able to return it.
-    if ( pre_event_count ) {
-      if ( (*(*it))->image_index < (int)pre_event_count ) {
+    if (pre_event_count) {
+      if (packet->image_index < (int)pre_event_count) {
         // probably just starting up
         Debug(1, "Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
       } else {
         Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
       }
-      ZM_DUMP_PACKET((*(*it))->packet, "");
+      ZM_DUMP_PACKET(packet->packet, "");
     }
     return it;
   }
 
   // Not at beginning, so must be pointing at a video keyframe or maybe pre_event_count == 0
-  if ( (*(*it))->keyframe ) {
-    ZM_DUMP_PACKET((*(*it))->packet, "Found video keyframe, Returning");
+  if (packet->keyframe) {
+    ZM_DUMP_PACKET(packet->packet, "Found video keyframe, Returning");
     return it;
   }
 
-  while ( --(*it) != pktQueue.begin() ) {
-    ZM_DUMP_PACKET((*(*it))->packet, "No keyframe");
-    if ( ((*(*it))->packet.stream_index == video_stream_id) and (*(*it))->keyframe )
+  while (--(*it) != pktQueue.begin()) {
+    packet = *(*it);
+    ZM_DUMP_PACKET(packet->packet, "No keyframe");
+    if ((packet->packet.stream_index == video_stream_id) and packet->keyframe)
       return it; // Success
   }
   if ( !(*(*it))->keyframe ) {

@@ -65,17 +65,8 @@ void Zone::Setup(
       id, label.c_str(), type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs, overload_frames, extend_alarm_frames );
 #endif
 
-  alarmed = false;
-  was_alarmed = false;
-  pixel_diff = 0;
-  alarm_pixels = 0;
-  alarm_filter_pixels = 0;
-  alarm_blob_pixels = 0;
-  alarm_blobs = 0;
-  min_blob_size = 0;
-  max_blob_size = 0;
+  ResetStats();
   image = nullptr;
-  score = 0;
 
   overload_count = 0;
   extend_alarm_count = 0;
@@ -127,8 +118,23 @@ Zone::~Zone() {
 void Zone::RecordStats(const Event *event) {
   static char sql[ZM_SQL_MED_BUFSIZ];
   snprintf(sql, sizeof(sql),
-      "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
-      monitor->Id(), id, event->Id(), event->Frames(), pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score
+      "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, "
+      "PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, "
+      "Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, "
+      "MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
+      monitor->Id(), id, event->Id(), event->Frames(), 
+      stats.pixel_diff,
+      stats.alarm_pixels,
+      stats.alarm_filter_pixels,
+      stats.alarm_blob_pixels,
+      stats.alarm_blobs,
+      stats.min_blob_size,
+      stats.max_blob_size,
+      stats.alarm_box.LoX(),
+      stats.alarm_box.LoY(),
+      stats.alarm_box.HiX(),
+      stats.alarm_box.HiY(),
+      stats.score
       );
   zmDbDo(sql);
 }  // end void Zone::RecordStats( const Event *event )
@@ -143,7 +149,7 @@ bool Zone::CheckOverloadCount() {
 }  // end bool Zone::CheckOverloadCount()
 
 void Zone::SetScore(unsigned int nScore) {
-  score = nScore;
+  stats.score = nScore;
 }  // end void Zone::SetScore(unsigned int nScore)
 
 void Zone::SetAlarmImage(const Image* srcImage) {
@@ -225,27 +231,27 @@ bool Zone::CheckAlarms(const Image *delta_image) {
      } else {
      std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
      } */
-  std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
+  std_alarmedpixels(diff_image, pg_image, &stats.alarm_pixels, &pixel_diff_count);
 
   if (config.record_diag_images)
     diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
 
-  if (pixel_diff_count && alarm_pixels)
-    pixel_diff = pixel_diff_count/alarm_pixels;
+  if (pixel_diff_count && stats.alarm_pixels)
+    stats.pixel_diff = pixel_diff_count/stats.alarm_pixels;
 
   Debug(5, "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d",
-      alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff);
+      stats.alarm_pixels, min_alarm_pixels, max_alarm_pixels, stats.pixel_diff);
 
   if (config.record_diag_images_fifo) {
     FifoDebug(5, "{\"zone\":%d,\"type\":\"ALRM\",\"pixels\":%d,\"avg_diff\":%d}",
-        id, alarm_pixels, pixel_diff);
+        id, stats.alarm_pixels, stats.pixel_diff);
   }
 
-  if (alarm_pixels) {
-    if (min_alarm_pixels && (alarm_pixels < (unsigned int)min_alarm_pixels)) {
+  if (stats.alarm_pixels) {
+    if (min_alarm_pixels && (stats.alarm_pixels < (unsigned int)min_alarm_pixels)) {
       /* Not enough pixels alarmed */
       return false;
-    } else if (max_alarm_pixels && (alarm_pixels > (unsigned int)max_alarm_pixels)) {
+    } else if (max_alarm_pixels && (stats.alarm_pixels > (unsigned int)max_alarm_pixels)) {
       /* Too many pixels alarmed */
       overload_count = overload_frames;
       return false;
@@ -255,10 +261,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  score = (100*alarm_pixels)/(max_alarm_pixels?max_alarm_pixels:polygon.Area());
-  if (score < 1)
-    score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
-  Debug(5, "Current score is %d", score);
+  stats.score = (100*stats.alarm_pixels)/(max_alarm_pixels?max_alarm_pixels:polygon.Area());
+  if (stats.score < 1)
+    stats.score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
+  Debug(5, "Current score is %d", stats.score);
 
   if (check_method >= FILTERED_PIXELS) {
     int bx = filter_box.X();
@@ -303,28 +309,28 @@ bool Zone::CheckAlarms(const Image *delta_image) {
               *pdiff = kBlack;
               continue;
             }
-            alarm_filter_pixels++;
+            stats.alarm_filter_pixels++;
           }  // end if white
         }  // end for x
       }  // end foreach y line
     } else {
-      alarm_filter_pixels = alarm_pixels;
+      stats.alarm_filter_pixels = stats.alarm_pixels;
     }
 
     if (config.record_diag_images)
       diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
 
     Debug(5, "Got %d filtered pixels, need %d -> %d",
-        alarm_filter_pixels, min_filter_pixels, max_filter_pixels);
+        stats.alarm_filter_pixels, min_filter_pixels, max_filter_pixels);
 
     if (config.record_diag_images_fifo)
-      FifoDebug(5, "{\"zone\":%d,\"type\":\"FILT\",\"pixels\":%d}", id, alarm_filter_pixels);
+      FifoDebug(5, "{\"zone\":%d,\"type\":\"FILT\",\"pixels\":%d}", id, stats.alarm_filter_pixels);
 
-    if (alarm_filter_pixels) {
-      if (min_filter_pixels && (alarm_filter_pixels < min_filter_pixels)) {
+    if (stats.alarm_filter_pixels) {
+      if (min_filter_pixels && (stats.alarm_filter_pixels < min_filter_pixels)) {
         /* Not enough pixels alarmed */
         return false;
-      } else if (max_filter_pixels && (alarm_filter_pixels > max_filter_pixels)) {
+      } else if (max_filter_pixels && (stats.alarm_filter_pixels > max_filter_pixels)) {
         /* Too many pixels alarmed */
         overload_count = overload_frames;
         return false;
@@ -335,13 +341,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     }
 
     if (max_filter_pixels != 0)
-       score = (100*alarm_filter_pixels)/max_filter_pixels;
+       stats.score = (100*stats.alarm_filter_pixels)/max_filter_pixels;
     else
-       score = (100*alarm_filter_pixels)/polygon.Area();
+       stats.score = (100*stats.alarm_filter_pixels)/polygon.Area();
 
-    if (score < 1)
-      score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
-    Debug(5, "Current score is %d", score);
+    if (stats.score < 1)
+      stats.score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
+    Debug(5, "Current score is %d", stats.score);
 
     if (check_method >= BLOBS) {
       Debug(5, "Checking for blob pixels");
@@ -378,7 +384,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   Debug(9, "Matching neighbours, setting to %d", last_x);
                   // Add to the blob from the x side (either side really)
                   *pdiff = last_x;
-                  alarm_blob_pixels++;
+                  stats.alarm_blob_pixels++;
                   bsx->count++;
                   if (x > bsx->hi_x) bsx->hi_x = x;
                   if ((int)y > bsx->hi_y) bsx->hi_y = y;
@@ -416,7 +422,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                     }
                   }  // end for sy = lo_y .. hi_y
                   *pdiff = bsm->tag;
-                  alarm_blob_pixels++;
+                  stats.alarm_blob_pixels++;
                   if (!changed) {
                     Info(
                         "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n"
@@ -437,10 +443,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   if (bss->hi_x > bsm->hi_x) bsm->hi_x = bss->hi_x;
                   if (bss->hi_y > bsm->hi_y) bsm->hi_y = bss->hi_y;
 
-                  alarm_blobs--;
+                  stats.alarm_blobs--;
 
                   Debug(6, "Merging blob %d with %d at %d,%d, %d current blobs",
-                      bss->tag, bsm->tag, x, y, alarm_blobs);
+                      bss->tag, bsm->tag, x, y, stats.alarm_blobs);
 
                   // Clear out the old blob
                   bss->tag = 0;
@@ -454,7 +460,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 Debug(9, "Setting to left neighbour %d", last_x);
                 // Add to the blob from the x side 
                 *pdiff = last_x;
-                alarm_blob_pixels++;
+                stats.alarm_blob_pixels++;
                 bsx->count++;
                 if (x > bsx->hi_x) bsx->hi_x = x;
                 if ((int)y > bsx->hi_y) bsx->hi_y = y;
@@ -467,7 +473,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 BlobStats *bsy = &blob_stats[last_y];
 
                 *pdiff = last_y;
-                alarm_blob_pixels++;
+                stats.alarm_blob_pixels++;
                 bsy->count++;
                 if (x > bsy->hi_x) bsy->hi_x = x;
                 if ((int)y > bsy->hi_y) bsy->hi_y = y;
@@ -493,11 +499,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                           }
                         }
                       }
-                      alarm_blobs--;
-                      alarm_blob_pixels -= bs->count;
+                      stats.alarm_blobs--;
+                      stats.alarm_blob_pixels -= bs->count;
 
                       Debug(6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
-                          i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs);
+                          i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs);
 
                       bs->tag = 0;
                       bs->count = 0;
@@ -510,14 +516,14 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   if (!bs->count) {
                     Debug(9, "Creating new blob %d", i);
                     *pdiff = i;
-                    alarm_blob_pixels++;
+                    stats.alarm_blob_pixels++;
                     bs->tag = i;
                     bs->count++;
                     bs->lo_x = bs->hi_x = x;
                     bs->lo_y = bs->hi_y = y;
-                    alarm_blobs++;
+                    stats.alarm_blobs++;
 
-                    Debug(6, "Created blob %d at %d,%d, %d current blobs", bs->tag, x, y, alarm_blobs);
+                    Debug(6, "Created blob %d at %d,%d, %d current blobs", bs->tag, x, y, stats.alarm_blobs);
                     break;
                   }
                 }
@@ -535,14 +541,14 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       if (config.record_diag_images)
         diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
 
-      if (!alarm_blobs) return false;
+      if (!stats.alarm_blobs) return false;
 
       Debug(5, "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d",
-          alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
+          stats.alarm_blob_pixels, stats.alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
 
       if (config.record_diag_images_fifo) {
         FifoDebug(5, "{\"zone\":%d,\"type\":\"RBLB\",\"pixels\":%d,\"blobs\":%d}",
-            id, alarm_blob_pixels, alarm_blobs);
+            id, stats.alarm_blob_pixels, stats.alarm_blobs);
       }
 
       // Now eliminate blobs under the threshold
@@ -560,11 +566,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 }
               }
             }
-            alarm_blobs--;
-            alarm_blob_pixels -= bs->count;
+            stats.alarm_blobs--;
+            stats.alarm_blob_pixels -= bs->count;
 
             Debug(6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
-                i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs);
+                i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs);
 
             bs->tag = 0;
             bs->count = 0;
@@ -574,9 +580,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
             bs->hi_y = 0;
           } else {
             Debug(6, "Preserved blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
-                i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs);
-            if (!min_blob_size || bs->count < min_blob_size) min_blob_size = bs->count;
-            if (!max_blob_size || bs->count > max_blob_size) max_blob_size = bs->count;
+                i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs);
+            if (!stats.min_blob_size || bs->count < stats.min_blob_size) stats.min_blob_size = bs->count;
+            if (!stats.max_blob_size || bs->count > stats.max_blob_size) stats.max_blob_size = bs->count;
           }
         } // end if bs_count
       } // end for i < WHITE
@@ -585,18 +591,18 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
 
       Debug(5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d",
-          alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
+          stats.alarm_blob_pixels, stats.alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
 
       if (config.record_diag_images_fifo) {
         FifoDebug(5, "{\"zone\":%d,\"type\":\"FBLB\",\"pixels\":%d,\"blobs\":%d}",
-            id, alarm_blob_pixels, alarm_blobs);
+            id, stats.alarm_blob_pixels, stats.alarm_blobs);
       }
 
-      if (alarm_blobs) {
-        if (min_blobs && (alarm_blobs < min_blobs)) {
+      if (stats.alarm_blobs) {
+        if (min_blobs && (stats.alarm_blobs < min_blobs)) {
           /* Not enough pixels alarmed */
           return false;
-        } else if (max_blobs && (alarm_blobs > max_blobs)) {
+        } else if (max_blobs && (stats.alarm_blobs > max_blobs)) {
           /* Too many pixels alarmed */
           overload_count = overload_frames;
           return false;
@@ -607,13 +613,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       }
       
       if (max_blob_pixels != 0)
-        score = (100*alarm_blob_pixels)/max_blob_pixels;
+        stats.score = (100*stats.alarm_blob_pixels)/max_blob_pixels;
       else 
-        score = (100*alarm_blob_pixels)/polygon.Area();
+        stats.score = (100*stats.alarm_blob_pixels)/polygon.Area();
       
-      if (score < 1)
-        score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
-      Debug(5, "Current score is %d", score);
+      if (stats.score < 1)
+        stats.score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
+      Debug(5, "Current score is %d", stats.score);
 
       alarm_lo_x = polygon.HiX()+1;
       alarm_hi_x = polygon.LoX()-1;
@@ -623,7 +629,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       for (uint32 i = 1; i < kWhite; i++) {
         BlobStats *bs = &blob_stats[i];
         if (bs->count) {
-          if (bs->count == max_blob_size) {
+          if (bs->count == stats.max_blob_size) {
             if (config.weighted_alarm_centres) {
               unsigned long x_total = 0;
               unsigned long y_total = 0;
@@ -659,23 +665,23 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   if (type == INCLUSIVE) {
     // score >>= 1;
-    score /= 2;
+    stats.score /= 2;
   } else if (type == EXCLUSIVE) {
-    // score <<= 1;
-    score *= 2;
+    // stats.score <<= 1;
+    stats.score *= 2;
   }
 
-  Debug(5, "Adjusted score is %d", score);
+  Debug(5, "Adjusted score is %d", stats.score);
 
   // Now outline the changed region
-  if (score) {
-    alarm_box = Box(Coord(alarm_lo_x, alarm_lo_y), Coord(alarm_hi_x, alarm_hi_y));
+  if (stats.score) {
+    stats.alarm_box = Box(Coord(alarm_lo_x, alarm_lo_y), Coord(alarm_hi_x, alarm_hi_y));
 
     //if ( monitor->followMotion() )
     if ( true ) {
-      alarm_centre = Coord(alarm_mid_x, alarm_mid_y);
+      stats.alarm_centre = Coord(alarm_mid_x, alarm_mid_y);
     } else {
-      alarm_centre = alarm_box.Centre();
+      stats.alarm_centre = stats.alarm_box.Centre();
     }
 
     if ((type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)) {
@@ -726,7 +732,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     }  // end if ( (type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)
 
     Debug(1, "%s: Pixel Diff: %d, Alarm Pixels: %d, Filter Pixels: %d, Blob Pixels: %d, Blobs: %d, Score: %d",
-        Label(), pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, score);
+        Label(), stats.pixel_diff, stats.alarm_pixels, stats.alarm_filter_pixels, stats.alarm_blob_pixels, stats.alarm_blobs, stats.score);
   }  // end if score
   return true;
 }
@@ -996,17 +1002,8 @@ Zone::Zone(const Zone &z) :
 
     alarmed(z.alarmed),
     was_alarmed(z.was_alarmed),
-    pixel_diff(z.pixel_diff),
-    alarm_pixels(z.alarm_pixels),
-    alarm_filter_pixels(z.alarm_filter_pixels),
-    alarm_blob_pixels(z.alarm_blob_pixels),
-    alarm_blobs(z.alarm_blobs),
-    min_blob_size(z.min_blob_size),
-    max_blob_size(z.max_blob_size),
+    stats(z.stats),
 
-    alarm_box(z.alarm_box),
-    alarm_centre(z.alarm_centre),
-    score(z.score),
     overload_count(z.overload_count),
     extend_alarm_count(z.extend_alarm_count),
     diag_path(z.diag_path)

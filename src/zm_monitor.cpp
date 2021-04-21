@@ -2043,6 +2043,8 @@ bool Monitor::Analyse() {
         } // end if RECORDING
 
         if (score) {
+          for (Zone zone : zones) snap->zone_stats.push_back(zone.GetStats());
+
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             // If we should end then previous continuous event and start a new non-continuous event
             if (event && event->Frames()
@@ -2212,8 +2214,6 @@ bool Monitor::Analyse() {
                   snap->analysis_image = new Image(*(snap->image));
                 snap->analysis_image->Overlay(*(zone.AlarmImage()));
               }
-              if (config.record_event_stats)
-                zone.RecordStats(event);
             } // end if zone is alarmed
           } // end foreach zone
           if (event) {

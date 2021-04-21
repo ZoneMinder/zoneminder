@@ -39,6 +39,21 @@ class Monitor;
 // This describes a 'zone', or an area of an image that has certain
 // detection characteristics.
 //
+class ZoneStats {
+  public:
+  int           zone_id;
+  int           pixel_diff;
+  unsigned int  alarm_pixels;
+  int           alarm_filter_pixels;
+  int           alarm_blob_pixels;
+  int           alarm_blobs;
+  int           min_blob_size;
+  int           max_blob_size;
+  Box           alarm_box;
+  Coord         alarm_centre;
+  unsigned int  score;
+};
+
 class Zone {
 protected:
   struct Range {
@@ -54,6 +69,7 @@ protected:
     int lo_y;
     int hi_y;
   } BlobStats;
+
 
 public:
   typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE, PRIVACY } ZoneType;
@@ -92,16 +108,7 @@ protected:
   // Outputs/Statistics
   bool       alarmed;
   bool       was_alarmed;
-  int        pixel_diff;
-  unsigned int      alarm_pixels;
-  int        alarm_filter_pixels;
-  int        alarm_blob_pixels;
-  int        alarm_blobs;
-  int        min_blob_size;
-  int        max_blob_size;
-  Box        alarm_box;
-  Coord      alarm_centre;
-  unsigned int  score;
+  ZoneStats  stats;
   Image      *pg_image;
   Range      *ranges;
   Image      *image;
@@ -196,10 +203,11 @@ public:
 
   Zone(Monitor *p_monitor, int p_id, const char *p_label, const Polygon &p_polygon)
         :
-           monitor(p_monitor),
-           id(p_id),
-           label(p_label),
-           blob_stats{}
+          monitor(p_monitor),
+          id(p_id),
+          label(p_label),
+          blob_stats{},
+          stats{}
   {
     Setup(Zone::INACTIVE, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord(0, 0), 0, 0, 0, 0, 0, 0, 0, 0);
   }
@@ -208,7 +216,8 @@ public:
            monitor(p_monitor),
            id(p_id),
            label(p_label),
-           blob_stats{}
+           blob_stats{},
+           stats{}
   {
     Setup(p_type, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
   }
@@ -232,22 +241,23 @@ public:
 	inline bool WasAlarmed() const { return was_alarmed; }
 	inline void SetAlarm() { was_alarmed = alarmed; alarmed = true; }
 	inline void ClearAlarm() { was_alarmed = alarmed; alarmed = false; }
-  inline Coord GetAlarmCentre() const { return alarm_centre; }
-  inline unsigned int Score() const { return score; }
+  inline Coord GetAlarmCentre() const { return stats.alarm_centre; }
+  inline unsigned int Score() const { return stats.score; }
 
   inline void ResetStats() {
     alarmed = false;
 		was_alarmed = false;
-    pixel_diff = 0;
-    alarm_pixels = 0;
-    alarm_filter_pixels = 0;
-    alarm_blob_pixels = 0;
-    alarm_blobs = 0;
-    min_blob_size = 0;
-    max_blob_size = 0;
-    score = 0;
+    stats.pixel_diff = 0;
+    stats.alarm_pixels = 0;
+    stats.alarm_filter_pixels = 0;
+    stats.alarm_blob_pixels = 0;
+    stats.alarm_blobs = 0;
+    stats.min_blob_size = 0;
+    stats.max_blob_size = 0;
+    stats.score = 0;
   }
   void RecordStats( const Event *event );
+  ZoneStats GetStats() { stats.zone_id = id; return stats; };
   bool CheckAlarms( const Image *delta_image );
   bool DumpSettings( char *output, bool verbose );
 

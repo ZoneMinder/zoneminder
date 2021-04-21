@@ -26,15 +26,21 @@
 #include "zm_monitor.h"
 #include "zm_signal.h"
 #include "zm_videostore.h"
+
 #include <cstring>
+#include <list>
 #include <sys/stat.h>
 #include <unistd.h>
 
 //#define USE_PREPARED_SQL 1
 
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
-#define MAX_DB_FRAMES 120
+#define MAX_DB_FRAMES 100
 char frame_insert_sql[ZM_SQL_LGE_BUFSIZ] = "INSERT INTO `Frames` (`EventId`, `FrameId`, `Type`, `TimeStamp`, `Delta`, `Score`) VALUES ";
+char stats_insert_sql[ZM_SQL_LGE_BUFSIZ] = "INSERT INTO `Stats` (`EventId`, `FrameId`, `MonitorId`, `ZoneId`, "
+                                              "`PixelDiff`, `AlarmPixels`, `FilterPixels`, `BlobPixels`,"
+                                              "`Blobs`,`MinBlobSize`, `MaxBlobSize`, "
+                                              "`MinX`, `MinY`, `MaxX`, `MaxY`,`Score`) VALUES ";
 
 int Event::pre_alarm_count = 0;
 
@@ -489,27 +495,28 @@ void Event::AddPacket(ZMPacket *packet) {
   Debug(2, "have_video_keyframe %d codec_type %d == video? %d packet keyframe %d",
       have_video_keyframe, packet->codec_type, (packet->codec_type == AVMEDIA_TYPE_VIDEO), packet->keyframe);
   ZM_DUMP_PACKET(packet->packet, "Adding to event");
-  if ( videoStore ) {
-    if ( have_video_keyframe )  {
+  if (videoStore) {
+    if (have_video_keyframe) {
       videoStore->writePacket(packet);
     } else {
       Debug(2, "No video keyframe yet, not writing");
     }
     //FIXME if it fails, we should write a jpeg
   }
-  if ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) or packet->image )
-    AddFrame(packet->image, *(packet->timestamp), packet->score, packet->analysis_image);
+  if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image)
+    AddFrame(packet->image, *(packet->timestamp), packet->zone_stats, packet->score, packet->analysis_image);
   end_time = *packet->timestamp;
   return;
 }
 
 void Event::WriteDbFrames() {
   char *frame_insert_values_ptr = (char *)&frame_insert_sql + 90; // 90 == strlen(frame_insert_sql); 
+  char *stats_insert_values_ptr = nullptr;
 
 	/* Each frame needs about 63 chars.  So if we buffer too many frames, we will exceed the size of frame_insert_sql;
 	 */
   Debug(1, "Inserting %d frames", frame_data.size());
-  while ( frame_data.size() ) {
+  while (frame_data.size()) {
     Frame *frame = frame_data.front();
     frame_data.pop();
     frame_insert_values_ptr += snprintf(frame_insert_values_ptr,
@@ -518,20 +525,52 @@ void Event::WriteDbFrames() {
         id, frame->frame_id,
         frame_type_names[frame->type],
         frame->timestamp.tv_sec,
-        frame->delta.positive?"":"-",
+        frame->delta.positive ? "" : "-",
         frame->delta.sec,
         frame->delta.fsec,
         frame->score);
+    if (config.record_event_stats and frame->zone_stats.size()) {
+      stats_insert_values_ptr = (char *)&stats_insert_sql + 208;
+
+      for (ZoneStats stats : frame->zone_stats) {
+        stats_insert_values_ptr += snprintf(stats_insert_values_ptr,
+            sizeof(stats_insert_sql)-(stats_insert_values_ptr-(char *)&stats_insert_sql),
+            "\n(%" PRIu64 ",%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u),",
+            id, frame->frame_id,
+            monitor->Id(),
+            stats.zone_id,
+            stats.pixel_diff,
+            stats.alarm_pixels,
+            stats.alarm_filter_pixels,
+            stats.alarm_blob_pixels,
+            stats.alarm_blobs,
+            stats.min_blob_size,
+            stats.max_blob_size,
+            stats.alarm_box.LoX(),
+            stats.alarm_box.LoY(),
+            stats.alarm_box.HiX(),
+            stats.alarm_box.HiY(),
+            stats.score);
+      }  // end foreach zone stats
+    }  // end if recording stats
     delete frame;
   }
   *(frame_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
-  std::string sql(frame_insert_sql);
-
-  dbQueue.push(std::move(sql));
-  //zmDbDo(frame_insert_sql);
+  dbQueue.push(std::move(frame_insert_sql));
+  //dbQueue.push(std::move(sql));
+  if (stats_insert_values_ptr) {
+    *(stats_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
+    dbQueue.push(std::move(stats_insert_sql));
+  }
+//std::string sql(frame_insert_sql);
 } // end void Event::WriteDbFrames()
 
-void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image) {
+void Event::AddFrame(
+    Image *image,
+    struct timeval timestamp,
+    const std::list<ZoneStats> &zone_stats,
+    int score,
+    Image *alarm_image) {
   if (!timestamp.tv_sec) {
     Warning("Not adding new frame, zero timestamp");
     return;
@@ -612,7 +651,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
         delta_time.sec, delta_time.fsec);
 
     // The idea is to write out 1/sec
-    frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
+    frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score, zone_stats));
     double fps = monitor->get_capture_fps();
 		if ( write_to_db
 				or

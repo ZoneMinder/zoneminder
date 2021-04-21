@@ -22,6 +22,9 @@
 
 #include "zm_event.h"
 #include "zm_time.h"
+#include "zm_zone.h"
+
+#include <list>
 #include <sys/time.h>
 
 enum FrameType {
@@ -37,21 +40,22 @@ class Frame {
 
 public:
   Frame(
-     event_id_t           p_event_id,
-     int                  p_frame_id,
-     FrameType            p_type,
-     struct timeval       p_timestamp,
-     struct DeltaTimeval &p_delta,
-     int                  p_score
+     event_id_t             p_event_id,
+     int                    p_frame_id,
+     FrameType              p_type,
+     struct timeval         p_timestamp,
+     struct DeltaTimeval   &p_delta,
+     int                    p_score,
+     const std::list<ZoneStats>  &p_stats
      );
 
-  event_id_t     event_id;
-  int            frame_id;
-  FrameType      type;
-  struct timeval timestamp;
-  struct DeltaTimeval  delta;
-  int score;
-
+  event_id_t                event_id;
+  int                       frame_id;
+  FrameType                 type;
+  struct timeval            timestamp;
+  struct DeltaTimeval       delta;
+  int                       score;
+  std::list<ZoneStats>      zone_stats;
 };
 
 #endif // ZM_FRAME_H

@@ -23,7 +23,10 @@
 #include "zm_config.h"
 #include "zm_define.h"
 #include "zm_storage.h"
+#include "zm_zone.h"
+
 #include <map>
+#include <list>
 #include <queue>
 #include <set>
 
@@ -125,8 +128,10 @@ class Event {
     void AddFrame(
         Image *image,
         struct timeval timestamp,
+        const std::list<ZoneStats> &stats,
         int score=0,
-        Image *alarm_image=nullptr);
+        Image *alarm_image=nullptr
+        );
 
  private:
     void AddFramesInternal(

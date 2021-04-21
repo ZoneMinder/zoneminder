@@ -1121,6 +1121,10 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <td><input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($monitor->ControlAddress()) ? : 'user:port@ip' ?>"/></td>
             </tr>
             <tr>
+              <td class="text-right pr-3"><?php echo translate('ModectDuringPTZ') ?></td>
+              <td><input type="checkbox" name="newMonitor[ModectDuringPTZ]" value="1"<?php if ( $monitor->ModectDuringPTZ() ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
               <td class="text-right pr-3"><?php echo translate('AutoStopTimeout') ?></td>
               <td><input type="number" name="newMonitor[AutoStopTimeout]" value="<?php echo validHtmlStr($monitor->AutoStopTimeout()) ?>" min="0" step="any"/></td>
             </tr>

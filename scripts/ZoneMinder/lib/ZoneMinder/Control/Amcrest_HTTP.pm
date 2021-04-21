@@ -187,74 +187,57 @@ sub moveAbs ## Up, Down, Left, Right, etc. ??? Doesn't make sense here...
 sub moveConUp {
   my $self = shift;
   Debug('Move Up');
-  $$self{LastMove} = 'code=Up&channel=0&arg1=0&arg2=1&arg3=0';
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=Up&channel=0&arg1=0&arg2=1&arg3=0');
-  #usleep(500); ##XXX Should this be passed in as a "speed" parameter?
-  #$self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=Up&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{LastCmd} = 'code=Up&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConDown {
   my $self = shift;
   Debug('Move Down');
-  $$self{LastMove} = 'code=Down&channel=0&arg1=0&arg2=1&arg3=0';
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=Down&channel=0&arg1=0&arg2=1&arg3=0');
-  #usleep(500);
-  #$self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=Down&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{LastCmd} = 'code=Down&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConLeft {
   my $self = shift;
   Debug('Move Left');
-  $$self{LastMove} = 'code=Left&channel=0&arg1=0&arg2=1&arg3=0';
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=Left&channel=0&arg1=0&arg2=1&arg3=0');
-  #usleep(500);
-  #$self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=Left&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{LastCmd} = 'code=Left&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConRight {
   my $self = shift;
   Debug('Move Right');
-  $$self{LastMove} = 'code=Right&channel=0&arg1=0&arg2=1&arg3=0';
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=Right&channel=0&arg1=0&arg2=1&arg3=0');
-  #usleep(500);
-  #Debug('Move Right Stop');
-  #$self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=Right&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{LastCmd} = 'code=Right&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConUpRight {
   my $self = shift;
   Debug('Move Diagonally Up Right');
-  $$self{LastMove} = 'code=RightUp&channel=0&arg1=0&arg2=1&arg3=0';
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=RightUp&channel=0&arg1=1&arg2=1&arg3=0');
-  #usleep(500);
-  #$self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=RightUp&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{LastCmd} = 'code=RightUp&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConDownRight {
   my $self = shift;
   Debug('Move Diagonally Down Right');
-  $$self{LastMove} = 'code=RightDown&channel=0&arg1=0&arg2=1&arg3=0';
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=RightDown&channel=0&arg1=1&arg2=1&arg3=0');
-  #usleep(500);
-  #$self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=RightDown&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{LastCmd} = 'code=RightDown&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConUpLeft {
   my $self = shift;
   Debug('Move Diagonally Up Left');
-  $$self{LastMove} = 'code=LeftUp&channel=0&arg1=0&arg2=1&arg3=0';
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=LeftUp&channel=0&arg1=1&arg2=1&arg3=0');
-  #usleep(500);
-  #$self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=LeftUp&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{LastCmd} = 'code=LeftUp&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConDownLeft {
   my $self = shift;
   Debug('Move Diagonally Down Left');
-  $$self{LastMove} = 'code=LeftDown&channel=0&arg1=0&arg2=1&arg3=0';
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=LeftDown&channel=0&arg1=1&arg2=1&arg3=0');
-  #usleep (500);
-  #$self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=LeftDown&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{LastCmd} = 'code=LeftDown&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 # Stop is not "correctly" implemented as control_functions.php translates this to "Center"
@@ -263,10 +246,10 @@ sub moveConDownLeft {
 
 sub moveStop {
   my $self = shift;
-  if ($$self{LastMove}) {
-    Debug('Move Stop '.$$self{LastMove});
-    $self->sendCmd('cgi-bin/ptz.cgi?action=stop&'.$$self{LastMove});
-    $$self{LastMove} = '';
+  if ($$self{LastCmd}) {
+    Debug('Move Stop '.$$self{LastCmd});
+    $self->sendCmd('cgi-bin/ptz.cgi?action=stop&'.$$self{LastCmd});
+    $$self{LastCmd} = '';
   } else {
     Debug('Move Stop/Center');
     $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1=0&arg2=0&arg3=0&arg4=1');
@@ -320,17 +303,15 @@ sub moveMap {
 sub zoomConTele {
   my $self = shift;
   Debug('Zoom continuous tele');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&channel=0&code=ZoomTele&arg1=0&arg2=0&arg3=0&arg4=0');
-  usleep(100000);
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&channel=0&code=ZoomTele&arg1=0&arg2=0&arg3=0&arg4=0');
+  $$self{LastCmd} = 'code=ZoomTele&channel=0&arg1=0&arg2=0&arg3=0&arg4=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub zoomConWide {
   my $self = shift;
   Debug('Zoom continuous wide');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&channel=0&code=ZoomWide&arg1=0&arg2=0&arg3=0&arg4=0');
-  usleep (100000);
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&channel=0&code=ZoomWide&arg1=0&arg2=0&arg3=0&arg4=0');
+  $$self{LastCmd} = 'code=ZoomWide&channel=0&arg1=0&arg2=0&arg3=0&arg4=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 1;

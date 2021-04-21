@@ -1900,7 +1900,7 @@ bool Monitor::Analyse() {
 
           int motion_score = last_motion_score;
 
-          if ( analysis_fps_limit ) {
+          if (analysis_fps_limit) {
             double capture_fps = get_capture_fps();
             motion_frame_skip = capture_fps / analysis_fps_limit;
             Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
@@ -1936,7 +1936,7 @@ bool Monitor::Analyse() {
               Debug(1, "no image so skipping motion detection");
             }  // end if has image
           } else {
-            Debug(1, "Skipped motion detection");
+            Debug(1, "Skipped motion detection last motion score was %d", motion_score);
           }
           if (motion_score) {
             score += motion_score;
@@ -1972,8 +1972,8 @@ bool Monitor::Analyse() {
                   section_length
                   );
               closeEvent();
-            } // end if section_length
-          } // end if event
+            }  // end if section_length
+          }  // end if event
 
           if (!event) {
             Debug(2, "Creating continuous event");
@@ -2056,7 +2056,7 @@ bool Monitor::Analyse() {
               closeEvent();
             } else if (event) {
               // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-              Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d min",
+              Debug(3, "pre_alarm_count in event %d, event frames %d, alarm frames %d event length %d >=? %d min",
                   Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
                   ( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
                   );
@@ -2080,10 +2080,9 @@ bool Monitor::Analyse() {
                     snap_it,
                     (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
                     );
-                
                 ZMLockedPacket *starting_packet_lock = nullptr;
                 ZMPacket *starting_packet = nullptr;
-                if ( *start_it != snap_it ) {
+                if (*start_it != snap_it) {
                   starting_packet_lock = packetqueue.get_packet(start_it);
                   if (!starting_packet_lock) return false;
                   starting_packet = starting_packet_lock->packet_;

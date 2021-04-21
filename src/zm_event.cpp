@@ -566,7 +566,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     }  // end if save_jpegs
 
     // If this is the first frame, we should add a thumbnail to the event directory
-    if ( (frames == 1) || (score > (int)max_score) ) {
+    if ((frames == 1) || (score > (int)max_score)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       WriteFrameImage(image, timestamp, snapshot_file.c_str());
     }
@@ -579,7 +579,6 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
         alarm_frame_written = true;
         WriteFrameImage(image, timestamp, alarm_file.c_str());
       }
-      alarm_frames++;
 
       if (alarm_image and (save_jpegs & 2)) {
         std::string event_file = stringtf(staticConfig.analyse_file_format, path.c_str(), frames);
@@ -592,6 +591,8 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   } else {
     Debug(1, "No image");
   }  // end if has image
+
+  if (frame_type == ALARM) alarm_frames++;
 
   bool db_frame = ( frame_type == BULK )
     or ( frame_type == ALARM )

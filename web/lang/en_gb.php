@@ -541,6 +541,7 @@ $SLANG = array(
     'MinZoomStep'           => 'Min Zoom Step',
     'Misc'                  => 'Misc',
     'Mode'                  => 'Mode',
+    'ModectDuringPTZ'       => 'Do motion detection during PTZ motion',
     'MonitorIds'            => 'Monitor&nbsp;Ids',
     'Monitor'               => 'Monitor',
     'MonitorPresetIntro'    => 'Select an appropriate preset from the list below.<br/><br/>Please note that this may overwrite any values you already have configured for the current monitor.<br/><br/>',

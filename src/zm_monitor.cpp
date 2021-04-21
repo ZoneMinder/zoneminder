@@ -2205,20 +2205,17 @@ bool Monitor::Analyse() {
           //have_pre_alarmed_frames ++;
           Event::AddPreAlarmFrame(snap->image, *timestamp, score, nullptr);
         } else if (state == ALARM) {
-          if ((savejpegs > 1 ) and snap->image) {
-
-            for (Zone zone : zones) {
-              if (zone.Alarmed()) {
-                if (zone.AlarmImage()) {
-                  if (!snap->analysis_image)
-                    snap->analysis_image = new Image(*(snap->image));
-                  snap->analysis_image->Overlay(*(zone.AlarmImage()));
-                }
-                if (config.record_event_stats)
-                  zone.RecordStats(event);
-              } // end if zone is alarmed
-            } // end foreach zone
-          }
+          for (Zone zone : zones) {
+            if (zone.Alarmed()) {
+              if (zone.AlarmImage() and (savejpegs > 1) and snap->image) {
+                if (!snap->analysis_image)
+                  snap->analysis_image = new Image(*(snap->image));
+                snap->analysis_image->Overlay(*(zone.AlarmImage()));
+              }
+              if (config.record_event_stats)
+                zone.RecordStats(event);
+            } // end if zone is alarmed
+          } // end foreach zone
           if (event) {
             if (noteSetMap.size() > 0)
               event->updateNotes(noteSetMap);

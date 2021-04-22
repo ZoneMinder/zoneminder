@@ -1,2 +1,2 @@
 echo json_encode($message);
-echo json_encode($monitor);
+echo json_encode($user);

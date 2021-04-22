@@ -33,8 +33,8 @@ private:
   Coord size;
 
 public:
-  inline Box() { }
-  explicit inline Box( int p_size ) : lo( 0, 0 ), hi ( p_size-1, p_size-1 ), size( Coord::Range( hi, lo ) ) { }
+  inline Box() : lo(0,0), hi(0,0), size(0,0) { }
+  explicit inline Box(unsigned int p_size) : lo(0, 0), hi(p_size-1, p_size-1), size(Coord::Range(hi, lo)) { }
   inline Box( int p_x_size, int p_y_size ) : lo( 0, 0 ), hi ( p_x_size-1, p_y_size-1 ), size( Coord::Range( hi, lo ) ) { }
   inline Box( int lo_x, int lo_y, int hi_x, int hi_y ) : lo( lo_x, lo_y ), hi( hi_x, hi_y ), size( Coord::Range( hi, lo ) ) { }
   inline Box( const Coord &p_lo, const Coord &p_hi ) : lo( p_lo ), hi( p_hi ), size( Coord::Range( hi, lo ) ) { }

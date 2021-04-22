@@ -738,12 +738,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 }
 
 bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
-
   char *str = (char *)poly_string;
   int n_coords = 0;
   int max_n_coords = strlen(str)/4;
   Coord *coords = new Coord[max_n_coords];
-  while ( *str != '\0' ) {
+  while (*str != '\0') {
     char *cp = strchr(str, ',');
     if (!cp) {
       Error("Bogus coordinate %s found in polygon string", str);
@@ -755,13 +754,13 @@ bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
     coords[n_coords++] = Coord(x, y);
 
     char *ws = strchr(cp+2, ' ');
-    if ( ws )
+    if (ws)
       str = ws+1;
     else
       break;
   }  // end while ! end of string
 
-  if ( n_coords > 2 ) {
+  if (n_coords > 2) {
     Debug(3, "Successfully parsed polygon string %s", str);
     polygon = Polygon(n_coords, coords);
   } else {
@@ -882,18 +881,18 @@ std::list<Zone> Zone::Load(Monitor *monitor) {
 
     if ( atoi(dbrow[2]) == Zone::INACTIVE ) {
 //zones[i] = new Zone(monitor, Id, Name, polygon);
-      zones.push_back(Zone(monitor, Id, Name, polygon));
+      zones.push_back(std::move(Zone(monitor, Id, Name, polygon)));
     } else if ( atoi(dbrow[2]) == Zone::PRIVACY ) {
       //zones[i] = new Zone(monitor, Id, Name, (Zone::ZoneType)Type, polygon);
-      zones.push_back(Zone(monitor, Id, Name, (Zone::ZoneType)Type, polygon));
+      zones.push_back(std::move(Zone(monitor, Id, Name, (Zone::ZoneType)Type, polygon)));
     } else {
-      zones.push_back(Zone(
+      zones.push_back(std::move(Zone(
           monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB,
           (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold,
           MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), 
           MinFilterPixels, MaxFilterPixels,
           MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs,
-          OverloadFrames, ExtendAlarmFrames));
+          OverloadFrames, ExtendAlarmFrames)));
     }
   } // end foreach row
   mysql_free_result(result);
@@ -999,20 +998,19 @@ Zone::Zone(const Zone &z) :
     max_blobs(z.max_blobs),
     overload_frames(z.overload_frames),
     extend_alarm_frames(z.extend_alarm_frames),
-
     alarmed(z.alarmed),
     was_alarmed(z.was_alarmed),
     stats(z.stats),
-
     overload_count(z.overload_count),
     extend_alarm_count(z.extend_alarm_count),
     diag_path(z.diag_path)
 {
-    std::copy(z.blob_stats, z.blob_stats+256, blob_stats);
-    pg_image = z.pg_image ? new Image(*z.pg_image) : nullptr;
-    ranges = new Range[monitor->Height()];
-    std::copy(z.ranges, z.ranges+monitor->Height(), ranges);
-    image = z.image ? new Image(*z.image) : nullptr;
-
-  }
+  std::copy(z.blob_stats, z.blob_stats+256, blob_stats);
+  pg_image = z.pg_image ? new Image(*z.pg_image) : nullptr;
+  ranges = new Range[monitor->Height()];
+  std::copy(z.ranges, z.ranges+monitor->Height(), ranges);
+  image = z.image ? new Image(*z.image) : nullptr;
+  //z.stats.debug("Copy Source");
+  stats.debug("Copy dest");
+}
 

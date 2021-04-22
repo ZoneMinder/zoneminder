@@ -1159,7 +1159,7 @@ void Monitor::AddPrivacyBitmask() {
   }
   Image *privacy_image = nullptr;
 
-  for (Zone zone : zones) {
+  for (Zone &zone : zones) {
   //for (int i=0; i < zones.size(); i++) {
     if (zone.IsPrivacy()) {
       if (!privacy_image) {
@@ -1170,7 +1170,7 @@ void Monitor::AddPrivacyBitmask() {
       privacy_image->Outline(0xff, zone.GetPolygon());
     }
   } // end foreach zone
-  if ( privacy_image )
+  if (privacy_image)
     privacy_bitmask = privacy_image->Buffer();
 }
 
@@ -1535,7 +1535,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   }
 
-  for (Zone zone : zones) {
+  for (Zone &zone : zones) {
     if ( exclude_id && (!extra_colour || extra_zone.getNumCoords()) && zone.Id() == exclude_id )
       continue;
 
@@ -1926,6 +1926,11 @@ bool Monitor::Analyse() {
               Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
               // Get new score.
               motion_score = DetectMotion(*(snap->image), zoneSet);
+              for (Zone &zone : zones) {
+                ZoneStats stats = zone.GetStats();
+                stats.debug("After detect motion");
+                snap->zone_stats.push_back(stats);
+              }
 
               Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
                   score, last_motion_score, motion_score);
@@ -2024,7 +2029,7 @@ bool Monitor::Analyse() {
 
             // lets construct alarm cause. It will contain cause + names of zones alarmed
             std::string alarm_cause;
-            for (Zone zone : zones) {
+            for (Zone &zone : zones) {
               if (zone.Alarmed()) {
                 if (!alarm_cause.empty()) alarm_cause += ",";
                 alarm_cause += std::string(zone.Label());
@@ -2043,7 +2048,6 @@ bool Monitor::Analyse() {
         } // end if RECORDING
 
         if (score) {
-          for (Zone zone : zones) snap->zone_stats.push_back(zone.GetStats());
 
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             // If we should end then previous continuous event and start a new non-continuous event
@@ -2066,7 +2070,7 @@ bool Monitor::Analyse() {
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
               // lets construct alarm cause. It will contain cause + names of zones alarmed
               std::string alarm_cause = "";
-              for (Zone zone : zones) {
+              for (Zone &zone : zones) {
                 if (zone.Alarmed()) {
                   alarm_cause = alarm_cause + "," + std::string(zone.Label());
                 }
@@ -2192,7 +2196,7 @@ bool Monitor::Analyse() {
         if (state == PREALARM) {
           // Generate analysis images if necessary
           if ((savejpegs > 1) and snap->image) {
-            for (Zone zone : zones) {
+            for (Zone &zone : zones) {
               if (zone.Alarmed()) {
                 if (zone.AlarmImage()) {
                   if (!snap->analysis_image)
@@ -2207,7 +2211,7 @@ bool Monitor::Analyse() {
           //have_pre_alarmed_frames ++;
           Event::AddPreAlarmFrame(snap->image, *timestamp, score, nullptr);
         } else if (state == ALARM) {
-          for (Zone zone : zones) {
+          for (Zone &zone : zones) {
             if (zone.Alarmed()) {
               if (zone.AlarmImage() and (savejpegs > 1) and snap->image) {
                 if (!snap->analysis_image)
@@ -2906,13 +2910,13 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
 
   ref_image.Delta(comp_image, &delta_image);
 
-  if ( config.record_diag_images ) {
+  if (config.record_diag_images) {
     ref_image.WriteJpeg(diag_path_ref.c_str(), config.record_diag_images_fifo);
     delta_image.WriteJpeg(diag_path_delta.c_str(), config.record_diag_images_fifo);
   }
 
   // Blank out all exclusion zones
-  for (Zone zone : zones) {
+  for (Zone &zone : zones) {
     // need previous alarmed state for preclusive zone, so don't clear just yet
     if (!zone.IsPreclusive())
       zone.ClearAlarm();
@@ -2923,7 +2927,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   } // end foreach zone
 
   // Check preclusive zones first
-  for (Zone zone : zones) {
+  for (Zone &zone : zones) {
     if (!zone.IsPreclusive())
       continue;
     int old_zone_score = zone.Score();
@@ -2936,7 +2940,6 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
       zone.SetAlarm();
       Debug(3, "Zone is alarmed, zone score = %d", zone.Score());
       zoneSet.insert(zone.Label());
-      //zone->ResetStats();
     } else {
       // check if end of alarm
       if (old_zone_alarmed) {
@@ -2951,19 +2954,19 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
         } else {
           zone.ClearAlarm();
         }
-      }
+      }  // end if zone WAS alarmed
     } // end if CheckAlarms
   } // end foreach zone
 
   Coord alarm_centre;
   int top_score = -1;
 
-  if ( alarm ) {
+  if (alarm) {
     alarm = false;
     score = 0;
   } else {
     // Find all alarm pixels in active zones
-    for (Zone zone : zones) {
+    for (Zone &zone : zones) {
       if (!zone.IsActive() || zone.IsPreclusive()) {
         continue;
       }
@@ -2984,7 +2987,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
     } // end foreach zone
 
     if (alarm) {
-      for (Zone zone : zones) {
+      for (Zone &zone : zones) {
         if (!zone.IsInclusive()) {
           continue;
         }
@@ -3004,7 +3007,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
       } // end foreach zone
     } else {
       // Find all alarm pixels in exclusive zones
-      for (Zone zone : zones) {
+      for (Zone &zone : zones) {
         if (!zone.IsExclusive()) {
           continue;
         }
@@ -3020,7 +3023,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
     } // end if alarm or not
   } // end if alarm
 
-  if ( top_score > 0 ) {
+  if (top_score > 0) {
     shared_data->alarm_x = alarm_centre.X();
     shared_data->alarm_y = alarm_centre.Y();
 
@@ -3101,7 +3104,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
     function==NODECT?"Externally Triggered only, no Motion Detection":"Unknown"
   ))))));
   sprintf(output+strlen(output), "Zones : %lu\n", zones.size());
-  for (Zone zone : zones) {
+  for (Zone &zone : zones) {
     zone.DumpSettings(output+strlen(output), verbose);
   }
   sprintf(output+strlen(output), "Recording Enabled? %s\n", enabled ? "enabled" : "disabled");

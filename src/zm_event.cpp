@@ -556,11 +556,13 @@ void Event::WriteDbFrames() {
     delete frame;
   }
   *(frame_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
-  dbQueue.push(std::move(frame_insert_sql));
+  zmDbDo(frame_insert_sql);
+  //dbQueue.push(std::move(frame_insert_sql));
   //dbQueue.push(std::move(sql));
   if (stats_insert_values_ptr) {
     *(stats_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
-    dbQueue.push(std::move(stats_insert_sql));
+    zmDbDo(stats_insert_sql);
+    //dbQueue.push(std::move(stats_insert_sql));
   }
 //std::string sql(frame_insert_sql);
 } // end void Event::WriteDbFrames()

@@ -46,15 +46,19 @@ size_t content_type_match_len;
 
 void bind_libcurl_symbols() {
 
-  if(curl_lib)
+  if (curl_lib)
     return;
 
   curl_lib = dlopen("libcurl.so", RTLD_LAZY | RTLD_GLOBAL);
-  if(!curl_lib)
-    curl_lib = dlopen("libcurl-gnutls.so.4", RTLD_LAZY | RTLD_GLOBAL);
   if (!curl_lib) {
-    Error("Could not load libcurl: %s", dlerror());
-    return;
+    curl_lib = dlopen("libcurl.so.4", RTLD_LAZY | RTLD_GLOBAL);
+    if (!curl_lib) {
+      curl_lib = dlopen("libcurl-gnutls.so.4", RTLD_LAZY | RTLD_GLOBAL);
+      if (!curl_lib) {
+        Error("Could not load libcurl: %s", dlerror());
+        return;
+      }
+    }
   }
 
   // Load up all required symbols here

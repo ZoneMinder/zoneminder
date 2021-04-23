@@ -212,7 +212,7 @@ function getAuthUser($auth) {
 
 function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
-  if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password'])) {
+  if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password']) and isset($_SESSION)) {
     $time = time();
 
     # We use 1800 so that we regenerate the hash at half the TTL

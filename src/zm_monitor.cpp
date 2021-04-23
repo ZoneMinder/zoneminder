@@ -1660,7 +1660,7 @@ void Monitor::CheckAction() {
       if ( Enabled() && !Active() ) {
         Info("Received resume indication at count %d", image_count);
         shared_data->active = true;
-        ref_image = *(image_buffer[shared_data->last_write_index].image);
+        ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
         ready_count = std::max(warmup_count, pre_event_count);
         shared_data->alarm_x = shared_data->alarm_y = -1;
       }
@@ -1671,7 +1671,7 @@ void Monitor::CheckAction() {
   if ( auto_resume_time && (now.tv_sec >= auto_resume_time) ) {
     Info("Auto resuming at count %d", image_count);
     shared_data->active = true;
-    ref_image.Assign(*(image_buffer[shared_data->last_write_index].image));
+    ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
     ready_count = std::max(warmup_count, pre_event_count);
     auto_resume_time = 0;
   }
@@ -1919,24 +1919,33 @@ bool Monitor::Analyse() {
                   return false;
                 }
               }  // end while ! decoded
+              if (zm_terminate) {
+                delete packet_lock;
+                return false;
+              }
             }  // end if decoding enabled
 
             if (snap->image) {
               // decoder may not have been able to provide an image
-              Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
-              // Get new score.
-              motion_score = DetectMotion(*(snap->image), zoneSet);
-              for (Zone &zone : zones) {
-                ZoneStats stats = zone.GetStats();
-                stats.debug("After detect motion");
-                snap->zone_stats.push_back(stats);
-              }
+              if (!ref_image.Buffer()) {
+                Debug(1, "Assigning instead of Dectecting");
+                ref_image.Assign(*(snap->image));
+              } else {
+                Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
+                // Get new score.
+                motion_score = DetectMotion(*(snap->image), zoneSet);
+                for (Zone &zone : zones) {
+                  ZoneStats stats = zone.GetStats();
+                  stats.debug("After detect motion");
+                  snap->zone_stats.push_back(stats);
+                }
 
-              Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
-                  score, last_motion_score, motion_score);
-              motion_frame_count += 1;
-              // Why are we updating the last_motion_score too?
-              last_motion_score = motion_score;
+                Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
+                    score, last_motion_score, motion_score);
+                motion_frame_count += 1;
+                // Why are we updating the last_motion_score too?
+                last_motion_score = motion_score;
+              }
             } else {
               Debug(1, "no image so skipping motion detection");
             }  // end if has image
@@ -2251,9 +2260,14 @@ bool Monitor::Analyse() {
         } // end if state machine
 
         if ( (function == MODECT or function == MOCORD) and snap->image ) {
-          Debug(1, "Blending");
-          ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-          Debug(1, "Done Blending");
+          if (!ref_image.Buffer()) {
+            Debug(1, "Assigning");
+            ref_image.Assign(*(snap->image));
+          } else {
+            Debug(1, "Blending");
+            ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+            Debug(1, "Done Blending");
+          }
         }
         last_signal = signal;
       } // end if videostream
@@ -2597,94 +2611,6 @@ int Monitor::Capture() {
         return 1;
       } // end if audio
 
-#if 0
-      if ( !packet->image ) {
-        if ( packet->packet.size and !packet->in_frame ) {
-          if ( !decoding_enabled ) {
-            Debug(1, "Not decoding");
-          } else {
-            Debug(2,"About to decode %p", packet);
-            // Allocate the image first so that it can be used by hwaccel
-            // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
-            //
-            //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
-            int ret = packet->decode(camera->getVideoCodecContext());
-            if ( ret < 0 ) {
-              Error("decode failed");
-            } else if ( ret == 0 ) {
-              delete packet;
-              return 0;
-            } // end if decode
-          } // end if decoding
-        } else {
-          Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
-        }
-        if ( packet->in_frame and !packet->image ) {
-          capture_image = packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
-          packet->get_image();
-        }
-      } // end if need to decode
-
-      if ( packet->image ) {
-        capture_image = packet->image;
-
-        /* Deinterlacing */
-        if ( deinterlacing_value ) {
-          if ( deinterlacing_value == 1 ) {
-            capture_image->Deinterlace_Discard();
-          } else if ( deinterlacing_value == 2 ) {
-            capture_image->Deinterlace_Linear();
-          } else if ( deinterlacing_value == 3 ) {
-            capture_image->Deinterlace_Blend();
-          } else if ( deinterlacing_value == 4 ) {
-            capture_image->Deinterlace_4Field(next_buffer.image, (deinterlacing>>8)&0xff);
-          } else if ( deinterlacing_value == 5 ) {
-            capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
-          }
-        }
-
-        if ( orientation != ROTATE_0 ) {
-          Debug(2, "Doing rotation");
-          switch ( orientation ) {
-            case ROTATE_0 :
-              // No action required
-              break;
-            case ROTATE_90 :
-            case ROTATE_180 :
-            case ROTATE_270 : 
-              capture_image->Rotate((orientation-1)*90);
-              break;
-            case FLIP_HORI :
-            case FLIP_VERT :
-              capture_image->Flip(orientation==FLIP_HORI);
-              break;
-          }
-        } // end if have rotation
-
-        if ( privacy_bitmask ) {
-          Debug(1, "Applying privacy");
-          capture_image->MaskPrivacy(privacy_bitmask);
-        }
-
-        if ( config.timestamp_on_capture ) {
-          Debug(1, "Timestampprivacy");
-          TimestampImage(packet->image, packet->timestamp);
-        }
-
-        if ( !ref_image.Buffer() ) {
-          // First image, so assign it to ref image
-          Debug(1, "Assigning ref image %dx%d size: %d", width, height, camera->ImageSize());
-          ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
-              packet->image->Buffer(), camera->ImageSize());
-        }
-        image_buffer[index].image->Assign(*(packet->image));
-        *(image_buffer[index].timestamp) = *(packet->timestamp);
-      }  // end if have image
-
-      shared_data->signal = ( capture_image and signal_check_points ) ? CheckSignal(capture_image) : true;
-      shared_data->last_write_index = index;
-      shared_data->last_write_time = packet->timestamp->tv_sec;
-#endif
       image_count++;
 
       // Will only be queued if there are iterators allocated in the queue.
@@ -2825,12 +2751,6 @@ bool Monitor::Decode() {
       TimestampImage(packet->image, packet->timestamp);
     }
 
-    if (!ref_image.Buffer()) {
-      // First image, so assign it to ref image
-      Debug(1, "Assigning ref image %dx%d size: %d", width, height, camera->ImageSize());
-      ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(),
-          packet->image->Buffer(), camera->ImageSize());
-    }
     image_buffer[index].image->Assign(*(packet->image));
     *(image_buffer[index].timestamp) = *(packet->timestamp);
   }  // end if have image

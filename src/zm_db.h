@@ -41,6 +41,7 @@ class zmDbQueue {
   void push(const char *sql) { return push(std::string(sql)); };
   void push(std::string &&sql);
   void process();
+  void stop();
 };
 
 class zmDbRow {

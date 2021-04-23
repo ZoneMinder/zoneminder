@@ -376,6 +376,7 @@ int main(int argc, char *argv[]) {
   }
 
   Image::Deinitialise();
+  dbQueue.stop();
   Debug(1, "terminating");
   logTerm();
   zmDbClose();

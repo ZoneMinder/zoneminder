@@ -233,9 +233,13 @@ zmDbQueue::zmDbQueue() :
 { }
 
 zmDbQueue::~zmDbQueue() {
+  stop();
+}
+
+void zmDbQueue::stop() {
   mTerminate = true;
   mCondition.notify_all();
-  mThread.join();
+  if (mThread.joinable()) mThread.join();
 }
 
 void zmDbQueue::process() {

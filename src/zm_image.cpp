@@ -2033,7 +2033,7 @@ void Image::Annotate(
           }
 
           while (cp_row != 0) {
-            int column_idx = char_width - __builtin_ctzll(cp_row) + size;
+            int column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
             *(ptr + column_idx) = fg_colour & 0xff;
             cp_row = cp_row & (cp_row - 1);
           }
@@ -2061,7 +2061,7 @@ void Image::Annotate(
           }
 
           while (cp_row != 0) {
-            int column_idx = char_width - __builtin_ctzll(cp_row) + size;
+            int column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
             uint8 *colour_ptr = ptr + (column_idx * bytesPerPixel);
             RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_colour);
             GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_colour);
@@ -2087,7 +2087,7 @@ void Image::Annotate(
           }
 
           while (cp_row != 0) {
-            uint32 column_idx = char_width - __builtin_ctzll(cp_row) + size;
+            uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
             *(ptr + column_idx) = fg_rgb_col;
             cp_row = cp_row & (cp_row - 1);
           }

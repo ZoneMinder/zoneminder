@@ -39,14 +39,16 @@ struct FontBitmapHeader {
   uint16 char_width; // width of every character
   uint32 number_of_code_points; // number of codepoints; max. 255 for now
   uint32 idx; // offset in data where data for the bitmap starts; not used
-  uint32 pad; // padding
+  uint8 char_padding; // padding around characters
+  uint8 pad[3]; // struct padding
 };
 #pragma pack(pop)
 
 #pragma pack(push, 1)
 struct FontFileHeader {
   char magic[6]; // "ZMFNT\0"
-  uint8 pad[2];
+  uint8 version;
+  uint8 pad;
   std::array<FontBitmapHeader, kNumFontSizes> bitmap_header;
 };
 #pragma pack(pop)
@@ -60,10 +62,11 @@ class FontVariant {
   static constexpr uint8 kMaxCharWidth = 64;
 
   FontVariant();
-  FontVariant(uint16 char_height, uint16 char_width, std::vector<uint64> bitmap);
+  FontVariant(uint16 char_height, uint16 char_width, uint8 char_padding, std::vector<uint64> bitmap);
 
   uint16 GetCharHeight() const { return char_height_; }
   uint16 GetCharWidth() const { return char_width_; }
+  uint8 GetCharPadding() const { return char_padding_; }
   uint8 GetCodepointsCount() const { return codepoint_count_; }
 
   // Returns the bitmap of the codepoint `idx`. If `idx` is greater than `GetCodepointsCount`
@@ -73,6 +76,7 @@ class FontVariant {
  private:
   uint16 char_height_;
   uint16 char_width_;
+  uint8 char_padding_;
   uint8 codepoint_count_;
   std::vector<uint64> bitmap_;
 };

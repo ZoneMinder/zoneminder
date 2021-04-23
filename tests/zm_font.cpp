@@ -35,9 +35,10 @@ TEST_CASE("FontVariant: construction") {
   SECTION("values in range") {
     constexpr uint8 height = 10;
     constexpr uint8 width = 10;
+    constexpr uint8 padding = 2;
     std::vector<uint64> bitmap(FontVariant::kMaxNumCodePoints * height);
 
-    REQUIRE_NOTHROW(variant = FontVariant(height, width, bitmap));
+    REQUIRE_NOTHROW(variant = FontVariant(height, width, padding, bitmap));
 
     REQUIRE(variant.GetCharHeight() == height);
     REQUIRE(variant.GetCharWidth() == width);
@@ -47,31 +48,35 @@ TEST_CASE("FontVariant: construction") {
   SECTION("height out of range") {
     constexpr uint8 height = FontVariant::kMaxCharHeight + 1;
     constexpr uint8 width = 10;
+    constexpr uint8 padding = 2;
     std::vector<uint64> bitmap(FontVariant::kMaxNumCodePoints * height);
 
-    REQUIRE_THROWS(variant = FontVariant(height, width, bitmap));
+    REQUIRE_THROWS(variant = FontVariant(height, width, padding, bitmap));
   }
 
   SECTION("width out of range") {
     constexpr uint8 height = 10;
     constexpr uint8 width = FontVariant::kMaxCharWidth + 1;
+    constexpr uint8 padding = 2;
     std::vector<uint64> bitmap(FontVariant::kMaxNumCodePoints * height);
 
-    REQUIRE_THROWS(variant = FontVariant(height, width, bitmap));
+    REQUIRE_THROWS(variant = FontVariant(height, width, padding, bitmap));
   }
 
   SECTION("bitmap of wrong size") {
     constexpr uint8 height = 10;
     constexpr uint8 width = 10;
+    constexpr uint8 padding = 2;
     std::vector<uint64> bitmap(FontVariant::kMaxNumCodePoints * height + 1);
 
-    REQUIRE_THROWS(variant = FontVariant(height, width, bitmap));
+    REQUIRE_THROWS(variant = FontVariant(height, width, padding, bitmap));
   }
 }
 
 TEST_CASE("FontVariant: GetCodepoint") {
   constexpr uint8 height = 10;
   constexpr uint8 width = 10;
+  constexpr uint8 padding = 2;
   std::vector<uint64> bitmap(FontVariant::kMaxNumCodePoints * height);
 
   // fill bitmap for each codepoint alternating with 1 and std::numeric_limits<uint64>::max()
@@ -89,7 +94,7 @@ TEST_CASE("FontVariant: GetCodepoint") {
                   }
                 });
 
-  FontVariant variant(height, width, bitmap);
+  FontVariant variant(height, width, padding, bitmap);
   nonstd::span<const uint64> cp;
 
   SECTION("in bounds") {

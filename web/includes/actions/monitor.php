@@ -53,6 +53,7 @@ if ( $action == 'save' ) {
       'Triggers' => array(),
       'Controllable' => 0,
       'TrackMotion' => 0,
+      'ModectDuringPTZ' =>  0,
       'Enabled' => 0,
       'DecodingEnabled' => 0,
       'Exif' => 0,

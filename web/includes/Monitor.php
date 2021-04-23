@@ -110,6 +110,7 @@ class Monitor extends ZM_Object {
     'TrackDelay'      =>  null,
     'ReturnLocation'  =>  -1,
     'ReturnDelay'     =>  null,
+    'ModectDuringPTZ' =>  array('type'=>'boolean','default'=>0),
     'DefaultRate' =>  100,
     'DefaultScale'  =>  0,
     'SignalCheckPoints' =>  0,

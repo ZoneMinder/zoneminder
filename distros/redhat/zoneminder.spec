@@ -9,7 +9,7 @@
 %global ceb_version 1.0-zm
 
 # RtspServer is configured as a git submodule
-%global rtspserver_commit     8ef9169c473da2f77752b5c43ae2dd7a82596876
+%global rtspserver_commit     65f625e27ed9f96fa5ae068f6d49ec9fa5795629
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key

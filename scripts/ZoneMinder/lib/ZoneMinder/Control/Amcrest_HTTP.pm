@@ -139,6 +139,9 @@ sub sendCmd {
   my $result = undef;
 
   $self->printMsg($cmd, 'Tx');
+  if (!$self->{Monitor}->{ModectDuringPTZ} and zmMemVerify($self->{Monitor})) {
+    zmMonitorSuspend($$self{Monitor});
+  }
 
   my $res = $self->{ua}->get($$self{base_url}.$cmd);
 
@@ -157,6 +160,9 @@ sub sendCmd {
       Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
       $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
     }
+  }
+  if (!$self->{Monitor}->{ModectDuringPTZ} and zmMemVerify($self->{Monitor})) {
+    zmMonitorResume($$self{Monitor});
   }
 
   return $result;
@@ -187,6 +193,7 @@ sub moveAbs ## Up, Down, Left, Right, etc. ??? Doesn't make sense here...
 sub moveConUp {
   my $self = shift;
   Debug('Move Up');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $$self{LastCmd} = 'code=Up&channel=0&arg1=0&arg2=1&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
@@ -194,6 +201,7 @@ sub moveConUp {
 sub moveConDown {
   my $self = shift;
   Debug('Move Down');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $$self{LastCmd} = 'code=Down&channel=0&arg1=0&arg2=1&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
@@ -201,6 +209,7 @@ sub moveConDown {
 sub moveConLeft {
   my $self = shift;
   Debug('Move Left');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $$self{LastCmd} = 'code=Left&channel=0&arg1=0&arg2=1&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
@@ -208,6 +217,7 @@ sub moveConLeft {
 sub moveConRight {
   my $self = shift;
   Debug('Move Right');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $$self{LastCmd} = 'code=Right&channel=0&arg1=0&arg2=1&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
@@ -215,6 +225,7 @@ sub moveConRight {
 sub moveConUpRight {
   my $self = shift;
   Debug('Move Diagonally Up Right');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $$self{LastCmd} = 'code=RightUp&channel=0&arg1=0&arg2=1&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
@@ -223,12 +234,14 @@ sub moveConDownRight {
   my $self = shift;
   Debug('Move Diagonally Down Right');
   $$self{LastCmd} = 'code=RightDown&channel=0&arg1=0&arg2=1&arg3=0';
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConUpLeft {
   my $self = shift;
   Debug('Move Diagonally Up Left');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $$self{LastCmd} = 'code=LeftUp&channel=0&arg1=0&arg2=1&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
@@ -236,6 +249,7 @@ sub moveConUpLeft {
 sub moveConDownLeft {
   my $self = shift;
   Debug('Move Diagonally Down Left');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $$self{LastCmd} = 'code=LeftDown&channel=0&arg1=0&arg2=1&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
@@ -250,6 +264,7 @@ sub moveStop {
     Debug('Move Stop '.$$self{LastCmd});
     $self->sendCmd('cgi-bin/ptz.cgi?action=stop&'.$$self{LastCmd});
     $$self{LastCmd} = '';
+    $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   } else {
     Debug('Move Stop/Center');
     $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1=0&arg2=0&arg3=0&arg4=1');
@@ -303,6 +318,7 @@ sub moveMap {
 sub zoomConTele {
   my $self = shift;
   Debug('Zoom continuous tele');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $$self{LastCmd} = 'code=ZoomTele&channel=0&arg1=0&arg2=0&arg3=0&arg4=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
@@ -310,6 +326,7 @@ sub zoomConTele {
 sub zoomConWide {
   my $self = shift;
   Debug('Zoom continuous wide');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $$self{LastCmd} = 'code=ZoomWide&channel=0&arg1=0&arg2=0&arg3=0&arg4=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }

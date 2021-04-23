@@ -482,15 +482,15 @@ void Event::WriteDbFrames() {
     }  // end if recording stats
     delete frame;
   }  // end while frames
-  frame_insert_sql.erase(frame_insert_sql.size()-1); // The -1 is for the extra , added for values above
-  //zmDbDo(frame_insert_sql);
-  //dbQueue.push(std::move(frame_insert_sql));
-  if (stats_insert_sql.size() > 206) {
-    stats_insert_sql.erase(stats_insert_sql.size()-1); // The -1 is for the extra , added for values above
+  // The -1 is for the extra , added for values above
+  frame_insert_sql.erase(frame_insert_sql.size()-1);
+  //zmDbDo(frame_insert_sql.c_str());
+  dbQueue.push(std::move(frame_insert_sql));
+  if (stats_insert_sql.size() > 208) {
+    // The -1 is for the extra , added for values above
+    stats_insert_sql.erase(stats_insert_sql.size()-1);
     //zmDbDo(stats_insert_sql);
     dbQueue.push(std::move(stats_insert_sql));
-  } else {
-    Debug(1, "stats size %d %s", stats_insert_sql.size(), stats_insert_sql.c_str());
   }
 } // end void Event::WriteDbFrames()
 

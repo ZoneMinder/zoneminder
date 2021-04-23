@@ -124,7 +124,6 @@ class Event {
 
     void updateNotes(const StringSetMap &stringSetMap);
 
-    void AddFrames(int n_frames, Image **images, struct timeval **timestamps);
     void AddFrame(
         Image *image,
         struct timeval timestamp,
@@ -134,11 +133,6 @@ class Event {
         );
 
  private:
-    void AddFramesInternal(
-        int n_frames,
-        int start_frame,
-        Image **images,
-        struct timeval **timestamps);
     void WriteDbFrames();
     bool SetPath(Storage *storage);
 

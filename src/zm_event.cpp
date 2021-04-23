@@ -36,11 +36,6 @@
 
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 #define MAX_DB_FRAMES 100
-char frame_insert_sql[ZM_SQL_LGE_BUFSIZ] = "INSERT INTO `Frames` (`EventId`, `FrameId`, `Type`, `TimeStamp`, `Delta`, `Score`) VALUES ";
-char stats_insert_sql[ZM_SQL_LGE_BUFSIZ] = "INSERT INTO `Stats` (`EventId`, `FrameId`, `MonitorId`, `ZoneId`, "
-                                              "`PixelDiff`, `AlarmPixels`, `FilterPixels`, `BlobPixels`,"
-                                              "`Blobs`,`MinBlobSize`, `MaxBlobSize`, "
-                                              "`MinX`, `MinY`, `MaxX`, `MaxY`,`Score`) VALUES ";
 
 int Event::pre_alarm_count = 0;
 
@@ -423,70 +418,6 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
-void Event::AddFrames(int n_frames, Image **images, struct timeval **timestamps) {
-  for ( int i = 0; i < n_frames; i += ZM_SQL_BATCH_SIZE ) {
-    AddFramesInternal(n_frames, i, images, timestamps);
-  }
-}
-
-void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, struct timeval **timestamps) {
-  char *frame_insert_values = (char *)&frame_insert_sql + 90; // 90 == strlen(frame_insert_sql); 
-  //static char sql[ZM_SQL_LGE_BUFSIZ];
-  //strncpy(sql, "INSERT INTO `Frames` (`EventId`, `FrameId`, `TimeStamp`, `Delta`) VALUES ", sizeof(sql));
-  int frameCount = 0;
-  for ( int i = start_frame; i < n_frames && i - start_frame < ZM_SQL_BATCH_SIZE; i++ ) {
-    if ( timestamps[i]->tv_sec <= 0 ) {
-      Debug(1, "Not adding pre-capture frame %d, zero or less than 0 timestamp", i);
-      continue;
-    } else {
-      Debug( 3, "Adding pre-capture frame %d, timestamp = (%d), start_time=(%d)", i, timestamps[i]->tv_sec, start_time.tv_sec );
-    }
-
-    frames++;
-
-    if ( save_jpegs & 1 ) {
-			std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
-      Debug(1, "Writing pre-capture frame %d", frames);
-      WriteFrameImage(images[i], *(timestamps[i]), event_file.c_str());
-    }
-    //If this is the first frame, we should add a thumbnail to the event directory
-    // ICON: We are working through the pre-event frames so this snapshot won't 
-    // neccessarily be of the motion.  But some events are less than 10 frames, 
-    // so I am changing this to 1, but we should overwrite it later with a better snapshot.
-    if ( frames == 1 ) {
-      WriteFrameImage(images[i], *(timestamps[i]), snapshot_file.c_str());
-    }
-
-    struct DeltaTimeval delta_time;
-    DELTA_TIMEVAL(delta_time, *(timestamps[i]), start_time, DT_PREC_2);
-    // Delta is Decimal(8,2) so 6 integer digits and 2 decimal digits
-    if ( delta_time.sec > 999999 ) {
-      Warning("Invalid delta_time from_unixtime(%ld), %s%ld.%02ld", 
-           timestamps[i]->tv_sec,
-           (delta_time.positive?"":"-"),
-           delta_time.sec,
-           delta_time.fsec);
-        delta_time.sec = 0;
-    }
-
-    frame_insert_values += snprintf(frame_insert_values,
-        sizeof(frame_insert_sql)-(frame_insert_values-(char *)&frame_insert_sql),
-        "\n( %" PRIu64 ", %d, 'Normal', from_unixtime(%ld), %s%ld.%02ld, 0 ),",
-        id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
-
-    frameCount++;
-  } // end foreach frame
-
-  if ( frameCount ) {
-    *(frame_insert_values-1) = '\0';
-    zmDbDo(frame_insert_sql);
-    last_db_frame = frames;
-  } else {
-    Debug(1, "No valid pre-capture frames to add");
-  }
-  end_time = *timestamps[n_frames-1];
-}  // void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, struct timeval **timestamps)
-
 void Event::AddPacket(ZMPacket *packet) {
 
   have_video_keyframe = have_video_keyframe || 
@@ -510,18 +441,17 @@ void Event::AddPacket(ZMPacket *packet) {
 }
 
 void Event::WriteDbFrames() {
-  char *frame_insert_values_ptr = (char *)&frame_insert_sql + 90; // 90 == strlen(frame_insert_sql); 
-  char *stats_insert_values_ptr = nullptr;
+  std::string frame_insert_sql = "INSERT INTO `Frames` (`EventId`, `FrameId`, `Type`, `TimeStamp`, `Delta`, `Score`) VALUES ";
+  std::string stats_insert_sql = "INSERT INTO `Stats` (`EventId`, `FrameId`, `MonitorId`, `ZoneId`, "
+                                              "`PixelDiff`, `AlarmPixels`, `FilterPixels`, `BlobPixels`,"
+                                              "`Blobs`,`MinBlobSize`, `MaxBlobSize`, "
+                                              "`MinX`, `MinY`, `MaxX`, `MaxY`,`Score`) VALUES ";
 
-	/* Each frame needs about 63 chars.  So if we buffer too many frames, we will exceed the size of frame_insert_sql;
-	 */
   Debug(1, "Inserting %d frames", frame_data.size());
   while (frame_data.size()) {
     Frame *frame = frame_data.front();
     frame_data.pop();
-    frame_insert_values_ptr += snprintf(frame_insert_values_ptr,
-        sizeof(frame_insert_sql)-(frame_insert_values_ptr-(char *)&frame_insert_sql),
-        "\n( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d ),",
+    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d ),",
         id, frame->frame_id,
         frame_type_names[frame->type],
         frame->timestamp.tv_sec,
@@ -530,12 +460,9 @@ void Event::WriteDbFrames() {
         frame->delta.fsec,
         frame->score);
     if (config.record_event_stats and frame->zone_stats.size()) {
-      stats_insert_values_ptr = (char *)&stats_insert_sql + 208;
-
-      for (ZoneStats stats : frame->zone_stats) {
-        stats_insert_values_ptr += snprintf(stats_insert_values_ptr,
-            sizeof(stats_insert_sql)-(stats_insert_values_ptr-(char *)&stats_insert_sql),
-            "\n(%" PRIu64 ",%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u),",
+      Debug(1, "ZOne stats size for frame %d: %d", frame->frame_id, frame->zone_stats.size());
+      for (ZoneStats &stats : frame->zone_stats) {
+        stats_insert_sql += stringtf("\n(%" PRIu64 ",%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u),",
             id, frame->frame_id,
             monitor->Id(),
             stats.zone_id,
@@ -554,17 +481,17 @@ void Event::WriteDbFrames() {
       }  // end foreach zone stats
     }  // end if recording stats
     delete frame;
-  }
-  *(frame_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
-  zmDbDo(frame_insert_sql);
+  }  // end while frames
+  frame_insert_sql.erase(frame_insert_sql.size()-1); // The -1 is for the extra , added for values above
+  //zmDbDo(frame_insert_sql);
   //dbQueue.push(std::move(frame_insert_sql));
-  //dbQueue.push(std::move(sql));
-  if (stats_insert_values_ptr) {
-    *(stats_insert_values_ptr-1) = '\0'; // The -1 is for the extra , added for values above
-    zmDbDo(stats_insert_sql);
-    //dbQueue.push(std::move(stats_insert_sql));
+  if (stats_insert_sql.size() > 206) {
+    stats_insert_sql.erase(stats_insert_sql.size()-1); // The -1 is for the extra , added for values above
+    //zmDbDo(stats_insert_sql);
+    dbQueue.push(std::move(stats_insert_sql));
+  } else {
+    Debug(1, "stats size %d %s", stats_insert_sql.size(), stats_insert_sql.c_str());
   }
-//std::string sql(frame_insert_sql);
 } // end void Event::WriteDbFrames()
 
 void Event::AddFrame(
@@ -592,7 +519,7 @@ void Event::AddFrame(
       ) ? BULK : NORMAL 
       ) );
   Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d", 
-      frame_type_names[frame_type], score, monitor->GetState(), frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval) );
+      frame_type_names[frame_type], score, monitor->GetState(), frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval));
 
   if (score < 0) score = 0;
   tot_score += score;
@@ -647,10 +574,12 @@ void Event::AddFrame(
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
-    Debug(1, "Frame delta is %d.%d - %d.%d = %d.%d", 
+    Debug(1, "Frame delta is %d.%d - %d.%d = %d.%d, score %u zone_stats.size %u", 
         start_time.tv_sec, start_time.tv_usec,
         timestamp.tv_sec, timestamp.tv_usec,
-        delta_time.sec, delta_time.fsec);
+        delta_time.sec, delta_time.fsec,
+        score,
+        zone_stats.size());
 
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score, zone_stats));
@@ -697,14 +626,14 @@ bool Event::SetPath(Storage *storage) {
 
   path = stringtf("%s/%d", storage->Path(), monitor->Id());
   // Try to make the Monitor Dir.  Normally this would exist, but in odd cases might not.
-  if ( mkdir(path.c_str(), 0755) and ( errno != EEXIST ) ) {
+  if (mkdir(path.c_str(), 0755) and (errno != EEXIST)) {
     Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
     return false;
   }
 
   tm stime = {};
   localtime_r(&start_time.tv_sec, &stime);
-  if ( scheme == Storage::DEEP ) {
+  if (scheme == Storage::DEEP) {
 
     int dt_parts[6];
     dt_parts[0] = stime.tm_year-100;
@@ -717,40 +646,40 @@ bool Event::SetPath(Storage *storage) {
     std::string date_path;
     std::string time_path;
 
-    for ( unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ ) {
+    for (unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++) {
       path += stringtf("/%02d", dt_parts[i]);
 
-      if ( mkdir(path.c_str(), 0755) and ( errno != EEXIST ) ) {
+      if (mkdir(path.c_str(), 0755) and (errno != EEXIST)) {
         Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
         return false;
       }
-      if ( i == 2 )
+      if (i == 2)
 				date_path = path;
     }
 		time_path = stringtf("%02d/%02d/%02d", stime.tm_hour, stime.tm_min, stime.tm_sec);
 
     // Create event id symlink
     std::string id_file = stringtf("%s/.%" PRIu64, date_path.c_str(), id);
-    if ( symlink(time_path.c_str(), id_file.c_str()) < 0 ) {
+    if (symlink(time_path.c_str(), id_file.c_str()) < 0) {
       Error("Can't symlink %s -> %s: %s", id_file.c_str(), time_path.c_str(), strerror(errno));
       return false;
     }
-  } else if ( scheme == Storage::MEDIUM ) {
+  } else if (scheme == Storage::MEDIUM) {
     path += stringtf("/%04d-%02d-%02d",
         stime.tm_year+1900, stime.tm_mon+1, stime.tm_mday
         );
-    if ( mkdir(path.c_str(), 0755) and ( errno != EEXIST ) ) {
+    if (mkdir(path.c_str(), 0755) and (errno != EEXIST)) {
       Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
       return false;
     }
     path += stringtf("/%" PRIu64, id);
-    if ( mkdir(path.c_str(), 0755) and ( errno != EEXIST ) ) {
+    if (mkdir(path.c_str(), 0755) and (errno != EEXIST)) {
       Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
       return false;
     }
   } else {
     path += stringtf("/%" PRIu64, id);
-    if ( mkdir(path.c_str(), 0755) and ( errno != EEXIST ) ) {
+    if (mkdir(path.c_str(), 0755) and (errno != EEXIST)) {
       Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
       return false;
     }
@@ -763,6 +692,6 @@ bool Event::SetPath(Storage *storage) {
       Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
       return false;
 		}
-  } // deep storage or not
+  }  // deep storage or not
   return true;
 }  // end bool Event::SetPath

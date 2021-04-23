@@ -3035,7 +3035,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
 
   // This is a small and innocent hack to prevent scores of 0 being returned in alarm state
   return score ? score : alarm;
-} // end MotionDetect
+} // end DetectMotion
 
 // TODO: Move the camera specific things to the camera classes and avoid these casts.
 bool Monitor::DumpSettings(char *output, bool verbose) {

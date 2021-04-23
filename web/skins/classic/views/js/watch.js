@@ -619,9 +619,9 @@ function getControlResponse(respObj, respText) {
 
 function controlCmd(event) {
   button = event.target;
-  
-console.log(event);
-if (event.type !='mouseup') {
+
+  console.log(event);
+  if (event.type !='mouseup') {
     control = button.getAttribute('value');
   } else {
     console.log('stop');

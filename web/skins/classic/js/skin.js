@@ -148,7 +148,6 @@ function dataOnClick() {
       window[fnName](ev);
     };
   });
-
 }
 
 // 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.

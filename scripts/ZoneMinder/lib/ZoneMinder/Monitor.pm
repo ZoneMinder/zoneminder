@@ -27,11 +27,13 @@ package ZoneMinder::Monitor;
 use 5.006;
 use strict;
 use warnings;
+use Time::HiRes qw(usleep);
 
 require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Storage;
 require ZoneMinder::Server;
+require ZoneMinder::Memory;
 require ZoneMinder::Monitor_Status;
 
 #our @ISA = qw(Exporter ZoneMinder::Base);
@@ -115,6 +117,7 @@ $serial = $primary_key = 'Id';
   TrackDelay
   ReturnLocation
   ReturnDelay
+  ModectDuringPTZ
   DefaultRate
   DefaultScale
   SignalCheckPoints
@@ -200,6 +203,7 @@ $serial = $primary_key = 'Id';
     TrackDelay      =>  undef,
     ReturnLocation  =>  -1,
     ReturnDelay     =>  undef,
+    ModectDuringPTZ =>  0,
     DefaultRate =>  100,
     DefaultScale  =>  100,
     SignalCheckPoints =>  0,
@@ -252,6 +256,37 @@ sub Status {
     $$self{Status} = ZoneMinder::Monitor_Status->find_one(MonitorId=>$$self{Id});
   }
   return $$self{Status};
+}
+
+sub connect {
+  my $self = shift;
+  return ZoneMinder::Memory::zmMemVerify($self);
+}
+
+sub disconnect {
+  my $self = shift;
+  ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
+}
+
+sub suspendMotionDetection {
+  my $self = shift;
+  return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
+  while (ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
+    ZoneMinder::Logger::Debug(1, 'Suspending motion detection');
+    ZoneMinder::Memory::zmMonitorSuspend($self);
+    usleep(100000);
+  }
+  ZoneMinder::Logger::Debug(1,ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1));
+}
+
+sub resumeMotionDetection {
+  my $self = shift;
+  return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
+  #while (zmMemRead($self, 'shared_data:active', 1)) {
+    ZoneMinder::Logger::Debug(1, 'Resuming motion detection');
+  ZoneMinder::Memory::zmMonitorResume($self);
+    #}
+  return 1;
 }
 
 1;

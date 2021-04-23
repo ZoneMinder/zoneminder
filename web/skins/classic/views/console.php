@@ -292,7 +292,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php
   }
   $imgHTML='';
-  if ( ZM_WEB_LIST_THUMBS && ($monitor['Status'] == 'Connected') && $running ) {
+  if (ZM_WEB_LIST_THUMBS && ($monitor['Status'] == 'Connected') && $running && canView('Stream')) {
     $options = array();
 
     $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
@@ -322,15 +322,24 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
               <?php echo $imgHTML ?>
               <div class="small text-nowrap text-muted">
 
-              <?php echo implode('<br/>',
+<?php 
+  if (canView('Groups')) {
+    echo implode('<br/>',
                   array_map(function($group_id){
                     $Group = ZM\Group::find_one(array('Id'=>$group_id));
                     if ( $Group ) {
                       $Groups = $Group->Parents();
                       array_push( $Groups, $Group );
                     }
-                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&amp;GroupId='.$Group->Id().'">'.validHtmlStr($Group->Name()).'</a>'; }, $Groups ));
-                    }, $Monitor->GroupIds() ) ); 
+                    return implode(' &gt; ', array_map(function($Group){
+                      if (canView('Stream')) {
+                        return '<a href="?view=montagereview&amp;GroupId='.$Group->Id().'">'.validHtmlStr($Group->Name()).'</a>';
+                      } else {
+                        return validHtmlStr($Group->Name());
+                      }
+                    }, $Groups ));
+                  }, $Monitor->GroupIds()));
+  }
 ?>
             </div></td>
             <td class="colFunction">

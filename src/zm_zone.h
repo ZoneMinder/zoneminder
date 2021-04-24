@@ -195,16 +195,16 @@ class Zone {
     inline bool WasAlarmed() const { return was_alarmed; }
     inline void SetAlarm() { was_alarmed = alarmed; alarmed = true; }
     inline void ClearAlarm() { was_alarmed = alarmed; alarmed = false; }
-    inline Coord GetAlarmCentre() const { return stats.alarm_centre; }
-    inline unsigned int Score() const { return stats.score; }
+    inline Coord GetAlarmCentre() const { return stats.alarm_centre_; }
+    inline unsigned int Score() const { return stats.score_; }
 
     inline void ResetStats() {
       alarmed = false;
       was_alarmed = false;
-      stats.reset();
+      stats.Reset();
     }
     void RecordStats( const Event *event );
-    ZoneStats GetStats() { stats.debug("GetStats"); return stats; };
+    ZoneStats GetStats() { stats.DumpToLog("GetStats"); return stats; };
     bool CheckAlarms( const Image *delta_image );
     bool DumpSettings( char *output, bool verbose );
 

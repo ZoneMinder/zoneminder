@@ -1936,7 +1936,7 @@ bool Monitor::Analyse() {
                 motion_score = DetectMotion(*(snap->image), zoneSet);
                 for (Zone &zone : zones) {
                   ZoneStats stats = zone.GetStats();
-                  stats.debug("After detect motion");
+                  stats.DumpToLog("After detect motion");
                   snap->zone_stats.push_back(stats);
                 }
 

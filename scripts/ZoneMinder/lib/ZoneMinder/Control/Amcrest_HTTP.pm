@@ -139,9 +139,6 @@ sub sendCmd {
   my $result = undef;
 
   $self->printMsg($cmd, 'Tx');
-  if (!$self->{Monitor}->{ModectDuringPTZ} and zmMemVerify($self->{Monitor})) {
-    zmMonitorSuspend($$self{Monitor});
-  }
 
   my $res = $self->{ua}->get($$self{base_url}.$cmd);
 

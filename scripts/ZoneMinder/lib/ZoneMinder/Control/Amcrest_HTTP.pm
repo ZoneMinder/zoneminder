@@ -158,9 +158,6 @@ sub sendCmd {
       $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
     }
   }
-  if (!$self->{Monitor}->{ModectDuringPTZ} and zmMemVerify($self->{Monitor})) {
-    zmMonitorResume($$self{Monitor});
-  }
 
   return $result;
 }

@@ -25,21 +25,8 @@
 #include "zm_logger.h"
 
 class ZoneStats {
-  public:
-    int           zone_id;
-    int           pixel_diff;
-    unsigned int  alarm_pixels;
-    int           alarm_filter_pixels;
-    int           alarm_blob_pixels;
-    int           alarm_blobs;
-    int           min_blob_size;
-    int           max_blob_size;
-    Box           alarm_box;
-    Coord         alarm_centre;
-    unsigned int  score;
-
-  public:
-    ZoneStats(int z_id) : 
+ public:
+  explicit ZoneStats(int z_id) :
       zone_id(z_id),
       pixel_diff(0),
       alarm_pixels(0),
@@ -50,62 +37,57 @@ class ZoneStats {
       max_blob_size(0),
       alarm_box({}),
       alarm_centre({}),
-      score(0)
-      {};
+      score(0) {};
 
-    ZoneStats(const ZoneStats &z) :
-      zone_id(z.zone_id),
-      pixel_diff(z.pixel_diff),
-      alarm_pixels(z.alarm_pixels),
-      alarm_filter_pixels(z.alarm_filter_pixels),
-      alarm_blob_pixels(z.alarm_blob_pixels),
-      alarm_blobs(z.alarm_blobs),
-      min_blob_size(z.min_blob_size),
-      max_blob_size(z.max_blob_size),
-      alarm_box(z.alarm_box),
-      alarm_centre(z.alarm_centre),
-      score(z.score)
-    {
-    };
+  void reset() {
+    pixel_diff = 0;
+    alarm_pixels = 0;
+    alarm_filter_pixels = 0;
+    alarm_blob_pixels = 0;
+    alarm_blobs = 0;
+    min_blob_size = 0;
+    max_blob_size = 0;
+    alarm_box.LoX(0);
+    alarm_box.LoY(0);
+    alarm_box.HiX(0);
+    alarm_box.HiY(0);
+    alarm_centre = {};
+    score = 0;
+  }
 
-    ZoneStats&  operator=(const ZoneStats &other) {
-      zone_id               = other.zone_id;
-      pixel_diff            = other.pixel_diff;
-      alarm_pixels          = other.alarm_pixels;
-      alarm_filter_pixels   = other.alarm_filter_pixels;
-      alarm_blob_pixels     = other.alarm_blob_pixels;
-      alarm_blobs           = other.alarm_blobs;
-      min_blob_size         = other.min_blob_size;
-      max_blob_size         = other.max_blob_size;
-      alarm_box             = other.alarm_box;
-      alarm_centre          = other.alarm_centre;
-      score                 = other.score;
-      return *this;
-    }
+  void debug(const char *prefix) const {
+    Debug(1,
+          "ZoneStat: %s zone_id: %d pixel_diff=%d alarm_pixels=%d alarm_filter_pixels=%d alarm_blob_pixels=%d alarm_blobs=%d min_blob_size=%d max_blob_size=%d alarm_box=(%d,%d=>%d,%d) alarm_center=(%d,%d) score=%d",
+          prefix,
+          zone_id,
+          pixel_diff,
+          alarm_pixels,
+          alarm_filter_pixels,
+          alarm_blob_pixels,
+          alarm_blobs,
+          min_blob_size,
+          max_blob_size,
+          alarm_box.LoX(),
+          alarm_box.LoY(),
+          alarm_box.HiX(),
+          alarm_box.HiY(),
+          alarm_centre.X(),
+          alarm_centre.Y()
+    );
+  }
 
-    void reset() {
-      pixel_diff = 0;
-      alarm_pixels = 0;
-      alarm_filter_pixels = 0;
-      alarm_blob_pixels = 0;
-      alarm_blobs = 0;
-      min_blob_size = 0;
-      max_blob_size = 0;
-      alarm_box.LoX(0);
-      alarm_box.LoY(0);
-      alarm_box.HiX(0);
-      alarm_box.HiY(0);
-      alarm_centre = {};
-      score = 0;
-    }
-    void debug(const char *prefix) {
-      Debug(1, "ZoneStat: %s zone_id: %d pixel_diff=%d alarm_pixels=%d alarm_filter_pixels=%d alarm_blob_pixels=%d alarm_blobs=%d min_blob_size=%d max_blob_size=%d alarm_box=(%d,%d=>%d,%d) alarm_center=(%d,%d) score=%d",
-          prefix, zone_id, pixel_diff, alarm_pixels, alarm_filter_pixels,
-          alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size,
-          alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(),
-          alarm_centre.X(), alarm_centre.Y()
-          );
-    }
+ public:
+  int zone_id;
+  int pixel_diff;
+  unsigned int alarm_pixels;
+  int alarm_filter_pixels;
+  int alarm_blob_pixels;
+  int alarm_blobs;
+  int min_blob_size;
+  int max_blob_size;
+  Box alarm_box;
+  Coord alarm_centre;
+  unsigned int score;
 };
 
 #endif // ZM_ZONE_STATS_H

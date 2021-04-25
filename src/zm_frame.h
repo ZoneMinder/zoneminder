@@ -24,8 +24,8 @@
 #include "zm_time.h"
 #include "zm_zone.h"
 
-#include <list>
 #include <sys/time.h>
+#include <vector>
 
 enum FrameType {
   NORMAL = 0,
@@ -46,7 +46,7 @@ public:
      struct timeval         p_timestamp,
      struct DeltaTimeval   &p_delta,
      int                    p_score,
-     const std::list<ZoneStats>  &p_stats
+     std::vector<ZoneStats> p_stats
      );
 
   event_id_t                event_id;
@@ -55,7 +55,7 @@ public:
   struct timeval            timestamp;
   struct DeltaTimeval       delta;
   int                       score;
-  std::list<ZoneStats>      zone_stats;
+  std::vector<ZoneStats>      zone_stats;
 };
 
 #endif // ZM_FRAME_H

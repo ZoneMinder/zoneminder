@@ -1934,8 +1934,10 @@ bool Monitor::Analyse() {
                 Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                 // Get new score.
                 motion_score = DetectMotion(*(snap->image), zoneSet);
-                for (Zone &zone : zones) {
-                  ZoneStats stats = zone.GetStats();
+
+                snap->zone_stats.reserve(zones.size());
+                for (const Zone &zone : zones) {
+                  const ZoneStats &stats = zone.GetStats();
                   stats.DumpToLog("After detect motion");
                   snap->zone_stats.push_back(stats);
                 }

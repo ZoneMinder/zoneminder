@@ -204,7 +204,11 @@ class Zone {
       stats.Reset();
     }
     void RecordStats( const Event *event );
-    ZoneStats GetStats() { stats.DumpToLog("GetStats"); return stats; };
+    ZoneStats const &GetStats() const {
+      stats.DumpToLog("GetStats");
+      return stats;
+    };
+
     bool CheckAlarms( const Image *delta_image );
     bool DumpSettings( char *output, bool verbose );
 

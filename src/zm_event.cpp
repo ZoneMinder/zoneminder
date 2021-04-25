@@ -497,7 +497,7 @@ void Event::WriteDbFrames() {
 void Event::AddFrame(
     Image *image,
     struct timeval timestamp,
-    const std::list<ZoneStats> &zone_stats,
+    const std::vector<ZoneStats> &zone_stats,
     int score,
     Image *alarm_image) {
   if (!timestamp.tv_sec) {

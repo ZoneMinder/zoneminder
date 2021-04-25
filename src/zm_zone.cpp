@@ -809,10 +809,9 @@ bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, P
   return result;
 }  // end bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon)
 
-std::list<Zone> Zone::Load(Monitor *monitor) {
-  std::list<Zone> zones;
+std::vector<Zone> Zone::Load(Monitor *monitor) {
+  std::vector<Zone> zones;
 
-    //), Zone **&zones) {
   std::string sql = stringtf("SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
                              "MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,"
                              "FilterX,FilterY,MinFilterPixels,MaxFilterPixels,"
@@ -821,20 +820,24 @@ std::list<Zone> Zone::Load(Monitor *monitor) {
                              " FROM Zones WHERE MonitorId = %d ORDER BY Type, Id", monitor->Id());
 
   MYSQL_RES *result = zmDbFetch(sql.c_str());
-  if (!result) return zones;
+  if (!result) {
+    return {};
+  }
 
-  int n_zones = mysql_num_rows(result);
+  uint32 n_zones = mysql_num_rows(result);
   Debug(1, "Got %d zones for monitor %s", n_zones, monitor->Name());
+
+  zones.reserve(n_zones);
   for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
     int col = 0;
 
     int Id = atoi(dbrow[col++]);
     const char *Name = dbrow[col++];
-    int Type = atoi(dbrow[col++]);
+    ZoneType Type = static_cast<ZoneType>(atoi(dbrow[col++]));
     const char *Units = dbrow[col++];
     const char *Coords = dbrow[col++];
     int AlarmRGB = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int CheckMethod = atoi(dbrow[col++]);
+    Zone::CheckMethod CheckMethod = static_cast<Zone::CheckMethod>(atoi(dbrow[col++]));
     int MinPixelThreshold = dbrow[col]?atoi(dbrow[col]):0; col++;
     int MaxPixelThreshold = dbrow[col]?atoi(dbrow[col]):0; col++;
     int MinAlarmPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
@@ -879,25 +882,23 @@ std::list<Zone> Zone::Load(Monitor *monitor) {
       MaxBlobPixels = (MaxBlobPixels*polygon.Area())/100;
     }
 
-    if ( atoi(dbrow[2]) == Zone::INACTIVE ) {
-//zones[i] = new Zone(monitor, Id, Name, polygon);
-      zones.push_back(std::move(Zone(monitor, Id, Name, polygon)));
-    } else if ( atoi(dbrow[2]) == Zone::PRIVACY ) {
-      //zones[i] = new Zone(monitor, Id, Name, (Zone::ZoneType)Type, polygon);
-      zones.push_back(std::move(Zone(monitor, Id, Name, (Zone::ZoneType)Type, polygon)));
+    if (atoi(dbrow[2]) == Zone::INACTIVE) {
+      zones.emplace_back(monitor, Id, Name, polygon);
+    } else if (atoi(dbrow[2]) == Zone::PRIVACY) {
+      zones.emplace_back(monitor, Id, Name, Type, polygon);
     } else {
-      zones.push_back(std::move(Zone(
-          monitor, Id, Name, (Zone::ZoneType)Type, polygon, AlarmRGB,
-          (Zone::CheckMethod)CheckMethod, MinPixelThreshold, MaxPixelThreshold,
-          MinAlarmPixels, MaxAlarmPixels, Coord( FilterX, FilterY ), 
+      zones.emplace_back(
+          monitor, Id, Name, Type, polygon, AlarmRGB,
+          CheckMethod, MinPixelThreshold, MaxPixelThreshold,
+          MinAlarmPixels, MaxAlarmPixels, Coord(FilterX, FilterY),
           MinFilterPixels, MaxFilterPixels,
           MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs,
-          OverloadFrames, ExtendAlarmFrames)));
+          OverloadFrames, ExtendAlarmFrames);
     }
   } // end foreach row
   mysql_free_result(result);
   return zones;
-} // end std::list<Zone> Zone::Load(Monitor *monitor)
+} // end std::vector<Zone> Zone::Load(Monitor *monitor)
 
 bool Zone::DumpSettings(char *output, bool /*verbose*/) {
   output[0] = 0;

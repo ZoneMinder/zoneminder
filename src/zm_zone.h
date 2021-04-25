@@ -29,8 +29,8 @@
 #include "zm_zone_stats.h"
 
 #include <algorithm>
-#include <list>
 #include <string>
+#include <vector>
 
 class Event;
 class Image;
@@ -214,7 +214,7 @@ class Zone {
 
     static bool ParsePolygonString( const char *polygon_string, Polygon &polygon );
     static bool ParseZoneString( const char *zone_string, int &zone_id, int &colour, Polygon &polygon );
-    static std::list<Zone> Load(Monitor *monitor);
+    static std::vector<Zone> Load(Monitor *monitor);
     //=================================================
     bool CheckOverloadCount();
     int GetOverloadCount();

@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <chrono>
 #include <ctime>
+#include <functional>
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -87,6 +88,16 @@ typename std::enable_if<std::is_array<T>::value && std::extent<T>::value == 0, s
 template<typename T, typename... Args>
 inline auto make_unique(Args &&...) ->
 typename std::enable_if<std::extent<T>::value != 0, void>::type = delete;
+
+template<class T, class Compare>
+constexpr const T &clamp(const T &v, const T &lo, const T &hi, Compare comp) {
+  return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+}
+
+template<class T>
+constexpr const T &clamp(const T &v, const T &lo, const T &hi) {
+  return clamp(v, lo, hi, std::less<T>{});
+}
 }
 
 typedef std::chrono::microseconds Microseconds;

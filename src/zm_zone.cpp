@@ -900,7 +900,7 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
   return zones;
 } // end std::vector<Zone> Zone::Load(Monitor *monitor)
 
-bool Zone::DumpSettings(char *output, bool /*verbose*/) {
+bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
   output[0] = 0;
 
   sprintf(output+strlen(output), "  Id : %d\n", id );

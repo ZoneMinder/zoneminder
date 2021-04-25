@@ -209,8 +209,8 @@ class Zone {
       return stats;
     };
 
-    bool CheckAlarms( const Image *delta_image );
-    bool DumpSettings( char *output, bool verbose );
+    bool CheckAlarms(const Image *delta_image);
+    bool DumpSettings(char *output, bool verbose) const;
 
     static bool ParsePolygonString( const char *polygon_string, Polygon &polygon );
     static bool ParseZoneString( const char *zone_string, int &zone_id, int &colour, Polygon &polygon );

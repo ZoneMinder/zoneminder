@@ -82,10 +82,7 @@ class UsersController extends AppController {
  * @return void
  */
 	public function add() {
-    ZM\Debug(1, "in add");
 		if ($this->request->is('post')) {
-    ZM\Debug(1, "is post");
-
       global $user;
       if ($user['System'] != 'Edit') {
         throw new UnauthorizedException(__('Insufficient Privileges'));

@@ -58,16 +58,14 @@ function migrateHash($user, $pass) {
 
 // core function used to load a User record by username and password
 function validateUser($username='', $password='') {
-
   $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
   // local user, shouldn't affect the global user
   $user = dbFetchOne($sql, NULL, array($username));
-
   if (!$user) {
     return array(false, "Could not retrieve user $username details");
   }
 
-  switch ( password_type($user['Password']) ) {
+  switch (password_type($user['Password'])) {
   case 'mysql' : 
     // We assume we don't need to support mysql < 4.1
     // Starting MY SQL 4.1, mysql concats a '*' in front of its password hash

@@ -72,7 +72,8 @@ class ZoneStats {
           alarm_box_.HiX(),
           alarm_box_.HiY(),
           alarm_centre_.X(),
-          alarm_centre_.Y()
+          alarm_centre_.Y(),
+          score_
     );
   }
 

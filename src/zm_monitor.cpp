@@ -1909,7 +1909,7 @@ bool Monitor::Analyse() {
 
           if (!(analysis_image_count % (motion_frame_skip+1))) {
             if (decoding_enabled) {
-              while (!snap->image and !snap->decoded and !zm_terminate) {
+              while (!snap->image and !snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
                 // Need to wait for the decoder thread.
                 Debug(1, "Waiting for decode");
                 packet_lock->wait();

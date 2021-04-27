@@ -146,13 +146,6 @@ int main(int argc, char *argv[]) {
 
   std::vector<std::shared_ptr<Monitor>> monitors = Monitor::LoadMonitors(where, Monitor::QUERY);
 
-  if (monitors.empty()) {
-    Error("No monitors found");
-    exit(-1);
-  } else {
-	  Debug(2, "%d monitors loaded", monitors.size());
-  }
-
   Info("Starting RTSP Server version %s", ZM_VERSION);
   zmSetDefaultHupHandler();
   zmSetDefaultTermHandler();
@@ -184,6 +177,7 @@ int main(int argc, char *argv[]) {
   }
 
   while (!zm_terminate) {
+
     for (size_t i = 0; i < monitors.size(); i++) {
       std::shared_ptr<Monitor> monitor = monitors[i];
 

@@ -2033,10 +2033,11 @@ void Image::Annotate(
           }
 
           while (cp_row != 0) {
-            int column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
+            uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
             *(ptr + column_idx) = fg_colour & 0xff;
             cp_row = cp_row & (cp_row - 1);
           }
+          ptr += width;
         }
         ptr -= (width * char_height);
         ptr += char_width;
@@ -2052,7 +2053,7 @@ void Image::Annotate(
       for (char c : line) {
         for (uint64 cp_row : font_variant.GetCodepoint(c)) {
           if (bg_colour != kRGBTransparent) {
-            for (int i = 0; i < char_width; i++) {  // We need to set individual r,g,b components
+            for (uint16 i = 0; i < char_width; i++) {  // We need to set individual r,g,b components
               uint8 *colour_ptr = ptr + (i * bytesPerPixel);
               RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(bg_colour);
               GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(bg_colour);
@@ -2061,13 +2062,14 @@ void Image::Annotate(
           }
 
           while (cp_row != 0) {
-            int column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
+            uint32 column_idx = char_width - __builtin_ctzll(cp_row) + font_variant.GetCharPadding();
             uint8 *colour_ptr = ptr + (column_idx * bytesPerPixel);
             RED_PTR_RGBA(colour_ptr) = RED_VAL_RGBA(fg_colour);
             GREEN_PTR_RGBA(colour_ptr) = GREEN_VAL_RGBA(fg_colour);
             BLUE_PTR_RGBA(colour_ptr) = BLUE_VAL_RGBA(fg_colour);
             cp_row = cp_row & (cp_row - 1);
           }
+          ptr += width * bytesPerPixel;
         }
         ptr -= (width * char_height * bytesPerPixel);
         ptr += char_width * bytesPerPixel;

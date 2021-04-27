@@ -530,6 +530,7 @@ $SLANG = array(
     'MinPanStep'            => 'Min Pan Step',
     'MinPixelThresLtMax'    => 'Minimum pixel threshold should be less than maximum',
     'MinPixelThresUnset'    => 'You must specify a minimum pixel threshold',
+    'MinSectionlength'      => 'Minimum section length',
     'MinTiltRange'          => 'Min Tilt Range',
     'MinTiltSpeed'          => 'Min Tilt Speed',
     'MinTiltStep'           => 'Min Tilt Step',

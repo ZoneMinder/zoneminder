@@ -465,19 +465,19 @@ void Event::WriteDbFrames() {
         stats_insert_sql += stringtf("\n(%" PRIu64 ",%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u),",
             id, frame->frame_id,
             monitor->Id(),
-            stats.zone_id,
-            stats.pixel_diff,
-            stats.alarm_pixels,
-            stats.alarm_filter_pixels,
-            stats.alarm_blob_pixels,
-            stats.alarm_blobs,
-            stats.min_blob_size,
-            stats.max_blob_size,
-            stats.alarm_box.LoX(),
-            stats.alarm_box.LoY(),
-            stats.alarm_box.HiX(),
-            stats.alarm_box.HiY(),
-            stats.score);
+            stats.zone_id_,
+            stats.pixel_diff_,
+            stats.alarm_pixels_,
+            stats.alarm_filter_pixels_,
+            stats.alarm_blob_pixels_,
+            stats.alarm_blobs_,
+            stats.min_blob_size_,
+            stats.max_blob_size_,
+            stats.alarm_box_.LoX(),
+            stats.alarm_box_.LoY(),
+            stats.alarm_box_.HiX(),
+            stats.alarm_box_.HiY(),
+            stats.score_);
       }  // end foreach zone stats
     }  // end if recording stats
     delete frame;
@@ -497,7 +497,7 @@ void Event::WriteDbFrames() {
 void Event::AddFrame(
     Image *image,
     struct timeval timestamp,
-    const std::list<ZoneStats> &zone_stats,
+    const std::vector<ZoneStats> &zone_stats,
     int score,
     Image *alarm_image) {
   if (!timestamp.tv_sec) {

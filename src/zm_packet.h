@@ -25,7 +25,7 @@
 
 #include <condition_variable>
 #include <mutex>
-#include <list>
+#include <vector>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -58,7 +58,7 @@ class ZMPacket {
     int codec_imgsize;
     int64_t   pts;                // pts in the packet can be in another time base. This MUST be in AV_TIME_BASE_Q
     bool decoded;
-    std::list<ZoneStats> zone_stats;
+    std::vector<ZoneStats> zone_stats;
 
   public:
     AVPacket *av_packet() { return &packet; }

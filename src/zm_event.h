@@ -26,7 +26,6 @@
 #include "zm_zone.h"
 
 #include <map>
-#include <list>
 #include <queue>
 #include <set>
 
@@ -127,7 +126,7 @@ class Event {
     void AddFrame(
         Image *image,
         struct timeval timestamp,
-        const std::list<ZoneStats> &stats,
+        const std::vector<ZoneStats> &stats,
         int score=0,
         Image *alarm_image=nullptr
         );

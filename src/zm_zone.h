@@ -29,8 +29,8 @@
 #include "zm_zone_stats.h"
 
 #include <algorithm>
-#include <list>
 #include <string>
+#include <vector>
 
 class Event;
 class Image;
@@ -195,22 +195,26 @@ class Zone {
     inline bool WasAlarmed() const { return was_alarmed; }
     inline void SetAlarm() { was_alarmed = alarmed; alarmed = true; }
     inline void ClearAlarm() { was_alarmed = alarmed; alarmed = false; }
-    inline Coord GetAlarmCentre() const { return stats.alarm_centre; }
-    inline unsigned int Score() const { return stats.score; }
+    inline Coord GetAlarmCentre() const { return stats.alarm_centre_; }
+    inline unsigned int Score() const { return stats.score_; }
 
     inline void ResetStats() {
       alarmed = false;
       was_alarmed = false;
-      stats.reset();
+      stats.Reset();
     }
     void RecordStats( const Event *event );
-    ZoneStats GetStats() { stats.debug("GetStats"); return stats; };
-    bool CheckAlarms( const Image *delta_image );
-    bool DumpSettings( char *output, bool verbose );
+    ZoneStats const &GetStats() const {
+      stats.DumpToLog("GetStats");
+      return stats;
+    };
+
+    bool CheckAlarms(const Image *delta_image);
+    bool DumpSettings(char *output, bool verbose) const;
 
     static bool ParsePolygonString( const char *polygon_string, Polygon &polygon );
     static bool ParseZoneString( const char *zone_string, int &zone_id, int &colour, Polygon &polygon );
-    static std::list<Zone> Load(Monitor *monitor);
+    static std::vector<Zone> Load(Monitor *monitor);
     //=================================================
     bool CheckOverloadCount();
     int GetOverloadCount();

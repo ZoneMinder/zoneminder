@@ -1159,7 +1159,7 @@ void Monitor::AddPrivacyBitmask() {
   }
   Image *privacy_image = nullptr;
 
-  for (Zone &zone : zones) {
+  for (const Zone &zone : zones) {
   //for (int i=0; i < zones.size(); i++) {
     if (zone.IsPrivacy()) {
       if (!privacy_image) {
@@ -1535,7 +1535,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   }
 
-  for (Zone &zone : zones) {
+  for (const Zone &zone : zones) {
     if ( exclude_id && (!extra_colour || extra_zone.getNumCoords()) && zone.Id() == exclude_id )
       continue;
 
@@ -1934,9 +1934,11 @@ bool Monitor::Analyse() {
                 Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                 // Get new score.
                 motion_score = DetectMotion(*(snap->image), zoneSet);
-                for (Zone &zone : zones) {
-                  ZoneStats stats = zone.GetStats();
-                  stats.debug("After detect motion");
+
+                snap->zone_stats.reserve(zones.size());
+                for (const Zone &zone : zones) {
+                  const ZoneStats &stats = zone.GetStats();
+                  stats.DumpToLog("After detect motion");
                   snap->zone_stats.push_back(stats);
                 }
 
@@ -2038,7 +2040,7 @@ bool Monitor::Analyse() {
 
             // lets construct alarm cause. It will contain cause + names of zones alarmed
             std::string alarm_cause;
-            for (Zone &zone : zones) {
+            for (const Zone &zone : zones) {
               if (zone.Alarmed()) {
                 if (!alarm_cause.empty()) alarm_cause += ",";
                 alarm_cause += std::string(zone.Label());
@@ -2079,7 +2081,7 @@ bool Monitor::Analyse() {
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
               // lets construct alarm cause. It will contain cause + names of zones alarmed
               std::string alarm_cause = "";
-              for (Zone &zone : zones) {
+              for (const Zone &zone : zones) {
                 if (zone.Alarmed()) {
                   alarm_cause = alarm_cause + "," + std::string(zone.Label());
                 }
@@ -2205,7 +2207,7 @@ bool Monitor::Analyse() {
         if (state == PREALARM) {
           // Generate analysis images if necessary
           if ((savejpegs > 1) and snap->image) {
-            for (Zone &zone : zones) {
+            for (const Zone &zone : zones) {
               if (zone.Alarmed()) {
                 if (zone.AlarmImage()) {
                   if (!snap->analysis_image)
@@ -2220,7 +2222,7 @@ bool Monitor::Analyse() {
           //have_pre_alarmed_frames ++;
           Event::AddPreAlarmFrame(snap->image, *timestamp, score, nullptr);
         } else if (state == ALARM) {
-          for (Zone &zone : zones) {
+          for (const Zone &zone : zones) {
             if (zone.Alarmed()) {
               if (zone.AlarmImage() and (savejpegs > 1) and snap->image) {
                 if (!snap->analysis_image)
@@ -2823,7 +2825,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   bool alarm = false;
   unsigned int score = 0;
 
-  if (!zones.size()) {
+  if (zones.empty()) {
     Warning("No zones to check!");
     return alarm;
   }
@@ -3024,7 +3026,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
     function==NODECT?"Externally Triggered only, no Motion Detection":"Unknown"
   ))))));
   sprintf(output+strlen(output), "Zones : %lu\n", zones.size());
-  for (Zone &zone : zones) {
+  for (const Zone &zone : zones) {
     zone.DumpSettings(output+strlen(output), verbose);
   }
   sprintf(output+strlen(output), "Recording Enabled? %s\n", enabled ? "enabled" : "disabled");

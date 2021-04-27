@@ -384,11 +384,7 @@ protected:
   SwsContext   *convert_context;
   std::thread  close_event_thread;
 
-  std::list<Zone> zones;
-  /*
-int      n_zones;
-  Zone      **zones;
-  */
+  std::vector<Zone> zones;
 
   const unsigned char  *privacy_bitmask;
 

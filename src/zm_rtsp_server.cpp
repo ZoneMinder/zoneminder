@@ -144,8 +144,6 @@ int main(int argc, char *argv[]) {
   if (monitor_id > 0)
     where += stringtf(" AND `Id`=%d", monitor_id);
 
-  std::vector<std::shared_ptr<Monitor>> monitors = Monitor::LoadMonitors(where, Monitor::QUERY);
-
   Info("Starting RTSP Server version %s", ZM_VERSION);
   zmSetDefaultHupHandler();
   zmSetDefaultTermHandler();
@@ -164,44 +162,76 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  xop::MediaSession **sessions = new xop::MediaSession *[monitors.size()];
+  //xop::MediaSession **sessions = new xop::MediaSession *[monitors.size()];
 
-  std::vector<ZoneMinderFifoSource *> video_sources;
-  video_sources.reserve(monitors.size());
-  std::vector<ZoneMinderFifoSource *> audio_sources;
-  audio_sources.reserve(monitors.size());
-  for (size_t i = 0; i < monitors.size(); i++) {
-    sessions[i] = nullptr;
-    video_sources[i] = nullptr;
-    audio_sources[i] = nullptr;
-  }
+  std::map<unsigned int, xop::MediaSession *> sessions;
+  std::map<unsigned int, ZoneMinderFifoSource *> video_sources;
+  std::map<unsigned int, ZoneMinderFifoSource *> audio_sources;
+  std::map<unsigned int, std::shared_ptr<Monitor>> monitors;
+  //std::vector<std::shared_ptr<Monitor>> monitors;
+  //= Monitor::LoadMonitors(where, Monitor::QUERY);
 
   while (!zm_terminate) {
+    std::map<unsigned int, std::shared_ptr<Monitor>> old_monitors = monitors;
 
-    for (size_t i = 0; i < monitors.size(); i++) {
-      std::shared_ptr<Monitor> monitor = monitors[i];
+    std::vector<std::shared_ptr<Monitor>> new_monitors = Monitor::LoadMonitors(where, Monitor::QUERY);
+    for (const auto &monitor : new_monitors) {
+      if (old_monitors.find(monitor->Id()) != old_monitors.end()) {
+        Debug(1, "Found monitor in oldmonitors, clearing it");
+        old_monitors.erase(monitor->Id());
+      } else {
+        Debug(1, "Adding monitor %d to monitors", monitor->Id());
+        monitors[monitor->Id()] = monitor;
+      }
+    }
+    // Remove monitors that are no longer doing rtsp
+    for (auto it = old_monitors.begin(); it != old_monitors.end(); ++it) {
+      auto mid = it->first;
+      auto &monitor = it->second;
+      Debug(1, "Removing %d %s from monitors", monitor->Id(), monitor->Name());
+      monitors.erase(mid);
+      if (sessions.find(mid) != sessions.end()) {
+        rtspServer->RemoveSession(sessions[mid]->GetMediaSessionId());
+        //Debug(1, "Deleting session");
+        //delete sessions[mid];
+        sessions.erase(mid);
+      }
+      if (video_sources.find(monitor->Id()) != video_sources.end()) {
+        delete video_sources[monitor->Id()];
+        video_sources.erase(monitor->Id());
+      }
+      if (audio_sources.find(monitor->Id()) != audio_sources.end()) {
+        delete audio_sources[monitor->Id()];
+        audio_sources.erase(monitor->Id());
+      }
+    }
+
+    for (auto it = monitors.begin(); it != monitors.end(); ++it) {
+      auto &monitor = it->second;
 
       if (!monitor->ShmValid()) {
-         monitor->disconnect();
-         if (!monitor->connect()) {
-           Warning("Couldn't connect to monitor %d", monitor->Id());
-           if (sessions[i]) {
-             rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
-             sessions[i] = nullptr;
-           }
-           if (video_sources[i]) {
-             delete video_sources[i];
-             video_sources[i] = 0;
-           }
-           if (audio_sources[i]) {
-             delete audio_sources[i];
-             audio_sources[i] = 0;
-           }
-           continue;
-         }
+        Debug(1, "monitor %d !shmvalid", monitor->Id());
+        monitor->disconnect();
+        if (!monitor->connect()) {
+          Warning("Couldn't connect to monitor %d", monitor->Id());
+          if (sessions.find(monitor->Id()) != sessions.end()) {
+            rtspServer->RemoveSession(sessions[monitor->Id()]->GetMediaSessionId());
+            delete sessions[monitor->Id()];
+            sessions.erase(monitor->Id());
+          }
+          if (video_sources.find(monitor->Id()) != video_sources.end()) {
+            video_sources.erase(monitor->Id());
+          }
+          if (audio_sources.find(monitor->Id()) != audio_sources.end()) {
+            audio_sources.erase(monitor->Id());
+          }
+
+          continue;
+        }
       }
 
-      if (!sessions[i]) {
+      if (sessions.end() == sessions.find(monitor->Id())) {
+        Debug(1, "Monitor not found in sessions, opening it");
         std::string videoFifoPath = monitor->GetVideoFifoPath();
         if (videoFifoPath.empty()) {
           Debug(1, "video fifo is empty. Skipping.");
@@ -209,21 +239,24 @@ int main(int argc, char *argv[]) {
         }
         std::string streamname = monitor->GetRTSPStreamName();
 
-        xop::MediaSession *session = sessions[i] = xop::MediaSession::CreateNew(streamname);
-        if (session) {
-          session->AddNotifyConnectedCallback([] (xop::MediaSessionId sessionId, const std::string &peer_ip, uint16_t peer_port){
-              Debug(1, "RTSP client connect, ip=%s, port=%hu \n", peer_ip.c_str(), peer_port);
-              });
-
-          session->AddNotifyDisconnectedCallback([](xop::MediaSessionId sessionId, const std::string &peer_ip, uint16_t peer_port) {
-              Debug(1, "RTSP client disconnect, ip=%s, port=%hu \n", peer_ip.c_str(), peer_port);
-              });
-
-          rtspServer->AddSession(session);
-          //char *url = rtspServer->rtspURL(session);
-          //Debug(1, "url is %s for stream %s", url, streamname.c_str());
-          //delete[] url;
+        xop::MediaSession *session = sessions[monitor->Id()] = xop::MediaSession::CreateNew(streamname);
+        if (!session) {
+          Error("Unable to create session for %s", streamname.c_str());
+          continue;
         }
+        session->AddNotifyConnectedCallback([] (xop::MediaSessionId sessionId, const std::string &peer_ip, uint16_t peer_port){
+            Debug(1, "RTSP client connect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
+            });
+
+        session->AddNotifyDisconnectedCallback([](xop::MediaSessionId sessionId, const std::string &peer_ip, uint16_t peer_port) {
+            Debug(1, "RTSP client disconnect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
+            });
+
+        rtspServer->AddSession(session);
+        //char *url = rtspServer->rtspURL(session);
+        //Debug(1, "url is %s for stream %s", url, streamname.c_str());
+        //delete[] url;
+        monitors[monitor->Id()] = monitor;
 
         Debug(1, "Adding video fifo %s", videoFifoPath.c_str());
         ZoneMinderFifoVideoSource *videoSource = nullptr;
@@ -242,12 +275,14 @@ int main(int argc, char *argv[]) {
         }
         if (videoSource == nullptr) {
           Error("Unable to create source");
+          rtspServer->RemoveSession(sessions[monitor->Id()]->GetMediaSessionId());
+          delete sessions[monitor->Id()];
+          sessions.erase(monitor->Id());
+          continue;
         }
-        video_sources[i] = videoSource;
-        if (videoSource) {
-          videoSource->setWidth(monitor->Width());
-          videoSource->setHeight(monitor->Height());
-        }
+        video_sources[monitor->Id()] = videoSource;
+        videoSource->setWidth(monitor->Width());
+        videoSource->setHeight(monitor->Height());
 
         std::string audioFifoPath = monitor->GetAudioFifoPath();
         if (audioFifoPath.empty()) {
@@ -259,12 +294,14 @@ int main(int argc, char *argv[]) {
         ZoneMinderFifoAudioSource *audioSource = nullptr;
 
         if (std::string::npos != audioFifoPath.find("aac")) {
-          Debug(1, "Adding aac source at %dHz %d channels", monitor->GetAudioFrequency(), monitor->GetAudioChannels());
+          Debug(1, "Adding aac source at %dHz %d channels",
+              monitor->GetAudioFrequency(), monitor->GetAudioChannels());
           session->AddSource(xop::channel_1, xop::AACSource::CreateNew(
                 monitor->GetAudioFrequency(),
                 monitor->GetAudioChannels(),
                 false /* has_adts */));
-          audioSource = new ADTS_ZoneMinderFifoSource(rtspServer, session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
+          audioSource = new ADTS_ZoneMinderFifoSource(rtspServer,
+              session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
           audioSource->setFrequency(monitor->GetAudioFrequency());
           audioSource->setChannels(monitor->GetAudioChannels());
         } else {
@@ -273,16 +310,14 @@ int main(int argc, char *argv[]) {
         if (audioSource == nullptr) {
           Error("Unable to create source");
         }
-        audio_sources.push_back(audioSource);
-      }  // end if ! sessions[i]
+        audio_sources[monitor->Id()] = audioSource;
+      }  // end if ! sessions[monitor->Id()]
     }  // end foreach monitor
 
-    sleep(1);
+
+    sleep(5);
 
     if (zm_reload) {
-      for (size_t i = 0; i < monitors.size(); i++) {
-        monitors[i]->Reload();
-      }
       logTerm();
       logInit(log_id_string);
       zm_reload = false;
@@ -290,20 +325,21 @@ int main(int argc, char *argv[]) {
   } // end while !zm_terminate
   Info("RTSP Server shutting down");
 
-  for (size_t i = 0; i < monitors.size(); i++) {
-    if (sessions[i]) {
+  for (auto it = sessions.begin(); it != sessions.end(); ++it) {
+    auto &monitor = it->second;
+    unsigned int i = it->first;
+    if (sessions.find(i) != sessions.end()) {
       Debug(1, "Removing session for %s", monitors[i]->Name());
       rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
       sessions[i] = nullptr;
     }
-    if (video_sources[i]) delete video_sources[i];
-    if (audio_sources[i]) delete audio_sources[i];
+    if (video_sources.find(i) != video_sources.end()) delete video_sources[i];
+    if (audio_sources.find(i) != audio_sources.end()) delete audio_sources[i];
   }  // end foreach monitor
 
   rtspServer->Stop();
 
-  delete[] sessions;
-  sessions = nullptr;
+  sessions.clear();
 
   Image::Deinitialise();
   logTerm();

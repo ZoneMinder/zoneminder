@@ -668,7 +668,7 @@ sub substituteTags {
   my $Status = $Monitor->Status() if $need_status;
 
 # Do we need the image information too?
-  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD)%/;
+  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD|EIMODG)%/;
   my $first_alarm_frame;
   my $max_alarm_frame;
   my $max_alarm_score = 0;
@@ -726,6 +726,11 @@ sub substituteTags {
     $text =~ s/%EPFM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
     $text =~ s/%EPI1%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
     $text =~ s/%EPIM%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+    $text =~ s/%EPIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+    $text =~ s/%EPFMODG%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
+    $text =~ s/%EPIMODG%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
+
     if ( $attachments_ref ) {
       if ( $text =~ s/%EI1%//g ) {
         my $path = generateImage($Event, $first_alarm_frame);
@@ -773,14 +778,21 @@ sub substituteTags {
         }
       }
 
-      if ( $text =~ s/%EIMOD%//g or $text =~ s/%EFMOD%//g ) {
-        $text =~ s/%EFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
-        $text =~ s/%EIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+      if ( $text =~ s/%EIMOD%//g ) {
         my $path = $Event->Path().'/objdetect.jpg';
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         } else {
           Warning('No image for MOD at '.$path);
+        }
+      }
+
+      if ( $text =~ s/%EIMODG%//g ) {
+        my $path = $Event->Path().'/objdetect.gif';
+        if ( -e $path ) {
+          push @$attachments_ref, { type=>'image/gif', path=>$path };
+        } else {
+          Warning('No image for MODG at '.$path);
         }
       }
 

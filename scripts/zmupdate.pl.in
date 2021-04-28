@@ -43,6 +43,7 @@ configuring upgrades etc, including on the fly upgrades.
 -v <version>, --version=<version> - Force upgrade to the current version from <version>
 -u <dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
 -p <dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
+-s, --super                      - Use system maintenance account on debian based systems instead of unprivileged account
 -d <dir>, --dir=<dir>              - Directory containing update files if not in default build location
 -interactive                     - interact with the user
 -nointeractive                   - do not interact with the user
@@ -103,6 +104,7 @@ my $migrateEvents = 0;
 my $version = '';
 my $dbUser = $Config{ZM_DB_USER};
 my $dbPass = $Config{ZM_DB_PASS};
+my $super = 0;
 my $updateDir = '';
 
 GetOptions(
@@ -115,6 +117,7 @@ GetOptions(
     'interactive!'   =>\$interactive,
     'user:s'         =>\$dbUser,
     'pass:s'         =>\$dbPass,
+    'super'          =>\$super,
     'dir:s'          =>\$updateDir
     ) or pod2usage(-exitstatus => -1);
 
@@ -406,6 +409,12 @@ if ( $version ) {
     if ( $response =~ /^[yY]$/ ) {
       my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
       my $command = 'mysqldump';
+      if ($super) {
+        $command .= ' --defaults-file=/etc/mysql/debian.cnf';
+      } elsif ($dbUser) {
+        $command .= ' -u'.$dbUser;
+        $command .= ' -p\''.$dbPass.'\'' if $dbPass;
+      }
       if ( defined($portOrSocket) ) {
         if ( $portOrSocket =~ /^\// ) {
           $command .= ' -S'.$portOrSocket;
@@ -414,10 +423,6 @@ if ( $version ) {
         }
       } else {
         $command .= ' -h'.$host; 
-      }
-      if ( $dbUser ) {
-        $command .= ' -u'.$dbUser;
-        $command .= ' -p\''.$dbPass.'\'' if $dbPass;
       }
       my $backup = '@ZM_TMPDIR@/'.$Config{ZM_DB_NAME}.'-'.$version.'.dump';
       $command .= ' --add-drop-table --databases '.$Config{ZM_DB_NAME}.' > '.$backup;
@@ -1001,6 +1006,12 @@ sub patchDB {
 
   my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ ) if $Config{ZM_DB_HOST};
   my $command = 'mysql';
+  if ($super) {
+    $command .= ' --defaults-file=/etc/mysql/debian.cnf';
+  } elsif ($dbUser) {
+    $command .= ' -u'.$dbUser;
+    $command .= ' -p\''.$dbPass.'\'' if $dbPass;
+  }
   if ( defined($portOrSocket) ) {
     if ( $portOrSocket =~ /^\// ) {
       $command .= ' -S'.$portOrSocket;
@@ -1009,10 +1020,6 @@ sub patchDB {
     }
   } elsif ( $host ) {
     $command .= ' -h'.$host;
-  }
-  if ( $dbUser ) {
-    $command .= ' -u'.$dbUser;
-    $command .= ' -p\''.$dbPass.'\'' if $dbPass;
   }
   $command .= ' '.$Config{ZM_DB_NAME}.' < ';
   if ( $updateDir ) {

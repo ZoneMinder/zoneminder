@@ -21,6 +21,7 @@ th[data-field="Component"],
 th[data-field="Code"],
 th[data-field="Message"],
 th[data-field="File"],
+th[data-field="Server"],
 th[data-field="Line"] {
   text-align: left;
 }

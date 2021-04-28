@@ -2191,8 +2191,8 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
 
   } /* prime capture */    
 
-  if ( !zm_packet.image ) {
-    Debug(1, "Allocating image");
+  if (!zm_packet.image) {
+    Debug(4, "Allocating image");
     zm_packet.image = new Image(width, height, colours, subpixelorder);
   }
 

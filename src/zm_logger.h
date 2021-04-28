@@ -173,8 +173,13 @@ private:
   void closeSyslog();
   void closeDatabase();
 
-public:
-  void logPrint(bool hex, const char * const filepath, const int line, const int level, const char *fstring, ...);
+ public:
+  void logPrint(bool hex,
+                const char *filepath,
+                int line,
+                int level,
+                const char *fstring,
+                ...) __attribute__((format(printf, 6, 7)));
 };
 
 void logInit(const char *name, const Logger::Options &options=Logger::Options());

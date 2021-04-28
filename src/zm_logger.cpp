@@ -415,7 +415,7 @@ void Logger::closeSyslog() {
   (void) closelog();
 }
 
-void Logger::logPrint(bool hex, const char * const filepath, const int line, const int level, const char *fstring, ...) {
+void Logger::logPrint(bool hex, const char *filepath, int line, int level, const char *fstring, ...) {
   if (level > mEffectiveLevel) return;
   if (level < PANIC || level > DEBUG9)
     Panic("Invalid logger level %d", level);

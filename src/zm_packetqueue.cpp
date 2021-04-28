@@ -188,9 +188,9 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
   }
   std::unique_lock<std::mutex> lck(mutex);
 
-  // If ananlysis_it isn't at the end, we need to keep that many additional packets
+  // If analysis_it isn't at the end, we need to keep that many additional packets
   int tail_count = 0;
-  if (pktQueue.back() != add_packet) {
+  if (pktQueue.size() and (pktQueue.back() != add_packet)) {
     packetqueue_iterator it = pktQueue.end();
     --it;
     while (*it != add_packet) {

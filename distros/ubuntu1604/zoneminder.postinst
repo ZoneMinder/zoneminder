@@ -68,7 +68,7 @@ if [ "$1" = "configure" ]; then
         echo "Updating permissions for user ${ZM_DB_USER}@localhost"
         echo "GRANT LOCK TABLES,ALTER,DROP,SELECT,INSERT,UPDATE,DELETE,CREATE,INDEX,ALTER ROUTINE,CREATE ROUTINE, TRIGGER,EXECUTE,REFERENCES ON ${ZM_DB_NAME}.* TO '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 
-        zmupdate.pl --nointeractive
+        zmupdate.pl -s --nointeractive
         if [ $? -ne 0 ]; then
           echo "Error updating db."
           exit 1;

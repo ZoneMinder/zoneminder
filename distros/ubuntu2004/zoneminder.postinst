@@ -31,7 +31,7 @@ create_update_user () {
 
 update_db () {
 
-  zmupdate.pl --nointeractive
+  zmupdate.pl -s --nointeractive
   if [ $? -ne 0 ]; then
     echo "Error updating db."
     exit 1;

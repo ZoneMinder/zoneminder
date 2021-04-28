@@ -999,11 +999,6 @@ bool Monitor::connect() {
     image_buffer[i].image = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
     image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-  if (deinterlacing_value == 4) {
-    /* Four field motion adaptive deinterlacing in use */
-    /* Allocate a buffer for the next image */
-    next_buffer.image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
-  }
 
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
@@ -1122,10 +1117,6 @@ Monitor::~Monitor() {
       shared_data->last_read_time = 0;
       shared_data->valid = false;
       memset(mem_ptr, 0, mem_size);
-      if ( (deinterlacing & 0xff) == 4 ) {
-        delete next_buffer.image;
-        delete next_buffer.timestamp;
-      }
     }  // end if purpose != query
     disconnect();
   }  // end if mem_ptr
@@ -2513,7 +2504,6 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
  * Returns -1 on failure.
  */
 int Monitor::Capture() {
-
   unsigned int index = image_count % image_buffer_count;
 
   ZMPacket *packet = new ZMPacket();
@@ -2522,110 +2512,91 @@ int Monitor::Capture() {
   gettimeofday(packet->timestamp, nullptr);
   shared_data->zmc_heartbeat_time = packet->timestamp->tv_sec;
 
-  int captureResult = 0;
+  int captureResult = camera->Capture(*packet);
+  Debug(4, "Back from capture result=%d image count %d", captureResult, image_count);
 
-  if ( deinterlacing_value == 4 ) {
-    static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
-    if ( FirstCapture != 1 ) {
-      /* Copy the next image into the shared memory */
-      //capture_image->CopyBuffer(*(next_buffer.image));
-    }
-    /* Capture a new next image */
-    captureResult = camera->Capture(*packet);
-    // How about set shared_data->current_timestamp
-    gettimeofday(packet->timestamp, nullptr);
-
-    if ( FirstCapture ) {
-      FirstCapture = 0;
-      return 0;
-    }
-  } else {
-    captureResult = camera->Capture(*packet);
-    Debug(4, "Back from capture result=%d image count %d", captureResult, image_count);
-
-    if ( captureResult < 0 ) {
-      Debug(2, "failed capture");
-      // Unable to capture image
-      // Fake a signal loss image
-      // Not sure what to do here.  We will close monitor and kill analysis_thread but what about rtsp server?
-      Rgb signalcolor;
-      /* HTML colour code is actually BGR in memory, we want RGB */
-      signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
-      Image *capture_image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
-      capture_image->Fill(signalcolor);
-      shared_data->signal = false;
+  if (captureResult < 0) {
+    Debug(2, "failed capture");
+    // Unable to capture image
+    // Fake a signal loss image
+    // Not sure what to do here.  We will close monitor and kill analysis_thread but what about rtsp server?
+    Rgb signalcolor;
+    /* HTML colour code is actually BGR in memory, we want RGB */
+    signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
+    Image *capture_image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
+    capture_image->Fill(signalcolor);
+    shared_data->signal = false;
+    shared_data->last_write_index = index;
+    shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
+    image_buffer[index].image->Assign(*capture_image);
+    *(image_buffer[index].timestamp) = *(packet->timestamp);
+    delete capture_image;
+    image_count++;
+    delete packet;
+    // What about timestamping it?
+    // Don't want to do analysis on it, but we won't due to signal
+    return -1;
+  } else if ( captureResult > 0 ) {
+    shared_data->signal = true;   // Assume if getting packets that we are getting something useful. CheckSignalPoints can correct this later.
+    // If we captured, let's assume signal, Decode will detect further
+    if (!decoding_enabled) {
       shared_data->last_write_index = index;
-      shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
-      image_buffer[index].image->Assign(*capture_image);
-      *(image_buffer[index].timestamp) = *(packet->timestamp);
-      delete capture_image;
-      image_count++;
-      delete packet;
-      // What about timestamping it?
-      // Don't want to do analysis on it, but we won't due to signal
-      return -1;
-    } else if ( captureResult > 0 ) {
-      shared_data->signal = true;   // Assume if getting packets that we are getting something useful. CheckSignalPoints can correct this later.
-      // If we captured, let's assume signal, Decode will detect further
-      if (!decoding_enabled) {
-        shared_data->last_write_index = index;
-        shared_data->last_write_time = packet->timestamp->tv_sec;
-      }
-      Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
-          packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count );
+      shared_data->last_write_time = packet->timestamp->tv_sec;
+    }
+    Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
+        packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count );
 
-      if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
-        packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
-        if (video_fifo) {
-          if ( packet->keyframe ) {
-            // avcodec strips out important nals that describe the stream and
-            // stick them in extradata. Need to send them along with keyframes
+    if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
+      packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
+      if (video_fifo) {
+        if ( packet->keyframe ) {
+          // avcodec strips out important nals that describe the stream and
+          // stick them in extradata. Need to send them along with keyframes
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-            AVStream *stream = camera->getVideoStream();
-            video_fifo->write(
-                static_cast<unsigned char *>(stream->codecpar->extradata),
-                stream->codecpar->extradata_size,
-                packet->pts);
+          AVStream *stream = camera->getVideoStream();
+          video_fifo->write(
+              static_cast<unsigned char *>(stream->codecpar->extradata),
+              stream->codecpar->extradata_size,
+              packet->pts);
 #endif
-          }
-          video_fifo->writePacket(*packet);
         }
-      } else if (packet->codec_type == AVMEDIA_TYPE_AUDIO) {
-        if (audio_fifo)
-          audio_fifo->writePacket(*packet);
+        video_fifo->writePacket(*packet);
+      }
+    } else if (packet->codec_type == AVMEDIA_TYPE_AUDIO) {
+      if (audio_fifo)
+        audio_fifo->writePacket(*packet);
 
-        // Only queue if we have some video packets in there. Should push this logic into packetqueue
-        if (record_audio and (packetqueue.packet_count(video_stream_id) or event)) {
-          packet->image_index=-1;
-          Debug(2, "Queueing audio packet");
-          packet->packet.stream_index = audio_stream_id; // Convert to packetQueue's index
-          packetqueue.queuePacket(packet);
-        } else {
-          Debug(4, "Not Queueing audio packet");
-          delete packet;
-        }
-        // Don't update last_write_index because that is used for live streaming
-        //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
-        return 1;
+      // Only queue if we have some video packets in there. Should push this logic into packetqueue
+      if (record_audio and (packetqueue.packet_count(video_stream_id) or event)) {
+        packet->image_index=-1;
+        Debug(2, "Queueing audio packet");
+        packet->packet.stream_index = audio_stream_id; // Convert to packetQueue's index
+        packetqueue.queuePacket(packet);
       } else {
-        Debug(1, "Unknown codec type %d", packet->codec_type);
-        delete packet;
-        return 1;
-      } // end if audio
-
-      image_count++;
-
-      // Will only be queued if there are iterators allocated in the queue.
-      if ( !packetqueue.queuePacket(packet) ) {
+        Debug(4, "Not Queueing audio packet");
         delete packet;
       }
-      UpdateCaptureFPS();
-    } else { // result == 0
-      // Question is, do we update last_write_index etc?
+      // Don't update last_write_index because that is used for live streaming
+      //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
+      return 1;
+    } else {
+      Debug(1, "Unknown codec type %d", packet->codec_type);
       delete packet;
-      return 0;
-    } // end if result
-  } // end if deinterlacing
+      return 1;
+    } // end if audio
+
+    image_count++;
+
+    // Will only be queued if there are iterators allocated in the queue.
+    if ( !packetqueue.queuePacket(packet) ) {
+      delete packet;
+    }
+    UpdateCaptureFPS();
+  } else { // result == 0
+    // Question is, do we update last_write_index etc?
+    delete packet;
+    return 0;
+  } // end if result
 
   // Icon: I'm not sure these should be here. They have nothing to do with capturing
   if ( shared_data->action & GET_SETTINGS ) {
@@ -2719,7 +2690,20 @@ bool Monitor::Decode() {
       } else if ( deinterlacing_value == 3 ) {
         capture_image->Deinterlace_Blend();
       } else if ( deinterlacing_value == 4 ) {
-        capture_image->Deinterlace_4Field(next_buffer.image, (deinterlacing>>8)&0xff);
+        ZMLockedPacket *deinterlace_packet_lock = nullptr;
+        while (!zm_terminate) {
+          ZMLockedPacket *second_packet_lock = packetqueue.get_packet(decoder_it);
+          if (!second_packet_lock) return false;
+          if ( second_packet_lock->packet_->codec_type == packet->codec_type) {
+            deinterlace_packet_lock = second_packet_lock;
+            break;
+          }
+          packetqueue.unlock(second_packet_lock);
+          packetqueue.increment_it(decoder_it);
+        }
+        if (zm_terminate) return false;
+        capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
+        delete deinterlace_packet_lock;
       } else if ( deinterlacing_value == 5 ) {
         capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
       }

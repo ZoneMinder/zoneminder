@@ -88,12 +88,10 @@ Event::Event(
     localtime_r(&now.tv_sec, &tm_info);
     strftime(buffer_now, 26, "%Y:%m:%d %H:%M:%S", &tm_info);
 
-    Error(
-        "StartDateTime in the future starttime %ld.%06ld >? now %ld.%06ld difference %d\nstarttime: %s\nnow: %s",
-        start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec,
-        (now.tv_sec-start_time.tv_sec),
-        buffer, buffer_now
-        );
+    Error("StartDateTime in the future starttime %ld.%06ld >? now %ld.%06ld difference %" PRIi64 "\nstarttime: %s\nnow: %s",
+          start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec,
+          static_cast<int64>(now.tv_sec - start_time.tv_sec),
+          buffer, buffer_now);
     start_time = now;
   }
 
@@ -241,7 +239,11 @@ Event::~Event() {
   }
   struct DeltaTimeval delta_time;
   DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
-  Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
+  Debug(2, "start_time: %" PRIi64 ".% " PRIi64 " end_time: %" PRIi64 ".%" PRIi64,
+        static_cast<int64>(start_time.tv_sec),
+        static_cast<int64>(start_time.tv_usec),
+        static_cast<int64>(end_time.tv_sec),
+        static_cast<int64>(end_time.tv_usec));
 
   if (frame_data.size()) WriteDbFrames();
 
@@ -360,7 +362,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     std::string notes;
     createNotes(notes);
 
-    Debug(2, "Updating notes for event %d, '%s'", id, notes.c_str());
+    Debug(2, "Updating notes for event %" PRIu64 ", '%s'", id, notes.c_str());
 #if USE_PREPARED_SQL
     static MYSQL_STMT *stmt = 0;
 
@@ -447,7 +449,7 @@ void Event::WriteDbFrames() {
                                               "`Blobs`,`MinBlobSize`, `MaxBlobSize`, "
                                               "`MinX`, `MinY`, `MaxX`, `MaxY`,`Score`) VALUES ";
 
-  Debug(1, "Inserting %d frames", frame_data.size());
+  Debug(1, "Inserting %zu frames", frame_data.size());
   while (frame_data.size()) {
     Frame *frame = frame_data.front();
     frame_data.pop();
@@ -460,7 +462,7 @@ void Event::WriteDbFrames() {
         frame->delta.fsec,
         frame->score);
     if (config.record_event_stats and frame->zone_stats.size()) {
-      Debug(1, "ZOne stats size for frame %d: %d", frame->frame_id, frame->zone_stats.size());
+      Debug(1, "Zone stats size for frame %d: %zu", frame->frame_id, frame->zone_stats.size());
       for (ZoneStats &stats : frame->zone_stats) {
         stats_insert_sql += stringtf("\n(%" PRIu64 ",%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u),",
             id, frame->frame_id,
@@ -574,12 +576,12 @@ void Event::AddFrame(
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
-    Debug(1, "Frame delta is %d.%d - %d.%d = %d.%d, score %u zone_stats.size %u", 
-        start_time.tv_sec, start_time.tv_usec,
-        timestamp.tv_sec, timestamp.tv_usec,
-        delta_time.sec, delta_time.fsec,
-        score,
-        zone_stats.size());
+    Debug(1, "Frame delta is %" PRIi64 ".%" PRIi64 " - %" PRIi64 ".%" PRIi64 " = %lu.%lu, score %u zone_stats.size %zu",
+          static_cast<int64>(start_time.tv_sec), static_cast<int64>(start_time.tv_usec),
+          static_cast<int64>(timestamp.tv_sec), static_cast<int64>(timestamp.tv_usec),
+          delta_time.sec, delta_time.fsec,
+          score,
+          zone_stats.size());
 
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score, zone_stats));
@@ -592,8 +594,8 @@ void Event::AddFrame(
 				or
 				( fps and (frame_data.size() > fps) )
 			 ) {
-      Debug(1, "Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK(%d)",
-					frame_data.size(), write_to_db, fps, (frame_type==BULK));
+          Debug(1, "Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK(%d)",
+                frame_data.size(), write_to_db, fps, (frame_type == BULK));
       WriteDbFrames();
       last_db_frame = frames;
 
@@ -611,8 +613,8 @@ void Event::AddFrame(
           );
       dbQueue.push(std::move(sql));
 		} else {
-      Debug(1, "Not Adding %d frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
-					frame_data.size(), write_to_db, fps);
+          Debug(1, "Not Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
+                frame_data.size(), write_to_db, fps);
     } // end if frame_type == BULK
   } // end if db_frame
 

@@ -623,7 +623,9 @@ int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   }
   time_t now = time(nullptr);
   if (now - start_read_time > 10) {
-    Debug(1, "timeout in ffmpeg camera now %d - %d > 10", now, start_read_time);
+    Debug(1, "timeout in ffmpeg camera now %" PRIi64 " - %" PRIi64 " > 10",
+          static_cast<int64>(now),
+          static_cast<int64>(start_read_time));
     return 1;
   }
   return 0;

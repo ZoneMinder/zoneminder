@@ -53,15 +53,16 @@ class NAL_Frame {
       }
       return false;
     }
+
     void debug() {
-      if ( m_size <= 4 ) {
-      Debug(1, "NAL: %d: %.2x %.2x %.2x %.2x", m_size,
-          m_buffer[0], m_buffer[1], m_buffer[2], m_buffer[3]);
+      if (m_size <= 4) {
+        Debug(1, "NAL: %zu: %.2x %.2x %.2x %.2x", m_size,
+              m_buffer[0], m_buffer[1], m_buffer[2], m_buffer[3]);
       } else {
-        Debug(1, "NAL: %d: %.2x %.2x %.2x %.2x   %.2x %.2x %.2x %.2x ", m_size,
-            m_buffer[0], m_buffer[1], m_buffer[2], m_buffer[3],
-            m_buffer[4], m_buffer[5], m_buffer[6], m_buffer[7]
-            );
+        Debug(1, "NAL: %zu: %.2x %.2x %.2x %.2x   %.2x %.2x %.2x %.2x ", m_size,
+              m_buffer[0], m_buffer[1], m_buffer[2], m_buffer[3],
+              m_buffer[4], m_buffer[5], m_buffer[6], m_buffer[7]
+        );
       }
     }
 

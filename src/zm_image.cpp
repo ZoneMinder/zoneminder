@@ -647,7 +647,7 @@ void Image::AssignDirect(
     return;
   }
 
-  unsigned int new_buffer_size = p_width * p_height * p_colours;
+  size_t new_buffer_size = p_width * p_height * p_colours;
 
   if ( buffer_size < new_buffer_size ) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",

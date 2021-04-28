@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
     Error("No monitors found");
     exit(-1);
   } else {
-	  Debug(2, "%d monitors loaded", monitors.size());
+	  Debug(2, "%zu monitors loaded", monitors.size());
   }
 
   Info("Starting Capture version %s", ZM_VERSION);
@@ -294,20 +294,20 @@ int main(int argc, char *argv[]) {
         monitors[i]->CheckAction();
 
         if (monitors[i]->PreCapture() < 0) {
-          Error("Failed to pre-capture monitor %d %d (%d/" SZFMTD ")",
-              monitors[i]->Id(), monitors[i]->Name(), i+1, monitors.size());
+          Error("Failed to pre-capture monitor %d %s (%zu/%zu)",
+                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           result = -1;
           break;
         }
         if (monitors[i]->Capture() < 0) {
-          Error("Failed to capture image from monitor %d %s (%d/" SZFMTD ")",
-              monitors[i]->Id(), monitors[i]->Name(), i+1, monitors.size());
+          Error("Failed to capture image from monitor %d %s (%zu/%zu)",
+                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           result = -1;
           break;
         }
         if (monitors[i]->PostCapture() < 0) {
-          Error("Failed to post-capture monitor %d %s (%d/" SZFMTD ")",
-              monitors[i]->Id(), monitors[i]->Name(), i+1, monitors.size());
+          Error("Failed to post-capture monitor %d %s (%zu/%zu)",
+                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           result = -1;
           break;
         }
@@ -322,13 +322,15 @@ int main(int argc, char *argv[]) {
 
             // You have to add back in the previous sleep time
             sleep_time = delay - (delta_time.delta - sleep_time);
-            Debug(4, "Sleep time is %d from now:%d.%d last:%d.%d delta %d delay: %d",
-                sleep_time,
-                now.tv_sec, now.tv_usec,
-                last_capture_times[i].tv_sec, last_capture_times[i].tv_usec,
-                delta_time.delta,
-                delay
-                );
+            Debug(4,
+                  "Sleep time is %d from now: %" PRIi64 ".%" PRIi64" last: %" PRIi64 ".% " PRIi64 " delta %lu delay: %d",
+                  sleep_time,
+                  static_cast<int64>(now.tv_sec),
+                  static_cast<int64>(now.tv_usec),
+                  static_cast<int64>(last_capture_times[i].tv_sec),
+                  static_cast<int64>(last_capture_times[i].tv_usec),
+                  delta_time.delta,
+                  delay);
 
             if (sleep_time > 0) {
               Debug(4, "usleeping (%d)", sleep_time);

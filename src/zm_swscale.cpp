@@ -124,7 +124,7 @@ int SWScale::Convert(
     unsigned int new_width,
     unsigned int new_height
     ) {
-  Debug(1, "Convert: in_buffer %p in_buffer_size %d out_buffer %p size %d width %d height %d width %d height %d %d %d", 
+  Debug(1, "Convert: in_buffer %p in_buffer_size %zu out_buffer %p size %zu width %d height %d width %d height %d %d %d",
       in_buffer, in_buffer_size, out_buffer, out_buffer_size, width, height, new_width, new_height,
       in_pf, out_pf);
   /* Parameter checking */
@@ -163,12 +163,19 @@ int SWScale::Convert(
   /* Check the buffer sizes */
   size_t needed_insize = GetBufferSize(in_pf, width, height);
   if ( needed_insize > in_buffer_size ) {
-    Debug(1, "The input buffer size does not match the expected size for the input format. Required: %d for %dx%d %d Available: %d",
-        needed_insize, width, height, in_pf, in_buffer_size);
+    Debug(1,
+          "The input buffer size does not match the expected size for the input format. Required: %zu for %dx%d %d Available: %zu",
+          needed_insize,
+          width,
+          height,
+          in_pf,
+          in_buffer_size);
   }
   size_t needed_outsize = GetBufferSize(out_pf, new_width, new_height);
   if ( needed_outsize > out_buffer_size ) {
-    Error("The output buffer is undersized for the output format. Required: %d Available: %d", needed_outsize, out_buffer_size);
+    Error("The output buffer is undersized for the output format. Required: %zu Available: %zu",
+          needed_outsize,
+          out_buffer_size);
     return -5;
   }
 

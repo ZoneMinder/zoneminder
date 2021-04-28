@@ -670,9 +670,7 @@ VideoStore::~VideoStore() {
 
 bool VideoStore::setup_resampler() {
 #if !defined(HAVE_LIBSWRESAMPLE) && !defined(HAVE_LIBAVRESAMPLE)
-  Error(
-     "Not built with resample library. "
-     "Cannot do audio conversion to AAC");
+  Error("%s", "Not built with resample library. Cannot do audio conversion to AAC");
   return false;
 #else
   int ret;
@@ -727,7 +725,7 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
   if ( !audio_out_ctx->channel_layout ) {
-    Debug(3, "Correcting channel layout from (%d) to (%d)",
+    Debug(3, "Correcting channel layout from (%" PRIi64 ") to (%" PRIi64 ")",
         audio_out_ctx->channel_layout,
         av_get_default_channel_layout(audio_out_ctx->channels)
         );
@@ -800,29 +798,26 @@ bool VideoStore::setup_resampler() {
         audio_out_ctx->time_base.num, audio_out_ctx->time_base.den);
 
   Debug(1,
-        "Audio in bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
-        "layout(%d) frame_size(%d)",
+        "Audio in bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) layout(%" PRIi64 ") frame_size(%d)",
         audio_in_ctx->bit_rate, audio_in_ctx->sample_rate,
         audio_in_ctx->channels, audio_in_ctx->sample_fmt,
         audio_in_ctx->channel_layout, audio_in_ctx->frame_size);
   Debug(1,
-      "Audio out context bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
-      "layout(%d) frame_size(%d)",
-      audio_out_ctx->bit_rate, audio_out_ctx->sample_rate,
-      audio_out_ctx->channels, audio_out_ctx->sample_fmt,
-      audio_out_ctx->channel_layout, audio_out_ctx->frame_size);
+        "Audio out context bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) layout(% " PRIi64 ") frame_size(%d)",
+        audio_out_ctx->bit_rate, audio_out_ctx->sample_rate,
+        audio_out_ctx->channels, audio_out_ctx->sample_fmt,
+        audio_out_ctx->channel_layout, audio_out_ctx->frame_size);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   Debug(1,
-      "Audio out stream bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
-      "layout(%d) frame_size(%d)",
-      audio_out_stream->codecpar->bit_rate, audio_out_stream->codecpar->sample_rate,
-      audio_out_stream->codecpar->channels, audio_out_stream->codecpar->format,
-      audio_out_stream->codecpar->channel_layout, audio_out_stream->codecpar->frame_size);
+        "Audio out stream bit_rate (%" PRIi64 ") sample_rate(%d) channels(%d) fmt(%d) layout(%" PRIi64 ") frame_size(%d)",
+        audio_out_stream->codecpar->bit_rate, audio_out_stream->codecpar->sample_rate,
+        audio_out_stream->codecpar->channels, audio_out_stream->codecpar->format,
+        audio_out_stream->codecpar->channel_layout, audio_out_stream->codecpar->frame_size);
 #else
   Debug(1,
       "Audio out bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
-      "layout(%d) frame_size(%d)",
+      "layout(%" PRIi64 ") frame_size(%d)",
       audio_out_stream->codec->bit_rate, audio_out_stream->codec->sample_rate,
       audio_out_stream->codec->channels, audio_out_stream->codec->sample_fmt,
       audio_out_stream->codec->channel_layout, audio_out_stream->codec->frame_size);
@@ -1021,17 +1016,24 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     int64_t in_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
     if ( !video_first_pts ) {
       video_first_pts = in_pts;
-      Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
-          video_first_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
+      Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%" PRIi64 ") usecs(%" PRIi64 ")",
+            video_first_pts,
+            static_cast<int64>(zm_packet->timestamp->tv_sec),
+            static_cast<int64>(zm_packet->timestamp->tv_usec));
       zm_packet->out_frame->pts = 0;
     } else {
       uint64_t useconds = in_pts - video_first_pts;
       zm_packet->out_frame->pts = av_rescale_q(useconds, AV_TIME_BASE_Q, video_out_ctx->time_base);
-      Debug(2, " Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d) @ %d/%d",
-          frame_count, zm_packet->out_frame->pts, video_first_pts, useconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec,
-          video_out_ctx->time_base.num,
-          video_out_ctx->time_base.den
-          );
+      Debug(2,
+            "Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%" PRIi64 ") usecs(%" PRIi64 ") @ %d/%d",
+            frame_count,
+            zm_packet->out_frame->pts,
+            video_first_pts,
+            useconds,
+            static_cast<int64>(zm_packet->timestamp->tv_sec),
+            static_cast<int64>(zm_packet->timestamp->tv_usec),
+            video_out_ctx->time_base.num,
+            video_out_ctx->time_base.den);
     }
 
     av_init_packet(&opkt);

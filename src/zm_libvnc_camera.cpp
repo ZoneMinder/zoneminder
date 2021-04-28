@@ -44,7 +44,7 @@ static void GotFrameBufferUpdateCallback(rfbClient *rfb, int x, int y, int w, in
 }
 
 static char* GetPasswordCallback(rfbClient* cl) {
-  Debug(1, "Getcredentials: %s", (*rfbClientGetClientData_f)(cl, &TAG_1));
+  Debug(1, "Getcredentials: %s", static_cast<char *>((*rfbClientGetClientData_f)(cl, &TAG_1)));
   return strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
 }
 
@@ -55,7 +55,9 @@ static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
   }
   rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
 
-  Debug(1, "Getcredentials: %s:%s", (*rfbClientGetClientData_f)(cl, &TAG_1), (*rfbClientGetClientData_f)(cl, &TAG_2));
+  Debug(1, "Getcredentials: %s:%s",
+        static_cast<char *>((*rfbClientGetClientData_f)(cl, &TAG_1)),
+        static_cast<char *>((*rfbClientGetClientData_f)(cl, &TAG_2)));
   c->userCredential.password = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
   c->userCredential.username = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_2));
   return c;

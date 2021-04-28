@@ -165,14 +165,12 @@ void RtpSource::updateJitter( const RtpDataHeader *header ) {
     uint32_t localTimeRtp = mBaseTimeRtp + uint32_t(tvDiffSec(mBaseTimeReal) * mRtpFactor);
     uint32_t packetTransit = localTimeRtp - ntohl(header->timestampN);
 
-    Debug(5, "Delta rtp = %.6f\n"
-        "Local RTP time = %x",
-        "Packet RTP time = %x",
-        "Packet transit RTP time = %x",
-        tvDiffSec(mBaseTimeReal),
-        localTimeRtp,
-        ntohl(header->timestampN),
-        packetTransit);
+    Debug(5,
+          "Delta rtp = %.6f\n Local RTP time = %x Packet RTP time = %x Packet transit RTP time = %x",
+          tvDiffSec(mBaseTimeReal),
+          localTimeRtp,
+          ntohl(header->timestampN),
+          packetTransit);
 
     if ( mTransit > 0 ) {
       // Jitter
@@ -239,19 +237,13 @@ void RtpSource::updateRtcpStats() {
     mLostFraction = (lostInterval << 8) / expectedInterval;
 
   Debug(5,
-      "Expected packets = %d\n",
-      "Lost packets = %d\n",
-      "Expected interval = %d\n",
-      "Received interval = %d\n",
-      "Lost interval = %d\n",
-      "Lost fraction = %d\n",
-
-      mExpectedPackets,
-      mLostPackets,
-      expectedInterval,
-      receivedInterval,
-      lostInterval,
-      mLostFraction);
+        "Expected packets = %d\n Lost packets = %d\n Expected interval = %d\n Received interval = %d\n Lost interval = %d\n Lost fraction = %d\n",
+        mExpectedPackets,
+        mLostPackets,
+        expectedInterval,
+        receivedInterval,
+        lostInterval,
+        mLostFraction);
 }
 
 bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {

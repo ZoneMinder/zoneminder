@@ -147,7 +147,7 @@ TEST_CASE("ZmFont: load font file") {
   SECTION("valid file") {
     REQUIRE(font.LoadFontFile("data/fonts/04_valid.zmfnt") == FontLoadError::kOk);
 
-    uint8 var_idx = GENERATE(range(static_cast<decltype(kNumFontSizes)>(0), kNumFontSizes));
+    uint8 var_idx = GENERATE(range(static_cast<std::remove_cv<decltype(kNumFontSizes)>::type>(0), kNumFontSizes));
     FontVariant variant = font.GetFontVariant(var_idx);
     REQUIRE(variant.GetCharHeight() == 10 + var_idx);
     REQUIRE(variant.GetCharWidth() == 10 + var_idx);

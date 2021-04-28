@@ -173,7 +173,7 @@ RtspThread::RtspThread(
   
   mNeedAuth = false;
   StringVector parts = Split(auth, ":");
-  Debug(2, "# of auth parts %d", parts.size());
+  Debug(2, "# of auth parts %zu", parts.size());
   if ( parts.size() > 1 ) 
     mAuthenticator = new zm::Authenticator(parts[0], parts[1]);
   else
@@ -372,7 +372,7 @@ void RtspThread::Run() {
     mSessDesc = new SessionDescriptor( mUrl, sdp );
     mFormatContext = mSessDesc->generateFormatContext();
   } catch ( const Exception &e ) {
-    Error(e.getMessage().c_str());
+    Error("%s", e.getMessage().c_str());
     return;
   }
 
@@ -589,8 +589,12 @@ void RtspThread::Run() {
       while (!mTerminate) {
         now = time(nullptr);
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d",
-            sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+        Debug(5, "sendkeepalive %d, timeout %d, now: %" PRIi64 " last: %" PRIi64 " since: %" PRIi64,
+              sendKeepalive,
+              timeout,
+              static_cast<int64>(now),
+              static_cast<int64>(lastKeepalive),
+              static_cast<int64>(now - lastKeepalive));
         if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) ) {
           if ( !sendCommand( message ) )
             return;
@@ -709,7 +713,12 @@ void RtspThread::Run() {
         // FIXME: Is this really necessary when using tcp ?
         now = time(nullptr);
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+        Debug(5, "sendkeepalive %d, timeout %d, now: %" PRIi64 " last: %" PRIi64 " since: %" PRIi64,
+              sendKeepalive,
+              timeout,
+              static_cast<int64>(now),
+              static_cast<int64>(lastKeepalive),
+              static_cast<int64>(now - lastKeepalive));
         if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
         {
           if ( !sendCommand( message ) )

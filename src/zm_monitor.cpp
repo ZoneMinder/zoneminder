@@ -148,7 +148,7 @@ bool Monitor::MonitorLink::connect() {
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
-    Debug(1, "link.mem.size=%d", mem_size);
+    Debug(1, "link.mem.size=%jd", mem_size);
 #if ZM_MEM_MAPPED
     map_fd = open(mem_file, O_RDWR, (mode_t)0600);
     if ( map_fd < 0 ) {
@@ -175,14 +175,14 @@ bool Monitor::MonitorLink::connect() {
       disconnect();
       return false;
     } else if ( map_stat.st_size < mem_size ) {
-      Error("Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size);
+      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, mem_size);
       disconnect();
       return false;
     }
 
     mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
     if ( mem_ptr == MAP_FAILED ) {
-      Error("Can't map file %s (%d bytes) to memory: %s", mem_file, mem_size, strerror(errno));
+      Error("Can't map file %s (%jd bytes) to memory: %s", mem_file, mem_size, strerror(errno));
       disconnect();
       return false;
     }
@@ -632,12 +632,17 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
        + (image_buffer_count * image_size)
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
-  Debug(1, "mem.size(%d) SharedData=%d TriggerData=%d VideoStoreData=%d timestamps=%d images=%dx%d = %" PRId64 " total=%" PRId64,
-      sizeof(mem_size),
-      sizeof(SharedData), sizeof(TriggerData), sizeof(VideoStoreData),
-      (image_buffer_count*sizeof(struct timeval)),
-      image_buffer_count, image_size, (image_buffer_count*image_size),
-     mem_size);
+  Debug(1,
+        "mem.size(%zu) SharedData=%zu TriggerData=%zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
+        sizeof(mem_size),
+        sizeof(SharedData),
+        sizeof(TriggerData),
+        sizeof(VideoStoreData),
+        (image_buffer_count * sizeof(struct timeval)),
+        image_buffer_count,
+        image_size,
+        (image_buffer_count * image_size),
+        mem_size);
 
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%u", storage->Path(), id);
@@ -675,7 +680,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     }
   }  // end if purpose
 
-  Debug(1, "Loaded monitor %d(%s), %d zones", id, name.c_str(), zones.size());
+  Debug(1, "Loaded monitor %d(%s), %zu zones", id, name.c_str(), zones.size());
 } // Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY)
 
 void Monitor::LoadCamera() {
@@ -927,18 +932,18 @@ bool Monitor::connect() {
     if (purpose == CAPTURE) {
       // Allocate the size
       if (ftruncate(map_fd, mem_size) < 0) {
-        Error("Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno));
+        Error("Can't extend memory map file %s to %jd bytes: %s", mem_file, mem_size, strerror(errno));
         close(map_fd);
         map_fd = -1;
         return false;
       }
     } else if (map_stat.st_size == 0) {
-      Error("Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size);
+      Error("Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size);
       close(map_fd);
       map_fd = -1;
       return false;
     } else {
-      Error("Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size);
+      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, mem_size);
       close(map_fd);
       map_fd = -1;
       return false;
@@ -950,18 +955,18 @@ bool Monitor::connect() {
   mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0);
   if (mem_ptr == MAP_FAILED) {
     if (errno == EAGAIN) {
-      Debug(1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size);
+      Debug(1, "Unable to map file %s (%jd bytes) to locked memory, trying unlocked", mem_file, mem_size);
 #endif
       mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
-      Debug(1, "Mapped file %s (%d bytes) to unlocked memory", mem_file, mem_size);
+      Debug(1, "Mapped file %s (%jd bytes) to unlocked memory", mem_file, mem_size);
 #ifdef MAP_LOCKED
     } else {
-      Error("Unable to map file %s (%d bytes) to locked memory (%s)", mem_file, mem_size, strerror(errno));
+      Error("Unable to map file %s (%jd bytes) to locked memory (%s)", mem_file, mem_size, strerror(errno));
     }
   }
 #endif
   if ((mem_ptr == MAP_FAILED) or (mem_ptr == nullptr)) {
-    Error("Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
+    Error("Can't map file %s (%jd bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
     close(map_fd);
     map_fd = -1;
     mem_ptr = nullptr;
@@ -1723,10 +1728,14 @@ void Monitor::UpdateAnalysisFPS() {
     gettimeofday(&now, nullptr);
     double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
     double elapsed = now_double - last_analysis_fps_time;
-    Debug(4, "%s: %d - now:%d.%d = %lf, last %lf, diff %lf", name.c_str(), analysis_image_count,
-        now.tv_sec, now.tv_usec, now_double, last_analysis_fps_time,
-        elapsed
-        );
+    Debug(4, "%s: %d - now:%" PRIi64 ".%" PRIi64 " = %lf, last %lf, diff %lf",
+          name.c_str(),
+          analysis_image_count,
+          static_cast<int64>(now.tv_sec),
+          static_cast<int64>(now.tv_usec),
+          now_double,
+          last_analysis_fps_time,
+          elapsed);
 
     if ( elapsed > 1.0 ) {
       double new_analysis_fps = double(motion_frame_count - last_motion_frame_count) / elapsed;
@@ -1970,12 +1979,14 @@ bool Monitor::Analyse() {
                   || ! ( timestamp->tv_sec % section_length )
                 )
                ) {
-              Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
-                  name.c_str(), image_count, event->Id(),
-                  timestamp->tv_sec, video_store_data->recording.tv_sec, 
-                  timestamp->tv_sec - video_store_data->recording.tv_sec,
-                  section_length
-                  );
+              Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
+                   name.c_str(),
+                   image_count,
+                   event->Id(),
+                   static_cast<int64>(timestamp->tv_sec),
+                   static_cast<int64>(video_store_data->recording.tv_sec),
+                   static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
+                   section_length);
               closeEvent();
             }  // end if section_length
           }  // end if event
@@ -2062,10 +2073,13 @@ bool Monitor::Analyse() {
               closeEvent();
             } else if (event) {
               // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-              Debug(3, "pre_alarm_count in event %d, event frames %d, alarm frames %d event length %d >=? %d min",
-                  Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
-                  ( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
-                  );
+              Debug(3,
+                    "pre_alarm_count in event %d, event frames %d, alarm frames %d event length %" PRIi64 " >=? %d min",
+                    Event::PreAlarmCount(),
+                    event->Frames(),
+                    event->AlarmFrames(),
+                    static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
+                    min_section_length);
             }
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
               // lets construct alarm cause. It will contain cause + names of zones alarmed
@@ -2183,9 +2197,15 @@ bool Monitor::Analyse() {
             // Back to IDLE
             shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
           } else {
-            Debug(1, "State %s because image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%d) - recording.tv_src(%d) >= min_section_length(%d)",
-                State_Strings[state].c_str(), analysis_image_count, last_alarm_count, post_event_count,
-                timestamp->tv_sec, video_store_data->recording.tv_sec, min_section_length);
+            Debug(1,
+                  "State %s because image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%d)",
+                  State_Strings[state].c_str(),
+                  analysis_image_count,
+                  last_alarm_count,
+                  post_event_count,
+                  static_cast<int64>(timestamp->tv_sec),
+                  static_cast<int64>(video_store_data->recording.tv_sec),
+                  min_section_length);
           }
           if (Event::PreAlarmCount())
             Event::EmptyPreAlarmFrames();
@@ -2226,12 +2246,11 @@ bool Monitor::Analyse() {
             if ( section_length
                 && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
                ) {
-              Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
-                  name.c_str(), analysis_image_count, event->Id(),
-                  timestamp->tv_sec, video_store_data->recording.tv_sec,
-                  timestamp->tv_sec - video_store_data->recording.tv_sec,
-                  section_length
-                  );
+              Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
+                      name.c_str(), analysis_image_count, event->Id(),
+                      static_cast<int64>(timestamp->tv_sec), static_cast<int64>(video_store_data->recording.tv_sec),
+                      static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
+                      section_length);
               closeEvent();
               event = new Event(this, *timestamp, cause, noteSetMap);
               shared_data->last_event_id = event->Id();
@@ -2324,9 +2343,9 @@ void Monitor::Reload() {
 }  // end void Monitor::Reload()
 
 void Monitor::ReloadZones() {
-  Debug(3, "Reloading zones for monitor %s have %u", name.c_str(), zones.size());
+  Debug(3, "Reloading zones for monitor %s have %zu", name.c_str(), zones.size());
   zones = Zone::Load(this);
-  Debug(1, "Reloading zones for monitor %s have %u", name.c_str(), zones.size());
+  Debug(1, "Reloading zones for monitor %s have %zu", name.c_str(), zones.size());
   this->AddPrivacyBitmask();
   //DumpZoneImage();
 } // end void Monitor::ReloadZones()
@@ -3144,8 +3163,8 @@ void Monitor::get_ref_image() {
       )
     and !zm_terminate) {
 
-    Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)",
-        shared_data->last_write_index, shared_data->last_write_time);
+    Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%" PRIi64 ")",
+          shared_data->last_write_index, static_cast<int64>(shared_data->last_write_time));
     if ( snap_lock and ! snap_lock->packet_->image ) {
       delete snap_lock;
       // can't analyse it anyways, incremement

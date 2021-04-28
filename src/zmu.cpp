@@ -734,7 +734,7 @@ int main(int argc, char *argv[]) {
       if (!result) {
         exit_zmu(-1);
       }
-      Debug(1, "Got %d monitors", mysql_num_rows(result));
+      Debug(1, "Got %" PRIu64 " monitors", static_cast<uint64>(mysql_num_rows(result)));
 
       printf("%4s%5s%6s%9s%14s%6s%6s%8s%8s\n", "Id", "Func", "State", "TrgState", "LastImgTim", "RdIdx", "WrIdx", "LastEvt", "FrmRate");
       for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {

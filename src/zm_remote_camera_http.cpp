@@ -211,7 +211,9 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
 
   int n_found = select(sd+1, &rfds, nullptr, nullptr, &temp_timeout);
   if (n_found == 0) {
-    Debug(1, "Select timed out timeout was %d secs %d usecs", temp_timeout.tv_sec, temp_timeout.tv_usec);
+    Debug(1, "Select timed out timeout was %" PRIi64 " secs %" PRIi64" usecs",
+          static_cast<int64>(temp_timeout.tv_sec),
+          static_cast<int64>(temp_timeout.tv_usec));
     int error = 0;
     socklen_t len = sizeof(error);
     int retval = getsockopt(sd, SOL_SOCKET, SO_ERROR, &error, &len);

@@ -205,7 +205,7 @@ void Authenticator::checkAuthResponse(const std::string &response) {
 
     if ( strncasecmp(lines[i].c_str(), authenticate_match, authenticate_match_len) == 0 ) {
       authLine = lines[i];
-      Debug(2, "Found auth line at %d:", i);
+      Debug(2, "Found auth line at %zu:", i);
       //break;
     }
   }

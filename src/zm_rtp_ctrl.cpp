@@ -289,15 +289,14 @@ void RtpCtrlThread::Run() {
         unsigned char *bufferPtr = buffer;
         bufferPtr += generateRr( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
         bufferPtr += generateSdes( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
-        Debug( 3, "Preventing timeout by sending %zd bytes on sd %d. Time since last receive: %d",
-            bufferPtr-buffer, rtpCtrlServer.getWriteDesc(), ( now-last_receive) );
+        Debug(3, "Preventing timeout by sending %zd bytes on sd %d. Time since last receive: %" PRIi64,
+              bufferPtr - buffer, rtpCtrlServer.getWriteDesc(), static_cast<int64>(now - last_receive));
         if ( (nBytes = rtpCtrlServer.send(buffer, bufferPtr-buffer)) < 0 )
           Error("Unable to send: %s", strerror(errno));
         timeout = true;
         continue;
       } else {
-        //Error( "RTCP timed out" );
-        Debug(1, "RTCP timed out. Time since last receive: %d", ( now-last_receive) );
+        Debug(1, "RTCP timed out. Time since last receive: %" PRIi64, static_cast<int64>(now - last_receive));
         continue;
         //break;
       }

@@ -676,7 +676,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   }  // end if purpose
 
   Debug(1, "Loaded monitor %d(%s), %d zones", id, name.c_str(), zones.size());
-} // Monitor::Load
+} // Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY)
 
 void Monitor::LoadCamera() {
   if (camera)
@@ -1652,7 +1652,6 @@ void Monitor::CheckAction() {
         Info("Received resume indication at count %d", image_count);
         shared_data->active = true;
         ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
-        ready_count = std::max(warmup_count, pre_event_count);
         shared_data->alarm_x = shared_data->alarm_y = -1;
       }
       shared_data->action &= ~RESUME;
@@ -1663,7 +1662,6 @@ void Monitor::CheckAction() {
     Info("Auto resuming at count %d", image_count);
     shared_data->active = true;
     ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
-    ready_count = std::max(warmup_count, pre_event_count);
     auto_resume_time = 0;
   }
 }
@@ -2319,12 +2317,6 @@ void Monitor::Reload() {
     Error("Can't run query: %s", mysql_error(&dbconn));
   } else if (MYSQL_ROW dbrow = row->mysql_row()) {
     Load(dbrow, true /*load zones */, purpose);
-
-    shared_data->state = state = IDLE;
-    shared_data->alarm_x = shared_data->alarm_y = -1;
-    if (enabled)
-      shared_data->active = true;
-    ready_count = std::max(warmup_count, pre_event_count);
 
     delete row;
   }  // end if row

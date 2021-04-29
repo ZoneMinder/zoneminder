@@ -176,7 +176,11 @@ int main(int argc, char *argv[]) {
 
     std::vector<std::shared_ptr<Monitor>> new_monitors = Monitor::LoadMonitors(where, Monitor::QUERY);
     for (const auto &monitor : new_monitors) {
-      if (old_monitors.find(monitor->Id()) != old_monitors.end()) {
+      if (
+          (old_monitors.find(monitor->Id()) != old_monitors.end())
+          and
+          (old_monitors[monitor->Id()]->GetRTSPStreamName() == monitor->GetRTSPStreamName())
+         ) {
         Debug(1, "Found monitor in oldmonitors, clearing it");
         old_monitors.erase(monitor->Id());
       } else {
@@ -191,18 +195,18 @@ int main(int argc, char *argv[]) {
       Debug(1, "Removing %d %s from monitors", monitor->Id(), monitor->Name());
       monitors.erase(mid);
       if (sessions.find(mid) != sessions.end()) {
+        if (video_sources.find(monitor->Id()) != video_sources.end()) {
+          delete video_sources[monitor->Id()];
+          video_sources.erase(monitor->Id());
+        }
+        if (audio_sources.find(monitor->Id()) != audio_sources.end()) {
+          delete audio_sources[monitor->Id()];
+          audio_sources.erase(monitor->Id());
+        }
         rtspServer->RemoveSession(sessions[mid]->GetMediaSessionId());
         //Debug(1, "Deleting session");
         //delete sessions[mid];
         sessions.erase(mid);
-      }
-      if (video_sources.find(monitor->Id()) != video_sources.end()) {
-        delete video_sources[monitor->Id()];
-        video_sources.erase(monitor->Id());
-      }
-      if (audio_sources.find(monitor->Id()) != audio_sources.end()) {
-        delete audio_sources[monitor->Id()];
-        audio_sources.erase(monitor->Id());
       }
     }
 
@@ -215,20 +219,21 @@ int main(int argc, char *argv[]) {
         if (!monitor->connect()) {
           Warning("Couldn't connect to monitor %d", monitor->Id());
           if (sessions.find(monitor->Id()) != sessions.end()) {
+            if (video_sources.find(monitor->Id()) != video_sources.end()) {
+              video_sources.erase(monitor->Id());
+            }
+            if (audio_sources.find(monitor->Id()) != audio_sources.end()) {
+              audio_sources.erase(monitor->Id());
+            }
             rtspServer->RemoveSession(sessions[monitor->Id()]->GetMediaSessionId());
             delete sessions[monitor->Id()];
             sessions.erase(monitor->Id());
-          }
-          if (video_sources.find(monitor->Id()) != video_sources.end()) {
-            video_sources.erase(monitor->Id());
-          }
-          if (audio_sources.find(monitor->Id()) != audio_sources.end()) {
-            audio_sources.erase(monitor->Id());
           }
 
           continue;
         }
       }
+
 
       if (sessions.end() == sessions.find(monitor->Id())) {
         Debug(1, "Monitor not found in sessions, opening it");
@@ -237,8 +242,8 @@ int main(int argc, char *argv[]) {
           Debug(1, "video fifo is empty. Skipping.");
           continue;
         }
-        std::string streamname = monitor->GetRTSPStreamName();
 
+        std::string streamname = monitor->GetRTSPStreamName();
         xop::MediaSession *session = sessions[monitor->Id()] = xop::MediaSession::CreateNew(streamname);
         if (!session) {
           Error("Unable to create session for %s", streamname.c_str());
@@ -325,16 +330,16 @@ int main(int argc, char *argv[]) {
   } // end while !zm_terminate
   Info("RTSP Server shutting down");
 
-  for (auto it = sessions.begin(); it != sessions.end(); ++it) {
+  for (auto it = monitors.begin(); it != monitors.end(); ++it) {
     auto &monitor = it->second;
     unsigned int i = it->first;
+    if (video_sources.find(i) != video_sources.end()) delete video_sources[i];
+    if (audio_sources.find(i) != audio_sources.end()) delete audio_sources[i];
     if (sessions.find(i) != sessions.end()) {
       Debug(1, "Removing session for %s", monitors[i]->Name());
       rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
-      sessions[i] = nullptr;
+      sessions.erase(i);
     }
-    if (video_sources.find(i) != video_sources.end()) delete video_sources[i];
-    if (audio_sources.find(i) != audio_sources.end()) delete audio_sources[i];
   }  // end foreach monitor
 
   rtspServer->Stop();

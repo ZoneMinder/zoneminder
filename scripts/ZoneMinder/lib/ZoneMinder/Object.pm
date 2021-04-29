@@ -22,6 +22,12 @@
 # This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
+
+sub array_diff(\@\@) {
+  my %e = map { $_ => undef } @{$_[1]};
+  return @{[ ( grep { (exists $e{$_}) ? ( delete $e{$_} ) : ( 1 ) } @{ $_[0] } ), keys %e ] };
+}
+
 package ZoneMinder::Object;
 
 use 5.006;
@@ -29,7 +35,6 @@ use strict;
 use warnings;
 use Time::HiRes qw{ gettimeofday tv_interval }; 
 use Carp qw( cluck );
-use Array::Utils qw(:all);
 
 require ZoneMinder::Base;
 

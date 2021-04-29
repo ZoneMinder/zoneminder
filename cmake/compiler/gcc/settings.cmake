@@ -9,6 +9,12 @@ target_compile_options(zm-warning-interface
     -Wno-unused-parameter
     -Woverloaded-virtual)
 
+if(ENABLE_WERROR)
+  target_compile_options(zm-warning-interface
+    INTERFACE
+      -Werror)
+endif()
+
 if(ASAN)
   target_compile_options(zm-compile-option-interface
     INTERFACE

@@ -5,6 +5,12 @@ target_compile_options(zm-warning-interface
     -Wimplicit-fallthrough
     -Wno-unused-parameter)
 
+if(ENABLE_WERROR)
+  target_compile_options(zm-warning-interface
+    INTERFACE
+      -Werror)
+endif()
+
 if(ASAN)
   target_compile_options(zm-compile-option-interface
     INTERFACE

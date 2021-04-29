@@ -202,7 +202,7 @@ int RemoteCameraRtsp::PrimeCapture() {
 #endif
 
   if ( (unsigned int)pSize != imagesize ) {
-    Fatal("Image size mismatch. Required: %d Available: %d", pSize, imagesize);
+    Fatal("Image size mismatch. Required: %d Available: %llu", pSize, imagesize);
   }
 
   return 1;

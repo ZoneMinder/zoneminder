@@ -39,8 +39,6 @@ typedef std::uint32_t uint32;
 typedef std::uint16_t uint16;
 typedef std::uint8_t uint8;
 
-#define SZFMTD "%" PRIuPTR
-
 #ifndef FALLTHROUGH
 #if defined(__clang__)
 #define FALLTHROUGH [[clang::fallthrough]]

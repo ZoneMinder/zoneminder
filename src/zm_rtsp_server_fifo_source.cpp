@@ -78,7 +78,7 @@ void ZoneMinderFifoSource::WriteRun() {
 
     if (nal) {
       if (1 and (nal->size() > maxNalSize)) {
-        Debug(1, "SPlitting NAL %d", nal->size());
+        Debug(1, "Splitting NAL %zu", nal->size());
         size_t nalRemaining = nal->size();
         u_int8_t *nalSrc = nal->buffer();
 
@@ -123,9 +123,9 @@ void ZoneMinderFifoSource::WriteRun() {
           nalSrc += fuNalSize;
           nal_count += 1;
         }
-        Debug(1, "Sending %d NALs @ %d and 1 @ %d", nal_count, maxNalSize, fuNal.size());
+        Debug(1, "Sending %d NALs @ %zu and 1 @ %zu", nal_count, maxNalSize, fuNal.size());
       } else {
-        Debug(3, "Pushing nal of size %d at %" PRId64, nal->size(), nal->pts());
+        Debug(3, "Pushing nal of size %zu at %" PRId64, nal->size(), nal->pts());
         PushFrame(nal->buffer(), nal->size(), nal->pts());
       }
       delete nal;
@@ -214,8 +214,8 @@ int ZoneMinderFifoSource::getNextFrame() {
       return 0;
     }
     if (header_start != m_buffer) {
-      Debug(4, "ZM Packet didn't start at beginning of buffer %u. %c%c",
-          header_start-m_buffer.head(), m_buffer[0], m_buffer[1]);
+      Debug(4, "ZM Packet didn't start at beginning of buffer %ld. %c%c",
+            header_start - m_buffer.head(), m_buffer[0], m_buffer[1]);
     }
 
     // read_into may invalidate packet_start
@@ -244,7 +244,10 @@ int ZoneMinderFifoSource::getNextFrame() {
     size_t bytes_remaining = data_size;
     std::list< std::pair<unsigned char*, size_t> > framesList = this->splitFrames(packet_start, bytes_remaining);
     m_buffer.consume(data_size+header_size);
-    Debug(3, "Got %d frames, consuming %d bytes, remaining %d", framesList.size(), data_size+header_size, bytes_remaining);
+    Debug(3, "Got %zu frames, consuming %d bytes, remaining %zu",
+          framesList.size(),
+          data_size + header_size,
+          bytes_remaining);
 
     {
       std::unique_lock<std::mutex> lck(mutex_);

@@ -227,11 +227,11 @@ int LibvlcCamera::PrimeCapture() {
 
   if ( opVect.size() > 0 ) {
     mOptArgV = new char*[opVect.size()];
-    Debug(2, "Number of Options: %d",opVect.size());
+    Debug(2, "Number of Options: %zu", opVect.size());
     for (size_t i=0; i< opVect.size(); i++) {
       opVect[i] = TrimSpaces(opVect[i]);
       mOptArgV[i] = (char *)opVect[i].c_str();
-      Debug(2, "set option %d to '%s'", i,  opVect[i].c_str());
+      Debug(2, "set option %zu to '%s'", i, opVect[i].c_str());
     }
   }
 
@@ -319,9 +319,9 @@ void LibvlcCamera::log_callback(void *ptr, int level, const libvlc_log_t *ctx, c
   }
 
   if ( log ) {
-    char            logString[8192];
-    vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
-    log->logPrint(false, __FILE__, __LINE__, log_level, logString);
+    char logString[8192];
+    vsnprintf(logString, sizeof(logString) - 1, fmt, vargs);
+    log->logPrint(false, __FILE__, __LINE__, log_level, "%s", logString);
   }
 }
 #endif // HAVE_LIBVLC

@@ -100,7 +100,7 @@ void cURLCamera::Initialise() {
   /* cURL initialization */
   CURLcode cRet = (*curl_global_init_f)(CURL_GLOBAL_ALL);
   if(cRet != CURLE_OK) {
-    Error("libcurl initialization failed: ", (*curl_easy_strerror_f)(cRet));
+    Error("libcurl initialization failed: %s", (*curl_easy_strerror_f)(cRet));
     dlclose(curl_lib);
     return;
   }
@@ -432,7 +432,7 @@ void* cURLCamera::thread_func() {
   /* Set URL */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_URL, mPath.c_str());
   if(cRet != CURLE_OK) {
-    Error("Failed setting libcurl URL: %s", *(curl_easy_strerror_f)(cRet));
+    Error("Failed setting libcurl URL: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -52;
     return (void*)tRet;
   }
@@ -468,7 +468,7 @@ void* cURLCamera::thread_func() {
   /* Progress callback */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_NOPROGRESS, 0);
   if(cRet != CURLE_OK) {
-    Error("Failed enabling libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));  
+    Error("Failed enabling libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -57;
     return (void*)tRet;
   }

@@ -359,7 +359,7 @@ void StreamBase::openComms() {
     // Unlink before bind, in case it already exists
     unlink(loc_sock_path);
     if ( sizeof(loc_addr.sun_path) < length ) {
-      Error("Not enough space %d in loc_addr.sun_path for socket file %s", sizeof(loc_addr.sun_path), loc_sock_path);
+      Error("Not enough space %zu in loc_addr.sun_path for socket file %s", sizeof(loc_addr.sun_path), loc_sock_path);
     }
 
     strncpy(loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path));

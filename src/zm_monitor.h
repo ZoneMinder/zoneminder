@@ -439,10 +439,14 @@ public:
 
   inline int ShmValid() const {
     if ( shared_data && shared_data->valid ) {
-      struct timeval now;
+      timeval now = {};
       gettimeofday(&now, nullptr);
-      Debug(3, "Shared data is valid, checking heartbeat %u - %u = %d < %f",
-          now.tv_sec, shared_data->zmc_heartbeat_time, (now.tv_sec - shared_data->zmc_heartbeat_time), config.watch_max_delay);
+      Debug(3, "Shared data is valid, checking heartbeat %" PRIi64 " - %" PRIi64 " = %" PRIi64"  < %f",
+            static_cast<int64>(now.tv_sec),
+            static_cast<int64>(shared_data->zmc_heartbeat_time),
+            static_cast<int64>(now.tv_sec - shared_data->zmc_heartbeat_time),
+            config.watch_max_delay);
+
       if ((now.tv_sec - shared_data->zmc_heartbeat_time) < config.watch_max_delay)
         return true;
     }

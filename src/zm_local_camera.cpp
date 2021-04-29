@@ -665,7 +665,7 @@ LocalCamera::LocalCamera(
     unsigned int pSize = avpicture_get_size(imagePixFormat, width, height);
 #endif
     if ( pSize != imagesize ) {
-      Fatal("Image size mismatch. Required: %d Available: %u", pSize, imagesize);
+      Fatal("Image size mismatch. Required: %d Available: %llu", pSize, imagesize);
     }
 
     imgConversionContext = sws_getContext(

@@ -795,14 +795,17 @@ void MonitorStream::runStream() {
     if ( sleep_time > MonitorStream::MAX_SLEEP_USEC ) {
       // Shouldn't sleep for long because we need to check command queue, etc.
       sleep_time = MonitorStream::MAX_SLEEP_USEC;
-      Debug(3, "Sleeping for MAX_SLEEP_USEC %dus", sleep_time);
+      Debug(3, "Sleeping for MAX_SLEEP_USEC %luus", sleep_time);
     } else {
-      Debug(3, "Sleeping for %dus", sleep_time);
+      Debug(3, "Sleeping for %luus", sleep_time);
     }
     usleep(sleep_time);
     if ( ttl ) {
       if ( (now.tv_sec - stream_start_time) > ttl ) {
-        Debug(2, "now(%d) - start(%d) > ttl(%d) break", now.tv_sec, stream_start_time, ttl);
+        Debug(2, "now(%" PRIi64 ") - start(%" PRIi64 " ) > ttl(%" PRIi64 ") break",
+              static_cast<int64>(now.tv_sec),
+              static_cast<int64>(stream_start_time),
+              static_cast<int64>(ttl));
         break;
       }
     }

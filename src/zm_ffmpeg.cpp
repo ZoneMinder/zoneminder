@@ -66,7 +66,7 @@ void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
       if (static_cast<size_t>(length) > sizeof(logString)-1) length = sizeof(logString)-1;
       // ffmpeg logs have a carriage return, so replace it with terminator
       logString[length-1] = 0;
-      log->logPrint(false, __FILE__, __LINE__, log_level, logString);
+      log->logPrint(false, __FILE__, __LINE__, log_level, "%s", logString);
     } else {
       log->logPrint(false, __FILE__, __LINE__, AV_LOG_ERROR, "Can't encode log from av. fmt was %s", fmt);
     }
@@ -636,8 +636,7 @@ int zm_resample_audio(
         av_make_error_string(ret).c_str());
     return 0;
   }
-  Debug(3,"swr_get_delay %d",
-      swr_get_delay(resample_ctx, out_frame->sample_rate));
+  Debug(3, "swr_get_delay %" PRIi64, swr_get_delay(resample_ctx, out_frame->sample_rate));
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
   if (!in_frame) {

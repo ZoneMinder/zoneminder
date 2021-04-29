@@ -24,7 +24,8 @@ void AnalysisThread::Start() {
 void AnalysisThread::Run() {
   Microseconds analysis_rate = Microseconds(monitor_->GetAnalysisRate());
   Seconds analysis_update_delay = Seconds(monitor_->GetAnalysisUpdateDelay());
-  Debug(2, "AnalysisThread::Run() have update delay %d", analysis_update_delay);
+  Debug(2, "AnalysisThread::Run() has an update delay of %" PRId64 "s",
+        static_cast<int64>(analysis_update_delay.count()));
 
   monitor_->UpdateAdaptiveSkip();
 

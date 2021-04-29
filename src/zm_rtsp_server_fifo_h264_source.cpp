@@ -196,7 +196,7 @@ unsigned char * H26X_ZoneMinderFifoSource::findMarker(
 // extract a frame
 unsigned char*  H26X_ZoneMinderFifoSource::extractFrame(unsigned char* frame, size_t& size, size_t& outsize) {
 	unsigned char *outFrame = nullptr;
-  Debug(4, "ExtractFrame: %p %d", frame, size);
+	Debug(4, "ExtractFrame: %p %zu", frame, size);
 	outsize = 0;
 	size_t markerLength = 0;
 	size_t endMarkerLength = 0;
@@ -205,7 +205,7 @@ unsigned char*  H26X_ZoneMinderFifoSource::extractFrame(unsigned char* frame, si
   if ( size >= 3 )
     startFrame = this->findMarker(frame, size, markerLength);
 	if ( startFrame != nullptr ) {
-    Debug(4, "startFrame: %p marker Length %d", startFrame, markerLength);
+		Debug(4, "startFrame: %p marker Length %zu", startFrame, markerLength);
 		m_frameType = startFrame[markerLength];
 
 		int remainingSize = size-(startFrame-frame+markerLength);
@@ -213,7 +213,7 @@ unsigned char*  H26X_ZoneMinderFifoSource::extractFrame(unsigned char* frame, si
     if ( remainingSize > 3 ) {
       endFrame = this->findMarker(startFrame+markerLength, remainingSize, endMarkerLength);
     }
-    Debug(4, "endFrame: %p marker Length %d, remaining size %d", endFrame, endMarkerLength, remainingSize);
+		Debug(4, "endFrame: %p marker Length %zu, remaining size %d", endFrame, endMarkerLength, remainingSize);
 
 		if ( m_keepMarker ) {
 			size -=  startFrame-frame;
@@ -229,9 +229,9 @@ unsigned char*  H26X_ZoneMinderFifoSource::extractFrame(unsigned char* frame, si
 			outsize = size;
 		}
 		size -= outsize;
-    Debug(4, "Have frame type: %d size %d, keepmarker %d", m_frameType, outsize, m_keepMarker);
+		Debug(4, "Have frame type: %d size %zu, keepmarker %d", m_frameType, outsize, m_keepMarker);
 	} else if ( size >= sizeof(H264shortmarker) ) {
-		 Info("No marker found size %d", size);
+		Info("No marker found size %zu", size);
 	}
 
 	return outFrame;

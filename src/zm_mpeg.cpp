@@ -101,7 +101,7 @@ void VideoStream::SetupFormat( ) {
 	ofc = s;
 #endif
 	if ( !ofc ) {
-		Fatal("avformat_alloc_..._context failed: %d", ofc);
+		Fatal("avformat_alloc_..._context failed");
 	}
 
 	of = ofc->oformat;

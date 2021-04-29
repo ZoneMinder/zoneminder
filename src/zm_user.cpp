@@ -232,7 +232,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     Warning("No value set for ZM_AUTH_HASH_TTL. Defaulting to 2.");
     hours = 2;
   } else {
-    Debug(1, "AUTH_HASH_TTL is %d, time is %d", hours, now);
+    Debug(1, "AUTH_HASH_TTL is %d, time is %" PRIi64, hours, static_cast<int64>(now));
   }
   char auth_key[512] = "";
   char auth_md5[32+1] = "";

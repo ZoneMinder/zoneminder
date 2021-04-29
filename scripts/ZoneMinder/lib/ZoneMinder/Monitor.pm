@@ -35,6 +35,7 @@ require ZoneMinder::Storage;
 require ZoneMinder::Server;
 require ZoneMinder::Memory;
 require ZoneMinder::Monitor_Status;
+require ZoneMinder::Zone;
 
 #our @ISA = qw(Exporter ZoneMinder::Base);
 use parent qw(ZoneMinder::Object);
@@ -225,6 +226,13 @@ sub Server {
 sub Storage {
 	return new ZoneMinder::Storage( $_[0]{StorageId} );
 } # end sub Storage
+
+sub Zones {
+  if (! exists $_[0]{Zones}) {
+    $_[0]{Zones} = [ $_[0]{Id} ? ZoneMinder::Zone->find(MonitorId=>$_[0]{Id}) : () ];
+  }
+  return wantarray ? @{$_[0]{Zones}} : $_[0]{Zones};
+}
 
 sub control {
   my $monitor = shift;

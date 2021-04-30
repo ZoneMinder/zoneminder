@@ -330,13 +330,16 @@ int main(int argc, char *argv[]) {
   } // end while !zm_terminate
   Info("RTSP Server shutting down");
 
-  for (auto it = monitors.begin(); it != monitors.end(); ++it) {
-    auto &monitor = it->second;
-    unsigned int i = it->first;
-    if (video_sources.find(i) != video_sources.end()) delete video_sources[i];
-    if (audio_sources.find(i) != audio_sources.end()) delete audio_sources[i];
+  for (const std::pair<const unsigned int, std::shared_ptr<Monitor>> &mon_pair : monitors) {
+    unsigned int i = mon_pair.first;
+    if (video_sources.find(i) != video_sources.end()) {
+      delete video_sources[i];
+    }
+    if (audio_sources.find(i) != audio_sources.end()) {
+      delete audio_sources[i];
+    }
     if (sessions.find(i) != sessions.end()) {
-      Debug(1, "Removing session for %s", monitors[i]->Name());
+      Debug(1, "Removing session for %s", mon_pair.second->Name());
       rtspServer->RemoveSession(sessions[i]->GetMediaSessionId());
       sessions.erase(i);
     }

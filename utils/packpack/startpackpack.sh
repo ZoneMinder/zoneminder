@@ -118,7 +118,7 @@ commonprep () {
         fi
     fi
 
-    RTSPVER="65f625e27ed9f96fa5ae068f6d49ec9fa5795629"
+    RTSPVER="cd7fd49becad6010a1b8466bfebbd93999a39878"
     if [ -e "build/RtspServer-${RTSPVER}.tar.gz" ]; then
         echo "Found existing RtspServer ${RTSPVER} tarball..."
     else

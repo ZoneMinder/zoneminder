@@ -90,6 +90,7 @@ mark_as_advanced(
   ZM_SYSTEMD
   ZM_MANPAGE_DEST_PREFIX)
 
+option(ENABLE_WERROR "Fail the build if a compiler warning is emitted" 0)
 option(BUILD_TEST_SUITE "Build the test suite" 0)
 option(BUILD_MAN "Build man pages" 1)
 option(ASAN "DEBUGGING: Build with AddressSanitizer (ASan) support" 0)

@@ -87,6 +87,7 @@ int main(int argc, const char *argv[], char **envp) {
   zmLoadStaticConfig();
   zmDbConnect();
   zmLoadDBConfig();
+  logInit(log_id_string);
 
   for (char **env = envp; *env != 0; env++) {
     char *thisEnv = *env;
@@ -230,6 +231,7 @@ int main(int argc, const char *argv[], char **envp) {
   }  // end if config.opt_use_auth
 
   HwCapsDetect();
+  Image::Initialise();
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
@@ -338,6 +340,7 @@ int main(int argc, const char *argv[], char **envp) {
   }  // end if monitor or event
 
   Debug(1, "Terminating");
+  Image::Deinitialise();
   logTerm();
   zmDbClose();
 

@@ -570,6 +570,7 @@ void logInit(const char *name, const Logger::Options &options) {
 }
 
 void logTerm() {
+  dbQueue.stop();
   if (Logger::smInstance) {
     delete Logger::smInstance;
     Logger::smInstance = nullptr;

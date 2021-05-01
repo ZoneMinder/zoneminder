@@ -15,7 +15,8 @@ set(TEST_SOURCES
   zm_comms.cpp
   zm_crypt.cpp
   zm_font.cpp
-  zm_utils.cpp)
+  zm_utils.cpp
+  zm_vector2.cpp)
 
 add_executable(tests main.cpp ${TEST_SOURCES})
 

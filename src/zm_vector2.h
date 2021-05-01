@@ -57,10 +57,11 @@ class Vector2 {
   inline bool operator==(const Vector2 &coord) const { return (x == coord.x && y == coord.y); }
   inline bool operator!=(const Vector2 &coord) const { return (x != coord.x || y != coord.y); }
 
-  inline bool operator>(const Vector2 &coord) const { return (x > coord.x && y > coord.y); }
-  inline bool operator>=(const Vector2 &coord) const { return (!(operator<(coord))); }
-  inline bool operator<(const Vector2 &coord) const { return (x < coord.x && y < coord.y); }
-  inline bool operator<=(const Vector2 &coord) const { return (!(operator>(coord))); }
+  // These operators are not idiomatic. If lexicographic comparison is needed, it should be implemented separately.
+  inline bool operator>(const Vector2 &coord) const = delete;
+  inline bool operator>=(const Vector2 &coord) const = delete;
+  inline bool operator<(const Vector2 &coord) const = delete;
+  inline bool operator<=(const Vector2 &coord) const = delete;
 
   inline Vector2 &operator+=(const Vector2 &coord) {
     x += coord.x;

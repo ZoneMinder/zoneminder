@@ -342,27 +342,32 @@ Image::~Image() {
 
 /* Should be called as part of program shutdown to free everything */
 void Image::Deinitialise() {
-  if ( !initialised ) return;
+  if (!initialised) return;
   initialised = false;
-  if ( readjpg_dcinfo ) {
+  if (readjpg_dcinfo) {
     jpeg_destroy_decompress(readjpg_dcinfo);
     delete readjpg_dcinfo;
     readjpg_dcinfo = nullptr;
   }
-  if ( decodejpg_dcinfo ) {
+  if (decodejpg_dcinfo) {
     jpeg_destroy_decompress(decodejpg_dcinfo);
     delete decodejpg_dcinfo;
     decodejpg_dcinfo = nullptr;
   }
-  for ( unsigned int quality=0; quality <= 100; quality += 1 ) {
-    if ( writejpg_ccinfo[quality] ) {
+  for (unsigned int quality=0; quality <= 100; quality += 1) {
+    if (writejpg_ccinfo[quality]) {
       jpeg_destroy_compress(writejpg_ccinfo[quality]);
       delete writejpg_ccinfo[quality];
       writejpg_ccinfo[quality] = nullptr;
     }
+    if (encodejpg_ccinfo[quality]) {
+      jpeg_destroy_compress(encodejpg_ccinfo[quality]);
+      delete encodejpg_ccinfo[quality];
+      encodejpg_ccinfo[quality] = nullptr;
+    }
   } // end foreach quality
 
-  if ( sws_convert_context ) {
+  if (sws_convert_context) {
     sws_freeContext(sws_convert_context);
     sws_convert_context = nullptr;
   }

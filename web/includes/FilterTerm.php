@@ -148,14 +148,13 @@ class FilterTerm {
   } # end function sql_values
 
   public function sql_operator() {
-    switch ( $this->attr ) {
-    case 'AlarmZoneId':
+    switch ($this->attr) {
+    case 'AlarmedZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':
     case 'DiskPercent':
       return '';
     }
-
 
     switch ( $this->op ) {
     case '=' :
@@ -201,13 +200,17 @@ class FilterTerm {
 
     $sql = '';
     if ( isset($this->cnj) ) {
-      $sql .= ' '.$this->cnj.' ';
+      $sql .= ' '.$this->cnj;
     }
     if ( isset($this->obr) ) {
-      $sql .= ' '.str_repeat('(', $this->obr).' ';
+      $sql .= ' '.str_repeat('(', $this->obr);
     }
+    $sql .= ' ';
 
     switch ( $this->attr ) {
+    case 'AlarmedZoneId':
+      $sql .= '/* AlarmedZoneId */ ';
+      break;
     case 'ExistsInFileSystem':
     case 'DiskPercent':
       $sql .= 'TRUE /*'.$this->attr.'*/';
@@ -307,8 +310,9 @@ class FilterTerm {
     }
 
     if ( isset($this->cbr) ) {
-      $sql .= ' '.str_repeat(')', $this->cbr).' ';
+      $sql .= ' '.str_repeat(')', $this->cbr);
     }
+    $sql .= PHP_EOL;
     return $sql;
   } # end public function sql
 

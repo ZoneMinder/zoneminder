@@ -15,7 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "catch2/catch.hpp"
+#include "zm_catch2.h"
 
 #include "zm_font.h"
 

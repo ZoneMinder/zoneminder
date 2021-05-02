@@ -15,14 +15,9 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "catch2/catch.hpp"
+#include "zm_catch2.h"
 
 #include "zm_vector2.h"
-
-std::ostream &operator<<(std::ostream &os, Vector2 const &value) {
-  os << "{ X: " << value.x_ << ", Y: " << value.y_ << " }";
-  return os;
-}
 
 TEST_CASE("Vector2: default constructor") {
   Vector2 c;

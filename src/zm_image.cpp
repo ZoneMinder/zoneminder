@@ -176,7 +176,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   }
   if (!subpixelorder) {
     // Default to RGBA when no subpixelorder is specified.
-    subpixelorder == ZM_SUBPIX_ORDER_RGBA;
+    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
   }
   imagePixFormat = AVPixFormat();
 
@@ -207,7 +207,7 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   }
   if (!subpixelorder) {
     // Default to RGBA when no subpixelorder is specified.
-    subpixelorder == ZM_SUBPIX_ORDER_RGBA;
+    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
   }
   imagePixFormat = AVPixFormat();
 

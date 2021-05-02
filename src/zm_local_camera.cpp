@@ -1836,9 +1836,9 @@ int LocalCamera::Hue(int p_hue) {
 
     if ( vidioctl(vid_fd, VIDIOC_G_CTRL, &vid_control) < 0 ) {
       if ( errno != EINVAL )
-        Error("Unable to query hue: %s", strerror(errno))
+        Error("Unable to query hue: %s", strerror(errno));
       else
-        Warning("Hue control is not supported")
+        Warning("Hue control is not supported");
     } else if ( p_hue >= 0 ) {
       vid_control.value = p_hue;
 
@@ -2151,7 +2151,7 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
           return -1;
         }
       } else {
-        Error("Unable to requeue buffer due to not v4l2_data")
+        Error("Unable to requeue buffer due to not v4l2_data");
       }
     }
 #if ZM_HAS_V4L1

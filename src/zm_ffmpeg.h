@@ -393,7 +393,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
       pkt.flags, \
       pkt.flags & AV_PKT_FLAG_KEY, \
       pkt.pos, \
-    pkt.duration) \
+    pkt.duration); \
   }
 
 #else

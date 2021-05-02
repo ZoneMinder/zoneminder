@@ -274,7 +274,9 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
                     Debug(4, "sprop-parameter-sets value %s", c);
                   currMedia->setSprops(std::string(c));
                 } else {
-                  Debug( 3, "Ignoring SDP fmtp attribute '%s' for media '%s'", attr3Tokens[0].c_str(), currMedia->getType().c_str() )
+                  Debug(3, "Ignoring SDP fmtp attribute '%s' for media '%s'",
+                        attr3Tokens[0].c_str(),
+                        currMedia->getType().c_str());
                 }
               }
             }

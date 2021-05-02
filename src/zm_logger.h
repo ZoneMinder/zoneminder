@@ -194,15 +194,19 @@ inline Logger::Level logDebugging() {
   return Logger::fetch()->debugOn();
 }
 
-#define logPrintf(logLevel,params...)  {\
-    if ( logLevel <= Logger::fetch()->level() )\
-      Logger::fetch()->logPrint( false, __FILE__, __LINE__, logLevel, ##params );\
-  }
+#define logPrintf(logLevel, params...)                                          \
+  do {                                                                          \
+    if (logLevel <= Logger::fetch()->level()) {                                 \
+      Logger::fetch()->logPrint(false, __FILE__, __LINE__, logLevel, ##params); \
+    }                                                                           \
+  } while (0)
 
-#define logHexdump(logLevel,data,len)  {\
-    if ( logLevel <= Logger::fetch()->level() )\
-      Logger::fetch()->logPrint( true, __FILE__, __LINE__, logLevel, "%p (%d)", data, len );\
-  }
+#define logHexdump(logLevel, data, len)                                                    \
+  do {                                                                                     \
+    if (logLevel <= Logger::fetch()->level()) {                                            \
+      Logger::fetch()->logPrint(true, __FILE__, __LINE__, logLevel, "%p (%d)", data, len); \
+    }                                                                                      \
+  } while (0)
 
 /* Debug compiled out */
 #ifndef DBG_OFF

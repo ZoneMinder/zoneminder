@@ -158,10 +158,11 @@ sub Sql {
 
         # See getFilterQueryConjunctionTypes()
         if ( exists($term->{cnj}) and $term->{cnj} =~ /^(and|or)$/ ) {
-          $self->{Sql} .= ' '.$term->{cnj}.' ';
+          $self->{Sql} .= ' '.$term->{cnj};
         }
+        $self->{Sql} .= ' ';
         if ( exists($term->{obr}) ) {
-          $self->{Sql} .= ' '.str_repeat('(', $term->{obr}).' ';
+          $self->{Sql} .= str_repeat('(', $term->{obr}).' ';
         }
         my $value = $term->{val};
         my @value_list;
@@ -225,7 +226,7 @@ sub Sql {
             foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
 
               if ( $term->{attr} eq 'AlarmedZoneId' ) {
-                $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+                $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.$value.')';
               } elsif ( $term->{attr} =~ /^MonitorName/ ) {
                 $value = "'$temp_value'";
               } elsif ( $term->{attr} =~ /ServerId/) {
@@ -314,7 +315,7 @@ sub Sql {
             } elsif ( $term->{op} eq 'IS NOT' ) {
               $self->{Sql} .= ' IS NOT '.$value;
             } elsif ( $term->{op} eq '=[]' or $term->{op} eq 'IN' ) {
-              $self->{Sql} .= ' IN ('.join(',', @value_list).')';
+              $self->{Sql} .= ' IN ('.join(',', @value_list).")";
             } elsif ( $term->{op} eq '![]' ) {
               $self->{Sql} .= ' NOT IN ('.join(',', @value_list).')';
             } elsif ( $term->{op} eq 'LIKE' ) {
@@ -326,9 +327,8 @@ sub Sql {
             }
           } # end if has an operator
         } # end if Pre/Post or SQL
-        if ( exists($term->{cbr}) ) {
-          $self->{Sql} .= ' '.str_repeat(')', $term->{cbr}).' ';
-        }
+        $self->{Sql} .= ' '.str_repeat(')', $term->{cbr}) if exists($term->{cbr});
+        $self->{Sql} .= "\n";
       } # end foreach term
     } # end if terms
 

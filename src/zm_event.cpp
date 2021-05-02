@@ -462,7 +462,6 @@ void Event::WriteDbFrames() {
         frame->delta.fsec,
         frame->score);
     if (config.record_event_stats and frame->zone_stats.size()) {
-      Debug(1, "Zone stats size for frame %d: %zu", frame->frame_id, frame->zone_stats.size());
       for (ZoneStats &stats : frame->zone_stats) {
         stats_insert_sql += stringtf("\n(%" PRIu64 ",%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u),",
             id, frame->frame_id,

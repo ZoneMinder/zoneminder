@@ -231,7 +231,7 @@ Image *StreamBase::prepareImage(Image *image) {
         hi_y = act_image_height - 1;
         lo_y = hi_y - (send_image_height - 1);
       }
-      last_crop = Box( lo_x, lo_y, hi_x, hi_y );
+      last_crop = Box({lo_x, lo_y}, {hi_x, hi_y});
     }  // end if ( mag != last_mag || x != last_x || y != last_y )
 
     Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.LoX(), last_crop.LoY(), last_crop.HiX(), last_crop.HiY());

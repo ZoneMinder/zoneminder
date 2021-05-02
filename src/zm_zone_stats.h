@@ -35,8 +35,6 @@ class ZoneStats {
       alarm_blobs_(0),
       min_blob_size_(0),
       max_blob_size_(0),
-      alarm_box_({}),
-      alarm_centre_({}),
       score_(0) {};
 
   void Reset() {
@@ -47,10 +45,7 @@ class ZoneStats {
     alarm_blobs_ = 0;
     min_blob_size_ = 0;
     max_blob_size_ = 0;
-    alarm_box_.LoX(0);
-    alarm_box_.LoY(0);
-    alarm_box_.HiX(0);
-    alarm_box_.HiY(0);
+    alarm_box_ = {};
     alarm_centre_ = {};
     score_ = 0;
   }

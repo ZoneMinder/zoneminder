@@ -62,7 +62,7 @@ Polygon::Polygon(int p_n_coords, const Vector2 *p_coords) : n_coords(p_n_coords)
     if (max_y == -1 || coords[i].y_ > max_y)
       max_y = coords[i].y_;
   }
-  extent = Box(min_x, min_y, max_x, max_y);
+  extent = Box({min_x, min_y}, {max_x, max_y});
   calcArea();
   calcCentre();
 }

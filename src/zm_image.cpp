@@ -160,19 +160,23 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   subpixelorder(p_subpixelorder),
   buffer(p_buffer) {
 
-  if ( !initialised )
+  if (!initialised)
     Initialise();
   pixels = width * height;
   linesize = p_width * p_colours;
   size = linesize * height + padding;
   buffer = nullptr;
   holdbuffer = 0;
-  if ( p_buffer ) {
+  if (p_buffer) {
     allocation = size;
     buffertype = ZM_BUFTYPE_DONTFREE;
     buffer = p_buffer;
   } else {
     AllocImgBuffer(size);
+  }
+  if (!subpixelorder) {
+    // Default to RGBA when no subpixelorder is specified.
+    subpixelorder == ZM_SUBPIX_ORDER_RGBA;
   }
   imagePixFormat = AVPixFormat();
 
@@ -200,6 +204,10 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
     buffer = p_buffer;
   } else {
     AllocImgBuffer(size);
+  }
+  if (!subpixelorder) {
+    // Default to RGBA when no subpixelorder is specified.
+    subpixelorder == ZM_SUBPIX_ORDER_RGBA;
   }
   imagePixFormat = AVPixFormat();
 

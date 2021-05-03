@@ -71,7 +71,10 @@ if ( !$imageData ) {
 $show = 'capt';
 if (isset($_REQUEST['show']) && in_array($_REQUEST['show'], array('capt', 'anal'))) {
   $show = $_REQUEST['show'];
-} else if ( $imageData['hasAnalImage'] ) {
+  if ($show == 'anal' and ! $imageData['hasAnalImage']) {
+    $show = 'capt';
+  }
+} else if ($imageData['hasAnalImage']) {
   $show = 'anal';
 }
 

@@ -324,7 +324,6 @@ Monitor::Monitor()
   encoder(""),
   output_container(""),
   imagePixFormat(AV_PIX_FMT_NONE),
-  subpixelorder(0),
   record_audio(0),
 //event_prefix
 //label_format
@@ -3030,8 +3029,8 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   return true;
 } // bool Monitor::DumpSettings(char *output, bool verbose)
 
-unsigned int Monitor::Colours() const { return camera->Colours(); }
-unsigned int Monitor::SubpixelOrder() const { return camera->SubpixelOrder(); }
+unsigned int Monitor::Colours() const { return camera ? camera->Colours() : colours; }
+unsigned int Monitor::SubpixelOrder() const { return camera ? camera->SubpixelOrder() : 0; }
 
 int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();

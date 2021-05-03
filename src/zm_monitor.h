@@ -295,7 +295,6 @@ protected:
   std::string     encoder;
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
-  unsigned int    subpixelorder;
   bool            record_audio;      // Whether to store the audio that we receive
 
 

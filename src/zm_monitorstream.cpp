@@ -487,9 +487,9 @@ void MonitorStream::runStream() {
 
     if (!checkInitialised()) {
       if (!loadMonitor(monitor_id)) {
-        sendTextFrame("Not connected");
+        if (!sendTextFrame("Not connected")) return;
       } else {
-        sendTextFrame("Unable to stream");
+        if (!sendTextFrame("Unable to stream")) return;
       }
       sleep(1);
     } else {

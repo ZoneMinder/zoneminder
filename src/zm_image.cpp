@@ -1520,7 +1520,8 @@ void Image::Overlay( const Image &image ) {
   }
 
   if ( colours == image.colours && subpixelorder != image.subpixelorder ) {
-    Warning("Attempt to overlay images of same format but with different subpixel order.");
+    Warning("Attempt to overlay images of same format but with different subpixel order %d != %d.",
+        subpixelorder, image.subpixelorder);
   }
 
   /* Grayscale ontop of grayscale - complete */

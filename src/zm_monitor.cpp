@@ -3030,6 +3030,8 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   return true;
 } // bool Monitor::DumpSettings(char *output, bool verbose)
 
+unsigned int Monitor::Colours() const { return camera->Colours(); }
+unsigned int Monitor::SubpixelOrder() const { return camera->SubpixelOrder(); }
 
 int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();

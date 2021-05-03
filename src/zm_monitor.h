@@ -499,8 +499,8 @@ public:
 
   unsigned int Width() const { return width; }
   unsigned int Height() const { return height; }
-  unsigned int Colours() const { return colours; }
-  unsigned int SubpixelOrder() const { return subpixelorder; };
+  unsigned int Colours() const;
+  unsigned int SubpixelOrder() const;
 
   int GetAudioFrequency() const { return shared_data ? shared_data->audio_frequency : -1; }
   int GetAudioChannels() const { return shared_data ? shared_data->audio_channels : -1; }

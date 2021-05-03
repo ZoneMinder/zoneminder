@@ -212,9 +212,8 @@ if ( empty($_REQUEST['path']) ) {
         $Frame->FrameId('snapshot');
       } # end if found snapshot.jpg
     } else {
-
       $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$_REQUEST['fid']));
-      if ( ! $Frame ) {
+      if (!$Frame) {
         $previousBulkFrame = dbFetchOne(
           'SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1',
           NULL, array($_REQUEST['eid'], $_REQUEST['fid'])
@@ -223,22 +222,22 @@ if ( empty($_REQUEST['path']) ) {
           'SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1',
           NULL, array($_REQUEST['eid'], $_REQUEST['fid'])
         );
-        if ( $previousBulkFrame and $nextBulkFrame ) {
+        if ($previousBulkFrame and $nextBulkFrame) {
           $Frame = new ZM\Frame($previousBulkFrame);
           $Frame->FrameId($_REQUEST['fid']);
 
           $percentage = ($Frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
 
           $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
-          ZM\Debug("Got virtual frame from Bulk Frames previous delta: " . $previousBulkFrame['Delta'] . " + nextdelta:" . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
+          ZM\Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
         } else {
           ZM\Fatal('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
         }
-      }
+      }  # end if !Frame
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
       $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
       ZM\Debug("Path: $path");
-    }
+    }  # if special frame (snapshot, alarm etc) or identified by id
 
   } else {
 # If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #

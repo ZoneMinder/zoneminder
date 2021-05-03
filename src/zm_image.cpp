@@ -174,7 +174,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   } else {
     AllocImgBuffer(size);
   }
-  if (!subpixelorder) {
+  if (!subpixelorder and colours>1) {
     // Default to RGBA when no subpixelorder is specified.
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
   }
@@ -205,7 +205,7 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   } else {
     AllocImgBuffer(size);
   }
-  if (!subpixelorder) {
+  if (!subpixelorder and colours>1) {
     // Default to RGBA when no subpixelorder is specified.
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
   }

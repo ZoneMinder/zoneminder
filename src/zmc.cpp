@@ -252,6 +252,7 @@ int main(int argc, char *argv[]) {
           monitor->Id());
       zmDbDo(sql);
 
+      int sleep_time = 0;
       while (monitor->PrimeCapture() <= 0) {
         if (prime_capture_log_count % 60) {
           logPrintf(Logger::ERROR+monitor->Importance(),
@@ -261,7 +262,8 @@ int main(int argc, char *argv[]) {
         }
         prime_capture_log_count ++;
         if (zm_terminate) break;
-        sleep(1);
+        if (sleep_time < 60) sleep_time++;
+        sleep(sleep_time);
       }
       if (zm_terminate) break;
 

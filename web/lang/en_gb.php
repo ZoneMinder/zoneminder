@@ -178,6 +178,7 @@ $SLANG = array(
     'BadColours'            => 'Target colour must be set to a valid value',
     'BadPassthrough'        => 'Passthrough only works with ffmpeg type monitors.',
     'BadPath'               => 'Path must be set to a valid value',
+    'BadPathNotEncoded'     => 'Path must be set to a valid value. We have detected invalid characters that may need to be url encoded.',
     'BadPort'               => 'Port must be set to a valid number',
     'BadPostEventCount'     => 'Post event image count must be an integer of zero or more',
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',

@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Config Data Module, $Date: 2011-01-20 18:49:42 +0000 (Thu, 20 Jan 2011) $, $Revision: 3230 $
+# ZoneMinder Config Data Module
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -508,7 +508,7 @@ our @options = (
   },
   {
     name        =>  'ZM_SYSTEM_SHUTDOWN',
-    default     =>  'true',
+    default     =>  'yes',
     description =>  'Allow Admin users to power off or restart the system from the ZoneMinder UI.',
     help        =>  'The system will need to have sudo installed and the following added to /etc/sudoers~~
     ~~
@@ -517,6 +517,14 @@ our @options = (
       to perform the shutdown or reboot',
     type      =>  $types{boolean},
     category  =>  'system',
+  },
+  {
+    name        =>  'ZM_FEATURES_SNAPSHOTS',
+    default     =>  'no',
+    description =>  'Enable snapshot functionality.',
+    help        =>  'Snapshots are a collection of events.  They can be created using the snapshot button in montage view.  All visible monitors will have a short event created, archived and added to the Snapshot.',
+    type      =>  $types{boolean},
+    category  =>  'hidden',
   },
   {
     name        => 'ZM_USE_DEEP_STORAGE',

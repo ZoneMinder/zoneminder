@@ -51,6 +51,6 @@ select.chosen {
 tr td:first-child {
   min-width: 300px;
 }
-.Container, .OutputCodec {
+.OutputContainer {
   display: none;
 }

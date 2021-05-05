@@ -28,6 +28,10 @@ extern "C" {
 }
 
 VideoStore::CodecData VideoStore::codec_data[] = {
+  { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
+  { AV_CODEC_ID_H265, "h265", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE },
+  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
+
   { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
   { AV_CODEC_ID_H264, "h264", "h264_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "h264_omx", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
@@ -155,8 +159,8 @@ bool VideoStore::open() {
       int wanted_codec = monitor->OutputCodec();
       if ( !wanted_codec ) {
         // default to h264
-        Debug(2, "Defaulting to H264");
-        wanted_codec = AV_CODEC_ID_H264;
+        //Debug(2, "Defaulting to H264");
+        //wanted_codec = AV_CODEC_ID_H264;
         // FIXME what is the optimal codec?  Probably low latency h264 which is effectively mjpeg
       } else {
 				if ( AV_CODEC_ID_H264 != 27 and wanted_codec > 3 ) {
@@ -175,7 +179,7 @@ bool VideoStore::open() {
             continue;
           }
         }
-        if (codec_data[i].codec_id != wanted_codec) {
+        if (wanted_codec and (codec_data[i].codec_id != wanted_codec)) {
           Debug(1, "Not the right codec %d %s != %d %s",
 							codec_data[i].codec_id,
 							avcodec_get_name(codec_data[i].codec_id),

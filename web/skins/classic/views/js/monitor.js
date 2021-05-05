@@ -158,6 +158,47 @@ function initPage() {
     el.onchange();
   });
 
+  document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
+    el.onchange = function() {
+      if ( this.value == 1 /* Encode */ ) {
+        $j('.OutputCodec').show();
+        $j('.Encoder').show();
+      } else {
+        $j('.OutputCodec').hide();
+        $j('.Encoder').hide();
+      }
+    };
+    el.onchange();
+  });
+  document.querySelectorAll('select[name="newMonitor[OutputCodec]"]').forEach(function(el) {
+    el.onchange = function() {
+      var encoder_dropdown = $j('select[name="newMonitor[Encoder]"]');
+      if (encoder_dropdown) {
+        for (i=0; i<encoder_dropdown[0].options.length; i++) {
+          option = encoder_dropdown[0].options[i];
+          if ( this.value == 27 ) {
+            option.disabled = !option.value.includes('h264');
+            if ( option.disabled && option.selected ) {
+              encoder_dropdown[0].options[0].selected = 1;
+              option.selected = false;
+            }
+          } else if ( this.value == 173 /* hevc */ ) {
+            option.disabled = !(option.value.includes('hevc') || option.value.includes('265') );
+            if ( option.disabled && option.selected ) {
+              encoder_dropdown[0].options[0].selected = 1;
+              option.selected = false;
+            }
+          } else {
+            option.disabled = false;
+          }
+        }
+      } else {
+        console.log('No encoder');
+      }
+    };
+    el.onchange();
+  });
+
   $j('.chosen').chosen();
 
   // Don't enable the back button if there is no previous zm page to go back to

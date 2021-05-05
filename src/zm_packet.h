@@ -74,7 +74,8 @@ class ZMPacket {
     ZMPacket();
     ~ZMPacket();
 
-    AVFrame *get_out_frame(const AVCodecContext *ctx);
+    //AVFrame *get_out_frame(const AVCodecContext *ctx);
+    AVFrame *get_out_frame(int width, int height, AVPixelFormat format);
     int get_codec_imgsize() { return codec_imgsize; };
 };
 

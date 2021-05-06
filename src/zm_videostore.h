@@ -15,6 +15,9 @@ extern "C"  {
   #endif
 #endif
 #include "libavutil/audio_fifo.h"
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+  #include "libavutil/hwcontext.h"
+#endif
 }
 
 #if HAVE_LIBAVCODEC
@@ -32,7 +35,9 @@ class VideoStore {
       const char *codec_name;
       const enum AVPixelFormat sw_pix_fmt;
       const enum AVPixelFormat hw_pix_fmt;
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
       const AVHWDeviceType hwdevice_type;
+#endif
     };
 
     static struct CodecData codec_data[];

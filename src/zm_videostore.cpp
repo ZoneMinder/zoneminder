@@ -28,6 +28,7 @@ extern "C" {
 }
 
 VideoStore::CodecData VideoStore::codec_data[] = {
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
   { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
   { AV_CODEC_ID_H265, "h265", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
@@ -38,6 +39,13 @@ VideoStore::CodecData VideoStore::codec_data[] = {
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
   { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE },
+#else
+  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
+
+  { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
+  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
+  { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P },
+#endif
 };
 
 VideoStore::VideoStore(
@@ -228,11 +236,10 @@ bool VideoStore::open() {
            * the motion of the chroma plane does not match the luma plane. */
           video_out_ctx->mb_decision = 2;
         }
-
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
         if (codec_data[i].hwdevice_type != AV_HWDEVICE_TYPE_NONE) {
           ret = av_hwdevice_ctx_create(&hw_device_ctx,
               codec_data[i].hwdevice_type,
-              //AV_HWDEVICE_TYPE_VAAPI,
               NULL, NULL, 0);
 
           AVBufferRef *hw_frames_ref;
@@ -260,6 +267,7 @@ bool VideoStore::open() {
           }
           av_buffer_unref(&hw_frames_ref);
         }
+#endif
 
         AVDictionary *opts = 0;
         std::string Options = monitor->GetEncoderOptions();
@@ -1045,6 +1053,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 
     AVFrame *frame = zm_packet->out_frame;
 
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
     if (video_out_ctx->hw_frames_ctx) {
       if (!(hw_frame = av_frame_alloc())) {
         ret = AVERROR(ENOMEM);
@@ -1068,6 +1077,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
 
       frame = hw_frame;
     }  // end if hwaccel
+#endif
 
     //zm_packet->out_frame->coded_picture_number = frame_count;
     //zm_packet->out_frame->display_picture_number = frame_count;

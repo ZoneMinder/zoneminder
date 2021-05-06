@@ -992,10 +992,13 @@ echo htmlSelect('newMonitor[OutputCodec]', $videowriter_codecs, $monitor->Output
 $videowriter_encoders = array(
   'auto' => translate('Auto'),
   'libx264' => 'libx264',
+  'h264' => 'h264',
   'h264_nvenc' => 'h264_nvenc',
   'h264_omx' => 'h264_omx',
   'h264_vaapi' => 'h264_vaapi',
-  'h264' => 'h264',
+  'libx265' => 'libx265',
+  'hevc_nvenc' => 'hevc_nvenc',
+  'hevc_vaapi' => 'hevc_vaapi',
 );
  echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());?></td></tr>
             <tr class="OutputContainer">
@@ -1080,6 +1083,10 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             <tr>
               <td class="text-right pr-3"><?php echo translate('AlarmFrameCount') ?></td>
               <td><input type="number" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($monitor->AlarmFrameCount()) ?>" min="1"/></td>
+            </tr>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('Estimated Ram Use') ?></td>
+              <td id="estimated_ram_use"></td>
             </tr>
 <?php
       break;

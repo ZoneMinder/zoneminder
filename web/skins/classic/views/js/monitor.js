@@ -50,7 +50,7 @@ function updateMonitorDimensions(element) {
   }
   update_estimated_ram_use();
   return false;
-}
+} // function updateMonitorDimensions(element)
 
 function loadLocations( element ) {
   var form = element.form;
@@ -140,9 +140,10 @@ function initPage() {
       form.submit();
     };
   });
-  document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
+  document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
     el.oninput = window['update_estimated_ram_use'].bind(el);
   });
+  update_estimated_ram_use();
 
   document.querySelectorAll('select[name="newMonitor[Function]"]').forEach(function(el) {
     el.onchange = function() {
@@ -311,12 +312,22 @@ function random_WebColour() {
 }
 
 function update_estimated_ram_use() {
-  var buffer_count = document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value;
   var width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
   var height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
   var colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
 
-  document.getElementById('estimated_ram_use').innerHTML = human_filesize(buffer_count * width * height * colours, 0);
+  var min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
+  var min_buffer_size = min_buffer_count * width * height * colours;
+  document.getElementById('estimated_ram_use').innerHTML = 'Min: ' + human_filesize(min_buffer_size);
+
+  var max_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]')[0].value);
+  if (max_buffer_count) {
+    var max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
+    console.log(max_buffer_size);
+    document.getElementById('estimated_ram_use').innerHTML += ' Max: ' + human_filesize(max_buffer_size);
+  } else {
+    document.getElementById('estimated_ram_use').innerHTML += ' Max: Unlimited';
+  }
 }
 
 function updateLatitudeAndLongitude(latitude, longitude) {

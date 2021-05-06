@@ -182,7 +182,7 @@ function initPage() {
         for (i=0; i<encoder_dropdown[0].options.length; i++) {
           option = encoder_dropdown[0].options[i];
           if ( this.value == 27 ) {
-            option.disabled = !option.value.includes('h264');
+            option.disabled = !option.value.includes('264');
             if ( option.disabled && option.selected ) {
               encoder_dropdown[0].options[0].selected = 1;
               option.selected = false;

@@ -75,9 +75,7 @@ function validateForm( form ) {
     if ( !form.elements['newMonitor[Path]'].value ) {
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
     } else if ( form.elements['newMonitor[Path]'].value.match( /[\!\*'\(\)\$ ,#\[\]]/) ) {
-      errors[errors.length] = "<?php echo translate('BadPathNotEncoded') ?>";
-} else {
-console.log("valid" + form.elements['newMonitor[Path]'].value);
+      warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
     }
 
   } else if ( form.elements['newMonitor[Type]'].value == 'File' ) {
@@ -95,7 +93,7 @@ console.log("valid" + form.elements['newMonitor[Path]'].value);
   if (form.elements['newMonitor[VideoWriter]'].value == '1' /* Encode */) {
     var parameters = form.elements['newMonitor[EncoderParameters]'].value.replace(/[^#a-zA-Z]/g, "");
     if (parameters == '' || parameters == '#Linesbeginningwith#areacomment#Forchangingqualityusethecrfoption#isbestisworstquality#crf' ) {
-      errors[errors.length] = '<?php echo translate('BadEncoderParameters') ?>';
+      warnings[warnings.length] = '<?php echo translate('BadEncoderParameters') ?>';
     }
   }
 

@@ -32,22 +32,18 @@ class Box {
   Box() = default;
   Box(Vector2 p_lo, Vector2 p_hi) : lo(p_lo), hi(p_hi), size(Vector2::Range(hi, lo)) {}
 
-  inline const Vector2 &Lo() const { return lo; }
-  inline int LoX() const { return lo.x_; }
-  inline int LoX(int p_lo_x) { return lo.x_ = p_lo_x; }
-  inline int LoY() const { return lo.y_; }
-  inline int LoY(int p_lo_y) { return lo.y_ = p_lo_y; }
-  inline const Vector2 &Hi() const { return hi; }
-  inline int HiX() const { return hi.x_; }
-  inline int HiX(int p_hi_x) { return hi.x_ = p_hi_x; }
-  inline int HiY() const { return hi.y_; }
-  inline int HiY(int p_hi_y) { return hi.y_ = p_hi_y; }
-  inline const Vector2 &Size() const { return size; }
-  inline int Width() const { return size.x_; }
-  inline int Height() const { return size.y_; }
-  inline int Area() const { return size.x_ * size.y_; }
+  const Vector2 &Lo() const { return lo; }
+  int LoX(int p_lo_x) { return lo.x_ = p_lo_x; }
+  int LoY(int p_lo_y) { return lo.y_ = p_lo_y; }
+  const Vector2 &Hi() const { return hi; }
+  int HiX(int p_hi_x) { return hi.x_ = p_hi_x; }
+  int HiY(int p_hi_y) { return hi.y_ = p_hi_y; }
+  const Vector2 &Size() const { return size; }
+  int Width() const { return size.x_; }
+  int Height() const { return size.y_; }
+  int Area() const { return size.x_ * size.y_; }
 
-  inline const Vector2 Centre() const {
+  Vector2 Centre() const {
     int mid_x = int(std::round(lo.x_ + (size.x_ / 2.0)));
     int mid_y = int(std::round(lo.y_ + (size.y_ / 2.0)));
     return Vector2(mid_x, mid_y);

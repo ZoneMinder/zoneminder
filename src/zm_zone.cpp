@@ -130,10 +130,10 @@ void Zone::RecordStats(const Event *event) {
       stats.alarm_blobs_,
       stats.min_blob_size_,
       stats.max_blob_size_,
-      stats.alarm_box_.LoX(),
-      stats.alarm_box_.LoY(),
-      stats.alarm_box_.HiX(),
-      stats.alarm_box_.HiY(),
+      stats.alarm_box_.Lo().x_,
+      stats.alarm_box_.Lo().y_,
+      stats.alarm_box_.Hi().x_,
+      stats.alarm_box_.Hi().y_,
       stats.score_
       );
   zmDbDo(sql);
@@ -219,10 +219,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   int alarm_mid_x = -1;
   int alarm_mid_y = -1;
 
-  unsigned int lo_y = polygon.LoY();
-  unsigned int lo_x = polygon.LoX();
-  unsigned int hi_x = polygon.HiX();
-  unsigned int hi_y = polygon.HiY();
+  unsigned int lo_x = polygon.Extent().Lo().x_;
+  unsigned int lo_y = polygon.Extent().Lo().y_;
+  unsigned int hi_x = polygon.Extent().Hi().x_;
+  unsigned int hi_y = polygon.Extent().Hi().y_;
 
   Debug(4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label.c_str(), lo_y, hi_y);
 
@@ -630,10 +630,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
       Debug(5, "Current score is %d", stats.score_);
 
-      alarm_lo_x = polygon.HiX()+1;
-      alarm_hi_x = polygon.LoX()-1;
-      alarm_lo_y = polygon.HiY()+1;
-      alarm_hi_y = polygon.LoY()-1;
+      alarm_lo_x = polygon.Extent().Hi().x_ + 1;
+      alarm_hi_x = polygon.Extent().Lo().x_ - 1;
+      alarm_lo_y = polygon.Extent().Hi().y_ + 1;
+      alarm_hi_y = polygon.Extent().Lo().y_ - 1;
 
       for (uint32 i = 1; i < kWhite; i++) {
         BlobStats *bs = &blob_stats[i];
@@ -872,14 +872,29 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
       continue;
     }
 
-    if ( polygon.LoX() < 0 || polygon.HiX() >= (int)monitor->Width() 
-        || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() ) {
+    if (polygon.Extent().Lo().x_ < 0 || polygon.Extent().Hi().x_ >= (int) monitor->Width()
+        || polygon.Extent().Lo().y_ < 0 || polygon.Extent().Hi().y_ >= (int) monitor->Height()) {
       Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), fixing",
-          Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY());
-      if ( polygon.LoX() < 0 ) polygon.LoX(0);
-      if ( polygon.HiX() >= (int)monitor->Width()) polygon.HiX((int)monitor->Width());
-      if ( polygon.LoY() < 0 ) polygon.LoY(0);
-      if ( polygon.HiY() >= (int)monitor->Height() ) polygon.HiY((int)monitor->Height());
+            Id,
+            Name,
+            monitor->Name(),
+            polygon.Extent().Lo().x_,
+            polygon.Extent().Lo().y_,
+            polygon.Extent().Hi().x_,
+            polygon.Extent().Hi().y_);
+
+      if (polygon.Extent().Lo().x_ < 0) {
+        polygon.LoX(0);
+      }
+      if (polygon.Extent().Hi().x_ >= (int) monitor->Width()) {
+        polygon.HiX((int) monitor->Width());
+      }
+      if (polygon.Extent().Lo().y_ < 0) {
+        polygon.LoY(0);
+      }
+      if (polygon.Extent().Hi().y_ >= (int) monitor->Height()) {
+        polygon.HiY((int) monitor->Height());
+      }
     }
 
     if ( false && !strcmp( Units, "Percent" ) ) {
@@ -960,8 +975,8 @@ void Zone::std_alarmedpixels(
   if ( max_pixel_threshold )
     calc_max_pixel_threshold = max_pixel_threshold;
 
-  lo_y = polygon.LoY();
-  hi_y = polygon.HiY();
+  lo_y = polygon.Extent().Lo().y_;
+  hi_y = polygon.Extent().Hi().y_;
   for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
     unsigned int lo_x = ranges[y].lo_x;
     unsigned int hi_x = ranges[y].hi_x;

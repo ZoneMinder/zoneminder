@@ -1508,7 +1508,7 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
 }
 
 bool Image::Crop(const Box &limits) {
-  return Crop(limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY());
+  return Crop(limits.Lo().x_, limits.Lo().y_, limits.Hi().x_, limits.Hi().y_);
 }
 
 /* Far from complete */

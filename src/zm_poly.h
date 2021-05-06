@@ -94,17 +94,11 @@ public:
     return coords[index];
   }
 
-  inline const Box &Extent() const { return extent; }
-  inline int LoX() const { return extent.LoX(); }
-  inline int LoX(int p_lo_x) { return extent.LoX(p_lo_x); }
-  inline int HiX() const { return extent.HiX(); }
-  inline int HiX(int p_hi_x) { return extent.HiX(p_hi_x); }
-  inline int LoY() const { return extent.LoY(); }
-  inline int LoY(int p_lo_y) { return extent.LoY(p_lo_y); }
-  inline int HiY() const { return extent.HiY(); }
-  inline int HiY(int p_hi_y) { return extent.HiY(p_hi_y); }
-  inline int Width() const { return extent.Width(); }
-  inline int Height() const { return extent.Height(); }
+  const Box &Extent() const { return extent; }
+  int LoX(int p_lo_x) { return extent.LoX(p_lo_x); }
+  int HiX(int p_hi_x) { return extent.HiX(p_hi_x); }
+  int LoY(int p_lo_y) { return extent.LoY(p_lo_y); }
+  int HiY(int p_hi_y) { return extent.HiY(p_hi_y); }
 
   inline int Area() const { return area; }
   inline const Vector2 &Centre() const {

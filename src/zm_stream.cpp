@@ -204,10 +204,10 @@ Image *StreamBase::prepareImage(Image *image) {
         last_crop = Box();
 
       // Recalculate crop parameters, as %ges
-      int click_x = (last_crop.LoX() * 100 ) / last_act_image_width; // Initial crop offset from last image
-      click_x += ( x * 100 ) / last_virt_image_width;
-      int click_y = (last_crop.LoY() * 100 ) / last_act_image_height; // Initial crop offset from last image
-      click_y += ( y * 100 ) / last_virt_image_height;
+      int click_x = (last_crop.Lo().x_ * 100) / last_act_image_width; // Initial crop offset from last image
+      click_x += (x * 100) / last_virt_image_width;
+      int click_y = (last_crop.Lo().y_ * 100) / last_act_image_height; // Initial crop offset from last image
+      click_y += (y * 100) / last_virt_image_height;
       Debug(3, "Got adjusted click at %d%%,%d%%", click_x, click_y);
 
       // Convert the click locations to the current image pixels
@@ -234,7 +234,7 @@ Image *StreamBase::prepareImage(Image *image) {
       last_crop = Box({lo_x, lo_y}, {hi_x, hi_y});
     }  // end if ( mag != last_mag || x != last_x || y != last_y )
 
-    Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.LoX(), last_crop.LoY(), last_crop.HiX(), last_crop.HiY());
+    Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {
       static Image copy_image;
       copy_image.Assign(*image);

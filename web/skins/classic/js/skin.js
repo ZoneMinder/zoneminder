@@ -778,8 +778,8 @@ function logAjaxFail(jqxhr, textStatus, error) {
 }
 
 // Load the Modal HTML via Ajax call
-function getModal(id) {
-  $j.getJSON(thisUrl + '?request=modal&modal='+id)
+function getModal(id, parameters) {
+  $j.getJSON(thisUrl + '?request=modal&modal='+id+'&'+parameters)
       .done(function(data) {
         if ( !data ) {
           console.error("Get modal returned no data");

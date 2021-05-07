@@ -20,14 +20,8 @@
 #ifndef ZM_SDP_H
 #define ZM_SDP_H
 
-#include "zm.h"
-
-#include "zm_utils.h"
-#include "zm_exception.h"
 #include "zm_ffmpeg.h"
-
-#include <stdlib.h>
-
+#include "zm_utils.h"
 #include <string>
 #include <vector>
 
@@ -120,7 +114,7 @@ public:
     {
       return( mTransport );
     }
-    const int getPayloadType() const
+    int getPayloadType() const
     {
       return( mPayloadType );
     }
@@ -142,7 +136,7 @@ public:
       mControlUrl = controlUrl;
     }
 
-    const int getClock() const {
+    int getClock() const {
       return( mClock );
     }
     void setClock( int clock ) {
@@ -163,10 +157,10 @@ public:
     void setSprops(const std::string &props) {
       mSprops = props;
     }
-    const std::string getSprops() const {
+    std::string getSprops() const {
       return ( mSprops );
     }
-    const double getFrameRate() const {
+    double getFrameRate() const {
       return( mFrameRate );
     }
     void setFrameRate( double frameRate ) {

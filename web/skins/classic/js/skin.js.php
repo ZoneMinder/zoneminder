@@ -23,12 +23,16 @@
 // Static JavaScript should go in skin.js
 //
 
+global $user;
 ?>
 var AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
-
 var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
-
 var currentView = '<?php echo $view ?>';
+
+var exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
+var exportFailedString = '<?php echo translate('ExportFailed') ?>';
+var exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
+var cancelString = '<?php echo translate('Cancel') ?>';
 <?php
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
    will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,
@@ -37,12 +41,19 @@ var thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERV
 var skinPath = '<?php echo ZM_SKIN_PATH ?>';
 var serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
 
-var canEditSystem = <?php echo canEdit('System')?'true':'false' ?>;
-var canViewSystem = <?php echo canView('System')?'true':'false' ?>;
-var canEditEvents = <?php echo canEdit('Events')?'true':'false' ?>;
-var canViewEvents = <?php echo canView('Events')?'true':'false' ?>;
+var canView = {};
+var canEdit = {};
+<?php
+$perms = array('Stream', 'Events', 'Control', 'Monitors', 'Groups', 'Snapshots', 'System', 'Devices');
+foreach ( $perms as $perm ) {
+?>
+  canView["<?php echo $perm ?>"] = <?php echo canView($perm)?'true':'false' ?>;
+  canEdit["<?php echo $perm ?>"] = <?php echo canEdit($perm)?'true':'false' ?>;
+<?php
+}
+?>
 
-var canEditGroups = <?php echo canEdit('Groups')?'true':'false' ?>;
+var ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;
 
 var refreshParent = <?php
 if ( ! empty($refreshParent) ) {
@@ -50,7 +61,7 @@ if ( ! empty($refreshParent) ) {
     echo 'true';
   } else if ( $refreshParent ) {
     # This is to tell the parent to refresh to a specific URL
-    echo "'$refreshParent'";
+    echo '\''.$refreshParent.'\'';
   } else {
     echo 'false';
   }
@@ -72,3 +83,9 @@ var imagePrefix = "<?php echo '?view=image&eid=' ?>";
 
 var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
 var auth_relay = '<?php echo get_auth_relay() ?>';
+var user = <?php
+$user_without_password = $user;
+unset($user_without_password['Password']);
+echo json_encode($user_without_password);
+?>;
+var running = <?php echo daemonCheck()?'true':'false' ?>;

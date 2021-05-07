@@ -29,6 +29,7 @@ use strict;
 use warnings;
 
 require ZoneMinder::Base;
+require ZoneMinder::Monitor;
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
@@ -95,8 +96,8 @@ sub close {
 sub loadMonitor {
   my $self = shift;
   if ( !$self->{Monitor} ) {
-    if ( !($self->{Monitor} = zmDbGetMonitor($self->{id})) ) {
-      Fatal('Monitor id '.$self->{id}.' not found or not controllable');
+    if ( !($self->{Monitor} = ZoneMinder::Monitor->find_one(Id=>$self->{id})) ) {
+      Fatal('Monitor id '.$self->{id}.' not found');
     }
     if ( defined($self->{Monitor}->{AutoStopTimeout}) ) {
 # Convert to microseconds.

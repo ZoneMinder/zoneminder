@@ -152,7 +152,7 @@ $SLANG = array(
     'BadFrameSkip'         => 'Frame skip aantal moet een getal van nul of groter zijn',
     'BadHeight'            => 'Hoogte moet een geldige waarde zijn',
     'BadHost'              => 'Host moet een juist adres of hostname zijn, laat http:// weg',
-    'BadImageBufferCount'  => 'Buffergrootte moet een getal van 10 of groter zijn',
+    'BadImageBufferCount'  => 'Buffergrootte moet een getal van 2 of groter zijn',
     'BadLabelX'            => 'Label X-coördinaat moet een getal van nul of groter zijn',
     'BadLabelY'            => 'Label Y-coördinaat moet een getal van nul of groter zijn',
     'BadMaxFPS'            => 'Maximum FPS moet een positieve waarde zijn',
@@ -948,7 +948,7 @@ $OLANG = array(
 	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

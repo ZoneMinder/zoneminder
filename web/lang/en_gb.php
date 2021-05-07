@@ -162,20 +162,23 @@ $SLANG = array(
     'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more',
     'BadChannel'            => 'Channel must be set to an integer of zero or more',
     'BadDevice'             => 'Device must be set to a valid value',
+    'BadEncoderParameters'  => 'Encoder does not work well without at least a value for crf. Please see the help.',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadFrameSkip'          => 'Frame skip count must be an integer of zero or more',
     'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'             => 'Height must be set to a valid value',
     'BadHost'               => 'Host must be set to a valid ip address or hostname, do not include http://',
-    'BadImageBufferCount'   => 'Image buffer size must be an integer of 10 or more',
+    'BadImageBufferCount'   => 'Image buffer size must be an integer of 2 or more',
     'BadLabelX'             => 'Label X co-ordinate must be set to an integer of zero or more',
     'BadLabelY'             => 'Label Y co-ordinate must be set to an integer of zero or more',
     'BadMaxFPS'             => 'Maximum FPS must be a positive integer or floating point value',
     'BadNameChars'          => 'Names may only contain alphanumeric characters plus spaces, hyphen and underscore',
     'BadPalette'            => 'Palette must be set to a valid value',
     'BadColours'            => 'Target colour must be set to a valid value',
+    'BadPassthrough'        => 'Passthrough only works with ffmpeg type monitors.',
     'BadPath'               => 'Path must be set to a valid value',
+    'BadPathNotEncoded'     => 'Path must be set to a valid value. We have detected invalid characters !*\'()$ ,#[] that may need to be url percent encoded.',
     'BadPort'               => 'Port must be set to a valid number',
     'BadPostEventCount'     => 'Post event image count must be an integer of zero or more',
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',
@@ -261,7 +264,10 @@ $SLANG = array(
     'ConfigType'            => 'Config Type',
     'ConfiguredFor'         => 'Configured for',
     'ConfigURL'             => 'Config Base URL',
+    'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
+    'ConfirmDeleteDevices'  => 'Are you sure you wish to delete the selected devices?',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
+    'ConfirmDeleteTitle'    => 'Delete Confirmation',
     'ConfirmPassword'       => 'Confirm Password',
     'ConjAnd'               => 'and',
     'ConjOr'                => 'or',
@@ -318,8 +324,10 @@ $SLANG = array(
     'DoNativeMotionDetection'=> 'Do Native Motion Detection',
     'Download'              => 'Download',
     'DuplicateMonitorName'  => 'Duplicate Monitor Name',
+    'DuplicateRTSPStreamName' =>  'Duplicate RTSP Stream Name',
     'Duration'              => 'Duration',
     'Edit'                  => 'Edit',
+    'EditControl'           => 'Edit Control',
     'EditLayout'            => 'Edit Layout',
     'Email'                 => 'Email',
     'EnableAlarms'          => 'Enable Alarms',
@@ -363,9 +371,11 @@ $SLANG = array(
     'Ffmpeg'                => 'Ffmpeg',
     'File'                  => 'File',
     'FilterArchiveEvents'   => 'Archive all matches',
+    'FilterUnarchiveEvents' => 'Unarchive all matches',
     'FilterUpdateDiskSpace' => 'Update used disk space',
     'FilterDeleteEvents'    => 'Delete all matches',
     'FilterCopyEvents'      => 'Copy all matches',
+    'FilterLockRows'        => 'Lock Rows',
     'FilterMoveEvents'      => 'Move all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
     'FilterEmailTo'    			=> 'Email To',
@@ -409,6 +419,7 @@ $SLANG = array(
     'General'               => 'General',
     'GenerateVideo'         => 'Generate Video',
     'GeneratingVideo'       => 'Generating Video',
+    'GetCurrentLocation'    => 'Get Current Location',
     'GoToZoneMinder'        => 'Go to ZoneMinder.com',
     'Grey'                  => 'Grey',
     'Group'                 => 'Group',
@@ -434,6 +445,7 @@ $SLANG = array(
     'Idle'                  => 'Idle',
     'Ignore'                => 'Ignore',
     'ImageBufferSize'       => 'Image Buffer Size (frames)',
+    'MaxImageBufferCount'   => 'Maximum Image Buffer Size (frames)',
     'Image'                 => 'Image',
     'Images'                => 'Images',
     'Include'               => 'Include',
@@ -519,6 +531,7 @@ $SLANG = array(
     'MinPanStep'            => 'Min Pan Step',
     'MinPixelThresLtMax'    => 'Minimum pixel threshold should be less than maximum',
     'MinPixelThresUnset'    => 'You must specify a minimum pixel threshold',
+    'MinSectionlength'      => 'Minimum section length',
     'MinTiltRange'          => 'Min Tilt Range',
     'MinTiltSpeed'          => 'Min Tilt Speed',
     'MinTiltStep'           => 'Min Tilt Step',
@@ -530,6 +543,7 @@ $SLANG = array(
     'MinZoomStep'           => 'Min Zoom Step',
     'Misc'                  => 'Misc',
     'Mode'                  => 'Mode',
+    'ModectDuringPTZ'       => 'Do motion detection during PTZ motion',
     'MonitorIds'            => 'Monitor&nbsp;Ids',
     'Monitor'               => 'Monitor',
     'MonitorPresetIntro'    => 'Select an appropriate preset from the list below.<br/><br/>Please note that this may overwrite any values you already have configured for the current monitor.<br/><br/>',
@@ -990,9 +1004,8 @@ $OLANG = array(
     'Help' => '
       Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~
       Examples (do not enter quotes)~~~~
-      "allowed_media_types=video" Set datatype to request fromcam (audio, video, data)~~~~
-      "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets~~~~
-      "loglevel=debug" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)
+      "allowed_media_types=video" Set datatype to request from cam (audio, video, data)~~~~
+      "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets
     '
 	),
   'OPTIONS_ENCODER_PARAMETERS' => array(
@@ -1067,10 +1080,87 @@ $OLANG = array(
       certainly not what you want! To unlink monitors you can ctrl-click.
       '
 	),
+  'FUNCTION_NONE' => array(
+    'Help' => '
+      In None mode no processes are started.  No capturing will occur.
+      '
+  ),
+  'FUNCTION_MONITOR' => array(
+    'Help' => '
+      In Monitor mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      No motion detection will be performed.  This monitor type cannot save video.
+      '
+  ),
+  'FUNCTION_MODECT' => array(
+    'Help' => '
+      In Modect mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      In addition the video will be analysed for motion.  
+      When motion is detected, events will be created and video will be stored.
+      Motion data will be stored in the database for each event.
+      Events may also be triggered externally (zmtrigger) or by linked monitors.
+      '
+  ),
+  'FUNCTION_RECORD' => array(
+    'Help' => '
+      In Record mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      Motion detection will not be performed.
+      Events will be created at fixed intervals and video will be stored.
+      '
+  ),
+  'FUNCTION_MOCORD' => array(
+    'Help' => '
+      In Mocord mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      In addition the video will be analysed for motion.  
+      Events will be created at fixed intervals or at start and stop of motion.
+      Video will always be stored to disk and events will have the motion data stored in the database.
+      Events may also be triggered externally (zmtrigger) or by linked monitors.
+      '
+  ),
+  'FUNCTION_NODECT' => array(
+    'Help' => '
+      In Nodect mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      In addition any linked cameras will be checked for their alarm status. 
+      When linked cameras or an external trigger (zmtrigger) are alarmed, events will be created
+      and video will be stored.  No other motion detection will occur.
+      '
+  ),
+  'FUNCTION_ANALYSIS_ENABLED' => array(
+    'Help' => '
+      When in Modect, Mocord, Nodect or RECORD mode the analysis process can be turned on/off.
+      This setting sets the default state when the process starts up.
+      It can then be turned on/off through external triggers zmtrigger zmu or the web ui.
+      When not enabled no motion detection or linked monitor checking will be performed and 
+      no events will be created.
+      '
+  ),
+  'FUNCTION_DECODING_ENABLED' => array(
+    'Help' => '
+      When in Record or Nodect mode and using H264Passthrough with no jpegs being saved, we can
+      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use
+      but will make live view unavailable for this monitor.'
+  ),
+  'ImageBufferCount' => array(
+    'Help' => '
+    Number of raw images available in /dev/shm. Currently should be set in the 3-5 range.  Used for live viewing.'
+  ),
+  'MaxImageBufferCount' => array(
+    'Help' => '
+    Maximum number of video packets that will be held in the packet queue.
+    The packetqueue will normally manage itself, keeping Pre Event Count frames or all since last keyframe if using 
+    passthrough mode. You can set a maximum to prevent the monitor from consuming too much ram, but your events might
+    not have all the frames they should if your keyframe interval is larger than this value.
+    You will get errors in your logs about this. So make sure your keyframe interval is low or you have enough ram.
+  '
+  ),
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

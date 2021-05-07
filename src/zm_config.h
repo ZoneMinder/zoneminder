@@ -20,15 +20,14 @@
 #ifndef ZM_CONFIG_H
 #define ZM_CONFIG_H
 
+#include "config.h"
+#include "zm_config_data.h"
+#include "zm_config_defines.h"
+#include <string>
+
 #if !defined(PATH_MAX)
 #define PATH_MAX 1024
 #endif
-
-#include "config.h"
-#include "zm_config_defines.h"
-#include "zm_config_data.h"
-
-#include <string>
 
 #ifdef HAVE_LIBAVFORMAT
 #define ZM_HAS_FFMPEG       1
@@ -54,7 +53,8 @@
 #define ZM_SAMPLE_RATE      int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
 #define ZM_SUSPENDED_RATE     int(1000000/4) // A slower rate for when disabled etc
 
-extern void zmLoadConfig();
+void zmLoadStaticConfig();
+void zmLoadDBConfig();
 
 extern void process_configfile(char const *configFile);
 
@@ -112,8 +112,9 @@ public:
   double DecimalValue() const;
   const char *StringValue() const;
 
-  ConfigItem &operator=(const ConfigItem item) {
-    Copy(item);return *this;
+  ConfigItem &operator=(const ConfigItem &item) {
+    Copy(item);
+    return *this;
   }
   inline operator bool() const {
     return BooleanValue();

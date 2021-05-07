@@ -1,8 +1,7 @@
-#include <dlfcn.h>
-#include "zm.h"
-#include "zm_signal.h"
 #include "zm_libvnc_camera.h"
-#include "zm_swscale.h"
+
+#include "zm_packet.h"
+#include <dlfcn.h>
 
 #if HAVE_LIBVNC
 
@@ -19,11 +18,11 @@ static int (*WaitForMessage_f)(rfbClient*, unsigned int) = nullptr;
 static rfbBool (*HandleRFBServerMessage_f)(rfbClient*) = nullptr;
 
 void bind_libvnc_symbols() {
-  if ( libvnc_lib != nullptr ) // Safe-check
+  if (libvnc_lib != nullptr) // Safe-check
     return;
   
   libvnc_lib = dlopen("libvncclient.so", RTLD_LAZY | RTLD_GLOBAL);
-  if ( !libvnc_lib ) {
+  if (!libvnc_lib) {
     Error("Error loading libvncclient: %s", dlerror());
     return;
   }
@@ -37,29 +36,50 @@ void bind_libvnc_symbols() {
   *(void**) (&HandleRFBServerMessage_f) = dlsym(libvnc_lib, "HandleRFBServerMessage");
 }
 
-static void GotFrameBufferUpdateCallback(rfbClient *rfb, int x, int y, int w, int h){
+static void GotFrameBufferUpdateCallback(rfbClient *rfb, int x, int y, int w, int h) {
   VncPrivateData *data = (VncPrivateData *)(*rfbClientGetClientData_f)(rfb, &TAG_0);
   data->buffer = rfb->frameBuffer;
+  Debug(1, "GotFrameBufferUpdateallback x:%d y:%d w%d h:%d width: %d, height: %d, buffer %p",
+      x,y,w,h, rfb->width, rfb->height, rfb->frameBuffer);
 }
 
-static char* GetPasswordCallback(rfbClient* cl){
+static char* GetPasswordCallback(rfbClient* cl) {
+  Debug(1, "Getcredentials: %s", static_cast<char *>((*rfbClientGetClientData_f)(cl, &TAG_1)));
   return strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
 }
 
 static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
-  rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
-  if ( credentialType != rfbCredentialTypeUser ) {
-    free(c);
+  if (credentialType != rfbCredentialTypeUser) {
+		Debug(1, "credentialType != rfbCredentialTypeUser");
     return nullptr;
   }
+  rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
 
+  Debug(1, "Getcredentials: %s:%s",
+        static_cast<char *>((*rfbClientGetClientData_f)(cl, &TAG_1)),
+        static_cast<char *>((*rfbClientGetClientData_f)(cl, &TAG_2)));
   c->userCredential.password = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
   c->userCredential.username = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_2));
   return c;
 }
 
+static rfbBool resize(rfbClient* client) {
+  if (client->frameBuffer) {
+    Debug(1, "Freeing old frame buffer");
+    av_free(client->frameBuffer);
+  }
+
+  int bufferSize = 4*client->width*client->height;
+  // libVNC doesn't do alignment or padding in each line
+  //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, client->width, client->height);
+  client->frameBuffer = (uint8_t *)av_malloc(bufferSize);
+    Debug(1, "Allocing new frame buffer %dx%d = %d", client->width, client->height, bufferSize);
+
+  return TRUE;
+}
+
 VncCamera::VncCamera(
-    unsigned int p_monitor_id,
+    const Monitor *monitor,
     const std::string &host,
     const std::string &port,
     const std::string &user,
@@ -74,7 +94,7 @@ VncCamera::VncCamera(
     bool p_capture,
     bool p_record_audio ) :
     Camera(
-      p_monitor_id,
+      monitor,
       VNC_SRC,
       p_width,
       p_height,
@@ -87,111 +107,152 @@ VncCamera::VncCamera(
       p_capture,
       p_record_audio
     ),
+    mRfb(nullptr),
+    mVncData({}),
   mHost(host),
   mPort(port),
   mUser(user),
   mPass(pass)
 {
-  Debug(2, "Host:%s Port: %s User: %s Pass:%s", mHost.c_str(), mPort.c_str(), mUser.c_str(), mPass.c_str());
-  
-  if ( colours == ZM_COLOUR_RGB32 ) {
+  if (colours == ZM_COLOUR_RGB32) {
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
     mImgPixFmt = AV_PIX_FMT_RGBA;
-    mBpp = 4;
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
+  } else if (colours == ZM_COLOUR_RGB24) {
     subpixelorder = ZM_SUBPIX_ORDER_RGB;
     mImgPixFmt = AV_PIX_FMT_RGB24;
-    mBpp = 3;
-  } else if ( colours == ZM_COLOUR_GRAY8 ) {
+  } else if (colours == ZM_COLOUR_GRAY8) {
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
     mImgPixFmt = AV_PIX_FMT_GRAY8;
-    mBpp = 1;
   } else {
     Panic("Unexpected colours: %d", colours);
   }
 
-  if ( capture )
-    Initialise();
+  if (capture) {
+    Debug(3, "Initializing Client");
+    bind_libvnc_symbols();
+    scale.init();
+  }
 }
-
 
 VncCamera::~VncCamera() {
-  if ( capture )
-    Terminate();
-}
-
-void VncCamera::Initialise() {
-  Debug(2, "Initializing Client");
-  bind_libvnc_symbols();
-  mRfb = (*rfbGetClient_f)(8, 3, 4);
-  
-  (*rfbClientSetClientData_f)(mRfb, &TAG_0, &mVncData);
-  (*rfbClientSetClientData_f)(mRfb, &TAG_1, (void *)mPass.c_str());
-  (*rfbClientSetClientData_f)(mRfb, &TAG_2, (void *)mUser.c_str());
-
-  mRfb->GotFrameBufferUpdate = GotFrameBufferUpdateCallback;
-  mRfb->GetPassword = GetPasswordCallback;
-  mRfb->GetCredential = GetCredentialsCallback;
-
-  mRfb->programName = "Zoneminder VNC Monitor";
-  mRfb->serverHost = strdup(mHost.c_str());
-  mRfb->serverPort = atoi(mPort.c_str());
-  scale.init();
-}
-
-void VncCamera::Terminate() {
-  if ( mRfb->frameBuffer )
-    free(mRfb->frameBuffer);
-  (*rfbClientCleanup_f)(mRfb);
-  return;
+  if (capture and mRfb) {
+    if (mRfb->frameBuffer)
+      free(mRfb->frameBuffer);
+    (*rfbClientCleanup_f)(mRfb);
+  }
+  if (libvnc_lib) {
+    dlclose(libvnc_lib);
+    libvnc_lib = nullptr;
+  }
 }
 
 int VncCamera::PrimeCapture() {
+  if (libvnc_lib == nullptr) {
+    Error("No libvnc shared lib bound.");
+    return -1;
+  }
   Debug(1, "Priming capture from %s", mHost.c_str());
-  if ( ! (*rfbInitClient_f)(mRfb, 0, nullptr) ) {
+
+  if (!mRfb) {
+    mVncData.buffer = nullptr;
+    mVncData.width = 0;
+    mVncData.height = 0;
+
+    // TODO, support 8bit or 24bit
+    mRfb = (*rfbGetClient_f)(8 /* bits per sample */, 3 /* samples per pixel */, 4 /* bytes Per Pixel */);
+    mRfb->MallocFrameBuffer = resize;
+
+    (*rfbClientSetClientData_f)(mRfb, &TAG_0, &mVncData);
+    (*rfbClientSetClientData_f)(mRfb, &TAG_1, (void *)mPass.c_str());
+    (*rfbClientSetClientData_f)(mRfb, &TAG_2, (void *)mUser.c_str());
+
+    mRfb->GotFrameBufferUpdate = GotFrameBufferUpdateCallback;
+    mRfb->GetPassword = GetPasswordCallback;
+    mRfb->GetCredential = GetCredentialsCallback;
+
+    mRfb->programName = "Zoneminder VNC Monitor";
+    if (mRfb->serverHost) free(mRfb->serverHost);
+    mRfb->serverHost = strdup(mHost.c_str());
+    mRfb->serverPort = atoi(mPort.c_str());
+		if (!mRfb->serverPort) {
+			Debug(1, "Defaulting to port 5900");
+			mRfb->serverPort = 5900;
+		}
+
+	} else {
+		Debug(1, "mRfb already exists?");
+  }
+  if (!(*rfbInitClient_f)(mRfb, 0, nullptr)) {
+    /* IF rfbInitClient fails, it calls rdbClientCleanup which will free mRfb */
+    mRfb = nullptr;
     return -1; 
   }
-  return 0;
+  if (((unsigned int)mRfb->width != width) or ((unsigned int)mRfb->height != height)) {
+    Warning("Specified dimensions do not match screen size monitor: (%dx%d) != vnc: (%dx%d)",
+        width, height, mRfb->width, mRfb->height);
+  }
+  getVideoStream();
+
+  return 1;
 }
 
 int VncCamera::PreCapture() {
-  Debug(2, "PreCapture");
   int rc = (*WaitForMessage_f)(mRfb, 500);
-  if ( rc < 0 ) {
+  if (rc < 0) {
     return -1;
-  } else if ( !rc ) {
+  } else if (!rc) {
     return rc;
   }
   rfbBool res = (*HandleRFBServerMessage_f)(mRfb);
+  Debug(3, "PreCapture rc from HandleMessage %d", res == TRUE ? 1 : -1);
   return res == TRUE ? 1 : -1;
 }
 
-int VncCamera::Capture(Image &image) {
-  Debug(2, "Capturing");
-  uint8_t *directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-  scale.Convert(
-      mVncData.buffer,
-      mRfb->si.framebufferHeight * mRfb->si.framebufferWidth * 4,
+int VncCamera::Capture(ZMPacket &zm_packet) {
+  if (!mVncData.buffer) {
+    Debug(1, "No buffer");
+    return 0;
+  }
+  if (!zm_packet.image) {
+    Debug(1, "Allocating image %dx%d %dcolours = %d", width, height, colours, colours*pixels);
+    zm_packet.image = new Image(width, height, colours, subpixelorder);
+  }
+  zm_packet.keyframe = 1;
+  zm_packet.codec_type = AVMEDIA_TYPE_VIDEO;
+  zm_packet.packet.stream_index = mVideoStreamId;
+  zm_packet.stream = mVideoStream;
+
+  uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
+  Debug(1, "scale src %p, %d, dest %p %d %d %dx%d %dx%d", mVncData.buffer,
+      mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
       directbuffer,
-      width * height * mBpp,
+      width * height * colours,
+      mImgPixFmt,
+      mRfb->si.framebufferWidth,
+      mRfb->si.framebufferHeight,
+      width,
+      height);
+
+  int rc = scale.Convert(
+      mVncData.buffer,
+      mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
+      //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, mRfb->si.framebufferWidth, mRfb->si.framebufferHeight),
+      directbuffer,
+      width * height * colours,
       AV_PIX_FMT_RGBA,
       mImgPixFmt,
       mRfb->si.framebufferWidth,
       mRfb->si.framebufferHeight,
       width,
       height);
-  return 1;
+  return rc == 0 ? 1 : rc;
 }
 
 int VncCamera::PostCapture() {
-  return 0;
-}
-
-int VncCamera::CaptureAndRecord(Image &image, timeval recording, char* event_directory) {
-  return 0;
+  return 1;
 }
 
 int VncCamera::Close() {
-  return 0;
+  return 1;
 }
 #endif

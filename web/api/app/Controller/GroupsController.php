@@ -31,8 +31,31 @@ class GroupsController extends AppController {
  * @return void
  */
 	public function index() {
-		$this->Group->recursive = -1;
-		$groups = $this->Group->find('all');
+		$this->Group->recursive = 0;
+
+    if ( $this->request->params['named'] ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+    } else {
+      $conditions = array();
+    }
+
+    $find_array = array(
+      'conditions' => &$conditions,
+      'contain'    => array('Monitor'),
+      'joins'      => array(
+        array(
+          'table' => 'Groups_Monitors',
+          'type'  => 'left',
+          'conditions' => array(
+            'Groups_Monitors.GroupId = Group.Id',
+          ),
+        ),
+      ),
+      'group' => '`Group`.`Id`',
+    );
+
+		$groups = $this->Group->find('all', $find_array);
 		$this->set(array(
 			'groups' => $groups,
 			'_serialize' => array('groups')
@@ -116,23 +139,23 @@ class GroupsController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
+      $this->Group->id = $id;
 			if ( $this->Group->save($this->request->data) ) {
-        return $this->flash(
-          __('The group has been saved.'),
-          array('action' => 'index')
-        );
+        $message = 'Saved';
       } else {
         $message = 'Error';
+        // if there is a validation message, use it
+        if ( !$this->group->validates() ) {
+          $message .= ': '.$this->Group->validationErrors;
+        }
 			}
-		} else {
-			$options = array('conditions' => array('Group.' . $this->Group->primaryKey => $id));
-			$this->request->data = $this->Group->find('first', $options);
-		}
-		$monitors = $this->Group->Monitor->find('list');
+		} # end if post/put
+
+		$group = $this->Group->findById($id);
 		$this->set(array(
 			'message' => $message,
-      'monitors'=> $monitors,
-			'_serialize' => array('message')
+			'group' => $group,
+			'_serialize' => array('group')
 		));
 	}
 

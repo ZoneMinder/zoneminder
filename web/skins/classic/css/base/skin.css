@@ -123,7 +123,7 @@ table th:last-child{
 
 
 a:link {
-    color: #3498db;
+    color: #0fbcf9;
     text-decoration: none;
 }
 
@@ -153,12 +153,8 @@ input,textarea,select,button,.btn-primary {
     background-color: #f8f8f8;
     text-align: left;
     border-radius:4px;
+    margin: 1px 0;
 }
-/*
-input[type=text], input[type=password], input[type="url"], textarea, select {
-    padding: 1px;
-}
-*/
 
 input.noborder {
     border: 0;
@@ -168,6 +164,9 @@ input[disabled] {
     color: #888888;
 }
 
+.modal img {
+    max-width: 100%;
+}
 img {
   display: inline-block;
 }
@@ -326,23 +325,9 @@ ul.tabList li.active a {
     color: #dc143c;
 }
 
-fieldset {
-    border: 1px solid black;
-    padding: 4px;
-    margin-bottom: 8px;
-    border-radius: 2px;
-    -moz-border-radius: 2px;
-    -webkit-border-radius: 2px;
-}
-
-fieldset > legend {
-    padding: 0 2px;
-}
-
 /*
  * Behavior classes
  */
-
 
 .ok, .infoText {
     color: #0fb9b1;
@@ -522,6 +507,7 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
+    clear: both;
 }
 
 #content p {
@@ -578,7 +564,7 @@ input[type=submit],
     border-color: #3498db;
     text-transform: uppercase;
     font-weight: 200;
-    padding: 5px 10px;
+    padding: 7px 10px 5px 10px;
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
@@ -612,18 +598,6 @@ input[type=submit]:disabled,
 
 }
 
-#options {
-  font-size:90%;
-}
-
-#options .help-block {
-  margin-top: 0;
-}
-
-#options .form-group {
-  margin-bottom: 20px;
-  border-bottom: 1px solid #e7e7e7;
-}
 
 .navbar{
 	margin-bottom: 0 !important;
@@ -741,23 +715,11 @@ li.search-choice {
 }
 
 .zoom {
-  padding: 50px;
-  transition: transform .2s; /* Animation */
-  margin: 0 auto;
-}
-
-.zoom:hover {
   transform-origin: 70% 50%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
 }
 
-.zoom-right {
-  padding: 0px;
-  transition: transform .2s; /* Animation */
-  margin: 0 auto;
-}
-
-.zoom-right:hover {
+.zoom-console {
   transform-origin: 0% 50%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
 }
@@ -765,4 +727,12 @@ li.search-choice {
 a.flip {
   float: right;
   margin-right: -20px;
+}
+
+#content table.major .colDiskSpace {
+  text-align: right;
+}
+
+#objdetectModal .modal-content {
+    width: fit-content;
 }

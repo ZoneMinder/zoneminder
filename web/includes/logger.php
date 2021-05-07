@@ -158,7 +158,7 @@ class Logger {
 
     $this->initialised = true;
 
-    //Logger::Debug( "LogOpts: level=".self::$codes[$this->level]."/".self::$codes[$this->effectiveLevel].", screen=".self::$codes[$this->termLevel].", database=".self::$codes[$this->databaseLevel].", logfile=".self::$codes[$this->fileLevel]."->".$this->logFile.", weblog=".self::$codes[$this->weblogLevel].", syslog=".self::$codes[$this->syslogLevel] );
+    //Debug( "LogOpts: level=".self::$codes[$this->level]."/".self::$codes[$this->effectiveLevel].", screen=".self::$codes[$this->termLevel].", database=".self::$codes[$this->databaseLevel].", logfile=".self::$codes[$this->fileLevel]."->".$this->logFile.", weblog=".self::$codes[$this->weblogLevel].", syslog=".self::$codes[$this->syslogLevel] );
   }
 
   private function terminate() {
@@ -199,9 +199,6 @@ class Logger {
     return self::$instance;
   }
 
-  public static function Debug( $string ) {
-    Logger::fetch()->logPrint( Logger::DEBUG, $string );
-  }
 
   public function id( $id=NULL ) {
     if ( isset($id) && $this->id != $id ) {
@@ -400,7 +397,8 @@ class Logger {
         if ( !error_log($message."\n", 3, $this->logFile) ) {
           if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
             $error = error_get_last();
-            trigger_error("Can't write to log file '".$this->logFile."': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
+            $this->fileLevel = self::NOLOG;
+            Error("Can't write to log file '".$this->logFile."': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
           }
         }
       } else if ( $this->logFd ) {
@@ -411,11 +409,14 @@ class Logger {
       }
     }
 
-    $message = $code.' ['.$string.']';
     if ( $level <= $this->syslogLevel )
-      syslog( self::$syslogPriorities[$level], $message );
+      syslog(self::$syslogPriorities[$level], $message);
 
+    $message = $code.' ['.$string.']';
     if ( $level <= $this->databaseLevel ) {
+      if ( strlen($file) > 255 )
+        $file = substr($file, 0, 255);
+
       try {
         global $dbConn;
         $sql = 'INSERT INTO `Logs` ( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';
@@ -457,6 +458,10 @@ function Dump( &$var, $label='VAR' ) {
   print( $label.' => ' );
   print_r( $var );
   Logger::fetch()->logPrint( Logger::DEBUG, ob_get_clean() );
+}
+
+function Debug( $string ) {
+  Logger::fetch()->logPrint( Logger::DEBUG, $string );
 }
 
 function Info( $string ) {

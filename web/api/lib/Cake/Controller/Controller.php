@@ -48,11 +48,18 @@ App::uses('CakeEventManager', 'Event');
  * @property      AuthComponent $Auth
  * @property      CookieComponent $Cookie
  * @property      EmailComponent $Email
+ * @property      FlashComponent $Flash
  * @property      PaginatorComponent $Paginator
  * @property      RequestHandlerComponent $RequestHandler
  * @property      SecurityComponent $Security
  * @property      SessionComponent $Session
- * @property      FlashComponent $Flash
+ * @property      string $action  The action handling the current request. Deprecated, use CakeRequest::$action instead.
+ * @property      string $base    Base URL path. Deprecated, use CakeRequest::$base instead.
+ * @property      array $data     POST data. Deprecated, use CakeRequest::$data instead.
+ * @property      string $here    The full address to the current request. Deprecated, use CakeRequest::$here instead.
+ * @property      array $paginate Pagination settings.
+ * @property      array $params   Array of parameters parsed from the URL. Deprecated, use CakeRequest::$params instead.
+ * @property      string $webroot Webroot path segment for the request.
  * @link          https://book.cakephp.org/2.0/en/controllers.html
  */
 class Controller extends CakeObject implements CakeEventListener {
@@ -80,7 +87,7 @@ class Controller extends CakeObject implements CakeEventListener {
  *
  * The default value is `true`.
  *
- * @var mixed
+ * @var bool|array
  * @link https://book.cakephp.org/2.0/en/controllers.html#components-helpers-and-uses
  */
 	public $uses = true;
@@ -153,9 +160,9 @@ class Controller extends CakeObject implements CakeEventListener {
 /**
  * The name of the layout file to render the view inside of. The name specified
  * is the filename of the layout in /app/View/Layouts without the .ctp
- * extension.
+ * extension. If `false` then no layout is rendered.
  *
- * @var string
+ * @var string|bool
  */
 	public $layout = 'default';
 
@@ -287,8 +294,9 @@ class Controller extends CakeObject implements CakeEventListener {
 
 /**
  * Holds any validation errors produced by the last call of the validateErrors() method.
+ * Contains `false` if no validation errors happened.
  *
- * @var array
+ * @var array|bool
  */
 	public $validationErrors = null;
 
@@ -573,7 +581,7 @@ class Controller extends CakeObject implements CakeEventListener {
 		if ($this->uses === true) {
 			$this->uses = array($pluginDot . $this->modelClass);
 		}
-		if (isset($appVars['uses']) && $appVars['uses'] === $this->uses) {
+		if (is_array($this->uses) && isset($appVars['uses']) && $appVars['uses'] === $this->uses) {
 			array_unshift($this->uses, $pluginDot . $this->modelClass);
 		}
 		if ($pluginController) {
@@ -598,10 +606,7 @@ class Controller extends CakeObject implements CakeEventListener {
  * @return void
  */
 	protected function _mergeUses($merge) {
-		if (!isset($merge['uses'])) {
-			return;
-		}
-		if ($merge['uses'] === true) {
+		if (!isset($merge['uses']) || $merge['uses'] === true || !is_array($this->uses)) {
 			return;
 		}
 		$this->uses = array_merge(
@@ -707,7 +712,7 @@ class Controller extends CakeObject implements CakeEventListener {
  *            800 => 'Unexpected Minotaur'
  *        )); // sets these new values, and returns true
  *
- * @return array Associative array of the HTTP codes as keys, and the message
+ * @return array|null|true Associative array of the HTTP codes as keys, and the message
  *    strings as values, or null of the given $code does not exist.
  * @deprecated 3.0.0 Since 2.4. Will be removed in 3.0. Use CakeResponse::httpCodes().
  */
@@ -752,7 +757,7 @@ class Controller extends CakeObject implements CakeEventListener {
  *
  * @param string|array $url A string or array-based URL pointing to another location within the app,
  *     or an absolute URL
- * @param int|array|null $status HTTP status code (eg: 301). Defaults to 302 when null is passed.
+ * @param int|array|null|string $status HTTP status code (eg: 301). Defaults to 302 when null is passed.
  * @param bool $exit If true, exit() will be called after the redirect
  * @return CakeResponse|null
  * @triggers Controller.beforeRedirect $this, array($url, $status, $exit)
@@ -838,7 +843,7 @@ class Controller extends CakeObject implements CakeEventListener {
  * Saves a variable for use inside a view template.
  *
  * @param string|array $one A string or an array of data.
- * @param string|array $two Value in case $one is a string (which then works as the key).
+ * @param mixed $two Value in case $one is a string (which then works as the key).
  *   Unused if $one is an associative array, otherwise serves as the values to $one's keys.
  * @return void
  * @link https://book.cakephp.org/2.0/en/controllers.html#interacting-with-views
@@ -900,7 +905,7 @@ class Controller extends CakeObject implements CakeEventListener {
  *
  * `$errors = $this->validateErrors($this->Article, $this->User);`
  *
- * @return array Validation errors, or false if none
+ * @return array|false Validation errors, or false if none
  * @deprecated 3.0.0 This method will be removed in 3.0
  */
 	public function validateErrors() {
@@ -925,7 +930,7 @@ class Controller extends CakeObject implements CakeEventListener {
 /**
  * Instantiates the correct view class, hands it its data, and uses it to render the view output.
  *
- * @param string $view View to use for rendering
+ * @param bool|string $view View to use for rendering
  * @param string $layout Layout to use
  * @return CakeResponse A response object containing the rendered view.
  * @triggers Controller.beforeRender $this
@@ -1018,7 +1023,7 @@ class Controller extends CakeObject implements CakeEventListener {
 	}
 
 /**
- * Converts POST'ed form data to a model conditions array. 
+ * Converts POST'ed form data to a model conditions array.
  *
  * If combined with SecurityComponent these conditions could be suitable
  * for use in a Model::find() call. Without SecurityComponent this method

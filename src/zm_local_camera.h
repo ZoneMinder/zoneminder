@@ -20,10 +20,7 @@
 #ifndef ZM_LOCAL_CAMERA_H
 #define ZM_LOCAL_CAMERA_H
 
-#include "zm.h"
 #include "zm_camera.h"
-#include "zm_image.h"
-#include "zm_packetqueue.h"
 
 #if ZM_HAS_V4L
 
@@ -42,25 +39,20 @@
 #define VIDEO_MAX_FRAME               32
 #endif
 
-#include "zm_ffmpeg.h"
-
 //
 // Class representing 'local' cameras, i.e. those which are
 // directly connect to the host machine and which are accessed
 // via a video interface.
 //
-class LocalCamera : public Camera
-{
+class LocalCamera : public Camera {
 protected:
 #if ZM_HAS_V4L2
-    struct V4L2MappedBuffer
-    {
+    struct V4L2MappedBuffer {
         void    *start;
         size_t  length;
     };
 
-    struct V4L2Data
-    {
+    struct V4L2Data {
         v4l2_cropcap        cropcap;
         v4l2_crop           crop;
         v4l2_format         fmt;
@@ -71,8 +63,7 @@ protected:
 #endif // ZM_HAS_V4L2
 
 #if ZM_HAS_V4L1
-    struct V4L1Data
-    {
+    struct V4L1Data {
         int active_frame;
         video_mbuf frames;
         video_mmap *buffers;
@@ -123,7 +114,7 @@ protected:
 
 public:
   LocalCamera(
-    int p_id,
+    const Monitor *monitor,
     const std::string &device,
     int p_channel,
     int p_format,
@@ -146,26 +137,25 @@ public:
   void Initialise();
   void Terminate();
 
-  const std::string &Device() const { return( device ); }
+  const std::string &Device() const { return device; }
 
-  int Channel() const { return( channel ); }
-  int Standard() const { return( standard ); }
-  int Palette() const { return( palette ); }
-  int Extras() const { return( extras ); }
+  int Channel() const { return channel; }
+  int Standard() const { return standard; }
+  int Palette() const { return palette; }
+  int Extras() const { return extras; }
 
-  int Brightness( int p_brightness=-1 );
-  int Hue( int p_hue=-1 );
-  int Colour( int p_colour=-1 );
-  int Contrast( int p_contrast=-1 );
+  int Brightness( int p_brightness=-1 ) override;
+  int Hue( int p_hue=-1 ) override;
+  int Colour( int p_colour=-1 ) override;
+  int Contrast( int p_contrast=-1 ) override;
 
-  int PrimeCapture();
-  int PreCapture();
-  int Capture( Image &image );
-  int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
-  int Close() { return 0; };
+  int PrimeCapture() override;
+  int PreCapture() override;
+  int Capture(ZMPacket &p) override;
+  int PostCapture() override;
+  int Close() override { return 0; };
 
-  static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
+  static bool GetCurrentSettings(const char *device, char *output, int version, bool verbose);
 };
 
 #endif // ZM_HAS_V4L

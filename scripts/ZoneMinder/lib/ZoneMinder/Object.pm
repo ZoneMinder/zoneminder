@@ -22,6 +22,12 @@
 # This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
+
+sub array_diff(\@\@) {
+  my %e = map { $_ => undef } @{$_[1]};
+  return @{[ ( grep { (exists $e{$_}) ? ( delete $e{$_} ) : ( 1 ) } @{ $_[0] } ), keys %e ] };
+}
+
 package ZoneMinder::Object;
 
 use 5.006;
@@ -39,6 +45,10 @@ our @ISA = qw(ZoneMinder::Base);
 # General Utility Functions
 #
 # ==========================================================================
+
+sub def_or_undef {
+  return defined($_[0]) ? $_[0] : 'undef';
+}
 
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
@@ -370,40 +380,29 @@ sub set {
 		$log->error("$type -> set called with non-hash params from $caller $line");
 	}
 
-	foreach my $field ( keys %fields ) {
-    if ( $params ) {
-      $log->debug("field: $field, param: ".$$params{$field}) if $debug;
-      if ( exists $$params{$field} ) {
-        $log->debug("field: $field, $$self{$field} =? param: ".$$params{$field}) if $debug;
-        if ( ( ! defined $$self{$field} ) or ($$self{$field} ne $params->{$field}) ) {
-# Only make changes to fields that have changed
-          if ( defined $fields{$field} ) {
-            $$self{$field} = $$params{$field} if defined $fields{$field};
-            push @set_fields, $fields{$field}, $$params{$field};	#mark for sql updating
-          } # end if
-          $log->debug("Running $field with $$params{$field}") if $debug;
-          if ( my $func = $self->can( $field ) ) {
-            $func->( $self, $$params{$field} );
-          } # end if
-        } # end if
-      } # end if
-		} # end if $params
-
-		if ( defined $fields{$field} ) {
-			if ( $$self{$field} ) {
-				$$self{$field} = transform( $type, $field, $$self{$field} );
-			} # end if $$self{field}
-		}
-	} # end foreach field
+  if ( $params ) {
+    foreach my $field ( keys %{$params} ) {
+      $log->debug("field: $field, ".def_or_undef($$self{$field}).' =? param: '.def_or_undef($$params{$field})) if $debug;
+      if ( ( ! defined $$self{$field} ) or ($$self{$field} ne $params->{$field}) ) {
+        # Only make changes to fields that have changed
+        if ( defined $fields{$field} ) {
+          $$self{$field} = $$params{$field};
+          push @set_fields, $fields{$field}, $$params{$field};	#mark for sql updating
+        } # end if has a column
+        $log->debug("Running $field with $$params{$field}") if $debug;
+        if ( my $func = $self->can( $field ) ) {
+          $func->( $self, $$params{$field} );
+        } # end if has function
+      } # end if has change
+    } # end foreach field
+  } # end if $params
 
 	foreach my $field ( keys %defaults ) {
-
 		if ( ( ! exists $$self{$field} ) or (!defined $$self{$field}) or ( $$self{$field} eq '' ) ) {
-			$log->debug("Setting default ($field) ($$self{$field}) ($defaults{$field}) ") if $debug;
+			$log->debug("Setting default ($field) (".def_or_undef($$self{$field}).') ('.def_or_undef($defaults{$field}).') ') if $debug;
 			if ( defined $defaults{$field} ) {
-				$log->debug("Default $field is defined: $defaults{$field}") if $debug;
-				if ( $defaults{$field} eq 'NOW()' ) {
-					$$self{$field} = 'NOW()';
+				if ( $defaults{$field} eq '' or $defaults{$field} eq 'NOW()' ) {
+					$$self{$field} = $defaults{$field};
 				} else {
 					$$self{$field} = eval($defaults{$field});
 					$log->error( "Eval error of object default $field default ($defaults{$field}) Reason: " . $@ ) if $@;
@@ -411,8 +410,9 @@ sub set {
 			} else {
 				$$self{$field} = $defaults{$field};
 			} # end if
-#$$self{$field} = ( defined $defaults{$field} ) ? eval($defaults{$field}) : $defaults{$field};
-			$log->debug("Setting default for ($field) using ($defaults{$field}) to ($$self{$field}) ") if $debug;
+			$log->debug("Setting default for ($field) using (".def_or_undef($defaults{$field}).') to ('.def_or_undef($$self{$field}).') ') if $debug;
+    } elsif ( defined $fields{$field} and $$self{$field} ) {
+      $$self{$field} = transform( $type, $field, $$self{$field} );
 		} # end if
 	} # end foreach default
 	return @set_fields;
@@ -851,6 +851,42 @@ sub find_sql {
 	#$log->debug("Loading Debug:$debug $object_type ($sql) (".join(',', map { ref $_ eq 'ARRAY' ? join(',', @{$_}) : $_ } @values).')' ) if $debug;
 	return \%sql;
 } # end sub find_sql
+
+sub changes {
+  my ( $self, $params ) = @_;
+
+  my $type = ref $self;
+  if ( ! $type ) {
+    my ( $caller, undef, $line ) = caller;
+    $log->error("No type in Object::changes. self:$self from  $caller:$line");
+  }
+  my $fields = eval ('\%'.$type.'::fields');
+  if (!$fields) {
+    $log->warn('Object::changes called on an object with no fields');
+    return;
+  } # end if
+  my @results;
+
+  foreach my $field (sort keys %$fields) {
+    next if ! exists $$params{$field};
+
+    if ( ref $$self{$field} eq 'ARRAY' ) {
+      my @second = ref $$params{$field} eq 'ARRAY' ? @{$$params{$field}} : ($$params{$field});
+      if (array_diff(@{$$self{$field}}, @second)) {
+        push @results, [ $field, $$self{$field}, $$params{$field} ];
+      }
+    } elsif (
+      (!defined($$self{$field}) and defined($$params{$field}))
+        or
+      (defined($$self{$field}) and !defined($$params{$field}))
+    ) {
+      push @results, $field;
+    } elsif ( defined($$self{$field}) and defined($$params{$field}) and ($$self{$field} ne $$params{$field}) ) {
+      push @results, $field;
+    }
+  }
+  return @results;
+}
 
 sub AUTOLOAD {
   my $type = ref($_[0]);

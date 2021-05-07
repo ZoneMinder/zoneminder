@@ -53,35 +53,31 @@ possible, this should run at more or less constant speed.
 
 */
 
-#include <getopt.h>
-#include <signal.h>
-#if defined(__FreeBSD__)
-#include <limits.h>
-#else
-#include <values.h>
-#endif
-
-#if !defined(MAXINT)
-#define MAXINT INT_MAX
-#endif
-
 #include "zm.h"
+#include "zm_camera.h"
 #include "zm_db.h"
-#include "zm_time.h"
-#include "zm_signal.h"
+#include "zm_define.h"
+#include "zm_fifo.h"
 #include "zm_monitor.h"
+#include "zm_rtsp_server_thread.h"
+#include "zm_signal.h"
+#include "zm_time.h"
+#include "zm_utils.h"
+#include <getopt.h>
+#include <iostream>
+#include <unistd.h>
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
 
   fprintf(stderr, "Options:\n");
 #if defined(BSD)
-  fprintf(stderr, "  -d, --device <device_path>         : For local cameras, device to access. E.g /dev/bktr0 etc\n");
+  fprintf(stderr, "  -d, --device <device_path> : For local cameras, device to access. E.g /dev/bktr0 etc\n");
 #else
-  fprintf(stderr, "  -d, --device <device_path>         : For local cameras, device to access. E.g /dev/video0 etc\n");
+  fprintf(stderr, "  -d, --device <device_path> : For local cameras, device to access. E.g /dev/video0 etc\n");
 #endif
-  fprintf(stderr, "  -f, --file <file_path>           : For local images, jpg file to access.\n");
-  fprintf(stderr, "  -m, --monitor <monitor_id>         : For sources associated with a single monitor\n");
+  fprintf(stderr, "  -f, --file <file_path>     : For local images, jpg file to access.\n");
+  fprintf(stderr, "  -m, --monitor <monitor_id> : For sources associated with a single monitor\n");
   fprintf(stderr, "  -h, --help                 : This screen\n");
   fprintf(stderr, "  -v, --version              : Report the installed version of ZoneMinder\n");
   exit(0);
@@ -188,36 +184,37 @@ int main(int argc, char *argv[]) {
   }
 
   logInit(log_id_string);
-  zmLoadConfig();
+  zmLoadStaticConfig();
+  zmDbConnect();
+  zmLoadDBConfig();
   logInit(log_id_string);
 
-  hwcaps_detect();
+  HwCapsDetect();
 
-  Monitor **monitors = nullptr;
-  int n_monitors = 0;
+  std::vector<std::shared_ptr<Monitor>> monitors;
 #if ZM_HAS_V4L
   if ( device[0] ) {
-    n_monitors = Monitor::LoadLocalMonitors(device, monitors, Monitor::CAPTURE);
+    monitors = Monitor::LoadLocalMonitors(device, Monitor::CAPTURE);
   } else
 #endif  // ZM_HAS_V4L
   if ( host[0] ) {
     if ( !port )
       port = "80";
-    n_monitors = Monitor::LoadRemoteMonitors(protocol, host, port, path, monitors, Monitor::CAPTURE);
+    monitors = Monitor::LoadRemoteMonitors(protocol, host, port, path, Monitor::CAPTURE);
   } else if ( file[0] ) {
-    n_monitors = Monitor::LoadFileMonitors(file, monitors, Monitor::CAPTURE);
+    monitors = Monitor::LoadFileMonitors(file, Monitor::CAPTURE);
   } else {
-    Monitor *monitor = Monitor::Load(monitor_id, true, Monitor::CAPTURE);
+    std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, true, Monitor::CAPTURE);
     if ( monitor ) {
-      monitors = new Monitor *[1];
-      monitors[0] = monitor;
-      n_monitors = 1;
+      monitors.push_back(monitor);
     }
   }
 
-  if ( !n_monitors ) {
+  if (monitors.empty()) {
     Error("No monitors found");
     exit(-1);
+  } else {
+	  Debug(2, "%zu monitors loaded", monitors.size());
   }
 
   Info("Starting Capture version %s", ZM_VERSION);
@@ -233,148 +230,159 @@ int main(int argc, char *argv[]) {
   sigaddset(&block_set, SIGUSR2);
 
   int result = 0;
-
   int prime_capture_log_count = 0;
 
-  while ( !zm_terminate ) {
+  while (!zm_terminate) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
-    for ( int i = 0; i < n_monitors; i++ ) {
+
+    for (const std::shared_ptr<Monitor> &monitor : monitors) {
+      monitor->LoadCamera();
+
+      if (!monitor->connect()) {
+        Warning("Couldn't connect to monitor %d", monitor->Id());
+      }
       time_t now = (time_t)time(nullptr);
-      monitors[i]->setStartupTime(now);
+      monitor->setStartupTime(now);
+      monitor->setHeartbeatTime(now);
+
+      snprintf(sql, sizeof(sql), 
+          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"
+          " VALUES (%u, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0",
+          monitor->Id());
+      zmDbDo(sql);
+
+      int sleep_time = 0;
+      while (monitor->PrimeCapture() <= 0) {
+        if (prime_capture_log_count % 60) {
+          logPrintf(Logger::ERROR+monitor->Importance(),
+              "Failed to prime capture of initial monitor");
+        } else {
+          Debug(1, "Failed to prime capture of initial monitor");
+        }
+        prime_capture_log_count ++;
+        if (zm_terminate) break;
+        if (sleep_time < 60) sleep_time++;
+        sleep(sleep_time);
+      }
+      if (zm_terminate) break;
 
       snprintf(sql, sizeof(sql),
-          "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')",
-          monitors[i]->Id());
-      if ( mysql_query(&dbconn, sql) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-      }
+          "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
+               monitor->Id());
+      zmDbDo(sql);
     }  // end foreach monitor
+    if (zm_terminate) break;
 
-    // Outer primary loop, handles connection to camera
-    if ( monitors[0]->PrimeCapture() < 0 ) {
-      if ( prime_capture_log_count % 60 ) {
-        Error("Failed to prime capture of initial monitor");
-      } else {
-        Debug(1, "Failed to prime capture of initial monitor");
-      }
-      prime_capture_log_count ++;
-      if ( !zm_terminate )
-        sleep(10);
-      continue;
-    }
+    int *capture_delays = new int[monitors.size()];
+    int *alarm_capture_delays = new int[monitors.size()];
+    struct timeval * last_capture_times = new struct timeval[monitors.size()];
 
-    int *capture_delays = new int[n_monitors];
-    int *alarm_capture_delays = new int[n_monitors];
-    int *next_delays = new int[n_monitors];
-    struct timeval * last_capture_times = new struct timeval[n_monitors];
-    for ( int i = 0; i < n_monitors; i++ ) {
+    for (size_t i = 0; i < monitors.size(); i++) {
       last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
       capture_delays[i] = monitors[i]->GetCaptureDelay();
       alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
-      snprintf(sql, sizeof(sql),
-          "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')",
-          monitors[i]->Id());
-      if ( mysql_query(&dbconn, sql) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-      }
-    } // end foreach monitor
+      Debug(2, "capture delay(%u mSecs 1000/capture_fps) alarm delay(%u)",
+          capture_delays[i], alarm_capture_delays[i]);
+    }
 
     struct timeval now;
     struct DeltaTimeval delta_time;
-    while ( !zm_terminate ) {
+    int sleep_time = 0;
+
+    while (!zm_terminate) {
       //sigprocmask(SIG_BLOCK, &block_set, 0);
-      for ( int i = 0; i < n_monitors; i++ ) {
-        long min_delay = MAXINT;
+      for (size_t i = 0; i < monitors.size(); i++) {
+        monitors[i]->CheckAction();
 
-        gettimeofday(&now, nullptr);
-        for ( int j = 0; j < n_monitors; j++ ) {
-          if ( last_capture_times[j].tv_sec ) {
-            DELTA_TIMEVAL(delta_time, now, last_capture_times[j], DT_PREC_3);
-            if ( monitors[i]->GetState() == Monitor::ALARM )
-              next_delays[j] = alarm_capture_delays[j]-delta_time.delta;
-            else
-              next_delays[j] = capture_delays[j]-delta_time.delta;
-            if ( next_delays[j] < 0 )
-              next_delays[j] = 0;
-          } else {
-            next_delays[j] = 0;
-          }
-          if ( next_delays[j] <= min_delay ) {
-            min_delay = next_delays[j];
-          }
-        }  // end foreach monitor
-
-        if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
-          if ( monitors[i]->PreCapture() < 0 ) {
-            Error("Failed to pre-capture monitor %d %s (%d/%d)",
-                monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-            monitors[i]->Close();
-            result = -1;
-            break;
-          }
-          if ( monitors[i]->Capture() < 0 ) {
-            Info("Failed to capture image from monitor %d %s (%d/%d)",
-                monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-            monitors[i]->Close();
-            result = -1;
-            break;
-          }
-          if ( monitors[i]->PostCapture() < 0 ) {
-            Error("Failed to post-capture monitor %d %s (%d/%d)",
-                monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-            monitors[i]->Close();
-            result = -1;
-            break;
-          }
-
-          if ( next_delays[i] > 0 ) {
-            gettimeofday(&now, nullptr);
-            DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
-            long sleep_time = next_delays[i]-delta_time.delta;
-            if ( sleep_time > 0 ) {
-              usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
-            }
-          }
-          gettimeofday(&(last_capture_times[i]), nullptr);
-        }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
-
-      }  // end foreach n_monitors
-      //sigprocmask(SIG_UNBLOCK, &block_set, 0);
-      if ( zm_reload ) {
-        for ( int i = 0; i < n_monitors; i++ ) {
-          monitors[i]->Reload();
+        if (monitors[i]->PreCapture() < 0) {
+          Error("Failed to pre-capture monitor %d %s (%zu/%zu)",
+                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+          result = -1;
+          break;
         }
-        logTerm();
-        logInit(log_id_string);
-        zm_reload = false;
-      }
-      if ( result < 0 ) {
+        if (monitors[i]->Capture() < 0) {
+          Error("Failed to capture image from monitor %d %s (%zu/%zu)",
+                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+          result = -1;
+          break;
+        }
+        if (monitors[i]->PostCapture() < 0) {
+          Error("Failed to post-capture monitor %d %s (%zu/%zu)",
+                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+          result = -1;
+          break;
+        }
+
+        // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
+        int delay = (monitors[i]->GetState() == Monitor::ALARM) ? alarm_capture_delays[i] : capture_delays[i];
+        if (delay) {
+          gettimeofday(&now, nullptr);
+          if (last_capture_times[i].tv_sec) {
+            // DT_PREC_3 means that the value will be in thousands of a second
+            DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_6);
+
+            // You have to add back in the previous sleep time
+            sleep_time = delay - (delta_time.delta - sleep_time);
+            Debug(4,
+                  "Sleep time is %d from now: %" PRIi64 ".%" PRIi64" last: %" PRIi64 ".% " PRIi64 " delta %lu delay: %d",
+                  sleep_time,
+                  static_cast<int64>(now.tv_sec),
+                  static_cast<int64>(now.tv_usec),
+                  static_cast<int64>(last_capture_times[i].tv_sec),
+                  static_cast<int64>(last_capture_times[i].tv_usec),
+                  delta_time.delta,
+                  delay);
+
+            if (sleep_time > 0) {
+              Debug(4, "usleeping (%d)", sleep_time);
+              usleep(sleep_time);
+            }
+          }  // end if has a last_capture time
+          last_capture_times[i] = now;
+        }  // end if delay
+      }  // end foreach n_monitors
+
+      if ((result < 0) or zm_reload) {
         // Failure, try reconnecting
-				sleep(5);
         break;
       }
-    }  // end while ! zm_terminate
+    }  // end while ! zm_terminate and connected
+
+    for (size_t i = 0; i < monitors.size(); i++) {
+      monitors[i]->Close();
+      monitors[i]->disconnect();
+    }
+
     delete [] alarm_capture_delays;
     delete [] capture_delays;
-    delete [] next_delays;
     delete [] last_capture_times;
-  } // end while ! zm_terminate outer connection loop
 
-  for ( int i = 0; i < n_monitors; i++ ) {
+    if (zm_reload) {
+      for (std::shared_ptr<Monitor> &monitor : monitors) {
+        monitor->Reload();
+      }
+      logTerm();
+      logInit(log_id_string);
+      
+      zm_reload = false;
+    }  // end if zm_reload
+  }  // end while ! zm_terminate outer connection loop
+
+  Debug(1,"Updating Monitor status");
+
+  for (std::shared_ptr<Monitor> &monitor : monitors) {
     static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf(sql, sizeof(sql),
-        "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','NotRunning')",
-        monitors[i]->Id());
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't run query: %s", mysql_error(&dbconn));
-    }
-    delete monitors[i];
+        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'", 
+        monitor->Id());
+    zmDbDo(sql);
   }
-  delete [] monitors;
 
   Image::Deinitialise();
+  Debug(1, "terminating");
   logTerm();
+  dbQueue.stop();
   zmDbClose();
 
 	return zm_terminate ? 0 : result;

@@ -1,20 +1,79 @@
-function thumbnail_onmouseover(event) {
-  var img = event.target;
-  img.src = '';
-  img.src = img.getAttribute('stream_src');
+var backBtn = $j('#backBtn');
+var viewBtn = $j('#viewBtn');
+var archiveBtn = $j('#archiveBtn');
+var unarchiveBtn = $j('#unarchiveBtn');
+var editBtn = $j('#editBtn');
+var exportBtn = $j('#exportBtn');
+var downloadBtn = $j('#downloadBtn');
+var deleteBtn = $j('#deleteBtn');
+var table = $j('#eventTable');
+
+/*
+This is the format of the json object sent by bootstrap-table
+
+var params =
+{
+"type":"get",
+"data":
+  {
+  "search":"some search text",
+  "sort":"StartDateTime",
+  "order":"asc",
+  "offset":0,
+  "limit":25
+  "filter":
+    {
+    "Name":"some advanced search text"
+    "StartDateTime":"some more advanced search text"
+    }
+  },
+"cache":true,
+"contentType":"application/json",
+"dataType":"json"
+};
+*/
+
+// Called by bootstrap-table to retrieve zm event data
+function ajaxRequest(params) {
+  if ( params.data && params.data.filter ) {
+    params.data.advsearch = params.data.filter;
+    delete params.data.filter;
+  }
+  $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
+      .done(function(data) {
+        var rows = processRows(data.rows);
+        // rearrange the result into what bootstrap-table expects
+        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+      })
+      .fail(function(jqXHR) {
+        logAjaxFail(jqXHR);
+        $j('#eventTable').bootstrapTable('refresh');
+      });
 }
 
-function thumbnail_onmouseout(event) {
-  var img = event.target;
-  img.src = '';
-  img.src = img.getAttribute('still_src');
-}
+function processRows(rows) {
+  $j.each(rows, function(ndx, row) {
+    var eid = row.Id;
+    var archived = row.Archived == yesString ? archivedString : '';
+    var emailed = row.Emailed == yesString ? emailedString : '';
 
-function initThumbAnimation() {
-  $j('.colThumbnail img').each(function() {
-    this.addEventListener('mouseover', thumbnail_onmouseover, false);
-    this.addEventListener('mouseout', thumbnail_onmouseout, false);
+    row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
+    row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>' +
+        '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
+    if ( canEdit.Monitors ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
+    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    if ( row.Notes.indexOf('detected:') >= 0 ) {
+      row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></div></a>';
+    } else if ( row.Notes != 'Forced Web: ' ) {
+      row.Cause = row.Cause + '<br/><div class="small text-nowrap text-muted">' + row.Notes + '</div>';
+    }
+    row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
+    row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
+    row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
   });
+
+  return rows;
 }
 
 // Returns the event id's of the selected rows
@@ -39,23 +98,16 @@ function getArchivedSelections() {
 function getDelConfirmModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
       .done(function(data) {
-        if ( $j('#deleteConfirm').length ) {
-          $j('#deleteConfirm').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('deleteConfirm', data.html);
         manageDelConfirmModalBtns();
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -63,14 +115,15 @@ function manageDelConfirmModalBtns() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=delete&eids[]='+selections.join('&eids[]='))
+    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
+          $j('#deleteConfirm').modal('hide');
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
+        .fail( function(jqxhr) {
+          logAjaxFail(jqxhr);
+          $j('#eventTable').bootstrapTable('refresh');
+          $j('#deleteConfirm').modal('hide');
         });
   });
 
@@ -83,11 +136,7 @@ function manageDelConfirmModalBtns() {
 function getEventDetailModal(eid) {
   $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]=' + eid)
       .done(function(data) {
-        if ( $j('#eventDetailModal').length ) {
-          $j('#eventDetailModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('eventDetailModal', data.html);
         $j('#eventDetailModal').modal('show');
         // Manage the Save button
         $j('#eventDetailSaveBtn').click(function(evt) {
@@ -95,42 +144,27 @@ function getEventDetailModal(eid) {
           $j('#eventDetailForm').submit();
         });
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
+}
+
+function getObjdetectModal(eid) {
+  $j.getJSON(thisUrl + '?request=modal&modal=objdetect&eid=' + eid)
+      .done(function(data) {
+        insertModalHtml('objdetectModal', data.html);
+        $j('#objdetectModal').modal('show');
+      })
+      .fail(logAjaxFail);
 }
 
 function initPage() {
-  var backBtn = $j('#backBtn');
-  var viewBtn = $j('#viewBtn');
-  var archiveBtn = $j('#archiveBtn');
-  var unarchiveBtn = $j('#unarchiveBtn');
-  var editBtn = $j('#editBtn');
-  var exportBtn = $j('#exportBtn');
-  var downloadBtn = $j('#downloadBtn');
-  var deleteBtn = $j('#deleteBtn');
-  var table = $j('#eventTable');
+  // Remove the thumbnail column from the DOM if thumbnails are off globally
+  if ( !WEB_LIST_THUMBS ) $j('th[data-field="Thumbnail"]').remove();
 
   // Load the delete confirmation modal into the DOM
   getDelConfirmModal();
 
-  // Define the icons used in the bootstrap-table top-right toolbar
-  var icons = {
-    paginationSwitchDown: 'fa-caret-square-o-down',
-    paginationSwitchUp: 'fa-caret-square-o-up',
-    export: 'fa-download',
-    refresh: 'fa-sync',
-    toggleOff: 'fa-toggle-off',
-    toggleOn: 'fa-toggle-on',
-    columns: 'fa-th-list',
-    fullscreen: 'fa-arrows-alt',
-    detailOpen: 'fa-plus',
-    detailClose: 'fa-minus'
-  };
-
   // Init the bootstrap-table
-  table.bootstrapTable('destroy').bootstrapTable({icons: icons});
+  table.bootstrapTable({icons: icons});
 
   // Hide these columns on first run when no cookie is saved
   if ( !getCookie("zmEventsTable.bs.table.columns") ) {
@@ -144,13 +178,13 @@ function initPage() {
   function() {
     selections = table.bootstrapTable('getSelections');
 
-    viewBtn.prop('disabled', !(selections.length && canViewEvents));
-    archiveBtn.prop('disabled', !(selections.length && canEditEvents));
-    unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEditEvents);
-    editBtn.prop('disabled', !(selections.length && canEditEvents));
-    exportBtn.prop('disabled', !(selections.length && canViewEvents));
-    downloadBtn.prop('disabled', !(selections.length && canViewEvents));
-    deleteBtn.prop('disabled', !(selections.length && canEditEvents));
+    viewBtn.prop('disabled', !(selections.length && canView.Events));
+    archiveBtn.prop('disabled', !(selections.length && canEdit.Events));
+    unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEdit.Events);
+    editBtn.prop('disabled', !(selections.length && canEdit.Events));
+    exportBtn.prop('disabled', !(selections.length && canView.Events));
+    downloadBtn.prop('disabled', !(selections.length && canView.Events));
+    deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
   });
 
   // Don't enable the back button if there is no previous zm page to go back to
@@ -180,6 +214,12 @@ function initPage() {
     window.location.assign('?view=timeline'+filterQuery);
   });
 
+  // Manage the FILTER Button
+  document.getElementById("filterBtn").addEventListener("click", function onFilterClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=filter'+filterQuery);
+  });
+
   // Manage the VIEW button
   document.getElementById("viewBtn").addEventListener("click", function onViewClick(evt) {
     var selections = getIdSelections();
@@ -194,50 +234,34 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=archive&eids[]='+selections.join('&eids[]='))
+    $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
   });
 
   // Manage the UNARCHIVE button
   document.getElementById("unarchiveBtn").addEventListener("click", function onUnarchiveClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
 
     var selections = getIdSelections();
-    console.log(selections);
+    //console.log(selections);
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&action=unarchive&eids[]='+selections.join('&eids[]='))
+    $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+selections.join('&eids[]='))
         .done( function(data) {
           $j('#eventTable').bootstrapTable('refresh');
-          window.location.reload(true);
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
-
-    if ( openFilterWindow ) {
-      //opener.location.reload(true);
-      createPopup( '?view=filter&page='+thisPage+filterQuery, 'zmFilter', 'filter' );
-      location.replace( '?view='+currentView+'&page='+thisPage+filterQuery );
-    } else {
-      window.location.reload(true);
-    }
+        .fail(logAjaxFail);
   });
 
   // Manage the EDIT button
   document.getElementById("editBtn").addEventListener("click", function onEditClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -247,11 +271,7 @@ function initPage() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]='+selections.join('&eids[]='))
         .done(function(data) {
-          if ( $j('#eventDetailModal').length ) {
-            $j('#eventDetailModal').replaceWith(data.html);
-          } else {
-            $j("body").append(data.html);
-          }
+          insertModalHtml('eventDetailModal', data.html);
           $j('#eventDetailModal').modal('show');
           // Manage the Save button
           $j('#eventDetailSaveBtn').click(function(evt) {
@@ -259,10 +279,7 @@ function initPage() {
             $j('#eventDetailForm').submit();
           });
         })
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
+        .fail(logAjaxFail);
   });
 
   // Manage the EXPORT button
@@ -278,12 +295,19 @@ function initPage() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    createPopup('?view=download&eids[]='+selections.join('&eids[]='), 'zmDownload', 'download');
+    $j.getJSON(thisUrl + '?request=modal&modal=download&eids[]='+selections.join('&eids[]='))
+        .done(function(data) {
+          insertModalHtml('downloadModal', data.html);
+          $j('#downloadModal').modal('show');
+          // Manage the GENERATE DOWNLOAD button
+          $j('#exportButton').click(exportEvent);
+        })
+        .fail(logAjaxFail);
   });
 
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
-    if ( ! canEditEvents ) {
+    if ( ! canEdit.Events ) {
       enoperm();
       return;
     }
@@ -292,13 +316,29 @@ function initPage() {
     $j('#deleteConfirm').modal('show');
   });
 
-  // Manage the eventdetail links in the events list
-  $j(".eDetailLink").click(function(evt) {
-    evt.preventDefault();
-    var eid = $j(this).data('eid');
-    getEventDetailModal(eid);
+  // Update table links each time after new data is loaded
+  table.on('post-body.bs.table', function(data) {
+    // Manage the Object Detection links in the events list
+    $j(".objDetectLink").click(function(evt) {
+      evt.preventDefault();
+      var eid = $j(this).data('eid');
+      getObjdetectModal(eid);
+    });
+
+    // Manage the eventdetail links in the events list
+    $j(".eDetailLink").click(function(evt) {
+      evt.preventDefault();
+      var eid = $j(this).data('eid');
+      getEventDetailModal(eid);
+    });
+
+    var thumb_ndx = $j('#eventTable tr th').filter(function() {
+      return $j(this).text().trim() == 'Thumbnail';
+    }).index();
+    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
   });
 
+  table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
 }

@@ -17,17 +17,15 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <sys/un.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/file.h>
-
-#include "zm.h"
-#include "zm_mpeg.h"
-#include "zm_monitor.h"
-
 #include "zm_stream.h"
+
+#include "zm_box.h"
+#include "zm_monitor.h"
+#include <cmath>
+#include <sys/file.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC
@@ -37,28 +35,28 @@ StreamBase::~StreamBase() {
   }
 #endif
   closeComms();
-  if ( monitor ) {
-    delete monitor;
-    monitor = NULL;
-  }
 }
 
 bool StreamBase::loadMonitor(int p_monitor_id) {
   monitor_id = p_monitor_id;
-  if ( monitor )
-    delete monitor;
 
-  if ( !(monitor = Monitor::Load(monitor_id, false, Monitor::QUERY)) ) {
+  if ( !(monitor or (monitor = Monitor::Load(monitor_id, false, Monitor::QUERY))) ) {
     Error("Unable to load monitor id %d for streaming", monitor_id);
     return false;
   }
+
   if ( monitor->GetFunction() == Monitor::NONE ) {
-    Error("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
+    Info("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
     return false;
+  }
+
+  if ( monitor->isConnected() ) {
+    monitor->disconnect();
   }
 
   if ( !monitor->connect() ) {
     Error("Unable to connect to monitor id %d for streaming", monitor_id);
+    monitor->disconnect();
     return false;
   }
 
@@ -66,16 +64,20 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
 }
 
 bool StreamBase::checkInitialised() {
-  if ( !monitor ) {
+  if (!monitor) {
     Error("Cannot stream, not initialised");
     return false;
   }
-  if ( monitor->GetFunction() == Monitor::NONE ) {
-    Error("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
+  if (monitor->GetFunction() == Monitor::NONE) {
+    Info("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
     return false;
   }
-  if ( !monitor->ShmValid() ) {
+  if (!monitor->ShmValid()) {
     Error("Monitor shm is not connected");
+    return false;
+  }
+  if ((monitor->GetType() == Monitor::FFMPEG) and !monitor->DecodingEnabled() ) {
+    Debug(1, "Monitor is not decoding.");
     return false;
   }
   return true;
@@ -83,7 +85,7 @@ bool StreamBase::checkInitialised() {
 
 void StreamBase::updateFrameRate(double fps) {
   frame_mod = 1;
-  if ( (fps < 0) || !fps || isinf(fps) ) {
+  if ( (fps < 0) || !fps || std::isinf(fps) ) {
     Debug(1, "Zero or negative fps %f in updateFrameRate. Setting frame_mod=1 and effective_fps=0.0", fps);
     effective_fps = 0.0;
     base_fps = 0.0;
@@ -124,11 +126,14 @@ bool StreamBase::checkCommandQueue() {
       processCommand(&msg);
       return true;
     }
-  } else {
+  } else if ( connkey ) {
     Warning("No sd in checkCommandQueue, comms not open?");
+  } else {
+    // Perfectly valid if only getting a snapshot
+    Debug(1, "No sd in checkCommandQueue, comms not open?");
   }
   return false;
-}
+}  // end bool StreamBase::checkCommandQueue()
 
 Image *StreamBase::prepareImage(Image *image) {
 
@@ -252,7 +257,8 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
       monitor->Width(), monitor->Height(), scale, frame_text);
 
   Image image(monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder());
-  image.Annotate(frame_text, image.centreCoord(frame_text));
+  image.Clear();
+  image.Annotate(frame_text, image.centreCoord(frame_text, monitor->LabelSize()), monitor->LabelSize());
 
   if ( scale != 100 ) {
     image.Scale(scale);
@@ -353,7 +359,7 @@ void StreamBase::openComms() {
     // Unlink before bind, in case it already exists
     unlink(loc_sock_path);
     if ( sizeof(loc_addr.sun_path) < length ) {
-      Error("Not enough space %d in loc_addr.sun_path for socket file %s", sizeof(loc_addr.sun_path), loc_sock_path);
+      Error("Not enough space %zu in loc_addr.sun_path for socket file %s", sizeof(loc_addr.sun_path), loc_sock_path);
     }
 
     strncpy(loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path));

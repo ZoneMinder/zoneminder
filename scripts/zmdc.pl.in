@@ -92,7 +92,6 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my @daemons = (
     'zmc',
-    'zma',
     'zmfilter.pl',
     'zmaudit.pl',
     'zmtrigger.pl',
@@ -102,11 +101,12 @@ my @daemons = (
     'zmstats.pl',
     'zmtrack.pl',
     'zmcontrol.pl',
+    'zm_rtsp_server',
     'zmtelemetry.pl'
     );
 
 if ( $Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
-	push @daemons,'zmeventnotification.pl';
+	push @daemons, 'zmeventnotification.pl';
 }
 
 my $command = shift @ARGV;
@@ -239,7 +239,7 @@ use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
 use ZoneMinder::Server qw(CpuLoad);
 #use Data::Dumper;
 
-use constant KILL_DELAY => 60; # seconds to wait between sending TERM and sending KILL
+use constant KILL_DELAY => 10; # seconds to wait between sending TERM and sending KILL
 
 our %cmd_hash;
 our %pid_hash;
@@ -436,18 +436,19 @@ sub start {
     return;
   }
 
+  # We have to block SIGCHLD during fork to prevent races while we setup our records for it
   my $sigset = POSIX::SigSet->new;
   my $blockset = POSIX::SigSet->new(SIGCHLD);
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
   # Apparently the child closing the db connection can affect the parent.
   zmDbDisconnect();
-  if ( my $cpid = fork() ) {
+  if ( my $child_pid = fork() ) {
 
     $dbh = zmDbConnect(1);
     # This logReinit is required.  Not sure why.
     logReinit();
 
-    $process->{pid} = $cpid;
+    $process->{pid} = $child_pid;
     $process->{started} = time();
     delete $process->{pending};
 
@@ -456,9 +457,9 @@ sub start {
         .", pid = $process->{pid}\n"
         );
 
-    $cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
+    $cmd_hash{$process->{command}} = $pid_hash{$child_pid} = $process;
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
-  } elsif ( defined($cpid) ) {
+  } elsif ( defined($child_pid) ) {
     # Child process
     
     # Force reconnection to the db. $dbh got copied, but isn't really valid anymore.
@@ -490,7 +491,7 @@ sub start {
     zmDbDisconnect();
 
     my $fd = 3; # leave stdin,stdout,stderr open.  Closing them causes problems with libx264
-    while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
+    while ( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
       POSIX::close($fd++);
     }
 
@@ -611,6 +612,7 @@ sub restart {
   # Start will be handled by the reaper...
   # unless it was already pending in which case send_stop will return () so we should start it
   if ( !send_stop(0, $process) ) {
+    dPrint(ZoneMinder::Logger::WARNING, "!send_stop so starting '$command'\n");
     start($daemon, @args);
   }
   return;

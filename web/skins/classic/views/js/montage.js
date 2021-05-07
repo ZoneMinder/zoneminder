@@ -1,7 +1,3 @@
-var requestQueue = new Request.Queue({
-  concurrent: monitorData.length,
-  stopOnFailure: false
-});
 /**
  * called when the layoutControl select element is changed, or the page
  * is rendered
@@ -48,17 +44,17 @@ function selectLayout(element) {
   if ( ! layout ) {
     return;
   }
-  Cookie.write('zmMontageLayout', layout_id, {duration: 10*365});
+  setCookie('zmMontageLayout', layout_id, 3600);
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
-    Cookie.write('zmMontageScale', '', {duration: 10*365});
-    $('scale').set('value', '');
-    $('width').set('value', '0');
+    setCookie('zmMontageScale', '', 3600);
+    $j('#scale').val('');
+    $j('#width').val('0');
   } else {
     // Is freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
   }
-  var width = parseInt($('width').get('value'));
-  var height = parseInt($('height').get('value'));
-  var scale = $('scale').get('value');
+  var width = parseInt($j('#width').val());
+  var height = parseInt($j('#height').val());
+  var scale = $j('#scale').val();
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
@@ -70,7 +66,7 @@ function selectLayout(element) {
     } else if ( height ) {
       stream_scale = parseInt(100*height/monitor.height);
     }
-    var streamImg = $('liveStream'+monitor.id);
+    var streamImg = document.getElementById('liveStream'+monitor.id);
     if ( streamImg ) {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
@@ -94,8 +90,8 @@ function selectLayout(element) {
  * called when the widthControl|heightControl select elements are changed
  */
 function changeSize() {
-  var width = parseInt($('width').get('value'));
-  var height = parseInt($('height').get('value'));
+  var width = parseInt($j('#width').val());
+  var height = parseInt($j('#height').val());
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
@@ -110,7 +106,7 @@ function changeSize() {
     monitor_frame.css('height', ( height ? height+'px' : 'auto'));
 
     /*Stream could be an applet so can't use moo tools*/
-    var streamImg = $('liveStream'+monitor.id);
+    var streamImg = document.getElementById('liveStream'+monitor.id);
     if ( streamImg ) {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
@@ -132,11 +128,11 @@ function changeSize() {
       //streamImg.style.height = '';
     }
   }
-  $('scale').set('value', '');
-  Cookie.write('zmMontageScale', '', {duration: 10*365});
-  Cookie.write('zmMontageWidth', width, {duration: 10*365});
-  Cookie.write('zmMontageHeight', height, {duration: 10*365});
-  jQuery("#zmMontageLayout option:selected").removeAttr("selected");
+  $j('#scale').val('');
+  setCookie('zmMontageScale', '', 3600);
+  setCookie('zmMontageWidth', width, 3600);
+  setCookie('zmMontageHeight', height, 3600);
+  $j("#zmMontageLayout option:selected").removeAttr("selected");
   //selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
@@ -144,12 +140,12 @@ function changeSize() {
  * called when the scaleControl select element is changed
  */
 function changeScale() {
-  var scale = $('scale').get('value');
-  $('width').set('value', '0'); //auto
-  $('height').set('value', '0'); //auto
-  Cookie.write('zmMontageScale', scale, {duration: 10*365});
-  Cookie.write('zmMontageWidth', '', {duration: 10*365});
-  Cookie.write('zmMontageHeight', '', {duration: 10*365});
+  var scale = $j('#scale').val();
+  $j('#width').val('0'); //auto
+  $j('#height').val('0'); //auto
+  setCookie('zmMontageScale', scale, 3600);
+  setCookie('zmMontageWidth', '', 3600);
+  setCookie('zmMontageHeight', '', 3600);
   if ( scale == '' ) {
     selectLayout('#zmMontageLayout');
     return;
@@ -274,19 +270,24 @@ function reloadWebSite(ndx) {
   document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
 }
 
+function takeSnapshot() {
+  monitor_ids = monitorData.map((monitor)=>{
+    return 'monitor_ids[]='+monitor.id;
+  });
+  window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
+}
+
 var monitors = new Array();
 function initPage() {
-  jQuery(document).ready(function() {
-    jQuery("#hdrbutton").click(function() {
-      jQuery("#flipMontageHeader").slideToggle("slow");
-      jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-      Cookie.write( 'zmMontageHeaderFlip', jQuery('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', {duration: 10*365} );
-    });
+  $j("#hdrbutton").click(function() {
+    $j("#flipMontageHeader").slideToggle("slow");
+    $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+    setCookie( 'zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', 3600);
   });
-  if ( Cookie.read('zmMontageHeaderFlip') == 'down' ) {
+  if ( getCookie('zmMontageHeaderFlip') == 'down' ) {
     // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
-    jQuery("#flipMontageHeader").slideToggle("fast");
-    jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+    $j("#flipMontageHeader").slideToggle("fast");
+    $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
 
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
@@ -306,4 +307,4 @@ function initPage() {
   selectLayout('#zmMontageLayout');
 }
 // Kick everything off
-window.addEventListener('DOMContentLoaded', initPage);
+$j(document).ready(initPage);

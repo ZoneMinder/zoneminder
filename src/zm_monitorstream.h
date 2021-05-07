@@ -20,11 +20,8 @@
 #ifndef ZM_MONITORSTREAM_H
 #define ZM_MONITORSTREAM_H
 
-#include "zm.h"
-#include "zm_coord.h"
-#include "zm_image.h"
-#include "zm_utils.h"
-#include "zm_monitor.h"
+#include "zm_stream.h"
+#include <sys/time.h>
 
 class MonitorStream : public StreamBase {
   protected:
@@ -50,7 +47,7 @@ class MonitorStream : public StreamBase {
     bool checkSwapPath(const char *path, bool create_path);
     bool sendFrame(const char *filepath, struct timeval *timestamp);
     bool sendFrame(Image *image, struct timeval *timestamp);
-    void processCommand(const CmdMsg *msg);
+    void processCommand(const CmdMsg *msg) override;
     void SingleImage(int scale=100);
     void SingleImageRaw(int scale=100);
 #ifdef HAVE_ZLIB_H
@@ -59,8 +56,14 @@ class MonitorStream : public StreamBase {
 
   public:
     MonitorStream() : 
-      temp_image_buffer(nullptr), temp_image_buffer_count(0), temp_read_index(0), temp_write_index(0),
-      ttl(0), playback_buffer(0), delayed(false), frame_count(0) {
+      temp_image_buffer(nullptr),
+      temp_image_buffer_count(0),
+      temp_read_index(0),
+      temp_write_index(0),
+      ttl(0),
+      playback_buffer(0),
+      delayed(false),
+      frame_count(0) {
     }
     void setStreamBuffer(int p_playback_buffer) {
       playback_buffer = p_playback_buffer;
@@ -71,7 +74,7 @@ class MonitorStream : public StreamBase {
     bool setStreamStart(int monitor_id) {
       return loadMonitor(monitor_id);
     }
-    void runStream();
+    void runStream() override;
 };
 
 #endif // ZM_MONITORSTREAM_H

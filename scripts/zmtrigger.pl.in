@@ -87,6 +87,13 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 logInit();
 logSetSignal();
+my $zm_terminate = 0;
+sub TermHandler {
+  Info('Received TERM, exiting');
+  $zm_terminate = 1;
+}
+$SIG{TERM} = \&TermHandler;
+$SIG{INT} = \&TermHandler;
 
 Info('Trigger daemon starting');
 
@@ -118,7 +125,7 @@ my $win = $rin;
 my $ein = $win;
 my $timeout = SELECT_TIMEOUT;
 my %actions;
-while (1) {
+while (!$zm_terminate) {
   $rin = $base_rin;
 # Add the file descriptors of any spawned connections
   foreach my $fileno ( keys %spawned_connections ) {
@@ -187,7 +194,7 @@ while (1) {
     } else {
       Fatal("Can't select: $!");
     }
-  } # end if select returned activitiy
+  } # end if select returned activity
 
 # Check polled connections
   foreach my $connection ( @in_poll_connections ) {
@@ -219,10 +226,10 @@ while (1) {
 
 #print( "$monitor->{Id}: S:$state, LE:$last_event" );
 #print( "$monitor->{Id}: mS:$monitor->{LastState}, mLE:$monitor->{LastEvent}" );
-    if ( $state == STATE_ALARM || $state == STATE_ALERT ) {
+    if ( $state == STATE_ALARM or $state == STATE_ALERT ) {
 # In alarm state
       if ( !defined($monitor->{LastEvent})
-          || ($last_event != $monitor->{LastEvent})
+          or ($last_event != $monitor->{LastEvent})
          ) {
 # A new event
         push @out_messages, $monitor->{Id}.'|on|'.time().'|'.$last_event;
@@ -231,9 +238,9 @@ while (1) {
 # Do nothing
       }
     } elsif ( 
-        ($state == STATE_IDLE && $monitor->{LastState} != STATE_IDLE)
-        ||
-        ($state == STATE_TAPE && $monitor->{LastState} != STATE_TAPE)
+        (($state == STATE_IDLE) and ($monitor->{LastState} != STATE_IDLE))
+          or
+        (($state == STATE_TAPE) and ($monitor->{LastState} != STATE_TAPE))
         ) {
 # Out of alarm state
       push @out_messages, $monitor->{Id}.'|off|'.time().'|'.$last_event;
@@ -266,7 +273,7 @@ while (1) {
     Debug('Checking for timed actions');
     my $now = time();
     foreach my $action_time ( sort( grep { $_ < $now } @action_times ) ) {
-      Info("Found " . scalar @{$actions{$action_time}} . "actions expiring at $action_time");
+      Info('Found '.(scalar @{$actions{$action_time}}).'actions expiring at '.$action_time);
       foreach my $action ( @{$actions{$action_time}} ) {
         my $connection = $action->{connection};
         Info("Found action '$$action{message}'");
@@ -312,14 +319,14 @@ while (1) {
 
   # zmDbConnect will ping and reconnect if neccessary
   $dbh = zmDbConnect();
-} # end while ( 1 )
+} # end while (!$zm_terminate)
 Info('Trigger daemon exiting');
 exit;
 
 sub loadMonitor {
   my $monitor = shift;
 
-  Debug("Loading monitor $monitor");
+  Debug('Loading monitor '.$monitor);
   zmMemInvalidate($monitor);
 
   if ( zmMemVerify($monitor) ) { # This will re-init shared memory
@@ -334,7 +341,7 @@ sub loadMonitors {
   my %new_monitors = ();
 
   my $sql = 'SELECT * FROM `Monitors`
-    WHERE find_in_set( `Function`, \'Modect,Mocord,Nodect\' )'.
+    WHERE find_in_set( `Function`, \'Modect,Mocord,Nodect,Record\' )'.
     ( $Config{ZM_SERVER_ID} ? ' AND `ServerId`=?' : '' )
     ;
   my $sth = $dbh->prepare_cached( $sql )
@@ -350,7 +357,7 @@ sub loadMonitors {
     $new_monitors{$monitor->{Id}} = $monitor;
   } # end while fetchrow
   %monitors = %new_monitors;
-}
+} # end sub loadMonitors
 
 sub handleMessage {
   my $connection = shift;
@@ -369,12 +376,17 @@ sub handleMessage {
 
   my $monitor = $monitors{$id};
   if ( !$monitor ) {
-    Warning("Can't find monitor '$id' for message '$message'");
+    loadMonitors();
+    $monitor = $monitors{$id};
+    if ( !$monitor ) {
+      Warning("Can't find monitor '$id' for message '$message'");
+      return;
+    }
+  }
+  if ( !zmMemVerify($monitor) ) {
+    Warning("Can't verify monitor '$id' for message '$message'");
     return;
   }
-  Debug("Found monitor for id '$id'");
-
-  next if !zmMemVerify($monitor);
 
   Debug("Handling action '$action'");
   if ( $action =~ /^(enable|disable)(?:[\+ ](\d+))?$/ ) {
@@ -387,21 +399,25 @@ sub handleMessage {
     }
 # Force a reload
     $monitor_reload_time = 0;
-    Info("Set monitor to $state");
+    Info('Set monitor to '.$state);
     if ( $delay ) {
-      my $action_text = $id.'|'.( ($state eq 'enable')
-          ? 'disable'
-          : 'enable'
-          );
+      my $action_text = $id.'|'.(($state eq 'enable') ? 'disable' : 'enable');
       handleDelay($delay, $connection, $action_text);
     }
   } elsif ( $action =~ /^(on|off)(?:[ \+](\d+))?$/ ) {
-    next if !$monitor->{Enabled};
+    if ( !$monitor->{Enabled} ) {
+      Info('Motion detection not enabled on monitor '.$id);
+      return;
+    }
 
     my $trigger = $1;
     my $delay = $2;
     my $trigger_data;
     if ( $trigger eq 'on' ) {
+      if ( $score <= 0 ) {
+        Warning('Triggering on with invalid score will have no result.');
+        return;
+      }
       zmTriggerEventOn($monitor, $score, $cause, $text);
       zmTriggerShowtext($monitor, $showtext) if defined($showtext);
       Info("Trigger '$trigger' '$cause'");

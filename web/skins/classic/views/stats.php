@@ -18,10 +18,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) )
-{
-    $view = "error";
-    return;
+if (!canView('Events')) {
+  $view = 'error';
+  return;
 }
 
 $eid = validInt($_REQUEST['eid']);
@@ -29,12 +28,11 @@ $fid = validInt($_REQUEST['fid']);
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Stats')." - ".$eid." - ".$fid );
+xhtmlHeaders(__FILE__, translate('Stats').' - '.$eid.' - '.$fid);
 ?>
 <body>
   <?php echo getNavBarHTML() ?>
   <div id="page">
-
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
@@ -44,7 +42,9 @@ xhtmlHeaders(__FILE__, translate('Stats')." - ".$eid." - ".$fid );
     <div id="content" class="row justify-content-center">
       <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
-        <?php echo getStatsTableHTML($eid, $fid) ?>
+        <div class="table-responsive-sm">
+          <?php echo getStatsTableHTML($eid, $fid) ?>
+        </div>
       </form>
     </div>
   </div>

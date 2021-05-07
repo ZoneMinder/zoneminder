@@ -1,29 +1,10 @@
-function thumbnail_onmouseover(event) {
-  var img = event.target;
-  img.src = '';
-  img.src = img.getAttribute('stream_src');
-}
-
-function thumbnail_onmouseout(event) {
-  var img = event.target;
-  img.src = '';
-  img.src = img.getAttribute('still_src');
-}
-
-function initThumbAnimation() {
-  $j('.colThumbnail img').each(function() {
-    this.addEventListener('mouseover', thumbnail_onmouseover, false);
-    this.addEventListener('mouseout', thumbnail_onmouseout, false);
-  });
-}
-
-function setButtonStates( element ) {
+function setButtonStates(element) {
   var form = element.form;
   var checked = 0;
   for ( var i=0; i < form.elements.length; i++ ) {
     if (
-      form.elements[i].type=="checkbox" &&
-      form.elements[i].name=="markMids[]"
+      form.elements[i].type == "checkbox" &&
+      form.elements[i].name == "markMids[]"
     ) {
       var tr = $j(form.elements[i]).closest("tr");
       if ( form.elements[i].checked ) {
@@ -41,10 +22,10 @@ function setButtonStates( element ) {
     if ( checked == 1 ) {
       $j(form.cloneBtn).css('display', 'inline');
     } else {
-      form.cloneBtn.hide();
+      $j(form.cloneBtn).hide();
     }
   } else {
-    form.cloneBtn.hide();
+    $j(form.cloneBtn).hide();
     form.editBtn.disabled = true;
     form.deleteBtn.disabled = true;
     form.selectBtn.disabled = true;
@@ -85,10 +66,6 @@ function editMonitor( element ) {
       form.elements[i].checked
     ) {
       monitorIds.push( form.elements[i].value );
-      //form.elements[i].checked = false;
-      //setButtonStates( form.elements[i] );
-      //$(form.elements[i]).getParent( 'tr' ).removeClass( 'highlight' );
-      //break;
     }
   } // end foreach checkboxes
   if ( monitorIds.length == 1 ) {
@@ -127,13 +104,88 @@ function reloadWindow() {
   window.location.replace( thisUrl );
 }
 
-function initPage() {
-  reloadWindow.periodical(consoleRefreshTimeout);
-  if ( showVersionPopup ) {
-    window.location.assign('?view=version');
+// Manage the the Function modal and its buttons
+function manageFunctionModal(evt) {
+  evt.preventDefault();
+
+  if ( !canEdit.Events ) {
+    enoperm();
+    return;
   }
+
+  if ( ! $j('#modalFunction').length ) {
+    // Load the Function modal on page load
+    $j.getJSON(thisUrl + '?request=modal&modal=function')
+        .done(function(data) {
+          insertModalHtml('modalFunction', data.html);
+          // Manage the CANCEL modal buttons
+          $j('.funcCancelBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#modalFunction').modal('hide');
+          });
+          // Manage the SAVE modal buttons
+          $j('.funcSaveBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#function_form').submit();
+          });
+
+          manageFunctionModal(evt);
+        })
+        .fail(logAjaxFail);
+    return;
+  }
+
+  var mid = evt.currentTarget.getAttribute('data-mid');
+  monitor = monitors[mid];
+  if ( !monitor ) {
+    console.error("No monitor found for mid " + mid);
+    return;
+  }
+
+  var function_form = document.getElementById('function_form');
+  if ( !function_form ) {
+    console.error("Unable to find form with id function_form");
+    return;
+  }
+  function_form.elements['newFunction'].onchange=function() {
+    $j('#function_help div').hide();
+    $j('#'+this.value+'Help').show();
+    if ( this.value == 'Monitor' || this.value == 'None' ) {
+      $j('#FunctionAnalysisEnabled').hide();
+    } else {
+      $j('#FunctionAnalysisEnabled').show();
+    }
+    if ( this.value == 'Record' || this.value == 'Nodect' ) {
+      $j('#FunctionDecodingEnabled').show();
+    } else {
+      $j('#FunctionDecodingEnabled').hide();
+    }
+  };
+  function_form.elements['newFunction'].value = monitor.Function;
+  function_form.elements['newFunction'].onchange();
+
+  function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
+  function_form.elements['newDecodingEnabled'].checked = monitor.DecodingEnabled == '1';
+  function_form.elements['mid'].value = mid;
+  document.getElementById('function_monitor_name').innerHTML = monitor.Name;
+
+  $j('#modalFunction').modal('show');
+} // end function manageFunctionModal
+
+function initPage() {
+  setInterval(reloadWindow, consoleRefreshTimeout);
   if ( showDonatePopup ) {
-    $j('#donate').modal('show');
+    $j.getJSON(thisUrl + '?request=modal&modal=donate')
+        .done(function(data) {
+          insertModalHtml('donate', data.html);
+          $j('#donate').modal('show');
+          // Manage the Apply button
+          $j('#donateApplyBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#donateForm').submit();
+          });
+        })
+        .fail(logAjaxFail);
   }
 
   // Makes table sortable
@@ -148,62 +200,15 @@ function initPage() {
   // Setup the thumbnail video animation
   initThumbAnimation();
 
-  $j('.functionLnk').click(function(evt) {
-    evt.preventDefault();
-    if ( !canEditEvents ) {
-      enoperm();
-      return;
-    }
-    var mid = evt.currentTarget.getAttribute('data-mid');
-    monitor = monitors[mid];
-    if ( !monitor ) {
-      console.error("No monitor found for mid " + mid);
-      return;
-    }
-
-    var function_form = document.getElementById('function_form');
-    if ( !function_form ) {
-      console.error("Unable to find form with id function_form");
-      return;
-    }
-    function_form.elements['newFunction'].value = monitor.Function;
-    function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
-    function_form.elements['mid'].value = mid;
-    document.getElementById('function_monitor_name').innerHTML = monitor.Name;
-
-    $j('#modalFunction').modal('show');
-  });
-  // Manage the CANCEL modal buttons
-  $j('.funcCancelBtn').click(function(evt) {
-    evt.preventDefault();
-    $j('#modalFunction').modal('hide');
-  });
-
-  // Manage the SAVE modal buttons
-  $j('.funcSaveBtn').click(function(evt) {
-    evt.preventDefault();
-    var form = evt.currentTarget.form;
-    var mid = form.elements['mid'].value;
-    var newFunc = $j('#newFunction').val();
-    var newEnabled = $j('#newEnabled').is(':checked') ? 1 : 0;
-    $j.getJSON(thisUrl + '?view=function&action=function&mid='+mid+'&newFunction='+newFunc+'&newEnabled='+newEnabled)
-        .done(window.location.reload(true))
-        .fail(function(jqxhr, textStatus, error) {
-          console.log("Request Failed: " + textStatus + ", " + error);
-          console.log("Response Text: " + jqxhr.responseText);
-        });
-  });
-}
+  $j('.functionLnk').click(manageFunctionModal);
+} // end function initPage
 
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
-  var ajax = new Request.JSON( {
-    url: 'index.php?request=console',
-    data: {monitor_ids: monitor_ids, action: 'sort'},
-    method: 'post',
-    timeout: AJAX_TIMEOUT
-  } );
-  ajax.send();
+  var data = {monitor_ids: monitor_ids, action: 'sort'};
+
+  $j.post(thisUrl + '?request=console', data)
+      .fail(logAjaxFail);
 } // end function applySort(event,ui)
 
-window.addEventListener( 'DOMContentLoaded', initPage );
+$j(document).ready(initPage );

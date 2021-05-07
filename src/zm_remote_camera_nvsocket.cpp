@@ -19,12 +19,12 @@
 
 #include "zm_remote_camera_nvsocket.h"
 
-#include "zm_mem_utils.h"
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <errno.h>
+#include "zm_monitor.h"
+#include "zm_packet.h"
 #include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef SOLARIS
 #include <sys/filio.h> // FIONREAD and friends
@@ -34,7 +34,7 @@
 #endif
 
 RemoteCameraNVSocket::RemoteCameraNVSocket(
-  unsigned int p_monitor_id,
+  const Monitor *monitor,
   const std::string &p_host,
   const std::string &p_port,
   const std::string &p_path,
@@ -48,7 +48,7 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
   bool p_capture,
   bool p_record_audio ) :
   RemoteCamera(
-    p_monitor_id,
+    monitor,
     "http",
     p_host,
     p_port,
@@ -68,6 +68,7 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
   timeout.tv_sec = 0;
   timeout.tv_usec = 0;
   subpixelorder = ZM_SUBPIX_ORDER_BGR;
+  mVideoStream = NULL;
 
   if ( capture ) {
     Initialise();
@@ -116,7 +117,7 @@ int RemoteCameraNVSocket::Connect() {
     close(sd);
     sd = -1;
 
-    Warning("Can't connect to socket mid: %d : %s", monitor_id, strerror(errno) );
+    Warning("Can't connect to socket mid: %d : %s", monitor->Id(), strerror(errno));
     return -1;
   }
 
@@ -137,13 +138,13 @@ int RemoteCameraNVSocket::Disconnect() {
 }
 
 int RemoteCameraNVSocket::SendRequest( std::string request ) {
-  Debug( 4, "Sending request: %s", request.c_str() );
+  //Debug( 4, "Sending request: %s", request.c_str() );
   if ( write( sd, request.data(), request.length() ) < 0 ) {
     Error( "Can't write: %s", strerror(errno) );
     Disconnect();
     return( -1 );
   }
-  Debug( 4, "Request sent" );
+  //Debug( 4, "Request sent" );
   return( 0 );
 }
 
@@ -178,11 +179,12 @@ int RemoteCameraNVSocket::PrimeCapture() {
     Disconnect();
     return -1;
   }
+  mVideoStreamId=0;
 
   return 0;
 }
 
-int RemoteCameraNVSocket::Capture( Image &image ) {
+int RemoteCameraNVSocket::Capture( ZMPacket &zm_packet ) {
   if ( SendRequest("GetNextImage\n") < 0 ) {
     Warning( "Unable to capture image, retrying" );
     return 0;
@@ -202,7 +204,8 @@ int RemoteCameraNVSocket::Capture( Image &image ) {
     return 0;
   }
 
-  image.Assign(width, height, colours, subpixelorder, buffer, imagesize);
+  zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
+  zm_packet.keyframe = 1;
   return 1;
 }
 

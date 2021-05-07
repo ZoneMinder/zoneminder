@@ -20,17 +20,38 @@
 #ifndef ZM_DB_H
 #define ZM_DB_H
 
+#include <condition_variable>
+#include <mutex>
 #include <mysql/mysql.h>
-#include "zm_thread.h"
+#include <mysql/mysqld_error.h>
+#include <queue>
+#include <string>
+#include <thread>
+
+class zmDbQueue {
+  private:
+  std::queue<std::string> mQueue;
+  std::thread             mThread;
+  std::mutex              mMutex;
+  std::condition_variable mCondition;
+  bool                    mTerminate;
+  public:
+  zmDbQueue();
+  ~zmDbQueue();
+  void push(const char *sql) { return push(std::string(sql)); };
+  void push(std::string &&sql);
+  void process();
+  void stop();
+};
 
 class zmDbRow {
   private:
     MYSQL_RES *result_set;
     MYSQL_ROW row;
   public:
-    zmDbRow() { result_set = nullptr; row = nullptr; };
-    MYSQL_RES *fetch( const char *query );
-    zmDbRow( MYSQL_RES *, MYSQL_ROW *row );
+    zmDbRow() : result_set(nullptr), row(nullptr) { };
+    MYSQL_RES *fetch(const char *query);
+    zmDbRow(MYSQL_RES *, MYSQL_ROW *row);
     ~zmDbRow();
 
     MYSQL_ROW mysql_row() const { return row; };
@@ -41,12 +62,20 @@ class zmDbRow {
 };
 
 extern MYSQL dbconn;
-extern RecursiveMutex db_mutex;
+extern std::mutex db_mutex;
+extern zmDbQueue  dbQueue;
+
+extern bool zmDbConnected;
+
+extern bool zmDbConnected;
 
 bool zmDbConnect();
 void zmDbClose();
+int zmDbDo(const char *query);
+int zmDbDoInsert(const char *query);
+int zmDbDoUpdate(const char *query);
 
-MYSQL_RES * zmDbFetch( const char *query );
-zmDbRow *zmDbFetchOne( const char *query );
+MYSQL_RES * zmDbFetch(const char *query);
+zmDbRow *zmDbFetchOne(const char *query);
 
 #endif // ZM_DB_H

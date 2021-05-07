@@ -39,9 +39,9 @@ if [ "$1" = "configure" ]; then
             exit 1;
           fi
           # This creates the user.
-          echo "grant lock tables, alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost identified by \"${ZM_DB_PASS}\";" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+          echo "grant lock tables, alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute, REFERENCES on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost identified by \"${ZM_DB_PASS}\";" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
         else
-          echo "grant lock tables, alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+          echo "grant lock tables, alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute, REFERENCES on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
         fi
 
         zmupdate.pl --nointeractive

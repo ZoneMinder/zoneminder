@@ -48,8 +48,9 @@ function updateMonitorDimensions(element) {
       form.elements['newMonitor[Height]'].value = dimensions[1];
     }
   }
+  update_estimated_ram_use();
   return false;
-}
+} // function updateMonitorDimensions(element)
 
 function loadLocations( element ) {
   var form = element.form;
@@ -71,9 +72,6 @@ function initPage() {
   var backBtn = $j('#backBtn');
   var onvifBtn = $j('#onvifBtn');
 
-  //var protocolSelector = $('contentForm').elements['newMonitor[Protocol]'];
-  //if ( $(protocolSelector).getTag() == 'select' )
-  //updateMethods( $(protocolSelector) );
   document.querySelectorAll('input[name="newMonitor[SignalCheckColour]"]').forEach(function(el) {
     el.oninput = function(event) {
       $j('#SignalCheckSwatch').css('background-color', event.target.value);
@@ -105,7 +103,6 @@ function initPage() {
   document.querySelectorAll('input[name="newMonitor[MaxFPS]"]').forEach(function(el) {
     el.oninput = el.onclick = function(e) {
       if ( e.target.value ) {
-        console.log('showing');
         $j('#newMonitor\\[MaxFPS\\]').show();
       } else {
         $j('#newMonitor\\[MaxFPS\\]').hide();
@@ -115,7 +112,6 @@ function initPage() {
   document.querySelectorAll('input[name="newMonitor[AlarmMaxFPS]"]').forEach(function(el) {
     el.oninput = el.onclick = function(e) {
       if ( e.target.value ) {
-        console.log('showing');
         $j('#newMonitor\\[AlarmMaxFPS\\]').show();
       } else {
         $j('#newMonitor\\[AlarmMaxFPS\\]').hide();
@@ -136,6 +132,76 @@ function initPage() {
   });
   document.querySelectorAll('input[name="newMonitor[WebColour]"]').forEach(function(el) {
     el.onchange = window['change_WebColour'].bind(el);
+  });
+  document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
+    el.onchange = function() {
+      var form = document.getElementById('contentForm');
+      form.tab.value = 'general';
+      form.submit();
+    };
+  });
+  document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
+    el.oninput = window['update_estimated_ram_use'].bind(el);
+  });
+  update_estimated_ram_use();
+
+  document.querySelectorAll('select[name="newMonitor[Function]"]').forEach(function(el) {
+    el.onchange = function() {
+      $j('#function_help div').hide();
+      $j('#'+this.value+'Help').show();
+      if ( this.value == 'Monitor' || this.value == 'None' ) {
+        $j('#FunctionEnabled').hide();
+      } else {
+        $j('#FunctionEnabled').show();
+      }
+      if ( this.value == 'Record' || this.value == 'Nodect' ) {
+        $j('#FunctionDecodingEnabled').show();
+      } else {
+        $j('#FunctionDecodingEnabled').hide();
+      }
+    };
+    el.onchange();
+  });
+
+  document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
+    el.onchange = function() {
+      if ( this.value == 1 /* Encode */ ) {
+        $j('.OutputCodec').show();
+        $j('.Encoder').show();
+      } else {
+        $j('.OutputCodec').hide();
+        $j('.Encoder').hide();
+      }
+    };
+    el.onchange();
+  });
+  document.querySelectorAll('select[name="newMonitor[OutputCodec]"]').forEach(function(el) {
+    el.onchange = function() {
+      var encoder_dropdown = $j('select[name="newMonitor[Encoder]"]');
+      if (encoder_dropdown) {
+        for (i=0; i<encoder_dropdown[0].options.length; i++) {
+          option = encoder_dropdown[0].options[i];
+          if ( this.value == 27 ) {
+            option.disabled = !option.value.includes('264');
+            if ( option.disabled && option.selected ) {
+              encoder_dropdown[0].options[0].selected = 1;
+              option.selected = false;
+            }
+          } else if ( this.value == 173 /* hevc */ ) {
+            option.disabled = !(option.value.includes('hevc') || option.value.includes('265') );
+            if ( option.disabled && option.selected ) {
+              encoder_dropdown[0].options[0].selected = 1;
+              option.selected = false;
+            }
+          } else {
+            option.disabled = false;
+          }
+        }
+      } else {
+        console.log('No encoder');
+      }
+    };
+    el.onchange();
   });
 
   $j('.chosen').chosen();
@@ -193,6 +259,32 @@ function initPage() {
     evt.preventDefault();
     window.location.assign('?view=console');
   });
+
+  if ( ZM_OPT_USE_GEOLOCATION ) {
+    if ( window.L ) {
+      var form = document.getElementById('contentForm');
+      var latitude = form.elements['newMonitor[Latitude]'].value;
+      var longitude = form.elements['newMonitor[Longitude]'].value;
+      map = L.map('LocationMap', {
+        center: L.latLng(latitude, longitude),
+        zoom: 13,
+        onclick: function() {
+          alert('click');
+        }
+      });
+      L.tileLayer(ZM_OPT_GEOLOCATION_TILE_PROVIDER, {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
+      }).addTo(map);
+      L.marker([latitude, longitude]).addTo(map);
+    } else {
+      console.log('Location turned on but leaflet not installed.');
+    }
+  } // end if ZM_OPT_USE_GEOLOCATION
 } // end function initPage()
 
 function change_WebColour() {
@@ -217,6 +309,40 @@ function random_WebColour() {
   $j('#WebSwatch').css(
       'backgroundColor', new_colour
   );
+}
+
+function update_estimated_ram_use() {
+  var width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
+  var height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
+  var colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
+
+  var min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
+  var min_buffer_size = min_buffer_count * width * height * colours;
+  document.getElementById('estimated_ram_use').innerHTML = 'Min: ' + human_filesize(min_buffer_size);
+
+  var max_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]')[0].value);
+  if (max_buffer_count) {
+    var max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
+    console.log(max_buffer_size);
+    document.getElementById('estimated_ram_use').innerHTML += ' Max: ' + human_filesize(max_buffer_size);
+  } else {
+    document.getElementById('estimated_ram_use').innerHTML += ' Max: Unlimited';
+  }
+}
+
+function updateLatitudeAndLongitude(latitude, longitude) {
+  var form = document.getElementById('contentForm');
+  form.elements['newMonitor[Latitude]'].value = latitude;
+  form.elements['newMonitor[Longitude]'].value = longitude;
+}
+function getLocation() {
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      updateLatitudeAndLongitude(position.coords.latitude, position.coords.longitude);
+    });
+  } else {
+    console.log("Geolocation not available");
+  }
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

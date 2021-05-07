@@ -122,7 +122,7 @@ if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] ) {
 
 session_write_close();
 
-ZM\Logger::Debug(print_r($options,true));
+ZM\Debug(print_r($options,true));
 
 noCacheHeaders();
 xhtmlHeaders(__FILE__, translate('CycleWatch'));
@@ -182,7 +182,7 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
           ?>
           </div>
 
-          <div class="buttons">
+          <div id="buttons" class="buttons">
             <button type="button" value="&lt;" id="prevBtn" title="<?php echo translate('PreviousMonitor') ?>" class="active" data-on-click-true="cyclePrev">&lt;&lt;</button>
             <button type="button" value="||" id="pauseBtn" title="<?php echo translate('PauseCycle') ?>" class="active" data-on-click-true="cyclePause">||</button>
             <button type="button" value="|&gt;" id="playBtn" title="<?php echo translate('PlayCycle') ?>" class="inactive" disabled="disabled" data-on-click-true="cycleStart">|&gt;</button>

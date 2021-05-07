@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Config Data Module, $Date: 2011-01-20 18:49:42 +0000 (Thu, 20 Jan 2011) $, $Revision: 3230 $
+# ZoneMinder Config Data Module
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -480,8 +480,35 @@ our @options = (
     category    => 'system',
   },
   {
+    name        =>  'ZM_OPT_USE_GEOLOCATION',
+    description =>  'Add geolocation features to ZoneMinder.',
+    help        =>  'Whether or not to enable Latitude/Longitude settings on Monitors and enable mapping options.',
+    type        =>  $types{boolean},
+    category    =>  'system',
+  },
+  {
+    name        =>  'ZM_OPT_GEOLOCATION_TILE_PROVIDER',
+    description =>  'Tile provider to use for maps.',
+    help        =>  'OpenStreetMaps does not itself provide the images to use in the map. There are many to choose from.  Mapbox.com is one example that offers free tiles and has been tested during development of this feature.',
+    requires    =>  [
+                     {name=>'ZM_OPT_USE_GEOLOCATION', value=>'yes'}
+                   ],
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        =>  'ZM_OPT_GEOLOCATION_ACCESS_TOKEN',
+    description =>  'Access Token for the tile provider used for maps.',
+    help        =>  'OpenStreetMaps does not itself provide the images to use in the map. There are many to choose from.  Mapbox.com is one example that offers free tiles and has been tested during development of this feature. You must go to mapbox.com and sign up and get an access token and cutnpaste it here.',
+    requires    =>  [
+                     {name=>'ZM_OPT_USE_GEOLOCATION', value=>'yes'}
+                   ],
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
     name        =>  'ZM_SYSTEM_SHUTDOWN',
-    default     =>  'true',
+    default     =>  'yes',
     description =>  'Allow Admin users to power off or restart the system from the ZoneMinder UI.',
     help        =>  'The system will need to have sudo installed and the following added to /etc/sudoers~~
     ~~
@@ -490,6 +517,14 @@ our @options = (
       to perform the shutdown or reboot',
     type      =>  $types{boolean},
     category  =>  'system',
+  },
+  {
+    name        =>  'ZM_FEATURES_SNAPSHOTS',
+    default     =>  'no',
+    description =>  'Enable snapshot functionality.',
+    help        =>  'Snapshots are a collection of events.  They can be created using the snapshot button in montage view.  All visible monitors will have a short event created, archived and added to the Snapshot.',
+    type      =>  $types{boolean},
+    category  =>  'hidden',
   },
   {
     name        => 'ZM_USE_DEEP_STORAGE',
@@ -917,6 +952,19 @@ our @options = (
     content.  So a value of 2000 here will cause a stream for Monitor 1 to
     hit port 2001.  Please ensure that you configure apache appropriately
     to respond on these ports.`,
+    type  =>  $types{integer},
+    category  => 'network',
+  },
+  {
+    name        =>  'ZM_MIN_RTSP_PORT',
+    default     =>  '',
+    description =>  'Start of port range to contact for RTSP streaming video.',
+    help        =>  q`
+      The beginng of a port range that will be used to offer
+      RTSP streaming of live captured video.
+      Each monitor will use this value plus the Monitor Id to stream
+      content.  So a value of 2000 here will cause a stream for Monitor 1 to
+      hit port 2001.`,
     type  =>  $types{integer},
     category  => 'network',
   },
@@ -2621,7 +2669,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_EVENT_SORT_FIELD',
-    default     => 'StartDateTime',
+    default     => 'StartTime',
     description => 'Default field the event lists are sorted by',
     help        => q`
       Events in lists can be initially ordered in any way you want.
@@ -2633,7 +2681,7 @@ our @options = (
       `,
     type        => {
       db_type     =>'string',
-      hint        =>'Id|Name|Cause|DiskSpace|MonitorName|StartDateTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore',
+      hint        =>'Id|Name|Cause|DiskSpace|MonitorName|StartTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore',
       pattern     =>qr|.|,
       format      =>q( $1 )
     },
@@ -2718,6 +2766,19 @@ our @options = (
       be used and height ignored.
       `,
     type        => $types{integer},
+    requires    => [ { name => 'ZM_WEB_LIST_THUMBS', value => 'yes' } ],
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_WEB_ANIMATE_THUMBS',
+    default     => 'yes',
+    description => 'Enlarge and show the live stream when a thumbnail is hovered over',
+    help        => q`
+      Enabling this option causes the static thumbnail, shown on certain
+      views, to enlarge and show the live stream, when the thumbnail is
+      hovered over by the mouse.
+      `,
+    type        => $types{boolean},
     requires    => [ { name => 'ZM_WEB_LIST_THUMBS', value => 'yes' } ],
     category    => 'web',
   },
@@ -3739,6 +3800,14 @@ our @options = (
     help        => 'This tries to lessen the load of recording diag images by sending them to a memory FIFO pipe instead of creating each file.',
     type        => $types{boolean},
     category    => 'logging',
+  },
+  {
+    name        => 'ZM_FONT_FILE_LOCATION',
+    default     => '@ZM_FONTDIR@/default.zmfnt',
+    description => 'Font file location',
+    help        => 'This font is used for timestamp labels.',
+    type        => $types{string},
+    category    => 'config',
   },
 );
 

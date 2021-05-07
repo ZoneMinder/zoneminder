@@ -32,6 +32,7 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Storage;
 require ZoneMinder::Frame;
+require ZoneMinder::Monitor;
 require Date::Manip;
 require File::Find;
 require File::Path;
@@ -41,7 +42,7 @@ require Number::Bytes::Human;
 require Date::Parse;
 require POSIX;
 use Date::Format qw(time2str);
-use Time::HiRes qw(gettimeofday tv_interval);
+use Time::HiRes qw(gettimeofday tv_interval stat);
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -68,8 +69,8 @@ $serial = $primary_key = 'Id';
   SecondaryStorageId
   Name
   Cause
-  StartTime
-  EndTime
+  StartDateTime
+  EndDateTime
   Width
   Height
   Length
@@ -111,8 +112,8 @@ sub Time {
     $_[0]{Time} = $_[1];
   }
   if ( ! defined $_[0]{Time} ) {
-    if ( $_[0]{StartTime} ) {
-      $_[0]{Time} = Date::Parse::str2time( $_[0]{StartTime} );
+    if ( $_[0]{StartDateTime} ) {
+      $_[0]{Time} = Date::Parse::str2time( $_[0]{StartDateTime} );
     }
   }
   return $_[0]{Time};
@@ -349,6 +350,10 @@ sub GenerateVideo {
   return;
 } # end sub GenerateVideo
 
+# Note about transactions, this function may be called with rows locked and hence in a transaction.
+# So we will detect if we are in a transaction, and if not, start one.  We will NOT do rollback or 
+# commits unless we started the transaction.
+
 sub delete {
   my $event = $_[0];
 
@@ -360,11 +365,11 @@ sub delete {
   my $in_zmaudit = ( $0 =~ 'zmaudit.pl$');
 
   if ( ! $in_zmaudit ) {
-    if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartTime} ) ) {
+    if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartDateTime} ) ) {
       # zmfilter shouldn't delete anything in an odd situation. zmaudit will though.
       my ( $caller, undef, $line ) = caller;
-      Warning("$0 Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:".
-        (defined($event->{StartTime})?$event->{StartTime}:'undef')." from $caller:$line");
+      Warning("$0 Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartDateTime:".
+        (defined($event->{StartDateTime})?$event->{StartDateTime}:'undef')." from $caller:$line");
       return;
     }
     if ( !($event->Storage()->Path() and -e $event->Storage()->Path()) ) {
@@ -375,26 +380,28 @@ sub delete {
 
   if ( $$event{Id} ) {
     # Need to have an event Id if we are to delete from the db.  
-    Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from ".$event->Path());
+    Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartDateTime:$event->{StartDateTime} from ".$event->Path());
     $ZoneMinder::Database::dbh->ping();
 
-    $ZoneMinder::Database::dbh->begin_work();
-    #$event->lock_and_load();
+    my $in_transaction = $ZoneMinder::Database::dbh->{AutoCommit} ? 0 : 1;
 
-    ZoneMinder::Database::zmDbDo('DELETE FROM Frames WHERE EventId=?', $$event{Id});
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit();
-      return;
-    }
+    $ZoneMinder::Database::dbh->begin_work() if ! $in_transaction;
+
+    # Going to delete in order of least value to greatest value. Stats is least and references Frames
     ZoneMinder::Database::zmDbDo('DELETE FROM Stats WHERE EventId=?', $$event{Id});
     if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit();
+      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
+      return;
+    }
+    ZoneMinder::Database::zmDbDo('DELETE FROM Frames WHERE EventId=?', $$event{Id});
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
       return;
     }
 
     # Do it individually to avoid locking up the table for new events
     ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
-    $ZoneMinder::Database::dbh->commit();
+    $ZoneMinder::Database::dbh->commit() if ! $in_transaction;
   }
 
   if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {
@@ -785,44 +792,50 @@ sub recover_timestamps {
     return;
   }
   my @contents = readdir(DIR);
-  Debug('Have ' . @contents . " files in $path");
+  Debug('Have ' . @contents . ' files in '.$path);
   closedir(DIR);
 
-  my @mp4_files = grep( /^\d+\-video\.mp4$/, @contents);
+  my @mp4_files = grep(/^\d+\-video\.mp4$/, @contents);
   if ( @mp4_files ) {
     $$Event{DefaultVideo} = $mp4_files[0];
   }
 
-  my @analyse_jpgs = grep( /^\d+\-analyse\.jpg$/, @contents);
+  my @analyse_jpgs = grep(/^\d+\-analyse\.jpg$/, @contents);
   if ( @analyse_jpgs ) {
-    $$Event{Save_JPEGs} |= 2;
+    $$Event{SaveJPEGs} |= 2;
   }
 
-  my @capture_jpgs = grep( /^\d+\-capture\.jpg$/, @contents);
+  my @capture_jpgs = grep(/^\d+\-capture\.jpg$/, @contents);
   if ( @capture_jpgs ) {
     $$Event{Frames} = scalar @capture_jpgs;
-    $$Event{Save_JPEGs} |= 1;
+    $$Event{SaveJPEGs} |= 1;
     # can get start and end times from stat'ing first and last jpg
     @capture_jpgs = sort { $a cmp $b } @capture_jpgs;
     my $first_file = "$path/$capture_jpgs[0]";
     ( $first_file ) = $first_file =~ /^(.*)$/;
     my $first_timestamp = (stat($first_file))[9];
 
-    my $last_file = "$path/$capture_jpgs[@capture_jpgs-1]";
+    my $last_file = $path.'/'.$capture_jpgs[@capture_jpgs-1];
     ( $last_file ) = $last_file =~ /^(.*)$/;
     my $last_timestamp = (stat($last_file))[9];
 
     my $duration = $last_timestamp - $first_timestamp;
     $Event->Length($duration);
-    $Event->StartTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
-    $Event->EndTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $last_timestamp) );
-    Debug("From capture Jpegs have duration $duration = $last_timestamp - $first_timestamp : $$Event{StartTime} to $$Event{EndTime}");
+    $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
+    if ( $Event->Scheme() eq 'Deep' and $Event->RelativePath(undef) and ($path ne $Event->Path(undef)) ) {
+      my ( $year, $month, $day, $hour, $minute, $second ) =
+      ($path =~ /(\d{2})\/(\d{2})\/(\d{2})\/(\d{2})\/(\d{2})\/(\d{2})$/);
+      Error("Updating starttime to $path $year/$month/$day $hour:$minute:$second");
+      $Event->StartDateTime(sprintf('%.4d-%.2d-%.2d %.2d:%.2d:%.2d', 2000+$year, $month, $day, $hour, $minute, $second));
+    }
+    $Event->EndDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $last_timestamp) );
+    Debug("From capture Jpegs have duration $duration = $last_timestamp - $first_timestamp : $$Event{StartDateTime} to $$Event{EndDateTime}");
     $ZoneMinder::Database::dbh->begin_work();
     foreach my $jpg ( @capture_jpgs ) {
       my ( $id ) = $jpg =~ /^(\d+)\-capture\.jpg$/;
 
-      if ( ! ZoneMinder::Frame->find_one( EventId=>$$Event{Id}, FrameId=>$id ) ) {
-        my $file = "$path/$jpg";
+      if ( ! ZoneMinder::Frame->find_one(EventId=>$$Event{Id}, FrameId=>$id) ) {
+        my $file = $path.'/'.$jpg;
         ( $file ) = $file =~ /^(.*)$/;
         my $timestamp = (stat($file))[9];
         my $Frame = new ZoneMinder::Frame();
@@ -833,11 +846,11 @@ sub recover_timestamps {
             Type=>'Normal',
             Score=>0,
           });
-      }
-    }
+      } # end if Frame not found
+    } # end foreach capture jpg
     $ZoneMinder::Database::dbh->commit();
   } elsif ( @mp4_files ) {
-    my $file = "$path/$mp4_files[0]";
+    my $file = $path.'/'.$mp4_files[0];
     ( $file ) = $file =~ /^(.*)$/;
 
     my $first_timestamp = (stat($file))[9];
@@ -852,8 +865,8 @@ sub recover_timestamps {
       }
     my $seconds = ($h*60*60)+($m*60)+$s;
     $Event->Length($seconds.'.'.$u);
-    $Event->StartTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
-    $Event->EndTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp+$seconds) );
+    $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
+    $Event->EndDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp+$seconds) );
   }
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);
@@ -902,6 +915,15 @@ sub canEdit {
   }
   return 0;
 } # end sub canEdit
+
+sub Monitor {
+  my $self = shift;
+  $$self{Monitor} = shift if @_;
+  if ( !$$self{Monitor} ) {
+    $$self{Monitor} = new ZoneMinder::Monitor($$self{MonitorId});
+  }
+  return $$self{Monitor};
+}
 
 1;
 __END__

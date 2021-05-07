@@ -7,12 +7,12 @@
 
 # Display a message to show the RHEL build options are being processed.
 if(ZM_TARGET_DISTRO MATCHES "^el")
-    message([STATUS] "Starting RHEL Build Options" ...)
+  message([STATUS] "Starting RHEL Build Options" ...)
 elseif(ZM_TARGET_DISTRO MATCHES "^fc")
-    message([STATUS] "Starting Fedora Build Options" ...)
-else(ZM_TARGET_DISTRO MATCHES "^el")
-    message([WARNING] "Unknown Build Option Detected" ...)
-endif(ZM_TARGET_DISTRO MATCHES "^el")
+  message([STATUS] "Starting Fedora Build Options" ...)
+else()
+  message([WARNING] "Unknown Build Option Detected" ...)
+endif()
 
 #
 # CONFIGURE STAGE

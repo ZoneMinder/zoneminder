@@ -51,7 +51,7 @@ This screen is called the "console" screen in ZoneMinder and shows a summary of 
 
 * **A**: The options menu lets you configure many aspects of ZoneMinder. Refer to :doc:`options`.
 * **B**: This brings up a color coded log window that shows various system and component level logs. This window is useful if you are trying to diagnose issues. Refer to :doc:`logging`.
-* **C**: ZoneMinder allows you to group monitors gor logical separation. This option lets you create new groups, associate monitors to them and edit/delete existing groups.
+* **C**: ZoneMinder allows you to group monitors for logical separation. This option lets you create new groups, associate monitors to them and edit/delete existing groups.
 * **D**: Filters are a powerful mechanism to perform actions when certain conditions are met. ZoneMinder comes with some preset filters that keep a tab of disk space and others. Many users create their own filters for more advanced actions like sending emails when certain events occur and more. Refer to :doc:`filterevents`.
 * **E**: The Cycle option allows you to rotate between live views of each cofigured monitor.
 * **F**: The Montage option shows a collage of your monitors. You can customize them including moving them around.

@@ -1,15 +1,13 @@
-
-var probeReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getProbeResponse} );
+var ProbeResults;
 
 function probe( url_e ) {
-  probeReq.send( "request=add_monitors&action=probe&url="+url_e.value );
+  $j.getJSON(thisUrl + '?view=request&request=add_monitors&action=probe&url=' + url_e.value)
+      .done(getProbeResponse)
+      .fail(logAjaxFail);
 }
-
-var ProbeResults;
 
 function getProbeResponse( respObj, respText ) {
   if ( checkStreamForErrors( "getProbeResponse", respObj ) ) {
-    console.log(respText);
     return;
   }
 
@@ -66,7 +64,7 @@ function addMonitor(url) {
   var Monitor = Stream.Monitor;
 
   var mid = Monitor.Id ? Monitor.Id : '';
-  popup_url = '?view=monitor&mid='+mid+'&newMonitor[Path]='+url;
+  urlString = '?view=monitor&mid='+mid+'&newMonitor[Path]='+url;
   keys = Object.keys( Monitor );
   for ( i in Monitor ) {
     if ( ! Monitor[i] ) {
@@ -75,15 +73,14 @@ function addMonitor(url) {
     if ( Monitor[i] == 'null' ) {
       Monitor[i]='';
     }
-    popup_url += '&newMonitor['+i+']='+Monitor[i];
+    urlString += '&newMonitor['+i+']='+Monitor[i];
   }
-  createPopup( popup_url, 'zmMonitor'+mid, 'monitor' );
+  window.location.assign( urlString );
 }
 
 function import_csv( form ) {
   var formData = new FormData( form );
   console.log(formData);
-  //formData.append('file', $('#file')[0].files[0]);
 
   $j.ajax({
     url: thisUrl+"?request=add_monitors&action=import",
@@ -91,16 +88,19 @@ function import_csv( form ) {
     data: formData,
     processData: false, // tell jQuery not to process the data
     contentType: false, // tell jQuery not to set contentType
-    success: function(data) {
+    done: function(data) {
       var json = JSON.parse(data);
       parseStreams( json.Streams );
     }
   });
 }
+
 function initPage() {
-  url = $j('#Url')[0];
+  var url = $j('#Url')[0];
+
   if ( url.value ) {
     probe(url);
   }
 }
-window.addEventListener( 'DOMContentLoaded', initPage );
+
+$j(document).ready(initPage);

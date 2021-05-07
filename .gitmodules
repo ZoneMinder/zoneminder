@@ -1,7 +1,10 @@
 [submodule "web/api/app/Plugin/Crud"]
 	path = web/api/app/Plugin/Crud
-	url = https://github.com/ZoneMinder/crud.git
+	url = https://github.com/FriendsOfCake/crud.git
 	branch = 3.0
 [submodule "web/api/app/Plugin/CakePHP-Enum-Behavior"]
 	path = web/api/app/Plugin/CakePHP-Enum-Behavior
-	url = https://github.com/ZoneMinder/CakePHP-Enum-Behavior.git
+	Url = https://github.com/ZoneMinder/CakePHP-Enum-Behavior.git
+[submodule "dep/RtspServer"]
+	path = dep/RtspServer
+	url = https://github.com/ZoneMinder/RtspServer

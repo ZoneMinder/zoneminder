@@ -68,6 +68,7 @@
 #cmakedefine HAVE_MP4V2_H 1
 #cmakedefine HAVE_MP4V2_MP4V2_H 1
 #cmakedefine HAVE_LIBJWT 1
+#cmakedefine HAVE_RTSP_SERVER 1
 
 /* Authenication checks */
 #cmakedefine HAVE_MD5_OPENSSL 1

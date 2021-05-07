@@ -764,8 +764,6 @@ class Shell extends CakeObject {
  * @link https://book.cakephp.org/2.0/en/console-and-shells.html#Shell::createFile
  */
 	public function createFile($path, $contents) {
-		$path = str_replace(DS . DS, DS, $path);
-
 		$this->out();
 
 		if (is_file($path) && empty($this->params['force']) && $this->interactive === true) {
@@ -808,12 +806,12 @@ class Shell extends CakeObject {
 			return $this->_helpers[$name];
 		}
 		list($plugin, $helperClassName) = pluginSplit($name, true);
-		$helperClassName = Inflector::camelize($name) . "ShellHelper";
-		App::uses($helperClassName, $plugin . "Console/Helper");
-		if (!class_exists($helperClassName)) {
+		$helperClassNameShellHelper = Inflector::camelize($helperClassName) . "ShellHelper";
+		App::uses($helperClassNameShellHelper, $plugin . "Console/Helper");
+		if (!class_exists($helperClassNameShellHelper)) {
 			throw new RuntimeException("Class " . $helperClassName . " not found");
 		}
-		$helper = new $helperClassName($this->stdout);
+		$helper = new $helperClassNameShellHelper($this->stdout);
 		$this->_helpers[$name] = $helper;
 		return $helper;
 	}

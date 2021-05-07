@@ -42,10 +42,7 @@ if ( $action == 'delete' ) {
 
     foreach ( $monitors_to_restart as $mid => $monitor ) {
       if ( daemonCheck() and ($monitor->Type() != 'WebSite') ) {
-        zmaControl($mid, 'stop');
-        if ( $monitor->Type() == 'Privacy' )
-          zmcControl($mid, 'restart');
-        zmaControl($mid, 'start');
+        zmcControl($mid, 'restart');
       } // end if daemonCheck()
     }
     $refreshParent = true;

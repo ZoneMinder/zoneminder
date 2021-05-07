@@ -128,9 +128,9 @@ $chart = array(
 $monitors = array();
 
 # The as E, and joining with Monitors is required for the filterSQL filters.
-$rangeSql = 'SELECT min(E.StartTime) AS MinTime, max(E.EndTime) AS MaxTime FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(E.StartTime) AND NOT isnull(E.EndTime)';
-$eventsSql = 'SELECT E.* FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartTime)';
-$eventIdsSql = 'SELECT E.Id FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartTime)';
+$rangeSql = 'SELECT min(E.StartDateTime) AS MinTime, max(E.EndDateTime) AS MaxTime FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(E.StartDateTime) AND NOT isnull(E.EndDateTime)';
+$eventsSql = 'SELECT E.* FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartDateTime)';
+$eventIdsSql = 'SELECT E.Id FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartDateTime)';
 $eventsValues = array();
 
 if ( !empty($user['MonitorIds']) ) {
@@ -142,8 +142,10 @@ if ( !empty($user['MonitorIds']) ) {
 }
 
 $tree = false;
-if ( isset($_REQUEST['filter']) )
-  $tree = parseFilterToTree($_REQUEST['filter']['Query']);
+if ( isset($_REQUEST['filter']) ) {
+  $filter =  ZM\Filter::parse($_REQUEST['filter']);
+  $tree = $filter->tree();
+}
 
 if ( isset($_REQUEST['range']) )
   $range = validHtmlStr($_REQUEST['range']);
@@ -193,9 +195,8 @@ if ( isset($minTime) && isset($maxTime) ) {
   $filterSql = parseTreeToSQL($tree);
 
   if ( $filterSql ) {
-    $filterSql = " AND $filterSql";
-    $eventsSql .= $filterSql;
-    $eventIdsSql .= $filterSql;
+    $eventsSql .= ' AND '.$filterSql;
+    $eventIdsSql .= ' AND '.$filterSql;
   }
 } else {
   $filterSql = parseTreeToSQL($tree);
@@ -203,10 +204,9 @@ if ( isset($minTime) && isset($maxTime) ) {
   extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
 
   if ( $filterSql ) {
-    $filterSql = " AND $filterSql";
-    $rangeSql .= $filterSql;
-    $eventsSql .= $filterSql;
-    $eventIdsSql .= $filterSql;
+    $rangeSql .= ' AND '.$filterSql;
+    $eventsSql .= ' AND '.$filterSql;
+    $eventIdsSql .= ' AND '.$filterSql;
   }
 
   if ( !isset($minTime) || !isset($maxTime) ) {
@@ -217,8 +217,6 @@ if ( isset($minTime) && isset($maxTime) ) {
         $minTime = $row['MinTime'];
       if ( !isset($maxTime) )
         $maxTime = $row['MaxTime'];
-    } else {
-      # Errors will be reported by db functions
     }
   }
 
@@ -234,10 +232,9 @@ if ( isset($minTime) && isset($maxTime) ) {
   $range = ($maxTimeT - $minTimeT) + 1;
   $halfRange = (int)($range/2);
   $midTimeT = $minTimeT + $halfRange;
-  $midTime = strftime( STRF_FMT_DATETIME_DB, $midTimeT );
+  $midTime = strftime(STRF_FMT_DATETIME_DB, $midTimeT);
 }
 
-//echo "MnT: $tempMinTime, MxT: $tempMaxTime, ExP: $tempExpandable<br>";
 if ( $tree ) {
   appendDatetimeRange($tree, $minTime, $maxTime);
 
@@ -274,8 +271,8 @@ $midTimeT = $minTimeT + $halfRange;
 $midTime = strftime(STRF_FMT_DATETIME_DB, $midTimeT);
 
 if ( isset($minTime) && isset($maxTime) ) {
-  $eventsSql .= " AND EndTime >= '$minTime' AND StartTime <= '$maxTime'";
-  $eventIdsSql .= " AND EndTime >= '$minTime' AND StartTime <= '$maxTime'";
+  $eventsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
+  $eventIdsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
 }
 
 if ( 0 ) {
@@ -329,13 +326,13 @@ while( $event = $events_result->fetch(PDO::FETCH_ASSOC) ) {
   $currEventSlots = &$monEventSlots[$event['MonitorId']];
   $currFrameSlots = &$monFrameSlots[$event['MonitorId']];
 
-  $startTimeT = strtotime($event['StartTime']);
+  $startTimeT = strtotime($event['StartDateTime']);
   $startIndex = $rawStartIndex = (int)(($startTimeT - $chart['data']['x']['lo']) / $chart['data']['x']['density']);
   if ( $startIndex < 0 )
     $startIndex = 0;
 
-  if ( isset($event['EndTime']) )
-    $endTimeT = strtotime($event['EndTime']);
+  if ( isset($event['EndDateTime']) )
+    $endTimeT = strtotime($event['EndDateTime']);
   else
     $endTimeT = time();
   $endIndex = $rawEndIndex = (int)(($endTimeT - $chart['data']['x']['lo']) / $chart['data']['x']['density']);
@@ -497,7 +494,7 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
   } # end foreach MonitorId
 }  # end foreach x
 
-//ZM\Logger::Debug(print_r( $monEventSlots,true ));
+//ZM\Debug(print_r( $monEventSlots,true ));
 //print_r( $monFrameSlots );
 //print_r( $chart );
 
@@ -739,7 +736,7 @@ function drawSlot($slot,$index) {
 if ( $mode == 'overlay' ) {
   echo drawYGrid( $chart, $majYScale, 'majLabelY', 'majTickY', 'majGridY graphWidth' );
 }
-echo drawXGrid( $chart, $majXScale, 'majLabelX', 'majTickX', 'majGridX graphHeight', 'zoom graphHeight' );
+echo drawXGrid( $chart, $majXScale, 'majLabelX', 'majTickX', 'majGridX graphHeight', 'tlzoom graphHeight' );
 if ( $mode == 'overlay' ) {
 ?>
           <div id="activity" class="activitySize">

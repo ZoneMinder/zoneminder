@@ -17,12 +17,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <dlfcn.h>
-#include "zm.h"
-
 #include "zm_curl_camera.h"
 
-#include "zm_packetqueue.h"
+#include "zm_packet.h"
+#include <dlfcn.h>
 
 #if HAVE_LIBCURL
 
@@ -48,15 +46,19 @@ size_t content_type_match_len;
 
 void bind_libcurl_symbols() {
 
-  if(curl_lib)
+  if (curl_lib)
     return;
 
   curl_lib = dlopen("libcurl.so", RTLD_LAZY | RTLD_GLOBAL);
-  if(!curl_lib)
-    curl_lib = dlopen("libcurl-gnutls.so.4", RTLD_LAZY | RTLD_GLOBAL);
   if (!curl_lib) {
-    Error("Could not load libcurl: %s", dlerror());
-    return;
+    curl_lib = dlopen("libcurl.so.4", RTLD_LAZY | RTLD_GLOBAL);
+    if (!curl_lib) {
+      curl_lib = dlopen("libcurl-gnutls.so.4", RTLD_LAZY | RTLD_GLOBAL);
+      if (!curl_lib) {
+        Error("Could not load libcurl: %s", dlerror());
+        return;
+      }
+    }
   }
 
   // Load up all required symbols here
@@ -71,8 +73,8 @@ void bind_libcurl_symbols() {
   *(void**) (&curl_easy_cleanup_f) = dlsym(curl_lib, "curl_easy_cleanup");
 }
 
-cURLCamera::cURLCamera( int p_id, const std::string &p_path, const std::string &p_user, const std::string &p_pass, unsigned int p_width, unsigned int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
-  Camera( p_id, CURL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
+cURLCamera::cURLCamera( const Monitor* monitor, const std::string &p_path, const std::string &p_user, const std::string &p_pass, unsigned int p_width, unsigned int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
+  Camera( monitor, CURL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
   mPath( p_path ), mUser( p_user ), mPass ( p_pass ), bTerminate( false ), bReset( false ), mode ( MODE_UNSET )
 {
 
@@ -98,7 +100,7 @@ void cURLCamera::Initialise() {
   /* cURL initialization */
   CURLcode cRet = (*curl_global_init_f)(CURL_GLOBAL_ALL);
   if(cRet != CURLE_OK) {
-    Error("libcurl initialization failed: ", (*curl_easy_strerror_f)(cRet));
+    Error("libcurl initialization failed: %s", (*curl_easy_strerror_f)(cRet));
     dlclose(curl_lib);
     return;
   }
@@ -163,7 +165,7 @@ int cURLCamera::PreCapture() {
     return( 0 );
 }
 
-int cURLCamera::Capture( Image &image ) {
+int cURLCamera::Capture( ZMPacket &zm_packet ) {
   bool frameComplete = false;
 
   /* MODE_STREAM specific variables */
@@ -192,7 +194,7 @@ int cURLCamera::Capture( Image &image ) {
       nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
       if ( nRet != 0 ) {
         Error("Failed waiting for available data condition variable: %s",strerror(nRet));
-        return -20;
+        return -1;
       }
     }
 
@@ -212,7 +214,7 @@ int cURLCamera::Capture( Image &image ) {
         }
      
         /* Find crlf start */
-        crlf_start = memcspn(databuffer,"\r\n",databuffer.size());
+        crlf_start = memcspn(reinterpret_cast<const char *>(databuffer.head()),"\r\n",databuffer.size());
         if ( crlf_start == databuffer.size() ) {
           /* Not found, wait for more data */
           need_more_data = true;
@@ -295,7 +297,7 @@ int cURLCamera::Capture( Image &image ) {
           need_more_data = true;
         } else {
           /* All good. decode the image */
-          image.DecodeJpeg(databuffer.extract(frame_content_length), frame_content_length, colours, subpixelorder);
+          zm_packet.image->DecodeJpeg(databuffer.extract(frame_content_length), frame_content_length, colours, subpixelorder);
           frameComplete = true;
         }
       }
@@ -305,7 +307,7 @@ int cURLCamera::Capture( Image &image ) {
         nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
         if(nRet != 0) {
           Error("Failed waiting for available data condition variable: %s",strerror(nRet));
-          return -18;
+          return -1;
         }
         need_more_data = false;
       }
@@ -315,7 +317,7 @@ int cURLCamera::Capture( Image &image ) {
       if (!single_offsets.empty()) {
         if( (single_offsets.front() > 0) && (databuffer.size() >= single_offsets.front()) ) {
           /* Extract frame */
-          image.DecodeJpeg(databuffer.extract(single_offsets.front()), single_offsets.front(), colours, subpixelorder);
+          zm_packet.image->DecodeJpeg(databuffer.extract(single_offsets.front()), single_offsets.front(), colours, subpixelorder);
           single_offsets.pop_front();
           frameComplete = true;
         } else {
@@ -329,7 +331,7 @@ int cURLCamera::Capture( Image &image ) {
         nRet = pthread_cond_wait(&request_complete_cond,&shareddata_mutex);
         if(nRet != 0) {
           Error("Failed waiting for request complete condition variable: %s",strerror(nRet));
-          return -19;
+          return -1;
         }
       }
     } else {
@@ -344,7 +346,7 @@ int cURLCamera::Capture( Image &image ) {
   unlock();
 
   if(!frameComplete)
-    return -1;
+    return 0;
 
   return 1;
 }
@@ -352,12 +354,6 @@ int cURLCamera::Capture( Image &image ) {
 int cURLCamera::PostCapture() {
     // Nothing to do here
     return( 0 );
-}
-
-int cURLCamera::CaptureAndRecord( Image &image, struct timeval recording, char* event_directory ) {
-  Error("Capture and Record not implemented for the cURL camera type");
-  // Nothing to do here
-  return( 0 );
 }
 
 size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *userdata) {
@@ -436,7 +432,7 @@ void* cURLCamera::thread_func() {
   /* Set URL */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_URL, mPath.c_str());
   if(cRet != CURLE_OK) {
-    Error("Failed setting libcurl URL: %s", *(curl_easy_strerror_f)(cRet));
+    Error("Failed setting libcurl URL: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -52;
     return (void*)tRet;
   }
@@ -472,7 +468,7 @@ void* cURLCamera::thread_func() {
   /* Progress callback */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_NOPROGRESS, 0);
   if(cRet != CURLE_OK) {
-    Error("Failed enabling libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));  
+    Error("Failed enabling libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -57;
     return (void*)tRet;
   }

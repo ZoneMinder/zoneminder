@@ -17,20 +17,16 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#include "zm.h"
-
-#if HAVE_LIBAVFORMAT
-
 #include "zm_rtsp.h"
 
+#include "zm_config.h"
 #include "zm_rtp_data.h"
 #include "zm_rtp_ctrl.h"
 #include "zm_db.h"
 
-#include <sys/time.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <errno.h>
+#include <algorithm>
+
+#if HAVE_LIBAVFORMAT
 
 int RtspThread::smMinDataPort = 0;
 int RtspThread::smMaxDataPort = 0;
@@ -38,7 +34,7 @@ RtspThread::PortSet RtspThread::smAssignedPorts;
 
 bool RtspThread::sendCommand(std::string message) {
   if ( mNeedAuth ) {
-    StringVector parts = split(message, " ");
+    StringVector parts = Split(message, " ");
     if ( parts.size() > 1 )
       message += mAuthenticator->getAuthHeader(parts[0], parts[1]);
   }
@@ -46,7 +42,7 @@ bool RtspThread::sendCommand(std::string message) {
   message += stringtf("CSeq: %d\r\n\r\n", ++mSeq);
   Debug(2, "Sending RTSP message: %s", message.c_str());
   if ( mMethod == RTP_RTSP_HTTP ) {
-    message = base64Encode(message);
+    message = Base64Encode(message);
     Debug(2, "Sending encoded RTSP message: %s", message.c_str());
     if ( mRtspSocket2.send(message.c_str(), message.size()) != (int)message.length() ) {
       Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
@@ -74,7 +70,7 @@ bool RtspThread::recvResponse(std::string &response) {
     } else {
       Error("Response parse failure, %zd bytes follow", response.size());
       if ( response.size() )
-        Hexdump(Logger::ERROR, response.data(), min(response.size(),16));
+        Hexdump(Logger::ERROR, response.data(), std::min(int(response.size()), 16));
     }
     return false;
   }
@@ -95,16 +91,9 @@ int RtspThread::requestPorts() {
     char sql[ZM_SQL_SML_BUFSIZ];
     //FIXME Why not load specifically by Id?  This will get ineffeicient with a lot of monitors
     strncpy(sql, "SELECT `Id` FROM `Monitors` WHERE `Function` != 'None' AND `Type` = 'Remote' AND `Protocol` = 'rtsp' AND `Method` = 'rtpUni' ORDER BY `Id` ASC", sizeof(sql));
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't run query: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
-    }
 
-    MYSQL_RES *result = mysql_store_result(&dbconn);
-    if ( !result ) {
-      Error("Can't use query result: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
-    }
+    MYSQL_RES *result = zmDbFetch(sql);
+
     int nMonitors = mysql_num_rows(result);
     int position = 0;
     if ( nMonitors ) {
@@ -165,7 +154,7 @@ RtspThread::RtspThread(
   mSsrc(0),
   mDist(UNDEFINED),
   mRtpTime(0),
-  mStop(false)
+  mTerminate(false)
 {
   mUrl = mProtocol+"://"+mHost+":"+mPort;
   if ( !mPath.empty() ) {
@@ -183,15 +172,21 @@ RtspThread::RtspThread(
     mHttpSession = stringtf("%d", rand());
   
   mNeedAuth = false;
-  StringVector parts = split(auth, ":");
-  Debug(2, "# of auth parts %d", parts.size());
+  StringVector parts = Split(auth, ":");
+  Debug(2, "# of auth parts %zu", parts.size());
   if ( parts.size() > 1 ) 
     mAuthenticator = new zm::Authenticator(parts[0], parts[1]);
   else
     mAuthenticator = new zm::Authenticator(parts[0], "");
+
+  mThread = std::thread(&RtspThread::Run, this);
 }
 
 RtspThread::~RtspThread() {
+  Stop();
+  if (mThread.joinable())
+    mThread.join();
+
   if ( mFormatContext ) {
 #if LIBAVFORMAT_VERSION_CHECK(52, 96, 0, 96, 0)
     avformat_free_context(mFormatContext);
@@ -208,7 +203,7 @@ RtspThread::~RtspThread() {
   mAuthenticator = nullptr;
 }
 
-int RtspThread::run() {
+void RtspThread::Run() {
   std::string message;
   std::string response;
 
@@ -250,11 +245,11 @@ int RtspThread::run() {
       Debug(2, "Sending HTTP message: %s", message.c_str());
       if ( mRtspSocket.send(message.c_str(), message.size()) != (int)message.length() ) {
         Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
-        return -1;
+        return;
       }
       if ( mRtspSocket.recv(response) < 0 ) {
         Error("Recv failed; %s", strerror(errno));
-        return -1;
+        return;
       }
     
       Debug(2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size());
@@ -266,9 +261,9 @@ int RtspThread::run() {
         } else {
           Error("Response parse failure, %zd bytes follow", response.size());
           if ( response.size() )
-            Hexdump(Logger::ERROR, response.data(), min(response.size(),16));
+            Hexdump(Logger::ERROR, response.data(), std::min(int(response.size()), 16));
         }
-        return -1;
+        return;
       }
       // If Server requests authentication, check WWW-Authenticate header and fill required fields
       // for requested authentication method
@@ -286,7 +281,7 @@ int RtspThread::run() {
     
     if ( respCode != 200 ) {
       Error("Unexpected response code %d, text is '%s'", respCode, respText);
-      return -1;
+      return;
     }
 
     message = "POST "+mPath+" HTTP/1.0\r\n";
@@ -299,7 +294,7 @@ int RtspThread::run() {
     Debug(2, "Sending HTTP message: %s", message.c_str());
     if ( mRtspSocket2.send(message.c_str(), message.size()) != (int)message.length() ) {
       Error("Unable to send message '%s': %s", message.c_str(), strerror(errno));
-      return -1;
+      return;
     }
   }  // end if ( mMethod == RTP_RTSP_HTTP )
 
@@ -309,23 +304,23 @@ int RtspThread::run() {
   // Request supported RTSP commands by the server
   message = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
   if ( !sendCommand(message) )
-    return -1;
+    return;
 
   // A negative return here may indicate auth failure, but we will have setup the auth mechanisms so we need to retry.
   if ( !recvResponse(response) ) {
     if ( mNeedAuth ) {
       Debug(2, "Resending OPTIONS due to possible auth requirement");
       if ( !sendCommand(message) )
-        return -1;
+        return;
       if ( !recvResponse(response) )
-        return -1;
+        return;
     } else {
-      return -1;
+      return;
     }
   } // end if failed response maybe due to auth
 
   char publicLine[256] = "";
-  StringVector lines = split(response, "\r\n");
+  StringVector lines = Split(response, "\r\n");
   for ( size_t i = 0; i < lines.size(); i++ )
     sscanf(lines[i].c_str(), "Public: %[^\r\n]\r\n", publicLine);
 
@@ -351,17 +346,17 @@ int RtspThread::run() {
   const std::string endOfHeaders = "\r\n\r\n";
   size_t sdpStart = response.find(endOfHeaders);
   if ( sdpStart == std::string::npos )
-    return -1;
+    return;
 
   if ( mRtspDescribe ) {
     std::string DescHeader = response.substr(0, sdpStart);
     Debug(1, "Processing DESCRIBE response header '%s'", DescHeader.c_str());
 
-    lines = split(DescHeader, "\r\n");
+    lines = Split(DescHeader, "\r\n");
     for ( size_t i = 0; i < lines.size(); i++ ) {
       // If the device sends us a url value for Content-Base in the response header, we should use that instead
       if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) ) {
-        mUrl = trimSpaces( lines[i].substr( 13 ) );
+        mUrl = TrimSpaces(lines[i].substr(13));
         Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
         break;
       }
@@ -376,9 +371,9 @@ int RtspThread::run() {
   try {
     mSessDesc = new SessionDescriptor( mUrl, sdp );
     mFormatContext = mSessDesc->generateFormatContext();
-  } catch( const Exception &e ) {
-    Error( e.getMessage().c_str() );
-    return -1;
+  } catch ( const Exception &e ) {
+    Error("%s", e.getMessage().c_str());
+    return;
   }
 
 #if 0
@@ -402,8 +397,10 @@ int RtspThread::run() {
   
   if ( mFormatContext->nb_streams >= 1 ) {
     for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {
-      SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream( i );
-#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+      SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream(i);
+#if LIBAVFORMAT_VERSION_CHECK(57, 33, 0, 33, 0)
+      if ( mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO )
+#elif (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
       if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
 #else
       if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
@@ -411,113 +408,108 @@ int RtspThread::run() {
       {
         // Check if control Url is absolute or relative
         controlUrl = mediaDesc->getControlUrl();
-        if (std::equal(trackUrl.begin(), trackUrl.end(), controlUrl.begin())) {
+        if (trackUrl == controlUrl) {
           trackUrl = controlUrl;
         } else {
-          if ( *trackUrl.rbegin() != '/') {
+          if ( *trackUrl.rbegin() != '/' ) {
             trackUrl += "/" + controlUrl;
           } else {
             trackUrl += controlUrl;
           }
         }
         rtpClock = mediaDesc->getClock();
+#if LIBAVFORMAT_VERSION_CHECK(57, 33, 0, 33, 0)
+        codecId = mFormatContext->streams[i]->codecpar->codec_id;
+#else
         codecId = mFormatContext->streams[i]->codec->codec_id;
-        // Hackery pokery
-        //rtpClock = mFormatContext->streams[i]->codec->sample_rate;
+#endif
         break;
-      }
-    }
-  }
+      }  // end if is video
+    }  // end foreach stream
+  }  // end if have stream
 
-  switch( mMethod ) {
+  switch ( mMethod ) {
     case RTP_UNICAST :
-    {
       localPorts[0] = requestPorts();
       localPorts[1] = localPorts[0]+1;
 
-      message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;unicast;client_port="+stringtf( "%d", localPorts[0] )+"-"+stringtf( "%d", localPorts[1] )+"\r\n";
+      message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;unicast;client_port="
+        +stringtf("%d", localPorts[0] )+"-"+stringtf( "%d", localPorts[1])+"\r\n";
       break;
-    }
     case RTP_MULTICAST :
-    {
       message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;multicast\r\n";
       break;
-    }
     case RTP_RTSP :
     case RTP_RTSP_HTTP :
-    {
       message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP/TCP;unicast\r\n";
       break;
-    }
     default:
-    {
-      Panic( "Got unexpected method %d", mMethod );
+      Panic("Got unexpected method %d", mMethod);
       break;
-    }
   }
 
-  if ( !sendCommand( message ) )
-    return( -1 );
-  if ( !recvResponse( response ) )
-    return( -1 );
+  if ( !sendCommand(message) )
+    return;
+  if ( !recvResponse(response) )
+    return;
 
-  lines = split( response, "\r\n" );
+  lines = Split(response, "\r\n");
   std::string session;
   int timeout = 0;
   char transport[256] = "";
 
   for ( size_t i = 0; i < lines.size(); i++ ) {
-    if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) ) {
-      StringVector sessionLine = split( lines[i].substr(9), ";" );
-      session = trimSpaces( sessionLine[0] );
+    if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) ) {
+      StringVector sessionLine = Split(lines[i].substr(9), ";");
+      session = TrimSpaces(sessionLine[0]);
       if ( sessionLine.size() == 2 )
-        sscanf( trimSpaces( sessionLine[1] ).c_str(), "timeout=%d", &timeout );
+        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
     }
-    sscanf( lines[i].c_str(), "Transport: %s", transport );
+    sscanf(lines[i].c_str(), "Transport: %s", transport);
   }
 
   if ( session.empty() )
-    Fatal( "Unable to get session identifier from response '%s'", response.c_str() );
+    Fatal("Unable to get session identifier from response '%s'", response.c_str());
 
-  Debug( 2, "Got RTSP session %s, timeout %d secs", session.c_str(), timeout );
+  Debug(2, "Got RTSP session %s, timeout %d secs", session.c_str(), timeout);
 
   if ( !transport[0] )
-    Fatal( "Unable to get transport details from response '%s'", response.c_str() );
+    Fatal("Unable to get transport details from response '%s'", response.c_str());
 
-  Debug( 2, "Got RTSP transport %s", transport );
+  Debug(2, "Got RTSP transport %s", transport);
 
   std::string method = "";
   int remotePorts[2] = { 0, 0 };
   int remoteChannels[2] = { 0, 0 };
   std::string distribution = "";
   unsigned long ssrc = 0;
-  StringVector parts = split( transport, ";" );
+  StringVector parts = Split(transport, ";");
   for ( size_t i = 0; i < parts.size(); i++ ) {
     if ( parts[i] == "unicast" || parts[i] == "multicast" )
       distribution = parts[i];
-    else if ( startsWith( parts[i], "server_port=" ) ) {
+    else if (StartsWith(parts[i], "server_port=") ) {
       method = "RTP/UNICAST";
-      StringVector subparts = split( parts[i], "=" );
-      StringVector ports = split( subparts[1], "-" );
+      StringVector subparts = Split(parts[i], "=");
+      StringVector ports = Split(subparts[1], "-");
       remotePorts[0] = strtol( ports[0].c_str(), nullptr, 10 );
       remotePorts[1] = strtol( ports[1].c_str(), nullptr, 10 );
-    } else if ( startsWith( parts[i], "interleaved=" ) ) {
+    } else if (StartsWith(parts[i], "interleaved=") ) {
       method = "RTP/RTSP";
-      StringVector subparts = split( parts[i], "=" );
-      StringVector channels = split( subparts[1], "-" );
+      StringVector subparts = Split(parts[i], "=");
+      StringVector channels = Split(subparts[1], "-");
       remoteChannels[0] = strtol( channels[0].c_str(), nullptr, 10 );
       remoteChannels[1] = strtol( channels[1].c_str(), nullptr, 10 );
-    } else if ( startsWith( parts[i], "port=" ) ) {
+    } else if (StartsWith(parts[i], "port=") ) {
       method = "RTP/MULTICAST";
-      StringVector subparts = split( parts[i], "=" );
-      StringVector ports = split( subparts[1], "-" );
+      StringVector subparts = Split(parts[i], "=");
+      StringVector ports = Split(subparts[1], "-");
       localPorts[0] = strtol( ports[0].c_str(), nullptr, 10 );
       localPorts[1] = strtol( ports[1].c_str(), nullptr, 10 );
-    } else if ( startsWith( parts[i], "destination=" ) ) {
-      StringVector subparts = split( parts[i], "=" );
+    } else if (StartsWith(parts[i], "destination=") ) {
+      StringVector subparts = Split(parts[i], "=");
       localHost = subparts[1];
-    } else if ( startsWith( parts[i], "ssrc=" ) ) {
-      StringVector subparts = split( parts[i], "=" );
+    } else if (StartsWith(parts[i], "ssrc=") ) {
+      StringVector subparts = Split(parts[i], "=");
       ssrc = strtoll( subparts[1].c_str(), nullptr, 16 );
     }
   }
@@ -531,23 +523,23 @@ int RtspThread::run() {
   Debug( 2, "RTSP Remote Channels are %d/%d", remoteChannels[0], remoteChannels[1] );
 
   message = "PLAY "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\nRange: npt=0.000-\r\n";
-  if ( !sendCommand( message ) )
-    return( -1 );
-  if ( !recvResponse( response ) )
-    return( -1 );
+  if ( !sendCommand(message) )
+    return;
+  if ( !recvResponse(response) )
+    return;
 
-  lines = split( response, "\r\n" );
+  lines = Split(response, "\r\n");
   std::string rtpInfo;
   for ( size_t i = 0; i < lines.size(); i++ ) {
-    if ( ( lines[i].size() > 9 ) && ( lines[i].substr( 0, 9 ) == "RTP-Info:" ) )
-      rtpInfo = trimSpaces( lines[i].substr( 9 ) );
-  // Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
-    if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) && ( timeout == 0 ) ) {
-      StringVector sessionLine = split( lines[i].substr(9), ";" );
+    if ( ( lines[i].size() > 9 ) && ( lines[i].substr(0, 9) == "RTP-Info:" ) )
+      rtpInfo = TrimSpaces(lines[i].substr(9));
+    // Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
+    if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) && ( timeout == 0 ) ) {
+      StringVector sessionLine = Split(lines[i].substr(9), ";");
       if ( sessionLine.size() == 2 )
-        sscanf( trimSpaces( sessionLine[1] ).c_str(), "timeout=%d", &timeout );
+        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
       if ( timeout > 0 )
-        Debug( 2, "Got timeout %d secs from PLAY command response", timeout );
+        Debug(2, "Got timeout %d secs from PLAY command response", timeout);
     }
   }
 
@@ -559,18 +551,18 @@ int RtspThread::run() {
   } else {
     Debug( 2, "Got RTP Info %s", rtpInfo.c_str() );
     // More than one stream can be included in the RTP Info
-    streams = split( rtpInfo.c_str(), "," );
+    streams = Split(rtpInfo.c_str(), ",");
     for ( size_t i = 0; i < streams.size(); i++ ) {
       // We want the stream that matches the trackUrl we are using
       if ( streams[i].find(controlUrl.c_str()) != std::string::npos ) {
         // Parse the sequence and rtptime values
-        parts = split( streams[i].c_str(), ";" );
+        parts = Split(streams[i].c_str(), ";");
         for ( size_t j = 0; j < parts.size(); j++ ) {
-          if ( startsWith( parts[j], "seq=" ) ) {
-            StringVector subparts = split( parts[j], "=" );
+          if (StartsWith(parts[j], "seq=") ) {
+            StringVector subparts = Split(parts[j], "=");
             seq = strtol( subparts[1].c_str(), nullptr, 10 );
-          } else if ( startsWith( parts[j], "rtptime=" ) ) {
-            StringVector subparts = split( parts[j], "=" );
+          } else if (StartsWith(parts[j], "rtptime=") ) {
+            StringVector subparts = Split(parts[j], "=");
             rtpTime = strtol( subparts[1].c_str(), nullptr, 10 );
           }
         }
@@ -594,17 +586,18 @@ int RtspThread::run() {
       RtpDataThread rtpDataThread( *this, *source );
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
-      rtpDataThread.start();
-      rtpCtrlThread.start();
-
-      while( !mStop ) {
+      while (!mTerminate) {
         now = time(nullptr);
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d",
-            sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+        Debug(5, "sendkeepalive %d, timeout %d, now: %" PRIi64 " last: %" PRIi64 " since: %" PRIi64,
+              sendKeepalive,
+              timeout,
+              static_cast<int64>(now),
+              static_cast<int64>(lastKeepalive),
+              static_cast<int64>(now - lastKeepalive));
         if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) ) {
           if ( !sendCommand( message ) )
-            return( -1 );
+            return;
           lastKeepalive = now;
         }
         usleep( 100000 );
@@ -619,19 +612,16 @@ int RtspThread::run() {
 
       message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
       if ( !sendCommand( message ) )
-        return( -1 );
+        return;
       if ( !recvResponse( response ) )
-        return( -1 );
+        return;
 
-      rtpDataThread.stop();
-      rtpCtrlThread.stop();
+      rtpDataThread.Stop();
+      rtpCtrlThread.Stop();
 
       //rtpDataThread.kill( SIGTERM );
       //rtpCtrlThread.kill( SIGTERM );
 
-      rtpDataThread.join();
-      rtpCtrlThread.join();
-     
       delete mSources[ssrc];
       mSources.clear();
 
@@ -648,14 +638,14 @@ int RtspThread::run() {
       RtpDataThread rtpDataThread( *this, *source );
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
-      Select select( double(config.http_timeout)/1000.0 );
+      ZM::Select select( double(config.http_timeout)/1000.0 );
       select.addReader( &mRtspSocket );
 
       Buffer buffer( ZM_NETWORK_BUFSIZ );
       std::string keepaliveMessage = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
       std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
-      while ( !mStop && select.wait() >= 0 ) {
-        Select::CommsList readable = select.getReadable();
+      while (!mTerminate && select.wait() >= 0) {
+        ZM::Select::CommsList readable = select.getReadable();
         if ( readable.size() == 0 ) {
           Error( "RTSP timed out" );
           break;
@@ -723,11 +713,16 @@ int RtspThread::run() {
         // FIXME: Is this really necessary when using tcp ?
         now = time(nullptr);
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
+        Debug(5, "sendkeepalive %d, timeout %d, now: %" PRIi64 " last: %" PRIi64 " since: %" PRIi64,
+              sendKeepalive,
+              timeout,
+              static_cast<int64>(now),
+              static_cast<int64>(lastKeepalive),
+              static_cast<int64>(now - lastKeepalive));
         if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
         {
           if ( !sendCommand( message ) )
-            return( -1 );
+            return;
           lastKeepalive = now;
         }
         buffer.tidy( 1 );
@@ -742,7 +737,7 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
       // Send a teardown message but don't expect a response as this may not be implemented on the server when using TCP
       message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
       if ( !sendCommand( message ) )
-        return( -1 );
+        return;
 
       delete mSources[ssrc];
       mSources.clear();
@@ -756,14 +751,12 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
       RtpDataThread rtpDataThread( *this, *source );
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
-      rtpDataThread.start();
-      rtpCtrlThread.start();
 
-      while ( !mStop ) {
+      while (!mTerminate) {
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
         if ( sendKeepalive && (timeout > 0) && ((time(nullptr)-lastKeepalive) > (timeout-5)) ) {
           if ( !sendCommand( message ) )
-            return -1;
+            return;
           lastKeepalive = time(nullptr);
         }
         usleep(100000);
@@ -777,15 +770,12 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
 #endif
       message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
       if ( !sendCommand(message) )
-        return -1;
+        return;
       if ( !recvResponse(response) )
-        return -1;
+        return;
 
-      rtpDataThread.stop();
-      rtpCtrlThread.stop();
-
-      rtpDataThread.join();
-      rtpCtrlThread.join();
+      rtpDataThread.Stop();
+      rtpCtrlThread.Stop();
      
       delete mSources[ssrc];
       mSources.clear();
@@ -798,7 +788,7 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
       break;
   }
 
-  return 0;
+  return;
 }
 
 #endif // HAVE_LIBAVFORMAT

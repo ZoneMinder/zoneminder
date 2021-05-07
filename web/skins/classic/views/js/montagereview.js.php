@@ -76,7 +76,7 @@ if ( !$liveMode ) {
       if ( !isset($event['FramesById']) ) {
         // Please note that this is the last frame as we sort DESC
         $event['FramesById'] = array();
-        $frame['NextTimeStampSecs'] = $event['EndTime'];
+        $frame['NextTimeStampSecs'] = $event['EndTimeSecs'];
       } else {
         $frame['NextTimeStampSecs'] = $next_frames[$frame['EventId']]['TimeStampSecs'];
         $frame['NextFrameId'] = $next_frames[$frame['EventId']]['Id'];
@@ -230,7 +230,6 @@ for ( $i=0; $i < count($speeds); $i++ )
 echo "];\n";
 ?>
 
-var scrubAsObject=$('scrub');
 var cWidth;   // save canvas width
 var cHeight;  // save canvas height
 var canvas;   // global canvas definition so we don't have to keep looking it up

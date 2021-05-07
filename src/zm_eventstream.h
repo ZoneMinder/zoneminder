@@ -20,12 +20,11 @@
 #ifndef ZM_EVENTSTREAM_H
 #define ZM_EVENTSTREAM_H
 
-#include "zm_image.h"
-#include "zm_stream.h"
-#include "zm_video.h"
+#include "zm_define.h"
 #include "zm_ffmpeg_input.h"
 #include "zm_monitor.h"
 #include "zm_storage.h"
+#include "zm_stream.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,6 +39,7 @@ extern "C" {
 class EventStream : public StreamBase {
   public:
     typedef enum { MODE_NONE, MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
+    static const std::string StreamMode_Strings[4];
 
   protected:
     struct FrameData {
@@ -54,11 +54,14 @@ class EventStream : public StreamBase {
       uint64_t  event_id;
       unsigned int    monitor_id;
       unsigned long   storage_id;
-      unsigned long   frame_count;
+      unsigned long   frame_count;    // Value of Frames column in Event
+      unsigned long   last_frame_id;  // Highest frame id known about. Can be < frame_count in incomplete events
       time_t          start_time;
+      time_t          end_time;
       double          duration;
+      double          frames_duration;
       char            path[PATH_MAX];
-      int             n_frames;
+      int             n_frames;       // # of frame rows returned from database
       FrameData       *frames;
       char            video_file[PATH_MAX];
       Storage::Schemes  scheme;
@@ -74,7 +77,7 @@ class EventStream : public StreamBase {
     StreamMode mode;
     bool forceEventChange;
 
-    int curr_frame_id;
+    long curr_frame_id;
     double curr_stream_time;
     bool  send_frame;
     struct timeval start;     // clock time when started the event
@@ -82,13 +85,13 @@ class EventStream : public StreamBase {
     EventData *event_data;
 
   protected:
-    bool loadEventData( uint64_t event_id );
-    bool loadInitialEventData( uint64_t init_event_id, unsigned int init_frame_id );
-    bool loadInitialEventData( int monitor_id, time_t event_time );
+    bool loadEventData(uint64_t event_id);
+    bool loadInitialEventData(uint64_t init_event_id, unsigned int init_frame_id);
+    bool loadInitialEventData(int monitor_id, time_t event_time);
 
     bool checkEventLoaded();
-    void processCommand( const CmdMsg *msg );
-    bool sendFrame( int delta_us );
+    void processCommand(const CmdMsg *msg) override;
+    bool sendFrame(int delta_us);
 
   public:
     EventStream() :
@@ -99,10 +102,7 @@ class EventStream : public StreamBase {
       send_frame(false),
       event_data(nullptr),
       storage(nullptr),
-      ffmpeg_input(nullptr),
-      // Used when loading frames from an mp4
-      input_codec_context(nullptr),
-      input_codec(nullptr)
+      ffmpeg_input(nullptr)
     {}
     ~EventStream() {
         if ( event_data ) {
@@ -113,10 +113,6 @@ class EventStream : public StreamBase {
           delete event_data;
           event_data = nullptr;
         }
-        if ( monitor ) {
-          delete monitor;
-          monitor = nullptr;
-        }
         if ( storage ) {
           delete storage;
           storage = nullptr;
@@ -126,20 +122,16 @@ class EventStream : public StreamBase {
           ffmpeg_input = nullptr;
         }
     }
-    void setStreamStart( uint64_t init_event_id, unsigned int init_frame_id );
-    void setStreamStart( int monitor_id, time_t event_time );
-    void setStreamMode( StreamMode p_mode ) {
-      mode = p_mode;
-    }
-    void runStream();
+    void setStreamStart(uint64_t init_event_id, unsigned int init_frame_id);
+    void setStreamStart(int monitor_id, time_t event_time);
+    void setStreamMode(StreamMode p_mode) { mode = p_mode; }
+    void runStream() override;
     Image *getImage();
   private:
-    bool send_file( const char *file_path );
-    bool send_buffer( uint8_t * buffer, int size );
+    bool send_file(const char *filepath);
+    bool send_buffer(uint8_t * buffer, int size);
     Storage *storage;
     FFmpeg_Input  *ffmpeg_input;
-    AVCodecContext *input_codec_context;
-    AVCodec *input_codec;
 };
 
 #endif // ZM_EVENTSTREAM_H

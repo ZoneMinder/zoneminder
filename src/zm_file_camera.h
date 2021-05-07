@@ -21,11 +21,6 @@
 #define ZM_FILE_CAMERA_H
 
 #include "zm_camera.h"
-#include "zm_buffer.h"
-#include "zm_regexp.h"
-#include "zm_packetqueue.h"
-
-#include <sys/param.h>
 
 //
 // Class representing 'file' cameras, i.e. those which are
@@ -36,18 +31,29 @@ protected:
   char path[PATH_MAX];
 
 public:
-  FileCamera( int p_id, const char *p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  FileCamera(
+      const Monitor *monitor,
+      const char *p_path,
+      int p_width,
+      int p_height,
+      int p_colours,
+      int p_brightness,
+      int p_contrast,
+      int p_hue,
+      int p_colour,
+      bool p_capture,
+      bool p_record_audio
+      );
   ~FileCamera();
 
-  const char *Path() const { return( path ); }
+  const char *Path() const { return path; }
 
   void Initialise();
   void Terminate();
-  int PreCapture();
-  int Capture( Image &image );
-  int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
-int Close() { return 0; };
+  int PreCapture() override;
+  int Capture(ZMPacket &p) override;
+  int PostCapture() override;
+  int Close() override { return 0; };
 };
 
 #endif // ZM_FILE_CAMERA_H

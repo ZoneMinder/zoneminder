@@ -49,7 +49,7 @@ $prevFid = $fid-1;
 $nextFid = $fid+1;
 $lastFid = $maxFid;
 
-$alarmFrame = $Frame->Type() == 'Alarm';
+$alarmFrame = ( $Frame->Type() == 'Alarm' ) ? 1 : 0;
 
 if ( isset($_REQUEST['scale']) ) {
   $scale = validNum($_REQUEST['scale']);
@@ -71,7 +71,10 @@ if ( !$imageData ) {
 $show = 'capt';
 if (isset($_REQUEST['show']) && in_array($_REQUEST['show'], array('capt', 'anal'))) {
   $show = $_REQUEST['show'];
-} else if ( $imageData['hasAnalImage'] ) {
+  if ($show == 'anal' and ! $imageData['hasAnalImage']) {
+    $show = 'capt';
+  }
+} else if ($imageData['hasAnalImage']) {
   $show = 'anal';
 }
 
@@ -92,18 +95,26 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
         <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
         <button id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
+        <button id="statsViewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats').' '.translate('View') ?>" ><i class="fa fa-table"></i></button>
       </div>
       
       <h2><?php echo translate('Frame') ?> <?php echo $Event->Id().'-'.$Frame->FrameId().' ('.$Frame->Score().')' ?></h2>
       
       <form>
-        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo htmlSelect('scale', $scales, $scale); ?></div>        
+        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?></div>        
         <input type="hidden" name="base_width" id="base_width" value="<?php echo $Event->Width(); ?>"/>
         <input type="hidden" name="base_height" id="base_height" value="<?php echo $Event->Height(); ?>"/>
       </form>
     </div>
     
-  <div id="content">
+  <div id="content" class="d-flex flex-row justify-content-center">
+  
+
+  <table id="frameStatsTable" class="table-sm table-borderless pr-3">
+  <!-- FRAME STATISTICS POPULATED BY AJAX -->
+  </table>
+  
+  <div>
     <p id="image">
 <?php if ( $imageData['hasAnalImage'] ) {
  echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%d&amp;show=%s">', $Event->Id(), $Frame->FrameId(), $scale, ( $show=='anal'?'capt':'anal' ) );
@@ -152,6 +163,7 @@ if ( file_exists($rImagePath) ) {
           class="<?php echo $imageData['imageClass'] ?>"
         />
       </p>
+    </div>
 <?php } ?>
     </div>
   </div>

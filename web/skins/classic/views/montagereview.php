@@ -114,19 +114,19 @@ if ( count($filter) ) {
 
 $eventsSql = 'SELECT
     E.Id,E.Name,E.StorageId,
-    E.StartTime AS StartTime,UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
-    CASE WHEN E.EndTime IS NULL THEN (SELECT NOW()) ELSE E.EndTime END AS EndTime,
-    UNIX_TIMESTAMP(EndTime) AS EndTimeSecs,
+    E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
+    CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
+    UNIX_TIMESTAMP(EndDateTime) AS EndTimeSecs,
     E.Length, E.Frames, E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
   FROM Events AS E
   WHERE 1 > 0 
 ';
 
-//    select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,UNIX_TIMESTAMP(max(DATE_ADD(E.StartTime, Interval Delta+0.5 Second))) as CalcEndTimeSecs, E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
+//    select E.Id,E.Name,UNIX_TIMESTAMP(E.StartDateTime) as StartTimeSecs,UNIX_TIMESTAMP(max(DATE_ADD(E.StartDateTime, Interval Delta+0.5 Second))) as CalcEndTimeSecs, E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
 //    from Events as E
 //    inner join Monitors as M on (E.MonitorId = M.Id)
 //    inner join Frames F on F.EventId=E.Id
-//    where not isnull(E.Frames) and not isnull(StartTime) ";
+//    where not isnull(E.Frames) and not isnull(StartDateTime) ";
 
 // Note that the delta value seems more accurate than the time stamp for some reason.
 $framesSql = '
@@ -219,14 +219,14 @@ $initialDisplayInterval = 1000;
 if ( isset($_REQUEST['displayinterval']) )
   $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
 
-#$eventsSql .= ' GROUP BY E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId';
+#$eventsSql .= ' GROUP BY E.Id,E.Name,E.StartDateTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId';
 
 $minTimeSecs = $maxTimeSecs = 0;
 if ( isset($minTime) && isset($maxTime) ) {
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
-  $eventsSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
-  $framesSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
+  $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
+  $framesSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
   $framesSql .= ") AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
 } else {
   $framesSql .= ')';

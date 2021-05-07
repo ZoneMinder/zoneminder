@@ -33,19 +33,14 @@ if ( $action == 'save' ) {
     }
     $Monitor = new ZM\Monitor($mid);
     if ( $Monitor->Type() != 'WebSite' ) {
-      $Monitor->zmaControl('stop');
       $Monitor->zmcControl('stop');
     }
     $Monitor->save($_REQUEST['newMonitor']);
     if ( $Monitor->Function() != 'None' && $Monitor->Type() != 'WebSite' ) {
       $Monitor->zmcControl('start');
-      if ( $Monitor->Enabled() ) {
-        $Monitor->zmaControl('start');
-      }
     }
   } // end foreach mid
-  $refreshParent = true;
-  $view = 'none';
+  $view = 'console';
 } else {
   ZM\Warning("Unknown action $action in Monitor");
 } // end if action == Delete

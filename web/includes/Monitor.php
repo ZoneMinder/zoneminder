@@ -28,13 +28,14 @@ class Monitor extends ZM_Object {
 
   protected $defaults = array(
     'Id' => null,
-    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/'),
+    'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Monitor'),
     'Notes' => '',
     'ServerId' => 0,
     'StorageId' => 0,
     'Type'      => 'Ffmpeg',
     'Function'  => 'Mocord',
     'Enabled'   => array('type'=>'boolean','default'=>1),
+    'DecodingEnabled'   => array('type'=>'boolean','default'=>1),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
     'ONVIF_URL' =>  '',
@@ -52,6 +53,7 @@ class Monitor extends ZM_Object {
     'Port'  =>  '',
     'SubPath' =>  '',
     'Path'  =>  null,
+    'SecondPath'  =>  null,
     'Options' =>  null,
     'User'  =>  null,
     'Pass'  =>  null,
@@ -67,8 +69,9 @@ class Monitor extends ZM_Object {
     'SaveJPEGs' =>  3,
     'VideoWriter' =>  '0',
     'OutputCodec' =>  null,
+    'Encoder'     =>  'auto',
     'OutputContainer' => null,
-    'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
+    'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\ncrf=23\n",
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
     'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
     'Brightness'  =>  -1,
@@ -80,7 +83,8 @@ class Monitor extends ZM_Object {
     'LabelX'      =>  0,
     'LabelY'      =>  0,
     'LabelSize'   =>  1,
-    'ImageBufferCount'  =>  20,
+    'ImageBufferCount'  =>  3,
+    'MaxImageBufferCount'  =>  0,
     'WarmupCount' =>  0,
     'PreEventCount' =>  5,
     'PostEventCount'  =>  5,
@@ -106,13 +110,30 @@ class Monitor extends ZM_Object {
     'TrackDelay'      =>  null,
     'ReturnLocation'  =>  -1,
     'ReturnDelay'     =>  null,
+    'ModectDuringPTZ' =>  array('type'=>'boolean','default'=>0),
     'DefaultRate' =>  100,
-    'DefaultScale'  =>  100,
+    'DefaultScale'  =>  0,
     'SignalCheckPoints' =>  0,
     'SignalCheckColour' =>  '#0000BE',
     'WebColour'   =>  '#ff0000',
-    'Exif'    =>  array('type'=>'boolean','default'=>0),
+    'Exif'    =>  array('type'=>'boolean', 'default'=>0),
     'Sequence'  =>  null,
+    'ZoneCount' =>  0,
+    'Refresh' => null,
+    'DefaultCodec'  => 'auto',
+    'GroupIds'    => array('default'=>array(), 'do_not_update'=>1),
+    'Latitude'  =>  null,
+    'Longitude' =>  null,
+    'RTSPServer' => array('type'=>'boolean', 'default'=>0),
+    'RTSPStreamName'  => '',
+  );
+  private $status_fields = array(
+    'Status'  =>  null,
+    'AnalysisFPS' => null,
+    'CaptureFPS' => null,
+    'CaptureBandwidth' => null,
+  );
+  private $summary_fields = array(
     'TotalEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'TotalEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'HourEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
@@ -125,16 +146,6 @@ class Monitor extends ZM_Object {
     'MonthEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
-    'ZoneCount' =>  0,
-    'Refresh' => null,
-    'DefaultCodec'  => 'auto',
-    'GroupIds'    => array('default'=>array(), 'do_not_update'=>1),
-  );
-  private $status_fields = array(
-    'Status'  =>  null,
-    'AnalysisFPS' => null,
-    'CaptureFPS' => null,
-    'CaptureBandwidth' => null,
   );
 
   public function Control() {
@@ -162,7 +173,7 @@ class Monitor extends ZM_Object {
   public function __call($fn, array $args){
     if ( count($args) ) {
       if ( is_array($this->defaults[$fn]) and $this->defaults[$fn]['type'] == 'set' ) {
-        $this->{$fn} = is_array($args[0]) ? implode(',',$args[0]) : $args[0];
+        $this->{$fn} = is_array($args[0]) ? implode(',', $args[0]) : $args[0];
       } else {
         $this->{$fn} = $args[0];
       }
@@ -175,14 +186,23 @@ class Monitor extends ZM_Object {
       }
       return $this->defaults[$fn];
     } else if ( array_key_exists($fn, $this->status_fields) ) {
-      $sql = 'SELECT `Status`,`CaptureFPS`,`AnalysisFPS`,`CaptureBandwidth`
-        FROM `Monitor_Status` WHERE `MonitorId`=?';
+      $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
       if ( !$row ) {
-        Error('Unable to load Monitor record for Id='.$this->{'Id'});
-        foreach ( $this->status_fields as $k => $v ) {
+        Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
+        return null;
+      } else {
+        foreach ($row as $k => $v) {
           $this->{$k} = $v;
         }
+      }
+      return $this->{$fn};
+    } else if ( array_key_exists($fn, $this->summary_fields) ) {
+      $sql = 'SELECT * FROM `Event_Summaries` WHERE `MonitorId`=?';
+      $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
+      if ( !$row ) {
+        Warning('Unable to load Event Summary record for Id='.$this->{'Id'}.' using '.$sql);
+        return null;
       } else {
         foreach ($row as $k => $v) {
           $this->{$k} = $v;
@@ -291,7 +311,7 @@ class Monitor extends ZM_Object {
   }
 
   function zmcControl( $mode=false ) {
-    if ( ! $this->{'Id'} ) {
+    if ( !(property_exists($this,'Id') and $this->{'Id'}) ) {
       Warning('Attempt to control a monitor with no Id');
       return;
     }
@@ -327,7 +347,7 @@ class Monitor extends ZM_Object {
           return;
         }
       }
-      Logger::Debug('sending command to '.$url);
+      Debug('sending command to '.$url);
 
       $context  = stream_context_create();
       try {
@@ -342,66 +362,6 @@ class Monitor extends ZM_Object {
       Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
     }
   } // end function zmcControl
-
-  function zmaControl($mode=false) {
-    if ( !$this->{'Id'} ) {
-      Warning('Attempt to control a monitor with no Id');
-      return;
-    }
-
-    if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
-      if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {
-        if ( ZM_OPT_CONTROL && $this->Controllable() && $this->TrackMotion() &&
-          ( $this->{'Function'} == 'Modect' || $this->{'Function'} == 'Mocord' ) ) {
-          daemonControl('stop', 'zmtrack.pl', '-m '.$this->{'Id'});
-        }
-        daemonControl('stop', 'zma', '-m '.$this->{'Id'});
-      } else {
-        if ( $mode == 'restart' ) {
-          if ( ZM_OPT_CONTROL ) {
-            daemonControl('stop', 'zmtrack.pl', '-m '.$this->{'Id'});
-          }
-          daemonControl('stop', 'zma', '-m '.$this->{'Id'});
-        }
-        daemonControl('start', 'zma', '-m '.$this->{'Id'});
-        if ( ZM_OPT_CONTROL && $this->Controllable() && $this->TrackMotion() &&
-          ( $this->{'Function'} == 'Modect' || $this->{'Function'} == 'Mocord' ) ) {
-          daemonControl('start', 'zmtrack.pl', '-m '.$this->{'Id'});
-        }
-        if ( $mode == 'reload' ) {
-          daemonControl('reload', 'zma', '-m '.$this->{'Id'});
-        }
-      }
-    } else if ( $this->ServerId() ) {
-      $Server = $this->Server();
-
-      $url = $Server->UrlToApi().'/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zma.json';
-      if ( ZM_OPT_USE_AUTH ) {
-        if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-        } else if ( ZM_AUTH_RELAY == 'plain' ) {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else {
-          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
-          return;
-        }
-      }
-      Logger::Debug("sending command to $url");
-
-      $context = stream_context_create();
-      try {
-        $result = file_get_contents($url, false, $context);
-        if ( $result === FALSE ) { /* Handle error */
-          Error("Error restarting zma using $url");
-        }
-      } catch ( Exception $e ) {
-        Error("Except $e thrown trying to restart zma");
-      }
-    } else {
-      Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
-    } // end if we are on the recording server
-  } // end public function zmaControl
 
   public function GroupIds( $new='' ) {
     if ( $new != '' ) {
@@ -429,7 +389,6 @@ class Monitor extends ZM_Object {
       Warning("Attempt to delete a monitor without id.");
       return;
     }
-    $this->zmaControl('stop');
     $this->zmcControl('stop');
 
     // If fast deletes are on, then zmaudit will clean everything else up later
@@ -455,6 +414,8 @@ class Monitor extends ZM_Object {
     dbQuery('DELETE FROM Zones WHERE MonitorId = ?', array($this->{'Id'}));
     if ( ZM_OPT_X10 )
       dbQuery('DELETE FROM TriggersX10 WHERE MonitorId=?', array($this->{'Id'}));
+    dbQuery('DELETE FROM Monitor_Status WHERE MonitorId = ?', array($this->{'Id'}));
+    dbQuery('DELETE FROM Event_Summaries WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitors WHERE Id = ?', array($this->{'Id'}));
   } // end function delete
 
@@ -536,7 +497,7 @@ class Monitor extends ZM_Object {
       if ( $command == 'quit' or $command == 'start' or $command == 'stop' ) {
         # These are special as we now run zmcontrol as a daemon through zmdc.
         $status = daemonStatus('zmcontrol.pl', array('--id', $this->{'Id'}));
-        Logger::Debug("Current status $status");
+        Debug("Current status $status");
         if ( $status or ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) ) {
           daemonControl($command, 'zmcontrol.pl', '--id '.$this->{'Id'});
           return;
@@ -550,10 +511,10 @@ class Monitor extends ZM_Object {
 
     if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       # Local
-      Logger::Debug('Trying to send options ' . print_r($options, true));
+      Debug('Trying to send options ' . print_r($options, true));
 
       $optionString = jsonEncode($options);
-      Logger::Debug("Trying to send options $optionString");
+      Debug("Trying to send options $optionString");
       // Either connects to running zmcontrol.pl or runs zmcontrol.pl to send the command.
       $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
       if ( $socket < 0 ) {
@@ -567,7 +528,7 @@ class Monitor extends ZM_Object {
           return false;
         }
       } else if ( $command != 'quit' ) {
-        $command = ZM_PATH_BIN.'/zmcontrol.pl '.$command.' --id='.$this->{'Id'};
+        $command = ZM_PATH_BIN.'/zmcontrol.pl '.$command.' --id '.$this->{'Id'};
 
         // Can't connect so use script
         $ctrlOutput = exec(escapeshellcmd($command));
@@ -587,7 +548,7 @@ class Monitor extends ZM_Object {
           $url .= '?user='.$_SESSION['username'];
         }
       }
-      Logger::Debug("sending command to $url");
+      Debug("sending command to $url");
 
       $context = stream_context_create();
       try {
@@ -631,6 +592,71 @@ class Monitor extends ZM_Object {
   function canEdit() {
     global $user;
     return ( $user && ($user['Monitors'] == 'Edit') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
+  }
+
+  function canView() {
+    global $user;
+    return ( $user && ($user['Monitors'] != 'None') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
+  }
+
+  function AlarmCommand($cmd) {
+    if ( (!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
+      switch ($cmd) {
+      case 'on' : $cmd = ' -a'; break;
+      case 'off': $cmd = ' -c'; break;
+      case 'disable': $cmd = ' -n'; break;
+      case 'status': $cmd = ' -s'; break;
+      default:
+        Warning("Invalid command $cmd in AlarmCommand");
+        return false;
+      }
+
+      $cmd = getZmuCommand($cmd.' -m '.$this->{'Id'});
+      $output = shell_exec($cmd);
+      Debug("Running $cmd output: $output");
+      return $output;
+    }
+    
+    if ( $this->ServerId() ) {
+      $Server = $this->Server();
+
+      $url = $Server->UrlToApi().'/monitors/alarm/id:'.$this->{'Id'}.'/command:'.$cmd.'.json';
+      $auth_relay = get_auth_relay();
+      if ($auth_relay) $url .= '?'.$auth_relay;
+
+      Debug('sending command to '.$url);
+
+      $context = stream_context_create();
+      try {
+        $result = file_get_contents($url, false, $context);
+        if ( $result === FALSE ) { /* Handle error */
+          Error('Error sending command using '.$url);
+          return false;
+        }
+        Debug("Result $result");
+        $json = json_decode($result, true);
+        return $json['status'];
+
+      } catch ( Exception $e ) {
+        Error("Exception $e thrown trying to send command to $url");
+        return false;
+      }
+    } // end if we are on the recording server
+    Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
+    return false;
+  }
+  function TriggerOn() {
+    $output = $this->AlarmCommand('on');
+    if ( $output and preg_match('/Alarmed event id: (\d+)$/', $output, $matches) ) {
+      return $matches[1];
+    }
+    Warning("No event returned from TriggerOn");
+  }
+  function TriggerOff() {
+    $output = $this->AlarmCommand('off');
+  }
+  function DisableAlarms() {
+    $output = $this->AlarmCommand('disable');
   }
 } // end class Monitor
 ?>

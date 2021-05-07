@@ -20,14 +20,9 @@
 #ifndef ZM_REMOTE_CAMERA_RTSP_H
 #define ZM_REMOTE_CAMERA_RTSP_H
 
-#include "zm_remote_camera.h"
-
-#include "zm_buffer.h"
-#include "zm_utils.h"
-#include "zm_rtsp.h"
 #include "zm_ffmpeg.h"
-#include "zm_videostore.h"
-#include "zm_packetqueue.h"
+#include "zm_remote_camera.h"
+#include "zm_rtsp.h"
 
 //
 // Class representing 'rtsp' cameras, i.e. those which are
@@ -49,44 +44,57 @@ protected:
 
   RtspThread::RtspMethod method;
 
-  RtspThread *rtspThread;
+  std::unique_ptr<RtspThread> rtspThread;
 
   int frameCount;
 
 #if HAVE_LIBAVFORMAT
   AVFormatContext     *mFormatContext;
-  int                 mVideoStreamId;
-  int                 mAudioStreamId;
-  AVCodecContext      *mCodecContext;
-  AVCodec             *mCodec;
-  AVFrame             *mRawFrame; 
-  AVFrame             *mFrame;
   _AVPIXELFORMAT         imagePixFormat;
 #endif // HAVE_LIBAVFORMAT
-  bool                wasRecording;
-  VideoStore          *videoStore;
-  char                oldDirectory[4096];
-  int64_t             startTime;
-
-#if HAVE_LIBSWSCALE
-  struct SwsContext   *mConvertContext;
-#endif
 
 public:
-  RemoteCameraRtsp( unsigned int p_monitor_id, const std::string &method, const std::string &host, const std::string &port, const std::string &path, int p_width, int p_height, bool p_rtsp_describe, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  RemoteCameraRtsp(
+      const Monitor *monitor,
+      const std::string &method,
+      const std::string &host,
+      const std::string &port,
+      const std::string &path,
+      int p_width,
+      int p_height,
+      bool p_rtsp_describe,
+      int p_colours,
+      int p_brightness,
+      int p_contrast,
+      int p_hue,
+      int p_colour,
+      bool p_capture,
+      bool p_record_audio);
   ~RemoteCameraRtsp();
 
-  void Initialise();
-  void Terminate();
-  int Connect();
-  int Disconnect();
+  void Initialise() override;
+  void Terminate() override;
+  int Connect() override;
+  int Disconnect() override;
 
-  int PrimeCapture();
-  int PreCapture();
-  int Capture( Image &image );
-  int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return 0;};
-  int Close() { return 0; };
+  int PrimeCapture() override;
+  int PreCapture() override;
+  int Capture(ZMPacket &p) override;
+  int PostCapture() override;
+  int Close() override { return 0; };
+
+  AVStream *get_VideoStream() { 
+    if ( mVideoStreamId != -1 )
+      return mFormatContext->streams[mVideoStreamId];
+    return nullptr;
+  }
+  AVStream *get_AudioStream() {
+    if ( mAudioStreamId != -1 )
+      return mFormatContext->streams[mAudioStreamId];
+    return nullptr;
+  }
+  AVCodecContext      *get_VideoCodecContext() { return mVideoCodecContext; };
+  AVCodecContext      *get_AudioCodecContext() { return mAudioCodecContext; };
 };
 
 #endif // ZM_REMOTE_CAMERA_RTSP_H

@@ -59,21 +59,23 @@ noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 ?>
 <body>
-  <div id="page">
-  <?php if ( !$popup ) echo getNavBarHTML() ?>
-    <div id="header">
-        <div id="monitorName"><?php echo validHtmlStr($monitor->Name()) ?></div>
-        <div id="menuControls">
-<?php
-if ( canView('Control') && $monitor->Type() == 'Local' ) {
-?>
-          <div id="settingsControl"><?php echo makePopupLink($monitor->UrlToIndex().'?view=settings&amp;mid='.$monitor->Id().'&amp;'.get_auth_relay(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"') ?></div>
-<?php
-}
-?>
-          <div id="scaleControl"><?php echo translate('Scale').': '.htmlSelect('scale', $scales, $scale, array('id'=>'scale')); ?></div>
-        </div>
-        <div id="closeControl"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+  <?php echo getNavBarHTML() ?>
+    <div class="d-flex flex-row justify-content-between px-3 py-1">
+      <div>
+        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button type="button" id="settingsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Settings') ?>" disabled><i class="fa fa-sliders"></i></button>
+        <button type="button" id="enableAlmBtn" class="btn btn-normal" data-on-click="cmdAlarm" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DisableAlarms') ?>" disabled><i class="fa fa-bell"></i></button>
+        <button type="button" id="forceAlmBtn" class="btn btn-danger" data-on-click="cmdForce" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ForceAlarm') ?>" disabled><i class="fa fa-exclamation-circle"></i></button>
+      </div>
+
+      <div>
+        <h2><?php echo makeLink('?view=monitor&amp;mid='.$monitor->Id(), validHtmlStr($monitor->Name()), canEdit('Monitors')) ?></h2>
+      </div>
+
+      <div>
+        <?php echo translate('Scale').': '.htmlSelect('scale', $scales, $scale, array('id'=>'scale')); ?>
+      </div>
     </div>
 <?php
 if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
@@ -92,21 +94,15 @@ if ( $streamMode == 'jpeg' ) {
 
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>
       <div id="monitorStatus">
-<?php if ( canEdit('Monitors') ) { ?>
-        <div id="enableDisableAlarms">
-          <button type="button" id="enableAlarmsLink" data-on-click="cmdEnableAlarms" class="hidden">
-          <?php echo translate('EnableAlarms') ?></button>
-          <button type="button" id="disableAlarmsLink" data-on-click="cmdDisableAlarms" class="hidden">
-          <?php echo translate('DisableAlarms') ?></button>
+        <div id="monitorState">
+          <?php echo translate('State') ?>:
+          <span id="stateValue"></span> -
+          <span title="<?php echo translate('Viewing FPS')?>"><span id="fpsValue"></span> fps</span>
+          <span title="<?php echo translate('Capturing FPS')?>"><span id="capturefpsValue"></span> fps</span>
+          <?php if ( $monitor->Function() == 'Modect' or $monitor->Function() == 'Mocord' ) { ?>
+          <span title="<?php echo translate('Analysis FPS')?>"><span id="analysisfpsValue"></span> fps</span>
+          <?php } ?>
         </div>
-        <div id="forceCancelAlarm">
-            <button type="button" id="forceAlarmLink" data-on-click="cmdForceAlarm"><?php echo translate('ForceAlarm') ?></button>
-            <button type="button" id="cancelAlarmLink" data-on-click="cmdCancelForcedAlarm" class="hidden"><?php echo translate('CancelForcedAlarm') ?></button>
-        </div>
-<?php
-}
-?>
-        <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
       </div>
       <div id="dvrControls">
 <?php
@@ -144,8 +140,7 @@ if ( $streamMode == 'jpeg' ) {
   }
 ?>
         <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut">
-<i class="material-icons md-18">zoom_out</i>
-
+        <i class="material-icons md-18">zoom_out</i>
         </button>
 <?php
 } // end if streamMode==jpeg
@@ -171,21 +166,43 @@ if ( $showPtzControls ) {
 }
 if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
 ?>
-      <div id="events">
-        <table id="eventList">
+      <!-- Table styling handled by bootstrap-tables -->
+      <div id="events" class="row justify-content-center table-responsive-sm">
+        <table 
+          id="eventList"
+          data-locale="<?php echo i18n() ?>"
+          data-side-pagination="server"
+          data-ajax="ajaxRequest"
+          data-cookie="true"
+          data-cookie-id-table="zmEventListTable"
+          data-cookie-expire="2y"
+          data-show-columns="true"
+          data-show-export="true"
+          data-uncheckAll="true"
+          data-buttons-class="btn btn-normal"
+          data-show-refresh="true"
+          class="table-sm table-borderless"
+        >
           <thead>
+            <!-- Row styling is handled by bootstrap-tables -->
             <tr>
-              <th class="colId"><?php echo translate('Id') ?></th>
-              <th class="colName"><?php echo translate('Name') ?></th>
-              <th class="colTime"><?php echo translate('Time') ?></th>
-              <th class="colSecs"><?php echo translate('Secs') ?></th>
-              <th class="colFrames"><?php echo translate('Frames') ?></th>
-              <th class="colScore"><?php echo translate('Score') ?></th>
-              <th class="colDelete">&nbsp;</th>
+              <th data-sortable="false" data-field="Delete"><?php echo translate('Delete') ?></th>
+              <th data-sortable="false" data-field="Id"><?php echo translate('Id') ?></th>
+              <th data-sortable="false" data-field="Name"><?php echo translate('Name') ?></th>
+              <th data-sortable="false" data-field="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
+              <th data-sortable="false" data-field="Length"><?php echo translate('Duration') ?></th>
+              <th data-sortable="false" data-field="Frames"><?php echo translate('Frames') ?></th>
+              <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
+              <th data-sortable="false" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
+              <th data-sortable="false" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+              <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
             </tr>
           </thead>
+
           <tbody>
+          <!-- Row data populated via Ajax -->
           </tbody>
+
         </table>
       </div>
 <?php

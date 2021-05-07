@@ -64,7 +64,8 @@ function dbConnect() {
     $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   } catch(PDOException $ex) {
-    echo "Unable to connect to ZM db using dsn $dsn host".ZM_DB_HOST.' user: ('.ZM_DB_USER.') password ('.ZM_DB_PASS.': '.$ex->getMessage();
+    global $error_message;
+    $error_message = "Unable to connect to ZM db using dsn $dsn<br/><br/>".$ex->getMessage();
     error_log('Unable to connect to ZM DB ' . $ex->getMessage());
     $dbConn = null;
   }
@@ -72,7 +73,8 @@ function dbConnect() {
 }  // end function dbConnect
 
 if ( !dbConnect() ) {
-  ZM\Fatal('Failed db connection');
+  include('views/no_database_connection.php');
+  exit();
 }
 
 function dbDisconnect() {
@@ -103,17 +105,17 @@ function dbLog($sql, $update=false) {
   global $dbLogLevel;
   $noExecute = $update && ($dbLogLevel >= DB_LOG_DEBUG);
   if ( $dbLogLevel > DB_LOG_OFF )
-    ZM\Logger::Debug( "SQL-LOG: $sql".($noExecute?' (not executed)':'') );
+    ZM\Debug( "SQL-LOG: $sql".($noExecute?' (not executed)':'') );
   return( $noExecute );
 }
 
 function dbError($sql) {
   global $dbConn;
   $error = $dbConn->errorInfo();
-  if ( ! $error[0] )
+  if ( !$error[0] )
     return '';
 
-  $message = "SQL-ERR '".implode("\n",$dbConn->errorInfo())."', statement was '".$sql."'";
+  $message = "SQL-ERR '".implode("\n", $dbConn->errorInfo())."', statement was '".$sql."'";
   ZM\Error($message);
   return $message;
 }
@@ -126,7 +128,7 @@ function dbEscape( $string ) {
     return $dbConn->quote($string);
 }
 
-function dbQuery($sql, $params=NULL) {
+function dbQuery($sql, $params=NULL, $debug = false) {
   global $dbConn;
   if ( dbLog($sql, true) )
     return;
@@ -143,8 +145,8 @@ function dbQuery($sql, $params=NULL) {
         return NULL;
       }
     } else {
-      if ( defined('ZM_DB_DEBUG') ) {
-				ZM\Logger::Debug("SQL: $sql values:" . ($params?implode(',',$params):''));
+      if ( defined('ZM_DB_DEBUG') or $debug ) {
+				ZM\Debug("SQL: $sql values:" . ($params?implode(',',$params):''));
       }
       $result = $dbConn->query($sql);
       if ( ! $result ) {
@@ -152,8 +154,8 @@ function dbQuery($sql, $params=NULL) {
         return NULL;
       }
     }
-    if ( defined('ZM_DB_DEBUG') ) {
-      ZM\Logger::Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
+    if ( defined('ZM_DB_DEBUG') or $debug ) {
+      ZM\Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
     }
   } catch(PDOException $e) {
     ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));
@@ -187,13 +189,13 @@ function dbFetchOne($sql, $col=false, $params=NULL) {
 }
 
 function dbFetchAll($sql, $col=false, $params=NULL) {
+  $dbRows = array();
   $result = dbQuery($sql, $params);
   if ( ! $result ) {
     ZM\Error("SQL-ERR dbFetchAll no result, statement was '".$sql."'".($params ? 'params: '.join(',', $params) : ''));
-    return false;
+    return $dbRows;
   }
 
-  $dbRows = array();
   while ( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
     $dbRows[] = $col ? $dbRow[$col] : $dbRow;
   return $dbRows;

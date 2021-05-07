@@ -86,15 +86,14 @@ Options for use with monitors:
 
 */
 
-#include <getopt.h>
-#include <cinttypes>
-
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_user.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
+#include <getopt.h>
+#include <unistd.h>
 
 void Usage(int status=-1) {
   fputs(
@@ -184,7 +183,7 @@ bool ValidateAccess(User *user, int mon_id, int function) {
     if ( user->getMonitors() < User::PERM_VIEW )
       allowed = false;
   }
-  if ( function & (ZMU_ALARM|ZMU_NOALARM|ZMU_CANCEL|ZMU_RELOAD|ZMU_ENABLE|ZMU_DISABLE|ZMU_SUSPEND|ZMU_RESUME|ZMU_BRIGHTNESS|ZMU_CONTRAST|ZMU_HUE|ZMU_COLOUR) ) {
+  if ( function & (ZMU_NOALARM|ZMU_RELOAD|ZMU_ENABLE|ZMU_DISABLE|ZMU_SUSPEND|ZMU_RESUME|ZMU_BRIGHTNESS|ZMU_CONTRAST|ZMU_HUE|ZMU_COLOUR) ) {
     if ( user->getMonitors() < User::PERM_EDIT )
       allowed = false;
   }
@@ -275,7 +274,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:V:T:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
     if ( c == -1 ) {
       break;
     }
@@ -419,8 +418,10 @@ int main(int argc, char *argv[]) {
   }
   //printf( "Monitor %d, Function %d\n", mon_id, function );
 
-  zmLoadConfig();
-
+  logInit("zmu");
+  zmLoadStaticConfig();
+  zmDbConnect();
+  zmLoadDBConfig();
   logInit("zmu");
 
   zmSetDefaultTermHandler();
@@ -475,19 +476,17 @@ int main(int argc, char *argv[]) {
   } // end if auth
 
   if ( mon_id > 0 ) {
-    Monitor *monitor = Monitor::Load(mon_id, function&(ZMU_QUERY|ZMU_ZONES), Monitor::QUERY);
+    std::shared_ptr<Monitor> monitor = Monitor::Load(mon_id, function&(ZMU_QUERY|ZMU_ZONES), Monitor::QUERY);
     if ( !monitor ) {
       Error("Unable to load monitor %d", mon_id);
       exit_zmu(-1);
     } // end if ! MONITOR
 
     if ( verbose ) {
-      printf("Monitor %d(%s)\n", monitor->Id(), monitor->Name());
+      printf("Monitor %u(%s)\n", monitor->Id(), monitor->Name());
     }
     if ( !monitor->connect() ) {
       Error("Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name());
-      delete monitor;
-      monitor = nullptr;
       exit_zmu(-1);
     }
 
@@ -498,7 +497,6 @@ int main(int argc, char *argv[]) {
       if ( verbose ) {
         printf("Current state: %s\n", state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"));
       } else {
-        if ( have_output ) fputc(separator, stdout);
         printf("%d", state);
         have_output = true;
       }
@@ -507,8 +505,10 @@ int main(int argc, char *argv[]) {
       struct timeval timestamp = monitor->GetTimestamp(image_idx);
       if ( verbose ) {
         char timestamp_str[64] = "None";
-        if ( timestamp.tv_sec )
-          strftime(timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime(&timestamp.tv_sec));
+        if ( timestamp.tv_sec ) {
+          tm tm_info = {};
+          strftime(timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime_r(&timestamp.tv_sec, &tm_info));
+        }
         if ( image_idx == -1 )
           printf("Time of last image capture: %s.%02ld\n", timestamp_str, timestamp.tv_usec/10000);
         else
@@ -521,19 +521,19 @@ int main(int argc, char *argv[]) {
     }
     if ( function & ZMU_READ_IDX ) {
       if ( verbose )
-        printf("Last read index: %d\n", monitor->GetLastReadIndex());
+        printf("Last read index: %u\n", monitor->GetLastReadIndex());
       else {
         if ( have_output ) fputc(separator, stdout);
-        printf("%d", monitor->GetLastReadIndex());
+        printf("%u", monitor->GetLastReadIndex());
         have_output = true;
       }
     }
     if ( function & ZMU_WRITE_IDX ) {
       if ( verbose ) {
-        printf("Last write index: %d\n", monitor->GetLastWriteIndex());
+        printf("Last write index: %u\n", monitor->GetLastWriteIndex());
       } else {
         if ( have_output ) fputc(separator, stdout);
-        printf("%d", monitor->GetLastWriteIndex());
+        printf("%u", monitor->GetLastWriteIndex());
         have_output = true;
       }
     }
@@ -548,19 +548,20 @@ int main(int argc, char *argv[]) {
     }
     if ( function & ZMU_FPS ) {
       if ( verbose ) {
-        printf("Current capture rate: %.2f frames per second\n", monitor->GetFPS());
+        printf("Current capture rate: %.2f frames per second, analysis rate: %.2f frames per second\n",
+            monitor->get_capture_fps(), monitor->get_analysis_fps());
       } else {
         if ( have_output ) fputc(separator, stdout);
-        printf("%.2f", monitor->GetFPS());
+        printf("capture: %.2f, analysis: %.2f", monitor->get_capture_fps(), monitor->get_analysis_fps());
         have_output = true;
       }
     }
     if ( function & ZMU_IMAGE ) {
       if ( verbose ) {
         if ( image_idx == -1 )
-          printf("Dumping last image captured to Monitor%d.jpg", monitor->Id());
+          printf("Dumping last image captured to Monitor%u.jpg", monitor->Id());
         else
-          printf("Dumping buffer image %d to Monitor%d.jpg", image_idx, monitor->Id());
+          printf("Dumping buffer image %d to Monitor%u.jpg", image_idx, monitor->Id());
         if ( scale != -1 )
           printf(", scaling by %d%%", scale);
         printf("\n");
@@ -569,7 +570,7 @@ int main(int argc, char *argv[]) {
     }
     if ( function & ZMU_ZONES ) {
       if ( verbose )
-        printf("Dumping zone image to Zones%d.jpg\n", monitor->Id());
+        printf("Dumping zone image to Zones%u.jpg\n", monitor->Id());
       monitor->DumpZoneImage(zoneString);
     }
     if ( function & ZMU_ALARM ) {
@@ -584,12 +585,21 @@ int main(int argc, char *argv[]) {
               monitor->GetLastEventId()
               );
         }
+
+        // Ensure that we are not recording.  So the forced alarm is distinct from what was recording before
+        monitor->ForceAlarmOff();
         monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
-        while ( ((state = monitor->GetState()) != Monitor::ALARM) && !zm_terminate ) {
+        int wait = 10*1000*1000; // 10 seconds
+        while ((monitor->GetState() != Monitor::ALARM) and !zm_terminate and wait) {
           // Wait for monitor to notice.
           usleep(1000);
+          wait -= 1000;
         }
-        printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        if ( monitor->GetState() != Monitor::ALARM and !wait ) {
+          Error("Monitor failed to respond to forced alarm.");
+        } else {
+          printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        }
       }
     }  // end if ZMU_ALARM
 
@@ -700,8 +710,6 @@ int main(int argc, char *argv[]) {
     if ( !function ) {
       Usage();
     }
-    delete monitor;
-    monitor = nullptr;
   } else { // non monitor functions
     if ( function & ZMU_QUERY ) {
 #if ZM_HAS_V4L
@@ -717,35 +725,29 @@ int main(int argc, char *argv[]) {
 
     if ( function & ZMU_LIST ) {
       std::string sql = "SELECT `Id`, `Function`+0 FROM `Monitors`";
-      if ( !verbose ) {
+      if (!verbose) {
         sql += "WHERE `Function` != 'None'";
       }
       sql += " ORDER BY Id ASC";
 
-      if ( mysql_query(&dbconn, sql.c_str()) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-        exit_zmu(mysql_errno(&dbconn));
+      MYSQL_RES *result = zmDbFetch(sql.c_str());
+      if (!result) {
+        exit_zmu(-1);
       }
-
-      MYSQL_RES *result = mysql_store_result(&dbconn);
-      if ( !result ) {
-        Error("Can't use query result: %s", mysql_error(&dbconn));
-        exit_zmu(mysql_errno(&dbconn));
-      }
-      Debug(1, "Got %d monitors", mysql_num_rows(result));
+      Debug(1, "Got %" PRIu64 " monitors", static_cast<uint64>(mysql_num_rows(result)));
 
       printf("%4s%5s%6s%9s%14s%6s%6s%8s%8s\n", "Id", "Func", "State", "TrgState", "LastImgTim", "RdIdx", "WrIdx", "LastEvt", "FrmRate");
-      for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-        int mon_id = atoi(dbrow[0]);
-        int function = atoi(dbrow[1]);
-        if ( !user || user->canAccess(mon_id) ) {
-          if ( function > 1 ) {
-            Monitor *monitor = Monitor::Load(mon_id, false, Monitor::QUERY);
+      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+        int monitor_id = atoi(dbrow[0]);
+        int monitor_function = atoi(dbrow[1]);
+        if ( !user || user->canAccess(monitor_id) ) {
+          if ( monitor_function > 1 ) {
+            std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
             if ( monitor && monitor->connect() ) {
               struct timeval tv = monitor->GetTimestamp();
               printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8" PRIu64 "%8.2f\n",
                 monitor->Id(),
-                function,
+                monitor_function,
                 monitor->GetState(),
                 monitor->GetTriggerState(),
                 tv.tv_sec, tv.tv_usec/10000,
@@ -754,7 +756,6 @@ int main(int argc, char *argv[]) {
                 monitor->GetLastEventId(),
                 monitor->GetFPS()
               );
-              delete monitor;
             }
           } else {
             struct timeval tv = { 0, 0 };

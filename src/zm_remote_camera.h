@@ -22,12 +22,7 @@
 
 #include "zm_camera.h"
 #include "zm_rtsp_auth.h"
-
 #include <string>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
 
 #define SOCKET_BUF_SIZE 8192
 
@@ -57,7 +52,7 @@ protected:
 
 public:
   RemoteCamera(
-    unsigned int p_monitor_id,
+    const Monitor *monitor,
     const std::string &p_proto,
     const std::string &p_host,
     const std::string &p_port,
@@ -74,24 +69,23 @@ public:
   );
   virtual ~RemoteCamera();
 
-  const std::string &Protocol() const { return( protocol ); }
-  const std::string &Host() const { return( host ); }
-  const std::string &Port() const { return( port ); }
-  const std::string &Path() const { return( path ); }
-  const std::string &Auth() const { return( auth ); }
-  const std::string &Username() const { return( username ); }
-  const std::string &Password() const { return( password ); }
+  const std::string &Protocol() const { return protocol; }
+  const std::string &Host() const { return host; }
+  const std::string &Port() const { return port; }
+  const std::string &Path() const { return path; }
+  const std::string &Auth() const { return auth; }
+  const std::string &Username() const { return username; }
+  const std::string &Password() const { return password; }
 
   virtual void Initialise();
   virtual void Terminate() = 0;
   virtual int Connect() = 0;
   virtual int Disconnect() = 0;
-  virtual int PreCapture() { return 0; };
-  virtual int PrimeCapture() { return 0; };
-  virtual int Capture( Image &image ) = 0;
-  virtual int PostCapture() = 0;
-  virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory )=0;
-  int Read( int fd, char*buf, int size );
+  virtual int PreCapture() override { return 0; };
+  virtual int PrimeCapture() override { return 0; };
+  virtual int Capture(ZMPacket &p) override = 0;
+  virtual int PostCapture() override = 0;
+  int Read(int fd, char*buf, int size);
 };
 
 #endif // ZM_REMOTE_CAMERA_H

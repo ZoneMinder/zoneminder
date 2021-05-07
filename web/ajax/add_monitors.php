@@ -1,14 +1,22 @@
 <?php
+error_reporting(0);
 
 $defaultMonitor = new ZM\Monitor();
 $defaultMonitor->set(array(
   'StorageId' =>  1,
   'ServerId'  =>  'auto',
-  'Function'  =>  'Record',
+  'Function'  =>  'Mocord',
   'Type'      =>  'Ffmpeg',
   'Enabled'   =>  '1',
   'Colour'    =>  '4', // 32bit
-  'PreEventCount' =>  0,
+  'ImageBufferCount'  =>  '20',
+  'WarmupCount' =>  '0',
+  'PreEventCount' =>  '0',
+  'StreamReplayBuffer'  =>  '0',
+  'SaveJPEGs' =>  '4',
+  'VideoWriter' =>  '1',
+  'MaxFPS'      =>  '20',
+  'AlarmMaxFPS' =>  '20',
 ) );
 
 function probe( &$url_bits ) {
@@ -19,11 +27,11 @@ function probe( &$url_bits ) {
 
     $cam_list_html = file_get_contents('http://'.$url_bits['host'].':5000/monitoring/');
     if ( $cam_list_html ) {
-      ZM\Logger::Debug("Have content at port 5000/monitoring");
+      ZM\Debug("Have content at port 5000/monitoring");
       $matches_count = preg_match_all(
           '/<a href="http:\/\/([.[:digit:]]+):([[:digit:]]+)\/\?action=stream" target="_blank">([^<]+)<\/a>/',
           $cam_list_html, $cam_list );
-      ZM\Logger::Debug(print_r($cam_list,true));
+      ZM\Debug(print_r($cam_list,true));
     }
     if ( $matches_count ) {
       for( $index = 0; $index < $matches_count; $index ++ ) {
@@ -33,7 +41,7 @@ function probe( &$url_bits ) {
         if ( ! isset($new_stream['scheme'] ) )
           $new_stream['scheme'] = 'http';
         $available_streams[] = $new_stream;          
-ZM\Logger::Debug("Have new stream " . print_r($new_stream,true) );
+ZM\Debug("Have new stream " . print_r($new_stream,true) );
       }
     } else {
       ZM\Info('No matches');

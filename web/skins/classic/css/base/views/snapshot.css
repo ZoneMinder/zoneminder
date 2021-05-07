@@ -1,0 +1,17 @@
+#content {
+    margin: 0 15px;
+}
+
+.Name {
+  width: 600px;
+}
+.Name input {
+  width: 100%;
+}
+
+.Description {
+  width: 600px;
+}
+.Description textarea {
+  width: 100%;
+}

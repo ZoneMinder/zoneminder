@@ -17,12 +17,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <stdlib.h>
-#include <string.h>
-
-#include "zm.h"
-#include "zm_rgb.h"
 #include "zm_mpeg.h"
+
+#include "zm_logger.h"
+#include "zm_rgb.h"
+#include <cstring>
+#include <unistd.h>
 
 #if HAVE_LIBAVCODEC
 extern "C" {
@@ -101,7 +101,7 @@ void VideoStream::SetupFormat( ) {
 	ofc = s;
 #endif
 	if ( !ofc ) {
-		Fatal("avformat_alloc_..._context failed: %d", ofc);
+		Fatal("avformat_alloc_..._context failed");
 	}
 
 	of = ofc->oformat;
@@ -264,22 +264,21 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 void VideoStream::SetParameters( ) {
 }
 
-const char *VideoStream::MimeType( ) const {
+const char *VideoStream::MimeType() const {
 	for ( unsigned int i = 0; i < sizeof (mime_data) / sizeof (*mime_data); i++ ) {
-		if ( strcmp( format, mime_data[i].format ) == 0 ) {
-			Debug( 1, "MimeType is \"%s\"", mime_data[i].mime_type );
+		if ( strcmp(format, mime_data[i].format) == 0 ) {
+			Debug(1, "MimeType is \"%s\"", mime_data[i].mime_type);
 			return mime_data[i].mime_type;
 		}
 	}
 	const char *mime_type = of->mime_type;
 	if ( !mime_type ) {
-		std::string mime = "video/";
-		mime = mime.append( format );
-		mime_type = mime.c_str( );
-		Warning( "Unable to determine mime type for '%s' format, using '%s' as default", format, mime_type );
+		std::string mime = std::string("video/") + format;
+		mime_type = strdup(mime.c_str()); // mem leak
+		Warning( "Unable to determine mime type for '%s' format, using '%s' as default", format, mime_type);
 	}
 
-	Debug(1, "MimeType is \"%s\"", mime_type );
+	Debug(1, "MimeType is \"%s\"", mime_type);
 
 	return mime_type;
 }

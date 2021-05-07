@@ -120,15 +120,10 @@ src/CMakeFiles/
 src/cmake_install.cmake
 src/libzm.a
 src/nph-zms
-src/zm_config_data.h
-src/zm_config_defines.h
-src/zma
 src/zmc
 src/zmf
 src/zms
 src/zmu
-src/zoneminder-zma.8
-src/zoneminder-zma.8.gz
 src/zoneminder-zmc.8
 src/zoneminder-zmc.8.gz
 src/zoneminder-zmf.8
@@ -157,4 +152,6 @@ web/undef.log
 zm.conf
 zmconfgen.pl
 zmlinkcontent.sh
+zm_config_data.h
+zm_config_defines.h
 **/.DS_Store

@@ -98,6 +98,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   ;
 
 logInit($filter_id?(id=>'zmfilter_'.$filter_id):());
+
 sub HupHandler {
   # This idea at this time is to just exit, freeing up the memory. 
   # zmfilter.pl will be respawned by zmdc.
@@ -162,16 +163,17 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
 
-if ( ! EVENT_PATH ) {
-  Error("No event path defined. Config was $Config{ZM_DIR_EVENTS}");
+if ( !EVENT_PATH ) {
+  Error('No event path defined. Config was '.$Config{ZM_DIR_EVENTS});
   die;
 }
 
 # In future, should not be neccessary wrt StorageAreas
-chdir( EVENT_PATH );
+chdir(EVENT_PATH);
 
 # Should not be neccessary... but nice to get a local var.  What if it fails?
 my $dbh = zmDbConnect();
+$dbh->do('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 
 if ( $filter_name ) {
   Info("Scanning for events using filter '$filter_name'");
@@ -236,6 +238,7 @@ sub getFilters {
     $sql .= ' `Background` = 1 AND';
   }
   $sql .= '( `AutoArchive` = 1
+    or `AutoUnarchive` = 1
     or `AutoVideo` = 1
     or `AutoUpload` = 1
     or `AutoEmail` = 1
@@ -275,6 +278,7 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
 sub checkFilter {
   my $filter = shift;
 
+  my $in_transaction = ZoneMinder::Database::start_transaction($dbh) if $$filter{LockRows}; 
   my @Events = $filter->Execute();
   Debug(
       join(' ',
@@ -282,6 +286,7 @@ sub checkFilter {
         join(', ', 
           ($filter->{AutoDelete}?'delete':()),
           ($filter->{AutoArchive}?'archive':()),
+          ($filter->{AutoUnarchive}?'unarchive':()),
           ($filter->{AutoVideo}?'video':()),
           ($filter->{AutoUpload}?'upload':()),
           ($filter->{AutoEmail}?'email':()),
@@ -299,13 +304,22 @@ sub checkFilter {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
 
-    Debug("Checking event $Event->{Id}");
+    Debug('Checking event '.$Event->{Id});
     my $delete_ok = !undef;
     $dbh->ping();
     if ( $filter->{AutoArchive} ) {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
       my $sql = 'UPDATE `Events` SET `Archived` = 1 WHERE `Id` = ?';
+      my $sth = $dbh->prepare_cached($sql)
+        or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
+      my $res = $sth->execute($Event->{Id})
+        or Error("Unable to execute '$sql': ".$dbh->errstr());
+    }
+    if ( $filter->{AutoUnarchive} ) {
+      Info("Unarchiving event $Event->{Id}");
+      # Do it individually to avoid locking up the table for new events
+      my $sql = 'UPDATE `Events` SET `Archived` = 0 WHERE `Id` = ?';
       my $sth = $dbh->prepare_cached($sql)
         or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
       my $res = $sth->execute($Event->{Id})
@@ -346,6 +360,7 @@ sub checkFilter {
 
     if ( $filter->{AutoMove} ) {
       my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
+      Info("Moving event $Event->{Id} to datastore $filter->{AutoMoveTo}");
       $_ = $Event->MoveTo($NewStorage);
       Error($_) if $_;
     }
@@ -354,6 +369,7 @@ sub checkFilter {
       # So we still need to update the Event object with the new SecondaryStorageId
       my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
       if ( $NewStorage ) {
+        Info("Copying event $Event->{Id} to datastore $filter->{AutoCopyTo}");
         $_ = $Event->CopyTo($NewStorage);
         if ( $_ ) {
           $ZoneMinder::Database::dbh->commit();
@@ -368,8 +384,10 @@ sub checkFilter {
     } # end if AutoCopy
 
     if ( $filter->{UpdateDiskSpace} ) {
-      $ZoneMinder::Database::dbh->begin_work();
-      $Event->lock_and_load();
+      if ( $$filter{LockRows} ) {
+        $ZoneMinder::Database::dbh->begin_work();
+        $Event->lock_and_load();
+      }
 
       my $old_diskspace = $$Event{DiskSpace};
 			my $new_diskspace = $Event->DiskSpace(undef);
@@ -381,9 +399,10 @@ sub checkFilter {
 					) {
         $Event->save();
       }
-      $ZoneMinder::Database::dbh->commit();
+      $ZoneMinder::Database::dbh->commit() if !$$filter{LockRows};
     } # end if UpdateDiskSpace
   } # end foreach event
+  ZoneMinder::Database::end_transaction($dbh, $in_transaction) if $$filter{LockRows}; 
 } # end sub checkFilter
 
 sub generateVideo {
@@ -391,8 +410,9 @@ sub generateVideo {
   my $Event = shift;
   my $phone = shift;
 
-  my $rate = $Event->{DefaultRate}/100;
-  my $scale = $Event->{DefaultScale}/100;
+  my $Monitor = $Event->Monitor();
+  my $rate = $$Monitor{DefaultRate}/100;
+  my $scale = $$Monitor{DefaultScale}/100;
   my $format;
 
   my @ffmpeg_formats = split(/\s+/, $Config{ZM_FFMPEG_FORMATS});
@@ -641,12 +661,14 @@ sub substituteTags {
 # First we'd better check what we need to get
 # We have a filter and an event, do we need any more
 # monitor information?
-  my $need_monitor = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_monitor = $text =~ /%(?:MN|MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_status = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
 
   my $Monitor = $Event->Monitor() if $need_monitor;
+  my $Status = $Monitor->Status() if $need_status;
 
 # Do we need the image information too?
-  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD)%/;
+  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD|EIMODG)%/;
   my $first_alarm_frame;
   my $max_alarm_frame;
   my $max_alarm_score = 0;
@@ -673,13 +695,13 @@ sub substituteTags {
 
   my $url = $Config{ZM_URL};
   $text =~ s/%ZP%/$url/g;
-  $text =~ s/%MN%/$Event->{MonitorName}/g;
-  $text =~ s/%MET%/$Monitor->{TotalEvents}/g;
-  $text =~ s/%MEH%/$Monitor->{HourEvents}/g;
-  $text =~ s/%MED%/$Monitor->{DayEvents}/g;
-  $text =~ s/%MEW%/$Monitor->{WeekEvents}/g;
-  $text =~ s/%MEM%/$Monitor->{MonthEvents}/g;
-  $text =~ s/%MEA%/$Monitor->{ArchivedEvents}/g;
+  $text =~ s/%MN%/$Monitor->{Name}/g;
+  $text =~ s/%MET%/$Status->{TotalEvents}/g;
+  $text =~ s/%MEH%/$Status->{HourEvents}/g;
+  $text =~ s/%MED%/$Status->{DayEvents}/g;
+  $text =~ s/%MEW%/$Status->{WeekEvents}/g;
+  $text =~ s/%MEM%/$Status->{MonthEvents}/g;
+  $text =~ s/%MEA%/$Status->{ArchivedEvents}/g;
   $text =~ s/%MP%/$url?view=watch&mid=$Event->{MonitorId}/g;
   $text =~ s/%MPS%/$url?view=watch&mid=$Event->{MonitorId}&mode=stream/g;
   $text =~ s/%MPI%/$url?view=watch&mid=$Event->{MonitorId}&mode=still/g;
@@ -690,7 +712,7 @@ sub substituteTags {
   $text =~ s/%EN%/$Event->{Name}/g;
   $text =~ s/%EC%/$Event->{Cause}/g;
   $text =~ s/%ED%/$Event->{Notes}/g;
-  $text =~ s/%ET%/$Event->{StartTime}/g;
+  $text =~ s/%ET%/$Event->{StartDateTime}/g;
   $text =~ s/%EVF%/$$Event{DefaultVideo}/g; # Event video filename
   $text =~ s/%EL%/$Event->{Length}/g;
   $text =~ s/%EF%/$Event->{Frames}/g;
@@ -704,6 +726,11 @@ sub substituteTags {
     $text =~ s/%EPFM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
     $text =~ s/%EPI1%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
     $text =~ s/%EPIM%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+    $text =~ s/%EPIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+    $text =~ s/%EPFMODG%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
+    $text =~ s/%EPIMODG%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
+
     if ( $attachments_ref ) {
       if ( $text =~ s/%EI1%//g ) {
         my $path = generateImage($Event, $first_alarm_frame);
@@ -751,14 +778,21 @@ sub substituteTags {
         }
       }
 
-      if ( $text =~ s/%EIMOD%//g or $text =~ s/%EFMOD%//g ) {
-        $text =~ s/%EFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
-        $text =~ s/%EIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+      if ( $text =~ s/%EIMOD%//g ) {
         my $path = $Event->Path().'/objdetect.jpg';
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         } else {
           Warning('No image for MOD at '.$path);
+        }
+      }
+
+      if ( $text =~ s/%EIMODG%//g ) {
+        my $path = $Event->Path().'/objdetect.gif';
+        if ( -e $path ) {
+          push @$attachments_ref, { type=>'image/gif', path=>$path };
+        } else {
+          Warning('No image for MODG at '.$path);
         }
       }
 

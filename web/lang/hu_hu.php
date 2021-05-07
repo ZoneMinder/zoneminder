@@ -194,7 +194,7 @@ $SLANG = array(
     'BadFrameSkip'         => 'Az eldobott képkockák száma legyen legalább 0',
     'BadHeight'            => 'A képmagasság legyen érvényes érték képpontban megadva',
     'BadHost'              => 'A hoszt legyen valós IP cím vagy hosztnév http:// nélkül',
-    'BadImageBufferCount'  => 'A képkockák száma a pufferben legyen legalább 10',
+    'BadImageBufferCount'  => 'A képkockák száma a pufferben legyen legalább 2',
     'BadLabelX'            => 'A cimke X koordinátája legyen legalább 0',
     'BadLabelY'            => 'A cimke Y koordinátája legyen legalább 0',
     'BadMaxFPS'            => 'Maximális FPS nyugalmi állapotban legyen megadva',
@@ -990,7 +990,7 @@ $OLANG = array(
 	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

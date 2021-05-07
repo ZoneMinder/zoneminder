@@ -31,6 +31,10 @@ class Event extends AppModel {
  */
 	public $displayField = 'Name';
 
+  public $virtualFields = array(
+    'StartTime' => 'StartDateTime',
+    'EndTime' => 'EndDateTime'
+  );
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
@@ -133,10 +137,10 @@ class Event extends AppModel {
       if ( file_exists($this->Path().'/'.$event['DefaultVideo']) ) {
         return 1;
       } else {
-        ZM\Logger::Debug('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
+        ZM\Debug('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
       }
     } else {
-      ZM\Logger::Debug('No DefaultVideo in Event' . $this->Event);
+      ZM\Debug('No DefaultVideo in Event' . $this->Event);
       return 0;
     }
   } // end function fileExists($event)

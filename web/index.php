@@ -47,16 +47,12 @@ require_once('includes/config.php');
 require_once('includes/session.php');
 require_once('includes/logger.php');
 require_once('includes/Server.php');
-require_once('includes/Storage.php');
-require_once('includes/Event.php');
-require_once('includes/Group.php');
-require_once('includes/Monitor.php');
 
 // Useful debugging lines for mobile devices
 if ( 0 and ZM\Logger::fetch()->debugOn() ) {
   ob_start();
   phpinfo(INFO_VARIABLES);
-  ZM\Logger::Debug(ob_get_contents());
+  ZM\Debug(ob_get_contents());
   ob_end_clean();
 }
 
@@ -82,7 +78,7 @@ define('ZM_BASE_URL', '');
 
 require_once('includes/functions.php');
 if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
-  ZM\Logger::Debug('OPTIONS Method, only doing CORS');
+  ZM\Debug('OPTIONS Method, only doing CORS');
   # Add Cross domain access headers
   CORSHeaders();
   return;
@@ -98,7 +94,7 @@ if ( isset($_GET['skin']) ) {
   $skin = 'classic';
 }
 
-if ( ! is_dir("skins/$skin") ) {
+if (!is_dir('skins/'.$skin) ) {
   $skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
 
   if ( !in_array($skin, $skins) ) {
@@ -117,10 +113,10 @@ if ( isset($_GET['css']) ) {
   $css = 'classic';
 }
 
-if ( !is_dir("skins/$skin/css/$css") ) {
+if (!is_dir("skins/$skin/css/$css")) {
   $css_skins = array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR));
-  if ( count($css_skins) ) {
-    if ( !in_array($css, $css_skins) ) {
+  if (count($css_skins)) {
+    if (!in_array($css, $css_skins)) {
       ZM\Error("Invalid skin css '$css' setting to " . $css_skins[0]);
       $css = $css_skins[0];
     } else {
@@ -137,7 +133,7 @@ define('ZM_SKIN_PATH', "skins/$skin");
 define('ZM_SKIN_NAME', $skin);
 
 $skinBase = array(); // To allow for inheritance of skins
-if ( !file_exists(ZM_SKIN_PATH) )
+if (!file_exists(ZM_SKIN_PATH))
   ZM\Fatal("Invalid skin '$skin'");
 $skinBase[] = $skin;
 
@@ -196,6 +192,11 @@ require_once('includes/auth.php');
 # Any file/page that sets session variables must re-open it.
 session_write_close();
 
+require_once('includes/Storage.php');
+require_once('includes/Event.php');
+require_once('includes/Group.php');
+require_once('includes/Monitor.php');
+
 // lang references $user[Language] so must come after auth
 require_once('includes/lang.php');
 
@@ -218,7 +219,7 @@ if ( (!$view and !$request) or ($view == 'console') ) {
   check_timezone();
 }
 
-ZM\Logger::Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
+ZM\Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
@@ -227,16 +228,17 @@ if (
   ( $request != 'control' ) && 
   //( $view != 'frames' ) &&  // big html can overflow ob
   ( $view != 'archive' ) // returns data
+  && ( (!isset($_SERVER['CONTENT_TYPE']) or ($_SERVER['CONTENT_TYPE'] != 'application/csp-report')) )
 ) {
   require_once('includes/csrf/csrf-magic.php');
-  #ZM\Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+  #ZM\Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
   csrf_check();
 }
 
 # Need to include actions because it does auth
 if ( $action and !$request ) {
   if ( file_exists('includes/actions/'.$view.'.php') ) {
-    ZM\Logger::Debug("Including includes/actions/$view.php");
+    ZM\Debug("Including includes/actions/$view.php");
     require_once('includes/actions/'.$view.'.php');
   } else {
     ZM\Warning("No includes/actions/$view.php for action $action");
@@ -245,30 +247,27 @@ if ( $action and !$request ) {
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'none') ) {
-  /* AJAX check  */
-  if ( !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-    && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' ) {
+  if ($request) {
+    # requests only return json
     header('HTTP/1.1 401 Unauthorized');
     exit;
   }
-  ZM\Logger::Debug('Redirecting to login');
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
-  if ( ! $request ) {
-    zm_session_start();
-    $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
-    session_write_close();
-  }
-  $request = null;
+  zm_session_start();
+  $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
+  session_write_close();
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';
   $request = null;
 }
 
+if ( isset($_REQUEST['redirect']) )
+  $redirect = '?view='.detaintPath($_REQUEST['redirect']);
 
 if ( $redirect ) {
-  ZM\Logger::Debug("Redirecting to $redirect");
+  ZM\Debug("Redirecting to $redirect");
   header('Location: '.$redirect);
   return;
 }

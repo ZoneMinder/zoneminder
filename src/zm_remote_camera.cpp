@@ -20,9 +20,12 @@
 #include "zm_remote_camera.h"
 
 #include "zm_utils.h"
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/socket.h>
 
 RemoteCamera::RemoteCamera(
-  unsigned int p_monitor_id,
+  const Monitor *monitor,
   const std::string &p_protocol,
   const std::string &p_host,
   const std::string &p_port,
@@ -37,7 +40,7 @@ RemoteCamera::RemoteCamera(
   bool p_capture,
   bool p_record_audio
  ) :
-    Camera( p_monitor_id, REMOTE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
+    Camera( monitor, REMOTE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
     protocol( p_protocol ),
     host( p_host ),
     port( p_port ),
@@ -80,7 +83,7 @@ void RemoteCamera::Initialise() {
   if ( authIndex != std::string::npos ) {
     auth = host.substr( 0, authIndex );
     host.erase( 0, authIndex+1 );
-    auth64 = base64Encode( auth );
+    auth64 = Base64Encode(auth);
 
     authIndex = auth.rfind( ':' );
     username = auth.substr(0,authIndex);

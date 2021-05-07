@@ -134,8 +134,6 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
     if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
     if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
   }
-  #$monitor['zmc'] = zmcStatus( $monitor );
-  #$monitor['zma'] = zmaStatus( $monitor );
   $zoneCount += $monitor['ZoneCount'];
 
   $counts = array();
@@ -240,7 +238,7 @@ ob_start();
 ?>
             <th class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
 <?php if ( canEdit('Monitors') ) { ?>
-            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markMids[]" data-on-click-this="updateFormCheckboxesByName"/> <?php echo translate('All') ?></th>
+            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markMids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
 <?php } ?>
           </tr>
         </thead>
@@ -294,8 +292,9 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php
   }
   $imgHTML='';
-  if ( ZM_WEB_LIST_THUMBS && ($monitor['Status'] == 'Connected') && $running ) {
+  if (ZM_WEB_LIST_THUMBS && ($monitor['Status'] == 'Connected') && $running && canView('Stream')) {
     $options = array();
+
     $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
     $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
     $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
@@ -308,7 +307,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
     $thmbHeight = ( $options['height'] ) ? 'height:'.$options['height'].'px;' : '';
     
-    $imgHTML = '<div class="colThumbnail zoom-right"><a';
+    $imgHTML = '<div class="colThumbnail"><a';
     $imgHTML .= $stream_available ? ' href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>';
     $imgHTML .= '<img id="thumbnail' .$Monitor->Id(). '" src="' .$stillSrc. '" style="'
       .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"'.
@@ -323,15 +322,24 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
               <?php echo $imgHTML ?>
               <div class="small text-nowrap text-muted">
 
-              <?php echo implode('<br/>',
+<?php 
+  if (canView('Groups')) {
+    echo implode('<br/>',
                   array_map(function($group_id){
                     $Group = ZM\Group::find_one(array('Id'=>$group_id));
                     if ( $Group ) {
                       $Groups = $Group->Parents();
                       array_push( $Groups, $Group );
                     }
-                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&amp;GroupId='.$Group->Id().'">'.validHtmlStr($Group->Name()).'</a>'; }, $Groups ));
-                    }, $Monitor->GroupIds() ) ); 
+                    return implode(' &gt; ', array_map(function($Group){
+                      if (canView('Stream')) {
+                        return '<a href="?view=montagereview&amp;GroupId='.$Group->Id().'">'.validHtmlStr($Group->Name()).'</a>';
+                      } else {
+                        return validHtmlStr($Group->Name());
+                      }
+                    }, $Groups ));
+                  }, $Monitor->GroupIds()));
+  }
 ?>
             </div></td>
             <td class="colFunction">
@@ -372,7 +380,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php
   }
 ?>
-            <td class="colZones"><?php echo makePopupLink('?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array('zones', $monitor['Width'], $monitor['Height']), $monitor['ZoneCount'], canView('Monitors')) ?></td>
+            <td class="colZones"><?php echo makeLink('?view=zones&amp;mid='.$monitor['Id'], $monitor['ZoneCount'], canView('Monitors')) ?></td>
 <?php
   if ( canEdit('Monitors') ) {
 ?>
@@ -437,8 +445,5 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     </div>
   </form>
 <?php
-  include('function.php');
-  // Include Donate Modal
-  include('donate.php');
   xhtmlFooter();
 ?>

@@ -20,14 +20,8 @@
 #ifndef ZM_BOX_H
 #define ZM_BOX_H
 
-#include "zm.h"
 #include "zm_coord.h"
-
-#ifndef SOLARIS
-#include <math.h>
-#else
 #include <cmath>
-#endif
 
 //
 // Class used for storing a box, which is defined as a region
@@ -39,26 +33,30 @@ private:
   Coord size;
 
 public:
-  inline Box() { }
-  explicit inline Box( int p_size ) : lo( 0, 0 ), hi ( p_size-1, p_size-1 ), size( Coord::Range( hi, lo ) ) { }
+  inline Box() : lo(0,0), hi(0,0), size(0,0) { }
+  explicit inline Box(unsigned int p_size) : lo(0, 0), hi(p_size-1, p_size-1), size(Coord::Range(hi, lo)) { }
   inline Box( int p_x_size, int p_y_size ) : lo( 0, 0 ), hi ( p_x_size-1, p_y_size-1 ), size( Coord::Range( hi, lo ) ) { }
   inline Box( int lo_x, int lo_y, int hi_x, int hi_y ) : lo( lo_x, lo_y ), hi( hi_x, hi_y ), size( Coord::Range( hi, lo ) ) { }
   inline Box( const Coord &p_lo, const Coord &p_hi ) : lo( p_lo ), hi( p_hi ), size( Coord::Range( hi, lo ) ) { }
 
   inline const Coord &Lo() const { return lo; }
   inline int LoX() const { return lo.X(); }
+  inline int LoX(int p_lo_x) { return lo.X(p_lo_x); }
   inline int LoY() const { return lo.Y(); }
+  inline int LoY(int p_lo_y) { return lo.Y(p_lo_y); }
   inline const Coord &Hi() const { return hi; }
   inline int HiX() const { return hi.X(); }
+  inline int HiX(int p_hi_x) { return hi.X(p_hi_x); }
   inline int HiY() const { return hi.Y(); }
+  inline int HiY(int p_hi_y) { return hi.Y(p_hi_y); }
   inline const Coord &Size() const { return size; }
   inline int Width() const { return size.X(); }
   inline int Height() const { return size.Y(); }
   inline int Area() const { return size.X()*size.Y(); }
 
   inline const Coord Centre() const {
-    int mid_x = int(round(lo.X()+(size.X()/2.0)));
-    int mid_y = int(round(lo.Y()+(size.Y()/2.0)));
+    int mid_x = int(std::round(lo.X()+(size.X()/2.0)));
+    int mid_y = int(std::round(lo.Y()+(size.Y()/2.0)));
     return Coord( mid_x, mid_y );
   }
   inline bool Inside( const Coord &coord ) const

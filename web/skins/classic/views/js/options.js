@@ -2,11 +2,7 @@
 function getServerModal(sid) {
   $j.getJSON(thisUrl + '?request=modal&modal=server&id=' + sid)
       .done(function(data) {
-        if ( $j('#ServerModal').length ) {
-          $j('#ServerModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('ServerModal', data.html);
         $j('#ServerModal').modal('show');
         // Manage the Save button
         $j('#serverSubmitBtn').click(function(evt) {
@@ -14,10 +10,7 @@ function getServerModal(sid) {
           $j('#serverModalForm').submit();
         });
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function enableServerModal() {
@@ -36,11 +29,7 @@ function enableServerModal() {
 function getStorageModal(sid) {
   $j.getJSON(thisUrl + '?request=modal&modal=storage&id=' + sid)
       .done(function(data) {
-        if ( $j('#storageModal').length ) {
-          $j('#storageModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('storageModal', data.html);
         $j('#storageModal').modal('show');
         // Manage the Save button
         $j('#storageSubmitBtn').click(function(evt) {
@@ -48,10 +37,7 @@ function getStorageModal(sid) {
           $j('#storageModalForm').submit();
         });
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function enableStorageModal() {
@@ -66,15 +52,21 @@ function enableStorageModal() {
   });
 }
 
+// Manage the Add New User button
+function AddNewUser(el) {
+  url = el.getAttribute('data-url');
+  window.location.assign(url);
+}
+
 function initPage() {
   var NewStorageBtn = $j('#NewStorageBtn');
   var NewServerBtn = $j('#NewServerBtn');
 
-  if ( canEditSystem ) enableStorageModal();
-  if ( canEditSystem ) enableServerModal();
+  if ( canEdit.System ) enableStorageModal();
+  if ( canEdit.System ) enableServerModal();
 
-  NewStorageBtn.prop('disabled', !canEditSystem);
-  NewServerBtn.prop('disabled', !canEditSystem);
+  NewStorageBtn.prop('disabled', !canEdit.System);
+  NewServerBtn.prop('disabled', !canEdit.System);
 }
 
 $j(document).ready(function() {

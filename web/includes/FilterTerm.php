@@ -13,6 +13,7 @@ function getFilterQueryConjunctionTypes() {
   return $validConjunctionTypes;
 }
 
+
 class FilterTerm {
   public $filter;
   public $index;
@@ -35,10 +36,15 @@ class FilterTerm {
     $this->val = $term['val'];
     if ( isset($term['cnj']) ) {
       if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
-      $this->cnj = $term['cnj'];
+        $this->cnj = $term['cnj'];
       } else {
         Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
       }
+    }
+    if ( isset($term['tablename']) ) {
+      $this->tablename = $term['tablename'];
+    } else {
+      $this->tablename = 'E';
     }
 
     if ( isset($term['obr']) ) {
@@ -65,8 +71,9 @@ class FilterTerm {
       return $values;
     }
 
-    foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val)) as $value ) {
-
+    $vals = is_array($this->val) ? $this->val : preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val));
+    foreach ( $vals as $value ) {
+      $value_upper = strtoupper($value);
       switch ( $this->attr ) {
 
       case 'AlarmedZoneId':
@@ -75,7 +82,7 @@ class FilterTerm {
       case 'ExistsInFileSystem':
         $value = '';
         break;
-      case 'DiskSpace':
+      case 'DiskPercent':
         $value = '';
         break;
       case 'MonitorName':
@@ -83,7 +90,7 @@ class FilterTerm {
       case 'Name':
       case 'Cause':
       case 'Notes':
-        if ( $this->op == 'LIKE' || $this->op == 'NOT LIKE' ) {
+        if ( strstr($this->op, 'LIKE') and ! strstr($this->val, '%' ) ) {
           $value = '%'.$value.'%';
         }
         $value = dbEscape($value);
@@ -94,36 +101,36 @@ class FilterTerm {
       case 'ServerId':
         if ( $value == 'ZM_SERVER_ID' ) {
           $value = ZM_SERVER_ID;
-        } else if ( $value == 'NULL' ) {
+        } else if ( $value_upper == 'NULL' ) {
 
         } else {
           $value = dbEscape($value);
         }
         break;
       case 'StorageId':
-        if ( $value != 'NULL' ) {
+        if ( $value_upper != 'NULL' ) {
           $value = dbEscape($value);
         }
         break;
       case 'DateTime':
       case 'StartDateTime':
       case 'EndDateTime':
-        if ( $value != 'NULL' )
+        if ( $value_upper != 'NULL' )
           $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
         break;
       case 'Date':
       case 'StartDate':
       case 'EndDate':
-        if ( $value == 'CURDATE()' or $value == 'NOW()' ) {
+        if ( $value_upper == 'CURDATE()' or $value_upper == 'NOW()' ) {
           $value = 'to_days('.$value.')';
-        } else if ( $value != 'NULL' ) {
+        } else if ( $value_upper != 'NULL' ) {
           $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
         }
         break;
       case 'Time':
       case 'StartTime':
       case 'EndTime':
-        if ( $value != 'NULL' )
+        if ( $value_upper != 'NULL' )
           $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
         break;
       default :
@@ -131,7 +138,7 @@ class FilterTerm {
           $value = 1;
         } else if ( $value == 'Even' ) {
           $value = 0;
-        } else if ( $value != 'NULL' )
+        } else if ( $value_upper != 'NULL' )
           $value = dbEscape($value);
         break;
       }
@@ -141,14 +148,13 @@ class FilterTerm {
   } # end function sql_values
 
   public function sql_operator() {
-    switch ( $this->attr ) {
-    case 'AlarmZoneId':
+    switch ($this->attr) {
+    case 'AlarmedZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':
-    case 'DiskSpace':
+    case 'DiskPercent':
       return '';
     }
-
 
     switch ( $this->op ) {
     case '=' :
@@ -185,7 +191,7 @@ class FilterTerm {
       }
       return ' IS NOT ';
     default:
-      ZM\Warning('Invalid operator in filter: ' . print_r($this->op, true));
+      Warning('Invalid operator in filter: ' . print_r($this->op, true));
     } // end switch op
   } # end public function sql_operator
 
@@ -194,15 +200,19 @@ class FilterTerm {
 
     $sql = '';
     if ( isset($this->cnj) ) {
-      $sql .= ' '.$this->cnj.' ';
+      $sql .= ' '.$this->cnj;
     }
     if ( isset($this->obr) ) {
-      $sql .= ' '.str_repeat('(', $this->obr).' ';
+      $sql .= ' '.str_repeat('(', $this->obr);
     }
+    $sql .= ' ';
 
     switch ( $this->attr ) {
+    case 'AlarmedZoneId':
+      $sql .= '/* AlarmedZoneId */ ';
+      break;
     case 'ExistsInFileSystem':
-    case 'DiskSpace':
+    case 'DiskPercent':
       $sql .= 'TRUE /*'.$this->attr.'*/';
       break;
     case 'MonitorName':
@@ -220,49 +230,59 @@ class FilterTerm {
       break;
       # Unspecified start or end, so assume start, this is to support legacy filters
     case 'DateTime':
-      $sql .= 'E.StartTime';
+      $sql .= 'E.StartDateTime';
       break;
     case 'Date':
-      $sql .= 'to_days(E.StartTime)';
+      $sql .= 'to_days(E.StartDateTime)';
       break;
     case 'Time':
-      $sql .= 'extract(hour_second FROM E.StartTime)';
+      $sql .= 'extract(hour_second FROM E.StartDateTime)';
       break;
     case 'Weekday':
-      $sql .= 'weekday(E.StartTime)';
+      $sql .= 'weekday(E.StartDateTime)';
       break;
       # Starting Time
     case 'StartDateTime':
-      $sql .= 'E.StartTime';
+      $sql .= 'E.StartDateTime';
+      break;
+    case 'FrameId':
+      $sql .= 'Id';
+      break;
+    case 'Type':
+    case 'TimeStamp':
+    case 'Delta':
+    case 'Score':
+      $sql .= $this->attr;
       break;
     case 'FramesEventId':
       $sql .= 'F.EventId';
       break;
     case 'StartDate':
-      $sql .= 'to_days(E.StartTime)';
+      $sql .= 'to_days(E.StartDateTime)';
       break;
     case 'StartTime':
-      $sql .= 'extract(hour_second FROM E.StartTime)';
+      $sql .= 'extract(hour_second FROM E.StartDateTime)';
       break;
     case 'StartWeekday':
-      $sql .= 'weekday(E.StartTime)';
+      $sql .= 'weekday(E.StartDateTime)';
       break;
       # Ending Time
     case 'EndDateTime':
-      $sql .= 'E.EndTime';
+      $sql .= 'E.EndDateTime';
       break;
     case 'EndDate':
-      $sql .= 'to_days(E.EndTime)';
+      $sql .= 'to_days(E.EndDateTime)';
       break;
     case 'EndTime':
-      $sql .= 'extract(hour_second FROM E.EndTime)';
+      $sql .= 'extract(hour_second FROM E.EndDateTime)';
       break;
     case 'EndWeekday':
-      $sql .= 'weekday(E.EndTime)';
+      $sql .= 'weekday(E.EndDateTime)';
       break;
+    case 'Emailed':
     case 'Id':
     case 'Name':
-    case 'EventDiskSpace':
+    case 'DiskSpace':
     case 'MonitorId':
     case 'StorageId':
     case 'SecondaryStorageId':
@@ -276,7 +296,10 @@ class FilterTerm {
     case 'Notes':
     case 'StateId':
     case 'Archived':
-      $sql .= 'E.'.$this->attr;
+      $sql .= $this->tablename.'.'.$this->attr;
+      break;
+    default :
+      $sql .= $this->tablename.'.'.$this->attr;
     }
     $sql .= $this->sql_operator();
     $values = $this->sql_values();
@@ -287,24 +310,25 @@ class FilterTerm {
     }
 
     if ( isset($this->cbr) ) {
-      $sql .= ' '.str_repeat(')', $this->cbr).' ';
+      $sql .= ' '.str_repeat(')', $this->cbr);
     }
+    $sql .= PHP_EOL;
     return $sql;
   } # end public function sql
 
-  public function querystring($querySep='&amp;') {
+  public function querystring($objectname='filter', $querySep='&amp;') {
     # We don't validate the term parameters here
     $query = '';
     if ( $this->cnj ) 
-      $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][cnj]').'='.$this->cnj;
+      $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][cnj]').'='.$this->cnj;
     if ( $this->obr )
-      $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][obr]').'='.$this->obr;
+      $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][obr]').'='.$this->obr;
 
-    $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][attr]').'='.urlencode($this->attr);
-    $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][op]').'='.urlencode($this->op);
-    $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][val]').'='.urlencode($this->val);
+    $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][attr]').'='.urlencode($this->attr);
+    $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][op]').'='.urlencode($this->op);
+    $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][val]').'='.urlencode($this->val);
     if ( $this->cbr )
-      $query .= $querySep.urlencode('filter[Query][terms]['.$this->index.'][cbr]').'='.$this->cbr;
+      $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][cbr]').'='.$this->cbr;
     return $query;
   } # end public function querystring
 
@@ -329,14 +353,14 @@ class FilterTerm {
   public function test($event=null) {
     if ( !isset($event) ) {
       # Is a Pre Condition
-      Logger::Debug("Testing " . $this->attr);
+      Debug("Testing " . $this->attr);
       if ( $this->attr == 'DiskPercent' ) {
         # The logic on this is really ugly.  We are going to treat it as an OR
         foreach ( $this->filter->get_StorageAreas() as $storage ) {
           $string_to_eval = 'return $storage->disk_usage_percent() '.$this->op.' '.$this->val.';';
           try {
             $ret = eval($string_to_eval);
-            Logger::Debug("Evalled $string_to_eval = $ret");
+            Debug("Evalled $string_to_eval = $ret");
             if ( $ret )
               return true;
           } catch ( Throwable $t ) {
@@ -348,7 +372,7 @@ class FilterTerm {
         $string_to_eval = 'return getLoad() '.$this->op.' '.$this->val.';';
         try {
           $ret = eval($string_to_eval);
-          Logger::Debug("Evaled $string_to_eval = $ret");
+          Debug("Evaled $string_to_eval = $ret");
           if ( $ret )
             return true;
         } catch ( Throwable $t ) {
@@ -374,7 +398,7 @@ class FilterTerm {
         $string_to_eval = 'return $event->Storage()->disk_usage_percent() '.$this->op.' '.$this->val.';';
         try {
           $ret = eval($string_to_eval);
-          Logger::Debug("Evalled $string_to_eval = $ret");
+          Debug("Evalled $string_to_eval = $ret");
           if ( $ret )
             return true;
         } catch ( Throwable $t ) {
@@ -385,7 +409,7 @@ class FilterTerm {
         $string_to_eval = 'return $event->Storage()->disk_usage_blocks() '.$this->op.' '.$this->val.';';
         try {
           $ret = eval($string_to_eval);
-          Logger::Debug("Evalled $string_to_eval = $ret");
+          Debug("Evalled $string_to_eval = $ret");
           if ( $ret )
             return true;
         } catch ( Throwable $t ) {
@@ -400,21 +424,70 @@ class FilterTerm {
   }
   
   public function is_pre_sql() {
-    if ( $this->attr == 'DiskPercent' ) {
+    if ( $this->attr == 'DiskPercent' )
         return true;
-    }
+    if ( $this->attr == 'DiskBlocks' )
+        return true;
     return false;
   }
 
   public function is_post_sql() {
     if ( $this->attr == 'ExistsInFileSystem' ) {
         return true;
-    } else if ( $this->attr == 'DiskPercent' ) {
-        return true;
     }
     return false;
   }
 
+  public static function is_valid_attr($attr) {
+    $attrs = array(
+      'Score',
+      'Delta',
+      'TimeStamp',
+      'Type',
+      'FrameId',
+      'EventId',
+      'ExistsInFileSystem',
+      'Emailed',
+      'DiskSpace',
+      'DiskPercent',
+      'DiskBlocks',
+      'MonitorName',
+      'ServerId',
+      'MonitorServerId',
+      'StorageServerId',
+      'FilterServerId',
+      'DateTime',
+      'Date',
+      'Time',
+      'Weekday',
+      'StartDateTime',
+      'FramesId',
+      'FramesEventId',
+      'StartDate',
+      'StartTime',
+      'StartWeekday',
+      'EndDateTime',
+      'EndDate',
+      'EndTime',
+      'EndWeekday',
+      'Id',
+      'Name',
+      'MonitorId',
+      'StorageId',
+      'SecondaryStorageId',
+      'Length',
+      'Frames',
+      'AlarmFrames',
+      'TotScore',
+      'AvgScore',
+      'MaxScore',
+      'Cause',
+      'Notes',
+      'StateId',
+      'Archived'
+    );
+    return in_array($attr, $attrs);
+  }
 } # end class FilterTerm
 
 ?>

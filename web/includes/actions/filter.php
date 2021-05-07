@@ -18,9 +18,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+global $error_message;
 // Event scope actions, view permissions only required
 if ( !canView('Events') ) {
-  ZM\Warning('You do not have permission to view Events.');
+	$error_message = 'You do not have permission to view Events.';
+	ZM\Warning($error_message);
   return;
 }
 
@@ -46,7 +48,6 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       }
     } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) ) {
 
-      $sql = '';
       $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
       $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
       $_REQUEST['filter']['Query']['limit'] = validInt($_REQUEST['filter']['Query']['limit']);
@@ -64,14 +65,15 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       $_REQUEST['filter']['Background'] = empty($_REQUEST['filter']['Background']) ? 0 : 1;
       $_REQUEST['filter']['Concurrent'] = empty($_REQUEST['filter']['Concurrent']) ? 0 : 1;
       $changes = $filter->changes($_REQUEST['filter']);
-      ZM\Logger::Debug('Changes: ' . print_r($changes,true));
+      ZM\Debug('Changes: ' . print_r($changes,true));
 
-      if ( $_REQUEST['Id'] and ( $action == 'Save' ) ) {
-        if ( $filter->Background() )
-          $filter->control('stop');
-        $filter->save($changes);
+      if ($filter->Id() and ($action == 'Save')) {
+				if ($filter->Background()) $filter->control('stop');
+				if (!$filter->save($changes)) {
+					$error_message = $filter->get_last_error();
+					return;
+				}
       } else {
-
         if ( $action == 'execute' ) {
           if ( count($changes) ) {
             $filter->Name('_TempFilter'.time());
@@ -80,7 +82,10 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
         } else if ( $action == 'SaveAs' ) {
 					$filter->Id(null);
 				}
-        $filter->save($changes);
+				if (!$filter->save($changes)) {
+					$error_message = $filter->get_last_error();
+					return;
+				}
 
 				// We update the request id so that the newly saved filter is auto-selected
 				$_REQUEST['Id'] = $filter->Id();
@@ -95,7 +100,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       } else if ( $filter->Background() ) {
         $filter->control('start');
       }
-      $redirect = '?view=filter&Id='.$filter->Id();
+      $redirect = '?view=filter'.$filter->querystring('filter', '&');
 
     } else if ( $action == 'control' ) {
       if ( $_REQUEST['command'] == 'start'

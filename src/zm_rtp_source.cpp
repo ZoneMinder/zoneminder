@@ -21,8 +21,9 @@
 
 #include "zm_time.h"
 #include "zm_rtp_data.h"
-
+#include "zm_utils.h"
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #if HAVE_LIBAVCODEC
 
@@ -77,6 +78,12 @@ RtpSource::RtpSource(
 
   if ( mCodecId != AV_CODEC_ID_H264 && mCodecId != AV_CODEC_ID_MPEG4 )
     Warning("The device is using a codec (%d) that may not be supported. Do not be surprised if things don't work.", mCodecId);
+}
+
+RtpSource::~RtpSource() {
+  mTerminate = true;
+  mFrameReadyCv.notify_all();
+  mFrameProcessedCv.notify_all();
 }
 
 void RtpSource::init(uint16_t seq) {
@@ -158,14 +165,12 @@ void RtpSource::updateJitter( const RtpDataHeader *header ) {
     uint32_t localTimeRtp = mBaseTimeRtp + uint32_t(tvDiffSec(mBaseTimeReal) * mRtpFactor);
     uint32_t packetTransit = localTimeRtp - ntohl(header->timestampN);
 
-    Debug(5, "Delta rtp = %.6f\n"
-        "Local RTP time = %x",
-        "Packet RTP time = %x",
-        "Packet transit RTP time = %x",
-        tvDiffSec(mBaseTimeReal),
-        localTimeRtp,
-        ntohl(header->timestampN),
-        packetTransit);
+    Debug(5,
+          "Delta rtp = %.6f\n Local RTP time = %x Packet RTP time = %x Packet transit RTP time = %x",
+          tvDiffSec(mBaseTimeReal),
+          localTimeRtp,
+          ntohl(header->timestampN),
+          packetTransit);
 
     if ( mTransit > 0 ) {
       // Jitter
@@ -232,19 +237,13 @@ void RtpSource::updateRtcpStats() {
     mLostFraction = (lostInterval << 8) / expectedInterval;
 
   Debug(5,
-      "Expected packets = %d\n",
-      "Lost packets = %d\n",
-      "Expected interval = %d\n",
-      "Received interval = %d\n",
-      "Lost interval = %d\n",
-      "Lost fraction = %d\n",
-
-      mExpectedPackets,
-      mLostPackets,
-      expectedInterval,
-      receivedInterval,
-      lostInterval,
-      mLostFraction);
+        "Expected packets = %d\n Lost packets = %d\n Expected interval = %d\n Received interval = %d\n Lost interval = %d\n Lost fraction = %d\n",
+        mExpectedPackets,
+        mLostPackets,
+        expectedInterval,
+        receivedInterval,
+        lostInterval,
+        mLostFraction);
 }
 
 bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
@@ -292,7 +291,7 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
 
               extraHeader = 2;
               break;
-          default: 
+          default:
               Debug(3, "Unhandled nalType %d", nalType);
         }
 
@@ -301,7 +300,7 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
           mFrame.append("\x0\x0\x1", 3);
       } // end if H264
       mFrame.append(packet+rtpHeaderSize+extraHeader,
-          packetLen-rtpHeaderSize-extraHeader); 
+          packetLen-rtpHeaderSize-extraHeader);
     } else {
       Debug(3, "NOT H264 frame: type is %d", mCodecId);
     }
@@ -312,16 +311,21 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
       if ( mFrameGood ) {
         Debug(3, "Got new frame %d, %d bytes", mFrameCount, mFrame.size());
 
-        mFrameProcessed.setValueImmediate(false);
-        mFrameReady.updateValueSignal(true);
-        if ( !mFrameProcessed.getValueImmediate() ) {
-          // What is the point of this for loop? Is it just me, or will it call getUpdatedValue once or twice? Could it not be better written as
-          // if ( ! mFrameProcessed.getUpdatedValue( 1 ) && mFrameProcessed.getUpdatedValue( 1 ) ) return false;
-
-          for ( int count = 0; !mFrameProcessed.getUpdatedValue( 1 ); count++ )
-            if ( count > 1 )
-              return false;
+        {
+          std::lock_guard<std::mutex> lck(mFrameReadyMutex);
+          mFrameReady = true;
         }
+        mFrameReadyCv.notify_all();
+
+        {
+          std::unique_lock<std::mutex> lck(mFrameProcessedMutex);
+          mFrameProcessedCv.wait(lck, [&]{ return mFrameProcessed || mTerminate; });
+          mFrameProcessed = false;
+        }
+
+        if (mTerminate)
+          return false;
+
         mFrameCount++;
       } else {
         Warning("Discarding incomplete frame %d, %d bytes", mFrameCount, mFrame.size());
@@ -349,16 +353,21 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
 }
 
 bool RtpSource::getFrame(Buffer &buffer) {
-  if ( !mFrameReady.getValueImmediate() ) {
-    Debug(3, "Getting frame but not ready");
-    // Allow for a couple of spurious returns
-    for ( int count = 0; !mFrameReady.getUpdatedValue(1); count++ )
-      if ( count > 1 )
-        return false;
+  {
+    std::unique_lock<std::mutex> lck(mFrameReadyMutex);
+    mFrameReadyCv.wait(lck, [&]{ return mFrameReady || mTerminate; });
+    mFrameReady = false;
   }
+
+  if (mTerminate)
+    return false;
+
   buffer = mFrame;
-  mFrameReady.setValueImmediate(false);
-  mFrameProcessed.updateValueSignal(true);
+  {
+    std::lock_guard<std::mutex> lck(mFrameProcessedMutex);
+    mFrameProcessed = true;
+  }
+  mFrameProcessedCv.notify_all();
   Debug(4, "Copied %d bytes", buffer.size());
   return true;
 }

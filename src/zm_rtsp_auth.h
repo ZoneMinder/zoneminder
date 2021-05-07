@@ -19,6 +19,9 @@
 #ifndef ZM_RTSP_AUTH_H
 #define ZM_RTSP_AUTH_H
 
+#include "zm_config.h"
+#include <string>
+
 #if HAVE_GNUTLS_GNUTLS_H
 #include <gnutls/gnutls.h>
 #endif
@@ -43,10 +46,10 @@ public:
   std::string username() { return fUsername; }
   AuthMethod  auth_method() const { return fAuthMethod; } 
   
-  std::string computeDigestResponse( std::string &cmd, std::string &url );
+  std::string computeDigestResponse(const std::string &cmd, const std::string &url);
   void authHandleHeader( std::string headerData );
   std::string getAuthHeader( std::string method, std::string path );
-  void checkAuthResponse(std::string &response);
+  void checkAuthResponse(const std::string &response);
   
 private:
   std::string password() { return fPassword; }

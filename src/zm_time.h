@@ -20,8 +20,7 @@
 #ifndef ZM_TIME_H
 #define ZM_TIME_H
 
-#include "zm.h"
-
+#include <zm_logger.h>
 #include <sys/time.h>
 
 // Structure used for storing the results of the subtraction
@@ -76,7 +75,9 @@ struct DeltaTimeval
 #define USEC_PER_SEC 1000000
 #define MSEC_PER_SEC 1000
 
+/*
 extern struct timeval tv;
+*/
 
 inline int tvDiffUsec( struct timeval first, struct timeval last )
 {

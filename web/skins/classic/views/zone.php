@@ -118,12 +118,20 @@ $StreamHTML = getStreamHTML($monitor, array('mode'=>'single'));
 xhtmlHeaders(__FILE__, translate('Zone'));
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Monitor').' '.$monitor->Name().' - '.translate('Zone').' '.$newZone['Name'] ?></h2>
+    <div class="w-100">
+      <div class="float-left pl-3 pt-1">
+        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+      </div>
+      <div class="w-100 pt-2">
+        <h2><?php echo translate('Monitor').' '.$monitor->Name().' - '.translate('Zone').' '.$newZone['Name'] ?></h2>
+      </div>
     </div>
     <div id="content">
       <form name="zoneForm" id="zoneForm" method="post" action="?">
+        <input type="hidden" name="REFERER" value="<?php echo $_SERVER['HTTP_REFERER'] ?>"/> 
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="zone"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
@@ -198,7 +206,7 @@ if ( count($other_zones) ) {
                         array('data-on-change'=>'applyZoneUnits', 'id'=>'newZone[Units]')
                         );
                         # Used later for number inputs
-                        $step = $newZone['Units'] == 'Percent' ? ' step="0.01" max="100"' : '';
+                        $step = $newZone['Units'] == 'Percent' ? ' step="any" max="100"' : '';
 ?>
                   </td>
 								</tr>

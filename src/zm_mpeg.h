@@ -21,6 +21,7 @@
 #define ZM_MPEG_H
 
 #include "zm_ffmpeg.h"
+#include <pthread.h>
 
 #if HAVE_LIBAVCODEC
 

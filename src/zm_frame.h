@@ -20,35 +20,40 @@
 #ifndef ZM_FRAME_H
 #define ZM_FRAME_H
 
-#include <sys/time.h>
-#include <sys/types.h>
-class Frame;
-
 #include "zm_event.h"
 #include "zm_time.h"
+#include "zm_zone.h"
+
+#include <sys/time.h>
+#include <vector>
+
+enum FrameType {
+  NORMAL = 0,
+  BULK,
+  ALARM
+};
 
 //
 // This describes a frame record
 //
 class Frame {
+ public:
+  Frame(event_id_t p_event_id,
+        int p_frame_id,
+        FrameType p_type,
+        struct timeval p_timestamp,
+        struct DeltaTimeval &p_delta,
+        int p_score,
+        std::vector<ZoneStats> p_stats
+  );
 
-public:
-  Frame(
-     event_id_t           p_event_id,
-     int                  p_frame_id,
-     FrameType            p_type,
-     struct timeval       p_timestamp,
-     struct DeltaTimeval  p_delta,
-     int                  p_score
-     );
-
-  event_id_t     event_id;
-  int            frame_id;
-  FrameType      type;
+  event_id_t event_id;
+  int frame_id;
+  FrameType type;
   struct timeval timestamp;
-  struct DeltaTimeval  delta;
+  struct DeltaTimeval delta;
   int score;
-
+  std::vector<ZoneStats> zone_stats;
 };
 
 #endif // ZM_FRAME_H

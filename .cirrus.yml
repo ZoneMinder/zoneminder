@@ -1,0 +1,26 @@
+task:
+  name: freebsd-build
+  freebsd_instance:
+    image_family: freebsd-12-2
+
+  prepare_script:
+    - pkg install -yq git cmake jpeg-turbo mysql80-client ffmpeg libvncserver libjwt catch p5-DBI p5-DBD-mysql p5-Date-Manip p5-Test-LWP-UserAgent p5-Sys-Mmap
+
+  configure_script:
+    - git submodule update --init --recursive
+    - mkdir build
+    - cd build
+    - cmake --version
+    - cmake ../ -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1 -DENABLE_WERROR=1
+
+  build_script:
+    - cd build
+    - make -j3
+
+  install_script:
+    - cd build
+    - make install
+
+  test_script:
+    - cd build/tests
+    - ./tests "~[notCI]"

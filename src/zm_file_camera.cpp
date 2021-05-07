@@ -17,21 +17,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-
-#include "zm.h"
 #include "zm_file_camera.h"
 
+#include "zm_packet.h"
+#include <sys/stat.h>
+#include <unistd.h>
+
 FileCamera::FileCamera(
-    int p_id,
+    const Monitor *monitor,
     const char *p_path,
     int p_width,
     int p_height,
@@ -43,7 +36,7 @@ FileCamera::FileCamera(
     bool p_capture,
     bool p_record_audio)
   : Camera(
-      p_id,
+      monitor,
       FILE_SRC,
       p_width,
       p_height,
@@ -94,8 +87,8 @@ int FileCamera::PreCapture() {
   return 0;
 }
 
-int FileCamera::Capture(Image &image) {
-  return image.ReadJpeg(path, colours, subpixelorder)?1:-1;
+int FileCamera::Capture( ZMPacket &zm_packet ) {
+  return zm_packet.image->ReadJpeg(path, colours, subpixelorder) ? 1 : -1;
 }
 
 int FileCamera::PostCapture() {

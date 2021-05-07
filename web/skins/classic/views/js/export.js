@@ -31,11 +31,11 @@ function startDownload(file) {
 
 function exportProgress() {
   if ( exportTimer ) {
-    var tickerText = $('exportProgressTicker').get('text');
+    var tickerText = $j('#exportProgressTicker').text();
     if ( tickerText.length < 1 || tickerText.length > 4 ) {
-      $('exportProgressTicker').set('text', '.');
+      $j('#exportProgressTicker').text('.');
     } else {
-      $('exportProgressTicker').appendText('.');
+      $j('#exportProgressTicker').append('.');
     }
   }
 }
@@ -43,10 +43,10 @@ function exportProgress() {
 function exportResponse(respObj, respText) {
   clearInterval(exportTimer);
   if ( respObj.result != 'Ok' ) {
-    $('exportProgressTicker').set('text', respObj.message);
+    $j('#exportProgressTicker').text(respObj.message);
   } else {
-    $('exportProgressTicker').set('text', exportSucceededString);
-    startDownload.pass(decodeURIComponent(respObj.exportFile)).delay(1500);
+    $j('#exportProgressTicker').text(exportSucceededString);
+    setTimeout(startDownload, 1500, decodeURIComponent(respObj.exportFile));
   }
   return;
 
@@ -64,30 +64,24 @@ function exportResponse(respObj, respText) {
 }
 
 function exportEvents( ) {
-  var parms = 'view=event&request=event&action=export';
-  parms += '&'+$('contentForm').toQueryString();
-  var query = new Request.JSON( {
-    url: thisUrl,
-    method: 'post',
-    data: parms,
-    onSuccess: exportResponse
-  } );
-  query.send();
-  $('exportProgress').removeClass('hidden');
-  $('exportProgress').setProperty('class', 'warnText');
-  $('exportProgressText').set('text', exportProgressString);
+  var formData = $j('#contentForm').serialize();
+
+  $j.getJSON(thisUrl + '?view=event&request=event&action=export', formData)
+      .done(exportResponse)
+      .fail(logAjaxFail);
+
+  $j('#exportProgress').removeClass('hidden');
+  $j('#exportProgress').addClass('warnText');
+  $j('#exportProgress').text(exportProgressString);
+
   //exportProgress();
-  exportTimer = exportProgress.periodical( 500 );
+  exportTimer = setInterval(exportProgress, 500);
 }
 
 function getEventDetailModal(eid) {
   $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]=' + eid)
       .done(function(data) {
-        if ( $j('#eventDetailModal').length ) {
-          $j('#eventDetailModal').replaceWith(data.html);
-        } else {
-          $j("body").append(data.html);
-        }
+        insertModalHtml('eventDetailModal', data.html);
         $j('#eventDetailModal').modal('show');
         // Manage the Save button
         $j('#eventDetailSaveBtn').click(function(evt) {
@@ -95,23 +89,36 @@ function getEventDetailModal(eid) {
           $j('#eventDetailForm').submit();
         });
       })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+      .fail(logAjaxFail);
 }
 
 function initPage() {
-  configureExportButton( $('exportButton') );
+  configureExportButton(this);
   if ( exportReady ) {
-    startDownload.pass(exportFile).delay(1500);
+    setTimeout(startDownload, 1500, exportFile);
   }
   document.getElementById('exportButton').addEventListener('click', exportEvents);
+
   // Manage the eventdetail link in the export list
   $j(".eDetailLink").click(function(evt) {
     evt.preventDefault();
     var eid = $j(this).data('eid');
     getEventDetailModal(eid);
+  });
+
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Don't enable the back button if there is no previous zm page to go back to
+  $j('#backBtn').prop('disabled', !document.referrer.length);
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
   });
 }
 

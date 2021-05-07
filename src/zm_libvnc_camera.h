@@ -2,16 +2,21 @@
 #ifndef ZN_LIBVNC_CAMERA_H
 #define ZN_LIBVNC_CAMERA_H
 
-#include "zm_buffer.h"
 #include "zm_camera.h"
-#include "zm_thread.h"
 #include "zm_swscale.h"
 
 #if HAVE_LIBVNC
 #include <rfb/rfbclient.h>
+
+// Older versions of libvncserver defined a max macro in rfb/rfbproto.h
+// Undef it here so it doesn't collide with std::max
+// TODO: Remove this once xenial support is dropped
+#ifdef max
+#undef max
+#endif
+
 // Used by vnc callbacks
-struct VncPrivateData
-{
+struct VncPrivateData {
   uint8_t *buffer;
   uint8_t width; 
   uint8_t height;
@@ -21,7 +26,6 @@ class VncCamera : public Camera {
 protected:
   rfbClient *mRfb;
   VncPrivateData mVncData;
-  int mBpp;
   SWScale scale;
   AVPixelFormat mImgPixFmt;
   std::string mHost;
@@ -30,7 +34,7 @@ protected:
   std::string mPass;
 public:
   VncCamera(
-      unsigned int p_monitor_id,
+      const Monitor *monitor,
       const std::string &host,
       const std::string &port,
       const std::string &user,
@@ -43,19 +47,15 @@ public:
       int p_hue,
       int p_colour,
       bool p_capture,
-      bool p_record_audio );
+      bool p_record_audio);
     
   ~VncCamera();
 
-  void Initialise();
-  void Terminate();
-  
-  int PreCapture();
-  int PrimeCapture();
-  int Capture( Image &image );
-  int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
-  int Close();
+  int PreCapture() override;
+  int PrimeCapture() override;
+  int Capture(ZMPacket &packet) override;
+  int PostCapture() override;
+  int Close() override;
 };
 
 #endif // HAVE_LIBVNC

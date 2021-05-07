@@ -17,19 +17,24 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#include "zm.h"
+#include "zm_rtp_data.h"
+
+#include "zm_config.h"
+#include "zm_rtsp.h"
+#include "zm_signal.h"
 
 #if HAVE_LIBAVFORMAT
 
-#include "zm_rtp_data.h"
-
-#include "zm_rtsp.h"
-
-#include <arpa/inet.h>
-
 RtpDataThread::RtpDataThread(RtspThread &rtspThread, RtpSource &rtpSource) :
-  mRtspThread(rtspThread), mRtpSource(rtpSource), mStop(false)
+  mRtspThread(rtspThread), mRtpSource(rtpSource), mTerminate(false)
 {
+  mThread = std::thread(&RtpDataThread::Run, this);
+}
+
+RtpDataThread::~RtpDataThread() {
+  Stop();
+  if (mThread.joinable())
+    mThread.join();
 }
 
 bool RtpDataThread::recvPacket(const unsigned char *packet, size_t packetLen) {
@@ -56,12 +61,12 @@ bool RtpDataThread::recvPacket(const unsigned char *packet, size_t packetLen) {
   return mRtpSource.handlePacket(packet, packetLen);
 }
 
-int RtpDataThread::run() {
+void RtpDataThread::Run() {
   Debug(2, "Starting data thread %d on port %d",
       mRtpSource.getSsrc(), mRtpSource.getLocalDataPort());
 
-  SockAddrInet localAddr;
-  UdpInetServer rtpDataSocket;
+  ZM::SockAddrInet localAddr;
+  ZM::UdpInetServer rtpDataSocket;
   if ( mRtpSource.getLocalHost() != "" ) {
     if ( !rtpDataSocket.bind(mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort()) )
       Fatal("Failed to bind RTP server");
@@ -73,25 +78,25 @@ int RtpDataThread::run() {
   }
   Debug(3, "Bound to %s:%d",  mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort());
 
-  Select select(3);
+  ZM::Select select(3);
   select.addReader(&rtpDataSocket);
 
   unsigned char buffer[ZM_NETWORK_BUFSIZ];
-  while ( !zm_terminate && !mStop && (select.wait() >= 0) ) {
-     Select::CommsList readable = select.getReadable();
+  while ( !zm_terminate && !mTerminate && (select.wait() >= 0) ) {
+    ZM::Select::CommsList readable = select.getReadable();
      if ( readable.size() == 0 ) {
        Error("RTP timed out");
-       mStop = true;
+       Stop();
        break;
      }
-     for ( Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
-       if ( UdpInetServer *socket = dynamic_cast<UdpInetServer *>(*iter) ) {
+     for ( ZM::Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
+       if ( ZM::UdpInetServer *socket = dynamic_cast<ZM::UdpInetServer *>(*iter) ) {
          int nBytes = socket->recv(buffer, sizeof(buffer));
          Debug(4, "Got %d bytes on sd %d", nBytes, socket->getReadDesc());
          if ( nBytes ) {
            recvPacket(buffer, nBytes);
          } else {
-          mStop = true;
+          Stop();
           break;
          }
        } else {
@@ -100,8 +105,7 @@ int RtpDataThread::run() {
      }  // end foreach commsList
   }
   rtpDataSocket.close();
-  mRtspThread.stop();
-  return 0;
+  mRtspThread.Stop();
 }
 
 #endif // HAVE_LIBAVFORMAT

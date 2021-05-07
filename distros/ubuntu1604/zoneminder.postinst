@@ -12,9 +12,7 @@ if [ "$1" = "configure" ]; then
   # The logs can contain passwords, etc... so by setting group root, only www-data can read them, not people in the www-data group
   chown www-data:root /var/log/zm
   chown www-data:www-data /var/lib/zm
-  if [ -z "$2" ]; then
-    chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
-  fi
+  chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
   if [ ! -e "/etc/apache2/mods-enabled/cgi.load" ] && [ "$(command -v a2enmod)" != "" ]; then
     echo "The cgi module is not enabled in apache2.  I am enabling it using a2enmod cgi."
     a2enmod cgi
@@ -67,11 +65,19 @@ if [ "$1" = "configure" ]; then
             # This creates the user.
             echo "CREATE USER '${ZM_DB_USER}'@localhost IDENTIFIED BY '${ZM_DB_PASS}';" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
         fi
-        echo "Updating permissions"
-        echo "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute  on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+        echo "Updating permissions for user ${ZM_DB_USER}@localhost"
+        echo "GRANT LOCK TABLES,ALTER,DROP,SELECT,INSERT,UPDATE,DELETE,CREATE,INDEX,ALTER ROUTINE,CREATE ROUTINE, TRIGGER,EXECUTE,REFERENCES ON ${ZM_DB_NAME}.* TO '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 
-        zmupdate.pl --nointeractive
+        zmupdate.pl -s --nointeractive
+        if [ $? -ne 0 ]; then
+          echo "Error updating db."
+          exit 1;
+        fi
         zmupdate.pl --nointeractive -f
+        if [ $? -ne 0 ]; then
+          echo "Error updating config."
+          exit 1;
+        fi
 
         # Add any new PTZ control configurations to the database (will not overwrite)
         zmcamtool.pl --import >/dev/null 2>&1
@@ -86,6 +92,8 @@ if [ "$1" = "configure" ]; then
   else
     echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
   fi
+
+  echo "Done Updating; starting ZoneMinder."
   deb-systemd-invoke restart zoneminder.service
 
 fi

@@ -22,9 +22,8 @@
 if ( $action == 'logout' ) {
   userLogout();
   $view = 'login';
-  ZM\Logger::Debug("User: " . print_r($user,true));
 } elseif ( $action == 'config' ) {
-  $redirect = '?view=user&uid='.$user['Id'];
+  $redirect = '?view=user&prev=console&uid='.$user['Id'];
 }
 
 ?>

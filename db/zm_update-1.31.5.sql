@@ -10,7 +10,7 @@ SET @s = (SELECT IF(
     AND column_name = 'ParentId'
     ) > 0,
 "SELECT 'Column GroupId exists in Groups'",
-"ALTER TABLE Groups ADD `ParentId` int(10) unsigned AFTER `Name`"
+"ALTER TABLE `Groups` ADD `ParentId` int(10) unsigned AFTER `Name`"
 ));
 
 PREPARE stmt FROM @s;

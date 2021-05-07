@@ -5,5 +5,6 @@ var/cache/zoneminder/images
 var/cache/zoneminder/temp
 var/cache/zoneminder/cache
 usr/share/zoneminder/db
+usr/share/zoneminder/fonts
 etc/zm/
 etc/zm/conf.d

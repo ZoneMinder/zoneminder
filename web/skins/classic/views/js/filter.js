@@ -40,10 +40,8 @@ function validateForm(form) {
     var have_endtime_term = false;
     for ( var i = 0; i < rows.length; i++ ) {
       if (
-        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' )
-        ||
-        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndTime' )
-        ||
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' ) ||
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndTime' ) ||
         ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDate' )
       ) {
         have_endtime_term = true;
@@ -56,6 +54,7 @@ function validateForm(form) {
   } else if ( form.elements['filter[Background]'].checked ) {
     if ( ! (
       form.elements['filter[AutoArchive]'].checked ||
+      form.elements['filter[AutoUnarchive]'].checked ||
       form.elements['filter[UpdateDiskSpace]'].checked ||
       form.elements['filter[AutoVideo]'].checked ||
       form.elements['filter[AutoEmail]'].checked ||
@@ -73,33 +72,32 @@ function validateForm(form) {
 
 function updateButtons(element) {
   var form = element.form;
-  if ( element.type == 'checkbox' && element.checked ) {
-    form.elements['executeButton'].disabled = false;
-  } else {
-    var canExecute = false;
-    if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoMove]'] && form.elements['filter[AutoMove]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '' ) {
-      canExecute = true;
-    } else if ( form.elements['filter[AutoDelete]'].checked ) {
-      canExecute = true;
-    } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
-      canExecute = true;
-    }
-    form.elements['executeButton'].disabled = !canExecute;
+
+  var canExecute = false;
+  if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoMove]'] && form.elements['filter[AutoMove]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '' ) {
+    canExecute = true;
+  } else if ( form.elements['filter[AutoDelete]'].checked ) {
+    canExecute = true;
+  } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
+    canExecute = true;
   }
+  form.elements['executeButton'].disabled = !canExecute;
   if ( form.elements['filter[Name]'].value ) {
     form.elements['Save'].disabled = false;
     form.elements['SaveAs'].disabled = false;
@@ -171,7 +169,6 @@ function submitToMontageReview(element) {
 function submitToExport(element) {
   var form = element.form;
   window.location.assign('?view=export&'+$j(form).serialize());
-  //createPopup('?view=export&filter_id='+form.elements['Id'].value, 'zmExport', 'export' );
 }
 
 function executeFilter( element ) {
@@ -296,11 +293,11 @@ function parseRows(rows) {
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
     } else if ( attr == 'MonitorName' ) { //Monitor names
       var monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      for ( var monitor_id in monitors ) {
+      sorted_monitor_ids.forEach(function(monitor_id) {
         monitorSelect.append('<option value="' + monitors[monitor_id].Name + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
-      }
+      });
       var monitorVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(monitorSelect).children().val(monitorVal);
+      inputTds.eq(4).html(monitorSelect).children().val(monitorVal).chosen({width: '101%'});
     } else if ( attr == 'ExistsInFileSystem' ) {
       var select = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for ( var booleanVal in booleanValues ) {
@@ -396,36 +393,7 @@ function delTerm( element ) {
 }
 
 function debugFilter() {
-  getModal('filterdebug');
-}
-
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getModal(id) {
-  $j.getJSON(thisUrl + '?request=modal&modal='+id+'&fid='+filterid)
-      .done(function(data) {
-        if ( !data ) {
-          console.error("Get modal returned no data");
-          return;
-        }
-
-        if ( $j('#'+id).length ) {
-          console.log("replacing");
-          $j('#'+id).replaceWith(data.html);
-        } else {
-          console.log("Adding to body"+data.html);
-          $j('body').append(data.html);
-        }
-        manageModalBtns(id);
-        modal = $j('#'+id+'Modal');
-        if ( ! modal.length ) {
-          console.log("No modal found");
-        }
-        $j('#'+id+'Modal').modal('show');
-      })
-      .fail(function(jqxhr, textStatus, error) {
-        console.log("Request Failed: " + textStatus + ", " + error);
-        console.log("Response Text: " + jqxhr.responseText);
-      });
+  getModal('filterdebug', 'fid='+filterid);
 }
 
 function manageModalBtns(id) {
@@ -439,12 +407,12 @@ function manageModalBtns(id) {
   }
 }
 
-function init() {
-  updateButtons( $('executeButton') );
+function initPage() {
+  updateButtons($j('#executeButton')[0]);
   $j('#Id').chosen();
   $j('#fieldsTable select').not("[name$='br\\]'], [name$='cnj\\]']").chosen({width: '101%'}); //Every select except brackets/and
   $j("#sortTable [name$='sort_field\\]']").chosen();
   parseRows($j('#fieldsTable tbody').children());
 }
 
-window.addEventListener( 'DOMContentLoaded', init );
+$j(document).ready(initPage );

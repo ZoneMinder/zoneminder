@@ -21,12 +21,13 @@
 #define ZM_RTP_SOURCE_H
 
 #include "zm_buffer.h"
+#include "zm_config.h"
+#include "zm_define.h"
 #include "zm_ffmpeg.h"
-#include "zm_thread.h"
-
-#include <sys/time.h>
-#include <stdint.h>
+#include <condition_variable>
+#include <mutex>
 #include <string>
+#include <sys/time.h>
 
 #if HAVE_LIBAVCODEC
 
@@ -90,14 +91,23 @@ private:
   int mFrameCount;
   bool mFrameGood;
   bool prevM;
-  ThreadData<bool> mFrameReady;
-  ThreadData<bool> mFrameProcessed;
+
+  bool mTerminate;
+
+  bool mFrameReady;
+  std::condition_variable mFrameReadyCv;
+  std::mutex mFrameReadyMutex;
+
+  bool mFrameProcessed;
+  std::condition_variable mFrameProcessedCv;
+  std::mutex mFrameProcessedMutex;
 
 private:
   void init(uint16_t seq);
 
 public:
   RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime, _AVCODECID codecId );
+  ~RtpSource();
   
   bool updateSeq( uint16_t seq );
   void updateJitter( const RtpDataHeader *header );

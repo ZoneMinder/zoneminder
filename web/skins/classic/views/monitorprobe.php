@@ -321,10 +321,9 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('MonitorProbe') );
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
-      <h2><?php echo translate('MonitorProbe') ?></h2>
-    </div>
+    <h2><?php echo translate('MonitorProbe') ?></h2>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="none"/>
@@ -339,7 +338,7 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
         <div id="contentButtons">
         <button type="button" name="saveBtn" value="Save" data-on-click-this="submitCamera" disabled="disabled">
         <?php echo translate('Save') ?></button>
-        <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
+        <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

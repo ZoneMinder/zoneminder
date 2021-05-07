@@ -193,10 +193,11 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
     return;
   }
   std::unique_lock<std::mutex> lck(mutex);
+  if (!pktQueue.size()) return;
 
   // If analysis_it isn't at the end, we need to keep that many additional packets
   int tail_count = 0;
-  if (pktQueue.size() and (pktQueue.back() != add_packet)) {
+  if (pktQueue.back() != add_packet) {
     packetqueue_iterator it = pktQueue.end();
     --it;
     while (*it != add_packet) {
@@ -205,7 +206,7 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
       --it;
     }
   }
-  Debug(1, "Tail count is %d", tail_count);
+  Debug(1, "Tail count is %d, queue size is %lu", tail_count, pktQueue.size());
 
   if (!keep_keyframes) {
     // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
@@ -241,11 +242,17 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
 
   // First packet is special because we know it is a video keyframe and only need to check for lock
   ZMPacket *zm_packet = *it;
+  Debug(1, "trying lock on first packet");
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
   if (lp->trylock()) {
+    Debug(1, "Have lock on first packet");
     ++it;
     delete lp;
 
+    if (it == pktQueue.end()) {
+      Debug(1, "Hit end already");
+      it = pktQueue.begin();
+    } else {
     // Since we have many packets in the queue, we should NOT be pointing at end so don't need to test for that
     while (*it != add_packet) {
       zm_packet = *it;
@@ -275,6 +282,7 @@ void PacketQueue::clearPackets(ZMPacket *add_packet) {
       }
       it++;
     } // end while
+    }
   }  // end if first packet not locked
   Debug(1, "Resulting pointing at latest packet? %d, next front points to begin? %d",
       ( *it == add_packet ),
@@ -419,7 +427,7 @@ unsigned int PacketQueue::clear(unsigned int frames_to_keep, int stream_id) {
 void PacketQueue::clear() {
   deleting = true;
   condition.notify_all();
-
+  Debug(1, "Clearing packetqueue");
   std::unique_lock<std::mutex> lck(mutex);
 
   while (!pktQueue.empty()) {
@@ -560,13 +568,19 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
   ZMLockedPacket *lp = nullptr;
   while (!lp) {
     while (*it == pktQueue.end()) {
-      if (deleting or zm_terminate)
+      if (deleting or zm_terminate) {
+        Debug(1, "terminated, leaving");
+        condition.notify_all();
         return nullptr;
+      }
       Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
       condition.wait(lck);
     }
-    if (deleting or zm_terminate)
+    if (deleting or zm_terminate) {
+      Debug(1, "terminated, leaving");
+      condition.notify_all();
       return nullptr;
+    }
 
     ZMPacket *p = *(*it);
     if (!p) {
@@ -586,6 +600,7 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
     }
     delete lp;
     lp = nullptr;
+    Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
     condition.wait(lck);
   }  // end while !lp
   return nullptr;

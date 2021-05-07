@@ -195,13 +195,13 @@ bool Zone::CheckExtendAlarmCount() {
 bool Zone::CheckAlarms(const Image *delta_image) {
   ResetStats();
 
-  if ( overload_count ) {
+  if (overload_count) {
     Info("In overload mode, %d frames of %d remaining", overload_count, overload_frames);
     overload_count--;
     return false;
   }
 
-  if ( image )
+  if (image)
     delete image;
   // Get the difference image
   Image *diff_image = image = new Image(*delta_image);
@@ -329,14 +329,17 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     if (stats.alarm_filter_pixels_) {
       if (min_filter_pixels && (stats.alarm_filter_pixels_ < min_filter_pixels)) {
         /* Not enough pixels alarmed */
+        stats.score_ = 0;
         return false;
       } else if (max_filter_pixels && (stats.alarm_filter_pixels_ > max_filter_pixels)) {
         /* Too many pixels alarmed */
         overload_count = overload_frames;
+        stats.score_ = 0;
         return false;
       }
     } else {
       /* No filtered pixels */
+      stats.score_ = 0;
       return false;
     }
 
@@ -541,7 +544,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       if (config.record_diag_images)
         diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
 
-      if (!stats.alarm_blobs_) return false;
+      if (!stats.alarm_blobs_) {
+        stats.score_ = 0;
+        return false;
+      }
 
       Debug(5, "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d",
             stats.alarm_blob_pixels_, stats.alarm_blobs_, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
@@ -601,14 +607,17 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       if (stats.alarm_blobs_) {
         if (min_blobs && (stats.alarm_blobs_ < min_blobs)) {
           /* Not enough pixels alarmed */
+          stats.score_ = 0;
           return false;
         } else if (max_blobs && (stats.alarm_blobs_ > max_blobs)) {
           /* Too many pixels alarmed */
           overload_count = overload_frames;
+          stats.score_ = 0;
           return false;
         }
       } else {
         /* No blobs */
+        stats.score_ = 0;
         return false;
       }
       

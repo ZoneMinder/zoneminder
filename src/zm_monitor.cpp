@@ -1891,6 +1891,24 @@ bool Monitor::Analyse() {
 
         struct timeval *timestamp = snap->timestamp;
 
+        /* try to stay behind the decoder. */
+        if (decoding_enabled) {
+          while (!snap->image and !snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
+            // Need to wait for the decoder thread.
+            Debug(1, "Waiting for decode");
+            packet_lock->wait();
+            if (!snap->image and snap->decoded) {
+              Debug(1, "No image but was decoded, giving up");
+              delete packet_lock;
+              return false;
+            }
+          }  // end while ! decoded
+          if (zm_terminate) {
+            delete packet_lock;
+            return false;
+          }
+        }  // end if decoding enabled
+
         if (Active() and (function == MODECT or function == MOCORD)) {
           Debug(3, "signal and active and modect");
           Event::StringSet zoneSet;
@@ -1905,22 +1923,6 @@ bool Monitor::Analyse() {
           }
 
           if (!(analysis_image_count % (motion_frame_skip+1))) {
-            if (decoding_enabled) {
-              while (!snap->image and !snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
-                // Need to wait for the decoder thread.
-                Debug(1, "Waiting for decode");
-                packet_lock->wait();
-                if (!snap->image and snap->decoded) {
-                  Debug(1, "No image but was decoded, giving up");
-                  delete packet_lock;
-                  return false;
-                }
-              }  // end while ! decoded
-              if (zm_terminate) {
-                delete packet_lock;
-                return false;
-              }
-            }  // end if decoding enabled
 
             if (snap->image) {
               // decoder may not have been able to provide an image

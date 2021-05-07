@@ -27,6 +27,15 @@ extern "C" {
 #include "libavutil/time.h"
 }
 
+/*
+      AVCodecID codec_id;
+      char *codec_codec;
+      char *codec_name;
+      enum AVPixelFormat sw_pix_fmt;
+      enum AVPixelFormat hw_pix_fmt;
+      AVHWDeviceType hwdevice_type;
+      */
+
 VideoStore::CodecData VideoStore::codec_data[] = {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
@@ -216,6 +225,7 @@ bool VideoStore::open() {
         video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = codec_data[i].codec_id;
         video_out_ctx->pix_fmt = codec_data[i].hw_pix_fmt;
+        Debug(1, "Setting pix fmt to %d %s", codec_data[i].hw_pix_fmt, av_get_pix_fmt_name(codec_data[i].hw_pix_fmt));
         video_out_ctx->level = 32;
 
         // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
@@ -238,12 +248,13 @@ bool VideoStore::open() {
         }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
         if (codec_data[i].hwdevice_type != AV_HWDEVICE_TYPE_NONE) {
+          Debug(1, "Setting up hwdevice");
           ret = av_hwdevice_ctx_create(&hw_device_ctx,
               codec_data[i].hwdevice_type,
-              NULL, NULL, 0);
+              nullptr, nullptr, 0);
 
           AVBufferRef *hw_frames_ref;
-          AVHWFramesContext *frames_ctx = NULL;
+          AVHWFramesContext *frames_ctx = nullptr;
 
           if (!(hw_frames_ref = av_hwframe_ctx_alloc(hw_device_ctx))) {
             Error("Failed to create hwaccel frame context.");
@@ -277,7 +288,7 @@ bool VideoStore::open() {
           Warning("Could not parse ffmpeg encoder options list '%s'\n", Options.c_str());
         } else {
           AVDictionaryEntry *e = nullptr;
-          while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL) {
+          while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
             Debug(3, "Encoder Option %s=%s", e->key, e->value);
           }
         }
@@ -1010,7 +1021,11 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
     if (!zm_packet->out_frame) {
-      Debug(3, "Have no out frame");
+      Debug(3, "Have no out frame. codec is %s sw_pf %d %s hw_pf %d %s",
+          chosen_codec_data->codec_name,
+          chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
+          chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt)
+          );
       AVFrame *out_frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
       if (!out_frame) {
         Error("Unable to allocate a frame");

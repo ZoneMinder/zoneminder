@@ -18,8 +18,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Snapshots') ) {
+if (!canView('Snapshots')) {
   $view = 'error';
+  return;
+} else if (!ZM_FEATURES_SNAPSHOTS) {
+  $view = 'console';
   return;
 }
 

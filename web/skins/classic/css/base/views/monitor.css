@@ -51,3 +51,6 @@ select.chosen {
 tr td:first-child {
   min-width: 300px;
 }
+.OutputContainer {
+  display: none;
+}

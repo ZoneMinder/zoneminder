@@ -342,6 +342,7 @@ int main(int argc, const char *argv[], char **envp) {
   Debug(1, "Terminating");
   Image::Deinitialise();
   logTerm();
+  dbQueue.stop();
   zmDbClose();
 
   return 0;

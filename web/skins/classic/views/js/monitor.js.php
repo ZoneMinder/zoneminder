@@ -72,9 +72,11 @@ function validateForm( form ) {
     if ( form.elements['newMonitor[VideoWriter]'].value == 2 /* Passthrough */ )
       errors[errors.length] = "<?php echo translate('BadPassthrough') ?>";
   } else if ( form.elements['newMonitor[Type]'].value == 'Ffmpeg' ) {
-    if ( !form.elements['newMonitor[Path]'].value )
-//|| !form.elements['newMonitor[Path]'].value.match( /^\d+$/ ) ) // valid url
+    if ( !form.elements['newMonitor[Path]'].value ) {
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
+    } else if ( form.elements['newMonitor[Path]'].value.match( /[\!\*'\(\)\$ ,#\[\]]/) ) {
+      warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
+    }
 
   } else if ( form.elements['newMonitor[Type]'].value == 'File' ) {
     if ( !form.elements['newMonitor[Path]'].value )
@@ -91,7 +93,7 @@ function validateForm( form ) {
   if (form.elements['newMonitor[VideoWriter]'].value == '1' /* Encode */) {
     var parameters = form.elements['newMonitor[EncoderParameters]'].value.replace(/[^#a-zA-Z]/g, "");
     if (parameters == '' || parameters == '#Linesbeginningwith#areacomment#Forchangingqualityusethecrfoption#isbestisworstquality#crf' ) {
-      errors[errors.length] = '<?php echo translate('BadEncoderParameters') ?>';
+      warnings[warnings.length] = '<?php echo translate('BadEncoderParameters') ?>';
     }
   }
 

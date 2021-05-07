@@ -1891,6 +1891,24 @@ bool Monitor::Analyse() {
 
         struct timeval *timestamp = snap->timestamp;
 
+        /* try to stay behind the decoder. */
+        if (decoding_enabled) {
+          while (!snap->image and !snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
+            // Need to wait for the decoder thread.
+            Debug(1, "Waiting for decode");
+            packet_lock->wait();
+            if (!snap->image and snap->decoded) {
+              Debug(1, "No image but was decoded, giving up");
+              delete packet_lock;
+              return false;
+            }
+          }  // end while ! decoded
+          if (zm_terminate) {
+            delete packet_lock;
+            return false;
+          }
+        }  // end if decoding enabled
+
         if (Active() and (function == MODECT or function == MOCORD)) {
           Debug(3, "signal and active and modect");
           Event::StringSet zoneSet;
@@ -1905,22 +1923,6 @@ bool Monitor::Analyse() {
           }
 
           if (!(analysis_image_count % (motion_frame_skip+1))) {
-            if (decoding_enabled) {
-              while (!snap->image and !snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
-                // Need to wait for the decoder thread.
-                Debug(1, "Waiting for decode");
-                packet_lock->wait();
-                if (!snap->image and snap->decoded) {
-                  Debug(1, "No image but was decoded, giving up");
-                  delete packet_lock;
-                  return false;
-                }
-              }  // end while ! decoded
-              if (zm_terminate) {
-                delete packet_lock;
-                return false;
-              }
-            }  // end if decoding enabled
 
             if (snap->image) {
               // decoder may not have been able to provide an image
@@ -2632,6 +2634,7 @@ bool Monitor::Decode() {
   ZMPacket *packet = packet_lock->packet_;
   packetqueue.increment_it(decoder_it);
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
+    Debug(4, "Not video");
     packetqueue.unlock(packet_lock);
     return true; // Don't need decode
   }
@@ -2692,19 +2695,23 @@ bool Monitor::Decode() {
     capture_image = packet->image;
 
     /* Deinterlacing */
-    if ( deinterlacing_value ) {
-      if ( deinterlacing_value == 1 ) {
+    if (deinterlacing_value) {
+      Debug(1, "Doing deinterlacing");
+      if (deinterlacing_value == 1) {
         capture_image->Deinterlace_Discard();
-      } else if ( deinterlacing_value == 2 ) {
+      } else if (deinterlacing_value == 2) {
         capture_image->Deinterlace_Linear();
-      } else if ( deinterlacing_value == 3 ) {
+      } else if (deinterlacing_value == 3) {
         capture_image->Deinterlace_Blend();
-      } else if ( deinterlacing_value == 4 ) {
+      } else if (deinterlacing_value == 4) {
         ZMLockedPacket *deinterlace_packet_lock = nullptr;
         while (!zm_terminate) {
           ZMLockedPacket *second_packet_lock = packetqueue.get_packet(decoder_it);
-          if (!second_packet_lock) return false;
-          if ( second_packet_lock->packet_->codec_type == packet->codec_type) {
+          if (!second_packet_lock) {
+            packetqueue.unlock(packet_lock);
+            return false;
+          }
+          if (second_packet_lock->packet_->codec_type == packet->codec_type) {
             deinterlace_packet_lock = second_packet_lock;
             break;
           }
@@ -2713,8 +2720,8 @@ bool Monitor::Decode() {
         }
         if (zm_terminate) return false;
         capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
-        delete deinterlace_packet_lock;
-      } else if ( deinterlacing_value == 5 ) {
+        packetqueue.unlock(deinterlace_packet_lock);
+      } else if (deinterlacing_value == 5) {
         capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
       }
     }

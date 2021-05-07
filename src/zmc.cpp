@@ -382,6 +382,7 @@ int main(int argc, char *argv[]) {
   Image::Deinitialise();
   Debug(1, "terminating");
   logTerm();
+  dbQueue.stop();
   zmDbClose();
 
 	return zm_terminate ? 0 : result;

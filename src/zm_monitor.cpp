@@ -327,7 +327,7 @@ Monitor::Monitor()
   record_audio(0),
 //event_prefix
 //label_format
-  label_coord(Coord(0,0)),
+  label_coord(Vector2(0,0)),
   label_size(0),
   image_buffer_count(0),
   max_image_buffer_count(0),
@@ -561,7 +561,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   /* "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize," */
   event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
   label_format = dbrow[col] ? ReplaceAll(dbrow[col], "\\n", "\n") : ""; col++;
-  label_coord = Coord(atoi(dbrow[col]), atoi(dbrow[col+1])); col += 2;
+  label_coord = Vector2(atoi(dbrow[col]), atoi(dbrow[col + 1])); col += 2;
   label_size = atoi(dbrow[col]); col++;
 
   /* "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, " */
@@ -2832,7 +2832,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
     } // end if CheckAlarms
   } // end foreach zone
 
-  Coord alarm_centre;
+  Vector2 alarm_centre;
   int top_score = -1;
 
   if (alarm) {

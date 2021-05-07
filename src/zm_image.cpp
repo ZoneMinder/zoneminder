@@ -250,7 +250,7 @@ int Image::PopulateFrame(AVFrame *frame) {
       width, height, linesize, colours, size,
       av_get_pix_fmt_name(imagePixFormat)
       );
-  AVBufferRef *ref = av_buffer_create(buffer, size, 
+  AVBufferRef *ref = av_buffer_create(buffer, size,
       dont_free, /* Free callback */
       nullptr, /* opaque */
       0 /* flags */
@@ -576,7 +576,7 @@ void Image::Initialise() {
   if ( res == FontLoadError::kFileNotFound ) {
     Panic("Invalid font location: %s", config.font_file_location);
   } else if ( res == FontLoadError::kInvalidFile ) {
-    Panic("Invalid font file."); 
+    Panic("Invalid font file.");
   }
   initialised = true;
 }
@@ -781,7 +781,7 @@ void Image::Assign(const Image &image) {
         return;
       }
     } else {
-      if ( new_size > allocation || !buffer ) { 
+      if (new_size > allocation || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
         AllocImgBuffer(new_size);
       }
@@ -1932,7 +1932,7 @@ void Image::Delta(const Image &image, Image* targetimage) const {
 #endif
 }
 
-const Coord Image::centreCoord( const char *text, int size=1 ) const {
+const Vector2 Image::centreCoord(const char *text, int size = 1) const {
   int index = 0;
   int line_no = 0;
   int text_len = strlen(text);
@@ -1957,7 +1957,7 @@ const Coord Image::centreCoord( const char *text, int size=1 ) const {
   uint16_t char_height = font_variant.GetCharHeight();
   int x = (width - (max_line_len * char_width )) / 2;
   int y = (height - (line_no * char_height) ) / 2;
-  return Coord(x, y);
+  return {x, y};
 }
 
 /* RGB32 compatible: complete */
@@ -2007,7 +2007,7 @@ https://lemire.me/blog/2018/02/21/iterating-over-set-bits-quickly/
 */
 void Image::Annotate(
     const std::string &text,
-    const Coord &coord,
+    const Vector2 &coord,
     const uint8 size,
     const Rgb fg_colour,
     const Rgb bg_colour) {
@@ -2127,7 +2127,7 @@ void Image::Annotate(
   }
 }
 
-void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size ) {
+void Image::Timestamp(const char *label, const time_t when, const Vector2 &coord, const int size) {
   char time_text[64];
   tm when_tm = {};
   strftime(time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime_r(&when, &when_tm));
@@ -2386,8 +2386,8 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
 
   int n_coords = polygon.getNumCoords();
   for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ ) {
-    const Coord &p1 = polygon.getCoord( i );
-    const Coord &p2 = polygon.getCoord( j );
+    const Vector2 &p1 = polygon.getCoord(i);
+    const Vector2 &p2 = polygon.getCoord(j);
 
     int x1 = p1.X();
     int x2 = p2.X();
@@ -2470,8 +2470,8 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   int n_global_edges = 0;
   Edge global_edges[n_coords];
   for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ ) {
-    const Coord &p1 = polygon.getCoord(i);
-    const Coord &p2 = polygon.getCoord(j);
+    const Vector2 &p1 = polygon.getCoord(i);
+    const Vector2 &p2 = polygon.getCoord(j);
 
     int x1 = p1.X();
     int x2 = p2.X();

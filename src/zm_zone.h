@@ -21,12 +21,12 @@
 #define ZM_ZONE_H
 
 #include "zm_box.h"
-#include "zm_coord.h"
 #include "zm_define.h"
 #include "zm_config.h"
 #include "zm_poly.h"
 #include "zm_rgb.h"
 #include "zm_zone_stats.h"
+#include "zm_vector2.h"
 
 #include <algorithm>
 #include <string>
@@ -77,7 +77,7 @@ class Zone {
     int         min_alarm_pixels;
     int         max_alarm_pixels;
 
-    Coord       filter_box;
+    Vector2       filter_box;
     int         min_filter_pixels;
     int         max_filter_pixels;
 
@@ -112,7 +112,7 @@ class Zone {
         int p_max_pixel_threshold,
         int p_min_alarm_pixels,
         int p_max_alarm_pixels,
-        const Coord &p_filter_box,
+        const Vector2 &p_filter_box,
         int p_min_filter_pixels,
         int p_max_filter_pixels,
         int p_min_blob_pixels,
@@ -137,7 +137,7 @@ class Zone {
         int p_max_pixel_threshold=0,
         int p_min_alarm_pixels=50,
         int p_max_alarm_pixels=75000,
-        const Coord &p_filter_box=Coord( 3, 3 ),
+        const Vector2 &p_filter_box = Vector2(3, 3),
         int p_min_filter_pixels=50,
         int p_max_filter_pixels=50000,
         int p_min_blob_pixels=10,
@@ -164,7 +164,7 @@ class Zone {
         blob_stats{},
         stats(p_id)
     {
-      Setup(Zone::INACTIVE, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord(0, 0), 0, 0, 0, 0, 0, 0, 0, 0);
+      Setup(Zone::INACTIVE, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Vector2(0, 0), 0, 0, 0, 0, 0, 0, 0, 0);
     }
     Zone(Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon)
       :
@@ -174,7 +174,7 @@ class Zone {
         blob_stats{},
         stats(p_id)
     {
-      Setup(p_type, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Coord( 0, 0 ), 0, 0, 0, 0, 0, 0, 0, 0 );
+      Setup(p_type, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Vector2(0, 0), 0, 0, 0, 0, 0, 0, 0, 0 );
     }
 
     Zone(const Zone &z);
@@ -195,7 +195,7 @@ class Zone {
     inline bool WasAlarmed() const { return was_alarmed; }
     inline void SetAlarm() { was_alarmed = alarmed; alarmed = true; }
     inline void ClearAlarm() { was_alarmed = alarmed; alarmed = false; }
-    inline Coord GetAlarmCentre() const { return stats.alarm_centre_; }
+    inline Vector2 GetAlarmCentre() const { return stats.alarm_centre_; }
     inline unsigned int Score() const { return stats.score_; }
 
     inline void ResetStats() {

@@ -21,8 +21,8 @@
 #define ZM_ZONE_STATS_H
 
 #include "zm_box.h"
-#include "zm_coord.h"
 #include "zm_logger.h"
+#include "zm_vector2.h"
 
 class ZoneStats {
  public:
@@ -87,7 +87,7 @@ class ZoneStats {
   int min_blob_size_;
   int max_blob_size_;
   Box alarm_box_;
-  Coord alarm_centre_;
+  Vector2 alarm_centre_;
   unsigned int score_;
 };
 

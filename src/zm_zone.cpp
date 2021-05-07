@@ -32,7 +32,7 @@ void Zone::Setup(
   int p_max_pixel_threshold,
   int p_min_alarm_pixels,
   int p_max_alarm_pixels,
-  const Coord &p_filter_box,
+  const Vector2 &p_filter_box,
   int p_min_filter_pixels,
   int p_max_filter_pixels,
   int p_min_blob_pixels,
@@ -684,11 +684,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   // Now outline the changed region
   if (stats.score_) {
-    stats.alarm_box_ = Box(Coord(alarm_lo_x, alarm_lo_y), Coord(alarm_hi_x, alarm_hi_y));
+    stats.alarm_box_ = Box(Vector2(alarm_lo_x, alarm_lo_y), Vector2(alarm_hi_x, alarm_hi_y));
 
     //if ( monitor->followMotion() )
     if ( true ) {
-      stats.alarm_centre_ = Coord(alarm_mid_x, alarm_mid_y);
+      stats.alarm_centre_ = Vector2(alarm_mid_x, alarm_mid_y);
     } else {
       stats.alarm_centre_ = stats.alarm_box_.Centre();
     }
@@ -750,7 +750,7 @@ bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
   char *str = (char *)poly_string;
   int n_coords = 0;
   int max_n_coords = strlen(str)/4;
-  Coord *coords = new Coord[max_n_coords];
+  Vector2 *coords = new Vector2[max_n_coords];
   while (*str != '\0') {
     char *cp = strchr(str, ',');
     if (!cp) {
@@ -760,7 +760,7 @@ bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
     int x = atoi(str);
     int y = atoi(cp+1);
     Debug(3, "Got coordinate %d,%d from polygon string", x, y);
-    coords[n_coords++] = Coord(x, y);
+    coords[n_coords++] = Vector2(x, y);
 
     char *ws = strchr(cp+2, ' ');
     if (ws)
@@ -899,7 +899,7 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
       zones.emplace_back(
           monitor, Id, Name, Type, polygon, AlarmRGB,
           CheckMethod, MinPixelThreshold, MaxPixelThreshold,
-          MinAlarmPixels, MaxAlarmPixels, Coord(FilterX, FilterY),
+          MinAlarmPixels, MaxAlarmPixels, Vector2(FilterX, FilterY),
           MinFilterPixels, MaxFilterPixels,
           MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs,
           OverloadFrames, ExtendAlarmFrames);

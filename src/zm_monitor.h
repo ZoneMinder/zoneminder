@@ -305,7 +305,7 @@ protected:
 
   std::string     event_prefix;    // The prefix applied to event names as they are created
   std::string     label_format;    // The format of the timestamp on the images
-  Coord      label_coord;      // The coordinates of the timestamp on the images
+  Vector2      label_coord;      // The coordinates of the timestamp on the images
   int        label_size;         // Size of the timestamp on the images
   int32_t    image_buffer_count;        // Size of circular image buffer, kept in /dev/shm
   int32_t    max_image_buffer_count;    // Max # of video packets to keep in packet queue

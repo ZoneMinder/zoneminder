@@ -68,10 +68,10 @@ protected:
 
 protected:
   int n_coords;
-  Coord *coords;
+  Vector2 *coords;
   Box extent;
   int area;
-  Coord centre;
+  Vector2 centre;
 
 protected:
   void initialiseEdges();
@@ -81,7 +81,7 @@ protected:
 public:
   inline Polygon() : n_coords(0), coords(nullptr), area(0) {
   }
-  Polygon(int p_n_coords, const Coord *p_coords);
+  Polygon(int p_n_coords, const Vector2 *p_coords);
   Polygon(const Polygon &p_polygon);
   ~Polygon() {
     delete[] coords;
@@ -90,7 +90,7 @@ public:
   Polygon &operator=( const Polygon &p_polygon );
 
   inline int getNumCoords() const { return n_coords; }
-  inline const Coord &getCoord( int index ) const {
+  inline const Vector2 &getCoord( int index ) const {
     return coords[index];
   }
 
@@ -107,10 +107,10 @@ public:
   inline int Height() const { return extent.Height(); }
 
   inline int Area() const { return area; }
-  inline const Coord &Centre() const {
+  inline const Vector2 &Centre() const {
     return centre;
   }
-  bool isInside( const Coord &coord ) const;
+  bool isInside(const Vector2 &coord) const;
 };
 
 #endif // ZM_POLY_H

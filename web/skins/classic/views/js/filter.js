@@ -393,27 +393,7 @@ function delTerm( element ) {
 }
 
 function debugFilter() {
-  getModal('filterdebug');
-}
-
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getModal(id) {
-  $j.getJSON(thisUrl + '?request=modal&modal='+id+'&fid='+filterid)
-      .done(function(data) {
-        if ( !data ) {
-          console.error("Get modal returned no data");
-          return;
-        }
-
-        insertModalHtml(id, data.html);
-        manageModalBtns(id);
-        modal = $j('#'+id+'Modal');
-        if ( ! modal.length ) {
-          console.log("No modal found");
-        }
-        $j('#'+id+'Modal').modal('show');
-      })
-      .fail(logAjaxFail);
+  getModal('filterdebug', 'fid='+filterid);
 }
 
 function manageModalBtns(id) {

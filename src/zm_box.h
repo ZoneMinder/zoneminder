@@ -30,32 +30,32 @@
 class Box {
  public:
   Box() = default;
-  Box(Vector2 p_lo, Vector2 p_hi) : lo(p_lo), hi(p_hi), size(Vector2::Range(hi, lo)) {}
+  Box(Vector2 lo, Vector2 hi) : lo_(lo), hi_(hi), size_(Vector2::Range(hi, lo)) {}
 
-  const Vector2 &Lo() const { return lo; }
-  int LoX(int p_lo_x) { return lo.x_ = p_lo_x; }
-  int LoY(int p_lo_y) { return lo.y_ = p_lo_y; }
-  const Vector2 &Hi() const { return hi; }
-  int HiX(int p_hi_x) { return hi.x_ = p_hi_x; }
-  int HiY(int p_hi_y) { return hi.y_ = p_hi_y; }
-  const Vector2 &Size() const { return size; }
-  int Width() const { return size.x_; }
-  int Height() const { return size.y_; }
-  int Area() const { return size.x_ * size.y_; }
+  const Vector2 &Lo() const { return lo_; }
+  int32 LoX(int lo_x) { return lo_.x_ = lo_x; }
+  int32 LoY(int lo_y) { return lo_.y_ = lo_y; }
+  const Vector2 &Hi() const { return hi_; }
+  int32 HiX(int hi_x) { return hi_.x_ = hi_x; }
+  int32 HiY(int hi_y) { return hi_.y_ = hi_y; }
+
+  const Vector2 &Size() const { return size_; }
+  int32 Area() const { return size_.x_ * size_.y_; }
 
   Vector2 Centre() const {
-    int mid_x = int(std::round(lo.x_ + (size.x_ / 2.0)));
-    int mid_y = int(std::round(lo.y_ + (size.y_ / 2.0)));
-    return Vector2(mid_x, mid_y);
+    int32 mid_x = static_cast<int32>(std::lround(lo_.x_ + (size_.x_ / 2.0)));
+    int32 mid_y = static_cast<int32>(std::lround(lo_.y_ + (size_.y_ / 2.0)));
+    return {mid_x, mid_y};
   }
-  inline bool Inside(const Vector2 &coord) const  {
-    return (coord.x_ >= lo.x_ && coord.x_ <= hi.x_ && coord.y_ >= lo.y_ && coord.y_ <= hi.y_);
+
+  bool Contains(const Vector2 &coord) const  {
+    return (coord.x_ >= lo_.x_ && coord.x_ <= hi_.x_ && coord.y_ >= lo_.y_ && coord.y_ <= hi_.y_);
   }
 
  private:
-  Vector2 lo;
-  Vector2 hi;
-  Vector2 size;
+  Vector2 lo_;
+  Vector2 hi_;
+  Vector2 size_;
 };
 
 #endif // ZM_BOX_H

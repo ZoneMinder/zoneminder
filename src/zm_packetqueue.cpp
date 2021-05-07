@@ -645,51 +645,43 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   // Step one count back pre_event_count frames as the minimum
   // Do not assume that snapshot_it is video
   // snapshot it might already point to the beginning
-  while (( (*it) != pktQueue.begin() ) and pre_event_count) {
-    packet = *(*it);
-    Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d score %d",
-        pre_event_count, packet->packet.stream_index, packet->keyframe, packet->score);
-    ZM_DUMP_PACKET(packet->packet, "");
-    if (packet->packet.stream_index == video_stream_id) {
-      pre_event_count --;
-      if (!pre_event_count)
-        break;
+  if (pre_event_count) {
+    while ((*it) != pktQueue.begin()) {
+      packet = *(*it);
+      Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d score %d",
+          pre_event_count, packet->packet.stream_index, packet->keyframe, packet->score);
+      ZM_DUMP_PACKET(packet->packet, "");
+      if (packet->packet.stream_index == video_stream_id) {
+        pre_event_count --;
+        if (!pre_event_count)
+          break;
+      }
+      (*it)--;
     }
-    (*it)--;
   }
   // it either points to beginning or we have seen pre_event_count video packets.
   
-  if ((*it) == pktQueue.begin()) {
-    packet = *(*it);
-    Debug(1, "Hit begin");
-    // hit end, the first packet in the queue should ALWAYS be a video keyframe.
-    // So we should be able to return it.
-    if (pre_event_count) {
-      if (packet->image_index < (int)pre_event_count) {
-        // probably just starting up
-        Debug(1, "Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
-      } else {
-        Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
-      }
-      ZM_DUMP_PACKET(packet->packet, "");
+  packet = *(*it);
+  if (pre_event_count) {
+    if (packet->image_index < (int)pre_event_count) {
+      // probably just starting up
+      Debug(1, "Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
+    } else {
+      Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
     }
+    ZM_DUMP_PACKET(packet->packet, "");
     return it;
   }
 
-  // Not at beginning, so must be pointing at a video keyframe or maybe pre_event_count == 0
-  if (packet->keyframe) {
-    ZM_DUMP_PACKET(packet->packet, "Found video keyframe, Returning");
-    return it;
-  }
-
-  while (--(*it) != pktQueue.begin()) {
+  while ((*it) != pktQueue.begin()) {
     packet = *(*it);
     ZM_DUMP_PACKET(packet->packet, "No keyframe");
     if ((packet->packet.stream_index == video_stream_id) and packet->keyframe)
       return it; // Success
+    --(*it);
   }
-  if ( !(*(*it))->keyframe ) {
-    Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
+  if (!(*(*it))->keyframe) {
+    Warning("Hit beginning of packetqueue and packet is not a keyframe. index is %d", packet->image_index);
   }
   return it;
 }  // end packetqueue_iterator *PacketQueue::get_event_start_packet_it

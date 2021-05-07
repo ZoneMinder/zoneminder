@@ -2634,6 +2634,7 @@ bool Monitor::Decode() {
   ZMPacket *packet = packet_lock->packet_;
   packetqueue.increment_it(decoder_it);
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
+    Debug(4, "Not video");
     packetqueue.unlock(packet_lock);
     return true; // Don't need decode
   }
@@ -2694,19 +2695,23 @@ bool Monitor::Decode() {
     capture_image = packet->image;
 
     /* Deinterlacing */
-    if ( deinterlacing_value ) {
-      if ( deinterlacing_value == 1 ) {
+    if (deinterlacing_value) {
+      Debug(1, "Doing deinterlacing");
+      if (deinterlacing_value == 1) {
         capture_image->Deinterlace_Discard();
-      } else if ( deinterlacing_value == 2 ) {
+      } else if (deinterlacing_value == 2) {
         capture_image->Deinterlace_Linear();
-      } else if ( deinterlacing_value == 3 ) {
+      } else if (deinterlacing_value == 3) {
         capture_image->Deinterlace_Blend();
-      } else if ( deinterlacing_value == 4 ) {
+      } else if (deinterlacing_value == 4) {
         ZMLockedPacket *deinterlace_packet_lock = nullptr;
         while (!zm_terminate) {
           ZMLockedPacket *second_packet_lock = packetqueue.get_packet(decoder_it);
-          if (!second_packet_lock) return false;
-          if ( second_packet_lock->packet_->codec_type == packet->codec_type) {
+          if (!second_packet_lock) {
+            packetqueue.unlock(packet_lock);
+            return false;
+          }
+          if (second_packet_lock->packet_->codec_type == packet->codec_type) {
             deinterlace_packet_lock = second_packet_lock;
             break;
           }
@@ -2715,8 +2720,8 @@ bool Monitor::Decode() {
         }
         if (zm_terminate) return false;
         capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
-        delete deinterlace_packet_lock;
-      } else if ( deinterlacing_value == 5 ) {
+        packetqueue.unlock(deinterlace_packet_lock);
+      } else if (deinterlacing_value == 5) {
         capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
       }
     }

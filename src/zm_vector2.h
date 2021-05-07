@@ -29,13 +29,6 @@ class Vector2 {
  public:
   inline Vector2() : x(0), y(0) {}
   inline Vector2(int p_x, int p_y) : x(p_x), y(p_y) {}
-  inline Vector2(const Vector2 &p_coord) : x(p_coord.x), y(p_coord.y) {}
-
-  inline Vector2 &operator=(const Vector2 &coord) {
-    x = coord.x;
-    y = coord.y;
-    return *this;
-  }
 
   inline int &X(int p_x) {
     x = p_x;

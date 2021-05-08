@@ -20,40 +20,40 @@
 #include "zm_vector2.h"
 
 std::ostream &operator<<(std::ostream &os, Vector2 const &value) {
-  os << "{ X: " << value.X() << ", Y: " << value.Y() << " }";
+  os << "{ X: " << value.x_ << ", Y: " << value.y_ << " }";
   return os;
 }
 
 TEST_CASE("Vector2: default constructor") {
   Vector2 c;
-  REQUIRE(c.X() == 0);
-  REQUIRE(c.Y() == 0);
+  REQUIRE(c.x_ == 0);
+  REQUIRE(c.y_ == 0);
 }
 
 TEST_CASE("Vector2: x/y constructor") {
   Vector2 c(1, 2);
 
-  REQUIRE(c.X() == 1);
-  REQUIRE(c.Y() == 2);
+  REQUIRE(c.x_ == 1);
+  REQUIRE(c.y_ == 2);
 }
 
 TEST_CASE("Vector2: assignment/copy") {
   Vector2 c;
   Vector2 c2(1, 2);
 
-  REQUIRE(c.X() == 0);
-  REQUIRE(c.Y() == 0);
+  REQUIRE(c.x_ == 0);
+  REQUIRE(c.y_ == 0);
 
   SECTION("assignment operator") {
     c = c2;
-    REQUIRE(c.X() == 1);
-    REQUIRE(c.Y() == 2);
+    REQUIRE(c.x_ == 1);
+    REQUIRE(c.y_ == 2);
   }
 
   SECTION("copy constructor") {
     Vector2 c3(c2); // NOLINT(performance-unnecessary-copy-initialization)
-    REQUIRE(c3.X() == 1);
-    REQUIRE(c3.Y() == 2);
+    REQUIRE(c3.x_ == 1);
+    REQUIRE(c3.y_ == 2);
   }
 }
 

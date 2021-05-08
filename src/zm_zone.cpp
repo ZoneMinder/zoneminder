@@ -267,8 +267,8 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   Debug(5, "Current score is %d", stats.score_);
 
   if (check_method >= FILTERED_PIXELS) {
-    int bx = filter_box.X();
-    int by = filter_box.Y();
+    int bx = filter_box.x_;
+    int by = filter_box.y_;
     int bx1 = bx-1;
     int by1 = by-1;
 
@@ -924,7 +924,7 @@ bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
                 ))))));
   sprintf( output+strlen(output), "  Shape : %d points\n", polygon.getNumCoords() );
   for ( int i = 0; i < polygon.getNumCoords(); i++ ) {
-    sprintf( output+strlen(output), "  %i: %d,%d\n", i, polygon.getCoord( i ).X(), polygon.getCoord( i ).Y() );
+    sprintf(output+strlen(output), "  %i: %d,%d\n", i, polygon.getCoord( i ).x_, polygon.getCoord(i ).y_ );
   }
   sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );
   sprintf( output+strlen(output), "  Check Method: %d - %s\n", check_method,
@@ -936,7 +936,7 @@ bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
   sprintf( output+strlen(output), "  Max Pixel Threshold : %d\n", max_pixel_threshold );
   sprintf( output+strlen(output), "  Min Alarm Pixels : %d\n", min_alarm_pixels );
   sprintf( output+strlen(output), "  Max Alarm Pixels : %d\n", max_alarm_pixels );
-  sprintf( output+strlen(output), "  Filter Box : %d,%d\n", filter_box.X(), filter_box.Y() );
+  sprintf(output+strlen(output), "  Filter Box : %d,%d\n", filter_box.x_, filter_box.y_ );
   sprintf( output+strlen(output), "  Min Filter Pixels : %d\n", min_filter_pixels );
   sprintf( output+strlen(output), "  Max Filter Pixels : %d\n", max_filter_pixels );
   sprintf( output+strlen(output), "  Min Blob Pixels : %d\n", min_blob_pixels );

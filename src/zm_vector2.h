@@ -27,60 +27,44 @@
 //
 class Vector2 {
  public:
-  inline Vector2() : x(0), y(0) {}
-  inline Vector2(int p_x, int p_y) : x(p_x), y(p_y) {}
+  Vector2() : x_(0), y_(0) {}
+  Vector2(int32 x, int32 y) : x_(x), y_(y) {}
 
-  inline int &X(int p_x) {
-    x = p_x;
-    return x;
-  }
-  inline const int &X() const { return x; }
-
-  inline int &Y(int p_y) {
-    y = p_y;
-    return y;
-  }
-  inline const int &Y() const { return y; }
-
-  inline static Vector2 Range(const Vector2 &coord1, const Vector2 &coord2) {
-    Vector2 result((coord1.x - coord2.x) + 1, (coord1.y - coord2.y) + 1);
+  static Vector2 Range(const Vector2 &coord1, const Vector2 &coord2) {
+    Vector2 result((coord1.x_ - coord2.x_) + 1, (coord1.y_ - coord2.y_) + 1);
     return result;
   }
 
-  inline bool operator==(const Vector2 &coord) const { return (x == coord.x && y == coord.y); }
-  inline bool operator!=(const Vector2 &coord) const { return (x != coord.x || y != coord.y); }
+  bool operator==(const Vector2 &rhs) const { return (x_ == rhs.x_ && y_ == rhs.y_); }
+  bool operator!=(const Vector2 &rhs) const { return (x_ != rhs.x_ || y_ != rhs.y_); }
 
   // These operators are not idiomatic. If lexicographic comparison is needed, it should be implemented separately.
-  inline bool operator>(const Vector2 &coord) const = delete;
-  inline bool operator>=(const Vector2 &coord) const = delete;
-  inline bool operator<(const Vector2 &coord) const = delete;
-  inline bool operator<=(const Vector2 &coord) const = delete;
+  bool operator>(const Vector2 &rhs) const = delete;
+  bool operator>=(const Vector2 &rhs) const = delete;
+  bool operator<(const Vector2 &rhs) const = delete;
+  bool operator<=(const Vector2 &rhs) const = delete;
 
-  inline Vector2 &operator+=(const Vector2 &coord) {
-    x += coord.x;
-    y += coord.y;
+  Vector2 operator+(const Vector2 &rhs) const {
+    return {x_ + rhs.x_, y_ + rhs.y_};
+  }
+  Vector2 operator-(const Vector2 &rhs) const {
+    return {x_ - rhs.x_, y_ - rhs.y_};
+  }
+
+  Vector2 &operator+=(const Vector2 &rhs) {
+    x_ += rhs.x_;
+    y_ += rhs.y_;
     return *this;
   }
-  inline Vector2 &operator-=(const Vector2 &coord) {
-    x -= coord.x;
-    y -= coord.y;
+  Vector2 &operator-=(const Vector2 &rhs) {
+    x_ -= rhs.x_;
+    y_ -= rhs.y_;
     return *this;
   }
 
-  inline friend Vector2 operator+(const Vector2 &coord1, const Vector2 &coord2) {
-    Vector2 result(coord1);
-    result += coord2;
-    return result;
-  }
-  inline friend Vector2 operator-(const Vector2 &coord1, const Vector2 &coord2) {
-    Vector2 result(coord1);
-    result -= coord2;
-    return result;
-  }
-
- private:
-  int x;
-  int y;
+ public:
+  int32 x_;
+  int32 y_;
 };
 
 #endif // ZM_VECTOR2_H

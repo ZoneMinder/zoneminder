@@ -24,7 +24,7 @@
 void Polygon::calcArea() {
   double float_area = 0.0L;
   for (int i = 0, j = n_coords - 1; i < n_coords; j = i++) {
-    double trap_area = ((coords[i].X() - coords[j].X()) * ((coords[i].Y() + coords[j].Y()))) / 2.0L;
+    double trap_area = ((coords[i].x_ - coords[j].x_) * ((coords[i].y_ + coords[j].y_))) / 2.0L;
     float_area += trap_area;
     //printf( "%.2f (%.2f)\n", float_area, trap_area );
   }
@@ -36,10 +36,8 @@ void Polygon::calcCentre() {
     calcArea();
   double float_x = 0.0L, float_y = 0.0L;
   for (int i = 0, j = n_coords - 1; i < n_coords; j = i++) {
-    float_x += ((coords[i].Y() - coords[j].Y())
-        * ((coords[i].X() * 2) + (coords[i].X() * coords[j].X()) + (coords[j].X() * 2)));
-    float_y += ((coords[j].X() - coords[i].X())
-        * ((coords[i].Y() * 2) + (coords[i].Y() * coords[j].Y()) + (coords[j].Y() * 2)));
+    float_x += ((coords[i].y_ - coords[j].y_) * ((coords[i].x_ * 2) + (coords[i].x_ * coords[j].x_) + (coords[j].x_ * 2)));
+    float_y += ((coords[j].x_ - coords[i].x_) * ((coords[i].y_ * 2) + (coords[i].y_ * coords[j].y_) + (coords[j].y_ * 2)));
   }
   float_x /= (6 * area);
   float_y /= (6 * area);
@@ -55,14 +53,14 @@ Polygon::Polygon(int p_n_coords, const Vector2 *p_coords) : n_coords(p_n_coords)
   int max_y = -1;
   for (int i = 0; i < n_coords; i++) {
     coords[i] = p_coords[i];
-    if (min_x == -1 || coords[i].X() < min_x)
-      min_x = coords[i].X();
-    if (max_x == -1 || coords[i].X() > max_x)
-      max_x = coords[i].X();
-    if (min_y == -1 || coords[i].Y() < min_y)
-      min_y = coords[i].Y();
-    if (max_y == -1 || coords[i].Y() > max_y)
-      max_y = coords[i].Y();
+    if (min_x == -1 || coords[i].x_ < min_x)
+      min_x = coords[i].x_;
+    if (max_x == -1 || coords[i].x_ > max_x)
+      max_x = coords[i].x_;
+    if (min_y == -1 || coords[i].y_ < min_y)
+      min_y = coords[i].y_;
+    if (max_y == -1 || coords[i].y_ > max_y)
+      max_y = coords[i].y_;
   }
   extent = Box(min_x, min_y, max_x, max_y);
   calcArea();
@@ -98,11 +96,9 @@ Polygon &Polygon::operator=(const Polygon &p_polygon) {
 
 bool Polygon::isInside(const Vector2 &coord) const {
   bool inside = false;
-  for ( int i = 0, j = n_coords-1; i < n_coords; j = i++ ) {
-    if ( (((coords[i].Y() <= coord.Y()) && (coord.Y() < coords[j].Y()) )
-    || ((coords[j].Y() <= coord.Y()) && (coord.Y() < coords[i].Y())))
-    && (coord.X() < (coords[j].X() - coords[i].X()) * (coord.Y() - coords[i].Y()) / (coords[j].Y() - coords[i].Y()) + coords[i].X()))
-    {
+  for (int i = 0, j = n_coords - 1; i < n_coords; j = i++) {
+    if ((((coords[i].y_ <= coord.y_) && (coord.y_ < coords[j].y_)) || ((coords[j].y_ <= coord.y_) && (coord.y_ < coords[i].y_)))
+    && (coord.x_ < (coords[j].x_ - coords[i].x_) * (coord.y_ - coords[i].y_) / (coords[j].y_ - coords[i].y_) + coords[i].x_)) {
       inside = !inside;
     }
   }

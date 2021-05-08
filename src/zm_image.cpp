@@ -820,10 +820,10 @@ Image *Image::HighlightEdges(
   /* Set image to all black */
   high_image->Clear();
 
-  unsigned int lo_x = limits ? limits->Lo().X() : 0;
-  unsigned int lo_y = limits ? limits->Lo().Y() : 0;
-  unsigned int hi_x = limits ? limits->Hi().X() : width-1;
-  unsigned int hi_y = limits ? limits->Hi().Y() : height-1;
+  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
+  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
+  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
+  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
 
   if ( p_colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
@@ -2031,8 +2031,8 @@ void Image::Annotate(
 
   // Calculate initial coordinates of annotation so that everything is displayed even if the
   // user set coordinates would prevent that.
-  uint32 x0 = ZM::clamp(static_cast<uint32>(coord.X()), 0u, x0_max);
-  uint32 y0 = ZM::clamp(static_cast<uint32>(coord.Y()), 0u, y0_max);
+  uint32 x0 = ZM::clamp(static_cast<uint32>(coord.x_), 0u, x0_max);
+  uint32 y0 = ZM::clamp(static_cast<uint32>(coord.y_), 0u, y0_max);
 
   uint32 y = y0;
   for (const std::string &line : lines) {
@@ -2294,10 +2294,10 @@ void Image::Fill( Rgb colour, const Box *limits ) {
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour,subpixelorder);
 
-  unsigned int lo_x = limits?limits->Lo().X():0;
-  unsigned int lo_y = limits?limits->Lo().Y():0;
-  unsigned int hi_x = limits?limits->Hi().X():width-1;
-  unsigned int hi_y = limits?limits->Hi().Y():height-1;
+  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
+  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
+  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
+  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
   if ( colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
       unsigned char *p = &buffer[(y*width)+lo_x];
@@ -2339,10 +2339,10 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour, subpixelorder);
 
-  unsigned int lo_x = limits?limits->Lo().X():0;
-  unsigned int lo_y = limits?limits->Lo().Y():0;
-  unsigned int hi_x = limits?limits->Hi().X():width-1;
-  unsigned int hi_y = limits?limits->Hi().Y():height-1;
+  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
+  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
+  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
+  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
   if ( colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
       unsigned char *p = &buffer[(y*width)+lo_x];
@@ -2389,10 +2389,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
     const Vector2 &p1 = polygon.getCoord(i);
     const Vector2 &p2 = polygon.getCoord(j);
 
-    int x1 = p1.X();
-    int x2 = p2.X();
-    int y1 = p1.Y();
-    int y2 = p2.Y();
+    int x1 = p1.x_;
+    int x2 = p2.x_;
+    int y1 = p1.y_;
+    int y2 = p2.y_;
 
     double dx = x2 - x1;
     double dy = y2 - y1;
@@ -2473,10 +2473,10 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
     const Vector2 &p1 = polygon.getCoord(i);
     const Vector2 &p2 = polygon.getCoord(j);
 
-    int x1 = p1.X();
-    int x2 = p2.X();
-    int y1 = p1.Y();
-    int y2 = p2.Y();
+    int x1 = p1.x_;
+    int x2 = p2.x_;
+    int y1 = p1.y_;
+    int y2 = p2.y_;
 
     //Debug( 9, "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 );
     if ( y1 == y2 )

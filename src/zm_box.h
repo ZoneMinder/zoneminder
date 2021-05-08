@@ -40,27 +40,27 @@ class Box {
   inline Box(const Vector2 &p_lo, const Vector2 &p_hi) : lo(p_lo), hi(p_hi), size(Vector2::Range(hi, lo)) {}
 
   inline const Vector2 &Lo() const { return lo; }
-  inline int LoX() const { return lo.X(); }
-  inline int LoX(int p_lo_x) { return lo.X(p_lo_x); }
-  inline int LoY() const { return lo.Y(); }
-  inline int LoY(int p_lo_y) { return lo.Y(p_lo_y); }
+  inline int LoX() const { return lo.x_; }
+  inline int LoX(int p_lo_x) { return lo.x_ = p_lo_x; }
+  inline int LoY() const { return lo.y_; }
+  inline int LoY(int p_lo_y) { return lo.y_ = p_lo_y; }
   inline const Vector2 &Hi() const { return hi; }
-  inline int HiX() const { return hi.X(); }
-  inline int HiX(int p_hi_x) { return hi.X(p_hi_x); }
-  inline int HiY() const { return hi.Y(); }
-  inline int HiY(int p_hi_y) { return hi.Y(p_hi_y); }
+  inline int HiX() const { return hi.x_; }
+  inline int HiX(int p_hi_x) { return hi.x_ = p_hi_x; }
+  inline int HiY() const { return hi.y_; }
+  inline int HiY(int p_hi_y) { return hi.y_ = p_hi_y; }
   inline const Vector2 &Size() const { return size; }
-  inline int Width() const { return size.X(); }
-  inline int Height() const { return size.Y(); }
-  inline int Area() const { return size.X() * size.Y(); }
+  inline int Width() const { return size.x_; }
+  inline int Height() const { return size.y_; }
+  inline int Area() const { return size.x_ * size.y_; }
 
   inline const Vector2 Centre() const {
-    int mid_x = int(std::round(lo.X() + (size.X() / 2.0)));
-    int mid_y = int(std::round(lo.Y() + (size.Y() / 2.0)));
+    int mid_x = int(std::round(lo.x_ + (size.x_ / 2.0)));
+    int mid_y = int(std::round(lo.y_ + (size.y_ / 2.0)));
     return Vector2(mid_x, mid_y);
   }
-  inline bool Inside(const Vector2 &coord) const {
-    return (coord.X() >= lo.X() && coord.X() <= hi.X() && coord.Y() >= lo.Y() && coord.Y() <= hi.Y());
+  inline bool Inside(const Vector2 &coord) const  {
+    return (coord.x_ >= lo.x_ && coord.x_ <= hi.x_ && coord.y_ >= lo.y_ && coord.y_ <= hi.y_);
   }
 };
 

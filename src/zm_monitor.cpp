@@ -1544,8 +1544,9 @@ bool Monitor::CheckSignal(const Image *image) {
       if ( !config.timestamp_on_capture || !label_format[0] )
         break;
       // Avoid sampling the rows with timestamp in
-      if ( index < (label_coord.Y()*width) || index >= (label_coord.Y()+Image::LINE_HEIGHT)*width )
+      if (index < (label_coord.y_ * width) || index >= (label_coord.y_ + Image::LINE_HEIGHT) * width) {
         break;
+      }
     }
 
     if ( colours == ZM_COLOUR_GRAY8 ) {
@@ -2898,8 +2899,8 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   } // end if alarm
 
   if (top_score > 0) {
-    shared_data->alarm_x = alarm_centre.X();
-    shared_data->alarm_y = alarm_centre.Y();
+    shared_data->alarm_x = alarm_centre.x_;
+    shared_data->alarm_y = alarm_centre.y_;
 
     Info("Got alarm centre at %d,%d, at count %d",
         shared_data->alarm_x, shared_data->alarm_y, analysis_image_count);
@@ -2954,7 +2955,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   sprintf(output+strlen(output), "Subpixel Order : %u\n", camera->SubpixelOrder() );
   sprintf(output+strlen(output), "Event Prefix : %s\n", event_prefix.c_str() );
   sprintf(output+strlen(output), "Label Format : %s\n", label_format.c_str() );
-  sprintf(output+strlen(output), "Label Coord : %d,%d\n", label_coord.X(), label_coord.Y() );
+  sprintf(output+strlen(output), "Label Coord : %d,%d\n", label_coord.x_, label_coord.y_ );
   sprintf(output+strlen(output), "Label Size : %d\n", label_size );
   sprintf(output+strlen(output), "Image Buffer Count : %d\n", image_buffer_count );
   sprintf(output+strlen(output), "Warmup Count : %d\n", warmup_count );

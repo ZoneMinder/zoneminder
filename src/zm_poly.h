@@ -21,6 +21,7 @@
 #define ZM_POLY_H
 
 #include "zm_box.h"
+#include <vector>
 
 struct Edge {
   int min_y;
@@ -44,50 +45,12 @@ struct Edge {
 // defined by two coordinates
 //
 class Polygon {
-protected:
-  struct Slice {
-    int min_x;
-    int max_x;
-    int n_edges;
-    int *edges;
+ public:
+  Polygon() : area(0) {}
+  explicit Polygon(std::vector<Vector2> vertices);
 
-    Slice() {
-      min_x = 0;
-      max_x = 0;
-      n_edges = 0;
-      edges = nullptr;
-    }
-    ~Slice() {
-      delete edges;
-    }
-  };
-
-protected:
-  int n_coords;
-  Vector2 *coords;
-  Box extent;
-  int area;
-  Vector2 centre;
-
-protected:
-  void initialiseEdges();
-  void calcArea();
-  void calcCentre();
-
-public:
-  inline Polygon() : n_coords(0), coords(nullptr), area(0) {
-  }
-  Polygon(int p_n_coords, const Vector2 *p_coords);
-  Polygon(const Polygon &p_polygon);
-  ~Polygon() {
-    delete[] coords;
-  }
-
-  Polygon &operator=( const Polygon &p_polygon );
-
-  inline int getNumCoords() const { return n_coords; }
-  inline const Vector2 &getCoord( int index ) const {
-    return coords[index];
+  const std::vector<Vector2> &GetVertices() const {
+    return vertices_;
   }
 
   const Box &Extent() const { return extent; }
@@ -96,11 +59,22 @@ public:
   int LoY(int p_lo_y) { return extent.LoY(p_lo_y); }
   int HiY(int p_hi_y) { return extent.HiY(p_hi_y); }
 
-  inline int Area() const { return area; }
-  inline const Vector2 &Centre() const {
+  int Area() const { return area; }
+  const Vector2 &Centre() const {
     return centre;
   }
-  bool isInside(const Vector2 &coord) const;
+
+  bool Contains(const Vector2 &coord) const;
+
+ private:
+  void calcArea();
+  void calcCentre();
+
+ private:
+  std::vector<Vector2> vertices_;
+  Box extent;
+  int area;
+  Vector2 centre;
 };
 
 #endif // ZM_POLY_H

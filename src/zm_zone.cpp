@@ -748,37 +748,39 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
 bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
   char *str = (char *)poly_string;
-  int n_coords = 0;
   int max_n_coords = strlen(str)/4;
-  Vector2 *coords = new Vector2[max_n_coords];
+
+  std::vector<Vector2> vertices;
+  vertices.reserve(max_n_coords);
+
   while (*str != '\0') {
     char *cp = strchr(str, ',');
     if (!cp) {
       Error("Bogus coordinate %s found in polygon string", str);
       break;
-    } 
+    }
+
     int x = atoi(str);
-    int y = atoi(cp+1);
+    int y = atoi(cp + 1);
     Debug(3, "Got coordinate %d,%d from polygon string", x, y);
-    coords[n_coords++] = Vector2(x, y);
+    vertices.emplace_back(x, y);
 
-    char *ws = strchr(cp+2, ' ');
-    if (ws)
-      str = ws+1;
-    else
+    char *ws = strchr(cp + 2, ' ');
+    if (ws) {
+      str = ws + 1;
+    } else {
       break;
-  }  // end while ! end of string
-
-  if (n_coords > 2) {
-    Debug(3, "Successfully parsed polygon string %s", str);
-    polygon = Polygon(n_coords, coords);
-  } else {
-    Error("Not enough coordinates to form a polygon!");
-    n_coords = 0;
+    }
   }
 
-  delete[] coords;
-  return n_coords ? true : false;
+  if (vertices.size() > 2) {
+    Debug(3, "Successfully parsed polygon string %s", str);
+    polygon = Polygon(vertices);
+  } else {
+    Error("Not enough coordinates to form a polygon!");
+  }
+
+  return !vertices.empty();
 }  // end bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon)
 
 bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon) {
@@ -937,9 +939,9 @@ bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
               type==INACTIVE?"Inactive":(
                 type==PRIVACY?"Privacy":"Unknown"
                 ))))));
-  sprintf( output+strlen(output), "  Shape : %d points\n", polygon.getNumCoords() );
-  for ( int i = 0; i < polygon.getNumCoords(); i++ ) {
-    sprintf(output+strlen(output), "  %i: %d,%d\n", i, polygon.getCoord( i ).x_, polygon.getCoord(i ).y_ );
+  sprintf( output+strlen(output), "  Shape : %zu points\n", polygon.GetVertices().size() );
+  for (size_t i = 0; i < polygon.GetVertices().size(); i++) {
+    sprintf(output + strlen(output), "  %zu: %d,%d\n", i, polygon.GetVertices()[i].x_, polygon.GetVertices()[i].y_);
   }
   sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );
   sprintf( output+strlen(output), "  Check Method: %d - %s\n", check_method,

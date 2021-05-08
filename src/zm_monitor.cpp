@@ -1482,20 +1482,21 @@ void Monitor::DumpZoneImage(const char *zone_string) {
   }
 
   for (const Zone &zone : zones) {
-    if ( exclude_id && (!extra_colour || extra_zone.getNumCoords()) && zone.Id() == exclude_id )
+    if (exclude_id && (!extra_colour || !extra_zone.GetVertices().empty()) && zone.Id() == exclude_id) {
       continue;
+    }
 
     Rgb colour;
-    if ( exclude_id && !extra_zone.getNumCoords() && zone.Id() == exclude_id ) {
+    if (exclude_id && extra_zone.GetVertices().empty() && zone.Id() == exclude_id) {
       colour = extra_colour;
     } else {
-      if ( zone.IsActive() ) {
+      if (zone.IsActive()) {
         colour = kRGBRed;
-      } else if ( zone.IsInclusive() ) {
+      } else if (zone.IsInclusive()) {
         colour = kRGBOrange;
-      } else if ( zone.IsExclusive() ) {
+      } else if (zone.IsExclusive()) {
         colour = kRGBPurple;
-      } else if ( zone.IsPreclusive() ) {
+      } else if (zone.IsPreclusive()) {
         colour = kRGBBlue;
       } else {
         colour = kRGBWhite;
@@ -1505,7 +1506,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     zone_image->Outline(colour, zone.GetPolygon());
   }
 
-  if ( extra_zone.getNumCoords() ) {
+  if (!extra_zone.GetVertices().empty()) {
     zone_image->Fill(extra_colour, 2, extra_zone);
     zone_image->Outline(extra_colour, extra_zone);
   }

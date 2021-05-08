@@ -2382,12 +2382,12 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
   }
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
-  colour = rgb_convert(colour,subpixelorder);
+  colour = rgb_convert(colour, subpixelorder);
 
-  int n_coords = polygon.getNumCoords();
-  for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ ) {
-    const Vector2 &p1 = polygon.getCoord(i);
-    const Vector2 &p2 = polygon.getCoord(j);
+  size_t n_coords = polygon.GetVertices().size();
+  for (size_t j = 0, i = n_coords - 1; j < n_coords; i = j++) {
+    const Vector2 &p1 = polygon.GetVertices()[i];
+    const Vector2 &p2 = polygon.GetVertices()[j];
 
     int x1 = p1.x_;
     int x2 = p2.x_;
@@ -2466,12 +2466,12 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour, subpixelorder);
 
-  int n_coords = polygon.getNumCoords();
+  size_t n_coords = polygon.GetVertices().size();
   int n_global_edges = 0;
   Edge global_edges[n_coords];
-  for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ ) {
-    const Vector2 &p1 = polygon.getCoord(i);
-    const Vector2 &p2 = polygon.getCoord(j);
+  for (size_t j = 0, i = n_coords - 1; j < n_coords; i = j++) {
+    const Vector2 &p1 = polygon.GetVertices()[i];
+    const Vector2 &p2 = polygon.GetVertices()[j];
 
     int x1 = p1.x_;
     int x2 = p2.x_;

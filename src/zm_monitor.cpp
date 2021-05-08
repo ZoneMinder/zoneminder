@@ -1776,12 +1776,13 @@ bool Monitor::Analyse() {
 
   // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
   if (snap->score != -1) {
-    delete packet_lock;
-    packetqueue.increment_it(analysis_it);
     Error("skipping because score was %d", snap->score);
+    packetqueue.unlock(packet_lock);
+    packetqueue.increment_it(analysis_it);
     return false;
   }
 
+  // Store the it that points to our snap we will need it later
   packetqueue_iterator snap_it = *analysis_it;
   packetqueue.increment_it(analysis_it);
 
@@ -1820,7 +1821,7 @@ bool Monitor::Analyse() {
       Event::StringSet noteSet;
       noteSet.insert(trigger_data->trigger_text);
       noteSetMap[trigger_data->trigger_cause] = noteSet;
-    } // end if trigger_on
+    }  // end if trigger_on
 
     // FIXME this snap might not be the one that caused the signal change.  Need to store that in the packet.
     if (signal_change) {
@@ -1848,7 +1849,7 @@ bool Monitor::Analyse() {
       shared_data->active = signal;
       if ((function == MODECT or function == MOCORD) and snap->image)
         ref_image.Assign(*(snap->image));
-    }// else 
+    }  // end if signal change
 
     if (signal) {
       if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
@@ -1858,17 +1859,17 @@ bool Monitor::Analyse() {
           // FIXME improve logic here
           bool first_link = true;
           Event::StringSet noteSet;
-          for ( int i = 0; i < n_linked_monitors; i++ ) {
+          for (int i = 0; i < n_linked_monitors; i++) {
             // TODO: Shouldn't we try to connect?
-            if ( linked_monitors[i]->isConnected() ) {
+            if (linked_monitors[i]->isConnected()) {
               Debug(1, "Linked monitor %d %s is connected",
                   linked_monitors[i]->Id(), linked_monitors[i]->Name());
-              if ( linked_monitors[i]->hasAlarmed() ) {
+              if (linked_monitors[i]->hasAlarmed()) {
                 Debug(1, "Linked monitor %d %s is alarmed",
                     linked_monitors[i]->Id(), linked_monitors[i]->Name());
-                if ( !event ) {
-                  if ( first_link ) {
-                    if ( cause.length() )
+                if (!event) {
+                  if (first_link) {
+                    if (cause.length())
                       cause += ", ";
                     cause += LINKED_CAUSE;
                     first_link = false;
@@ -1885,11 +1886,9 @@ bool Monitor::Analyse() {
               linked_monitors[i]->connect();
             }
           } // end foreach linked_monitor
-          if ( noteSet.size() > 0 )
+          if (noteSet.size() > 0)
             noteSetMap[LINKED_CAUSE] = noteSet;
         } // end if linked_monitors
-
-        struct timeval *timestamp = snap->timestamp;
 
         /* try to stay behind the decoder. */
         if (decoding_enabled) {
@@ -1909,6 +1908,8 @@ bool Monitor::Analyse() {
           }
         }  // end if decoding enabled
 
+        struct timeval *timestamp = snap->timestamp;
+
         if (Active() and (function == MODECT or function == MOCORD)) {
           Debug(3, "signal and active and modect");
           Event::StringSet zoneSet;
@@ -1923,7 +1924,6 @@ bool Monitor::Analyse() {
           }
 
           if (!(analysis_image_count % (motion_frame_skip+1))) {
-
             if (snap->image) {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
@@ -1969,12 +1969,12 @@ bool Monitor::Analyse() {
         if (function == RECORD or function == MOCORD) {
           // If doing record, check to see if we need to close the event or not.
           if (event) {
-            Debug(2, "Have event %" PRIu64 " in mocord", event->Id());
+            Debug(2, "Have event %" PRIu64 " in record", event->Id());
 
             if (section_length && 
-                ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                (( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length)
                 && ( 
-                  ( (function == MOCORD) && (event_close_mode != CLOSE_TIME) )
+                  ((function == MOCORD) && (event_close_mode != CLOSE_TIME))
                   ||
                   ( (function == RECORD) && (event_close_mode == CLOSE_TIME) )  
                   || ! ( timestamp->tv_sec % section_length )
@@ -2005,9 +2005,13 @@ bool Monitor::Analyse() {
 
               ZMLockedPacket *starting_packet_lock = nullptr;
               ZMPacket *starting_packet = nullptr;
-              if ( *start_it != snap_it ) {
+              if (*start_it != snap_it) {
                 starting_packet_lock = packetqueue.get_packet(start_it);
-                if (!starting_packet_lock) return false;
+                if (!starting_packet_lock) {
+                  Warning("Unable to get starting packet lock");
+                  delete packet_lock;
+                  return false;
+                }
                 starting_packet = starting_packet_lock->packet_;
               } else {
                 starting_packet = snap;
@@ -2015,12 +2019,12 @@ bool Monitor::Analyse() {
 
               event = new Event(this, *(starting_packet->timestamp), "Continuous", noteSetMap);
               // Write out starting packets, do not modify packetqueue it will garbage collect itself
-              while ( starting_packet and ((*start_it) != snap_it) ) {
+              while (starting_packet and ((*start_it) != snap_it)) {
                 event->AddPacket(starting_packet);
                 // Have added the packet, don't want to unlock it until we have locked the next
 
                 packetqueue.increment_it(start_it);
-                if ( (*start_it) == snap_it ) {
+                if ((*start_it) == snap_it) {
                   if (starting_packet_lock) delete starting_packet_lock;
                   break;
                 }

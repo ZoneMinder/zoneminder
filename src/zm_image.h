@@ -32,7 +32,6 @@
 #endif // HAVE_ZLIB_H
 
 class Box;
-class Image;
 class Polygon;
 
 #define ZM_BUFTYPE_DONTFREE 0
@@ -96,24 +95,6 @@ class Image {
     void update_function_pointers();
 
   protected:
-    struct Edge {
-      int min_y;
-      int max_y;
-      double min_x;
-      double _1_m;
-
-      static bool CompareYX(const Edge &e1, const Edge &e2) {
-        if ( e1.min_y == e2.min_y )
-          return e1.min_x < e2.min_x;
-        return e1.min_y < e2.min_y;
-      }
-
-      static bool CompareX(const Edge &e1, const Edge &e2) {
-        return e1.min_x < e2.min_x;
-      }
-    };
-	
-
     inline void AllocImgBuffer(size_t p_bufsize) {
       if ( buffer )
         DumpImgBuffer();

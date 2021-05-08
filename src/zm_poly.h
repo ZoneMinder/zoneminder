@@ -22,7 +22,22 @@
 
 #include "zm_box.h"
 
-class Coord;
+struct Edge {
+  int min_y;
+  int max_y;
+  double min_x;
+  double _1_m;
+
+  static bool CompareYX(const Edge &e1, const Edge &e2) {
+    if (e1.min_y == e2.min_y)
+      return e1.min_x < e2.min_x;
+    return e1.min_y < e2.min_y;
+  }
+
+  static bool CompareX(const Edge &e1, const Edge &e2) {
+    return e1.min_x < e2.min_x;
+  }
+};
 
 //
 // Class used for storing a box, which is defined as a region
@@ -30,25 +45,6 @@ class Coord;
 //
 class Polygon {
 protected:
-  struct Edge {
-    int min_y;
-    int max_y;
-    double min_x;
-    double _1_m;
-
-    static int CompareYX( const void *p1, const void *p2 ) {
-        const Edge *e1 = reinterpret_cast<const Edge *>(p1), *e2 = reinterpret_cast<const Edge *>(p2);
-      if ( e1->min_y == e2->min_y )
-        return int(e1->min_x - e2->min_x);
-      else
-        return int(e1->min_y - e2->min_y);
-    }
-    static int CompareX( const void *p1, const void *p2 ) {
-      const Edge *e1 = reinterpret_cast<const Edge *>(p1), *e2 = reinterpret_cast<const Edge *>(p2);
-      return int(e1->min_x - e2->min_x);
-    }
-  };
-
   struct Slice {
     int min_x;
     int max_x;

@@ -2304,6 +2304,7 @@ bool Monitor::Analyse() {
     snap->image = nullptr;
   }
 
+  packetqueue.clearPackets(snap);
   packetqueue.unlock(packet_lock);
 
   if ( snap->image_index > 0 ) {
@@ -2314,7 +2315,6 @@ bool Monitor::Analyse() {
       UpdateAnalysisFPS();
   }
   shared_data->last_read_time = time(nullptr);
-  packetqueue.clearPackets(snap);
 
   return true;
 } // end Monitor::Analyse

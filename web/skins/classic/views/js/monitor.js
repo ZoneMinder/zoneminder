@@ -140,7 +140,7 @@ function initPage() {
       form.submit();
     };
   });
-  document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
+  document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
     el.oninput = window['update_estimated_ram_use'].bind(el);
   });
   update_estimated_ram_use();
@@ -317,6 +317,7 @@ function update_estimated_ram_use() {
   var colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
 
   var min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
+  min_buffer_count += parseInt(document.querySelectorAll('input[name="newMonitor[PreEventCount]"]')[0].value);
   var min_buffer_size = min_buffer_count * width * height * colours;
   document.getElementById('estimated_ram_use').innerHTML = 'Min: ' + human_filesize(min_buffer_size);
 

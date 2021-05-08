@@ -2305,15 +2305,15 @@ bool Monitor::Analyse() {
   }
 
   packetqueue.clearPackets(snap);
-  packetqueue.unlock(packet_lock);
 
-  if ( snap->image_index > 0 ) {
+  if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
     // Only do these if it's a video packet.
     shared_data->last_read_index = snap->image_index;
     analysis_image_count++;
     if ( function == MODECT or function == MOCORD )
       UpdateAnalysisFPS();
   }
+  packetqueue.unlock(packet_lock);
   shared_data->last_read_time = time(nullptr);
 
   return true;

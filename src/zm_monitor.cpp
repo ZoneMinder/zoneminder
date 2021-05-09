@@ -2629,6 +2629,7 @@ bool Monitor::Decode() {
             delete packet->image;
             packet->image = nullptr;
           }
+          av_frame_unref(dest_frame);
         }  // end if have convert_context
       }  // end if need transfer to image
     } else {

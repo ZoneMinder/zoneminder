@@ -594,7 +594,7 @@ public:
   std::vector<Group *>  Groups();
   StringVector GroupNames();
 
-  static std::vector<std::shared_ptr<Monitor>> LoadMonitors(std::string &sql, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
+  static std::vector<std::shared_ptr<Monitor>> LoadMonitors(const std::string &sql, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
 #if ZM_HAS_V4L
   static std::vector<std::shared_ptr<Monitor>> LoadLocalMonitors(const char *device, Purpose purpose);
 #endif // ZM_HAS_V4L

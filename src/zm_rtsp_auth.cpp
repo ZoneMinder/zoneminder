@@ -95,7 +95,7 @@ std::string Authenticator::quote( const std::string &src ) {
   return ReplaceAll(ReplaceAll(src, "\\", "\\\\"), "\"", "\\\"");
 }
 
-std::string Authenticator::getAuthHeader(std::string method, std::string uri) {
+std::string Authenticator::getAuthHeader(const std::string &method, const std::string &uri) {
   std::string result = "Authorization: ";
   if ( fAuthMethod == AUTH_BASIC ) {
     result += "Basic " + Base64Encode(username() + ":" + password());

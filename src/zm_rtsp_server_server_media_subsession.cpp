@@ -66,8 +66,9 @@ RTPSink*  BaseServerMediaSubsession::createSink(
 		sink = VP9VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
 	} else if (format == "video/H265") {
 		sink = H265VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
+  }
 #endif	
-  } else if (format == "audio/AAC") {
+  else if (format == "audio/AAC") {
     ADTS_ZoneMinderFifoSource *adts_source = (ADTS_ZoneMinderFifoSource *)(m_replicator->inputSource());
     sink = MPEG4GenericRTPSink::createNew(env, rtpGroupsock,
         rtpPayloadTypeIfDynamic,

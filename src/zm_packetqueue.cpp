@@ -236,7 +236,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
   packetqueue_iterator it = pktQueue.begin();
   packetqueue_iterator next_front = pktQueue.begin();
-  int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
 
   // First packet is special because we know it is a video keyframe and only need to check for lock
   std::shared_ptr<ZMPacket> zm_packet = *it;
@@ -247,6 +246,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   Debug(1, "trying lock on first packet");
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
   if (lp->trylock()) {
+    int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
     Debug(1, "Have lock on first packet");
     ++it;
     delete lp;
@@ -282,7 +282,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
           break;
         }
       }
-      it++;
+      ++it;
     } // end while
     }
   }  // end if first packet not locked
@@ -292,7 +292,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
       );
   if (next_front != pktQueue.begin()) {
     while (pktQueue.begin() != next_front) {
-      std::shared_ptr<ZMPacket> zm_packet = *pktQueue.begin();
+      zm_packet = *pktQueue.begin();
       if (!zm_packet) {
         Error("NULL zm_packet in queue");
         continue;
@@ -478,10 +478,10 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
       }
       (*it)--;
     }
+    packet = *(*it);
   }
   // it either points to beginning or we have seen pre_event_count video packets.
   
-  packet = *(*it);
   if (pre_event_count) {
     if (packet->image_index < (int)pre_event_count) {
       // probably just starting up

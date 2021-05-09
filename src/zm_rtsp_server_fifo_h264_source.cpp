@@ -23,7 +23,7 @@ H264_ZoneMinderFifoSource::H264_ZoneMinderFifoSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
     xop::MediaChannelId channelId,
-    std::string fifo
+    const std::string &fifo
     )
   : H26X_ZoneMinderFifoSource(rtspServer, sessionId, channelId, fifo)
 {
@@ -96,7 +96,7 @@ H265_ZoneMinderFifoSource::H265_ZoneMinderFifoSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
     xop::MediaChannelId channelId,
-    std::string fifo
+    const std::string &fifo
     )
   : H26X_ZoneMinderFifoSource(rtspServer, sessionId, channelId, fifo)
 {
@@ -199,12 +199,12 @@ unsigned char*  H26X_ZoneMinderFifoSource::extractFrame(unsigned char* frame, si
 	Debug(4, "ExtractFrame: %p %zu", frame, size);
 	outsize = 0;
 	size_t markerLength = 0;
-	size_t endMarkerLength = 0;
 	m_frameType = 0;
   unsigned char *startFrame = nullptr;
-  if ( size >= 3 )
+  if (size >= 3)
     startFrame = this->findMarker(frame, size, markerLength);
-	if ( startFrame != nullptr ) {
+	if (startFrame != nullptr) {
+    size_t endMarkerLength = 0;
 		Debug(4, "startFrame: %p marker Length %zu", startFrame, markerLength);
 		m_frameType = startFrame[markerLength];
 

@@ -282,7 +282,7 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
     codec_imgsize = avpicture_get_size(
         format,
         width,
-        >height);
+        height);
     buffer = (uint8_t *)av_malloc(codec_imgsize);
     avpicture_fill(
         (AVPicture *)out_frame,

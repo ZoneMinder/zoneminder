@@ -24,7 +24,7 @@ ZoneMinderFifoSource::ZoneMinderFifoSource(
     std::shared_ptr<xop::RtspServer>& rtspServer,
     xop::MediaSessionId sessionId,
     xop::MediaChannelId channelId,
-    std::string fifo
+    const std::string &fifo
     ) :
   stop_(false),
   m_rtspServer(rtspServer),
@@ -225,7 +225,7 @@ int ZoneMinderFifoSource::getNextFrame() {
     if (bytes_needed > 0) {
       Debug(4, "Need another %d bytes. Trying to read them", bytes_needed);
       while (bytes_needed) {
-        int bytes_read = m_buffer.read_into(m_fd, bytes_needed);
+        bytes_read = m_buffer.read_into(m_fd, bytes_needed);
         if (bytes_read <= 0) {
           Debug(1, "Failed to read another %d bytes, got %d.", bytes_needed, bytes_read);
           return -1;

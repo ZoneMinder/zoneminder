@@ -41,10 +41,9 @@ void Fifo::file_create_if_missing(
     Debug(5, "Supposed to be a fifo pipe but isn't, unlinking: %s", path);
     unlink(path);
   }
-  int fd;
   if (!is_fifo) {
     Debug(5, "Creating non fifo file as requested: %s", path);
-    fd = ::open(path, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
+    int fd = ::open(path, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
     ::close(fd);
     return;
   }

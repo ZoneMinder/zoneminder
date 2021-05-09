@@ -252,13 +252,17 @@ bool VideoStore::open() {
           ret = av_hwdevice_ctx_create(&hw_device_ctx,
               codec_data[i].hwdevice_type,
               nullptr, nullptr, 0);
+          if (0>ret) {
+            Error("Failed to create hwdevice_ctx");
+            continue;
+          }
 
           AVBufferRef *hw_frames_ref;
           AVHWFramesContext *frames_ctx = nullptr;
 
           if (!(hw_frames_ref = av_hwframe_ctx_alloc(hw_device_ctx))) {
             Error("Failed to create hwaccel frame context.");
-            return -1;
+            continue;
           }
           frames_ctx = (AVHWFramesContext *)(hw_frames_ref->data);
           frames_ctx->format    = codec_data[i].hw_pix_fmt;
@@ -537,7 +541,6 @@ bool VideoStore::open() {
 } // end bool VideoStore::open()
 
 void VideoStore::flush_codecs() {
-  int ret;
   // The codec queues data.  We need to send a flush command and out
   // whatever we get. Failures are not fatal.
   AVPacket pkt;
@@ -555,7 +558,7 @@ void VideoStore::flush_codecs() {
 #endif
         ) ) {
     // Put encoder into flushing mode
-    while ( (ret = zm_send_frame_receive_packet(video_out_ctx, nullptr, pkt) ) > 0 ) {
+    while ((zm_send_frame_receive_packet(video_out_ctx, nullptr, pkt)) > 0) {
       av_packet_rescale_ts(&pkt,
           video_out_ctx->time_base,
           video_out_stream->time_base);
@@ -1013,7 +1016,6 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &ipkt) {
 }
 
 int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
-  int ret;
   frame_count += 1;
 
   // if we have to transcode
@@ -1070,6 +1072,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     if (video_out_ctx->hw_frames_ctx) {
+      int ret;
       if (!(hw_frame = av_frame_alloc())) {
         ret = AVERROR(ENOMEM);
         return ret;
@@ -1131,7 +1134,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     opkt.data = nullptr;
     opkt.size = 0;
 
-    ret = zm_send_frame_receive_packet(video_out_ctx, frame, opkt);
+    int ret = zm_send_frame_receive_packet(video_out_ctx, frame, opkt);
     if (ret <= 0) {
       if (ret < 0) {
         Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());

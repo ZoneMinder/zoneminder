@@ -2381,7 +2381,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
   }  // end if p_linked_monitors
 }  // end void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors)
 
-std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(std::string &where, Purpose purpose) {
+std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &where, Purpose purpose) {
   std::string sql = load_monitor_sql + " WHERE " + where;
   Debug(1, "Loading Monitors with %s", sql.c_str());
 
@@ -2974,7 +2974,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
     function==MOCORD?"Continuous Record with Motion Detection":(
     function==NODECT?"Externally Triggered only, no Motion Detection":"Unknown"
   ))))));
-  sprintf(output+strlen(output), "Zones : %lu\n", zones.size());
+  sprintf(output+strlen(output), "Zones : %zu\n", zones.size());
   for (const Zone &zone : zones) {
     zone.DumpSettings(output+strlen(output), verbose);
   }
@@ -3145,21 +3145,22 @@ void Monitor::get_ref_image() {
 
 std::vector<Group *> Monitor::Groups() {
   // At the moment, only load groups once.
-  if ( !groups.size() ) {
+  if (!groups.size()) {
     std::string sql = stringtf(
         "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups.Id` IN "
         "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)", id);
     MYSQL_RES *result = zmDbFetch(sql.c_str());
-    if ( !result ) {
+    if (!result) {
       Error("Can't load groups: %s", mysql_error(&dbconn));
       return groups;
     }
     int n_groups = mysql_num_rows(result);
     Debug(1, "Got %d groups", n_groups);
-    while ( MYSQL_ROW dbrow = mysql_fetch_row(result) ) {
+    groups.reserve(n_groups);
+    while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
       groups.push_back(new Group(dbrow));
     }
-    if ( mysql_errno(&dbconn) ) {
+    if (mysql_errno(&dbconn)) {
       Error("Can't fetch row: %s", mysql_error(&dbconn));
     }
     mysql_free_result(result);

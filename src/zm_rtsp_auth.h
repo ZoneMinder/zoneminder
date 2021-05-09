@@ -47,8 +47,8 @@ public:
   AuthMethod  auth_method() const { return fAuthMethod; } 
   
   std::string computeDigestResponse(const std::string &cmd, const std::string &url);
-  void authHandleHeader( std::string headerData );
-  std::string getAuthHeader( std::string method, std::string path );
+  void authHandleHeader(std::string headerData);
+  std::string getAuthHeader(const std::string &method, const std::string &path);
   void checkAuthResponse(const std::string &response);
   
 private:

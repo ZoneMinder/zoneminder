@@ -88,7 +88,7 @@ public:
 
   int PrimeCapture() override;
   int PreCapture() override;
-  int Capture(ZMPacket &p)override;
+  int Capture(std::shared_ptr<ZMPacket> &p)override;
   int PostCapture()override ;
 
   size_t data_callback(void *buffer, size_t size, size_t nmemb, void *userdata);

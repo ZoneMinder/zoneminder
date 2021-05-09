@@ -53,7 +53,7 @@ public:
 
   int PreCapture() override;
   int PrimeCapture() override;
-  int Capture(ZMPacket &packet) override;
+  int Capture(std::shared_ptr<ZMPacket> &packet) override;
   int PostCapture() override;
   int Close() override;
 };

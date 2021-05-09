@@ -276,7 +276,7 @@ int LibvlcCamera::PreCapture() {
 }
 
 // Should not return -1 as cancels capture. Always wait for image if available.
-int LibvlcCamera::Capture( ZMPacket &zm_packet ) {   
+int LibvlcCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {   
   // newImage is a mutex/condition based flag to tell us when there is an image available
   {
     std::unique_lock<std::mutex> lck(mLibvlcData.newImageMutex);
@@ -288,9 +288,9 @@ int LibvlcCamera::Capture( ZMPacket &zm_packet ) {
     return 0;
 
   mLibvlcData.mutex.lock();
-  zm_packet.image->Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
-  zm_packet.packet.stream_index = mVideoStreamId;
-  zm_packet.stream = mVideoStream;
+  zm_packet->image->Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
+  zm_packet->packet.stream_index = mVideoStreamId;
+  zm_packet->stream = mVideoStream;
   mLibvlcData.mutex.unlock();
 
   return 1;

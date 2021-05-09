@@ -83,7 +83,7 @@ public:
   virtual int Disconnect() = 0;
   virtual int PreCapture() override { return 0; };
   virtual int PrimeCapture() override { return 0; };
-  virtual int Capture(ZMPacket &p) override = 0;
+  virtual int Capture(std::shared_ptr<ZMPacket> &p) override = 0;
   virtual int PostCapture() override = 0;
   int Read(int fd, char*buf, int size);
 };

@@ -109,7 +109,7 @@ void Zone::Setup(
 }  // end Zone::Setup
 
 Zone::~Zone() {
-  if ( image )
+  if (image)
     delete image;
   delete pg_image;
   delete[] ranges;

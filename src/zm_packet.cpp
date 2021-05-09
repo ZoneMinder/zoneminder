@@ -31,9 +31,31 @@ ZMPacket::ZMPacket() :
   stream(nullptr),
   in_frame(nullptr),
   out_frame(nullptr),
-  timestamp(nullptr),
+  timestamp({}),
   buffer(nullptr),
   image(nullptr),
+  analysis_image(nullptr),
+  score(-1),
+  codec_type(AVMEDIA_TYPE_UNKNOWN),
+  image_index(-1),
+  codec_imgsize(0),
+  pts(0),
+  decoded(0)
+{
+  Debug(1, "ZMPacket");
+  av_init_packet(&packet);
+  packet.size = 0; // So we can detect whether it has been filled.
+  Debug(1, "ZMPacket");
+}
+
+ZMPacket::ZMPacket(Image *i, const timeval &tv) :
+  keyframe(0),
+  stream(nullptr),
+  in_frame(nullptr),
+  out_frame(nullptr),
+  timestamp(tv),
+  buffer(nullptr),
+  image(i),
   analysis_image(nullptr),
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
@@ -51,7 +73,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   stream(nullptr),
   in_frame(nullptr),
   out_frame(nullptr),
-  timestamp(nullptr),
+  timestamp(p.timestamp),
   buffer(nullptr),
   image(nullptr),
   analysis_image(nullptr),
@@ -68,18 +90,15 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   if ( zm_av_packet_ref(&packet, &p.packet) < 0 ) {
     Error("error refing packet");
   }
-  timestamp = new struct timeval;
-  *timestamp = *p.timestamp;
 }
 
 ZMPacket::~ZMPacket() {
   zm_av_packet_unref(&packet);
-  if ( in_frame ) av_frame_free(&in_frame);
-  if ( out_frame ) av_frame_free(&out_frame);
-  if ( buffer ) av_freep(&buffer);
-  if ( analysis_image ) delete analysis_image;
-  if ( image ) delete image;
-  if ( timestamp ) delete timestamp;
+  if (in_frame) av_frame_free(&in_frame);
+  if (out_frame) av_frame_free(&out_frame);
+  if (buffer) av_freep(&buffer);
+  if (analysis_image) delete analysis_image;
+  if (image) delete image;
 }
 
 /* returns < 0 on error, 0 on not ready, int bytes consumed on success 
@@ -227,7 +246,7 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
     Error("error refing packet");
   }
   //ZM_DUMP_PACKET(packet, "zmpacket:");
-  gettimeofday(timestamp, nullptr);
+  gettimeofday(&timestamp, nullptr);
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   return &packet;
 }

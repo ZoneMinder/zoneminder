@@ -45,8 +45,8 @@ class MonitorStream : public StreamBase {
 
   protected:
     bool checkSwapPath(const char *path, bool create_path);
-    bool sendFrame(const char *filepath, struct timeval *timestamp);
-    bool sendFrame(Image *image, struct timeval *timestamp);
+    bool sendFrame(const char *filepath, const timeval &timestamp);
+    bool sendFrame(Image *image, const timeval &timestamp);
     void processCommand(const CmdMsg *msg) override;
     void SingleImage(int scale=100);
     void SingleImageRaw(int scale=100);

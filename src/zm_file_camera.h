@@ -51,7 +51,7 @@ public:
   void Initialise();
   void Terminate();
   int PreCapture() override;
-  int Capture(ZMPacket &p) override;
+  int Capture(std::shared_ptr<ZMPacket> &p) override;
   int PostCapture() override;
   int Close() override { return 0; };
 };

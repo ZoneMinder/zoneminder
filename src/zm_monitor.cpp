@@ -996,12 +996,10 @@ bool Monitor::connect() {
   if (!camera) LoadCamera();
 
   Debug(3, "Allocating %d image buffers", image_buffer_count);
-  image_buffer = new ZMPacket[image_buffer_count];
+  image_buffer.reserve(image_buffer_count);
   for (int32_t i = 0; i < image_buffer_count; i++) {
-    image_buffer[i].image_index = i;
-    image_buffer[i].timestamp = &(shared_timestamps[i]);
-    image_buffer[i].image = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
-    image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
+    image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
+    image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
 
   if (purpose == CAPTURE) {
@@ -1096,16 +1094,10 @@ bool Monitor::disconnect() {
   }
 #endif // ZM_MEM_MAPPED
 
-  if (image_buffer) {
-    for ( int32_t i = 0; i < image_buffer_count; i++ ) {
-      // We delete the image because it is an object pointing to space that won't be free'd.
-      delete image_buffer[i].image;
-      image_buffer[i].image = nullptr;
-      // We don't delete the timestamp because it is just a pointer to shared mem.
-      image_buffer[i].timestamp = nullptr;
-    }
-    delete[] image_buffer;
-    image_buffer = nullptr;
+  for ( int32_t i = 0; i < image_buffer_count; i++ ) {
+    // We delete the image because it is an object pointing to space that won't be free'd.
+    delete image_buffer[i];
+    image_buffer[i] = nullptr;
   }
 
   return true;
@@ -1177,19 +1169,18 @@ int Monitor::GetImage(int32_t index, int scale) {
     Image *image;
     // If we are going to be modifying the snapshot before writing, then we need to copy it
     if ( ( scale != ZM_SCALE_BASE ) || ( !config.timestamp_on_capture ) ) {
-      ZMPacket *snap = &image_buffer[index];
-      alarm_image.Assign(*snap->image);
+      alarm_image.Assign(*image_buffer[index]);
 
-      if ( scale != ZM_SCALE_BASE ) {
+      if (scale != ZM_SCALE_BASE) {
         alarm_image.Scale(scale);
       }
 
       if ( !config.timestamp_on_capture ) {
-        TimestampImage(&alarm_image, snap->timestamp);
+        TimestampImage(&alarm_image, shared_timestamps[index]);
       }
       image = &alarm_image;
     } else {
-      image = image_buffer[index].image;
+      image = image_buffer[index];
     }
 
     static char filename[PATH_MAX];
@@ -1206,15 +1197,15 @@ ZMPacket *Monitor::getSnapshot(int index) const {
   if ( (index < 0) || (index > image_buffer_count) ) {
     index = shared_data->last_write_index;
   }
-  return &image_buffer[index];
+  return new ZMPacket(image_buffer[index], shared_timestamps[index]);
 
   return nullptr;
 }
 
 struct timeval Monitor::GetTimestamp(int index) const {
   ZMPacket *packet = getSnapshot(index);
-  if ( packet ) 
-    return *packet->timestamp;
+  if (packet) 
+    return packet->timestamp;
 
   static struct timeval null_tv = { 0, 0 };
   return null_tv;
@@ -1235,58 +1226,6 @@ uint64_t Monitor::GetLastEventId() const {
 // This function is crap.
 double Monitor::GetFPS() const {
   return get_capture_fps();
-  // last_write_index is the last capture index.  It starts as == image_buffer_count so that the first asignment % image_buffer_count = 0;
-  int32_t index1 = shared_data->last_write_index;
-  if ( index1 >= image_buffer_count ) {
-    // last_write_index only has this value on startup before capturing anything.
-    return 0.0;
-  }
-  Debug(2, "index1(%d)", index1);
-  ZMPacket *snap1 = &image_buffer[index1];
-  if ( !snap1->timestamp->tv_sec ) {
-    // This should be impossible
-    Warning("Impossible situation.  No timestamp on captured image index was %d, image-buffer_count was (%d)", index1, image_buffer_count);
-    return 0.0;
-  }
-  struct timeval time1 = *snap1->timestamp;
-
-  int32_t fps_image_count = image_buffer_count;
-
-  int32_t index2 = (index1+1)%image_buffer_count;
-  Debug(2, "index2(%d)", index2);
-  ZMPacket *snap2 = &image_buffer[index2];
-  // the timestamp pointers are initialized on connection, so that's redundant
-  // tv_sec is probably only zero during the first loop of capturing, so this basically just counts the unused images.
-  // The problem is that there is no locking, and we set the timestamp before we set last_write_index,
-  // so there is a small window where the next image can have a timestamp in the future
-  while ( !snap2->timestamp->tv_sec || tvDiffSec(*snap2->timestamp, *snap1->timestamp) < 0 ) {
-    if ( index1 == index2 ) {
-      // All images are uncaptured
-      return 0.0;
-    }
-    index2 = (index2+1)%image_buffer_count;
-    snap2 = &image_buffer[ index2 ];
-    fps_image_count--;
-  }
-  struct timeval time2 = *snap2->timestamp;
-
-  double time_diff = tvDiffSec( time2, time1 );
-  if ( ! time_diff ) {
-    Error("No diff between time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
-        time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count);
-    return 0.0;
-  }
-  double curr_fps = fps_image_count/time_diff;
-
-  if ( curr_fps < 0.0 ) {
-    Error("Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
-        curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count);
-    return 0.0;
-  } else {
-    Debug(2, "GetFPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
-        curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count);
-  }
-  return curr_fps;
 }
 
 /* I think this returns the # of micro seconds that we should sleep in order to maintain the desired analysis rate */
@@ -1772,7 +1711,7 @@ bool Monitor::Analyse() {
   // get_analysis_packet will lock the packet and may wait if analysis_it is at the end
   ZMLockedPacket *packet_lock = packetqueue.get_packet(analysis_it);
   if (!packet_lock) return false;
-  ZMPacket *snap = packet_lock->packet_;
+  std::shared_ptr<ZMPacket> snap = packet_lock->packet_;
 
   // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
   if (snap->score != -1) {
@@ -1908,7 +1847,7 @@ bool Monitor::Analyse() {
           }
         }  // end if decoding enabled
 
-        struct timeval *timestamp = snap->timestamp;
+        struct timeval *timestamp = &snap->timestamp;
 
         if (Active() and (function == MODECT or function == MOCORD)) {
           Debug(3, "signal and active and modect");
@@ -2004,7 +1943,7 @@ bool Monitor::Analyse() {
               // This gets a lock on the starting packet
 
               ZMLockedPacket *starting_packet_lock = nullptr;
-              ZMPacket *starting_packet = nullptr;
+              std::shared_ptr<ZMPacket> starting_packet = nullptr;
               if (*start_it != snap_it) {
                 starting_packet_lock = packetqueue.get_packet(start_it);
                 if (!starting_packet_lock) {
@@ -2017,7 +1956,7 @@ bool Monitor::Analyse() {
                 starting_packet = snap;
               }
 
-              event = new Event(this, *(starting_packet->timestamp), "Continuous", noteSetMap);
+              event = new Event(this, starting_packet->timestamp, "Continuous", noteSetMap);
               // Write out starting packets, do not modify packetqueue it will garbage collect itself
               while (starting_packet and ((*start_it) != snap_it)) {
                 event->AddPacket(starting_packet);
@@ -2106,7 +2045,7 @@ bool Monitor::Analyse() {
                     (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
                     );
                 ZMLockedPacket *starting_packet_lock = nullptr;
-                ZMPacket *starting_packet = nullptr;
+                std::shared_ptr<ZMPacket> starting_packet = nullptr;
                 if (*start_it != snap_it) {
                   starting_packet_lock = packetqueue.get_packet(start_it);
                   if (!starting_packet_lock) return false;
@@ -2115,7 +2054,7 @@ bool Monitor::Analyse() {
                   starting_packet = snap;
                 }
 
-                event = new Event(this, *(starting_packet->timestamp), cause, noteSetMap);
+                event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
                 shared_data->last_event_id = event->Id();
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();
@@ -2522,13 +2461,17 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
 int Monitor::Capture() {
   unsigned int index = image_count % image_buffer_count;
 
-  ZMPacket *packet = new ZMPacket();
-  packet->timestamp = new struct timeval;
+  Debug(1, "Packeet");
+  std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
+  //= new ZMPacket();
+  //packet->timestamp = new struct timeval;
   packet->image_index = image_count;
-  gettimeofday(packet->timestamp, nullptr);
-  shared_data->zmc_heartbeat_time = packet->timestamp->tv_sec;
-
-  int captureResult = camera->Capture(*packet);
+  Debug(1, "Packeet");
+  gettimeofday(&(packet->timestamp), nullptr);
+  Debug(1, "Packeet");
+  shared_data->zmc_heartbeat_time = packet->timestamp.tv_sec;
+  Debug(1, "Capturing");
+  int captureResult = camera->Capture(packet);
   Debug(4, "Back from capture result=%d image count %d", captureResult, image_count);
 
   if (captureResult < 0) {
@@ -2543,24 +2486,24 @@ int Monitor::Capture() {
     capture_image->Fill(signalcolor);
     shared_data->signal = false;
     shared_data->last_write_index = index;
-    shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
-    image_buffer[index].image->Assign(*capture_image);
-    *(image_buffer[index].timestamp) = *(packet->timestamp);
+    shared_data->last_write_time = shared_timestamps[index].tv_sec;
+    image_buffer[index]->Assign(*capture_image);
+    shared_timestamps[index] = packet->timestamp;
     delete capture_image;
     image_count++;
-    delete packet;
+    //delete packet;
     // What about timestamping it?
     // Don't want to do analysis on it, but we won't due to signal
     return -1;
-  } else if ( captureResult > 0 ) {
+  } else if (captureResult > 0) {
     shared_data->signal = true;   // Assume if getting packets that we are getting something useful. CheckSignalPoints can correct this later.
     // If we captured, let's assume signal, Decode will detect further
     if (!decoding_enabled) {
       shared_data->last_write_index = index;
-      shared_data->last_write_time = packet->timestamp->tv_sec;
+      shared_data->last_write_time = packet->timestamp.tv_sec;
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
-        packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count );
+        packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count);
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
@@ -2590,14 +2533,14 @@ int Monitor::Capture() {
         packetqueue.queuePacket(packet);
       } else {
         Debug(4, "Not Queueing audio packet");
-        delete packet;
+        //delete packet;
       }
       // Don't update last_write_index because that is used for live streaming
       //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
       return 1;
     } else {
       Debug(1, "Unknown codec type %d", packet->codec_type);
-      delete packet;
+      //delete packet;
       return 1;
     } // end if audio
 
@@ -2605,12 +2548,12 @@ int Monitor::Capture() {
 
     // Will only be queued if there are iterators allocated in the queue.
     if ( !packetqueue.queuePacket(packet) ) {
-      delete packet;
+      //delete packet;
     }
     UpdateCaptureFPS();
   } else { // result == 0
     // Question is, do we update last_write_index etc?
-    delete packet;
+    //delete packet;
     return 0;
   } // end if result
 
@@ -2635,7 +2578,7 @@ int Monitor::Capture() {
 bool Monitor::Decode() {
   ZMLockedPacket *packet_lock = packetqueue.get_packet(decoder_it);
   if (!packet_lock) return false;
-  ZMPacket *packet = packet_lock->packet_;
+  std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
   packetqueue.increment_it(decoder_it);
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     Debug(4, "Not video");
@@ -2758,25 +2701,25 @@ bool Monitor::Decode() {
       TimestampImage(packet->image, packet->timestamp);
     }
 
-    image_buffer[index].image->Assign(*(packet->image));
-    *(image_buffer[index].timestamp) = *(packet->timestamp);
+    image_buffer[index]->Assign(*(packet->image));
+    shared_timestamps[index] = packet->timestamp;
   }  // end if have image
   packet->decoded = true;
   shared_data->signal = ( capture_image and signal_check_points ) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
-  shared_data->last_write_time = packet->timestamp->tv_sec;
+  shared_data->last_write_time = packet->timestamp.tv_sec;
   packetqueue.unlock(packet_lock);
   return true;
 }  // end bool Monitor::Decode()
 
-void Monitor::TimestampImage(Image *ts_image, const struct timeval *ts_time) const {
+void Monitor::TimestampImage(Image *ts_image, const timeval &ts_time) const {
   if ( !label_format[0] )
     return;
 
   // Expand the strftime macros first
   char label_time_text[256];
   tm ts_tm = {};
-  strftime(label_time_text, sizeof(label_time_text), label_format.c_str(), localtime_r(&ts_time->tv_sec, &ts_tm));
+  strftime(label_time_text, sizeof(label_time_text), label_format.c_str(), localtime_r(&ts_time.tv_sec, &ts_tm));
   char label_text[1024];
   const char *s_ptr = label_time_text;
   char *d_ptr = label_text;
@@ -2793,7 +2736,7 @@ void Monitor::TimestampImage(Image *ts_image, const struct timeval *ts_time) con
           found_macro = true;
           break;
         case 'f' :
-          d_ptr += snprintf(d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time->tv_usec/10000);
+          d_ptr += snprintf(d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time.tv_usec/10000);
           found_macro = true;
           break;
       }
@@ -3175,21 +3118,21 @@ void Monitor::get_ref_image() {
 
     Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%" PRIi64 ")",
           shared_data->last_write_index, static_cast<int64>(shared_data->last_write_time));
-    if ( snap_lock and ! snap_lock->packet_->image ) {
+    if (snap_lock and ! snap_lock->packet_->image) {
       delete snap_lock;
       // can't analyse it anyways, incremement
       packetqueue.increment_it(analysis_it);
     }
     //usleep(10000);
   }
-  if ( zm_terminate )
+  if (zm_terminate)
     return;
 
-  ZMPacket *snap = snap_lock->packet_;
+  std::shared_ptr<ZMPacket> snap = snap_lock->packet_;
   Debug(1, "get_ref_image: packet.stream %d ?= video_stream %d, packet image id %d packet image %p",
       snap->packet.stream_index, video_stream_id, snap->image_index, snap->image );
   // Might not have been decoded yet FIXME
-  if ( snap->image ) {
+  if (snap->image) {
     ref_image.Assign(width, height, camera->Colours(),
         camera->SubpixelOrder(), snap->image->Buffer(), camera->ImageSize());
     Debug(2, "Have ref image about to unlock");
@@ -3197,7 +3140,7 @@ void Monitor::get_ref_image() {
     Debug(2, "Have no ref image about to unlock");
   }
   delete snap_lock;
-}
+}  // get_ref_image
 
 std::vector<Group *> Monitor::Groups() {
   // At the moment, only load groups once.

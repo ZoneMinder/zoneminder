@@ -301,6 +301,7 @@ int main(int argc, char *argv[]) {
           result = -1;
           break;
         }
+        Debug(1, "Capture:");
         if (monitors[i]->Capture() < 0) {
           Error("Failed to capture image from monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());

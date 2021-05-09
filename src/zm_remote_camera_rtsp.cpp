@@ -218,16 +218,16 @@ int RemoteCameraRtsp::PreCapture() {
   return 1;
 }
 
-int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
+int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   int frameComplete = false;
-  AVPacket *packet = &zm_packet.packet;
-  if ( !zm_packet.image ) {
+  AVPacket *packet = &zm_packet->packet;
+  if ( !zm_packet->image ) {
     Debug(1, "Allocating image %dx%d %d colours %d", width, height, colours, subpixelorder);
-    zm_packet.image = new Image(width, height, colours, subpixelorder);
+    zm_packet->image = new Image(width, height, colours, subpixelorder);
   }
 
   
-  while ( !frameComplete ) {
+  while (!frameComplete) {
     buffer.clear();
     if (!rtspThread || rtspThread->IsStopped())
       return -1;
@@ -254,7 +254,7 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
           continue;
         } else if ( nalType == 5 ) {
           packet->flags |= AV_PKT_FLAG_KEY;
-          zm_packet.keyframe = 1;
+          zm_packet->keyframe = 1;
         // IDR
           buffer += lastSps;
           buffer += lastPps;
@@ -275,14 +275,14 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
         gettimeofday(&now, NULL);
         packet->pts = packet->dts = now.tv_sec*1000000+now.tv_usec;
 
-        int bytes_consumed = zm_packet.decode(mVideoCodecContext);
+        int bytes_consumed = zm_packet->decode(mVideoCodecContext);
         if ( bytes_consumed < 0 ) {
           Error("Error while decoding frame %d", frameCount);
           //Hexdump(Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size());
         }
         buffer -= packet->size;
         if ( bytes_consumed ) {
-          zm_dump_video_frame(zm_packet.in_frame, "remote_rtsp_decode");
+          zm_dump_video_frame(zm_packet->in_frame, "remote_rtsp_decode");
           if ( ! mVideoStream->
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
               codecpar
@@ -293,18 +293,18 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
             zm_dump_codec(mVideoCodecContext);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
             zm_dump_codecpar(mVideoStream->codecpar);
-            mVideoStream->codecpar->width = zm_packet.in_frame->width;
-            mVideoStream->codecpar->height = zm_packet.in_frame->height;
+            mVideoStream->codecpar->width = zm_packet->in_frame->width;
+            mVideoStream->codecpar->height = zm_packet->in_frame->height;
 #else
-            mVideoStream->codec->width = zm_packet.in_frame->width;
-            mVideoStream->codec->height = zm_packet.in_frame->height;
+            mVideoStream->codec->width = zm_packet->in_frame->width;
+            mVideoStream->codec->height = zm_packet->in_frame->height;
 #endif
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
             zm_dump_codecpar(mVideoStream->codecpar);
 #endif
           }
-          zm_packet.codec_type = mVideoCodecContext->codec_type;
-          zm_packet.stream = mVideoStream;
+          zm_packet->codec_type = mVideoCodecContext->codec_type;
+          zm_packet->stream = mVideoStream;
           frameComplete = true;
           Debug(2, "Frame: %d - %d/%d", frameCount, bytes_consumed, buffer.size());
           packet->data = nullptr;

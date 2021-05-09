@@ -320,13 +320,13 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   //updateFrameRate(monitor->GetFPS());
 }  // end void MonitorStream::processCommand(const CmdMsg *msg)
 
-bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
+bool MonitorStream::sendFrame(const char *filepath, const timeval &timestamp) {
   bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
   if (
       ( type != STREAM_JPEG )
       ||
-      ( (!config.timestamp_on_capture) && timestamp )
+      (!config.timestamp_on_capture)
      )
     send_raw = false;
 
@@ -352,7 +352,7 @@ bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
 
     if (
         (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %d.%06d\r\n\r\n",
-                     img_buffer_size, (int)timestamp->tv_sec, (int)timestamp->tv_usec))
+                     img_buffer_size, (int)timestamp.tv_sec, (int)timestamp.tv_usec))
         ||
         (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
        ) {
@@ -379,9 +379,9 @@ bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp) {
   return false;
 } // end bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp)
 
-bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
+bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
   Image *send_image = prepareImage(image);
-  if ( !config.timestamp_on_capture && timestamp )
+  if (!config.timestamp_on_capture)
     monitor->TimestampImage(send_image, timestamp);
 
   fputs("--" BOUNDARY "\r\n", stdout);
@@ -395,8 +395,8 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
     static struct timeval base_time;
     struct DeltaTimeval delta_time;
     if ( !frame_count )
-      base_time = *timestamp;
-    DELTA_TIMEVAL(delta_time, *timestamp, base_time, DT_PREC_3);
+      base_time = timestamp;
+    DELTA_TIMEVAL(delta_time, timestamp, base_time, DT_PREC_3);
     /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.delta);
   } else
 #endif // HAVE_LIBAVCODEC
@@ -437,7 +437,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
     }
     if (
         ( 0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %d.%06d\r\n\r\n",
-                      img_buffer_size, (int)timestamp->tv_sec, (int)timestamp->tv_usec) )
+                      img_buffer_size, (int)timestamp.tv_sec, (int)timestamp.tv_usec) )
         ||
         (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
        ) {
@@ -462,7 +462,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
   }  // Not mpeg
   last_frame_sent = TV_2_FLOAT(now);
   return true;
-} // end bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
+} // end bool MonitorStream::sendFrame( Image *image, const timeval &timestamp )
 
 void MonitorStream::runStream() {
   if (type == STREAM_SINGLE) {
@@ -595,8 +595,8 @@ void MonitorStream::runStream() {
       if ( !was_paused ) {
         int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
         Debug(1, "Saving paused image from index %d",index);
-        paused_image = new Image(*monitor->image_buffer[index].image);
-        paused_timestamp = *(monitor->image_buffer[index].timestamp);
+        paused_image = new Image(*monitor->image_buffer[index]);
+        paused_timestamp = monitor->shared_timestamps[index];
       }
     } else if ( paused_image ) {
       Debug(1, "Clearing paused_image");
@@ -635,7 +635,7 @@ void MonitorStream::runStream() {
               if ( temp_index%frame_mod == 0 ) {
                 Debug(2, "Sending delayed frame %d", temp_index);
                 // Send the next frame
-                if ( ! sendFrame(temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp) ) {
+                if (!sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp)) {
                   zm_terminate = true;
                 }
                 memcpy(&last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp));
@@ -652,7 +652,7 @@ void MonitorStream::runStream() {
           // Send the next frame
           if ( !sendFrame(
                 temp_image_buffer[temp_read_index].file_name,
-                &temp_image_buffer[temp_read_index].timestamp
+                temp_image_buffer[temp_read_index].timestamp
                 ) ) {
             zm_terminate = true;
           }
@@ -672,7 +672,7 @@ void MonitorStream::runStream() {
             // Send keepalive
             Debug(2, "Sending keepalive frame %d", temp_index);
             // Send the next frame
-            if ( !sendFrame(temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp) ) {
+            if ( !sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp) ) {
               zm_terminate = true;
             }
             // frame_sent = true;
@@ -701,21 +701,21 @@ void MonitorStream::runStream() {
               index, frame_mod, frame_count, paused, delayed);
           // Send the next frame
           //
-          ZMPacket *snap = &monitor->image_buffer[index];
+          // Perhaps we should use NOW instead. 
+          last_frame_timestamp = monitor->shared_timestamps[index];
+          Image *image = monitor->image_buffer[index];
 
-          if ( !sendFrame(snap->image, snap->timestamp) ) {
+          if ( !sendFrame(image, last_frame_timestamp) ) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
             break;
           }
-          // Perhaps we should use NOW instead. 
-          last_frame_timestamp = *(snap->timestamp);
           //frame_sent = true;
           //
           if ( frame_count == 0 ) {
             // Chrome will not display the first frame until it receives another.
             // Firefox is fine.  So just send the first frame twice.
-            if ( !sendFrame(snap->image, snap->timestamp) ) {
+            if ( !sendFrame(image, last_frame_timestamp) ) {
               Debug(2, "sendFrame failed, quiting.");
               zm_terminate = true;
               break;
@@ -730,9 +730,9 @@ void MonitorStream::runStream() {
           }
           if ( last_zoom != zoom ) {
             Debug(2, "Sending 2 frames because change in zoom %d ?= %d", last_zoom, zoom);
-            if ( !sendFrame(paused_image, &paused_timestamp) )
+            if (!sendFrame(paused_image, paused_timestamp))
               zm_terminate = true;
-            if ( !sendFrame(paused_image, &paused_timestamp) )
+            if (!sendFrame(paused_image, paused_timestamp))
               zm_terminate = true;
           } else {
             double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
@@ -742,7 +742,7 @@ void MonitorStream::runStream() {
                 Debug(2, "Sending keepalive frame because delta time %.2f > 5",
                     actual_delta_time);
                 // Send the next frame
-                if ( !sendFrame(paused_image, &paused_timestamp) )
+                if (!sendFrame(paused_image, paused_timestamp))
                   zm_terminate = true;
               } else {
                 Debug(2, "Would have sent keepalive frame, but had no paused_image");
@@ -767,7 +767,7 @@ void MonitorStream::runStream() {
               temp_image_buffer[temp_index].valid = true;
             }
             temp_image_buffer[temp_index].timestamp = monitor->shared_timestamps[index];
-            monitor->image_buffer[index].image->WriteJpeg(
+            monitor->image_buffer[index]->WriteJpeg(
                 temp_image_buffer[temp_index].file_name,
                 config.jpeg_file_quality
                 );
@@ -865,8 +865,7 @@ void MonitorStream::SingleImage(int scale) {
   }
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   Debug(1, "write index: %d %d", monitor->shared_data->last_write_index, index);
-  ZMPacket *snap = &(monitor->image_buffer[index]);
-  Image *snap_image = snap->image;
+  Image *snap_image = monitor->image_buffer[index];
 
   if ( scale != ZM_SCALE_BASE ) {
     scaled_image.Assign(*snap_image);
@@ -874,7 +873,7 @@ void MonitorStream::SingleImage(int scale) {
     snap_image = &scaled_image;
   }
   if ( !config.timestamp_on_capture ) {
-    monitor->TimestampImage(snap_image, snap->timestamp);
+    monitor->TimestampImage(snap_image, monitor->shared_timestamps[index]);
   }
   snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
 

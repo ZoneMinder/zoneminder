@@ -69,7 +69,7 @@ public:
   int GetResponse();
   int PrimeCapture() override;
   int PreCapture() override;
-  int Capture( ZMPacket &p ) override;
+  int Capture(std::shared_ptr<ZMPacket> &p) override;
   int PostCapture() override;
   int Close() override { Disconnect(); return 0; };
 };

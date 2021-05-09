@@ -1002,17 +1002,17 @@ bool VideoStore::setup_resampler() {
 #endif
 }  // end bool VideoStore::setup_resampler()
 
-int VideoStore::writePacket(ZMPacket *ipkt) {
-  if ( ipkt->codec_type == AVMEDIA_TYPE_VIDEO ) {
+int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &ipkt) {
+  if (ipkt->codec_type == AVMEDIA_TYPE_VIDEO) {
     return writeVideoFramePacket(ipkt);
-  } else if ( ipkt->codec_type == AVMEDIA_TYPE_AUDIO ) {
+  } else if (ipkt->codec_type == AVMEDIA_TYPE_AUDIO) {
     return writeAudioFramePacket(ipkt);
   }
   Error("Unknown stream type in packet (%d)", ipkt->codec_type);
   return 0;
 }
 
-int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
+int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
   int ret;
   frame_count += 1;
 
@@ -1056,8 +1056,8 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
           swscale.Convert(zm_packet->in_frame, out_frame);
 
         } else {
-          Error("Have neither in_frame or image in packet %p %d!",
-              zm_packet, zm_packet->image_index);
+          Error("Have neither in_frame or image in packet %d!",
+              zm_packet->image_index);
           return 0;
         } // end if has packet or image
       } else {
@@ -1104,13 +1104,13 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
     frame->pkt_duration = 0;
 #endif
 
-    int64_t in_pts = zm_packet->timestamp->tv_sec * (uint64_t)1000000 + zm_packet->timestamp->tv_usec;
+    int64_t in_pts = zm_packet->timestamp.tv_sec * (uint64_t)1000000 + zm_packet->timestamp.tv_usec;
     if ( !video_first_pts ) {
       video_first_pts = in_pts;
       Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%" PRIi64 ") usecs(%" PRIi64 ")",
             video_first_pts,
-            static_cast<int64>(zm_packet->timestamp->tv_sec),
-            static_cast<int64>(zm_packet->timestamp->tv_usec));
+            static_cast<int64>(zm_packet->timestamp.tv_sec),
+            static_cast<int64>(zm_packet->timestamp.tv_usec));
       frame->pts = 0;
     } else {
       uint64_t useconds = in_pts - video_first_pts;
@@ -1121,8 +1121,8 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
             frame->pts,
             video_first_pts,
             useconds,
-            static_cast<int64>(zm_packet->timestamp->tv_sec),
-            static_cast<int64>(zm_packet->timestamp->tv_usec),
+            static_cast<int64>(zm_packet->timestamp.tv_sec),
+            static_cast<int64>(zm_packet->timestamp.tv_usec),
             video_out_ctx->time_base.num,
             video_out_ctx->time_base.den);
     }
@@ -1228,7 +1228,7 @@ int VideoStore::writeVideoFramePacket(ZMPacket *zm_packet) {
   return 1;
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )
 
-int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
+int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
 
   AVPacket *ipkt = &zm_packet->packet;
   int ret;

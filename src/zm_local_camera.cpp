@@ -2036,16 +2036,16 @@ int LocalCamera::PreCapture() {
   return 1;
 }
 
-int LocalCamera::Capture(ZMPacket &zm_packet) {
+int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   // We assume that the avpacket is allocated, and just needs to be filled
   static uint8_t* buffer = nullptr;
   int buffer_bytesused = 0;
   int capture_frame = -1;
 
   int captures_per_frame = 1;
-  if ( channel_count > 1 )
+  if (channel_count > 1)
     captures_per_frame = v4l_captures_per_frame;
-  if ( captures_per_frame <= 0 ) {
+  if (captures_per_frame <= 0) {
     captures_per_frame = 1;
     Warning("Invalid Captures Per Frame setting: %d", captures_per_frame);
   } 
@@ -2191,22 +2191,22 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
 
   } /* prime capture */    
 
-  if (!zm_packet.image) {
+  if (!zm_packet->image) {
     Debug(4, "Allocating image");
-    zm_packet.image = new Image(width, height, colours, subpixelorder);
+    zm_packet->image = new Image(width, height, colours, subpixelorder);
   }
 
-  if ( conversion_type != 0 ) {
+  if (conversion_type != 0) {
     Debug(3, "Performing format conversion %d", conversion_type);
 
     /* Request a writeable buffer of the target image */
-    uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
-    if ( directbuffer == nullptr ) {
+    uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
+    if (directbuffer == nullptr) {
       Error("Failed requesting writeable buffer for the captured image.");
       return -1;
     }
 #if HAVE_LIBSWSCALE
-    if ( conversion_type == 1 ) {
+    if (conversion_type == 1) {
       Debug(9, "Calling sws_scale to perform the conversion");
       /* Use swscale to convert the image directly into the shared memory */
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
@@ -2236,20 +2236,20 @@ int LocalCamera::Capture(ZMPacket &zm_packet) {
       // Need to store the jpeg data too
       Debug(9, "Decoding the JPEG image");
       /* JPEG decoding */
-      zm_packet.image->DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
+      zm_packet->image->DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
     }
 
   } else {
     Debug(3, "No format conversion performed. Assigning the image");
 
     /* No conversion was performed, the image is in the V4L buffers and needs to be copied into the shared memory */
-    zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
+    zm_packet->image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
   } // end if doing conversion or not
 
-  zm_packet.packet.stream_index = mVideoStreamId;
-  zm_packet.stream = mVideoStream;
-  zm_packet.codec_type = AVMEDIA_TYPE_VIDEO;
-  zm_packet.keyframe = 1;
+  zm_packet->packet.stream_index = mVideoStreamId;
+  zm_packet->stream = mVideoStream;
+  zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
+  zm_packet->keyframe = 1;
   return 1;
 } // end int LocalCamera::Capture()
 

@@ -189,7 +189,7 @@ int FfmpegCamera::PreCapture() {
   return 0;
 }
 
-int FfmpegCamera::Capture(ZMPacket &zm_packet) {
+int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   if (!mCanCapture) return -1;
 
   start_read_time = time(nullptr);
@@ -236,14 +236,14 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
   ZM_DUMP_STREAM_PACKET(stream, packet, "ffmpeg_camera in");
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  zm_packet.codec_type = stream->codecpar->codec_type;
+  zm_packet->codec_type = stream->codecpar->codec_type;
 #else
-  zm_packet.codec_type = stream->codec->codec_type;
+  zm_packet->codec_type = stream->codec->codec_type;
 #endif
   bytes += packet.size;
-  zm_packet.set_packet(&packet);
-  zm_packet.stream = stream;
-  zm_packet.pts = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
+  zm_packet->set_packet(&packet);
+  zm_packet->stream = stream;
+  zm_packet->pts = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
   if ( packet.pts != AV_NOPTS_VALUE ) {
     if ( stream == mVideoStream ) {
       if (mFirstVideoPTS == AV_NOPTS_VALUE)

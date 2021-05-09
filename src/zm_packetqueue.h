@@ -26,12 +26,12 @@
 class ZMPacket;
 class ZMLockedPacket;
 
-typedef std::list<ZMPacket *>::iterator packetqueue_iterator;
+typedef std::list<std::shared_ptr<ZMPacket>>::iterator packetqueue_iterator;
 
 class PacketQueue {
   public: // For now just to ease development
-    std::list<ZMPacket *>    pktQueue;
-    std::list<ZMPacket *>::iterator analysis_it;
+    std::list<std::shared_ptr<ZMPacket>>    pktQueue;
+    std::list<std::shared_ptr<ZMPacket>>::iterator analysis_it;
 
     int video_stream_id;
     int max_video_packet_count; // allow a negative value to someday mean unlimited
@@ -49,27 +49,21 @@ class PacketQueue {
   public:
     PacketQueue();
     virtual ~PacketQueue();
-    std::list<ZMPacket *>::const_iterator end() const { return pktQueue.end(); }
-    std::list<ZMPacket *>::const_iterator begin() const { return pktQueue.begin(); }
+    std::list<std::shared_ptr<ZMPacket>>::const_iterator end() const { return pktQueue.end(); }
+    std::list<std::shared_ptr<ZMPacket>>::const_iterator begin() const { return pktQueue.begin(); }
 
     int addStream();
     void setMaxVideoPackets(int p);
     void setPreEventVideoPackets(int p);
     void setKeepKeyframes(bool k) { keep_keyframes = k; };
 
-    bool queuePacket(ZMPacket* packet);
-    ZMLockedPacket * popPacket();
-    bool popVideoPacket(ZMPacket* packet);
-    bool popAudioPacket(ZMPacket* packet);
-    unsigned int clear(unsigned int video_frames_to_keep, int stream_id);
-    unsigned int clear(struct timeval *duration, int streamid);
+    bool queuePacket(std::shared_ptr<ZMPacket> packet);
     void clear();
     void dumpQueue();
     unsigned int size();
     unsigned int get_packet_count(int stream_id) const { return packet_counts[stream_id]; };
 
-    void clear_unwanted_packets(timeval *recording, int pre_event_count, int mVideoStreamId);
-    void clearPackets(ZMPacket *);
+    void clearPackets(const std::shared_ptr<ZMPacket> &packet);
     int packet_count(int stream_id);
 
     bool increment_it(packetqueue_iterator *it);
@@ -83,7 +77,7 @@ class PacketQueue {
         packetqueue_iterator snapshot_it,
         unsigned int pre_event_count
     );
-    bool is_there_an_iterator_pointing_to_packet(ZMPacket *zm_packet);
+    bool is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> &zm_packet);
     void unlock(ZMLockedPacket *lp);
 };
 

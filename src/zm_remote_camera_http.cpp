@@ -1069,7 +1069,7 @@ int RemoteCameraHttp::PreCapture() {
   return 1;
 }  // end int RemoteCameraHttp::PreCapture()
 
-int RemoteCameraHttp::Capture(ZMPacket &packet) {
+int RemoteCameraHttp::Capture(std::shared_ptr<ZMPacket> &packet) {
   int content_length = GetResponse();
   if (content_length == 0) {
     Warning("Unable to capture image, retrying");
@@ -1080,15 +1080,15 @@ int RemoteCameraHttp::Capture(ZMPacket &packet) {
     return -1;
   }
 
-  if (!packet.image) {
+  if (!packet->image) {
     Debug(4, "Allocating image");
-    packet.image = new Image(width, height, colours, subpixelorder);
+    packet->image = new Image(width, height, colours, subpixelorder);
   }
-  Image *image = packet.image;
-  packet.keyframe = 1;
-  packet.codec_type = AVMEDIA_TYPE_VIDEO;
-  packet.packet.stream_index = mVideoStreamId;
-  packet.stream = mVideoStream;
+  Image *image = packet->image;
+  packet->keyframe = 1;
+  packet->codec_type = AVMEDIA_TYPE_VIDEO;
+  packet->packet.stream_index = mVideoStreamId;
+  packet->stream = mVideoStream;
 
   switch (format) {
     case JPEG :

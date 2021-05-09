@@ -41,6 +41,7 @@ class ZMPacket {
   public:
   
     std::mutex  mutex_;
+    // The condition has to be in the packet because it is shared between locks
     std::condition_variable condition_;
 
     int keyframe;
@@ -48,7 +49,7 @@ class ZMPacket {
     AVPacket  packet;             // Input packet, undecoded
     AVFrame   *in_frame;          // Input image, decoded Theoretically only filled if needed.
     AVFrame   *out_frame;         // output image, Only filled if needed.
-    struct timeval *timestamp;
+    timeval  timestamp;
     uint8_t   *buffer;            // buffer used in image
     Image     *image;
     Image     *analysis_image;
@@ -69,7 +70,7 @@ class ZMPacket {
 
     int is_keyframe() { return keyframe; };
     int decode( AVCodecContext *ctx );
-    explicit ZMPacket(Image *image);
+    explicit ZMPacket(Image *image, const timeval &tv);
     explicit ZMPacket(ZMPacket &packet);
     ZMPacket();
     ~ZMPacket();
@@ -81,11 +82,11 @@ class ZMPacket {
 
 class ZMLockedPacket {
   public:
-    ZMPacket *packet_;
+    std::shared_ptr<ZMPacket> packet_;
     std::unique_lock<std::mutex> lck_;
     bool locked;
 
-    explicit ZMLockedPacket(ZMPacket *p) :
+    explicit ZMLockedPacket(std::shared_ptr<ZMPacket> p) :
       packet_(p),
       lck_(packet_->mutex_, std::defer_lock),
       locked(false) {

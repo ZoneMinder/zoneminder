@@ -285,7 +285,7 @@ void Event::createNotes(std::string &notes) {
 
 bool Event::WriteFrameImage(
     Image *image,
-    struct timeval timestamp,
+    timeval timestamp,
     const char *event_file,
     bool alarm_frame) const {
 
@@ -299,7 +299,7 @@ bool Event::WriteFrameImage(
     // stash the image we plan to use in another pointer regardless if timestamped.
     // exif is only timestamp at present this switches on or off for write
     Image *ts_image = new Image(*image);
-    monitor->TimestampImage(ts_image, &timestamp);
+    monitor->TimestampImage(ts_image, timestamp);
     rc = ts_image->WriteJpeg(event_file, thisquality,
         (monitor->Exif() ? timestamp : (timeval){0,0}));
     delete(ts_image);
@@ -311,9 +311,8 @@ bool Event::WriteFrameImage(
   return rc;
 }  // end Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 
-bool Event::WritePacket(ZMPacket &packet) {
-  
-  if ( videoStore->writePacket(&packet) < 0 )
+bool Event::WritePacket(const std::shared_ptr<ZMPacket>&packet) {
+  if (videoStore->writePacket(packet) < 0)
     return false;
   return true;
 }  // bool Event::WriteFrameVideo
@@ -420,7 +419,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
-void Event::AddPacket(ZMPacket *packet) {
+void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
 
   have_video_keyframe = have_video_keyframe || 
     ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && 
@@ -437,8 +436,8 @@ void Event::AddPacket(ZMPacket *packet) {
     //FIXME if it fails, we should write a jpeg
   }
   if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image)
-    AddFrame(packet->image, *(packet->timestamp), packet->zone_stats, packet->score, packet->analysis_image);
-  end_time = *packet->timestamp;
+    AddFrame(packet->image, packet->timestamp, packet->zone_stats, packet->score, packet->analysis_image);
+  end_time = packet->timestamp;
   return;
 }
 

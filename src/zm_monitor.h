@@ -376,8 +376,7 @@ protected:
 
   struct timeval *shared_timestamps;
   unsigned char *shared_images;
-  ZMPacket *image_buffer;
-  ZMPacket    next_buffer; /* Used by four field deinterlacing */
+  std::vector<Image *> image_buffer;
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
@@ -583,7 +582,7 @@ public:
   bool Analyse();
   bool Decode();
   void DumpImage( Image *dump_image ) const;
-  void TimestampImage( Image *ts_image, const struct timeval *ts_time ) const;
+  void TimestampImage(Image *ts_image, const timeval &ts_time) const;
   void closeEvent();
 
   void Reload();

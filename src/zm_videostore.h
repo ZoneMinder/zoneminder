@@ -6,6 +6,8 @@
 #include "zm_ffmpeg.h"
 #include "zm_swscale.h"
 
+#include <memory>
+
 extern "C"  {
 #ifdef HAVE_LIBSWRESAMPLE
   #include "libswresample/swresample.h"
@@ -119,9 +121,9 @@ class VideoStore {
 
     void write_video_packet(AVPacket &pkt);
     void write_audio_packet(AVPacket &pkt);
-    int writeVideoFramePacket(ZMPacket *pkt);
-    int writeAudioFramePacket(ZMPacket *pkt);
-    int writePacket(ZMPacket *pkt);
+    int writeVideoFramePacket(const std::shared_ptr<ZMPacket> &pkt);
+    int writeAudioFramePacket(const std::shared_ptr<ZMPacket> &pkt);
+    int writePacket(const std::shared_ptr<ZMPacket> &pkt);
     int write_packets(PacketQueue &queue);
     void flush_codecs();
 };

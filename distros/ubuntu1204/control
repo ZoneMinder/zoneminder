@@ -1,12 +1,13 @@
 Source: zoneminder
 Section: net
 Priority: optional
-Maintainer: Dmitry Smirnov <onlyjob@debian.org>
-Uploaders: Vagrant Cascadian <vagrant@debian.org>
+Maintainer: Isaac Connor <isaac@zoneminder.com>
+Uploaders: Isaac Connor <isaac@zoneminder.com>
 Build-Depends: debhelper (>= 9), python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
               ,libx264-dev, libmp4v2-dev
               ,libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libavdevice-dev
+              ,libavresample-dev
               ,libbz2-dev
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
@@ -56,6 +57,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libsys-mmap-perl [!hurd-any]
         ,liburi-encode-perl
         ,libwww-perl
+        ,libdatetime-perl
         ,libdata-uuid-perl 
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl

@@ -98,8 +98,8 @@ function getPopupSize( tag, width, height ) {
   return popupSize;
 }
 
-function zmWindow() {
-  var zmWin = window.open( 'http://www.zoneminder.com', 'ZoneMinder' );
+function zmWindow(sub_url) {
+  var zmWin = window.open( 'https://www.zoneminder.com'+(sub_url?sub_url:''), 'ZoneMinder' );
   if ( ! zmWin ) {
     // if popup blocking is enabled, the popup won't be defined.
     console.log("Please disable popup blocking.");
@@ -144,7 +144,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     el.addEventListener("click", function onClick(evt) {
       var el = this;
       var url;
-      if (el.hasAttribute("href")) {
+      if ( el.hasAttribute("href") ) {
         // <a>
         url = el.getAttribute("href");
       } else {
@@ -167,20 +167,33 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
+      return;
+    }
     el.onclick = window[fnName].bind(el, el);
   });
 
   // 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
-  document.querySelectorAll("a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
+  document.querySelectorAll("i[data-on-click], a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click");
-    el.onclick = function() {
-      window[fnName]();
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
+      return;
+    }
+
+    el.onclick = function(ev) {
+      window[fnName](ev);
     };
   });
 
   // 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
   document.querySelectorAll("a[data-on-click-true], button[data-on-click-true], input[data-on-click-true]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-true");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
     el.onclick = function() {
       window[fnName](true);
     };
@@ -189,13 +202,41 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   // 'data-on-change-this' calls the global function in the attribute value with the element when a change happens.
   document.querySelectorAll("select[data-on-change-this], input[data-on-change-this]").forEach(function attachOnChangeThis(el) {
     var fnName = el.getAttribute("data-on-change-this");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
     el.onchange = window[fnName].bind(el, el);
   });
 
   // 'data-on-change' adds an event listener for the global function in the attribute value when a change happens.
   document.querySelectorAll("select[data-on-change], input[data-on-change]").forEach(function attachOnChange(el) {
     var fnName = el.getAttribute("data-on-change");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
     el.onchange = window[fnName];
+  });
+
+  // 'data-on-input' adds an event listener for the global function in the attribute value when an input happens.
+  document.querySelectorAll("input[data-on-input]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-input");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
+    el.oninput = window[fnName];
+  });
+
+  // 'data-on-input-this' calls the global function in the attribute value with the element when an input happens.
+  document.querySelectorAll("input[data-on-input-this]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-input-this");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
+    el.oninput = window[fnName].bind(el, el);
   });
 });
 
@@ -251,6 +292,9 @@ function closeWindow() {
 
 function refreshWindow() {
   window.location.reload( true );
+}
+function backWindow() {
+  window.history.back();
 }
 
 function refreshParentWindow() {
@@ -409,10 +453,37 @@ function convertLabelFormat(LabelFormat, monitorName) {
   //convert label format from strftime to moment's format (modified from
   //https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
   //added %f and %N below (TODO: add %Q)
-  var replacements = {"a": 'ddd', "A": 'dddd', "b": 'MMM', "B": 'MMMM', "d": 'DD', "e": 'D', "F": 'YYYY-MM-DD', "H": 'HH', "I": 'hh', "j": 'DDDD', "k": 'H', "l": 'h', "m": 'MM', "M": 'mm', "p": 'A', "S": 'ss', "u": 'E', "w": 'd', "W": 'WW', "y": 'YY', "Y": 'YYYY', "z": 'ZZ', "Z": 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%'};
+  var replacements = {
+    'a': 'ddd',
+    'A': 'dddd',
+    'b': 'MMM',
+    'B': 'MMMM',
+    'd': 'DD',
+    'e': 'D',
+    'F': 'YYYY-MM-DD',
+    'H': 'HH',
+    'I': 'hh',
+    'j': 'DDDD',
+    'k': 'H',
+    'l': 'h',
+    'm': 'MM',
+    'M': 'mm',
+    'p': 'A',
+    'r': 'hh:mm:ss A',
+    'S': 'ss',
+    'u': 'E',
+    'w': 'd',
+    'W': 'WW',
+    'y': 'YY',
+    'Y': 'YYYY',
+    'z': 'ZZ',
+    'Z': 'z',
+    'f': 'SS',
+    'N': '['+monitorName+']',
+    '%': '%'};
   var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
     var value = replacements[key];
-    return momentFormat.replace("%" + key, value);
+    return momentFormat.replace('%' + key, value);
   }, LabelFormat);
   return momentLabelFormat;
 }
@@ -423,7 +494,7 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
   startTime = moment(startTime);
 
-  for (var i = 0; i <= duration; i++) {
+  for ( var i = 0; i <= duration; i++ ) {
     cues[i] = {id: i, index: i, startTime: i, endTime: i+1, text: startTime.format(labelFormat)};
     startTime.add(1, 's');
   }
@@ -485,4 +556,18 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   });
   autoScale = closest;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
+}
+
+function setButtonState(element_id, butClass) {
+  var element = $(element_id);
+  if ( element ) {
+    element.className = butClass;
+    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
+      element.disabled = true;
+    } else {
+      element.disabled = false;
+    }
+  } else {
+    console.log('Element was null or not found in setButtonState. id:'+element_id);
+  }
 }

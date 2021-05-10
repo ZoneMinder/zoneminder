@@ -85,7 +85,7 @@ public:
   int PreCapture();
   int Capture( Image &image );
   int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
+  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return 0;};
   int Close() { return 0; };
 };
 

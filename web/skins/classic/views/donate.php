@@ -24,13 +24,13 @@ if ( !canEdit('System') ) {
 }
 
 $options = array( 
-  "go"      => translate('DonateYes'),
-  "hour"    => translate('DonateRemindHour'),
-  "day"     => translate('DonateRemindDay'),
-  "week"    => translate('DonateRemindWeek'),
-  "month"   => translate('DonateRemindMonth'),
-  "never"   => translate('DonateRemindNever'),
-  "already" => translate('DonateAlready'),
+  'go'      => translate('DonateYes'),
+  'hour'    => translate('DonateRemindHour'),
+  'day'     => translate('DonateRemindDay'),
+  'week'    => translate('DonateRemindWeek'),
+  'month'   => translate('DonateRemindMonth'),
+  'never'   => translate('DonateRemindNever'),
+  'already' => translate('DonateAlready'),
 );
 
 $focusWindow = true;

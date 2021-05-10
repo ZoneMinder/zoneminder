@@ -220,7 +220,7 @@ protected:
       }
 
       inline bool isConnected() const {   
-        return( connected );
+        return connected && shared_data->valid;
       }
       inline time_t getLastConnectTime() const {
         return( last_connect_time );
@@ -273,12 +273,14 @@ protected:
   int           warmup_count;      // How many images to process before looking for events
   int           pre_event_count;    // How many images to hold and prepend to an alarm event
   int           post_event_count;    // How many unalarmed images must occur before the alarm state is reset
+  struct timeval video_buffer_duration; // How long a video segment to keep in buffer (set only if analysis fps != 0 )
   int           stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   int           section_length;      // How long events should last in continuous modes
   int           min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool          adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int           frame_skip;        // How many frames to skip in continuous modes
   int           motion_frame_skip;      // How many frames to skip in motion detection
+  double        capture_max_fps;       // Target Capture FPS
   double        analysis_fps;  // Target framerate for video analysis
   unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
   int           capture_delay;      // How long we wait between capture frames
@@ -390,6 +392,7 @@ public:
     int p_min_section_length,
     int p_frame_skip,
     int p_motion_frame_skip,
+    double p_capture_max_fps,
     double p_analysis_fps,
     unsigned int p_analysis_update_delay,
     int p_capture_delay,
@@ -460,12 +463,16 @@ public:
     
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
+  const std::vector<EncoderParameter_t>* GetOptEncoderParamsVec() const { return &encoderparamsvec; }
+  const std::string GetOptEncoderParams() const { return encoderparams; }
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
+  struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
+  void SetVideoWriterStartTime(struct timeval &t) { video_store_data->recording = t; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
-    int GetImageBufferCount() const { return image_buffer_count; };
+  struct timeval GetVideoBufferDuration() const { return video_buffer_duration; };
+  int GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
   Snapshot *getSnapshot() const;
@@ -473,6 +480,7 @@ public:
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
+  unsigned int GetCaptureMaxFPS() const { return capture_max_fps; }
   int GetCaptureDelay() const { return capture_delay; }
   int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;
@@ -485,6 +493,8 @@ public:
   TriggerState GetTriggerState() const { return (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL); }
 	inline time_t getStartupTime() const { return shared_data->startup_time; }
 	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
+
+  int LabelSize() { return label_size; }
 
   void actionReload();
   void actionEnable();

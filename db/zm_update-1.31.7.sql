@@ -3,7 +3,7 @@ SET @s = (SELECT IF(
       AND table_name = 'Groups'
       AND column_name = 'MonitorIds'
     ) > 0,
-    "ALTER TABLE Groups MODIFY `MonitorIds` text NOT NULL",
+    "ALTER TABLE `Groups` MODIFY `MonitorIds` text NOT NULL",
     "SELECT 'Groups no longer has MonitorIds'"
     ));
 

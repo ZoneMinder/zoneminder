@@ -1,6 +1,6 @@
 <?php
 
-function getDateScale( $scales, $range, $minLines, $maxLines ) {
+function getDateScale($scales, $range, $minLines, $maxLines) {
 	foreach ( $scales as $scale ) {
 		$align = isset($scale['align'])?$scale['align']:1;
 		$scaleRange = (int)($range/($scale['factor']*$align));
@@ -18,10 +18,10 @@ function getDateScale( $scales, $range, $minLines, $maxLines ) {
 		$scale['divisor']++;
 	}
 	$scale['lines'] = (int)($scale['range']/$scale['divisor']);
-	return( $scale );
+	return $scale;
 }
 
-function getYScale( $range, $minLines, $maxLines ) {
+function getYScale($range, $minLines, $maxLines) {
 	$scale['range'] = $range;
 	$scale['divisor'] = 1;
 	while ( $scale['range']/$scale['divisor'] > $maxLines ) {
@@ -29,20 +29,21 @@ function getYScale( $range, $minLines, $maxLines ) {
 	}
 	$scale['lines'] = (int)(($scale['range']-1)/$scale['divisor'])+1;
 
-	return( $scale );
+	return $scale;
 }
 
-function getSlotFrame( $slot ) {
+function getSlotFrame($slot) {
 	$slotFrame = isset($slot['frame'])?$slot['frame']['FrameId']:1;
+  # FIXME what's with this false?
 	if ( false && $slotFrame ) {
 		$slotFrame -= $monitor['PreEventCount'];
 		if ( $slotFrame < 1 )
 			$slotFrame = 1;
 	}
-	return( $slotFrame );
+	return $slotFrame;
 }
 
-function parseFilterToTree( $filter ) {
+function parseFilterToTree($filter) {
 	if ( count($filter['terms']) <= 0 ) {
 		return false;
 	}
@@ -68,73 +69,82 @@ function parseFilterToTree( $filter ) {
 			'or' => 4,
 			);
 
-	for ( $i = 0; $i <= count($terms); $i++ ) {
-		if ( !empty($terms[$i]['cnj']) ) {
+	for ( $i = 0; $i < count($terms); $i++ ) {
+    $term = $terms[$i];
+		if ( !empty($term['cnj']) ) {
 			while( true ) {
 				if ( !count($postfixStack) ) {
-					$postfixStack[] = array('type'=>'cnj', 'value'=>$terms[$i]['cnj'], 'sqlValue'=>$terms[$i]['cnj']);
+					$postfixStack[] = array('type'=>'cnj', 'value'=>$term['cnj'], 'sqlValue'=>$term['cnj']);
 					break;
 				} elseif ( $postfixStack[count($postfixStack)-1]['type'] == 'obr' ) {
-					$postfixStack[] = array('type'=>'cnj', 'value'=>$terms[$i]['cnj'], 'sqlValue'=>$terms[$i]['cnj']);
+					$postfixStack[] = array('type'=>'cnj', 'value'=>$term['cnj'], 'sqlValue'=>$term['cnj']);
 					break;
-				} elseif ( $priorities[$terms[$i]['cnj']] < $priorities[$postfixStack[count($postfixStack)-1]['value']] ) {
-					$postfixStack[] = array('type'=>'cnj', 'value'=>$terms[$i]['cnj'], 'sqlValue'=>$terms[$i]['cnj']);
+				} elseif ( $priorities[$term['cnj']] < $priorities[$postfixStack[count($postfixStack)-1]['value']] ) {
+					$postfixStack[] = array('type'=>'cnj', 'value'=>$term['cnj'], 'sqlValue'=>$term['cnj']);
 					break;
 				} else {
 					$postfixExpr[] = array_pop($postfixStack);
 				}
 			}
-		}
-		if ( !empty($terms[$i]['obr']) ) {
-			for ( $j = 0; $j < $terms[$i]['obr']; $j++ ) {
-				$postfixStack[] = array('type'=>'obr', 'value'=>$terms[$i]['obr']);
+		} # end if ! empty cnj
+
+		if ( !empty($term['obr']) ) {
+			for ( $j = 0; $j < $term['obr']; $j++ ) {
+				$postfixStack[] = array('type'=>'obr', 'value'=>$term['obr']);
 			}
 		}
-		if ( !empty($terms[$i]['attr']) ) {
+		if ( !empty($term['attr']) ) {
 			$dtAttr = false;
-			switch ( $terms[$i]['attr']) {
+			switch ( $term['attr']) {
 				case 'MonitorName':
-					$sqlValue = 'M.'.preg_replace( '/^Monitor/', '', $terms[$i]['attr']);
+					$sqlValue = 'M.'.preg_replace( '/^Monitor/', '', $term['attr']);
 					break;
 				case 'ServerId':
 					$sqlValue .= 'M.ServerId';
-					break;
+          break;
+        case 'StorageServerId':
+          $sqlValue .= 'S.ServerId';
+          break;
+        case 'FilterServerId':
+          $sqlValue .= ZM_SERVER_ID;
+          break;
 				case 'DateTime':
 				case 'StartDateTime':
-					$sqlValue = "E.StartTime";
+					$sqlValue = 'E.StartTime';
 					$dtAttr = true;
 					break;
 				case 'Date':
 				case 'StartDate':
-					$sqlValue = "to_days( E.StartTime )";
+					$sqlValue = 'to_days(E.StartTime)';
 					$dtAttr = true;
 					break;
 				case 'Time':
 				case 'StartTime':
-					$sqlValue = "extract( hour_second from E.StartTime )";
+					$sqlValue = 'extract(hour_second from E.StartTime)';
 					break;
 				case 'Weekday':
 				case 'StartWeekday':
-					$sqlValue = "weekday( E.StartTime )";
+					$sqlValue = 'weekday(E.StartTime)';
 					break;
 				case 'EndDateTime':
-					$sqlValue = "E.EndTime";
+					$sqlValue = 'E.EndTime';
 					$dtAttr = true;
 					break;
 				case 'EndDate':
-					$sqlValue = "to_days( E.EndTime )";
+					$sqlValue = 'to_days(E.EndTime)';
 					$dtAttr = true;
 					break;
 				case 'EndTime':
-					$sqlValue = "extract( hour_second from E.EndTime )";
+					$sqlValue = 'extract(hour_second from E.EndTime)';
 					break;
 				case 'EndWeekday':
-					$sqlValue = "weekday( E.EndTime )";
+					$sqlValue = 'weekday(E.EndTime)';
 					break;
 				case 'Id':
 				case 'Name':
 				case 'MonitorId':
 				case 'StorageId':
+        case 'SecondaryStorageId':
 				case 'Length':
 				case 'Frames':
 				case 'AlarmFrames':
@@ -145,7 +155,7 @@ function parseFilterToTree( $filter ) {
 				case 'Notes':
 				case 'StateId':
 				case 'Archived':
-					$sqlValue = "E.".$terms[$i]['attr'];
+					$sqlValue = 'E.'.$term['attr'];
 					break;
 				case 'DiskPercent':
 					// Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
@@ -174,53 +184,66 @@ function parseFilterToTree( $filter ) {
 					$sqlValue = getDiskBlocks($StorageArea);
 					break;
 				default :
-					$sqlValue = $terms[$i]['attr'];
+					$sqlValue = $term['attr'];
 					break;
 			}
 			if ( $dtAttr ) {
-				$postfixExpr[] = array('type'=>'attr', 'value'=>$terms[$i]['attr'], 'sqlValue'=>$sqlValue, 'dtAttr'=>true);
+				$postfixExpr[] = array('type'=>'attr', 'value'=>$term['attr'], 'sqlValue'=>$sqlValue, 'dtAttr'=>true);
 			} else {
-				$postfixExpr[] = array('type'=>'attr', 'value'=>$terms[$i]['attr'], 'sqlValue'=>$sqlValue);
+				$postfixExpr[] = array('type'=>'attr', 'value'=>$term['attr'], 'sqlValue'=>$sqlValue);
 			}
 		} # end if attr
 
-		if ( isset($terms[$i]['op']) ) {
-			if ( empty($terms[$i]['op']) ) {
-				$terms[$i]['op'] = '=';
+		if ( isset($term['op']) ) {
+			if ( empty($term['op']) ) {
+				$term['op'] = '=';
 			}
-			switch ( $terms[$i]['op']) {
+			switch ( $term['op']) {
 				case '=' :
 				case '!=' :
 				case '>=' :
 				case '>' :
 				case '<' :
 				case '<=' :
-					$sqlValue = $terms[$i]['op'];
+        case 'LIKE' :
+        case 'NOT LIKE':
+					$sqlValue = $term['op'];
 					break;
-				case '=~' :
+        case '=~' :
 					$sqlValue = 'regexp';
 					break;
 				case '!~' :
 					$sqlValue = 'not regexp';
 					break;
 				case '=[]' :
+				case 'IN' :
 					$sqlValue = 'in (';
 					break;
 				case '![]' :
 					$sqlValue = 'not in (';
 					break;
+        case 'IS' :
+        case 'IS NOT' :
+          if ( $term['val'] == 'Odd' )  {
+            $sqlValue .= ' % 2 = 1';
+          } else if ( $term['val'] == 'Even' )  {
+            $sqlValue .= ' % 2 = 0';
+          } else {
+            $sqlValue .= ' '.$term['op'];
+          }
+          break;
 				default :
-					Error('Unknown operator in filter '. $terms[$i]['op']);
+					ZM\Error('Unknown operator in filter '.$term['op']);
 			}
 			while( true ) {
 				if ( !count($postfixStack) ) {
-					$postfixStack[] = array('type'=>'op', 'value'=>$terms[$i]['op'], 'sqlValue'=>$sqlValue);
+					$postfixStack[] = array('type'=>'op', 'value'=>$term['op'], 'sqlValue'=>$sqlValue);
 					break;
 				} elseif ( $postfixStack[count($postfixStack)-1]['type'] == 'obr' ) {
-					$postfixStack[] = array('type'=>'op', 'value'=>$terms[$i]['op'], 'sqlValue'=>$sqlValue);
+					$postfixStack[] = array('type'=>'op', 'value'=>$term['op'], 'sqlValue'=>$sqlValue);
 					break;
-				} elseif ( $priorities[$terms[$i]['op']] < $priorities[$postfixStack[count($postfixStack)-1]['value']] ) {
-					$postfixStack[] = array('type'=>'op', 'value'=>$terms[$i]['op'], 'sqlValue'=>$sqlValue );
+				} elseif ( $priorities[$term['op']] < $priorities[$postfixStack[count($postfixStack)-1]['value']] ) {
+					$postfixStack[] = array('type'=>'op', 'value'=>$term['op'], 'sqlValue'=>$sqlValue );
 					break;
 				} else {
 					$postfixExpr[] = array_pop($postfixStack);
@@ -228,17 +251,23 @@ function parseFilterToTree( $filter ) {
 			} // end while
 		} // end if operator
 
-		if ( isset($terms[$i]['val']) ) {
+		if ( isset($term['val']) ) {
 			$valueList = array();
-			foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $terms[$i]['val'])) as $value ) {
-				switch ( $terms[$i]['attr'] ) {
+			foreach ( preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $term['val'])) as $value ) {
+				switch ( $term['attr'] ) {
 					case 'MonitorName':
 					case 'Name':
 					case 'Cause':
 					case 'Notes':
-						$value = "'$value'";
-						break;
-					case 'ServerId':
+            if ( $term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE' ) {
+              $value = '%'.$value.'%';
+            }
+            $value = dbEscape($value);
+            break;
+          case 'MonitorServerId':
+          case 'FilterServerId':
+          case 'StorageServerId':
+          case 'ServerId':
 						if ( $value == 'ZM_SERVER_ID' ) {
 							$value = ZM_SERVER_ID;
 						} else if ( $value == 'NULL' ) {
@@ -260,17 +289,17 @@ function parseFilterToTree( $filter ) {
 					case 'Date':
 					case 'EndDate':
 					case 'StartDate':
-						$value = "to_days('".strftime(STRF_FMT_DATETIME_DB, strtotime($value))."' )";
+						$value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
 						break;
 					case 'Time':
 					case 'EndTime':
 					case 'StartTime':
-						$value = "extract( hour_second from '".strftime(STRF_FMT_DATETIME_DB, strtotime($value))."' )";
+						$value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
 						break;
 					case 'Weekday':
 					case 'EndWeekday':
 					case 'StartWeekday':
-						$value = "weekday( '".strftime(STRF_FMT_DATETIME_DB, strtotime($value))."' )";
+						$value = 'weekday(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
 						break;
 					default :
 						if ( $value != 'NULL' )
@@ -278,11 +307,11 @@ function parseFilterToTree( $filter ) {
 				} // end switch attribute
 				$valueList[] = $value;
 			} // end foreach value
-			$postfixExpr[] = array('type'=>'val', 'value'=>$terms[$i]['val'], 'sqlValue'=>join(',', $valueList));
+			$postfixExpr[] = array('type'=>'val', 'value'=>$term['val'], 'sqlValue'=>join(',', $valueList));
 		} // end if has val
 
-		if ( !empty($terms[$i]['cbr']) ) {
-			for ( $j = 0; $j < $terms[$i]['cbr']; $j++ ) {
+		if ( !empty($term['cbr']) ) {
+			for ( $j = 0; $j < $term['cbr']; $j++ ) {
 				while ( count($postfixStack) ) {
 					$element = array_pop($postfixStack);
 					if ( $element['type'] == 'obr' ) {
@@ -292,8 +321,9 @@ function parseFilterToTree( $filter ) {
 					$postfixExpr[] = $element;
 				}
 			}
-		}
-	}
+		} #end if cbr
+  } # end foreach term
+
 	while ( count($postfixStack) ) {
 		$postfixExpr[] = array_pop($postfixStack);
 	}
@@ -314,11 +344,11 @@ function parseFilterToTree( $filter ) {
 			$node = array('data'=>$element, 'count'=>2+$left['count']+$right['count'], 'right'=>$right, 'left'=>$left);
 			$exprStack[] = $node;
 		} else {
-			Fatal("Unexpected element type '".$element['type']."', value '".$element['value']."'");
+			ZM\Fatal('Unexpected element type \''.$element['type'].'\', value \''.$element['value'].'\'');
 		}
 	}
 	if ( count($exprStack) != 1 ) {
-		Fatal('Expression stack has '.count($exprStack).' elements');
+		ZM\Fatal('Expression stack has '.count($exprStack).' elements');
 	}
 	return array_pop($exprStack);
 }
@@ -345,188 +375,153 @@ function parseTreeToInfix($tree) {
 	return _parseTreeToInfix($tree);
 }
 
-function _parseTreeToSQL( $node, $cbr=false )
-{
+function _parseTreeToSQL($node, $cbr=false) {
 	$expression = '';
-	if ( $node )
-	{
-		if ( isset($node['left']) )
-		{
-			if ( !empty($node['data']['bracket']) )
-				$expression .= '( ';
-						$expression .= _parseTreeToSQL( $node['left'] );
-						}
-						$inExpr = $node['data']['type'] == 'op' && ($node['data']['value'] == '=[]' || $node['data']['value'] == '![]');
-						$expression .= $node['data']['sqlValue'];
-						if ( !$inExpr )
-						$expression .= ' ';
-						if ( $cbr )
-						$expression .= ') ';
-			if ( isset($node['right']) )
-			{
-				$expression .= _parseTreeToSQL( $node['right'], $inExpr );
-				if ( !empty($node['data']['bracket']) )
-					$expression .= ') ';
-			}
-	}
-	return( $expression );
+	if ( !$node )
+    return $expression;
+
+  if ( isset($node['left']) ) {
+    if ( !empty($node['data']['bracket']) )
+      $expression .= '( ';
+    $expression .= _parseTreeToSQL($node['left']);
+  }
+  $inExpr = $node['data']['type'] == 'op' && (
+    $node['data']['value'] == '=[]'
+    or
+    $node['data']['value'] == '![]'
+    or 
+    $node['data']['value'] == 'IN'
+    or 
+    $node['data']['value'] == 'NOT IN'
+  );
+  $expression .= $node['data']['sqlValue'];
+  if ( !$inExpr )
+    $expression .= ' ';
+  if ( $cbr )
+    $expression .= ') ';
+  if ( isset($node['right']) ) {
+    $expression .= _parseTreeToSQL($node['right'], $inExpr);
+    if ( !empty($node['data']['bracket']) )
+      $expression .= ') ';
+  } # end if right
+  return $expression;
 }
 
-function parseTreeToSQL( $tree )
-{
-	return( _parseTreeToSQL( $tree ) );
+function parseTreeToSQL($tree) {
+	return _parseTreeToSQL($tree);
 }
 
-function _parseTreeToFilter( $node, &$terms, &$level )
-{
+function _parseTreeToFilter($node, &$terms, &$level) {
 	$elements = array();
-	if ( $node )
-	{
-		if ( isset($node['left']) )
-		{
+	if ( $node ) {
+		if ( isset($node['left']) ) {
 			if ( !empty($node['data']['bracket']) )
 				$terms[$level]['obr'] = 1;
 			_parseTreeToFilter( $node['left'], $terms, $level );
 		}
-		if ( $node['data']['type'] == 'cnj' )
-		{
+		if ( $node['data']['type'] == 'cnj' ) {
 			$level++;
 		}
 		$terms[$level][$node['data']['type']] = $node['data']['value'];
-		if ( isset($node['right']) )
-		{
-			_parseTreeToFilter( $node['right'], $terms, $level );
+		if ( isset($node['right']) ) {
+			_parseTreeToFilter($node['right'], $terms, $level);
 			if ( !empty($node['data']['bracket']) )
 				$terms[$level]['cbr'] = 1;
 		}
 	}
 }
 
-function parseTreeToFilter( $tree )
-{
+function parseTreeToFilter($tree) {
 	$terms = array();
-	if ( isset($tree) )
-	{
+	if ( isset($tree) ) {
 		$level = 0;
-		_parseTreeToFilter( $tree, $terms, $level );
+		_parseTreeToFilter($tree, $terms, $level);
 	}
-	return( array( 'Query' => array( 'terms' => $terms ) ) );
+	return array('Query' => array('terms' => $terms));
 }
 
-function parseTreeToQuery( $tree )
-{
-	$filter = parseTreeToFilter( $tree );
-	parseFilter( $filter, false, '&' );
-	return( $filter['query'] );
+function parseTreeToQuery($tree) {
+	$filter = parseTreeToFilter($tree);
+	parseFilter($filter, false, '&');
+	return $filter['query'];
 }
 
-function _drawTree( $node, $level )
-{
-	if ( isset($node['left']) )
-	{
-		_drawTree( $node['left'], $level+1 );
+function _drawTree($node, $level) {
+	if ( isset($node['left']) ) {
+		_drawTree($node['left'], $level+1);
 	}
-	echo str_repeat( ".", $level*2 ).$node['data']['value']."<br>";
-	if ( isset($node['right']) )
-	{
-		_drawTree( $node['right'], $level+1 );
+	echo str_repeat('.', $level*2).$node['data']['value'].'<br/>';
+	if ( isset($node['right']) ) {
+		_drawTree($node['right'], $level+1);
 	}
 }
 
-function drawTree( $tree )
-{
-	_drawTree( $tree, 0 );
+function drawTree($tree) {
+	_drawTree($tree, 0);
 }
 
-function _extractDatetimeRange( &$node, &$minTime, &$maxTime, &$expandable, $subOr )
-{
+function _extractDatetimeRange(&$node, &$minTime, &$maxTime, &$expandable, $subOr) {
 	$pruned = $leftPruned = $rightPruned = false;
-	if ( $node )
-	{
-		if ( isset($node['left']) && isset($node['right']) )
-		{
-			if ( $node['data']['type'] == 'cnj' && $node['data']['value'] == 'or' )
-			{
-				$subOr = true;
-			}
-			elseif ( !empty($node['left']['data']['dtAttr']) )
-			{
-				if ( $subOr )
-				{
-					$expandable = false;
-				}
-				elseif ( $node['data']['type'] == 'op' )
-				{
-					if ( $node['data']['value'] == '>' || $node['data']['value'] == '>=' )
-					{
-						if ( !$minTime || $minTime > $node['right']['data']['sqlValue'] )
-						{
-							$minTime = $node['right']['data']['value'];
-							return( true );
-						}
-					}
-					if ( $node['data']['value'] == '<' || $node['data']['value'] == '<=' )
-					{
-						if ( !$maxTime || $maxTime < $node['right']['data']['sqlValue'] )
-						{
-							$maxTime = $node['right']['data']['value'];
-							return( true );
-						}
-					}
-				}
-				else
-				{
-					Fatal( "Unexpected node type '".$node['data']['type']."'" );
-				}
-				return( false );
-			}
+	if ( !($node and isset($node['left']) and isset($node['right']) ) ) {
+    return $pruned;
+  }
 
-			$leftPruned = _extractDatetimeRange( $node['left'], $minTime, $maxTime, $expandable, $subOr );
-			$rightPruned = _extractDatetimeRange( $node['right'], $minTime, $maxTime, $expandable, $subOr );
+  if ( $node['data']['type'] == 'cnj' && $node['data']['value'] == 'or' ) {
+    $subOr = true;
+  } else if ( !empty($node['left']['data']['dtAttr']) ) {
+    if ( $subOr ) {
+      $expandable = false;
+    } elseif ( $node['data']['type'] == 'op' ) {
+      if ( $node['data']['value'] == '>' || $node['data']['value'] == '>=' ) {
+        if ( !$minTime || $minTime > $node['right']['data']['sqlValue'] ) {
+          $minTime = $node['right']['data']['value'];
+          return true;
+        }
+      } else if ( $node['data']['value'] == '<' || $node['data']['value'] == '<=' ) {
+        if ( !$maxTime || $maxTime < $node['right']['data']['sqlValue'] ) {
+          $maxTime = $node['right']['data']['value'];
+          return true;
+        }
+      }
+    } else {
+      ZM\Fatal("Unexpected node type '".$node['data']['type']."'");
+    }
+    return false;
+  }
 
-			if ( $leftPruned && $rightPruned )
-			{
-				$pruned = true;
-			}
-			elseif ( $leftPruned )
-			{
-				$node = $node['right'];
-			}
-			elseif ( $rightPruned )
-			{
-				$node = $node['left'];
-			}
-		}
-	}
-	return( $pruned );
+  $leftPruned = _extractDatetimeRange( $node['left'], $minTime, $maxTime, $expandable, $subOr );
+  $rightPruned = _extractDatetimeRange( $node['right'], $minTime, $maxTime, $expandable, $subOr );
+
+  if ( $leftPruned && $rightPruned ) {
+    $pruned = true;
+  } else if ( $leftPruned ) {
+    $node = $node['right'];
+  } else if ( $rightPruned ) {
+    $node = $node['left'];
+  }
+	return $pruned;
 }
 
-function extractDatetimeRange( &$tree, &$minTime, &$maxTime, &$expandable )
-{
-	$minTime = "";
-	$maxTime = "";
+function extractDatetimeRange( &$tree, &$minTime, &$maxTime, &$expandable ) {
+	$minTime = '';
+	$maxTime = '';
 	$expandable = true;
 
 	_extractDateTimeRange( $tree, $minTime, $maxTime, $expandable, false );
 }
 
-function appendDatetimeRange( &$tree, $minTime, $maxTime=false )
-{
+function appendDatetimeRange( &$tree, $minTime, $maxTime=false ) {
 	$attrNode = array( 'data'=>array( 'type'=>'attr', 'value'=>'StartDateTime', 'sqlValue'=>'E.StartTime', 'dtAttr'=>true ), 'count'=>0 );
 	$valNode = array( 'data'=>array( 'type'=>'val', 'value'=>$minTime, 'sqlValue'=>$minTime ), 'count'=>0 );
 	$opNode = array( 'data'=>array( 'type'=>'op', 'value'=>'>=', 'sqlValue'=>'>=' ), 'count'=>2, 'left'=>$attrNode, 'right'=>$valNode );
-	if ( isset($tree) )
-	{
+	if ( isset($tree) ) {
 		$cnjNode = array( 'data'=>array( 'type'=>'cnj', 'value'=>'and', 'sqlValue'=>'and' ), 'count'=>2+$tree['count']+$opNode['count'], 'left'=>$tree, 'right'=>$opNode );
 		$tree = $cnjNode;
-	}
-	else
-	{
+	} else {
 		$tree = $opNode;
 	}
 
-	if ( $maxTime )
-	{
+	if ( $maxTime ) {
 		$attrNode = array( 'data'=>array( 'type'=>'attr', 'value'=>'StartDateTime', 'sqlValue'=>'E.StartTime', 'dtAttr'=>true ), 'count'=>0 );
 		$valNode = array( 'data'=>array( 'type'=>'val', 'value'=>$maxTime, 'sqlValue'=>$maxTime ), 'count'=>0 );
 		$opNode = array( 'data'=>array( 'type'=>'op', 'value'=>'<=', 'sqlValue'=>'<=' ), 'count'=>2, 'left'=>$attrNode, 'right'=>$valNode );

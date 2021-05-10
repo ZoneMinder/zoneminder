@@ -23,8 +23,8 @@ $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
-session_start();
-foreach ( array('Group','Function','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var ) {
+zm_session_start();
+foreach ( array('GroupId','Function','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var ) {
   if ( isset($_REQUEST[$var]) ) {
     if ( $_REQUEST[$var] != '' ) {
       $_SESSION[$var] = $_REQUEST[$var];
@@ -60,7 +60,7 @@ $groupSql = '';
 if ( count($GroupsById) ) {
   $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
   # This will end up with the group_id of the deepest selection
-  $group_id = isset($_SESSION['Group']) ? $_SESSION['Group'] : null;
+  $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
   $html .= ZM\Group::get_group_dropdown();
   $groupSql = ZM\Group::get_group_sql($group_id);
   $html .= '</span>
@@ -68,7 +68,7 @@ if ( count($GroupsById) ) {
 }
 
 $selected_monitor_ids = isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : array();
-if ( ! is_array( $selected_monitor_ids ) ) {
+if ( !is_array($selected_monitor_ids) ) {
   $selected_monitor_ids = array($selected_monitor_ids);
 }
 
@@ -80,18 +80,19 @@ if ( $groupSql )
 foreach ( array('ServerId','StorageId','Status','Function') as $filter ) {
   if ( isset($_SESSION[$filter]) ) {
     if ( is_array($_SESSION[$filter]) ) {
-      $conditions[] = $filter . ' IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter])). ')';
+      $conditions[] = '`'.$filter . '` IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter])). ')';
       $values = array_merge($values, $_SESSION[$filter]);
     } else {
-      $conditions[] = $filter . '=?';
+      $conditions[] = '`'.$filter . '`=?';
       $values[] = $_SESSION[$filter];
     }
   }
 } # end foreach filter
-if ( ! empty($user['MonitorIds']) ) {
+
+if ( !empty($user['MonitorIds']) ) {
   $ids = explode(',', $user['MonitorIds']);
   $conditions[] = 'M.Id IN ('.implode(',',array_map(function(){return '?';}, $ids)).')';
-  $values += $ids;
+  $values = array_merge($values, $ids);
 }
 
 $html .= '<span class="MonitorNameFilter"><label>'.translate('Name').'</label>';
@@ -146,7 +147,7 @@ if ( count($StorageById) > 1 ) {
 ';
 } # end if have Storage Areas
 
-$html .= '<span class="StatusFilter"><label>'. translate('Status') . '</label>';
+$html .= '<span class="StatusFilter"><label>'.translate('Status').'</label>';
 $status_options = array(
     'Unknown' => translate('StatusUnknown'),
     'NotRunning' => translate('StatusNotRunning'),
@@ -188,7 +189,7 @@ $html .= '</span>
         $found_selected_monitor = true;
       }
     } // end foreach monitor
-    if ( ! $found_selected_monitor ) {
+    if ( !$found_selected_monitor ) {
       $selected_monitor_ids = array();
     }
   } // end if a monitor was specified
@@ -232,7 +233,7 @@ $html .= '</span>
       }
     }
 
-    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
+    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Id'].' '.$monitors[$i]['Name'];
 
     if ( count($selected_monitor_ids) and ! in_array($monitors[$i]['Id'], $selected_monitor_ids) ) {
       continue;
@@ -248,9 +249,9 @@ $html .= '</span>
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
     ) );
-# Repurpose this variable to be the list of MonitorIds as a result of all the filtering
-$selected_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
-$html .= '</span>
+  # Repurpose this variable to be the list of MonitorIds as a result of all the filtering
+  $selected_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
+  $html .= '</span>
 ';
   echo $html;
 ?>

@@ -1,0 +1,4 @@
+d /run/zm                   0755 www-data www-data
+d /tmp/zm                       0755 www-data www-data
+d /var/tmp/zm                   0755 www-data www-data
+d /var/cache/zoneminder/cache   0755 www-data www-data

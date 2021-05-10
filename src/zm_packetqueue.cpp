@@ -42,7 +42,9 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
       ||
       ( packet_counts[zm_packet->packet.stream_index] <= 0 ) 
     ) {
-    Debug(2,"Inserting packet with dts %" PRId64 " because queue is empty or invalid dts", zm_packet->packet.dts);
+    Debug(2,"Inserting packet with dts %" PRId64 " because queue %d is empty (queue size: %d) or invalid dts",
+        zm_packet->packet.dts, zm_packet->packet.stream_index, packet_counts[zm_packet->packet.stream_index]
+        );
     // No dts value, can't so much with it
     pktQueue.push_back(zm_packet);
     packet_counts[zm_packet->packet.stream_index] += 1;
@@ -202,6 +204,72 @@ void zm_packetqueue::clearQueue() {
   Debug(3, "Deleted (%d) packets", delete_count );
 }
 
+// clear queue keeping only specified duration of video -- return number of pkts removed
+unsigned int zm_packetqueue::clearQueue(struct timeval *duration, int streamId) {
+
+  if (pktQueue.empty()) {
+    return 0;
+  }
+  struct timeval keep_from;
+  std::list<ZMPacket *>::reverse_iterator it;
+  it = pktQueue.rbegin();
+
+  timersub(&(*it)->timestamp, duration, &keep_from);
+  ++it;
+
+  Debug(3, "Looking for frame before queue keep time with  stream id (%d), queue has %d packets",
+        streamId, pktQueue.size());
+  for ( ; it != pktQueue.rend(); ++it) {
+    ZMPacket *zm_packet = *it;
+    AVPacket *av_packet = &(zm_packet->packet);
+    if (av_packet->stream_index == streamId
+        && timercmp( &zm_packet->timestamp, &keep_from, <= )) {
+        Debug(3, "Found frame before keep time with stream index %d at %d.%d",
+                 av_packet->stream_index,
+                 zm_packet->timestamp.tv_sec,
+                 zm_packet->timestamp.tv_usec);
+        break;
+    }
+  }
+
+  if (it == pktQueue.rend()) {
+    Debug(1, "Didn't find a frame before queue preserve time. keeping all");
+    return 0;
+  }
+
+  Debug(3, "Looking for keyframe");
+  for ( ; it != pktQueue.rend(); ++it) {
+    ZMPacket *zm_packet = *it;
+    AVPacket *av_packet = &(zm_packet->packet);
+    if (av_packet->flags & AV_PKT_FLAG_KEY
+        && av_packet->stream_index == streamId) {
+      Debug(3, "Found keyframe before start with stream index %d at %d.%d",
+               av_packet->stream_index,
+               zm_packet->timestamp.tv_sec,
+               zm_packet->timestamp.tv_usec );
+      break;
+    }
+  }
+  if ( it == pktQueue.rend() ) {
+    Debug(1, "Didn't find a keyframe before event starttime. keeping all" );
+    return 0;
+  }
+
+  unsigned int deleted_frames = 0;
+  ZMPacket *zm_packet = NULL;
+  while (distance(it, pktQueue.rend()) > 1) {
+    zm_packet = pktQueue.front();
+    pktQueue.pop_front();
+    packet_counts[zm_packet->packet.stream_index] -= 1;
+    delete zm_packet;
+    deleted_frames += 1;
+  }
+  zm_packet = NULL;
+  Debug(3, "Deleted %d frames", deleted_frames);
+
+  return deleted_frames;
+}
+
 unsigned int zm_packetqueue::size() {
   return pktQueue.size();
 }
@@ -227,8 +295,8 @@ void zm_packetqueue::clear_unwanted_packets(
   std::list<ZMPacket *>::reverse_iterator it;
 
   // Step 1 - find frame <= recording_started.
-  Debug(3, "Looking for frame before start recording stream id (%d), queue has %d packets",
-      mVideoStreamId, pktQueue.size());
+  Debug(3, "Looking for frame before start (%d.%d) recording stream id (%d), queue has %d packets",
+      recording_started->tv_sec, recording_started->tv_usec, mVideoStreamId, pktQueue.size());
   for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {
     ZMPacket *zm_packet = *it;
     AVPacket *av_packet = &(zm_packet->packet);
@@ -250,7 +318,7 @@ void zm_packetqueue::clear_unwanted_packets(
   }
 
   if ( it == pktQueue.rend() ) {
-    Debug(1, "Didn't find a frame before event starttime. keeping all");
+    Info("Didn't find a frame before event starttime. keeping all");
     return;
   }
 

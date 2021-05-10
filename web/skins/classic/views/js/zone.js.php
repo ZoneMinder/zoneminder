@@ -1,3 +1,14 @@
+<?php
+  global $presets;
+  global $zone;
+  global $newZone;
+  global $monitor;
+  global $selfIntersecting;
+  global $streamMode;
+  global $connkey;
+  global $streamSrc;
+?>
+
 var presets = new Object();
 <?php
 foreach ( $presets as $preset ) {
@@ -21,7 +32,7 @@ presets[<?php echo $preset['Id'] ?>] = {
     'ExtendAlarmFrames': '<?php echo $preset['ExtendAlarmFrames'] ?>'
 };
 <?php
-}
+} # end foreach preset
 ?>
 
 var zone = {
@@ -44,10 +55,10 @@ zone['Points'][<?php echo $i ?>] = { 'x': <?php echo $newZone['Points'][$i]['x']
 }
 ?>
 
-var maxX = <?php echo $monitor->Width()-1 ?>;
-var maxY = <?php echo $monitor->Height()-1 ?>;
-var monitorArea = <?php echo $monitor->Width() * $monitor->Height() ?>;
-var selfIntersecting = <?php echo $selfIntersecting?'true':'false' ?>;
+var maxX = <?php echo $monitor->ViewWidth()-1 ?>;
+var maxY = <?php echo $monitor->ViewHeight()-1 ?>;
+var monitorArea = <?php echo $monitor->ViewWidth() * $monitor->ViewHeight() ?>;
+var selfIntersecting = <?php echo $selfIntersecting ? 'true' : 'false' ?>;
 
 var selfIntersectingString = '<?php echo addslashes(translate('SelfIntersecting')) ?>';
 var alarmRGBUnsetString = '<?php echo addslashes(translate('AlarmRGBUnset')) ?>';

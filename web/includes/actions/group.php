@@ -21,41 +21,31 @@
 // Group edit actions
 # Should probably verify that each monitor id is a valid monitor, that we have access to.
 # However at the moment, you have to have System permissions to do this
-if ( ! canEdit('Groups') ) {
+if ( !canEdit('Groups') ) {
   ZM\Warning('Need group edit permissions to edit groups');
   return;
 }
 
 if ( $action == 'Save' ) {
-  $monitors = empty($_POST['newGroup']['MonitorIds']) ? '' : implode(',', $_POST['newGroup']['MonitorIds']);
   $group_id = null;
-  if ( !empty($_POST['gid']) ) {
+  if ( !empty($_POST['gid']) )
     $group_id = $_POST['gid'];
-    dbQuery(
-      'UPDATE Groups SET Name=?, ParentId=? WHERE Id=?',
+  $group = new ZM\Group($group_id);
+  $group->save(
       array(
-        $_POST['newGroup']['Name'],
-        ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ),
-        $group_id,
+      'Name'=>  $_POST['newGroup']['Name'],
+      'ParentId'=>( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ),
       )
     );
-    dbQuery('DELETE FROM Groups_Monitors WHERE GroupId=?', array($group_id));
-  } else {
-    dbQuery(
-      'INSERT INTO Groups (Name,ParentId) VALUES (?,?)',
-      array(
-        $_POST['newGroup']['Name'],
-        ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ),
-      )
-    );
-    $group_id = dbInsertId();
-  }
+  dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($group_id));
+  $group_id = $group->Id();
   if ( $group_id ) {
     foreach ( $_POST['newGroup']['MonitorIds'] as $mid ) {
-      dbQuery('INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($group_id, $mid));
+      dbQuery('INSERT INTO `Groups_Monitors` (`GroupId`,`MonitorId`) VALUES (?,?)', array($group_id, $mid));
     }
   }
   $view = 'none';
   $refreshParent = true;
-} 
+  $closePopup = true;
+}
 ?>

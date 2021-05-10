@@ -1,3 +1,5 @@
-input[type="url"] {
+input[name="newStorage[Name]"],
+input[name="newStorage[Path]"],
+input[name="newStorage[Url]"] {
   width: 100%;
 }

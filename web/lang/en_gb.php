@@ -87,6 +87,7 @@ $SLANG = array(
     'Actual'                => 'Actual',
     'AddNewControl'         => 'Add New Control',
     'AddNewMonitor'         => 'Add',
+    'AddMonitorDisabled'    => 'Your user is not allowed to add a new monitor',
     'AddNewServer'          => 'Add New Server',
     'AddNewStorage'         => 'Add New Storage',
     'AddNewUser'            => 'Add New User',
@@ -132,6 +133,7 @@ $SLANG = array(
     'AttrMaxScore'          => 'Max. Score',
     'AttrMonitorId'         => 'Monitor Id',
     'AttrMonitorName'       => 'Monitor Name',
+    'AttrSecondaryStorageArea' => 'Secondary Storage Area',
     'AttrStorageArea'       => 'Storage Area',
     'AttrFilterServer'      => 'Server Filter is Running On',
     'AttrMonitorServer'     => 'Server Monitor is Running On',
@@ -176,6 +178,7 @@ $SLANG = array(
     'BadPostEventCount'     => 'Post event image count must be an integer of zero or more',
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',
     'BadRefBlendPerc'       => 'Reference blend percentage must be a positive integer',
+    'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGs and VideoWriter are both set to disabled.  Nothing will be recorded!',
     'BadSectionLength'      => 'Section length must be an integer of 30 or more',
     'BadSignalCheckColour'  => 'Signal check colour must be a valid RGB colour string',
     'BadStreamReplayBuffer' => 'Stream replay buffer must be an integer of zero or more',
@@ -299,7 +302,7 @@ $SLANG = array(
     'Display'               => 'Display',
     'Displaying'            => 'Displaying',
     'DonateAlready'         => 'No, I\'ve already donated',
-    'DonateEnticement'      => 'You\'ve been running ZoneMinder for a while now and hopefully are finding it a useful addition to your home or workplace security. Although ZoneMinder is, and will remain, free and open source, it costs money to develop and support. If you would like to help support future development and new features then please consider donating. Donating is, of course, optional but very much appreciated and you can donate as much or as little as you like.<br/><br/>If you would like to donate please select the option below or go to https://zoneminder.com/donate/ in your browser.<br/><br/>Thank you for using ZoneMinder and don\'t forget to visit the forums on ZoneMinder.com for support or suggestions about how to make your ZoneMinder experience even better.',
+    'DonateEnticement'      => 'You\'ve been running ZoneMinder for a while now and hopefully are finding it a useful addition to your home or workplace security. Although ZoneMinder is, and will remain, free and open source, it costs money to develop and support. If you would like to help support future development and new features then please consider donating. Donating is, of course, optional but very much appreciated and you can donate as much or as little as you like.<br/><br/>If you would like to donate please select the option below or go to <a href="https://zoneminder.com/donate/" target="_blank">https://zoneminder.com/donate/</a> in your browser.<br/><br/>Thank you for using ZoneMinder and don\'t forget to visit the forums on <a href="https://forums.zoneminder.com">ZoneMinder.com</a> for support or suggestions about how to make your ZoneMinder experience even better.',
     'Donate'                => 'Please Donate',
     'DonateRemindDay'       => 'Not yet, remind again in 1 day',
     'DonateRemindHour'      => 'Not yet, remind again in 1 hour',
@@ -356,6 +359,7 @@ $SLANG = array(
     'FilterArchiveEvents'   => 'Archive all matches',
     'FilterUpdateDiskSpace' => 'Update used disk space',
     'FilterDeleteEvents'    => 'Delete all matches',
+    'FilterCopyEvents'      => 'Copy all matches',
     'FilterMoveEvents'      => 'Move all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
     'FilterExecuteEvents'   => 'Execute command on all matches',
@@ -576,6 +580,8 @@ $SLANG = array(
     'OpNotMatches'          => 'does not match',
     'OpIs'                  => 'is',
     'OpIsNot'               => 'is not',
+    'OpLike'                => 'contains',
+    'OpNotLike'             => 'does not contain',
     'OptionalEncoderParam'  => 'Optional Encoder Parameters',
     'OptionHelp'            => 'Option Help',
     'OptionRestartWarning'  => 'These changes may not come into effect fully\nwhile the system is running. When you have\nfinished making your changes please ensure that\nyou restart ZoneMinder.',
@@ -591,6 +597,7 @@ $SLANG = array(
     'PanRight'              => 'Pan Right',
     'PanTilt'               => 'Pan/Tilt',
     'Parameter'             => 'Parameter',
+    'ParentGroup'           => 'Parent Group',
     'Password'              => 'Password',
     'PasswordsDifferent'    => 'The new and confirm passwords are different',
     'PathToIndex'           => 'Path To Index',
@@ -765,6 +772,7 @@ $SLANG = array(
     'TurboPanSpeed'         => 'Turbo Pan Speed',
     'TurboTiltSpeed'        => 'Turbo Tilt Speed',
     'Type'                  => 'Type',
+    'TZUnset'               => 'Unset - use value in php.ini',
     'Unarchive'             => 'Unarchive',
     'Undefined'             => 'Undefined',
     'Units'                 => 'Units',
@@ -787,6 +795,7 @@ $SLANG = array(
     'VersionRemindHour'     => 'Remind again in 1 hour',
     'VersionRemindNever'    => 'Don\'t remind about new versions',
     'VersionRemindWeek'     => 'Remind again in 1 week',
+    'VersionRemindMonth'    => 'Remind again in 1 month',
     'Version'               => 'Version',
     'ViewMatches'           => 'View Matches',
     'VideoFormat'           => 'Video Format',
@@ -975,6 +984,26 @@ $OLANG = array(
       "loglevel=debug" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)
     '
 	),
+  'OPTIONS_ENCODER_PARAMETERS' => array(
+    'Help' => '
+    Parameters passed to the encoding codec. name=value separated by either , or newline.~~
+    For example to changing quality, use the crf option.  1 is best, 51 is worst 23 is default.~~
+~~
+    crf=23~~
+    ~~
+    You might want to alter the movflags value to support different behaviours. Some people have troubles viewing videos due to the frag_keyframe option, but that option is supposed to allow viewing of incomplete events. See 
+    [https://ffmpeg.org/ffmpeg-formats.html](https://ffmpeg.org/ffmpeg-formats.html)
+    for more information.  ZoneMinder\'s default is frag_keyframe,empty_moov~~
+    ',
+  ),
+  'OPTIONS_DECODERHWACCELNAME' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'
+    ),
+  'OPTIONS_DECODERHWACCELDEVICE' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel_device command line option.  You should only have to specify this if you have multiple GPUs.  A typical value for Intel VAAPI would be /dev/dri/renderD128.'
+    ),
     'OPTIONS_RTSPTrans' => array(
       'Help' => '
         This sets the RTSP Transport Protocol for FFmpeg.~~

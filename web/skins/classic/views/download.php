@@ -26,7 +26,7 @@ if ( !canView('Events') ) {
 $total_size = 0;
 if ( isset($_SESSION['montageReviewFilter']) and !isset($_REQUEST['eids']) ) {
   # Handles montageReview filter
-  $eventsSql = 'SELECT E.Id,E.DiskSpace FROM Events as E WHERE 1';
+  $eventsSql = 'SELECT E.Id, E.DiskSpace FROM Events AS E WHERE 1';
   $eventsSql .= $_SESSION['montageReviewFilter']['sql'];
   $results = dbQuery($eventsSql);
   $eids = [];
@@ -48,22 +48,14 @@ if ( isset($_SESSION['montageReviewFilter']) and !isset($_REQUEST['eids']) ) {
 $exportFormat = '';
 if ( isset($_REQUEST['exportFormat']) ) {
   if ( !in_array($_REQUEST['exportFormat'], array('zip', 'tar')) ) {
-    ZM\Error('Invalid exportFormat');
-    return;
-  }
-  $exportFormat = $_REQUEST['exportFormat'];
-}
-
-if ( !empty($_REQUEST['eid']) ) {
-  $Event = new ZM\Event($_REQUEST['eid']);
-  if ( !$Event->Id ) {
-    Error('Invalid event id');
-    return;
+    ZM\Error('Invalid exportFormat: '.$_REQUEST['exportFormat']);
+  } else {
+    $exportFormat = $_REQUEST['exportFormat'];
   }
 }
 
 $focusWindow = true;
-$connkey = isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : generateConnKey();
+$connkey = isset($_REQUEST['connkey']) ? validInt($_REQUEST['connkey']) : generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Download'));
 ?>
@@ -76,7 +68,7 @@ xhtmlHeaders(__FILE__, translate('Download'));
       <h2><?php echo translate('Download') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="connkey" value="<?php echo $connkey; ?>"/>
 <?php
 if ( !empty($_REQUEST['eid']) ) {
@@ -84,7 +76,12 @@ if ( !empty($_REQUEST['eid']) ) {
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
     <?php
     $Event = new ZM\Event($_REQUEST['eid']);
-    echo 'Downloading event ' . $Event->Id . '. Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
+    if ( !$Event->Id() ) {
+      ZM\Error('Invalid event id');
+      echo '<div class="error">Invalid event id</div>';
+    } else {
+      echo 'Downloading event ' . $Event->Id . '. Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
+    }
 } else if ( !empty($_REQUEST['eids']) ) {
     $total_size = 0;
     foreach ( $_REQUEST['eids'] as $eid ) {
@@ -120,7 +117,8 @@ if ( !empty($_REQUEST['eid']) ) {
             </tr>
           </tbody>
         </table>
-        <button type="button" id="exportButton" name="exportButton" value="GenerateDownload" onclick="exportEvent(this.form);">
+        <button type="button" id="exportButton" name="exportButton" value="GenerateDownload">
+ <!--data-on-click-this="exportEvent">-->
         <?php echo translate('GenerateDownload') ?>
         </button>
       </form>

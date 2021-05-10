@@ -5,12 +5,12 @@
 extern "C"  {
 #ifdef HAVE_LIBSWRESAMPLE
   #include "libswresample/swresample.h"
-  #include "libavutil/audio_fifo.h"
 #else
   #ifdef HAVE_LIBAVRESAMPLE
     #include "libavresample/avresample.h"
   #endif
 #endif
+#include "libavutil/audio_fifo.h"
 }
 
 #if HAVE_LIBAVCODEC
@@ -19,7 +19,6 @@ extern "C"  {
 
 class VideoStore {
 private:
-
   AVOutputFormat *out_format;
   AVFormatContext *oc;
 
@@ -30,6 +29,7 @@ private:
   AVStream *video_in_stream;
 
   AVStream *audio_in_stream;
+  Monitor *monitor;
 
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
   AVPacket opkt;
@@ -38,9 +38,8 @@ private:
   AVFrame *out_frame;
 
   AVCodecContext *video_in_ctx;
-  AVCodec *audio_in_codec;
+  const AVCodec *audio_in_codec;
   AVCodecContext *audio_in_ctx;
-  int ret;
 
   // The following are used when encoding the audio stream to AAC
   AVStream *audio_out_stream;
@@ -48,12 +47,12 @@ private:
   AVCodecContext *audio_out_ctx;
 #ifdef HAVE_LIBSWRESAMPLE
   SwrContext *resample_ctx;
-  AVAudioFifo *fifo;
 #else
 #ifdef HAVE_LIBAVRESAMPLE
   AVAudioResampleContext* resample_ctx;
 #endif
 #endif
+  AVAudioFifo *fifo;
   uint8_t *converted_in_samples;
     
 	const char *filename;
@@ -71,13 +70,13 @@ private:
   int64_t audio_first_dts;
 
   // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
-  int64_t video_next_pts;
-  int64_t video_next_dts;
+  int64_t *next_dts;
   int64_t audio_next_pts;
-  int64_t audio_next_dts;
+
+  int max_stream_index;
 
   bool setup_resampler();
-  int resample_audio();
+  int write_packet(AVPacket *pkt, AVStream *stream);
 
 public:
 	VideoStore(

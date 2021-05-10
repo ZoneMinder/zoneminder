@@ -31,19 +31,19 @@ if ( $action == 'state' ) {
   }
 } else if ( $action == 'save' ) {
   if ( !empty($_REQUEST['runState']) || !empty($_REQUEST['newState']) ) {
-    $sql = 'SELECT Id,Function,Enabled FROM Monitors ORDER BY Id';
+    $sql = 'SELECT `Id`,`Function`,`Enabled` FROM Monitors ORDER BY Id';
     $definitions = array();
-    foreach( dbFetchAll($sql) as $monitor ) {
+    foreach ( dbFetchAll($sql) as $monitor ) {
       $definitions[] = $monitor['Id'].':'.$monitor['Function'].':'.$monitor['Enabled'];
     }
     $definition = join(',', $definitions);
     if ( $_REQUEST['newState'] )
       $_REQUEST['runState'] = $_REQUEST['newState'];
-    dbQuery('REPLACE INTO States SET Name=?, Definition=?', array($_REQUEST['runState'],$definition));
+    dbQuery('REPLACE INTO `States` SET `Name`=?, `Definition`=?', array($_REQUEST['runState'],$definition));
   }
 } else if ( $action == 'delete' ) {
   if ( isset($_REQUEST['runState']) )
-    dbQuery('DELETE FROM States WHERE Name=?', array($_REQUEST['runState']));
+    dbQuery('DELETE FROM `States` WHERE `Name`=?', array($_REQUEST['runState']));
 }
 $view = 'console';
 ?>

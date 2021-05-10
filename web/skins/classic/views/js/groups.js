@@ -8,8 +8,13 @@ function setGroup( element ) {
   form.submit();
 }
 
-function editGroup( gid ) {
-  createPopup( '?view=group&gid='+gid, 'zmGroup', 'group' );
+function editGroup( element ) {
+  var gid = element.getAttribute('data-group-id');
+  if ( !gid ) {
+    console.log('No group id found in editGroup');
+  } else {
+    createPopup('?view=group&gid='+gid, 'zmGroup'+gid, 'group');
+  }
 }
 
 function deleteGroup( element ) {

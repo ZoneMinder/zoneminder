@@ -15,6 +15,10 @@ class EventsController extends AppController {
    */
   public $components = array('RequestHandler', 'Scaler', 'Image', 'Paginator');
 
+  public function beforeRender() {
+    $this->set($this->Event->enumValues());
+  }
+
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
@@ -145,6 +149,10 @@ class EventsController extends AppController {
     ));
     $event['Event']['NextOfMonitor'] = $event_monitor_neighbors['next']['Event']['Id'];
     $event['Event']['PrevOfMonitor'] = $event_monitor_neighbors['prev']['Event']['Id'];
+  
+    $this->loadModel('Frame');
+    $event['Event']['MaxScoreFrameId'] = $this->Frame->findByEventid($id,'FrameId',array('Score'=>'desc','FrameId'=>'asc'))['Frame']['FrameId'];
+    $event['Event']['AlarmFrameId'] = $this->Frame->findByEventidAndType($id,'Alarm')['Frame']['FrameId'];
 
     $this->set(array(
       'event' => $event,
@@ -426,14 +434,11 @@ class EventsController extends AppController {
     // Find the max Frame for this Event.  Error out otherwise.
     $this->loadModel('Frame');
 
-    if (! $frame = $this->Frame->find('first', array(
+    $frame = $this->Frame->find('first', array(
       'conditions' => array(
-        'EventId' => $event['Event']['Id'],
-        'Score' => $event['Event']['MaxScore']
-      )
-    ))) {
-      throw new NotFoundException(__('Can not find Frame for Event ' . $event['Event']['Id']));
-    }
-    return $frame['Frame']['Id'];
+      'EventId' => $event['Event']['Id'],
+      'Score' => $event['Event']['MaxScore']
+    )));
+    return empty($frame)?null:$frame['Frame']['Id'];
   }
 } // end class EventsController

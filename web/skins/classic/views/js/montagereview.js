@@ -154,9 +154,11 @@ function getImageSource(monId, time) {
         var duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
         frame_id = Frame.FrameId + parseInt( (NextFrame.FrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
         //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame_id + " from " + NextFrame.FrameId + ' - ' + Frame.FrameId + " time: " + (time-Frame.TimeStampSecs)  );
+      } else {
+        frame_id = Frame.FrameId;
       }
     } else {
-      frame_id = Frame['Id'];
+      frame_id = Frame.FrameId;
       console.log("No NextFrame");
     }
     Event = events[Frame.EventId];
@@ -934,6 +936,10 @@ function changeDateTime(e) {
     }
   }
 
+  // Reloading can take a while, so stop interrupts to reduce load
+  clearInterval(timerObj);
+  timerObj = null;
+
   var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
 }
@@ -965,6 +971,7 @@ function initPage() {
         imagedone(this, this.monId, false);
       };
       loadImage2Monitor(monId, monitorImageURL[monId]);
+      monitorCanvasObj[monId].addEventListener('click', clickMonitor, false);
     }
   } // end foreach monitor
 
@@ -979,15 +986,6 @@ function initPage() {
 
     ctx = canvas.getContext('2d');
     drawGraph();
-  }
-  for ( i=0, len=monitorPtr.length; i < len; i += 1 ) {
-    var monitor_id = monitorPtr[i];
-    monitor_canvas = $('Monitor'+monitor_id);
-    if ( ! monitor_canvas ) {
-      console.log("No canvas found for monitor " + monitor_id);
-      continue;
-    }
-    monitor_canvas.addEventListener('click', clickMonitor, false);
   }
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw
@@ -1007,7 +1005,7 @@ function initPage() {
   $j('#maxTime').datetimepicker({
     timeFormat: "HH:mm:ss",
     dateFormat: "yy-mm-dd",
-    minDate: $j('#minTime').val(),
+    minDate: minTime,
     maxDate: +0,
     constrainInput: false,
     onClose: function(newDate, oldData) {

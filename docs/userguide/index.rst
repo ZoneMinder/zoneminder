@@ -15,4 +15,5 @@ User Guide
    cameracontrol
    mobile
    logging
+   configfiles
 

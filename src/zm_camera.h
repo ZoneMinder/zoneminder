@@ -41,11 +41,12 @@ protected:
   Monitor *     monitor; // Null on instantiation, set as soon as possible.
   SourceType    type;
   unsigned int  width;
+  unsigned int  linesize;
   unsigned int  height;
   unsigned int  colours;
   unsigned int  subpixelorder;
   unsigned int  pixels;
-  unsigned int  imagesize;
+  unsigned long long imagesize;
   int           brightness;
   int           hue;
   int           colour;
@@ -69,11 +70,12 @@ public:
   bool IsLibvlc() const { return type == LIBVLC_SRC; }
   bool IscURL() const { return type == CURL_SRC; }
   unsigned int Width() const { return width; }
+  unsigned int LineSize() const { return linesize; }
   unsigned int Height() const { return height; }
   unsigned int Colours() const { return colours; }
   unsigned int SubpixelOrder() const { return subpixelorder; }
   unsigned int Pixels() const { return pixels; }
-  unsigned int ImageSize() const { return imagesize; }
+  unsigned long long ImageSize() const { return imagesize; }
   unsigned int Bytes() const { return bytes; };
 
   virtual int Brightness( int/*p_brightness*/=-1 ) { return -1; }

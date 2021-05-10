@@ -102,6 +102,13 @@ class Event extends AppModel {
     ),
   );
 
+  public $actsAs = array(
+    'CakePHP-Enum-Behavior.Enum' => array(
+      'Orientation'     => array('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT'),
+      'Scheme'          => array('Deep','Medium','Shallow')
+    )
+  );
+
   public function Relative_Path() {
     $Event = new ZM\Event($this->id);
     return $Event->Relative_Path();

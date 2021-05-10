@@ -11,6 +11,9 @@ EMAIL_SUBJECT - This option is used to define the subject of the email that is s
 
 EMAIL_BODY - This option is used to define the content of the email that is sent for any events that match the appropriate filters.
 
+.. todo:: 
+  check if any other tags have been added
+
 +--------+--------------------------------------------------------+
 | Token  | Description                                            |
 +========+========================================================+
@@ -49,6 +52,9 @@ EMAIL_BODY - This option is used to define the content of the email that is sent
 | %EI1%  | Attach first alarmed event image                       |
 +--------+--------------------------------------------------------+
 | %EIM%  | Attach (first) event image with the highest score      |
++--------+--------------------------------------------------------+
+| %EIMOD%| Attach image of object detected. Requires event notfn. |
+|        | server setup and machine learning hooks                |
 +--------+--------------------------------------------------------+
 | %EV%   | Attach event mpeg video                                |
 +--------+--------------------------------------------------------+
@@ -93,4 +99,8 @@ EMAIL_HOST - If you have chosen SMTP as the method by which to send notification
 
 FROM_EMAIL - The emails or messages that will be sent to you informing you of events can appear to come from a designated email address to help you with mail filtering etc. An address of something like ZoneMinder\@your.domain is recommended.
 
-URL - The emails or messages that will be sent to you informing you of events can include a link to the events themselves for easy viewing. If you intend to use this feature then set this option to the url of your installation as it would appear from where you read your email, e.g. http://host.your.domain/zm.php.
+URL - The emails or messages that will be sent to you informing you of events can include a link to the events themselves for easy viewing. If you intend to use this feature then set this option to the url of your installation as it would appear from where you read your email, e.g. ``http://host.your.domain/zm/index.php``.
+
+SSMTP_MAIL - SSMTP is a lightweight and efficient method to send email. The SSMTP application is not installed by default. NEW_MAIL_MODULES must also be enabled. Please visit the ZoneMinder `SSMTP Wiki page <http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder>`__ for setup and configuration help. 
+
+SSMTP_PATH - The path to the SSMTP application. If path is not defined. Zoneminder will try to determine the path via shell command. Example path: /usr/sbin/ssmtp.

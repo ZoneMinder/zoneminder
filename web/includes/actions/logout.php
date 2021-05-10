@@ -24,5 +24,6 @@ if ( $action == 'logout' ) {
   $refreshParent = true;
   $view = 'none';
   $closePopup = true;
+  ZM\Logger::Debug("User: " . print_r($user,true));
 }
 ?>

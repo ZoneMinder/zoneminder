@@ -21,3 +21,8 @@ input.large {
 #contentTable.userTable .colMonitor, #contentTable.userTable .colUsername {
     text-align: left;
 }
+
+input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SITEKEY]"],
+input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SECRETKEY]"] {
+  width: 100%;
+}

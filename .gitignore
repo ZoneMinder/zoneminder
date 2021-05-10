@@ -157,3 +157,4 @@ web/undef.log
 zm.conf
 zmconfgen.pl
 zmlinkcontent.sh
+**/.DS_Store

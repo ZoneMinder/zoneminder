@@ -18,17 +18,16 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Control' ) )
-{
-    $view = "error";
+if ( !canView('Control') ) {
+    $view = 'error';
     return;
 }
 
-$controls = dbFetchAll( 'SELECT * FROM Controls ORDER BY Id' );
+$controls = dbFetchAll('SELECT * FROM Controls ORDER BY Name');
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('ControlCaps') );
+xhtmlHeaders(__FILE__, translate('ControlCaps'));
 ?>
 <body>
   <div id="page">
@@ -42,7 +41,7 @@ xhtmlHeaders(__FILE__, translate('ControlCaps') );
       <form name="contentForm" id="contentForm" method="get" action="?" onsubmit="return( confirmDelete( 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.\nAre you sure you wish to delete?' ) );">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table id="contentTable" class="major">
           <thead>
             <tr>
               <th class="colName"><?php echo translate('Name') ?></th>
@@ -59,8 +58,7 @@ xhtmlHeaders(__FILE__, translate('ControlCaps') );
           </thead>
           <tbody>
 <?php
-foreach( $controls as $control )
-{
+foreach( $controls as $control ) {
 ?>
             <tr>
               <td class="colName"><?php echo makePopupLink( '?view=controlcap&cid='.$control['Id'], 'zmControlCap', 'controlcap', validHtmlStr($control['Name']), canView( 'Control' ) ) ?></td>

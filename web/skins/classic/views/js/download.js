@@ -11,6 +11,7 @@ function configureExportButton( element ) {
 }
 
 function startDownload( exportFile ) {
+  console.log("Starting download from " + exportFile);
   window.location.replace( exportFile );
 }
 
@@ -25,13 +26,22 @@ function exportProgress() {
   }
 }
 
-function exportResponse( respObj, respText ) {
-  window.location.replace( thisUrl+'?view='+currentView+'&'+eidParm+'&exportFormat='+respObj.exportFormat+'&generated='+((respObj.result=='Ok')?1:0) );
+function exportResponse(respObj, respText) {
+  console.log(respObj);
+  window.location.replace(
+      thisUrl+'?view='+currentView+'&'+eidParm
+      +'&exportFormat='+respObj.exportFormat
+      +'&exportFile='+respObj.exportFile
+      +'&generated='+((respObj.result=='Ok')?1:0)
+      +'&connkey='+connkey
+  );
 }
 
-function exportEvent( form ) {
+function exportEvent( element ) {
+  var form = element.form;
   var parms = 'view=request&request=event&action=download';
   parms += '&'+$(form).toQueryString();
+  console.log(parms);
   var query = new Request.JSON( {url: thisUrl, method: 'post', data: parms, onSuccess: exportResponse} );
   query.send();
   $('exportProgress').removeClass( 'hidden' );
@@ -46,7 +56,7 @@ function initPage() {
     startDownload.pass( exportFile ).delay( 1500 );
   }
   document.getElementById('exportButton').addEventListener("click", function onClick(evt) {
-    exportEvent(this.form);
+    exportEvent(this);
   });
 }
 

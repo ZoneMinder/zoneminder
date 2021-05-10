@@ -22,7 +22,7 @@
 # This module contains the implementation of the 
 # IPCC-7210W IP camera control protocol
 #
-package ZoneMinder::Control::IPCC-7210W;
+package ZoneMinder::Control::IPCC7210W;
 
 use 5.006;
 use strict;

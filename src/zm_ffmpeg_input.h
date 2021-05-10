@@ -42,6 +42,7 @@ class FFmpeg_Input {
     int audio_stream_id;
     AVFormatContext *input_format_context;
     AVFrame *frame;
+		int64_t last_seek_request;
 };
 
 #endif

@@ -35,7 +35,7 @@ if ( $action == 'control' ) {
   $monitor = new ZM\Monitor($mid);
 
   $ctrlCommand = buildControlCommand($monitor);
-  sendControlCommand($monitor->Id(), $ctrlCommand);
+  $monitor->sendControlCommand($ctrlCommand);
   $view = 'none';
 }
 ?>

@@ -1,6 +1,8 @@
 Options - Servers
 -----------------
 
+.. todo:: needs to be refreshed
+
 .. image:: images/Options_Servers.png
 
 Servers tab is used for setting up multiple ZoneMinder servers sharing the same database and using a shared file share for all event data. To add a new server use the Add Server button. All that is required is a Name for the Server and Hostname.

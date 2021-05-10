@@ -1,3 +1,18 @@
 img {
 	border: 1px solid black !important;
  }
+
+.admonition-todo {
+  border-top: 2px solid red;
+  border-bottom: 2px solid red;
+  border-left: 2px solid red;
+  border-right: 2px solid red;
+  background-color: #ff6347;
+  }
+
+  a.reference.external:link, 
+  a.reference.external:visited{
+    background: url('./Icon_External_Link.png')     center right no-repeat;
+    padding-right: 13px;
+
+  }

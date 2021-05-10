@@ -22,6 +22,7 @@
 #define ZM_H
 
 #include "zm_config.h"
+#include "zm_signal.h"
 #ifdef SOLARIS
 #undef DEFAULT_TYPE  // pthread defines this which breaks StreamType DEFAULT_TYPE
 #include <string.h>  // define strerror() and friends

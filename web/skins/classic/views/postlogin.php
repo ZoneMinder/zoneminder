@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web logging in view file, $Date$, $Revision$
+// ZoneMinder web logging in view file
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-xhtmlHeaders(__FILE__, translate('LoggingIn') );
+xhtmlHeaders(__FILE__, translate('LoggingIn'));
 ?>
 <body>
   <div id="page">

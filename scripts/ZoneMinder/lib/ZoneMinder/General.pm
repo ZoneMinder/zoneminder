@@ -53,18 +53,18 @@ use POSIX;
 # For running general shell commands
 sub executeShellCommand {
   my $command = shift;
-  my $output = qx( $command );
+  my $output = qx($command);
   my $status = $? >> 8;
   if ( $status || logDebugging() ) {
-    Debug("Command: $command");
-    chomp( $output );
-    Debug("Output: $output");
+    $output = '' if !defined($output);
+    chomp($output);
+    Debug("Command: $command Output: $output");
   }
   return $status;
 }
 
 sub getCmdFormat {
-  Debug("Testing valid shell syntax");
+  Debug('Testing valid shell syntax');
 
   my ( $name ) = getpwuid( $> );
   if ( $name eq $Config{ZM_WEB_USER} ) {
@@ -104,8 +104,8 @@ sub getCmdFormat {
       chomp($output);
       Debug("Test failed, '$output'");
 
-      $prefix = "su ".$Config{ZM_WEB_USER}." -c '";
-      $suffix = "'";
+      $prefix = 'su '.$Config{ZM_WEB_USER}.' -c \'';
+      $suffix = '\'';
       $command = $prefix.$null_command.$suffix;
       Debug("Testing \"$command\"");
       $output = qx($command 2>&1);
@@ -121,7 +121,7 @@ sub getCmdFormat {
       }
     }
   }
-  Error("Unable to find valid 'su' syntax");
+  Error('Unable to find valid su syntax');
   exit -1;
 } # end sub getCmdFormat
 
@@ -193,8 +193,8 @@ sub setFileOwner {
   my $file = shift;
 
   if ( _checkProcessOwner() ) {
-    chown( $_ownerUid, $_ownerGid, $file )
-      or Fatal( "Can't change ownership of file '$file' to '"
+    chown($_ownerUid, $_ownerGid, $file)
+      or Fatal("Can't change ownership of file '$file' to '"
           .$Config{ZM_WEB_USER}.':'.$Config{ZM_WEB_GROUP}."': $!"
           );
   }
@@ -437,12 +437,12 @@ sub _testJSON {
 
 sub _getJSONType {
   my $value = shift;
-  return( 'null' ) unless( defined($value) );
-  return( 'integer' ) if ( $value =~ /^\d+$/ );
-  return( 'double' ) if ( $value =~ /^\d+$/ );
-  return( 'hash' ) if ( ref($value) eq 'HASH' );
-  return( 'array' ) if ( ref($value) eq 'ARRAY' );
-  return( 'string' );
+  return 'null' unless defined($value);
+  return 'integer' if $value =~ /^\d+$/;
+  return 'double' if $value =~ /^\d+$/;
+  return 'hash' if ref($value) eq 'HASH';
+  return 'array' if ref($value) eq 'ARRAY';
+  return 'string';
 }
 
 sub jsonEncode;
@@ -487,15 +487,15 @@ sub jsonDecode {
 
   _testJSON();
   if ( $hasJSONAny ) {
-    my $object = eval { JSON::MaybeXS->decode_json( $value ) };
-    Fatal( "Unable to decode JSON string '$value': $@" ) unless( $object );
-    return( $object );
+    my $object = eval { JSON::MaybeXS->decode_json($value) };
+    Fatal("Unable to decode JSON string '$value': $@") unless $object;
+    return $object;
   }
 
   my $comment = 0;
   my $unescape = 0;
   my $out = '';
-  my @chars = split( //, $value );
+  my @chars = split(//, $value);
   for ( my $i = 0; $i < @chars; $i++ ) {
     if ( !$comment ) {
       if ( $chars[$i] eq ':' ) {
@@ -526,9 +526,9 @@ sub jsonDecode {
   $out =~ s/`/'/g;
   $out =~ s/qx/qq/g;
   ( $out ) = $out =~ m/^(\{.+\})$/; # Detaint and check it's a valid object syntax
-    my $result = eval $out;
-  Fatal( $@ ) if ( $@ );
-  return( $result );
+  my $result = eval $out;
+  Fatal($@) if $@;
+  return $result;
 }
 
 1;

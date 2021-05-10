@@ -100,14 +100,6 @@ sub open {
   } # end if $res->status_line() eq '401 Unauthorized'
 } # end sub open
 
-sub printMsg {
-  my $self = shift;
-  my $msg = shift;
-  my $msg_len = length($msg);
-
-  Debug($msg.'['.$msg_len.']');
-}
-
 sub sendCmd {
 
   # This routine is used for all moving, which are all GET commands...

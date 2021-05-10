@@ -98,11 +98,13 @@ sub Execute {
   my $sql = $self->Sql(undef);
 
   if ( $self->{HasDiskPercent} ) {
-		my $disk_percent = getDiskPercent($$self{Storage} ? $$self{Storage}->Path() : ());
+    $$self{Storage} = ZoneMinder::Storage->find_one() if ! $$self{Storage};
+		my $disk_percent = getDiskPercent($$self{Storage} ? $$self{Storage}->Path() : $Config{ZM_DIR_EVENTS});
     $sql =~ s/zmDiskPercent/$disk_percent/g;
   }
   if ( $self->{HasDiskBlocks} ) {
-    my $disk_blocks = getDiskBlocks();
+    $$self{Storage} = ZoneMinder::Storage->find_one() if ! $$self{Storage};
+		my $disk_blocks = getDiskBlocks($$self{Storage} ? $$self{Storage}->Path() : $Config{ZM_DIR_EVENTS});
     $sql =~ s/zmDiskBlocks/$disk_blocks/g;
   }
   if ( $self->{HasSystemLoad} ) {
@@ -131,8 +133,14 @@ sub Execute {
 sub Sql {
   my $self = shift;
   $$self{Sql} = shift if @_;
-  if ( ! $$self{Sql} ) {
-    my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query});
+  if ( !$$self{Sql} ) {
+    $self->{Sql} = '';
+    if ( !$self->{Query_json} ) {
+      Warning('No query in Filter!');
+      return;
+    }
+
+    my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query_json});
     my $sql = 'SELECT E.*,
        unix_timestamp(E.StartTime) as Time,
        M.Name as MonitorName,
@@ -142,7 +150,6 @@ sub Sql {
          INNER JOIN Monitors as M on M.Id = E.MonitorId
          LEFT JOIN Storage as S on S.Id = E.StorageId
          ';
-    $self->{Sql} = '';
 
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
@@ -189,11 +196,6 @@ sub Sql {
             $self->{Sql} .= 'extract( hour_second from E.EndTime )';
           } elsif ( $term->{attr} eq 'EndWeekday' ) {
             $self->{Sql} .= "weekday( E.EndTime )";
-
-# 
-          } elsif ( $term->{attr} eq 'DiskSpace' ) {
-            $self->{Sql} .= 'E.DiskSpace';
-            $self->{HasDiskPercent} = !undef;
           } elsif ( $term->{attr} eq 'DiskPercent' ) {
             $self->{Sql} .= 'zmDiskPercent';
             $self->{HasDiskPercent} = !undef;
@@ -231,6 +233,11 @@ sub Sql {
                 || $term->{attr} eq 'Cause'
                 || $term->{attr} eq 'Notes'
                 ) {
+                if ( $term->{op} eq 'LIKE'
+                || $term->{op} eq 'NOT LIKE'
+                ) {
+                $temp_value = '%'.$temp_value.'%' if $temp_value !~ /%/;
+                }
               $value = "'$temp_value'";
             } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
               if ( $temp_value eq 'NULL' ) {
@@ -271,25 +278,30 @@ sub Sql {
             push @value_list, $value;
           } # end foreach temp_value
         } # end if has an attr
+
         if ( $term->{op} ) {
           if ( $term->{op} eq '=~' ) {
-            $self->{Sql} .= " regexp $value";
+            $self->{Sql} .= ' regexp '.$value;
           } elsif ( $term->{op} eq '!~' ) {
-            $self->{Sql} .= " not regexp $value";
+            $self->{Sql} .= ' not regexp '.$value;
           } elsif ( $term->{op} eq 'IS' ) {
             if ( $value eq 'Odd' ) {
               $self->{Sql} .= ' % 2 = 1';
             } elsif ( $value eq 'Even' ) {
               $self->{Sql} .= ' % 2 = 0';
             } else {
-              $self->{Sql} .= " IS $value";
+              $self->{Sql} .= ' IS '.$value;
             }
           } elsif ( $term->{op} eq 'IS NOT' ) {
-            $self->{Sql} .= " IS NOT $value";
-          } elsif ( $term->{op} eq '=[]' ) {
+            $self->{Sql} .= ' IS NOT '.$value;
+          } elsif ( $term->{op} eq '=[]' or $term->{op} eq 'IN' ) {
             $self->{Sql} .= ' IN ('.join(',', @value_list).')';
-          } elsif ( $term->{op} eq '!~' ) {
+          } elsif ( $term->{op} eq '![]' ) {
             $self->{Sql} .= ' NOT IN ('.join(',', @value_list).')';
+          } elsif ( $term->{op} eq 'LIKE' ) {
+            $self->{Sql} .= ' LIKE '.$value;
+          } elsif ( $term->{op} eq 'NOT LIKE' ) {
+            $self->{Sql} .= ' NOT LIKE '.$value;
           } else {
             $self->{Sql} .= ' '.$term->{op}.' '.$value;
           }
@@ -367,7 +379,7 @@ sub Sql {
       $sort_column = 'E.StartTime';
     }
     my $sort_order = $filter_expr->{sort_asc} ? 'ASC' : 'DESC';
-    $sql .= ' ORDER BY '.$sort_column." ".$sort_order;
+    $sql .= ' ORDER BY '.$sort_column.' '.$sort_order;
     if ( $filter_expr->{limit} ) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }
@@ -387,7 +399,7 @@ sub getDiskPercent {
 }
 
 sub getDiskBlocks {
-  my $command = 'df .';
+  my $command = 'df ' . ($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms ) {

@@ -1,4 +1,4 @@
-#!/usr/bin/pkexec /usr/bin/perl
+#!/usr/bin/pkexec @PERL_EXECUTABLE@
 #
 # ==========================================================================
 #

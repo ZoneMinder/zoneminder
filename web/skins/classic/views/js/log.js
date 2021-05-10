@@ -1,5 +1,12 @@
-var logParms = "view=request&request=log&task=query";
-var logReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse} );
+var logParms = 'view=request&request=log&task=query';
+var logReq = new Request.JSON( {
+  url: thisUrl,
+  method: 'post',
+  timeout: AJAX_TIMEOUT,
+  link: 'cancel',
+  onSuccess: logResponse
+} );
+
 var logTimer = undefined;
 var logTable = undefined;
 
@@ -148,7 +155,7 @@ function logResponse( respObj ) {
 
 function refreshLog() {
   options = {};
-  logTable.empty();
+  $j('#logTable tbody').empty();
   firstLoad = true;
   maxLogTime = 0;
   minLogTime = 0;
@@ -163,15 +170,32 @@ function expandLog() {
   fetchPrevLogs();
 }
 
+function clearResponse() {
+  refreshLog();
+}
+function clearError() {
+}
 function clearLog() {
   logReq.cancel();
-  minLogTime = 0;
-  logCount = 0;
-  logTimeout = maxSampleTime;
-  displayLimit = initialDisplayLimit;
-  $('displayLogs').set('text', logCount);
-  options = {};
-  logTable.empty();
+
+  var clearReq = new Request.JSON({
+    url: thisUrl,
+    method: 'post',
+    timeout: AJAX_TIMEOUT,
+    link: 'cancel',
+    onSuccess: clearResponse
+  });
+  var clearParms = 'view=request&request=log&task=delete';
+  clearParms += "&minTime="+minLogTime;
+  clearParms += "&maxTime="+maxLogTime;
+  var filters =['Component', 'ServerId', 'Pid', 'Level', 'File', 'Line'];
+  filters.forEach(function(filter) {
+    var f = $j('#filter\\['+filter+'\\]');
+    if ( f.val() ) {
+      clearParms += '&'+encodeURIComponent('filter[' + filter + ']')+'='+encodeURIComponent(f.val());
+    }
+  });
+  clearReq.send(clearParms);
 }
 
 function filterLog() {
@@ -179,9 +203,9 @@ function filterLog() {
   filterFields.each(
       function( field ) {
         var selector = $('filter['+field+']');
-        if ( ! selector ) {
+        if ( !selector ) {
           if ( window.console && window.console.log ) {
-            window.console.log("No selector found for " + field );
+            window.console.log('No selector found for ' + field);
           }
           return;
         }
@@ -215,23 +239,31 @@ function exportResponse( response ) {
 
 function exportFail( request ) {
   $('exportLog').unspin();
-  $('exportErrorText').set('text', request.status+" / "+request.statusText );
+  $('exportErrorText').set('text', request.status+' / '+request.statusText);
   $('exportError').show();
-  Error( "Export request failed: "+request.status+" / "+request.statusText );
+  Error('Export request failed: '+request.status+' / '+request.statusText);
 }
 
 function exportRequest() {
   var form = $('exportForm');
-  $('exportErrorText').set('text', "" );
+  $('exportErrorText').set('text', '');
   $('exportError').hide();
   if ( form.validate() ) {
+    var exportReq = new Request.JSON({
+      url: thisUrl,
+      method: 'post',
+      link: 'cancel',
+      onSuccess: exportResponse,
+      onFailure: exportFail
+    });
     var exportParms = "view=request&request=log&task=export";
-    var exportReq = new Request.JSON( {url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail} );
     var selection = form.getElement('input[name=selector]:checked').get('value');
     if ( selection == 'filter' || selection == 'current' ) {
       $$('#filters select').each(
           function( select ) {
-            exportParms += "&"+select.get('id')+"="+select.get('value');
+            if ( select.get('value') ) {
+              exportParms += "&"+select.get('id')+"="+select.get('value');
+            }
           }
       );
     }
@@ -239,13 +271,14 @@ function exportRequest() {
       var tbody = $(logTable).getElement( 'tbody' );
       var rows = tbody.getElements( 'tr' );
       if ( rows ) {
+        // Need to convert this to TimeKey
         var minTime = rows[0].getElement('td').get('text');
         exportParms += "&minTime="+encodeURIComponent(minTime);
         var maxTime = rows[rows.length-1].getElement('td').get('text');
         exportParms += "&maxTime="+encodeURIComponent(maxTime);
       }
     }
-    exportReq.send( exportParms+"&"+form.toQueryString() );
+    exportReq.send(exportParms+"&"+form.toQueryString());
     $('exportLog').spin();
   }
 }
@@ -254,9 +287,9 @@ function updateFilterSelectors() {
   Object.each(options,
       function( values, key ) {
         var selector = $('filter['+key+']');
-        if ( ! selector ) {
+        if ( !selector ) {
           if ( window.console && window.console.log ) {
-            window.console.log("No selector found for " + key );
+            window.console.log('No selector found for ' + key);
           }
           return;
         }
@@ -300,12 +333,12 @@ function initPage() {
       }
   );
   logTable.addEvent( 'sort', function( tbody, index ) {
-    var header = tbody.getParent( 'table' ).getElement( 'thead' );
-    var columns = header.getElement( 'tr' ).getElements( 'th' );
+    var header = tbody.getParent('table').getElement('thead');
+    var columns = header.getElement('tr').getElements('th');
     var column = columns[index];
-    sortReversed = column.hasClass( 'table-th-sort-rev' );
+    sortReversed = column.hasClass('table-th-sort-rev');
     if ( logCount > displayLimit ) {
-      var rows = tbody.getElements( 'tr' );
+      var rows = tbody.getElements('tr');
       var startIndex;
       if ( sortReversed ) {
         startIndex = displayLimit;
@@ -322,12 +355,12 @@ function initPage() {
   );
   exportFormValidator = new Form.Validator.Inline($('exportForm'), {
     useTitles: true,
-    warningPrefix: "",
-    errorPrefix: ""
+    warningPrefix: '',
+    errorPrefix: ''
   });
-  new Asset.css( "css/spinner.css" );
+  new Asset.css('css/spinner.css');
   fetchNextLogs();
 }
 
 // Kick everything off
-window.addEventListener( 'DOMContentLoaded', initPage );
+window.addEventListener('DOMContentLoaded', initPage);

@@ -1,0 +1,14 @@
+# Depends: policykit-1
+unusual-interpreter usr/bin/zmsystemctl.pl #!/usr/bin/pkexec
+
+# Intentionally not others-readable, #637685.
+non-standard-file-perm etc/zm/zm.conf 0640 != 0644
+
+# Bundled Cake PHP framework, not intended for direct execution:
+script-not-executable usr/share/zoneminder/www/api/*
+
+# Annoying but seems to be too much troubles to fix; should be fixed upstream:
+script-with-language-extension usr/bin/*.pl
+
+# dh-linktree:
+package-contains-broken-symlink usr/share/zoneminder/www/api/lib/Cake/*

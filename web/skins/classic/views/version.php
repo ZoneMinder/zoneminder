@@ -33,6 +33,7 @@ if ( verNum(ZM_DYN_CURR_VERSION) != verNum(ZM_DYN_LAST_VERSION) and canEdit('Sys
     'hour'   => translate('VersionRemindHour'),
     'day'    => translate('VersionRemindDay'),
     'week'   => translate('VersionRemindWeek'),
+    'month'  => translate('VersionRemindMonth'),
     'never'  => translate('VersionRemindNever')
   ) );
 }
@@ -64,16 +65,16 @@ if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) ) {
 } else {
 ?>
       <form name="contentForm" id="contentForm" method="get" action="?">
-        <input type="hidden" name="view" value="none"/>
+        <input type="hidden" name="view" value="version"/>
         <input type="hidden" name="action" value="version"/>
         <p><?php echo translate('UpdateAvailable') ?></p>
         <p><?php echo sprintf( $CLANG['LatestRelease'], ZM_DYN_LAST_VERSION, ZM_VERSION ) ?></p>
-        <p><?php echo buildSelect( "option", $options ); ?></p>
+        <p><?php echo buildSelect('option', $options); ?></p>
         <div id="contentButtons">
 <?php
   if ( canEdit('System') ) {
 ?>
-          <button type="submit" data-on-click-this="submitForm" value="Apply"><?php echo translate('Apply') ?></button>
+          <button type="submit"><?php echo translate('Apply') ?></button>
 <?php
   }
 }

@@ -101,7 +101,7 @@ Certain commands in these instructions require root privileges while other comma
 
 Set Up Your Environment
 ***********************
-Before you begin, set up an rpmbuild environment by following `this guide <http://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers.
+Before you begin, set up an rpmbuild environment by following `this guide <https://wiki.centos.org/HowTos/SetupRpmBuildEnvironment>`_ by the CentOS developers.
 
 In addition, make sure RPM Fusion is enabled as described in the previous section `How to Install ZoneMinder`_.  
 

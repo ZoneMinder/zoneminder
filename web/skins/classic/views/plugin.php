@@ -19,23 +19,21 @@
 //
 
 
-if ( !canView( 'Monitors' ) )
-{
-    $view = "error";
-    return;
+if ( !canView('Monitors') ) {
+  $view = 'error';
+  return;
 }
 
 $mid = validInt($_REQUEST['mid']);
 $zid = !empty($_REQUEST['zid'])?validInt($_REQUEST['zid']):0;
 
-
 if ( $zid > 0 ) {
-   $newZone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id = ?', NULL, array( $mid, $zid) );
+   $newZone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId = ? AND Id = ?', NULL, array($mid, $zid));
 } else {
-   $view = "error";
+   $view = 'error';
    return;
 }
-$monitor = dbFetchMonitor ( $mid );
+$monitor = ZM\Monitor::find_one($mid);
 // Only allow certain filename characters (not including a period) to prevent directory traversal.
 $plugin = preg_replace('/[^-a-zA-Z0-9]/', '', $_REQUEST['pl']);
 
@@ -104,7 +102,7 @@ function pLang($name)
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo translate('Plugin') ?> <?php echo validHtmlStr($plugin) ?></h2>
+      <h2><?php echo translate('Monitor') ?> <?php echo $monitor->Name() ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo translate('Plugin') ?> <?php echo validHtmlStr($plugin) ?></h2>
     </div>
     <div id="content">
       <form name="pluginForm" id="pluginForm" method="post" action="?">
@@ -115,16 +113,14 @@ function pLang($name)
         <input type="hidden" name="pl" value="<?php echo validHtmlStr($plugin) ?>"/>
 
         <div id="settingsPanel">
-          <table id="pluginSettings" cellspacing="0">
+          <table id="pluginSettings">
             <tbody>
 <?php
-foreach($pluginOptions as $name => $popt)
-{
-   ?>
+foreach($pluginOptions as $name => $popt) {
+?>
             <tr><th scope="row"><?php echo pLang($name) ?></th>     
    <?php
-   switch($popt['Type'])
-   {
+   switch($popt['Type']) {
       case "checkbox":
          echo "CHECKBOX";
          break;
@@ -134,8 +130,7 @@ foreach($pluginOptions as $name => $popt)
                <td colspan="2">
                   <select name="pluginOpt[<?php echo $popt['Name'] ?>]" id="pluginOpt[<?php echo $popt['Name'] ?>]">
             <?php
-            foreach($pchoices as $pchoice)
-            {
+            foreach($pchoices as $pchoice) {
                $psel="";
                if($popt['Value']==$pchoice)
                   $psel="selected";

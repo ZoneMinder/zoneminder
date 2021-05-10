@@ -22,14 +22,10 @@ What's New
    switching between httpd <-> nginx requires manaully changing ownership of
    all event folders and the php session folder after the change.
 
-4. If you have installed ZoneMinder from the FedBerry repositories, this build
-   of ZoneMinder has support for Raspberry Pi hardware acceleration when using
-   ffmpeg. Unforunately, there is a problem with the same hardware acceleration
-   when using libvlc. Consequently, libvlc support in this build of ZoneMinder
-   has been disabled until the problem is resolved. See the following bug
-   report for details: https://trac.videolan.org/vlc/ticket/18594
+4. The timezone must now be set from the ZoneMinder web console. See the
+   appropriate README, mentioned in the next step, for details.
 
-5. Continue on to the next README that corresponds to the chosen webserver:
+6. Continue on to the next README that corresponds to your chosen webserver:
 
      README.httpd - Follow these steps when using Apache
      README.nginx - Follow these steps when using Nginx

@@ -88,12 +88,13 @@ if ( isset($_REQUEST['filter']) ) {
       }
     }
   } # end if REQUEST[Filter]
+}
+if ( count($filter) ) {
   parseFilter($filter);
   # This is to enable the download button
-  session_start();
+  zm_session_start();
   $_SESSION['montageReviewFilter'] = $filter;
   session_write_close();
-  $filterQuery = $filter['query'];
 }
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
@@ -308,7 +309,7 @@ getBodyTopHTML();
 <?php
   // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
   foreach ( $monitors as $m ) {
-    echo '<canvas title="'.$m->Id().' ' .$m->Name().'" width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:1px solid ' . $m->WebColour() . '" monitor_id="'.$m->Id().'">No Canvas Support!!</canvas>
+    echo '<canvas title="'.$m->Id().' '.validHtmlStr($m->Name()).'" width="'.($m->Width() * $defaultScale).'" height="'.($m->Height() * $defaultScale).'" id="Monitor'.$m->Id().'" style="border:1px solid '.$m->WebColour().'" monitor_id="'.$m->Id().'">No Canvas Support!!</canvas>
 ';
   }
 ?>

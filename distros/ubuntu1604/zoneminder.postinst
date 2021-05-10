@@ -19,6 +19,10 @@ if [ "$1" = "configure" ]; then
     echo "The cgi module is not enabled in apache2.  I am enabling it using a2enmod cgi."
     a2enmod cgi
   fi
+  if [ ! -e "/etc/apache2/mods-enabled/rewrite.load" ] && [ "$(command -v a2enmod)" != "" ]; then
+    echo "The rewrite module is not enabled in apache2.  I am enabling it using a2enmod rewrite."
+    a2enmod rewrite
+  fi
 
   if [ "$ZM_DB_HOST" = "localhost" ]; then
 
@@ -61,11 +65,10 @@ if [ "$1" = "configure" ]; then
               exit 1;
             fi
             # This creates the user.
-            echo "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute  on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost identified by \"${ZM_DB_PASS}\";" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
-        else
-            echo "Updating permissions"
-            echo "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute  on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
+            echo "CREATE USER '${ZM_DB_USER}'@localhost IDENTIFIED BY '${ZM_DB_PASS}';" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
         fi
+        echo "Updating permissions"
+        echo "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute  on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
 
         zmupdate.pl --nointeractive
         zmupdate.pl --nointeractive -f

@@ -46,6 +46,10 @@ Linked Monitors
     This field allows you to select other monitors on your system that act as triggers for this monitor. So if you have a camera covering one aspect of your property you can force all cameras to record while that camera detects motion or other events. You can either directly enter a comma separated list of monitor ids or click on ‘Select’ to choose a selection. Be very careful not to create circular dependencies with this feature however you will have infinitely persisting alarms which is almost certainly not what you want! To unlink monitors you can ctrl-click. 
 
 Maximum FPS 
+
+    .. warning::
+      Unless you know what you are doing, please leave this field empty, especially if you are configuring a network camera. More often than not, putting a value here adversely affects recording.
+
     On some occasions you may have one or more cameras capable of high capture rates but find that you generally do not require this performance at all times and would prefer to lighten the load on your server. This option permits you to limit the maximum capture rate to a specified value. This may allow you to have more cameras supported on your system by reducing the CPU load or to allocate video bandwidth unevenly between cameras sharing the same video device. This value is only a rough guide and the lower the value you set the less close the actual FPS may approach it especially on shared devices where it can be difficult to synchronise two or more different capture rates precisely. This option controls the maximum FPS in the circumstance where no alarm is occurring only. 
     
     This feature is limited and will only work under the following conditions: 
@@ -56,6 +60,11 @@ Maximum FPS
     Using this field for video streams from IP cameras will cause undesirable results when the value is equal to or less than the frame rate from the camera. Note that placing a value higher than the camera's frame rate is allowed and can help prevent cpu spikes when communication from the camera is lost.
     
 Alarm Maximum FPS 
+
+    .. warning::
+          Unless you know what you are doing, please leave this field empty, especially if you are configuring a network camera. More often than not, putting a value here adversely affects recording.
+      
+
     If you have specified a Maximum FPS it may be that you don’t want this limitation to apply when your monitor is recording motion or other event. This setting allows you to override the Maximum FPS value if this circumstance occurs. As with the Maximum FPS setting leaving this blank implies no limit so if you have set a maximum fps in the previous option then when an alarm occurs this limit would be ignored and ZoneMinder would capture as fast as possible for the duration of the alarm, returning to the limited value after the alarm has concluded. Equally you could set this to the same, or higher (or even lower) value than Maximum FPS for more precise control over the capture rate in the event of an alarm. 
     
     **IMPORTANT:** This field is subject to the same limitations as the Maximum FPS field. Ignoring these limitations will produce undesriable results.
@@ -71,15 +80,15 @@ Source Tab
 
 FFmpeg
 ^^^^^^
-    This is the recommended source type for most modern ip cameras.
+    This is the **recommended** source type for most modern ip cameras.
 
 Source Path 
     Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
 
         * Check the documentation that came with your camera
-        * Look for your camera in the hardware compatibilty list in the wiki http://wiki.zoneminder.com/Hardware_Compatibility_List
+        * Look for your camera in the hardware compatibilty list in the `hardware compatibility wiki <https://wiki.zoneminder.com/Hardware_Compatibility_List>`__
         * Try ZoneMinder's new ONVIF probe feature
-        * Download and install the ONVIF Device Manager onto a Windows machine https://sourceforge.net/projects/onvifdm/
+        * Download and install the `ONVIF Device Manager <https://sourceforge.net/projects/onvifdm/>`__ onto a Windows machine 
         * Use Google to find third party sites, such as ispy, which document this information
 Source Colours 
     Specify the amount of colours in the captured image. 32 bit is the preferred choice here. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
@@ -121,7 +130,7 @@ Remote Protocol
 Remote Method
     When HTTP is the Remote Protocol, your choices are Simple and Regexp. Most should choose Simple. When RTSP is the Remote Protocol, your choices are RTP/Unicast, RTP/Multicast, RTP/RTSP, RTP,RTSP,HTTP. Try each of these to determine which works with your camera. Most cameras will use either RTP/Unicast (UDP) or RTP/RTSP (TCP). 
 Remote Host/Port/Path 
-    Use these fields to enter the full URL of the camera. Basically if your camera is at http://camserver.home.net:8192/cameras/camera1.jpg then these fields will be camserver.home.net, 8192 and /cameras/camera1.jpg respectively. Leave the port at 80 if there is no special port required. If you require authentication to access your camera then add this onto the host name in the form <username>:<password>@<hostname>.com. This will usually be 32 or 24 bit colour even if the image looks black and white. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. 
+    Use these fields to enter the full URL of the camera. Basically if your camera is at ``http://camserver.home.net:8192/cameras/camera1.jpg`` then these fields will be camserver.home.net, 8192 and /cameras/camera1.jpg respectively. Leave the port at 80 if there is no special port required. If you require authentication to access your camera then add this onto the host name in the form <username>:<password>@<hostname>.com. This will usually be 32 or 24 bit colour even if the image looks black and white. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. 
 Remote Image Colours 
     Specify the amount of colours in the captured image. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
 Capture Width/Height 
@@ -271,3 +280,7 @@ Default Scale
     If your monitor has been defined with a particularly large or small image size then you can choose a default scale here with which to view the monitor so it is easier or more visible from the web interface. 
 Web Colour 
     Some elements of ZoneMinder now use colours to identify monitors on certain views. You can select which colour is used for each monitor here. Any specification that is valid for HTML colours is valid here, e.g. ‘red’ or ‘#ff0000’. A small swatch next to the input box displays the colour you have chosen. 
+Embed EXIF data into image:
+    Embeds EXIF data into each jpeg frame
+    
+    .. todo:: what about mp4s?

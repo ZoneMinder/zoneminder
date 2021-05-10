@@ -25,8 +25,7 @@
 //
 // Class used for storing an x,y pair, i.e. a coordinate
 //
-class Coord
-{
+class Coord {
 private:
   int x, y;
 
@@ -44,8 +43,7 @@ public:
   inline int &Y() { return( y ); }
   inline const int &Y() const { return( y ); }
 
-  inline static Coord Range( const Coord &coord1, const Coord &coord2 )
-  {
+  inline static Coord Range( const Coord &coord1, const Coord &coord2 ) {
     Coord result( (coord1.x-coord2.x)+1, (coord1.y-coord2.y)+1 );
     return( result );
   }

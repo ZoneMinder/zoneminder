@@ -1,18 +1,33 @@
 Logging
 =======
 
-Most components of ZoneMinder can emit informational, warning, error and debug messages in a standard format. These messages can be logged in one or more locations. By default all messages produced by scripts are logged in <script name>.log files which are placed in the directory defined by the ZM_PATH_LOGS configuration variable. This is initially defined as ‘/tmp’ though it can be overridden (see the Options and Users section above). So for example, the zmpkg.pl script will output messages to /tmp/zmpkg.pl, an example of these messages is::
+.. note::
+  Understanding how logging works in ZoneMinder is key to being able to isolate/pinpoint issues well. Please refer to :doc:`/userguide/options/options_logging` to read about how to customize logging.
 
-  03/01/06 13:46:00.166046 zmpkg[11148].INF [Command: start]
+Most components of ZoneMinder can emit informational, warning, error and debug messages in a standard format. These messages can be logged in one or more locations. By default all messages produced by scripts are logged in <script name>.log files which are placed in the directory defined by the ``ZM_PATH_LOGS`` configuration variable. This is initially defined as ``/var/log/zm`` (on debian based systems) though it can be overridden to a custom path (the path is usually defined in ``/etc/zm/conf.d/01-system-paths.conf``, but to override it, you should create your own config file, not overwrite this file). So for example, the ``zmdc.pl`` script will output messages to ``/var/log/zmdc.log``, an example of these messages is::
+
+  10/24/2019 08:01:19.291513 zmdc[6414].INF [ZMServer:408] [Starting pending process, zma -m 2]
+  10/24/2019 08:01:19.296575 zmdc[6414].INF [ZMServer:408] ['zma -m 2' starting at 19/10/24 08:01:19, pid = 15740]
+  10/24/2019 08:01:19.296927 zmdc[15740].INF [ZMServer:408] ['zma -m 2' started at 19/10/24 08:01:19]
 
 where the first part refers to the date and time of the entry, the next section is the name (or an abbreviated version) of the script, followed by the process id in square brackets, a severity code (INF, WAR, ERR or DBG) and the debug text. If you change the location of the log directory, ensure it refers to an existing directory which the web user has permissions to write to. Also ensure that no logs are present in that directory the web user does not have permission to open. This can happen if you run commands or scripts as the root user for testing at some point. If this occurs then subsequent non-privileged runs will fails due to being unable to open the log files.
 
-As well as specific script logging above, information, warning and error messages are logged via the system syslog service. This is a standard component on Linux systems and allows logging of all sorts of messages in a standard way and using a standard format. On most systems, unless otherwise configured, messages produced by ZoneMinder will go to the /var/log/messages file. On some distributions they may end up in another file, but usually still in /var/log. Messages in this file are similar to those in the script log files but differ slightly. For example the above event in the system log file looks like::
+As well as specific script logging above, information, warning and error messages are logged via the system syslog service. This is a standard component on Linux systems and allows logging of all sorts of messages in a standard way and using a standard format. On most systems, unless otherwise configured, messages produced by ZoneMinder will go to the ``/var/log/messages`` or ``/var/log/syslog`` file. On some distributions they may end up in another file, but usually still in /var/log. Messages in this file are similar to those in the script log files but differ slightly. For example the above event in the system log file looks like::
  
   Jan  3 13:46:00 shuttle52 zmpkg[11148]: INF [Command: start]
 
 where you can see that the date is formatted differently (and only to 1 second precision) and there is an additional field for the hostname (as syslog can operate over a network). As well as ZoneMinder entries in this file you may also see entries from various other system components. You should ensure that your syslogd daemon is running for syslog messages to be correctly handled.
 
+
+Customizing logging properly in ZoneMinder
+-------------------------------------------
+
+.. todo:
+  Is this all valid anymore ?
+
+
+Other Notes
+-------------
 A number of users have asked how to suppress or redirect ZoneMinder messages that are written to this file. This most often occurs due to not wanting other system messages to be overwhelmed and obscured by the ZoneMinder produced ones (which can be quite frequent by default). In order to control syslog messages you need to locate and edit the syslog.conf file on your system. This will often be in the /etc directory. This file allows configuration of syslog so that certain classes and categories of messages are routed to different files or highlighted to a console, or just ignored. Full details of the format of this file is outside the scope of this document (typing ‘man syslog.conf’ will give you more information) but the most often requested changes are easy to implement.
 
 The syslog service uses the concept of priorities and facilities where the former refers to the importance of the message and the latter refers to that part of the system from which it originated. Standard priorities include ‘info’, ‘warning’, ‘err’ and ‘debug’ and ZoneMinder uses these priorities when generating the corresponding class of message. Standard facilities include ‘mail’, ‘cron’ and ‘security’ etc but as well this, there are eight ‘local’ facilities that can be used by machine specific message generators. ZoneMinder produces it’s messages via the ‘local1’ facility.

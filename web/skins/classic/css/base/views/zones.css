@@ -18,3 +18,20 @@
 	stroke: #0000FF;
 	fill: #0000FF;
 }
+
+#zones, .ZonesImage {
+	float: left;
+}
+#zones {
+  width: 500px;
+}
+.ZonesImage img {
+top:0;
+left:0;
+position: relative;
+}
+
+#content {
+width: 100%;
+position: relative;
+}

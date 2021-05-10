@@ -1,9 +1,14 @@
 Options - Config
 ----------------
+The config screen allows the admin to change various configuration parameters related to image capturing and storage.
+
+A partial screenshot is shown below:
 
 .. image:: images/Options_Config.png
 
 TIMESTAMP_ON_CAPTURE - ZoneMinder can add a timestamp to images in two ways. The default method, when this option is set, is that each image is timestamped immediately when captured and so the image held in memory is marked right away. The second method does not timestamp the images until they are either saved as part of an event or accessed over the web. The timestamp used in both methods will contain the same time as this is preserved along with the image. The first method ensures that an image is timestamped regardless of any other circumstances but will result in all images being timestamped even those never saved or viewed. The second method necessitates that saved images are copied before being saved otherwise two timestamps perhaps at different scales may be applied. This has the (perhaps) desirable side effect that the timestamp is always applied at the same resolution so an image that has scaling applied will still have a legible and correctly scaled timestamp.
+
+TIMESTAMP_CODE_CHAR - There are a few codes one can use to tell ZoneMinder to insert data into the timestamp of each image. Traditionally, the percent (%) character has been used to identify these codes since the current character codes do not conflict with the strftime codes, which can also be used in the timestamp. While this works well for Linux, this does not work well for BSD operating systems. Changing the default character to something else, such as an exclamation point (!), resolves the issue. Note this only affects the timestamp codes built into ZoneMinder. It has no effect on the family of strftime codes one can use.
 
 CPU_EXTENSIONS - When advanced processor extensions such as SSE2 or SSSE3 are available, ZoneMinder can use them, which should increase performance and reduce system load. Enabling this option on processors that do not support the advanced processors extensions used by ZoneMinder is harmless and will have no effect.
 
@@ -15,7 +20,7 @@ MAX_SUSPEND_TIME - ZoneMinder allows monitors to have motion detection to be sus
 
 STRICT_VIDEO_CONFIG - With some video devices errors can be reported in setting the various video attributes when in fact the operation was successful. Switching this option off will still allow these errors to be reported but will not cause them to kill the video capture daemon. Note however that doing this will cause all errors to be ignored including those which are genuine and which may cause the video capture to not function correctly. Use this option with caution.
 
-SIGNAL_CHECK_POINTS - For locally attached video cameras ZoneMinder can check for signal loss by looking at a number of random points on each captured image. If all of these points are set to the same fixed colour then the camera is assumed to have lost signal. When this happens any open events are closed and a short one frame signal loss event is generated, as is another when the signal returns. This option defines how many points on each image to check. Note that this is a maximum, any points found to not have the check colour will abort any further checks so in most cases on a couple of points will actually be checked. Network and file based cameras are never checked.
+LD_PRELOAD - Some older cameras require the use of the v4l1 compat library. This setting allows the setting of the path to the library, so that it can be loaded by zmdc.pl before launching zmc.
 
 V4L_MULTI_BUFFER - Performance when using Video 4 Linux devices is usually best if multiple buffers are used allowing the next image to be captured while the previous one is being processed. If you have multiple devices on a card sharing one input that requires switching then this approach can sometimes cause frames from one source to be mixed up with frames from another. Switching this option off prevents multi buffering resulting in slower but more stable image capture. This option is ignored for non-local cameras or if only one input is present on a capture chip. This option addresses a similar problem to the ZM_CAPTURES_PER_FRAME option and you should normally change the value of only one of the options at a time.  If you have different capture cards that need different values you can ovveride them in each individual monitor on the source page.
 

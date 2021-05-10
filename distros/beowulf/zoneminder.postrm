@@ -1,0 +1,14 @@
+#! /bin/sh
+
+set -e
+
+if [ "$1" = "purge" ]; then
+    echo "
+Reminder: to completely remove \"zoneminder\" it may be necessary
+ * to delete database using the following sample command:
+        sudo mysqladmin --defaults-file=/etc/mysql/debian.cnf -f drop zm
+ * to delete remaining data files in "/var/cache/zoneminder".
+"
+fi
+
+#DEBHELPER#

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -wT
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -88,13 +88,13 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 logInit();
 logSetSignal();
 
-Info( "Trigger daemon starting" );
+Info('Trigger daemon starting');
 
 my $dbh = zmDbConnect();
 
 my $base_rin = '';
 foreach my $connection ( @connections ) {
-  Info( "Opening connection '$connection->{name}'" );
+  Info("Opening connection '$connection->{name}'");
   $connection->open();
 }
 
@@ -118,32 +118,32 @@ my $win = $rin;
 my $ein = $win;
 my $timeout = SELECT_TIMEOUT;
 my %actions;
-while( 1 ) {
+while (1) {
   $rin = $base_rin;
 # Add the file descriptors of any spawned connections
-  foreach my $fileno ( keys(%spawned_connections) ) {
-    vec( $rin, $fileno, 1 ) = 1;
+  foreach my $fileno ( keys %spawned_connections ) {
+    vec($rin, $fileno, 1) = 1;
   }
 
-  my $nfound = select( my $rout = $rin, undef, my $eout = $ein, $timeout );
+  my $nfound = select(my $rout = $rin, undef, my $eout = $ein, $timeout);
   if ( $nfound > 0 ) {
-    Debug( "Got input from $nfound connections" );
+    Debug("Got input from $nfound connections");
     foreach my $connection ( @in_select_connections ) {
-      if ( vec( $rout, $connection->fileno(), 1 ) ) {
-        Debug( 'Got input from connection '
+      if ( vec($rout, $connection->fileno(), 1) ) {
+        Debug('Got input from connection '
             .$connection->name()
             .' ('
             .$connection->fileno()
-            .")"
+            .')'
             );
         if ( $connection->spawns() ) {
           my $new_connection = $connection->accept();
           $spawned_connections{$new_connection->fileno()} = $new_connection;
-          Debug( 'Added new spawned connection ('
+          Debug('Added new spawned connection ('
               .$new_connection->fileno()
               .'), '
               .int(keys(%spawned_connections))
-              ." spawned connections"
+              .' spawned connections'
               );
         } else {
           my $messages = $connection->getMessages();
@@ -152,30 +152,30 @@ while( 1 ) {
               handleMessage( $connection, $message );
             }
           }
-        }
-      }
+        } # end if connection->spawns
+      } # end if vec
     } # end foreach connection
 
     foreach my $connection ( values(%spawned_connections) ) {
-      if ( vec( $rout, $connection->fileno(), 1 ) ) {
-        Debug( 'Got input from spawned connection '
+      if ( vec($rout, $connection->fileno(), 1) ) {
+        Debug('Got input from spawned connection '
             .$connection->name()
             .' ('
             .$connection->fileno()
-            .")"
+            .')'
             );
         my $messages = $connection->getMessages();
         if ( defined($messages) ) {
           foreach my $message ( @$messages ) {
-            handleMessage( $connection, $message );
+            handleMessage($connection, $message);
           }
         } else {
-          delete( $spawned_connections{$connection->fileno()} );
-          Debug( 'Removed spawned connection ('
+          delete $spawned_connections{$connection->fileno()};
+          Debug('Removed spawned connection ('
               .$connection->fileno()
               .'), '
               .int(keys(%spawned_connections))
-              ." spawned connections"
+              .' spawned connections'
               );
           $connection->close();
         }
@@ -185,7 +185,7 @@ while( 1 ) {
     if ( $! == EINTR ) {
 # Do nothing
     } else {
-      Fatal( "Can't select: $!" );
+      Fatal("Can't select: $!");
     }
   } # end if select returned activitiy
 
@@ -194,14 +194,14 @@ while( 1 ) {
     my $messages = $connection->getMessages();
     if ( defined($messages) ) {
       foreach my $message ( @$messages ) {
-        handleMessage( $connection, $message );
+        handleMessage($connection, $message);
       }
     }
   }
 
   # Check for alarms that might have happened
   my @out_messages;
-  foreach my $monitor ( values(%monitors) ) {
+  foreach my $monitor ( values %monitors ) {
 
     if ( ! zmMemVerify($monitor) ) {
       # Our attempt to verify the memory handle failed. We should reload the monitors.
@@ -225,7 +225,7 @@ while( 1 ) {
           || ($last_event != $monitor->{LastEvent})
          ) {
 # A new event
-        push( @out_messages, $monitor->{Id}."|on|".time()."|".$last_event );
+        push @out_messages, $monitor->{Id}.'|on|'.time().'|'.$last_event;
       } else {
  # The same one as last time, so ignore it
 # Do nothing
@@ -236,42 +236,43 @@ while( 1 ) {
         ($state == STATE_TAPE && $monitor->{LastState} != STATE_TAPE)
         ) {
 # Out of alarm state
-      push( @out_messages, $monitor->{Id}.'|off|'.time().'|'.$last_event );
+      push @out_messages, $monitor->{Id}.'|off|'.time().'|'.$last_event;
     } elsif (
         defined($monitor->{LastEvent})
         &&
         ($last_event != $monitor->{LastEvent})
         ) {
  # We've missed a whole event
-      push( @out_messages, $monitor->{Id}.'|on|'.time().'|'.$last_event );
-      push( @out_messages, $monitor->{Id}.'|off|'.time().'|'.$last_event );
+      push @out_messages, $monitor->{Id}.'|on|'.time().'|'.$last_event;
+      push @out_messages, $monitor->{Id}.'|off|'.time().'|'.$last_event;
     }
     $monitor->{LastState} = $state;
     $monitor->{LastEvent} = $last_event;
   } # end foreach monitor
+
   foreach my $connection ( @out_connections ) {
     if ( $connection->canWrite() ) {
-      $connection->putMessages( \@out_messages );
+      $connection->putMessages(\@out_messages);
     }
   }
-  foreach my $connection ( values(%spawned_connections) ) {
+
+  foreach my $connection ( values %spawned_connections ) {
     if ( $connection->canWrite() ) {
-      $connection->putMessages( \@out_messages );
+      $connection->putMessages(\@out_messages);
     }
   }
 
   if ( my @action_times = keys(%actions) ) {
-    Debug( "Checking for timed actions" );
+    Debug('Checking for timed actions');
     my $now = time();
     foreach my $action_time ( sort( grep { $_ < $now } @action_times ) ) {
-      Info( "Found actions expiring at $action_time" );
+      Info("Found " . scalar @{$actions{$action_time}} . "actions expiring at $action_time");
       foreach my $action ( @{$actions{$action_time}} ) {
         my $connection = $action->{connection};
-        my $message = $action->{message};
-        Info( "Found action '$message'" );
-        handleMessage( $connection, $message );
+        Info("Found action '$$action{message}'");
+        handleMessage($connection, $$action{message});
       }
-      delete( $actions{$action_time} );
+      delete $actions{$action_time};
     }
   } # end if have timed actions
 
@@ -280,15 +281,16 @@ while( 1 ) {
     my $messages = $connection->timedActions();
     if ( defined($messages) ) {
       foreach my $message ( @$messages ) {
-        handleMessage( $connection, $message );
+        handleMessage($connection, $message);
       }
     }
   }
-  foreach my $connection ( values(%spawned_connections) ) {
+
+  foreach my $connection ( values %spawned_connections ) {
     my $messages = $connection->timedActions();
     if ( defined($messages) ) {
       foreach my $message ( @$messages ) {
-        handleMessage( $connection, $message );
+        handleMessage($connection, $message);
       }
     }
   }
@@ -317,33 +319,33 @@ exit;
 sub loadMonitor {
   my $monitor = shift;
 
-  Debug( "Loading monitor $monitor" );
-  zmMemInvalidate( $monitor );
+  Debug("Loading monitor $monitor");
+  zmMemInvalidate($monitor);
 
-  if ( zmMemVerify( $monitor ) ) { # This will re-init shared memory
-    $monitor->{LastState} = zmGetMonitorState( $monitor );
-    $monitor->{LastEvent} = zmGetLastEvent( $monitor );
+  if ( zmMemVerify($monitor) ) { # This will re-init shared memory
+    $monitor->{LastState} = zmGetMonitorState($monitor);
+    $monitor->{LastEvent} = zmGetLastEvent($monitor);
   }
-}
+} # end sub loadMonitor
 
 sub loadMonitors {
-  Debug('Loading monitors');
   $monitor_reload_time = time();
 
   my %new_monitors = ();
 
-  my $sql = "SELECT * FROM Monitors
-    WHERE find_in_set( Function, 'Modect,Mocord,Nodect' )".
-    ( $Config{ZM_SERVER_ID} ? 'AND ServerId=?' : '' )
+  my $sql = 'SELECT * FROM `Monitors`
+    WHERE find_in_set( `Function`, \'Modect,Mocord,Nodect\' )'.
+    ( $Config{ZM_SERVER_ID} ? ' AND `ServerId`=?' : '' )
     ;
   my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
     or Fatal( "Can't execute: ".$sth->errstr() );
-  while( my $monitor = $sth->fetchrow_hashref() ) {
-    if ( zmMemVerify( $monitor ) ) { # This will re-init shared memory
-        $monitor->{LastState} = zmGetMonitorState( $monitor );
-        $monitor->{LastEvent} = zmGetLastEvent( $monitor );
+
+  while ( my $monitor = $sth->fetchrow_hashref() ) {
+    if ( zmMemVerify($monitor) ) { # This will re-init shared memory
+      $monitor->{LastState} = zmGetMonitorState($monitor);
+      $monitor->{LastEvent} = zmGetLastEvent($monitor);
     }
     $new_monitors{$monitor->{Id}} = $monitor;
   } # end while fetchrow
@@ -354,11 +356,16 @@ sub handleMessage {
   my $connection = shift;
   my $message = shift;
 
+  #  CUA  - Axis camera send the message quoted with"
+  #  CUA  - Also Axis camera cannot save the plus sign which
+  $message =~ s/^\"//g;
+  $message =~ s/\"$//g;
+
   my ( $id, $action, $score, $cause, $text, $showtext )
     = split( /\|/, $message );
-  $score = 0 if ( !defined($score) );
-  $cause = '' if ( !defined($cause) );
-  $text = '' if ( !defined($text) );
+  $score = 0 if !defined($score);
+  $cause = '' if !defined($cause);
+  $text = '' if !defined($text);
 
   my $monitor = $monitors{$id};
   if ( !$monitor ) {
@@ -367,10 +374,10 @@ sub handleMessage {
   }
   Debug("Found monitor for id '$id'");
 
-  next if ( !zmMemVerify($monitor) );
+  next if !zmMemVerify($monitor);
 
   Debug("Handling action '$action'");
-  if ( $action =~ /^(enable|disable)(?:\+(\d+))?$/ ) {
+  if ( $action =~ /^(enable|disable)(?:[\+ ](\d+))?$/ ) {
     my $state = $1;
     my $delay = $2;
     if ( $state eq 'enable' ) {
@@ -412,20 +419,20 @@ sub handleMessage {
         zmTriggerShowtext($monitor, $showtext) if defined($showtext);
         Info("Trigger '$trigger'");
 # Wait til it's finished
-        while( zmInAlarm($monitor)
+        while ( zmInAlarm($monitor)
             && ($last_event == zmGetLastEvent($monitor))
             ) {
 # Tenth of a second
           usleep(100000);
         }
         zmTriggerEventCancel($monitor);
-      }
+      } # end if delay or not
     } # end if trigger is on or off
-  } elsif( $action eq 'cancel' ) {
+  } elsif ( $action eq 'cancel' ) {
     zmTriggerEventCancel($monitor);
     zmTriggerShowtext($monitor, $showtext) if defined($showtext);
     Info('Cancelled event');
-  } elsif( $action eq 'show' ) {
+  } elsif ( $action eq 'show' ) {
     zmTriggerShowtext( $monitor, $showtext );
     Info("Updated show text to '$showtext'");
   } else {
@@ -439,11 +446,26 @@ sub handleDelay {
   my $action_text = shift;
 
   my $action_time = time()+$delay;
+
+  # Need to check and cancel previous actions. See issue #2619
+  foreach my $a_time ( keys %actions ) {
+    if ( $a_time <= $action_time ) {
+      for ( my $i = 0; $i < @{$actions{$a_time}}; $i ++ ) {
+        my $action = $actions{$a_time}[$i];
+        if ( $$action{message} eq $action_text ) {
+          Info("Found duplicate action '$$action{message}' at $a_time, cancelling it");
+          splice @{$actions{$a_time}}, $i, 1;
+        }
+      } # end foreach action
+      delete $actions{$a_time} if !@{$actions{$a_time}};
+    } # end if
+  } # end foreach action_time
+
   my $action_array = $actions{$action_time};
   if ( !$action_array ) {
     $action_array = $actions{$action_time} = [];
   }
-  push( @$action_array, { connection=>$connection, message=>$action_text } );
+  push @$action_array, { connection=>$connection, message=>$action_text };
   Debug("Added timed event '$action_text', expires at $action_time (+$delay secs)");
 }
 

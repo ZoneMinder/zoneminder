@@ -144,7 +144,7 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
 #if HAVE_DECL_MD5
   MD5((unsigned char*)ha1Data.c_str(), ha1Data.length(), md5buf);
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
-  gnutls_datum_t md5dataha1 = { (unsigned char*)ha1Data.c_str(), ha1Data.length() };
+  gnutls_datum_t md5dataha1 = { (unsigned char*)ha1Data.c_str(), (unsigned int)ha1Data.length() };
   gnutls_fingerprint( GNUTLS_DIG_MD5, &md5dataha1, md5buf, &md5len );
 #endif
   for ( unsigned int j = 0; j < md5len; j++ ) {
@@ -159,7 +159,7 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
 #if HAVE_DECL_MD5
   MD5((unsigned char*)ha2Data.c_str(), ha2Data.length(), md5buf );
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
-  gnutls_datum_t md5dataha2 = { (unsigned char*)ha2Data.c_str(), ha2Data.length() };
+  gnutls_datum_t md5dataha2 = { (unsigned char*)ha2Data.c_str(), (unsigned int)ha2Data.length() };
   gnutls_fingerprint( GNUTLS_DIG_MD5, &md5dataha2, md5buf, &md5len );
 #endif
   for ( unsigned int j = 0; j < md5len; j++ ) {
@@ -180,7 +180,7 @@ std::string Authenticator::computeDigestResponse(std::string &method, std::strin
 #if HAVE_DECL_MD5
   MD5((unsigned char*)digestData.c_str(), digestData.length(), md5buf);
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
-  gnutls_datum_t md5datadigest = { (unsigned char*)digestData.c_str(), digestData.length() };
+  gnutls_datum_t md5datadigest = { (unsigned char*)digestData.c_str(), (unsigned int)digestData.length() };
   gnutls_fingerprint( GNUTLS_DIG_MD5, &md5datadigest, md5buf, &md5len );
 #endif
   for ( unsigned int j = 0; j < md5len; j++ ) {

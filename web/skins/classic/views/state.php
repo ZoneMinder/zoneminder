@@ -24,7 +24,11 @@ if ( !canEdit('System') ) {
 }
 ?>
 <div id="modalState" class="modal fade">
-  <form class="form-horizontal" name="contentForm" id="contentForm" method="get" action="?view=state">
+  <form class="form-horizontal" name="contentForm" method="get" action="?view=state">
+    <input type="hidden" name="view" value="state"/>
+    <input type="hidden" name="action" value="state"/>
+    <input type="hidden" name="apply" value="1"/>
+
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -32,9 +36,6 @@ if ( !canEdit('System') ) {
           <h2 class="modal-title"><?php echo translate('RunState') ?></h2>
         </div>
         <div class="modal-body">
-          <input type="hidden" name="view" value="state"/>
-          <input type="hidden" name="action" value="state"/>
-          <input type="hidden" name="apply" value="1"/>
 
 	        <div class="form-group">
 	          <label for="runState" class="col-sm-3 control-label">Change State</label>

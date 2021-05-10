@@ -36,12 +36,12 @@ class Logger {
 public:
   enum { 
     NOOPT=-6,
-    NOLOG,
-    PANIC,
-    FATAL,
-    ERROR,
-    WARNING,
-    INFO,
+    NOLOG, // -5
+    PANIC, // -4
+    FATAL, // -3
+    ERROR, // -2
+    WARNING, // -1
+    INFO, // 0
     DEBUG1,
     DEBUG2,
     DEBUG3,
@@ -68,14 +68,20 @@ public:
     std::string mLogPath;
     std::string mLogFile;
 
-  public:
-    Options( Level terminalLevel=NOOPT, Level databaseLevel=NOOPT, Level fileLevel=NOOPT, Level syslogLevel=NOOPT, const std::string &logPath=".", const std::string &logFile="" ) :
-      mTerminalLevel( terminalLevel ),
-      mDatabaseLevel( databaseLevel ),
-      mFileLevel( fileLevel ),
-      mSyslogLevel( syslogLevel ),
-      mLogPath( logPath ),
-      mLogFile( logFile )
+    Options(
+        Level terminalLevel=NOOPT,
+        Level databaseLevel=NOOPT,
+        Level fileLevel=NOOPT,
+        Level syslogLevel=NOOPT,
+        const std::string &logPath=".",
+        const std::string &logFile=""
+        ) :
+      mTerminalLevel(terminalLevel),
+      mDatabaseLevel(databaseLevel),
+      mFileLevel(fileLevel),
+      mSyslogLevel(syslogLevel),
+      mLogPath(logPath),
+      mLogFile(logFile)
     {
     }
   };
@@ -89,21 +95,21 @@ private:
   static StringMap smCodes;
   static IntMap smSyslogPriorities;
 
-private:
   bool mInitialised;
 
   std::string mId;
   std::string mIdRoot;
   std::string mIdArgs;
 
-  Level mLevel;       // Level that is currently in operation
+  Level mLevel;             // Level that is currently in operation
   Level mTerminalLevel;     // Maximum level output via terminal
-  Level mDatabaseLevel;   // Maximum level output via database
-  Level mFileLevel;     // Maximum level output via file
-  Level mSyslogLevel;   // Maximum level output via syslog
-  Level mEffectiveLevel;  // Level optimised to take account of maxima
+  Level mDatabaseLevel;     // Maximum level output via database
+  Level mFileLevel;         // Maximum level output via file
+  Level mSyslogLevel;       // Maximum level output via syslog
+  Level mEffectiveLevel;    // Level optimised to take account of maxima
 
   bool mDbConnected;
+
   std::string mLogPath;
   std::string mLogFile;
   FILE *mLogFileFP;
@@ -112,30 +118,9 @@ private:
   bool mFlush;
 
 private:
-  static void usrHandler(int sig);
-
-public:
-  friend void logInit(const char *name, const Options &options);
-  friend void logTerm();
-
-  static Logger *fetch() {
-    if ( !smInstance ) {
-      smInstance = new Logger();
-      Options options;
-      smInstance->initialise( "undef", options );
-    }
-    return smInstance;
-  }
-
-private:
   Logger();
   ~Logger();
 
-public:
-  void initialise(const std::string &id, const Options &options);
-  void terminate();
-
-private:
   int limit(int level) {
     if ( level > DEBUG9 )
       return DEBUG9;
@@ -150,13 +135,28 @@ private:
   char *getTargettedEnv(const std::string &name);
 
   void loadEnv();
+  static void usrHandler(int sig);
 
 public:
+  friend void logInit(const char *name, const Options &options);
+  friend void logTerm();
+
+  static Logger *fetch() {
+    if ( !smInstance ) {
+      smInstance = new Logger();
+      Options options;
+      smInstance->initialise("undef", options);
+    }
+    return smInstance;
+  }
+
+  void initialise(const std::string &id, const Options &options);
+  void terminate();
+
+  const std::string &id(const std::string &id);
   const std::string &id() const {
     return mId;
   }
-
-  const std::string &id(const std::string &id);
 
   Level level() const {
     return mLevel;

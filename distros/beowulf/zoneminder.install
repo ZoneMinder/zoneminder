@@ -1,0 +1,11 @@
+etc/zm/zm.conf
+etc/zm/conf.d/*
+usr/bin
+usr/lib/zoneminder
+usr/share/polkit-1
+usr/share/zoneminder/db
+usr/share/zoneminder/www
+
+# libzoneminder-perl files:
+usr/share/man/man3
+usr/share/perl5

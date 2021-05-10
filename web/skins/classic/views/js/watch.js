@@ -116,9 +116,9 @@ function changeScale() {
   setCookie('zmWatchScale'+monitorId, scale, 3600);
 
   var streamImg = $j('#liveStream'+monitorId);
-  if ( streamImg ) {
+  if (streamImg) {
     var oldSrc = streamImg.attr('src');
-    var newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+(scale == 'auto' ? autoScale : scale));
+    var newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
 
     streamImg.width(newWidth);
     streamImg.height(newHeight);

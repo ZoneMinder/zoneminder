@@ -249,9 +249,11 @@ void zmDbQueue::process() {
     if (mQueue.empty()) {
       mCondition.wait(lock);
     }
-    if (!mQueue.empty()) {
+    while (!mQueue.empty()) {
       std::string sql = mQueue.front();
       mQueue.pop();
+      // My idea for leaving the locking around each sql statement is to allow
+      // other db writers to get a chance
       lock.unlock();
       zmDbDo(sql.c_str());
       lock.lock();
@@ -260,6 +262,7 @@ void zmDbQueue::process() {
 }  // end void zmDbQueue::process()
 
 void zmDbQueue::push(std::string &&sql) {
+  if (mTerminate) return;
   std::unique_lock<std::mutex> lock(mMutex);
   mQueue.push(std::move(sql));
   mCondition.notify_all();

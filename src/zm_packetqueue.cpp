@@ -491,6 +491,9 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
     }
     ZM_DUMP_PACKET(packet->packet, "");
     return it;
+  } else if (!keep_keyframes) {
+    // Are encoding, so don't care about keyframes
+    return it;
   }
 
   while ((*it) != pktQueue.begin()) {

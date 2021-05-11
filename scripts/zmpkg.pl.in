@@ -103,18 +103,17 @@ if ( $command eq 'state' ) {
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID}: ())
     or Fatal("Can't execute: ".$sth->errstr());
-  while( my $monitor = $sth->fetchrow_hashref() ) {
+  while ( my $monitor = $sth->fetchrow_hashref() ) {
     foreach my $definition ( @{$state->{Definitions}} ) {
       if ( $monitor->{Id} =~ /^$definition->{Id}$/ ) {
         $monitor->{NewFunction} = $definition->{Function};
         $monitor->{NewEnabled} = $definition->{Enabled};
+        last;
       }
     }
-    #next if ( !$monitor->{NewFunction} );
-    $monitor->{NewFunction} = 'None'
-    if ( !$monitor->{NewFunction} );
-    $monitor->{NewEnabled} = 0
-    if ( !$monitor->{NewEnabled} );
+    next if ! exists $monitor->{NewFunction};
+    $monitor->{NewFunction} = 'None' if !$monitor->{NewFunction};
+    $monitor->{NewEnabled} = 0 if !$monitor->{NewEnabled};
     if ( $monitor->{Function} ne $monitor->{NewFunction}
       || $monitor->{Enabled} ne $monitor->{NewEnabled}
     ) {

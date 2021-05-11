@@ -458,22 +458,22 @@ function getAlarmCmdResponse(respObj, respText) {
 }
 
 function cmdDisableAlarms() {
-  alarmCmdReq.send(alarmCmdParms+auth_relay+"&command=disableAlarms");
+  alarmCmdReq.send(alarmCmdParms+'&'+auth_relay+"&command=disableAlarms");
 }
 
 function cmdEnableAlarms() {
-  alarmCmdReq.send(alarmCmdParms+auth_relay+"&command=enableAlarms");
+  alarmCmdReq.send(alarmCmdParms+'&'+auth_relay+"&command=enableAlarms");
 }
 
 function cmdForceAlarm() {
-  alarmCmdReq.send(alarmCmdParms+auth_relay+"&command=forceAlarm");
+  alarmCmdReq.send(alarmCmdParms+'&'+auth_relay+"&command=forceAlarm");
   if ( window.event ) {
     window.event.preventDefault();
   }
 }
 
 function cmdCancelForcedAlarm() {
-  alarmCmdReq.send(alarmCmdParms+auth_relay+"&command=cancelForcedAlarm");
+  alarmCmdReq.send(alarmCmdParms+'&'+auth_relay+"&command=cancelForcedAlarm");
   if ( window.event ) {
     window.event.preventDefault();
   }

@@ -715,8 +715,6 @@ bool EventStream::sendFrame(int delta_us) {
   } else
 #endif // HAVE_LIBAVCODEC
   {
-
-
     bool send_raw = (type == STREAM_JPEG) && ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE)) && filepath[0];
 
     fprintf(stdout, "--" BOUNDARY "\r\n");
@@ -1046,7 +1044,8 @@ bool EventStream::send_file(const char *filepath) {
   fdj = fopen(filepath, "rb");
   if ( !fdj ) {
     Error("Can't open %s: %s", filepath, strerror(errno));
-    return false;
+    std::string error_message = stringtf("Can't open %s: %s", filepath, strerror(errno));
+    return sendTextFrame(error_message.c_str());
   }
 #if HAVE_SENDFILE
   static struct stat filestat;

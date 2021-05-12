@@ -2463,21 +2463,14 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
 int Monitor::Capture() {
   unsigned int index = image_count % image_buffer_count;
 
-  Debug(1, "Packeet");
   std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
-  //= new ZMPacket();
-  //packet->timestamp = new struct timeval;
   packet->image_index = image_count;
-  Debug(1, "Packeet");
   gettimeofday(&(packet->timestamp), nullptr);
-  Debug(1, "Packeet");
   shared_data->zmc_heartbeat_time = packet->timestamp.tv_sec;
-  Debug(1, "Capturing");
   int captureResult = camera->Capture(packet);
   Debug(4, "Back from capture result=%d image count %d", captureResult, image_count);
 
   if (captureResult < 0) {
-    Debug(2, "failed capture");
     // Unable to capture image
     // Fake a signal loss image
     // Not sure what to do here.  We will close monitor and kill analysis_thread but what about rtsp server?
@@ -2493,7 +2486,6 @@ int Monitor::Capture() {
     shared_timestamps[index] = packet->timestamp;
     delete capture_image;
     image_count++;
-    //delete packet;
     // What about timestamping it?
     // Don't want to do analysis on it, but we won't due to signal
     return -1;
@@ -2535,27 +2527,22 @@ int Monitor::Capture() {
         packetqueue.queuePacket(packet);
       } else {
         Debug(4, "Not Queueing audio packet");
-        //delete packet;
       }
       // Don't update last_write_index because that is used for live streaming
       //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
       return 1;
     } else {
       Debug(1, "Unknown codec type %d", packet->codec_type);
-      //delete packet;
       return 1;
     } // end if audio
 
     image_count++;
 
     // Will only be queued if there are iterators allocated in the queue.
-    if ( !packetqueue.queuePacket(packet) ) {
-      //delete packet;
-    }
+    packetqueue.queuePacket(packet);
     UpdateCaptureFPS();
   } else { // result == 0
     // Question is, do we update last_write_index etc?
-    //delete packet;
     return 0;
   } // end if result
 

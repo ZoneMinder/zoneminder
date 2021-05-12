@@ -301,7 +301,6 @@ int main(int argc, char *argv[]) {
           result = -1;
           break;
         }
-        Debug(1, "Capture:");
         if (monitors[i]->Capture() < 0) {
           Error("Failed to capture image from monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
@@ -369,8 +368,6 @@ int main(int argc, char *argv[]) {
       zm_reload = false;
     }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop
-
-  Debug(1,"Updating Monitor status");
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     static char sql[ZM_SQL_SML_BUFSIZ];

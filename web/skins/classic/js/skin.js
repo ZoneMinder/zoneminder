@@ -357,6 +357,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
+          if (error == 'Unauthorized') {
+            window.location.reload(true);
+          }
           if ( ! jqxhr.responseText ) {
             console.log("No responseText in jqxhr");
             console.log(jqxhr);

@@ -1162,7 +1162,7 @@ void Monitor::AddPrivacyBitmask() {
 }
 
 int Monitor::GetImage(int32_t index, int scale) {
-  if ( index < 0 || index > image_buffer_count ) {
+  if (index < 0 || index > image_buffer_count) {
     index = shared_data->last_write_index;
   }
   if ( index != image_buffer_count ) {
@@ -1193,12 +1193,14 @@ int Monitor::GetImage(int32_t index, int scale) {
 }
 
 ZMPacket *Monitor::getSnapshot(int index) const {
-
-  if ( (index < 0) || (index > image_buffer_count) ) {
+  if ((index < 0) || (index >= image_buffer_count)) {
     index = shared_data->last_write_index;
   }
-  return new ZMPacket(image_buffer[index], shared_timestamps[index]);
-
+  if (index != image_buffer_count) {
+    return new ZMPacket(image_buffer[index], shared_timestamps[index]);
+  } else {
+    Error("Unable to generate image, no images in buffer");
+  }
   return nullptr;
 }
 

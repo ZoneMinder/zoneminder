@@ -995,12 +995,12 @@ bool Monitor::connect() {
   }
   if (!camera) LoadCamera();
 
-  Debug(3, "Allocating %d image buffers", image_buffer_count);
-  image_buffer.reserve(image_buffer_count);
+  image_buffer.resize(image_buffer_count);
   for (int32_t i = 0; i < image_buffer_count; i++) {
     image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
+  Debug(3, "Allocated %zu %zu image buffers", image_buffer.capacity(), image_buffer.size());
 
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
@@ -2472,8 +2472,8 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
  */
 int Monitor::Capture() {
   unsigned int index = image_count % image_buffer_count;
-  if (!image_buffer.size() or index >= image_buffer.size()) {
-    Error("Image Buffer is invalid. Check ImageBufferCount");
+  if (image_buffer.empty() or (index >= image_buffer.size())) {
+    Error("Image Buffer is invalid. Check ImageBufferCount. size is %zu", image_buffer.size());
     return -1;
   }
 

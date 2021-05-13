@@ -1163,38 +1163,48 @@ void Monitor::AddPrivacyBitmask() {
 
 int Monitor::GetImage(int32_t index, int scale) {
   if (index < 0 || index > image_buffer_count) {
+    Warning("Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
     index = shared_data->last_write_index;
   }
-  if ( index != image_buffer_count ) {
-    Image *image;
-    // If we are going to be modifying the snapshot before writing, then we need to copy it
-    if ( ( scale != ZM_SCALE_BASE ) || ( !config.timestamp_on_capture ) ) {
-      alarm_image.Assign(*image_buffer[index]);
+  if (!image_buffer.size() or static_cast<size_t>(index) >= image_buffer.size()) {
+    Error("Image Buffer has not been allocated");
+    return -1;
+  }
+  if ( index == image_buffer_count ) {
+    Error("Unable to generate image, no images in buffer");
+    return 0;
+  }
 
-      if (scale != ZM_SCALE_BASE) {
-        alarm_image.Scale(scale);
-      }
+  Image *image;
+  // If we are going to be modifying the snapshot before writing, then we need to copy it
+  if ((scale != ZM_SCALE_BASE) || (!config.timestamp_on_capture)) {
+    alarm_image.Assign(*image_buffer[index]);
 
-      if ( !config.timestamp_on_capture ) {
-        TimestampImage(&alarm_image, shared_timestamps[index]);
-      }
-      image = &alarm_image;
-    } else {
-      image = image_buffer[index];
+    if (scale != ZM_SCALE_BASE) {
+      alarm_image.Scale(scale);
     }
 
-    static char filename[PATH_MAX];
-    snprintf(filename, sizeof(filename), "Monitor%u.jpg", id);
-    image->WriteJpeg(filename);
+    if (!config.timestamp_on_capture) {
+      TimestampImage(&alarm_image, shared_timestamps[index]);
+    }
+    image = &alarm_image;
   } else {
-    Error("Unable to generate image, no images in buffer");
+    image = image_buffer[index];
   }
-  return 0;
+
+  static char filename[PATH_MAX];
+  snprintf(filename, sizeof(filename), "Monitor%u.jpg", id);
+  image->WriteJpeg(filename);
+  return 1;
 }
 
 ZMPacket *Monitor::getSnapshot(int index) const {
   if ((index < 0) || (index >= image_buffer_count)) {
     index = shared_data->last_write_index;
+  }
+  if (!image_buffer.size() or static_cast<size_t>(index) >= image_buffer.size()) {
+    Error("Image Buffer has not been allocated");
+    return nullptr;
   }
   if (index != image_buffer_count) {
     return new ZMPacket(image_buffer[index], shared_timestamps[index]);
@@ -2462,6 +2472,10 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
  */
 int Monitor::Capture() {
   unsigned int index = image_count % image_buffer_count;
+  if (!image_buffer.size() or index >= image_buffer.size()) {
+    Error("Image Buffer is invalid. Check ImageBufferCount");
+    return -1;
+  }
 
   std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
   packet->image_index = image_count;
@@ -2663,9 +2677,9 @@ bool Monitor::Decode() {
       }
     }
 
-    if ( orientation != ROTATE_0 ) {
+    if (orientation != ROTATE_0) {
       Debug(2, "Doing rotation");
-      switch ( orientation ) {
+      switch (orientation) {
         case ROTATE_0 :
           // No action required
           break;
@@ -2703,7 +2717,7 @@ bool Monitor::Decode() {
 }  // end bool Monitor::Decode()
 
 void Monitor::TimestampImage(Image *ts_image, const timeval &ts_time) const {
-  if ( !label_format[0] )
+  if (!label_format[0])
     return;
 
   // Expand the strftime macros first

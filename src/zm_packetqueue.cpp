@@ -367,48 +367,43 @@ ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
 
   Debug(4, "Locking in get_packet using it %p queue end? %d",
         std::addressof(*it), (*it == pktQueue.end()));
-  std::unique_lock<std::mutex> lck(mutex);
-  Debug(4, "Have Lock in get_packet");
 
   ZMLockedPacket *lp = nullptr;
-  while (!lp) {
-    while (*it == pktQueue.end()) {
-      if (deleting or zm_terminate) {
-        Debug(1, "terminated, leaving");
-        condition.notify_all();
+  { // scope for lock
+    std::unique_lock<std::mutex> lck(mutex);
+    Debug(4, "Have Lock in get_packet");
+    while (!lp) {
+      while (*it == pktQueue.end() and !(deleting or zm_terminate)) {
+        Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
+        condition.wait(lck);
+      }
+      if (deleting or zm_terminate) break;
+
+      std::shared_ptr<ZMPacket> p = *(*it);
+      if (!p) {
+        Error("Null p?!");
         return nullptr;
       }
+      Debug(3, "get_packet using it %p locking index %d",
+          std::addressof(*it), p->image_index);
+
+      lp = new ZMLockedPacket(p);
+      if (lp->trylock()) {
+        Debug(2, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
+        return lp;
+      }
+      delete lp;
+      lp = nullptr;
       Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
       condition.wait(lck);
-    }
-    if (deleting or zm_terminate) {
-      Debug(1, "terminated, leaving");
-      condition.notify_all();
-      return nullptr;
-    }
+    }  // end while !lp
+  }  // end scope for lock
 
-    std::shared_ptr<ZMPacket> p = *(*it);
-    if (!p) {
-      Error("Null p?!");
-      return nullptr;
-    }
-    Debug(4, "get_packet using it %p locking index %d",
-          std::addressof(*it), p->image_index);
-    // Packets are only deleted by packetqueue, so lock must be held.
-    // We shouldn't have to trylock. Someone else might hold the lock but not for long
-
-    lp = new ZMLockedPacket(p);
-    if (lp->trylock()) {
-      Debug(2, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
-
-      return lp;
-    }
-    delete lp;
-    lp = nullptr;
-    Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
-    condition.wait(lck);
-  }  // end while !lp
-  return nullptr;
+  if (!lp) {
+    Debug(1, "terminated, leaving");
+    condition.notify_all();
+  }
+  return lp;
 }  // end ZMLockedPacket *PacketQueue::get_packet(it)
 
 void PacketQueue::unlock(ZMLockedPacket *lp) {

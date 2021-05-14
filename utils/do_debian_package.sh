@@ -300,7 +300,7 @@ EOF
       DEBUILD="debuild -i -us -uc -b"
     else 
       # Source build, don't need build depends.
-      DEBUILD="debuild -S -sa -sd"
+      DEBUILD="debuild -S -sa"
     fi;
   fi;
   if [ "$DEBSIGN_KEYID" != "" ]; then

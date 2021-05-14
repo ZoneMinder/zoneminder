@@ -23,7 +23,7 @@
 #include "zm_fifo_debug.h"
 #include "zm_monitor.h"
 
-void Zone::Setup( 
+void Zone::Setup(
   ZoneType p_type,
   const Polygon &p_polygon,
   const Rgb p_alarm_rgb,
@@ -122,7 +122,7 @@ void Zone::RecordStats(const Event *event) {
       "PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, "
       "Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, "
       "MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
-      monitor->Id(), id, event->Id(), event->Frames(), 
+      monitor->Id(), id, event->Id(), event->Frames(),
       stats.pixel_diff_,
       stats.alarm_pixels_,
       stats.alarm_filter_pixels_,
@@ -620,12 +620,12 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         stats.score_ = 0;
         return false;
       }
-      
+
       if (max_blob_pixels != 0)
         stats.score_ = (100*stats.alarm_blob_pixels_)/max_blob_pixels;
-      else 
+      else
         stats.score_ = (100*stats.alarm_blob_pixels_)/polygon.Area();
-      
+
       if (stats.score_ < 1)
         stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
       Debug(5, "Current score is %d", stats.score_);
@@ -885,18 +885,10 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
             polygon.Extent().Hi().x_,
             polygon.Extent().Hi().y_);
 
-      if (polygon.Extent().Lo().x_ < 0) {
-        polygon.LoX(0);
-      }
-      if (polygon.Extent().Hi().x_ >= (int) monitor->Width()) {
-        polygon.HiX((int) monitor->Width());
-      }
-      if (polygon.Extent().Lo().y_ < 0) {
-        polygon.LoY(0);
-      }
-      if (polygon.Extent().Hi().y_ >= (int) monitor->Height()) {
-        polygon.HiY((int) monitor->Height());
-      }
+      polygon = polygon.GetClipped(Box(
+          {0, 0},
+          {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}
+      ));
     }
 
     if ( false && !strcmp( Units, "Percent" ) ) {

@@ -35,11 +35,7 @@ class Box {
   Box(Vector2 lo, Vector2 hi) : lo_(lo), hi_(hi), size_(Vector2::Range(hi, lo)) {}
 
   const Vector2 &Lo() const { return lo_; }
-  int32 LoX(int lo_x) { return lo_.x_ = lo_x; }
-  int32 LoY(int lo_y) { return lo_.y_ = lo_y; }
   const Vector2 &Hi() const { return hi_; }
-  int32 HiX(int hi_x) { return hi_.x_ = hi_x; }
-  int32 HiY(int hi_y) { return hi_.y_ = hi_y; }
 
   const Vector2 &Size() const { return size_; }
   int32 Area() const { return size_.x_ * size_.y_; }

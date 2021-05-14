@@ -50,15 +50,8 @@ class Polygon {
   }
 
   const Box &Extent() const { return extent; }
-  int32 LoX(int p_lo_x) { return extent.LoX(p_lo_x); }
-  int32 HiX(int p_hi_x) { return extent.HiX(p_hi_x); }
-  int32 LoY(int p_lo_y) { return extent.LoY(p_lo_y); }
-  int32 HiY(int p_hi_y) { return extent.HiY(p_hi_y); }
-
   int32 Area() const { return area; }
-  const Vector2 &Centre() const {
-    return centre;
-  }
+  const Vector2 &Centre() const { return centre; }
 
   bool Contains(const Vector2 &coord) const;
 

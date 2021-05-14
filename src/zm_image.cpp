@@ -2389,10 +2389,11 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
     const Vector2 &p1 = polygon.GetVertices()[i];
     const Vector2 &p2 = polygon.GetVertices()[j];
 
-    int x1 = p1.x_;
-    int x2 = p2.x_;
-    int y1 = p1.y_;
-    int y2 = p2.y_;
+    // The last pixel we can draw is width/height - 1. Clamp to that value.
+    int x1 = ZM::clamp(p1.x_, 0, static_cast<int>(width - 1));
+    int x2 = ZM::clamp(p2.x_, 0, static_cast<int>(width - 1));
+    int y1 = ZM::clamp(p1.y_, 0, static_cast<int>(height - 1));
+    int y2 = ZM::clamp(p2.y_, 0, static_cast<int>(height - 1));
 
     double dx = x2 - x1;
     double dy = y2 - y1;

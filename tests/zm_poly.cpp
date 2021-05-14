@@ -31,10 +31,7 @@ TEST_CASE("Polygon: construct from vertices") {
   Polygon p(vertices);
 
   REQUIRE(p.Area() == 18);
-  //REQUIRE(p.Centre() == Vector2(2, 2));
-  // Mathematically should be:
-  //REQUIRE(p.Extent().Size() == Vector2(6, 6));
-  REQUIRE(p.Extent().Size() == Vector2(7, 7));
+  REQUIRE(p.Extent().Size() == Vector2(6, 6));
 }
 
 TEST_CASE("Polygon: clipping") {
@@ -56,24 +53,19 @@ TEST_CASE("Polygon: clipping") {
   Polygon p(v);
 
   REQUIRE(p.GetVertices().size() == 11);
-  REQUIRE(p.Extent().Size() == Vector2(9, 8));
-  // should be:
-  // REQUIRE(p.Extent().Size() == Vector2(8, 7));
-  // related to Vector2::Range
+  REQUIRE(p.Extent().Size() == Vector2(8, 7));
 
   SECTION("boundary box larger than polygon") {
     Polygon c = p.GetClipped(Box({1, 0}, {11, 9}));
 
     REQUIRE(c.GetVertices().size() == 11);
-    REQUIRE(c.Extent().Size() == Vector2(9, 8));
+    REQUIRE(c.Extent().Size() == Vector2(8, 7));
   }
 
   SECTION("boundary box smaller than polygon") {
     Polygon c = p.GetClipped(Box({2, 4}, {10, 7}));
 
     REQUIRE(c.GetVertices().size() == 8);
-    REQUIRE(c.Extent().Size() == Vector2(9, 4));
-    // should be:
-    // REQUIRE(c.Extent().Size() == Vector2(8, 3));
+    REQUIRE(c.Extent().Size() == Vector2(8, 3));
   }
 }

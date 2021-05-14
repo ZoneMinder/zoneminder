@@ -37,11 +37,6 @@ class Vector2 {
     return inf;
   }
 
-  static Vector2 Range(const Vector2 &coord1, const Vector2 &coord2) {
-    Vector2 result((coord1.x_ - coord2.x_) + 1, (coord1.y_ - coord2.y_) + 1);
-    return result;
-  }
-
   bool operator==(const Vector2 &rhs) const { return (x_ == rhs.x_ && y_ == rhs.y_); }
   bool operator!=(const Vector2 &rhs) const { return (x_ != rhs.x_ || y_ != rhs.y_); }
 

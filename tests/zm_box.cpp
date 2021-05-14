@@ -34,15 +34,10 @@ TEST_CASE("Box: construct from lo and hi") {
   SECTION("basic properties") {
   REQUIRE(b.Lo() == Vector2(1, 1));
   REQUIRE(b.Hi() == Vector2(5, 5));
-  // Should be:
-  // REQUIRE(b.Size() == Vector2(4 ,4));
-  REQUIRE(b.Size() == Vector2(5, 5));
-  // Should be:
-  // REQUIRE(b.Area() == 16);
-  REQUIRE(b.Area() == 25);
-  // Should be:
-  // REQUIRE(b.Centre() == Vector2(3, 3));
-  REQUIRE(b.Centre() == Vector2(4, 4));
+
+  REQUIRE(b.Size() == Vector2(4 ,4));
+  REQUIRE(b.Area() == 16);
+  REQUIRE(b.Centre() == Vector2(3, 3));
 
   REQUIRE(b.Vertices() == std::vector<Vector2>{{1, 1}, {5, 1}, {5, 5}, {1, 5}});
   }

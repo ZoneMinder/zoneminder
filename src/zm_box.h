@@ -32,7 +32,7 @@
 class Box {
  public:
   Box() = default;
-  Box(Vector2 lo, Vector2 hi) : lo_(lo), hi_(hi), size_(Vector2::Range(hi, lo)) {}
+  Box(Vector2 lo, Vector2 hi) : lo_(lo), hi_(hi), size_(hi - lo) {}
 
   const Vector2 &Lo() const { return lo_; }
   const Vector2 &Hi() const { return hi_; }

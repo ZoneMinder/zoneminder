@@ -19,6 +19,7 @@
 
 #include "zm_poly.h"
 
+#include "zm_line.h"
 #include <cmath>
 
 Polygon::Polygon(std::vector<Vector2> vertices) : vertices_(std::move(vertices)) {
@@ -73,4 +74,36 @@ bool Polygon::Contains(const Vector2 &coord) const {
     }
   }
   return inside;
+}
+
+// Clip the polygon to a rectangular boundary box using the Sutherland-Hodgman algorithm
+Polygon Polygon::GetClipped(const Box &boundary) {
+  std::vector<Vector2> clipped_vertices = vertices_;
+
+  for (LineSegment const& clip_edge : boundary.Edges()) {
+    // convert our line segment to an infinite line
+    Line clip_line = Line(clip_edge);
+
+    std::vector<Vector2> to_clip = clipped_vertices;
+    clipped_vertices.clear();
+
+    for (size_t i = 0; i < to_clip.size(); ++i) {
+      Vector2 vert1 = to_clip[i];
+      Vector2 vert2 = to_clip[(i + 1) % to_clip.size()];
+
+      bool vert1_left = clip_line.IsPointLeftOfOrColinear(vert1);
+      bool vert2_left = clip_line.IsPointLeftOfOrColinear(vert2);
+
+      if (vert2_left) {
+        if (!vert1_left) {
+          clipped_vertices.push_back(Line(vert1, vert2).Intersection(clip_line));
+        }
+        clipped_vertices.push_back(vert2);
+      } else if (vert1_left) {
+        clipped_vertices.push_back(Line(vert1, vert2).Intersection(clip_line));
+      }
+    }
+  }
+
+  return Polygon(clipped_vertices);
 }

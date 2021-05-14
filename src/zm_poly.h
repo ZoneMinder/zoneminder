@@ -40,10 +40,6 @@ struct Edge {
   }
 };
 
-//
-// Class used for storing a box, which is defined as a region
-// defined by two coordinates
-//
 class Polygon {
  public:
   Polygon() : area(0) {}
@@ -54,17 +50,19 @@ class Polygon {
   }
 
   const Box &Extent() const { return extent; }
-  int LoX(int p_lo_x) { return extent.LoX(p_lo_x); }
-  int HiX(int p_hi_x) { return extent.HiX(p_hi_x); }
-  int LoY(int p_lo_y) { return extent.LoY(p_lo_y); }
-  int HiY(int p_hi_y) { return extent.HiY(p_hi_y); }
+  int32 LoX(int p_lo_x) { return extent.LoX(p_lo_x); }
+  int32 HiX(int p_hi_x) { return extent.HiX(p_hi_x); }
+  int32 LoY(int p_lo_y) { return extent.LoY(p_lo_y); }
+  int32 HiY(int p_hi_y) { return extent.HiY(p_hi_y); }
 
-  int Area() const { return area; }
+  int32 Area() const { return area; }
   const Vector2 &Centre() const {
     return centre;
   }
 
   bool Contains(const Vector2 &coord) const;
+
+  Polygon GetClipped(const Box &boundary);
 
  private:
   void calcArea();
@@ -73,7 +71,7 @@ class Polygon {
  private:
   std::vector<Vector2> vertices_;
   Box extent;
-  int area;
+  int32 area;
   Vector2 centre;
 };
 

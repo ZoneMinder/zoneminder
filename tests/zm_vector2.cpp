@@ -79,4 +79,16 @@ TEST_CASE("Vector2: arithmetic operators") {
     c -= {1, 2};
     REQUIRE(c == Vector2(0, -1));
   }
+
+  SECTION("scalar multiplication") {
+    c = c * 2;
+    REQUIRE(c == Vector2(2, 2));
+  }
+}
+
+TEST_CASE("Vector2: determinate") {
+  Vector2 v(1, 1);
+  REQUIRE(v.Determinant({0, 0}) == 0);
+  REQUIRE(v.Determinant({1, 1}) == 0);
+  REQUIRE(v.Determinant({1, 2}) == 1);
 }

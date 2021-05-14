@@ -43,6 +43,8 @@ TEST_CASE("Box: construct from lo and hi") {
   // Should be:
   // REQUIRE(b.Centre() == Vector2(3, 3));
   REQUIRE(b.Centre() == Vector2(4, 4));
+
+  REQUIRE(b.Vertices() == std::vector<Vector2>{{1, 1}, {5, 1}, {5, 5}, {1, 5}});
   }
 
   SECTION("contains") {

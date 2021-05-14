@@ -20,8 +20,10 @@
 #ifndef ZM_BOX_H
 #define ZM_BOX_H
 
+#include "zm_line.h"
 #include "zm_vector2.h"
 #include <cmath>
+#include <vector>
 
 //
 // Class used for storing a box, which is defined as a region
@@ -48,7 +50,26 @@ class Box {
     return {mid_x, mid_y};
   }
 
-  bool Contains(const Vector2 &coord) const  {
+  // Get vertices of the box in a counter-clockwise order
+  std::vector<Vector2> Vertices() const {
+    return {lo_, {hi_.x_, lo_.y_}, hi_, {lo_.x_, hi_.y_}};
+  }
+
+  // Get edges of the box in a counter-clockwise order
+  std::vector<LineSegment> Edges() const {
+    std::vector<LineSegment> edges;
+    edges.reserve(4);
+
+    std::vector<Vector2> v = Vertices();
+    edges.emplace_back(v[0], v[1]);
+    edges.emplace_back(v[1], v[2]);
+    edges.emplace_back(v[2], v[3]);
+    edges.emplace_back(v[3], v[0]);
+
+    return edges;
+  }
+
+  bool Contains(const Vector2 &coord) const {
     return (coord.x_ >= lo_.x_ && coord.x_ <= hi_.x_ && coord.y_ >= lo_.y_ && coord.y_ <= hi_.y_);
   }
 

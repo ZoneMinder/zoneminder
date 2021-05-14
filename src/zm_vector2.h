@@ -21,6 +21,8 @@
 #define ZM_VECTOR2_H
 
 #include "zm_define.h"
+#include <cmath>
+#include <limits>
 
 //
 // Class used for storing an x,y pair, i.e. a coordinate/vector
@@ -29,6 +31,11 @@ class Vector2 {
  public:
   Vector2() : x_(0), y_(0) {}
   Vector2(int32 x, int32 y) : x_(x), y_(y) {}
+
+  static Vector2 Inf() {
+    static const Vector2 inf = {std::numeric_limits<int32>::max(), std::numeric_limits<int32>::max()};
+    return inf;
+  }
 
   static Vector2 Range(const Vector2 &coord1, const Vector2 &coord2) {
     Vector2 result((coord1.x_ - coord2.x_) + 1, (coord1.y_ - coord2.y_) + 1);
@@ -50,6 +57,9 @@ class Vector2 {
   Vector2 operator-(const Vector2 &rhs) const {
     return {x_ - rhs.x_, y_ - rhs.y_};
   }
+  Vector2 operator*(double rhs) const {
+    return {static_cast<int32>(std::lround(x_ * rhs)), static_cast<int32>(std::lround(y_ * rhs))};
+  }
 
   Vector2 &operator+=(const Vector2 &rhs) {
     x_ += rhs.x_;
@@ -60,6 +70,11 @@ class Vector2 {
     x_ -= rhs.x_;
     y_ -= rhs.y_;
     return *this;
+  }
+
+  // Calculated the determinant of the 2x2 matrix as given by [[x_, y_], [v.x_y, v.y_]]
+  int32 Determinant(Vector2 const &v) const {
+    return (x_ * v.y_) - (y_ * v.x_);
   }
 
  public:

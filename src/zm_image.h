@@ -278,8 +278,8 @@ class Image {
     void Fill( Rgb colour, const Box *limits=0 );
     void Fill( Rgb colour, int density, const Box *limits=0 );
     void Outline( Rgb colour, const Polygon &polygon );
-    void Fill( Rgb colour, const Polygon &polygon );
-    void Fill( Rgb colour, int density, const Polygon &polygon );
+    void Fill(Rgb colour, const Polygon &polygon);
+    void Fill(Rgb colour, int density, const Polygon &polygon);
 
     void Rotate( int angle );
     void Flip( bool leftright );

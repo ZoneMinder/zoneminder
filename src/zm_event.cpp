@@ -473,10 +473,10 @@ void Event::WriteDbFrames() {
             stats.alarm_blobs_,
             stats.min_blob_size_,
             stats.max_blob_size_,
-            stats.alarm_box_.LoX(),
-            stats.alarm_box_.LoY(),
-            stats.alarm_box_.HiX(),
-            stats.alarm_box_.HiY(),
+            stats.alarm_box_.Lo().x_,
+            stats.alarm_box_.Lo().y_,
+            stats.alarm_box_.Hi().x_,
+            stats.alarm_box_.Hi().y_,
             stats.score_);
       }  // end foreach zone stats
     }  // end if recording stats

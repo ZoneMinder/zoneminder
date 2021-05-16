@@ -2512,8 +2512,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
         Debug(9, "Moving global edge");
         active_edges[n_active_edges++] = global_edges[i];
         if ( i < (n_global_edges-1) ) {
-          //memcpy( &global_edges[i], &global_edges[i+1], sizeof(*global_edges)*(n_global_edges-i) );
-          memmove( &global_edges[i], &global_edges[i+1], sizeof(*global_edges)*(n_global_edges-i) );
+          memmove(&global_edges[i], &global_edges[i + 1], sizeof(*global_edges) * (n_global_edges - i - 1));
           i--;
         }
         n_global_edges--;

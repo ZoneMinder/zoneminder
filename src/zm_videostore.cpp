@@ -674,6 +674,7 @@ VideoStore::~VideoStore() {
   if ( video_out_stream ) {
     video_in_ctx = nullptr;
 
+    avcodec_close(video_out_ctx);
     Debug(4, "Freeing video_out_ctx");
     avcodec_free_context(&video_out_ctx);
   } // end if video_out_stream
@@ -688,6 +689,7 @@ VideoStore::~VideoStore() {
 
     if ( audio_out_ctx ) {
       Debug(4, "Success closing audio_out_ctx");
+      avcodec_close(audio_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_free_context(&audio_out_ctx);
 #endif

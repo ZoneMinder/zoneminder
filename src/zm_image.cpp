@@ -2469,7 +2469,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
 
   size_t n_coords = polygon.GetVertices().size();
 
-  std::vector<Edge> global_edges;
+  std::vector<PolygonFill::Edge> global_edges;
   global_edges.reserve(n_coords);
   for (size_t j = 0, i = n_coords - 1; j < n_coords; i = j++) {
     const Vector2 &p1 = polygon.GetVertices()[i];
@@ -2487,9 +2487,9 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
                               d.x_ / static_cast<double>(d.y_));
 
   }
-  std::sort(global_edges.begin(), global_edges.end(), Edge::CompareYX);
+  std::sort(global_edges.begin(), global_edges.end(), PolygonFill::Edge::CompareYX);
 
-  std::vector<Edge> active_edges;
+  std::vector<PolygonFill::Edge> active_edges;
   active_edges.reserve(global_edges.size());
 
   int32 scan_line = global_edges[0].min_y;
@@ -2513,7 +2513,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
         ++it;
       }
     }
-    std::sort(active_edges.begin(), active_edges.end(), Edge::CompareX);
+    std::sort(active_edges.begin(), active_edges.end(), PolygonFill::Edge::CompareX);
 
     if (!(scan_line % density)) {
       for (auto it = active_edges.begin(); it != active_edges.end(); ++it) {
@@ -2553,10 +2553,6 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
 
     scan_line++;
   }
-}
-
-void Image::Fill(Rgb colour, const Polygon &polygon) {
-  Fill(colour, 1, polygon);
 }
 
 void Image::Rotate(int angle) {

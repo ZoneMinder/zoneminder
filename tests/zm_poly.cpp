@@ -56,16 +56,16 @@ TEST_CASE("Polygon: clipping") {
   REQUIRE(p.Extent().Size() == Vector2(8, 7));
 
   SECTION("boundary box larger than polygon") {
-    Polygon c = p.GetClipped(Box({1, 0}, {11, 9}));
+    p.Clip(Box({1, 0}, {11, 9}));
 
-    REQUIRE(c.GetVertices().size() == 11);
-    REQUIRE(c.Extent().Size() == Vector2(8, 7));
+    REQUIRE(p.GetVertices().size() == 11);
+    REQUIRE(p.Extent().Size() == Vector2(8, 7));
   }
 
   SECTION("boundary box smaller than polygon") {
-    Polygon c = p.GetClipped(Box({2, 4}, {10, 7}));
+    p.Clip(Box({2, 4}, {10, 7}));
 
-    REQUIRE(c.GetVertices().size() == 8);
-    REQUIRE(c.Extent().Size() == Vector2(8, 3));
+    REQUIRE(p.GetVertices().size() == 8);
+    REQUIRE(p.Extent().Size() == Vector2(8, 3));
   }
 }

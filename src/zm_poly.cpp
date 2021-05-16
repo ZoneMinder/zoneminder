@@ -22,47 +22,56 @@
 #include "zm_line.h"
 #include <cmath>
 
-Polygon::Polygon(std::vector<Vector2> vertices) : vertices_(std::move(vertices)) {
-  int min_x = -1;
-  int max_x = -1;
-  int min_y = -1;
-  int max_y = -1;
-  for (const Vector2 &vertex : vertices_) {
-    if (min_x == -1 || vertex.x_ < min_x)
-      min_x = vertex.x_;
-    if (max_x == -1 || vertex.x_ > max_x)
-      max_x = vertex.x_;
-    if (min_y == -1 || vertex.y_ < min_y)
-      min_y = vertex.y_;
-    if (max_y == -1 || vertex.y_ > max_y)
-      max_y = vertex.y_;
-  }
-  extent = Box({min_x, min_y}, {max_x, max_y});
-
-  calcArea();
-  calcCentre();
+Polygon::Polygon(std::vector<Vector2> vertices) : vertices_(std::move(vertices)), area(0) {
+  UpdateExtent();
+  UpdateArea();
+  UpdateCentre();
 }
 
-void Polygon::calcArea() {
-  double float_area = 0.0L;
+void Polygon::UpdateExtent() {
+  if (vertices_.empty())
+    return;
+
+  int min_x = vertices_[0].x_;
+  int max_x = 0;
+  int min_y = vertices_[0].y_;
+  int max_y = 0;
+  for (const Vector2 &vertex : vertices_) {
+    min_x = std::min(min_x, vertex.x_);
+    max_x = std::max(max_x, vertex.x_);
+    min_y = std::min(min_y, vertex.y_);
+    max_y = std::max(max_y, vertex.y_);
+  }
+
+  extent = Box({min_x, min_y}, {max_x, max_y});
+}
+
+void Polygon::UpdateArea() {
+  double float_area = 0.0;
   for (size_t i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++) {
-    double trap_area = ((vertices_[i].x_ - vertices_[j].x_) * ((vertices_[i].y_ + vertices_[j].y_))) / 2.0L;
+    double trap_area = ((vertices_[i].x_ - vertices_[j].x_) * ((vertices_[i].y_ + vertices_[j].y_))) / 2.0;
     float_area += trap_area;
   }
-  area = (int) round(fabs(float_area));
+
+  area = static_cast<int32>(std::lround(std::fabs(float_area)));
 }
 
-void Polygon::calcCentre() {
+void Polygon::UpdateCentre() {
   if (!area && !vertices_.empty())
-    calcArea();
-  double float_x = 0.0L, float_y = 0.0L;
+    UpdateArea();
+
+  double float_x = 0.0;
+  double float_y = 0.0;
   for (size_t i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++) {
-    float_x += ((vertices_[i].y_ - vertices_[j].y_) * ((vertices_[i].x_ * 2) + (vertices_[i].x_ * vertices_[j].x_) + (vertices_[j].x_ * 2)));
-    float_y += ((vertices_[j].x_ - vertices_[i].x_) * ((vertices_[i].y_ * 2) + (vertices_[i].y_ * vertices_[j].y_) + (vertices_[j].y_ * 2)));
+    float_x += ((vertices_[i].y_ - vertices_[j].y_)
+        * ((vertices_[i].x_ * 2) + (vertices_[i].x_ * vertices_[j].x_) + (vertices_[j].x_ * 2)));
+    float_y += ((vertices_[j].x_ - vertices_[i].x_)
+        * ((vertices_[i].y_ * 2) + (vertices_[i].y_ * vertices_[j].y_) + (vertices_[j].y_ * 2)));
   }
   float_x /= (6 * area);
   float_y /= (6 * area);
-  centre = Vector2((int) round(float_x), (int) round(float_y));
+
+  centre = Vector2(static_cast<int32>(std::lround(float_x)), static_cast<int32>(std::lround(float_y)));
 }
 
 bool Polygon::Contains(const Vector2 &coord) const {
@@ -77,10 +86,10 @@ bool Polygon::Contains(const Vector2 &coord) const {
 }
 
 // Clip the polygon to a rectangular boundary box using the Sutherland-Hodgman algorithm
-Polygon Polygon::GetClipped(const Box &boundary) {
+void Polygon::Clip(const Box &boundary) {
   std::vector<Vector2> clipped_vertices = vertices_;
 
-  for (LineSegment const& clip_edge : boundary.Edges()) {
+  for (LineSegment const &clip_edge : boundary.Edges()) {
     // convert our line segment to an infinite line
     Line clip_line = Line(clip_edge);
 
@@ -105,5 +114,8 @@ Polygon Polygon::GetClipped(const Box &boundary) {
     }
   }
 
-  return Polygon(clipped_vertices);
+  vertices_ = clipped_vertices;
+  UpdateExtent();
+  UpdateArea();
+  UpdateCentre();
 }

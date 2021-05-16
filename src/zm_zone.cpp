@@ -885,7 +885,7 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
             polygon.Extent().Hi().x_,
             polygon.Extent().Hi().y_);
 
-      polygon = polygon.GetClipped(Box(
+      polygon.Clip(Box(
           {0, 0},
           {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}
       ));

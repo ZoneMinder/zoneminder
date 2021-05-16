@@ -40,6 +40,7 @@ struct Edge {
   }
 };
 
+// This class represents convex or concave non-self-intersecting polygons.
 class Polygon {
  public:
   Polygon() : area(0) {}
@@ -55,11 +56,12 @@ class Polygon {
 
   bool Contains(const Vector2 &coord) const;
 
-  Polygon GetClipped(const Box &boundary);
+  void Clip(const Box &boundary);
 
  private:
-  void calcArea();
-  void calcCentre();
+  void UpdateExtent();
+  void UpdateArea();
+  void UpdateCentre();
 
  private:
   std::vector<Vector2> vertices_;

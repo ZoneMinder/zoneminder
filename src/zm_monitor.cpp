@@ -1481,9 +1481,10 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   }
 
-  extra_zone = extra_zone.GetClipped(Box({0, 0},
-                                         {static_cast<int32>(zone_image->Width()),
-                                          static_cast<int32>(zone_image->Height())}));
+  extra_zone.Clip(Box(
+      {0, 0},
+      {static_cast<int32>(zone_image->Width()), static_cast<int32>(zone_image->Height())}
+  ));
 
   for (const Zone &zone : zones) {
     if (exclude_id && (!extra_colour || !extra_zone.GetVertices().empty()) && zone.Id() == exclude_id) {

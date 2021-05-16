@@ -243,27 +243,27 @@ class Socket : public CommsBase {
     return nBytes;
   }
 
-  virtual int recv(std::string &msg) const {
-    char buffer[msg.capacity()];
-    int nBytes = 0;
-    if ((nBytes = ::recv(mSd, buffer, sizeof(buffer), 0)) < 0) {
-      Debug(1, "Recv of %zd bytes max to string on sd %d failed: %s", sizeof(buffer), mSd, strerror(errno));
+  virtual ssize_t recv(std::string &msg) const {
+    std::vector<char> buffer(msg.capacity());
+    ssize_t nBytes;
+    if ((nBytes = ::recv(mSd, buffer.data(), buffer.size(), 0)) < 0) {
+      Debug(1, "Recv of %zd bytes max to string on sd %d failed: %s", msg.size(), mSd, strerror(errno));
       return nBytes;
     }
     buffer[nBytes] = '\0';
-    msg = buffer;
+    msg = {buffer.begin(), buffer.begin() + nBytes};
     return nBytes;
   }
 
-  virtual int recv(std::string &msg, size_t maxLen) const {
-    char buffer[maxLen];
-    int nBytes = 0;
-    if ((nBytes = ::recv(mSd, buffer, sizeof(buffer), 0)) < 0) {
+  virtual ssize_t recv(std::string &msg, size_t maxLen) const {
+    std::vector<char> buffer(maxLen);
+    ssize_t nBytes;
+    if ((nBytes = ::recv(mSd, buffer.data(), buffer.size(), 0)) < 0) {
       Debug(1, "Recv of %zd bytes max to string on sd %d failed: %s", maxLen, mSd, strerror(errno));
       return nBytes;
     }
     buffer[nBytes] = '\0';
-    msg = buffer;
+    msg = {buffer.begin(), buffer.begin() + nBytes};
     return nBytes;
   }
 

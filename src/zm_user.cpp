@@ -236,8 +236,8 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
   }
   char auth_key[512] = "";
   char auth_md5[32+1] = "";
-  size_t md5len = 16;
-  unsigned char md5sum[md5len];
+  constexpr size_t md5len = 16;
+  uint8 md5sum[md5len];
 
   const char * hex = "0123456789abcdef";
   while ( MYSQL_ROW dbrow = mysql_fetch_row(result) ) {

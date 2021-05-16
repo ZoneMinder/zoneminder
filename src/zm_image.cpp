@@ -250,7 +250,7 @@ int Image::PopulateFrame(AVFrame *frame) {
       width, height, linesize, colours, size,
       av_get_pix_fmt_name(imagePixFormat)
       );
-  AVBufferRef *ref = av_buffer_create(buffer, size, 
+  AVBufferRef *ref = av_buffer_create(buffer, size,
       dont_free, /* Free callback */
       nullptr, /* opaque */
       0 /* flags */
@@ -576,7 +576,7 @@ void Image::Initialise() {
   if ( res == FontLoadError::kFileNotFound ) {
     Panic("Invalid font location: %s", config.font_file_location);
   } else if ( res == FontLoadError::kInvalidFile ) {
-    Panic("Invalid font file."); 
+    Panic("Invalid font file.");
   }
   initialised = true;
 }
@@ -781,7 +781,7 @@ void Image::Assign(const Image &image) {
         return;
       }
     } else {
-      if ( new_size > allocation || !buffer ) { 
+      if (new_size > allocation || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
         AllocImgBuffer(new_size);
       }
@@ -820,10 +820,10 @@ Image *Image::HighlightEdges(
   /* Set image to all black */
   high_image->Clear();
 
-  unsigned int lo_x = limits ? limits->Lo().X() : 0;
-  unsigned int lo_y = limits ? limits->Lo().Y() : 0;
-  unsigned int hi_x = limits ? limits->Hi().X() : width-1;
-  unsigned int hi_y = limits ? limits->Hi().Y() : height-1;
+  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
+  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
+  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
+  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
 
   if ( p_colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
@@ -1508,7 +1508,7 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
 }
 
 bool Image::Crop(const Box &limits) {
-  return Crop(limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY());
+  return Crop(limits.Lo().x_, limits.Lo().y_, limits.Hi().x_, limits.Hi().y_);
 }
 
 /* Far from complete */
@@ -1932,7 +1932,7 @@ void Image::Delta(const Image &image, Image* targetimage) const {
 #endif
 }
 
-const Coord Image::centreCoord( const char *text, int size=1 ) const {
+const Vector2 Image::centreCoord(const char *text, int size = 1) const {
   int index = 0;
   int line_no = 0;
   int text_len = strlen(text);
@@ -1957,7 +1957,7 @@ const Coord Image::centreCoord( const char *text, int size=1 ) const {
   uint16_t char_height = font_variant.GetCharHeight();
   int x = (width - (max_line_len * char_width )) / 2;
   int y = (height - (line_no * char_height) ) / 2;
-  return Coord(x, y);
+  return {x, y};
 }
 
 /* RGB32 compatible: complete */
@@ -2007,7 +2007,7 @@ https://lemire.me/blog/2018/02/21/iterating-over-set-bits-quickly/
 */
 void Image::Annotate(
     const std::string &text,
-    const Coord &coord,
+    const Vector2 &coord,
     const uint8 size,
     const Rgb fg_colour,
     const Rgb bg_colour) {
@@ -2031,8 +2031,8 @@ void Image::Annotate(
 
   // Calculate initial coordinates of annotation so that everything is displayed even if the
   // user set coordinates would prevent that.
-  uint32 x0 = ZM::clamp(static_cast<uint32>(coord.X()), 0u, x0_max);
-  uint32 y0 = ZM::clamp(static_cast<uint32>(coord.Y()), 0u, y0_max);
+  uint32 x0 = ZM::clamp(static_cast<uint32>(coord.x_), 0u, x0_max);
+  uint32 y0 = ZM::clamp(static_cast<uint32>(coord.y_), 0u, y0_max);
 
   uint32 y = y0;
   for (const std::string &line : lines) {
@@ -2127,7 +2127,7 @@ void Image::Annotate(
   }
 }
 
-void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size ) {
+void Image::Timestamp(const char *label, const time_t when, const Vector2 &coord, const int size) {
   char time_text[64];
   tm when_tm = {};
   strftime(time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime_r(&when, &when_tm));
@@ -2294,10 +2294,10 @@ void Image::Fill( Rgb colour, const Box *limits ) {
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour,subpixelorder);
 
-  unsigned int lo_x = limits?limits->Lo().X():0;
-  unsigned int lo_y = limits?limits->Lo().Y():0;
-  unsigned int hi_x = limits?limits->Hi().X():width-1;
-  unsigned int hi_y = limits?limits->Hi().Y():height-1;
+  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
+  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
+  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
+  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
   if ( colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
       unsigned char *p = &buffer[(y*width)+lo_x];
@@ -2339,10 +2339,10 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour, subpixelorder);
 
-  unsigned int lo_x = limits?limits->Lo().X():0;
-  unsigned int lo_y = limits?limits->Lo().Y():0;
-  unsigned int hi_x = limits?limits->Hi().X():width-1;
-  unsigned int hi_y = limits?limits->Hi().Y():height-1;
+  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
+  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
+  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
+  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
   if ( colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
       unsigned char *p = &buffer[(y*width)+lo_x];
@@ -2382,17 +2382,18 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
   }
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
-  colour = rgb_convert(colour,subpixelorder);
+  colour = rgb_convert(colour, subpixelorder);
 
-  int n_coords = polygon.getNumCoords();
-  for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ ) {
-    const Coord &p1 = polygon.getCoord( i );
-    const Coord &p2 = polygon.getCoord( j );
+  size_t n_coords = polygon.GetVertices().size();
+  for (size_t j = 0, i = n_coords - 1; j < n_coords; i = j++) {
+    const Vector2 &p1 = polygon.GetVertices()[i];
+    const Vector2 &p2 = polygon.GetVertices()[j];
 
-    int x1 = p1.X();
-    int x2 = p2.X();
-    int y1 = p1.Y();
-    int y2 = p2.Y();
+    // The last pixel we can draw is width/height - 1. Clamp to that value.
+    int x1 = ZM::clamp(p1.x_, 0, static_cast<int>(width - 1));
+    int x2 = ZM::clamp(p2.x_, 0, static_cast<int>(width - 1));
+    int y1 = ZM::clamp(p1.y_, 0, static_cast<int>(height - 1));
+    int y2 = ZM::clamp(p2.y_, 0, static_cast<int>(height - 1));
 
     double dx = x2 - x1;
     double dy = y2 - y1;
@@ -2466,17 +2467,17 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour, subpixelorder);
 
-  int n_coords = polygon.getNumCoords();
+  size_t n_coords = polygon.GetVertices().size();
   int n_global_edges = 0;
   Edge global_edges[n_coords];
-  for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ ) {
-    const Coord &p1 = polygon.getCoord(i);
-    const Coord &p2 = polygon.getCoord(j);
+  for (size_t j = 0, i = n_coords - 1; j < n_coords; i = j++) {
+    const Vector2 &p1 = polygon.GetVertices()[i];
+    const Vector2 &p2 = polygon.GetVertices()[j];
 
-    int x1 = p1.X();
-    int x2 = p2.X();
-    int y1 = p1.Y();
-    int y2 = p2.Y();
+    int x1 = p1.x_;
+    int x2 = p2.x_;
+    int y1 = p1.y_;
+    int y2 = p2.y_;
 
     //Debug( 9, "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 );
     if ( y1 == y2 )
@@ -2511,8 +2512,7 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
         Debug(9, "Moving global edge");
         active_edges[n_active_edges++] = global_edges[i];
         if ( i < (n_global_edges-1) ) {
-          //memcpy( &global_edges[i], &global_edges[i+1], sizeof(*global_edges)*(n_global_edges-i) );
-          memmove( &global_edges[i], &global_edges[i+1], sizeof(*global_edges)*(n_global_edges-i) );
+          memmove(&global_edges[i], &global_edges[i + 1], sizeof(*global_edges) * (n_global_edges - i - 1));
           i--;
         }
         n_global_edges--;

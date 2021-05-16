@@ -29,6 +29,7 @@
 #endif
 
 #include <cinttypes>
+#include <cstddef>
 
 typedef std::int64_t int64;
 typedef std::int32_t int32;

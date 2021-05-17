@@ -312,7 +312,6 @@ bool VideoStore::open() {
           video_out_codec = nullptr;
         }
 
-        Debug(1, "Success");
         AVDictionaryEntry *e = nullptr;
         while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
           Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
@@ -349,7 +348,28 @@ bool VideoStore::open() {
 #else
   avcodec_copy_context(video_out_stream->codec, video_out_ctx);
 #endif
+
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
+  if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
+    // Only set orientation if doing passthrough, otherwise the frame image will be rotated
+    Monitor::Orientation orientation = monitor->getOrientation();
+    if (orientation) {
+      Debug(3, "Have orientation %d", orientation);
+      if (orientation == Monitor::ROTATE_0) {
+      } else if (orientation == Monitor::ROTATE_90) {
+        ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
+        if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      } else if (orientation == Monitor::ROTATE_180) {
+        ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
+        if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      } else if (orientation == Monitor::ROTATE_270) {
+        ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
+        if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      } else {
+        Warning("Unsupported Orientation(%d)", orientation);
+      }
+    } // end if orientation
+  }  // end if passthrough
 
   if (audio_in_stream and audio_in_ctx) {
     Debug(2, "Have audio_in_stream %p", audio_in_stream);
@@ -647,9 +667,10 @@ VideoStore::~VideoStore() {
     video_in_ctx = nullptr;
 
     avcodec_close(video_out_ctx);
+    if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
     Debug(4, "Freeing video_out_ctx");
     avcodec_free_context(&video_out_ctx);
-  } // end if video_out_stream
+  }  // end if video_out_stream
 
   if (audio_out_stream) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -993,10 +1014,11 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
     if (!zm_packet->out_frame) {
-      Debug(3, "Have no out frame. codec is %s sw_pf %d %s hw_pf %d %s",
+      Debug(3, "Have no out frame. codec is %s sw_pf %d %s hw_pf %d %s %dx%d",
           chosen_codec_data->codec_name,
           chosen_codec_data->sw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->sw_pix_fmt),
-          chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt)
+          chosen_codec_data->hw_pix_fmt, av_get_pix_fmt_name(chosen_codec_data->hw_pix_fmt),
+          video_out_ctx->width, video_out_ctx->height
           );
       AVFrame *out_frame = zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
       if (!out_frame) {

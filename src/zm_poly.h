@@ -23,23 +23,6 @@
 #include "zm_box.h"
 #include <vector>
 
-struct Edge {
-  int min_y;
-  int max_y;
-  double min_x;
-  double _1_m;
-
-  static bool CompareYX(const Edge &e1, const Edge &e2) {
-    if (e1.min_y == e2.min_y)
-      return e1.min_x < e2.min_x;
-    return e1.min_y < e2.min_y;
-  }
-
-  static bool CompareX(const Edge &e1, const Edge &e2) {
-    return e1.min_x < e2.min_x;
-  }
-};
-
 // This class represents convex or concave non-self-intersecting polygons.
 class Polygon {
  public:

@@ -7,7 +7,8 @@ target_compile_options(zm-warning-interface
     -Wno-cast-function-type
     $<$<VERSION_LESS:$<CXX_COMPILER_VERSION>,11>:-Wno-clobbered>
     -Wno-unused-parameter
-    -Woverloaded-virtual)
+    -Woverloaded-virtual
+    -Wvla)
 
 if(ENABLE_WERROR)
   target_compile_options(zm-warning-interface

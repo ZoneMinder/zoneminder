@@ -131,9 +131,9 @@ std::string Authenticator::computeDigestResponse(const std::string &method, cons
 #if HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
   // The "response" field is computed as:
   //  md5(md5(<username>:<realm>:<password>):<nonce>:md5(<cmd>:<url>))
-  size_t md5len = 16;
-  unsigned char md5buf[md5len];
-  char md5HexBuf[md5len*2+1];
+  constexpr size_t md5len = 16;
+  uint8 md5buf[md5len];
+  char md5HexBuf[md5len * 2 + 1];
   
   // Step 1: md5(<username>:<realm>:<password>)
   std::string ha1Data = username() + ":" + realm() + ":" + password();

@@ -1039,6 +1039,7 @@ bool Monitor::connect() {
     // Uh, why nothing?  Why not nullptr?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
+    usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
   } else if ( !shared_data->valid ) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
@@ -1543,41 +1544,45 @@ bool Monitor::CheckSignal(const Image *image) {
   int colours = image->Colours();
 
   int index = 0;
-  for ( int i = 0; i < signal_check_points; i++ ) {
-    while ( true ) {
+  for (int i = 0; i < signal_check_points; i++) {
+    while (true) {
       // Why the casting to long long? also note that on a 64bit cpu, long long is 128bits
       index = (int)(((long long)rand()*(long long)(pixels-1))/RAND_MAX);
-      if ( !config.timestamp_on_capture || !label_format[0] )
+      if (!config.timestamp_on_capture || !label_format[0])
         break;
       // Avoid sampling the rows with timestamp in
-      if (index < (label_coord.y_ * width) || index >= (label_coord.y_ + Image::LINE_HEIGHT) * width) {
+      if (
+          index < (label_coord.y_ * width)
+          ||
+          index >= (label_coord.y_ + Image::LINE_HEIGHT) * width
+          ) {
         break;
       }
     }
 
-    if ( colours == ZM_COLOUR_GRAY8 ) {
-      if ( *(buffer+index) != grayscale_val )
+    if (colours == ZM_COLOUR_GRAY8) {
+      if (*(buffer+index) != grayscale_val)
         return true;
 
-    } else if ( colours == ZM_COLOUR_RGB24 ) {
+    } else if (colours == ZM_COLOUR_RGB24) {
       const uint8_t *ptr = buffer+(index*colours);
 
-      if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR ) {
-        if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
+      if (usedsubpixorder == ZM_SUBPIX_ORDER_BGR) {
+        if ((RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val))
           return true;
       } else {
         /* Assume RGB */
-        if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
+        if ((RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val))
           return true;
       }
 
-    } else if ( colours == ZM_COLOUR_RGB32 ) {
-      if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR ) {
-        if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
+    } else if (colours == ZM_COLOUR_RGB32) {
+      if (usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
+        if (ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val))
           return true;
       } else {
         /* Assume RGBA or BGRA */
-        if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val) )
+        if (RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val))
           return true;
       }
     }

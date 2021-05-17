@@ -381,7 +381,11 @@ LocalCamera::LocalCamera(
     } else {
       if ( capture ) {
         Info("Selected capture palette: %s (0x%02hhx%02hhx%02hhx%02hhx)",
-            palette_desc, (palette>>24)&0xff, (palette>>16)&0xff, (palette>>8)&0xff, (palette)&0xff);
+             palette_desc,
+             static_cast<uint8>((palette >> 24) & 0xff),
+             static_cast<uint8>((palette >> 16) & 0xff),
+             static_cast<uint8>((palette >> 8) & 0xff),
+             static_cast<uint8>((palette) & 0xff));
       }
     }
   }
@@ -438,8 +442,10 @@ LocalCamera::LocalCamera(
     } else {
       if ( capture ) {
 #if HAVE_LIBSWSCALE
-        Info("No direct match for the selected palette (0x%02hhx%02hhx%02hhx%02hhx) and target colorspace (%02u). Format conversion is required, performance penalty expected",
-            (capturePixFormat>>24)&0xff,((capturePixFormat>>16)&0xff),((capturePixFormat>>8)&0xff),((capturePixFormat)&0xff), colours);
+        Info(
+            "No direct match for the selected palette (%d) and target colorspace (%02u). Format conversion is required, performance penalty expected",
+            capturePixFormat,
+            colours);
 #else
         Info("No direct match for the selected palette and target colorspace. Format conversion is required, performance penalty expected");
 #endif
@@ -463,13 +469,11 @@ LocalCamera::LocalCamera(
       if ( capture ) {
 #if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
         if ( !sws_isSupportedInput(capturePixFormat) ) {
-          Error("swscale does not support the used capture format: 0x%02hhx%02hhx%02hhx%02hhx",
-              (capturePixFormat>>24)&0xff,((capturePixFormat>>16)&0xff),((capturePixFormat>>8)&0xff),((capturePixFormat)&0xff));
+          Error("swscale does not support the used capture format: %d", capturePixFormat);
           conversion_type = 2; /* Try ZM format conversions */
         }
         if ( !sws_isSupportedOutput(imagePixFormat) ) {
-          Error("swscale does not support the target format: 0x%02hhx%02hhx%02hhx%02hhx",
-              (imagePixFormat>>24)&0xff,((imagePixFormat>>16)&0xff),((imagePixFormat>>8)&0xff),((imagePixFormat)&0xff));
+          Error("swscale does not support the target format: 0x%d", imagePixFormat);
           conversion_type = 2; /* Try ZM format conversions */
         }
 #endif
@@ -1212,14 +1216,14 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
     /* Got a format. Copy it to the array */
     strcpy(fmt_desc[nIndex], (const char*)(fmtinfo.description));
     fmt_fcc[nIndex] = fmtinfo.pixelformat;
-    
+
     Debug(3, "Got format: %s (0x%02hhx%02hhx%02hhx%02hhx) at index %d",
-        fmt_desc[nIndex],
-        (fmt_fcc[nIndex]>>24)&0xff,
-        (fmt_fcc[nIndex]>>16)&0xff,
-        (fmt_fcc[nIndex]>>8)&0xff,
-        (fmt_fcc[nIndex])&0xff,
-        nIndex);
+          fmt_desc[nIndex],
+          static_cast<uint8>((fmt_fcc[nIndex] >> 24) & 0xff),
+          static_cast<uint8>((fmt_fcc[nIndex] >> 16) & 0xff),
+          static_cast<uint8>((fmt_fcc[nIndex] >> 8) & 0xff),
+          static_cast<uint8>((fmt_fcc[nIndex]) & 0xff),
+          nIndex);
     
     /* Proceed to the next index */
     memset(&fmtinfo, 0, sizeof(fmtinfo));
@@ -1248,13 +1252,23 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
     for ( unsigned int j=0; j < nIndex; j++ ) {
       if ( preferedformats[i] == fmt_fcc[j] ) {
         Debug(6, "Choosing format: %s (0x%02hhx%02hhx%02hhx%02hhx) at index %u",
-            fmt_desc[j],fmt_fcc[j]&0xff, (fmt_fcc[j]>>8)&0xff, (fmt_fcc[j]>>16)&0xff, (fmt_fcc[j]>>24)&0xff ,j);
+              fmt_desc[j],
+              static_cast<uint8>(fmt_fcc[j] & 0xff),
+              static_cast<uint8>((fmt_fcc[j] >> 8) & 0xff),
+              static_cast<uint8>((fmt_fcc[j] >> 16) & 0xff),
+              static_cast<uint8>((fmt_fcc[j] >> 24) & 0xff),
+              j);
         /* Found a format! */
         nIndexUsed = j;
         break;
       } else {
         Debug(6, "No match for format: %s (0x%02hhx%02hhx%02hhx%02hhx) at index %u",
-            fmt_desc[j],fmt_fcc[j]&0xff, (fmt_fcc[j]>>8)&0xff, (fmt_fcc[j]>>16)&0xff, (fmt_fcc[j]>>24)&0xff ,j);
+              fmt_desc[j],
+              static_cast<uint8>(fmt_fcc[j] & 0xff),
+              static_cast<uint8>((fmt_fcc[j] >> 8) & 0xff),
+              static_cast<uint8>((fmt_fcc[j] >> 16) & 0xff),
+              static_cast<uint8>((fmt_fcc[j] >> 24) & 0xff),
+              j);
       }
     }
   }

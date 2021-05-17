@@ -2458,9 +2458,9 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
   } // end foreach coordinate in the polygon
 }
 
-/* RGB32 compatible: complete */
+// Polygon filling is based on the Scan-line Polygon filling algorithm
 void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
-  if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) ) {
+  if (!(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32)) {
     Panic("Attempt to fill image with unexpected colours %d", colours);
   }
 
@@ -2468,119 +2468,91 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   colour = rgb_convert(colour, subpixelorder);
 
   size_t n_coords = polygon.GetVertices().size();
-  int n_global_edges = 0;
-  Edge global_edges[n_coords];
+
+  std::vector<PolygonFill::Edge> global_edges;
+  global_edges.reserve(n_coords);
   for (size_t j = 0, i = n_coords - 1; j < n_coords; i = j++) {
     const Vector2 &p1 = polygon.GetVertices()[i];
     const Vector2 &p2 = polygon.GetVertices()[j];
 
-    int x1 = p1.x_;
-    int x2 = p2.x_;
-    int y1 = p1.y_;
-    int y2 = p2.y_;
-
-    //Debug( 9, "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 );
-    if ( y1 == y2 )
+    // Do not add horizontal edges to the global edge table.
+    if (p1.y_ == p2.y_)
       continue;
 
-    double dx = x2 - x1;
-    double dy = y2 - y1;
+    Vector2 d = p2 - p1;
 
-    global_edges[n_global_edges].min_y = y1<y2?y1:y2;
-    global_edges[n_global_edges].max_y = y1<y2?y2:y1;
-    global_edges[n_global_edges].min_x = y1<y2?x1:x2;
-    global_edges[n_global_edges]._1_m = dx/dy;
-    n_global_edges++;
+    global_edges.emplace_back(std::min(p1.y_, p2.y_),
+                              std::max(p1.y_, p2.y_),
+                              p1.y_ < p2.y_ ? p1.x_ : p2.x_,
+                              d.x_ / static_cast<double>(d.y_));
+
   }
-  std::sort(global_edges, global_edges + n_global_edges, Edge::CompareYX);
+  std::sort(global_edges.begin(), global_edges.end(), PolygonFill::Edge::CompareYX);
 
-#ifndef ZM_DBG_OFF
-  if ( logLevel() >= Logger::DEBUG9 ) {
-    for ( int i = 0; i < n_global_edges; i++ ) {
-      Debug(9, "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f",
-          i, global_edges[i].min_y, global_edges[i].max_y, global_edges[i].min_x, global_edges[i]._1_m);
-    }
-  }
-#endif
+  std::vector<PolygonFill::Edge> active_edges;
+  active_edges.reserve(global_edges.size());
 
-  int n_active_edges = 0;
-  Edge active_edges[n_global_edges];
-  int y = global_edges[0].min_y;
-  do {
-    for ( int i = 0; i < n_global_edges; i++ ) {
-      if ( global_edges[i].min_y == y ) {
-        Debug(9, "Moving global edge");
-        active_edges[n_active_edges++] = global_edges[i];
-        if ( i < (n_global_edges-1) ) {
-          memmove(&global_edges[i], &global_edges[i + 1], sizeof(*global_edges) * (n_global_edges - i - 1));
-          i--;
-        }
-        n_global_edges--;
+  int32 scan_line = global_edges[0].min_y;
+  while (!global_edges.empty() || !active_edges.empty()) {
+    // Deactivate edges with max_y < current scan line
+    for (auto it = active_edges.begin(); it != active_edges.end();) {
+      if (scan_line >= it->max_y) {
+        it = active_edges.erase(it);
       } else {
-        break;
+        it->min_x += it->_1_m;
+        ++it;
       }
     }
-    std::sort(active_edges, active_edges + n_active_edges, Edge::CompareX);
-#ifndef ZM_DBG_OFF
-    if ( logLevel() >= Logger::DEBUG9 ) {
-      for ( int i = 0; i < n_active_edges; i++ ) {
-        Debug(9, "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f",
-            y, i, active_edges[i].min_y, active_edges[i].max_y, active_edges[i].min_x, active_edges[i]._1_m );
+
+    // Activate edges with min_y == current scan line
+    for (auto it = global_edges.begin(); it != global_edges.end();) {
+      if (it->min_y == scan_line) {
+        active_edges.emplace_back(*it);
+        it = global_edges.erase(it);
+      } else {
+        ++it;
       }
     }
-#endif
-    if ( !(y%density) ) {
-      //Debug( 9, "%d", y );
-      for ( int i = 0; i < n_active_edges; ) {
-        int lo_x = int(round(active_edges[i++].min_x));
-        int hi_x = int(round(active_edges[i++].min_x));
-        if ( colours == ZM_COLOUR_GRAY8 ) {
-          unsigned char *p = &buffer[(y*width)+lo_x];
-          for ( int x = lo_x; x <= hi_x; x++, p++) {
-            if ( !(x%density) ) {
-              //Debug( 9, " %d", x );
+    std::sort(active_edges.begin(), active_edges.end(), PolygonFill::Edge::CompareX);
+
+    if (!(scan_line % density)) {
+      for (auto it = active_edges.begin(); it != active_edges.end(); ++it) {
+        int32 lo_x = static_cast<int32>(it->min_x);
+        int32 hi_x = static_cast<int32>(std::next(it)->min_x);
+        if (colours == ZM_COLOUR_GRAY8) {
+          uint8 *p = &buffer[(scan_line * width) + lo_x];
+
+          for (int32 x = lo_x; x <= hi_x; x++, p++) {
+            if (!(x % density)) {
               *p = colour;
             }
           }
-        } else if ( colours == ZM_COLOUR_RGB24 ) {
-          unsigned char *p = &buffer[colours*((y*width)+lo_x)];
-          for ( int x = lo_x; x <= hi_x; x++, p += 3) {
-            if ( !(x%density) ) {
-              RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
-              GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
-              BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
-            }
-          }
-        } else if( colours == ZM_COLOUR_RGB32 ) {
-          Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
-          for ( int x = lo_x; x <= hi_x; x++, p++) {
-            if ( !(x%density) ) {
-              /* Fast, copies the entire pixel in a single pass */
-              *p = colour;
-            }
-          }
-        }
-      }
-    }
-    y++;
-    for ( int i = n_active_edges-1; i >= 0; i-- ) {
-      if ( y >= active_edges[i].max_y ) {
-        // Or >= as per sheets
-        Debug(9, "Deleting active_edge");
-        if ( i < (n_active_edges-1) ) {
-          //memcpy( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
-          memmove( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
-        }
-        n_active_edges--;
-      } else {
-        active_edges[i].min_x += active_edges[i]._1_m;
-      }
-    }
-  } while ( n_global_edges || n_active_edges );
-}
+        } else if (colours == ZM_COLOUR_RGB24) {
+          constexpr uint8 bytesPerPixel = 3;
+          uint8 *ptr = &buffer[((scan_line * width) + lo_x) * bytesPerPixel];
 
-void Image::Fill(Rgb colour, const Polygon &polygon) {
-  Fill(colour, 1, polygon);
+          for (int32 x = lo_x; x <= hi_x; x++, ptr += bytesPerPixel) {
+            if (!(x % density)) {
+              RED_PTR_RGBA(ptr) = RED_VAL_RGBA(colour);
+              GREEN_PTR_RGBA(ptr) = GREEN_VAL_RGBA(colour);
+              BLUE_PTR_RGBA(ptr) = BLUE_VAL_RGBA(colour);
+            }
+          }
+        } else if (colours == ZM_COLOUR_RGB32) {
+          constexpr uint8 bytesPerPixel = 4;
+          Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[((scan_line * width) + lo_x) * bytesPerPixel]);
+
+          for (int32 x = lo_x; x <= hi_x; x++, ptr++) {
+            if (!(x % density)) {
+              *ptr = colour;
+            }
+          }
+        }
+      }
+    }
+
+    scan_line++;
+  }
 }
 
 void Image::Rotate(int angle) {

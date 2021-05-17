@@ -224,23 +224,42 @@ TEST_CASE("ZM::UdpUnixSocket send/recv") {
   ZM::UdpUnixSocket srv_socket;
   ZM::UdpUnixSocket client_socket;
 
-  std::array<char, 3> msg = {'a', 'b', 'c'};
-  std::array<char, msg.size()> rcv{};
+  SECTION("send/recv byte buffer") {
+    std::array<char, 3> msg = {'a', 'b', 'c'};
+    std::array<char, msg.size()> rcv{};
 
-  SECTION("send/recv on unbound socket") {
-    REQUIRE(client_socket.send(msg.data(), msg.size()) == -1);
-    REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == -1);
+    SECTION("on unbound socket") {
+      REQUIRE(client_socket.send(msg.data(), msg.size()) == -1);
+      REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == -1);
+    }
+
+    SECTION("on bound socket") {
+      REQUIRE(srv_socket.bind(sock_path.c_str()) == true);
+      REQUIRE(srv_socket.isOpen() == true);
+
+      REQUIRE(client_socket.connect(sock_path.c_str()) == true);
+      REQUIRE(client_socket.isConnected() == true);
+
+      REQUIRE(client_socket.send(msg.data(), msg.size()) == msg.size());
+      REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == msg.size());
+
+      REQUIRE(rcv == msg);
+    }
   }
 
-  SECTION("send/recv") {
+  SECTION("send/recv string") {
+    std::string msg = "abc";
+    std::string rcv;
+    rcv.reserve(msg.length());
+
     REQUIRE(srv_socket.bind(sock_path.c_str()) == true);
     REQUIRE(srv_socket.isOpen() == true);
 
     REQUIRE(client_socket.connect(sock_path.c_str()) == true);
     REQUIRE(client_socket.isConnected() == true);
 
-    REQUIRE(client_socket.send(msg.data(), msg.size()) == msg.size());
-    REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == msg.size());
+    REQUIRE(client_socket.send(msg) == static_cast<ssize_t>(msg.size()));
+    REQUIRE(srv_socket.recv(rcv) == static_cast<ssize_t>(msg.size()));
 
     REQUIRE(rcv == msg);
   }

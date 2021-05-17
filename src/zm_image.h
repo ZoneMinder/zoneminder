@@ -278,8 +278,8 @@ class Image {
     void Fill( Rgb colour, const Box *limits=0 );
     void Fill( Rgb colour, int density, const Box *limits=0 );
     void Outline( Rgb colour, const Polygon &polygon );
-    void Fill( Rgb colour, const Polygon &polygon );
-    void Fill( Rgb colour, int density, const Polygon &polygon );
+    void Fill(Rgb colour, const Polygon &polygon) { Fill(colour, 1, polygon); };
+    void Fill(Rgb colour, int density, const Polygon &polygon);
 
     void Rotate( int angle );
     void Flip( bool leftright );
@@ -291,6 +291,31 @@ class Image {
     void Deinterlace_Blend_CustomRatio(int divider);
     void Deinterlace_4Field(const Image* next_image, unsigned int threshold);
 };
+
+// Scan-line polygon fill algorithm
+namespace PolygonFill {
+class Edge {
+ public:
+  Edge() = default;
+  Edge(int32 min_y, int32 max_y, double min_x, double _1_m) : min_y(min_y), max_y(max_y), min_x(min_x), _1_m(_1_m) {}
+
+  static bool CompareYX(const Edge &e1, const Edge &e2) {
+    if (e1.min_y == e2.min_y)
+      return e1.min_x < e2.min_x;
+    return e1.min_y < e2.min_y;
+  }
+
+  static bool CompareX(const Edge &e1, const Edge &e2) {
+    return e1.min_x < e2.min_x;
+  }
+
+ public:
+  int32 min_y;
+  int32 max_y;
+  double min_x;
+  double _1_m;
+};
+}
 
 #endif // ZM_IMAGE_H
 

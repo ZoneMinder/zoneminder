@@ -42,10 +42,8 @@ ZMPacket::ZMPacket() :
   pts(0),
   decoded(0)
 {
-  Debug(1, "ZMPacket");
   av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.
-  Debug(1, "ZMPacket");
 }
 
 ZMPacket::ZMPacket(Image *i, const timeval &tv) :

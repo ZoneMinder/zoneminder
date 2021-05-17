@@ -20,6 +20,7 @@
 
 #include "zm_logger.h"
 #include "zm_utils.h"
+#include <cassert>
 #include <cstring>
 
 namespace zm {
@@ -141,8 +142,10 @@ std::string Authenticator::computeDigestResponse(const std::string &method, cons
 #if HAVE_DECL_MD5
   MD5((unsigned char*)ha1Data.c_str(), ha1Data.length(), md5buf);
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
-  gnutls_datum_t md5dataha1 = { (unsigned char*)ha1Data.c_str(), (unsigned int)ha1Data.length() };
-  gnutls_fingerprint( GNUTLS_DIG_MD5, &md5dataha1, md5buf, &md5len );
+  gnutls_datum_t md5dataha1 = {(unsigned char *) ha1Data.c_str(), (unsigned int) ha1Data.length()};
+  size_t md5_len_tmp = md5len;
+  gnutls_fingerprint(GNUTLS_DIG_MD5, &md5dataha1, md5buf, &md5_len_tmp);
+  assert(md5_len_tmp == md5len);
 #endif
   for ( unsigned int j = 0; j < md5len; j++ ) {
     sprintf(&md5HexBuf[2*j], "%02x", md5buf[j] );
@@ -156,8 +159,10 @@ std::string Authenticator::computeDigestResponse(const std::string &method, cons
 #if HAVE_DECL_MD5
   MD5((unsigned char*)ha2Data.c_str(), ha2Data.length(), md5buf );
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
-  gnutls_datum_t md5dataha2 = { (unsigned char*)ha2Data.c_str(), (unsigned int)ha2Data.length() };
-  gnutls_fingerprint( GNUTLS_DIG_MD5, &md5dataha2, md5buf, &md5len );
+  gnutls_datum_t md5dataha2 = {(unsigned char *) ha2Data.c_str(), (unsigned int) ha2Data.length()};
+  md5_len_tmp = md5len;
+  gnutls_fingerprint(GNUTLS_DIG_MD5, &md5dataha2, md5buf, &md5_len_tmp);
+  assert(md5_len_tmp == md5len);
 #endif
   for ( unsigned int j = 0; j < md5len; j++ ) {
     sprintf( &md5HexBuf[2*j], "%02x", md5buf[j] );
@@ -177,8 +182,10 @@ std::string Authenticator::computeDigestResponse(const std::string &method, cons
 #if HAVE_DECL_MD5
   MD5((unsigned char*)digestData.c_str(), digestData.length(), md5buf);
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
-  gnutls_datum_t md5datadigest = { (unsigned char*)digestData.c_str(), (unsigned int)digestData.length() };
-  gnutls_fingerprint( GNUTLS_DIG_MD5, &md5datadigest, md5buf, &md5len );
+  gnutls_datum_t md5datadigest = {(unsigned char *) digestData.c_str(), (unsigned int) digestData.length()};
+  md5_len_tmp = md5len;
+  gnutls_fingerprint(GNUTLS_DIG_MD5, &md5datadigest, md5buf, &md5_len_tmp);
+  assert(md5_len_tmp == md5len);
 #endif
   for ( unsigned int j = 0; j < md5len; j++ ) {
     sprintf( &md5HexBuf[2*j], "%02x", md5buf[j] );

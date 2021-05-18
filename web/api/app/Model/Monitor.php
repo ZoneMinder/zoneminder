@@ -134,6 +134,11 @@ class Monitor extends AppModel {
       'className' => 'Monitor_Status',
       'foreignKey' => 'MonitorId',
       'joinTable' =>  'Monitor_Status',
+    ),
+    'Event_Summary' => array(
+      'className' => 'Event_Summary',
+      'foreignKey' => 'MonitorId',
+      'joinTable' =>  'Event_Summaries',
     )
   );
 

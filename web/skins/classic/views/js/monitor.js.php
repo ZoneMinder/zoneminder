@@ -45,6 +45,7 @@ rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;
 
 function validateForm( form ) {
   var errors = new Array();
+  var warnings = new Array();
 
   if ( form.elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
     errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
@@ -74,7 +75,7 @@ function validateForm( form ) {
   } else if ( form.elements['newMonitor[Type]'].value == 'Ffmpeg' ) {
     if ( !form.elements['newMonitor[Path]'].value ) {
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
-    } else if ( form.elements['newMonitor[Path]'].value.match( /[\!\*'\(\)\$ ,#\[\]]/) ) {
+    } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#\[\]]/)) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
     }
 
@@ -162,7 +163,6 @@ function validateForm( form ) {
     return false;
   }
 
-  var warnings = new Array();
   if ( (form.elements['newMonitor[Function]'].value != 'Monitor') && (form.elements['newMonitor[Function]'].value != 'None') ) {
     if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
       warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";

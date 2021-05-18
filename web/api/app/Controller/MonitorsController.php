@@ -266,7 +266,7 @@ class MonitorsController extends AppController {
       if ( $mToken ) {
         $auth = ' -T '.$mToken;
       } else if ( ZM_AUTH_RELAY == 'hashed' ) {
-        $auth = ' -A '.generateAuthHash(ZM_AUTH_HASH_IPS);
+        $auth = ' -A '.calculateAuthHash(ZM_AUTH_HASH_IPS?$_SERVER['REMOTE_ADDR']:'');
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
         # Plain requires the plain text password which must either be in request or stored in session
         $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');;
@@ -290,12 +290,19 @@ class MonitorsController extends AppController {
     }
     
     $shellcmd = escapeshellcmd(ZM_PATH_BIN."/zmu $verbose -m$id $q $auth");
-    $status = exec ($shellcmd);
-
-    $this->set(array(
-      'status' => $status,
-      '_serialize' => array('status'),
-    ));
+    $status = exec($shellcmd, $output, $rc);
+    if ($status) {
+      $this->set(array(
+        'status'=>$rc,
+        'error'=>$output,
+      '_serialize' => array('status','error'),
+      ));
+    } else {
+      $this->set(array(
+        'status' => 'Ok',
+        '_serialize' => array('status'),
+      ));
+    }
   }
 
   // Check if a daemon is running for the monitor id

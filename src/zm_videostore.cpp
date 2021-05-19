@@ -272,7 +272,7 @@ bool VideoStore::open() {
           frames_ctx->initial_pool_size = 20;
           if ((ret = av_hwframe_ctx_init(hw_frames_ref)) < 0) {
             Error("Failed to initialize hwaccel frame context."
-                "Error code: %s",av_err2str(ret));
+                "Error code: %s", av_err2str(ret));
             av_buffer_unref(&hw_frames_ref);
           } else {
             video_out_ctx->hw_frames_ctx = av_buffer_ref(hw_frames_ref);
@@ -281,6 +281,7 @@ bool VideoStore::open() {
             }
           }
           av_buffer_unref(&hw_frames_ref);
+          av_buffer_unref(&hw_device_ctx);
         }  // end if hwdevice_type != NONE
 #endif
 
@@ -666,9 +667,12 @@ VideoStore::~VideoStore() {
     video_in_ctx = nullptr;
 
     avcodec_close(video_out_ctx);
-    if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
-    Debug(4, "Freeing video_out_ctx");
+    Debug(3, "Freeing video_out_ctx");
     avcodec_free_context(&video_out_ctx);
+    if (hw_device_ctx) {
+      Debug(3, "Freeing hw_device_ctx");
+      av_buffer_unref(&hw_device_ctx);
+    }
   }  // end if video_out_stream
 
   if (audio_out_stream) {

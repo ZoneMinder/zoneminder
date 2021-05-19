@@ -159,11 +159,11 @@ int SWScale::Convert(
   }
 #endif
 
-  int alignment = 1;
+  int alignment = width % 32 ? 1 : 32;
   /* Check the buffer sizes */
   size_t needed_insize = GetBufferSize(in_pf, width, height);
-  if ( needed_insize > in_buffer_size ) {
-    Debug(1,
+  if (needed_insize > in_buffer_size) {
+    Warning(
           "The input buffer size does not match the expected size for the input format. Required: %zu for %dx%d %d Available: %zu",
           needed_insize,
           width,
@@ -172,7 +172,7 @@ int SWScale::Convert(
           in_buffer_size);
   }
   size_t needed_outsize = GetBufferSize(out_pf, new_width, new_height);
-  if ( needed_outsize > out_buffer_size ) {
+  if (needed_outsize > out_buffer_size) {
     Error("The output buffer is undersized for the output format. Required: %zu Available: %zu",
           needed_outsize,
           out_buffer_size);
@@ -200,6 +200,7 @@ int SWScale::Convert(
     Error("Failed filling input frame with input buffer");
     return -7;
   }
+  zm_dump_frame(input_avframe, "convert in frame");
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   if (av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
                            out_buffer, out_pf, new_width, new_height, alignment) <= 0) {
@@ -210,6 +211,7 @@ int SWScale::Convert(
     Error("Failed filling output frame with output buffer");
     return -8;
   }
+  zm_dump_frame(output_avframe, "convert out frame");
 
   /* Do the conversion */
   if ( !sws_scale(swscale_ctx,

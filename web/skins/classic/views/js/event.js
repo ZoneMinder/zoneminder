@@ -936,7 +936,8 @@ function initPage() {
   editBtn.prop('disabled', !canEdit.Events);
   exportBtn.prop('disabled', !canView.Events);
   downloadBtn.prop('disabled', !canView.Events);
-  deleteBtn.prop('disabled', !canEdit.Events);
+  deleteBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
+  deleteBtn.prop('title', eventData.Archived ? "You cannot delete an archived event." : "");
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
@@ -979,14 +980,14 @@ function initPage() {
 
   // Manage the UNARCHIVE button
   bindButton('#unarchiveBtn', 'click', null, function onUnarchiveClick(evt) {
-    if ( ! canEdit.Events ) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+eventData.Id)
         .done( function(data) {
-          //FIXME: update the status of the unarchive button reather than reload the whole page
+          //FIXME: update the status of the unarchive button rather than reload the whole page
           window.location.reload(true);
         })
         .fail(logAjaxFail);

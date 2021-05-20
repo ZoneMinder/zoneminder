@@ -211,7 +211,7 @@ protected:
 
 #if ZM_MEM_MAPPED
     int       map_fd;
-    char      mem_file[PATH_MAX];
+    std::string      mem_file;
 #else // ZM_MEM_MAPPED
     int       shm_id;
 #endif // ZM_MEM_MAPPED
@@ -364,7 +364,7 @@ protected:
 
 #if ZM_MEM_MAPPED
   int             map_fd;
-  char            mem_file[PATH_MAX];
+  std::string     mem_file;
 #else // ZM_MEM_MAPPED
   int             shm_id;
 #endif // ZM_MEM_MAPPED

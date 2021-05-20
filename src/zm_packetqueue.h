@@ -22,6 +22,7 @@
 #include <condition_variable>
 #include <list>
 #include <mutex>
+#include <memory>
 
 class ZMPacket;
 class ZMLockedPacket;

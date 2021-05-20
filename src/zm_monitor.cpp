@@ -124,7 +124,7 @@ Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
-  snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
+  mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
 #else // ZM_MEM_MAPPED
   shm_id = 0;
 #endif // ZM_MEM_MAPPED
@@ -150,9 +150,9 @@ bool Monitor::MonitorLink::connect() {
 
     Debug(1, "link.mem.size=%jd", mem_size);
 #if ZM_MEM_MAPPED
-    map_fd = open(mem_file, O_RDWR, (mode_t)0600);
+    map_fd = open(mem_file.c_str(), O_RDWR, (mode_t)0600);
     if ( map_fd < 0 ) {
-      Debug(3, "Can't open linked memory map file %s: %s", mem_file, strerror(errno));
+      Debug(3, "Can't open linked memory map file %s: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
     }
@@ -165,13 +165,13 @@ bool Monitor::MonitorLink::connect() {
 
     struct stat map_stat;
     if ( fstat(map_fd, &map_stat) < 0 ) {
-      Error("Can't stat linked memory map file %s: %s", mem_file, strerror(errno));
+      Error("Can't stat linked memory map file %s: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
     }
 
     if ( map_stat.st_size == 0 ) {
-      Error("Linked memory map file %s is empty: %s", mem_file, strerror(errno));
+      Error("Linked memory map file %s is empty: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
     } else if ( map_stat.st_size < mem_size ) {
@@ -182,7 +182,7 @@ bool Monitor::MonitorLink::connect() {
 
     mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
     if ( mem_ptr == MAP_FAILED ) {
-      Error("Can't map file %s (%jd bytes) to memory: %s", mem_file, mem_size, strerror(errno));
+      Error("Can't map file %s (%jd bytes) to memory: %s", mem_file.c_str(), mem_size, strerror(errno));
       disconnect();
       return false;
     }
@@ -380,7 +380,7 @@ Monitor::Monitor()
   event_close_mode(CLOSE_IDLE),
 #if ZM_MEM_MAPPED
   map_fd(-1),
-  mem_file({}),
+  mem_file(""),
 #else // ZM_MEM_MAPPED
   shm_id(-1),
 #endif // ZM_MEM_MAPPED
@@ -388,7 +388,7 @@ Monitor::Monitor()
   mem_ptr(nullptr),
   shared_data(nullptr),
   trigger_data(nullptr),
-  video_store_data({}),
+  video_store_data(nullptr),
   shared_timestamps(nullptr),
   shared_images(nullptr),
   video_stream_id(-1),
@@ -905,23 +905,23 @@ bool Monitor::connect() {
   }
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose);
 #if ZM_MEM_MAPPED
-  snprintf(mem_file, sizeof(mem_file), "%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
+  mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
   if (purpose != CAPTURE) {
-    map_fd = open(mem_file, O_RDWR);
+    map_fd = open(mem_file.c_str(), O_RDWR);
   } else {
-    map_fd = open(mem_file, O_RDWR|O_CREAT, (mode_t)0660);
+    map_fd = open(mem_file.c_str(), O_RDWR|O_CREAT, (mode_t)0660);
   }
 
   if (map_fd < 0) {
-    Error("Can't open memory map file %s: %s", mem_file, strerror(errno));
+    Error("Can't open memory map file %s: %s", mem_file.c_str(), strerror(errno));
     return false;
   } else {
-    Debug(3, "Success opening mmap file at (%s)", mem_file);
+    Debug(3, "Success opening mmap file at (%s)", mem_file.c_str());
   }
 
   struct stat map_stat;
   if (fstat(map_fd, &map_stat) < 0) {
-    Error("Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno));
+    Error("Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file.c_str(), strerror(errno));
     close(map_fd);
     map_fd = -1;
     return false;
@@ -931,7 +931,7 @@ bool Monitor::connect() {
     if (purpose == CAPTURE) {
       // Allocate the size
       if (ftruncate(map_fd, mem_size) < 0) {
-        Error("Can't extend memory map file %s to %jd bytes: %s", mem_file, mem_size, strerror(errno));
+        Error("Can't extend memory map file %s to %jd bytes: %s", mem_file.c_str(), mem_size, strerror(errno));
         close(map_fd);
         map_fd = -1;
         return false;
@@ -954,18 +954,18 @@ bool Monitor::connect() {
   mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0);
   if (mem_ptr == MAP_FAILED) {
     if (errno == EAGAIN) {
-      Debug(1, "Unable to map file %s (%jd bytes) to locked memory, trying unlocked", mem_file, mem_size);
+      Debug(1, "Unable to map file %s (%jd bytes) to locked memory, trying unlocked", mem_file.c_str(), mem_size);
 #endif
       mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
-      Debug(1, "Mapped file %s (%jd bytes) to unlocked memory", mem_file, mem_size);
+      Debug(1, "Mapped file %s (%jd bytes) to unlocked memory", mem_file.c_str(), mem_size);
 #ifdef MAP_LOCKED
     } else {
-      Error("Unable to map file %s (%jd bytes) to locked memory (%s)", mem_file, mem_size, strerror(errno));
+      Error("Unable to map file %s (%jd bytes) to locked memory (%s)", mem_file.c_str(), mem_size, strerror(errno));
     }
   }
 #endif
   if ((mem_ptr == MAP_FAILED) or (mem_ptr == nullptr)) {
-    Error("Can't map file %s (%jd bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
+    Error("Can't map file %s (%jd bytes) to memory: %s(%d)", mem_file.c_str(), mem_size, strerror(errno), errno);
     close(map_fd);
     map_fd = -1;
     mem_ptr = nullptr;
@@ -1071,8 +1071,8 @@ bool Monitor::disconnect() {
   mem_ptr = nullptr;
   shared_data = nullptr;
 
-  if (purpose == CAPTURE and (unlink(mem_file) < 0) ) {
-    Warning("Can't unlink '%s': %s", mem_file, strerror(errno));
+  if (purpose == CAPTURE and (unlink(mem_file.c_str()) < 0) ) {
+    Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
   }
 #else // ZM_MEM_MAPPED
   struct shmid_ds shm_data;

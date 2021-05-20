@@ -380,7 +380,7 @@ Monitor::Monitor()
   event_close_mode(CLOSE_IDLE),
 #if ZM_MEM_MAPPED
   map_fd(-1),
-  mem_file(""),
+  mem_file({}),
 #else // ZM_MEM_MAPPED
   shm_id(-1),
 #endif // ZM_MEM_MAPPED
@@ -388,7 +388,7 @@ Monitor::Monitor()
   mem_ptr(nullptr),
   shared_data(nullptr),
   trigger_data(nullptr),
-  video_store_data(nullptr),
+  video_store_data({}),
   shared_timestamps(nullptr),
   shared_images(nullptr),
   video_stream_id(-1),

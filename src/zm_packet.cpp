@@ -107,7 +107,7 @@ ZMPacket::~ZMPacket() {
 int ZMPacket::decode(AVCodecContext *ctx) {
   Debug(4, "about to decode video, image_index is (%d)", image_index);
 
-  if ( in_frame ) {
+  if (in_frame) {
     Error("Already have a frame?");
   } else {
     in_frame = zm_av_frame_alloc();
@@ -117,8 +117,8 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
 
   int ret = zm_send_packet_receive_frame(ctx, in_frame, packet);
-  if ( ret < 0 ) {
-    if ( AVERROR(EAGAIN) != ret ) {
+  if (ret < 0) {
+    if (AVERROR(EAGAIN) != ret) {
       Warning("Unable to receive frame : code %d %s.",
           ret, av_make_error_string(ret).c_str());
     }
@@ -126,7 +126,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     return 0;
   }
   int bytes_consumed = ret;
-  if ( ret > 0 ) {
+  if (ret > 0) {
     zm_dump_video_frame(in_frame, "got frame");
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
@@ -258,9 +258,11 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
     }
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+    int alignment = 32;
+    if (width%alignment) alignment = 1;
     
     codec_imgsize = av_image_get_buffer_size(
-        format, width, height, 32);
+        format, width, height, alignment);
     Debug(1, "buffer size %u from %s %dx%d", codec_imgsize, av_get_pix_fmt_name(format), width, height);
     buffer = (uint8_t *)av_malloc(codec_imgsize);
     int ret;
@@ -271,7 +273,7 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
         format,
         width,
         height,
-        32))<0) {
+        alignment))<0) {
       Error("Failed to fill_arrays %s", av_make_error_string(ret).c_str());
       av_frame_free(&out_frame);
       return nullptr;

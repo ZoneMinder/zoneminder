@@ -22,6 +22,7 @@
 #include "zm_crypt.h"
 #include "zm_logger.h"
 #include "zm_utils.h"
+#include <cassert>
 #include <cstring>
 
 #if HAVE_GNUTLS_GNUTLS_H
@@ -236,8 +237,8 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
   }
   char auth_key[512] = "";
   char auth_md5[32+1] = "";
-  size_t md5len = 16;
-  unsigned char md5sum[md5len];
+  constexpr size_t md5len = 16;
+  uint8 md5sum[md5len];
 
   const char * hex = "0123456789abcdef";
   while ( MYSQL_ROW dbrow = mysql_fetch_row(result) ) {
@@ -262,8 +263,10 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
 #if HAVE_DECL_MD5
       MD5((unsigned char *)auth_key, strlen(auth_key), md5sum);
 #elif HAVE_DECL_GNUTLS_FINGERPRINT
-      gnutls_datum_t md5data = { (unsigned char *)auth_key, (unsigned int)strlen(auth_key) };
-      gnutls_fingerprint(GNUTLS_DIG_MD5, &md5data, md5sum, &md5len);
+      gnutls_datum_t md5data = {(unsigned char *) auth_key, (unsigned int) strlen(auth_key)};
+      size_t md5_len_tmp = md5len;
+      gnutls_fingerprint(GNUTLS_DIG_MD5, &md5data, md5sum, &md5_len_tmp);
+      assert(md5_len_tmp == md5len);
 #endif
       unsigned char *md5sum_ptr = md5sum;
       char *auth_md5_ptr = auth_md5;

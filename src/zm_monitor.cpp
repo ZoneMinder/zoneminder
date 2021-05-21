@@ -327,7 +327,7 @@ Monitor::Monitor()
   record_audio(0),
 //event_prefix
 //label_format
-  label_coord(Coord(0,0)),
+  label_coord(Vector2(0,0)),
   label_size(0),
   image_buffer_count(0),
   max_image_buffer_count(0),
@@ -561,7 +561,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   /* "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize," */
   event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
   label_format = dbrow[col] ? ReplaceAll(dbrow[col], "\\n", "\n") : ""; col++;
-  label_coord = Coord(atoi(dbrow[col]), atoi(dbrow[col+1])); col += 2;
+  label_coord = Vector2(atoi(dbrow[col]), atoi(dbrow[col + 1])); col += 2;
   label_size = atoi(dbrow[col]); col++;
 
   /* "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, " */
@@ -1039,6 +1039,7 @@ bool Monitor::connect() {
     // Uh, why nothing?  Why not nullptr?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
+    usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
   } else if ( !shared_data->valid ) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
@@ -1481,21 +1482,27 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   }
 
+  extra_zone.Clip(Box(
+      {0, 0},
+      {static_cast<int32>(zone_image->Width()), static_cast<int32>(zone_image->Height())}
+  ));
+
   for (const Zone &zone : zones) {
-    if ( exclude_id && (!extra_colour || extra_zone.getNumCoords()) && zone.Id() == exclude_id )
+    if (exclude_id && (!extra_colour || !extra_zone.GetVertices().empty()) && zone.Id() == exclude_id) {
       continue;
+    }
 
     Rgb colour;
-    if ( exclude_id && !extra_zone.getNumCoords() && zone.Id() == exclude_id ) {
+    if (exclude_id && extra_zone.GetVertices().empty() && zone.Id() == exclude_id) {
       colour = extra_colour;
     } else {
-      if ( zone.IsActive() ) {
+      if (zone.IsActive()) {
         colour = kRGBRed;
-      } else if ( zone.IsInclusive() ) {
+      } else if (zone.IsInclusive()) {
         colour = kRGBOrange;
-      } else if ( zone.IsExclusive() ) {
+      } else if (zone.IsExclusive()) {
         colour = kRGBPurple;
-      } else if ( zone.IsPreclusive() ) {
+      } else if (zone.IsPreclusive()) {
         colour = kRGBBlue;
       } else {
         colour = kRGBWhite;
@@ -1505,7 +1512,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     zone_image->Outline(colour, zone.GetPolygon());
   }
 
-  if ( extra_zone.getNumCoords() ) {
+  if (!extra_zone.GetVertices().empty()) {
     zone_image->Fill(extra_colour, 2, extra_zone);
     zone_image->Outline(extra_colour, extra_zone);
   }
@@ -1537,40 +1544,45 @@ bool Monitor::CheckSignal(const Image *image) {
   int colours = image->Colours();
 
   int index = 0;
-  for ( int i = 0; i < signal_check_points; i++ ) {
-    while ( true ) {
+  for (int i = 0; i < signal_check_points; i++) {
+    while (true) {
       // Why the casting to long long? also note that on a 64bit cpu, long long is 128bits
       index = (int)(((long long)rand()*(long long)(pixels-1))/RAND_MAX);
-      if ( !config.timestamp_on_capture || !label_format[0] )
+      if (!config.timestamp_on_capture || !label_format[0])
         break;
       // Avoid sampling the rows with timestamp in
-      if ( index < (label_coord.Y()*width) || index >= (label_coord.Y()+Image::LINE_HEIGHT)*width )
+      if (
+          index < (label_coord.y_ * width)
+          ||
+          index >= (label_coord.y_ + Image::LINE_HEIGHT) * width
+          ) {
         break;
+      }
     }
 
-    if ( colours == ZM_COLOUR_GRAY8 ) {
-      if ( *(buffer+index) != grayscale_val )
+    if (colours == ZM_COLOUR_GRAY8) {
+      if (*(buffer+index) != grayscale_val)
         return true;
 
-    } else if ( colours == ZM_COLOUR_RGB24 ) {
+    } else if (colours == ZM_COLOUR_RGB24) {
       const uint8_t *ptr = buffer+(index*colours);
 
-      if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR ) {
-        if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
+      if (usedsubpixorder == ZM_SUBPIX_ORDER_BGR) {
+        if ((RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val))
           return true;
       } else {
         /* Assume RGB */
-        if ( (RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val) )
+        if ((RED_PTR_RGBA(ptr) != red_val) || (GREEN_PTR_RGBA(ptr) != green_val) || (BLUE_PTR_RGBA(ptr) != blue_val))
           return true;
       }
 
-    } else if ( colours == ZM_COLOUR_RGB32 ) {
-      if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR ) {
-        if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
+    } else if (colours == ZM_COLOUR_RGB32) {
+      if (usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
+        if (ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val))
           return true;
       } else {
         /* Assume RGBA or BGRA */
-        if ( RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val) )
+        if (RGBA_BGRA_ZEROALPHA(*(((const Rgb*)buffer)+index)) != RGBA_BGRA_ZEROALPHA(colour_val))
           return true;
       }
     }
@@ -1843,7 +1855,7 @@ bool Monitor::Analyse() {
 
         /* try to stay behind the decoder. */
         if (decoding_enabled) {
-          while (!snap->image and !snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
+          while ((!snap->image or deinterlacing_value) and !snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
             // Need to wait for the decoder thread.
             Debug(1, "Waiting for decode");
             packet_lock->wait();
@@ -2832,7 +2844,7 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
     } // end if CheckAlarms
   } // end foreach zone
 
-  Coord alarm_centre;
+  Vector2 alarm_centre;
   int top_score = -1;
 
   if (alarm) {
@@ -2898,8 +2910,8 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   } // end if alarm
 
   if (top_score > 0) {
-    shared_data->alarm_x = alarm_centre.X();
-    shared_data->alarm_y = alarm_centre.Y();
+    shared_data->alarm_x = alarm_centre.x_;
+    shared_data->alarm_y = alarm_centre.y_;
 
     Info("Got alarm centre at %d,%d, at count %d",
         shared_data->alarm_x, shared_data->alarm_y, analysis_image_count);
@@ -2954,7 +2966,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   sprintf(output+strlen(output), "Subpixel Order : %u\n", camera->SubpixelOrder() );
   sprintf(output+strlen(output), "Event Prefix : %s\n", event_prefix.c_str() );
   sprintf(output+strlen(output), "Label Format : %s\n", label_format.c_str() );
-  sprintf(output+strlen(output), "Label Coord : %d,%d\n", label_coord.X(), label_coord.Y() );
+  sprintf(output+strlen(output), "Label Coord : %d,%d\n", label_coord.x_, label_coord.y_ );
   sprintf(output+strlen(output), "Label Size : %d\n", label_size );
   sprintf(output+strlen(output), "Image Buffer Count : %d\n", image_buffer_count );
   sprintf(output+strlen(output), "Warmup Count : %d\n", warmup_count );

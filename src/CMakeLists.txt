@@ -6,12 +6,10 @@ configure_file(zm_config_data.h.in "${CMAKE_BINARY_DIR}/zm_config_data.h" @ONLY)
 # Group together all the source files that are used by all the binaries (zmc, zmu, zms etc)
 set(ZM_BIN_SRC_FILES
   zm_analysis_thread.cpp
-  zm_box.cpp
   zm_buffer.cpp
   zm_camera.cpp
   zm_comms.cpp
   zm_config.cpp
-  zm_coord.cpp
   zm_curl_camera.cpp
   zm_crypt.cpp
   zm.cpp

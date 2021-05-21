@@ -21,8 +21,8 @@
 #define ZM_ZONE_STATS_H
 
 #include "zm_box.h"
-#include "zm_coord.h"
 #include "zm_logger.h"
+#include "zm_vector2.h"
 
 class ZoneStats {
  public:
@@ -35,8 +35,6 @@ class ZoneStats {
       alarm_blobs_(0),
       min_blob_size_(0),
       max_blob_size_(0),
-      alarm_box_({}),
-      alarm_centre_({}),
       score_(0) {};
 
   void Reset() {
@@ -47,10 +45,7 @@ class ZoneStats {
     alarm_blobs_ = 0;
     min_blob_size_ = 0;
     max_blob_size_ = 0;
-    alarm_box_.LoX(0);
-    alarm_box_.LoY(0);
-    alarm_box_.HiX(0);
-    alarm_box_.HiY(0);
+    alarm_box_ = {};
     alarm_centre_ = {};
     score_ = 0;
   }
@@ -67,12 +62,12 @@ class ZoneStats {
           alarm_blobs_,
           min_blob_size_,
           max_blob_size_,
-          alarm_box_.LoX(),
-          alarm_box_.LoY(),
-          alarm_box_.HiX(),
-          alarm_box_.HiY(),
-          alarm_centre_.X(),
-          alarm_centre_.Y(),
+          alarm_box_.Lo().x_,
+          alarm_box_.Lo().y_,
+          alarm_box_.Hi().x_,
+          alarm_box_.Hi().y_,
+          alarm_centre_.x_,
+          alarm_centre_.y_,
           score_
     );
   }
@@ -87,7 +82,7 @@ class ZoneStats {
   int min_blob_size_;
   int max_blob_size_;
   Box alarm_box_;
-  Coord alarm_centre_;
+  Vector2 alarm_centre_;
   unsigned int score_;
 };
 

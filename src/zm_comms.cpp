@@ -36,7 +36,7 @@
 
 int ZM::CommsBase::readV(int iovcnt, /* const void *, int, */ ...) {
   va_list arg_ptr;
-  iovec iov[iovcnt];
+  std::vector<iovec> iov(iovcnt);
 
   va_start(arg_ptr, iovcnt);
   for (int i = 0; i < iovcnt; i++) {
@@ -45,7 +45,7 @@ int ZM::CommsBase::readV(int iovcnt, /* const void *, int, */ ...) {
   }
   va_end(arg_ptr);
 
-  int nBytes = ::readv(mRd, iov, iovcnt);
+  int nBytes = ::readv(mRd, iov.data(), iovcnt);
   if (nBytes < 0) {
     Debug(1, "Readv of %d buffers max on rd %d failed: %s", iovcnt, mRd, strerror(errno));
   }
@@ -54,7 +54,7 @@ int ZM::CommsBase::readV(int iovcnt, /* const void *, int, */ ...) {
 
 int ZM::CommsBase::writeV(int iovcnt, /* const void *, int, */ ...) {
   va_list arg_ptr;
-  iovec iov[iovcnt];
+  std::vector<iovec> iov(iovcnt);
 
   va_start(arg_ptr, iovcnt);
   for (int i = 0; i < iovcnt; i++) {
@@ -63,7 +63,7 @@ int ZM::CommsBase::writeV(int iovcnt, /* const void *, int, */ ...) {
   }
   va_end(arg_ptr);
 
-  ssize_t nBytes = ::writev(mWd, iov, iovcnt);
+  ssize_t nBytes = ::writev(mWd, iov.data(), iovcnt);
   if (nBytes < 0) {
     Debug(1, "Writev of %d buffers on wd %d failed: %s", iovcnt, mWd, strerror(errno));
   }

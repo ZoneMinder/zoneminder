@@ -3,7 +3,8 @@ target_compile_options(zm-warning-interface
     -Wall
     -Wextra
     -Wimplicit-fallthrough
-    -Wno-unused-parameter)
+    -Wno-unused-parameter
+    -Wvla)
 
 if(ENABLE_WERROR)
   target_compile_options(zm-warning-interface

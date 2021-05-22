@@ -1,11 +1,15 @@
 var exportTimer = null;
 
-function configureExportButton(element) {
-  var form = element.form;
+function configureExportButton() {
+  var form = $j('#contentForm')[0];
+  if (!form) {
+    console.error("Form contentForm not found by jquery.");
+    return;
+  }
 
   var eventCount = 0;
   document.querySelectorAll('input[name="eids[]"]').forEach(function(el) {
-    if ( el.checked ) {
+    if (el.checked) {
       eventCount ++;
     }
   });
@@ -93,7 +97,7 @@ function getEventDetailModal(eid) {
 }
 
 function initPage() {
-  configureExportButton(this);
+  configureExportButton();
   if ( exportReady ) {
     setTimeout(startDownload, 1500, exportFile);
   }

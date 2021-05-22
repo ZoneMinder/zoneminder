@@ -425,6 +425,9 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Sat May 22 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.1-1
+- 1.37.x master branch develpment build. NOT FOR PRODUCTION.
+
 * Fri May 21 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.1-1
 - 1.36.1 release
 - add rtspserver submodule

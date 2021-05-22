@@ -34,7 +34,7 @@ function exportHeader($title) {
   }
 ?>
     </style>
-    <script src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>jquery.js"></script>
+    <script src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>jquery.min.js"></script>
     <!--<script type="text/javascript" src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>video.js"></script>-->
     <script>
 
@@ -929,8 +929,8 @@ function exportEvents(
     } # end foreach event_exportFile
   } # end foreach event
 
-  if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.js', $export_dir.'/jquery.js') )
-    ZM\Error('Failed linking jquery.js');
+  if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.min.js', $export_dir.'/jquery.min.js') )
+    ZM\Error('Failed linking jquery.min.js');
   //if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/video.js', $export_dir.'/video.js') )
     //Error("Failed linking video.js");
 

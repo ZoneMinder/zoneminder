@@ -367,7 +367,7 @@ function streamPlay( ) {
   setButtonState('fastRevBtn', 'inactive');
 }
 
-function streamFastFwd( action ) {
+function streamFastFwd(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'inactive');
   setButtonState('fastFwdBtn', 'active');
@@ -376,8 +376,8 @@ function streamFastFwd( action ) {
   setButtonState('fastRevBtn', 'inactive');
   if (vid) {
     if (revSpeed != .5) stopFastRev();
-    vid.playbackRate(rates[rates.indexOf(vid.playbackRate()*100)-1]/100);
-    if (rates.indexOf(vid.playbackRate()*100)-1 == -1) {
+    vid.playbackRate(rates[rates.indexOf(vid.playbackRate()*100)+1]/100);
+    if (rates.indexOf(vid.playbackRate()*100)+1 == rates.length) {
       setButtonState('fastFwdBtn', 'unavail');
     }
     $j('select[name="rate"]').val(vid.playbackRate()*100);
@@ -422,8 +422,9 @@ function streamFastRev(action) {
   setButtonState('slowRevBtn', 'unavail');
   setButtonState('fastRevBtn', 'active');
   if (vid) { //There is no reverse play with mp4.  Set the speed to 0 and manually set the time back.
-    revSpeed = rates[rates.indexOf(revSpeed*100)-1]/100;
-    if (rates.indexOf(revSpeed*100) == 0) {
+    revSpeed = -1*(rates[rates.indexOf(revSpeed*-100)-1]/100);
+    if (rates.indexOf(revSpeed*-100) == 0) {
+      console.log("paused?");
       setButtonState('fastRevBtn', 'unavail');
     }
     clearInterval(intervalRewind);

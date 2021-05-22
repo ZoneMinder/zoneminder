@@ -35,7 +35,7 @@ typedef std::vector<std::string> StringVector;
 
 std::string Trim(const std::string &str, const std::string &char_set);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
-std::string ReplaceAll(std::string str, const std::string& old_value, const std::string& new_value);
+std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value);
 inline void StringToUpper(std::string &str) { std::transform(str.begin(), str.end(), str.begin(), ::toupper); }
 
 StringVector Split(const std::string &str, char delim);
@@ -72,32 +72,53 @@ void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes);
 void touch(const char *pathname);
 
 namespace ZM {
-//! std::make_unique implementation (TODO: remove this once C++14 is supported)
+// C++14 std::make_unique (TODO: remove this once C++14 is supported)
 template<typename T, typename ...Args>
 inline auto make_unique(Args &&...args) ->
 typename std::enable_if<!std::is_array<T>::value, std::unique_ptr<T>>::type {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
-
 template<typename T>
 inline auto make_unique(std::size_t size) ->
 typename std::enable_if<std::is_array<T>::value && std::extent<T>::value == 0, std::unique_ptr<T>>::type {
   return std::unique_ptr<T>(new typename std::remove_extent<T>::type[size]());
 }
-
 template<typename T, typename... Args>
 inline auto make_unique(Args &&...) ->
 typename std::enable_if<std::extent<T>::value != 0, void>::type = delete;
 
+// C++17 std::clamp (TODO: remove this once C++17 is supported)
 template<class T, class Compare>
 constexpr const T &clamp(const T &v, const T &lo, const T &hi, Compare comp) {
   return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
 }
-
 template<class T>
 constexpr const T &clamp(const T &v, const T &lo, const T &hi) {
   return ZM::clamp(v, lo, hi, std::less<T>{});
 }
+
+// C++17 std::data (TODO: remove this once C++17 is supported)
+template<typename C>
+constexpr auto data(C &c) -> decltype(c.data()) { return c.data(); }
+
+template<typename C>
+constexpr auto data(C const &c) -> decltype(c.data()) { return c.data(); }
+
+template<typename T, std::size_t N>
+constexpr T *data(T(&a)[N]) noexcept { return a; }
+
+template<typename T, std::size_t N>
+constexpr T const *data(const T(&a)[N]) noexcept { return a; }
+
+template<typename T>
+constexpr T const *data(std::initializer_list<T> l) noexcept { return l.begin(); }
+
+// C++17 std::size (TODO: remove this once C++17 is supported)
+template<typename C>
+constexpr auto size(const C &c) -> decltype(c.size()) { return c.size(); }
+
+template<typename T, std::size_t N>
+constexpr std::size_t size(const T(&)[N]) noexcept { return N; }
 }
 
 typedef std::chrono::microseconds Microseconds;
@@ -146,4 +167,5 @@ class QueryString {
 
   std::map<std::string, std::unique_ptr<QueryParameter>> parameters_;
 };
+
 #endif // ZM_UTILS_H

@@ -6,6 +6,7 @@ target_compile_options(zm-warning-interface
     -Wformat-security
     -Wno-cast-function-type
     $<$<VERSION_LESS:$<CXX_COMPILER_VERSION>,11>:-Wno-clobbered>
+    $<$<VERSION_LESS:$<CXX_COMPILER_VERSION>,5.1>:-Wno-missing-field-initializers>
     -Wno-unused-parameter
     -Woverloaded-virtual
     -Wvla)

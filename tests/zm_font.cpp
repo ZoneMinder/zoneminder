@@ -80,8 +80,11 @@ TEST_CASE("FontVariant: GetCodepoint") {
   std::vector<uint64> bitmap(FontVariant::kMaxNumCodePoints * height);
 
   // fill bitmap for each codepoint alternating with 1 and std::numeric_limits<uint64>::max()
+  // TODO: restore capture initializer when C++14 is supported
+  int32 n = 0;
+  bool zero = true;
   std::generate(bitmap.begin(), bitmap.end(),
-                [n = 0, zero = true]() mutable {
+                [n, zero]() mutable {
                   if (n == height) {
                     zero = !zero;
                     n = 0;

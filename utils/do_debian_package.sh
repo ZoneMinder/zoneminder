@@ -58,6 +58,14 @@ case $i in
     PACKAGE_VERSION="${i#*=}"
     shift
     ;;
+    -x=*|--debbuild-extra=*)
+    DEBBUILD_EXTRA="${i#*=}"
+    shift
+    ;;
+    --dput=*)
+    DPUT="${i#*=}"
+    shift
+    ;;
     --default)
     DEFAULT=YES
     shift # past argument with no value
@@ -312,9 +320,11 @@ EOF
   if [ "$DEBSIGN_KEYID" != "" ]; then
     DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
   fi
+  # Add any extra options specified on the CLI
+  DEBUILD="$DEBUILD $DEBBUILD_EXTRA"
   eval $DEBUILD
   if [ $? -ne 0 ]; then
-  echo "Error status code is: $?"
+    echo "Error status code is: $?"
     echo "Build failed.";
     exit $?;
   fi;
@@ -350,8 +360,10 @@ EOF
         dput $PPA $SC
       fi;
     else
-      echo "dputting to $PPA";
-      dput $PPA $SC
+      if [ "$DPUT" != "no" ]; then
+        echo "dputting to $PPA";
+        dput $PPA $SC
+      fi;
     fi;
   fi;
 done; # foreach distro

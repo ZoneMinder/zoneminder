@@ -1,4 +1,4 @@
-name: CI Xenial
+name: CI Debian Buster
 
 on:
   push:
@@ -9,16 +9,22 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-16.04
+    defaults:
+      run:
+        shell: bash
+    runs-on: ubuntu-latest
+    container: debian:buster
 
     steps:
       - name: Update packages
-        run: sudo apt-get -qq update && sudo apt-get -qq upgrade
+        run: apt-get -qq update && apt-get -qq upgrade
+      - name: Install git
+        run: apt-get -qq install git
       - uses: actions/checkout@v2
         with:
           submodules: recursive
       - name: Install dependencies
-        run: sudo apt-get -qq install libavdevice-dev libcurl4-gnutls-dev libvlc-dev libvncserver-dev libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl libpolkit-gobject-1-dev
+        run: apt-get -qq install make cmake g++ default-libmysqlclient-dev libavdevice-dev libcurl4-gnutls-dev libvlc-dev libvncserver-dev libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl libwww-perl libpolkit-gobject-1-dev libssl-dev
       - name: Prepare
         run: mkdir build
       - name: Configure

@@ -205,6 +205,7 @@ bool ZM::SockAddrUnix::resolve(const char *path, const char *proto) {
   memset(&mAddrUn, 0, sizeof(mAddrUn));
 
   strncpy(mAddrUn.sun_path, path, sizeof(mAddrUn.sun_path));
+  mAddrUn.sun_path[sizeof(mAddrUn.sun_path) - 1] = '\0';
   mAddrUn.sun_family = AF_UNIX;
 
   return true;

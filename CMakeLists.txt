@@ -190,6 +190,15 @@ set(ZM_MANPAGE_DEST_PREFIX "share/man" CACHE PATH
     non-standard folder. Most Linux users will not need to change this.
     BSD users may need to set this.")
 
+# Supported crypto backends. Using OpenSSL by default to be compatible with jwt-cpp.
+set(ZM_CRYPTO_BACKEND_OPTIONS gnutls openssl)
+set(ZM_CRYPTO_BACKEND openssl CACHE STRING "Determines which crypto backend should be used.")
+set_property(CACHE ZM_CRYPTO_BACKEND PROPERTY STRINGS ${ZM_CRYPTO_BACKEND_OPTIONS})
+
+if(NOT ZM_CRYPTO_BACKEND IN_LIST ZM_CRYPTO_BACKEND_OPTIONS)
+  message(FATAL_ERROR "Invalid value for ZM_CRYPTO_BACKEND. Possible options: ${ZM_CRYPTO_BACKEND_OPTIONS}")
+endif()
+
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   set(ZM_RUNDIR "/var/run/zoneminder")
@@ -340,9 +349,9 @@ else()
   set(optlibsnotfound "${optlibsnotfound} LIBJWT")
 endif()
 
-# gnutls (using find_library and find_path)
-if(HAVE_LIBJWT)
-  find_library(GNUTLS_LIBRARIES gnutls)
+# GnuTLS
+if (${ZM_CRYPTO_BACKEND} STREQUAL "gnutls")
+  find_library(GNUTLS_LIBRARIES gnutls REQUIRED)
   if(GNUTLS_LIBRARIES)
     set(HAVE_LIBGNUTLS 1)
     list(APPEND ZM_BIN_LIBS "${GNUTLS_LIBRARIES}")
@@ -357,11 +366,9 @@ if(HAVE_LIBJWT)
   else()
     set(optlibsnotfound "${optlibsnotfound} GnuTLS")
   endif()
-endif()
-
 # OpenSSL
-if(NOT HAVE_LIBGNUTLS OR NOT HAVE_LIBJWT)
-  find_package(OpenSSL)
+elseif (${ZM_CRYPTO_BACKEND} STREQUAL "openssl")
+  find_package(OpenSSL REQUIRED)
   if(OPENSSL_FOUND)
     set(HAVE_LIBOPENSSL 1)
     set(HAVE_LIBCRYPTO 1)
@@ -619,9 +626,9 @@ endif()
 #
 # *** END OF LIBRARY CHECKS ***
 
-# Check for gnutls or crypto
-if((NOT HAVE_LIBCRYPTO) AND (NOT HAVE_LIBGNUTLS))
-  message(FATAL_ERROR "ZoneMinder requires crypto or gnutls but none were found on your system")
+# If libjwt is not present we fall back to jwt-cpp which requires OpenSSL
+if((NOT HAVE_LIBJWT) AND (NOT HAVE_LIBOPENSSL))
+  message(FATAL_ERROR "Using the jwt-cpp backend requires OpenSSL as crypto backend.")
 endif()
 
 # Check for V4L header files and enable ZM_HAS_V4L, ZM_HAS_V4L1, ZM_HAS_V4L2 accordingly
@@ -833,6 +840,8 @@ endif()
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")
 message(STATUS "Optional libraries not found:${optlibsnotfound}")
+
+message(STATUS "Enabled crypto backend: ${ZM_CRYPTO_BACKEND}")
 
 # Run ZM configuration generator
 message(STATUS "Running ZoneMinder configuration generator")

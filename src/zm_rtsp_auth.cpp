@@ -22,26 +22,16 @@
 #include "zm_utils.h"
 #include <cassert>
 #include <cstring>
+#include <utility>
 
 namespace zm {
 
-Authenticator::Authenticator( const std::string &username, const std::string &password) : 
- fCnonce("0a4f113b"),
- fUsername(username),
- fPassword(password)
-  {
-#ifdef HAVE_GCRYPT_H
-  // Special initialisation for libgcrypt
-  if ( !gcry_check_version(GCRYPT_VERSION) ) {
-    Fatal("Unable to initialise libgcrypt");
-  }
-  gcry_control( GCRYCTL_DISABLE_SECMEM, 0 );
-  gcry_control( GCRYCTL_INITIALIZATION_FINISHED, 0 );
-#endif // HAVE_GCRYPT_H
-  
-  fAuthMethod = AUTH_UNDEFINED;
-  nc = 1;
-}
+Authenticator::Authenticator(std::string username, std::string password)
+    : fAuthMethod(AUTH_UNDEFINED),
+      fCnonce("0a4f113b"),
+      fUsername(std::move(username)),
+      fPassword(std::move(password)),
+      nc(1) {}
 
 Authenticator::~Authenticator() {
   reset();

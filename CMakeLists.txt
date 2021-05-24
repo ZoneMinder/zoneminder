@@ -411,23 +411,6 @@ else()
   set(optlibsnotfound "${optlibsnotfound} PCRE")
 endif()
 
-# gcrypt (using find_library and find_path)
-find_library(GCRYPT_LIBRARIES gcrypt)
-if(GCRYPT_LIBRARIES)
-  set(HAVE_LIBGCRYPT 1)
-  list(APPEND ZM_BIN_LIBS "${GCRYPT_LIBRARIES}")
-  find_path(GCRYPT_INCLUDE_DIR gcrypt.h)
-  if(GCRYPT_INCLUDE_DIR)
-    include_directories("${GCRYPT_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${GCRYPT_INCLUDE_DIR}")
-  endif()
-  mark_as_advanced(FORCE GCRYPT_LIBRARIES GCRYPT_INCLUDE_DIR)
-  check_include_file("gcrypt.h" HAVE_GCRYPT_H)
-  set(optlibsfound "${optlibsfound} GCrypt")
-else()
-  set(optlibsnotfound "${optlibsnotfound} GCrypt")
-endif()
-
 # mysqlclient (using find_library and find_path)
 find_library(MYSQLCLIENT_LIBRARIES mysqlclient PATH_SUFFIXES mysql)
 if(MYSQLCLIENT_LIBRARIES)
@@ -708,10 +691,9 @@ if((NOT HAVE_MD5_OPENSSL) AND (NOT HAVE_DECL_GNUTLS_FINGERPRINT))
      none were found - hashed authentication will not be available")
 endif()
 
-# Dirty fix for zm_user only using openssl's md5 if gnutls and gcrypt are not available.
+# Dirty fix for zm_user only using openssl's md5 if gnutls is not available.
 # This needs to be fixed in zm_user.[h,cpp] but such fix will also require changes to configure.ac
 if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
-  set(HAVE_GCRYPT_H 0)
   set(HAVE_GNUTLS_OPENSSL_H 0)
 endif()
 

@@ -29,11 +29,9 @@
 #include <gnutls/gnutls.h>
 #endif
 
-#if HAVE_GCRYPT_H
-#include <gcrypt.h>
-#elif HAVE_LIBCRYPTO
+#if HAVE_LIBCRYPTO
 #include <openssl/md5.h>
-#endif  // HAVE_GCRYPT_H || HAVE_LIBCRYPTO
+#endif  // HAVE_LIBCRYPTO
 
 User::User() {
   id = 0;
@@ -192,15 +190,6 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
 // Function to validate an authentication string
 User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
 #if HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
-#ifdef HAVE_GCRYPT_H
-  // Special initialisation for libgcrypt
-  if ( !gcry_check_version(GCRYPT_VERSION) ) {
-    Fatal("Unable to initialise libgcrypt");
-  }
-  gcry_control(GCRYCTL_DISABLE_SECMEM, 0);
-  gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
-#endif  // HAVE_GCRYPT_H
-
   const char *remote_addr = "";
   if ( use_remote_addr ) {
     remote_addr = getenv("REMOTE_ADDR");

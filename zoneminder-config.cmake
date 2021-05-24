@@ -35,8 +35,6 @@
 #cmakedefine HAVE_PTHREAD_H
 #cmakedefine HAVE_LIBPCRE 1
 #cmakedefine HAVE_PCRE_H 1
-#cmakedefine HAVE_LIBGCRYPT 1
-#cmakedefine HAVE_GCRYPT_H 1
 #cmakedefine HAVE_LIBGNUTLS 1
 #cmakedefine HAVE_GNUTLS_GNUTLS_H 1
 #cmakedefine HAVE_LIBMYSQLCLIENT 1

@@ -14,7 +14,6 @@ Build-Depends: debhelper (>= 9), dh-systemd, python3-sphinx, apache2-dev, dh-lin
               ,ffmpeg | libav-tools
               ,net-tools
               ,libbz2-dev
-              ,libgcrypt-dev | libgcrypt11-dev
               ,libcurl4-gnutls-dev
               ,libgnutls-openssl-dev
               ,libjpeg8-dev | libjpeg9-dev | libjpeg62-turbo-dev

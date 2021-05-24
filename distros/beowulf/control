@@ -14,7 +14,6 @@ Build-Depends: debhelper, sphinx-doc, dh-linktree, dh-apache2
               ,ffmpeg
               ,net-tools
               ,libbz2-dev
-              ,libgcrypt20-dev
               ,libcurl4-gnutls-dev
               ,libturbojpeg0-dev
               ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat

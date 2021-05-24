@@ -78,11 +78,20 @@ target_include_directories(zm
 target_link_libraries(zm
   PUBLIC
     libbcrypt::bcrypt
-    jwt-cpp::jwt-cpp
     RtspServer::RtspServer
     martinmoene::span-lite
   PRIVATE
     zm-core-interface)
+
+if(${ZM_JWT_BACKEND} STREQUAL "jwt_cpp")
+  target_link_libraries(zm
+    PUBLIC
+      jwt-cpp::jwt-cpp)
+elseif(${ZM_JWT_BACKEND} STREQUAL "libjwt")
+  target_link_libraries(zm
+    PUBLIC
+      JWT::libjwt)
+endif()
 
 add_executable(zmc zmc.cpp)
 add_executable(zms zms.cpp)

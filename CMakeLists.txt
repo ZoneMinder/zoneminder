@@ -199,6 +199,15 @@ if(NOT ZM_CRYPTO_BACKEND IN_LIST ZM_CRYPTO_BACKEND_OPTIONS)
   message(FATAL_ERROR "Invalid value for ZM_CRYPTO_BACKEND. Possible options: ${ZM_CRYPTO_BACKEND_OPTIONS}")
 endif()
 
+# Supported JWT backends. Using jwt-cpp as default.
+set(ZM_JWT_BACKEND_OPTIONS libjwt jwt_cpp)
+set(ZM_JWT_BACKEND jwt_cpp CACHE STRING "Determines which JWT backend should be used.")
+set_property(CACHE ZM_JWT_BACKEND PROPERTY STRINGS ${ZM_JWT_BACKEND_OPTIONS})
+
+if(NOT ZM_JWT_BACKEND IN_LIST ZM_JWT_BACKEND_OPTIONS)
+  message(FATAL_ERROR "Invalid value for ZM_JWT_BACKEND. Possible options: ${ZM_JWT_BACKEND_OPTIONS}")
+endif()
+
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   set(ZM_RUNDIR "/var/run/zoneminder")
@@ -339,14 +348,15 @@ else()
     "ZoneMinder requires jpeg but it was not found on your system")
 endif()
 
-# LIBJWT
-find_package(LibJWT)
-if(LIBJWT_FOUND)
-  set(HAVE_LIBJWT 1)
-  set(optlibsfound "${optlibsfound} LIBJWT")
-  list(APPEND ZM_BIN_LIBS "${LIBJWT_LIBRARY}")
-else()
-  set(optlibsnotfound "${optlibsnotfound} LIBJWT")
+# libjwt
+if (${ZM_JWT_BACKEND} STREQUAL "libjwt")
+  find_package(LibJWT REQUIRED COMPONENTS ${ZM_CRYPTO_BACKEND})
+  if(LIBJWT_FOUND)
+    set(HAVE_LIBJWT 1)
+    set(optlibsfound "${optlibsfound} LIBJWT")
+  else()
+    set(optlibsnotfound "${optlibsnotfound} LIBJWT")
+  endif()
 endif()
 
 # GnuTLS
@@ -842,6 +852,7 @@ message(STATUS "Optional libraries found:${optlibsfound}")
 message(STATUS "Optional libraries not found:${optlibsnotfound}")
 
 message(STATUS "Enabled crypto backend: ${ZM_CRYPTO_BACKEND}")
+message(STATUS "Enabled JWT backend: ${ZM_JWT_BACKEND}")
 
 # Run ZM configuration generator
 message(STATUS "Running ZoneMinder configuration generator")

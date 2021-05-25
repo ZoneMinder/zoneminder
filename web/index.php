@@ -139,6 +139,14 @@ $skinBase[] = $skin;
 
 zm_session_start();
 
+$cookie_options = array(
+  'expires'=>time()+3600*24*30*12*10,
+);
+if ( version_compare(phpversion(), '7.3.0', '>=') ) {
+  # samesite was introduced in 7.3.0
+  $cookie_options['samesite'] = 'Strict';
+}
+
 if (
   !isset($_SESSION['skin']) ||
   isset($_REQUEST['skin']) ||
@@ -146,7 +154,7 @@ if (
   ($_COOKIE['zmSkin'] != $skin)
 ) {
   $_SESSION['skin'] = $skin;
-  setcookie('zmSkin', $skin, time()+3600*24*30*12*10);
+  setcookie('zmSkin', $skin, $cookie_options);
 }
 
 if (
@@ -156,7 +164,7 @@ if (
   ($_COOKIE['zmCSS'] != $css)
 ) {
   $_SESSION['css'] = $css;
-  setcookie('zmCSS', $css, time()+3600*24*30*12*10);
+  setcookie('zmCSS', $css, $cookie_options);
 }
 
 # Running is global but only do the daemonCheck if it is actually needed

@@ -22,16 +22,7 @@
 #include "zm_crypt.h"
 #include "zm_logger.h"
 #include "zm_utils.h"
-#include <cassert>
 #include <cstring>
-
-#if HAVE_GNUTLS_GNUTLS_H
-#include <gnutls/gnutls.h>
-#endif
-
-#if HAVE_LIBCRYPTO
-#include <openssl/md5.h>
-#endif  // HAVE_LIBCRYPTO
 
 User::User() {
   id = 0;
@@ -189,11 +180,10 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
  
 // Function to validate an authentication string
 User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
-#if HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
   const char *remote_addr = "";
-  if ( use_remote_addr ) {
+  if (use_remote_addr) {
     remote_addr = getenv("REMOTE_ADDR");
-    if ( !remote_addr ) {
+    if (!remote_addr) {
       Warning("Can't determine remote address, using null");
       remote_addr = "";
     }
@@ -209,7 +199,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     return nullptr;
 
   int n_users = mysql_num_rows(result);
-  if ( n_users < 1 ) {
+  if (n_users < 1) {
     mysql_free_result(result);
     Warning("Unable to authenticate user");
     return nullptr;
@@ -218,58 +208,49 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
   // getting the time is expensive, so only do it once.
   time_t now = time(nullptr);
   unsigned int hours = config.auth_hash_ttl;
-  if ( !hours ) {
+  if (!hours) {
     Warning("No value set for ZM_AUTH_HASH_TTL. Defaulting to 2.");
     hours = 2;
   } else {
     Debug(1, "AUTH_HASH_TTL is %d, time is %" PRIi64, hours, static_cast<int64>(now));
   }
-  char auth_key[512] = "";
-  char auth_md5[32+1] = "";
-  constexpr size_t md5len = 16;
-  uint8 md5sum[md5len];
 
-  const char * hex = "0123456789abcdef";
-  while ( MYSQL_ROW dbrow = mysql_fetch_row(result) ) {
+  char auth_md5[32 + 1] = "";
+
+  const char *hex = "0123456789abcdef";
+  while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
     const char *username = dbrow[1];
     const char *password = dbrow[2];
 
     time_t our_now = now;
     tm now_tm = {};
-    for ( unsigned int i = 0; i < hours; i++, our_now -= 3600 ) {
+    for (unsigned int i = 0; i < hours; i++, our_now -= 3600) {
       localtime_r(&our_now, &now_tm);
 
-      snprintf(auth_key, sizeof(auth_key)-1, "%s%s%s%s%d%d%d%d",
-        config.auth_hash_secret,
-        username,
-        password,
-        remote_addr,
-        now_tm.tm_hour,
-        now_tm.tm_mday,
-        now_tm.tm_mon,
-        now_tm.tm_year);
+      std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
+                                      config.auth_hash_secret,
+                                      username,
+                                      password,
+                                      remote_addr,
+                                      now_tm.tm_hour,
+                                      now_tm.tm_mday,
+                                      now_tm.tm_mon,
+                                      now_tm.tm_year);
 
-#if HAVE_DECL_MD5
-      MD5((unsigned char *)auth_key, strlen(auth_key), md5sum);
-#elif HAVE_DECL_GNUTLS_FINGERPRINT
-      gnutls_datum_t md5data = {(unsigned char *) auth_key, (unsigned int) strlen(auth_key)};
-      size_t md5_len_tmp = md5len;
-      gnutls_fingerprint(GNUTLS_DIG_MD5, &md5data, md5sum, &md5_len_tmp);
-      assert(md5_len_tmp == md5len);
-#endif
-      unsigned char *md5sum_ptr = md5sum;
+      zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
+
+      unsigned char *md5sum_ptr = md5_digest.data();
       char *auth_md5_ptr = auth_md5;
 
-      for ( unsigned int j = 0; j < md5len; j++ ) {
-        *auth_md5_ptr++ = hex[(*md5sum_ptr>>4)&0xf];
-        *auth_md5_ptr++ = hex[(*md5sum_ptr++)&0xf];
+      for (size_t j = 0; j < md5_digest.size(); j++) {
+        *auth_md5_ptr++ = hex[(*md5sum_ptr >> 4) & 0xf];
+        *auth_md5_ptr++ = hex[(*md5sum_ptr++) & 0xf];
       }
       *auth_md5_ptr = 0;
 
-      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'",
-          auth_key, auth_md5, auth);
+      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key.c_str(), auth_md5, auth);
 
-      if ( !strcmp(auth, auth_md5) ) {
+      if (!strcmp(auth, auth_md5)) {
         // We have a match
         User *user = new User(dbrow);
         Debug(1, "Authenticated user '%s'", user->getUsername());
@@ -281,9 +262,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     }  // end foreach hour
   }  // end foreach user
   mysql_free_result(result);
-#else  // HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
-  Error("You need to build with gnutls or openssl to use hash based auth");
-#endif  // HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
+
   Debug(1, "No user found for auth_key %s", auth);
   return nullptr;
 }  // end User *zmLoadAuthUser( const char *auth, bool use_remote_addr )

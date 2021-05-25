@@ -28,5 +28,5 @@ jobs:
         run: cd build && cmake --version && cmake .. -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1 -DENABLE_WERROR=1
       - name: Build
         run: cd build && make -j3 | grep --line-buffered -Ev '^(cp lib\/|Installing.+\.pm)' && (exit ${PIPESTATUS[0]})
-      - name: Run test
+      - name: Run tests
         run: cd build/tests && ./tests "~[notCI]"

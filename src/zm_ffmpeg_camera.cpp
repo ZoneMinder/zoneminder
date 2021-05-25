@@ -428,8 +428,8 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if ( use_hwaccel && (hwaccel_name != "") ) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-    // 3.2 doesn't seem to have all the bits in place, so let's require 3.3 and up
-  #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+    // 3.2 doesn't seem to have all the bits in place, so let's require 3.4 and up
+  #if LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
     // Print out available types
     enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
     while ( (type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE )

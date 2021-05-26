@@ -215,9 +215,6 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     Debug(1, "AUTH_HASH_TTL is %d, time is %" PRIi64, hours, static_cast<int64>(now));
   }
 
-  char auth_md5[32 + 1] = "";
-
-  const char *hex = "0123456789abcdef";
   while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
     const char *username = dbrow[1];
     const char *password = dbrow[2];
@@ -238,19 +235,11 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
                                       now_tm.tm_year);
 
       zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
+      std::string auth_md5 = ByteArrayToHexString(md5_digest);
 
-      unsigned char *md5sum_ptr = md5_digest.data();
-      char *auth_md5_ptr = auth_md5;
+      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key.c_str(), auth_md5.c_str(), auth);
 
-      for (size_t j = 0; j < md5_digest.size(); j++) {
-        *auth_md5_ptr++ = hex[(*md5sum_ptr >> 4) & 0xf];
-        *auth_md5_ptr++ = hex[(*md5sum_ptr++) & 0xf];
-      }
-      *auth_md5_ptr = 0;
-
-      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key.c_str(), auth_md5, auth);
-
-      if (!strcmp(auth, auth_md5)) {
+      if (!strcmp(auth, auth_md5.c_str())) {
         // We have a match
         User *user = new User(dbrow);
         Debug(1, "Authenticated user '%s'", user->getUsername());

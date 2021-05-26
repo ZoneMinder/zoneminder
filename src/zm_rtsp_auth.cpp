@@ -121,29 +121,20 @@ std::string Authenticator::getAuthHeader(const std::string &method, const std::s
 std::string Authenticator::computeDigestResponse(const std::string &method, const std::string &uri) {
   // The "response" field is computed as:
   //  md5(md5(<username>:<realm>:<password>):<nonce>:md5(<cmd>:<url>))
-  char md5HexBuf[zm::crypto::MD5::DIGEST_LENGTH * 2 + 1];
 
   // Step 1: md5(<username>:<realm>:<password>)
   std::string ha1Data = username() + ":" + realm() + ":" + password();
   Debug(2, "HA1 pre-md5: %s", ha1Data.c_str());
 
   zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(ha1Data);
-  for (size_t j = 0; j < md5_digest.size(); j++) {
-    sprintf(&md5HexBuf[2 * j], "%02x", md5_digest[j]);
-  }
-  md5HexBuf[md5_digest.size() * 2] = '\0';
-  std::string ha1Hash = md5HexBuf;
+  std::string ha1Hash = ByteArrayToHexString(md5_digest);
 
   // Step 2: md5(<cmd>:<url>)
   std::string ha2Data = method + ":" + uri;
   Debug(2, "HA2 pre-md5: %s", ha2Data.c_str());
 
   md5_digest = zm::crypto::MD5::GetDigestOf(ha2Data);
-  for (size_t j = 0; j < md5_digest.size(); j++) {
-    sprintf(&md5HexBuf[2 * j], "%02x", md5_digest[j]);
-  }
-  md5HexBuf[md5_digest.size() * 2] = '\0';
-  std::string ha2Hash = md5HexBuf;
+  std::string ha2Hash = ByteArrayToHexString(md5_digest);
 
   // Step 3: md5(ha1:<nonce>:ha2)
   std::string digestData = ha1Hash + ":" + nonce();
@@ -156,12 +147,8 @@ std::string Authenticator::computeDigestResponse(const std::string &method, cons
   Debug(2, "pre-md5: %s", digestData.c_str());
 
   md5_digest = zm::crypto::MD5::GetDigestOf(digestData);
-  for (size_t j = 0; j < md5_digest.size(); j++) {
-    sprintf(&md5HexBuf[2 * j], "%02x", md5_digest[j]);
-  }
-  md5HexBuf[md5_digest.size() * 2] = '\0';
 
-  return md5HexBuf;
+  return ByteArrayToHexString(md5_digest);
 }
 
 void Authenticator::checkAuthResponse(const std::string &response) {

@@ -20,12 +20,14 @@
 #ifndef ZM_UTILS_H
 #define ZM_UTILS_H
 
+#include "zm_define.h"
 #include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <functional>
 #include <map>
 #include <memory>
+#include "span.hpp"
 #include <stdexcept>
 #include <string>
 #include <sys/time.h>
@@ -66,6 +68,8 @@ std::string stringtf(const std::string &format, Args... args) {
   snprintf(buf.get(), size, format.c_str(), args...);
   return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
+
+std::string ByteArrayToHexString(nonstd::span<const uint8> bytes);
 
 std::string Base64Encode(const std::string &str);
 

@@ -23,7 +23,8 @@ if(ASAN)
       -fno-omit-frame-pointer
       -fsanitize=address
       -fsanitize-recover=address
-      -fsanitize-address-use-after-scope)
+      -fsanitize-address-use-after-scope
+      -Wno-stringop-truncation)
 
   target_link_options(zm-compile-option-interface
     INTERFACE

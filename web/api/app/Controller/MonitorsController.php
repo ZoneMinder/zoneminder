@@ -260,47 +260,49 @@ class MonitorsController extends AppController {
     // form auth key based on auth credentials
     $auth = '';
     
-    if ( ZM_OPT_USE_AUTH ) {
+    if (ZM_OPT_USE_AUTH) {
       global $user;
       $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');;
-      if ( $mToken ) {
+      if ($mToken) {
         $auth = ' -T '.$mToken;
-      } else if ( ZM_AUTH_RELAY == 'hashed' ) {
+      } else if (ZM_AUTH_RELAY == 'hashed') {
         $auth = ' -A '.calculateAuthHash(ZM_AUTH_HASH_IPS?$_SERVER['REMOTE_ADDR']:'');
-      } else if ( ZM_AUTH_RELAY == 'plain' ) {
+      } else if (ZM_AUTH_RELAY == 'plain') {
         # Plain requires the plain text password which must either be in request or stored in session
         $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');;
-        if ( !$password ) 
+        if (!$password) 
           $password = $this->request->query('password') ? $this->request->query('password') : $this->request->data('password');
 
-        if ( ! $password ) {
+        if (!$password) {
           # during auth the session will have been populated with the plaintext password
           $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
-          if ( $stateful ) {
+          if ($stateful) {
             $password = $_SESSION['password'];
           }
-        } else if ( $_COOKIE['ZMSESSID'] ) {
+        } else if ($_COOKIE['ZMSESSID']) {
           $password = $_SESSION['password'];
         }
 
         $auth = ' -U ' .$user['Username'].' -P '.$password;
-      } else if ( ZM_AUTH_RELAY == 'none' ) {
+      } else if (ZM_AUTH_RELAY == 'none') {
         $auth = ' -U ' .$user['Username'];
       }
     }
     
     $shellcmd = escapeshellcmd(ZM_PATH_BIN."/zmu $verbose -m$id $q $auth");
     $status = exec($shellcmd, $output, $rc);
-    if ($status) {
+    if ($rc) {
       $this->set(array(
-        'status'=>$rc,
-        'error'=>$output,
-      '_serialize' => array('status','error'),
+        'status'=>'false',
+        'code' => $rc,
+        'error'=> implode(PHP_EOL, $output),
+        '_serialize' => array('status','code','error'),
       ));
     } else {
       $this->set(array(
-        'status' => 'Ok',
-        '_serialize' => array('status'),
+        'status' => $status,
+        'output' => implode(PHP_EOL, $output),
+        '_serialize' => array('status','output'),
       ));
     }
   }

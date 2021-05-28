@@ -279,21 +279,26 @@ sub disconnect {
 sub suspendMotionDetection {
   my $self = shift;
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
-  while (ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
+  my $count = 50;
+  while ($count and ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
     ZoneMinder::Logger::Debug(1, 'Suspending motion detection');
     ZoneMinder::Memory::zmMonitorSuspend($self);
     usleep(100000);
+    $count -= 1;
   }
-  ZoneMinder::Logger::Debug(1,ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1));
+  ZoneMinder::Logger::Error('Unable to suspend motion detection after 5 seconds.') if !$count;
+  ZoneMinder::Logger::Debug(1, ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1));
 }
 
 sub resumeMotionDetection {
   my $self = shift;
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
-  #while (zmMemRead($self, 'shared_data:active', 1)) {
+  my $count = 50;
+  while ($count and !ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
     ZoneMinder::Logger::Debug(1, 'Resuming motion detection');
-  ZoneMinder::Memory::zmMonitorResume($self);
-    #}
+    ZoneMinder::Memory::zmMonitorResume($self);
+  }
+  ZoneMinder::Logger::Error('Unable to suspend motion detection after 5 seconds.') if !$count;
   return 1;
 }
 

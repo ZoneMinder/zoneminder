@@ -153,8 +153,7 @@ public:
   int PreCapture() override;
   int Capture(std::shared_ptr<ZMPacket> &p) override;
   int PostCapture() override;
-  int Close() override { return 0; };
-
+  int Close() override;
   static bool GetCurrentSettings(const char *device, char *output, int version, bool verbose);
 };
 

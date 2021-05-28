@@ -705,6 +705,12 @@ LocalCamera::~LocalCamera() {
     
 } // end LocalCamera::~LocalCamera
 
+int LocalCamera::Close() {
+  if (device_prime && capture)
+    Terminate();
+  return 0;
+};
+
 void LocalCamera::Initialise() {
   Debug(3, "Opening video device %s", device.c_str());
   //if ( (vid_fd = open( device.c_str(), O_RDWR|O_NONBLOCK, 0 )) < 0 )

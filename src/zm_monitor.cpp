@@ -1855,7 +1855,7 @@ bool Monitor::Analyse() {
 
         /* try to stay behind the decoder. */
         if (decoding_enabled) {
-          while ((!snap->image or deinterlacing_value) and !snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
+          while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
             // Need to wait for the decoder thread.
             Debug(1, "Waiting for decode");
             packet_lock->wait();

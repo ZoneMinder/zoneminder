@@ -75,7 +75,7 @@ function validateForm( form ) {
   } else if ( form.elements['newMonitor[Type]'].value == 'Ffmpeg' ) {
     if ( !form.elements['newMonitor[Path]'].value ) {
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
-    } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#\[\]]/)) {
+    } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/)) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
     }
 

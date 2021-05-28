@@ -10,7 +10,7 @@ require_once('Group.php');
 $FunctionTypes = null;
 
 function getMonitorFunctionTypes() {
-  if ( !isset($FunctionTypes ) ) {
+  if (!isset($FunctionTypes)) {
     $FunctionTypes = array(
       'None'    => translate('FnNone'),
       'Monitor' => translate('FnMonitor'),
@@ -21,6 +21,21 @@ function getMonitorFunctionTypes() {
     );
   }
   return $FunctionTypes;
+}
+
+$Statuses = null;
+function getMonitorStatuses() {
+  if (!isset($Statuses)) {
+    $Statuses = array(
+      -1 => 'Unknown',
+      0 => 'Idle',
+      1 => 'PreAlarm',
+      2 => 'Alarm',
+      3 => 'Alert',
+      4 => 'Tape'
+    );
+  }
+  return $Statuses;
 }
 
 class Monitor extends ZM_Object {

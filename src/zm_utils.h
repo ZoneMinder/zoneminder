@@ -31,6 +31,14 @@
 #include <sys/time.h>
 #include <vector>
 
+
+#ifdef NDEBUG
+#define ASSERT(x) do { (void) sizeof(x); } while (0)
+#else
+#include <cassert>
+#define ASSERT(x) assert(x)
+#endif
+
 typedef std::vector<std::string> StringVector;
 
 std::string Trim(const std::string &str, const std::string &char_set);

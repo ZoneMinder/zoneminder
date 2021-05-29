@@ -20,6 +20,7 @@ endif()
 if(ASAN)
   target_compile_options(zm-compile-option-interface
     INTERFACE
+      -D_GLIBCXX_SANITIZE_VECTOR=1
       -fno-omit-frame-pointer
       -fsanitize=address
       -fsanitize-recover=address

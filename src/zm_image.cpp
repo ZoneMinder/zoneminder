@@ -2513,10 +2513,16 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
         ++it;
       }
     }
+
+    // Not enough edges to perform the fill operation.
+    // Continue to next line.
+    if (active_edges.size() < 2) {
+      continue;
+    }
     std::sort(active_edges.begin(), active_edges.end(), PolygonFill::Edge::CompareX);
 
     if (!(scan_line % density)) {
-      for (auto it = active_edges.begin(); it != active_edges.end(); ++it) {
+      for (auto it = active_edges.begin(); it < active_edges.end() - 1; ++it) {
         int32 lo_x = static_cast<int32>(it->min_x);
         int32 hi_x = static_cast<int32>(std::next(it)->min_x);
         if (colours == ZM_COLOUR_GRAY8) {

@@ -46,7 +46,10 @@ typedef std::vector<std::string> StringVector;
 std::string Trim(const std::string &str, const std::string &char_set);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
 std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value);
-inline void StringToUpper(std::string &str) { std::transform(str.begin(), str.end(), str.begin(), ::toupper); }
+inline std::string StringToUpper(std::string str) {
+  std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+  return str;
+}
 
 StringVector Split(const std::string &str, char delim);
 StringVector Split(const std::string &str, const std::string &delim, size_t limit = 0);

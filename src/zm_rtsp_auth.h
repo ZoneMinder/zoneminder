@@ -26,18 +26,16 @@
 #include <gnutls/gnutls.h>
 #endif
 
-#if HAVE_GCRYPT_H
-#include <gcrypt.h>
-#elif HAVE_LIBCRYPTO
+#if HAVE_LIBCRYPTO
 #include <openssl/md5.h>
-#endif // HAVE_GCRYPT_H || HAVE_LIBCRYPTO
+#endif // HAVE_LIBCRYPTO
 
-namespace zm { 
+namespace zm {
 
 enum AuthMethod { AUTH_UNDEFINED = 0, AUTH_BASIC = 1, AUTH_DIGEST = 2 };
 class Authenticator {
 public:
-  Authenticator(const std::string &username, const std::string &password);
+  Authenticator(std::string username, std::string password);
   virtual ~Authenticator();
   void reset();
 

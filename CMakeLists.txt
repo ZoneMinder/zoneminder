@@ -190,6 +190,24 @@ set(ZM_MANPAGE_DEST_PREFIX "share/man" CACHE PATH
     non-standard folder. Most Linux users will not need to change this.
     BSD users may need to set this.")
 
+# Supported crypto backends. Using OpenSSL by default to be compatible with jwt-cpp.
+set(ZM_CRYPTO_BACKEND_OPTIONS gnutls openssl)
+set(ZM_CRYPTO_BACKEND openssl CACHE STRING "Determines which crypto backend should be used.")
+set_property(CACHE ZM_CRYPTO_BACKEND PROPERTY STRINGS ${ZM_CRYPTO_BACKEND_OPTIONS})
+
+if(NOT ZM_CRYPTO_BACKEND IN_LIST ZM_CRYPTO_BACKEND_OPTIONS)
+  message(FATAL_ERROR "Invalid value for ZM_CRYPTO_BACKEND. Possible options: ${ZM_CRYPTO_BACKEND_OPTIONS}")
+endif()
+
+# Supported JWT backends. Using jwt-cpp as default.
+set(ZM_JWT_BACKEND_OPTIONS libjwt jwt_cpp)
+set(ZM_JWT_BACKEND jwt_cpp CACHE STRING "Determines which JWT backend should be used.")
+set_property(CACHE ZM_JWT_BACKEND PROPERTY STRINGS ${ZM_JWT_BACKEND_OPTIONS})
+
+if(NOT ZM_JWT_BACKEND IN_LIST ZM_JWT_BACKEND_OPTIONS)
+  message(FATAL_ERROR "Invalid value for ZM_JWT_BACKEND. Possible options: ${ZM_JWT_BACKEND_OPTIONS}")
+endif()
+
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   set(ZM_RUNDIR "/var/run/zoneminder")
@@ -330,19 +348,20 @@ else()
     "ZoneMinder requires jpeg but it was not found on your system")
 endif()
 
-# LIBJWT
-find_package(LibJWT)
-if(LIBJWT_FOUND)
-  set(HAVE_LIBJWT 1)
-  set(optlibsfound "${optlibsfound} LIBJWT")
-  list(APPEND ZM_BIN_LIBS "${LIBJWT_LIBRARY}")
-else()
-  set(optlibsnotfound "${optlibsnotfound} LIBJWT")
+# libjwt
+if (${ZM_JWT_BACKEND} STREQUAL "libjwt")
+  find_package(LibJWT REQUIRED COMPONENTS ${ZM_CRYPTO_BACKEND})
+  if(LIBJWT_FOUND)
+    set(HAVE_LIBJWT 1)
+    set(optlibsfound "${optlibsfound} LIBJWT")
+  else()
+    set(optlibsnotfound "${optlibsnotfound} LIBJWT")
+  endif()
 endif()
 
-# gnutls (using find_library and find_path)
-if(HAVE_LIBJWT)
-  find_library(GNUTLS_LIBRARIES gnutls)
+# GnuTLS
+if (${ZM_CRYPTO_BACKEND} STREQUAL "gnutls")
+  find_library(GNUTLS_LIBRARIES gnutls REQUIRED)
   if(GNUTLS_LIBRARIES)
     set(HAVE_LIBGNUTLS 1)
     list(APPEND ZM_BIN_LIBS "${GNUTLS_LIBRARIES}")
@@ -357,11 +376,9 @@ if(HAVE_LIBJWT)
   else()
     set(optlibsnotfound "${optlibsnotfound} GnuTLS")
   endif()
-endif()
-
 # OpenSSL
-if(NOT HAVE_LIBGNUTLS OR NOT HAVE_LIBJWT)
-  find_package(OpenSSL)
+elseif (${ZM_CRYPTO_BACKEND} STREQUAL "openssl")
+  find_package(OpenSSL REQUIRED)
   if(OPENSSL_FOUND)
     set(HAVE_LIBOPENSSL 1)
     set(HAVE_LIBCRYPTO 1)
@@ -409,23 +426,6 @@ if(PCRE_LIBRARIES)
   set(optlibsfound "${optlibsfound} PCRE")
 else()
   set(optlibsnotfound "${optlibsnotfound} PCRE")
-endif()
-
-# gcrypt (using find_library and find_path)
-find_library(GCRYPT_LIBRARIES gcrypt)
-if(GCRYPT_LIBRARIES)
-  set(HAVE_LIBGCRYPT 1)
-  list(APPEND ZM_BIN_LIBS "${GCRYPT_LIBRARIES}")
-  find_path(GCRYPT_INCLUDE_DIR gcrypt.h)
-  if(GCRYPT_INCLUDE_DIR)
-    include_directories("${GCRYPT_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${GCRYPT_INCLUDE_DIR}")
-  endif()
-  mark_as_advanced(FORCE GCRYPT_LIBRARIES GCRYPT_INCLUDE_DIR)
-  check_include_file("gcrypt.h" HAVE_GCRYPT_H)
-  set(optlibsfound "${optlibsfound} GCrypt")
-else()
-  set(optlibsnotfound "${optlibsnotfound} GCrypt")
 endif()
 
 # mysqlclient (using find_library and find_path)
@@ -636,9 +636,9 @@ endif()
 #
 # *** END OF LIBRARY CHECKS ***
 
-# Check for gnutls or crypto
-if((NOT HAVE_LIBCRYPTO) AND (NOT HAVE_LIBGNUTLS))
-  message(FATAL_ERROR "ZoneMinder requires crypto or gnutls but none were found on your system")
+# If libjwt is not present we fall back to jwt-cpp which requires OpenSSL
+if((NOT HAVE_LIBJWT) AND (NOT HAVE_LIBOPENSSL))
+  message(FATAL_ERROR "Using the jwt-cpp backend requires OpenSSL as crypto backend.")
 endif()
 
 # Check for V4L header files and enable ZM_HAS_V4L, ZM_HAS_V4L1, ZM_HAS_V4L2 accordingly
@@ -708,10 +708,9 @@ if((NOT HAVE_MD5_OPENSSL) AND (NOT HAVE_DECL_GNUTLS_FINGERPRINT))
      none were found - hashed authentication will not be available")
 endif()
 
-# Dirty fix for zm_user only using openssl's md5 if gnutls and gcrypt are not available.
+# Dirty fix for zm_user only using openssl's md5 if gnutls is not available.
 # This needs to be fixed in zm_user.[h,cpp] but such fix will also require changes to configure.ac
 if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
-  set(HAVE_GCRYPT_H 0)
   set(HAVE_GNUTLS_OPENSSL_H 0)
 endif()
 
@@ -851,6 +850,9 @@ endif()
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")
 message(STATUS "Optional libraries not found:${optlibsnotfound}")
+
+message(STATUS "Enabled crypto backend: ${ZM_CRYPTO_BACKEND}")
+message(STATUS "Enabled JWT backend: ${ZM_JWT_BACKEND}")
 
 # Run ZM configuration generator
 message(STATUS "Running ZoneMinder configuration generator")

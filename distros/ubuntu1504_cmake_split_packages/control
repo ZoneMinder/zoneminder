@@ -15,7 +15,7 @@ Build-Depends: debhelper (>= 9), po-debconf (>= 1.0), autoconf, automake, libtoo
 , libdevice-serialport-perl, libarchive-zip-perl, libmime-lite-perl
 , libvlccore-dev, libvlc-dev
 , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
-, libgcrypt11-dev | libgcrypt20-dev, libpolkit-gobject-1-dev
+, libpolkit-gobject-1-dev
 , libdbi-perl, libnet-sftp-foreign-perl, libexpect-perl, libmime-tools-perl
 Standards-Version: 3.9.6
 Homepage: http://www.zoneminder.com/

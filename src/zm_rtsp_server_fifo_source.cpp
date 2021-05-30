@@ -209,7 +209,7 @@ int ZoneMinderFifoSource::getNextFrame() {
       Debug(4, "ZM Packet %s header_size %d packet size %u pts %s %" PRId64, header, header_size, data_size, pts_ptr, pts);
       delete[] header;
     } else {
-      Debug(1, "ZM header not found in %d of buffer:%s.", m_buffer.size(), m_buffer.head());
+      Debug(1, "ZM header not found in %u of buffer.", m_buffer.size());
       m_buffer.clear();
       return 0;
     }

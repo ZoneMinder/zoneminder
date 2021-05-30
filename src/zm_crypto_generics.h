@@ -28,7 +28,8 @@ namespace crypto {
 namespace impl {
 
 enum class HashAlgorithms {
-  kMD5
+  kMD5,
+  kSHA1
 };
 
 template<HashAlgorithms Algorithm>
@@ -37,6 +38,11 @@ struct HashAlgorithm;
 template<>
 struct HashAlgorithm<HashAlgorithms::kMD5> {
   static constexpr size_t digest_length = 16;
+};
+
+template<>
+struct HashAlgorithm<HashAlgorithms::kSHA1> {
+  static constexpr size_t digest_length = 20;
 };
 
 template<typename Impl, HashAlgorithms Algorithm>

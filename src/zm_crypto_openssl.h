@@ -48,6 +48,20 @@ struct HashAlgorithmMapper<HashAlgorithms::kMD5> {
 #endif
 };
 
+template<>
+struct HashAlgorithmMapper<HashAlgorithms::kSHA1> {
+// TODO: Remove conditional once Jessie and CentOS 7 are deprecated
+// This is needed since GCC 4.8 is faulty (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60199)
+#if defined(__GNUC__) && __GNUC__ < 5
+  static HashCreator hash_creator() {
+    static constexpr HashCreator creator = EVP_sha1;
+    return creator;
+  }
+#else
+  static constexpr HashCreator hash_creator = EVP_sha1;
+#endif
+};
+
 template<HashAlgorithms Algorithm>
 class GenericHashImpl : public GenericHash<GenericHashImpl<Algorithm>, Algorithm> {
  public:

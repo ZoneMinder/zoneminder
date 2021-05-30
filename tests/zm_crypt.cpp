@@ -125,3 +125,13 @@ TEST_CASE("zm::crypto::MD5::GetDigestOf") {
                                   0x7d, 0x3e});
   }
 }
+
+TEST_CASE("zm::crypto::SHA1::GetDigestOf") {
+  using namespace zm::crypto;
+  std::array<uint8, 3> data = {'a', 'b', 'c'};
+
+  SHA1::Digest digest = SHA1::GetDigestOf(data);
+
+  REQUIRE(digest == SHA1::Digest{0xa9, 0x99, 0x3e, 0x36, 0x47, 0x06, 0x81, 0x6a, 0xba, 0x3e, 0x25, 0x71, 0x78, 0x50,
+                                 0xc2, 0x6c, 0x9c, 0xd0, 0xd8, 0x9d});
+}

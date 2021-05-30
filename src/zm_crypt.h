@@ -48,6 +48,7 @@ using Hash = openssl::GenericHashImpl<Algorithm>;
 namespace zm {
 namespace crypto {
 using MD5 = impl::Hash<impl::HashAlgorithms::kMD5>;
+using SHA1 = impl::Hash<impl::HashAlgorithms::kSHA1>;
 }
 }
 

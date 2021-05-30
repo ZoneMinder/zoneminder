@@ -32,7 +32,6 @@ install:
   - update-binfmts --enable qemu-arm
 
 env:
-  - SMPFLAGS=-j4 OS=eslint DIST=eslint
   - SMPFLAGS=-j4 OS=ubuntu DIST=bionic DOCKER_REPO=iconzm/packpack
 
 compiler:

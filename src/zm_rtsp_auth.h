@@ -22,14 +22,6 @@
 #include "zm_config.h"
 #include <string>
 
-#if HAVE_GNUTLS_GNUTLS_H
-#include <gnutls/gnutls.h>
-#endif
-
-#if HAVE_LIBCRYPTO
-#include <openssl/md5.h>
-#endif // HAVE_LIBCRYPTO
-
 namespace zm {
 
 enum AuthMethod { AUTH_UNDEFINED = 0, AUTH_BASIC = 1, AUTH_DIGEST = 2 };

@@ -18,9 +18,9 @@
 
 #include "zm_rtsp_auth.h"
 
+#include "zm_crypt.h"
 #include "zm_logger.h"
 #include "zm_utils.h"
-#include <cassert>
 #include <cstring>
 #include <utility>
 
@@ -119,74 +119,36 @@ std::string Authenticator::getAuthHeader(const std::string &method, const std::s
 }
 
 std::string Authenticator::computeDigestResponse(const std::string &method, const std::string &uri) {
-#if HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
   // The "response" field is computed as:
   //  md5(md5(<username>:<realm>:<password>):<nonce>:md5(<cmd>:<url>))
-  constexpr size_t md5len = 16;
-  uint8 md5buf[md5len];
-  char md5HexBuf[md5len * 2 + 1];
-  
+
   // Step 1: md5(<username>:<realm>:<password>)
   std::string ha1Data = username() + ":" + realm() + ":" + password();
-  Debug( 2, "HA1 pre-md5: %s", ha1Data.c_str() );
-#if HAVE_DECL_MD5
-  MD5((unsigned char*)ha1Data.c_str(), ha1Data.length(), md5buf);
-#elif HAVE_DECL_GNUTLS_FINGERPRINT
-  gnutls_datum_t md5dataha1 = {(unsigned char *) ha1Data.c_str(), (unsigned int) ha1Data.length()};
-  size_t md5_len_tmp = md5len;
-  gnutls_fingerprint(GNUTLS_DIG_MD5, &md5dataha1, md5buf, &md5_len_tmp);
-  assert(md5_len_tmp == md5len);
-#endif
-  for ( unsigned int j = 0; j < md5len; j++ ) {
-    sprintf(&md5HexBuf[2*j], "%02x", md5buf[j] );
-  }
-  md5HexBuf[md5len*2]='\0';
-  std::string ha1Hash = md5HexBuf;
-  
+  Debug(2, "HA1 pre-md5: %s", ha1Data.c_str());
+
+  zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(ha1Data);
+  std::string ha1Hash = ByteArrayToHexString(md5_digest);
+
   // Step 2: md5(<cmd>:<url>)
   std::string ha2Data = method + ":" + uri;
-  Debug( 2, "HA2 pre-md5: %s", ha2Data.c_str() );
-#if HAVE_DECL_MD5
-  MD5((unsigned char*)ha2Data.c_str(), ha2Data.length(), md5buf );
-#elif HAVE_DECL_GNUTLS_FINGERPRINT
-  gnutls_datum_t md5dataha2 = {(unsigned char *) ha2Data.c_str(), (unsigned int) ha2Data.length()};
-  md5_len_tmp = md5len;
-  gnutls_fingerprint(GNUTLS_DIG_MD5, &md5dataha2, md5buf, &md5_len_tmp);
-  assert(md5_len_tmp == md5len);
-#endif
-  for ( unsigned int j = 0; j < md5len; j++ ) {
-    sprintf( &md5HexBuf[2*j], "%02x", md5buf[j] );
-  }
-  md5HexBuf[md5len*2]='\0';
-  std::string ha2Hash = md5HexBuf;
+  Debug(2, "HA2 pre-md5: %s", ha2Data.c_str());
+
+  md5_digest = zm::crypto::MD5::GetDigestOf(ha2Data);
+  std::string ha2Hash = ByteArrayToHexString(md5_digest);
 
   // Step 3: md5(ha1:<nonce>:ha2)
   std::string digestData = ha1Hash + ":" + nonce();
-  if ( ! fQop.empty() ) {
-    digestData += ":" + stringtf("%08x", nc) + ":"+fCnonce + ":" + fQop;
-    nc ++;
+  if (!fQop.empty()) {
+    digestData += ":" + stringtf("%08x", nc) + ":" + fCnonce + ":" + fQop;
+    nc++;
     // if qop was specified, then we have to include t and a cnonce and an nccount
   }
   digestData += ":" + ha2Hash;
-  Debug( 2, "pre-md5: %s", digestData.c_str() );
-#if HAVE_DECL_MD5
-  MD5((unsigned char*)digestData.c_str(), digestData.length(), md5buf);
-#elif HAVE_DECL_GNUTLS_FINGERPRINT
-  gnutls_datum_t md5datadigest = {(unsigned char *) digestData.c_str(), (unsigned int) digestData.length()};
-  md5_len_tmp = md5len;
-  gnutls_fingerprint(GNUTLS_DIG_MD5, &md5datadigest, md5buf, &md5_len_tmp);
-  assert(md5_len_tmp == md5len);
-#endif
-  for ( unsigned int j = 0; j < md5len; j++ ) {
-    sprintf( &md5HexBuf[2*j], "%02x", md5buf[j] );
-  }
-  md5HexBuf[md5len*2]='\0';
-   
-  return md5HexBuf;
-#else // HAVE_DECL_MD5
-  Error("You need to build with gnutls or openssl installed to use digest authentication");
-  return 0;
-#endif // HAVE_DECL_MD5
+  Debug(2, "pre-md5: %s", digestData.c_str());
+
+  md5_digest = zm::crypto::MD5::GetDigestOf(digestData);
+
+  return ByteArrayToHexString(md5_digest);
 }
 
 void Authenticator::checkAuthResponse(const std::string &response) {

@@ -140,6 +140,18 @@ TEST_CASE("Join") {
   REQUIRE(Join({"a", "b"}, "") == "ab");
 }
 
+TEST_CASE("ByteArrayToHexString") {
+  std::vector<uint8> bytes;
+
+  REQUIRE(ByteArrayToHexString(bytes) == "");
+
+  bytes = {0x00};
+  REQUIRE(ByteArrayToHexString(bytes) == "00");
+
+  bytes = {0x00, 0x01, 0x02, 0xff};
+  REQUIRE(ByteArrayToHexString(bytes) == "000102ff");
+}
+
 TEST_CASE("Base64Encode") {
   REQUIRE(Base64Encode("") == "");
   REQUIRE(Base64Encode("f") == "Zg==");

@@ -1,6 +1,7 @@
 #include "zm_crypt.h"
 
 #include "zm_logger.h"
+#include "zm_utils.h"
 #include "BCrypt.hpp"
 #include <algorithm>
 #include <cstring>
@@ -9,13 +10,6 @@
 #include <jwt.h>
 #else
 #include <jwt-cpp/jwt.h>
-#endif
-
-#if HAVE_LIBCRYPTO
-#include <openssl/sha.h>
-#elif HAVE_GNUTLS_GNUTLS_H
-#include <gnutls/gnutls.h>
-#include <gnutls/crypto.h>
 #endif
 
 // returns username if valid, "" if not
@@ -135,6 +129,8 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
 #endif // HAVE_LIBJWT
 
 bool verifyPassword(const char *username, const char *input_password, const char *db_password_hash) {
+  using namespace zm::crypto;
+
   bool password_correct = false;
   if ( strlen(db_password_hash) < 4 ) {
     // actually, shoud be more, but this is min. for next code
@@ -143,47 +139,13 @@ bool verifyPassword(const char *username, const char *input_password, const char
   }
   if ( db_password_hash[0] == '*' ) {
     // MYSQL PASSWORD
-    Debug(1, "%s is using an MD5 encoded password", username);
-    
-    #ifndef SHA_DIGEST_LENGTH
-      #define SHA_DIGEST_LENGTH 20
-    #endif
-    
-#if HAVE_LIBCRYPTO
-    unsigned char digest_interim[SHA_DIGEST_LENGTH];
-    unsigned char digest_final[SHA_DIGEST_LENGTH];
-    SHA_CTX ctx1, ctx2;
-    
-    //get first iteration
-    SHA1_Init(&ctx1);
-    SHA1_Update(&ctx1, input_password, strlen(input_password));
-    SHA1_Final(digest_interim, &ctx1);
+    Debug(1, "%s is using an SHA1 encoded password", username);
 
-    //2nd iteration
-    SHA1_Init(&ctx2);
-    SHA1_Update(&ctx2, digest_interim,SHA_DIGEST_LENGTH);
-    SHA1_Final(digest_final, &ctx2);
-#elif HAVE_GNUTLS_GNUTLS_H
-    unsigned char digest_interim[SHA_DIGEST_LENGTH];
-    unsigned char digest_final[SHA_DIGEST_LENGTH];
-    //get first iteration
-    gnutls_hash_fast(GNUTLS_DIG_SHA1, input_password, strlen(input_password), digest_interim);
-    //2nd iteration
-    gnutls_hash_fast(GNUTLS_DIG_SHA1, digest_interim, SHA_DIGEST_LENGTH, digest_final);
-#else
-    Error("Authentication Error. ZoneMinder not built with GnuTLS or Openssl");
-    return false;
-#endif
+    SHA1::Digest digest = SHA1::GetDigestOf(SHA1::GetDigestOf(input_password));
+    std::string hex_digest = '*' + StringToUpper(ByteArrayToHexString(digest));
 
-    char final_hash[SHA_DIGEST_LENGTH * 2 +2];
-    final_hash[0] = '*';
-    //convert to hex
-    for ( int i = 0; i < SHA_DIGEST_LENGTH; i++ )
-      sprintf(&final_hash[i*2]+1, "%02X", (unsigned int)digest_final[i]);
-    final_hash[SHA_DIGEST_LENGTH *2 + 1] = 0;
-
-    Debug(1, "Computed password_hash:%s, stored password_hash:%s", final_hash, db_password_hash);
-    password_correct = (strcmp(db_password_hash, final_hash)==0);
+    Debug(1, "Computed password_hash: %s, stored password_hash: %s", hex_digest.c_str(), db_password_hash);
+    password_correct = (strcmp(db_password_hash, hex_digest.c_str()) == 0);
   } else if (
       (db_password_hash[0] == '$')
       &&

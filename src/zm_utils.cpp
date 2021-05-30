@@ -116,6 +116,23 @@ std::string Join(const StringVector &values, const std::string &delim) {
   return ss.str();
 }
 
+std::string ByteArrayToHexString(nonstd::span<const uint8> bytes) {
+  static constexpr char lowercase_table[] = "0123456789abcdef";
+  std::string buf;
+  buf.resize(2 * bytes.size());
+
+  const uint8 *srcPtr = bytes.data();
+  char *dstPtr = &buf[0];
+
+  for (size_t i = 0; i < bytes.size(); ++i) {
+    uint8 c = *srcPtr++;
+    *dstPtr++ = lowercase_table[c >> 4];
+    *dstPtr++ = lowercase_table[c & 0x0f];
+  }
+
+  return buf;
+}
+
 std::string Base64Encode(const std::string &str) {
   static char base64_table[64] = {'\0'};
 

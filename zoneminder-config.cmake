@@ -29,14 +29,11 @@
 #cmakedefine HAVE_LIBJPEG 1
 #cmakedefine HAVE_JPEGLIB_H 1
 #cmakedefine HAVE_LIBOPENSSL 1
-#cmakedefine HAVE_OPENSSL_MD5_H 1
-#cmakedefine HAVE_LIBCRYPTO 1
 #cmakedefine HAVE_LIBPTHREAD 1
 #cmakedefine HAVE_PTHREAD_H
 #cmakedefine HAVE_LIBPCRE 1
 #cmakedefine HAVE_PCRE_H 1
 #cmakedefine HAVE_LIBGNUTLS 1
-#cmakedefine HAVE_GNUTLS_GNUTLS_H 1
 #cmakedefine HAVE_LIBMYSQLCLIENT 1
 #cmakedefine HAVE_MYSQL_H 1
 #cmakedefine HAVE_LIBAVFORMAT 1
@@ -67,12 +64,6 @@
 #cmakedefine HAVE_MP4V2_MP4V2_H 1
 #cmakedefine HAVE_LIBJWT 1
 #cmakedefine HAVE_RTSP_SERVER 1
-
-/* Authenication checks */
-#cmakedefine HAVE_MD5_OPENSSL 1
-#cmakedefine HAVE_MD5_GNUTLS 1
-#cmakedefine HAVE_DECL_MD5 1
-#cmakedefine HAVE_DECL_GNUTLS_FINGERPRINT 1
 
 /* Few ZM options that are needed by the source code */
 #cmakedefine ZM_MEM_MAPPED 1

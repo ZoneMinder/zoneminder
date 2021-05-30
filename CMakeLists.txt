@@ -371,7 +371,6 @@ if (${ZM_CRYPTO_BACKEND} STREQUAL "gnutls")
       set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
     endif()
     mark_as_advanced(FORCE GNUTLS_LIBRARIES GNUTLS_INCLUDE_DIR)
-    check_include_file("gnutls/gnutls.h" HAVE_GNUTLS_GNUTLS_H)
     set(optlibsfound "${optlibsfound} GnuTLS")
   else()
     set(optlibsnotfound "${optlibsnotfound} GnuTLS")
@@ -381,11 +380,9 @@ elseif (${ZM_CRYPTO_BACKEND} STREQUAL "openssl")
   find_package(OpenSSL REQUIRED)
   if(OPENSSL_FOUND)
     set(HAVE_LIBOPENSSL 1)
-    set(HAVE_LIBCRYPTO 1)
     list(APPEND ZM_BIN_LIBS "${OPENSSL_LIBRARIES}")
     include_directories("${OPENSSL_INCLUDE_DIR}")
     set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
-    check_include_file("openssl/md5.h" HAVE_OPENSSL_MD5_H)
     set(optlibsfound "${optlibsfound} OpenSSL")
   else()
     set(optlibsnotfound "${optlibsnotfound} OpenSSL")
@@ -677,41 +674,6 @@ endif()
 set(ZM_HAS_ONVIF 0)
 if(ZM_ONVIF)
   set(ZM_HAS_ONVIF 1)
-endif()
-
-# Check for authentication functions
-if(HAVE_OPENSSL_MD5_H)
-  set(CMAKE_REQUIRED_LIBRARIES "${OPENSSL_LIBRARIES}")
-  set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
-  check_prototype_definition(
-    MD5
-    "unsigned char *MD5(const unsigned char *d, size_t n, unsigned char *md)" "NULL" "openssl/md5.h"
-    HAVE_MD5_OPENSSL)
-endif()
-
-if(HAVE_GNUTLS_GNUTLS_H)
-  set(CMAKE_REQUIRED_LIBRARIES "${GNUTLS_LIBRARIES}")
-  set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
-  check_prototype_definition(
-    gnutls_fingerprint
-    "int gnutls_fingerprint (gnutls_digest_algorithm_t algo, const gnutls_datum_t * data, void *result, size_t * result_size)" "0" "stdlib.h;gnutls/gnutls.h"
-    HAVE_DECL_GNUTLS_FINGERPRINT)
-endif()
-
-if(NOT HAVE_DECL_GNUTLS_FINGERPRINT AND HAVE_MD5_OPENSSL)
-  set(HAVE_DECL_MD5 1)
-endif()
-
-if((NOT HAVE_MD5_OPENSSL) AND (NOT HAVE_DECL_GNUTLS_FINGERPRINT))
-  message(AUTHOR_WARNING
-    "ZoneMinder requires a working MD5 function for hashed authentication but
-     none were found - hashed authentication will not be available")
-endif()
-
-# Dirty fix for zm_user only using openssl's md5 if gnutls is not available.
-# This needs to be fixed in zm_user.[h,cpp] but such fix will also require changes to configure.ac
-if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
-  set(HAVE_GNUTLS_OPENSSL_H 0)
 endif()
 
 # Check for Perl

@@ -35,7 +35,6 @@
 //
 class LocalCamera : public Camera {
 protected:
-#if ZM_HAS_V4L2
     struct V4L2MappedBuffer {
         void    *start;
         size_t  length;
@@ -49,7 +48,6 @@ protected:
         V4L2MappedBuffer    *buffers;
         v4l2_buffer         *bufptr;
     };
-#endif // ZM_HAS_V4L2
 
 protected:
   std::string device;
@@ -75,9 +73,7 @@ protected:
   bool  v4l_multi_buffer;
   unsigned int v4l_captures_per_frame;
 
-#if ZM_HAS_V4L2
   static V4L2Data         v4l2_data;
-#endif // ZM_HAS_V4L2
 
 #if HAVE_LIBSWSCALE
   static AVFrame      **capturePictures;

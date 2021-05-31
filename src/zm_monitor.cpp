@@ -2231,7 +2231,7 @@ bool Monitor::Analyse() {
           }
         } else if ( state == ALERT ) {
           // Alert means this frame has no motion, but we were alarmed and are still recording.
-          if ( noteSetMap.size() > 0 )
+          if ((noteSetMap.size() > 0) and event)
             event->updateNotes(noteSetMap);
         } else if ( state == TAPE ) {
           // bulk frame code moved to event.

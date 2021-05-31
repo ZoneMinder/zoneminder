@@ -1009,7 +1009,7 @@ bool Monitor::connect() {
     shared_data->signal = false;
     shared_data->capture_fps = 0.0;
     shared_data->analysis_fps = 0.0;
-    shared_data->state = IDLE;
+    shared_data->state = state = IDLE;
     shared_data->last_write_index = image_buffer_count;
     shared_data->last_read_index = image_buffer_count;
     shared_data->last_write_time = 0;
@@ -2206,8 +2206,8 @@ bool Monitor::Analyse() {
                   snap->analysis_image = new Image(*(snap->image));
                 snap->analysis_image->Overlay(*(zone.AlarmImage()));
               }
-            } // end if zone is alarmed
-          } // end foreach zone
+            }  // end if zone is alarmed
+          }  // end foreach zone
           if (event) {
             if (noteSetMap.size() > 0)
               event->updateNotes(noteSetMap);
@@ -2253,7 +2253,7 @@ bool Monitor::Analyse() {
     shared_data->last_frame_score = score;
   } else {
     Debug(3, "trigger == off");
-    if ( event ) {
+    if (event) {
       Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name.c_str(), analysis_image_count, event->Id());
       closeEvent();
     }
@@ -2277,7 +2277,7 @@ bool Monitor::Analyse() {
     // Only do these if it's a video packet.
     shared_data->last_read_index = snap->image_index;
     analysis_image_count++;
-    if ( function == MODECT or function == MOCORD )
+    if (function == MODECT or function == MOCORD)
       UpdateAnalysisFPS();
   }
   packetqueue.unlock(packet_lock);

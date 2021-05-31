@@ -323,6 +323,9 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, ", SAR %d:%d DAR %d:%d",
         st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,
         display_aspect_ratio.num, display_aspect_ratio.den);
+  } else {
+    Debug(1, ", SAR %d:%d ",
+        st->sample_aspect_ratio.num, st->sample_aspect_ratio.den);
   }
 
   if (codec->codec_type == AVMEDIA_TYPE_VIDEO) {
@@ -336,6 +339,8 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   } else if (codec->codec_type == AVMEDIA_TYPE_AUDIO) {
     Debug(1, "profile %d channels %d sample_rate %d",
         codec->profile, codec->channels, codec->sample_rate);
+  } else {
+    Debug(1, "Unknown codec type %d", codec->codec_type);
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)

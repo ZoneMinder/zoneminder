@@ -172,6 +172,19 @@ bool VideoStore::open() {
         Debug(2,"No timebase found in video in context, defaulting to Q");
         video_out_ctx->time_base = AV_TIME_BASE_Q;
       }
+      video_out_codec = avcodec_find_encoder(video_out_ctx->codec_id);
+      if (video_out_codec) {
+        AVDictionary *opts = nullptr;
+        av_dict_set(&opts, "crf", "23", 0);
+        if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
+          Warning("Can't open video codec (%s) %s",
+              video_out_codec->name,
+              av_make_error_string(ret).c_str()
+              );
+          video_out_codec = nullptr;
+        }
+        av_dict_free(&opts);
+      }
     } else if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
       int wanted_codec = monitor->OutputCodec();
       if (!wanted_codec) {
@@ -285,7 +298,7 @@ bool VideoStore::open() {
         }  // end if hwdevice_type != NONE
 #endif
 
-        AVDictionary *opts = 0;
+        AVDictionary *opts = nullptr;
         std::string Options = monitor->GetEncoderOptions();
         Debug(2, "Options? %s", Options.c_str());
         ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
@@ -317,6 +330,7 @@ bool VideoStore::open() {
         while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
           Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
         }
+        av_dict_free(&opts);
         if (video_out_codec) break;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
         // We allocate and copy in newer ffmpeg, so need to free it
@@ -351,6 +365,9 @@ bool VideoStore::open() {
 #endif
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
   if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
+    if (video_in_stream) {
+      video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
+    }
     // Only set orientation if doing passthrough, otherwise the frame image will be rotated
     Monitor::Orientation orientation = monitor->getOrientation();
     if (orientation) {

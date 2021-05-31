@@ -24,20 +24,9 @@
 
 #if ZM_HAS_V4L
 
-#ifdef HAVE_LINUX_VIDEODEV_H
-#include <linux/videodev.h>
-#endif // HAVE_LINUX_VIDEODEV_H
-#ifdef HAVE_LIBV4L1_VIDEODEV_H
-#include <libv4l1-videodev.h>
-#endif // HAVE_LIB4VL1_VIDEODEV_H
 #ifdef HAVE_LINUX_VIDEODEV2_H
 #include <linux/videodev2.h>
 #endif // HAVE_LINUX_VIDEODEV2_H
-
-// Required on systems with v4l1 but without v4l2 headers
-#ifndef VIDEO_MAX_FRAME
-#define VIDEO_MAX_FRAME               32
-#endif
 
 //
 // Class representing 'local' cameras, i.e. those which are
@@ -61,15 +50,6 @@ protected:
         v4l2_buffer         *bufptr;
     };
 #endif // ZM_HAS_V4L2
-
-#if ZM_HAS_V4L1
-    struct V4L1Data {
-        int active_frame;
-        video_mbuf frames;
-        video_mmap *buffers;
-        unsigned char *bufptr;
-    };
-#endif // ZM_HAS_V4L1
 
 protected:
   std::string device;
@@ -98,9 +78,6 @@ protected:
 #if ZM_HAS_V4L2
   static V4L2Data         v4l2_data;
 #endif // ZM_HAS_V4L2
-#if ZM_HAS_V4L1
-  static V4L1Data         v4l1_data;
-#endif // ZM_HAS_V4L1
 
 #if HAVE_LIBSWSCALE
   static AVFrame      **capturePictures;

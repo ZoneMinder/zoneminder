@@ -132,13 +132,10 @@ if ( !ZM_HAS_V4L )
 
 $localMethods = array(
     'v4l2' => 'Video For Linux version 2',
-    'v4l1' => 'Video For Linux version 1',
     );
 
 if ( !ZM_HAS_V4L2 )
   unset($localMethods['v4l2']);
-if ( !ZM_HAS_V4L1 )
-  unset($localMethods['v4l1']);
 
 $remoteProtocols = array(
     'http' => 'HTTP',
@@ -169,36 +166,6 @@ if ( !ZM_PCRE )
   unset($httpMethods['regexp']);
   // Currently unsupported
 unset($httpMethods['jpegTags']);
-
-if ( ZM_HAS_V4L1 ) {
-  $v4l1DeviceFormats = array(
-      0 => 'PAL',
-      1 => 'NTSC',
-      2 => 'SECAM',
-      3 => 'AUTO',
-      4 => 'FMT4',
-      5 => 'FMT5',
-      6 => 'FMT6',
-      7 => 'FMT7'
-      );
-
-  $v4l1MaxChannels = 15;
-  $v4l1DeviceChannels = array();
-  for ( $i = 0; $i <= $v4l1MaxChannels; $i++ )
-    $v4l1DeviceChannels[$i] = $i;
-
-  $v4l1LocalPalettes = array(
-      1  => translate('Grey'),
-      5  => 'BGR32',
-      4  => 'BGR24',
-      8  => '*YUYV',
-      3  => '*RGB565',
-      6  => '*RGB555',
-      7  => '*YUV422',
-      13 => '*YUV422P',
-      15 => '*YUV420P',
-      );
-}
 
 if ( ZM_HAS_V4L2 ) {
   $v4l2DeviceFormats = array(
@@ -685,22 +652,7 @@ switch ( $name ) {
             <td><?php echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), array('onchange'=>'submitTab', 'data-tab-name'=>$tab) ); ?></td>
           </tr>
 <?php
-        if ( ZM_HAS_V4L1 && $monitor->Method() == 'v4l1' ) {
-?>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('DeviceChannel') ?></td>
-            <td><?php echo htmlSelect('newMonitor[Channel]', $v4l1DeviceChannels, $monitor->Channel()); ?></td>
-          </tr>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('DeviceFormat') ?></td>
-            <td><?php echo htmlSelect('newMonitor[Format]', $v4l1DeviceFormats, $monitor->Format()); ?></td>
-          </tr>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('CapturePalette') ?></td>
-            <td><?php echo htmlSelect('newMonitor[Palette]', $v4l1LocalPalettes, $monitor->Palette()); ?></td>
-          </tr>
-<?php
-        } else {
+        if ( ZM_HAS_V4L2 && $monitor->Method() == 'v4l2' ) {
 ?>
           <tr>
             <td class="text-right pr-3"><?php echo translate('DeviceChannel') ?></td>

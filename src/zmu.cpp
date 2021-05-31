@@ -265,11 +265,7 @@ int main(int argc, char *argv[]) {
   char *auth = nullptr;
   std::string jwt_token_str = "";
 #if ZM_HAS_V4L
-#if ZM_HAS_V4L2
     int v4lVersion = 2;
-#elif ZM_HAS_V4L1
-    int v4lVersion = 1;
-#endif // ZM_HAS_V4L2/1
 #endif // ZM_HAS_V4L
   while (1) {
     int option_index = 0;

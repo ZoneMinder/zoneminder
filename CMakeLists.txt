@@ -70,7 +70,6 @@ include(CheckIncludeFile)
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
 include(CheckTypeSize)
-include(CheckStructHasMember)
 include(CheckSendfile)
 
 # Configuration options

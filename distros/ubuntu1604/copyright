@@ -41,7 +41,6 @@ Copyright: 2005-2013 Cake Software Foundation, Inc. (http://cakefoundation.org)
 License: Expat
 
 Files:
-    cmake/Modules/CheckPrototypeDefinition*.cmake
     cmake/Modules/FindGLIB2.cmake
     cmake/Modules/FindPolkit.cmake
     cmake/Modules/GNUInstallDirs.cmake

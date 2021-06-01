@@ -69,9 +69,7 @@ include(GNUInstallDirs)
 include(CheckIncludeFile)
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
-include(CheckPrototypeDefinition_fixed)
 include(CheckTypeSize)
-include(CheckStructHasMember)
 include(CheckSendfile)
 
 # Configuration options

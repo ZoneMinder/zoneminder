@@ -24,9 +24,7 @@
 
 #if ZM_HAS_V4L
 
-#ifdef HAVE_LINUX_VIDEODEV2_H
 #include <linux/videodev2.h>
-#endif // HAVE_LINUX_VIDEODEV2_H
 
 //
 // Class representing 'local' cameras, i.e. those which are

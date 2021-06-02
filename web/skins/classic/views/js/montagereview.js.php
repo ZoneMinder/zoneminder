@@ -3,7 +3,7 @@ var server_utc_offset = <?php
 $tz = ini_get('date.timezone');
 if (!$tz) {
   $tz = 'UTC';
-  Warning('Timezone has not been set. Either select it in Options->System->Timezone or in php.ini');
+  ZM\Warning('Timezone has not been set. Either select it in Options->System->Timezone or in php.ini');
 }
 
 $TimeZone = new DateTimeZone($tz);

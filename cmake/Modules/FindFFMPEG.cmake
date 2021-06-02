@@ -14,7 +14,6 @@ This module accepts following COMPONENTS::
   avutil
   swresample
   swscale
-  avresample
 
 IMPORTED Targets
 ^^^^^^^^^^^^^^^^
@@ -121,8 +120,6 @@ _ffmpeg_find(avfilter libavfilter avfilter.h
   avutil)
 _ffmpeg_find(avdevice libavdevice avdevice.h
   avformat avutil)
-_ffmpeg_find(avresample libavresample avresample.h
-  avutil)
 
 if(TARGET FFMPEG::avutil)
   set(FFMPEG_VERSION "${FFMPEG_avutil_VERSION}")

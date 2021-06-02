@@ -642,19 +642,8 @@ void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRat
   av_packet_rescale_ts(opkt, src_tb, dst_tb);
 }
 
-#if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
-int zm_resample_audio(
 #if defined(HAVE_LIBSWRESAMPLE)
-    SwrContext *resample_ctx,
-#else
-#if defined(HAVE_LIBAVRESAMPLE)
-    AVAudioResampleContext *resample_ctx,
-#endif
-#endif
-    AVFrame *in_frame,
-    AVFrame *out_frame
-    ) {
-#if defined(HAVE_LIBSWRESAMPLE)
+int zm_resample_audio(SwrContext *resample_ctx, AVFrame *in_frame, AVFrame *out_frame) {
   if (in_frame) {
     // Resample the in_frame into the audioSampleBuffer until we process the whole
     // decoded data. Note: pts does not survive resampling or converting
@@ -670,54 +659,12 @@ int zm_resample_audio(
     return 0;
   }
   Debug(3, "swr_get_delay %" PRIi64, swr_get_delay(resample_ctx, out_frame->sample_rate));
-#else
-#if defined(HAVE_LIBAVRESAMPLE)
-  if (!in_frame) {
-    Error("Flushing resampler not supported by AVRESAMPLE");
-    return 0;
-  }
-  int ret = avresample_convert(resample_ctx, nullptr, 0, 0, in_frame->data,
-                            0, in_frame->nb_samples);
-  if (ret < 0) {
-    Error("Could not resample frame (error '%s')",
-        av_make_error_string(ret).c_str());
-    return 0;
-  }
-  int samples_available = avresample_available(resample_ctx);
-  if (samples_available < out_frame->nb_samples) {
-    Debug(1, "Not enough samples yet (%d)", samples_available);
-    return 0;
-  }
-
-  // Read a frame audio data from the resample fifo
-  if (avresample_read(resample_ctx, out_frame->data, out_frame->nb_samples) !=
-      out_frame->nb_samples) {
-    Warning("Error reading resampled audio.");
-    return 0;
-  }
-#endif
-#endif
   zm_dump_frame(out_frame, "Out frame after resample");
   return 1;
 }
 
-int zm_resample_get_delay(
-#if defined(HAVE_LIBSWRESAMPLE)
-        SwrContext *resample_ctx,
-#else
-#if defined(HAVE_LIBAVRESAMPLE)
-        AVAudioResampleContext *resample_ctx,
-#endif
-#endif
-        int time_base
-    ) { 
-#if defined(HAVE_LIBSWRESAMPLE)
+int zm_resample_get_delay(SwrContext *resample_ctx, int time_base) {
   return swr_get_delay(resample_ctx, time_base);
-#else
-#if defined(HAVE_LIBAVRESAMPLE)
-  return avresample_available(resample_ctx);
-#endif
-#endif
 }
 #endif
 

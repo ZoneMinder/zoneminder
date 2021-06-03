@@ -23,7 +23,7 @@ Result Variables
 
 ``LIBJWT_FOUND``
   System has libjwt
-``LIBJWT_INCLUDE_DIR``
+``LIBJWT_INCLUDE_DIRS``
   The libjwt include directory
 ``LIBJWT_LIBRARIES``
   The libraries needed to use libjwt

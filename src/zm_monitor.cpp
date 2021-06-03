@@ -2591,10 +2591,9 @@ int Monitor::Capture() {
 } // end Monitor::Capture
 
 bool Monitor::Decode() {
-  ZMLockedPacket *packet_lock = packetqueue.get_packet(decoder_it);
+  ZMLockedPacket *packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
   if (!packet_lock) return false;
   std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
-  packetqueue.increment_it(decoder_it);
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     Debug(4, "Not video");
     packetqueue.unlock(packet_lock);
@@ -2644,13 +2643,16 @@ bool Monitor::Decode() {
             delete packet->image;
             packet->image = nullptr;
           }
+          Debug(1, "Done assigning about to unref");
           av_frame_unref(dest_frame);
+          Debug(1, "Done assigning onde to unref");
         }  // end if have convert_context
       }  // end if need transfer to image
     } else {
       Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
     }
   }  // end if need_decoding
+
   Image* capture_image = nullptr;
   unsigned int index = image_count % image_buffer_count;
 
@@ -2690,7 +2692,7 @@ bool Monitor::Decode() {
     }
 
     if (orientation != ROTATE_0) {
-      Debug(2, "Doing rotation");
+      Debug(3, "Doing rotation");
       switch (orientation) {
         case ROTATE_0 :
           // No action required
@@ -2713,7 +2715,7 @@ bool Monitor::Decode() {
     }
 
     if (config.timestamp_on_capture) {
-      Debug(3, "Timestampprivacy");
+      Debug(3, "Timestamping");
       TimestampImage(packet->image, packet->timestamp);
     }
 
@@ -2721,7 +2723,7 @@ bool Monitor::Decode() {
     shared_timestamps[index] = packet->timestamp;
   }  // end if have image
   packet->decoded = true;
-  shared_data->signal = ( capture_image and signal_check_points ) ? CheckSignal(capture_image) : true;
+  shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
   shared_data->last_write_time = packet->timestamp.tv_sec;
   packetqueue.unlock(packet_lock);

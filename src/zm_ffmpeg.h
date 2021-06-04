@@ -64,14 +64,7 @@ extern "C" {
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
 #include <libavutil/imgutils.h>
 #endif
-#elif HAVE_FFMPEG_AVUTIL_H
-#include <ffmpeg/avutil.h>
-#include <ffmpeg/base64.h>
-#include <ffmpeg/mathematics.h>
-#include <ffmpeg/opt.h>
-#endif /* HAVE_LIBAVUTIL_AVUTIL_H */
 
-#if defined(HAVE_LIBAVUTIL_AVUTIL_H)
 #if LIBAVUTIL_VERSION_CHECK(51, 42, 0, 74, 100)
     #define _AVPIXELFORMAT AVPixelFormat
 #else
@@ -136,11 +129,6 @@ extern "C" {
     ( (LIBAVCODEC_VERSION_MICRO <  100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBAVCODEC_VERSION_MICRO >= 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
-#elif HAVE_FFMPEG_AVCODEC_H
-#include <ffmpeg/avcodec.h>
-#endif /* HAVE_LIBAVCODEC_AVCODEC_H */
-
-#if defined(HAVE_LIBAVCODEC_AVCODEC_H)
 #if LIBAVCODEC_VERSION_CHECK(54, 25, 0, 51, 100)
     #define _AVCODECID AVCodecID
 #else
@@ -161,8 +149,6 @@ extern "C" {
     ( (LIBAVFORMAT_VERSION_MICRO <  100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBAVFORMAT_VERSION_MICRO >= 100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
-#elif HAVE_FFMPEG_AVFORMAT_H
-#include <ffmpeg/avformat.h>
 #endif /* HAVE_LIBAVFORMAT_AVFORMAT_H */
 
 // AVDEVICE
@@ -177,8 +163,6 @@ extern "C" {
     ( (LIBAVDEVICE_VERSION_MICRO <  100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBAVDEVICE_VERSION_MICRO >= 100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
-#elif HAVE_FFMPEG_AVDEVICE_H
-#include <ffmpeg/avdevice.h>
 #endif /* HAVE_LIBAVDEVICE_AVDEVICE_H */
 
 // SWSCALE
@@ -193,8 +177,6 @@ extern "C" {
     ( (LIBSWSCALE_VERSION_MICRO <  100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBSWSCALE_VERSION_MICRO >= 100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
-#elif HAVE_FFMPEG_SWSCALE_H
-#include <ffmpeg/swscale.h>
 #endif /* HAVE_LIBSWSCALE_SWSCALE_H */
 
 #ifdef __cplusplus

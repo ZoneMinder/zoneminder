@@ -80,6 +80,7 @@ target_link_libraries(zm
     libbcrypt::bcrypt
     RtspServer::RtspServer
     martinmoene::span-lite
+    ${ZM_BIN_LIBS}
   PRIVATE
     zm-core-interface)
 
@@ -102,7 +103,6 @@ target_link_libraries(zmc
     zm-core-interface
     zm
     ${ZM_EXTRA_LIBS}
-    ${ZM_BIN_LIBS}
     ${CMAKE_DL_LIBS})
 
 target_link_libraries(zms
@@ -110,7 +110,6 @@ target_link_libraries(zms
     zm-core-interface
     zm
     ${ZM_EXTRA_LIBS}
-    ${ZM_BIN_LIBS}
     ${CMAKE_DL_LIBS})
 
 target_link_libraries(zmu
@@ -118,9 +117,7 @@ target_link_libraries(zmu
     zm-core-interface
     zm
     ${ZM_EXTRA_LIBS}
-    ${ZM_BIN_LIBS}
-    ${CMAKE_DL_LIBS}
-    bcrypt)
+    ${CMAKE_DL_LIBS})
 
 # Generate man files for the binaries destined for the bin folder
 if(BUILD_MAN)
@@ -141,8 +138,6 @@ if(HAVE_RTSP_SERVER)
       zm-core-interface
       zm
       ${ZM_EXTRA_LIBS}
-      ${ZM_BIN_LIBS}
-      ${CMAKE_DL_LIBS}
-      bcrypt)
+      ${CMAKE_DL_LIBS})
   install(TARGETS zm_rtsp_server RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 endif()

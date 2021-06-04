@@ -21,6 +21,7 @@
 
 #include "zm_logger.h"
 #include "zm_rgb.h"
+#include "zm_utils.h"
 
 extern "C" {
 #include "libavutil/pixdesc.h"
@@ -235,7 +236,8 @@ static void zm_log_fps(double d, const char *postfix) {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar(const AVCodecParameters *par) {
-  Debug(1, "Dumping codecpar codec_type(%d %s) codec_id(%d %s) codec_tag(%" PRIu32 ") width(%d) height(%d) bit_rate(%" PRIu64 ") format(%d %s)",
+  Debug(1, "Dumping codecpar codec_type(%d %s) codec_id(%d %s) codec_tag(%" PRIu32 ") width(%d) height(%d) bit_rate(%" PRIu64 ")"
+     "bpcs %d bprs %d format(%d %s) extradata:%d:%s profile %d level %d field order %d color_range %d color_primaries %d color_trc %d color_space %d location %d video_delay %d",
       par->codec_type,
       av_get_media_type_string(par->codec_type),
       par->codec_id,
@@ -244,15 +246,19 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
       par->width,
       par->height,
       par->bit_rate,
+      par->bits_per_coded_sample,
+      par->bits_per_raw_sample,
       par->format,
-      (((AVPixelFormat)par->format == AV_PIX_FMT_NONE) ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format))
+      (((AVPixelFormat)par->format == AV_PIX_FMT_NONE) ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format)),
+      par->extradata_size, ByteArrayToHexString(nonstd::span<const uint8>{par->extradata, par->extradata_size}).c_str(),
+      par->field_order, par->color_range, par->color_primaries, par->color_trc, par->color_space, par->chroma_location, par->video_delay
       ); 
 }
 #endif
 
 void zm_dump_codec(const AVCodecContext *codec) {
-  Debug(1, "Dumping codec_context codec_type(%d %s) codec_id(%d %s) width(%d) height(%d)  timebase(%d/%d) format(%s) "
-      "gop_size %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d",
+  Debug(1, "Dumping codec_context codec_type %d %s codec_id %d %s width %d height %d timebase %d/%d format %s profile %d level %d "
+      "gop_size %d has_b_frames %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d bit_rate %ld extradata:%d:%s",
     codec->codec_type,
     av_get_media_type_string(codec->codec_type),
     codec->codec_id,
@@ -266,12 +272,17 @@ void zm_dump_codec(const AVCodecContext *codec) {
 #else
     "unsupported on avconv",
 #endif
+    codec->profile,
+    codec->level,
     codec->gop_size,
+    codec->has_b_frames,
     codec->max_b_frames,
     codec->me_cmp,
     codec->me_range,
     codec->qmin,
-    codec->qmax
+    codec->qmax,
+    codec->bit_rate,
+    codec->extradata_size, ByteArrayToHexString(nonstd::span<const uint8>{codec->extradata, codec->extradata_size}).c_str()
     );
 }
 

@@ -354,10 +354,10 @@ int FfmpegCamera::OpenFfmpeg() {
   // The one we want Might not be the first
   mVideoStreamId = -1;
   mAudioStreamId = -1;
-  for ( unsigned int i=0; i < mFormatContext->nb_streams; i++ ) {
+  for (unsigned int i=0; i < mFormatContext->nb_streams; i++) {
     AVStream *stream = mFormatContext->streams[i];
-    if ( is_video_stream(stream) ) {
-      if ( mVideoStreamId == -1 ) {
+    if (is_video_stream(stream)) {
+      if (mVideoStreamId == -1) {
         mVideoStreamId = i;
         mVideoStream = mFormatContext->streams[i];
         // if we break, then we won't find the audio stream
@@ -365,8 +365,8 @@ int FfmpegCamera::OpenFfmpeg() {
       } else {
         Debug(2, "Have another video stream.");
       }
-    } else if ( is_audio_stream(stream) ) {
-      if ( mAudioStreamId == -1 ) {
+    } else if (is_audio_stream(stream)) {
+      if (mAudioStreamId == -1) {
         mAudioStreamId = i;
         mAudioStream = mFormatContext->streams[i];
       } else {
@@ -375,7 +375,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   }  // end foreach stream
 
-  if ( mVideoStreamId == -1 ) {
+  if (mVideoStreamId == -1) {
     Error("Unable to locate video stream in %s", mPath.c_str());
     return -1;
   }
@@ -384,21 +384,21 @@ int FfmpegCamera::OpenFfmpeg() {
       mVideoStreamId, mAudioStreamId);
 
   AVCodec *mVideoCodec = nullptr;
-  if ( mVideoStream->
+  if (mVideoStream->
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       codecpar
 #else
       codec
 #endif
-      ->codec_id == AV_CODEC_ID_H264 ) {
-    if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == nullptr ) {
+      ->codec_id == AV_CODEC_ID_H264) {
+    if ((mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == nullptr) {
       Debug(1, "Failed to find decoder (h264_mmal)");
     } else {
       Debug(1, "Success finding decoder (h264_mmal)");
     }
   }
 
-  if ( !mVideoCodec ) {
+  if (!mVideoCodec) {
     mVideoCodec = avcodec_find_decoder(mVideoStream->
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
         codecpar
@@ -406,7 +406,7 @@ int FfmpegCamera::OpenFfmpeg() {
         codec
 #endif
         ->codec_id);
-    if ( !mVideoCodec ) {
+    if (!mVideoCodec) {
       // Try and get the codec from the codec context
       Error("Can't find codec for video stream from %s", mPath.c_str());
       return -1;
@@ -426,18 +426,18 @@ int FfmpegCamera::OpenFfmpeg() {
 
   zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
 
-  if ( use_hwaccel && (hwaccel_name != "") ) {
+  if (use_hwaccel && (hwaccel_name != "")) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     // 3.2 doesn't seem to have all the bits in place, so let's require 3.4 and up
   #if LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
     // Print out available types
     enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
-    while ( (type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE )
+    while ((type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE)
       Debug(1, "%s", av_hwdevice_get_type_name(type));
 
     const char *hw_name = hwaccel_name.c_str();
     type = av_hwdevice_find_type_by_name(hw_name);
-    if ( type == AV_HWDEVICE_TYPE_NONE ) {
+    if (type == AV_HWDEVICE_TYPE_NONE) {
       Debug(1, "Device type %s is not supported.", hw_name);
     } else {
       Debug(1, "Found hwdevice %s", av_hwdevice_get_type_name(type));
@@ -445,14 +445,14 @@ int FfmpegCamera::OpenFfmpeg() {
 
     #if LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
     // Get hw_pix_fmt
-    for ( int i = 0;; i++ ) {
+    for (int i = 0;; i++) {
       const AVCodecHWConfig *config = avcodec_get_hw_config(mVideoCodec, i);
-      if ( !config ) {
+      if (!config) {
         Debug(1, "Decoder %s does not support config %d.",
             mVideoCodec->name, i);
         break;
       }
-      if ( (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
+      if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
           && (config->device_type == type)
           ) {
         hw_pix_fmt = config->pix_fmt;
@@ -471,7 +471,7 @@ int FfmpegCamera::OpenFfmpeg() {
     #else
     hw_pix_fmt = find_fmt_by_hw_type(type);
     #endif
-    if ( hw_pix_fmt != AV_PIX_FMT_NONE ) {
+    if (hw_pix_fmt != AV_PIX_FMT_NONE) {
       Debug(1, "Selected hw_pix_fmt %d %s",
           hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
 
@@ -484,7 +484,7 @@ int FfmpegCamera::OpenFfmpeg() {
       if ( ret < 0 and hwaccel_device != "" ) {
         ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
       }
-      if ( ret < 0 ) {
+      if (ret < 0) {
         Error("Failed to create hwaccel device. %s", av_make_error_string(ret).c_str());
         hw_pix_fmt = AV_PIX_FMT_NONE;
       } else {
@@ -509,10 +509,10 @@ int FfmpegCamera::OpenFfmpeg() {
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 #endif
   e = nullptr;
-  while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr ) {
+  while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
     Warning("Option %s not recognized by ffmpeg", e->key);
   }
-  if ( ret < 0 ) {
+  if (ret < 0) {
     Error("Unable to open codec for video stream from %s", mPath.c_str());
     av_dict_free(&opts);
     return -1;
@@ -574,6 +574,7 @@ int FfmpegCamera::OpenFfmpeg() {
     Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
         width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
+  zm_dump_codecpar(mVideoStream->codecpar);
 
   mCanCapture = true;
 

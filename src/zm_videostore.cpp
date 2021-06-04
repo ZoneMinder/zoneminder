@@ -72,7 +72,6 @@ VideoStore::VideoStore(
   oc(nullptr),
   video_out_stream(nullptr),
   audio_out_stream(nullptr),
-  video_out_codec(nullptr),
   video_in_ctx(p_video_in_ctx),
   video_out_ctx(nullptr),
   video_in_stream(p_video_in_stream),
@@ -136,55 +135,119 @@ bool VideoStore::open() {
 
   AVDictionary *pmetadata = nullptr;
   ret = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
-  if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+  if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
 
   oc->metadata = pmetadata;
   out_format = oc->oformat;
   out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+  AVCodec *video_out_codec = nullptr;
+
+  AVDictionary *opts = nullptr;
+  std::string Options = monitor->GetEncoderOptions();
+  Debug(2, "Options? %s", Options.c_str());
+  ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
+  if (ret < 0) {
+    Warning("Could not parse ffmpeg encoder options list '%s'", Options.c_str());
+  } else {
+    AVDictionaryEntry *e = nullptr;
+    while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+      Debug(3, "Encoder Option %s=%s", e->key, e->value);
+    }
+  }
 
   if (video_in_stream) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     zm_dump_codecpar(video_in_stream->codecpar);
 #endif
+
     if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
-      // Don't care what codec, just copy parameters
-      video_out_ctx = avcodec_alloc_context3(nullptr);
-      // There might not be a useful video_in_stream.  v4l in might not populate this very
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
-#else
-      ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
-#endif
-      if (ret < 0) {
-        Error("Could not initialize ctx parameters");
+      video_out_stream = avformat_new_stream(oc, nullptr);
+      if (!video_out_stream) {
+        Error("Unable to create video out stream");
         return false;
       }
-      video_out_ctx->pix_fmt = fix_deprecated_pix_fmt(video_out_ctx->pix_fmt);
-      if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
-        video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-#else
-        video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+      avcodec_parameters_copy(video_out_stream->codecpar, video_in_stream->codecpar);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      zm_dump_codecpar(video_out_stream->codecpar);
 #endif
-      }
-      video_out_ctx->time_base = video_in_ctx->time_base;
-      if (!(video_out_ctx->time_base.num && video_out_ctx->time_base.den)) {
-        Debug(2,"No timebase found in video in context, defaulting to Q");
-        video_out_ctx->time_base = AV_TIME_BASE_Q;
-      }
-      video_out_codec = avcodec_find_encoder(video_out_ctx->codec_id);
-      if (video_out_codec) {
-        AVDictionary *opts = nullptr;
-        av_dict_set(&opts, "crf", "23", 0);
-        if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
-          Warning("Can't open video codec (%s) %s",
-              video_out_codec->name,
-              av_make_error_string(ret).c_str()
-              );
-          video_out_codec = nullptr;
+      video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
+      // Only set orientation if doing passthrough, otherwise the frame image will be rotated
+      Monitor::Orientation orientation = monitor->getOrientation();
+      if (orientation) {
+        Debug(3, "Have orientation %d", orientation);
+        if (orientation == Monitor::ROTATE_0) {
+        } else if (orientation == Monitor::ROTATE_90) {
+          ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
+          if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+        } else if (orientation == Monitor::ROTATE_180) {
+          ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
+          if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+        } else if (orientation == Monitor::ROTATE_270) {
+          ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
+          if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+        } else {
+          Warning("Unsupported Orientation(%d)", orientation);
         }
-        av_dict_free(&opts);
+      } // end if orientation
+
+      if (av_dict_get(opts, "new_extradata", nullptr, AV_DICT_MATCH_CASE)) {
+        av_dict_set(&opts, "new_extradata", nullptr, 0);
+        // Special flag to tell us to open a codec to get new extraflags to fix weird h265
+        video_out_codec = avcodec_find_encoder(video_in_stream->codecpar->codec_id);
+        if (video_out_codec) {
+          video_out_ctx = avcodec_alloc_context3(video_out_codec);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+          ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
+#else
+          ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
+#endif
+          if (ret < 0) {
+            Error("Could not initialize ctx parameters");
+            return false;
+          }
+          //video_out_ctx->pix_fmt = fix_deprecated_pix_fmt(video_out_ctx->pix_fmt);
+          if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
+            video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+#else
+            video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#endif
+          }
+          video_out_ctx->time_base = video_in_ctx->time_base;
+          if (!(video_out_ctx->time_base.num && video_out_ctx->time_base.den)) {
+            Debug(2,"No timebase found in video in context, defaulting to Q");
+            video_out_ctx->time_base = AV_TIME_BASE_Q;
+          }
+          video_out_ctx->bit_rate = video_in_ctx->bit_rate;
+          video_out_ctx->gop_size = video_in_ctx->gop_size;
+          video_out_ctx->has_b_frames = video_in_ctx->has_b_frames;
+          video_out_ctx->max_b_frames = video_in_ctx->max_b_frames;
+          video_out_ctx->qmin = video_in_ctx->qmin;
+          video_out_ctx->qmax = video_in_ctx->qmax;
+
+          if (!av_dict_get(opts, "crf", nullptr, AV_DICT_MATCH_CASE)) {
+            if (av_dict_set(&opts, "crf", "23", 0)<0)
+              Warning("Can't set crf to 23");
+          }
+
+          if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
+            Warning("Can't open video codec (%s) %s",
+                video_out_codec->name,
+                av_make_error_string(ret).c_str()
+                );
+            video_out_codec = nullptr;
+          }
+        }  // end if video_out_codec
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+      if (ret < 0) {
+        Error("Could not initialize stream parameteres");
       }
+#else
+      avcodec_copy_context(video_out_stream->codec, video_out_ctx);
+#endif
+      }  // end if extradata_entry
+      av_dict_free(&opts);
     } else if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
       int wanted_codec = monitor->OutputCodec();
       if (!wanted_codec) {
@@ -297,20 +360,7 @@ bool VideoStore::open() {
           av_buffer_unref(&hw_device_ctx);
         }  // end if hwdevice_type != NONE
 #endif
-
-        AVDictionary *opts = nullptr;
-        std::string Options = monitor->GetEncoderOptions();
-        Debug(2, "Options? %s", Options.c_str());
-        ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
-        if (ret < 0) {
-          Warning("Could not parse ffmpeg encoder options list '%s'", Options.c_str());
-        } else {
-          AVDictionaryEntry *e = nullptr;
-          while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-            Debug(3, "Encoder Option %s=%s", e->key, e->value);
-          }
-        }
-
+        av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
             Warning("Can't open video codec (%s) %s",
@@ -344,49 +394,23 @@ bool VideoStore::open() {
         return false;
       }  // end if can't open codec
       Debug(2, "Success opening codec");
+
+      video_out_stream = avformat_new_stream(oc, nullptr);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+      if (ret < 0) {
+        Error("Could not initialize stream parameteres");
+        return false;
+      }
+#else
+      avcodec_copy_context(video_out_stream->codec, video_out_ctx);
+#endif
     }  // end if copying or transcoding
-    zm_dump_codec(video_out_ctx);
+   // zm_dump_codec(video_out_ctx);
   }  // end if video_in_stream
 
-  video_out_stream = avformat_new_stream(oc, video_out_codec);
-  if (!video_out_stream) {
-    Error("Unable to create video out stream");
-    return false;
-  }
   max_stream_index = video_out_stream->index;
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
-  if ( ret < 0 ) {
-    Error("Could not initialize stream parameteres");
-    return false;
-  }
-#else
-  avcodec_copy_context(video_out_stream->codec, video_out_ctx);
-#endif
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
-  if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
-    if (video_in_stream) {
-      video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
-    }
-    // Only set orientation if doing passthrough, otherwise the frame image will be rotated
-    Monitor::Orientation orientation = monitor->getOrientation();
-    if (orientation) {
-      Debug(3, "Have orientation %d", orientation);
-      if (orientation == Monitor::ROTATE_0) {
-      } else if (orientation == Monitor::ROTATE_90) {
-        ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
-        if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-      } else if (orientation == Monitor::ROTATE_180) {
-        ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
-        if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-      } else if (orientation == Monitor::ROTATE_270) {
-        ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
-        if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-      } else {
-        Warning("Unsupported Orientation(%d)", orientation);
-      }
-    } // end if orientation
-  }  // end if passthrough
 
   if (audio_in_stream and audio_in_ctx) {
     Debug(2, "Have audio_in_stream %p", audio_in_stream);
@@ -508,14 +532,6 @@ bool VideoStore::open() {
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
 
-  AVDictionary *opts = nullptr;
-
-  std::string option_string = monitor->GetEncoderOptions();
-  ret = av_dict_parse_string(&opts, option_string.c_str(), "=", "#,\n", 0);
-  if (ret < 0) {
-    Warning("Could not parse ffmpeg output options '%s'", option_string.c_str());
-  }
-
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
   if (!movflags_entry) {
     Debug(1, "setting movflags to frag_keyframe+empty_moov");
@@ -560,7 +576,7 @@ void VideoStore::flush_codecs() {
   av_init_packet(&pkt);
 
   // I got crashes if the codec didn't do DELAY, so let's test for it.
-  if (video_out_ctx->codec && ( video_out_ctx->codec->capabilities & 
+  if (video_out_ctx && video_out_ctx->codec && ( video_out_ctx->codec->capabilities & 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
         AV_CODEC_CAP_DELAY
 #else
@@ -655,7 +671,7 @@ VideoStore::~VideoStore() {
 
     Debug(1, "Writing trailer");
     /* Write the trailer before close */
-    if ( int rc = av_write_trailer(oc) ) {
+    if (int rc = av_write_trailer(oc)) {
       Error("Error writing trailer %s", av_err2str(rc));
     } else {
       Debug(3, "Success Writing trailer");
@@ -680,9 +696,9 @@ VideoStore::~VideoStore() {
   // Just do a file open/close/writeheader/etc.
   // What if we were only doing audio recording?
 
-  if (video_out_stream) {
-    video_in_ctx = nullptr;
+  video_in_ctx = nullptr;
 
+  if (video_out_ctx) {
     avcodec_close(video_out_ctx);
     Debug(3, "Freeing video_out_ctx");
     avcodec_free_context(&video_out_ctx);
@@ -690,7 +706,7 @@ VideoStore::~VideoStore() {
       Debug(3, "Freeing hw_device_ctx");
       av_buffer_unref(&hw_device_ctx);
     }
-  }  // end if video_out_stream
+  }
 
   if (audio_out_stream) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)

@@ -51,7 +51,6 @@ class VideoStore {
     AVStream *video_out_stream;
     AVStream *audio_out_stream;
 
-    AVCodec *video_out_codec;
     AVCodecContext *video_in_ctx;
     AVCodecContext *video_out_ctx;
 

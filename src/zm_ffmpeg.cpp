@@ -236,11 +236,13 @@ static void zm_log_fps(double d, const char *postfix) {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar(const AVCodecParameters *par) {
-  Debug(1, "Dumping codecpar codec_type(%d %s) codec_id(%d %s) codec_tag(%" PRIu32 ") width(%d) height(%d) bit_rate(%" PRIu64 ")"
-     "bpcs %d bprs %d format(%d %s) extradata:%d:%s profile %d level %d field order %d color_range %d color_primaries %d color_trc %d color_space %d location %d video_delay %d",
-      par->codec_type,
+  Debug(1, "Dumping codecpar codec_type %d %s codec_id %d %s codec_tag %" PRIu32
+      " width %d height %d bit_rate%" PRIu64 " bpcs %d bprs %d format%d %s"
+      " extradata:%d:%s profile %d level %d field order %d color_range %d"
+      " color_primaries %d color_trc %d color_space %d location %d video_delay %d",
+      static_cast<int>(par->codec_type),
       av_get_media_type_string(par->codec_type),
-      par->codec_id,
+      static_cast<int>(par->codec_id),
       avcodec_get_name(par->codec_id),
       par->codec_tag,
       par->width,
@@ -250,8 +252,19 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
       par->bits_per_raw_sample,
       par->format,
       (((AVPixelFormat)par->format == AV_PIX_FMT_NONE) ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format)),
-      par->extradata_size, ByteArrayToHexString(nonstd::span<const uint8>{par->extradata, par->extradata_size}).c_str(),
-      par->field_order, par->color_range, par->color_primaries, par->color_trc, par->color_space, par->chroma_location, par->video_delay
+      par->extradata_size, ByteArrayToHexString(nonstd::span<const uint8>{
+        par->extradata,
+        static_cast<nonstd::span_lite::span<const unsigned char>::size_type>(par->extradata_size)
+        }).c_str(),
+      par->profile,
+      par->level,
+      static_cast<int>(par->field_order),
+      static_cast<int>(par->color_range),
+      static_cast<int>(par->color_primaries),
+      static_cast<int>(par->color_trc),
+      static_cast<int>(par->color_space),
+      static_cast<int>(par->chroma_location),
+      static_cast<int>(par->video_delay)
       ); 
 }
 #endif
@@ -282,7 +295,11 @@ void zm_dump_codec(const AVCodecContext *codec) {
     codec->qmin,
     codec->qmax,
     codec->bit_rate,
-    codec->extradata_size, ByteArrayToHexString(nonstd::span<const uint8>{codec->extradata, codec->extradata_size}).c_str()
+    codec->extradata_size,
+    ByteArrayToHexString(nonstd::span<const uint8>{
+        codec->extradata,
+        static_cast<nonstd::span_lite::span<const unsigned char>::size_type>(codec->extradata_size)
+        }).c_str()
     );
 }
 

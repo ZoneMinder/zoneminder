@@ -533,10 +533,14 @@ void Event::AddFrame(
       }
     }  // end if save_jpegs
 
+    Debug(1, "frames %d, score %d max_score %d", frames, score, max_score);
     // If this is the first frame, we should add a thumbnail to the event directory
     if ((frames == 1) || (score > (int)max_score)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
+      Debug(1, "Writing snapshot");
       WriteFrameImage(image, timestamp, snapshot_file.c_str());
+    } else {
+      Debug(1, "Not Writing snapshot");
     }
 
     // We are writing an Alarm frame
@@ -545,7 +549,10 @@ void Event::AddFrame(
       if (!alarm_frame_written) {
         write_to_db = true; // OD processing will need it, so the db needs to know about it
         alarm_frame_written = true;
+        Debug(1, "Writing alarm image");
         WriteFrameImage(image, timestamp, alarm_file.c_str());
+      } else {
+        Debug(1, "Not Writing alarm image");
       }
 
       if (alarm_image and (save_jpegs & 2)) {

@@ -174,6 +174,8 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   //
   // So start at the beginning, counting video packets until the next keyframe.  
   // Then if deleting those packets doesn't break 1 and 2, then go ahead and delete them.
+  if (deleting) return;
+
   if (keep_keyframes and ! (
         add_packet->packet.stream_index == video_stream_id
         and
@@ -327,10 +329,19 @@ void PacketQueue::clear() {
     // Someone might have this packet, but not for very long and since we have locked the queue they won't be able to get another one
     ZMLockedPacket *lp = new ZMLockedPacket(packet);
     lp->lock();
+      Debug(1,
+            "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
+            packet->packet.stream_index,
+            packet->image_index,
+            packet->keyframe,
+            packet_counts[video_stream_id],
+            pre_event_video_packet_count,
+            pktQueue.size());
     pktQueue.pop_front();
     delete lp;
     //delete packet;
   }
+  Debug(1, "Packetqueue is clear, deleting iterators");
 
   for (
       std::list<packetqueue_iterator *>::iterator iterators_it = iterators.begin();
@@ -345,6 +356,7 @@ void PacketQueue::clear() {
   packet_counts = nullptr;
   max_stream_id = -1;
 
+  Debug(1, "Packetqueue is clear, notifying");
   condition.notify_all();
 }
 

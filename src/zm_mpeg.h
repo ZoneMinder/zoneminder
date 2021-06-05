@@ -23,8 +23,6 @@
 #include "zm_ffmpeg.h"
 #include <pthread.h>
 
-#if HAVE_LIBAVCODEC
-
 class VideoStream {
 protected:
   struct MimeData {
@@ -82,7 +80,5 @@ public:
   bool OpenStream();
   double EncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 };
-
-#endif // HAVE_LIBAVCODEC
 
 #endif // ZM_MPEG_H

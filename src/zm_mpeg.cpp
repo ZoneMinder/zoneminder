@@ -24,7 +24,6 @@
 #include <cstring>
 #include <unistd.h>
 
-#if HAVE_LIBAVCODEC
 extern "C" {
 #include <libavutil/mathematics.h>
 #include <libavcodec/avcodec.h>
@@ -766,5 +765,3 @@ void *VideoStream::StreamingThreadCallback(void *ctx){
 	
 	return nullptr;
 }
-
-#endif // HAVE_LIBAVCODEC

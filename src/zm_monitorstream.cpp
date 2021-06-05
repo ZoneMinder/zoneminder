@@ -385,7 +385,6 @@ bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
     monitor->TimestampImage(send_image, timestamp);
 
   fputs("--" BOUNDARY "\r\n", stdout);
-#if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG ) {
     if ( !vid_stream ) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
@@ -398,9 +397,7 @@ bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
       base_time = timestamp;
     DELTA_TIMEVAL(delta_time, timestamp, base_time, DT_PREC_3);
     /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.delta);
-  } else
-#endif // HAVE_LIBAVCODEC
-  {
+  } else {
     static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
 
     int img_buffer_size = 0;

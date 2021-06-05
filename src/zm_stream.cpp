@@ -28,12 +28,10 @@
 #include <unistd.h>
 
 StreamBase::~StreamBase() {
-#if HAVE_LIBAVCODEC
-  if ( vid_stream ) {
+  if (vid_stream) {
     delete vid_stream;
     vid_stream = nullptr;
   }
-#endif
   closeComms();
 }
 
@@ -263,7 +261,6 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
   if ( scale != 100 ) {
     image.Scale(scale);
   }
-#if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG ) {
     if ( !vid_stream ) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height());
@@ -271,9 +268,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
       vid_stream->OpenStream();
     }
     /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
-  } else
-#endif // HAVE_LIBAVCODEC
-  {
+  } else {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
     int n_bytes = 0;
 

@@ -29,8 +29,6 @@
 #include <string>
 #include <sys/time.h>
 
-#if HAVE_LIBAVCODEC
-
 struct RtpDataHeader;
 
 class RtpSource
@@ -192,7 +190,5 @@ public:
     return( ((mLastSrTimeNtpSecs&0xffff)<<16)|(mLastSrTimeNtpFrac>>16) );
   }
 };
-
-#endif // HAVE_LIBAVCODEC
 
 #endif // ZM_RTP_SOURCE_H

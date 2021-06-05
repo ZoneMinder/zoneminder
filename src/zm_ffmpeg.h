@@ -110,7 +110,6 @@ extern "C" {
 #endif
 
 // AVCODEC
-#if HAVE_LIBAVCODEC_AVCODEC_H
 #include <libavcodec/avcodec.h>
 
 /*
@@ -128,7 +127,6 @@ extern "C" {
 #else
     #define _AVCODECID CodecID
 #endif
-#endif /* HAVE_LIBAVCODEC_AVCODEC_H */
 
 // AVFORMAT
 #include <libavformat/avformat.h>

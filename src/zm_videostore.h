@@ -18,8 +18,6 @@ extern "C"  {
 #endif
 }
 
-#if HAVE_LIBAVCODEC
-
 class Monitor;
 class ZMPacket;
 class PacketQueue;
@@ -119,6 +117,5 @@ class VideoStore {
     void flush_codecs();
 };
 
-#endif //havelibav
-#endif //zm_videostore_h
+#endif // ZM_VIDEOSTORE_H
 

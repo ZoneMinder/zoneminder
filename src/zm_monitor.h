@@ -607,9 +607,7 @@ public:
   //void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );
   //void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );
   //void StreamImagesZip( int scale=100, int maxfps=10, time_t ttl=0 );
-#if HAVE_LIBAVCODEC
   //void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
-#endif // HAVE_LIBAVCODEC
   double get_capture_fps( ) const {
     return shared_data ? shared_data->capture_fps : 0.0;
   }

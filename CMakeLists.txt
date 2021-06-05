@@ -440,22 +440,12 @@ endif()
 
 find_package(FFMPEG REQUIRED
   COMPONENTS
+    avcodec
     avformat
     avutil)
 
 set(CMAKE_REQUIRED_INCLUDES ${FFMPEG_avutil_INCLUDE_DIRS})
 check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
-
-find_package(FFMPEG COMPONENTS avcodec)
-if(FFMPEG_avcodec_FOUND)
-  set(HAVE_LIBAVCODEC 1)
-  set(HAVE_LIBAVCODEC_AVCODEC_H 1)
-  list(APPEND ZM_BIN_LIBS "${FFMPEG_avcodec_LIBRARIES}")
-  set(optlibsfound "${optlibsfound} AVCodec")
-else()
-  message(WARNING "\nWhile it should be possible to build ZM without AVCODEC the result will pretty useless.")
-  set(optlibsnotfound "${optlibsnotfound} AVCodec")
-endif()
 
 find_package(FFMPEG COMPONENTS avdevice)
 if(FFMPEG_avdevice_FOUND)

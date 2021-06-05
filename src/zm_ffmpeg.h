@@ -148,9 +148,7 @@ extern "C" {
     ( (LIBSWSCALE_VERSION_MICRO <  100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBSWSCALE_VERSION_MICRO >= 100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
-#ifdef __cplusplus
 }
-#endif
 
 #if !LIBAVFORMAT_VERSION_CHECK(52, 107, 0, 107, 0)
  #if defined(AVIO_WRONLY)
@@ -197,8 +195,6 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
  * C++ friendly version of av_err2str taken from http://libav-users.943685.n4.nabble.com/Libav-user-g-4-7-2-fails-to-compile-av-err2str-td4656417.html.
  * Newer g++ versions fail with "error: taking address of temporary array" when using native libav version.
  */
-#ifdef  __cplusplus
-
     inline static const std::string av_make_error_string(int errnum) {
         static char errbuf[AV_ERROR_MAX_STRING_SIZE];
 #if LIBAVUTIL_VERSION_CHECK(50, 13, 0, 13, 0)
@@ -219,8 +215,6 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
                             const char *key_val_sep, const char *pairs_sep,
                             int flags);
   #endif
-
-#endif // __cplusplus
 
 #ifndef av_rescale_delta
 /**

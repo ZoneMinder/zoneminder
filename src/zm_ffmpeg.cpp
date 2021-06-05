@@ -24,7 +24,7 @@
 #include "zm_utils.h"
 
 extern "C" {
-#include "libavutil/pixdesc.h"
+#include <libavutil/pixdesc.h>
 }
 
 void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {

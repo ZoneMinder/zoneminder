@@ -26,12 +26,12 @@
 #include "zm_utils.h"
 
 extern "C" {
-#include "libavutil/time.h"
+#include <libavutil/time.h>
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-  #include "libavutil/hwcontext.h"
+  #include <libavutil/hwcontext.h>
 #endif
 
-#include "libavutil/pixdesc.h"
+#include <libavutil/pixdesc.h>
 }
 
 #include <string>

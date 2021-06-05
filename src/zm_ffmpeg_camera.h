@@ -62,9 +62,7 @@ class FfmpegCamera : public Camera {
     int Close() override;
     bool mCanCapture;
 
-#if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;
-#endif
 
     int                 error_count;
 

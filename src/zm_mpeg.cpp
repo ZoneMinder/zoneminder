@@ -24,7 +24,6 @@
 #include <cstring>
 #include <unistd.h>
 
-#if HAVE_LIBAVCODEC
 extern "C" {
 #include <libavutil/mathematics.h>
 #include <libavcodec/avcodec.h>
@@ -595,20 +594,14 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _a
 double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp ) {
 
 	if ( codec_context->pix_fmt != pf ) {
-#ifdef HAVE_LIBSWSCALE
 	static struct SwsContext *img_convert_ctx = nullptr;
-#endif // HAVE_LIBSWSCALE
 		memcpy( tmp_opicture->data[0], buffer, buffer_size );
-#ifdef HAVE_LIBSWSCALE
 		if ( !img_convert_ctx ) {
 			img_convert_ctx = sws_getCachedContext( nullptr, codec_context->width, codec_context->height, pf, codec_context->width, codec_context->height, codec_context->pix_fmt, SWS_BICUBIC, nullptr, nullptr, nullptr );
 			if ( !img_convert_ctx )
 				Panic( "Unable to initialise image scaling context" );
 		}
 		sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, codec_context->height, opicture->data, opicture->linesize );
-#else // HAVE_LIBSWSCALE
-		Fatal( "swscale is required for MPEG mode" );
-#endif // HAVE_LIBSWSCALE
 	} else {
 		memcpy( opicture->data[0], buffer, buffer_size );
 	}
@@ -766,5 +759,3 @@ void *VideoStream::StreamingThreadCallback(void *ctx){
 	
 	return nullptr;
 }
-
-#endif // HAVE_LIBAVCODEC

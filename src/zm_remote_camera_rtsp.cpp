@@ -23,8 +23,6 @@
 #include "zm_monitor.h"
 #include "zm_packet.h"
 
-#if HAVE_LIBAVFORMAT
-
 RemoteCameraRtsp::RemoteCameraRtsp(
     const Monitor *monitor,
     const std::string &p_method,
@@ -320,4 +318,3 @@ int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 int RemoteCameraRtsp::PostCapture() {
   return 1;
 }
-#endif // HAVE_LIBAVFORMAT

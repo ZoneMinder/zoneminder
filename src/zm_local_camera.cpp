@@ -45,7 +45,6 @@ static int vidioctl(int fd, int request, void *arg) {
   return result;
 }
 
-#if HAVE_LIBSWSCALE
 static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette) {
   _AVPIXELFORMAT pixFormat = AV_PIX_FMT_NONE;
      
@@ -176,7 +175,6 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette)
 
   return pixFormat;
 } // end getFfPixFormatFromV4lPalette
-#endif // HAVE_LIBSWSCALE
 
 static char palette_desc[32];
 /* Automatic format selection preferred formats */
@@ -222,9 +220,7 @@ int LocalCamera::vid_fd = -1;
 int LocalCamera::v4l_version = 0;
 LocalCamera::V4L2Data LocalCamera::v4l2_data;
 
-#if HAVE_LIBSWSCALE
 AVFrame **LocalCamera::capturePictures = nullptr;
-#endif // HAVE_LIBSWSCALE
 
 LocalCamera *LocalCamera::last_camera = nullptr;
 
@@ -326,11 +322,9 @@ LocalCamera::LocalCamera(
         Warning("Different capture sizes defined for monitors sharing same device, results may be unpredictable or completely wrong");
     }
 
-#if HAVE_LIBSWSCALE
     /* Get ffmpeg pixel format based on capture palette and endianness */
     capturePixFormat = getFfPixFormatFromV4lPalette( v4l_version, palette );
     imagePixFormat = AV_PIX_FMT_NONE;
-#endif // HAVE_LIBSWSCALE   
   }
 
   /* V4L2 format matching */
@@ -360,16 +354,11 @@ LocalCamera::LocalCamera(
       /* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
     } else {
       if ( capture ) {
-#if HAVE_LIBSWSCALE
         Info(
             "No direct match for the selected palette (%d) and target colorspace (%02u). Format conversion is required, performance penalty expected",
             capturePixFormat,
             colours);
-#else
-        Info("No direct match for the selected palette and target colorspace. Format conversion is required, performance penalty expected");
-#endif
       }
-#if HAVE_LIBSWSCALE
       /* Try using swscale for the conversion */
       conversion_type = 1; 
       Debug(2, "Using swscale for image conversion");
@@ -397,10 +386,6 @@ LocalCamera::LocalCamera(
         }
 #endif
       }
-#else
-      /* Don't have swscale, see what we can do */
-      conversion_type = 2;
-#endif
       /* Our YUYV->Grayscale conversion is a lot faster than swscale's */
       if ( colours == ZM_COLOUR_GRAY8 && palette == V4L2_PIX_FMT_YUYV ) {
         conversion_type = 2;
@@ -458,7 +443,6 @@ LocalCamera::LocalCamera(
   last_camera = this;
   Debug(3, "Selected subpixelorder: %u", subpixelorder);
 
-#if HAVE_LIBSWSCALE
   /* Initialize swscale stuff */
   if ( capture and (conversion_type == 1) ) {
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
@@ -490,7 +474,6 @@ LocalCamera::LocalCamera(
     tmpPicture = nullptr;
     imgConversionContext = nullptr;
   } // end if capture and conversion_tye == swscale
-#endif
   if ( capture and device_prime )
     Initialise();
 } // end LocalCamera::LocalCamera
@@ -499,7 +482,6 @@ LocalCamera::~LocalCamera() {
   if ( device_prime && capture )
     Terminate();
 
-#if HAVE_LIBSWSCALE
   /* Clean up swscale stuff */
   if ( capture && (conversion_type == 1) ) {
     sws_freeContext(imgConversionContext);
@@ -507,8 +489,6 @@ LocalCamera::~LocalCamera() {
 
     av_frame_free(&tmpPicture);
   }
-#endif
-    
 } // end LocalCamera::~LocalCamera
 
 int LocalCamera::Close() {
@@ -696,9 +676,8 @@ void LocalCamera::Initialise() {
         channel_count, v4l_multi_buffer, v4l2_data.reqbufs.count);
 
     v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count];
-#if HAVE_LIBSWSCALE
     capturePictures = new AVFrame *[v4l2_data.reqbufs.count];
-#endif // HAVE_LIBSWSCALE
+
     for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
       struct v4l2_buffer vid_buf;
 
@@ -720,7 +699,6 @@ void LocalCamera::Initialise() {
         Fatal("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
             i, vid_buf.length, strerror(errno), errno);
 
-#if HAVE_LIBSWSCALE
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
       capturePictures[i] = av_frame_alloc();
 #else
@@ -746,7 +724,6 @@ void LocalCamera::Initialise() {
           v4l2_data.fmt.fmt.pix.height
           );
 #endif
-#endif // HAVE_LIBSWSCALE
     } // end foreach request buf
 
     Debug(3, "Configuring video source");
@@ -792,13 +769,11 @@ void LocalCamera::Terminate() {
 
     Debug(3, "Unmapping video buffers");
     for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
-#if HAVE_LIBSWSCALE
       /* Free capture pictures */
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
       av_frame_free(&capturePictures[i]);
 #else
       av_freep(&capturePictures[i]);
-#endif
 #endif
       if ( munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
         Error("Failed to munmap buffer %d: %s", i, strerror(errno));
@@ -1484,7 +1459,6 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       Error("Failed requesting writeable buffer for the captured image.");
       return -1;
     }
-#if HAVE_LIBSWSCALE
     if (conversion_type == 1) {
       Debug(9, "Calling sws_scale to perform the conversion");
       /* Use swscale to convert the image directly into the shared memory */
@@ -1505,9 +1479,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
           tmpPicture->data,
           tmpPicture->linesize
           );
-    } else
-#endif  
-    if ( conversion_type == 2 ) {
+    } else if (conversion_type == 2) {
       Debug(9, "Calling the conversion function");
       /* Call the image conversion function and convert directly into the shared memory */
       (*conversion_fptr)(buffer, directbuffer, pixels);
@@ -1517,7 +1489,6 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       /* JPEG decoding */
       zm_packet->image->DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
     }
-
   } else {
     Debug(3, "No format conversion performed. Assigning the image");
 

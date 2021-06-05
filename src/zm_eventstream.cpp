@@ -699,7 +699,6 @@ bool EventStream::sendFrame(int delta_us) {
     return false;
   }
 
-#if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG ) {
     Image image(filepath);
 
@@ -712,9 +711,7 @@ bool EventStream::sendFrame(int delta_us) {
       vid_stream->OpenStream();
     }
     /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_us*1000);
-  } else
-#endif // HAVE_LIBAVCODEC
-  {
+  } else {
     bool send_raw = (type == STREAM_JPEG) && ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE)) && filepath[0];
 
     fprintf(stdout, "--" BOUNDARY "\r\n");
@@ -1026,10 +1023,9 @@ void EventStream::runStream() {
       }  // end if forward or reverse
     }  // end if checkEventLoaded
   }  // end while ! zm_terminate
-#if HAVE_LIBAVCODEC
-  if ( type == STREAM_MPEG )
+  if (type == STREAM_MPEG) {
     delete vid_stream;
-#endif // HAVE_LIBAVCODEC
+  }
 
   closeComms();
 } // end void EventStream::runStream()

@@ -8,7 +8,7 @@ Build-Depends: debhelper (>= 9), po-debconf (>= 1.0), autoconf, automake, libtoo
 , libdate-manip-perl, libwww-perl
 , libjpeg8-dev | libjpeg9-dev | libjpeg62-turbo-dev
 , libpcre3-dev
-, libavcodec-ffmpeg-dev, libavformat-ffmpeg-dev, libswscale-ffmpeg-dev, libavutil-ffmpeg-dev, libavdevice-ffmpeg-dev
+, libavcodec-ffmpeg-dev, libavformat-ffmpeg-dev, libswscale-ffmpeg-dev, libavutil-ffmpeg-dev
 , libv4l-dev (>= 0.8.3)
 , libbz2-dev
 , libsys-mmap-perl

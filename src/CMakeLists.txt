@@ -77,6 +77,11 @@ target_include_directories(zm
 
 target_link_libraries(zm
   PUBLIC
+    FFMPEG::avcodec
+    FFMPEG::avformat
+    FFMPEG::avutil
+    FFMPEG::swresample
+    FFMPEG::swscale
     libbcrypt::bcrypt
     RtspServer::RtspServer
     martinmoene::span-lite

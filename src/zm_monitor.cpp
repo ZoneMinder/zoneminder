@@ -21,11 +21,13 @@
 
 #include "zm_group.h"
 #include "zm_eventstream.h"
+#include "zm_ffmpeg_camera.h"
 #include "zm_fifo.h"
 #include "zm_file_camera.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #include "zm_remote_camera_nvsocket.h"
+#include "zm_remote_camera_rtsp.h"
 #include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_utils.h"
@@ -34,14 +36,6 @@
 #if ZM_HAS_V4L
 #include "zm_local_camera.h"
 #endif // ZM_HAS_V4L
-
-#if HAVE_LIBAVFORMAT
-#include "zm_remote_camera_rtsp.h"
-#endif // HAVE_LIBAVFORMAT
-
-#if HAVE_LIBAVFORMAT
-#include "zm_ffmpeg_camera.h"
-#endif // HAVE_LIBAVFORMAT
 
 #if HAVE_LIBVLC
 #include "zm_libvlc_camera.h"
@@ -733,7 +727,6 @@ void Monitor::LoadCamera() {
                                                    record_audio
         );
       }
-#if HAVE_LIBAVFORMAT
       else if (protocol == "rtsp") {
         camera = ZM::make_unique<RemoteCameraRtsp>(this,
                                                    method,
@@ -752,7 +745,6 @@ void Monitor::LoadCamera() {
                                                    record_audio
         );
       }
-#endif // HAVE_LIBAVFORMAT
       else {
         Error("Unexpected remote camera protocol '%s'", protocol.c_str());
       }
@@ -773,7 +765,6 @@ void Monitor::LoadCamera() {
       );
       break;
     }
-#if HAVE_LIBAVFORMAT
     case FFMPEG: {
       camera = ZM::make_unique<FfmpegCamera>(this,
                                              path,
@@ -794,7 +785,6 @@ void Monitor::LoadCamera() {
       );
       break;
     }
-#endif // HAVE_LIBAVFORMAT
     case NVSOCKET: {
       camera = ZM::make_unique<RemoteCameraNVSocket>(this,
                                                      host.c_str(),
@@ -2468,7 +2458,6 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFileMonitors(const char *file
   return LoadMonitors(where, purpose);
 }
 
-#if HAVE_LIBAVFORMAT
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *file, Purpose purpose) {
   std::string where = "`Function` != 'None' AND `Type` = 'Ffmpeg'";
   if (file[0])
@@ -2477,7 +2466,6 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   return LoadMonitors(where, purpose);
 }
-#endif // HAVE_LIBAVFORMAT
 
 /* Returns 0 on success, even if no new images are available (transient error)
  * Returns -1 on failure.
@@ -2950,12 +2938,10 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
     FileCamera* cam = static_cast<FileCamera*>(camera.get());
     sprintf( output+strlen(output), "Path : %s\n", cam->Path() );
   }
-#if HAVE_LIBAVFORMAT
   else if ( camera->IsFfmpeg() ) {
     FfmpegCamera* cam = static_cast<FfmpegCamera*>(camera.get());
     sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
   }
-#endif // HAVE_LIBAVFORMAT
   sprintf( output+strlen(output), "Width : %u\n", camera->Width() );
   sprintf( output+strlen(output), "Height : %u\n", camera->Height() );
 #if ZM_HAS_V4L

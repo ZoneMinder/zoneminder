@@ -24,7 +24,7 @@
 #include "zm_monitor.h"
 
 extern "C" {
-#include "libavutil/time.h"
+#include <libavutil/time.h>
 }
 
 /*
@@ -87,10 +87,8 @@ VideoStore::VideoStore(
   packets_written(0),
   frame_count(0),
   hw_device_ctx(nullptr),
-#if defined(HAVE_LIBSWRESAMPLE)
   resample_ctx(nullptr),
   fifo(nullptr),
-#endif
   converted_in_samples(nullptr),
   filename(filename_in),
   format(format_in),
@@ -722,7 +720,6 @@ VideoStore::~VideoStore() {
 #endif
     }
 
-#if defined(HAVE_LIBSWRESAMPLE)
     if (resample_ctx) {
       if (fifo) {
         av_audio_fifo_free(fifo);
@@ -742,7 +739,6 @@ VideoStore::~VideoStore() {
       av_free(converted_in_samples);
       converted_in_samples = nullptr;
     }
-#endif
   } // end if audio_out_stream
 
   Debug(4, "free context");
@@ -753,10 +749,6 @@ VideoStore::~VideoStore() {
 } // VideoStore::~VideoStore()
 
 bool VideoStore::setup_resampler() {
-#if !defined(HAVE_LIBSWRESAMPLE)
-  Error("Not built with resample library. Cannot do audio conversion to AAC");
-  return false;
-#else
   int ret;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -925,7 +917,6 @@ bool VideoStore::setup_resampler() {
     Error("Could not allocate FIFO");
     return false;
   }
-#if defined(HAVE_LIBSWRESAMPLE)
   resample_ctx = swr_alloc_set_opts(nullptr,
       audio_out_ctx->channel_layout,
       audio_out_ctx->sample_fmt,
@@ -948,7 +939,6 @@ bool VideoStore::setup_resampler() {
     return false;
   }
   Debug(1,"Success setting up SWRESAMPLE");
-#endif
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
@@ -984,7 +974,6 @@ bool VideoStore::setup_resampler() {
   }
 
   return true;
-#endif
 }  // end bool VideoStore::setup_resampler()
 
 int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &ipkt) {

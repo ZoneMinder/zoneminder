@@ -26,8 +26,6 @@
 
 #include <algorithm>
 
-#if HAVE_LIBAVFORMAT
-
 int RtspThread::smMinDataPort = 0;
 int RtspThread::smMaxDataPort = 0;
 RtspThread::PortSet RtspThread::smAssignedPorts;
@@ -790,5 +788,3 @@ void RtspThread::Run() {
 
   return;
 }
-
-#endif // HAVE_LIBAVFORMAT

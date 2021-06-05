@@ -25,8 +25,6 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#if HAVE_LIBAVCODEC
-
 RtpSource::RtpSource(
     int id,
     const std::string &localHost,
@@ -371,5 +369,3 @@ bool RtpSource::getFrame(Buffer &buffer) {
   Debug(4, "Copied %d bytes", buffer.size());
   return true;
 }
-
-#endif // HAVE_LIBAVCODEC

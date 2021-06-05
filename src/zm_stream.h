@@ -129,9 +129,7 @@ protected:
   double last_frame_sent;
   struct timeval last_frame_timestamp;
 
-#if HAVE_LIBAVCODEC   
   VideoStream *vid_stream;
-#endif // HAVE_LIBAVCODEC   
 
   CmdMsg msg;
 
@@ -178,9 +176,7 @@ public:
     effective_fps = 0.0;
     frame_mod = 1;
 
-#if HAVE_LIBAVCODEC   
     vid_stream = 0;
-#endif // HAVE_LIBAVCODEC   
     last_frame_sent = 0.0;
     last_frame_timestamp = {};
     msg = { 0, { 0 } };

@@ -23,8 +23,6 @@
 #include "zm_rtp.h"
 #include "zm_rtsp.h"
 
-#if HAVE_LIBAVFORMAT
-
 RtpCtrlThread::RtpCtrlThread(RtspThread &rtspThread, RtpSource &rtpSource)
     : mRtspThread(rtspThread), mRtpSource(rtpSource), mTerminate(false)
 {
@@ -334,5 +332,3 @@ void RtpCtrlThread::Run() {
   rtpCtrlServer.close();
   mRtspThread.Stop();
 }
-
-#endif // HAVE_LIBAVFORMAT

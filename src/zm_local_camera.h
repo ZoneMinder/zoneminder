@@ -73,13 +73,11 @@ protected:
 
   static V4L2Data         v4l2_data;
 
-#if HAVE_LIBSWSCALE
   static AVFrame      **capturePictures;
   _AVPIXELFORMAT         imagePixFormat;
   _AVPIXELFORMAT         capturePixFormat;
   struct SwsContext   *imgConversionContext;
   AVFrame             *tmpPicture;    
-#endif // HAVE_LIBSWSCALE
 
   static LocalCamera      *last_camera;
 

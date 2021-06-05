@@ -48,10 +48,8 @@ protected:
 
   int frameCount;
 
-#if HAVE_LIBAVFORMAT
   AVFormatContext     *mFormatContext;
   _AVPIXELFORMAT         imagePixFormat;
-#endif // HAVE_LIBAVFORMAT
 
 public:
   RemoteCameraRtsp(

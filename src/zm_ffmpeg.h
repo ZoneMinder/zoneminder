@@ -24,22 +24,18 @@
 #include "zm_define.h"
 
 extern "C" {
-
-#ifdef HAVE_LIBSWRESAMPLE
-#include "libswresample/swresample.h"
-#endif
+#include <libswresample/swresample.h>
 
 // AVUTIL
-#if HAVE_LIBAVUTIL_AVUTIL_H
-#include "libavutil/avassert.h"
+#include <libavutil/avassert.h>
 #include <libavutil/avutil.h>
 #include <libavutil/base64.h>
 #include <libavutil/mathematics.h>
 #include <libavutil/avstring.h>
-#include "libavutil/audio_fifo.h"
-#include "libavutil/imgutils.h"
+#include <libavutil/audio_fifo.h>
+#include <libavutil/imgutils.h>
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-  #include "libavutil/hwcontext.h"
+  #include <libavutil/hwcontext.h>
 #endif
 
 /* LIBAVUTIL_VERSION_CHECK checks for the right version of libav and FFmpeg
@@ -109,10 +105,8 @@ extern "C" {
     //#define AV_PIX_FMT_VDPAU_MPEG1 PIX_FMT_VDPAU_MPEG1
     //#define AV_PIX_FMT_VDPAU_MPEG2 PIX_FMT_VDPAU_MPEG2
 #endif
-#endif /* HAVE_LIBAVUTIL_AVUTIL_H */
 
 // AVCODEC
-#if HAVE_LIBAVCODEC_AVCODEC_H
 #include <libavcodec/avcodec.h>
 
 /*
@@ -130,10 +124,8 @@ extern "C" {
 #else
     #define _AVCODECID CodecID
 #endif
-#endif /* HAVE_LIBAVCODEC_AVCODEC_H */
 
 // AVFORMAT
-#if HAVE_LIBAVFORMAT_AVFORMAT_H
 #include <libavformat/avformat.h>
 
 /* LIBAVFORMAT_VERSION_CHECK checks for the right version of libav and FFmpeg
@@ -145,24 +137,7 @@ extern "C" {
     ( (LIBAVFORMAT_VERSION_MICRO <  100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBAVFORMAT_VERSION_MICRO >= 100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
-#endif /* HAVE_LIBAVFORMAT_AVFORMAT_H */
-
-// AVDEVICE
-#if HAVE_LIBAVDEVICE_AVDEVICE_H
-#include <libavdevice/avdevice.h>
-
-/* LIBAVDEVICE_VERSION_CHECK checks for the right version of libav and FFmpeg
- * a is the major version
- * b and c the minor and micro versions of libav
- * d and e the minor and micro versions of FFmpeg */
-#define LIBAVDEVICE_VERSION_CHECK(a, b, c, d, e) \
-    ( (LIBAVDEVICE_VERSION_MICRO <  100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
-      (LIBAVDEVICE_VERSION_MICRO >= 100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
-
-#endif /* HAVE_LIBAVDEVICE_AVDEVICE_H */
-
 // SWSCALE
-#if HAVE_LIBSWSCALE_SWSCALE_H
 #include <libswscale/swscale.h>
 
 /* LIBSWSCALE_VERSION_CHECK checks for the right version of libav and FFmpeg
@@ -173,13 +148,7 @@ extern "C" {
     ( (LIBSWSCALE_VERSION_MICRO <  100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBSWSCALE_VERSION_MICRO >= 100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
-#endif /* HAVE_LIBSWSCALE_SWSCALE_H */
-
-#ifdef __cplusplus
 }
-#endif
-
-#if ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
 
 #if !LIBAVFORMAT_VERSION_CHECK(52, 107, 0, 107, 0)
  #if defined(AVIO_WRONLY)
@@ -193,9 +162,7 @@ extern "C" {
 void FFMPEGInit();
 void FFMPEGDeInit();
 
-#if HAVE_LIBAVUTIL
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
-#endif // HAVE_LIBAVUTIL
 
 #if !LIBAVCODEC_VERSION_CHECK(54, 25, 0, 51, 100)
 #define AV_CODEC_ID_NONE CODEC_ID_NONE
@@ -228,8 +195,6 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
  * C++ friendly version of av_err2str taken from http://libav-users.943685.n4.nabble.com/Libav-user-g-4-7-2-fails-to-compile-av-err2str-td4656417.html.
  * Newer g++ versions fail with "error: taking address of temporary array" when using native libav version.
  */
-#ifdef  __cplusplus
-
     inline static const std::string av_make_error_string(int errnum) {
         static char errbuf[AV_ERROR_MAX_STRING_SIZE];
 #if LIBAVUTIL_VERSION_CHECK(50, 13, 0, 13, 0)
@@ -250,11 +215,6 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
                             const char *key_val_sep, const char *pairs_sep,
                             int flags);
   #endif
-
-#endif // __cplusplus
-
-
-#endif // ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
 
 #ifndef av_rescale_delta
 /**
@@ -428,10 +388,8 @@ int zm_send_frame_receive_packet(AVCodecContext *context, AVFrame *frame, AVPack
 
 void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRational src_tb, const AVRational dst_tb);
 
-#if defined(HAVE_LIBSWRESAMPLE)
 int zm_resample_audio(SwrContext *resample_ctx, AVFrame *in_frame, AVFrame *out_frame);
 int zm_resample_get_delay(SwrContext *resample_ctx, int time_base);
-#endif
 
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame);
 int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame);

@@ -1,17 +1,11 @@
 #ifndef ZM_FFMPEG_INPUT_H
 #define ZM_FFMPEG_INPUT_H
 
-#ifdef __cplusplus
 extern "C" {
-#endif
-
-#include "libavformat/avformat.h"
-#include "libavformat/avio.h"
-#include "libavcodec/avcodec.h"
-
-#ifdef __cplusplus
+#include <libavformat/avformat.h>
+#include <libavformat/avio.h>
+#include <libavcodec/avcodec.h>
 }
-#endif
 
 class FFmpeg_Output {
 

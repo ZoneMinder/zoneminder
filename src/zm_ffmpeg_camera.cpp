@@ -25,15 +25,13 @@
 #include "zm_signal.h"
 #include "zm_utils.h"
 
-#if HAVE_LIBAVFORMAT
-
 extern "C" {
-#include "libavutil/time.h"
+#include <libavutil/time.h>
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-  #include "libavutil/hwcontext.h"
+  #include <libavutil/hwcontext.h>
 #endif
 
-#include "libavutil/pixdesc.h"
+#include <libavutil/pixdesc.h>
 }
 
 #include <string>
@@ -146,9 +144,7 @@ FfmpegCamera::FfmpegCamera(
 #endif
 #endif
 
-#if HAVE_LIBSWSCALE
   mConvertContext = nullptr;
-#endif
   /* Has to be located inside the constructor so other components such as zma
    * will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {
@@ -630,5 +626,3 @@ int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   }
   return 0;
 }
-
-#endif  // HAVE_LIBAVFORMAT

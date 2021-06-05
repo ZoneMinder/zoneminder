@@ -22,7 +22,7 @@
 #include "zm_image.h"
 #include "zm_logger.h"
 
-#if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
+#if HAVE_LIBSWSCALE
 SWScale::SWScale() : gotdefaults(false), swscale_ctx(nullptr), input_avframe(nullptr), output_avframe(nullptr) {
   Debug(4, "SWScale object created");
 }
@@ -291,4 +291,4 @@ size_t SWScale::GetBufferSize(enum _AVPIXELFORMAT pf, unsigned int width, unsign
   return outsize = avpicture_get_size(pf, width,height);
 #endif
 }
-#endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
+#endif // HAVE_LIBSWSCALE

@@ -30,7 +30,6 @@ extern "C" {
 #endif
 
 // AVUTIL
-#if HAVE_LIBAVUTIL_AVUTIL_H
 #include "libavutil/avassert.h"
 #include <libavutil/avutil.h>
 #include <libavutil/base64.h>
@@ -109,7 +108,6 @@ extern "C" {
     //#define AV_PIX_FMT_VDPAU_MPEG1 PIX_FMT_VDPAU_MPEG1
     //#define AV_PIX_FMT_VDPAU_MPEG2 PIX_FMT_VDPAU_MPEG2
 #endif
-#endif /* HAVE_LIBAVUTIL_AVUTIL_H */
 
 // AVCODEC
 #if HAVE_LIBAVCODEC_AVCODEC_H
@@ -179,8 +177,6 @@ extern "C" {
 }
 #endif
 
-#if ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
-
 #if !LIBAVFORMAT_VERSION_CHECK(52, 107, 0, 107, 0)
  #if defined(AVIO_WRONLY)
    #define AVIO_FLAG_WRITE AVIO_WRONLY
@@ -193,9 +189,7 @@ extern "C" {
 void FFMPEGInit();
 void FFMPEGDeInit();
 
-#if HAVE_LIBAVUTIL
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
-#endif // HAVE_LIBAVUTIL
 
 #if !LIBAVCODEC_VERSION_CHECK(54, 25, 0, 51, 100)
 #define AV_CODEC_ID_NONE CODEC_ID_NONE
@@ -252,9 +246,6 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
   #endif
 
 #endif // __cplusplus
-
-
-#endif // ( HAVE_LIBAVUTIL_AVUTIL_H || HAVE_LIBAVCODEC_AVCODEC_H || HAVE_LIBAVFORMAT_AVFORMAT_H || HAVE_LIBAVDEVICE_AVDEVICE_H )
 
 #ifndef av_rescale_delta
 /**

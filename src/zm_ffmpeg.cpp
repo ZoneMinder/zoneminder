@@ -27,8 +27,6 @@ extern "C" {
 #include "libavutil/pixdesc.h"
 }
 
-#if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
-
 void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
   Logger *log = Logger::fetch();
   int log_level = 0;
@@ -100,7 +98,6 @@ void FFMPEGDeInit() {
   bInit = false;
 }
 
-#if HAVE_LIBAVUTIL
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder) {
   enum _AVPIXELFORMAT pf;
 
@@ -190,11 +187,8 @@ int av_dict_parse_string(AVDictionary **pm, const char *str,
   return 0;
 }
 #endif
-#endif // HAVE_LIBAVUTIL
 
-#endif // HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
-#if HAVE_LIBAVUTIL
 #if LIBAVUTIL_VERSION_CHECK(56, 0, 0, 17, 100)
 int64_t av_rescale_delta(AVRational in_tb, int64_t in_ts,  AVRational fs_tb, int duration, int64_t *last, AVRational out_tb){
   int64_t a, b, this_thing;
@@ -218,7 +212,6 @@ simple_round:
 
   return av_rescale_q(this_thing, fs_tb, out_tb);
 }
-#endif
 #endif
 
 static void zm_log_fps(double d, const char *postfix) {

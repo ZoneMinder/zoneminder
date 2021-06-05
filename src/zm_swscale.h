@@ -7,7 +7,7 @@
 class Image;
 
 /* SWScale wrapper class to make our life easier and reduce code reuse */
-#if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
+#if HAVE_LIBSWSCALE
 class SWScale {
   public:
     SWScale();
@@ -32,6 +32,6 @@ class SWScale {
     unsigned int default_width;
     unsigned int default_height;
 };
-#endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
+#endif // HAVE_LIBSWSCALE
 
 #endif

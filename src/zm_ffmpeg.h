@@ -137,20 +137,6 @@ extern "C" {
     ( (LIBAVFORMAT_VERSION_MICRO <  100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBAVFORMAT_VERSION_MICRO >= 100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
-// AVDEVICE
-#if HAVE_LIBAVDEVICE_AVDEVICE_H
-#include <libavdevice/avdevice.h>
-
-/* LIBAVDEVICE_VERSION_CHECK checks for the right version of libav and FFmpeg
- * a is the major version
- * b and c the minor and micro versions of libav
- * d and e the minor and micro versions of FFmpeg */
-#define LIBAVDEVICE_VERSION_CHECK(a, b, c, d, e) \
-    ( (LIBAVDEVICE_VERSION_MICRO <  100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
-      (LIBAVDEVICE_VERSION_MICRO >= 100 && LIBAVDEVICE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
-
-#endif /* HAVE_LIBAVDEVICE_AVDEVICE_H */
-
 // SWSCALE
 #include <libswscale/swscale.h>
 

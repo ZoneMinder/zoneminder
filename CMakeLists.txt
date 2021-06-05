@@ -449,16 +449,6 @@ find_package(FFMPEG REQUIRED
 set(CMAKE_REQUIRED_INCLUDES ${FFMPEG_avutil_INCLUDE_DIRS})
 check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
 
-find_package(FFMPEG COMPONENTS avdevice)
-if(FFMPEG_avdevice_FOUND)
-  set(HAVE_LIBAVDEVICE 1)
-  set(HAVE_LIBAVDEVICE_AVDEVICE_H 1)
-  list(APPEND ZM_BIN_LIBS "${FFMPEG_avdevice_LIBRARIES}")
-  set(optlibsfound "${optlibsfound} AVDevice")
-else()
-  set(optlibsnotfound "${optlibsnotfound} AVDevice")
-endif()
-
 set(PATH_FFMPEG "")
 set(OPT_FFMPEG "no")
 

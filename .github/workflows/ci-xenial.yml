@@ -18,7 +18,11 @@ jobs:
         with:
           submodules: recursive
       - name: Install dependencies
-        run: sudo apt-get -qq install libavdevice-dev libcurl4-gnutls-dev libvlc-dev libvncserver-dev libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl libpolkit-gobject-1-dev
+        run: >
+          sudo apt-get -qq install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev
+          libcurl4-gnutls-dev libvlc-dev libvncserver-dev
+          libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl
+          libpolkit-gobject-1-dev
       - name: Prepare
         run: mkdir build
       - name: Configure

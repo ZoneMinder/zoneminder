@@ -29,10 +29,6 @@
 #define PATH_MAX 1024
 #endif
 
-#ifdef HAVE_LIBAVFORMAT
-#define ZM_HAS_FFMPEG       1
-#endif // HAVE_LIBAVFORMAT
-
 #define ZM_MAX_IMAGE_WIDTH    2048        // The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_HEIGHT    1536        // The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_COLOURS    4        // The largest image we imagine ever handling

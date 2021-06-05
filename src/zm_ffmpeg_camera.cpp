@@ -25,8 +25,6 @@
 #include "zm_signal.h"
 #include "zm_utils.h"
 
-#if HAVE_LIBAVFORMAT
-
 extern "C" {
 #include "libavutil/time.h"
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
@@ -630,5 +628,3 @@ int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   }
   return 0;
 }
-
-#endif  // HAVE_LIBAVFORMAT

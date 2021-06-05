@@ -34,8 +34,6 @@
 #cmakedefine HAVE_LIBGNUTLS 1
 #cmakedefine HAVE_LIBMYSQLCLIENT 1
 #cmakedefine HAVE_MYSQL_H 1
-#cmakedefine HAVE_LIBAVFORMAT 1
-#cmakedefine HAVE_LIBAVFORMAT_AVFORMAT_H 1
 #cmakedefine HAVE_LIBAVCODEC 1
 #cmakedefine HAVE_LIBAVCODEC_AVCODEC_H 1
 #cmakedefine HAVE_LIBAVDEVICE 1

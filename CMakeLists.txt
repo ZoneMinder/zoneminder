@@ -438,15 +438,13 @@ else()
   message(FATAL_ERROR "ZoneMinder requires mysqlclient but it was not found on your system")
 endif()
 
-find_package(FFMPEG COMPONENTS avformat)
-if(FFMPEG_avformat_FOUND)
-  set(HAVE_LIBAVFORMAT 1)
-  set(HAVE_LIBAVFORMAT_AVFORMAT_H 1)
-  list(APPEND ZM_BIN_LIBS "FFMPEG::avformat")
-  set(optlibsfound "${optlibsfound} AVFormat")
-else()
-  set(optlibsnotfound "${optlibsnotfound} AVFormat")
-endif()
+find_package(FFMPEG REQUIRED
+  COMPONENTS
+    avformat
+    avutil)
+
+set(CMAKE_REQUIRED_INCLUDES ${FFMPEG_avutil_INCLUDE_DIRS})
+check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
 
 find_package(FFMPEG COMPONENTS avcodec)
 if(FFMPEG_avcodec_FOUND)
@@ -469,10 +467,6 @@ else()
   set(optlibsnotfound "${optlibsnotfound} AVDevice")
 endif()
 
-find_package(FFMPEG REQUIRED COMPONENTS avutil)
-set(CMAKE_REQUIRED_INCLUDES ${FFMPEG_avutil_INCLUDE_DIRS})
-check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
-
 find_package(FFMPEG COMPONENTS swscale)
 if(FFMPEG_swscale_FOUND)
   set(HAVE_LIBSWSCALE 1)
@@ -487,7 +481,7 @@ find_package(FFMPEG COMPONENTS swresample)
 if(FFMPEG_swresample_FOUND)
   set(HAVE_LIBSWRESAMPLE 1)
   set(HAVE_LIBSWRESAMPLE_SWRESAMPLE_H 1)
-  list(APPEND ZM_BIN_LIBS "${FFMPEG_swresample_LIBRARIES}")
+  list(APPEND ZM_BIN_LIBS "FFMPEG::swresample")
   set(optlibsfound "${optlibsfound} SWResample")
 else()
   set(optlibsnotfound "${optlibsnotfound} SWResample")

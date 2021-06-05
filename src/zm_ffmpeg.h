@@ -131,7 +131,6 @@ extern "C" {
 #endif /* HAVE_LIBAVCODEC_AVCODEC_H */
 
 // AVFORMAT
-#if HAVE_LIBAVFORMAT_AVFORMAT_H
 #include <libavformat/avformat.h>
 
 /* LIBAVFORMAT_VERSION_CHECK checks for the right version of libav and FFmpeg
@@ -142,8 +141,6 @@ extern "C" {
 #define LIBAVFORMAT_VERSION_CHECK(a, b, c, d, e) \
     ( (LIBAVFORMAT_VERSION_MICRO <  100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBAVFORMAT_VERSION_MICRO >= 100 && LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
-
-#endif /* HAVE_LIBAVFORMAT_AVFORMAT_H */
 
 // AVDEVICE
 #if HAVE_LIBAVDEVICE_AVDEVICE_H

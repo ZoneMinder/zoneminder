@@ -77,6 +77,7 @@ target_include_directories(zm
 
 target_link_libraries(zm
   PUBLIC
+    FFMPEG::avformat
     FFMPEG::avutil
     libbcrypt::bcrypt
     RtspServer::RtspServer

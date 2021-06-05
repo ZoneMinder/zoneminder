@@ -23,8 +23,6 @@
 #include "zm_exception.h"
 #include "zm_logger.h"
 
-#if HAVE_LIBAVFORMAT
-
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
 SessionDescriptor::StaticPayloadDesc SessionDescriptor::smStaticPayloads[] = {
   { 0, "PCMU",   AVMEDIA_TYPE_AUDIO,   AV_CODEC_ID_PCM_MULAW,  8000,  1 },
@@ -497,5 +495,3 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 
   return formatContext;
 }
-
-#endif // HAVE_LIBAVFORMAT

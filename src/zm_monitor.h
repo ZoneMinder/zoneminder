@@ -600,9 +600,7 @@ public:
 #endif // ZM_HAS_V4L
   static std::vector<std::shared_ptr<Monitor>> LoadRemoteMonitors(const char *protocol, const char *host, const char*port, const char*path, Purpose purpose);
   static std::vector<std::shared_ptr<Monitor>> LoadFileMonitors(const char *file, Purpose purpose);
-#if HAVE_LIBAVFORMAT
   static std::vector<std::shared_ptr<Monitor>> LoadFfmpegMonitors(const char *file, Purpose purpose);
-#endif // HAVE_LIBAVFORMAT
   static std::shared_ptr<Monitor> Load(unsigned int id, bool load_zones, Purpose purpose);
   void Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose);
   //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );

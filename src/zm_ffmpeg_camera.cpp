@@ -231,11 +231,8 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   AVStream *stream = formatContextPtr->streams[packet.stream_index];
   ZM_DUMP_STREAM_PACKET(stream, packet, "ffmpeg_camera in");
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   zm_packet->codec_type = stream->codecpar->codec_type;
-#else
-  zm_packet->codec_type = stream->codec->codec_type;
-#endif
+
   bytes += packet.size;
   zm_packet->set_packet(&packet);
   zm_packet->stream = stream;
@@ -268,10 +265,6 @@ int FfmpegCamera::OpenFfmpeg() {
 
   error_count = 0;
 
-  // Open the input, not necessarily a file
-#if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
-  if (av_open_input_file(&mFormatContext, mPath.c_str(), nullptr, 0, nullptr) != 0)
-#else
   // Handle options
   AVDictionary *opts = nullptr;
   ret = av_dict_parse_string(&opts, Options().c_str(), "=", ",", 0);
@@ -312,18 +305,14 @@ int FfmpegCamera::OpenFfmpeg() {
 
   ret = avformat_open_input(&mFormatContext, mPath.c_str(), nullptr, &opts);
   if ( ret != 0 )
-#endif
   {
     Error("Unable to open input %s due to: %s", mPath.c_str(),
         av_make_error_string(ret).c_str());
-#if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
-    av_close_input_file(mFormatContext);
-#else
+
     if ( mFormatContext ) {
       avformat_close_input(&mFormatContext);
       mFormatContext = nullptr;
     }
-#endif
     av_dict_free(&opts);
 
     return -1;
@@ -335,11 +324,8 @@ int FfmpegCamera::OpenFfmpeg() {
   av_dict_free(&opts);
 
   Debug(1, "Finding stream info");
-#if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
-  ret = av_find_stream_info(mFormatContext);
-#else
   ret = avformat_find_stream_info(mFormatContext, nullptr);
-#endif
+
   if ( ret < 0 ) {
     Error("Unable to find stream info from %s due to: %s",
         mPath.c_str(), av_make_error_string(ret).c_str());
@@ -380,13 +366,7 @@ int FfmpegCamera::OpenFfmpeg() {
       mVideoStreamId, mAudioStreamId);
 
   AVCodec *mVideoCodec = nullptr;
-  if (mVideoStream->
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      codecpar
-#else
-      codec
-#endif
-      ->codec_id == AV_CODEC_ID_H264) {
+  if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_H264) {
     if ((mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == nullptr) {
       Debug(1, "Failed to find decoder (h264_mmal)");
     } else {
@@ -395,13 +375,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   if (!mVideoCodec) {
-    mVideoCodec = avcodec_find_decoder(mVideoStream->
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-        codecpar
-#else
-        codec
-#endif
-        ->codec_id);
+    mVideoCodec = avcodec_find_decoder(mVideoStream->codecpar->codec_id);
     if (!mVideoCodec) {
       // Try and get the codec from the codec context
       Error("Can't find codec for video stream from %s", mPath.c_str());
@@ -409,13 +383,9 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   }
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   mVideoCodecContext = avcodec_alloc_context3(mVideoCodec);
-  avcodec_parameters_to_context(mVideoCodecContext,
-      mFormatContext->streams[mVideoStreamId]->codecpar);
-#else
-  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
-#endif
+  avcodec_parameters_to_context(mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar);
+
 #ifdef CODEC_FLAG2_FAST
   mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 #endif
@@ -499,11 +469,8 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
   }  // end if hwaccel_name
 
-#if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-  ret = avcodec_open(mVideoCodecContext, mVideoCodec);
-#else
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
-#endif
+
   e = nullptr;
   while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
     Warning("Option %s not recognized by ffmpeg", e->key);
@@ -529,33 +496,15 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if ( mAudioStreamId >= 0 ) {
     AVCodec *mAudioCodec = nullptr;
-    if ( (mAudioCodec = avcodec_find_decoder(
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-            mAudioStream->codecpar->codec_id
-#else
-            mAudioStream->codec->codec_id
-#endif
-            )) == nullptr ) {
+    if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
       Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
     } else {
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
-      avcodec_parameters_to_context(
-          mAudioCodecContext,
-          mAudioStream->codecpar
-          );
-#else
-      mAudioCodecContext = mAudioStream->codec;
-#endif
+      avcodec_parameters_to_context(mAudioCodecContext, mAudioStream->codecpar);
 
       zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
       // Open the codec
-#if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-      if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 )
-#else
-      if ( avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0 )
-#endif
-      {
+      if (avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0) {
         Error("Unable to open codec for audio stream from %s", mPath.c_str());
         return -1;
       }  // end if opened
@@ -581,16 +530,12 @@ int FfmpegCamera::Close() {
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     avcodec_free_context(&mVideoCodecContext);
-#endif
     mVideoCodecContext = nullptr;  // Freed by av_close_input_file
   }
   if ( mAudioCodecContext ) {
     avcodec_close(mAudioCodecContext);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     avcodec_free_context(&mAudioCodecContext);
-#endif
     mAudioCodecContext = nullptr;  // Freed by av_close_input_file
   }
 
@@ -601,11 +546,7 @@ int FfmpegCamera::Close() {
 #endif
 
   if ( mFormatContext ) {
-#if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
-    av_close_input_file(mFormatContext);
-#else
     avformat_close_input(&mFormatContext);
-#endif
     mFormatContext = nullptr;
   }
 

@@ -27,24 +27,14 @@ SWScale::SWScale() : gotdefaults(false), swscale_ctx(nullptr), input_avframe(nul
 }
 
 bool SWScale::init() {
-  /* Allocate AVFrame for the input */
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
   input_avframe = av_frame_alloc();
-#else
-  input_avframe = avcodec_alloc_frame();
-#endif
-  if ( input_avframe == nullptr ) {
+  if (!input_avframe) {
     Error("Failed allocating AVFrame for the input");
     return false;
   }
 
-  /* Allocate AVFrame for the output */
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
   output_avframe = av_frame_alloc();
-#else
-  output_avframe = avcodec_alloc_frame();
-#endif
-  if ( output_avframe == nullptr ) {
+  if (!output_avframe) {
     Error("Failed allocating AVFrame for the output");
     return false;
   }
@@ -146,7 +136,6 @@ int SWScale::Convert(
 
   in_pf = fix_deprecated_pix_fmt(in_pf);
 
-#if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
   /* Warn if the input or output pixelformat is not supported */
   if (!sws_isSupportedInput(in_pf)) {
     Warning("swscale does not support the input format: %c%c%c%c",
@@ -156,7 +145,6 @@ int SWScale::Convert(
     Warning("swscale does not support the output format: %c%c%c%c",
         (out_pf)&0xff,((out_pf>>8)&0xff),((out_pf>>16)&0xff),((out_pf>>24)&0xff));
   }
-#endif
 
   int alignment = width % 32 ? 1 : 32;
   /* Check the buffer sizes */
@@ -197,23 +185,13 @@ int SWScale::Convert(
   output_avframe->height = new_height;
   */
   /* Fill in the buffers */
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   if (av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
                            (uint8_t*) in_buffer, in_pf, width, height, alignment) <= 0) {
-#else
-  if (avpicture_fill((AVPicture*) input_avframe, (uint8_t*) in_buffer,
-                     in_pf, width, height) <= 0) {
-#endif
     Error("Failed filling input frame with input buffer");
     return -7;
   }
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   if (av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
                            out_buffer, out_pf, new_width, new_height, alignment) <= 0) {
-#else
-  if (avpicture_fill((AVPicture*) output_avframe, out_buffer, out_pf, new_width,
-                     new_height) <= 0) {
-#endif
     Error("Failed filling output frame with output buffer");
     return -8;
   }
@@ -284,9 +262,5 @@ int SWScale::ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_si
 }
 
 size_t SWScale::GetBufferSize(enum _AVPIXELFORMAT pf, unsigned int width, unsigned int height) {
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   return av_image_get_buffer_size(pf, width, height, 1);
-#else
-  return outsize = avpicture_get_size(pf, width,height);
-#endif
 }

@@ -139,55 +139,6 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
 
   return pf;
 }
-/* The following is copied directly from newer ffmpeg. */
-#if LIBAVUTIL_VERSION_CHECK(52, 7, 0, 17, 100)
-#else
-static int parse_key_value_pair(AVDictionary **pm, const char **buf,
-                                const char *key_val_sep, const char *pairs_sep,
-                                int flags)
-{
-    char *key = av_get_token(buf, key_val_sep);
-    char *val = nullptr;
-    int ret;
-
-    if (key && *key && strspn(*buf, key_val_sep)) {
-      (*buf)++;
-      val = av_get_token(buf, pairs_sep);
-    }
-
-    if (key && *key && val && *val)
-      ret = av_dict_set(pm, key, val, flags);
-    else
-      ret = AVERROR(EINVAL);
-
-    av_freep(&key);
-    av_freep(&val);
-
-    return ret;
-}
-
-int av_dict_parse_string(AVDictionary **pm, const char *str,
-    const char *key_val_sep, const char *pairs_sep,
-    int flags) {
-  if (!str)
-    return 0;
-
-  /* ignore STRDUP flags */
-  flags &= ~(AV_DICT_DONT_STRDUP_KEY | AV_DICT_DONT_STRDUP_VAL);
-
-  while (*str) {
-    int ret;
-    if ( (ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
-      return ret;
-
-    if (*str)
-      str++;
-  }
-
-  return 0;
-}
-#endif
-
 
 #if LIBAVUTIL_VERSION_CHECK(56, 0, 0, 17, 100)
 int64_t av_rescale_delta(AVRational in_tb, int64_t in_ts,  AVRational fs_tb, int duration, int64_t *last, AVRational out_tb){
@@ -227,7 +178,6 @@ static void zm_log_fps(double d, const char *postfix) {
   }
 }
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar(const AVCodecParameters *par) {
   Debug(1, "Dumping codecpar codec_type %d %s codec_id %d %s codec_tag %" PRIu32
       " width %d height %d bit_rate%" PRIu64 " bpcs %d bprs %d format%d %s"
@@ -260,7 +210,6 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
       static_cast<int>(par->video_delay)
       ); 
 }
-#endif
 
 void zm_dump_codec(const AVCodecContext *codec) {
   Debug(1, "Dumping codec_context codec_type %d %s codec_id %d %s width %d height %d timebase %d/%d format %s profile %d level %d "
@@ -273,11 +222,7 @@ void zm_dump_codec(const AVCodecContext *codec) {
     codec->height,
     codec->time_base.num,
     codec->time_base.den,
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt)),
-#else
-    "unsupported on avconv",
-#endif
     codec->profile,
     codec->level,
     codec->gop_size,
@@ -302,11 +247,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
   AVStream *st = ic->streams[i];
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", nullptr, 0);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   AVCodecParameters *codec = st->codecpar;
-#else
-  AVCodecContext *codec = st->codec;
-#endif
 
   Debug(1, "    Stream #%d:%d", index, i);
 
@@ -321,16 +262,10 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
       st->time_base.num, st->time_base.den
       );
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   Debug(1, "codec: %s %s",
       avcodec_get_name(st->codecpar->codec_id),
       av_get_media_type_string(st->codecpar->codec_type)
       );
-#else
-  char buf[256];
-  avcodec_string(buf, sizeof(buf), st->codec, is_output);
-  Debug(1, "codec: %s", buf);
-#endif
 
   if (st->sample_aspect_ratio.num && // default
       av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)
@@ -419,127 +354,37 @@ enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
   }
 }
 
-#if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
-#else
-unsigned int zm_av_packet_ref(AVPacket *dst, AVPacket *src) {
-  av_new_packet(dst,src->size);
-  memcpy(dst->data, src->data, src->size);
-  dst->flags = src->flags;
-  dst->pts = src->pts;
-  dst->dts = src->dts;
-  dst->duration = src->duration;
-  dst->stream_index = src->stream_index;
-  return 0;
-}
-const char *avcodec_get_name(enum AVCodecID id) {
-  const AVCodecDescriptor *cd;
-  if ( id == AV_CODEC_ID_NONE)
-    return "none";
-  cd = avcodec_descriptor_get(id);
-  if (cd)
-    return cd->name;
-  AVCodec *codec;
-  codec = avcodec_find_decoder(id);
-  if (codec) 
-    return codec->name;
-  codec = avcodec_find_encoder(id);
-  if (codec)
-    return codec->name;
-  return "unknown codec";
-}
-
-void av_packet_rescale_ts(
-    AVPacket *pkt,
-    AVRational src_tb,
-    AVRational dst_tb
-    ) {
-  if ( pkt->pts != AV_NOPTS_VALUE)
-    pkt->pts = av_rescale_q(pkt->pts, src_tb, dst_tb);
-  if ( pkt->dts != AV_NOPTS_VALUE)
-    pkt->dts = av_rescale_q(pkt->dts, src_tb, dst_tb);
-  if ( pkt->duration != AV_NOPTS_VALUE)
-    pkt->duration = av_rescale_q(pkt->duration, src_tb, dst_tb);
-}
-#endif
-
 bool is_video_stream(const AVStream * stream) {
-  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
-  #else
-  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-  if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-  #else
-  if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
-  #endif
-  #endif
-      {
+  if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
     return true;
   }
-  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  Debug(2, "Not a video type %d != %d", stream->codecpar->codec_type, AVMEDIA_TYPE_VIDEO);
-  #endif
 
+  Debug(2, "Not a video type %d != %d", stream->codecpar->codec_type, AVMEDIA_TYPE_VIDEO);
   return false;
 }
 
 bool is_video_context(const AVCodecContext *codec_context) {
-  return
-  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-      (codec_context->codec_type == AVMEDIA_TYPE_VIDEO);
-  #else
-      (codec_context->codec_type == CODEC_TYPE_VIDEO);
-  #endif
+  return codec_context->codec_type == AVMEDIA_TYPE_VIDEO;
 }
 
-bool is_audio_stream(const AVStream * stream) {
-  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
-  #else
-  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-  if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-  #else
-  if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
-  #endif
-  #endif
-      {
-    return true;
-  }
-  return false;
+bool is_audio_stream(const AVStream *stream) {
+  return stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO;
 }
 
 bool is_audio_context(const AVCodecContext *codec_context) {
-  return
-  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-      (codec_context->codec_type == AVMEDIA_TYPE_AUDIO);
-  #else
-      (codec_context->codec_type == CODEC_TYPE_AUDIO);
-  #endif
+  return codec_context->codec_type == AVMEDIA_TYPE_AUDIO;
 }
 
 int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   int ret = avcodec_receive_packet(context, &packet);
   if ((ret < 0) and (AVERROR_EOF != ret)) {
     Error("Error encoding (%d) (%s)", ret, av_err2str(ret));
   }
   return ret; // 1 or 0
-#else
-  int got_packet = 0;
-  int ret = avcodec_encode_audio2(context, &packet, nullptr, &got_packet);
-  if (ret < 0) {
-    Error("Error encoding (%d) (%s)", ret, av_err2str(ret));
-    return ret;
-  }
-  return got_packet; // 1
-#endif
 }  // end int zm_receive_packet(AVCodecContext *context, AVPacket &packet)
 
-int zm_send_packet_receive_frame(
-    AVCodecContext *context,
-    AVFrame *frame,
-    AVPacket &packet) {
+int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet) {
   int ret;
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   if ((ret = avcodec_send_packet(context, &packet)) < 0) {
     Error("Unable to send packet %s, continuing",
        av_make_error_string(ret).c_str());
@@ -558,74 +403,41 @@ int zm_send_packet_receive_frame(
   }
   // In this api the packet is always consumed, so return packet.bytes
   return packet.size;
-# else
-  int frameComplete = 0;
-  if (is_video_context(context)) {
-    ret = zm_avcodec_decode_video(context, frame, &frameComplete, &packet);
-    Debug(2, "ret from decode_video %d, framecomplete %d", ret, frameComplete);
-  } else {
-    ret = avcodec_decode_audio4(context, frame, &frameComplete, &packet);
-    Debug(2, "ret from decode_audio %d, framecomplete %d", ret, frameComplete);
-  }
-  if (ret < 0) {
-    Error("Unable to decode frame: %s", av_make_error_string(ret).c_str());
-    return ret;
-  }
-  return frameComplete ? ret : 0;
-#endif
 }  // end int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 
 /* Returns < 0 on error, 0 if codec not ready, 1 on success
  */
 int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
   int ret;
-  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    if (( (ret = avcodec_send_frame(ctx, frame)) < 0 ) and frame) {
-      Error("Could not send frame (error '%s')",
-            av_make_error_string(ret).c_str());
-      return ret;
-    }
+  if (((ret = avcodec_send_frame(ctx, frame)) < 0) and frame) {
+    Error("Could not send frame (error '%s')",
+          av_make_error_string(ret).c_str());
+    return ret;
+  }
 
-    if ((ret = avcodec_receive_packet(ctx, &packet)) < 0) {
-      if (AVERROR(EAGAIN) == ret) {
-        // The codec may need more samples than it has, perfectly valid
-        Debug(2, "Codec not ready to give us a packet");
-        return 0;
-      } else if (frame) {
-        // May get EOF if frame is NULL because it signals flushing
-        Error("Could not recieve packet (error %d = '%s')", ret,
-              av_make_error_string(ret).c_str());
-      }
-      zm_av_packet_unref(&packet);
-      return ret;
-    }
-  #else
-    int data_present;
-    if ((ret = avcodec_encode_audio2(
-            ctx, &packet, frame, &data_present)) < 0) {
-      Error("Could not encode frame (error '%s')",
-            av_make_error_string(ret).c_str());
-      zm_av_packet_unref(&packet);
-      return ret;
-    }
-    if (!data_present) {
-      Debug(2, "Not ready to out a frame yet.");
-      zm_av_packet_unref(&packet);
+  if ((ret = avcodec_receive_packet(ctx, &packet)) < 0) {
+    if (AVERROR(EAGAIN) == ret) {
+      // The codec may need more samples than it has, perfectly valid
+      Debug(2, "Codec not ready to give us a packet");
       return 0;
+    } else if (frame) {
+      // May get EOF if frame is NULL because it signals flushing
+      Error("Could not recieve packet (error %d = '%s')", ret,
+            av_make_error_string(ret).c_str());
     }
-  #endif
+    zm_av_packet_unref(&packet);
+    return ret;
+  }
   return 1;
 }  // end int zm_send_frame_receive_packet
 
 void zm_free_codec(AVCodecContext **ctx) {
   if (*ctx) {
     avcodec_close(*ctx);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
     avcodec_free_context(ctx);
-#endif
-    *ctx = NULL;
-  } // end if 
+    *ctx = nullptr;
+  }
 }
 
 void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRational src_tb, const AVRational dst_tb) {

@@ -2519,13 +2519,11 @@ int Monitor::Capture() {
         if ( packet->keyframe ) {
           // avcodec strips out important nals that describe the stream and
           // stick them in extradata. Need to send them along with keyframes
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
           AVStream *stream = camera->getVideoStream();
           video_fifo->write(
               static_cast<unsigned char *>(stream->codecpar->extradata),
               stream->codecpar->extradata_size,
               packet->pts);
-#endif
         }
         video_fifo->writePacket(*packet);
       }
@@ -3011,28 +3009,20 @@ int Monitor::PrimeCapture() {
   if (rtsp_server) {
     if (video_stream_id >= 0) {
       AVStream *videoStream = camera->getVideoStream();
-      snprintf(shared_data->video_fifo_path, sizeof(shared_data->video_fifo_path)-1, "%s/video_fifo_%u.%s",
-          staticConfig.PATH_SOCKS.c_str(),
-          id,
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-          avcodec_get_name(videoStream->codecpar->codec_id)
-#else
-          avcodec_get_name(videoStream->codec->codec_id)
-#endif
-          );
+      snprintf(shared_data->video_fifo_path, sizeof(shared_data->video_fifo_path) - 1, "%s/video_fifo_%u.%s",
+               staticConfig.PATH_SOCKS.c_str(),
+               id,
+               avcodec_get_name(videoStream->codecpar->codec_id)
+      );
       video_fifo = new Fifo(shared_data->video_fifo_path, true);
     }
     if (record_audio and (audio_stream_id >= 0)) {
       AVStream *audioStream = camera->getAudioStream();
       if (audioStream && CODEC(audioStream)) {
-      snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path)-1, "%s/audio_fifo_%u.%s",
-          staticConfig.PATH_SOCKS.c_str(), id,
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-          avcodec_get_name(audioStream->codecpar->codec_id)
-#else
-          avcodec_get_name(audioStream->codec->codec_id)
-#endif
-          );
+        snprintf(shared_data->audio_fifo_path, sizeof(shared_data->audio_fifo_path) - 1, "%s/audio_fifo_%u.%s",
+                 staticConfig.PATH_SOCKS.c_str(), id,
+                 avcodec_get_name(audioStream->codecpar->codec_id)
+        );
       audio_fifo = new Fifo(shared_data->audio_fifo_path, true);
       } else {
         Warning("No audioStream %p or codec?", audioStream);

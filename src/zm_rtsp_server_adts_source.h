@@ -45,13 +45,7 @@ class ADTS_ZoneMinderDeviceSource : public ZoneMinderDeviceSource {
     virtual unsigned char* findMarker(unsigned char *frame, size_t size, size_t &length);
     */
   public:
-    int samplingFrequency() { return 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      m_stream->codecpar->sample_rate;
-#else
-      m_stream->codec->sample_rate;
-#endif
-    };
+    int samplingFrequency() { return m_stream->codecpar->sample_rate; };
     const char *configStr() { return config.c_str(); };
     int numChannels() {
       return channels;

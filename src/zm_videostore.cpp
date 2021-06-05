@@ -87,11 +87,9 @@ VideoStore::VideoStore(
   packets_written(0),
   frame_count(0),
   hw_device_ctx(nullptr),
-#if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
-  resample_ctx(nullptr),
 #if defined(HAVE_LIBSWRESAMPLE)
+  resample_ctx(nullptr),
   fifo(nullptr),
-#endif
 #endif
   converted_in_samples(nullptr),
   filename(filename_in),
@@ -724,20 +722,13 @@ VideoStore::~VideoStore() {
 #endif
     }
 
-#if defined(HAVE_LIBAVRESAMPLE) || defined(HAVE_LIBSWRESAMPLE)
+#if defined(HAVE_LIBSWRESAMPLE)
     if (resample_ctx) {
       if (fifo) {
         av_audio_fifo_free(fifo);
         fifo = nullptr;
       }
-  #if defined(HAVE_LIBSWRESAMPLE)
       swr_free(&resample_ctx);
-  #else
-    #if defined(HAVE_LIBAVRESAMPLE)
-      avresample_close(resample_ctx);
-      avresample_free(&resample_ctx);
-    #endif
-  #endif
     }
     if (in_frame) {
       av_frame_free(&in_frame);
@@ -762,7 +753,7 @@ VideoStore::~VideoStore() {
 } // VideoStore::~VideoStore()
 
 bool VideoStore::setup_resampler() {
-#if !defined(HAVE_LIBSWRESAMPLE) && !defined(HAVE_LIBAVRESAMPLE)
+#if !defined(HAVE_LIBSWRESAMPLE)
   Error("Not built with resample library. Cannot do audio conversion to AAC");
   return false;
 #else
@@ -957,42 +948,6 @@ bool VideoStore::setup_resampler() {
     return false;
   }
   Debug(1,"Success setting up SWRESAMPLE");
-#else
-#if defined(HAVE_LIBAVRESAMPLE)
-  // Setup the audio resampler
-  resample_ctx = avresample_alloc_context();
-
-  if (!resample_ctx) {
-    Error("Could not allocate resample ctx");
-    av_frame_free(&in_frame);
-    av_frame_free(&out_frame);
-    return false;
-  }
-
-  av_opt_set_int(resample_ctx, "in_channel_layout",
-      audio_in_ctx->channel_layout, 0);
-  av_opt_set_int(resample_ctx, "in_sample_fmt",
-      audio_in_ctx->sample_fmt, 0);
-  av_opt_set_int(resample_ctx, "in_sample_rate",
-      audio_in_ctx->sample_rate, 0);
-  av_opt_set_int(resample_ctx, "in_channels",
-      audio_in_ctx->channels, 0);
-  av_opt_set_int(resample_ctx, "out_channel_layout",
-      audio_in_ctx->channel_layout, 0);
-  av_opt_set_int(resample_ctx, "out_sample_fmt",
-      audio_out_ctx->sample_fmt, 0);
-  av_opt_set_int(resample_ctx, "out_sample_rate",
-      audio_out_ctx->sample_rate, 0);
-  av_opt_set_int(resample_ctx, "out_channels",
-      audio_out_ctx->channels, 0);
-
-  if ((ret = avresample_open(resample_ctx)) < 0) {
-    Error("Could not open resample ctx");
-    return false;
-  } else {
-    Debug(2, "Success opening resampler");
-  }
-#endif
 #endif
 
   out_frame->nb_samples = audio_out_ctx->frame_size;

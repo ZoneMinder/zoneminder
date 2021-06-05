@@ -26,11 +26,7 @@
 extern "C" {
 
 #ifdef HAVE_LIBSWRESAMPLE
-  #include "libswresample/swresample.h"
-#else
-  #ifdef HAVE_LIBAVRESAMPLE
-    #include "libavresample/avresample.h"
-  #endif
+#include "libswresample/swresample.h"
 #endif
 
 // AVUTIL
@@ -432,29 +428,9 @@ int zm_send_frame_receive_packet(AVCodecContext *context, AVFrame *frame, AVPack
 
 void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRational src_tb, const AVRational dst_tb);
 
-#if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
-int zm_resample_audio(
 #if defined(HAVE_LIBSWRESAMPLE)
-    SwrContext *resample_ctx,
-#else
-#if defined(HAVE_LIBAVRESAMPLE)
-    AVAudioResampleContext *resample_ctx,
-#endif
-#endif
-    AVFrame *in_frame,
-    AVFrame *out_frame
-    );
-int zm_resample_get_delay(
-#if defined(HAVE_LIBSWRESAMPLE)
-    SwrContext *resample_ctx,
-#else
-#if defined(HAVE_LIBAVRESAMPLE)
-    AVAudioResampleContext *resample_ctx,
-#endif
-#endif
-    int time_base
-    );
-
+int zm_resample_audio(SwrContext *resample_ctx, AVFrame *in_frame, AVFrame *out_frame);
+int zm_resample_get_delay(SwrContext *resample_ctx, int time_base);
 #endif
 
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame);

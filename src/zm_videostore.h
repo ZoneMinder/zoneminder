@@ -10,15 +10,11 @@
 
 extern "C"  {
 #ifdef HAVE_LIBSWRESAMPLE
-  #include "libswresample/swresample.h"
-#else
-  #ifdef HAVE_LIBAVRESAMPLE
-    #include "libavresample/avresample.h"
-  #endif
+#include "libswresample/swresample.h"
 #endif
 #include "libavutil/audio_fifo.h"
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-  #include "libavutil/hwcontext.h"
+#include "libavutil/hwcontext.h"
 #endif
 }
 
@@ -79,10 +75,6 @@ class VideoStore {
 #ifdef HAVE_LIBSWRESAMPLE
     SwrContext *resample_ctx;
     AVAudioFifo *fifo;
-#else
-#ifdef HAVE_LIBAVRESAMPLE
-    AVAudioResampleContext* resample_ctx;
-#endif
 #endif
     uint8_t *converted_in_samples;
 

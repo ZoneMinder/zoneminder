@@ -442,7 +442,8 @@ find_package(FFMPEG REQUIRED
   COMPONENTS
     avcodec
     avformat
-    avutil)
+    avutil
+    swscale)
 
 set(CMAKE_REQUIRED_INCLUDES ${FFMPEG_avutil_INCLUDE_DIRS})
 check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
@@ -455,16 +456,6 @@ if(FFMPEG_avdevice_FOUND)
   set(optlibsfound "${optlibsfound} AVDevice")
 else()
   set(optlibsnotfound "${optlibsnotfound} AVDevice")
-endif()
-
-find_package(FFMPEG COMPONENTS swscale)
-if(FFMPEG_swscale_FOUND)
-  set(HAVE_LIBSWSCALE 1)
-  set(HAVE_LIBSWSCALE_SWSCALE_H 1)
-  list(APPEND ZM_BIN_LIBS "${FFMPEG_swscale_LIBRARIES}")
-  set(optlibsfound "${optlibsfound} SWScale")
-else()
-  set(optlibsnotfound "${optlibsnotfound} SWScale")
 endif()
 
 find_package(FFMPEG COMPONENTS swresample)

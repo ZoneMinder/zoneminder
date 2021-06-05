@@ -144,9 +144,7 @@ FfmpegCamera::FfmpegCamera(
 #endif
 #endif
 
-#if HAVE_LIBSWSCALE
   mConvertContext = nullptr;
-#endif
   /* Has to be located inside the constructor so other components such as zma
    * will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {

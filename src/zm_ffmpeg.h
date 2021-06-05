@@ -155,7 +155,6 @@ extern "C" {
 #endif /* HAVE_LIBAVDEVICE_AVDEVICE_H */
 
 // SWSCALE
-#if HAVE_LIBSWSCALE_SWSCALE_H
 #include <libswscale/swscale.h>
 
 /* LIBSWSCALE_VERSION_CHECK checks for the right version of libav and FFmpeg
@@ -165,8 +164,6 @@ extern "C" {
 #define LIBSWSCALE_VERSION_CHECK(a, b, c, d, e) \
     ( (LIBSWSCALE_VERSION_MICRO <  100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBSWSCALE_VERSION_MICRO >= 100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
-
-#endif /* HAVE_LIBSWSCALE_SWSCALE_H */
 
 #ifdef __cplusplus
 }

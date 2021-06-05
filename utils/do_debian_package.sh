@@ -88,7 +88,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,focal,groovy,hirsute"
+    DISTROS="bionic,focal,groovy,hirsute"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;
@@ -242,8 +242,6 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   elif [ "$DISTRO" == "beowulf" ]
   then
     cp -Rpd distros/beowulf debian
-  else
-    cp -Rpd distros/ubuntu1604 debian
   fi;
 
   if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then

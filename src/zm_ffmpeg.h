@@ -24,21 +24,18 @@
 #include "zm_define.h"
 
 extern "C" {
-
-#ifdef HAVE_LIBSWRESAMPLE
-#include "libswresample/swresample.h"
-#endif
+#include <libswresample/swresample.h>
 
 // AVUTIL
-#include "libavutil/avassert.h"
+#include <libavutil/avassert.h>
 #include <libavutil/avutil.h>
 #include <libavutil/base64.h>
 #include <libavutil/mathematics.h>
 #include <libavutil/avstring.h>
-#include "libavutil/audio_fifo.h"
-#include "libavutil/imgutils.h"
+#include <libavutil/audio_fifo.h>
+#include <libavutil/imgutils.h>
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-  #include "libavutil/hwcontext.h"
+  #include <libavutil/hwcontext.h>
 #endif
 
 /* LIBAVUTIL_VERSION_CHECK checks for the right version of libav and FFmpeg
@@ -411,10 +408,8 @@ int zm_send_frame_receive_packet(AVCodecContext *context, AVFrame *frame, AVPack
 
 void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRational src_tb, const AVRational dst_tb);
 
-#if defined(HAVE_LIBSWRESAMPLE)
 int zm_resample_audio(SwrContext *resample_ctx, AVFrame *in_frame, AVFrame *out_frame);
 int zm_resample_get_delay(SwrContext *resample_ctx, int time_base);
-#endif
 
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame);
 int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame);

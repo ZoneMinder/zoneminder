@@ -635,7 +635,6 @@ void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRat
   av_packet_rescale_ts(opkt, src_tb, dst_tb);
 }
 
-#if defined(HAVE_LIBSWRESAMPLE)
 int zm_resample_audio(SwrContext *resample_ctx, AVFrame *in_frame, AVFrame *out_frame) {
   if (in_frame) {
     // Resample the in_frame into the audioSampleBuffer until we process the whole
@@ -659,7 +658,6 @@ int zm_resample_audio(SwrContext *resample_ctx, AVFrame *in_frame, AVFrame *out_
 int zm_resample_get_delay(SwrContext *resample_ctx, int time_base) {
   return swr_get_delay(resample_ctx, time_base);
 }
-#endif
 
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame) {
   int ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + frame->nb_samples);

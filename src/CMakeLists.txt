@@ -80,6 +80,7 @@ target_link_libraries(zm
     FFMPEG::avcodec
     FFMPEG::avformat
     FFMPEG::avutil
+    FFMPEG::swresample
     FFMPEG::swscale
     libbcrypt::bcrypt
     RtspServer::RtspServer

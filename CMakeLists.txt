@@ -443,6 +443,7 @@ find_package(FFMPEG REQUIRED
     avcodec
     avformat
     avutil
+    swresample
     swscale)
 
 set(CMAKE_REQUIRED_INCLUDES ${FFMPEG_avutil_INCLUDE_DIRS})
@@ -456,16 +457,6 @@ if(FFMPEG_avdevice_FOUND)
   set(optlibsfound "${optlibsfound} AVDevice")
 else()
   set(optlibsnotfound "${optlibsnotfound} AVDevice")
-endif()
-
-find_package(FFMPEG COMPONENTS swresample)
-if(FFMPEG_swresample_FOUND)
-  set(HAVE_LIBSWRESAMPLE 1)
-  set(HAVE_LIBSWRESAMPLE_SWRESAMPLE_H 1)
-  list(APPEND ZM_BIN_LIBS "FFMPEG::swresample")
-  set(optlibsfound "${optlibsfound} SWResample")
-else()
-  set(optlibsnotfound "${optlibsnotfound} SWResample")
 endif()
 
 set(PATH_FFMPEG "")

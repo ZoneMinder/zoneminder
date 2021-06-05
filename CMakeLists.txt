@@ -438,7 +438,7 @@ else()
   message(FATAL_ERROR "ZoneMinder requires mysqlclient but it was not found on your system")
 endif()
 
-find_package(FFMPEG REQUIRED
+find_package(FFMPEG 55.34.100 REQUIRED
   COMPONENTS
     avcodec
     avformat

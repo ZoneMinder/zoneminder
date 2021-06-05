@@ -375,7 +375,6 @@ LocalCamera::LocalCamera(
         Panic("Unexpected colours: %u",colours);
       }
       if ( capture ) {
-#if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
         if ( !sws_isSupportedInput(capturePixFormat) ) {
           Error("swscale does not support the used capture format: %d", capturePixFormat);
           conversion_type = 2; /* Try ZM format conversions */
@@ -384,7 +383,6 @@ LocalCamera::LocalCamera(
           Error("swscale does not support the target format: 0x%d", imagePixFormat);
           conversion_type = 2; /* Try ZM format conversions */
         }
-#endif
       }
       /* Our YUYV->Grayscale conversion is a lot faster than swscale's */
       if ( colours == ZM_COLOUR_GRAY8 && palette == V4L2_PIX_FMT_YUYV ) {
@@ -445,19 +443,13 @@ LocalCamera::LocalCamera(
 
   /* Initialize swscale stuff */
   if ( capture and (conversion_type == 1) ) {
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
     tmpPicture = av_frame_alloc();
-#else
-    tmpPicture = avcodec_alloc_frame();
-#endif
+
     if ( !tmpPicture )
       Fatal("Could not allocate temporary picture");
 
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
     unsigned int pSize = av_image_get_buffer_size(imagePixFormat, width, height, 1);
-#else
-    unsigned int pSize = avpicture_get_size(imagePixFormat, width, height);
-#endif
+
     if ( pSize != imagesize ) {
       Fatal("Image size mismatch. Required: %d Available: %llu", pSize, imagesize);
     }
@@ -699,14 +691,11 @@ void LocalCamera::Initialise() {
         Fatal("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
             i, vid_buf.length, strerror(errno), errno);
 
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
       capturePictures[i] = av_frame_alloc();
-#else
-      capturePictures[i] = avcodec_alloc_frame();
-#endif
+
       if ( !capturePictures[i] )
         Fatal("Could not allocate picture");
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+
       av_image_fill_arrays(
           capturePictures[i]->data,
           capturePictures[i]->linesize,
@@ -715,15 +704,6 @@ void LocalCamera::Initialise() {
           v4l2_data.fmt.fmt.pix.width,
           v4l2_data.fmt.fmt.pix.height,
           1);
-#else
-      avpicture_fill(
-          (AVPicture *)capturePictures[i],
-          (uint8_t*)v4l2_data.buffers[i].start,
-          capturePixFormat,
-          v4l2_data.fmt.fmt.pix.width,
-          v4l2_data.fmt.fmt.pix.height
-          );
-#endif
     } // end foreach request buf
 
     Debug(3, "Configuring video source");
@@ -769,12 +749,8 @@ void LocalCamera::Terminate() {
 
     Debug(3, "Unmapping video buffers");
     for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
-      /* Free capture pictures */
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
       av_frame_free(&capturePictures[i]);
-#else
-      av_freep(&capturePictures[i]);
-#endif
+
       if ( munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
         Error("Failed to munmap buffer %d: %s", i, strerror(errno));
     }
@@ -1462,14 +1438,10 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     if (conversion_type == 1) {
       Debug(9, "Calling sws_scale to perform the conversion");
       /* Use swscale to convert the image directly into the shared memory */
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
       av_image_fill_arrays(tmpPicture->data,
           tmpPicture->linesize, directbuffer,
           imagePixFormat, width, height, 1);
-#else
-      avpicture_fill( (AVPicture *)tmpPicture, directbuffer,
-          imagePixFormat, width, height );
-#endif
+
       sws_scale(
           imgConversionContext,
           capturePictures[capture_frame]->data,

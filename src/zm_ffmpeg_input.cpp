@@ -89,12 +89,8 @@ int FFmpeg_Input::Open(const char *filepath) {
     }
 
     streams[i].frame_count = 0;
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     streams[i].context = avcodec_alloc_context3(nullptr);
     avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
-#else
-    streams[i].context = input_format_context->streams[i]->codec;
-#endif
 
     if ( !(streams[i].codec = avcodec_find_decoder(streams[i].context->codec_id)) ) {
       Error("Could not find input codec");
@@ -108,9 +104,7 @@ int FFmpeg_Input::Open(const char *filepath) {
     if ( error < 0 ) {
       Error("Could not open input codec (error '%s')",
           av_make_error_string(error).c_str());
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_free_context(&streams[i].context);
-#endif
       avformat_close_input(&input_format_context);
       input_format_context = nullptr;
       return error;
@@ -129,21 +123,15 @@ int FFmpeg_Input::Close( ) {
   if ( streams ) {
     for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
       avcodec_close(streams[i].context);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_free_context(&streams[i].context);
       streams[i].context = nullptr;
-#endif
     }
     delete[] streams;
     streams = nullptr;
   }
 
   if ( input_format_context ) {
-#if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
-    av_close_input_file(input_format_context);
-#else
     avformat_close_input(&input_format_context);
-#endif
     input_format_context = nullptr;
   }
   return 1;

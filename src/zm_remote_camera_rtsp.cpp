@@ -173,12 +173,8 @@ int RemoteCameraRtsp::PrimeCapture() {
     Debug(3, "Unable to locate audio stream");
 
   // Get a pointer to the codec context for the video stream
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  mVideoCodecContext = avcodec_alloc_context3(NULL);
+  mVideoCodecContext = avcodec_alloc_context3(nullptr);
   avcodec_parameters_to_context(mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar);
-#else
-  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
-#endif
 
   // Find the decoder for the video stream
   AVCodec *codec = avcodec_find_decoder(mVideoCodecContext->codec_id);
@@ -186,18 +182,10 @@ int RemoteCameraRtsp::PrimeCapture() {
     Panic("Unable to locate codec %d decoder", mVideoCodecContext->codec_id);
 
   // Open codec
-#if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-  if ( avcodec_open(mVideoCodecContext, codec) < 0 )
-#else
-  if ( avcodec_open2(mVideoCodecContext, codec, 0) < 0 )
-#endif
+  if ( avcodec_open2(mVideoCodecContext, codec, nullptr) < 0 )
     Panic("Can't open codec");
 
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   int pSize = av_image_get_buffer_size(imagePixFormat, width, height, 1);
-#else
-  int pSize = avpicture_get_size(imagePixFormat, width, height);
-#endif
 
   if ( (unsigned int)pSize != imagesize ) {
     Fatal("Image size mismatch. Required: %d Available: %llu", pSize, imagesize);
@@ -281,25 +269,12 @@ int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         buffer -= packet->size;
         if ( bytes_consumed ) {
           zm_dump_video_frame(zm_packet->in_frame, "remote_rtsp_decode");
-          if ( ! mVideoStream->
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-              codecpar
-#else
-              codec
-#endif
-              ->width ) {
+          if (!mVideoStream->codecpar->width) {
             zm_dump_codec(mVideoCodecContext);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
             zm_dump_codecpar(mVideoStream->codecpar);
             mVideoStream->codecpar->width = zm_packet->in_frame->width;
             mVideoStream->codecpar->height = zm_packet->in_frame->height;
-#else
-            mVideoStream->codec->width = zm_packet->in_frame->width;
-            mVideoStream->codec->height = zm_packet->in_frame->height;
-#endif
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
             zm_dump_codecpar(mVideoStream->codecpar);
-#endif
           }
           zm_packet->codec_type = mVideoCodecContext->codec_type;
           zm_packet->stream = mVideoStream;

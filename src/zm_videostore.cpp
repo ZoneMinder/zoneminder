@@ -152,9 +152,7 @@ bool VideoStore::open() {
   }
 
   if (video_in_stream) {
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     zm_dump_codecpar(video_in_stream->codecpar);
-#endif
 
     if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
       video_out_stream = avformat_new_stream(oc, nullptr);
@@ -163,9 +161,8 @@ bool VideoStore::open() {
         return false;
       }
       avcodec_parameters_copy(video_out_stream->codecpar, video_in_stream->codecpar);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       zm_dump_codecpar(video_out_stream->codecpar);
-#endif
+
       video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
       // Only set orientation if doing passthrough, otherwise the frame image will be rotated
       Monitor::Orientation orientation = monitor->getOrientation();
@@ -192,22 +189,15 @@ bool VideoStore::open() {
         video_out_codec = avcodec_find_encoder(video_in_stream->codecpar->codec_id);
         if (video_out_codec) {
           video_out_ctx = avcodec_alloc_context3(video_out_codec);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
           ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
-#else
-          ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
-#endif
+
           if (ret < 0) {
             Error("Could not initialize ctx parameters");
             return false;
           }
           //video_out_ctx->pix_fmt = fix_deprecated_pix_fmt(video_out_ctx->pix_fmt);
           if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
             video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-#else
-            video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
-#endif
           }
           video_out_ctx->time_base = video_in_ctx->time_base;
           if (!(video_out_ctx->time_base.num && video_out_ctx->time_base.den)) {
@@ -234,14 +224,11 @@ bool VideoStore::open() {
             video_out_codec = nullptr;
           }
         }  // end if video_out_codec
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
-      if (ret < 0) {
-        Error("Could not initialize stream parameteres");
-      }
-#else
-      avcodec_copy_context(video_out_stream->codec, video_out_ctx);
-#endif
+
+        ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+        if (ret < 0) {
+          Error("Could not initialize stream parameteres");
+        }
       }  // end if extradata_entry
       av_dict_free(&opts);
     } else if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
@@ -286,11 +273,7 @@ bool VideoStore::open() {
         Debug(1, "Found video codec for %s", codec_data[i].codec_name);
         video_out_ctx = avcodec_alloc_context3(video_out_codec);
         if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
           video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-#else
-          video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
-#endif
         }
 
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
@@ -377,12 +360,14 @@ bool VideoStore::open() {
           Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
         }
         av_dict_free(&opts);
-        if (video_out_codec) break;
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+        if (video_out_codec) {
+          break;
+        }
         // We allocate and copy in newer ffmpeg, so need to free it
         avcodec_free_context(&video_out_ctx);
-        if (hw_device_ctx) av_buffer_unref(&hw_device_ctx);
-#endif
+        if (hw_device_ctx) {
+          av_buffer_unref(&hw_device_ctx);
+        }
       }  // end foreach codec
 
       if (!video_out_codec) {
@@ -392,17 +377,12 @@ bool VideoStore::open() {
       Debug(2, "Success opening codec");
 
       video_out_stream = avformat_new_stream(oc, nullptr);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
       if (ret < 0) {
         Error("Could not initialize stream parameteres");
         return false;
       }
-#else
-      avcodec_copy_context(video_out_stream->codec, video_out_ctx);
-#endif
     }  // end if copying or transcoding
-   // zm_dump_codec(video_out_ctx);
   }  // end if video_in_stream
 
   max_stream_index = video_out_stream->index;
@@ -416,24 +396,16 @@ bool VideoStore::open() {
       if (!audio_out_codec) {
         Error("Could not find codec for AAC");
       } else {
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
         audio_in_ctx = avcodec_alloc_context3(audio_out_codec);
-        ret = avcodec_parameters_to_context(audio_in_ctx,
-            audio_in_stream->codecpar);
+        ret = avcodec_parameters_to_context(audio_in_ctx, audio_in_stream->codecpar);
         audio_in_ctx->time_base = audio_in_stream->time_base;
-#else
-        audio_in_ctx = audio_in_stream->codec;
-#endif
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
         audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
         if (!audio_out_ctx) {
           Error("could not allocate codec ctx for AAC");
           return false;
         }
-#else
-        audio_out_ctx = audio_out_stream->codec;
-#endif
+
         audio_out_stream = avformat_new_stream(oc, audio_out_codec);
         audio_out_stream->time_base = audio_in_stream->time_base;
 
@@ -453,7 +425,6 @@ bool VideoStore::open() {
       }
       audio_out_stream->time_base = audio_in_stream->time_base;
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       // Just use the ctx to copy the parameters over
       audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
       if (!audio_out_ctx) {
@@ -477,17 +448,6 @@ bool VideoStore::open() {
         Error("Unable to copy audio params to stream %s",
               av_make_error_string(ret).c_str());
       }
-#else
-      audio_out_ctx = audio_out_stream->codec;
-      ret = avcodec_copy_context(audio_out_ctx, audio_in_stream->codec);
-      if (ret < 0) {
-        Error("Unable to copy audio ctx %s",
-              av_make_error_string(ret).c_str());
-        audio_out_stream = nullptr;
-        return false;
-      }  // end if
-      audio_out_ctx->codec_tag = 0;
-#endif
 
       if (audio_out_ctx->channels > 1) {
         Warning("Audio isn't mono, changing it.");
@@ -498,11 +458,7 @@ bool VideoStore::open() {
     } // end if is AAC
 
     if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
       audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-#else
-      audio_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
-#endif
     }
 
     // We will assume that subsequent stream allocations will increase the index
@@ -572,13 +528,7 @@ void VideoStore::flush_codecs() {
   av_init_packet(&pkt);
 
   // I got crashes if the codec didn't do DELAY, so let's test for it.
-  if (video_out_ctx && video_out_ctx->codec && ( video_out_ctx->codec->capabilities & 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-        AV_CODEC_CAP_DELAY
-#else
-        CODEC_CAP_DELAY
-#endif
-        )) {
+  if (video_out_ctx && video_out_ctx->codec && (video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY)) {
     // Put encoder into flushing mode
     while ((zm_send_frame_receive_packet(video_out_ctx, nullptr, pkt)) > 0) {
       av_packet_rescale_ts(&pkt,
@@ -637,12 +587,10 @@ void VideoStore::flush_codecs() {
       }  // end if data returned from fifo
     }  // end while still data in the fifo
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       // Put encoder into flushing mode
       avcodec_send_frame(audio_out_ctx, nullptr);
-#endif
 
-    while (1) {
+    while (true) {
       if (0 >= zm_receive_packet(audio_out_ctx, pkt)) {
         Debug(1, "No more packets");
         break;
@@ -705,19 +653,12 @@ VideoStore::~VideoStore() {
   }
 
   if (audio_out_stream) {
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    // We allocate and copy in newer ffmpeg, so need to free it
-    //avcodec_free_context(&audio_in_ctx);
-#endif
-    //Debug(4, "Success freeing audio_in_ctx");
     audio_in_codec = nullptr;
 
     if (audio_out_ctx) {
       Debug(4, "Success closing audio_out_ctx");
       avcodec_close(audio_out_ctx);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_free_context(&audio_out_ctx);
-#endif
     }
 
     if (resample_ctx) {
@@ -751,7 +692,6 @@ VideoStore::~VideoStore() {
 bool VideoStore::setup_resampler() {
   int ret;
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // Newer ffmpeg wants to keep everything separate... so have to lookup our own
   // decoder, can't reuse the one from the camera.
   audio_in_codec = avcodec_find_decoder(audio_in_stream->codecpar->codec_id);
@@ -762,17 +702,6 @@ bool VideoStore::setup_resampler() {
     Error("Unable to copy audio params to ctx %s",
         av_make_error_string(ret).c_str());
   }
-#else
-// codec is already open in ffmpeg_camera
-  audio_in_ctx = audio_in_stream->codec;
-  audio_in_codec = reinterpret_cast<const AVCodec *>(audio_in_ctx->codec);
-  if (!audio_in_codec) {
-    audio_in_codec = avcodec_find_decoder(audio_in_stream->codec->codec_id);
-    if (!audio_in_codec) {
-      return false;
-    }
-  }
-#endif
 
   // if the codec is already open, nothing is done.
   if ((ret = avcodec_open2(audio_in_ctx, audio_in_codec, nullptr)) < 0) {
@@ -796,7 +725,6 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
-#if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
   if (!audio_out_ctx->channel_layout) {
     Debug(3, "Correcting channel layout from (%" PRIi64 ") to (%" PRIi64 ")",
         audio_out_ctx->channel_layout,
@@ -804,7 +732,7 @@ bool VideoStore::setup_resampler() {
         );
       audio_out_ctx->channel_layout = av_get_default_channel_layout(audio_out_ctx->channels);
   }
-#endif
+
   if (audio_out_codec->supported_samplerates) {
     int found = 0;
     for (unsigned int i = 0; audio_out_codec->supported_samplerates[i]; i++) {
@@ -851,15 +779,11 @@ bool VideoStore::setup_resampler() {
   zm_dump_codec(audio_out_ctx);
 
   audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  if ( (ret = avcodec_parameters_from_context(
-          audio_out_stream->codecpar,
-          audio_out_ctx)) < 0 ) {
+  if ((ret = avcodec_parameters_from_context(audio_out_stream->codecpar, audio_out_ctx)) < 0) {
     Error("Could not initialize stream parameteres");
     return false;
   }
   zm_dump_codecpar(audio_out_stream->codecpar);
-#endif
 
   Debug(3,
         "Time bases: AUDIO in stream (%d/%d) in codec: (%d/%d) out "
@@ -880,20 +804,11 @@ bool VideoStore::setup_resampler() {
         audio_out_ctx->channels, audio_out_ctx->sample_fmt,
         audio_out_ctx->channel_layout, audio_out_ctx->frame_size);
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   Debug(1,
         "Audio out stream bit_rate (%" PRIi64 ") sample_rate(%d) channels(%d) fmt(%d) layout(%" PRIi64 ") frame_size(%d)",
         audio_out_stream->codecpar->bit_rate, audio_out_stream->codecpar->sample_rate,
         audio_out_stream->codecpar->channels, audio_out_stream->codecpar->format,
         audio_out_stream->codecpar->channel_layout, audio_out_stream->codecpar->frame_size);
-#else
-  Debug(1,
-      "Audio out bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
-      "layout(%" PRIi64 ") frame_size(%d)",
-      audio_out_stream->codec->bit_rate, audio_out_stream->codec->sample_rate,
-      audio_out_stream->codec->channels, audio_out_stream->codec->sample_fmt,
-      audio_out_stream->codec->channel_layout, audio_out_stream->codec->frame_size);
-#endif
 
   /** Create a new frame to store the audio samples. */
   if (!in_frame) {
@@ -942,9 +857,7 @@ bool VideoStore::setup_resampler() {
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
-#if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
   out_frame->channels = audio_out_ctx->channels;
-#endif
   out_frame->channel_layout = audio_out_ctx->channel_layout;
   out_frame->sample_rate = audio_out_ctx->sample_rate;
 
@@ -1074,9 +987,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     // Do this to allow the encoder to choose whether to use I/P/B frame
     //zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
     //zm_packet->out_frame->key_frame = zm_packet->keyframe;
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     frame->pkt_duration = 0;
-#endif
 
     int64_t in_pts = zm_packet->timestamp.tv_sec * (uint64_t)1000000 + zm_packet->timestamp.tv_usec;
     if (!video_first_pts) {

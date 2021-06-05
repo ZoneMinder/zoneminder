@@ -257,7 +257,6 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
       return nullptr;
     }
 
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
     int alignment = 32;
     if (width%alignment) alignment = 1;
     
@@ -278,20 +277,7 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
       av_frame_free(&out_frame);
       return nullptr;
     }
-#else
-    codec_imgsize = avpicture_get_size(
-        format,
-        width,
-        height);
-    buffer = (uint8_t *)av_malloc(codec_imgsize);
-    avpicture_fill(
-        (AVPicture *)out_frame,
-        buffer,
-        format,
-        width,
-        height
-        );
-#endif
+
     out_frame->width = width;
     out_frame->height = height;
     out_frame->format = format;

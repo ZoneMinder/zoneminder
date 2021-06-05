@@ -20,7 +20,8 @@
 #ifndef ZM_TIME_H
 #define ZM_TIME_H
 
-#include <zm_logger.h>
+#include "zm_logger.h"
+#include <chrono>
 #include <sys/time.h>
 
 // Structure used for storing the results of the subtraction
@@ -203,6 +204,63 @@ inline struct timeval tvMake( time_t sec, suseconds_t usec )
   t.tv_sec = sec;
   t.tv_usec = usec;
   return( t );
+}
+
+typedef std::chrono::microseconds Microseconds;
+typedef std::chrono::milliseconds Milliseconds;
+typedef std::chrono::seconds Seconds;
+typedef std::chrono::minutes Minutes;
+typedef std::chrono::hours Hours;
+
+typedef std::chrono::steady_clock::time_point TimePoint;
+typedef std::chrono::system_clock::time_point SystemTimePoint;
+
+namespace zm {
+namespace chrono {
+namespace impl {
+
+template<typename From, typename To>
+struct posix_duration_cast;
+
+// chrono -> timeval caster
+template<typename Rep, typename Period>
+struct posix_duration_cast<std::chrono::duration<Rep, Period>, timeval> {
+  static timeval cast(std::chrono::duration<Rep, Period> const &d) {
+    timeval tv = {};
+
+    Seconds const sec = std::chrono::duration_cast<Seconds>(d);
+
+    tv.tv_sec = sec.count();
+    tv.tv_usec = std::chrono::duration_cast<Microseconds>(d - sec).count();
+
+    return tv;
+  }
+};
+
+// timeval -> chrono caster
+template<typename Rep, typename Period>
+struct posix_duration_cast<timeval, std::chrono::duration<Rep, Period>> {
+  static std::chrono::duration<Rep, Period> cast(timeval const &tv) {
+    return std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(
+        Seconds(tv.tv_sec) + Microseconds(tv.tv_usec)
+    );
+  }
+};
+
+}
+// chrono -> timeval
+template<typename T, typename Rep, typename Period>
+auto duration_cast(std::chrono::duration<Rep, Period> const &d)
+-> typename std::enable_if<std::is_same<T, timeval>::value, timeval>::type {
+  return impl::posix_duration_cast<std::chrono::duration<Rep, Period>, timeval>::cast(d);
+}
+
+// timeval -> chrono
+template<typename Duration>
+Duration duration_cast(timeval const &tv) {
+  return impl::posix_duration_cast<timeval, Duration>::cast(tv);
+}
+}
 }
 
 #endif // ZM_TIME_H

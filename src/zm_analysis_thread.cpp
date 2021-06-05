@@ -2,7 +2,7 @@
 
 #include "zm_monitor.h"
 #include "zm_signal.h"
-#include "zm_utils.h"
+#include "zm_time.h"
 
 AnalysisThread::AnalysisThread(Monitor *monitor) :
     monitor_(monitor), terminate_(false) {

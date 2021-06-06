@@ -68,8 +68,8 @@ private:
 
   std::string mHttpSession;       ///< Only for RTSP over HTTP sessions
 
-  ZM::TcpInetClient mRtspSocket;
-  ZM::TcpInetClient mRtspSocket2;
+  zm::TcpInetClient mRtspSocket;
+  zm::TcpInetClient mRtspSocket2;
 
   SourceMap mSources;
 

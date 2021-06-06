@@ -63,8 +63,8 @@ void RtpDataThread::Run() {
   Debug(2, "Starting data thread %d on port %d",
       mRtpSource.getSsrc(), mRtpSource.getLocalDataPort());
 
-  ZM::SockAddrInet localAddr;
-  ZM::UdpInetServer rtpDataSocket;
+  zm::SockAddrInet localAddr;
+  zm::UdpInetServer rtpDataSocket;
   if ( mRtpSource.getLocalHost() != "" ) {
     if ( !rtpDataSocket.bind(mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort()) )
       Fatal("Failed to bind RTP server");
@@ -76,19 +76,19 @@ void RtpDataThread::Run() {
   }
   Debug(3, "Bound to %s:%d",  mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort());
 
-  ZM::Select select(3);
+  zm::Select select(3);
   select.addReader(&rtpDataSocket);
 
   unsigned char buffer[ZM_NETWORK_BUFSIZ];
   while ( !zm_terminate && !mTerminate && (select.wait() >= 0) ) {
-    ZM::Select::CommsList readable = select.getReadable();
+    zm::Select::CommsList readable = select.getReadable();
      if ( readable.size() == 0 ) {
        Error("RTP timed out");
        Stop();
        break;
      }
-     for ( ZM::Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
-       if ( ZM::UdpInetServer *socket = dynamic_cast<ZM::UdpInetServer *>(*iter) ) {
+     for (zm::Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
+       if ( zm::UdpInetServer *socket = dynamic_cast<zm::UdpInetServer *>(*iter) ) {
          int nBytes = socket->recv(buffer, sizeof(buffer));
          Debug(4, "Got %d bytes on sd %d", nBytes, socket->getReadDesc());
          if ( nBytes ) {

@@ -685,7 +685,7 @@ void Monitor::LoadCamera() {
 #if ZM_HAS_V4L
       int extras = (deinterlacing >> 24) & 0xff;
 
-      camera = ZM::make_unique<LocalCamera>(this,
+      camera = zm::make_unique<LocalCamera>(this,
                                             device,
                                             channel,
                                             format,
@@ -711,7 +711,7 @@ void Monitor::LoadCamera() {
     }
     case REMOTE: {
       if (protocol == "http") {
-        camera = ZM::make_unique<RemoteCameraHttp>(this,
+        camera = zm::make_unique<RemoteCameraHttp>(this,
                                                    method,
                                                    host,
                                                    port,
@@ -728,7 +728,7 @@ void Monitor::LoadCamera() {
         );
       }
       else if (protocol == "rtsp") {
-        camera = ZM::make_unique<RemoteCameraRtsp>(this,
+        camera = zm::make_unique<RemoteCameraRtsp>(this,
                                                    method,
                                                    host, // Host
                                                    port, // Port
@@ -751,7 +751,7 @@ void Monitor::LoadCamera() {
       break;
     }
     case FILE: {
-      camera = ZM::make_unique<FileCamera>(this,
+      camera = zm::make_unique<FileCamera>(this,
                                            path.c_str(),
                                            camera_width,
                                            camera_height,
@@ -766,7 +766,7 @@ void Monitor::LoadCamera() {
       break;
     }
     case FFMPEG: {
-      camera = ZM::make_unique<FfmpegCamera>(this,
+      camera = zm::make_unique<FfmpegCamera>(this,
                                              path,
                                              second_path,
                                              method,
@@ -786,7 +786,7 @@ void Monitor::LoadCamera() {
       break;
     }
     case NVSOCKET: {
-      camera = ZM::make_unique<RemoteCameraNVSocket>(this,
+      camera = zm::make_unique<RemoteCameraNVSocket>(this,
                                                      host.c_str(),
                                                      port.c_str(),
                                                      path.c_str(),
@@ -804,7 +804,7 @@ void Monitor::LoadCamera() {
     }
     case LIBVLC: {
 #if HAVE_LIBVLC
-      camera = ZM::make_unique<LibvlcCamera>(this,
+      camera = zm::make_unique<LibvlcCamera>(this,
                                              path.c_str(),
                                              method,
                                              options,
@@ -825,7 +825,7 @@ void Monitor::LoadCamera() {
     }
     case CURL: {
 #if HAVE_LIBCURL
-      camera = ZM::make_unique<cURLCamera>(this,
+      camera = zm::make_unique<cURLCamera>(this,
                                            path.c_str(),
                                            user.c_str(),
                                            pass.c_str(),
@@ -846,7 +846,7 @@ void Monitor::LoadCamera() {
     }
     case VNC: {
 #if HAVE_LIBVNC
-      camera = ZM::make_unique<VncCamera>(this,
+      camera = zm::make_unique<VncCamera>(this,
                                           host.c_str(),
                                           port.c_str(),
                                           user.c_str(),
@@ -899,7 +899,8 @@ bool Monitor::connect() {
   if (purpose != CAPTURE) {
     map_fd = open(mem_file.c_str(), O_RDWR);
   } else {
-    map_fd = open(mem_file.c_str(), O_RDWR|O_CREAT, (mode_t)0660);
+    umask(0);
+    map_fd = open(mem_file.c_str(), O_RDWR|O_CREAT, (mode_t)0666);
   }
 
   if (map_fd < 0) {
@@ -3034,7 +3035,7 @@ int Monitor::PrimeCapture() {
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {
       Debug(1, "Creating decoder thread");
-      decoder = ZM::make_unique<DecoderThread>(this);
+      decoder = zm::make_unique<DecoderThread>(this);
     } else {
       Debug(1, "Restartg decoder thread");
       decoder->Start();
@@ -3049,7 +3050,7 @@ int Monitor::PrimeCapture() {
   }
   if (!analysis_thread) {
     Debug(1, "Starting an analysis thread for monitor (%d)", id);
-    analysis_thread = ZM::make_unique<AnalysisThread>(this);
+    analysis_thread = zm::make_unique<AnalysisThread>(this);
   } else {
     Debug(1, "Restarting analysis thread for monitor (%d)", id);
     analysis_thread->Start();

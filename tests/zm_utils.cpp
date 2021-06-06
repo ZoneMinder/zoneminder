@@ -163,9 +163,9 @@ TEST_CASE("Base64Encode") {
 }
 
 TEST_CASE("ZM::clamp") {
-  REQUIRE(ZM::clamp(1, 0, 2) == 1);
-  REQUIRE(ZM::clamp(3, 0, 2) == 2);
-  REQUIRE(ZM::clamp(-1, 0, 2) == 0);
+  REQUIRE(zm::clamp(1, 0, 2) == 1);
+  REQUIRE(zm::clamp(3, 0, 2) == 2);
+  REQUIRE(zm::clamp(-1, 0, 2) == 0);
 }
 
 TEST_CASE("UriDecode") {

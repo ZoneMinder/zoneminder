@@ -367,7 +367,7 @@ QueryString::QueryString(std::istream &input) {
 
     auto foundItr = parameters_.find(name);
     if (foundItr == parameters_.end()) {
-      std::unique_ptr<QueryParameter> newParam = ZM::make_unique<QueryParameter>(name);
+      std::unique_ptr<QueryParameter> newParam = zm::make_unique<QueryParameter>(name);
       if (!value.empty()) {
         newParam->addValue(value);
       }

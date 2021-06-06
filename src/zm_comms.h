@@ -35,7 +35,7 @@
 #include <netinet/in.h>
 #endif
 
-namespace ZM {
+namespace zm {
 
 class CommsException : public Exception {
  public:

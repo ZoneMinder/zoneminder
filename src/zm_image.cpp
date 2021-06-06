@@ -2023,8 +2023,8 @@ void Image::Annotate(
 
   // Calculate initial coordinates of annotation so that everything is displayed even if the
   // user set coordinates would prevent that.
-  uint32 x0 = ZM::clamp(static_cast<uint32>(coord.x_), 0u, x0_max);
-  uint32 y0 = ZM::clamp(static_cast<uint32>(coord.y_), 0u, y0_max);
+  uint32 x0 = zm::clamp(static_cast<uint32>(coord.x_), 0u, x0_max);
+  uint32 y0 = zm::clamp(static_cast<uint32>(coord.y_), 0u, y0_max);
 
   uint32 y = y0;
   for (const std::string &line : lines) {
@@ -2382,10 +2382,10 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
     const Vector2 &p2 = polygon.GetVertices()[j];
 
     // The last pixel we can draw is width/height - 1. Clamp to that value.
-    int x1 = ZM::clamp(p1.x_, 0, static_cast<int>(width - 1));
-    int x2 = ZM::clamp(p2.x_, 0, static_cast<int>(width - 1));
-    int y1 = ZM::clamp(p1.y_, 0, static_cast<int>(height - 1));
-    int y2 = ZM::clamp(p2.y_, 0, static_cast<int>(height - 1));
+    int x1 = zm::clamp(p1.x_, 0, static_cast<int>(width - 1));
+    int x2 = zm::clamp(p2.x_, 0, static_cast<int>(width - 1));
+    int y1 = zm::clamp(p1.y_, 0, static_cast<int>(height - 1));
+    int y2 = zm::clamp(p2.y_, 0, static_cast<int>(height - 1));
 
     double dx = x2 - x1;
     double dy = y2 - y1;

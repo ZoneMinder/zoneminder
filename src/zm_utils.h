@@ -86,7 +86,7 @@ void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes);
 
 void touch(const char *pathname);
 
-namespace ZM {
+namespace zm {
 // C++14 std::make_unique (TODO: remove this once C++14 is supported)
 template<typename T, typename ...Args>
 inline auto make_unique(Args &&...args) ->
@@ -109,7 +109,7 @@ constexpr const T &clamp(const T &v, const T &lo, const T &hi, Compare comp) {
 }
 template<class T>
 constexpr const T &clamp(const T &v, const T &lo, const T &hi) {
-  return ZM::clamp(v, lo, hi, std::less<T>{});
+  return zm::clamp(v, lo, hi, std::less<T>{});
 }
 
 // C++17 std::data (TODO: remove this once C++17 is supported)

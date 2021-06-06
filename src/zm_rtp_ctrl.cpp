@@ -248,10 +248,10 @@ int RtpCtrlThread::recvPackets( unsigned char *buffer, ssize_t nBytes ) {
 
 void RtpCtrlThread::Run() {
   Debug( 2, "Starting control thread %x on port %d", mRtpSource.getSsrc(), mRtpSource.getLocalCtrlPort() );
-  ZM::SockAddrInet localAddr, remoteAddr;
+  zm::SockAddrInet localAddr, remoteAddr;
 
   bool sendReports;
-  ZM::UdpInetSocket rtpCtrlServer;
+  zm::UdpInetSocket rtpCtrlServer;
   if ( mRtpSource.getLocalHost() != "" ) {
     if ( !rtpCtrlServer.bind( mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalCtrlPort() ) )
       Fatal( "Failed to bind RTCP server" );
@@ -269,7 +269,7 @@ void RtpCtrlThread::Run() {
 
   // The only reason I can think of why we would have a timeout period is so that we can regularly send RR packets.
   // Why 10 seconds? If anything I think this should be whatever timeout value was given in the DESCRIBE response
-  ZM::Select select( 10 );
+  zm::Select select(10 );
   select.addReader( &rtpCtrlServer );
 
   unsigned char buffer[ZM_NETWORK_BUFSIZ];
@@ -279,7 +279,7 @@ void RtpCtrlThread::Run() {
 
   while (!mTerminate && select.wait() >= 0) {
     time_t now = time(nullptr);
-    ZM::Select::CommsList readable = select.getReadable();
+    zm::Select::CommsList readable = select.getReadable();
     if ( readable.size() == 0 ) {
       if ( ! timeout ) {
         // With this code here, we will send an SDES and RR packet every 10 seconds
@@ -302,8 +302,8 @@ void RtpCtrlThread::Run() {
       timeout = false;
       last_receive = time(nullptr);
     }
-    for ( ZM::Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
-      if ( ZM::UdpInetSocket *socket = dynamic_cast<ZM::UdpInetSocket *>(*iter) ) {
+    for (zm::Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
+      if ( zm::UdpInetSocket *socket = dynamic_cast<zm::UdpInetSocket *>(*iter) ) {
         ssize_t nBytes = socket->recv( buffer, sizeof(buffer) );
         Debug( 4, "Read %zd bytes on sd %d", nBytes, socket->getReadDesc() );
 

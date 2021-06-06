@@ -77,7 +77,7 @@ class GenericHash {
   }
   template<typename Container>
   void UpdateData(Container const &c) {
-    UpdateData(ZM::data(c), ZM::size(c));
+    UpdateData(zm::data(c), zm::size(c));
   }
 
   void Finalize() {

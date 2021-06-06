@@ -111,7 +111,7 @@ void RemoteCameraRtsp::Terminate() {
 }
 
 int RemoteCameraRtsp::Connect() {
-  rtspThread = ZM::make_unique<RtspThread>(monitor->Id(), method, protocol, host, port, path, auth, rtsp_describe);
+  rtspThread = zm::make_unique<RtspThread>(monitor->Id(), method, protocol, host, port, path, auth, rtsp_describe);
 
   return 0;
 }

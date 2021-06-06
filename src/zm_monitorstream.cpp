@@ -391,12 +391,16 @@ bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
+
     static struct timeval base_time;
-    struct DeltaTimeval delta_time;
-    if ( !frame_count )
+    Milliseconds delta_time =
+        zm::chrono::duration_cast<Milliseconds>(timestamp) - zm::chrono::duration_cast<Milliseconds>(base_time);
+
+    if (!frame_count) {
       base_time = timestamp;
-    DELTA_TIMEVAL(delta_time, timestamp, base_time, DT_PREC_3);
-    /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.delta);
+    }
+
+    /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.count());
   } else {
     static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
 

@@ -237,35 +237,37 @@ Event::~Event() {
     Warning("Empty endtime for event.  Should not happen.  Setting to now.");
     gettimeofday(&end_time, nullptr);
   }
-  struct DeltaTimeval delta_time;
-  DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
+
+  std::chrono::duration<double> delta_time =
+      zm::chrono::duration_cast<Microseconds>(end_time) - zm::chrono::duration_cast<Microseconds>(start_time);
   Debug(2, "start_time: %" PRIi64 ".% " PRIi64 " end_time: %" PRIi64 ".%" PRIi64,
         static_cast<int64>(start_time.tv_sec),
         static_cast<int64>(start_time.tv_usec),
         static_cast<int64>(end_time.tv_sec),
         static_cast<int64>(end_time.tv_usec));
 
-  if (frame_data.size()) WriteDbFrames();
+  if (frame_data.size()){
+    WriteDbFrames();
+  }
 
-  // Should not be static because we might be multi-threaded
-  char sql[ZM_SQL_LGE_BUFSIZ];
-  snprintf(sql, sizeof(sql),
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64 " AND Name='New Event'",
+  std::string sql = stringtf(
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64 " AND Name='New Event'",
       monitor->EventPrefix(), id, end_time.tv_sec,
-      delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
+      delta_time.count(),
       frames, alarm_frames,
-      tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
+      tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
       id);
-  if (!zmDbDoUpdate(sql)) {
+
+  if (!zmDbDoUpdate(sql.c_str())) {
     // Name might have been changed during recording, so just do the update without changing the name.
-    snprintf(sql, sizeof(sql),
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+    sql = stringtf(
+        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
         end_time.tv_sec,
-        delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
+        delta_time.count(),
         frames, alarm_frames,
-        tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
+        tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
         id);
-    zmDbDoUpdate(sql);
+    zmDbDoUpdate(sql.c_str());
   }  // end if no changed rows due to Name change during recording
 }  // Event::~Event()
 
@@ -578,53 +580,56 @@ void Event::AddFrame(
     or ( monitor_state == Monitor::PREALARM );
 
   if (db_frame) {
-
-    struct DeltaTimeval delta_time;
-    DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
-    Debug(1, "Frame delta is %" PRIi64 ".%" PRIi64 " - %" PRIi64 ".%" PRIi64 " = %lu.%lu, score %u zone_stats.size %zu",
+    std::chrono::duration<double> delta_time =
+        zm::chrono::duration_cast<Microseconds>(timestamp) - zm::chrono::duration_cast<Microseconds>(start_time);
+    Debug(1, "Frame delta is %" PRIi64 ".%" PRIi64 " - %" PRIi64 ".%" PRIi64 " = %.2f, score %u zone_stats.size %zu",
           static_cast<int64>(start_time.tv_sec), static_cast<int64>(start_time.tv_usec),
           static_cast<int64>(timestamp.tv_sec), static_cast<int64>(timestamp.tv_usec),
-          delta_time.sec, delta_time.fsec,
+          delta_time.count(),
           score,
           zone_stats.size());
 
+    Milliseconds delta_time_ms = std::chrono::duration_cast<Milliseconds>(delta_time);
     // The idea is to write out 1/sec
-    frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score, zone_stats));
+    frame_data.push(new Frame(id,
+                              frames,
+                              frame_type,
+                              timestamp,
+                              zm::chrono::duration_cast<DeltaTimeval, DT_PREC_3>(delta_time_ms),
+                              score,
+                              zone_stats));
     double fps = monitor->get_capture_fps();
-		if ( write_to_db
-				or
-				( frame_data.size() >= MAX_DB_FRAMES )
-				or
-				( frame_type == BULK )
-				or
-				( fps and (frame_data.size() > fps) )
-			 ) {
-          Debug(1, "Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK(%d)",
-                frame_data.size(), write_to_db, fps, (frame_type == BULK));
+    if (write_to_db
+        or
+            (frame_data.size() >= MAX_DB_FRAMES)
+        or
+            (frame_type == BULK)
+        or
+            (fps and (frame_data.size() > fps))) {
+      Debug(1, "Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK(%d)",
+            frame_data.size(), write_to_db, fps, (frame_type == BULK));
       WriteDbFrames();
       last_db_frame = frames;
 
-      char sql[ZM_SQL_MED_BUFSIZ];
-      snprintf(sql, sizeof(sql), 
-          "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64, 
-          ( delta_time.positive?"":"-" ),
-          delta_time.sec, delta_time.fsec,
-          frames, 
+      std::string sql = stringtf(
+          "UPDATE Events SET Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+          delta_time.count(),
+          frames,
           alarm_frames,
           tot_score,
-          (int)(alarm_frames?(tot_score/alarm_frames):0),
+          static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
           max_score,
-          id
-          );
+          id);
       dbQueue.push(std::move(sql));
-		} else {
-          Debug(1, "Not Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
-                frame_data.size(), write_to_db, fps);
+    } else {
+      Debug(1, "Not Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
+            frame_data.size(), write_to_db, fps);
     } // end if frame_type == BULK
   } // end if db_frame
 
-  if (score > (int)max_score)
+  if (score > (int) max_score) {
     max_score = score;
+  }
   end_time = timestamp;
 }  // end void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image)
 

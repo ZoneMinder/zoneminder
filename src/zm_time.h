@@ -51,28 +51,6 @@ struct DeltaTimeval
 
 #define DT_MAXGRAN    DT_GRAN_1000000
 
-// This obviously wouldn't work for massive deltas but as it's mostly
-// for frames it will only usually be a fraction of a second or so
-#define DELTA_TIMEVAL( result, time1, time2, precision ) \
-{ \
-  int delta = (((time1).tv_sec-(time2).tv_sec)*(precision))+(((time1).tv_usec-(time2).tv_usec)/(DT_MAXGRAN/(precision))); \
-  result.positive = (delta>=0); \
-  result.delta = abs(delta); \
-  result.sec = result.delta/(precision); \
-  result.fsec = result.delta%(precision); \
-  result.prec = (precision); \
-}
-
-#define TIMEVAL_INTERVAL( result, time1, time2, precision ) \
-{ \
-  int delta = (((time1).tv_sec-(time2).tv_sec)*(precision))+(((time1).tv_usec-(time2).tv_usec)/(DT_MAXGRAN/(precision))); \
-  result.positive = (delta>=0); \
-  result.delta = abs(delta); \
-  result.sec = result.delta/(precision); \
-  result.fsec = result.delta%(precision); \
-  result.prec = (precision); \
-}
-
 #define USEC_PER_SEC 1000000
 #define MSEC_PER_SEC 1000
 

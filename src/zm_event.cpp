@@ -238,7 +238,7 @@ Event::~Event() {
     gettimeofday(&end_time, nullptr);
   }
 
-  std::chrono::duration<double> delta_time =
+  FPSeconds delta_time =
       zm::chrono::duration_cast<Microseconds>(end_time) - zm::chrono::duration_cast<Microseconds>(start_time);
   Debug(2, "start_time: %" PRIi64 ".% " PRIi64 " end_time: %" PRIi64 ".%" PRIi64,
         static_cast<int64>(start_time.tv_sec),
@@ -580,7 +580,7 @@ void Event::AddFrame(
     or ( monitor_state == Monitor::PREALARM );
 
   if (db_frame) {
-    std::chrono::duration<double> delta_time =
+    FPSeconds delta_time =
         zm::chrono::duration_cast<Microseconds>(timestamp) - zm::chrono::duration_cast<Microseconds>(start_time);
     Debug(1, "Frame delta is %" PRIi64 ".%" PRIi64 " - %" PRIi64 ".%" PRIi64 " = %.2f, score %u zone_stats.size %zu",
           static_cast<int64>(start_time.tv_sec), static_cast<int64>(start_time.tv_usec),

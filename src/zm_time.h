@@ -20,7 +20,6 @@
 #ifndef ZM_TIME_H
 #define ZM_TIME_H
 
-#include "zm_logger.h"
 #include <chrono>
 #include <sys/time.h>
 
@@ -51,137 +50,10 @@ struct DeltaTimeval
 
 #define DT_MAXGRAN    DT_GRAN_1000000
 
-#define USEC_PER_SEC 1000000
-#define MSEC_PER_SEC 1000
-
-/*
-extern struct timeval tv;
-*/
-
-inline int tvDiffUsec( struct timeval first, struct timeval last )
-{
-  return( (last.tv_sec - first.tv_sec) * USEC_PER_SEC) + ((USEC_PER_SEC + last.tv_usec - first.tv_usec) - USEC_PER_SEC );
-}
-
-inline int tvDiffUsec( struct timeval first )
-{
-  struct timeval now;
-  gettimeofday( &now, nullptr );
-  return( tvDiffUsec( first, now ) );
-}
-
-inline int tvDiffMsec( struct timeval first, struct timeval last )
-{
-  return( (last.tv_sec - first.tv_sec) * MSEC_PER_SEC) + (((MSEC_PER_SEC + last.tv_usec - first.tv_usec) / MSEC_PER_SEC) - MSEC_PER_SEC );
-}
-
-inline int tvDiffMsec( struct timeval first )
-{
-  struct timeval now;
-  gettimeofday( &now, nullptr );
-  return( tvDiffMsec( first, now ) );
-}
-
-inline double tvDiffSec( struct timeval first, struct timeval last )
-{
-  return( double(last.tv_sec - first.tv_sec) + double(((USEC_PER_SEC + last.tv_usec - first.tv_usec) - USEC_PER_SEC) / (1.0*USEC_PER_SEC) ) );
-}
-
-inline double tvDiffSec( struct timeval first )
-{
-  struct timeval now;
-  gettimeofday( &now, nullptr );
-  return( tvDiffSec( first, now ) );
-}
-
-inline struct timeval tvZero()
-{
-  struct timeval t = { 0, 0 };
-  return( t );
-}
-
-inline int tvIsZero( const struct timeval t )
-{
-  return( t.tv_sec == 0 && t.tv_usec == 0 );
-}
-
-inline int tvCmp( struct timeval t1, struct timeval t2 )
-{
-  if ( t1.tv_sec < t2.tv_sec )
-    return( -1 );
-  if ( t1.tv_sec > t2.tv_sec )
-    return( 1 );
-  if ( t1.tv_usec < t2.tv_usec )
-    return( -1 );
-  if ( t1.tv_usec > t2.tv_usec )
-    return( 1 );
-  return( 0 );
-}
-
-inline int tvEq( struct timeval t1, struct timeval t2 )
-{
-  return( t1.tv_sec == t2.tv_sec && t1.tv_usec == t2.tv_usec );
-}
-
-inline struct timeval tvNow( void )
-{
-  struct timeval t;
-  gettimeofday( &t, nullptr );
-  return( t );
-}
-
-inline struct timeval tvCheck( struct timeval &t )
-{
-  if ( t.tv_usec >= USEC_PER_SEC )
-  {
-    Warning( "Timestamp too large %ld.%ld\n", t.tv_sec, (long int) t.tv_usec );
-    t.tv_sec += t.tv_usec / USEC_PER_SEC;
-    t.tv_usec %= USEC_PER_SEC;
-  }
-  else if ( t.tv_usec < 0 )
-  {
-    Warning( "Got negative timestamp %ld.%ld\n", t.tv_sec, (long int)t.tv_usec );
-    t.tv_usec = 0;
-  }
-  return( t );
-}
-
-// Add t2 to t1
-inline struct timeval tvAdd( struct timeval t1, struct timeval t2 )
-{
-  tvCheck(t1);
-  tvCheck(t2);
-  t1.tv_sec += t2.tv_sec;
-  t1.tv_usec += t2.tv_usec;
-  if ( t1.tv_usec >= USEC_PER_SEC )
-  {
-    t1.tv_sec++;
-    t1.tv_usec -= USEC_PER_SEC;
-  }
-  return( t1 );
-}
-
-// Subtract t2 from t1
-inline struct timeval tvSub( struct timeval t1, struct timeval t2 )
-{
-  tvCheck(t1);
-  tvCheck(t2);
-  t1.tv_sec -= t2.tv_sec;
-  t1.tv_usec -= t2.tv_usec;
-  if ( t1.tv_usec < 0 )
-  {
-    t1.tv_sec--;
-    t1.tv_usec += USEC_PER_SEC;
-  }
-  return( t1 ) ;
-}
-
-inline struct timeval tvMake( time_t sec, suseconds_t usec )
-{
-  struct timeval t;
-  t.tv_sec = sec;
-  t.tv_usec = usec;
-  return( t );
+inline struct timeval tvNow() {
+  timeval t = {};
+  gettimeofday(&t, nullptr);
+  return t;
 }
 
 typedef std::chrono::microseconds Microseconds;
@@ -189,6 +61,9 @@ typedef std::chrono::milliseconds Milliseconds;
 typedef std::chrono::seconds Seconds;
 typedef std::chrono::minutes Minutes;
 typedef std::chrono::hours Hours;
+
+// floating point seconds
+typedef std::chrono::duration<double> FPSeconds;
 
 typedef std::chrono::steady_clock::time_point TimePoint;
 typedef std::chrono::system_clock::time_point SystemTimePoint;

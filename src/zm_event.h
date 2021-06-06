@@ -23,6 +23,7 @@
 #include "zm_config.h"
 #include "zm_define.h"
 #include "zm_storage.h"
+#include "zm_time.h"
 #include "zm_zone.h"
 
 #include <map>
@@ -68,8 +69,8 @@ class Event {
 
     uint64_t  id;
     Monitor      *monitor;
-    struct timeval  start_time;
-    struct timeval  end_time;
+    SystemTimePoint start_time;
+    SystemTimePoint end_time;
     std::string     cause;
     StringSetMap    noteSetMap;
     int        frames;
@@ -108,8 +109,8 @@ class Event {
     int Frames() const { return frames; }
     int AlarmFrames() const { return alarm_frames; }
 
-    const struct timeval &StartTime() const { return start_time; }
-    const struct timeval &EndTime() const { return end_time; }
+    timeval StartTime() const { return zm::chrono::duration_cast<timeval>(start_time.time_since_epoch()); }
+    timeval EndTime() const { return zm::chrono::duration_cast<timeval>(end_time.time_since_epoch()); }
 
     void AddPacket(const std::shared_ptr<ZMPacket> &p);
     bool WritePacket(const std::shared_ptr<ZMPacket> &p);

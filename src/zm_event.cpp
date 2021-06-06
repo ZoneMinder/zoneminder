@@ -49,8 +49,8 @@ Event::Event(
     ) :
   id(0),
   monitor(p_monitor),
-  start_time(p_start_time),
-  end_time({0,0}),
+  start_time(SystemTimePoint(zm::chrono::duration_cast<Microseconds>(p_start_time))),
+  end_time(),
   cause(p_cause),
   noteSetMap(p_noteSetMap),
   frames(0),
@@ -72,25 +72,25 @@ Event::Event(
   std::string notes;
   createNotes(notes);
 
-  timeval now = {};
-  gettimeofday(&now, nullptr);
+  SystemTimePoint now = std::chrono::system_clock::now();
 
-  if ( !start_time.tv_sec ) {
+  if (start_time.time_since_epoch() == Seconds(0)) {
     Warning("Event has zero time, setting to now");
     start_time = now;
-  } else if ( start_time.tv_sec > now.tv_sec ) {
+  } else if (start_time > now) {
     char buffer[26];
     char buffer_now[26];
     tm tm_info = {};
+    time_t start_time_t = std::chrono::system_clock::to_time_t(start_time);
+    time_t now_t = std::chrono::system_clock::to_time_t(now);
 
-    localtime_r(&start_time.tv_sec, &tm_info);
+    localtime_r(&start_time_t, &tm_info);
     strftime(buffer, 26, "%Y:%m:%d %H:%M:%S", &tm_info);
-    localtime_r(&now.tv_sec, &tm_info);
+    localtime_r(&now_t, &tm_info);
     strftime(buffer_now, 26, "%Y:%m:%d %H:%M:%S", &tm_info);
 
-    Error("StartDateTime in the future starttime %ld.%06ld >? now %ld.%06ld difference %" PRIi64 "\nstarttime: %s\nnow: %s",
-          start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec,
-          static_cast<int64>(now.tv_sec - start_time.tv_sec),
+    Error("StartDateTime in the future. Difference: %" PRIi64 " s\nstarttime: %s\nnow: %s",
+          static_cast<int64>(std::chrono::duration_cast<Seconds>(now - start_time).count()),
           buffer, buffer_now);
     start_time = now;
   }
@@ -114,7 +114,7 @@ Event::Event(
       "( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
-      start_time.tv_sec,
+      static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)),
       monitor->Width(),
       monitor->Height(),
       cause.c_str(),
@@ -233,18 +233,15 @@ Event::~Event() {
   }
 
   // endtime is set in AddFrame, so SHOULD be set to the value of the last frame timestamp.
-  if ( !end_time.tv_sec ) {
-    Warning("Empty endtime for event.  Should not happen.  Setting to now.");
-    gettimeofday(&end_time, nullptr);
+  if (end_time.time_since_epoch() == Seconds(0)) {
+    Warning("Empty endtime for event. Should not happen. Setting to now.");
+    end_time = std::chrono::system_clock::now();
   }
 
-  FPSeconds delta_time =
-      zm::chrono::duration_cast<Microseconds>(end_time) - zm::chrono::duration_cast<Microseconds>(start_time);
-  Debug(2, "start_time: %" PRIi64 ".% " PRIi64 " end_time: %" PRIi64 ".%" PRIi64,
-        static_cast<int64>(start_time.tv_sec),
-        static_cast<int64>(start_time.tv_usec),
-        static_cast<int64>(end_time.tv_sec),
-        static_cast<int64>(end_time.tv_usec));
+  FPSeconds delta_time = end_time - start_time;
+  Debug(2, "start_time: %.2f end_time: %.2f",
+        std::chrono::duration_cast<FPSeconds>(start_time.time_since_epoch()).count(),
+        std::chrono::duration_cast<FPSeconds>(end_time.time_since_epoch()).count());
 
   if (frame_data.size()){
     WriteDbFrames();
@@ -252,7 +249,7 @@ Event::~Event() {
 
   std::string sql = stringtf(
       "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64 " AND Name='New Event'",
-      monitor->EventPrefix(), id, end_time.tv_sec,
+      monitor->EventPrefix(), id, std::chrono::system_clock::to_time_t(end_time),
       delta_time.count(),
       frames, alarm_frames,
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
@@ -262,7 +259,7 @@ Event::~Event() {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
         "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
-        end_time.tv_sec,
+        std::chrono::system_clock::to_time_t(end_time),
         delta_time.count(),
         frames, alarm_frames,
         tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
@@ -422,13 +419,13 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
 void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
-
   have_video_keyframe = have_video_keyframe || 
     ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && 
       ( packet->keyframe || monitor->GetOptVideoWriter() == Monitor::ENCODE) );
   Debug(2, "have_video_keyframe %d codec_type %d == video? %d packet keyframe %d",
       have_video_keyframe, packet->codec_type, (packet->codec_type == AVMEDIA_TYPE_VIDEO), packet->keyframe);
   ZM_DUMP_PACKET(packet->packet, "Adding to event");
+
   if (videoStore) {
     if (have_video_keyframe) {
       videoStore->writePacket(packet);
@@ -437,10 +434,11 @@ void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
     }
     //FIXME if it fails, we should write a jpeg
   }
-  if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image)
+
+  if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image) {
     AddFrame(packet->image, packet->timestamp, packet->zone_stats, packet->score, packet->analysis_image);
-  end_time = packet->timestamp;
-  return;
+  }
+  end_time = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(packet->timestamp));
 }
 
 void Event::WriteDbFrames() {
@@ -577,12 +575,13 @@ void Event::AddFrame(
     or ( monitor_state == Monitor::ALARM )
     or ( monitor_state == Monitor::PREALARM );
 
+  SystemTimePoint timestamp_us = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(timestamp));
+
   if (db_frame) {
-    FPSeconds delta_time =
-        zm::chrono::duration_cast<Microseconds>(timestamp) - zm::chrono::duration_cast<Microseconds>(start_time);
-    Debug(1, "Frame delta is %" PRIi64 ".%" PRIi64 " - %" PRIi64 ".%" PRIi64 " = %.2f, score %u zone_stats.size %zu",
-          static_cast<int64>(start_time.tv_sec), static_cast<int64>(start_time.tv_usec),
-          static_cast<int64>(timestamp.tv_sec), static_cast<int64>(timestamp.tv_usec),
+    FPSeconds delta_time = timestamp_us - start_time;
+    Debug(1, "Frame delta is %.2f - %.2f = %.2f, score %u zone_stats.size %zu",
+          std::chrono::duration_cast<FPSeconds>(timestamp_us.time_since_epoch()).count(),
+          std::chrono::duration_cast<FPSeconds>(start_time.time_since_epoch()).count(),
           delta_time.count(),
           score,
           zone_stats.size());
@@ -622,7 +621,7 @@ void Event::AddFrame(
   if (score > (int) max_score) {
     max_score = score;
   }
-  end_time = timestamp;
+  end_time = timestamp_us;
 }  // end void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image)
 
 bool Event::SetPath(Storage *storage) {
@@ -635,8 +634,10 @@ bool Event::SetPath(Storage *storage) {
     return false;
   }
 
+  time_t start_time_t = std::chrono::system_clock::to_time_t(start_time);
+
   tm stime = {};
-  localtime_r(&start_time.tv_sec, &stime);
+  localtime_r(&start_time_t, &stime);
   if (scheme == Storage::DEEP) {
 
     int dt_parts[6];

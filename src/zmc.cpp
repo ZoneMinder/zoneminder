@@ -286,8 +286,7 @@ int main(int argc, char *argv[]) {
           capture_delays[i], alarm_capture_delays[i]);
     }
 
-    struct timeval now;
-    struct DeltaTimeval delta_time;
+    timeval now;
     int sleep_time = 0;
 
     while (!zm_terminate) {
@@ -319,19 +318,19 @@ int main(int argc, char *argv[]) {
         if (delay) {
           gettimeofday(&now, nullptr);
           if (last_capture_times[i].tv_sec) {
-            // DT_PREC_3 means that the value will be in thousands of a second
-            DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_6);
+            Microseconds delta_time = zm::chrono::duration_cast<Microseconds>(now)
+                - zm::chrono::duration_cast<Microseconds>(last_capture_times[i]);
 
             // You have to add back in the previous sleep time
-            sleep_time = delay - (delta_time.delta - sleep_time);
+            sleep_time = delay - (delta_time.count() - sleep_time);
             Debug(4,
-                  "Sleep time is %d from now: %" PRIi64 ".%" PRIi64" last: %" PRIi64 ".% " PRIi64 " delta %lu delay: %d",
+                  "Sleep time is %d from now: %" PRIi64 ".%" PRIi64" last: %" PRIi64 ".% " PRIi64 " delta % " PRIi64 " delay: %d",
                   sleep_time,
                   static_cast<int64>(now.tv_sec),
                   static_cast<int64>(now.tv_usec),
                   static_cast<int64>(last_capture_times[i].tv_sec),
                   static_cast<int64>(last_capture_times[i].tv_usec),
-                  delta_time.delta,
+                  static_cast<int64>(delta_time.count()),
                   delay);
 
             if (sleep_time > 0) {

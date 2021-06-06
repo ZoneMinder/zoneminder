@@ -136,15 +136,6 @@ template<typename T, std::size_t N>
 constexpr std::size_t size(const T(&)[N]) noexcept { return N; }
 }
 
-typedef std::chrono::microseconds Microseconds;
-typedef std::chrono::milliseconds Milliseconds;
-typedef std::chrono::seconds Seconds;
-typedef std::chrono::minutes Minutes;
-typedef std::chrono::hours Hours;
-
-typedef std::chrono::steady_clock::time_point TimePoint;
-typedef std::chrono::system_clock::time_point SystemTimePoint;
-
 std::string UriDecode(const std::string &encoded);
 
 class QueryParameter {

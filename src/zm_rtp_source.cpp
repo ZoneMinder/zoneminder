@@ -67,11 +67,11 @@ RtpSource::RtpSource(
   mRtpFactor = mRtpClock;
 
   mBaseTimeReal = tvNow();
-  mBaseTimeNtp = tvZero();
+  mBaseTimeNtp = {};
   mBaseTimeRtp = rtpTime;
 
-  mLastSrTimeReal = tvZero();
-  mLastSrTimeNtp = tvZero();
+  mLastSrTimeReal = {};
+  mLastSrTimeNtp = {};
   mLastSrTimeRtp = 0;
 
   if ( mCodecId != AV_CODEC_ID_H264 && mCodecId != AV_CODEC_ID_MPEG4 )
@@ -160,12 +160,18 @@ bool RtpSource::updateSeq(uint16_t seq) {
 
 void RtpSource::updateJitter( const RtpDataHeader *header ) {
   if ( mRtpFactor > 0 ) {
-    uint32_t localTimeRtp = mBaseTimeRtp + uint32_t(tvDiffSec(mBaseTimeReal) * mRtpFactor);
+    timeval now = {};
+    gettimeofday(&now, nullptr);
+
+    FPSeconds time_diff =
+        zm::chrono::duration_cast<Microseconds>(now) - zm::chrono::duration_cast<Microseconds>(mBaseTimeReal);
+
+    uint32_t localTimeRtp = mBaseTimeRtp + static_cast<uint32>(time_diff.count() * mRtpFactor);
     uint32_t packetTransit = localTimeRtp - ntohl(header->timestampN);
 
     Debug(5,
           "Delta rtp = %.6f\n Local RTP time = %x Packet RTP time = %x Packet transit RTP time = %x",
-          tvDiffSec(mBaseTimeReal),
+          time_diff.count(),
           localTimeRtp,
           ntohl(header->timestampN),
           packetTransit);
@@ -190,7 +196,8 @@ void RtpSource::updateRtcpData(
     uint32_t ntpTimeSecs,
     uint32_t ntpTimeFrac,
     uint32_t rtpTime) {
-  struct timeval ntpTime = tvMake(ntpTimeSecs, suseconds_t((USEC_PER_SEC*(ntpTimeFrac>>16))/(1<<16)));
+  timeval ntpTime = zm::chrono::duration_cast<timeval>(
+      Seconds(ntpTimeSecs) + Microseconds((Microseconds::period::den * (ntpTimeFrac >> 16)) / (1 << 16)));
 
   Debug(5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
 
@@ -204,12 +211,14 @@ void RtpSource::updateRtcpData(
         mLastSrTimeNtp.tv_sec, mLastSrTimeNtp.tv_usec, rtpTime,
         ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
 
-    double diffNtpTime = tvDiffSec( mBaseTimeNtp, ntpTime );
+    FPSeconds diffNtpTime =
+        zm::chrono::duration_cast<Microseconds>(ntpTime) - zm::chrono::duration_cast<Microseconds>(mBaseTimeNtp);
+
     uint32_t diffRtpTime = rtpTime - mBaseTimeRtp;
-    mRtpFactor = (uint32_t)(diffRtpTime / diffNtpTime);
+    mRtpFactor = static_cast<uint32>(diffRtpTime / diffNtpTime.count());
 
     Debug( 5, "NTP-diff: %.6f RTP-diff: %d RTPfactor: %d",
-        diffNtpTime, diffRtpTime, mRtpFactor);
+        diffNtpTime.count(), diffRtpTime, mRtpFactor);
   }
   mLastSrTimeNtpSecs = ntpTimeSecs;
   mLastSrTimeNtpFrac = ntpTimeFrac;

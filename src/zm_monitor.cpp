@@ -484,8 +484,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   /* "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS," */
   analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], nullptr) : 0.0; col++;
   analysis_update_delay = strtoul(dbrow[col++], nullptr, 0);
-  capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_6/atof(dbrow[col])):0; col++;
-  alarm_capture_delay = (dbrow[col] && atof(dbrow[col])>0.0)?int(DT_PREC_6/atof(dbrow[col])):0; col++;
+  capture_delay = (dbrow[col] && atof(dbrow[col]) > 0.0) ? int(Microseconds::period::den / atof(dbrow[col])) : 0; col++;
+  alarm_capture_delay = (dbrow[col] && atof(dbrow[col]) > 0.0) ? int(Microseconds::period::den / atof(dbrow[col])) : 0; col++;
 
   /* "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings */
   device = dbrow[col] ? dbrow[col] : ""; col++;
@@ -2963,8 +2963,8 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   sprintf(output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
   sprintf(output+strlen(output), "Section Length : %d\n", section_length);
   sprintf(output+strlen(output), "Min Section Length : %d\n", min_section_length);
-  sprintf(output+strlen(output), "Maximum FPS : %.2f\n", capture_delay?(double)DT_PREC_3/capture_delay:0.0);
-  sprintf(output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay?(double)DT_PREC_3/alarm_capture_delay:0.0);
+  sprintf(output+strlen(output), "Maximum FPS : %.2f\n", capture_delay ? (double) Microseconds::period::den / capture_delay : 0.0);
+  sprintf(output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay ? (double) Microseconds::period::den / alarm_capture_delay : 0.0);
   sprintf(output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc);
   sprintf(output+strlen(output), "Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc);
   sprintf(output+strlen(output), "Track Motion : %d\n", track_motion);

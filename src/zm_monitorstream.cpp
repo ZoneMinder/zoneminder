@@ -347,8 +347,7 @@ bool MonitorStream::sendFrame(const char *filepath, const timeval &timestamp) {
     }
 
     // Calculate how long it takes to actually send the frame
-    struct timeval frameStartTime;
-    gettimeofday(&frameStartTime, nullptr);
+    TimePoint send_start_time = std::chrono::steady_clock::now();
 
     if (
         (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %d.%06d\r\n\r\n",
@@ -363,13 +362,14 @@ bool MonitorStream::sendFrame(const char *filepath, const timeval &timestamp) {
     fputs("\r\n", stdout);
     fflush(stdout);
 
-    struct timeval frameEndTime;
-    gettimeofday(&frameEndTime, nullptr);
+    TimePoint send_end_time = std::chrono::steady_clock::now();
+    Milliseconds frame_send_time = std::chrono::duration_cast<Milliseconds>(send_end_time - send_start_time);
 
-    int frameSendTime = tvDiffMsec(frameStartTime, frameEndTime);
-    if ( frameSendTime > 1000/maxfps ) {
+    if (frame_send_time > Milliseconds(lround(Milliseconds::period::den / maxfps))) {
       maxfps /= 2;
-      Info("Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps);
+      Info("Frame send time %" PRIi64 " msec too slow, throttling maxfps to %.2f",
+           static_cast<int64>(frame_send_time.count()),
+           maxfps);
     }
 
     last_frame_sent = TV_2_FLOAT(now);
@@ -408,8 +408,7 @@ bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
     unsigned char *img_buffer = temp_img_buffer;
 
     // Calculate how long it takes to actually send the frame
-    struct timeval frameStartTime;
-    gettimeofday(&frameStartTime, nullptr);
+    TimePoint send_start_time = std::chrono::steady_clock::now();
 
     switch ( type ) {
       case STREAM_JPEG :
@@ -451,14 +450,14 @@ bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
     fputs("\r\n", stdout);
     fflush(stdout);
 
-    struct timeval frameEndTime;
-    gettimeofday(&frameEndTime, nullptr);
+    TimePoint send_end_time = std::chrono::steady_clock::now();
+    Milliseconds frame_send_time = std::chrono::duration_cast<Milliseconds>(send_end_time - send_start_time);
 
-    int frameSendTime = tvDiffMsec(frameStartTime, frameEndTime);
-    if ( frameSendTime > 1000/maxfps ) {
+    if (frame_send_time > Milliseconds(lround(Milliseconds::period::den / maxfps))) {
       maxfps /= 1.5;
-      Warning("Frame send time %d msec too slow, throttling maxfps to %.2f",
-          frameSendTime, maxfps);
+      Warning("Frame send time %" PRIi64 " msec too slow, throttling maxfps to %.2f",
+              static_cast<int64>(frame_send_time.count()),
+              maxfps);
     }
   }  // Not mpeg
   last_frame_sent = TV_2_FLOAT(now);

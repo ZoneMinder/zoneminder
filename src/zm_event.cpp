@@ -454,14 +454,12 @@ void Event::WriteDbFrames() {
   while (frame_data.size()) {
     Frame *frame = frame_data.front();
     frame_data.pop();
-    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d ),",
-        id, frame->frame_id,
-        frame_type_names[frame->type],
-        frame->timestamp.tv_sec,
-        frame->delta.positive ? "" : "-",
-        frame->delta.sec,
-        frame->delta.fsec,
-        frame->score);
+    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %.2f, %d ),",
+                                 id, frame->frame_id,
+                                 frame_type_names[frame->type],
+                                 frame->timestamp.tv_sec,
+                                 std::chrono::duration_cast<FPSeconds>(frame->delta).count(),
+                                 frame->score);
     if (config.record_event_stats and frame->zone_stats.size()) {
       for (ZoneStats &stats : frame->zone_stats) {
         stats_insert_sql += stringtf("\n(%" PRIu64 ",%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u),",
@@ -591,13 +589,7 @@ void Event::AddFrame(
 
     Milliseconds delta_time_ms = std::chrono::duration_cast<Milliseconds>(delta_time);
     // The idea is to write out 1/sec
-    frame_data.push(new Frame(id,
-                              frames,
-                              frame_type,
-                              timestamp,
-                              zm::chrono::duration_cast<DeltaTimeval, DT_PREC_3>(delta_time_ms),
-                              score,
-                              zone_stats));
+    frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time_ms, score, zone_stats));
     double fps = monitor->get_capture_fps();
     if (write_to_db
         or

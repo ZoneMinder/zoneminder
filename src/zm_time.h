@@ -23,33 +23,6 @@
 #include <chrono>
 #include <sys/time.h>
 
-// Structure used for storing the results of the subtraction
-// of one struct timeval from another
-
-struct DeltaTimeval
-{
-  bool positive;
-  unsigned long delta;
-  unsigned long sec;
-  unsigned long fsec;
-  unsigned long prec;
-};
-
-#define DT_GRAN_1000000  1000000
-#define DT_PREC_6    DT_GRAN_1000000
-#define DT_GRAN_100000  100000
-#define DT_PREC_5    DT_GRAN_100000
-#define DT_GRAN_10000  10000
-#define DT_PREC_4    DT_GRAN_10000
-#define DT_GRAN_1000  1000
-#define DT_PREC_3    DT_GRAN_1000
-#define DT_GRAN_100    100
-#define DT_PREC_2    DT_GRAN_100
-#define DT_GRAN_10    10
-#define DT_PREC_1    DT_GRAN_10
-
-#define DT_MAXGRAN    DT_GRAN_1000000
-
 inline struct timeval tvNow() {
   timeval t = {};
   gettimeofday(&t, nullptr);
@@ -99,27 +72,6 @@ struct posix_duration_cast<timeval, std::chrono::duration<Rep, Period>> {
     );
   }
 };
-
-// chrono -> DeltaTimeval caster
-template<typename Rep, typename Period>
-struct posix_duration_cast<std::chrono::duration<Rep, Period>, DeltaTimeval> {
-  template<uint32 Prec>
-  static DeltaTimeval cast(std::chrono::duration<Rep, Period> const &d) {
-    typedef std::chrono::duration<int64, std::ratio<1, Prec>> fsec_t;
-    DeltaTimeval res = {};
-
-    Seconds secs = std::chrono::duration_cast<Seconds>(d);
-    fsec_t fsec = std::chrono::duration_cast<fsec_t, int64, std::ratio<1, Prec>>(d - secs);
-
-    res.positive = fsec >= Seconds::zero();
-    res.delta = abs((secs + fsec).count());
-    res.sec = secs.count();
-    res.fsec = fsec.count();
-    res.prec = Prec;
-
-    return res;
-  }
-};
 }
 
 // chrono -> timeval
@@ -133,13 +85,6 @@ auto duration_cast(std::chrono::duration<Rep, Period> const &d)
 template<typename Duration>
 Duration duration_cast(timeval const &tv) {
   return impl::posix_duration_cast<timeval, Duration>::cast(tv);
-}
-
-// chrono -> DeltaTimeval
-template<typename T, uint32 Prec, typename Rep, typename Period>
-auto duration_cast(std::chrono::duration<Rep, Period> const &d)
--> typename std::enable_if<std::is_same<T, DeltaTimeval>::value, DeltaTimeval>::type {
-  return impl::posix_duration_cast<std::chrono::duration<Rep, Period>, DeltaTimeval>::template cast<Prec>(d);
 }
 }
 }

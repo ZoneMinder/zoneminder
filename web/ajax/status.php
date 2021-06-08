@@ -108,7 +108,9 @@ $statusData = array(
       'Cause' => true,
       'Notes' => true,
       'StartDateTime' => true,
+      # Left for backwards compatability. Remove in 1.37
       'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'StartDateTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndDateTime' => true,
       'Width' => true,
       'Height' => true,
@@ -131,8 +133,12 @@ $statusData = array(
       'MonitorName' => array('sql' => '(SELECT Monitors.Name FROM Monitors WHERE Monitors.Id = Events.MonitorId)'),
       'Name' => true,
       'Cause' => true,
+      'DiskSpace' => true,
+      'Storage' => array('sql' => '(SELECT Storage.Name FROM Storage WHERE Storage.Id=Events.StorageId)'),
       'StartDateTime' => true,
+      # Left for backwards compatability. Remove in 1.37
       'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'StartDateTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndDateTime' => true,
       'Width' => true,
       'Height' => true,

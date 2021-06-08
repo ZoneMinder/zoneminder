@@ -1,10 +1,9 @@
 <?php
-if ( !canEdit('Events') ) return;
+if (!canEdit('Events')) return;
 
 $eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
 $eid = validInt($eid);
 $Event = new ZM\Event($eid);
-
 ?>
 <div class="modal" id="eventRenameModal" tabindex="-1">
   <div class="modal-dialog">

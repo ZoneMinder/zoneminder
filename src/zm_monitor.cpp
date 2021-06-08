@@ -2630,9 +2630,7 @@ bool Monitor::Decode() {
             delete packet->image;
             packet->image = nullptr;
           }
-          Debug(1, "Done assigning about to unref");
           av_frame_unref(dest_frame);
-          Debug(1, "Done assigning onde to unref");
         }  // end if have convert_context
       }  // end if need transfer to image
     } else {

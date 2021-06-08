@@ -132,8 +132,8 @@ int ZMPacket::decode(AVCodecContext *ctx) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
-    if ( fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)) ) {
-      Debug(1, "Have different format ctx->pix_fmt %s ?= ctx->sw_pix_fmt %s in_frame->format %s.",
+    if (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format))) {
+      Debug(3, "Have different format ctx->pix_fmt %s ?= ctx->sw_pix_fmt %s in_frame->format %s.",
           av_get_pix_fmt_name(ctx->pix_fmt),
           av_get_pix_fmt_name(ctx->sw_pix_fmt),
           av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
@@ -180,7 +180,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
       /* retrieve data from GPU to CPU */
       zm_dump_video_frame(in_frame, "Before hwtransfer");
       ret = av_hwframe_transfer_data(new_frame, in_frame, 0);
-      if ( ret < 0 ) {
+      if (ret < 0) {
         Error("Unable to transfer frame: %s, continuing",
             av_make_error_string(ret).c_str());
         av_frame_free(&in_frame);
@@ -188,7 +188,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
         return 0;
       }
       ret = av_frame_copy_props(new_frame, in_frame);
-      if ( ret < 0 ) {
+      if (ret < 0) {
         Error("Unable to copy props: %s, continuing",
             av_make_error_string(ret).c_str());
       }
@@ -205,7 +205,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     } else
 #endif
 #endif
-      Debug(2, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
+      Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
           av_get_pix_fmt_name(ctx->pix_fmt),
           av_get_pix_fmt_name(ctx->sw_pix_fmt)
           );
@@ -219,12 +219,12 @@ int ZMPacket::decode(AVCodecContext *ctx) {
 } // end ZMPacket::decode
 
 Image *ZMPacket::get_image(Image *i) {
-  if ( !in_frame ) {
+  if (!in_frame) {
     Error("Can't get image without frame.. maybe need to decode first");
     return nullptr;
   }
-  if ( !image ) {
-    if ( !i ) {
+  if (!image) {
+    if (!i) {
       Error("Need a pre-allocated image buffer");
       return nullptr;
     } 
@@ -240,7 +240,7 @@ Image *ZMPacket::set_image(Image *i) {
 }
 
 AVPacket *ZMPacket::set_packet(AVPacket *p) {
-  if ( zm_av_packet_ref(&packet, p) < 0 ) {
+  if (zm_av_packet_ref(&packet, p) < 0) {
     Error("error refing packet");
   }
   //ZM_DUMP_PACKET(packet, "zmpacket:");

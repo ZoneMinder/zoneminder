@@ -424,7 +424,6 @@ function streamFastRev(action) {
   if (vid) { //There is no reverse play with mp4.  Set the speed to 0 and manually set the time back.
     revSpeed = -1*(rates[rates.indexOf(revSpeed*-100)-1]/100);
     if (rates.indexOf(revSpeed*-100) == 0) {
-      console.log("paused?");
       setButtonState('fastRevBtn', 'unavail');
     }
     clearInterval(intervalRewind);
@@ -583,27 +582,8 @@ function getEventResponse(respObj, respText) {
   }
 
   eventData = respObj.event;
+  getStat();
   currEventId = eventData.Id;
-
-  $j('#dataEventId').text( eventData.Id );
-  $j('#dataEventName').text( eventData.Name );
-  $j('#dataMonitorId').text('<a href="?video=monitor&mid='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>');
-  $j('#dataMonitorName').text('<a href="?video=monitor&mid='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>');
-  $j('#dataCause').text( eventData.Cause );
-  if ( eventData.Notes ) {
-    $j('#dataCause').prop( 'title', eventData.Notes );
-  } else {
-    $j('#dataCause').prop( 'title', causeString );
-  }
-  $j('#dataStartTime').text( eventData.StartDateTime );
-  $j('#dataDuration').text( eventData.Length );
-  $j('#dataFrames').text( eventData.Frames );
-  $j('#dataAlarmFrames').text( eventData.AlarmFrames );
-  $j('dataTotalScore').text( eventData.TotScore );
-  $j('dataAvgScore').text( eventData.AvgScore );
-  $j('dataMaxScore').text( eventData.MaxScore );
-  $j('dataDiskSpace').text( eventData.DiskSpace );
-  $j('dataStorage').text( eventData.Storage );
 
   // Refresh the status of the archive buttons
   archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
@@ -612,7 +592,6 @@ function getEventResponse(respObj, respText) {
   history.replaceState(null, null, '?view=event&eid=' + eventData.Id + filterQuery + sortQuery); //if popup removed, check if this allows forward
   if ( vid && CurEventDefVideoPath ) {
     vid.src({type: 'video/mp4', src: CurEventDefVideoPath}); //Currently mp4 is all we use
-    console.log('getEventResponse');
     initialAlarmCues(eventData.Id);//ajax and render, new event
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     CurEventDefVideoPath = null;
@@ -640,7 +619,6 @@ function getNearEventsResponse(respObj, respText) {
   if (checkStreamForErrors('getNearEventsResponse', respObj)) {
     return;
   }
-  console.log(respObj);
   prevEventId = respObj.nearevents.PrevEventId;
   nextEventId = respObj.nearevents.NextEventId;
   prevEventStartTime = Date.parse(respObj.nearevents.PrevEventStartTime);
@@ -709,6 +687,7 @@ function getActResponse(respObj, respText) {
   if (respObj.refreshEvent) {
     eventQuery(eventData.Id);
   }
+  $j('#eventRenameModal').modal('hide');
 }
 
 function actQuery(action, parms) {
@@ -726,8 +705,6 @@ function actQuery(action, parms) {
 function renameEvent() {
   var newName = $j('input').val();
   actQuery('rename', {eventName: newName});
-  //FIXME: update the value of the event name rather than reload the whole page
-  window.location.reload(true);
 }
 
 function exportEvent() {
@@ -826,7 +803,8 @@ function getStat() {
     var th = $j('<th>').addClass('text-right').text(eventDataStrings[key]);
     var tdString;
 
-    switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
+    //switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
+    switch (key) {
       case 'Frames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
         break;
@@ -838,6 +816,10 @@ function getStat() {
         break;
       case 'n/a':
         tdString = 'n/a';
+        break;
+      case 'Archived':
+      case 'Emailed':
+        tdString = eventData[key] ? yesStr : noStr;
         break;
       default:
         tdString = eventData[key];

@@ -49,7 +49,7 @@ var eventData = {
     Height: '<?php echo $Event->Height() ?>',
     Length: '<?php echo $Event->Length() ?>',
     StartDateTime: '<?php echo $Event->StartDateTime() ?>',
-    StartDateTimeFmt: '<?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?>',
+    StartDateTimeShort: '<?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?>',
     EndDateTime: '<?php echo $Event->EndDateTime() ?>',
     Frames: '<?php echo $Event->Frames() ?>',
     AlarmFrames: '<?php echo $Event->AlarmFrames() ?>',
@@ -58,12 +58,13 @@ var eventData = {
     MaxScore: '<?php echo $Event->MaxScore() ?>',
     DiskSpace: '<?php echo human_filesize($Event->DiskSpace(null)) ?>',
     Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
-    ArchivedStr: '<?php echo $Event->Archived ? translate('Yes') : translate('No') ?>',
-    EmailedStr: '<?php echo $Event->Emailed ? translate('Yes') : translate('No') ?>',
     Archived: <?php echo $Event->Archived?'true':'false' ?>,
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>
 <?php } ?>
 };
+
+var yesStr = '<?php echo translate('Yes') ?>';
+var noStr = '<?php echo translate('No') ?>';
 
 var eventDataStrings = {
     Id: '<?php echo translate('EventId') ?>',
@@ -71,7 +72,7 @@ var eventDataStrings = {
     MonitorId: '<?php echo translate('AttrMonitorId') ?>',
     MonitorName: '<?php echo translate('AttrMonitorName') ?>',
     Cause: '<?php echo translate('Cause') ?>',
-    StartDateTimeFmt: '<?php echo translate('AttrStartTime') ?>',
+    StartDateTimeShort: '<?php echo translate('AttrStartTime') ?>',
     Length: '<?php echo translate('Duration') ?>',
     Frames: '<?php echo translate('AttrFrames') ?>',
     AlarmFrames: '<?php echo translate('AttrAlarmFrames') ?>',
@@ -80,8 +81,8 @@ var eventDataStrings = {
     MaxScore: '<?php echo translate('AttrMaxScore') ?>',
     DiskSpace: '<?php echo translate('DiskSpace') ?>',
     Storage: '<?php echo translate('Storage') ?>',
-    ArchivedStr: '<?php echo translate('Archived') ?>',
-    EmailedStr: '<?php echo translate('Emailed') ?>'
+    Archived: '<?php echo translate('Archived') ?>',
+    Emailed: '<?php echo translate('Emailed') ?>'
 };
 
 var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';

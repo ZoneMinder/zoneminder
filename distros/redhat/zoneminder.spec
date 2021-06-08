@@ -31,7 +31,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.36.3
+Version: 1.36.4
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -425,6 +425,9 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Tue Jun 08 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.4-1
+- 1.36.4 release
+
 * Sun May 30 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.3-1
 - 1.36.3 release
 

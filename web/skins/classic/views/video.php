@@ -108,7 +108,8 @@ xhtmlHeaders(__FILE__, translate('Video'));
       <div class="float-left pl-3">
         <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-        <button type="button" id="videoBtn" class="btn btn-normal" data-on-click="generateVideo" data-toggle="tooltip" data-placement="top" title="<?php echo translate('GenerateVideo') ?>" disabled><i class="fa fa-file-video-o"></i></button>
+        <button type="button" id="videoBtn" class="btn btn-normal" data-on-click="generateVideo" data-toggle="tooltip" data-placement="top" title="<?php echo translate('GenerateVideo') ?>" <?php if ( !ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>><i class="fa fa-file-video-o"></i></button>
+
       </div>
       <div class="w-100 pt-2">
         <h2><?php echo translate('Video') ?></h2>

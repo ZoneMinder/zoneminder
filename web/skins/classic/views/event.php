@@ -154,7 +154,11 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 ?>
         <a class="btn btn-normal" href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'),'&amp;')?>" download><i class="fa fa-download"></i></a>
 <?php
-  } 
+  } else {
+?>
+        <button id="videoEvent" class="btn btn-normal" data-toggle="tooltip" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Download') ?>" onclick="videoEvent();"><i class="fa fa-download"></i></button>
+<?php
+  } // end if Event->DefaultVideo
 ?>
         <button id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
         <button id="framesBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Frames') ?>" ><i class="fa fa-picture-o"></i></button>

@@ -37,6 +37,7 @@ Homepage: https://www.zoneminder.com/
 Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
+        ,sudo
         ,javascript-common
         ,libswscale5
         ,libswresample3

@@ -180,16 +180,6 @@ std::string Base64Encode(const std::string &str) {
   return outString;
 }
 
-void TimespecDiff(struct timespec *start, struct timespec *end, struct timespec *diff) {
-  if (((end->tv_nsec) - (start->tv_nsec)) < 0) {
-    diff->tv_sec = end->tv_sec - start->tv_sec - 1;
-    diff->tv_nsec = 1000000000 + end->tv_nsec - start->tv_nsec;
-  } else {
-    diff->tv_sec = end->tv_sec - start->tv_sec;
-    diff->tv_nsec = end->tv_nsec - start->tv_nsec;
-  }
-}
-
 std::string TimevalToString(timeval tv) {
   tm now = {};
   std::array<char, 26> tm_buf = {};

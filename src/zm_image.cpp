@@ -1061,23 +1061,26 @@ cinfo->out_color_space = JCS_RGB;
 // Note quality=zero means default
 
 bool Image::WriteJpeg(const char *filename, int quality_override) const {
-  return Image::WriteJpeg(filename, quality_override, (timeval){0,0}, false);
+  return Image::WriteJpeg(filename, quality_override, {}, false);
 }
 bool Image::WriteJpeg(const char *filename) const {
-  return Image::WriteJpeg(filename, 0, (timeval){0,0}, false);
+  return Image::WriteJpeg(filename, 0, {}, false);
 }
 bool Image::WriteJpeg(const char *filename, bool on_blocking_abort) const {
-  return Image::WriteJpeg(filename, 0, (timeval){0,0}, on_blocking_abort);
+  return Image::WriteJpeg(filename, 0, {}, on_blocking_abort);
 }
-bool Image::WriteJpeg(const char *filename, struct timeval timestamp) const {
+bool Image::WriteJpeg(const char *filename, SystemTimePoint timestamp) const {
   return Image::WriteJpeg(filename, 0, timestamp, false);
 }
 
-bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval timestamp) const {
+bool Image::WriteJpeg(const char *filename, int quality_override, SystemTimePoint timestamp) const {
   return Image::WriteJpeg(filename, quality_override, timestamp, false);
 }
 
-bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort) const {
+bool Image::WriteJpeg(const char *filename,
+                      int quality_override,
+                      SystemTimePoint timestamp,
+                      bool on_blocking_abort) const {
   if ( config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8) ) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
@@ -1196,7 +1199,7 @@ cinfo->out_color_space = JCS_RGB;
   }
   // If we have a non-zero time (meaning a parameter was passed in), then form a simple exif segment with that time as DateTimeOriginal and SubsecTimeOriginal
   // No timestamp just leave off the exif section.
-  if ( timestamp.tv_sec ) {
+  if (timestamp.time_since_epoch() > Seconds(0)) {
 #define EXIFTIMES_MS_OFFSET 0x36   // three decimal digits for milliseconds
 #define EXIFTIMES_MS_LEN  0x03
 #define EXIFTIMES_OFFSET  0x3E   // 19 characters format '2015:07:21 13:14:45' not including quotes
@@ -1205,9 +1208,15 @@ cinfo->out_color_space = JCS_RGB;
 
     // This is a lot of stuff to allocate on the stack.  Recommend char *timebuf[64];
     char timebuf[64], msbuf[64];
+
     tm timestamp_tm = {};
-    strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime_r(&timestamp.tv_sec, &timestamp_tm));
-    snprintf(msbuf, sizeof msbuf, "%06d",(int)(timestamp.tv_usec));  // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
+    time_t timestamp_t = std::chrono::system_clock::to_time_t(timestamp);
+    strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime_r(&timestamp_t, &timestamp_tm));
+    Seconds ts_sec = std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch());
+    Microseconds ts_usec = std::chrono::duration_cast<Microseconds>(timestamp.time_since_epoch() - ts_sec);
+    // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
+    snprintf(msbuf, sizeof msbuf, "%06d", static_cast<int32>(ts_usec.count()));
+
     unsigned char exiftimes[82] = {
       0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00,
       0x69, 0x87, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1722,11 +1731,6 @@ void Image::Overlay( const Image &image, unsigned int x, unsigned int y ) {
 }  // end void Image::Overlay( const Image &image, unsigned int x, unsigned int y )
 
 void Image::Blend( const Image &image, int transparency ) {
-#ifdef ZM_IMAGE_PROFILING
-  struct timespec start,end,diff;
-  unsigned long long executetime;
-  unsigned long milpixels;
-#endif
   uint8_t* new_buffer;
 
   if ( !(
@@ -1744,19 +1748,21 @@ void Image::Blend( const Image &image, int transparency ) {
   new_buffer = AllocBuffer(size);
 
 #ifdef ZM_IMAGE_PROFILING
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID,&start);
+  TimePoint start = std::chrono::steady_clock::now();
 #endif
 
   /* Do the blending */
   (*blend)(buffer, image.buffer, new_buffer, size, transparency);
 
 #ifdef ZM_IMAGE_PROFILING
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
-  TimespecDiff(&start,&end,&diff);
+  TimePoint end = std::chrono::steady_clock::now();
 
-  executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
-  milpixels = (unsigned long)((long double)size)/((((long double)executetime)/1000));
-  Debug(5, "Blend: %u colours blended in %llu nanoseconds, %lu million colours/s\n",size,executetime,milpixels);
+  std::chrono::nanoseconds diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  uint64 mil_pixels = static_cast<uint64>(size / (static_cast<long double>(diff.count()) / 1000));
+  Debug(5, "Blend: %u colours blended in %" PRIi64 " nanoseconds, % " PRIi64 " million colours/s\n",
+        size,
+        static_cast<int64>(diff.count()),
+        mil_pixels);
 #endif
 
   AssignDirect(width, height, colours, subpixelorder, new_buffer, size, ZM_BUFTYPE_ZM);
@@ -1860,12 +1866,6 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
 
 /* New function to allow buffer re-using instead of allocationg memory for the delta image every time */
 void Image::Delta(const Image &image, Image* targetimage) const {
-#ifdef ZM_IMAGE_PROFILING
-  struct timespec start,end,diff;
-  unsigned long long executetime;
-  unsigned long milpixels;
-#endif
-
   if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) ) {
     Panic( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
         width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder);
@@ -1878,7 +1878,7 @@ void Image::Delta(const Image &image, Image* targetimage) const {
   }
 
 #ifdef ZM_IMAGE_PROFILING
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID,&start);
+  TimePoint start = std::chrono::steady_clock::now();
 #endif
 
   switch ( colours ) {
@@ -1915,12 +1915,14 @@ void Image::Delta(const Image &image, Image* targetimage) const {
   }
 
 #ifdef ZM_IMAGE_PROFILING
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
-  TimespecDiff(&start,&end,&diff);
+  TimePoint end = std::chrono::steady_clock::now();
 
-  executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
-  milpixels = (unsigned long)((long double)pixels)/((((long double)executetime)/1000));
-  Debug(5, "Delta: %u delta pixels generated in %llu nanoseconds, %lu million pixels/s",pixels,executetime,milpixels);
+  std::chrono::nanoseconds diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  uint64 mil_pixels = static_cast<uint64>(size / (static_cast<long double>(diff.count()) / 1000));
+  Debug(5, "Delta: %u delta pixels generated in %" PRIi64 " nanoseconds, % " PRIi64 " million pixels/s",
+        size,
+        static_cast<int64>(diff.count()),
+        mil_pixels);
 #endif
 }
 
@@ -2119,17 +2121,18 @@ void Image::Annotate(
   }
 }
 
-void Image::Timestamp(const char *label, const time_t when, const Vector2 &coord, const int size) {
+void Image::Timestamp(const char *label, SystemTimePoint when, const Vector2 &coord, int label_size) {
   char time_text[64];
   tm when_tm = {};
-  strftime(time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime_r(&when, &when_tm));
-  if ( label ) {
+  time_t when_t = std::chrono::system_clock::to_time_t(when);
+  strftime(time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime_r(&when_t, &when_tm));
+  if (label) {
     // Assume label is max 64, + ' - ' + 64 chars of time_text
     char text[132];
     snprintf(text, sizeof(text), "%s - %s", label, time_text);
-    Annotate(text, coord, size);
+    Annotate(text, coord, label_size);
   } else {
-    Annotate(time_text, coord, size);
+    Annotate(time_text, coord, label_size);
   }
 }
 

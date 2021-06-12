@@ -27,6 +27,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+constexpr Seconds StreamBase::MAX_STREAM_DELAY;
+constexpr Milliseconds StreamBase::MAX_SLEEP;
+
 StreamBase::~StreamBase() {
   if (vid_stream) {
     delete vid_stream;
@@ -283,7 +286,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     fputs("\r\n\r\n", stdout);
     fflush(stdout);
   }
-  last_frame_sent = TV_2_FLOAT(now);
+  last_frame_sent = now;
   return true;
 }
 
@@ -368,7 +371,7 @@ void StreamBase::openComms() {
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
-    gettimeofday(&last_comm_update, nullptr);
+    last_comm_update = std::chrono::system_clock::now();
   } // end if connKey > 0
   Debug(3, "comms open at %s", loc_sock_path);
 } // end void StreamBase::openComms()

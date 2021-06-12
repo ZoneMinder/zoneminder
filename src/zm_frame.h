@@ -42,7 +42,7 @@ class Frame {
         int p_frame_id,
         FrameType p_type,
         struct timeval p_timestamp,
-        Milliseconds p_delta,
+        Microseconds p_delta,
         int p_score,
         std::vector<ZoneStats> p_stats
   );
@@ -51,7 +51,7 @@ class Frame {
   int frame_id;
   FrameType type;
   struct timeval timestamp;
-  Milliseconds delta;
+  Microseconds delta;
   int score;
   std::vector<ZoneStats> zone_stats;
 };

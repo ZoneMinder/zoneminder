@@ -76,7 +76,7 @@ class EventStream : public StreamBase {
     long curr_frame_id;
     double curr_stream_time;
     bool  send_frame;
-    struct timeval start;     // clock time when started the event
+    SystemTimePoint start;     // clock time when started the event
 
     EventData *event_data;
 
@@ -87,7 +87,7 @@ class EventStream : public StreamBase {
 
     bool checkEventLoaded();
     void processCommand(const CmdMsg *msg) override;
-    bool sendFrame(int delta_us);
+    bool sendFrame(Microseconds delta);
 
   public:
     EventStream() :

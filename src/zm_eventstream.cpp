@@ -316,7 +316,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
         // Set paused flag
         paused = true;
         replay_rate = ZM_RATE_BASE;
-        last_frame_sent = TV_2_FLOAT(now);
+        last_frame_sent = now;
         break;
     case CMD_PLAY :
         Debug(1, "Got PLAY command");
@@ -674,7 +674,7 @@ Image * EventStream::getImage( ) {
   return image;
 }
 
-bool EventStream::sendFrame(int delta_us) {
+bool EventStream::sendFrame(Microseconds delta_us) {
   Debug(2, "Sending frame %ld", curr_frame_id);
 
   static char filepath[PATH_MAX];
@@ -710,7 +710,10 @@ bool EventStream::sendFrame(int delta_us) {
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
-    /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_us*1000);
+    vid_stream->EncodeFrame(send_image->Buffer(),
+                            send_image->Size(),
+                            config.mpeg_timed_frames,
+                            delta_us.count() * 1000);
   } else {
     bool send_raw = (type == STREAM_JPEG) && ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE)) && filepath[0];
 
@@ -806,7 +809,7 @@ bool EventStream::sendFrame(int delta_us) {
 
   fputs("\r\n", stdout);
   fflush(stdout);
-  last_frame_sent = TV_2_FLOAT(now);
+  last_frame_sent = now;
   return true;
 }  // bool EventStream::sendFrame( int delta_us )
 
@@ -824,16 +827,16 @@ void EventStream::runStream() {
   }
 
   updateFrameRate((event_data->frame_count and event_data->duration) ? (double)event_data->frame_count/event_data->duration : 1);
-  gettimeofday(&start, nullptr);
-  uint64_t start_usec = start.tv_sec * 1000000 + start.tv_usec;
+  start = std::chrono::system_clock::now();
+
   uint64_t last_frame_offset = 0;
 
   double time_to_event = 0;
 
   while ( !zm_terminate ) {
-    gettimeofday(&now, nullptr);
+    now = std::chrono::system_clock::now();
 
-    int delta_us = 0;
+    Microseconds delta = Microseconds(0);
     send_frame = false;
 
     if ( connkey ) {
@@ -843,7 +846,7 @@ void EventStream::runStream() {
       }
 
       // Update modified time of the socket .lock file so that we can tell which ones are stale.
-      if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
+      if (now - last_comm_update > Hours(1)) {
         touch(sock_path_lock);
         last_comm_update = now;
       }
@@ -869,8 +872,7 @@ void EventStream::runStream() {
       send_frame = true;
     } else if ( !send_frame ) {
       // We are paused, not stepping and doing nothing, meaning that comms didn't set send_frame to true
-      double time_since_last_send = TV_2_FLOAT(now) - last_frame_sent;
-      if ( time_since_last_send > MAX_STREAM_DELAY ) {
+      if (now - last_frame_sent > MAX_STREAM_DELAY) {
         // Send keepalive
         Debug(2, "Sending keepalive frame");
         send_frame = true;
@@ -879,10 +881,10 @@ void EventStream::runStream() {
 
     // time_to_event > 0 means that we are not in the event
     if ( ( time_to_event > 0 ) and ( mode == MODE_ALL ) ) {
-      double time_since_last_send = TV_2_FLOAT(now) - last_frame_sent;
-      Debug(1, "Time since last send = %f = %f - %f", time_since_last_send, TV_2_FLOAT(now), last_frame_sent);
-      if ( time_since_last_send > 1 /* second */ ) {
-        static char frame_text[64];
+      auto time_since_last_send = now - last_frame_sent;
+      Debug(1, "Time since last send = %.2f s", FPSeconds(time_since_last_send).count());
+      if (time_since_last_send > Seconds(1)) {
+        char frame_text[64];
 
         snprintf(frame_text, sizeof(frame_text), "Time to %s event = %d seconds",
             (replay_rate > 0 ? "next" : "previous" ), (int)time_to_event);
@@ -909,8 +911,8 @@ void EventStream::runStream() {
       continue;
     } // end if !in_event
 
-    if ( send_frame ) {
-      if ( !sendFrame(delta_us) ) {
+    if (send_frame) {
+      if (!sendFrame(delta)) {
         zm_terminate = true;
         break;
       }
@@ -918,23 +920,30 @@ void EventStream::runStream() {
 
     curr_stream_time = frame_data->timestamp;
 
-    if ( !paused ) {
-
+    if (!paused) {
       // delta is since the last frame
-      delta_us = (unsigned int)(frame_data->delta * 1000000);
-      Debug(3, "frame delta %uus ", delta_us);
+      delta = std::chrono::duration_cast<Microseconds>(FPSeconds(frame_data->delta));
+      Debug(3, "frame delta %" PRIi64 "us ",
+            static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
+
       // if effective > base we should speed up frame delivery
-      delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
-      Debug(3, "delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
+      delta = std::chrono::duration_cast<Microseconds>((delta * base_fps) / effective_fps);
+      Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f)",
+            static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
+            base_fps,
+            effective_fps);
+
       // but must not exceed maxfps
-      delta_us = std::max(delta_us, int(1000000/maxfps));
-      Debug(3, "delta %u = base_fps(%f)/effective fps(%f) from 30fps", delta_us, base_fps, effective_fps);
+      delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
+      Debug(3, "delta %" PRIi64 " us = base_fps (%f) /effective_fps (%f) from 30fps",
+            static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
+            base_fps,
+            effective_fps);
 
       // +/- 1? What if we are skipping frames?
       curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;
       // sending the frame may have taken some time, so reload now
-      gettimeofday(&now, nullptr);
-      uint64_t now_usec = (now.tv_sec * 1000000 + now.tv_usec);
+      now = std::chrono::system_clock::now();
 
       // we incremented by replay_rate, so might have jumped past frame_count
       if ( (mode == MODE_SINGLE) && (
@@ -945,8 +954,8 @@ void EventStream::runStream() {
          ) {
         Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
         curr_frame_id = 1;
-        // Have to reset start_usec to now when replaying
-        start_usec = now_usec;
+        // Have to reset start to now when replaying
+        start = now;
       }
       frame_data = &event_data->frames[curr_frame_id-1];
 
@@ -960,41 +969,51 @@ void EventStream::runStream() {
       //
       if ( last_frame_offset ) {
         // We assume that we are going forward and the next frame is in the future.
-        delta_us = frame_data->offset * 1000000 - (now_usec-start_usec);
-       // - (now_usec - start_usec);
-        Debug(2, "New delta_us now %" PRIu64 " - start %" PRIu64 " = %" PRIu64 " offset %f - elapsed = %dusec",
-              now_usec, start_usec, static_cast<uint64>(now_usec - start_usec), frame_data->offset * 1000000, delta_us);
+        delta = std::chrono::duration_cast<Microseconds>(FPSeconds(frame_data->offset) - (now - start));
+
+        Debug(2, "New delta: now - start = %" PRIu64 " us offset %f - elapsed = %" PRIu64 " us",
+              static_cast<int64>(std::chrono::duration_cast<Microseconds>(now - start).count()),
+              frame_data->offset * 1000000,
+              static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
       } else {
         Debug(2, "No last frame_offset, no sleep");
-        delta_us = 0;
+        delta = Seconds(0);
       }
       last_frame_offset = frame_data->offset * 1000000;
 
-      if ( send_frame && (type != STREAM_MPEG) ) {
-        if ( delta_us > 0 ) {
-          if ( delta_us > MAX_SLEEP_USEC ) {
-            Debug(1, "Limiting sleep to %d because calculated sleep is too long %d", MAX_SLEEP_USEC, delta_us);
-            delta_us = MAX_SLEEP_USEC;
+      if (send_frame && type != STREAM_MPEG) {
+        if (delta != Seconds(0)) {
+          if (delta > MAX_SLEEP) {
+            Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long: %" PRIi64" us",
+                  static_cast<int64>(std::chrono::duration_cast<Milliseconds>(MAX_SLEEP).count()),
+                  static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
+            delta = MAX_SLEEP;
           }
-          usleep(delta_us);
-          Debug(3, "Done sleeping: %d usec", delta_us);
+
+          std::this_thread::sleep_for(delta);
+          Debug(3, "Done sleeping: %" PRIi64 " us",
+                static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
         }
       }
     } else {
-      delta_us = ((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*(replay_rate?abs(replay_rate*2):2)));
+      delta = std::chrono::duration_cast<Microseconds>(FPSeconds(
+          ZM_RATE_BASE / ((base_fps ? base_fps : 1) * (replay_rate ? abs(replay_rate * 2) : 2))));
 
-      Debug(2, "Sleeping %d because 1000000 * ZM_RATE_BASE(%d) / ( base_fps (%f), replay_rate(%d)",
-          delta_us,
-          ZM_RATE_BASE,
-          (base_fps ? base_fps : 1),
-          (replay_rate ? abs(replay_rate*2) : 0)
-          );
-      if ( delta_us > 0 ) {
-        if ( delta_us > MAX_SLEEP_USEC ) {
-          Debug(1, "Limiting sleep to %d because calculated sleep is too long %d", MAX_SLEEP_USEC, delta_us);
-          delta_us = MAX_SLEEP_USEC;
+      Debug(2, "Sleeping %" PRIi64 " us because ZM_RATE_BASE (%d) / ( base_fps (%f) * replay_rate (%d)",
+            static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
+            ZM_RATE_BASE,
+            (base_fps ? base_fps : 1),
+            (replay_rate ? abs(replay_rate * 2) : 0));
+
+      if (delta != Seconds(0)) {
+        if (delta > MAX_SLEEP) {
+          Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long %" PRIi64,
+                static_cast<int64>(std::chrono::duration_cast<Milliseconds>(MAX_SLEEP).count()),
+                static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
+          delta = MAX_SLEEP;
         }
-        usleep(delta_us);
+
+        std::this_thread::sleep_for(delta);
       }
       // We are paused, so might be stepping
       //if ( step != 0 )// Adding 0 is cheaper than an if 0
@@ -1036,7 +1055,7 @@ bool EventStream::send_file(const char *filepath) {
   int img_buffer_size = 0;
   uint8_t *img_buffer = temp_img_buffer;
 
-  FILE *fdj = NULL;
+  FILE *fdj = nullptr;
   fdj = fopen(filepath, "rb");
   if ( !fdj ) {
     Error("Can't open %s: %s", filepath, strerror(errno));

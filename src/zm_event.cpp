@@ -578,17 +578,16 @@ void Event::AddFrame(
   SystemTimePoint timestamp_us = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(timestamp));
 
   if (db_frame) {
-    FPSeconds delta_time = timestamp_us - start_time;
-    Debug(1, "Frame delta is %.2f - %.2f = %.2f, score %u zone_stats.size %zu",
-          std::chrono::duration_cast<FPSeconds>(timestamp_us.time_since_epoch()).count(),
-          std::chrono::duration_cast<FPSeconds>(start_time.time_since_epoch()).count(),
-          delta_time.count(),
+    Microseconds delta_time = std::chrono::duration_cast<Microseconds>(timestamp_us - start_time);
+    Debug(1, "Frame delta is %.2f s - %.2f s = %.2f s, score %u zone_stats.size %zu",
+          FPSeconds(timestamp_us.time_since_epoch()).count(),
+          FPSeconds(start_time.time_since_epoch()).count(),
+          FPSeconds(delta_time).count(),
           score,
           zone_stats.size());
 
-    Milliseconds delta_time_ms = std::chrono::duration_cast<Milliseconds>(delta_time);
     // The idea is to write out 1/sec
-    frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time_ms, score, zone_stats));
+    frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score, zone_stats));
     double fps = monitor->get_capture_fps();
     if (write_to_db
         or
@@ -604,7 +603,7 @@ void Event::AddFrame(
 
       std::string sql = stringtf(
           "UPDATE Events SET Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
-          delta_time.count(),
+          FPSeconds(delta_time).count(),
           frames,
           alarm_frames,
           tot_score,

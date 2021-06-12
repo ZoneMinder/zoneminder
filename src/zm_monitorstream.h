@@ -25,11 +25,11 @@
 
 class MonitorStream : public StreamBase {
   protected:
-    typedef struct SwapImage {
-      bool            valid;
-      struct timeval  timestamp;
-      char            file_name[PATH_MAX];
-    } SwapImage;
+    struct SwapImage {
+      bool valid = false;
+      SystemTimePoint timestamp;
+      char file_name[PATH_MAX] = "";
+    };
 
   private:
     SwapImage *temp_image_buffer;
@@ -38,15 +38,15 @@ class MonitorStream : public StreamBase {
     int temp_write_index;
 
   protected:
-    time_t ttl;
+    Microseconds ttl;
     int playback_buffer;
     bool delayed;
     int frame_count;
 
   protected:
     bool checkSwapPath(const char *path, bool create_path);
-    bool sendFrame(const char *filepath, const timeval &timestamp);
-    bool sendFrame(Image *image, const timeval &timestamp);
+    bool sendFrame(const char *filepath, SystemTimePoint timestamp);
+    bool sendFrame(Image *image, SystemTimePoint timestamp);
     void processCommand(const CmdMsg *msg) override;
     void SingleImage(int scale=100);
     void SingleImageRaw(int scale=100);
@@ -55,7 +55,7 @@ class MonitorStream : public StreamBase {
 #endif
 
   public:
-    MonitorStream() : 
+    MonitorStream() :
       temp_image_buffer(nullptr),
       temp_image_buffer_count(0),
       temp_read_index(0),
@@ -63,13 +63,13 @@ class MonitorStream : public StreamBase {
       ttl(0),
       playback_buffer(0),
       delayed(false),
-      frame_count(0) {
-    }
+      frame_count(0) {}
+
     void setStreamBuffer(int p_playback_buffer) {
       playback_buffer = p_playback_buffer;
     }
     void setStreamTTL(time_t p_ttl) {
-      ttl = p_ttl;
+      ttl = Seconds(p_ttl);
     }
     bool setStreamStart(int monitor_id) {
       return loadMonitor(monitor_id);

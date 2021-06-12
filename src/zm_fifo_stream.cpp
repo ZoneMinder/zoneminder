@@ -92,7 +92,7 @@ bool FifoStream::sendMJEGFrames() {
   }
   fprintf(stdout, "\r\n\r\n");
   fflush(stdout);
-  last_frame_sent = TV_2_FLOAT(now);
+  last_frame_sent = now;
   frame_count++;
   return true;
 }
@@ -156,8 +156,9 @@ void FifoStream::runStream() {
   }
 
   while ( !zm_terminate ) {
-    gettimeofday(&now, nullptr);
+    now = std::chrono::system_clock::now();
     checkCommandQueue();
+
     if ( stream_type == MJPEG ) {
       if ( !sendMJEGFrames() )
         zm_terminate = true;

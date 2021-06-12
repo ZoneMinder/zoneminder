@@ -22,13 +22,13 @@
 
 #include "zm_logger.h"
 #include "zm_mpeg.h"
+#include "zm_time.h"
 #include <memory>
 #include <sys/un.h>
 
 class Image;
 class Monitor;
 
-#define TV_2_FLOAT( tv ) ( double((tv).tv_sec) + (double((tv).tv_usec) / 1000000.0) )
 #define BOUNDARY "ZoneMinderFrame"
 
 class StreamBase {
@@ -42,8 +42,8 @@ public:
   } StreamType;
 
 protected:
-  static const int MAX_STREAM_DELAY = 5; // Seconds
-  static const int MAX_SLEEP_USEC = 500000; // .5 Seconds
+  static constexpr Seconds MAX_STREAM_DELAY = Seconds(5);
+  static constexpr Milliseconds MAX_SLEEP = Milliseconds(500);
 
   static const StreamType DEFAULT_TYPE = STREAM_JPEG;
   enum { DEFAULT_RATE=ZM_RATE_BASE };
@@ -119,15 +119,15 @@ protected:
   bool paused;
   int step;
 
-  struct timeval now;
-  struct timeval last_comm_update;
+  SystemTimePoint now;
+  SystemTimePoint last_comm_update;
 
   double base_fps;
   double effective_fps;
   int frame_mod;
 
-  double last_frame_sent;
-  struct timeval last_frame_timestamp;
+  SystemTimePoint last_frame_sent;
+  SystemTimePoint last_frame_timestamp;
 
   VideoStream *vid_stream;
 
@@ -176,9 +176,7 @@ public:
     effective_fps = 0.0;
     frame_mod = 1;
 
-    vid_stream = 0;
-    last_frame_sent = 0.0;
-    last_frame_timestamp = {};
+    vid_stream = nullptr;
     msg = { 0, { 0 } };
   }
   virtual ~StreamBase();

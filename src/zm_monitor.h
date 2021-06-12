@@ -354,10 +354,10 @@ protected:
   int        last_section_mod;
   int        buffer_count;
   State      state;
-  time_t      start_time;
-  double      last_fps_time;
-  double      last_analysis_fps_time;
-  time_t      auto_resume_time;
+  SystemTimePoint start_time;
+  SystemTimePoint last_fps_time;
+  SystemTimePoint last_analysis_fps_time;
+  SystemTimePoint auto_resume_time;
   unsigned int      last_motion_score;
 
   EventCloseMode  event_close_mode;

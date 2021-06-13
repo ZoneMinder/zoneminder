@@ -126,10 +126,11 @@ int RemoteCameraRtsp::Disconnect() {
 
 int RemoteCameraRtsp::PrimeCapture() {
   Debug(2, "Waiting for sources");
-  for ( int i = 0; (i < 100) && !rtspThread->hasSources(); i++ ) {
-    usleep(100000);
+  for (int i = 0; i < 100 && !rtspThread->hasSources(); i++) {
+    std::this_thread::sleep_for(Microseconds(100));
   }
-  if ( !rtspThread->hasSources() ) {
+
+  if (!rtspThread->hasSources()) {
     Error("No RTSP sources");
     return -1;
   }

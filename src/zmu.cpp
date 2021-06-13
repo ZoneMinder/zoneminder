@@ -93,7 +93,6 @@ Options for use with monitors:
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
 #include <getopt.h>
-#include <unistd.h>
 
 void Usage(int status=-1) {
   fputs(
@@ -592,13 +591,16 @@ int main(int argc, char *argv[]) {
         // Ensure that we are not recording.  So the forced alarm is distinct from what was recording before
         monitor->ForceAlarmOff();
         monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
-        int wait = 10*1000*1000; // 10 seconds
-        while ((monitor->GetState() != Monitor::ALARM) and !zm_terminate and wait) {
+
+        Microseconds wait_time = Seconds(10);
+        while ((monitor->GetState() != Monitor::ALARM) and !zm_terminate and wait_time > Seconds(0)) {
           // Wait for monitor to notice.
-          usleep(1000);
-          wait -= 1000;
+          Microseconds sleep = Microseconds(1);
+          std::this_thread::sleep_for(sleep);
+          wait_time -= sleep;
         }
-        if ( monitor->GetState() != Monitor::ALARM and !wait ) {
+
+        if (monitor->GetState() != Monitor::ALARM and wait_time == Seconds(0)) {
           Error("Monitor failed to respond to forced alarm.");
         } else {
           printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());

@@ -331,7 +331,8 @@ void RtspThread::Run() {
       authTried = true;
     sendCommand(message);
     // FIXME Why sleep 1?
-    usleep(10000);
+    std::this_thread::sleep_for(Microseconds(10));
+
     res = recvResponse(response);
     if ( !res && respCode==401 )
       mNeedAuth = true;
@@ -583,7 +584,7 @@ void RtspThread::Run() {
             return;
           lastKeepalive = now;
         }
-        usleep( 100000 );
+        std::this_thread::sleep_for(Microseconds(100));
       }
 #if 0
       message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
@@ -742,7 +743,7 @@ void RtspThread::Run() {
             return;
           lastKeepalive = time(nullptr);
         }
-        usleep(100000);
+        std::this_thread::sleep_for(Microseconds(100));
       }
 #if 0
       message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";

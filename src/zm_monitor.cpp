@@ -1308,14 +1308,14 @@ void Monitor::actionResume() {
 }
 
 int Monitor::actionBrightness(int p_brightness) {
-  if ( purpose != CAPTURE ) {
-    if ( p_brightness >= 0 ) {
+  if (purpose != CAPTURE) {
+    if (p_brightness >= 0) {
       shared_data->brightness = p_brightness;
       shared_data->action |= SET_SETTINGS;
       int wait_loops = 10;
-      while ( shared_data->action & SET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
+      while (shared_data->action & SET_SETTINGS) {
+        if (wait_loops--) {
+          std::this_thread::sleep_for(Milliseconds(100));
         } else {
           Warning("Timed out waiting to set brightness");
           return -1;
@@ -1324,9 +1324,9 @@ int Monitor::actionBrightness(int p_brightness) {
     } else {
       shared_data->action |= GET_SETTINGS;
       int wait_loops = 10;
-      while ( shared_data->action & GET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
+      while (shared_data->action & GET_SETTINGS) {
+        if (wait_loops--) {
+          std::this_thread::sleep_for(Milliseconds(100));
         } else {
           Warning("Timed out waiting to get brightness");
           return -1;
@@ -1339,14 +1339,14 @@ int Monitor::actionBrightness(int p_brightness) {
 } // end int Monitor::actionBrightness(int p_brightness)
 
 int Monitor::actionContrast(int p_contrast) {
-  if ( purpose != CAPTURE ) {
-    if ( p_contrast >= 0 ) {
+  if (purpose != CAPTURE) {
+    if (p_contrast >= 0) {
       shared_data->contrast = p_contrast;
       shared_data->action |= SET_SETTINGS;
       int wait_loops = 10;
-      while ( shared_data->action & SET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
+      while (shared_data->action & SET_SETTINGS) {
+        if (wait_loops--) {
+          std::this_thread::sleep_for(Milliseconds(100));
         } else {
           Warning("Timed out waiting to set contrast");
           return -1;
@@ -1355,9 +1355,9 @@ int Monitor::actionContrast(int p_contrast) {
     } else {
       shared_data->action |= GET_SETTINGS;
       int wait_loops = 10;
-      while ( shared_data->action & GET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
+      while (shared_data->action & GET_SETTINGS) {
+        if (wait_loops--) {
+          std::this_thread::sleep_for(Milliseconds(100));
         } else {
           Warning("Timed out waiting to get contrast");
           return -1;
@@ -1370,14 +1370,14 @@ int Monitor::actionContrast(int p_contrast) {
 } // end int Monitor::actionContrast(int p_contrast)
 
 int Monitor::actionHue(int p_hue) {
-  if ( purpose != CAPTURE ) {
-    if ( p_hue >= 0 ) {
+  if (purpose != CAPTURE) {
+    if (p_hue >= 0) {
       shared_data->hue = p_hue;
       shared_data->action |= SET_SETTINGS;
       int wait_loops = 10;
-      while ( shared_data->action & SET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
+      while (shared_data->action & SET_SETTINGS) {
+        if (wait_loops--) {
+          std::this_thread::sleep_for(Milliseconds(100));
         } else {
           Warning("Timed out waiting to set hue");
           return -1;
@@ -1386,9 +1386,9 @@ int Monitor::actionHue(int p_hue) {
     } else {
       shared_data->action |= GET_SETTINGS;
       int wait_loops = 10;
-      while ( shared_data->action & GET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
+      while (shared_data->action & GET_SETTINGS) {
+        if (wait_loops--) {
+          std::this_thread::sleep_for(Milliseconds(100));
         } else {
           Warning("Timed out waiting to get hue");
           return -1;
@@ -1401,14 +1401,14 @@ int Monitor::actionHue(int p_hue) {
 } // end int Monitor::actionHue(int p_hue)
 
 int Monitor::actionColour(int p_colour) {
-  if ( purpose != CAPTURE ) {
-    if ( p_colour >= 0 ) {
+  if (purpose != CAPTURE) {
+    if (p_colour >= 0) {
       shared_data->colour = p_colour;
       shared_data->action |= SET_SETTINGS;
       int wait_loops = 10;
-      while ( shared_data->action & SET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
+      while (shared_data->action & SET_SETTINGS) {
+        if (wait_loops--) {
+          std::this_thread::sleep_for(Milliseconds(100));
         } else {
           Warning("Timed out waiting to set colour");
           return -1;
@@ -1417,9 +1417,9 @@ int Monitor::actionColour(int p_colour) {
     } else {
       shared_data->action |= GET_SETTINGS;
       int wait_loops = 10;
-      while ( shared_data->action & GET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
+      while (shared_data->action & GET_SETTINGS) {
+        if (wait_loops--) {
+          std::this_thread::sleep_for(Milliseconds(100));
         } else {
           Warning("Timed out waiting to get colour");
           return -1;
@@ -3116,7 +3116,6 @@ void Monitor::get_ref_image() {
       // can't analyse it anyways, incremement
       packetqueue.increment_it(analysis_it);
     }
-    //usleep(10000);
   }
   if (zm_terminate)
     return;

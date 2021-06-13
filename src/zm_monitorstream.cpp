@@ -854,7 +854,7 @@ void MonitorStream::SingleImage(int scale) {
   Image scaled_image;
   while ((monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
     Debug(1, "Waiting for capture to begin");
-    usleep(100000);
+    std::this_thread::sleep_for(Milliseconds(100));
   }
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   Debug(1, "write index: %d %d", monitor->shared_data->last_write_index, index);

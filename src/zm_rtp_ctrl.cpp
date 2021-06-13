@@ -269,7 +269,7 @@ void RtpCtrlThread::Run() {
 
   // The only reason I can think of why we would have a timeout period is so that we can regularly send RR packets.
   // Why 10 seconds? If anything I think this should be whatever timeout value was given in the DESCRIBE response
-  zm::Select select(10 );
+  zm::Select select(Seconds(10));
   select.addReader( &rtpCtrlServer );
 
   unsigned char buffer[ZM_NETWORK_BUFSIZ];

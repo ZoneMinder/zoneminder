@@ -621,7 +621,7 @@ void RtspThread::Run() {
       RtpDataThread rtpDataThread( *this, *source );
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
-      zm::Select select(double(config.http_timeout)/1000.0 );
+      zm::Select select(Milliseconds(config.http_timeout));
       select.addReader( &mRtspSocket );
 
       Buffer buffer( ZM_NETWORK_BUFSIZ );

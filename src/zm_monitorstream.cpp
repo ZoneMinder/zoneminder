@@ -377,12 +377,12 @@ bool MonitorStream::sendFrame(const char *filepath, SystemTimePoint timestamp) {
     return true;
   }
   return false;
-} // end bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp)
+}
 
 bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   Image *send_image = prepareImage(image);
   if (!config.timestamp_on_capture) {
-    monitor->TimestampImage(send_image, zm::chrono::duration_cast<timeval>(timestamp.time_since_epoch()));
+    monitor->TimestampImage(send_image, timestamp);
   }
 
   fputs("--" BOUNDARY "\r\n", stdout);
@@ -461,7 +461,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   }  // Not mpeg
   last_frame_sent = now;
   return true;
-} // end bool MonitorStream::sendFrame( Image *image, const timeval &timestamp )
+}
 
 void MonitorStream::runStream() {
   if (type == STREAM_SINGLE) {
@@ -854,7 +854,7 @@ void MonitorStream::SingleImage(int scale) {
   Image scaled_image;
   while ((monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
     Debug(1, "Waiting for capture to begin");
-    usleep(100000);
+    std::this_thread::sleep_for(Milliseconds(100));
   }
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   Debug(1, "write index: %d %d", monitor->shared_data->last_write_index, index);
@@ -865,8 +865,9 @@ void MonitorStream::SingleImage(int scale) {
     scaled_image.Scale(scale);
     snap_image = &scaled_image;
   }
-  if ( !config.timestamp_on_capture ) {
-    monitor->TimestampImage(snap_image, monitor->shared_timestamps[index]);
+  if (!config.timestamp_on_capture) {
+    monitor->TimestampImage(snap_image,
+                            SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index])));
   }
   snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
 

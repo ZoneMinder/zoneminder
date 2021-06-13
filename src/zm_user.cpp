@@ -21,6 +21,7 @@
 
 #include "zm_crypt.h"
 #include "zm_logger.h"
+#include "zm_time.h"
 #include "zm_utils.h"
 #include <cstring>
 
@@ -205,24 +206,27 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     return nullptr;
   }
 
-  // getting the time is expensive, so only do it once.
-  time_t now = time(nullptr);
-  unsigned int hours = config.auth_hash_ttl;
-  if (!hours) {
+  SystemTimePoint now = std::chrono::system_clock::now();
+  Hours hours = Hours(config.auth_hash_ttl);
+
+  if (hours == Hours(0)) {
     Warning("No value set for ZM_AUTH_HASH_TTL. Defaulting to 2.");
-    hours = 2;
+    hours = Hours(2);
   } else {
-    Debug(1, "AUTH_HASH_TTL is %d, time is %" PRIi64, hours, static_cast<int64>(now));
+    Debug(1, "AUTH_HASH_TTL is %" PRIi64 " h, time is %" PRIi64 " s",
+          static_cast<int64>(Hours(hours).count()),
+          static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()));
   }
 
   while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
     const char *username = dbrow[1];
     const char *password = dbrow[2];
 
-    time_t our_now = now;
+    SystemTimePoint our_now = now;
     tm now_tm = {};
-    for (unsigned int i = 0; i < hours; i++, our_now -= 3600) {
-      localtime_r(&our_now, &now_tm);
+    for (Hours i = Hours(0); i < hours; i++, our_now -= Hours(1)) {
+      time_t our_now_t = std::chrono::system_clock::to_time_t(our_now);
+      localtime_r(&our_now_t, &now_tm);
 
       std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
                                       config.auth_hash_secret,

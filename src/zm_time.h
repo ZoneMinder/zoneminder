@@ -23,12 +23,6 @@
 #include <chrono>
 #include <sys/time.h>
 
-inline struct timeval tvNow() {
-  timeval t = {};
-  gettimeofday(&t, nullptr);
-  return t;
-}
-
 typedef std::chrono::microseconds Microseconds;
 typedef std::chrono::milliseconds Milliseconds;
 typedef std::chrono::seconds Seconds;

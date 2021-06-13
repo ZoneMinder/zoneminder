@@ -64,8 +64,6 @@ possible, this should run at more or less constant speed.
 #include "zm_time.h"
 #include "zm_utils.h"
 #include <getopt.h>
-#include <iostream>
-#include <unistd.h>
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
@@ -214,7 +212,7 @@ int main(int argc, char *argv[]) {
     Error("No monitors found");
     exit(-1);
   } else {
-	  Debug(2, "%zu monitors loaded", monitors.size());
+    Debug(2, "%zu monitors loaded", monitors.size());
   }
 
   Info("Starting Capture version %s", ZM_VERSION);
@@ -242,52 +240,51 @@ int main(int argc, char *argv[]) {
       if (!monitor->connect()) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
       }
-      time_t now = (time_t)time(nullptr);
-      monitor->setStartupTime(now);
-      monitor->setHeartbeatTime(now);
+      SystemTimePoint now = std::chrono::system_clock::now();
+      monitor->SetStartupTime(now);
+      monitor->SetHeartbeatTime(now);
 
-      snprintf(sql, sizeof(sql), 
+      snprintf(sql, sizeof(sql),
           "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"
           " VALUES (%u, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0",
           monitor->Id());
       zmDbDo(sql);
 
-      int sleep_time = 0;
+      Seconds sleep_time = Seconds(0);
       while (monitor->PrimeCapture() <= 0) {
         if (prime_capture_log_count % 60) {
-          logPrintf(Logger::ERROR+monitor->Importance(),
-              "Failed to prime capture of initial monitor");
+          logPrintf(Logger::ERROR + monitor->Importance(),
+                    "Failed to prime capture of initial monitor");
         } else {
           Debug(1, "Failed to prime capture of initial monitor");
         }
-        prime_capture_log_count ++;
-        if (zm_terminate) break;
-        if (sleep_time < 60) sleep_time++;
-        sleep(sleep_time);
+
+        prime_capture_log_count++;
+        if (zm_terminate) {
+          break;
+        }
+        if (sleep_time < Seconds(60)) {
+          sleep_time++;
+        }
+
+        std::this_thread::sleep_for(sleep_time);
       }
-      if (zm_terminate) break;
+      if (zm_terminate){
+        break;
+      }
 
       snprintf(sql, sizeof(sql),
           "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
                monitor->Id());
       zmDbDo(sql);
     }  // end foreach monitor
-    if (zm_terminate) break;
 
-    int *capture_delays = new int[monitors.size()];
-    int *alarm_capture_delays = new int[monitors.size()];
-    struct timeval * last_capture_times = new struct timeval[monitors.size()];
-
-    for (size_t i = 0; i < monitors.size(); i++) {
-      last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
-      capture_delays[i] = monitors[i]->GetCaptureDelay();
-      alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
-      Debug(2, "capture delay(%u mSecs 1000/capture_fps) alarm delay(%u)",
-          capture_delays[i], alarm_capture_delays[i]);
+    if (zm_terminate){
+      break;
     }
 
-    timeval now;
-    int sleep_time = 0;
+    std::vector<SystemTimePoint> last_capture_times = std::vector<SystemTimePoint>(monitors.size());
+    Microseconds sleep_time = Microseconds(0);
 
     while (!zm_terminate) {
       //sigprocmask(SIG_BLOCK, &block_set, 0);
@@ -314,30 +311,28 @@ int main(int argc, char *argv[]) {
         }
 
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
-        int delay = (monitors[i]->GetState() == Monitor::ALARM) ? alarm_capture_delays[i] : capture_delays[i];
-        if (delay) {
-          gettimeofday(&now, nullptr);
-          if (last_capture_times[i].tv_sec) {
-            Microseconds delta_time = zm::chrono::duration_cast<Microseconds>(now)
-                - zm::chrono::duration_cast<Microseconds>(last_capture_times[i]);
+        Microseconds delay = (monitors[i]->GetState() == Monitor::ALARM) ? monitors[i]->GetAlarmCaptureDelay()
+                                                                         : monitors[i]->GetCaptureDelay();
+        if (delay != Seconds(0)) {
+          SystemTimePoint now = std::chrono::system_clock::now();
+          if (last_capture_times[i].time_since_epoch() != Seconds(0)) {
+            Microseconds delta_time = std::chrono::duration_cast<Microseconds>(now - last_capture_times[i]);
 
             // You have to add back in the previous sleep time
-            sleep_time = delay - (delta_time.count() - sleep_time);
+            sleep_time = delay - (delta_time - sleep_time);
             Debug(4,
-                  "Sleep time is %d from now: %" PRIi64 ".%" PRIi64" last: %" PRIi64 ".% " PRIi64 " delta % " PRIi64 " delay: %d",
-                  sleep_time,
-                  static_cast<int64>(now.tv_sec),
-                  static_cast<int64>(now.tv_usec),
-                  static_cast<int64>(last_capture_times[i].tv_sec),
-                  static_cast<int64>(last_capture_times[i].tv_usec),
+                  "Sleep time is %" PRIi64 " from now: %.2f s last: %.2f s delta % " PRIi64 " us delay: %" PRIi64 " us",
+                  static_cast<int64>(Microseconds(sleep_time).count()),
+                  FPSeconds(now.time_since_epoch()).count(),
+                  FPSeconds(last_capture_times[i].time_since_epoch()).count(),
                   static_cast<int64>(delta_time.count()),
-                  delay);
+                  static_cast<int64>(Microseconds(delay).count()));
 
-            if (sleep_time > 0) {
-              Debug(4, "usleeping (%d)", sleep_time);
-              usleep(sleep_time);
+            if (sleep_time > Seconds(0)) {
+              std::this_thread::sleep_for(sleep_time);
             }
           }  // end if has a last_capture time
+
           last_capture_times[i] = now;
         }  // end if delay
       }  // end foreach n_monitors
@@ -348,14 +343,10 @@ int main(int argc, char *argv[]) {
       }
     }  // end while ! zm_terminate and connected
 
-    for (size_t i = 0; i < monitors.size(); i++) {
-      monitors[i]->Close();
-      monitors[i]->disconnect();
+    for (std::shared_ptr<Monitor> & monitor : monitors) {
+      monitor->Close();
+      monitor->disconnect();
     }
-
-    delete [] alarm_capture_delays;
-    delete [] capture_delays;
-    delete [] last_capture_times;
 
     if (zm_reload) {
       for (std::shared_ptr<Monitor> &monitor : monitors) {
@@ -363,7 +354,7 @@ int main(int argc, char *argv[]) {
       }
       logTerm();
       logInit(log_id_string);
-      
+
       zm_reload = false;
     }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop
@@ -371,7 +362,7 @@ int main(int argc, char *argv[]) {
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf(sql, sizeof(sql),
-        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'", 
+        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'",
         monitor->Id());
     zmDbDo(sql);
   }
@@ -382,5 +373,5 @@ int main(int argc, char *argv[]) {
   dbQueue.stop();
   zmDbClose();
 
-	return zm_terminate ? 0 : result;
+  return zm_terminate ? 0 : result;
 }

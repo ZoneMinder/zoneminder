@@ -21,6 +21,7 @@
 #define ZM_PACKET_H
 
 #include "zm_logger.h"
+#include "zm_time.h"
 #include "zm_zone.h"
 
 #include <condition_variable>
@@ -30,10 +31,6 @@
 extern "C" {
 #include <libavformat/avformat.h>
 }
-
-#ifdef __FreeBSD__
-#include <sys/time.h>
-#endif // __FreeBSD__
 
 class Image;
 
@@ -49,7 +46,7 @@ class ZMPacket {
     AVPacket  packet;             // Input packet, undecoded
     AVFrame   *in_frame;          // Input image, decoded Theoretically only filled if needed.
     AVFrame   *out_frame;         // output image, Only filled if needed.
-    timeval  timestamp;
+    SystemTimePoint timestamp;
     uint8_t   *buffer;            // buffer used in image
     Image     *image;
     Image     *analysis_image;
@@ -70,7 +67,7 @@ class ZMPacket {
 
     int is_keyframe() { return keyframe; };
     int decode( AVCodecContext *ctx );
-    explicit ZMPacket(Image *image, const timeval &tv);
+    explicit ZMPacket(Image *image, SystemTimePoint tv);
     explicit ZMPacket(ZMPacket &packet);
     ZMPacket();
     ~ZMPacket();

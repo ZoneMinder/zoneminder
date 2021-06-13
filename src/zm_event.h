@@ -96,12 +96,10 @@ class Event {
     static bool OpenFrameSocket(int);
     static bool ValidateFrameSocket(int);
 
-    Event(
-        Monitor *p_monitor,
-        struct timeval p_start_time,
-        const std::string &p_cause,
-        const StringSetMap &p_noteSetMap
-        );
+    Event(Monitor *p_monitor,
+          SystemTimePoint p_start_time,
+          const std::string &p_cause,
+          const StringSetMap &p_noteSetMap);
     ~Event();
 
     uint64_t Id() const { return id; }
@@ -109,28 +107,21 @@ class Event {
     int Frames() const { return frames; }
     int AlarmFrames() const { return alarm_frames; }
 
-    timeval StartTime() const { return zm::chrono::duration_cast<timeval>(start_time.time_since_epoch()); }
-    timeval EndTime() const { return zm::chrono::duration_cast<timeval>(end_time.time_since_epoch()); }
+    SystemTimePoint StartTime() const { return start_time; }
+    SystemTimePoint EndTime() const { return end_time; }
 
     void AddPacket(const std::shared_ptr<ZMPacket> &p);
     bool WritePacket(const std::shared_ptr<ZMPacket> &p);
     bool SendFrameImage(const Image *image, bool alarm_frame=false);
-    bool WriteFrameImage(
-        Image *image,
-        struct timeval timestamp,
-        const char *event_file,
-        bool alarm_frame=false
-       ) const;
+    bool WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame = false) const;
 
     void updateNotes(const StringSetMap &stringSetMap);
 
-    void AddFrame(
-        Image *image,
-        struct timeval timestamp,
-        const std::vector<ZoneStats> &stats,
-        int score=0,
-        Image *alarm_image=nullptr
-        );
+  void AddFrame(Image *image,
+                SystemTimePoint timestamp,
+                const std::vector<ZoneStats> &stats,
+                int score = 0,
+                Image *alarm_image = nullptr);
 
  private:
     void WriteDbFrames();
@@ -174,7 +165,7 @@ class Event {
     }
     static void AddPreAlarmFrame(
         Image *image,
-        struct timeval timestamp,
+        SystemTimePoint timestamp,
         int score=0,
         Image *alarm_frame=nullptr
         ) {

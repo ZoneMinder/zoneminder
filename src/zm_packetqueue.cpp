@@ -24,7 +24,6 @@
 #include "zm_ffmpeg.h"
 #include "zm_packet.h"
 #include "zm_signal.h"
-#include <sys/time.h>
 
 PacketQueue::PacketQueue():
   video_stream_id(-1),

@@ -615,19 +615,7 @@ bool zm::TcpUnixServer::accept(TcpUnixSocket *&newSocket) {
   return true;
 }
 
-void zm::Select::setTimeout(int timeout) {
-  mTimeout.tv_sec = timeout;
-  mTimeout.tv_usec = 0;
-  mHasTimeout = true;
-}
-
-void zm::Select::setTimeout(double timeout) {
-  mTimeout.tv_sec = int(timeout);
-  mTimeout.tv_usec = suseconds_t((timeout - mTimeout.tv_sec) * 1000000.0);
-  mHasTimeout = true;
-}
-
-void zm::Select::setTimeout(timeval timeout) {
+void zm::Select::setTimeout(Microseconds timeout) {
   mTimeout = timeout;
   mHasTimeout = true;
 }
@@ -703,7 +691,7 @@ void zm::Select::clearWriters() {
 }
 
 int zm::Select::wait() {
-  timeval tempTimeout = mTimeout;
+  timeval tempTimeout = zm::chrono::duration_cast<timeval>(mTimeout);
   timeval *selectTimeout = mHasTimeout ? &tempTimeout : nullptr;
 
   fd_set rfds;

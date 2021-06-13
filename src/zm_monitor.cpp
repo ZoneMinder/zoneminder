@@ -1968,7 +1968,10 @@ bool Monitor::Analyse() {
                 starting_packet = snap;
               }
 
-              event = new Event(this, starting_packet->timestamp, "Continuous", noteSetMap);
+              event = new Event(this,
+                                SystemTimePoint(zm::chrono::duration_cast<Microseconds>(starting_packet->timestamp)),
+                                "Continuous",
+                                noteSetMap);
               // Write out starting packets, do not modify packetqueue it will garbage collect itself
               while (starting_packet and ((*start_it) != snap_it)) {
                 event->AddPacket(starting_packet);
@@ -1990,7 +1993,10 @@ bool Monitor::Analyse() {
               start_it = nullptr;
             } else {
               // Create event from current snap
-              event = new Event(this, *timestamp, "Continuous", noteSetMap);
+              event = new Event(this,
+                                SystemTimePoint(zm::chrono::duration_cast<Microseconds>(*timestamp)),
+                                "Continuous",
+                                noteSetMap);
             }
             shared_data->last_event_id = event->Id();
 
@@ -2004,7 +2010,8 @@ bool Monitor::Analyse() {
             }
             alarm_cause = cause+" Continuous "+alarm_cause;
             strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
-            video_store_data->recording = event->StartTime();
+            SetVideoWriterStartTime(event->StartTime());
+
             Info("%s: %03d - Opened new event %" PRIu64 ", section start",
                 name.c_str(), analysis_image_count, event->Id());
             /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -2066,10 +2073,13 @@ bool Monitor::Analyse() {
                   starting_packet = snap;
                 }
 
-                event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
+                event = new Event(this,
+                                  SystemTimePoint(zm::chrono::duration_cast<Microseconds>(starting_packet->timestamp)),
+                                  cause,
+                                  noteSetMap);
                 shared_data->last_event_id = event->Id();
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-                video_store_data->recording = event->StartTime();
+                SetVideoWriterStartTime(event->StartTime());
                 shared_data->state = state = ALARM;
 
                 // Write out starting packets, do not modify packetqueue it will garbage collect itself
@@ -2185,7 +2195,10 @@ bool Monitor::Analyse() {
 
           // incremement pre alarm image count
           //have_pre_alarmed_frames ++;
-          Event::AddPreAlarmFrame(snap->image, *timestamp, score, nullptr);
+          Event::AddPreAlarmFrame(snap->image,
+                                  SystemTimePoint(zm::chrono::duration_cast<Microseconds>(*timestamp)),
+                                  score,
+                                  nullptr);
         } else if (state == ALARM) {
           for (const Zone &zone : zones) {
             if (zone.Alarmed()) {
@@ -2208,11 +2221,14 @@ bool Monitor::Analyse() {
                       static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
                       section_length);
               closeEvent();
-              event = new Event(this, *timestamp, cause, noteSetMap);
+              event = new Event(this,
+                                SystemTimePoint(zm::chrono::duration_cast<Microseconds>(*timestamp)),
+                                cause,
+                                noteSetMap);
               shared_data->last_event_id = event->Id();
               //set up video store data
               snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-              video_store_data->recording = event->StartTime();
+              SetVideoWriterStartTime(event->StartTime());
             }
           } else {
             Error("ALARM but no event");

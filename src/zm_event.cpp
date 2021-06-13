@@ -43,13 +43,13 @@ Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = {};
 
 Event::Event(
     Monitor *p_monitor,
-    struct timeval p_start_time,
+    SystemTimePoint p_start_time,
     const std::string &p_cause,
     const StringSetMap &p_noteSetMap
     ) :
   id(0),
   monitor(p_monitor),
-  start_time(SystemTimePoint(zm::chrono::duration_cast<Microseconds>(p_start_time))),
+  start_time(p_start_time),
   end_time(),
   cause(p_cause),
   noteSetMap(p_noteSetMap),
@@ -220,7 +220,7 @@ Event::Event(
       zmDbDo(sql.c_str());
     }
   }  // end if GetOptVideoWriter
-} // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
+}
 
 Event::~Event() {
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
@@ -282,26 +282,20 @@ void Event::createNotes(std::string &notes) {
   }
 }  // void Event::createNotes(std::string &notes)
 
-bool Event::WriteFrameImage(
-    Image *image,
-    timeval timestamp,
-    const char *event_file,
-    bool alarm_frame) const {
-
+bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) const {
   int thisquality = 
     (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
     config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
 
   bool rc;
 
-  SystemTimePoint jpeg_timestamp =
-      monitor->Exif() ? SystemTimePoint(zm::chrono::duration_cast<Microseconds>(timestamp)) : SystemTimePoint();
+  SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
 
   if (!config.timestamp_on_capture) {
     // stash the image we plan to use in another pointer regardless if timestamped.
     // exif is only timestamp at present this switches on or off for write
     Image *ts_image = new Image(*image);
-    monitor->TimestampImage(ts_image, timestamp);
+    monitor->TimestampImage(ts_image, zm::chrono::duration_cast<timeval>(timestamp.time_since_epoch()));
     rc = ts_image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
     delete ts_image;
   } else {
@@ -309,7 +303,7 @@ bool Event::WriteFrameImage(
   }
 
   return rc;
-}  // end Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
+}
 
 bool Event::WritePacket(const std::shared_ptr<ZMPacket>&packet) {
   if (videoStore->writePacket(packet) < 0)
@@ -427,6 +421,8 @@ void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
       have_video_keyframe, packet->codec_type, (packet->codec_type == AVMEDIA_TYPE_VIDEO), packet->keyframe);
   ZM_DUMP_PACKET(packet->packet, "Adding to event");
 
+  SystemTimePoint packet_ts = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(packet->timestamp));
+
   if (videoStore) {
     if (have_video_keyframe) {
       videoStore->writePacket(packet);
@@ -437,9 +433,9 @@ void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
   }
 
   if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image) {
-    AddFrame(packet->image, packet->timestamp, packet->zone_stats, packet->score, packet->analysis_image);
+    AddFrame(packet->image, packet_ts, packet->zone_stats, packet->score, packet->analysis_image);
   }
-  end_time = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(packet->timestamp));
+  end_time = packet_ts;
 }
 
 void Event::WriteDbFrames() {
@@ -493,13 +489,12 @@ void Event::WriteDbFrames() {
   }
 } // end void Event::WriteDbFrames()
 
-void Event::AddFrame(
-    Image *image,
-    struct timeval timestamp,
-    const std::vector<ZoneStats> &zone_stats,
-    int score,
-    Image *alarm_image) {
-  if (!timestamp.tv_sec) {
+void Event::AddFrame(Image *image,
+                     SystemTimePoint timestamp,
+                     const std::vector<ZoneStats> &zone_stats,
+                     int score,
+                     Image *alarm_image) {
+  if (timestamp.time_since_epoch() == Seconds(0)) {
     Warning("Not adding new frame, zero timestamp");
     return;
   }
@@ -576,25 +571,17 @@ void Event::AddFrame(
     or ( monitor_state == Monitor::ALARM )
     or ( monitor_state == Monitor::PREALARM );
 
-  SystemTimePoint timestamp_us = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(timestamp));
-
   if (db_frame) {
-    Microseconds delta_time = std::chrono::duration_cast<Microseconds>(timestamp_us - start_time);
+    Microseconds delta_time = std::chrono::duration_cast<Microseconds>(timestamp - start_time);
     Debug(1, "Frame delta is %.2f s - %.2f s = %.2f s, score %u zone_stats.size %zu",
-          FPSeconds(timestamp_us.time_since_epoch()).count(),
+          FPSeconds(timestamp.time_since_epoch()).count(),
           FPSeconds(start_time.time_since_epoch()).count(),
           FPSeconds(delta_time).count(),
           score,
           zone_stats.size());
 
     // The idea is to write out 1/sec
-    frame_data.push(new Frame(id,
-                              frames,
-                              frame_type,
-                              SystemTimePoint(zm::chrono::duration_cast<Microseconds>(timestamp)),
-                              delta_time,
-                              score,
-                              zone_stats));
+    frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score, zone_stats));
     double fps = monitor->get_capture_fps();
     if (write_to_db
         or
@@ -627,8 +614,8 @@ void Event::AddFrame(
   if (score > (int) max_score) {
     max_score = score;
   }
-  end_time = timestamp_us;
-}  // end void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image)
+  end_time = timestamp;
+}
 
 bool Event::SetPath(Storage *storage) {
   scheme = storage->Scheme();

@@ -513,8 +513,12 @@ public:
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( uint64_t p_event_id ) { video_store_data->current_event = p_event_id; }
 
-  struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
-  void SetVideoWriterStartTime(const struct timeval &t) { video_store_data->recording = t; }
+  SystemTimePoint GetVideoWriterStartTime() const {
+    return SystemTimePoint(zm::chrono::duration_cast<Microseconds>(video_store_data->recording));
+  }
+  void SetVideoWriterStartTime(SystemTimePoint t) {
+    video_store_data->recording = zm::chrono::duration_cast<timeval>(t.time_since_epoch());
+  }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   int32_t GetImageBufferCount() const { return image_buffer_count; };

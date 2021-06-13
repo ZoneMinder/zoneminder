@@ -53,7 +53,7 @@ void ZoneMinderFifoSource::ReadRun() {
   if (stop_) Warning("bad value for stop_ in ReadRun");
 	while (!stop_) {
 		if (getNextFrame() < 0) {
-      Debug(1, "Sleeping");
+      Debug(1, "Sleeping because couldn't getNextFrame");
       sleep(1);
     }
 	}
@@ -78,7 +78,7 @@ void ZoneMinderFifoSource::WriteRun() {
 
     if (nal) {
       if (1 and (nal->size() > maxNalSize)) {
-        Debug(1, "Splitting NAL %zu", nal->size());
+        Debug(3, "Splitting NAL %zu", nal->size());
         size_t nalRemaining = nal->size();
         u_int8_t *nalSrc = nal->buffer();
 
@@ -123,7 +123,7 @@ void ZoneMinderFifoSource::WriteRun() {
           nalSrc += fuNalSize;
           nal_count += 1;
         }
-        Debug(1, "Sending %d NALs @ %zu and 1 @ %zu", nal_count, maxNalSize, fuNal.size());
+        Debug(3, "Sending %d NALs @ %zu and 1 @ %zu", nal_count, maxNalSize, fuNal.size());
       } else {
         Debug(3, "Pushing nal of size %zu at %" PRId64, nal->size(), nal->pts());
         PushFrame(nal->buffer(), nal->size(), nal->pts());
@@ -259,7 +259,6 @@ int ZoneMinderFifoSource::getNextFrame() {
         m_nalQueue.push(Nal);
       }
     }
-    Debug(1, "notifying");
     condition_.notify_all();
   } // end while m_buffer.size()
   return 1;

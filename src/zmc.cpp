@@ -242,9 +242,9 @@ int main(int argc, char *argv[]) {
       if (!monitor->connect()) {
         Warning("Couldn't connect to monitor %d", monitor->Id());
       }
-      time_t now = (time_t)time(nullptr);
-      monitor->setStartupTime(now);
-      monitor->setHeartbeatTime(now);
+      SystemTimePoint now = std::chrono::system_clock::now();
+      monitor->SetStartupTime(now);
+      monitor->SetHeartbeatTime(now);
 
       snprintf(sql, sizeof(sql), 
           "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"

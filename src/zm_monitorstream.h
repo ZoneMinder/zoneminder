@@ -21,7 +21,6 @@
 #define ZM_MONITORSTREAM_H
 
 #include "zm_stream.h"
-#include <sys/time.h>
 
 class MonitorStream : public StreamBase {
   protected:

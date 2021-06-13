@@ -498,20 +498,27 @@ int main(int argc, char *argv[]) {
       }
     }
     if ( function & ZMU_TIME ) {
-      struct timeval timestamp = monitor->GetTimestamp(image_idx);
-      if ( verbose ) {
+      SystemTimePoint timestamp = monitor->GetTimestamp(image_idx);
+      if (verbose) {
         char timestamp_str[64] = "None";
-        if ( timestamp.tv_sec ) {
+        if (timestamp.time_since_epoch() != Seconds(0)) {
           tm tm_info = {};
-          strftime(timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime_r(&timestamp.tv_sec, &tm_info));
+          time_t timestamp_t = std::chrono::system_clock::to_time_t(timestamp);
+          strftime(timestamp_str, sizeof(timestamp_str), "%Y-%m-%d %H:%M:%S", localtime_r(&timestamp_t, &tm_info));
         }
-        if ( image_idx == -1 )
-          printf("Time of last image capture: %s.%02ld\n", timestamp_str, timestamp.tv_usec/10000);
-        else
-          printf("Time of image %d capture: %s.%02ld\n", image_idx, timestamp_str, timestamp.tv_usec/10000);
+        Seconds ts_sec = std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch());
+        Microseconds ts_usec = std::chrono::duration_cast<Microseconds>(timestamp.time_since_epoch() - ts_sec);
+        if (image_idx == -1) {
+          printf("Time of last image capture: %s.%02d\n", timestamp_str, static_cast<int32>(ts_usec.count()));
+        }
+        else {
+          printf("Time of image %d capture: %s.%02d\n", image_idx, timestamp_str, static_cast<int32>(ts_usec.count()));
+        }
       } else {
-        if ( have_output ) fputc(separator, stdout);
-        printf("%ld.%02ld", timestamp.tv_sec, timestamp.tv_usec/10000);
+        if (have_output) {
+          fputc(separator, stdout);
+        }
+        printf("%.2f", FPSeconds(timestamp.time_since_epoch()).count());
         have_output = true;
       }
     }
@@ -740,13 +747,14 @@ int main(int argc, char *argv[]) {
           if ( monitor_function > 1 ) {
             std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
             if ( monitor && monitor->connect() ) {
-              struct timeval tv = monitor->GetTimestamp();
-              printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8" PRIu64 "%8.2f\n",
+              SystemTimePoint timestamp = monitor->GetTimestamp();
+
+              printf( "%4d%5d%6d%9d%14.2f%6d%6d%8" PRIu64 "%8.2f\n",
                 monitor->Id(),
                 monitor_function,
                 monitor->GetState(),
                 monitor->GetTriggerState(),
-                tv.tv_sec, tv.tv_usec/10000,
+                FPSeconds(timestamp.time_since_epoch()).count(),
                 monitor->GetLastReadIndex(),
                 monitor->GetLastWriteIndex(),
                 monitor->GetLastEventId(),
@@ -754,13 +762,12 @@ int main(int argc, char *argv[]) {
               );
             }
           } else {
-            struct timeval tv = { 0, 0 };
             printf("%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
               mon_id,
               function,
               0,
               0,
-              tv.tv_sec, tv.tv_usec/10000,
+              0l, 0l,
               0,
               0,
               0,

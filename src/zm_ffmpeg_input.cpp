@@ -269,4 +269,4 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   }
 
   return get_frame(stream_id);
-}  // end AVFrame *FFmpeg_Input::get_frame( int stream_id, struct timeval at)
+}

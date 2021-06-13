@@ -21,7 +21,6 @@
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
 #include "zm_logger.h"
-#include <sys/time.h>
 
 using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
@@ -31,7 +30,6 @@ ZMPacket::ZMPacket() :
   stream(nullptr),
   in_frame(nullptr),
   out_frame(nullptr),
-  timestamp({}),
   buffer(nullptr),
   image(nullptr),
   analysis_image(nullptr),
@@ -40,13 +38,13 @@ ZMPacket::ZMPacket() :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(0)
+  decoded(false)
 {
   av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.
 }
 
-ZMPacket::ZMPacket(Image *i, const timeval &tv) :
+ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
   keyframe(0),
   stream(nullptr),
   in_frame(nullptr),
@@ -60,7 +58,7 @@ ZMPacket::ZMPacket(Image *i, const timeval &tv) :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(0)
+  decoded(false)
 {
   av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.
@@ -80,7 +78,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(0)
+  decoded(false)
 {
   av_init_packet(&packet);
   packet.size = 0;
@@ -95,8 +93,8 @@ ZMPacket::~ZMPacket() {
   if (in_frame) av_frame_free(&in_frame);
   if (out_frame) av_frame_free(&out_frame);
   if (buffer) av_freep(&buffer);
-  if (analysis_image) delete analysis_image;
-  if (image) delete image;
+  delete analysis_image;
+  delete image;
 }
 
 /* returns < 0 on error, 0 on not ready, int bytes consumed on success 
@@ -243,8 +241,8 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
   if (zm_av_packet_ref(&packet, p) < 0) {
     Error("error refing packet");
   }
-  //ZM_DUMP_PACKET(packet, "zmpacket:");
-  gettimeofday(&timestamp, nullptr);
+
+  timestamp = std::chrono::system_clock::now();
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   return &packet;
 }

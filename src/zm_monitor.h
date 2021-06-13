@@ -313,8 +313,8 @@ protected:
   int        pre_event_count;    // How many images to hold and prepend to an alarm event
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
-  int        section_length;      // How long events should last in continuous modes
-  int        min_section_length;   // Minimum event length when using event_close_mode == ALARM
+  Seconds section_length;      // How long events should last in continuous modes
+  Seconds min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
@@ -424,7 +424,6 @@ protected:
 
 public:
   explicit Monitor();
-  explicit Monitor(unsigned int p_id);
 
   ~Monitor();
 
@@ -453,7 +452,7 @@ public:
 
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name.c_str(); }
-  inline unsigned int ServerId() { return server_id; }
+  inline unsigned int ServerId() const { return server_id; }
   inline Storage *getStorage() {
     if ( ! storage ) {
       storage = new Storage(storage_id);
@@ -486,7 +485,7 @@ public:
   }
   inline bool Exif() const { return embed_exif; }
   inline bool RTSPServer() const { return rtsp_server; }
-  inline bool RecordAudio() { return record_audio; }
+  inline bool RecordAudio() const { return record_audio; }
 
   /*
   inline Purpose Purpose() { return purpose };
@@ -529,14 +528,14 @@ public:
   AVStream *GetVideoStream() const { return camera ? camera->getVideoStream() : nullptr; };
   AVCodecContext *GetVideoCodecContext() const { return camera ? camera->getVideoCodecContext() : nullptr; };
 
-  const std::string GetSecondPath() const { return second_path; };
-  const std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
-  const std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
-  const std::string GetRTSPStreamName() const { return rtsp_streamname; };
+  std::string GetSecondPath() const { return second_path; };
+  std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
+  std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
+  std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
   int GetImage(int32_t index=-1, int scale=100);
   ZMPacket *getSnapshot( int index=-1 ) const;
-  struct timeval GetTimestamp( int index=-1 ) const;
+  SystemTimePoint GetTimestamp(int index = -1) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
@@ -553,9 +552,11 @@ public:
   void ForceAlarmOff();
   void CancelForced();
   TriggerState GetTriggerState() const { return trigger_data ? trigger_data->trigger_state : TRIGGER_CANCEL; }
-	inline time_t getStartupTime() const { return shared_data->startup_time; }
-	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
-	inline void setHeartbeatTime( time_t p_time ) { shared_data->zmc_heartbeat_time = p_time; }
+  SystemTimePoint GetStartupTime() const { return std::chrono::system_clock::from_time_t(shared_data->startup_time); }
+  void SetStartupTime(SystemTimePoint time) { shared_data->startup_time = std::chrono::system_clock::to_time_t(time); }
+  void SetHeartbeatTime(SystemTimePoint time) {
+    shared_data->zmc_heartbeat_time = std::chrono::system_clock::to_time_t(time);
+  }
   void get_ref_image();
 
   int LabelSize() const { return label_size; }
@@ -586,7 +587,7 @@ public:
   bool Analyse();
   bool Decode();
   void DumpImage( Image *dump_image ) const;
-  void TimestampImage(Image *ts_image, const timeval &ts_time) const;
+  void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   void closeEvent();
 
   void Reload();
@@ -618,7 +619,7 @@ public:
   double get_analysis_fps( ) const {
     return shared_data ? shared_data->analysis_fps : 0.0;
   }
-  int Importance() { return importance; }
+  int Importance() const { return importance; }
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

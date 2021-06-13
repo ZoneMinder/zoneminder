@@ -295,7 +295,7 @@ bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char 
     // stash the image we plan to use in another pointer regardless if timestamped.
     // exif is only timestamp at present this switches on or off for write
     Image *ts_image = new Image(*image);
-    monitor->TimestampImage(ts_image, zm::chrono::duration_cast<timeval>(timestamp.time_since_epoch()));
+    monitor->TimestampImage(ts_image, timestamp);
     rc = ts_image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
     delete ts_image;
   } else {
@@ -421,8 +421,6 @@ void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
       have_video_keyframe, packet->codec_type, (packet->codec_type == AVMEDIA_TYPE_VIDEO), packet->keyframe);
   ZM_DUMP_PACKET(packet->packet, "Adding to event");
 
-  SystemTimePoint packet_ts = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(packet->timestamp));
-
   if (videoStore) {
     if (have_video_keyframe) {
       videoStore->writePacket(packet);
@@ -433,9 +431,9 @@ void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
   }
 
   if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image) {
-    AddFrame(packet->image, packet_ts, packet->zone_stats, packet->score, packet->analysis_image);
+    AddFrame(packet->image, packet->timestamp, packet->zone_stats, packet->score, packet->analysis_image);
   }
-  end_time = packet_ts;
+  end_time = packet->timestamp;
 }
 
 void Event::WriteDbFrames() {

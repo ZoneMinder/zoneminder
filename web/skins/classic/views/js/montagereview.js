@@ -275,17 +275,16 @@ function timerFire() {
     clearInterval(timerObj);
     timerObj = null;
     timerInterval = currentDisplayInterval;
-    console.log("Turn off nterrupts timerInterfave" + timerInterval);
+    console.log("Turn off interrupts timerInterfave" + timerInterval);
   }
 
   if ( (currentSpeed > 0 || liveMode != 0) && ! timerObj ) {
     timerObj = setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
   }
 
-  if ( liveMode ) {
-    console.log("liveMode");
+  if (liveMode) {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if ( currentTimeSecs + playSecsPerInterval >= maxTimeSecs ) {
+  } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
     console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " >= " + maxTimeSecs + " so stopping");
     setSpeed(0);
@@ -637,7 +636,7 @@ function showSpeed(val) {
 }
 
 function setSpeed(speed_index) {
-  if ( liveMode == 1 ) {
+  if (liveMode == 1) {
     console.log("setSpeed in liveMode?");
     return; // we shouldn't actually get here but just in case
   }

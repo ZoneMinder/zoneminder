@@ -179,6 +179,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   // So start at the beginning, counting video packets until the next keyframe.  
   // Then if deleting those packets doesn't break 1 and 2, then go ahead and delete them.
   if (deleting) return;
+  if (!pktQueue.size()) return;
 
   if (keep_keyframes and ! (
         add_packet->packet.stream_index == video_stream_id
@@ -197,7 +198,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     return;
   }
   std::unique_lock<std::mutex> lck(mutex);
-  if (!pktQueue.size()) return;
 
   // If analysis_it isn't at the end, we need to keep that many additional packets
   int tail_count = 0;
@@ -325,6 +325,8 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 void PacketQueue::clear() {
   deleting = true;
   condition.notify_all();
+  if (!packet_counts) // special case, not initialised
+    return;
   Debug(1, "Clearing packetqueue");
   std::unique_lock<std::mutex> lck(mutex);
 

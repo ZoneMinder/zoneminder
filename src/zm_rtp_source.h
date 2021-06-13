@@ -24,6 +24,7 @@
 #include "zm_config.h"
 #include "zm_define.h"
 #include "zm_ffmpeg.h"
+#include "zm_time.h"
 #include <condition_variable>
 #include <mutex>
 #include <string>
@@ -68,7 +69,7 @@ private:
   // Time keys
   uint32_t mRtpClock;
   uint32_t mRtpFactor;
-  struct timeval mBaseTimeReal;
+  SystemTimePoint mBaseTimeReal;
   struct timeval mBaseTimeNtp;
   uint32_t mBaseTimeRtp;
 

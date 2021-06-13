@@ -66,7 +66,7 @@ RtpSource::RtpSource(
 
   mRtpFactor = mRtpClock;
 
-  mBaseTimeReal = tvNow();
+  mBaseTimeReal = std::chrono::system_clock::now();
   mBaseTimeNtp = {};
   mBaseTimeRtp = rtpTime;
 
@@ -159,12 +159,9 @@ bool RtpSource::updateSeq(uint16_t seq) {
 }
 
 void RtpSource::updateJitter( const RtpDataHeader *header ) {
-  if ( mRtpFactor > 0 ) {
-    timeval now = {};
-    gettimeofday(&now, nullptr);
-
-    FPSeconds time_diff =
-        zm::chrono::duration_cast<Microseconds>(now) - zm::chrono::duration_cast<Microseconds>(mBaseTimeReal);
+  if (mRtpFactor > 0) {
+    SystemTimePoint now = std::chrono::system_clock::now();
+    FPSeconds time_diff = std::chrono::duration_cast<FPSeconds>(now - mBaseTimeReal);
 
     uint32_t localTimeRtp = mBaseTimeRtp + static_cast<uint32>(time_diff.count() * mRtpFactor);
     uint32_t packetTransit = localTimeRtp - ntohl(header->timestampN);
@@ -202,7 +199,7 @@ void RtpSource::updateRtcpData(
   Debug(5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
 
   if ( mBaseTimeNtp.tv_sec == 0 ) {
-    mBaseTimeReal = tvNow();
+    mBaseTimeReal = std::chrono::system_clock::now();
     mBaseTimeNtp = ntpTime;
     mBaseTimeRtp = rtpTime;
   } else if ( !mRtpClock ) {

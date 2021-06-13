@@ -472,16 +472,22 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   Debug(1, "Have camera type %s", CameraType_Strings[type].c_str());
   col++;
   function = (Function)atoi(dbrow[col]); col++;
-  enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
-  decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
 
   ReloadLinkedMonitors(dbrow[col]); col++;
 
   /* "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS," */
   analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], nullptr) : 0.0; col++;
-  analysis_update_delay = strtoul(dbrow[col++], nullptr, 0);
-  capture_delay = (dbrow[col] && atof(dbrow[col]) > 0.0) ? int(Microseconds::period::den / atof(dbrow[col])) : 0; col++;
-  alarm_capture_delay = (dbrow[col] && atof(dbrow[col]) > 0.0) ? int(Microseconds::period::den / atof(dbrow[col])) : 0; col++;
+  analysis_update_delay = Seconds(strtoul(dbrow[col++], nullptr, 0));
+  capture_delay =
+      (dbrow[col] && atof(dbrow[col]) > 0.0) ? std::chrono::duration_cast<Microseconds>(FPSeconds(1 / atof(dbrow[col])))
+                                             : Microseconds(0);
+  col++;
+  alarm_capture_delay =
+      (dbrow[col] && atof(dbrow[col]) > 0.0) ? std::chrono::duration_cast<Microseconds>(FPSeconds(1 / atof(dbrow[col])))
+                                             : Microseconds(0);
+  col++;
 
   /* "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings */
   device = dbrow[col] ? dbrow[col] : ""; col++;
@@ -2955,8 +2961,8 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   sprintf(output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
   sprintf(output+strlen(output), "Section Length : %" PRIi64 "\n", static_cast<int64>(Seconds(section_length).count()));
   sprintf(output+strlen(output), "Min Section Length : %" PRIi64 "\n", static_cast<int64>(Seconds(min_section_length).count()));
-  sprintf(output+strlen(output), "Maximum FPS : %.2f\n", capture_delay ? (double) Microseconds::period::den / capture_delay : 0.0);
-  sprintf(output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay ? (double) Microseconds::period::den / alarm_capture_delay : 0.0);
+  sprintf(output+strlen(output), "Maximum FPS : %.2f\n", capture_delay != Seconds(0) ? 1 / FPSeconds(capture_delay).count() : 0.0);
+  sprintf(output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay != Seconds(0) ? 1 / FPSeconds(alarm_capture_delay).count() : 0.0);
   sprintf(output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc);
   sprintf(output+strlen(output), "Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc);
   sprintf(output+strlen(output), "Track Motion : %d\n", track_motion);

@@ -319,9 +319,9 @@ protected:
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
   double     analysis_fps_limit;     // Target framerate for video analysis
-  unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
-  int        capture_delay;      // How long we wait between capture frames
-  int        alarm_capture_delay;  // How long we wait between capture frames when in alarm state
+  Microseconds analysis_update_delay;  //  How long we wait before updating analysis parameters
+  Microseconds capture_delay;      // How long we wait between capture frames
+  Microseconds alarm_capture_delay;  // How long we wait between capture frames when in alarm state
   int        alarm_frame_count;    // How many alarm frames are required before an event is triggered
   int        alert_to_alarm_frame_count;    // How many alarm frames (consecutive score frames) are required to return alarm from alert
   // value for now is the same number configured in alarm_frame_count, maybe getting his own parameter some day
@@ -538,10 +538,10 @@ public:
   SystemTimePoint GetTimestamp(int index = -1) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
-  unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
+  Microseconds GetAnalysisUpdateDelay() const { return analysis_update_delay; }
   unsigned int GetCaptureMaxFPS() const { return capture_max_fps; }
-  int GetCaptureDelay() const { return capture_delay; }
-  int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
+  Microseconds GetCaptureDelay() const { return capture_delay; }
+  Microseconds GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;
   unsigned int GetLastWriteIndex() const;
   uint64_t GetLastEventId() const;

@@ -283,8 +283,8 @@ Monitor::Monitor()
   storage_id(0),
   type(LOCAL),
   function(NONE),
-  enabled(0),
-  decoding_enabled(0),
+  enabled(false),
+  decoding_enabled(false),
   //protocol
   //method
   //options
@@ -307,8 +307,8 @@ Monitor::Monitor()
   deinterlacing_value(0),
   decoder_hwaccel_name(""),
   decoder_hwaccel_device(""),
-  videoRecording(0),
-  rtsp_describe(0),
+  videoRecording(false),
+  rtsp_describe(false),
 
   savejpegs(0),
   colours(0),
@@ -318,7 +318,7 @@ Monitor::Monitor()
   encoder(""),
   output_container(""),
   imagePixFormat(AV_PIX_FMT_NONE),
-  record_audio(0),
+  record_audio(false),
 //event_prefix
 //label_format
   label_coord(Vector2(0,0)),
@@ -343,11 +343,11 @@ Monitor::Monitor()
   fps_report_interval(0),
   ref_blend_perc(0),
   alarm_ref_blend_perc(0),
-  track_motion(0),
+  track_motion(false),
   signal_check_points(0),
   signal_check_colour(0),
-  embed_exif(0),
-  rtsp_server(0),
+  embed_exif(false),
+  rtsp_server(false),
   rtsp_streamname(""),
   importance(0),
   capture_max_fps(0),
@@ -366,10 +366,6 @@ Monitor::Monitor()
   last_section_mod(0),
   buffer_count(0),
   state(IDLE),
-  start_time(0),
-  last_fps_time(0),
-  last_analysis_fps_time(0),
-  auto_resume_time(0),
   last_motion_score(0),
   event_close_mode(CLOSE_IDLE),
 #if ZM_MEM_MAPPED
@@ -417,7 +413,7 @@ Monitor::Monitor()
   else
     event_close_mode = CLOSE_IDLE;
 
-  event = 0;
+  event = nullptr;
   last_section_mod = 0;
 
   adaptive_skip = true;
@@ -451,7 +447,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
 
   storage_id = atoi(dbrow[col]); col++;
-  if (storage) delete storage;
+  delete storage;
   storage = new Storage(storage_id);
 
   if ( ! strcmp(dbrow[col], "Local") ) {
@@ -1038,11 +1034,8 @@ bool Monitor::connect() {
   }
 
   // We set these here because otherwise the first fps calc is meaningless
-  struct timeval now;
-  gettimeofday(&now, nullptr);
-  double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
-  last_fps_time = now_double;
-  last_analysis_fps_time = now_double;
+  last_fps_time = std::chrono::system_clock::now();
+  last_analysis_fps_time = std::chrono::system_clock::now();
 
   Debug(3, "Success connecting");
   return true;
@@ -1583,8 +1576,7 @@ bool Monitor::CheckSignal(const Image *image) {
 } // end bool Monitor::CheckSignal(const Image *image)
 
 void Monitor::CheckAction() {
-  struct timeval now;
-  gettimeofday(&now, nullptr);
+  SystemTimePoint now = std::chrono::system_clock::now();
 
   if ( shared_data->action ) {
     // Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
@@ -1601,8 +1593,8 @@ void Monitor::CheckAction() {
       } else {
         Info("Received suspend indication at count %d, but wasn't active", image_count);
       }
-      if ( config.max_suspend_time ) {
-        auto_resume_time = now.tv_sec + config.max_suspend_time;
+      if (config.max_suspend_time) {
+        auto_resume_time = now + Seconds(config.max_suspend_time);
       }
       shared_data->action &= ~SUSPEND;
     } else if ( shared_data->action & RESUME ) {
@@ -1616,45 +1608,49 @@ void Monitor::CheckAction() {
     }
   } // end if shared_data->action
 
-  if ( auto_resume_time && (now.tv_sec >= auto_resume_time) ) {
+  if (auto_resume_time.time_since_epoch() != Seconds(0) && now >= auto_resume_time) {
     Info("Auto resuming at count %d", image_count);
     shared_data->active = true;
     ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
-    auto_resume_time = 0;
   }
 }
 
 void Monitor::UpdateCaptureFPS() {
-  if ( fps_report_interval and 
-      ( 
+  if ( fps_report_interval and
+      (
        !(image_count%fps_report_interval)
-      or 
+      or
      ( (image_count < fps_report_interval) and !(image_count%10) )
      )
      ) {
-    struct timeval now;
-    gettimeofday(&now, nullptr);
-    double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
-    double elapsed = now_double - last_fps_time;
+    SystemTimePoint now = std::chrono::system_clock::now();
+    FPSeconds elapsed = now - last_fps_time;
 
     // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
     // Also only do the update at most 1/sec
-    if ( elapsed > 1.0 ) {
+    if (elapsed > Seconds(1)) {
       // # of images per interval / the amount of time it took
-      double new_capture_fps = double((image_count - last_capture_image_count)/elapsed);
-      unsigned int new_camera_bytes = camera->Bytes();
-      unsigned int new_capture_bandwidth = (new_camera_bytes-last_camera_bytes)/elapsed;
+      double new_capture_fps = (image_count - last_capture_image_count) / elapsed.count();
+      uint32 new_camera_bytes = camera->Bytes();
+      uint32 new_capture_bandwidth =
+          static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
       last_camera_bytes = new_camera_bytes;
 
-      Debug(4, "%s: %d - last %d = %d now:%lf, last %lf, elapsed %lf = %lffps", "Capturing", image_count,
-          last_capture_image_count, image_count - last_capture_image_count,
-          now_double, last_analysis_fps_time,
-          elapsed, new_capture_fps
-          );
+      Debug(4, "%s: %d - last %d = %d now:%lf, last %lf, elapsed %lf = %lffps",
+            "Capturing",
+            image_count,
+            last_capture_image_count,
+            image_count - last_capture_image_count,
+            FPSeconds(now.time_since_epoch()).count(),
+            FPSeconds(last_analysis_fps_time.time_since_epoch()).count(),
+            elapsed.count(),
+            new_capture_fps);
+
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec",
           name.c_str(), image_count, new_capture_fps, new_capture_bandwidth);
+
       shared_data->capture_fps = new_capture_fps;
-      last_fps_time = now_double;
+      last_fps_time = now;
       last_capture_image_count = image_count;
 
       std::string sql = stringtf(
@@ -1676,35 +1672,36 @@ void Monitor::UpdateAnalysisFPS() {
       // In startup do faster updates
       ( (analysis_image_count < fps_report_interval) and !(analysis_image_count%10) )
      ) {
-    //if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
-    struct timeval now;
-    gettimeofday(&now, nullptr);
-    double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
-    double elapsed = now_double - last_analysis_fps_time;
-    Debug(4, "%s: %d - now:%" PRIi64 ".%" PRIi64 " = %lf, last %lf, diff %lf",
+    SystemTimePoint now = std::chrono::system_clock::now();
+
+    FPSeconds elapsed = now - last_analysis_fps_time;
+    Debug(4, "%s: %d - now: %.2f, last %lf, diff %lf",
           name.c_str(),
           analysis_image_count,
-          static_cast<int64>(now.tv_sec),
-          static_cast<int64>(now.tv_usec),
-          now_double,
-          last_analysis_fps_time,
-          elapsed);
+          FPSeconds(now.time_since_epoch()).count(),
+          FPSeconds(last_analysis_fps_time.time_since_epoch()).count(),
+          elapsed.count());
 
-    if ( elapsed > 1.0 ) {
-      double new_analysis_fps = double(motion_frame_count - last_motion_frame_count) / elapsed;
+    if (elapsed > Seconds(1)) {
+      double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
       Info("%s: %d - Analysing at %.2lf fps from %d - %d=%d / %lf - %lf = %lf",
-          name.c_str(), analysis_image_count, new_analysis_fps,
-          motion_frame_count, last_motion_frame_count, (motion_frame_count - last_motion_frame_count),
-          now_double, last_analysis_fps_time, elapsed);
+           name.c_str(),
+           analysis_image_count,
+           new_analysis_fps,
+           motion_frame_count,
+           last_motion_frame_count,
+           (motion_frame_count - last_motion_frame_count),
+           FPSeconds(now.time_since_epoch()).count(),
+           FPSeconds(last_analysis_fps_time.time_since_epoch()).count(),
+           elapsed.count());
 
-      if ( new_analysis_fps != shared_data->analysis_fps ) {
+      if (new_analysis_fps != shared_data->analysis_fps) {
         shared_data->analysis_fps = new_analysis_fps;
 
-      std::string sql = stringtf(
-          "UPDATE LOW_PRIORITY Monitor_Status SET AnalysisFPS = %.2lf WHERE MonitorId=%u",
-             new_analysis_fps, id);
+        std::string sql = stringtf("UPDATE LOW_PRIORITY Monitor_Status SET AnalysisFPS = %.2lf WHERE MonitorId=%u",
+                                   new_analysis_fps, id);
         dbQueue.push(std::move(sql));
-        last_analysis_fps_time = now_double;
+        last_analysis_fps_time = now;
         last_motion_frame_count = motion_frame_count;
       } else {
         Debug(4, "No change in fps");

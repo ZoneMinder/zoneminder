@@ -137,8 +137,9 @@ Monitor::MonitorLink::~MonitorLink() {
 }
 
 bool Monitor::MonitorLink::connect() {
-  if ( !last_connect_time || (time(nullptr) - last_connect_time) > 60 ) {
-    last_connect_time = time(nullptr);
+  SystemTimePoint now = std::chrono::system_clock::now();
+  if (!last_connect_time || (now - std::chrono::system_clock::from_time_t(last_connect_time)) > Seconds(60)) {
+    last_connect_time = std::chrono::system_clock::to_time_t(now);
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
@@ -2266,7 +2267,7 @@ bool Monitor::Analyse() {
       UpdateAnalysisFPS();
   }
   packetqueue.unlock(packet_lock);
-  shared_data->last_read_time = time(nullptr);
+  shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
   return true;
 } // end Monitor::Analyse

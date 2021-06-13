@@ -439,15 +439,18 @@ void RtspThread::Run() {
 
   lines = Split(response, "\r\n");
   std::string session;
-  int timeout = 0;
+  Seconds timeout = Seconds(0);
   char transport[256] = "";
 
   for ( size_t i = 0; i < lines.size(); i++ ) {
     if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) ) {
       StringVector sessionLine = Split(lines[i].substr(9), ";");
       session = TrimSpaces(sessionLine[0]);
-      if ( sessionLine.size() == 2 )
-        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
+      if ( sessionLine.size() == 2 ){
+        int32 timeout_val = 0;
+        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout_val);
+        timeout = Seconds(timeout_val);
+      }
     }
     sscanf(lines[i].c_str(), "Transport: %s", transport);
   }
@@ -455,7 +458,7 @@ void RtspThread::Run() {
   if ( session.empty() )
     Fatal("Unable to get session identifier from response '%s'", response.c_str());
 
-  Debug(2, "Got RTSP session %s, timeout %d secs", session.c_str(), timeout);
+  Debug(2, "Got RTSP session %s, timeout %" PRIi64 " secs", session.c_str(), Seconds(timeout).count());
 
   if ( !transport[0] )
     Fatal("Unable to get transport details from response '%s'", response.c_str());
@@ -518,12 +521,17 @@ void RtspThread::Run() {
     if ( ( lines[i].size() > 9 ) && ( lines[i].substr(0, 9) == "RTP-Info:" ) )
       rtpInfo = TrimSpaces(lines[i].substr(9));
     // Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
-    if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) && ( timeout == 0 ) ) {
+    if ((lines[i].size() > 8) && (lines[i].substr(0, 8) == "Session:") && (timeout == Seconds(0))) {
       StringVector sessionLine = Split(lines[i].substr(9), ";");
-      if ( sessionLine.size() == 2 )
-        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
-      if ( timeout > 0 )
-        Debug(2, "Got timeout %d secs from PLAY command response", timeout);
+      if ( sessionLine.size() == 2 ){
+        int32 timeout_val = 0;
+        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout_val);
+        timeout = Seconds(timeout_val);
+      }
+
+      if ( timeout > Seconds(0) ) {
+        Debug(2, "Got timeout %" PRIi64 " secs from PLAY command response", Seconds(timeout).count());
+      }
     }
   }
 
@@ -558,8 +566,8 @@ void RtspThread::Run() {
   Debug( 2, "RTSP Seq is %d", seq );
   Debug( 2, "RTSP Rtptime is %ld", rtpTime );
 
-  time_t lastKeepalive = time(nullptr);
-  time_t now;
+  TimePoint lastKeepalive = std::chrono::steady_clock::now();
+  TimePoint now;
   message = "GET_PARAMETER "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
 
   switch( mMethod ) {
@@ -571,16 +579,17 @@ void RtspThread::Run() {
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
       while (!mTerminate) {
-        now = time(nullptr);
+        now = std::chrono::steady_clock::now();
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        Debug(5, "sendkeepalive %d, timeout %d, now: %" PRIi64 " last: %" PRIi64 " since: %" PRIi64,
+        Debug(5, "sendkeepalive %d, timeout %" PRIi64 " s, now: %" PRIi64 " s last: %" PRIi64 " s since: %" PRIi64 "s ",
               sendKeepalive,
-              timeout,
-              static_cast<int64>(now),
-              static_cast<int64>(lastKeepalive),
-              static_cast<int64>(now - lastKeepalive));
-        if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) ) {
-          if ( !sendCommand( message ) )
+              static_cast<int64>(Seconds(timeout).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>(lastKeepalive.time_since_epoch()).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>((now - lastKeepalive)).count()));
+
+        if (sendKeepalive && (timeout > Seconds(0)) && ((now - lastKeepalive) > (timeout - Seconds(5)))) {
+          if (!sendCommand(message))
             return;
           lastKeepalive = now;
         }
@@ -695,21 +704,23 @@ void RtspThread::Run() {
         }
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
         // FIXME: Is this really necessary when using tcp ?
-        now = time(nullptr);
+        now = std::chrono::steady_clock::now();
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        Debug(5, "sendkeepalive %d, timeout %d, now: %" PRIi64 " last: %" PRIi64 " since: %" PRIi64,
+        Debug(5, "sendkeepalive %d, timeout %" PRIi64 " s, now: %" PRIi64 " s last: %" PRIi64 " s since: %" PRIi64 " s",
               sendKeepalive,
-              timeout,
-              static_cast<int64>(now),
-              static_cast<int64>(lastKeepalive),
-              static_cast<int64>(now - lastKeepalive));
-        if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
-        {
-          if ( !sendCommand( message ) )
+              static_cast<int64>(Seconds(timeout).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>(lastKeepalive.time_since_epoch()).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>((now - lastKeepalive)).count()));
+
+        if (sendKeepalive && (timeout > Seconds(0)) && ((now - lastKeepalive) > (timeout - Seconds(5)))) {
+          if (!sendCommand(message)) {
             return;
+          }
+
           lastKeepalive = now;
         }
-        buffer.tidy( 1 );
+        buffer.tidy(true);
       }
 #if 0
       message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
@@ -738,10 +749,12 @@ void RtspThread::Run() {
 
       while (!mTerminate) {
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        if ( sendKeepalive && (timeout > 0) && ((time(nullptr)-lastKeepalive) > (timeout-5)) ) {
-          if ( !sendCommand( message ) )
+        if (sendKeepalive && (timeout > Seconds(0))
+            && ((std::chrono::steady_clock::now() - lastKeepalive) > (timeout - Seconds(5)))) {
+          if (!sendCommand(message)) {
             return;
-          lastKeepalive = time(nullptr);
+          }
+          lastKeepalive = std::chrono::steady_clock::now();
         }
         std::this_thread::sleep_for(Microseconds(100));
       }

@@ -241,7 +241,7 @@ int main(int argc, const char *argv[], char **envp) {
   }
   fprintf(stdout, "Server: ZoneMinder Video Server/%s\r\n", ZM_VERSION);
 
-  time_t now = time(nullptr);
+  time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   char date_string[64];
   tm now_tm = {};
   strftime(date_string, sizeof(date_string)-1,

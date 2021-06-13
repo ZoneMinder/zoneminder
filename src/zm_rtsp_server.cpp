@@ -91,11 +91,9 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     int option_index = 0;
-
     int c = getopt_long(argc, argv, "m:h:v", long_options, &option_index);
-    if ( c == -1 ) {
+    if (c == -1)
       break;
-    }
 
     switch (c) {
       case 'm':
@@ -162,27 +160,23 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  //xop::MediaSession **sessions = new xop::MediaSession *[monitors.size()];
-
-  std::map<unsigned int, xop::MediaSession *> sessions;
-  std::map<unsigned int, ZoneMinderFifoSource *> video_sources;
-  std::map<unsigned int, ZoneMinderFifoSource *> audio_sources;
-  std::map<unsigned int, std::shared_ptr<Monitor>> monitors;
-  //std::vector<std::shared_ptr<Monitor>> monitors;
-  //= Monitor::LoadMonitors(where, Monitor::QUERY);
+  std::unordered_map<unsigned int, xop::MediaSession *> sessions;
+  std::unordered_map<unsigned int, ZoneMinderFifoSource *> video_sources;
+  std::unordered_map<unsigned int, ZoneMinderFifoSource *> audio_sources;
+  std::unordered_map<unsigned int, std::shared_ptr<Monitor>> monitors;
 
   while (!zm_terminate) {
-    std::map<unsigned int, std::shared_ptr<Monitor>> old_monitors = monitors;
+    std::unordered_map<unsigned int, std::shared_ptr<Monitor>> old_monitors = monitors;
 
     std::vector<std::shared_ptr<Monitor>> new_monitors = Monitor::LoadMonitors(where, Monitor::QUERY);
     for (const auto &monitor : new_monitors) {
-      if (
-          (old_monitors.find(monitor->Id()) != old_monitors.end())
+      auto old_monitor_it = old_monitors.find(monitor->Id());
+      if (old_monitor_it != old_monitors.end()
           and
-          (old_monitors[monitor->Id()]->GetRTSPStreamName() == monitor->GetRTSPStreamName())
+          (old_monitor_it->second->GetRTSPStreamName() == monitor->GetRTSPStreamName())
          ) {
         Debug(1, "Found monitor in oldmonitors, clearing it");
-        old_monitors.erase(monitor->Id());
+        old_monitors.erase(old_monitor_it);
       } else {
         Debug(1, "Adding monitor %d to monitors", monitor->Id());
         monitors[monitor->Id()] = monitor;
@@ -204,8 +198,6 @@ int main(int argc, char *argv[]) {
           audio_sources.erase(monitor->Id());
         }
         rtspServer->RemoveSession(sessions[mid]->GetMediaSessionId());
-        //Debug(1, "Deleting session");
-        //delete sessions[mid];
         sessions.erase(mid);
       }
     }
@@ -214,7 +206,7 @@ int main(int argc, char *argv[]) {
       auto &monitor = it->second;
 
       if (!monitor->ShmValid()) {
-        Debug(1, "monitor %d !shmvalid", monitor->Id());
+        Debug(1, "!ShmValid");
         monitor->disconnect();
         if (!monitor->connect()) {
           Warning("Couldn't connect to monitor %d", monitor->Id());
@@ -226,14 +218,12 @@ int main(int argc, char *argv[]) {
               audio_sources.erase(monitor->Id());
             }
             rtspServer->RemoveSession(sessions[monitor->Id()]->GetMediaSessionId());
-            delete sessions[monitor->Id()];
             sessions.erase(monitor->Id());
           }
-
+          monitor->Reload();  // This is to pickup change of colours, width, height, etc
           continue;
-        }
-      }
-
+        }  // end if failed to connect
+      }  // end if !ShmValid
 
       if (sessions.end() == sessions.find(monitor->Id())) {
         Debug(1, "Monitor not found in sessions, opening it");
@@ -319,8 +309,7 @@ int main(int argc, char *argv[]) {
       }  // end if ! sessions[monitor->Id()]
     }  // end foreach monitor
 
-
-    sleep(5);
+    sleep(10);
 
     if (zm_reload) {
       logTerm();
@@ -328,6 +317,7 @@ int main(int argc, char *argv[]) {
       zm_reload = false;
     }  // end if zm_reload
   } // end while !zm_terminate
+
   Info("RTSP Server shutting down");
 
   for (const std::pair<const unsigned int, std::shared_ptr<Monitor>> &mon_pair : monitors) {

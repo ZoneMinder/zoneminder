@@ -21,13 +21,7 @@
 
 #include "zm_logger.h"
 #include "zm_rgb.h"
-#include <cstring>
-#include <unistd.h>
-
-extern "C" {
-#include <libavutil/mathematics.h>
-#include <libavcodec/avcodec.h>
-}
+#include "zm_time.h"
 
 bool VideoStream::initialised = false;
 
@@ -537,32 +531,29 @@ int VideoStream::SendPacket(AVPacket *packet) {
     return ret;
 }
 
-void *VideoStream::StreamingThreadCallback(void *ctx){
-	
-	Debug( 1, "StreamingThreadCallback started" );
-	
-  if (ctx == nullptr) return nullptr;
+void *VideoStream::StreamingThreadCallback(void *ctx) {
+  Debug(1, "StreamingThreadCallback started");
 
-  VideoStream* videoStream = reinterpret_cast<VideoStream*>(ctx);
+  if (ctx == nullptr) {
+    return nullptr;
+  }
 
-	const uint64_t nanosecond_multiplier = 1000000000;
+  VideoStream *videoStream = reinterpret_cast<VideoStream *>(ctx);
 
-	uint64_t target_interval_ns = nanosecond_multiplier * ( ((double)videoStream->codec_context->time_base.num) / (videoStream->codec_context->time_base.den) );
+  TimePoint::duration target_interval = std::chrono::duration_cast<TimePoint::duration>(FPSeconds(
+      videoStream->codec_context->time_base.num / static_cast<double>(videoStream->codec_context->time_base.den)));
 
-	uint64_t frame_count = 0;
-	timespec start_time;
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
-	uint64_t start_time_ns = (start_time.tv_sec*nanosecond_multiplier) + start_time.tv_nsec;
-	while(videoStream->do_streaming) {
-		timespec current_time;
-		clock_gettime(CLOCK_MONOTONIC, &current_time);
-		uint64_t current_time_ns = (current_time.tv_sec*nanosecond_multiplier) + current_time.tv_nsec;
-		uint64_t target_ns = start_time_ns + (target_interval_ns * frame_count);
-		
-		if ( current_time_ns < target_ns ) {
-			// It's not time to render a frame yet.
-			usleep( (target_ns - current_time_ns) * 0.001 );
-		}
+  uint64_t frame_count = 0;
+  TimePoint start_time = std::chrono::steady_clock::now();
+
+  while (videoStream->do_streaming) {
+    TimePoint current_time = std::chrono::steady_clock::now();
+    TimePoint target = start_time + (target_interval * frame_count);
+
+    if (current_time < target) {
+      // It's not time to render a frame yet.
+      std::this_thread::sleep_for(target - current_time);
+    }
 
     // By sending the last rendered frame we deliver frames to the client more accurate.
     // If we're encoding the frame before sending it there will be lag.
@@ -573,27 +564,29 @@ void *VideoStream::StreamingThreadCallback(void *ctx){
     if (packet->size) {
       videoStream->SendPacket(packet);
     }
-    av_packet_unref( packet);
+    av_packet_unref(packet);
 
     videoStream->packet_index = videoStream->packet_index ? 0 : 1;
 
     // Lock buffer and render next frame.
-        
-		if ( pthread_mutex_lock( videoStream->buffer_copy_lock ) != 0 ) {
-			Fatal( "StreamingThreadCallback: pthread_mutex_lock failed." );
-		}
-		
-		if ( videoStream->buffer_copy ) {
-			// Encode next frame.
-			videoStream->ActuallyEncodeFrame( videoStream->buffer_copy, videoStream->buffer_copy_used, videoStream->add_timestamp, videoStream->timestamp );
-		}
-	
-		if ( pthread_mutex_unlock( videoStream->buffer_copy_lock ) != 0 ) {
-			Fatal( "StreamingThreadCallback: pthread_mutex_unlock failed." );
-		}
-		
-		frame_count++;
-	}
-	
-	return nullptr;
+    if (pthread_mutex_lock(videoStream->buffer_copy_lock) != 0) {
+      Fatal("StreamingThreadCallback: pthread_mutex_lock failed.");
+    }
+
+    if (videoStream->buffer_copy) {
+      // Encode next frame.
+      videoStream->ActuallyEncodeFrame(videoStream->buffer_copy,
+                                       videoStream->buffer_copy_used,
+                                       videoStream->add_timestamp,
+                                       videoStream->timestamp);
+    }
+
+    if (pthread_mutex_unlock(videoStream->buffer_copy_lock) != 0) {
+      Fatal("StreamingThreadCallback: pthread_mutex_unlock failed.");
+    }
+
+    frame_count++;
+  }
+
+  return nullptr;
 }

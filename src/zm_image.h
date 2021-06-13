@@ -25,6 +25,7 @@
 #include "zm_logger.h"
 #include "zm_mem_utils.h"
 #include "zm_rgb.h"
+#include "zm_time.h"
 #include "zm_vector2.h"
 
 #if HAVE_ZLIB_H
@@ -237,9 +238,9 @@ class Image {
     bool WriteJpeg(const char *filename) const;
     bool WriteJpeg(const char *filename, bool on_blocking_abort) const;
     bool WriteJpeg(const char *filename, int quality_override) const;
-    bool WriteJpeg(const char *filename, struct timeval timestamp) const;
-    bool WriteJpeg(const char *filename, int quality_override, struct timeval timestamp) const;
-    bool WriteJpeg(const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort) const;
+    bool WriteJpeg(const char *filename, SystemTimePoint timestamp) const;
+    bool WriteJpeg(const char *filename, int quality_override, SystemTimePoint timestamp) const;
+    bool WriteJpeg(const char *filename, int quality_override, SystemTimePoint timestamp, bool on_blocking_abort) const;
 
     bool DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
     bool EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_override=0) const;
@@ -270,7 +271,7 @@ class Image {
                 Rgb bg_colour = kRGBBlack);
     Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );
     //Image *HighlightEdges( Rgb colour, const Polygon &polygon );
-    void Timestamp(const char *label, const time_t when, const Vector2 &coord, const int size);
+    void Timestamp(const char *label, SystemTimePoint when, const Vector2 &coord, int label_size);
     void Colourise(const unsigned int p_reqcolours, const unsigned int p_reqsubpixelorder);
     void DeColourise();
 
@@ -300,8 +301,9 @@ class Edge {
   Edge(int32 min_y, int32 max_y, double min_x, double _1_m) : min_y(min_y), max_y(max_y), min_x(min_x), _1_m(_1_m) {}
 
   static bool CompareYX(const Edge &e1, const Edge &e2) {
-    if (e1.min_y == e2.min_y)
+    if (e1.min_y == e2.min_y) {
       return e1.min_x < e2.min_x;
+    }
     return e1.min_y < e2.min_y;
   }
 

@@ -294,17 +294,18 @@ bool Event::WriteFrameImage(
 
   bool rc;
 
-  if ( !config.timestamp_on_capture ) {
+  SystemTimePoint jpeg_timestamp =
+      monitor->Exif() ? SystemTimePoint(zm::chrono::duration_cast<Microseconds>(timestamp)) : SystemTimePoint();
+
+  if (!config.timestamp_on_capture) {
     // stash the image we plan to use in another pointer regardless if timestamped.
     // exif is only timestamp at present this switches on or off for write
     Image *ts_image = new Image(*image);
     monitor->TimestampImage(ts_image, timestamp);
-    rc = ts_image->WriteJpeg(event_file, thisquality,
-        (monitor->Exif() ? timestamp : (timeval){0,0}));
-    delete(ts_image);
+    rc = ts_image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
+    delete ts_image;
   } else {
-    rc = image->WriteJpeg(event_file, thisquality,
-        (monitor->Exif() ? timestamp : (timeval){0,0}));
+    rc = image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
   }
 
   return rc;

@@ -76,7 +76,6 @@ std::string ByteArrayToHexString(nonstd::span<const uint8> bytes);
 
 std::string Base64Encode(const std::string &str);
 
-void TimespecDiff(timespec *start, timespec *end, timespec *diff);
 std::string TimevalToString(timeval tv);
 
 extern unsigned int sse_version;

@@ -456,7 +456,7 @@ void Event::WriteDbFrames() {
     frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %.2f, %d ),",
                                  id, frame->frame_id,
                                  frame_type_names[frame->type],
-                                 frame->timestamp.tv_sec,
+                                 std::chrono::system_clock::to_time_t(frame->timestamp),
                                  std::chrono::duration_cast<FPSeconds>(frame->delta).count(),
                                  frame->score);
     if (config.record_event_stats and frame->zone_stats.size()) {
@@ -588,7 +588,13 @@ void Event::AddFrame(
           zone_stats.size());
 
     // The idea is to write out 1/sec
-    frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score, zone_stats));
+    frame_data.push(new Frame(id,
+                              frames,
+                              frame_type,
+                              SystemTimePoint(zm::chrono::duration_cast<Microseconds>(timestamp)),
+                              delta_time,
+                              score,
+                              zone_stats));
     double fps = monitor->get_capture_fps();
     if (write_to_db
         or

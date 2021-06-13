@@ -22,6 +22,7 @@
 
 #include "zm_logger.h"
 #include "zm_monitor.h"
+#include "zm_time.h"
 
 extern "C" {
 #include <libavutil/time.h>
@@ -92,7 +93,6 @@ VideoStore::VideoStore(
   converted_in_samples(nullptr),
   filename(filename_in),
   format(format_in),
-  video_first_pts(0), /* starting pts of first in frame/packet */
   video_first_dts(0),
   audio_first_pts(0),
   audio_first_dts(0),
@@ -989,25 +989,25 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     //zm_packet->out_frame->key_frame = zm_packet->keyframe;
     frame->pkt_duration = 0;
 
-    int64_t in_pts = zm_packet->timestamp.tv_sec * (uint64_t)1000000 + zm_packet->timestamp.tv_usec;
+    SystemTimePoint packet_ts = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(zm_packet->timestamp));
     if (!video_first_pts) {
-      video_first_pts = in_pts;
-      Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%" PRIi64 ") usecs(%" PRIi64 ")",
+      video_first_pts = packet_ts.time_since_epoch().count();
+      Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%.2f)",
             video_first_pts,
-            static_cast<int64>(zm_packet->timestamp.tv_sec),
-            static_cast<int64>(zm_packet->timestamp.tv_usec));
+            FPSeconds(packet_ts.time_since_epoch()).count());
+
       frame->pts = 0;
     } else {
-      uint64_t useconds = in_pts - video_first_pts;
-      frame->pts = av_rescale_q(useconds, AV_TIME_BASE_Q, video_out_ctx->time_base);
+      Microseconds useconds = std::chrono::duration_cast<Microseconds>(
+          packet_ts - SystemTimePoint(Microseconds(video_first_pts)));
+      frame->pts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_out_ctx->time_base);
       Debug(2,
-            "Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%" PRIi64 ") usecs(%" PRIi64 ") @ %d/%d",
+            "Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - us(%" PRIi64 ") @ %d/%d",
             frame_count,
             frame->pts,
             video_first_pts,
-            useconds,
-            static_cast<int64>(zm_packet->timestamp.tv_sec),
-            static_cast<int64>(zm_packet->timestamp.tv_usec),
+            static_cast<int64>(std::chrono::duration_cast<Microseconds>(useconds).count()),
+            static_cast<int64>(std::chrono::duration_cast<Microseconds>(packet_ts.time_since_epoch()).count()),
             video_out_ctx->time_base.num,
             video_out_ctx->time_base.den);
     }

@@ -199,10 +199,10 @@ sub Sql {
             $self->{Sql} .= 'E.EndDateTime';
           } elsif ( $term->{attr} eq 'EndDate' ) {
             $self->{Sql} .= 'to_days( E.EndDateTime )';
-          } elsif ( $term->{attr} eq 'EndDateTime' ) {
+          } elsif ( $term->{attr} eq 'EndTime' ) {
             $self->{Sql} .= 'extract( hour_second from E.EndDateTime )';
           } elsif ( $term->{attr} eq 'EndWeekday' ) {
-            $self->{Sql} .= "weekday( E.EndDateTime )";
+            $self->{Sql} .= 'weekday( E.EndDateTime )';
           } elsif ( $term->{attr} eq 'ExistsInFileSystem' ) {
             push @{$self->{PostSQLConditions}}, $term;
             $self->{Sql} .= 'TRUE /* ExistsInFileSystem */';

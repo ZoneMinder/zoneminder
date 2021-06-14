@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder ONVIF Control Protocol Module, $Date: 2021-02-25 22:07:00 +0000 (Thu, 25 Feb 2021) $, $Revision: 0001 $
+# ZoneMinder ONVIF Control Protocol Module
 # Based on the Netcat onvif script by Andrew Bauer (knnniggett@users.sourceforge.net)
 #
 # This program is free software; you can redistribute it and/or
@@ -182,6 +182,7 @@ sub sendCmd {
   $req->header('connection' => 'Close');
   $req->content($msg);
 
+
   my $res = $self->{ua}->request($req);
 
   if ( $res->is_success ) {
@@ -235,22 +236,39 @@ sub getCamParams {
 sub autoStop {
   my $self = shift;
   my $autostop = shift;
+  my $iszoom = shift;
 
   if ( $autostop ) {
     Debug('Auto Stop');
     my $cmd = $controlUri;
-    my $msg_body = '
-	    <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-            	<Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl">
-                	<ProfileToken>'.$profileToken.'</ProfileToken>
-                	<PanTilt>
-                	    true
-                	</PanTilt>
-                	<Zoom>
-                	    false
-                	</Zoom>
-                </Stop>
-            </s:Body>';
+    my $msg_body;
+    if( $iszoom) {
+	    $msg_body = '
+		    <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+			<Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+				<ProfileToken>'.$profileToken.'</ProfileToken>
+				<PanTilt>
+				    false
+				</PanTilt>
+				<Zoom>
+				    true
+				</Zoom>
+			</Stop>
+		    </s:Body>';
+    } else {
+	    $msg_body = '
+		    <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+			<Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl">
+				<ProfileToken>'.$profileToken.'</ProfileToken>
+				<PanTilt>
+				    true
+				</PanTilt>
+				<Zoom>
+				    false
+				</Zoom>
+			</Stop>
+		    </s:Body>';
+    }
 
     my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
     usleep($autostop);
@@ -340,9 +358,9 @@ sub moveCamera {
   my $type = shift;
   my $x = shift;
   my $y = shift;
-  my $msg_move_body = "";
+  my $msg_move_body = '';
 
-  if ( $type == "move" ){
+  if ( $type eq 'move' ) {
   	$msg_move_body = '
   	    <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   	        <ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
@@ -356,7 +374,7 @@ sub moveCamera {
             </ContinuousMove>
         </s:Body>';
 
-  } elsif ( $type == "zoom" ) {
+  } elsif ( $type eq 'zoom' ) {
   	$msg_move_body = '
 		<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 			<ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
@@ -371,7 +389,6 @@ sub moveCamera {
   }
 
   return $msg_move_body;
-
 }
 
 #Up Arrow
@@ -382,7 +399,7 @@ sub moveConUp {
   my $msg_body = moveCamera("move", "0","0.5");
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},0);
 }
 
 
@@ -394,7 +411,7 @@ sub moveConDown {
   my $msg_body = moveCamera("move","0","-0.5");
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},0);
 }
 
 #Left Arrow
@@ -405,7 +422,7 @@ sub moveConLeft {
   my $msg_body = moveCamera("move","-0.49","0");
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},0);
 }
 
 #Right Arrow
@@ -416,7 +433,7 @@ sub moveConRight {
   my $msg_body = moveCamera("move","0.49","0");
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},0);
 }
 
 #Zoom In
@@ -427,7 +444,7 @@ sub zoomConTele {
   my $msg_body = moveCamera("zoom","0.49","0");
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},1);
 }
 
 #Zoom Out
@@ -438,8 +455,18 @@ sub zoomConWide {
   my $msg_body = moveCamera("zoom","-0.49","0");
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},1);
 }
+
+sub zoomStop {
+  Debug('Zoom Stop');
+  my $self = shift;
+  my $cmd = $controlUri;
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},1);
+  Error('Zoom Stop not implemented');
+}
+
+
 
 #Diagonally Up Right Arrow
 #This camera does not have builtin diagonal commands so we emulate them
@@ -450,7 +477,7 @@ sub moveConUpRight {
   my $msg_body = moveCamera("move","0.5","0.5");
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},0);
 }
 
 #Diagonally Down Right Arrow
@@ -462,7 +489,7 @@ sub moveConDownRight {
   my $msg_body = moveCamera("move","0.5","-0.5");
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},0);
 }
 
 #Diagonally Up Left Arrow
@@ -474,7 +501,7 @@ sub moveConUpLeft {
   my $msg_body = moveCamera("move","-0.5","0.5");
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},0);
 }
 
 #Diagonally Down Left Arrow
@@ -486,7 +513,7 @@ sub moveConDownLeft {
   my $msg_body = moveCamera("move","-0.5","-0.5");
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
-  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout},0);
 }
 
 #Stop
@@ -499,7 +526,7 @@ sub moveStop {
 		<Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl">
 			<ProfileToken>'.$profileToken.'</ProfileToken>
 				<PanTilt>true</PanTilt>
-				<Zoom>false</Zoom>
+				<Zoom>true</Zoom>
 		</Stop>
 	</s:Body>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';

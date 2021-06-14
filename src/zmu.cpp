@@ -93,6 +93,7 @@ Options for use with monitors:
 #include "zm_monitor.h"
 #include "zm_local_camera.h"
 #include <getopt.h>
+#include <unistd.h>
 
 void Usage(int status=-1) {
   fputs(

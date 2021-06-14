@@ -458,7 +458,9 @@ void RtspThread::Run() {
   if ( session.empty() )
     Fatal("Unable to get session identifier from response '%s'", response.c_str());
 
-  Debug(2, "Got RTSP session %s, timeout %" PRIi64 " secs", session.c_str(), Seconds(timeout).count());
+  Debug(2, "Got RTSP session %s, timeout %" PRIi64 " secs",
+        session.c_str(),
+        static_cast<int64>(Seconds(timeout).count()));
 
   if ( !transport[0] )
     Fatal("Unable to get transport details from response '%s'", response.c_str());
@@ -530,7 +532,8 @@ void RtspThread::Run() {
       }
 
       if ( timeout > Seconds(0) ) {
-        Debug(2, "Got timeout %" PRIi64 " secs from PLAY command response", Seconds(timeout).count());
+        Debug(2, "Got timeout %" PRIi64 " secs from PLAY command response",
+              static_cast<int64>(Seconds(timeout).count()));
       }
     }
   }

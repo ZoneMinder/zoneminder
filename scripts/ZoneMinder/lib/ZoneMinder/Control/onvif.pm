@@ -340,9 +340,9 @@ sub moveCamera {
   my $type = shift;
   my $x = shift;
   my $y = shift;
-  my $msg_move_body = "";
+  my $msg_move_body = '';
 
-  if ( $type == "move" ){
+  if ( $type eq 'move' ){
   	$msg_move_body = '
   	    <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   	        <ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
@@ -356,7 +356,7 @@ sub moveCamera {
             </ContinuousMove>
         </s:Body>';
 
-  } elsif ( $type == "zoom" ) {
+  } elsif ( $type eq 'zoom' ) {
   	$msg_move_body = '
 		<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 			<ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl">
@@ -371,7 +371,6 @@ sub moveCamera {
   }
 
   return $msg_move_body;
-
 }
 
 #Up Arrow

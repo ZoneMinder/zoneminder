@@ -38,10 +38,20 @@ $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
 // Bootstrap table sends json_ecoded array, which we must decode
 $advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
 
+// Order specifies the sort direction, either asc or desc
+$order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+
 // Sort specifies the name of the column to sort on
 $sort = 'StartDateTime';
-if ( isset($_REQUEST['sort']) ) {
+if (isset($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
+  if ($sort == 'EndDateTime') {
+    if ($order == 'ASC') {
+      $sort = 'EndDateTime IS NULL, EndDateTime';
+    } else {
+      $sort = 'EndDateTime IS NOT NULL, EndDateTime';
+    }
+  }
 }
 
 // Offset specifies the starting row to return, used for pagination
@@ -54,8 +64,6 @@ if ( isset($_REQUEST['offset']) ) {
   }
 }
 
-// Order specifies the sort direction, either asc or desc
-$order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
 // Limit specifies the number of rows to return
 // Set the default to 0 for events view, to prevent an issue with ALL pagination

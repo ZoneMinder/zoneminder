@@ -187,6 +187,8 @@ set(ZM_MANPAGE_DEST_PREFIX "share/man" CACHE PATH
   "Relative path used to install ZoneMinder's Man pages into a
     non-standard folder. Most Linux users will not need to change this.
     BSD users may need to set this.")
+set(ZM_CAKEPHP_CACHE "Apc" CACHE STRING
+  "Set the CakePHP cache engine, default: Apc")
 
 # Supported crypto backends. Using OpenSSL by default to be compatible with jwt-cpp.
 set(ZM_CRYPTO_BACKEND_OPTIONS gnutls openssl)
@@ -207,6 +209,10 @@ if(NOT ZM_JWT_BACKEND IN_LIST ZM_JWT_BACKEND_OPTIONS)
 endif()
 
 # Reassign some variables if a target distro has been specified
+if(ZM_TARGET_DISTRO MATCHES "^fc")
+  set(ZM_CAKEPHP_CACHE "Memcached")
+endif()
+
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   set(ZM_RUNDIR "/var/run/zoneminder")
   set(ZM_SOCKDIR "/var/lib/zoneminder/sock")

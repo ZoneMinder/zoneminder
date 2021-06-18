@@ -22,6 +22,16 @@
 %global with_php_json 1
 %endif
 
+# el7 uses cmake3 package and macros
+%if 0%{?rhel} == 7
+%global cmake %{cmake3}
+%global cmake_build %{cmake3_build}
+%global cmake_install %{cmake3_install}
+%global cmake_pkg_name cmake3
+%else
+%global cmake_pkg_name cmake
+%endif
+
 # The default for everything but el7 these days
 %global _hardened_build 1
 
@@ -51,7 +61,7 @@ BuildRequires: systemd-devel
 BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
-BuildRequires: cmake3
+BuildRequires: %{cmake_pkg_name}
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
 BuildRequires: pcre-devel 
@@ -211,16 +221,16 @@ mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 # See https://fedoraproject.org/wiki/LTOByDefault
 %define _lto_cflags %{nil}
 
-%cmake3 \
+%cmake \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
         .
 
-%cmake3_build
+%cmake_build
 
 %install
-%cmake3_install
+%cmake_install
 
 desktop-file-install					\
 	--dir %{buildroot}%{_datadir}/applications	\

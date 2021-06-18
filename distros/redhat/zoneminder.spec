@@ -17,11 +17,6 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
-# Fedora needs apcu backwards compatibility module
-%if 0%{?fedora}
-%global with_apcu_bc 1
-%endif
-
 # Newer php's keep json functions in a subpackage
 %if 0%{?fedora} || 0%{?rhel} >= 8
 %global with_php_json 1
@@ -116,8 +111,8 @@ Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
 %{?with_php_json:Requires: php-json}
-Requires: php-pecl-apcu
-%{?with_apcu_bc:Requires: php-pecl-apcu-bc}
+%{?fedora:Requires: php-pecl-memcached}
+%{?rhel:Requires: php-pecl-apcu}
 Requires: cambozola
 Requires: net-tools
 Requires: psmisc
@@ -425,6 +420,9 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Fri Jun 18 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.4-2
+- apcu-bc deprecated on fedora, use memcached instead
+
 * Tue Jun 08 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.4-1
 - 1.36.4 release
 

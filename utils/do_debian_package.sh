@@ -119,11 +119,15 @@ else
   if [ "$SNAPSHOT" == "stable" ]; then
     if [ "$BRANCH" == "" ]; then
       echo "About to run some basic commands for debugging..."
-      pwd; ls; git remote -v; git branch -v; git tag -l
+      pwd; ls; git remote -v; git branch -v; git status
+      echo "Listing all of the tags for this repo:"
+      git tag -l
       echo "About to get the hash of the most recent tag"
       REV=$(git rev-list --tags --max-count=1)
       echo "REV = $REV"
       BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
+      echo "BRANCH = $BRANCH"
+      BRANCH=`git tag -l | sort | grep -v '^v.*' | tail -n 1`
       echo "BRANCH = $BRANCH"
       if [ "$BRANCH" == "" ]; then
         echo "Unable to determine latest stable branch!"

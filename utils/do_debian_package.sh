@@ -118,6 +118,8 @@ else
   fi;
   if [ "$SNAPSHOT" == "stable" ]; then
     if [ "$BRANCH" == "" ]; then
+      echo "About to run some basic commands for debugging..."
+      pwd; ls; git remote -v; git branch -v
       echo "About to get the hash of the most recent tag"
       REV=$(git rev-list --tags --max-count=1)
       echo "REV = $REV"

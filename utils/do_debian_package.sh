@@ -118,7 +118,9 @@ else
   fi;
   if [ "$SNAPSHOT" == "stable" ]; then
     if [ "$BRANCH" == "" ]; then
-      #REV=$(git rev-list --tags --max-count=1)
+      echo "About to get the hash of the most recent tag"
+      REV=$(git rev-list --tags --max-count=1)
+      echo "REV = $REV"
       BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
       if [ -z "$BRANCH" ]; then
         # This should only happen in CI environments where tag info isn't available

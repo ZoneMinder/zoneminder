@@ -10,7 +10,7 @@ deb:
   tags:
     - docker
   script:
-    - yes "" | ./utils/do_debian_package.sh --snapshot=stable --branch=1.36.1 --type=binary --interactive=no --dput=no --debbuild-extra=--no-sign || true
+    - yes "" | ./utils/do_debian_package.sh --snapshot=stable --type=binary --interactive=no --dput=no --debbuild-extra=--no-sign || true
   artifacts:
     paths:
       - '*.deb'

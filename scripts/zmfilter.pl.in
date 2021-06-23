@@ -527,7 +527,7 @@ sub uploadArchFile {
     return(0);
   }
 
-  my $archFile = $Event->{MonitorName}.'-'.$Event->{Id};
+  my $archFile = $Event->Monitor()->Name().'-'.$Event->{Id};
   my $archImagePath = $Event->Path()
     .'/'
     .(

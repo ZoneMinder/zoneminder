@@ -44,7 +44,7 @@ constexpr Milliseconds EventStream::STREAM_PAUSE_WAIT;
 bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_time) {
   std::string sql = stringtf("SELECT `Id` FROM `Events` WHERE "
                              "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %ld "
-                             "ORDER BY `Id` ASC LIMIT 1", monitor_id, event_time);
+                             "ORDER BY `Id` ASC LIMIT 1", monitor_id, std::chrono::system_clock::to_time_t(event_time));
 
   MYSQL_RES *result = zmDbFetch(sql.c_str());
   if (!result)
@@ -687,7 +687,7 @@ bool EventStream::checkEventLoaded() {
 }  // void EventStream::checkEventLoaded()
 
 Image * EventStream::getImage( ) {
-  std::string path = stringtf(staticConfig.capture_file_format, event_data->path.c_str(), curr_frame_id);
+  std::string path = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
   Debug(2, "EventStream::getImage path(%s) from %s frame(%ld) ", path.c_str(), event_data->path.c_str(), curr_frame_id);
   Image *image = new Image(path.c_str());
   return image;
@@ -702,12 +702,12 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
   if (event_data->SaveJPEGs & 1) {
-    filepath = stringtf(staticConfig.capture_file_format, event_data->path.c_str(), curr_frame_id);
+    filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
   } else if (event_data->SaveJPEGs & 2) {
-    filepath = stringtf(staticConfig.analyse_file_format, event_data->path.c_str(), curr_frame_id);
+    filepath = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
     if (stat(filepath.c_str(), &filestat) < 0) {
       Debug(1, "analyze file %s not found will try to stream from other", filepath.c_str());
-      filepath = stringtf(staticConfig.capture_file_format, event_data->path.c_str(), curr_frame_id);
+      filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
       if (stat(filepath.c_str(), &filestat) < 0) {
         Debug(1, "capture file %s not found either", filepath.c_str());
         filepath = "";

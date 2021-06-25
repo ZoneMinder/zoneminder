@@ -518,7 +518,7 @@ void Event::AddFrame(Image *image,
 
   if (image) {
     if (save_jpegs & 1) {
-      std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
+      std::string event_file = stringtf(staticConfig.capture_file_format.c_str(), path.c_str(), frames);
       Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
       if (!WriteFrameImage(image, timestamp, event_file.c_str())) {
         Error("Failed to write frame image");
@@ -548,7 +548,7 @@ void Event::AddFrame(Image *image,
       }
 
       if (alarm_image and (save_jpegs & 2)) {
-        std::string event_file = stringtf(staticConfig.analyse_file_format, path.c_str(), frames);
+        std::string event_file = stringtf(staticConfig.analyse_file_format.c_str(), path.c_str(), frames);
         Debug(1, "Writing analysis frame %d", frames);
         if (!WriteFrameImage(alarm_image, timestamp, event_file.c_str(), true)) {
           Error("Failed to write analysis frame image");

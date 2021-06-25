@@ -61,16 +61,8 @@ inline bool StartsWith(const std::string &haystack, const std::string &needle) {
   return (haystack.substr(0, needle.length()) == needle);
 }
 
-template<typename... Args>
-std::string stringtf(const std::string &format, Args... args) {
-  int size = snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
-  if (size <= 0) {
-    throw std::runtime_error("Error during formatting.");
-  }
-  std::unique_ptr<char[]> buf(new char[size]);
-  snprintf(buf.get(), size, format.c_str(), args...);
-  return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
-}
+__attribute__((format(printf, 1, 2)))
+std::string stringtf(const char* format, ...);
 
 std::string ByteArrayToHexString(nonstd::span<const uint8> bytes);
 

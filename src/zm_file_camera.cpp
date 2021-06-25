@@ -48,20 +48,20 @@ FileCamera::FileCamera(
       p_capture,
       p_record_audio)
 {
-  strncpy( path, p_path, sizeof(path)-1 );
-  if ( capture ) {
+  path = std::string(p_path);
+  if (capture) {
     Initialise();
   }
 }
 
 FileCamera::~FileCamera() {
-  if ( capture ) {
+  if (capture) {
     Terminate();
   }
 }
 
 void FileCamera::Initialise() {
-  if ( !path[0] ) {
+  if (path.empty()) {
     Fatal("No path specified for file image");
   }
 }
@@ -71,8 +71,8 @@ void FileCamera::Terminate() {
 
 int FileCamera::PreCapture() {
   struct stat statbuf = {};
-  if (stat(path, &statbuf) < 0) {
-    Error("Can't stat %s: %s", path, strerror(errno));
+  if (stat(path.c_str(), &statbuf) < 0) {
+    Error("Can't stat %s: %s", path.c_str(), strerror(errno));
     return -1;
   }
   bytes += statbuf.st_size;

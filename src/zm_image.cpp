@@ -933,7 +933,7 @@ bool Image::WriteRaw(const char *filename) const {
   return true;
 }
 
-bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int p_subpixelorder) {
+bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
   struct jpeg_decompress_struct *cinfo = readjpg_dcinfo;
 
@@ -946,8 +946,8 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
   }
 
   FILE *infile;
-  if ( (infile = fopen(filename, "rb")) == nullptr ) {
-    Error("Can't open %s: %s", filename, strerror(errno));
+  if ( (infile = fopen(filename.c_str(), "rb")) == nullptr ) {
+    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
@@ -1060,24 +1060,24 @@ cinfo->out_color_space = JCS_RGB;
 // Multiple calling formats to permit inclusion (or not) of non blocking, quality_override and timestamp (exif), with suitable defaults.
 // Note quality=zero means default
 
-bool Image::WriteJpeg(const char *filename, int quality_override) const {
+bool Image::WriteJpeg(const std::string &filename, int quality_override) const {
   return Image::WriteJpeg(filename, quality_override, {}, false);
 }
-bool Image::WriteJpeg(const char *filename) const {
+bool Image::WriteJpeg(const std::string &filename) const {
   return Image::WriteJpeg(filename, 0, {}, false);
 }
-bool Image::WriteJpeg(const char *filename, bool on_blocking_abort) const {
+bool Image::WriteJpeg(const std::string &filename, bool on_blocking_abort) const {
   return Image::WriteJpeg(filename, 0, {}, on_blocking_abort);
 }
-bool Image::WriteJpeg(const char *filename, SystemTimePoint timestamp) const {
+bool Image::WriteJpeg(const std::string &filename, SystemTimePoint timestamp) const {
   return Image::WriteJpeg(filename, 0, timestamp, false);
 }
 
-bool Image::WriteJpeg(const char *filename, int quality_override, SystemTimePoint timestamp) const {
+bool Image::WriteJpeg(const std::string &filename, int quality_override, SystemTimePoint timestamp) const {
   return Image::WriteJpeg(filename, quality_override, timestamp, false);
 }
 
-bool Image::WriteJpeg(const char *filename,
+bool Image::WriteJpeg(const std::string &filename,
                       int quality_override,
                       SystemTimePoint timestamp,
                       bool on_blocking_abort) const {
@@ -1114,17 +1114,17 @@ bool Image::WriteJpeg(const char *filename,
     }
   }
 
-  if ( !on_blocking_abort ) {
-    if ( (outfile = fopen(filename, "wb")) == nullptr ) {
-      Error("Can't open %s for writing: %s", filename, strerror(errno));
+  if (!on_blocking_abort) {
+    if ((outfile = fopen(filename.c_str(), "wb")) == nullptr) {
+      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
       return false;
     }
   } else {
-    raw_fd = open(filename, O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-    if ( raw_fd < 0 )
+    raw_fd = open(filename.c_str(), O_WRONLY | O_NONBLOCK | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (raw_fd < 0)
       return false;
     outfile = fdopen(raw_fd, "wb");
-    if ( outfile == nullptr ) {
+    if (outfile == nullptr) {
       close(raw_fd);
       return false;
     }

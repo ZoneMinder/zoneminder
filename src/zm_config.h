@@ -25,10 +25,6 @@
 #include "zm_config_defines.h"
 #include <string>
 
-#if !defined(PATH_MAX)
-#define PATH_MAX 1024
-#endif
-
 #define ZM_MAX_IMAGE_WIDTH    2048        // The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_HEIGHT    1536        // The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_COLOURS    4        // The largest image we imagine ever handling
@@ -74,10 +70,10 @@ struct StaticConfig {
   std::string PATH_LOGS;
   std::string PATH_SWAP;
   std::string PATH_ARP;
-  char    capture_file_format[PATH_MAX];
-  char    analyse_file_format[PATH_MAX];
-  char    general_file_format[PATH_MAX];
-  char    video_file_format[PATH_MAX];
+  std::string capture_file_format;
+  std::string analyse_file_format;
+  std::string general_file_format;
+  std::string video_file_format;
 };
 
 extern StaticConfig staticConfig;

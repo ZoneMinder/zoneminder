@@ -320,7 +320,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   //updateFrameRate(monitor->GetFPS());
 }  // end void MonitorStream::processCommand(const CmdMsg *msg)
 
-bool MonitorStream::sendFrame(const char *filepath, SystemTimePoint timestamp) {
+bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint timestamp) {
   bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
   if (
@@ -330,19 +330,18 @@ bool MonitorStream::sendFrame(const char *filepath, SystemTimePoint timestamp) {
      )
     send_raw = false;
 
-  if ( !send_raw ) {
-    Image temp_image(filepath);
+  if (!send_raw) {
+    Image temp_image(filepath.c_str());
     return sendFrame(&temp_image, timestamp);
   } else {
     int img_buffer_size = 0;
     static unsigned char img_buffer[ZM_MAX_IMAGE_SIZE];
 
-    FILE *fdj = nullptr;
-    if ( (fdj = fopen(filepath, "r")) ) {
+    if (FILE *fdj = fopen(filepath.c_str(), "r")) {
       img_buffer_size = fread(img_buffer, 1, sizeof(img_buffer), fdj);
       fclose(fdj);
     } else {
-      Error("Can't open %s: %s", filepath, strerror(errno));
+      Error("Can't open %s: %s", filepath.c_str(), strerror(errno));
       return false;
     }
 
@@ -747,21 +746,13 @@ void MonitorStream::runStream() {
             int temp_index = temp_write_index%temp_image_buffer_count;
             Debug(2, "Storing frame %d", temp_index);
             if ( !temp_image_buffer[temp_index].valid ) {
-              snprintf(
-                  temp_image_buffer[temp_index].file_name,
-                  sizeof(temp_image_buffer[0].file_name),
-                  "%s/zmswap-i%05d.jpg",
-                  swap_path.c_str(),
-                  temp_index);
+              temp_image_buffer[temp_index].file_name = stringtf("%s/zmswap-i%05d.jpg", swap_path.c_str(), temp_index);
               temp_image_buffer[temp_index].valid = true;
             }
 
             temp_image_buffer[temp_index].timestamp =
                 SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
-            monitor->image_buffer[index]->WriteJpeg(
-                temp_image_buffer[temp_index].file_name,
-                config.jpeg_file_quality
-                );
+            monitor->image_buffer[index]->WriteJpeg(temp_image_buffer[temp_index].file_name, config.jpeg_file_quality);
             temp_write_index = MOD_ADD(temp_write_index, 1, temp_image_buffer_count);
             if ( temp_write_index == temp_read_index ) {
               // Go back to live viewing
@@ -812,7 +803,7 @@ void MonitorStream::runStream() {
 
   if ( buffered_playback ) {
     Debug(1, "Cleaning swap files from %s", swap_path.c_str());
-    struct stat stat_buf;
+    struct stat stat_buf = {};
     if ( stat(swap_path.c_str(), &stat_buf) < 0 ) {
       if ( errno != ENOENT ) {
         Error("Can't stat '%s': %s", swap_path.c_str(), strerror(errno));
@@ -820,16 +811,15 @@ void MonitorStream::runStream() {
     } else if ( !S_ISDIR(stat_buf.st_mode) ) {
       Error("Swap image path '%s' is not a directory", swap_path.c_str());
     } else {
-      char glob_pattern[PATH_MAX] = "";
-
-      snprintf(glob_pattern, sizeof(glob_pattern), "%s/*.*", swap_path.c_str());
+      std::string glob_pattern = stringtf("%s/*.*", swap_path.c_str());
       glob_t pglob;
-      int glob_status = glob(glob_pattern, 0, 0, &pglob);
+
+      int glob_status = glob(glob_pattern.c_str(), 0, 0, &pglob);
       if ( glob_status != 0 ) {
         if ( glob_status < 0 ) {
-          Error("Can't glob '%s': %s", glob_pattern, strerror(errno));
+          Error("Can't glob '%s': %s", glob_pattern.c_str(), strerror(errno));
         } else {
-          Debug(1, "Can't glob '%s': %d", glob_pattern, glob_status);
+          Debug(1, "Can't glob '%s': %d", glob_pattern.c_str(), glob_status);
         }
       } else {
         for ( unsigned int i = 0; i < pglob.gl_pathc; i++ ) {

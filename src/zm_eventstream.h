@@ -56,10 +56,10 @@ class EventStream : public StreamBase {
       SystemTimePoint end_time;
       Microseconds duration;
       Microseconds frames_duration;
-      char            path[PATH_MAX];
+      std::string path;
       int             n_frames;       // # of frame rows returned from database
       FrameData       *frames;
-      char            video_file[PATH_MAX];
+      std::string video_file;
       Storage::Schemes  scheme;
       int             SaveJPEGs;
       Monitor::Orientation Orientation;
@@ -124,7 +124,7 @@ class EventStream : public StreamBase {
     void runStream() override;
     Image *getImage();
   private:
-    bool send_file(const char *filepath);
+    bool send_file(const std::string &filepath);
     bool send_buffer(uint8_t * buffer, int size);
     Storage *storage;
     FFmpeg_Input  *ffmpeg_input;

@@ -864,53 +864,56 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   (test) ? (prefix yesString " " capability "\n") : (prefix noString " " capability "\n")
 
 bool LocalCamera::GetCurrentSettings(
-    const char *device,
+    const std::string& device,
     char *output,
     int version,
     bool verbose) {
   output[0] = 0;
   char *output_ptr = output;
 
-  char queryDevice[PATH_MAX] = "";
+  std::string queryDevice;
   int devIndex = 0;
   do {
-    if ( device ) {
-      strncpy(queryDevice, device, sizeof(queryDevice)-1);
+    if (!device.empty()) {
+      queryDevice = device;
     } else {
-      sprintf(queryDevice, "/dev/video%d", devIndex);
+      queryDevice = stringtf("/dev/video%d", devIndex);
     }
 
-    if ( (vid_fd = open(queryDevice, O_RDWR)) <= 0 ) {
-      if ( device ) {
-        Error("Failed to open video device %s: %s", queryDevice, strerror(errno));
-        if ( verbose )
+    if ((vid_fd = open(queryDevice.c_str(), O_RDWR)) <= 0) {
+      if (!device.empty()) {
+        Error("Failed to open video device %s: %s", queryDevice.c_str(), strerror(errno));
+        if (verbose) {
           output_ptr += sprintf(output_ptr, "Error, failed to open video device %s: %s\n",
-              queryDevice, strerror(errno));
-        else
+                                queryDevice.c_str(), strerror(errno));
+        } else {
           output_ptr += sprintf(output_ptr, "error%d\n", errno);
+        }
         return false;
       } else {
         return true;
       }
     }
-    if ( verbose ) {
-      output_ptr += sprintf(output_ptr, "Video Device: %s\n", queryDevice);
+
+    if (verbose) {
+      output_ptr += sprintf(output_ptr, "Video Device: %s\n", queryDevice.c_str());
     } else {
-      output_ptr += sprintf(output_ptr, "d:%s|", queryDevice);
+      output_ptr += sprintf(output_ptr, "d:%s|", queryDevice.c_str());
     }
 
-    if ( version == 2 ) {
-      struct v4l2_capability vid_cap;
-      if ( vidioctl(vid_fd, VIDIOC_QUERYCAP, &vid_cap) < 0 ) {
+    if (version == 2) {
+      v4l2_capability vid_cap = {};
+      if (vidioctl(vid_fd, VIDIOC_QUERYCAP, &vid_cap) < 0) {
         Error("Failed to query video device: %s", strerror(errno));
-        if ( verbose ) {
+        if (verbose) {
           output_ptr += sprintf(output_ptr, "Error, failed to query video capabilities %s: %s\n",
-              queryDevice, strerror(errno));
+                                queryDevice.c_str(), strerror(errno));
         } else {
           output_ptr += sprintf(output_ptr, "error%d\n", errno);
         }
-        if ( device )
+        if (!device.empty()) {
           return false;
+        }
       }
 
       if ( verbose ) {
@@ -953,7 +956,7 @@ bool LocalCamera::GetCurrentSettings(
 
       output_ptr += sprintf(output_ptr, verbose ? "    Standards:\n" : "S:");
 
-      struct v4l2_standard standard;
+      v4l2_standard standard = {};
       int standardIndex = 0;
       do {
         memset(&standard, 0, sizeof(standard));
@@ -981,10 +984,10 @@ bool LocalCamera::GetCurrentSettings(
         *(output_ptr-1) = '|';
 
       output_ptr += sprintf(output_ptr, verbose ? "  Formats:\n" : "F:");
-      struct v4l2_fmtdesc format;
+
       int formatIndex = 0;
       do {
-        memset(&format, 0, sizeof(format));
+        v4l2_fmtdesc format = {};
         format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         format.index = formatIndex;
 
@@ -1025,9 +1028,9 @@ bool LocalCamera::GetCurrentSettings(
       else 
         output_ptr += sprintf(output_ptr, "Crop Capabilities\n");
 
-      struct v4l2_cropcap cropcap;
-      memset(&cropcap, 0, sizeof(cropcap));
+      v4l2_cropcap cropcap = {};
       cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
       if ( vidioctl(vid_fd, VIDIOC_CROPCAP, &cropcap) < 0 ) {
         if ( errno != EINVAL ) {
           /* Failed querying crop capability, write error to the log and continue as if crop is not supported */
@@ -1041,8 +1044,8 @@ bool LocalCamera::GetCurrentSettings(
           output_ptr += sprintf(output_ptr, "B:%dx%d|", 0, 0);
         }
       } else {
-        struct v4l2_crop crop;
-        memset(&crop, 0, sizeof(crop));
+        v4l2_crop crop = {};
+
         crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;  
 
         if ( vidioctl(vid_fd, VIDIOC_G_CROP, &crop) < 0 ) {
@@ -1159,8 +1162,9 @@ bool LocalCamera::GetCurrentSettings(
     }
 
     close(vid_fd);
-    if ( device )
+    if (!device.empty()) {
       break;
+    }
   } while ( ++devIndex < 32 );
   return true;
 }

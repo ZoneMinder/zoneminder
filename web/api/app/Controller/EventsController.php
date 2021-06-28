@@ -143,6 +143,10 @@ class EventsController extends AppController {
       $mon_options = '';
     }
 
+    $noFrames = $this->request->query('noframes');
+    if ($noFrames=='true')
+        $this->Event->unbindModel(array('hasMany' => array('Frame')));
+
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
 

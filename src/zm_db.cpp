@@ -275,3 +275,15 @@ void zmDbQueue::push(std::string &&sql) {
   }
   mCondition.notify_all();
 }
+
+std::string zmDbEscapeString(const std::string& to_escape) {
+  // According to docs, size of safer_whatever must be 2 * length + 1
+  // due to unicode conversions + null terminator.
+  std::string escaped((to_escape.length() * 2) + 1, '\0');
+
+
+  size_t escaped_len = mysql_real_escape_string(&dbconn, &escaped[0], to_escape.c_str(), to_escape.length());
+  escaped.resize(escaped_len);
+
+  return escaped;
+}

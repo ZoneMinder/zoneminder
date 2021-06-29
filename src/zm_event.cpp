@@ -322,12 +322,9 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
       Error("Unable to execute sql '%s': %s", sql, mysql_stmt_error(stmt));
     }
 #else
-    char sql[ZM_SQL_LGE_BUFSIZ];
-    static char escapedNotes[ZM_SQL_MED_BUFSIZ];
+    std::string escaped_notes = zmDbEscapeString(notes);
 
-    mysql_real_escape_string(&dbconn, escapedNotes, notes.c_str(), notes.length());
-
-    snprintf(sql, sizeof(sql), "UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64, escapedNotes, id);
+    std::string sql = stringtf("UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64, escaped_notes.c_str(), id);
     dbQueue.push(std::move(sql));
 #endif
   }  // end if update

@@ -32,8 +32,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-//#define USE_PREPARED_SQL 1
-
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 #define MAX_DB_FRAMES 100
 
@@ -351,62 +349,15 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     } // end if have old notes
   } // end if have new notes
 
-  if ( update ) {
+  if (update) {
     std::string notes;
     createNotes(notes);
 
     Debug(2, "Updating notes for event %" PRIu64 ", '%s'", id, notes.c_str());
-#if USE_PREPARED_SQL
-    static MYSQL_STMT *stmt = 0;
 
-    char notesStr[ZM_SQL_MED_BUFSIZ] = "";
-    unsigned long notesLen = 0;
-
-    if ( !stmt ) {
-      const char *sql = "UPDATE `Events` SET `Notes` = ? WHERE `Id` = ?";
-
-      stmt = mysql_stmt_init(&dbconn);
-      if ( mysql_stmt_prepare(stmt, sql, strlen(sql)) ) {
-        Fatal("Unable to prepare sql '%s': %s", sql, mysql_stmt_error(stmt));
-      }
-
-      /* Get the parameter count from the statement */
-      if ( mysql_stmt_param_count(stmt) != 2 ) {
-        Error("Unexpected parameter count %ld in sql '%s'", mysql_stmt_param_count(stmt), sql);
-      }
-
-      MYSQL_BIND  bind[2];
-      memset(bind, 0, sizeof(bind));
-
-      /* STRING PARAM */
-      bind[0].buffer_type = MYSQL_TYPE_STRING;
-      bind[0].buffer = (char *)notesStr;
-      bind[0].buffer_length = sizeof(notesStr);
-      bind[0].is_null = 0;
-      bind[0].length = &notesLen;
-
-      bind[1].buffer_type= MYSQL_TYPE_LONG;
-      bind[1].buffer= (char *)&id;
-      bind[1].is_null= 0;
-      bind[1].length= 0;
-
-      /* Bind the buffers */
-      if ( mysql_stmt_bind_param(stmt, bind) ) {
-        Error("Unable to bind sql '%s': %s", sql, mysql_stmt_error(stmt));
-      }
-    } // end if ! stmt
-
-    strncpy(notesStr, notes.c_str(), sizeof(notesStr));
-
-    if ( mysql_stmt_execute(stmt) ) {
-      Error("Unable to execute sql '%s': %s", sql, mysql_stmt_error(stmt));
-    }
-#else
-    std::string escaped_notes = zmDbEscapeString(notes);
-
-    std::string sql = stringtf("UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64, escaped_notes.c_str(), id);
+    std::string sql = stringtf("UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64,
+                               zmDbEscapeString(notes).c_str(), id);
     dbQueue.push(std::move(sql));
-#endif
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 

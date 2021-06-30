@@ -116,8 +116,7 @@ Zone::~Zone() {
 }
 
 void Zone::RecordStats(const Event *event) {
-  static char sql[ZM_SQL_MED_BUFSIZ];
-  snprintf(sql, sizeof(sql),
+  std::string sql = stringtf(
       "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, "
       "PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, "
       "Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, "
@@ -136,7 +135,7 @@ void Zone::RecordStats(const Event *event) {
       stats.alarm_box_.Hi().y_,
       stats.score_
       );
-  zmDbDo(sql);
+  zmDbDo(sql.c_str());
 }  // end void Zone::RecordStats( const Event *event )
 
 bool Zone::CheckOverloadCount() {

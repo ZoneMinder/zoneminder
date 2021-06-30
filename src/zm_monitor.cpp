@@ -1287,17 +1287,15 @@ void Monitor::actionReload() {
 void Monitor::actionEnable() {
   shared_data->action |= RELOAD;
 
-  char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %u", id);
-  zmDbDo(sql);
+  std::string sql = stringtf("UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %u", id);
+  zmDbDo(sql.c_str());
 }
 
 void Monitor::actionDisable() {
   shared_data->action |= RELOAD;
 
-  char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %u", id);
-  zmDbDo(sql);
+  std::string sql = stringtf("UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %u", id);
+  zmDbDo(sql.c_str());
 }
 
 void Monitor::actionSuspend() {

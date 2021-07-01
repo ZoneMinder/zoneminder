@@ -135,7 +135,7 @@ void Zone::RecordStats(const Event *event) {
       stats.alarm_box_.Hi().y_,
       stats.score_
       );
-  zmDbDo(sql.c_str());
+  zmDbDo(sql);
 }  // end void Zone::RecordStats( const Event *event )
 
 bool Zone::CheckOverloadCount() {
@@ -829,7 +829,7 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
                              "OverloadFrames,ExtendAlarmFrames"
                              " FROM Zones WHERE MonitorId = %d ORDER BY Type, Id", monitor->Id());
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  MYSQL_RES *result = zmDbFetch(sql);
   if (!result) {
     return {};
   }

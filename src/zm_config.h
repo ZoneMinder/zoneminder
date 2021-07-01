@@ -38,8 +38,6 @@
 #define ZM_SCALE_BASE      100          // The factor by which we bump up 'scale' to simulate FP
 #define ZM_RATE_BASE      100          // The factor by which we bump up 'rate' to simulate FP
 
-#define ZM_SQL_MED_BUFSIZ     1024        // Size of SQL buffer
-
 #define ZM_NETWORK_BUFSIZ     32768         // Size of network buffer
 
 #define ZM_MAX_FPS        30          // The maximum frame rate we expect to handle

@@ -117,25 +117,25 @@ void zmDbClose() {
   }
 }
 
-MYSQL_RES * zmDbFetch(const char * query) {
+MYSQL_RES *zmDbFetch(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (!zmDbConnected) {
     Error("Not connected.");
     return nullptr;
   }
 
-  if (mysql_query(&dbconn, query)) {
+  if (mysql_query(&dbconn, query.c_str())) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     return nullptr;
   }
   MYSQL_RES *result = mysql_store_result(&dbconn);
   if (!result) {
-    Error("Can't use query result: %s for query %s", mysql_error(&dbconn), query);
+    Error("Can't use query result: %s for query %s", mysql_error(&dbconn), query.c_str());
   }
   return result;
-} // end MYSQL_RES * zmDbFetch(const char * query);
+}
 
-zmDbRow *zmDbFetchOne(const char *query) {
+zmDbRow *zmDbFetchOne(const std::string &query) {
   zmDbRow *row = new zmDbRow();
   if (row->fetch(query)) {
     return row;
@@ -144,13 +144,13 @@ zmDbRow *zmDbFetchOne(const char *query) {
   return nullptr;
 }
 
-MYSQL_RES *zmDbRow::fetch(const char *query) {
+MYSQL_RES *zmDbRow::fetch(const std::string &query) {
   result_set = zmDbFetch(query);
   if (!result_set) return result_set;
 
   int n_rows = mysql_num_rows(result_set);
   if (n_rows != 1) {
-    Error("Bogus number of lines return from query, %d returned for query %s.", n_rows, query);
+    Error("Bogus number of lines return from query, %d returned for query %s.", n_rows, query.c_str());
     mysql_free_result(result_set);
     result_set = nullptr;
     return result_set;
@@ -160,23 +160,23 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
   if (!row) {
     mysql_free_result(result_set);
     result_set = nullptr;
-    Error("Error getting row from query %s. Error is %s", query, mysql_error(&dbconn));
+    Error("Error getting row from query %s. Error is %s", query.c_str(), mysql_error(&dbconn));
   } else {
     Debug(5, "Success");
   }
   return result_set;
 }
 
-int zmDbDo(const char *query) {
+int zmDbDo(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (!zmDbConnected)
     return 0;
   int rc;
-  while ((rc = mysql_query(&dbconn, query)) and !zm_terminate) {
+  while ((rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
     Logger *logger = Logger::fetch();
     Logger::Level oldLevel = logger->databaseLevel();
     logger->databaseLevel(Logger::NOLOG);
-    Error("Can't run query %s: %s", query, mysql_error(&dbconn));
+    Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
     logger->databaseLevel(oldLevel);
     if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) ) {
       return rc;
@@ -186,36 +186,36 @@ int zmDbDo(const char *query) {
   Logger::Level oldLevel = logger->databaseLevel();
   logger->databaseLevel(Logger::NOLOG);
 
-  Debug(1, "Success running sql query %s", query);
+  Debug(1, "Success running sql query %s", query.c_str());
   logger->databaseLevel(oldLevel);
   return 1;
 }
 
-int zmDbDoInsert(const char *query) {
+int zmDbDoInsert(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (!zmDbConnected) return 0;
   int rc;
-  while ( (rc = mysql_query(&dbconn, query)) and !zm_terminate) {
-    Error("Can't run query %s: %s", query, mysql_error(&dbconn));
+  while ( (rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
+    Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
     if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
       return 0;
   }
   int id = mysql_insert_id(&dbconn);
-  Debug(2, "Success running sql insert %s. Resulting id is %d", query, id);
+  Debug(2, "Success running sql insert %s. Resulting id is %d", query.c_str(), id);
   return id;
 }
 
-int zmDbDoUpdate(const char *query) {
+int zmDbDoUpdate(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (!zmDbConnected) return 0;
   int rc;
-  while ( (rc = mysql_query(&dbconn, query)) and !zm_terminate) {
-    Error("Can't run query %s: %s", query, mysql_error(&dbconn));
+  while ( (rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
+    Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
     if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
       return -rc;
   }
   int affected = mysql_affected_rows(&dbconn);
-  Debug(2, "Success running sql update %s. Rows modified %d", query, affected);
+  Debug(2, "Success running sql update %s. Rows modified %d", query.c_str(), affected);
   return affected;
 }
 
@@ -255,7 +255,7 @@ void zmDbQueue::process() {
       // My idea for leaving the locking around each sql statement is to allow
       // other db writers to get a chance
       lock.unlock();
-      zmDbDo(sql.c_str());
+      zmDbDo(sql);
       lock.lock();
     }
   }

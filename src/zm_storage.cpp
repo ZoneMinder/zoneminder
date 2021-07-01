@@ -60,7 +60,7 @@ Storage::Storage(unsigned int p_id) : id(p_id) {
     std::string sql = stringtf("SELECT `Id`, `Name`, `Path`, `Type`, `Scheme` FROM `Storage` WHERE `Id`=%u", id);
     Debug(2, "Loading Storage for %u using %s", id, sql.c_str());
     zmDbRow dbrow;
-    if (!dbrow.fetch(sql.c_str())) {
+    if (!dbrow.fetch(sql)) {
       Error("Unable to load storage area for id %d: %s", id, mysql_error(&dbconn));
     } else {
       unsigned int index = 0;

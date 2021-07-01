@@ -46,7 +46,7 @@ Group::Group(unsigned int p_id) {
     std::string sql = stringtf("SELECT `Id`, `ParentId`, `Name` FROM `Group` WHERE `Id`=%u", p_id);
     Debug(2, "Loading Group for %u using %s", p_id, sql.c_str());
     zmDbRow dbrow;
-    if (!dbrow.fetch(sql.c_str())) {
+    if (!dbrow.fetch(sql)) {
       Error("Unable to load group for id %u: %s", p_id, mysql_error(&dbconn));
     } else {
       unsigned int index = 0;

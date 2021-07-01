@@ -38,7 +38,6 @@ class zmDbQueue {
   public:
   zmDbQueue();
   ~zmDbQueue();
-  void push(const char *sql) { return push(std::string(sql)); };
   void push(std::string &&sql);
   void process();
   void stop();
@@ -50,7 +49,7 @@ class zmDbRow {
     MYSQL_ROW row;
   public:
     zmDbRow() : result_set(nullptr), row(nullptr) { };
-    MYSQL_RES *fetch(const char *query);
+    MYSQL_RES *fetch(const std::string &query);
     zmDbRow(MYSQL_RES *, MYSQL_ROW *row);
     ~zmDbRow();
 
@@ -67,16 +66,14 @@ extern zmDbQueue  dbQueue;
 
 extern bool zmDbConnected;
 
-extern bool zmDbConnected;
-
 bool zmDbConnect();
 void zmDbClose();
-int zmDbDo(const char *query);
-int zmDbDoInsert(const char *query);
-int zmDbDoUpdate(const char *query);
+int zmDbDo(const std::string &query);
+int zmDbDoInsert(const std::string &query);
+int zmDbDoUpdate(const std::string &query);
 
-MYSQL_RES * zmDbFetch(const char *query);
-zmDbRow *zmDbFetchOne(const char *query);
+MYSQL_RES * zmDbFetch(const std::string &query);
+zmDbRow *zmDbFetchOne(const std::string &query);
 
 std::string zmDbEscapeString(const std::string& to_escape);
 

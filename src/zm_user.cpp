@@ -93,7 +93,7 @@ User *zmLoadUser(const char *username, const char *password) {
                              " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1",
                              escaped_username.c_str());
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  MYSQL_RES *result = zmDbFetch(sql);
   if (!result)
     return nullptr;
 
@@ -144,7 +144,7 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
                              " `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`, `TokenMinExpiry`"
                              " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", username.c_str());
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  MYSQL_RES *result = zmDbFetch(sql);
   if (!result)
     return nullptr;
 
@@ -187,7 +187,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
                     " `MonitorIds` FROM `Users` WHERE `Enabled` = 1";
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  MYSQL_RES *result = zmDbFetch(sql);
   if (!result)
     return nullptr;
 

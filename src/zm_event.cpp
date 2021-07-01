@@ -125,7 +125,7 @@ Event::Event(
       storage->SchemeString().c_str()
       );
 
-  id = zmDbDoInsert(sql.c_str());
+  id = zmDbDoInsert(sql);
 
   if ( !SetPath(storage) ) {
     // Try another
@@ -138,7 +138,7 @@ Event::Event(
     Debug(1, "%s", sql.c_str());
     storage = nullptr;
 
-    MYSQL_RES *result = zmDbFetch(sql.c_str());
+    MYSQL_RES *result = zmDbFetch(sql);
     if ( result ) {
       for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
         storage = new Storage(atoi(dbrow[0]));
@@ -157,7 +157,7 @@ Event::Event(
       if ( monitor->ServerId() )
         sql += stringtf(" OR ServerId != %u", monitor->ServerId());
 
-      result = zmDbFetch(sql.c_str());
+      result = zmDbFetch(sql);
       if ( result ) {
         for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
           storage = new Storage(atoi(dbrow[0]));
@@ -175,7 +175,7 @@ Event::Event(
       Warning("Failed to find a storage area to save events.");
     }
     sql = stringtf("UPDATE Events SET StorageId = '%d' WHERE Id=%" PRIu64, storage->Id(), id);
-    zmDbDo(sql.c_str());
+    zmDbDo(sql);
   }  // end if ! setPath(Storage)
   Debug(1, "Using storage area at %s", path.c_str());
 
@@ -211,11 +211,11 @@ Event::Event(
       if ( ! ( save_jpegs & 1 ) ) {
         save_jpegs |= 1; // Turn on jpeg storage
         sql = stringtf("UPDATE Events SET SaveJpegs=%d WHERE Id=%" PRIu64, save_jpegs, id);
-        zmDbDo(sql.c_str());
+        zmDbDo(sql);
       }
     } else {
       sql = stringtf("UPDATE Events SET Videoed=1, DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
-      zmDbDo(sql.c_str());
+      zmDbDo(sql);
     }
   }  // end if GetOptVideoWriter
 }
@@ -253,7 +253,7 @@ Event::~Event() {
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
       id);
 
-  if (!zmDbDoUpdate(sql.c_str())) {
+  if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
         "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
@@ -262,7 +262,7 @@ Event::~Event() {
         frames, alarm_frames,
         tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
         id);
-    zmDbDoUpdate(sql.c_str());
+    zmDbDoUpdate(sql);
   }  // end if no changed rows due to Name change during recording
 }  // Event::~Event()
 
@@ -425,7 +425,7 @@ void Event::WriteDbFrames() {
   }  // end while frames
   // The -1 is for the extra , added for values above
   frame_insert_sql.erase(frame_insert_sql.size()-1);
-  //zmDbDo(frame_insert_sql.c_str());
+  //zmDbDo(frame_insert_sql);
   dbQueue.push(std::move(frame_insert_sql));
   if (stats_insert_sql.size() > 208) {
     // The -1 is for the extra , added for values above

@@ -247,7 +247,7 @@ int main(int argc, char *argv[]) {
           "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"
           " VALUES (%u, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0",
           monitor->Id());
-      zmDbDo(sql.c_str());
+      zmDbDo(sql);
 
       Seconds sleep_time = Seconds(0);
       while (monitor->PrimeCapture() <= 0) {
@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
       sql = stringtf(
           "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
           monitor->Id());
-      zmDbDo(sql.c_str());
+      zmDbDo(sql);
     }  // end foreach monitor
 
     if (zm_terminate){
@@ -362,7 +362,7 @@ int main(int argc, char *argv[]) {
     std::string sql = stringtf(
         "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'",
         monitor->Id());
-    zmDbDo(sql.c_str());
+    zmDbDo(sql);
   }
 
   Image::Deinitialise();

@@ -880,7 +880,7 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
   std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", p_id);
 
   zmDbRow dbrow;
-  if ( !dbrow.fetch(sql.c_str()) ) {
+  if (!dbrow.fetch(sql)) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
     return nullptr;
   }
@@ -1288,14 +1288,14 @@ void Monitor::actionEnable() {
   shared_data->action |= RELOAD;
 
   std::string sql = stringtf("UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %u", id);
-  zmDbDo(sql.c_str());
+  zmDbDo(sql);
 }
 
 void Monitor::actionDisable() {
   shared_data->action |= RELOAD;
 
   std::string sql = stringtf("UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %u", id);
-  zmDbDo(sql.c_str());
+  zmDbDo(sql);
 }
 
 void Monitor::actionSuspend() {
@@ -1452,7 +1452,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     // Grab the most revent event image
     std::string sql = stringtf("SELECT MAX(`Id`) FROM `Events` WHERE `MonitorId`=%d AND `Frames` > 0", id);
     zmDbRow eventid_row;
-    if ( eventid_row.fetch(sql.c_str()) ) {
+    if (eventid_row.fetch(sql)) {
       uint64_t event_id = atoll(eventid_row[0]);
 
       Debug(3, "Got event %" PRIu64, event_id);
@@ -2283,7 +2283,7 @@ void Monitor::Reload() {
   }
 
   std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", id);
-  zmDbRow *row = zmDbFetchOne(sql.c_str());
+  zmDbRow *row = zmDbFetchOne(sql);
   if (!row) {
     Error("Can't run query: %s", mysql_error(&dbconn));
   } else if (MYSQL_ROW dbrow = row->mysql_row()) {
@@ -2369,7 +2369,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
             "   AND `Enabled`=1",
             link_ids[i]);
 
-        MYSQL_RES *result = zmDbFetch(sql.c_str());
+        MYSQL_RES *result = zmDbFetch(sql);
         if (!result) {
           continue;
         }
@@ -2393,7 +2393,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &w
   std::string sql = load_monitor_sql + " WHERE " + where;
   Debug(1, "Loading Monitors with %s", sql.c_str());
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  MYSQL_RES *result = zmDbFetch(sql);
   if (!result) {
     Error("Can't load local monitors: %s", mysql_error(&dbconn));
     return {};
@@ -3139,7 +3139,7 @@ std::vector<Group *> Monitor::Groups() {
     std::string sql = stringtf(
         "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups.Id` IN "
         "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)", id);
-    MYSQL_RES *result = zmDbFetch(sql.c_str());
+    MYSQL_RES *result = zmDbFetch(sql);
     if (!result) {
       Error("Can't load groups: %s", mysql_error(&dbconn));
       return groups;

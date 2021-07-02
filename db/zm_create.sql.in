@@ -536,7 +536,7 @@ CREATE TABLE `Monitors` (
   `ZoneCount` TINYINT NOT NULL DEFAULT 0,
   `Refresh` int(10) unsigned default NULL,
   `Latitude`  DECIMAL(10,8),
-  `Longitude`  DECIMAL(10,8),
+  `Longitude`  DECIMAL(11,8),
   `RTSPServer`  BOOLEAN NOT NULL DEFAULT FALSE,
   `RTSPStreamName`  varchar(255) NOT NULL default '',
   `Importance`  enum('Not','Less','Normal'),

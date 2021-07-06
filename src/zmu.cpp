@@ -736,7 +736,7 @@ int main(int argc, char *argv[]) {
       }
       sql += " ORDER BY Id ASC";
 
-      MYSQL_RES *result = zmDbFetch(sql.c_str());
+      MYSQL_RES *result = zmDbFetch(sql);
       if (!result) {
         exit_zmu(-1);
       }

@@ -116,8 +116,7 @@ Zone::~Zone() {
 }
 
 void Zone::RecordStats(const Event *event) {
-  static char sql[ZM_SQL_MED_BUFSIZ];
-  snprintf(sql, sizeof(sql),
+  std::string sql = stringtf(
       "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, "
       "PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, "
       "Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, "
@@ -830,7 +829,7 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
                              "OverloadFrames,ExtendAlarmFrames"
                              " FROM Zones WHERE MonitorId = %d ORDER BY Type, Id", monitor->Id());
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  MYSQL_RES *result = zmDbFetch(sql);
   if (!result) {
     return {};
   }

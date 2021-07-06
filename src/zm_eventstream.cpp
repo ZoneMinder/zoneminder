@@ -46,7 +46,7 @@ bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_tim
                              "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %ld "
                              "ORDER BY `Id` ASC LIMIT 1", monitor_id, event_time);
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  MYSQL_RES *result = zmDbFetch(sql);
   if (!result)
     exit(-1);
 
@@ -117,7 +117,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
       "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS FramesDuration, "
       "`DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  MYSQL_RES *result = zmDbFetch(sql);
   if (!result) {
     exit(-1);
   }
@@ -229,7 +229,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   sql = stringtf("SELECT `FrameId`, unix_timestamp(`TimeStamp`), `Delta` "
                  "FROM `Frames` WHERE `EventId` = %" PRIu64 " ORDER BY `FrameId` ASC", event_id);
 
-  result = zmDbFetch(sql.c_str());
+  result = zmDbFetch(sql);
   if (!result) {
     exit(-1);
   }
@@ -640,7 +640,7 @@ bool EventStream::checkEventLoaded() {
   if ( forceEventChange || ( (mode != MODE_SINGLE) && (mode != MODE_NONE) ) ) {
     Debug(1, "Checking for next event %s", sql.c_str());
 
-    MYSQL_RES *result = zmDbFetch(sql.c_str());
+    MYSQL_RES *result = zmDbFetch(sql);
     if (!result) {
       exit(-1);
     }

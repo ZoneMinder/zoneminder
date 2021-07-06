@@ -232,7 +232,6 @@ int main(int argc, char *argv[]) {
 
   while (!zm_terminate) {
     result = 0;
-    static char sql[ZM_SQL_SML_BUFSIZ];
 
     for (const std::shared_ptr<Monitor> &monitor : monitors) {
       monitor->LoadCamera();
@@ -244,7 +243,7 @@ int main(int argc, char *argv[]) {
       monitor->SetStartupTime(now);
       monitor->SetHeartbeatTime(now);
 
-      snprintf(sql, sizeof(sql),
+      std::string sql = stringtf(
           "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"
           " VALUES (%u, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0",
           monitor->Id());
@@ -273,9 +272,9 @@ int main(int argc, char *argv[]) {
         break;
       }
 
-      snprintf(sql, sizeof(sql),
+      sql = stringtf(
           "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
-               monitor->Id());
+          monitor->Id());
       zmDbDo(sql);
     }  // end foreach monitor
 
@@ -360,8 +359,7 @@ int main(int argc, char *argv[]) {
   }  // end while ! zm_terminate outer connection loop
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
-    static char sql[ZM_SQL_SML_BUFSIZ];
-    snprintf(sql, sizeof(sql),
+    std::string sql = stringtf(
         "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'",
         monitor->Id());
     zmDbDo(sql);

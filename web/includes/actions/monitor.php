@@ -45,6 +45,25 @@ if ( $action == 'save' ) {
       $x10Monitor = array();
     }
   }
+  if ( !$_REQUEST['newMonitor[ManufacturerId'] and ($_REQUEST['newMonitor[Manufacturer'] != '') ) {
+    # Need to add a new Manufacturer entry
+    $newManufacturer = ZM\Manufacturer::find_one(array('Name'=>$_REQUEST['newMonitor[Manufacturer']));
+    if (!$newManufacturer) {
+      $newManufacturer = new ZM\Manufacturer();
+      $newManufacturer->save(array('Name'=>$_REQUEST['newMonitor[Manufacturer']));
+    }
+    $_REQUEST['newMonitor[ManufacturerId'] = $newManufacturer->Id();
+  }
+
+  if ( !$_REQUEST['newMonitor[ModelId'] and ($_REQUEST['newMonitor[Model'] != '') ) {
+    # Need to add a new Model entry
+    $newModel = ZM\Model::find_one(array('Name'=>$_REQUEST['newMonitor[Model']));
+    if (!$newModel) {
+      $newModel = new ZM\Model();
+      $newMdoel->save(array('Name'=>$_REQUEST['newMonitor[Model'], 'ManufacturerId'=>$_REQUEST['newMonitor[ManufacturerId']));
+    }
+    $_REQUEST['newMonitor[ModelId'] = $newModel->Id();
+  }
 
   $monitor = new ZM\Monitor($mid);
 

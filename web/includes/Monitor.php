@@ -1,11 +1,13 @@
 <?php
 namespace ZM;
 require_once('database.php');
-require_once('Server.php');
 require_once('Object.php');
 require_once('Control.php');
-require_once('Storage.php');
 require_once('Group.php');
+require_once('Manufacturer.php');
+require_once('Model.php');
+require_once('Server.php');
+require_once('Storage.php');
 
 $FunctionTypes = null;
 
@@ -657,6 +659,20 @@ class Monitor extends ZM_Object {
   }
   function DisableAlarms() {
     $output = $this->AlarmCommand('disable');
+  }
+  function Model() {
+    if (!$this->{'Model'}) {
+      $this->{'Model'} = Model::find_one(array('Id'=>$this->ModelId()));
+      if (!$this->{'Model'}) $this->{'Model'} = new Model();
+    }
+    return $this->{'Model'};
+  }
+  function Manufacturer() {
+    if (!$this->{'Manufacturer'}) {
+      $this->{'Manufacturer'} = Manufacturer::find_one(array('Id'=>$this->ManufacturerId()));
+      if (!$this->{'Manufacturer'}) $this->{'Manufacturer'} = new Manufacturer();
+    }
+    return $this->{'Manufacturer'};
   }
 } // end class Monitor
 ?>

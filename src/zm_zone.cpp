@@ -104,7 +104,8 @@ void Zone::Setup(
       diag_path = stringtf("%s/diag-%d-poly.jpg",
           monitor->getStorage()->Path(), id);
     }
-    pg_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
+
+    pg_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
   }
 }  // end Zone::Setup
 
@@ -232,8 +233,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
      } */
   std_alarmedpixels(diff_image, pg_image, &stats.alarm_pixels_, &pixel_diff_count);
 
-  if (config.record_diag_images)
-    diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
+  if (config.record_diag_images) {
+    diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
+  }
 
   if (pixel_diff_count && stats.alarm_pixels_)
     stats.pixel_diff_ = pixel_diff_count/stats.alarm_pixels_;
@@ -316,8 +318,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       stats.alarm_filter_pixels_ = stats.alarm_pixels_;
     }
 
-    if (config.record_diag_images)
-      diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
+    if (config.record_diag_images) {
+      diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
+    }
 
     Debug(5, "Got %d filtered pixels, need %d -> %d",
           stats.alarm_filter_pixels_, min_filter_pixels, max_filter_pixels);
@@ -540,8 +543,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         }
       }
 
-      if (config.record_diag_images)
-        diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
+      if (config.record_diag_images) {
+        diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
+      }
 
       if (!stats.alarm_blobs_) {
         stats.score_ = 0;
@@ -592,8 +596,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         } // end if bs_count
       } // end for i < WHITE
 
-      if (config.record_diag_images)
-        diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
+      if (config.record_diag_images) {
+        diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
+      }
 
       Debug(5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d",
             stats.alarm_blob_pixels_, stats.alarm_blobs_, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);

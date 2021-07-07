@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_logger.h"
 #include <array>
+#include <cstdarg>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <sstream>
@@ -114,6 +115,26 @@ std::string Join(const StringVector &values, const std::string &delim) {
     ss << values[i];
   }
   return ss.str();
+}
+
+std::string stringtf(const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  va_list args2;
+  va_copy(args2, args);
+
+  int size = vsnprintf(nullptr, 0, format, args) + 1; // Extra space for '\0'
+  va_end(args);
+
+  if (size <= 0) {
+    throw std::runtime_error("Error during formatting.");
+  }
+
+  std::unique_ptr<char[]> buf(new char[size]);
+  vsnprintf(buf.get(), size, format, args2);
+  va_end(args2);
+
+  return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
 std::string ByteArrayToHexString(nonstd::span<const uint8> bytes) {

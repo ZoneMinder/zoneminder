@@ -44,7 +44,7 @@ constexpr Milliseconds EventStream::STREAM_PAUSE_WAIT;
 bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_time) {
   std::string sql = stringtf("SELECT `Id` FROM `Events` WHERE "
                              "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %ld "
-                             "ORDER BY `Id` ASC LIMIT 1", monitor_id, event_time);
+                             "ORDER BY `Id` ASC LIMIT 1", monitor_id, std::chrono::system_clock::to_time_t(event_time));
 
   MYSQL_RES *result = zmDbFetch(sql);
   if (!result)
@@ -145,7 +145,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->duration = std::chrono::duration_cast<Microseconds>(event_data->end_time - event_data->start_time);
   event_data->frames_duration =
       std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : FPSeconds(0.0));
-  strncpy(event_data->video_file, dbrow[6], sizeof(event_data->video_file) - 1);
+  event_data->video_file = std::string(dbrow[6]);
   std::string scheme_str = std::string(dbrow[7]);
   if ( scheme_str == "Deep" ) {
     event_data->scheme = Storage::DEEP;
@@ -180,44 +180,41 @@ bool EventStream::loadEventData(uint64_t event_id) {
     time_t start_time_t = std::chrono::system_clock::to_time_t(event_data->start_time);
     localtime_r(&start_time_t, &event_time);
 
-    if ( storage_path[0] == '/' )
-      snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%u/%02d/%02d/%02d/%02d/%02d/%02d",
-          storage_path, event_data->monitor_id,
-          event_time.tm_year-100, event_time.tm_mon+1, event_time.tm_mday,
-          event_time.tm_hour, event_time.tm_min, event_time.tm_sec);
-    else
-      snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%s/%u/%02d/%02d/%02d/%02d/%02d/%02d",
-          staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
-          event_time.tm_year-100, event_time.tm_mon+1, event_time.tm_mday,
-          event_time.tm_hour, event_time.tm_min, event_time.tm_sec);
-  } else if ( event_data->scheme == Storage::MEDIUM ) {
+    if (storage_path[0] == '/') {
+      event_data->path = stringtf("%s/%u/%02d/%02d/%02d/%02d/%02d/%02d",
+                                  storage_path, event_data->monitor_id,
+                                  event_time.tm_year - 100, event_time.tm_mon + 1, event_time.tm_mday,
+                                  event_time.tm_hour, event_time.tm_min, event_time.tm_sec);
+    } else {
+      event_data->path = stringtf("%s/%s/%u/%02d/%02d/%02d/%02d/%02d/%02d",
+                                  staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
+                                  event_time.tm_year - 100, event_time.tm_mon + 1, event_time.tm_mday,
+                                  event_time.tm_hour, event_time.tm_min, event_time.tm_sec);
+    }
+  } else if (event_data->scheme == Storage::MEDIUM) {
     tm event_time = {};
     time_t start_time_t = std::chrono::system_clock::to_time_t(event_data->start_time);
     localtime_r(&start_time_t, &event_time);
 
-    if ( storage_path[0] == '/' )
-      snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%u/%04d-%02d-%02d/%" PRIu64,
-          storage_path, event_data->monitor_id,
-          event_time.tm_year+1900, event_time.tm_mon+1, event_time.tm_mday,
-          event_data->event_id);
-    else
-      snprintf(event_data->path, sizeof(event_data->path),
-          "%s/%s/%u/%04d-%02d-%02d/%" PRIu64,
-          staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
-          event_time.tm_year+1900, event_time.tm_mon+1, event_time.tm_mday,
-          event_data->event_id);
-
+    if (storage_path[0] == '/') {
+      event_data->path = stringtf("%s/%u/%04d-%02d-%02d/%" PRIu64,
+                                  storage_path, event_data->monitor_id,
+                                  event_time.tm_year + 1900, event_time.tm_mon + 1, event_time.tm_mday,
+                                  event_data->event_id);
+    } else {
+      event_data->path = stringtf("%s/%s/%u/%04d-%02d-%02d/%" PRIu64,
+                                  staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
+                                  event_time.tm_year + 1900, event_time.tm_mon + 1, event_time.tm_mday,
+                                  event_data->event_id);
+    }
   } else {
-    if ( storage_path[0] == '/' )
-      snprintf(event_data->path, sizeof(event_data->path), "%s/%u/%" PRIu64,
-          storage_path, event_data->monitor_id, event_data->event_id);
-    else
-      snprintf(event_data->path, sizeof(event_data->path), "%s/%s/%u/%" PRIu64,
-          staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
-          event_data->event_id);
+    if (storage_path[0] == '/') {
+      event_data->path = stringtf("%s/%u/%" PRIu64, storage_path, event_data->monitor_id, event_data->event_id);
+    } else {
+      event_data->path = stringtf("%s/%s/%u/%" PRIu64,
+                                  staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
+                                  event_data->event_id);
+    }
   }
 
   double fps = 1.0;
@@ -289,17 +286,17 @@ bool EventStream::loadEventData(uint64_t event_id) {
   }
   mysql_free_result(result);
 
-  if ( event_data->video_file[0] || (monitor->GetOptVideoWriter() > 0) ) {
-    if ( !event_data->video_file[0] ) {
-      snprintf(event_data->video_file, sizeof(event_data->video_file), "%" PRIu64 "-%s", event_data->event_id, "video.mp4");
+  if (!event_data->video_file.empty() || (monitor->GetOptVideoWriter() > 0)) {
+    if (event_data->video_file.empty()) {
+      event_data->video_file = stringtf("%" PRIu64 "-%s", event_data->event_id, "video.mp4");
     }
-    std::string filepath = std::string(event_data->path) + "/" + std::string(event_data->video_file);
+
+    std::string filepath = event_data->path + "/" + event_data->video_file;
     Debug(1, "Loading video file from %s", filepath.c_str());
-    if ( ffmpeg_input )
-      delete ffmpeg_input;
+    delete ffmpeg_input;
 
     ffmpeg_input = new FFmpeg_Input();
-    if ( 0 > ffmpeg_input->Open(filepath.c_str()) ) {
+    if (ffmpeg_input->Open(filepath.c_str()) < 0) {
       Warning("Unable to open ffmpeg_input %s", filepath.c_str());
       delete ffmpeg_input;
       ffmpeg_input = nullptr;
@@ -690,32 +687,30 @@ bool EventStream::checkEventLoaded() {
 }  // void EventStream::checkEventLoaded()
 
 Image * EventStream::getImage( ) {
-  static char filepath[PATH_MAX];
-
-  snprintf(filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id);
-  Debug(2, "EventStream::getImage path(%s) from %s frame(%ld) ", filepath, event_data->path, curr_frame_id);
-  Image *image = new Image(filepath);
+  std::string path = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+  Debug(2, "EventStream::getImage path(%s) from %s frame(%ld) ", path.c_str(), event_data->path.c_str(), curr_frame_id);
+  Image *image = new Image(path.c_str());
   return image;
 }
 
 bool EventStream::sendFrame(Microseconds delta_us) {
   Debug(2, "Sending frame %ld", curr_frame_id);
 
-  static char filepath[PATH_MAX];
-  static struct stat filestat;
+  std::string filepath;
+  struct stat filestat = {};
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.
   // If we are only saving analysis frames, then send that.
-  if ( event_data->SaveJPEGs & 1 ) {
-    snprintf(filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id);
-  } else if ( event_data->SaveJPEGs & 2 ) {
-    snprintf(filepath, sizeof(filepath), staticConfig.analyse_file_format, event_data->path, curr_frame_id);
-    if ( stat(filepath, &filestat) < 0 ) {
-      Debug(1, "analyze file %s not found will try to stream from other", filepath);
-      snprintf(filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id);
-      if ( stat(filepath, &filestat) < 0 ) {
-        Debug(1, "capture file %s not found either", filepath);
-        filepath[0] = 0;
+  if (event_data->SaveJPEGs & 1) {
+    filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+  } else if (event_data->SaveJPEGs & 2) {
+    filepath = stringtf(staticConfig.analyse_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+    if (stat(filepath.c_str(), &filestat) < 0) {
+      Debug(1, "analyze file %s not found will try to stream from other", filepath.c_str());
+      filepath = stringtf(staticConfig.capture_file_format.c_str(), event_data->path.c_str(), curr_frame_id);
+      if (stat(filepath.c_str(), &filestat) < 0) {
+        Debug(1, "capture file %s not found either", filepath.c_str());
+        filepath = "";
       }
     }
   } else if ( !ffmpeg_input ) {
@@ -724,7 +719,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   }
 
   if ( type == STREAM_MPEG ) {
-    Image image(filepath);
+    Image image(filepath.c_str());
 
     Image *send_image = prepareImage(&image);
 
@@ -739,20 +734,20 @@ bool EventStream::sendFrame(Microseconds delta_us) {
                             config.mpeg_timed_frames,
                             delta_us.count() * 1000);
   } else {
-    bool send_raw = (type == STREAM_JPEG) && ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE)) && filepath[0];
+    bool send_raw = (type == STREAM_JPEG) && ((scale >= ZM_SCALE_BASE) && (zoom == ZM_SCALE_BASE)) && !filepath.empty();
 
     fprintf(stdout, "--" BOUNDARY "\r\n");
 
-    if ( send_raw ) {
-      if ( !send_file(filepath) ) {
-        Error("Can't send %s: %s", filepath, strerror(errno));
+    if (send_raw) {
+      if (!send_file(filepath)) {
+        Error("Can't send %s: %s", filepath.c_str(), strerror(errno));
         return false;
       }
     } else {
       Image *image = nullptr;
 
-      if ( filepath[0] ) {
-        image = new Image(filepath);
+      if (!filepath.empty()) {
+        image = new Image(filepath.c_str());
       } else if ( ffmpeg_input ) {
         // Get the frame from the mp4 input
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
@@ -1088,24 +1083,24 @@ void EventStream::runStream() {
   closeComms();
 } // end void EventStream::runStream()
 
-bool EventStream::send_file(const char *filepath) {
+bool EventStream::send_file(const std::string &filepath) {
   static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
 
   int img_buffer_size = 0;
   uint8_t *img_buffer = temp_img_buffer;
 
   FILE *fdj = nullptr;
-  fdj = fopen(filepath, "rb");
+  fdj = fopen(filepath.c_str(), "rb");
   if ( !fdj ) {
-    Error("Can't open %s: %s", filepath, strerror(errno));
-    std::string error_message = stringtf("Can't open %s: %s", filepath, strerror(errno));
+    Error("Can't open %s: %s", filepath.c_str(), strerror(errno));
+    std::string error_message = stringtf("Can't open %s: %s", filepath.c_str(), strerror(errno));
     return sendTextFrame(error_message.c_str());
   }
 #if HAVE_SENDFILE
   static struct stat filestat;
   if ( fstat(fileno(fdj), &filestat) < 0 ) {
     fclose(fdj); /* Close the file handle */
-    Error("Failed getting information about file %s: %s", filepath, strerror(errno));
+    Error("Failed getting information about file %s: %s", filepath.c_str(), strerror(errno));
     return false;
   }
   if ( !filestat.st_size ) {
@@ -1134,7 +1129,7 @@ bool EventStream::send_file(const char *filepath) {
   }
 
   return send_buffer(img_buffer, img_buffer_size);
-}  // end bool EventStream::send_file(const char * filepath)
+}
 
 bool EventStream::send_buffer(uint8_t* buffer, int size) {
   if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", size) ) {

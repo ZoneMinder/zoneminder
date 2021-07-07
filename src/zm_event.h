@@ -24,6 +24,7 @@
 #include "zm_define.h"
 #include "zm_storage.h"
 #include "zm_time.h"
+#include "zm_utils.h"
 #include "zm_zone.h"
 
 #include <map>
@@ -128,18 +129,17 @@ class Event {
     bool SetPath(Storage *storage);
 
  public:
-    static const char *getSubPath(tm time) {
-      static char subpath[PATH_MAX] = "";
-      snprintf(subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d",
-          time.tm_year-100, time.tm_mon+1, time.tm_mday,
-          time.tm_hour, time.tm_min, time.tm_sec);
-      return subpath;
-    }
-    static const char *getSubPath(time_t *time) {
-      tm time_tm = {};
-      localtime_r(time, &time_tm);
-      return Event::getSubPath(time_tm);
-    }
+  static std::string getSubPath(tm time) {
+    std::string subpath = stringtf("%02d/%02d/%02d/%02d/%02d/%02d",
+                                   time.tm_year - 100, time.tm_mon + 1, time.tm_mday,
+                                   time.tm_hour, time.tm_min, time.tm_sec);
+    return subpath;
+  }
+  static std::string getSubPath(time_t *time) {
+    tm time_tm = {};
+    localtime_r(time, &time_tm);
+    return Event::getSubPath(time_tm);
+  }
 
     const char* getEventFile() const {
       return video_file.c_str();

@@ -28,7 +28,7 @@
 #define RAW_BUFFER 512
 static bool zm_fifodbg_inited = false;
 FILE *zm_fifodbg_log_fd = nullptr;
-char zm_fifodbg_log[PATH_MAX] = "";
+std::string zm_fifodbg_log;
 
 static bool zmFifoDbgOpen() {
   if ( zm_fifodbg_log_fd )
@@ -36,7 +36,7 @@ static bool zmFifoDbgOpen() {
   zm_fifodbg_log_fd = nullptr;
   signal(SIGPIPE, SIG_IGN);
   Fifo::fifo_create_if_missing(zm_fifodbg_log);
-  int fd = open(zm_fifodbg_log, O_WRONLY|O_NONBLOCK|O_TRUNC);
+  int fd = open(zm_fifodbg_log.c_str(), O_WRONLY | O_NONBLOCK | O_TRUNC);
   if ( fd < 0 )
     return false;
   int res = flock(fd, LOCK_EX | LOCK_NB);
@@ -54,8 +54,7 @@ static bool zmFifoDbgOpen() {
 
 int zmFifoDbgInit(Monitor *monitor) {
   zm_fifodbg_inited = true;
-  snprintf(zm_fifodbg_log, sizeof(zm_fifodbg_log), "%s/dbgpipe-%u.log",
-      staticConfig.PATH_SOCKS.c_str(), monitor->Id());
+  zm_fifodbg_log = stringtf("%s/dbgpipe-%u.log", staticConfig.PATH_SOCKS.c_str(), monitor->Id());
   zmFifoDbgOpen();
   return 1;
 }

@@ -29,32 +29,26 @@
 #define RAW_BUFFER 512
 #define PIPE_SIZE 1024*1024
 
-void Fifo::file_create_if_missing(
-    const char * path,
-    bool is_fifo,
-    bool delete_fake_fifo
-    ) {
-  static struct stat st;
-  if ( stat(path, &st) == 0 ) {
-    if ( (!is_fifo) || S_ISFIFO(st.st_mode) || !delete_fake_fifo )
+void Fifo::file_create_if_missing(const std::string &path, bool is_fifo, bool delete_fake_fifo) {
+  struct stat st = {};
+
+  if (stat(path.c_str(), &st) == 0) {
+    if ((!is_fifo) || S_ISFIFO(st.st_mode) || !delete_fake_fifo)
       return;
-    Debug(5, "Supposed to be a fifo pipe but isn't, unlinking: %s", path);
-    unlink(path);
+    Debug(5, "Supposed to be a fifo pipe but isn't, unlinking: %s", path.c_str());
+    unlink(path.c_str());
   }
   if (!is_fifo) {
-    Debug(5, "Creating non fifo file as requested: %s", path);
-    int fd = ::open(path, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
+    Debug(5, "Creating non fifo file as requested: %s", path.c_str());
+    int fd = ::open(path.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
     ::close(fd);
     return;
   }
-  Debug(5, "Making fifo file of: %s", path);
-  mkfifo(path, S_IRUSR|S_IWUSR);
+  Debug(5, "Making fifo file of: %s", path.c_str());
+  mkfifo(path.c_str(), S_IRUSR | S_IWUSR);
 }
 
-void Fifo::fifo_create_if_missing(
-    const char * path,
-    bool delete_fake_fifo
-    ) {
+void Fifo::fifo_create_if_missing(const std::string &path, bool delete_fake_fifo) {
   file_create_if_missing(path, true, delete_fake_fifo);
 }
 
@@ -62,7 +56,8 @@ Fifo::~Fifo() {
   close();
 }
 bool Fifo::open() {
-  fifo_create_if_missing(path.c_str());
+  fifo_create_if_missing(path);
+
   if (!on_blocking_abort) {
     if ( (outfile = fopen(path.c_str(), "wb")) == nullptr ) {
       Error("Can't open %s for writing: %s", path.c_str(), strerror(errno));

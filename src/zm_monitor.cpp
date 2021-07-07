@@ -1184,8 +1184,7 @@ int Monitor::GetImage(int32_t index, int scale) {
     image = image_buffer[index];
   }
 
-  static char filename[PATH_MAX];
-  snprintf(filename, sizeof(filename), "Monitor%u.jpg", id);
+  std::string filename = stringtf("Monitor%u.jpg", id);
   image->WriteJpeg(filename);
   return 1;
 }
@@ -1506,20 +1505,20 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     zone_image->Outline(extra_colour, extra_zone);
   }
 
-  static char filename[PATH_MAX];
-  snprintf(filename, sizeof(filename), "Zones%u.jpg", id);
+  std::string filename = stringtf("Zones%u.jpg", id);
   zone_image->WriteJpeg(filename);
   delete zone_image;
 } // end void Monitor::DumpZoneImage(const char *zone_string)
 
 void Monitor::DumpImage(Image *dump_image) const {
-  if ( image_count && !(image_count%10) ) {
-    static char filename[PATH_MAX];
-    static char new_filename[PATH_MAX];
-    snprintf(filename, sizeof(filename), "Monitor%u.jpg", id);
-    snprintf(new_filename, sizeof(new_filename), "Monitor%u-new.jpg", id);
-    if ( dump_image->WriteJpeg(new_filename) )
-      rename(new_filename, filename);
+  if (image_count && !(image_count % 10)) {
+
+    std::string filename = stringtf("Monitor%u.jpg", id);
+    std::string new_filename = stringtf("Monitor%u-new.jpg", id);
+
+    if (dump_image->WriteJpeg(new_filename)) {
+      rename(new_filename.c_str(), filename.c_str());
+    }
   }
 } // end void Monitor::DumpImage(Image *dump_image)
 
@@ -2783,8 +2782,8 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   ref_image.Delta(comp_image, &delta_image);
 
   if (config.record_diag_images) {
-    ref_image.WriteJpeg(diag_path_ref.c_str(), config.record_diag_images_fifo);
-    delta_image.WriteJpeg(diag_path_delta.c_str(), config.record_diag_images_fifo);
+    ref_image.WriteJpeg(diag_path_ref, config.record_diag_images_fifo);
+    delta_image.WriteJpeg(diag_path_delta, config.record_diag_images_fifo);
   }
 
   // Blank out all exclusion zones
@@ -2932,7 +2931,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
     sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
   } else if ( camera->IsFile() ) {
     FileCamera* cam = static_cast<FileCamera*>(camera.get());
-    sprintf( output+strlen(output), "Path : %s\n", cam->Path() );
+    sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
   }
   else if ( camera->IsFfmpeg() ) {
     FfmpegCamera* cam = static_cast<FfmpegCamera*>(camera.get());

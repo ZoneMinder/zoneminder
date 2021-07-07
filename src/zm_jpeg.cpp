@@ -37,13 +37,13 @@ void zm_jpeg_emit_silence(j_common_ptr cinfo, int msg_level) {
 }
 
 void zm_jpeg_error_exit(j_common_ptr cinfo) {
-  static char buffer[JMSG_LENGTH_MAX];
-  zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
+  zm_error_ptr zmerr = (zm_error_ptr) cinfo->err;
 
-  (zmerr->pub.format_message)(cinfo, buffer); 
+  char buffer[JMSG_LENGTH_MAX];
+  zmerr->pub.format_message(cinfo, buffer);
 
   Error("%s", buffer);
-  if ( ++jpeg_err_count == MAX_JPEG_ERRS ) {
+  if (++jpeg_err_count == MAX_JPEG_ERRS) {
     Fatal("Maximum number (%d) of JPEG errors reached, exiting", jpeg_err_count);
   }
 
@@ -51,25 +51,25 @@ void zm_jpeg_error_exit(j_common_ptr cinfo) {
 }
 
 void zm_jpeg_emit_message(j_common_ptr cinfo, int msg_level) {
-  static char buffer[JMSG_LENGTH_MAX];
-  zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
+  char buffer[JMSG_LENGTH_MAX];
+  zm_error_ptr zmerr = (zm_error_ptr) cinfo->err;
 
-  if ( msg_level < 0 ) {
+  if (msg_level < 0) {
     /* It's a warning message.  Since corrupt files may generate many warnings,
      * the policy implemented here is to show only the first warning,
      * unless trace_level >= 3.
      */
-    if ( zmerr->pub.num_warnings == 0 || zmerr->pub.trace_level >= 3 ) {
-      (zmerr->pub.format_message)(cinfo, buffer);
-      if ( !strstr(buffer, "Corrupt JPEG data:") ) 
+    if (zmerr->pub.num_warnings == 0 || zmerr->pub.trace_level >= 3) {
+      zmerr->pub.format_message(cinfo, buffer);
+      if (!strstr(buffer, "Corrupt JPEG data:"))
         Warning("%s", buffer);
     }
     /* Always count warnings in num_warnings. */
     zmerr->pub.num_warnings++;
   } else {
     /* It's a trace message.  Show it if trace_level >= msg_level. */
-    if ( zmerr->pub.trace_level >= msg_level ) {
-      (zmerr->pub.format_message)(cinfo, buffer); 
+    if (zmerr->pub.trace_level >= msg_level) {
+      zmerr->pub.format_message(cinfo, buffer);
       Debug(msg_level, "%s", buffer);
     }
   }

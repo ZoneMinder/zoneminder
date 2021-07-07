@@ -123,7 +123,7 @@ public:
   int Capture(std::shared_ptr<ZMPacket> &p) override;
   int PostCapture() override;
   int Close() override;
-  static bool GetCurrentSettings(const char *device, char *output, int version, bool verbose);
+  static bool GetCurrentSettings(const std::string &device, char *output, int version, bool verbose);
 };
 
 #endif // ZM_HAS_V4L

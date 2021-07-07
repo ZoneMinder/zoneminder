@@ -25,15 +25,10 @@ class Monitor;
 
 class FifoStream : public StreamBase {
  private:
-    char * stream_path;
+    std::string stream_path;
     int total_read;
     int bytes_read;
     unsigned int frame_count;
-    static void file_create_if_missing(
-        const char * path,
-        bool is_fifo,
-        bool delete_fake_fifo = true
-        );
 
  protected:
     typedef enum { UNKNOWN, MJPEG, RAW } StreamType;
@@ -44,13 +39,13 @@ class FifoStream : public StreamBase {
 
  public:
     FifoStream() : 
-      stream_path(nullptr),
       total_read(0),
       bytes_read(0),
       frame_count(0),
       stream_type(UNKNOWN)
     {}
-    void setStreamStart(const char * path);
+
+    void setStreamStart(const std::string &path);
     void setStreamStart(int monitor_id, const char * format);
     void runStream() override;
 };

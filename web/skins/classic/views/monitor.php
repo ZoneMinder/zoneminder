@@ -492,18 +492,25 @@ switch ( $name ) {
             <td class="text-right pr-3"><?php echo translate('Manufacturer') ?></td>
             <td><?php 
 require_once('includes/Manufacturer.php');
-$manufacturers = ZM\Manufacturer::find();
-echo htmlSelect('newMonitor[ManufacturerId]', $manufacturers, $monitor->ManufacturerId(), array('class'=>'chosen'));
+$manufacturers = array_merge(
+    array(''=>translate('unknown')),
+    ZM\Manufacturer::find());
+echo htmlSelect('newMonitor[ManufacturerId]', $manufacturers, $monitor->ManufacturerId(), array('class'=>'chosen','data-on-change-this'=>'ManufacturerId_onchange'));
 ?>
+              <input type="text" name="newMonitor[Manufacturer]" value="<?php echo $monitor->Manufacturer()->Name() ?>" style="display:none"/>
             </td>
           </tr>
           <tr class="Model">
             <td class="text-right pr-3"><?php echo translate('Model') ?></td>
             <td><?php 
 require_once('includes/Model.php');
-$models = ZM\Model::find(array('ManufacturerId'=>$monitor->ManufacturerId()));
-echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(), array('class'=>'chosen'));
+$models = array_merge(
+    array(''=>translate('unknown')),
+    ZM\Model::find(array('ManufacturerId'=>$monitor->ManufacturerId()))
+);
+echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(), array('class'=>'chosen', 'data-on-change-this'=>'ModelId_onchange'));
 ?>
+              <input type="text" name="newMonitor[Model]" value="<?php echo $monitor->Model()->Name() ?>" style="display:none"/>
             </td>
           </tr>
           <tr>

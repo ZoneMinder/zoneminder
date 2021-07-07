@@ -9,6 +9,7 @@ class Model extends ZM_Object {
 	protected $defaults = array(
 			'Id'                  => null,
 			'Name'                => '',
+      'ManufacturerId'      => null,
 			);
 
   public static function find( $parameters = array(), $options = array() ) {

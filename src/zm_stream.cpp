@@ -253,14 +253,27 @@ Image *StreamBase::prepareImage(Image *image) {
 }  // end Image *StreamBase::prepareImage(Image *image)
 
 bool StreamBase::sendTextFrame(const char *frame_text) {
+  int width = 640;
+  int height = 480;
+  int colours = ZM_COLOUR_RGB32;
+  int subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  int labelsize = 2;
+
+  if (monitor) {
+    width = monitor->Width();
+    height = monitor->Height();
+    colours = monitor->Colours();
+    subpixelorder = monitor->SubpixelOrder();
+    labelsize = monitor->LabelSize();
+  }
   Debug(2, "Sending %dx%d * %d text frame '%s'",
-      monitor->Width(), monitor->Height(), scale, frame_text);
+      width, height, scale, frame_text);
 
-  Image image(monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder());
+  Image image(width, height, colours, subpixelorder);
   image.Clear();
-  image.Annotate(frame_text, image.centreCoord(frame_text, monitor->LabelSize()), monitor->LabelSize());
+  image.Annotate(frame_text, image.centreCoord(frame_text, labelsize), labelsize);
 
-  if ( scale != 100 ) {
+  if (scale != 100) {
     image.Scale(scale);
   }
 #if HAVE_LIBAVCODEC
@@ -281,7 +294,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
 
     fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout);
     fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);
-    if ( fwrite(buffer, n_bytes, 1, stdout) != 1 ) {
+    if (fwrite(buffer, n_bytes, 1, stdout) != 1) {
       Error("Unable to send stream text frame: %s", strerror(errno));
       return false;
     }

@@ -1929,7 +1929,7 @@ bool Monitor::Analyse() {
             if (section_length != Seconds(0) && (timestamp - GetVideoWriterStartTime() >= section_length)
                 && ((function == MOCORD && event_close_mode != CLOSE_TIME)
                     || (function == RECORD && event_close_mode == CLOSE_TIME)
-                    || timestamp.time_since_epoch() % section_length == Seconds(0))) {
+                    || std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()) % section_length == Seconds(0))) {
               Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                    name.c_str(),
                    image_count,

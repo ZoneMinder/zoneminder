@@ -120,6 +120,11 @@ else
     if [ "$BRANCH" == "" ]; then
       #REV=$(git rev-list --tags --max-count=1)
       BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
+      if [ -z "$BRANCH" ]; then
+        # This should only happen in CI environments where tag info isn't available
+        BRANCH=`grep ' release$' distros/fedora/zoneminder.spec | head -n 1 | sed -e 's/ release//g' -e 's/[^0-9]*//'`
+        echo "Building branch $BRANCH"
+      fi
       if [ "$BRANCH" == "" ]; then
         echo "Unable to determine latest stable branch!"
         exit 0;

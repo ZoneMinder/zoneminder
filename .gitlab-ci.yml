@@ -11,6 +11,7 @@ deb:
     - docker
   script:
     - yes "" | ./utils/do_debian_package.sh --snapshot=stable --type=binary --interactive=no --dput=no --debbuild-extra=--no-sign || true
+  timeout: 2h
   artifacts:
     paths:
       - '*.deb'

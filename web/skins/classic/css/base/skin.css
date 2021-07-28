@@ -746,3 +746,9 @@ a.flip {
 #modalLogout .modal-body {
   overflow:auto;
 }
+#shutdownButton {
+  padding: 3px 10px 5px 10px;
+  color: white;
+}
+#shutdownButton i {
+}

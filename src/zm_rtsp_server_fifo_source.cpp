@@ -151,7 +151,7 @@ int ZoneMinderFifoSource::getNextFrame() {
     }
   }
 
-  int bytes_read = m_buffer.read_into(m_fd, 32);
+  int bytes_read = m_buffer.read_into(m_fd, 4096);
   //int bytes_read = m_buffer.read_into(m_fd, 4096, {1,0});
   if (bytes_read == 0) {
     Debug(3, "No bytes read");

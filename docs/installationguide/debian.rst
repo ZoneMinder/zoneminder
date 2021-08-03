@@ -56,13 +56,13 @@ Add the following to the /etc/apt/sources.list.d/zoneminder.list file
 ::
 
     # ZoneMinder repository
-    deb https://zmrepo.zoneminder.com/debian/release-1.34 buster/
+    deb https://zmrepo.zoneminder.com/debian/release-1.36 buster/
 
 You can do this using:
 
 .. code-block::
 
-    echo "deb https://zmrepo.zoneminder.com/debian/release-1.34 buster/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
+    echo "deb https://zmrepo.zoneminder.com/debian/release-1.36 buster/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 
 Because ZoneMinder's package repository provides a secure connection through HTTPS, apt must be enabled for HTTPS.
 ::
@@ -158,7 +158,7 @@ You are now ready to go with ZoneMinder. Open a browser and type either ``localh
 Easy Way: Debian Stretch
 ------------------------
 
-This procedure will guide you through the installation of ZoneMinder on Debian 9 (Stretch). This section has been tested with ZoneMinder 1.34 on Debian 9.8.
+This procedure will guide you through the installation of ZoneMinder on Debian 9 (Stretch). This section has been tested with ZoneMinder 1.36 on Debian 9.8.
 
 **Step 1:** Make sure your system is up to date
 
@@ -204,7 +204,7 @@ Add the following to the bottom of the file
 ::
 
     # ZoneMinder repository
-    deb https://zmrepo.zoneminder.com/debian/release-1.34 stretch/
+    deb https://zmrepo.zoneminder.com/debian/release-1.36 stretch/
 
 CTRL+o and <Enter> to save
 CTRL+x to exit

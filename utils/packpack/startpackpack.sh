@@ -369,7 +369,7 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   setdebpkgname
   movecrud
 
-  if [ "${DIST}" == "focal" ] || [ "${DIST}" == "groovy" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "buster" ]; then
+  if [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "buster" ]; then
     ln -sfT distros/ubuntu2004 debian
   elif [ "${DIST}" == "beowulf" ]; then
     ln -sfT distros/beowulf debian

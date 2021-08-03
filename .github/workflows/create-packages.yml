@@ -14,6 +14,8 @@ jobs:
         os_dist:
           - os: debian
             dist: buster
+          - os: debian
+            dist: bullseye
     runs-on: ubuntu-latest
 
     steps:

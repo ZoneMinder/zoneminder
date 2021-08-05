@@ -197,6 +197,7 @@ bool ValidateAccess(User *user, int mon_id, int function) {
 
 void exit_zmu(int exit_code) {
   logTerm();
+  dbQueue.stop();
   zmDbClose();
 
   exit(exit_code);
@@ -248,7 +249,7 @@ int main(int argc, char *argv[]) {
     {nullptr, 0, nullptr, 0}
   };
 
-  const char *device = nullptr;
+  std::string device;
   int mon_id = 0;
   bool verbose = false;
   int function = ZMU_BOGUS;
@@ -408,7 +409,7 @@ int main(int argc, char *argv[]) {
     Usage();
   }
 
-  if ( device && !(function&ZMU_QUERY) ) {
+  if ( !device.empty() && !(function&ZMU_QUERY) ) {
     fprintf(stderr, "Error, -d option cannot be used with this option\n");
     Usage();
   }

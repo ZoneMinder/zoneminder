@@ -1,6 +1,8 @@
 function submitCamera( element ) {
   var form = element.form;
-  form.target = opener.name;
+  if (opener) {
+    form.target = opener.name;
+  }
   form.view.value = 'monitor';
   form.submit();
 }

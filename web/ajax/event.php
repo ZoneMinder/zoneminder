@@ -86,7 +86,9 @@ if ( canView('Events') ) {
       $exportVideo,
       $exportMisc,
       $exportFormat,
-      $exportCompress
+      $exportCompress,
+      false, # structure
+      (isset($_REQUEST['exportFile'])?$_REQUEST['exportFile']:''),
     ) )
     ajaxResponse(array('exportFile'=>$exportFile));
     else

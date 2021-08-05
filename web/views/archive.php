@@ -53,7 +53,9 @@ if ( !$mimetype ) {
 }
 
 $connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
-$filename = "zmExport_$connkey.$file_ext";
+$filename = isset($_REQUEST['file'])?$_REQUEST['file']:"zmExport_$connkey.$file_ext";
+$filename = str_replace('/', '', $filename); # protect system files. must be a filename, not a path
+
 $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
 ZM\Debug("downloading archive from $filename_path");
 if ( is_readable($filename_path) ) {

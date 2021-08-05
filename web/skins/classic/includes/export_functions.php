@@ -869,7 +869,8 @@ function exportEvents(
   $exportMisc,
   $exportFormat,
   $exportCompressed,
-  $exportStructure = false
+  $exportStructure = false,
+  $export_root = 'zmExport'
 ) {
 
   if ( !canView('Events') ) {
@@ -890,7 +891,7 @@ function exportEvents(
     ZM\Fatal('Can\'t create exports dir at \''.ZM_DIR_EXPORTS.'\'');
   }
   chmod(ZM_DIR_EXPORTS, 0700);
-  $export_dir = ZM_DIR_EXPORTS.'/zmExport_'.$connkey;
+  $export_dir = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'');
 
   # Ensure that we are going to be able to do this.
   if ( ! ( mkdir($export_dir) or file_exists($export_dir) ) ) {
@@ -904,7 +905,6 @@ function exportEvents(
     return;
   }
 
-  $export_root = 'zmExport';
   $export_listFile = 'zmFileList.txt';
   $exportFileList = array();
   $html_eventMaster = '';
@@ -930,7 +930,7 @@ function exportEvents(
   } # end foreach event
 
   if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.min.js', $export_dir.'/jquery.min.js') )
-    ZM\Error('Failed linking jquery.min.js');
+    ZM\Error('Failed linking '.ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.min.js to '.$export_dir.'/jquery.min.js');
   //if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/video.js', $export_dir.'/video.js') )
     //Error("Failed linking video.js");
 
@@ -947,19 +947,21 @@ function exportEvents(
 
   $listFile = $export_dir.'/'.$export_listFile;
   if ( !($fp = fopen($listFile, 'w')) ) {
-    ZM\Fatal("Can't open event export list file '$listFile'");
+    ZM\Error("Can't open event export list file '$listFile'");
+    return false;
   }
   foreach ( $exportFileList as $exportFile ) {
-    $exportFile = 'zmExport'.$connkey.'/'.$exportFile;
-    fwrite($fp, "$exportFile\n");
+    $exportFile = $export_root.$connkey.'/'.$exportFile;
+    fwrite($fp, $exportFile.PHP_EOL);
   }
-  fwrite($fp, "$listFile\n");
+  fwrite($fp, $listFile.PHP_EOL);
   fclose($fp);
 
   chdir(ZM_DIR_EXPORTS);
   $archive = '';
   if ( $exportFormat == 'tar' ) {
-    $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.tar';
+
+    $archive = $export_root.($connkey?'_'.$connkey:'').'.tar';
     $version = shell_exec('tar -v');
 
     $command = 'tar --create --dereference';
@@ -975,16 +977,18 @@ function exportEvents(
         $command .= ' --xform=\'s#^.+/##x\'';
       }
     }
-    $command .= ' --file='.escapeshellarg($archive);
+    $archive_path = ZM_DIR_EXPORTS.'/'.$archive;
+    $command .= ' --file='.escapeshellarg($archive_path);
   } elseif ( $exportFormat == 'zip' ) {
-    $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.zip';
+    $archive = $export_root.($connkey?'_'.$connkey:'').'.zip';
+    $archive_path = ZM_DIR_EXPORTS.'/'.$archive;
     $command = 'zip ';
-    $command .= ($exportStructure == 'flat' ? ' -j ' : ' -r ' ).escapeshellarg($archive);
+    $command .= ($exportStructure == 'flat' ? ' -j ' : ' -r ' ).escapeshellarg($archive_path);
     $command .= $exportCompressed ? ' -9' : ' -0';
   } // if $exportFormat
 
-  @unlink($archive);
-  $command .= ' zmExport_' . $connkey.'/';
+  @unlink($archive_path);
+  $command .= ' '.$export_root.($connkey?'_'.$connkey:'').'/';
   exec($command, $output, $status);
   if ( $status ) {
     ZM\Error("Command '$command' returned with status $status");
@@ -999,5 +1003,5 @@ function exportEvents(
     unlink($monitorPath.'/'.$html_eventMaster);
   }
 
-  return '?view=archive&type='.$exportFormat.'&connkey='.$connkey;
+  return '?view=archive&type='.$exportFormat.'&connkey='.$connkey.'&file='.$archive;
 } // end function exportEvents

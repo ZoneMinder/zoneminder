@@ -352,7 +352,7 @@ if ( !empty($_REQUEST['height']) ) {
 if ( $errorText ) {
   ZM\Error($errorText);
 } else {
-  header("Content-type: $media_type");
+  header('Content-type: '.$media_type);
   if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
     # This is so that Save Image As give a useful filename
     if ( $Event ) {
@@ -364,7 +364,7 @@ if ( $errorText ) {
     }
   } else {
     ZM\Debug("Doing a scaled image: scale($scale) width($width) height($height)");
-    $i = 0;
+    $i = null;
     if ( ! ( $width && $height ) ) {
       $i = imagecreatefromjpeg($path);
       $oldWidth = imagesx($i);
@@ -385,22 +385,33 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
   
     # Slight optimisation, thumbnails always specify width and height, so we can cache them.
     $scaled_path = preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path);
-    if ( $Event ) {
+    if ($Event) {
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId()."-${width}x${height}.jpg";
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
     if ( !( file_exists($scaled_path) and readfile($scaled_path) ) ) {
       ZM\Debug("Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
-      ob_start();
-      if ( !$i )
+      if (!$i)
         $i = imagecreatefromjpeg($path);
-      $iScale = imagescale($i, $width, $height);
-      imagejpeg($iScale);
-      imagedestroy($i);
-      imagedestroy($iScale);
-      $scaled_jpeg_data = ob_get_contents();
-      file_put_contents($scaled_path, $scaled_jpeg_data);
-      echo $scaled_jpeg_data;
+      if ( !$i) {
+        ZM\Error('Unable to load jpeg from '.$scaled_path);
+        $i  = imagecreatetruecolor($width, $height);
+        $bg_colour = imagecolorallocate($i, 255, 255, 255);
+        $fg_colour = imagecolorallocate($i, 0, 0, 0);
+        imagefilledrectangle($im, 0, 0, $width, $height, $bg_colour);
+        imagestring($i, 1, 5, 5, 'Unable to load jpeg from  ' . $scaled_path, $fg_colour);
+        imagejpeg($i);
+      } else {
+        ZM\Debug("Have image scaling to $width x $height");
+        ob_start();
+        $iScale = imagescale($i, $width, $height);
+        imagejpeg($iScale);
+        imagedestroy($i);
+        imagedestroy($iScale);
+        $scaled_jpeg_data = ob_get_contents();
+        file_put_contents($scaled_path, $scaled_jpeg_data);
+        echo $scaled_jpeg_data;
+      }
     } else {
       ZM\Debug("Sending $scaled_path");
       $bytes = readfile($scaled_path);

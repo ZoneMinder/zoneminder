@@ -59,9 +59,7 @@ if ( !$snapshot->Id() ) {
         <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
 -->
         <button id="saveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"><i class="fa fa-save"></i></button>
-<!--
         <button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>"><i class="fa fa-external-link"></i></button>
--->
         <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>"><i class="fa fa-trash"></i></button>
 <?php } // end if snapshot->Id ?>
       </div>
@@ -97,5 +95,26 @@ if ( !$snapshot->Id() ) {
     </div><!--content-->
 <?php } // end if snapshot->Id() ?>
       </form>
+<h2 id="exportProgress" class="<?php
+            if ( isset($_REQUEST['generated']) ) {
+              if ( $_REQUEST['generated'] )
+                echo 'infoText';
+              else
+                echo 'errorText';
+            } else {
+              echo 'hidden warnText';
+            }
+        ?>">
+            <span id="exportProgressText">
+              <?php
+                if ( isset($_REQUEST['generated']) ) {
+                  if ( $_REQUEST['generated'] )
+                    echo translate('ExportSucceeded');
+                  else
+                    echo translate('ExportFailed');
+                }
+            ?></span>
+            <span id="exportProgressTicker"></span>
+          </h2>
   </div><!--page-->
 <?php xhtmlFooter() ?>

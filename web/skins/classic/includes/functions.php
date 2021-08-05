@@ -898,7 +898,6 @@ function xhtmlFooter() {
   'js/Server.js',
 ), true );
 ?>
-  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
 <?php
   if ( $view == 'event' ) {
 ?>
@@ -912,7 +911,7 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
 ?>
-  <script nonce="<?php echo $cspNonce; ?>">
+  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();
 <?php
   if ( $skinJsPhpFile ) {
     require_once( $skinJsPhpFile );

@@ -26,6 +26,32 @@ function manageDelConfirmModalBtns() {
   });
 }
 
+function exportResponse(respObj, respText) {
+  clearInterval(exportTimer);
+  if ( respObj.result != 'Ok' ) {
+    $j('#exportProgressTicker').text(respObj.message);
+  } else {
+    $j('#exportProgressTicker').text(exportSucceededString);
+    setTimeout(startDownload, 1500, decodeURIComponent(respObj.exportFile));
+  }
+  return;
+}
+function startDownload(file) {
+  console.log('Starting download of ' + file);
+  window.location.replace(file);
+}
+
+function exportProgress() {
+  if ( exportTimer ) {
+    var tickerText = $j('#exportProgressTicker').text();
+    if ( tickerText.length < 1 || tickerText.length > 4 ) {
+      $j('#exportProgressTicker').text('.');
+    } else {
+      $j('#exportProgressTicker').append('.');
+    }
+  }
+}
+
 function initPage() {
   // enable or disable buttons based on current selection and user rights
   /*
@@ -35,7 +61,6 @@ function initPage() {
   */
   saveBtn.prop('disabled', !(canEdit.Events || (snapshot.CreatedBy == user.Id) ));
   /*
-  exportBtn.prop('disabled', !canView.Events);
   downloadBtn.prop('disabled', !canView.Events);
   */
   deleteBtn.prop('disabled', !canEdit.Events);
@@ -63,17 +88,38 @@ function initPage() {
       return;
     }
     */
-    console.log(evt);
     evt.target.form.submit();
   });
 
-  /*
   // Manage the EXPORT button
   bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
-    window.location.assign('?view=export&eids[]='+eventData.Id);
+    formData = {
+      eids: snapshot.EventIds,
+      exportImages: 1,
+      exportVideo: 0,
+      exportFrames: 0,
+      exportDetail: 0,
+      exportMisc: 0,
+      exportFormat: 'zip',
+      exportCompress: 0,
+      exportFile: 'Snapshot'+snapshot.Id
+    };
+    $j.getJSON(thisUrl + '?view=event&request=event&action=export', formData)
+        .done(exportResponse)
+        .fail(logAjaxFail);
+
+    $j('#exportProgress').removeClass('hidden');
+    $j('#exportProgress').addClass('warnText');
+    $j('#exportProgress').text(exportProgressString);
+
+    //exportProgress();
+    exportTimer = setInterval(exportProgress, 500);
+
+    //window.location.assign('?view=export&eids[]='+snapshot.EventIds.join('&eids[]='));
   });
 
+  /*
   // Manage the DOWNLOAD VIDEO button
   bindButton('#downloadBtn', 'click', null, function onDownloadClick(evt) {
     evt.preventDefault();

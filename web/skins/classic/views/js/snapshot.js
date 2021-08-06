@@ -1,6 +1,3 @@
-var backBtn = $j('#backBtn');
-var saveBtn = $j('#saveBtn');
-var deleteBtn = $j('#deleteBtn');
 
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
@@ -26,28 +23,27 @@ function manageDelConfirmModalBtns() {
   });
 }
 
-function exportResponse(respObj, respText) {
-  clearInterval(exportTimer);
-  if ( respObj.result != 'Ok' ) {
-    $j('#exportProgressTicker').text(respObj.message);
+function downloadResponse(respObj, respText) {
+  clearInterval(downloadTimer);
+  if (respObj.result != 'Ok' ) {
+    $j('#downloadProgressTicker').text(respObj.message);
   } else {
-    $j('#exportProgressTicker').text(exportSucceededString);
+    $j('#downloadProgressTicker').text(downloadSucceededString);
     setTimeout(startDownload, 1500, decodeURIComponent(respObj.exportFile));
   }
   return;
 }
 function startDownload(file) {
-  console.log('Starting download of ' + file);
   window.location.replace(file);
 }
 
-function exportProgress() {
-  if ( exportTimer ) {
-    var tickerText = $j('#exportProgressTicker').text();
-    if ( tickerText.length < 1 || tickerText.length > 4 ) {
-      $j('#exportProgressTicker').text('.');
+function downloadProgress() {
+  if (downloadTimer) {
+    var tickerText = $j('#downloadProgressTicker').text();
+    if (tickerText.length < 1 || tickerText.length > 4) {
+      $j('#downloadProgressTicker').text('.');
     } else {
-      $j('#exportProgressTicker').append('.');
+      $j('#downloadProgressTicker').append('.');
     }
   }
 }
@@ -59,14 +55,9 @@ function initPage() {
   archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
   unarchiveBtn.prop('disabled', !(eventData.Archived && canEdit.Events));
   */
-  saveBtn.prop('disabled', !(canEdit.Events || (snapshot.CreatedBy == user.Id) ));
-  /*
-  downloadBtn.prop('disabled', !canView.Events);
-  */
-  deleteBtn.prop('disabled', !canEdit.Events);
 
   // Don't enable the back button if there is no previous zm page to go back to
-  backBtn.prop('disabled', !document.referrer.length);
+  $j('#backBtn').prop('disabled', !document.referrer.length);
 
   // Manage the BACK button
   bindButton('#backBtn', 'click', null, function onBackClick(evt) {
@@ -81,6 +72,7 @@ function initPage() {
   });
 
   // Manage the EDIT button
+  $j('#saveBtn').prop('disabled', !(canEdit.Events || (snapshot.CreatedBy == user.Id) ));
   bindButton('#saveBtn', 'click', null, function onSaveClick(evt) {
     /*
     if ( ! canEdit.Events ) {
@@ -92,7 +84,8 @@ function initPage() {
   });
 
   // Manage the EXPORT button
-  bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
+  $j('#downloadBtn').prop('disabled', !canView.Events);
+  bindButton('#downloadBtn', 'click', null, function onDownloadClick(evt) {
     evt.preventDefault();
     formData = {
       eids: snapshot.EventIds,
@@ -107,17 +100,21 @@ function initPage() {
       exportFile: 'Snapshot'+snapshot.Id
     };
     $j.getJSON(thisUrl + '?view=event&request=event&action=export', formData)
-        .done(exportResponse)
+        .done(downloadResponse)
         .fail(logAjaxFail);
 
-    $j('#exportProgress').removeClass('hidden');
-    $j('#exportProgress').addClass('warnText');
-    $j('#exportProgress').text(exportProgressString);
+    $j('#downloadProgress').removeClass('hidden');
+    $j('#downloadProgress').addClass('warnText');
+    $j('#downloadProgress').text(downloadProgressString);
 
-    //exportProgress();
-    exportTimer = setInterval(exportProgress, 500);
+    downloadTimer = setInterval(downloadProgress, 500);
+  });
 
-    //window.location.assign('?view=export&eids[]='+snapshot.EventIds.join('&eids[]='));
+  $j('#exportBtn').prop('disabled', !canView.Events);
+  bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
+    console.log('export clicked');
+    evt.preventDefault();
+    window.location.assign('?view=export&eids[]='+snapshot.EventIds.join('&eids[]='));
   });
 
   /*
@@ -135,6 +132,7 @@ function initPage() {
   });
 */
   // Manage the DELETE button
+  $j('#deleteBtn').prop('disabled', !canEdit.Events);
   bindButton('#deleteBtn', 'click', null, function onDeleteClick(evt) {
     if ( !canEdit.Events ) {
       enoperm();

@@ -47,9 +47,12 @@ if ( $action == 'create' ) {
     $monitor = new ZM\Monitor($monitor_id);
     $monitor->TriggerOff();
   }
+  $dbConn->beginTransaction();
   foreach ( $snapshot->Events() as $event ) {
+    $event->lock();
     $event->save(array('Archived'=>1));
   }
+  $dbConn->commit();
   $redirect = '?view=snapshot&id='.$snapshot->Id();
   return;
 }

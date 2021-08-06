@@ -74,10 +74,15 @@ if ( canView('Events') ) {
     else
       $exportCompress = false;
 
+    if ( !empty($_REQUEST['exportStructure']) )
+      $exportStructure = $_SESSION['export']['structure'] = $_REQUEST['exportStructure'];
+    else
+      $exportStructure = false;
+
     session_write_close();
 
     $exportIds = !empty($_REQUEST['eids']) ? $_REQUEST['eids'] : $_REQUEST['id'];
-    if ( $exportFile = exportEvents(
+    if ($exportFile = exportEvents(
       $exportIds,
       (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
       $exportDetail,
@@ -87,12 +92,13 @@ if ( canView('Events') ) {
       $exportMisc,
       $exportFormat,
       $exportCompress,
-      false, # structure
-      (isset($_REQUEST['exportFile'])?$_REQUEST['exportFile']:''),
-    ) )
-    ajaxResponse(array('exportFile'=>$exportFile));
-    else
+      $exportStructure,
+      (!empty($_REQUEST['exportFile'])?$_REQUEST['exportFile']:'zmExport'),
+    )) {
+      ajaxResponse(array('exportFile'=>$exportFile));
+    } else {
       ajaxError('Export Failed');
+    }
     break;
   case 'download' :
     require_once(ZM_SKIN_PATH.'/includes/export_functions.php');

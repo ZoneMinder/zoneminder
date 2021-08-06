@@ -96,13 +96,14 @@ function initPage() {
     evt.preventDefault();
     formData = {
       eids: snapshot.EventIds,
-      exportImages: 1,
+      exportImages: 0,
       exportVideo: 0,
       exportFrames: 0,
       exportDetail: 0,
-      exportMisc: 0,
+      exportMisc: 1,
       exportFormat: 'zip',
       exportCompress: 0,
+      exportStructure: 'flat',
       exportFile: 'Snapshot'+snapshot.Id
     };
     $j.getJSON(thisUrl + '?view=event&request=event&action=export', formData)

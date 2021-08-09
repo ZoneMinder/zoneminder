@@ -436,6 +436,9 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 * Fri Jun 18 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.0-1
 - 1.37.x development build
 
+* Tue Jun 22 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.5-1
+- 1.36.5 release
+
 * Fri Jun 18 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.4-2
 - apcu-bc deprecated on fedora, use memcached instead
 - only refer to cmake3 when building on el7

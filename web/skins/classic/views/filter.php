@@ -195,7 +195,7 @@ echo $navbar = getNavBarHTML();
       <form name="selectForm" id="selectForm" method="get" action="?">
         <input type="hidden" name="view" value="filter"/>
         <hr/>
-        <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>
+        <div id="filterSelector"><label for="Id"><?php echo translate('UseFilter') ?></label>
           <?php
 if ( count($filterNames) > 1 ) {
    echo htmlSelect('Id', $filterNames, $filter->Id(), array('data-on-change-this'=>'selectFilter'));
@@ -210,8 +210,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 ?>
         </div>
       </form>
-      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit" action="?view=filter">
-        <input type="hidden" name="Id" value="<?php echo $filter->Id() ?>"/>
+      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit" action="?view=filter&Id=<?php echo $filter->Id() ?>">
         <input type="hidden" name="action"/>
         <input type="hidden" name="object" value="filter"/>
 
@@ -507,12 +506,12 @@ if ( ZM_OPT_EMAIL ) {
           <button type="button" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
           <button type="button" data-on-click-this="submitToMontageReview"><?php echo translate('ViewMatches') ?></button>
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
-          <button type="button" name="executeButton" id="executeButton" data-on-click-this="executeFilter"><?php echo translate('Execute') ?></button>
+          <button type="submit" name="action" value="execute" id="executeButton"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit('Events') ) {
 ?>
-          <button type="submit" name="Save" value="Save" data-on-click-this="saveFilter"><?php echo translate('Save') ?></button>
-          <button type="submit" name="SaveAs" value="SaveAs" data-on-click-this="saveFilter"><?php echo translate('SaveAs') ?></button>
+          <button type="submit" name="action" value="Save" id="Save"><?php echo translate('Save') ?></button>
+          <button type="submit" name="action" value="SaveAs" id="SaveAs"><?php echo translate('SaveAs') ?></button>
 <?php 
   if ( $filter->Id() ) {
  ?>

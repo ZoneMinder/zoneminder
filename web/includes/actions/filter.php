@@ -66,30 +66,23 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $changes = $filter->changes($_REQUEST['filter']);
       ZM\Debug('Changes: ' . print_r($changes, true));
 
-      if ($filter->Id() and ($action == 'Save')) {
-				if ($filter->Background()) $filter->control('stop');
-				if (!$filter->save($changes)) {
-					$error_message = $filter->get_last_error();
-					return;
-				}
-      } else {
-        if ($action == 'execute') {
+      if (count($changes)) {
+        if ($filter->Id() and ($action == 'Save') and $filter->Background()) {
+          $filter->control('stop');
+        } else if ($action == 'execute') {
           # If there are changes use a temp filter to do the execute
-          if (count($changes)) {
-            $filter->Name('_TempFilter'.time());
-            $filter->Id(null);
-          }
+          $filter->Name('_TempFilter'.time());
+          $filter->Id(null);
         } else if ($action == 'SaveAs') {
-					$filter->Id(null);
-				}
-				if (!$filter->save($changes)) {
-					$error_message = $filter->get_last_error();
-					return;
-				}
-
-				// We update the request id so that the newly saved filter is auto-selected
-				$_REQUEST['Id'] = $filter->Id();
-      }
+          $filter->Id(null);
+        }
+        if (!$filter->save($changes)) {
+          $error_message = $filter->get_last_error();
+          return;
+        }
+        // We update the request id so that the newly saved filter is auto-selected
+        $_REQUEST['Id'] = $filter->Id();
+      } # end if changes
 
       if ($action == 'execute') {
         $filter->execute();

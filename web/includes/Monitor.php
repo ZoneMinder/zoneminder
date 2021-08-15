@@ -596,7 +596,17 @@ class Monitor extends ZM_Object {
 
   function canView() {
     global $user;
-    return ( $user && ($user['Monitors'] != 'None') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
+    if (!$user) {
+            # auth turned on and not logged in
+            return false;
+    }
+    if (!empty($user['MonitorIds']) ) {
+      # For the purposes of viewing, having specified monitors trumps the Monitor->canView setting.
+      if (in_array($this->{'Id'}, explode(',', $user['MonitorIds']))) {
+        return true;
+      }
+    }
+    return ($user['Monitors'] != 'None');
   }
 
   function AlarmCommand($cmd) {

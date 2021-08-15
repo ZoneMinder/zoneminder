@@ -433,9 +433,6 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 * Mon Jul 05 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.1-1
 - 1.37.x development build
 
-* Fri Jun 18 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.0-1
-- 1.37.x development build
-
 * Tue Jun 22 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.5-1
 - 1.36.5 release
 

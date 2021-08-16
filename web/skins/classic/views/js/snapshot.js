@@ -84,7 +84,7 @@ function initPage() {
   });
 
   // Manage the EXPORT button
-  $j('#downloadBtn').prop('disabled', !canView.Events);
+  $j('#downloadBtn').prop('disabled', !canView.Snapshots);
   bindButton('#downloadBtn', 'click', null, function onDownloadClick(evt) {
     evt.preventDefault();
     formData = {
@@ -110,7 +110,7 @@ function initPage() {
     downloadTimer = setInterval(downloadProgress, 500);
   });
 
-  $j('#exportBtn').prop('disabled', !canView.Events);
+  $j('#exportBtn').prop('disabled', !canView.Snapshots);
   bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     console.log('export clicked');
     evt.preventDefault();

@@ -5,7 +5,7 @@ if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
   ajaxError('No event id(s) supplied');
 }
 
-if ( canView('Events') ) {
+if ( canView('Events') or canView('Snapshots') ) {
   switch ( $_REQUEST['action'] ) {
   case 'video' :
     if ( empty($_REQUEST['videoFormat']) ) {
@@ -112,7 +112,7 @@ if ( canView('Events') ) {
       false,#detail
       false,#frames
       false,#images
-      $exportVideo,
+      true, #$exportVideo,
       false,#Misc
       $exportFormat,
       false#,#Compress

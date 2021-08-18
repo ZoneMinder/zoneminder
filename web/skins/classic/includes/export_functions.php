@@ -772,8 +772,12 @@ function exportFileList(
   $exportVideo,
   $exportMisc
 ) {
-  if (!canView('Events') or !$event) {
-    ZM\Error("Can't view events or !event");
+  if (!$event) {
+    ZM\Error("Empty event passed to exportFileList");
+    return;
+  }
+  if (!$event->canView('Events')) {
+    ZM\Error('Can\'t view event '.$event->Id());
     return;
   }
 
@@ -883,7 +887,7 @@ function exportEvents(
   $export_root = 'zmExport'
 ) {
 
-  if (!canView('Events')) {
+  if (!(canView('Events') or canView('Snapshots'))) {
     ZM\Error('You do not have permission to view events.');
     return false;
   } else if (empty($eids)) {
@@ -923,6 +927,11 @@ function exportEvents(
   }
   foreach ($eids as $eid) {
     $event = new ZM\Event($eid);
+    if (!$event->canView()) {
+      global $user;
+      ZM\Warning('User '.($user?$user['Username']:'').' cannot view event '.$event->Id());
+      continue;
+    }
     $event_dir = $export_dir.'/'.$event->Id();
     if (!(mkdir($event_dir) or file_exists($event_dir))) {
       ZM\Error("Can't mkdir $event_dir");

@@ -231,8 +231,14 @@ foreach ( $monitors as $monitor ) {
             >
             <?php
   $monitor_options = $options;
-  $monitor_options['width'] = $monitor_options['width'].'px';
+  $monitor_options['width'] = '100%';
+
+  if ( 0 ) {
+  if ($monitor_options['width'] > 0)
+    $monitor_options['width'] = $monitor_options['width'].'px';
+  if ($monitor_options['height'] > 0)
   $monitor_options['height'] = $monitor_options['height']?$monitor_options['height'].'px' : null;
+  } # end if
   $monitor_options['connkey'] = $monitor->connKey();
 
   #ZM\Warning('Options: ' . print_r($monitor_options,true));

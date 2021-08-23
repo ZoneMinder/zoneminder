@@ -267,8 +267,8 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     subpixelorder = monitor->SubpixelOrder();
     labelsize = monitor->LabelSize();
   }
-  Debug(2, "Sending %dx%d * %d text frame '%s'",
-      width, height, scale, frame_text);
+  Debug(2, "Sending %dx%dx%dx%d * %d scale text frame '%s'",
+      width, height, colours, subpixelorder, scale, frame_text);
 
   Image image(width, height, colours, subpixelorder);
   image.Clear();
@@ -276,9 +276,10 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
 
   if (scale != 100) {
     image.Scale(scale);
+    Debug(2, "Scaled to %dx%d", image.Width(), image.Height());
   }
-  if ( type == STREAM_MPEG ) {
-    if ( !vid_stream ) {
+  if (type == STREAM_MPEG) {
+    if (!vid_stream) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height());
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
@@ -289,6 +290,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     int n_bytes = 0;
 
     image.EncodeJpeg(buffer, &n_bytes);
+    Debug(4, "Encoded to %d bytes", n_bytes);
 
     fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout);
     fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);

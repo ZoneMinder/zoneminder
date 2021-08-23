@@ -465,10 +465,12 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 void MonitorStream::runStream() {
   if (type == STREAM_SINGLE) {
     // Not yet migrated over to stream class
-    if (checkInitialised())
+    if (checkInitialised()) {
       SingleImage(scale);
-    else
+    } else {
+      fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
       sendTextFrame("Unable to send image");
+    }
 
     return;
   }

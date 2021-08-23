@@ -265,7 +265,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamQueue(connkey);
     stream.setStreamBuffer(playback_buffer);
     if ( !stream.setStreamStart(monitor_id) ) {
-      Error("Unable set start stream for monitor %d", monitor_id);
+      fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
       stream.sendTextFrame("Unable to connect to monitor");
       logTerm();
       zmDbClose();

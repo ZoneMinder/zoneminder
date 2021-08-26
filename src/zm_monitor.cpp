@@ -2593,11 +2593,33 @@ bool Monitor::Decode() {
 
         if (!convert_context) {
           AVPixelFormat imagePixFormat = (AVPixelFormat)(packet->image->AVPixFormat());
+          AVPixelFormat inputPixFormat;
+          bool changeColorspaceDetails = false;
+          switch (input_frame->format) {
+            case AV_PIX_FMT_YUVJ420P:
+              inputPixFormat = AV_PIX_FMT_YUV420P;
+              changeColorspaceDetails = true;
+              break;
+            case AV_PIX_FMT_YUVJ422P:
+              inputPixFormat = AV_PIX_FMT_YUV422P;
+              changeColorspaceDetails = true;
+              break;
+            case AV_PIX_FMT_YUVJ444P:
+              inputPixFormat = AV_PIX_FMT_YUV444P;
+              changeColorspaceDetails = true;
+              break;
+            case AV_PIX_FMT_YUVJ440P:
+              inputPixFormat = AV_PIX_FMT_YUV440P;
+              changeColorspaceDetails = true;
+              break;
+            default:
+              inputPixFormat = (AVPixelFormat)input_frame->format;
+          }
 
           convert_context = sws_getContext(
               input_frame->width,
               input_frame->height,
-              (AVPixelFormat)input_frame->format,
+              inputPixFormat,
               camera_width, camera_height,
               imagePixFormat, SWS_BICUBIC,
               nullptr, nullptr, nullptr);
@@ -2611,10 +2633,22 @@ bool Monitor::Decode() {
           } else {
             Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
                 input_frame->width, input_frame->height,
-                av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+                av_get_pix_fmt_name(inputPixFormat),
                 camera_width, camera_height,
                 av_get_pix_fmt_name(imagePixFormat)
                 );
+            if (changeColorspaceDetails) {
+              // change the range of input data by first reading the current color space and then setting it's range as yuvj.
+              int dummy[4];
+              int srcRange, dstRange;
+              int brightness, contrast, saturation;
+              sws_getColorspaceDetails(convert_context, (int**)&dummy, &srcRange, (int**)&dummy, &dstRange, &brightness, &contrast, &saturation);
+              const int* coefs = sws_getCoefficients(SWS_CS_DEFAULT);
+              srcRange = 1; // this marks that values are according to yuvj
+              sws_setColorspaceDetails(convert_context, coefs, srcRange, coefs, dstRange,
+                  brightness, contrast, saturation);
+            }
+
           }
         }
         if (convert_context) {

@@ -266,7 +266,7 @@ class MonitorsController extends AppController {
       if ($mToken) {
         $auth = ' -T '.$mToken;
       } else if (ZM_AUTH_RELAY == 'hashed') {
-        $auth = ' -A '.calculateAuthHash(ZM_AUTH_HASH_IPS?$_SERVER['REMOTE_ADDR']:'');
+        $auth = ' -A '.calculateAuthHash(''); # Can't do REMOTE_IP because zmu doesn't normally have access to it.
       } else if (ZM_AUTH_RELAY == 'plain') {
         # Plain requires the plain text password which must either be in request or stored in session
         $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');;

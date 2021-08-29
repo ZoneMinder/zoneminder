@@ -1063,6 +1063,7 @@ bool Monitor::disconnect() {
     return true;
   }
 
+  shared_data->valid = false;
 #if ZM_MEM_MAPPED
   msync(mem_ptr, mem_size, MS_ASYNC);
   munmap(mem_ptr, mem_size);

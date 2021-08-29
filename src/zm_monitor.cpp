@@ -204,7 +204,7 @@ bool Monitor::MonitorLink::connect() {
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
 
-    if ( !shared_data->valid ) {
+    if (!shared_data->valid) {
       Debug(3, "Linked memory not initialised by capture daemon");
       disconnect();
       return false;
@@ -220,23 +220,23 @@ bool Monitor::MonitorLink::connect() {
 } // end bool Monitor::MonitorLink::connect()
 
 bool Monitor::MonitorLink::disconnect() {
-  if ( connected ) {
+  if (connected) {
     connected = false;
 
 #if ZM_MEM_MAPPED
-    if ( mem_ptr > (void *)0 ) {
-      msync( mem_ptr, mem_size, MS_ASYNC );
-      munmap( mem_ptr, mem_size );
+    if (mem_ptr > (void *)0) {
+      msync(mem_ptr, mem_size, MS_ASYNC);
+      munmap(mem_ptr, mem_size);
     }
-    if ( map_fd >= 0 )
-      close( map_fd );
+    if (map_fd >= 0)
+      close(map_fd);
 
     map_fd = -1;
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
-    if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 ) {
-      Debug( 3, "Can't shmctl: %s", strerror(errno) );
-      return( false );
+    if (shmctl(shm_id, IPC_STAT, &shm_data) < 0) {
+      Debug(3, "Can't shmctl: %s", strerror(errno));
+      return false;
     }
 
     shm_id = 0;
@@ -252,7 +252,6 @@ bool Monitor::MonitorLink::disconnect() {
       Debug(3, "Can't shmdt: %s", strerror(errno));
       return false;
     }
-
 #endif // ZM_MEM_MAPPED
     mem_size = 0;
     mem_ptr = nullptr;
@@ -899,7 +898,6 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
 }
 
 bool Monitor::connect() {
-
   if (mem_ptr != nullptr) {
     Warning("Already connected. Please call disconnect first.");
   }
@@ -1041,7 +1039,7 @@ bool Monitor::connect() {
     video_store_data->size = sizeof(VideoStoreData);
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
-  } else if ( !shared_data->valid ) {
+  } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   }

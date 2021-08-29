@@ -73,10 +73,10 @@ function processRows(rows) {
 function showEvents() {
   $j('#ptzControls').addClass('hidden');
   $j('#events').removeClass('hidden');
-  if ( $j('#eventsControl') ) {
+  if ($j('#eventsControl')) {
     $j('#eventsControl').addClass('hidden');
   }
-  if ( $j('#controlControl') ) {
+  if ($j('#controlControl')) {
     $j('#controlControl').removeClass('hidden');
   }
   showMode = 'events';
@@ -85,10 +85,10 @@ function showEvents() {
 function showPtzControls() {
   $j('#events').addClass('hidden');
   $j('#ptzControls').removeClass('hidden');
-  if ( $j('#eventsControl') ) {
+  if ($j('#eventsControl')) {
     $j('#eventsControl').removeClass('hidden');
   }
-  if ( $j('#controlControl') ) {
+  if ($j('#controlControl')) {
     $j('#controlControl').addClass('hidden');
   }
   showMode = 'control';
@@ -132,13 +132,13 @@ function setAlarmState(currentAlarmState) {
   alarmState = currentAlarmState;
 
   var stateClass = '';
-  if ( alarmState == STATE_ALARM ) {
+  if (alarmState == STATE_ALARM) {
     stateClass = 'alarm';
-  } else if ( alarmState == STATE_ALERT ) {
+  } else if (alarmState == STATE_ALERT) {
     stateClass = 'alert';
   }
   $j('#stateValue').text(stateStrings[alarmState]);
-  if ( stateClass ) {
+  if (stateClass) {
     $j('#stateValue').addClass(stateClass);
   } else {
     $j('#stateValue').removeClass();
@@ -855,10 +855,10 @@ function initPage() {
 
   if (monitorType != 'WebSite') {
     if (streamMode == 'single') {
-      statusCmdTimer = setTimeout(statusCmdQuery, (Math.random()+0.1)*statusRefreshTimeout );
+      statusCmdTimer = setTimeout(statusCmdQuery, (Math.random()+0.1)*statusRefreshTimeout);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
     } else {
-      streamCmdTimer = setTimeout(streamCmdQuery, (Math.random()+0.1)*statusRefreshTimeout );
+      streamCmdTimer = setTimeout(streamCmdQuery, (Math.random()+0.1)*statusRefreshTimeout);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
     }
 

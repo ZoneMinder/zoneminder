@@ -89,7 +89,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       break;
     case CMD_PLAY :
       Debug(1, "Got PLAY command");
-      if ( paused ) {
+      if (paused) {
         paused = false;
         delayed = true;
       }
@@ -97,7 +97,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       break;
     case CMD_VARPLAY :
       Debug(1, "Got VARPLAY command");
-      if ( paused ) {
+      if (paused) {
         paused = false;
         delayed = true;
       }
@@ -110,7 +110,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       break;
     case CMD_FASTFWD :
       Debug(1, "Got FAST FWD command");
-      if ( paused ) {
+      if (paused) {
         paused = false;
         delayed = true;
       }
@@ -135,27 +135,27 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       }
       break;
     case CMD_SLOWFWD :
-      Debug( 1, "Got SLOW FWD command" );
+      Debug(1, "Got SLOW FWD command");
       paused = true;
       delayed = true;
       replay_rate = ZM_RATE_BASE;
       step = 1;
       break;
     case CMD_SLOWREV :
-      Debug( 1, "Got SLOW REV command" );
+      Debug(1, "Got SLOW REV command");
       paused = true;
       delayed = true;
       replay_rate = ZM_RATE_BASE;
       step = -1;
       break;
     case CMD_FASTREV :
-      Debug( 1, "Got FAST REV command" );
-      if ( paused ) {
+      Debug(1, "Got FAST REV command");
+      if (paused) {
         paused = false;
         delayed = true;
       }
       // Set play rate
-      switch ( replay_rate ) {
+      switch (replay_rate) {
         case -2 * ZM_RATE_BASE :
           replay_rate = -5 * ZM_RATE_BASE;
           break;
@@ -641,7 +641,8 @@ void MonitorStream::runStream() {
                 if (!sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp)) {
                   zm_terminate = true;
                 }
-                memcpy(&last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp));
+                frame_count++;
+                last_frame_timestamp = swap_image->timestamp;
                 // frame_sent = true;
               }
               temp_read_index = MOD_ADD(temp_read_index, (replay_rate>0?1:-1), temp_image_buffer_count);
@@ -659,11 +660,9 @@ void MonitorStream::runStream() {
               ) {
             zm_terminate = true;
           }
-          memcpy(
-              &last_frame_timestamp,
-              &(swap_image->timestamp),
-              sizeof(last_frame_timestamp)
-              );
+          frame_count++;
+
+          last_frame_timestamp = swap_image->timestamp;
           // frame_sent = true;
           step = 0;
         } else {
@@ -678,6 +677,7 @@ void MonitorStream::runStream() {
             if ( !sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp) ) {
               zm_terminate = true;
             }
+            frame_count++;
             // frame_sent = true;
           }
         }  // end if (!paused) or step or paused
@@ -692,7 +692,7 @@ void MonitorStream::runStream() {
         delayed = false;
         replay_rate = ZM_RATE_BASE;
       }
-    }  // end if ( buffered_playback && delayed )
+    }  // end if (buffered_playback && delayed)
 
     if (last_read_index != monitor->shared_data->last_write_index) {
       // have a new image to send
@@ -713,6 +713,7 @@ void MonitorStream::runStream() {
             zm_terminate = true;
             break;
           }
+          frame_count++;
           if (frame_count == 0) {
             // Chrome will not display the first frame until it receives another.
             // Firefox is fine.  So just send the first frame twice.
@@ -735,6 +736,8 @@ void MonitorStream::runStream() {
               zm_terminate = true;
             if (!sendFrame(paused_image, paused_timestamp))
               zm_terminate = true;
+            frame_count++;
+            frame_count++;
           } else {
             double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
             if ( actual_delta_time > 5 ) {
@@ -745,6 +748,7 @@ void MonitorStream::runStream() {
                 // Send the next frame
                 if (!sendFrame(paused_image, paused_timestamp))
                   zm_terminate = true;
+                frame_count++;
               } else {
                 Debug(2, "Would have sent keepalive frame, but had no paused_image");
               }
@@ -787,7 +791,6 @@ void MonitorStream::runStream() {
           Warning("Unable to store frame as shared memory invalid");
         }
       } // end if buffered playback
-      frame_count++;
     } else {
       Debug(3, "Waiting for capture last_write_index=%u", monitor->shared_data->last_write_index);
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )

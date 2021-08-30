@@ -146,12 +146,12 @@ bool Monitor::MonitorLink::connect() {
     Debug(1, "link.mem.size=%jd", mem_size);
 #if ZM_MEM_MAPPED
     map_fd = open(mem_file.c_str(), O_RDWR, (mode_t)0600);
-    if ( map_fd < 0 ) {
+    if (map_fd < 0) {
       Debug(3, "Can't open linked memory map file %s: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
     }
-    while ( map_fd <= 2 ) {
+    while (map_fd <= 2) {
       int new_map_fd = dup(map_fd);
       Warning("Got one of the stdio fds for our mmap handle. map_fd was %d, new one is %d", map_fd, new_map_fd);
       close(map_fd);
@@ -159,31 +159,31 @@ bool Monitor::MonitorLink::connect() {
     }
 
     struct stat map_stat;
-    if ( fstat(map_fd, &map_stat) < 0 ) {
+    if (fstat(map_fd, &map_stat) < 0) {
       Error("Can't stat linked memory map file %s: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
     }
 
-    if ( map_stat.st_size == 0 ) {
+    if (map_stat.st_size == 0) {
       Error("Linked memory map file %s is empty: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
-    } else if ( map_stat.st_size < mem_size ) {
+    } else if (map_stat.st_size < mem_size) {
       Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, mem_size);
       disconnect();
       return false;
     }
 
     mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
-    if ( mem_ptr == MAP_FAILED ) {
+    if (mem_ptr == MAP_FAILED) {
       Error("Can't map file %s (%jd bytes) to memory: %s", mem_file.c_str(), mem_size, strerror(errno));
       disconnect();
       return false;
     }
 #else // ZM_MEM_MAPPED
     shm_id = shmget((config.shm_key&0xffff0000)|id, mem_size, 0700);
-    if ( shm_id < 0 ) {
+    if (shm_id < 0) {
       Debug(3, "Can't shmget link memory: %s", strerror(errno));
       connected = false;
       return false;
@@ -1052,7 +1052,13 @@ bool Monitor::disconnect() {
     return true;
   }
 
-  shared_data->valid = false;
+  if (purpose == CAPTURE) {
+    if (unlink(mem_file.c_str()) < 0) {
+      Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
+    }
+    Debug(1, "Setting shared_data->valid = false");
+    shared_data->valid = false;
+  }
 #if ZM_MEM_MAPPED
   msync(mem_ptr, mem_size, MS_ASYNC);
   munmap(mem_ptr, mem_size);
@@ -1062,9 +1068,6 @@ bool Monitor::disconnect() {
   mem_ptr = nullptr;
   shared_data = nullptr;
 
-  if (purpose == CAPTURE and (unlink(mem_file.c_str()) < 0) ) {
-    Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
-  }
 #else // ZM_MEM_MAPPED
   struct shmid_ds shm_data;
   if (shmctl(shm_id, IPC_STAT, &shm_data) < 0) {
@@ -1085,7 +1088,7 @@ bool Monitor::disconnect() {
   }
 #endif // ZM_MEM_MAPPED
 
-  for ( int32_t i = 0; i < image_buffer_count; i++ ) {
+  for (int32_t i = 0; i < image_buffer_count; i++) {
     // We delete the image because it is an object pointing to space that won't be free'd.
     delete image_buffer[i];
     image_buffer[i] = nullptr;
@@ -1099,10 +1102,6 @@ Monitor::~Monitor() {
 
   if (mem_ptr != nullptr) {
     if (purpose != QUERY) {
-      shared_data->state = state = IDLE;
-      shared_data->last_read_index = image_buffer_count;
-      shared_data->last_read_time = 0;
-      shared_data->valid = false;
       memset(mem_ptr, 0, mem_size);
     }  // end if purpose != query
     disconnect();

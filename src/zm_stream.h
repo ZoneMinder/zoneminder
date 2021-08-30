@@ -102,7 +102,6 @@ protected:
   int last_scale;
   int zoom;
   int last_zoom;
-  double maxfps;
   int bitrate;
   unsigned short last_x, last_y;
   unsigned short x, y;
@@ -122,8 +121,14 @@ protected:
   SystemTimePoint now;
   SystemTimePoint last_comm_update;
 
-  double base_fps;
-  double effective_fps;
+  double maxfps;
+  double base_fps;        // Should be capturing fps, hence a rough target
+  double effective_fps;   // Target fps after taking max_fps into account
+  double actual_fps;      // sliding calculated actual streaming fps achieved
+  SystemTimePoint last_fps_update;
+  int frame_count;      // Count of frames sent
+  int last_frame_count; // Used in calculating actual_fps from frame_count - last_frame_count
+
   int frame_mod;
 
   SystemTimePoint last_frame_sent;
@@ -152,7 +157,6 @@ public:
     last_scale(DEFAULT_SCALE),
     zoom(DEFAULT_ZOOM),
     last_zoom(DEFAULT_ZOOM),
-    maxfps(DEFAULT_MAXFPS),
     bitrate(DEFAULT_BITRATE),
     last_x(0),
     last_y(0),
@@ -164,17 +168,20 @@ public:
     sd(-1),
     lock_fd(0),
     paused(false),
-    step(0)
+    step(0),
+    maxfps(DEFAULT_MAXFPS),
+    base_fps(0.0),
+    effective_fps(0.0),
+    actual_fps(0.0),
+    frame_count(0),
+    last_frame_count(0),
+    frame_mod(1)
   {
     memset(&loc_sock_path, 0, sizeof(loc_sock_path));
     memset(&loc_addr, 0, sizeof(loc_addr));
     memset(&rem_sock_path, 0, sizeof(rem_sock_path));
     memset(&rem_addr, 0, sizeof(rem_addr));
     memset(&sock_path_lock, 0, sizeof(sock_path_lock));
-
-    base_fps = 0.0;
-    effective_fps = 0.0;
-    frame_mod = 1;
 
     vid_stream = nullptr;
     msg = { 0, { 0 } };

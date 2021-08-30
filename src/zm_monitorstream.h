@@ -40,7 +40,6 @@ class MonitorStream : public StreamBase {
     Microseconds ttl;
     int playback_buffer;
     bool delayed;
-    int frame_count;
 
   protected:
     bool checkSwapPath(const char *path, bool create_path);
@@ -61,8 +60,8 @@ class MonitorStream : public StreamBase {
       temp_write_index(0),
       ttl(0),
       playback_buffer(0),
-      delayed(false),
-      frame_count(0) {}
+      delayed(false)
+  {}
 
     void setStreamBuffer(int p_playback_buffer) {
       playback_buffer = p_playback_buffer;

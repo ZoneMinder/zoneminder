@@ -1133,11 +1133,9 @@ function initPage() {
 }
 
 function takeSnapshot() {
-  monitor_ids = [];
-  for (const key in monitorIndex) {
-    monitor_ids[monitor_ids.length] = 'monitor_ids[]='+key;
-  }
-  console.log(monitor_ids);
+  monitor_ids = Array.from(monitorIndex.keys()).map((id)=>{
+    return 'monitor_ids[]='+id;
+  });
   window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
 }
 

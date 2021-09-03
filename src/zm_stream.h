@@ -125,7 +125,7 @@ protected:
   double base_fps;        // Should be capturing fps, hence a rough target
   double effective_fps;   // Target fps after taking max_fps into account
   double actual_fps;      // sliding calculated actual streaming fps achieved
-  SystemTimePoint last_fps_update;
+  struct timeval last_fps_update;
   int frame_count;      // Count of frames sent
   int last_frame_count; // Used in calculating actual_fps from frame_count - last_frame_count
 
@@ -175,6 +175,7 @@ public:
     base_fps(0.0),
     effective_fps(0.0),
     actual_fps(0.0),
+    last_fps_update({}),
     frame_count(0),
     last_frame_count(0),
     frame_mod(1)

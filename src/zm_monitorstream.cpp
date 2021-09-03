@@ -265,9 +265,9 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     status_data.forced = false;
     status_data.buffer_level = 0;
   } else {
-    FPSeconds elapsed = now - last_fps_update;
-    if (elapsed.count()) { 
-      actual_fps = (frame_count - last_frame_count) / elapsed.count();
+    int elapsed = now.tv_sec - last_fps_update.tv_sec;
+    if (elapsed) { 
+      actual_fps = (frame_count - last_frame_count) / elapsed;
       last_frame_count = frame_count;
       last_fps_update = now;
     }

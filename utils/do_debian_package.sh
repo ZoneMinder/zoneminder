@@ -88,7 +88,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,focal,groovy,hirsute"
+    DISTROS="xenial,bionic,focal,hirsute,impish"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;

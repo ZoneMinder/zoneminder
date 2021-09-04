@@ -229,6 +229,7 @@ rm -rf .git
 rm .gitignore
 cd ../
 
+
 if [ ! -e "$DIRECTORY.orig.tar.gz" ]; then
   tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
 fi;
@@ -295,24 +296,29 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 EOF
   fi;
 
+  # Leave the .orig so that we don't pollute it when building deps
+  cd ..
   if [ $TYPE == "binary" ]; then
-    # Auto-install all ZoneMinder's depedencies using the Debian control file
-    sudo apt-get install devscripts equivs
-    sudo mk-build-deps -ir ./debian/control
-    echo "Status: $?"
-    DEBUILD=debuild
+	  # Auto-install all ZoneMinder's depedencies using the Debian control file
+	  sudo apt-get install devscripts equivs
+	  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
+	  echo "Status: $?"
+	  DEBUILD=debuild
   else
-    if [ $TYPE == "local" ]; then
-      # Auto-install all ZoneMinder's depedencies using the Debian control file
-      sudo apt-get install devscripts equivs
-      sudo mk-build-deps -ir ./debian/control
-      echo "Status: $?"
-      DEBUILD="debuild -i -us -uc -b"
-    else 
-      # Source build, don't need build depends.
-      DEBUILD="debuild -S -sa"
-    fi;
+	  if [ $TYPE == "local" ]; then
+		  # Auto-install all ZoneMinder's depedencies using the Debian control file
+		  sudo apt-get install devscripts equivs
+		  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
+		  echo "Status: $?"
+		  DEBUILD="debuild -i -us -uc -b"
+	  else 
+		  # Source build, don't need build depends.
+		  DEBUILD="debuild -S -sa"
+	  fi;
   fi;
+
+  cd $DIRECTORY.orig
+
   if [ "$DEBSIGN_KEYID" != "" ]; then
     DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
   fi

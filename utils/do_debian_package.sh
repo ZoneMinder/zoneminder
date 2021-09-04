@@ -243,7 +243,7 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   fi;
 
   # Generate Changlog
-  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ] || [ "$DISTRO" == "hirsute" ]; then 
+  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ] || [ "$DISTRO" == "hirsute" ] || [ "$DISTRO" == "impish" ]; then 
     cp -Rpd distros/ubuntu2004 debian
   elif [ "$DISTRO" == "beowulf" ]
   then

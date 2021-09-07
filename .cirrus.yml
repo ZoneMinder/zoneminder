@@ -13,7 +13,7 @@ task:
     - mkdir build
     - cd build
     - cmake --version
-    - cmake ../ -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1 -DENABLE_WERROR=1
+    - cmake ../ -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1 -DENABLE_WERROR=1 -DCMAKE_C_FLAGS="-Wno-deprecated-declarations" -DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations"
 
   build_script:
     - cd build

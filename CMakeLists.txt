@@ -268,7 +268,6 @@ if(ZM_SYSTEMD OR (IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/sy
 endif()
 
 # System checks
-check_include_file("linux/videodev2.h" HAVE_LINUX_VIDEODEV2_H)
 check_include_file("execinfo.h" HAVE_EXECINFO_H)
 if(HAVE_EXECINFO_H)
   check_function_exists("backtrace" HAVE_DECL_BACKTRACE)
@@ -530,15 +529,16 @@ endif()
 
 # Check for V4L header files and enable ZM_HAS_V4L, ZM_HAS_V4L2 accordingly
 # Setting to zeros first is required because ZM uses #define for these
+find_package(V4L2)
 set(ZM_HAS_V4L 0)
 set(ZM_HAS_V4L2 0)
-if(HAVE_LINUX_VIDEODEV2_H)
+if(TARGET V4L2::videodev2)
   set(ZM_HAS_V4L 1)
   set(ZM_HAS_V4L2 1)
-endif()
-if(NOT HAVE_LINUX_VIDEODEV2_H)
+else()
   message(AUTHOR_WARNING "Video 4 Linux headers weren't found - Analog and USB camera support will not be available")
 endif()
+
 # Check for PCRE and enable ZM_PCRE accordingly
 set(ZM_PCRE 0)
 if(HAVE_LIBPCRE AND HAVE_PCRE_H)

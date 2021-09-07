@@ -98,6 +98,12 @@ elseif(${ZM_JWT_BACKEND} STREQUAL "libjwt")
       JWT::libjwt)
 endif()
 
+if(TARGET V4L2::videodev2)
+  target_link_libraries(zm
+    PRIVATE
+      V4L2::videodev2)
+endif()
+
 add_executable(zmc zmc.cpp)
 add_executable(zms zms.cpp)
 add_executable(zmu zmu.cpp)

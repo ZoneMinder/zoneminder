@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
 
 /* Workaround for GNU/kFreeBSD and FreeBSD */
 #if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
@@ -1483,4 +1483,4 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 int LocalCamera::PostCapture() {
   return 1;
 }
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2

@@ -265,9 +265,9 @@ int main(int argc, char *argv[]) {
   char *password = nullptr;
   char *auth = nullptr;
   std::string jwt_token_str = "";
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
     int v4lVersion = 2;
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
   while (1) {
     int option_index = 0;
 
@@ -379,11 +379,11 @@ int main(int argc, char *argv[]) {
       case 'T':
         jwt_token_str = std::string(optarg);
         break;
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
 			case 'V':
 				v4lVersion = (atoi(optarg)==1)?1:2;
 				break;
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
       case 'h':
       case '?':
         Usage(0);
@@ -719,15 +719,15 @@ int main(int argc, char *argv[]) {
     }
   } else { // non monitor functions
     if ( function & ZMU_QUERY ) {
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
 			char vidString[0x10000] = "";
 			bool ok = LocalCamera::GetCurrentSettings(device, vidString, v4lVersion, verbose);
 			printf("%s", vidString);
 			exit_zmu(ok ? 0 : -1);
-#else // ZM_HAS_V4L
+#else // ZM_HAS_V4L2
 			Error("Video4linux is required for device querying");
       exit_zmu(-1);
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
     }
 
     if ( function & ZMU_LIST ) {

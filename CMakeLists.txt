@@ -527,15 +527,11 @@ if((NOT HAVE_LIBJWT) AND (NOT HAVE_LIBOPENSSL))
   message(FATAL_ERROR "Using the jwt-cpp backend requires OpenSSL as crypto backend.")
 endif()
 
-# Check for V4L header files and enable ZM_HAS_V4L, ZM_HAS_V4L2 accordingly
-# Setting to zeros first is required because ZM uses #define for these
 find_package(V4L2)
-set(ZM_HAS_V4L 0)
-set(ZM_HAS_V4L2 0)
 if(TARGET V4L2::videodev2)
-  set(ZM_HAS_V4L 1)
   set(ZM_HAS_V4L2 1)
 else()
+  set(ZM_HAS_V4L2 0)
   message(AUTHOR_WARNING "Video 4 Linux headers weren't found - Analog and USB camera support will not be available")
 endif()
 

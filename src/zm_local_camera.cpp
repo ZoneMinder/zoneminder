@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #if ZM_HAS_V4L
 

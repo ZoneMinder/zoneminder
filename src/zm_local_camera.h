@@ -22,7 +22,7 @@
 
 #include "zm_camera.h"
 
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
 
 #include <linux/videodev2.h>
 
@@ -126,6 +126,6 @@ public:
   static bool GetCurrentSettings(const std::string &device, char *output, int version, bool verbose);
 };
 
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
 
 #endif // ZM_LOCAL_CAMERA_H

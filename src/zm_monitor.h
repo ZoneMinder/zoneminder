@@ -600,9 +600,9 @@ public:
   StringVector GroupNames();
 
   static std::vector<std::shared_ptr<Monitor>> LoadMonitors(const std::string &sql, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
   static std::vector<std::shared_ptr<Monitor>> LoadLocalMonitors(const char *device, Purpose purpose);
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
   static std::vector<std::shared_ptr<Monitor>> LoadRemoteMonitors(const char *protocol, const char *host, const char*port, const char*path, Purpose purpose);
   static std::vector<std::shared_ptr<Monitor>> LoadFileMonitors(const char *file, Purpose purpose);
   static std::vector<std::shared_ptr<Monitor>> LoadFfmpegMonitors(const char *file, Purpose purpose);

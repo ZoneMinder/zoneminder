@@ -24,8 +24,9 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
 
 /* Workaround for GNU/kFreeBSD and FreeBSD */
 #if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
@@ -1130,17 +1131,17 @@ bool LocalCamera::GetCurrentSettings(
               "    Name: %s\n"
               "    Type: %s\n"
               "    Audioset: %08x\n"
-              "    Standards: 0x%llx\n"
+              "    Standards: 0x%" PRIx64"\n"
               , input.index
               , input.name
               , input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown")
               , input.audioset
-              , input.std );
+              , static_cast<uint64>(input.std));
         } else {
-          output_ptr += sprintf( output_ptr, "i%d:%s|i%dT:%s|i%dS:%llx|"
+          output_ptr += sprintf( output_ptr, "i%d:%s|i%dT:%s|i%dS:%" PRIx64 "|"
               , input.index, input.name
               , input.index, input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown")
-              , input.index, input.std);
+              , input.index, static_cast<uint64>(input.std));
         }
 
         if ( verbose ) {
@@ -1482,4 +1483,4 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 int LocalCamera::PostCapture() {
   return 1;
 }
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2

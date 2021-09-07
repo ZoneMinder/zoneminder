@@ -107,7 +107,7 @@ if ( !empty($_REQUEST['probe']) ) {
       $monitor->$name = urldecode($value);
     }
   }
-  if ( ZM_HAS_V4L && $monitor->Type() == 'Local' ) {
+  if ( ZM_HAS_V4L2 && $monitor->Type() == 'Local' ) {
     $monitor->Palette( fourCC( substr($monitor->Palette,0,1), substr($monitor->Palette,1,1), substr($monitor->Palette,2,1), substr($monitor->Palette,3,1) ) );
     if ( $monitor->Format() == 'PAL' )
       $monitor->Format( 0x000000ff );
@@ -127,7 +127,7 @@ $sourceTypes = array(
     'NVSocket'	=> translate('NVSocket'),
     'VNC' => translate('VNC'),
     );
-if ( !ZM_HAS_V4L )
+if ( !ZM_HAS_V4L2 )
   unset($sourceTypes['Local']);
 
 $localMethods = array(
@@ -641,7 +641,7 @@ switch ( $name ) {
     }
     case 'source' :
     {
-      if ( ZM_HAS_V4L && $monitor->Type() == 'Local' ) {
+      if ( ZM_HAS_V4L2 && $monitor->Type() == 'Local' ) {
 ?>
           <tr>
             <td class="text-right pr-3"><?php echo translate('DevicePath') ?></td>

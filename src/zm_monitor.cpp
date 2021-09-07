@@ -33,9 +33,9 @@
 #include "zm_utils.h"
 #include "zm_zone.h"
 
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
 #include "zm_local_camera.h"
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
 
 #if HAVE_LIBVLC
 #include "zm_libvlc_camera.h"
@@ -684,7 +684,7 @@ void Monitor::LoadCamera() {
 
   switch (type) {
     case LOCAL: {
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
       int extras = (deinterlacing >> 24) & 0xff;
 
       camera = zm::make_unique<LocalCamera>(this,
@@ -2416,7 +2416,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &w
   return monitors;
 }
 
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
 (const char *device, Purpose purpose) {
 
@@ -2428,7 +2428,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   return LoadMonitors(where, purpose);
 }
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors
 (const char *protocol, const char *host, const char *port, const char *path, Purpose purpose) {
@@ -2947,14 +2947,14 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   sprintf( output+strlen(output), "Id : %u\n", id );
   sprintf( output+strlen(output), "Name : %s\n", name.c_str() );
   sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File") );
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
     sprintf( output+strlen(output), "Device : %s\n", cam->Device().c_str() );
     sprintf( output+strlen(output), "Channel : %d\n", cam->Channel() );
     sprintf( output+strlen(output), "Standard : %d\n", cam->Standard() );
   } else
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
   if ( camera->IsRemote() ) {
     RemoteCamera* cam = static_cast<RemoteCamera*>(camera.get());
     sprintf( output+strlen(output), "Protocol : %s\n", cam->Protocol().c_str() );
@@ -2971,12 +2971,12 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   }
   sprintf( output+strlen(output), "Width : %u\n", camera->Width() );
   sprintf( output+strlen(output), "Height : %u\n", camera->Height() );
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
     sprintf( output+strlen(output), "Palette : %d\n", cam->Palette() );
   }
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
   sprintf(output+strlen(output), "Colours : %u\n", camera->Colours() );
   sprintf(output+strlen(output), "Subpixel Order : %u\n", camera->SubpixelOrder() );
   sprintf(output+strlen(output), "Event Prefix : %s\n", event_prefix.c_str() );

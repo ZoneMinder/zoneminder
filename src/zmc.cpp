@@ -190,11 +190,11 @@ int main(int argc, char *argv[]) {
   HwCapsDetect();
 
   std::vector<std::shared_ptr<Monitor>> monitors;
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
   if ( device[0] ) {
     monitors = Monitor::LoadLocalMonitors(device, Monitor::CAPTURE);
   } else
-#endif  // ZM_HAS_V4L
+#endif  // ZM_HAS_V4L2
   if ( host[0] ) {
     if ( !port )
       port = "80";

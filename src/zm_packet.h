@@ -21,6 +21,7 @@
 #define ZM_PACKET_H
 
 #include "zm_logger.h"
+#include "zm_time.h"
 #include "zm_zone.h"
 
 #include <condition_variable>
@@ -31,16 +32,13 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-#ifdef __FreeBSD__
-#include <sys/time.h>
-#endif // __FreeBSD__
-
 class Image;
 
 class ZMPacket {
   public:
   
     std::mutex  mutex_;
+    // The condition has to be in the packet because it is shared between locks
     std::condition_variable condition_;
 
     int keyframe;
@@ -48,7 +46,7 @@ class ZMPacket {
     AVPacket  packet;             // Input packet, undecoded
     AVFrame   *in_frame;          // Input image, decoded Theoretically only filled if needed.
     AVFrame   *out_frame;         // output image, Only filled if needed.
-    struct timeval *timestamp;
+    SystemTimePoint timestamp;
     uint8_t   *buffer;            // buffer used in image
     Image     *image;
     Image     *analysis_image;
@@ -69,7 +67,7 @@ class ZMPacket {
 
     int is_keyframe() { return keyframe; };
     int decode( AVCodecContext *ctx );
-    explicit ZMPacket(Image *image);
+    explicit ZMPacket(Image *image, SystemTimePoint tv);
     explicit ZMPacket(ZMPacket &packet);
     ZMPacket();
     ~ZMPacket();
@@ -81,11 +79,11 @@ class ZMPacket {
 
 class ZMLockedPacket {
   public:
-    ZMPacket *packet_;
+    std::shared_ptr<ZMPacket> packet_;
     std::unique_lock<std::mutex> lck_;
     bool locked;
 
-    explicit ZMLockedPacket(ZMPacket *p) :
+    explicit ZMLockedPacket(std::shared_ptr<ZMPacket> p) :
       packet_(p),
       lck_(packet_->mutex_, std::defer_lock),
       locked(false) {

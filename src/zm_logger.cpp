@@ -20,10 +20,10 @@
 #include "zm_logger.h"
 
 #include "zm_db.h"
+#include "zm_time.h"
 #include "zm_utils.h"
 #include <libgen.h>
 #include <syslog.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 #ifdef __FreeBSD__
@@ -425,30 +425,20 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   char            timeString[64];
   char            logString[4096]; // SQL TEXT can hold 64k so we could go up to 32k here but why?
   va_list         argPtr;
-  struct timeval  timeVal;
 
   const char *base = strrchr(filepath, '/');
   const char *file = base ? base+1 : filepath;
   const char *classString = smCodes[level].c_str();
 
-  gettimeofday(&timeVal, nullptr);
+  SystemTimePoint now = std::chrono::system_clock::now();
+  time_t now_sec = std::chrono::system_clock::to_time_t(now);
+  Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
+      now.time_since_epoch() - std::chrono::duration_cast<Seconds>(now.time_since_epoch()));
 
-#if 0
-  if ( logRuntime ) {
-    static struct timeval logStart;
-
-    subtractTime( &timeVal, &logStart );
-
-    snprintf( timeString, sizeof(timeString), "%ld.%03ld", timeVal.tv_sec, timeVal.tv_usec/1000 );
-  } else {
-#endif
-    char *timePtr = timeString;
-    tm now_tm = {};
-    timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime_r(&timeVal.tv_sec, &now_tm));
-    snprintf(timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec);
-#if 0
-  }
-#endif
+  char *timePtr = timeString;
+  tm now_tm = {};
+  timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime_r(&now_sec, &now_tm));
+  snprintf(timePtr, sizeof(timeString) - (timePtr - timeString), ".%06" PRIi64, static_cast<int64>(now_frac.count()));
 
   pid_t tid;
 #ifdef __FreeBSD__
@@ -528,17 +518,15 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
 
   if (level <= mDatabaseLevel) {
     if (zmDbConnected) {
-      int syslogSize = syslogEnd-syslogStart;
-      char escapedString[(syslogSize*2)+1];
-      mysql_real_escape_string(&dbconn, escapedString, syslogStart, syslogSize);
+      std::string escapedString = zmDbEscapeString({syslogStart, syslogEnd});
 
       std::string sql_string = stringtf(
           "INSERT INTO `Logs` "
           "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
           " VALUES "
-          "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
-          timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line
-          );
+          "( %ld.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+          now_sec, static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
+          escapedString.c_str(), file, line);
       dbQueue.push(std::move(sql_string));
     } else {
       puts("Db is closed");

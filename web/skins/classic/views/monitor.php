@@ -107,7 +107,7 @@ if ( !empty($_REQUEST['probe']) ) {
       $monitor->$name = urldecode($value);
     }
   }
-  if ( ZM_HAS_V4L && $monitor->Type() == 'Local' ) {
+  if ( ZM_HAS_V4L2 && $monitor->Type() == 'Local' ) {
     $monitor->Palette( fourCC( substr($monitor->Palette,0,1), substr($monitor->Palette,1,1), substr($monitor->Palette,2,1), substr($monitor->Palette,3,1) ) );
     if ( $monitor->Format() == 'PAL' )
       $monitor->Format( 0x000000ff );
@@ -127,18 +127,15 @@ $sourceTypes = array(
     'NVSocket'	=> translate('NVSocket'),
     'VNC' => translate('VNC'),
     );
-if ( !ZM_HAS_V4L )
+if ( !ZM_HAS_V4L2 )
   unset($sourceTypes['Local']);
 
 $localMethods = array(
     'v4l2' => 'Video For Linux version 2',
-    'v4l1' => 'Video For Linux version 1',
     );
 
 if ( !ZM_HAS_V4L2 )
   unset($localMethods['v4l2']);
-if ( !ZM_HAS_V4L1 )
-  unset($localMethods['v4l1']);
 
 $remoteProtocols = array(
     'http' => 'HTTP',
@@ -169,36 +166,6 @@ if ( !ZM_PCRE )
   unset($httpMethods['regexp']);
   // Currently unsupported
 unset($httpMethods['jpegTags']);
-
-if ( ZM_HAS_V4L1 ) {
-  $v4l1DeviceFormats = array(
-      0 => 'PAL',
-      1 => 'NTSC',
-      2 => 'SECAM',
-      3 => 'AUTO',
-      4 => 'FMT4',
-      5 => 'FMT5',
-      6 => 'FMT6',
-      7 => 'FMT7'
-      );
-
-  $v4l1MaxChannels = 15;
-  $v4l1DeviceChannels = array();
-  for ( $i = 0; $i <= $v4l1MaxChannels; $i++ )
-    $v4l1DeviceChannels[$i] = $i;
-
-  $v4l1LocalPalettes = array(
-      1  => translate('Grey'),
-      5  => 'BGR32',
-      4  => 'BGR24',
-      8  => '*YUYV',
-      3  => '*RGB565',
-      6  => '*RGB555',
-      7  => '*YUV422',
-      13 => '*YUV422P',
-      15 => '*YUV420P',
-      );
-}
 
 if ( ZM_HAS_V4L2 ) {
   $v4l2DeviceFormats = array(
@@ -699,7 +666,7 @@ echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(), array('clas
     }
     case 'source' :
     {
-      if ( ZM_HAS_V4L && $monitor->Type() == 'Local' ) {
+      if ( ZM_HAS_V4L2 && $monitor->Type() == 'Local' ) {
 ?>
           <tr>
             <td class="text-right pr-3"><?php echo translate('DevicePath') ?></td>
@@ -710,22 +677,7 @@ echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(), array('clas
             <td><?php echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), array('onchange'=>'submitTab', 'data-tab-name'=>$tab) ); ?></td>
           </tr>
 <?php
-        if ( ZM_HAS_V4L1 && $monitor->Method() == 'v4l1' ) {
-?>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('DeviceChannel') ?></td>
-            <td><?php echo htmlSelect('newMonitor[Channel]', $v4l1DeviceChannels, $monitor->Channel()); ?></td>
-          </tr>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('DeviceFormat') ?></td>
-            <td><?php echo htmlSelect('newMonitor[Format]', $v4l1DeviceFormats, $monitor->Format()); ?></td>
-          </tr>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('CapturePalette') ?></td>
-            <td><?php echo htmlSelect('newMonitor[Palette]', $v4l1LocalPalettes, $monitor->Palette()); ?></td>
-          </tr>
-<?php
-        } else {
+        if ( ZM_HAS_V4L2 && $monitor->Method() == 'v4l2' ) {
 ?>
           <tr>
             <td class="text-right pr-3"><?php echo translate('DeviceChannel') ?></td>

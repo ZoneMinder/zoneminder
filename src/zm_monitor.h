@@ -211,7 +211,7 @@ protected:
 
 #if ZM_MEM_MAPPED
     int       map_fd;
-    char      mem_file[PATH_MAX];
+    std::string      mem_file;
 #else // ZM_MEM_MAPPED
     int       shm_id;
 #endif // ZM_MEM_MAPPED
@@ -305,7 +305,7 @@ protected:
 
   std::string     event_prefix;    // The prefix applied to event names as they are created
   std::string     label_format;    // The format of the timestamp on the images
-  Coord      label_coord;      // The coordinates of the timestamp on the images
+  Vector2      label_coord;      // The coordinates of the timestamp on the images
   int        label_size;         // Size of the timestamp on the images
   int32_t    image_buffer_count;        // Size of circular image buffer, kept in /dev/shm
   int32_t    max_image_buffer_count;    // Max # of video packets to keep in packet queue
@@ -313,15 +313,15 @@ protected:
   int        pre_event_count;    // How many images to hold and prepend to an alarm event
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
-  int        section_length;      // How long events should last in continuous modes
-  int        min_section_length;   // Minimum event length when using event_close_mode == ALARM
+  Seconds section_length;      // How long events should last in continuous modes
+  Seconds min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
   double     analysis_fps_limit;     // Target framerate for video analysis
-  unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
-  int        capture_delay;      // How long we wait between capture frames
-  int        alarm_capture_delay;  // How long we wait between capture frames when in alarm state
+  Microseconds analysis_update_delay;  //  How long we wait before updating analysis parameters
+  Microseconds capture_delay;      // How long we wait between capture frames
+  Microseconds alarm_capture_delay;  // How long we wait between capture frames when in alarm state
   int        alarm_frame_count;    // How many alarm frames are required before an event is triggered
   int        alert_to_alarm_frame_count;    // How many alarm frames (consecutive score frames) are required to return alarm from alert
   // value for now is the same number configured in alarm_frame_count, maybe getting his own parameter some day
@@ -354,17 +354,17 @@ protected:
   int        last_section_mod;
   int        buffer_count;
   State      state;
-  time_t      start_time;
-  double      last_fps_time;
-  double      last_analysis_fps_time;
-  time_t      auto_resume_time;
+  SystemTimePoint start_time;
+  SystemTimePoint last_fps_time;
+  SystemTimePoint last_analysis_fps_time;
+  SystemTimePoint auto_resume_time;
   unsigned int      last_motion_score;
 
   EventCloseMode  event_close_mode;
 
 #if ZM_MEM_MAPPED
   int             map_fd;
-  char            mem_file[PATH_MAX];
+  std::string     mem_file;
 #else // ZM_MEM_MAPPED
   int             shm_id;
 #endif // ZM_MEM_MAPPED
@@ -376,8 +376,7 @@ protected:
 
   struct timeval *shared_timestamps;
   unsigned char *shared_images;
-  ZMPacket *image_buffer;
-  ZMPacket    next_buffer; /* Used by four field deinterlacing */
+  std::vector<Image *> image_buffer;
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
@@ -425,7 +424,6 @@ protected:
 
 public:
   explicit Monitor();
-  explicit Monitor(unsigned int p_id);
 
   ~Monitor();
 
@@ -454,7 +452,7 @@ public:
 
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name.c_str(); }
-  inline unsigned int ServerId() { return server_id; }
+  inline unsigned int ServerId() const { return server_id; }
   inline Storage *getStorage() {
     if ( ! storage ) {
       storage = new Storage(storage_id);
@@ -487,7 +485,7 @@ public:
   }
   inline bool Exif() const { return embed_exif; }
   inline bool RTSPServer() const { return rtsp_server; }
-  inline bool RecordAudio() { return record_audio; }
+  inline bool RecordAudio() const { return record_audio; }
 
   /*
   inline Purpose Purpose() { return purpose };
@@ -514,8 +512,12 @@ public:
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( uint64_t p_event_id ) { video_store_data->current_event = p_event_id; }
 
-  struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
-  void SetVideoWriterStartTime(const struct timeval &t) { video_store_data->recording = t; }
+  SystemTimePoint GetVideoWriterStartTime() const {
+    return SystemTimePoint(zm::chrono::duration_cast<Microseconds>(video_store_data->recording));
+  }
+  void SetVideoWriterStartTime(SystemTimePoint t) {
+    video_store_data->recording = zm::chrono::duration_cast<timeval>(t.time_since_epoch());
+  }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   int32_t GetImageBufferCount() const { return image_buffer_count; };
@@ -526,20 +528,20 @@ public:
   AVStream *GetVideoStream() const { return camera ? camera->getVideoStream() : nullptr; };
   AVCodecContext *GetVideoCodecContext() const { return camera ? camera->getVideoCodecContext() : nullptr; };
 
-  const std::string GetSecondPath() const { return second_path; };
-  const std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
-  const std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
-  const std::string GetRTSPStreamName() const { return rtsp_streamname; };
+  std::string GetSecondPath() const { return second_path; };
+  std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
+  std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
+  std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
   int GetImage(int32_t index=-1, int scale=100);
   ZMPacket *getSnapshot( int index=-1 ) const;
-  struct timeval GetTimestamp( int index=-1 ) const;
+  SystemTimePoint GetTimestamp(int index = -1) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
-  unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
+  Microseconds GetAnalysisUpdateDelay() const { return analysis_update_delay; }
   unsigned int GetCaptureMaxFPS() const { return capture_max_fps; }
-  int GetCaptureDelay() const { return capture_delay; }
-  int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
+  Microseconds GetCaptureDelay() const { return capture_delay; }
+  Microseconds GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;
   unsigned int GetLastWriteIndex() const;
   uint64_t GetLastEventId() const;
@@ -550,9 +552,11 @@ public:
   void ForceAlarmOff();
   void CancelForced();
   TriggerState GetTriggerState() const { return trigger_data ? trigger_data->trigger_state : TRIGGER_CANCEL; }
-	inline time_t getStartupTime() const { return shared_data->startup_time; }
-	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
-	inline void setHeartbeatTime( time_t p_time ) { shared_data->zmc_heartbeat_time = p_time; }
+  SystemTimePoint GetStartupTime() const { return std::chrono::system_clock::from_time_t(shared_data->startup_time); }
+  void SetStartupTime(SystemTimePoint time) { shared_data->startup_time = std::chrono::system_clock::to_time_t(time); }
+  void SetHeartbeatTime(SystemTimePoint time) {
+    shared_data->zmc_heartbeat_time = std::chrono::system_clock::to_time_t(time);
+  }
   void get_ref_image();
 
   int LabelSize() const { return label_size; }
@@ -583,7 +587,7 @@ public:
   bool Analyse();
   bool Decode();
   void DumpImage( Image *dump_image ) const;
-  void TimestampImage( Image *ts_image, const struct timeval *ts_time ) const;
+  void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   void closeEvent();
 
   void Reload();
@@ -595,31 +599,27 @@ public:
   std::vector<Group *>  Groups();
   StringVector GroupNames();
 
-  static std::vector<std::shared_ptr<Monitor>> LoadMonitors(std::string &sql, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
-#if ZM_HAS_V4L
+  static std::vector<std::shared_ptr<Monitor>> LoadMonitors(const std::string &sql, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
+#if ZM_HAS_V4L2
   static std::vector<std::shared_ptr<Monitor>> LoadLocalMonitors(const char *device, Purpose purpose);
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
   static std::vector<std::shared_ptr<Monitor>> LoadRemoteMonitors(const char *protocol, const char *host, const char*port, const char*path, Purpose purpose);
   static std::vector<std::shared_ptr<Monitor>> LoadFileMonitors(const char *file, Purpose purpose);
-#if HAVE_LIBAVFORMAT
   static std::vector<std::shared_ptr<Monitor>> LoadFfmpegMonitors(const char *file, Purpose purpose);
-#endif // HAVE_LIBAVFORMAT
   static std::shared_ptr<Monitor> Load(unsigned int id, bool load_zones, Purpose purpose);
   void Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose);
   //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );
   //void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );
   //void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );
   //void StreamImagesZip( int scale=100, int maxfps=10, time_t ttl=0 );
-#if HAVE_LIBAVCODEC
   //void StreamMpeg( const char *format, int scale=100, int maxfps=10, int bitrate=100000 );
-#endif // HAVE_LIBAVCODEC
   double get_capture_fps( ) const {
     return shared_data ? shared_data->capture_fps : 0.0;
   }
   double get_analysis_fps( ) const {
     return shared_data ? shared_data->analysis_fps : 0.0;
   }
-  int Importance() { return importance; }
+  int Importance() const { return importance; }
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

@@ -100,7 +100,8 @@ void RemoteCamera::Initialise() {
 
   int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &hp);
   if ( ret != 0 ) {
-    Fatal( "Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret) );
+    Error( "Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret) );
+    return;
   }
   struct addrinfo *p = nullptr;
   int addr_count = 0;

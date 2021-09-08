@@ -736,3 +736,19 @@ a.flip {
 #objdetectModal .modal-content {
     width: fit-content;
 }
+
+#modalLogout .modal-dialog {
+  height: 100%;
+}
+#modalLogout .modal-content {
+  height: 90%;
+}
+#modalLogout .modal-body {
+  overflow:auto;
+}
+#shutdownButton {
+  padding: 3px 10px 5px 10px;
+  color: white;
+}
+#shutdownButton i {
+}

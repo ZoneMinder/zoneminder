@@ -15,7 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "catch2/catch.hpp"
+#include "zm_catch2.h"
 
 #include "zm_utils.h"
 #include <sstream>
@@ -140,6 +140,18 @@ TEST_CASE("Join") {
   REQUIRE(Join({"a", "b"}, "") == "ab");
 }
 
+TEST_CASE("ByteArrayToHexString") {
+  std::vector<uint8> bytes;
+
+  REQUIRE(ByteArrayToHexString(bytes) == "");
+
+  bytes = {0x00};
+  REQUIRE(ByteArrayToHexString(bytes) == "00");
+
+  bytes = {0x00, 0x01, 0x02, 0xff};
+  REQUIRE(ByteArrayToHexString(bytes) == "000102ff");
+}
+
 TEST_CASE("Base64Encode") {
   REQUIRE(Base64Encode("") == "");
   REQUIRE(Base64Encode("f") == "Zg==");
@@ -151,9 +163,9 @@ TEST_CASE("Base64Encode") {
 }
 
 TEST_CASE("ZM::clamp") {
-  REQUIRE(ZM::clamp(1, 0, 2) == 1);
-  REQUIRE(ZM::clamp(3, 0, 2) == 2);
-  REQUIRE(ZM::clamp(-1, 0, 2) == 0);
+  REQUIRE(zm::clamp(1, 0, 2) == 1);
+  REQUIRE(zm::clamp(3, 0, 2) == 2);
+  REQUIRE(zm::clamp(-1, 0, 2) == 0);
 }
 
 TEST_CASE("UriDecode") {

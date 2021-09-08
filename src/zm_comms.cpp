@@ -34,9 +34,9 @@
 #include <sys/filio.h> // define FIONREAD
 #endif
 
-int ZM::CommsBase::readV(int iovcnt, /* const void *, int, */ ...) {
+int zm::CommsBase::readV(int iovcnt, /* const void *, int, */ ...) {
   va_list arg_ptr;
-  iovec iov[iovcnt];
+  std::vector<iovec> iov(iovcnt);
 
   va_start(arg_ptr, iovcnt);
   for (int i = 0; i < iovcnt; i++) {
@@ -45,16 +45,16 @@ int ZM::CommsBase::readV(int iovcnt, /* const void *, int, */ ...) {
   }
   va_end(arg_ptr);
 
-  int nBytes = ::readv(mRd, iov, iovcnt);
+  int nBytes = ::readv(mRd, iov.data(), iovcnt);
   if (nBytes < 0) {
     Debug(1, "Readv of %d buffers max on rd %d failed: %s", iovcnt, mRd, strerror(errno));
   }
   return nBytes;
 }
 
-int ZM::CommsBase::writeV(int iovcnt, /* const void *, int, */ ...) {
+int zm::CommsBase::writeV(int iovcnt, /* const void *, int, */ ...) {
   va_list arg_ptr;
-  iovec iov[iovcnt];
+  std::vector<iovec> iov(iovcnt);
 
   va_start(arg_ptr, iovcnt);
   for (int i = 0; i < iovcnt; i++) {
@@ -63,14 +63,14 @@ int ZM::CommsBase::writeV(int iovcnt, /* const void *, int, */ ...) {
   }
   va_end(arg_ptr);
 
-  ssize_t nBytes = ::writev(mWd, iov, iovcnt);
+  ssize_t nBytes = ::writev(mWd, iov.data(), iovcnt);
   if (nBytes < 0) {
     Debug(1, "Writev of %d buffers on wd %d failed: %s", iovcnt, mWd, strerror(errno));
   }
   return nBytes;
 }
 
-bool ZM::Pipe::open() {
+bool zm::Pipe::open() {
   if (::pipe(mFd) < 0) {
     Error("pipe(), errno = %d, error = %s", errno, strerror(errno));
     return false;
@@ -79,7 +79,7 @@ bool ZM::Pipe::open() {
   return true;
 }
 
-bool ZM::Pipe::close() {
+bool zm::Pipe::close() {
   if (mFd[0] > -1) {
     ::close(mFd[0]);
   }
@@ -91,7 +91,7 @@ bool ZM::Pipe::close() {
   return true;
 }
 
-bool ZM::Pipe::setBlocking(bool blocking) {
+bool zm::Pipe::setBlocking(bool blocking) {
   int flags;
 
   /* Now set it for non-blocking I/O */
@@ -112,7 +112,7 @@ bool ZM::Pipe::setBlocking(bool blocking) {
   return true;
 }
 
-ZM::SockAddr *ZM::SockAddr::newSockAddr(const sockaddr &addr, socklen_t len) {
+zm::SockAddr *zm::SockAddr::newSockAddr(const sockaddr &addr, socklen_t len) {
   if ((addr.sa_family == AF_INET) && (len == SockAddrInet::addrSize())) {
     return new SockAddrInet((const sockaddr_in *) &addr);
   } else if ((addr.sa_family == AF_UNIX) && (len == SockAddrUnix::addrSize())) {
@@ -123,7 +123,7 @@ ZM::SockAddr *ZM::SockAddr::newSockAddr(const sockaddr &addr, socklen_t len) {
   return nullptr;
 }
 
-ZM::SockAddr *ZM::SockAddr::newSockAddr(const SockAddr *addr) {
+zm::SockAddr *zm::SockAddr::newSockAddr(const SockAddr *addr) {
   if (!addr) {
     return nullptr;
   }
@@ -138,7 +138,7 @@ ZM::SockAddr *ZM::SockAddr::newSockAddr(const SockAddr *addr) {
   return nullptr;
 }
 
-bool ZM::SockAddrInet::resolve(const char *host, const char *serv, const char *proto) {
+bool zm::SockAddrInet::resolve(const char *host, const char *serv, const char *proto) {
   memset(&mAddrIn, 0, sizeof(mAddrIn));
 
   hostent *hostent = nullptr;
@@ -160,7 +160,7 @@ bool ZM::SockAddrInet::resolve(const char *host, const char *serv, const char *p
   return true;
 }
 
-bool ZM::SockAddrInet::resolve(const char *host, int port, const char *proto) {
+bool zm::SockAddrInet::resolve(const char *host, int port, const char *proto) {
   memset(&mAddrIn, 0, sizeof(mAddrIn));
 
   hostent *hostent = nullptr;
@@ -175,7 +175,7 @@ bool ZM::SockAddrInet::resolve(const char *host, int port, const char *proto) {
   return true;
 }
 
-bool ZM::SockAddrInet::resolve(const char *serv, const char *proto) {
+bool zm::SockAddrInet::resolve(const char *serv, const char *proto) {
   memset(&mAddrIn, 0, sizeof(mAddrIn));
 
   servent *servent = nullptr;
@@ -191,7 +191,7 @@ bool ZM::SockAddrInet::resolve(const char *serv, const char *proto) {
   return true;
 }
 
-bool ZM::SockAddrInet::resolve(int port, const char *proto) {
+bool zm::SockAddrInet::resolve(int port, const char *proto) {
   memset(&mAddrIn, 0, sizeof(mAddrIn));
 
   mAddrIn.sin_port = htons(port);
@@ -201,16 +201,17 @@ bool ZM::SockAddrInet::resolve(int port, const char *proto) {
   return true;
 }
 
-bool ZM::SockAddrUnix::resolve(const char *path, const char *proto) {
+bool zm::SockAddrUnix::resolve(const char *path, const char *proto) {
   memset(&mAddrUn, 0, sizeof(mAddrUn));
 
   strncpy(mAddrUn.sun_path, path, sizeof(mAddrUn.sun_path));
+  mAddrUn.sun_path[sizeof(mAddrUn.sun_path) - 1] = '\0';
   mAddrUn.sun_family = AF_UNIX;
 
   return true;
 }
 
-bool ZM::Socket::socket() {
+bool zm::Socket::socket() {
   if (mSd >= 0) {
     return true;
   }
@@ -229,7 +230,7 @@ bool ZM::Socket::socket() {
   return true;
 }
 
-bool ZM::Socket::connect() {
+bool zm::Socket::connect() {
   if (!socket()) {
     return false;
   }
@@ -244,7 +245,7 @@ bool ZM::Socket::connect() {
   return true;
 }
 
-bool ZM::Socket::bind() {
+bool zm::Socket::bind() {
   if (!socket()) {
     return false;
   }
@@ -257,7 +258,7 @@ bool ZM::Socket::bind() {
   return true;
 }
 
-bool ZM::Socket::listen() {
+bool zm::Socket::listen() {
   if (::listen(mSd, SOMAXCONN) == -1) {
     Error("listen(), errno = %d, error = %s", errno, strerror(errno));
     close();
@@ -268,7 +269,7 @@ bool ZM::Socket::listen() {
   return true;
 }
 
-bool ZM::Socket::accept() {
+bool zm::Socket::accept() {
   sockaddr rem_addr = {};
   socklen_t rem_addr_size = getAddrSize();
 
@@ -286,7 +287,7 @@ bool ZM::Socket::accept() {
   return true;
 }
 
-bool ZM::Socket::accept(int &newSd) {
+bool zm::Socket::accept(int &newSd) {
   sockaddr rem_addr = {};
   socklen_t rem_addr_size = getAddrSize();
 
@@ -300,7 +301,7 @@ bool ZM::Socket::accept(int &newSd) {
   return true;
 }
 
-bool ZM::Socket::close() {
+bool zm::Socket::close() {
   if (mSd > -1) {
     ::close(mSd);
   }
@@ -310,7 +311,7 @@ bool ZM::Socket::close() {
   return true;
 }
 
-int ZM::Socket::bytesToRead() const {
+int zm::Socket::bytesToRead() const {
   int bytes_to_read = 0;
 
   if (ioctl(mSd, FIONREAD, &bytes_to_read) < 0) {
@@ -320,7 +321,7 @@ int ZM::Socket::bytesToRead() const {
   return bytes_to_read;
 }
 
-bool ZM::Socket::getBlocking(bool &blocking) {
+bool zm::Socket::getBlocking(bool &blocking) {
   int flags;
 
   if ((flags = fcntl(mSd, F_GETFL)) < 0) {
@@ -331,7 +332,7 @@ bool ZM::Socket::getBlocking(bool &blocking) {
   return true;
 }
 
-bool ZM::Socket::setBlocking(bool blocking) {
+bool zm::Socket::setBlocking(bool blocking) {
   int flags;
 
   /* Now set it for non-blocking I/O */
@@ -352,7 +353,7 @@ bool ZM::Socket::setBlocking(bool blocking) {
   return true;
 }
 
-int ZM::Socket::getSendBufferSize(int &buffersize) const {
+int zm::Socket::getSendBufferSize(int &buffersize) const {
   socklen_t optlen = sizeof(buffersize);
   if (getsockopt(mSd, SOL_SOCKET, SO_SNDBUF, &buffersize, &optlen) < 0) {
     Error("getsockopt(), errno = %d, error = %s", errno, strerror(errno));
@@ -361,7 +362,7 @@ int ZM::Socket::getSendBufferSize(int &buffersize) const {
   return buffersize;
 }
 
-int ZM::Socket::getRecvBufferSize(int &buffersize) const {
+int zm::Socket::getRecvBufferSize(int &buffersize) const {
   socklen_t optlen = sizeof(buffersize);
   if (getsockopt(mSd, SOL_SOCKET, SO_RCVBUF, &buffersize, &optlen) < 0) {
     Error("getsockopt(), errno = %d, error = %s", errno, strerror(errno));
@@ -370,7 +371,7 @@ int ZM::Socket::getRecvBufferSize(int &buffersize) const {
   return buffersize;
 }
 
-bool ZM::Socket::setSendBufferSize(int buffersize) {
+bool zm::Socket::setSendBufferSize(int buffersize) {
   if (setsockopt(mSd, SOL_SOCKET, SO_SNDBUF, (char *) &buffersize, sizeof(buffersize)) < 0) {
     Error("setsockopt(), errno = %d, error = %s", errno, strerror(errno));
     return false;
@@ -378,7 +379,7 @@ bool ZM::Socket::setSendBufferSize(int buffersize) {
   return true;
 }
 
-bool ZM::Socket::setRecvBufferSize(int buffersize) {
+bool zm::Socket::setRecvBufferSize(int buffersize) {
   if (setsockopt(mSd, SOL_SOCKET, SO_RCVBUF, (char *) &buffersize, sizeof(buffersize)) < 0) {
     Error("setsockopt(), errno = %d, error = %s", errno, strerror(errno));
     return false;
@@ -386,7 +387,7 @@ bool ZM::Socket::setRecvBufferSize(int buffersize) {
   return true;
 }
 
-bool ZM::Socket::getRouting(bool &route) const {
+bool zm::Socket::getRouting(bool &route) const {
   int dontRoute;
   socklen_t optlen = sizeof(dontRoute);
   if (getsockopt(mSd, SOL_SOCKET, SO_DONTROUTE, &dontRoute, &optlen) < 0) {
@@ -397,7 +398,7 @@ bool ZM::Socket::getRouting(bool &route) const {
   return true;
 }
 
-bool ZM::Socket::setRouting(bool route) {
+bool zm::Socket::setRouting(bool route) {
   int dontRoute = !route;
   if (setsockopt(mSd, SOL_SOCKET, SO_DONTROUTE, (char *) &dontRoute, sizeof(dontRoute)) < 0) {
     Error("setsockopt(), errno = %d, error = %s", errno, strerror(errno));
@@ -406,7 +407,7 @@ bool ZM::Socket::setRouting(bool route) {
   return true;
 }
 
-bool ZM::Socket::getNoDelay(bool &nodelay) const {
+bool zm::Socket::getNoDelay(bool &nodelay) const {
   int int_nodelay;
   socklen_t optlen = sizeof(int_nodelay);
   if (getsockopt(mSd, IPPROTO_TCP, TCP_NODELAY, &int_nodelay, &optlen) < 0) {
@@ -417,7 +418,7 @@ bool ZM::Socket::getNoDelay(bool &nodelay) const {
   return true;
 }
 
-bool ZM::Socket::setNoDelay(bool nodelay) {
+bool zm::Socket::setNoDelay(bool nodelay) {
   int int_nodelay = nodelay;
 
   if (setsockopt(mSd, IPPROTO_TCP, TCP_NODELAY, (char *) &int_nodelay, sizeof(int_nodelay)) < 0) {
@@ -427,7 +428,7 @@ bool ZM::Socket::setNoDelay(bool nodelay) {
   return true;
 }
 
-bool ZM::InetSocket::connect(const char *host, const char *serv) {
+bool zm::InetSocket::connect(const char *host, const char *serv) {
   addrinfo hints;
   addrinfo *result, *rp;
   int s;
@@ -499,14 +500,14 @@ bool ZM::InetSocket::connect(const char *host, const char *serv) {
   return true;
 }
 
-bool ZM::InetSocket::connect(const char *host, int port) {
+bool zm::InetSocket::connect(const char *host, int port) {
   char serv[8];
   snprintf(serv, sizeof(serv), "%d", port);
 
   return connect(host, serv);
 }
 
-bool ZM::InetSocket::bind(const char *host, const char *serv) {
+bool zm::InetSocket::bind(const char *host, const char *serv) {
   addrinfo hints;
 
   memset(&hints, 0, sizeof(addrinfo));
@@ -564,33 +565,33 @@ bool ZM::InetSocket::bind(const char *host, const char *serv) {
   return true;
 }
 
-bool ZM::InetSocket::bind(const char *serv) {
+bool zm::InetSocket::bind(const char *serv) {
   return bind(nullptr, serv);
 }
 
-bool ZM::InetSocket::bind(const char *host, int port) {
+bool zm::InetSocket::bind(const char *host, int port) {
   char serv[8];
   snprintf(serv, sizeof(serv), "%d", port);
 
   return bind(host, serv);
 }
 
-bool ZM::InetSocket::bind(int port) {
+bool zm::InetSocket::bind(int port) {
   char serv[8];
   snprintf(serv, sizeof(serv), "%d", port);
 
   return bind(nullptr, serv);
 }
 
-bool ZM::TcpInetServer::listen() {
+bool zm::TcpInetServer::listen() {
   return Socket::listen();
 }
 
-bool ZM::TcpInetServer::accept() {
+bool zm::TcpInetServer::accept() {
   return Socket::accept();
 }
 
-bool ZM::TcpInetServer::accept(TcpInetSocket *&newSocket) {
+bool zm::TcpInetServer::accept(TcpInetSocket *&newSocket) {
   int newSd = -1;
   newSocket = nullptr;
 
@@ -602,7 +603,7 @@ bool ZM::TcpInetServer::accept(TcpInetSocket *&newSocket) {
   return true;
 }
 
-bool ZM::TcpUnixServer::accept(TcpUnixSocket *&newSocket) {
+bool zm::TcpUnixServer::accept(TcpUnixSocket *&newSocket) {
   int newSd = -1;
   newSocket = nullptr;
 
@@ -614,28 +615,16 @@ bool ZM::TcpUnixServer::accept(TcpUnixSocket *&newSocket) {
   return true;
 }
 
-void ZM::Select::setTimeout(int timeout) {
-  mTimeout.tv_sec = timeout;
-  mTimeout.tv_usec = 0;
-  mHasTimeout = true;
-}
-
-void ZM::Select::setTimeout(double timeout) {
-  mTimeout.tv_sec = int(timeout);
-  mTimeout.tv_usec = suseconds_t((timeout - mTimeout.tv_sec) * 1000000.0);
-  mHasTimeout = true;
-}
-
-void ZM::Select::setTimeout(timeval timeout) {
+void zm::Select::setTimeout(Microseconds timeout) {
   mTimeout = timeout;
   mHasTimeout = true;
 }
 
-void ZM::Select::clearTimeout() {
+void zm::Select::clearTimeout() {
   mHasTimeout = false;
 }
 
-void ZM::Select::calcMaxFd() {
+void zm::Select::calcMaxFd() {
   mMaxFd = -1;
   for (CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter) {
     if ((*iter)->getMaxDesc() > mMaxFd)
@@ -647,7 +636,7 @@ void ZM::Select::calcMaxFd() {
   }
 }
 
-bool ZM::Select::addReader(CommsBase *comms) {
+bool zm::Select::addReader(CommsBase *comms) {
   if (!comms->isOpen()) {
     Error("Unable to add closed reader");
     return false;
@@ -661,7 +650,7 @@ bool ZM::Select::addReader(CommsBase *comms) {
   return result.second;
 }
 
-bool ZM::Select::deleteReader(CommsBase *comms) {
+bool zm::Select::deleteReader(CommsBase *comms) {
   if (!comms->isOpen()) {
     Error("Unable to add closed reader");
     return false;
@@ -673,12 +662,12 @@ bool ZM::Select::deleteReader(CommsBase *comms) {
   return false;
 }
 
-void ZM::Select::clearReaders() {
+void zm::Select::clearReaders() {
   mReaders.clear();
   mMaxFd = -1;
 }
 
-bool ZM::Select::addWriter(CommsBase *comms) {
+bool zm::Select::addWriter(CommsBase *comms) {
   std::pair<CommsSet::iterator, bool> result = mWriters.insert(comms);
   if (result.second) {
     if (comms->getMaxDesc() > mMaxFd) {
@@ -688,7 +677,7 @@ bool ZM::Select::addWriter(CommsBase *comms) {
   return result.second;
 }
 
-bool ZM::Select::deleteWriter(CommsBase *comms) {
+bool zm::Select::deleteWriter(CommsBase *comms) {
   if (mWriters.erase(comms)) {
     calcMaxFd();
     return true;
@@ -696,13 +685,13 @@ bool ZM::Select::deleteWriter(CommsBase *comms) {
   return false;
 }
 
-void ZM::Select::clearWriters() {
+void zm::Select::clearWriters() {
   mWriters.clear();
   mMaxFd = -1;
 }
 
-int ZM::Select::wait() {
-  timeval tempTimeout = mTimeout;
+int zm::Select::wait() {
+  timeval tempTimeout = zm::chrono::duration_cast<timeval>(mTimeout);
   timeval *selectTimeout = mHasTimeout ? &tempTimeout : nullptr;
 
   fd_set rfds;

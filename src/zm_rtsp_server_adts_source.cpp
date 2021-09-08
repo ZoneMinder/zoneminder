@@ -34,13 +34,7 @@ ADTS_ZoneMinderDeviceSource::ADTS_ZoneMinderDeviceSource(
   :
     ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize),
     samplingFrequencyIndex(0),
-    channels(
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-        stream->codecpar->channels
-#else
-        stream->codec->channels
-#endif
-        )
+    channels(stream->codecpar->channels)
 {
   std::ostringstream os;
   os <<

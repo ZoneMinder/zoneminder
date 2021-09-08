@@ -6,21 +6,15 @@
 #include "zm_ffmpeg.h"
 #include "zm_swscale.h"
 
+#include <memory>
+
 extern "C"  {
-#ifdef HAVE_LIBSWRESAMPLE
-  #include "libswresample/swresample.h"
-#else
-  #ifdef HAVE_LIBAVRESAMPLE
-    #include "libavresample/avresample.h"
-  #endif
-#endif
-#include "libavutil/audio_fifo.h"
+#include <libswresample/swresample.h>
+#include <libavutil/audio_fifo.h>
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-  #include "libavutil/hwcontext.h"
+#include <libavutil/hwcontext.h>
 #endif
 }
-
-#if HAVE_LIBAVCODEC
 
 class Monitor;
 class ZMPacket;
@@ -35,7 +29,7 @@ class VideoStore {
       const char *codec_name;
       const enum AVPixelFormat sw_pix_fmt;
       const enum AVPixelFormat hw_pix_fmt;
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
       const AVHWDeviceType hwdevice_type;
 #endif
     };
@@ -49,7 +43,6 @@ class VideoStore {
     AVStream *video_out_stream;
     AVStream *audio_out_stream;
 
-    AVCodec *video_out_codec;
     AVCodecContext *video_in_ctx;
     AVCodecContext *video_out_ctx;
 
@@ -75,21 +68,15 @@ class VideoStore {
 
     AVBufferRef *hw_device_ctx;
 
-#ifdef HAVE_LIBSWRESAMPLE
     SwrContext *resample_ctx;
     AVAudioFifo *fifo;
-#else
-#ifdef HAVE_LIBAVRESAMPLE
-    AVAudioResampleContext* resample_ctx;
-#endif
-#endif
     uint8_t *converted_in_samples;
 
     const char *filename;
     const char *format;
 
     // These are for in
-    int64_t video_first_pts;
+    int64_t video_first_pts; /* starting pts of first in frame/packet */
     int64_t video_first_dts;
     int64_t audio_first_pts;
     int64_t audio_first_dts;
@@ -119,13 +106,12 @@ class VideoStore {
 
     void write_video_packet(AVPacket &pkt);
     void write_audio_packet(AVPacket &pkt);
-    int writeVideoFramePacket(ZMPacket *pkt);
-    int writeAudioFramePacket(ZMPacket *pkt);
-    int writePacket(ZMPacket *pkt);
+    int writeVideoFramePacket(const std::shared_ptr<ZMPacket> &pkt);
+    int writeAudioFramePacket(const std::shared_ptr<ZMPacket> &pkt);
+    int writePacket(const std::shared_ptr<ZMPacket> &pkt);
     int write_packets(PacketQueue &queue);
     void flush_codecs();
 };
 
-#endif //havelibav
-#endif //zm_videostore_h
+#endif // ZM_VIDEOSTORE_H
 

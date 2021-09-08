@@ -25,7 +25,7 @@ class ZoneMinderFifoVideoSource: public ZoneMinderFifoSource {
         std::shared_ptr<xop::RtspServer>& rtspServer,
         xop::MediaSessionId sessionId,
         xop::MediaChannelId channelId,
-        std::string fifo
+        const std::string &fifo
         );
   protected:
     void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;

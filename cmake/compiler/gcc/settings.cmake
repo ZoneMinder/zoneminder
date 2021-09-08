@@ -6,8 +6,10 @@ target_compile_options(zm-warning-interface
     -Wformat-security
     -Wno-cast-function-type
     $<$<VERSION_LESS:$<CXX_COMPILER_VERSION>,11>:-Wno-clobbered>
+    $<$<VERSION_LESS:$<CXX_COMPILER_VERSION>,5.1>:-Wno-missing-field-initializers>
     -Wno-unused-parameter
-    -Woverloaded-virtual)
+    -Woverloaded-virtual
+    -Wvla)
 
 if(ENABLE_WERROR)
   target_compile_options(zm-warning-interface
@@ -18,10 +20,12 @@ endif()
 if(ASAN)
   target_compile_options(zm-compile-option-interface
     INTERFACE
+      -D_GLIBCXX_SANITIZE_VECTOR=1
       -fno-omit-frame-pointer
       -fsanitize=address
       -fsanitize-recover=address
-      -fsanitize-address-use-after-scope)
+      -fsanitize-address-use-after-scope
+      -Wno-stringop-truncation)
 
   target_link_options(zm-compile-option-interface
     INTERFACE

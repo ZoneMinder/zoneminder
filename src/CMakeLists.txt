@@ -6,12 +6,10 @@ configure_file(zm_config_data.h.in "${CMAKE_BINARY_DIR}/zm_config_data.h" @ONLY)
 # Group together all the source files that are used by all the binaries (zmc, zmu, zms etc)
 set(ZM_BIN_SRC_FILES
   zm_analysis_thread.cpp
-  zm_box.cpp
   zm_buffer.cpp
   zm_camera.cpp
   zm_comms.cpp
   zm_config.cpp
-  zm_coord.cpp
   zm_curl_camera.cpp
   zm_crypt.cpp
   zm.cpp
@@ -62,7 +60,6 @@ set(ZM_BIN_SRC_FILES
   zm_signal.cpp
   zm_stream.cpp
   zm_swscale.cpp
-  zm_time.cpp
   zm_user.cpp
   zm_utils.cpp
   zm_videostore.cpp
@@ -79,12 +76,33 @@ target_include_directories(zm
 
 target_link_libraries(zm
   PUBLIC
+    FFMPEG::avcodec
+    FFMPEG::avformat
+    FFMPEG::avutil
+    FFMPEG::swresample
+    FFMPEG::swscale
     libbcrypt::bcrypt
-    jwt-cpp::jwt-cpp
     RtspServer::RtspServer
     martinmoene::span-lite
+    ${ZM_BIN_LIBS}
   PRIVATE
     zm-core-interface)
+
+if(${ZM_JWT_BACKEND} STREQUAL "jwt_cpp")
+  target_link_libraries(zm
+    PUBLIC
+      jwt-cpp::jwt-cpp)
+elseif(${ZM_JWT_BACKEND} STREQUAL "libjwt")
+  target_link_libraries(zm
+    PUBLIC
+      JWT::libjwt)
+endif()
+
+if(TARGET V4L2::videodev2)
+  target_link_libraries(zm
+    PRIVATE
+      V4L2::videodev2)
+endif()
 
 add_executable(zmc zmc.cpp)
 add_executable(zms zms.cpp)
@@ -95,7 +113,6 @@ target_link_libraries(zmc
     zm-core-interface
     zm
     ${ZM_EXTRA_LIBS}
-    ${ZM_BIN_LIBS}
     ${CMAKE_DL_LIBS})
 
 target_link_libraries(zms
@@ -103,7 +120,6 @@ target_link_libraries(zms
     zm-core-interface
     zm
     ${ZM_EXTRA_LIBS}
-    ${ZM_BIN_LIBS}
     ${CMAKE_DL_LIBS})
 
 target_link_libraries(zmu
@@ -111,9 +127,7 @@ target_link_libraries(zmu
     zm-core-interface
     zm
     ${ZM_EXTRA_LIBS}
-    ${ZM_BIN_LIBS}
-    ${CMAKE_DL_LIBS}
-    bcrypt)
+    ${CMAKE_DL_LIBS})
 
 # Generate man files for the binaries destined for the bin folder
 if(BUILD_MAN)
@@ -134,8 +148,6 @@ if(HAVE_RTSP_SERVER)
       zm-core-interface
       zm
       ${ZM_EXTRA_LIBS}
-      ${ZM_BIN_LIBS}
-      ${CMAKE_DL_LIBS}
-      bcrypt)
+      ${CMAKE_DL_LIBS})
   install(TARGETS zm_rtsp_server RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 endif()

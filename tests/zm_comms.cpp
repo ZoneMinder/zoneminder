@@ -15,13 +15,13 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "catch2/catch.hpp"
+#include "zm_catch2.h"
 
 #include "zm_comms.h"
 #include <array>
 
 TEST_CASE("ZM::Pipe basics") {
-  ZM::Pipe pipe;
+  zm::Pipe pipe;
 
   SECTION("setBlocking on non-opened") {
     REQUIRE(pipe.setBlocking(true) == false);
@@ -64,7 +64,7 @@ TEST_CASE("ZM::Pipe basics") {
 }
 
 TEST_CASE("ZM::Pipe read/write") {
-  ZM::Pipe pipe;
+  zm::Pipe pipe;
 
   std::array<char, 3> msg = {'a', 'b', 'c'};
   std::array<char, msg.size()> rcv{};
@@ -93,7 +93,7 @@ TEST_CASE("ZM::Pipe read/write") {
 }
 
 TEST_CASE("ZM::SockAddrInet") {
-  ZM::SockAddrInet addr;
+  zm::SockAddrInet addr;
   REQUIRE(addr.getAddrSize() == sizeof(sockaddr_in));
 
   SECTION("resolve") {
@@ -101,7 +101,7 @@ TEST_CASE("ZM::SockAddrInet") {
     REQUIRE(addr.getDomain() == AF_INET);
 
     SECTION("newSockAddr from resolved addr") {
-      ZM::SockAddr *addr2 = ZM::SockAddr::newSockAddr(&addr);
+      zm::SockAddr *addr2 = zm::SockAddr::newSockAddr(&addr);
       REQUIRE(addr2->getDomain() == AF_INET);
       REQUIRE(addr2->getAddrSize() == sizeof(sockaddr_in));
     }
@@ -109,7 +109,7 @@ TEST_CASE("ZM::SockAddrInet") {
 }
 
 TEST_CASE("ZM::SockAddrUnix") {
-  ZM::SockAddrUnix addr;
+  zm::SockAddrUnix addr;
   REQUIRE(addr.getAddrSize() == sizeof(sockaddr_un));
 
   SECTION("resovle") {
@@ -117,7 +117,7 @@ TEST_CASE("ZM::SockAddrUnix") {
     REQUIRE(addr.getDomain() == AF_UNIX);
 
     SECTION("newSockAddr from resolved addr") {
-      ZM::SockAddr *addr2 = ZM::SockAddr::newSockAddr(&addr);
+      zm::SockAddr *addr2 = zm::SockAddr::newSockAddr(&addr);
       REQUIRE(addr2->getDomain() == AF_UNIX);
       REQUIRE(addr2->getAddrSize() == sizeof(sockaddr_un));
     }
@@ -125,7 +125,7 @@ TEST_CASE("ZM::SockAddrUnix") {
 }
 
 TEST_CASE("ZM::UdpInetSocket basics") {
-  ZM::UdpInetSocket socket;
+  zm::UdpInetSocket socket;
   REQUIRE(socket.isClosed() == true);
   REQUIRE(socket.isOpen() == false);
   REQUIRE(socket.isConnected() == false);
@@ -161,8 +161,8 @@ TEST_CASE("ZM::UdpInetSocket basics") {
 }
 
 TEST_CASE("ZM::UdpInetSocket send/recv") {
-  ZM::UdpInetSocket srv_socket;
-  ZM::UdpInetSocket client_socket;
+  zm::UdpInetSocket srv_socket;
+  zm::UdpInetSocket client_socket;
 
   std::array<char, 3> msg = {'a', 'b', 'c'};
   std::array<char, msg.size()> rcv{};
@@ -190,7 +190,7 @@ TEST_CASE("ZM::UdpUnixSocket basics") {
   std::string sock_path = "/tmp/zm.unittest.sock";
   unlink(sock_path.c_str()); // make sure the socket file does not exist
 
-  ZM::UdpUnixSocket socket;
+  zm::UdpUnixSocket socket;
   REQUIRE(socket.isClosed() == true);
   REQUIRE(socket.isOpen() == false);
   REQUIRE(socket.isConnected() == false);
@@ -221,33 +221,52 @@ TEST_CASE("ZM::UdpUnixSocket send/recv") {
   std::string sock_path = "/tmp/zm.unittest.sock";
   unlink(sock_path.c_str()); // make sure the socket file does not exist
 
-  ZM::UdpUnixSocket srv_socket;
-  ZM::UdpUnixSocket client_socket;
+  zm::UdpUnixSocket srv_socket;
+  zm::UdpUnixSocket client_socket;
 
-  std::array<char, 3> msg = {'a', 'b', 'c'};
-  std::array<char, msg.size()> rcv{};
+  SECTION("send/recv byte buffer") {
+    std::array<char, 3> msg = {'a', 'b', 'c'};
+    std::array<char, msg.size()> rcv{};
 
-  SECTION("send/recv on unbound socket") {
-    REQUIRE(client_socket.send(msg.data(), msg.size()) == -1);
-    REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == -1);
+    SECTION("on unbound socket") {
+      REQUIRE(client_socket.send(msg.data(), msg.size()) == -1);
+      REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == -1);
+    }
+
+    SECTION("on bound socket") {
+      REQUIRE(srv_socket.bind(sock_path.c_str()) == true);
+      REQUIRE(srv_socket.isOpen() == true);
+
+      REQUIRE(client_socket.connect(sock_path.c_str()) == true);
+      REQUIRE(client_socket.isConnected() == true);
+
+      REQUIRE(client_socket.send(msg.data(), msg.size()) == msg.size());
+      REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == msg.size());
+
+      REQUIRE(rcv == msg);
+    }
   }
 
-  SECTION("send/recv") {
+  SECTION("send/recv string") {
+    std::string msg = "abc";
+    std::string rcv;
+    rcv.reserve(msg.length());
+
     REQUIRE(srv_socket.bind(sock_path.c_str()) == true);
     REQUIRE(srv_socket.isOpen() == true);
 
     REQUIRE(client_socket.connect(sock_path.c_str()) == true);
     REQUIRE(client_socket.isConnected() == true);
 
-    REQUIRE(client_socket.send(msg.data(), msg.size()) == msg.size());
-    REQUIRE(srv_socket.recv(rcv.data(), rcv.size()) == msg.size());
+    REQUIRE(client_socket.send(msg) == static_cast<ssize_t>(msg.size()));
+    REQUIRE(srv_socket.recv(rcv) == static_cast<ssize_t>(msg.size()));
 
     REQUIRE(rcv == msg);
   }
 }
 
 TEST_CASE("ZM::TcpInetClient basics") {
-  ZM::TcpInetClient client;
+  zm::TcpInetClient client;
   REQUIRE(client.isClosed() == true);
   REQUIRE(client.isOpen() == false);
   REQUIRE(client.isConnected() == false);
@@ -261,7 +280,7 @@ TEST_CASE("ZM::TcpInetClient basics") {
 }
 
 TEST_CASE("ZM::TcpInetServer basics", "[notCI]") {
-  ZM::TcpInetServer server;
+  zm::TcpInetServer server;
   REQUIRE(server.isClosed() == true);
   REQUIRE(server.isOpen() == false);
   REQUIRE(server.isConnected() == false);
@@ -287,8 +306,8 @@ TEST_CASE("ZM::TcpInetServer basics", "[notCI]") {
 }
 
 TEST_CASE("ZM::TcpInetClient/Server send/recv", "[notCI]") {
-  ZM::TcpInetServer server;
-  ZM::TcpInetClient client;
+  zm::TcpInetServer server;
+  zm::TcpInetClient client;
 
   std::array<char, 3> msg = {'a', 'b', 'c'};
   std::array<char, msg.size()> rcv{};

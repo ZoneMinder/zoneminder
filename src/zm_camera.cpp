@@ -90,20 +90,12 @@ AVStream *Camera::getVideoStream() {
     mVideoStream = avformat_new_stream(mFormatContext, nullptr);
     if ( mVideoStream ) {
       mVideoStream->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       mVideoStream->codecpar->width = width;
       mVideoStream->codecpar->height = height;
       mVideoStream->codecpar->format = GetFFMPEGPixelFormat(colours, subpixelorder);
       mVideoStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
       mVideoStream->codecpar->codec_id = AV_CODEC_ID_NONE;
-    Debug(1, "Allocating avstream %p %p %d", mVideoStream, mVideoStream->codecpar, mVideoStream->codecpar->codec_id);
-#else
-      mVideoStream->codec->width = width;
-      mVideoStream->codec->height = height;
-      mVideoStream->codec->pix_fmt = GetFFMPEGPixelFormat(colours, subpixelorder);
-      mVideoStream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
-      mVideoStream->codec->codec_id = AV_CODEC_ID_NONE;
-#endif
+      Debug(1, "Allocating avstream %p %p %d", mVideoStream, mVideoStream->codecpar, mVideoStream->codecpar->codec_id);
     } else {
       Error("Can't create video stream");
     }

@@ -23,7 +23,7 @@
 #include "zm_fifo_debug.h"
 #include "zm_monitor.h"
 
-void Zone::Setup( 
+void Zone::Setup(
   ZoneType p_type,
   const Polygon &p_polygon,
   const Rgb p_alarm_rgb,
@@ -32,7 +32,7 @@ void Zone::Setup(
   int p_max_pixel_threshold,
   int p_min_alarm_pixels,
   int p_max_alarm_pixels,
-  const Coord &p_filter_box,
+  const Vector2 &p_filter_box,
   int p_min_filter_pixels,
   int p_max_filter_pixels,
   int p_min_blob_pixels,
@@ -104,25 +104,25 @@ void Zone::Setup(
       diag_path = stringtf("%s/diag-%d-poly.jpg",
           monitor->getStorage()->Path(), id);
     }
-    pg_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
+
+    pg_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
   }
 }  // end Zone::Setup
 
 Zone::~Zone() {
-  if ( image )
+  if (image)
     delete image;
   delete pg_image;
   delete[] ranges;
 }
 
 void Zone::RecordStats(const Event *event) {
-  static char sql[ZM_SQL_MED_BUFSIZ];
-  snprintf(sql, sizeof(sql),
+  std::string sql = stringtf(
       "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, "
       "PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, "
       "Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, "
       "MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
-      monitor->Id(), id, event->Id(), event->Frames(), 
+      monitor->Id(), id, event->Id(), event->Frames(),
       stats.pixel_diff_,
       stats.alarm_pixels_,
       stats.alarm_filter_pixels_,
@@ -130,10 +130,10 @@ void Zone::RecordStats(const Event *event) {
       stats.alarm_blobs_,
       stats.min_blob_size_,
       stats.max_blob_size_,
-      stats.alarm_box_.LoX(),
-      stats.alarm_box_.LoY(),
-      stats.alarm_box_.HiX(),
-      stats.alarm_box_.HiY(),
+      stats.alarm_box_.Lo().x_,
+      stats.alarm_box_.Lo().y_,
+      stats.alarm_box_.Hi().x_,
+      stats.alarm_box_.Hi().y_,
       stats.score_
       );
   zmDbDo(sql);
@@ -219,10 +219,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   int alarm_mid_x = -1;
   int alarm_mid_y = -1;
 
-  unsigned int lo_y = polygon.LoY();
-  unsigned int lo_x = polygon.LoX();
-  unsigned int hi_x = polygon.HiX();
-  unsigned int hi_y = polygon.HiY();
+  unsigned int lo_x = polygon.Extent().Lo().x_;
+  unsigned int lo_y = polygon.Extent().Lo().y_;
+  unsigned int hi_x = polygon.Extent().Hi().x_;
+  unsigned int hi_y = polygon.Extent().Hi().y_;
 
   Debug(4, "Checking alarms for zone %d/%s in lines %d -> %d", id, label.c_str(), lo_y, hi_y);
 
@@ -233,8 +233,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
      } */
   std_alarmedpixels(diff_image, pg_image, &stats.alarm_pixels_, &pixel_diff_count);
 
-  if (config.record_diag_images)
-    diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
+  if (config.record_diag_images) {
+    diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
+  }
 
   if (pixel_diff_count && stats.alarm_pixels_)
     stats.pixel_diff_ = pixel_diff_count/stats.alarm_pixels_;
@@ -267,8 +268,8 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   Debug(5, "Current score is %d", stats.score_);
 
   if (check_method >= FILTERED_PIXELS) {
-    int bx = filter_box.X();
-    int by = filter_box.Y();
+    int bx = filter_box.x_;
+    int by = filter_box.y_;
     int bx1 = bx-1;
     int by1 = by-1;
 
@@ -317,8 +318,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       stats.alarm_filter_pixels_ = stats.alarm_pixels_;
     }
 
-    if (config.record_diag_images)
-      diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
+    if (config.record_diag_images) {
+      diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
+    }
 
     Debug(5, "Got %d filtered pixels, need %d -> %d",
           stats.alarm_filter_pixels_, min_filter_pixels, max_filter_pixels);
@@ -541,8 +543,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         }
       }
 
-      if (config.record_diag_images)
-        diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
+      if (config.record_diag_images) {
+        diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
+      }
 
       if (!stats.alarm_blobs_) {
         stats.score_ = 0;
@@ -593,8 +596,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         } // end if bs_count
       } // end for i < WHITE
 
-      if (config.record_diag_images)
-        diff_image->WriteJpeg(diag_path.c_str(), config.record_diag_images_fifo);
+      if (config.record_diag_images) {
+        diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
+      }
 
       Debug(5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d",
             stats.alarm_blob_pixels_, stats.alarm_blobs_, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
@@ -620,20 +624,20 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         stats.score_ = 0;
         return false;
       }
-      
+
       if (max_blob_pixels != 0)
         stats.score_ = (100*stats.alarm_blob_pixels_)/max_blob_pixels;
-      else 
+      else
         stats.score_ = (100*stats.alarm_blob_pixels_)/polygon.Area();
-      
+
       if (stats.score_ < 1)
         stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
       Debug(5, "Current score is %d", stats.score_);
 
-      alarm_lo_x = polygon.HiX()+1;
-      alarm_hi_x = polygon.LoX()-1;
-      alarm_lo_y = polygon.HiY()+1;
-      alarm_hi_y = polygon.LoY()-1;
+      alarm_lo_x = polygon.Extent().Hi().x_ + 1;
+      alarm_hi_x = polygon.Extent().Lo().x_ - 1;
+      alarm_lo_y = polygon.Extent().Hi().y_ + 1;
+      alarm_hi_y = polygon.Extent().Lo().y_ - 1;
 
       for (uint32 i = 1; i < kWhite; i++) {
         BlobStats *bs = &blob_stats[i];
@@ -684,11 +688,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   // Now outline the changed region
   if (stats.score_) {
-    stats.alarm_box_ = Box(Coord(alarm_lo_x, alarm_lo_y), Coord(alarm_hi_x, alarm_hi_y));
+    stats.alarm_box_ = Box(Vector2(alarm_lo_x, alarm_lo_y), Vector2(alarm_hi_x, alarm_hi_y));
 
     //if ( monitor->followMotion() )
     if ( true ) {
-      stats.alarm_centre_ = Coord(alarm_mid_x, alarm_mid_y);
+      stats.alarm_centre_ = Vector2(alarm_mid_x, alarm_mid_y);
     } else {
       stats.alarm_centre_ = stats.alarm_box_.Centre();
     }
@@ -748,37 +752,39 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
 bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
   char *str = (char *)poly_string;
-  int n_coords = 0;
   int max_n_coords = strlen(str)/4;
-  Coord *coords = new Coord[max_n_coords];
+
+  std::vector<Vector2> vertices;
+  vertices.reserve(max_n_coords);
+
   while (*str != '\0') {
     char *cp = strchr(str, ',');
     if (!cp) {
       Error("Bogus coordinate %s found in polygon string", str);
       break;
-    } 
+    }
+
     int x = atoi(str);
-    int y = atoi(cp+1);
+    int y = atoi(cp + 1);
     Debug(3, "Got coordinate %d,%d from polygon string", x, y);
-    coords[n_coords++] = Coord(x, y);
+    vertices.emplace_back(x, y);
 
-    char *ws = strchr(cp+2, ' ');
-    if (ws)
-      str = ws+1;
-    else
+    char *ws = strchr(cp + 2, ' ');
+    if (ws) {
+      str = ws + 1;
+    } else {
       break;
-  }  // end while ! end of string
-
-  if (n_coords > 2) {
-    Debug(3, "Successfully parsed polygon string %s", str);
-    polygon = Polygon(n_coords, coords);
-  } else {
-    Error("Not enough coordinates to form a polygon!");
-    n_coords = 0;
+    }
   }
 
-  delete[] coords;
-  return n_coords ? true : false;
+  if (vertices.size() > 2) {
+    Debug(3, "Successfully parsed polygon string %s", str);
+    polygon = Polygon(vertices);
+  } else {
+    Error("Not enough coordinates to form a polygon!");
+  }
+
+  return !vertices.empty();
 }  // end bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon)
 
 bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon) {
@@ -828,7 +834,7 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
                              "OverloadFrames,ExtendAlarmFrames"
                              " FROM Zones WHERE MonitorId = %d ORDER BY Type, Id", monitor->Id());
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  MYSQL_RES *result = zmDbFetch(sql);
   if (!result) {
     return {};
   }
@@ -872,14 +878,21 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
       continue;
     }
 
-    if ( polygon.LoX() < 0 || polygon.HiX() >= (int)monitor->Width() 
-        || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() ) {
+    if (polygon.Extent().Lo().x_ < 0 || polygon.Extent().Hi().x_ > static_cast<int32>(monitor->Width())
+        || polygon.Extent().Lo().y_ < 0 || polygon.Extent().Hi().y_ > static_cast<int32>(monitor->Height())) {
       Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), fixing",
-          Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY());
-      if ( polygon.LoX() < 0 ) polygon.LoX(0);
-      if ( polygon.HiX() >= (int)monitor->Width()) polygon.HiX((int)monitor->Width());
-      if ( polygon.LoY() < 0 ) polygon.LoY(0);
-      if ( polygon.HiY() >= (int)monitor->Height() ) polygon.HiY((int)monitor->Height());
+            Id,
+            Name,
+            monitor->Name(),
+            polygon.Extent().Lo().x_,
+            polygon.Extent().Lo().y_,
+            polygon.Extent().Hi().x_,
+            polygon.Extent().Hi().y_);
+
+      polygon.Clip(Box(
+          {0, 0},
+          {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}
+      ));
     }
 
     if ( false && !strcmp( Units, "Percent" ) ) {
@@ -899,7 +912,7 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
       zones.emplace_back(
           monitor, Id, Name, Type, polygon, AlarmRGB,
           CheckMethod, MinPixelThreshold, MaxPixelThreshold,
-          MinAlarmPixels, MaxAlarmPixels, Coord(FilterX, FilterY),
+          MinAlarmPixels, MaxAlarmPixels, Vector2(FilterX, FilterY),
           MinFilterPixels, MaxFilterPixels,
           MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs,
           OverloadFrames, ExtendAlarmFrames);
@@ -922,9 +935,9 @@ bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
               type==INACTIVE?"Inactive":(
                 type==PRIVACY?"Privacy":"Unknown"
                 ))))));
-  sprintf( output+strlen(output), "  Shape : %d points\n", polygon.getNumCoords() );
-  for ( int i = 0; i < polygon.getNumCoords(); i++ ) {
-    sprintf( output+strlen(output), "  %i: %d,%d\n", i, polygon.getCoord( i ).X(), polygon.getCoord( i ).Y() );
+  sprintf( output+strlen(output), "  Shape : %zu points\n", polygon.GetVertices().size() );
+  for (size_t i = 0; i < polygon.GetVertices().size(); i++) {
+    sprintf(output + strlen(output), "  %zu: %d,%d\n", i, polygon.GetVertices()[i].x_, polygon.GetVertices()[i].y_);
   }
   sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );
   sprintf( output+strlen(output), "  Check Method: %d - %s\n", check_method,
@@ -936,7 +949,7 @@ bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
   sprintf( output+strlen(output), "  Max Pixel Threshold : %d\n", max_pixel_threshold );
   sprintf( output+strlen(output), "  Min Alarm Pixels : %d\n", min_alarm_pixels );
   sprintf( output+strlen(output), "  Max Alarm Pixels : %d\n", max_alarm_pixels );
-  sprintf( output+strlen(output), "  Filter Box : %d,%d\n", filter_box.X(), filter_box.Y() );
+  sprintf(output+strlen(output), "  Filter Box : %d,%d\n", filter_box.x_, filter_box.y_ );
   sprintf( output+strlen(output), "  Min Filter Pixels : %d\n", min_filter_pixels );
   sprintf( output+strlen(output), "  Max Filter Pixels : %d\n", max_filter_pixels );
   sprintf( output+strlen(output), "  Min Blob Pixels : %d\n", min_blob_pixels );
@@ -960,8 +973,8 @@ void Zone::std_alarmedpixels(
   if ( max_pixel_threshold )
     calc_max_pixel_threshold = max_pixel_threshold;
 
-  lo_y = polygon.LoY();
-  hi_y = polygon.HiY();
+  lo_y = polygon.Extent().Lo().y_;
+  hi_y = polygon.Extent().Hi().y_;
   for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
     unsigned int lo_x = ranges[y].lo_x;
     unsigned int hi_x = ranges[y].hi_x;

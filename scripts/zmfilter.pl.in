@@ -527,7 +527,7 @@ sub uploadArchFile {
     return(0);
   }
 
-  my $archFile = $Event->{MonitorName}.'-'.$Event->{Id};
+  my $archFile = $Event->Monitor()->Name().'-'.$Event->{Id};
   my $archImagePath = $Event->Path()
     .'/'
     .(
@@ -548,6 +548,10 @@ sub uploadArchFile {
 
     my $status = &AZ_OK;
     foreach my $imageFile ( @archImageFiles ) {
+      if (! -e $imageFile) {
+        Debug("Not adding $imageFile because it doesn't exist");
+        next;
+      }
       Debug("Adding $imageFile");
       my $member = $zip->addFile($imageFile);
       if ( !$member ) {

@@ -144,6 +144,14 @@ void RemoteCameraHttp::Initialise() {
 int RemoteCameraHttp::Connect() {
   struct addrinfo *p = nullptr;
 
+  if (!hp) {
+    RemoteCamera::Initialise();
+    if (!hp) {
+      Error("Unable to resolve address for remote camera, aborting");
+      return -1;
+    }
+  }
+
   for ( p = hp; p != nullptr; p = p->ai_next ) {
     sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
     if ( sd < 0 ) {
@@ -300,15 +308,17 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
 }  // end readData
 
 int RemoteCameraHttp::GetData() {
-	time_t start_time = time(nullptr);
-	int buffer_len = 0;
-	while (!(buffer_len = ReadData(buffer))) {
-			if (zm_terminate or ( (time(nullptr) - start_time) > ZM_WATCH_MAX_DELAY ))
-				return -1;
-		Debug(4, "Timeout waiting for REGEXP HEADER");
-		usleep(100000);
-	}
-	return buffer_len;
+  TimePoint start_time = std::chrono::steady_clock::now();
+  int buffer_len;
+  while (!(buffer_len = ReadData(buffer))) {
+    if (zm_terminate or std::chrono::steady_clock::now() - start_time > FPSeconds(config.watch_max_delay)) {
+      return -1;
+    }
+
+    Debug(4, "Timeout waiting for REGEXP HEADER");
+    std::this_thread::sleep_for(Milliseconds(100));
+  }
+  return buffer_len;
 }
 
 int RemoteCameraHttp::GetResponse() {
@@ -1069,7 +1079,7 @@ int RemoteCameraHttp::PreCapture() {
   return 1;
 }  // end int RemoteCameraHttp::PreCapture()
 
-int RemoteCameraHttp::Capture(ZMPacket &packet) {
+int RemoteCameraHttp::Capture(std::shared_ptr<ZMPacket> &packet) {
   int content_length = GetResponse();
   if (content_length == 0) {
     Warning("Unable to capture image, retrying");
@@ -1080,15 +1090,15 @@ int RemoteCameraHttp::Capture(ZMPacket &packet) {
     return -1;
   }
 
-  if (!packet.image) {
+  if (!packet->image) {
     Debug(4, "Allocating image");
-    packet.image = new Image(width, height, colours, subpixelorder);
+    packet->image = new Image(width, height, colours, subpixelorder);
   }
-  Image *image = packet.image;
-  packet.keyframe = 1;
-  packet.codec_type = AVMEDIA_TYPE_VIDEO;
-  packet.packet.stream_index = mVideoStreamId;
-  packet.stream = mVideoStream;
+  Image *image = packet->image;
+  packet->keyframe = 1;
+  packet->codec_type = AVMEDIA_TYPE_VIDEO;
+  packet->packet.stream_index = mVideoStreamId;
+  packet->stream = mVideoStream;
 
   switch (format) {
     case JPEG :

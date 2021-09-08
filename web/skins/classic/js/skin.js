@@ -357,6 +357,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
+          if (error == 'Unauthorized') {
+            window.location.reload(true);
+          }
           if ( ! jqxhr.responseText ) {
             console.log("No responseText in jqxhr");
             console.log(jqxhr);
@@ -778,7 +781,7 @@ function logAjaxFail(jqxhr, textStatus, error) {
 }
 
 // Load the Modal HTML via Ajax call
-function getModal(id, parameters) {
+function getModal(id, parameters, buttonconfig=null) {
   $j.getJSON(thisUrl + '?request=modal&modal='+id+'&'+parameters)
       .done(function(data) {
         if ( !data ) {
@@ -787,7 +790,7 @@ function getModal(id, parameters) {
         }
 
         insertModalHtml(id, data.html);
-        manageModalBtns(id);
+        buttonconfig ? buttonconfig() : manageModalBtns(id);
         modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {
           console.log('No modal found');
@@ -795,6 +798,14 @@ function getModal(id, parameters) {
         $j('#'+id+'Modal').modal('show');
       })
       .fail(logAjaxFail);
+}
+
+function showModal(id, buttonconfig=null) {
+  var div = $j('#'+id+'Modal');
+  if ( ! div.length ) {
+    getModal(id, buttonconfig);
+  }
+  div.modal('show');
 }
 
 function manageModalBtns(id) {

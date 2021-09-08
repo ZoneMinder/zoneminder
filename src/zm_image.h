@@ -20,19 +20,19 @@
 #ifndef ZM_IMAGE_H
 #define ZM_IMAGE_H
 
-#include "zm_coord.h"
 #include "zm_ffmpeg.h"
 #include "zm_jpeg.h"
 #include "zm_logger.h"
 #include "zm_mem_utils.h"
 #include "zm_rgb.h"
+#include "zm_time.h"
+#include "zm_vector2.h"
 
 #if HAVE_ZLIB_H
 #include <zlib.h>
 #endif // HAVE_ZLIB_H
 
 class Box;
-class Image;
 class Polygon;
 
 #define ZM_BUFTYPE_DONTFREE 0
@@ -96,24 +96,6 @@ class Image {
     void update_function_pointers();
 
   protected:
-    struct Edge {
-      int min_y;
-      int max_y;
-      double min_x;
-      double _1_m;
-
-      static bool CompareYX(const Edge &e1, const Edge &e2) {
-        if ( e1.min_y == e2.min_y )
-          return e1.min_x < e2.min_x;
-        return e1.min_y < e2.min_y;
-      }
-
-      static bool CompareX(const Edge &e1, const Edge &e2) {
-        return e1.min_x < e2.min_x;
-      }
-    };
-	
-
     inline void AllocImgBuffer(size_t p_bufsize) {
       if ( buffer )
         DumpImgBuffer();
@@ -251,14 +233,17 @@ class Image {
     bool ReadRaw(const char *filename);
     bool WriteRaw(const char *filename) const;
 
-    bool ReadJpeg(const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
+  bool ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder);
 
-    bool WriteJpeg(const char *filename) const;
-    bool WriteJpeg(const char *filename, bool on_blocking_abort) const;
-    bool WriteJpeg(const char *filename, int quality_override) const;
-    bool WriteJpeg(const char *filename, struct timeval timestamp) const;
-    bool WriteJpeg(const char *filename, int quality_override, struct timeval timestamp) const;
-    bool WriteJpeg(const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort) const;
+  bool WriteJpeg(const std::string &filename) const;
+  bool WriteJpeg(const std::string &filename, bool on_blocking_abort) const;
+  bool WriteJpeg(const std::string &filename, int quality_override) const;
+  bool WriteJpeg(const std::string &filename, SystemTimePoint timestamp) const;
+  bool WriteJpeg(const std::string &filename, int quality_override, SystemTimePoint timestamp) const;
+  bool WriteJpeg(const std::string &filename,
+                 int quality_override,
+                 SystemTimePoint timestamp,
+                 bool on_blocking_abort) const;
 
     bool DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
     bool EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_override=0) const;
@@ -280,16 +265,16 @@ class Image {
     //Image *Delta( const Image &image ) const;
     void Delta( const Image &image, Image* targetimage) const;
 
-    const Coord centreCoord(const char *text, const int size) const;
+    const Vector2 centreCoord(const char *text, const int size) const;
     void MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour=0x00222222 );
     void Annotate(const std::string &text,
-                const Coord &coord,
+                const Vector2 &coord,
                 uint8 size = 1,
                 Rgb fg_colour = kRGBWhite,
                 Rgb bg_colour = kRGBBlack);
     Image *HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits=0 );
     //Image *HighlightEdges( Rgb colour, const Polygon &polygon );
-    void Timestamp( const char *label, const time_t when, const Coord &coord, const int size );
+    void Timestamp(const char *label, SystemTimePoint when, const Vector2 &coord, int label_size);
     void Colourise(const unsigned int p_reqcolours, const unsigned int p_reqsubpixelorder);
     void DeColourise();
 
@@ -297,8 +282,8 @@ class Image {
     void Fill( Rgb colour, const Box *limits=0 );
     void Fill( Rgb colour, int density, const Box *limits=0 );
     void Outline( Rgb colour, const Polygon &polygon );
-    void Fill( Rgb colour, const Polygon &polygon );
-    void Fill( Rgb colour, int density, const Polygon &polygon );
+    void Fill(Rgb colour, const Polygon &polygon) { Fill(colour, 1, polygon); };
+    void Fill(Rgb colour, int density, const Polygon &polygon);
 
     void Rotate( int angle );
     void Flip( bool leftright );
@@ -310,6 +295,32 @@ class Image {
     void Deinterlace_Blend_CustomRatio(int divider);
     void Deinterlace_4Field(const Image* next_image, unsigned int threshold);
 };
+
+// Scan-line polygon fill algorithm
+namespace PolygonFill {
+class Edge {
+ public:
+  Edge() = default;
+  Edge(int32 min_y, int32 max_y, double min_x, double _1_m) : min_y(min_y), max_y(max_y), min_x(min_x), _1_m(_1_m) {}
+
+  static bool CompareYX(const Edge &e1, const Edge &e2) {
+    if (e1.min_y == e2.min_y) {
+      return e1.min_x < e2.min_x;
+    }
+    return e1.min_y < e2.min_y;
+  }
+
+  static bool CompareX(const Edge &e1, const Edge &e2) {
+    return e1.min_x < e2.min_x;
+  }
+
+ public:
+  int32 min_y;
+  int32 max_y;
+  double min_x;
+  double _1_m;
+};
+}
 
 #endif // ZM_IMAGE_H
 

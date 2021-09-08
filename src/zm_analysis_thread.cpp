@@ -2,7 +2,7 @@
 
 #include "zm_monitor.h"
 #include "zm_signal.h"
-#include "zm_utils.h"
+#include "zm_time.h"
 
 AnalysisThread::AnalysisThread(Monitor *monitor) :
     monitor_(monitor), terminate_(false) {
@@ -22,28 +22,8 @@ void AnalysisThread::Start() {
 }
 
 void AnalysisThread::Run() {
-  Microseconds analysis_rate = Microseconds(monitor_->GetAnalysisRate());
-  Seconds analysis_update_delay = Seconds(monitor_->GetAnalysisUpdateDelay());
-  Debug(2, "AnalysisThread::Run() has an update delay of %" PRId64 "s",
-        static_cast<int64>(analysis_update_delay.count()));
-
-  monitor_->UpdateAdaptiveSkip();
-
-  TimePoint last_analysis_update_time = std::chrono::steady_clock::now();
-  TimePoint cur_time;
-
   while (!(terminate_ or zm_terminate)) {
     // Some periodic updates are required for variable capturing framerate
-    if (analysis_update_delay != Seconds::zero()) {
-      cur_time = std::chrono::steady_clock::now();
-      Debug(2, "Updating adaptive skip");
-      if ((cur_time - last_analysis_update_time) > analysis_update_delay) {
-        analysis_rate = Microseconds(monitor_->GetAnalysisRate());
-        monitor_->UpdateAdaptiveSkip();
-        last_analysis_update_time = cur_time;
-      }
-    }
-
     Debug(2, "Analyzing");
     if (!monitor_->Analyse()) {
       if (!(terminate_ or zm_terminate)) {
@@ -51,11 +31,6 @@ void AnalysisThread::Run() {
         Debug(2, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
         std::this_thread::sleep_for(sleep_for);
       }
-    } else if (analysis_rate != Microseconds::zero()) {
-      Debug(2, "Sleeping for %" PRId64 " us", int64(analysis_rate.count()));
-      std::this_thread::sleep_for(analysis_rate);
-    } else {
-      Debug(2, "Not sleeping");
     }
   }
 }

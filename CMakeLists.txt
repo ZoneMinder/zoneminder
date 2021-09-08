@@ -69,9 +69,7 @@ include(GNUInstallDirs)
 include(CheckIncludeFile)
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
-include(CheckPrototypeDefinition_fixed)
 include(CheckTypeSize)
-include(CheckStructHasMember)
 include(CheckSendfile)
 
 # Configuration options
@@ -189,8 +187,32 @@ set(ZM_MANPAGE_DEST_PREFIX "share/man" CACHE PATH
   "Relative path used to install ZoneMinder's Man pages into a
     non-standard folder. Most Linux users will not need to change this.
     BSD users may need to set this.")
+set(ZM_CAKEPHP_CACHE "Apc" CACHE STRING
+  "Set the CakePHP cache engine, default: Apc")
+
+# Supported crypto backends. Using OpenSSL by default to be compatible with jwt-cpp.
+set(ZM_CRYPTO_BACKEND_OPTIONS gnutls openssl)
+set(ZM_CRYPTO_BACKEND openssl CACHE STRING "Determines which crypto backend should be used.")
+set_property(CACHE ZM_CRYPTO_BACKEND PROPERTY STRINGS ${ZM_CRYPTO_BACKEND_OPTIONS})
+
+if(NOT ZM_CRYPTO_BACKEND IN_LIST ZM_CRYPTO_BACKEND_OPTIONS)
+  message(FATAL_ERROR "Invalid value for ZM_CRYPTO_BACKEND. Possible options: ${ZM_CRYPTO_BACKEND_OPTIONS}")
+endif()
+
+# Supported JWT backends. Using jwt-cpp as default.
+set(ZM_JWT_BACKEND_OPTIONS libjwt jwt_cpp)
+set(ZM_JWT_BACKEND jwt_cpp CACHE STRING "Determines which JWT backend should be used.")
+set_property(CACHE ZM_JWT_BACKEND PROPERTY STRINGS ${ZM_JWT_BACKEND_OPTIONS})
+
+if(NOT ZM_JWT_BACKEND IN_LIST ZM_JWT_BACKEND_OPTIONS)
+  message(FATAL_ERROR "Invalid value for ZM_JWT_BACKEND. Possible options: ${ZM_JWT_BACKEND_OPTIONS}")
+endif()
 
 # Reassign some variables if a target distro has been specified
+if(ZM_TARGET_DISTRO MATCHES "^fc")
+  set(ZM_CAKEPHP_CACHE "Memcached")
+endif()
+
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   set(ZM_RUNDIR "/var/run/zoneminder")
   set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
@@ -246,11 +268,6 @@ if(ZM_SYSTEMD OR (IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/sy
 endif()
 
 # System checks
-check_include_file("libv4l1-videodev.h" HAVE_LIBV4L1_VIDEODEV_H)
-if(NOT HAVE_LIBV4L1_VIDEODEV_H)
-  check_include_file("linux/videodev.h" HAVE_LINUX_VIDEODEV_H)
-endif()
-check_include_file("linux/videodev2.h" HAVE_LINUX_VIDEODEV2_H)
 check_include_file("execinfo.h" HAVE_EXECINFO_H)
 if(HAVE_EXECINFO_H)
   check_function_exists("backtrace" HAVE_DECL_BACKTRACE)
@@ -330,19 +347,20 @@ else()
     "ZoneMinder requires jpeg but it was not found on your system")
 endif()
 
-# LIBJWT
-find_package(LibJWT)
-if(LIBJWT_FOUND)
-  set(HAVE_LIBJWT 1)
-  set(optlibsfound "${optlibsfound} LIBJWT")
-  list(APPEND ZM_BIN_LIBS "${LIBJWT_LIBRARY}")
-else()
-  set(optlibsnotfound "${optlibsnotfound} LIBJWT")
+# libjwt
+if (${ZM_JWT_BACKEND} STREQUAL "libjwt")
+  find_package(LibJWT REQUIRED COMPONENTS ${ZM_CRYPTO_BACKEND})
+  if(LIBJWT_FOUND)
+    set(HAVE_LIBJWT 1)
+    set(optlibsfound "${optlibsfound} LIBJWT")
+  else()
+    set(optlibsnotfound "${optlibsnotfound} LIBJWT")
+  endif()
 endif()
 
-# gnutls (using find_library and find_path)
-if(HAVE_LIBJWT)
-  find_library(GNUTLS_LIBRARIES gnutls)
+# GnuTLS
+if (${ZM_CRYPTO_BACKEND} STREQUAL "gnutls")
+  find_library(GNUTLS_LIBRARIES gnutls REQUIRED)
   if(GNUTLS_LIBRARIES)
     set(HAVE_LIBGNUTLS 1)
     list(APPEND ZM_BIN_LIBS "${GNUTLS_LIBRARIES}")
@@ -352,23 +370,18 @@ if(HAVE_LIBJWT)
       set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
     endif()
     mark_as_advanced(FORCE GNUTLS_LIBRARIES GNUTLS_INCLUDE_DIR)
-    check_include_file("gnutls/gnutls.h" HAVE_GNUTLS_GNUTLS_H)
     set(optlibsfound "${optlibsfound} GnuTLS")
   else()
     set(optlibsnotfound "${optlibsnotfound} GnuTLS")
   endif()
-endif()
-
 # OpenSSL
-if(NOT HAVE_LIBGNUTLS OR NOT HAVE_LIBJWT)
-  find_package(OpenSSL)
+elseif (${ZM_CRYPTO_BACKEND} STREQUAL "openssl")
+  find_package(OpenSSL REQUIRED)
   if(OPENSSL_FOUND)
     set(HAVE_LIBOPENSSL 1)
-    set(HAVE_LIBCRYPTO 1)
     list(APPEND ZM_BIN_LIBS "${OPENSSL_LIBRARIES}")
     include_directories("${OPENSSL_INCLUDE_DIR}")
     set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
-    check_include_file("openssl/md5.h" HAVE_OPENSSL_MD5_H)
     set(optlibsfound "${optlibsfound} OpenSSL")
   else()
     set(optlibsnotfound "${optlibsnotfound} OpenSSL")
@@ -411,23 +424,6 @@ else()
   set(optlibsnotfound "${optlibsnotfound} PCRE")
 endif()
 
-# gcrypt (using find_library and find_path)
-find_library(GCRYPT_LIBRARIES gcrypt)
-if(GCRYPT_LIBRARIES)
-  set(HAVE_LIBGCRYPT 1)
-  list(APPEND ZM_BIN_LIBS "${GCRYPT_LIBRARIES}")
-  find_path(GCRYPT_INCLUDE_DIR gcrypt.h)
-  if(GCRYPT_INCLUDE_DIR)
-    include_directories("${GCRYPT_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${GCRYPT_INCLUDE_DIR}")
-  endif()
-  mark_as_advanced(FORCE GCRYPT_LIBRARIES GCRYPT_INCLUDE_DIR)
-  check_include_file("gcrypt.h" HAVE_GCRYPT_H)
-  set(optlibsfound "${optlibsfound} GCrypt")
-else()
-  set(optlibsnotfound "${optlibsnotfound} GCrypt")
-endif()
-
 # mysqlclient (using find_library and find_path)
 find_library(MYSQLCLIENT_LIBRARIES mysqlclient PATH_SUFFIXES mysql)
 if(MYSQLCLIENT_LIBRARIES)
@@ -447,129 +443,19 @@ else()
   message(FATAL_ERROR "ZoneMinder requires mysqlclient but it was not found on your system")
 endif()
 
+find_package(FFMPEG 55.34.100 REQUIRED
+  COMPONENTS
+    avcodec
+    avformat
+    avutil
+    swresample
+    swscale)
+
+set(CMAKE_REQUIRED_INCLUDES ${FFMPEG_avutil_INCLUDE_DIRS})
+check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
+
 set(PATH_FFMPEG "")
 set(OPT_FFMPEG "no")
-# avformat (using find_library and find_path)
-find_library(AVFORMAT_LIBRARIES avformat)
-if(AVFORMAT_LIBRARIES)
-  set(HAVE_LIBAVFORMAT 1)
-  list(APPEND ZM_BIN_LIBS "${AVFORMAT_LIBRARIES}")
-  find_path(AVFORMAT_INCLUDE_DIR "libavformat/avformat.h" /usr/include/ffmpeg)
-  if(AVFORMAT_INCLUDE_DIR)
-    include_directories("${AVFORMAT_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${AVFORMAT_INCLUDE_DIR}")
-  endif()
-  mark_as_advanced(FORCE AVFORMAT_LIBRARIES AVFORMAT_INCLUDE_DIR)
-  check_include_file("libavformat/avformat.h" HAVE_LIBAVFORMAT_AVFORMAT_H)
-  set(optlibsfound "${optlibsfound} AVFormat")
-else()
-  set(optlibsnotfound "${optlibsnotfound} AVFormat")
-endif()
-
-# avcodec (using find_library and find_path)
-find_library(AVCODEC_LIBRARIES avcodec)
-if(AVCODEC_LIBRARIES)
-  set(HAVE_LIBAVCODEC 1)
-  list(APPEND ZM_BIN_LIBS "${AVCODEC_LIBRARIES}")
-  find_path(AVCODEC_INCLUDE_DIR "libavcodec/avcodec.h" /usr/include/ffmpeg)
-  if(AVCODEC_INCLUDE_DIR)
-    include_directories("${AVCODEC_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${AVCODEC_INCLUDE_DIR}")
-  endif()
-  mark_as_advanced(FORCE AVCODEC_LIBRARIES AVCODEC_INCLUDE_DIR)
-  check_include_file("libavcodec/avcodec.h" HAVE_LIBAVCODEC_AVCODEC_H)
-  set(optlibsfound "${optlibsfound} AVCodec")
-else()
-  message(WARNING "\nWhile it should be possible to build ZM without AVCODEC the result will pretty useless.")
-  set(optlibsnotfound "${optlibsnotfound} AVCodec")
-endif()
-
-# avdevice (using find_library and find_path)
-find_library(AVDEVICE_LIBRARIES avdevice)
-if(AVDEVICE_LIBRARIES)
-  set(HAVE_LIBAVDEVICE 1)
-  list(APPEND ZM_BIN_LIBS "${AVDEVICE_LIBRARIES}")
-  find_path(AVDEVICE_INCLUDE_DIR "libavdevice/avdevice.h" /usr/include/ffmpeg)
-  if(AVDEVICE_INCLUDE_DIR)
-    include_directories("${AVDEVICE_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${AVDEVICE_INCLUDE_DIR}")
-  endif()
-  mark_as_advanced(FORCE AVDEVICE_LIBRARIES AVDEVICE_INCLUDE_DIR)
-  check_include_file("libavdevice/avdevice.h" HAVE_LIBAVDEVICE_AVDEVICE_H)
-  set(optlibsfound "${optlibsfound} AVDevice")
-else()
-  set(optlibsnotfound "${optlibsnotfound} AVDevice")
-endif()
-
-# avutil (using find_library and find_path)
-find_library(AVUTIL_LIBRARIES avutil)
-if(AVUTIL_LIBRARIES)
-  set(HAVE_LIBAVUTIL 1)
-  list(APPEND ZM_BIN_LIBS "${AVUTIL_LIBRARIES}")
-  find_path(AVUTIL_INCLUDE_DIR "libavutil/avutil.h" /usr/include/ffmpeg)
-  if(AVUTIL_INCLUDE_DIR)
-    include_directories("${AVUTIL_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${AVUTIL_INCLUDE_DIR}")
-  endif()
-  mark_as_advanced(FORCE AVUTIL_LIBRARIES AVUTIL_INCLUDE_DIR)
-  check_include_file("libavutil/avutil.h" HAVE_LIBAVUTIL_AVUTIL_H)
-  check_include_file("libavutil/mathematics.h" HAVE_LIBAVUTIL_MATHEMATICS_H)
-  check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
-  set(optlibsfound "${optlibsfound} AVUtil")
-else()
-  set(optlibsnotfound "${optlibsnotfound} AVUtil")
-endif()
-
-# swscale (using find_library and find_path)
-find_library(SWSCALE_LIBRARIES swscale)
-if(SWSCALE_LIBRARIES)
-  set(HAVE_LIBSWSCALE 1)
-  list(APPEND ZM_BIN_LIBS "${SWSCALE_LIBRARIES}")
-  find_path(SWSCALE_INCLUDE_DIR "libswscale/swscale.h" /usr/include/ffmpeg)
-  if(SWSCALE_INCLUDE_DIR)
-    include_directories("${SWSCALE_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${SWSCALE_INCLUDE_DIR}")
-  endif()
-  mark_as_advanced(FORCE SWSCALE_LIBRARIES SWSCALE_INCLUDE_DIR)
-  check_include_file("libswscale/swscale.h" HAVE_LIBSWSCALE_SWSCALE_H)
-  set(optlibsfound "${optlibsfound} SWScale")
-else()
-  set(optlibsnotfound "${optlibsnotfound} SWScale")
-endif()
-
-# SWresample (using find_library and find_path)
-find_library(SWRESAMPLE_LIBRARIES swresample)
-if(SWRESAMPLE_LIBRARIES)
-  set(HAVE_LIBSWRESAMPLE 1)
-  list(APPEND ZM_BIN_LIBS "${SWRESAMPLE_LIBRARIES}")
-  find_path(SWRESAMPLE_INCLUDE_DIR "libswresample/swresample.h" /usr/include/ffmpeg)
-  if(SWRESAMPLE_INCLUDE_DIR)
-    include_directories("${SWRESAMPLE_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${SWRESAMPLE_INCLUDE_DIR}")
-  endif()
-  mark_as_advanced(FORCE SWRESAMPLE_LIBRARIES SWRESAMPLE_INCLUDE_DIR)
-  check_include_file("libswresample/swresample.h" HAVE_LIBSWRESAMPLE_SWRESAMPLE_H)
-  set(optlibsfound "${optlibsfound} SWResample")
-else()
-  set(optlibsnotfound "${optlibsnotfound} SWResample")
-
-  # AVresample (using find_library and find_path)
-  find_library(AVRESAMPLE_LIBRARIES avresample)
-  if(AVRESAMPLE_LIBRARIES)
-    set(HAVE_LIBAVRESAMPLE 1)
-    list(APPEND ZM_BIN_LIBS "${AVRESAMPLE_LIBRARIES}")
-    find_path(AVRESAMPLE_INCLUDE_DIR "libavresample/avresample.h" /usr/include/ffmpeg)
-    if(AVRESAMPLE_INCLUDE_DIR)
-      include_directories("${AVRESAMPLE_INCLUDE_DIR}")
-      set(CMAKE_REQUIRED_INCLUDES "${AVRESAMPLE_INCLUDE_DIR}")
-    endif()
-    mark_as_advanced(FORCE AVRESAMPLE_LIBRARIES AVRESAMPLE_INCLUDE_DIR)
-    check_include_file("libavresample/avresample.h" HAVE_LIBAVRESAMPLE_AVRESAMPLE_H)
-    set(optlibsfound "${optlibsfound} AVResample")
-  else()
-    set(optlibsnotfound "${optlibsnotfound} AVResample")
-  endif()
-endif()
 
 # Find the path to the ffmpeg executable
 find_program(FFMPEG_EXECUTABLE
@@ -636,29 +522,19 @@ endif()
 #
 # *** END OF LIBRARY CHECKS ***
 
-# Check for gnutls or crypto
-if((NOT HAVE_LIBCRYPTO) AND (NOT HAVE_LIBGNUTLS))
-  message(FATAL_ERROR "ZoneMinder requires crypto or gnutls but none were found on your system")
+# If libjwt is not present we fall back to jwt-cpp which requires OpenSSL
+if((NOT HAVE_LIBJWT) AND (NOT HAVE_LIBOPENSSL))
+  message(FATAL_ERROR "Using the jwt-cpp backend requires OpenSSL as crypto backend.")
 endif()
 
-# Check for V4L header files and enable ZM_HAS_V4L, ZM_HAS_V4L1, ZM_HAS_V4L2 accordingly
-# Setting to zeros first is required because ZM uses #define for these
-set(ZM_HAS_V4L 0)
-set(ZM_HAS_V4L1 0)
-set(ZM_HAS_V4L2 0)
-if(HAVE_LINUX_VIDEODEV_H OR HAVE_LIBV4L1_VIDEODEV_H)
-  set(ZM_HAS_V4L 1)
-  set(ZM_HAS_V4L1 1)
-endif()
-if(HAVE_LINUX_VIDEODEV2_H)
-  set(ZM_HAS_V4L 1)
+find_package(V4L2)
+if(TARGET V4L2::videodev2)
   set(ZM_HAS_V4L2 1)
-endif()
-if((NOT HAVE_LINUX_VIDEODEV_H)
-  AND (NOT HAVE_LIBV4L1_VIDEODEV_H)
-  AND (NOT HAVE_LINUX_VIDEODEV2_H))
+else()
+  set(ZM_HAS_V4L2 0)
   message(AUTHOR_WARNING "Video 4 Linux headers weren't found - Analog and USB camera support will not be available")
 endif()
+
 # Check for PCRE and enable ZM_PCRE accordingly
 set(ZM_PCRE 0)
 if(HAVE_LIBPCRE AND HAVE_PCRE_H)
@@ -677,42 +553,6 @@ endif()
 set(ZM_HAS_ONVIF 0)
 if(ZM_ONVIF)
   set(ZM_HAS_ONVIF 1)
-endif()
-
-# Check for authentication functions
-if(HAVE_OPENSSL_MD5_H)
-  set(CMAKE_REQUIRED_LIBRARIES "${OPENSSL_LIBRARIES}")
-  set(CMAKE_REQUIRED_INCLUDES "${OPENSSL_INCLUDE_DIR}")
-  check_prototype_definition(
-    MD5
-    "unsigned char *MD5(const unsigned char *d, size_t n, unsigned char *md)" "NULL" "openssl/md5.h"
-    HAVE_MD5_OPENSSL)
-endif()
-
-if(HAVE_GNUTLS_GNUTLS_H)
-  set(CMAKE_REQUIRED_LIBRARIES "${GNUTLS_LIBRARIES}")
-  set(CMAKE_REQUIRED_INCLUDES "${GNUTLS_INCLUDE_DIR}")
-  check_prototype_definition(
-    gnutls_fingerprint
-    "int gnutls_fingerprint (gnutls_digest_algorithm_t algo, const gnutls_datum_t * data, void *result, size_t * result_size)" "0" "stdlib.h;gnutls/gnutls.h"
-    HAVE_DECL_GNUTLS_FINGERPRINT)
-endif()
-
-if(NOT HAVE_DECL_GNUTLS_FINGERPRINT AND HAVE_MD5_OPENSSL)
-  set(HAVE_DECL_MD5 1)
-endif()
-
-if((NOT HAVE_MD5_OPENSSL) AND (NOT HAVE_DECL_GNUTLS_FINGERPRINT))
-  message(AUTHOR_WARNING
-    "ZoneMinder requires a working MD5 function for hashed authentication but
-     none were found - hashed authentication will not be available")
-endif()
-
-# Dirty fix for zm_user only using openssl's md5 if gnutls and gcrypt are not available.
-# This needs to be fixed in zm_user.[h,cpp] but such fix will also require changes to configure.ac
-if(HAVE_LIBCRYPTO AND HAVE_OPENSSL_MD5_H AND HAVE_MD5_OPENSSL)
-  set(HAVE_GCRYPT_H 0)
-  set(HAVE_GNUTLS_OPENSSL_H 0)
 endif()
 
 # Check for Perl
@@ -851,6 +691,9 @@ endif()
 # Print optional libraries detection status
 message(STATUS "Optional libraries found:${optlibsfound}")
 message(STATUS "Optional libraries not found:${optlibsnotfound}")
+
+message(STATUS "Enabled crypto backend: ${ZM_CRYPTO_BACKEND}")
+message(STATUS "Enabled JWT backend: ${ZM_JWT_BACKEND}")
 
 # Run ZM configuration generator
 message(STATUS "Running ZoneMinder configuration generator")

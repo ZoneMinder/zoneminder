@@ -24,12 +24,11 @@
 #include "zm_config.h"
 #include "zm_define.h"
 #include "zm_ffmpeg.h"
+#include "zm_time.h"
 #include <condition_variable>
 #include <mutex>
 #include <string>
 #include <sys/time.h>
-
-#if HAVE_LIBAVCODEC
 
 struct RtpDataHeader;
 
@@ -70,7 +69,7 @@ private:
   // Time keys
   uint32_t mRtpClock;
   uint32_t mRtpFactor;
-  struct timeval mBaseTimeReal;
+  SystemTimePoint mBaseTimeReal;
   struct timeval mBaseTimeNtp;
   uint32_t mBaseTimeRtp;
 
@@ -192,7 +191,5 @@ public:
     return( ((mLastSrTimeNtpSecs&0xffff)<<16)|(mLastSrTimeNtpFrac>>16) );
   }
 };
-
-#endif // HAVE_LIBAVCODEC
 
 #endif // ZM_RTP_SOURCE_H

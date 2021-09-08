@@ -20,7 +20,6 @@
 
 #include "zm_define.h"
 #include <array>
-#include <cassert>
 #include "span.hpp"
 #include <string>
 #include <vector>

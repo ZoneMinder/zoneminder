@@ -3,17 +3,11 @@
 
 #include "zm_define.h"
 
-#ifdef __cplusplus
 extern "C" {
-#endif
-
-#include "libavformat/avformat.h"
-#include "libavformat/avio.h"
-#include "libavcodec/avcodec.h"
-
-#ifdef __cplusplus
+#include <libavformat/avformat.h>
+#include <libavformat/avio.h>
+#include <libavcodec/avcodec.h>
 }
-#endif
 
 class FFmpeg_Input {
 

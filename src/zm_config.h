@@ -25,14 +25,6 @@
 #include "zm_config_defines.h"
 #include <string>
 
-#if !defined(PATH_MAX)
-#define PATH_MAX 1024
-#endif
-
-#ifdef HAVE_LIBAVFORMAT
-#define ZM_HAS_FFMPEG       1
-#endif // HAVE_LIBAVFORMAT
-
 #define ZM_MAX_IMAGE_WIDTH    2048        // The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_HEIGHT    1536        // The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_COLOURS    4        // The largest image we imagine ever handling
@@ -41,11 +33,6 @@
 
 #define ZM_SCALE_BASE      100          // The factor by which we bump up 'scale' to simulate FP
 #define ZM_RATE_BASE      100          // The factor by which we bump up 'rate' to simulate FP
-
-#define ZM_SQL_BATCH_SIZE     50          // Limit the size of multi-row SQL statements
-#define ZM_SQL_SML_BUFSIZ     256         // Size of SQL buffer
-#define ZM_SQL_MED_BUFSIZ     1024        // Size of SQL buffer
-#define ZM_SQL_LGE_BUFSIZ     8192        // Size of SQL buffer
 
 #define ZM_NETWORK_BUFSIZ     32768         // Size of network buffer
 
@@ -78,10 +65,10 @@ struct StaticConfig {
   std::string PATH_LOGS;
   std::string PATH_SWAP;
   std::string PATH_ARP;
-  char    capture_file_format[PATH_MAX];
-  char    analyse_file_format[PATH_MAX];
-  char    general_file_format[PATH_MAX];
-  char    video_file_format[PATH_MAX];
+  std::string capture_file_format;
+  std::string analyse_file_format;
+  std::string general_file_format;
+  std::string video_file_format;
 };
 
 extern StaticConfig staticConfig;

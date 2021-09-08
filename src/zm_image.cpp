@@ -226,14 +226,9 @@ Image::Image(const AVFrame *frame) {
   imagePixFormat = AV_PIX_FMT_RGBA;
     //(AVPixelFormat)frame->format;
 
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   size = av_image_get_buffer_size(AV_PIX_FMT_RGBA, width, height, 32);
   // av_image_get_linesize isn't aligned, so we have to do that.
   linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 32);
-#else
-  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 1);
-  size = avpicture_get_size(AV_PIX_FMT_RGB0, width, height);
-#endif
   padding = 0;
 
   buffer = nullptr;
@@ -250,7 +245,7 @@ int Image::PopulateFrame(AVFrame *frame) {
       width, height, linesize, colours, size,
       av_get_pix_fmt_name(imagePixFormat)
       );
-  AVBufferRef *ref = av_buffer_create(buffer, size, 
+  AVBufferRef *ref = av_buffer_create(buffer, size,
       dont_free, /* Free callback */
       nullptr, /* opaque */
       0 /* flags */
@@ -259,7 +254,7 @@ int Image::PopulateFrame(AVFrame *frame) {
     Warning("Failed to create av_buffer");
   }
   frame->buf[0] = ref;
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+
   // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
   int size = av_image_fill_arrays(
       frame->data, frame->linesize,
@@ -271,10 +266,7 @@ int Image::PopulateFrame(AVFrame *frame) {
         av_make_error_string(size).c_str());
     return size;
   }
-#else
-  avpicture_fill((AVPicture *)frame, buffer,
-      imagePixFormat, width, height);
-#endif
+
   frame->width = width;
   frame->height = height;
   frame->format = imagePixFormat;
@@ -576,7 +568,7 @@ void Image::Initialise() {
   if ( res == FontLoadError::kFileNotFound ) {
     Panic("Invalid font location: %s", config.font_file_location);
   } else if ( res == FontLoadError::kInvalidFile ) {
-    Panic("Invalid font file."); 
+    Panic("Invalid font file.");
   }
   initialised = true;
 }
@@ -781,7 +773,7 @@ void Image::Assign(const Image &image) {
         return;
       }
     } else {
-      if ( new_size > allocation || !buffer ) { 
+      if (new_size > allocation || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
         AllocImgBuffer(new_size);
       }
@@ -820,10 +812,10 @@ Image *Image::HighlightEdges(
   /* Set image to all black */
   high_image->Clear();
 
-  unsigned int lo_x = limits ? limits->Lo().X() : 0;
-  unsigned int lo_y = limits ? limits->Lo().Y() : 0;
-  unsigned int hi_x = limits ? limits->Hi().X() : width-1;
-  unsigned int hi_y = limits ? limits->Hi().Y() : height-1;
+  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
+  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
+  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
+  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
 
   if ( p_colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
@@ -941,7 +933,7 @@ bool Image::WriteRaw(const char *filename) const {
   return true;
 }
 
-bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int p_subpixelorder) {
+bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
   struct jpeg_decompress_struct *cinfo = readjpg_dcinfo;
 
@@ -954,8 +946,8 @@ bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int 
   }
 
   FILE *infile;
-  if ( (infile = fopen(filename, "rb")) == nullptr ) {
-    Error("Can't open %s: %s", filename, strerror(errno));
+  if ( (infile = fopen(filename.c_str(), "rb")) == nullptr ) {
+    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
@@ -1068,24 +1060,27 @@ cinfo->out_color_space = JCS_RGB;
 // Multiple calling formats to permit inclusion (or not) of non blocking, quality_override and timestamp (exif), with suitable defaults.
 // Note quality=zero means default
 
-bool Image::WriteJpeg(const char *filename, int quality_override) const {
-  return Image::WriteJpeg(filename, quality_override, (timeval){0,0}, false);
+bool Image::WriteJpeg(const std::string &filename, int quality_override) const {
+  return Image::WriteJpeg(filename, quality_override, {}, false);
 }
-bool Image::WriteJpeg(const char *filename) const {
-  return Image::WriteJpeg(filename, 0, (timeval){0,0}, false);
+bool Image::WriteJpeg(const std::string &filename) const {
+  return Image::WriteJpeg(filename, 0, {}, false);
 }
-bool Image::WriteJpeg(const char *filename, bool on_blocking_abort) const {
-  return Image::WriteJpeg(filename, 0, (timeval){0,0}, on_blocking_abort);
+bool Image::WriteJpeg(const std::string &filename, bool on_blocking_abort) const {
+  return Image::WriteJpeg(filename, 0, {}, on_blocking_abort);
 }
-bool Image::WriteJpeg(const char *filename, struct timeval timestamp) const {
+bool Image::WriteJpeg(const std::string &filename, SystemTimePoint timestamp) const {
   return Image::WriteJpeg(filename, 0, timestamp, false);
 }
 
-bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval timestamp) const {
+bool Image::WriteJpeg(const std::string &filename, int quality_override, SystemTimePoint timestamp) const {
   return Image::WriteJpeg(filename, quality_override, timestamp, false);
 }
 
-bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort) const {
+bool Image::WriteJpeg(const std::string &filename,
+                      int quality_override,
+                      SystemTimePoint timestamp,
+                      bool on_blocking_abort) const {
   if ( config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8) ) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
@@ -1119,17 +1114,17 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
     }
   }
 
-  if ( !on_blocking_abort ) {
-    if ( (outfile = fopen(filename, "wb")) == nullptr ) {
-      Error("Can't open %s for writing: %s", filename, strerror(errno));
+  if (!on_blocking_abort) {
+    if ((outfile = fopen(filename.c_str(), "wb")) == nullptr) {
+      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
       return false;
     }
   } else {
-    raw_fd = open(filename, O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-    if ( raw_fd < 0 )
+    raw_fd = open(filename.c_str(), O_WRONLY | O_NONBLOCK | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (raw_fd < 0)
       return false;
     outfile = fdopen(raw_fd, "wb");
-    if ( outfile == nullptr ) {
+    if (outfile == nullptr) {
       close(raw_fd);
       return false;
     }
@@ -1204,7 +1199,7 @@ cinfo->out_color_space = JCS_RGB;
   }
   // If we have a non-zero time (meaning a parameter was passed in), then form a simple exif segment with that time as DateTimeOriginal and SubsecTimeOriginal
   // No timestamp just leave off the exif section.
-  if ( timestamp.tv_sec ) {
+  if (timestamp.time_since_epoch() > Seconds(0)) {
 #define EXIFTIMES_MS_OFFSET 0x36   // three decimal digits for milliseconds
 #define EXIFTIMES_MS_LEN  0x03
 #define EXIFTIMES_OFFSET  0x3E   // 19 characters format '2015:07:21 13:14:45' not including quotes
@@ -1213,9 +1208,15 @@ cinfo->out_color_space = JCS_RGB;
 
     // This is a lot of stuff to allocate on the stack.  Recommend char *timebuf[64];
     char timebuf[64], msbuf[64];
+
     tm timestamp_tm = {};
-    strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime_r(&timestamp.tv_sec, &timestamp_tm));
-    snprintf(msbuf, sizeof msbuf, "%06d",(int)(timestamp.tv_usec));  // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
+    time_t timestamp_t = std::chrono::system_clock::to_time_t(timestamp);
+    strftime(timebuf, sizeof timebuf, "%Y:%m:%d %H:%M:%S", localtime_r(&timestamp_t, &timestamp_tm));
+    Seconds ts_sec = std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch());
+    Microseconds ts_usec = std::chrono::duration_cast<Microseconds>(timestamp.time_since_epoch() - ts_sec);
+    // we only use milliseconds because that's all defined in exif, but this is the whole microseconds because we have it
+    snprintf(msbuf, sizeof msbuf, "%06d", static_cast<int32>(ts_usec.count()));
+
     unsigned char exiftimes[82] = {
       0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00,
       0x69, 0x87, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1508,7 +1509,7 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
 }
 
 bool Image::Crop(const Box &limits) {
-  return Crop(limits.LoX(), limits.LoY(), limits.HiX(), limits.HiY());
+  return Crop(limits.Lo().x_, limits.Lo().y_, limits.Hi().x_, limits.Hi().y_);
 }
 
 /* Far from complete */
@@ -1730,11 +1731,6 @@ void Image::Overlay( const Image &image, unsigned int x, unsigned int y ) {
 }  // end void Image::Overlay( const Image &image, unsigned int x, unsigned int y )
 
 void Image::Blend( const Image &image, int transparency ) {
-#ifdef ZM_IMAGE_PROFILING
-  struct timespec start,end,diff;
-  unsigned long long executetime;
-  unsigned long milpixels;
-#endif
   uint8_t* new_buffer;
 
   if ( !(
@@ -1752,19 +1748,21 @@ void Image::Blend( const Image &image, int transparency ) {
   new_buffer = AllocBuffer(size);
 
 #ifdef ZM_IMAGE_PROFILING
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID,&start);
+  TimePoint start = std::chrono::steady_clock::now();
 #endif
 
   /* Do the blending */
   (*blend)(buffer, image.buffer, new_buffer, size, transparency);
 
 #ifdef ZM_IMAGE_PROFILING
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
-  TimespecDiff(&start,&end,&diff);
+  TimePoint end = std::chrono::steady_clock::now();
 
-  executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
-  milpixels = (unsigned long)((long double)size)/((((long double)executetime)/1000));
-  Debug(5, "Blend: %u colours blended in %llu nanoseconds, %lu million colours/s\n",size,executetime,milpixels);
+  std::chrono::nanoseconds diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  uint64 mil_pixels = static_cast<uint64>(size / (static_cast<long double>(diff.count()) / 1000));
+  Debug(5, "Blend: %u colours blended in %" PRIi64 " nanoseconds, % " PRIi64 " million colours/s\n",
+        size,
+        static_cast<int64>(diff.count()),
+        mil_pixels);
 #endif
 
   AssignDirect(width, height, colours, subpixelorder, new_buffer, size, ZM_BUFTYPE_ZM);
@@ -1868,12 +1866,6 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
 
 /* New function to allow buffer re-using instead of allocationg memory for the delta image every time */
 void Image::Delta(const Image &image, Image* targetimage) const {
-#ifdef ZM_IMAGE_PROFILING
-  struct timespec start,end,diff;
-  unsigned long long executetime;
-  unsigned long milpixels;
-#endif
-
   if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) ) {
     Panic( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",
         width, height, colours, subpixelorder, image.width, image.height, image.colours, image.subpixelorder);
@@ -1886,7 +1878,7 @@ void Image::Delta(const Image &image, Image* targetimage) const {
   }
 
 #ifdef ZM_IMAGE_PROFILING
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID,&start);
+  TimePoint start = std::chrono::steady_clock::now();
 #endif
 
   switch ( colours ) {
@@ -1923,16 +1915,18 @@ void Image::Delta(const Image &image, Image* targetimage) const {
   }
 
 #ifdef ZM_IMAGE_PROFILING
-  clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
-  TimespecDiff(&start,&end,&diff);
+  TimePoint end = std::chrono::steady_clock::now();
 
-  executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
-  milpixels = (unsigned long)((long double)pixels)/((((long double)executetime)/1000));
-  Debug(5, "Delta: %u delta pixels generated in %llu nanoseconds, %lu million pixels/s",pixels,executetime,milpixels);
+  std::chrono::nanoseconds diff = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  uint64 mil_pixels = static_cast<uint64>(size / (static_cast<long double>(diff.count()) / 1000));
+  Debug(5, "Delta: %u delta pixels generated in %" PRIi64 " nanoseconds, % " PRIi64 " million pixels/s",
+        size,
+        static_cast<int64>(diff.count()),
+        mil_pixels);
 #endif
 }
 
-const Coord Image::centreCoord( const char *text, int size=1 ) const {
+const Vector2 Image::centreCoord(const char *text, int size = 1) const {
   int index = 0;
   int line_no = 0;
   int text_len = strlen(text);
@@ -1957,7 +1951,7 @@ const Coord Image::centreCoord( const char *text, int size=1 ) const {
   uint16_t char_height = font_variant.GetCharHeight();
   int x = (width - (max_line_len * char_width )) / 2;
   int y = (height - (line_no * char_height) ) / 2;
-  return Coord(x, y);
+  return {x, y};
 }
 
 /* RGB32 compatible: complete */
@@ -2007,7 +2001,7 @@ https://lemire.me/blog/2018/02/21/iterating-over-set-bits-quickly/
 */
 void Image::Annotate(
     const std::string &text,
-    const Coord &coord,
+    const Vector2 &coord,
     const uint8 size,
     const Rgb fg_colour,
     const Rgb bg_colour) {
@@ -2031,8 +2025,8 @@ void Image::Annotate(
 
   // Calculate initial coordinates of annotation so that everything is displayed even if the
   // user set coordinates would prevent that.
-  uint32 x0 = ZM::clamp(static_cast<uint32>(coord.X()), 0u, x0_max);
-  uint32 y0 = ZM::clamp(static_cast<uint32>(coord.Y()), 0u, y0_max);
+  uint32 x0 = zm::clamp(static_cast<uint32>(coord.x_), 0u, x0_max);
+  uint32 y0 = zm::clamp(static_cast<uint32>(coord.y_), 0u, y0_max);
 
   uint32 y = y0;
   for (const std::string &line : lines) {
@@ -2127,17 +2121,18 @@ void Image::Annotate(
   }
 }
 
-void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size ) {
+void Image::Timestamp(const char *label, SystemTimePoint when, const Vector2 &coord, int label_size) {
   char time_text[64];
   tm when_tm = {};
-  strftime(time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime_r(&when, &when_tm));
-  if ( label ) {
+  time_t when_t = std::chrono::system_clock::to_time_t(when);
+  strftime(time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime_r(&when_t, &when_tm));
+  if (label) {
     // Assume label is max 64, + ' - ' + 64 chars of time_text
     char text[132];
     snprintf(text, sizeof(text), "%s - %s", label, time_text);
-    Annotate(text, coord, size);
+    Annotate(text, coord, label_size);
   } else {
-    Annotate(time_text, coord, size);
+    Annotate(time_text, coord, label_size);
   }
 }
 
@@ -2294,10 +2289,10 @@ void Image::Fill( Rgb colour, const Box *limits ) {
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour,subpixelorder);
 
-  unsigned int lo_x = limits?limits->Lo().X():0;
-  unsigned int lo_y = limits?limits->Lo().Y():0;
-  unsigned int hi_x = limits?limits->Hi().X():width-1;
-  unsigned int hi_y = limits?limits->Hi().Y():height-1;
+  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
+  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
+  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
+  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
   if ( colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
       unsigned char *p = &buffer[(y*width)+lo_x];
@@ -2339,10 +2334,10 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour, subpixelorder);
 
-  unsigned int lo_x = limits?limits->Lo().X():0;
-  unsigned int lo_y = limits?limits->Lo().Y():0;
-  unsigned int hi_x = limits?limits->Hi().X():width-1;
-  unsigned int hi_y = limits?limits->Hi().Y():height-1;
+  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
+  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
+  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
+  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
   if ( colours == ZM_COLOUR_GRAY8 ) {
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
       unsigned char *p = &buffer[(y*width)+lo_x];
@@ -2382,17 +2377,18 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
   }
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
-  colour = rgb_convert(colour,subpixelorder);
+  colour = rgb_convert(colour, subpixelorder);
 
-  int n_coords = polygon.getNumCoords();
-  for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ ) {
-    const Coord &p1 = polygon.getCoord( i );
-    const Coord &p2 = polygon.getCoord( j );
+  size_t n_coords = polygon.GetVertices().size();
+  for (size_t j = 0, i = n_coords - 1; j < n_coords; i = j++) {
+    const Vector2 &p1 = polygon.GetVertices()[i];
+    const Vector2 &p2 = polygon.GetVertices()[j];
 
-    int x1 = p1.X();
-    int x2 = p2.X();
-    int y1 = p1.Y();
-    int y2 = p2.Y();
+    // The last pixel we can draw is width/height - 1. Clamp to that value.
+    int x1 = zm::clamp(p1.x_, 0, static_cast<int>(width - 1));
+    int x2 = zm::clamp(p2.x_, 0, static_cast<int>(width - 1));
+    int y1 = zm::clamp(p1.y_, 0, static_cast<int>(height - 1));
+    int y2 = zm::clamp(p2.y_, 0, static_cast<int>(height - 1));
 
     double dx = x2 - x1;
     double dy = y2 - y1;
@@ -2457,130 +2453,107 @@ void Image::Outline( Rgb colour, const Polygon &polygon ) {
   } // end foreach coordinate in the polygon
 }
 
-/* RGB32 compatible: complete */
+// Polygon filling is based on the Scan-line Polygon filling algorithm
 void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
-  if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) ) {
+  if (!(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32)) {
     Panic("Attempt to fill image with unexpected colours %d", colours);
   }
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour, subpixelorder);
 
-  int n_coords = polygon.getNumCoords();
-  int n_global_edges = 0;
-  Edge global_edges[n_coords];
-  for ( int j = 0, i = n_coords-1; j < n_coords; i = j++ ) {
-    const Coord &p1 = polygon.getCoord(i);
-    const Coord &p2 = polygon.getCoord(j);
+  size_t n_coords = polygon.GetVertices().size();
 
-    int x1 = p1.X();
-    int x2 = p2.X();
-    int y1 = p1.Y();
-    int y2 = p2.Y();
+  std::vector<PolygonFill::Edge> global_edges;
+  global_edges.reserve(n_coords);
+  for (size_t j = 0, i = n_coords - 1; j < n_coords; i = j++) {
+    const Vector2 &p1 = polygon.GetVertices()[i];
+    const Vector2 &p2 = polygon.GetVertices()[j];
 
-    //Debug( 9, "x1:%d,y1:%d x2:%d,y2:%d", x1, y1, x2, y2 );
-    if ( y1 == y2 )
+    // Do not add horizontal edges to the global edge table.
+    if (p1.y_ == p2.y_)
       continue;
 
-    double dx = x2 - x1;
-    double dy = y2 - y1;
+    Vector2 d = p2 - p1;
 
-    global_edges[n_global_edges].min_y = y1<y2?y1:y2;
-    global_edges[n_global_edges].max_y = y1<y2?y2:y1;
-    global_edges[n_global_edges].min_x = y1<y2?x1:x2;
-    global_edges[n_global_edges]._1_m = dx/dy;
-    n_global_edges++;
+    global_edges.emplace_back(std::min(p1.y_, p2.y_),
+                              std::max(p1.y_, p2.y_),
+                              p1.y_ < p2.y_ ? p1.x_ : p2.x_,
+                              d.x_ / static_cast<double>(d.y_));
+
   }
-  std::sort(global_edges, global_edges + n_global_edges, Edge::CompareYX);
+  std::sort(global_edges.begin(), global_edges.end(), PolygonFill::Edge::CompareYX);
 
-#ifndef ZM_DBG_OFF
-  if ( logLevel() >= Logger::DEBUG9 ) {
-    for ( int i = 0; i < n_global_edges; i++ ) {
-      Debug(9, "%d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f",
-          i, global_edges[i].min_y, global_edges[i].max_y, global_edges[i].min_x, global_edges[i]._1_m);
-    }
-  }
-#endif
+  std::vector<PolygonFill::Edge> active_edges;
+  active_edges.reserve(global_edges.size());
 
-  int n_active_edges = 0;
-  Edge active_edges[n_global_edges];
-  int y = global_edges[0].min_y;
-  do {
-    for ( int i = 0; i < n_global_edges; i++ ) {
-      if ( global_edges[i].min_y == y ) {
-        Debug(9, "Moving global edge");
-        active_edges[n_active_edges++] = global_edges[i];
-        if ( i < (n_global_edges-1) ) {
-          //memcpy( &global_edges[i], &global_edges[i+1], sizeof(*global_edges)*(n_global_edges-i) );
-          memmove( &global_edges[i], &global_edges[i+1], sizeof(*global_edges)*(n_global_edges-i) );
-          i--;
-        }
-        n_global_edges--;
+  int32 scan_line = global_edges[0].min_y;
+  while (!global_edges.empty() || !active_edges.empty()) {
+    // Deactivate edges with max_y < current scan line
+    for (auto it = active_edges.begin(); it != active_edges.end();) {
+      if (scan_line >= it->max_y) {
+        it = active_edges.erase(it);
       } else {
-        break;
+        it->min_x += it->_1_m;
+        ++it;
       }
     }
-    std::sort(active_edges, active_edges + n_active_edges, Edge::CompareX);
-#ifndef ZM_DBG_OFF
-    if ( logLevel() >= Logger::DEBUG9 ) {
-      for ( int i = 0; i < n_active_edges; i++ ) {
-        Debug(9, "%d - %d: min_y: %d, max_y:%d, min_x:%.2f, 1/m:%.2f",
-            y, i, active_edges[i].min_y, active_edges[i].max_y, active_edges[i].min_x, active_edges[i]._1_m );
+
+    // Activate edges with min_y == current scan line
+    for (auto it = global_edges.begin(); it != global_edges.end();) {
+      if (it->min_y == scan_line) {
+        active_edges.emplace_back(*it);
+        it = global_edges.erase(it);
+      } else {
+        ++it;
       }
     }
-#endif
-    if ( !(y%density) ) {
-      //Debug( 9, "%d", y );
-      for ( int i = 0; i < n_active_edges; ) {
-        int lo_x = int(round(active_edges[i++].min_x));
-        int hi_x = int(round(active_edges[i++].min_x));
-        if ( colours == ZM_COLOUR_GRAY8 ) {
-          unsigned char *p = &buffer[(y*width)+lo_x];
-          for ( int x = lo_x; x <= hi_x; x++, p++) {
-            if ( !(x%density) ) {
-              //Debug( 9, " %d", x );
+
+    // Not enough edges to perform the fill operation.
+    // Continue to next line.
+    if (active_edges.size() < 2) {
+      continue;
+    }
+    std::sort(active_edges.begin(), active_edges.end(), PolygonFill::Edge::CompareX);
+
+    if (!(scan_line % density)) {
+      for (auto it = active_edges.begin(); it < active_edges.end() - 1; ++it) {
+        int32 lo_x = static_cast<int32>(it->min_x);
+        int32 hi_x = static_cast<int32>(std::next(it)->min_x);
+        if (colours == ZM_COLOUR_GRAY8) {
+          uint8 *p = &buffer[(scan_line * width) + lo_x];
+
+          for (int32 x = lo_x; x <= hi_x; x++, p++) {
+            if (!(x % density)) {
               *p = colour;
             }
           }
-        } else if ( colours == ZM_COLOUR_RGB24 ) {
-          unsigned char *p = &buffer[colours*((y*width)+lo_x)];
-          for ( int x = lo_x; x <= hi_x; x++, p += 3) {
-            if ( !(x%density) ) {
-              RED_PTR_RGBA(p) = RED_VAL_RGBA(colour);
-              GREEN_PTR_RGBA(p) = GREEN_VAL_RGBA(colour);
-              BLUE_PTR_RGBA(p) = BLUE_VAL_RGBA(colour);
-            }
-          }
-        } else if( colours == ZM_COLOUR_RGB32 ) {
-          Rgb *p = (Rgb*)&buffer[((y*width)+lo_x)<<2];
-          for ( int x = lo_x; x <= hi_x; x++, p++) {
-            if ( !(x%density) ) {
-              /* Fast, copies the entire pixel in a single pass */
-              *p = colour;
-            }
-          }
-        }
-      }
-    }
-    y++;
-    for ( int i = n_active_edges-1; i >= 0; i-- ) {
-      if ( y >= active_edges[i].max_y ) {
-        // Or >= as per sheets
-        Debug(9, "Deleting active_edge");
-        if ( i < (n_active_edges-1) ) {
-          //memcpy( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
-          memmove( &active_edges[i], &active_edges[i+1], sizeof(*active_edges)*(n_active_edges-i) );
-        }
-        n_active_edges--;
-      } else {
-        active_edges[i].min_x += active_edges[i]._1_m;
-      }
-    }
-  } while ( n_global_edges || n_active_edges );
-}
+        } else if (colours == ZM_COLOUR_RGB24) {
+          constexpr uint8 bytesPerPixel = 3;
+          uint8 *ptr = &buffer[((scan_line * width) + lo_x) * bytesPerPixel];
 
-void Image::Fill(Rgb colour, const Polygon &polygon) {
-  Fill(colour, 1, polygon);
+          for (int32 x = lo_x; x <= hi_x; x++, ptr += bytesPerPixel) {
+            if (!(x % density)) {
+              RED_PTR_RGBA(ptr) = RED_VAL_RGBA(colour);
+              GREEN_PTR_RGBA(ptr) = GREEN_VAL_RGBA(colour);
+              BLUE_PTR_RGBA(ptr) = BLUE_VAL_RGBA(colour);
+            }
+          }
+        } else if (colours == ZM_COLOUR_RGB32) {
+          constexpr uint8 bytesPerPixel = 4;
+          Rgb *ptr = reinterpret_cast<Rgb *>(&buffer[((scan_line * width) + lo_x) * bytesPerPixel]);
+
+          for (int32 x = lo_x; x <= hi_x; x++, ptr++) {
+            if (!(x % density)) {
+              *ptr = colour;
+            }
+          }
+        }
+      }
+    }
+
+    scan_line++;
+  }
 }
 
 void Image::Rotate(int angle) {

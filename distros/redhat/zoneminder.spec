@@ -17,21 +17,26 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
-# Fedora needs apcu backwards compatibility module
-%if 0%{?fedora}
-%global with_apcu_bc 1
-%endif
-
 # Newer php's keep json functions in a subpackage
 %if 0%{?fedora} || 0%{?rhel} >= 8
 %global with_php_json 1
+%endif
+
+# el7 uses cmake3 package and macros
+%if 0%{?rhel} == 7
+%global cmake %{cmake3}
+%global cmake_build %{cmake3_build}
+%global cmake_install %{cmake3_install}
+%global cmake_pkg_name cmake3
+%else
+%global cmake_pkg_name cmake
 %endif
 
 # The default for everything but el7 these days
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.35.28
+Version: 1.37.1
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -56,7 +61,7 @@ BuildRequires: systemd-devel
 BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
-BuildRequires: cmake3
+BuildRequires: %{cmake_pkg_name}
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
 BuildRequires: pcre-devel 
@@ -116,8 +121,8 @@ Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
 %{?with_php_json:Requires: php-json}
-Requires: php-pecl-apcu
-%{?with_apcu_bc:Requires: php-pecl-apcu-bc}
+%{?fedora:Requires: php-pecl-memcached}
+%{?rhel:Requires: php-pecl-apcu}
 Requires: cambozola
 Requires: net-tools
 Requires: psmisc
@@ -216,16 +221,16 @@ mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 # See https://fedoraproject.org/wiki/LTOByDefault
 %define _lto_cflags %{nil}
 
-%cmake3 \
+%cmake \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
         .
 
-%cmake3_build
+%cmake_build
 
 %install
-%cmake3_install
+%cmake_install
 
 desktop-file-install					\
 	--dir %{buildroot}%{_datadir}/applications	\
@@ -425,9 +430,115 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
-* Wed Apr 07 2021 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.35.23-1
-- 1.35.23 Development snapshot
-- Build against rtspserver
+* Mon Jul 05 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.1-1
+- 1.37.x development build
+
+* Tue Jun 22 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.5-1
+- 1.36.5 release
+
+* Fri Jun 18 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.4-2
+- apcu-bc deprecated on fedora, use memcached instead
+- only refer to cmake3 when building on el7
+
+* Tue Jun 08 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.4-1
+- 1.36.4 release
+
+* Sun May 30 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.3-1
+- 1.36.3 release
+
+* Fri May 28 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.2-1
+- 1.36.2 release
+
+* Fri May 21 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.1-1
+- 1.36.1 release
+- add rtspserver submodule
+
+* Wed Apr 21 2021 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.26-1
+- 1.34.26 Release
+
+* Sun Apr 18 2021 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.24-1
+- 1.34.24 Release
+
+* Thu Feb 04 2021 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.34.23-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+
+* Sun Jan 31 2021 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.23-1
+- 1.34.23 Release
+- create ssl cert in all cases, not just nginx
+
+* Fri Jan  1 2021 Leigh Scott <leigh123linux@gmail.com> - 1.34.22-3
+- Rebuilt for new ffmpeg snapshot
+
+* Fri Nov 27 2020 Sérgio Basto <sergio@serjux.com> - 1.34.22-2
+- Mass rebuild for x264-0.161
+
+* Mon Sep 28 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.22-1
+- 1.34.22 Release
+
+* Mon Sep 28 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.21-1
+- 1.34.21 Release
+
+* Sun Aug 23 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.20-1
+- 1.34.20 Release
+- Buildrequire epel-rpm-macros on rhel
+- Update license references for js libraries
+
+* Wed Aug 19 2020 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.34.18-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
+
+* Thu Aug 06 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.18-1
+- 1.34.18 Release
+
+* Thu Aug 06 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.17-2
+- Disable LTO due to top level asm
+
+* Wed Aug 05 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.17-1
+- 1.34.17 Release
+
+* Tue Aug 04 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.16-4
+- Use new cmake build macros for f33 compat
+
+* Tue Jul 07 2020 Sérgio Basto <sergio@serjux.com> - 1.34.16-3
+- Mass rebuild for x264
+
+* Fri Jul 03 2020 Leigh Scott <leigh123linux@gmail.com> - 1.34.16-2
+- Perl 5.32 rebuild
+
+* Fri Jun 05 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.16-1
+- 1.34.16 Release
+
+* Fri May 15 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.14-1
+- 1.34.14 Release
+
+* Thu May 14 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.13-1
+- 1.34.13 Release
+
+* Sun May 10 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.12-1
+- 1.34.12 Release
+
+* Sat May 2 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.11-1
+- 1.34.11 Release
+
+* Sun Apr 26 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.10-1
+- 1.34.10 Release
+
+* Mon Apr 6 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.9-1
+- 1.34.9 Release
+
+* Sat Mar 28 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.7-1
+- 1.34.7 Release
+
+* Mon Mar 23 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.6-1
+- 1.34.6 Release
+
+* Sat Feb 29 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.5-1
+- 1.34.5 Release
+
+* Sun Feb 23 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.3-1
+- 1.34.3 Release
+
+* Sat Feb 22 2020 RPM Fusion Release Engineering <leigh123linux@googlemail.com> - 1.34.2-2
+- Rebuild for ffmpeg-4.3 git
 
 * Tue Feb 04 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.2-1
 - 1.34.2 Release

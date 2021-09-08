@@ -208,6 +208,14 @@ function getAuthUser($auth) {
   return null;
 } // end getAuthUser($auth)
 
+function calculateAuthHash($remoteAddr) {
+  global $user;
+  $local_time = localtime();
+  $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$local_time[2].$local_time[3].$local_time[4].$local_time[5];
+  #ZM\Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
+  return md5($authKey);
+}
+
 function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
   if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password']) and isset($_SESSION)) {
@@ -218,16 +226,8 @@ function generateAuthHash($useRemoteAddr, $force=false) {
 
     # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
     if ($force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime )) {
+      $auth = calculateAuthHash($useRemoteAddr?$_SESSION['remoteAddr']:'');
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
-      $local_time = localtime();
-      $authKey = '';
-      if ($useRemoteAddr) {
-        $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$_SESSION['remoteAddr'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
-      } else {
-        $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
-      }
-      #ZM\Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
-      $auth = md5($authKey);
       $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;
       # Because we don't write out the session, it shouldn't actually get written out to disk.  However if it does, the GeneratedAt should protect us.

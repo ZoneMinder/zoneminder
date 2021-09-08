@@ -54,7 +54,7 @@ public:
   int SendRequest(std::string);
   int GetResponse();
   int PrimeCapture() override;
-  int Capture(ZMPacket &p) override;
+  int Capture(std::shared_ptr<ZMPacket> &p) override;
   int PostCapture() override;
   int Close() override { return 0; };
 };

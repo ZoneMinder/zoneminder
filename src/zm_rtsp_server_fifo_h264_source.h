@@ -50,7 +50,7 @@ class H264_ZoneMinderFifoSource : public H26X_ZoneMinderFifoSource {
         std::shared_ptr<xop::RtspServer>& rtspServer,
         xop::MediaSessionId sessionId,
         xop::MediaChannelId channelId,
-        std::string fifo
+        const std::string &fifo
         );
 
 		// overide ZoneMinderFifoSource
@@ -63,7 +63,7 @@ class H265_ZoneMinderFifoSource : public H26X_ZoneMinderFifoSource {
         std::shared_ptr<xop::RtspServer>& rtspServer,
         xop::MediaSessionId sessionId,
         xop::MediaChannelId channelId,
-        std::string fifo
+        const std::string &fifo
         );
 
 		// overide ZoneMinderFifoSource

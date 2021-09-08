@@ -165,7 +165,7 @@ int cURLCamera::PreCapture() {
     return( 0 );
 }
 
-int cURLCamera::Capture( ZMPacket &zm_packet ) {
+int cURLCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   bool frameComplete = false;
 
   /* MODE_STREAM specific variables */
@@ -297,27 +297,27 @@ int cURLCamera::Capture( ZMPacket &zm_packet ) {
           need_more_data = true;
         } else {
           /* All good. decode the image */
-          zm_packet.image->DecodeJpeg(databuffer.extract(frame_content_length), frame_content_length, colours, subpixelorder);
+          zm_packet->image->DecodeJpeg(databuffer.extract(frame_content_length), frame_content_length, colours, subpixelorder);
           frameComplete = true;
         }
       }
 
       /* Attempt to get more data */
-      if(need_more_data) {
+      if (need_more_data) {
         nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
-        if(nRet != 0) {
+        if (nRet != 0) {
           Error("Failed waiting for available data condition variable: %s",strerror(nRet));
           return -1;
         }
         need_more_data = false;
       }
 
-    } else if(mode == MODE_SINGLE) { 
+    } else if (mode == MODE_SINGLE) { 
       /* Check if we have anything */
       if (!single_offsets.empty()) {
-        if( (single_offsets.front() > 0) && (databuffer.size() >= single_offsets.front()) ) {
+        if ((single_offsets.front() > 0) && (databuffer.size() >= single_offsets.front())) {
           /* Extract frame */
-          zm_packet.image->DecodeJpeg(databuffer.extract(single_offsets.front()), single_offsets.front(), colours, subpixelorder);
+          zm_packet->image->DecodeJpeg(databuffer.extract(single_offsets.front()), single_offsets.front(), colours, subpixelorder);
           single_offsets.pop_front();
           frameComplete = true;
         } else {

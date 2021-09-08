@@ -241,7 +241,7 @@ int main(int argc, const char *argv[], char **envp) {
   }
   fprintf(stdout, "Server: ZoneMinder Video Server/%s\r\n", ZM_VERSION);
 
-  time_t now = time(nullptr);
+  time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   char date_string[64];
   tm now_tm = {};
   strftime(date_string, sizeof(date_string)-1,
@@ -265,7 +265,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamQueue(connkey);
     stream.setStreamBuffer(playback_buffer);
     if ( !stream.setStreamStart(monitor_id) ) {
-      Error("Unable set start stream for monitor %d", monitor_id);
+      fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
       stream.sendTextFrame("Unable to connect to monitor");
       logTerm();
       zmDbClose();
@@ -281,19 +281,9 @@ int main(int argc, const char *argv[], char **envp) {
     } else if ( mode == ZMS_SINGLE ) {
       stream.setStreamType(MonitorStream::STREAM_SINGLE);
     } else {
-#if HAVE_LIBAVCODEC
       stream.setStreamFormat(format);
       stream.setStreamBitrate(bitrate);
       stream.setStreamType(MonitorStream::STREAM_MPEG);
-#else  // HAVE_LIBAVCODEC
-      Error("MPEG streaming of '%s' attempted while disabled", query);
-      fprintf(stderr, "MPEG streaming is disabled.\n"
-          "You should configure with the --with-ffmpeg"
-          " option and rebuild to use this functionality.\n");
-      logTerm();
-      zmDbClose();
-      return -1;
-#endif  // HAVE_LIBAVCODEC
     }
     stream.runStream();
   } else if ( source == ZMS_FIFO ) {
@@ -320,19 +310,9 @@ int main(int argc, const char *argv[], char **envp) {
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType(EventStream::STREAM_JPEG);
     } else {
-#if HAVE_LIBAVCODEC
       stream.setStreamFormat(format);
       stream.setStreamBitrate(bitrate);
       stream.setStreamType(EventStream::STREAM_MPEG);
-#else  // HAVE_LIBAVCODEC
-      Error("MPEG streaming of '%s' attempted while disabled", query);
-      fprintf(stderr, "MPEG streaming is disabled.\n"
-          "You should ensure the ffmpeg libraries are installed and detected"
-          " and rebuild to use this functionality.\n");
-      logTerm();
-      zmDbClose();
-      return -1;
-#endif  // HAVE_LIBAVCODEC
     }  // end if jpeg or mpeg
     stream.runStream();
   } else {

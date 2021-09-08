@@ -26,8 +26,6 @@
 
 #include <algorithm>
 
-#if HAVE_LIBAVFORMAT
-
 int RtspThread::smMinDataPort = 0;
 int RtspThread::smMaxDataPort = 0;
 RtspThread::PortSet RtspThread::smAssignedPorts;
@@ -88,9 +86,8 @@ bool RtspThread::recvResponse(std::string &response) {
 
 int RtspThread::requestPorts() {
   if ( !smMinDataPort ) {
-    char sql[ZM_SQL_SML_BUFSIZ];
     //FIXME Why not load specifically by Id?  This will get ineffeicient with a lot of monitors
-    strncpy(sql, "SELECT `Id` FROM `Monitors` WHERE `Function` != 'None' AND `Type` = 'Remote' AND `Protocol` = 'rtsp' AND `Method` = 'rtpUni' ORDER BY `Id` ASC", sizeof(sql));
+    std::string sql = "SELECT `Id` FROM `Monitors` WHERE `Function` != 'None' AND `Type` = 'Remote' AND `Protocol` = 'rtsp' AND `Method` = 'rtpUni' ORDER BY `Id` ASC";
 
     MYSQL_RES *result = zmDbFetch(sql);
 
@@ -188,11 +185,7 @@ RtspThread::~RtspThread() {
     mThread.join();
 
   if ( mFormatContext ) {
-#if LIBAVFORMAT_VERSION_CHECK(52, 96, 0, 96, 0)
     avformat_free_context(mFormatContext);
-#else
-    av_free_format_context(mFormatContext);
-#endif
     mFormatContext = nullptr;
   }
   if ( mSessDesc ) {
@@ -337,7 +330,8 @@ void RtspThread::Run() {
       authTried = true;
     sendCommand(message);
     // FIXME Why sleep 1?
-    usleep(10000);
+    std::this_thread::sleep_for(Microseconds(10));
+
     res = recvResponse(response);
     if ( !res && respCode==401 )
       mNeedAuth = true;
@@ -398,14 +392,7 @@ void RtspThread::Run() {
   if ( mFormatContext->nb_streams >= 1 ) {
     for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {
       SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream(i);
-#if LIBAVFORMAT_VERSION_CHECK(57, 33, 0, 33, 0)
-      if ( mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO )
-#elif (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
-      if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
-#else
-      if ( mFormatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO )
-#endif
-      {
+      if (mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
         // Check if control Url is absolute or relative
         controlUrl = mediaDesc->getControlUrl();
         if (trackUrl == controlUrl) {
@@ -418,11 +405,7 @@ void RtspThread::Run() {
           }
         }
         rtpClock = mediaDesc->getClock();
-#if LIBAVFORMAT_VERSION_CHECK(57, 33, 0, 33, 0)
         codecId = mFormatContext->streams[i]->codecpar->codec_id;
-#else
-        codecId = mFormatContext->streams[i]->codec->codec_id;
-#endif
         break;
       }  // end if is video
     }  // end foreach stream
@@ -455,15 +438,18 @@ void RtspThread::Run() {
 
   lines = Split(response, "\r\n");
   std::string session;
-  int timeout = 0;
+  Seconds timeout = Seconds(0);
   char transport[256] = "";
 
   for ( size_t i = 0; i < lines.size(); i++ ) {
     if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) ) {
       StringVector sessionLine = Split(lines[i].substr(9), ";");
       session = TrimSpaces(sessionLine[0]);
-      if ( sessionLine.size() == 2 )
-        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
+      if ( sessionLine.size() == 2 ){
+        int32 timeout_val = 0;
+        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout_val);
+        timeout = Seconds(timeout_val);
+      }
     }
     sscanf(lines[i].c_str(), "Transport: %s", transport);
   }
@@ -471,7 +457,9 @@ void RtspThread::Run() {
   if ( session.empty() )
     Fatal("Unable to get session identifier from response '%s'", response.c_str());
 
-  Debug(2, "Got RTSP session %s, timeout %d secs", session.c_str(), timeout);
+  Debug(2, "Got RTSP session %s, timeout %" PRIi64 " secs",
+        session.c_str(),
+        static_cast<int64>(Seconds(timeout).count()));
 
   if ( !transport[0] )
     Fatal("Unable to get transport details from response '%s'", response.c_str());
@@ -534,12 +522,18 @@ void RtspThread::Run() {
     if ( ( lines[i].size() > 9 ) && ( lines[i].substr(0, 9) == "RTP-Info:" ) )
       rtpInfo = TrimSpaces(lines[i].substr(9));
     // Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
-    if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) && ( timeout == 0 ) ) {
+    if ((lines[i].size() > 8) && (lines[i].substr(0, 8) == "Session:") && (timeout == Seconds(0))) {
       StringVector sessionLine = Split(lines[i].substr(9), ";");
-      if ( sessionLine.size() == 2 )
-        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout);
-      if ( timeout > 0 )
-        Debug(2, "Got timeout %d secs from PLAY command response", timeout);
+      if ( sessionLine.size() == 2 ){
+        int32 timeout_val = 0;
+        sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout_val);
+        timeout = Seconds(timeout_val);
+      }
+
+      if ( timeout > Seconds(0) ) {
+        Debug(2, "Got timeout %" PRIi64 " secs from PLAY command response",
+              static_cast<int64>(Seconds(timeout).count()));
+      }
     }
   }
 
@@ -574,8 +568,8 @@ void RtspThread::Run() {
   Debug( 2, "RTSP Seq is %d", seq );
   Debug( 2, "RTSP Rtptime is %ld", rtpTime );
 
-  time_t lastKeepalive = time(nullptr);
-  time_t now;
+  TimePoint lastKeepalive = std::chrono::steady_clock::now();
+  TimePoint now;
   message = "GET_PARAMETER "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
 
   switch( mMethod ) {
@@ -587,20 +581,21 @@ void RtspThread::Run() {
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
       while (!mTerminate) {
-        now = time(nullptr);
+        now = std::chrono::steady_clock::now();
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        Debug(5, "sendkeepalive %d, timeout %d, now: %" PRIi64 " last: %" PRIi64 " since: %" PRIi64,
+        Debug(5, "sendkeepalive %d, timeout %" PRIi64 " s, now: %" PRIi64 " s last: %" PRIi64 " s since: %" PRIi64 "s ",
               sendKeepalive,
-              timeout,
-              static_cast<int64>(now),
-              static_cast<int64>(lastKeepalive),
-              static_cast<int64>(now - lastKeepalive));
-        if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) ) {
-          if ( !sendCommand( message ) )
+              static_cast<int64>(Seconds(timeout).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>(lastKeepalive.time_since_epoch()).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>((now - lastKeepalive)).count()));
+
+        if (sendKeepalive && (timeout > Seconds(0)) && ((now - lastKeepalive) > (timeout - Seconds(5)))) {
+          if (!sendCommand(message))
             return;
           lastKeepalive = now;
         }
-        usleep( 100000 );
+        std::this_thread::sleep_for(Microseconds(100));
       }
 #if 0
       message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
@@ -638,14 +633,14 @@ void RtspThread::Run() {
       RtpDataThread rtpDataThread( *this, *source );
       RtpCtrlThread rtpCtrlThread( *this, *source );
 
-      ZM::Select select( double(config.http_timeout)/1000.0 );
+      zm::Select select(Milliseconds(config.http_timeout));
       select.addReader( &mRtspSocket );
 
       Buffer buffer( ZM_NETWORK_BUFSIZ );
       std::string keepaliveMessage = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
       std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
       while (!mTerminate && select.wait() >= 0) {
-        ZM::Select::CommsList readable = select.getReadable();
+        zm::Select::CommsList readable = select.getReadable();
         if ( readable.size() == 0 ) {
           Error( "RTSP timed out" );
           break;
@@ -711,21 +706,23 @@ void RtspThread::Run() {
         }
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
         // FIXME: Is this really necessary when using tcp ?
-        now = time(nullptr);
+        now = std::chrono::steady_clock::now();
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        Debug(5, "sendkeepalive %d, timeout %d, now: %" PRIi64 " last: %" PRIi64 " since: %" PRIi64,
+        Debug(5, "sendkeepalive %d, timeout %" PRIi64 " s, now: %" PRIi64 " s last: %" PRIi64 " s since: %" PRIi64 " s",
               sendKeepalive,
-              timeout,
-              static_cast<int64>(now),
-              static_cast<int64>(lastKeepalive),
-              static_cast<int64>(now - lastKeepalive));
-        if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
-        {
-          if ( !sendCommand( message ) )
+              static_cast<int64>(Seconds(timeout).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>(lastKeepalive.time_since_epoch()).count()),
+              static_cast<int64>(std::chrono::duration_cast<Seconds>((now - lastKeepalive)).count()));
+
+        if (sendKeepalive && (timeout > Seconds(0)) && ((now - lastKeepalive) > (timeout - Seconds(5)))) {
+          if (!sendCommand(message)) {
             return;
+          }
+
           lastKeepalive = now;
         }
-        buffer.tidy( 1 );
+        buffer.tidy(true);
       }
 #if 0
       message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
@@ -754,12 +751,14 @@ void RtspThread::Run() {
 
       while (!mTerminate) {
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        if ( sendKeepalive && (timeout > 0) && ((time(nullptr)-lastKeepalive) > (timeout-5)) ) {
-          if ( !sendCommand( message ) )
+        if (sendKeepalive && (timeout > Seconds(0))
+            && ((std::chrono::steady_clock::now() - lastKeepalive) > (timeout - Seconds(5)))) {
+          if (!sendCommand(message)) {
             return;
-          lastKeepalive = time(nullptr);
+          }
+          lastKeepalive = std::chrono::steady_clock::now();
         }
-        usleep(100000);
+        std::this_thread::sleep_for(Microseconds(100));
       }
 #if 0
       message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
@@ -790,5 +789,3 @@ void RtspThread::Run() {
 
   return;
 }
-
-#endif // HAVE_LIBAVFORMAT

@@ -2669,7 +2669,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_EVENT_SORT_FIELD',
-    default     => 'StartTime',
+    default     => 'StartDateTime',
     description => 'Default field the event lists are sorted by',
     help        => q`
       Events in lists can be initially ordered in any way you want.
@@ -2681,7 +2681,7 @@ our @options = (
       `,
     type        => {
       db_type     =>'string',
-      hint        =>'Id|Name|Cause|DiskSpace|MonitorName|StartTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore',
+      hint        =>'Id|Name|Cause|DiskSpace|MonitorName|StartDateTime|Length|Frames|AlarmFrames|TotScore|AvgScore|MaxScore',
       pattern     =>qr|.|,
       format      =>q( $1 )
     },
@@ -3766,7 +3766,7 @@ our @options = (
       SSMTP is a lightweight and efficient method to send email.
       The SSMTP application is not installed by default.
       NEW_MAIL_MODULES must also be enabled.
-      Please visit the ZoneMinder [SSMTP Wiki page](http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder)
+      Please visit the ZoneMinder [SSMTP Wiki page](https://wiki.zoneminder.com/How_to_get_ssmtp_working_with_Zoneminder)
       for setup and configuration help.
       `,
     type        => $types{boolean},

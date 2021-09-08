@@ -208,21 +208,21 @@ int VncCamera::PreCapture() {
   return res == TRUE ? 1 : -1;
 }
 
-int VncCamera::Capture(ZMPacket &zm_packet) {
+int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   if (!mVncData.buffer) {
     Debug(1, "No buffer");
     return 0;
   }
-  if (!zm_packet.image) {
+  if (!zm_packet->image) {
     Debug(1, "Allocating image %dx%d %dcolours = %d", width, height, colours, colours*pixels);
-    zm_packet.image = new Image(width, height, colours, subpixelorder);
+    zm_packet->image = new Image(width, height, colours, subpixelorder);
   }
-  zm_packet.keyframe = 1;
-  zm_packet.codec_type = AVMEDIA_TYPE_VIDEO;
-  zm_packet.packet.stream_index = mVideoStreamId;
-  zm_packet.stream = mVideoStream;
+  zm_packet->keyframe = 1;
+  zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
+  zm_packet->packet.stream_index = mVideoStreamId;
+  zm_packet->stream = mVideoStream;
 
-  uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
+  uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
   Debug(1, "scale src %p, %d, dest %p %d %d %dx%d %dx%d", mVncData.buffer,
       mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
       directbuffer,

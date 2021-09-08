@@ -21,7 +21,6 @@
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
 #include "zm_logger.h"
-#include <sys/time.h>
 
 using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
@@ -31,7 +30,6 @@ ZMPacket::ZMPacket() :
   stream(nullptr),
   in_frame(nullptr),
   out_frame(nullptr),
-  timestamp(nullptr),
   buffer(nullptr),
   image(nullptr),
   analysis_image(nullptr),
@@ -40,7 +38,27 @@ ZMPacket::ZMPacket() :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(0)
+  decoded(false)
+{
+  av_init_packet(&packet);
+  packet.size = 0; // So we can detect whether it has been filled.
+}
+
+ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
+  keyframe(0),
+  stream(nullptr),
+  in_frame(nullptr),
+  out_frame(nullptr),
+  timestamp(tv),
+  buffer(nullptr),
+  image(i),
+  analysis_image(nullptr),
+  score(-1),
+  codec_type(AVMEDIA_TYPE_UNKNOWN),
+  image_index(-1),
+  codec_imgsize(0),
+  pts(0),
+  decoded(false)
 {
   av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.
@@ -51,7 +69,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   stream(nullptr),
   in_frame(nullptr),
   out_frame(nullptr),
-  timestamp(nullptr),
+  timestamp(p.timestamp),
   buffer(nullptr),
   image(nullptr),
   analysis_image(nullptr),
@@ -60,7 +78,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(0)
+  decoded(false)
 {
   av_init_packet(&packet);
   packet.size = 0;
@@ -68,18 +86,15 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   if ( zm_av_packet_ref(&packet, &p.packet) < 0 ) {
     Error("error refing packet");
   }
-  timestamp = new struct timeval;
-  *timestamp = *p.timestamp;
 }
 
 ZMPacket::~ZMPacket() {
   zm_av_packet_unref(&packet);
-  if ( in_frame ) av_frame_free(&in_frame);
-  if ( out_frame ) av_frame_free(&out_frame);
-  if ( buffer ) av_freep(&buffer);
-  if ( analysis_image ) delete analysis_image;
-  if ( image ) delete image;
-  if ( timestamp ) delete timestamp;
+  if (in_frame) av_frame_free(&in_frame);
+  if (out_frame) av_frame_free(&out_frame);
+  if (buffer) av_freep(&buffer);
+  delete analysis_image;
+  delete image;
 }
 
 /* returns < 0 on error, 0 on not ready, int bytes consumed on success 
@@ -90,7 +105,7 @@ ZMPacket::~ZMPacket() {
 int ZMPacket::decode(AVCodecContext *ctx) {
   Debug(4, "about to decode video, image_index is (%d)", image_index);
 
-  if ( in_frame ) {
+  if (in_frame) {
     Error("Already have a frame?");
   } else {
     in_frame = zm_av_frame_alloc();
@@ -100,8 +115,8 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
 
   int ret = zm_send_packet_receive_frame(ctx, in_frame, packet);
-  if ( ret < 0 ) {
-    if ( AVERROR(EAGAIN) != ret ) {
+  if (ret < 0) {
+    if (AVERROR(EAGAIN) != ret) {
       Warning("Unable to receive frame : code %d %s.",
           ret, av_make_error_string(ret).c_str());
     }
@@ -109,14 +124,14 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     return 0;
   }
   int bytes_consumed = ret;
-  if ( ret > 0 ) {
+  if (ret > 0) {
     zm_dump_video_frame(in_frame, "got frame");
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
-    if ( fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)) ) {
-      Debug(1, "Have different format ctx->pix_fmt %s ?= ctx->sw_pix_fmt %s in_frame->format %s.",
+    if (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format))) {
+      Debug(3, "Have different format ctx->pix_fmt %s ?= ctx->sw_pix_fmt %s in_frame->format %s.",
           av_get_pix_fmt_name(ctx->pix_fmt),
           av_get_pix_fmt_name(ctx->sw_pix_fmt),
           av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
@@ -163,7 +178,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
       /* retrieve data from GPU to CPU */
       zm_dump_video_frame(in_frame, "Before hwtransfer");
       ret = av_hwframe_transfer_data(new_frame, in_frame, 0);
-      if ( ret < 0 ) {
+      if (ret < 0) {
         Error("Unable to transfer frame: %s, continuing",
             av_make_error_string(ret).c_str());
         av_frame_free(&in_frame);
@@ -171,7 +186,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
         return 0;
       }
       ret = av_frame_copy_props(new_frame, in_frame);
-      if ( ret < 0 ) {
+      if (ret < 0) {
         Error("Unable to copy props: %s, continuing",
             av_make_error_string(ret).c_str());
       }
@@ -188,7 +203,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
     } else
 #endif
 #endif
-      Debug(2, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
+      Debug(3, "Same pix format %s so not hwtransferring. sw_pix_fmt is %s",
           av_get_pix_fmt_name(ctx->pix_fmt),
           av_get_pix_fmt_name(ctx->sw_pix_fmt)
           );
@@ -202,12 +217,12 @@ int ZMPacket::decode(AVCodecContext *ctx) {
 } // end ZMPacket::decode
 
 Image *ZMPacket::get_image(Image *i) {
-  if ( !in_frame ) {
+  if (!in_frame) {
     Error("Can't get image without frame.. maybe need to decode first");
     return nullptr;
   }
-  if ( !image ) {
-    if ( !i ) {
+  if (!image) {
+    if (!i) {
       Error("Need a pre-allocated image buffer");
       return nullptr;
     } 
@@ -223,11 +238,11 @@ Image *ZMPacket::set_image(Image *i) {
 }
 
 AVPacket *ZMPacket::set_packet(AVPacket *p) {
-  if ( zm_av_packet_ref(&packet, p) < 0 ) {
+  if (zm_av_packet_ref(&packet, p) < 0) {
     Error("error refing packet");
   }
-  //ZM_DUMP_PACKET(packet, "zmpacket:");
-  gettimeofday(timestamp, nullptr);
+
+  timestamp = std::chrono::system_clock::now();
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   return &packet;
 }
@@ -240,10 +255,11 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
       return nullptr;
     }
 
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+    int alignment = 32;
+    if (width%alignment) alignment = 1;
     
     codec_imgsize = av_image_get_buffer_size(
-        format, width, height, 32);
+        format, width, height, alignment);
     Debug(1, "buffer size %u from %s %dx%d", codec_imgsize, av_get_pix_fmt_name(format), width, height);
     buffer = (uint8_t *)av_malloc(codec_imgsize);
     int ret;
@@ -254,25 +270,12 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
         format,
         width,
         height,
-        32))<0) {
+        alignment))<0) {
       Error("Failed to fill_arrays %s", av_make_error_string(ret).c_str());
       av_frame_free(&out_frame);
       return nullptr;
     }
-#else
-    codec_imgsize = avpicture_get_size(
-        format,
-        width,
-        >height);
-    buffer = (uint8_t *)av_malloc(codec_imgsize);
-    avpicture_fill(
-        (AVPicture *)out_frame,
-        buffer,
-        format,
-        width,
-        height
-        );
-#endif
+
     out_frame->width = width;
     out_frame->height = height;
     out_frame->format = format;

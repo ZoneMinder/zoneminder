@@ -22,6 +22,8 @@
 
 #include "zm_camera.h"
 
+#include <memory>
+
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 typedef struct DecodeContext {
       AVBufferRef *hw_device_ref;
@@ -60,9 +62,7 @@ class FfmpegCamera : public Camera {
     int Close() override;
     bool mCanCapture;
 
-#if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;
-#endif
 
     int                 error_count;
 
@@ -93,7 +93,7 @@ class FfmpegCamera : public Camera {
 
     int PrimeCapture() override;
     int PreCapture() override;
-    int Capture(ZMPacket &p) override;
+    int Capture(std::shared_ptr<ZMPacket> &p) override;
     int PostCapture() override;
   private:
     static int FfmpegInterruptCallback(void*ctx);

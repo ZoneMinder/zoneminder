@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_logger.h"
 #include <array>
+#include <cstdarg>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <sstream>
@@ -116,6 +117,43 @@ std::string Join(const StringVector &values, const std::string &delim) {
   return ss.str();
 }
 
+std::string stringtf(const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  va_list args2;
+  va_copy(args2, args);
+
+  int size = vsnprintf(nullptr, 0, format, args) + 1; // Extra space for '\0'
+  va_end(args);
+
+  if (size <= 0) {
+    throw std::runtime_error("Error during formatting.");
+  }
+
+  std::unique_ptr<char[]> buf(new char[size]);
+  vsnprintf(buf.get(), size, format, args2);
+  va_end(args2);
+
+  return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+}
+
+std::string ByteArrayToHexString(nonstd::span<const uint8> bytes) {
+  static constexpr char lowercase_table[] = "0123456789abcdef";
+  std::string buf;
+  buf.resize(2 * bytes.size());
+
+  const uint8 *srcPtr = bytes.data();
+  char *dstPtr = &buf[0];
+
+  for (size_t i = 0; i < bytes.size(); ++i) {
+    uint8 c = *srcPtr++;
+    *dstPtr++ = lowercase_table[c >> 4];
+    *dstPtr++ = lowercase_table[c & 0x0f];
+  }
+
+  return buf;
+}
+
 std::string Base64Encode(const std::string &str) {
   static char base64_table[64] = {'\0'};
 
@@ -161,16 +199,6 @@ std::string Base64Encode(const std::string &str) {
     }
   }
   return outString;
-}
-
-void TimespecDiff(struct timespec *start, struct timespec *end, struct timespec *diff) {
-  if (((end->tv_nsec) - (start->tv_nsec)) < 0) {
-    diff->tv_sec = end->tv_sec - start->tv_sec - 1;
-    diff->tv_nsec = 1000000000 + end->tv_nsec - start->tv_nsec;
-  } else {
-    diff->tv_sec = end->tv_sec - start->tv_sec;
-    diff->tv_nsec = end->tv_nsec - start->tv_nsec;
-  }
 }
 
 std::string TimevalToString(timeval tv) {
@@ -350,7 +378,7 @@ QueryString::QueryString(std::istream &input) {
 
     auto foundItr = parameters_.find(name);
     if (foundItr == parameters_.end()) {
-      std::unique_ptr<QueryParameter> newParam = ZM::make_unique<QueryParameter>(name);
+      std::unique_ptr<QueryParameter> newParam = zm::make_unique<QueryParameter>(name);
       if (!value.empty()) {
         newParam->addValue(value);
       }

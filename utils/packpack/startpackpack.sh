@@ -160,7 +160,7 @@ movecrud () {
 }
 
 # previsouly part of installzm.sh
-# install the xenial deb and test zoneminder
+# install the deb and test zoneminder
 install_deb () {
 
     # Check we've got gdebi installed
@@ -173,7 +173,7 @@ install_deb () {
       exit 1
     fi
 
-    # Install and test the zoneminder package (only) for Ubuntu Xenial
+    # Install and test the zoneminder package
     pkgname="build/zoneminder_${VERSION}-${RELEASE}_amd64.deb"
 
     if [ -e $pkgname ]; then
@@ -369,12 +369,10 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   setdebpkgname
   movecrud
 
-  if [ "${DIST}" == "focal" ] || [ "${DIST}" == "groovy" ] || [ "${DIST}" == "hirsuit" ] || [ "${DIST}" == "buster" ]; then
+  if [ "${DIST}" == "bionic" ] || [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "impish" ] || [ "${DIST}" == "buster" ] || [ "${DIST}" == "bullseye" ]; then
     ln -sfT distros/ubuntu2004 debian
   elif [ "${DIST}" == "beowulf" ]; then
     ln -sfT distros/beowulf debian
-  else
-    ln -sfT distros/ubuntu1604 debian
   fi
 
   setdebchangelog

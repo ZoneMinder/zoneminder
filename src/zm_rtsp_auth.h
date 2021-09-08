@@ -22,22 +22,12 @@
 #include "zm_config.h"
 #include <string>
 
-#if HAVE_GNUTLS_GNUTLS_H
-#include <gnutls/gnutls.h>
-#endif
-
-#if HAVE_GCRYPT_H
-#include <gcrypt.h>
-#elif HAVE_LIBCRYPTO
-#include <openssl/md5.h>
-#endif // HAVE_GCRYPT_H || HAVE_LIBCRYPTO
-
-namespace zm { 
+namespace zm {
 
 enum AuthMethod { AUTH_UNDEFINED = 0, AUTH_BASIC = 1, AUTH_DIGEST = 2 };
 class Authenticator {
 public:
-  Authenticator(const std::string &username, const std::string &password);
+  Authenticator(std::string username, std::string password);
   virtual ~Authenticator();
   void reset();
 
@@ -47,8 +37,8 @@ public:
   AuthMethod  auth_method() const { return fAuthMethod; } 
   
   std::string computeDigestResponse(const std::string &cmd, const std::string &url);
-  void authHandleHeader( std::string headerData );
-  std::string getAuthHeader( std::string method, std::string path );
+  void authHandleHeader(std::string headerData);
+  std::string getAuthHeader(const std::string &method, const std::string &path);
   void checkAuthResponse(const std::string &response);
   
 private:

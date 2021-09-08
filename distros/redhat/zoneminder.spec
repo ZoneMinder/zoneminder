@@ -430,6 +430,9 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Wed Sep 08 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.6-1
+- 1.36.6 release
+
 * Tue Jun 22 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.5-1
 - 1.36.5 release
 

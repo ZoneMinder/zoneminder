@@ -776,7 +776,7 @@ function exportFileList(
     ZM\Error("Empty event passed to exportFileList");
     return;
   }
-  if (!$event->canView('Events')) {
+  if (!$event->canView()) {
     ZM\Error('Can\'t view event '.$event->Id());
     return;
   }

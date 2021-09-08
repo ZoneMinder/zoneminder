@@ -141,6 +141,7 @@ class Monitor extends ZM_Object {
     'Longitude' =>  null,
     'RTSPServer' => array('type'=>'boolean', 'default'=>0),
     'RTSPStreamName'  => '',
+    'Importance'      =>  'Normal',
   );
   private $status_fields = array(
     'Status'  =>  null,

@@ -283,7 +283,7 @@ None by default.
 =head1 SEE ALSO
 
 See if there are better instructions for the DCS-5020L at
-http://www.zoneminder.com/wiki/index.php/Dlink
+https://wiki.zoneminder.com/Dlink
 
 =head1 AUTHOR
 

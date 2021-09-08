@@ -279,6 +279,7 @@ sub disconnect {
 sub suspendMotionDetection {
   my $self = shift;
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
+  return if $$self{Function} eq 'Nodect' or $$self{Function} eq 'Monitor' or $$self{Function} eq 'None';
   my $count = 50;
   while ($count and ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
     ZoneMinder::Logger::Debug(1, 'Suspending motion detection');
@@ -297,6 +298,7 @@ sub suspendMotionDetection {
 sub resumeMotionDetection {
   my $self = shift;
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
+  return if $$self{Function} eq 'Nodect' or $$self{Function} eq 'Monitor' or $$self{Function} eq 'None';
   my $count = 50;
   while ($count and !ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
     ZoneMinder::Logger::Debug(1, 'Resuming motion detection');

@@ -755,6 +755,8 @@ void MonitorStream::runStream() {
             }  // end if actual_delta_time > 5
           }  // end if change in zoom
         }  // end if paused or not
+      } else {
+        frame_count++;
       }  // end if should send frame
 
       if (buffered_playback && !paused) {

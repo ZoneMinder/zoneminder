@@ -1723,7 +1723,7 @@ bool Monitor::Analyse() {
   // if have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
   // get_analysis_packet will lock the packet and may wait if analysis_it is at the end
-  ZMLockedPacket *packet_lock = packetqueue.get_packet(analysis_it);
+  ZMLockedPacket *packet_lock = packetqueue.get_packet_and_increment_it(analysis_it);
   if (!packet_lock) return false;
   std::shared_ptr<ZMPacket> snap = packet_lock->packet_;
 
@@ -1731,13 +1731,11 @@ bool Monitor::Analyse() {
   if (snap->score != -1) {
     Error("skipping because score was %d", snap->score);
     packetqueue.unlock(packet_lock);
-    packetqueue.increment_it(analysis_it);
     return false;
   }
 
   // Store the it that points to our snap we will need it later
-  packetqueue_iterator snap_it = *analysis_it;
-  packetqueue.increment_it(analysis_it);
+  packetqueue_iterator snap_it = std::prev(*analysis_it);
 
   // signal is set by capture
   bool signal = shared_data->signal;

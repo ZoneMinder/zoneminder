@@ -241,7 +241,7 @@ class Image {
   bool WriteJpeg(const std::string &filename, SystemTimePoint timestamp) const;
   bool WriteJpeg(const std::string &filename, int quality_override, SystemTimePoint timestamp) const;
   bool WriteJpeg(const std::string &filename,
-                 int quality_override,
+                 const int &quality_override,
                  SystemTimePoint timestamp,
                  bool on_blocking_abort) const;
 

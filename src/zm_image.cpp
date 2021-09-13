@@ -321,6 +321,7 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
     return false;
   }
   zm_dump_video_frame(temp_frame, "dest frame after convert");
+  update_function_pointers();
   return true;
 }  // end Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame)
 
@@ -695,6 +696,7 @@ void Image::AssignDirect(
   subpixelorder = p_subpixelorder;
   pixels = width * height;
   size = new_buffer_size;
+  update_function_pointers();
 }  // end void Image::AssignDirect
 
 void Image::Assign(
@@ -796,6 +798,7 @@ void Image::Assign(const Image &image) {
     linesize = image.linesize;
   }
 
+  update_function_pointers();
   if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }

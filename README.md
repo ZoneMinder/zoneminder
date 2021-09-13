@@ -30,10 +30,10 @@ This is the recommended method to install ZoneMinder onto your system. ZoneMinde
 - Debian from their [default repository](https://packages.debian.org/search?searchon=names&keywords=zoneminder) 
 - RHEL/CentOS and clones via [RPM Fusion](http://rpmfusion.org)
 - Fedora via [RPM Fusion](http://rpmfusion.org)
-- OpenSuse via [third party repository](http://www.zoneminder.com/wiki/index.php/Installing_using_ZoneMinder_RPMs_for_SuSE)
+- OpenSuse via [third party repository](https://wiki.zoneminder.com/Installing_using_ZoneMinder_RPMs_for_SuSE)
 - Mageia from their default repository
 - Arch via the [AUR](https://aur.archlinux.org/packages/zoneminder/)
-- Gentoo from their [default repository](https://packages.gentoo.org/packages/www-misc/zoneminder)
+- Gentoo via [Portage Overlays](http://gpo.zugaina.org/www-misc/zoneminder)
 
 If a repository that hosts ZoneMinder packages is not available for your distro, then you are encouraged to build your own package, rather than build from source.  While each distro is different in ways that set it apart from all the others, they are often similar enough to allow you to adapt another distro's package building instructions to your own.
 

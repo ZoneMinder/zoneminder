@@ -1,22 +1,20 @@
 <?php
+if (!canEdit('Monitors')) return ' ';
 
-if ( !canEdit('Monitors') ) return;
-
-$monitor = dbFetchOne('SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?', NULL, array( $_REQUEST['mid']) );
+$monitor = dbFetchOne('SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?', NULL, array($_REQUEST['mid']));
 
 $labels = array();
-foreach( dbFetchAll( 'SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array( $monitor['Id'] ) ) as $row ) {
+foreach (dbFetchAll('SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array($monitor['Id'])) as $row) {
   $labels[$row['Preset']] = $row['Label'];
 }
 
 $presets = array();
-for ( $i = 1; $i <= $monitor['NumPresets']; $i++ ) {
+for ($i = 1; $i <= $monitor['NumPresets']; $i++) {
   $presets[$i] = translate('Preset').' '.$i;
-  if ( !empty($labels[$i]) ) {
+  if (!empty($labels[$i])) {
     $presets[$i] .= ' ('.validHtmlStr($labels[$i]).')';
   }
 }
-
 ?>
 <div class="modal" id="ctrlPresetModal" tabindex="-1">
   <div class="modal-dialog">

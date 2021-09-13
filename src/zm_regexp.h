@@ -17,10 +17,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */  
 
-#include "zm.h"
-
 #ifndef ZM_REGEXP_H
 #define ZM_REGEXP_H
+
+#include "zm_config.h"
 
 #if HAVE_LIBPCRE
 
@@ -51,7 +51,7 @@ protected:
   bool ok;
 
 public:
-  RegExpr( const char *pattern, int cflags=0, int p_max_matches=32 );
+  explicit RegExpr( const char *pattern, int cflags=0, int p_max_matches=32 );
   ~RegExpr();
   bool Ok() const { return( ok ); }
   int MatchCount() const { return( n_matches ); }

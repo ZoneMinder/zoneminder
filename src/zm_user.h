@@ -17,12 +17,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */  
 
-#include "zm.h"
-#include "zm_db.h"
+
 
 #ifndef ZM_USER_H
 #define ZM_USER_H
 
+#include "zm_db.h"
 #include <string>
 #include <vector>
 
@@ -52,7 +52,7 @@ class User {
     Copy(u); return *this;
   }
 
-  const int  Id() const { return id; }
+  int  Id() const { return id; }
   const char *getUsername() const { return username; }
   const char *getPassword() const { return password; }
   bool isEnabled() const { return enabled; }
@@ -66,7 +66,7 @@ class User {
 
 User *zmLoadUser(const char *username, const char *password=0);
 User *zmLoadAuthUser(const char *auth, bool use_remote_addr);
-User *zmLoadTokenUser(std::string jwt, bool use_remote_addr);
+User *zmLoadTokenUser(const std::string &jwt, bool use_remote_addr);
 bool checkUser(const char *username);
 bool checkPass(const char *password);
 

@@ -6,31 +6,27 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#include "zm.h"
+#ifndef ZM_RTSP_SERVER_DEVICE_SOURCE_H
+#define ZM_RTSP_SERVER_DEVICE_SOURCE_H
+
+#include "zm_config.h"
+#include "zm_define.h"
+#include "zm_monitor.h"
+#include <list>
+#include <string>
+#include <utility>
 
 #if HAVE_RTSP_SERVER
-
-#ifndef DEVICE_SOURCE
-#define DEVICE_SOURCE
-
-#include <string>
-#include <list> 
-#include <iostream>
-
 #include <liveMedia.hh>
 
-#include "zm_monitor.h"
-#include "zm_rtsp_server_frame.h"
-#include "zm_packetqueue.h"
-
-#include <linux/types.h>
+class NAL_Frame;
 
 class ZoneMinderDeviceSource: public FramedSource {
 		
 	public:
 		static ZoneMinderDeviceSource* createNew(
         UsageEnvironment& env,
-        Monitor* monitor,
+        std::shared_ptr<Monitor> monitor,
         AVStream * stream,
         unsigned int queueSize
         ) {
@@ -41,7 +37,7 @@ class ZoneMinderDeviceSource: public FramedSource {
 		int getHeight() { return m_monitor->Height(); };	
 
 	protected:
-		ZoneMinderDeviceSource(UsageEnvironment& env, Monitor* monitor, AVStream * stream, unsigned int queueSize);
+		ZoneMinderDeviceSource(UsageEnvironment& env, std::shared_ptr<Monitor> monitor, AVStream * stream, unsigned int queueSize);
 		virtual ~ZoneMinderDeviceSource();
 
 	protected:	
@@ -67,7 +63,7 @@ class ZoneMinderDeviceSource: public FramedSource {
 		std::list<NAL_Frame*> m_captureQueue;
 		EventTriggerId m_eventTriggerId;
     AVStream *m_stream;
-		Monitor* m_monitor;
+		std::shared_ptr<Monitor> m_monitor;
     PacketQueue *m_packetqueue;
     std::list<ZMPacket *>::iterator *m_packetqueue_it;
 
@@ -77,6 +73,6 @@ class ZoneMinderDeviceSource: public FramedSource {
 		std::string m_auxLine;
     int stop;
 };
+#endif // HAVE_RTSP_SERVER
 
-#endif
-#endif
+#endif // ZM_RTSP_SERVER_DEVICE_SOURCE_H

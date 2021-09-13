@@ -77,7 +77,7 @@ class Group extends ZM_Object {
   public static function get_dropdown_options() {
     $Groups = array();
     foreach ( Group::find(array(), array('order'=>'lower(Name)')) as $Group ) {
-      $Groups[$Group->Id()] = $Group;
+			if ($Group->canView()) $Groups[$Group->Id()] = $Group;
     }
 
 # This  array is indexed by parent_id
@@ -146,33 +146,58 @@ class Group extends ZM_Object {
 	  }
 	  $monitors_dropdown = array(''=>'All');
 
-	foreach ( dbFetchAll($sql) as $monitor ) {
-    if ( !visibleMonitor($monitor['Id']) ) {
-      continue;
-    }
-    $monitors_dropdown[$monitor['Id']] = $monitor['Name'];
-  }
+		foreach ( dbFetchAll($sql) as $monitor ) {
+			if ( !visibleMonitor($monitor['Id']) ) {
+				continue;
+			}
+			$monitors_dropdown[$monitor['Id']] = $monitor['Name'];
+		}
 
-  echo htmlSelect('monitor_id', $monitors_dropdown, $monitor_id, array('data-on-change-this'=>'changeMonitor'));
-  return $monitor_id;
-}
+		echo htmlSelect('monitor_id', $monitors_dropdown, $monitor_id, array('data-on-change-this'=>'changeMonitor'));
+		return $monitor_id;
+	}
 
-public function Parent( ) {
-  if ( $this->{'ParentId'} ) {
-    return Group::find_one(array('Id'=>$this->{'ParentId'}));
-  }
-  return null;
-}
+	public function Parent( ) {
+		if ( $this->{'ParentId'} ) {
+			return Group::find_one(array('Id'=>$this->{'ParentId'}));
+		}
+		return null;
+	}
 
-public function Parents() {
-  $Parents = array();
-  $Parent = $this->Parent();
-  while( $Parent ) {
-    array_unshift($Parents, $Parent);
-    $Parent = $Parent->Parent();
-  }
-  return $Parents;
-}
+	public function Parents() {
+		$Parents = array();
+		$Parent = $this->Parent();
+		while( $Parent ) {
+			array_unshift($Parents, $Parent);
+			$Parent = $Parent->Parent();
+		}
+		return $Parents;
+	}
+	public function Children() {
+		if (!property_exists($this, 'Children')) {
+			$this->{'Children'} = Group::find(array('ParentId'=>$this->Id()));
+		}
+		return $this->{'Children'};
+	}
+	public function Monitors() {
+    if (!property_exists($this, 'Monitors') ) {
+			$this->{'Monitors'} = Monitor::find(array('Id'=>$this->MonitorIds()));
+		}
+		return $this->{'Monitors'};
+	}
 
+	public function canView($u=null) {
+		global $user;
+		if (!$u) $u = $user;
+		# Can view if we can view any of the monitors in it.
+		foreach ($this->Monitors() as $monitor) {
+			if ($monitor->canView($u)) return true;
+		}
+		foreach ($this->Children() as $child) {
+			if ($child->canView($u)) return true;
+		}
+
+		return false;
+	}
 } # end class Group
 ?>

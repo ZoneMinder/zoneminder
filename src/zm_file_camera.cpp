@@ -17,21 +17,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-
-#include "zm.h"
 #include "zm_file_camera.h"
 
+#include "zm_packet.h"
+#include <sys/stat.h>
+
 FileCamera::FileCamera(
-    int p_id,
+    const Monitor *monitor,
     const char *p_path,
     int p_width,
     int p_height,
@@ -43,7 +35,7 @@ FileCamera::FileCamera(
     bool p_capture,
     bool p_record_audio)
   : Camera(
-      p_id,
+      monitor,
       FILE_SRC,
       p_width,
       p_height,
@@ -56,20 +48,20 @@ FileCamera::FileCamera(
       p_capture,
       p_record_audio)
 {
-  strncpy( path, p_path, sizeof(path)-1 );
-  if ( capture ) {
+  path = std::string(p_path);
+  if (capture) {
     Initialise();
   }
 }
 
 FileCamera::~FileCamera() {
-  if ( capture ) {
+  if (capture) {
     Terminate();
   }
 }
 
 void FileCamera::Initialise() {
-  if ( !path[0] ) {
+  if (path.empty()) {
     Fatal("No path specified for file image");
   }
 }
@@ -78,9 +70,9 @@ void FileCamera::Terminate() {
 }
 
 int FileCamera::PreCapture() {
-  struct stat statbuf;
-  if ( stat(path, &statbuf) < 0 ) {
-    Error("Can't stat %s: %s", path, strerror(errno));
+  struct stat statbuf = {};
+  if (stat(path.c_str(), &statbuf) < 0) {
+    Error("Can't stat %s: %s", path.c_str(), strerror(errno));
     return -1;
   }
   bytes += statbuf.st_size;
@@ -88,14 +80,14 @@ int FileCamera::PreCapture() {
   // This waits until 1 second has passed since it was modified. Effectively limiting fps to 60.
   // Which is kinda bogus. If we were writing to this jpg constantly faster than we are monitoring it here
   // we would never break out of this loop
-  while ( (time(nullptr) - statbuf.st_mtime) < 1 ) {
-    usleep(100000);
+  while ((time(nullptr) - statbuf.st_mtime) < 1) {
+    std::this_thread::sleep_for(Milliseconds(100));
   }
   return 0;
 }
 
-int FileCamera::Capture( ZMPacket &zm_packet ) {
-  return zm_packet.image->ReadJpeg(path, colours, subpixelorder) ? 1 : -1;
+int FileCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
+  return zm_packet->image->ReadJpeg(path, colours, subpixelorder) ? 1 : -1;
 }
 
 int FileCamera::PostCapture() {

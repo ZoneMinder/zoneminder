@@ -20,11 +20,8 @@
 #ifndef ZM_REMOTE_CAMERA_NVSOCKET_H
 #define ZM_REMOTE_CAMERA_NVSOCKET_H
 
-#include "zm_remote_camera.h"
-
 #include "zm_buffer.h"
-#include "zm_regexp.h"
-#include "zm_utils.h"
+#include "zm_remote_camera.h"
 
 class RemoteCameraNVSocket : public RemoteCamera {
 protected:
@@ -35,7 +32,7 @@ protected:
 
 public:
   RemoteCameraNVSocket(
-      unsigned int p_monitor_id,
+      const Monitor *monitor,
       const std::string &host,
       const std::string &port,
       const std::string &path,
@@ -50,16 +47,16 @@ public:
       bool p_record_audio );
   ~RemoteCameraNVSocket();
 
-  void Initialise();
-  void Terminate() { Disconnect(); }
-  int Connect();
-  int Disconnect();
+  void Initialise() override;
+  void Terminate() override { Disconnect(); }
+  int Connect() override;
+  int Disconnect() override;
   int SendRequest(std::string);
   int GetResponse();
-  int PrimeCapture();
-  int Capture(ZMPacket &p);
-  int PostCapture();
-  int Close() { return 0; };
+  int PrimeCapture() override;
+  int Capture(std::shared_ptr<ZMPacket> &p) override;
+  int PostCapture() override;
+  int Close() override { return 0; };
 };
 
 #endif // ZM_REMOTE_CAMERA_NVSOCKET_H

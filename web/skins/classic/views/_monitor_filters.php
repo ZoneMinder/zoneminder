@@ -53,20 +53,22 @@ $html =
   <input type="submit" class="d-none"/>
   <input type="hidden" name="filtering" value=""/>
 ';
-$GroupsById = array();
-foreach ( ZM\Group::find() as $G ) {
-  $GroupsById[$G->Id()] = $G;
-}
-
 $groupSql = '';
-if ( count($GroupsById) ) {
-  $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
-  # This will end up with the group_id of the deepest selection
-  $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
-  $html .= ZM\Group::get_group_dropdown();
-  $groupSql = ZM\Group::get_group_sql($group_id);
-  $html .= '</span>
-';
+if ( canView('Groups') ) {
+  $GroupsById = array();
+  foreach ( ZM\Group::find() as $G ) {
+    $GroupsById[$G->Id()] = $G;
+  }
+
+  if ( count($GroupsById) ) {
+    $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
+    # This will end up with the group_id of the deepest selection
+    $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
+    $html .= ZM\Group::get_group_dropdown();
+    $groupSql = ZM\Group::get_group_sql($group_id);
+    $html .= '</span>
+  ';
+  }
 }
 
 $selected_monitor_ids = isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : array();
@@ -169,10 +171,14 @@ $html .= '</span>
   $html .= '</span>
 ';
 
-  $sql = 'SELECT *,S.Status AS Status, S.CaptureFPS AS CaptureFPS, S.AnalysisFPS AS AnalysisFPS, S.CaptureBandwidth AS CaptureBandwidth
-  FROM Monitors AS M LEFT JOIN Monitor_Status AS S ON MonitorId=Id ' .
+  $sql = 'SELECT M.*, S.*, E.*
+  FROM Monitors AS M
+ LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
+ LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
+' .
   ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll($sql, null, $values);
+  ZM\Debug(print_r($monitors, true));
   $displayMonitors = array();
   $monitors_dropdown = array();
 

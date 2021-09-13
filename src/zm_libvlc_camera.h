@@ -20,9 +20,9 @@
 #ifndef ZM_LIBVLC_CAMERA_H
 #define ZM_LIBVLC_CAMERA_H
 
-#include "zm_buffer.h"
 #include "zm_camera.h"
-#include "zm_thread.h"
+#include <condition_variable>
+#include <mutex>
 
 #if HAVE_LIBVLC
 
@@ -36,8 +36,11 @@ struct LibvlcPrivateData {
   uint8_t* prevBuffer;
   time_t prevTime;
   uint32_t bufferSize;
-  Mutex mutex;
-  ThreadData<bool> newImage;
+  std::mutex mutex;
+
+  bool newImage;
+  std::mutex newImageMutex;
+  std::condition_variable newImageCv;
 };
 
 class LibvlcCamera : public Camera {
@@ -57,7 +60,7 @@ protected:
   libvlc_media_player_t *mLibvlcMediaPlayer;
 
 public:
-  LibvlcCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  LibvlcCamera( const Monitor *monitor, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
   ~LibvlcCamera();
 
   const std::string &Path() const { return mPath; }
@@ -67,11 +70,11 @@ public:
   void Initialise();
   void Terminate();
 
-  int PrimeCapture();
-  int PreCapture();
-  int Capture( ZMPacket &p );
-  int PostCapture();
-  int Close() { return 0; };
+  int PrimeCapture() override;
+  int PreCapture() override;
+  int Capture(std::shared_ptr<ZMPacket> &p) override;
+  int PostCapture() override;
+  int Close() override { return 0; };
 };
 
 #endif // HAVE_LIBVLC

@@ -40,10 +40,8 @@ function validateForm(form) {
     var have_endtime_term = false;
     for ( var i = 0; i < rows.length; i++ ) {
       if (
-        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' )
-        ||
-        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndTime' )
-        ||
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDateTime' ) ||
+        ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndTime' ) ||
         ( form.elements['filter[Query][terms][' + i + '][attr]'].value == 'EndDate' )
       ) {
         have_endtime_term = true;
@@ -99,13 +97,13 @@ function updateButtons(element) {
   } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
     canExecute = true;
   }
-  form.elements['executeButton'].disabled = !canExecute;
+  document.getElementById('executeButton').disabled = !canExecute;
   if ( form.elements['filter[Name]'].value ) {
-    form.elements['Save'].disabled = false;
-    form.elements['SaveAs'].disabled = false;
+    document.getElementById('Save').disabled = false;
+    document.getElementById('SaveAs').disabled = false;
   } else {
-    form.elements['Save'].disabled = true;
-    form.elements['SaveAs'].disabled = true;
+    document.getElementById('Save').disabled = true;
+    document.getElementById('SaveAs').disabled = true;
   }
 }
 
@@ -153,11 +151,6 @@ function resetFilter( element ) {
 
 function submitToEvents(element) {
   var form = element.form;
-  //form.action = '?view=events';
-  //form.submit();
-  //console.log(form);
-  //console.log($j(form).serialize());
-  //history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
   window.location.assign('?view=events&'+$j(form).serialize());
 }
 
@@ -171,23 +164,6 @@ function submitToMontageReview(element) {
 function submitToExport(element) {
   var form = element.form;
   window.location.assign('?view=export&'+$j(form).serialize());
-}
-
-function executeFilter( element ) {
-  var form = element.form;
-  form.action = thisUrl + '?view=filter';
-  form.elements['action'].value = 'execute';
-  form.submit();
-  //history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
-}
-
-function saveFilter( element ) {
-  var form = element.form;
-  form.target = window.name;
-  form.elements['action'].value = element.value;
-  form.action = thisUrl + '?view=filter';
-  //form.submit();
-  // Submit is done by the button type="submit"
 }
 
 function deleteFilter( element ) {
@@ -352,7 +328,8 @@ function parseRows(rows) {
     inputTds.eq(2).children().eq(0).attr('name', 'filter'+stringFilter(term));
     inputTds.eq(2).children().eq(0).attr('id', 'filter'+stringFilter(term));
   } //End for each term/row
-  history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
+  // ICON This populates the url bar with contents of the form.  I'm not sure why
+  // history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
 } // parseRows
 
 function stringFilter(term) {
@@ -395,27 +372,7 @@ function delTerm( element ) {
 }
 
 function debugFilter() {
-  getModal('filterdebug');
-}
-
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getModal(id) {
-  $j.getJSON(thisUrl + '?request=modal&modal='+id+'&fid='+filterid)
-      .done(function(data) {
-        if ( !data ) {
-          console.error("Get modal returned no data");
-          return;
-        }
-
-        insertModalHtml(id, data.html);
-        manageModalBtns(id);
-        modal = $j('#'+id+'Modal');
-        if ( ! modal.length ) {
-          console.log("No modal found");
-        }
-        $j('#'+id+'Modal').modal('show');
-      })
-      .fail(logAjaxFail);
+  getModal('filterdebug', 'fid='+filterid);
 }
 
 function manageModalBtns(id) {
@@ -437,4 +394,4 @@ function initPage() {
   parseRows($j('#fieldsTable tbody').children());
 }
 
-$j(document).ready(initPage );
+$j(document).ready(initPage);

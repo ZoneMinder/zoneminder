@@ -19,7 +19,17 @@
 #ifndef ZONEMINDER_SRC_ZM_DEFINE_H_
 #define ZONEMINDER_SRC_ZM_DEFINE_H_
 
+// These macros have not been adopted by the C++11 standard.
+// However glibc 2.17 (CentOS 7) still depends on them to provide the macros which are guarded by these defines.
+#if !defined(__STDC_FORMAT_MACROS)
+#  define __STDC_FORMAT_MACROS
+#endif
+#if !defined(__STDC_CONSTANT_MACROS)
+#  define __STDC_CONSTANT_MACROS
+#endif
+
 #include <cinttypes>
+#include <cstddef>
 
 typedef std::int64_t int64;
 typedef std::int32_t int32;
@@ -29,5 +39,15 @@ typedef std::uint64_t uint64;
 typedef std::uint32_t uint32;
 typedef std::uint16_t uint16;
 typedef std::uint8_t uint8;
+
+#ifndef FALLTHROUGH
+#if defined(__clang__)
+#define FALLTHROUGH [[clang::fallthrough]]
+#elif defined(__GNUC__) && __GNUC__ >= 7
+#define FALLTHROUGH [[gnu::fallthrough]]
+#else
+#define FALLTHROUGH
+#endif
+#endif
 
 #endif // ZONEMINDER_SRC_ZM_DEFINE_H_

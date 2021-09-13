@@ -15,12 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/  
-
-#include "zm_db.h"
+*/
 
 #ifndef ZM_STORAGE_H
 #define ZM_STORAGE_H
+
+#include "zm_db.h"
+#include <string>
 
 class Storage {
 	public:
@@ -47,8 +48,8 @@ public:
 	unsigned int	Id() const { return id; }
 	const char *Name() const { return name; }
 	const char *Path() const { return path; }
-  const Schemes  Scheme() const { return scheme; }
-  const std::string  SchemeString() const { return scheme_str; }
+  Schemes  Scheme() const { return scheme; }
+  std::string  SchemeString() const { return scheme_str; }
 };
 
 #endif // ZM_STORAGE_H

@@ -100,7 +100,7 @@ class AppController extends Controller {
           }
           generateAuthHash(ZM_AUTH_HASH_IPS);
           session_write_close();
-        } else if ( $_COOKIE['ZMSESSID'] and !$user ) {
+        } else if ( isset($_COOKIE['ZMSESSID']) and !$user ) {
           # Have a cookie set, try to load user by session
           if ( ! is_session_started() )
             zm_session_start();

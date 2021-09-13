@@ -17,38 +17,31 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <sys/un.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/file.h>
-
-#include "zm.h"
-#include "zm_mpeg.h"
-#include "zm_monitor.h"
-
 #include "zm_stream.h"
 
+#include "zm_box.h"
+#include "zm_monitor.h"
+#include <cmath>
+#include <sys/file.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+constexpr Seconds StreamBase::MAX_STREAM_DELAY;
+constexpr Milliseconds StreamBase::MAX_SLEEP;
+
 StreamBase::~StreamBase() {
-#if HAVE_LIBAVCODEC
-  if ( vid_stream ) {
+  if (vid_stream) {
     delete vid_stream;
     vid_stream = nullptr;
   }
-#endif
   closeComms();
-  if ( monitor ) {
-    delete monitor;
-    monitor = nullptr;
-  }
 }
 
 bool StreamBase::loadMonitor(int p_monitor_id) {
   monitor_id = p_monitor_id;
-  if ( monitor )
-    delete monitor;
 
-  if ( !(monitor = Monitor::Load(monitor_id, false, Monitor::QUERY)) ) {
+  if ( !(monitor or (monitor = Monitor::Load(monitor_id, false, Monitor::QUERY))) ) {
     Error("Unable to load monitor id %d for streaming", monitor_id);
     return false;
   }
@@ -58,8 +51,13 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
     return false;
   }
 
+  if ( monitor->isConnected() ) {
+    monitor->disconnect();
+  }
+
   if ( !monitor->connect() ) {
     Error("Unable to connect to monitor id %d for streaming", monitor_id);
+    monitor->disconnect();
     return false;
   }
 
@@ -67,16 +65,20 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
 }
 
 bool StreamBase::checkInitialised() {
-  if ( !monitor ) {
+  if (!monitor) {
     Error("Cannot stream, not initialised");
     return false;
   }
-  if ( monitor->GetFunction() == Monitor::NONE ) {
+  if (monitor->GetFunction() == Monitor::NONE) {
     Info("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
     return false;
   }
-  if ( !monitor->ShmValid() ) {
+  if (!monitor->ShmValid()) {
     Error("Monitor shm is not connected");
+    return false;
+  }
+  if ((monitor->GetType() == Monitor::FFMPEG) and !monitor->DecodingEnabled() ) {
+    Debug(1, "Monitor is not decoding.");
     return false;
   }
   return true;
@@ -84,7 +86,7 @@ bool StreamBase::checkInitialised() {
 
 void StreamBase::updateFrameRate(double fps) {
   frame_mod = 1;
-  if ( (fps < 0) || !fps || isinf(fps) ) {
+  if ( (fps < 0) || !fps || std::isinf(fps) ) {
     Debug(1, "Zero or negative fps %f in updateFrameRate. Setting frame_mod=1 and effective_fps=0.0", fps);
     effective_fps = 0.0;
     base_fps = 0.0;
@@ -203,10 +205,10 @@ Image *StreamBase::prepareImage(Image *image) {
         last_crop = Box();
 
       // Recalculate crop parameters, as %ges
-      int click_x = (last_crop.LoX() * 100 ) / last_act_image_width; // Initial crop offset from last image
-      click_x += ( x * 100 ) / last_virt_image_width;
-      int click_y = (last_crop.LoY() * 100 ) / last_act_image_height; // Initial crop offset from last image
-      click_y += ( y * 100 ) / last_virt_image_height;
+      int click_x = (last_crop.Lo().x_ * 100) / last_act_image_width; // Initial crop offset from last image
+      click_x += (x * 100) / last_virt_image_width;
+      int click_y = (last_crop.Lo().y_ * 100) / last_act_image_height; // Initial crop offset from last image
+      click_y += (y * 100) / last_virt_image_height;
       Debug(3, "Got adjusted click at %d%%,%d%%", click_x, click_y);
 
       // Convert the click locations to the current image pixels
@@ -230,10 +232,10 @@ Image *StreamBase::prepareImage(Image *image) {
         hi_y = act_image_height - 1;
         lo_y = hi_y - (send_image_height - 1);
       }
-      last_crop = Box( lo_x, lo_y, hi_x, hi_y );
+      last_crop = Box({lo_x, lo_y}, {hi_x, hi_y});
     }  // end if ( mag != last_mag || x != last_x || y != last_y )
 
-    Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.LoX(), last_crop.LoY(), last_crop.HiX(), last_crop.HiY());
+    Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {
       static Image copy_image;
       copy_image.Assign(*image);
@@ -252,42 +254,54 @@ Image *StreamBase::prepareImage(Image *image) {
 }  // end Image *StreamBase::prepareImage(Image *image)
 
 bool StreamBase::sendTextFrame(const char *frame_text) {
-  Debug(2, "Sending %dx%d * %d text frame '%s'",
-      monitor->Width(), monitor->Height(), scale, frame_text);
+  int width = 640;
+  int height = 480;
+  int colours = ZM_COLOUR_RGB32;
+  int subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  int labelsize = 2;
 
-  Image image(monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder());
-  image.Clear();
-  image.Annotate(frame_text, image.centreCoord(frame_text, monitor->LabelSize()), monitor->LabelSize());
-
-  if ( scale != 100 ) {
-    image.Scale(scale);
+  if (monitor) {
+    width = monitor->Width();
+    height = monitor->Height();
+    colours = monitor->Colours();
+    subpixelorder = monitor->SubpixelOrder();
+    labelsize = monitor->LabelSize();
   }
-#if HAVE_LIBAVCODEC
-  if ( type == STREAM_MPEG ) {
-    if ( !vid_stream ) {
+  Debug(2, "Sending %dx%dx%dx%d * %d scale text frame '%s'",
+      width, height, colours, subpixelorder, scale, frame_text);
+
+  Image image(width, height, colours, subpixelorder);
+  image.Clear();
+  image.Annotate(frame_text, image.centreCoord(frame_text, labelsize), labelsize);
+
+  if (scale != 100) {
+    image.Scale(scale);
+    Debug(2, "Scaled to %dx%d", image.Width(), image.Height());
+  }
+  if (type == STREAM_MPEG) {
+    if (!vid_stream) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height());
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
     /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
-  } else
-#endif // HAVE_LIBAVCODEC
-  {
+  } else {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
     int n_bytes = 0;
 
     image.EncodeJpeg(buffer, &n_bytes);
+    Debug(4, "Encoded to %d bytes", n_bytes);
 
     fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout);
     fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);
-    if ( fwrite(buffer, n_bytes, 1, stdout) != 1 ) {
+    if (fwrite(buffer, n_bytes, 1, stdout) != 1) {
       Error("Unable to send stream text frame: %s", strerror(errno));
       return false;
     }
     fputs("\r\n\r\n", stdout);
     fflush(stdout);
   }
-  last_frame_sent = TV_2_FLOAT(now);
+  last_frame_sent = now;
   return true;
 }
 
@@ -358,7 +372,7 @@ void StreamBase::openComms() {
     // Unlink before bind, in case it already exists
     unlink(loc_sock_path);
     if ( sizeof(loc_addr.sun_path) < length ) {
-      Error("Not enough space %d in loc_addr.sun_path for socket file %s", sizeof(loc_addr.sun_path), loc_sock_path);
+      Error("Not enough space %zu in loc_addr.sun_path for socket file %s", sizeof(loc_addr.sun_path), loc_sock_path);
     }
 
     strncpy(loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path));
@@ -372,7 +386,7 @@ void StreamBase::openComms() {
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
-    gettimeofday(&last_comm_update, nullptr);
+    last_comm_update = std::chrono::system_clock::now();
   } // end if connKey > 0
   Debug(3, "comms open at %s", loc_sock_path);
 } // end void StreamBase::openComms()

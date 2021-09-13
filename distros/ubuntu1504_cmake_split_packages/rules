@@ -15,8 +15,6 @@ DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 
 CFLAGS = -Wall
-CPPFLAGS = -D__STDC_CONSTANT_MACROS
-CXXFLAGS = -DHAVE_LIBCRYPTO
 
 ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
 DEBOPT = --enable-debug
@@ -73,7 +71,7 @@ override_dh_auto_test:
 override_dh_clean:
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
-	dh_clean src/zm_config_defines.h
+	dh_clean zm_config_defines.h
 	#
 	# Delete remaining auto-generated Makefile if Makefile.in exists
 	find $(CURDIR)/ -type f -name "Makefile" | while read file; do \

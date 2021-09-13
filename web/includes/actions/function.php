@@ -40,10 +40,12 @@ if ( $action == 'function' ) {
   $newFunction = validStr($_REQUEST['newFunction']);
   # Because we use a checkbox, it won't get passed in the request. So not being in _REQUEST means 0
   $newEnabled = ( !isset($_REQUEST['newEnabled']) or $_REQUEST['newEnabled'] != '1' ) ? '0' : '1';
+  $newDecodingEnabled = ( !isset($_REQUEST['newDecodingEnabled']) or $_REQUEST['newDecodingEnabled'] != '1' ) ? '0' : '1';
   $oldFunction = $monitor->Function();
   $oldEnabled = $monitor->Enabled();
-  if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled ) {
-    $monitor->save(array('Function'=>$newFunction, 'Enabled'=>$newEnabled));
+  $oldDecodingEnabled = $monitor->DecodingEnabled();
+  if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled || $newDecodingEnabled != $oldDecodingEnabled ) {
+    $monitor->save(array('Function'=>$newFunction, 'Enabled'=>$newEnabled, 'DecodingEnabled'=>$newDecodingEnabled));
 
     if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
       $monitor->zmcControl(($newFunction != 'None') ? 'restart' : 'stop');

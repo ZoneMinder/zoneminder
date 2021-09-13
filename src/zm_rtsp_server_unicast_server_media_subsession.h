@@ -7,13 +7,16 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#pragma once
+#ifndef ZM_RTSP_SERVER_UNICAST_SERVER_MEDIA_SUBSESSION_H
+#define ZM_RTSP_SERVER_UNICAST_SERVER_MEDIA_SUBSESSION_H
 
+#include "zm_config.h"
 #include "zm_rtsp_server_server_media_subsession.h"
 
 // -----------------------------------------
 //    ServerMediaSubsession for Unicast
 // -----------------------------------------
+#if HAVE_RTSP_SERVER
 class UnicastServerMediaSubsession :
   public OnDemandServerMediaSubsession,
   public BaseServerMediaSubsession
@@ -43,3 +46,6 @@ class UnicastServerMediaSubsession :
 	protected:
 		const std::string m_format;
 };
+#endif // HAVE_RTSP_SERVER
+
+#endif // ZM_RTSP_SERVER_UNICAST_SERVER_MEDIA_SUBSESSION_H

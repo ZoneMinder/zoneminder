@@ -20,17 +20,16 @@
 #ifndef ZM_LOGGER_H
 #define ZM_LOGGER_H
 
+#include "zm_db.h"
 #include "zm_config.h"
 #include "zm_define.h"
-#include "zm_thread.h"
-
-#include <unistd.h>
-#include <string>
 #include <map>
+#include <mutex>
+#include <string>
+
 #ifdef HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
 #endif // HAVE_SYS_SYSCALL_H
-#include <mysql/mysql.h>
 
 class Logger {
 public:
@@ -90,7 +89,7 @@ private:
   static bool smInitialised;
   static Logger *smInstance;
 
-  RecursiveMutex log_mutex;
+  std::recursive_mutex log_mutex;
 
   static StringMap smCodes;
   static IntMap smSyslogPriorities;
@@ -154,18 +153,12 @@ public:
   void terminate();
 
   const std::string &id(const std::string &id);
-  const std::string &id() const {
-    return mId;
-  }
+  const std::string &id() const { return mId; }
 
-  Level level() const {
-    return mLevel;
-  }
+  Level level() const { return mLevel; }
   Level level(Level=NOOPT);
 
-  bool debugOn() const {
-    return mEffectiveLevel >= DEBUG1;
-  }
+  bool debugOn() const { return mEffectiveLevel >= DEBUG1; }
 
   Level terminalLevel(Level=NOOPT);
   Level databaseLevel(Level=NOOPT);
@@ -180,8 +173,13 @@ private:
   void closeSyslog();
   void closeDatabase();
 
-public:
-  void logPrint(bool hex, const char * const filepath, const int line, const int level, const char *fstring, ...);
+ public:
+  void logPrint(bool hex,
+                const char *filepath,
+                int line,
+                int level,
+                const char *fstring,
+                ...) __attribute__((format(printf, 6, 7)));
 };
 
 void logInit(const char *name, const Logger::Options &options=Logger::Options());
@@ -196,15 +194,19 @@ inline Logger::Level logDebugging() {
   return Logger::fetch()->debugOn();
 }
 
-#define logPrintf(logLevel,params...)  {\
-    if ( logLevel <= Logger::fetch()->level() )\
-      Logger::fetch()->logPrint( false, __FILE__, __LINE__, logLevel, ##params );\
-  }
+#define logPrintf(logLevel, params...)                                          \
+  do {                                                                          \
+    if (logLevel <= Logger::fetch()->level()) {                                 \
+      Logger::fetch()->logPrint(false, __FILE__, __LINE__, logLevel, ##params); \
+    }                                                                           \
+  } while (0)
 
-#define logHexdump(logLevel,data,len)  {\
-    if ( logLevel <= Logger::fetch()->level() )\
-      Logger::fetch()->logPrint( true, __FILE__, __LINE__, logLevel, "%p (%d)", data, len );\
-  }
+#define logHexdump(logLevel, data, len)                                                    \
+  do {                                                                                     \
+    if (logLevel <= Logger::fetch()->level()) {                                            \
+      Logger::fetch()->logPrint(true, __FILE__, __LINE__, logLevel, "%p (%d)", data, len); \
+    }                                                                                      \
+  } while (0)
 
 /* Debug compiled out */
 #ifndef DBG_OFF

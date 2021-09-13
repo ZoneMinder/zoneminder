@@ -24,8 +24,4 @@
 #define ZM_CONFIG_SUBDIR "@ZM_CONFIG_SUBDIR@"  // Path to the ZoneMinder config subfolder
 #define ZM_VERSION        "@VERSION@"  // ZoneMinder Version
 
-#define ZM_HAS_V4L1       @ZM_HAS_V4L1@
-#define ZM_HAS_V4L2       @ZM_HAS_V4L2@
-#define ZM_HAS_V4L        @ZM_HAS_V4L@
-
 #endif // ZM_CONFIG_DATA_H

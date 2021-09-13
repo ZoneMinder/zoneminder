@@ -1,9 +1,3 @@
-function streamCmdQuit( ) {
-  if ( action ) {
-    streamCmdReq.send( streamCmdParms+"&command="+CMD_QUIT );
-  }
-}
-
 // Manage the Add New Zone button
 function AddNewZone(el) {
   url = el.getAttribute('data-url');

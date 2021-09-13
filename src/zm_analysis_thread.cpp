@@ -1,47 +1,36 @@
 #include "zm_analysis_thread.h"
 
-AnalysisThread::AnalysisThread(Monitor *p_monitor) {
-  monitor = p_monitor;
-  terminate = false;
-  //sigemptyset(&block_set);
+#include "zm_monitor.h"
+#include "zm_signal.h"
+#include "zm_time.h"
+
+AnalysisThread::AnalysisThread(Monitor *monitor) :
+    monitor_(monitor), terminate_(false) {
+  thread_ = std::thread(&AnalysisThread::Run, this);
 }
 
 AnalysisThread::~AnalysisThread() {
-  Debug(2, "THREAD: deleteing analysis thread");
+  Stop();
+  if (thread_.joinable()) thread_.join();
 }
 
-int AnalysisThread::run() {
-  Debug(2, "AnalysisThread::run()");
+void AnalysisThread::Start() {
+  if (thread_.joinable()) thread_.join();
+  terminate_ = false;
+  Debug(3, "Starting analysis thread");
+  thread_ = std::thread(&AnalysisThread::Run, this);
+}
 
-  useconds_t analysis_rate = monitor->GetAnalysisRate();
-  unsigned int analysis_update_delay = monitor->GetAnalysisUpdateDelay();
-  time_t last_analysis_update_time, cur_time;
-  monitor->UpdateAdaptiveSkip();
-  last_analysis_update_time = time(0);
-
-  while ( !(terminate or zm_terminate) ) {
-
+void AnalysisThread::Run() {
+  while (!(terminate_ or zm_terminate)) {
     // Some periodic updates are required for variable capturing framerate
-    if ( analysis_update_delay ) {
-      cur_time = time(0);
-      if ( (unsigned int)( cur_time - last_analysis_update_time ) > analysis_update_delay ) {
-        analysis_rate = monitor->GetAnalysisRate();
-        monitor->UpdateAdaptiveSkip();
-        last_analysis_update_time = cur_time;
+    Debug(2, "Analyzing");
+    if (!monitor_->Analyse()) {
+      if (!(terminate_ or zm_terminate)) {
+        Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
+        Debug(2, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
       }
     }
-
-    Debug(2, "Analyzing");
-    if ( !monitor->Analyse() ) {
-Debug(2, "uSleeping for %d", (monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE));
-      usleep(monitor->Active() ? ZM_SAMPLE_RATE : ZM_SUSPENDED_RATE);
-    } else if ( analysis_rate ) {
-Debug(2, "uSleeping for %d", analysis_rate);
-      usleep(analysis_rate);
-    } else {
-Debug(2, "Not Sleeping");
-    }
-
-  } // end while ! terminate
-  return 0;
-} // end in AnalysisThread::run()
+  }
+}

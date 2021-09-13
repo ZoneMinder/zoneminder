@@ -21,8 +21,7 @@
 #define ZM_MPEG_H
 
 #include "zm_ffmpeg.h"
-
-#if HAVE_LIBAVCODEC
+#include <pthread.h>
 
 class VideoStream {
 protected:
@@ -81,7 +80,5 @@ public:
   bool OpenStream();
   double EncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 };
-
-#endif // HAVE_LIBAVCODEC
 
 #endif // ZM_MPEG_H

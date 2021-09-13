@@ -17,12 +17,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#include "zm.h"
 #include "zm_signal.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include "zm.h"
+#include "zm_logger.h"
+#include <cstring>
 
 #define TRACE_SIZE 16
 
@@ -105,8 +104,7 @@ RETSIGTYPE zm_die_handler(int signal)
 	}
 	free(messages);
 
-	Info("Backtrace complete, please execute the following command for more information");
-	Info(cmd);
+	Info("Backtrace complete, please execute the following command for more information: %s", cmd);
   #endif				// ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
 #endif                          // (defined(__i386__) || defined(__x86_64__)
 	exit(signal);

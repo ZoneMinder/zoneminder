@@ -266,15 +266,14 @@ sub end_transaction {
 } # end sub end_transaction
 
 # Basic execution of $dbh->do but with some pretty logging of the sql on error.
-# Returns 1 on success, 0 on error
 sub zmDbDo {
 	my $sql = shift;
-	if ( ! $dbh->do($sql, undef, @_) ) {
+  my $rows = $dbh->do($sql, undef, @_);
+	if ( ! defined $rows ) {
 		$sql =~ s/\?/'%s'/;
 		Error(sprintf("Failed $sql :", @_).$dbh->errstr());
-    return 0;
 	}
-  return 1;
+  return $rows;
 }
 
 1;

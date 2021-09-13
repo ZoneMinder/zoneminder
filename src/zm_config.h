@@ -20,19 +20,10 @@
 #ifndef ZM_CONFIG_H
 #define ZM_CONFIG_H
 
-#if !defined(PATH_MAX)
-#define PATH_MAX 1024
-#endif
-
 #include "config.h"
-#include "zm_config_defines.h"
 #include "zm_config_data.h"
-
+#include "zm_config_defines.h"
 #include <string>
-
-#ifdef HAVE_LIBAVFORMAT
-#define ZM_HAS_FFMPEG       1
-#endif // HAVE_LIBAVFORMAT
 
 #define ZM_MAX_IMAGE_WIDTH    2048        // The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_HEIGHT    1536        // The largest image we imagine ever handling
@@ -43,18 +34,14 @@
 #define ZM_SCALE_BASE      100          // The factor by which we bump up 'scale' to simulate FP
 #define ZM_RATE_BASE      100          // The factor by which we bump up 'rate' to simulate FP
 
-#define ZM_SQL_BATCH_SIZE     50          // Limit the size of multi-row SQL statements
-#define ZM_SQL_SML_BUFSIZ     256         // Size of SQL buffer
-#define ZM_SQL_MED_BUFSIZ     1024        // Size of SQL buffer
-#define ZM_SQL_LGE_BUFSIZ     8192        // Size of SQL buffer
-
 #define ZM_NETWORK_BUFSIZ     32768         // Size of network buffer
 
 #define ZM_MAX_FPS        30          // The maximum frame rate we expect to handle
 #define ZM_SAMPLE_RATE      int(1000000/ZM_MAX_FPS) // A general nyquist sample frequency for delays etc
 #define ZM_SUSPENDED_RATE     int(1000000/4) // A slower rate for when disabled etc
 
-extern void zmLoadConfig();
+void zmLoadStaticConfig();
+void zmLoadDBConfig();
 
 extern void process_configfile(char const *configFile);
 
@@ -78,10 +65,10 @@ struct StaticConfig {
   std::string PATH_LOGS;
   std::string PATH_SWAP;
   std::string PATH_ARP;
-  char    capture_file_format[PATH_MAX];
-  char    analyse_file_format[PATH_MAX];
-  char    general_file_format[PATH_MAX];
-  char    video_file_format[PATH_MAX];
+  std::string capture_file_format;
+  std::string analyse_file_format;
+  std::string general_file_format;
+  std::string video_file_format;
 };
 
 extern StaticConfig staticConfig;

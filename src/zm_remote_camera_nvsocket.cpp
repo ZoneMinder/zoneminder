@@ -19,12 +19,12 @@
 
 #include "zm_remote_camera_nvsocket.h"
 
-#include "zm_mem_utils.h"
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <errno.h>
+#include "zm_monitor.h"
+#include "zm_packet.h"
 #include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef SOLARIS
 #include <sys/filio.h> // FIONREAD and friends
@@ -34,7 +34,7 @@
 #endif
 
 RemoteCameraNVSocket::RemoteCameraNVSocket(
-  unsigned int p_monitor_id,
+  const Monitor *monitor,
   const std::string &p_host,
   const std::string &p_port,
   const std::string &p_path,
@@ -48,7 +48,7 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
   bool p_capture,
   bool p_record_audio ) :
   RemoteCamera(
-    p_monitor_id,
+    monitor,
     "http",
     p_host,
     p_port,
@@ -117,7 +117,7 @@ int RemoteCameraNVSocket::Connect() {
     close(sd);
     sd = -1;
 
-    Warning("Can't connect to socket mid: %d : %s", monitor_id, strerror(errno) );
+    Warning("Can't connect to socket mid: %d : %s", monitor->Id(), strerror(errno));
     return -1;
   }
 
@@ -184,9 +184,9 @@ int RemoteCameraNVSocket::PrimeCapture() {
   return 0;
 }
 
-int RemoteCameraNVSocket::Capture( ZMPacket &zm_packet ) {
-  if ( SendRequest("GetNextImage\n") < 0 ) {
-    Warning( "Unable to capture image, retrying" );
+int RemoteCameraNVSocket::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
+  if (SendRequest("GetNextImage\n") < 0) {
+    Warning("Unable to capture image, retrying");
     return 0;
   }
 	int bytes_read = Read(sd, buffer, imagesize);
@@ -195,17 +195,17 @@ int RemoteCameraNVSocket::Capture( ZMPacket &zm_packet ) {
     return 0;
   }
   uint32_t end;
-  if ( Read(sd, (char *) &end , sizeof(end)) < 0 ) {
+  if (Read(sd, (char *) &end , sizeof(end)) < 0) {
     Warning("Unable to capture image, retrying");
     return 0;
   }
-  if ( end != 0xFFFFFFFF) {
+  if (end != 0xFFFFFFFF) {
     Warning("End Bytes Failed\n");
     return 0;
   }
 
-  zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
-  zm_packet.keyframe = 1;
+  zm_packet->image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
+  zm_packet->keyframe = 1;
   return 1;
 }
 

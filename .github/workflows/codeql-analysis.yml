@@ -36,16 +36,12 @@ jobs:
         # a pull request then we can checkout the head.
         fetch-depth: 2
 
-    # If this run was triggered by a pull request event, then checkout
-    # the head of the pull request instead of the merge commit.
-    - run: git checkout HEAD^2
-      if: ${{ github.event_name == 'pull_request' }}
-
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
       with:
         languages: ${{ matrix.language }}
+        config-file: ./.github/codeql/codeql-config.yml
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file. 
         # Prefix the list here with "+" to use these queries and those in the config file.
@@ -56,8 +52,8 @@ jobs:
         git submodule init
         git submodule update --init --recursive
         sudo apt-get update
-        sudo apt-get install libx264-dev libmp4v2-dev libavdevice-dev libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev
-        sudo apt-get install libbz2-dev libgcrypt20-dev libcurl4-gnutls-dev libjpeg-turbo8-dev libturbojpeg0-dev
+        sudo apt-get install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev libjwt-gnutls-dev
+        sudo apt-get install libbz2-dev libcurl4-gnutls-dev libjpeg-turbo8-dev libturbojpeg0-dev
         sudo apt-get install default-libmysqlclient-dev libpcre3-dev libpolkit-gobject-1-dev libv4l-dev libvlc-dev
         sudo apt-get install libdate-manip-perl libdbd-mysql-perl libphp-serialization-perl libsys-mmap-perl
         sudo apt-get install libwww-perl libdata-uuid-perl libssl-dev libcrypt-eksblowfish-perl libdata-entropy-perl

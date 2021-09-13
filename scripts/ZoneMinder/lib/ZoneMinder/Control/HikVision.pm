@@ -184,6 +184,7 @@ sub moveVector {
   # Send it to the camera
   $self->PutCmd($command,$xml);
 }
+sub zoomStop         { $_[0]->moveVector(  0,  0, 0, splice(@_,1)); }
 sub moveStop         { $_[0]->moveVector(  0,  0, 0, splice(@_,1)); }
 sub moveConUp        { $_[0]->moveVector(  0,  1, 0, splice(@_,1)); }
 sub moveConUpRight   { $_[0]->moveVector(  1,  1, 0, splice(@_,1)); }

@@ -34,6 +34,12 @@ class User extends AppModel {
       return parent::beforeFind($query);
     }
 
+    public function beforeSave($options = array()) {
+      if (!empty($this->data['User']['Password'])) {
+        $this->data['User']['Password'] = password_hash($this->data['User']['Password'], PASSWORD_BCRYPT);
+      }
+      return true;
+    }  # end function beforeSave
 
 /**
  * Use table

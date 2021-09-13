@@ -5,8 +5,6 @@ Maintainer: Isaac Connor <isaac@zoneminder.com>
 Uploaders: Isaac Connor <isaac@zoneminder.com>
 Build-Depends: debhelper, sphinx-doc, dh-linktree, dh-apache2
               ,cmake
-              ,libx264-dev, libmp4v2-dev
-              ,libavdevice-dev
               ,libavcodec-dev
               ,libavformat-dev
               ,libavutil-dev
@@ -15,7 +13,6 @@ Build-Depends: debhelper, sphinx-doc, dh-linktree, dh-apache2
               ,ffmpeg
               ,net-tools
               ,libbz2-dev
-              ,libgcrypt20-dev
               ,libcurl4-gnutls-dev
               ,libturbojpeg0-dev
               ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat
@@ -43,7 +40,6 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
-        ,libmp4v2-2, libx264-155
         ,libswscale5
         ,libswresample3
         ,ffmpeg

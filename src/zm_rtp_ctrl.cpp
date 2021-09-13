@@ -15,22 +15,24 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-
-#include "zm.h"
-
-#if HAVE_LIBAVFORMAT
+//
 
 #include "zm_rtp_ctrl.h"
 
-#include "zm_time.h"
+#include "zm_config.h"
+#include "zm_rtp.h"
 #include "zm_rtsp.h"
 
-#include <errno.h>
-
-RtpCtrlThread::RtpCtrlThread( RtspThread &rtspThread, RtpSource &rtpSource )
-  : mRtspThread( rtspThread ), mRtpSource( rtpSource ), mStop( false )
+RtpCtrlThread::RtpCtrlThread(RtspThread &rtspThread, RtpSource &rtpSource)
+    : mRtspThread(rtspThread), mRtpSource(rtpSource), mTerminate(false)
 {
+  mThread = std::thread(&RtpCtrlThread::Run, this);
+}
+
+RtpCtrlThread::~RtpCtrlThread() {
+  Stop();
+  if (mThread.joinable())
+    mThread.join();
 }
 
 int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen ) {
@@ -124,7 +126,7 @@ int RtpCtrlThread::recvPacket( const unsigned char *packet, ssize_t packetLen ) 
     }
     case RTCP_BYE :
       Debug(5, "RTCP Got BYE");
-      mStop = true;
+      Stop();
       break;
     case RTCP_APP :
       // Ignoring as per RFC 3550
@@ -244,12 +246,12 @@ int RtpCtrlThread::recvPackets( unsigned char *buffer, ssize_t nBytes ) {
   return nBytes;
 }
 
-int RtpCtrlThread::run() {
+void RtpCtrlThread::Run() {
   Debug( 2, "Starting control thread %x on port %d", mRtpSource.getSsrc(), mRtpSource.getLocalCtrlPort() );
-  SockAddrInet localAddr, remoteAddr;
+  zm::SockAddrInet localAddr, remoteAddr;
 
   bool sendReports;
-  UdpInetSocket rtpCtrlServer;
+  zm::UdpInetSocket rtpCtrlServer;
   if ( mRtpSource.getLocalHost() != "" ) {
     if ( !rtpCtrlServer.bind( mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalCtrlPort() ) )
       Fatal( "Failed to bind RTCP server" );
@@ -267,18 +269,17 @@ int RtpCtrlThread::run() {
 
   // The only reason I can think of why we would have a timeout period is so that we can regularly send RR packets.
   // Why 10 seconds? If anything I think this should be whatever timeout value was given in the DESCRIBE response
-  Select select( 10 );
+  zm::Select select(Seconds(10));
   select.addReader( &rtpCtrlServer );
 
   unsigned char buffer[ZM_NETWORK_BUFSIZ];
 
-  time_t  last_receive = time(nullptr);
-  bool  timeout = false; // used as a flag that we had a timeout, and then sent an RR to see if we wake back up. Real timeout will happen when this is true.
+  TimePoint last_receive = std::chrono::steady_clock::now();
+  bool timeout = false; // used as a flag that we had a timeout, and then sent an RR to see if we wake back up. Real timeout will happen when this is true.
 
-  while ( !mStop && select.wait() >= 0 ) {
-
-    time_t now = time(nullptr);
-    Select::CommsList readable = select.getReadable();
+  while (!mTerminate && select.wait() >= 0) {
+    TimePoint now = std::chrono::steady_clock::now();
+    zm::Select::CommsList readable = select.getReadable();
     if ( readable.size() == 0 ) {
       if ( ! timeout ) {
         // With this code here, we will send an SDES and RR packet every 10 seconds
@@ -286,24 +287,23 @@ int RtpCtrlThread::run() {
         unsigned char *bufferPtr = buffer;
         bufferPtr += generateRr( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
         bufferPtr += generateSdes( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
-        Debug( 3, "Preventing timeout by sending %zd bytes on sd %d. Time since last receive: %d",
-            bufferPtr-buffer, rtpCtrlServer.getWriteDesc(), ( now-last_receive) );
+        Debug(3, "Preventing timeout by sending %zd bytes on sd %d. Time since last receive: %.2f s",
+              bufferPtr - buffer, rtpCtrlServer.getWriteDesc(), FPSeconds(now - last_receive).count());
         if ( (nBytes = rtpCtrlServer.send(buffer, bufferPtr-buffer)) < 0 )
           Error("Unable to send: %s", strerror(errno));
         timeout = true;
         continue;
       } else {
-        //Error( "RTCP timed out" );
-        Debug(1, "RTCP timed out. Time since last receive: %d", ( now-last_receive) );
+        Debug(1, "RTCP timed out. Time since last receive: %.2f s", FPSeconds(now - last_receive).count());
         continue;
         //break;
       }
     } else {
       timeout = false;
-      last_receive = time(nullptr);
+      last_receive = std::chrono::steady_clock::now();
     }
-    for ( Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
-      if ( UdpInetSocket *socket = dynamic_cast<UdpInetSocket *>(*iter) ) {
+    for (zm::Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
+      if ( zm::UdpInetSocket *socket = dynamic_cast<zm::UdpInetSocket *>(*iter) ) {
         ssize_t nBytes = socket->recv( buffer, sizeof(buffer) );
         Debug( 4, "Read %zd bytes on sd %d", nBytes, socket->getReadDesc() );
 
@@ -321,7 +321,7 @@ int RtpCtrlThread::run() {
           }
         } else {
           // Here is another case of not receiving some data causing us to terminate... why?  Sometimes there are pauses in the interwebs.
-          mStop = true;
+          Stop();
           break;
         }
       } else {
@@ -330,8 +330,5 @@ int RtpCtrlThread::run() {
     } // end foeach comms iterator
   }
   rtpCtrlServer.close();
-  mRtspThread.stop();
-  return 0;
+  mRtspThread.Stop();
 }
-
-#endif // HAVE_LIBAVFORMAT

@@ -20,39 +20,29 @@
 #ifndef ZM_EVENT_H
 #define ZM_EVENT_H
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <limits.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <mysql/mysql.h>
+#include "zm_config.h"
+#include "zm_define.h"
+#include "zm_storage.h"
+#include "zm_time.h"
+#include "zm_utils.h"
+#include "zm_zone.h"
 
-#include <set>
 #include <map>
 #include <queue>
-#include <string>
+#include <set>
 
-#include "zm.h"
-#include "zm_image.h"
-#include "zm_stream.h"
-#include "zm_packet.h"
-#include "zm_storage.h"
-
-class VideoStore;
-class Zone;
-class Monitor;
 class EventStream;
+class Frame;
+class Image;
+class Monitor;
+class VideoStore;
+class ZMPacket;
+class Zone;
 
 // Maximum number of prealarm frames that can be stored
 #define MAX_PRE_ALARM_FRAMES  16
-typedef uint64_t event_id_t;
-typedef enum { NORMAL=0, BULK, ALARM } FrameType;
 
-#include "zm_frame.h"
+typedef uint64_t event_id_t;
 
 //
 // Class describing events, i.e. captured periods of activity.
@@ -80,8 +70,8 @@ class Event {
 
     uint64_t  id;
     Monitor      *monitor;
-    struct timeval  start_time;
-    struct timeval  end_time;
+    SystemTimePoint start_time;
+    SystemTimePoint end_time;
     std::string     cause;
     StringSetMap    noteSetMap;
     int        frames;
@@ -107,12 +97,10 @@ class Event {
     static bool OpenFrameSocket(int);
     static bool ValidateFrameSocket(int);
 
-    Event(
-        Monitor *p_monitor,
-        struct timeval p_start_time,
-        const std::string &p_cause,
-        const StringSetMap &p_noteSetMap
-        );
+    Event(Monitor *p_monitor,
+          SystemTimePoint p_start_time,
+          const std::string &p_cause,
+          const StringSetMap &p_noteSetMap);
     ~Event();
 
     uint64_t Id() const { return id; }
@@ -120,51 +108,40 @@ class Event {
     int Frames() const { return frames; }
     int AlarmFrames() const { return alarm_frames; }
 
-    const struct timeval &StartTime() const { return start_time; }
-    const struct timeval &EndTime() const { return end_time; }
+    SystemTimePoint StartTime() const { return start_time; }
+    SystemTimePoint EndTime() const { return end_time; }
 
-    void AddPacket(ZMPacket *p);
-    bool WritePacket(ZMPacket &p);
+    void AddPacket(const std::shared_ptr<ZMPacket> &p);
+    bool WritePacket(const std::shared_ptr<ZMPacket> &p);
     bool SendFrameImage(const Image *image, bool alarm_frame=false);
-    bool WriteFrameImage(
-        Image *image,
-        struct timeval timestamp,
-        const char *event_file,
-        bool alarm_frame=false
-       ) const;
+    bool WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame = false) const;
 
     void updateNotes(const StringSetMap &stringSetMap);
 
-    void AddFrames(int n_frames, Image **images, struct timeval **timestamps);
-    void AddFrame(
-        Image *image,
-        struct timeval timestamp,
-        int score=0,
-        Image *alarm_image=nullptr);
+  void AddFrame(Image *image,
+                SystemTimePoint timestamp,
+                const std::vector<ZoneStats> &stats,
+                int score = 0,
+                Image *alarm_image = nullptr);
 
  private:
-    void AddFramesInternal(
-        int n_frames,
-        int start_frame,
-        Image **images,
-        struct timeval **timestamps);
     void WriteDbFrames();
-    void UpdateFramesDelta(double offset);
     bool SetPath(Storage *storage);
 
  public:
-    static const char *getSubPath(struct tm *time) {
-      static char subpath[PATH_MAX] = "";
-      snprintf(subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d",
-          time->tm_year-100, time->tm_mon+1, time->tm_mday,
-          time->tm_hour, time->tm_min, time->tm_sec);
-      return subpath;
-    }
-    static const char *getSubPath(time_t *time) {
-      return Event::getSubPath(localtime(time));
-    }
+  static std::string getSubPath(tm time) {
+    std::string subpath = stringtf("%02d/%02d/%02d/%02d/%02d/%02d",
+                                   time.tm_year - 100, time.tm_mon + 1, time.tm_mday,
+                                   time.tm_hour, time.tm_min, time.tm_sec);
+    return subpath;
+  }
+  static std::string getSubPath(time_t *time) {
+    tm time_tm = {};
+    localtime_r(time, &time_tm);
+    return Event::getSubPath(time_tm);
+  }
 
-    const char* getEventFile(void) const {
+    const char* getEventFile() const {
       return video_file.c_str();
     }
 
@@ -188,7 +165,7 @@ class Event {
     }
     static void AddPreAlarmFrame(
         Image *image,
-        struct timeval timestamp,
+        SystemTimePoint timestamp,
         int score=0,
         Image *alarm_frame=nullptr
         ) {

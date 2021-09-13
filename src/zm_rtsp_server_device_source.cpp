@@ -8,27 +8,28 @@
 **
 ** -------------------------------------------------------------------------*/
 
-#include <utility>
-
 #include "zm_rtsp_server_device_source.h"
-#include "zm_rtsp_server_frame.h"
-#include "zm_logger.h"
-#if HAVE_RTSP_SERVER
 
+#include "zm_config.h"
+#include "zm_logger.h"
+#include "zm_rtsp_server_frame.h"
+#include "zm_signal.h"
+
+#if HAVE_RTSP_SERVER
 ZoneMinderDeviceSource::ZoneMinderDeviceSource(
     UsageEnvironment& env,
-    Monitor* monitor,
+    std::shared_ptr<Monitor> monitor,
     AVStream *stream,
     unsigned int queueSize
     ) :
   FramedSource(env),
+	m_eventTriggerId(envir().taskScheduler().createEventTrigger(ZoneMinderDeviceSource::deliverFrameStub)),
 	m_stream(stream),
-	m_monitor(monitor),
+	m_monitor(std::move(monitor)),
   m_packetqueue(nullptr),
   m_packetqueue_it(nullptr),
 	m_queueSize(queueSize)
 {
-	m_eventTriggerId = envir().taskScheduler().createEventTrigger(ZoneMinderDeviceSource::deliverFrameStub);
 	memset(&m_thid, 0, sizeof(m_thid));
 	memset(&m_mutex, 0, sizeof(m_mutex));
 	if ( m_monitor ) {
@@ -158,7 +159,7 @@ int ZoneMinderDeviceSource::getNextFrame() {
   // Convert pts to timeval
   int64_t pts = av_rescale_q(pkt->dts, m_stream->time_base, AV_TIME_BASE_Q);
   timeval tv = { pts/1000000, pts%1000000 };
-  dumpPacket(m_stream, pkt, "rtspServer");
+  ZM_DUMP_STREAM_PACKET(m_stream, (*pkt), "rtspServer");
   Debug(2, "pts %" PRId64 " pkt.pts %" PRId64 " tv %d.%d", pts, pkt->pts, tv.tv_sec, tv.tv_usec);
 
   std::list< std::pair<unsigned char*, size_t> > framesList = this->splitFrames(pkt->data, pkt->size);
@@ -213,4 +214,4 @@ unsigned char*  ZoneMinderDeviceSource::extractFrame(unsigned char* frame, size_
   size = 0;
   return frame;
 }
-#endif
+#endif // HAVE_RTSP_SERVER

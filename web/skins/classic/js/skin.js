@@ -126,6 +126,28 @@ function dataOnClick() {
       window[fnName](ev);
     };
   });
+  document.querySelectorAll("button[data-on-mousedown]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-mousedown");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
+      return;
+    }
+
+    el.onmousedown = function(ev) {
+      window[fnName](ev);
+    };
+  });
+  document.querySelectorAll("button[data-on-mouseup]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-mouseup");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
+      return;
+    }
+
+    el.onmouseup = function(ev) {
+      window[fnName](ev);
+    };
+  });
 }
 
 // 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
@@ -331,10 +353,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function getNavBar() {
-    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar')
+    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay?'&'+auth_relay:''))
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
+          if (error == 'Unauthorized') {
+            window.location.reload(true);
+          }
           if ( ! jqxhr.responseText ) {
             console.log("No responseText in jqxhr");
             console.log(jqxhr);
@@ -375,13 +400,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
 }
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
-function checkStreamForErrors( funcName, streamObj ) {
+function checkStreamForErrors(funcName, streamObj) {
   if ( !streamObj ) {
-    Error( funcName+": stream object was null" );
+    Error(funcName+': stream object was null');
     return true;
   }
   if ( streamObj.result == "Error" ) {
-    Error( funcName+" stream error: "+streamObj.message );
+    Error(funcName+' stream error: '+streamObj.message);
     return true;
   }
   return false;
@@ -756,8 +781,8 @@ function logAjaxFail(jqxhr, textStatus, error) {
 }
 
 // Load the Modal HTML via Ajax call
-function getModal(id) {
-  $j.getJSON(thisUrl + '?request=modal&modal='+id)
+function getModal(id, parameters, buttonconfig=null) {
+  $j.getJSON(thisUrl + '?request=modal&modal='+id+'&'+parameters)
       .done(function(data) {
         if ( !data ) {
           console.error("Get modal returned no data");
@@ -765,7 +790,7 @@ function getModal(id) {
         }
 
         insertModalHtml(id, data.html);
-        manageModalBtns(id);
+        buttonconfig ? buttonconfig() : manageModalBtns(id);
         modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {
           console.log('No modal found');
@@ -773,6 +798,14 @@ function getModal(id) {
         $j('#'+id+'Modal').modal('show');
       })
       .fail(logAjaxFail);
+}
+
+function showModal(id, buttonconfig=null) {
+  var div = $j('#'+id+'Modal');
+  if ( ! div.length ) {
+    getModal(id, buttonconfig);
+  }
+  div.modal('show');
 }
 
 function manageModalBtns(id) {
@@ -884,8 +917,9 @@ function manageShutdownBtns(element) {
       .fail(logAjaxFail);
 }
 
+var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
-  timeout = setTimeout(function() {
+  thumbnail_timeout = setTimeout(function() {
     var img = event.target;
     var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
     var imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
@@ -896,7 +930,7 @@ function thumbnail_onmouseover(event) {
 }
 
 function thumbnail_onmouseout(event) {
-  clearTimeout(timeout);
+  clearTimeout(thumbnail_timeout);
   var img = event.target;
   var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';

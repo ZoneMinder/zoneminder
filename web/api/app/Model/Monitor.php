@@ -134,32 +134,37 @@ class Monitor extends AppModel {
       'className' => 'Monitor_Status',
       'foreignKey' => 'MonitorId',
       'joinTable' =>  'Monitor_Status',
+    ),
+    'Event_Summary' => array(
+      'className' => 'Event_Summary',
+      'foreignKey' => 'MonitorId',
+      'joinTable' =>  'Event_Summaries',
     )
   );
 
   public function daemonControl($monitor, $command, $daemon=null) {
-    if ( $monitor['Function'] == 'None' ) {
-      ZM\Debug('Calling daemonControl when Function == None');
+    if ($monitor['Function'] == 'None' and $command != 'stop') {
+      ZM\Warning("Calling daemonControl with command $command when Function == None");
       return;
     }
-    if ( defined('ZM_SERVER_ID') and ($monitor['ServerId']!=ZM_SERVER_ID) ) {
+    if (defined('ZM_SERVER_ID') and ($monitor['ServerId']!=ZM_SERVER_ID)) {
       ZM\Error('Calling daemonControl for Monitor assigned to different server. Our server id '.ZM_SERVER_ID.' != '.$monitor['ServerId']);
       return;
     }
 
     $daemons = array();
-    if ( ! $daemon ) {
+    if (!$daemon) {
       array_push($daemons, 'zmc');
     } else {
       array_push($daemons, $daemon);
     }
 
     $status_text = '';
-    foreach ( $daemons as $daemon ) {
+    foreach ($daemons as $daemon) {
       $args = '';
-      if ( $daemon == 'zmc' and $monitor['Type'] == 'Local' ) {
+      if ($daemon == 'zmc' and $monitor['Type'] == 'Local') {
         $args = '-d ' . $monitor['Device'];
-      } else if ( $daemon == 'zmcontrol.pl' ) {
+      } else if ($daemon == 'zmcontrol.pl') {
         $args = '--id '.$monitor['Id'];
       } else {
         $args = '-m ' . $monitor['Id'];

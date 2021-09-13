@@ -20,15 +20,15 @@
 #ifndef ZM_STREAM_H
 #define ZM_STREAM_H
 
-#include <sys/un.h>
-#include <sys/socket.h>
-
-#include "zm.h"
+#include "zm_logger.h"
 #include "zm_mpeg.h"
+#include "zm_time.h"
+#include <memory>
+#include <sys/un.h>
 
+class Image;
 class Monitor;
 
-#define TV_2_FLOAT( tv ) ( double((tv).tv_sec) + (double((tv).tv_usec) / 1000000.0) )
 #define BOUNDARY "ZoneMinderFrame"
 
 class StreamBase {
@@ -42,8 +42,8 @@ public:
   } StreamType;
 
 protected:
-  static const int MAX_STREAM_DELAY = 5; // Seconds
-  static const int MAX_SLEEP_USEC = 500000; // .5 Seconds
+  static constexpr Seconds MAX_STREAM_DELAY = Seconds(5);
+  static constexpr Milliseconds MAX_SLEEP = Milliseconds(500);
 
   static const StreamType DEFAULT_TYPE = STREAM_JPEG;
   enum { DEFAULT_RATE=ZM_RATE_BASE };
@@ -93,7 +93,7 @@ protected:
 
 protected:
   int monitor_id;
-  Monitor *monitor;
+  std::shared_ptr<Monitor> monitor;
 
   StreamType type;
   const char *format;
@@ -102,7 +102,6 @@ protected:
   int last_scale;
   int zoom;
   int last_zoom;
-  double maxfps;
   int bitrate;
   unsigned short last_x, last_y;
   unsigned short x, y;
@@ -119,19 +118,23 @@ protected:
   bool paused;
   int step;
 
-  struct timeval now;
-  struct timeval last_comm_update;
+  SystemTimePoint now;
+  SystemTimePoint last_comm_update;
 
-  double base_fps;
-  double effective_fps;
+  double maxfps;
+  double base_fps;        // Should be capturing fps, hence a rough target
+  double effective_fps;   // Target fps after taking max_fps into account
+  double actual_fps;      // sliding calculated actual streaming fps achieved
+  SystemTimePoint last_fps_update;
+  int frame_count;      // Count of frames sent
+  int last_frame_count; // Used in calculating actual_fps from frame_count - last_frame_count
+
   int frame_mod;
 
-  double last_frame_sent;
-  struct timeval last_frame_timestamp;
+  SystemTimePoint last_frame_sent;
+  SystemTimePoint last_frame_timestamp;
 
-#if HAVE_LIBAVCODEC   
   VideoStream *vid_stream;
-#endif // HAVE_LIBAVCODEC   
 
   CmdMsg msg;
 
@@ -154,7 +157,6 @@ public:
     last_scale(DEFAULT_SCALE),
     zoom(DEFAULT_ZOOM),
     last_zoom(DEFAULT_ZOOM),
-    maxfps(DEFAULT_MAXFPS),
     bitrate(DEFAULT_BITRATE),
     last_x(0),
     last_y(0),
@@ -166,7 +168,14 @@ public:
     sd(-1),
     lock_fd(0),
     paused(false),
-    step(0)
+    step(0),
+    maxfps(DEFAULT_MAXFPS),
+    base_fps(0.0),
+    effective_fps(0.0),
+    actual_fps(0.0),
+    frame_count(0),
+    last_frame_count(0),
+    frame_mod(1)
   {
     memset(&loc_sock_path, 0, sizeof(loc_sock_path));
     memset(&loc_addr, 0, sizeof(loc_addr));
@@ -174,15 +183,7 @@ public:
     memset(&rem_addr, 0, sizeof(rem_addr));
     memset(&sock_path_lock, 0, sizeof(sock_path_lock));
 
-    base_fps = 0.0;
-    effective_fps = 0.0;
-    frame_mod = 1;
-
-#if HAVE_LIBAVCODEC   
-    vid_stream = 0;
-#endif // HAVE_LIBAVCODEC   
-    last_frame_sent = 0.0;
-    last_frame_timestamp = (struct timeval){0};
+    vid_stream = nullptr;
     msg = { 0, { 0 } };
   }
   virtual ~StreamBase();

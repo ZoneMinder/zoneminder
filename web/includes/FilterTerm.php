@@ -41,6 +41,11 @@ class FilterTerm {
         Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
       }
     }
+    if ( isset($term['tablename']) ) {
+      $this->tablename = $term['tablename'];
+    } else {
+      $this->tablename = 'E';
+    }
 
     if ( isset($term['obr']) ) {
       if ( (string)(int)$term['obr'] == $term['obr'] ) {
@@ -68,7 +73,7 @@ class FilterTerm {
 
     $vals = is_array($this->val) ? $this->val : preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val));
     foreach ( $vals as $value ) {
-
+      $value_upper = strtoupper($value);
       switch ( $this->attr ) {
 
       case 'AlarmedZoneId':
@@ -96,36 +101,36 @@ class FilterTerm {
       case 'ServerId':
         if ( $value == 'ZM_SERVER_ID' ) {
           $value = ZM_SERVER_ID;
-        } else if ( $value == 'NULL' ) {
+        } else if ( $value_upper == 'NULL' ) {
 
         } else {
           $value = dbEscape($value);
         }
         break;
       case 'StorageId':
-        if ( $value != 'NULL' ) {
+        if ( $value_upper != 'NULL' ) {
           $value = dbEscape($value);
         }
         break;
       case 'DateTime':
       case 'StartDateTime':
       case 'EndDateTime':
-        if ( $value != 'NULL' )
+        if ( $value_upper != 'NULL' )
           $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
         break;
       case 'Date':
       case 'StartDate':
       case 'EndDate':
-        if ( $value == 'CURDATE()' or $value == 'NOW()' ) {
+        if ( $value_upper == 'CURDATE()' or $value_upper == 'NOW()' ) {
           $value = 'to_days('.$value.')';
-        } else if ( $value != 'NULL' ) {
+        } else if ( $value_upper != 'NULL' ) {
           $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
         }
         break;
       case 'Time':
       case 'StartTime':
       case 'EndTime':
-        if ( $value != 'NULL' )
+        if ( $value_upper != 'NULL' )
           $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
         break;
       default :
@@ -133,7 +138,7 @@ class FilterTerm {
           $value = 1;
         } else if ( $value == 'Even' ) {
           $value = 0;
-        } else if ( $value != 'NULL' )
+        } else if ( $value_upper != 'NULL' )
           $value = dbEscape($value);
         break;
       }
@@ -143,14 +148,13 @@ class FilterTerm {
   } # end function sql_values
 
   public function sql_operator() {
-    switch ( $this->attr ) {
-    case 'AlarmZoneId':
+    switch ($this->attr) {
+    case 'AlarmedZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':
     case 'DiskPercent':
       return '';
     }
-
 
     switch ( $this->op ) {
     case '=' :
@@ -196,13 +200,17 @@ class FilterTerm {
 
     $sql = '';
     if ( isset($this->cnj) ) {
-      $sql .= ' '.$this->cnj.' ';
+      $sql .= ' '.$this->cnj;
     }
     if ( isset($this->obr) ) {
-      $sql .= ' '.str_repeat('(', $this->obr).' ';
+      $sql .= ' '.str_repeat('(', $this->obr);
     }
+    $sql .= ' ';
 
     switch ( $this->attr ) {
+    case 'AlarmedZoneId':
+      $sql .= '/* AlarmedZoneId */ ';
+      break;
     case 'ExistsInFileSystem':
     case 'DiskPercent':
       $sql .= 'TRUE /*'.$this->attr.'*/';
@@ -288,7 +296,10 @@ class FilterTerm {
     case 'Notes':
     case 'StateId':
     case 'Archived':
-      $sql .= 'E.'.$this->attr;
+      $sql .= $this->tablename.'.'.$this->attr;
+      break;
+    default :
+      $sql .= $this->tablename.'.'.$this->attr;
     }
     $sql .= $this->sql_operator();
     $values = $this->sql_values();
@@ -299,8 +310,9 @@ class FilterTerm {
     }
 
     if ( isset($this->cbr) ) {
-      $sql .= ' '.str_repeat(')', $this->cbr).' ';
+      $sql .= ' '.str_repeat(')', $this->cbr);
     }
+    $sql .= PHP_EOL;
     return $sql;
   } # end public function sql
 

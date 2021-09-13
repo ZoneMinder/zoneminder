@@ -20,11 +20,8 @@
 #ifndef ZM_REMOTE_CAMERA_HTTP_H
 #define ZM_REMOTE_CAMERA_HTTP_H
 
-#include "zm_remote_camera.h"
-
 #include "zm_buffer.h"
-#include "zm_regexp.h"
-#include "zm_utils.h"
+#include "zm_remote_camera.h"
 
 //
 // Class representing 'http' cameras, i.e. those which are
@@ -45,7 +42,7 @@ protected:
 
 public:
   RemoteCameraHttp(
-      unsigned int p_monitor_id,
+      const Monitor *monitor,
       const std::string &method,
       const std::string &host,
       const std::string &port,
@@ -62,19 +59,19 @@ public:
       );
   ~RemoteCameraHttp();
 
-  void Initialise();
-  void Terminate() { Disconnect(); }
-  int Connect();
-  int Disconnect();
+  void Initialise() override;
+  void Terminate() override { Disconnect(); }
+  int Connect() override;
+  int Disconnect() override;
   int SendRequest();
   int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
 	int GetData();
   int GetResponse();
-  int PrimeCapture();
-  int PreCapture();
-  int Capture( ZMPacket &p );
-  int PostCapture();
-  int Close() { Disconnect(); return 0; };
+  int PrimeCapture() override;
+  int PreCapture() override;
+  int Capture(std::shared_ptr<ZMPacket> &p) override;
+  int PostCapture() override;
+  int Close() override { Disconnect(); return 0; };
 };
 
 #endif // ZM_REMOTE_CAMERA_HTTP_H

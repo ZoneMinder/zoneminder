@@ -22,6 +22,12 @@
 # This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
+
+sub array_diff(\@\@) {
+  my %e = map { $_ => undef } @{$_[1]};
+  return @{[ ( grep { (exists $e{$_}) ? ( delete $e{$_} ) : ( 1 ) } @{ $_[0] } ), keys %e ] };
+}
+
 package ZoneMinder::Object;
 
 use 5.006;
@@ -845,6 +851,42 @@ sub find_sql {
 	#$log->debug("Loading Debug:$debug $object_type ($sql) (".join(',', map { ref $_ eq 'ARRAY' ? join(',', @{$_}) : $_ } @values).')' ) if $debug;
 	return \%sql;
 } # end sub find_sql
+
+sub changes {
+  my ( $self, $params ) = @_;
+
+  my $type = ref $self;
+  if ( ! $type ) {
+    my ( $caller, undef, $line ) = caller;
+    $log->error("No type in Object::changes. self:$self from  $caller:$line");
+  }
+  my $fields = eval ('\%'.$type.'::fields');
+  if (!$fields) {
+    $log->warn('Object::changes called on an object with no fields');
+    return;
+  } # end if
+  my @results;
+
+  foreach my $field (sort keys %$fields) {
+    next if ! exists $$params{$field};
+
+    if ( ref $$self{$field} eq 'ARRAY' ) {
+      my @second = ref $$params{$field} eq 'ARRAY' ? @{$$params{$field}} : ($$params{$field});
+      if (array_diff(@{$$self{$field}}, @second)) {
+        push @results, [ $field, $$self{$field}, $$params{$field} ];
+      }
+    } elsif (
+      (!defined($$self{$field}) and defined($$params{$field}))
+        or
+      (defined($$self{$field}) and !defined($$params{$field}))
+    ) {
+      push @results, $field;
+    } elsif ( defined($$self{$field}) and defined($$params{$field}) and ($$self{$field} ne $$params{$field}) ) {
+      push @results, $field;
+    }
+  }
+  return @results;
+}
 
 sub AUTOLOAD {
   my $type = ref($_[0]);

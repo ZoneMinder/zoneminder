@@ -275,17 +275,16 @@ function timerFire() {
     clearInterval(timerObj);
     timerObj = null;
     timerInterval = currentDisplayInterval;
-    console.log("Turn off nterrupts timerInterfave" + timerInterval);
+    console.log("Turn off interrupts timerInterfave" + timerInterval);
   }
 
   if ( (currentSpeed > 0 || liveMode != 0) && ! timerObj ) {
     timerObj = setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
   }
 
-  if ( liveMode ) {
-    console.log("liveMode");
+  if (liveMode) {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if ( currentTimeSecs + playSecsPerInterval >= maxTimeSecs ) {
+  } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
     console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " >= " + maxTimeSecs + " so stopping");
     setSpeed(0);
@@ -507,8 +506,9 @@ function redrawScreen() {
 
     scaleDiv.hide();
     fit.text('Scale');
-    monitors.height(mh.toString() + "px"); // leave a small gap at bottom
+    monitors.height(mh.toString() + 'px'); // leave a small gap at bottom
     if (maxfit2(monitors.outerWidth(), monitors.outerHeight()) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+      console.log("Failed to fit, dropping back to scaled mode");
       fitMode=1-fitMode;
     }
   } else {
@@ -636,7 +636,7 @@ function showSpeed(val) {
 }
 
 function setSpeed(speed_index) {
-  if ( liveMode == 1 ) {
+  if (liveMode == 1) {
     console.log("setSpeed in liveMode?");
     return; // we shouldn't actually get here but just in case
   }
@@ -771,16 +771,16 @@ function compSize(a, b) { // sort array by some size parameter  - height seems t
 }
 
 function maxfit2(divW, divH) {
-  var bestFitX=[]; // how we arranged the so-far best match
-  var bestFitX2=[];
-  var bestFitY=[];
-  var bestFitY2=[];
+  var bestFitX = []; // how we arranged the so-far best match
+  var bestFitX2 = [];
+  var bestFitY = [];
+  var bestFitY2 = [];
 
-  var minScale=0.05;
-  var maxScale=5.00;
-  var bestFitArea=0;
-
-  var borders=-1;
+  var minScale = 0.05;
+  var maxScale = 5.00;
+  var bestFitArea = 0;
+  var borders_width=-1;
+  var borders_height=-1;
 
   //monitorPtr.sort(compSize); //Sorts monitors by size in viewport.  If enabled makes captions not line up with graphs.
 
@@ -807,8 +807,12 @@ function maxfit2(divW, divH) {
         return 1; // it's OK
       }
 
-      if ( borders <= 0 ) {
-        borders = parseInt($j('#Monitor'+monId).css('border')) * 2;
+      var monitor_div = $j('#Monitor'+monId);
+      if ( borders_width <= 0 ) {
+        borders_width = parseInt(monitor_div.css('border-left-width')) + parseInt(monitor_div.css('border-right-width'));
+      }
+      if ( borders_height <= 0) {
+        borders_height = parseInt(monitor_div.css('border-top-width')) + parseInt(monitor_div.css('border-bottom-width'));
       } // assume fixed size border, and added to both sides and top/bottom
       // try fitting over first, then down.  Each new one must land at either upper right or lower left corner of last (try in that order)
       // Pick the one with the smallest Y, then smallest X if Y equal
@@ -816,22 +820,36 @@ function maxfit2(divW, divH) {
       var fitY = 999999999;
       for ( adjacent = 0; adjacent < m; adjacent ++ ) {
         // try top right of adjacent
-        if ( doesItFit(thisX2[adjacent]+1, thisY[adjacent], monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, m-1) == 1 ) {
+        if (doesItFit(
+            thisX2[adjacent]+1,
+            thisY[adjacent],
+            monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_width,
+            monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_height,
+            m-1) == 1) {
           if ( thisY[adjacent]<fitY || ( thisY[adjacent] == fitY && thisX2[adjacent]+1 < fitX ) ) {
             fitX = thisX2[adjacent] + 1;
             fitY = thisY[adjacent];
           }
         }
         // try bottom left
-        if ( doesItFit(thisX[adjacent], thisY2[adjacent]+1, monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, m-1) == 1 ) {
+        if (doesItFit(
+            thisX[adjacent],
+            thisY2[adjacent]+1,
+            monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_width,
+            monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_height,
+            m-1) == 1) {
           if ( thisY2[adjacent]+1 < fitY || ( thisY2[adjacent]+1 == fitY && thisX[adjacent] < fitX ) ) {
             fitX = thisX[adjacent];
             fitY = thisY2[adjacent] + 1;
           }
         }
-      }
+      } // end for adjacent < m
       if ( m == 0 ) { // note for the very first one there were no adjacents so the above loop didn't run
-        if ( doesItFit(0, 0, monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, -1) == 1 ) {
+        if ( doesItFit(
+            0, 0,
+            monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_width,
+            monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_height,
+            -1) == 1 ) {
           fitX = 0;
           fitY = 0;
         }
@@ -841,11 +859,11 @@ function maxfit2(divW, divH) {
         break; // break out of monitor loop flagging we didn't fit
       }
       thisX[m] =fitX;
-      thisX2[m]=fitX + monitorWidth[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
+      thisX2[m]=fitX + monitorWidth[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders_width;
       thisY[m] =fitY;
-      thisY2[m]=fitY + monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
+      thisY2[m]=fitY + monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders_height;
       thisArea += (thisX2[m] - thisX[m])*(thisY2[m] - thisY[m]);
-    }
+    } // end foreach monitor
     if ( allFit == 1 ) {
       minScale=thisScale;
       if (bestFitArea<thisArea) {
@@ -864,11 +882,11 @@ function maxfit2(divW, divH) {
   if ( bestFitArea > 0 ) { // only rearrange if we could fit -- otherwise just do nothing, let them start coming out, whatever
     for ( m = 0; m < numMonitors; m++ ) {
       c = document.getElementById('Monitor' + monitorPtr[m]);
-      c.style.position = "absolute";
+      c.style.position = 'absolute';
       c.style.left = bestFitX[m].toString() + "px";
       c.style.top = bestFitY[m].toString() + "px";
-      c.width = bestFitX2[m] - bestFitX[m] + 1 - borders;
-      c.height = bestFitY2[m] - bestFitY[m] + 1 - borders;
+      c.width = bestFitX2[m] - bestFitX[m] + 1 - borders_width;
+      c.height = bestFitY2[m] - bestFitY[m] + 1 - borders_height;
     }
     return 1;
   } else {

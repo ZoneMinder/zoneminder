@@ -1,6 +1,6 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: ZoneMinder
-Upstream-Contact: Philip Coombes <philip.coombes@zoneminder.com>
+Upstream-Contact: Isaac Connor <isaac@zoneminder.com>
 Source: https://github.com/ZoneMinder/ZoneMinder
 Comment:
  This package was originally debianized by matrix <matrix@cecilia>
@@ -41,7 +41,6 @@ Copyright: 2005-2013 Cake Software Foundation, Inc. (http://cakefoundation.org)
 License: Expat
 
 Files:
-    cmake/Modules/CheckPrototypeDefinition*.cmake
     cmake/Modules/FindGLIB2.cmake
     cmake/Modules/FindPolkit.cmake
     cmake/Modules/GNUInstallDirs.cmake

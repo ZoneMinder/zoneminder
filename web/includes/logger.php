@@ -397,7 +397,8 @@ class Logger {
         if ( !error_log($message."\n", 3, $this->logFile) ) {
           if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
             $error = error_get_last();
-            trigger_error("Can't write to log file '".$this->logFile."': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
+            $this->fileLevel = self::NOLOG;
+            Error("Can't write to log file '".$this->logFile."': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
           }
         }
       } else if ( $this->logFd ) {
@@ -413,6 +414,9 @@ class Logger {
 
     $message = $code.' ['.$string.']';
     if ( $level <= $this->databaseLevel ) {
+      if ( strlen($file) > 255 )
+        $file = substr($file, 0, 255);
+
       try {
         global $dbConn;
         $sql = 'INSERT INTO `Logs` ( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';

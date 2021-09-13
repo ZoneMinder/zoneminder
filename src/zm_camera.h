@@ -20,15 +20,14 @@
 #ifndef ZM_CAMERA_H
 #define ZM_CAMERA_H
 
-#include <sys/types.h>
-#include <sys/ioctl.h>
-
 #include "zm_image.h"
-#include "zm_packet.h"
+#include <sys/ioctl.h>
+#include <sys/types.h>
 
-class Camera;
+#include <memory>
 
-#include "zm_monitor.h"
+class Monitor;
+class ZMPacket;
 
 //
 // Abstract base class for cameras. This is intended just to express
@@ -38,8 +37,7 @@ class Camera {
 protected:
   typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC, VNC_SRC } SourceType;
 
-  unsigned int  monitor_id;
-  Monitor *     monitor; // Null on instantiation, set as soon as possible.
+  const Monitor *monitor;
   SourceType    type;
   unsigned int  width;
   unsigned int  linesize;
@@ -60,12 +58,17 @@ protected:
   AVCodecContext      *mAudioCodecContext;
   AVStream *mVideoStream;
   AVStream *mAudioStream;
-  AVFormatContext *mFormatContext;
+  AVFormatContext *mFormatContext; // One for video, one for audio
+  AVFormatContext *mSecondFormatContext; // One for video, one for audio
+  int64_t     mFirstVideoPTS;
+  int64_t     mFirstAudioPTS;
+  int64_t     mLastVideoPTS;
+  int64_t     mLastAudioPTS;
   unsigned int  bytes;
 
 public:
   Camera(
-      unsigned int p_monitor_id,
+      const Monitor* monitor,
       SourceType p_type,
       unsigned int p_width,
       unsigned int p_height,
@@ -80,9 +83,6 @@ public:
       );
   virtual ~Camera();
 
-  unsigned int getId() const { return monitor_id; }
-  Monitor *getMonitor();
-  void  setMonitor( Monitor *p_monitor );
   SourceType Type() const { return type; }
   bool IsLocal() const { return type == LOCAL_SRC; }
   bool IsRemote() const { return type == REMOTE_SRC; }
@@ -99,6 +99,8 @@ public:
   unsigned int Pixels() const { return pixels; }
   unsigned long long ImageSize() const { return imagesize; }
   unsigned int Bytes() const { return bytes; };
+  int getFrequency() { return mAudioStream ? mAudioStream->codecpar->sample_rate : -1; }
+  int getChannels() { return mAudioStream ? mAudioStream->codecpar->channels : -1; }
 
   virtual int Brightness( int/*p_brightness*/=-1 ) { return -1; }
   virtual int Hue( int/*p_hue*/=-1 ) { return -1; }
@@ -112,16 +114,16 @@ public:
     //return (type == FFMPEG_SRC )||(type == REMOTE_SRC);
   }
 
-  virtual AVStream      *get_VideoStream();
-  virtual AVStream      *get_AudioStream() { return mAudioStream; };
-  virtual AVCodecContext     *get_VideoCodecContext() { return mVideoCodecContext; };
-  virtual AVCodecContext     *get_AudioCodecContext() { return mAudioCodecContext; };
-  int            get_VideoStreamId() { return mVideoStreamId; };
-  int            get_AudioStreamId() { return mAudioStreamId; };
+  virtual AVStream      *getVideoStream();
+  virtual AVStream      *getAudioStream() { return mAudioStream; };
+  virtual AVCodecContext     *getVideoCodecContext() { return mVideoCodecContext; };
+  virtual AVCodecContext     *getAudioCodecContext() { return mAudioCodecContext; };
+  int            getVideoStreamId() { return mVideoStreamId; };
+  int            getAudioStreamId() { return mAudioStreamId; };
 
   virtual int PrimeCapture() { return 0; }
   virtual int PreCapture() = 0;
-  virtual int Capture(ZMPacket &p) = 0;
+  virtual int Capture(std::shared_ptr<ZMPacket> &p) = 0;
   virtual int PostCapture() = 0;
   virtual int Close() = 0;
 };

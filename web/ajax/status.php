@@ -4,10 +4,8 @@ if ( $_REQUEST['entity'] == 'navBar' ) {
   $data = array();
   if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
     $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
-    if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
-      $data['auth'] = $auth_hash;
-      $data['auth_relay'] = get_auth_relay();
-    }
+    $data['auth'] = $auth_hash;
+    $data['auth_relay'] = get_auth_relay();
   }
   // Each widget on the navbar has its own function
   // Call the functions we want to dynamically update
@@ -110,7 +108,9 @@ $statusData = array(
       'Cause' => true,
       'Notes' => true,
       'StartDateTime' => true,
+      # Left for backwards compatability. Remove in 1.37
       'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'StartDateTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndDateTime' => true,
       'Width' => true,
       'Height' => true,
@@ -133,8 +133,12 @@ $statusData = array(
       'MonitorName' => array('sql' => '(SELECT Monitors.Name FROM Monitors WHERE Monitors.Id = Events.MonitorId)'),
       'Name' => true,
       'Cause' => true,
+      'DiskSpace' => true,
+      'Storage' => array('sql' => '(SELECT Storage.Name FROM Storage WHERE Storage.Id=Events.StorageId)'),
       'StartDateTime' => true,
+      # Left for backwards compatability. Remove in 1.37
       'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'StartDateTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndDateTime' => true,
       'Width' => true,
       'Height' => true,

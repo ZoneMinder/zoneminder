@@ -81,6 +81,7 @@ class PacketQueue {
     );
     bool is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> &zm_packet);
     void unlock(ZMLockedPacket *lp);
+    void notify_all() { condition.notify_all(); };
 };
 
 #endif /* ZM_PACKETQUEUE_H */

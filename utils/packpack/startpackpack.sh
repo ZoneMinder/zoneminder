@@ -223,7 +223,7 @@ setdebpkgname () {
     if [ "" == "$VERSION" ]; then
       export VERSION="${versionfile}~${thedate}.${numcommits}"
     fi
-    export RELEASE="${DIST}"
+    export RELEASE="${DIST}${PACKAGE_VERSION}"
 
     checkvars
 

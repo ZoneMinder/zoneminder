@@ -498,8 +498,8 @@ function redrawScreen() {
     drawGraph();
   }
 
+  var monitors = $j('#monitors');
   if ( fitMode == 1 ) {
-    var monitors = $j('#monitors');
     var fps = $j('#fps');
     var vh = window.innerHeight;
     var mh = (vh - monitors.position().top - fps.outerHeight());

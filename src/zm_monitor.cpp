@@ -1858,6 +1858,7 @@ bool Monitor::Analyse() {
           while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
             // Need to wait for the decoder thread.
             Debug(1, "Waiting for decode");
+            packetqueue.notify_all(); // decode might be waiting
             packet_lock->wait();
             if (!snap->image and snap->decoded) {
               Debug(1, "No image but was decoded, giving up");

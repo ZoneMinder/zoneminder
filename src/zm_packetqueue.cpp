@@ -664,3 +664,12 @@ void PacketQueue::setPreEventVideoPackets(int p) {
     pre_event_video_packet_count = 1;
   // We can simplify a lot of logic in queuePacket if we can assume at least 1 packet in queue
 }
+
+void PacketQueue::notify_all() {
+  condition.notify_all();
+};
+
+void PacketQueue::wait() {
+  std::unique_lock<std::mutex> lck(mutex);
+  condition.wait(lck);
+}

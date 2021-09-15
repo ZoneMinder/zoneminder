@@ -279,9 +279,8 @@ int main(int argc, char *argv[]) {
           Warning("Unknown format in %s", videoFifoPath.c_str());
         }
         if (videoSource == nullptr) {
-          Error("Unable to create source");
+          Error("Unable to create source for %s", videoFifoPath.c_str());
           rtspServer->RemoveSession(sessions[monitor->Id()]->GetMediaSessionId());
-          delete sessions[monitor->Id()];
           sessions.erase(monitor->Id());
           continue;
         }

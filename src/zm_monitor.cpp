@@ -1854,8 +1854,7 @@ bool Monitor::Analyse() {
           while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
             // Need to wait for the decoder thread.
             Debug(1, "Waiting for decode");
-            packetqueue.unlock(packet_lock);
-            packetqueue.notify_all(); // decode might be waiting
+            packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
             packetqueue.wait();
 
             // Another thread may have moved our it. Unlikely but possible
@@ -3063,7 +3062,7 @@ int Monitor::PrimeCapture() {
       Debug(1, "Creating decoder thread");
       decoder = ZM::make_unique<DecoderThread>(this);
     } else {
-      Debug(1, "Restartg decoder thread");
+      Debug(1, "Restarting decoder thread");
       decoder->Start();
     }
   }

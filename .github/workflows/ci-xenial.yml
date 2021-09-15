@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-16.04
+    runs-on: zm-xenial-ci
 
     steps:
       - uses: actions/checkout@v2

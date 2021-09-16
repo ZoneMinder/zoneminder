@@ -102,6 +102,7 @@ bool zmDbConnect() {
   if ( mysql_query(&dbconn, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {
     Error("Can't set isolation level: %s", mysql_error(&dbconn));
   }
+  mysql_set_character_set(&dbconn, "utf8");
   zmDbConnected = true;
   return zmDbConnected;
 }

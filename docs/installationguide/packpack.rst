@@ -77,7 +77,7 @@ To start the build, simply execute the following command from the root folder of
 
 	OS=<distroname> DIST=<distrorel> utils/packpack/startpackpack.sh
 
-Where <distroname> is the name of the distro you wish to build on, such as fedora, and <distrorev> is release name or number of the distro you wish to build on. Redhat distros expect a number for <distrorev> while Debian and Ubuntu distros expect a name. For example:
+Where <distroname> is the name of the distro you wish to build on, such as fedora, and <distrorel> is the release name or number of the distro you wish to build on. Redhat distros expect a number for <distrorel> while Debian and Ubuntu distros expect a name. For example:
 
 ::
 

@@ -493,7 +493,7 @@ if ( ZM_OPT_EMAIL ) {
               </p>
               <p>
                 <label><?php echo translate('FilterEmailBody') ?></label>
-                <textarea name="filter[EmailBody]"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
+                <textarea name="filter[EmailBody]" rows="<?php echo count(explode("\n", $filter->EmailBody())) ?>"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
               </p>
             </div>
 <?php

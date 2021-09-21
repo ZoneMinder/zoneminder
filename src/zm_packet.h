@@ -66,7 +66,7 @@ class ZMPacket {
     Image *set_image(Image *);
 
     int is_keyframe() { return keyframe; };
-    int decode( AVCodecContext *ctx );
+    int decode(AVCodecContext *ctx);
     explicit ZMPacket(Image *image, SystemTimePoint tv);
     explicit ZMPacket(ZMPacket &packet);
     ZMPacket();
@@ -88,6 +88,7 @@ class ZMLockedPacket {
       lck_(packet_->mutex_, std::defer_lock),
       locked(false) {
     }
+
     ~ZMLockedPacket() {
       if (locked) unlock();
     }

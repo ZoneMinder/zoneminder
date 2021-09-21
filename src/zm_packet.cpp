@@ -83,7 +83,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   av_init_packet(&packet);
   packet.size = 0;
   packet.data = nullptr;
-  if ( zm_av_packet_ref(&packet, &p.packet) < 0 ) {
+  if (zm_av_packet_ref(&packet, &p.packet) < 0) {
     Error("error refing packet");
   }
 }

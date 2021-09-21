@@ -93,6 +93,7 @@ VideoStore::VideoStore(
   converted_in_samples(nullptr),
   filename(filename_in),
   format(format_in),
+  video_first_pts(0),
   video_first_dts(0),
   audio_first_pts(0),
   audio_first_dts(0),
@@ -990,23 +991,24 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     frame->pkt_duration = 0;
 
     if (!video_first_pts) {
-      video_first_pts = zm_packet->timestamp.time_since_epoch().count();
+      video_first_pts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
       Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%.2f)",
             video_first_pts,
             FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
 
       frame->pts = 0;
     } else {
+
       Microseconds useconds = std::chrono::duration_cast<Microseconds>(
           zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
       frame->pts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_out_ctx->time_base);
       Debug(2,
-            "Setting pts for frame(%d) to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - us(%" PRIi64 ") @ %d/%d",
+            "Setting pts for frame(%d) to (%" PRId64 ") from (zm_packet->timestamp(%" PRIi64 " - first %" PRId64 " us %" PRId64 " ) @ %d/%d",
             frame_count,
             frame->pts,
+            static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count()),
             video_first_pts,
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(useconds).count()),
-            static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count()),
             video_out_ctx->time_base.num,
             video_out_ctx->time_base.den);
     }

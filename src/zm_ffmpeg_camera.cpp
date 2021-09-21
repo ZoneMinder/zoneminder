@@ -231,8 +231,8 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   zm_packet->set_packet(&packet);
   zm_packet->stream = stream;
   zm_packet->pts = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
-  if ( packet.pts != AV_NOPTS_VALUE ) {
-    if ( stream == mVideoStream ) {
+  if (packet.pts != AV_NOPTS_VALUE) {
+    if (stream == mVideoStream) {
       if (mFirstVideoPTS == AV_NOPTS_VALUE)
         mFirstVideoPTS = packet.pts;
 

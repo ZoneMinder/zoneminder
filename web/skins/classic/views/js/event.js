@@ -891,6 +891,12 @@ function initPage() {
     vid.on('timeupdate', function() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
     });
+    vid.on('ratechange', function() {
+      rate = vid.playbackRate() * 100;
+      console.log("rate change " + rate);
+      $j('select[name="rate"]').val(rate);
+      setCookie('zmEventRate', rate, 3600);
+    });
 
     // rate is in % so 100 would be 1x
     if (rate > 0) {
@@ -1010,19 +1016,6 @@ function initPage() {
   bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
     window.location.assign('?view=export&eids[]='+eventData.Id);
-  });
-
-  // Manage the DOWNLOAD VIDEO button
-  bindButton('#downloadBtn', 'click', null, function onDownloadClick(evt) {
-    evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=modal&modal=download&eids[]='+eventData.Id)
-        .done(function(data) {
-          insertModalHtml('downloadModal', data.html);
-          $j('#downloadModal').modal('show');
-          // Manage the GENERATE DOWNLOAD button
-          $j('#exportButton').click(exportEvent);
-        })
-        .fail(logAjaxFail);
   });
 
   // Manage the Event STATISTICS Button

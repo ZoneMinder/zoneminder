@@ -2855,7 +2855,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_H_REFRESH_MAIN',
-    default     => '60',
+    default     => '240',
     introduction => q`
       There are now a number of options that are grouped into
       bandwidth categories, this allows you to configure the
@@ -3113,7 +3113,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_H_AJAX_TIMEOUT',
-    default     => '3000',
+    default     => '10000',
     description => 'How long to wait for Ajax request responses (ms)',
     help        => q`
       The newer versions of the live feed and event views use Ajax to

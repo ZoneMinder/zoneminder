@@ -308,7 +308,7 @@ our @options = (
   },
   {
     name        => 'ZM_AUTH_HASH_IPS',
-    default     => 'yes',
+    default     => 'no',
     description => 'Include IP addresses in the authentication hash',
     help        => q`
       When ZoneMinder is running in hashed authenticated mode it can
@@ -346,7 +346,7 @@ our @options = (
   },
   {
     name        => 'ZM_AUTH_HASH_LOGINS',
-    default     => 'no',
+    default     => 'yes',
     description => 'Allow login by authentication hash',
     help        => q`
       The normal process for logging into ZoneMinder is via the login
@@ -508,7 +508,7 @@ our @options = (
   },
   {
     name        =>  'ZM_SYSTEM_SHUTDOWN',
-    default     =>  'yes',
+    default     =>  'no',
     description =>  'Allow Admin users to power off or restart the system from the ZoneMinder UI.',
     help        =>  'The system will need to have sudo installed and the following added to /etc/sudoers~~
     ~~
@@ -1096,7 +1096,7 @@ our @options = (
   },
   {
     name        => 'ZM_LOG_LEVEL_SYSLOG',
-    default     => '0',
+    default     => '-1',
     description => 'Save logging output to the system log',
     help        => q`
       ZoneMinder logging is now more integrated between
@@ -1604,7 +1604,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_EVENT_DISK_SPACE',
-    default     => 'no',
+    default     => 'yes',
     description => 'Whether to show disk space used by each event.',
     help        => q`
       Adds another column to the listing of events
@@ -1634,7 +1634,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_ID_ON_CONSOLE',
-    default     => 'no',
+    default     => 'yes',
     description => 'Should the console list the monitor id',
     help        => q`
       Some find it useful to have the id always visible
@@ -2270,7 +2270,7 @@ our @options = (
   },
   {
     name        => 'ZM_MAX_RESTART_DELAY',
-    default     => '600',
+    default     => '30',
     description => 'Maximum delay (in seconds) for daemon restart attempts.',
     help        => q`
       The zmdc (zm daemon control) process controls when processeses

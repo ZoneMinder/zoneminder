@@ -55,31 +55,24 @@ static enum AVPixelFormat get_hw_format(
 }
 #if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
 static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
-  enum AVPixelFormat fmt;
   switch (type) {
     case AV_HWDEVICE_TYPE_VAAPI:
-      fmt = AV_PIX_FMT_VAAPI;
-      break;
+      return AV_PIX_FMT_VAAPI;
     case AV_HWDEVICE_TYPE_DXVA2:
-      fmt = AV_PIX_FMT_DXVA2_VLD;
-      break;
+      return AV_PIX_FMT_DXVA2_VLD;
     case AV_HWDEVICE_TYPE_D3D11VA:
-      fmt = AV_PIX_FMT_D3D11;
-      break;
+      return = AV_PIX_FMT_D3D11;
     case AV_HWDEVICE_TYPE_VDPAU:
-      fmt = AV_PIX_FMT_VDPAU;
-      break;
+      return AV_PIX_FMT_VDPAU;
     case AV_HWDEVICE_TYPE_CUDA:
-      fmt = AV_PIX_FMT_CUDA;
-      break;
+      return AV_PIX_FMT_CUDA;
+    case AV_HWDEVICE_TYPE_MMAL:
+      return AV_PIX_FMT_MMAL;
     case AV_HWDEVICE_TYPE_VIDEOTOOLBOX:
-      fmt = AV_PIX_FMT_VIDEOTOOLBOX;
-      break;
+      return AV_PIX_FMT_VIDEOTOOLBOX;
     default:
-      fmt = AV_PIX_FMT_NONE;
-      break;
+      return AV_PIX_FMT_NONE;
   }
-  return fmt;
 }
 #endif
 #endif

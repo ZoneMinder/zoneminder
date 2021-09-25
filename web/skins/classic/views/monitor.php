@@ -21,44 +21,50 @@
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
 
-if ( !canEdit('Monitors', empty($_REQUEST['mid'])?0:$_REQUEST['mid']) ) {
+if (!canEdit('Monitors', empty($_REQUEST['mid'])?0:$_REQUEST['mid'])) {
   $view = 'error';
   return;
 }
 
 $Server = null;
-if ( defined('ZM_SERVER_ID') ) {
+if (defined('ZM_SERVER_ID')) {
   $Server = dbFetchOne('SELECT * FROM Servers WHERE Id=?', NULL, array(ZM_SERVER_ID));
 }
-if ( !$Server ) {
+if (!$Server) {
   $Server = array('Id' => '');
 }
 $mid = null;
 $monitor = null;
-if ( !empty($_REQUEST['mid']) ) {
+if (!empty($_REQUEST['mid'])) {
   $mid = validInt($_REQUEST['mid']);
   $monitor = new ZM\Monitor($mid);
-  if ( $monitor and ZM_OPT_X10 )
-    $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($mid));
+  if ($monitor->Id()) {
+    if (ZM_OPT_X10) {
+      $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($mid));
+    }
+  } else {
+    $monitor->Name(translate('Monitor').'-'.$mid);
+    $monitor->WebColour(random_colour());
+  }
 }
 
-if ( !$monitor ) {
+if (!$monitor) {
   $monitor = new ZM\Monitor();
   $monitor->Name(translate('Monitor').'-'.getTableAutoInc('Monitors'));
   $monitor->WebColour(random_colour());
 } # end if $_REQUEST['mid']
 
-if ( isset($_REQUEST['dupId']) ) {
+if (isset($_REQUEST['dupId'])) {
   $monitor = new ZM\Monitor($_REQUEST['dupId']);
   $monitor->GroupIds(); // have to load before we change the Id
-  if ( ZM_OPT_X10 )
+  if (ZM_OPT_X10)
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));
   $clonedName = $monitor->Name();
   $monitor->Name('Clone of '.$monitor->Name());
   $monitor->Id($mid);
 }
 
-if ( ZM_OPT_X10 && empty($x10Monitor) ) {
+if (ZM_OPT_X10 && empty($x10Monitor)) {
   $x10Monitor = array(
       'Activation' => '',
       'AlarmInput' => '',
@@ -69,14 +75,14 @@ if ( ZM_OPT_X10 && empty($x10Monitor) ) {
 function fourcc($a, $b, $c, $d) {
   return ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24);
 }
-if ( isset($_REQUEST['newMonitor']) ) {
+if (isset($_REQUEST['newMonitor'])) {
   # Update the monitor object with whatever has been set so far.
   $monitor->set($_REQUEST['newMonitor']);
 
-  if ( ZM_OPT_X10 )
+  if (ZM_OPT_X10)
     $newX10Monitor = $_REQUEST['newX10Monitor'];
 } else {
-  if ( ZM_OPT_X10 )
+  if (ZM_OPT_X10)
     $newX10Monitor = $x10Monitor;
 }
 

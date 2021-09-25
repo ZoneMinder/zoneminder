@@ -124,6 +124,7 @@ src/zmc
 src/zmf
 src/zms
 src/zmu
+src/zm_rtsp_server
 src/zoneminder-zmc.8
 src/zoneminder-zmc.8.gz
 src/zoneminder-zmf.8

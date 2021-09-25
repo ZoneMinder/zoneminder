@@ -45,24 +45,31 @@ if ( $action == 'save' ) {
       $x10Monitor = array();
     }
   }
-  if ( !$_REQUEST['newMonitor[ManufacturerId'] and ($_REQUEST['newMonitor[Manufacturer'] != '') ) {
+
+  # For convenience
+  $newMonitor = $_REQUEST['newMonitor'];
+
+  if ( !$newMonitor['ManufacturerId'] and ($newMonitor['Manufacturer'] != '') ) {
     # Need to add a new Manufacturer entry
-    $newManufacturer = ZM\Manufacturer::find_one(array('Name'=>$_REQUEST['newMonitor[Manufacturer']));
+    $newManufacturer = ZM\Manufacturer::find_one(array('Name'=>$newMonitor['Manufacturer']));
     if (!$newManufacturer) {
       $newManufacturer = new ZM\Manufacturer();
-      $newManufacturer->save(array('Name'=>$_REQUEST['newMonitor[Manufacturer']));
+      $newManufacturer->save(array('Name'=>$newMonitor['Manufacturer']));
     }
-    $_REQUEST['newMonitor[ManufacturerId'] = $newManufacturer->Id();
+    $newMonitor['ManufacturerId'] = $newManufacturer->Id();
   }
 
-  if ( !$_REQUEST['newMonitor[ModelId'] and ($_REQUEST['newMonitor[Model'] != '') ) {
+  if ( !$newMonitor['ModelId'] and ($newMonitor['Model'] != '') ) {
     # Need to add a new Model entry
-    $newModel = ZM\Model::find_one(array('Name'=>$_REQUEST['newMonitor[Model']));
+    $newModel = ZM\Model::find_one(array('Name'=>$newMonitor['Model']));
     if (!$newModel) {
       $newModel = new ZM\Model();
-      $newMdoel->save(array('Name'=>$_REQUEST['newMonitor[Model'], 'ManufacturerId'=>$_REQUEST['newMonitor[ManufacturerId']));
+      $newModel->save(array(
+            'Name'=>$newMonitor['Model'],
+            'ManufacturerId'=>$newMonitor['ManufacturerId']
+            ));
     }
-    $_REQUEST['newMonitor[ModelId'] = $newModel->Id();
+    $newMonitor['ModelId'] = $newModel->Id();
   }
 
   $monitor = new ZM\Monitor($mid);
@@ -88,22 +95,22 @@ if ( $action == 'save' ) {
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
   # So force a value for these fields
   foreach ( $types as $field => $value ) {
-    if ( ! isset($_REQUEST['newMonitor'][$field] ) ) {
-      $_REQUEST['newMonitor'][$field] = $value;
+    if ( ! isset($newMonitor[$field] ) ) {
+      $newMonitor[$field] = $value;
     }
   } # end foreach type
 
-  if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
-    $_REQUEST['newMonitor']['ServerId'] = dbFetchOne(
+  if ( $newMonitor['ServerId'] == 'auto' ) {
+    $newMonitor['ServerId'] = dbFetchOne(
       'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
-    ZM\Debug('Auto selecting server: Got ' . $_REQUEST['newMonitor']['ServerId']);
-    if ( ( !$_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
-      $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
+    ZM\Debug('Auto selecting server: Got ' . $newMonitor['ServerId']);
+    if ((!$newMonitor['ServerId']) and defined('ZM_SERVER_ID')) {
+      $newMonitor['ServerId'] = ZM_SERVER_ID;
       ZM\Debug('Auto selecting server to ' . ZM_SERVER_ID);
     }
   }
 
-  $changes = $monitor->changes($_REQUEST['newMonitor']);
+  $changes = $monitor->changes($newMonitor);
   $restart = false;
 
   if ( count($changes) ) {
@@ -134,13 +141,13 @@ if ( $action == 'save' ) {
           if ( file_exists($OldStorage->Path().'/'.$saferOldName) )
             unlink($OldStorage->Path().'/'.$saferOldName);
 
-          $NewStorage = new ZM\Storage($_REQUEST['newMonitor']['StorageId']);
+          $NewStorage = new ZM\Storage($newMonitor['StorageId']);
           if ( !file_exists($NewStorage->Path().'/'.$mid) ) {
             if ( !mkdir($NewStorage->Path().'/'.$mid, 0755) ) {
               ZM\Error('Unable to mkdir ' . $NewStorage->Path().'/'.$mid);
             }
           }
-          $saferNewName = basename($_REQUEST['newMonitor']['Name']);
+          $saferNewName = basename($newMonitor['Name']);
           $link_path = $NewStorage->Path().'/'.$saferNewName;
           // Use a relative path for the target so the link continues to work from backups or directory changes.
           if ( !symlink($mid, $link_path) ) {
@@ -151,8 +158,8 @@ if ( $action == 'save' ) {
         } // end if Name or Storage Area Change
 
         if ( isset($changes['Width']) || isset($changes['Height']) ) {
-          $newW = $_REQUEST['newMonitor']['Width'];
-          $newH = $_REQUEST['newMonitor']['Height'];
+          $newW = $newMonitor['Width'];
+          $newH = $newMonitor['Height'];
 
           $zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($mid));
 
@@ -236,14 +243,27 @@ if ( $action == 'save' ) {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
-        $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
-        dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
-        //$view = 'none';
+        $zoneArea = $newMonitor['Width'] * $newMonitor['Height'];
+        dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid,
+              sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
+                $newMonitor['Width']-1,
+                0,
+                $newMonitor['Width']-1,
+                $newMonitor['Height']-1,
+                0,
+                $newMonitor['Height']-1),
+              $zoneArea,
+              intval(($zoneArea*3)/100),
+              intval(($zoneArea*75)/100),
+              intval(($zoneArea*3)/100),
+              intval(($zoneArea*75)/100),
+              intval(($zoneArea*2)/100)
+              ));
         $Storage = $monitor->Storage();
 
 				error_reporting(0);
         mkdir($Storage->Path().'/'.$mid, 0755);
-        $saferName = basename($_REQUEST['newMonitor']['Name']);
+        $saferName = basename($newMonitor['Name']);
         symlink($mid, $Storage->Path().'/'.$saferName);
 
       } else {

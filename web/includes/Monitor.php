@@ -49,6 +49,8 @@ class Monitor extends ZM_Object {
     'Notes' => '',
     'ServerId' => 0,
     'StorageId' => 0,
+    'ManufacturerId'  => null,
+    'ModelId'         => null,
     'Type'      => 'Ffmpeg',
     'Function'  => 'Mocord',
     'Enabled'   => array('type'=>'boolean','default'=>1),
@@ -685,16 +687,26 @@ class Monitor extends ZM_Object {
     $output = $this->AlarmCommand('disable');
   }
   function Model() {
-    if (!$this->{'Model'}) {
-      $this->{'Model'} = Model::find_one(array('Id'=>$this->ModelId()));
-      if (!$this->{'Model'}) $this->{'Model'} = new Model();
+    if (!property_exists($this, 'Model')) {
+      if ($this->{'ModelId'}) {
+        $this->{'Model'} = Model::find_one(array('Id'=>$this->ModelId()));
+        if (!$this->{'Model'})
+          $this->{'Model'} = new Model();
+      } else {
+        $this->{'Model'} = new Model();
+      }
     }
     return $this->{'Model'};
   }
   function Manufacturer() {
-    if (!$this->{'Manufacturer'}) {
-      $this->{'Manufacturer'} = Manufacturer::find_one(array('Id'=>$this->ManufacturerId()));
-      if (!$this->{'Manufacturer'}) $this->{'Manufacturer'} = new Manufacturer();
+    if (!property_exists($this, 'Manufacturer')) {
+      if ($this->{'ManufacturerId'}) {
+        $this->{'Manufacturer'} = Manufacturer::find_one(array('Id'=>$this->ManufacturerId()));
+        if (!$this->{'Manufacturer'})
+          $this->{'Manufacturer'} = new Manufacturer();
+      } else {
+          $this->{'Manufacturer'} = new Manufacturer();
+      }
     }
     return $this->{'Manufacturer'};
   }

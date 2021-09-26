@@ -457,27 +457,37 @@ switch ( $name ) {
           </tr>
           <tr class="Manufacturer">
             <td class="text-right pr-3"><?php echo translate('Manufacturer') ?></td>
-            <td><?php 
-require_once('includes/Manufacturer.php');
-$manufacturers = array_merge(
-    array(''=>translate('unknown')),
-    ZM\Manufacturer::find());
-echo htmlSelect('newMonitor[ManufacturerId]', $manufacturers, $monitor->ManufacturerId(), array('class'=>'chosen','data-on-change-this'=>'ManufacturerId_onchange'));
+            <td>
+<?php 
+  require_once('includes/Manufacturer.php');
+  $manufacturers = array(''=>translate('unknown'));
+  foreach ( ZM\Manufacturer::find( null, array('order'=>'lower(Name)')) as $Manufacturer ) {
+    $manufacturers[$Manufacturer->Id()] = $Manufacturer->Name();
+  }
+  echo htmlSelect('newMonitor[ManufacturerId]', $manufacturers, $monitor->ManufacturerId(),
+      array('class'=>'chosen','data-on-change-this'=>'ManufacturerId_onchange'));
 ?>
-              <input type="text" name="newMonitor[Manufacturer]" value="<?php echo $monitor->Manufacturer()->Name() ?>" style="display:none"/>
+              <input type="text" name="newMonitor[Manufacturer]"
+                placeholder="enter new manufacturer name"
+                value="<?php echo $monitor->Manufacturer()->Name() ?>"<?php echo $monitor->ManufacturerId() ? ' style="display:none"' : '' ?>
+              />
             </td>
           </tr>
           <tr class="Model">
             <td class="text-right pr-3"><?php echo translate('Model') ?></td>
-            <td><?php 
-require_once('includes/Model.php');
-$models = array_merge(
-    array(''=>translate('unknown')),
-    ZM\Model::find(array('ManufacturerId'=>$monitor->ManufacturerId()))
-);
-echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(), array('class'=>'chosen', 'data-on-change-this'=>'ModelId_onchange'));
+            <td>
+<?php 
+  require_once('includes/Model.php');
+  $models = array(''=>translate('unknown'));
+  foreach ( ZM\Model::find(array('ManufacturerId'=>$monitor->ManufacturerId()), array('order'=>'lower(Name)')) as $Model ) {
+    $models[$Model->Id()] = $Model->Name();
+  }
+  echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(),
+      array('class'=>'chosen', 'data-on-change-this'=>'ModelId_onchange'));
 ?>
-              <input type="text" name="newMonitor[Model]" value="<?php echo $monitor->Model()->Name() ?>" style="display:none"/>
+              <input type="text" name="newMonitor[Model]"
+                placeholder="enter new model name"
+                value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"':'' ?>/>
             </td>
           </tr>
           <tr>

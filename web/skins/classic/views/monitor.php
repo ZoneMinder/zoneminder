@@ -482,7 +482,7 @@ switch ( $name ) {
             <td>
 <?php 
   require_once('includes/Manufacturer.php');
-  $manufacturers = array(''=>translate('unknown'));
+  $manufacturers = array(''=>translate('Unknown'));
   foreach ( ZM\Manufacturer::find( null, array('order'=>'lower(Name)')) as $Manufacturer ) {
     $manufacturers[$Manufacturer->Id()] = $Manufacturer->Name();
   }
@@ -492,6 +492,7 @@ switch ( $name ) {
               <input type="text" name="newMonitor[Manufacturer]"
                 placeholder="enter new manufacturer name"
                 value="<?php echo $monitor->Manufacturer()->Name() ?>"<?php echo $monitor->ManufacturerId() ? ' style="display:none"' : '' ?>
+                data-on-input-this="Manufacturer_onchange"
               />
             </td>
           </tr>
@@ -500,7 +501,7 @@ switch ( $name ) {
             <td>
 <?php 
   require_once('includes/Model.php');
-  $models = array(''=>translate('unknown'));
+  $models = array(''=>translate('Unknown'));
   foreach ( ZM\Model::find(array('ManufacturerId'=>$monitor->ManufacturerId()), array('order'=>'lower(Name)')) as $Model ) {
     $models[$Model->Id()] = $Model->Name();
   }
@@ -509,7 +510,9 @@ switch ( $name ) {
 ?>
               <input type="text" name="newMonitor[Model]"
                 placeholder="enter new model name"
-                value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"':'' ?>/>
+                value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"':'' ?>
+                data-on-input-this="Model_onchange"
+              />
             </td>
           </tr>
           <tr>

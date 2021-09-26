@@ -346,7 +346,7 @@ function getLocation() {
 }
 
 function populate_models(ManufacturerId) {
-  let dropdown = $j('[name="newMonitor[ModelId]"]');
+  const dropdown = $j('[name="newMonitor[ModelId]"]');
   if (!dropdown.length) {
     console.log("No element found for ModelId");
     return;
@@ -356,18 +356,22 @@ function populate_models(ManufacturerId) {
   dropdown.append('<option value="0" selected="true">Unknown</option>');
   dropdown.prop('selectedIndex', 0);
 
-  // Populate dropdown with list of provinces
-  $j.getJSON(thisUrl+'?request=models&ManufacturerId='+ManufacturerId, function (data) {
+  if (ManufacturerId) {
+    // Populate dropdown with list of provinces
+    $j.getJSON(thisUrl+'?request=models&ManufacturerId='+ManufacturerId, function(data) {
       if (data.result == 'Ok') {
-        $j.each(data.models, function (key, entry) {
-            dropdown.append($j('<option></option>').attr('value', entry.Id).text(entry.Name));
-            });
+        $j.each(data.models, function(key, entry) {
+          dropdown.append($j('<option></option>').attr('value', entry.Id).text(entry.Name));
+        });
         dropdown.chosen("destroy");
         dropdown.chosen();
       } else {
         alert(data.result);
       }
-      });
+    });
+  }
+  dropdown.chosen("destroy");
+  dropdown.chosen();
 }
 
 function ManufacturerId_onchange(ManufacturerId_select) {
@@ -377,12 +381,37 @@ function ManufacturerId_onchange(ManufacturerId_select) {
   } else {
     ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'inline';
     // Set models dropdown to Unknown, text area visible
-    let ModelId_dropdown = $j('[name="newMonitor[ModelId]"]');
+    const ModelId_dropdown = $j('[name="newMonitor[ModelId]"]');
     ModelId_dropdown.empty();
     ModelId_dropdown.append('<option selected="true">Unknown</option>');
     ModelId_dropdown.prop('selectedIndex', 0);
     $j('[name="newMonitor[Model]"]').show();
   }
+}
+
+function select_by_value_case_insensitive(dropdown, value) {
+  const test_value = value.toLowerCase();
+  for (i=1; i < dropdown.options.length; i++) {
+    if (dropdown.options[i].text.toLowerCase() == test_value) {
+      dropdown.selectedIndex = i;
+      dropdown.options[i].selected = true;
+      $j(dropdown).chosen("destroy").chosen();
+      return;
+    }
+  }
+  if (dropdown.selectedIndex != 0) {
+    dropdown.selectedIndex = 0;
+    $j(dropdown).chosen("destroy").chosen();
+  }
+}
+
+function Manufacturer_onchange(input) {
+  if (!input.value) {
+    return;
+  }
+  ManufacturerId_select = input.form.elements['newMonitor[ManufacturerId]'];
+  select_by_value_case_insensitive(ManufacturerId_select, input.value);
+  populate_models(ManufacturerId_select.value);
 }
 
 function ModelId_onchange(ModelId_select) {
@@ -391,6 +420,10 @@ function ModelId_onchange(ModelId_select) {
   } else {
     $j('[name="newMonitor[Model]"]').show();
   }
+}
+
+function Model_onchange(input) {
+  select_by_value_case_insensitive(input.form.elements['newMonitor[ModelId]'], input.value);
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

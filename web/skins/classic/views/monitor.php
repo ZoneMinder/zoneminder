@@ -355,6 +355,7 @@ $codecs = array(
   'MJPEG' => translate('MJPEG'),
 );
 
+$monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
 $controls = ZM\Control::find(null, array('order'=>'lower(Name)'));
 
 xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name()));
@@ -452,6 +453,21 @@ foreach ( $tabs as $name=>$value ) {
 switch ( $name ) {
   case 'general' :
     {
+      if (!$monitor->Id()) {
+        $monitor_ids = array();
+        foreach ($monitors as $m) { $monitor_ids[] = $m['Id']; }
+        $available_monitor_ids = array_diff(range(min($monitor_ids),max($monitor_ids)), $monitor_ids);
+?>
+          <tr class="Id">
+            <td class="text-right pr-3"><?php echo translate('Id') ?></td>
+            <td><input type="number" step="1" min="1" name="newMonitor[Id]" placeholder="leave blank for auto"/><br/>
+10 Available Ids: 
+<?php echo implode(', ', array_slice($available_monitor_ids, 0, 10)); ?>
+</td>
+          </tr>
+<?php
+
+      } # end if ! $monitor->Id()
 ?>
           <tr class="Name">
             <td class="text-right pr-3"><?php echo translate('Name') ?></td>
@@ -524,7 +540,6 @@ switch ( $name ) {
           <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
           <td>
 <?php
-      $monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
       $monitor_options = array();
       foreach ( $monitors as $linked_monitor ) {
         if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {

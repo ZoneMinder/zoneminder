@@ -345,17 +345,52 @@ function getLocation() {
   }
 }
 
-function ManufacturerId_onchange(ManufacturerId_select) {
-  if (ManufacturerId_select.value())
-    $j('newMonitor[Manufacturer]').hide();
-  else
-    $j('newMonitor[Manufacturer]').show();
+function populate_models(ManufacturerId) {
+  let dropdown = $j('[name="newMonitor[ModelId]"]');
+  if (!dropdown.length) {
+    console.log("No element found for ModelId");
+    return;
+  }
+
+  dropdown.empty();
+  dropdown.append('<option value="0" selected="true">Unknown</option>');
+  dropdown.prop('selectedIndex', 0);
+
+  // Populate dropdown with list of provinces
+  $j.getJSON(thisUrl+'?request=models&ManufacturerId='+ManufacturerId, function (data) {
+      if (data.result == 'Ok') {
+        $j.each(data.models, function (key, entry) {
+            dropdown.append($j('<option></option>').attr('value', entry.Id).text(entry.Name));
+            });
+        dropdown.chosen("destroy");
+        dropdown.chosen();
+      } else {
+        alert(data.result);
+      }
+      });
 }
+
+function ManufacturerId_onchange(ManufacturerId_select) {
+  if (ManufacturerId_select.value) {
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'none';
+    populate_models(ManufacturerId_select.value);
+  } else {
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'inline';
+    // Set models dropdown to Unknown, text area visible
+    let ModelId_dropdown = $j('[name="newMonitor[ModelId]"]');
+    ModelId_dropdown.empty();
+    ModelId_dropdown.append('<option selected="true">Unknown</option>');
+    ModelId_dropdown.prop('selectedIndex', 0);
+    $j('[name="newMonitor[Model]"]').show();
+  }
+}
+
 function ModelId_onchange(ModelId_select) {
-  if (ModelId_select.value())
-    $j('newMonitor[Model]').hide();
-  else
-    $j('newMonitor[Model]').show();
+  if (parseInt(ModelId_select.value)) {
+    $j('[name="newMonitor[Model]"]').hide();
+  } else {
+    $j('[name="newMonitor[Model]"]').show();
+  }
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

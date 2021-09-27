@@ -32,6 +32,7 @@
 	Router::mapResources('logs');
 	Router::mapResources('manufacturers');
 	Router::mapResources('models');
+	Router::mapResources('cameramodels');
 	Router::mapResources('monitors');
 	Router::mapResources('servers');
 	Router::mapResources('states');

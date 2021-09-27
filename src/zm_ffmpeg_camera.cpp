@@ -61,7 +61,7 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
     case AV_HWDEVICE_TYPE_DXVA2:
       return AV_PIX_FMT_DXVA2_VLD;
     case AV_HWDEVICE_TYPE_D3D11VA:
-      return = AV_PIX_FMT_D3D11;
+      return AV_PIX_FMT_D3D11;
     case AV_HWDEVICE_TYPE_VDPAU:
       return AV_PIX_FMT_VDPAU;
     case AV_HWDEVICE_TYPE_CUDA:

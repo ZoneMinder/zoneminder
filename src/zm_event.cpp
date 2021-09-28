@@ -109,7 +109,7 @@ Event::Event(
       "INSERT INTO `Events` "
       "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` )"
       " VALUES "
-      "( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
+      "( %d, %d, 'New Event', from_unixtime(%" PRId64 "), %u, %u, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
       static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)),
@@ -120,11 +120,10 @@ Event::Event(
       state_id,
       monitor->getOrientation(),
       0,
-			"",
+      "",
       save_jpegs,
       storage->SchemeString().c_str()
       );
-
   id = zmDbDoInsert(sql);
 
   if ( !SetPath(storage) ) {

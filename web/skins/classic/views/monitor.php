@@ -21,44 +21,50 @@
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
 
-if ( !canEdit('Monitors', empty($_REQUEST['mid'])?0:$_REQUEST['mid']) ) {
+if (!canEdit('Monitors', empty($_REQUEST['mid'])?0:$_REQUEST['mid'])) {
   $view = 'error';
   return;
 }
 
 $Server = null;
-if ( defined('ZM_SERVER_ID') ) {
+if (defined('ZM_SERVER_ID')) {
   $Server = dbFetchOne('SELECT * FROM Servers WHERE Id=?', NULL, array(ZM_SERVER_ID));
 }
-if ( !$Server ) {
+if (!$Server) {
   $Server = array('Id' => '');
 }
 $mid = null;
 $monitor = null;
-if ( !empty($_REQUEST['mid']) ) {
+if (!empty($_REQUEST['mid'])) {
   $mid = validInt($_REQUEST['mid']);
   $monitor = new ZM\Monitor($mid);
-  if ( $monitor and ZM_OPT_X10 )
-    $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($mid));
+  if ($monitor->Id()) {
+    if (ZM_OPT_X10) {
+      $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($mid));
+    }
+  } else {
+    $monitor->Name(translate('Monitor').'-'.$mid);
+    $monitor->WebColour(random_colour());
+  }
 }
 
-if ( !$monitor ) {
+if (!$monitor) {
   $monitor = new ZM\Monitor();
   $monitor->Name(translate('Monitor').'-'.getTableAutoInc('Monitors'));
   $monitor->WebColour(random_colour());
 } # end if $_REQUEST['mid']
 
-if ( isset($_REQUEST['dupId']) ) {
+if (isset($_REQUEST['dupId'])) {
   $monitor = new ZM\Monitor($_REQUEST['dupId']);
   $monitor->GroupIds(); // have to load before we change the Id
-  if ( ZM_OPT_X10 )
+  if (ZM_OPT_X10)
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));
   $clonedName = $monitor->Name();
   $monitor->Name('Clone of '.$monitor->Name());
   $monitor->Id($mid);
 }
 
-if ( ZM_OPT_X10 && empty($x10Monitor) ) {
+if (ZM_OPT_X10 && empty($x10Monitor)) {
   $x10Monitor = array(
       'Activation' => '',
       'AlarmInput' => '',
@@ -69,14 +75,14 @@ if ( ZM_OPT_X10 && empty($x10Monitor) ) {
 function fourcc($a, $b, $c, $d) {
   return ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24);
 }
-if ( isset($_REQUEST['newMonitor']) ) {
+if (isset($_REQUEST['newMonitor'])) {
   # Update the monitor object with whatever has been set so far.
   $monitor->set($_REQUEST['newMonitor']);
 
-  if ( ZM_OPT_X10 )
+  if (ZM_OPT_X10)
     $newX10Monitor = $_REQUEST['newX10Monitor'];
 } else {
-  if ( ZM_OPT_X10 )
+  if (ZM_OPT_X10)
     $newX10Monitor = $x10Monitor;
 }
 
@@ -349,6 +355,7 @@ $codecs = array(
   'MJPEG' => translate('MJPEG'),
 );
 
+$monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
 $controls = ZM\Control::find(null, array('order'=>'lower(Name)'));
 
 xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name()));
@@ -446,6 +453,21 @@ foreach ( $tabs as $name=>$value ) {
 switch ( $name ) {
   case 'general' :
     {
+      if (!$monitor->Id()) {
+        $monitor_ids = array();
+        foreach ($monitors as $m) { $monitor_ids[] = $m['Id']; }
+        $available_monitor_ids = array_diff(range(min($monitor_ids),max($monitor_ids)), $monitor_ids);
+?>
+          <tr class="Id">
+            <td class="text-right pr-3"><?php echo translate('Id') ?></td>
+            <td><input type="number" step="1" min="1" name="newMonitor[Id]" placeholder="leave blank for auto"/><br/>
+10 Available Ids: 
+<?php echo implode(', ', array_slice($available_monitor_ids, 0, 10)); ?>
+</td>
+          </tr>
+<?php
+
+      } # end if ! $monitor->Id()
 ?>
           <tr class="Name">
             <td class="text-right pr-3"><?php echo translate('Name') ?></td>
@@ -518,7 +540,6 @@ switch ( $name ) {
           <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
           <td>
 <?php
-      $monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
       $monitor_options = array();
       foreach ( $monitors as $linked_monitor ) {
         if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {

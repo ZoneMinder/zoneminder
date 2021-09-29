@@ -40,8 +40,8 @@ Run the following commands.
 
 ::
 
-    cat /usr/share/zoneminder/db/zm_create.sql | sudo mysql --defaults-file=/etc/mysql/debian.cnf
-    echo 'grant lock tables,alter,create,select,insert,update,delete,index on zm.* to 'zmuser'@localhost identified by "zmpass";' | sudo mysql --defaults-file=/etc/mysql/debian.cnf mysql
+    cat /usr/share/zoneminder/db/zm_create.sql | sudo mariadb
+    echo 'grant lock tables,alter,create,select,insert,update,delete,index on zm.* to 'zmuser'@localhost identified by "zmpass";' | sudo mariadb
 
 **Step 4:** Setup permissions for zm.conf
 

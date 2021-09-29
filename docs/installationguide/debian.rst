@@ -3,6 +3,92 @@ Debian
 
 .. contents::
 
+Easy Way: Debian 11 (Bullseye)
+------------------------
+
+This procedure will guide you through the installation of ZoneMinder on Debian 11 (Bullseye).
+
+**Step 1:** Setup Sudo (optional but recommended)
+
+By default Debian does not come with sudo, so you have to install it and configure it manually.
+This step is optional but recommended and the following instructions assume that you have setup sudo.
+If you prefer to setup ZoneMinder as root, do it at your own risk and adapt the following instructions accordingly.
+
+::
+
+    apt install sudo
+    usermod -a -G sudo <username>
+    exit
+
+Now your terminal session is back under your normal user. You can check that 
+you are now part of the sudo group with the command ``groups``, "sudo" should
+appear in the list. If not, run ``newgrp sudo`` and check again with ``groups``.
+
+**Step 2:** Update system and install zoneminder
+
+Run the following commands.
+
+::
+
+    sudo apt update
+    sudo apt upgrade
+    sudo apt install zoneminder
+
+**Step 3:** Initialize database
+
+Run the following commands.
+
+::
+
+    cat /usr/share/zoneminder/db/zm_create.sql | sudo mysql --defaults-file=/etc/mysql/debian.cnf
+    echo 'grant lock tables,alter,create,select,insert,update,delete,index on zm.* to 'zmuser'@localhost identified by "zmpass";' | sudo mysql --defaults-file=/etc/mysql/debian.cnf mysql
+
+**Step 4:** Setup permissions for zm.conf
+
+To make sure zoneminder can read the configuration file, run the following command.
+
+::
+
+    sudo chgrp -c www-data /etc/zm/zm.conf
+
+**Step 5:** Edit Timezone in PHP
+
+Automated way:
+::
+
+    sudo sed -i "s/;date.timezone =/date.timezone = $(sed 's/\//\\\//' /etc/timezone)/g" /etc/php/7.*/apache2/php.ini
+
+Manual way
+::
+
+    sudo nano /etc/php/7.*/apache2/php.ini
+
+Search for [Date] (Ctrl + w then type Date and press Enter) and change
+date.timezone for your time zone. Don't forget to remove the ; from in front
+of date.timezone.
+
+::
+
+        [Date]
+        ; Defines the default timezone used by the date functions
+        ; http://php.net/date.timezone
+        date.timezone = America/New_York
+
+CTRL+o then [Enter] to save
+
+CTRL+x to exit
+
+**Step 6:** Reload Apache and start zoneminder
+
+Run the following commands.
+
+::
+
+    sudo systemctl reload apache2
+    sudo systectl start zoneminder
+
+Congratulations! You should now be able to access zoneminder at ``http://yourhostname/zm``
+
 Easy Way: Debian Buster
 ------------------------
 

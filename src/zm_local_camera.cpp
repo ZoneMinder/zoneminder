@@ -49,130 +49,128 @@ static int vidioctl(int fd, int request, void *arg) {
 static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette) {
   _AVPIXELFORMAT pixFormat = AV_PIX_FMT_NONE;
      
-  if ( v4l_version == 2 ) {
-    switch ( palette ) {
+  switch (palette) {
 #if defined(V4L2_PIX_FMT_RGB444) && defined(AV_PIX_FMT_RGB444)
-      case V4L2_PIX_FMT_RGB444 :
-        pixFormat = AV_PIX_FMT_RGB444;
-        break;
+    case V4L2_PIX_FMT_RGB444 :
+      pixFormat = AV_PIX_FMT_RGB444;
+      break;
 #endif // V4L2_PIX_FMT_RGB444
-      case V4L2_PIX_FMT_RGB555 :
-        pixFormat = AV_PIX_FMT_RGB555;
-        break;
-      case V4L2_PIX_FMT_RGB565 :
-        pixFormat = AV_PIX_FMT_RGB565;
-        break;
-      case V4L2_PIX_FMT_BGR24 :
-        pixFormat = AV_PIX_FMT_BGR24;
-        break;
-      case V4L2_PIX_FMT_RGB24 :
-        pixFormat = AV_PIX_FMT_RGB24;
-        break;
-      case V4L2_PIX_FMT_BGR32 :
-        pixFormat = AV_PIX_FMT_BGRA;
-        break;
-      case V4L2_PIX_FMT_RGB32 :
-        pixFormat = AV_PIX_FMT_ARGB;
-        break;
-      case V4L2_PIX_FMT_GREY :
-        pixFormat = AV_PIX_FMT_GRAY8;
-        break;
-      case V4L2_PIX_FMT_YUYV :
-        pixFormat = AV_PIX_FMT_YUYV422;
-        break;
-      case V4L2_PIX_FMT_YUV422P :
-        pixFormat = AV_PIX_FMT_YUV422P;
-        break;
-      case V4L2_PIX_FMT_YUV411P :
-        pixFormat = AV_PIX_FMT_YUV411P;
-        break;
+    case V4L2_PIX_FMT_RGB555 :
+      pixFormat = AV_PIX_FMT_RGB555;
+      break;
+    case V4L2_PIX_FMT_RGB565 :
+      pixFormat = AV_PIX_FMT_RGB565;
+      break;
+    case V4L2_PIX_FMT_BGR24 :
+      pixFormat = AV_PIX_FMT_BGR24;
+      break;
+    case V4L2_PIX_FMT_RGB24 :
+      pixFormat = AV_PIX_FMT_RGB24;
+      break;
+    case V4L2_PIX_FMT_BGR32 :
+      pixFormat = AV_PIX_FMT_BGRA;
+      break;
+    case V4L2_PIX_FMT_RGB32 :
+      pixFormat = AV_PIX_FMT_ARGB;
+      break;
+    case V4L2_PIX_FMT_GREY :
+      pixFormat = AV_PIX_FMT_GRAY8;
+      break;
+    case V4L2_PIX_FMT_YUYV :
+      pixFormat = AV_PIX_FMT_YUYV422;
+      break;
+    case V4L2_PIX_FMT_YUV422P :
+      pixFormat = AV_PIX_FMT_YUV422P;
+      break;
+    case V4L2_PIX_FMT_YUV411P :
+      pixFormat = AV_PIX_FMT_YUV411P;
+      break;
 #ifdef V4L2_PIX_FMT_YUV444
-      case V4L2_PIX_FMT_YUV444 :
-        pixFormat = AV_PIX_FMT_YUV444P;
-        break;
+    case V4L2_PIX_FMT_YUV444 :
+      pixFormat = AV_PIX_FMT_YUV444P;
+      break;
 #endif // V4L2_PIX_FMT_YUV444
-      case V4L2_PIX_FMT_YUV410 :
-        pixFormat = AV_PIX_FMT_YUV410P;
+    case V4L2_PIX_FMT_YUV410 :
+      pixFormat = AV_PIX_FMT_YUV410P;
+      break;
+    case V4L2_PIX_FMT_YUV420 :
+      pixFormat = AV_PIX_FMT_YUV420P;
+      break;
+    case V4L2_PIX_FMT_JPEG :
+    case V4L2_PIX_FMT_MJPEG :
+      pixFormat = AV_PIX_FMT_YUVJ444P;
+      break;
+    case V4L2_PIX_FMT_UYVY :
+      pixFormat = AV_PIX_FMT_UYVY422;
+      break;
+      // These don't seem to have ffmpeg equivalents
+      // See if you can match any of the ones in the default clause below!?
+    case V4L2_PIX_FMT_RGB332 :
+    case V4L2_PIX_FMT_RGB555X :
+    case V4L2_PIX_FMT_RGB565X :
+      //case V4L2_PIX_FMT_Y16 :
+      //case V4L2_PIX_FMT_PAL8 :
+    case V4L2_PIX_FMT_YVU410 :
+    case V4L2_PIX_FMT_YVU420 :
+    case V4L2_PIX_FMT_Y41P :
+      //case V4L2_PIX_FMT_YUV555 :
+      //case V4L2_PIX_FMT_YUV565 :
+      //case V4L2_PIX_FMT_YUV32 :
+    case V4L2_PIX_FMT_NV12 :
+    case V4L2_PIX_FMT_NV21 :
+    case V4L2_PIX_FMT_YYUV :
+    case V4L2_PIX_FMT_HI240 :
+    case V4L2_PIX_FMT_HM12 :
+      //case V4L2_PIX_FMT_SBGGR8 :
+      //case V4L2_PIX_FMT_SGBRG8 :
+      //case V4L2_PIX_FMT_SBGGR16 :
+    case V4L2_PIX_FMT_DV :
+    case V4L2_PIX_FMT_MPEG :
+    case V4L2_PIX_FMT_WNVA :
+    case V4L2_PIX_FMT_SN9C10X :
+    case V4L2_PIX_FMT_PWC1 :
+    case V4L2_PIX_FMT_PWC2 :
+    case V4L2_PIX_FMT_ET61X251 :
+      //case V4L2_PIX_FMT_SPCA501 :
+      //case V4L2_PIX_FMT_SPCA505 :
+      //case V4L2_PIX_FMT_SPCA508 :
+      //case V4L2_PIX_FMT_SPCA561 :
+      //case V4L2_PIX_FMT_PAC207 :
+      //case V4L2_PIX_FMT_PJPG :
+      //case V4L2_PIX_FMT_YVYU :
+    default :
+      {
+        Fatal("Can't find swscale format for palette %d", palette);
         break;
-      case V4L2_PIX_FMT_YUV420 :
-        pixFormat = AV_PIX_FMT_YUV420P;
-        break;
-      case V4L2_PIX_FMT_JPEG :
-      case V4L2_PIX_FMT_MJPEG :
-        pixFormat = AV_PIX_FMT_YUVJ444P;
-        break;
-      case V4L2_PIX_FMT_UYVY :
-        pixFormat = AV_PIX_FMT_UYVY422;
-        break;
-        // These don't seem to have ffmpeg equivalents
-        // See if you can match any of the ones in the default clause below!?
-      case V4L2_PIX_FMT_RGB332 :
-      case V4L2_PIX_FMT_RGB555X :
-      case V4L2_PIX_FMT_RGB565X :
-        //case V4L2_PIX_FMT_Y16 :
-        //case V4L2_PIX_FMT_PAL8 :
-      case V4L2_PIX_FMT_YVU410 :
-      case V4L2_PIX_FMT_YVU420 :
-      case V4L2_PIX_FMT_Y41P :
-        //case V4L2_PIX_FMT_YUV555 :
-        //case V4L2_PIX_FMT_YUV565 :
-        //case V4L2_PIX_FMT_YUV32 :
-      case V4L2_PIX_FMT_NV12 :
-      case V4L2_PIX_FMT_NV21 :
-      case V4L2_PIX_FMT_YYUV :
-      case V4L2_PIX_FMT_HI240 :
-      case V4L2_PIX_FMT_HM12 :
-        //case V4L2_PIX_FMT_SBGGR8 :
-        //case V4L2_PIX_FMT_SGBRG8 :
-        //case V4L2_PIX_FMT_SBGGR16 :
-      case V4L2_PIX_FMT_DV :
-      case V4L2_PIX_FMT_MPEG :
-      case V4L2_PIX_FMT_WNVA :
-      case V4L2_PIX_FMT_SN9C10X :
-      case V4L2_PIX_FMT_PWC1 :
-      case V4L2_PIX_FMT_PWC2 :
-      case V4L2_PIX_FMT_ET61X251 :
-        //case V4L2_PIX_FMT_SPCA501 :
-        //case V4L2_PIX_FMT_SPCA505 :
-        //case V4L2_PIX_FMT_SPCA508 :
-        //case V4L2_PIX_FMT_SPCA561 :
-        //case V4L2_PIX_FMT_PAC207 :
-        //case V4L2_PIX_FMT_PJPG :
-        //case V4L2_PIX_FMT_YVYU :
-      default :
-        {
-          Fatal("Can't find swscale format for palette %d", palette);
-          break;
 #if 0
-          // These are all spare and may match some of the above
-          pixFormat = AV_PIX_FMT_YUVJ420P;
-          pixFormat = AV_PIX_FMT_YUVJ422P;
-          pixFormat = AV_PIX_FMT_UYVY422;
-          pixFormat = AV_PIX_FMT_UYYVYY411;
-          pixFormat = AV_PIX_FMT_BGR565;
-          pixFormat = AV_PIX_FMT_BGR555;
-          pixFormat = AV_PIX_FMT_BGR8;
-          pixFormat = AV_PIX_FMT_BGR4;
-          pixFormat = AV_PIX_FMT_BGR4_BYTE;
-          pixFormat = AV_PIX_FMT_RGB8;
-          pixFormat = AV_PIX_FMT_RGB4;
-          pixFormat = AV_PIX_FMT_RGB4_BYTE;
-          pixFormat = AV_PIX_FMT_NV12;
-          pixFormat = AV_PIX_FMT_NV21;
-          pixFormat = AV_PIX_FMT_RGB32_1;
-          pixFormat = AV_PIX_FMT_BGR32_1;
-          pixFormat = AV_PIX_FMT_GRAY16BE;
-          pixFormat = AV_PIX_FMT_GRAY16LE;
-          pixFormat = AV_PIX_FMT_YUV440P;
-          pixFormat = AV_PIX_FMT_YUVJ440P;
-          pixFormat = AV_PIX_FMT_YUVA420P;
-          //pixFormat = AV_PIX_FMT_VDPAU_H264;
-          //pixFormat = AV_PIX_FMT_VDPAU_MPEG1;
-          //pixFormat = AV_PIX_FMT_VDPAU_MPEG2;
+        // These are all spare and may match some of the above
+        pixFormat = AV_PIX_FMT_YUVJ420P;
+        pixFormat = AV_PIX_FMT_YUVJ422P;
+        pixFormat = AV_PIX_FMT_UYVY422;
+        pixFormat = AV_PIX_FMT_UYYVYY411;
+        pixFormat = AV_PIX_FMT_BGR565;
+        pixFormat = AV_PIX_FMT_BGR555;
+        pixFormat = AV_PIX_FMT_BGR8;
+        pixFormat = AV_PIX_FMT_BGR4;
+        pixFormat = AV_PIX_FMT_BGR4_BYTE;
+        pixFormat = AV_PIX_FMT_RGB8;
+        pixFormat = AV_PIX_FMT_RGB4;
+        pixFormat = AV_PIX_FMT_RGB4_BYTE;
+        pixFormat = AV_PIX_FMT_NV12;
+        pixFormat = AV_PIX_FMT_NV21;
+        pixFormat = AV_PIX_FMT_RGB32_1;
+        pixFormat = AV_PIX_FMT_BGR32_1;
+        pixFormat = AV_PIX_FMT_GRAY16BE;
+        pixFormat = AV_PIX_FMT_GRAY16LE;
+        pixFormat = AV_PIX_FMT_YUV440P;
+        pixFormat = AV_PIX_FMT_YUVJ440P;
+        pixFormat = AV_PIX_FMT_YUVA420P;
+        //pixFormat = AV_PIX_FMT_VDPAU_H264;
+        //pixFormat = AV_PIX_FMT_VDPAU_MPEG1;
+        //pixFormat = AV_PIX_FMT_VDPAU_MPEG2;
 #endif
-        }
-    } // end switch palette
-  } // end if v4l2
+      }
+  } // end switch palette
 
   return pixFormat;
 } // end getFfPixFormatFromV4lPalette
@@ -289,7 +287,7 @@ LocalCamera::LocalCamera(
     BigEndian = 0;
   }
 
-  if (v4l_version == 2 && palette == 0) {
+  if (palette == 0) {
     /* Use automatic format selection */
     Debug(2,"Using automatic format selection");
     palette = AutoSelectFormat(colours);
@@ -310,9 +308,6 @@ LocalCamera::LocalCamera(
 
   if (capture) {
     if (last_camera) {
-      if ((p_method == "v4l2" && v4l_version != 2) || (p_method == "v4l1" && v4l_version != 1)) 
-        Fatal("Different Video For Linux version used for monitors sharing same device");
-
       if (standard != last_camera->standard)
         Warning("Different video standards defined for monitors sharing same device, results may be unpredictable or completely wrong");
 
@@ -324,7 +319,7 @@ LocalCamera::LocalCamera(
     }
 
     /* Get ffmpeg pixel format based on capture palette and endianness */
-    capturePixFormat = getFfPixFormatFromV4lPalette( v4l_version, palette );
+    capturePixFormat = getFfPixFormatFromV4lPalette(v4l_version, palette);
     imagePixFormat = AV_PIX_FMT_NONE;
   }
 
@@ -499,7 +494,6 @@ void LocalCamera::Initialise() {
   if (!S_ISCHR(st.st_mode))
     Fatal("File %s is not device file: %s", device.c_str(), strerror(errno));
 
-  Debug(2, "V4L2 support enabled, using V4L%d api", v4l_version);
   struct v4l2_capability vid_cap;
 
   Debug(3, "Checking video device capabilities");
@@ -1209,46 +1203,42 @@ int LocalCamera::Contrast(int p_contrast) {
 
 int LocalCamera::PrimeCapture() {
   getVideoStream();
-  if ( !device_prime )
+  if (!device_prime)
     return 1;
 
-  Debug(2, "Priming capture");
-  if ( v4l_version == 2 ) {
-    Debug(3, "Queueing (%d) buffers", v4l2_data.reqbufs.count);
-    for ( unsigned int frame = 0; frame < v4l2_data.reqbufs.count; frame++ ) {
-      struct v4l2_buffer vid_buf;
+  Debug(3, "Queueing (%d) buffers", v4l2_data.reqbufs.count);
+  for (unsigned int frame = 0; frame < v4l2_data.reqbufs.count; frame++) {
+    struct v4l2_buffer vid_buf;
 
-      memset(&vid_buf, 0, sizeof(vid_buf));
-      if ( v4l2_data.fmt.type != V4L2_BUF_TYPE_VIDEO_CAPTURE ) {
-        Warning("Unknown type: (%d)", v4l2_data.fmt.type);
-      }
-
-      vid_buf.type = v4l2_data.fmt.type;
-      vid_buf.memory = v4l2_data.reqbufs.memory;
-      vid_buf.index = frame;
-
-      if (vidioctl(vid_fd, VIDIOC_QBUF, &vid_buf) < 0) {
-        Error("Failed to queue buffer %d: %s", frame, strerror(errno));
-        return 0;
-      }
+    memset(&vid_buf, 0, sizeof(vid_buf));
+    if (v4l2_data.fmt.type != V4L2_BUF_TYPE_VIDEO_CAPTURE) {
+      Warning("Unknown type: (%d)", v4l2_data.fmt.type);
     }
-    v4l2_data.bufptr = nullptr;
 
-    Debug(3, "Starting video stream");
-    //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    //enum v4l2_buf_type type = v4l2_data.fmt.type;
-    enum v4l2_buf_type type = (v4l2_buf_type)v4l2_data.fmt.type;
-    if (vidioctl(vid_fd, VIDIOC_STREAMON, &type) < 0) {
-      Error("Failed to start capture stream: %s", strerror(errno));
-      return -1;
+    vid_buf.type = v4l2_data.fmt.type;
+    vid_buf.memory = v4l2_data.reqbufs.memory;
+    vid_buf.index = frame;
+
+    if (vidioctl(vid_fd, VIDIOC_QBUF, &vid_buf) < 0) {
+      Error("Failed to queue buffer %d: %s", frame, strerror(errno));
+      return 0;
     }
-  }  // end if v4l_version == 2
+  }
+  v4l2_data.bufptr = nullptr;
+
+  Debug(3, "Starting video stream");
+  //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  //enum v4l2_buf_type type = v4l2_data.fmt.type;
+  enum v4l2_buf_type type = (v4l2_buf_type)v4l2_data.fmt.type;
+  if (vidioctl(vid_fd, VIDIOC_STREAMON, &type) < 0) {
+    Error("Failed to start capture stream: %s", strerror(errno));
+    return -1;
+  }
 
   return 1;
 } // end LocalCamera::PrimeCapture
 
 int LocalCamera::PreCapture() {
-  //Debug(5, "Pre-capturing");
   return 1;
 }
 
@@ -1267,77 +1257,73 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   } 
 
   // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer
-  if ( channel_prime ) {
-    if ( v4l_version == 2 ) {
-      static struct v4l2_buffer vid_buf;
+  if (channel_prime) {
+    static struct v4l2_buffer vid_buf;
 
-      memset(&vid_buf, 0, sizeof(vid_buf));
+    memset(&vid_buf, 0, sizeof(vid_buf));
 
-      vid_buf.type = v4l2_data.fmt.type;
-      vid_buf.memory = v4l2_data.reqbufs.memory;
+    vid_buf.type = v4l2_data.fmt.type;
+    vid_buf.memory = v4l2_data.reqbufs.memory;
 
-      Debug(3, "Capturing %d frames", captures_per_frame);
-      while ( captures_per_frame ) {
-        if ( vidioctl(vid_fd, VIDIOC_DQBUF, &vid_buf) < 0 ) {
-          if ( errno == EIO ) {
-            Warning("Capture failure, possible signal loss?: %s", strerror(errno));
-          } else {
-            Error("Unable to capture frame %d: %s", vid_buf.index, strerror(errno));
-          }
+    Debug(3, "Capturing %d frames", captures_per_frame);
+    while (captures_per_frame) {
+      if (vidioctl(vid_fd, VIDIOC_DQBUF, &vid_buf) < 0) {
+        if (errno == EIO) {
+          Warning("Capture failure, possible signal loss?: %s", strerror(errno));
+        } else {
+          Error("Unable to capture frame %d: %s", vid_buf.index, strerror(errno));
+        }
+        return -1;
+      }
+      Debug(5, "Captured a frame");
+
+      v4l2_data.bufptr = &vid_buf;
+      capture_frame = v4l2_data.bufptr->index;
+      bytes += vid_buf.bytesused;
+
+      if (--captures_per_frame) {
+        if (vidioctl(vid_fd, VIDIOC_QBUF, &vid_buf) < 0) {
+          Error("Unable to requeue buffer %d: %s", vid_buf.index, strerror(errno));
           return -1;
         }
-        Debug(5, "Captured a frame");
-
-        v4l2_data.bufptr = &vid_buf;
-        capture_frame = v4l2_data.bufptr->index;
-        bytes += vid_buf.bytesused;
-
-        if ( --captures_per_frame ) {
-          if ( vidioctl(vid_fd, VIDIOC_QBUF, &vid_buf) < 0 ) {
-            Error("Unable to requeue buffer %d: %s", vid_buf.index, strerror(errno));
-            return -1;
-          }
-        }
-      } // while captures_per_frame
-
-      Debug(3, "Captured frame %d/%d from channel %d", capture_frame, v4l2_data.bufptr->sequence, channel);
-
-      buffer = (unsigned char *)v4l2_data.buffers[v4l2_data.bufptr->index].start;
-      buffer_bytesused = v4l2_data.bufptr->bytesused;
-      bytes += buffer_bytesused;
-
-      if ( (v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) > (width * height) ) {
-        Fatal("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",
-            v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
-      } else if ( (v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) != (width * height) ) {
-        Error("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",
-            v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
       }
-    } // end if v4l2
+    } // while captures_per_frame
 
-    if ( v4l_version == 2 ) {
-      if ( channel_count > 1 ) {
-        int next_channel = (channel_index+1)%channel_count;
-        Debug(3, "Switching video source to %d", channels[next_channel]);
-        if ( vidioctl(vid_fd, VIDIOC_S_INPUT, &channels[next_channel]) < 0 ) {
-          Error("Failed to set camera source %d: %s", channels[next_channel], strerror(errno));
-          return -1;
-        }
+    Debug(3, "Captured frame %d/%d from channel %d", capture_frame, v4l2_data.bufptr->sequence, channel);
 
-        v4l2_std_id stdId = standards[next_channel];
-        if ( vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0 ) {
-          Error("Failed to set video format %d: %s", standards[next_channel], strerror(errno));
-        }
+    buffer = (unsigned char *)v4l2_data.buffers[v4l2_data.bufptr->index].start;
+    buffer_bytesused = v4l2_data.bufptr->bytesused;
+    bytes += buffer_bytesused;
+
+    if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) > (width * height)) {
+      Fatal("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",
+          v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
+    } else if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) != (width * height)) {
+      Error("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",
+          v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
+    }
+
+    if (channel_count > 1) {
+      int next_channel = (channel_index+1)%channel_count;
+      Debug(3, "Switching video source to %d", channels[next_channel]);
+      if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channels[next_channel]) < 0) {
+        Error("Failed to set camera source %d: %s", channels[next_channel], strerror(errno));
+        return -1;
       }
-      if ( v4l2_data.bufptr ) {
-        Debug(3, "Requeueing buffer %d", v4l2_data.bufptr->index);
-        if ( vidioctl(vid_fd, VIDIOC_QBUF, v4l2_data.bufptr) < 0 ) {
-          Error("Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno));
-          return -1;
-        }
-      } else {
-        Error("Unable to requeue buffer due to not v4l2_data");
+
+      v4l2_std_id stdId = standards[next_channel];
+      if (vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0) {
+        Error("Failed to set video format %d: %s", standards[next_channel], strerror(errno));
       }
+    }
+    if (v4l2_data.bufptr) {
+      Debug(3, "Requeueing buffer %d", v4l2_data.bufptr->index);
+      if (vidioctl(vid_fd, VIDIOC_QBUF, v4l2_data.bufptr) < 0) {
+        Error("Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno));
+        return -1;
+      }
+    } else {
+      Error("Unable to requeue buffer due to not v4l2_data");
     }
   } /* prime capture */    
 

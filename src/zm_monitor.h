@@ -567,10 +567,14 @@ public:
   void actionSuspend();
   void actionResume();
 
-  int actionBrightness( int p_brightness=-1 );
-  int actionHue( int p_hue=-1 );
-  int actionColour( int p_colour=-1 );
-  int actionContrast( int p_contrast=-1 );
+  int actionBrightness(int p_brightness);
+  int actionBrightness();
+  int actionHue(int p_hue);
+  int actionHue();
+  int actionColour(int p_colour);
+  int actionColour();
+  int actionContrast(int p_contrast);
+  int actionContrast();
 
   int PrimeCapture();
   int PreCapture() const;

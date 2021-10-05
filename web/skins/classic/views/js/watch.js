@@ -783,6 +783,25 @@ function getCtrlPresetModal() {
       .fail(logAjaxFail);
 }
 
+function changeControl(e) {
+  const input = e.target;
+  $j.getJSON(monitorUrl+'?request=v4l2_settings&mid='+monitorId+'&'+input.name+'='+input.value)
+      .done(function(evt) {
+        if (evt.result == 'Ok') {
+          evt.controls.forEach(function(control) {
+            const element = $j('#new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
+            if (element.length) {
+              element.val(control.value);
+              element.attr('title', control.value);
+            } else {
+              console.err('Element not found for #new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
+            }
+          });
+        }
+      })
+      .fail(logAjaxFail);
+}
+
 function getSettingsModal() {
   $j.getJSON(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId)
       .done(function(data) {
@@ -792,6 +811,10 @@ function getSettingsModal() {
           evt.preventDefault();
           $j('#settingsForm').submit();
         });
+        $j('#newBrightness').change(changeControl);
+        $j('#newContrast').change(changeControl);
+        $j('#newHue').change(changeControl);
+        $j('#newColour').change(changeControl);
       })
       .fail(logAjaxFail);
 }

@@ -2537,7 +2537,7 @@ int Monitor::Capture() {
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
       if (video_fifo) {
-        if ( packet->keyframe ) {
+        if (packet->keyframe) {
           // avcodec strips out important nals that describe the stream and
           // stick them in extradata. Need to send them along with keyframes
           AVStream *stream = camera->getVideoStream();

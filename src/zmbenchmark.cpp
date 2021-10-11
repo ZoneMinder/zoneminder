@@ -17,6 +17,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+#include <algorithm>
+#include <assert.h>
 #include <memory>
 #include <stdlib.h>
 
@@ -29,14 +31,86 @@
 
 
 //
+// This allows you to feed in a set of columns and timing rows, and print it
+// out in a nice-looking table.
+//
+class TimingsTable {
+public:
+  TimingsTable(const std::vector<std::string> &inColumns) : columns(inColumns) {}
+
+  void AddRow(const std::string &label, const std::vector<Microseconds> &timings) {
+    assert(timings.size() == columns.size());
+    Row row;
+    row.label = label;
+    row.timings = timings;
+    rows.push_back(row);
+  }
+
+  void Print(const int columnPad = 5) {
+    // Figure out column widths.
+    std::vector<int> widths(columns.size() + 1);
+
+    // The first width is the max of the row labels.
+    auto result = std::max_element(rows.begin(), rows.end(), [](const Row &a, const Row &b) -> bool { return a.label.length() < b.label.length(); });
+    widths[0] = result->label.length() + columnPad;
+
+    // Calculate the rest of the column widths.
+    for (size_t i=0; i < columns.size(); i++)
+      widths[i+1] = columns[i].length() + columnPad;
+
+    auto PrintColStr = [&](size_t icol, const std::string &str) {
+      printf("%s", str.c_str());
+      PrintPadding(widths[icol] - str.length());
+    };
+
+    // Print the header.
+    PrintColStr(0, "");
+    for (size_t i=0; i < columns.size(); i++) {
+      PrintColStr(i+1, columns[i]);
+    }
+    printf("\n");
+
+    // Print the timings rows.
+    for (const auto &row : rows) {
+      PrintColStr(0, row.label);
+
+      for (size_t i=0; i < row.timings.size(); i++) {
+        char num[128];
+        sprintf(num, "%.2f", row.timings[i].count() / 1000.0);
+        PrintColStr(i+1, num);
+      }
+
+      printf("\n");
+    }
+  }
+
+private:
+  void PrintPadding(int count) {
+    std::string str(count, ' ');
+    printf("%s", str.c_str());
+  }
+
+  class Row {
+  public:
+    std::string label;
+    std::vector<Microseconds> timings;
+  };
+
+  std::vector<std::string> columns;
+  std::vector<Row> rows;
+};
+
+
+
+//
 // Generate a greyscale image that simulates a delta that can be fed to
-// Zone::CheckAlarms.
+// Zone::CheckAlarms. This first creates a black image, and then it fills
+// a box of a certain size inside the image with random data. This is to simulate
+// a typical scene where most of the scene doesn't change except a specific region.
 // 
 // Args:
-//  minVal: 0-255 value telling the minimum (random) value to initialize
-//    all the pixels to.
-//  maxVal: 0-255 value telling the maximum (random) value to initialize
-//    all the pixels to.
+//  changeBoxPercent: 0-100 value telling how large the box with random data should be.
+//    Set to 0 to leave the whole thing black.
 //  width: The width of the new image.
 //  height: The height of the new image.
 //   
@@ -44,10 +118,9 @@
 //    An image with all pixels initialized to values in the [minVal,maxVal] range.
 //
 std::shared_ptr<Image> GenerateRandomImage(
-    int minVal,
-    int maxVal,
-    int width = 3840,
-    int height = 2160) {
+    const int changeBoxPercent,
+    const int width = 3840,
+    const int height = 2160) {
   // Create the image.
   Image *image = new Image(
     width,
@@ -55,15 +128,20 @@ std::shared_ptr<Image> GenerateRandomImage(
     ZM_COLOUR_GRAY8,
     ZM_SUBPIX_ORDER_NONE);
 
-  const int randMax = RAND_MAX;
-  const int range = maxVal - minVal;
+  // Set it to black initially.
+  memset((void*)image->Buffer(0, 0), 0, image->LineSize() * image->Height());
 
-  for (int y=0; y < height; y++)
+  // Now randomize the pixels inside a box.
+  const int boxWidth = (width * changeBoxPercent) / 100;
+  const int boxHeight = (height * changeBoxPercent) / 100;
+  const int boxX = (int)((uint64_t)rand() * (width - boxWidth) / RAND_MAX);
+  const int boxY = (int)((uint64_t)rand() * (height - boxHeight) / RAND_MAX);
+
+  for (int y=0; y < boxHeight; y++)
   {
-    uint8_t *row = (uint8_t*)image->Buffer(0, y);
-    for (int x=0; x < width; x++) {
-      uint64_t randVal = rand();
-      row[x] = (uint8_t)((randVal * range) / randMax + minVal);
+    uint8_t *row = (uint8_t*)image->Buffer(boxX, boxY + y);
+    for (int x=0; x < boxWidth; x++) {
+      row[x] = (uint8_t)rand();
     }
   }
 
@@ -84,7 +162,7 @@ public:
     this->height = height;
 
     // Create a dummy ref_image.
-    std::shared_ptr<Image> tempImage = GenerateRandomImage(0, 0, width, height);
+    std::shared_ptr<Image> tempImage = GenerateRandomImage(0, width, height);
     ref_image = *tempImage.get();
 
     shared_data = &temp_shared_data;
@@ -174,28 +252,33 @@ void PrintCounters(std::vector<CounterInfo> counters) {
 //  label: A label to be printed before the output.
 //  
 //  image: The image to run the tests on.
+//  
+//  p_filter_box: The size of the filter to use for alarm detection.
+//  
+// Return:
+//  The average time taken for each DetectMotion call.
 //
-void RunZoneBenchmark(const char *label, std::shared_ptr<Image> image) {
+Microseconds RunDetectMotionBenchmark(
+    const std::string &label,
+    std::shared_ptr<Image> image,
+    const Vector2 &p_filter_box) {
   // Create a monitor to use for the benchmark. Give it 1 zone that uses
   // a 5x5 filter.
   TestMonitor testMonitor(image->Width(), image->Height());
-  testMonitor.AddZone(Zone::CheckMethod::FILTERED_PIXELS, Vector2(5,5));
+  testMonitor.AddZone(Zone::CheckMethod::FILTERED_PIXELS, p_filter_box);
 
   // Generate a black image to use as the reference image.
   std::shared_ptr<Image> blackImage = GenerateRandomImage(
-    0, 0, image->Width(), image->Height());
+    0, image->Width(), image->Height());
   testMonitor.SetRefImage(blackImage.get());
 
   Microseconds totalTimeTaken(0);
-
-  printf("\n");
-  printf("------- %s -------\n", label);
 
   // Run a series of passes over DetectMotion.
   const int numPasses = 10;
   for (int i=0; i < numPasses; i++) 
   {
-    printf("\rPass %2d / %2d   ", i+1, numPasses);
+    printf("\r%s - pass %2d / %2d   ", label.c_str(), i+1, numPasses);
     fflush(stdout);
 
     TimeSegmentAdder adder(totalTimeTaken);
@@ -205,8 +288,27 @@ void RunZoneBenchmark(const char *label, std::shared_ptr<Image> image) {
   }
   printf("\n");
 
-  PrintCounters({
-    CounterInfo(totalTimeTaken / numPasses, "Time per pass")});
+  return totalTimeTaken / numPasses;
+}
+
+
+void RunDetectMotionBenchmarks(
+    TimingsTable &table,
+    const std::vector<int> &deltaBoxPercents,
+    const Vector2 &p_filter_box) {
+  std::vector<Microseconds> timings;
+
+  for (int percent : deltaBoxPercents) {
+    Microseconds timing = RunDetectMotionBenchmark(
+      std::string("DetectMotion: ") + std::to_string(p_filter_box.x_) + "x" + std::to_string(p_filter_box.y_) + " box, " + std::to_string(percent) + "% delta",
+      GenerateRandomImage(percent),
+      p_filter_box);
+    timings.push_back(timing);
+  }
+
+  table.AddRow(
+    std::to_string(p_filter_box.x_) + "x" + std::to_string(p_filter_box.y_) + " filter",
+    timings);
 }
 
 
@@ -220,11 +322,22 @@ int main(int argc, char *argv[]) {
 
   // Detect SSE version.
   HwCapsDetect();
+ 
+  // Setup the column titles for the TimingsTable we'll generate.
+  // Each column represents how large the box in the image is with delta pixels.
+  // Each row represents a different filter size.
+  const std::vector<int> percents = {0, 10, 50, 100};
+  std::vector<std::string> columns(percents.size());
+  std::transform(percents.begin(), percents.end(), columns.begin(),
+    [](const int percent) {return std::to_string(percent) + "% delta (ms)";});
+  TimingsTable table(columns);
 
-  RunZoneBenchmark("0% delta", GenerateRandomImage(0, 0));
-  RunZoneBenchmark("50% delta", GenerateRandomImage(0, 255));
-  RunZoneBenchmark("100% delta", GenerateRandomImage(255, 255));
+  std::vector<Vector2> filterSizes = {Vector2(3,3), Vector2(5,5), Vector2(13,13)};
+  for (const auto filterSize : filterSizes) {
+    RunDetectMotionBenchmarks(table, percents, filterSize);
+  }
 
+  table.Print();
   return 0;
 }
 

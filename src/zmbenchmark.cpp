@@ -38,6 +38,12 @@ class TimingsTable {
 public:
   TimingsTable(const std::vector<std::string> &inColumns) : columns(inColumns) {}
 
+  //
+  // Add a row to the end of the table.
+  // 
+  // Args:
+  //  label: The name of the row (printed in the first column).
+  //  timings: The values for all the other columns in this row.
   void AddRow(const std::string &label, const std::vector<Microseconds> &timings) {
     assert(timings.size() == columns.size());
     Row row;
@@ -46,6 +52,12 @@ public:
     rows.push_back(row);
   }
 
+  // 
+  // Print out the table.
+  // 
+  // Args:
+  //  columnPad: # characters between table columns
+  //  
   void Print(const int columnPad = 5) {
     // Figure out column widths.
     std::vector<int> widths(columns.size() + 1);
@@ -219,32 +231,6 @@ private:
 
 
 
-class CounterInfo {
-public:
-  CounterInfo(
-      const Microseconds in_timer,
-      const std::string &in_label) :
-    timer(in_timer),
-    label(in_label)
-  {
-  }
-
-  const Microseconds timer;
-  const std::string label;  
-};
-
-//
-// Print out a table of timing results.
-// 
-// Args:
-//  counters: The list of counters to print out, and info about how to format it.
-//
-void PrintCounters(std::vector<CounterInfo> counters) {
-  for (const auto counter : counters) {
-    printf("%s: %liµs\n", counter.label.c_str(), counter.timer.count());
-  }
-}
-
 //
 // Run zone benchmarks on the given image.
 // 
@@ -292,6 +278,19 @@ Microseconds RunDetectMotionBenchmark(
 }
 
 
+//
+// This runs a set of Monitor::DetectMotion benchmarks, one for each of the
+// "delta box percents" that are passed in. This adds one row to the 
+// TimingsTable specified.
+// 
+// Args:
+//  table: The table to add timings into.
+//  
+//  deltaBoxPercents: Each of these defines a box size in the delta images
+//    passed to DetectMotion (larger boxes make it slower, sometimes significantly so).
+//    
+//  p_filter_box: Defines the filter size used in DetectMotion.
+//
 void RunDetectMotionBenchmarks(
     TimingsTable &table,
     const std::vector<int> &deltaBoxPercents,

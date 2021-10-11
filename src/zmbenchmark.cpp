@@ -55,12 +55,16 @@ std::shared_ptr<Image> GenerateRandomImage(
     ZM_COLOUR_GRAY8,
     ZM_SUBPIX_ORDER_NONE);
 
-  const int range = maxVal - minVal + 1;
+  const int randMax = RAND_MAX;
+  const int range = maxVal - minVal;
+
   for (int y=0; y < height; y++)
   {
     uint8_t *row = (uint8_t*)image->Buffer(0, y);
-    for (int x=0; x < width; x++)
-      row[x] = (rand() * range) / RAND_MAX + minVal;
+    for (int x=0; x < width; x++) {
+      uint64_t randVal = rand();
+      row[x] = (uint8_t)((randVal * range) / randMax + minVal);
+    }
   }
 
   return std::shared_ptr<Image>(image);

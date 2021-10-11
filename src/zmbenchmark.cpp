@@ -141,7 +141,7 @@ std::shared_ptr<Image> GenerateRandomImage(
     ZM_SUBPIX_ORDER_NONE);
 
   // Set it to black initially.
-  memset((void*)image->Buffer(0, 0), 0, image->LineSize() * image->Height());
+  memset((void*)image->Buffer(0, 0), 0, (size_t)image->LineSize() * (size_t)image->Height());
 
   // Now randomize the pixels inside a box.
   const int boxWidth = (width * changeBoxPercent) / 100;

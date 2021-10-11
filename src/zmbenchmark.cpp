@@ -23,6 +23,7 @@
 #include "zm_config.h"
 #include "zm_image.h"
 #include "zm_monitor.h"
+#include "zm_time.h"
 #include "zm_utils.h"
 #include "zm_zone.h"
 
@@ -67,7 +68,7 @@ std::shared_ptr<Image> GenerateRandomImage(
 
 
 //
-// This is used to help rig up tests of Monitor.
+// This is used to help rig up Monitor benchmarks.
 //
 class TestMonitor : public Monitor
 {
@@ -139,14 +140,14 @@ private:
 class CounterInfo {
 public:
   CounterInfo(
-      const std::chrono::microseconds &in_timer,
+      const Microseconds in_timer,
       const std::string &in_label) :
     timer(in_timer),
     label(in_label)
   {
   }
 
-  const std::chrono::microseconds timer;
+  const Microseconds timer;
   const std::string label;  
 };
 
@@ -158,7 +159,7 @@ public:
 //
 void PrintCounters(std::vector<CounterInfo> counters) {
   for (const auto counter : counters) {
-    printf("%s: %lims\n", counter.label.c_str(), counter.timer.count());
+    printf("%s: %liµs\n", counter.label.c_str(), counter.timer.count());
   }
 }
 
@@ -181,23 +182,27 @@ void RunZoneBenchmark(const char *label, std::shared_ptr<Image> image) {
     0, 0, image->Width(), image->Height());
   testMonitor.SetRefImage(blackImage.get());
 
-  std::chrono::microseconds totalTimeTaken(0);
+  Microseconds totalTimeTaken(0);
+
+  printf("\n");
+  printf("------- %s -------\n", label);
 
   // Run a series of passes over DetectMotion.
   const int numPasses = 10;
   for (int i=0; i < numPasses; i++) 
   {
-    printf("\r(%d / %d)   ", i+1, numPasses);
+    printf("\rPass %2d / %2d   ", i+1, numPasses);
     fflush(stdout);
+
+    TimeSegmentAdder adder(totalTimeTaken);
 
     Event::StringSet zoneSet;
     testMonitor.DetectMotion(*image.get(), zoneSet);
   }
-
   printf("\n");
-  printf("------- %s -------\n", label);
+
   PrintCounters({
-    CounterInfo(totalTimeTaken, "Total zone benchmark time")});
+    CounterInfo(totalTimeTaken / numPasses, "Time per pass")});
 }
 
 
@@ -212,9 +217,9 @@ int main(int argc, char *argv[]) {
   // Detect SSE version.
   HwCapsDetect();
 
-  RunZoneBenchmark("0%% delta", GenerateRandomImage(0, 0));
-  RunZoneBenchmark("50%% delta", GenerateRandomImage(0, 255));
-  RunZoneBenchmark("100%% delta", GenerateRandomImage(255, 255));
+  RunZoneBenchmark("0% delta", GenerateRandomImage(0, 0));
+  RunZoneBenchmark("50% delta", GenerateRandomImage(0, 255));
+  RunZoneBenchmark("100% delta", GenerateRandomImage(255, 255));
 
   return 0;
 }

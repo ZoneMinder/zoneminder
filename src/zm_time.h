@@ -83,4 +83,42 @@ Duration duration_cast(timeval const &tv) {
 }
 }
 
+//
+// This can be used for benchmarking. It will measure the time in between
+// its constructor and destructor (or when you call Finish()) and add that
+// duration to a microseconds clock.
+//
+class TimeSegmentAdder {
+public:
+  TimeSegmentAdder(Microseconds &inTarget) :
+    target(inTarget),
+    startTime(std::chrono::steady_clock::now()),
+    finished(false)   {
+  }
+
+  ~TimeSegmentAdder() {
+    Finish();
+  }
+
+  // Call this to stop the timer and add the timed duration to `target`.
+  void Finish() {
+    if (!finished) {
+      const TimePoint endTime = std::chrono::steady_clock::now();
+      target += (std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime));
+    }
+    finished = true;
+  }
+
+private:
+  // This is where we will add our duration to.
+  Microseconds &target;
+
+  // The time we started.
+  const TimePoint startTime;
+
+  // True when it has finished timing.
+  bool finished;
+};
+
+
 #endif // ZM_TIME_H

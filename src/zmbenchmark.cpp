@@ -19,8 +19,9 @@
 
 #include <algorithm>
 #include <cassert>
-#include <memory>
 #include <cstdlib>
+#include <memory>
+#include <random>
 #include <utility>
 
 #include "zm_config.h"
@@ -29,6 +30,8 @@
 #include "zm_time.h"
 #include "zm_utils.h"
 #include "zm_zone.h"
+
+static std::mt19937 mt_rand(111);
 
 //
 // This allows you to feed in a set of columns and timing rows, and print it
@@ -142,13 +145,13 @@ std::shared_ptr<Image> GenerateRandomImage(
   // Now randomize the pixels inside a box.
   const int box_width = (width * change_box_percent) / 100;
   const int box_height = (height * change_box_percent) / 100;
-  const int box_x = (int) ((uint64_t) rand() * (width - box_width) / RAND_MAX);
-  const int box_y = (int) ((uint64_t) rand() * (height - box_height) / RAND_MAX);
+  const int box_x = (int) ((uint64_t) mt_rand() * (width - box_width) / RAND_MAX);
+  const int box_y = (int) ((uint64_t) mt_rand() * (height - box_height) / RAND_MAX);
 
   for (int y = 0 ; y < box_height ; y++) {
     uint8_t *row = (uint8_t *) image->Buffer(box_x, box_y + y);
     for (int x = 0 ; x < box_width ; x++) {
-      row[x] = (uint8_t) rand();
+      row[x] = (uint8_t) mt_rand();
     }
   }
 
@@ -295,8 +298,6 @@ void RunDetectMotionBenchmarks(
 }
 
 int main(int argc, char *argv[]) {
-  srand(111);
-
   // Init global stuff that we need.
   config.font_file_location = "../fonts/default.zmfnt";
   config.event_close_mode = "time";

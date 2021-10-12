@@ -154,7 +154,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
         add_packet->packet.stream_index, video_stream_id, add_packet->keyframe, keep_keyframes, packet_counts[video_stream_id], pre_event_video_packet_count, 
         ( *(pktQueue.begin()) != add_packet )
         );
-    Warning("Keyframe interval may be larger than MaxImageBufferCount and PreEventCount.  Please increase MaxImageBufferCount");
     return;
   }
   std::unique_lock<std::mutex> lck(mutex);

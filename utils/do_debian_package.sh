@@ -230,8 +230,12 @@ rm .gitignore
 cd ../
 
 
-if [ ! -e "$DIRECTORY.orig.tar.gz" ]; then
+if [ !-e "$DIRECTORY.orig.tar.gz" ]; then
+read -p "$DIRECTORY.orig.tar.gz does not exist, create it? [Y/n]"
+      if [[ $REPLY == [yY] ]]; then
+
   tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+fi;
 fi;
 
 IFS=',' ;for DISTRO in `echo "$DISTROS"`; do 
@@ -361,7 +365,7 @@ EOF
     dput="Y";
     if [ "$INTERACTIVE" != "no" ]; then
       read -p "Ready to dput $SC to $PPA ? Y/n...";
-      if [[ "$REPLY" == [yY] ]]; then
+      if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
         dput $PPA $SC
       fi;
     else

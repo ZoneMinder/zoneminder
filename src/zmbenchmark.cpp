@@ -60,7 +60,7 @@ class TimingsTable {
   //  
   void Print(const int column_pad = 5) {
     // Figure out column widths.
-    std::vector<int> widths(columns_.size() + 1);
+    std::vector<size_t> widths(columns_.size() + 1);
 
     // The first width is the max of the row labels.
     auto result = std::max_element(rows_.begin(),
@@ -91,8 +91,7 @@ class TimingsTable {
       PrintColStr(0, row.label);
 
       for (size_t i = 0 ; i < row.timings.size() ; i++) {
-        char num[128];
-        sprintf(num, "%.2f", row.timings[i].count() / 1000.0);
+        std::string num = stringtf("%.2f", std::chrono::duration_cast<FPSeconds>(row.timings[i]).count());
         PrintColStr(i + 1, num);
       }
 
@@ -101,7 +100,7 @@ class TimingsTable {
   }
 
  private:
-  static void PrintPadding(int count) {
+  static void PrintPadding(size_t count) {
     std::string str(count, ' ');
     printf("%s", str.c_str());
   }
@@ -232,7 +231,7 @@ class TestMonitor : public Monitor {
 //  The average time taken for each DetectMotion call.
 //
 Microseconds RunDetectMotionBenchmark(const std::string &label,
-                                      std::shared_ptr<Image> image,
+                                      const std::shared_ptr<Image>& image,
                                       const Vector2 &p_filter_box) {
   // Create a monitor to use for the benchmark. Give it 1 zone that uses
   // a 5x5 filter.

@@ -89,11 +89,11 @@ Duration duration_cast(timeval const &tv) {
 // duration to a microseconds clock.
 //
 class TimeSegmentAdder {
-public:
-  TimeSegmentAdder(Microseconds &inTarget) :
-    target(inTarget),
-    startTime(std::chrono::steady_clock::now()),
-    finished(false)   {
+ public:
+  TimeSegmentAdder(Microseconds &in_target) :
+      target_(in_target),
+      start_time_(std::chrono::steady_clock::now()),
+      finished_(false) {
   }
 
   ~TimeSegmentAdder() {
@@ -102,23 +102,22 @@ public:
 
   // Call this to stop the timer and add the timed duration to `target`.
   void Finish() {
-    if (!finished) {
-      const TimePoint endTime = std::chrono::steady_clock::now();
-      target += (std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime));
+    if (!finished_) {
+      const TimePoint end_time = std::chrono::steady_clock::now();
+      target_ += (std::chrono::duration_cast<Microseconds>(end_time - start_time_));
     }
-    finished = true;
+    finished_ = true;
   }
 
-private:
+ private:
   // This is where we will add our duration to.
-  Microseconds &target;
+  Microseconds &target_;
 
   // The time we started.
-  const TimePoint startTime;
+  const TimePoint start_time_;
 
   // True when it has finished timing.
-  bool finished;
+  bool finished_;
 };
-
 
 #endif // ZM_TIME_H

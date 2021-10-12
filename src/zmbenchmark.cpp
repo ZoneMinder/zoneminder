@@ -18,9 +18,10 @@
 // 
 
 #include <algorithm>
-#include <assert.h>
+#include <cassert>
 #include <memory>
-#include <stdlib.h>
+#include <cstdlib>
+#include <utility>
 
 #include "zm_config.h"
 #include "zm_image.h"
@@ -29,14 +30,13 @@
 #include "zm_utils.h"
 #include "zm_zone.h"
 
-
 //
 // This allows you to feed in a set of columns and timing rows, and print it
 // out in a nice-looking table.
 //
 class TimingsTable {
-public:
-  TimingsTable(const std::vector<std::string> &inColumns) : columns(inColumns) {}
+ public:
+  explicit TimingsTable(std::vector<std::string> in_columns) : columns_(std::move(in_columns)) {}
 
   //
   // Add a row to the end of the table.
@@ -45,11 +45,11 @@ public:
   //  label: The name of the row (printed in the first column).
   //  timings: The values for all the other columns in this row.
   void AddRow(const std::string &label, const std::vector<Microseconds> &timings) {
-    assert(timings.size() == columns.size());
+    assert(timings.size() == columns_.size());
     Row row;
     row.label = label;
     row.timings = timings;
-    rows.push_back(row);
+    rows_.push_back(row);
   }
 
   // 
@@ -58,17 +58,21 @@ public:
   // Args:
   //  columnPad: # characters between table columns
   //  
-  void Print(const int columnPad = 5) {
+  void Print(const int column_pad = 5) {
     // Figure out column widths.
-    std::vector<int> widths(columns.size() + 1);
+    std::vector<int> widths(columns_.size() + 1);
 
     // The first width is the max of the row labels.
-    auto result = std::max_element(rows.begin(), rows.end(), [](const Row &a, const Row &b) -> bool { return a.label.length() < b.label.length(); });
-    widths[0] = result->label.length() + columnPad;
+    auto result = std::max_element(rows_.begin(),
+                                   rows_.end(),
+                                   [](const Row &a, const Row &b) -> bool {
+                                     return a.label.length() < b.label.length();
+                                   });
+    widths[0] = result->label.length() + column_pad;
 
     // Calculate the rest of the column widths.
-    for (size_t i=0; i < columns.size(); i++)
-      widths[i+1] = columns[i].length() + columnPad;
+    for (size_t i = 0 ; i < columns_.size() ; i++)
+      widths[i + 1] = columns_[i].length() + column_pad;
 
     auto PrintColStr = [&](size_t icol, const std::string &str) {
       printf("%s", str.c_str());
@@ -77,42 +81,39 @@ public:
 
     // Print the header.
     PrintColStr(0, "");
-    for (size_t i=0; i < columns.size(); i++) {
-      PrintColStr(i+1, columns[i]);
+    for (size_t i = 0 ; i < columns_.size() ; i++) {
+      PrintColStr(i + 1, columns_[i]);
     }
     printf("\n");
 
     // Print the timings rows.
-    for (const auto &row : rows) {
+    for (const Row &row : rows_) {
       PrintColStr(0, row.label);
 
-      for (size_t i=0; i < row.timings.size(); i++) {
+      for (size_t i = 0 ; i < row.timings.size() ; i++) {
         char num[128];
         sprintf(num, "%.2f", row.timings[i].count() / 1000.0);
-        PrintColStr(i+1, num);
+        PrintColStr(i + 1, num);
       }
 
       printf("\n");
     }
   }
 
-private:
-  void PrintPadding(int count) {
+ private:
+  static void PrintPadding(int count) {
     std::string str(count, ' ');
     printf("%s", str.c_str());
   }
 
-  class Row {
-  public:
+  struct Row {
     std::string label;
     std::vector<Microseconds> timings;
   };
 
-  std::vector<std::string> columns;
-  std::vector<Row> rows;
+  std::vector<std::string> columns_;
+  std::vector<Row> rows_;
 };
-
-
 
 //
 // Generate a greyscale image that simulates a delta that can be fed to
@@ -130,52 +131,43 @@ private:
 //    An image with all pixels initialized to values in the [minVal,maxVal] range.
 //
 std::shared_ptr<Image> GenerateRandomImage(
-    const int changeBoxPercent,
+    const int change_box_percent,
     const int width = 3840,
     const int height = 2160) {
   // Create the image.
-  Image *image = new Image(
-    width,
-    height,
-    ZM_COLOUR_GRAY8,
-    ZM_SUBPIX_ORDER_NONE);
+  Image *image = new Image(width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
 
   // Set it to black initially.
-  memset((void*)image->Buffer(0, 0), 0, (size_t)image->LineSize() * (size_t)image->Height());
+  memset((void *) image->Buffer(0, 0), 0, (size_t) image->LineSize() * (size_t) image->Height());
 
   // Now randomize the pixels inside a box.
-  const int boxWidth = (width * changeBoxPercent) / 100;
-  const int boxHeight = (height * changeBoxPercent) / 100;
-  const int boxX = (int)((uint64_t)rand() * (width - boxWidth) / RAND_MAX);
-  const int boxY = (int)((uint64_t)rand() * (height - boxHeight) / RAND_MAX);
+  const int box_width = (width * change_box_percent) / 100;
+  const int box_height = (height * change_box_percent) / 100;
+  const int box_x = (int) ((uint64_t) rand() * (width - box_width) / RAND_MAX);
+  const int box_y = (int) ((uint64_t) rand() * (height - box_height) / RAND_MAX);
 
-  for (int y=0; y < boxHeight; y++)
-  {
-    uint8_t *row = (uint8_t*)image->Buffer(boxX, boxY + y);
-    for (int x=0; x < boxWidth; x++) {
-      row[x] = (uint8_t)rand();
+  for (int y = 0 ; y < box_height ; y++) {
+    uint8_t *row = (uint8_t *) image->Buffer(box_x, box_y + y);
+    for (int x = 0 ; x < box_width ; x++) {
+      row[x] = (uint8_t) rand();
     }
   }
 
   return std::shared_ptr<Image>(image);
 }
 
-
 //
 // This is used to help rig up Monitor benchmarks.
 //
-class TestMonitor : public Monitor
-{
-public:
-  TestMonitor(int width, int height) {
-    cur_zone_id = 111;
-
+class TestMonitor : public Monitor {
+ public:
+  TestMonitor(int width, int height) : cur_zone_id(111) {
     this->width = width;
     this->height = height;
 
     // Create a dummy ref_image.
     std::shared_ptr<Image> tempImage = GenerateRandomImage(0, width, height);
-    ref_image = *tempImage.get();
+    ref_image = *tempImage;
 
     shared_data = &temp_shared_data;
   }
@@ -188,48 +180,43 @@ public:
   //  
   //  p_filter_box: The size of the filter to use.
   //
-  void AddZone(Zone::CheckMethod checkMethod, const Vector2 &p_filter_box=Vector2(5,5)) {
-      const int p_min_pixel_threshold = 50;
-      const int p_max_pixel_threshold = 255;
-      const int p_min_alarm_pixels = 1000;
-      const int p_max_alarm_pixels = 10000000;
+  void AddZone(Zone::CheckMethod checkMethod, const Vector2 &p_filter_box = Vector2(5, 5)) {
+    const int p_min_pixel_threshold = 50;
+    const int p_max_pixel_threshold = 255;
+    const int p_min_alarm_pixels = 1000;
+    const int p_max_alarm_pixels = 10000000;
 
-      const int zone_id = cur_zone_id++;
-      const std::string zone_label = std::string("zone_") + std::to_string(zone_id);
-      const Zone::ZoneType zoneType = Zone::ZoneType::ACTIVE;
-      const Polygon poly({
-        Vector2(0, 0),
-        Vector2(width-1, 0),
-        Vector2(width-1, height-1),
-        Vector2(0, height-1)});
+    const int zone_id = cur_zone_id++;
+    const std::string zone_label = std::string("zone_") + std::to_string(zone_id);
+    const Zone::ZoneType zone_type = Zone::ZoneType::ACTIVE;
+    const Polygon poly({Vector2(0, 0),
+                        Vector2(width - 1, 0),
+                        Vector2(width - 1, height - 1),
+                        Vector2(0, height - 1)});
 
-      Zone zone(
-        this,
-        zone_id,
-        zone_label.c_str(),
-        zoneType,
-        poly,
-        kRGBGreen,
-        Zone::CheckMethod::FILTERED_PIXELS,
-        p_min_pixel_threshold,
-        p_max_pixel_threshold,
-        p_min_alarm_pixels,
-        p_max_alarm_pixels,
-        p_filter_box
-        );
-      zones.push_back(zone);
+    Zone zone(this,
+              zone_id,
+              zone_label.c_str(),
+              zone_type,
+              poly,
+              kRGBGreen,
+              Zone::CheckMethod::FILTERED_PIXELS,
+              p_min_pixel_threshold,
+              p_max_pixel_threshold,
+              p_min_alarm_pixels,
+              p_max_alarm_pixels,
+              p_filter_box);
+    zones.push_back(zone);
   }
 
   void SetRefImage(const Image *image) {
     ref_image = *image;
   }
 
-private:
+ private:
   SharedData temp_shared_data;
   int cur_zone_id;
 };
-
-
 
 //
 // Run zone benchmarks on the given image.
@@ -244,10 +231,9 @@ private:
 // Return:
 //  The average time taken for each DetectMotion call.
 //
-Microseconds RunDetectMotionBenchmark(
-    const std::string &label,
-    std::shared_ptr<Image> image,
-    const Vector2 &p_filter_box) {
+Microseconds RunDetectMotionBenchmark(const std::string &label,
+                                      std::shared_ptr<Image> image,
+                                      const Vector2 &p_filter_box) {
   // Create a monitor to use for the benchmark. Give it 1 zone that uses
   // a 5x5 filter.
   TestMonitor testMonitor(image->Width(), image->Height());
@@ -255,28 +241,26 @@ Microseconds RunDetectMotionBenchmark(
 
   // Generate a black image to use as the reference image.
   std::shared_ptr<Image> blackImage = GenerateRandomImage(
-    0, image->Width(), image->Height());
+      0, image->Width(), image->Height());
   testMonitor.SetRefImage(blackImage.get());
 
   Microseconds totalTimeTaken(0);
 
   // Run a series of passes over DetectMotion.
   const int numPasses = 10;
-  for (int i=0; i < numPasses; i++) 
-  {
-    printf("\r%s - pass %2d / %2d   ", label.c_str(), i+1, numPasses);
+  for (int i = 0 ; i < numPasses ; i++) {
+    printf("\r%s - pass %2d / %2d   ", label.c_str(), i + 1, numPasses);
     fflush(stdout);
 
     TimeSegmentAdder adder(totalTimeTaken);
 
     Event::StringSet zoneSet;
-    testMonitor.DetectMotion(*image.get(), zoneSet);
+    testMonitor.DetectMotion(*image, zoneSet);
   }
   printf("\n");
 
   return totalTimeTaken / numPasses;
 }
-
 
 //
 // This runs a set of Monitor::DetectMotion benchmarks, one for each of the
@@ -293,23 +277,23 @@ Microseconds RunDetectMotionBenchmark(
 //
 void RunDetectMotionBenchmarks(
     TimingsTable &table,
-    const std::vector<int> &deltaBoxPercents,
+    const std::vector<int> &delta_box_percents,
     const Vector2 &p_filter_box) {
   std::vector<Microseconds> timings;
 
-  for (int percent : deltaBoxPercents) {
+  for (int percent : delta_box_percents) {
     Microseconds timing = RunDetectMotionBenchmark(
-      std::string("DetectMotion: ") + std::to_string(p_filter_box.x_) + "x" + std::to_string(p_filter_box.y_) + " box, " + std::to_string(percent) + "% delta",
-      GenerateRandomImage(percent),
-      p_filter_box);
+        std::string("DetectMotion: ") + std::to_string(p_filter_box.x_) + "x" + std::to_string(p_filter_box.y_)
+            + " box, " + std::to_string(percent) + "% delta",
+        GenerateRandomImage(percent),
+        p_filter_box);
     timings.push_back(timing);
   }
 
   table.AddRow(
-    std::to_string(p_filter_box.x_) + "x" + std::to_string(p_filter_box.y_) + " filter",
-    timings);
+      std::to_string(p_filter_box.x_) + "x" + std::to_string(p_filter_box.y_) + " filter",
+      timings);
 }
-
 
 int main(int argc, char *argv[]) {
   srand(111);
@@ -317,21 +301,21 @@ int main(int argc, char *argv[]) {
   // Init global stuff that we need.
   config.font_file_location = "../fonts/default.zmfnt";
   config.event_close_mode = "time";
-  config.cpu_extensions = 1;
+  config.cpu_extensions = true;
 
   // Detect SSE version.
   HwCapsDetect();
- 
+
   // Setup the column titles for the TimingsTable we'll generate.
   // Each column represents how large the box in the image is with delta pixels.
   // Each row represents a different filter size.
   const std::vector<int> percents = {0, 10, 50, 100};
   std::vector<std::string> columns(percents.size());
   std::transform(percents.begin(), percents.end(), columns.begin(),
-    [](const int percent) {return std::to_string(percent) + "% delta (ms)";});
+                 [](const int percent) { return std::to_string(percent) + "% delta (ms)"; });
   TimingsTable table(columns);
 
-  std::vector<Vector2> filterSizes = {Vector2(3,3), Vector2(5,5), Vector2(13,13)};
+  std::vector<Vector2> filterSizes = {Vector2(3, 3), Vector2(5, 5), Vector2(13, 13)};
   for (const auto filterSize : filterSizes) {
     RunDetectMotionBenchmarks(table, percents, filterSize);
   }

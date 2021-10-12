@@ -181,7 +181,7 @@ class Image {
 
     /* Internal buffer should not be modified from functions outside of this class */
     inline const uint8_t* Buffer() const { return buffer; }
-    inline const uint8_t* Buffer(unsigned int x, unsigned int y=0) const { return &buffer[(y*linesize)+x]; }
+    inline const uint8_t* Buffer(unsigned int x, unsigned int y=0) const { return &buffer[(y*linesize) + x*colours]; }
     /* Request writeable buffer */
     uint8_t* WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder);
     // Is only acceptable on a pre-allocated buffer
@@ -233,14 +233,17 @@ class Image {
     bool ReadRaw(const char *filename);
     bool WriteRaw(const char *filename) const;
 
-    bool ReadJpeg(const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
+  bool ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder);
 
-    bool WriteJpeg(const char *filename) const;
-    bool WriteJpeg(const char *filename, bool on_blocking_abort) const;
-    bool WriteJpeg(const char *filename, int quality_override) const;
-    bool WriteJpeg(const char *filename, SystemTimePoint timestamp) const;
-    bool WriteJpeg(const char *filename, int quality_override, SystemTimePoint timestamp) const;
-    bool WriteJpeg(const char *filename, int quality_override, SystemTimePoint timestamp, bool on_blocking_abort) const;
+  bool WriteJpeg(const std::string &filename) const;
+  bool WriteJpeg(const std::string &filename, bool on_blocking_abort) const;
+  bool WriteJpeg(const std::string &filename, int quality_override) const;
+  bool WriteJpeg(const std::string &filename, SystemTimePoint timestamp) const;
+  bool WriteJpeg(const std::string &filename, int quality_override, SystemTimePoint timestamp) const;
+  bool WriteJpeg(const std::string &filename,
+                 const int &quality_override,
+                 SystemTimePoint timestamp,
+                 bool on_blocking_abort) const;
 
     bool DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
     bool EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_override=0) const;

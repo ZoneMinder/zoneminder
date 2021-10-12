@@ -269,16 +269,16 @@ void RtpCtrlThread::Run() {
 
   // The only reason I can think of why we would have a timeout period is so that we can regularly send RR packets.
   // Why 10 seconds? If anything I think this should be whatever timeout value was given in the DESCRIBE response
-  zm::Select select(10 );
+  zm::Select select(Seconds(10));
   select.addReader( &rtpCtrlServer );
 
   unsigned char buffer[ZM_NETWORK_BUFSIZ];
 
-  time_t  last_receive = time(nullptr);
-  bool  timeout = false; // used as a flag that we had a timeout, and then sent an RR to see if we wake back up. Real timeout will happen when this is true.
+  TimePoint last_receive = std::chrono::steady_clock::now();
+  bool timeout = false; // used as a flag that we had a timeout, and then sent an RR to see if we wake back up. Real timeout will happen when this is true.
 
   while (!mTerminate && select.wait() >= 0) {
-    time_t now = time(nullptr);
+    TimePoint now = std::chrono::steady_clock::now();
     zm::Select::CommsList readable = select.getReadable();
     if ( readable.size() == 0 ) {
       if ( ! timeout ) {
@@ -287,20 +287,20 @@ void RtpCtrlThread::Run() {
         unsigned char *bufferPtr = buffer;
         bufferPtr += generateRr( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
         bufferPtr += generateSdes( bufferPtr, sizeof(buffer)-(bufferPtr-buffer) );
-        Debug(3, "Preventing timeout by sending %zd bytes on sd %d. Time since last receive: %" PRIi64,
-              bufferPtr - buffer, rtpCtrlServer.getWriteDesc(), static_cast<int64>(now - last_receive));
+        Debug(3, "Preventing timeout by sending %zd bytes on sd %d. Time since last receive: %.2f s",
+              bufferPtr - buffer, rtpCtrlServer.getWriteDesc(), FPSeconds(now - last_receive).count());
         if ( (nBytes = rtpCtrlServer.send(buffer, bufferPtr-buffer)) < 0 )
           Error("Unable to send: %s", strerror(errno));
         timeout = true;
         continue;
       } else {
-        Debug(1, "RTCP timed out. Time since last receive: %" PRIi64, static_cast<int64>(now - last_receive));
+        Debug(1, "RTCP timed out. Time since last receive: %.2f s", FPSeconds(now - last_receive).count());
         continue;
         //break;
       }
     } else {
       timeout = false;
-      last_receive = time(nullptr);
+      last_receive = std::chrono::steady_clock::now();
     }
     for (zm::Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter ) {
       if ( zm::UdpInetSocket *socket = dynamic_cast<zm::UdpInetSocket *>(*iter) ) {

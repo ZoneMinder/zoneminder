@@ -21,14 +21,13 @@
 #define ZM_MONITORSTREAM_H
 
 #include "zm_stream.h"
-#include <sys/time.h>
 
 class MonitorStream : public StreamBase {
   protected:
     struct SwapImage {
       bool valid = false;
       SystemTimePoint timestamp;
-      char file_name[PATH_MAX] = "";
+      std::string file_name;
     };
 
   private:
@@ -41,11 +40,10 @@ class MonitorStream : public StreamBase {
     Microseconds ttl;
     int playback_buffer;
     bool delayed;
-    int frame_count;
 
   protected:
     bool checkSwapPath(const char *path, bool create_path);
-    bool sendFrame(const char *filepath, SystemTimePoint timestamp);
+    bool sendFrame(const std::string &filepath, SystemTimePoint timestamp);
     bool sendFrame(Image *image, SystemTimePoint timestamp);
     void processCommand(const CmdMsg *msg) override;
     void SingleImage(int scale=100);
@@ -62,8 +60,8 @@ class MonitorStream : public StreamBase {
       temp_write_index(0),
       ttl(0),
       playback_buffer(0),
-      delayed(false),
-      frame_count(0) {}
+      delayed(false)
+  {}
 
     void setStreamBuffer(int p_playback_buffer) {
       playback_buffer = p_playback_buffer;

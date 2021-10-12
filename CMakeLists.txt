@@ -187,6 +187,8 @@ set(ZM_MANPAGE_DEST_PREFIX "share/man" CACHE PATH
   "Relative path used to install ZoneMinder's Man pages into a
     non-standard folder. Most Linux users will not need to change this.
     BSD users may need to set this.")
+set(ZM_CAKEPHP_CACHE "Apc" CACHE STRING
+  "Set the CakePHP cache engine, default: Apc")
 
 # Supported crypto backends. Using OpenSSL by default to be compatible with jwt-cpp.
 set(ZM_CRYPTO_BACKEND_OPTIONS gnutls openssl)
@@ -207,6 +209,10 @@ if(NOT ZM_JWT_BACKEND IN_LIST ZM_JWT_BACKEND_OPTIONS)
 endif()
 
 # Reassign some variables if a target distro has been specified
+if(ZM_TARGET_DISTRO MATCHES "^fc")
+  set(ZM_CAKEPHP_CACHE "Memcached")
+endif()
+
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   set(ZM_RUNDIR "/var/run/zoneminder")
   set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
@@ -262,7 +268,6 @@ if(ZM_SYSTEMD OR (IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/sy
 endif()
 
 # System checks
-check_include_file("linux/videodev2.h" HAVE_LINUX_VIDEODEV2_H)
 check_include_file("execinfo.h" HAVE_EXECINFO_H)
 if(HAVE_EXECINFO_H)
   check_function_exists("backtrace" HAVE_DECL_BACKTRACE)
@@ -522,17 +527,14 @@ if((NOT HAVE_LIBJWT) AND (NOT HAVE_LIBOPENSSL))
   message(FATAL_ERROR "Using the jwt-cpp backend requires OpenSSL as crypto backend.")
 endif()
 
-# Check for V4L header files and enable ZM_HAS_V4L, ZM_HAS_V4L2 accordingly
-# Setting to zeros first is required because ZM uses #define for these
-set(ZM_HAS_V4L 0)
-set(ZM_HAS_V4L2 0)
-if(HAVE_LINUX_VIDEODEV2_H)
-  set(ZM_HAS_V4L 1)
+find_package(V4L2)
+if(TARGET V4L2::videodev2)
   set(ZM_HAS_V4L2 1)
-endif()
-if(NOT HAVE_LINUX_VIDEODEV2_H)
+else()
+  set(ZM_HAS_V4L2 0)
   message(AUTHOR_WARNING "Video 4 Linux headers weren't found - Analog and USB camera support will not be available")
 endif()
+
 # Check for PCRE and enable ZM_PCRE accordingly
 set(ZM_PCRE 0)
 if(HAVE_LIBPCRE AND HAVE_PCRE_H)

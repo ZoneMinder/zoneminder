@@ -76,7 +76,7 @@ class VideoStore {
     const char *format;
 
     // These are for in
-    int64_t video_first_pts;
+    int64_t video_first_pts; /* starting pts of first in frame/packet */
     int64_t video_first_dts;
     int64_t audio_first_pts;
     int64_t audio_first_dts;

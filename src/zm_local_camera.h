@@ -22,7 +22,7 @@
 
 #include "zm_camera.h"
 
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
 
 #include <linux/videodev2.h>
 
@@ -113,6 +113,7 @@ public:
   int Palette() const { return palette; }
   int Extras() const { return extras; }
 
+  int Control(int vid_id, int newvalue=-1 );
   int Brightness( int p_brightness=-1 ) override;
   int Hue( int p_hue=-1 ) override;
   int Colour( int p_colour=-1 ) override;
@@ -123,9 +124,9 @@ public:
   int Capture(std::shared_ptr<ZMPacket> &p) override;
   int PostCapture() override;
   int Close() override;
-  static bool GetCurrentSettings(const char *device, char *output, int version, bool verbose);
+  static bool GetCurrentSettings(const std::string &device, char *output, int version, bool verbose);
 };
 
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
 
 #endif // ZM_LOCAL_CAMERA_H

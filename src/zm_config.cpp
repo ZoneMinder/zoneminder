@@ -39,16 +39,15 @@ void zmLoadStaticConfig() {
   // update the Config hash with those values
   DIR *configSubFolder = opendir(ZM_CONFIG_SUBDIR);
   if (configSubFolder) { // subfolder exists and is readable
-    char glob_pattern[PATH_MAX] = "";
-    snprintf(glob_pattern, sizeof(glob_pattern), "%s/*.conf", ZM_CONFIG_SUBDIR);
+    std::string glob_pattern = stringtf("%s/*.conf", ZM_CONFIG_SUBDIR);
 
     glob_t pglob;
-    int glob_status = glob(glob_pattern, 0, nullptr, &pglob);
+    int glob_status = glob(glob_pattern.c_str(), 0, nullptr, &pglob);
     if (glob_status != 0) {
       if (glob_status < 0) {
-        Error("Can't glob '%s': %s", glob_pattern, strerror(errno));
+        Error("Can't glob '%s': %s", glob_pattern.c_str(), strerror(errno));
       } else {
-        Debug(1, "Can't glob '%s': %d", glob_pattern, glob_status);
+        Debug(1, "Can't glob '%s': %d", glob_pattern.c_str(), glob_status);
       }
     } else {
       for (unsigned int i = 0; i < pglob.gl_pathc; i++) {
@@ -75,7 +74,7 @@ void zmLoadDBConfig() {
       std::string sql = stringtf("SELECT `Id` FROM `Servers` WHERE `Name`='%s'",
                                  staticConfig.SERVER_NAME.c_str());
       zmDbRow dbrow;
-      if (dbrow.fetch(sql.c_str())) {
+      if (dbrow.fetch(sql)) {
         staticConfig.SERVER_ID = atoi(dbrow[0]);
       } else {
         Fatal("Can't get ServerId for Server %s", staticConfig.SERVER_NAME.c_str());
@@ -87,7 +86,7 @@ void zmLoadDBConfig() {
     std::string sql = stringtf("SELECT `Name` FROM `Servers` WHERE `Id`='%d'", staticConfig.SERVER_ID);
 
     zmDbRow dbrow;
-    if (dbrow.fetch(sql.c_str())) {
+    if (dbrow.fetch(sql)) {
       staticConfig.SERVER_NAME = std::string(dbrow[0]);
     } else {
       Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID);
@@ -100,13 +99,10 @@ void zmLoadDBConfig() {
     }
   }
 
-  snprintf(staticConfig.capture_file_format, sizeof(staticConfig.capture_file_format), "%%s/%%0%dd-capture.jpg",
-           config.event_image_digits);
-  snprintf(staticConfig.analyse_file_format, sizeof(staticConfig.analyse_file_format), "%%s/%%0%dd-analyse.jpg",
-           config.event_image_digits);
-  snprintf(staticConfig.general_file_format, sizeof(staticConfig.general_file_format), "%%s/%%0%dd-%%s",
-           config.event_image_digits);
-  snprintf(staticConfig.video_file_format, sizeof(staticConfig.video_file_format), "%%s/%%s");
+  staticConfig.capture_file_format = stringtf("%%s/%%0%dd-capture.jpg", config.event_image_digits);
+  staticConfig.analyse_file_format = stringtf("%%s/%%0%dd-analyse.jpg", config.event_image_digits);
+  staticConfig.general_file_format = stringtf("%%s/%%0%dd-%%s", config.event_image_digits);
+  staticConfig.video_file_format = "%s/%s";
 }
 
 void process_configfile(char const *configFile) {

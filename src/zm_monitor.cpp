@@ -33,9 +33,9 @@
 #include "zm_utils.h"
 #include "zm_zone.h"
 
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
 #include "zm_local_camera.h"
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
 
 #if HAVE_LIBVLC
 #include "zm_libvlc_camera.h"
@@ -137,20 +137,21 @@ Monitor::MonitorLink::~MonitorLink() {
 }
 
 bool Monitor::MonitorLink::connect() {
-  if ( !last_connect_time || (time(nullptr) - last_connect_time) > 60 ) {
-    last_connect_time = time(nullptr);
+  SystemTimePoint now = std::chrono::system_clock::now();
+  if (!last_connect_time || (now - std::chrono::system_clock::from_time_t(last_connect_time)) > Seconds(60)) {
+    last_connect_time = std::chrono::system_clock::to_time_t(now);
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
     Debug(1, "link.mem.size=%jd", mem_size);
 #if ZM_MEM_MAPPED
     map_fd = open(mem_file.c_str(), O_RDWR, (mode_t)0600);
-    if ( map_fd < 0 ) {
+    if (map_fd < 0) {
       Debug(3, "Can't open linked memory map file %s: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
     }
-    while ( map_fd <= 2 ) {
+    while (map_fd <= 2) {
       int new_map_fd = dup(map_fd);
       Warning("Got one of the stdio fds for our mmap handle. map_fd was %d, new one is %d", map_fd, new_map_fd);
       close(map_fd);
@@ -158,31 +159,31 @@ bool Monitor::MonitorLink::connect() {
     }
 
     struct stat map_stat;
-    if ( fstat(map_fd, &map_stat) < 0 ) {
+    if (fstat(map_fd, &map_stat) < 0) {
       Error("Can't stat linked memory map file %s: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
     }
 
-    if ( map_stat.st_size == 0 ) {
+    if (map_stat.st_size == 0) {
       Error("Linked memory map file %s is empty: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
-    } else if ( map_stat.st_size < mem_size ) {
+    } else if (map_stat.st_size < mem_size) {
       Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, mem_size);
       disconnect();
       return false;
     }
 
     mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
-    if ( mem_ptr == MAP_FAILED ) {
+    if (mem_ptr == MAP_FAILED) {
       Error("Can't map file %s (%jd bytes) to memory: %s", mem_file.c_str(), mem_size, strerror(errno));
       disconnect();
       return false;
     }
 #else // ZM_MEM_MAPPED
     shm_id = shmget((config.shm_key&0xffff0000)|id, mem_size, 0700);
-    if ( shm_id < 0 ) {
+    if (shm_id < 0) {
       Debug(3, "Can't shmget link memory: %s", strerror(errno));
       connected = false;
       return false;
@@ -198,7 +199,7 @@ bool Monitor::MonitorLink::connect() {
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
 
-    if ( !shared_data->valid ) {
+    if (!shared_data->valid) {
       Debug(3, "Linked memory not initialised by capture daemon");
       disconnect();
       return false;
@@ -214,23 +215,23 @@ bool Monitor::MonitorLink::connect() {
 } // end bool Monitor::MonitorLink::connect()
 
 bool Monitor::MonitorLink::disconnect() {
-  if ( connected ) {
+  if (connected) {
     connected = false;
 
 #if ZM_MEM_MAPPED
-    if ( mem_ptr > (void *)0 ) {
-      msync( mem_ptr, mem_size, MS_ASYNC );
-      munmap( mem_ptr, mem_size );
+    if (mem_ptr > (void *)0) {
+      msync(mem_ptr, mem_size, MS_ASYNC);
+      munmap(mem_ptr, mem_size);
     }
-    if ( map_fd >= 0 )
-      close( map_fd );
+    if (map_fd >= 0)
+      close(map_fd);
 
     map_fd = -1;
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
-    if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 ) {
-      Debug( 3, "Can't shmctl: %s", strerror(errno) );
-      return( false );
+    if (shmctl(shm_id, IPC_STAT, &shm_data) < 0) {
+      Debug(3, "Can't shmctl: %s", strerror(errno));
+      return false;
     }
 
     shm_id = 0;
@@ -246,7 +247,6 @@ bool Monitor::MonitorLink::disconnect() {
       Debug(3, "Can't shmdt: %s", strerror(errno));
       return false;
     }
-
 #endif // ZM_MEM_MAPPED
     mem_size = 0;
     mem_ptr = nullptr;
@@ -472,16 +472,22 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   Debug(1, "Have camera type %s", CameraType_Strings[type].c_str());
   col++;
   function = (Function)atoi(dbrow[col]); col++;
-  enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
-  decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
 
   ReloadLinkedMonitors(dbrow[col]); col++;
 
   /* "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS," */
   analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], nullptr) : 0.0; col++;
-  analysis_update_delay = strtoul(dbrow[col++], nullptr, 0);
-  capture_delay = (dbrow[col] && atof(dbrow[col]) > 0.0) ? int(Microseconds::period::den / atof(dbrow[col])) : 0; col++;
-  alarm_capture_delay = (dbrow[col] && atof(dbrow[col]) > 0.0) ? int(Microseconds::period::den / atof(dbrow[col])) : 0; col++;
+  analysis_update_delay = Seconds(strtoul(dbrow[col++], nullptr, 0));
+  capture_delay =
+      (dbrow[col] && atof(dbrow[col]) > 0.0) ? std::chrono::duration_cast<Microseconds>(FPSeconds(1 / atof(dbrow[col])))
+                                             : Microseconds(0);
+  col++;
+  alarm_capture_delay =
+      (dbrow[col] && atof(dbrow[col]) > 0.0) ? std::chrono::duration_cast<Microseconds>(FPSeconds(1 / atof(dbrow[col])))
+                                             : Microseconds(0);
+  col++;
 
   /* "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings */
   device = dbrow[col] ? dbrow[col] : ""; col++;
@@ -569,8 +575,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   else if (alarm_frame_count > MAX_PRE_ALARM_FRAMES) alarm_frame_count = MAX_PRE_ALARM_FRAMES;
 
  /* "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, " */
-  section_length = atoi(dbrow[col]); col++;
-  min_section_length = atoi(dbrow[col]); col++;
+  section_length = Seconds(atoi(dbrow[col])); col++;
+  min_section_length = Seconds(atoi(dbrow[col])); col++;
   frame_skip = atoi(dbrow[col]); col++;
   motion_frame_skip = atoi(dbrow[col]); col++;
 
@@ -678,7 +684,7 @@ void Monitor::LoadCamera() {
 
   switch (type) {
     case LOCAL: {
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
       int extras = (deinterlacing >> 24) & 0xff;
 
       camera = zm::make_unique<LocalCamera>(this,
@@ -873,7 +879,7 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
   std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", p_id);
 
   zmDbRow dbrow;
-  if ( !dbrow.fetch(sql.c_str()) ) {
+  if (!dbrow.fetch(sql)) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
     return nullptr;
   }
@@ -885,7 +891,6 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
 }
 
 bool Monitor::connect() {
-
   if (mem_ptr != nullptr) {
     Warning("Already connected. Please call disconnect first.");
   }
@@ -1028,7 +1033,7 @@ bool Monitor::connect() {
     video_store_data->size = sizeof(VideoStoreData);
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
-  } else if ( !shared_data->valid ) {
+  } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   }
@@ -1047,6 +1052,13 @@ bool Monitor::disconnect() {
     return true;
   }
 
+  if (purpose == CAPTURE) {
+    if (unlink(mem_file.c_str()) < 0) {
+      Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
+    }
+    Debug(1, "Setting shared_data->valid = false");
+    shared_data->valid = false;
+  }
 #if ZM_MEM_MAPPED
   msync(mem_ptr, mem_size, MS_ASYNC);
   munmap(mem_ptr, mem_size);
@@ -1056,9 +1068,6 @@ bool Monitor::disconnect() {
   mem_ptr = nullptr;
   shared_data = nullptr;
 
-  if (purpose == CAPTURE and (unlink(mem_file.c_str()) < 0) ) {
-    Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
-  }
 #else // ZM_MEM_MAPPED
   struct shmid_ds shm_data;
   if (shmctl(shm_id, IPC_STAT, &shm_data) < 0) {
@@ -1079,7 +1088,7 @@ bool Monitor::disconnect() {
   }
 #endif // ZM_MEM_MAPPED
 
-  for ( int32_t i = 0; i < image_buffer_count; i++ ) {
+  for (int32_t i = 0; i < image_buffer_count; i++) {
     // We delete the image because it is an object pointing to space that won't be free'd.
     delete image_buffer[i];
     image_buffer[i] = nullptr;
@@ -1093,10 +1102,6 @@ Monitor::~Monitor() {
 
   if (mem_ptr != nullptr) {
     if (purpose != QUERY) {
-      shared_data->state = state = IDLE;
-      shared_data->last_read_index = image_buffer_count;
-      shared_data->last_read_time = 0;
-      shared_data->valid = false;
       memset(mem_ptr, 0, mem_size);
     }  // end if purpose != query
     disconnect();
@@ -1148,7 +1153,7 @@ void Monitor::AddPrivacyBitmask() {
 
 int Monitor::GetImage(int32_t index, int scale) {
   if (index < 0 || index > image_buffer_count) {
-    Warning("Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
+    Debug(1, "Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
     index = shared_data->last_write_index;
   }
   if (!image_buffer.size() or static_cast<size_t>(index) >= image_buffer.size()) {
@@ -1170,15 +1175,14 @@ int Monitor::GetImage(int32_t index, int scale) {
     }
 
     if (!config.timestamp_on_capture) {
-      TimestampImage(&alarm_image, shared_timestamps[index]);
+      TimestampImage(&alarm_image, SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
     }
     image = &alarm_image;
   } else {
     image = image_buffer[index];
   }
 
-  static char filename[PATH_MAX];
-  snprintf(filename, sizeof(filename), "Monitor%u.jpg", id);
+  std::string filename = stringtf("Monitor%u.jpg", id);
   image->WriteJpeg(filename);
   return 1;
 }
@@ -1192,20 +1196,20 @@ ZMPacket *Monitor::getSnapshot(int index) const {
     return nullptr;
   }
   if (index != image_buffer_count) {
-    return new ZMPacket(image_buffer[index], shared_timestamps[index]);
+    return new ZMPacket(image_buffer[index],
+                        SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
   } else {
     Error("Unable to generate image, no images in buffer");
   }
   return nullptr;
 }
 
-struct timeval Monitor::GetTimestamp(int index) const {
+SystemTimePoint Monitor::GetTimestamp(int index) const {
   ZMPacket *packet = getSnapshot(index);
   if (packet) 
     return packet->timestamp;
 
-  static struct timeval null_tv = { 0, 0 };
-  return null_tv;
+  return {};
 }
 
 unsigned int Monitor::GetLastReadIndex() const {
@@ -1280,16 +1284,14 @@ void Monitor::actionReload() {
 void Monitor::actionEnable() {
   shared_data->action |= RELOAD;
 
-  char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %u", id);
+  std::string sql = stringtf("UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %u", id);
   zmDbDo(sql);
 }
 
 void Monitor::actionDisable() {
   shared_data->action |= RELOAD;
 
-  char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %u", id);
+  std::string sql = stringtf("UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %u", id);
   zmDbDo(sql);
 }
 
@@ -1302,127 +1304,153 @@ void Monitor::actionResume() {
 }
 
 int Monitor::actionBrightness(int p_brightness) {
-  if ( purpose != CAPTURE ) {
-    if ( p_brightness >= 0 ) {
-      shared_data->brightness = p_brightness;
-      shared_data->action |= SET_SETTINGS;
-      int wait_loops = 10;
-      while ( shared_data->action & SET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
-        } else {
-          Warning("Timed out waiting to set brightness");
-          return -1;
-        }
-      }
-    } else {
-      shared_data->action |= GET_SETTINGS;
-      int wait_loops = 10;
-      while ( shared_data->action & GET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
-        } else {
-          Warning("Timed out waiting to get brightness");
-          return -1;
-        }
-      }
-    }
-    return shared_data->brightness;
+  if (purpose == CAPTURE) {
+    // We are the capture process, so take the action
+    return camera->Brightness(p_brightness);
   }
-  return camera->Brightness(p_brightness);
-} // end int Monitor::actionBrightness(int p_brightness)
+
+  // If we are an outside actor, sending the command
+  shared_data->brightness = p_brightness;
+  shared_data->action |= SET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & SET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to set brightness");
+      return -1;
+    }
+  }
+  return shared_data->brightness;
+}
+
+int Monitor::actionBrightness() {
+  if (purpose == CAPTURE) {
+    // We are the capture process, so take the action
+    return camera->Brightness();
+  }
+
+  // If we are an outside actor, sending the command
+  shared_data->action |= GET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & GET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to get brightness");
+      return -1;
+    }
+  }
+  return shared_data->brightness;
+} // end int Monitor::actionBrightness()
 
 int Monitor::actionContrast(int p_contrast) {
-  if ( purpose != CAPTURE ) {
-    if ( p_contrast >= 0 ) {
-      shared_data->contrast = p_contrast;
-      shared_data->action |= SET_SETTINGS;
-      int wait_loops = 10;
-      while ( shared_data->action & SET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
-        } else {
-          Warning("Timed out waiting to set contrast");
-          return -1;
-        }
-      }
-    } else {
-      shared_data->action |= GET_SETTINGS;
-      int wait_loops = 10;
-      while ( shared_data->action & GET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
-        } else {
-          Warning("Timed out waiting to get contrast");
-          return -1;
-        }
-      }
-    }
-    return shared_data->contrast;
+  if (purpose == CAPTURE) {
+    return camera->Contrast(p_contrast);
   }
-  return camera->Contrast(p_contrast);
-} // end int Monitor::actionContrast(int p_contrast)
+
+  shared_data->contrast = p_contrast;
+  shared_data->action |= SET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & SET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to set contrast");
+      return -1;
+    }
+  }
+  return shared_data->contrast;
+}
+
+int Monitor::actionContrast() {
+  if (purpose == CAPTURE) {
+    // We are the capture process, so take the action
+    return camera->Contrast();
+  }
+
+  shared_data->action |= GET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & GET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to get contrast");
+      return -1;
+    }
+  }
+  return shared_data->contrast;
+} // end int Monitor::actionContrast()
 
 int Monitor::actionHue(int p_hue) {
-  if ( purpose != CAPTURE ) {
-    if ( p_hue >= 0 ) {
-      shared_data->hue = p_hue;
-      shared_data->action |= SET_SETTINGS;
-      int wait_loops = 10;
-      while ( shared_data->action & SET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
-        } else {
-          Warning("Timed out waiting to set hue");
-          return -1;
-        }
-      }
-    } else {
-      shared_data->action |= GET_SETTINGS;
-      int wait_loops = 10;
-      while ( shared_data->action & GET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
-        } else {
-          Warning("Timed out waiting to get hue");
-          return -1;
-        }
-      }
-    }
-    return shared_data->hue;
+  if (purpose == CAPTURE) {
+    return camera->Hue(p_hue);
   }
-  return camera->Hue(p_hue);
+
+  shared_data->hue = p_hue;
+  shared_data->action |= SET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & SET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to set hue");
+      return -1;
+    }
+  }
+  return shared_data->hue;
+}
+
+int Monitor::actionHue() {
+  if (purpose == CAPTURE) {
+    return camera->Hue();
+  }
+  shared_data->action |= GET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & GET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to get hue");
+      return -1;
+    }
+  }
+  return shared_data->hue;
 } // end int Monitor::actionHue(int p_hue)
 
 int Monitor::actionColour(int p_colour) {
-  if ( purpose != CAPTURE ) {
-    if ( p_colour >= 0 ) {
-      shared_data->colour = p_colour;
-      shared_data->action |= SET_SETTINGS;
-      int wait_loops = 10;
-      while ( shared_data->action & SET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
-        } else {
-          Warning("Timed out waiting to set colour");
-          return -1;
-        }
-      }
-    } else {
-      shared_data->action |= GET_SETTINGS;
-      int wait_loops = 10;
-      while ( shared_data->action & GET_SETTINGS ) {
-        if ( wait_loops-- ) {
-          usleep(100000);
-        } else {
-          Warning("Timed out waiting to get colour");
-          return -1;
-        }
-      }
-    }
-    return shared_data->colour;
+  if (purpose == CAPTURE) {
+    return camera->Colour(p_colour);
   }
-  return camera->Colour(p_colour);
+  shared_data->colour = p_colour;
+  shared_data->action |= SET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & SET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to set colour");
+      return -1;
+    }
+  }
+  return shared_data->colour;
+} 
+
+int Monitor::actionColour() {
+  if (purpose == CAPTURE) {
+    return camera->Colour();
+  }
+  shared_data->action |= GET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & GET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to get colour");
+      return -1;
+    }
+  }
+  return shared_data->colour;
 } // end int Monitor::actionColour(int p_colour)
 
 void Monitor::DumpZoneImage(const char *zone_string) {
@@ -1447,7 +1475,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     // Grab the most revent event image
     std::string sql = stringtf("SELECT MAX(`Id`) FROM `Events` WHERE `MonitorId`=%d AND `Frames` > 0", id);
     zmDbRow eventid_row;
-    if ( eventid_row.fetch(sql.c_str()) ) {
+    if (eventid_row.fetch(sql)) {
       uint64_t event_id = atoll(eventid_row[0]);
 
       Debug(3, "Got event %" PRIu64, event_id);
@@ -1501,20 +1529,20 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     zone_image->Outline(extra_colour, extra_zone);
   }
 
-  static char filename[PATH_MAX];
-  snprintf(filename, sizeof(filename), "Zones%u.jpg", id);
+  std::string filename = stringtf("Zones%u.jpg", id);
   zone_image->WriteJpeg(filename);
   delete zone_image;
 } // end void Monitor::DumpZoneImage(const char *zone_string)
 
 void Monitor::DumpImage(Image *dump_image) const {
-  if ( image_count && !(image_count%10) ) {
-    static char filename[PATH_MAX];
-    static char new_filename[PATH_MAX];
-    snprintf(filename, sizeof(filename), "Monitor%u.jpg", id);
-    snprintf(new_filename, sizeof(new_filename), "Monitor%u-new.jpg", id);
-    if ( dump_image->WriteJpeg(new_filename) )
-      rename(new_filename, filename);
+  if (image_count && !(image_count % 10)) {
+
+    std::string filename = stringtf("Monitor%u.jpg", id);
+    std::string new_filename = stringtf("Monitor%u-new.jpg", id);
+
+    if (dump_image->WriteJpeg(new_filename)) {
+      rename(new_filename.c_str(), filename.c_str());
+    }
   }
 } // end void Monitor::DumpImage(Image *dump_image)
 
@@ -1733,10 +1761,6 @@ bool Monitor::Analyse() {
     return false;
   }
 
-  // Store the it that points to our snap we will need it later
-  packetqueue_iterator snap_it = *analysis_it;
-  packetqueue.increment_it(analysis_it);
-
   // signal is set by capture
   bool signal = shared_data->signal;
   bool signal_change = (signal != last_signal);
@@ -1846,7 +1870,14 @@ bool Monitor::Analyse() {
           while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
             // Need to wait for the decoder thread.
             Debug(1, "Waiting for decode");
-            packet_lock->wait();
+            packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
+            packetqueue.wait();
+
+            // Another thread may have moved our it. Unlikely but possible
+            packet_lock = packetqueue.get_packet(analysis_it);
+            if (!packet_lock) return false;
+            snap = packet_lock->packet_;
+
             if (!snap->image and snap->decoded) {
               Debug(1, "No image but was decoded, giving up");
               delete packet_lock;
@@ -1859,7 +1890,7 @@ bool Monitor::Analyse() {
           }
         }  // end if decoding enabled
 
-        struct timeval *timestamp = &snap->timestamp;
+        SystemTimePoint timestamp = snap->timestamp;
 
         if (Active() and (function == MODECT or function == MOCORD)) {
           Debug(3, "signal and active and modect");
@@ -1922,23 +1953,18 @@ bool Monitor::Analyse() {
           if (event) {
             Debug(2, "Have event %" PRIu64 " in record", event->Id());
 
-            if (section_length && 
-                (( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length)
-                && ( 
-                  ((function == MOCORD) && (event_close_mode != CLOSE_TIME))
-                  ||
-                  ( (function == RECORD) && (event_close_mode == CLOSE_TIME) )  
-                  || ! ( timestamp->tv_sec % section_length )
-                )
-               ) {
-              Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
+            if (section_length != Seconds(0) && (timestamp - GetVideoWriterStartTime() >= section_length)
+                && ((function == MOCORD && event_close_mode != CLOSE_TIME)
+                    || (function == RECORD && event_close_mode == CLOSE_TIME)
+                    || std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()) % section_length == Seconds(0))) {
+              Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                    name.c_str(),
                    image_count,
                    event->Id(),
-                   static_cast<int64>(timestamp->tv_sec),
-                   static_cast<int64>(video_store_data->recording.tv_sec),
-                   static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
-                   section_length);
+                   static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()).count()),
+                   static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
+                   static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - GetVideoWriterStartTime()).count()),
+                   static_cast<int64>(Seconds(section_length).count()));
               closeEvent();
             }  // end if section_length
           }  // end if event
@@ -1949,14 +1975,14 @@ bool Monitor::Analyse() {
               // Must start on a keyframe so rewind. Only for passthrough though I guess.
               // FIXME this iterator is not protected from invalidation
               packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                  snap_it, 0 /* pre_event_count */
+                  *analysis_it, 0 /* pre_event_count */
                   );
 
               // This gets a lock on the starting packet
 
               ZMLockedPacket *starting_packet_lock = nullptr;
               std::shared_ptr<ZMPacket> starting_packet = nullptr;
-              if (*start_it != snap_it) {
+              if (*start_it != *analysis_it) {
                 starting_packet_lock = packetqueue.get_packet(start_it);
                 if (!starting_packet_lock) {
                   Warning("Unable to get starting packet lock");
@@ -1970,12 +1996,12 @@ bool Monitor::Analyse() {
 
               event = new Event(this, starting_packet->timestamp, "Continuous", noteSetMap);
               // Write out starting packets, do not modify packetqueue it will garbage collect itself
-              while (starting_packet and ((*start_it) != snap_it)) {
+              while (starting_packet and ((*start_it) != *analysis_it)) {
                 event->AddPacket(starting_packet);
                 // Have added the packet, don't want to unlock it until we have locked the next
 
                 packetqueue.increment_it(start_it);
-                if ((*start_it) == snap_it) {
+                if ((*start_it) == *analysis_it) {
                   if (starting_packet_lock) delete starting_packet_lock;
                   break;
                 }
@@ -1990,7 +2016,7 @@ bool Monitor::Analyse() {
               start_it = nullptr;
             } else {
               // Create event from current snap
-              event = new Event(this, *timestamp, "Continuous", noteSetMap);
+              event = new Event(this, timestamp, "Continuous", noteSetMap);
             }
             shared_data->last_event_id = event->Id();
 
@@ -2004,7 +2030,8 @@ bool Monitor::Analyse() {
             }
             alarm_cause = cause+" Continuous "+alarm_cause;
             strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
-            video_store_data->recording = event->StartTime();
+            SetVideoWriterStartTime(event->StartTime());
+
             Info("%s: %03d - Opened new event %" PRIu64 ", section start",
                 name.c_str(), analysis_image_count, event->Id());
             /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -2019,23 +2046,22 @@ bool Monitor::Analyse() {
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             // If we should end then previous continuous event and start a new non-continuous event
             if (event && event->Frames()
-                && (!event->AlarmFrames())
-                && (event_close_mode == CLOSE_ALARM)
-                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
-                && ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) )
-               ) {
+                && !event->AlarmFrames()
+                && event_close_mode == CLOSE_ALARM
+                && timestamp - GetVideoWriterStartTime() >= min_section_length
+                && (!pre_event_count || Event::PreAlarmCount() >= alarm_frame_count - 1)) {
               Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
                   name.c_str(), image_count, event->Id());
               closeEvent();
             } else if (event) {
               // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
               Debug(3,
-                    "pre_alarm_count in event %d, event frames %d, alarm frames %d event length %" PRIi64 " >=? %d min",
+                    "pre_alarm_count in event %d, event frames %d, alarm frames %d event length %" PRIi64 " >=? %" PRIi64 " min",
                     Event::PreAlarmCount(),
                     event->Frames(),
                     event->AlarmFrames(),
-                    static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
-                    min_section_length);
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - GetVideoWriterStartTime()).count()),
+                    static_cast<int64>(Seconds(min_section_length).count()));
             }
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
               // lets construct alarm cause. It will contain cause + names of zones alarmed
@@ -2053,12 +2079,12 @@ bool Monitor::Analyse() {
 
               if (!event) {
                 packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                    snap_it,
+                    *analysis_it,
                     (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
                     );
                 ZMLockedPacket *starting_packet_lock = nullptr;
                 std::shared_ptr<ZMPacket> starting_packet = nullptr;
-                if (*start_it != snap_it) {
+                if (*start_it != *analysis_it) {
                   starting_packet_lock = packetqueue.get_packet(start_it);
                   if (!starting_packet_lock) return false;
                   starting_packet = starting_packet_lock->packet_;
@@ -2069,15 +2095,15 @@ bool Monitor::Analyse() {
                 event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
                 shared_data->last_event_id = event->Id();
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-                video_store_data->recording = event->StartTime();
+                SetVideoWriterStartTime(event->StartTime());
                 shared_data->state = state = ALARM;
 
                 // Write out starting packets, do not modify packetqueue it will garbage collect itself
-                while (*start_it != snap_it) {
+                while (*start_it != *analysis_it) {
                   event->AddPacket(starting_packet);
 
                   packetqueue.increment_it(start_it);
-                  if ( (*start_it) == snap_it ) {
+                  if ( (*start_it) == (*analysis_it) ) {
                     if (starting_packet_lock) delete starting_packet_lock;
                     break;
                   }
@@ -2132,11 +2158,8 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
             shared_data->state = state = ALERT;
           } else if (state == ALERT) {
-            if ( 
-                ( analysis_image_count-last_alarm_count > post_event_count ) 
-                &&
-                ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
-               ) {
+            if (analysis_image_count - last_alarm_count > post_event_count
+                && timestamp - GetVideoWriterStartTime() >= min_section_length) {
               Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
                   name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
               //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
@@ -2154,14 +2177,14 @@ bool Monitor::Analyse() {
             shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
           } else {
             Debug(1,
-                  "State %s because image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%d)",
+                  "State %s because image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
                   State_Strings[state].c_str(),
                   analysis_image_count,
                   last_alarm_count,
                   post_event_count,
-                  static_cast<int64>(timestamp->tv_sec),
-                  static_cast<int64>(video_store_data->recording.tv_sec),
-                  min_section_length);
+                  static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()).count()),
+                  static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
+                  static_cast<int64>(Seconds(min_section_length).count()));
           }
           if (Event::PreAlarmCount())
             Event::EmptyPreAlarmFrames();
@@ -2185,7 +2208,7 @@ bool Monitor::Analyse() {
 
           // incremement pre alarm image count
           //have_pre_alarmed_frames ++;
-          Event::AddPreAlarmFrame(snap->image, *timestamp, score, nullptr);
+          Event::AddPreAlarmFrame(snap->image, timestamp, score, nullptr);
         } else if (state == ALARM) {
           for (const Zone &zone : zones) {
             if (zone.Alarmed()) {
@@ -2199,20 +2222,19 @@ bool Monitor::Analyse() {
           if (event) {
             if (noteSetMap.size() > 0)
               event->updateNotes(noteSetMap);
-            if ( section_length
-                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-               ) {
-              Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
+            if (section_length != Seconds(0) && (timestamp - GetVideoWriterStartTime() >= section_length)) {
+              Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                       name.c_str(), analysis_image_count, event->Id(),
-                      static_cast<int64>(timestamp->tv_sec), static_cast<int64>(video_store_data->recording.tv_sec),
-                      static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
-                      section_length);
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - GetVideoWriterStartTime()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
               closeEvent();
-              event = new Event(this, *timestamp, cause, noteSetMap);
+              event = new Event(this, timestamp, cause, noteSetMap);
               shared_data->last_event_id = event->Id();
               //set up video store data
               snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-              video_store_data->recording = event->StartTime();
+              SetVideoWriterStartTime(event->StartTime());
             }
           } else {
             Error("ALARM but no event");
@@ -2268,8 +2290,9 @@ bool Monitor::Analyse() {
     if (function == MODECT or function == MOCORD)
       UpdateAnalysisFPS();
   }
+  packetqueue.increment_it(analysis_it);
   packetqueue.unlock(packet_lock);
-  shared_data->last_read_time = time(nullptr);
+  shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
   return true;
 } // end Monitor::Analyse
@@ -2287,7 +2310,7 @@ void Monitor::Reload() {
   }
 
   std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", id);
-  zmDbRow *row = zmDbFetchOne(sql.c_str());
+  zmDbRow *row = zmDbFetchOne(sql);
   if (!row) {
     Error("Can't run query: %s", mysql_error(&dbconn));
   } else if (MYSQL_ROW dbrow = row->mysql_row()) {
@@ -2373,7 +2396,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
             "   AND `Enabled`=1",
             link_ids[i]);
 
-        MYSQL_RES *result = zmDbFetch(sql.c_str());
+        MYSQL_RES *result = zmDbFetch(sql);
         if (!result) {
           continue;
         }
@@ -2397,7 +2420,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &w
   std::string sql = load_monitor_sql + " WHERE " + where;
   Debug(1, "Loading Monitors with %s", sql.c_str());
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  MYSQL_RES *result = zmDbFetch(sql);
   if (!result) {
     Error("Can't load local monitors: %s", mysql_error(&dbconn));
     return {};
@@ -2423,7 +2446,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &w
   return monitors;
 }
 
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
 (const char *device, Purpose purpose) {
 
@@ -2435,7 +2458,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   return LoadMonitors(where, purpose);
 }
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors
 (const char *protocol, const char *host, const char *port, const char *path, Purpose purpose) {
@@ -2477,8 +2500,8 @@ int Monitor::Capture() {
 
   std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
   packet->image_index = image_count;
-  gettimeofday(&(packet->timestamp), nullptr);
-  shared_data->zmc_heartbeat_time = packet->timestamp.tv_sec;
+  packet->timestamp = std::chrono::system_clock::now();
+  shared_data->zmc_heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   int captureResult = camera->Capture(packet);
   Debug(4, "Back from capture result=%d image count %d", captureResult, image_count);
 
@@ -2495,7 +2518,7 @@ int Monitor::Capture() {
     shared_data->last_write_index = index;
     shared_data->last_write_time = shared_timestamps[index].tv_sec;
     image_buffer[index]->Assign(*capture_image);
-    shared_timestamps[index] = packet->timestamp;
+    shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     delete capture_image;
     image_count++;
     // What about timestamping it?
@@ -2506,7 +2529,7 @@ int Monitor::Capture() {
     // If we captured, let's assume signal, Decode will detect further
     if (!decoding_enabled) {
       shared_data->last_write_index = index;
-      shared_data->last_write_time = packet->timestamp.tv_sec;
+      shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
         packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count);
@@ -2514,7 +2537,7 @@ int Monitor::Capture() {
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
       if (video_fifo) {
-        if ( packet->keyframe ) {
+        if (packet->keyframe) {
           // avcodec strips out important nals that describe the stream and
           // stick them in extradata. Need to send them along with keyframes
           AVStream *stream = camera->getVideoStream();
@@ -2598,11 +2621,33 @@ bool Monitor::Decode() {
 
         if (!convert_context) {
           AVPixelFormat imagePixFormat = (AVPixelFormat)(packet->image->AVPixFormat());
+          AVPixelFormat inputPixFormat;
+          bool changeColorspaceDetails = false;
+          switch (input_frame->format) {
+            case AV_PIX_FMT_YUVJ420P:
+              inputPixFormat = AV_PIX_FMT_YUV420P;
+              changeColorspaceDetails = true;
+              break;
+            case AV_PIX_FMT_YUVJ422P:
+              inputPixFormat = AV_PIX_FMT_YUV422P;
+              changeColorspaceDetails = true;
+              break;
+            case AV_PIX_FMT_YUVJ444P:
+              inputPixFormat = AV_PIX_FMT_YUV444P;
+              changeColorspaceDetails = true;
+              break;
+            case AV_PIX_FMT_YUVJ440P:
+              inputPixFormat = AV_PIX_FMT_YUV440P;
+              changeColorspaceDetails = true;
+              break;
+            default:
+              inputPixFormat = (AVPixelFormat)input_frame->format;
+          }
 
           convert_context = sws_getContext(
               input_frame->width,
               input_frame->height,
-              (AVPixelFormat)input_frame->format,
+              inputPixFormat,
               camera_width, camera_height,
               imagePixFormat, SWS_BICUBIC,
               nullptr, nullptr, nullptr);
@@ -2616,10 +2661,22 @@ bool Monitor::Decode() {
           } else {
             Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
                 input_frame->width, input_frame->height,
-                av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+                av_get_pix_fmt_name(inputPixFormat),
                 camera_width, camera_height,
                 av_get_pix_fmt_name(imagePixFormat)
                 );
+            if (changeColorspaceDetails) {
+              // change the range of input data by first reading the current color space and then setting it's range as yuvj.
+              int dummy[4];
+              int srcRange, dstRange;
+              int brightness, contrast, saturation;
+              sws_getColorspaceDetails(convert_context, (int**)&dummy, &srcRange, (int**)&dummy, &dstRange, &brightness, &contrast, &saturation);
+              const int* coefs = sws_getCoefficients(SWS_CS_DEFAULT);
+              srcRange = 1; // this marks that values are according to yuvj
+              sws_setColorspaceDetails(convert_context, coefs, srcRange, coefs, dstRange,
+                  brightness, contrast, saturation);
+            }
+
           }
         }
         if (convert_context) {
@@ -2702,28 +2759,31 @@ bool Monitor::Decode() {
     }
 
     image_buffer[index]->Assign(*(packet->image));
-    shared_timestamps[index] = packet->timestamp;
+    shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
   }  // end if have image
   packet->decoded = true;
   shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
-  shared_data->last_write_time = packet->timestamp.tv_sec;
+  shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   packetqueue.unlock(packet_lock);
   return true;
 }  // end bool Monitor::Decode()
 
-void Monitor::TimestampImage(Image *ts_image, const timeval &ts_time) const {
+void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
   if (!label_format[0])
     return;
 
   // Expand the strftime macros first
   char label_time_text[256];
   tm ts_tm = {};
-  strftime(label_time_text, sizeof(label_time_text), label_format.c_str(), localtime_r(&ts_time.tv_sec, &ts_tm));
+  time_t ts_time_t = std::chrono::system_clock::to_time_t(ts_time);
+  strftime(label_time_text, sizeof(label_time_text), label_format.c_str(), localtime_r(&ts_time_t, &ts_tm));
+
   char label_text[1024];
   const char *s_ptr = label_time_text;
   char *d_ptr = label_text;
-  while ( *s_ptr && ((d_ptr-label_text) < (unsigned int)sizeof(label_text)) ) {
+
+  while (*s_ptr && ((d_ptr - label_text) < (unsigned int) sizeof(label_text))) {
     if ( *s_ptr == config.timestamp_code_char[0] ) {
       bool found_macro = false;
       switch ( *(s_ptr+1) ) {
@@ -2736,7 +2796,10 @@ void Monitor::TimestampImage(Image *ts_image, const timeval &ts_time) const {
           found_macro = true;
           break;
         case 'f' :
-          d_ptr += snprintf(d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time.tv_usec/10000);
+          typedef std::chrono::duration<int64, std::centi> Centiseconds;
+          Centiseconds centi_sec = std::chrono::duration_cast<Centiseconds>(
+              ts_time.time_since_epoch() - std::chrono::duration_cast<Seconds>(ts_time.time_since_epoch()));
+          d_ptr += snprintf(d_ptr, sizeof(label_text) - (d_ptr - label_text), "%02ld", centi_sec.count());
           found_macro = true;
           break;
       }
@@ -2781,8 +2844,8 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   ref_image.Delta(comp_image, &delta_image);
 
   if (config.record_diag_images) {
-    ref_image.WriteJpeg(diag_path_ref.c_str(), config.record_diag_images_fifo);
-    delta_image.WriteJpeg(diag_path_delta.c_str(), config.record_diag_images_fifo);
+    ref_image.WriteJpeg(diag_path_ref, config.record_diag_images_fifo);
+    delta_image.WriteJpeg(diag_path_delta, config.record_diag_images_fifo);
   }
 
   // Blank out all exclusion zones
@@ -2914,14 +2977,14 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   sprintf( output+strlen(output), "Id : %u\n", id );
   sprintf( output+strlen(output), "Name : %s\n", name.c_str() );
   sprintf( output+strlen(output), "Type : %s\n", camera->IsLocal()?"Local":(camera->IsRemote()?"Remote":"File") );
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
     sprintf( output+strlen(output), "Device : %s\n", cam->Device().c_str() );
     sprintf( output+strlen(output), "Channel : %d\n", cam->Channel() );
     sprintf( output+strlen(output), "Standard : %d\n", cam->Standard() );
   } else
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
   if ( camera->IsRemote() ) {
     RemoteCamera* cam = static_cast<RemoteCamera*>(camera.get());
     sprintf( output+strlen(output), "Protocol : %s\n", cam->Protocol().c_str() );
@@ -2930,7 +2993,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
     sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
   } else if ( camera->IsFile() ) {
     FileCamera* cam = static_cast<FileCamera*>(camera.get());
-    sprintf( output+strlen(output), "Path : %s\n", cam->Path() );
+    sprintf( output+strlen(output), "Path : %s\n", cam->Path().c_str() );
   }
   else if ( camera->IsFfmpeg() ) {
     FfmpegCamera* cam = static_cast<FfmpegCamera*>(camera.get());
@@ -2938,12 +3001,12 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   }
   sprintf( output+strlen(output), "Width : %u\n", camera->Width() );
   sprintf( output+strlen(output), "Height : %u\n", camera->Height() );
-#if ZM_HAS_V4L
+#if ZM_HAS_V4L2
   if ( camera->IsLocal() ) {
     LocalCamera* cam = static_cast<LocalCamera*>(camera.get());
     sprintf( output+strlen(output), "Palette : %d\n", cam->Palette() );
   }
-#endif // ZM_HAS_V4L
+#endif // ZM_HAS_V4L2
   sprintf(output+strlen(output), "Colours : %u\n", camera->Colours() );
   sprintf(output+strlen(output), "Subpixel Order : %u\n", camera->SubpixelOrder() );
   sprintf(output+strlen(output), "Event Prefix : %s\n", event_prefix.c_str() );
@@ -2956,10 +3019,10 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   sprintf(output+strlen(output), "Post Event Count : %d\n", post_event_count );
   sprintf(output+strlen(output), "Stream Replay Buffer : %d\n", stream_replay_buffer );
   sprintf(output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
-  sprintf(output+strlen(output), "Section Length : %d\n", section_length);
-  sprintf(output+strlen(output), "Min Section Length : %d\n", min_section_length);
-  sprintf(output+strlen(output), "Maximum FPS : %.2f\n", capture_delay ? (double) Microseconds::period::den / capture_delay : 0.0);
-  sprintf(output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay ? (double) Microseconds::period::den / alarm_capture_delay : 0.0);
+  sprintf(output+strlen(output), "Section Length : %" PRIi64 "\n", static_cast<int64>(Seconds(section_length).count()));
+  sprintf(output+strlen(output), "Min Section Length : %" PRIi64 "\n", static_cast<int64>(Seconds(min_section_length).count()));
+  sprintf(output+strlen(output), "Maximum FPS : %.2f\n", capture_delay != Seconds(0) ? 1 / FPSeconds(capture_delay).count() : 0.0);
+  sprintf(output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay != Seconds(0) ? 1 / FPSeconds(alarm_capture_delay).count() : 0.0);
   sprintf(output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc);
   sprintf(output+strlen(output), "Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc);
   sprintf(output+strlen(output), "Track Motion : %d\n", track_motion);
@@ -3032,7 +3095,7 @@ int Monitor::PrimeCapture() {
       Debug(1, "Creating decoder thread");
       decoder = zm::make_unique<DecoderThread>(this);
     } else {
-      Debug(1, "Restartg decoder thread");
+      Debug(1, "Restarting decoder thread");
       decoder->Start();
     }
   }
@@ -3113,7 +3176,6 @@ void Monitor::get_ref_image() {
       // can't analyse it anyways, incremement
       packetqueue.increment_it(analysis_it);
     }
-    //usleep(10000);
   }
   if (zm_terminate)
     return;
@@ -3138,7 +3200,7 @@ std::vector<Group *> Monitor::Groups() {
     std::string sql = stringtf(
         "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups.Id` IN "
         "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)", id);
-    MYSQL_RES *result = zmDbFetch(sql.c_str());
+    MYSQL_RES *result = zmDbFetch(sql);
     if (!result) {
       Error("Can't load groups: %s", mysql_error(&dbconn));
       return groups;

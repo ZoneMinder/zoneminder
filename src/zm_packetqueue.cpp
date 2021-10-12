@@ -24,7 +24,6 @@
 #include "zm_ffmpeg.h"
 #include "zm_packet.h"
 #include "zm_signal.h"
-#include <sys/time.h>
 
 PacketQueue::PacketQueue():
   video_stream_id(-1),
@@ -93,8 +92,10 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             " The queue is full. Either Analysis is not keeping up or"
             " your camera's keyframe interval is larger than this setting."
             , max_video_packet_count);
+
         while (packet_counts[video_stream_id] > max_video_packet_count) {
-          Debug(1, "Capture waiting for room in the queue.");
+          Error("Unable to free up older packets.  Waiting.");
+          condition.notify_all();
           condition.wait(lck);
           if (deleting or zm_terminate)
             return false;
@@ -153,6 +154,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
         add_packet->packet.stream_index, video_stream_id, add_packet->keyframe, keep_keyframes, packet_counts[video_stream_id], pre_event_video_packet_count, 
         ( *(pktQueue.begin()) != add_packet )
         );
+    Warning("Keyframe interval may be larger than MaxImageBufferCount and PreEventCount.  Please increase MaxImageBufferCount");
     return;
   }
   std::unique_lock<std::mutex> lck(mutex);
@@ -619,4 +621,13 @@ void PacketQueue::setPreEventVideoPackets(int p) {
   if (pre_event_video_packet_count < 1)
     pre_event_video_packet_count = 1;
   // We can simplify a lot of logic in queuePacket if we can assume at least 1 packet in queue
+}
+
+void PacketQueue::notify_all() {
+  condition.notify_all();
+};
+
+void PacketQueue::wait() {
+  std::unique_lock<std::mutex> lck(mutex);
+  condition.wait(lck);
 }

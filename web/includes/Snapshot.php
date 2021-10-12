@@ -29,6 +29,7 @@ class Snapshot extends ZM_Object {
   public function delete() {
     if ( property_exists($this, 'Id') ) {
       dbQuery('DELETE FROM `Snapshot_Events` WHERE `SnapshotId`=?', array($this->{'Id'}));
+      dbQuery('DELETE FROM `Snapshots` WHERE `Id`=?', array($this->{'Id'}));
     }
   }
 

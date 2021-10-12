@@ -518,18 +518,14 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
 
   if (level <= mDatabaseLevel) {
     if (zmDbConnected) {
-      int syslogSize = syslogEnd - syslogStart;
-      std::string escapedString;
-      escapedString.resize((syslogSize * 2) + 1);
-      mysql_real_escape_string(&dbconn, &escapedString[0], syslogStart, syslogSize);
-      escapedString.resize(std::strlen(escapedString.c_str()));
+      std::string escapedString = zmDbEscapeString({syslogStart, syslogEnd});
 
       std::string sql_string = stringtf(
           "INSERT INTO `Logs` "
           "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
           " VALUES "
-          "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
-          now_sec, now_frac.count(), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
+          "( %ld.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+          now_sec, static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
           escapedString.c_str(), file, line);
       dbQueue.push(std::move(sql_string));
     } else {

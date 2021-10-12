@@ -74,11 +74,13 @@ int Buffer::read_into(int sd, unsigned int bytes) {
   return bytes_read;
 }
 
-int Buffer::read_into(int sd, unsigned int bytes, struct timeval timeout) {
+int Buffer::read_into(int sd, unsigned int bytes, Microseconds timeout) {
   fd_set set;
   FD_ZERO(&set); /* clear the set */
   FD_SET(sd, &set); /* add our file descriptor to the set */
-  int rv = select(sd + 1, &set, NULL, NULL, &timeout);
+  timeval timeout_tv = zm::chrono::duration_cast<timeval>(timeout);
+
+  int rv = select(sd + 1, &set, nullptr, nullptr, &timeout_tv);
   if (rv == -1) {
     Error("Error %d %s from select", errno, strerror(errno));
     return rv;
@@ -86,5 +88,6 @@ int Buffer::read_into(int sd, unsigned int bytes, struct timeval timeout) {
     Debug(1, "timeout"); /* a timeout occured */
     return 0;
   }
+
   return read_into(sd, bytes);
 }

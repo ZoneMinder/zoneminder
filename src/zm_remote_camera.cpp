@@ -49,45 +49,43 @@ RemoteCamera::RemoteCamera(
     mNeedAuth(false),
     mAuthenticator(nullptr)
 {
-    if ( path[0] != '/' )
+    if (path[0] != '/')
         path = '/'+path;
 }
 
 RemoteCamera::~RemoteCamera() {
-  if ( hp != nullptr ) {
+  if (hp != nullptr) {
     freeaddrinfo(hp);
     hp = nullptr;
   }
-	if ( mAuthenticator ) {
+	if (mAuthenticator) {
 		delete mAuthenticator;
 		mAuthenticator = nullptr;
 	}
 }
 
 void RemoteCamera::Initialise() {
-  if( protocol.empty() )
-    Fatal( "No protocol specified for remote camera" );
+  if (protocol.empty())
+    Fatal("No protocol specified for remote camera");
 
-	if( host.empty() )
-		Fatal( "No host specified for remote camera" );
+	if (host.empty())
+		Fatal("No host specified for remote camera");
 
-	if ( port.empty() )
+	if (port.empty())
 		Fatal("No port specified for remote camera");
 
-	//if( path.empty() )
-		//Fatal( "No path specified for remote camera" );
 
 	// Cache as much as we can to speed things up
-  std::string::size_type authIndex = host.rfind( '@' );
+  std::string::size_type authIndex = host.rfind('@');
 
-  if ( authIndex != std::string::npos ) {
-    auth = host.substr( 0, authIndex );
-    host.erase( 0, authIndex+1 );
+  if (authIndex != std::string::npos) {
+    auth = host.substr(0, authIndex);
+    host.erase(0, authIndex+1);
     auth64 = Base64Encode(auth);
 
-    authIndex = auth.rfind( ':' );
+    authIndex = auth.rfind(':');
     username = auth.substr(0,authIndex);
-    password = auth.substr( authIndex+1, auth.length() );
+    password = auth.substr(authIndex+1, auth.length());
   }
 
   mNeedAuth = false;
@@ -99,12 +97,13 @@ void RemoteCamera::Initialise() {
 	hints.ai_socktype = SOCK_STREAM;
 
   int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &hp);
-  if ( ret != 0 ) {
-    Fatal( "Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret) );
+  if (ret != 0) {
+    Error("Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret));
+    return;
   }
   struct addrinfo *p = nullptr;
   int addr_count = 0;
-  for ( p = hp; p != nullptr; p = p->ai_next ) {
+  for (p = hp; p != nullptr; p = p->ai_next) {
     addr_count++;
   }
   Debug(1, "%d addresses returned", addr_count);

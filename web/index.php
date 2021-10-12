@@ -192,8 +192,6 @@ $user = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
 
-# Add CSP Headers
-$cspNonce = bin2hex(zm_random_bytes(16));
 
 $request = null;
 if ( isset($_REQUEST['request']) )
@@ -294,8 +292,11 @@ if ( $request ) {
   return;
 }
 
+# Add CSP Headers
+$cspNonce = bin2hex(zm_random_bytes(16));
 if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
   ob_start();
+  CSPHeaders($view, $cspNonce);
   foreach ( $includeFiles as $includeFile ) {
     if ( !file_exists($includeFile) )
       ZM\Fatal("View '$view' does not exist");
@@ -309,9 +310,7 @@ if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
     foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
       require_once $includeFile;
   }
-
-  CSPHeaders($view, $cspNonce);
-  ob_end_flush();
+  while (ob_get_level() > 0) ob_end_flush();
 }
 // If the view is missing or the view still returned error with the user logged in,
 // then it is not recoverable.

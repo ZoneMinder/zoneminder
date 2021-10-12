@@ -254,18 +254,32 @@ Image *StreamBase::prepareImage(Image *image) {
 }  // end Image *StreamBase::prepareImage(Image *image)
 
 bool StreamBase::sendTextFrame(const char *frame_text) {
-  Debug(2, "Sending %dx%d * %d text frame '%s'",
-      monitor->Width(), monitor->Height(), scale, frame_text);
+  int width = 640;
+  int height = 480;
+  int colours = ZM_COLOUR_RGB32;
+  int subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  int labelsize = 2;
 
-  Image image(monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder());
-  image.Clear();
-  image.Annotate(frame_text, image.centreCoord(frame_text, monitor->LabelSize()), monitor->LabelSize());
-
-  if ( scale != 100 ) {
-    image.Scale(scale);
+  if (monitor) {
+    width = monitor->Width();
+    height = monitor->Height();
+    colours = monitor->Colours();
+    subpixelorder = monitor->SubpixelOrder();
+    labelsize = monitor->LabelSize();
   }
-  if ( type == STREAM_MPEG ) {
-    if ( !vid_stream ) {
+  Debug(2, "Sending %dx%dx%dx%d * %d scale text frame '%s'",
+      width, height, colours, subpixelorder, scale, frame_text);
+
+  Image image(width, height, colours, subpixelorder);
+  image.Clear();
+  image.Annotate(frame_text, image.centreCoord(frame_text, labelsize), labelsize);
+
+  if (scale != 100) {
+    image.Scale(scale);
+    Debug(2, "Scaled to %dx%d", image.Width(), image.Height());
+  }
+  if (type == STREAM_MPEG) {
+    if (!vid_stream) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height());
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
@@ -276,10 +290,11 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     int n_bytes = 0;
 
     image.EncodeJpeg(buffer, &n_bytes);
+    Debug(4, "Encoded to %d bytes", n_bytes);
 
     fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout);
     fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);
-    if ( fwrite(buffer, n_bytes, 1, stdout) != 1 ) {
+    if (fwrite(buffer, n_bytes, 1, stdout) != 1) {
       Error("Unable to send stream text frame: %s", strerror(errno));
       return false;
     }

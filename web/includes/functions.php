@@ -1990,6 +1990,10 @@ function requestVar($name, $default='') {
 
 // For numbers etc in javascript or tags etc
 function validInt($input) {
+  return preg_replace('/[^\-\d]/', '', $input);
+}
+
+function validCardinal($input) {
   return preg_replace('/\D/', '', $input);
 }
 

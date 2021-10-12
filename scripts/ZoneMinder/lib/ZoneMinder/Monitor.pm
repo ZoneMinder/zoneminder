@@ -136,8 +136,8 @@ $serial = $primary_key = 'Id';
 %defaults = (
     ServerId => 0,
     StorageId => 0,
-    Type      => 'Ffmpeg',
-    Function  => 'Mocord',
+    Type      => q`'Ffmpeg'`,
+    Function  => q`'Mocord'`,
     Enabled   => 1,
     LinkedMonitors => undef,
     Device  =>  '',
@@ -166,15 +166,15 @@ $serial = $primary_key = 'Id';
     VideoWriter =>  0,
     OutputCodec =>  undef,
     OutputContainer => undef,
-    EncoderParameters => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
+    EncoderParameters => '',
     RecordAudio=>0,
     RTSPDescribe=>0,
     Brightness  =>  -1,
     Contrast    =>  -1,
     Hue         =>  -1,
     Colour      =>  -1,
-    EventPrefix =>  'Event-',
-    LabelFormat => '%N - %d/%m/%y %H:%M:%S',
+    EventPrefix =>  q`'Event-'`,
+    LabelFormat => '',
     LabelX      =>  0,
     LabelY      =>  0,
     LabelSize   =>  1,
@@ -208,13 +208,13 @@ $serial = $primary_key = 'Id';
     DefaultRate =>  100,
     DefaultScale  =>  100,
     SignalCheckPoints =>  0,
-    SignalCheckColour =>  '#0000BE',
-    WebColour   =>  '#ff0000',
+    SignalCheckColour =>  q`'#0000BE'`,
+    WebColour   =>  q`'#ff0000'`,
     Exif    =>  0,
     Sequence  =>  undef,
     ZoneCount =>  0,
     Refresh => undef,
-    DefaultCodec  => 'auto',
+    DefaultCodec  => q`'auto'`,
     Latitude  =>  undef,
     Longitude =>  undef,
     );
@@ -279,6 +279,7 @@ sub disconnect {
 sub suspendMotionDetection {
   my $self = shift;
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
+  return if $$self{Function} eq 'Nodect' or $$self{Function} eq 'Monitor' or $$self{Function} eq 'None';
   my $count = 50;
   while ($count and ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
     ZoneMinder::Logger::Debug(1, 'Suspending motion detection');
@@ -286,19 +287,29 @@ sub suspendMotionDetection {
     usleep(100000);
     $count -= 1;
   }
-  ZoneMinder::Logger::Error('Unable to suspend motion detection after 5 seconds.') if !$count;
-  ZoneMinder::Logger::Debug(1, ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1));
+  if (!$count) {
+    ZoneMinder::Logger::Error('Unable to suspend motion detection after 5 seconds.');
+    ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
+  } else {
+    ZoneMinder::Logger::Debug(1, 'shared_data:active='.ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1));
+  }
 }
 
 sub resumeMotionDetection {
   my $self = shift;
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
+  return if $$self{Function} eq 'Nodect' or $$self{Function} eq 'Monitor' or $$self{Function} eq 'None';
   my $count = 50;
   while ($count and !ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
     ZoneMinder::Logger::Debug(1, 'Resuming motion detection');
     ZoneMinder::Memory::zmMonitorResume($self);
+    usleep(100000);
+    $count -= 1;
   }
-  ZoneMinder::Logger::Error('Unable to suspend motion detection after 5 seconds.') if !$count;
+  if (!$count) {
+    ZoneMinder::Logger::Error('Unable to resume motion detection after 5 seconds.');
+    ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
+  }
   return 1;
 }
 

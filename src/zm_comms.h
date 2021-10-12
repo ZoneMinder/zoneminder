@@ -22,6 +22,7 @@
 
 #include "zm_exception.h"
 #include "zm_logger.h"
+#include "zm_time.h"
 #include <cerrno>
 #include <netdb.h>
 #include <set>
@@ -560,13 +561,9 @@ class Select {
   typedef std::vector<CommsBase *> CommsList;
 
   Select() : mHasTimeout(false), mMaxFd(-1) {}
-  explicit Select(timeval timeout) : mMaxFd(-1) { setTimeout(timeout); }
-  explicit Select(int timeout) : mMaxFd(-1) { setTimeout(timeout); }
-  explicit Select(double timeout) : mMaxFd(-1) { setTimeout(timeout); }
+  explicit Select(Microseconds timeout) : mMaxFd(-1) { setTimeout(timeout); }
 
-  void setTimeout(int timeout);
-  void setTimeout(double timeout);
-  void setTimeout(timeval timeout);
+  void setTimeout(Microseconds timeout);
   void clearTimeout();
 
   void calcMaxFd();
@@ -590,7 +587,7 @@ class Select {
   CommsList mReadable;
   CommsList mWriteable;
   bool mHasTimeout;
-  timeval mTimeout;
+  Microseconds mTimeout;
   int mMaxFd;
 };
 

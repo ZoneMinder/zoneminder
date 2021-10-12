@@ -27,16 +27,10 @@
 
 extern "C" {
 #include <libavutil/time.h>
-#if HAVE_LIBAVUTIL_HWCONTEXT_H
-  #include <libavutil/hwcontext.h>
-#endif
-
-#include <libavutil/pixdesc.h>
 }
 
-#include <string>
+TimePoint start_read_time;
 
-time_t              start_read_time;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 static enum AVPixelFormat hw_pix_fmt;
@@ -61,31 +55,26 @@ static enum AVPixelFormat get_hw_format(
 }
 #if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
 static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
-  enum AVPixelFormat fmt;
   switch (type) {
     case AV_HWDEVICE_TYPE_VAAPI:
-      fmt = AV_PIX_FMT_VAAPI;
-      break;
+      return AV_PIX_FMT_VAAPI;
     case AV_HWDEVICE_TYPE_DXVA2:
-      fmt = AV_PIX_FMT_DXVA2_VLD;
-      break;
+      return AV_PIX_FMT_DXVA2_VLD;
     case AV_HWDEVICE_TYPE_D3D11VA:
-      fmt = AV_PIX_FMT_D3D11;
-      break;
+      return AV_PIX_FMT_D3D11;
     case AV_HWDEVICE_TYPE_VDPAU:
-      fmt = AV_PIX_FMT_VDPAU;
-      break;
+      return AV_PIX_FMT_VDPAU;
     case AV_HWDEVICE_TYPE_CUDA:
-      fmt = AV_PIX_FMT_CUDA;
-      break;
+      return AV_PIX_FMT_CUDA;
+#ifdef AV_HWDEVICE_TYPE_MMAL
+    case AV_HWDEVICE_TYPE_MMAL:
+      return AV_PIX_FMT_MMAL;
+#endif
     case AV_HWDEVICE_TYPE_VIDEOTOOLBOX:
-      fmt = AV_PIX_FMT_VIDEOTOOLBOX;
-      break;
+      return AV_PIX_FMT_VIDEOTOOLBOX;
     default:
-      fmt = AV_PIX_FMT_NONE;
-      break;
+      return AV_PIX_FMT_NONE;
   }
-  return fmt;
 }
 #endif
 #endif
@@ -169,7 +158,7 @@ FfmpegCamera::~FfmpegCamera() {
 }
 
 int FfmpegCamera::PrimeCapture() {
-  start_read_time = time(nullptr);
+  start_read_time = std::chrono::steady_clock::now();
   if ( mCanCapture ) {
     Debug(1, "Priming capture from %s, Closing", mPath.c_str());
     Close();
@@ -188,7 +177,7 @@ int FfmpegCamera::PreCapture() {
 int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   if (!mCanCapture) return -1;
 
-  start_read_time = time(nullptr);
+  start_read_time = std::chrono::steady_clock::now();
   int ret;
   AVFormatContext *formatContextPtr;
 
@@ -237,8 +226,8 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   zm_packet->set_packet(&packet);
   zm_packet->stream = stream;
   zm_packet->pts = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
-  if ( packet.pts != AV_NOPTS_VALUE ) {
-    if ( stream == mVideoStream ) {
+  if (packet.pts != AV_NOPTS_VALUE) {
+    if (stream == mVideoStream) {
       if (mFirstVideoPTS == AV_NOPTS_VALUE)
         mFirstVideoPTS = packet.pts;
 
@@ -558,11 +547,12 @@ int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
     Debug(1, "Received terminate in cb");
     return zm_terminate;
   }
-  time_t now = time(nullptr);
-  if (now - start_read_time > 10) {
-    Debug(1, "timeout in ffmpeg camera now %" PRIi64 " - %" PRIi64 " > 10",
-          static_cast<int64>(now),
-          static_cast<int64>(start_read_time));
+
+  TimePoint now = std::chrono::steady_clock::now();
+  if (now - start_read_time > Seconds(10)) {
+    Debug(1, "timeout in ffmpeg camera now %" PRIi64 " - %" PRIi64 " > 10 s",
+          static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()),
+          static_cast<int64>(std::chrono::duration_cast<Seconds>(start_read_time.time_since_epoch()).count()));
     return 1;
   }
   return 0;

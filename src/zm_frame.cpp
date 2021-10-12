@@ -3,7 +3,7 @@
 Frame::Frame(event_id_t p_event_id,
              int p_frame_id,
              FrameType p_type,
-             struct timeval p_timestamp,
+             SystemTimePoint p_timestamp,
              Microseconds p_delta,
              int p_score,
              std::vector<ZoneStats> p_stats)

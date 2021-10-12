@@ -627,6 +627,29 @@ class Event extends ZM_Object {
     return 'Unknown reason';
   }
 
+  function canView($u=null) {
+    global $user;
+    if (!$u) $u=$user;
+    if (!$u) {
+      # auth turned on and not logged in
+      return false;
+    }
+    if (!empty($u['MonitorIds']) ) {
+      if (in_array($this->{'MonitorId'}, explode(',', $u['MonitorIds']))) {
+        return true;
+      }
+      return false;
+    }
+    if ($u['Events'] != 'None') {
+      return true;
+    }
+    if ($u['Snapshots'] != 'None') {
+      # If the event is contained in a snapshot, then we can still view it.
+      if (dbFetchOne('SELECT * FROM Snapshot_Events WHERE EventId=?', $this->Id()))
+        return true;
+    }
+    return false;
+  }
 } # end class
 
 ?>

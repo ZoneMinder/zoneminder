@@ -76,7 +76,7 @@ void RtpDataThread::Run() {
   }
   Debug(3, "Bound to %s:%d",  mRtpSource.getLocalHost().c_str(), mRtpSource.getLocalDataPort());
 
-  zm::Select select(3);
+  zm::Select select(Seconds(3));
   select.addReader(&rtpDataSocket);
 
   unsigned char buffer[ZM_NETWORK_BUFSIZ];

@@ -313,6 +313,7 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
     return false;
   }
   zm_dump_video_frame(temp_frame, "dest frame after convert");
+  update_function_pointers();
   return true;
 }  // end Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *temp_frame)
 
@@ -687,6 +688,7 @@ void Image::AssignDirect(
   subpixelorder = p_subpixelorder;
   pixels = width * height;
   size = new_buffer_size;
+  update_function_pointers();
 }  // end void Image::AssignDirect
 
 void Image::Assign(
@@ -788,6 +790,7 @@ void Image::Assign(const Image &image) {
     linesize = image.linesize;
   }
 
+  update_function_pointers();
   if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
@@ -933,125 +936,123 @@ bool Image::WriteRaw(const char *filename) const {
   return true;
 }
 
-bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int p_subpixelorder) {
+bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
-  struct jpeg_decompress_struct *cinfo = readjpg_dcinfo;
 
-  if ( !cinfo ) {
-    cinfo = readjpg_dcinfo = new jpeg_decompress_struct;
-    cinfo->err = jpeg_std_error(&jpg_err.pub);
+  if (!readjpg_dcinfo) {
+    readjpg_dcinfo = new jpeg_decompress_struct;
+    readjpg_dcinfo->err = jpeg_std_error(&jpg_err.pub);
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
     jpg_err.pub.emit_message = zm_jpeg_emit_message;
-    jpeg_create_decompress(cinfo);
+    jpeg_create_decompress(readjpg_dcinfo);
   }
 
   FILE *infile;
-  if ( (infile = fopen(filename, "rb")) == nullptr ) {
-    Error("Can't open %s: %s", filename, strerror(errno));
+  if ((infile = fopen(filename.c_str(), "rb")) == nullptr) {
+    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
-  if ( setjmp(jpg_err.setjmp_buffer) ) {
-    jpeg_abort_decompress(cinfo);
+  if (setjmp(jpg_err.setjmp_buffer)) {
+    jpeg_abort_decompress(readjpg_dcinfo);
     fclose(infile);
     return false;
   }
 
-  jpeg_stdio_src(cinfo, infile);
+  jpeg_stdio_src(readjpg_dcinfo, infile);
 
-  jpeg_read_header(cinfo, TRUE);
+  jpeg_read_header(readjpg_dcinfo, true);
 
-  if ( (cinfo->num_components != 1) && (cinfo->num_components != 3) ) {
+  if ((readjpg_dcinfo->num_components != 1) && (readjpg_dcinfo->num_components != 3)) {
     Error("Unexpected colours when reading jpeg image: %d", colours);
-    jpeg_abort_decompress(cinfo);
+    jpeg_abort_decompress(readjpg_dcinfo);
     fclose(infile);
     return false;
   }
 
   /* Check if the image has at least one huffman table defined. If not, use the standard ones */
   /* This is required for the MJPEG capture palette of USB devices */
-  if ( cinfo->dc_huff_tbl_ptrs[0] == nullptr ) {
-    zm_use_std_huff_tables(cinfo);
+  if (readjpg_dcinfo->dc_huff_tbl_ptrs[0] == nullptr) {
+    zm_use_std_huff_tables(readjpg_dcinfo);
   }
 
-  new_width = cinfo->image_width;
-  new_height = cinfo->image_height;
+  new_width = readjpg_dcinfo->image_width;
+  new_height = readjpg_dcinfo->image_height;
 
-  if ( (width != new_width) || (height != new_height) ) {
+  if ((width != new_width) || (height != new_height)) {
     Debug(9, "Image dimensions differ. Old: %ux%u New: %ux%u", width, height, new_width, new_height);
   }
 
-  switch ( p_colours ) {
+  switch (p_colours) {
     case ZM_COLOUR_GRAY8:
-        cinfo->out_color_space = JCS_GRAYSCALE;
-        new_colours = ZM_COLOUR_GRAY8;
-        new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
-        break;
+      readjpg_dcinfo->out_color_space = JCS_GRAYSCALE;
+      new_colours = ZM_COLOUR_GRAY8;
+      new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
+      break;
     case ZM_COLOUR_RGB32:
 #ifdef JCS_EXTENSIONS
-        new_colours = ZM_COLOUR_RGB32;
-        if ( p_subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
-          cinfo->out_color_space = JCS_EXT_BGRX;
-          new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-        } else if ( p_subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
-          cinfo->out_color_space = JCS_EXT_XRGB;
-          new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-        } else if ( p_subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
-          cinfo->out_color_space = JCS_EXT_XBGR;
-          new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
-        } else {
-          /* Assume RGBA */
-          cinfo->out_color_space = JCS_EXT_RGBX;
-          new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-        }
-        break;
+      new_colours = ZM_COLOUR_RGB32;
+      if (p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+        readjpg_dcinfo->out_color_space = JCS_EXT_BGRX;
+        new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
+      } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+        readjpg_dcinfo->out_color_space = JCS_EXT_XRGB;
+        new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
+      } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+        readjpg_dcinfo->out_color_space = JCS_EXT_XBGR;
+        new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
+      } else {
+        /* Assume RGBA */
+        readjpg_dcinfo->out_color_space = JCS_EXT_RGBX;
+        new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+      }
+      break;
 #else
-        Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
+      Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
 #endif
     case ZM_COLOUR_RGB24:
     default:
-        new_colours = ZM_COLOUR_RGB24;
-        if ( p_subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
+      new_colours = ZM_COLOUR_RGB24;
+      if (p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 #ifdef JCS_EXTENSIONS
-          cinfo->out_color_space = JCS_EXT_BGR;
-          new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
+        readjpg_dcinfo->out_color_space = JCS_EXT_BGR;
+        new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
-          Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");
-          cinfo->out_color_space = JCS_RGB;
-          new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
+        Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");
+        cinfo->out_color_space = JCS_RGB;
+        new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
-        } else {
-          /* Assume RGB */
-          /*
+      } else {
+        /* Assume RGB */
+        /*
 #ifdef JCS_EXTENSIONS
 cinfo->out_color_space = JCS_EXT_RGB;
 #else
 cinfo->out_color_space = JCS_RGB;
 #endif
-           */
-          cinfo->out_color_space = JCS_RGB;
-          new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
-        }
-        break;
+         */
+        readjpg_dcinfo->out_color_space = JCS_RGB;
+        new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
+      }
+      break;
   }  // end switch p_colours
 
-  if ( WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == nullptr ) {
+  if (WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == nullptr) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
-    jpeg_abort_decompress(cinfo);
+    jpeg_abort_decompress(readjpg_dcinfo);
     fclose(infile);
     return false;
   }
 
-  jpeg_start_decompress(cinfo);
+  jpeg_start_decompress(readjpg_dcinfo);
 
   JSAMPROW row_pointer = buffer;
-  while ( cinfo->output_scanline < cinfo->output_height ) {
-    jpeg_read_scanlines(cinfo, &row_pointer, 1);
+  while (readjpg_dcinfo->output_scanline < readjpg_dcinfo->output_height) {
+    jpeg_read_scanlines(readjpg_dcinfo, &row_pointer, 1);
     row_pointer += linesize;
   }
 
-  jpeg_finish_decompress(cinfo);
-
+  jpeg_finish_decompress(readjpg_dcinfo);
   fclose(infile);
 
   return true;
@@ -1060,71 +1061,74 @@ cinfo->out_color_space = JCS_RGB;
 // Multiple calling formats to permit inclusion (or not) of non blocking, quality_override and timestamp (exif), with suitable defaults.
 // Note quality=zero means default
 
-bool Image::WriteJpeg(const char *filename, int quality_override) const {
+bool Image::WriteJpeg(const std::string &filename, int quality_override) const {
   return Image::WriteJpeg(filename, quality_override, {}, false);
 }
-bool Image::WriteJpeg(const char *filename) const {
+bool Image::WriteJpeg(const std::string &filename) const {
   return Image::WriteJpeg(filename, 0, {}, false);
 }
-bool Image::WriteJpeg(const char *filename, bool on_blocking_abort) const {
+bool Image::WriteJpeg(const std::string &filename, bool on_blocking_abort) const {
   return Image::WriteJpeg(filename, 0, {}, on_blocking_abort);
 }
-bool Image::WriteJpeg(const char *filename, SystemTimePoint timestamp) const {
+bool Image::WriteJpeg(const std::string &filename, SystemTimePoint timestamp) const {
   return Image::WriteJpeg(filename, 0, timestamp, false);
 }
 
-bool Image::WriteJpeg(const char *filename, int quality_override, SystemTimePoint timestamp) const {
+bool Image::WriteJpeg(const std::string &filename, int quality_override, SystemTimePoint timestamp) const {
   return Image::WriteJpeg(filename, quality_override, timestamp, false);
 }
 
-bool Image::WriteJpeg(const char *filename,
-                      int quality_override,
+bool Image::WriteJpeg(const std::string &filename,
+                      const int &quality_override,
                       SystemTimePoint timestamp,
                       bool on_blocking_abort) const {
-  if ( config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8) ) {
+  if (config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8)) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     return temp_image.WriteJpeg(filename, quality_override, timestamp, on_blocking_abort);
   }
   int quality = quality_override ? quality_override : config.jpeg_file_quality;
 
-  struct jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
+  jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
   FILE *outfile = nullptr;
   int raw_fd = 0;
 
-  if ( !cinfo ) {
+  if (!cinfo) {
     cinfo = writejpg_ccinfo[quality] = new jpeg_compress_struct;
     cinfo->err = jpeg_std_error(&jpg_err.pub);
     jpeg_create_compress(cinfo);
   }
-  if ( !on_blocking_abort ) {
+  if (!on_blocking_abort) {
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
     jpg_err.pub.emit_message = zm_jpeg_emit_message;
   } else {
     jpg_err.pub.error_exit = zm_jpeg_error_silent;
     jpg_err.pub.emit_message = zm_jpeg_emit_silence;
-    if ( setjmp(jpg_err.setjmp_buffer) ) {
+    if (setjmp(jpg_err.setjmp_buffer)) {
       jpeg_abort_compress(cinfo);
-      Debug(1, "Aborted a write mid-stream and %s and %d", (outfile == nullptr) ? "closing file" : "file not opened", raw_fd);
-      if ( raw_fd )
+      Debug(1,
+            "Aborted a write mid-stream and %s and %d",
+            (outfile == nullptr) ? "closing file" : "file not opened",
+            raw_fd);
+      if (raw_fd)
         close(raw_fd);
-      if ( outfile )
+      if (outfile)
         fclose(outfile);
       return false;
     }
   }
 
-  if ( !on_blocking_abort ) {
-    if ( (outfile = fopen(filename, "wb")) == nullptr ) {
-      Error("Can't open %s for writing: %s", filename, strerror(errno));
+  if (!on_blocking_abort) {
+    if ((outfile = fopen(filename.c_str(), "wb")) == nullptr) {
+      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
       return false;
     }
   } else {
-    raw_fd = open(filename, O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-    if ( raw_fd < 0 )
+    raw_fd = open(filename.c_str(), O_WRONLY | O_NONBLOCK | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (raw_fd < 0)
       return false;
     outfile = fdopen(raw_fd, "wb");
-    if ( outfile == nullptr ) {
+    if (outfile == nullptr) {
       close(raw_fd);
       return false;
     }
@@ -1135,58 +1139,58 @@ bool Image::WriteJpeg(const char *filename,
   cinfo->image_width = width;   /* image width and height, in pixels */
   cinfo->image_height = height;
 
-  switch ( colours ) {
+  switch (colours) {
     case ZM_COLOUR_GRAY8:
-        cinfo->input_components = 1;
-        cinfo->in_color_space = JCS_GRAYSCALE;
-        break;
+      cinfo->input_components = 1;
+      cinfo->in_color_space = JCS_GRAYSCALE;
+      break;
     case ZM_COLOUR_RGB32:
 #ifdef JCS_EXTENSIONS
-        cinfo->input_components = 4;
-        if ( subpixelorder == ZM_SUBPIX_ORDER_RGBA ) {
-          cinfo->in_color_space = JCS_EXT_RGBX;
-        } else if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
-          cinfo->in_color_space = JCS_EXT_BGRX;
-        } else if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
-          cinfo->in_color_space = JCS_EXT_XRGB;
-        } else if ( subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
-          cinfo->in_color_space = JCS_EXT_XBGR;
-        } else {
-          Warning("Unknwon subpixelorder %d", subpixelorder);
-          /* Assume RGBA */
-          cinfo->in_color_space = JCS_EXT_RGBX;
-        }
-        break;
+      cinfo->input_components = 4;
+      if (subpixelorder == ZM_SUBPIX_ORDER_RGBA) {
+        cinfo->in_color_space = JCS_EXT_RGBX;
+      } else if (subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+        cinfo->in_color_space = JCS_EXT_BGRX;
+      } else if (subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+        cinfo->in_color_space = JCS_EXT_XRGB;
+      } else if (subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+        cinfo->in_color_space = JCS_EXT_XBGR;
+      } else {
+        Warning("Unknwon subpixelorder %d", subpixelorder);
+        /* Assume RGBA */
+        cinfo->in_color_space = JCS_EXT_RGBX;
+      }
+      break;
 #else
-        Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
+      Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
+      jpeg_abort_compress(cinfo);
+      fclose(outfile);
+      return false;
+#endif
+    case ZM_COLOUR_RGB24:
+    default:
+      cinfo->input_components = 3;
+      if (subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+#ifdef JCS_EXTENSIONS
+        cinfo->in_color_space = JCS_EXT_BGR;
+#else
+        Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
         jpeg_abort_compress(cinfo);
         fclose(outfile);
         return false;
 #endif
-    case ZM_COLOUR_RGB24:
-    default:
-        cinfo->input_components = 3;
-        if ( subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-#ifdef JCS_EXTENSIONS
-          cinfo->in_color_space = JCS_EXT_BGR;
-#else
-          Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
-          jpeg_abort_compress(cinfo);
-          fclose(outfile);
-          return false;
-#endif
-        } else {
-          /* Assume RGB */
-          /*
+      } else {
+        /* Assume RGB */
+        /*
 #ifdef JCS_EXTENSIONS
 cinfo->out_color_space = JCS_EXT_RGB;
 #else
 cinfo->out_color_space = JCS_RGB;
 #endif
 */
-          cinfo->in_color_space = JCS_RGB;
-        }
-        break;
+        cinfo->in_color_space = JCS_RGB;
+      }
+      break;
   }  // end switch(colours)
 
   jpeg_set_defaults(cinfo);
@@ -1194,7 +1198,7 @@ cinfo->out_color_space = JCS_RGB;
   cinfo->dct_method = JDCT_FASTEST;
 
   jpeg_start_compress(cinfo, TRUE);
-  if ( config.add_jpeg_comments && !annotation_.empty() ) {
+  if (config.add_jpeg_comments && !annotation_.empty()) {
     jpeg_write_marker(cinfo, JPEG_COM, reinterpret_cast<const JOCTET *>(annotation_.c_str()), annotation_.size());
   }
   // If we have a non-zero time (meaning a parameter was passed in), then form a simple exif segment with that time as DateTimeOriginal and SubsecTimeOriginal
@@ -1218,19 +1222,19 @@ cinfo->out_color_space = JCS_RGB;
     snprintf(msbuf, sizeof msbuf, "%06d", static_cast<int32>(ts_usec.count()));
 
     unsigned char exiftimes[82] = {
-      0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00,
-      0x69, 0x87, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x02, 0x00, 0x03, 0x90, 0x02, 0x00, 0x14, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 0x91, 0x92,
-      0x02, 0x00, 0x04, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
-      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-      0xff, 0x00 };
-    memcpy(&exiftimes[EXIFTIMES_OFFSET], timebuf,EXIFTIMES_LEN);
+        0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00,
+        0x69, 0x87, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x02, 0x00, 0x03, 0x90, 0x02, 0x00, 0x14, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 0x91, 0x92,
+        0x02, 0x00, 0x04, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0x00};
+    memcpy(&exiftimes[EXIFTIMES_OFFSET], timebuf, EXIFTIMES_LEN);
     memcpy(&exiftimes[EXIFTIMES_MS_OFFSET], msbuf, EXIFTIMES_MS_LEN);
-    jpeg_write_marker(cinfo, EXIF_CODE, (const JOCTET *)exiftimes, sizeof(exiftimes));
+    jpeg_write_marker(cinfo, EXIF_CODE, (const JOCTET *) exiftimes, sizeof(exiftimes));
   }
 
   JSAMPROW row_pointer = buffer;  /* pointer to a single row */
-  while ( cinfo->next_scanline < cinfo->image_height ) {
+  while (cinfo->next_scanline < cinfo->image_height) {
     jpeg_write_scanlines(cinfo, &row_pointer, 1);
     row_pointer += linesize;
   }
@@ -1240,121 +1244,116 @@ cinfo->out_color_space = JCS_RGB;
   return true;
 }
 
-bool Image::DecodeJpeg(
-    const JOCTET *inbuffer,
-    int inbuffer_size,
-    unsigned int p_colours,
-    unsigned int p_subpixelorder)
+bool Image::DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder)
 {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
-  struct jpeg_decompress_struct *cinfo = decodejpg_dcinfo;
 
-  if ( !cinfo ) {
-    cinfo = decodejpg_dcinfo = new jpeg_decompress_struct;
-    cinfo->err = jpeg_std_error( &jpg_err.pub );
+  if (!decodejpg_dcinfo) {
+    decodejpg_dcinfo = new jpeg_decompress_struct;
+    decodejpg_dcinfo->err = jpeg_std_error(&jpg_err.pub);
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
     jpg_err.pub.emit_message = zm_jpeg_emit_message;
-    jpeg_create_decompress( cinfo );
+    jpeg_create_decompress(decodejpg_dcinfo);
   }
 
-  if ( setjmp(jpg_err.setjmp_buffer) ) {
-    jpeg_abort_decompress(cinfo);
+  if (setjmp(jpg_err.setjmp_buffer)) {
+    jpeg_abort_decompress(decodejpg_dcinfo);
     return false;
   }
 
-  zm_jpeg_mem_src(cinfo, inbuffer, inbuffer_size);
+  zm_jpeg_mem_src(decodejpg_dcinfo, inbuffer, inbuffer_size);
 
-  jpeg_read_header(cinfo, TRUE);
+  jpeg_read_header(decodejpg_dcinfo, TRUE);
 
-  if ( (cinfo->num_components != 1) && (cinfo->num_components != 3) ) {
+  if ((decodejpg_dcinfo->num_components != 1) && (decodejpg_dcinfo->num_components != 3)) {
     Error("Unexpected colours when reading jpeg image: %d", colours);
-    jpeg_abort_decompress(cinfo);
+    jpeg_abort_decompress(decodejpg_dcinfo);
     return false;
   }
 
   /* Check if the image has at least one huffman table defined. If not, use the standard ones */
   /* This is required for the MJPEG capture palette of USB devices */
-  if ( cinfo->dc_huff_tbl_ptrs[0] == nullptr ) {
-    zm_use_std_huff_tables(cinfo);
+  if (decodejpg_dcinfo->dc_huff_tbl_ptrs[0] == nullptr) {
+    zm_use_std_huff_tables(decodejpg_dcinfo);
   }
 
-  new_width = cinfo->image_width;
-  new_height = cinfo->image_height;
+  new_width = decodejpg_dcinfo->image_width;
+  new_height = decodejpg_dcinfo->image_height;
 
-  if ( (width != new_width) || (height != new_height) ) {
+  if ((width != new_width) || (height != new_height)) {
     Debug(9, "Image dimensions differ. Old: %ux%u New: %ux%u",
-        width, height, new_width, new_height);
+          width, height, new_width, new_height);
   }
 
   switch (p_colours) {
     case ZM_COLOUR_GRAY8:
-        cinfo->out_color_space = JCS_GRAYSCALE;
-        new_colours = ZM_COLOUR_GRAY8;
-        new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
-        break;
+      decodejpg_dcinfo->out_color_space = JCS_GRAYSCALE;
+      new_colours = ZM_COLOUR_GRAY8;
+      new_subpixelorder = ZM_SUBPIX_ORDER_NONE;
+      break;
     case ZM_COLOUR_RGB32:
 #ifdef JCS_EXTENSIONS
-        new_colours = ZM_COLOUR_RGB32;
-        if ( p_subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
-          cinfo->out_color_space = JCS_EXT_BGRX;
-          new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
-        } else if ( p_subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
-          cinfo->out_color_space = JCS_EXT_XRGB;
-          new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
-        } else if ( p_subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
-          cinfo->out_color_space = JCS_EXT_XBGR;
-          new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
-        } else {
-          /* Assume RGBA */
-          cinfo->out_color_space = JCS_EXT_RGBX;
-          new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-        }
-        break;
+      new_colours = ZM_COLOUR_RGB32;
+      if (p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+        decodejpg_dcinfo->out_color_space = JCS_EXT_BGRX;
+        new_subpixelorder = ZM_SUBPIX_ORDER_BGRA;
+      } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+        decodejpg_dcinfo->out_color_space = JCS_EXT_XRGB;
+        new_subpixelorder = ZM_SUBPIX_ORDER_ARGB;
+      } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+        decodejpg_dcinfo->out_color_space = JCS_EXT_XBGR;
+        new_subpixelorder = ZM_SUBPIX_ORDER_ABGR;
+      } else {
+        /* Assume RGBA */
+        decodejpg_dcinfo->out_color_space = JCS_EXT_RGBX;
+        new_subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+      }
+      break;
 #else
-        Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
+      Warning("libjpeg-turbo is required for reading a JPEG directly into a RGB32 buffer, reading into a RGB24 buffer instead.");
 #endif
     case ZM_COLOUR_RGB24:
     default:
-        new_colours = ZM_COLOUR_RGB24;
-        if ( p_subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
+      new_colours = ZM_COLOUR_RGB24;
+      if (p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 #ifdef JCS_EXTENSIONS
-          cinfo->out_color_space = JCS_EXT_BGR;
-          new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
+        decodejpg_dcinfo->out_color_space = JCS_EXT_BGR;
+        new_subpixelorder = ZM_SUBPIX_ORDER_BGR;
 #else
-          Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");
-          cinfo->out_color_space = JCS_RGB;
-          new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
+        Warning("libjpeg-turbo is required for reading a JPEG directly into a BGR24 buffer, reading into a RGB24 buffer instead.");
+        cinfo->out_color_space = JCS_RGB;
+        new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
 #endif
-        } else {
-          /* Assume RGB */
-          /*
+      } else {
+        /* Assume RGB */
+        /*
 #ifdef JCS_EXTENSIONS
 cinfo->out_color_space = JCS_EXT_RGB;
 #else
 cinfo->out_color_space = JCS_RGB;
 #endif
-           */
-          cinfo->out_color_space = JCS_RGB;
-          new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
-        }
-        break;
+         */
+        decodejpg_dcinfo->out_color_space = JCS_RGB;
+        new_subpixelorder = ZM_SUBPIX_ORDER_RGB;
+      }
+      break;
   } // end switch
 
-  if ( WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == nullptr ) {
+  if (WriteBuffer(new_width, new_height, new_colours, new_subpixelorder) == nullptr) {
     Error("Failed requesting writeable buffer for reading JPEG image.");
-    jpeg_abort_decompress(cinfo);
+    jpeg_abort_decompress(decodejpg_dcinfo);
     return false;
   }
 
-  jpeg_start_decompress(cinfo);
+  jpeg_start_decompress(decodejpg_dcinfo);
 
   JSAMPROW row_pointer = buffer;  /* pointer to a single row */
-  while ( cinfo->output_scanline < cinfo->output_height ) {
-    jpeg_read_scanlines(cinfo, &row_pointer, 1);
+  while (decodejpg_dcinfo->output_scanline < decodejpg_dcinfo->output_height) {
+    jpeg_read_scanlines(decodejpg_dcinfo, &row_pointer, 1);
     row_pointer += linesize;
   }
 
-  jpeg_finish_decompress(cinfo);
+  jpeg_finish_decompress(decodejpg_dcinfo);
 
   return true;
 }

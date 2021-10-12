@@ -32,11 +32,8 @@ class Fifo {
    int raw_fd;
 
  public:
-   static void file_create_if_missing(
-       const char * path,
-       bool is_fifo,
-       bool delete_fake_fifo = true
-       );
+  static void file_create_if_missing(const std::string &path, bool is_fifo, bool delete_fake_fifo = true);
+  static void fifo_create_if_missing(const std::string &path, bool delete_fake_fifo = true);
 
     Fifo() :
       on_blocking_abort(true),
@@ -50,12 +47,6 @@ class Fifo {
       raw_fd(-1)
     {}
     ~Fifo();
-
-    static void fifo_create_if_missing(
-        const char * path,
-        bool delete_fake_fifo = true);
-
-
 
     static bool writePacket(std::string filename, const ZMPacket &packet);
     static bool write(std::string filename, uint8_t *data, size_t size);

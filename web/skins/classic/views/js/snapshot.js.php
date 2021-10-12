@@ -26,5 +26,9 @@ var eventDataStrings = {
 //
 var deleteString = "<?php echo validJsStr(translate('Delete')) ?>";
 var causeString = "<?php echo validJsStr(translate('AttrCause')) ?>";
+var downloadProgressString = "<?php echo validJsStr(translate('Downloading')) ?>";
+var downloadFailedString = '<?php echo translate('Download Failed') ?>';
+var downloadSucceededString = '<?php echo translate('Download Succeeded') ?>';
+
 var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
 var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';

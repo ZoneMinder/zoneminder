@@ -21,6 +21,7 @@
 #define ZM_BUFFER_H
 
 #include "zm_logger.h"
+#include "zm_time.h"
 #include <cstring>
 
 class Buffer {
@@ -187,7 +188,7 @@ class Buffer {
     return static_cast<int>(mSize);
   }
   int read_into(int sd, unsigned int bytes);
-  int read_into(int sd, unsigned int bytes, struct timeval timeout);
+  int read_into(int sd, unsigned int bytes, Microseconds timeout);
 };
 
 #endif // ZM_BUFFER_H

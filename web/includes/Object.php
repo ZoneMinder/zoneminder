@@ -434,6 +434,11 @@ class ZM_Object {
     $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($this->Id()));
     if ( !$row ) {
       Error("Unable to lock $class record for Id=".$this->Id());
+    } else {
+      // row may have been modified since initial load
+      foreach ($row as $k => $v) {
+        $this->{$k} = $v;
+      }
     }
   }
   public function remove_from_cache() {

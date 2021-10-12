@@ -17,21 +17,26 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
-# Fedora needs apcu backwards compatibility module
-%if 0%{?fedora}
-%global with_apcu_bc 1
-%endif
-
 # Newer php's keep json functions in a subpackage
 %if 0%{?fedora} || 0%{?rhel} >= 8
 %global with_php_json 1
+%endif
+
+# el7 uses cmake3 package and macros
+%if 0%{?rhel} == 7
+%global cmake %{cmake3}
+%global cmake_build %{cmake3_build}
+%global cmake_install %{cmake3_install}
+%global cmake_pkg_name cmake3
+%else
+%global cmake_pkg_name cmake
 %endif
 
 # The default for everything but el7 these days
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.36.4
+Version: 1.37.1
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -56,7 +61,7 @@ BuildRequires: systemd-devel
 BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
-BuildRequires: cmake3
+BuildRequires: %{cmake_pkg_name}
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
 BuildRequires: pcre-devel 
@@ -116,8 +121,8 @@ Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
 %{?with_php_json:Requires: php-json}
-Requires: php-pecl-apcu
-%{?with_apcu_bc:Requires: php-pecl-apcu-bc}
+%{?fedora:Requires: php-pecl-memcached}
+%{?rhel:Requires: php-pecl-apcu}
 Requires: cambozola
 Requires: net-tools
 Requires: psmisc
@@ -216,16 +221,16 @@ mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 # See https://fedoraproject.org/wiki/LTOByDefault
 %define _lto_cflags %{nil}
 
-%cmake3 \
+%cmake \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
         .
 
-%cmake3_build
+%cmake_build
 
 %install
-%cmake3_install
+%cmake_install
 
 desktop-file-install					\
 	--dir %{buildroot}%{_datadir}/applications	\
@@ -425,6 +430,16 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Mon Jul 05 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.1-1
+- 1.37.x development build
+
+* Tue Jun 22 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.5-1
+- 1.36.5 release
+
+* Fri Jun 18 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.4-2
+- apcu-bc deprecated on fedora, use memcached instead
+- only refer to cmake3 when building on el7
+
 * Tue Jun 08 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.4-1
 - 1.36.4 release
 

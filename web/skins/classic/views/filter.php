@@ -396,7 +396,7 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
             </tr>
           </tbody>
         </table>
-        <hr/>
+<div id="ActionsAndOptions">
         <div id="actionsTable" class="filterTable">
           <fieldset><legend><?php echo translate('Actions') ?></legend>
             <p>
@@ -501,7 +501,7 @@ if ( ZM_OPT_EMAIL ) {
 ?>
           </fieldset>
         </div>
-        <hr/>
+</div><!--ActionsAndOptions-->
         <div id="contentButtons">
           <button type="button" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
           <button type="button" data-on-click-this="submitToMontageReview"><?php echo translate('ViewMatches') ?></button>

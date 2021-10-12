@@ -179,9 +179,11 @@ class Image {
       }
     }
 
-    /* Internal buffer should not be modified from functions outside of this class */
+    inline uint8_t* Buffer() { return buffer; }
     inline const uint8_t* Buffer() const { return buffer; }
+    inline uint8_t* Buffer(unsigned int x, unsigned int y=0) { return &buffer[(y*linesize) + x*colours]; }
     inline const uint8_t* Buffer(unsigned int x, unsigned int y=0) const { return &buffer[(y*linesize) + x*colours]; }
+
     /* Request writeable buffer */
     uint8_t* WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder);
     // Is only acceptable on a pre-allocated buffer

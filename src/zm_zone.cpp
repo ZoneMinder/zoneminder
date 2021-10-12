@@ -206,7 +206,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   // Get the difference image
   Image *diff_image = image = new Image(*delta_image);
   int diff_width = diff_image->Width();
-  uint8_t* diff_buff = (uint8_t*)diff_image->Buffer();
+  uint8_t* diff_buff = diff_image->Buffer();
   uint8_t* pdiff;
 
   unsigned int pixel_diff_count = 0;
@@ -283,7 +283,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
 
-        pdiff = (uint8_t*)diff_image->Buffer(lo_x, y);
+        pdiff = diff_image->Buffer(lo_x, y);
 
         for (int x = lo_x; x <= hi_x; x++, pdiff++) {
           if (*pdiff == kWhite) {
@@ -366,7 +366,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
 
-        pdiff = (uint8_t*)diff_image->Buffer(lo_x, y);
+        pdiff = diff_image->Buffer(lo_x, y);
         for (int x = lo_x; x <= hi_x; x++, pdiff++) {
           if (*pdiff == kWhite) {
             Debug(9, "Got white pixel at %d,%d (%p)", x, y, pdiff);
@@ -980,7 +980,7 @@ void Zone::std_alarmedpixels(
     unsigned int hi_x = ranges[y].hi_x;
 
     Debug(7, "Checking line %d from %d -> %d", y, lo_x, hi_x);
-    uint8_t *pdiff = (uint8_t*)pdiff_image->Buffer(lo_x, y);
+    uint8_t *pdiff = pdiff_image->Buffer(lo_x, y);
     const uint8_t *ppoly = ppoly_image->Buffer(lo_x, y);
 
     for ( unsigned int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ ) {

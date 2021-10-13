@@ -107,6 +107,7 @@ endif()
 add_executable(zmc zmc.cpp)
 add_executable(zms zms.cpp)
 add_executable(zmu zmu.cpp)
+add_executable(zmbenchmark zmbenchmark.cpp)
 
 target_link_libraries(zmc
   PRIVATE
@@ -123,6 +124,13 @@ target_link_libraries(zms
     ${CMAKE_DL_LIBS})
 
 target_link_libraries(zmu
+  PRIVATE
+    zm-core-interface
+    zm
+    ${ZM_EXTRA_LIBS}
+    ${CMAKE_DL_LIBS})
+
+target_link_libraries(zmbenchmark
   PRIVATE
     zm-core-interface
     zm

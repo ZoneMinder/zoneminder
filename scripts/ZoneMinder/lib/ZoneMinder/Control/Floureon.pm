@@ -283,7 +283,7 @@ sub presetSet
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-    my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&PresetNumber=1&Preset=0";
+    my $cmd = 'form/presetSet?flag=3&existFlag=1&language=cn&presetNum='.$preset;
     $self->sendCmd( $cmd );
 }
 
@@ -294,7 +294,7 @@ sub presetGoto
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-    my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&PresetNumber=1&Preset=1";
+    my $cmd = 'form/presetSet?flag=4&existFlag=1&language=cn&presetNum='.$preset;
     $self->sendCmd( $cmd );
 }
 

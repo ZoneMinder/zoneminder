@@ -474,6 +474,16 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   function = (Function)atoi(dbrow[col]); col++;
   enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  decoding_enabled = !(
+      ( function == RECORD or function == NODECT )
+      and
+      ( savejpegs == 0 )
+      and
+      ( videowriter == PASSTHROUGH )
+      and
+      !decoding_enabled
+      );
+  Debug(1, "Decoding enabled: %d", decoding_enabled);
 
   ReloadLinkedMonitors(dbrow[col]); col++;
 
@@ -649,18 +659,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
     }
-
-    // Do this here to save a few cycles with all the comparisons
-    decoding_enabled = !(
-        ( function == RECORD or function == NODECT )
-        and
-        ( savejpegs == 0 )
-        and
-        ( videowriter == PASSTHROUGH )
-        and
-        !decoding_enabled
-        );
-    Debug(1, "Decoding enabled: %d", decoding_enabled);
 
     if ( config.record_diag_images ) {
       if ( config.record_diag_images_fifo ) {

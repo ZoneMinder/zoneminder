@@ -95,7 +95,6 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
         while (packet_counts[video_stream_id] > max_video_packet_count) {
           Error("Unable to free up older packets.  Waiting.");
-          condition.notify_all();
           condition.wait(lck);
           if (deleting or zm_terminate)
             return false;

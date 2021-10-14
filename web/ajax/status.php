@@ -13,7 +13,8 @@ if ( $_REQUEST['entity'] == 'navBar' ) {
   $data['getSysLoadHTML'] = getSysLoadHTML();
   $data['getDbConHTML'] = getDbConHTML();
   $data['getStorageHTML'] = getStorageHTML();
-  $data['getShmHTML'] = getShmHTML();
+  //$data['getShmHTML'] = getShmHTML();
+  $data['getRamHTML'] = getRamHTML();
 
   ajaxResponse($data);
   return;

@@ -98,6 +98,7 @@ function changeScale() {
   var scale = $j('#scale').val();
   var newWidth;
   var newHeight;
+  var autoScale;
 
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
@@ -118,6 +119,10 @@ function changeScale() {
   var streamImg = $j('#liveStream'+monitorId);
   if (streamImg) {
     var oldSrc = streamImg.attr('src');
+    streamImg.attr('src', '');
+    // This is so that we don't waste bandwidth and let the browser do all the scaling.
+    if (autoScale > 100) autoScale = 100;
+    if (scale > 100) scale = 100;
     var newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
 
     streamImg.width(newWidth);

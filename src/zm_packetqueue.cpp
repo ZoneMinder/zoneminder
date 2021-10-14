@@ -93,11 +93,19 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             " your camera's keyframe interval is larger than this setting."
             , max_video_packet_count);
 
-        while (packet_counts[video_stream_id] > max_video_packet_count) {
+        int count = 10; // give it 10 wake ups to resolve the situation
+        while (count and (packet_counts[video_stream_id] > max_video_packet_count)) {
           Error("Unable to free up older packets.  Waiting.");
           condition.wait(lck);
           if (deleting or zm_terminate)
             return false;
+          count --;
+        }
+        if (packet_counts[video_stream_id] > max_video_packet_count) {
+          Error("Unable to free up older packets. packet_counts %d > max %d. Dropping this packet."
+             " You may need to increase MaxImageBuffer or reduce keyframe interval.",
+              packet_counts[video_stream_id], max_video_packet_count);
+          return false;
         }
       }
     }  // end if this packet is a video packet

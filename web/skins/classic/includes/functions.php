@@ -463,7 +463,7 @@ function getRamHTML() {
   if ( !canView('System') ) return $result;
   $contents = file_get_contents('/proc/meminfo');
   preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
-  $meminfo = array_combine($matches[1], $matches[2]);
+  $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));
   $mem_used = $meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Buffers'] - $meminfo['Cached'];
   $mem_used_percent = (int)(100*$mem_used/$meminfo['MemTotal']);
   $used_class = '';
@@ -481,9 +481,9 @@ function getRamHTML() {
     $swap_class = 'text-warning';
   }
 
-  $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.
-    '<span class="'.$used_class.'">'.translate('Memory').': '.$mem_used_percent.'%</span> '.
-    '<span class="'.$swap_class.'">'.translate('Swap').': '.$swap_used_percent.'%</span> '.
+  $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2">'.
+    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> '.
+    '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> '.
     '</li>'.PHP_EOL;
   
   return $result;

@@ -20,18 +20,18 @@
 
 
 // Monitor control actions, require a monitor id and control view permissions for that monitor
-if ( empty($_REQUEST['mid']) ) {
+if (empty($_REQUEST['mid'])) {
   ZM\Warning('Settings requires a monitor id');
   return;
 }
-if ( ! canView('Control', $_REQUEST['mid']) ) {
+if (!canView('Control', $_REQUEST['mid'])) {
   ZM\Warning('Settings requires the Control permission');
   return;
 }
 
 require_once('includes/Monitor.php');
 $mid = validInt($_REQUEST['mid']);
-if ( $action == 'settings' ) {
+if ($action == 'settings') {
   $args = ' -m ' . escapeshellarg($mid);
   $args .= ' -B' . escapeshellarg($_REQUEST['newBrightness']);
   $args .= ' -C' . escapeshellarg($_REQUEST['newContrast']);
@@ -45,5 +45,7 @@ if ( $action == 'settings' ) {
   dbQuery(
     'UPDATE Monitors SET Brightness = ?, Contrast = ?, Hue = ?, Colour = ? WHERE Id = ?',
     array($brightness, $contrast, $hue, $colour, $mid));
+  global $redirect;
+  $redirect = '?view=watch&mid='.$mid;
 }
 ?>

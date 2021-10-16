@@ -36,6 +36,16 @@ if ($zmuOutput) {
           <tbody>
 <?php
 $ctls = shell_exec('v4l2-ctl -d '.$monitor->Device().' --list-ctrls');
+
+if (!$ctls) {
+ZM\Warning("Guessing v4l ctrls.  We need v4l2-ctl please install it");
+$ctls = '
+                     brightness 0x00980900 (int)    : min=-10 max=10 step=1 default=0 value=8
+                       contrast 0x00980901 (int)    : min=0 max=20 step=1 default=10 value=12
+                     saturation 0x00980902 (int)    : min=0 max=10 step=1 default=7 value=6
+                            hue 0x00980903 (int)    : min=-5000 max=5000 step=1000 default=0 value=2000
+';
+}
 $ctls = trim($ctls);
 $ctls = explode("\n", $ctls);
 

@@ -69,7 +69,7 @@
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, "
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `Enabled`, `DecodingEnabled`, "
 "`LinkedMonitors`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
@@ -423,8 +423,8 @@ Monitor::Monitor()
 
 /*
   std::string load_monitor_sql =
- "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, LinkedMonitors, "
- "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
+  "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `Enabled`, `DecodingEnabled`, "
+, LinkedMonitors, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
  "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
  "SaveJPEGs, VideoWriter, EncoderParameters,
@@ -472,6 +472,12 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   Debug(1, "Have camera type %s", CameraType_Strings[type].c_str());
   col++;
   function = (Function)atoi(dbrow[col]); col++;
+  capturing = (CapturingOption)atoi(dbrow[col]); col++;
+  analysing = (AnalysingOption)atoi(dbrow[col]); col++;
+  analysis_source = (AnalysisSourceOption)atoi(dbrow[col]); col++;
+  recording = (RecordingOption)atoi(dbrow[col]); col++;
+  recording_source = (RecordingSourceOption)atoi(dbrow[col]); col++;
+
   enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   decoding_enabled = !(
@@ -2388,11 +2394,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
         Debug(1, "Checking linked monitor %d", link_ids[i]);
 
         std::string sql = stringtf(
-            "SELECT `Id`, `Name` FROM `Monitors`"
-            "  WHERE `Id` = %d"
-            "   AND `Function` != 'None'"
-            "   AND `Function` != 'Monitor'"
-            "   AND `Enabled`=1",
+            "SELECT `Id`, `Name` FROM `Monitors` WHERE `Id` = %d",
             link_ids[i]);
 
         MYSQL_RES *result = zmDbFetch(sql);
@@ -2401,7 +2403,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
         }
 
         int n_monitors = mysql_num_rows(result);
-        if ( n_monitors == 1 ) {
+        if (n_monitors == 1) {
           MYSQL_ROW dbrow = mysql_fetch_row(result);
           Debug(1, "Linking to monitor %d %s", atoi(dbrow[0]), dbrow[1]);
           linked_monitors[count++] = new MonitorLink(link_ids[i], dbrow[1]);

@@ -346,4 +346,23 @@ function getLocation() {
   }
 }
 
+function Capturing_onChange(e) {
+}
+
+function Analysing_onChange(e) {
+}
+
+function Recording_onChange(e) {
+}
+
+function SecondPath_onChange(e) {
+  if (e.value) {
+    $j('#AnalysingSource').show();
+    $j('#RecordingSource').show();
+  } else {
+    $j('#AnalysingSource').hide();
+    $j('#RecordingSource').hide();
+  }
+}
+
 window.addEventListener('DOMContentLoaded', initPage);

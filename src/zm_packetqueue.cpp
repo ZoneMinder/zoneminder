@@ -260,7 +260,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
       zm_packet = *it;
       lp = new ZMLockedPacket(zm_packet);
       if (!lp->trylock()) {
-        Debug(3, "Failed locking packet %d", zm_packet->index);
+        Debug(3, "Failed locking packet %d", zm_packet->image_index);
         delete lp;
         break;
       }

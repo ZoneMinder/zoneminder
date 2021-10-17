@@ -258,15 +258,12 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     ++it;
     delete lp;
 
-    if (it == pktQueue.end()) {
-      Debug(1, "Hit end already");
-      it = pktQueue.begin();
-    } else {
     // Since we have many packets in the queue, we should NOT be pointing at end so don't need to test for that
     while (*it != add_packet) {
       zm_packet = *it;
       lp = new ZMLockedPacket(zm_packet);
       if (!lp->trylock()) {
+        Debug(3, "Failed locking packet %d", zm_packet->index);
         delete lp;
         break;
       }
@@ -283,17 +280,16 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
           next_front = it;
         }
         ++video_packets_to_delete;
-          Debug(4, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
-              video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
+        Debug(3, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+            video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
         if (packet_counts[video_stream_id] - video_packets_to_delete <= pre_event_video_packet_count + tail_count) {
           break;
         }
       }
       ++it;
     } // end while
-    }
   }  // end if first packet not locked
-  Debug(1, "Resulting pointing at latest packet? %d, next front points to begin? %d",
+  Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d",
       ( *it == add_packet ),
       ( next_front == pktQueue.begin() )
       );

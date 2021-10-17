@@ -147,7 +147,7 @@ This attribute is of type L<SOAP::WSDL::XSD::Typelib::Builtin::integer|SOAP::WSD
 
 =item * Cells
 
- A “1” denotes a cell where motion is detected and a “0” an empty cell. The first cell is in the upper left corner. Then the cell order goes first from left to right and then from up to down. If the number of cells is not a multiple of 8 the last byte is filled with zeros. The information is run length encoded according to Packbit coding in ISO 12369 (TIFF, Revision 6.0).
+ A "1" denotes a cell where motion is detected and a "0" an empty cell. The first cell is in the upper left corner. Then the cell order goes first from left to right and then from up to down. If the number of cells is not a multiple of 8 the last byte is filled with zeros. The information is run length encoded according to Packbit coding in ISO 12369 (TIFF, Revision 6.0).
 
 
 

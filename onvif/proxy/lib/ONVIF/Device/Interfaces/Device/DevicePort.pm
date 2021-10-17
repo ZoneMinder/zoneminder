@@ -2709,7 +2709,7 @@ Returns a L<ONVIF::Device::Elements::GetNetworkInterfacesResponse|ONVIF::Device:
 
 =head3 SetNetworkInterfaces
 
- For interoperability with a client unaware of the IEEE 802.11 extension a device shall retain its IEEE 802.11 configuration if the IEEE 802.11 configuration element isn’t present in the request.
+ For interoperability with a client unaware of the IEEE 802.11 extension a device shall retain its IEEE 802.11 configuration if the IEEE 802.11 configuration element isn't present in the request.
 
 Returns a L<ONVIF::Device::Elements::SetNetworkInterfacesResponse|ONVIF::Device::Elements::SetNetworkInterfacesResponse> object.
 
@@ -3093,7 +3093,7 @@ Returns a L<ONVIF::Device::Elements::SetRelayOutputStateResponse|ONVIF::Device::
 
 =head3 SendAuxiliaryCommand
 
-tt:IRLamp|Auto – Request to configure an IR illuminator attached to the unit so that it automatically turns ON and OFF. A device that indicates auxiliary service capability shall support this command.
+tt:IRLamp|Auto - Request to configure an IR illuminator attached to the unit so that it automatically turns ON and OFF. A device that indicates auxiliary service capability shall support this command.
 
 Returns a L<ONVIF::Device::Elements::SendAuxiliaryCommandResponse|ONVIF::Device::Elements::SendAuxiliaryCommandResponse> object.
 
@@ -3288,7 +3288,7 @@ Returns a L<ONVIF::Device::Elements::GetSystemUrisResponse|ONVIF::Device::Elemen
 
 =head3 StartFirmwareUpgrade
 
- The value of the Content-Type header in the HTTP POST request shall be “application/octetstream”.
+ The value of the Content-Type header in the HTTP POST request shall be "application/octetstream".
 
 Returns a L<ONVIF::Device::Elements::StartFirmwareUpgradeResponse|ONVIF::Device::Elements::StartFirmwareUpgradeResponse> object.
 
@@ -3298,7 +3298,7 @@ Returns a L<ONVIF::Device::Elements::StartFirmwareUpgradeResponse|ONVIF::Device:
 
 =head3 StartSystemRestore
 
- The value of the Content-Type header in the HTTP POST request shall be “application/octetstream”.
+ The value of the Content-Type header in the HTTP POST request shall be "application/octetstream".
 
 Returns a L<ONVIF::Device::Elements::StartSystemRestoreResponse|ONVIF::Device::Elements::StartSystemRestoreResponse> object.
 

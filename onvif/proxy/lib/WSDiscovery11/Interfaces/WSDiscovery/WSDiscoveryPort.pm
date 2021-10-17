@@ -100,7 +100,7 @@ of the corresponding class can be passed instead of the marked hash ref.
 You may pass any combination of objects, hash and list refs to these
 methods, as long as you meet the structure.
 
-List items (i.e. multiple occurences) are not displayed in the synopsis.
+List items (i.e. multiple occurrences) are not displayed in the synopsis.
 You may generally pass a list ref of hash refs (or objects) instead of a hash
 ref - this may result in invalid XML if used improperly, though. Note that
 SOAP::WSDL always expects list references at maximum depth position.

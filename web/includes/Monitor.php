@@ -23,6 +23,64 @@ function getMonitorFunctionTypes() {
   return $FunctionTypes;
 }
 
+$MonitorCapturingOptions = null;
+function getMonitorCapturingOptions() {
+  if (!isset($MonitorCapturingOptions)) {
+    $MonitorCapturingOptions = array(
+        'None'=>translate('None'),
+        'Ondemand'  =>  translate('On Demand'),
+        'Always'    =>  translate('Always'),
+        );
+  }
+  return $MonitorCapturingOptions;
+}
+
+$MonitorAnalysingOptions = null;
+function getMonitorAnalysingOptions() {
+  if (!isset($MonitorAnalysingOptions)) {
+    $MonitorAnalysingOptions = array(
+        'None'   => translate('None'),
+        'Always' => translate('Always'),
+        );
+  }
+  return $MonitorAnalysingOptions;
+}
+
+$MonitorAnalysisSourceOptions = null;
+function getMonitorAnalysisSourceOptions() {
+  if (!isset($MonitorAnalysisSourceOptions)) {
+    $MonitorAnalysisSourceOptions = array(
+        'Primary'   => translate('Primary'),
+        'Secondary' => translate('Secondary'),
+        );
+  }
+  return $MonitorAnalysisSourceOptions;
+}
+
+$MonitorRecordingOptions = null;
+function getMonitorRecordingOptions() {
+  if (!isset($MonitorRecordingOptions)) {
+    $MonitorRecordingOptions = array(
+        'None'     => translate('None'),
+        'OnMotion' => translate('On Motion'),
+        'Always'   => translate('Always'),
+        );
+  }
+  return $MonitorRecordingOptions;
+}
+
+$MonitorRecordingSourceOptions = null;
+function getMonitorRecordingSourceOptions() {
+  if (!isset($MonitorRecordingSourceOptions)) {
+    $MonitorRecordingSourceOptions = array(
+        'Primary'   => translate('Primary'),
+        'Secondary' => translate('Secondary'),
+        'Both'      => translate('Both'),
+        );
+  }
+  return $MonitorRecordingSourceOptions;
+}
+
 $Statuses = null;
 function getMonitorStatuses() {
   if (!isset($Statuses)) {
@@ -88,6 +146,7 @@ class Monitor extends ZM_Object {
     'OutputContainer' => null,
     'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\ncrf=23\n",
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
+    'OutputSourceStream'  => 'Primary',
     'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
     'Brightness'  =>  -1,
     'Contrast'    =>  -1,

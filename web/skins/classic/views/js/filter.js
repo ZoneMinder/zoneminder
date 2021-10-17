@@ -57,7 +57,7 @@ function validateForm(form) {
       form.elements['filter[AutoUnarchive]'].checked ||
       form.elements['filter[UpdateDiskSpace]'].checked ||
       form.elements['filter[AutoVideo]'].checked ||
-      (form.elements['filter[AutoEmail]'].checked && form.elements['filter[AutoEmail]'].checked) ||
+      (form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked) ||
       (form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked) ||
       form.elements['filter[AutoExecute]'].checked ||
       form.elements['filter[AutoDelete]'].checked ||

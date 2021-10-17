@@ -64,6 +64,34 @@ public:
   } Function;
 
   typedef enum {
+    CAPTURING_NONE=1,
+    CAPTURING_ONDEMAND,
+    CAPTURING_ALWAYS
+  } CapturingOption;
+
+  typedef enum {
+    ANALYSING_NONE=1,
+    ANALYSING_ALWAYS
+  } AnalysingOption;
+
+  typedef enum {
+    ANALYSIS_PRIMARY=1,
+    ANALYSIS_SECONDARY
+  } AnalysisSourceOption;
+
+  typedef enum {
+    RECORDING_NONE=1,
+    RECORDING_ONMOTION,
+    RECORDING_ALWAYS
+  } RecordingOption;
+
+  typedef enum {
+    RECORDING_PRIMARY=1,
+    RECORDING_SECONDARY,
+    RECORDING_BOTH
+  } RecordingSourceOption;
+
+  typedef enum {
     LOCAL=1,
     REMOTE,
     FILE,
@@ -255,6 +283,12 @@ protected:
   unsigned int    storage_id;         // Id of the Storage Object, which currently will just provide a path, but in future may do more.
   CameraType      type;
   Function        function;           // What the monitor is doing
+  CapturingOption capturing;          // None, OnDemand, Always
+  AnalysingOption analysing;          // None, Always
+  AnalysisSourceOption  analysis_source;    // Primary, Secondary
+  RecordingOption recording;          // None, OnMotion, Always
+  RecordingSourceOption recording_source;   // Primary, Secondary, Both
+
   bool            enabled;            // Whether the monitor is enabled or asleep
   bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
 
@@ -296,6 +330,7 @@ protected:
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
   bool            record_audio;      // Whether to store the audio that we receive
+  int             output_source_stream;
 
 
   int        brightness;        // The statically saved brightness of the camera

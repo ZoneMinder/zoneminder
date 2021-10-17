@@ -481,10 +481,10 @@ switch ( $name ) {
             <td class="text-right pr-3"><?php echo translate('Server') ?></td><td>
 <?php
       $servers = array(''=>'None','auto'=>'Auto');
-      foreach ( ZM\Server::find(NULL, array('order'=>'lower(Name)')) as $Server ) {
+      foreach (ZM\Server::find(NULL, array('order'=>'lower(Name)')) as $Server) {
         $servers[$Server->Id()] = $Server->Name();
       }
-      echo htmlSelect( 'newMonitor[ServerId]', $servers, $monitor->ServerId() );
+      echo htmlSelect('newMonitor[ServerId]', $servers, $monitor->ServerId());
 ?>
             </td>
           </tr>
@@ -496,37 +496,23 @@ switch ( $name ) {
       if ( $monitor->Type() != 'WebSite' ) {
 ?>
           <tr>
-            <td class="text-right pr-3"><?php echo translate('Function') ?></td>
+            <td class="text-right pr-3"><?php echo translate('Capturing') ?></td>
             <td>
 <?php
-      $function_options = array();
-      foreach ( getEnumValues('Monitors', 'Function') as $f ) {
-        $function_options[$f] = translate("Fn$f");
-      }
-      echo htmlSelect('newMonitor[Function]', $function_options, $monitor->Function());
+        echo htmlSelect('newMonitor[Capturing]', ZM\getMonitorCapturingOptions(), $monitor->Capturing());
 ?>
- <div id="function_help">
+              <div id="capturing_help">
 <?php
-  foreach ( ZM\getMonitorFunctionTypes() as $fn => $translated ) {
-    if ( isset($OLANG['FUNCTION_'.strtoupper($fn)]) ) {
-      echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['FUNCTION_'.strtoupper($fn)]['Help'].'</div>';
-    }
-  }
+        foreach (ZM\getMonitorCapturingOptions() as $fn => $translated) {
+          if (isset($OLANG['CAPTURING_'.strtoupper($fn)])) {
+            echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['CAPTURING_'.strtoupper($fn)]['Help'].'</div>';
+          }
+        }
 ?>
-          </div>
-          </td>
-        </tr>
-        <tr id="FunctionEnabled">
-          <td class="text-right pr-3"><?php echo translate('Analysis Enabled') ?></td>
-          <td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php echo $monitor->Enabled() ? ' checked="checked"' : '' ?>/>
-<?php
-  if ( isset($OLANG['FUNCTION_ANALYSIS_ENABLED']) ) {
-    echo '<div class="form-text">'.$OLANG['FUNCTION_ANALYSIS_ENABLED']['Help'].'</div>';
-  }
-?>
-          </td>
-        </tr>
-  <tr id="FunctionDecodingEnabled">
+              </div>
+            </td>
+          </tr>
+        <tr id="FunctionDecodingEnabled">
           <td class="text-right pr-3"><?php echo translate('Decoding Enabled') ?></td>
           <td><input type="checkbox" name="newMonitor[DecodingEnabled]" value="1"<?php echo $monitor->DecodingEnabled() ? ' checked="checked"' : '' ?>/>
 <?php
@@ -561,6 +547,32 @@ switch ( $name ) {
           <td><select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
             echo htmlOptions(ZM\Group::get_dropdown_options(), $monitor->GroupIds());
             ?></select></td>
+        </tr>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('Analysing') ?></td>
+          <td>
+<?php
+        echo htmlSelect('newMonitor[Analysing]', ZM\getMonitorAnalysingOptions(), $monitor->Analysing(), array('on-change-this'=>'Analysing_onChange'));
+
+?>
+              <div id="Analysing_help">
+<?php
+        foreach (ZM\getMonitorAnalysingOptions() as $fn => $translated) {
+          if ( isset($OLANG['ANALYSING_'.strtoupper($fn)]) ) {
+            echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['ANALYSING_'.strtoupper($fn)]['Help'].'</div>';
+          }
+        }
+?>
+            </div>
+          </td>
+        </tr>
+        <tr id="AnalysisSource"<?php echo $monitor->SecondPath() ? '' : ' style="display:none;"' ?>>
+          <td class="text-right pr-3"><?php echo translate('AnalysisSource') ?></td>
+          <td>
+<?php
+        echo htmlSelect('newMonitor[AnalysisSource]', ZM\getMonitorAnalysisSourceOptions(), $monitor->AnalysisSource());
+?>
+          </td>
         </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('AnalysisFPS') ?></td>
@@ -797,7 +809,7 @@ include('_monitor_source_nvsocket.php');
 ?>
           <tr class="SourceSecondPath">
             <td class="text-right pr-3"><?php echo translate('SourceSecondPath') ?></td>
-            <td><input type="text" name="newMonitor[SecondPath]" value="<?php echo validHtmlStr($monitor->SecondPath()) ?>" /></td>
+            <td><input type="text" name="newMonitor[SecondPath]" value="<?php echo validHtmlStr($monitor->SecondPath()) ?>" data-on-input-this="SecondPath_onChange"/></td>
           </tr>
           <tr class="DecoderHWAccelName">
             <td class="text-right pr-3">
@@ -903,6 +915,31 @@ include('_monitor_source_nvsocket.php');
     }
   case 'storage' :
 ?>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('Recording') ?></td>
+          <td>
+<?php
+        echo htmlSelect('newMonitor[Recording]', ZM\getMonitorRecordingOptions(), $monitor->Recording(), array('on-change-this'=>'Recording_onChange'));
+?>
+              <div id="Recording_help">
+<?php
+        foreach (ZM\getMonitorRecordingOptions() as $fn => $translated) {
+          if (isset($OLANG['RECORDING_'.strtoupper($fn)])) {
+            echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['RECORDING_'.strtoupper($fn)]['Help'].'</div>';
+          }
+        }
+?>
+            </div>
+          </td>
+        </tr>
+        <tr id="RecordingSource"<?php echo $monitor->SecondPath() ? '' : ' style="display:none;"' ?>>
+          <td class="text-right pr-3"><?php echo translate('RecordingSource') ?></td>
+          <td>
+<?php
+        echo htmlSelect('newMonitor[RecordingSource]', ZM\getMonitorRecordingSourceOptions(), $monitor->RecordingSource());
+?>
+          </td>
+        </tr>
           <tr>
             <td class="text-right pr-3"><?php echo translate('StorageArea') ?></td>
             <td>
@@ -1001,7 +1038,6 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
             </td></tr>
-
 <?php
       break;
   case 'timestamp' :

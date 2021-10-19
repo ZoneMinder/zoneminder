@@ -151,6 +151,7 @@ bool VideoStore::open() {
       Debug(3, "Encoder Option %s=%s", e->key, e->value);
     }
   }
+  av_dict_free(&opts);
 
   if (video_in_stream) {
     zm_dump_codecpar(video_in_stream->codecpar);
@@ -184,6 +185,7 @@ bool VideoStore::open() {
         }
       } // end if orientation
 
+      av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
       if (av_dict_get(opts, "new_extradata", nullptr, AV_DICT_MATCH_CASE)) {
         av_dict_set(&opts, "new_extradata", nullptr, 0);
         // Special flag to tell us to open a codec to get new extraflags to fix weird h265
@@ -224,14 +226,13 @@ bool VideoStore::open() {
                 );
             video_out_codec = nullptr;
           }
-          av_dict_free(&opts);
-          av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
         }  // end if video_out_codec
 
         ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
         if (ret < 0) {
           Error("Could not initialize stream parameteres");
         }
+        av_dict_free(&opts);
       }  // end if extradata_entry
     } else if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
       int wanted_codec = monitor->OutputCodec();
@@ -486,6 +487,7 @@ bool VideoStore::open() {
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
 
+  av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
   if (!movflags_entry) {
     Debug(1, "setting movflags to frag_keyframe+empty_moov");

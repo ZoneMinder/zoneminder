@@ -2028,8 +2028,7 @@ bool Monitor::Analyse() {
           } // end if ! event
         } // end if RECORDING
 
-        if (score) {
-
+        if (score and (function == MODECT or function == NODECT)) {
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             // If we should end then previous continuous event and start a new non-continuous event
             if (event && event->Frames()

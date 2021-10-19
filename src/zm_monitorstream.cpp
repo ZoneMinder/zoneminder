@@ -422,7 +422,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
         break;
       case STREAM_RAW :
         fputs("Content-Type: image/x-rgb\r\n", stdout);
-        img_buffer = (uint8_t*)send_image->Buffer();
+        img_buffer = send_image->Buffer();
         img_buffer_size = send_image->Size();
         break;
       case STREAM_ZIP :

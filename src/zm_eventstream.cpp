@@ -810,7 +810,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
           fputs("Content-Type: image/x-rgbz\r\n", stdout);
           break;
         case STREAM_RAW :
-          img_buffer = (uint8_t*)(send_image->Buffer());
+          img_buffer = send_image->Buffer();
           img_buffer_size = send_image->Size();
           fputs("Content-Type: image/x-rgb\r\n", stdout);
           break;

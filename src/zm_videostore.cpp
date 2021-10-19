@@ -224,6 +224,8 @@ bool VideoStore::open() {
                 );
             video_out_codec = nullptr;
           }
+          av_dict_free(&opts);
+          av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
         }  // end if video_out_codec
 
         ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
@@ -231,7 +233,6 @@ bool VideoStore::open() {
           Error("Could not initialize stream parameteres");
         }
       }  // end if extradata_entry
-      av_dict_free(&opts);
     } else if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
       int wanted_codec = monitor->OutputCodec();
       if (!wanted_codec) {

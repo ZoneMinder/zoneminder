@@ -86,7 +86,7 @@ Source Path
     Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
 
         * Check the documentation that came with your camera
-        * Look for your camera in the hardware compatibilty list in the `hardware compatibility wiki <https://wiki.zoneminder.com/Hardware_Compatibility_List>`__
+        * Look for your camera in the hardware compatibility list in the `hardware compatibility wiki <https://wiki.zoneminder.com/Hardware_Compatibility_List>`__
         * Try ZoneMinder's new ONVIF probe feature
         * Download and install the `ONVIF Device Manager <https://sourceforge.net/projects/onvifdm/>`__ onto a Windows machine 
         * Use Google to find third party sites, such as ispy, which document this information
@@ -179,12 +179,12 @@ Storage Tab
 The storage section allows for each monitor to configure if and how video and audio are recorded.
 
 Save JPEGs
-    Records video in individual JPEG frames. Storing JPEG frames requires more storage space than h264 but it allows to view an event anytime while it is being recorded.
+    Records video in individual JPEG frames. Storing JPEG frames requires more storage space than h264 but it allows one to view an event anytime while it is being recorded.
 
     * Disabled – video is not recorded as JPEG frames. If this setting is selected, then "Video Writer" should be enabled otherwise there is no video recording at all.
     * Frames only – video is recorded in individual JPEG frames.
-    * Analysis images only (if available) – video is recorded in invidual JPEG frames with an overlay of the motion detection analysis information. Note that this overlay remains permanently visible in the frames.
-    * Frames + Analysis images (if available) – video is recorded twice, once as normal individual JPEG frames and once in invidual JPEG frames with analysis information overlaid.
+    * Analysis images only (if available) – video is recorded in individual JPEG frames with an overlay of the motion detection analysis information. Note that this overlay remains permanently visible in the frames.
+    * Frames + Analysis images (if available) – video is recorded twice, once as normal individual JPEG frames and once in individual JPEG frames with analysis information overlaid.
 
 Video Writer
     Records video in real video format. It provides much better compression results than saving JPEGs, thus longer video history can be stored.

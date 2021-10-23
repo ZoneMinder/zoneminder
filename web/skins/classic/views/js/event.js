@@ -767,14 +767,15 @@ function handleClick(event) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( !canEdit.Events ) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eventData.Id)
+    $j.getJSON(thisUrl + '?request=event&task=delete&id='+eventData.Id)
         .done(function(data) {
+          $j('#deleteConfirm').modal('hide');
           streamNext(true);
         })
         .fail(logAjaxFail);

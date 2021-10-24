@@ -8,9 +8,6 @@
 RTSPServerThread::RTSPServerThread(int p_port) :
     terminate_(false), scheduler_watch_var_(0), port(p_port)
 {
-  //unsigned short rtsp_over_http_port = 0;
-  //const char *realm = "ZoneMinder";
-  //
   eventLoop = std::make_shared<xop::EventLoop>();
   rtspServer = xop::RtspServer::Create(eventLoop.get());
 
@@ -55,7 +52,7 @@ void RTSPServerThread::Stop() {
   }
 
   for ( std::list<ZoneMinderFifoSource *>::iterator it = sources.begin(); it != sources.end(); ++it ) {
-  Debug(1, "RTSPServerThread::stopping source");
+    Debug(1, "RTSPServerThread::stopping source");
     (*it)->Stop();
   }
   while ( sources.size() ) {
@@ -70,9 +67,9 @@ xop::MediaSession *RTSPServerThread::addSession(std::string &streamname) {
   
   xop::MediaSession *session = xop::MediaSession::CreateNew(streamname);
   if (session) {
-    session->AddNotifyConnectedCallback([] (xop::MediaSessionId sessionId, std::string peer_ip, uint16_t peer_port){
-  Debug(1, "RTSP client connect, ip=%s, port=%hu \n", peer_ip.c_str(), peer_port);
-});
+    session->AddNotifyConnectedCallback([] (xop::MediaSessionId sessionId, std::string peer_ip, uint16_t peer_port) {
+        Debug(1, "RTSP client connect, ip=%s, port=%hu \n", peer_ip.c_str(), peer_port);
+        });
 
     session->AddNotifyDisconnectedCallback([](xop::MediaSessionId sessionId, std::string peer_ip, uint16_t peer_port) {
   Debug(1, "RTSP client disconnect, ip=%s, port=%hu \n", peer_ip.c_str(), peer_port);

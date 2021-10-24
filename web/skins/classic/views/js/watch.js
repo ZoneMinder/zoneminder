@@ -945,7 +945,7 @@ function initPage() {
   });
 
   // Only enable the settings button for local cameras
-  settingsBtn.prop('disabled', !(canView.Control && monitorType == 'Local'));
+  settingsBtn.prop('disabled', !(canView.Control && (monitorType == 'Local')));
 
   // Init the bootstrap-table
   if (monitorType != 'WebSite') table.bootstrapTable({icons: icons});

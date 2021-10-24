@@ -34,14 +34,14 @@
 
 bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
   struct stat stat_buf;
-  if ( stat(path, &stat_buf) < 0 ) {
-    if ( create_path and (errno == ENOENT) ) {
+  if (stat(path, &stat_buf) < 0) {
+    if (create_path and (errno == ENOENT) ) {
       Debug(3, "Swap path '%s' missing, creating", path);
-      if ( mkdir(path, 0755) ) {
+      if (mkdir(path, 0755)) {
         Error("Can't mkdir %s: %s", path, strerror(errno));
         return false;
       }
-      if ( stat(path, &stat_buf) < 0 ) {
+      if (stat(path, &stat_buf) < 0) {
         Error("Can't stat '%s': %s", path, strerror(errno));
         return false;
       }
@@ -50,7 +50,7 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
       return false;
     }
   }
-  if ( !S_ISDIR(stat_buf.st_mode) ) {
+  if (!S_ISDIR(stat_buf.st_mode)) {
     Error("Swap image path '%s' is not a directory", path);
     return false;
   }
@@ -59,10 +59,10 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
   gid_t gid = getgid();
 
   mode_t mask = 0;
-  if ( uid == stat_buf.st_uid ) {
+  if (uid == stat_buf.st_uid) {
     // If we are the owner
     mask = 00700;
-  } else if ( gid == stat_buf.st_gid ) {
+  } else if (gid == stat_buf.st_gid) {
     // If we are in the owner group
     mask = 00070;
   } else {
@@ -70,7 +70,7 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
     mask = 00007;
   }
 
-  if ( (stat_buf.st_mode & mask) != mask ) {
+  if ((stat_buf.st_mode & mask) != mask) {
     Error("Insufficient permissions on swap image path '%s'", path);
     return false;
   }
@@ -80,7 +80,7 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
 void MonitorStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
   // Check for incoming command
-  switch ( (MsgCommand)msg->msg_data[0] ) {
+  switch ((MsgCommand)msg->msg_data[0]) {
     case CMD_PAUSE :
       Debug(1, "Got PAUSE command");
       paused = true;
@@ -115,7 +115,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
         delayed = true;
       }
       // Set play rate
-      switch ( replay_rate ) {
+      switch (replay_rate) {
         case 2 * ZM_RATE_BASE :
           replay_rate = 5 * ZM_RATE_BASE;
           break;
@@ -178,7 +178,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
       y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
       Debug(1, "Got ZOOM IN command, to %d,%d", x, y);
-      switch ( zoom ) {
+      switch (zoom) {
         case 100:
           zoom = 150;
           break;
@@ -199,7 +199,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       break;
     case CMD_ZOOMOUT :
       Debug(1, "Got ZOOM OUT command");
-      switch ( zoom ) {
+      switch (zoom) {
         case 500:
           zoom = 400;
           break;
@@ -279,7 +279,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     //status_data.enabled = monitor->shared_data->active;
     status_data.enabled = monitor->trigger_data->trigger_state != Monitor::TriggerState::TRIGGER_OFF;
     status_data.forced = monitor->trigger_data->trigger_state == Monitor::TriggerState::TRIGGER_ON;
-    if ( playback_buffer > 0 )
+    if (playback_buffer > 0)
       status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
     else
       status_data.buffer_level = 0;
@@ -307,31 +307,24 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_msg.msg_type = MSG_DATA_WATCH;
   memcpy(&status_msg.msg_data, &status_data, sizeof(status_data));
   int nbytes = 0;
-  if ( (nbytes = sendto(sd, &status_msg, sizeof(status_msg), MSG_DONTWAIT, (sockaddr *)&rem_addr, sizeof(rem_addr))) < 0 ) {
-    //if ( errno != EAGAIN )
-    {
-      Error("Can't sendto on sd %d: %s", sd, strerror(errno));
-      //exit( -1 );
-    }
+  if ((nbytes = sendto(sd, &status_msg, sizeof(status_msg), MSG_DONTWAIT, (sockaddr *)&rem_addr, sizeof(rem_addr))) < 0) {
+    Error("Can't sendto on sd %d: %s", sd, strerror(errno));
   }
   Debug(2, "Number of bytes sent to (%s): (%d)", rem_addr.sun_path, nbytes);
 
   // quit after sending a status, if this was a quit request
-  if ( (MsgCommand)msg->msg_data[0] == CMD_QUIT ) {
+  if ((MsgCommand)msg->msg_data[0] == CMD_QUIT) {
     zm_terminate = true;
     Debug(2, "Quitting");
     return;
   }
-
-  //Debug(2,"Updating framerate");
-  //updateFrameRate(monitor->GetFPS());
 }  // end void MonitorStream::processCommand(const CmdMsg *msg)
 
 bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint timestamp) {
   bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
   if (
-      ( type != STREAM_JPEG )
+      (type != STREAM_JPEG)
       ||
       (!config.timestamp_on_capture)
      )
@@ -361,7 +354,7 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
         ||
         (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
        ) {
-      if ( !zm_terminate )
+      if (!zm_terminate)
         Warning("Unable to send stream frame: %s", strerror(errno));
       return false;
     }
@@ -392,8 +385,8 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   }
 
   fputs("--" BOUNDARY "\r\n", stdout);
-  if ( type == STREAM_MPEG ) {
-    if ( !vid_stream ) {
+  if (type == STREAM_MPEG) {
+    if (!vid_stream) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
@@ -408,14 +401,13 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.count());
   } else {
     static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
-
     int img_buffer_size = 0;
     unsigned char *img_buffer = temp_img_buffer;
 
     // Calculate how long it takes to actually send the frame
     TimePoint send_start_time = std::chrono::steady_clock::now();
 
-    switch ( type ) {
+    switch (type) {
       case STREAM_JPEG :
         send_image->EncodeJpeg(img_buffer, &img_buffer_size);
         fputs("Content-Type: image/jpeg\r\n", stdout);
@@ -446,7 +438,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
         ||
         (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
        ) {
-      if ( !zm_terminate ) {
+      if (!zm_terminate) {
         // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
         Warning("Unable to send stream frame: %s", strerror(errno));
       }
@@ -478,7 +470,6 @@ void MonitorStream::runStream() {
       fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
       sendTextFrame("Unable to send image");
     }
-
     return;
   }
 
@@ -580,6 +571,7 @@ void MonitorStream::runStream() {
     }
 
     now = std::chrono::system_clock::now();
+    monitor->setLastViewed(now);
 
     bool was_paused = paused;
     bool got_command = false; // commands like zoom should output a frame even if paused

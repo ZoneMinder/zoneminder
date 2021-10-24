@@ -306,6 +306,10 @@ int main(int argc, char *argv[]) {
         }
         audio_sources[monitor->Id()] = audioSource;
       }  // end if ! sessions[monitor->Id()]
+      if (sessions[monitor->Id()]->GetNumClient() > 0) {
+        SystemTimePoint now = std::chrono::system_clock::now();
+        monitor->setLastViewed(now);
+      }
     }  // end foreach monitor
 
     sleep(10);

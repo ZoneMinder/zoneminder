@@ -152,8 +152,8 @@ protected:
   /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
-    int32_t last_write_index;  /* +4    */
-    int32_t last_read_index;   /* +8    */
+    int32_t  last_write_index;  /* +4    */
+    int32_t  last_read_index;   /* +8    */
     uint32_t state;             /* +12   */
     double      capture_fps;       // Current capturing fps
     double      analysis_fps;      // Current analysis fps
@@ -195,7 +195,11 @@ protected:
       time_t last_read_time;
       uint64_t extrapad4;
     };
-    uint8_t control_state[256];  /* +104   */
+    union {                     /* +104  */
+      time_t last_viewed_time;
+      uint64_t extrapad5;
+    };
+    uint8_t control_state[256];  /* +112   */
 
     char alarm_cause[256];
     char video_fifo_path[64];
@@ -470,7 +474,7 @@ public:
   inline bool isConnected() const { return mem_ptr != nullptr; }
 
   inline int ShmValid() const {
-    if ( shared_data && shared_data->valid ) {
+    if (shared_data && shared_data->valid) {
       timeval now = {};
       gettimeofday(&now, nullptr);
       Debug(3, "Shared data is valid, checking heartbeat %" PRIi64 " - %" PRIi64 " = %" PRIi64"  < %f",
@@ -489,7 +493,7 @@ public:
   inline const char *Name() const { return name.c_str(); }
   inline unsigned int ServerId() const { return server_id; }
   inline Storage *getStorage() {
-    if ( ! storage ) {
+    if (!storage) {
       storage = new Storage(storage_id);
     }
     return storage;
@@ -498,7 +502,7 @@ public:
   inline Function GetFunction() const { return function; }
   inline PacketQueue * GetPacketQueue() { return &packetqueue; }
   inline bool Enabled() const {
-    if ( function <= MONITOR )
+    if (function <= MONITOR)
       return false;
     return enabled;
   }
@@ -507,16 +511,35 @@ public:
   }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
-    if ( image_count >= ready_count ) {
+    if (image_count >= ready_count) {
       return true;
     }
     Debug(2, "Not ready because image_count(%d) <= ready_count(%d)", image_count, ready_count);
     return false;
   }
   inline bool Active() const {
-    if ( function <= MONITOR )
+    if (function <= MONITOR)
       return false;
-    return( enabled && shared_data->active );
+    return (enabled && shared_data->active);
+  }
+  int64_t getLastViewed() {
+    if (shared_data && shared_data->valid)
+      return shared_data->last_viewed_time;
+    return 0;
+  }
+  void setLastViewed(SystemTimePoint new_time) {
+    if (shared_data && shared_data->valid)
+      shared_data->last_viewed_time = 
+        static_cast<int64>(std::chrono::duration_cast<Seconds>(new_time.time_since_epoch()).count());
+  }
+  bool hasViewers() {
+    if (shared_data && shared_data->valid) {
+      TimePoint now = std::chrono::steady_clock::now();;
+      return (
+          (shared_data->last_viewed_time - static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
+          ) > 1 ? false : true);
+    }
+    return false;
   }
   inline bool Exif() const { return embed_exif; }
   inline bool RTSPServer() const { return rtsp_server; }

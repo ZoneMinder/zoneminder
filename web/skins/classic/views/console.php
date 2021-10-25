@@ -291,8 +291,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colId"><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Id'] ?></a></td>
 <?php
   }
-  $imgHTML='';
-  if (ZM_WEB_LIST_THUMBS && ($monitor['Status'] == 'Connected') && $running && canView('Stream')) {
+  $imgHTML = '';
+  if (ZM_WEB_LIST_THUMBS && $monitor['Function'] != 'None' && ($monitor['Status'] == 'Connected') && $running && canView('Stream')) {
     $options = array();
 
     $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();

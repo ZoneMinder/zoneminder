@@ -195,7 +195,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 if ( $video_tag ) {
 ?>
         <div id="videoFeed">
-          <video id="videoobj" class="video-js vjs-default-skin"
+          <video autoplay id="videoobj" class="video-js vjs-default-skin"
             style="transform: matrix(1, 0, 0, 1, 0, 0);"
            <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
            <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>

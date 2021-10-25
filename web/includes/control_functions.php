@@ -1,5 +1,7 @@
 <?php
 
+require_once('logger.php');
+
 function buildControlCommand($monitor) {
   $ctrlCommand = '';
   $control = $monitor->Control();
@@ -218,7 +220,7 @@ function buildControlCommand($monitor) {
         }
       }
     } else {
-      Error('Invalid control parameter: ' . $_REQUEST['control'] );
+      ZM\Error('Invalid control parameter: ' . $_REQUEST['control'] );
     }
   } elseif ( isset($_REQUEST['x']) && isset($_REQUEST['y']) ) {
     if ( $_REQUEST['control'] == 'moveMap' ) {

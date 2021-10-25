@@ -30,22 +30,25 @@ class Server extends ZM_Object {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
-  public function Hostname( $new = null ) {
-    if ( $new != null )
+  public function Hostname($new = null) {
+    if ($new != null)
       $this->{'Hostname'} = $new;
 
-    if ( isset( $this->{'Hostname'}) and ( $this->{'Hostname'} != '' ) ) {
+    if (isset( $this->{'Hostname'}) and ($this->{'Hostname'} != '')) {
       return $this->{'Hostname'};
     } else if ( $this->Id() ) {
       return $this->{'Name'};
     }
-    # This theoretically will match ipv6 addresses as well
-    if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER['HTTP_HOST'], $matches ) ) {
-      return $matches[1];
-    }
+    if (isset($_SERVER['HTTP_HOST'])) {
+      # This theoretically will match ipv6 addresses as well
+      if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER['HTTP_HOST'], $matches ) ) {
+        return $matches[1];
+      }
 
-    $result = explode(':', $_SERVER['HTTP_HOST']);
-    return $result[0];
+      $result = explode(':', $_SERVER['HTTP_HOST']);
+      return $result[0];
+    }
+    return '';
   }
 
   public function Protocol( $new = null ) {

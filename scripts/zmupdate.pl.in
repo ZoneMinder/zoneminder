@@ -27,7 +27,7 @@ zmupdate.pl - check and upgrade ZoneMinder database
 
 =head1 SYNOPSIS
 
-zmupdate.pl -c,--check | -f,--freshen | -v<version>,--version=<version> [-u<dbuser> -p<dbpass>]
+zmupdate.pl -c,--check | -f,--freshen | -v<version>,--version=<version> [-u <dbuser> -p <dbpass>]
 
 =head1 DESCRIPTION
 

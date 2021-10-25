@@ -134,6 +134,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       if (max_video_packet_count > 0) {
         while (packet_counts[video_stream_id] > max_video_packet_count) {
           Error("Unable to free up older packets.  Waiting.");
+          condition.notify_all();
           condition.wait(lck);
           if (deleting or zm_terminate)
             return false;
@@ -179,6 +180,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   // So start at the beginning, counting video packets until the next keyframe.  
   // Then if deleting those packets doesn't break 1 and 2, then go ahead and delete them.
   if (deleting) return;
+  if (!pktQueue.size()) return;
 
   if (keep_keyframes and ! (
         add_packet->packet.stream_index == video_stream_id
@@ -197,7 +199,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     return;
   }
   std::unique_lock<std::mutex> lck(mutex);
-  if (!pktQueue.size()) return;
 
   // If analysis_it isn't at the end, we need to keep that many additional packets
   int tail_count = 0;
@@ -257,15 +258,12 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     ++it;
     delete lp;
 
-    if (it == pktQueue.end()) {
-      Debug(1, "Hit end already");
-      it = pktQueue.begin();
-    } else {
     // Since we have many packets in the queue, we should NOT be pointing at end so don't need to test for that
     while (*it != add_packet) {
       zm_packet = *it;
       lp = new ZMLockedPacket(zm_packet);
       if (!lp->trylock()) {
+        Debug(3, "Failed locking packet %d", zm_packet->image_index);
         delete lp;
         break;
       }
@@ -282,17 +280,16 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
           next_front = it;
         }
         ++video_packets_to_delete;
-          Debug(4, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
-              video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
+        Debug(3, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+            video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
         if (packet_counts[video_stream_id] - video_packets_to_delete <= pre_event_video_packet_count + tail_count) {
           break;
         }
       }
       ++it;
     } // end while
-    }
   }  // end if first packet not locked
-  Debug(1, "Resulting pointing at latest packet? %d, next front points to begin? %d",
+  Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d",
       ( *it == add_packet ),
       ( next_front == pktQueue.begin() )
       );
@@ -325,6 +322,8 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 void PacketQueue::clear() {
   deleting = true;
   condition.notify_all();
+  if (!packet_counts) // special case, not initialised
+    return;
   Debug(1, "Clearing packetqueue");
   std::unique_lock<std::mutex> lck(mutex);
 
@@ -661,4 +660,13 @@ void PacketQueue::setPreEventVideoPackets(int p) {
   if (pre_event_video_packet_count < 1)
     pre_event_video_packet_count = 1;
   // We can simplify a lot of logic in queuePacket if we can assume at least 1 packet in queue
+}
+
+void PacketQueue::notify_all() {
+  condition.notify_all();
+};
+
+void PacketQueue::wait() {
+  std::unique_lock<std::mutex> lck(mutex);
+  condition.wait(lck);
 }

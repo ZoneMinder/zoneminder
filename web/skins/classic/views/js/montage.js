@@ -7,23 +7,23 @@ function selectLayout(element) {
   var ddm = $j('#zmMontageLayout');
   layout = ddm.val();
 
-  if ( layout_id = parseInt(layout) ) {
+  if (layout_id = parseInt(layout)) {
     layout = layouts[layout];
 
-    for ( var i = 0, length = monitors.length; i < length; i++ ) {
+    for (var i = 0, length = monitors.length; i < length; i++) {
       monitor = monitors[i];
       // Need to clear the current positioning, and apply the new
 
       monitor_frame = $j('#monitorFrame'+monitor.id);
-      if ( !monitor_frame ) {
+      if (!monitor_frame) {
         console.log('Error finding frame for ' + monitor.id);
         continue;
       }
 
       // Apply default layout options, like float left
-      if ( layout.Positions['default'] ) {
+      if (layout.Positions['default'] ) {
         styles = layout.Positions['default'];
-        for ( style in styles ) {
+        for (style in styles) {
           console.log("Applying " + style + ' ' + styles[style]);
           monitor_frame.css(style, styles[style]);
         }
@@ -31,60 +31,71 @@ function selectLayout(element) {
         console.log("No default styles to apply" + layout.Positions);
       } // end if default styles
 
-      if ( layout.Positions['mId'+monitor.id] ) {
+      if (layout.Positions['mId'+monitor.id]) {
         styles = layout.Positions['mId'+monitor.id];
-        for ( style in styles ) {
+        for (style in styles) {
           monitor_frame.css(style, styles[style]);
         }
-      } else {
-        console.log("No Monitor styles to apply");
       } // end if specific monitor style
     } // end foreach monitor
+    setCookie('zmMontageLayout', layout_id, 3600);
+    if (layouts[layout_id].Name != 'Freeform') { // 'montage_freeform.css' ) {
+      // For freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
+      setCookie('zmMontageScale', '', 3600);
+      $j('#scale').val('');
+      $j('#width').val('0');
+    }
   } // end if a stored layout
-  if ( ! layout ) {
+  if (!layout) {
+    console.log('No layout?');
     return;
-  }
-  setCookie('zmMontageLayout', layout_id, 3600);
-  if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
-    setCookie('zmMontageScale', '', 3600);
-    $j('#scale').val('');
-    $j('#width').val('0');
-  } else {
-    // Is freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
   }
   var width = parseInt($j('#width').val());
   var height = parseInt($j('#height').val());
   var scale = $j('#scale').val();
 
-  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+  for (var i = 0, length = monitors.length; i < length; i++) {
     var monitor = monitors[i];
 
-    if ( scale ) {
+    var stream_scale = 0;
+    if (scale) {
       stream_scale = scale;
-    } else if ( width ) {
+    } else if (width) {
       stream_scale = parseInt(100*width/monitor.width);
-    } else if ( height ) {
+    } else if (height) {
       stream_scale = parseInt(100*height/monitor.height);
-    }
-    var streamImg = document.getElementById('liveStream'+monitor.id);
-    if ( streamImg ) {
-      if ( streamImg.nodeName == 'IMG' ) {
-        var src = streamImg.src;
-        src = src.replace(/scale=\d*/i, 'scale='+scale);
-        if ( height == '0' ) {
-          streamImg.style.height = 'auto';
-        }
-        if ( src != streamImg.src ) {
-          streamImg.src = '';
-          streamImg.src = src;
-        }
-      } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
-        // APPLET's and OBJECTS need to be re-initialized
+    } else if (layouts[layout_id].Name != 'Freeform') {
+      monitor_frame = $j('#monitorFrame'+monitor.id);
+      console.log("Monitor frame width : " + monitor_frame.width() + " monitor Width: " + monitor.width);
+      if (monitor_frame.width() < monitor.width) {
+        stream_scale = parseInt(100 * monitor_frame.width() / monitor.width);
+        // Round to a multiple of 5, so 53 become 50% etc
+        stream_scale = Math.floor(stream_scale/5)*5;
       }
-      streamImg.style.width = '100%';
     }
+    setStreamScale('liveStream'+monitor.id, stream_scale, width, height);
   } // end foreach monitor
 } // end function selectLayout(element)
+
+function setStreamScale(element_id, scale, width, height) {
+  var streamImg = document.getElementById(element_id);
+  if (streamImg) {
+    if (streamImg.nodeName == 'IMG') {
+      var src = streamImg.src;
+      src = src.replace(/scale=\d*/i, 'scale='+scale);
+      if (height == '0') {
+        streamImg.style.height = 'auto';
+      }
+      if (src != streamImg.src) {
+        streamImg.src = '';
+        streamImg.src = src;
+      }
+    } else if (streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT') {
+      // APPLET's and OBJECTS need to be re-initialized
+    }
+    //streamImg.style.width = '100%';
+  }
+}
 
 /**
  * called when the widthControl|heightControl select elements are changed

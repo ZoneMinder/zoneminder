@@ -89,7 +89,7 @@ std::string load_monitor_sql =
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`,"
-"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-2 FROM `Monitors`";
+"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1 FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
   "Local",
@@ -151,12 +151,12 @@ bool Monitor::MonitorLink::connect() {
     Debug(1, "link.mem.size=%jd", mem_size);
 #if ZM_MEM_MAPPED
     map_fd = open(mem_file.c_str(), O_RDWR, (mode_t)0600);
-    if ( map_fd < 0 ) {
+    if (map_fd < 0) {
       Debug(3, "Can't open linked memory map file %s: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
     }
-    while ( map_fd <= 2 ) {
+    while (map_fd <= 2) {
       int new_map_fd = dup(map_fd);
       Warning("Got one of the stdio fds for our mmap handle. map_fd was %d, new one is %d", map_fd, new_map_fd);
       close(map_fd);
@@ -164,31 +164,31 @@ bool Monitor::MonitorLink::connect() {
     }
 
     struct stat map_stat;
-    if ( fstat(map_fd, &map_stat) < 0 ) {
+    if (fstat(map_fd, &map_stat) < 0) {
       Error("Can't stat linked memory map file %s: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
     }
 
-    if ( map_stat.st_size == 0 ) {
+    if (map_stat.st_size == 0) {
       Error("Linked memory map file %s is empty: %s", mem_file.c_str(), strerror(errno));
       disconnect();
       return false;
-    } else if ( map_stat.st_size < mem_size ) {
+    } else if (map_stat.st_size < mem_size) {
       Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, mem_size);
       disconnect();
       return false;
     }
 
     mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
-    if ( mem_ptr == MAP_FAILED ) {
+    if (mem_ptr == MAP_FAILED) {
       Error("Can't map file %s (%jd bytes) to memory: %s", mem_file.c_str(), mem_size, strerror(errno));
       disconnect();
       return false;
     }
 #else // ZM_MEM_MAPPED
     shm_id = shmget((config.shm_key&0xffff0000)|id, mem_size, 0700);
-    if ( shm_id < 0 ) {
+    if (shm_id < 0) {
       Debug(3, "Can't shmget link memory: %s", strerror(errno));
       connected = false;
       return false;
@@ -444,7 +444,7 @@ Monitor::Monitor()
  "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
  "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
  "`RTSPServer`,`RTSPStreamName`,
- "SignalCheckPoints, SignalCheckColour, Importance-2 FROM Monitors";
+ "SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors";
 */
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
@@ -481,8 +481,18 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   Debug(1, "Have camera type %s", CameraType_Strings[type].c_str());
   col++;
   function = (Function)atoi(dbrow[col]); col++;
-  enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
-  decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  decoding_enabled = !(
+      ( function == RECORD or function == NODECT )
+      and
+      ( savejpegs == 0 )
+      and
+      ( videowriter == PASSTHROUGH )
+      and
+      !decoding_enabled
+      );
+  Debug(1, "Decoding enabled: %d", decoding_enabled);
 
   ReloadLinkedMonitors(dbrow[col]); col++;
 
@@ -594,7 +604,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   rtsp_server = (*dbrow[col] != '0'); col++;
   rtsp_streamname = dbrow[col]; col++;
 
- /*"SignalCheckPoints, SignalCheckColour, Importance-2 FROM Monitors"; */
+ /*"SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors"; */
   signal_check_points = atoi(dbrow[col]); col++;
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
 
@@ -606,6 +616,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
 
   importance = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
+  if (importance < 0) importance = 0; // Should only be >= 0
 
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
@@ -652,18 +663,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
     }
-
-    // Do this here to save a few cycles with all the comparisons
-    decoding_enabled = !(
-        ( function == RECORD or function == NODECT )
-        and
-        ( savejpegs == 0 )
-        and
-        ( videowriter == PASSTHROUGH )
-        and
-        !decoding_enabled
-        );
-    Debug(1, "Decoding enabled: %d", decoding_enabled);
 
     if ( config.record_diag_images ) {
       if ( config.record_diag_images_fifo ) {
@@ -1061,7 +1060,13 @@ bool Monitor::disconnect() {
     return true;
   }
 
-  shared_data->valid = false;
+  if (purpose == CAPTURE) {
+    if (unlink(mem_file.c_str()) < 0) {
+      Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
+    }
+    Debug(1, "Setting shared_data->valid = false");
+    shared_data->valid = false;
+  }
 #if ZM_MEM_MAPPED
   msync(mem_ptr, mem_size, MS_ASYNC);
   munmap(mem_ptr, mem_size);
@@ -1071,9 +1076,6 @@ bool Monitor::disconnect() {
   mem_ptr = nullptr;
   shared_data = nullptr;
 
-  if (purpose == CAPTURE and (unlink(mem_file.c_str()) < 0) ) {
-    Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
-  }
 #else // ZM_MEM_MAPPED
   struct shmid_ds shm_data;
   if (shmctl(shm_id, IPC_STAT, &shm_data) < 0) {
@@ -1094,7 +1096,7 @@ bool Monitor::disconnect() {
   }
 #endif // ZM_MEM_MAPPED
 
-  for ( int32_t i = 0; i < image_buffer_count; i++ ) {
+  for (int32_t i = 0; i < image_buffer_count; i++) {
     // We delete the image because it is an object pointing to space that won't be free'd.
     delete image_buffer[i];
     image_buffer[i] = nullptr;
@@ -1108,10 +1110,6 @@ Monitor::~Monitor() {
 
   if (mem_ptr != nullptr) {
     if (purpose != QUERY) {
-      shared_data->state = state = IDLE;
-      shared_data->last_read_index = image_buffer_count;
-      shared_data->last_read_time = 0;
-      shared_data->valid = false;
       memset(mem_ptr, 0, mem_size);
     }  // end if purpose != query
     disconnect();
@@ -1744,10 +1742,6 @@ bool Monitor::Analyse() {
     return false;
   }
 
-  // Store the it that points to our snap we will need it later
-  packetqueue_iterator snap_it = *analysis_it;
-  packetqueue.increment_it(analysis_it);
-
   // signal is set by capture
   bool signal = shared_data->signal;
   bool signal_change = (signal != last_signal);
@@ -1857,7 +1851,14 @@ bool Monitor::Analyse() {
           while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
             // Need to wait for the decoder thread.
             Debug(1, "Waiting for decode");
-            packet_lock->wait();
+            packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
+            packetqueue.wait();
+
+            // Another thread may have moved our it. Unlikely but possible
+            packet_lock = packetqueue.get_packet(analysis_it);
+            if (!packet_lock) return false;
+            snap = packet_lock->packet_;
+
             if (!snap->image and snap->decoded) {
               Debug(1, "No image but was decoded, giving up");
               delete packet_lock;
@@ -1960,14 +1961,14 @@ bool Monitor::Analyse() {
               // Must start on a keyframe so rewind. Only for passthrough though I guess.
               // FIXME this iterator is not protected from invalidation
               packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                  snap_it, 0 /* pre_event_count */
+                  *analysis_it, 0 /* pre_event_count */
                   );
 
               // This gets a lock on the starting packet
 
               ZMLockedPacket *starting_packet_lock = nullptr;
               std::shared_ptr<ZMPacket> starting_packet = nullptr;
-              if (*start_it != snap_it) {
+              if (*start_it != *analysis_it) {
                 starting_packet_lock = packetqueue.get_packet(start_it);
                 if (!starting_packet_lock) {
                   Warning("Unable to get starting packet lock");
@@ -1981,12 +1982,12 @@ bool Monitor::Analyse() {
 
               event = new Event(this, starting_packet->timestamp, "Continuous", noteSetMap);
               // Write out starting packets, do not modify packetqueue it will garbage collect itself
-              while (starting_packet and ((*start_it) != snap_it)) {
+              while (starting_packet and ((*start_it) != *analysis_it)) {
                 event->AddPacket(starting_packet);
                 // Have added the packet, don't want to unlock it until we have locked the next
 
                 packetqueue.increment_it(start_it);
-                if ((*start_it) == snap_it) {
+                if ((*start_it) == *analysis_it) {
                   if (starting_packet_lock) delete starting_packet_lock;
                   break;
                 }
@@ -2025,8 +2026,7 @@ bool Monitor::Analyse() {
           } // end if ! event
         } // end if RECORDING
 
-        if (score) {
-
+        if (score and (function != MONITOR)) {
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             // If we should end then previous continuous event and start a new non-continuous event
             if (event && event->Frames()
@@ -2064,12 +2064,12 @@ bool Monitor::Analyse() {
 
               if (!event) {
                 packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                    snap_it,
+                    *analysis_it,
                     (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
                     );
                 ZMLockedPacket *starting_packet_lock = nullptr;
                 std::shared_ptr<ZMPacket> starting_packet = nullptr;
-                if (*start_it != snap_it) {
+                if (*start_it != *analysis_it) {
                   starting_packet_lock = packetqueue.get_packet(start_it);
                   if (!starting_packet_lock) return false;
                   starting_packet = starting_packet_lock->packet_;
@@ -2084,11 +2084,11 @@ bool Monitor::Analyse() {
                 shared_data->state = state = ALARM;
 
                 // Write out starting packets, do not modify packetqueue it will garbage collect itself
-                while (*start_it != snap_it) {
+                while (*start_it != *analysis_it) {
                   event->AddPacket(starting_packet);
 
                   packetqueue.increment_it(start_it);
-                  if ( (*start_it) == snap_it ) {
+                  if ( (*start_it) == (*analysis_it) ) {
                     if (starting_packet_lock) delete starting_packet_lock;
                     break;
                   }
@@ -2279,6 +2279,7 @@ bool Monitor::Analyse() {
     if (function == MODECT or function == MOCORD)
       UpdateAnalysisFPS();
   }
+  packetqueue.increment_it(analysis_it);
   packetqueue.unlock(packet_lock);
   shared_data->last_read_time = time(nullptr);
 
@@ -3057,7 +3058,7 @@ int Monitor::PrimeCapture() {
       Debug(1, "Creating decoder thread");
       decoder = ZM::make_unique<DecoderThread>(this);
     } else {
-      Debug(1, "Restartg decoder thread");
+      Debug(1, "Restarting decoder thread");
       decoder->Start();
     }
   }

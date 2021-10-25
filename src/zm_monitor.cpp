@@ -86,6 +86,7 @@ std::string load_monitor_sql =
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1 FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
+  "Unknown",
   "Local",
   "Remote",
   "File",
@@ -93,10 +94,21 @@ std::string CameraType_Strings[] = {
   "LibVLC",
   "NVSOCKET",
   "CURL",
-  "VNC",
+  "VNC"
+};
+
+std::string Function_Strings[] = {
+  "Unknown",
+  "None",
+  "Monitor",
+  "Modect",
+  "Record",
+  "Mocord",
+  "Nodect"
 };
 
 std::string State_Strings[] = {
+  "Unknown",
   "IDLE",
   "PREALARM",
   "ALARM",
@@ -474,16 +486,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   function = (Function)atoi(dbrow[col]); col++;
   enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
-  decoding_enabled = !(
-      ( function == RECORD or function == NODECT )
-      and
-      ( savejpegs == 0 )
-      and
-      ( videowriter == PASSTHROUGH )
-      and
-      !decoding_enabled
-      );
-  Debug(1, "Decoding enabled: %d", decoding_enabled);
+  // See below after save_jpegs for a recalculation of decoding_enabled
 
   ReloadLinkedMonitors(dbrow[col]); col++;
 
@@ -551,6 +554,17 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   savejpegs = atoi(dbrow[col]); col++;
   videowriter = (VideoWriter)atoi(dbrow[col]); col++;
   encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
+
+  decoding_enabled = !(
+      ( function == RECORD or function == NODECT )
+      and
+      ( savejpegs == 0 )
+      and
+      ( videowriter == PASSTHROUGH )
+      and
+      !decoding_enabled
+      );
+  Debug(3, "Decoding enabled: %d function %d %s savejpegs %d videowriter %d", decoding_enabled, function, Function_Strings[function].c_str(), savejpegs, videowriter);
 
 /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
   output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;

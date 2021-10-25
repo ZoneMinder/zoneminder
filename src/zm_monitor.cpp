@@ -92,6 +92,7 @@ std::string load_monitor_sql =
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1 FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
+  "Unknown",
   "Local",
   "Remote",
   "File",
@@ -99,10 +100,21 @@ std::string CameraType_Strings[] = {
   "LibVLC",
   "NVSOCKET",
   "CURL",
-  "VNC",
+  "VNC"
+};
+
+std::string Function_Strings[] = {
+  "Unknown",
+  "None",
+  "Monitor",
+  "Modect",
+  "Record",
+  "Mocord",
+  "Nodect"
 };
 
 std::string State_Strings[] = {
+  "Unknown",
   "IDLE",
   "PREALARM",
   "ALARM",
@@ -204,7 +216,7 @@ bool Monitor::MonitorLink::connect() {
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
 
-    if ( !shared_data->valid ) {
+    if (!shared_data->valid) {
       Debug(3, "Linked memory not initialised by capture daemon");
       disconnect();
       return false;
@@ -220,23 +232,23 @@ bool Monitor::MonitorLink::connect() {
 } // end bool Monitor::MonitorLink::connect()
 
 bool Monitor::MonitorLink::disconnect() {
-  if ( connected ) {
+  if (connected) {
     connected = false;
 
 #if ZM_MEM_MAPPED
-    if ( mem_ptr > (void *)0 ) {
-      msync( mem_ptr, mem_size, MS_ASYNC );
-      munmap( mem_ptr, mem_size );
+    if (mem_ptr > (void *)0) {
+      msync(mem_ptr, mem_size, MS_ASYNC);
+      munmap(mem_ptr, mem_size);
     }
-    if ( map_fd >= 0 )
-      close( map_fd );
+    if (map_fd >= 0)
+      close(map_fd);
 
     map_fd = -1;
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
-    if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 ) {
-      Debug( 3, "Can't shmctl: %s", strerror(errno) );
-      return( false );
+    if (shmctl(shm_id, IPC_STAT, &shm_data) < 0) {
+      Debug(3, "Can't shmctl: %s", strerror(errno));
+      return false;
     }
 
     shm_id = 0;
@@ -252,7 +264,6 @@ bool Monitor::MonitorLink::disconnect() {
       Debug(3, "Can't shmdt: %s", strerror(errno));
       return false;
     }
-
 #endif // ZM_MEM_MAPPED
     mem_size = 0;
     mem_ptr = nullptr;
@@ -484,16 +495,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   function = (Function)atoi(dbrow[col]); col++;
   enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
-  decoding_enabled = !(
-      ( function == RECORD or function == NODECT )
-      and
-      ( savejpegs == 0 )
-      and
-      ( videowriter == PASSTHROUGH )
-      and
-      !decoding_enabled
-      );
-  Debug(1, "Decoding enabled: %d", decoding_enabled);
+  // See below after save_jpegs for a recalculation of decoding_enabled
 
   ReloadLinkedMonitors(dbrow[col]); col++;
 
@@ -555,6 +557,17 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   savejpegs = atoi(dbrow[col]); col++;
   videowriter = (VideoWriter)atoi(dbrow[col]); col++;
   encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
+
+  decoding_enabled = !(
+      ( function == RECORD or function == NODECT )
+      and
+      ( savejpegs == 0 )
+      and
+      ( videowriter == PASSTHROUGH )
+      and
+      !decoding_enabled
+      );
+  Debug(3, "Decoding enabled: %d function %d %s savejpegs %d videowriter %d", decoding_enabled, function, Function_Strings[function].c_str(), savejpegs, videowriter);
 
 /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
   output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
@@ -898,7 +911,6 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
 }
 
 bool Monitor::connect() {
-
   if (mem_ptr != nullptr) {
     Warning("Already connected. Please call disconnect first.");
   }
@@ -1040,7 +1052,7 @@ bool Monitor::connect() {
     video_store_data->size = sizeof(VideoStoreData);
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
-  } else if ( !shared_data->valid ) {
+  } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   }

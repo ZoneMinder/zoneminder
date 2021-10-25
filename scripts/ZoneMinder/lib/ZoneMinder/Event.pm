@@ -756,9 +756,9 @@ sub CopyTo {
 } # end sub CopyTo
 
 sub MoveTo {
-  my ( $self, $NewStorage ) = @_;
+  my ($self, $NewStorage) = @_;
 
-  if ( !$self->canEdit() ) {
+  if (!$self->canEdit()) {
     Warning('No permission to move event.');
     return 'No permission to move event.';
   }
@@ -772,11 +772,9 @@ sub MoveTo {
   $$self{StorageId} = $$NewStorage{Id};
   $self->Storage($NewStorage);
   $error .= $self->save();
-  if ( $error ) {
-    $ZoneMinder::Database::dbh->commit();
+  if ($error) {
     return $error;
   }
-  $ZoneMinder::Database::dbh->commit();
   $self->delete_files($OldStorage);
   return $error;
 } # end sub MoveTo

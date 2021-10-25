@@ -85,20 +85,22 @@ my $sth = $dbh->prepare_cached($sql)
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
 
 while (!$zm_terminate) {
-  while ( ! ( $dbh and $dbh->ping() ) ) {
-    if ( ! ( $dbh = zmDbConnect() ) ) {
+  while (!($dbh and $dbh->ping())) {
+    if (!($dbh = zmDbConnect())) {
       sleep($Config{ZM_WATCH_CHECK_INTERVAL});
     }
   }
 
-  my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
+  my $res = $sth->execute($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : ())
     or Fatal('Can\'t execute: '.$sth->errstr());
-  while( my $monitor = $sth->fetchrow_hashref() ) {
+  while (my $monitor = $sth->fetchrow_hashref()) {
     next if $monitor->{Function} eq 'None';
     next if $monitor->{Type} eq 'WebSite';
     my $now = time(); 
     my $restart = 0;
     if (zmMemVerify($monitor)) {
+      next if $monitor->{Capturing} eq 'Ondemand';
+
 # Check we have got an image recently
       my $capture_time = zmGetLastWriteTime($monitor);
       if (!defined($capture_time)) {

@@ -60,6 +60,9 @@ class Filter extends ZM_Object {
       foreach ( $this->FilterTerms() as $term ) {
         $this->_querystring .= $term->querystring($objectname, $separator);
       } # end foreach term
+      $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_asc]').'='.$this->sort_asc();
+      $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_field]').'='.$this->sort_field();
+      $this->_querystring .= $separator.urlencode($objectname.'[Query][limit]').'='.$this->limit();
       if ( $this->Id() ) {
         $this->_querystring .= $separator.$objectname.urlencode('[Id]').'='.$this->Id();
       }

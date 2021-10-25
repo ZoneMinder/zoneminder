@@ -249,6 +249,11 @@ int main(int argc, char *argv[]) {
           monitor->Id());
       zmDbDo(sql);
 
+      while ((monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) and !monitor->hasViewers()) {
+        Debug(1, "ONDEMAND and no Viewers.  Sleeping");
+        sleep(1);
+      }
+
       Seconds sleep_time = Seconds(0);
       while (monitor->PrimeCapture() <= 0) {
         if (prime_capture_log_count % 60) {
@@ -286,9 +291,13 @@ int main(int argc, char *argv[]) {
     Microseconds sleep_time = Microseconds(0);
 
     while (!zm_terminate) {
-      //sigprocmask(SIG_BLOCK, &block_set, 0);
       for (size_t i = 0; i < monitors.size(); i++) {
         monitors[i]->CheckAction();
+
+        if (monitors[i]->Capturing() == Monitor::CAPTURING_ONDEMAND and !monitors[i]->hasViewers()) {
+          result = 0;
+          continue;
+        }
 
         if (monitors[i]->PreCapture() < 0) {
           Error("Failed to pre-capture monitor %d %s (%zu/%zu)",

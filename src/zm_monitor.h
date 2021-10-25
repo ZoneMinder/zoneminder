@@ -499,6 +499,11 @@ public:
     return storage;
   }
   inline CameraType GetType() const { return type; }
+  
+  CapturingOption Capturing() const { return capturing; }
+  AnalysingOption Analysing() const { return analysing; }
+  RecordingOption Recording() const { return recording; }
+
   inline Function GetFunction() const { return function; }
   inline PacketQueue * GetPacketQueue() { return &packetqueue; }
   inline bool Enabled() const {
@@ -534,9 +539,12 @@ public:
   }
   bool hasViewers() {
     if (shared_data && shared_data->valid) {
-      TimePoint now = std::chrono::steady_clock::now();;
+      TimePoint now = std::chrono::steady_clock::now();
       return (
-          (shared_data->last_viewed_time - static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
+          (
+           static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
+           - 
+           shared_data->last_viewed_time
           ) > 1 ? false : true);
     }
     return false;

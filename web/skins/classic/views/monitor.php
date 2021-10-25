@@ -87,38 +87,37 @@ if (isset($_REQUEST['newMonitor'])) {
 }
 
 # What if it has less zeros?  This is not robust code.
-if ( $monitor->AnalysisFPSLimit() == '0.00' )
+if ($monitor->AnalysisFPSLimit() == '0.00')
   $monitor->AnalysisFPSLimit('');
-if ( $monitor->MaxFPS() == '0.00' )
+if ($monitor->MaxFPS() == '0.00')
   $monitor->MaxFPS('');
-if ( $monitor->AlarmMaxFPS() == '0.00' )
+if ($monitor->AlarmMaxFPS() == '0.00')
   $monitor->AlarmMaxFPS('');
 
-if ( !empty($_REQUEST['preset']) ) {
-  $preset = dbFetchOne( 'SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']) );
-  foreach ( $preset as $name=>$value ) {
+if (!empty($_REQUEST['preset'])) {
+  $preset = dbFetchOne('SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']));
+  foreach ($preset as $name=>$value) {
     # Does isset handle NULL's?  I don't think this code is correct.
     # Icon: It does, but this means we can't set a null value.
-    if ( isset($value) ) {
+    if (isset($value)) {
       $monitor->$name($value);
     }
   }
 } # end if preset
 
-if ( !empty($_REQUEST['probe']) ) {
+if (!empty($_REQUEST['probe'])) {
   $probe = json_decode(base64_decode($_REQUEST['probe']));
-  foreach ( $probe as $name=>$value ) {
-    if ( isset($value) ) {
-      # Does isset handle NULL's?  I don't think this code is correct.
+  foreach ($probe as $name=>$value) {
+    if (isset($value)) {
       $monitor->$name = urldecode($value);
     }
   }
-  if ( ZM_HAS_V4L2 && $monitor->Type() == 'Local' ) {
-    $monitor->Palette( fourCC( substr($monitor->Palette,0,1), substr($monitor->Palette,1,1), substr($monitor->Palette,2,1), substr($monitor->Palette,3,1) ) );
-    if ( $monitor->Format() == 'PAL' )
-      $monitor->Format( 0x000000ff );
-    elseif ( $monitor->Format() == 'NTSC' )
-      $monitor->Format( 0x0000b000 );
+  if (ZM_HAS_V4L2 && ($monitor->Type() == 'Local')) {
+    $monitor->Palette(fourCC(substr($monitor->Palette,0,1), substr($monitor->Palette,1,1), substr($monitor->Palette,2,1), substr($monitor->Palette,3,1)));
+    if ($monitor->Format() == 'PAL')
+      $monitor->Format(0x000000ff);
+    else if ($monitor->Format() == 'NTSC')
+      $monitor->Format(0x0000b000);
   }
 } # end if apply probe settings
 
@@ -133,14 +132,14 @@ $sourceTypes = array(
     'NVSocket'	=> translate('NVSocket'),
     'VNC' => translate('VNC'),
     );
-if ( !ZM_HAS_V4L2 )
+if (!ZM_HAS_V4L2)
   unset($sourceTypes['Local']);
 
 $localMethods = array(
     'v4l2' => 'Video For Linux version 2',
     );
 
-if ( !ZM_HAS_V4L2 )
+if (!ZM_HAS_V4L2)
   unset($localMethods['v4l2']);
 
 $remoteProtocols = array(
@@ -168,12 +167,12 @@ $httpMethods = array(
     'jpegTags' => 'JPEG Tags'
     );
 
-if ( !ZM_PCRE )
+if (!ZM_PCRE)
   unset($httpMethods['regexp']);
   // Currently unsupported
 unset($httpMethods['jpegTags']);
 
-if ( ZM_HAS_V4L2 ) {
+if (ZM_HAS_V4L2) {
   $v4l2DeviceFormats = array(
     0x000000ff => 'PAL',
     0x0000b000 => 'NTSC',
@@ -207,7 +206,7 @@ if ( ZM_HAS_V4L2 ) {
 
   $v4l2MaxChannels = 31;
   $v4l2DeviceChannels = array();
-  for ( $i = 0; $i <= $v4l2MaxChannels; $i++ )
+  for ($i = 0; $i <= $v4l2MaxChannels; $i++)
     $v4l2DeviceChannels[$i] = $i;
 
   $v4l2LocalPalettes = array(
@@ -351,7 +350,7 @@ $label_size = array(
 
 $codecs = array(
   'auto'  => translate('Auto'),
-  'MP4'  => translate('MP4'),
+  'MP4'   => translate('MP4'),
   'MJPEG' => translate('MJPEG'),
 );
 
@@ -362,11 +361,10 @@ xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name())
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
-  <div id="page" class="container-fluid">
-
+<div id="page" class="container-fluid">
   <div class="row flex-nowrap">
     <nav>  <!-- BEGIN PILL LIST -->
-    <ul class="nav nav-pills flex-column h-100" id="pills-tab" role="tablist" aria-orientation="vertical">
+      <ul class="nav nav-pills flex-column h-100" id="pills-tab" role="tablist" aria-orientation="vertical">
 <?php
 $tabs = array();
 $tabs['general'] = translate('General');
@@ -389,7 +387,7 @@ if ( isset($_REQUEST['tab']) )
 else
   $tab = 'general';
 
-foreach ( $tabs as $name=>$value ) {
+foreach ($tabs as $name=>$value) {
 ?>
     <li class="nav-item form-control-sm my-1">
       <a 
@@ -397,7 +395,7 @@ foreach ( $tabs as $name=>$value ) {
         role="tab"
         data-toggle="pill"
         class="nav-link<?php echo $tab == $name ? ' active' : '' ?>"
-          href="#pills-<?php echo $name?>"
+        href="#pills-<?php echo $name?>"
         aria-controls="pills-<?php echo $name?>"
         aria-selected="<?php echo $tab == $name ? 'true':'false'?>"
       ><?php echo $value ?></a></li>
@@ -405,9 +403,9 @@ foreach ( $tabs as $name=>$value ) {
 }
   ?>
     </ul>
-    </nav> <!-- END PILL LIST -->
+  </nav> <!-- END PILL LIST -->
 
-<div class="d-flex flex-column col-sm-offset-2 container-fluid">
+  <div class="d-flex flex-column col-sm-offset-2 container-fluid">
     <!-- BEGIN MINI HEADER -->
     <div class="d-flex flex-row justify-content-between px-3 py-1">
       <div class="" id="toolbar" >
@@ -415,10 +413,10 @@ foreach ( $tabs as $name=>$value ) {
         <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       </div>
       
-    <h2><?php echo translate('Monitor') ?> - <?php echo validHtmlStr($monitor->Name()) ?><?php if ( $monitor->Id() ) { ?> (<?php echo $monitor->Id()?>)<?php } ?></h2>
+    <h2><?php echo translate('Monitor').' - '.validHtmlStr($monitor->Name()) .($monitor->Id()? $monitor->Id() : '') ?></h2>
 <?php
-if ( canEdit('Monitors') ) {
-  if ( isset($_REQUEST['dupId']) ) {
+if (canEdit('Monitors')) {
+  if (isset($_REQUEST['dupId'])) {
 ?>
     <div class="alert alert-info">
       Configuration cloned from Monitor: <?php echo validHtmlStr($clonedName) ?>
@@ -438,19 +436,19 @@ if ( canEdit('Monitors') ) {
 
     <!-- BEGIN ITEM LIST -->
     <div class="d-flex flex-row container-fluid pr-0">
-    <form name="contentForm" id="contentForm" method="post" action="?view=monitor">
-      <input type="hidden" name="tab" value="<?php echo $tab?>"/>
-      <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>
-      <input type="hidden" name="origMethod" value="<?php echo (null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
-<div class="tab-content" id="pills-tabContent">
+      <form name="contentForm" id="contentForm" method="post" action="?view=monitor">
+        <input type="hidden" name="tab" value="<?php echo $tab?>"/>
+        <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>
+        <input type="hidden" name="origMethod" value="<?php echo (null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
+        <div class="tab-content" id="pills-tabContent">
 <?php
-foreach ( $tabs as $name=>$value ) {
+foreach ($tabs as $name=>$value) {
   echo '<div id="pills-'.$name.'" class="tab-pane fade'.($name==$tab ? ' show active' : '').'" role="tabpanel" aria-labelledby="'.$name.'-tab">';
 ?>
-      <table class="major">
-        <tbody>
+          <table class="major">
+            <tbody>
 <?php
-switch ( $name ) {
+switch ($name) {
   case 'general' :
     {
       if (!$monitor->Id()) {
@@ -477,25 +475,32 @@ switch ( $name ) {
             <td class="text-right pr-3"><?php echo translate('Notes') ?></td>
             <td><textarea name="newMonitor[Notes]" rows="4"><?php echo validHtmlStr($monitor->Notes()) ?></textarea></td>
           </tr>
-          <tr>
+<?php 
+      $Servers = ZM\Server::find(NULL, array('order'=>'lower(Name)'));
+      if (count($Servers)) {
+?>
+          <tr class="Server">
             <td class="text-right pr-3"><?php echo translate('Server') ?></td><td>
 <?php
       $servers = array(''=>'None','auto'=>'Auto');
-      foreach (ZM\Server::find(NULL, array('order'=>'lower(Name)')) as $Server) {
+      foreach ($Servers as $Server) {
         $servers[$Server->Id()] = $Server->Name();
       }
       echo htmlSelect('newMonitor[ServerId]', $servers, $monitor->ServerId());
 ?>
             </td>
           </tr>
-          <tr>
+<?php 
+      } # end if count($Servers)
+?>
+          <tr class="Type">
             <td class="text-right pr-3"><?php echo translate('SourceType') ?></td>
             <td><?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?></td>
           </tr>
 <?php
-      if ( $monitor->Type() != 'WebSite' ) {
+      if ($monitor->Type() != 'WebSite') {
 ?>
-          <tr>
+          <tr class="Capturing">
             <td class="text-right pr-3"><?php echo translate('Capturing') ?></td>
             <td>
 <?php
@@ -512,22 +517,22 @@ switch ( $name ) {
               </div>
             </td>
           </tr>
-        <tr id="FunctionDecodingEnabled">
-          <td class="text-right pr-3"><?php echo translate('Decoding Enabled') ?></td>
-          <td><input type="checkbox" name="newMonitor[DecodingEnabled]" value="1"<?php echo $monitor->DecodingEnabled() ? ' checked="checked"' : '' ?>/>
+          <tr id="FunctionDecodingEnabled">
+            <td class="text-right pr-3"><?php echo translate('Decoding Enabled') ?></td>
+            <td><input type="checkbox" name="newMonitor[DecodingEnabled]" value="1"<?php echo $monitor->DecodingEnabled() ? ' checked="checked"' : '' ?>/>
 <?php
-  if ( isset($OLANG['FUNCTION_DECODING_ENABLED']) ) {
-    echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
-  }
+        if (isset($OLANG['FUNCTION_DECODING_ENABLED'])) {
+          echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
+        }
 ?>
-          </td>
-        </tr>
-        <tr>
-          <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
-          <td>
+            </td>
+          </tr>
+          <tr class="LinkedMonitors">
+            <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
+            <td>
 <?php
       $monitor_options = array();
-      foreach ( $monitors as $linked_monitor ) {
+      foreach ($monitors as $linked_monitor) {
         if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {
           $monitor_options[$linked_monitor['Id']] = validHtmlStr($linked_monitor['Name']);
         }
@@ -540,17 +545,17 @@ switch ( $name ) {
         array('class'=>'chosen','multiple'=>'multiple')
       );
 ?>
-          </td>
-        </tr>
-        <tr>
-          <td class="text-right pr-3"><?php echo translate('Groups'); ?></td>
-          <td><select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
-            echo htmlOptions(ZM\Group::get_dropdown_options(), $monitor->GroupIds());
-            ?></select></td>
-        </tr>
-        <tr>
-          <td class="text-right pr-3"><?php echo translate('Analysing') ?></td>
-          <td>
+            </td>
+          </tr>
+          <tr class="Groups">
+            <td class="text-right pr-3"><?php echo translate('Groups'); ?></td>
+            <td><select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
+              echo htmlOptions(ZM\Group::get_dropdown_options(), $monitor->GroupIds());
+              ?></select></td>
+          </tr>
+          <tr class="Analysing">
+            <td class="text-right pr-3"><?php echo translate('Analysing') ?></td>
+            <td>
 <?php
         echo htmlSelect('newMonitor[Analysing]', ZM\getMonitorAnalysingOptions(), $monitor->Analysing(), array('on-change-this'=>'Analysing_onChange'));
 
@@ -558,7 +563,7 @@ switch ( $name ) {
               <div id="Analysing_help">
 <?php
         foreach (ZM\getMonitorAnalysingOptions() as $fn => $translated) {
-          if ( isset($OLANG['ANALYSING_'.strtoupper($fn)]) ) {
+          if (isset($OLANG['ANALYSING_'.strtoupper($fn)])) {
             echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['ANALYSING_'.strtoupper($fn)]['Help'].'</div>';
           }
         }

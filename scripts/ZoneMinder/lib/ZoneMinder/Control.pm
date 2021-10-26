@@ -29,6 +29,7 @@ use strict;
 use warnings;
 
 require ZoneMinder::Base;
+require ZoneMinder::Object;
 require ZoneMinder::Monitor;
 
 our $VERSION = $ZoneMinder::Base::VERSION;
@@ -42,23 +43,115 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
+use parent qw(ZoneMinder::Object);
+
+use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
+$table = 'Controls';
+$serial = $primary_key = 'Id';
+%fields = map { $_ => $_ } qw(
+  Id
+  Name
+  Type
+  Protocol
+  CanWake
+  CanSleep
+  CanReset
+  CanReboot
+  CanZoom
+  CanAutoZoom
+  CanZoomAbs
+  CanZoomRel
+  CanZoomCon
+  MinZoomRange
+  MaxZoomRange
+  MinZoomStep
+  MaxZoomStep
+  HasZoomSpeed
+  MinZoomSpeed
+  MaxZoomSpeed
+  CanFocus
+  CanAutoFocus
+  CanFocusAbs
+  CanFocusRel
+  CanFocusCon
+  MinFocusRange
+  MaxFocusRange
+  MinFocusStep
+  MaxFocusStep
+  HasFocusSpeed
+  MinFocusSpeed
+  MaxFocusSpeed
+  CanIris
+  CanAutoIris
+  CanIrisAbs
+  CanIrisRel
+  CanIrisCon
+  MinIrisRange
+  MaxIrisRange
+  MinIrisStep
+  MaxIrisStep
+  HasIrisSpeed
+  MinIrisSpeed
+  MaxIrisSpeed
+  CanGain
+  CanAutoGain
+  CanGainAbs
+  CanGainRel
+  CanGainCon
+  MinGainRange
+  MaxGainRange
+  MinGainStep
+  MaxGainStep
+  HasGainSpeed
+  MinGainSpeed
+  MaxGainSpeed
+  CanWhite
+  CanAutoWhite
+  CanWhiteAbs
+  CanWhiteRel
+  CanWhiteCon
+  MinWhiteRange
+  MaxWhiteRange
+  MinWhiteStep
+  MaxWhiteStep
+  HasWhiteSpeed
+  MinWhiteSpeed
+  MaxWhiteSpeed
+  HasPresets
+  NumPresets
+  HasHomePreset
+  CanSetPresets
+  CanMove
+  CanMoveDiag
+  CanMoveMap
+  CanMoveAbs
+  CanMoveRel
+  CanMoveCon
+  CanPan
+  MinPanRange
+  MaxPanRange
+  MinPanStep
+  MaxPanStep
+  HasPanSpeed
+  MinPanSpeed
+  MaxPanSpeed
+  HasTurboPan
+  TurboPanSpeed
+  CanTilt
+  MinTiltRange
+  MaxTiltRange
+  MinTiltStep
+  MaxTiltStep
+  HasTiltSpeed
+  MinTiltSpeed
+  MaxTiltSpeed
+  HasTurboTilt
+  TurboTiltSpeed
+  CanAutoScan
+  NumScanPaths
+  );
+
 our $AUTOLOAD;
-
-sub new {
-  my $class = shift;
-  my $id = shift;
-  if ( !defined($id) ) {
-    Fatal('No monitor defined when invoking protocol '.$class);
-  }
-  my $self = {};
-  $self->{name} = $class;
-  $self->{id} = $id;
-  bless($self, $class);
-  return $self;
-}
-
-sub DESTROY {
-}
 
 sub AUTOLOAD {
   my $self = shift;
@@ -79,24 +172,24 @@ sub AUTOLOAD {
 
 sub getKey {
   my $self = shift;
-  return $self->{id};
+  return $self->{Id};
 }
 
 sub open {
   my $self = shift;
-  Fatal('No open method defined for protocol '.$self->{name});
+  Fatal('No open method defined for protocol '.$self->{Protocol});
 }
 
 sub close {
   my $self = shift;
   $self->{state} = 'closed';
-  Debug('No close method defined for protocol '.$self->{name});
+  Debug('No close method defined for protocol '.$self->{Protocol});
 }
 
 sub loadMonitor {
   my $self = shift;
   if ( !$self->{Monitor} ) {
-    if ( !($self->{Monitor} = ZoneMinder::Monitor->find_one(Id=>$self->{id})) ) {
+    if ( !($self->{Monitor} = ZoneMinder::Monitor->find_one(Id=>$self->{MonitorId})) ) {
       Fatal('Monitor id '.$self->{id}.' not found');
     }
     if ( defined($self->{Monitor}->{AutoStopTimeout}) ) {

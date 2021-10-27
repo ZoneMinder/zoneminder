@@ -35,6 +35,7 @@ require ZoneMinder::Storage;
 require ZoneMinder::Server;
 require ZoneMinder::Memory;
 require ZoneMinder::Monitor_Status;
+require ZoneMinder::Event_Summary;
 require ZoneMinder::Zone;
 
 #our @ISA = qw(Exporter ZoneMinder::Base);
@@ -264,6 +265,15 @@ sub Status {
     $$self{Status} = ZoneMinder::Monitor_Status->find_one(MonitorId=>$$self{Id});
   }
   return $$self{Status};
+}
+
+sub Event_Summary {
+  my $self = shift;
+  $$self{Event_Summary} = shift if @_;
+  if ( ! $$self{Event_Summary} ) {
+    $$self{Event_Summary} = ZoneMinder::Event_Summary->find_one(MonitorId=>$$self{Id});
+  }
+  return $$self{Event_Summary};
 }
 
 sub connect {

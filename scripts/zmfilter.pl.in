@@ -665,10 +665,10 @@ sub substituteTags {
 # We have a filter and an event, do we need any more
 # monitor information?
   my $need_monitor = $text =~ /%(?:MN|MET|MEH|MED|MEW|MEN|MEA)%/;
-  my $need_status = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_summary = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
 
   my $Monitor = $Event->Monitor() if $need_monitor;
-  my $Status = $Monitor->Status() if $need_status;
+  my $Summary = $Monitor->Event_Summary() if $need_summary;
 
 # Do we need the image information too?
   my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD|EIMODG)%/;
@@ -692,19 +692,19 @@ sub substituteTags {
       }
       $rows ++;
     }
-    Debug("Frames: rows: $rows first alarm frame: $first_alarm_frame max_alaarm_frame: $max_alarm_frame, score: $max_alarm_score");
+    Debug("Frames: rows: $rows first alarm frame: $first_alarm_frame max_alarm_frame: $max_alarm_frame, score: $max_alarm_score");
     $sth->finish();
   }
 
   my $url = $Config{ZM_URL};
   $text =~ s/%ZP%/$url/g;
   $text =~ s/%MN%/$Monitor->{Name}/g;
-  $text =~ s/%MET%/$Status->{TotalEvents}/g;
-  $text =~ s/%MEH%/$Status->{HourEvents}/g;
-  $text =~ s/%MED%/$Status->{DayEvents}/g;
-  $text =~ s/%MEW%/$Status->{WeekEvents}/g;
-  $text =~ s/%MEM%/$Status->{MonthEvents}/g;
-  $text =~ s/%MEA%/$Status->{ArchivedEvents}/g;
+  $text =~ s/%MET%/$Summary->{TotalEvents}/g;
+  $text =~ s/%MEH%/$Summary->{HourEvents}/g;
+  $text =~ s/%MED%/$Summary->{DayEvents}/g;
+  $text =~ s/%MEW%/$Summary->{WeekEvents}/g;
+  $text =~ s/%MEM%/$Summary->{MonthEvents}/g;
+  $text =~ s/%MEA%/$Summary->{ArchivedEvents}/g;
   $text =~ s/%MP%/$url?view=watch&mid=$Event->{MonitorId}/g;
   $text =~ s/%MPS%/$url?view=watch&mid=$Event->{MonitorId}&mode=stream/g;
   $text =~ s/%MPI%/$url?view=watch&mid=$Event->{MonitorId}&mode=still/g;

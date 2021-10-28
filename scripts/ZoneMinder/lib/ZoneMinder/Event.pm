@@ -720,7 +720,7 @@ sub CopyTo {
     } # end foreach file.
   } # end if ! moved
 
-  return $error if $error;
+  return $error;
 } # end sub CopyTo
 
 sub MoveTo {

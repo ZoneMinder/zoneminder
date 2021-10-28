@@ -642,6 +642,7 @@ bool EventStream::checkEventLoaded() {
       else
         curr_frame_id = 1;
       Debug(2, "New frame id = %ld", curr_frame_id);
+      gettimeofday(&start, nullptr);
       return true;
     } else {
       Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
@@ -927,11 +928,13 @@ void EventStream::runStream() {
       delta_us = (unsigned int)(frame_data->delta * 1000000);
       Debug(3, "frame delta %uus ", delta_us);
       // if effective > base we should speed up frame delivery
-      delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
-      Debug(3, "delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
-      // but must not exceed maxfps
-      delta_us = std::max(delta_us, int(1000000/maxfps));
-      Debug(3, "delta %u = base_fps(%f)/effective fps(%f) from 30fps", delta_us, base_fps, effective_fps);
+      if (base_fps < effective_fps) {
+        delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
+        Debug(3, "delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
+        // but must not exceed maxfps
+        delta_us = std::max(delta_us, int(1000000/maxfps));
+        Debug(3, "delta %u = base_fps(%f)/effective fps(%f) from 30fps", delta_us, base_fps, effective_fps);
+      }
 
       // +/- 1? What if we are skipping frames?
       curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;

@@ -506,16 +506,16 @@ if ( ZM_OPT_EMAIL ) {
           <button type="button" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
           <button type="button" data-on-click-this="submitToMontageReview"><?php echo translate('ViewMatches') ?></button>
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
-          <button type="submit" name="action" value="execute" id="executeButton"><?php echo translate('Execute') ?></button>
+          <button type="button" data-on-click-this="submitAction" value="execute" id="executeButton"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit('Events') ) {
 ?>
-          <button type="submit" name="action" value="Save" id="Save"><?php echo translate('Save') ?></button>
-          <button type="submit" name="action" value="SaveAs" id="SaveAs"><?php echo translate('SaveAs') ?></button>
+          <button type="button" data-on-click-this="submitAction" value="Save" id="Save"><?php echo translate('Save') ?></button>
+          <button type="button" data-on-click-this="submitAction" value="SaveAs" id="SaveAs"><?php echo translate('SaveAs') ?></button>
 <?php 
   if ( $filter->Id() ) {
  ?>
-          <button type="button" value="Delete" data-on-click-this="deleteFilter"><?php echo translate('Delete') ?></button>
+          <button type="button" value="delete" data-on-click-this="deleteFilter"><?php echo translate('Delete') ?></button>
 <?php 
   }
 }

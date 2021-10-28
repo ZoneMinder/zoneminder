@@ -745,7 +745,7 @@ sub MoveTo {
   $self->Storage($NewStorage);
   $error .= $self->save();
 
-  # Going to leave it to upper layout as to whether we rollback or not
+  # Going to leave it to upper layer as to whether we rollback or not
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
   return $error if $error;
 

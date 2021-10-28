@@ -1064,7 +1064,7 @@ our @options = (
   },
   {
     name        => 'ZM_FFMPEG_FORMATS',
-    default     => 'mpg mpeg wmv asf avi* mov swf 3gp**',
+    default     => 'mp4* mpg mpeg wmv asf avi mov swf 3gp**',
     description => 'Formats to allow for ffmpeg video generation',
     help        => q`
       Ffmpeg can generate video in many different formats. This

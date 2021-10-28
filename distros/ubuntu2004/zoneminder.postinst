@@ -5,6 +5,12 @@ set +e
 create_db () {
   echo "Checking for db"
   mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
+  if [ $? -ne 0 ]; then
+    echo "Cannot talk to database. You will have to create the db manually with something like:";
+    echo "cat /usr/share/zoneminder/db/zm_create.sql | mysql -u root";
+    return;
+  fi
+
   # test if database if already present...
   if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
     echo "Creating zm db"

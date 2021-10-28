@@ -43,9 +43,9 @@ $advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'],
 // Order specifies the sort direction, either asc or desc
 $order = $filter->sort_asc() ? 'ASC' : 'DESC';
 if (isset($_REQUEST['order'])) {
-  if (strtolower($_REQUEST['order']) == 'asc')) {
+  if (strtolower($_REQUEST['order']) == 'asc') {
     $order = 'ASC';
-  } else if (strtolower($_REQUEST['order']) == 'desc')) {
+  } else if (strtolower($_REQUEST['order']) == 'desc') {
     $order = 'DESC';
   } else {
     Warning("Invalid value for order " . $_REQUEST['order']);

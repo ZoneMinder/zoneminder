@@ -102,7 +102,7 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Video'));
 ?>
 <body>
-  <?php if ( !$popup ) echo getNavBarHTML() ?>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
     <div class="w-100 py-1">
       <div class="float-left pl-3">

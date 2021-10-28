@@ -708,7 +708,7 @@ function renameEvent() {
 }
 
 function exportEvent() {
-  window.location.assign('?view=export&eid='+eventData.Id);
+  window.location.assign('?view=export&eids[]='+eventData.Id);
 }
 
 function showEventFrames() {
@@ -1016,7 +1016,13 @@ function initPage() {
   // Manage the EXPORT button
   bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
-    window.location.assign('?view=export&eids[]='+eventData.Id);
+    exportEvent();
+  });
+
+  // Manage the generateVideo button
+  bindButton('#videoBtn', 'click', null, function onExportClick(evt) {
+    evt.preventDefault();
+    videoEvent();
   });
 
   // Manage the Event STATISTICS Button

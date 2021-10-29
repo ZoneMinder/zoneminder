@@ -720,7 +720,7 @@ sub CopyTo {
     } # end foreach file.
   } # end if ! moved
 
-  return $error if $error;
+  return $error;
 } # end sub CopyTo
 
 sub MoveTo {
@@ -744,11 +744,11 @@ sub MoveTo {
   $$self{StorageId} = $$NewStorage{Id};
   $self->Storage($NewStorage);
   $error .= $self->save();
-  if ($error) {
-    $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
-    return $error;
-  }
+
+  # Going to leave it to upper layer as to whether we rollback or not
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+  return $error if $error;
+
   $self->delete_files($OldStorage);
   return $error;
 } # end sub MoveTo

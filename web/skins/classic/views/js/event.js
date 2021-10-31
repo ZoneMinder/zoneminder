@@ -34,7 +34,7 @@ function streamReq(data) {
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(thisUrl, data)
+  $j.getJSON(monitorUrl, data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -300,7 +300,7 @@ function getCmdResponse(respObj, respText) {
 
   if (streamStatus.auth) {
     // Try to reload the image stream.
-    var streamImg = $j('#evtStream');
+    var streamImg = document.getElementById('evtStream');
     if (streamImg) {
       streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
     }

@@ -255,7 +255,7 @@ void zmDbQueue::process() {
         Logger *log = Logger::fetch();
         Logger::Level db_level = log->databaseLevel();
         log->databaseLevel(Logger::NOLOG);
-        Warning("db queue size has grown larger than 10 entries");
+        Warning("db queue size has grown larger %zu than 10 entries", mQueue.size());
         log->databaseLevel(db_level);
       }
       std::string sql = mQueue.front();

@@ -239,15 +239,17 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     } # end if search
 
     $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
-    ZM\Debug('Calling the following sql query: ' .$sql);
     $filtered_rows = dbFetchAll($sql);
-    ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter.');
+    ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);
   } else {
     $filtered_rows = $unfiltered_rows;
   } # end if search_filter->terms() > 1
 
+  if ($limit) 
+    $filtered_rows = array_slice($filtered_rows, $offset, $limit);
+
   $returned_rows = array();
-  foreach ( array_slice($filtered_rows, $offset, $limit) as $row ) {
+  foreach ($filtered_rows as $row) {
     $event = new ZM\Event($row);
 
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());

@@ -619,7 +619,8 @@ VideoStore::~VideoStore() {
 
     Debug(1, "Writing trailer");
     /* Write the trailer before close */
-    if (int rc = av_write_trailer(oc)) {
+    int rc;
+    if ((rc = av_write_trailer(oc)) < 0) {
       Error("Error writing trailer %s", av_err2str(rc));
     } else {
       Debug(3, "Success Writing trailer");
@@ -629,7 +630,7 @@ VideoStore::~VideoStore() {
     if (!(out_format->flags & AVFMT_NOFILE)) {
       /* Close the out file. */
       Debug(4, "Closing");
-      if (int rc = avio_close(oc->pb)) {
+      if ((rc = avio_close(oc->pb)) < 0) {
         Error("Error closing avio %s", av_err2str(rc));
       }
     } else {

@@ -479,7 +479,7 @@ void Event::AddFrame(Image *image,
       Debug(1, "Writing snapshot");
       WriteFrameImage(image, timestamp, snapshot_file.c_str());
     } else {
-      Debug(1, "Not Writing snapshot");
+      Debug(1, "Not Writing snapshot because score %d > max %d", score, max_score);
     }
 
     // We are writing an Alarm frame
@@ -491,7 +491,7 @@ void Event::AddFrame(Image *image,
         Debug(1, "Writing alarm image");
         WriteFrameImage(image, timestamp, alarm_file.c_str());
       } else {
-        Debug(1, "Not Writing alarm image");
+        Debug(3, "Not Writing alarm image because alarm frame already written");
       }
 
       if (alarm_image and (save_jpegs & 2)) {

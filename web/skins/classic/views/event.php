@@ -94,9 +94,13 @@ if ( ( !$replayMode ) or ( !$replayModes[$replayMode] ) ) {
   $replayMode = 'none';
 }
 
-$video_tag = false;
+$player = 'mjpeg';
 if ( $Event->DefaultVideo() and ( $codec == 'MP4' or $codec == 'auto' ) ) {
-  $video_tag = true;
+  if (strpos($Event->DefaultVideo(), 'h265') or strpos($Event->DefaultVideo(), 'hevc')) {
+    $player = 'libde265';
+  } else {
+    $player = 'video.js';
+  }
 }
 // videojs zoomrotate only when direct recording
 $Zoom = 1;
@@ -190,7 +194,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
       <div id="eventVideo">
       <!-- VIDEO CONTENT -->
 <?php
-if ( $video_tag ) {
+if ( $player == 'video.js' ) {
 ?>
         <div id="videoFeed">
           <video autoplay id="videoobj" class="video-js vjs-default-skin"
@@ -210,7 +214,7 @@ if ( $video_tag ) {
           </video>
         </div><!--videoFeed-->
 <?php
-} else {
+} else if ($player == 'mjpeg') {
 ?>
       <div id="imageFeed">
 <?php
@@ -232,7 +236,11 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
         </div><!--progressBar-->
       </div><!--imageFeed-->
 <?php
-} /*end if !DefaultVideo*/
+} else if ($player == 'libde265') {
+?>
+  <canvas id="video" width="<?php echo reScale($Event->Width(), $scale);?>" height="<?php echo reScale($Event->Height(), $scale);?>"></canvas>
+<?php
+} /*end if player */
 ?>
         <p id="dvrControls">
           <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">

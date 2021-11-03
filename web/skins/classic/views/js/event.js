@@ -28,6 +28,8 @@ var zmsBroke = false; //Use alternate navigation if zms has crashed
 var auth_hash;
 var wasHidden = false;
 
+var player = null;
+
 function streamReq(data) {
   if ( auth_hash ) data.auth = auth_hash;
   data.connkey = connKey;
@@ -337,7 +339,9 @@ function playClicked( ) {
   if (!rate_select.val()) {
     $j('select[name="rate"]').val(100);
   }
-  if (vid) {
+  if (player) {
+    player.playback(videoUrl);
+  } else if (vid) {
     if (vid.paused()) {
       vid.play();
     } else {
@@ -871,56 +875,67 @@ function initPage() {
   } else {
     onStatsResize(eventData.Width);
   }
+  if (eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0) {
+    var video = document.getElementById("video");
+    console.log(video);
 
-  //FIXME prevent blocking...not sure what is happening or best way to unblock
-  if ($j('#videoobj').length) {
-    vid = videojs('videoobj');
-    addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
-    $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load
-    vid.on('ended', vjsReplay);
-    vid.on('play', vjsPlay);
-    vid.on('pause', pauseClicked);
-    vid.on('click', function(event) {
-      handleClick(event);
+    player = new libde265.RawPlayer(video);
+    player.set_status_callback(function(msg, fps) {
+      console.log("libdeh265: "+msg + " fps: " + fps);
     });
-    vid.on('volumechange', function() {
-      setCookie('volume', vid.volume(), 3600);
-    });
-    var cookie = getCookie('volume');
-    if (cookie) vid.volume(cookie);
-
-    vid.on('timeupdate', function() {
-      $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
-    });
-    vid.on('ratechange', function() {
-      rate = vid.playbackRate() * 100;
-      console.log("rate change " + rate);
-      $j('select[name="rate"]').val(rate);
-      setCookie('zmEventRate', rate, 3600);
-    });
-
-    // rate is in % so 100 would be 1x
-    if (rate > 0) {
-      // rate should be 100 = 1x, etc.
-      vid.playbackRate(rate/100);
-    }
+    console.log("Setting url to " + videoUrl);
+    player.playback(videoUrl);
   } else {
-    progressBarNav();
-    streamCmdTimer = setTimeout(streamQuery, 500);
-    if (canStreamNative) {
-      if (!$j('#imageFeed')) {
-        console.log('No element with id tag imageFeed found.');
-      } else {
-        var streamImg = $j('#imageFeed img');
-        if (!streamImg) {
-          streamImg = $j('#imageFeed object');
-        }
-        $j(streamImg).click(function(event) {
-          handleClick(event);
-        });
+    //FIXME prevent blocking...not sure what is happening or best way to unblock
+    if ($j('#videoobj').length) {
+      vid = videojs('videoobj');
+      addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
+      $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load
+      vid.on('ended', vjsReplay);
+      vid.on('play', vjsPlay);
+      vid.on('pause', pauseClicked);
+      vid.on('click', function(event) {
+        handleClick(event);
+      });
+      vid.on('volumechange', function() {
+        setCookie('volume', vid.volume(), 3600);
+      });
+      var cookie = getCookie('volume');
+      if (cookie) vid.volume(cookie);
+
+      vid.on('timeupdate', function() {
+        $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
+      });
+      vid.on('ratechange', function() {
+        rate = vid.playbackRate() * 100;
+        console.log("rate change " + rate);
+        $j('select[name="rate"]').val(rate);
+        setCookie('zmEventRate', rate, 3600);
+      });
+
+      // rate is in % so 100 would be 1x
+      if (rate > 0) {
+        // rate should be 100 = 1x, etc.
+        vid.playbackRate(rate/100);
       }
-    }
-  } // end if videojs or mjpeg stream
+    } else {
+      progressBarNav();
+      streamCmdTimer = setTimeout(streamQuery, 500);
+      if (canStreamNative) {
+        if (!$j('#imageFeed')) {
+          console.log('No element with id tag imageFeed found.');
+        } else {
+          var streamImg = $j('#imageFeed img');
+          if (!streamImg) {
+            streamImg = $j('#imageFeed object');
+          }
+          $j(streamImg).click(function(event) {
+            handleClick(event);
+          });
+        }
+      }
+    } // end if videojs or mjpeg stream
+  } // end if h265
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   if (scale == '0' || scale == 'auto') changeScale();

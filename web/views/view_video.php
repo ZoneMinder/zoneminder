@@ -88,6 +88,7 @@ if ( $Event ) {
   header('Content-Disposition: inline;');
 }
 if ( $begin > 0 || $end < $size-1 ) {
+  ZM\Debug("Partial");
   header('HTTP/1.0 206 Partial Content');
   header("Content-Range: bytes $begin-$end/$size");
   header("Content-Transfer-Encoding: binary\n");
@@ -111,6 +112,7 @@ while ( $length && ( !feof($fh) ) && ( connection_status() == 0 ) ) {
   #usleep(100);
   flush();
 }
+ZM\Debug("Remaining? $length");
 
 fclose($fh);
 exit();

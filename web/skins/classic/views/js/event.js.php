@@ -59,7 +59,8 @@ var eventData = {
     DiskSpace: '<?php echo human_filesize($Event->DiskSpace(null)) ?>',
     Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
     Archived: <?php echo $Event->Archived?'true':'false' ?>,
-    Emailed: <?php echo $Event->Emailed?'true':'false' ?>
+    Emailed: <?php echo $Event->Emailed?'true':'false' ?>,
+    DefaultVideo: '<?php echo $Event->DefaultVideo() ?>'
 <?php } ?>
 };
 
@@ -86,6 +87,7 @@ var eventDataStrings = {
 };
 
 var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';
+var videoUrl = '<?php echo $Event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264'),'&'); ?>';
 
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';

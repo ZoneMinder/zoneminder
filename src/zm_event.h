@@ -84,8 +84,13 @@ class Event {
     std::string alarm_file;
     VideoStore *videoStore;
 
-    std::string video_name;
+    std::string container;
+    std::string codec;
     std::string video_file;
+    std::string video_path;
+    std::string video_incomplete_file;
+    std::string video_incomplete_path;
+
     int        last_db_frame;
     bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.
     Storage::Schemes  scheme;

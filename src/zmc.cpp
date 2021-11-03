@@ -313,6 +313,7 @@ int main(int argc, char *argv[]) {
           result = -1;
           break;
         }
+        monitors[i]->UpdateFPS();
 
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         int delay = (monitors[i]->GetState() == Monitor::ALARM) ? alarm_capture_delays[i] : capture_delays[i];

@@ -1656,7 +1656,7 @@ void Monitor::CheckAction() {
   }
 }
 
-void Monitor::UpdateCaptureFPS() {
+void Monitor::UpdateFPS() {
   if ( fps_report_interval and
       (
        !(image_count%fps_report_interval)
@@ -1675,82 +1675,35 @@ void Monitor::UpdateCaptureFPS() {
       uint32 new_camera_bytes = camera->Bytes();
       uint32 new_capture_bandwidth =
           static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
-      last_camera_bytes = new_camera_bytes;
+      double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
 
-      Debug(4, "%s: %d - last %d = %d now:%lf, last %lf, elapsed %lf = %lffps",
-            "Capturing",
+      Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
             image_count,
             last_capture_image_count,
             image_count - last_capture_image_count,
             FPSeconds(now.time_since_epoch()).count(),
-            FPSeconds(last_analysis_fps_time.time_since_epoch()).count(),
+            FPSeconds(last_fps_time.time_since_epoch()).count(),
             elapsed.count(),
-            new_capture_fps);
+            new_capture_fps,
+            new_analysis_fps);
 
-      Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec",
-          name.c_str(), image_count, new_capture_fps, new_capture_bandwidth);
+      Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
+          name.c_str(), image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
 
       shared_data->capture_fps = new_capture_fps;
       last_fps_time = now;
       last_capture_image_count = image_count;
+      shared_data->analysis_fps = new_analysis_fps;
+      last_motion_frame_count = motion_frame_count;
+      last_camera_bytes = new_camera_bytes;
 
       std::string sql = stringtf(
-          "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u WHERE MonitorId=%u",
-          new_capture_fps, new_capture_bandwidth, id);
+          "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf WHERE MonitorId=%u",
+          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
       dbQueue.push(std::move(sql));
     } // now != last_fps_time
   } // end if report fps
-}  // void Monitor::UpdateCaptureFPS()
-
-void Monitor::UpdateAnalysisFPS() {
-  Debug(1, "analysis_image_count(%d) motion_count(%d) fps_report_interval(%d) mod%d",
-      analysis_image_count, motion_frame_count, fps_report_interval, 
-      ((analysis_image_count && fps_report_interval) ? !(analysis_image_count%fps_report_interval) : -1 ) );
-
-  if ( 
-      ( analysis_image_count and fps_report_interval and !(analysis_image_count%fps_report_interval) )
-      or 
-      // In startup do faster updates
-      ( (analysis_image_count < fps_report_interval) and !(analysis_image_count%10) )
-     ) {
-    SystemTimePoint now = std::chrono::system_clock::now();
-
-    FPSeconds elapsed = now - last_analysis_fps_time;
-    Debug(4, "%s: %d - now: %.2f, last %lf, diff %lf",
-          name.c_str(),
-          analysis_image_count,
-          FPSeconds(now.time_since_epoch()).count(),
-          FPSeconds(last_analysis_fps_time.time_since_epoch()).count(),
-          elapsed.count());
-
-    if (elapsed > Seconds(1)) {
-      double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
-      Info("%s: %d - Analysing at %.2lf fps from %d - %d=%d / %lf - %lf = %lf",
-           name.c_str(),
-           analysis_image_count,
-           new_analysis_fps,
-           motion_frame_count,
-           last_motion_frame_count,
-           (motion_frame_count - last_motion_frame_count),
-           FPSeconds(now.time_since_epoch()).count(),
-           FPSeconds(last_analysis_fps_time.time_since_epoch()).count(),
-           elapsed.count());
-
-      if (new_analysis_fps != shared_data->analysis_fps) {
-        shared_data->analysis_fps = new_analysis_fps;
-
-        std::string sql = stringtf("UPDATE LOW_PRIORITY Monitor_Status SET AnalysisFPS = %.2lf WHERE MonitorId=%u",
-                                   new_analysis_fps, id);
-        dbQueue.push(std::move(sql));
-        last_analysis_fps_time = now;
-        last_motion_frame_count = motion_frame_count;
-      } else {
-        Debug(4, "No change in fps");
-      } // end if change in fps
-    } // end if at least 1 second has passed since last update
-
-  } // end if time to do an update
-} // end void Monitor::UpdateAnalysisFPS
+}  // void Monitor::UpdateFPS()
 
 // Would be nice if this JUST did analysis
 // This idea is that we should be analysing as close to the capture frame as possible.
@@ -2299,8 +2252,6 @@ bool Monitor::Analyse() {
     // Only do these if it's a video packet.
     shared_data->last_read_index = snap->image_index;
     analysis_image_count++;
-    if (function == MODECT or function == MOCORD)
-      UpdateAnalysisFPS();
   }
   packetqueue.increment_it(analysis_it);
   packetqueue.unlock(packet_lock);
@@ -2585,7 +2536,6 @@ int Monitor::Capture() {
 
     // Will only be queued if there are iterators allocated in the queue.
     packetqueue.queuePacket(packet);
-    UpdateCaptureFPS();
   } else { // result == 0
     // Question is, do we update last_write_index etc?
     return 0;
@@ -2625,7 +2575,7 @@ bool Monitor::Decode() {
     //
     //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
     int ret = packet->decode(camera->getVideoCodecContext());
-    if (ret > 0) {
+    if (ret > 0 and !zm_terminate) {
       if (packet->in_frame and !packet->image) {
         packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
         AVFrame *input_frame = packet->in_frame;

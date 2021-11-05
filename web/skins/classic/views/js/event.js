@@ -34,7 +34,7 @@ function streamReq(data) {
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(thisUrl, data)
+  $j.getJSON(monitorUrl, data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -300,7 +300,7 @@ function getCmdResponse(respObj, respText) {
 
   if (streamStatus.auth) {
     // Try to reload the image stream.
-    var streamImg = $j('#evtStream');
+    var streamImg = document.getElementById('evtStream');
     if (streamImg) {
       streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
     }
@@ -708,7 +708,7 @@ function renameEvent() {
 }
 
 function exportEvent() {
-  window.location.assign('?view=export&eid='+eventData.Id);
+  window.location.assign('?view=export&eids[]='+eventData.Id);
 }
 
 function showEventFrames() {
@@ -767,14 +767,15 @@ function handleClick(event) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( !canEdit.Events ) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eventData.Id)
+    $j.getJSON(thisUrl + '?request=event&task=delete&id='+eventData.Id)
         .done(function(data) {
+          $j('#deleteConfirm').modal('hide');
           streamNext(true);
         })
         .fail(logAjaxFail);
@@ -1015,7 +1016,13 @@ function initPage() {
   // Manage the EXPORT button
   bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
-    window.location.assign('?view=export&eids[]='+eventData.Id);
+    exportEvent();
+  });
+
+  // Manage the generateVideo button
+  bindButton('#videoBtn', 'click', null, function onExportClick(evt) {
+    evt.preventDefault();
+    videoEvent();
   });
 
   // Manage the Event STATISTICS Button

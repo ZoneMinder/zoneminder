@@ -57,8 +57,8 @@ function validateForm(form) {
       form.elements['filter[AutoUnarchive]'].checked ||
       form.elements['filter[UpdateDiskSpace]'].checked ||
       form.elements['filter[AutoVideo]'].checked ||
-      form.elements['filter[AutoEmail]'].checked ||
-      form.elements['filter[AutoMessage]'].checked ||
+      (form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked) ||
+      (form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked) ||
       form.elements['filter[AutoExecute]'].checked ||
       form.elements['filter[AutoDelete]'].checked ||
       form.elements['filter[AutoCopy]'].checked ||
@@ -166,9 +166,15 @@ function submitToExport(element) {
   window.location.assign('?view=export&'+$j(form).serialize());
 }
 
-function deleteFilter( element ) {
+function submitAction(button) {
+  var form = button.form;
+  form.elements['action'].value = button.value;
+  form.submit();
+}
+
+function deleteFilter(element) {
   var form = element.form;
-  if ( confirm( deleteSavedFilterString+" '"+form.elements['filter[Name]'].value+"'?" ) ) {
+  if (confirm(deleteSavedFilterString+" '"+form.elements['filter[Name]'].value+"'?")) {
     form.elements['action'].value = 'delete';
     form.submit();
   }
@@ -376,7 +382,6 @@ function debugFilter() {
 }
 
 function manageModalBtns(id) {
-  console.log(id);
   // Manage the CANCEL modal button
   var cancelBtn = document.getElementById(id+"CancelBtn");
   if ( cancelBtn ) {

@@ -265,7 +265,8 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getSysLoadHTML();
           echo getDbConHTML();
           echo getStorageHTML();
-          echo getShmHTML();
+          echo getRamHTML();
+          #echo getShmHTML();
           #echo getLogIconHTML();
           ?>
         </ul>
@@ -323,7 +324,8 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getSysLoadHTML();
             echo getDbConHTML();
             echo getStorageHTML();
-            echo getShmHTML();
+            echo getRamHTML();
+            #echo getShmHTML();
             echo getLogIconHTML();
             ?>
           </ul>
@@ -452,6 +454,37 @@ function getStorageHTML() {
   } 
   $result .= '</div>'.PHP_EOL;
   $result .= '</li>'.PHP_EOL;
+  
+  return $result;
+}
+
+function getRamHTML() {
+  $result = '';
+  if ( !canView('System') ) return $result;
+  $contents = file_get_contents('/proc/meminfo');
+  preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
+  $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));
+  $mem_used = $meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Buffers'] - $meminfo['Cached'];
+  $mem_used_percent = (int)(100*$mem_used/$meminfo['MemTotal']);
+  $used_class = '';
+  if ($mem_used_percent > 95) {
+    $used_class = 'text-danger';
+  } else if ($mem_used_percent > 90) {
+    $used_class = 'text-warning';
+  }
+  $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
+  $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
+  $swap_class = '';
+  if ($swap_used_percent > 95) {
+    $swap_class = 'text-danger';
+  } else if ($swap_used_percent > 90) {
+    $swap_class = 'text-warning';
+  }
+
+  $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2">'.
+    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> '.
+    '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> '.
+    '</li>'.PHP_EOL;
   
   return $result;
 }
@@ -883,7 +916,7 @@ function xhtmlFooter() {
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
-  <script src="<?php echo cache_bust('skins/'.$skin.'/js/bootstrap.min.js'); ?>"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php echo output_script_if_exists(array(
   'js/tableExport.min.js',
   'js/bootstrap-table.min.js',

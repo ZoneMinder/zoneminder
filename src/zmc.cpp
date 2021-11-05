@@ -268,7 +268,7 @@ int main(int argc, char *argv[]) {
 
         std::this_thread::sleep_for(sleep_time);
       }
-      if (zm_terminate){
+      if (zm_terminate) {
         break;
       }
 
@@ -308,6 +308,7 @@ int main(int argc, char *argv[]) {
           result = -1;
           break;
         }
+        monitors[i]->UpdateFPS();
 
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         Microseconds delay = (monitors[i]->GetState() == Monitor::ALARM) ? monitors[i]->GetAlarmCaptureDelay()

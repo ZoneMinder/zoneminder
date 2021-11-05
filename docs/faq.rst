@@ -225,7 +225,7 @@ change the 3 to a 1
 
 I can't see more than 6 monitors in montage on my browser
 ---------------------------------------------------------
-Browsers such a Chrome and Safari only support upto 6 streams from the same domain. To work around that, take a look at the multi-port configuration discussed in  the ``MIN_STREAMING_PORT`` configuration in :doc:`/userguide/options/options_network`
+Browsers such a Chrome and Safari only support up to 6 streams from the same domain. To work around that, take a look at the multi-port configuration discussed in  the ``MIN_STREAMING_PORT`` configuration in :doc:`/userguide/options/options_network`
 
 Why is ZoneMinder using so much CPU?
 ---------------------------------------

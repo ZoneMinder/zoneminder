@@ -98,6 +98,7 @@ function changeScale() {
   var scale = $j('#scale').val();
   var newWidth;
   var newHeight;
+  var autoScale;
 
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
@@ -118,6 +119,10 @@ function changeScale() {
   var streamImg = $j('#liveStream'+monitorId);
   if (streamImg) {
     var oldSrc = streamImg.attr('src');
+    streamImg.attr('src', '');
+    // This is so that we don't waste bandwidth and let the browser do all the scaling.
+    if (autoScale > 100) autoScale = 100;
+    if (scale > 100) scale = 100;
     var newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
 
     streamImg.width(newWidth);
@@ -783,6 +788,25 @@ function getCtrlPresetModal() {
       .fail(logAjaxFail);
 }
 
+function changeControl(e) {
+  const input = e.target;
+  $j.getJSON(monitorUrl+'?request=v4l2_settings&mid='+monitorId+'&'+input.name+'='+input.value)
+      .done(function(evt) {
+        if (evt.result == 'Ok') {
+          evt.controls.forEach(function(control) {
+            const element = $j('#new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
+            if (element.length) {
+              element.val(control.value);
+              element.attr('title', control.value);
+            } else {
+              console.err('Element not found for #new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
+            }
+          });
+        }
+      })
+      .fail(logAjaxFail);
+}
+
 function getSettingsModal() {
   $j.getJSON(monitorUrl + '?request=modal&modal=settings&mid=' + monitorId)
       .done(function(data) {
@@ -792,6 +816,10 @@ function getSettingsModal() {
           evt.preventDefault();
           $j('#settingsForm').submit();
         });
+        $j('#newBrightness').change(changeControl);
+        $j('#newContrast').change(changeControl);
+        $j('#newHue').change(changeControl);
+        $j('#newColour').change(changeControl);
       })
       .fail(logAjaxFail);
 }
@@ -917,7 +945,7 @@ function initPage() {
   });
 
   // Only enable the settings button for local cameras
-  settingsBtn.prop('disabled', !(canView.Control && monitorType == 'Local'));
+  settingsBtn.prop('disabled', !(canView.Control && (monitorType == 'Local')));
 
   // Init the bootstrap-table
   if (monitorType != 'WebSite') table.bootstrapTable({icons: icons});

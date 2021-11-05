@@ -663,6 +663,7 @@ bool EventStream::checkEventLoaded() {
       else
         curr_frame_id = 1;
       Debug(2, "New frame id = %ld", curr_frame_id);
+      start = std::chrono::system_clock::now();
       return true;
     } else {
       Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
@@ -810,7 +811,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
           fputs("Content-Type: image/x-rgbz\r\n", stdout);
           break;
         case STREAM_RAW :
-          img_buffer = (uint8_t*)(send_image->Buffer());
+          img_buffer = send_image->Buffer();
           img_buffer_size = send_image->Size();
           fputs("Content-Type: image/x-rgb\r\n", stdout);
           break;
@@ -957,18 +958,20 @@ void EventStream::runStream() {
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
 
       // if effective > base we should speed up frame delivery
-      delta = std::chrono::duration_cast<Microseconds>((delta * base_fps) / effective_fps);
-      Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f)",
+      if (base_fps < effective_fps) {
+        delta = std::chrono::duration_cast<Microseconds>((delta * base_fps) / effective_fps);
+        Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f)",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
             base_fps,
             effective_fps);
 
-      // but must not exceed maxfps
-      delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
-      Debug(3, "delta %" PRIi64 " us = base_fps (%f) /effective_fps (%f) from 30fps",
+        // but must not exceed maxfps
+        delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
+        Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f) from 30fps",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
             base_fps,
             effective_fps);
+      }
 
       // +/- 1? What if we are skipping frames?
       curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;

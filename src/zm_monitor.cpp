@@ -83,9 +83,10 @@ std::string load_monitor_sql =
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`,"
-"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-2 FROM `Monitors`";
+"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1 FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
+  "Unknown",
   "Local",
   "Remote",
   "File",
@@ -93,10 +94,21 @@ std::string CameraType_Strings[] = {
   "LibVLC",
   "NVSOCKET",
   "CURL",
-  "VNC",
+  "VNC"
+};
+
+std::string Function_Strings[] = {
+  "Unknown",
+  "None",
+  "Monitor",
+  "Modect",
+  "Record",
+  "Mocord",
+  "Nodect"
 };
 
 std::string State_Strings[] = {
+  "Unknown",
   "IDLE",
   "PREALARM",
   "ALARM",
@@ -435,7 +447,7 @@ Monitor::Monitor()
  "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
  "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
  "`RTSPServer`,`RTSPStreamName`,
- "SignalCheckPoints, SignalCheckColour, Importance-2 FROM Monitors";
+ "SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors";
 */
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
@@ -474,6 +486,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   function = (Function)atoi(dbrow[col]); col++;
   enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  // See below after save_jpegs for a recalculation of decoding_enabled
 
   ReloadLinkedMonitors(dbrow[col]); col++;
 
@@ -542,6 +555,17 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   videowriter = (VideoWriter)atoi(dbrow[col]); col++;
   encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
 
+  decoding_enabled = !(
+      ( function == RECORD or function == NODECT )
+      and
+      ( savejpegs == 0 )
+      and
+      ( videowriter == PASSTHROUGH )
+      and
+      !decoding_enabled
+      );
+  Debug(3, "Decoding enabled: %d function %d %s savejpegs %d videowriter %d", decoding_enabled, function, Function_Strings[function].c_str(), savejpegs, videowriter);
+
 /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
   output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
   encoder = dbrow[col] ? dbrow[col] : ""; col++;
@@ -591,7 +615,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   rtsp_server = (*dbrow[col] != '0'); col++;
   rtsp_streamname = dbrow[col]; col++;
 
- /*"SignalCheckPoints, SignalCheckColour, Importance-2 FROM Monitors"; */
+ /*"SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors"; */
   signal_check_points = atoi(dbrow[col]); col++;
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
 
@@ -603,6 +627,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
 
   importance = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
+  if (importance < 0) importance = 0; // Should only be >= 0
 
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
@@ -649,18 +674,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
     }
-
-    // Do this here to save a few cycles with all the comparisons
-    decoding_enabled = !(
-        ( function == RECORD or function == NODECT )
-        and
-        ( savejpegs == 0 )
-        and
-        ( videowriter == PASSTHROUGH )
-        and
-        !decoding_enabled
-        );
-    Debug(1, "Decoding enabled: %d", decoding_enabled);
 
     if ( config.record_diag_images ) {
       if ( config.record_diag_images_fifo ) {
@@ -1304,127 +1317,153 @@ void Monitor::actionResume() {
 }
 
 int Monitor::actionBrightness(int p_brightness) {
-  if (purpose != CAPTURE) {
-    if (p_brightness >= 0) {
-      shared_data->brightness = p_brightness;
-      shared_data->action |= SET_SETTINGS;
-      int wait_loops = 10;
-      while (shared_data->action & SET_SETTINGS) {
-        if (wait_loops--) {
-          std::this_thread::sleep_for(Milliseconds(100));
-        } else {
-          Warning("Timed out waiting to set brightness");
-          return -1;
-        }
-      }
-    } else {
-      shared_data->action |= GET_SETTINGS;
-      int wait_loops = 10;
-      while (shared_data->action & GET_SETTINGS) {
-        if (wait_loops--) {
-          std::this_thread::sleep_for(Milliseconds(100));
-        } else {
-          Warning("Timed out waiting to get brightness");
-          return -1;
-        }
-      }
-    }
-    return shared_data->brightness;
+  if (purpose == CAPTURE) {
+    // We are the capture process, so take the action
+    return camera->Brightness(p_brightness);
   }
-  return camera->Brightness(p_brightness);
-} // end int Monitor::actionBrightness(int p_brightness)
+
+  // If we are an outside actor, sending the command
+  shared_data->brightness = p_brightness;
+  shared_data->action |= SET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & SET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to set brightness");
+      return -1;
+    }
+  }
+  return shared_data->brightness;
+}
+
+int Monitor::actionBrightness() {
+  if (purpose == CAPTURE) {
+    // We are the capture process, so take the action
+    return camera->Brightness();
+  }
+
+  // If we are an outside actor, sending the command
+  shared_data->action |= GET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & GET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to get brightness");
+      return -1;
+    }
+  }
+  return shared_data->brightness;
+} // end int Monitor::actionBrightness()
 
 int Monitor::actionContrast(int p_contrast) {
-  if (purpose != CAPTURE) {
-    if (p_contrast >= 0) {
-      shared_data->contrast = p_contrast;
-      shared_data->action |= SET_SETTINGS;
-      int wait_loops = 10;
-      while (shared_data->action & SET_SETTINGS) {
-        if (wait_loops--) {
-          std::this_thread::sleep_for(Milliseconds(100));
-        } else {
-          Warning("Timed out waiting to set contrast");
-          return -1;
-        }
-      }
-    } else {
-      shared_data->action |= GET_SETTINGS;
-      int wait_loops = 10;
-      while (shared_data->action & GET_SETTINGS) {
-        if (wait_loops--) {
-          std::this_thread::sleep_for(Milliseconds(100));
-        } else {
-          Warning("Timed out waiting to get contrast");
-          return -1;
-        }
-      }
-    }
-    return shared_data->contrast;
+  if (purpose == CAPTURE) {
+    return camera->Contrast(p_contrast);
   }
-  return camera->Contrast(p_contrast);
-} // end int Monitor::actionContrast(int p_contrast)
+
+  shared_data->contrast = p_contrast;
+  shared_data->action |= SET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & SET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to set contrast");
+      return -1;
+    }
+  }
+  return shared_data->contrast;
+}
+
+int Monitor::actionContrast() {
+  if (purpose == CAPTURE) {
+    // We are the capture process, so take the action
+    return camera->Contrast();
+  }
+
+  shared_data->action |= GET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & GET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to get contrast");
+      return -1;
+    }
+  }
+  return shared_data->contrast;
+} // end int Monitor::actionContrast()
 
 int Monitor::actionHue(int p_hue) {
-  if (purpose != CAPTURE) {
-    if (p_hue >= 0) {
-      shared_data->hue = p_hue;
-      shared_data->action |= SET_SETTINGS;
-      int wait_loops = 10;
-      while (shared_data->action & SET_SETTINGS) {
-        if (wait_loops--) {
-          std::this_thread::sleep_for(Milliseconds(100));
-        } else {
-          Warning("Timed out waiting to set hue");
-          return -1;
-        }
-      }
-    } else {
-      shared_data->action |= GET_SETTINGS;
-      int wait_loops = 10;
-      while (shared_data->action & GET_SETTINGS) {
-        if (wait_loops--) {
-          std::this_thread::sleep_for(Milliseconds(100));
-        } else {
-          Warning("Timed out waiting to get hue");
-          return -1;
-        }
-      }
-    }
-    return shared_data->hue;
+  if (purpose == CAPTURE) {
+    return camera->Hue(p_hue);
   }
-  return camera->Hue(p_hue);
+
+  shared_data->hue = p_hue;
+  shared_data->action |= SET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & SET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to set hue");
+      return -1;
+    }
+  }
+  return shared_data->hue;
+}
+
+int Monitor::actionHue() {
+  if (purpose == CAPTURE) {
+    return camera->Hue();
+  }
+  shared_data->action |= GET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & GET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to get hue");
+      return -1;
+    }
+  }
+  return shared_data->hue;
 } // end int Monitor::actionHue(int p_hue)
 
 int Monitor::actionColour(int p_colour) {
-  if (purpose != CAPTURE) {
-    if (p_colour >= 0) {
-      shared_data->colour = p_colour;
-      shared_data->action |= SET_SETTINGS;
-      int wait_loops = 10;
-      while (shared_data->action & SET_SETTINGS) {
-        if (wait_loops--) {
-          std::this_thread::sleep_for(Milliseconds(100));
-        } else {
-          Warning("Timed out waiting to set colour");
-          return -1;
-        }
-      }
-    } else {
-      shared_data->action |= GET_SETTINGS;
-      int wait_loops = 10;
-      while (shared_data->action & GET_SETTINGS) {
-        if (wait_loops--) {
-          std::this_thread::sleep_for(Milliseconds(100));
-        } else {
-          Warning("Timed out waiting to get colour");
-          return -1;
-        }
-      }
-    }
-    return shared_data->colour;
+  if (purpose == CAPTURE) {
+    return camera->Colour(p_colour);
   }
-  return camera->Colour(p_colour);
+  shared_data->colour = p_colour;
+  shared_data->action |= SET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & SET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to set colour");
+      return -1;
+    }
+  }
+  return shared_data->colour;
+} 
+
+int Monitor::actionColour() {
+  if (purpose == CAPTURE) {
+    return camera->Colour();
+  }
+  shared_data->action |= GET_SETTINGS;
+  int wait_loops = 10;
+  while (shared_data->action & GET_SETTINGS) {
+    if (wait_loops--) {
+      std::this_thread::sleep_for(Milliseconds(100));
+    } else {
+      Warning("Timed out waiting to get colour");
+      return -1;
+    }
+  }
+  return shared_data->colour;
 } // end int Monitor::actionColour(int p_colour)
 
 void Monitor::DumpZoneImage(const char *zone_string) {
@@ -1617,7 +1656,7 @@ void Monitor::CheckAction() {
   }
 }
 
-void Monitor::UpdateCaptureFPS() {
+void Monitor::UpdateFPS() {
   if ( fps_report_interval and
       (
        !(image_count%fps_report_interval)
@@ -1636,82 +1675,35 @@ void Monitor::UpdateCaptureFPS() {
       uint32 new_camera_bytes = camera->Bytes();
       uint32 new_capture_bandwidth =
           static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
-      last_camera_bytes = new_camera_bytes;
+      double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
 
-      Debug(4, "%s: %d - last %d = %d now:%lf, last %lf, elapsed %lf = %lffps",
-            "Capturing",
+      Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
             image_count,
             last_capture_image_count,
             image_count - last_capture_image_count,
             FPSeconds(now.time_since_epoch()).count(),
-            FPSeconds(last_analysis_fps_time.time_since_epoch()).count(),
+            FPSeconds(last_fps_time.time_since_epoch()).count(),
             elapsed.count(),
-            new_capture_fps);
+            new_capture_fps,
+            new_analysis_fps);
 
-      Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec",
-          name.c_str(), image_count, new_capture_fps, new_capture_bandwidth);
+      Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
+          name.c_str(), image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
 
       shared_data->capture_fps = new_capture_fps;
       last_fps_time = now;
       last_capture_image_count = image_count;
+      shared_data->analysis_fps = new_analysis_fps;
+      last_motion_frame_count = motion_frame_count;
+      last_camera_bytes = new_camera_bytes;
 
       std::string sql = stringtf(
-          "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u WHERE MonitorId=%u",
-          new_capture_fps, new_capture_bandwidth, id);
+          "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf WHERE MonitorId=%u",
+          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
       dbQueue.push(std::move(sql));
     } // now != last_fps_time
   } // end if report fps
-}  // void Monitor::UpdateCaptureFPS()
-
-void Monitor::UpdateAnalysisFPS() {
-  Debug(1, "analysis_image_count(%d) motion_count(%d) fps_report_interval(%d) mod%d",
-      analysis_image_count, motion_frame_count, fps_report_interval, 
-      ((analysis_image_count && fps_report_interval) ? !(analysis_image_count%fps_report_interval) : -1 ) );
-
-  if ( 
-      ( analysis_image_count and fps_report_interval and !(analysis_image_count%fps_report_interval) )
-      or 
-      // In startup do faster updates
-      ( (analysis_image_count < fps_report_interval) and !(analysis_image_count%10) )
-     ) {
-    SystemTimePoint now = std::chrono::system_clock::now();
-
-    FPSeconds elapsed = now - last_analysis_fps_time;
-    Debug(4, "%s: %d - now: %.2f, last %lf, diff %lf",
-          name.c_str(),
-          analysis_image_count,
-          FPSeconds(now.time_since_epoch()).count(),
-          FPSeconds(last_analysis_fps_time.time_since_epoch()).count(),
-          elapsed.count());
-
-    if (elapsed > Seconds(1)) {
-      double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
-      Info("%s: %d - Analysing at %.2lf fps from %d - %d=%d / %lf - %lf = %lf",
-           name.c_str(),
-           analysis_image_count,
-           new_analysis_fps,
-           motion_frame_count,
-           last_motion_frame_count,
-           (motion_frame_count - last_motion_frame_count),
-           FPSeconds(now.time_since_epoch()).count(),
-           FPSeconds(last_analysis_fps_time.time_since_epoch()).count(),
-           elapsed.count());
-
-      if (new_analysis_fps != shared_data->analysis_fps) {
-        shared_data->analysis_fps = new_analysis_fps;
-
-        std::string sql = stringtf("UPDATE LOW_PRIORITY Monitor_Status SET AnalysisFPS = %.2lf WHERE MonitorId=%u",
-                                   new_analysis_fps, id);
-        dbQueue.push(std::move(sql));
-        last_analysis_fps_time = now;
-        last_motion_frame_count = motion_frame_count;
-      } else {
-        Debug(4, "No change in fps");
-      } // end if change in fps
-    } // end if at least 1 second has passed since last update
-
-  } // end if time to do an update
-} // end void Monitor::UpdateAnalysisFPS
+}  // void Monitor::UpdateFPS()
 
 // Would be nice if this JUST did analysis
 // This idea is that we should be analysing as close to the capture frame as possible.
@@ -2015,8 +2007,7 @@ bool Monitor::Analyse() {
           } // end if ! event
         } // end if RECORDING
 
-        if (score) {
-
+        if (score and (function == MODECT or function == NODECT)) {
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             // If we should end then previous continuous event and start a new non-continuous event
             if (event && event->Frames()
@@ -2261,8 +2252,6 @@ bool Monitor::Analyse() {
     // Only do these if it's a video packet.
     shared_data->last_read_index = snap->image_index;
     analysis_image_count++;
-    if (function == MODECT or function == MOCORD)
-      UpdateAnalysisFPS();
   }
   packetqueue.increment_it(analysis_it);
   packetqueue.unlock(packet_lock);
@@ -2511,7 +2500,7 @@ int Monitor::Capture() {
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
       if (video_fifo) {
-        if ( packet->keyframe ) {
+        if (packet->keyframe) {
           // avcodec strips out important nals that describe the stream and
           // stick them in extradata. Need to send them along with keyframes
           AVStream *stream = camera->getVideoStream();
@@ -2547,7 +2536,6 @@ int Monitor::Capture() {
 
     // Will only be queued if there are iterators allocated in the queue.
     packetqueue.queuePacket(packet);
-    UpdateCaptureFPS();
   } else { // result == 0
     // Question is, do we update last_write_index etc?
     return 0;
@@ -2587,7 +2575,7 @@ bool Monitor::Decode() {
     //
     //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
     int ret = packet->decode(camera->getVideoCodecContext());
-    if (ret > 0) {
+    if (ret > 0 and !zm_terminate) {
       if (packet->in_frame and !packet->image) {
         packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
         AVFrame *input_frame = packet->in_frame;

@@ -64,7 +64,7 @@ public:
   } Function;
 
   typedef enum {
-    LOCAL,
+    LOCAL=1,
     REMOTE,
     FILE,
     FFMPEG,
@@ -546,8 +546,7 @@ public:
   unsigned int GetLastWriteIndex() const;
   uint64_t GetLastEventId() const;
   double GetFPS() const;
-  void UpdateAnalysisFPS();
-  void UpdateCaptureFPS();
+  void UpdateFPS();
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();
@@ -567,10 +566,14 @@ public:
   void actionSuspend();
   void actionResume();
 
-  int actionBrightness( int p_brightness=-1 );
-  int actionHue( int p_hue=-1 );
-  int actionColour( int p_colour=-1 );
-  int actionContrast( int p_contrast=-1 );
+  int actionBrightness(int p_brightness);
+  int actionBrightness();
+  int actionHue(int p_hue);
+  int actionHue();
+  int actionColour(int p_colour);
+  int actionColour();
+  int actionContrast(int p_contrast);
+  int actionContrast();
 
   int PrimeCapture();
   int PreCapture() const;

@@ -6,28 +6,30 @@ $data = array();
 // INITIALIZE AND CHECK SANITY
 //
 
-if ( !canView('Events') ) $message = 'Insufficient permissions for user '.$user['Username'];
+if (!canView('Events'))
+  $message = 'Insufficient permissions for user '.$user['Username'].'<br/>';
 
-if ( empty($_REQUEST['task']) ) {
-  $message = 'Must specify a task';
+if (empty($_REQUEST['task'])) {
+  $message = 'Must specify a task<br/>';
 } else {
   $task = $_REQUEST['task'];
 }
 
-if ( empty($_REQUEST['eids']) ) {
-  if ( isset($_REQUEST['task']) && $_REQUEST['task'] != 'query' ) $message = 'No event id(s) supplied';
+if (empty($_REQUEST['eids'])) {
+  if (isset($_REQUEST['task']) && $_REQUEST['task'] != 'query')
+    $message = 'No event id(s) supplied<br/>';
 } else {
   $eids = $_REQUEST['eids'];
 }
 
-if ( $message ) {
+if ($message) {
   ajaxError($message);
   return;
 }
 
 require_once('includes/Filter.php');
 $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : new ZM\Filter();
-if ( $user['MonitorIds'] ) {
+if ($user['MonitorIds']) {
   $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
 }
 
@@ -39,10 +41,19 @@ $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
 $advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
 
 // Order specifies the sort direction, either asc or desc
-$order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+$order = $filter->sort_asc() ? 'ASC' : 'DESC';
+if (isset($_REQUEST['order'])) {
+  if (strtolower($_REQUEST['order']) == 'asc') {
+    $order = 'ASC';
+  } else if (strtolower($_REQUEST['order']) == 'desc') {
+    $order = 'DESC';
+  } else {
+    Warning("Invalid value for order " . $_REQUEST['order']);
+  }
+}
 
 // Sort specifies the name of the column to sort on
-$sort = 'StartDateTime';
+$sort = $filter->sort_field();
 if (isset($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
   if ($sort == 'EndDateTime') {
@@ -228,15 +239,17 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     } # end if search
 
     $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
-    ZM\Debug('Calling the following sql query: ' .$sql);
     $filtered_rows = dbFetchAll($sql);
-    ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter.');
+    ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);
   } else {
     $filtered_rows = $unfiltered_rows;
   } # end if search_filter->terms() > 1
 
+  if ($limit) 
+    $filtered_rows = array_slice($filtered_rows, $offset, $limit);
+
   $returned_rows = array();
-  foreach ( array_slice($filtered_rows, $offset, $limit) as $row ) {
+  foreach ($filtered_rows as $row) {
     $event = new ZM\Event($row);
 
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());

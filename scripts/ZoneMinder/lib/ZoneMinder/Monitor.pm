@@ -35,7 +35,9 @@ require ZoneMinder::Storage;
 require ZoneMinder::Server;
 require ZoneMinder::Memory;
 require ZoneMinder::Monitor_Status;
+require ZoneMinder::Event_Summary;
 require ZoneMinder::Zone;
+use ZoneMinder::Logger qw(:all);
 
 #our @ISA = qw(Exporter ZoneMinder::Base);
 use parent qw(ZoneMinder::Object);
@@ -266,6 +268,15 @@ sub Status {
   return $$self{Status};
 }
 
+sub Event_Summary {
+  my $self = shift;
+  $$self{Event_Summary} = shift if @_;
+  if ( ! $$self{Event_Summary} ) {
+    $$self{Event_Summary} = ZoneMinder::Event_Summary->find_one(MonitorId=>$$self{Id});
+  }
+  return $$self{Event_Summary};
+}
+
 sub connect {
   my $self = shift;
   return ZoneMinder::Memory::zmMemVerify($self);
@@ -311,6 +322,25 @@ sub resumeMotionDetection {
     ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
   }
   return 1;
+}
+
+sub Control {
+  my $self = shift;
+  if ( ! exists $$self{Control}) {
+    require ZoneMinder::Control;
+    my $Control = ZoneMinder::Control->find_one(Id=>$$self{ControlId});
+    if ($Control) {
+      require Module::Load::Conditional;
+      if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$$Control{Protocol} => undef})) {
+        Error("Can't load ZoneMinder::Control::$$Control{Protocol}\n$Module::Load::Conditional::ERROR");
+        return undef;
+      }
+      bless $Control, 'ZoneMinder::Control::'.$$Control{Protocol};
+      $$Control{MonitorId} = $$self{Id};
+      $$self{Control} = $Control;
+    }
+  }
+  return $$self{Control};
 }
 
 1;

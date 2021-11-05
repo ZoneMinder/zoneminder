@@ -231,7 +231,7 @@ if ( $action == 'save' ) {
         } // end if changes in width or height
       } else {
         global $error_message;
-        $error_message = dbError();
+        $error_message = dbError('unknown');
       } // end if successful save
       $restart = true;
     } else { // new monitor

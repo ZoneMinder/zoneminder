@@ -60,8 +60,8 @@ Event::Event(
   //snapshit_file(),
   //alarm_file(""),
   videoStore(nullptr),
-  //video_name(""),
   //video_file(""),
+  //video_path(""),
   last_db_frame(0),
   have_video_keyframe(false),
   //scheme
@@ -104,6 +104,13 @@ Event::Event(
   // Copy it in case opening the mp4 doesn't work we can set it to another value
   save_jpegs = monitor->GetOptSaveJPEGs();
   Storage * storage = monitor->getStorage();
+  if (monitor->GetOptVideoWriter() != 0) {
+    container = monitor->OutputContainer();
+    if ( container == "auto" || container == "" ) {
+      container = "mp4";
+    }
+    video_incomplete_file = "incomplete."+container;
+  }
 
   std::string sql = stringtf(
       "INSERT INTO `Events` "
@@ -120,7 +127,7 @@ Event::Event(
       state_id,
       monitor->getOrientation(),
       0,
-      "",
+      video_incomplete_file.c_str(),
       save_jpegs,
       storage->SchemeString().c_str()
       );
@@ -178,24 +185,16 @@ Event::Event(
   }  // end if ! setPath(Storage)
   Debug(1, "Using storage area at %s", path.c_str());
 
-  video_name = "";
-
   snapshot_file = path + "/snapshot.jpg";
   alarm_file = path + "/alarm.jpg";
 
-  /* Save as video */
+  video_incomplete_path = path + "/" + video_incomplete_file;
 
-  if ( monitor->GetOptVideoWriter() != 0 ) {
-    std::string container = monitor->OutputContainer();
-    if ( container == "auto" || container == "" ) {
-      container = "mp4";
-    }
+  if (monitor->GetOptVideoWriter() != 0) {
+    /* Save as video */
         
-    video_name = stringtf("%" PRIu64 "-%s.%s", id, "video", container.c_str());
-    video_file = path + "/" + video_name;
-    Debug(1, "Writing video file to %s", video_file.c_str());
     videoStore = new VideoStore(
-        video_file.c_str(),
+        video_incomplete_path.c_str(),
         container.c_str(),
         monitor->GetVideoStream(),
         monitor->GetVideoCodecContext(),
@@ -213,8 +212,10 @@ Event::Event(
         zmDbDo(sql);
       }
     } else {
-      sql = stringtf("UPDATE Events SET Videoed=1, DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
-      zmDbDo(sql);
+      std::string codec = videoStore->get_codec();
+      video_file = stringtf("%" PRIu64 "-%s.%s.%s", id, "video", codec.c_str(), container.c_str());
+      video_path = path + "/" + video_file;
+      Debug(1, "Video file is %s", video_file.c_str());
     }
   }  // end if GetOptVideoWriter
 }
@@ -223,10 +224,18 @@ Event::~Event() {
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
 
   /* Close the video file */
-  if ( videoStore != nullptr ) {
+  if (videoStore != nullptr) {
     Debug(4, "Deleting video store");
     delete videoStore;
     videoStore = nullptr;
+    int result = rename(video_incomplete_path.c_str(), video_path.c_str());
+    if (result == 0) {
+      Debug(1, "File successfully renamed");
+    } else {
+      Error("Failed renaming %s to %s", video_incomplete_path.c_str(), video_path.c_str());
+      // So that we don't update the event record
+      video_file = video_incomplete_file;
+    }
   }
 
   // endtime is set in AddFrame, so SHOULD be set to the value of the last frame timestamp.
@@ -245,21 +254,23 @@ Event::~Event() {
   }
 
   std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64 " AND Name='New Event'",
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64 " AND Name='New Event'",
       monitor->EventPrefix(), id, std::chrono::system_clock::to_time_t(end_time),
       delta_time.count(),
       frames, alarm_frames,
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
+      video_file.c_str(), // defaults to ""
       id);
 
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64,
         std::chrono::system_clock::to_time_t(end_time),
         delta_time.count(),
         frames, alarm_frames,
         tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
+        video_file.c_str(), // defaults to ""
         id);
     zmDbDoUpdate(sql);
   }  // end if no changed rows due to Name change during recording
@@ -479,7 +490,7 @@ void Event::AddFrame(Image *image,
       Debug(1, "Writing snapshot");
       WriteFrameImage(image, timestamp, snapshot_file.c_str());
     } else {
-      Debug(1, "Not Writing snapshot");
+      Debug(1, "Not Writing snapshot because score %d > max %d", score, max_score);
     }
 
     // We are writing an Alarm frame
@@ -491,7 +502,7 @@ void Event::AddFrame(Image *image,
         Debug(1, "Writing alarm image");
         WriteFrameImage(image, timestamp, alarm_file.c_str());
       } else {
-        Debug(1, "Not Writing alarm image");
+        Debug(3, "Not Writing alarm image because alarm frame already written");
       }
 
       if (alarm_image and (save_jpegs & 2)) {

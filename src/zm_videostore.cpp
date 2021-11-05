@@ -151,6 +151,7 @@ bool VideoStore::open() {
       Debug(3, "Encoder Option %s=%s", e->key, e->value);
     }
   }
+  av_dict_free(&opts);
 
   if (video_in_stream) {
     zm_dump_codecpar(video_in_stream->codecpar);
@@ -184,6 +185,7 @@ bool VideoStore::open() {
         }
       } // end if orientation
 
+      av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
       if (av_dict_get(opts, "new_extradata", nullptr, AV_DICT_MATCH_CASE)) {
         av_dict_set(&opts, "new_extradata", nullptr, 0);
         // Special flag to tell us to open a codec to get new extraflags to fix weird h265
@@ -230,8 +232,8 @@ bool VideoStore::open() {
         if (ret < 0) {
           Error("Could not initialize stream parameteres");
         }
+        av_dict_free(&opts);
       }  // end if extradata_entry
-      av_dict_free(&opts);
     } else if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
       int wanted_codec = monitor->OutputCodec();
       if (!wanted_codec) {
@@ -485,6 +487,7 @@ bool VideoStore::open() {
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
 
+  av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
   if (!movflags_entry) {
     Debug(1, "setting movflags to frag_keyframe+empty_moov");
@@ -616,7 +619,8 @@ VideoStore::~VideoStore() {
 
     Debug(1, "Writing trailer");
     /* Write the trailer before close */
-    if (int rc = av_write_trailer(oc)) {
+    int rc;
+    if ((rc = av_write_trailer(oc)) < 0) {
       Error("Error writing trailer %s", av_err2str(rc));
     } else {
       Debug(3, "Success Writing trailer");
@@ -626,7 +630,7 @@ VideoStore::~VideoStore() {
     if (!(out_format->flags & AVFMT_NOFILE)) {
       /* Close the out file. */
       Debug(4, "Closing");
-      if (int rc = avio_close(oc->pb)) {
+      if ((rc = avio_close(oc->pb)) < 0) {
         Error("Error closing avio %s", av_err2str(rc));
       }
     } else {

@@ -461,9 +461,12 @@ switch ( $name ) {
           <tr class="Id">
             <td class="text-right pr-3"><?php echo translate('Id') ?></td>
             <td><input type="number" step="1" min="1" name="newMonitor[Id]" placeholder="leave blank for auto"/><br/>
-10 Available Ids: 
-<?php echo implode(', ', array_slice($available_monitor_ids, 0, 10)); ?>
-</td>
+<?php 
+if (count($available_monitor_ids)) {
+  echo 'Some available ids: '.implode(', ', array_slice($available_monitor_ids, 0, 10));
+}
+?>
+            </td>
           </tr>
 <?php
 

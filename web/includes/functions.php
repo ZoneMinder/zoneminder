@@ -84,7 +84,7 @@ function CSPHeaders($view, $nonce) {
     }
     default: {
       // Use Report-Only mode on all other pages.
-      header("Content-Security-Policy-Report-Only: worker-src 'self' blob:; script-src 'self' 'nonce-$nonce' 'unsafe-eval' $additionalScriptSrc".
+      header("Content-Security-Policy-Report-Only: worker-src 'self' blob:; script-src 'self' 'nonce-$nonce' 'unsafe-eval' $additionalScriptSrc;".
         (ZM_CSP_REPORT_URI ? ' report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;

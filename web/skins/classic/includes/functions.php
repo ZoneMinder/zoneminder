@@ -934,11 +934,6 @@ function xhtmlFooter() {
 <?php
   if ( $view == 'event' ) {
 ?>
-  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
-  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
-  <script src="<?php echo cache_bust('skins/'.$skin .'/js/libde265.js') ?>"></script>
-  <script src="./js/videojs.zoomrotate.js"></script>
 <?php
   }
 ?>

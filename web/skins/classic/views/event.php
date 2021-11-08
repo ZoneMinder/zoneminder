@@ -97,7 +97,7 @@ if ( ( !$replayMode ) or ( !$replayModes[$replayMode] ) ) {
 $player = 'mjpeg';
 if ( $Event->DefaultVideo() and ( $codec == 'MP4' or $codec == 'auto' ) ) {
   if (strpos($Event->DefaultVideo(), 'h265') or strpos($Event->DefaultVideo(), 'hevc')) {
-    $player = 'libde265';
+    $player = 'h265web.js';
   } else {
     $player = 'video.js';
   }
@@ -132,16 +132,13 @@ xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());
 ?>
 <body>
   <div id="page">
-    <?php echo getNavBarHTML() ?>
-<?php 
-if ( !$Event->Id() ) {
+<?php
+echo getNavBarHTML();
+if (!$Event->Id())
   echo '<div class="error">Event was not found.</div>';
-}
-
-if ( $Event->Id() and !file_exists($Event->Path()) )
+else if (!file_exists($Event->Path()))
   echo '<div class="error">Event was not found at '.$Event->Path().'.  It is unlikely that playback will be possible.</div>';
 ?>
-
 <!-- BEGIN HEADER -->
     <div class="d-flex flex-row justify-content-between px-3 py-1">
       <div id="toolbar" >
@@ -181,20 +178,19 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         </div>
       </div>
     </div>
-<?php if ( $Event->Id() ) { ?>
+<?php if ($Event->Id()) { ?>
 <!-- BEGIN VIDEO CONTENT ROW -->
     <div id="content" class="d-flex flex-row justify-content-center">
-      <div class="">
+      <div id="eventStats">
         <!-- VIDEO STATISTICS TABLE -->
         <table id="eventStatsTable" class="table-sm table-borderless">
           <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
         </table>
       </div>
-      <div class="">
       <div id="eventVideo">
       <!-- VIDEO CONTENT -->
 <?php
-if ( $player == 'video.js' ) {
+if ($player == 'video.js') {
 ?>
         <div id="videoFeed">
           <video autoplay id="videoobj" class="video-js vjs-default-skin"
@@ -236,9 +232,48 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
         </div><!--progressBar-->
       </div><!--imageFeed-->
 <?php
-} else if ($player == 'libde265') {
+} else if ($player == 'h265web.js') {
 ?>
-  <canvas id="video" width="<?php echo reScale($Event->Width(), $scale);?>" height="<?php echo reScale($Event->Height(), $scale);?>"></canvas>
+      <div id="player-container">
+        <div id="glplayer" class="glplayer"></div>
+        <div id="controller" class="controller">
+          <div id="progress-contaniner" class="progress-common progress-contaniner">
+            <div id="cachePts" class="progress-common cachePts"></div>
+            <div id="progressPts" class="progress-common progressPts"></div>
+          </div>
+
+          <div id="operate-container" class="operate-container">
+              <li id="playBar" class="playBtn">
+                  <a href="javascript:void(0)" title="start">Start</a>
+              </li>
+
+              <span id="ptsLabel" class="ptsLabel">00:00:00/00:00:00</span>
+              <div class="voice-div">
+                  <span>
+                      <a id="muteBtn"
+                          class="muteBtn" href="javascript:void(0)">
+                          <svg class="icon" style="width: 1em;height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="488">
+                              <path d="M153.6 665.6V358.4h204.8V256H153.6c-56.32 0-102.4 46.08-102.4 102.4v307.2c0 56.32 46.08 102.4 102.4 102.4h204.8v-102.4H153.6zM358.4 256v102.4l204.8-128v563.2L358.4 665.6v102.4l307.2 204.8V51.2zM768 261.12v107.52c61.44 20.48 102.4 76.8 102.4 143.36s-40.96 122.88-102.4 143.36v107.52c117.76-25.6 204.8-128 204.8-250.88s-87.04-225.28-204.8-250.88z" p-id="489">
+                              </path>
+                          </svg>
+                      </a>
+                  </span>
+                  <progress id="progressVoice" class="progressVoice" value="50" max="100"></progress>
+              </div>
+
+              <a id="fullScreenBtn" class="fullScreenBtn" href="javascript:void(0)">
+                  <svg class="icon" style="width: 1em;height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="403">
+                      <path d="M167.8 903.1c-11.5 0-22.9-4.4-31.7-13.1-17.5-17.5-17.5-45.8 0-63.3l221.1-221.1c17.5-17.5 45.9-17.5 63.3 0 17.5 17.5 17.5 45.8 0 63.3L199.4 890c-8.7 8.7-20.2 13.1-31.6 13.1zM638.5 432.4c-11.5 0-22.9-4.4-31.7-13.1-17.5-17.5-17.5-45.8 0-63.3l221.7-221.7c17.5-17.5 45.8-17.5 63.3 0s17.5 45.8 0 63.3L670.1 419.3c-8.7 8.7-20.2 13.1-31.6 13.1zM859.7 903.8c-11.5 0-23-4.4-31.7-13.1L606.7 668.8c-17.5-17.5-17.4-45.9 0.1-63.4s45.9-17.4 63.3 0.1l221.4 221.9c17.5 17.5 17.4 45.9-0.1 63.4-8.8 8.7-20.2 13-31.7 13zM389 432.1c-11.5 0-23-4.4-31.7-13.1L136.1 197.2c-17.5-17.5-17.4-45.9 0.1-63.4s45.9-17.4 63.3 0.1l221.2 221.7c17.5 17.5 17.4 45.9-0.1 63.4-8.7 8.7-20.2 13.1-31.6 13.1z" fill="#ffffff" p-id="404">
+                      </path>
+                      <path d="M145 370c-24.7 0-44.8-20.1-44.8-44.8V221.8C100.2 153.5 155.7 98 224 98h103.4c24.7 0 44.8 20.1 44.8 44.8s-20.1 44.8-44.8 44.8H224c-18.9 0-34.2 15.3-34.2 34.2v103.4c0 24.7-20.1 44.8-44.8 44.8zM883.3 370c-24.7 0-44.8-20.1-44.8-44.8V221.8c0-18.9-15.3-34.2-34.2-34.2H700.8c-24.7 0-44.8-20.1-44.8-44.8S676.1 98 700.8 98h103.5c68.2 0 123.8 55.5 123.8 123.8v103.5c0 24.7-20.1 44.7-44.8 44.7zM327.5 926.6H224c-68.2 0-123.8-55.5-123.8-123.8V699.4c0-24.7 20.1-44.8 44.8-44.8s44.8 20.1 44.8 44.8v103.5c0 18.9 15.3 34.2 34.2 34.2h103.5c24.7 0 44.8 20.1 44.8 44.8s-20.1 44.7-44.8 44.7zM804.3 926.6H700.8c-24.7 0-44.8-20.1-44.8-44.8s20.1-44.8 44.8-44.8h103.5c18.9 0 34.2-15.4 34.2-34.2V699.4c0-24.7 20.1-44.8 44.8-44.8 24.7 0 44.8 20.1 44.8 44.8v103.5c0 68.2-55.6 123.7-123.8 123.7z" fill="#ffffff" p-id="405">
+                      </path>
+                  </svg>
+              </a>
+              <span id="showLabel" class="showLabel"></span>
+            </div>
+          </div>
+       </div> <!-- end player container -->
+<br/>
 <?php
 } /*end if player */
 ?>
@@ -255,7 +290,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click="pauseClicked">
           <i class="material-icons md-18">pause</i>
           </button>
-          <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click="playClicked">
+          <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" data-on-click="playClicked">
           <i class="material-icons md-18">play_arrow</i>
           </button>
           <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowFwd">
@@ -290,4 +325,18 @@ echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
     </div><!--content-->
     
   </div><!--page-->
-<?php xhtmlFooter() ?>
+<?php
+if ($player == 'video.js') {
+?>
+  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
+  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
+  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
+  <script src="./js/videojs.zoomrotate.js"></script>
+<?php 
+} else if ($player == 'h265web.js') {
+?>
+  <script src="skins/<?php echo $skin ?>/js/h265web.js/missile.js"></script>
+  <script src="skins/<?php echo $skin ?>/js/h265web.js/h265webjs-v20211026.js"></script>
+<?php
+}
+ xhtmlFooter() ?>

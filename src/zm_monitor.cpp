@@ -1862,8 +1862,6 @@ bool Monitor::Analyse() {
           Debug(3, "signal and active and modect");
           Event::StringSet zoneSet;
 
-          int motion_score = last_motion_score;
-
           if (analysis_fps_limit) {
             double capture_fps = get_capture_fps();
             motion_frame_skip = capture_fps / analysis_fps_limit;
@@ -1880,7 +1878,7 @@ bool Monitor::Analyse() {
               } else {
                 Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                 // Get new score.
-                motion_score = DetectMotion(*(snap->image), zoneSet);
+                int motion_score = DetectMotion(*(snap->image), zoneSet);
 
                 snap->zone_stats.reserve(zones.size());
                 for (const Zone &zone : zones) {
@@ -1892,21 +1890,20 @@ bool Monitor::Analyse() {
                 Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
                     score, last_motion_score, motion_score);
                 motion_frame_count += 1;
-                // Why are we updating the last_motion_score too?
                 last_motion_score = motion_score;
+                if (motion_score) {
+                  if (cause.length()) cause += ", ";
+                  cause += MOTION_CAUSE;
+                  noteSetMap[MOTION_CAUSE] = zoneSet;
+                } // end if motion_score
               }
             } else {
               Debug(1, "no image so skipping motion detection");
             }  // end if has image
           } else {
-            Debug(1, "Skipped motion detection last motion score was %d", motion_score);
+            Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
           }
-          if (motion_score) {
-            score += motion_score;
-            if (cause.length()) cause += ", ";
-            cause += MOTION_CAUSE;
-            noteSetMap[MOTION_CAUSE] = zoneSet;
-          } // end if motion_score
+          score += last_motion_score;
         } else {
           Debug(1, "Not Active(%d) enabled %d active %d doing motion detection: %d",
               Active(), enabled, shared_data->active,
@@ -2007,7 +2004,7 @@ bool Monitor::Analyse() {
           } // end if ! event
         } // end if RECORDING
 
-        if (score and (function == MODECT or function == NODECT)) {
+        if (score and (function == MODECT or function == NODECT or function == MOCORD)) {
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             // If we should end then previous continuous event and start a new non-continuous event
             if (event && event->Frames()
@@ -2142,7 +2139,8 @@ bool Monitor::Analyse() {
             shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
           } else {
             Debug(1,
-                  "State %s because image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
+                  "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
+                  state,
                   State_Strings[state].c_str(),
                   analysis_image_count,
                   last_alarm_count,
@@ -2161,12 +2159,10 @@ bool Monitor::Analyse() {
           // Generate analysis images if necessary
           if ((savejpegs > 1) and snap->image) {
             for (const Zone &zone : zones) {
-              if (zone.Alarmed()) {
-                if (zone.AlarmImage()) {
+              if (zone.Alarmed() and zone.AlarmImage()) {
                   if (!snap->analysis_image)
                     snap->analysis_image = new Image(*(snap->image));
                   snap->analysis_image->Overlay(*(zone.AlarmImage()));
-                }
               } // end if zone is alarmed
             } // end foreach zone
           } // end if savejpegs

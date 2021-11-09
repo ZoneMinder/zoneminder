@@ -67,20 +67,19 @@ if (isset($_REQUEST['sort'])) {
 
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
-if ( isset($_REQUEST['offset']) ) {
-  if ( ( !is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']) ) ) {
+if (isset($_REQUEST['offset'])) {
+  if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
     ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
   } else {
     $offset = $_REQUEST['offset'];
   }
 }
 
-
 // Limit specifies the number of rows to return
 // Set the default to 0 for events view, to prevent an issue with ALL pagination
 $limit = 0;
-if ( isset($_REQUEST['limit']) ) {
-  if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
+if (isset($_REQUEST['limit'])) {
+  if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
     ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
   } else {
     $limit = $_REQUEST['limit'];
@@ -91,25 +90,24 @@ if ( isset($_REQUEST['limit']) ) {
 // MAIN LOOP
 //
 
-switch ( $task ) {
+switch ($task) {
   case 'archive' :
-    foreach ( $eids as $eid ) archiveRequest($task, $eid);
+    foreach ($eids as $eid) archiveRequest($task, $eid);
     break;
   case 'unarchive' :
 		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
-		if ( !canEdit('Events') )  {
+		if (!canEdit('Events'))  {
 			ajaxError('Insufficient permissions for user '.$user['Username']);
 			return;
 		}
-    foreach ( $eids as $eid ) archiveRequest($task, $eid);
+    foreach ($eids as $eid) archiveRequest($task, $eid);
     break;
   case 'delete' :
-		if ( !canEdit('Events') )  {
+		if (!canEdit('Events'))  {
 			ajaxError('Insufficient permissions for user '.$user['Username']);
 			return;
 		}
-
-    foreach ( $eids as $eid ) $data[] = deleteRequest($eid);
+    foreach ($eids as $eid) $data[] = deleteRequest($eid);
     break;
   case 'query' :
     $data = queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit);
@@ -139,6 +137,8 @@ function deleteRequest($eid) {
     $message[] = array($eid=>'Event not found.');
   } else if ( $event->Archived() ) {
     $message[] = array($eid=>'Event is archived, cannot delete it.');
+  } else if (!$event->canEdit()) {
+    $message[] = array($eid=>'You do not have permission to delete event '.$event->Id());
   } else {
     $event->delete();
   }
@@ -147,7 +147,6 @@ function deleteRequest($eid) {
 }
 
 function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit) {
-
   $data = array(
     'total'   =>  0,
     'totalNotFiltered' => 0,
@@ -156,7 +155,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   );
 
   $failed = !$filter->test_pre_sql_conditions();
-  if ( $failed ) {
+  if ($failed) {
     ZM\Debug('Pre conditions failed, not doing sql');
     return $data;
   }
@@ -171,7 +170,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   // The names of columns shown in the event view that are NOT dB columns in the database
   $col_alt = array('Monitor', 'Storage');
 
-  if ( !in_array($sort, array_merge($columns, $col_alt)) ) {
+  if (!in_array($sort, array_merge($columns, $col_alt))) {
     ZM\Error('Invalid sort field: ' . $sort);
     $sort = 'Id';
   }
@@ -186,7 +185,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
-  foreach ( $storage_areas as $S ) {
+  foreach ($storage_areas as $S) {
     $StorageById[$S->Id()] = $S;
   }
 
@@ -195,41 +194,43 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   ZM\Debug('Calling the following sql query: ' .$sql);
   $query = dbQuery($sql, $values);
-  if ( $query ) {
-    while ( $row = dbFetchNext($query) ) {
-      $event = new ZM\Event($row);
-      $event->remove_from_cache();
-      if ( !$filter->test_post_sql_conditions($event) ) {
-        continue;
-      }
-      $event_ids[] = $event->Id();
-      $unfiltered_rows[] = $row;
-    } # end foreach row
+  if (!$query) {
+    ajaxError(dbError($sql));
+    return;
   }
+  while ($row = dbFetchNext($query)) {
+    $event = new ZM\Event($row);
+    $event->remove_from_cache();
+    if (!$filter->test_post_sql_conditions($event)) {
+      continue;
+    }
+    $event_ids[] = $event->Id();
+    $unfiltered_rows[] = $row;
+  } # end foreach row
 
   ZM\Debug('Have ' . count($unfiltered_rows) . ' events matching base filter.');
 
   $filtered_rows = null;
 
-  if ( count($advsearch) or $search != '' ) {
+  if (count($advsearch) or $search != '') {
     $search_filter = new ZM\Filter();
     $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$event_ids));
 
     // There are two search bars in the log view, normal and advanced
     // Making an exuctive decision to ignore the normal search, when advanced search is in use
     // Alternatively we could try to do both
-    if ( count($advsearch) ) {
+    if (count($advsearch)) {
       $terms = array();
-      foreach ( $advsearch as $col=>$text ) {
+      foreach ($advsearch as $col=>$text) {
         $terms[] = array('cnj'=>'and', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$text);
       } # end foreach col in advsearch
       $terms[0]['obr'] = 1;
       $terms[count($terms)-1]['cbr'] = 1;
       $search_filter->addTerms($terms);
-    } else if ( $search != '' ) {
+    } else if ($search != '') {
       $search = '%' .$search. '%';
       $terms = array();
-      foreach ( $columns as $col ) {
+      foreach ($columns as $col) {
         $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search);
       }
       $terms[0]['obr'] = 1;

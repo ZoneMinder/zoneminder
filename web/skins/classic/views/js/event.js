@@ -30,6 +30,32 @@ var wasHidden = false;
 
 var player = null;
 
+const SHOW_LOADING = "loading...";
+const SHOW_DONE = "done.";
+
+function durationFormatSubVal(val) {
+  const valStr = val.toString();
+  if (valStr.length < 2) {
+    return '0' + valStr;
+  }
+  return valStr;
+}
+
+function durationText(duration) {
+  if (duration < 0) {
+    return "Play";
+  }
+  const durationSecInt = Math.round(duration);
+  return durationFormatSubVal(Math.floor(durationSecInt / 3600))
+    + ":" + durationFormatSubVal(Math.floor((durationSecInt % 3600) / 60))
+    + ":" + durationFormatSubVal(Math.floor(durationSecInt % 60));
+}
+
+const getMsTime = () => {
+  return new Date().getTime();
+};
+
+
 function streamReq(data) {
   if ( auth_hash ) data.auth = auth_hash;
   data.connkey = connKey;
@@ -339,15 +365,20 @@ function playClicked( ) {
   if (!rate_select.val()) {
     $j('select[name="rate"]').val(100);
   }
+  console.log("playClicked");
   if (player) {
-    player.playback(videoUrl);
+    console.log("Player.play");
+    player.play();
+    //player.playback(videoUrl);
   } else if (vid) {
+    console.log("vid");
     if (vid.paused()) {
       vid.play();
     } else {
       vjsPlay(); //handles fast forward and rewind
     }
   } else {
+    console.log("zms play");
     streamReq({command: CMD_PLAY});
   }
   streamPlay();
@@ -876,15 +907,142 @@ function initPage() {
     onStatsResize(eventData.Width);
   }
   if (eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0) {
-    var video = document.getElementById("video");
-    console.log(video);
+    if (0) {
+      var video = document.getElementById("video");
+      console.log(video);
 
-    player = new libde265.RawPlayer(video);
-    player.set_status_callback(function(msg, fps) {
-      console.log("libdeh265: "+msg + " fps: " + fps);
-    });
-    console.log("Setting url to " + videoUrl);
-    player.playback(videoUrl);
+      player = new libde265.RawPlayer(video);
+      player.set_status_callback(function(msg, fps) {
+        console.log("libdeh265: "+msg + " fps: " + fps);
+      });
+      console.log("Setting url to " + videoUrl);
+      player.playback(videoUrl);
+    } else {
+      var token = "base64:QXV0aG9yOmNoYW5neWFubG9uZ3xudW1iZXJ3b2xmLEdpdGh1YjpodHRwczovL2dpdGh1Yi5jb20vbnVtYmVyd29sZixFbWFpbDpwb3JzY2hlZ3QyM0Bmb3htYWlsLmNvbSxRUTo1MzEzNjU4NzIsSG9tZVBhZ2U6aHR0cDovL3h2aWRlby52aWRlbyxEaXNjb3JkOm51bWJlcndvbGYjODY5NCx3ZWNoYXI6bnVtYmVyd29sZjExLEJlaWppbmcsV29ya0luOkJhaWR1";
+
+      var config = {
+        player: "glplayer",
+        width: '100%',
+        height: 720,
+        accurateSeek: true,
+        token: token,
+        extInfo: {
+          //moovStartFlag: true,
+          //readyShow: true,
+          //autoCrop: false,
+          //core: PLAYER_CORE_TYPE_DEFAULT,
+          // core : PLAYER_CORE_TYPE_CNATIVE,
+          coreProbePart: 0.4,
+          probeSize: 8192,
+          ignoreAudio: 0
+        }
+      };
+      playerObj = player = window.new265webjs(videoUrl, config);
+      //const playerCont = document.querySelector('#player-container');
+      //const controllerCont = document.querySelector('#controller');
+      //const progressCont = document.querySelector('#progress-contaniner');
+      //const progressContW = progressCont.offsetWidth;
+      const cachePts = progressCont.querySelector('#cachePts');
+      //const progressPts = progressCont.querySelector('#progressPts');
+      const progressVoice = document.querySelector('#progressVoice');
+      const playBar = document.querySelector('#playBar');
+      const playBtn = playBar.getElementsByTagName('a')[0];
+      const showLabel = document.querySelector('#showLabel');
+      const ptsLabel = document.querySelector('#ptsLabel');
+      const coverToast = document.querySelector('#coverLayer');
+      const coverBtn = document.querySelector('#coverLayerBtn');
+      //const muteBtn = document.querySelector('#muteBtn');
+      //const fullScreenBtn = document.querySelector('#fullScreenBtn');
+      const mediaInfo = null;
+
+      playerObj.onRender = (width, height, imageBufferY, imageBufferB, imageBufferR) => {
+        console.log("on render");
+      };
+
+      playerObj.onOpenFullScreen = () => {
+        console.log("onOpenFullScreen");
+      };
+
+      playerObj.onCloseFullScreen = () => {
+        console.log("onCloseFullScreen");
+      };
+
+      playerObj.onSeekFinish = () => {
+        showLabel.textContent = SHOW_DONE;
+      };
+
+      playerObj.onLoadCache = () => {
+        showLabel.textContent = "Caching...";
+      };
+
+      playerObj.onLoadCacheFinshed = () => {
+        showLabel.textContent = SHOW_DONE;
+      };
+
+      playerObj.onReadyShowDone = () => {
+        console.log("onReadyShowDone");
+        showLabel.textContent = "Cover Img OK";
+      };
+      playerObj.onLoadFinish = () => {
+        playerObj.setVoice(1.0);
+        mediaInfo = playerObj.mediaInfo();
+        console.log("mediaInfo===========>", mediaInfo);
+        /*
+        meta:
+            durationMs: 144400
+            fps: 25
+            sampleRate: 44100
+            size: {
+                width: 864,
+                height: 480
+            },
+            audioNone : false
+        videoType: "vod"
+        */
+        if (mediaInfo.meta.isHEVC === false) {
+          console.log("is not HEVC/H.265 media!");
+          //coverToast.removeAttribute('hidden');
+          //coverBtn.style.width = '100%';
+          //coverBtn.style.fontSize = '50px';
+          //coverBtn.innerHTML = 'is not HEVC/H.265 media!';
+          //return;
+        }
+        //console.log("is HEVC/H.265 media.");
+
+        playBtn.disabled = false;
+
+        if (mediaInfo.meta.audioNone) {
+          progressVoice.value = 0;
+          progressVoice.style.display = 'none';
+        } else {
+          playerObj.setVoice(0.5);
+        }
+        if (mediaInfo.videoType == "vod") {
+          cachePts.max = mediaInfo.meta.durationMs / 1000;
+          progressCont.max = mediaInfo.meta.durationMs / 1000;
+          ptsLabel.textContent = durationText(0) + '/' + durationText(progressCont.max);
+        } else {
+          cachePts.hidden = true;
+          progressCont.hidden = true;
+          ptsLabel.textContent = 'LIVE';
+
+          if (mediaInfo.meta.audioNone === true) {
+            // playBar.textContent = '||';
+            playerObj.play();
+          } else {
+            coverToast.removeAttribute('hidden');
+            coverBtn.onclick = () => {
+              // playBar.textContent = '||';
+              playAction();
+              coverToast.setAttribute('hidden', 'hidden');
+            };
+          }
+        }
+
+        showLabel.textContent = SHOW_DONE;
+      };
+      playerObj.do();
+    }
   } else {
     //FIXME prevent blocking...not sure what is happening or best way to unblock
     if ($j('#videoobj').length) {

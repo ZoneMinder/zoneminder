@@ -155,7 +155,7 @@ bool Monitor::MonitorLink::connect() {
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
 
-    Debug(1, "link.mem.size=%jd", mem_size);
+    Debug(1, "link.mem.size=%jd", static_cast<intmax_t>(mem_size));
 #if ZM_MEM_MAPPED
     map_fd = open(mem_file.c_str(), O_RDWR, (mode_t)0600);
     if (map_fd < 0) {
@@ -182,14 +182,14 @@ bool Monitor::MonitorLink::connect() {
       disconnect();
       return false;
     } else if (map_stat.st_size < mem_size) {
-      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, mem_size);
+      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, static_cast<intmax_t>(mem_size));
       disconnect();
       return false;
     }
 
     mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
     if (mem_ptr == MAP_FAILED) {
-      Error("Can't map file %s (%jd bytes) to memory: %s", mem_file.c_str(), mem_size, strerror(errno));
+      Error("Can't map file %s (%jd bytes) to memory: %s", mem_file.c_str(), static_cast<intmax_t>(mem_size), strerror(errno));
       disconnect();
       return false;
     }
@@ -947,7 +947,7 @@ bool Monitor::connect() {
       map_fd = -1;
       return false;
     } else {
-      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, mem_size);
+      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, static_cast<intmax_t>(mem_size));
       close(map_fd);
       map_fd = -1;
       return false;
@@ -959,18 +959,18 @@ bool Monitor::connect() {
   mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0);
   if (mem_ptr == MAP_FAILED) {
     if (errno == EAGAIN) {
-      Debug(1, "Unable to map file %s (%jd bytes) to locked memory, trying unlocked", mem_file.c_str(), mem_size);
+      Debug(1, "Unable to map file %s (%jd bytes) to locked memory, trying unlocked", mem_file.c_str(), static_cast<intmax_t>(mem_size));
 #endif
       mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
-      Debug(1, "Mapped file %s (%jd bytes) to unlocked memory", mem_file.c_str(), mem_size);
+      Debug(1, "Mapped file %s (%jd bytes) to unlocked memory", mem_file.c_str(), static_cast<intmax_t>(mem_size));
 #ifdef MAP_LOCKED
     } else {
-      Error("Unable to map file %s (%jd bytes) to locked memory (%s)", mem_file.c_str(), mem_size, strerror(errno));
+      Error("Unable to map file %s (%jd bytes) to locked memory (%s)", mem_file.c_str(), static_cast<intmax_t>(mem_size), strerror(errno));
     }
   }
 #endif
   if ((mem_ptr == MAP_FAILED) or (mem_ptr == nullptr)) {
-    Error("Can't map file %s (%jd bytes) to memory: %s(%d)", mem_file.c_str(), mem_size, strerror(errno), errno);
+    Error("Can't map file %s (%jd bytes) to memory: %s(%d)", mem_file.c_str(), static_cast<intmax_t>(mem_size), strerror(errno), errno);
     close(map_fd);
     map_fd = -1;
     mem_ptr = nullptr;
@@ -2310,7 +2310,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
     while ( 1 ) {
       dest_ptr = link_id_str;
       while ( *src_ptr >= '0' && *src_ptr <= '9' ) {
-        if ( (dest_ptr-link_id_str) < (unsigned int)(sizeof(link_id_str)-1) ) {
+        if ( (unsigned int)(dest_ptr-link_id_str) < (unsigned int)(sizeof(link_id_str)-1) ) {
           *dest_ptr++ = *src_ptr++;
         } else {
           break;
@@ -2741,7 +2741,7 @@ void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
   const char *s_ptr = label_time_text;
   char *d_ptr = label_text;
 
-  while (*s_ptr && ((d_ptr - label_text) < (unsigned int) sizeof(label_text))) {
+  while (*s_ptr && ((unsigned int)(d_ptr - label_text) < (unsigned int) sizeof(label_text))) {
     if ( *s_ptr == config.timestamp_code_char[0] ) {
       bool found_macro = false;
       switch ( *(s_ptr+1) ) {
@@ -2757,7 +2757,7 @@ void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
           typedef std::chrono::duration<int64, std::centi> Centiseconds;
           Centiseconds centi_sec = std::chrono::duration_cast<Centiseconds>(
               ts_time.time_since_epoch() - std::chrono::duration_cast<Seconds>(ts_time.time_since_epoch()));
-          d_ptr += snprintf(d_ptr, sizeof(label_text) - (d_ptr - label_text), "%02ld", centi_sec.count());
+          d_ptr += snprintf(d_ptr, sizeof(label_text) - (d_ptr - label_text), "%02lld", static_cast<long long int>(centi_sec.count()));
           found_macro = true;
           break;
       }

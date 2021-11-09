@@ -323,32 +323,32 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   bool update = false;
 
   //Info( "Checking notes, %d <> %d", noteSetMap.size(), newNoteSetMap.size() );
-  if ( newNoteSetMap.size() > 0 ) {
-    if ( noteSetMap.size() == 0 ) {
+  if (newNoteSetMap.size() > 0) {
+    if (noteSetMap.size() == 0) {
       noteSetMap = newNoteSetMap;
       update = true;
     } else {
-      for ( StringSetMap::const_iterator newNoteSetMapIter = newNoteSetMap.begin();
+      for (StringSetMap::const_iterator newNoteSetMapIter = newNoteSetMap.begin();
           newNoteSetMapIter != newNoteSetMap.end();
-          ++newNoteSetMapIter ) {
+          ++newNoteSetMapIter) {
         const std::string &newNoteGroup = newNoteSetMapIter->first;
         const StringSet &newNoteSet = newNoteSetMapIter->second;
         //Info( "Got %d new strings", newNoteSet.size() );
-        if ( newNoteSet.size() > 0 ) {
+        if (newNoteSet.size() > 0) {
           StringSetMap::iterator noteSetMapIter = noteSetMap.find(newNoteGroup);
-          if ( noteSetMapIter == noteSetMap.end() ) {
-            //Info( "Can't find note group %s, copying %d strings", newNoteGroup.c_str(), newNoteSet.size() );
+          if (noteSetMapIter == noteSetMap.end()) {
+            //Debug(3, "Can't find note group %s, copying %d strings", newNoteGroup.c_str(), newNoteSet.size());
             noteSetMap.insert(StringSetMap::value_type(newNoteGroup, newNoteSet));
             update = true;
           } else {
             StringSet &noteSet = noteSetMapIter->second;
-            //Info( "Found note group %s, got %d strings", newNoteGroup.c_str(), newNoteSet.size() );
-            for ( StringSet::const_iterator newNoteSetIter = newNoteSet.begin();
+            //Debug(3, "Found note group %s, got %d strings", newNoteGroup.c_str(), newNoteSet.size());
+            for (StringSet::const_iterator newNoteSetIter = newNoteSet.begin();
                 newNoteSetIter != newNoteSet.end();
-                ++newNoteSetIter ) {
+                ++newNoteSetIter) {
               const std::string &newNote = *newNoteSetIter;
               StringSet::iterator noteSetIter = noteSet.find(newNote);
-              if ( noteSetIter == noteSet.end() ) {
+              if (noteSetIter == noteSet.end()) {
                 noteSet.insert(newNote);
                 update = true;
               }

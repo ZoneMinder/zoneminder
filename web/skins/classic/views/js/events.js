@@ -35,12 +35,16 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  if ( params.data && params.data.filter ) {
+  if (params.data && params.data.filter) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
   }
   $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
       .done(function(data) {
+        if (data.result == 'Error') {
+          alert(data.message);
+          return;
+        }
         var rows = processRows(data.rows);
         // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});

@@ -1916,7 +1916,7 @@ bool Monitor::Analyse() {
           if (event) {
             Debug(2, "Have event %" PRIu64 " in record", event->Id());
 
-            if (section_length != Seconds(0) && (timestamp - GetVideoWriterStartTime() >= section_length)
+            if (section_length != Seconds(0) && (timestamp - event->StartTime() >= section_length)
                 && ((function == MOCORD && event_close_mode != CLOSE_TIME)
                     || (function == RECORD && event_close_mode == CLOSE_TIME)
                     || std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()) % section_length == Seconds(0))) {
@@ -1925,8 +1925,8 @@ bool Monitor::Analyse() {
                    image_count,
                    event->Id(),
                    static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()).count()),
-                   static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
-                   static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - GetVideoWriterStartTime()).count()),
+                   static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                   static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - event->StartTime()).count()),
                    static_cast<int64>(Seconds(section_length).count()));
               closeEvent();
             }  // end if section_length
@@ -2009,21 +2009,22 @@ bool Monitor::Analyse() {
             // If we should end then previous continuous event and start a new non-continuous event
             if (event && event->Frames()
                 && !event->AlarmFrames()
-                && event_close_mode == CLOSE_ALARM
-                && timestamp - GetVideoWriterStartTime() >= min_section_length
-                && (!pre_event_count || Event::PreAlarmCount() >= alarm_frame_count - 1)) {
+                && (event_close_mode == CLOSE_ALARM)
+                && ((timestamp - event->StartTime()) >= min_section_length)
+                && ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count - 1))) {
               Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
                   name.c_str(), image_count, event->Id());
               closeEvent();
             } else if (event) {
               // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
               Debug(3,
-                    "pre_alarm_count in event %d, event frames %d, alarm frames %d event length %" PRIi64 " >=? %" PRIi64 " min",
-                    Event::PreAlarmCount(),
+                    "pre_alarm_count in event %d of %d, event frames %d, alarm frames %d event length %" PRIi64 " >=? %" PRIi64 " min close mode is ALARM? %d",
+                    Event::PreAlarmCount(), pre_event_count,
                     event->Frames(),
                     event->AlarmFrames(),
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - GetVideoWriterStartTime()).count()),
-                    static_cast<int64>(Seconds(min_section_length).count()));
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - event->StartTime()).count()),
+                    static_cast<int64>(Seconds(min_section_length).count()),
+                    (event_close_mode == CLOSE_ALARM));
             }
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
               // lets construct alarm cause. It will contain cause + names of zones alarmed
@@ -2120,8 +2121,10 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
             shared_data->state = state = ALERT;
           } else if (state == ALERT) {
-            if (analysis_image_count - last_alarm_count > post_event_count
-                && timestamp - GetVideoWriterStartTime() >= min_section_length) {
+            if (
+                ((analysis_image_count - last_alarm_count) > post_event_count)
+                &&
+               ((timestamp - event->StartTime()) >= min_section_length)) {
               Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
                   name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
               //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
@@ -2168,7 +2171,6 @@ bool Monitor::Analyse() {
           } // end if savejpegs
 
           // incremement pre alarm image count
-          //have_pre_alarmed_frames ++;
           Event::AddPreAlarmFrame(snap->image, timestamp, score, nullptr);
         } else if (state == ALARM) {
           for (const Zone &zone : zones) {
@@ -2183,7 +2185,7 @@ bool Monitor::Analyse() {
           if (event) {
             if (noteSetMap.size() > 0)
               event->updateNotes(noteSetMap);
-            if (section_length != Seconds(0) && (timestamp - GetVideoWriterStartTime() >= section_length)) {
+            if (section_length != Seconds(0) && (timestamp - event->StartTime() >= section_length)) {
               Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                       name.c_str(), analysis_image_count, event->Id(),
                       static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()).count()),

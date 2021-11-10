@@ -495,6 +495,10 @@ class Monitor extends ZM_Object {
     return $this->Server()->UrlToIndex($port);
   }
 
+  public function UrlToZMS($port=null) {
+    return $this->Server()->UrlToZMS($port).'?mid='.$this->Id();
+  }
+
   public function sendControlCommand($command) {
     // command is generally a command option list like --command=blah but might be just the word quit
 

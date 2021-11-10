@@ -54,6 +54,7 @@ foreach ( $perms as $perm ) {
 ?>
 
 var ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;
+var SCALE_BASE = <?php echo SCALE_BASE ?>;
 
 var refreshParent = <?php
 if ( ! empty($refreshParent) ) {

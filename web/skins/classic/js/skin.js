@@ -584,10 +584,21 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   var ratio = baseWidth / baseHeight;
   var container = $j('#content');
+  if (!container) {
+    console.error("No container found");
+    return;
+  }
+
+  if (!bottomEl || !bottomEl.length) {
+    bottomEl = $j(container[0].lastElementChild);
+  }
+  //console.log(bottomEl);
   var viewPort = $j(window);
-  // jquery does not provide a bottom offet, and offset dows not include margins.  outerHeight true minus false gives total vertical margins.
+  // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+  //console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true));
   var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
+  //console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true));
   var newWidth = ratio * newHeight;
   if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth();
@@ -598,13 +609,15 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
     return parseInt($j(this).val());
   }).get();
   scales.shift();
-  var closest;
+  var closest = null;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();
     }
   });
-  autoScale = closest;
+  if (closest) {
+    autoScale = closest;
+  }
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 

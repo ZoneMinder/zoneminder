@@ -141,7 +141,6 @@ Event::Event(
     if (monitor->ServerId())
       sql += stringtf(" AND ServerId=%u", monitor->ServerId());
 
-    delete storage;
     storage = nullptr;
 
     MYSQL_RES *result = zmDbFetch(sql);
@@ -218,7 +217,8 @@ Event::Event(
       Debug(1, "Video file is %s", video_file.c_str());
     }
   }  // end if GetOptVideoWriter
-  delete storage;
+  if (storage != monitor->getStorage())
+    delete storage;
 }
 
 Event::~Event() {

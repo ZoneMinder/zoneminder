@@ -3,8 +3,10 @@ function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
+  this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
   this.height = monitorData.height;
+  this.scale = 100;
   this.status = null;
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
@@ -15,19 +17,68 @@ function MonitorStream(monitorData) {
   };
   this.type = monitorData.type;
   this.refresh = monitorData.refresh;
+  this.element = null;
+  this.getElement = function() {
+    if (this.element) return this.element;
+    this.element = document.getElementById('liveStream'+this.id);
+    if (!this.element) {
+      console.error("No img for #liveStream"+this.id);
+    }
+    return this.element;
+  };
+
+  /* if the img element didn't have a src, this would fill it in, causing it to show. */
+  this.show = function() {
+    const stream = this.getElement();
+    if (!stream.src) {
+      stream.src = this.url_to_zms+"&mode=single&scale=100&connkey="+this.connKey;
+    }
+  };
+
+  this.setScale = function(newscale) {
+    const img = this.getElement();
+    if (!img) return;
+
+    this.scale = newscale;
+
+    const oldSrc = img.getAttribute('src');
+    let newSrc = '';
+
+    img.setAttribute('src', '');
+    console.log("Scaling to: " + newscale);
+
+    if (newscale == '0' || newscale == 'auto') {
+      let bottomElement = document.getElementById('replayStatus');
+      if (!bottomElement) {
+        bottomElement = document.getElementById('monitorState');
+      }
+      var newSize = scaleToFit(this.width, this.height, $j(img), $j(bottomElement));
+
+      console.log(newSize);
+      newWidth = newSize.width;
+      newHeight = newSize.height;
+      autoScale = parseInt(newSize.autoScale);
+      // This is so that we don't waste bandwidth and let the browser do all the scaling.
+      if (autoScale > 100) autoScale = 100;
+      if (autoScale) {
+        newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+autoScale);
+      }
+    } else {
+      newWidth = this.width * newscale / SCALE_BASE;
+      newHeight = this.height * newscale / SCALE_BASE;
+      img.width(newWidth);
+      img.height(newHeight);
+      if (newscale > 100) newscale = 100;
+      newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+    }
+    img.setAttribute('src', newSrc);
+  };
   this.start = function(delay) {
     // Step 1 make sure we are streaming instead of a static image
-    var stream = $j('#liveStream'+this.id);
-    if (!stream.length) {
-      console.log('No live stream');
-      return;
-    }
-    stream = stream[0];
-    if ( !stream ) {
-      console.log('No live stream');
-      return;
-    }
-    if ( !stream.src ) {
+    const stream = this.getElement();
+    if (!stream) return;
+
+    if (!stream.src) {
       // Website Monitors won't have an img tag
       console.log('No src for #liveStream'+this.id);
       console.log(stream);
@@ -38,7 +89,7 @@ function MonitorStream(monitorData) {
       src += '&connkey='+this.connKey;
     }
     if ( stream.src != src ) {
-      console.log("Setting to streaming");
+      console.log("Setting to streaming: " + src);
       stream.src = '';
       stream.src = src;
     }

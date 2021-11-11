@@ -209,7 +209,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
       --it;
     }
   }
-  Debug(1, "Tail count is %d, queue size is %lu", tail_count, pktQueue.size());
+  Debug(1, "Tail count is %d, queue size is %zu", tail_count, pktQueue.size());
 
   if (!keep_keyframes) {
     // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler

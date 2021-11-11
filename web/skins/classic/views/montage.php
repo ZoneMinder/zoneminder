@@ -206,6 +206,9 @@ if ( canView('System') ) {
             &nbsp;<?php echo translate('Snapshot') ?>
           </button>
 <?php } ?>
+        <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
+        <i class="material-icons md-18">fullscreen</i>
+        </button>
         </form>
       </div>
     </div>

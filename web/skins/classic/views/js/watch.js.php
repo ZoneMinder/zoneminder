@@ -97,9 +97,13 @@ foreach( dbFetchAll( 'SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, a
   $labels[$row['Preset']] = $row['Label'];
 }
 
-foreach ( $labels as $index=>$label ) {
+foreach ($labels as $index=>$label) {
 ?>
 labels[<?php echo validInt($index) ?>] = '<?php echo validJsStr($label) ?>';
 <?php
 }
 ?>
+var translate = {
+  "Fullscreen": "<?php echo translate('Fullscreen') ?>",
+  "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
+};

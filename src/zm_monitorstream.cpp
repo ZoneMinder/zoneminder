@@ -229,6 +229,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       break;
     case CMD_QUIT :
       Info("User initiated exit - CMD_QUIT");
+      zm_terminate = true;
       break;
     case CMD_QUERY :
       Debug(1, "Got QUERY command, sending STATUS");
@@ -315,16 +316,6 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     }
   }
   Debug(2, "Number of bytes sent to (%s): (%d)", rem_addr.sun_path, nbytes);
-
-  // quit after sending a status, if this was a quit request
-  if ( (MsgCommand)msg->msg_data[0] == CMD_QUIT ) {
-    zm_terminate = true;
-    Debug(2, "Quitting");
-    return;
-  }
-
-  //Debug(2,"Updating framerate");
-  //updateFrameRate(monitor->GetFPS());
 }  // end void MonitorStream::processCommand(const CmdMsg *msg)
 
 bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint timestamp) {

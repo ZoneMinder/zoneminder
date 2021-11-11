@@ -100,7 +100,7 @@ public:
   } Deinterlace;
 
   typedef enum {
-    UNKNOWN=-1,
+    UNKNOWN,
     IDLE,
     PREALARM,
     ALARM,
@@ -546,8 +546,7 @@ public:
   unsigned int GetLastWriteIndex() const;
   uint64_t GetLastEventId() const;
   double GetFPS() const;
-  void UpdateAnalysisFPS();
-  void UpdateCaptureFPS();
+  void UpdateFPS();
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();

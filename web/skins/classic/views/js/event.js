@@ -34,7 +34,7 @@ function streamReq(data) {
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(thisUrl, data)
+  $j.getJSON(monitorUrl, data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -657,6 +657,7 @@ function getFrameResponse(respObj, respText) {
 
 function frameQuery(eventId, frameId, loadImage) {
   var data = {};
+  if (auth_hash) data.auth = auth_hash;
   data.loopback = loadImage;
   data.id = {eventId, frameId};
 

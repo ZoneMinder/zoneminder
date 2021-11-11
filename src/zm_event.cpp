@@ -103,7 +103,7 @@ Event::Event(
 
   // Copy it in case opening the mp4 doesn't work we can set it to another value
   save_jpegs = monitor->GetOptSaveJPEGs();
-  Storage * storage = monitor->getStorage();
+  Storage *storage = monitor->getStorage();
   if (monitor->GetOptVideoWriter() != 0) {
     container = monitor->OutputContainer();
     if ( container == "auto" || container == "" ) {
@@ -133,22 +133,22 @@ Event::Event(
       );
   id = zmDbDoInsert(sql);
 
-  if ( !SetPath(storage) ) {
+  if (!SetPath(storage)) {
     // Try another
     Warning("Failed creating event dir at %s", storage->Path());
 
     sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
-    if ( monitor->ServerId() )
+    if (monitor->ServerId())
       sql += stringtf(" AND ServerId=%u", monitor->ServerId());
 
-    Debug(1, "%s", sql.c_str());
+    delete storage;
     storage = nullptr;
 
     MYSQL_RES *result = zmDbFetch(sql);
-    if ( result ) {
-      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+    if (result) {
+      for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
         storage = new Storage(atoi(dbrow[0]));
-        if ( SetPath(storage) )
+        if (SetPath(storage))
           break;
         delete storage;
         storage = nullptr;
@@ -156,18 +156,18 @@ Event::Event(
       mysql_free_result(result);
       result = nullptr;
     }
-    if ( !storage ) {
+    if (!storage) {
       Info("No valid local storage area found.  Trying all other areas.");
       // Try remote
       sql = "SELECT `Id` FROM `Storage` WHERE ServerId IS NULL";
-      if ( monitor->ServerId() )
+      if (monitor->ServerId())
         sql += stringtf(" OR ServerId != %u", monitor->ServerId());
 
       result = zmDbFetch(sql);
-      if ( result ) {
+      if (result) {
         for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
           storage = new Storage(atoi(dbrow[0]));
-          if ( SetPath(storage) )
+          if (SetPath(storage))
             break;
           delete storage;
           storage = nullptr;
@@ -176,7 +176,7 @@ Event::Event(
         result = nullptr;
       }
     }
-    if ( !storage ) {
+    if (!storage) {
       storage = new Storage();
       Warning("Failed to find a storage area to save events.");
     }
@@ -218,6 +218,7 @@ Event::Event(
       Debug(1, "Video file is %s", video_file.c_str());
     }
   }  // end if GetOptVideoWriter
+  delete storage;
 }
 
 Event::~Event() {

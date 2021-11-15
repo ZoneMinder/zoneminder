@@ -43,11 +43,11 @@ Logger::IntMap Logger::smSyslogPriorities;
 
 void Logger::usrHandler(int sig) {
   Logger *logger = fetch();
-  if ( sig == SIGUSR1 )
+  if (sig == SIGUSR1)
     logger->level(logger->level()+1);
-  else if ( sig == SIGUSR2 )
+  else if (sig == SIGUSR2)
     logger->level(logger->level()-1);
-  Info("Logger - Level changed to %d", logger->level());
+  Info("Logger - Level changed to %d %s", logger->level(), smCodes[logger->level()].c_str());
 }
 
 Logger::Logger() :
@@ -296,23 +296,23 @@ const std::string &Logger::id(const std::string &id) {
 }
 
 Logger::Level Logger::level(Logger::Level level) {
-  if ( level > NOOPT ) {
+  if (level > NOOPT) {
     mLevel = limit(level);
 
     mEffectiveLevel = NOLOG;
-    if ( mTerminalLevel > mEffectiveLevel )
+    if (mTerminalLevel > mEffectiveLevel)
       mEffectiveLevel = mTerminalLevel;
-    if ( mDatabaseLevel > mEffectiveLevel )
+    if (mDatabaseLevel > mEffectiveLevel)
       mEffectiveLevel = mDatabaseLevel;
-    if ( mFileLevel > mEffectiveLevel )
+    if (mFileLevel > mEffectiveLevel)
       mEffectiveLevel = mFileLevel;
-    if ( mSyslogLevel > mEffectiveLevel )
+    if (mSyslogLevel > mEffectiveLevel)
       mEffectiveLevel = mSyslogLevel;
-    if ( mEffectiveLevel > mLevel)
+    if (mEffectiveLevel > mLevel)
       mEffectiveLevel = mLevel;
 
     // DEBUG levels should flush
-    if ( mLevel > INFO )
+    if (mLevel > INFO)
       mFlush = true;
   }
   return mLevel;

@@ -45,3 +45,26 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+SET @s = (SELECT IF( 
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'MonitorPresets'
+     AND column_name = 'ModelId'
+    ) > 0,
+"SELECT 'Column ModelId already exists in MonitorPresets'",
+"ALTER TABLE `MonitorPresets` ADD `ModelId`  int(10) unsigned AFTER `Id`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE table_schema = DATABASE()
+     AND table_name = 'MonitorPresets'
+     AND column_name = 'ModelId'
+    ) > 0,
+"SELECT 'FOREIGN KEY for ModelId already exists in MonitorPresets'",
+"ALTER TABLE `MonitorPresets` ADD FOREIGN KEY  (`ModelId`) REFERENCES `Models` (Id)"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;

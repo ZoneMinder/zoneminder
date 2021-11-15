@@ -68,3 +68,6 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+UPDATE `MonitorPresets` SET `ModelId`=(SELECT `Id` FROM `Models` WHERE `Name`='IP8M-T2499EW') WHERE `Name` like 'Amcrest, IP8M-T2499EW
+%';
